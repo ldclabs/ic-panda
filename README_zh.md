@@ -17,11 +17,11 @@ PANDA 代币是 IC Panda DAO 的治理代币，持有者可以通过持有 PANDA
 
 ## 代币分配
 
-1. 开发团队：**3%**，锁定期12个月。
-2. 种子投资：**6%**，锁定期6个月，募集 6,000 个 ICP 代币（总估值 100,000 ICP），接收的 ICP 支付给开发团队作为项目初期研发和启动成本。
-3. SNS 交换：**12%**，锁定期1～3个月，募集 24,000~48,000 个 ICP 代币（总估值 240,000~480,000 ICP），接收的 ICP 归属项目国库。SNS 是 ICP 官方提供的去中心化项目启动器，详见 https://nns.ic0.app/launchpad/ 。
+1. 开发团队：**3%**，锁定期 12 个月。
+2. 种子投资：**6%**，锁定期 6 个月，募集 6,000 个 ICP 代币（总估值 100,000 ICP），接收的 ICP 支付给开发团队作为项目初期研发和启动成本。
+3. SNS 交换：**12%**，分别锁定期 1,2,3 个月，募集 24,000～48,000 个 ICP 代币（总估值 240,000～480,000 ICP），接收的 ICP 归属项目国库。SNS 是 ICP 官方提供的去中心化项目启动器，详见 https://nns.ic0.app/launchpad/ 。
 4. DAO 国库：**9%**，用于项目研发、IC 云计算资源开销和其它运营成本。
-5. 中心化交易所：**10%**，激励前4家主流 CEX（按先后配给4%，3%，2%，1%）上线 PANDA 代币。
+5. 中心化交易所：**10%**，激励前 4 家主流 CEX（按先后配给 4%，3%，2%，1%）上线 PANDA 代币。
 6. 社区创作激励：**10%**，熊猫品牌文化 NFT 创作平台上线后，用户创作的优秀作品将获得 PANDA 代币奖励。
 7. 铸造池：**50%**，每次花费 1 个 ICP 代币的 Gas 费用，可随机铸造出 100～100,000 个 PANDA 代币，铸造次数不受限。如果铸造池的 PANDA 代币比当前铸造随机值少，则铸造池的 PANDA 代币将被清空。
 
@@ -43,4 +43,4 @@ NFT 作品上架、去中心化品牌上架都需要燃烧 PANDA 代币，燃烧
 
 ## FAQ
 1. 种子投资参与方式
-将 100～6000 个 ICP 发送到地址 8dceaae98ba94503888beb0a5fac5e33c9b1022019462106ae171782a1642443，然后 github issue 或者通过wechat、twitter 私信告知 Transaction id 和 principal id。其中，principal id 可以在 https://nns.ic0.app/settings/ 看到。
+将 100～6000 个 ICP 发送到地址 [8dceaae98ba94503888beb0a5fac5e33c9b1022019462106ae171782a1642443](https://dashboard.internetcomputer.org/account/8dceaae98ba94503888beb0a5fac5e33c9b1022019462106ae171782a1642443)，然后 github issue 或者通过 Wechat、[Twitter](https://twitter.com/ICPandaDAO) 私信告知 Transaction id 和 principal id。其中，principal id 可以在 https://nns.ic0.app/settings/ 看到。超过 6000 个 ICP 的部分将不再接受并原路退回。
