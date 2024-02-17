@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "ic_panda_backend": {
+      "candid": "src/ic_panda_backend/ic_panda_backend.did",
+      "package": "ic_panda_backend",
+      "type": "rust"
+    },
+    "ic_panda_frontend": {
+      "dependencies": [
+        "ic_panda_backend"
+      ],
+      "source": [
+        "src/ic_panda_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "ic_panda_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
