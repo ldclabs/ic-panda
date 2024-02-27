@@ -1,5 +1,3 @@
 [workspace]
-members = [
-    "src/ic_panda_backend"
-]
+members = ["src/ic_panda_luckypool"]
 resolver = "2"

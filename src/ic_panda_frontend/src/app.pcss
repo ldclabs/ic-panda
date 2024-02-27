@@ -1,0 +1,29 @@
+/* Write your global styles here, in PostCSS syntax */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* https://www.skeleton.dev/components/app-shell */
+html,
+body {
+  @apply h-full overflow-hidden;
+}
+
+body {
+  opacity: 0.8;
+  background-image: radial-gradient(
+      61% 61% at 15% 105%,
+      rgba(89, 255, 238, 0.2) 0%,
+      rgba(89, 255, 238, 0) 100%
+    ),
+    radial-gradient(
+      104% 104% at 95% 0%,
+      rgba(255, 230, 103, 0.2) 0%,
+      rgba(255, 230, 103, 0) 100%
+    ),
+    linear-gradient(
+      228deg,
+      rgba(17, 194, 145, 0.08) 1%,
+      rgba(17, 194, 145, 0.2) 100%
+    );
+}
