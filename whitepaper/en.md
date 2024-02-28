@@ -12,10 +12,8 @@ We will have pandas in Web3, and we will have pandas in the metaverse. Let's mak
 
 ## Internet Computer Overview
 
-The [**Internet Computer**](https://internetcomputer.org/) (IC) adds autonomous serverless cloud functionality to the public Internet – making it possible to build almost any system or service entirely on a decentralized network using “canister software,” an evolution of smart contracts.
-
-Web3 services and enterprise systems can be built directly on the Internet Computer — a public decentralized network that scales.
-Host social networks, media streaming and more, that support Web3 functionality, are tamperproof, and can trustlessly interact with the outside world.
+The [**Internet Computer**](https://internetcomputer.org/) (IC) integrates autonomous serverless cloud functionality into the public Internet. This advancement enables the creation of virtually any system or service on a decentralized network, utilizing 'canister software'—an evolved form of smart contracts.
+Web3 services and enterprise systems can be directly built on the Internet Computer—a scalable public decentralized network. It is capable of hosting social networks, media streaming, and more, offering Web3 functionality. These services are tamper-proof and can interact with the outside world in a trustless manner.
 
 ## Main Offerings
 
@@ -33,7 +31,7 @@ Users can create and trade panda culture NFTs on this platform, which can be in 
 
 ### Decentralized and Open Panda Meme Brand Platform
 
-This platform is built on the RWA (Real World Asset) concept, aiming to introduce panda culture and related brands from Web2 and offline entities into Web3, or bring original panda culture from Web3 to Web2 and offline entities. This includes but is not limited to the digital avatars of real pandas, panda culture merchandise, derivative movies, and games. The platform will promote the globalization of panda culture through online and offline open cooperation and traffic interchange.
+This platform is built on the RWA (Real World Asset) concept, aiming to introduce panda culture and related brands from Web2 and offline entities into Web3, or bring original panda culture from Web3 to Web2 and offline entities. This includes but is not limited to the digital avatars of real pandas, panda culture merchandise, derivative movies, and games. The platform aims to globalize panda culture by fostering open cooperation and facilitating traffic exchange both online and offline.
 
 ## Tokenomics
 
