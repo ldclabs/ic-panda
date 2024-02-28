@@ -90,9 +90,51 @@ NnsProposal:
 
   # The description of the proposal. Must be a string of 10 to 2,000 bytes.
   summary: >
-    Proposal to create an SNS for the project ICPanda DAO.
-    The SNS will be initialized with the following neurons:
-    ...
+    NNS Proposal to create an SNS named 'ICPanda DAO'.
+
+    ## Introduction
+
+    ICPanda is a decentralized Panda meme brand built on the Internet Computer.
+
+    ## Tokenomics
+
+    Token Name: ICPanda
+    Token Symbol: PANDA
+    Total Supply (Initial): 1,000,000,000
+    Allocation:
+      - Development Team: 4%, locked for 0～6 months
+      - Seed Funders: 4%, locked for 0～3 months
+      - SNS Swap: 12%, locked for 0～3 months
+      - DAO treasury: 80%
+        - Lucky pool: 50%
+        - Community creative incentive: 10%
+        - CEX incentive: 10%
+        - DAO development fund: 10%
+
+    ## Decentralization SNS Swap
+
+    - Min participation: 10 ICP
+    - Max participation: 10,000 ICP
+    - Min to be raised: 12,000 ICP
+    - Max to be raised: 60,000 ICP
+    - Min participants:  42
+
+    ## Governance
+
+    Governance The governance model includes staking, voting, and other relevant details. The minimum amount of SNS tokens to stake a neuron is 10,000 PANDA. The minimum dissolve delay for a neuron to cast votes on proposals is 1 month and the maxmimum dissolve delay is 2 years.
+
+    ## The Dapps
+
+    The ICPanda is composed of multiple canisters with the SNS directly controlling the following canisters:
+
+    - c63a7-6yaaa-aaaap-ab3gq-cai (ICPanda Web App)
+    - a7cug-2qaaa-aaaap-ab3la-cai (ICPanda Lucky Pool)
+
+    ## Verification
+
+    For more information, please refer to the [SNS initial parameters](https://github.com/ldclabs/ic-panda/blob/main/sns_init.yaml).
+
+    All information about the project can be verified in the (whitepaper)[https://github.com/ldclabs/ic-panda/blob/main/whitepaper/en.md] and on (Github)[https://github.com/ldclabs/ic-panda].
 
 # If the SNS launch attempt fails, control over the dapp canister(s) is given to
 # these principals. In most use cases, this is chosen to be the original set of
@@ -101,7 +143,6 @@ fallback_controller_principals:
   # For the actual SNS launch, you should replace this with one or more
   # principals of your intended fallback controllers.
   #
-  # For testing, propose_sns.sh will fill this in automatically.
   - ntihc-z566a-oifro-4tvua-vkbdv-ndi7q-tx2h6-yblw7-t6ofd-g7fwa-gqe
   - i2gam-uue3y-uxwyd-mzyhb-nirhd-hz3l4-2hw3f-4fzvw-lpvvc-dqdrg-7qe
 
@@ -116,8 +157,9 @@ dapp_canisters:
   # For the actual SNS launch, you should replace this with one or more
   # IDs of the canisters comprising your to-be-decentralized dapp.
   #
-  # For testing, propose_sns.sh will fill this in automatically.
+  # ICPanda Web App
   - c63a7-6yaaa-aaaap-ab3gq-cai
+  # ICPanda Lucky Pool
   - a7cug-2qaaa-aaaap-ab3la-cai
 
 # Configuration of SNS tokens in the SNS Ledger canister deployed as part
@@ -145,7 +187,7 @@ Token:
 Proposals:
   # The cost of making an SNS proposal that is rejected by the SNS neuron
   # holders. This field is specified as a token. For example: "1 token".
-  rejection_fee: 1 token
+  rejection_fee: 7 tokens
 
   # The initial voting period of an SNS proposal. A proposal's voting period
   # may be increased during its lifecycle due to the wait-for-quiet algorithm
@@ -407,7 +449,8 @@ Distribution:
     swap: 120_000_000 tokens
 
   # Checksum of the total number of tokens distributed in this section.
-  #     80 million    (dev neuron)
+  #     40 million    (dev team)
+  #     40 million    (Seed funders)
   #     800 million   (governance)
   # +   120 million   (swap)
   # --------------
@@ -418,12 +461,12 @@ Distribution:
 # canister(s) to the fallback controllers (defined in
 # `fallback_controller_principals`) and you will need to start over.
 Swap:
-  # The minimum number of direct participants that must participate for the
+  # The minimum number of participants that must participate for the
   # decentralization swap to succeed. If a decentralization swap finishes due
   # to the deadline or the maximum target being reached, and if there are less
-  # than `minimum_participants` (here, only direct participants are counted),
-  # the swap will be committed.
-  minimum_participants: 100
+  # than `minimum_participants`, the swap will fail. This field is specified
+  # as an integer. For example: "50".
+  minimum_participants: 42
 
   # Minimum amount of ICP from direct participants. This amount is required for
   # the swap to succeed. If this amount is not achieved, the swap will be
@@ -464,7 +507,7 @@ Swap:
   # are allowed.
   #
   # Each list element must be an ISO 3166-1 alpha-2 country code.
-  restricted_countries:
+  # restricted_countries:
 
   # Configuration of the vesting schedule of the neuron basket, i.e., the SNS
   # neurons that a participants will receive from a successful
@@ -518,7 +561,7 @@ Swap:
   # The duration of the decentralization swap. When `start_time` is calculated
   # during CreateServiceNervousSystem proposal execution, this `duration` will
   # be added to that absolute time and set as the swap's deadline.
-  duration: 15 days
+  duration: 14 days
 
   # Whether Neurons' Fund participation is requested.
   neurons_fund_participation: true
