@@ -23,7 +23,7 @@ Users can obtain PANDA tokens through airdrops for free, which allows them to pa
 
 ### Panda Badges System
 
-The panda badge is an image NFT officially produced by the ICPanda DAO. Users can purchase panda badges with PANDA tokens, allowing them to display their virtual panda identity on social networks, media streaming, and other Web3 platforms.
+The panda badge is an image SFT (Semi-Fungible Token) officially produced by the ICPanda DAO. Users can purchase panda badges with PANDA tokens, allowing them to display their virtual panda identity on social networks, media streaming, and other Web3 platforms.
 
 ### Panda Culture NFT Creation And Trading Platform
 

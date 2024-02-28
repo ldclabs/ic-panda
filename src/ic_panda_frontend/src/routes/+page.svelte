@@ -10,7 +10,6 @@
   import IconX from '$lib/components/icons/IconX.svelte';
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte';
   import { ConicGradient } from '@skeletonlabs/skeleton';
-  import type { ConicStop } from '@skeletonlabs/skeleton';
 
   let principal = "";
 
@@ -82,77 +81,77 @@
           <p class="text-panda mr-1">1,000,000,000</p>
         </h3>
       </div>
-      <ConicGradient width="w-36" stops={[
+      <ConicGradient legend width="w-36" class="hover:scale-125 transition duration-700 ease-in-out" stops={[
         { label: 'Dev Team', color: 'rgba(15,186,129,0.8)', start: 0, end: 4 },
         { label: 'Seed Funders', color: 'rgba(79,70,229,0.8)', start: 4, end: 8 },
         { label: 'SNS Swap', color: 'rgba(212,25,118,0.8)', start: 8, end: 20 },
         { label: 'DAO Treasury', color: 'rgba(234,179,8,0.8)', start: 20, end: 100 }
-    ]} legend><h3 class="h3 font-bold">Token Distribution</h3></ConicGradient>
+    ]}><h3 class="h3 font-bold">Token Distribution</h3></ConicGradient>
     </div>
   </div>
 
   <div class="mt-12 lg:mt-24 max-w-4xl w-full flex flex-col flex-nowrap content-center items-center">
     <h2 class="h2 uppercase font-extrabold">Roadmap</h2>
-    <div class="mt-8 w-full v-timeline">
+    <div class="mt-8 v-timeline">
       <div class="relative ml-8 mt-8 mb-10 lg:mb-20">
-        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-1.webp" alt="Panda badge">
+        <img class="absolute top-[-16px] left-[-80px] hover:scale-150 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-1.webp" alt="Panda badge">
         <h3 class="h3 font-bold"><span class="text-panda mr-1">Feb</span>2024</h3>
         <div class="flex flex-row gap-3 mt-5">
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span class="text-panda mr-1"><IconCheckbox /></span>
             <span>Project Launch</span>
           </p>
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span class="text-panda mr-1"><IconCheckbox /></span>
             <span>Seed Fundraising</span>
           </p>
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span class="text-panda mr-1"><IconCheckbox /></span>
             <span>Website On IC</span>
           </p>
         </div>
       </div>
       <div class="relative ml-8 mb-10 lg:mb-20">
-        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-2.webp" alt="Panda badge">
+        <img class="absolute top-[-16px] left-[-80px] hover:scale-150 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-2.webp" alt="Panda badge">
         <h3 class="h3 font-bold"><span class="text-panda mr-1">Q1</span>2024</h3>
         <div class="flex flex-row gap-3 mt-5">
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>SNS Swap</span>
           </p>
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>Launch Lucky Pool</span>
           </p>
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>List PANDA Token on DEX</span>
           </p>
         </div>
       </div>
       <div class="relative ml-8 mb-10 lg:mb-20">
-        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-3.webp" alt="Panda badge">
+        <img class="absolute top-[-16px] left-[-80px] hover:scale-150 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-3.webp" alt="Panda badge">
         <h3 class="h3 font-bold"><span class="text-panda mr-1">Q2</span>2024</h3>
         <div class="flex flex-row gap-3 mt-5">
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>Launch Panda Badges System</span>
           </p>
         </div>
       </div>
       <div class="relative ml-8 mb-10 lg:mb-20">
-        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-4.webp" alt="Panda badge">
+        <img class="absolute top-[-16px] left-[-80px] hover:scale-150 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-4.webp" alt="Panda badge">
         <h3 class="h3 font-bold"><span class="text-panda mr-1">Q3</span>2024</h3>
         <div class="flex flex-row gap-3 mt-5">
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>Launch Panda NFT Platform</span>
           </p>
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>List PANDA Token on CEX</span>
           </p>
         </div>
       </div>
       <div class="relative ml-8 mb-10 lg:mb-20">
-        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-5.webp" alt="Panda badge">
+        <img class="absolute top-[-16px] left-[-80px] hover:scale-150 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-5.webp" alt="Panda badge">
         <h3 class="h3 font-bold"><span class="text-panda mr-1">Q4</span>2024</h3>
         <div class="flex flex-row gap-3 mt-5">
-          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center hover:scale-110 transition duration-700 ease-in-out">
             <span>Launch Panda Meme Brand Platform</span>
           </p>
         </div>
