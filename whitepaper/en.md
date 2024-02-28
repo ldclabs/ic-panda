@@ -46,7 +46,7 @@ This platform is built on the RWA (Real World Asset) concept, aiming to introduc
 | Development Team | **4%**     | 40,000,000     | Locked for 0～6 months       |
 | Seed Funders     | **4%**     | 40,000,000     | Locked for 0～3 months       |
 | SNS Swap         | **12%**    | 120,000,000    | Locked for 0～3 months       |
-| DAO treasury     | **80%**    | 800,000,000    |                              |
+| DAO Treasury     | **80%**    | 800,000,000    |                              |
 |                  | -- **50%** | -- 500,000,000 | Lucky pool                   |
 |                  | -- **10%** | -- 100,000,000 | Community creative incentive |
 |                  | -- **10%** | -- 100,000,000 | CEX incentive                |

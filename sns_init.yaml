@@ -86,7 +86,7 @@ NnsProposal:
 
   # The HTTPS address of additional content required to evaluate the NNS
   # proposal.
-  url: 'https://forum.dfinity.org'
+  url: 'https://forum.dfinity.org/t/upcoming-icpanda-dao-launch-sns/27967'
 
   # The description of the proposal. Must be a string of 10 to 2,000 bytes.
   summary: >

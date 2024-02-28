@@ -11,6 +11,9 @@ const config = {
     ),
   ],
   theme: {
+    colors: {
+      panda: "#11c291",
+    },
     extend: {},
   },
   plugins: [

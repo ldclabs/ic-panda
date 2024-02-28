@@ -8,6 +8,9 @@
   import { Avatar } from '@skeletonlabs/skeleton';
   import IconGithub from '$lib/components/icons/IconGithub.svelte';
   import IconX from '$lib/components/icons/IconX.svelte';
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte';
+  import { ConicGradient } from '@skeletonlabs/skeleton';
+  import type { ConicStop } from '@skeletonlabs/skeleton';
 
   let principal = "";
 
@@ -30,7 +33,7 @@
 
 </script>
 
-<div class="mt-24 px-4 flex flex-col flex-nowrap content-center items-center">
+<div class="mt-12 lg:mt-24 mb-24 px-4 flex flex-col flex-nowrap content-center items-center">
   <div class="flex flex-col items-center">
     <Avatar
       class="hover:scale-150 transition duration-700 ease-in-out"
@@ -44,22 +47,117 @@
   </div>
 
   <div class="mt-5 max-w-4xl">
-    <p class="text-lg antialiased font-normal text-center capitalize">ICPanda DAO represents a Decentralized Autonomous Organization (DAO) committed to advancing the Panda brand within the decentralized ecosystem of the Internet Computer. As a DAO, it operates with a community-driven approach, leveraging the Internet Computer's blockchain technology to foster an environment of transparency, autonomy, and collaborative decision-making. This initiative aims to cultivate and expand the Panda brand's presence and influence in a decentralized manner.</p>
+    <p class="text-lg antialiased font-normal text-center capitalize">ICPanda DAO represents a Decentralized Autonomous Organization (DAO) committed to advancing the Panda meme brand within the decentralized ecosystem of the Internet Computer. As a DAO, it operates with a community-driven approach, leveraging the Internet Computer's blockchain technology to foster an environment of transparency, autonomy, and collaborative decision-making.</p>
   </div>
 
-  <div class="mt-10 space-x-4">
+  <div class="mt-10 max-w-4xl space-x-4">
     <a type="button" class="btn variant-filled bg-slate-950" href="https://twitter.com/ICPandaDAO" target="_blank">
       <span><IconX /></span>
       <span class="text-left">
-        Official Twitter
+        Twitter
       </span>
     </a>
     <a type="button" class="btn variant-filled bg-slate-950" href="https://github.com/ldclabs/ic-panda" target="_blank">
       <span><IconGithub /></span>
       <span class="text-left">
-        Github Repository
+        More Info
       </span>
     </a>
+  </div>
+
+  <div class="mt-12 lg:mt-24 max-w-4xl w-full flex flex-col flex-nowrap content-center items-center">
+    <h2 class="h2 uppercase font-extrabold">Tokenomics</h2>
+    <div class="w-full flex flex-row mt-8 justify-evenly">
+      <div class="flex flex-col gap-3">
+        <h3 class="h3 font-bold">
+          <p>Token Name</p>
+          <p class="text-panda mr-1">ICPanda</p>
+        </h3>
+        <h3 class="h3 font-bold">
+          <p>Token Symbol</p>
+          <p class="text-panda mr-1">PANDA</p>
+        </h3>
+        <h3 class="h3 font-bold">
+          <p>Total Supply</p>
+          <p class="text-panda mr-1">1,000,000,000</p>
+        </h3>
+      </div>
+      <ConicGradient width="w-36" stops={[
+        { label: 'Dev Team', color: 'rgba(15,186,129,0.8)', start: 0, end: 4 },
+        { label: 'Seed Funders', color: 'rgba(79,70,229,0.8)', start: 4, end: 8 },
+        { label: 'SNS Swap', color: 'rgba(212,25,118,0.8)', start: 8, end: 20 },
+        { label: 'DAO Treasury', color: 'rgba(234,179,8,0.8)', start: 20, end: 100 }
+    ]} legend><h3 class="h3 font-bold">Token Distribution</h3></ConicGradient>
+    </div>
+  </div>
+
+  <div class="mt-12 lg:mt-24 max-w-4xl w-full flex flex-col flex-nowrap content-center items-center">
+    <h2 class="h2 uppercase font-extrabold">Roadmap</h2>
+    <div class="mt-8 w-full v-timeline">
+      <div class="relative ml-8 mt-8 mb-10 lg:mb-20">
+        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-1.webp" alt="Panda badge">
+        <h3 class="h3 font-bold"><span class="text-panda mr-1">Feb</span>2024</h3>
+        <div class="flex flex-row gap-3 mt-5">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span class="text-panda mr-1"><IconCheckbox /></span>
+            <span>Project Launch</span>
+          </p>
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span class="text-panda mr-1"><IconCheckbox /></span>
+            <span>Seed Fundraising</span>
+          </p>
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span class="text-panda mr-1"><IconCheckbox /></span>
+            <span>Website On IC</span>
+          </p>
+        </div>
+      </div>
+      <div class="relative ml-8 mb-10 lg:mb-20">
+        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-2.webp" alt="Panda badge">
+        <h3 class="h3 font-bold"><span class="text-panda mr-1">Q1</span>2024</h3>
+        <div class="flex flex-row gap-3 mt-5">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>SNS Swap</span>
+          </p>
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>Launch Lucky Pool</span>
+          </p>
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>List PANDA Token on DEX</span>
+          </p>
+        </div>
+      </div>
+      <div class="relative ml-8 mb-10 lg:mb-20">
+        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-3.webp" alt="Panda badge">
+        <h3 class="h3 font-bold"><span class="text-panda mr-1">Q2</span>2024</h3>
+        <div class="flex flex-row gap-3 mt-5">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>Launch Panda Badges System</span>
+          </p>
+        </div>
+      </div>
+      <div class="relative ml-8 mb-10 lg:mb-20">
+        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-4.webp" alt="Panda badge">
+        <h3 class="h3 font-bold"><span class="text-panda mr-1">Q3</span>2024</h3>
+        <div class="flex flex-row gap-3 mt-5">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>Launch Panda NFT Platform</span>
+          </p>
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>List PANDA Token on CEX</span>
+          </p>
+        </div>
+      </div>
+      <div class="relative ml-8 mb-10 lg:mb-20">
+        <img class="absolute top-[-16px] left-[-80px]" src="/_assets/images/panda-badge-5.webp" alt="Panda badge">
+        <h3 class="h3 font-bold"><span class="text-panda mr-1">Q4</span>2024</h3>
+        <div class="flex flex-row gap-3 mt-5">
+          <p class="card bg-[#fff] p-6 lg:px-8 inline-flex flex-row content-center items-center">
+            <span>Launch Panda Meme Brand Platform</span>
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- <section>Principal: {principal}</section>
@@ -69,7 +167,7 @@
 	</ButtonIC> -->
 </div>
 
-<div class="flex flex-col items-center absolute inset-x-0 bottom-10 h-16">
+<div class="flex flex-col items-center inset-x-0 h-16 my-10">
   <img class="mt-4 w-28" src="/_assets/icpanda-dao.svg" alt="ICPanda brand"/>
   <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50">A decentralized Panda meme brand built on the Internet Computer.</p>
 </div>
