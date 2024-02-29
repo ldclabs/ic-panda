@@ -1,1 +1,10 @@
-service : { whoami : () -> (principal) query }
+type AirdropClaimArg = record { challenge : text; code : text };
+type Challenge = record { challenge : text; img_base64 : text };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : Challenge; Err : text };
+service : {
+  airdrop_claim : (AirdropClaimArg) -> (Result);
+  get_captcha : () -> (Result_1);
+  reset_secret : () -> (Result);
+  whoami : () -> (principal) query;
+}
