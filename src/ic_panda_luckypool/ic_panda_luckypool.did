@@ -1,9 +1,9 @@
-type AirdropClaimArg = record { challenge : text; code : text };
-type Challenge = record { challenge : text; img_base64 : text };
+type AirdropClaimInput = record { challenge : text; code : text };
+type CaptchaOutput = record { challenge : text; img_base64 : text };
 type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : Challenge; Err : text };
+type Result_1 = variant { Ok : CaptchaOutput; Err : text };
 service : {
-  airdrop_claim : (AirdropClaimArg) -> (Result);
+  airdrop_claim : (AirdropClaimInput) -> (Result);
   get_captcha : () -> (Result_1);
   reset_secret : () -> (Result);
   whoami : () -> (principal) query;

@@ -1,24 +1,29 @@
-use base64::{engine::general_purpose, Engine};
-use candid::Principal;
+use candid::{candid_method, Principal};
 use ic_captcha::CaptchaBuilder;
 use once_cell::sync::Lazy;
-use sha3::{Digest, Sha3_256};
 
+mod crypto;
 mod store;
 mod types;
 
+use crypto::mac_256;
 use store::{with_state, with_state_mut};
-use types::{AirdropClaimArg, Challenge};
+use types::{AirdropClaimInput, CaptchaOutput, Challenge};
+
+const SECOND: u64 = 1_000_000_000;
+const CAPTCHA_EXPIRE: u64 = SECOND * 60 * 5;
 
 static ANONYMOUS: Principal = Principal::anonymous();
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
 #[ic_cdk::query]
+#[candid_method(query)]
 fn whoami() -> Principal {
     ic_cdk::caller()
 }
 
 #[ic_cdk::update]
+#[candid_method(update)]
 async fn reset_secret() -> Result<(), String> {
     if !ic_cdk::api::is_controller(&ic_cdk::caller()) {
         return Err("only the controller can reset secret".to_string());
@@ -26,9 +31,9 @@ async fn reset_secret() -> Result<(), String> {
 
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
-        .expect("failed to get random bytes");
+        .map_err(|_err| "failed to get random bytes".to_string())?;
 
-    let captcha_secret = next_seed(&rr.0, b"Captcha Secret");
+    let captcha_secret = mac_256(&rr.0, b"Captcha Secret");
     with_state_mut(|state| {
         state.captcha_secret = captcha_secret;
     });
@@ -37,7 +42,8 @@ async fn reset_secret() -> Result<(), String> {
 }
 
 #[ic_cdk::update]
-async fn get_captcha() -> Result<Challenge, String> {
+#[candid_method(update)]
+async fn get_captcha() -> Result<CaptchaOutput, String> {
     let user = ic_cdk::caller();
     if user == ANONYMOUS {
         return Err("anonymous user is not allowed".to_string());
@@ -45,48 +51,43 @@ async fn get_captcha() -> Result<Challenge, String> {
 
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
-        .expect("failed to get random bytes");
-    let captcha = CAPTCHA_BUILDER.generate(&rr.0, None);
-    let challenge = with_state(|state| {
-        next_seed(
-            &state.captcha_secret,
-            captcha.text().to_lowercase().as_bytes(),
-        )
-    });
+        .map_err(|_err| "failed to get random bytes".to_string())?;
 
-    Ok(Challenge {
+    let captcha = CAPTCHA_BUILDER.generate(&rr.0, None);
+    let now = ic_cdk::api::time();
+    let challenge = Challenge {
+        code: captcha.text().to_lowercase(),
+        time: now / SECOND,
+    };
+
+    let challenge = with_state(|state| challenge.sign_to_base64(&state.captcha_secret))?;
+    Ok(CaptchaOutput {
         img_base64: captcha.to_base64(0),
-        challenge: general_purpose::URL_SAFE_NO_PAD.encode(&challenge[0..16]),
+        challenge,
     })
 }
 
 #[ic_cdk::update]
-async fn airdrop_claim(arg: AirdropClaimArg) -> Result<(), String> {
+#[candid_method(update)]
+async fn airdrop_claim(args: AirdropClaimInput) -> Result<(), String> {
     let user = ic_cdk::caller();
     if user == ANONYMOUS {
         return Err("anonymous user is not allowed".to_string());
     }
 
-    let challenge = general_purpose::URL_SAFE_NO_PAD
-        .decode(arg.challenge.as_bytes())
-        .map_err(|_err| "invalid challenge".to_string())?;
-
-    let challenge2 =
-        with_state(|state| next_seed(&state.captcha_secret, arg.code.to_lowercase().as_bytes()));
-    if challenge.as_slice() != &challenge2[0..16] {
-        return Err("invalid captcha code".to_string());
-    }
+    let expire_at = ic_cdk::api::time() - CAPTCHA_EXPIRE;
+    let _ = with_state(|state| {
+        Challenge::verify_from_base64(
+            &state.captcha_secret,
+            &args.code.to_lowercase(),
+            &args.challenge,
+            expire_at / SECOND,
+        )
+    })?;
 
     // TODO: claim airdrop
 
     Ok(())
-}
-
-fn next_seed(seed: &[u8], add: &[u8]) -> [u8; 32] {
-    let mut hasher = Sha3_256::new();
-    hasher.update(seed);
-    hasher.update(add);
-    hasher.finalize().into()
 }
 
 ic_cdk::export_candid!();
