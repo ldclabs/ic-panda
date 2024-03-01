@@ -5,15 +5,14 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, cell::RefCell};
+use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct State {
     pub total_airdrop: u64,
-    pub totaol_lucky_draw: u64,
-    pub captcha_secret: [u8; 32],
+    pub total_lucky_draw: u64,
 }
 
 // NOTE: the default configuration is dysfunctional, but it's convenient to have
@@ -41,6 +40,10 @@ const LUCKY_DRAW_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(5);
 const LUCKY_DRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(6);
 
 thread_local! {
+    static CAPTCHA_SECRET: RefCell<[u8; 32]> = RefCell::new([0; 32]);
+
+    static ACTIVE_USERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
@@ -78,6 +81,23 @@ thread_local! {
     );
 }
 
+pub fn with_captcha_secret<R>(f: impl FnOnce(&[u8]) -> R) -> R {
+    CAPTCHA_SECRET.with(|r| f(r.borrow().as_slice()))
+}
+
+pub fn set_captcha_secret(secret: [u8; 32]) {
+    CAPTCHA_SECRET.with(|r| *r.borrow_mut() = secret);
+}
+
+// add a user to the active user set, return true if the user is not in the set
+pub fn active_user(user: Principal) -> bool {
+    ACTIVE_USERS.with(|r| r.borrow_mut().insert(user))
+}
+
+pub fn deactive_user(user: Principal) {
+    ACTIVE_USERS.with(|r| r.borrow_mut().remove(&user));
+}
+
 /// A helper function to access the state.
 pub fn with_state<R>(f: impl FnOnce(&State) -> R) -> R {
     STATE.with(|r| f(r.borrow().get()))
@@ -93,4 +113,12 @@ pub fn with_state_mut(f: impl FnOnce(&mut State)) {
             borrowed.set(state)
         })
         .expect("failed to set STATE data");
+}
+
+pub fn get_airdrop(user: Principal) -> Option<u64> {
+    AIRDROP.with(|r| r.borrow().get(&user))
+}
+
+pub fn set_airdrop(user: Principal, amount: u64) {
+    AIRDROP.with(|r| r.borrow_mut().insert(user, amount));
 }

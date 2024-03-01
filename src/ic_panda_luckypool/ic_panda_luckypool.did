@@ -1,10 +1,13 @@
 type AirdropClaimInput = record { challenge : text; code : text };
 type CaptchaOutput = record { challenge : text; img_base64 : text };
-type Result = variant { Ok; Err : text };
+type Result = variant { Ok : opt nat; Err };
 type Result_1 = variant { Ok : CaptchaOutput; Err : text };
-service : {
-  airdrop_claim : (AirdropClaimInput) -> (Result);
-  get_captcha : () -> (Result_1);
-  reset_secret : () -> (Result);
+type Result_2 = variant { Ok : nat; Err : text };
+service : () -> {
+  airdrop : () -> (Result) query;
+  captcha : () -> (Result_1);
+  claim_airdrop : (AirdropClaimInput) -> (Result_2);
+  debug : () -> (text) query;
+  lucky_pool_balance : () -> (Result_2) query;
   whoami : () -> (principal) query;
 }

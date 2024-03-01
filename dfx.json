@@ -6,6 +6,7 @@
         "node_compatibility": true
       },
       "package": "ic_panda_luckypool",
+      "optimize": "cycles",
       "type": "rust"
     },
     "ic_panda_frontend": {
