@@ -1,6 +1,6 @@
 [package]
 name = "ic_panda_luckypool"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,8 +14,8 @@ ciborium = "0.2"
 futures = "0.3"
 hex = "0.4"
 hmac = "0.12"
-ic-cdk = "0.12"
-ic-cdk-timers = "0.6"
+ic-cdk = "0.13"
+ic-cdk-timers = "0.7"
 ic-stable-structures = "0.6"
 ic-captcha = "1.0"
 ic-ledger-types = "0.10"

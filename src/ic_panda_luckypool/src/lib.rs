@@ -236,17 +236,17 @@ fn is_authenticated() -> Result<(), String> {
     }
 }
 
-fn luckydraw_amount(rnd32: &[u8]) -> (u64, u64) {
+fn luckydraw_amount(random: &[u8]) -> (u64, u64) {
     let mut bytes = [0u8; 8];
-    bytes.copy_from_slice(&rnd32[0..8]);
+    bytes.copy_from_slice(&random[0..8]);
     let x = u64::from_be_bytes(bytes);
     let a = x % LUCKYDRAW_DIVISOR;
     let amount = match a / TOKEN_1 {
-        v if v <= 5 => 100000 * TOKEN_1,
-        v if v <= 1000 => 1000 * TOKEN_1,
-        v => v * TOKEN_1,
+        v if v <= 5 => 100000,
+        v if v <= 1000 => 1000,
+        v => v,
     };
-    (x, amount)
+    (x, amount * TOKEN_1)
 }
 
 async fn load_captcha_secret() {
