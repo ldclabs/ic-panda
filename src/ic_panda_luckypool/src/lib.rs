@@ -55,12 +55,6 @@ fn post_upgrade() {
 
 #[ic_cdk::query]
 #[candid_method]
-fn debug() -> String {
-    "OK".to_string()
-}
-
-#[ic_cdk::query]
-#[candid_method]
 fn whoami() -> Result<Principal, ()> {
     Ok(ic_cdk::caller())
 }
@@ -71,10 +65,10 @@ fn state() -> Result<store::State, ()> {
     Ok(store::state::get())
 }
 
-#[ic_cdk::query(composite = true)]
+#[ic_cdk::update(guard = "is_controller")]
 #[candid_method]
-async fn lucky_pool_balance() -> Result<Nat, String> {
-    token_balance_of(ic_cdk::id()).await
+fn admin_update_airdrop_balance(airdrop_balance: u64) {
+    store::state::with_mut(|state| state.airdrop_balance = airdrop_balance);
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
@@ -224,6 +218,14 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
     ic_cdk::api::print(format!("claim_airdrop: {:?}\n", _res));
 
     Ok(Nat::from(amount))
+}
+
+fn is_controller() -> Result<(), String> {
+    if ic_cdk::api::is_controller(&ic_cdk::caller()) {
+        Ok(())
+    } else {
+        Err("user is not a controller".to_string())
+    }
 }
 
 fn is_authenticated() -> Result<(), String> {

@@ -283,15 +283,15 @@ pub mod state {
     //     STATE.with(|r| f(r.borrow().get()))
     // }
 
-    // /// A helper function to change the state.
-    // pub fn with_mut(f: impl FnOnce(&mut State)) {
-    //     STATE
-    //         .with(|r| {
-    //             let mut borrowed = r.borrow_mut();
-    //             let mut state = borrowed.get().clone();
-    //             f(&mut state);
-    //             borrowed.set(state)
-    //         })
-    //         .expect("failed to set STATE data");
-    // }
+    /// A helper function to change the state.
+    pub fn with_mut(f: impl FnOnce(&mut State)) {
+        STATE
+            .with(|r| {
+                let mut borrowed = r.borrow_mut();
+                let mut state = borrowed.get().clone();
+                f(&mut state);
+                borrowed.set(state)
+            })
+            .expect("failed to set STATE data");
+    }
 }

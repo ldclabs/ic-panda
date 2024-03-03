@@ -26,13 +26,12 @@ type State = record {
   total_luckydraw_icp : nat64;
 };
 service : () -> {
+  admin_update_airdrop_balance : (nat64) -> ();
   airdrop_logs : (LogsInput) -> (Result);
   airdrop_status : () -> (Result_1);
   airdrop_total : () -> (Result_2);
   captcha : () -> (Result_3);
   claim_airdrop : (AirdropClaimInput) -> (Result_4);
-  debug : () -> (text);
-  lucky_pool_balance : () -> (Result_4);
   luckydraw : (LuckyDrawInput) -> (Result_4);
   luckydraw_logs : (LogsInput) -> (Result_5);
   luckydraw_total : () -> (Result_2);
