@@ -524,6 +524,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a54b5297861c651551676e8c43df805dad175cc33bc97dbd992edbbb85dcbcdf"
 
 [[package]]
+name = "ic_panda_badges"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "candid",
+ "ciborium",
+ "futures",
+ "hex",
+ "hmac",
+ "ic-captcha",
+ "ic-cdk",
+ "ic-cdk-timers",
+ "ic-ledger-types",
+ "ic-stable-structures",
+ "icrc-ledger-types",
+ "num-traits",
+ "once_cell",
+ "scopeguard",
+ "serde",
+ "serde_bytes",
+ "sha3",
+ "tokio",
+]
+
+[[package]]
 name = "ic_panda_luckypool"
 version = "0.2.0"
 dependencies = [

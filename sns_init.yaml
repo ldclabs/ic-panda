@@ -129,6 +129,7 @@ NnsProposal:
 
     - c63a7-6yaaa-aaaap-ab3gq-cai (ICPanda Web App)
     - a7cug-2qaaa-aaaap-ab3la-cai (ICPanda Lucky Pool)
+    - f75us-gyaaa-aaaap-ab3wq-cai (ICPanda Badges)
 
     ## Verification
 
@@ -161,6 +162,8 @@ dapp_canisters:
   - c63a7-6yaaa-aaaap-ab3gq-cai
   # ICPanda Lucky Pool
   - a7cug-2qaaa-aaaap-ab3la-cai
+  # ICPanda Badges
+  - f75us-gyaaa-aaaap-ab3wq-cai
 
 # Configuration of SNS tokens in the SNS Ledger canister deployed as part
 # of the SNS.

@@ -15,6 +15,7 @@ twiggy:
 
 # cargo install ic-wasm
 build-wasm:
+	cargo build --release --target wasm32-unknown-unknown --package ic_panda_badges
 	cargo build --release --target wasm32-unknown-unknown --package ic_panda_luckypool
 
 shrink-wasm:
@@ -22,4 +23,5 @@ shrink-wasm:
 
 # cargo install candid-extractor
 build-did:
+	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_badges.wasm > src/ic_panda_badges/ic_panda_badges.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm > src/ic_panda_luckypool/ic_panda_luckypool.did

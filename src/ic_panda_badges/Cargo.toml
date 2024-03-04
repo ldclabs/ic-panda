@@ -1,0 +1,30 @@
+[package]
+name = "ic_panda_badges"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = "0.10"
+ciborium = "0.2"
+futures = "0.3"
+hex = "0.4"
+hmac = "0.12"
+ic-cdk = "0.13"
+ic-cdk-timers = "0.7"
+ic-stable-structures = "0.6"
+ic-captcha = "1.0"
+ic-ledger-types = "0.10"
+icrc-ledger-types = "0.1"
+sha3 = "0.10"
+once_cell = "1.19"
+serde = "1"
+serde_bytes = "0.11"
+tokio = "1.35"
+base64 = "0.21"
+scopeguard = "1.2"
+num-traits = "0.2"

@@ -9,6 +9,15 @@
       "optimize": "cycles",
       "type": "rust"
     },
+    "ic_panda_badges": {
+      "candid": "src/ic_panda_badges/ic_panda_badges.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_panda_badges",
+      "optimize": "cycles",
+      "type": "rust"
+    },
     "ic_panda_frontend": {
       "dependencies": [],
       "source": [
