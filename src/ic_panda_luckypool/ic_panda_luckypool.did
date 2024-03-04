@@ -10,14 +10,15 @@ type LogsOutput_1 = record {
   logs : vec record { principal; nat64; nat64; nat64; nat64 };
 };
 type LuckyDrawInput = record { icp : nat8 };
-type Result = variant { Ok : LogsOutput; Err };
-type Result_1 = variant { Ok : bool; Err };
-type Result_2 = variant { Ok : nat64; Err };
-type Result_3 = variant { Ok : CaptchaOutput; Err : text };
-type Result_4 = variant { Ok : nat; Err : text };
-type Result_5 = variant { Ok : LogsOutput_1; Err };
-type Result_6 = variant { Ok : State; Err };
-type Result_7 = variant { Ok : principal; Err };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : nat; Err : text };
+type Result_2 = variant { Ok : LogsOutput; Err };
+type Result_3 = variant { Ok : bool; Err };
+type Result_4 = variant { Ok : nat64; Err };
+type Result_5 = variant { Ok : CaptchaOutput; Err : text };
+type Result_6 = variant { Ok : LogsOutput_1; Err };
+type Result_7 = variant { Ok : State; Err };
+type Result_8 = variant { Ok : principal; Err };
 type State = record {
   total_luckydraw : nat64;
   total_airdrop : nat64;
@@ -26,15 +27,16 @@ type State = record {
   total_luckydraw_icp : nat64;
 };
 service : () -> {
+  admin_collect_icp : (nat) -> (Result);
   admin_update_airdrop_balance : (nat64) -> ();
-  airdrop_logs : (LogsInput) -> (Result);
-  airdrop_status : () -> (Result_1);
-  airdrop_total : () -> (Result_2);
-  captcha : () -> (Result_3);
-  claim_airdrop : (AirdropClaimInput) -> (Result_4);
-  luckydraw : (LuckyDrawInput) -> (Result_4);
-  luckydraw_logs : (LogsInput) -> (Result_5);
-  luckydraw_total : () -> (Result_2);
-  state : () -> (Result_6);
-  whoami : () -> (Result_7);
+  airdrop : (AirdropClaimInput) -> (Result_1);
+  airdrop_logs : (LogsInput) -> (Result_2);
+  airdrop_status : () -> (Result_3);
+  airdrop_total : () -> (Result_4);
+  captcha : () -> (Result_5);
+  luckydraw : (LuckyDrawInput) -> (Result_1);
+  luckydraw_logs : (LogsInput) -> (Result_6);
+  luckydraw_total : () -> (Result_4);
+  state : () -> (Result_7);
+  whoami : () -> (Result_8);
 }

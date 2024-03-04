@@ -8,8 +8,10 @@ use std::{
 };
 
 use icrc_ledger_types::{
-    icrc1::account::Account,
-    icrc1::transfer::{TransferArg, TransferError},
+    icrc1::{
+        account::Account,
+        transfer::{TransferArg, TransferError},
+    },
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
 
@@ -69,6 +71,15 @@ fn state() -> Result<store::State, ()> {
 #[candid_method]
 fn admin_update_airdrop_balance(airdrop_balance: u64) {
     store::state::with_mut(|state| state.airdrop_balance = airdrop_balance);
+}
+
+#[ic_cdk::update(guard = "is_controller")]
+#[candid_method]
+async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
+    icp_transfer_to(*DAO_CANISTER, amount)
+        .await
+        .map_err(|err| format!("failed to collect ICP, {}", err))?;
+    Ok(())
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
@@ -139,7 +150,7 @@ async fn luckydraw_logs(
 
 #[ic_cdk::update(guard = "is_authenticated")]
 #[candid_method]
-async fn claim_airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
+async fn airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
     let now = ic_cdk::api::time() / SECOND;
     let expire_at = now - CAPTCHA_EXPIRE_SEC;
     let _ = store::captcha::with_secret(|secret| {
@@ -172,16 +183,15 @@ async fn claim_airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
     let _block_idx = token_transfer_to(user, Nat::from(AIRDROP_AMOUNT)).await?;
     let _res = store::airdrop::update(user, now, AIRDROP_AMOUNT);
     // TODO: trace error logs
-    ic_cdk::api::print(format!("claim_airdrop: {:?}\n", _res));
-
+    // ic_cdk::api::print(format!("airdrop: {:?}\n", _res));
     Ok(Nat::from(AIRDROP_AMOUNT))
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
 #[candid_method]
 async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
-    if args.icp < 1 || args.icp > 10 {
-        return Err("invalid icp amount".to_string());
+    if args.icp < 1 || args.icp > 100 {
+        return Err("invalid icp amount, should be in [1, 100]".to_string());
     }
 
     let user = ic_cdk::caller();
@@ -192,32 +202,47 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
         store::user::deactive(user);
     });
 
-    let balance = token_balance_of(ic_cdk::id()).await?;
-    if balance < LOWEST_LUCKYDRAW_BALANCE * args.icp as u64 + TRANS_FEE {
-        return Err("insufficient token balance for luckydraw".to_string());
-    }
-
     let now = ic_cdk::api::time() / SECOND;
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
-    let icp = args.icp as u64 * ICP_1;
     let (x, amount) = luckydraw_amount(&rr.0);
-
-    let _ = icp_transfer_from(user, Nat::from(icp)).await?;
-    let balance = token_balance_of(ic_cdk::id()).await?;
-    let balance: u64 = balance.0.to_u64().unwrap_or(0).saturating_sub(TRANS_FEE);
+    let icp = args.icp as u64 * ICP_1;
     let amount = args.icp as u64 * amount;
-    let amount = if balance < amount { balance } else { amount };
-    if amount > 0 {
-        let _ = token_transfer_to(user, Nat::from(amount)).await?;
+
+    let balance = token_balance_of(ic_cdk::id()).await?;
+    let lowest_balance = LOWEST_LUCKYDRAW_BALANCE * args.icp as u64 + TRANS_FEE;
+    if balance < lowest_balance {
+        return Err("insufficient token balance for luckydraw".to_string());
     }
 
-    let _res = store::luckydraw::update(user, now, amount, icp, x);
-    // TODO: trace error logs
-    ic_cdk::api::print(format!("claim_airdrop: {:?}\n", _res));
+    let _ = icp_transfer_from(user, Nat::from(icp)).await?;
+    let balance = token_balance_of(ic_cdk::id())
+        .await
+        .unwrap_or(Nat::from(0u64));
+    let draw_amount = if balance >= lowest_balance {
+        let balance = balance.0.to_u64().unwrap_or(0).saturating_sub(TRANS_FEE);
+        let draw_amount = if balance < amount { balance } else { amount };
+        match token_transfer_to(user, Nat::from(draw_amount)).await {
+            Ok(_) => draw_amount,
+            Err(_) => 0,
+        }
+    } else {
+        0
+    };
 
-    Ok(Nat::from(amount))
+    if draw_amount > 0 {
+        let _res = store::luckydraw::update(user, now, draw_amount, icp, x);
+        // TODO: trace error logs
+        // ic_cdk::api::print(format!("luckydraw: {:?}\n", _res));
+        Ok(Nat::from(draw_amount))
+    } else {
+        // refund ICP when failed to transfer tokens
+        let _ = icp_transfer_to(user, Nat::from(icp))
+            .await
+            .map_err(|err| format!("failed to refund ICP, {}", err))?;
+        Err("insufficient token balance for luckydraw".to_string())
+    }
 }
 
 fn is_controller() -> Result<(), String> {
@@ -294,6 +319,27 @@ async fn token_transfer_to(user: Principal, amount: Nat) -> Result<Nat, String> 
     res.map_err(|err| format!("failed to transfer tokens, error: {:?}", err))
 }
 
+async fn icp_transfer_to(user: Principal, amount: Nat) -> Result<Nat, String> {
+    let (res,): (Result<Nat, TransferError>,) = ic_cdk::call(
+        ICP_CANISTER,
+        "icrc1_transfer",
+        (TransferArg {
+            from_subaccount: None,
+            to: Account {
+                owner: user,
+                subaccount: None,
+            },
+            fee: None,
+            created_at_time: None,
+            memo: None,
+            amount,
+        },),
+    )
+    .await
+    .map_err(|err| format!("failed to call icrc1_transfer, error: {:?}", err))?;
+    res.map_err(|err| format!("failed to transfer ICP, error: {:?}", err))
+}
+
 async fn icp_transfer_from(user: Principal, amount: Nat) -> Result<Nat, String> {
     let (res,): (Result<Nat, TransferFromError>,) = ic_cdk::call(
         ICP_CANISTER,
@@ -305,7 +351,7 @@ async fn icp_transfer_from(user: Principal, amount: Nat) -> Result<Nat, String> 
                 subaccount: None,
             },
             to: Account {
-                owner: *DAO_CANISTER,
+                owner: ic_cdk::id(),
                 subaccount: None,
             },
             fee: None,
