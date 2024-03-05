@@ -4,6 +4,14 @@
         "ignore": false
     },
     {
+        "match": ".well-known/ii-alternative-origins",
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json"
+        },
+        "ignore": false
+    },
+    {
         "match": "**/*",
         "headers": {
             // Security: The Content Security Policy (CSP) given below aims at working with many apps rather than providing maximal security.
