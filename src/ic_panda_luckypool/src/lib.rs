@@ -1,4 +1,4 @@
-use candid::{candid_method, Nat, Principal};
+use candid::{Nat, Principal};
 use ic_captcha::CaptchaBuilder;
 use num_traits::cast::ToPrimitive;
 use once_cell::sync::Lazy;
@@ -41,40 +41,27 @@ static DAO_CANISTER: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("a7cug-2qaaa-aaaap-ab3la-cai").expect("invalid principal")); // TODO: update dao canister id
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
-#[ic_cdk::init]
-fn init() {
-    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(load_captcha_secret())
-    });
-}
-
-#[ic_cdk::post_upgrade]
-fn post_upgrade() {
-    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(load_captcha_secret())
-    });
+#[ic_cdk::query]
+fn api_version() -> u16 {
+    1
 }
 
 #[ic_cdk::query]
-#[candid_method]
 fn whoami() -> Result<Principal, ()> {
     Ok(ic_cdk::caller())
 }
 
 #[ic_cdk::query]
-#[candid_method]
 fn state() -> Result<store::State, ()> {
     Ok(store::state::get())
 }
 
 #[ic_cdk::update(guard = "is_controller")]
-#[candid_method]
 fn admin_update_airdrop_balance(airdrop_balance: u64) {
     store::state::with_mut(|state| state.airdrop_balance = airdrop_balance);
 }
 
 #[ic_cdk::update(guard = "is_controller")]
-#[candid_method]
 async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
     icp_transfer_to(*DAO_CANISTER, amount)
         .await
@@ -83,7 +70,6 @@ async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-#[candid_method]
 async fn captcha() -> Result<types::CaptchaOutput, String> {
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
@@ -104,7 +90,6 @@ async fn captcha() -> Result<types::CaptchaOutput, String> {
 }
 
 #[ic_cdk::query]
-#[candid_method]
 async fn airdrop_status() -> Result<bool, ()> {
     let user = ic_cdk::caller();
     if user == ANONYMOUS {
@@ -115,19 +100,16 @@ async fn airdrop_status() -> Result<bool, ()> {
 }
 
 #[ic_cdk::query]
-#[candid_method]
 async fn airdrop_total() -> Result<u64, ()> {
     Ok(store::airdrop::total())
 }
 
 #[ic_cdk::query]
-#[candid_method]
 async fn luckydraw_total() -> Result<u64, ()> {
     Ok(store::luckydraw::total())
 }
 
 #[ic_cdk::query]
-#[candid_method]
 async fn airdrop_logs(args: types::LogsInput) -> Result<types::LogsOutput<store::AirdropLog>, ()> {
     let res = store::airdrop::logs(10, args.index);
     Ok(types::LogsOutput {
@@ -137,7 +119,6 @@ async fn airdrop_logs(args: types::LogsInput) -> Result<types::LogsOutput<store:
 }
 
 #[ic_cdk::query]
-#[candid_method]
 async fn luckydraw_logs(
     args: types::LogsInput,
 ) -> Result<types::LogsOutput<store::LuckyDrawLog>, ()> {
@@ -149,7 +130,6 @@ async fn luckydraw_logs(
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-#[candid_method]
 async fn airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
     let now = ic_cdk::api::time() / SECOND;
     let expire_at = now - CAPTCHA_EXPIRE_SEC;
@@ -188,7 +168,6 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-#[candid_method]
 async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
     if args.icp < 1 || args.icp > 100 {
         return Err("invalid icp amount, should be in [1, 100]".to_string());
@@ -243,6 +222,20 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
             .map_err(|err| format!("failed to refund ICP, {}", err))?;
         Err("insufficient token balance for luckydraw".to_string())
     }
+}
+
+#[ic_cdk::init]
+fn init() {
+    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
+        ic_cdk::spawn(load_captcha_secret())
+    });
+}
+
+#[ic_cdk::post_upgrade]
+fn post_upgrade() {
+    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
+        ic_cdk::spawn(load_captcha_secret())
+    });
 }
 
 fn is_controller() -> Result<(), String> {

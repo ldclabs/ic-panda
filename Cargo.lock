@@ -533,7 +533,6 @@ dependencies = [
  "futures",
  "hex",
  "hmac",
- "ic-captcha",
  "ic-cdk",
  "ic-cdk-timers",
  "ic-ledger-types",

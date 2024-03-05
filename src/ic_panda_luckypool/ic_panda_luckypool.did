@@ -30,13 +30,14 @@ service : () -> {
   admin_collect_icp : (nat) -> (Result);
   admin_update_airdrop_balance : (nat64) -> ();
   airdrop : (AirdropClaimInput) -> (Result_1);
-  airdrop_logs : (LogsInput) -> (Result_2);
-  airdrop_status : () -> (Result_3);
-  airdrop_total : () -> (Result_4);
+  airdrop_logs : (LogsInput) -> (Result_2) query;
+  airdrop_status : () -> (Result_3) query;
+  airdrop_total : () -> (Result_4) query;
+  api_version : () -> (nat16) query;
   captcha : () -> (Result_5);
   luckydraw : (LuckyDrawInput) -> (Result_1);
-  luckydraw_logs : (LogsInput) -> (Result_6);
-  luckydraw_total : () -> (Result_4);
-  state : () -> (Result_7);
-  whoami : () -> (Result_8);
+  luckydraw_logs : (LogsInput) -> (Result_6) query;
+  luckydraw_total : () -> (Result_4) query;
+  state : () -> (Result_7) query;
+  whoami : () -> (Result_8) query;
 }

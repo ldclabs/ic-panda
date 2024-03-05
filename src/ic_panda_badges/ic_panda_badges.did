@@ -1,2 +1,1 @@
-type Result = variant { Ok : principal; Err };
-service : { whoami : () -> (Result) }
+service : { api_version : () -> (nat16) query }

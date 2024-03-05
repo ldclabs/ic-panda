@@ -9,7 +9,7 @@ use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default, CandidType)]
+#[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]
 pub struct State {
     pub airdrop_balance: u64,
     pub total_airdrop: u64,
@@ -35,7 +35,7 @@ impl Storable for State {
 }
 
 // AirdropLog format: [user, time, token_amount]
-#[derive(Clone, Debug, Serialize, Deserialize, CandidType)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct AirdropLog(Principal, u64, u64);
 
 impl Storable for AirdropLog {
@@ -53,7 +53,7 @@ impl Storable for AirdropLog {
 }
 
 // AirdropLog format: [user, time, token_amount, icp_amount, random_number]
-#[derive(Clone, Debug, Serialize, Deserialize, CandidType)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct LuckyDrawLog(Principal, u64, u64, u64, u64);
 
 impl Storable for LuckyDrawLog {

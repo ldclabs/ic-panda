@@ -1,29 +1,29 @@
 use base64::{engine::general_purpose, Engine};
-use candid::{CandidType, Deserialize};
+use candid::CandidType;
 use ciborium::{from_reader, into_writer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::crypto::mac_256_2;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct CaptchaOutput {
     pub img_base64: String,
     pub challenge: String,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct AirdropClaimInput {
     pub code: String,
     pub challenge: String,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct LuckyDrawInput {
     // ICP tokens to be used for luckydraw, [1, 10]
     pub icp: u8,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct LuckyDrawOutput {
     // Token amount in E8
     pub amount: u64,
@@ -31,12 +31,12 @@ pub struct LuckyDrawOutput {
     pub random: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct LogsInput {
     pub index: Option<u64>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct LogsOutput<T> {
     pub next_index: Option<u64>,
     pub logs: Vec<T>,
