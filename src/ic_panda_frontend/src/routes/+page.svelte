@@ -25,17 +25,20 @@
   onMount(async () => {
 
     await updatePrincipal();
+
+    await setTimeout(Promise.resolve, 3000);
+    toastStore.trigger({
+      timeout: 6000,
+      hideDismiss: true,
+      classes: "bg-black",
+      message: "<div class='flex flex-row gap-4 items-center'><div><img src='/_assets/images/celebrate.webp'></div><div><p class='text-lg'>We are upcoming on SNS</p><p class='text-sm'>The first decentralized meme brand in Web3.0</p></div><div><a class='bg-white btn btn-sm text-black' href='https://forum.dfinity.org/t/upcoming-icpanda-dao-launch-sns/27967/1' target='_blank'>Vote for US</a></div></div>",
+    })
   })
 
   async function handleSignIn() {
     await signIn({});
     await updatePrincipal();
   }
-
-  toastStore.trigger({
-    timeout: 10000,
-    message: "<a href='https://forum.dfinity.org/t/upcoming-icpanda-dao-launch-sns/27967/1'  target='_blank'>Support Us: Upcoming ICPanda DAO launch SNS</a>",
-  })
 
 </script>
 
@@ -210,7 +213,7 @@
 
 <div class="flex flex-col items-center inset-x-0 h-16 mt-10 mb-24">
   <img class="mt-4 w-28" src="/_assets/icpanda-dao.svg" alt="ICPanda brand"/>
-  <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50">A decentralized Panda meme brand built on the <a class="text-secondary-500 font-bold" href="https://internetcomputer.org/" target="_blank">Internet Computer (IC)</a>.</p>
+  <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50">A decentralized Panda meme brand built on the <a class="text-secondary-500 font-bold" href="https://internetcomputer.org/" target="_blank">Internet Computer (IC)</a></p>
   <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50"><a class="text-secondary-500 font-bold" href="https://dashboard.internetcomputer.org/canister/c63a7-6yaaa-aaaap-ab3gq-cai" target="_blank">Hosted by IC</a></p>
 </div>
 

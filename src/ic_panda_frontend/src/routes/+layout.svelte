@@ -55,7 +55,7 @@
 
 <svelte:window on:storage={syncAuthStore} />
 
-<Toast />
+<Toast position="br" width="max-w-xl w-full"/>
 <AppShell>
 	<slot />
 </AppShell>
