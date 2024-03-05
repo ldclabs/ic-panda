@@ -64,6 +64,9 @@ devDependencies:
   prettier-plugin-tailwindcss:
     specifier: ^0.5.11
     version: 0.5.11(prettier@3.2.5)
+  saos:
+    specifier: ^1.3.1
+    version: 1.3.1
   svelte:
     specifier: ^4.2.12
     version: 4.2.12
@@ -2239,6 +2242,10 @@ packages:
       graceful-fs: 4.2.11
       mkdirp: 0.5.6
       rimraf: 2.7.1
+    dev: true
+
+  /saos@1.3.1:
+    resolution: {integrity: sha512-7e2v9yIlyWy29ADHAzukknnzNHIq4oh1mB8uymxzx538B+SFT8/GpRjFa4YwPioe1Ox7qExyV6SFfMvtrSA4EQ==}
     dev: true
 
   /saxes@6.0.0:
