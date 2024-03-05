@@ -39,16 +39,16 @@ This platform is built on the RWA (Real World Asset) concept, aiming to introduc
 | ----------- | ------------ | ---------------------- |
 | **ICPanda** | **PANDA**    | 1,000,000,000          |
 
-| Allocation       | Percentage | Tokens         | Memo                         |
-| ---------------- | ---------- | -------------- | ---------------------------- |
-| Development Team | **4%**     | 40,000,000     | Locked for 0～6 months       |
-| Seed Funders     | **4%**     | 40,000,000     | Locked for 0～3 months       |
-| SNS Swap         | **12%**    | 120,000,000    | Locked for 0～3 months       |
-| DAO Treasury     | **80%**    | 800,000,000    |                              |
-|                  | -- **50%** | -- 500,000,000 | Lucky pool                   |
-|                  | -- **10%** | -- 100,000,000 | Community creative incentive |
-|                  | -- **10%** | -- 100,000,000 | CEX incentive                |
-|                  | -- **10%** | -- 100,000,000 | DAO development fund         |
+| Allocation       | Percentage | Tokens         | Memo                   |
+| ---------------- | ---------- | -------------- | ---------------------- |
+| Development Team | **4%**     | 40,000,000     | Locked for 0～6 months |
+| Seed Funders     | **4%**     | 40,000,000     | Locked for 0～3 months |
+| SNS Swap         | **12%**    | 120,000,000    | Locked for 0～3 months |
+| DAO Treasury     | **80%**    | 800,000,000    |                        |
+|                  | -- **50%** | -- 500,000,000 | Lucky Pool to All      |
+|                  | -- **10%** | -- 100,000,000 | Community Incentive    |
+|                  | -- **10%** | -- 100,000,000 | CEX Incentive          |
+|                  | -- **10%** | -- 100,000,000 | DEX Liquidity          |
 
 **Token distribution before Neurons' Fund participation:**
 
@@ -66,7 +66,7 @@ PANDA is the only token issued by ICPanda DAO. By holding PANDA tokens, users ca
 1. Governance decisions of ICPanda DAO and receive rewards;
 2. Purchasing panda badges;
 3. Creation and trading of panda culture NFTs;
-4. Activities on the panda meme brand platform.
+4. Activities on the ICPanda meme brand platform.
 
 ### Initial token allocation
 

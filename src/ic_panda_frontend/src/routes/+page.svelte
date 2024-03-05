@@ -79,7 +79,7 @@
   <div class="mt-12 sm:mt-24 max-w-4xl w-full flex flex-col flex-nowrap content-center items-center">
     <h2 class="h2 uppercase font-extrabold">Tokenomics</h2>
     <div class="w-full flex flex-col gap-y-4 sm:flex-row mt-8 justify-evenly">
-      <Saos once={false} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
+      <Saos once={true} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
         <div class="flex flex-col gap-4 text-center">
           <h3 class="h3 font-bold">
             <p>Token Name</p>
@@ -95,19 +95,19 @@
           </h3>
         </div>
       </Saos>
-      <Saos once={false} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
+      <Saos once={true} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
         <ConicGradient legend width="w-36" regionCone="hover:scale-125 hover:shadow-lg hover:-rotate-12 transition duration-700 ease-in-out" stops={[
           { label: 'Dev Team', color: 'rgba(15,186,129,0.8)', start: 0, end: 4 },
           { label: 'Seed Funders', color: 'rgba(79,70,229,0.8)', start: 4, end: 8 },
           { label: 'SNS Swap', color: 'rgba(212,25,118,0.8)', start: 8, end: 20 },
-          { label: 'DAO Treasury - Lucky Pool', color: 'rgba(234,179,8,0.5)', start: 20, end: 70 },
+          { label: 'DAO Treasury - Lucky Pool to All', color: 'rgba(234,179,8,0.5)', start: 20, end: 70 },
           { label: 'DAO Treasury - Community Incentive', color: 'rgba(234,179,8,0.6)', start: 70, end: 80 },
           { label: 'DAO Treasury - CEX Incentive', color: 'rgba(234,179,8,0.7)', start: 80, end: 90 },
-          { label: 'DAO Treasury - Dev Fund', color: 'rgba(234,179,8,0.8)', start: 90, end: 100 }
+          { label: 'DAO Treasury - DEX Liquidity', color: 'rgba(234,179,8,0.8)', start: 90, end: 100 }
       ]}><h3 class="h3 font-bold">Token Distribution</h3></ConicGradient>
       </Saos>
     </div>
-    <Saos once={false} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
+    <Saos once={true} animation={"slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"}>
       <div class="gap-4 mt-12">
         <h3 class="h3 font-bold text-center">
           <p>Token utility</p>
@@ -118,7 +118,7 @@
             <li><span class="badge-icon p-4 variant-soft-primary">1</span><span class="flex-auto">Governance decisions of ICPanda DAO and receive rewards</span></li>
             <li><span class="badge-icon p-4 variant-soft-primary">2</span><span class="flex-auto">Purchasing panda badges</span></li>
             <li><span class="badge-icon p-4 variant-soft-primary">3</span><span class="flex-auto">Creation and trading of panda culture NFTs</span></li>
-            <li><span class="badge-icon p-4 variant-soft-primary">4</span><span class="flex-auto">Activities on the panda meme brand platform</span></li>
+            <li><span class="badge-icon p-4 variant-soft-primary">4</span><span class="flex-auto">Activities on the ICPanda meme brand platform</span></li>
           </ol>
         </div>
       </div>
@@ -128,7 +128,7 @@
     <div class="mt-12 sm:mt-24 max-w-4xl w-full flex flex-col flex-nowrap content-center items-center">
       <h2 class="h2 uppercase font-extrabold">Roadmap</h2>
       <div class="mt-8 v-timeline max-w-full">
-        <Saos animation={"slide-top 0.6s ease-in-out both"}>
+        <Saos once={true} animation={"slide-top 0.6s ease-in-out both"}>
           <div class="relative ml-4 mt-8 mb-8 lg:mb-16">
             <img class="absolute top-[-16px] left-[-64px] hover:scale-125 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-1.webp" alt="Panda badge">
             <h3 class="h3 font-bold ml-4"><span class="text-panda mr-1">Feb</span>2024</h3>
@@ -148,7 +148,7 @@
             </div>
           </div>
         </Saos>
-        <Saos animation={"slide-top 0.6s ease-in-out both"}>
+        <Saos once={true} animation={"slide-top 0.6s ease-in-out both"}>
           <div class="relative ml-4 mt-8 mb-8 lg:mb-16">
             <img class="absolute top-[-16px] left-[-64px] hover:scale-125 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-2.webp" alt="Panda badge">
             <h3 class="h3 font-bold ml-4"><span class="text-panda mr-1">Q1</span>2024</h3>
@@ -165,7 +165,7 @@
             </div>
           </div>
         </Saos>
-        <Saos animation={"slide-top 0.6s ease-in-out both"}>
+        <Saos once={true} animation={"slide-top 0.6s ease-in-out both"}>
           <div class="relative ml-4 mt-8 mb-8 lg:mb-16">
             <img class="absolute top-[-16px] left-[-64px] hover:scale-125 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-3.webp" alt="Panda badge">
             <h3 class="h3 font-bold ml-4"><span class="text-panda mr-1">Q2</span>2024</h3>
@@ -176,7 +176,7 @@
             </div>
           </div>
         </Saos>
-        <Saos animation={"slide-top 0.6s ease-in-out both"}>
+        <Saos once={true} animation={"slide-top 0.6s ease-in-out both"}>
           <div class="relative ml-4 mt-8 mb-8 lg:mb-16">
             <img class="absolute top-[-16px] left-[-64px] hover:scale-125 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-4.webp" alt="Panda badge">
             <h3 class="h3 font-bold ml-4"><span class="text-panda mr-1">Q3</span>2024</h3>
@@ -190,7 +190,7 @@
             </div>
           </div>
         </Saos>
-        <Saos animation={"slide-top 0.6s ease-in-out both"}>
+        <Saos once={true} animation={"slide-top 0.6s ease-in-out both"}>
           <div class="relative ml-4 mt-8 mb-8 lg:mb-16">
             <img class="absolute top-[-16px] left-[-64px] hover:scale-125 transition duration-700 ease-in-out" src="/_assets/images/panda-badge-5.webp" alt="Panda badge">
             <h3 class="h3 font-bold ml-4"><span class="text-panda mr-1">Q4</span>2024</h3>
@@ -213,8 +213,7 @@
 
 <div class="flex flex-col items-center inset-x-0 h-16 mt-10 mb-24">
   <img class="mt-4 w-28" src="/_assets/icpanda-dao.svg" alt="ICPanda brand"/>
-  <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50">A decentralized Panda meme brand built on the <a class="text-secondary-500 font-bold" href="https://internetcomputer.org/" target="_blank">Internet Computer (IC)</a></p>
-  <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50"><a class="text-secondary-500 font-bold" href="https://dashboard.internetcomputer.org/canister/c63a7-6yaaa-aaaap-ab3gq-cai" target="_blank">Hosted by IC</a></p>
+  <p class="mt-2 text-sm antialiased text-center capitalize text-slate-900/50">A decentralized Panda meme brand built on the <a class="text-secondary-500 font-bold" href="https://dashboard.internetcomputer.org/canister/c63a7-6yaaa-aaaap-ab3gq-cai" target="_blank">Internet Computer (IC)</a></p>
 </div>
 
 <style>
