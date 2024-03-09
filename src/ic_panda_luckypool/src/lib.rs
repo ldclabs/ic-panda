@@ -1,11 +1,7 @@
 use candid::{Nat, Principal};
-use ic_captcha::CaptchaBuilder;
 use num_traits::cast::ToPrimitive;
 use once_cell::sync::Lazy;
-use std::{
-    convert::{From, Into},
-    time::Duration,
-};
+use std::convert::Into;
 
 use icrc_ledger_types::{
     icrc1::{
@@ -15,23 +11,19 @@ use icrc_ledger_types::{
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
 
-mod crypto;
+mod api_admin;
+mod api_init;
+mod api_query;
+mod api_update;
 mod store;
 mod types;
-
-use crypto::mac_256;
+mod utils;
 
 const SECOND: u64 = 1_000_000_000;
-const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
-
 const TRANS_FEE: u64 = 10_000;
 const TOKEN_1: u64 = 100_000_000;
 const ICP_1: u64 = ic_ledger_types::Tokens::SUBDIVIDABLE_BY;
 const AIRDROP_AMOUNT: u64 = TOKEN_1 * 10;
-const LOWEST_LUCKYDRAW_BALANCE: u64 = TOKEN_1 * 100;
-
-// 344693032001 from b"PANDA"
-const LUCKYDRAW_DIVISOR: u64 = u64::from_be_bytes([0, 0, 0, b'P', b'A', b'N', b'D', b'A']);
 
 static ANONYMOUS: Principal = Principal::anonymous();
 static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
@@ -39,203 +31,9 @@ static TOKEN_CANISTER: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("bkyz2-fmaaa-aaaaa-qaaaq-cai").expect("invalid principal")); // TODO: update token canister id
 static DAO_CANISTER: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("a7cug-2qaaa-aaaap-ab3la-cai").expect("invalid principal")); // TODO: update dao canister id
-static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
-#[ic_cdk::query]
-fn api_version() -> u16 {
-    1
-}
-
-#[ic_cdk::query]
-fn whoami() -> Result<Principal, ()> {
-    Ok(ic_cdk::caller())
-}
-
-#[ic_cdk::query]
-fn state() -> Result<store::State, ()> {
-    Ok(store::state::get())
-}
-
-#[ic_cdk::update(guard = "is_controller")]
-fn admin_update_airdrop_balance(airdrop_balance: u64) {
-    store::state::with_mut(|state| state.airdrop_balance = airdrop_balance);
-}
-
-#[ic_cdk::update(guard = "is_controller")]
-async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
-    icp_transfer_to(*DAO_CANISTER, amount)
-        .await
-        .map_err(|err| format!("failed to collect ICP, {}", err))?;
-    Ok(())
-}
-
-#[ic_cdk::update(guard = "is_authenticated")]
-async fn captcha() -> Result<types::CaptchaOutput, String> {
-    let rr = ic_cdk::api::management_canister::main::raw_rand()
-        .await
-        .map_err(|_err| "failed to get random bytes".to_string())?;
-
-    let captcha = CAPTCHA_BUILDER.generate(&rr.0, None);
-    let now = ic_cdk::api::time();
-    let challenge = types::Challenge {
-        code: captcha.text().to_lowercase(),
-        time: now / SECOND,
-    };
-
-    let challenge = store::captcha::with_secret(|secret| challenge.sign_to_base64(secret))?;
-    Ok(types::CaptchaOutput {
-        img_base64: captcha.to_base64(0),
-        challenge,
-    })
-}
-
-#[ic_cdk::query]
-async fn airdrop_status() -> Result<bool, ()> {
-    let user = ic_cdk::caller();
-    if user == ANONYMOUS {
-        return Ok(false);
-    }
-
-    Ok(store::airdrop::has(user))
-}
-
-#[ic_cdk::query]
-async fn airdrop_total() -> Result<u64, ()> {
-    Ok(store::airdrop::total())
-}
-
-#[ic_cdk::query]
-async fn luckydraw_total() -> Result<u64, ()> {
-    Ok(store::luckydraw::total())
-}
-
-#[ic_cdk::query]
-async fn airdrop_logs(args: types::LogsInput) -> Result<types::LogsOutput<store::AirdropLog>, ()> {
-    let res = store::airdrop::logs(10, args.index);
-    Ok(types::LogsOutput {
-        next_index: res.1,
-        logs: res.0,
-    })
-}
-
-#[ic_cdk::query]
-async fn luckydraw_logs(
-    args: types::LogsInput,
-) -> Result<types::LogsOutput<store::LuckyDrawLog>, ()> {
-    let res = store::luckydraw::logs(10, args.index);
-    Ok(types::LogsOutput {
-        next_index: res.1,
-        logs: res.0,
-    })
-}
-
-#[ic_cdk::update(guard = "is_authenticated")]
-async fn airdrop(args: types::AirdropClaimInput) -> Result<Nat, String> {
-    let now = ic_cdk::api::time() / SECOND;
-    let expire_at = now - CAPTCHA_EXPIRE_SEC;
-    let _ = store::captcha::with_secret(|secret| {
-        types::Challenge::verify_from_base64(
-            secret,
-            &args.code.to_lowercase(),
-            &args.challenge,
-            expire_at,
-        )
-    })?;
-
-    let user = ic_cdk::caller();
-    if store::airdrop::has(user) {
-        return Ok(Nat::from(AIRDROP_AMOUNT));
-    }
-
-    if store::airdrop::balance() < AIRDROP_AMOUNT {
-        return Err("airdrop pool is empty".to_string());
-    }
-
-    if !store::user::active(user) {
-        return Err("try again later".to_string());
-    }
-
-    let _guard = scopeguard::guard((), |_| {
-        store::user::deactive(user);
-    });
-
-    // don't need to check balance, because the token canister will reject the transfer if the balance is insufficient
-    let _block_idx = token_transfer_to(user, Nat::from(AIRDROP_AMOUNT)).await?;
-    let _res = store::airdrop::update(user, now, AIRDROP_AMOUNT);
-    // TODO: trace error logs
-    // ic_cdk::api::print(format!("airdrop: {:?}\n", _res));
-    Ok(Nat::from(AIRDROP_AMOUNT))
-}
-
-#[ic_cdk::update(guard = "is_authenticated")]
-async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
-    if args.icp < 1 || args.icp > 100 {
-        return Err("invalid icp amount, should be in [1, 100]".to_string());
-    }
-
-    let user = ic_cdk::caller();
-    if !store::user::active(user) {
-        return Err("try again later".to_string());
-    }
-    let _guard = scopeguard::guard((), |_| {
-        store::user::deactive(user);
-    });
-
-    let now = ic_cdk::api::time() / SECOND;
-    let rr = ic_cdk::api::management_canister::main::raw_rand()
-        .await
-        .map_err(|_err| "failed to get random bytes".to_string())?;
-    let (x, amount) = luckydraw_amount(&rr.0);
-    let icp = args.icp as u64 * ICP_1;
-    let amount = args.icp as u64 * amount;
-
-    let balance = token_balance_of(ic_cdk::id()).await?;
-    let lowest_balance = LOWEST_LUCKYDRAW_BALANCE * args.icp as u64 + TRANS_FEE;
-    if balance < lowest_balance {
-        return Err("insufficient token balance for luckydraw".to_string());
-    }
-
-    let _ = icp_transfer_from(user, Nat::from(icp)).await?;
-    let balance = token_balance_of(ic_cdk::id())
-        .await
-        .unwrap_or(Nat::from(0u64));
-    let draw_amount = if balance >= lowest_balance {
-        let balance = balance.0.to_u64().unwrap_or(0).saturating_sub(TRANS_FEE);
-        let draw_amount = if balance < amount { balance } else { amount };
-        match token_transfer_to(user, Nat::from(draw_amount)).await {
-            Ok(_) => draw_amount,
-            Err(_) => 0,
-        }
-    } else {
-        0
-    };
-
-    if draw_amount > 0 {
-        let _res = store::luckydraw::update(user, now, draw_amount, icp, x);
-        // TODO: trace error logs
-        // ic_cdk::api::print(format!("luckydraw: {:?}\n", _res));
-        Ok(Nat::from(draw_amount))
-    } else {
-        // refund ICP when failed to transfer tokens
-        let _ = icp_transfer_to(user, Nat::from(icp))
-            .await
-            .map_err(|err| format!("failed to refund ICP, {}", err))?;
-        Err("insufficient token balance for luckydraw".to_string())
-    }
-}
-
-#[ic_cdk::init]
-fn init() {
-    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(load_captcha_secret())
-    });
-}
-
-#[ic_cdk::post_upgrade]
-fn post_upgrade() {
-    ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(load_captcha_secret())
-    });
+fn nat_to_u64(nat: &Nat) -> u64 {
+    nat.0.to_u64().unwrap_or(0)
 }
 
 fn is_controller() -> Result<(), String> {
@@ -252,29 +50,6 @@ fn is_authenticated() -> Result<(), String> {
     } else {
         Ok(())
     }
-}
-
-fn luckydraw_amount(random: &[u8]) -> (u64, u64) {
-    let mut bytes = [0u8; 8];
-    bytes.copy_from_slice(&random[0..8]);
-    let x = u64::from_be_bytes(bytes);
-    let a = x % LUCKYDRAW_DIVISOR;
-    let amount = match a / TOKEN_1 {
-        v if v <= 5 => 100000,
-        v if v <= 1000 => 1000,
-        v => v,
-    };
-    (x, amount * TOKEN_1)
-}
-
-async fn load_captcha_secret() {
-    // can't be used in `init` and `post_upgrade`
-    let rr = ic_cdk::api::management_canister::main::raw_rand()
-        .await
-        .expect("failed to get random bytes");
-
-    store::captcha::set_secret(mac_256(&rr.0, b"Captcha Secret"));
-    ic_cdk::api::print("Captcha secret loaded\n");
 }
 
 async fn token_balance_of(user: Principal) -> Result<Nat, String> {
