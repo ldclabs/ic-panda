@@ -3,21 +3,21 @@ import { isNullish } from '@dfinity/utils'
 
 export const popupCenter = ({
   width,
-  height,
+  height
 }: {
   width: number
   height: number
-}): string | undefined => {
+}): string => {
   if (!browser) {
-    return undefined
+    return ''
   }
 
   if (isNullish(window) || isNullish(window.top)) {
-    return undefined
+    return ''
   }
 
   const {
-    top: { innerWidth, innerHeight },
+    top: { innerWidth, innerHeight }
   } = window
 
   const y = innerHeight / 2 + screenY - height / 2

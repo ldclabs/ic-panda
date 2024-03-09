@@ -1,22 +1,9 @@
 {
   "compilerOptions": {
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "noEmit": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ESNext",
-    "types": ["vite/client", "@testing-library/jest-dom"],
-    "useDefineForClassFields": true
+    "rootDir": ".",
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["vite/client", "@testing-library/jest-dom"]
   },
-  "extends": "./.svelte-kit/tsconfig.json",
+  "extends": ["../../tsconfig.json", "./.svelte-kit/tsconfig.json"],
   "include": ["src", "./.svelte-kit/ambient.d.ts"]
 }

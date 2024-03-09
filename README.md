@@ -13,16 +13,28 @@
 | ----------- | ------------ | ---------------------- |
 | **ICPanda** | **PANDA**    | 1,000,000,000          |
 
-| Allocation       | Percentage | Tokens         | Memo                         |
-| ---------------- | ---------- | -------------- | ---------------------------- |
-| Development Team | **4%**     | 40,000,000     | Locked for 0～6 months       |
-| Seed Funders     | **4%**     | 40,000,000     | Locked for 0～3 months       |
-| SNS Swap         | **12%**    | 120,000,000    | Locked for 0～3 months       |
-| DAO treasury     | **80%**    | 800,000,000    |                              |
-|                  | -- **50%** | -- 500,000,000 | Lucky pool                   |
-|                  | -- **10%** | -- 100,000,000 | Community creative incentive |
-|                  | -- **10%** | -- 100,000,000 | CEX incentive                |
-|                  | -- **10%** | -- 100,000,000 | DAO development fund         |
+### Initial token allocation
+
+| Allocation       | Percentage | Tokens         | Memo                   |
+| ---------------- | ---------- | -------------- | ---------------------- |
+| Development Team | **4%**     | 40,000,000     | Locked for 0～6 months |
+| Seed Funders     | **4%**     | 40,000,000     | Locked for 0～3 months |
+| SNS Swap         | **12%**    | 120,000,000    | Locked for 0～3 months |
+| DAO Treasury     | **80%**    | 800,000,000    |                        |
+|                  | -- **50%** | -- 500,000,000 | Lucky Pool to All      |
+|                  | -- **10%** | -- 100,000,000 | Community Incentive    |
+|                  | -- **10%** | -- 100,000,000 | CEX Incentive          |
+|                  | -- **10%** | -- 100,000,000 | DEX Liquidity          |
+
+
+### Token utility
+
+PANDA is the only token issued by ICPanda DAO. By holding PANDA tokens, users can participate in:
+
+1. Governance decisions of ICPanda DAO and receive rewards;
+2. Purchasing panda badges;
+3. Creation and trading of panda culture NFTs;
+4. Activities on the ICPanda meme brand platform.
 
 ## Roadmap
 
@@ -34,7 +46,7 @@
 
 ## Contact us
 
-- Web Dapp: [https://panda.fans](https://panda.fans)
+- Web Dapp (Hosted by IC): [https://panda.fans](https://panda.fans)
 - OpenChat: [ICPanda DAO Community](https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai)
 - Twitter: [https://twitter.com/ICPandaDAO](https://twitter.com/ICPandaDAO)
 - GitHub: [https://github.com/ldclabs/ic-panda](https://github.com/ldclabs/ic-panda)
@@ -57,7 +69,7 @@ dfx canister create --specified-id a7cug-2qaaa-aaaap-ab3la-cai ic_panda_luckypoo
 # Creates a 'test-minter' account if it doesn't exist
 dfx identity new test-minter
 
-# Deploys the ICP Ledger canister
+# Deploys the ICP Ledger canister with the specified initial values
 dfx identity use test-minter
 export MINTER_ACCOUNT_ID=$(dfx ledger account-id)
 dfx identity use default
@@ -84,7 +96,7 @@ dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister --argu
   })
 "
 
-# Deploys the ICRC-1 token Ledger canister
+# Deploys the ICRC-1 token Ledger canister with the specified initial values
 dfx identity use test-minter
 export MINTER=$(dfx identity get-principal)
 dfx identity use default
@@ -120,3 +132,7 @@ record {
 # Deploys other canisters
 dfx deploy
 ```
+
+Open the frontend in your default browser
+
+http://c63a7-6yaaa-aaaap-ab3gq-cai.localhost:4943/

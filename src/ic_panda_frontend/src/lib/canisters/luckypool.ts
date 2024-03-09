@@ -4,13 +4,13 @@ import type { OptionIdentity } from '$lib/types/identity'
 import { assertNonNullish, isNullish } from '@dfinity/utils'
 import {
   idlFactory,
-  type _SERVICE,
+  type _SERVICE
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did'
 
 let actor: _SERVICE | null = null
 
 export const getService = async ({
-  identity,
+  identity
 }: {
   identity: OptionIdentity
 }): Promise<_SERVICE> => {
@@ -20,7 +20,7 @@ export const getService = async ({
     actor = await createActor<_SERVICE>({
       canisterId: LUCKYPOOL_CANISTER_ID,
       idlFactory: idlFactory,
-      identity,
+      identity
     })
   }
 

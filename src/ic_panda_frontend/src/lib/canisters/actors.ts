@@ -1,21 +1,21 @@
 import { IS_LOCAL } from '$lib/constants'
-import { createAgent as createAgentUtils } from '@dfinity/utils'
-import type { IDL } from '@dfinity/candid'
-import type { Principal } from '@dfinity/principal'
 import {
   Actor,
-  type HttpAgent,
   type ActorMethod,
   type ActorSubclass,
-  type Identity,
+  type HttpAgent,
+  type Identity
 } from '@dfinity/agent'
+import type { IDL } from '@dfinity/candid'
+import type { Principal } from '@dfinity/principal'
+import { createAgent as createAgentUtils } from '@dfinity/utils'
 
 let agents: Record<string, HttpAgent> = {}
 
 export const createActor = async <T = Record<string, ActorMethod>>({
   canisterId,
   idlFactory,
-  identity,
+  identity
 }: {
   canisterId: string | Principal
   idlFactory: IDL.InterfaceFactory
@@ -26,12 +26,12 @@ export const createActor = async <T = Record<string, ActorMethod>>({
   // Creates an actor with using the candid interface and the HttpAgent
   return Actor.createActor(idlFactory, {
     agent,
-    canisterId,
+    canisterId
   })
 }
 
 export const getAgent = async ({
-  identity,
+  identity
 }: {
   identity: Identity
 }): Promise<HttpAgent> => {
@@ -41,13 +41,13 @@ export const getAgent = async ({
     agents[key] = await createAgent({ identity })
   }
 
-  return agents[key]
+  return agents[key] as HttpAgent
 }
 
 export const clearAgents = () => (agents = {})
 
 const createAgent = ({
-  identity,
+  identity
 }: {
   identity: Identity
 }): Promise<HttpAgent> =>
@@ -55,5 +55,5 @@ const createAgent = ({
     identity,
     fetchRootKey: IS_LOCAL,
     host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
-    verifyQuerySignatures: true,
+    verifyQuerySignatures: true
   })

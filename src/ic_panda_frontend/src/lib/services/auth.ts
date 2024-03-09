@@ -22,7 +22,7 @@ export const signOut = (): Promise<void> => logout({})
 
 const logout = async ({
   msg = undefined,
-  clearIdbAddress = true,
+  clearIdbAddress = true
 }: {
   msg?: string
   clearIdbAddress?: boolean

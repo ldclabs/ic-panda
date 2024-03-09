@@ -1,11 +1,12 @@
 /// <reference types="vitest" />
-import { resolve } from 'node:path'
-import { sveltekit } from '@sveltejs/kit/vite'
-import { defineConfig } from 'vite'
-import environment from 'vite-plugin-environment'
-import dotenv from 'dotenv'
 
-dotenv.config({ path: '../../.env' })
+import { sveltekit } from "@sveltejs/kit/vite"
+import dotenv from "dotenv"
+import { resolve } from "node:path"
+import { defineConfig } from "vite"
+import environment from "vite-plugin-environment"
+
+dotenv.config({ path: "../../.env" });
 
 export default defineConfig({
   build: {
@@ -14,30 +15,30 @@ export default defineConfig({
   optimizeDeps: {
     esbuildOptions: {
       define: {
-        global: 'globalThis',
+        global: "globalThis",
       },
     },
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:4943',
+      "/api": {
+        target: "http://127.0.0.1:4943",
         changeOrigin: true,
       },
     },
   },
   plugins: [
     sveltekit(),
-    environment('all', { prefix: 'CANISTER_' }),
-    environment('all', { prefix: 'DFX_' }),
+    environment("all", { prefix: "CANISTER_" }),
+    environment("all", { prefix: "DFX_" }),
   ],
   test: {
-    environment: 'jsdom',
-    setupFiles: 'src/setupTests.js',
+    environment: "jsdom",
+    setupFiles: "src/setupTests.js",
   },
   resolve: {
     alias: {
-      $declarations: resolve('../declarations'),
+      $declarations: resolve("../declarations"),
     },
   },
 })
