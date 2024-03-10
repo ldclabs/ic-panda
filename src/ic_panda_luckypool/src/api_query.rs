@@ -1,4 +1,4 @@
-use crate::{store, types, AIRDROP_AMOUNT, ANONYMOUS};
+use crate::{nat_to_u64, store, types, utils, AIRDROP_AMOUNT, ANONYMOUS, TOKEN_1};
 use candid::{Nat, Principal};
 
 #[ic_cdk::query]
@@ -13,49 +13,49 @@ fn whoami() -> Result<Principal, ()> {
 
 #[ic_cdk::query]
 fn state() -> Result<store::State, ()> {
-    Ok(store::state::get())
+    Ok(store::state::with(|r| r.clone()))
 }
 
 #[ic_cdk::query]
-async fn airdrop_balance() -> Result<Nat, ()> {
-    let user = ic_cdk::caller();
-    if user == ANONYMOUS {
-        return Ok(Nat::from(0u64));
+async fn airdrop_state_of() -> Result<types::AirdropStateOutput, ()> {
+    let caller = ic_cdk::caller();
+    if caller == ANONYMOUS {
+        return Ok(types::AirdropStateOutput {
+            lucky_code: "".to_string(),
+            claimed: Nat::from(0u64),
+            claimable: Nat::from(AIRDROP_AMOUNT * TOKEN_1),
+        });
     }
 
-    Ok(if store::airdrop::has(user) {
-        Nat::from(AIRDROP_AMOUNT)
-    } else {
-        Nat::from(0u64)
-    })
+    match store::airdrop::state_of(&caller) {
+        Some(store::AirdropState(code, claimed, claimable)) => Ok(types::AirdropStateOutput {
+            lucky_code: utils::luckycode_to_string(code),
+            claimed: Nat::from(claimed * TOKEN_1),
+            claimable: Nat::from(claimable * TOKEN_1),
+        }),
+        None => Ok(types::AirdropStateOutput {
+            lucky_code: "".to_string(),
+            claimed: Nat::from(0u64),
+            claimable: Nat::from(AIRDROP_AMOUNT * TOKEN_1),
+        }),
+    }
 }
 
 #[ic_cdk::query]
-async fn airdrop_total() -> Result<Nat, ()> {
-    Ok(Nat::from(store::airdrop::total()))
-}
-
-#[ic_cdk::query]
-async fn luckydraw_total() -> Result<Nat, ()> {
-    Ok(Nat::from(store::luckydraw::total()))
-}
-
-#[ic_cdk::query]
-async fn airdrop_logs(args: types::LogsInput) -> Result<types::LogsOutput<store::AirdropLog>, ()> {
-    let res = store::airdrop::logs(10, args.index);
-    Ok(types::LogsOutput {
-        next_index: res.1,
-        logs: res.0,
-    })
+async fn airdrop_logs(prev: Option<Nat>, take: Option<Nat>) -> Result<Vec<types::AirdropLog>, ()> {
+    let prev = prev.as_ref().map(nat_to_u64);
+    let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
+    let logs = store::airdrop::logs(prev, take);
+    Ok(logs)
 }
 
 #[ic_cdk::query]
 async fn luckydraw_logs(
-    args: types::LogsInput,
-) -> Result<types::LogsOutput<store::LuckyDrawLog>, ()> {
-    let res = store::luckydraw::logs(10, args.index);
-    Ok(types::LogsOutput {
-        next_index: res.1,
-        logs: res.0,
-    })
+    prev: Option<Nat>,
+    take: Option<Nat>,
+) -> Result<Vec<types::LuckyDrawLog>, ()> {
+    let prev = prev.as_ref().map(nat_to_u64);
+    let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
+    let logs = store::luckydraw::logs(prev, take);
+    Ok(logs)
 }

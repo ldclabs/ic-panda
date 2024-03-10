@@ -1,4 +1,5 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Nat, Principal};
+use ciborium::{from_reader, into_writer};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -7,78 +8,131 @@ use ic_stable_structures::{
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
+use crate::types;
+use crate::utils::{luckycode_from_string, luckycode_to_string, sha3_256};
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-#[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(CandidType, Clone, Default, Deserialize, Serialize)]
 pub struct State {
     pub airdrop_balance: u64,
     pub total_airdrop: u64,
+    pub total_airdrop_count: u64,
     pub total_luckydraw: u64,
     pub total_luckydraw_icp: u64,
     pub total_luckydraw_count: u64,
+    pub latest_airdrop_logs: Vec<types::AirdropLog>, // latest 10 airdrop logs
+    pub luckiest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckiest luckydraw logs
+    pub latest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckydraw logs
 }
 
-// NOTE: the default configuration is dysfunctional, but it's convenient to have
-// a Default impl for the initialization of the [STATE] variable above.
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
-        ciborium::ser::into_writer(self, &mut buf).expect("failed to encode STATE data");
+        into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        ciborium::de::from_reader(&bytes[..]).expect("failed to decode STATE data")
+        from_reader(&bytes[..]).expect("failed to decode State data")
     }
 }
 
-// AirdropLog format: [user, time, token_amount]
-#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
-pub struct AirdropLog(Principal, u64, u64);
+// AirdropState format: (lucky code, total claimed tokens, claimable tokens)
+#[derive(Clone, Default, Deserialize, Serialize)]
+pub struct AirdropState(pub u32, pub u64, pub u64);
+
+impl Storable for AirdropState {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(self, &mut buf).expect("failed to encode AirdropState data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode AirdropState data")
+    }
+}
+
+// AirdropLog format: (user, time, token_amount, lucky_code)
+#[derive(CandidType, Clone, Deserialize, Serialize)]
+pub struct AirdropLog(Principal, u64, u64, u32);
+
+impl From<(u64, AirdropLog)> for types::AirdropLog {
+    fn from(log: (u64, AirdropLog)) -> Self {
+        let (idx, log) = log;
+        types::AirdropLog {
+            id: Nat::from(idx),
+            ts: log.1,
+            caller: log.0,
+            amount: Nat::from(log.2),
+            lucky_code: luckycode_to_string(log.3),
+        }
+    }
+}
 
 impl Storable for AirdropLog {
     const BOUND: Bound = Bound::Unbounded;
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
-        ciborium::ser::into_writer(self, &mut buf).expect("failed to encode airdrop log");
+        into_writer(self, &mut buf).expect("failed to encode AirdropLog data");
         Cow::Owned(buf)
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        ciborium::de::from_reader(&bytes[..]).expect("failed to decode airdrop log")
+        from_reader(&bytes[..]).expect("failed to decode AirdropLog data")
     }
 }
 
-// AirdropLog format: [user, time, token_amount, icp_amount, random_number]
-#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+// AirdropLog format: (user, time, token_amount, icp_amount, random_number)
+#[derive(CandidType, Clone, Deserialize, Serialize)]
 pub struct LuckyDrawLog(Principal, u64, u64, u64, u64);
+
+impl From<(u64, LuckyDrawLog)> for types::LuckyDrawLog {
+    fn from(log: (u64, LuckyDrawLog)) -> Self {
+        let (idx, log) = log;
+        types::LuckyDrawLog {
+            id: Nat::from(idx),
+            ts: log.1,
+            caller: log.0,
+            amount: Nat::from(log.2),
+            icp_amount: Nat::from(log.3),
+            random: log.4,
+        }
+    }
+}
 
 impl Storable for LuckyDrawLog {
     const BOUND: Bound = Bound::Unbounded;
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
-        ciborium::ser::into_writer(self, &mut buf).expect("failed to encode luckydraw log");
+        into_writer(self, &mut buf).expect("failed to encode LuckyDrawLog data");
         Cow::Owned(buf)
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        ciborium::de::from_reader(&bytes[..]).expect("failed to decode luckydraw log")
+        from_reader(&bytes[..]).expect("failed to decode LuckyDrawLog data")
     }
 }
 
 const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
 const AIRDROP_MEMORY_ID: MemoryId = MemoryId::new(1);
-const AIRDROP_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(2);
-const AIRDROP_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(3);
-const LUCKYDRAW_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(4);
-const LUCKYDRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(5);
+const LUCKYCODE_MEMORY_ID: MemoryId = MemoryId::new(2);
+const AIRDROP_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(3);
+const AIRDROP_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(4);
+const LUCKYDRAW_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(5);
+const LUCKYDRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(6);
 
 thread_local! {
     static CAPTCHA_SECRET: RefCell<[u8; 32]> = RefCell::new([0; 32]);
+
+    static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
 
     static ACTIVE_USERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
 
@@ -92,9 +146,15 @@ thread_local! {
         ).expect("failed to init STATE store")
     );
 
-    static AIRDROP: RefCell<StableBTreeMap<Principal, (), Memory>> = RefCell::new(
+    static AIRDROP: RefCell<StableBTreeMap<Principal, AirdropState, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(AIRDROP_MEMORY_ID)),
+        )
+    );
+
+    static LUCKYCODE: RefCell<StableBTreeMap<u32, Principal, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(LUCKYCODE_MEMORY_ID)),
         )
     );
 
@@ -125,70 +185,149 @@ pub mod captcha {
     }
 }
 
-pub mod airdrop {
+pub mod luckycode {
     use super::*;
 
-    pub fn total() -> u64 {
-        AIRDROP_LOGS.with(|r| r.borrow().len())
+    pub fn get(code: u32) -> Option<Principal> {
+        LUCKYCODE.with(|r| r.borrow().get(&code))
     }
+
+    pub fn get_by_string(code: &str) -> Option<Principal> {
+        match luckycode_from_string(code) {
+            Ok(code) => LUCKYCODE.with(|r| r.borrow().get(&code)),
+            Err(_) => None,
+        }
+    }
+
+    pub fn new_from(user: Principal, random: &[u8]) -> u32 {
+        LUCKYCODE.with(|r| {
+            let b = sha3_256(random);
+            let mut code = u32::from_be_bytes([b[0], b[1], b[2], b[3]]).saturating_add(1000001) - 1;
+            {
+                let m = r.borrow();
+                let mut i = 0u32;
+                while m.contains_key(&code) {
+                    code = if code == u32::MAX { 1000001 } else { code + 1 };
+
+                    i += 1;
+                    if i > 10000 {
+                        ic_cdk::trap("failed to generate a lucky code");
+                    }
+                }
+            }
+            r.borrow_mut().insert(code, user);
+            code
+        })
+    }
+}
+
+pub mod airdrop {
+    use crate::{AIRDROP_AMOUNT, TOKEN_1};
+
+    use super::*;
 
     pub fn balance() -> u64 {
         STATE.with(|r| r.borrow().get().airdrop_balance)
     }
 
     // check if a user has claimed airdrop.
-    pub fn has(user: Principal) -> bool {
-        AIRDROP
-            .with(|r| r.borrow().get(&user))
-            .map(|_| true)
-            .unwrap_or(false)
+    pub fn state_of(user: &Principal) -> Option<AirdropState> {
+        AIRDROP.with(|r| r.borrow().get(user))
     }
 
     // update luckydraw state and append a log.
-    // return the log index or an error message when append failed.
-    pub fn update(user: Principal, time: u64, amount: u64) -> Result<u64, String> {
-        AIRDROP.with(|r| r.borrow_mut().insert(user, ()));
-        STATE.with(|r| {
-            let mut borrowed = r.borrow_mut();
-            let mut state = borrowed.get().clone();
-            state.airdrop_balance = state.airdrop_balance.saturating_sub(amount);
-            state.total_airdrop = state.total_airdrop.saturating_add(amount);
-            borrowed
-                .set(state)
-                .map_err(|err| format!("failed to update airdrop state, error {:?}", err))
+    // return the log or an error message when append failed.
+    pub fn insert(
+        user: Principal,
+        referrer: Option<Principal>,
+        time: u64,
+        amount: u64,
+        caller_code: u32,
+    ) -> Result<types::AirdropLog, String> {
+        let referrer_code = AIRDROP.with(|r| {
+            let mut m = r.borrow_mut();
+            m.insert(user, AirdropState(caller_code, amount, 0u64));
+
+            match referrer {
+                None => 0,
+                Some(referrer) => match m.get(&referrer) {
+                    None => 0,
+                    Some(state) => {
+                        m.insert(
+                            referrer,
+                            AirdropState(
+                                state.0,
+                                state.1,
+                                state.2 + (AIRDROP_AMOUNT / 2) * TOKEN_1,
+                            ),
+                        );
+                        state.0
+                    }
+                },
+            }
+        });
+
+        let log = AirdropLog(user, time, amount, referrer_code);
+        let idx = AIRDROP_LOGS
+            .with(|r| r.borrow_mut().append(&log))
+            .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
+        Ok(types::AirdropLog::from((idx, log)))
+    }
+
+    pub fn harvest(user: Principal, time: u64, amount: u64) -> Result<types::AirdropLog, String> {
+        AIRDROP.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&user) {
+                None => Err("no claimable airdrop to harvest".to_string()),
+                Some(state) => {
+                    if amount > state.2 {
+                        return Err("insufficient claimable airdrop to harvest".to_string());
+                    }
+                    m.insert(
+                        user,
+                        AirdropState(state.0, state.1 + amount, state.2 - amount),
+                    );
+                    Ok(())
+                }
+            }
         })?;
-        AIRDROP_LOGS
-            .with(|r| r.borrow_mut().append(&AirdropLog(user, time, amount)))
-            .map_err(|err| format!("failed to append airdrop log, error {:?}", err))
+
+        let log = AirdropLog(user, time, amount, 0);
+        let idx = AIRDROP_LOGS
+            .with(|r| r.borrow_mut().append(&log))
+            .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
+        Ok(types::AirdropLog::from((idx, log)))
     }
 
     // get airdrop logs in reverse order, return the next index to fetch.
-    pub fn logs(size: usize, idx: Option<u64>) -> (Vec<AirdropLog>, Option<u64>) {
+    pub fn logs(prev: Option<u64>, take: usize) -> Vec<types::AirdropLog> {
         AIRDROP_LOGS.with(|r| {
             let log_store = r.borrow();
             let latest = log_store.len();
             if latest == 0 {
-                return (vec![], None);
-            }
-            let mut idx = idx.unwrap_or(latest - 1);
-            if idx >= latest {
-                return (vec![], None);
+                return vec![];
             }
 
-            let mut logs = Vec::with_capacity(size);
+            let prev = prev.unwrap_or(latest);
+            if prev > latest || prev == 0 {
+                return vec![];
+            }
+
+            let mut idx = prev - 1;
+            let mut logs: Vec<types::AirdropLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
-                logs.push(log);
+                logs.push(types::AirdropLog::from((idx, log)));
                 if idx == 0 {
-                    return (logs, None);
+                    return logs;
                 }
 
-                if logs.len() >= size {
+                if logs.len() >= take {
                     break;
                 }
                 idx -= 1;
             }
 
-            (logs, Some(idx))
+            logs
         })
     }
 }
@@ -196,64 +335,51 @@ pub mod airdrop {
 pub mod luckydraw {
     use super::*;
 
-    pub fn total() -> u64 {
-        LUCKYDRAW_LOGS.with(|r| r.borrow().len())
-    }
-
-    // update luckydraw state and append a log.
-    // return the log index or an error message when append failed.
-    pub fn update(
+    // insert luckydraw state and append a log.
+    // return the log or an error message when append failed.
+    pub fn insert(
         user: Principal,
         time: u64,
         token_amount: u64,
         icp_amount: u64,
         random: u64,
-    ) -> Result<u64, String> {
-        STATE.with(|r| {
-            let mut borrowed = r.borrow_mut();
-            let mut state = borrowed.get().clone();
-            state.total_luckydraw = state.total_luckydraw.saturating_add(token_amount);
-            state.total_luckydraw_icp = state.total_luckydraw_icp.saturating_add(icp_amount);
-            state.total_luckydraw_count = state.total_luckydraw_count.saturating_add(1);
-            borrowed
-                .set(state)
-                .map_err(|err| format!("failed to update luckydraw state, error {:?}", err))
-        })?;
-        LUCKYDRAW_LOGS
-            .with(|r| {
-                r.borrow_mut()
-                    .append(&LuckyDrawLog(user, time, token_amount, icp_amount, random))
-            })
-            .map_err(|err| format!("failed to append luckydraw log, error {:?}", err))
+    ) -> Result<types::LuckyDrawLog, String> {
+        let log = LuckyDrawLog(user, time, token_amount, icp_amount, random);
+        let idx = LUCKYDRAW_LOGS
+            .with(|r| r.borrow_mut().append(&log))
+            .map_err(|err| format!("failed to append luckydraw log, error {:?}", err))?;
+        Ok(types::LuckyDrawLog::from((idx, log)))
     }
 
     // get luckydraw logs in reverse order, return the next index to fetch.
-    pub fn logs(size: usize, idx: Option<u64>) -> (Vec<LuckyDrawLog>, Option<u64>) {
+    pub fn logs(prev: Option<u64>, take: usize) -> Vec<types::LuckyDrawLog> {
         LUCKYDRAW_LOGS.with(|r| {
             let log_store = r.borrow();
             let latest = log_store.len();
             if latest == 0 {
-                return (vec![], None);
-            }
-            let mut idx = idx.unwrap_or(latest - 1);
-            if idx >= latest {
-                return (vec![], None);
+                return vec![];
             }
 
-            let mut logs = Vec::with_capacity(size);
+            let prev = prev.unwrap_or(latest);
+            if prev > latest || prev == 0 {
+                return vec![];
+            }
+
+            let mut idx = prev - 1;
+            let mut logs: Vec<types::LuckyDrawLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
-                logs.push(log);
+                logs.push(types::LuckyDrawLog::from((idx, log)));
                 if idx == 0 {
-                    return (logs, None);
+                    return logs;
                 }
 
-                if logs.len() >= size {
+                if logs.len() >= take {
                     break;
                 }
                 idx -= 1;
             }
 
-            (logs, Some(idx))
+            logs
         })
     }
 }
@@ -274,24 +400,29 @@ pub mod user {
 pub mod state {
     use super::*;
 
-    pub fn get() -> State {
-        STATE.with(|r| r.borrow().get().clone())
+    pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
+        STATE_HEAP.with(|r| f(&r.borrow()))
     }
 
-    // /// A helper function to access the state.
-    // pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
-    //     STATE.with(|r| f(r.borrow().get()))
-    // }
+    pub fn with_mut<R>(f: impl FnOnce(&mut State) -> R) -> R {
+        STATE_HEAP.with(|r| f(&mut r.borrow_mut()))
+    }
 
-    /// A helper function to change the state.
-    pub fn with_mut(f: impl FnOnce(&mut State)) {
-        STATE
-            .with(|r| {
-                let mut borrowed = r.borrow_mut();
-                let mut state = borrowed.get().clone();
-                f(&mut state);
-                borrowed.set(state)
-            })
-            .expect("failed to set STATE data");
+    pub fn load() {
+        STATE.with(|r| {
+            STATE_HEAP.with(|h| {
+                *h.borrow_mut() = r.borrow().get().clone();
+            });
+        });
+    }
+
+    pub fn save() {
+        STATE_HEAP.with(|h| {
+            STATE.with(|r| {
+                r.borrow_mut()
+                    .set(h.borrow().clone())
+                    .expect("failed to set STATE data");
+            });
+        });
     }
 }

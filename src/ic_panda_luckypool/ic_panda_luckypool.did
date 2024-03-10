@@ -1,26 +1,47 @@
-type AirdropClaimInput = record { challenge : text; code : text };
+type AirdropClaimInput = record {
+  challenge : text;
+  code : text;
+  lucky_code : text;
+};
+type AirdropHarvestInput = record { amount : nat };
+type AirdropLog = record {
+  id : nat;
+  ts : nat64;
+  lucky_code : text;
+  caller : principal;
+  amount : nat;
+};
+type AirdropStateOutput = record {
+  lucky_code : text;
+  claimed : nat;
+  claimable : nat;
+};
 type CaptchaOutput = record { challenge : text; img_base64 : text };
-type LogsInput = record { index : opt nat64 };
-type LogsOutput = record {
-  next_index : opt nat64;
-  logs : vec record { principal; nat64; nat64 };
-};
-type LogsOutput_1 = record {
-  next_index : opt nat64;
-  logs : vec record { principal; nat64; nat64; nat64; nat64 };
-};
 type LuckyDrawInput = record { icp : nat8 };
+type LuckyDrawLog = record {
+  id : nat;
+  ts : nat64;
+  caller : principal;
+  random : nat64;
+  icp_amount : nat;
+  amount : nat;
+};
 type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : nat; Err : text };
-type Result_2 = variant { Ok : nat; Err };
-type Result_3 = variant { Ok : LogsOutput; Err };
+type Result_1 = variant { Ok : AirdropStateOutput; Err : text };
+type Result_2 = variant { Ok : vec AirdropLog; Err };
+type Result_3 = variant { Ok : AirdropStateOutput; Err };
 type Result_4 = variant { Ok : CaptchaOutput; Err : text };
-type Result_5 = variant { Ok : LogsOutput_1; Err };
-type Result_6 = variant { Ok : State; Err };
-type Result_7 = variant { Ok : principal; Err };
+type Result_5 = variant { Ok : nat; Err : text };
+type Result_6 = variant { Ok : vec LuckyDrawLog; Err };
+type Result_7 = variant { Ok : State; Err };
+type Result_8 = variant { Ok : principal; Err };
 type State = record {
+  latest_luckydraw_logs : vec LuckyDrawLog;
   total_luckydraw : nat64;
+  latest_airdrop_logs : vec AirdropLog;
   total_airdrop : nat64;
+  total_airdrop_count : nat64;
+  luckiest_luckydraw_logs : vec LuckyDrawLog;
   airdrop_balance : nat64;
   total_luckydraw_count : nat64;
   total_luckydraw_icp : nat64;
@@ -29,14 +50,13 @@ service : () -> {
   admin_collect_icp : (nat) -> (Result);
   admin_update_airdrop_balance : (nat64) -> ();
   airdrop : (AirdropClaimInput) -> (Result_1);
-  airdrop_balance : () -> (Result_2) query;
-  airdrop_logs : (LogsInput) -> (Result_3) query;
-  airdrop_total : () -> (Result_2) query;
+  airdrop_logs : (opt nat, opt nat) -> (Result_2) query;
+  airdrop_state_of : () -> (Result_3) query;
   api_version : () -> (nat16) query;
   captcha : () -> (Result_4);
-  luckydraw : (LuckyDrawInput) -> (Result_1);
-  luckydraw_logs : (LogsInput) -> (Result_5) query;
-  luckydraw_total : () -> (Result_2) query;
-  state : () -> (Result_6) query;
-  whoami : () -> (Result_7) query;
+  harvest : (AirdropHarvestInput) -> (Result_1);
+  luckydraw : (LuckyDrawInput) -> (Result_5);
+  luckydraw_logs : (opt nat, opt nat) -> (Result_6) query;
+  state : () -> (Result_7) query;
+  whoami : () -> (Result_8) query;
 }
