@@ -59,7 +59,7 @@ impl Storable for AirdropState {
 }
 
 // AirdropLog format: (user, time, token_amount, lucky_code)
-#[derive(CandidType, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AirdropLog(Principal, u64, u64, u32);
 
 impl From<(u64, AirdropLog)> for types::AirdropLog {
@@ -90,7 +90,7 @@ impl Storable for AirdropLog {
 }
 
 // AirdropLog format: (user, time, token_amount, icp_amount, random_number)
-#[derive(CandidType, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct LuckyDrawLog(Principal, u64, u64, u64, u64);
 
 impl From<(u64, LuckyDrawLog)> for types::LuckyDrawLog {
@@ -240,7 +240,7 @@ pub mod airdrop {
     pub fn insert(
         user: Principal,
         referrer: Option<Principal>,
-        time: u64,
+        now_sec: u64,
         amount: u64,
         caller_code: u32,
     ) -> Result<types::AirdropLog, String> {
@@ -267,36 +267,40 @@ pub mod airdrop {
             }
         });
 
-        let log = AirdropLog(user, time, amount, referrer_code);
+        let log = AirdropLog(user, now_sec, amount, referrer_code);
         let idx = AIRDROP_LOGS
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
         Ok(types::AirdropLog::from((idx, log)))
     }
 
-    pub fn harvest(user: Principal, time: u64, amount: u64) -> Result<types::AirdropLog, String> {
-        AIRDROP.with(|r| {
+    pub fn harvest(
+        user: Principal,
+        now_sec: u64,
+        amount: u64,
+    ) -> Result<(AirdropState, types::AirdropLog), String> {
+        let state = AIRDROP.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&user) {
+                // should never happen, we have checked the state before calling this function
                 None => Err("no claimable airdrop to harvest".to_string()),
                 Some(state) => {
-                    if amount > state.2 {
-                        return Err("insufficient claimable airdrop to harvest".to_string());
-                    }
-                    m.insert(
-                        user,
-                        AirdropState(state.0, state.1 + amount, state.2 - amount),
+                    let state = AirdropState(
+                        state.0,
+                        state.1.saturating_add(amount),
+                        state.2.saturating_sub(amount),
                     );
-                    Ok(())
+                    m.insert(user, state.clone());
+                    Ok(state)
                 }
             }
         })?;
 
-        let log = AirdropLog(user, time, amount, 0);
+        let log = AirdropLog(user, now_sec, amount, 0);
         let idx = AIRDROP_LOGS
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
-        Ok(types::AirdropLog::from((idx, log)))
+        Ok((state, types::AirdropLog::from((idx, log))))
     }
 
     // get airdrop logs in reverse order, return the next index to fetch.
@@ -317,11 +321,8 @@ pub mod airdrop {
             let mut logs: Vec<types::AirdropLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
                 logs.push(types::AirdropLog::from((idx, log)));
-                if idx == 0 {
-                    return logs;
-                }
 
-                if logs.len() >= take {
+                if idx == 0 || logs.len() >= take {
                     break;
                 }
                 idx -= 1;
@@ -339,12 +340,12 @@ pub mod luckydraw {
     // return the log or an error message when append failed.
     pub fn insert(
         user: Principal,
-        time: u64,
+        now_sec: u64,
         token_amount: u64,
         icp_amount: u64,
         random: u64,
     ) -> Result<types::LuckyDrawLog, String> {
-        let log = LuckyDrawLog(user, time, token_amount, icp_amount, random);
+        let log = LuckyDrawLog(user, now_sec, token_amount, icp_amount, random);
         let idx = LUCKYDRAW_LOGS
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append luckydraw log, error {:?}", err))?;
@@ -369,11 +370,8 @@ pub mod luckydraw {
             let mut logs: Vec<types::LuckyDrawLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
                 logs.push(types::LuckyDrawLog::from((idx, log)));
-                if idx == 0 {
-                    return logs;
-                }
 
-                if logs.len() >= take {
+                if idx == 0 || logs.len() >= take {
                     break;
                 }
                 idx -= 1;

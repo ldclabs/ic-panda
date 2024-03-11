@@ -1,6 +1,5 @@
 use candid::{Nat, Principal};
 use num_traits::cast::ToPrimitive;
-use once_cell::sync::Lazy;
 use std::convert::Into;
 
 use icrc_ledger_types::{
@@ -27,10 +26,11 @@ const AIRDROP_AMOUNT: u64 = 10; // 10 PANDA tokens
 
 static ANONYMOUS: Principal = Principal::anonymous();
 static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
-static TOKEN_CANISTER: Lazy<Principal> =
-    Lazy::new(|| Principal::from_text("bkyz2-fmaaa-aaaaa-qaaaq-cai").expect("invalid principal")); // TODO: update token canister id
-static DAO_CANISTER: Lazy<Principal> =
-    Lazy::new(|| Principal::from_text("a7cug-2qaaa-aaaap-ab3la-cai").expect("invalid principal")); // TODO: update dao canister id
+
+// "bkyz2-fmaaa-aaaaa-qaaaq-cai" TODO: update token canister id
+static TOKEN_CANISTER: Principal = Principal::from_slice(&[128, 0, 0, 0, 0, 16, 0, 1, 1, 1]);
+// "a7cug-2qaaa-aaaap-ab3la-cai" TODO: update dao canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 14, 214, 1, 1]);
 
 fn nat_to_u64(nat: &Nat) -> u64 {
     nat.0.to_u64().unwrap_or(0)
@@ -54,7 +54,7 @@ fn is_authenticated() -> Result<(), String> {
 
 async fn token_balance_of(user: Principal) -> Result<Nat, String> {
     let (balance,) = ic_cdk::call(
-        *TOKEN_CANISTER,
+        TOKEN_CANISTER,
         "icrc1_balance_of",
         (Account {
             owner: user,
@@ -68,7 +68,7 @@ async fn token_balance_of(user: Principal) -> Result<Nat, String> {
 
 async fn token_transfer_to(user: Principal, amount: Nat) -> Result<Nat, String> {
     let (res,): (Result<Nat, TransferError>,) = ic_cdk::call(
-        *TOKEN_CANISTER,
+        TOKEN_CANISTER,
         "icrc1_transfer",
         (TransferArg {
             from_subaccount: None,
@@ -134,3 +134,20 @@ async fn icp_transfer_from(user: Principal, amount: Nat) -> Result<Nat, String> 
 }
 
 ic_cdk::export_candid!();
+
+#[cfg(test)]
+mod test {
+    use ic_stable_structures::Storable;
+
+    use super::*;
+
+    #[test]
+    fn get_principal() {
+        let s = "a7cug-2qaaa-aaaap-ab3la-cai";
+        let id = Principal::from_text(s).expect("invalid principal");
+        println!("principal bytes: {:?}", id.to_bytes());
+
+        let id2 = Principal::from_slice(&id.to_bytes());
+        assert_eq!(s, id2.to_string());
+    }
+}

@@ -1,7 +1,7 @@
 type AirdropClaimInput = record {
   challenge : text;
   code : text;
-  lucky_code : text;
+  lucky_code : opt text;
 };
 type AirdropHarvestInput = record { amount : nat };
 type AirdropLog = record {
@@ -12,7 +12,7 @@ type AirdropLog = record {
   amount : nat;
 };
 type AirdropStateOutput = record {
-  lucky_code : text;
+  lucky_code : opt text;
   claimed : nat;
   claimable : nat;
 };
@@ -26,15 +26,18 @@ type LuckyDrawLog = record {
   icp_amount : nat;
   amount : nat;
 };
+type LuckyDrawOutput = record {
+  luckypool_empty : bool;
+  random : nat64;
+  amount : nat;
+};
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : AirdropStateOutput; Err : text };
-type Result_2 = variant { Ok : vec AirdropLog; Err };
-type Result_3 = variant { Ok : AirdropStateOutput; Err };
-type Result_4 = variant { Ok : CaptchaOutput; Err : text };
-type Result_5 = variant { Ok : nat; Err : text };
-type Result_6 = variant { Ok : vec LuckyDrawLog; Err };
-type Result_7 = variant { Ok : State; Err };
-type Result_8 = variant { Ok : principal; Err };
+type Result_2 = variant { Ok : AirdropStateOutput; Err };
+type Result_3 = variant { Ok : CaptchaOutput; Err : text };
+type Result_4 = variant { Ok : LuckyDrawOutput; Err : text };
+type Result_5 = variant { Ok : State; Err };
+type Result_6 = variant { Ok : principal; Err };
 type State = record {
   latest_luckydraw_logs : vec LuckyDrawLog;
   total_luckydraw : nat64;
@@ -50,13 +53,13 @@ service : () -> {
   admin_collect_icp : (nat) -> (Result);
   admin_update_airdrop_balance : (nat64) -> ();
   airdrop : (AirdropClaimInput) -> (Result_1);
-  airdrop_logs : (opt nat, opt nat) -> (Result_2) query;
-  airdrop_state_of : () -> (Result_3) query;
+  airdrop_logs : (opt nat, opt nat) -> (vec AirdropLog) query;
+  airdrop_state_of : () -> (Result_2) query;
   api_version : () -> (nat16) query;
-  captcha : () -> (Result_4);
+  captcha : () -> (Result_3);
   harvest : (AirdropHarvestInput) -> (Result_1);
-  luckydraw : (LuckyDrawInput) -> (Result_5);
-  luckydraw_logs : (opt nat, opt nat) -> (Result_6) query;
-  state : () -> (Result_7) query;
-  whoami : () -> (Result_8) query;
+  luckydraw : (LuckyDrawInput) -> (Result_4);
+  luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
+  state : () -> (Result_5) query;
+  whoami : () -> (Result_6) query;
 }

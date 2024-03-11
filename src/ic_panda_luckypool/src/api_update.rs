@@ -7,25 +7,32 @@ use ic_captcha::CaptchaBuilder;
 use once_cell::sync::Lazy;
 
 const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
-const LUCKIEST_AIRDROP_AMOUNT: u64 = 100000 * TOKEN_1;
-const LOWEST_LUCKYDRAW_BALANCE: u64 = TOKEN_1 * 100;
+const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000 * TOKEN_1;
+const LOWEST_LUCKYDRAW_BALANCE: u64 = 100 * TOKEN_1;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn captcha() -> Result<types::CaptchaOutput, String> {
+    let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
 
     let captcha = CAPTCHA_BUILDER.generate(&rr.0, None);
-    let now = ic_cdk::api::time();
+    let now_sec = ic_cdk::api::time() / SECOND;
     let challenge = types::ChallengeCode {
         code: captcha.text().to_lowercase(),
     };
 
-    let challenge =
-        store::captcha::with_secret(|secret| challenge.sign_to_base64(secret, now / SECOND));
+    let challenge = store::captcha::with_secret(|secret| challenge.sign_to_base64(secret, now_sec));
     Ok(types::CaptchaOutput {
         img_base64: captcha.to_base64(0),
         challenge,
@@ -34,8 +41,8 @@ async fn captcha() -> Result<types::CaptchaOutput, String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOutput, String> {
-    let now = ic_cdk::api::time() / SECOND;
-    let expire_at = now - CAPTCHA_EXPIRE_SEC;
+    let now_sec = ic_cdk::api::time() / SECOND;
+    let expire_at = now_sec - CAPTCHA_EXPIRE_SEC;
     let challenge = types::ChallengeCode {
         code: args.code.to_lowercase(),
     };
@@ -47,13 +54,13 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     let caller = ic_cdk::caller();
     if let Some(store::AirdropState(code, claimed, claimable)) = store::airdrop::state_of(&caller) {
         return Ok(types::AirdropStateOutput {
-            lucky_code: utils::luckycode_to_string(code),
-            claimed: Nat::from(claimed * TOKEN_1),
-            claimable: Nat::from(claimable * TOKEN_1),
+            lucky_code: Some(utils::luckycode_to_string(code)),
+            claimed: Nat::from(claimed),
+            claimable: Nat::from(claimable),
         });
     }
 
-    if store::airdrop::balance() < AIRDROP_AMOUNT * TOKEN_1 {
+    if store::airdrop::balance() < AIRDROP_AMOUNT * TOKEN_1 + TRANS_FEE {
         return Err("airdrop pool is empty".to_string());
     }
 
@@ -65,17 +72,19 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         store::user::deactive(caller);
     });
 
-    let referrer = store::luckycode::get_by_string(&args.lucky_code);
+    let referrer = args
+        .lucky_code
+        .and_then(|s| store::luckycode::get_by_string(&s));
     let claimed = if referrer.is_some() {
         (AIRDROP_AMOUNT + AIRDROP_AMOUNT / 2) * TOKEN_1
     } else {
         AIRDROP_AMOUNT * TOKEN_1
     };
 
-    let caller_code = store::luckycode::new_from(caller, args.challenge.as_bytes());
     // don't need to check balance, because the token canister will reject the transfer if the balance is insufficient
     let _block_idx = token_transfer_to(caller, Nat::from(claimed)).await?;
-    let log = store::airdrop::insert(caller, referrer, now, claimed, caller_code)?;
+    let caller_code = store::luckycode::new_from(caller, args.challenge.as_bytes());
+    let log = store::airdrop::insert(caller, referrer, now_sec, claimed, caller_code)?;
     store::state::with_mut(|r| {
         r.airdrop_balance = r.airdrop_balance.saturating_sub(claimed + TRANS_FEE);
         r.total_airdrop = r.total_airdrop.saturating_add(claimed + TRANS_FEE);
@@ -86,9 +95,8 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         }
     });
 
-    // TODO: trace error logs
     Ok(types::AirdropStateOutput {
-        lucky_code: utils::luckycode_to_string(caller_code),
+        lucky_code: Some(utils::luckycode_to_string(caller_code)),
         claimed: Nat::from(claimed),
         claimable: Nat::from(0u32),
     })
@@ -96,18 +104,26 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropStateOutput, String> {
-    let now = ic_cdk::api::time() / SECOND;
     let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
+    let now_sec = ic_cdk::api::time() / SECOND;
+
     match store::airdrop::state_of(&caller) {
-        None => Err("no claimable airdrop to harvest".to_string()),
-        Some(store::AirdropState(code, claimed, claimable)) => {
+        None => Err("no claimable tokens to harvest".to_string()),
+        Some(store::AirdropState(_, _, claimable)) => {
             let amount = nat_to_u64(&args.amount);
             if amount > claimable {
-                return Err("insufficient claimable airdrop to harvest".to_string());
+                return Err("insufficient claimable tokens to harvest".to_string());
             }
 
             let _block_idx = token_transfer_to(caller, args.amount).await?;
-            let log = store::airdrop::harvest(caller, now, amount)?;
+            let (state, log) = store::airdrop::harvest(caller, now_sec, amount)?;
             store::state::with_mut(|r| {
                 r.airdrop_balance = r.airdrop_balance.saturating_sub(amount + TRANS_FEE);
                 r.total_airdrop = r.total_airdrop.saturating_add(amount + TRANS_FEE);
@@ -118,18 +134,17 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
                 }
             });
 
-            // TODO: trace error logs
             Ok(types::AirdropStateOutput {
-                lucky_code: utils::luckycode_to_string(code),
-                claimed: Nat::from(claimed + amount),
-                claimable: Nat::from(claimable - amount),
+                lucky_code: Some(utils::luckycode_to_string(state.0)),
+                claimed: Nat::from(state.1),
+                claimable: Nat::from(state.2),
             })
         }
     }
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
+async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput, String> {
     if args.icp < 1 || args.icp > 100 {
         return Err("invalid icp amount, should be in [1, 100]".to_string());
     }
@@ -142,7 +157,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
         store::user::deactive(caller);
     });
 
-    let now = ic_cdk::api::time() / SECOND;
+    let now_sec = ic_cdk::api::time() / SECOND;
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
@@ -173,7 +188,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
     };
 
     if draw_amount > 0 {
-        let log = store::luckydraw::insert(caller, now, draw_amount, icp, x)?;
+        let log = store::luckydraw::insert(caller, now_sec, draw_amount, icp, x)?;
         store::state::with_mut(|r| {
             r.total_luckydraw = r.total_luckydraw.saturating_add(draw_amount + TRANS_FEE);
             r.total_luckydraw_icp = r.total_luckydraw_icp.saturating_add(icp - TRANS_FEE);
@@ -189,8 +204,11 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<Nat, String> {
                 }
             }
         });
-        // TODO: trace error logs
-        Ok(Nat::from(draw_amount))
+        Ok(types::LuckyDrawOutput {
+            amount: Nat::from(draw_amount),
+            random: x,
+            luckypool_empty: draw_amount < amount,
+        })
     } else {
         // refund ICP when failed to transfer tokens
         let _ = icp_transfer_to(caller, Nat::from(icp - TRANS_FEE - TRANS_FEE))

@@ -30,5 +30,5 @@ async fn load_captcha_secret() {
         .await
         .expect("failed to get random bytes");
 
-    store::captcha::set_secret(mac_256(&rr.0, b"Captcha Secret"));
+    store::captcha::set_secret(mac_256(&rr.0, b"CAPTCHA_SECRET"));
 }
