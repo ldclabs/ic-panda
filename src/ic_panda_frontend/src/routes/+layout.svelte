@@ -1,17 +1,30 @@
 <script lang="ts">
   import '../app.pcss'
 
+  import {
+    computePosition,
+    autoUpdate,
+    offset,
+    shift,
+    flip,
+    arrow
+  } from '@floating-ui/dom'
   import { browser } from '$app/environment'
   import { authStore } from '$lib/stores/auth'
+  import PageFooter from '$lib/components/core/PageFooter.svelte'
+  import PageHeader from '$lib/components/core/PageHeader.svelte'
   import {
     AppShell,
     Toast,
+    Modal,
     getToastStore,
-    initializeStores
+    initializeStores,
+    storePopup
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
 
   initializeStores()
+  storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
 
   /**
@@ -49,7 +62,7 @@
     }
 
     // We want to display a spinner until the authentication is loaded. This to avoid a glitch when either the landing page or effective content (sign-in / sign-out) is presented.
-    if ($authStore === undefined) {
+    if ($authStore == null) {
       return
     }
 
@@ -61,6 +74,9 @@
 <svelte:window on:storage={syncAuthStore} />
 
 <Toast position="br" width="max-w-xl w-full" />
+<Modal />
 <AppShell>
+  <svelte:fragment slot="header"><PageHeader /></svelte:fragment>
   <slot />
+  <svelte:fragment slot="pageFooter"><PageFooter /></svelte:fragment>
 </AppShell>

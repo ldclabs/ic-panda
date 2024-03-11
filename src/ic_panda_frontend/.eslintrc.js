@@ -9,12 +9,12 @@ module.exports = {
   extends: [
     'eslint:recommended',
     "standard",
-    "prettier",
     "prettier/@typescript-eslint",
     'plugin:svelte/recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
     'plugin:prettier/recommended',
+    "prettier",
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {

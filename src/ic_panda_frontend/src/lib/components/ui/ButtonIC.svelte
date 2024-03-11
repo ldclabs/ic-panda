@@ -2,10 +2,7 @@
   import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
 </script>
 
-<button type="button" class="btn variant-filled" on:click>
-  <span><IconIcLogo /></span>
-  <span class="text-left">
-    <span><slot name="action" /></span>
-    <span><slot /></span>
-  </span>
+<button type="button" class="variant-filled-secondary btn" on:click>
+  <span class="scale-75 max-md:hidden"><IconIcLogo /></span>
+  <span class="max-md:!ml-0">Sign In</span>
 </button>
