@@ -26,7 +26,8 @@
 
     const modal: ModalSettings = {
       type: 'alert',
-      title: 'Account Details',
+      position: 'items-center',
+      title: 'Account',
       body: 'Your Principal: ' + $authStore.identity.getPrincipal().toString(),
       buttonTextCancel: 'Close'
     }
@@ -34,9 +35,7 @@
   }
 </script>
 
-<div
-  class="relative border-none bg-white/5 p-0 py-0 shadow-md backdrop-blur-sm"
->
+<div class="relative border-none p-0 py-0">
   <TabGroup
     justify="justify-left md:justify-center"
     border="border-none"
@@ -44,11 +43,11 @@
     active="border-b-4 border-primary-500/80"
     hover="hover:bg-primary-500/10"
   >
-    <TabAnchor href="#tokenomics" selected={$page.url.hash === '#tokenomics'}>
-      Tokenomics
-    </TabAnchor>
     <TabAnchor href="#luckypool" selected={$page.url.hash === '#luckypool'}>
       Luckypool
+    </TabAnchor>
+    <TabAnchor href="#tokenomics" selected={$page.url.hash === '#tokenomics'}>
+      Tokenomics
     </TabAnchor>
     <TabAnchor href="#roadmap" selected={$page.url.hash === '#roadmap'}>
       Roadmap

@@ -74,7 +74,9 @@
 <svelte:window on:storage={syncAuthStore} />
 
 <Toast position="br" width="max-w-xl w-full" />
-<Modal />
+
+<Modal background="bg-white" regionHeader="text-xl font-bold text-center" />
+
 <AppShell>
   <svelte:fragment slot="header"><PageHeader /></svelte:fragment>
   <slot />
