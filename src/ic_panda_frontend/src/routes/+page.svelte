@@ -3,7 +3,8 @@
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
-  import { Avatar, ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
+  import IconPanda from '$lib/components/icons/IconPanda.svelte'
+  import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
 
   const toastStore = getToastStore()
@@ -28,13 +29,11 @@
     <Saos
       animation={'scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both'}
     >
-      <Avatar
-        class="transition duration-700 ease-in-out hover:scale-150 hover:shadow-lg"
-        rounded="rounded-full"
-        src="/_assets/logo.svg"
-        alt="ICPanda logo"
-        width="w-[100px]"
-      />
+      <div
+        class="size-24 rounded-full transition duration-700 ease-in-out *:size-24 hover:scale-150 hover:shadow-lg"
+      >
+        <IconPanda />
+      </div>
     </Saos>
 
     <img class="mt-6" src="/_assets/icpanda-dao.svg" alt="ICPanda brand" />

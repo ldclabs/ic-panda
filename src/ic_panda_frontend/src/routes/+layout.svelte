@@ -13,6 +13,7 @@
   import { authStore } from '$lib/stores/auth'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
+  import AccountDetail from '$lib/components/core/AccountDetail.svelte'
   import {
     AppShell,
     Toast,
@@ -21,11 +22,21 @@
     initializeStores,
     storePopup
   } from '@skeletonlabs/skeleton'
+  import type { ModalComponent } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
 
   initializeStores()
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
+
+  /**
+   * Init authentication
+   */
+  const modalRegistry: Record<string, ModalComponent> = {
+    // Set a unique modal ID, then pass the component reference
+    modalAccountDetail: { ref: AccountDetail }
+    // ...
+  }
 
   /**
    * Init authentication
@@ -75,7 +86,7 @@
 
 <Toast position="br" width="max-w-xl w-full" />
 
-<Modal background="bg-white" regionHeader="text-xl font-bold text-center" />
+<Modal position="items-start" components={modalRegistry} />
 
 <AppShell>
   <svelte:fragment slot="header"><PageHeader /></svelte:fragment>

@@ -25,11 +25,10 @@
     }
 
     const modal: ModalSettings = {
-      type: 'alert',
-      position: 'items-center',
+      type: 'component',
       title: 'Account',
-      body: 'Your Principal: ' + $authStore.identity.getPrincipal().toString(),
-      buttonTextCancel: 'Close'
+      body: 'Your Principal: ' + $authStore.identity?.getPrincipal().toString(),
+      component: 'modalAccountDetail'
     }
     modalStore.trigger(modal)
   }

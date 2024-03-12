@@ -38,7 +38,6 @@ const initAuthStore = (): AuthStore => {
     sync: async () => {
       const authClient = await authClientPromise
       const isAuthenticated = await authClient.isAuthenticated()
-      console.log('IS_LOCAL', IS_LOCAL)
       set({
         identity: isAuthenticated ? authClient.getIdentity() : null
       })
@@ -55,6 +54,8 @@ const initAuthStore = (): AuthStore => {
             : `https://identity.${domain ?? 'ic0.app'}`
 
         await authClient.login({
+          // 7 days in nanoseconds
+          maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
           onSuccess: () => {
             update((state: AuthStoreData) => ({
               ...state,
