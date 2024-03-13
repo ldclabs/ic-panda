@@ -91,7 +91,7 @@
           <div class="absolute top-1/2 mx-auto flex w-full">
             <a
               type="button"
-              class="bg-slate-950 variant-filled btn m-auto"
+              class="bg-slate-950 variant-filled btn m-auto max-md:btn-sm"
               href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_panda_luckypool"
               target="_blank"
             >

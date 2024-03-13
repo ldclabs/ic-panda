@@ -12,7 +12,6 @@
 
   onMount(async () => {
     await setTimeout(Promise.resolve, 5000)
-    console.log('authStore', $authStore)
   })
 
   async function handleSignIn() {
@@ -34,13 +33,14 @@
   }
 </script>
 
-<div class="relative border-none p-0 py-0">
+<div class="relative border-none p-0">
   <TabGroup
     justify="justify-left md:justify-center"
     border="border-none"
     padding="px-2 py-2 md:px-6 md:py-3"
     active="border-b-4 border-primary-500/80"
     hover="hover:bg-primary-500/10"
+    class="first:ml-2"
   >
     <TabAnchor href="#luckypool" selected={$page.url.hash === '#luckypool'}>
       Luckypool
@@ -53,7 +53,7 @@
     </TabAnchor>
   </TabGroup>
 
-  <div class="absolute right-0 top-0 flex h-full flex-row p-2">
+  <div class="absolute right-4 top-0 flex h-full flex-row py-2">
     {#if $authStore.identity}
       <button
         class=" btn bg-panda/10 transition duration-500 ease-in-out hover:bg-panda/20"
