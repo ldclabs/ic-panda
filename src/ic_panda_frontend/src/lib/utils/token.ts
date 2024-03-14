@@ -4,40 +4,56 @@ export { TokenAmountV2 as TokenAmount } from '@dfinity/utils'
 
 const locale = new Intl.Locale(window?.navigator.language || 'en')
 
-export const ICPToken: Token = {
-  name: 'Internet Computer',
-  symbol: 'ICP',
-  decimals: 8
+export interface TokenInfo extends Token {
+  fee: bigint
 }
 
-export const PANDAToken: Token = {
+export const ICPToken: TokenInfo = {
+  name: 'Internet Computer',
+  symbol: 'ICP',
+  decimals: 8,
+  fee: 10000n
+}
+
+export const PANDAToken: TokenInfo = {
   name: 'ICPanda',
   symbol: 'PANDA',
-  decimals: 8
+  decimals: 8,
+  fee: 10000n
 }
 
 export interface TokenAmountDisplay {
   amount: bigint
+  amountNum: number
   display: string
-  detail: string
+  full: string
   symbol: string
+  feeAndAmount: bigint
+  feeAndFull: string
 }
 
 export function formatToken(val: TokenAmount): TokenAmountDisplay {
   const token1 = 10n ** BigInt(val.token.decimals)
   const amount = val.toUlps()
   const converted = Number(amount) / Number(token1)
+  const fee = (val.token as TokenInfo).fee || 0n
+  const fullFormat = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: val.token.decimals,
+    roundingMode: 'floor'
+  } as Intl.NumberFormatOptions)
 
   return {
     amount,
+    amountNum: converted,
+    feeAndAmount: amount + fee,
     symbol: val.token.symbol,
     display: new Intl.NumberFormat(locale, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 4
-    }).format(converted),
-    detail: new Intl.NumberFormat(locale, {
-      minimumFractionDigits: val.token.decimals,
-      maximumFractionDigits: val.token.decimals
-    }).format(converted)
+      maximumFractionDigits: 4,
+      roundingMode: 'floor'
+    } as Intl.NumberFormatOptions).format(converted),
+    full: fullFormat.format(converted),
+    feeAndFull: fullFormat.format(Number(amount + fee) / Number(token1))
   }
 }

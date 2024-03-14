@@ -1,5 +1,6 @@
 import { skeleton } from '@skeletonlabs/tw-plugin'
 import { join } from 'path'
+import forms from '@tailwindcss/forms'
 
 const config = {
   // darkMode: 'class',
@@ -19,6 +20,7 @@ const config = {
     extend: {}
   },
   plugins: [
+    forms,
     skeleton({
       themes: { preset: ['skeleton'] }
     })

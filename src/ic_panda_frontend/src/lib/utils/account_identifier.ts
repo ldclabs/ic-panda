@@ -5,14 +5,15 @@ import {
   bigEndianCrc32,
   uint8ArrayToHexString
 } from '@dfinity/utils'
+import { hexToBytes } from '@noble/hashes/utils'
 import { sha224 } from '@noble/hashes/sha256'
 
-// simplified version from ic-js
+// simplified version from ic-js, removed @dfinity/nns-proto
 export class AccountIdentifier {
   private constructor(private readonly bytes: Uint8Array) {}
 
   public static fromHex(hex: string): AccountIdentifier {
-    return new AccountIdentifier(Uint8Array.from(Buffer.from(hex, 'hex')))
+    return new AccountIdentifier(hexToBytes(hex))
   }
 
   public static fromPrincipal({

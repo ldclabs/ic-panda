@@ -59,7 +59,7 @@ const initAuthStore = (): AuthStore => {
           onSuccess: () => {
             update((state: AuthStoreData) => ({
               ...state,
-              identity: authClient?.getIdentity()
+              identity: authClient.getIdentity()
             }))
 
             resolve()

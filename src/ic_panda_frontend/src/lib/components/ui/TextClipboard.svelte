@@ -22,8 +22,8 @@
 </script>
 
 <div class="flex flex-row gap-2">
-  <span class={copiedClass} use:popup={textHover}>
-    <strong>{textName}</strong>
+  <span class="font-medium {copiedClass}" use:popup={textHover}>
+    {textName}
   </span>
   <button
     class={copiedClass}

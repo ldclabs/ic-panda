@@ -1,36 +1,38 @@
 <script lang="ts">
   import { popup } from '@skeletonlabs/skeleton'
-  import { type Token } from '@dfinity/utils'
-  import { TokenAmount, formatToken } from '$lib/utils/token'
+  import { TokenAmount, formatToken, type TokenInfo } from '$lib/utils/token'
   import Loading from './Loading.svelte'
 
-  export let selfClass: string
-  export let token: Token
+  let selfClass: string = ''
+
+  export { selfClass as class }
+  export let token: TokenInfo
   export let amount: Promise<bigint>
 
   $: tokenDisplay = async () =>
     formatToken(TokenAmount.fromUlps({ amount: await amount, token }))
 </script>
 
-<div class={selfClass}>
+<div class="flex flex-row items-center gap-2 {selfClass}">
   {#await tokenDisplay()}
-    <Loading />
+    <span><Loading /></span>
+    <span>{token.symbol}</span>
   {:then val}
     <span
-      class="text-right"
+      class="text-right font-medium"
       use:popup={{
         event: 'hover',
-        target: 'TAD-' + val.detail
+        target: 'TAD-' + val.full
       }}
     >
       {val.display}
     </span>
     <span>{token.symbol}</span>
     <div
-      class="card bg-surface-800 px-2 py-1 text-white"
-      data-popup="TAD-{val.detail}"
+      class="card bg-surface-800 px-2 py-0 text-white"
+      data-popup="TAD-{val.full}"
     >
-      <p>{val.detail}</p>
+      <p>{val.full}</p>
       <div class="arrow bg-surface-800" />
     </div>
   {:catch}

@@ -6,25 +6,58 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import TextClipboard from '$lib/components/ui/TextClipboard.svelte'
   import TextTokenAmount from '$lib/components/ui/TextTokenAmount.svelte'
+  import SendTokenForm from '$lib/components/ui/SendTokenForm.svelte'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { authStore } from '$lib/stores/auth'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import type { SendTokenArgs } from '$lib/types/token'
+  import {
+    getModalStore,
+    Accordion,
+    AccordionItem
+  } from '@skeletonlabs/skeleton'
   import { signOut } from '$lib/services/auth'
   import { Principal } from '@dfinity/principal'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { getICPLedgerService, ICPLedgerAPI } from '$lib/canisters/icpledger'
+  import {
+    getTokenLedgerService,
+    TokenLedgerAPI
+  } from '$lib/canisters/tokenledger'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
+  const modalStore = getModalStore()
+
   let principal = $authStore.identity?.getPrincipal() || Principal.anonymous()
   let icpAddress = accountId(principal).toHex()
 
-  let icp_balance = Promise.resolve(BigInt(0))
-  let panda_balance = Promise.resolve(BigInt(0))
+  let icpBalance = Promise.resolve(0n)
+  let pandaBalance = Promise.resolve(0n)
+  let availableICPBalance = 0n
+  let availablePandaBalance = 0n
 
-  const modalStore = getModalStore()
+  let icpAPI: ICPLedgerAPI
+  let tokenAPI: TokenLedgerAPI
+  onMount(async () => {
+    const icpCanister = await getICPLedgerService({
+      identity: $authStore.identity
+    })
+
+    icpAPI = new ICPLedgerAPI(icpCanister)
+    icpBalance = icpAPI.getBalanceOf(principal)
+
+    const tokenCanister = await getTokenLedgerService({
+      identity: $authStore.identity
+    })
+
+    tokenAPI = new TokenLedgerAPI(tokenCanister)
+    pandaBalance = tokenAPI.getBalanceOf(principal)
+
+    availableICPBalance = await icpBalance
+    availablePandaBalance = await pandaBalance
+  })
 
   function onLogoutHandler(): void {
     signOut().then(() => {
@@ -42,13 +75,13 @@
     })
   }
 
-  onMount(async () => {
-    const canister = await getICPLedgerService({
-      identity: $authStore.identity
-    })
-    const icpAPI = new ICPLedgerAPI(canister)
-    icp_balance = icpAPI.getBalanceOf(principal)
-  })
+  function handleICPTransfer(args: SendTokenArgs) {
+    return icpAPI.transfer(args.to, args.tokenAmount)
+  }
+
+  function handlePANDATransfer(args: SendTokenArgs) {
+    return tokenAPI.transfer(args.to, args.tokenAmount)
+  }
 </script>
 
 {#if $modalStore[0]}
@@ -75,37 +108,48 @@
         <TextClipboard textName={shortId(icpAddress)} textValue={icpAddress} />
       </div>
     </div>
-    <ul
-      class="list !mt-8 space-y-4 *:flex *:h-10 *:flex-row *:justify-between *:!rounded-md *:px-4 *:py-2"
-    >
-      <li
-        class="*:flex *:flex-row *:content-center *:gap-3 hover:bg-primary-100/50"
-      >
-        <div class="max-w-[50%] leading-8">
+
+    <Accordion>
+      <AccordionItem>
+        <svelte:fragment slot="lead">
           <span class="*:size-8"><IconIcLogo /></span>
-          <span class="truncate">Internet Computer</span>
-        </div>
-        <TextTokenAmount
-          selfClass="leading-8 *:min-w-14"
-          token={ICPToken}
-          amount={icp_balance}
-        />
-      </li>
-      <li
-        class="*:flex *:flex-row *:content-center *:gap-3 hover:bg-primary-100/50"
-      >
-        <div class="leading-8">
+        </svelte:fragment>
+        <svelte:fragment slot="summary">
+          <div class="flex flex-row justify-between leading-8">
+            <span class="max-w-[40%] truncate">Internet Computer</span>
+            <TextTokenAmount token={ICPToken} amount={icpBalance} />
+          </div>
+        </svelte:fragment>
+        <svelte:fragment slot="content">
+          <SendTokenForm
+            sendFrom={principal}
+            availableBalance={availableICPBalance}
+            token={ICPToken}
+            onSubmit={handleICPTransfer}
+          />
+        </svelte:fragment>
+      </AccordionItem>
+      <AccordionItem>
+        <svelte:fragment slot="lead">
           <span class="*:size-8"><IconPanda /></span>
-          <span>ICPanda</span>
-        </div>
-        <TextTokenAmount
-          selfClass="leading-8 *:min-w-14"
-          token={PANDAToken}
-          amount={panda_balance}
-        />
-      </li>
-    </ul>
-    <footer class="!mt-8 {parent['regionFooter']}">
+        </svelte:fragment>
+        <svelte:fragment slot="summary">
+          <div class="flex flex-row justify-between leading-8">
+            <span class="max-w-[40%] truncate">ICPanda</span>
+            <TextTokenAmount token={PANDAToken} amount={pandaBalance} />
+          </div>
+        </svelte:fragment>
+        <svelte:fragment slot="content">
+          <SendTokenForm
+            sendFrom={principal}
+            availableBalance={availablePandaBalance}
+            token={PANDAToken}
+            onSubmit={handlePANDATransfer}
+          />
+        </svelte:fragment>
+      </AccordionItem>
+    </Accordion>
+    <footer class="!mt-8 {parent['regionFooter']} !justify-start">
       <button
         class="variant-filled-surface btn btn-sm"
         on:click={onLogoutHandler}
