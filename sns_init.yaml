@@ -102,14 +102,14 @@ NnsProposal:
     Token Symbol: PANDA
     Total Supply (Initial): 1,000,000,000
     Allocation:
-      - Development Team: 4%, locked for 0～6 months
-      - Seed Funders: 4%, locked for 0～3 months
-      - SNS Swap: 12%, locked for 0～3 months
+      - Development Team: 4%, locked for 0~6 months
+      - Seed Funders: 4%, locked for 0~3 months
+      - SNS Swap: 12%, locked for 0~3 months
       - DAO treasury: 80%
         - Lucky pool: 50%
         - Community creative incentive: 10%
         - CEX incentive: 10%
-        - DAO development fund: 10%
+        - DEX Liquidity: 10%
 
     ## Decentralization SNS Swap
 

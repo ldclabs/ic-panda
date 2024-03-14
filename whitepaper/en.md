@@ -79,7 +79,7 @@ PANDA is the only token issued by ICPanda DAO. By holding PANDA tokens, users ca
       2. Lucky draw, each draw costs 1 ICP token and randomly awards 1,000-100,000 PANDA tokens, with no limit on the number of draws. The ICP income belongs to the DAO treasury.
    2. Community Creation Incentive: **10%**, after the launch of the NFT creation platform, users' outstanding creations will be rewarded with PANDA tokens.
    3. Incentives for Listing on Centralized Exchanges: **10%**, incentivizes the first 4 major CEXs to list PANDA tokens, with allocations of 4%, 3%, 2%, and 1% respectively.
-   4. Development Fund: **10%**, used for project R&D salaries, IC cloud computing resource fees, and other operational costs.
+   4. Decentralized Exchange Liquidity Pool: **10%**, used for adding trading pairs on leading decentralized exchanges..
 
 ### Voting power
 
