@@ -97,7 +97,7 @@ Full information can be found in the [SNS initial parameters](../sns_init.yaml).
 
 - Min participation: 10 ICP
 - Max participation: 10,000 ICP
-- Min to be raised: 12,000 ICP
+- Min to be raised: 6,000 ICP
 - Max to be raised: 60,000 ICP
 - Min participants:  42
 

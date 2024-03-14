@@ -115,7 +115,7 @@ NnsProposal:
 
     - Min participation: 10 ICP
     - Max participation: 10,000 ICP
-    - Min to be raised: 12,000 ICP
+    - Min to be raised: 6,000 ICP
     - Max to be raised: 60,000 ICP
     - Min participants:  42
 
@@ -475,7 +475,7 @@ Swap:
   # the swap to succeed. If this amount is not achieved, the swap will be
   # aborted (instead of committed) when the due date/time occurs.
   # Must be smaller than or equal than `maximum_direct_participation_icp`.
-  minimum_direct_participation_icp: 12_000 tokens
+  minimum_direct_participation_icp: 6_000 tokens
 
   # Maximum amount of ICP from direct participants. If this amount is achieved,
   # the swap will finalize immediately, without waiting for the due date/time;
