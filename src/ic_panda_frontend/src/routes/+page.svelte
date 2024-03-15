@@ -6,18 +6,26 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
+  import { getLuckyPoolService, LuckyPoolAPI } from '$lib/canisters/luckypool'
 
   const toastStore = getToastStore()
 
   onMount(async () => {
-    await setTimeout(Promise.resolve, 3000)
-    toastStore.trigger({
-      timeout: 6000,
-      hideDismiss: true,
-      classes: 'bg-black',
-      message:
-        "<div class='flex flex-row gap-4 items-center'><div><img src='/_assets/images/celebrate.webp'></div><div><p class='text-lg'>We are upcoming on SNS</p><p class='text-sm'>The first decentralized meme brand in Web3.0</p></div><div><a class='bg-white btn btn-sm text-black' href='https://forum.dfinity.org/t/upcoming-icpanda-dao-launch-sns/27967/1' target='_blank'>Vote for US</a></div></div>"
-    })
+    const luckypoolCanister = await getLuckyPoolService({ identity: null })
+    const api = new LuckyPoolAPI(luckypoolCanister)
+    const notifications = await api.notifications()
+
+    await setTimeout(Promise.resolve, 5000)
+
+    for (const n of notifications) {
+      toastStore.trigger({
+        autohide: n.timeout != 0,
+        timeout: n.timeout,
+        hideDismiss: !n.dismiss,
+        classes: 'bg-black',
+        message: n.message
+      })
+    }
   })
 </script>
 

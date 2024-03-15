@@ -48,6 +48,15 @@ pub struct LuckyDrawOutput {
 }
 
 #[derive(CandidType, Clone, Deserialize, Serialize)]
+pub struct Notification {
+    pub id: u8,
+    pub level: u8,
+    pub timeout: u16,
+    pub dismiss: bool,
+    pub message: String,
+}
+
+#[derive(CandidType, Clone, Deserialize, Serialize)]
 pub struct AirdropLog {
     pub id: Nat,
     pub ts: u64,

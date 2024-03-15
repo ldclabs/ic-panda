@@ -9,6 +9,10 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 
 dotenv.config({ path: '../../.env' })
 
+if (process.env.PUBLIC_DFX_NETWORK === 'ic') {
+  process.env.NODE_ENV === 'production'
+}
+
 export default defineConfig({
   define: {
     'process.env.NODE_ENV':

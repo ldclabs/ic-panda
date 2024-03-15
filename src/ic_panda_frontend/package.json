@@ -63,7 +63,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
-    "prebuild": "dfx generate",
+    "prebuild": "dfx generate && ls && cp -r '../declarations' './src/'",
     "setup": "npm i && dfx deploy",
     "start": "vite dev --port 3000",
     "test": "vitest run"

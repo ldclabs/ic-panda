@@ -54,3 +54,8 @@ async fn luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::Luck
     let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
     store::luckydraw::logs(prev, take)
 }
+
+#[ic_cdk::query]
+async fn notifications() -> Vec<types::Notification> {
+    store::notification::list()
+}

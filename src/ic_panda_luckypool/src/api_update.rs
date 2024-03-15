@@ -145,8 +145,8 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput, String> {
-    if args.icp < 1 || args.icp > 100 {
-        return Err("invalid icp amount, should be in [1, 100]".to_string());
+    if args.icp < 1 || args.icp > 10 {
+        return Err("invalid icp amount, should be in [1, 10]".to_string());
     }
 
     let caller = ic_cdk::caller();

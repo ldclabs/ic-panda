@@ -31,6 +31,13 @@ type LuckyDrawOutput = record {
   random : nat64;
   amount : nat;
 };
+type Notification = record {
+  id : nat8;
+  level : nat8;
+  message : text;
+  dismiss : bool;
+  timeout : nat16;
+};
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : AirdropStateOutput; Err : text };
 type Result_2 = variant { Ok : AirdropStateOutput; Err };
@@ -42,6 +49,7 @@ type State = record {
   latest_luckydraw_logs : vec LuckyDrawLog;
   total_luckydraw : nat64;
   latest_airdrop_logs : vec AirdropLog;
+  managers : opt vec principal;
   total_airdrop : nat64;
   total_airdrop_count : nat64;
   luckiest_luckydraw_logs : vec LuckyDrawLog;
@@ -51,6 +59,7 @@ type State = record {
 };
 service : () -> {
   admin_collect_icp : (nat) -> (Result);
+  admin_set_managers : (vec principal) -> (Result);
   admin_update_airdrop_balance : (nat64) -> ();
   airdrop : (AirdropClaimInput) -> (Result_1);
   airdrop_logs : (opt nat, opt nat) -> (vec AirdropLog) query;
@@ -60,6 +69,9 @@ service : () -> {
   harvest : (AirdropHarvestInput) -> (Result_1);
   luckydraw : (LuckyDrawInput) -> (Result_4);
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
+  manager_add_notification : (Notification) -> (Result);
+  manager_remove_notifications : (vec nat8) -> (Result);
+  notifications : () -> (vec Notification) query;
   state : () -> (Result_5) query;
   whoami : () -> (Result_6) query;
 }

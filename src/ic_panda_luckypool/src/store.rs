@@ -6,7 +6,11 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::{BTreeMap, BTreeSet},
+};
 
 use crate::types;
 use crate::utils::{luckycode_from_string, luckycode_to_string, sha3_256};
@@ -24,6 +28,7 @@ pub struct State {
     pub latest_airdrop_logs: Vec<types::AirdropLog>, // latest 10 airdrop logs
     pub luckiest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckiest luckydraw logs
     pub latest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckydraw logs
+    pub managers: Option<BTreeSet<Principal>>,
 }
 
 impl Storable for State {
@@ -135,6 +140,10 @@ thread_local! {
     static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
 
     static ACTIVE_USERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+
+    static MANAGERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+
+    static NOTIFICATIONS: RefCell<BTreeMap<u8, types::Notification>> = RefCell::new(BTreeMap::new());
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
@@ -398,6 +407,16 @@ pub mod user {
 pub mod state {
     use super::*;
 
+    pub fn is_manager(caller: &Principal) -> bool {
+        STATE_HEAP.with(|r| {
+            r.borrow()
+                .managers
+                .as_ref()
+                .map(|ms| ms.contains(caller))
+                .unwrap_or(false)
+        })
+    }
+
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
         STATE_HEAP.with(|r| f(&r.borrow()))
     }
@@ -421,6 +440,26 @@ pub mod state {
                     .set(h.borrow().clone())
                     .expect("failed to set STATE data");
             });
+        });
+    }
+}
+
+pub mod notification {
+    use super::*;
+
+    pub fn list() -> Vec<types::Notification> {
+        NOTIFICATIONS.with(|r| r.borrow().values().cloned().collect())
+    }
+
+    pub fn add(arg: types::Notification) {
+        NOTIFICATIONS.with(|r| {
+            r.borrow_mut().insert(arg.id, arg);
+        });
+    }
+
+    pub fn remove(ids: Vec<u8>) {
+        NOTIFICATIONS.with(|r| {
+            r.borrow_mut().retain(|k, _| !ids.contains(k));
         });
     }
 }

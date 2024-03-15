@@ -41,3 +41,6 @@
     }
   }
 </script>
+
+<!-- placeholder for the reload prompt -->
+<div class="hidden"></div>
