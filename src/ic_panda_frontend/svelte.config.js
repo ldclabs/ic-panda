@@ -15,6 +15,12 @@ const config = {
       precompress: false,
       strict: true
     }),
+    serviceWorker: {
+      register: false
+    },
+    // files: {
+    //   serviceWorker: 'src/service-worker.ts'
+    // },
     alias: {
       $declarations: '../declarations'
     },

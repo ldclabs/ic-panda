@@ -1,44 +1,100 @@
 /// <reference types="vitest" />
 
-import { sveltekit } from "@sveltejs/kit/vite"
-import dotenv from "dotenv"
-import { resolve } from "node:path"
-import { defineConfig } from "vite"
-import environment from "vite-plugin-environment"
+import { sveltekit } from '@sveltejs/kit/vite'
+import dotenv from 'dotenv'
+import { resolve } from 'node:path'
+import { defineConfig } from 'vite'
+import environment from 'vite-plugin-environment'
+import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 
-dotenv.config({ path: "../../.env" });
+dotenv.config({ path: '../../.env' })
 
 export default defineConfig({
+  define: {
+    'process.env.NODE_ENV':
+      process.env.NODE_ENV === 'production' ? '"production"' : '"development"'
+  },
   build: {
-    emptyOutDir: true,
+    emptyOutDir: true
   },
   optimizeDeps: {
     esbuildOptions: {
       define: {
-        global: "globalThis",
-      },
-    },
+        global: 'globalThis'
+      }
+    }
   },
   server: {
     proxy: {
-      "/api": {
-        target: "http://127.0.0.1:4943",
-        changeOrigin: true,
-      },
-    },
+      '/api': {
+        target: 'http://127.0.0.1:4943',
+        changeOrigin: true
+      }
+    }
   },
   plugins: [
     sveltekit(),
-    environment("all", { prefix: "CANISTER_" }),
-    environment("all", { prefix: "DFX_" }),
+    environment('all', { prefix: 'CANISTER_' }),
+    environment('all', { prefix: 'DFX_' }),
+    SvelteKitPWA({
+      srcDir: './src',
+      mode: 'production',
+      strategies: 'injectManifest',
+      filename: 'service-worker.ts',
+      scope: '/',
+      base: '/',
+      selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
+      pwaAssets: {
+        config: true
+      },
+      manifest: {
+        short_name: 'ICPanda DAO',
+        name: 'ICPanda',
+        description:
+          'A decentralized Panda meme brand built on the Internet Computer.',
+        icons: [
+          {
+            src: '/_assets/favicons/android-chrome-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/_assets/favicons/android-chrome-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ],
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        theme_color: '#ffffff',
+        background_color: '#ffffff'
+      },
+      injectManifest: {
+        globPatterns: [
+          'client/**/*.{js,css,ico,png,jpg,svg,webp,woff,woff2,xml}',
+          'prerendered/**/*.html'
+        ]
+      },
+      devOptions: {
+        enabled: false,
+        suppressWarnings: process.env.SUPPRESS_WARNING === 'true',
+        type: 'module',
+        navigateFallback: '/'
+      },
+      // if you have shared info in svelte config file put in a separate module and use it also here
+      kit: {
+        includeVersionFile: true
+      }
+    })
   ],
   test: {
-    environment: "jsdom",
-    setupFiles: "src/setupTests.js",
+    environment: 'jsdom',
+    setupFiles: 'src/setupTests.js'
   },
   resolve: {
     alias: {
-      $declarations: resolve("../declarations"),
-    },
-  },
+      $declarations: resolve('../declarations')
+    }
+  }
 })

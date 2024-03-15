@@ -1,8 +1,20 @@
 {
   "compilerOptions": {
     "rootDir": ".",
-    "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
-    "types": ["vite/client", "@testing-library/jest-dom"]
+    "lib": [
+      "ES2022",
+      "ES2022.Intl",
+      "ESNext",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "types": [
+      "@sveltejs/kit",
+      "vite-plugin-pwa/info",
+      "vite/client",
+      "@testing-library/jest-dom"
+    ]
   },
   "extends": ["../../tsconfig.json", "./.svelte-kit/tsconfig.json"],
   "include": ["src", "./.svelte-kit/ambient.d.ts"]

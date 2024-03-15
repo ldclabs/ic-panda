@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.pcss'
-
+  import { pwaInfo } from 'virtual:pwa-info'
   import {
     computePosition,
     autoUpdate,
@@ -80,7 +80,12 @@
     const spinner = document.querySelector('body > #app-spinner')
     spinner?.remove()
   })()
+  $: webManifest = pwaInfo ? pwaInfo.webManifest.linkTag : ''
 </script>
+
+<svelte:head>
+  {@html webManifest}
+</svelte:head>
 
 <svelte:window on:storage={syncAuthStore} />
 
@@ -93,3 +98,7 @@
   <slot />
   <svelte:fragment slot="pageFooter"><PageFooter /></svelte:fragment>
 </AppShell>
+
+{#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
+  <ReloadPrompt />
+{/await}
