@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 
 const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000 * TOKEN_1;
-const LOWEST_LUCKYDRAW_BALANCE: u64 = 100 * TOKEN_1;
+const LOWEST_LUCKYDRAW_BALANCE: u64 = 500 * TOKEN_1;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
