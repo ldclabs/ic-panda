@@ -88,7 +88,7 @@
 
 <Modal position="items-start" components={modalRegistry} />
 
-<AppShell>
+<AppShell regionPage="scroll-smooth" scrollbarGutter="stable both-edges">
   <svelte:fragment slot="header"><PageHeader /></svelte:fragment>
   <slot />
   <svelte:fragment slot="pageFooter"><PageFooter /></svelte:fragment>

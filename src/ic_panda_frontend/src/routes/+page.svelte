@@ -22,7 +22,6 @@
 </script>
 
 <div
-  id="home"
   class="mb-12 mt-12 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-24"
 >
   <div class="flex flex-col items-center">

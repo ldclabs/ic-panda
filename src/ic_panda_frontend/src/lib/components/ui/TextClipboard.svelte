@@ -3,30 +3,33 @@
   import type { PopupSettings } from '@skeletonlabs/skeleton'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
 
+  export let textLable: string
   export let textName: string
   export let textValue: string
 
   const textHover: PopupSettings = {
     event: 'hover',
-    target: 'textHover-' + textName
+    target: 'textHover-' + textName,
+    placement: 'top'
   }
 
   let copiedClass = ''
 
   function onCopyHandler(): void {
-    copiedClass = 'text-secondary-500'
+    copiedClass = '!text-secondary-500'
     setTimeout(() => {
       copiedClass = ''
     }, 5000)
   }
 </script>
 
-<div class="flex flex-row gap-2">
-  <span class="font-medium {copiedClass}" use:popup={textHover}>
+<div class="align-middle">
+  <span class="mr-2 font-medium">{textLable}</span>
+  <span class="text-surface-600/60 {copiedClass}" use:popup={textHover}>
     {textName}
   </span>
   <button
-    class={copiedClass}
+    class="{copiedClass} float-right mt-[3px] *:size-4"
     use:clipboard={textValue}
     on:click={onCopyHandler}
     disabled={copiedClass != ''}
@@ -34,10 +37,10 @@
     <IconCopy />
   </button>
   <div
-    class="card bg-surface-800 px-2 py-1 text-white"
+    class="card max-w-80 bg-surface-800 px-2 py-1 text-white"
     data-popup="textHover-{textName}"
   >
-    <p>{textValue}</p>
+    <p class="text-pretty break-words">{textValue}</p>
     <div class="arrow bg-surface-800" />
   </div>
 </div>

@@ -13,7 +13,7 @@
     formatToken(TokenAmount.fromUlps({ amount: await amount, token }))
 </script>
 
-<div class="flex flex-row items-center gap-2 {selfClass}">
+<div class={selfClass}>
   {#await tokenDisplay()}
     <span><Loading /></span>
     <span>{token.symbol}</span>

@@ -145,13 +145,8 @@
   $: tokenAmountDisplay = formatToken(formData.tokenAmount)
 </script>
 
-<div class="flex w-[200%] flex-row">
-  <div
-    class="flex w-full flex-col gap-4 transition duration-300 ease-in-out {stepN !=
-    0
-      ? 'invisible -translate-x-full'
-      : ''}"
-  >
+{#if stepN === 0}
+  <div class="flex w-full flex-col gap-4">
     <!-- Enable for debugging: -->
     <form class="flex flex-col" on:change={onFormChange}>
       <label class="label">
@@ -168,7 +163,7 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-error-500 peer-invalid:visible">
+        <span class="invisible text-xs text-error-500 peer-invalid:visible">
           Enter a valid {addressTip}.
         </span>
       </label>
@@ -193,7 +188,7 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-error-500 peer-invalid:visible">
+        <span class="invisible text-xs text-error-500 peer-invalid:visible">
           Enter a valid amount.
         </span>
       </label>
@@ -208,32 +203,37 @@
 			<button class="btn variant-ghost-primary max-md:btn-sm" disabled={submitting || !validating} on:click={onContinue}>Continue</button>
 		</footer>
   </div>
-  <div
-    class="flex w-full transition duration-500 ease-in-out {stepN != 1
-      ? 'invisible'
-      : 'visible -translate-x-full'} flex-col gap-4"
-  >
-    <div class="flex flex-col gap-2 *:gap-2">
-      <h3 class="h3 text-center">Review Transaction</h3>
+{:else}
+  <div class="flex w-full flex-col gap-4">
+    <div class="flex flex-col gap-2 text-sm *:gap-2">
+      <h4 class="h4 text-center">Review Transaction</h4>
       <div class="flex flex-row justify-between">
         <span>From</span>
-        <span>{sendFrom.toString()}</span>
+        <span class="min-w-0 text-pretty break-words text-right">
+          {sendFrom.toString()}
+        </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
-        <span>{getTextAmount(availableBalance).full} {token.symbol}</span>
+        <span class="text-pretty break-words text-right">
+          {getTextAmount(availableBalance).full}
+          {token.symbol}
+        </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Sending Amount</span>
-        <span>{tokenAmountDisplay.full} {token.symbol}</span>
+        <span class="text-right">
+          {tokenAmountDisplay.full}
+          {token.symbol}
+        </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Transaction Fee</span>
-        <span>{tokenFee.full} {token.symbol}</span>
+        <span class="text-right">{tokenFee.full} {token.symbol}</span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Total Deducted</span>
-        <span>
+        <span class="text-right">
           {tokenAmountDisplay.feeAndFull}
           {token.symbol}
         </span>
@@ -243,11 +243,16 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>Received Amount</span>
-        <span>{tokenAmountDisplay.full} {token.symbol}</span>
+        <span class="text-right">
+          {tokenAmountDisplay.full}
+          {token.symbol}
+        </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>To</span>
-        <span>{formData.to}</span>
+        <p class="min-w-0 text-pretty break-words text-right">
+          {formData.to}
+        </p>
       </div>
     </div>
     <div
@@ -285,4 +290,4 @@
       </button>
     </footer>
   </div>
-</div>
+{/if}
