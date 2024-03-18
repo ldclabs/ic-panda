@@ -1,35 +1,23 @@
 <script lang="ts">
   import { TabGroup, TabAnchor, getModalStore } from '@skeletonlabs/skeleton'
-  import type { ModalSettings } from '@skeletonlabs/skeleton'
   import { page } from '$app/stores'
   import { authStore } from '$lib/stores/auth'
   import { signIn } from '$lib/services/auth'
-  import { onMount } from 'svelte'
   import IconUser0 from '$lib/components/icons/IconUser0.svelte'
   import IconUser1 from '$lib/components/icons/IconUser1.svelte'
+  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
 
   const modalStore = getModalStore()
-
-  onMount(async () => {
-    await setTimeout(Promise.resolve, 5000)
-  })
 
   async function handleSignIn() {
     await signIn({})
   }
 
   function showAccountDetail() {
-    if (!$authStore.identity) {
-      return
-    }
-
-    const modal: ModalSettings = {
+    modalStore.trigger({
       type: 'component',
-      title: 'Account',
-      body: 'Your Principal: ' + $authStore.identity?.getPrincipal().toString(),
-      component: 'modalAccountDetail'
-    }
-    modalStore.trigger(modal)
+      component: { ref: AccountDetailModal }
+    })
   }
 
   function scrollToTop() {
@@ -62,14 +50,7 @@
   </TabGroup>
 
   <div class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4">
-    {#if $authStore.identity}
-      <button
-        class="btn btn-icon size-10 bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:size-7"
-        on:click={showAccountDetail}
-      >
-        <span class="md:scale-110"><IconUser1 /></span>
-      </button>
-    {:else}
+    {#if $authStore.identity.getPrincipal().isAnonymous()}
       <button
         type="button"
         class="btn bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:px-3"
@@ -77,6 +58,13 @@
       >
         <span class="max-md:hidden"><IconUser0 /></span>
         <span class="max-md:!ml-0">Login</span>
+      </button>
+    {:else}
+      <button
+        class="btn btn-icon size-10 bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:size-7"
+        on:click={showAccountDetail}
+      >
+        <span class="md:scale-110"><IconUser1 /></span>
       </button>
     {/if}
   </div>

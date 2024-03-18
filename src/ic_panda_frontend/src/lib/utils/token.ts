@@ -6,20 +6,23 @@ const locale = new Intl.Locale(window?.navigator.language || 'en')
 
 export interface TokenInfo extends Token {
   fee: bigint
+  one: bigint
 }
 
 export const ICPToken: TokenInfo = {
   name: 'Internet Computer',
   symbol: 'ICP',
   decimals: 8,
-  fee: 10000n
+  fee: 10000n,
+  one: 100000000n
 }
 
 export const PANDAToken: TokenInfo = {
   name: 'ICPanda',
   symbol: 'PANDA',
   decimals: 8,
-  fee: 10000n
+  fee: 10000n,
+  one: 100000000n
 }
 
 export interface TokenAmountDisplay {
@@ -50,10 +53,18 @@ export function formatToken(val: TokenAmount): TokenAmountDisplay {
     symbol: val.token.symbol,
     display: new Intl.NumberFormat(locale, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 3,
       roundingMode: 'floor'
     } as Intl.NumberFormatOptions).format(converted),
     full: fullFormat.format(converted),
     feeAndFull: fullFormat.format(Number(amount + fee) / Number(token1))
   }
+}
+
+export function formatNumber(val: number, maxDigits: number = 3): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDigits,
+    roundingMode: 'floor'
+  } as Intl.NumberFormatOptions).format(val)
 }

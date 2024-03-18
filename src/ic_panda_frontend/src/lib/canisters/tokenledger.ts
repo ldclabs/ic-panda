@@ -1,7 +1,6 @@
 import { TOKEN_LEDGER_CANISTER_ID } from '$lib/constants'
 import { createActor } from './actors'
-import type { OptionIdentity } from '$lib/types/identity'
-import { assertNonNullish, isNullish } from '@dfinity/utils'
+import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { TokenAmount } from '$lib/utils/token'
 import {
@@ -9,32 +8,29 @@ import {
   type _SERVICE
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
 import { unwrapResult } from '$lib/types/result'
+import { asyncFactory } from '$lib/stores/auth'
 
-let actor: _SERVICE | null = null
+export class TokenLedgerAPI {
+  principal: Principal
+  actor: _SERVICE
 
-export const getTokenLedgerService = async ({
-  identity
-}: {
-  identity: OptionIdentity
-}): Promise<_SERVICE> => {
-  assertNonNullish(identity, 'No internet identity.')
-
-  if (isNullish(actor)) {
-    actor = await createActor<_SERVICE>({
+  static async with(identity: Identity): Promise<TokenLedgerAPI> {
+    const actor = await createActor<_SERVICE>({
       canisterId: TOKEN_LEDGER_CANISTER_ID,
       idlFactory: idlFactory,
       identity
     })
+
+    return new TokenLedgerAPI(identity.getPrincipal(), actor)
   }
 
-  return actor
-}
-
-export class TokenLedgerAPI {
-  actor: _SERVICE
-
-  constructor(actor: _SERVICE) {
+  constructor(principal: Principal, actor: _SERVICE) {
+    this.principal = principal
     this.actor = actor
+  }
+
+  async balance(): Promise<bigint> {
+    return this.getBalanceOf(this.principal)
   }
 
   async getBalanceOf(owner: Principal): Promise<bigint> {
@@ -52,6 +48,10 @@ export class TokenLedgerAPI {
       created_at_time: [BigInt(Date.now() * 1_000_000)]
     })
 
-    return unwrapResult(res, 'icrc1_transfer failed')
+    return unwrapResult(res, 'call icrc1_transfer failed')
   }
 }
+
+export const tokenLedgerAPIStore = asyncFactory((identity) =>
+  TokenLedgerAPI.with(identity)
+)

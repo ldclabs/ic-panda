@@ -60,7 +60,6 @@ type State = record {
 service : () -> {
   admin_collect_icp : (nat) -> (Result);
   admin_set_managers : (vec principal) -> (Result);
-  admin_update_airdrop_balance : (nat64) -> ();
   airdrop : (AirdropClaimInput) -> (Result_1);
   airdrop_logs : (opt nat, opt nat) -> (vec AirdropLog) query;
   airdrop_state_of : () -> (Result_2) query;
@@ -71,6 +70,7 @@ service : () -> {
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   manager_add_notification : (Notification) -> (Result);
   manager_remove_notifications : (vec nat8) -> (Result);
+  manager_update_airdrop_balance : (nat64) -> (Result);
   notifications : () -> (vec Notification) query;
   state : () -> (Result_5) query;
   whoami : () -> (Result_6) query;

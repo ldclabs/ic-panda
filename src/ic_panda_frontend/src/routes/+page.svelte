@@ -6,16 +6,19 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
-  import { getLuckyPoolService, LuckyPoolAPI } from '$lib/canisters/luckypool'
+  import { luckyPoolAPIStore, LuckyPoolAPI } from '$lib/canisters/luckypool'
+  import LuckyPool from '$lib/components/core/LuckyPool.svelte'
+  import { type Readable } from 'svelte/store'
 
   const toastStore = getToastStore()
 
+  let luckyPoolAPI: Readable<LuckyPoolAPI>
+
   onMount(async () => {
-    const luckypoolCanister = await getLuckyPoolService({ identity: null })
-    const api = new LuckyPoolAPI(luckypoolCanister)
-    const notifications = await api.notifications()
+    luckyPoolAPI = await luckyPoolAPIStore
 
     await setTimeout(Promise.resolve, 5000)
+    const notifications = await $luckyPoolAPI.notifications()
 
     for (const n of notifications) {
       toastStore.trigger({
@@ -93,20 +96,7 @@
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
       >
-        <div class="relative">
-          <img src="/_assets/images/luckypool-bg.webp" alt="Lucky Pool" />
-          <div class="absolute top-1/2 mx-auto flex w-full">
-            <a
-              type="button"
-              class="bg-slate-950 variant-filled btn m-auto max-md:btn-sm"
-              href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_panda_luckypool"
-              target="_blank"
-            >
-              <span><IconGithub /></span>
-              <span class="text-left">Canister Source Code</span>
-            </a>
-          </div>
-        </div>
+        <LuckyPool />
       </Saos>
     </div>
   </div>

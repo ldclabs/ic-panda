@@ -152,7 +152,7 @@
       <label class="label">
         <span>Send to destination</span>
         <input
-          class="peer input bg-surface-50/40 valid:input-success hover:bg-white/90"
+          class="bg-gray/5 peer input valid:input-success hover:bg-white/90"
           type="text"
           name="to"
           minlength="8"
@@ -178,7 +178,7 @@
           <span class="!ml-1">Max</span>
         </a>
         <input
-          class="peer input bg-surface-50/40 valid:input-success hover:bg-white/90"
+          class="bg-gray/5 peer input valid:input-success hover:bg-white/90"
           type="number"
           name="amount"
           min="0"

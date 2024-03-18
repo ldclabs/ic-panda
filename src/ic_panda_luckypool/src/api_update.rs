@@ -199,8 +199,8 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
             }
             if is_luckiest {
                 r.luckiest_luckydraw_logs.insert(0, log);
-                if r.luckiest_luckydraw_logs.len() > 10 {
-                    r.luckiest_luckydraw_logs.truncate(10);
+                if r.luckiest_luckydraw_logs.len() > 3 {
+                    r.luckiest_luckydraw_logs.truncate(3);
                 }
             }
         });

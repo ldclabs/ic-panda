@@ -14,8 +14,10 @@ const config = {
   theme: {
     colors: {
       panda: '#11c291',
-      white: 'rgba(255,255,255,1)',
-      black: 'rgba(0,0,0,0.95)'
+      gold: '#fbbf24',
+      gray: '#0a0a0a',
+      white: '#ffffff',
+      black: '#000000'
     },
     extend: {}
   },
