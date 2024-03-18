@@ -10,7 +10,7 @@
   import {
     icpLedgerAPIStore,
     type ICPLedgerAPI
-  } from '$lib/canisters/icpledger'
+  } from '$lib/canisters/icpLedger'
   import {
     tokenLedgerAPIStore,
     type TokenLedgerAPI

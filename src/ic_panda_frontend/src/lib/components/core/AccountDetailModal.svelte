@@ -13,7 +13,7 @@
   import { signOut } from '$lib/services/auth'
   import { Principal } from '@dfinity/principal'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import { ICPLedgerAPI, icpLedgerAPIStore } from '$lib/canisters/icpledger'
+  import { ICPLedgerAPI, icpLedgerAPIStore } from '$lib/canisters/icpLedger'
   import {
     tokenLedgerAPIStore,
     TokenLedgerAPI
