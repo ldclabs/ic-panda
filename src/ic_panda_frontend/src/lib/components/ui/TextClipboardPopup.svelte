@@ -25,7 +25,7 @@
 
 <div class="align-middle">
   <span class="mr-2 font-medium">{textLable}</span>
-  <span class="text-surface-600/60 {copiedClass}" use:popup={textHover}>
+  <span class="text-gray/40 {copiedClass}" use:popup={textHover}>
     {textName}
   </span>
   <button

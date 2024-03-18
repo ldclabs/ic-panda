@@ -24,3 +24,7 @@ export const loadIdentity = async (): Promise<Identity | undefined> => {
 
   return authClient.getIdentity()
 }
+
+export function shortId(id: string): string {
+  return id.length > 14 ? id.slice(0, 7) + '...' + id.slice(-7) : id
+}

@@ -1,18 +1,19 @@
 import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
-import type { OptionIdentity } from '$lib/types/identity'
 import { createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
 import { nonNullish } from '@dfinity/utils'
-import { writable, type Readable } from 'svelte/store'
-import type { Identity } from '@dfinity/agent'
+import { writable, derived, type Readable } from 'svelte/store'
+import { AnonymousIdentity, type Identity } from '@dfinity/agent'
 
 export interface AuthStoreData {
-  identity: OptionIdentity
+  identity: Identity
 }
 
 export interface AuthSignInParams {
   domain?: 'ic0.app' | 'internetcomputer.org'
 }
+
+export const anonymousIdentity = new AnonymousIdentity()
 
 export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
@@ -23,8 +24,8 @@ export interface AuthStore extends Readable<AuthStoreData> {
 
 const initAuthStore = (): AuthStore => {
   const authClientPromise = createAuthClient()
-  const { subscribe, set, update } = writable<AuthStoreData>({
-    identity: undefined
+  const { subscribe, set } = writable<AuthStoreData>({
+    identity: anonymousIdentity
   })
 
   return {
@@ -38,9 +39,11 @@ const initAuthStore = (): AuthStore => {
     sync: async () => {
       const authClient = await authClientPromise
       const isAuthenticated = await authClient.isAuthenticated()
-      set({
-        identity: isAuthenticated ? authClient.getIdentity() : null
-      })
+      if (isAuthenticated) {
+        set({
+          identity: authClient.getIdentity()
+        })
+      }
     },
 
     signIn: ({ domain }: AuthSignInParams) =>
@@ -57,10 +60,9 @@ const initAuthStore = (): AuthStore => {
           // 7 days in nanoseconds
           maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
           onSuccess: () => {
-            update((state: AuthStoreData) => ({
-              ...state,
+            set({
               identity: authClient.getIdentity()
-            }))
+            })
 
             resolve()
           },
@@ -77,12 +79,41 @@ const initAuthStore = (): AuthStore => {
       const authClient = await authClientPromise
       await authClient.logout()
 
-      update((state: AuthStoreData) => ({
-        ...state,
-        identity: null
-      }))
+      set({
+        identity: anonymousIdentity
+      })
     }
   }
 }
 
 export const authStore = initAuthStore()
+
+// export function withFactory<T>(
+//   factory: (authStore: AuthStoreData) => Promise<T>,
+//   initialValue: T
+// ): Readable<T> {
+//   return derived(
+//     authStore,
+//     ($authStore, set) => {
+//       factory($authStore).then(set)
+//     },
+//     initialValue
+//   )
+// }
+
+export async function asyncFactory<T>(
+  factory: (id: Identity) => Promise<T>
+): Promise<Readable<T>> {
+  let id: Identity = anonymousIdentity
+
+  return derived(
+    authStore,
+    ($authStore, set) => {
+      if ($authStore.identity !== id) {
+        id = $authStore.identity
+        factory(id).then(set)
+      }
+    },
+    (await factory(id)) as T
+  )
+}
