@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import {
-    luckyPoolAPIStore,
+    luckyPoolAPIAsync,
     LuckyPoolAPI,
     type State,
     type AirdropState
@@ -15,7 +15,7 @@
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
 
   let tabSet: number = 0
-  let luckyPoolAPI: Readable<LuckyPoolAPI>
+  let luckyPoolAPI: LuckyPoolAPI
   let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>
   let airdropRecords: any[]
@@ -51,15 +51,15 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIStore
-    luckyPoolState = $luckyPoolAPI.stateStore
-    airdropState = $luckyPoolAPI.airdropStateStore
+    luckyPoolAPI = await luckyPoolAPIAsync()
+    luckyPoolState = luckyPoolAPI.stateStore
+    airdropState = luckyPoolAPI.airdropStateStore
   })
 
   $: {
-    if ($luckyPoolAPI) {
-      luckyPoolState = $luckyPoolAPI.stateStore
-      airdropState = $luckyPoolAPI.airdropStateStore
+    if (luckyPoolAPI) {
+      luckyPoolState = luckyPoolAPI.stateStore
+      airdropState = luckyPoolAPI.airdropStateStore
       airdropRecords = $luckyPoolState?.latest_airdrop_logs || []
       luckydrawRecords = $luckyPoolState?.latest_luckydraw_logs || []
       highestLuckydrawRecords = $luckyPoolState?.luckiest_luckydraw_logs || []

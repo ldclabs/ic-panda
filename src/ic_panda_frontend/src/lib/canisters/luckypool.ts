@@ -90,6 +90,8 @@ export class LuckyPoolAPI {
   }
 }
 
-export const luckyPoolAPIStore = asyncFactory((identity) =>
+const luckyPoolAPIStore = asyncFactory((identity) =>
   LuckyPoolAPI.with(identity)
 )
+
+export const luckyPoolAPIAsync = async () => (await luckyPoolAPIStore).async()

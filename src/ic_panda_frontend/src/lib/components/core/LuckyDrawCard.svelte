@@ -31,13 +31,13 @@
         <IconGoldPanda />
       </div>
       <div>
-        <h2 class="text-gold h2 font-extrabold">??????</h2>
-        <p class="text-gray/50 mt-2">Draw random PANDA tokens</p>
+        <h2 class="h2 font-extrabold text-gold">??????</h2>
+        <p class="mt-2 text-gray/50">Draw random PANDA tokens</p>
       </div>
     </div>
   </section>
   <footer class="m-auto mb-6">
-    <p class="text-gold mb-3 flex flex-row justify-center gap-1">
+    <p class="mb-3 flex flex-row justify-center gap-1 text-gold">
       <span>You need to pay ICP to participate in the draw.</span>
     </p>
     <button

@@ -52,6 +52,9 @@ export class TokenLedgerAPI {
   }
 }
 
-export const tokenLedgerAPIStore = asyncFactory((identity) =>
+const tokenLedgerAPIStore = asyncFactory((identity) =>
   TokenLedgerAPI.with(identity)
 )
+
+export const tokenLedgerAPIAsync = async () =>
+  (await tokenLedgerAPIStore).async()

@@ -5,12 +5,11 @@
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
   import {
-    luckyPoolAPIStore,
+    luckyPoolAPIAsync,
     LuckyPoolAPI,
     type Captcha,
     type AirdropState
   } from '$lib/canisters/luckypool'
-  import { type Readable } from 'svelte/store'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
@@ -26,7 +25,7 @@
   let submitting = false
   let validating = false
   let refreshCaptcha = false
-  let luckyPoolAPI: Readable<LuckyPoolAPI>
+  let luckyPoolAPI: LuckyPoolAPI
   let captcha: Captcha
   let captchaCode = ''
   let luckyCode = $page.url.searchParams.get('ref') || ''
@@ -37,9 +36,9 @@
   const luckyLink = 'https://panda.fans/?ref='
 
   async function onRefreshCaptcha() {
-    if ($luckyPoolAPI) {
+    if (luckyPoolAPI) {
       refreshCaptcha = true
-      captcha = await $luckyPoolAPI.captcha()
+      captcha = await luckyPoolAPI.captcha()
       captchaCode = ''
       refreshCaptcha = false
     }
@@ -48,7 +47,7 @@
   async function onFormSubmit() {
     submitting = true
     try {
-      result = await $luckyPoolAPI.airdrop({
+      result = await luckyPoolAPI.airdrop({
         challenge: captcha.challenge,
         code: captchaCode,
         lucky_code: luckyCode != '' ? [luckyCode] : []
@@ -63,7 +62,7 @@
         message
       })
     }
-    await $luckyPoolAPI.refreshAllState()
+    await luckyPoolAPI.refreshAllState()
   }
 
   function onFormChange(e: Event) {
@@ -80,7 +79,7 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIStore
+    luckyPoolAPI = await luckyPoolAPIAsync()
     await onRefreshCaptcha()
   })
 </script>

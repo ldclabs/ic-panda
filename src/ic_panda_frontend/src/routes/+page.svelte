@@ -6,19 +6,18 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
-  import { luckyPoolAPIStore, LuckyPoolAPI } from '$lib/canisters/luckypool'
+  import { luckyPoolAPIAsync, LuckyPoolAPI } from '$lib/canisters/luckypool'
   import LuckyPool from '$lib/components/core/LuckyPool.svelte'
-  import { type Readable } from 'svelte/store'
 
   const toastStore = getToastStore()
 
-  let luckyPoolAPI: Readable<LuckyPoolAPI>
+  let luckyPoolAPI: LuckyPoolAPI
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIStore
+    luckyPoolAPI = await luckyPoolAPIAsync()
 
     await setTimeout(Promise.resolve, 5000)
-    const notifications = await $luckyPoolAPI.notifications()
+    const notifications = await luckyPoolAPI.notifications()
 
     for (const n of notifications) {
       toastStore.trigger({

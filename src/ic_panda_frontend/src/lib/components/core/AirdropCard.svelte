@@ -18,7 +18,7 @@
 
   export let luckyPoolState: Readable<State | null>
   export let airdropState: Readable<AirdropState | null>
-  export let luckyPoolAPI: Readable<LuckyPoolAPI>
+  export let luckyPoolAPI: LuckyPoolAPI
 
   const modalStore = getModalStore()
 
@@ -37,8 +37,8 @@
   async function harvestHandler() {
     if (claimableAmount > 0n) {
       submitting = true
-      await $luckyPoolAPI.harvest({ amount: claimableAmount })
-      await $luckyPoolAPI.refreshAllState()
+      await luckyPoolAPI.harvest({ amount: claimableAmount })
+      await luckyPoolAPI.refreshAllState()
       submitting = false
     }
   }
@@ -61,11 +61,11 @@
         <IconGoldPanda />
       </div>
       <div>
-        <h2 class="text-gold h2 font-extrabold">
+        <h2 class="h2 font-extrabold text-gold">
           {formatNumber(Number(totalBalance / PANDAToken.one))}
         </h2>
         <button
-          class="text-gray/50 mt-2 flex flex-row items-center gap-1"
+          class="mt-2 flex flex-row items-center gap-1 text-gray/50"
           use:popup={{
             event: 'click',
             target: 'AirdropTipHover',
@@ -94,7 +94,7 @@
   </section>
   <footer class="m-auto mb-6">
     {#if claimedAmount == 0n}
-      <p class="text-gold flex flex-row justify-center gap-1">
+      <p class="flex flex-row justify-center gap-1 text-gold">
         <span>You can get</span>
         <span class="mt-[2px] *:size-5"><IconGoldPanda /></span>
         <span>

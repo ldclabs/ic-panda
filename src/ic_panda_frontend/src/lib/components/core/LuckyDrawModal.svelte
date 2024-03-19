@@ -1,22 +1,21 @@
 <script lang="ts">
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, tick, type SvelteComponent } from 'svelte'
+  import { onMount, type SvelteComponent } from 'svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import {
-    luckyPoolAPIStore,
+    luckyPoolAPIAsync,
     LuckyPoolAPI,
     type LuckyDrawOutput
   } from '$lib/canisters/luckypool'
   import {
-    icpLedgerAPIStore,
+    icpLedgerAPIAsync,
     type ICPLedgerAPI
   } from '$lib/canisters/icpLedger'
   import {
-    tokenLedgerAPIStore,
+    tokenLedgerAPIAsync,
     type TokenLedgerAPI
   } from '$lib/canisters/tokenledger'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
-  import { type Readable } from 'svelte/store'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
@@ -38,9 +37,9 @@
   let stepN: 0 | 1 | 2 = 0
   let submitting = false
   let validating = false
-  let luckyPoolAPI: Readable<LuckyPoolAPI>
-  let icpLedgerAPI: Readable<ICPLedgerAPI>
-  let tokenLedgerAPI: Readable<TokenLedgerAPI>
+  let luckyPoolAPI: LuckyPoolAPI
+  let icpLedgerAPI: ICPLedgerAPI
+  let tokenLedgerAPI: TokenLedgerAPI
   let icpTokens = 0
   let icpBalance = 0n
   let luckyPoolBalance = 0n
@@ -65,14 +64,12 @@
     try {
       const amount = BigInt(icpTokens) * ICPToken.one
       stepN = 1
-      await tick()
-      await $icpLedgerAPI.ensureAllowance(luckyPoolPrincipal, amount)
+      await icpLedgerAPI.ensureAllowance(luckyPoolPrincipal, amount)
+
       stepN = 2
-      await tick()
-      result = await $luckyPoolAPI.luckydraw({
+      result = await luckyPoolAPI.luckydraw({
         icp: icpTokens
       })
-      await tick()
     } catch (err: any) {
       submitting = false
       stepN = 0
@@ -84,7 +81,8 @@
         message
       })
     }
-    await $luckyPoolAPI.refreshAllState()
+
+    await luckyPoolAPI.refreshAllState()
   }
 
   function onFormChange(e: Event) {
@@ -115,12 +113,12 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIStore
-    icpLedgerAPI = await icpLedgerAPIStore
-    tokenLedgerAPI = await tokenLedgerAPIStore
+    luckyPoolAPI = await luckyPoolAPIAsync()
+    icpLedgerAPI = await icpLedgerAPIAsync()
+    tokenLedgerAPI = await tokenLedgerAPIAsync()
 
-    icpBalance = await $icpLedgerAPI.balance()
-    luckyPoolBalance = await $tokenLedgerAPI.getBalanceOf(luckyPoolPrincipal)
+    icpBalance = await icpLedgerAPI.balance()
+    luckyPoolBalance = await tokenLedgerAPI.getBalanceOf(luckyPoolPrincipal)
   })
 
   $: luckyPoolBalanceDisplay = formatToken(
@@ -169,7 +167,7 @@
     {#if stepN > 0}
       <h6 class="h6">Good Luck To You</h6>
       <div class="flex flex-row items-center gap-2">
-        <span class="text-panda">
+        <span class="text-panda *:h-6 *:w-6">
           {#if stepN == 1}
             <IconCircleSpin />
           {:else}
@@ -180,7 +178,7 @@
       </div>
       {#if stepN > 1}
         <div class="flex flex-row items-center gap-2">
-          <span class="text-panda">
+          <span class="text-panda *:h-6 *:w-6">
             <IconCircleSpin />
           </span>
           <span>Draw PANDA tokens</span>

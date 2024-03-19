@@ -13,12 +13,11 @@
   import { signOut } from '$lib/services/auth'
   import { Principal } from '@dfinity/principal'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import { ICPLedgerAPI, icpLedgerAPIStore } from '$lib/canisters/icpLedger'
+  import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpLedger'
   import {
-    tokenLedgerAPIStore,
+    tokenLedgerAPIAsync,
     TokenLedgerAPI
   } from '$lib/canisters/tokenledger'
-  import { type Readable } from 'svelte/store'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { shortId } from '$lib/utils/auth'
 
@@ -34,8 +33,8 @@
   let availableICPBalance = 0n
   let availablePandaBalance = 0n
 
-  let icpLedgerAPI: Readable<ICPLedgerAPI>
-  let tokenLedgerAPI: Readable<TokenLedgerAPI>
+  let icpLedgerAPI: ICPLedgerAPI
+  let tokenLedgerAPI: TokenLedgerAPI
 
   function onLogoutHandler(): void {
     signOut().then(() => {
@@ -50,19 +49,19 @@
   }
 
   function handleICPTransfer(args: SendTokenArgs) {
-    return $icpLedgerAPI.transfer(args.to, args.tokenAmount)
+    return icpLedgerAPI.transfer(args.to, args.tokenAmount)
   }
 
   function handlePANDATransfer(args: SendTokenArgs) {
-    return $tokenLedgerAPI.transfer(args.to, args.tokenAmount)
+    return tokenLedgerAPI.transfer(args.to, args.tokenAmount)
   }
 
   onMount(async () => {
-    icpLedgerAPI = await icpLedgerAPIStore
-    icpBalance = $icpLedgerAPI.balance()
+    icpLedgerAPI = await icpLedgerAPIAsync()
+    icpBalance = icpLedgerAPI.balance()
 
-    tokenLedgerAPI = await tokenLedgerAPIStore
-    pandaBalance = $tokenLedgerAPI.balance()
+    tokenLedgerAPI = await tokenLedgerAPIAsync()
+    pandaBalance = tokenLedgerAPI.balance()
 
     availableICPBalance = await icpBalance
     availablePandaBalance = await pandaBalance

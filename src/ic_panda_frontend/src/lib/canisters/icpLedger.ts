@@ -101,6 +101,8 @@ export class ICPLedgerAPI {
   }
 }
 
-export const icpLedgerAPIStore = asyncFactory((identity) =>
+const icpLedgerAPIStore = asyncFactory((identity) =>
   ICPLedgerAPI.with(identity)
 )
+
+export const icpLedgerAPIAsync = async () => (await icpLedgerAPIStore).async()

@@ -2,7 +2,7 @@ import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
 import { createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
 import { nonNullish } from '@dfinity/utils'
-import { writable, derived, type Readable } from 'svelte/store'
+import { writable, derived, get, type Readable } from 'svelte/store'
 import { AnonymousIdentity, type Identity } from '@dfinity/agent'
 
 export interface AuthStoreData {
@@ -101,19 +101,34 @@ export const authStore = initAuthStore()
 //   )
 // }
 
+export interface AsyncReadable<T> extends Readable<T> {
+  async(): Promise<T>
+}
+
 export async function asyncFactory<T>(
   factory: (id: Identity) => Promise<T>
-): Promise<Readable<T>> {
+): Promise<AsyncReadable<T>> {
   let id: Identity = anonymousIdentity
+  let promise = factory(id)
+  let value: T = await promise
 
-  return derived(
+  const r = derived(
     authStore,
     ($authStore, set) => {
       if ($authStore.identity !== id) {
         id = $authStore.identity
-        factory(id).then(set)
+        promise = factory(id)
+        promise.then(set)
       }
     },
-    (await factory(id)) as T
+    value
   )
+
+  return {
+    ...r,
+    async: () => {
+      get(r) // trigger the derived store to update inner value
+      return promise
+    }
+  }
 }
