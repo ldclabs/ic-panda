@@ -32,7 +32,7 @@
   let tokenDisplay = new TokenDisplay(token, 0n)
 
   const addressTip =
-    'Principal' + (token.symbol == 'ICP' ? ' or ICP Address' : '')
+    'Principal' + (token.symbol == 'dICP' ? ' or ICP Address' : '')
 
   function setMaxAmount(e: Event) {
     e.stopPropagation()

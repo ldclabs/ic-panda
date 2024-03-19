@@ -117,6 +117,18 @@
       "wasm": "https://download.dfinity.systems/ic/246d0ce0784d9990c06904809722ce5c2c816269/canisters/ic-icrc1-ledger.wasm.gz"
     }
   },
+  "networks": {
+    "dev": {
+      "providers": [
+        "https://icp0.io"
+      ],
+      "type": "persistent"
+    },
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    }
+  },
   "defaults": {
     "build": {
       "args": "",

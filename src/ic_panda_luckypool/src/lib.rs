@@ -28,12 +28,12 @@ const MAX_PRIZE_CLAIMABLE: u64 = 420_000; // 420_000 tokens * TOKEN_SMALL_UNIT <
 const ICP_1: u64 = ic_ledger_types::Tokens::SUBDIVIDABLE_BY;
 
 static ANONYMOUS: Principal = Principal::anonymous();
-static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
+static ICP_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 16, 61, 1, 1]);
 
-// "druyg-tyaaa-aaaaq-aactq-cai" PANDA token canister id
-static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
-// "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
-static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
+// "ceyir-2iaaa-aaaap-aca7q-cai" Development token canister id
+static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 16, 63, 1, 1]);
+// "kdzhe-ciaaa-aaaap-abogq-cai" Development DAO canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 11, 141, 1, 1]);
 
 fn nat_to_u64(nat: &Nat) -> u64 {
     nat.0.to_u64().unwrap_or(0)

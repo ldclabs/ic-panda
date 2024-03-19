@@ -254,7 +254,7 @@
 </script>
 
 <div
-  class="h-[calc(100dvh-110px)] items-start overflow-y-auto bg-gray/5 pb-10 sm:h-[calc(100dvh-140px)]"
+  class="h-[calc(100dvh-150px)] items-start overflow-y-auto bg-gray/5 pb-10 sm:h-[calc(100dvh-180px)]"
 >
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     <Avatar

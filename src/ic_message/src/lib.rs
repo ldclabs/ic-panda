@@ -29,10 +29,10 @@ mod types;
 
 use crate::api_init::ChainArgs;
 
-// "druyg-tyaaa-aaaaq-aactq-cai" PANDA token canister id
-static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
-// "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
-static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
+// "ceyir-2iaaa-aaaap-aca7q-cai" Development token canister id
+static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 16, 63, 1, 1]);
+// "kdzhe-ciaaa-aaaap-abogq-cai" Development DAO canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 11, 141, 1, 1]);
 
 fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();

@@ -70,6 +70,11 @@
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 
+<div class="h-10 bg-black text-center leading-10 text-white">
+  <span>This is <b>TEST NET</b>, Please visit: </span>
+  <a class="text-panda" href="https://panda.fans">https://panda.fans</a>
+</div>
+
 {#if initAuth}
   <div id="appShell" class="flex h-full w-full flex-col overflow-hidden">
     <header id="shell-header" class="z-10 flex-none">

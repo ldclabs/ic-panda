@@ -380,7 +380,7 @@
 </script>
 
 <div
-  class="grid h-[calc(100dvh-110px)] grid-rows-[1fr_auto] bg-gray/5 sm:h-[calc(100dvh-140px)]"
+  class="grid h-[calc(100dvh-150px)] grid-rows-[1fr_auto] bg-gray/5 sm:h-[calc(100dvh-180px)]"
 >
   <!-- Conversation -->
   {#if !hasKEK}

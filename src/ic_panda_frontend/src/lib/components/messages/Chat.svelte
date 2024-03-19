@@ -70,7 +70,7 @@
       </footer>
     </div>
     <div
-      class="grid-row-[1fr] grid max-h-[calc(100dvh-80px)] sm:rounded-tr-2xl"
+      class="grid-row-[1fr] grid max-h-[calc(100dvh-120px)] sm:rounded-tr-2xl"
     >
       {#key channelId}
         {#if channelId && channelId !== 'profile'}

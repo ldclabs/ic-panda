@@ -97,7 +97,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Account</div>
+  <div class="!mt-0 text-center text-xl font-bold">TEST NET Account</div>
   {#if name != ''}
     <div class="!mt-5 flex flex-col gap-2">
       <div class="">Name</div>
