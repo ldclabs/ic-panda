@@ -3,9 +3,17 @@
     "ic": "f75us-gyaaa-aaaap-ab3wq-cai"
   },
   "ic_panda_frontend": {
+    "dev": "cr7z4-3aaaa-aaaap-aca4a-cai",
     "ic": "c63a7-6yaaa-aaaap-ab3gq-cai"
   },
   "ic_panda_luckypool": {
+    "dev": "j2o2p-baaaa-aaaap-acbaa-cai",
     "ic": "a7cug-2qaaa-aaaap-ab3la-cai"
+  },
+  "icp_ledger_canister": {
+    "dev": "ck2fz-byaaa-aaaap-aca6q-cai"
+  },
+  "icrc1_ledger_canister": {
+    "dev": "ceyir-2iaaa-aaaap-aca7q-cai"
   }
 }

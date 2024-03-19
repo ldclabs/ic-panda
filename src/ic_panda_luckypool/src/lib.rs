@@ -26,12 +26,12 @@ const ICP_1: u64 = ic_ledger_types::Tokens::SUBDIVIDABLE_BY;
 const AIRDROP_AMOUNT: u64 = 100; // 100 PANDA tokens
 
 static ANONYMOUS: Principal = Principal::anonymous();
-static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
+static ICP_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 16, 61, 1, 1]);
 
-// "bkyz2-fmaaa-aaaaa-qaaaq-cai" TODO: update token canister id
-static TOKEN_CANISTER: Principal = Principal::from_slice(&[128, 0, 0, 0, 0, 16, 0, 1, 1, 1]);
-// "a7cug-2qaaa-aaaap-ab3la-cai" TODO: update dao canister id
-static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 14, 214, 1, 1]);
+// "ceyir-2iaaa-aaaap-aca7q-cai" Development token canister id
+static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 16, 63, 1, 1]);
+// "kdzhe-ciaaa-aaaap-abogq-cai" Development DAO canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 11, 141, 1, 1]);
 
 fn nat_to_u64(nat: &Nat) -> u64 {
     nat.0.to_u64().unwrap_or(0)
@@ -144,7 +144,7 @@ mod test {
 
     #[test]
     fn get_principal() {
-        let s = "a7cug-2qaaa-aaaap-ab3la-cai";
+        let s = "kdzhe-ciaaa-aaaap-abogq-cai";
         let id = Principal::from_text(s).expect("invalid principal");
         println!("principal bytes: {:?}", id.to_bytes());
 
