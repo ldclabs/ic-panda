@@ -25,6 +25,7 @@ export function unwrapResult<T, E>(
   opt = false
 ): T {
   if ('Err' in res) {
+    console.error(msg, res.Err)
     throw ErrData.from(msg, res.Err)
   }
 

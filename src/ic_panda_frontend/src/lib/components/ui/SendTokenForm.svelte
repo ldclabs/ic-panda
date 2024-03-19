@@ -35,7 +35,7 @@
   const tokenFee = getTextAmount(token.fee)
 
   const addressTip =
-    'Principal' + (token.symbol == 'ICP' ? ' or ICP Address' : '')
+    'Principal' + (token.symbol == 'dICP' ? ' or ICP Address' : '')
 
   // Form Data
   const formData: SendTokenArgs = {

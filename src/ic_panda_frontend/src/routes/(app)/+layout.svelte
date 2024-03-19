@@ -100,7 +100,16 @@
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 
-<AppShell regionPage="scroll-smooth" scrollbarGutter="stable both-edges">
+<div class="h-10 bg-black text-center leading-10 text-white">
+  <span>This is <b>TEST NET</b>, Please visit: </span>
+  <a class="text-panda" href="https://panda.fans">https://panda.fans</a>
+</div>
+
+<AppShell
+  class="!h-[calc(100%-40px)]"
+  regionPage="scroll-smooth"
+  scrollbarGutter="stable both-edges"
+>
   <svelte:fragment slot="header"><PageHeader /></svelte:fragment>
   <slot />
   <svelte:fragment slot="pageFooter"><PageFooter /></svelte:fragment>

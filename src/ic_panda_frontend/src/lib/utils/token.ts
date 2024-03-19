@@ -10,16 +10,16 @@ export interface TokenInfo extends Token {
 }
 
 export const ICPToken: TokenInfo = {
-  name: 'Internet Computer',
-  symbol: 'ICP',
+  name: 'Dev ICP',
+  symbol: 'dICP',
   decimals: 8,
   fee: 10000n,
   one: 100000000n
 }
 
 export const PANDAToken: TokenInfo = {
-  name: 'ICPanda',
-  symbol: 'PANDA',
+  name: 'Dev ICPanda',
+  symbol: 'dPANDA',
   decimals: 8,
   fee: 10000n,
   one: 100000000n

@@ -1,8 +1,6 @@
-import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
 import { createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
 import { AnonymousIdentity, type Identity } from '@dfinity/agent'
-import { nonNullish } from '@dfinity/utils'
 import { derived, get, writable, type Readable } from 'svelte/store'
 
 export interface AuthStoreData {
@@ -51,10 +49,7 @@ const initAuthStore = (): AuthStore => {
       new Promise<void>(async (resolve, reject) => {
         const authClient = await authClientPromise
 
-        const identityProvider =
-          nonNullish(INTERNET_IDENTITY_CANISTER_ID) && IS_LOCAL
-            ? `http://${INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`
-            : `https://identity.${domain ?? 'ic0.app'}`
+        const identityProvider = 'https://jqajs-xiaaa-aaaad-aab5q-cai.ic0.app'
 
         await authClient.login({
           // 7 days in nanoseconds
