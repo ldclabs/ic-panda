@@ -235,10 +235,6 @@ pub mod airdrop {
 
     use super::*;
 
-    pub fn balance() -> u64 {
-        STATE.with(|r| r.borrow().get().airdrop_balance)
-    }
-
     // check if a user has claimed airdrop.
     pub fn state_of(user: &Principal) -> Option<AirdropState> {
         AIRDROP.with(|r| r.borrow().get(user))
@@ -415,6 +411,10 @@ pub mod state {
                 .map(|ms| ms.contains(caller))
                 .unwrap_or(false)
         })
+    }
+
+    pub fn airdrop_balance() -> u64 {
+        STATE_HEAP.with(|r| r.borrow().airdrop_balance)
     }
 
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {

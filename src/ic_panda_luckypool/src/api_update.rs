@@ -7,8 +7,8 @@ use ic_captcha::CaptchaBuilder;
 use once_cell::sync::Lazy;
 
 const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
-const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000 * TOKEN_1;
-const LOWEST_LUCKYDRAW_BALANCE: u64 = 500 * TOKEN_1;
+const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
+const LOWEST_LUCKYDRAW_BALANCE: u64 = 500;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> = Lazy::new(CaptchaBuilder::new);
 
@@ -60,7 +60,7 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         });
     }
 
-    if store::airdrop::balance() < AIRDROP_AMOUNT * TOKEN_1 + TRANS_FEE {
+    if store::state::airdrop_balance() < AIRDROP_AMOUNT * TOKEN_1 + TRANS_FEE {
         return Err("airdrop pool is empty".to_string());
     }
 
@@ -162,12 +162,12 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
     let (x, amount) = luckydraw_amount(&utils::mac_256(&rr.0, b"ICPanda"));
-    let is_luckiest = amount == LUCKIEST_AIRDROP_AMOUNT;
+    let is_luckiest = amount == LUCKIEST_AIRDROP_AMOUNT * TOKEN_1;
     let icp = args.icp as u64 * ICP_1;
     let amount = args.icp as u64 * amount;
 
     let balance = token_balance_of(ic_cdk::id()).await?;
-    let lowest_balance = LOWEST_LUCKYDRAW_BALANCE * args.icp as u64 + TRANS_FEE;
+    let lowest_balance = LOWEST_LUCKYDRAW_BALANCE * TOKEN_1 * args.icp as u64 + TRANS_FEE;
     if balance < lowest_balance {
         return Err("insufficient token balance for luckydraw".to_string());
     }
