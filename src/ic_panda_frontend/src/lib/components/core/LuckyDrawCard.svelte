@@ -1,9 +1,9 @@
 <script lang="ts">
-  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import { getModalStore } from '@skeletonlabs/skeleton'
   import LuckyDrawModal from './LuckyDrawModal.svelte'
   import { authStore } from '$lib/stores/auth'
   import { signIn } from '$lib/services/auth'
+  import { onMount } from 'svelte'
 
   const modalStore = getModalStore()
 
@@ -17,32 +17,27 @@
       })
     }
   }
+  onMount(() => {})
 </script>
 
 <div
-  class="flex w-[400px] max-w-full flex-col justify-center rounded-2xl bg-white p-4"
+  class="relative flex flex-col items-center rounded-2xl bg-[#f3fffb] bg-[url('/_assets/images/lucky-pool-draw-bg.webp')] bg-contain bg-no-repeat p-4"
 >
-  <section class="mb-12 mt-6 flex flex-col justify-center">
-    <h5 class="h5 text-center font-extrabold">
-      <span>Lucky Draw</span>
-    </h5>
-    <div class="m-auto mt-12 flex flex-row gap-4">
-      <div>
-        <IconGoldPanda />
-      </div>
-      <div>
-        <h2 class="h2 font-extrabold text-gold">??????</h2>
-        <p class="mt-2 text-gray/50">Draw random PANDA tokens</p>
-      </div>
-    </div>
-  </section>
-  <footer class="m-auto mb-6">
-    <p class="mb-3 flex flex-row justify-center gap-1 text-gold">
-      <span>You need to pay ICP to participate in the draw.</span>
+  <div
+    class="absolute bottom-0 -z-0 h-20 w-full rounded-b-2xl bg-[#bff0e0]"
+  ></div>
+  <img
+    class="z-10 mt-5 block w-full max-w-[400px]"
+    src="/_assets/images/lucky-pool-draw.webp"
+    alt="Lucky Draw"
+  />
+  <footer class="absolute bottom-8 left-0 right-0 z-20 m-auto">
+    <p class="mb-3 flex flex-row justify-center gap-1 text-white">
+      <span>Pay ICP to participate in the draw.</span>
     </p>
     <button
       on:click={drawNowHandler}
-      class="variant-filled btn btn-lg m-auto block w-[300px] max-w-full text-white"
+      class="variant-filled btn m-auto block w-[300px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
     >
       Draw Now
     </button>

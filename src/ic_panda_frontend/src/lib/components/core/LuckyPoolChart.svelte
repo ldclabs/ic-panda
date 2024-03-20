@@ -3,11 +3,8 @@
   import {
     luckyPoolAPIAsync,
     LuckyPoolAPI,
-    type State,
-    type AirdropState
+    type State
   } from '$lib/canisters/luckypool'
-  import AirdropCard from '$lib/components/core/AirdropCard.svelte'
-  import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import { type Readable } from 'svelte/store'
   import { PANDAToken, ICPToken, formatNumber } from '$lib/utils/token'
   import { ProgressBar, TabGroup, Tab, Table } from '@skeletonlabs/skeleton'
@@ -17,7 +14,6 @@
   let tabSet: number = 0
   let luckyPoolAPI: LuckyPoolAPI
   let luckyPoolState: Readable<State | null>
-  let airdropState: Readable<AirdropState | null>
   let airdropRecords: any[]
   let luckydrawRecords: any[]
   let highestLuckydrawRecords: any[]
@@ -50,16 +46,21 @@
     }
   }
 
-  onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-    luckyPoolState = luckyPoolAPI.stateStore
-    airdropState = luckyPoolAPI.airdropStateStore
+  onMount(() => {
+    ;(async () => {
+      luckyPoolAPI = await luckyPoolAPIAsync()
+      luckyPoolState = luckyPoolAPI.stateStore
+    })()
+
+    const interval = setInterval(() => {
+      luckyPoolAPI?.refreshAllState()
+    }, 5000)
+    return () => clearInterval(interval)
   })
 
   $: {
     if (luckyPoolAPI) {
       luckyPoolState = luckyPoolAPI.stateStore
-      airdropState = luckyPoolAPI.airdropStateStore
       airdropRecords = $luckyPoolState?.latest_airdrop_logs || []
       luckydrawRecords = $luckyPoolState?.latest_luckydraw_logs || []
       highestLuckydrawRecords = $luckyPoolState?.luckiest_luckydraw_logs || []
@@ -67,15 +68,10 @@
   }
 </script>
 
-<div class="flex flex-row gap-3 max-[840px]:flex-col">
-  <AirdropCard {luckyPoolState} {airdropState} {luckyPoolAPI} />
-  <LuckyDrawCard />
-</div>
-
 <div
-  class="card mt-8 flex flex-col items-center rounded-2xl rounded-b-none bg-white p-10"
+  class="card flex flex-col items-center rounded-2xl rounded-b-none bg-white p-10"
 >
-  <h3 class="h3 font-black">Lucky Pool Consumption Progress</h3>
+  <h3 class="h3 text-center font-black">Lucky Pool Consumption Progress</h3>
   {#if $luckyPoolState}
     {@const consumedAmount = Number(
       ($luckyPoolState.total_luckydraw + $luckyPoolState.total_airdrop) /
@@ -83,7 +79,9 @@
     )}
     {@const percent =
       String(Math.round((consumedAmount * 100) / TotalAmount)) + '%'}
-    <div class="mt-10 flex w-full flex-row justify-around">
+    <div
+      class="mt-10 flex w-full flex-row justify-around gap-4 max-sm:flex-col"
+    >
       <div class="flex flex-col items-center">
         <h3 class="h3 text-[28px] font-bold">{formatNumber(TotalAmount)}</h3>
         <p class="text-gray/50">Total Amount</p>
@@ -93,7 +91,9 @@
         <h3 class="h3 text-[28px] font-bold text-panda">
           {formatNumber(Number($luckyPoolState.total_airdrop / PANDAToken.one))}
         </h3>
-        <p class="text-gray/50">Airdrop Amount</p>
+        <p class="text-gray/50">
+          Airdrop Amount, Count: {Number($luckyPoolState.total_airdrop_count)}
+        </p>
       </div>
 
       <div class="flex flex-col items-center">
@@ -102,7 +102,11 @@
             Number($luckyPoolState.total_luckydraw / PANDAToken.one)
           )}
         </h3>
-        <p class="text-gray/50">Lucky Draw Amount</p>
+        <p class="text-gray/50">
+          Lucky Draw Amount, Count: {Number(
+            $luckyPoolState.total_luckydraw_count
+          )}
+        </p>
       </div>
     </div>
     <div class="relative mt-8 w-full">

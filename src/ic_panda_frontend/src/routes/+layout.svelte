@@ -78,7 +78,7 @@
 
 <svelte:window on:storage={syncAuthStore} />
 
-<Modal position="items-start" />
+<Modal position="items-start" class="*:max-h-full" />
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 

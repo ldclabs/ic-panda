@@ -13,7 +13,7 @@
   import { signOut } from '$lib/services/auth'
   import { Principal } from '@dfinity/principal'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpLedger'
+  import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpledger'
   import {
     tokenLedgerAPIAsync,
     TokenLedgerAPI
@@ -48,12 +48,18 @@
     })
   }
 
-  function handleICPTransfer(args: SendTokenArgs) {
-    return icpLedgerAPI.transfer(args.to, args.tokenAmount)
+  async function handleICPTransfer(args: SendTokenArgs) {
+    const idx = await icpLedgerAPI.transfer(args.to, args.tokenAmount)
+    icpBalance = icpLedgerAPI.balance()
+    availableICPBalance = await icpBalance
+    return idx
   }
 
-  function handlePANDATransfer(args: SendTokenArgs) {
-    return tokenLedgerAPI.transfer(args.to, args.tokenAmount)
+  async function handlePANDATransfer(args: SendTokenArgs) {
+    const idx = await tokenLedgerAPI.transfer(args.to, args.tokenAmount)
+    pandaBalance = tokenLedgerAPI.balance()
+    availablePandaBalance = await pandaBalance
+    return idx
   }
 
   onMount(async () => {

@@ -7,7 +7,9 @@
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { luckyPoolAPIAsync, LuckyPoolAPI } from '$lib/canisters/luckypool'
-  import LuckyPool from '$lib/components/core/LuckyPool.svelte'
+  import AirdropCard from '$lib/components/core/AirdropCard.svelte'
+  import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
+  import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
 
   const toastStore = getToastStore()
 
@@ -90,12 +92,28 @@
     class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
   >
     <h2 id="luckypool" class="h2 font-extrabold uppercase">Lucky Pool</h2>
-    <div class="mt-8 flex w-full flex-col justify-evenly gap-y-4 sm:flex-row">
+    <div class="mt-8 w-full max-w-[820px]">
       <Saos
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
       >
-        <LuckyPool />
+        <AirdropCard />
+      </Saos>
+    </div>
+    <div class="mt-6 w-full max-w-[820px]">
+      <Saos
+        once={true}
+        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+      >
+        <LuckyDrawCard />
+      </Saos>
+    </div>
+    <div class="mt-10 w-full max-w-[820px]">
+      <Saos
+        once={true}
+        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+      >
+        <LuckyPoolChart />
       </Saos>
     </div>
   </div>

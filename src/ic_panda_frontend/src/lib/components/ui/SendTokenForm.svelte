@@ -18,13 +18,19 @@
   export let sendFrom: Principal
   export let onSubmit: (args: SendTokenArgs) => Promise<bigint>
 
-  let maxAmount = getTextAmount(availableBalance - token.fee).amountNum
-
   let stepN: 0 | 1 = 0
   let submitting = false
   let validating = false
+  let formRef: HTMLFormElement
   let transferSuccess: bigint | null = null
   let transferError: ErrData<any> | null = null
+  let txInfo: {
+    from: string
+    to: string
+    balance: string
+    amount: string
+    total: string
+  } | null = null
 
   const tokenFee = getTextAmount(token.fee)
 
@@ -46,7 +52,12 @@
     e.stopPropagation()
     e.preventDefault()
 
-    formData.amount = maxAmount
+    if (formRef) {
+      formData.amount = getTextAmount(availableBalance - token.fee).amountNum
+      const input = formRef['amount'] as HTMLInputElement
+      input?.setCustomValidity('')
+      validating = formRef.checkValidity()
+    }
   }
 
   function validateAddress(e: Event) {
@@ -73,7 +84,9 @@
 
   function validateAmount(e: Event) {
     const input = e.target as HTMLInputElement
-    if (formData.amount > maxAmount) {
+    if (
+      formData.amount > getTextAmount(availableBalance - token.fee).amountNum
+    ) {
       input.setCustomValidity('Amount exceeds available balance')
       return
     }
@@ -108,12 +121,20 @@
     validating = false
     transferSuccess = null
     transferError = null
+    txInfo = null
   }
 
   function onContinue() {
     stepN = 1
     transferSuccess = null
     transferError = null
+    txInfo = {
+      from: sendFrom.toString(),
+      to: formData.to,
+      balance: getTextAmount(availableBalance).full,
+      amount: tokenAmountDisplay.full,
+      total: tokenAmountDisplay.feeAndFull
+    }
   }
 
   function onPrevStep() {
@@ -126,8 +147,6 @@
     submitting = true
     onSubmit(formData)
       .then((n) => {
-        formData.to = ''
-        formData.amount = 0
         submitting = false
         validating = false
         transferSuccess = n
@@ -148,11 +167,11 @@
 {#if stepN === 0}
   <div class="flex w-full flex-col gap-4">
     <!-- Enable for debugging: -->
-    <form class="flex flex-col" on:change={onFormChange}>
+    <form class="flex flex-col" bind:this={formRef} on:change={onFormChange}>
       <label class="label">
         <span>Send to destination</span>
         <input
-          class="bg-gray/5 peer input valid:input-success hover:bg-white/90"
+          class="peer input bg-gray/5 valid:input-success hover:bg-white/90"
           type="text"
           name="to"
           minlength="8"
@@ -178,10 +197,11 @@
           <span class="!ml-1">Max</span>
         </a>
         <input
-          class="bg-gray/5 peer input valid:input-success hover:bg-white/90"
+          class="peer input bg-gray/5 valid:input-success hover:bg-white/90"
           type="number"
           name="amount"
           min="0"
+          step="any"
           bind:value={formData.amount}
           on:input={validateAmount}
           placeholder="Amount"
@@ -203,27 +223,27 @@
 			<button class="btn variant-ghost-primary max-md:btn-sm" disabled={submitting || !validating} on:click={onContinue}>Continue</button>
 		</footer>
   </div>
-{:else}
+{:else if txInfo != null}
   <div class="flex w-full flex-col gap-4">
     <div class="flex flex-col gap-2 text-sm *:gap-2">
       <h4 class="h4 text-center">Review Transaction</h4>
       <div class="flex flex-row justify-between">
         <span>From</span>
         <span class="min-w-0 text-pretty break-words text-right">
-          {sendFrom.toString()}
+          {txInfo.from}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
         <span class="text-pretty break-words text-right">
-          {getTextAmount(availableBalance).full}
+          {txInfo.balance}
           {token.symbol}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Sending Amount</span>
         <span class="text-right">
-          {tokenAmountDisplay.full}
+          {txInfo.amount}
           {token.symbol}
         </span>
       </div>
@@ -234,7 +254,7 @@
       <div class="flex flex-row justify-between">
         <span>Total Deducted</span>
         <span class="text-right">
-          {tokenAmountDisplay.feeAndFull}
+          {txInfo.total}
           {token.symbol}
         </span>
       </div>
@@ -244,14 +264,14 @@
       <div class="flex flex-row justify-between">
         <span>Received Amount</span>
         <span class="text-right">
-          {tokenAmountDisplay.full}
+          {txInfo.amount}
           {token.symbol}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>To</span>
         <p class="min-w-0 text-pretty break-words text-right">
-          {formData.to}
+          {txInfo.to}
         </p>
       </div>
     </div>
@@ -259,7 +279,7 @@
       class="flex flex-col items-center justify-center transition duration-300 ease-in-out"
     >
       {#if submitting}
-        <span class="text-secondary-500 *:h-8 *:w-8"><Loading /></span>
+        <span class="text-panda *:h-8 *:w-8"><Loading /></span>
       {:else if transferSuccess != null}
         <p class="text-lg text-success-500">
           Transfer success at block {transferSuccess}

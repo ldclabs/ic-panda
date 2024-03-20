@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import { formatNumber } from '$lib/utils/token'
@@ -9,6 +10,7 @@
   import { signIn } from '$lib/services/auth'
   import { type Readable } from 'svelte/store'
   import {
+    luckyPoolAPIAsync,
     type LuckyPoolAPI,
     type AirdropState,
     type State
@@ -16,9 +18,13 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
 
-  export let luckyPoolState: Readable<State | null>
-  export let airdropState: Readable<AirdropState | null>
-  export let luckyPoolAPI: LuckyPoolAPI
+  let luckyPoolState: Readable<State | null>
+  let airdropState: Readable<AirdropState | null>
+  let luckyPoolAPI: LuckyPoolAPI
+  let totalBalance = 0n
+  let claimableAmount = 0n
+  let claimedAmount = 0n
+  let luckyCode = ''
 
   const modalStore = getModalStore()
 
@@ -43,21 +49,35 @@
     }
   }
 
-  $: totalBalance = $luckyPoolState?.airdrop_balance || 0n
-  $: claimableAmount = $airdropState?.claimable || 0n
-  $: claimedAmount = $airdropState?.claimed || 0n
-  $: luckyCode = $airdropState?.lucky_code[0] || ''
+  onMount(async () => {
+    luckyPoolAPI = await luckyPoolAPIAsync()
+    luckyPoolState = luckyPoolAPI.stateStore
+    airdropState = luckyPoolAPI.airdropStateStore
+  })
+
+  $: {
+    if (luckyPoolAPI) {
+      luckyPoolState = luckyPoolAPI.stateStore
+      airdropState = luckyPoolAPI.airdropStateStore
+      totalBalance = $luckyPoolState?.airdrop_balance || 0n
+      claimableAmount = $airdropState?.claimable || 0n
+      claimedAmount = $airdropState?.claimed || 0n
+      luckyCode = $airdropState?.lucky_code[0] || ''
+    }
+  }
 </script>
 
 <div
-  class="flex w-[400px] max-w-full flex-col justify-center rounded-2xl bg-white p-4"
+  class="flex flex-col justify-center rounded-2xl bg-white bg-[url('/_assets/images/lucky-pool-bg.webp')] bg-contain bg-no-repeat p-4"
 >
   <section class="mb-12 mt-6 flex flex-col justify-center">
     <h5 class="h5 text-center font-extrabold">
       <span>Free PANDA Airdrop</span>
     </h5>
     <div class="m-auto mt-12 flex flex-row gap-4">
-      <div>
+      <div
+        class="*:rounded-full *:transition *:duration-700 *:ease-in-out *:hover:scale-125 *:hover:shadow-lg"
+      >
         <IconGoldPanda />
       </div>
       <div>
@@ -106,7 +126,7 @@
         disabled={claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={claimNowHandler}
-        class="variant-filled-primary btn btn-lg m-auto mt-3 block w-[300px] max-w-full text-white"
+        class="variant-filled-error btn m-auto mt-3 block w-[300px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         Claim Now
       </button>
@@ -137,7 +157,7 @@
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
-        class="variant-filled-primary btn btn-lg m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white"
+        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg md:btn-lg hover:scale-110 hover:shadow"
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>

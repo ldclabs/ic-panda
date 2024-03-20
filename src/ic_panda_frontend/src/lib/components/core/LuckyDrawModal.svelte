@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    getModalStore,
+    getToastStore,
+    focusTrap
+  } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import {
@@ -10,7 +14,7 @@
   import {
     icpLedgerAPIAsync,
     type ICPLedgerAPI
-  } from '$lib/canisters/icpLedger'
+  } from '$lib/canisters/icpledger'
   import {
     tokenLedgerAPIAsync,
     type TokenLedgerAPI
@@ -29,6 +33,7 @@
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import { Principal } from '@dfinity/principal'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
 
   // Props
   /** Exposes parent props to this component. */
@@ -40,10 +45,11 @@
   let luckyPoolAPI: LuckyPoolAPI
   let icpLedgerAPI: ICPLedgerAPI
   let tokenLedgerAPI: TokenLedgerAPI
-  let icpTokens = 0
+  let icpTokens = 1
   let icpBalance = 0n
   let luckyPoolBalance = 0n
   let result: LuckyDrawOutput
+  let lottiePlayerRef: HTMLDivElement
 
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
   const lowestPrizeBalance = 500n * PANDAToken.one
@@ -70,6 +76,9 @@
       result = await luckyPoolAPI.luckydraw({
         icp: icpTokens
       })
+      setTimeout(() => {
+        lottiePlayerRef?.remove()
+      }, 2100)
     } catch (err: any) {
       submitting = false
       stepN = 0
@@ -85,21 +94,24 @@
     await luckyPoolAPI.refreshAllState()
   }
 
-  function onFormChange(e: Event) {
-    const form = e.currentTarget as HTMLFormElement
-    const input = form['icpTokens'] as HTMLInputElement
+  function checkInput() {
     if (icpTokens < 1 || icpTokens > 10 || !Number.isSafeInteger(icpTokens)) {
-      input?.setCustomValidity('Enter an integer between 1 and 10.')
+      return 'Enter an integer between 1 and 10'
     } else {
       const cost = icpCostAmount(icpTokens)
       if (cost == 0n || cost > icpBalance) {
-        input?.setCustomValidity('Insufficient ICP balance in your wallet.')
+        return 'Insufficient ICP balance in your wallet'
       } else if (BigInt(icpTokens) * lowestPrizeBalance > luckyPoolBalance) {
-        input?.setCustomValidity('Insufficient lucky pool balance.')
-      } else {
-        input.setCustomValidity('')
+        return 'Insufficient lucky pool balance'
       }
     }
+    return ''
+  }
+
+  function onFormChange(e: Event) {
+    const form = e.currentTarget as HTMLFormElement
+    const input = form['icpTokens'] as HTMLInputElement
+    input?.setCustomValidity(checkInput())
 
     validating = form.checkValidity()
   }
@@ -119,6 +131,8 @@
 
     icpBalance = await icpLedgerAPI.balance()
     luckyPoolBalance = await tokenLedgerAPI.getBalanceOf(luckyPoolPrincipal)
+
+    validating = checkInput() == ''
   })
 
   $: luckyPoolBalanceDisplay = formatToken(
@@ -131,14 +145,31 @@
 
 <ModalCard {parent}>
   {#if result}
+    <div
+      class="absolute left-0 right-0 top-0 *:m-auto"
+      bind:this={lottiePlayerRef}
+    >
+      <LottiePlayer
+        src="/_assets/animations/celebrate.json"
+        autoplay={true}
+        loop={false}
+        controls={false}
+        renderer="svg"
+        background="transparent"
+        height={360}
+        width={360}
+      />
+    </div>
     <div class="text-center">
       <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
         <IconCheckbox />
       </div>
-      <p class="mt-4">
-        Congratulations on winning {formatNumber(
-          Number(result.amount / PANDAToken.one)
-        )} tokens in the lucky draw.
+      <p class="mt-6">
+        <span>Congratulations on winning</span>
+        <span class="font-bold text-panda">
+          {formatNumber(Number(result.amount / PANDAToken.one))}
+        </span>
+        <span>tokens in the lucky draw.</span>
       </p>
     </div>
     <div
@@ -199,8 +230,8 @@
         </li>
         <li class="flex-col !items-start">
           <p>{'3. Define the winning base B as follows:'}</p>
-          <p class="pl-2">{'If R<=5, then B=100,000 (highest prize)'}</p>
-          <p class="pl-2">{'If R<=1000, then B=1,000 (lowest prize)'}</p>
+          <p class="pl-2">{'If R<=5, then B=100000 (highest prize);'}</p>
+          <p class="pl-2">{'If R<=1000, then B=1000 (lowest prize);'}</p>
           <p class="pl-2">{'Otherwise, B=R, where 1001<=B<=3446.'}</p>
         </li>
         <li>
@@ -208,7 +239,7 @@
         </li>
         <li>
           <span>
-            {"5. The maximum possible prize is 1,000,000 PANDA tokens, subject to the lucky pool's token balance."}
+            {"5. The maximum possible prize is 1000000 PANDA tokens, subject to the lucky pool's token balance."}
           </span>
         </li>
       </ul>
@@ -226,7 +257,11 @@
         <span>{icpBalanceDisplay.symbol}</span>
       </p>
     </div>
-    <form class="flex flex-col gap-4" on:change={onFormChange}>
+    <form
+      class="flex flex-col gap-4"
+      on:change={onFormChange}
+      use:focusTrap={true}
+    >
       <div
         class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
       >
@@ -239,7 +274,7 @@
           max="10"
           step="1"
           bind:value={icpTokens}
-          placeholder="Enter an integer between 1 and 10."
+          placeholder="Enter an integer between 1 and 10"
           disabled={submitting}
           required
         />
