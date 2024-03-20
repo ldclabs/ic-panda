@@ -50,6 +50,8 @@ This platform is built on the RWA (Real World Asset) concept, aiming to introduc
 |                  | -- **10%** | -- 100,000,000 | CEX Incentive          |
 |                  | -- **10%** | -- 100,000,000 | DEX Liquidity          |
 
+Additionally, there are SNS voting rewards. The reward rate linearly declines from 8% to 0% over two years, and then remains at 0% indefinitely. Therefore, the maximum supply is approximately 1.08 times the current total supply, equating to **1,080,000,000**.
+
 **Token distribution before Neurons' Fund participation:**
 
 ![Token Distribution](./token_distribution_0.webp)
