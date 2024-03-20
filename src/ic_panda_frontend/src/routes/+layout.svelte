@@ -1,27 +1,27 @@
 <script lang="ts">
-  import '../app.pcss'
-  import { pwaInfo } from 'virtual:pwa-info'
-  import {
-    computePosition,
-    autoUpdate,
-    offset,
-    shift,
-    flip,
-    arrow
-  } from '@floating-ui/dom'
   import { browser } from '$app/environment'
-  import { authStore } from '$lib/stores/auth'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
+  import { authStore } from '$lib/stores/auth'
+  import {
+    arrow,
+    autoUpdate,
+    computePosition,
+    flip,
+    offset,
+    shift
+  } from '@floating-ui/dom'
   import {
     AppShell,
-    Toast,
     Modal,
+    Toast,
     getToastStore,
     initializeStores,
     storePopup
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
+  import { pwaInfo } from 'virtual:pwa-info'
+  import '../app.pcss'
 
   initializeStores()
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })

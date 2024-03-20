@@ -1,5 +1,5 @@
 {
-  "htmlWhitespaceSensitivity": "ignore",
+  "htmlWhitespaceSensitivity": "strict",
   "quoteProps": "preserve",
   "semi": false,
   "trailingComma": "none",

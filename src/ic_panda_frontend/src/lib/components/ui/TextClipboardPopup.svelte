@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { clipboard, popup } from '@skeletonlabs/skeleton'
-  import type { PopupSettings } from '@skeletonlabs/skeleton'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
+  import type { PopupSettings } from '@skeletonlabs/skeleton'
+  import { clipboard, popup } from '@skeletonlabs/skeleton'
 
   export let textLable: string
   export let textName: string

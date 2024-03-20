@@ -1,39 +1,39 @@
 <script lang="ts">
   import {
-    getModalStore,
-    getToastStore,
-    focusTrap
-  } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
-  import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import {
-    luckyPoolAPIAsync,
-    LuckyPoolAPI,
-    type LuckyDrawOutput
-  } from '$lib/canisters/luckypool'
-  import {
     icpLedgerAPIAsync,
     type ICPLedgerAPI
   } from '$lib/canisters/icpledger'
   import {
+    LuckyPoolAPI,
+    luckyPoolAPIAsync,
+    type LuckyDrawOutput
+  } from '$lib/canisters/luckypool'
+  import {
     tokenLedgerAPIAsync,
     type TokenLedgerAPI
   } from '$lib/canisters/tokenledger'
-  import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
+  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
+  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
+  import IconWallet from '$lib/components/icons/IconWallet.svelte'
+  import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
   import {
-    PANDAToken,
     ICPToken,
-    formatNumber,
+    PANDAToken,
     TokenAmount,
+    formatNumber,
     formatToken
   } from '$lib/utils/token'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import { Principal } from '@dfinity/principal'
-  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
+  import {
+    focusTrap,
+    getModalStore,
+    getToastStore
+  } from '@skeletonlabs/skeleton'
+  import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */

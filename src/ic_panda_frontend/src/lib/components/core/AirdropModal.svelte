@@ -1,22 +1,21 @@
 <script lang="ts">
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
+  import { page } from '$app/stores'
+  import {
+    LuckyPoolAPI,
+    luckyPoolAPIAsync,
+    type AirdropState,
+    type Captcha
+  } from '$lib/canisters/luckypool'
+  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
+  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
+  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
+  import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
-  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
-  import {
-    luckyPoolAPIAsync,
-    LuckyPoolAPI,
-    type Captcha,
-    type AirdropState
-  } from '$lib/canisters/luckypool'
-  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
-  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
-  import { formatNumber } from '$lib/utils/token'
-  import { PANDAToken } from '$lib/utils/token'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
-  import { page } from '$app/stores'
+  import { PANDAToken, formatNumber } from '$lib/utils/token'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */

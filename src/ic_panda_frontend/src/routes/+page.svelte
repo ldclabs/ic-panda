@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconGithub from '$lib/components/icons/IconGithub.svelte'
-  import IconX from '$lib/components/icons/IconX.svelte'
-  import IconPanda from '$lib/components/icons/IconPanda.svelte'
-  import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
-  import Saos from 'saos'
-  import { luckyPoolAPIAsync, LuckyPoolAPI } from '$lib/canisters/luckypool'
+  import { LuckyPoolAPI, luckyPoolAPIAsync } from '$lib/canisters/luckypool'
   import AirdropCard from '$lib/components/core/AirdropCard.svelte'
   import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
+  import IconGithub from '$lib/components/icons/IconGithub.svelte'
+  import IconPanda from '$lib/components/icons/IconPanda.svelte'
+  import IconX from '$lib/components/icons/IconX.svelte'
+  import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
+  import Saos from 'saos'
+  import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
 

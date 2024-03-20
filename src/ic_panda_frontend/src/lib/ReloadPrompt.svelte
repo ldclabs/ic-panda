@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useRegisterSW } from 'virtual:pwa-register/svelte'
   import { getToastStore } from '@skeletonlabs/skeleton'
+  import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const toastStore = getToastStore()
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { clipboard } from '@skeletonlabs/skeleton'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
+  import { clipboard } from '@skeletonlabs/skeleton'
 
   export let textValue: string
 

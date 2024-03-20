@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { type SvelteComponent } from 'svelte'
-  import { getModalStore } from '@skeletonlabs/skeleton'
   import IconClose from '$lib/components/icons/IconClose.svelte'
+  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -17,7 +17,7 @@
     class="card relative mt-12 w-full max-w-[420px] space-y-4 rounded-2xl bg-white p-6 shadow-xl max-md:mt-8"
   >
     <button
-      class="z-1 text-gray/30 btn btn-icon absolute right-2 top-2 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
+      class="z-1 btn btn-icon absolute right-2 top-2 text-gray/30 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
       on:click={parent['onClose']}
     >
       <IconClose />

@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
   import {
-    luckyPoolAPIAsync,
     LuckyPoolAPI,
+    luckyPoolAPIAsync,
     type State
   } from '$lib/canisters/luckypool'
-  import { type Readable } from 'svelte/store'
-  import { PANDAToken, ICPToken, formatNumber } from '$lib/utils/token'
-  import { ProgressBar, TabGroup, Tab, Table } from '@skeletonlabs/skeleton'
-  import { shortId } from '$lib/utils/auth'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
+  import { shortId } from '$lib/utils/auth'
+  import { ICPToken, PANDAToken, formatNumber } from '$lib/utils/token'
+  import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
+  import { onMount } from 'svelte'
+  import { type Readable } from 'svelte/store'
 
   let tabSet: number = 0
   let luckyPoolAPI: LuckyPoolAPI

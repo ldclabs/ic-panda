@@ -1,16 +1,16 @@
-import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
-import { createActor } from './actors'
-import type { Identity } from '@dfinity/agent'
-import { Principal } from '@dfinity/principal'
-import { TokenAmount, type TokenInfo } from '$lib/utils/token'
-import { AccountIdentifier } from '$lib/utils/account_identifier'
 import {
   idlFactory,
   type _SERVICE,
   type Allowance
 } from '$declarations/icp_ledger_canister/icp_ledger_canister.did.js'
-import { unwrapResult } from '$lib/types/result'
+import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
+import { unwrapResult } from '$lib/types/result'
+import { AccountIdentifier } from '$lib/utils/account_identifier'
+import { TokenAmount, type TokenInfo } from '$lib/utils/token'
+import type { Identity } from '@dfinity/agent'
+import { Principal } from '@dfinity/principal'
+import { createActor } from './actors'
 
 export class ICPLedgerAPI {
   principal: Principal

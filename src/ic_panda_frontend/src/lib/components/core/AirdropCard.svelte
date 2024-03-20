@@ -1,22 +1,21 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
-  import IconInfo from '$lib/components/icons/IconInfo.svelte'
-  import { formatNumber } from '$lib/utils/token'
-  import { popup, getModalStore } from '@skeletonlabs/skeleton'
-  import { PANDAToken } from '$lib/utils/token'
-  import AirdropModal from './AirdropModal.svelte'
-  import { authStore } from '$lib/stores/auth'
-  import { signIn } from '$lib/services/auth'
-  import { type Readable } from 'svelte/store'
   import {
     luckyPoolAPIAsync,
-    type LuckyPoolAPI,
     type AirdropState,
+    type LuckyPoolAPI,
     type State
   } from '$lib/canisters/luckypool'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
+  import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { signIn } from '$lib/services/auth'
+  import { authStore } from '$lib/stores/auth'
+  import { PANDAToken, formatNumber } from '$lib/utils/token'
+  import { getModalStore, popup } from '@skeletonlabs/skeleton'
+  import { onMount } from 'svelte'
+  import { type Readable } from 'svelte/store'
+  import AirdropModal from './AirdropModal.svelte'
 
   let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>

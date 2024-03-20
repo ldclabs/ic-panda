@@ -4,43 +4,43 @@ module.exports = {
   env: {
     browser: true,
     esnext: true,
-    node: true,
+    node: true
   },
   extends: [
     'eslint:recommended',
-    "standard",
-    "prettier/@typescript-eslint",
+    'standard',
+    'prettier/@typescript-eslint',
     'plugin:svelte/recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
     'plugin:prettier/recommended',
-    "prettier",
+    'prettier'
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
     project: 'src/ic_panda_frontend/tsconfig.json',
-    extraFileExtensions: ['.svelte'],
+    extraFileExtensions: []
   },
   overrides: [
     {
       files: ['*.svelte'],
       parser: 'svelte-eslint-parser',
       parserOptions: {
-        parser: '@typescript-eslint/parser',
-      },
-    },
+        parser: '@typescript-eslint/parser'
+      }
+    }
   ],
   plugins: ['@typescript-eslint', 'svelte', 'import', 'prettier'],
   rules: {
     '@typescript-eslint/consistent-type-exports': [
       'error',
-      { fixMixedExportsWithInlineTypeSpecifier: true },
+      { fixMixedExportsWithInlineTypeSpecifier: true }
     ],
     '@typescript-eslint/consistent-type-imports': [
       'error',
-      { fixStyle: 'inline-type-imports' },
+      { fixStyle: 'inline-type-imports' }
     ],
     '@typescript-eslint/no-empty-function': 'off',
     '@typescript-eslint/no-empty-interface': 'off',
@@ -54,24 +54,24 @@ module.exports = {
         groups: [
           ['builtin', 'external', 'internal'],
           'parent',
-          ['sibling', 'index'],
+          ['sibling', 'index']
         ],
         'newlines-between': 'never',
-        alphabetize: { order: 'ignore' },
-      },
+        alphabetize: { order: 'ignore' }
+      }
     ],
     'no-console': 'warn',
     'no-restricted-imports': [
       'error',
       {
-        'paths': [],
-      },
+        'paths': []
+      }
     ],
     'no-useless-rename': 'error',
-    'object-shorthand': ['error', 'always'],
+    'object-shorthand': ['error', 'always']
   },
   settings: {
-    'import/internal-regex': '^#',
+    'import/internal-regex': '^#'
   },
-  ignorePatterns: ["dist", "node_modules", "examples", "scripts"]
+  ignorePatterns: ['dist', 'node_modules', 'examples', 'scripts']
 }

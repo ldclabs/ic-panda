@@ -1,16 +1,16 @@
 <script lang="ts">
+  import IconArrowDown from '$lib/components/icons/IconArrowDown.svelte'
+  import IconCornerDownLeft from '$lib/components/icons/IconCornerDownLeft.svelte'
+  import { ErrData } from '$lib/types/result'
+  import type { SendTokenArgs } from '$lib/types/token'
+  import { AccountIdentifier } from '$lib/utils/account_identifier'
   import {
     TokenAmount,
     formatToken,
-    type TokenInfo,
-    type TokenAmountDisplay
+    type TokenAmountDisplay,
+    type TokenInfo
   } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
-  import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import IconCornerDownLeft from '$lib/components/icons/IconCornerDownLeft.svelte'
-  import IconArrowDown from '$lib/components/icons/IconArrowDown.svelte'
-  import type { SendTokenArgs } from '$lib/types/token'
-  import { ErrData } from '$lib/types/result'
   import Loading from './Loading.svelte'
 
   export let token: TokenInfo

@@ -1,14 +1,14 @@
-import { TOKEN_LEDGER_CANISTER_ID } from '$lib/constants'
-import { createActor } from './actors'
-import type { Identity } from '@dfinity/agent'
-import { Principal } from '@dfinity/principal'
-import { TokenAmount } from '$lib/utils/token'
 import {
   idlFactory,
   type _SERVICE
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
-import { unwrapResult } from '$lib/types/result'
+import { TOKEN_LEDGER_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
+import { unwrapResult } from '$lib/types/result'
+import { TokenAmount } from '$lib/utils/token'
+import type { Identity } from '@dfinity/agent'
+import { Principal } from '@dfinity/principal'
+import { createActor } from './actors'
 
 export class TokenLedgerAPI {
   principal: Principal

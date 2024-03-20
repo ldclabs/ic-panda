@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { getModalStore } from '@skeletonlabs/skeleton'
-  import LuckyDrawModal from './LuckyDrawModal.svelte'
-  import { authStore } from '$lib/stores/auth'
   import { signIn } from '$lib/services/auth'
+  import { authStore } from '$lib/stores/auth'
+  import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
+  import LuckyDrawModal from './LuckyDrawModal.svelte'
 
   const modalStore = getModalStore()
 
@@ -23,8 +23,7 @@
 <div
   class="relative flex flex-col items-center rounded-2xl bg-[#f3fffb] bg-[url('/_assets/images/lucky-pool-draw-bg.webp')] bg-contain bg-no-repeat p-4"
 >
-  <div
-    class="absolute bottom-0 -z-0 h-20 w-full rounded-b-2xl bg-[#bff0e0]"
+  <div class="absolute bottom-0 -z-0 h-20 w-full rounded-b-2xl bg-[#bff0e0]"
   ></div>
   <img
     class="z-10 mt-5 block w-full max-w-[400px]"

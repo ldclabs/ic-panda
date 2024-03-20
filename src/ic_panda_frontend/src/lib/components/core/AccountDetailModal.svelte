@@ -1,25 +1,25 @@
 <script lang="ts">
-  import { onMount, type SvelteComponent } from 'svelte'
-  import IconLogout from '$lib/components/icons/IconLogout.svelte'
-  import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
-  import IconPanda from '$lib/components/icons/IconPanda.svelte'
-  import TextClipboardPopup from '$lib/components/ui/TextClipboardPopup.svelte'
-  import TextTokenAmount from '$lib/components/ui/TextTokenAmount.svelte'
-  import SendTokenForm from '$lib/components/ui/SendTokenForm.svelte'
-  import { ICPToken, PANDAToken } from '$lib/utils/token'
-  import { authStore } from '$lib/stores/auth'
-  import type { SendTokenArgs } from '$lib/types/token'
-  import { Accordion, AccordionItem } from '@skeletonlabs/skeleton'
-  import { signOut } from '$lib/services/auth'
-  import { Principal } from '@dfinity/principal'
-  import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpledger'
   import {
-    tokenLedgerAPIAsync,
-    TokenLedgerAPI
+    TokenLedgerAPI,
+    tokenLedgerAPIAsync
   } from '$lib/canisters/tokenledger'
+  import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
+  import IconLogout from '$lib/components/icons/IconLogout.svelte'
+  import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import SendTokenForm from '$lib/components/ui/SendTokenForm.svelte'
+  import TextClipboardPopup from '$lib/components/ui/TextClipboardPopup.svelte'
+  import TextTokenAmount from '$lib/components/ui/TextTokenAmount.svelte'
+  import { signOut } from '$lib/services/auth'
+  import { authStore } from '$lib/stores/auth'
+  import type { SendTokenArgs } from '$lib/types/token'
+  import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { shortId } from '$lib/utils/auth'
+  import { ICPToken, PANDAToken } from '$lib/utils/token'
+  import { Principal } from '@dfinity/principal'
+  import { Accordion, AccordionItem } from '@skeletonlabs/skeleton'
+  import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */

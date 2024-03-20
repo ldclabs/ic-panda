@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { popup } from '@skeletonlabs/skeleton'
   import { TokenAmount, formatToken, type TokenInfo } from '$lib/utils/token'
+  import { popup } from '@skeletonlabs/skeleton'
   import Loading from './Loading.svelte'
 
   let selfClass: string = ''

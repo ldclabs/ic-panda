@@ -9,11 +9,7 @@ import {
   type PrecacheEntry
 } from 'workbox-precaching'
 import { registerRoute, setCatchHandler } from 'workbox-routing'
-import {
-  CacheFirst,
-  NetworkFirst,
-  StaleWhileRevalidate
-} from 'workbox-strategies'
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
 
 declare let self: ServiceWorkerGlobalScope
 

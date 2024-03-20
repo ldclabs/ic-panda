@@ -1,9 +1,9 @@
 import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
 import { createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
-import { nonNullish } from '@dfinity/utils'
-import { writable, derived, get, type Readable } from 'svelte/store'
 import { AnonymousIdentity, type Identity } from '@dfinity/agent'
+import { nonNullish } from '@dfinity/utils'
+import { derived, get, writable, type Readable } from 'svelte/store'
 
 export interface AuthStoreData {
   identity: Identity

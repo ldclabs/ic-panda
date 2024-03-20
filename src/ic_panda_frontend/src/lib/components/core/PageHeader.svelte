@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { TabGroup, TabAnchor, getModalStore } from '@skeletonlabs/skeleton'
   import { page } from '$app/stores'
-  import { authStore } from '$lib/stores/auth'
-  import { signIn } from '$lib/services/auth'
+  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconUser0 from '$lib/components/icons/IconUser0.svelte'
   import IconUser1 from '$lib/components/icons/IconUser1.svelte'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
+  import { signIn } from '$lib/services/auth'
+  import { authStore } from '$lib/stores/auth'
+  import { TabAnchor, TabGroup, getModalStore } from '@skeletonlabs/skeleton'
 
   const modalStore = getModalStore()
 
