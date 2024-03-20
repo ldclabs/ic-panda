@@ -68,7 +68,8 @@ export class ICPLedgerAPI {
       allowance.allowance < amount ||
       (expires_at > 0 && expires_at < BigInt((Date.now() + 60000) * 1_000_000))
     ) {
-      await this.approve(spender, amount)
+      // Approve 10 times of the amount to avoid frequent approval
+      await this.approve(spender, amount * 10n)
     }
   }
 
