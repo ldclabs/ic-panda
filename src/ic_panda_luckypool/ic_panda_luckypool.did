@@ -62,7 +62,7 @@ service : () -> {
   admin_set_managers : (vec principal) -> (Result);
   airdrop : (AirdropClaimInput) -> (Result_1);
   airdrop_logs : (opt nat, opt nat) -> (vec AirdropLog) query;
-  airdrop_state_of : () -> (Result_2) query;
+  airdrop_state_of : (opt principal) -> (Result_2) query;
   api_version : () -> (nat16) query;
   captcha : () -> (Result_3);
   harvest : (AirdropHarvestInput) -> (Result_1);

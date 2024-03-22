@@ -17,9 +17,9 @@ fn state() -> Result<store::State, ()> {
 }
 
 #[ic_cdk::query]
-async fn airdrop_state_of() -> Result<types::AirdropStateOutput, ()> {
-    let caller = ic_cdk::caller();
-    if caller == ANONYMOUS {
+async fn airdrop_state_of(owner: Option<Principal>) -> Result<types::AirdropStateOutput, ()> {
+    let owner = owner.unwrap_or(ic_cdk::caller());
+    if owner == ANONYMOUS {
         return Ok(types::AirdropStateOutput {
             lucky_code: None,
             claimed: Nat::from(0u64),
@@ -27,7 +27,7 @@ async fn airdrop_state_of() -> Result<types::AirdropStateOutput, ()> {
         });
     }
 
-    match store::airdrop::state_of(&caller) {
+    match store::airdrop::state_of(&owner) {
         Some(store::AirdropState(code, claimed, claimable)) => Ok(types::AirdropStateOutput {
             lucky_code: Some(utils::luckycode_to_string(code)),
             claimed: Nat::from(claimed),
