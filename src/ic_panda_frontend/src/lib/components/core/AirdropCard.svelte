@@ -5,6 +5,7 @@
     type LuckyPoolAPI,
     type State
   } from '$lib/canisters/luckypool'
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
@@ -28,7 +29,7 @@
   const modalStore = getModalStore()
 
   function claimNowHandler() {
-    if ($authStore.identity.getPrincipal().isAnonymous()) {
+    if (principal.isAnonymous()) {
       signIn({})
     } else {
       modalStore.trigger({
@@ -39,21 +40,27 @@
   }
 
   let submitting = false
+  let harvested = 0n
   async function harvestHandler() {
     if (claimableAmount > 0n) {
       submitting = true
-      await luckyPoolAPI.harvest({ amount: claimableAmount })
-      await luckyPoolAPI.refreshAllState()
+      const { claimed } = await luckyPoolAPI.harvest({
+        amount: claimableAmount
+      })
       submitting = false
+      harvested = claimed - claimedAmount
+      setTimeout(() => {
+        harvested = 0n
+      }, 5000)
+      await luckyPoolAPI.refreshAllState()
     }
   }
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    luckyPoolState = luckyPoolAPI.stateStore
-    airdropState = luckyPoolAPI.airdropStateStore
   })
 
+  $: principal = $authStore.identity.getPrincipal()
   $: {
     if (luckyPoolAPI) {
       luckyPoolState = luckyPoolAPI.stateStore
@@ -62,6 +69,11 @@
       claimableAmount = $airdropState?.claimable || 0n
       claimedAmount = $airdropState?.claimed || 0n
       luckyCode = $airdropState?.lucky_code[0] || ''
+      if (luckyPoolAPI?.principal.toString() != principal.toString()) {
+        luckyPoolAPIAsync().then((_luckyPoolAPI) => {
+          luckyPoolAPI = _luckyPoolAPI
+        })
+      }
     }
   }
 </script>
@@ -115,17 +127,16 @@
     {#if claimedAmount == 0n}
       <p class="flex flex-row justify-center gap-1 text-gold">
         <span>You can get</span>
-        <span class="mt-[2px] *:size-5"><IconGoldPanda /></span>
         <span>
           {formatNumber(Number(claimableAmount / PANDAToken.one))}
         </span>
-        <span>PANDA for free</span>
+        <span>PANDA tokens for free</span>
       </p>
       <button
         disabled={claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={claimNowHandler}
-        class="variant-filled-error btn m-auto mt-3 block w-[300px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-error btn m-auto mt-3 w-[300px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         Claim Now
       </button>
@@ -156,11 +167,20 @@
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
-        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
           <span>Processing...</span>
+        {:else if harvested > 0n}
+          <span>
+            {'Harvested ' +
+              formatNumber(Number(harvested / PANDAToken.one)) +
+              ' PANDA tokens'}
+          </span>
+          <span>
+            <IconCheckbox />
+          </span>
         {:else}
           <span>
             {'Harvest ' +

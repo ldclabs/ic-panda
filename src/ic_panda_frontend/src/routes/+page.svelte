@@ -5,6 +5,7 @@
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
+  import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
@@ -16,9 +17,9 @@
   let luckyPoolAPI: LuckyPoolAPI
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-
     await setTimeout(Promise.resolve, 5000)
+
+    luckyPoolAPI = await luckyPoolAPIAsync()
     const notifications = await luckyPoolAPI.notifications()
 
     for (const n of notifications) {
@@ -67,7 +68,9 @@
     </p>
   </div>
 
-  <div class="mt-10 max-w-4xl space-x-4">
+  <div
+    class="mt-10 flex max-w-4xl flex-row items-center gap-6 max-sm:flex-col *:max-sm:w-60"
+  >
     <a
       type="button"
       class="bg-slate-950 variant-filled btn"
@@ -76,6 +79,15 @@
     >
       <span><IconX /></span>
       <span class="text-left">Twitter</span>
+    </a>
+    <a
+      type="button"
+      class="bg-slate-950 variant-filled btn"
+      href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
+      target="_blank"
+    >
+      <span><IconOpenChat /></span>
+      <span class="text-left">Community</span>
     </a>
     <a
       type="button"

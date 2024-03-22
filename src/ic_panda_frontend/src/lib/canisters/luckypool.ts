@@ -14,6 +14,7 @@ import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import type { Identity } from '@dfinity/agent'
+import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 
@@ -23,6 +24,7 @@ export type Captcha = CaptchaOutput
 export type LuckyDrawOutput = _LuckyDrawOutput
 
 export class LuckyPoolAPI {
+  principal: Principal
   actor: _SERVICE
   private _state = writable<State | null>(null)
   private _airdropState = writable<AirdropState | null>(null)
@@ -34,12 +36,13 @@ export class LuckyPoolAPI {
       identity
     })
 
-    const api = new LuckyPoolAPI(actor)
+    const api = new LuckyPoolAPI(identity.getPrincipal(), actor)
     await api.refreshAllState()
     return api
   }
 
-  constructor(actor: _SERVICE) {
+  constructor(principal: Principal, actor: _SERVICE) {
+    this.principal = principal
     this.actor = actor
   }
 
@@ -59,7 +62,7 @@ export class LuckyPoolAPI {
     const state = await this.actor.state()
     this._state.set(unwrapResult(state, 'call state failed'))
 
-    const airdropState = await this.actor.airdrop_state_of()
+    const airdropState = await this.actor.airdrop_state_of([])
     this._airdropState.set(
       unwrapResult(airdropState, 'call airdrop_state_of failed')
     )
