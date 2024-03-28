@@ -28,10 +28,10 @@ const AIRDROP_AMOUNT: u64 = 100; // 100 PANDA tokens
 static ANONYMOUS: Principal = Principal::anonymous();
 static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
 
-// "bkyz2-fmaaa-aaaaa-qaaaq-cai" TODO: update token canister id
-static TOKEN_CANISTER: Principal = Principal::from_slice(&[128, 0, 0, 0, 0, 16, 0, 1, 1, 1]);
-// "a7cug-2qaaa-aaaap-ab3la-cai" TODO: update dao canister id
-static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 14, 214, 1, 1]);
+// "druyg-tyaaa-aaaaq-aactq-cai" PANDA token canister id
+static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
+// "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
 
 fn nat_to_u64(nat: &Nat) -> u64 {
     nat.0.to_u64().unwrap_or(0)
@@ -144,7 +144,7 @@ mod test {
 
     #[test]
     fn get_principal() {
-        let s = "a7cug-2qaaa-aaaap-ab3la-cai";
+        let s = "dwv6s-6aaaa-aaaaq-aacta-cai";
         let id = Principal::from_text(s).expect("invalid principal");
         println!("principal bytes: {:?}", id.to_bytes());
 

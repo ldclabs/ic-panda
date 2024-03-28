@@ -66,13 +66,9 @@ dfx canister create --specified-id c63a7-6yaaa-aaaap-ab3gq-cai ic_panda_frontend
 dfx canister create --specified-id f75us-gyaaa-aaaap-ab3wq-cai ic_panda_badges
 dfx canister create --specified-id a7cug-2qaaa-aaaap-ab3la-cai ic_panda_luckypool
 
-# Creates a 'test-minter' account if it doesn't exist
-dfx identity new test-minter
-
 # Deploys the ICP Ledger canister with the specified initial values
-dfx identity use test-minter
-export MINTER_ACCOUNT_ID=$(dfx ledger account-id)
 dfx identity use default
+export MINTER_ACCOUNT_ID=$(dfx ledger account-id)
 export DEFAULT_ACCOUNT_ID=$(dfx ledger account-id)
 dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister --argument "
   (variant {
@@ -97,9 +93,8 @@ dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister --argu
 "
 
 # Deploys the ICRC-1 token Ledger canister with the specified initial values
-dfx identity use test-minter
-export MINTER=$(dfx identity get-principal)
 dfx identity use default
+export MINTER=$(dfx identity get-principal)
 export DEFAULT=$(dfx identity get-principal)
 export ARCHIVE_CONTROLLER=$(dfx identity get-principal)
 export TOKEN_NAME="ICPanda"
@@ -111,7 +106,7 @@ export NUM_OF_BLOCK_TO_ARCHIVE=1000
 export CYCLE_FOR_ARCHIVE_CREATION=10000000000000
 export FEATURE_FLAGS=true
 
-dfx deploy icrc1_ledger_canister --specified-id bkyz2-fmaaa-aaaaa-qaaaq-cai --argument "(variant {Init =
+dfx deploy icrc1_ledger_canister --specified-id druyg-tyaaa-aaaaq-aactq-cai --argument "(variant {Init =
 record {
      token_symbol = \"${TOKEN_SYMBOL}\";
      token_name = \"${TOKEN_NAME}\";
