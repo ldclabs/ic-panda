@@ -53,10 +53,15 @@
 
   <div class="mt-6 max-w-4xl">
     <p class="text-center text-lg font-normal capitalize antialiased">
-      ICPanda DAO represents a Decentralized Autonomous Organization (DAO)
-      committed to advancing the Panda meme brand within the decentralized
-      ecosystem of the <a
-        class="font-bold text-secondary-500"
+      <a
+        class="font-bold text-panda underline underline-offset-4"
+        href="https://dashboard.internetcomputer.org/canister/d7wvo-iiaaa-aaaaq-aacsq-cai"
+        target="_blank">ICPanda DAO</a
+      >
+      represents a Decentralized Autonomous Organization (DAO) committed to advancing
+      the Panda meme brand within the decentralized ecosystem of the
+      <a
+        class="font-bold text-secondary-500 underline underline-offset-4"
         href="https://internetcomputer.org/"
         target="_blank"
       >
@@ -142,11 +147,23 @@
         <div class="flex flex-col gap-4 text-center">
           <h3 class="h3 font-bold">
             <p>Token Name</p>
-            <p class="text-panda">ICPanda</p>
+            <p class="text-panda"
+              ><a
+                class="underline underline-offset-4"
+                href="https://info.icpswap.com/token/details/druyg-tyaaa-aaaaq-aactq-cai"
+                target="_blank">ICPanda</a
+              ></p
+            >
           </h3>
           <h3 class="h3 font-bold">
             <p>Token Symbol</p>
-            <p class="text-panda">PANDA</p>
+            <p class="text-panda"
+              ><a
+                class="underline underline-offset-4"
+                href="https://dashboard.internetcomputer.org/canister/druyg-tyaaa-aaaaq-aactq-cai"
+                target="_blank">PANDA</a
+              >
+            </p>
           </h3>
           <h3 class="h3 font-bold">
             <p>Total Supply</p>
@@ -307,16 +324,19 @@
             <p
               class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
+              <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>SNS Swap</span>
             </p>
             <p
               class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
+              <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>Launch Lucky Pool</span>
             </p>
             <p
               class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
+              <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>List PANDA Token on DEX</span>
             </p>
           </div>
