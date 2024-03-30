@@ -55,7 +55,7 @@
     <p class="text-center text-lg font-normal capitalize antialiased">
       <a
         class="font-bold text-panda underline underline-offset-4"
-        href="https://dashboard.internetcomputer.org/canister/d7wvo-iiaaa-aaaaq-aacsq-cai"
+        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
         target="_blank">ICPanda DAO</a
       >
       represents a Decentralized Autonomous Organization (DAO) committed to advancing
