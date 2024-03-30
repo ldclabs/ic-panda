@@ -1,4 +1,7 @@
-use crate::{icp_transfer_to, is_authenticated, is_controller, store, types, DAO_CANISTER};
+use crate::{
+    icp_transfer_to, is_authenticated, is_controller, store, token_balance_of, types, ANONYMOUS,
+    DAO_CANISTER, ICP_1, ICP_CANISTER, TRANS_FEE,
+};
 use candid::{Nat, Principal};
 use std::collections::BTreeSet;
 
@@ -10,12 +13,40 @@ async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
     Ok(())
 }
 
+#[ic_cdk::update]
+async fn validate_admin_collect_icp(amount: Nat) -> Result<(), String> {
+    if amount < ICP_1 {
+        return Err("amount must be at least 1 ICP".to_string());
+    }
+
+    let balance = token_balance_of(ICP_CANISTER, ic_cdk::id())
+        .await
+        .unwrap_or(Nat::from(0u64));
+
+    if amount + TRANS_FEE > balance {
+        return Err(format!("insufficient ICP balance: {}", balance));
+    }
+
+    Ok(())
+}
+
 // Set the managers.
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> {
     store::state::with_mut(|r| {
         r.managers = Some(args);
     });
+    Ok(())
+}
+
+#[ic_cdk::update]
+fn validate_admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> {
+    if args.is_empty() {
+        return Err("managers cannot be empty".to_string());
+    }
+    if args.contains(&ANONYMOUS) {
+        return Err("anonymous user is not allowed".to_string());
+    }
     Ok(())
 }
 

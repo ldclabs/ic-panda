@@ -135,15 +135,15 @@ const LUCKYDRAW_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(5);
 const LUCKYDRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(6);
 
 thread_local! {
-    static CAPTCHA_SECRET: RefCell<[u8; 32]> = RefCell::new([0; 32]);
+    static CAPTCHA_SECRET: RefCell<[u8; 32]> = const { RefCell::new([0; 32]) };
 
     static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
 
-    static ACTIVE_USERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+    static ACTIVE_USERS: RefCell<BTreeSet<Principal>> = const { RefCell::new(BTreeSet::new()) };
 
-    static MANAGERS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+    static MANAGERS: RefCell<BTreeSet<Principal>> = const { RefCell::new(BTreeSet::new()) };
 
-    static NOTIFICATIONS: RefCell<BTreeMap<u8, types::Notification>> = RefCell::new(BTreeMap::new());
+    static NOTIFICATIONS: RefCell<BTreeMap<u8, types::Notification>> = const { RefCell::new(BTreeMap::new()) };
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));

@@ -1,6 +1,7 @@
 use crate::{
     icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_to, types, utils, AIRDROP_AMOUNT, ICP_1, SECOND, TOKEN_1, TRANS_FEE,
+    token_transfer_to, types, utils, AIRDROP_AMOUNT, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER,
+    TRANS_FEE,
 };
 use candid::Nat;
 use ic_captcha::CaptchaBuilder;
@@ -166,14 +167,14 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     let icp = args.icp as u64 * ICP_1;
     let amount = args.icp as u64 * amount;
 
-    let balance = token_balance_of(ic_cdk::id()).await?;
+    let balance = token_balance_of(TOKEN_CANISTER, ic_cdk::id()).await?;
     let lowest_balance = LOWEST_LUCKYDRAW_BALANCE * TOKEN_1 * args.icp as u64 + TRANS_FEE;
     if balance < lowest_balance {
         return Err("insufficient token balance for luckydraw".to_string());
     }
 
     let _ = icp_transfer_from(caller, Nat::from(icp - TRANS_FEE)).await?;
-    let balance = token_balance_of(ic_cdk::id())
+    let balance = token_balance_of(TOKEN_CANISTER, ic_cdk::id())
         .await
         .unwrap_or(Nat::from(0u64));
     let draw_amount = if balance >= lowest_balance {

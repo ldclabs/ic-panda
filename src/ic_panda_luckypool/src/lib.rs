@@ -53,9 +53,9 @@ fn is_authenticated() -> Result<(), String> {
     }
 }
 
-async fn token_balance_of(user: Principal) -> Result<Nat, String> {
+async fn token_balance_of(canister: Principal, user: Principal) -> Result<Nat, String> {
     let (balance,) = ic_cdk::call(
-        TOKEN_CANISTER,
+        canister,
         "icrc1_balance_of",
         (Account {
             owner: user,

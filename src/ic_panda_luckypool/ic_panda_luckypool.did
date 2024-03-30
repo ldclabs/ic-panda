@@ -73,5 +73,7 @@ service : () -> {
   manager_update_airdrop_balance : (nat64) -> (Result);
   notifications : () -> (vec Notification) query;
   state : () -> (Result_5) query;
+  validate_admin_collect_icp : (nat) -> (Result);
+  validate_admin_set_managers : (vec principal) -> (Result);
   whoami : () -> (Result_6) query;
 }
