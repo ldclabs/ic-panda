@@ -4,6 +4,7 @@
   import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
+  import IconExchangeDollar from '$lib/components/icons/IconExchangeDollar.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
@@ -78,6 +79,7 @@
   >
     <a
       type="button"
+      title="Follow on Twitter"
       class="bg-slate-950 variant-filled btn"
       href="https://twitter.com/ICPandaDAO"
       target="_blank"
@@ -87,6 +89,7 @@
     </a>
     <a
       type="button"
+      title="Join the Community"
       class="bg-slate-950 variant-filled btn"
       href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
       target="_blank"
@@ -96,12 +99,23 @@
     </a>
     <a
       type="button"
+      title="View Source Code"
       class="bg-slate-950 variant-filled btn"
       href="https://github.com/ldclabs/ic-panda"
       target="_blank"
     >
-      <span><IconGithub /></span>
-      <span class="text-left">More Info</span>
+      <span class="*:scale-125"><IconGithub /></span>
+      <span class="text-left">Source Code</span>
+    </a>
+    <a
+      type="button"
+      title="Exchange Tokens"
+      class="bg-slate-950 variant-filled btn"
+      href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+      target="_blank"
+    >
+      <span><IconExchangeDollar /></span>
+      <span class="text-left">Exchange</span>
     </a>
   </div>
 
@@ -150,6 +164,7 @@
             <p class="text-panda"
               ><a
                 class="underline underline-offset-4"
+                title="ICPanda Token Info"
                 href="https://info.icpswap.com/token/details/druyg-tyaaa-aaaaq-aactq-cai"
                 target="_blank">ICPanda</a
               ></p
@@ -160,7 +175,8 @@
             <p class="text-panda"
               ><a
                 class="underline underline-offset-4"
-                href="https://dashboard.internetcomputer.org/canister/druyg-tyaaa-aaaaq-aactq-cai"
+                title="Buy PANDA Tokens"
+                href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
                 target="_blank">PANDA</a
               >
             </p>
