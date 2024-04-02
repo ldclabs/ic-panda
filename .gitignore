@@ -25,4 +25,4 @@ dist/
 .env
 
 debug
-proposals
+proposal-message.json
