@@ -7,7 +7,7 @@ quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $
     record {
         title = "Add a generic function to \"Commit proposed assets for upgrading the frontend canister\"";
         url = "https://internetcomputer.org/docs/current/developer-docs/daos/sns/managing/sns-asset-canister#sns-genericnervoussystemfunctions";
-        summary = "Adding a new generic function that manage the addition, modification, and deletion of app notifications, and update the balance for airdrop.";
+        summary = "Adding a new generic function that commit proposed assets for upgrading the frontend canister.";
         action = opt variant {
             AddGenericNervousSystemFunction = record {
                 id = 1_000 : nat64;

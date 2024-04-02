@@ -10,7 +10,7 @@ quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $
         summary = "Adding a new generic function that transfer the ICP tokens obtained from the Lucky Draw to the ICPanda DAO treasury.";
         action = opt variant {
             AddGenericNervousSystemFunction = record {
-                id = 1_001 : nat64;
+                id = 1_002 : nat64;
                 name = "Collect ICP into the Treasury";
                 description = opt "Transfer the ICP tokens obtained from the Lucky Draw to the ICPanda DAO treasury.";
                 function_type = opt variant {
