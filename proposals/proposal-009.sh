@@ -3,7 +3,7 @@
 # Load the environment variables
 source "$(pwd)"/proposals/env.sh
 
-export BLOB="$(didc encode --format blob '(record {batch_id=25:nat; evidence=blob "1984404041d497034356b80c14579187a79f11bae76899cd22fe2d7bb815d9f3"})')"
+export BLOB="$(didc encode --format blob '(record {batch_id=25:nat; evidence=blob "\19\84\40\40\41\d4\97\03\43\56\b8\0c\14\57\91\87\a7\9f\11\ba\e7\68\99\cd\22\fe\2d\7b\b8\15\d9\f3"})')"
 
 quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $PROPOSAL_PEM_FILE $PROPOSAL_NEURON_ID --proposal "(
     record {
