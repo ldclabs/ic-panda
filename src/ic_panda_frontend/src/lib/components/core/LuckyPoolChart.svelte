@@ -6,7 +6,7 @@
   } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
   import { shortId } from '$lib/utils/auth'
-  import { ICPToken, PANDAToken, formatNumber } from '$lib/utils/token'
+  import { formatNumber, ICPToken, PANDAToken } from '$lib/utils/token'
   import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -47,15 +47,20 @@
   }
 
   onMount(() => {
+    let interval = true
     ;(async () => {
       luckyPoolAPI = await luckyPoolAPIAsync()
       luckyPoolState = luckyPoolAPI.stateStore
+
+      while (interval) {
+        await new Promise((res) => setTimeout(res, 10000))
+        await luckyPoolAPI?.refreshAllState()
+      }
     })()
 
-    const interval = setInterval(() => {
-      luckyPoolAPI?.refreshAllState()
-    }, 5000)
-    return () => clearInterval(interval)
+    return () => {
+      interval = false
+    }
   })
 
   $: {

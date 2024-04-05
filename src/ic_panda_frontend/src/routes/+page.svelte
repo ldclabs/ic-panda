@@ -18,7 +18,7 @@
   let luckyPoolAPI: LuckyPoolAPI
 
   onMount(async () => {
-    await setTimeout(Promise.resolve, 5000)
+    await new Promise((res) => setTimeout(res, 5000))
 
     luckyPoolAPI = await luckyPoolAPIAsync()
     const notifications = await luckyPoolAPI.notifications()
