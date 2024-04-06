@@ -6,15 +6,12 @@
     type AirdropState,
     type Captcha
   } from '$lib/canisters/luckypool'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -30,7 +27,6 @@
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
 
-  const modalStore = getModalStore()
   const toastStore = getToastStore()
   const luckyLink = 'https://panda.fans/?ref='
 
@@ -69,14 +65,6 @@
     validating = form.checkValidity()
   }
 
-  function onCheckWallet() {
-    parent && parent['onClose']()
-    modalStore.trigger({
-      type: 'component',
-      component: { ref: AccountDetailModal }
-    })
-  }
-
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
     await onRefreshCaptcha()
@@ -90,8 +78,21 @@
         <IconCheckbox />
       </div>
       <p class="mt-4">
-        You have successfully claimed the airdrop reward, please check your
-        wallet.
+        <span>
+          You have successfully claimed <b
+            >{formatNumber(Number(result.claimable / PANDAToken.one))}</b
+          > PANDA tokens.
+        </span>
+      </p>
+      <p class="mt-4">
+        <span>
+          The airdrop will become effective after <b
+            >{formatNumber(
+              Number(result.claimed) - Date.now() / (1000 * 3600),
+              1
+            )}</b
+          > hours.
+        </span>
       </p>
       <h4 class="h4 mt-4">
         <span>Your lucky code:</span>
@@ -105,28 +106,6 @@
         </span>
         <TextClipboardButton textValue={luckyLink + result.lucky_code[0]} />
       </p>
-    </div>
-    <div
-      class="!mt-12 flex flex-row justify-between rounded-lg bg-gray/5 px-4 py-3"
-    >
-      <div class="flex flex-row">
-        <span><IconWallet /></span>
-        <span class="ml-2">Wallet</span>
-      </div>
-      <div class="flex flex-row">
-        <span>
-          {'+ ' + formatNumber(Number(result.claimed / PANDAToken.one))}
-        </span>
-        <span class="ml-2 *:mt-[2px] *:h-5 *:w-5"><IconGoldPanda /></span>
-      </div>
-    </div>
-    <div class="!mt-12">
-      <button
-        class="variant-filled btn btn-lg m-auto block"
-        on:click={onCheckWallet}
-      >
-        Check Wallet
-      </button>
     </div>
   {:else}
     <h6 class="h6">Free PANDA Tokens Airdrop Rules</h6>

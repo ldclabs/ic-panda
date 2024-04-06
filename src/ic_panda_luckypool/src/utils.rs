@@ -99,7 +99,7 @@ mod test {
     #[test]
     fn test_luckycode() {
         for code in [u32::MIN, 9, 0x12345678, 0x87654321, u32::MAX].iter() {
-            let s = luckycode_to_string(*code);
+            let s = luckycode_to_string(*code); // 0, "AAAAAA"
             let c = luckycode_from_string(&s).unwrap();
             assert_eq!(code, &c);
         }

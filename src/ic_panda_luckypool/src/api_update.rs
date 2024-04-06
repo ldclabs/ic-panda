@@ -76,19 +76,15 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     let referrer = args
         .lucky_code
         .and_then(|s| store::luckycode::get_by_string(&s));
-    let claimed = if referrer.is_some() {
+    let claimable = if referrer.is_some() {
         (AIRDROP_AMOUNT + AIRDROP_AMOUNT / 2) * TOKEN_1
     } else {
         AIRDROP_AMOUNT * TOKEN_1
     };
 
-    // don't need to check balance, because the token canister will reject the transfer if the balance is insufficient
-    let _block_idx = token_transfer_to(caller, Nat::from(claimed)).await?;
     let caller_code = store::luckycode::new_from(caller, args.challenge.as_bytes());
-    let log = store::airdrop::insert(caller, referrer, now_sec, claimed, caller_code)?;
+    let log = store::airdrop::insert(caller, referrer, now_sec, claimable, caller_code)?;
     store::state::with_mut(|r| {
-        r.airdrop_balance = r.airdrop_balance.saturating_sub(claimed + TRANS_FEE);
-        r.total_airdrop = r.total_airdrop.saturating_add(claimed + TRANS_FEE);
         r.total_airdrop_count += 1;
         r.latest_airdrop_logs.insert(0, log);
         if r.latest_airdrop_logs.len() > 10 {
@@ -98,8 +94,10 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 
     Ok(types::AirdropStateOutput {
         lucky_code: Some(utils::luckycode_to_string(caller_code)),
-        claimed: Nat::from(claimed),
-        claimable: Nat::from(0u32),
+        // effective_hours is smaller than TOKEN_1 100_000_000
+        // total claimed is larger than TOKEN_1 100_000_000
+        claimed: Nat::from(now_sec / 3600 + 24 + caller_code as u64 % 48),
+        claimable: Nat::from(claimable),
     })
 }
 
@@ -117,8 +115,19 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
 
     match store::airdrop::state_of(&caller) {
         None => Err("no claimable tokens to harvest".to_string()),
-        Some(store::AirdropState(_, _, claimable)) => {
+        Some(store::AirdropState(code, total_claimed, claimable)) => {
+            if code == 0 {
+                return Err("user is banned".to_string());
+            }
+
+            if total_claimed < TOKEN_1 && total_claimed > now_sec / 3600 {
+                return Err("airdrop is not effective".to_string());
+            }
+
             let amount = nat_to_u64(&args.amount);
+            if amount < TOKEN_1 {
+                return Err("amount must be at least 1 token".to_string());
+            }
             if amount > claimable {
                 return Err("insufficient claimable tokens to harvest".to_string());
             }

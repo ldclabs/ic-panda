@@ -76,3 +76,11 @@ fn manager_remove_notifications(ids: Vec<u8>) -> Result<(), String> {
     store::notification::remove(ids);
     Ok(())
 }
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_ban_users(ids: Vec<Principal>) -> Result<(), String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    store::airdrop::ban_users(ids)
+}
