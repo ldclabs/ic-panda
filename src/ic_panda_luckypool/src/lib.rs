@@ -38,7 +38,8 @@ fn nat_to_u64(nat: &Nat) -> u64 {
 }
 
 fn is_controller() -> Result<(), String> {
-    if ic_cdk::api::is_controller(&ic_cdk::caller()) {
+    let caller = ic_cdk::caller();
+    if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
         Err("user is not a controller".to_string())
