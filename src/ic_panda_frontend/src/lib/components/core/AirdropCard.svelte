@@ -11,6 +11,7 @@
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { signIn } from '$lib/services/auth'
+  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
@@ -46,6 +47,8 @@
     if (claimableAmount > 0n) {
       submitting = true
       try {
+        const token = await executeReCaptcha('luckyPoolHarvest')
+        console.log('executeReCaptcha', token)
         const { claimed } = await luckyPoolAPI.harvest({
           amount: claimableAmount
         })
