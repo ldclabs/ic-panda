@@ -1,13 +1,13 @@
 use crate::{
-    icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_to, types, utils, AIRDROP_AMOUNT, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER,
-    TRANS_FEE,
+    icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, recaptcha, store,
+    token_balance_of, token_transfer_to, types, utils, AIRDROP_AMOUNT, ICP_1, SECOND, TOKEN_1,
+    TOKEN_CANISTER, TRANS_FEE,
 };
 use candid::Nat;
 use ic_captcha::CaptchaBuilder;
 use once_cell::sync::Lazy;
 
-const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
+// const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
 const LOWEST_LUCKYDRAW_BALANCE: u64 = 500;
 
@@ -43,14 +43,18 @@ async fn captcha() -> Result<types::CaptchaOutput, String> {
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOutput, String> {
     let now_sec = ic_cdk::api::time() / SECOND;
-    let expire_at = now_sec - CAPTCHA_EXPIRE_SEC;
-    let challenge = types::ChallengeCode {
-        code: args.code.to_lowercase(),
-    };
+    // let expire_at = now_sec - CAPTCHA_EXPIRE_SEC;
+    // let challenge = types::ChallengeCode {
+    //     code: args.code.to_lowercase(),
+    // };
+    let token = args.recaptcha.unwrap_or_default();
+    if token.is_empty() {
+        return Err("invalid recaptcha token".to_string());
+    }
 
-    store::captcha::with_secret(|secret| {
-        challenge.verify_from_base64(secret, expire_at, &args.challenge)
-    })?;
+    // store::captcha::with_secret(|secret| {
+    //     challenge.verify_from_base64(secret, expire_at, &args.challenge)
+    // })?;
 
     let caller = ic_cdk::caller();
     if let Some(store::AirdropState(code, claimed, claimable)) = store::airdrop::state_of(&caller) {
@@ -73,22 +77,23 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         store::user::deactive(caller);
     });
 
+    let res = recaptcha::verify(&token, "LuckyPoolAirdrop").await?;
+    if !res.is_valid(0.5) {
+        return Err(format!("recaptcha score is too low, {:?}", res));
+    }
+
     let referrer = args
         .lucky_code
         .and_then(|s| store::luckycode::get_by_string(&s));
-    let claimed = if referrer.is_some() {
+    let claimable = if referrer.is_some() {
         (AIRDROP_AMOUNT + AIRDROP_AMOUNT / 2) * TOKEN_1
     } else {
         AIRDROP_AMOUNT * TOKEN_1
     };
 
-    // don't need to check balance, because the token canister will reject the transfer if the balance is insufficient
-    let _block_idx = token_transfer_to(caller, Nat::from(claimed)).await?;
     let caller_code = store::luckycode::new_from(caller, args.challenge.as_bytes());
-    let log = store::airdrop::insert(caller, referrer, now_sec, claimed, caller_code)?;
+    let log = store::airdrop::insert(caller, referrer, now_sec, claimable, caller_code)?;
     store::state::with_mut(|r| {
-        r.airdrop_balance = r.airdrop_balance.saturating_sub(claimed + TRANS_FEE);
-        r.total_airdrop = r.total_airdrop.saturating_add(claimed + TRANS_FEE);
         r.total_airdrop_count += 1;
         r.latest_airdrop_logs.insert(0, log);
         if r.latest_airdrop_logs.len() > 10 {
@@ -98,13 +103,20 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 
     Ok(types::AirdropStateOutput {
         lucky_code: Some(utils::luckycode_to_string(caller_code)),
-        claimed: Nat::from(claimed),
-        claimable: Nat::from(0u32),
+        // effective_hours is smaller than TOKEN_1 100_000_000
+        // total claimed is larger than TOKEN_1 100_000_000
+        claimed: Nat::from(now_sec / 3600 + 24 + caller_code as u64 % 48),
+        claimable: Nat::from(claimable),
     })
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropStateOutput, String> {
+    let token = args.recaptcha.unwrap_or_default();
+    if token.is_empty() {
+        return Err("invalid recaptcha token".to_string());
+    }
+
     let caller = ic_cdk::caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
@@ -117,10 +129,26 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
 
     match store::airdrop::state_of(&caller) {
         None => Err("no claimable tokens to harvest".to_string()),
-        Some(store::AirdropState(_, _, claimable)) => {
+        Some(store::AirdropState(code, total_claimed, claimable)) => {
+            if code == 0 {
+                return Err("user is banned".to_string());
+            }
+
+            if total_claimed < TOKEN_1 && total_claimed > now_sec / 3600 {
+                return Err("airdrop is not effective".to_string());
+            }
+
             let amount = nat_to_u64(&args.amount);
+            if amount < TOKEN_1 {
+                return Err("amount must be at least 1 token".to_string());
+            }
             if amount > claimable {
                 return Err("insufficient claimable tokens to harvest".to_string());
+            }
+
+            let res = recaptcha::verify(&token, "LuckyPoolHarvest").await?;
+            if !res.is_valid(0.5) {
+                return Err(format!("recaptcha score is too low, {:?}", res));
             }
 
             let _block_idx = token_transfer_to(caller, args.amount).await?;

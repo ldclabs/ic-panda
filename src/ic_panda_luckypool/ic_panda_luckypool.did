@@ -1,9 +1,10 @@
 type AirdropClaimInput = record {
+  recaptcha : opt text;
   challenge : text;
   code : text;
   lucky_code : opt text;
 };
-type AirdropHarvestInput = record { amount : nat };
+type AirdropHarvestInput = record { recaptcha : opt text; amount : nat };
 type AirdropLog = record {
   id : nat;
   ts : nat64;
@@ -69,7 +70,8 @@ service : () -> {
   luckydraw : (LuckyDrawInput) -> (Result_4);
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   manager_add_notification : (Notification) -> (Result);
-  manager_remove_notifications : (vec nat8) -> (Result);
+  manager_ban_users : (vec principal) -> (Result);
+  manager_remove_notifications : (blob) -> (Result);
   manager_update_airdrop_balance : (nat64) -> (Result);
   notifications : () -> (vec Notification) query;
   state : () -> (Result_5) query;

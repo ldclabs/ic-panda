@@ -1,8 +1,4 @@
 use candid::{Nat, Principal};
-use num_traits::cast::ToPrimitive;
-use std::collections::BTreeSet;
-use std::convert::Into;
-
 use icrc_ledger_types::{
     icrc1::{
         account::Account,
@@ -10,11 +6,15 @@ use icrc_ledger_types::{
     },
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
+use num_traits::cast::ToPrimitive;
+use std::collections::BTreeSet;
+use std::convert::Into;
 
 mod api_admin;
 mod api_init;
 mod api_query;
 mod api_update;
+mod recaptcha;
 mod store;
 mod types;
 mod utils;
@@ -38,7 +38,8 @@ fn nat_to_u64(nat: &Nat) -> u64 {
 }
 
 fn is_controller() -> Result<(), String> {
-    if ic_cdk::api::is_controller(&ic_cdk::caller()) {
+    let caller = ic_cdk::caller();
+    if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
         Err("user is not a controller".to_string())

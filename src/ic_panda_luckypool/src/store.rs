@@ -46,6 +46,7 @@ impl Storable for State {
 }
 
 // AirdropState format: (lucky code, total claimed tokens, claimable tokens)
+// If total claimed tokens is smaller than TOKEN_1, it is effective timestamp in hours since the UNIX epoch.
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct AirdropState(pub u32, pub u64, pub u64);
 
@@ -251,7 +252,9 @@ pub mod airdrop {
     ) -> Result<types::AirdropLog, String> {
         let referrer_code = AIRDROP.with(|r| {
             let mut m = r.borrow_mut();
-            m.insert(user, AirdropState(caller_code, amount, 0u64));
+            // effective_hours should be smaller than TOKEN_1 100_000_000
+            let effective_hours = now_sec / 3600 + 24 + caller_code as u64 % 48;
+            m.insert(user, AirdropState(caller_code, effective_hours, amount));
 
             match referrer {
                 None => 0,
@@ -272,7 +275,7 @@ pub mod airdrop {
             }
         });
 
-        let log = AirdropLog(user, now_sec, amount, referrer_code);
+        let log = AirdropLog(user, now_sec, 0, referrer_code);
         let idx = AIRDROP_LOGS
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
@@ -292,7 +295,11 @@ pub mod airdrop {
                 Some(state) => {
                     let state = AirdropState(
                         state.0,
-                        state.1.saturating_add(amount),
+                        if state.1 >= TOKEN_1 {
+                            state.1.saturating_add(amount)
+                        } else {
+                            amount
+                        },
                         state.2.saturating_sub(amount),
                     );
                     m.insert(user, state.clone());
@@ -306,6 +313,18 @@ pub mod airdrop {
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
         Ok((state, types::AirdropLog::from((idx, log))))
+    }
+
+    pub fn ban_users(users: Vec<Principal>) -> Result<(), String> {
+        AIRDROP.with(|r| {
+            let mut m = r.borrow_mut();
+            for user in users {
+                if let Some(state) = m.get(&user) {
+                    m.insert(user, AirdropState(0, state.1, state.2));
+                }
+            }
+        });
+        Ok(())
     }
 
     // get airdrop logs in reverse order, return the next index to fetch.

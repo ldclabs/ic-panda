@@ -3,18 +3,15 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type AirdropState,
-    type Captcha
+    type AirdropState
   } from '$lib/canisters/luckypool'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
-  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
+  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -23,33 +20,22 @@
 
   let submitting = false
   let validating = false
-  let refreshCaptcha = false
   let luckyPoolAPI: LuckyPoolAPI
-  let captcha: Captcha
-  let captchaCode = ''
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
 
-  const modalStore = getModalStore()
   const toastStore = getToastStore()
   const luckyLink = 'https://panda.fans/?ref='
-
-  async function onRefreshCaptcha() {
-    if (luckyPoolAPI) {
-      refreshCaptcha = true
-      captcha = await luckyPoolAPI.captcha()
-      captchaCode = ''
-      refreshCaptcha = false
-    }
-  }
 
   async function onFormSubmit() {
     submitting = true
     try {
+      const recaptcha = await executeReCaptcha('LuckyPoolAirdrop')
       result = await luckyPoolAPI.airdrop({
-        challenge: captcha.challenge,
-        code: captchaCode,
-        lucky_code: luckyCode != '' ? [luckyCode] : []
+        challenge: '',
+        code: '',
+        lucky_code: luckyCode != '' ? [luckyCode] : [],
+        recaptcha: [recaptcha]
       })
     } catch (err: any) {
       submitting = false
@@ -69,17 +55,8 @@
     validating = form.checkValidity()
   }
 
-  function onCheckWallet() {
-    parent && parent['onClose']()
-    modalStore.trigger({
-      type: 'component',
-      component: { ref: AccountDetailModal }
-    })
-  }
-
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    await onRefreshCaptcha()
   })
 </script>
 
@@ -90,8 +67,21 @@
         <IconCheckbox />
       </div>
       <p class="mt-4">
-        You have successfully claimed the airdrop reward, please check your
-        wallet.
+        <span>
+          You have successfully claimed <b
+            >{formatNumber(Number(result.claimable / PANDAToken.one))}</b
+          > PANDA tokens.
+        </span>
+      </p>
+      <p class="mt-4">
+        <span>
+          You can harvest tokens after <b
+            >{formatNumber(
+              Number(result.claimed) - Date.now() / (1000 * 3600),
+              1
+            )}</b
+          > hours.
+        </span>
       </p>
       <h4 class="h4 mt-4">
         <span>Your lucky code:</span>
@@ -105,28 +95,6 @@
         </span>
         <TextClipboardButton textValue={luckyLink + result.lucky_code[0]} />
       </p>
-    </div>
-    <div
-      class="!mt-12 flex flex-row justify-between rounded-lg bg-gray/5 px-4 py-3"
-    >
-      <div class="flex flex-row">
-        <span><IconWallet /></span>
-        <span class="ml-2">Wallet</span>
-      </div>
-      <div class="flex flex-row">
-        <span>
-          {'+ ' + formatNumber(Number(result.claimed / PANDAToken.one))}
-        </span>
-        <span class="ml-2 *:mt-[2px] *:h-5 *:w-5"><IconGoldPanda /></span>
-      </div>
-    </div>
-    <div class="!mt-12">
-      <button
-        class="variant-filled btn btn-lg m-auto block"
-        on:click={onCheckWallet}
-      >
-        Check Wallet
-      </button>
     </div>
   {:else}
     <h6 class="h6">Free PANDA Tokens Airdrop Rules</h6>
@@ -154,39 +122,7 @@
       </li>
     </ol>
     <hr class="!border-t-1 !border-gray/10" />
-    <div class="relative">
-      {#if captcha}
-        <img class="m-auto w-60" src={captcha.img_base64} alt="Captcha" />
-        <button
-          class="btn btn-icon absolute right-3 top-3 hover:*:scale-110 max-md:right-0 {refreshCaptcha
-            ? 'animate-spin'
-            : ''}"
-          on:click={onRefreshCaptcha}
-          disabled={refreshCaptcha}
-        >
-          <IconRefresh />
-        </button>
-      {:else}
-        <div class="placeholder m-auto h-16 w-60 animate-pulse rounded-none" />
-      {/if}
-    </div>
     <form class="flex flex-col gap-4" on:change={onFormChange}>
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
-      >
-        <div class="input-group-shim bg-gray/5">Captcha Code</div>
-        <input
-          class="input rounded-none invalid:input-warning hover:bg-white/90"
-          type="text"
-          name="captchaCode"
-          minlength="4"
-          maxlength="4"
-          bind:value={captchaCode}
-          placeholder="Enter code"
-          disabled={!captcha || submitting}
-          required
-        />
-      </div>
       <div
         class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"
       >
@@ -205,11 +141,16 @@
     </form>
     <footer class="">
       <button
-        class="variant-filled-primary btn w-full text-white"
+        class="variant-filled-primary btn flex w-full flex-row items-center gap-2 text-white"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >
-        Claim
+        {#if submitting}
+          <span class=""><IconCircleSpin /></span>
+          <span>Processing...</span>
+        {:else}
+          <span>Claim</span>
+        {/if}
       </button>
     </footer>
   {/if}

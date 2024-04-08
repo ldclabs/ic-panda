@@ -11,9 +11,10 @@
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { signIn } from '$lib/services/auth'
+  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, popup } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import AirdropModal from './AirdropModal.svelte'
@@ -27,6 +28,7 @@
   let luckyCode = ''
 
   const modalStore = getModalStore()
+  const toastStore = getToastStore()
 
   function claimNowHandler() {
     if (principal.isAnonymous()) {
@@ -44,15 +46,28 @@
   async function harvestHandler() {
     if (claimableAmount > 0n) {
       submitting = true
-      const { claimed } = await luckyPoolAPI.harvest({
-        amount: claimableAmount
-      })
-      submitting = false
-      harvested = claimed - claimedAmount
-      setTimeout(() => {
-        harvested = 0n
-      }, 5000)
-      await luckyPoolAPI.refreshAllState()
+      try {
+        const recaptcha = await executeReCaptcha('LuckyPoolHarvest')
+        const { claimed } = await luckyPoolAPI.harvest({
+          amount: claimableAmount,
+          recaptcha: [recaptcha]
+        })
+        submitting = false
+        harvested = claimed - claimedAmount
+        setTimeout(() => {
+          harvested = 0n
+        }, 5000)
+        await luckyPoolAPI.refreshAllState()
+      } catch (err: any) {
+        submitting = false
+        const message = err?.message || String(err)
+        toastStore.trigger({
+          autohide: false,
+          hideDismiss: false,
+          background: 'variant-filled-error',
+          message
+        })
+      }
     }
   }
 
@@ -124,7 +139,8 @@
     </div>
   </section>
   <footer class="m-auto mb-6">
-    {#if claimedAmount == 0n}
+    {#if luckyCode == ''}
+      <!-- Anonymous -->
       <p class="flex flex-row justify-center gap-1 text-gold">
         <span>You can get</span>
         <span>
@@ -140,13 +156,38 @@
       >
         Claim Now
       </button>
-    {:else}
+    {:else if luckyCode == 'AAAAAA'}
+      <!-- banned user -->
       <p class="flex flex-row gap-1">
-        <span>You have claimed</span>
-        <span>
-          {formatNumber(Number(claimedAmount / PANDAToken.one))}
-        </span>
-        <span>tokens</span>
+        <span>Sorry, you cannot claim the airdrop.</span>
+      </p>
+      <button
+        disabled={true}
+        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+      >
+        Claim Now
+      </button>
+    {:else}
+      {@const notEffective =
+        claimedAmount < PANDAToken.one &&
+        claimedAmount > Date.now() / (1000 * 3600)}
+      <p class="flex flex-row gap-1">
+        {#if notEffective}
+          <span>
+            You can harvest tokens after <b
+              >{formatNumber(
+                Number(claimedAmount) - Date.now() / (1000 * 3600),
+                1
+              )}</b
+            > hours.
+          </span>
+        {:else}
+          <span>You have claimed</span>
+          <span>
+            {formatNumber(Number(claimedAmount / PANDAToken.one))}
+          </span>
+          <span>tokens</span>
+        {/if}
       </p>
       <p>
         <span>Lucky Code:</span>
@@ -164,6 +205,7 @@
       </p>
       <button
         disabled={submitting ||
+          notEffective ||
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
