@@ -47,7 +47,7 @@
     submitting = true
     try {
       const recaptcha = await executeReCaptcha(
-        'LuckyPoolAirdrop:' + $authStore.identity.getPrincipal().toString()
+        `Airdrop/${$authStore.identity.getPrincipal().toString().replaceAll('-', '_')}/${captchaCode}`
       )
       result = await luckyPoolAPI.airdrop({
         challenge: captcha.challenge,
@@ -172,8 +172,8 @@
           class="input rounded-none invalid:input-warning hover:bg-white/90"
           type="text"
           name="captchaCode"
-          minlength="4"
-          maxlength="4"
+          minlength="6"
+          maxlength="6"
           bind:value={captchaCode}
           placeholder="Enter code"
           disabled={!captcha || submitting}

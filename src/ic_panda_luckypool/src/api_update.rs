@@ -7,12 +7,12 @@ use candid::Nat;
 use ic_captcha::CaptchaBuilder;
 use once_cell::sync::Lazy;
 
-const CAPTCHA_EXPIRE_SEC: u64 = 60 * 5;
+const CAPTCHA_EXPIRE_SEC: u64 = 60;
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
 const LOWEST_LUCKYDRAW_BALANCE: u64 = 500;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> =
-    Lazy::new(|| CaptchaBuilder::new().length(6).complexity(8));
+    Lazy::new(|| CaptchaBuilder::new().length(6).width(160).complexity(8));
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn captcha() -> Result<types::CaptchaOutput, String> {
@@ -80,7 +80,12 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 
     let res = recaptcha::verify(
         &token,
-        format!("LuckyPoolAirdrop:{}", caller.to_string()).as_str(),
+        format!(
+            "Airdrop/{}/{}",
+            caller.to_string().replace("-", "_"),
+            args.code
+        )
+        .as_str(),
     )
     .await?;
     if !res.is_valid(0.8) {
@@ -307,5 +312,13 @@ mod test {
         let rt = luckydraw_amount(vec![0, 0, 0, 80, 65, 184, 151, 0].as_slice());
         assert_eq!(rt.0, TOKEN_1 * 3447u64 - LUCKYDRAW_DIVISOR);
         assert_eq!(rt.1, 100000 * TOKEN_1);
+    }
+
+    #[test]
+    fn test_replace_principal() {
+        assert_eq!(
+            "a7cug-2qaaa-aaaap-ab3la-cai".replace("-", "_"),
+            "a7cug_2qaaa_aaaap_ab3la_cai"
+        );
     }
 }
