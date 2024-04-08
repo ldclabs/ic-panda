@@ -52,7 +52,14 @@ async fn airdrop_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::Airdro
 async fn luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::LuckyDrawLog> {
     let prev = prev.as_ref().map(nat_to_u64);
     let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
-    store::luckydraw::logs(prev, take)
+    store::luckydraw::logs(prev, take, None)
+}
+
+#[ic_cdk::query]
+async fn my_luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::LuckyDrawLog> {
+    let prev = prev.as_ref().map(nat_to_u64);
+    let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
+    store::luckydraw::logs(prev, take, Some(ic_cdk::caller()))
 }
 
 #[ic_cdk::query]

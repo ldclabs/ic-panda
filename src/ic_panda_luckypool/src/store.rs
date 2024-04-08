@@ -391,7 +391,11 @@ pub mod luckydraw {
     }
 
     // get luckydraw logs in reverse order, return the next index to fetch.
-    pub fn logs(prev: Option<u64>, take: usize) -> Vec<types::LuckyDrawLog> {
+    pub fn logs(
+        prev: Option<u64>,
+        take: usize,
+        user: Option<Principal>,
+    ) -> Vec<types::LuckyDrawLog> {
         LUCKYDRAW_LOGS.with(|r| {
             let log_store = r.borrow();
             let latest = log_store.len();
@@ -407,7 +411,16 @@ pub mod luckydraw {
             let mut idx = prev - 1;
             let mut logs: Vec<types::LuckyDrawLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
-                logs.push(types::LuckyDrawLog::from((idx, log)));
+                match user {
+                    Some(ref id) => {
+                        if &log.0 == id {
+                            logs.push(types::LuckyDrawLog::from((idx, log)));
+                        }
+                    }
+                    None => {
+                        logs.push(types::LuckyDrawLog::from((idx, log)));
+                    }
+                }
 
                 if idx == 0 || logs.len() >= take {
                     break;
