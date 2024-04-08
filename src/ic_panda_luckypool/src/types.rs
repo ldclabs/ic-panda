@@ -15,12 +15,14 @@ pub struct AirdropClaimInput {
     pub code: String,
     pub challenge: String,
     pub lucky_code: Option<String>,
+    pub recaptcha: Option<String>,
 }
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct AirdropHarvestInput {
     // Token amount in E8
     pub amount: Nat,
+    pub recaptcha: Option<String>,
 }
 
 #[derive(CandidType, Clone, Serialize)]

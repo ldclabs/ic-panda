@@ -1,8 +1,4 @@
 use candid::{Nat, Principal};
-use num_traits::cast::ToPrimitive;
-use std::collections::BTreeSet;
-use std::convert::Into;
-
 use icrc_ledger_types::{
     icrc1::{
         account::Account,
@@ -10,11 +6,15 @@ use icrc_ledger_types::{
     },
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
+use num_traits::cast::ToPrimitive;
+use std::collections::BTreeSet;
+use std::convert::Into;
 
 mod api_admin;
 mod api_init;
 mod api_query;
 mod api_update;
+mod recaptcha;
 mod store;
 mod types;
 mod utils;

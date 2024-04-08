@@ -47,10 +47,10 @@
     if (claimableAmount > 0n) {
       submitting = true
       try {
-        const token = await executeReCaptcha('luckyPoolHarvest')
-        console.log('executeReCaptcha', token)
+        const recaptcha = await executeReCaptcha('LuckyPoolHarvest')
         const { claimed } = await luckyPoolAPI.harvest({
-          amount: claimableAmount
+          amount: claimableAmount,
+          recaptcha: [recaptcha]
         })
         submitting = false
         harvested = claimed - claimedAmount
@@ -174,7 +174,7 @@
       <p class="flex flex-row gap-1">
         {#if notEffective}
           <span>
-            The airdrop will become effective after <b
+            You can harvest tokens after <b
               >{formatNumber(
                 Number(claimedAmount) - Date.now() / (1000 * 3600),
                 1

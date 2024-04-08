@@ -3,13 +3,12 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type AirdropState,
-    type Captcha
+    type AirdropState
   } from '$lib/canisters/luckypool'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -20,32 +19,22 @@
 
   let submitting = false
   let validating = false
-  let refreshCaptcha = false
   let luckyPoolAPI: LuckyPoolAPI
-  let captcha: Captcha
-  let captchaCode = ''
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
 
   const toastStore = getToastStore()
   const luckyLink = 'https://panda.fans/?ref='
 
-  async function onRefreshCaptcha() {
-    if (luckyPoolAPI) {
-      refreshCaptcha = true
-      captcha = await luckyPoolAPI.captcha()
-      captchaCode = ''
-      refreshCaptcha = false
-    }
-  }
-
   async function onFormSubmit() {
     submitting = true
     try {
+      const recaptcha = await executeReCaptcha('LuckyPoolAirdrop')
       result = await luckyPoolAPI.airdrop({
-        challenge: captcha.challenge,
-        code: captchaCode,
-        lucky_code: luckyCode != '' ? [luckyCode] : []
+        challenge: '',
+        code: '',
+        lucky_code: luckyCode != '' ? [luckyCode] : [],
+        recaptcha: [recaptcha]
       })
     } catch (err: any) {
       submitting = false
@@ -67,7 +56,6 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    await onRefreshCaptcha()
   })
 </script>
 
@@ -86,7 +74,7 @@
       </p>
       <p class="mt-4">
         <span>
-          The airdrop will become effective after <b
+          You can harvest tokens after <b
             >{formatNumber(
               Number(result.claimed) - Date.now() / (1000 * 3600),
               1
@@ -133,39 +121,7 @@
       </li>
     </ol>
     <hr class="!border-t-1 !border-gray/10" />
-    <div class="relative">
-      {#if captcha}
-        <img class="m-auto w-60" src={captcha.img_base64} alt="Captcha" />
-        <button
-          class="btn btn-icon absolute right-3 top-3 hover:*:scale-110 max-md:right-0 {refreshCaptcha
-            ? 'animate-spin'
-            : ''}"
-          on:click={onRefreshCaptcha}
-          disabled={refreshCaptcha}
-        >
-          <IconRefresh />
-        </button>
-      {:else}
-        <div class="placeholder m-auto h-16 w-60 animate-pulse rounded-none" />
-      {/if}
-    </div>
     <form class="flex flex-col gap-4" on:change={onFormChange}>
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
-      >
-        <div class="input-group-shim bg-gray/5">Captcha Code</div>
-        <input
-          class="input rounded-none invalid:input-warning hover:bg-white/90"
-          type="text"
-          name="captchaCode"
-          minlength="4"
-          maxlength="4"
-          bind:value={captchaCode}
-          placeholder="Enter code"
-          disabled={!captcha || submitting}
-          required
-        />
-      </div>
       <div
         class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"
       >
