@@ -136,6 +136,8 @@ const LUCKYDRAW_LOG_INDEX_MEMORY_ID: MemoryId = MemoryId::new(5);
 const LUCKYDRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(6);
 
 thread_local! {
+    static ACCESS_TOKEN: RefCell<(String, String)> = const { RefCell::new((String::new(), String::new())) };
+
     static CAPTCHA_SECRET: RefCell<[u8; 32]> = const { RefCell::new([0; 32]) };
 
     static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
@@ -181,6 +183,18 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(LUCKYDRAW_LOG_DATA_MEMORY_ID)),
         ).expect("failed to init LUCKY_DRAW_LOGS store")
     );
+}
+
+pub mod access_token {
+    use super::*;
+
+    pub fn with_token<R>(f: impl FnOnce(&(String, String)) -> R) -> R {
+        ACCESS_TOKEN.with(|r| f(&r.borrow()))
+    }
+
+    pub fn set_token(token: String, pub_key: String) {
+        ACCESS_TOKEN.with(|r| *r.borrow_mut() = (token, pub_key));
+    }
 }
 
 pub mod captcha {

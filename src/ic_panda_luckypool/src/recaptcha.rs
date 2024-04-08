@@ -7,7 +7,7 @@ use ic_cdk::api::management_canister::http_request::{
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
 
-use crate::utils;
+use crate::{store, utils};
 
 const GOOGLE_RECAPTCHA_ID: &str = "6LduPbIpAAAAANSOUfb-8bU45eilZFSmlSguN5TO";
 
@@ -56,6 +56,7 @@ impl VerifyResponse {
 
 pub async fn verify(token: &str, action: &str) -> Result<VerifyResponse, String> {
     let url = "https://grecaptcha.panda.fans/URL_GRE";
+    let access_token = store::access_token::with_token(|t| format!("Bearer {}", t.0));
 
     let request_headers = vec![
         HttpHeader {
@@ -77,6 +78,10 @@ pub async fn verify(token: &str, action: &str) -> Result<VerifyResponse, String>
         HttpHeader {
             name: "x-json-mask".to_string(),
             value: "riskAnalysis,tokenProperties".to_string(),
+        },
+        HttpHeader {
+            name: "authorization".to_string(),
+            value: access_token,
         },
     ];
 

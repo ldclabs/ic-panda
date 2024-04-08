@@ -45,7 +45,8 @@ type Result_2 = variant { Ok : AirdropStateOutput; Err };
 type Result_3 = variant { Ok : CaptchaOutput; Err : text };
 type Result_4 = variant { Ok : LuckyDrawOutput; Err : text };
 type Result_5 = variant { Ok : State; Err };
-type Result_6 = variant { Ok : principal; Err };
+type Result_6 = variant { Ok : text; Err };
+type Result_7 = variant { Ok : principal; Err };
 type State = record {
   latest_luckydraw_logs : vec LuckyDrawLog;
   total_luckydraw : nat64;
@@ -75,7 +76,8 @@ service : () -> {
   manager_update_airdrop_balance : (nat64) -> (Result);
   notifications : () -> (vec Notification) query;
   state : () -> (Result_5) query;
+  token_public_key : () -> (Result_6) query;
   validate_admin_collect_icp : (nat) -> (Result);
   validate_admin_set_managers : (vec principal) -> (Result);
-  whoami : () -> (Result_6) query;
+  whoami : () -> (Result_7) query;
 }

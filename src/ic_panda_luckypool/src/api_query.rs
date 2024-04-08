@@ -59,3 +59,8 @@ async fn luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::Luck
 async fn notifications() -> Vec<types::Notification> {
     store::notification::list()
 }
+
+#[ic_cdk::query]
+async fn token_public_key() -> Result<String, ()> {
+    store::access_token::with_token(|t| Ok(t.1.to_string()))
+}
