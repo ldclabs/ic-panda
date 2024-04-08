@@ -82,7 +82,10 @@
     } catch (err: any) {
       submitting = false
       stepN = 0
-      const message = err?.message || String(err)
+      let message = err?.message || String(err)
+      if (err?.data) {
+        message += '\n' + JSON.stringify(err.data)
+      }
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
@@ -259,7 +262,7 @@
     </div>
     <form
       class="flex flex-col gap-4"
-      on:change={onFormChange}
+      on:input={onFormChange}
       use:focusTrap={true}
     >
       <div

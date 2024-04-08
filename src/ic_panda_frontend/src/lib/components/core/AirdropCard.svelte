@@ -11,7 +11,6 @@
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { signIn } from '$lib/services/auth'
-  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
@@ -47,10 +46,9 @@
     if (claimableAmount > 0n) {
       submitting = true
       try {
-        const recaptcha = await executeReCaptcha('LuckyPoolHarvest')
         const { claimed } = await luckyPoolAPI.harvest({
           amount: claimableAmount,
-          recaptcha: [recaptcha]
+          recaptcha: []
         })
         submitting = false
         harvested = claimed - claimedAmount
@@ -60,7 +58,10 @@
         await luckyPoolAPI.refreshAllState()
       } catch (err: any) {
         submitting = false
-        const message = err?.message || String(err)
+        let message = err?.message || String(err)
+        if (err?.data) {
+          message += '\n' + JSON.stringify(err.data)
+        }
         toastStore.trigger({
           autohide: false,
           hideDismiss: false,

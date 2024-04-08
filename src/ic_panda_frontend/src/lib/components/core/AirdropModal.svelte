@@ -3,13 +3,16 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type AirdropState
+    type AirdropState,
+    type Captcha
   } from '$lib/canisters/luckypool'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { executeReCaptcha } from '$lib/services/recaptcha'
+  import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -20,26 +23,44 @@
 
   let submitting = false
   let validating = false
+  let refreshCaptcha = false
+  let captcha: Captcha
+  let captchaCode = ''
   let luckyPoolAPI: LuckyPoolAPI
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
+  let defaultClaimable = 10
 
   const toastStore = getToastStore()
   const luckyLink = 'https://panda.fans/?ref='
 
+  async function onRefreshCaptcha() {
+    if (luckyPoolAPI) {
+      refreshCaptcha = true
+      captcha = await luckyPoolAPI.captcha()
+      captchaCode = ''
+      refreshCaptcha = false
+    }
+  }
+
   async function onFormSubmit() {
     submitting = true
     try {
-      const recaptcha = await executeReCaptcha('LuckyPoolAirdrop')
+      const recaptcha = await executeReCaptcha(
+        'LuckyPoolAirdrop:' + $authStore.identity.getPrincipal().toString()
+      )
       result = await luckyPoolAPI.airdrop({
-        challenge: '',
-        code: '',
+        challenge: captcha.challenge,
+        code: captchaCode,
         lucky_code: luckyCode != '' ? [luckyCode] : [],
         recaptcha: [recaptcha]
       })
     } catch (err: any) {
       submitting = false
-      const message = err?.message || String(err)
+      let message = err?.message || String(err)
+      if (err?.data) {
+        message += '\n' + JSON.stringify(err.data)
+      }
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
@@ -57,6 +78,9 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
+    const defaultAirdrop = await luckyPoolAPI.defaultAirdropState()
+    defaultClaimable = Number(defaultAirdrop.claimable / PANDAToken.one)
+    await onRefreshCaptcha()
   })
 </script>
 
@@ -102,8 +126,8 @@
       <li>
         <span class="variant-soft-primary badge-icon p-4">1</span>
         <span class="flex-auto">
-          Each new user can claim 100 tokens, or 150 tokens with a valid lucky
-          code.
+          Each new user can claim {defaultClaimable} tokens, or {defaultClaimable +
+            defaultClaimable / 2} tokens with a valid lucky code.
         </span>
       </li>
       <li>
@@ -117,12 +141,45 @@
         <span class="variant-soft-primary badge-icon p-4">3</span>
         <span class="flex-auto">
           When a new user claims the airdrop using your lucky code, you'll also
-          receive an additional 50 tokens.
+          receive an additional {defaultClaimable / 2} tokens.
         </span>
       </li>
     </ol>
     <hr class="!border-t-1 !border-gray/10" />
-    <form class="flex flex-col gap-4" on:change={onFormChange}>
+    <div class="relative">
+      {#if captcha}
+        <img class="m-auto w-60" src={captcha.img_base64} alt="Captcha" />
+        <button
+          class="btn btn-icon absolute right-3 top-3 hover:*:scale-110 max-md:right-0 {refreshCaptcha
+            ? 'animate-spin'
+            : ''}"
+          on:click={onRefreshCaptcha}
+          disabled={refreshCaptcha}
+        >
+          <IconRefresh />
+        </button>
+      {:else}
+        <div class="placeholder m-auto h-16 w-60 animate-pulse rounded-none" />
+      {/if}
+    </div>
+
+    <form class="flex flex-col gap-4" on:input={onFormChange}>
+      <div
+        class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
+      >
+        <div class="input-group-shim bg-gray/5">Captcha Code</div>
+        <input
+          class="input rounded-none invalid:input-warning hover:bg-white/90"
+          type="text"
+          name="captchaCode"
+          minlength="4"
+          maxlength="4"
+          bind:value={captchaCode}
+          placeholder="Enter code"
+          disabled={!captcha || submitting}
+          required
+        />
+      </div>
       <div
         class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"
       >

@@ -112,14 +112,18 @@ pub async fn verify(token: &str, action: &str) -> Result<VerifyResponse, String>
     match http_request(request, 21_000_000_000).await {
         Ok((res,)) => {
             if res.status == 200u64 {
-                let response: VerifyResponse = serde_json::from_slice(&res.body).map_err(|e| {
-                    format!(
-                        "Failed to deserialize response: {}, {}, {}",
-                        e,
-                        String::from_utf8(body).unwrap_or_default(),
-                        String::from_utf8(res.body).unwrap_or_default()
-                    )
-                })?;
+                let mut response: VerifyResponse =
+                    serde_json::from_slice(&res.body).map_err(|e| {
+                        format!(
+                            "Failed to deserialize response: {}, {}, {}",
+                            e,
+                            String::from_utf8(body).unwrap_or_default(),
+                            String::from_utf8(res.body).unwrap_or_default()
+                        )
+                    })?;
+                if response.token_properties.action != action {
+                    response.token_properties.valid = false;
+                }
                 Ok(response)
             } else {
                 Err(format!(

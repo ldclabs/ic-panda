@@ -11,7 +11,7 @@ import {
   type State as _State
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
-import { asyncFactory } from '$lib/stores/auth'
+import { anonymousIdentity, asyncFactory } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
@@ -66,6 +66,13 @@ export class LuckyPoolAPI {
     this._airdropState.set(
       unwrapResult(airdropState, 'call airdrop_state_of failed')
     )
+  }
+
+  async defaultAirdropState(): Promise<AirdropState> {
+    const airdropState = await this.actor.airdrop_state_of([
+      anonymousIdentity.getPrincipal()
+    ])
+    return unwrapResult(airdropState, 'call airdrop_state_of failed')
   }
 
   async notifications(): Promise<Notification[]> {
