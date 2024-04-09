@@ -1,0 +1,15 @@
+[package]
+name = "cli_cryptogram"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panda_cryptogram"
+path = "src/main.rs"
+
+[dependencies]
+lib_panda = { path = "../lib_panda", version = "0.1" }
+clap = { version = "=4.5", features = ["derive"] }
+candid = "0.10"
+base64 = "0.21"
+serde = "1"

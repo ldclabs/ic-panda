@@ -17,6 +17,7 @@
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import AirdropModal from './AirdropModal.svelte'
+  import PrizeModal from './PrizeModal.svelte'
 
   let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>
@@ -36,6 +37,18 @@
       modalStore.trigger({
         type: 'component',
         component: { ref: AirdropModal }
+      })
+    }
+  }
+
+  function claimPrizeHandler() {
+    if (principal.isAnonymous()) {
+      signIn({})
+    } else {
+      modalStore.trigger({
+        type: 'component',
+        component: { ref: PrizeModal },
+        meta: { claimableAmount: claimableAmount }
       })
     }
   }
@@ -169,26 +182,12 @@
         Claim Now
       </button>
     {:else}
-      {@const notEffective =
-        claimedAmount < PANDAToken.one &&
-        claimedAmount > Date.now() / (1000 * 3600)}
       <p class="flex flex-row gap-1">
-        {#if notEffective}
-          <span>
-            You can harvest tokens after <b
-              >{formatNumber(
-                Number(claimedAmount) - Date.now() / (1000 * 3600),
-                1
-              )}</b
-            > hours.
-          </span>
-        {:else}
-          <span>You have claimed</span>
-          <span>
-            {formatNumber(Number(claimedAmount / PANDAToken.one))}
-          </span>
-          <span>tokens</span>
-        {/if}
+        <span>You have claimed</span>
+        <span>
+          {formatNumber(Number(claimedAmount / PANDAToken.one))}
+        </span>
+        <span>tokens</span>
       </p>
       <p>
         <span>Lucky Code:</span>
@@ -206,7 +205,6 @@
       </p>
       <button
         disabled={submitting ||
-          notEffective ||
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
@@ -233,5 +231,11 @@
         {/if}
       </button>
     {/if}
+    <button
+      on:click={claimPrizeHandler}
+      class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+    >
+      Claim Prize
+    </button>
   </footer>
 </div>

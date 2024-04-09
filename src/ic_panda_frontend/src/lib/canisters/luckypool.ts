@@ -5,6 +5,7 @@ import {
   type AirdropStateOutput,
   type CaptchaOutput,
   type LuckyDrawInput,
+  type LuckyDrawLog,
   type Notification,
   type LuckyDrawOutput as _LuckyDrawOutput,
   type _SERVICE,
@@ -89,6 +90,11 @@ export class LuckyPoolAPI {
     return unwrapResult(res, 'call airdrop failed')
   }
 
+  async prize(input: String): Promise<AirdropState> {
+    const res = await this.actor.prize(input)
+    return unwrapResult(res, 'call prize failed')
+  }
+
   async harvest(input: AirdropHarvestInput): Promise<AirdropState> {
     const res = await this.actor.harvest(input)
     return unwrapResult(res, 'call harvest failed')
@@ -97,6 +103,10 @@ export class LuckyPoolAPI {
   async luckydraw(input: LuckyDrawInput): Promise<LuckyDrawOutput> {
     const res = await this.actor.luckydraw(input)
     return unwrapResult(res, 'call luckydraw failed')
+  }
+
+  async myLuckydrawLogs(): Promise<LuckyDrawLog[]> {
+    return this.actor.my_luckydraw_logs([], [20])
   }
 }
 

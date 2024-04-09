@@ -18,6 +18,7 @@
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
   import {
     ICPToken,
@@ -45,7 +46,7 @@
   let luckyPoolAPI: LuckyPoolAPI
   let icpLedgerAPI: ICPLedgerAPI
   let tokenLedgerAPI: TokenLedgerAPI
-  let icpTokens = 1
+  let inputAmount = 0.1
   let icpBalance = 0n
   let luckyPoolBalance = 0n
   let result: LuckyDrawOutput
@@ -59,7 +60,7 @@
 
   function icpCostAmount(n: number) {
     try {
-      return BigInt(n) * ICPToken.one
+      return BigInt(Number(ICPToken.one) * n)
     } catch (err) {
       return 0n
     }
@@ -68,17 +69,18 @@
   async function onFormSubmit() {
     submitting = true
     try {
-      const amount = BigInt(icpTokens) * ICPToken.one
+      const amount = icpCostAmount(inputAmount)
       stepN = 1
       await icpLedgerAPI.ensureAllowance(luckyPoolPrincipal, amount)
 
       stepN = 2
       result = await luckyPoolAPI.luckydraw({
-        icp: icpTokens
+        icp: 0,
+        amount: [amount]
       })
       setTimeout(() => {
         lottiePlayerRef?.remove()
-      }, 2100)
+      }, 4200)
     } catch (err: any) {
       submitting = false
       stepN = 0
@@ -98,13 +100,19 @@
   }
 
   function checkInput() {
-    if (icpTokens < 1 || icpTokens > 10 || !Number.isSafeInteger(icpTokens)) {
-      return 'Enter an integer between 1 and 10'
+    if (
+      inputAmount < 0.1 ||
+      inputAmount > 10 ||
+      !Number.isSafeInteger(inputAmount * 10)
+    ) {
+      return 'Enter an integer between 0.1 and 10'
     } else {
-      const cost = icpCostAmount(icpTokens)
+      const cost = icpCostAmount(inputAmount)
       if (cost == 0n || cost > icpBalance) {
         return 'Insufficient ICP balance in your wallet'
-      } else if (BigInt(icpTokens) * lowestPrizeBalance > luckyPoolBalance) {
+      } else if (
+        BigInt(inputAmount * Number(lowestPrizeBalance)) > luckyPoolBalance
+      ) {
         return 'Insufficient lucky pool balance'
       }
     }
@@ -170,10 +178,25 @@
       <p class="mt-6">
         <span>Congratulations on winning</span>
         <span class="font-bold text-panda">
-          {formatNumber(Number(result.amount / PANDAToken.one))}
+          {formatNumber(Number(result.amount) / Number(PANDAToken.one))}
         </span>
         <span>tokens in the lucky draw.</span>
       </p>
+      {#if result.prize_cryptogram.length > 0}
+        <p class="mt-6">
+          <span>Giving you a prize cryptogram:</span>
+        </p>
+        <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
+          <p class="truncate text-panda">{result.prize_cryptogram[0]}</p>
+          <TextClipboardButton textValue={String(result.prize_cryptogram[0])} />
+        </h4>
+        <p>
+          <span>
+            It contains <b>500</b> PANDA tokens, available for <b>10</b> people
+            to claim, valid for <b>7</b> days.
+          </span>
+        </p>
+      {/if}
     </div>
     <div
       class="!mt-12 flex flex-row justify-between rounded-lg bg-gray/5 px-4 py-3"
@@ -184,7 +207,7 @@
       </div>
       <div class="flex flex-row">
         <span>
-          {'+ ' + formatNumber(Number(result.amount / PANDAToken.one))}
+          {'+ ' + formatNumber(Number(result.amount) / Number(PANDAToken.one))}
         </span>
         <span class="ml-2 *:mt-[2px] *:h-5 *:w-5"><IconGoldPanda /></span>
       </div>
@@ -223,7 +246,7 @@
       <ul class="list text-gray/50">
         <li>
           <span>
-            {'1. Let N be the number of ICPs entered per draw, with 1<=N<=10.'}
+            {'1. Let N be the number of ICPs entered per draw, with 0.1<=N<=10.'}
           </span>
         </li>
         <li>
@@ -273,11 +296,11 @@
           class="input rounded-none invalid:input-warning hover:bg-white/90"
           type="number"
           name="icpTokens"
-          min="1"
+          min="0.1"
           max="10"
-          step="1"
-          bind:value={icpTokens}
-          placeholder="Enter an integer between 1 and 10"
+          step="0.1"
+          bind:value={inputAmount}
+          placeholder="Enter an integer between 0.1 and 10"
           disabled={submitting}
           required
         />

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '$app/stores'
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
@@ -8,35 +7,28 @@
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
+  const modalStore = getModalStore()
+
   let submitting = false
   let validating = false
   let cryptogram = ''
   let luckyPoolAPI: LuckyPoolAPI
-  let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
-  let defaultClaimable = 10
 
   const toastStore = getToastStore()
-  const luckyLink = 'https://panda.fans/?ref='
 
   async function onFormSubmit() {
     submitting = true
     try {
-      result = await luckyPoolAPI.airdrop({
-        challenge: '',
-        code: cryptogram,
-        lucky_code: luckyCode != '' ? [luckyCode] : [],
-        recaptcha: []
-      })
+      result = await luckyPoolAPI.prize(cryptogram)
     } catch (err: any) {
       submitting = false
       let message = err?.message || String(err)
@@ -60,8 +52,6 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    const defaultAirdrop = await luckyPoolAPI.defaultAirdropState()
-    defaultClaimable = Number(defaultAirdrop.claimable / PANDAToken.one)
   })
 </script>
 
@@ -75,46 +65,45 @@
         <span>
           You have successfully claimed <b
             >{formatNumber(
-              Number(result.claimable) / Number(PANDAToken.one)
+              Number(
+                result.claimable - ($modalStore[0]?.meta.claimableAmount || 0n)
+              ) / Number(PANDAToken.one)
             )}</b
           > PANDA tokens.
         </span>
       </p>
-      <h4 class="h4 mt-4">
-        <span>Your lucky code:</span>
-        <span class="text-panda">{result.lucky_code[0]}</span>
-        <TextClipboardButton textValue={result.lucky_code[0] || ''} />
-      </h4>
-      <p class="mt-4">
-        <span>Link:</span>
-        <span>
-          {luckyLink + result.lucky_code[0]}
-        </span>
-        <TextClipboardButton textValue={luckyLink + result.lucky_code[0]} />
-      </p>
+      <div
+        ><p>
+          Follow the <a
+            title="Follow on Twitter"
+            class="text-panda underline"
+            href="https://twitter.com/ICPandaDAO"
+            target="_blank">ICPanda Twitter</a
+          >, or join the
+          <a
+            title="Join the Community"
+            class="text-panda underline"
+            href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
+            target="_blank">ICPanda Community</a
+          >, to get the latest prize messages in time.
+        </p>
+      </div>
     </div>
   {:else}
-    <h6 class="h6">Free PANDA Tokens Airdrop Rules</h6>
+    <h6 class="h6">Prize Rules</h6>
     <ol class="list text-gray/50">
       <li>
         <span class="variant-soft-primary badge-icon p-4">1</span>
         <span class="flex-auto">
-          Each new user can claim {defaultClaimable} tokens, or {defaultClaimable +
-            defaultClaimable / 2} tokens with a valid lucky code.
+          Before claiming the prize, make sure you have claimed the free airdrop
+          to set up an account to receive the reward.
         </span>
       </li>
       <li>
         <span class="variant-soft-primary badge-icon p-4">2</span>
         <span class="flex-auto">
-          Upon claiming, you'll receive your own lucky code to share with
-          others.
-        </span>
-      </li>
-      <li>
-        <span class="variant-soft-primary badge-icon p-4">3</span>
-        <span class="flex-auto">
-          When a new user claims the airdrop using your lucky code, you'll also
-          receive an additional {defaultClaimable / 2} tokens.
+          The prizes are limited in both the number of recipients and the time
+          available to claim them. First come, first served.
         </span>
       </li>
     </ol>
@@ -127,13 +116,13 @@
             class="text-panda underline"
             href="https://twitter.com/ICPandaDAO"
             target="_blank">ICPanda Twitter</a
-          >
-          and DM us your <b>principal ID</b>, to get the airdrop
-          <b>cryptogram</b> for your.
-        </p>
-        <p>
-          You can only exchange for the cryptogram once. We will not respond to
-          multiple requests from you.
+          >, or join the
+          <a
+            title="Join the Community"
+            class="text-panda underline"
+            href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
+            target="_blank">ICPanda Community</a
+          >, to get the latest prize messages in time.
         </p>
       </div>
       <div
@@ -150,21 +139,6 @@
           placeholder="Enter code"
           disabled={submitting}
           required
-        />
-      </div>
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"
-      >
-        <div class="input-group-shim !bg-gray/5">Lucky Code (Optional)</div>
-        <input
-          class="input rounded-none text-panda invalid:input-warning hover:bg-white/90"
-          type="text"
-          name="luckyCode"
-          minlength="6"
-          maxlength="6"
-          bind:value={luckyCode}
-          placeholder="Enter code"
-          disabled={submitting}
         />
       </div>
     </form>

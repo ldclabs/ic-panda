@@ -1,3 +1,8 @@
 [workspace]
-members = ["src/ic_panda_badges", "src/ic_panda_luckypool"]
+members = [
+  "src/cli_cryptogram",
+  "src/ic_panda_badges",
+  "src/ic_panda_luckypool",
+  "src/lib_panda",
+]
 resolver = "2"

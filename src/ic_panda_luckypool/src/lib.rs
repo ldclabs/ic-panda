@@ -14,8 +14,6 @@ mod api_admin;
 mod api_init;
 mod api_query;
 mod api_update;
-mod ecdsa;
-mod recaptcha;
 mod store;
 mod types;
 mod utils;

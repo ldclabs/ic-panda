@@ -7,13 +7,17 @@
   const { needRefresh, updateServiceWorker } = useRegisterSW({
     onRegistered(r) {
       r &&
-        setInterval(() => {
-          if (!(!r.installing && navigator)) return
-          if ('connection' in navigator && !navigator.onLine) return
+        setTimeout(
+          () =>
+            setInterval(() => {
+              if (!(!r.installing && navigator)) return
+              if ('connection' in navigator && !navigator.onLine) return
 
-          console.log('Checking for sw update')
-          r.update()
-        }, 20 * 60000)
+              console.log('Checking for sw update')
+              r.update()
+            }, 20 * 60000),
+          20000
+        )
     },
     onRegisterError(error) {
       console.log('SW registration error', error)

@@ -1,3 +1,8 @@
+type AddPrizeInput = record {
+  claimable : nat32;
+  quantity : nat16;
+  expire : nat16;
+};
 type AirdropClaimInput = record {
   recaptcha : opt text;
   challenge : text;
@@ -18,7 +23,7 @@ type AirdropStateOutput = record {
   claimable : nat;
 };
 type CaptchaOutput = record { challenge : text; img_base64 : text };
-type LuckyDrawInput = record { icp : nat8 };
+type LuckyDrawInput = record { icp : nat8; amount : opt nat };
 type LuckyDrawLog = record {
   id : nat;
   ts : nat64;
@@ -28,6 +33,7 @@ type LuckyDrawLog = record {
   amount : nat;
 };
 type LuckyDrawOutput = record {
+  prize_cryptogram : opt text;
   luckypool_empty : bool;
   random : nat64;
   amount : nat;
@@ -44,8 +50,8 @@ type Result_1 = variant { Ok : AirdropStateOutput; Err : text };
 type Result_2 = variant { Ok : AirdropStateOutput; Err };
 type Result_3 = variant { Ok : CaptchaOutput; Err : text };
 type Result_4 = variant { Ok : LuckyDrawOutput; Err : text };
-type Result_5 = variant { Ok : State; Err };
-type Result_6 = variant { Ok : text; Err };
+type Result_5 = variant { Ok : text; Err : text };
+type Result_6 = variant { Ok : State; Err };
 type Result_7 = variant { Ok : principal; Err };
 type State = record {
   latest_luckydraw_logs : vec LuckyDrawLog;
@@ -53,7 +59,9 @@ type State = record {
   latest_airdrop_logs : vec AirdropLog;
   managers : opt vec principal;
   total_airdrop : nat64;
+  total_prize_count : opt nat64;
   total_airdrop_count : nat64;
+  total_prize : opt nat64;
   luckiest_luckydraw_logs : vec LuckyDrawLog;
   airdrop_balance : nat64;
   total_luckydraw_count : nat64;
@@ -71,13 +79,18 @@ service : () -> {
   luckydraw : (LuckyDrawInput) -> (Result_4);
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   manager_add_notification : (Notification) -> (Result);
+  manager_add_prize : (AddPrizeInput) -> (Result_5);
   manager_ban_users : (vec principal) -> (Result);
+  manager_get_airdrop_key : () -> (Result_5) query;
   manager_remove_notifications : (blob) -> (Result);
   manager_update_airdrop_balance : (nat64) -> (Result);
   my_luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   notifications : () -> (vec Notification) query;
-  state : () -> (Result_5) query;
-  token_public_key : () -> (Result_6) query;
+  prize : (text) -> (Result_1);
+  prizes_of : (opt principal) -> (
+      vec record { nat32; nat32; nat16; nat32; nat16; nat16 },
+    ) query;
+  state : () -> (Result_6) query;
   validate_admin_collect_icp : (nat) -> (Result);
   validate_admin_set_managers : (vec principal) -> (Result);
   whoami : () -> (Result_7) query;

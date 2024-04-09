@@ -67,7 +67,19 @@ async fn notifications() -> Vec<types::Notification> {
     store::notification::list()
 }
 
+// (Issuer code, Issue time, Expire, Claimable amount, Quantity, Filled quantity)
 #[ic_cdk::query]
-async fn token_public_key() -> Result<String, ()> {
-    store::access_token::with_token(|t| Ok(t.1.to_string()))
+async fn prizes_of(owner: Option<Principal>) -> Vec<(u32, u32, u16, u32, u16, u16)> {
+    let owner = owner.unwrap_or(ic_cdk::caller());
+    if owner == ANONYMOUS {
+        return vec![];
+    }
+    match store::airdrop::state_of(&owner) {
+        None => vec![],
+        Some(store::AirdropState(code, _, _)) => store::prize::list(code)
+            .0
+            .into_iter()
+            .map(|p| (code, p.0 .0, p.0 .1, p.0 .2, p.0 .3, p.1))
+            .collect(),
+    }
 }

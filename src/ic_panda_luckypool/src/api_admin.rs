@@ -1,7 +1,8 @@
 use crate::{
     icp_transfer_to, is_authenticated, is_controller, store, token_balance_of, types, ANONYMOUS,
-    DAO_CANISTER, ICP_1, ICP_CANISTER, TRANS_FEE,
+    DAO_CANISTER, ICP_1, ICP_CANISTER, SECOND, TRANS_FEE,
 };
+use base64::{engine::general_purpose, Engine};
 use candid::{Nat, Principal};
 use std::collections::BTreeSet;
 
@@ -83,4 +84,53 @@ fn manager_ban_users(ids: Vec<Principal>) -> Result<(), String> {
         return Err("user is not a manager".to_string());
     }
     store::airdrop::ban_users(ids)
+}
+
+#[ic_cdk::query(guard = "is_authenticated")]
+fn manager_get_airdrop_key() -> Result<String, String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    Ok(general_purpose::URL_SAFE_NO_PAD.encode(*store::keys::AIRDROP_KEY))
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
+    let caller = ic_cdk::caller();
+    if !store::state::is_manager(&caller) {
+        return Err("user is not a manager".to_string());
+    }
+    let now_sec = ic_cdk::api::time() / SECOND;
+    if args.expire > 60 * 24 * 30 {
+        return Err("expire should be less than 60*24*30".to_string());
+    }
+    if args.claimable > 100_000 {
+        return Err("claimable should be less than 100_000".to_string());
+    }
+    if args.quantity > 10_000 {
+        return Err("quantity should be less than 10_000".to_string());
+    }
+    if args.claimable % args.quantity as u32 != 0 {
+        return Err("claimable should be divisible by quantity".to_string());
+    }
+
+    match store::airdrop::state_of(&caller) {
+        Some(store::AirdropState(code, _, _)) => {
+            if code == 0 {
+                Err("user is banned".to_string())
+            } else {
+                match store::prize::try_add(
+                    code,
+                    now_sec,
+                    args.expire,
+                    args.claimable,
+                    args.quantity,
+                ) {
+                    Some(cryptogram) => Ok(cryptogram),
+                    None => Err("failed to add prize".to_string()),
+                }
+            }
+        }
+        None => Err("user is not registered".to_string()),
+    }
 }

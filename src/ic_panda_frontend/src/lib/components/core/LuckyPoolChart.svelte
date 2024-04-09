@@ -27,7 +27,7 @@
         new Date(Number(item.ts) * 1000).toLocaleString(),
         String(item.id),
         shortId(item.caller.toString()),
-        formatNumber(Number(item.amount / PANDAToken.one))
+        formatNumber(Number(item.amount) / Number(PANDAToken.one))
       ])
     }
   }
@@ -39,8 +39,23 @@
         new Date(Number(item.ts) * 1000).toLocaleString(),
         String(item.id),
         shortId(item.caller.toString()),
-        formatNumber(Number(item.amount / PANDAToken.one)),
-        formatNumber(Number(item.icp_amount / ICPToken.one)),
+        formatNumber(Number(item.amount) / Number(PANDAToken.one)),
+        formatNumber(Number(item.icp_amount) / Number(ICPToken.one)),
+        String(item.random)
+      ])
+    }
+  }
+
+  async function myLuckydrawRecordsSource() {
+    const items = await luckyPoolAPI.myLuckydrawLogs()
+    return {
+      head: ['Time', 'ID', 'User', '$PANDA', '$ICP Cost', 'Random No.'],
+      body: items.map((item) => [
+        new Date(Number(item.ts) * 1000).toLocaleString(),
+        String(item.id),
+        shortId(item.caller.toString()),
+        formatNumber(Number(item.amount) / Number(PANDAToken.one)),
+        formatNumber(Number(item.icp_amount) / Number(ICPToken.one)),
         String(item.random)
       ])
     }
@@ -97,7 +112,10 @@
           {formatNumber(Number($luckyPoolState.total_airdrop / PANDAToken.one))}
         </h3>
         <p class="text-gray/50">
-          Airdrop Amount, Count: {Number($luckyPoolState.total_airdrop_count)}
+          Airdrop Amount, Count: {Number(
+            $luckyPoolState.total_airdrop_count +
+              ($luckyPoolState.total_prize_count[0] || 0n)
+          )}
         </p>
       </div>
 
@@ -151,6 +169,9 @@
       <Tab bind:group={tabSet} name="LuckyDrawRecords" value={1}>
         Lucky Draw Records
       </Tab>
+      <Tab bind:group={tabSet} name="MyLuckyDrawRecords" value={2}>
+        My Lucky Draw
+      </Tab>
       <!-- Tab Panels --->
       <svelte:fragment slot="panel">
         {#if tabSet === 0}
@@ -161,7 +182,7 @@
             regionCell="bg-white !py-3 text-sm text-gray/60"
             source={airdropRecordsSource(airdropRecords)}
           />
-        {:else}
+        {:else if tabSet === 1}
           <Table
             class="-mt-4 mb-8"
             regionHeadCell="bg-white"
@@ -186,6 +207,16 @@
               source={luckydrawRecordsSource(highestLuckydrawRecords)}
             />
           {/if}
+        {:else}
+          {#await myLuckydrawRecordsSource() then items}
+            <Table
+              class="-mt-4 mb-8"
+              regionHeadCell="bg-white"
+              regionBody="*:!border-gray/5"
+              regionCell="bg-white !py-3 text-sm text-gray/60"
+              source={items}
+            />
+          {/await}
         {/if}
       </svelte:fragment>
     </TabGroup>
