@@ -142,11 +142,6 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
         return Err("invalid prize cryptogram".to_string());
     }
 
-    let (airdrop_amount, airdrop_balance) = store::state::airdrop_amount_balance();
-    if airdrop_balance < airdrop_amount * TOKEN_1 + TRANS_FEE {
-        return Err("airdrop pool is empty".to_string());
-    }
-
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -155,10 +150,18 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
         store::user::deactive(caller);
     });
 
-    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
-        .ok_or("please claim airdrop before claim prize".to_string())?;
+    let store::AirdropState(caller_code, claimed, claimable) = store::airdrop::state_of(&caller)
+        .ok_or("You don't have lucky code to claim prize".to_string())?;
     if caller_code == 0 {
         return Err("user is banned".to_string());
+    }
+    if (claimed + claimable) < TOKEN_1 * 10 {
+        let balance = token_balance_of(TOKEN_CANISTER, caller)
+            .await
+            .unwrap_or(Nat::from(0u64));
+        if balance < TOKEN_1 * 10 {
+            return Err("the balance must be more than 10 tokens to claim prize.".to_string());
+        }
     }
 
     let referrer_code = prize.0;
@@ -200,10 +203,6 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
                 return Err("user is banned".to_string());
             }
 
-            // if total_claimed < TOKEN_1 && total_claimed > now_sec / 3600 {
-            //     return Err("airdrop is not effective".to_string());
-            // }
-
             let amount = nat_to_u64(&args.amount);
             if amount < TOKEN_1 {
                 return Err("amount must be at least 1 token".to_string());
@@ -243,6 +242,9 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
 
     if !(1..=1000).contains(&icp01) {
         return Err("invalid icp amount, should be in [0.1, 100]".to_string());
+    }
+    if store::state::with(|r| r.total_luckydraw) >= 420000000 * TOKEN_1 {
+        return Err("The lucky draw pool has been drawn empty.".to_string());
     }
 
     let caller = ic_cdk::caller();
@@ -304,6 +306,9 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                 }
             }
         });
+
+        let (airdrop_amount, _) = store::state::airdrop_amount_balance();
+
         let airdrop_cryptogram = match store::airdrop::state_of(&caller) {
             Some(store::AirdropState(code, _, _)) => {
                 if code == 0 {
@@ -312,8 +317,18 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                     store::prize::try_add(code, now_sec, 10080, 0, (icp01 as u16) * 5)
                 }
             }
-            None => None,
+            None => {
+                let code = store::luckycode::new_from(caller);
+                if store::airdrop::insert(caller, None, now_sec, airdrop_amount * TOKEN_1, 0, code)
+                    .is_ok()
+                {
+                    store::prize::try_add(code, now_sec, 10080, 0, (icp01 as u16) * 5)
+                } else {
+                    None
+                }
+            }
         };
+
         Ok(types::LuckyDrawOutput {
             amount: Nat::from(draw_amount),
             random: x,

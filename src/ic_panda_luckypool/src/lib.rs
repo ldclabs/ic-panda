@@ -22,7 +22,6 @@ const SECOND: u64 = 1_000_000_000;
 const TRANS_FEE: u64 = 10_000;
 const TOKEN_1: u64 = 100_000_000;
 const ICP_1: u64 = ic_ledger_types::Tokens::SUBDIVIDABLE_BY;
-const AIRDROP_AMOUNT: u64 = 100; // 100 PANDA tokens
 
 static ANONYMOUS: Principal = Principal::anonymous();
 static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;

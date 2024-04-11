@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
   import {
     luckyPoolAPIAsync,
     type AirdropState,
@@ -12,6 +14,7 @@
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
+  import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
@@ -84,6 +87,14 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
+
+    await new Promise((res) => setTimeout(res, 400))
+    if (
+      decodePrize($page.url.searchParams.get('prize') || '') &&
+      !principal.isAnonymous()
+    ) {
+      claimPrizeHandler()
+    }
   })
 
   $: principal = $authStore.identity.getPrincipal()
@@ -99,6 +110,12 @@
         luckyPoolAPIAsync().then((_luckyPoolAPI) => {
           luckyPoolAPI = _luckyPoolAPI
         })
+      }
+
+      if (luckyCode && $page.url.searchParams.get('ref')) {
+        const query = $page.url.searchParams
+        query.delete('ref')
+        goto(`?${query.toString()}`)
       }
     }
   }

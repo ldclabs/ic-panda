@@ -20,8 +20,8 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
+  import { decodePrize, type Prize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
-  import { base64ToBytes } from '$lib/utils/crypto'
   import {
     ICPToken,
     PANDAToken,
@@ -36,7 +36,6 @@
     getModalStore,
     getToastStore
   } from '@skeletonlabs/skeleton'
-  import { decode } from 'cborg'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -54,7 +53,7 @@
   let luckyPoolBalance = 0n
   let result: LuckyDrawOutput
   let lottiePlayerRef: HTMLDivElement
-  let cryptogramInfo: number[] = []
+  let cryptogramInfo: Prize | null = null
   let defaultClaimable = 10
 
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
@@ -84,10 +83,7 @@
         amount: [amount]
       })
       if (result.airdrop_cryptogram.length > 0) {
-        const airdrop_cryptogram = decode(
-          base64ToBytes(result.airdrop_cryptogram[0] || '')
-        )
-        cryptogramInfo = decode(airdrop_cryptogram[0])
+        cryptogramInfo = decodePrize(result.airdrop_cryptogram[0] || '')
       }
       setTimeout(() => {
         lottiePlayerRef?.remove()
@@ -205,9 +201,9 @@
             to claim, valid for <b>7</b> days.
           </span>
         </p>
-      {:else if result.airdrop_cryptogram.length > 0}
+      {:else if result.airdrop_cryptogram.length > 0 && cryptogramInfo}
         <p class="mt-6">
-          <span>Giving you a airdrop cryptogram:</span>
+          <span>Giving you an airdrop cryptogram:</span>
         </p>
         <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
           <p class="truncate text-panda">{result.airdrop_cryptogram[0]}</p>

@@ -114,6 +114,15 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
         return Err("user is not a manager".to_string());
     }
     let now_sec = ic_cdk::api::time() / SECOND;
+    if args.expire < 10 {
+        return Err("expire should be at least 10 minutes".to_string());
+    }
+    if args.claimable == 0 {
+        return Err("claimable should be at least 1 token".to_string());
+    }
+    if args.quantity == 0 {
+        return Err("quantity should be at least 1".to_string());
+    }
     if args.expire > 60 * 24 * 30 {
         return Err("expire should be less than 60*24*30".to_string());
     }
@@ -122,9 +131,6 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
     }
     if args.quantity > 10_000 {
         return Err("quantity should be less than 10_000".to_string());
-    }
-    if args.claimable % args.quantity as u32 != 0 {
-        return Err("claimable should be divisible by quantity".to_string());
     }
 
     match store::airdrop::state_of(&caller) {
@@ -144,6 +150,6 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
                 }
             }
         }
-        None => Err("user is not registered".to_string()),
+        None => Err("you don't have lucky code".to_string()),
     }
 }

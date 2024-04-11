@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
@@ -7,6 +9,7 @@
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
@@ -19,8 +22,8 @@
   const modalStore = getModalStore()
 
   let submitting = false
-  let validating = false
-  let cryptogram = ''
+  let cryptogram = $page.url.searchParams.get('prize') || ''
+  let validating = decodePrize(cryptogram) != null
   let luckyPoolAPI: LuckyPoolAPI
   let result: AirdropState
 
@@ -30,6 +33,12 @@
     submitting = true
     try {
       result = await luckyPoolAPI.prize(cryptogram)
+      // Remove the prize query parameter from the URL
+      if ($page.url.searchParams.get('prize')) {
+        const query = $page.url.searchParams
+        query.delete('prize')
+        goto(`?${query.toString()}`)
+      }
     } catch (err: any) {
       submitting = false
 
@@ -70,22 +79,20 @@
           > PANDA tokens.
         </span>
       </p>
-      <div
-        ><p>
-          Follow the <a
-            title="Follow on Twitter"
-            class="text-panda underline"
-            href="https://twitter.com/ICPandaDAO"
-            target="_blank">ICPanda Twitter</a
-          >, or join the
-          <a
-            title="Join the Community"
-            class="text-panda underline"
-            href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
-            target="_blank">ICPanda Community</a
-          >, to get the latest prize messages in time.
-        </p>
-      </div>
+      <p class="mt-4 text-left">
+        Follow the <a
+          title="Follow on Twitter"
+          class="text-panda underline"
+          href="https://twitter.com/ICPandaDAO"
+          target="_blank">ICPanda Twitter</a
+        >, or join the
+        <a
+          title="Join the Community"
+          class="text-panda underline"
+          href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
+          target="_blank">ICPanda Community</a
+        >, to get the latest prize messages in time.
+      </p>
     </div>
   {:else}
     <h6 class="h6">Prize Rules</h6>
@@ -93,12 +100,18 @@
       <li>
         <span class="variant-soft-primary badge-icon p-4">1</span>
         <span class="flex-auto">
-          Before claiming the prize, make sure you have claimed the free airdrop
-          to set up an account to receive the reward.
+          You must have a <b>lucky code</b> to claim prizes, which can be obtained
+          by claiming airdrop.
         </span>
       </li>
       <li>
         <span class="variant-soft-primary badge-icon p-4">2</span>
+        <span class="flex-auto">
+          The PANDA token balance in your wallet must be <b>more than 10</b>.
+        </span>
+      </li>
+      <li>
+        <span class="variant-soft-primary badge-icon p-4">3</span>
         <span class="flex-auto">
           The prizes are limited in both the number of recipients and the time
           available to claim them. First come, first served.

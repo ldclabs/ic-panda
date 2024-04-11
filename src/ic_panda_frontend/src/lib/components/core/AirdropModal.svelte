@@ -135,16 +135,16 @@
             href="https://twitter.com/ICPandaDAO"
             target="_blank">ICPanda Twitter</a
           >
-          and DM us your <b>Principal ID</b>:
+          and DM us your <b>Principal ID</b>👇 to get the airdrop
+          <b>cryptogram</b> for you:
         </p>
         <h5 class="h5 my-2 flex flex-row content-center items-center gap-1">
           <p class="truncate text-panda">{principal.toString()}</p>
           <TextClipboardButton textValue={principal.toString()} />
         </h5>
         <p>
-          To get the airdrop <b>cryptogram</b> for your.<br />
-          You can also obtain the airdrop cryptogram through a
-          <b>Lucky Draw</b>.<br />
+          You can also obtain airdrop and lucky code through a <b>Lucky Draw</b
+          >.<br />
           You can only exchange for the cryptogram once. We will not respond to multiple
           requests from you.
         </p>
