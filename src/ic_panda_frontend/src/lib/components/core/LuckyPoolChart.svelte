@@ -27,7 +27,9 @@
         new Date(Number(item.ts) * 1000).toLocaleString(),
         String(item.id),
         shortId(item.caller.toString()),
-        formatNumber(Number(item.amount) / Number(PANDAToken.one))
+        item.amount > 0
+          ? formatNumber(Number(item.amount) / Number(PANDAToken.one))
+          : '-'
       ])
     }
   }

@@ -532,6 +532,7 @@ pub mod luckydraw {
             }
 
             let mut idx = prev - 1;
+            let mut max_loop = 1000;
             let mut logs: Vec<types::LuckyDrawLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
                 match user {
@@ -545,10 +546,11 @@ pub mod luckydraw {
                     }
                 }
 
-                if idx == 0 || logs.len() >= take {
+                if idx == 0 || max_loop == 0 || logs.len() >= take {
                     break;
                 }
                 idx -= 1;
+                max_loop -= 1;
             }
 
             logs
@@ -565,10 +567,17 @@ pub mod prize {
         issuer: u32,
         now_sec: u64,
         expire: u16,
-        claimable: u32,
+        claimable: u32, // 0 for airdrop
         quantity: u16,
     ) -> Option<String> {
-        let key = *keys::PRIZE_KEY;
+        if quantity == 0 {
+            return None;
+        }
+        let key = if claimable > 0 {
+            *keys::PRIZE_KEY
+        } else {
+            *keys::AIRDROP_KEY
+        };
         let prize = Prize(issuer, (now_sec / 60) as u32, expire, claimable, quantity);
         let ok = PRIZE.with(|r| {
             let mut m = r.borrow_mut();

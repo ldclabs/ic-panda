@@ -12,6 +12,7 @@
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
+  import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
@@ -71,15 +72,11 @@
         await luckyPoolAPI.refreshAllState()
       } catch (err: any) {
         submitting = false
-        let message = err?.message || String(err)
-        if (err?.data) {
-          message += '\n' + JSON.stringify(err.data)
-        }
         toastStore.trigger({
           autohide: false,
           hideDismiss: false,
           background: 'variant-filled-error',
-          message
+          message: errMessage(err)
         })
       }
     }
@@ -166,9 +163,9 @@
         disabled={claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={claimNowHandler}
-        class="variant-filled-error btn m-auto mt-3 w-[300px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-error btn m-auto mt-3 w-[320px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
-        Claim Now
+        Claim Airdrop
       </button>
     {:else if luckyCode == 'AAAAAA'}
       <!-- banned user -->
@@ -177,9 +174,9 @@
       </p>
       <button
         disabled={true}
-        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
-        Claim Now
+        Claim Airdrop
       </button>
     {:else}
       <p class="flex flex-row gap-1">
@@ -208,7 +205,7 @@
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
-        class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
@@ -233,7 +230,7 @@
     {/if}
     <button
       on:click={claimPrizeHandler}
-      class="variant-filled-primary btn m-auto mt-3 flex w-[300px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+      class="variant-ringed btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
     >
       Claim Prize
     </button>

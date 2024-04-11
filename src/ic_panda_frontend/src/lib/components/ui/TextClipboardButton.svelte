@@ -1,4 +1,5 @@
 <script lang="ts">
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
   import { clipboard } from '@skeletonlabs/skeleton'
 
@@ -7,7 +8,7 @@
   let copiedClass = ''
 
   function onCopyHandler(): void {
-    copiedClass = '!text-secondary-500'
+    copiedClass = '!text-panda'
     setTimeout(() => {
       copiedClass = ''
     }, 5000)
@@ -15,10 +16,14 @@
 </script>
 
 <button
-  class="{copiedClass} float-right mt-[3px] *:size-4"
+  class="{copiedClass} float-right mt-[3px] *:size-5"
   use:clipboard={textValue}
   on:click={onCopyHandler}
   disabled={copiedClass != ''}
 >
-  <IconCopy />
+  {#if copiedClass != ''}
+    <IconCheckbox />
+  {:else}
+    <IconCopy />
+  {/if}
 </button>

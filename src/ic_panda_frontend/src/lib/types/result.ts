@@ -28,3 +28,10 @@ export function unwrapResult<T, E>(
   }
   return res.Ok
 }
+
+export function errMessage(err: any): string {
+  if (err?.data) {
+    return JSON.stringify(err.data)
+  }
+  return err?.toString() || String(err)
+}

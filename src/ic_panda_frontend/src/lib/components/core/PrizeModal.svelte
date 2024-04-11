@@ -7,6 +7,7 @@
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -31,15 +32,12 @@
       result = await luckyPoolAPI.prize(cryptogram)
     } catch (err: any) {
       submitting = false
-      let message = err?.message || String(err)
-      if (err?.data) {
-        message += '\n' + JSON.stringify(err.data)
-      }
+
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
         background: 'variant-filled-error',
-        message
+        message: errMessage(err)
       })
     }
     await luckyPoolAPI.refreshAllState()

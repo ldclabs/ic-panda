@@ -20,6 +20,8 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
+  import { errMessage } from '$lib/types/result'
+  import { base64ToBytes } from '$lib/utils/crypto'
   import {
     ICPToken,
     PANDAToken,
@@ -34,6 +36,7 @@
     getModalStore,
     getToastStore
   } from '@skeletonlabs/skeleton'
+  import { decode } from 'cborg'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -51,6 +54,8 @@
   let luckyPoolBalance = 0n
   let result: LuckyDrawOutput
   let lottiePlayerRef: HTMLDivElement
+  let cryptogramInfo: number[] = []
+  let defaultClaimable = 10
 
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
   const lowestPrizeBalance = 500n * PANDAToken.one
@@ -78,21 +83,23 @@
         icp: 0,
         amount: [amount]
       })
+      if (result.airdrop_cryptogram.length > 0) {
+        const airdrop_cryptogram = decode(
+          base64ToBytes(result.airdrop_cryptogram[0] || '')
+        )
+        cryptogramInfo = decode(airdrop_cryptogram[0])
+      }
       setTimeout(() => {
         lottiePlayerRef?.remove()
       }, 4200)
     } catch (err: any) {
       submitting = false
       stepN = 0
-      let message = err?.message || String(err)
-      if (err?.data) {
-        message += '\n' + JSON.stringify(err.data)
-      }
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
         background: 'variant-filled-error',
-        message
+        message: errMessage(err)
       })
     }
 
@@ -144,6 +151,8 @@
     luckyPoolBalance = await tokenLedgerAPI.getBalanceOf(luckyPoolPrincipal)
 
     validating = checkInput() == ''
+    const defaultAirdrop = await luckyPoolAPI.defaultAirdropState()
+    defaultClaimable = Number(defaultAirdrop.claimable / PANDAToken.one)
   })
 
   $: luckyPoolBalanceDisplay = formatToken(
@@ -195,6 +204,24 @@
             It contains <b>500</b> PANDA tokens, available for <b>10</b> people
             to claim, valid for <b>7</b> days.
           </span>
+        </p>
+      {:else if result.airdrop_cryptogram.length > 0}
+        <p class="mt-6">
+          <span>Giving you a airdrop cryptogram:</span>
+        </p>
+        <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
+          <p class="truncate text-panda">{result.airdrop_cryptogram[0]}</p>
+          <TextClipboardButton
+            textValue={String(result.airdrop_cryptogram[0])}
+          />
+        </h4>
+        <p class="text-left">
+          It is available for <b>{cryptogramInfo[4]}</b> people to claim
+          airdrop, valid for <b>{(cryptogramInfo[2] || 10080) / (24 * 60)}</b> days.
+        </p>
+        <p class="text-left">
+          When a new user claims the airdrop using your cryptogram, you'll also
+          receive an additional <b>{defaultClaimable / 2}</b> tokens per user.
         </p>
       {/if}
     </div>

@@ -9,6 +9,8 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { authStore } from '$lib/stores/auth'
+  import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -24,6 +26,7 @@
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
   let defaultClaimable = 10
+  let principal = $authStore.identity.getPrincipal()
 
   const toastStore = getToastStore()
   const luckyLink = 'https://panda.fans/?ref='
@@ -39,15 +42,11 @@
       })
     } catch (err: any) {
       submitting = false
-      let message = err?.message || String(err)
-      if (err?.data) {
-        message += '\n' + JSON.stringify(err.data)
-      }
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
         background: 'variant-filled-error',
-        message
+        message: errMessage(err)
       })
     }
     await luckyPoolAPI.refreshAllState()
@@ -92,6 +91,14 @@
         </span>
         <TextClipboardButton textValue={luckyLink + result.lucky_code[0]} />
       </p>
+      <p class="mt-4 text-left">
+        <span>Share your lucky code to with others.</span>
+        <br />
+        <span>
+          When a new user claims the airdrop using your lucky code, you'll also
+          receive an additional <b>{defaultClaimable / 2}</b> tokens per user.
+        </span>
+      </p>
     </div>
   {:else}
     <h6 class="h6">Free PANDA Tokens Airdrop Rules</h6>
@@ -128,12 +135,18 @@
             href="https://twitter.com/ICPandaDAO"
             target="_blank">ICPanda Twitter</a
           >
-          and DM us your <b>principal ID</b>, to get the airdrop
-          <b>cryptogram</b> for your.
+          and DM us your <b>Principal ID</b>:
         </p>
+        <h5 class="h5 my-2 flex flex-row content-center items-center gap-1">
+          <p class="truncate text-panda">{principal.toString()}</p>
+          <TextClipboardButton textValue={principal.toString()} />
+        </h5>
         <p>
-          You can only exchange for the cryptogram once. We will not respond to
-          multiple requests from you.
+          To get the airdrop <b>cryptogram</b> for your.<br />
+          You can also obtain the airdrop cryptogram through a
+          <b>Lucky Draw</b>.<br />
+          You can only exchange for the cryptogram once. We will not respond to multiple
+          requests from you.
         </p>
       </div>
       <div

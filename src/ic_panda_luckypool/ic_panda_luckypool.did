@@ -33,6 +33,7 @@ type LuckyDrawLog = record {
   amount : nat;
 };
 type LuckyDrawOutput = record {
+  airdrop_cryptogram : opt text;
   prize_cryptogram : opt text;
   luckypool_empty : bool;
   random : nat64;

@@ -1,6 +1,8 @@
 use crate::{
     icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER, TRANS_FEE,
+    token_transfer_to, types,
+    utils::{self, luckycode_to_string},
+    ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER, TRANS_FEE,
 };
 use candid::Nat;
 use ic_captcha::CaptchaBuilder;
@@ -44,11 +46,26 @@ async fn captcha() -> Result<types::CaptchaOutput, String> {
 async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOutput, String> {
     let caller = ic_cdk::caller();
     let key = *store::keys::AIRDROP_KEY;
-    let prize = store::Prize::decode(&key, Some(caller), &args.code)?;
     let now_sec = ic_cdk::api::time() / SECOND;
-    if !prize.is_valid_system(now_sec) {
-        return Err("invalid prize cryptogram or expired".to_string());
-    }
+    let prize = match store::Prize::decode(&key, Some(caller), &args.code) {
+        Ok(prize) => {
+            // should be issued by the system
+            if !prize.is_valid_system(now_sec) {
+                return Err("invalid airdrop cryptogram or expired".to_string());
+            }
+            None
+        }
+        Err(_) => match store::Prize::decode(&key, None, &args.code) {
+            Ok(prize) => {
+                // should be issued by the user
+                if !prize.is_valid(now_sec) || prize.3 != 0 || prize.0 == 0 {
+                    return Err("invalid airdrop cryptogram or expired".to_string());
+                }
+                Some(prize)
+            }
+            Err(_) => return Err("invalid airdrop cryptogram".to_string()),
+        },
+    };
 
     if let Some(store::AirdropState(code, claimed, claimable)) = store::airdrop::state_of(&caller) {
         return Ok(types::AirdropStateOutput {
@@ -71,14 +88,22 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         store::user::deactive(caller);
     });
 
-    let referrer = args
-        .lucky_code
-        .and_then(|s| store::luckycode::get_by_string(&s));
+    let lucky_code = if let Some(ref p) = prize {
+        Some(luckycode_to_string(p.0))
+    } else {
+        args.lucky_code
+    };
+    let referrer = lucky_code.and_then(|s| store::luckycode::get_by_string(&s));
     let claimable = if referrer.is_some() {
         (airdrop_amount + airdrop_amount / 2) * TOKEN_1
     } else {
         airdrop_amount * TOKEN_1
     };
+
+    // issued by users and try to claim airdrop
+    if let Some(prize) = prize {
+        store::prize::claim(caller, prize)?;
+    }
 
     let caller_code = store::luckycode::new_from(caller);
     let log = store::airdrop::insert(
@@ -112,6 +137,9 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
     let now_sec = ic_cdk::api::time() / SECOND;
     if !prize.is_valid(now_sec) {
         return Err("invalid prize cryptogram or expired".to_string());
+    }
+    if prize.0 == 0 || prize.3 == 0 {
+        return Err("invalid prize cryptogram".to_string());
     }
 
     let (airdrop_amount, airdrop_balance) = store::state::airdrop_amount_balance();
@@ -276,12 +304,12 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                 }
             }
         });
-        let prize_cryptogram = match store::airdrop::state_of(&caller) {
+        let airdrop_cryptogram = match store::airdrop::state_of(&caller) {
             Some(store::AirdropState(code, _, _)) => {
-                if code == 0 || icp < TOKEN_1 {
+                if code == 0 {
                     None
                 } else {
-                    store::prize::try_add(code, now_sec, 10080, 500, 10)
+                    store::prize::try_add(code, now_sec, 10080, 0, (icp01 as u16) * 5)
                 }
             }
             None => None,
@@ -290,7 +318,8 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
             amount: Nat::from(draw_amount),
             random: x,
             luckypool_empty: draw_amount < amount,
-            prize_cryptogram,
+            prize_cryptogram: None,
+            airdrop_cryptogram,
         })
     } else {
         // refund ICP when failed to transfer tokens

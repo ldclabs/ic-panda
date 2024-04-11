@@ -48,6 +48,7 @@ pub struct LuckyDrawOutput {
     pub random: u64,
     pub luckypool_empty: bool,
     pub prize_cryptogram: Option<String>,
+    pub airdrop_cryptogram: Option<String>,
 }
 
 #[derive(CandidType, Clone, Deserialize)]
