@@ -1,4 +1,8 @@
+import { ENV, X_AUTH_ENDPIONT, X_AUTH_KEY } from '$lib/constants'
 import { authStore, type AuthSignInParams } from '$lib/stores/auth'
+import { type AuthMessage } from '$lib/types/auth'
+import { popupCenter } from '$lib/utils/window'
+import type { Principal } from '@dfinity/principal'
 
 export const signIn = async (
   params: AuthSignInParams
@@ -36,4 +40,83 @@ const logout = async ({
 
   // We reload the page to make sure all the states are cleared
   window.location.reload()
+}
+
+export class XAuth {
+  private url: URL
+  protected constructor(
+    principal: Principal,
+    env: string,
+    private _authWindow: Window | null = null,
+    private _onSuccess: (result: string) => void = () => {},
+    private _onFailure: (error: string) => void = () => {}
+  ) {
+    this.url = new URL(
+      `${X_AUTH_ENDPIONT}?principal=${principal.toText()}&env=${env}`
+    )
+  }
+
+  static async authorize(principal: Principal): Promise<string> {
+    const xauth = new XAuth(principal, ENV)
+    return new Promise((resolve, reject) => {
+      localStorage.removeItem(X_AUTH_KEY)
+
+      xauth._onSuccess = resolve
+      xauth._onFailure = reject
+      // xauth._eventHandler = xauth._onEvent.bind(xauth)
+      // window.addEventListener('message', xauth._eventHandler)
+      xauth._authWindow = window.open(
+        xauth.url.toString(),
+        'XAuthWindow',
+        popupCenter({
+          width: 576,
+          height: 625
+        })
+      )
+      let i = 0
+      const checkInterruption = (): void => {
+        if (i > 120) {
+          xauth._handleFailure('XAuth Timeout')
+        } else if (!xauth._checkResult()) {
+          i += 1
+          setTimeout(checkInterruption, 1000)
+        }
+      }
+      checkInterruption()
+    })
+  }
+
+  private _checkResult() {
+    const data = localStorage.getItem(X_AUTH_KEY)
+    if (!data) {
+      return false
+    }
+    const msg: AuthMessage<string> = JSON.parse(data)
+    if (msg.kind != 'XAuth') {
+      console.warn(
+        `WARNING: expected kind 'XAuth', got '${msg.kind}' (ignoring)`
+      )
+      return false
+    }
+
+    localStorage.removeItem(X_AUTH_KEY)
+    if (msg.error) {
+      this._handleFailure(msg.error)
+    } else if (msg.result) {
+      this._clearListener()
+      this._onSuccess(msg.result)
+    }
+
+    return true
+  }
+
+  private _handleFailure(err: string) {
+    this._clearListener()
+    this._onFailure(err)
+  }
+
+  private _clearListener() {
+    this._authWindow?.close()
+    this._authWindow = null
+  }
 }
