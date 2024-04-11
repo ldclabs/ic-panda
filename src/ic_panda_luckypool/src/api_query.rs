@@ -1,4 +1,4 @@
-use crate::{nat_to_u64, store, types, utils, AIRDROP_AMOUNT, ANONYMOUS, TOKEN_1};
+use crate::{nat_to_u64, store, types, utils, ANONYMOUS, TOKEN_1};
 use candid::{Nat, Principal};
 
 #[ic_cdk::query]
@@ -19,11 +19,12 @@ fn state() -> Result<store::State, ()> {
 #[ic_cdk::query]
 async fn airdrop_state_of(owner: Option<Principal>) -> Result<types::AirdropStateOutput, ()> {
     let owner = owner.unwrap_or(ic_cdk::caller());
+    let (airdrop_amount, _) = store::state::airdrop_amount_balance();
     if owner == ANONYMOUS {
         return Ok(types::AirdropStateOutput {
             lucky_code: None,
             claimed: Nat::from(0u64),
-            claimable: Nat::from(AIRDROP_AMOUNT * TOKEN_1),
+            claimable: Nat::from(airdrop_amount * TOKEN_1),
         });
     }
 
@@ -36,7 +37,7 @@ async fn airdrop_state_of(owner: Option<Principal>) -> Result<types::AirdropStat
         None => Ok(types::AirdropStateOutput {
             lucky_code: None,
             claimed: Nat::from(0u64),
-            claimable: Nat::from(AIRDROP_AMOUNT * TOKEN_1),
+            claimable: Nat::from(airdrop_amount * TOKEN_1),
         }),
     }
 }

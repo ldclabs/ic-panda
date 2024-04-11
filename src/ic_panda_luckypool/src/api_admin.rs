@@ -61,6 +61,19 @@ fn manager_update_airdrop_balance(airdrop_balance: u64) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
+fn manager_update_airdrop_amount(airdrop_amount: u64) -> Result<(), String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    if airdrop_amount > 100 {
+        return Err("airdrop amount should be less than 100 tokens".to_string());
+    }
+
+    store::state::with_mut(|state| state.airdrop_amount = Some(airdrop_amount));
+    Ok(())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
 fn manager_add_notification(args: types::Notification) -> Result<(), String> {
     if !store::state::is_manager(&ic_cdk::caller()) {
         return Err("user is not a manager".to_string());

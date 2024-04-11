@@ -33,6 +33,7 @@ pub struct State {
     pub luckiest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckiest luckydraw logs
     pub latest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckydraw logs
     pub managers: Option<BTreeSet<Principal>>,
+    pub airdrop_amount: Option<u64>,
 }
 
 impl Storable for State {
@@ -348,7 +349,7 @@ pub mod luckycode {
 }
 
 pub mod airdrop {
-    use crate::{AIRDROP_AMOUNT, TOKEN_1};
+    use crate::TOKEN_1;
 
     use super::*;
 
@@ -364,6 +365,7 @@ pub mod airdrop {
         referrer: Option<Principal>,
         now_sec: u64,
         amount: u64,
+        rebate_bonus: u64,
         caller_code: u32,
     ) -> Result<types::AirdropLog, String> {
         let referrer_code = AIRDROP.with(|r| {
@@ -377,11 +379,7 @@ pub mod airdrop {
                     Some(state) => {
                         m.insert(
                             referrer,
-                            AirdropState(
-                                state.0,
-                                state.1,
-                                state.2 + (AIRDROP_AMOUNT / 2) * TOKEN_1,
-                            ),
+                            AirdropState(state.0, state.1, state.2 + rebate_bonus),
                         );
                         state.0
                     }
@@ -663,8 +661,12 @@ pub mod state {
         })
     }
 
-    pub fn airdrop_balance() -> u64 {
-        STATE_HEAP.with(|r| r.borrow().airdrop_balance)
+    pub fn airdrop_amount_balance() -> (u64, u64) {
+        STATE_HEAP.with(|r| {
+            let s = r.borrow();
+            // default to 100 PANDA tokens
+            (s.airdrop_amount.unwrap_or(100), s.airdrop_balance)
+        })
     }
 
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {

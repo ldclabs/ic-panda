@@ -1,7 +1,6 @@
 use crate::{
     icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_to, types, utils, AIRDROP_AMOUNT, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER,
-    TRANS_FEE,
+    token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER, TRANS_FEE,
 };
 use candid::Nat;
 use ic_captcha::CaptchaBuilder;
@@ -59,7 +58,8 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         });
     }
 
-    if store::state::airdrop_balance() < AIRDROP_AMOUNT * TOKEN_1 + TRANS_FEE {
+    let (airdrop_amount, airdrop_balance) = store::state::airdrop_amount_balance();
+    if airdrop_balance < airdrop_amount * TOKEN_1 + TRANS_FEE {
         return Err("airdrop pool is empty".to_string());
     }
 
@@ -75,13 +75,20 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         .lucky_code
         .and_then(|s| store::luckycode::get_by_string(&s));
     let claimable = if referrer.is_some() {
-        (AIRDROP_AMOUNT + AIRDROP_AMOUNT / 2) * TOKEN_1
+        (airdrop_amount + airdrop_amount / 2) * TOKEN_1
     } else {
-        AIRDROP_AMOUNT * TOKEN_1
+        airdrop_amount * TOKEN_1
     };
 
     let caller_code = store::luckycode::new_from(caller);
-    let log = store::airdrop::insert(caller, referrer, now_sec, claimable, caller_code)?;
+    let log = store::airdrop::insert(
+        caller,
+        referrer,
+        now_sec,
+        claimable,
+        (airdrop_amount / 2) * TOKEN_1,
+        caller_code,
+    )?;
     store::state::with_mut(|r| {
         r.total_airdrop_count += 1;
         r.latest_airdrop_logs.insert(0, log);
@@ -107,7 +114,8 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
         return Err("invalid prize cryptogram or expired".to_string());
     }
 
-    if store::state::airdrop_balance() < AIRDROP_AMOUNT * TOKEN_1 + TRANS_FEE {
+    let (airdrop_amount, airdrop_balance) = store::state::airdrop_amount_balance();
+    if airdrop_balance < airdrop_amount * TOKEN_1 + TRANS_FEE {
         return Err("airdrop pool is empty".to_string());
     }
 

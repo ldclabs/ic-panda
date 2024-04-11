@@ -62,6 +62,7 @@ type State = record {
   total_prize_count : opt nat64;
   total_airdrop_count : nat64;
   total_prize : opt nat64;
+  airdrop_amount : opt nat64;
   luckiest_luckydraw_logs : vec LuckyDrawLog;
   airdrop_balance : nat64;
   total_luckydraw_count : nat64;
@@ -83,6 +84,7 @@ service : () -> {
   manager_ban_users : (vec principal) -> (Result);
   manager_get_airdrop_key : () -> (Result_5) query;
   manager_remove_notifications : (blob) -> (Result);
+  manager_update_airdrop_amount : (nat64) -> (Result);
   manager_update_airdrop_balance : (nat64) -> (Result);
   my_luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   notifications : () -> (vec Notification) query;
