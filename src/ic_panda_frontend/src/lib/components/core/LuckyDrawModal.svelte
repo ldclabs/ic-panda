@@ -87,7 +87,7 @@
       }
       setTimeout(() => {
         lottiePlayerRef?.remove()
-      }, 4200)
+      }, 3000)
     } catch (err: any) {
       submitting = false
       stepN = 0
