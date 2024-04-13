@@ -3,6 +3,7 @@
   import AirdropCard from '$lib/components/core/AirdropCard.svelte'
   import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
+  import PrizeCard from '$lib/components/core/PrizeCard.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconExchangeDollar from '$lib/components/icons/IconExchangeDollar.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
@@ -129,6 +130,14 @@
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
       >
         <AirdropCard />
+      </Saos>
+    </div>
+    <div class="mt-8 w-full max-w-[820px]">
+      <Saos
+        once={true}
+        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+      >
+        <PrizeCard />
       </Saos>
     </div>
     <div class="mt-6 w-full max-w-[820px]">

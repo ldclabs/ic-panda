@@ -167,16 +167,16 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
         store::user::deactive(caller);
     });
 
-    let store::AirdropState(caller_code, claimed, claimable) = store::airdrop::state_of(&caller)
+    let store::AirdropState(caller_code, _, claimable) = store::airdrop::state_of(&caller)
         .ok_or("You don't have lucky code to claim prize".to_string())?;
     if caller_code == 0 {
         return Err("user is banned".to_string());
     }
-    if (claimed + claimable) < TOKEN_1 * 10 {
+    if claimable < TOKEN_1 * 10 {
         let balance = token_balance_of(TOKEN_CANISTER, caller)
             .await
             .unwrap_or(Nat::from(0u64));
-        if balance < TOKEN_1 * 10 {
+        if (claimable + balance) < TOKEN_1 * 10 {
             return Err("the balance must be more than 10 tokens to claim prize.".to_string());
         }
     }

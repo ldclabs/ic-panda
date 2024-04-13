@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub static CHALLENGE_EXPIRE: u64 = 60; // 1 minutes
+pub static CHALLENGE_EXPIRE: u64 = 180; // 3 minutes
 pub static USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 #[derive(Clone)]

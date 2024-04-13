@@ -7,21 +7,21 @@
     type LuckyPoolAPI,
     type State
   } from '$lib/canisters/luckypool'
+  import IconAlarmWarning from '$lib/components/icons/IconAlarmWarning.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
-  import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import AirdropModal from './AirdropModal.svelte'
-  import PrizeModal from './PrizeModal.svelte'
 
   let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>
@@ -41,18 +41,6 @@
       modalStore.trigger({
         type: 'component',
         component: { ref: AirdropModal }
-      })
-    }
-  }
-
-  function claimPrizeHandler() {
-    if (principal.isAnonymous()) {
-      signIn({})
-    } else {
-      modalStore.trigger({
-        type: 'component',
-        component: { ref: PrizeModal },
-        meta: { claimableAmount: claimableAmount }
       })
     }
   }
@@ -87,14 +75,6 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-
-    await new Promise((res) => setTimeout(res, 400))
-    if (
-      decodePrize($page.url.searchParams.get('prize') || '') &&
-      !principal.isAnonymous()
-    ) {
-      claimPrizeHandler()
-    }
   })
 
   $: principal = $authStore.identity.getPrincipal()
@@ -122,13 +102,13 @@
 </script>
 
 <div
-  class="flex flex-col justify-center rounded-2xl bg-white bg-[url('/_assets/images/lucky-pool-bg.webp')] bg-contain bg-no-repeat p-4"
+  class="flex flex-col justify-center rounded-2xl bg-white bg-[url('/_assets/images/lucky-pool-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
 >
-  <section class="mb-12 mt-6 flex flex-col justify-center">
+  <section class="mb-10 mt-5 flex flex-col justify-center">
     <h5 class="h5 text-center font-extrabold">
       <span>Free PANDA Airdrop</span>
     </h5>
-    <div class="m-auto mt-12 flex flex-row gap-4">
+    <div class="m-auto mt-5 flex flex-row gap-4">
       <div
         class="*:rounded-full *:transition *:duration-700 *:ease-in-out *:hover:scale-125 *:hover:shadow-lg"
       >
@@ -169,21 +149,60 @@
   <footer class="m-auto mb-6">
     {#if luckyCode == ''}
       <!-- Anonymous -->
-      <p class="flex flex-row justify-center gap-1 text-gold">
-        <span>You can get</span>
-        <span>
-          {formatNumber(Number(claimableAmount / PANDAToken.one))}
-        </span>
-        <span>PANDA tokens for free</span>
-      </p>
-      <button
-        disabled={claimableAmount === 0n ||
-          totalBalance < claimableAmount + PANDAToken.fee}
-        on:click={claimNowHandler}
-        class="variant-filled-error btn m-auto mt-3 w-[320px] max-w-full text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
-      >
-        Claim Airdrop
-      </button>
+      <p class="text-sm text-gray/50">Please read the rules before claiming:</p>
+      <ol class="list *:mt-3">
+        <li>
+          <span class="bg-pink badge-icon p-2 text-white">1</span>
+          <span class="flex-auto">
+            New users can get <b class="text-pink">
+              {formatNumber(Number(claimableAmount / PANDAToken.one))} PANDA
+            </b>
+            or
+            <b class="text-pink">
+              {formatNumber(
+                Number(
+                  (claimableAmount + claimableAmount / 2n) / PANDAToken.one
+                )
+              )} PANDA
+            </b>
+            with <b class="text-pink">LUCKY CODE</b>.
+          </span>
+        </li>
+        <li>
+          <span class="bg-pink badge-icon p-2 text-white">2</span>
+          <span class="flex-auto">
+            Your <b>LUCKY CODE</b> will be generated after claiming the airdrop.
+          </span>
+        </li>
+        <li>
+          <span class="bg-pink badge-icon p-2 text-white">3</span>
+          <span class="flex-auto">
+            For each successful <b class="text-pink">referral with LUCKY CODE</b
+            >, you gain an additional
+            <b class="text-pink"
+              >{formatNumber(
+                Number(claimableAmount / (2n * PANDAToken.one))
+              )}</b
+            >.
+          </span>
+        </li>
+      </ol>
+      <div class="mt-10 flex flex-col items-center">
+        <p
+          class="text-pink flex flex-row content-center items-center gap-2 text-sm font-medium"
+        >
+          <span class="*:size-5"><IconAlarmWarning /></span>Each user
+          <span>can only claim ONCE.</span>
+        </p>
+        <button
+          disabled={claimableAmount === 0n ||
+            totalBalance < claimableAmount + PANDAToken.fee}
+          on:click={claimNowHandler}
+          class="bg-pink btn m-auto mt-3 w-[320px] max-w-full font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        >
+          Understand and Claim Now
+        </button>
+      </div>
     {:else if luckyCode == 'AAAAAA'}
       <!-- banned user -->
       <p class="flex flex-row gap-1">
@@ -203,26 +222,24 @@
         </span>
         <span>tokens</span>
       </p>
-      <p>
+      <p class="mt-3">
         <span>Lucky Code:</span>
         <span class="text-panda">{luckyCode}</span>
         <TextClipboardButton textValue={luckyCode} />
       </p>
-      <p class="">
+      <p class="mt-3">
         <span>Link:</span>
         <span>
-          {'https://panda.fans/?ref=' + luckyCode}
+          {`${APP_ORIGIN}/?ref=${luckyCode}`}
         </span>
-        <TextClipboardButton
-          textValue={'https://panda.fans/?ref=' + luckyCode}
-        />
+        <TextClipboardButton textValue={`${APP_ORIGIN}/?ref=${luckyCode}`} />
       </p>
       <button
         disabled={submitting ||
           claimableAmount === 0n ||
           totalBalance < claimableAmount + PANDAToken.fee}
         on:click={harvestHandler}
-        class="variant-filled-primary btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
@@ -245,11 +262,5 @@
         {/if}
       </button>
     {/if}
-    <button
-      on:click={claimPrizeHandler}
-      class="variant-ringed btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
-    >
-      Claim Prize
-    </button>
   </footer>
 </div>

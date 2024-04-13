@@ -5,14 +5,19 @@
     luckyPoolAPIAsync,
     type AirdropState
   } from '$lib/canisters/luckypool'
+  import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
+  import IconChatSmile from '$lib/components/icons/IconChatSmile.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { XAuth } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { errMessage } from '$lib/types/result'
+  import { shortId } from '$lib/utils/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -34,9 +39,11 @@
   let principal = $authStore.identity.getPrincipal()
 
   const toastStore = getToastStore()
-  const luckyLink = 'https://panda.fans/?ref='
+  const luckyLink = `${APP_ORIGIN}/?ref=`
 
-  async function onFormSubmit() {
+  async function onFormSubmit(e: Event) {
+    e.preventDefault()
+
     submitting = true
     try {
       result = await luckyPoolAPI.airdrop({
@@ -71,6 +78,28 @@
       (luckyCode == '' || luckyCode.length == 6)
   }
 
+  async function airdropCodeCopyPaste(e: Event) {
+    e.preventDefault()
+
+    if (cryptogram == '') {
+      cryptogram = await navigator.clipboard.readText()
+      checkValidity()
+    } else {
+      cryptogram = ''
+    }
+  }
+
+  async function luckyCodeCopyPaste(e: Event) {
+    e.preventDefault()
+
+    if (luckyCode == '') {
+      luckyCode = await navigator.clipboard.readText()
+      checkValidity()
+    } else {
+      luckyCode = ''
+    }
+  }
+
   async function xAuth() {
     dmChallenge = false
     if (challenge != '') {
@@ -102,10 +131,10 @@
 
 <ModalCard {parent}>
   {#if result}
+    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+      <IconCheckbox />
+    </div>
     <div class="text-center">
-      <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
-        <IconCheckbox />
-      </div>
       <p class="mt-4">
         <span>
           You have successfully claimed <b
@@ -115,11 +144,11 @@
           > PANDA tokens.
         </span>
       </p>
-      <h4 class="h4 mt-4">
+      <p class="mt-4">
         <span>Your lucky code:</span>
         <span class="text-panda">{result.lucky_code[0]}</span>
         <TextClipboardButton textValue={result.lucky_code[0] || ''} />
-      </h4>
+      </p>
       <p class="mt-4">
         <span>Link:</span>
         <span>
@@ -137,87 +166,81 @@
       </p>
     </div>
   {:else}
-    <h6 class="h6">Free PANDA Tokens Airdrop Rules</h6>
-    <ol class="list text-gray/50">
-      <li>
-        <span class="variant-soft-primary badge-icon p-4">1</span>
-        <span class="flex-auto">
-          Each new user can claim {defaultClaimable} tokens, or {defaultClaimable +
-            defaultClaimable / 2} tokens with a valid lucky code.
-        </span>
-      </li>
-      <li>
-        <span class="variant-soft-primary badge-icon p-4">2</span>
-        <span class="flex-auto">
-          Upon claiming, you'll receive your own lucky code to share with
-          others.
-        </span>
-      </li>
-      <li>
-        <span class="variant-soft-primary badge-icon p-4">3</span>
-        <span class="flex-auto">
-          When a new user claims the airdrop using your lucky code, you'll also
-          receive an additional {defaultClaimable / 2} tokens.
-        </span>
-      </li>
-    </ol>
-    <hr class="!border-t-1 !border-gray/10" />
-    <form class="flex flex-col gap-4" on:input={onFormChange}>
-      <div class="flex flex-col items-center gap-2">
-        <button
-          class="variant-filled btn w-full {challenge != '' ? 'bg-panda' : ''}"
-          disabled={oAuthSubmitting || submitting}
-          on:click={xAuth}
-        >
-          <span class="">Challenge by Twitter OAuth</span>
-          {#if challenge != ''}
-            <span class=""><IconCheckbox /></span>
-          {:else}
-            <span><IconX /></span>
-          {/if}
-        </button>
-        <button
-          class="btn text-gray/50"
-          disabled={oAuthSubmitting || submitting || challenge != ''}
-          on:click={() => {
-            dmChallenge = !dmChallenge
-          }}
-        >
-          <span>Or</span>
-          <span class=" underline underline-offset-4"
-            >Request challenge code from US</span
-          >
-        </button>
-      </div>
-      <div
-        class="flex flex-col gap-2 {!dmChallenge ? 'collapse h-0' : 'visible'}"
+    <h3 class="h3 !mt-1 text-center">🪂 🎁</h3>
+    <div class="text-center text-xl font-bold">Get the Airdrop</div>
+    <div class="m-auto !mt-0 flex w-80 flex-col content-center">
+      <h6 class="h6 mb-4 mt-5 text-center font-bold">
+        <span>STEP 1: Get verified</span>
+      </h6>
+      <button
+        class="variant-filled btn w-full rounded-xl {challenge != ''
+          ? 'bg-panda'
+          : ''}"
+        disabled={oAuthSubmitting || submitting}
+        on:click={xAuth}
       >
-        <p>
-          Follow the <a
-            title="Follow on Twitter"
-            class="text-panda underline"
-            href="https://twitter.com/ICPandaDAO"
-            target="_blank">ICPanda Twitter</a
+        {#if challenge != ''}
+          <span class=""><IconCheckbox /></span>
+        {:else}
+          <span><IconX /></span>
+        {/if}
+        <span class="">To be Verified by X account</span>
+      </button>
+      <button
+        class="btn text-gray/50 outline-0 {dmChallenge ? 'hidden' : ''}"
+        disabled={oAuthSubmitting || submitting || challenge != ''}
+        on:click={() => {
+          dmChallenge = !dmChallenge
+        }}
+      >
+        <span class="">Another option</span>
+        <span><IconArrowDownLine /></span>
+      </button>
+      <div
+        class="mt-4 rounded-xl bg-gray/5 {!dmChallenge
+          ? 'collapse h-0'
+          : 'visible mb-6'}"
+      >
+        <div class="border-b-[1px] border-gray/10 p-4">
+          <p class="flex flex-row items-center gap-1 font-medium">
+            <span>Or DM your principal to</span>
+            <a
+              title="DM us on Twitter"
+              class="text-pink"
+              href="https://twitter.com/ICPandaDAO"
+              target="_blank">ICPanda X</a
+            >
+            <span class="text-pink *:size-5"><IconChatSmile /></span>
+          </p>
+          <p class="text-sm text-gray/50"
+            >We will reply to you with the airdrop code in <b class="text-pink"
+              >1-2 days</b
+            >.</p
           >
-          and DM us your <b>Principal ID</b>👇 to get the airdrop
-          <b>Challenge Code</b> for you:
-        </p>
-        <h5 class="h5 my-2 flex flex-row content-center items-center gap-1">
-          <p class="truncate text-panda">{principal.toString()}</p>
+        </div>
+        <div class="flex flex-row items-center justify-between gap-1 p-4">
+          <span class="font-medium">Principal:</span>
+          <span class="truncate text-gray/50"
+            >{shortId(principal.toString())}</span
+          >
           <TextClipboardButton textValue={principal.toString()} />
-        </h5>
-        <p>
-          You can also obtain airdrop and lucky code through a <b>Lucky Draw</b
-          >.<br />
-          You can only exchange for the challenge code once. We will not respond
-          to multiple requests from you.
-        </p>
-        <div
-          class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
-        >
-          <div class="input-group-shim bg-gray/5">Challenge Code</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
+    <form
+      class="m-auto !mt-0 flex w-80 flex-col content-center"
+      on:input={onFormChange}
+    >
+      <h6 class="h6 mb-4 mt-6 text-center font-bold">
+        <span>STEP 2 : Fill-in airdrop code</span>
+      </h6>
+      <label class="label {!dmChallenge ? 'collapse h-0' : 'visible mb-2'}">
+        <span>Airdrop code:</span>
+        <div class="relative">
           <input
-            class="input rounded-none invalid:input-warning hover:bg-white/90"
+            class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
             type="text"
             name="cryptogram"
             minlength="20"
@@ -226,27 +249,53 @@
             placeholder="Enter code"
             disabled={submitting}
           />
+          <button
+            class="btn absolute right-0 top-0 outline-0"
+            disabled={submitting}
+            on:click={airdropCodeCopyPaste}
+          >
+            {#if cryptogram == ''}
+              <span>Paste</span>
+            {:else}
+              <span class="*:scale-90"><IconDeleteBin /></span>
+            {/if}
+          </button>
         </div>
-      </div>
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"
-      >
-        <div class="input-group-shim !bg-gray/5">Lucky Code (Optional)</div>
-        <input
-          class="input rounded-none text-panda invalid:input-warning hover:bg-white/90"
-          type="text"
-          name="luckyCode"
-          minlength="6"
-          maxlength="6"
-          bind:value={luckyCode}
-          placeholder="Enter code"
-          disabled={submitting}
-        />
-      </div>
+
+        <span class="text-pink text-sm"
+          >You can also get this code by participating in lucky draw.</span
+        >
+      </label>
+      <label class="label">
+        <span>Lucky Code (Optinal):</span>
+        <div class="relative">
+          <input
+            class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            type="text"
+            name="luckyCode"
+            minlength="6"
+            maxlength="6"
+            bind:value={luckyCode}
+            placeholder="Enter code"
+            disabled={submitting}
+          />
+          <button
+            class="btn absolute right-0 top-0 outline-0"
+            disabled={submitting}
+            on:click={luckyCodeCopyPaste}
+          >
+            {#if luckyCode == ''}
+              <span>Paste</span>
+            {:else}
+              <span class="*:scale-90"><IconDeleteBin /></span>
+            {/if}
+          </button>
+        </div>
+      </label>
     </form>
-    <footer class="">
+    <footer class="m-auto !mt-6 w-80">
       <button
-        class="variant-filled-primary btn flex w-full flex-row items-center gap-2 text-white"
+        class="bg-pink btn flex w-full flex-row items-center gap-2 text-white"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >

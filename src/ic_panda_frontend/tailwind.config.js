@@ -1,6 +1,6 @@
 import { skeleton } from '@skeletonlabs/tw-plugin'
-import { join } from 'path'
 import forms from '@tailwindcss/forms'
+import { join } from 'path'
 
 const config = {
   // darkMode: 'class',
@@ -15,7 +15,9 @@ const config = {
     colors: {
       panda: '#11c291',
       gold: '#fbbf24',
+      pink: '#ec4899',
       gray: '#0a0a0a',
+      orange: '#f97316',
       white: '#ffffff',
       black: '#000000'
     },
