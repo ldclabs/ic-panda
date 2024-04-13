@@ -205,22 +205,29 @@
       </div>
     {:else if luckyCode == 'AAAAAA'}
       <!-- banned user -->
-      <p class="flex flex-row gap-1">
-        <span>Sorry, you cannot claim the airdrop.</span>
+      <p class="">
+        <span>Sorry, you can not claim the airdrop.</span>
       </p>
       <button
         disabled={true}
         class="variant-filled-primary btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
-        Claim Airdrop
+        Got It
       </button>
     {:else}
-      <p class="flex flex-row gap-1">
-        <span>You have claimed</span>
-        <span>
-          {formatNumber(Number(claimedAmount / PANDAToken.one))}
-        </span>
-        <span>tokens</span>
+      <p class="">
+        <span
+          >You have transferred <b>
+            {formatNumber(Number(claimedAmount / PANDAToken.one))}
+          </b> tokens</span
+        >
+        {#if claimableAmount > 0n}
+          <span
+            >, and another <b
+              >{formatNumber(Number(claimableAmount / PANDAToken.one))}</b
+            > tokens are claimed and awaiting transfer</span
+          >
+        {/if}
       </p>
       <p class="mt-3">
         <span>Lucky Code:</span>
@@ -246,19 +253,20 @@
           <span>Processing...</span>
         {:else if harvested > 0n}
           <span>
-            {'Harvested ' +
-              formatNumber(Number(harvested / PANDAToken.one)) +
-              ' PANDA tokens'}
+            {formatNumber(Number(harvested / PANDAToken.one)) +
+              ' tokens is transferred'}
           </span>
           <span>
             <IconCheckbox />
           </span>
-        {:else}
+        {:else if claimableAmount > 0n}
           <span>
-            {'Harvest ' +
+            {'Transfer ' +
               formatNumber(Number(claimableAmount / PANDAToken.one)) +
-              ' PANDA tokens'}
+              ' tokens to wallet'}
           </span>
+        {:else}
+          <span>No token to transfer</span>
         {/if}
       </button>
     {/if}

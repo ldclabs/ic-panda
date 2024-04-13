@@ -214,30 +214,29 @@
       </button>
     </footer>
     <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
-    <div class="m-auto !my-8 w-80">
-      <p class="text-sm text-gray/50"
-        >To get the latest updates by following ICPanda:</p
+    <div class="m-auto !mt-7 w-80">
+      <p class="text-sm text-gray/50">To get the latest updates by following:</p
       >
       <div class="mt-3 flex flex-row justify-between">
         <a
           type="button"
           title="Follow on Twitter"
-          class="btn rounded-xl border-2 border-gray/10"
+          class="btn btn-sm rounded-xl border-2 border-gray/10"
           href="https://twitter.com/ICPandaDAO"
           target="_blank"
         >
           <span><IconX /></span>
-          <span class="text-left">Twitter</span>
+          <span class="text-left">ICPanda X</span>
         </a>
         <a
           type="button"
           title="Join the Community"
-          class="btn rounded-xl border-2 border-gray/10"
+          class="btn btn-sm rounded-xl border-2 border-gray/10"
           href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
           target="_blank"
         >
           <span><IconOpenChat /></span>
-          <span class="text-left">Open Chat</span>
+          <span class="text-left">ICPanda Community</span>
         </a>
       </div>
     </div>

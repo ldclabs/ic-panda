@@ -50,7 +50,7 @@ fn main() {
                 .duration_since(UNIX_EPOCH)
                 .expect("system time before Unix epoch");
             let ts = (ts.as_secs() / 60) as u32;
-            let prize = Prize(0, ts, 10080, 0, 0);
+            let prize = Prize(0, ts, 4320, 0, 0);
             for principal in principals {
                 let cryptogram = prize.encode(&key, Some(principal));
                 println!("{}: {}", principal, cryptogram);

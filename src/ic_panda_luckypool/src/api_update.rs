@@ -331,7 +331,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                 if code == 0 {
                     None
                 } else {
-                    store::prize::try_add(code, now_sec, 10080, 0, (icp01 as u16) * 5)
+                    store::prize::try_add(code, now_sec, 4320, 0, (icp01 as u16) * 5)
                 }
             }
             None => {
@@ -339,7 +339,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                 if store::airdrop::insert(caller, None, now_sec, airdrop_amount * TOKEN_1, 0, code)
                     .is_ok()
                 {
-                    store::prize::try_add(code, now_sec, 10080, 0, (icp01 as u16) * 5)
+                    store::prize::try_add(code, now_sec, 4320, 0, (icp01 as u16) * 5)
                 } else {
                     None
                 }

@@ -48,6 +48,7 @@ export class XAuth {
     principal: Principal,
     env: string,
     private _authWindow: Window | null = null,
+    private _timeoutId: any = null,
     private _onSuccess: (result: string) => void = () => {},
     private _onFailure: (error: string) => void = () => {}
   ) {
@@ -75,15 +76,23 @@ export class XAuth {
       )
       let i = 0
       const checkInterruption = (): void => {
-        if (i > 120) {
-          xauth._handleFailure('XAuth Timeout')
+        if (i > 360) {
+          xauth._onFailure('XAuth Timeout')
         } else if (!xauth._checkResult()) {
           i += 1
-          setTimeout(checkInterruption, 1000)
+          xauth._timeoutId = setTimeout(checkInterruption, 300)
         }
       }
       checkInterruption()
     })
+      .then((res) => {
+        xauth.clear()
+        return res as string
+      })
+      .catch((err) => {
+        xauth.clear()
+        throw err
+      })
   }
 
   private _checkResult() {
@@ -101,22 +110,20 @@ export class XAuth {
 
     localStorage.removeItem(X_AUTH_KEY)
     if (msg.error) {
-      this._handleFailure(msg.error)
+      this._onFailure(msg.error)
     } else if (msg.result) {
-      this._clearListener()
       this._onSuccess(msg.result)
     }
 
     return true
   }
 
-  private _handleFailure(err: string) {
-    this._clearListener()
-    this._onFailure(err)
-  }
-
-  private _clearListener() {
+  clear() {
     this._authWindow?.close()
     this._authWindow = null
+    if (this._timeoutId) {
+      clearTimeout(this._timeoutId)
+      this._timeoutId = null
+    }
   }
 }

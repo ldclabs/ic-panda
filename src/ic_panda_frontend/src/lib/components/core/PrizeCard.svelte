@@ -3,8 +3,7 @@
   import {
     luckyPoolAPIAsync,
     type AirdropState,
-    type LuckyPoolAPI,
-    type State
+    type LuckyPoolAPI
   } from '$lib/canisters/luckypool'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
@@ -14,7 +13,6 @@
   import { type Readable } from 'svelte/store'
   import PrizeModal from './PrizeModal.svelte'
 
-  let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>
   let luckyPoolAPI: LuckyPoolAPI
   let claimableAmount = 0n
@@ -48,7 +46,6 @@
   $: principal = $authStore.identity.getPrincipal()
   $: {
     if (luckyPoolAPI) {
-      luckyPoolState = luckyPoolAPI.stateStore
       airdropState = luckyPoolAPI.airdropStateStore
       claimableAmount = $airdropState?.claimable || 0n
       if (luckyPoolAPI?.principal.toString() != principal.toString()) {
