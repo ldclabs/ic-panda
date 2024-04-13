@@ -21,7 +21,7 @@
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
-  import '../app.pcss'
+  import '../../app.pcss'
 
   initializeStores()
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })

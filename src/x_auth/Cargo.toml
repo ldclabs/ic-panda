@@ -1,0 +1,60 @@
+[package]
+name = "x-auth"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.64"
+publish = false
+
+[[bin]]
+name = "x-auth"
+path = "src/main.rs"
+
+[dependencies]
+lib_panda = { path = "../lib_panda", version = "0.2" }
+candid = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+structured-logger = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_bytes = { workspace = true }
+ciborium = { workspace = true }
+k256 = { workspace = true }
+base64 = { workspace = true }
+sha3 = { workspace = true }
+anyhow = "1"
+http = "1"
+dotenvy = "0.15"
+axum = { version = "0.7", features = [
+  "http1",
+  "http2",
+  "json",
+  "macros",
+  "matched-path",
+  "tokio",
+  "query",
+], default-features = true }
+hyper = { version = "1.2", features = ["full"] }
+tower-http = { version = "0.5", features = [
+  "catch-panic",
+  "compression-gzip",
+  "decompression-gzip",
+  "propagate-header",
+  "cors",
+  "timeout",
+] }
+reqwest = { version = "0.12", features = [
+  "rustls-tls",
+  "rustls-tls-webpki-roots",
+  "json",
+  "gzip",
+  "stream",
+  "trust-dns",
+  "http2",
+], default-features = false }
+url = { version = "2" }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+rand_core = "0.6"

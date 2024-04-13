@@ -85,6 +85,7 @@ service : () -> {
   manager_ban_users : (vec principal) -> (Result);
   manager_get_airdrop_key : () -> (Result_5) query;
   manager_remove_notifications : (blob) -> (Result);
+  manager_set_challenge_pub_key : (text) -> (Result);
   manager_update_airdrop_amount : (nat64) -> (Result);
   manager_update_airdrop_balance : (nat64) -> (Result);
   my_luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;

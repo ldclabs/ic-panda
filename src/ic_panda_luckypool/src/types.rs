@@ -110,6 +110,15 @@ impl ChallengeCode {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ChallengeState(pub (Principal, String, u64));
+
+impl ChallengeState {
+    pub fn is_valid(&self, user: &Principal, now_sec: u64) -> bool {
+        self.0 .2 >= now_sec && &self.0 .0 == user
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

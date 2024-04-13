@@ -211,9 +211,11 @@ const LUCKYDRAW_LOG_DATA_MEMORY_ID: MemoryId = MemoryId::new(6);
 const ISSUER_PRIZE_MEMORY_ID: MemoryId = MemoryId::new(7);
 const PRIZE_MEMORY_ID: MemoryId = MemoryId::new(8);
 const KEYS_MEMORY_ID: MemoryId = MemoryId::new(9);
+const X_AUTH_MEMORY_ID: MemoryId = MemoryId::new(10);
 
 thread_local! {
     static CAPTCHA_SECRET: RefCell<[u8; 32]> = const { RefCell::new([0; 32]) };
+    static CHALLENGE_PUB_KEY: RefCell<[u8; 32]> = const { RefCell::new([0; 32]) };
 
     static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
 
@@ -276,6 +278,12 @@ thread_local! {
             MEMORY_MANAGER.with_borrow(|m| m.get(KEYS_MEMORY_ID)),
         )
     );
+
+    static X_AUTH: RefCell<StableBTreeMap<String, (Principal, u64), Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(X_AUTH_MEMORY_ID)),
+        )
+    );
 }
 
 pub mod keys {
@@ -283,32 +291,53 @@ pub mod keys {
 
     pub async fn load() {
         let keys = KEYS.with(|r| r.borrow().iter().collect::<BTreeMap<String, Vec<u8>>>());
-        let mut secret: Vec<u8> = match keys.get("CAPTCHA_SECRET") {
-            Some(secret) => secret.clone(),
-            None => vec![],
-        };
-        if secret.len() != 32 {
-            let rr = ic_cdk::api::management_canister::main::raw_rand()
-                .await
-                .expect("failed to get random bytes");
-            secret = mac_256(&rr.0, b"CAPTCHA_SECRET").to_vec();
+        {
+            let mut secret: Vec<u8> = match keys.get("CAPTCHA_SECRET") {
+                Some(secret) => secret.clone(),
+                None => vec![],
+            };
+            if secret.len() != 32 {
+                let rr = ic_cdk::api::management_canister::main::raw_rand()
+                    .await
+                    .expect("failed to get random bytes");
+                secret = mac_256(&rr.0, b"CAPTCHA_SECRET").to_vec();
+            }
+            CAPTCHA_SECRET.with(|r| r.borrow_mut().copy_from_slice(&secret));
         }
-        let mut s = [0u8; 32];
-        s.copy_from_slice(&secret);
-        set_secret(s);
+        {
+            let key: Vec<u8> = match keys.get("CHALLENGE_PUB_KEY") {
+                Some(secret) => secret.clone(),
+                None => vec![],
+            };
+            if key.len() == 32 {
+                CHALLENGE_PUB_KEY.with(|r| r.borrow_mut().copy_from_slice(&key));
+            }
+        }
     }
 
     pub fn save() {
-        let secret = CAPTCHA_SECRET.with(|r| r.borrow().to_vec());
-        KEYS.with(|r| r.borrow_mut().insert("CAPTCHA_SECRET".to_string(), secret));
+        KEYS.with(|r| {
+            r.borrow_mut().insert(
+                "CAPTCHA_SECRET".to_string(),
+                CAPTCHA_SECRET.with(|r| r.borrow().to_vec()),
+            );
+            r.borrow_mut().insert(
+                "CHALLENGE_PUB_KEY".to_string(),
+                CHALLENGE_PUB_KEY.with(|r| r.borrow().to_vec()),
+            );
+        });
     }
 
-    pub fn with_secret<R>(f: impl FnOnce(&[u8]) -> R) -> R {
-        CAPTCHA_SECRET.with(|r| f(r.borrow().as_slice()))
+    pub fn with_secret<R>(f: impl FnOnce(&[u8; 32]) -> R) -> R {
+        CAPTCHA_SECRET.with(|r| f(&r.borrow()))
     }
 
-    pub fn set_secret(secret: [u8; 32]) {
-        CAPTCHA_SECRET.with(|r| *r.borrow_mut() = secret);
+    pub fn with_challenge_pub_key<R>(f: impl FnOnce(&[u8; 32]) -> R) -> R {
+        CHALLENGE_PUB_KEY.with(|r| f(&r.borrow()))
+    }
+
+    pub fn set_challenge_pub_key(key: [u8; 32]) {
+        CHALLENGE_PUB_KEY.with(|r| *r.borrow_mut() = key);
     }
 
     pub static AIRDROP_KEY: Lazy<[u8; 32]> =
@@ -319,9 +348,9 @@ pub mod keys {
 pub mod luckycode {
     use super::*;
 
-    pub fn get(code: u32) -> Option<Principal> {
-        LUCKYCODE.with(|r| r.borrow().get(&code))
-    }
+    // pub fn get(code: u32) -> Option<Principal> {
+    //     LUCKYCODE.with(|r| r.borrow().get(&code))
+    // }
 
     pub fn get_by_string(code: &str) -> Option<Principal> {
         match luckycode_from_string(code) {
@@ -344,6 +373,30 @@ pub mod luckycode {
             }
             m.insert(code, user);
             code
+        })
+    }
+}
+
+pub mod xauth {
+    use super::*;
+
+    // pub fn get(id: &String) -> Option<(Principal, u64)> {
+    //     X_AUTH.with(|r| r.borrow().get(id))
+    // }
+
+    // pub fn exists(id: &String) -> bool {
+    //     X_AUTH.with(|r| r.borrow().contains_key(id))
+    // }
+
+    pub fn try_set(id: String, user: Principal, now_sec: u64) -> bool {
+        X_AUTH.with(|r| {
+            let mut m = r.borrow_mut();
+            if m.contains_key(&id) {
+                return false;
+            }
+
+            m.insert(id, (user, now_sec));
+            true
         })
     }
 }

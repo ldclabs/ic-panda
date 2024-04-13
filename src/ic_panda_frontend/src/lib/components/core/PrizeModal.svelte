@@ -100,21 +100,19 @@
       <li>
         <span class="variant-soft-primary badge-icon p-4">1</span>
         <span class="flex-auto">
-          You must have a <b>lucky code</b> to claim prizes, which can be obtained
-          by claiming airdrop.
+          Have your own <b>lucky code</b> through airdrop.
         </span>
       </li>
       <li>
         <span class="variant-soft-primary badge-icon p-4">2</span>
         <span class="flex-auto">
-          The PANDA token balance in your wallet must be <b>more than 10</b>.
+          Have at least <b>10 PANDA</b> tokens in your wallet.
         </span>
       </li>
       <li>
         <span class="variant-soft-primary badge-icon p-4">3</span>
         <span class="flex-auto">
-          The prizes are limited in both the number of recipients and the time
-          available to claim them. First come, first served.
+          Each reward has a limit on quantity, first come first serve.
         </span>
       </li>
     </ol>

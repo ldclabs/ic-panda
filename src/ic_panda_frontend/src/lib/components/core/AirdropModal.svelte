@@ -7,8 +7,10 @@
   } from '$lib/canisters/luckypool'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconX from '$lib/components/icons/IconX.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { XAuth } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
@@ -19,8 +21,11 @@
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
+  let dmChallenge = false
+  let oAuthSubmitting = false
   let submitting = false
   let validating = false
+  let challenge = ''
   let cryptogram = ''
   let luckyPoolAPI: LuckyPoolAPI
   let luckyCode = $page.url.searchParams.get('ref') || ''
@@ -35,13 +40,17 @@
     submitting = true
     try {
       result = await luckyPoolAPI.airdrop({
-        challenge: '',
+        challenge: challenge,
         code: cryptogram,
         lucky_code: luckyCode != '' ? [luckyCode] : [],
         recaptcha: []
       })
     } catch (err: any) {
+      oAuthSubmitting = false
+      challenge = ''
+      cryptogram = ''
       submitting = false
+      validating = false
       toastStore.trigger({
         autohide: false,
         hideDismiss: false,
@@ -53,8 +62,35 @@
   }
 
   function onFormChange(e: Event) {
-    const form = e.currentTarget as HTMLFormElement
-    validating = form.checkValidity()
+    checkValidity()
+  }
+
+  function checkValidity() {
+    validating =
+      (challenge != '' || cryptogram != '') &&
+      (luckyCode == '' || luckyCode.length == 6)
+  }
+
+  async function xAuth() {
+    dmChallenge = false
+    if (challenge != '') {
+      return
+    }
+
+    oAuthSubmitting = true
+    try {
+      challenge = await XAuth.authorize(principal)
+      checkValidity()
+    } catch (err: any) {
+      oAuthSubmitting = false
+      challenge = ''
+      toastStore.trigger({
+        autohide: false,
+        hideDismiss: false,
+        background: 'variant-filled-error',
+        message: errMessage(err)
+      })
+    }
   }
 
   onMount(async () => {
@@ -127,8 +163,36 @@
     </ol>
     <hr class="!border-t-1 !border-gray/10" />
     <form class="flex flex-col gap-4" on:input={onFormChange}>
+      <div class="flex flex-col items-center gap-2">
+        <button
+          class="variant-filled btn w-full {challenge != '' ? 'bg-panda' : ''}"
+          disabled={oAuthSubmitting || submitting}
+          on:click={xAuth}
+        >
+          <span class="">Challenge by Twitter OAuth</span>
+          {#if challenge != ''}
+            <span class=""><IconCheckbox /></span>
+          {:else}
+            <span><IconX /></span>
+          {/if}
+        </button>
+        <button
+          class="btn text-gray/50"
+          disabled={oAuthSubmitting || submitting || challenge != ''}
+          on:click={() => {
+            dmChallenge = !dmChallenge
+          }}
+        >
+          <span>Or</span>
+          <span class=" underline underline-offset-4"
+            >Request challenge code from US</span
+          >
+        </button>
+      </div>
       <div
-        ><p>
+        class="flex flex-col gap-2 {!dmChallenge ? 'collapse h-0' : 'visible'}"
+      >
+        <p>
           Follow the <a
             title="Follow on Twitter"
             class="text-panda underline"
@@ -136,7 +200,7 @@
             target="_blank">ICPanda Twitter</a
           >
           and DM us your <b>Principal ID</b>👇 to get the airdrop
-          <b>cryptogram</b> for you:
+          <b>Challenge Code</b> for you:
         </p>
         <h5 class="h5 my-2 flex flex-row content-center items-center gap-1">
           <p class="truncate text-panda">{principal.toString()}</p>
@@ -145,25 +209,24 @@
         <p>
           You can also obtain airdrop and lucky code through a <b>Lucky Draw</b
           >.<br />
-          You can only exchange for the cryptogram once. We will not respond to multiple
-          requests from you.
+          You can only exchange for the challenge code once. We will not respond
+          to multiple requests from you.
         </p>
-      </div>
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
-      >
-        <div class="input-group-shim bg-gray/5">Cryptogram</div>
-        <input
-          class="input rounded-none invalid:input-warning hover:bg-white/90"
-          type="text"
-          name="cryptogram"
-          minlength="20"
-          maxlength="50"
-          bind:value={cryptogram}
-          placeholder="Enter code"
-          disabled={submitting}
-          required
-        />
+        <div
+          class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
+        >
+          <div class="input-group-shim bg-gray/5">Challenge Code</div>
+          <input
+            class="input rounded-none invalid:input-warning hover:bg-white/90"
+            type="text"
+            name="cryptogram"
+            minlength="20"
+            maxlength="50"
+            bind:value={cryptogram}
+            placeholder="Enter code"
+            disabled={submitting}
+          />
+        </div>
       </div>
       <div
         class="input-group input-group-divider grid-cols-[auto_1fr_auto] !bg-gray/5"

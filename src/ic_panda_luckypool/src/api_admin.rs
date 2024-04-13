@@ -4,6 +4,7 @@ use crate::{
 };
 use base64::{engine::general_purpose, Engine};
 use candid::{Nat, Principal};
+use lib_panda::bytes32_from_base64;
 use std::collections::BTreeSet;
 
 #[ic_cdk::update(guard = "is_controller")]
@@ -152,4 +153,14 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
         }
         None => Err("you don't have lucky code".to_string()),
     }
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_set_challenge_pub_key(key: String) -> Result<(), String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    let key = bytes32_from_base64(&key)?;
+    store::keys::set_challenge_pub_key(key);
+    Ok(())
 }

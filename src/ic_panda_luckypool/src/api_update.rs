@@ -6,7 +6,7 @@ use crate::{
 };
 use candid::Nat;
 use ic_captcha::CaptchaBuilder;
-use lib_panda::{mac_256, Cryptogram};
+use lib_panda::{mac_256, Cryptogram, Ed25519Message, VerifyingKey};
 use once_cell::sync::Lazy;
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
@@ -47,24 +47,38 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     let caller = ic_cdk::caller();
     let key = *store::keys::AIRDROP_KEY;
     let now_sec = ic_cdk::api::time() / SECOND;
-    let prize = match store::Prize::decode(&key, Some(caller), &args.code) {
-        Ok(prize) => {
-            // should be issued by the system
-            if !prize.is_valid_system(now_sec) {
-                return Err("invalid airdrop cryptogram or expired".to_string());
-            }
-            None
+    let prize = if !args.challenge.is_empty() {
+        let pk = store::keys::with_challenge_pub_key(VerifyingKey::from_bytes)
+            .map_err(|_| "failed to get the public key of the challenge".to_string())?;
+        let state = types::ChallengeState::verify_from(&pk, &args.challenge)?;
+        if !state.is_valid(&caller, now_sec) {
+            return Err("invalid xauth challenge or expired".to_string());
         }
-        Err(_) => match store::Prize::decode(&key, None, &args.code) {
+        if !store::xauth::try_set(state.0 .1, caller, now_sec) {
+            return Err("XAuth user id exists".to_string());
+        }
+
+        None
+    } else {
+        match store::Prize::decode(&key, Some(caller), &args.code) {
             Ok(prize) => {
-                // should be issued by the user
-                if !prize.is_valid(now_sec) || prize.3 != 0 || prize.0 == 0 {
-                    return Err("invalid airdrop cryptogram or expired".to_string());
+                // should be issued by the system
+                if !prize.is_valid_system(now_sec) {
+                    return Err("invalid airdrop challenge code or expired".to_string());
                 }
-                Some(prize)
+                None
             }
-            Err(_) => return Err("invalid airdrop cryptogram".to_string()),
-        },
+            Err(_) => match store::Prize::decode(&key, None, &args.code) {
+                Ok(prize) => {
+                    // should be issued by the user
+                    if !prize.is_valid(now_sec) || prize.3 != 0 || prize.0 == 0 {
+                        return Err("invalid airdrop challenge code or expired".to_string());
+                    }
+                    Some(prize)
+                }
+                Err(_) => return Err("invalid airdrop challenge code".to_string()),
+            },
+        }
     };
 
     if let Some(store::AirdropState(code, claimed, claimable)) = store::airdrop::state_of(&caller) {
@@ -133,7 +147,10 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> {
     let caller = ic_cdk::caller();
     let key = *store::keys::PRIZE_KEY;
-    let prize = store::Prize::decode(&key, None, &cryptogram)?;
+    let cryptogram = cryptogram
+        .strip_prefix("PRIZE:")
+        .unwrap_or(cryptogram.as_str());
+    let prize = store::Prize::decode(&key, None, cryptogram)?;
     let now_sec = ic_cdk::api::time() / SECOND;
     if !prize.is_valid(now_sec) {
         return Err("invalid prize cryptogram or expired".to_string());

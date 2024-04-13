@@ -192,8 +192,12 @@
           <span>Giving you a prize cryptogram:</span>
         </p>
         <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
-          <p class="truncate text-panda">{result.prize_cryptogram[0]}</p>
-          <TextClipboardButton textValue={String(result.prize_cryptogram[0])} />
+          <p class="truncate text-panda"
+            >{'PRIZE:' + result.prize_cryptogram[0]}</p
+          >
+          <TextClipboardButton
+            textValue={'PRIZE:' + result.prize_cryptogram[0]}
+          />
         </h4>
         <p>
           <span>
@@ -203,7 +207,7 @@
         </p>
       {:else if result.airdrop_cryptogram.length > 0 && cryptogramInfo}
         <p class="mt-6">
-          <span>Giving you an airdrop cryptogram:</span>
+          <span>Giving you an airdrop challenge code:</span>
         </p>
         <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
           <p class="truncate text-panda">{result.airdrop_cryptogram[0]}</p>
@@ -216,7 +220,7 @@
           airdrop, valid for <b>{(cryptogramInfo[2] || 10080) / (24 * 60)}</b> days.
         </p>
         <p class="text-left">
-          When a new user claims the airdrop using your cryptogram, you'll also
+          When a new user claims the airdrop using your code, you'll also
           receive an additional <b>{defaultClaimable / 2}</b> tokens per user.
         </p>
       {/if}

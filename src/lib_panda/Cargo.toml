@@ -1,6 +1,6 @@
 [package]
 name = "lib_panda"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,13 +8,15 @@ edition = "2021"
 [lib]
 
 [dependencies]
-candid = "0.10"
-ciborium = "0.2"
-hex = "0.4"
-hmac = "0.12"
-sha3 = "0.10"
-serde = "1"
-serde_json = "1"
-serde_bytes = "0.11"
-base64 = "0.21"
-num-traits = "0.2"
+candid = { workspace = true }
+ciborium = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+sha3 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_bytes = { workspace = true }
+base64 = { workspace = true }
+num-traits = { workspace = true }
+ed25519-dalek = { workspace = true }

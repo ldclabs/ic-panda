@@ -5,6 +5,9 @@ import { decode } from 'cborg'
 export type Prize = [number, number, number, number, number]
 
 export function decodePrize(prize: string): Prize | null {
+  if (prize.startsWith('PRIZE:')) prize = prize.slice(6)
+  if (!prize) return null
+
   try {
     const cryptogram = decode(base64ToBytes(prize))
     return decode(cryptogram[0])
