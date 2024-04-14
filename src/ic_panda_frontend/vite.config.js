@@ -1,11 +1,11 @@
 /// <reference types="vitest" />
 
 import { sveltekit } from '@sveltejs/kit/vite'
+import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 import dotenv from 'dotenv'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import environment from 'vite-plugin-environment'
-import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 
 dotenv.config({ path: '../../.env' })
 
@@ -76,7 +76,7 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: [
-          'client/**/*.{js,css,ico,png,jpg,svg,webp,woff,woff2,xml}',
+          'client/**/*.{js,json,css,ico,png,jpg,svg,webp,woff,woff2,xml}',
           'prerendered/**/*.html'
         ]
       },

@@ -132,7 +132,7 @@
         <AirdropCard />
       </Saos>
     </div>
-    <div class="mt-8 w-full max-w-[820px]">
+    <div class="mt-6 w-full max-w-[820px]">
       <Saos
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
@@ -148,7 +148,7 @@
         <LuckyDrawCard />
       </Saos>
     </div>
-    <div class="mt-10 w-full max-w-[820px]">
+    <div class="mt-6 w-full max-w-[820px]">
       <Saos
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
@@ -314,19 +314,19 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>Project Launch</span>
             </p>
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>Seed Fundraising</span>
             </p>
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>Website On IC</span>
@@ -347,19 +347,19 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>SNS Swap</span>
             </p>
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>Launch Lucky Pool</span>
             </p>
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span class="mr-2 text-panda"><IconCheckbox /></span>
               <span>List PANDA Token on DEX</span>
@@ -380,7 +380,7 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span>Launch Panda Badges System</span>
             </p>
@@ -400,12 +400,12 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span>Launch Panda NFT Platform</span>
             </p>
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span>List PANDA Token on CEX</span>
             </p>
@@ -425,7 +425,7 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
-              class="card inline-flex flex-row content-center items-center bg-[#fff] p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
               <span>Launch Panda Meme Brand Platform</span>
             </p>

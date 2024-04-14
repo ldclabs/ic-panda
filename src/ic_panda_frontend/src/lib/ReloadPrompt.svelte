@@ -3,21 +3,23 @@
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const toastStore = getToastStore()
+  const minInterval = 10 * 1000
+  const maxInterval = 10 * 60 * 1000
 
   const { needRefresh, updateServiceWorker } = useRegisterSW({
     onRegistered(r) {
-      r &&
-        setTimeout(
-          () =>
-            setInterval(() => {
-              if (!(!r.installing && navigator)) return
-              if ('connection' in navigator && !navigator.onLine) return
+      if (r) {
+        let i = 0
+        const check = () => {
+          i += 1
+          setTimeout(check, i >= 10 ? maxInterval : minInterval)
 
-              console.log('Checking for sw update')
-              r.update()
-            }, 20 * 60000),
-          20000
-        )
+          if (!navigator.onLine) return
+          console.log('Checking for sw update')
+          r.update()
+        }
+        setTimeout(check, minInterval)
+      }
     },
     onRegisterError(error) {
       console.log('SW registration error', error)

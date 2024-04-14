@@ -206,15 +206,15 @@
             <span>Or DM your principal to</span>
             <a
               title="DM us on Twitter"
-              class="text-pink"
+              class="text-pink-500"
               href="https://twitter.com/ICPandaDAO"
               target="_blank">ICPanda X</a
             >
-            <span class="text-pink *:size-5"><IconChatSmile /></span>
+            <span class="text-pink-500 *:size-5"><IconChatSmile /></span>
           </p>
           <p class="text-sm text-gray/50"
-            >We will reply to you with the airdrop code in <b class="text-pink"
-              >1-2 days</b
+            >We will reply to you with the airdrop code in <b
+              class="text-pink-500">1-2 days</b
             >.</p
           >
         </div>
@@ -262,7 +262,7 @@
           </button>
         </div>
 
-        <span class="text-pink text-sm"
+        <span class="text-sm text-pink-500"
           >You can also get this code by participating in lucky draw.</span
         >
       </label>
@@ -295,7 +295,7 @@
     </form>
     <footer class="m-auto !mt-6 w-80">
       <button
-        class="bg-pink btn flex w-full flex-row items-center gap-2 text-white"
+        class="btn flex w-full flex-row items-center gap-2 bg-pink-500 text-white"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >

@@ -11,6 +11,31 @@ body {
 
 html {
   -webkit-font-smoothing: antialiased;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(255, 255, 255, 0.05) !important;
+}
+
+body {
+  /* animation: kenburns-bottom 21s ease-in-out infinite both; */
+  background: radial-gradient(
+      61% 61% at 15% 105%,
+      rgba(89, 255, 238, 0.2) 0%,
+      rgba(89, 255, 238, 0) 100%
+    ),
+    radial-gradient(
+      104% 104% at 95% 0%,
+      rgba(255, 230, 103, 0.2) 0%,
+      rgba(255, 230, 103, 0) 100%
+    ),
+    linear-gradient(
+      216deg,
+      rgba(17, 194, 145, 0.08) 0%,
+      rgba(17, 194, 145, 0.2) 100%
+    ),
+    white !important;
+}
+
+/* https://www.skeleton.dev/docs/themes */
+:root {
 }
 
 .global-backgroud {
@@ -151,9 +176,4 @@ html {
     background-repeat: repeat-y;
     transform: translateX(-17px);
   }
-}
-
-/* classes that not be used in code will be remove when building. We keep it here. */
-.text-black {
-  color: rgba(0, 0, 0, 0.95);
 }

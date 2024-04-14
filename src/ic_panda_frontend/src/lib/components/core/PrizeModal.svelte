@@ -151,7 +151,7 @@
         {#if meetRequirements != 1 && meetRequirements != 3}
           <span class="*:size-5"><IconCloseCircle /></span>
         {:else}
-          <span class="text-orange *:size-5"><IconCheckbox /></span>
+          <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
         <span>Have a <b>lucky code</b> through airdrop</span>
       </p>
@@ -159,7 +159,7 @@
         {#if meetRequirements != 2 && meetRequirements != 3}
           <span class="*:size-5"><IconCloseCircle /></span>
         {:else}
-          <span class="text-orange *:size-5"><IconCheckbox /></span>
+          <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
         <span>Have at lest <b>10 PANDA</b> in your wallet</span>
       </p>
@@ -201,7 +201,7 @@
         class="btn flex w-full flex-row items-center gap-2 text-white {meetRequirements <
         3
           ? 'bg-gray/20'
-          : 'variant-gradient-warning-error bg-gradient-to-br'}"
+          : 'to-red-500 from-amber-300 bg-gradient-to-r'}"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >

@@ -152,34 +152,35 @@
       <p class="text-sm text-gray/50">Please read the rules before claiming:</p>
       <ol class="list *:mt-3">
         <li>
-          <span class="bg-pink badge-icon p-2 text-white">1</span>
+          <span class="badge-icon bg-pink-500 p-2 text-white">1</span>
           <span class="flex-auto">
-            New users can get <b class="text-pink">
+            New users can get <b class="text-pink-500">
               {formatNumber(Number(claimableAmount / PANDAToken.one))} PANDA
             </b>
             or
-            <b class="text-pink">
+            <b class="text-pink-500">
               {formatNumber(
                 Number(
                   (claimableAmount + claimableAmount / 2n) / PANDAToken.one
                 )
               )} PANDA
             </b>
-            with <b class="text-pink">LUCKY CODE</b>.
+            with <b class="text-pink-500">LUCKY CODE</b>.
           </span>
         </li>
         <li>
-          <span class="bg-pink badge-icon p-2 text-white">2</span>
+          <span class="badge-icon bg-pink-500 p-2 text-white">2</span>
           <span class="flex-auto">
             Your <b>LUCKY CODE</b> will be generated after claiming the airdrop.
           </span>
         </li>
         <li>
-          <span class="bg-pink badge-icon p-2 text-white">3</span>
+          <span class="badge-icon bg-pink-500 p-2 text-white">3</span>
           <span class="flex-auto">
-            For each successful <b class="text-pink">referral with LUCKY CODE</b
+            For each successful <b class="text-pink-500"
+              >referral with LUCKY CODE</b
             >, you gain an additional
-            <b class="text-pink"
+            <b class="text-pink-500"
               >{formatNumber(
                 Number(claimableAmount / (2n * PANDAToken.one))
               )}</b
@@ -189,7 +190,7 @@
       </ol>
       <div class="mt-10 flex flex-col items-center">
         <p
-          class="text-pink flex flex-row content-center items-center gap-2 text-sm font-medium"
+          class="flex flex-row content-center items-center gap-2 text-sm font-medium text-pink-500"
         >
           <span class="*:size-5"><IconAlarmWarning /></span>Each user
           <span>can only claim ONCE.</span>
@@ -198,7 +199,7 @@
           disabled={claimableAmount === 0n ||
             totalBalance < claimableAmount + PANDAToken.fee}
           on:click={claimNowHandler}
-          class="bg-pink btn m-auto mt-3 w-[320px] max-w-full font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+          class="btn m-auto mt-3 w-[320px] max-w-full bg-pink-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
         >
           Understand and Claim Now
         </button>

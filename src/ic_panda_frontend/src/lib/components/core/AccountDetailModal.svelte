@@ -95,7 +95,7 @@
     spacing="space-y-0"
     regionControl="border-b border-gray/10 !rounded-none"
   >
-    <AccordionItem>
+    <AccordionItem regionControl="outline-0">
       <svelte:fragment slot="lead">
         <span class="*:size-8"><IconIcLogo /></span>
       </svelte:fragment>
@@ -118,7 +118,7 @@
         />
       </svelte:fragment>
     </AccordionItem>
-    <AccordionItem>
+    <AccordionItem regionControl="outline-0">
       <svelte:fragment slot="lead">
         <span class="*:size-8"><IconPanda /></span>
       </svelte:fragment>
