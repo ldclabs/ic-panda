@@ -49,27 +49,29 @@ pub async fn middleware(mut req: Request<Body>, next: Next) -> Response {
     req.extensions_mut().insert(ctx.clone());
 
     let res = next.run(req).await;
-    let kv = ctx.kv.read().await;
-    let status = res.status().as_u16();
-    let headers = res.headers();
-    let ct = headers
-        .get(header::CONTENT_TYPE)
-        .map_or("", |v| v.to_str().unwrap_or_default());
-    let ce = headers
-        .get(header::CONTENT_ENCODING)
-        .map_or("", |v| v.to_str().unwrap_or_default());
-    log::info!(target: "api",
-        method = method,
-        uri = uri,
-        rid = rid,
-        status = status,
-        start = ctx.unix_ms,
-        elapsed = ctx.start.elapsed().as_millis() as u64,
-        ctype = ct,
-        encoding = ce,
-        kv = log::as_serde!(*kv);
-        "",
-    );
+    if method != "HEAD" {
+        let kv = ctx.kv.read().await;
+        let status = res.status().as_u16();
+        let headers = res.headers();
+        let ct = headers
+            .get(header::CONTENT_TYPE)
+            .map_or("", |v| v.to_str().unwrap_or_default());
+        let ce = headers
+            .get(header::CONTENT_ENCODING)
+            .map_or("", |v| v.to_str().unwrap_or_default());
+        log::info!(target: "api",
+            method = method,
+            uri = uri,
+            rid = rid,
+            status = status,
+            start = ctx.unix_ms,
+            elapsed = ctx.start.elapsed().as_millis() as u64,
+            ctype = ct,
+            encoding = ce,
+            kv:serde = *kv;
+            "",
+        );
+    }
 
     res
 }

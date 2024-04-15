@@ -165,7 +165,7 @@ pub async fn callback(
     let code_verifier = sha3_256(input.state.as_bytes());
     let code_verifier = general_purpose::URL_SAFE_NO_PAD.encode(code_verifier);
 
-    let res = app
+    let res = match app
         .http_client
         .post(TOKEN_URL)
         .basic_auth(&app.twitter.client_id, Some(&app.twitter.client_secret))
@@ -180,15 +180,32 @@ pub async fn callback(
         ])
         .send()
         .await
-        .map_err(|_| HTTPError::new(500, "failed to request twitter token".to_string()))?;
+    {
+        Ok(res) => res,
+        Err(err) => {
+            ctx.set("error", format!("request twitter token: {:?}", err).into())
+                .await;
+            return Err(HTTPError::new(
+                500,
+                "failed to request twitter token".to_string(),
+            ));
+        }
+    };
 
-    let token_res: api::OAuth2TokenResponse = res
-        .json()
-        .await
-        .map_err(|_| HTTPError::new(500, "failed to parse twitter token".to_string()))?;
+    let token_res: api::OAuth2TokenResponse = match res.json().await {
+        Ok(token_res) => token_res,
+        Err(err) => {
+            ctx.set("error", format!("parse twitter token: {:?}", err).into())
+                .await;
+            return Err(HTTPError::new(
+                500,
+                "failed to parse twitter token".to_string(),
+            ));
+        }
+    };
 
     // https://developer.twitter.com/en/docs/twitter-api/users/lookup/api-reference/get-users-me
-    let res = app
+    let res = match app
         .http_client
         .get(USER_URL)
         .query(&[(
@@ -199,12 +216,29 @@ pub async fn callback(
         .header(header::USER_AGENT, api::USER_AGENT)
         .send()
         .await
-        .map_err(|_| HTTPError::new(500, "failed to request twitter user".to_string()))?;
+    {
+        Ok(res) => res,
+        Err(err) => {
+            ctx.set("error", format!("request twitter user: {:?}", err).into())
+                .await;
+            return Err(HTTPError::new(
+                500,
+                "failed to request twitter user".to_string(),
+            ));
+        }
+    };
 
-    let TwitterResponse { data: user }: TwitterResponse<TwitterUser> = res
-        .json()
-        .await
-        .map_err(|_| HTTPError::new(500, "failed to parse twitter user".to_string()))?;
+    let TwitterResponse { data: user }: TwitterResponse<TwitterUser> = match res.json().await {
+        Ok(user) => user,
+        Err(err) => {
+            ctx.set("error", format!("parse twitter user: {:?}", err).into())
+                .await;
+            return Err(HTTPError::new(
+                500,
+                "failed to parse twitter user".to_string(),
+            ));
+        }
+    };
 
     let mut redirect_uri = Url::parse(redirect_uri).expect("app redirect_uri");
     if user.is_real_account() {
@@ -214,12 +248,20 @@ pub async fn callback(
             now_ms / 1000 + api::CHALLENGE_EXPIRE,
         ));
         let challenge = challenge.sign_to(&app.challenge_secret);
+
         redirect_uri.set_fragment(Some(format!("challenge={}", challenge).as_str()));
+        ctx.set("challenge", challenge.into()).await;
     } else {
         redirect_uri.set_fragment(Some(
             "error=The account does not meet the verification requirements",
         ));
     }
+
+    ctx.set_kvs(vec![
+        ("id", user.id.into()),
+        ("username", user.username.into()),
+    ])
+    .await;
 
     Ok(Redirect::to(redirect_uri.as_ref()))
 }
