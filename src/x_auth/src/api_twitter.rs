@@ -66,15 +66,7 @@ impl TwitterUser {
             None => 0,
         };
 
-        if hours > 7 * 24 {
-            return true;
-        }
-
-        if hours > 3 * 24 && self.profile_image_url.is_some() {
-            return true;
-        }
-
-        if hours > 24 {
+        if hours > 30 * 24 && self.profile_image_url.is_some() {
             if let Some(ref metrics) = self.public_metrics {
                 if metrics.get("followers_count").unwrap_or(&0) > &3 {
                     return true;
@@ -84,6 +76,21 @@ impl TwitterUser {
                 }
             }
         }
+
+        // if hours > 3 * 24 && self.profile_image_url.is_some() {
+        //     return true;
+        // }
+
+        // if hours > 24 {
+        //     if let Some(ref metrics) = self.public_metrics {
+        //         if metrics.get("followers_count").unwrap_or(&0) > &3 {
+        //             return true;
+        //         }
+        //         if metrics.get("tweet_count").unwrap_or(&0) > &3 {
+        //             return true;
+        //         }
+        //     }
+        // }
 
         false
     }
@@ -209,7 +216,9 @@ pub async fn callback(
         let challenge = challenge.sign_to(&app.challenge_secret);
         redirect_uri.set_fragment(Some(format!("challenge={}", challenge).as_str()));
     } else {
-        redirect_uri.set_fragment(Some("error=invalid twitter user"));
+        redirect_uri.set_fragment(Some(
+            "error=The account does not meet the verification requirements",
+        ));
     }
 
     Ok(Redirect::to(redirect_uri.as_ref()))
