@@ -1,13 +1,15 @@
+use candid::Nat;
+use ic_captcha::CaptchaBuilder;
+use lib_panda::{mac_256, ChallengeState, Cryptogram, Ed25519Message, VerifyingKey};
+use once_cell::sync::Lazy;
+use serde_bytes::ByteBuf;
+
 use crate::{
     icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_to, types,
+    token_transfer_from, token_transfer_to, types,
     utils::{self, luckycode_to_string},
     ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER, TRANS_FEE,
 };
-use candid::Nat;
-use ic_captcha::CaptchaBuilder;
-use lib_panda::{mac_256, Cryptogram, Ed25519Message, VerifyingKey};
-use once_cell::sync::Lazy;
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
 const LOWEST_LUCKYDRAW_BALANCE: u64 = 500;
@@ -50,12 +52,12 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     let prize = if !args.challenge.is_empty() {
         let pk = store::keys::with_challenge_pub_key(VerifyingKey::from_bytes)
             .map_err(|_| "failed to get the public key of the challenge".to_string())?;
-        let state = types::ChallengeState::verify_from(&pk, &args.challenge)?;
-        if !state.is_valid(&caller, now_sec) {
+        let state = ChallengeState::verify_from(&pk, &args.challenge)?;
+        if !state.is_valid(&caller, &state.0 .1, now_sec) {
             return Err("invalid xauth challenge or expired".to_string());
         }
         if !store::xauth::try_set(state.0 .1, caller, now_sec) {
-            return Err("XAuth user id exists".to_string());
+            return Err("xauth user id exists".to_string());
         }
 
         None
@@ -64,7 +66,7 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
             Ok(prize) => {
                 // should be issued by the system
                 if !prize.is_valid_system(now_sec) {
-                    return Err("invalid airdrop challenge code or expired".to_string());
+                    return Err("invalid airdrop code or expired".to_string());
                 }
                 None
             }
@@ -72,11 +74,11 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
                 Ok(prize) => {
                     // should be issued by the user
                     if !prize.is_valid(now_sec) || prize.3 != 0 || prize.0 == 0 {
-                        return Err("invalid airdrop challenge code or expired".to_string());
+                        return Err("invalid airdrop code or expired".to_string());
                     }
                     Some(prize)
                 }
-                Err(_) => return Err("invalid airdrop challenge code".to_string()),
+                Err(_) => return Err("invalid airdrop code".to_string()),
             },
         }
     };
@@ -91,7 +93,7 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
 
     let (airdrop_amount, airdrop_balance) = store::state::airdrop_amount_balance();
     if airdrop_balance < airdrop_amount * TOKEN_1 + TRANS_FEE {
-        return Err("airdrop pool is empty".to_string());
+        return Err("insufficient airdrop balance".to_string());
     }
 
     if !store::user::active(caller) {
@@ -108,15 +110,16 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         args.lucky_code
     };
     let referrer = lucky_code.and_then(|s| store::luckycode::get_by_string(&s));
-    let claimable = if referrer.is_some() {
-        (airdrop_amount + airdrop_amount / 2) * TOKEN_1
+    let (claimable, rebate_bonus) = if referrer.is_some() {
+        let rebate_bonus = (airdrop_amount / 2) * TOKEN_1;
+        (airdrop_amount * TOKEN_1 + rebate_bonus, rebate_bonus)
     } else {
-        airdrop_amount * TOKEN_1
+        (airdrop_amount * TOKEN_1, 0)
     };
 
     // issued by users and try to claim airdrop
     if let Some(prize) = prize {
-        store::prize::claim(caller, prize)?;
+        store::prize::claim_airdrop(caller, prize)?;
     }
 
     let caller_code = store::luckycode::new_from(caller);
@@ -125,10 +128,14 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         referrer,
         now_sec,
         claimable,
-        (airdrop_amount / 2) * TOKEN_1,
+        rebate_bonus,
         caller_code,
     )?;
+
     store::state::with_mut(|r| {
+        let cost = claimable + rebate_bonus + TRANS_FEE;
+        r.airdrop_balance = r.airdrop_balance.saturating_sub(cost);
+        r.total_airdrop = r.total_airdrop.saturating_add(cost);
         r.total_airdrop_count += 1;
         r.latest_airdrop_logs.insert(0, log);
         if r.latest_airdrop_logs.len() > 10 {
@@ -143,20 +150,35 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     })
 }
 
+// Deprecated!
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> {
+async fn prize(_: String) -> Result<types::AirdropStateOutput, String> {
+    Err("can not claim prize".to_string())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::AirdropStateOutput, String> {
     let caller = ic_cdk::caller();
     let key = *store::keys::PRIZE_KEY;
-    let cryptogram = cryptogram
+    let cryptogram = args
+        .code
         .strip_prefix("PRIZE:")
-        .unwrap_or(cryptogram.as_str());
-    let prize = store::Prize::decode(&key, None, cryptogram)?;
-    let now_sec = ic_cdk::api::time() / SECOND;
+        .unwrap_or(args.code.as_str());
+    let (prize, prize_data) = store::Prize::try_decode(&key, Some(caller), cryptogram)?;
+    let now = ic_cdk::api::time();
+    let now_sec = now / SECOND;
     if !prize.is_valid(now_sec) {
-        return Err("invalid prize cryptogram or expired".to_string());
+        return Err("invalid prize code or expired".to_string());
     }
     if prize.0 == 0 || prize.3 == 0 {
-        return Err("invalid prize cryptogram".to_string());
+        return Err("invalid prize code".to_string());
+    }
+
+    let pk = store::keys::with_challenge_pub_key(VerifyingKey::from_bytes)
+        .map_err(|_| "failed to get the public key of the challenge".to_string())?;
+    let token: ChallengeState<ByteBuf> = ChallengeState::verify(&pk, &args.challenge)?;
+    if !token.is_valid(&caller, &prize_data, now_sec) {
+        return Err("invalid challenge token or expired".to_string());
     }
 
     if !store::user::active(caller) {
@@ -168,7 +190,7 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
     });
 
     let store::AirdropState(caller_code, _, claimable) = store::airdrop::state_of(&caller)
-        .ok_or("You don't have lucky code to claim prize".to_string())?;
+        .ok_or("get your lucky code through airdrop to claim prize".to_string())?;
     if caller_code == 0 {
         return Err("user is banned".to_string());
     }
@@ -181,17 +203,11 @@ async fn prize(cryptogram: String) -> Result<types::AirdropStateOutput, String> 
         }
     }
 
-    let referrer_code = prize.0;
-    let claimable = store::prize::claim(caller, prize)?;
-
-    let (state, log) = store::airdrop::prize(caller, now_sec, claimable, referrer_code)?;
+    let amount = store::prize::claim(caller_code, prize, claimable, now_sec, now % 5)?;
+    let state = store::airdrop::deposit(caller, amount)?;
     store::state::with_mut(|r| {
-        r.total_prize = Some(r.total_prize.unwrap_or_default().saturating_add(claimable));
+        r.total_prize = Some(r.total_prize.unwrap_or_default().saturating_add(amount));
         r.total_prize_count = Some(r.total_prize_count.unwrap_or_default() + 1);
-        r.latest_airdrop_logs.insert(0, log);
-        if r.latest_airdrop_logs.len() > 10 {
-            r.latest_airdrop_logs.truncate(10);
-        }
     });
 
     Ok(types::AirdropStateOutput {
@@ -211,12 +227,10 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
         store::user::deactive(caller);
     });
 
-    let now_sec = ic_cdk::api::time() / SECOND;
-
     match store::airdrop::state_of(&caller) {
-        None => Err("no claimable tokens to harvest".to_string()),
-        Some(store::AirdropState(code, _, claimable)) => {
-            if code == 0 {
+        None => Err("no lucky code".to_string()),
+        Some(store::AirdropState(caller_code, _, claimable)) => {
+            if caller_code == 0 {
                 return Err("user is banned".to_string());
             }
 
@@ -224,21 +238,15 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
             if amount < TOKEN_1 {
                 return Err("amount must be at least 1 token".to_string());
             }
+
             if amount > claimable {
-                return Err("insufficient claimable tokens to harvest".to_string());
+                return Err("insufficient lucky balance to transfer".to_string());
             }
 
-            let _block_idx = token_transfer_to(caller, args.amount).await?;
-            let (state, log) = store::airdrop::harvest(caller, now_sec, amount)?;
-            store::state::with_mut(|r| {
-                r.airdrop_balance = r.airdrop_balance.saturating_sub(amount + TRANS_FEE);
-                r.total_airdrop = r.total_airdrop.saturating_add(amount + TRANS_FEE);
-                r.total_airdrop_count += 1;
-                r.latest_airdrop_logs.insert(0, log);
-                if r.latest_airdrop_logs.len() > 10 {
-                    r.latest_airdrop_logs.truncate(10);
-                }
-            });
+            let state = store::airdrop::withdraw(caller, amount)?;
+            if let Err(err) = token_transfer_to(caller, args.amount, "WITHDRAW".to_string()).await {
+                ic_cdk::trap(&format!("failed to transfer tokens, {}", err));
+            }
 
             Ok(types::AirdropStateOutput {
                 lucky_code: Some(utils::luckycode_to_string(state.0)),
@@ -291,14 +299,14 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         ));
     }
 
-    let _ = icp_transfer_from(caller, Nat::from(icp - TRANS_FEE)).await?;
+    let _ = icp_transfer_from(caller, Nat::from(icp - TRANS_FEE), "LUCKYDRAW".to_string()).await?;
     let balance = token_balance_of(TOKEN_CANISTER, ic_cdk::id())
         .await
         .unwrap_or(Nat::from(0u64));
     let draw_amount = if balance >= lowest_balance {
         let balance = nat_to_u64(&balance).saturating_sub(TRANS_FEE);
         let draw_amount = if balance < amount { balance } else { amount };
-        match token_transfer_to(caller, Nat::from(draw_amount)).await {
+        match token_transfer_to(caller, Nat::from(draw_amount), "LUCKYDRAW".to_string()).await {
             Ok(_) => draw_amount,
             Err(_) => 0,
         }
@@ -327,19 +335,26 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         let (airdrop_amount, _) = store::state::airdrop_amount_balance();
 
         let airdrop_cryptogram = match store::airdrop::state_of(&caller) {
-            Some(store::AirdropState(code, _, _)) => {
-                if code == 0 {
+            Some(store::AirdropState(caller_code, _, _)) => {
+                if caller_code == 0 {
                     None
                 } else {
-                    store::prize::try_add(code, now_sec, 4320, 0, (icp01 as u16) * 5)
+                    store::prize::try_add_airdrop(caller_code, now_sec, 4320, 0, (icp01 as u16) * 5)
                 }
             }
             None => {
-                let code = store::luckycode::new_from(caller);
-                if store::airdrop::insert(caller, None, now_sec, airdrop_amount * TOKEN_1, 0, code)
-                    .is_ok()
+                let caller_code = store::luckycode::new_from(caller);
+                if store::airdrop::insert(
+                    caller,
+                    None,
+                    now_sec,
+                    airdrop_amount * TOKEN_1,
+                    0,
+                    caller_code,
+                )
+                .is_ok()
                 {
-                    store::prize::try_add(code, now_sec, 4320, 0, (icp01 as u16) * 5)
+                    store::prize::try_add_airdrop(caller_code, now_sec, 4320, 0, (icp01 as u16) * 5)
                 } else {
                     None
                 }
@@ -355,11 +370,203 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         })
     } else {
         // refund ICP when failed to transfer tokens
-        let _ = icp_transfer_to(caller, Nat::from(icp - TRANS_FEE - TRANS_FEE))
-            .await
-            .map_err(|err| format!("failed to refund ICP, {}", err))?;
+        let _ = icp_transfer_to(
+            caller,
+            Nat::from(icp - TRANS_FEE - TRANS_FEE),
+            "LUCKYDRAW:REFUND".to_string(),
+        )
+        .await
+        .map_err(|err| format!("failed to refund ICP, {}", err))?;
         Err("insufficient token balance for luckydraw, ICP refunded".to_string())
     }
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn add_prize(args: types::AddPrizeInput) -> Result<types::PrizeOutput, String> {
+    args.validate()?;
+    let prize_subsidy =
+        store::state::with(|r| r.prize_subsidy.clone()).ok_or("can not add prize currently.")?;
+
+    let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
+    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
+        .ok_or("you don't have lucky code to add prize".to_string())?;
+    if caller_code == 0 {
+        return Err("user is banned".to_string());
+    }
+    let now_sec = ic_cdk::api::time() / SECOND;
+    let subsidy = prize_subsidy.subsidy(args.claimable, args.quantity);
+    let payment = (args.claimable - subsidy) as u64 * TOKEN_1 + prize_subsidy.0;
+    let prize = store::Prize(
+        caller_code,
+        (now_sec / 60) as u32,
+        args.expire,
+        args.claimable,
+        args.quantity,
+    );
+    let info = store::PrizeInfo(args.kind.unwrap_or_default(), subsidy, 0, 0, 0, args.memo);
+
+    if !store::prize::add(prize.clone(), info.clone()) {
+        return Err("failed to add prize".to_string());
+    }
+    if let Err(err) = token_transfer_from(
+        caller,
+        Nat::from(payment - TRANS_FEE),
+        "PRIZE:ADD".to_string(),
+    )
+    .await
+    {
+        store::prize::clear_failed(&prize);
+        return Err(err);
+    }
+
+    store::prize::add_refund_job(prize.clone())?;
+    store::state::with_mut(|r| {
+        r.total_prizes_count = Some(r.total_prizes_count.unwrap_or_default().saturating_add(1));
+        if let Some(prize_subsidy) = r.prize_subsidy.as_mut() {
+            prize_subsidy.5 = prize_subsidy.5.saturating_sub(1);
+        }
+    });
+
+    let code = prize.encode(&(*store::keys::PRIZE_KEY), args.recipient);
+    let name = store::naming::get(&caller_code).map(|n| n.0);
+    Ok(types::PrizeOutput::from(&prize, &info, name, Some(code)))
+}
+
+const NAMING_PLEDGE_TOKENS: u32 = 1000;
+const NAMING_YEARLY_RENTAL_TOKENS: u32 = 100;
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn register_name(args: types::NameInput) -> Result<types::NameOutput, String> {
+    args.validate()?;
+    let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
+    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
+        .ok_or("you don't have lucky code to register name".to_string())?;
+    if caller_code == 0 {
+        return Err("user is banned".to_string());
+    }
+    let now_sec = ic_cdk::api::time() / SECOND;
+    if let Some(name) = store::naming::get(&caller_code) {
+        return Err(format!("you have registered a name: {}", name.0));
+    }
+
+    let name_state = store::NamingState(
+        args.name.clone(),
+        now_sec,
+        NAMING_PLEDGE_TOKENS,
+        NAMING_YEARLY_RENTAL_TOKENS,
+    );
+    if store::naming::try_set_name(caller_code, name_state.clone()) {
+        if let Err(err) = token_transfer_from(
+            caller,
+            Nat::from(NAMING_PLEDGE_TOKENS as u64 * TOKEN_1 - TRANS_FEE),
+            "NAME:REG".to_string(),
+        )
+        .await
+        {
+            store::naming::remove_name(caller_code, &args.name);
+            return Err(err);
+        }
+    } else {
+        return Err("failed to register name".to_string());
+    }
+
+    Ok(types::NameOutput {
+        code: luckycode_to_string(caller_code),
+        name: name_state.0,
+        created_at: name_state.1,
+        pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),
+        yearly_rental: Nat::from(name_state.3 as u64 * TOKEN_1),
+    })
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String> {
+    args.validate()?;
+    let old = args.old_name.ok_or("old name is required".to_string())?;
+
+    let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
+    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
+        .ok_or("you don't have lucky code to update name".to_string())?;
+    if caller_code == 0 {
+        return Err("user is banned".to_string());
+    }
+    let mut name_state = store::naming::get(&caller_code).ok_or("no name to update".to_string())?;
+
+    name_state.0 = args.name.clone();
+    if !store::naming::try_update_name(caller_code, &old, name_state.clone()) {
+        return Err("failed to update name".to_string());
+    }
+
+    Ok(types::NameOutput {
+        code: luckycode_to_string(caller_code),
+        name: name_state.0,
+        created_at: name_state.1,
+        pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),
+        yearly_rental: Nat::from(name_state.3 as u64 * TOKEN_1),
+    })
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn unregister_name(args: types::NameInput) -> Result<(), String> {
+    args.validate()?;
+    let caller = ic_cdk::caller();
+    if !store::user::active(caller) {
+        return Err("try again later".to_string());
+    }
+    let _guard = scopeguard::guard((), |_| {
+        store::user::deactive(caller);
+    });
+
+    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
+        .ok_or("you don't have lucky code to unregister name".to_string())?;
+    if caller_code == 0 {
+        return Err("user is banned".to_string());
+    }
+    let now_sec = ic_cdk::api::time() / SECOND;
+    let name_state = store::naming::get(&caller_code).ok_or("no name to unregister".to_string())?;
+    if name_state.0 != args.name {
+        return Err("name does not match".to_string());
+    }
+    if !store::naming::remove_name(caller_code, &args.name) {
+        return Err("failed to unregister name".to_string());
+    }
+    let du = now_sec - name_state.1;
+    let y = 3600 * 24 * 365;
+    let r = du % y;
+    let n = (du / y + if r > 30 { 1 } else { 0 }) as u32;
+    let refund = if name_state.2 > name_state.3 * n {
+        (name_state.2 - n * name_state.3) as u64 * TOKEN_1
+    } else {
+        0
+    };
+    if refund > 0 {
+        let _ = token_transfer_to(caller, Nat::from(refund), "NAME:UNREG".to_string())
+            .await
+            .map_err(|err| format!("failed to refund, {}", err))?;
+    }
+
+    Ok(())
 }
 
 // 344693032001 from b"PANDA"

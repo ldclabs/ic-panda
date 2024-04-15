@@ -3,19 +3,21 @@ use ciborium::{from_reader, into_writer};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, StableMinHeap, Storable,
 };
-use lib_panda::mac_256;
+use lib_panda::{mac_256, Cryptogram};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use std::{
     borrow::Cow,
     cell::RefCell,
     collections::{BTreeMap, BTreeSet},
+    ops,
 };
 
-use crate::utils::{luckycode_from_string, luckycode_to_string};
-use crate::{types, TOKEN_1};
+use crate::utils::{luck_amount, luckycode_from_string, luckycode_to_string};
+use crate::{types, SECOND, TOKEN_1, TOKEN_SMALL_UNIT};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -28,12 +30,15 @@ pub struct State {
     pub total_luckydraw_icp: u64,
     pub total_luckydraw_count: u64,
     pub total_prize: Option<u64>,
-    pub total_prize_count: Option<u64>,
+    pub total_prize_count: Option<u64>,  // prize claiming count
+    pub total_prizes_count: Option<u64>, // total prizes count
     pub latest_airdrop_logs: Vec<types::AirdropLog>, // latest 10 airdrop logs
     pub luckiest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckiest luckydraw logs
     pub latest_luckydraw_logs: Vec<types::LuckyDrawLog>, // latest 10 luckydraw logs
     pub managers: Option<BTreeSet<Principal>>,
     pub airdrop_amount: Option<u64>,
+    pub prize_subsidy: Option<SysPrizeSubsidy>,
+    pub lucky_code: Option<u32>,
 }
 
 impl Storable for State {
@@ -50,13 +55,58 @@ impl Storable for State {
     }
 }
 
+// SysPrizeSubsidy
+#[derive(CandidType, Clone, Deserialize, Serialize)]
+pub struct SysPrizeSubsidy(
+    pub u64, // Prize fee in PANDA * TOKEN_1
+    pub u16, // Min quantity requirement for subsidy
+    pub u32, // Min claimable tokens requirement for subsidy
+    pub u8,  // Subsidy ratio, [0, 50]
+    pub u32, // Max subsidy tokens per prize
+    pub u16, // Subsidy count limit
+);
+impl Storable for SysPrizeSubsidy {
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 28,
+        is_fixed_size: false,
+    };
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode SysPrizeSubsidy data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode SysPrizeSubsidy data")
+    }
+}
+
+impl SysPrizeSubsidy {
+    pub fn subsidy(&self, claimable: u32, quantity: u16) -> u32 {
+        if quantity < self.1 || claimable < self.2 || self.5 == 0 {
+            return 0;
+        }
+
+        let subsidy = claimable * self.3 as u32 / 100;
+        if subsidy > self.4 {
+            self.4
+        } else {
+            subsidy
+        }
+    }
+}
+
 // AirdropState format: (lucky code, total claimed tokens, claimable tokens)
 // If total claimed tokens is smaller than TOKEN_1, it is effective timestamp in hours since the UNIX epoch.
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct AirdropState(pub u32, pub u64, pub u64);
 
 impl Storable for AirdropState {
-    const BOUND: Bound = Bound::Unbounded;
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 24,
+        is_fixed_size: false,
+    };
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
@@ -87,7 +137,10 @@ impl From<(u64, AirdropLog)> for types::AirdropLog {
 }
 
 impl Storable for AirdropLog {
-    const BOUND: Bound = Bound::Unbounded;
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 55,
+        is_fixed_size: false,
+    };
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
@@ -119,7 +172,10 @@ impl From<(u64, LuckyDrawLog)> for types::LuckyDrawLog {
 }
 
 impl Storable for LuckyDrawLog {
-    const BOUND: Bound = Bound::Unbounded;
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 68,
+        is_fixed_size: false,
+    };
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
@@ -133,18 +189,22 @@ impl Storable for LuckyDrawLog {
 }
 
 // Prize format: (Issuer code, Issue time, Expire, Claimable amount, Quantity)
-// Issuer code: The lucky code of the issuer, 0 for system
-// Issue time: The issue time of the prize, in minutes since UNIX epoch
-// Expire: The expire duration in minutes
-// Claimable amount: The amount of tokens that can be claimed by users, in PANDA * 1000
-// Quantity: How many users can claim the prize
-//
 // System can only issue prizes for free airdrop with Prize(0, Issue time, expire, 0, 0).
-// This prizes will not be stored.
-#[derive(Clone, Deserialize, Serialize, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Prize(pub u32, pub u32, pub u16, pub u32, pub u16);
+// System prizes will not be stored.
+#[derive(Clone, Debug, Deserialize, Serialize, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Prize(
+    pub u32, // Issuer code: The lucky code of the issuer, 0 for system
+    pub u32, // Issue time: The issue time of the prize, in minutes since UNIX epoch
+    pub u16, // Expire: The expire duration in minutes
+    pub u32, // Claimable amount: The amount of tokens that can be claimed by users, in PANDA
+    pub u16, // Quantity: How many users can claim the prize
+);
+
 impl Storable for Prize {
-    const BOUND: Bound = Bound::Unbounded;
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 22,
+        is_fixed_size: false,
+    };
 
     fn to_bytes(&self) -> Cow<[u8]> {
         let mut buf = vec![];
@@ -165,8 +225,20 @@ impl Prize {
     pub fn is_valid_system(&self, now_sec: u64) -> bool {
         self.0 == 0 && self.3 == 0 && self.4 == 0 && self.is_valid(now_sec)
     }
+
+    fn range_bounds_of(
+        issuer: u32,
+        start_ts: u32,
+        end_ts: u32,
+    ) -> (ops::Bound<Prize>, ops::Bound<Prize>) {
+        (
+            ops::Bound::Excluded(Prize(issuer, start_ts, 0, 0, 0)),
+            ops::Bound::Excluded(Prize(issuer, end_ts, 0, 0, 0)),
+        )
+    }
 }
 
+// Only use for airdrop cryptogram.
 // IssuerPrize key: (Issue time, Expire, Claimable tokens, Quantity)
 // IssuerPrize value: filled quantity
 #[derive(Clone, Deserialize, Serialize)]
@@ -185,6 +257,7 @@ impl Storable for IssuerPrizes {
     }
 }
 
+// Only use for airdrop cryptogram.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Principals(BTreeSet<Principal>);
 impl Storable for Principals {
@@ -201,6 +274,110 @@ impl Storable for Principals {
     }
 }
 
+// PrizeInfo
+#[derive(Clone, Deserialize, Serialize)]
+pub struct PrizeInfo(
+    pub u8,              // Prize Kind, 0 - fixed amount prize, 1 - lucky amount prize
+    pub u32,             // Sys Subsidy in tokens
+    pub u64,             // Refund amount in PANDA * TOKEN_1
+    pub u16,             // Filled quantity
+    pub u64,             // End Time in seconds since UNIX epoch
+    pub Option<ByteBuf>, // Memo
+);
+impl Storable for PrizeInfo {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeInfo data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode PrizeInfo data")
+    }
+}
+
+// PrizeRecipients: key - luck code, value - amount in PANDA * TOKEN_SMALL_UNIT
+#[derive(Clone, Deserialize, Serialize)]
+pub struct PrizeRecipients(BTreeMap<u32, u32>);
+impl Storable for PrizeRecipients {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(self, &mut buf).expect("failed to encode PrizeRecipients data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode PrizeRecipients data")
+    }
+}
+
+// PrizeClaimLog format: (Prize, Claimed Time, claimed Amount in PANDA * TOKEN_1)
+#[derive(Clone, Deserialize, Serialize)]
+pub struct PrizeClaimLogs(Vec<(Prize, u64, u64)>);
+impl Storable for PrizeClaimLogs {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeClaimLogs data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode PrizeClaimLogs data")
+    }
+}
+
+// PrizeRefund: (Check time in minutes, Prize)
+// Check time: Prize.1 + Prize.2 + 1
+#[derive(Clone, Deserialize, Serialize, Ord, PartialOrd, Eq, PartialEq)]
+pub struct PrizeRefund(pub u32, pub Prize);
+impl Storable for PrizeRefund {
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 28,
+        is_fixed_size: false,
+    };
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeRefund data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode PrizeRefund data")
+    }
+}
+
+// NamingState
+#[derive(Clone, Deserialize, Serialize)]
+pub struct NamingState(
+    pub String, // Unique Name
+    pub u64,    // Created Time in seconds
+    pub u32,    // Cash Pledge in tokens
+    pub u32,    // Yearly Rental in tokens
+);
+impl Storable for NamingState {
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 86,
+        is_fixed_size: false,
+    };
+
+    fn to_bytes(&self) -> Cow<[u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode NamingState data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode NamingState data")
+    }
+}
+
 const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
 const AIRDROP_MEMORY_ID: MemoryId = MemoryId::new(1);
 const LUCKYCODE_MEMORY_ID: MemoryId = MemoryId::new(2);
@@ -212,6 +389,12 @@ const ISSUER_PRIZE_MEMORY_ID: MemoryId = MemoryId::new(7);
 const PRIZE_MEMORY_ID: MemoryId = MemoryId::new(8);
 const KEYS_MEMORY_ID: MemoryId = MemoryId::new(9);
 const X_AUTH_MEMORY_ID: MemoryId = MemoryId::new(10);
+const NAMING_MEMORY_ID: MemoryId = MemoryId::new(11);
+const NAMING_STATE_MEMORY_ID: MemoryId = MemoryId::new(12);
+const PRIZE_INFO_MEMORY_ID: MemoryId = MemoryId::new(13);
+const PRIZE_REC_MEMORY_ID: MemoryId = MemoryId::new(14);
+const PRIZE_LOG_MEMORY_ID: MemoryId = MemoryId::new(15);
+const PRIZE_REFUND_MEMORY_ID: MemoryId = MemoryId::new(16);
 
 thread_local! {
     static CAPTCHA_SECRET: RefCell<[u8; 32]> = const { RefCell::new([0; 32]) };
@@ -261,12 +444,14 @@ thread_local! {
         ).expect("failed to init LUCKY_DRAW_LOGS store")
     );
 
+    // Only use for airdrop cryptogram.
     static ISSUER_PRIZE: RefCell<StableBTreeMap<u32, IssuerPrizes, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(ISSUER_PRIZE_MEMORY_ID)),
         )
     );
 
+    // Only use for airdrop cryptogram.
     static PRIZE: RefCell<StableBTreeMap<Prize, Principals, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_MEMORY_ID)),
@@ -283,6 +468,42 @@ thread_local! {
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(X_AUTH_MEMORY_ID)),
         )
+    );
+
+    static NAMING: RefCell<StableBTreeMap<String, u32, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(NAMING_MEMORY_ID)),
+        )
+    );
+
+    static NAMING_STATE: RefCell<StableBTreeMap<u32, NamingState, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(NAMING_STATE_MEMORY_ID)),
+        )
+    );
+
+    static PRIZE_INFO: RefCell<StableBTreeMap<Prize, PrizeInfo, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_INFO_MEMORY_ID)),
+        )
+    );
+
+    static PRIZE_REC: RefCell<StableBTreeMap<Prize, PrizeRecipients, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_REC_MEMORY_ID)),
+        )
+    );
+
+    static PRIZE_LOG: RefCell<StableBTreeMap<u32, PrizeClaimLogs, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_LOG_MEMORY_ID)),
+        )
+    );
+
+    static PRIZE_REFUND: RefCell<StableMinHeap<PrizeRefund, Memory>> = RefCell::new(
+        StableMinHeap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_REFUND_MEMORY_ID)),
+        ).expect("failed to init PRIZE_REFUND store")
     );
 }
 
@@ -362,14 +583,14 @@ pub mod luckycode {
     pub fn new_from(user: Principal) -> u32 {
         LUCKYCODE.with(|r| {
             let mut m = r.borrow_mut();
-            let mut code = (m.len() as u32).saturating_add(1000000);
+            let mut code = state::next_lucky_code();
             let mut i = 0u32;
             while m.contains_key(&code) {
-                code = code.saturating_add(1);
-                i += 1;
-                if i > 100000 {
+                if i > 1000 {
                     ic_cdk::trap("failed to generate a lucky code");
                 }
+                i += 1;
+                code = state::next_lucky_code();
             }
             m.insert(code, user);
             code
@@ -402,8 +623,6 @@ pub mod xauth {
 }
 
 pub mod airdrop {
-    use crate::TOKEN_1;
-
     use super::*;
 
     // check if a user has claimed airdrop.
@@ -432,7 +651,7 @@ pub mod airdrop {
                     Some(state) => {
                         m.insert(
                             referrer,
-                            AirdropState(state.0, state.1, state.2 + rebate_bonus),
+                            AirdropState(state.0, state.1, state.2.saturating_add(rebate_bonus)),
                         );
                         state.0
                     }
@@ -440,49 +659,37 @@ pub mod airdrop {
             }
         });
 
-        let log = AirdropLog(user, now_sec, 0, referrer_code);
+        let log = AirdropLog(user, now_sec, amount, referrer_code);
         let idx = AIRDROP_LOGS
             .with(|r| r.borrow_mut().append(&log))
             .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
         Ok(types::AirdropLog::from((idx, log)))
     }
 
-    pub fn prize(
-        user: Principal,
-        now_sec: u64,
-        amount: u64,
-        referrer_code: u32,
-    ) -> Result<(AirdropState, types::AirdropLog), String> {
-        let state = AIRDROP.with(|r| {
+    pub fn deposit(user: Principal, amount: u64) -> Result<AirdropState, String> {
+        AIRDROP.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&user) {
-                None => Err("no claimable airdrop to harvest".to_string()),
+                None => Err("no lucky code to deposit".to_string()),
                 Some(state) => {
-                    let state = AirdropState(state.0, state.1, state.2 + amount);
+                    let state = AirdropState(state.0, state.1, state.2.saturating_add(amount));
                     m.insert(user, state.clone());
                     Ok(state)
                 }
             }
-        })?;
-
-        let log = AirdropLog(user, now_sec, 0, referrer_code);
-        let idx = AIRDROP_LOGS
-            .with(|r| r.borrow_mut().append(&log))
-            .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
-        Ok((state, types::AirdropLog::from((idx, log))))
+        })
     }
 
-    pub fn harvest(
-        user: Principal,
-        now_sec: u64,
-        amount: u64,
-    ) -> Result<(AirdropState, types::AirdropLog), String> {
-        let state = AIRDROP.with(|r| {
+    pub fn withdraw(user: Principal, amount: u64) -> Result<AirdropState, String> {
+        AIRDROP.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&user) {
                 // should never happen, we have checked the state before calling this function
-                None => Err("no claimable airdrop to harvest".to_string()),
+                None => Err("no lucky code to withdraw".to_string()),
                 Some(state) => {
+                    if state.2 < amount {
+                        return Err("insufficient lucky balance to withdraw".to_string());
+                    }
                     let state = AirdropState(
                         state.0,
                         if state.1 >= TOKEN_1 {
@@ -496,13 +703,7 @@ pub mod airdrop {
                     Ok(state)
                 }
             }
-        })?;
-
-        let log = AirdropLog(user, now_sec, amount, 0);
-        let idx = AIRDROP_LOGS
-            .with(|r| r.borrow_mut().append(&log))
-            .map_err(|err| format!("failed to append airdrop log, error {:?}", err))?;
-        Ok((state, types::AirdropLog::from((idx, log))))
+        })
     }
 
     pub fn ban_users(users: Vec<Principal>) -> Result<(), String> {
@@ -612,25 +813,176 @@ pub mod luckydraw {
 }
 
 pub mod prize {
-    use lib_panda::Cryptogram;
-
     use super::*;
 
-    pub fn try_add(
+    pub fn get_info(prize: &Prize) -> Option<PrizeInfo> {
+        PRIZE_INFO.with(|r| r.borrow().get(prize))
+    }
+
+    pub fn add(prize: Prize, info: PrizeInfo) -> bool {
+        PRIZE_INFO.with(|r| {
+            let mut m = r.borrow_mut();
+            if m.contains_key(&prize) {
+                return false;
+            }
+            m.insert(prize.clone(), info);
+
+            PRIZE_REC.with(|r| {
+                r.borrow_mut()
+                    .insert(prize, PrizeRecipients(BTreeMap::new()));
+            });
+            true
+        })
+    }
+
+    pub fn add_refund_job(prize: Prize) -> Result<(), String> {
+        let check_time = prize.1 + prize.2 as u32 + 1;
+        PRIZE_REFUND.with(|r| {
+            r.borrow_mut()
+                .push(&PrizeRefund(check_time, prize))
+                .map_err(|err| format!("failed to add refund job, error {:?}", err))
+        })
+    }
+
+    pub fn handle_refund_jobs() {
+        while let Some(job) = PRIZE_REFUND.with(|r| r.borrow().peek()) {
+            let now_sec = ic_cdk::api::time() / SECOND;
+            if job.0 as u64 * 60 > now_sec {
+                break;
+            }
+
+            let job = match PRIZE_REFUND.with(|r| r.borrow_mut().pop()) {
+                Some(job) => job,
+                None => break,
+            };
+
+            let prize = job.1;
+            let mut info = match PRIZE_INFO.with(|r| r.borrow().get(&prize)) {
+                Some(info) => {
+                    if info.3 < prize.4 {
+                        info
+                    } else {
+                        continue;
+                    }
+                }
+                None => continue,
+            };
+
+            let claimed = PRIZE_REC.with(|r| {
+                r.borrow()
+                    .get(&prize)
+                    .map(|recipients| recipients.0.values().map(|v| *v as u64).sum())
+                    .unwrap_or(0)
+            });
+            let refund = (prize.3 - info.1) as u64 * TOKEN_SMALL_UNIT - claimed;
+            if refund == 0 {
+                continue;
+            }
+            let refund = refund * (TOKEN_1 / TOKEN_SMALL_UNIT);
+            let user = match LUCKYCODE.with(|r| r.borrow().get(&prize.0)) {
+                Some(user) => user,
+                None => continue,
+            };
+
+            info.2 = refund;
+            info.4 = now_sec;
+            PRIZE_INFO.with(|r| r.borrow_mut().insert(prize.clone(), info));
+            PRIZE_LOG.with(|r| {
+                let mut m = r.borrow_mut();
+                let mut logs = m
+                    .get(&prize.0)
+                    .unwrap_or_else(|| PrizeClaimLogs(Vec::new()));
+                if logs.0.len() >= 1024 {
+                    logs.0 = logs.0.split_off(512);
+                }
+                logs.0.push((prize.clone(), now_sec, refund));
+                m.insert(prize.0, logs);
+            });
+
+            let _ = airdrop::deposit(user, refund);
+        }
+    }
+
+    pub fn clear_failed(prize: &Prize) {
+        PRIZE_INFO.with(|r| r.borrow_mut().remove(prize));
+        PRIZE_REC.with(|r| r.borrow_mut().remove(prize));
+    }
+
+    pub fn claim(
+        user: u32,
+        prize: Prize,
+        luck: u64,
+        now_sec: u64,
+        rand: u64,
+    ) -> Result<u64, String> {
+        let mut info = PRIZE_INFO.with(|r| match r.borrow().get(&prize) {
+            Some(info) => {
+                if info.3 >= prize.4 {
+                    return Err("the prize have been fully claimed".to_string());
+                }
+                if info.4 > 0 {
+                    return Err("the prize has already ended".to_string());
+                }
+                Ok(info)
+            }
+            None => Err("the prize is not found".to_string()),
+        })?;
+
+        let (amount, filled) = PRIZE_REC.with(|r| {
+            let mut m = r.borrow_mut();
+            let mut recipients = m
+                .get(&prize)
+                .unwrap_or_else(|| PrizeRecipients(BTreeMap::new()));
+            if recipients.0.contains_key(&user) {
+                return Err("you have already claimed the prize".to_string());
+            }
+            if prize.4 as usize <= recipients.0.len() {
+                return Err("the prize have been fully claimed".to_string());
+            }
+
+            let remain = prize.4 - recipients.0.len() as u16;
+            let claimed: u64 = recipients.0.values().map(|v| *v as u64).sum();
+            let balance = prize.3 as u64 * TOKEN_SMALL_UNIT - claimed;
+            let avg = balance / remain as u64;
+            let amount = if info.0 == 0 || remain == 1 || rand == 0 {
+                avg
+            } else {
+                luck_amount(luck, avg, remain as u64)
+            };
+            let filled = prize.4 + 1 - remain;
+            recipients.0.insert(user, amount as u32);
+            m.insert(prize.clone(), recipients);
+            Ok((amount * (TOKEN_1 / TOKEN_SMALL_UNIT), filled))
+        })?;
+
+        info.3 = filled;
+        if filled >= prize.4 {
+            info.4 = now_sec;
+        }
+        PRIZE_INFO.with(|r| r.borrow_mut().insert(prize.clone(), info));
+        PRIZE_LOG.with(|r| {
+            let mut m = r.borrow_mut();
+            let mut logs = m.get(&user).unwrap_or_else(|| PrizeClaimLogs(Vec::new()));
+            if logs.0.len() >= 1024 {
+                logs.0 = logs.0.split_off(512);
+            }
+            logs.0.push((prize, now_sec, amount));
+            m.insert(user, logs);
+        });
+        Ok(amount)
+    }
+
+    pub fn try_add_airdrop(
         issuer: u32,
         now_sec: u64,
         expire: u16,
         claimable: u32, // 0 for airdrop
         quantity: u16,
     ) -> Option<String> {
-        if quantity == 0 {
+        if quantity == 0 || claimable > 0 {
             return None;
         }
-        let key = if claimable > 0 {
-            *keys::PRIZE_KEY
-        } else {
-            *keys::AIRDROP_KEY
-        };
+
         let prize = Prize(issuer, (now_sec / 60) as u32, expire, claimable, quantity);
         let ok = PRIZE.with(|r| {
             let mut m = r.borrow_mut();
@@ -649,28 +1001,28 @@ pub mod prize {
                 prizes.0.insert((prize.1, prize.2, prize.3, prize.4), 0);
                 m.insert(issuer, prizes);
             });
-            Some(prize.encode(&key, None))
+            Some(prize.encode(&(*keys::AIRDROP_KEY), None))
         } else {
             None
         }
     }
 
-    pub fn claim(user: Principal, prize: Prize) -> Result<u64, String> {
+    pub fn claim_airdrop(user: Principal, prize: Prize) -> Result<u64, String> {
         PRIZE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&prize) {
                 Some(mut users) => {
                     if users.0.len() >= prize.4 as usize {
-                        return Err("prize has been claimed".to_string());
+                        return Err("the airdrop code have been fully claimed".to_string());
                     }
                     if users.0.contains(&user) {
-                        return Err("prize already claimed".to_string());
+                        return Err("you have claimed".to_string());
                     }
                     users.0.insert(user);
                     m.insert(prize.clone(), users);
                     Ok(())
                 }
-                None => Err("prize not found".to_string()),
+                None => Err("airdrop code is not found".to_string()),
             }
         })?;
         ISSUER_PRIZE.with(|r| {
@@ -688,11 +1040,75 @@ pub mod prize {
         Ok(prize.3 as u64 * TOKEN_1 / prize.4 as u64)
     }
 
-    pub fn list(issuer: u32) -> IssuerPrizes {
+    pub fn list_airdrop(issuer: u32) -> IssuerPrizes {
         ISSUER_PRIZE.with(|r| {
             r.borrow()
                 .get(&issuer)
                 .unwrap_or(IssuerPrizes(BTreeMap::new()))
+        })
+    }
+
+    pub fn claim_logs(user: u32, prev: Option<u64>, take: usize) -> Vec<types::PrizeClaimLog> {
+        PRIZE_LOG.with(|r| match r.borrow().get(&user) {
+            None => vec![],
+            Some(log_store) => {
+                let latest = log_store.0.len() as u64;
+                if latest == 0 {
+                    return vec![];
+                }
+
+                let prev = prev.unwrap_or(latest);
+                if prev > latest || prev == 0 {
+                    return vec![];
+                }
+
+                let mut idx = prev - 1;
+                let mut logs: Vec<types::PrizeClaimLog> = Vec::with_capacity(take);
+                while let Some((prize, claimed_at, amount)) = log_store.0.get(idx as usize) {
+                    if let Some(info) = PRIZE_INFO.with(|r| r.borrow().get(prize)) {
+                        let name = naming::get(&prize.0).map(|n| n.0);
+                        logs.push(types::PrizeClaimLog {
+                            prize: types::PrizeOutput::from(prize, &info, name, None),
+                            claimed_at: *claimed_at,
+                            amount: Nat::from(*amount),
+                        })
+                    }
+                    if idx == 0 || logs.len() >= take {
+                        break;
+                    }
+                    idx -= 1;
+                }
+
+                logs
+            }
+        })
+    }
+
+    pub fn issue_logs(issuer: u32, prev_ts: u32) -> Vec<types::PrizeOutput> {
+        let key = *keys::PRIZE_KEY;
+        let name = naming::get(&issuer).map(|n| n.0);
+        PRIZE_INFO.with(|r| {
+            let du = 60 * 24 * 30;
+            let start_ts = if prev_ts > du { prev_ts - du } else { 0 };
+            let mut logs: Vec<types::PrizeOutput> = Vec::new();
+            for (prize, info) in r
+                .borrow()
+                .range(Prize::range_bounds_of(issuer, start_ts, prev_ts))
+            {
+                logs.push(types::PrizeOutput::from(
+                    &prize,
+                    &info,
+                    name.clone(),
+                    if prize.4 > 1 {
+                        Some(prize.encode(&key, None))
+                    } else {
+                        // can't re-generate code for directional prize.
+                        None
+                    },
+                ));
+            }
+            logs.reverse();
+            logs
         })
     }
 }
@@ -707,6 +1123,63 @@ pub mod user {
 
     pub fn deactive(user: Principal) {
         ACTIVE_USERS.with(|r| r.borrow_mut().remove(&user));
+    }
+}
+
+pub mod naming {
+    use super::*;
+
+    pub fn get(code: &u32) -> Option<NamingState> {
+        NAMING_STATE.with(|r| r.borrow().get(code))
+    }
+
+    pub fn get_by_name(name: &String) -> Option<(u32, NamingState)> {
+        if let Some(code) = NAMING.with(|r| r.borrow().get(name)) {
+            return NAMING_STATE.with(|r| r.borrow().get(&code).map(|v| (code, v)));
+        }
+        None
+    }
+
+    pub fn try_set_name(code: u32, name: NamingState) -> bool {
+        NAMING.with(|r| {
+            let mut m = r.borrow_mut();
+            if m.contains_key(&name.0) {
+                return false;
+            }
+
+            m.insert(name.0.clone(), code);
+            NAMING_STATE.with(|r| r.borrow_mut().insert(code, name));
+            true
+        })
+    }
+
+    pub fn try_update_name(code: u32, old: &String, name: NamingState) -> bool {
+        NAMING.with(|r| {
+            let mut m = r.borrow_mut();
+            if m.contains_key(&name.0) {
+                return false;
+            }
+            if m.get(old) != Some(code) {
+                return false;
+            }
+
+            m.insert(name.0.clone(), code);
+            NAMING_STATE.with(|r| r.borrow_mut().insert(code, name));
+            true
+        })
+    }
+
+    pub fn remove_name(code: u32, name: &String) -> bool {
+        NAMING.with(|r| {
+            let mut m = r.borrow_mut();
+            if m.get(name) != Some(code) {
+                return false;
+            }
+
+            m.remove(name);
+            NAMING_STATE.with(|r| r.borrow_mut().remove(&code));
+            true
+        })
     }
 }
 
@@ -739,10 +1212,24 @@ pub mod state {
         STATE_HEAP.with(|r| f(&mut r.borrow_mut()))
     }
 
+    pub fn next_lucky_code() -> u32 {
+        STATE_HEAP.with(|r| {
+            let mut s = r.borrow_mut();
+            let code = s.lucky_code.unwrap_or(2000000).saturating_add(1);
+            s.lucky_code = Some(code);
+            code
+        })
+    }
+
     pub fn load() {
         STATE.with(|r| {
+            let mut s = r.borrow().get().clone();
+            if s.lucky_code.is_none() {
+                s.lucky_code =
+                    Some(LUCKYCODE.with(|r| (r.borrow().len() as u32).saturating_add(1000000)));
+            }
             STATE_HEAP.with(|h| {
-                *h.borrow_mut() = r.borrow().get().clone();
+                *h.borrow_mut() = s;
             });
         });
     }
@@ -774,6 +1261,109 @@ pub mod notification {
     pub fn remove(ids: Vec<u8>) {
         NOTIFICATIONS.with(|r| {
             r.borrow_mut().retain(|k, _| !ids.contains(k));
+        });
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::ops::RangeBounds;
+
+    const PRIZE_TEST_MEMORY_ID: MemoryId = MemoryId::new(249);
+    thread_local! {
+        static PRIZE_TEST: RefCell<StableBTreeMap<Prize, u64, Memory>> = RefCell::new(
+            StableBTreeMap::init(
+                MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_TEST_MEMORY_ID)),
+            )
+        );
+    }
+
+    #[test]
+    fn test_bound_max_size() {
+        let principal =
+            Principal::from_text("i2gam-uue3y-uxwyd-mzyhb-nirhd-hz3l4-2hw3f-4fzvw-lpvvc-dqdrg-7qe")
+                .unwrap();
+        let v = SysPrizeSubsidy(u64::MAX, u16::MAX, u32::MAX, u8::MAX, u32::MAX, u16::MAX);
+        let v = v.to_bytes();
+        println!(
+            "SysPrizeSubsidy max_size: {:?}, {}",
+            v.len(),
+            hex::encode(&v)
+        );
+
+        let v = AirdropState(u32::MAX, u64::MAX, u64::MAX);
+        let v = v.to_bytes();
+        println!("AirdropState max_size: {:?}, {}", v.len(), hex::encode(&v));
+
+        let v = AirdropLog(principal, u64::MAX, u64::MAX, u32::MAX);
+        let v = v.to_bytes();
+        println!("AirdropLog max_size: {:?}, {}", v.len(), hex::encode(&v));
+
+        let v = LuckyDrawLog(principal, u64::MAX, u64::MAX, u64::MAX, u64::MAX);
+        let v = v.to_bytes();
+        println!("LuckyDrawLog max_size: {:?}, {}", v.len(), hex::encode(&v));
+
+        let v = Prize(u32::MAX, u32::MAX, u16::MAX, u32::MAX, u16::MAX);
+        let v = v.to_bytes();
+        println!("Prize max_size: {:?}, {}", v.len(), hex::encode(&v));
+
+        let v = PrizeRefund(
+            u32::MAX,
+            Prize(u32::MAX, u32::MAX, u16::MAX, u32::MAX, u16::MAX),
+        );
+        let v = v.to_bytes();
+        println!("PrizeRefund max_size: {:?}, {}", v.len(), hex::encode(&v));
+
+        let v = NamingState("N".repeat(64), u64::MAX, u32::MAX, u32::MAX);
+        let v = v.to_bytes();
+        println!("NamingState max_size: {:?}, {}", v.len(), hex::encode(&v));
+    }
+
+    #[test]
+    fn test_prize_range_bounds_of() {
+        let p1 = Prize(1, 1, 0, 0, 0);
+        let p2 = Prize(1, 2, 0, 0, 0);
+        assert!(p1 < p2);
+
+        let p1 = Prize(2, 1, 0, 0, 0);
+        let p2 = Prize(1, 10, 0, 0, 0);
+        assert!(p1 > p2);
+
+        let rb = Prize::range_bounds_of(10000, 0, u32::MAX);
+        assert_eq!(
+            rb.start_bound(),
+            ops::Bound::Excluded(&Prize(10000, 0, 0, 0, 0))
+        );
+        assert_eq!(
+            rb.end_bound(),
+            ops::Bound::Excluded(&Prize(10000, u32::MAX, 0, 0, 0))
+        );
+        assert!(rb.contains(&Prize(10000, 1, 0, 0, 0)));
+        assert!(rb.contains(&Prize(10000, 1, 1, 0, 0)));
+        assert!(rb.contains(&Prize(10000, u32::MAX - 1, 0, 0, 0)));
+        assert!(!rb.contains(&Prize(10001, 1, 1, 0, 0)));
+
+        PRIZE_TEST.with(|r| {
+            let mut m = r.borrow_mut();
+            m.clear_new();
+            m.insert(Prize(10000, 1, 0, 0, 0), 1);
+            m.insert(Prize(10000, 2, 0, 0, 0), 2);
+            m.insert(Prize(10001, 1, 0, 0, 0), 3);
+            m.insert(Prize(10000, 3, 0, 0, 0), 4);
+            m.insert(Prize(999, 1, 0, 0, 0), 5);
+            m.insert(Prize(10001, 2, 0, 0, 0), 6);
+            m.insert(Prize(10000, 2, 1, 0, 0), 7);
+
+            let vs: Vec<u64> = m.iter().map(|(_, v)| v).collect();
+            assert_eq!(vs, vec![5, 1, 2, 7, 4, 3, 6]);
+
+            let vs: Vec<u64> = m
+                .range(Prize::range_bounds_of(10000, 0, u32::MAX))
+                .map(|(_, v)| v)
+                .collect();
+            assert_eq!(vs, vec![1, 2, 7, 4]);
+            m.clear_new();
         });
     }
 }

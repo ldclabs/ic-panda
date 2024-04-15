@@ -87,10 +87,22 @@ where
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct ChallengeState<T>(pub (Principal, T, u64));
+impl<T: PartialEq> ChallengeState<T> {
+    pub fn is_valid(&self, caller: &Principal, data: &T, now_sec: u64) -> bool {
+        &self.0 .0 == caller && &self.0 .1 == data && self.0 .2 >= now_sec
+    }
+}
 
 pub trait Cryptogram {
     fn encode(&self, key: &[u8], subject: Option<Principal>) -> String;
     fn decode(key: &[u8], subject: Option<Principal>, cryptogram: &str) -> Result<Self, String>
+    where
+        Self: Sized;
+    fn try_decode(
+        key: &[u8],
+        subject: Option<Principal>,
+        cryptogram: &str,
+    ) -> Result<(Self, ByteBuf), String>
     where
         Self: Sized;
 }
@@ -125,10 +137,39 @@ where
         }
         from_reader(arr.0.as_slice()).map_err(|_err| "failed to decode cryptogram".to_string())
     }
+
+    fn try_decode(
+        key: &[u8],
+        subject: Option<Principal>,
+        cryptogram: &str,
+    ) -> Result<(Self, ByteBuf), String> {
+        let data = general_purpose::URL_SAFE_NO_PAD
+            .decode(cryptogram)
+            .map_err(|_err| "failed to decode base64 cryptogram")?;
+        let arr: (ByteBuf, ByteBuf) =
+            from_reader(&data[..]).map_err(|_err| "failed to decode cryptogram")?;
+
+        let mut mac = mac_256(key, &arr.0);
+        if &mac[0..8] != arr.1.as_slice() {
+            if let Some(subject) = subject {
+                mac = mac_256_2(key, &arr.0, subject.as_slice());
+            }
+            if &mac[0..8] != arr.1.as_slice() {
+                return Err("failed to verify the cryptogram".to_string());
+            }
+        }
+        let sel = from_reader(arr.0.as_slice())
+            .map_err(|_err| "failed to decode cryptogram".to_string())?;
+        Ok((sel, arr.0))
+    }
 }
 
 pub trait Ed25519Message {
+    fn sign(&self, key: &SigningKey) -> Vec<u8>;
     fn sign_to(&self, key: &SigningKey) -> String;
+    fn verify(key: &VerifyingKey, msg: &[u8]) -> Result<Self, String>
+    where
+        Self: Sized;
     fn verify_from(key: &VerifyingKey, msg: &str) -> Result<Self, String>
     where
         Self: Sized;
@@ -138,25 +179,32 @@ impl<T> Ed25519Message for T
 where
     T: Serialize + DeserializeOwned,
 {
-    fn sign_to(&self, key: &SigningKey) -> String {
+    fn sign(&self, key: &SigningKey) -> Vec<u8> {
         let data = to_cbor_bytes(self);
         let sig = key.sign(&data).to_bytes();
 
-        let data = to_cbor_bytes(&[ByteBuf::from(data), ByteBuf::from(sig)]);
-        general_purpose::URL_SAFE_NO_PAD.encode(data)
+        to_cbor_bytes(&[ByteBuf::from(data), ByteBuf::from(sig)])
+    }
+
+    fn sign_to(&self, key: &SigningKey) -> String {
+        general_purpose::URL_SAFE_NO_PAD.encode(self.sign(key))
+    }
+
+    fn verify(key: &VerifyingKey, msg: &[u8]) -> Result<Self, String> {
+        let arr: (ByteBuf, ByteBuf) =
+            from_reader(msg).map_err(|_err| "failed to decode Ed25519 message")?;
+        let sig = Signature::from_slice(arr.1.as_slice())
+            .map_err(|_err| "failed to parse Ed25519 signature")?;
+        key.verify_strict(arr.0.as_slice(), &sig)
+            .map_err(|_| "failed to verify Ed25519 signature")?;
+        from_reader(arr.0.as_slice()).map_err(|_err| "failed to decode Ed25519 message".to_string())
     }
 
     fn verify_from(key: &VerifyingKey, msg: &str) -> Result<Self, String> {
         let data = general_purpose::URL_SAFE_NO_PAD
             .decode(msg)
             .map_err(|_err| "failed to decode base64 message")?;
-        let arr: (ByteBuf, ByteBuf) =
-            from_reader(&data[..]).map_err(|_err| "failed to decode Ed25519 message")?;
-        let sig = Signature::from_slice(arr.1.as_slice())
-            .map_err(|_err| "failed to parse Ed25519 signature")?;
-        key.verify_strict(arr.0.as_slice(), &sig)
-            .map_err(|_| "failed to verify Ed25519 signature")?;
-        from_reader(arr.0.as_slice()).map_err(|_err| "failed to decode Ed25519 message".to_string())
+        Ed25519Message::verify(key, &data)
     }
 }
 
