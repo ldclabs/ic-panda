@@ -5,24 +5,29 @@ use axum::{
     response::Response,
 };
 use serde_json::Value;
-use std::{collections::BTreeMap, sync::Arc, time::Instant};
+use std::{collections::BTreeMap, net::IpAddr, sync::Arc, time::Instant};
 use tokio::sync::RwLock;
+use tower_governor::key_extractor::{KeyExtractor, SmartIpKeyExtractor};
 
 pub use structured_logger::unix_ms;
+
+static ipKeyExtractor: SmartIpKeyExtractor = SmartIpKeyExtractor {};
 
 pub struct ReqContext {
     pub rid: String, // from x-request-id header
     pub unix_ms: u64,
     pub start: Instant,
+    pub ip: Option<IpAddr>,
     pub kv: RwLock<BTreeMap<String, Value>>,
 }
 
 impl ReqContext {
-    pub fn new(rid: &str) -> Self {
+    pub fn new(rid: &str, ip: Option<IpAddr>) -> Self {
         Self {
             rid: rid.to_string(),
             unix_ms: unix_ms(),
             start: Instant::now(),
+            ip,
             kv: RwLock::new(BTreeMap::new()),
         }
     }
@@ -44,8 +49,9 @@ pub async fn middleware(mut req: Request<Body>, next: Next) -> Response {
     let method = req.method().to_string();
     let uri = req.uri().to_string();
     let rid = extract_header(req.headers(), "x-request-id", || "".to_string());
+    let ip = ipKeyExtractor.extract(&req).ok();
 
-    let ctx = Arc::new(ReqContext::new(&rid));
+    let ctx = Arc::new(ReqContext::new(&rid, ip));
     req.extensions_mut().insert(ctx.clone());
 
     let res = next.run(req).await;
@@ -62,6 +68,7 @@ pub async fn middleware(mut req: Request<Body>, next: Next) -> Response {
         log::info!(target: "api",
             method = method,
             uri = uri,
+            ip = ctx.ip.map(|ip| ip.to_string()).unwrap_or_default(),
             rid = rid,
             status = status,
             start = ctx.unix_ms,

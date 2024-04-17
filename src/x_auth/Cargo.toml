@@ -55,6 +55,9 @@ reqwest = { version = "0.12", features = [
 ], default-features = false }
 url = { version = "2" }
 chrono = { version = "0.4", features = ["serde"] }
+tower_governor = { version = "0.3", features = [
+  "axum",
+], default-features = false }
 
 [dev-dependencies]
 rand_core = "0.6"
