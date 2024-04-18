@@ -11,7 +11,7 @@ use tower_governor::key_extractor::{KeyExtractor, SmartIpKeyExtractor};
 
 pub use structured_logger::unix_ms;
 
-static ipKeyExtractor: SmartIpKeyExtractor = SmartIpKeyExtractor {};
+pub static IP_KEY_EXTRACTOR: SmartIpKeyExtractor = SmartIpKeyExtractor {};
 
 pub struct ReqContext {
     pub rid: String, // from x-request-id header
@@ -49,7 +49,7 @@ pub async fn middleware(mut req: Request<Body>, next: Next) -> Response {
     let method = req.method().to_string();
     let uri = req.uri().to_string();
     let rid = extract_header(req.headers(), "x-request-id", || "".to_string());
-    let ip = ipKeyExtractor.extract(&req).ok();
+    let ip = IP_KEY_EXTRACTOR.extract(&req).ok();
 
     let ctx = Arc::new(ReqContext::new(&rid, ip));
     req.extensions_mut().insert(ctx.clone());

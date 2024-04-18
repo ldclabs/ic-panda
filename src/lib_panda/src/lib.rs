@@ -2,7 +2,7 @@ use base64::{engine::general_purpose, Engine};
 use candid::Principal;
 use ciborium::{from_reader, into_writer};
 use hmac::{Hmac, Mac};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha3::{Digest, Sha3_256};
 
@@ -84,6 +84,9 @@ where
         Ok(())
     }
 }
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+pub struct ChallengeState<T>(pub (Principal, T, u64));
 
 pub trait Cryptogram {
     fn encode(&self, key: &[u8], subject: Option<Principal>) -> String;
