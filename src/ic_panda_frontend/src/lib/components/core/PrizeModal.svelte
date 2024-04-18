@@ -112,10 +112,10 @@
 
 <ModalCard {parent}>
   {#if result}
+    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+      <IconCheckbox />
+    </div>
     <div class="text-center">
-      <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
-        <IconCheckbox />
-      </div>
       <p class="mt-4">
         <span>
           You have successfully claimed <b
@@ -201,7 +201,7 @@
         class="btn flex w-full flex-row items-center gap-2 text-white {meetRequirements <
         3
           ? 'bg-gray/20'
-          : 'to-red-500 from-amber-300 bg-gradient-to-r'}"
+          : 'bg-gradient-to-r from-amber-300 to-red-500'}"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >

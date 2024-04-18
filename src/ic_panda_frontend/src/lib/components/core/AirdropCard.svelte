@@ -8,20 +8,18 @@
     type State
   } from '$lib/canisters/luckypool'
   import IconAlarmWarning from '$lib/components/icons/IconAlarmWarning.svelte'
-  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
-  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
-  import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, getToastStore, popup } from '@skeletonlabs/skeleton'
+  import { getModalStore, popup } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import AirdropModal from './AirdropModal.svelte'
+  import LuckyTransferModal from './LuckyTransferModal.svelte'
 
   let luckyPoolState: Readable<State | null>
   let airdropState: Readable<AirdropState | null>
@@ -29,10 +27,9 @@
   let totalBalance = 0n
   let claimableAmount = 0n
   let claimedAmount = 0n
-  let luckyCode = ''
+  let luckyCode = 'acbefg'
 
   const modalStore = getModalStore()
-  const toastStore = getToastStore()
 
   function claimNowHandler() {
     if (principal.isAnonymous()) {
@@ -45,31 +42,14 @@
     }
   }
 
-  let submitting = false
-  let harvested = 0n
-  async function harvestHandler() {
-    if (claimableAmount > 0n) {
-      submitting = true
-      try {
-        const { claimed } = await luckyPoolAPI.harvest({
-          amount: claimableAmount,
-          recaptcha: []
-        })
-        submitting = false
-        harvested = claimed - claimedAmount
-        setTimeout(() => {
-          harvested = 0n
-        }, 5000)
-        await luckyPoolAPI.refreshAllState()
-      } catch (err: any) {
-        submitting = false
-        toastStore.trigger({
-          autohide: false,
-          hideDismiss: false,
-          background: 'variant-filled-error',
-          message: errMessage(err)
-        })
-      }
+  function transferHandler() {
+    if (principal.isAnonymous()) {
+      signIn({})
+    } else {
+      modalStore.trigger({
+        type: 'component',
+        component: { ref: LuckyTransferModal }
+      })
     }
   }
 
@@ -217,22 +197,25 @@
       </button>
     {:else}
       <p class="">
-        <span
-          >You have transferred <b>
-            {formatNumber(Number(claimedAmount / PANDAToken.one))}
-          </b> tokens</span
-        >
-        {#if claimableAmount > 0n}
-          <span
-            >, and another <b
-              >{formatNumber(Number(claimableAmount / PANDAToken.one))}</b
-            > tokens are claimed and awaiting transfer</span
-          >
-        {/if}
+        <span>
+          The more lucky balance you have, the larger your claim in a luck-based
+          <b>PANDA Prize</b>.
+        </span>
+      </p>
+      <p class="mt-3">
+        <span>Lucky Balance:</span>
+        <span>
+          <b>{formatNumber(Number(claimableAmount) / Number(PANDAToken.one))}</b
+          > PANDA tokens
+        </span>
+        <span>
+          ({formatNumber(Number(claimedAmount) / Number(PANDAToken.one))} tokens
+          transferred out)
+        </span>
       </p>
       <p class="mt-3">
         <span>Lucky Code:</span>
-        <span class="text-panda">{luckyCode}</span>
+        <span class="text-panda"><b>{luckyCode}</b></span>
         <TextClipboardButton textValue={luckyCode} />
       </p>
       <p class="mt-3">
@@ -243,27 +226,14 @@
         <TextClipboardButton textValue={`${APP_ORIGIN}/?ref=${luckyCode}`} />
       </p>
       <button
-        disabled={submitting ||
-          claimableAmount === 0n ||
-          totalBalance < claimableAmount + PANDAToken.fee}
-        on:click={harvestHandler}
+        disabled={claimableAmount === 0n}
+        on:click={transferHandler}
         class="variant-filled-primary btn m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
-        {#if submitting}
-          <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
-        {:else if harvested > 0n}
-          <span>
-            {formatNumber(Number(harvested / PANDAToken.one)) +
-              ' tokens is transferred'}
-          </span>
-          <span>
-            <IconCheckbox />
-          </span>
-        {:else if claimableAmount > 0n}
+        {#if claimableAmount > 0n}
           <span>
             {'Transfer ' +
-              formatNumber(Number(claimableAmount / PANDAToken.one)) +
+              formatNumber(Number(claimableAmount) / Number(PANDAToken.one)) +
               ' tokens to wallet'}
           </span>
         {:else}

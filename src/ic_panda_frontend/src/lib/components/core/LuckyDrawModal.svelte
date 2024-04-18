@@ -176,11 +176,11 @@
         width={360}
       />
     </div>
+    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+      <IconCheckbox />
+    </div>
     <div class="text-center">
-      <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
-        <IconCheckbox />
-      </div>
-      <p class="mt-6">
+      <p class="mt-4">
         <span>Congratulations on winning</span>
         <span class="font-bold text-panda">
           {formatNumber(Number(result.amount) / Number(PANDAToken.one))}
@@ -188,7 +188,7 @@
         <span>tokens in the lucky draw.</span>
       </p>
       {#if result.prize_cryptogram.length > 0}
-        <p class="mt-6">
+        <p class="mt-4">
           <span>Giving you a prize cryptogram:</span>
         </p>
         <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
@@ -206,7 +206,7 @@
           </span>
         </p>
       {:else if result.airdrop_cryptogram.length > 0 && cryptogramInfo}
-        <p class="mt-6">
+        <p class="mt-4">
           <span>Giving you an airdrop challenge code:</span>
         </p>
         <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
@@ -327,7 +327,7 @@
           max="10"
           step="0.1"
           bind:value={inputAmount}
-          placeholder="Enter an integer between 0.1 and 10"
+          placeholder="Enter an amount between 0.1 and 10"
           disabled={submitting}
           required
         />
@@ -339,7 +339,12 @@
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >
-        Draw Now
+        {#if submitting}
+          <span class=""><IconCircleSpin /></span>
+          <span>Processing...</span>
+        {:else}
+          <span>Draw Now</span>
+        {/if}
       </button>
     </footer>
   {/if}

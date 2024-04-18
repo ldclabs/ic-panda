@@ -6,7 +6,6 @@
     type AirdropState
   } from '$lib/canisters/luckypool'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
-  import IconChatSmile from '$lib/components/icons/IconChatSmile.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
@@ -17,7 +16,6 @@
   import { XAuth } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { errMessage } from '$lib/types/result'
-  import { shortId } from '$lib/utils/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -196,39 +194,13 @@
         <span class="">Another option</span>
         <span><IconArrowDownLine /></span>
       </button>
-      <div
-        class="mt-4 rounded-xl bg-gray/5 {!dmChallenge
-          ? 'collapse h-0'
-          : 'visible mb-6'}"
-      >
-        <div class="border-b-[1px] border-gray/10 p-4">
-          <p class="flex flex-row items-center gap-1 font-medium">
-            <span>Or DM your principal to</span>
-            <a
-              title="DM us on Twitter"
-              class="text-pink-500"
-              href="https://twitter.com/ICPandaDAO"
-              target="_blank">ICPanda X</a
-            >
-            <span class="text-pink-500 *:size-5"><IconChatSmile /></span>
-          </p>
-          <p class="text-sm text-gray/50"
-            >We will reply to you with the airdrop code in <b
-              class="text-pink-500">1-2 days</b
-            >.</p
-          >
-        </div>
-        <div class="flex flex-row items-center justify-between gap-1 p-4">
-          <span class="font-medium">Principal:</span>
-          <span class="truncate text-gray/50"
-            >{shortId(principal.toString())}</span
-          >
-          <TextClipboardButton textValue={principal.toString()} />
-        </div>
-      </div>
     </div>
 
-    <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
+    <hr
+      class="!border-t-1 mx-[-24px] !border-dashed !border-gray/20 {dmChallenge
+        ? '!mt-8'
+        : '!mt-4'}"
+    />
     <form
       class="m-auto !mt-0 flex w-80 flex-col content-center"
       on:input={onFormChange}
@@ -262,9 +234,9 @@
           </button>
         </div>
 
-        <span class="text-sm text-pink-500"
-          >You can also get this code by participating in lucky draw.</span
-        >
+        <span class="text-sm text-pink-500">
+          You can get this code from someone participating in <b>Lucky Draw</b>.
+        </span>
       </label>
       <label class="label">
         <span>Lucky Code (Optinal):</span>
