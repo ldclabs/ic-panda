@@ -1419,7 +1419,7 @@ checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
 name = "lib_panda"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "base64 0.21.7",
  "candid",
@@ -2595,8 +2595,7 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 [[package]]
 name = "tower_governor"
 version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3790eac6ad3fb8d9d96c2b040ae06e2517aa24b067545d1078b96ae72f7bb9a7"
+source = "git+https://github.com/ldclabs/tower-governor.git#26877d4843bbe829ecd502fe1b610264471aeacd"
 dependencies = [
  "axum",
  "forwarded-header-value",
@@ -3073,6 +3072,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.21.7",
+ "bytes",
  "candid",
  "chrono",
  "ciborium",

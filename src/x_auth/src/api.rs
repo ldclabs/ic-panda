@@ -1,8 +1,16 @@
-use axum::response::IntoResponse;
+use crate::cbor::Cbor;
+use crate::context::{unix_ms, ReqContext};
+use crate::erring::{HTTPError, SuccessResponse};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Extension,
+};
 use candid::Principal;
-use lib_panda::SigningKey;
+use lib_panda::{ChallengeState, Ed25519Message, SigningKey};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use std::sync::Arc;
 
 pub static CHALLENGE_EXPIRE: u64 = 180; // 3 minutes
@@ -40,9 +48,6 @@ pub struct OAuth2TokenResponse {
     pub expires_in: Option<u32>, // in seconds
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct OauthState(pub (Principal, String, u64));
-
 #[derive(Clone)]
 pub struct AuthConfig {
     pub client_id: String,
@@ -50,12 +55,38 @@ pub struct AuthConfig {
     pub callback_url: String,
 }
 
-// ChallengeState: (Principal, ID, Expire in seconds)
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
-pub struct ChallengeState(pub (Principal, String, u64));
-
 pub async fn healthz() -> impl IntoResponse {
     "OK"
+}
+
+#[derive(Clone, Deserialize)]
+pub struct ChallengeInput {
+    pub principal: Principal,
+    pub message: ByteBuf,
+}
+
+pub async fn challenge(
+    Extension(ctx): Extension<Arc<ReqContext>>,
+    State(app): State<AppState>,
+    Path(kind): Path<String>,
+    Cbor(input): Cbor<ChallengeInput>,
+) -> Result<impl IntoResponse, HTTPError> {
+    ctx.set_kvs(vec![
+        ("action", "challenge".into()),
+        ("kind", kind.as_str().into()),
+        ("principal", input.principal.to_string().into()),
+    ])
+    .await;
+
+    match kind.as_str() {
+        "claim_prize" => {}
+        _ => return Err(HTTPError::new(400, format!("invalid kind: {}", kind))),
+    }
+
+    let state = ChallengeState((input.principal, input.message, 60 + unix_ms() / 1000));
+    Ok(Cbor(SuccessResponse::new(
+        state.sign_to(&app.challenge_secret),
+    )))
 }
 
 #[cfg(test)]

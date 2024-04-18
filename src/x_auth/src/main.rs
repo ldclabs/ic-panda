@@ -2,9 +2,11 @@ use axum::{middleware, routing, Router};
 use dotenvy::dotenv;
 use lib_panda::{bytes32_from_base64, SigningKey};
 use reqwest::ClientBuilder;
+use std::net::SocketAddr;
 use std::{sync::Arc, time::Duration};
 use structured_logger::{async_json::new_writer, get_env_level, Builder};
-use tokio::signal;
+use tokio::{signal, spawn, time::sleep};
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::{
     catch_panic::CatchPanicLayer,
     compression::{predicate::SizeAbove, CompressionLayer},
@@ -14,6 +16,7 @@ use tower_http::{
 
 mod api;
 mod api_twitter;
+mod cbor;
 mod context;
 mod erring;
 
@@ -51,6 +54,51 @@ async fn main() {
         },
     };
 
+    let callback_limiter_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(60)
+            .burst_size(
+                std::env::var("LIMIT_BURST_CALLBACK")
+                    .unwrap_or("5".to_string())
+                    .parse()
+                    .unwrap(),
+            )
+            .key_extractor(context::IP_KEY_EXTRACTOR)
+            .finish()
+            .unwrap(),
+    );
+    let callback_limiter = callback_limiter_conf.limiter().clone();
+
+    let challenge_limiter_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(60)
+            .burst_size(
+                std::env::var("LIMIT_BURST_CHALLENGE")
+                    .unwrap_or("3".to_string())
+                    .parse()
+                    .unwrap(),
+            )
+            .key_extractor(context::IP_KEY_EXTRACTOR)
+            .finish()
+            .unwrap(),
+    );
+    let challenge_limiter = challenge_limiter_conf.limiter().clone();
+    // a separate background task to clean up
+    spawn(async move {
+        let interval = Duration::from_secs(60);
+        loop {
+            sleep(interval).await;
+            log::warn!(target: "server",
+                oauth_callback = callback_limiter.len(),
+                challenge = challenge_limiter.len(),
+                action = "clean_up_limiter";
+                "",
+            );
+            callback_limiter.retain_recent();
+            challenge_limiter.retain_recent();
+        }
+    });
+
     let app = Router::new()
         .route("/", routing::get(api::healthz).head(api::healthz))
         .route("/healthz", routing::get(api::healthz).head(api::healthz))
@@ -58,7 +106,18 @@ async fn main() {
             "/idp/twitter/authorize",
             routing::get(api_twitter::authorize),
         )
-        .route("/idp/twitter/callback", routing::get(api_twitter::callback))
+        .route(
+            "/idp/twitter/callback",
+            routing::get(api_twitter::callback).layer(GovernorLayer {
+                config: callback_limiter_conf,
+            }),
+        )
+        .route(
+            "/challenge/:kind",
+            routing::post(api::challenge).layer(GovernorLayer {
+                config: challenge_limiter_conf,
+            }),
+        )
         .layer((
             CatchPanicLayer::new(),
             TimeoutLayer::new(Duration::from_secs(10)),
@@ -71,10 +130,13 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     log::warn!(target: "server", "listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown)
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown)
+    .await
+    .unwrap();
 }
 
 async fn shutdown_signal() {

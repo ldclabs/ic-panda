@@ -9,7 +9,7 @@ use base64::{engine::general_purpose, Engine};
 use candid::Principal;
 use chrono::{DateTime, Utc};
 use http::header;
-use lib_panda::{sha256, sha3_256, Cryptogram, Ed25519Message};
+use lib_panda::{sha256, sha3_256, ChallengeState, Cryptogram, Ed25519Message};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, sync::Arc};
 use url::Url;
@@ -115,7 +115,7 @@ pub async fn authorize(
     if input.env != "ic" && input.env != "test" && input.env != "local" {
         return Err(HTTPError::new(400, "invalid env".to_string()));
     }
-    let state = api::OauthState((
+    let state = ChallengeState((
         principal,
         input.env.clone(),
         api::CHALLENGE_EXPIRE + unix_ms() / 1000,
@@ -151,8 +151,9 @@ pub async fn callback(
         .await;
 
     let now_ms = unix_ms();
-    let state = api::OauthState::decode(&app.state_secret, None, &input.state)
-        .map_err(|_| HTTPError::new(400, "invalid state".to_string()))?;
+    let state: ChallengeState<String> =
+        ChallengeState::decode(&app.state_secret, None, &input.state)
+            .map_err(|_| HTTPError::new(400, "invalid state".to_string()))?;
     if now_ms / 1000 > state.0 .2 {
         return Err(HTTPError::new(400, "state expired".to_string()));
     }
@@ -242,7 +243,7 @@ pub async fn callback(
 
     let mut redirect_uri = Url::parse(redirect_uri).expect("app redirect_uri");
     if user.is_real_account() {
-        let challenge = api::ChallengeState((
+        let challenge = ChallengeState((
             state.0 .0,
             format!("X:{}", user.id),
             now_ms / 1000 + api::CHALLENGE_EXPIRE,
