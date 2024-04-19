@@ -12,11 +12,10 @@
     tokenLedgerAPIAsync,
     type TokenLedgerAPI
   } from '$lib/canisters/tokenledger'
-  import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
+  import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
@@ -31,11 +30,7 @@
   } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -59,7 +54,6 @@
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
   const lowestPrizeBalance = 500n * PANDAToken.one
 
-  const modalStore = getModalStore()
   const toastStore = getToastStore()
 
   function icpCostAmount(n: number) {
@@ -123,6 +117,8 @@
   }
 
   function onFormChange(e: Event) {
+    e.preventDefault()
+
     const form = e.currentTarget as HTMLFormElement
     const input = form['icpTokens'] as HTMLInputElement
     input?.setCustomValidity(checkInput())
@@ -130,12 +126,13 @@
     validating = form.checkValidity()
   }
 
-  function onCheckWallet() {
-    parent && parent['onClose']()
-    modalStore.trigger({
-      type: 'component',
-      component: { ref: AccountDetailModal }
-    })
+  function setAmount(e: Event, n: number) {
+    e.preventDefault()
+
+    if (!submitting) {
+      inputAmount = n
+      validating = checkInput() == ''
+    }
   }
 
   onMount(async () => {
@@ -185,20 +182,20 @@
         <span class="font-bold text-panda">
           {formatNumber(Number(result.amount) / Number(PANDAToken.one))}
         </span>
-        <span>tokens in the lucky draw.</span>
+        <span>tokens in the lucky draw, check your <b>Lucky Balance</b>.</span>
       </p>
       {#if result.prize_cryptogram.length > 0}
         <p class="mt-4">
           <span>Giving you a prize cryptogram:</span>
         </p>
-        <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
+        <div class="my-2 flex flex-row items-center gap-1">
           <p class="truncate text-panda"
             >{'PRIZE:' + result.prize_cryptogram[0]}</p
           >
           <TextClipboardButton
             textValue={'PRIZE:' + result.prize_cryptogram[0]}
           />
-        </h4>
+        </div>
         <p>
           <span>
             It contains <b>500</b> PANDA tokens, available for <b>10</b> people
@@ -209,12 +206,12 @@
         <p class="mt-4">
           <span>Giving you an airdrop challenge code:</span>
         </p>
-        <h4 class="h4 my-2 flex flex-row content-center items-center gap-1">
+        <div class="my-2 flex flex-row items-center gap-1">
           <p class="truncate text-panda">{result.airdrop_cryptogram[0]}</p>
           <TextClipboardButton
             textValue={String(result.airdrop_cryptogram[0])}
           />
-        </h4>
+        </div>
         <p class="text-left">
           It is available for <b>{cryptogramInfo[4]}</b> people to claim
           airdrop, valid for <b>{(cryptogramInfo[2] || 10080) / (24 * 60)}</b> days.
@@ -225,31 +222,11 @@
         </p>
       {/if}
     </div>
-    <div
-      class="!mt-12 flex flex-row justify-between rounded-lg bg-gray/5 px-4 py-3"
-    >
-      <div class="flex flex-row">
-        <span><IconWallet /></span>
-        <span class="ml-2">Wallet</span>
-      </div>
-      <div class="flex flex-row">
-        <span>
-          {'+ ' + formatNumber(Number(result.amount) / Number(PANDAToken.one))}
-        </span>
-        <span class="ml-2 *:mt-[2px] *:h-5 *:w-5"><IconGoldPanda /></span>
-      </div>
-    </div>
-    <div class="!mt-12">
-      <button
-        class="variant-filled btn btn-lg m-auto block"
-        on:click={onCheckWallet}
-      >
-        Check Wallet
-      </button>
-    </div>
   {:else}
     {#if stepN > 0}
-      <h6 class="h6">Good Luck To You</h6>
+      <h3 class="h3 !mt-0 text-center">🎰</h3>
+      <div class="!mt-0 text-center text-xl font-bold">Lucky Draw</div>
+      <h5 class="h5">Good Luck To You</h5>
       <div class="flex flex-row items-center gap-2">
         <span class="text-panda *:h-6 *:w-6">
           {#if stepN == 1}
@@ -258,69 +235,88 @@
             <IconCheckbox />
           {/if}
         </span>
-        <span>Approve allowance</span>
+        <span>Approving allowance</span>
       </div>
       {#if stepN > 1}
         <div class="flex flex-row items-center gap-2">
           <span class="text-panda *:h-6 *:w-6">
             <IconCircleSpin />
           </span>
-          <span>Draw PANDA tokens</span>
+          <span>Drawing PANDA tokens</span>
         </div>
       {/if}
     {:else}
-      <h6 class="h6">Lucky Pool Draw Rules</h6>
-      <ul class="list text-gray/50">
-        <li>
-          <span>
-            {'1. Let N be the number of ICPs entered per draw, with 0.1<=N<=10.'}
+      <h3 class="h3 !mt-0 text-center">🎰</h3>
+      <div class="!mt-0 text-center text-xl font-bold">Lucky Draw</div>
+      <div class="space-y-2 rounded-xl bg-gray/5 p-4">
+        <h5 class="h5 font-extrabold text-panda">CALCULATION RULES</h5>
+        <div>
+          <b>1. Entry Range:</b>
+          <span class="text-gray/50">0.1 ≤ ICP Quantity ≤ 10</span>
+        </div>
+        <div>
+          <b>2. Random Remainder:</b>
+          <span class="text-gray/50">0 ≤ R ≤ 3446</span>
+          <br />
+          <span class="text-sm text-gray/50">
+            (A random number is generated, divided by the 'PANDA number',
+            yielding a remainder R)
           </span>
-        </li>
-        <li>
-          <span>
-            {'2. A random number is generated and divided by the "PANDA number", resulting in a remainder R, where 0<=R<=3446.'}
-          </span>
-        </li>
-        <li class="flex-col !items-start">
-          <p>{'3. Define the winning base B as follows:'}</p>
-          <p class="pl-2">{'If R<=5, then B=100000 (highest prize);'}</p>
-          <p class="pl-2">{'If R<=1000, then B=1000 (lowest prize);'}</p>
-          <p class="pl-2">{'Otherwise, B=R, where 1001<=B<=3446.'}</p>
-        </li>
-        <li>
-          <span>{'4. The total PANDA tokens received T=N*B.'}</span>
-        </li>
-        <li>
-          <span>
-            {"5. The maximum possible prize is 1000000 PANDA tokens, subject to the lucky pool's token balance."}
-          </span>
-        </li>
-      </ul>
+        </div>
+        <div>
+          <p><b>3. Winning Base (B):</b></p>
+          <ul class="ml-4 list-disc text-gray/50">
+            <li>
+              <span>
+                {'If R ≤ 5, then B = 100,000 (highest)'}
+              </span>
+            </li>
+            <li>
+              <span>
+                {'If 5 < R ≤ 1,000, then B = 1,000 (lowest)'}
+              </span>
+            </li>
+            <li>
+              <span>
+                {'Otherwise, B = R (1,001 ≤ B ≤ 3,446)'}
+              </span>
+            </li>
+          </ul>
+        </div>
+        <p><b>4. Total Prize = ICP Quantity × B</b></p>
+      </div>
     {/if}
-    <hr class="!border-t-1 !border-gray/10" />
-    <div class="text-sm">
-      <p>
-        <span>Lucky Pool Balance:</span>
-        <span>{luckyPoolBalanceDisplay.display}</span>
-        <span>{luckyPoolBalanceDisplay.symbol}</span>
-      </p>
-      <p>
-        <span>Your ICP Balance:</span>
-        <span>{icpBalanceDisplay.display}</span>
-        <span>{icpBalanceDisplay.symbol}</span>
-      </p>
+    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <div class="!mt-5 text-sm">
+      <div class="flex flex-row items-center justify-between">
+        <div class="flex flex-row items-center gap-2">
+          <span class="*:size-6"><IconIcLogo /></span>
+          <b>Your ICP Balance:</b>
+        </div>
+        <div class="flex flex-row gap-1 text-gray/50">
+          <span>{icpBalanceDisplay.display}</span>
+          <span>{icpBalanceDisplay.symbol}</span>
+        </div>
+      </div>
+      <div class="mt-1 flex flex-row items-center justify-between">
+        <div class="flex flex-row items-center gap-2">
+          <span class="*:size-6"><IconGoldPanda /></span>
+          <b>Lucky Pool Balance:</b>
+        </div>
+        <div class="flex flex-row gap-1 text-gray/50">
+          <span>{luckyPoolBalanceDisplay.display}</span>
+          <span>{luckyPoolBalanceDisplay.symbol}</span>
+        </div>
+      </div>
     </div>
     <form
-      class="flex flex-col gap-4"
+      class="flex flex-col gap-2"
       on:input={onFormChange}
       use:focusTrap={true}
     >
-      <div
-        class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5"
-      >
-        <div class="input-group-shim bg-gray/5">ICP</div>
+      <div class="relative">
         <input
-          class="input rounded-none invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
           type="number"
           name="icpTokens"
           min="0.1"
@@ -331,6 +327,37 @@
           disabled={submitting}
           required
         />
+        <div class="absolute right-2 top-2 outline-0">ICP</div>
+      </div>
+      <div class="flex flex-row gap-2 text-sm">
+        <button
+          class="btn rounded-md bg-gray/5 px-3 py-1 outline-0"
+          disabled={submitting}
+          on:click={(e) => setAmount(e, 0.1)}
+        >
+          0.1
+        </button>
+        <button
+          class="btn rounded-md bg-gray/5 px-3 py-1 outline-0"
+          disabled={submitting}
+          on:click={(e) => setAmount(e, 0.5)}
+        >
+          0.5
+        </button>
+        <button
+          class="btn rounded-md bg-gray/5 px-3 py-1 outline-0"
+          disabled={submitting}
+          on:click={(e) => setAmount(e, 1)}
+        >
+          1
+        </button>
+        <button
+          class="btn rounded-md bg-gray/5 px-3 py-1 outline-0"
+          disabled={submitting}
+          on:click={(e) => setAmount(e, 10)}
+        >
+          10
+        </button>
       </div>
     </form>
     <footer class="">

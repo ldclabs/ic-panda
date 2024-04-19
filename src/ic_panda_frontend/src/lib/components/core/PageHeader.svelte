@@ -41,14 +41,14 @@
     <TabAnchor href="#luckypool" selected={$page.url.hash === '#luckypool'}>
       Lucky Pool
     </TabAnchor>
-    <TabAnchor
-      class="max-md:hidden"
-      href="#tokenomics"
-      selected={$page.url.hash === '#tokenomics'}
-    >
+    <TabAnchor href="#tokenomics" selected={$page.url.hash === '#tokenomics'}>
       Tokenomics
     </TabAnchor>
-    <TabAnchor href="#roadmap" selected={$page.url.hash === '#roadmap'}>
+    <TabAnchor
+      class="max-md:hidden"
+      href="#roadmap"
+      selected={$page.url.hash === '#roadmap'}
+    >
       Roadmap
     </TabAnchor>
   </TabGroup>

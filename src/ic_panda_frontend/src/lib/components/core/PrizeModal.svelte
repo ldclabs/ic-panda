@@ -143,9 +143,9 @@
       </p>
     </div>
   {:else}
-    <h3 class="h3 !mt-1 text-center">🐼 🎁</h3>
-    <div class="text-center text-xl font-bold">Get a Prize</div>
-    <div class="m-auto mt-5 flex w-80 flex-col content-center">
+    <h3 class="h3 !mt-0 text-center">🐼 🎁</h3>
+    <div class="!mt-0 text-center text-xl font-bold">Get a Prize</div>
+    <div class="m-auto mt-5 flex flex-col content-center">
       <p class="text-sm text-gray/50">Meet requirements:</p>
       <p class="mt-3 flex flex-row items-center gap-2">
         {#if meetRequirements != 1 && meetRequirements != 3}
@@ -165,7 +165,7 @@
       </p>
     </div>
     <form
-      class="m-auto !mt-8 flex w-80 flex-col content-center"
+      class="m-auto !mt-6 flex flex-col content-center"
       on:input={onFormChange}
     >
       <label class="label">
@@ -196,7 +196,7 @@
         </div>
       </label>
     </form>
-    <footer class="m-auto !my-8 w-80">
+    <footer class="m-auto !my-6">
       <button
         class="btn flex w-full flex-row items-center gap-2 text-white {meetRequirements <
         3
@@ -209,12 +209,12 @@
           <span class=""><IconCircleSpin /></span>
           <span>Processing...</span>
         {:else}
-          <span>Claim</span>
+          <span>Claim Now</span>
         {/if}
       </button>
     </footer>
     <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
-    <div class="m-auto !mt-7 w-80">
+    <div class="m-auto !mt-5">
       <p class="text-sm text-gray/50">To get the latest updates by following:</p
       >
       <div class="mt-3 flex flex-row justify-between">
@@ -226,7 +226,7 @@
           target="_blank"
         >
           <span><IconX /></span>
-          <span class="text-left">ICPanda X</span>
+          <span class="text-left">ICPanda DAO</span>
         </a>
         <a
           type="button"

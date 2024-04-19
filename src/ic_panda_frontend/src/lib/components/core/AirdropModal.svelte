@@ -164,9 +164,9 @@
       </p>
     </div>
   {:else}
-    <h3 class="h3 !mt-1 text-center">🪂 🎁</h3>
-    <div class="text-center text-xl font-bold">Get the Airdrop</div>
-    <div class="m-auto !mt-0 flex w-80 flex-col content-center">
+    <h3 class="h3 !mt-0 text-center">🪂 🎁</h3>
+    <div class="!mt-0 text-center text-xl font-bold">Get the Airdrop</div>
+    <div class="m-auto !mt-0 flex flex-col content-center">
       <h6 class="h6 mb-4 mt-5 text-center font-bold">
         <span>STEP 1: Get verified</span>
       </h6>
@@ -198,14 +198,14 @@
 
     <hr
       class="!border-t-1 mx-[-24px] !border-dashed !border-gray/20 {dmChallenge
-        ? '!mt-8'
-        : '!mt-4'}"
+        ? '!mt-6'
+        : '!mt-3'}"
     />
     <form
-      class="m-auto !mt-0 flex w-80 flex-col content-center"
+      class="m-auto !mt-0 flex flex-col content-center"
       on:input={onFormChange}
     >
-      <h6 class="h6 mb-4 mt-6 text-center font-bold">
+      <h6 class="h6 mb-4 mt-5 text-center font-bold">
         <span>STEP 2 : Fill-in airdrop code</span>
       </h6>
       <label class="label {!dmChallenge ? 'collapse h-0' : 'visible mb-2'}">
@@ -265,7 +265,7 @@
         </div>
       </label>
     </form>
-    <footer class="m-auto !mt-6 w-80">
+    <footer class="m-auto !mt-6">
       <button
         class="btn flex w-full flex-row items-center gap-2 bg-pink-500 text-white"
         disabled={submitting || !validating}
@@ -275,7 +275,7 @@
           <span class=""><IconCircleSpin /></span>
           <span>Processing...</span>
         {:else}
-          <span>Claim</span>
+          <span>Claim Now</span>
         {/if}
       </button>
     </footer>

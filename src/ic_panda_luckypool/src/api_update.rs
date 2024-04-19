@@ -6,13 +6,11 @@ use serde_bytes::ByteBuf;
 
 use crate::{
     icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_from, token_transfer_to, types,
-    utils::{self, luckycode_to_string},
-    ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER, TRANS_FEE,
+    token_transfer_from, token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER,
+    TRANS_FEE,
 };
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
-const LOWEST_LUCKYDRAW_BALANCE: u64 = 500;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> =
     Lazy::new(|| CaptchaBuilder::new().length(6).width(160).complexity(8));
@@ -105,7 +103,7 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
     });
 
     let lucky_code = if let Some(ref p) = prize {
-        Some(luckycode_to_string(p.0))
+        Some(utils::luckycode_to_string(p.0))
     } else {
         args.lucky_code
     };
@@ -280,6 +278,13 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         store::user::deactive(caller);
     });
 
+    let state = store::airdrop::state_of(&caller);
+    if let Some(ref state) = state {
+        if state.0 == 0 {
+            return Err("user is banned".to_string());
+        }
+    }
+
     let now_sec = ic_cdk::api::time() / SECOND;
     let rr = ic_cdk::api::management_canister::main::raw_rand()
         .await
@@ -289,62 +294,13 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     let icp = icp01 * ICP_1 / 10;
     let amount = icp01 * amount / 10;
 
-    let balance = token_balance_of(TOKEN_CANISTER, ic_cdk::id()).await?;
-    let lowest_balance = (LOWEST_LUCKYDRAW_BALANCE * TOKEN_1 * icp01 / 10) + TRANS_FEE;
-    if balance < lowest_balance {
-        return Err(format!(
-            "insufficient token balance ({}) for drawing with {} ICP",
-            balance / TOKEN_1,
-            icp01 as f32 / 10f32
-        ));
-    }
-
     let _ = icp_transfer_from(caller, Nat::from(icp - TRANS_FEE), "LUCKYDRAW".to_string()).await?;
-    let balance = token_balance_of(TOKEN_CANISTER, ic_cdk::id())
-        .await
-        .unwrap_or(Nat::from(0u64));
-    let draw_amount = if balance >= lowest_balance {
-        let balance = nat_to_u64(&balance).saturating_sub(TRANS_FEE);
-        let draw_amount = if balance < amount { balance } else { amount };
-        match token_transfer_to(caller, Nat::from(draw_amount), "LUCKYDRAW".to_string()).await {
-            Ok(_) => draw_amount,
-            Err(_) => 0,
-        }
-    } else {
-        0
-    };
-
-    if draw_amount > 0 {
-        let log = store::luckydraw::insert(caller, now_sec, draw_amount, icp, x)?;
-        store::state::with_mut(|r| {
-            r.total_luckydraw = r.total_luckydraw.saturating_add(draw_amount + TRANS_FEE);
-            r.total_luckydraw_icp = r.total_luckydraw_icp.saturating_add(icp - TRANS_FEE);
-            r.total_luckydraw_count += 1;
-            r.latest_luckydraw_logs.insert(0, log.clone());
-            if r.latest_luckydraw_logs.len() > 10 {
-                r.latest_luckydraw_logs.truncate(10);
-            }
-            if is_luckiest {
-                r.luckiest_luckydraw_logs.insert(0, log);
-                if r.luckiest_luckydraw_logs.len() > 3 {
-                    r.luckiest_luckydraw_logs.truncate(3);
-                }
-            }
-        });
-
-        let (airdrop_amount, _) = store::state::airdrop_amount_balance();
-
-        let airdrop_cryptogram = match store::airdrop::state_of(&caller) {
-            Some(store::AirdropState(caller_code, _, _)) => {
-                if caller_code == 0 {
-                    None
-                } else {
-                    store::prize::try_add_airdrop(caller_code, now_sec, 4320, 0, (icp01 as u16) * 5)
-                }
-            }
+    let res: Result<u32, String> = {
+        match state {
             None => {
+                let (airdrop_amount, _) = store::state::airdrop_amount_balance();
                 let caller_code = store::luckycode::new_from(caller);
-                if store::airdrop::insert(
+                store::airdrop::insert(
                     caller,
                     None,
                     now_sec,
@@ -352,32 +308,55 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
                     0,
                     caller_code,
                 )
-                .is_ok()
-                {
-                    store::prize::try_add_airdrop(caller_code, now_sec, 4320, 0, (icp01 as u16) * 5)
-                } else {
-                    None
-                }
+                .and_then(|_| store::airdrop::deposit(caller, amount).map(|_| caller_code))
             }
-        };
+            Some(store::AirdropState(caller_code, _, _)) => {
+                store::airdrop::deposit(caller, amount).map(|_| caller_code)
+            }
+        }
+    };
 
-        Ok(types::LuckyDrawOutput {
-            amount: Nat::from(draw_amount),
-            random: x,
-            luckypool_empty: draw_amount < amount,
-            prize_cryptogram: None,
-            airdrop_cryptogram,
-        })
-    } else {
-        // refund ICP when failed to transfer tokens
-        let _ = icp_transfer_to(
-            caller,
-            Nat::from(icp - TRANS_FEE - TRANS_FEE),
-            "LUCKYDRAW:REFUND".to_string(),
-        )
-        .await
-        .map_err(|err| format!("failed to refund ICP, {}", err))?;
-        Err("insufficient token balance for luckydraw, ICP refunded".to_string())
+    match res {
+        Ok(caller_code) => {
+            let log = store::luckydraw::insert(caller, now_sec, amount, icp, x)?;
+            store::state::with_mut(|r| {
+                r.total_luckydraw = r.total_luckydraw.saturating_add(amount + TRANS_FEE);
+                r.total_luckydraw_icp = r.total_luckydraw_icp.saturating_add(icp - TRANS_FEE);
+                r.total_luckydraw_count += 1;
+                r.latest_luckydraw_logs.insert(0, log.clone());
+                if r.latest_luckydraw_logs.len() > 10 {
+                    r.latest_luckydraw_logs.truncate(10);
+                }
+                if is_luckiest {
+                    r.luckiest_luckydraw_logs.insert(0, log);
+                    if r.luckiest_luckydraw_logs.len() > 3 {
+                        r.luckiest_luckydraw_logs.truncate(3);
+                    }
+                }
+            });
+
+            let airdrop_cryptogram =
+                store::prize::try_add_airdrop(caller_code, now_sec, 4320, 0, (icp01 as u16) * 5);
+
+            Ok(types::LuckyDrawOutput {
+                amount: Nat::from(amount),
+                random: x,
+                luckypool_empty: false,
+                prize_cryptogram: None,
+                airdrop_cryptogram,
+            })
+        }
+        Err(err) => {
+            // refund ICP when failed to transfer tokens
+            let _ = icp_transfer_to(
+                caller,
+                Nat::from(icp - TRANS_FEE - TRANS_FEE),
+                "LUCKYDRAW:REFUND".to_string(),
+            )
+            .await
+            .map_err(|err| format!("failed to refund ICP, {}", err))?;
+            Err(format!("failed to draw PANDA, ICP refunded, {}", err))
+        }
     }
 }
 
@@ -485,7 +464,7 @@ async fn register_name(args: types::NameInput) -> Result<types::NameOutput, Stri
     }
 
     Ok(types::NameOutput {
-        code: luckycode_to_string(caller_code),
+        code: utils::luckycode_to_string(caller_code),
         name: name_state.0,
         created_at: name_state.1,
         pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),
@@ -519,7 +498,7 @@ async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String
     }
 
     Ok(types::NameOutput {
-        code: luckycode_to_string(caller_code),
+        code: utils::luckycode_to_string(caller_code),
         name: name_state.0,
         created_at: name_state.1,
         pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),

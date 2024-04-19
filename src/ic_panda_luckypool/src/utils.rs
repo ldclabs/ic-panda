@@ -63,39 +63,38 @@ mod test {
         let avg = 100;
         for luck in [
             10, 100, 200, 300, 500, 900, 1000, 1200, 1500, 1800, 2000, 5000, 10000, 20000, 50000,
-            100000, 500000, 1000000, 2000000,
+            100000, 500000, 1000000,
         ]
         .iter()
         {
-            {
-                let num = &50;
+            for num in [2, 3, 5, 10, 20, 50, 100].iter() {
                 let amount = luck_amount(*luck, avg, *num);
                 println!(
-                    "Lucky balance: {}, claim amount: up to {} * avg",
+                    "Lucky balance: {}, claim amount up to: {} * avg",
                     luck,
                     amount as f32 / avg as f32
                 );
                 assert!(amount >= avg / 10);
                 assert!(amount <= avg * 11);
             }
-            // Lucky balance: 10, claim amount: up to 0.1 * avg
-            // Lucky balance: 100, claim amount: up to 0.29 * avg
-            // Lucky balance: 200, claim amount: up to 0.44 * avg
-            // Lucky balance: 300, claim amount: up to 0.57 * avg
-            // Lucky balance: 500, claim amount: up to 0.78 * avg
-            // Lucky balance: 800, claim amount: up to 1.02 * avg
-            // Lucky balance: 1000, claim amount: up to 1.15 * avg
-            // Lucky balance: 1200, claim amount: up to 1.27 * avg
-            // Lucky balance: 1500, claim amount: up to 1.42 * avg
-            // Lucky balance: 1800, claim amount: up to 1.56 * avg
-            // Lucky balance: 2000, claim amount: up to 1.64 * avg
-            // Lucky balance: 5000, claim amount: up to 2.43 * avg
-            // Lucky balance: 10000, claim amount: up to 3.15 * avg
-            // Lucky balance: 20000, claim amount: up to 3.97 * avg
-            // Lucky balance: 50000, claim amount: up to 5.21 * avg
-            // Lucky balance: 100000, claim amount: up to 6.25 * avg
-            // Lucky balance: 500000, claim amount: up to 9.06 * avg
-            // Lucky balance: 1000000, claim amount: up to 10.44 * avg
+            // Lucky balance: 10, claim amount up to: 0.1 * avg
+            // Lucky balance: 100, claim amount up to: 0.29 * avg
+            // Lucky balance: 200, claim amount up to: 0.44 * avg
+            // Lucky balance: 300, claim amount up to: 0.57 * avg
+            // Lucky balance: 500, claim amount up to: 0.78 * avg
+            // Lucky balance: 900, claim amount up to: 1.09 * avg
+            // Lucky balance: 1000, claim amount up to: 1.15 * avg
+            // Lucky balance: 1200, claim amount up to: 1.27 * avg
+            // Lucky balance: 1500, claim amount up to: 1.42 * avg
+            // Lucky balance: 1800, claim amount up to: 1.56 * avg
+            // Lucky balance: 2000, claim amount up to: 1.64 * avg
+            // Lucky balance: 5000, claim amount up to: 2.43 * avg
+            // Lucky balance: 10000, claim amount up to: 3.15 * avg
+            // Lucky balance: 20000, claim amount up to: 3.97 * avg
+            // Lucky balance: 50000, claim amount up to: 5.21 * avg
+            // Lucky balance: 100000, claim amount up to: 6.25 * avg
+            // Lucky balance: 500000, claim amount up to: 9.06 * avg
+            // Lucky balance: 1000000, claim amount up to: 10.44 * avg
         }
     }
 }

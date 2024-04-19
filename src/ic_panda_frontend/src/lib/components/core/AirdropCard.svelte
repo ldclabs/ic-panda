@@ -198,8 +198,8 @@
     {:else}
       <p class="">
         <span>
-          The more lucky balance you have, the larger your claim in a luck-based
-          <b>PANDA Prize</b>.
+          The more lucky balance you have, the larger your claim in a
+          <b>Lucky PANDA Prize</b>.
         </span>
       </p>
       <p class="mt-3">
@@ -231,11 +231,7 @@
         class="variant-filled-primary btn m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
       >
         {#if claimableAmount > 0n}
-          <span>
-            {'Transfer ' +
-              formatNumber(Number(claimableAmount) / Number(PANDAToken.one)) +
-              ' tokens to wallet'}
-          </span>
+          <span>Transfer tokens to wallet</span>
         {:else}
           <span>No token to transfer</span>
         {/if}
