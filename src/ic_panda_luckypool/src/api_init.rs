@@ -1,5 +1,6 @@
-use crate::store;
 use std::time::Duration;
+
+use crate::store;
 
 #[ic_cdk::init]
 fn init() {
@@ -22,5 +23,10 @@ fn post_upgrade() {
 
     ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
         ic_cdk::spawn(store::keys::load())
+    });
+
+    // canister_global_timer can not support unbounded type!!!
+    ic_cdk_timers::set_timer_interval(Duration::from_secs(3 * 60), || {
+        store::prize::handle_refund_jobs();
     });
 }

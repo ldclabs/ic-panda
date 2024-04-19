@@ -84,9 +84,9 @@ pub async fn challenge(
     }
 
     let state = ChallengeState((input.principal, input.message, 60 + unix_ms() / 1000));
-    Ok(Cbor(SuccessResponse::new(
-        state.sign_to(&app.challenge_secret),
-    )))
+    Ok(Cbor(SuccessResponse::new(ByteBuf::from(
+        state.sign(&app.challenge_secret),
+    ))))
 }
 
 #[cfg(test)]

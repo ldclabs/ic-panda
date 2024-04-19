@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-lib_panda = { path = "../lib_panda", version = "0.2" }
+lib_panda = { path = "../lib_panda", version = "0.2.2" }
 candid = { workspace = true }
 ciborium = { workspace = true }
 hex = { workspace = true }

@@ -1,7 +1,11 @@
 use base64::{engine::general_purpose, Engine};
 use candid::{CandidType, Nat, Principal};
+use ciborium::from_reader;
 use lib_panda::Challenge;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
+
+use crate::{store, utils, MAX_PRIZE_CLAIMABLE, TOKEN_1};
 
 #[derive(CandidType, Clone, Serialize)]
 pub struct CaptchaOutput {
@@ -12,7 +16,7 @@ pub struct CaptchaOutput {
 #[derive(CandidType, Clone, Deserialize)]
 pub struct AirdropClaimInput {
     pub code: String,      // used as prize cryptogram
-    pub challenge: String, // deprecated
+    pub challenge: String, // used as x-auth challenge
     pub lucky_code: Option<String>,
     pub recaptcha: Option<String>, // deprecated
 }
@@ -56,6 +60,112 @@ pub struct AddPrizeInput {
     pub expire: u16,    // in minutes, should be less than 60*24*30
     pub claimable: u32, // in tokens, should be less than 100_000
     pub quantity: u16,  // should be less than 10000
+    pub kind: Option<u8>,
+    pub memo: Option<ByteBuf>,
+    pub recipient: Option<Principal>,
+}
+
+impl AddPrizeInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.expire < 10 {
+            return Err("expire should be at least 10 minutes".to_string());
+        }
+        if self.claimable == 0 {
+            return Err("claimable should be at least 1 token".to_string());
+        }
+        if self.quantity == 0 {
+            return Err("quantity should be at least 1".to_string());
+        }
+        if self.expire > 60 * 24 * 30 {
+            return Err("expire should be less than 60*24*30".to_string());
+        }
+        if self.claimable > 1_000_000 {
+            return Err("claimable should be less than 1_000_000".to_string());
+        }
+        if self.quantity > 10_000 {
+            return Err("quantity should be less than 10_000".to_string());
+        }
+        if self.claimable / self.quantity as u32 > MAX_PRIZE_CLAIMABLE as u32 {
+            return Err("claimable per user should be less than 420_000".to_string());
+        }
+        if self.kind.unwrap_or_default() > 1 {
+            return Err("kind should be less than 2".to_string());
+        }
+        if let Some(ref memo) = self.memo {
+            let _: PrizeMemo = from_reader(&memo[..]).map_err(|_err| "invalid memo".to_string())?;
+        }
+        if self.recipient.is_some() && self.quantity > 1 {
+            return Err("quantity should be 1 with recipient".to_string());
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Deserialize)]
+pub struct ClaimPrizeInput {
+    pub code: String,
+    pub challenge: ByteBuf,
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct PrizeOutput {
+    pub issuer: String,
+    pub issued_at: u64, // in seconds since UNIX epoch
+    pub expire: u64,    // in seconds
+    pub amount: u64,    // in E8
+    pub quantity: u16,
+    pub kind: u8,         // 0 - fixed, 1 - random
+    pub sys_subsidy: u64, // in tokens
+    pub refund_amount: u64,
+    pub filled: u16,
+    pub ended_at: u64, // in seconds
+    pub memo: Option<ByteBuf>,
+    pub name: Option<String>, // issuer name
+    pub code: Option<String>,
+}
+
+impl PrizeOutput {
+    pub fn from(
+        prize: &store::Prize,
+        info: &store::PrizeInfo,
+        name: Option<String>,
+        code: Option<String>,
+    ) -> Self {
+        Self {
+            issuer: utils::luckycode_to_string(prize.0),
+            issued_at: prize.1 as u64 * 60,
+            expire: prize.2 as u64 * 60,
+            amount: prize.3 as u64 * TOKEN_1,
+            quantity: prize.4,
+            kind: info.0,
+            sys_subsidy: info.1 as u64 * TOKEN_1,
+            refund_amount: info.2,
+            filled: info.3,
+            ended_at: info.4,
+            memo: info.5.clone(),
+            name,
+            code,
+        }
+    }
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct AirdropCodeOutput {
+    pub issuer: String,
+    pub issued_at: u64, // in seconds since UNIX epoch
+    pub expire: u64,    // in seconds
+    pub amount: u64,    // in E8
+    pub quantity: u16,
+    pub filled: u16,
+    pub name: Option<String>, // issuer name
+    pub code: Option<String>,
+}
+
+#[derive(CandidType, Clone, Deserialize, Serialize)]
+pub struct PrizeMemo {
+    pub message: String,
+    pub link: String,
 }
 
 #[derive(CandidType, Clone, Deserialize, Serialize)]
@@ -86,6 +196,59 @@ pub struct LuckyDrawLog {
     pub random: u64,
 }
 
+#[derive(CandidType, Clone, Serialize)]
+pub struct PrizeClaimLog {
+    pub prize: PrizeOutput,
+    pub claimed_at: u64,
+    pub amount: Nat,
+}
+
+#[derive(CandidType, Clone, Deserialize)]
+pub struct NameInput {
+    pub name: String,
+    pub old_name: Option<String>,
+}
+
+impl NameInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.name.is_empty() {
+            return Err("name should not be empty".to_string());
+        }
+
+        if self.name.len() > 64 {
+            return Err("name should be less than 64 bytes".to_string());
+        }
+
+        if self.name.trim() != self.name {
+            return Err("name should not have leading or trailing spaces".to_string());
+        }
+
+        if self.name.contains(['\r', '\n', '\t']) {
+            return Err("name contains invalid characters".to_string());
+        }
+
+        if let Some(old) = &self.old_name {
+            if old.is_empty() {
+                return Err("old name should not be empty".to_string());
+            }
+            if old == &self.name {
+                return Err("new name should be different from the old name".to_string());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Deserialize, Serialize)]
+pub struct NameOutput {
+    pub code: String,
+    pub name: String,
+    pub created_at: u64,
+    pub pledge_amount: Nat,
+    pub yearly_rental: Nat,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ChallengeCode {
     pub code: String,
@@ -107,15 +270,6 @@ impl ChallengeCode {
             .decode(challenge.as_bytes())
             .map_err(|_err| "invalid challenge".to_string())?;
         self.verify(key, expire_at, &challenge)
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ChallengeState(pub (Principal, String, u64));
-
-impl ChallengeState {
-    pub fn is_valid(&self, user: &Principal, now_sec: u64) -> bool {
-        self.0 .2 >= now_sec && &self.0 .0 == user
     }
 }
 

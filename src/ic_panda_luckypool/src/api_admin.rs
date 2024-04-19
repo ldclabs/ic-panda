@@ -1,15 +1,16 @@
-use crate::{
-    icp_transfer_to, is_authenticated, is_controller, store, token_balance_of, types, ANONYMOUS,
-    DAO_CANISTER, ICP_1, ICP_CANISTER, SECOND, TRANS_FEE,
-};
 use base64::{engine::general_purpose, Engine};
 use candid::{Nat, Principal};
-use lib_panda::bytes32_from_base64;
+use lib_panda::{bytes32_from_base64, Cryptogram};
 use std::collections::BTreeSet;
+
+use crate::{
+    icp_transfer_to, is_authenticated, is_controller, store, token_balance_of, types, ANONYMOUS,
+    DAO_CANISTER, ICP_1, ICP_CANISTER, SECOND, TOKEN_1, TRANS_FEE,
+};
 
 #[ic_cdk::update(guard = "is_controller")]
 async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
-    icp_transfer_to(DAO_CANISTER, amount)
+    icp_transfer_to(DAO_CANISTER, amount, "COLLECT".to_string())
         .await
         .map_err(|err| format!("failed to collect ICP, {}", err))?;
     Ok(())
@@ -109,50 +110,74 @@ fn manager_get_airdrop_key() -> Result<String, String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
+fn manager_update_prize_subsidy(subsidy: Option<store::SysPrizeSubsidy>) -> Result<(), String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    if let Some(ref subsidy) = subsidy {
+        if subsidy.0 > 100 * TOKEN_1 {
+            return Err("prize creating fee should be less than 100 tokens".to_string());
+        }
+        if subsidy.1 < 100 {
+            return Err("min quantity for subsidy should be at least 100".to_string());
+        }
+        if subsidy.2 < 1000 {
+            return Err("min claimable tokens for subsidy should be at least 1000".to_string());
+        }
+        if subsidy.3 > 50 {
+            return Err("subsidy ratio should be less than 50".to_string());
+        }
+        if subsidy.4 > 10000 {
+            return Err("max subsidy tokens should be less than 10,000 tokens".to_string());
+        }
+        if subsidy.5 > 1000 {
+            return Err("max subsidy amount should be less than 1000".to_string());
+        }
+    }
+
+    store::state::with_mut(|state| state.prize_subsidy = subsidy);
+    Ok(())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
 fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
+    args.validate()?;
     let caller = ic_cdk::caller();
     if !store::state::is_manager(&caller) {
         return Err("user is not a manager".to_string());
     }
+    let _ =
+        store::state::with(|r| r.prize_subsidy.clone()).ok_or("can not add prize currently.")?;
+    let store::AirdropState(caller_code, _, _) = store::airdrop::state_of(&caller)
+        .ok_or("you don't have lucky code to add prize".to_string())?;
+    if caller_code == 0 {
+        return Err("user is banned".to_string());
+    }
     let now_sec = ic_cdk::api::time() / SECOND;
-    if args.expire < 10 {
-        return Err("expire should be at least 10 minutes".to_string());
+    let prize = store::Prize(
+        caller_code,
+        (now_sec / 60) as u32,
+        args.expire,
+        args.claimable,
+        args.quantity,
+    );
+    let prize_info = store::PrizeInfo(
+        args.kind.unwrap_or_default(),
+        args.claimable,
+        0,
+        0,
+        0,
+        args.memo,
+    );
+    if !store::prize::add(prize.clone(), prize_info.clone()) {
+        return Err("failed to add prize".to_string());
     }
-    if args.claimable == 0 {
-        return Err("claimable should be at least 1 token".to_string());
-    }
-    if args.quantity == 0 {
-        return Err("quantity should be at least 1".to_string());
-    }
-    if args.expire > 60 * 24 * 30 {
-        return Err("expire should be less than 60*24*30".to_string());
-    }
-    if args.claimable > 100_000 {
-        return Err("claimable should be less than 100_000".to_string());
-    }
-    if args.quantity > 10_000 {
-        return Err("quantity should be less than 10_000".to_string());
-    }
+    store::state::with_mut(|r| {
+        r.total_prizes_count = Some(r.total_prizes_count.unwrap_or_default().saturating_add(1));
+    });
 
-    match store::airdrop::state_of(&caller) {
-        Some(store::AirdropState(code, _, _)) => {
-            if code == 0 {
-                Err("user is banned".to_string())
-            } else {
-                match store::prize::try_add(
-                    code,
-                    now_sec,
-                    args.expire,
-                    args.claimable,
-                    args.quantity,
-                ) {
-                    Some(cryptogram) => Ok(cryptogram),
-                    None => Err("failed to add prize".to_string()),
-                }
-            }
-        }
-        None => Err("you don't have lucky code".to_string()),
-    }
+    let code = prize.encode(&(*store::keys::PRIZE_KEY), args.recipient);
+    Ok(code)
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
