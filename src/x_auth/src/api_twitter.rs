@@ -182,13 +182,26 @@ pub async fn callback(
         .send()
         .await
     {
-        Ok(res) => res,
+        Ok(res) => {
+            if res.status().is_success() {
+                res
+            } else {
+                let status = res.status().as_u16();
+                let err = res
+                    .text()
+                    .await
+                    .unwrap_or("read response failed".to_string());
+                ctx.set("error", format!("get twitter token: {}", err).into())
+                    .await;
+                return Err(HTTPError::new(status, err));
+            }
+        }
         Err(err) => {
-            ctx.set("error", format!("request twitter token: {:?}", err).into())
+            ctx.set("error", format!("get twitter token: {:?}", err).into())
                 .await;
             return Err(HTTPError::new(
                 500,
-                "failed to request twitter token".to_string(),
+                "failed to get twitter token".to_string(),
             ));
         }
     };
@@ -218,13 +231,26 @@ pub async fn callback(
         .send()
         .await
     {
-        Ok(res) => res,
+        Ok(res) => {
+            if res.status().is_success() {
+                res
+            } else {
+                let status = res.status().as_u16();
+                let err = res
+                    .text()
+                    .await
+                    .unwrap_or("read response failed".to_string());
+                ctx.set("error", format!("get twitter user: {}", err).into())
+                    .await;
+                return Err(HTTPError::new(status, err));
+            }
+        }
         Err(err) => {
-            ctx.set("error", format!("request twitter user: {:?}", err).into())
+            ctx.set("error", format!("get twitter user: {:?}", err).into())
                 .await;
             return Err(HTTPError::new(
                 500,
-                "failed to request twitter user".to_string(),
+                "failed to get twitter user".to_string(),
             ));
         }
     };
