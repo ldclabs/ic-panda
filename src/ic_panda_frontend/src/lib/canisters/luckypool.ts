@@ -8,6 +8,7 @@ import {
   type LuckyDrawLog,
   type Notification,
   type LuckyDrawOutput as _LuckyDrawOutput,
+  type NameOutput as _NameOutput,
   type _SERVICE,
   type State as _State
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
@@ -23,12 +24,14 @@ export type State = _State
 export type AirdropState = AirdropStateOutput
 export type Captcha = CaptchaOutput
 export type LuckyDrawOutput = _LuckyDrawOutput
+export type NameOutput = _NameOutput
 
 export class LuckyPoolAPI {
   principal: Principal
   actor: _SERVICE
   private _state = writable<State | null>(null)
   private _airdropState = writable<AirdropState | null>(null)
+  private _nameState = writable<NameOutput | null>(null)
 
   static async with(identity: Identity): Promise<LuckyPoolAPI> {
     const actor = await createActor<_SERVICE>({
@@ -55,6 +58,10 @@ export class LuckyPoolAPI {
     return readonly(this._airdropState)
   }
 
+  get nameStateStore(): Readable<NameOutput | null> {
+    return readonly(this._nameState)
+  }
+
   async apiVersion(): Promise<number> {
     return this.actor.api_version()
   }
@@ -67,6 +74,11 @@ export class LuckyPoolAPI {
     this._airdropState.set(
       unwrapResult(airdropState, 'call airdrop_state_of failed')
     )
+  }
+
+  async refreshNameState(): Promise<void> {
+    const nameState = await this.nameOf()
+    this._nameState.set(nameState)
   }
 
   async defaultAirdropState(): Promise<AirdropState> {
@@ -107,6 +119,37 @@ export class LuckyPoolAPI {
 
   async myLuckydrawLogs(): Promise<LuckyDrawLog[]> {
     return this.actor.my_luckydraw_logs([], [20])
+  }
+
+  async nameOf(): Promise<NameOutput | null> {
+    const res = await this.actor.name_of([])
+    return unwrapResult(res, 'call name_of failed', true)
+  }
+
+  async nameLookup(name: string): Promise<NameOutput | null> {
+    const res = await this.actor.name_lookup(name)
+    return unwrapResult(res, 'call name_lookup failed', true)
+  }
+
+  async registerName(name: string): Promise<NameOutput> {
+    const res = await this.actor.register_name({ name, old_name: [] })
+    const nameState: NameOutput = unwrapResult(res, 'call register_name failed')
+    this._nameState.set(nameState)
+    return nameState
+  }
+
+  async unregisterName(name: string): Promise<bigint> {
+    const res = await this.actor.unregister_name({ name, old_name: [] })
+    const refund: bigint = unwrapResult(res, 'call unregister_name failed')
+    this._nameState.set(null)
+    return refund
+  }
+
+  async updateName(name: string, old_name: string): Promise<NameOutput> {
+    const res = await this.actor.update_name({ name, old_name: [old_name] })
+    const nameState: NameOutput = unwrapResult(res, 'call update_name failed')
+    this._nameState.set(nameState)
+    return nameState
   }
 }
 

@@ -1,6 +1,11 @@
 <script lang="ts">
   import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpledger'
   import {
+    LuckyPoolAPI,
+    luckyPoolAPIAsync,
+    type NameOutput
+  } from '$lib/canisters/luckypool'
+  import {
     TokenLedgerAPI,
     tokenLedgerAPIAsync
   } from '$lib/canisters/tokenledger'
@@ -18,8 +23,14 @@
   import { shortId } from '$lib/utils/auth'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
-  import { Accordion, AccordionItem } from '@skeletonlabs/skeleton'
+  import {
+    Accordion,
+    AccordionItem,
+    getModalStore
+  } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
+  import { type Readable } from 'svelte/store'
+  import NameModal from './NameModal.svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -32,13 +43,32 @@
   let pandaBalance = Promise.resolve(0n)
   let availableICPBalance = 0n
   let availablePandaBalance = 0n
+  let nameState: Readable<NameOutput | null>
 
   let icpLedgerAPI: ICPLedgerAPI
   let tokenLedgerAPI: TokenLedgerAPI
+  let luckyPoolAPI: LuckyPoolAPI
+
+  const modalStore = getModalStore()
 
   function onLogoutHandler(): void {
     signOut().then(() => {
       parent && parent['onClose']()
+    })
+  }
+
+  function editName(mode: 0 | 1 | 2) {
+    modalStore.close()
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: NameModal,
+        props: {
+          nameEditMode: mode,
+          availablePandaBalance: availablePandaBalance,
+          nameState: nameState
+        }
+      }
     })
   }
 
@@ -69,14 +99,57 @@
     tokenLedgerAPI = await tokenLedgerAPIAsync()
     pandaBalance = tokenLedgerAPI.balance()
 
+    luckyPoolAPI = await luckyPoolAPIAsync()
+    await luckyPoolAPI.refreshNameState()
+    nameState = luckyPoolAPI.nameStateStore
+
     availableICPBalance = await icpBalance
     availablePandaBalance = await pandaBalance
   })
+
+  $: name = $nameState?.name || ''
 </script>
 
 <ModalCard {parent}>
-  <header class="!mt-0 text-center text-xl font-bold">Account</header>
-  <div class="flex flex-col gap-3 rounded-xl bg-gray/5 px-4 py-3">
+  <div class="!mt-0 text-center text-xl font-bold">Account</div>
+  <div class="!mt-5 flex flex-col gap-2">
+    <div class="">Name</div>
+    <div class="relative">
+      <input
+        class="input truncate rounded-xl bg-white/20 pr-36 invalid:input-warning hover:bg-white/90"
+        type="text"
+        name="pandaName"
+        bind:value={name}
+        disabled={true}
+        placeholder="Register your brand name"
+      />
+      {#if name == ''}
+        <button
+          class="btn absolute right-0 top-0 text-panda outline-0"
+          on:click={() => editName(0)}
+        >
+          <span>Register</span>
+        </button>
+      {:else}
+        <div class="absolute right-0 top-0 flex flex-row items-center">
+          <button
+            class="btn px-1 text-gray/50 outline-0"
+            on:click={() => editName(1)}
+          >
+            <span>Update</span>
+          </button>
+          <button
+            class="btn px-2 text-warning-500 outline-0"
+            on:click={() => editName(2)}
+          >
+            <span>Unregister</span>
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+  <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+  <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-gray/5 px-4 py-3">
     <TextClipboardPopup
       textLable="Principal:"
       textName={shortId(principal.toString())}

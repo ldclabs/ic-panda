@@ -211,21 +211,7 @@ pub struct NameInput {
 
 impl NameInput {
     pub fn validate(&self) -> Result<(), String> {
-        if self.name.is_empty() {
-            return Err("name should not be empty".to_string());
-        }
-
-        if self.name.len() > 64 {
-            return Err("name should be less than 64 bytes".to_string());
-        }
-
-        if self.name.trim() != self.name {
-            return Err("name should not have leading or trailing spaces".to_string());
-        }
-
-        if self.name.contains(['\r', '\n', '\t']) {
-            return Err("name contains invalid characters".to_string());
-        }
+        utils::valid_name(&self.name.to_lowercase())?;
 
         if let Some(old) = &self.old_name {
             if old.is_empty() {
@@ -245,8 +231,8 @@ pub struct NameOutput {
     pub code: String,
     pub name: String,
     pub created_at: u64,
-    pub pledge_amount: Nat,
-    pub yearly_rental: Nat,
+    pub deposit: Nat,
+    pub annual_fee: Nat,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

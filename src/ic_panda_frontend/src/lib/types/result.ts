@@ -21,11 +21,17 @@ export class ErrData<T> extends Error {
 
 export function unwrapResult<T, E>(
   res: Result<T, E>,
-  msg: string = 'error result'
+  msg: string = 'error result',
+  opt = false
 ): T {
   if ('Err' in res) {
     throw ErrData.from(msg, res.Err)
   }
+
+  if (opt && Array.isArray(res.Ok)) {
+    return res.Ok[0] || null
+  }
+
   return res.Ok
 }
 

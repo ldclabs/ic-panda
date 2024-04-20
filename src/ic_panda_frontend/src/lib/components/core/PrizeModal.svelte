@@ -20,15 +20,14 @@
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-
-  const modalStore = getModalStore()
+  export let prevAmount = 0n
 
   let submitting = false
   let validating = false
@@ -120,9 +119,7 @@
         <span>
           You have successfully claimed <b
             >{formatNumber(
-              Number(
-                result.claimable - ($modalStore[0]?.meta.claimableAmount || 0n)
-              ) / Number(PANDAToken.one)
+              Number(result.claimable - prevAmount) / Number(PANDAToken.one)
             )}</b
           > PANDA tokens.
         </span>

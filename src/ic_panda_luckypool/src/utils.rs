@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose, Engine};
+use finl_unicode::categories::CharacterCategories;
 
 pub fn luckycode_to_string(code: u32) -> String {
     general_purpose::URL_SAFE_NO_PAD.encode(code.to_be_bytes())
@@ -32,6 +33,35 @@ pub fn luck_amount(luck: u64, avg: u64, num: u64) -> u64 {
     };
     let max = max * (avg * num) as f32;
     v.min(max).round() as u64
+}
+
+// name should be valid utf-8 string, not empty, not longer than 64 bytes, and not contain any of the following characters: uppercase letters, punctuations, separators, marks, symbols, and other control characters, format characters, surrogates, unassigned characters and private use characters.
+// https://docs.rs/finl_unicode/latest/finl_unicode/categories/trait.CharacterCategories.html
+pub fn valid_name(name: &str) -> Result<(), String> {
+    let mut size = 0;
+    // let cs = Graphemes::new(name);
+
+    if name.is_empty() {
+        return Err("name should not be empty".to_string());
+    }
+
+    for c in name.chars() {
+        size += 1;
+        if size > 32 {
+            return Err("name should be less than 32 chars".to_string());
+        }
+        if c.is_letter_uppercase()
+            || c.is_punctuation()
+            || c.is_mark()
+            || c.is_symbol()
+            || c.is_other()
+            || (!c.is_separator_space() && c.is_separator())
+        {
+            return Err(format!("name contains invalid character: {:?}", c));
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

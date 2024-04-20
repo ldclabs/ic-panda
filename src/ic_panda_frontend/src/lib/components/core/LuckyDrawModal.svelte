@@ -52,7 +52,6 @@
   let defaultClaimable = 10
 
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
-  const lowestPrizeBalance = 500n * PANDAToken.one
 
   const toastStore = getToastStore()
 
@@ -107,10 +106,6 @@
       const cost = icpCostAmount(inputAmount)
       if (cost == 0n || cost > icpBalance) {
         return 'Insufficient ICP balance in your wallet'
-      } else if (
-        BigInt(inputAmount * Number(lowestPrizeBalance)) > luckyPoolBalance
-      ) {
-        return 'Insufficient lucky pool balance'
       }
     }
     return ''

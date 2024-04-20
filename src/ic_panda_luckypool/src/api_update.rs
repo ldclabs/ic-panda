@@ -467,8 +467,8 @@ async fn register_name(args: types::NameInput) -> Result<types::NameOutput, Stri
         code: utils::luckycode_to_string(caller_code),
         name: name_state.0,
         created_at: name_state.1,
-        pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),
-        yearly_rental: Nat::from(name_state.3 as u64 * TOKEN_1),
+        deposit: Nat::from(name_state.2 as u64 * TOKEN_1),
+        annual_fee: Nat::from(name_state.3 as u64 * TOKEN_1),
     })
 }
 
@@ -501,13 +501,13 @@ async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String
         code: utils::luckycode_to_string(caller_code),
         name: name_state.0,
         created_at: name_state.1,
-        pledge_amount: Nat::from(name_state.2 as u64 * TOKEN_1),
-        yearly_rental: Nat::from(name_state.3 as u64 * TOKEN_1),
+        deposit: Nat::from(name_state.2 as u64 * TOKEN_1),
+        annual_fee: Nat::from(name_state.3 as u64 * TOKEN_1),
     })
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn unregister_name(args: types::NameInput) -> Result<(), String> {
+async fn unregister_name(args: types::NameInput) -> Result<Nat, String> {
     args.validate()?;
     let caller = ic_cdk::caller();
     if !store::user::active(caller) {
@@ -533,7 +533,7 @@ async fn unregister_name(args: types::NameInput) -> Result<(), String> {
     let du = now_sec - name_state.1;
     let y = 3600 * 24 * 365;
     let r = du % y;
-    let n = (du / y + if r > 30 { 1 } else { 0 }) as u32;
+    let n = (du / y + if r > 3600 * 24 * 7 { 1 } else { 0 }) as u32;
     let refund = if name_state.2 > name_state.3 * n {
         (name_state.2 - n * name_state.3) as u64 * TOKEN_1
     } else {
@@ -545,7 +545,7 @@ async fn unregister_name(args: types::NameInput) -> Result<(), String> {
             .map_err(|err| format!("failed to refund, {}", err))?;
     }
 
-    Ok(())
+    Ok(Nat::from(refund))
 }
 
 // 344693032001 from b"PANDA"

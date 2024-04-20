@@ -356,10 +356,10 @@ impl Storable for PrizeRefund {
 // NamingState
 #[derive(Clone, Deserialize, Serialize)]
 pub struct NamingState(
-    pub String, // Unique Name
-    pub u64,    // Created Time in seconds
-    pub u32,    // Cash Pledge in tokens
-    pub u32,    // Yearly Rental in tokens
+    pub String, // Unique name
+    pub u64,    // Created time in seconds
+    pub u32,    // Deposit amount in tokens
+    pub u32,    // Annual fee in tokens
 );
 impl Storable for NamingState {
     const BOUND: Bound = Bound::Bounded {
@@ -1134,7 +1134,7 @@ pub mod naming {
     }
 
     pub fn get_by_name(name: &String) -> Option<(u32, NamingState)> {
-        if let Some(code) = NAMING.with(|r| r.borrow().get(name)) {
+        if let Some(code) = NAMING.with(|r| r.borrow().get(&name.to_lowercase())) {
             return NAMING_STATE.with(|r| r.borrow().get(&code).map(|v| (code, v)));
         }
         None
@@ -1143,11 +1143,12 @@ pub mod naming {
     pub fn try_set_name(code: u32, name: NamingState) -> bool {
         NAMING.with(|r| {
             let mut m = r.borrow_mut();
-            if m.contains_key(&name.0) {
+            let ln = name.0.to_lowercase();
+            if m.contains_key(&ln) {
                 return false;
             }
 
-            m.insert(name.0.clone(), code);
+            m.insert(ln, code);
             NAMING_STATE.with(|r| r.borrow_mut().insert(code, name));
             true
         })
@@ -1156,14 +1157,17 @@ pub mod naming {
     pub fn try_update_name(code: u32, old: &String, name: NamingState) -> bool {
         NAMING.with(|r| {
             let mut m = r.borrow_mut();
-            if m.contains_key(&name.0) {
+            let ln = name.0.to_lowercase();
+            let lon = old.to_lowercase();
+            if m.contains_key(&ln) {
                 return false;
             }
-            if m.get(old) != Some(code) {
+            if m.get(&lon) != Some(code) {
                 return false;
             }
 
-            m.insert(name.0.clone(), code);
+            m.remove(&lon);
+            m.insert(ln, code);
             NAMING_STATE.with(|r| r.borrow_mut().insert(code, name));
             true
         })
@@ -1172,11 +1176,12 @@ pub mod naming {
     pub fn remove_name(code: u32, name: &String) -> bool {
         NAMING.with(|r| {
             let mut m = r.borrow_mut();
-            if m.get(name) != Some(code) {
+            let ln = name.to_lowercase();
+            if m.get(&ln) != Some(code) {
                 return false;
             }
 
-            m.remove(name);
+            m.remove(&ln);
             NAMING_STATE.with(|r| r.borrow_mut().remove(&code));
             true
         })

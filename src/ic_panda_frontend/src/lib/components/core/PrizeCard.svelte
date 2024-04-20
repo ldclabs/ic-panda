@@ -25,8 +25,7 @@
     } else {
       modalStore.trigger({
         type: 'component',
-        component: { ref: PrizeModal },
-        meta: { claimableAmount: claimableAmount }
+        component: { ref: PrizeModal, props: { prevAmount: claimableAmount } }
       })
     }
   }
@@ -58,7 +57,7 @@
   // bg-[url('/_assets/images/prize-giveaway-bg.webp')]
 </script>
 
-<div class="to-red-50 from-amber-50 rounded-2xl bg-gradient-to-r">
+<div class="rounded-2xl bg-gradient-to-r from-amber-50 to-red-50">
   <div
     class="  flex flex-col justify-center bg-[url('/_assets/images/prize-giveaway-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
   >
@@ -75,7 +74,7 @@
       <ol class="list *:!mt-4 *:!rounded-xl *:bg-white *:px-4 *:py-2">
         <li>
           <span
-            class="to-red-500 from-amber-300 badge-icon bg-gradient-to-r p-4 text-white"
+            class="badge-icon bg-gradient-to-r from-amber-300 to-red-500 p-4 text-white"
             >1</span
           >
           <span class="flex-auto">
@@ -84,7 +83,7 @@
         </li>
         <li>
           <span
-            class="to-red-500 from-amber-300 badge-icon bg-gradient-to-r p-4 text-white"
+            class="badge-icon bg-gradient-to-r from-amber-300 to-red-500 p-4 text-white"
             >2</span
           >
           <span class="flex-auto">
@@ -93,7 +92,7 @@
         </li>
         <li>
           <span
-            class="to-red-500 from-amber-300 badge-icon bg-gradient-to-r p-4 text-white"
+            class="badge-icon bg-gradient-to-r from-amber-300 to-red-500 p-4 text-white"
             >3</span
           >
           <span class="flex-auto">
@@ -104,7 +103,7 @@
       <div class="mt-4 flex flex-col items-center">
         <button
           on:click={claimPrizeHandler}
-          class="to-red-500 from-amber-300 btn m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+          class="btn m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
         >
           Claim a Prize
         </button>

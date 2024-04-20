@@ -31,8 +31,8 @@ async fn name_of(owner: Option<Principal>) -> Result<Option<types::NameOutput>, 
                 code: utils::luckycode_to_string(code),
                 name: n.0,
                 created_at: n.1,
-                pledge_amount: Nat::from(n.2 as u64 * TOKEN_1),
-                yearly_rental: Nat::from(n.3 as u64 * TOKEN_1),
+                deposit: Nat::from(n.2 as u64 * TOKEN_1),
+                annual_fee: Nat::from(n.3 as u64 * TOKEN_1),
             }))
         }
         None => Ok(None),
@@ -50,8 +50,8 @@ async fn name_lookup(name: String) -> Result<Option<types::NameOutput>, ()> {
             code: utils::luckycode_to_string(code),
             name: n.0,
             created_at: n.1,
-            pledge_amount: Nat::from(n.2 as u64 * TOKEN_1),
-            yearly_rental: Nat::from(n.3 as u64 * TOKEN_1),
+            deposit: Nat::from(n.2 as u64 * TOKEN_1),
+            annual_fee: Nat::from(n.3 as u64 * TOKEN_1),
         }),
     )
 }
