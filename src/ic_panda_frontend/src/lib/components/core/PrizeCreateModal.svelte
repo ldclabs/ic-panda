@@ -232,7 +232,7 @@
     const prizeInputMessageEle = form['prizeInputMessage'] as HTMLInputElement
     prizeInputMessageEle?.setCustomValidity('')
     prizeInputMessage = prizeInputMessage.trim()
-    if (prizeInputMessage.length > 80) {
+    if (prizeInputMessage.length > 120) {
       prizeInputMessageEle?.setCustomValidity('message is too long')
     }
 
@@ -384,43 +384,44 @@
             </button>
           </div>
         </label>
+      {:else}
+        <label class="label">
+          <span class="text-gray/50">Prize distribution:</span>
+          <div class="flex flex-row items-center justify-between gap-2">
+            <label class="flex items-center space-x-2">
+              <input
+                class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+                type="radio"
+                name="prizeInputKind"
+                on:change={onPrizeInputKindChange}
+                checked={prizeInputKind == 1}
+                value="1"
+              />
+              <p class="flex flex-row items-center gap-1">
+                <span class=""><IconDice /></span>
+                <span class="">Random</span>
+                {#if prizeSubsidy.length == 6 && prizeSubsidy[5] > 0}
+                  <span class="text-orange-500">(+Subsidy)</span>
+                {/if}
+              </p>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input
+                class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+                type="radio"
+                name="prizeInputKind"
+                on:change={onPrizeInputKindChange}
+                checked={prizeInputKind == 0}
+                value="0"
+              />
+              <p class="flex flex-row items-center gap-1">
+                <span class=""><IconEqualizer /></span>
+                <span class="">Equal</span>
+              </p>
+            </label>
+          </div>
+        </label>
       {/if}
-      <label class="label">
-        <span class="text-gray/50">Prize distribution:</span>
-        <div class="flex flex-row items-center justify-between gap-2">
-          <label class="flex items-center space-x-2">
-            <input
-              class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
-              type="radio"
-              name="prizeInputKind"
-              on:change={onPrizeInputKindChange}
-              checked={prizeInputKind == 1}
-              value="1"
-            />
-            <p class="flex flex-row items-center gap-1">
-              <span class=""><IconDice /></span>
-              <span class="">Random</span>
-              {#if prizeSubsidy.length == 6 && prizeSubsidy[5] > 0}
-                <span class="text-orange-500">(+Subsidy)</span>
-              {/if}
-            </p>
-          </label>
-          <label class="flex items-center space-x-2">
-            <input
-              class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
-              type="radio"
-              name="prizeInputKind"
-              on:change={onPrizeInputKindChange}
-              checked={prizeInputKind == 0}
-              value="0"
-            />
-            <p class="flex flex-row items-center gap-1">
-              <span class=""><IconEqualizer /></span>
-              <span class="">Equal</span>
-            </p>
-          </label>
-        </div>
-      </label>
       <label class="label">
         <span class="text-gray/50">Validity period:</span>
         <div class="flex flex-row items-center justify-between gap-2">
@@ -477,7 +478,7 @@
         <span class="text-gray/50">Leave a message (Optional):</span>
         <div class="relative">
           <textarea
-            class="textarea truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="textarea rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
             rows="2"
             name="prizeInputMessage"
             bind:value={prizeInputMessage}

@@ -7,6 +7,7 @@
   } from '$lib/canisters/luckypool'
   import IconArrowDownFill from '$lib/components/icons/IconArrowDownFill.svelte'
   import IconArrowUpFill from '$lib/components/icons/IconArrowUpFill.svelte'
+  import Loading from '$lib/components/ui/Loading.svelte'
   import MemoDetail from '$lib/components/ui/MemoDetail.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
@@ -85,7 +86,7 @@
       <div class="space-y-3">
         {#if luckyPoolAPI && tabSet === 0}
           {#await prizeClaimLogsRes}
-            <div class="">Loading</div>
+            <div class="m-auto w-fit text-center"><Loading /></div>
           {:then items}
             {#each items as item}
               <div class="rounded-lg bg-gray/5 p-3">
@@ -106,13 +107,12 @@
                     </span>
                   </div>
                 </div>
-                <div
-                  class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
-                >
-                  <span>From:</span>
-                  <span>
-                    {item.prize.name.length > 0 ? item.prize.name[0] : ''}
-                  </span>
+                <div class="mt-2 pl-8 text-sm">
+                  <b
+                    >From: {item.prize.name.length > 0
+                      ? item.prize.name[0]
+                      : '-'}</b
+                  >
                 </div>
                 <MemoDetail memo={item.prize.memo[0] || null} />
               </div>
@@ -120,7 +120,7 @@
           {/await}
         {:else if luckyPoolAPI && tabSet === 1}
           {#await prizeIssueLogsRes}
-            <div class="">Loading</div>
+            <div class="m-auto w-fit text-center"><Loading /></div>
           {:then items}
             {#each items as item}
               {@const link =

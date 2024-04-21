@@ -9,6 +9,7 @@ import {
   type LuckyDrawLog,
   type Notification,
   type AddPrizeInput as _AddPrizeInput,
+  type ClaimPrizeOutput as _ClaimPrizeOutput,
   type LuckyDrawOutput as _LuckyDrawOutput,
   type NameOutput as _NameOutput,
   type PrizeClaimLog as _PrizeClaimLog,
@@ -32,6 +33,7 @@ export type NameOutput = _NameOutput
 export type AddPrizeInput = _AddPrizeInput
 export type PrizeOutput = _PrizeOutput
 export type PrizeClaimLog = _PrizeClaimLog
+export type ClaimPrizeOutput = _ClaimPrizeOutput
 
 export class LuckyPoolAPI {
   principal: Principal
@@ -109,7 +111,7 @@ export class LuckyPoolAPI {
     return unwrapResult(res, 'call airdrop failed')
   }
 
-  async claimPrize(input: ClaimPrizeInput): Promise<AirdropState> {
+  async claimPrize(input: ClaimPrizeInput): Promise<ClaimPrizeOutput> {
     const res = await this.actor.claim_prize(input)
     return unwrapResult(res, 'call claim_prize failed')
   }
@@ -119,8 +121,8 @@ export class LuckyPoolAPI {
     return unwrapResult(res, 'call add_prize failed')
   }
 
-  async prizeInfo(code: string, recipient?: Principal): Promise<PrizeOutput> {
-    const res = await this.actor.prize_info(code, recipient ? [recipient] : [])
+  async prizeInfo(code: string): Promise<PrizeOutput> {
+    const res = await this.actor.prize_info(code, [this.principal])
     return unwrapResult(res, 'call prize_info failed')
   }
 

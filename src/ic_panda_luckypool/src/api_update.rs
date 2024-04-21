@@ -156,7 +156,7 @@ async fn prize(_: String) -> Result<types::AirdropStateOutput, String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::AirdropStateOutput, String> {
+async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOutput, String> {
     let caller = ic_cdk::caller();
     let key = *store::keys::PRIZE_KEY;
     let cryptogram = args
@@ -164,8 +164,8 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::AirdropState
         .strip_prefix("PRIZE:")
         .unwrap_or(args.code.as_str());
     let (prize, prize_data) = store::Prize::try_decode(&key, Some(caller), cryptogram)?;
-    let now = ic_cdk::api::time();
-    let now_sec = now / SECOND;
+    let now_ms = ic_cdk::api::time() / 1000000;
+    let now_sec = now_ms / 1000;
     if !prize.is_valid(now_sec) {
         return Err("invalid prize code or expired".to_string());
     }
@@ -202,17 +202,22 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::AirdropState
         }
     }
 
-    let amount = store::prize::claim(caller_code, prize, claimable, now_sec, now % 5)?;
+    let (amount, avg) =
+        store::prize::claim(caller_code, prize, claimable / TOKEN_1, now_sec, now_ms % 5)?;
     let state = store::airdrop::deposit(caller, amount)?;
     store::state::with_mut(|r| {
         r.total_prize = Some(r.total_prize.unwrap_or_default().saturating_add(amount));
         r.total_prize_count = Some(r.total_prize_count.unwrap_or_default() + 1);
     });
 
-    Ok(types::AirdropStateOutput {
-        lucky_code: Some(utils::luckycode_to_string(caller_code)),
-        claimed: Nat::from(state.1),
-        claimable: Nat::from(state.2),
+    Ok(types::ClaimPrizeOutput {
+        state: types::AirdropStateOutput {
+            lucky_code: Some(utils::luckycode_to_string(caller_code)),
+            claimed: Nat::from(state.1),
+            claimable: Nat::from(state.2),
+        },
+        claimed: Nat::from(amount),
+        average: Nat::from(avg),
     })
 }
 

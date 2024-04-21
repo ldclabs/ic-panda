@@ -4,7 +4,9 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type AirdropState
+    type AirdropState,
+    type ClaimPrizeOutput,
+    type PrizeOutput
   } from '$lib/canisters/luckypool'
   import {
     TokenLedgerAPI,
@@ -25,6 +27,7 @@
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
+  import PrizeShow from './PrizeShow.svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -33,12 +36,14 @@
 
   let submitting = false
   let validating = false
+  let canClaim = true
   let meetRequirements = 0
   let cryptogram = $page.url.searchParams.get('prize') || ''
   let luckyPoolAPI: LuckyPoolAPI
   let tokenLegerAPI: TokenLedgerAPI
   let airdropState: Readable<AirdropState | null>
-  let result: AirdropState
+  let prizeInfo: PrizeOutput
+  let result: ClaimPrizeOutput
 
   const toastStore = getToastStore()
 
@@ -54,44 +59,45 @@
   }
 
   function checkValidity() {
-    validating = decodePrize(cryptogram) != null
+    validating = meetRequirements == 3 && decodePrize(cryptogram) != null
   }
 
   async function onFormSubmit(e: Event) {
     e.preventDefault()
 
+    claimPrize(canClaim)
+  }
+
+  async function claimPrize(canClaim: boolean = true) {
     submitting = true
-    try {
-      const prize = decodePrize(cryptogram)
-      const token = await challengeToken(
-        {
-          principal: luckyPoolAPI.principal.toUint8Array(),
-          message: encodeCBOR(prize)
-        },
-        'claim_prize'
-      )
+    if (canClaim) {
+      try {
+        const prize = decodePrize(cryptogram)
+        const token = await challengeToken(
+          {
+            principal: luckyPoolAPI.principal.toUint8Array(),
+            message: encodeCBOR(prize)
+          },
+          'claim_prize'
+        )
 
-      result = await luckyPoolAPI.claimPrize({
-        code: cryptogram,
-        challenge: token
-      })
-      // Remove the prize query parameter from the URL
-      if ($page.url.searchParams.get('prize')) {
-        const query = $page.url.searchParams
-        query.delete('prize')
-        goto(`?${query.toString()}`)
+        result = await luckyPoolAPI.claimPrize({
+          code: cryptogram,
+          challenge: token
+        })
+
+        await luckyPoolAPI.refreshAllState()
+      } catch (err: any) {
+        submitting = false
+
+        toastStore.trigger({
+          autohide: false,
+          hideDismiss: false,
+          background: 'variant-filled-error',
+          message: errMessage(err)
+        })
       }
-    } catch (err: any) {
-      submitting = false
-
-      toastStore.trigger({
-        autohide: false,
-        hideDismiss: false,
-        background: 'variant-filled-error',
-        message: errMessage(err)
-      })
     }
-    await luckyPoolAPI.refreshAllState()
   }
 
   function onFormChange(e: Event) {
@@ -102,6 +108,13 @@
     luckyPoolAPI = await luckyPoolAPIAsync()
     tokenLegerAPI = await tokenLedgerAPIAsync()
     checkValidity()
+
+    // Remove the prize query parameter from the URL
+    if ($page.url.searchParams.get('prize')) {
+      const query = $page.url.searchParams
+      query.delete('prize')
+      goto(`?${query.toString()}`)
+    }
   })
 
   $: {
@@ -112,11 +125,24 @@
       }
       if ($airdropState?.claimable && $airdropState?.claimable >= 10n) {
         meetRequirements = meetRequirements | 2
+        checkValidity()
       } else if (tokenLegerAPI) {
         tokenLegerAPI.balance().then((balance) => {
           if (($airdropState?.claimable || 0n) + balance >= 10n) {
             meetRequirements = meetRequirements | 2
+            checkValidity()
           }
+        })
+      }
+
+      if (
+        validating &&
+        (prizeInfo == null || prizeInfo.code[0] != cryptogram)
+      ) {
+        luckyPoolAPI.prizeInfo(cryptogram).then((info) => {
+          prizeInfo = info
+          canClaim =
+            prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
         })
       }
     }
@@ -132,12 +158,26 @@
       <p class="mt-4">
         <span>
           You have successfully claimed <b
-            >{formatNumber(
-              Number(result.claimable - prevAmount) / Number(PANDAToken.one)
-            )}</b
-          > PANDA tokens.
+            >{formatNumber(Number(result.claimed) / Number(PANDAToken.one))}</b
+          >
+          PANDA tokens.
         </span>
       </p>
+      <p class="">
+        <span>
+          The average claimable amount is
+          <b>{formatNumber(Number(result.average) / Number(PANDAToken.one))}</b
+          >.
+        </span>
+      </p>
+      {#if result.claimed < result.average}
+        <p class="">
+          <b>
+            The More Lucky Balance you have, the larger your claim in a Lucky
+            PANDA Prize.
+          </b>
+        </p>
+      {/if}
       <p class="mt-4 text-left">
         Follow the <a
           title="Follow on Twitter"
@@ -153,6 +193,8 @@
         >, to get the latest prize messages in time.
       </p>
     </div>
+  {:else if prizeInfo}
+    <PrizeShow {prizeInfo} {claimPrize} close={parent['onClose']} />
   {:else}
     <h3 class="h3 !mt-0 text-center">🐼 🎁</h3>
     <div class="!mt-0 text-center text-xl font-bold">Get a Prize</div>

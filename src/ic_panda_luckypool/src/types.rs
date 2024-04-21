@@ -113,6 +113,15 @@ pub struct ClaimPrizeInput {
 }
 
 #[derive(CandidType, Clone, Serialize)]
+pub struct ClaimPrizeOutput {
+    pub state: AirdropStateOutput,
+    // claimed tokens in E8
+    pub claimed: Nat,
+    // average claimable tokens in E8
+    pub average: Nat,
+}
+
+#[derive(CandidType, Clone, Serialize)]
 pub struct PrizeOutput {
     pub id: ByteBuf,
     pub issuer: String,
@@ -182,11 +191,11 @@ impl PrizeMemo {
             return Err("message should not be empty".to_string());
         }
 
-        if self.message.chars().count() > 100 {
-            return Err("message should be less than 100 characters".to_string());
+        if self.message.chars().count() > 140 {
+            return Err("message should be less than 140 characters".to_string());
         }
 
-        if !self.link.is_empty() && !Url::parse(&self.link).is_ok() {
+        if !self.link.is_empty() && Url::parse(&self.link).is_err() {
             return Err("invalid link in memo".to_string());
         }
 

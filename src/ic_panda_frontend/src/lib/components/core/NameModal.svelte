@@ -113,12 +113,16 @@
     submitting = true
 
     try {
-      const res = await luckyPoolAPI.nameLookup(nameInput)
-      if (res) {
-        nameErr = 'Try another one, this name is occupied'
-        submitting = false
-        validating = true
-        return
+      if (
+        nameInput.toLocaleLowerCase() != $nameState?.name?.toLocaleLowerCase()
+      ) {
+        const res = await luckyPoolAPI.nameLookup(nameInput)
+        if (res) {
+          nameErr = 'Try another one, this name is occupied'
+          submitting = false
+          validating = true
+          return
+        }
       }
 
       result = await luckyPoolAPI.updateName(nameInput, $nameState?.name || '')

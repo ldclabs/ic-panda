@@ -915,7 +915,7 @@ pub mod prize {
         luck: u64,
         now_sec: u64,
         rand: u64,
-    ) -> Result<u64, String> {
+    ) -> Result<(u64, u64), String> {
         let mut info = PRIZE_INFO.with(|r| match r.borrow().get(&prize) {
             Some(info) => {
                 if info.4 >= prize.4 {
@@ -929,7 +929,7 @@ pub mod prize {
             None => Err("the prize is not found".to_string()),
         })?;
 
-        let (amount, filled) = PRIZE_REC.with(|r| {
+        let (amount, filled, avg) = PRIZE_REC.with(|r| {
             let mut m = r.borrow_mut();
             let mut recipients = m
                 .get(&prize)
@@ -950,10 +950,15 @@ pub mod prize {
             } else {
                 luck_amount(luck, avg, remain as u64)
             };
+
             let filled = prize.4 + 1 - remain;
             recipients.0.insert(user, amount as u32);
             m.insert(prize.clone(), recipients);
-            Ok((amount * (TOKEN_1 / TOKEN_SMALL_UNIT), filled))
+            Ok((
+                amount * (TOKEN_1 / TOKEN_SMALL_UNIT),
+                filled,
+                avg * (TOKEN_1 / TOKEN_SMALL_UNIT),
+            ))
         })?;
 
         info.4 = filled;
@@ -970,7 +975,7 @@ pub mod prize {
             logs.0.push((prize, now_sec, amount));
             m.insert(user, logs);
         });
-        Ok(amount)
+        Ok((amount, avg))
     }
 
     pub fn try_add_airdrop(

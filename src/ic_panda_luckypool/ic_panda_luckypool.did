@@ -37,6 +37,11 @@ type AirdropStateOutput = record {
 };
 type CaptchaOutput = record { challenge : text; img_base64 : text };
 type ClaimPrizeInput = record { challenge : blob; code : text };
+type ClaimPrizeOutput = record {
+  average : nat;
+  claimed : nat;
+  state : AirdropStateOutput;
+};
 type LuckyDrawInput = record { icp : nat8; amount : opt nat };
 type LuckyDrawLog = record {
   id : nat;
@@ -92,16 +97,17 @@ type PrizeOutput = record {
 };
 type Result = variant { Ok : PrizeOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : nat; Err : text };
-type Result_11 = variant { Ok : principal; Err };
+type Result_10 = variant { Ok : State; Err };
+type Result_11 = variant { Ok : nat; Err : text };
+type Result_12 = variant { Ok : principal; Err };
 type Result_2 = variant { Ok : AirdropStateOutput; Err : text };
 type Result_3 = variant { Ok : AirdropStateOutput; Err };
 type Result_4 = variant { Ok : CaptchaOutput; Err : text };
-type Result_5 = variant { Ok : LuckyDrawOutput; Err : text };
-type Result_6 = variant { Ok : text; Err : text };
-type Result_7 = variant { Ok : opt NameOutput; Err };
-type Result_8 = variant { Ok : NameOutput; Err : text };
-type Result_9 = variant { Ok : State; Err };
+type Result_5 = variant { Ok : ClaimPrizeOutput; Err : text };
+type Result_6 = variant { Ok : LuckyDrawOutput; Err : text };
+type Result_7 = variant { Ok : text; Err : text };
+type Result_8 = variant { Ok : opt NameOutput; Err };
+type Result_9 = variant { Ok : NameOutput; Err : text };
 type State = record {
   latest_luckydraw_logs : vec LuckyDrawLog;
   total_luckydraw : nat64;
@@ -130,14 +136,14 @@ service : () -> {
   airdrop_state_of : (opt principal) -> (Result_3) query;
   api_version : () -> (nat16) query;
   captcha : () -> (Result_4);
-  claim_prize : (ClaimPrizeInput) -> (Result_2);
+  claim_prize : (ClaimPrizeInput) -> (Result_5);
   harvest : (AirdropHarvestInput) -> (Result_2);
-  luckydraw : (LuckyDrawInput) -> (Result_5);
+  luckydraw : (LuckyDrawInput) -> (Result_6);
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   manager_add_notification : (Notification) -> (Result_1);
-  manager_add_prize : (AddPrizeInput) -> (Result_6);
+  manager_add_prize : (AddPrizeInput) -> (Result_7);
   manager_ban_users : (vec principal) -> (Result_1);
-  manager_get_airdrop_key : () -> (Result_6) query;
+  manager_get_airdrop_key : () -> (Result_7) query;
   manager_remove_notifications : (blob) -> (Result_1);
   manager_set_challenge_pub_key : (text) -> (Result_1);
   manager_update_airdrop_amount : (nat64) -> (Result_1);
@@ -146,8 +152,8 @@ service : () -> {
       opt record { nat64; nat16; nat32; nat8; nat32; nat16 },
     ) -> (Result_1);
   my_luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
-  name_lookup : (text) -> (Result_7) query;
-  name_of : (opt principal) -> (Result_7) query;
+  name_lookup : (text) -> (Result_8) query;
+  name_of : (opt principal) -> (Result_8) query;
   notifications : () -> (vec Notification) query;
   prize : (text) -> (Result_2);
   prize_claim_logs : (principal, opt nat, opt nat) -> (vec PrizeClaimLog) query;
@@ -156,11 +162,11 @@ service : () -> {
   prizes_of : (opt principal) -> (
       vec record { nat32; nat32; nat16; nat32; nat16; nat16 },
     ) query;
-  register_name : (NameInput) -> (Result_8);
-  state : () -> (Result_9) query;
-  unregister_name : (NameInput) -> (Result_10);
-  update_name : (NameInput) -> (Result_8);
+  register_name : (NameInput) -> (Result_9);
+  state : () -> (Result_10) query;
+  unregister_name : (NameInput) -> (Result_11);
+  update_name : (NameInput) -> (Result_9);
   validate_admin_collect_icp : (nat) -> (Result_1);
   validate_admin_set_managers : (vec principal) -> (Result_1);
-  whoami : () -> (Result_11) query;
+  whoami : () -> (Result_12) query;
 }
