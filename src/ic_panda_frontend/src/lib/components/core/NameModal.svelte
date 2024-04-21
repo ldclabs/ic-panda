@@ -28,6 +28,8 @@
   export let availablePandaBalance = 0n
   export let nameState: Readable<NameOutput | null>
 
+  const NamingDeposit = 3000n * PANDAToken.one
+
   // const modalStore = getModalStore()
   const toastStore = getToastStore()
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
@@ -90,7 +92,7 @@
 
       await tokenLedgerAPI.ensureAllowance(
         luckyPoolPrincipal,
-        1000n * PANDAToken.one + PANDAToken.fee
+        NamingDeposit + PANDAToken.fee
       )
       result = await luckyPoolAPI.registerName(nameInput)
     } catch (err: any) {
@@ -201,17 +203,25 @@
     <div class="!mt-0 text-center text-xl font-bold">Register Name</div>
     <div class="space-y-2 rounded-xl bg-gray/5 p-4">
       <p class="text-gray/50">
-        To register a name, pay a <b>1000 PANDA tokens deposit</b>. An
-        <b>annual fee of 100 tokens</b>
+        <b>1.</b> To register a name, pay a
+        <b
+          >{formatNumber(Number(NamingDeposit) / Number(PANDAToken.one))} PANDA tokens
+          deposit</b
+        >. An
+        <b
+          >annual fee of {formatNumber(
+            Number(NamingDeposit / 10n) / Number(PANDAToken.one)
+          )} tokens</b
+        >
         will be deducted from this deposit. After <b>10 years</b>, the name is
         yours permanently.
       </p>
       <p class="text-gray/50">
-        You can update the name for free at any time.
+        <b>2.</b> You can update the name for free at any time.
       </p>
       <p class="text-gray/50">
-        If you unregister the name early, the <b>remaining deposit</b> after fee
-        deductions will be refunded to your lucky balance.
+        <b>3.</b> If you unregister the name early, the <b>remaining deposit</b>
+        after fee deductions will be refunded to your lucky balance.
       </p>
     </div>
     <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
@@ -237,7 +247,7 @@
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
           type="text"
           name="nameInput"
           minlength="2"
@@ -296,7 +306,7 @@
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
           type="text"
           name="nameInput"
           minlength="2"
@@ -346,12 +356,20 @@
       </p>
       <p class="my-2 text-center text-lg font-bold">{$nameState?.name || ''}</p>
       <p class="text-gray/50">
-        If you unregister the name early, the <b>remaining deposit</b> after fee
-        deductions will be refunded to your lucky balance.
+        <b>1.</b> If you unregister the name early, the <b>remaining deposit</b>
+        after fee deductions will be refunded to your lucky balance.
       </p>
       <p class="text-gray/50">
-        To register a name again, pay a <b>1000 PANDA tokens deposit</b>. An
-        <b>annual fee of 100 tokens</b>
+        <b>2.</b> To register a name again, pay a
+        <b
+          >{formatNumber(Number(NamingDeposit) / Number(PANDAToken.one))} PANDA tokens
+          deposit</b
+        >. An
+        <b
+          >annual fee of {formatNumber(
+            Number(NamingDeposit / 10n) / Number(PANDAToken.one)
+          )} tokens</b
+        >
         will be deducted from this deposit. After <b>10 years</b>, the name is
         yours permanently.
       </p>

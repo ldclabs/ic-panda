@@ -1,8 +1,8 @@
 type AddPrizeInput = record {
+  total_amount : nat32;
   kind : opt nat8;
   memo : opt blob;
   recipient : opt principal;
-  claimable : nat32;
   quantity : nat16;
   expire : nat16;
 };
@@ -74,6 +74,8 @@ type PrizeClaimLog = record {
   amount : nat;
 };
 type PrizeOutput = record {
+  id : blob;
+  fee : nat64;
   issued_at : nat64;
   code : opt text;
   kind : nat8;

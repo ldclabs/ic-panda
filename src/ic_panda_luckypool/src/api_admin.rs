@@ -122,7 +122,7 @@ fn manager_update_prize_subsidy(subsidy: Option<store::SysPrizeSubsidy>) -> Resu
             return Err("min quantity for subsidy should be at least 100".to_string());
         }
         if subsidy.2 < 1000 {
-            return Err("min claimable tokens for subsidy should be at least 1000".to_string());
+            return Err("min total amount tokens for subsidy should be at least 1000".to_string());
         }
         if subsidy.3 > 50 {
             return Err("subsidy ratio should be less than 50".to_string());
@@ -158,12 +158,13 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
         caller_code,
         (now_sec / 60) as u32,
         args.expire,
-        args.claimable,
+        args.total_amount,
         args.quantity,
     );
     let prize_info = store::PrizeInfo(
         args.kind.unwrap_or_default(),
-        args.claimable,
+        0,
+        args.total_amount,
         0,
         0,
         0,

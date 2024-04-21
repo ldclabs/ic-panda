@@ -3,19 +3,26 @@
   import {
     luckyPoolAPIAsync,
     type AirdropState,
-    type LuckyPoolAPI
+    type LuckyPoolAPI,
+    type State
   } from '$lib/canisters/luckypool'
+  import IconGoldPanda2 from '$lib/components/icons/IconGoldPanda2.svelte'
+  import IconHistory from '$lib/components/icons/IconHistory.svelte'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
   import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
+  import PrizeCreateModal from './PrizeCreateModal.svelte'
+  import PrizeHistoryModal from './PrizeHistoryModal.svelte'
   import PrizeModal from './PrizeModal.svelte'
 
   let airdropState: Readable<AirdropState | null>
+  let stateStore: Readable<State | null>
   let luckyPoolAPI: LuckyPoolAPI
   let claimableAmount = 0n
+  let prizeSubsidy: [] | [bigint, number, number, number, number, number] = []
 
   const modalStore = getModalStore()
 
@@ -26,6 +33,34 @@
       modalStore.trigger({
         type: 'component',
         component: { ref: PrizeModal, props: { prevAmount: claimableAmount } }
+      })
+    }
+  }
+
+  function createPrizeHandler() {
+    if (principal.isAnonymous()) {
+      signIn({})
+    } else {
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: PrizeCreateModal,
+          props: { prizeSubsidy: prizeSubsidy }
+        }
+      })
+    }
+  }
+
+  function prizeHistoryHandler() {
+    if (principal.isAnonymous()) {
+      signIn({})
+    } else {
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: PrizeHistoryModal,
+          props: {}
+        }
       })
     }
   }
@@ -46,6 +81,10 @@
   $: {
     if (luckyPoolAPI) {
       airdropState = luckyPoolAPI.airdropStateStore
+      stateStore = luckyPoolAPI.stateStore
+      if ($stateStore) {
+        prizeSubsidy = $stateStore.prize_subsidy[0] || []
+      }
       claimableAmount = $airdropState?.claimable || 0n
       if (luckyPoolAPI?.principal.toString() != principal.toString()) {
         luckyPoolAPIAsync().then((_luckyPoolAPI) => {
@@ -54,13 +93,24 @@
       }
     }
   }
-  // bg-[url('/_assets/images/prize-giveaway-bg.webp')]
 </script>
 
 <div class="rounded-2xl bg-gradient-to-r from-amber-50 to-red-50">
   <div
-    class="  flex flex-col justify-center bg-[url('/_assets/images/prize-giveaway-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
+    class="relative flex flex-col justify-center bg-[url('/_assets/images/prize-giveaway-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
   >
+    <div class="absolute right-4 top-4 flex flex-row gap-3">
+      <button on:click={prizeHistoryHandler} class="btn btn-sm bg-white">
+        <span class="*:size-5"><IconHistory /></span>
+        <span>History</span>
+      </button>
+      {#if prizeSubsidy.length > 0}
+        <button on:click={createPrizeHandler} class="btn btn-sm bg-white">
+          <span class="*:size-5"><IconGoldPanda2 /></span>
+          <span>Create a Prize</span>
+        </button>
+      {/if}
+    </div>
     <section class="mb-6 mt-5 flex flex-col justify-center">
       <h5 class="h5 text-center font-extrabold">
         <span>Prize Giveaway</span>

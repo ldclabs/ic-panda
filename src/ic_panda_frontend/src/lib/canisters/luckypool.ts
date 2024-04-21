@@ -4,11 +4,15 @@ import {
   type AirdropHarvestInput,
   type AirdropStateOutput,
   type CaptchaOutput,
+  type ClaimPrizeInput,
   type LuckyDrawInput,
   type LuckyDrawLog,
   type Notification,
+  type AddPrizeInput as _AddPrizeInput,
   type LuckyDrawOutput as _LuckyDrawOutput,
   type NameOutput as _NameOutput,
+  type PrizeClaimLog as _PrizeClaimLog,
+  type PrizeOutput as _PrizeOutput,
   type _SERVICE,
   type State as _State
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
@@ -25,6 +29,9 @@ export type AirdropState = AirdropStateOutput
 export type Captcha = CaptchaOutput
 export type LuckyDrawOutput = _LuckyDrawOutput
 export type NameOutput = _NameOutput
+export type AddPrizeInput = _AddPrizeInput
+export type PrizeOutput = _PrizeOutput
+export type PrizeClaimLog = _PrizeClaimLog
 
 export class LuckyPoolAPI {
   principal: Principal
@@ -102,9 +109,39 @@ export class LuckyPoolAPI {
     return unwrapResult(res, 'call airdrop failed')
   }
 
-  async prize(input: String): Promise<AirdropState> {
-    const res = await this.actor.prize(input)
-    return unwrapResult(res, 'call prize failed')
+  async claimPrize(input: ClaimPrizeInput): Promise<AirdropState> {
+    const res = await this.actor.claim_prize(input)
+    return unwrapResult(res, 'call claim_prize failed')
+  }
+
+  async createPrize(input: AddPrizeInput): Promise<PrizeOutput> {
+    const res = await this.actor.add_prize(input)
+    return unwrapResult(res, 'call add_prize failed')
+  }
+
+  async prizeInfo(code: string, recipient?: Principal): Promise<PrizeOutput> {
+    const res = await this.actor.prize_info(code, recipient ? [recipient] : [])
+    return unwrapResult(res, 'call prize_info failed')
+  }
+
+  async prizeClaimLogs(
+    prev: bigint,
+    take: bigint
+  ): Promise<Array<PrizeClaimLog>> {
+    const res = await this.actor.prize_claim_logs(
+      this.principal,
+      prev > 0n ? [prev] : [],
+      take > 0n ? [take] : []
+    )
+    return res
+  }
+
+  async prizeIssueLogs(prev_ts: bigint): Promise<Array<PrizeOutput>> {
+    const res = await this.actor.prize_issue_logs(
+      this.principal,
+      prev_ts > 0n ? [prev_ts] : []
+    )
+    return res
   }
 
   async harvest(input: AirdropHarvestInput): Promise<AirdropState> {

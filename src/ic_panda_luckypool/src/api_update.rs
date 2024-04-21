@@ -11,6 +11,7 @@ use crate::{
 };
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
+const NAMING_DEPOSIT_TOKENS: u32 = 3_000;
 
 static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> =
     Lazy::new(|| CaptchaBuilder::new().length(6).width(160).complexity(8));
@@ -380,26 +381,26 @@ async fn add_prize(args: types::AddPrizeInput) -> Result<types::PrizeOutput, Str
         return Err("user is banned".to_string());
     }
     let now_sec = ic_cdk::api::time() / SECOND;
-    let subsidy = prize_subsidy.subsidy(args.claimable, args.quantity);
-    let payment = (args.claimable - subsidy) as u64 * TOKEN_1 + prize_subsidy.0;
+    let kind = args.kind.unwrap_or_default();
+    let subsidy = if kind == 1 {
+        prize_subsidy.subsidy(args.total_amount, args.quantity)
+    } else {
+        0
+    };
+    let payment = (args.total_amount - subsidy) as u64 * TOKEN_1 + prize_subsidy.0;
     let prize = store::Prize(
         caller_code,
         (now_sec / 60) as u32,
         args.expire,
-        args.claimable,
+        args.total_amount,
         args.quantity,
     );
-    let info = store::PrizeInfo(args.kind.unwrap_or_default(), subsidy, 0, 0, 0, args.memo);
+    let info = store::PrizeInfo(kind, prize_subsidy.0, subsidy, 0, 0, 0, args.memo);
 
     if !store::prize::add(prize.clone(), info.clone()) {
         return Err("failed to add prize".to_string());
     }
-    if let Err(err) = token_transfer_from(
-        caller,
-        Nat::from(payment - TRANS_FEE),
-        "PRIZE:ADD".to_string(),
-    )
-    .await
+    if let Err(err) = token_transfer_from(caller, Nat::from(payment), "PRIZE:ADD".to_string()).await
     {
         store::prize::clear_failed(&prize);
         return Err(err);
@@ -417,9 +418,6 @@ async fn add_prize(args: types::AddPrizeInput) -> Result<types::PrizeOutput, Str
     let name = store::naming::get(&caller_code).map(|n| n.0);
     Ok(types::PrizeOutput::from(&prize, &info, name, Some(code)))
 }
-
-const NAMING_PLEDGE_TOKENS: u32 = 1000;
-const NAMING_YEARLY_RENTAL_TOKENS: u32 = 100;
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn register_name(args: types::NameInput) -> Result<types::NameOutput, String> {
@@ -445,13 +443,13 @@ async fn register_name(args: types::NameInput) -> Result<types::NameOutput, Stri
     let name_state = store::NamingState(
         args.name.clone(),
         now_sec,
-        NAMING_PLEDGE_TOKENS,
-        NAMING_YEARLY_RENTAL_TOKENS,
+        NAMING_DEPOSIT_TOKENS,
+        NAMING_DEPOSIT_TOKENS / 10,
     );
     if store::naming::try_set_name(caller_code, name_state.clone()) {
         if let Err(err) = token_transfer_from(
             caller,
-            Nat::from(NAMING_PLEDGE_TOKENS as u64 * TOKEN_1 - TRANS_FEE),
+            Nat::from(NAMING_DEPOSIT_TOKENS as u64 * TOKEN_1),
             "NAME:REG".to_string(),
         )
         .await

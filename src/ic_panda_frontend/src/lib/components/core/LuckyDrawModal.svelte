@@ -311,7 +311,7 @@
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
           type="number"
           name="icpTokens"
           min="0.1"

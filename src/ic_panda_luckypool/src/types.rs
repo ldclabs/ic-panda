@@ -1,9 +1,11 @@
 use base64::{engine::general_purpose, Engine};
 use candid::{CandidType, Nat, Principal};
 use ciborium::from_reader;
+use ic_stable_structures::Storable;
 use lib_panda::Challenge;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use url::Url;
 
 use crate::{store, utils, MAX_PRIZE_CLAIMABLE, TOKEN_1};
 
@@ -57,9 +59,9 @@ pub struct LuckyDrawOutput {
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct AddPrizeInput {
-    pub expire: u16,    // in minutes, should be less than 60*24*30
-    pub claimable: u32, // in tokens, should be less than 100_000
-    pub quantity: u16,  // should be less than 10000
+    pub expire: u16,       // in minutes, should be less than 60*24*30
+    pub total_amount: u32, // in tokens, should be less than 100_000
+    pub quantity: u16,     // should be less than 10000
     pub kind: Option<u8>,
     pub memo: Option<ByteBuf>,
     pub recipient: Option<Principal>,
@@ -70,8 +72,8 @@ impl AddPrizeInput {
         if self.expire < 10 {
             return Err("expire should be at least 10 minutes".to_string());
         }
-        if self.claimable == 0 {
-            return Err("claimable should be at least 1 token".to_string());
+        if self.total_amount == 0 {
+            return Err("total amount should be at least 1 token".to_string());
         }
         if self.quantity == 0 {
             return Err("quantity should be at least 1".to_string());
@@ -79,20 +81,22 @@ impl AddPrizeInput {
         if self.expire > 60 * 24 * 30 {
             return Err("expire should be less than 60*24*30".to_string());
         }
-        if self.claimable > 1_000_000 {
-            return Err("claimable should be less than 1_000_000".to_string());
+        if self.total_amount > 1_000_000 {
+            return Err("total amount should be less than 1_000_000".to_string());
         }
         if self.quantity > 10_000 {
             return Err("quantity should be less than 10_000".to_string());
         }
-        if self.claimable / self.quantity as u32 > MAX_PRIZE_CLAIMABLE as u32 {
-            return Err("claimable per user should be less than 420_000".to_string());
+        if self.total_amount / self.quantity as u32 > MAX_PRIZE_CLAIMABLE as u32 {
+            return Err("amount per user should be less than 420_000".to_string());
         }
         if self.kind.unwrap_or_default() > 1 {
             return Err("kind should be less than 2".to_string());
         }
         if let Some(ref memo) = self.memo {
-            let _: PrizeMemo = from_reader(&memo[..]).map_err(|_err| "invalid memo".to_string())?;
+            let memo: PrizeMemo =
+                from_reader(&memo[..]).map_err(|_err| "invalid memo".to_string())?;
+            memo.validate()?;
         }
         if self.recipient.is_some() && self.quantity > 1 {
             return Err("quantity should be 1 with recipient".to_string());
@@ -110,13 +114,15 @@ pub struct ClaimPrizeInput {
 
 #[derive(CandidType, Clone, Serialize)]
 pub struct PrizeOutput {
+    pub id: ByteBuf,
     pub issuer: String,
     pub issued_at: u64, // in seconds since UNIX epoch
     pub expire: u64,    // in seconds
     pub amount: u64,    // in E8
     pub quantity: u16,
-    pub kind: u8,         // 0 - fixed, 1 - random
-    pub sys_subsidy: u64, // in tokens
+    pub kind: u8, // 0 - fixed, 1 - random
+    pub fee: u64,
+    pub sys_subsidy: u64,
     pub refund_amount: u64,
     pub filled: u16,
     pub ended_at: u64, // in seconds
@@ -133,17 +139,19 @@ impl PrizeOutput {
         code: Option<String>,
     ) -> Self {
         Self {
+            id: ByteBuf::from(prize.to_bytes()),
             issuer: utils::luckycode_to_string(prize.0),
             issued_at: prize.1 as u64 * 60,
             expire: prize.2 as u64 * 60,
             amount: prize.3 as u64 * TOKEN_1,
             quantity: prize.4,
             kind: info.0,
-            sys_subsidy: info.1 as u64 * TOKEN_1,
-            refund_amount: info.2,
-            filled: info.3,
-            ended_at: info.4,
-            memo: info.5.clone(),
+            fee: info.1,
+            sys_subsidy: info.2 as u64 * TOKEN_1,
+            refund_amount: info.3,
+            filled: info.4,
+            ended_at: info.5,
+            memo: info.6.clone(),
             name,
             code,
         }
@@ -166,6 +174,24 @@ pub struct AirdropCodeOutput {
 pub struct PrizeMemo {
     pub message: String,
     pub link: String,
+}
+
+impl PrizeMemo {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.message.is_empty() {
+            return Err("message should not be empty".to_string());
+        }
+
+        if self.message.chars().count() > 100 {
+            return Err("message should be less than 100 characters".to_string());
+        }
+
+        if !self.link.is_empty() && !Url::parse(&self.link).is_ok() {
+            return Err("invalid link in memo".to_string());
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(CandidType, Clone, Deserialize, Serialize)]

@@ -39,5 +39,8 @@ export function errMessage(err: any): string {
   if (err?.data) {
     return JSON.stringify(err.data)
   }
-  return err?.toString() || String(err)
+  // if (err?.message) {
+  //   return err.message
+  // }
+  return JSON.stringify(err)
 }

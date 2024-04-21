@@ -17,9 +17,11 @@
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { challengeToken } from '$lib/services/auth'
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
+  import { encodeCBOR } from '@ldclabs/cose-ts/utils'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -60,7 +62,19 @@
 
     submitting = true
     try {
-      result = await luckyPoolAPI.prize(cryptogram)
+      const prize = decodePrize(cryptogram)
+      const token = await challengeToken(
+        {
+          principal: luckyPoolAPI.principal.toUint8Array(),
+          message: encodeCBOR(prize)
+        },
+        'claim_prize'
+      )
+
+      result = await luckyPoolAPI.claimPrize({
+        code: cryptogram,
+        challenge: token
+      })
       // Remove the prize query parameter from the URL
       if ($page.url.searchParams.get('prize')) {
         const query = $page.url.searchParams
@@ -169,7 +183,7 @@
         <span>Fill in prize code here:</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
             type="text"
             name="cryptogram"
             minlength="20"

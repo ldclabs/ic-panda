@@ -60,7 +60,7 @@ impl Storable for State {
 pub struct SysPrizeSubsidy(
     pub u64, // Prize fee in PANDA * TOKEN_1
     pub u16, // Min quantity requirement for subsidy
-    pub u32, // Min claimable tokens requirement for subsidy
+    pub u32, // Min total amount tokens requirement for subsidy
     pub u8,  // Subsidy ratio, [0, 50]
     pub u32, // Max subsidy tokens per prize
     pub u16, // Subsidy count limit
@@ -196,7 +196,7 @@ pub struct Prize(
     pub u32, // Issuer code: The lucky code of the issuer, 0 for system
     pub u32, // Issue time: The issue time of the prize, in minutes since UNIX epoch
     pub u16, // Expire: The expire duration in minutes
-    pub u32, // Claimable amount: The amount of tokens that can be claimed by users, in PANDA
+    pub u32, // Total amount: The amount of tokens that can be claimed by users, in PANDA
     pub u16, // Quantity: How many users can claim the prize
 );
 
@@ -278,6 +278,7 @@ impl Storable for Principals {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PrizeInfo(
     pub u8,              // Prize Kind, 0 - fixed amount prize, 1 - lucky amount prize
+    pub u64,             // Fee in PANDA * TOKEN_1
     pub u32,             // Sys Subsidy in tokens
     pub u64,             // Refund amount in PANDA * TOKEN_1
     pub u16,             // Filled quantity
@@ -859,7 +860,7 @@ pub mod prize {
             let prize = job.1;
             let mut info = match PRIZE_INFO.with(|r| r.borrow().get(&prize)) {
                 Some(info) => {
-                    if info.3 < prize.4 {
+                    if info.4 < prize.4 {
                         info
                     } else {
                         continue;
@@ -874,7 +875,7 @@ pub mod prize {
                     .map(|recipients| recipients.0.values().map(|v| *v as u64).sum())
                     .unwrap_or(0)
             });
-            let refund = (prize.3 - info.1) as u64 * TOKEN_SMALL_UNIT - claimed;
+            let refund = (prize.3 - info.2) as u64 * TOKEN_SMALL_UNIT - claimed;
             if refund == 0 {
                 continue;
             }
@@ -884,8 +885,8 @@ pub mod prize {
                 None => continue,
             };
 
-            info.2 = refund;
-            info.4 = now_sec;
+            info.3 = refund;
+            info.5 = now_sec;
             PRIZE_INFO.with(|r| r.borrow_mut().insert(prize.clone(), info));
             PRIZE_LOG.with(|r| {
                 let mut m = r.borrow_mut();
@@ -917,10 +918,10 @@ pub mod prize {
     ) -> Result<u64, String> {
         let mut info = PRIZE_INFO.with(|r| match r.borrow().get(&prize) {
             Some(info) => {
-                if info.3 >= prize.4 {
+                if info.4 >= prize.4 {
                     return Err("the prize have been fully claimed".to_string());
                 }
-                if info.4 > 0 {
+                if info.5 > 0 {
                     return Err("the prize has already ended".to_string());
                 }
                 Ok(info)
@@ -955,9 +956,9 @@ pub mod prize {
             Ok((amount * (TOKEN_1 / TOKEN_SMALL_UNIT), filled))
         })?;
 
-        info.3 = filled;
+        info.4 = filled;
         if filled >= prize.4 {
-            info.4 = now_sec;
+            info.5 = now_sec;
         }
         PRIZE_INFO.with(|r| r.borrow_mut().insert(prize.clone(), info));
         PRIZE_LOG.with(|r| {
@@ -1159,15 +1160,18 @@ pub mod naming {
             let mut m = r.borrow_mut();
             let ln = name.0.to_lowercase();
             let lon = old.to_lowercase();
-            if m.contains_key(&ln) {
-                return false;
-            }
             if m.get(&lon) != Some(code) {
                 return false;
             }
 
-            m.remove(&lon);
-            m.insert(ln, code);
+            if ln != lon {
+                if m.contains_key(&ln) {
+                    return false;
+                }
+
+                m.remove(&lon);
+                m.insert(ln, code);
+            }
             NAMING_STATE.with(|r| r.borrow_mut().insert(code, name));
             true
         })

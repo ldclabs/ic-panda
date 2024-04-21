@@ -1,6 +1,12 @@
-import { ENV, X_AUTH_ENDPIONT, X_AUTH_KEY } from '$lib/constants'
+import {
+  ENV,
+  X_AUTH_CHALLENGE_ENDPIONT,
+  X_AUTH_ENDPIONT,
+  X_AUTH_KEY
+} from '$lib/constants'
 import { authStore, type AuthSignInParams } from '$lib/stores/auth'
 import { type AuthMessage } from '$lib/types/auth'
+import { createRequest, type SuccessResponse } from '$lib/utils/fetcher'
 import { popupCenter } from '$lib/utils/window'
 import type { Principal } from '@dfinity/principal'
 
@@ -126,4 +132,21 @@ export class XAuth {
       this._timeoutId = null
     }
   }
+}
+
+export interface ChallengeInput {
+  principal: Uint8Array
+  message: Uint8Array
+}
+
+const challengeClient = createRequest(X_AUTH_CHALLENGE_ENDPIONT, {
+  headers: {}
+})
+
+export async function challengeToken(input: ChallengeInput, kind: string) {
+  const res: SuccessResponse<Uint8Array> = await challengeClient.post(
+    kind,
+    input
+  )
+  return res.result
 }
