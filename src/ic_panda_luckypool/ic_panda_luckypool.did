@@ -1,4 +1,9 @@
 type AddPrizeInput = record {
+  claimable : nat32;
+  quantity : nat16;
+  expire : nat16;
+};
+type AddPrizeInputV2 = record {
   total_amount : nat32;
   kind : opt nat8;
   memo : opt blob;
@@ -127,7 +132,7 @@ type State = record {
   total_luckydraw_icp : nat64;
 };
 service : () -> {
-  add_prize : (AddPrizeInput) -> (Result);
+  add_prize : (AddPrizeInputV2) -> (Result);
   admin_collect_icp : (nat) -> (Result_1);
   admin_set_managers : (vec principal) -> (Result_1);
   airdrop : (AirdropClaimInput) -> (Result_2);
@@ -142,6 +147,7 @@ service : () -> {
   luckydraw_logs : (opt nat, opt nat) -> (vec LuckyDrawLog) query;
   manager_add_notification : (Notification) -> (Result_1);
   manager_add_prize : (AddPrizeInput) -> (Result_7);
+  manager_add_prize_v2 : (AddPrizeInputV2) -> (Result_7);
   manager_ban_users : (vec principal) -> (Result_1);
   manager_get_airdrop_key : () -> (Result_7) query;
   manager_remove_notifications : (blob) -> (Result_1);

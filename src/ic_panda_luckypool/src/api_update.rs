@@ -367,7 +367,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn add_prize(args: types::AddPrizeInput) -> Result<types::PrizeOutput, String> {
+async fn add_prize(args: types::AddPrizeInputV2) -> Result<types::PrizeOutput, String> {
     args.validate()?;
     let prize_subsidy =
         store::state::with(|r| r.prize_subsidy.clone()).ok_or("can not add prize currently.")?;

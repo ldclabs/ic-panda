@@ -142,6 +142,12 @@ fn manager_update_prize_subsidy(subsidy: Option<store::SysPrizeSubsidy>) -> Resu
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
     args.validate()?;
+    Err("deprecated".to_string())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_add_prize_v2(args: types::AddPrizeInputV2) -> Result<String, String> {
+    args.validate()?;
     let caller = ic_cdk::caller();
     if !store::state::is_manager(&caller) {
         return Err("user is not a manager".to_string());

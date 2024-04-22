@@ -59,6 +59,19 @@ pub struct LuckyDrawOutput {
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct AddPrizeInput {
+    pub expire: u16,    // in minutes, should be less than 60*24*30
+    pub claimable: u32, // in tokens, should be less than 100_000
+    pub quantity: u16,  // should be less than 10000
+}
+
+impl AddPrizeInput {
+    pub fn validate(&self) -> Result<(), String> {
+        Err("deprecated".to_string())
+    }
+}
+
+#[derive(CandidType, Clone, Deserialize)]
+pub struct AddPrizeInputV2 {
     pub expire: u16,       // in minutes, should be less than 60*24*30
     pub total_amount: u32, // in tokens, should be less than 100_000
     pub quantity: u16,     // should be less than 10000
@@ -67,7 +80,7 @@ pub struct AddPrizeInput {
     pub recipient: Option<Principal>,
 }
 
-impl AddPrizeInput {
+impl AddPrizeInputV2 {
     pub fn validate(&self) -> Result<(), String> {
         if self.expire < 10 {
             return Err("expire should be at least 10 minutes".to_string());
