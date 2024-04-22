@@ -70,7 +70,7 @@
       luckyPoolState = luckyPoolAPI.stateStore
 
       while (interval) {
-        await new Promise((res) => setTimeout(res, 10000))
+        await new Promise((res) => setTimeout(res, 15000))
         await luckyPoolAPI?.refreshAllState()
       }
     })()

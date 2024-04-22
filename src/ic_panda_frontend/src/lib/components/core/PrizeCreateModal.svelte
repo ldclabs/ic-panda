@@ -182,9 +182,10 @@
         prizeInput.recipient = [Principal.fromText(prizeInputRecipient)]
       }
 
-      if (prizeInputMessage != '') {
+      const _prizeInputMessage = prizeInputMessage.trim()
+      if (_prizeInputMessage != '') {
         prizeInput.memo = [
-          encodeCBOR({ message: prizeInputMessage, link: prizeInputLink })
+          encodeCBOR({ message: _prizeInputMessage, link: prizeInputLink })
         ]
       }
 
@@ -231,15 +232,15 @@
 
     const prizeInputMessageEle = form['prizeInputMessage'] as HTMLInputElement
     prizeInputMessageEle?.setCustomValidity('')
-    prizeInputMessage = prizeInputMessage.trim()
-    if (prizeInputMessage.length > 120) {
+    const _prizeInputMessage = prizeInputMessage.trim()
+    if (_prizeInputMessage.length > 120) {
       prizeInputMessageEle?.setCustomValidity('message is too long')
     }
 
     const prizeInputLinkEle = form['prizeInputLink'] as HTMLInputElement
     prizeInputLinkEle?.setCustomValidity('')
     if (prizeInputLink != '') {
-      if (prizeInputMessage.length == 0) {
+      if (_prizeInputMessage.length == 0) {
         prizeInputMessageEle?.setCustomValidity('message is required for link')
       }
 

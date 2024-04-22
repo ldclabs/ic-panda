@@ -8,7 +8,7 @@ import {
   type LuckyDrawInput,
   type LuckyDrawLog,
   type Notification,
-  type AddPrizeInput as _AddPrizeInput,
+  type AddPrizeInputV2 as _AddPrizeInput,
   type ClaimPrizeOutput as _ClaimPrizeOutput,
   type LuckyDrawOutput as _LuckyDrawOutput,
   type NameOutput as _NameOutput,

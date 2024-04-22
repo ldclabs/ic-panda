@@ -2,7 +2,6 @@
   import { page } from '$app/stores'
   import {
     luckyPoolAPIAsync,
-    type AirdropState,
     type LuckyPoolAPI,
     type State
   } from '$lib/canisters/luckypool'
@@ -18,28 +17,26 @@
   import PrizeHistoryModal from './PrizeHistoryModal.svelte'
   import PrizeModal from './PrizeModal.svelte'
 
-  let airdropState: Readable<AirdropState | null>
   let stateStore: Readable<State | null>
   let luckyPoolAPI: LuckyPoolAPI
-  let claimableAmount = 0n
   let prizeSubsidy: [] | [bigint, number, number, number, number, number] = []
 
   const modalStore = getModalStore()
 
   function claimPrizeHandler() {
     if (principal.isAnonymous()) {
-      signIn({})
+      signIn()
     } else {
       modalStore.trigger({
         type: 'component',
-        component: { ref: PrizeModal, props: { prevAmount: claimableAmount } }
+        component: { ref: PrizeModal, props: {} }
       })
     }
   }
 
   function createPrizeHandler() {
     if (principal.isAnonymous()) {
-      signIn({})
+      signIn()
     } else {
       modalStore.trigger({
         type: 'component',
@@ -53,7 +50,7 @@
 
   function prizeHistoryHandler() {
     if (principal.isAnonymous()) {
-      signIn({})
+      signIn()
     } else {
       modalStore.trigger({
         type: 'component',
@@ -68,24 +65,21 @@
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
 
-    await new Promise((res) => setTimeout(res, 400))
-    if (
-      decodePrize($page.url.searchParams.get('prize') || '') &&
-      !principal.isAnonymous()
-    ) {
-      claimPrizeHandler()
+    if (decodePrize($page.url.searchParams.get('prize') || '')) {
+      modalStore.close() // close previous modal
+      modalStore.trigger({
+        type: 'component',
+        component: { ref: PrizeModal, props: {} }
+      })
     }
   })
 
   $: principal = $authStore.identity.getPrincipal()
   $: {
     if (luckyPoolAPI) {
-      airdropState = luckyPoolAPI.airdropStateStore
       stateStore = luckyPoolAPI.stateStore
-      if ($stateStore) {
-        prizeSubsidy = $stateStore.prize_subsidy[0] || []
-      }
-      claimableAmount = $airdropState?.claimable || 0n
+      prizeSubsidy = $stateStore?.prize_subsidy[0] || []
+
       if (luckyPoolAPI?.principal.toString() != principal.toString()) {
         luckyPoolAPIAsync().then((_luckyPoolAPI) => {
           luckyPoolAPI = _luckyPoolAPI
@@ -104,14 +98,16 @@
         <span class="*:size-5"><IconHistory /></span>
         <span>History</span>
       </button>
-      {#if prizeSubsidy.length > 0}
-        <button on:click={createPrizeHandler} class="btn btn-sm bg-white">
-          <span class="*:size-5"><IconGoldPanda2 /></span>
-          <span>Create a Prize</span>
-        </button>
-      {/if}
+      <button
+        disabled={prizeSubsidy.length == 0}
+        on:click={createPrizeHandler}
+        class="btn btn-sm bg-white"
+      >
+        <span class="*:size-5"><IconGoldPanda2 /></span>
+        <span>Create a Prize</span>
+      </button>
     </div>
-    <section class="mb-6 mt-5 flex flex-col justify-center">
+    <section class="mb-6 mt-5 flex flex-col justify-center max-md:mt-10">
       <h5 class="h5 text-center font-extrabold">
         <span>Prize Giveaway</span>
       </h5>

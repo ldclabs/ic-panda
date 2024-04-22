@@ -11,7 +11,7 @@ import { popupCenter } from '$lib/utils/window'
 import type { Principal } from '@dfinity/principal'
 
 export const signIn = async (
-  params: AuthSignInParams
+  params: AuthSignInParams = {}
 ): Promise<{ success: 'ok' | 'cancelled' | 'error'; err?: unknown }> => {
   try {
     await authStore.signIn(params)

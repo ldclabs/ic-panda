@@ -8,10 +8,7 @@
     type ClaimPrizeOutput,
     type PrizeOutput
   } from '$lib/canisters/luckypool'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { tokenLedgerAPIAsync } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconCloseCircle from '$lib/components/icons/IconCloseCircle.svelte'
@@ -19,12 +16,13 @@
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { challengeToken } from '$lib/services/auth'
+  import { challengeToken, signIn } from '$lib/services/auth'
+  import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
   import PrizeShow from './PrizeShow.svelte'
@@ -32,7 +30,6 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let prevAmount = 0n
 
   let submitting = false
   let validating = false
@@ -40,12 +37,12 @@
   let meetRequirements = 0
   let cryptogram = $page.url.searchParams.get('prize') || ''
   let luckyPoolAPI: LuckyPoolAPI
-  let tokenLegerAPI: TokenLedgerAPI
   let airdropState: Readable<AirdropState | null>
   let prizeInfo: PrizeOutput
   let result: ClaimPrizeOutput
 
   const toastStore = getToastStore()
+  const modalStore = getModalStore()
 
   async function prizeCodeCopyPaste(e: Event) {
     e.preventDefault()
@@ -59,18 +56,18 @@
   }
 
   function checkValidity() {
-    validating = meetRequirements == 3 && decodePrize(cryptogram) != null
+    validating = decodePrize(cryptogram) != null
   }
 
   async function onFormSubmit(e: Event) {
     e.preventDefault()
 
-    claimPrize(canClaim)
+    claimPrize()
   }
 
-  async function claimPrize(canClaim: boolean = true) {
-    submitting = true
+  async function claimPrize() {
     if (canClaim) {
+      submitting = true
       try {
         const prize = decodePrize(cryptogram)
         const token = await challengeToken(
@@ -104,19 +101,35 @@
     checkValidity()
   }
 
+  function closePrizeShow() {
+    modalStore.clear()
+
+    if ($page.url.searchParams.get('prize')) {
+      const query = $page.url.searchParams
+      query.delete('prize')
+      goto(`?${query.toString()}`)
+    }
+  }
+
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    tokenLegerAPI = await tokenLedgerAPIAsync()
     checkValidity()
 
+    if (validating) {
+      prizeInfo = await luckyPoolAPI.prizeInfo(cryptogram)
+      canClaim =
+        prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
+    }
+
     // Remove the prize query parameter from the URL
-    if ($page.url.searchParams.get('prize')) {
+    if (!principal.isAnonymous() && $page.url.searchParams.get('prize')) {
       const query = $page.url.searchParams
       query.delete('prize')
       goto(`?${query.toString()}`)
     }
   })
 
+  $: principal = $authStore.identity.getPrincipal()
   $: {
     if (luckyPoolAPI) {
       airdropState = luckyPoolAPI.airdropStateStore
@@ -125,13 +138,19 @@
       }
       if ($airdropState?.claimable && $airdropState?.claimable >= 10n) {
         meetRequirements = meetRequirements | 2
-        checkValidity()
-      } else if (tokenLegerAPI) {
-        tokenLegerAPI.balance().then((balance) => {
-          if (($airdropState?.claimable || 0n) + balance >= 10n) {
-            meetRequirements = meetRequirements | 2
-            checkValidity()
-          }
+      } else if (!principal.isAnonymous()) {
+        tokenLedgerAPIAsync().then((api) => {
+          api.balance().then((balance) => {
+            if (($airdropState?.claimable || 0n) + balance >= 10n) {
+              meetRequirements = meetRequirements | 2
+            }
+          })
+        })
+      }
+
+      if (luckyPoolAPI?.principal.toString() != principal.toString()) {
+        luckyPoolAPIAsync().then((_luckyPoolAPI) => {
+          luckyPoolAPI = _luckyPoolAPI
         })
       }
 
@@ -193,8 +212,8 @@
         >, to get the latest prize messages in time.
       </p>
     </div>
-  {:else if prizeInfo}
-    <PrizeShow {prizeInfo} {claimPrize} close={parent['onClose']} />
+  {:else if prizeInfo && (principal.isAnonymous() || meetRequirements == 3)}
+    <PrizeShow {prizeInfo} {claimPrize} close={closePrizeShow} />
   {:else}
     <h3 class="h3 !mt-0 text-center">🐼 🎁</h3>
     <div class="!mt-0 text-center text-xl font-bold">Get a Prize</div>
@@ -250,21 +269,30 @@
       </label>
     </form>
     <footer class="m-auto !my-6">
-      <button
-        class="btn flex w-full flex-row items-center gap-2 text-white {meetRequirements <
-        3
-          ? 'bg-gray/20'
-          : 'bg-gradient-to-r from-amber-300 to-red-500'}"
-        disabled={submitting || !validating}
-        on:click={onFormSubmit}
-      >
-        {#if submitting}
-          <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
-        {:else}
-          <span>Claim Now</span>
-        {/if}
-      </button>
+      {#if principal.isAnonymous()}
+        <button
+          class="btn flex w-full flex-row items-center gap-2 bg-gradient-to-r from-amber-300 to-red-500 text-white"
+          on:click={() => signIn()}
+        >
+          <span>Login</span>
+        </button>
+      {:else}
+        <button
+          class="btn flex w-full flex-row items-center gap-2 text-white {meetRequirements <
+          3
+            ? 'bg-gray/20'
+            : 'bg-gradient-to-r from-amber-300 to-red-500'}"
+          disabled={submitting || !validating || meetRequirements != 3}
+          on:click={onFormSubmit}
+        >
+          {#if submitting}
+            <span class=""><IconCircleSpin /></span>
+            <span>Processing...</span>
+          {:else}
+            <span>Claim Now</span>
+          {/if}
+        </button>
+      {/if}
     </footer>
     <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
     <div class="m-auto !mt-5">

@@ -36,11 +36,12 @@ export function unwrapResult<T, E>(
 }
 
 export function errMessage(err: any): string {
+  console.error(err)
   if (err?.data) {
     return JSON.stringify(err.data)
   }
-  // if (err?.message) {
-  //   return err.message
-  // }
-  return JSON.stringify(err)
+  if (err?.message) {
+    return err.message
+  }
+  return String(err)
 }

@@ -2,7 +2,6 @@
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { getModalStore } from '@skeletonlabs/skeleton'
-  import { onMount } from 'svelte'
   import LuckyDrawModal from './LuckyDrawModal.svelte'
 
   const modalStore = getModalStore()
@@ -17,7 +16,6 @@
       })
     }
   }
-  onMount(() => {})
 </script>
 
 <div

@@ -222,7 +222,8 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
 
             let state = store::airdrop::withdraw(caller, amount)?;
             if let Err(err) = token_transfer_to(caller, args.amount, "WITHDRAW".to_string()).await {
-                ic_cdk::trap(&format!("failed to transfer tokens, {}", err));
+                let _ = store::airdrop::deposit(caller, amount);
+                return Err(format!("failed to transfer tokens, {}", err));
             }
 
             Ok(types::AirdropStateOutput {
