@@ -733,7 +733,7 @@ pub mod airdrop {
                 return vec![];
             }
 
-            let mut idx = prev - 1;
+            let mut idx = prev.saturating_sub(1);
             let mut logs: Vec<types::AirdropLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
                 logs.push(types::AirdropLog::from((idx, log)));
@@ -786,7 +786,7 @@ pub mod luckydraw {
                 return vec![];
             }
 
-            let mut idx = prev - 1;
+            let mut idx = prev.saturating_sub(1);
             let mut max_loop = 1000;
             let mut logs: Vec<types::LuckyDrawLog> = Vec::with_capacity(take);
             while let Some(log) = log_store.get(idx) {
@@ -875,7 +875,8 @@ pub mod prize {
                     .map(|recipients| recipients.0.values().map(|v| *v as u64).sum())
                     .unwrap_or(0)
             });
-            let refund = (prize.3 - info.2) as u64 * TOKEN_SMALL_UNIT - claimed;
+            let refund = prize.3.saturating_sub(info.2) as u64 * TOKEN_SMALL_UNIT;
+            let refund = refund.saturating_sub(claimed);
             if refund == 0 {
                 continue;
             }
@@ -941,9 +942,9 @@ pub mod prize {
                 return Err("the prize have been fully claimed".to_string());
             }
 
-            let remain = prize.4 - recipients.0.len() as u16;
+            let remain = prize.4.saturating_sub(recipients.0.len() as u16);
             let claimed: u64 = recipients.0.values().map(|v| *v as u64).sum();
-            let balance = prize.3 as u64 * TOKEN_SMALL_UNIT - claimed;
+            let balance = (prize.3 as u64 * TOKEN_SMALL_UNIT).saturating_sub(claimed);
             let avg = balance / remain as u64;
             let amount = if info.0 == 0 || remain == 1 || rand == 0 {
                 avg
@@ -951,7 +952,7 @@ pub mod prize {
                 luck_amount(luck, avg, remain as u64)
             };
 
-            let filled = prize.4 + 1 - remain;
+            let filled = prize.4.saturating_add(1).saturating_sub(remain);
             recipients.0.insert(user, amount as u32);
             m.insert(prize.clone(), recipients);
             Ok((
@@ -1068,7 +1069,7 @@ pub mod prize {
                     return vec![];
                 }
 
-                let mut idx = prev - 1;
+                let mut idx = prev.saturating_sub(1);
                 let mut logs: Vec<types::PrizeClaimLog> = Vec::with_capacity(take);
                 while let Some((prize, claimed_at, amount)) = log_store.0.get(idx as usize) {
                     if let Some(info) = PRIZE_INFO.with(|r| r.borrow().get(prize)) {
@@ -1095,7 +1096,7 @@ pub mod prize {
         let name = naming::get(&issuer).map(|n| n.0);
         PRIZE_INFO.with(|r| {
             let du = 60 * 24 * 30;
-            let start_ts = if prev_ts > du { prev_ts - du } else { 0 };
+            let start_ts = prev_ts.saturating_sub(du);
             let mut logs: Vec<types::PrizeOutput> = Vec::new();
             for (prize, info) in r
                 .borrow()

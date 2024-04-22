@@ -274,7 +274,12 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     let icp = icp01 * ICP_1 / 10;
     let amount = icp01 * amount / 10;
 
-    let _ = icp_transfer_from(caller, Nat::from(icp - TRANS_FEE), "LUCKYDRAW".to_string()).await?;
+    let _ = icp_transfer_from(
+        caller,
+        Nat::from(icp.saturating_sub(TRANS_FEE)),
+        "LUCKYDRAW".to_string(),
+    )
+    .await?;
     let res: Result<u32, String> = {
         match state {
             None => {
@@ -301,7 +306,9 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
             let log = store::luckydraw::insert(caller, now_sec, amount, icp, x)?;
             store::state::with_mut(|r| {
                 r.total_luckydraw = r.total_luckydraw.saturating_add(amount + TRANS_FEE);
-                r.total_luckydraw_icp = r.total_luckydraw_icp.saturating_add(icp - TRANS_FEE);
+                r.total_luckydraw_icp = r
+                    .total_luckydraw_icp
+                    .saturating_add(icp.saturating_sub(TRANS_FEE));
                 r.total_luckydraw_count += 1;
                 r.latest_luckydraw_logs.insert(0, log.clone());
                 if r.latest_luckydraw_logs.len() > 10 {
@@ -330,7 +337,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
             // refund ICP when failed to transfer tokens
             let _ = icp_transfer_to(
                 caller,
-                Nat::from(icp - TRANS_FEE - TRANS_FEE),
+                Nat::from(icp.saturating_sub(TRANS_FEE + TRANS_FEE)),
                 "LUCKYDRAW:REFUND".to_string(),
             )
             .await
@@ -366,7 +373,7 @@ async fn add_prize(args: types::AddPrizeInputV2) -> Result<types::PrizeOutput, S
     } else {
         0
     };
-    let payment = (args.total_amount - subsidy) as u64 * TOKEN_1 + prize_subsidy.0;
+    let payment = args.total_amount.saturating_sub(subsidy) as u64 * TOKEN_1 + prize_subsidy.0;
     let prize = store::Prize(
         caller_code,
         (now_sec / 60) as u32,
@@ -507,15 +514,11 @@ async fn unregister_name(args: types::NameInput) -> Result<Nat, String> {
     if !store::naming::remove_name(caller_code, &args.name) {
         return Err("failed to unregister name".to_string());
     }
-    let du = now_sec - name_state.1;
+    let du = now_sec.saturating_sub(name_state.1);
     let y = 3600 * 24 * 365;
     let r = du % y;
     let n = (du / y + if r > 3600 * 24 * 7 { 1 } else { 0 }) as u32;
-    let refund = if name_state.2 > name_state.3 * n {
-        (name_state.2 - n * name_state.3) as u64 * TOKEN_1
-    } else {
-        0
-    };
+    let refund = name_state.2.saturating_sub(n * name_state.3) as u64 * TOKEN_1;
     if refund > 0 {
         let _ = token_transfer_to(caller, Nat::from(refund), "NAME:UNREG".to_string())
             .await
