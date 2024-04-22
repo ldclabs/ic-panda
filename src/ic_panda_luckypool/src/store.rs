@@ -1139,7 +1139,7 @@ pub mod naming {
         NAMING_STATE.with(|r| r.borrow().get(code))
     }
 
-    pub fn get_by_name(name: &String) -> Option<(u32, NamingState)> {
+    pub fn get_by_name(name: &str) -> Option<(u32, NamingState)> {
         if let Some(code) = NAMING.with(|r| r.borrow().get(&name.to_lowercase())) {
             return NAMING_STATE.with(|r| r.borrow().get(&code).map(|v| (code, v)));
         }
@@ -1160,7 +1160,7 @@ pub mod naming {
         })
     }
 
-    pub fn try_update_name(code: u32, old: &String, name: NamingState) -> bool {
+    pub fn try_update_name(code: u32, old: &str, name: NamingState) -> bool {
         NAMING.with(|r| {
             let mut m = r.borrow_mut();
             let ln = name.0.to_lowercase();
@@ -1182,7 +1182,7 @@ pub mod naming {
         })
     }
 
-    pub fn remove_name(code: u32, name: &String) -> bool {
+    pub fn remove_name(code: u32, name: &str) -> bool {
         NAMING.with(|r| {
             let mut m = r.borrow_mut();
             let ln = name.to_lowercase();

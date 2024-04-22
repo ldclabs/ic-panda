@@ -45,6 +45,10 @@ pub fn valid_name(name: &str) -> Result<(), String> {
         return Err("name should not be empty".to_string());
     }
 
+    if name.len() > 64 {
+        return Err("name should be less than 64 bytes".to_string());
+    }
+
     for c in name.chars() {
         size += 1;
         if size > 32 {
