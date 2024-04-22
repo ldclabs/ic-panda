@@ -1,7 +1,5 @@
 use candid::Nat;
-use ic_captcha::CaptchaBuilder;
 use lib_panda::{mac_256, ChallengeState, Cryptogram, Ed25519Message, VerifyingKey};
-use once_cell::sync::Lazy;
 use serde_bytes::ByteBuf;
 
 use crate::{
@@ -13,34 +11,9 @@ use crate::{
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
 const NAMING_DEPOSIT_TOKENS: u32 = 3_000;
 
-static CAPTCHA_BUILDER: Lazy<CaptchaBuilder> =
-    Lazy::new(|| CaptchaBuilder::new().length(6).width(160).complexity(8));
-
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn captcha() -> Result<types::CaptchaOutput, String> {
-    let caller = ic_cdk::caller();
-    if !store::user::active(caller) {
-        return Err("try again later".to_string());
-    }
-    let _guard = scopeguard::guard((), |_| {
-        store::user::deactive(caller);
-    });
-
-    let rr = ic_cdk::api::management_canister::main::raw_rand()
-        .await
-        .map_err(|_err| "failed to get random bytes".to_string())?;
-
-    let captcha = CAPTCHA_BUILDER.generate(&rr.0, None);
-    let now_sec = ic_cdk::api::time() / SECOND;
-    let challenge = types::ChallengeCode {
-        code: captcha.text().to_lowercase(),
-    };
-
-    let challenge = store::keys::with_secret(|secret| challenge.sign_to_base64(secret, now_sec));
-    Ok(types::CaptchaOutput {
-        img_base64: captcha.to_base64(0),
-        challenge,
-    })
+    Err("deprecated".to_string())
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

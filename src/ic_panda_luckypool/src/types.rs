@@ -1,8 +1,6 @@
-use base64::{engine::general_purpose, Engine};
 use candid::{CandidType, Nat, Principal};
 use ciborium::from_reader;
 use ic_stable_structures::Storable;
-use lib_panda::Challenge;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use url::Url;
@@ -281,44 +279,4 @@ pub struct NameOutput {
     pub created_at: u64,
     pub deposit: Nat,
     pub annual_fee: Nat,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub struct ChallengeCode {
-    pub code: String,
-}
-
-impl ChallengeCode {
-    pub fn sign_to_base64(&self, key: &[u8], timestamp: u64) -> String {
-        let challenge: Vec<u8> = self.challenge(key, timestamp);
-        general_purpose::URL_SAFE_NO_PAD.encode(challenge)
-    }
-
-    pub fn verify_from_base64(
-        &self,
-        key: &[u8],
-        expire_at: u64,
-        challenge: &str,
-    ) -> Result<(), String> {
-        let challenge = general_purpose::URL_SAFE_NO_PAD
-            .decode(challenge.as_bytes())
-            .map_err(|_err| "invalid challenge".to_string())?;
-        self.verify(key, expire_at, &challenge)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_challenge() {
-        let key = b"secret key";
-        let challenge = ChallengeCode {
-            code: "challenge".to_string(),
-        };
-        let expire_at = 1000;
-        let b64 = challenge.sign_to_base64(key, expire_at);
-        assert!(challenge.verify_from_base64(key, expire_at, &b64).is_ok());
-    }
 }
