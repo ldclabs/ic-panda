@@ -198,6 +198,11 @@ async fn prize_issue_logs(owner: Principal, prev_ts: Option<Nat>) -> Vec<types::
         return vec![];
     }
 
+    let caller = ic_cdk::caller();
+    if owner != caller && !store::state::is_manager(&caller) {
+        return vec![];
+    }
+
     let now = ic_cdk::api::time() / SECOND;
     let prev_ts = prev_ts.as_ref().map(nat_to_u64).unwrap_or(now);
     let prev_ts = if prev_ts == 0 || prev_ts > now {
@@ -211,4 +216,24 @@ async fn prize_issue_logs(owner: Principal, prev_ts: Option<Nat>) -> Vec<types::
             store::prize::issue_logs(code, (prev_ts / 60) as u32)
         }
     }
+}
+
+#[ic_cdk::query]
+async fn prize_ongoing() -> Vec<types::PrizeOutput> {
+    let caller = ic_cdk::caller();
+    if !store::state::is_manager(&caller) {
+        return vec![];
+    }
+
+    store::prize::ongoing()
+}
+
+#[ic_cdk::query]
+async fn principal_by_luckycode(luckycode: String) -> Result<Principal, String> {
+    let caller = ic_cdk::caller();
+    if !store::state::is_manager(&caller) {
+        return Err("user is not a manager".to_string());
+    }
+    let code = utils::luckycode_from_string(&luckycode)?;
+    store::luckycode::get(code).ok_or("lucky code not found".to_string())
 }

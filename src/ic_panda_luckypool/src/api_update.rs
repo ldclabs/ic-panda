@@ -384,7 +384,7 @@ async fn add_prize(args: types::AddPrizeInputV2) -> Result<types::PrizeOutput, S
     let info = store::PrizeInfo(kind, prize_subsidy.0, subsidy, 0, 0, 0, args.memo);
 
     if !store::prize::add(prize.clone(), info.clone()) {
-        return Err("failed to add prize".to_string());
+        return Err("failed to add prize, please wait one minute".to_string());
     }
     if let Err(err) = token_transfer_from(caller, Nat::from(payment), "PRIZE:ADD".to_string()).await
     {

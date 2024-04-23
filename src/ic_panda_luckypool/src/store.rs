@@ -570,9 +570,9 @@ pub mod keys {
 pub mod luckycode {
     use super::*;
 
-    // pub fn get(code: u32) -> Option<Principal> {
-    //     LUCKYCODE.with(|r| r.borrow().get(&code))
-    // }
+    pub fn get(code: u32) -> Option<Principal> {
+        LUCKYCODE.with(|r| r.borrow().get(&code))
+    }
 
     pub fn get_by_string(code: &str) -> Option<Principal> {
         match luckycode_from_string(code) {
@@ -842,6 +842,39 @@ pub mod prize {
             r.borrow_mut()
                 .push(&PrizeRefund(check_time, prize))
                 .map_err(|err| format!("failed to add refund job, error {:?}", err))
+        })
+    }
+
+    pub fn ongoing() -> Vec<types::PrizeOutput> {
+        let key = *keys::PRIZE_KEY;
+        let prizes = PRIZE_REFUND.with(|r| {
+            r.borrow()
+                .iter()
+                .take(1000)
+                .map(|job| job.1.clone())
+                .collect::<Vec<Prize>>()
+        });
+
+        PRIZE_INFO.with(|r| {
+            let m = r.borrow();
+            let mut ongoing: Vec<types::PrizeOutput> = Vec::with_capacity(prizes.len());
+            for prize in prizes.into_iter() {
+                let info = m.get(&prize);
+                if let Some(info) = info {
+                    ongoing.push(types::PrizeOutput::from(
+                        &prize,
+                        &info,
+                        None,
+                        if prize.4 > 1 {
+                            Some(prize.encode(&key, None))
+                        } else {
+                            // can't re-generate code for directional prize.
+                            None
+                        },
+                    ));
+                }
+            }
+            ongoing
         })
     }
 

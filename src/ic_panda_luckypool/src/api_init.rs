@@ -26,7 +26,7 @@ fn post_upgrade() {
     });
 
     // canister_global_timer can not support unbounded type!!!
-    ic_cdk_timers::set_timer_interval(Duration::from_secs(3 * 60), || {
+    ic_cdk_timers::set_timer_interval(Duration::from_secs(2 * 60), || {
         store::prize::handle_refund_jobs();
     });
 }
