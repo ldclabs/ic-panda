@@ -5,8 +5,10 @@
     type State
   } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
+  import { authStore } from '$lib/stores/auth'
   import { shortId } from '$lib/utils/auth'
   import { formatNumber, ICPToken, PANDAToken } from '$lib/utils/token'
+  import { isOnline, isVisible } from '$lib/utils/window'
   import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -68,10 +70,13 @@
     ;(async () => {
       luckyPoolAPI = await luckyPoolAPIAsync()
       luckyPoolState = luckyPoolAPI.stateStore
+      const ms = principal.isAnonymous() ? 20000 : 10000
 
       while (interval) {
-        await new Promise((res) => setTimeout(res, 15000))
-        await luckyPoolAPI?.refreshAllState()
+        await new Promise((res) => setTimeout(res, ms))
+        if (isOnline() && isVisible()) {
+          await luckyPoolAPI?.refreshAllState()
+        }
       }
     })()
 
@@ -80,6 +85,7 @@
     }
   })
 
+  $: principal = $authStore.identity.getPrincipal()
   $: {
     if (luckyPoolAPI) {
       luckyPoolState = luckyPoolAPI.stateStore
@@ -101,36 +107,39 @@
     )}
     {@const percent =
       String(Math.round((consumedAmount * 100) / TotalAmount)) + '%'}
-    <div
-      class="mt-10 flex w-full flex-row justify-around gap-4 max-sm:flex-col"
-    >
-      <div class="flex flex-col items-center">
-        <h3 class="h3 text-[28px] font-bold">{formatNumber(TotalAmount)}</h3>
-        <p class="text-gray/50">Total Amount</p>
-      </div>
-
+    <div class="mt-4 flex w-full flex-row justify-around gap-2 max-sm:flex-col">
       <div class="flex flex-col items-center">
         <h3 class="h3 text-[28px] font-bold text-panda">
+          <span class="text-sm font-normal text-gray/50">Total:</span>
           {formatNumber(Number($luckyPoolState.total_airdrop / PANDAToken.one))}
         </h3>
-        <p class="text-gray/50">
-          Airdrop Amount, Count: {Number(
-            $luckyPoolState.total_airdrop_count +
-              ($luckyPoolState.total_prize_count[0] || 0n)
-          )}
+        <p class="text-sm text-gray/50">
+          Airdrop Count: {Number($luckyPoolState.total_airdrop_count)}
         </p>
       </div>
 
       <div class="flex flex-col items-center">
         <h3 class="h3 text-[28px] font-bold text-panda">
+          <span class="text-sm font-normal text-gray/50">Total:</span>
+          {formatNumber(
+            Number(($luckyPoolState.total_prize[0] || 0n) / PANDAToken.one)
+          )}
+        </h3>
+        <p class="text-sm text-gray/50">
+          Prizes Count: {Number($luckyPoolState.total_prizes_count[0] || 0n)},
+          Claim Count: {Number($luckyPoolState.total_prize_count[0] || 0n)}
+        </p>
+      </div>
+
+      <div class="flex flex-col items-center">
+        <h3 class="h3 text-[28px] font-bold text-panda">
+          <span class="text-sm font-normal text-gray/50">Total:</span>
           {formatNumber(
             Number($luckyPoolState.total_luckydraw / PANDAToken.one)
           )}
         </h3>
-        <p class="text-gray/50">
-          Lucky Draw Amount, Count: {Number(
-            $luckyPoolState.total_luckydraw_count
-          )}
+        <p class="text-sm text-gray/50">
+          Lucky Draw Count: {Number($luckyPoolState.total_luckydraw_count)}
         </p>
       </div>
     </div>

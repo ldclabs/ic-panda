@@ -27,7 +27,7 @@
 
   let submitting = false
   let validating = false
-  let showTips = false
+  let showTips = true
   let luckyPoolAPI: LuckyPoolAPI
   let airdropState: Readable<AirdropState | null>
   let inputAmount = 0
@@ -149,6 +149,10 @@
           The <b>More Lucky Balance</b> you have, the larger your claim in a
           <b>Lucky PANDA Prize</b>.
         </span>
+        <span>
+          <b>20%</b> chance to claim the avg; <b>80%</b> chance depends on your lucky
+          balance:
+        </span>
       </p>
       <div class="text-sm {showTips ? '' : 'hidden'}">
         <p>10: claim up to 0.1 * avg;</p>
@@ -164,8 +168,7 @@
         <p>50k: claim up to 5.21 * avg;</p>
         <p>100k: claim up to 6.25 * avg;</p>
         <p>500k: claim up to 9.06 * avg;</p>
-        <p>1m: claim up to 10.44 * avg;</p>
-        <p>All: 20% chance of claiming avg.</p>
+        <p>1m: claim up to 10.44 * avg.</p>
       </div>
       <button
         class="btn ml-[-1px] !flex p-0 text-gray/50 outline-0"

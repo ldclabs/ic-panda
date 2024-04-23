@@ -3,6 +3,7 @@
   import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
   import { authStore } from '$lib/stores/auth'
+  import { initReconnect, isOnline } from '$lib/utils/window'
   import {
     arrow,
     autoUpdate,
@@ -23,6 +24,17 @@
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../app.pcss'
 
+  initReconnect(
+    () => console.log('Device is online:', isOnline()),
+    () =>
+      toastStore.trigger({
+        hideDismiss: false,
+        message: 'Device is offline',
+        background: 'variant-filled-error',
+        timeout: 5000,
+        hoverable: true
+      })
+  )
   initializeStores()
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()

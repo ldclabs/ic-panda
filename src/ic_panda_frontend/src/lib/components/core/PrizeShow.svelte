@@ -15,13 +15,8 @@
   export let close: () => void
 
   let submitting = false
-
-  let canClaim =
-    prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
-
-  const detail: { message: string; link: string } | null = prizeInfo.memo[0]
-    ? mapToObj(decodeCBOR(prizeInfo.memo[0] as Uint8Array))
-    : null
+  let canClaim = false
+  let detail: { message: string; link: string } | null
 
   async function claimHandler(e: Event) {
     e.preventDefault()
@@ -33,6 +28,11 @@
   }
 
   $: principal = $authStore.identity.getPrincipal()
+  $: canClaim =
+    prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
+  $: detail = prizeInfo.memo[0]
+    ? mapToObj(decodeCBOR(prizeInfo.memo[0] as Uint8Array))
+    : null
 </script>
 
 <section class="absolute left-0 right-0 top-0 !m-0 rounded-3xl">

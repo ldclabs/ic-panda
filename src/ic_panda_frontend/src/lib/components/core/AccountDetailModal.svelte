@@ -173,10 +173,10 @@
         <span class="*:size-8"><IconIcLogo /></span>
       </svelte:fragment>
       <svelte:fragment slot="summary">
-        <div class="relative leading-8">
-          <span class="max-w-[80%] truncate">Internet Computer</span>
+        <div class="flex flex-row items-center justify-between leading-8">
+          <span class="">Internet Computer</span>
           <TextTokenAmount
-            class="absolute right-0 top-0 float-right flex flex-row items-center gap-2 bg-white pl-4"
+            class="flex flex-row items-center gap-2 pl-4"
             token={ICPToken}
             amount={icpBalance}
           />
@@ -196,10 +196,10 @@
         <span class="*:size-8"><IconPanda /></span>
       </svelte:fragment>
       <svelte:fragment slot="summary">
-        <div class="relative leading-8">
-          <span class="max-w-[40%] truncate">ICPanda</span>
+        <div class="flex flex-row items-center justify-between leading-8">
+          <span class="">ICPanda</span>
           <TextTokenAmount
-            class="absolute right-0 top-0 float-right flex flex-row items-center gap-2 bg-white pl-4"
+            class="flex flex-row items-center gap-2 pl-4"
             token={PANDAToken}
             amount={pandaBalance}
           />

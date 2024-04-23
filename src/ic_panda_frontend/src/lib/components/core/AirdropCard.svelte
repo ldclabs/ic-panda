@@ -203,9 +203,10 @@
         </span>
       </p>
       <p class="mt-3">
-        <span>Lucky Balance:</span>
+        <span><b>Lucky Balance:</b></span>
         <span>
-          <b>{formatNumber(Number(claimableAmount) / Number(PANDAToken.one))}</b
+          <b class="text-panda"
+            >{formatNumber(Number(claimableAmount) / Number(PANDAToken.one))}</b
           > PANDA tokens
         </span>
         <span>

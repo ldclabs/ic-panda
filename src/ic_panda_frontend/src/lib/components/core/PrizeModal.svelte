@@ -8,7 +8,6 @@
     type ClaimPrizeOutput,
     type PrizeOutput
   } from '$lib/canisters/luckypool'
-  import { tokenLedgerAPIAsync } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconCloseCircle from '$lib/components/icons/IconCloseCircle.svelte'
@@ -31,14 +30,33 @@
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
-  let submitting = false
-  let validating = false
-  let canClaim = true
-  let meetRequirements = 0
   let cryptogram = $page.url.searchParams.get('prize') || ''
+  let submitting = false
+  let validating = decodePrize(cryptogram) != null
+  let canClaim = true
+  let meetRequirements = 3
   let luckyPoolAPI: LuckyPoolAPI
   let airdropState: Readable<AirdropState | null>
-  let prizeInfo: PrizeOutput
+  let prizeInfo: PrizeOutput | null = !validating
+    ? null
+    : {
+        // placeholder
+        id: new Uint8Array(),
+        fee: 0n,
+        issued_at: 0n,
+        code: [''],
+        kind: 1,
+        memo: [],
+        name: [],
+        refund_amount: 0n,
+        issuer: '',
+        filled: 0,
+        quantity: 100,
+        expire: 7200n,
+        ended_at: 0n,
+        amount: 0n,
+        sys_subsidy: 0n
+      }
   let result: ClaimPrizeOutput
 
   const toastStore = getToastStore()
@@ -133,23 +151,18 @@
   $: {
     if (luckyPoolAPI) {
       airdropState = luckyPoolAPI.airdropStateStore
+      let _meetRequirements = 0
       if ($airdropState?.lucky_code[0]) {
-        meetRequirements = meetRequirements | 1
+        _meetRequirements = _meetRequirements | 1
       }
-      if ($airdropState?.claimable && $airdropState?.claimable >= 10n) {
-        meetRequirements = meetRequirements | 2
-      } else if (!principal.isAnonymous()) {
-        tokenLedgerAPIAsync().then((api) => {
-          api.balance().then((balance) => {
-            if (($airdropState?.claimable || 0n) + balance >= 10n) {
-              meetRequirements = meetRequirements | 2
-            }
-          })
-        })
+      if ($airdropState?.claimable && $airdropState?.claimable >= 50n) {
+        _meetRequirements = _meetRequirements | 2
+        meetRequirements = _meetRequirements
       }
 
       if (luckyPoolAPI?.principal.toString() != principal.toString()) {
         luckyPoolAPIAsync().then((_luckyPoolAPI) => {
+          meetRequirements = 3
           luckyPoolAPI = _luckyPoolAPI
         })
       }
@@ -233,7 +246,7 @@
         {:else}
           <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
-        <span>Have at lest <b>10 PANDA</b> in your wallet</span>
+        <span>Have at lest <b>50 PANDA</b> in your wallet</span>
       </p>
     </div>
     <form

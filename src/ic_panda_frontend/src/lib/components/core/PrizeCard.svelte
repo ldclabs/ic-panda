@@ -109,7 +109,7 @@
     </div>
     <section class="mb-6 mt-5 flex flex-col justify-center max-md:mt-10">
       <h5 class="h5 text-center font-extrabold">
-        <span>Prize Giveaway</span>
+        <span>PANDA Prize Giveaway</span>
       </h5>
     </section>
     <footer class="m-auto mb-6">
@@ -133,7 +133,7 @@
             >2</span
           >
           <span class="flex-auto">
-            Have at least <b>10 PANDA</b> in your wallet.
+            Have at least <b>50 PANDA</b> in your <b>Lucky Balance</b>.
           </span>
         </li>
         <li>

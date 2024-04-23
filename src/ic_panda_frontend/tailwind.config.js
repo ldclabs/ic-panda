@@ -19,12 +19,12 @@ const config = {
       current: 'currentColor',
       panda: '#11c291',
       gold: '#fbbf24',
-      pink: colors.pink,
       gray: '#0a0a0a',
-      orange: colors.orange,
-      amber: colors.amber,
       white: colors.white,
       black: colors.black,
+      pink: colors.pink,
+      orange: colors.orange,
+      amber: colors.amber,
       red: colors.red
     },
     extend: {}

@@ -60,18 +60,18 @@
         href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
         target="_blank">ICPanda DAO</a
       >
-      represents a Decentralized Autonomous Organization (DAO) committed to advancing
-      the Panda meme brand within the decentralized ecosystem of the
+      is dedicated to building the Panda meme brand across the
       <a
         class="font-bold text-secondary-500 underline underline-offset-4"
         href="https://internetcomputer.org/"
         target="_blank"
       >
-        Internet Computer
+        Internet Computer's
       </a>
-      . As a DAO, it operates with a community-driven approach, leveraging the Internet
-      Computer's blockchain technology to foster an environment of transparency,
-      autonomy, and collaborative decision-making.
+      decentralized ecosystem, enhancing the connection between pandas and humans.
+      Our focus extends beyond the animals themselves, embracing all valuable and
+      praiseworthy ideas, positioning the Panda meme as a symbol of cherished concepts
+      globally.
     </p>
   </div>
 
