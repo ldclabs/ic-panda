@@ -7,6 +7,7 @@
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
 
   export let parent: SvelteComponent
+  export let title = 'Scan QR Code'
 
   let videoPlayer: HTMLVideoElement
   let canvas: HTMLCanvasElement
@@ -95,7 +96,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Scan QR Code</div>
+  <div class="!mt-0 text-center text-xl font-bold">{title}</div>
   <div class="relative">
     <!-- svelte-ignore a11y-media-has-caption -->
     <video bind:this={videoPlayer} on:play={scanQR} />

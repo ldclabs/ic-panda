@@ -2,6 +2,7 @@
   import { browser } from '$app/environment'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
+  import { GOOGLE_RECAPTCHA_ID } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import {
@@ -86,11 +87,11 @@
 
 <svelte:head>
   {@html webManifest}
-  <!-- <script
+  <script
     src="https://www.google.com/recaptcha/enterprise.js?render={GOOGLE_RECAPTCHA_ID}"
     async
     defer
-  ></script> -->
+  ></script>
 </svelte:head>
 
 <svelte:window on:storage={syncAuthStore} />

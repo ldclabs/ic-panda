@@ -11,7 +11,7 @@
     ],
     "types": [
       "@sveltejs/kit",
-      "vite-plugin-pwa/info",
+      "vite-plugin-pwa/svelte",
       "vite/client",
       "@testing-library/jest-dom"
     ]

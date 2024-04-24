@@ -17,3 +17,5 @@ export const TOKEN_LEDGER_CANISTER_ID = 'druyg-tyaaa-aaaaq-aactq-cai' // ic & lo
 export const X_AUTH_KEY = 'ICPanda:XAuth'
 export const X_AUTH_ENDPIONT = 'https://auth.panda.fans/idp/twitter/authorize'
 export const X_AUTH_CHALLENGE_ENDPIONT = 'https://auth.panda.fans/challenge'
+
+export const GOOGLE_RECAPTCHA_ID = '6LduPbIpAAAAANSOUfb-8bU45eilZFSmlSguN5TO'

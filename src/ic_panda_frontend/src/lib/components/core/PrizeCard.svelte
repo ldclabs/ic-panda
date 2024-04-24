@@ -45,7 +45,10 @@
     let code: string = await new Promise((resolve) => {
       modalStore.trigger({
         type: 'component',
-        component: { ref: QrCodeReaderModal, props: {} },
+        component: {
+          ref: QrCodeReaderModal,
+          props: { title: 'Scan Prize QR Code' }
+        },
         response: (res) => resolve(res || '')
       })
     })

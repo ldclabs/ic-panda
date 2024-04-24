@@ -137,6 +137,7 @@ export class XAuth {
 export interface ChallengeInput {
   principal: Uint8Array
   message: Uint8Array
+  recaptcha: string
 }
 
 const challengeClient = createRequest(X_AUTH_CHALLENGE_ENDPIONT, {

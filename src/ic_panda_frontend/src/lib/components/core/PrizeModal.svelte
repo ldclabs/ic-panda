@@ -17,6 +17,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { challengeToken, signIn } from '$lib/services/auth'
+  import { executeReCaptcha } from '$lib/services/recaptcha'
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
@@ -99,10 +100,12 @@
       submitting = true
       try {
         const prize = decodePrize(cryptogram)
+        const recaptcha = await executeReCaptcha('claim_prize')
         const token = await challengeToken(
           {
             principal: luckyPoolAPI.principal.toUint8Array(),
-            message: encodeCBOR(prize)
+            message: encodeCBOR(prize),
+            recaptcha
           },
           'claim_prize'
         )

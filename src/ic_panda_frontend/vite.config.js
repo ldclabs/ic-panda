@@ -44,7 +44,7 @@ export default defineConfig({
       srcDir: './src',
       mode: 'production',
       strategies: 'injectManifest',
-      registerType: 'prompt',
+      // registerType: 'prompt',
       filename: 'service-worker.ts',
       scope: '/',
       base: '/',

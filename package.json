@@ -16,6 +16,5 @@
   "workspaces": [
     "src/ic_panda_frontend"
   ],
-  "packageManager": "^pnpm@8.15.0",
   "devDependencies": {}
 }
