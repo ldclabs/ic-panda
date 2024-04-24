@@ -92,7 +92,7 @@
       })
     }
 
-    await luckyPoolAPI.refreshAllState()
+    luckyPoolAPI.refreshAllState()
   }
 
   function checkInput() {

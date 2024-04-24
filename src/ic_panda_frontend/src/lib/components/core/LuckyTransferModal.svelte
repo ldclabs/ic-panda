@@ -58,7 +58,7 @@
         submitting = false
         transferred = amount
 
-        await luckyPoolAPI.refreshAllState()
+        luckyPoolAPI.refreshAllState()
       } catch (err: any) {
         submitting = false
         toastStore.trigger({

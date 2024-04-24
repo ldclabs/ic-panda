@@ -15,6 +15,7 @@
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { challengeToken, signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
@@ -29,8 +30,18 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let prizeCode: string = ''
 
-  let cryptogram = $page.url.searchParams.get('prize') || ''
+  if (prizeCode.startsWith('http')) {
+    const url = new URL(prizeCode)
+    if (url.origin == APP_ORIGIN) {
+      prizeCode = url.searchParams.get('prize') || ''
+    } else {
+      prizeCode = ''
+    }
+  }
+
+  let cryptogram = prizeCode || $page.url.searchParams.get('prize') || ''
   let submitting = false
   let validating = decodePrize(cryptogram) != null
   let canClaim = true
@@ -101,7 +112,7 @@
           challenge: token
         })
 
-        await luckyPoolAPI.refreshAllState()
+        luckyPoolAPI.refreshAllState()
       } catch (err: any) {
         submitting = false
 
@@ -197,9 +208,18 @@
       </p>
       <p class="">
         <span>
-          The average claimable amount is
-          <b>{formatNumber(Number(result.average) / Number(PANDAToken.one))}</b
-          >.
+          Current average claimable amount:
+          <b>
+            {formatNumber(Number(result.average) / Number(PANDAToken.one))}
+          </b>
+        </span>
+      </p>
+      <p class="">
+        <span>
+          Total amount:
+          <b>
+            {formatNumber(Number(prizeInfo?.amount) / Number(PANDAToken.one))}
+          </b>
         </span>
       </p>
       {#if result.claimed < result.average}

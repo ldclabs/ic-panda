@@ -7,6 +7,7 @@
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { mapToObj } from '$lib/utils/fetcher'
+  import { formatNumber, PANDAToken } from '$lib/utils/token'
   import { decodeCBOR } from '@ldclabs/cose-ts/utils'
   import { ProgressBar } from '@skeletonlabs/skeleton'
 
@@ -67,8 +68,12 @@
         </a>
       {/if}
     {/if}
+
     <div class="pt-10 text-center font-semibold text-white/90">
-      <span>{`${prizeInfo.filled} / ${prizeInfo.quantity}`}</span>
+      <span>
+        {formatNumber(Number(prizeInfo.amount) / Number(PANDAToken.one))} PANDA:
+        {`${prizeInfo.filled} / ${prizeInfo.quantity}`}
+      </span>
     </div>
     <div class="m-auto w-11/12 pt-2">
       <ProgressBar

@@ -25,6 +25,7 @@
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
+  import encodeQR from '@paulmillr/qr'
   import {
     focusTrap,
     getModalStore,
@@ -161,11 +162,20 @@
     onFormChange()
   }
 
+  let linkCopied = false
+  let timeoutId: any
   async function copyPrizeLink(e: Event, link: string) {
     e.preventDefault()
 
     if (link != '') {
       await navigator.clipboard.writeText(link)
+      linkCopied = true
+      if (timeoutId != null) {
+        clearTimeout(timeoutId)
+      }
+      timeoutId = setTimeout(() => {
+        linkCopied = false
+      }, 5000)
     }
   }
 
@@ -201,7 +211,6 @@
       )
 
       result = await luckyPoolAPI.createPrize(prizeInput)
-      await luckyPoolAPI.refreshAllState()
     } catch (err: any) {
       submitting = false
       toastStore.trigger({
@@ -268,6 +277,9 @@
 
 <ModalCard {parent}>
   {#if result}
+    {@const code = result.code[0]}
+    {@const link = `${APP_ORIGIN}?prize=${code}`}
+    {@const qrcode = encodeQR(link, 'svg', { ecc: 'high' })}
     <div class="text-center text-panda *:m-auto *:size-12">
       <IconCheckbox />
     </div>
@@ -275,25 +287,41 @@
       <p class="mt-4">
         <span>Your prize has been successfully created.</span>
       </p>
-      <div class="my-2 flex flex-row items-center gap-1">
-        <p class="truncate text-orange-500">{'PRIZE:' + result.code[0]}</p>
-        <TextClipboardButton textValue={'PRIZE:' + result.code[0]} />
+      <p class="mt-2 text-left text-gray/50">Prize Code:</p>
+      <div class="flex flex-row items-center gap-1">
+        <p class="truncate text-orange-500">{'PRIZE:' + code}</p>
+        <TextClipboardButton textValue={'PRIZE:' + code} />
       </div>
+      <p class="mt-2 text-left text-gray/50">Prize QR Code:</p>
+      <div class="relative items-center">
+        {@html qrcode}
+        <div
+          class="absolute left-[calc(50%-26px)] top-[calc(50%-26px)] rounded-full border-4 border-white *:size-12"
+          ><IconGoldPanda2 /></div
+        >
+      </div>
+      <p class="mt-2 text-left text-gray/50">Prize Link:</p>
       <div
         class="flex flex-row items-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-red-50 p-2 text-orange-500"
       >
         <p class=""><IconLink /></p>
         <p class="w-full text-pretty break-all text-left">
-          {`${APP_ORIGIN}?prize=${result.code[0]}`}
+          {link}
         </p>
       </div>
     </div>
     <button
-      class="variant-filled btn m-auto mt-6 block"
-      on:click={(e) =>
-        copyPrizeLink(e, `${APP_ORIGIN}?prize=${result?.code[0]}`)}
+      class="variant-filled btn m-auto mt-6 flex w-52 flex-row items-center gap-2 outline-0 {linkCopied
+        ? 'bg-panda'
+        : ''}"
+      disabled={linkCopied}
+      on:click={(e) => copyPrizeLink(e, link)}
     >
-      Copy the Prize Link
+      {#if linkCopied}
+        <span>Prize Link Copied</span><IconCheckbox />
+      {:else}
+        <span>Copy the Prize Link</span>
+      {/if}
     </button>
   {:else}
     <h3 class="h3 !mt-0 text-center *:m-auto *:size-10"><IconGoldPanda2 /></h3>

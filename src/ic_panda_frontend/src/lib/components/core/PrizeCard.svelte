@@ -7,6 +7,8 @@
   } from '$lib/canisters/luckypool'
   import IconGoldPanda2 from '$lib/components/icons/IconGoldPanda2.svelte'
   import IconHistory from '$lib/components/icons/IconHistory.svelte'
+  import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
+  import QrCodeReaderModal from '$lib/components/ui/QRCodeReaderModal.svelte'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
@@ -32,6 +34,26 @@
         component: { ref: PrizeModal, props: {} }
       })
     }
+  }
+
+  async function qrPrizeHandler() {
+    if (principal.isAnonymous()) {
+      signIn()
+      return
+    }
+
+    let code: string = await new Promise((resolve) => {
+      modalStore.trigger({
+        type: 'component',
+        component: { ref: QrCodeReaderModal, props: {} },
+        response: (res) => resolve(res || '')
+      })
+    })
+
+    modalStore.trigger({
+      type: 'component',
+      component: { ref: PrizeModal, props: { prizeCode: code } }
+    })
   }
 
   function createPrizeHandler() {
@@ -146,13 +168,21 @@
           </span>
         </li>
       </ol>
-      <div class="mt-4 flex flex-col items-center">
+      <div class="relative mt-4 text-center">
         <button
           on:click={claimPrizeHandler}
           class="btn m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
         >
           Claim a Prize
         </button>
+        <div class="">
+          <button
+            on:click={qrPrizeHandler}
+            class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:right-0 sm:top-[calc(50%-16px)]"
+          >
+            <IconQrCode />
+          </button>
+        </div>
       </div>
     </footer>
   </div>

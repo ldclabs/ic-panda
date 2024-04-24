@@ -280,3 +280,25 @@ pub struct NameOutput {
     pub deposit: Nat,
     pub annual_fee: Nat,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use lib_panda::to_cbor_bytes;
+
+    #[test]
+    fn test_print_memo() {
+        let memo = PrizeMemo {
+            message: "$PANDA To Da Moon! Follow Us:".to_string(),
+            link: "https://twitter.com/ICPandaDAO".to_string(),
+        };
+        let data = to_cbor_bytes(&memo);
+        println!("{}", hex::encode(&data));
+        let s = data
+            .iter()
+            .map(|b| format!("\\{:02x}", b))
+            .collect::<String>();
+        // candid blob:
+        println!("blob \"{}\"", s);
+    }
+}

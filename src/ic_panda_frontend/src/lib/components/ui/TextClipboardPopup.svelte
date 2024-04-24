@@ -20,7 +20,7 @@
   let copiedClass = ''
 
   function onCopyHandler(): void {
-    copiedClass = '!text-secondary-500'
+    copiedClass = '!text-panda'
     setTimeout(() => {
       copiedClass = ''
     }, 5000)

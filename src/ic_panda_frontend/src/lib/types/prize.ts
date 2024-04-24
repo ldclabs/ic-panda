@@ -10,8 +10,7 @@ export function decodePrize(prize: string): Prize | null {
   try {
     const cryptogram: Uint8Array[] = decodeCBOR(base64ToBytes(prize))
     return decodeCBOR(cryptogram[0] as Uint8Array)
-  } catch (error) {
-    console.error('Error decoding prize:', error)
+  } catch (_) {
     return null
   }
 }

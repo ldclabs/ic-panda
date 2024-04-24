@@ -20,9 +20,12 @@
     })
   }
 
-  function scrollToTop() {
+  function scrollToTop(ev: MouseEvent) {
     // AppShell page
     window.document.getElementById('page')?.scrollTo(0, 0)
+    if (ev.detail == 2) {
+      window.location.reload() // for PWA that has no refresh button
+    }
   }
 </script>
 
