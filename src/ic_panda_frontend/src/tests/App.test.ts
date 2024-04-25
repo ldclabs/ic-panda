@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'vitest'
-import App from '../routes/+page.svelte'
+import App from '../routes/(app)/+page.svelte'
 
 let host: HTMLDivElement
 

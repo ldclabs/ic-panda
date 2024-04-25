@@ -278,7 +278,7 @@
 <ModalCard {parent}>
   {#if result}
     {@const code = result.code[0]}
-    {@const link = `${APP_ORIGIN}?prize=${code}`}
+    {@const link = `${APP_ORIGIN}/?prize=${code}`}
     {@const qrcode = encodeQR(link, 'svg', { ecc: 'high' })}
     <div class="text-center text-panda *:m-auto *:size-12">
       <IconCheckbox />

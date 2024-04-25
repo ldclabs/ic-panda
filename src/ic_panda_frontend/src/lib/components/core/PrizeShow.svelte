@@ -102,10 +102,10 @@
           disabled={submitting || !canClaim}
           on:click={claimHandler}
         >
-          {#if prizeInfo.ended_at > 0n}
-            <span>Expired</span>
-          {:else if prizeInfo.filled == prizeInfo.quantity}
+          {#if prizeInfo.filled == prizeInfo.quantity}
             <span>Fully Claimed</span>
+          {:else if prizeInfo.ended_at > 0n}
+            <span>Expired</span>
           {:else if submitting}
             <span class=""><IconCircleSpin /></span>
             <span>Processing...</span>
