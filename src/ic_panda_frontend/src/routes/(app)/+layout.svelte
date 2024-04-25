@@ -88,7 +88,7 @@
 <svelte:head>
   {@html webManifest}
   <script
-    src="https://www.google.com/recaptcha/enterprise.js?render={GOOGLE_RECAPTCHA_ID}"
+    src="https://www.google.com/recaptcha/enterprise.js?render={GOOGLE_RECAPTCHA_ID}&badge=inline"
     async
     defer
   ></script>
