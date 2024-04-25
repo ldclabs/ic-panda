@@ -19,6 +19,7 @@ mod api_twitter;
 mod cbor;
 mod context;
 mod erring;
+mod grecaptcha;
 
 #[tokio::main]
 async fn main() {
@@ -52,6 +53,12 @@ async fn main() {
             client_secret: std::env::var("X_CLIENT_SECRET").unwrap(),
             callback_url: std::env::var("X_CALLBACK_URL").unwrap(),
         },
+        recaptcha: Arc::new(grecaptcha::ReCAPTCHA::new(
+            std::env::var("GRECAPTCHA_PROJECT").unwrap(),
+            std::env::var("GRECAPTCHA_SITE_KEY").unwrap(),
+            std::env::var("GRECAPTCHA_API_KEY").unwrap(),
+        )),
+        recaptcha_required: std::env::var("GRECAPTCHA_REQUIRED").unwrap() == "true",
     };
 
     let callback_limiter_conf = Arc::new(

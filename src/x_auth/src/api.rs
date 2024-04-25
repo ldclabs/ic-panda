@@ -1,6 +1,7 @@
 use crate::cbor::Cbor;
 use crate::context::{unix_ms, ReqContext};
 use crate::erring::{HTTPError, SuccessResponse};
+use crate::grecaptcha::{Event, ReCAPTCHA};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -25,6 +26,8 @@ pub struct AppState {
     pub ic_redirect_uri: String,
     pub test_redirect_uri: String,
     pub local_redirect_uri: String,
+    pub recaptcha: Arc<ReCAPTCHA>,
+    pub recaptcha_required: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +66,7 @@ pub async fn healthz() -> impl IntoResponse {
 pub struct ChallengeInput {
     pub principal: Principal,
     pub message: ByteBuf,
+    pub recaptcha: Option<String>,
 }
 
 pub async fn challenge(
@@ -81,6 +85,43 @@ pub async fn challenge(
     match kind.as_str() {
         "claim_prize" => {}
         _ => return Err(HTTPError::new(400, format!("invalid kind: {}", kind))),
+    }
+
+    let recaptcha_valid = if let Some(recaptcha) = input.recaptcha {
+        let mut event = Event {
+            token: recaptcha,
+            site_key: app.recaptcha.site_key.clone(),
+            user_agent: "".to_string(),
+            user_ip_address: ctx.ip.map(|ip| ip.to_string()).unwrap_or_default(),
+            expected_action: "claim_prize".to_string(),
+        };
+        match app.recaptcha.verify(&app.http_client, &event).await {
+            Ok(mut res) => {
+                let ok = res.is_valid(0.9f32, &event);
+                // token is large and sensitive information, so we clear it
+                event.token = "-".to_string();
+                res.event.token = "-".to_string();
+                log::debug!(target: "grecaptcha",
+                    kv:serde = (event, res);
+                    "",
+                );
+                ctx.set("recaptcha", ok.into()).await;
+                ok
+            }
+            Err(err) => {
+                ctx.set("error", format!("{:?}", err).into()).await;
+                false
+            }
+        }
+    } else {
+        false
+    };
+
+    if app.recaptcha_required && !recaptcha_valid {
+        return Err(HTTPError::new(
+            403,
+            "reCAPTCHA verification failed".to_string(),
+        ));
     }
 
     let state = ChallengeState((input.principal, input.message, 60 + unix_ms() / 1000));
