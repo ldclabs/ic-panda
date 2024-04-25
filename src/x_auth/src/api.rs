@@ -97,7 +97,7 @@ pub async fn challenge(
         };
         match app.recaptcha.verify(&app.http_client, &event).await {
             Ok(mut res) => {
-                let ok = res.is_valid(0.9f32, &event);
+                let ok = res.is_valid(0.9f32, &event, &app.recaptcha.hostnames);
                 // token is large and sensitive information, so we clear it
                 event.token = "-".to_string();
                 res.event.token = "-".to_string();
@@ -105,7 +105,6 @@ pub async fn challenge(
                     kv:serde = (event, res);
                     "",
                 );
-                ctx.set("recaptcha", ok.into()).await;
                 ok
             }
             Err(err) => {
@@ -117,6 +116,7 @@ pub async fn challenge(
         false
     };
 
+    ctx.set("recaptcha", recaptcha_valid.into()).await;
     if app.recaptcha_required && !recaptcha_valid {
         return Err(HTTPError::new(
             403,

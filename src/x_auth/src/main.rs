@@ -57,6 +57,11 @@ async fn main() {
             std::env::var("GRECAPTCHA_PROJECT").unwrap(),
             std::env::var("GRECAPTCHA_SITE_KEY").unwrap(),
             std::env::var("GRECAPTCHA_API_KEY").unwrap(),
+            std::env::var("GRECAPTCHA_HOSTNAMES")
+                .unwrap()
+                .split(",")
+                .map(|s| s.trim().to_string())
+                .collect(),
         )),
         recaptcha_required: std::env::var("GRECAPTCHA_REQUIRED").unwrap() == "true",
     };

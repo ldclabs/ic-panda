@@ -7,6 +7,7 @@ use url::Url;
 // https://cloud.google.com/recaptcha-enterprise/docs/create-assessment-website
 pub struct ReCAPTCHA {
     api_url: url::Url,
+    pub hostnames: Vec<String>,
     pub site_key: String,
 }
 
@@ -21,7 +22,7 @@ pub struct ReCAPTCHAOutput {
 }
 
 impl ReCAPTCHAOutput {
-    pub fn is_valid(&self, score: f32, event: &Event) -> bool {
+    pub fn is_valid(&self, score: f32, event: &Event, hostnames: &Vec<String>) -> bool {
         if !self.token_properties.valid
             || self.risk_analysis.score < score
             || self.token_properties.action != event.expected_action
@@ -29,8 +30,7 @@ impl ReCAPTCHAOutput {
             return false;
         }
 
-        // TODO: check hostname, ip, etc.
-        true
+        hostnames.contains(&self.token_properties.hostname)
     }
 }
 
@@ -69,13 +69,14 @@ struct ReCAPTCHAInput<'a> {
 }
 
 impl ReCAPTCHA {
-    pub fn new(project: String, site_key: String, api_key: String) -> Self {
+    pub fn new(project: String, site_key: String, api_key: String, hostnames: Vec<String>) -> Self {
         Self {
             api_url: Url::parse(&format!(
                 "https://recaptchaenterprise.googleapis.com/v1/projects/{}/assessments?key={}",
                 project, api_key
             ))
             .expect("invalid Google reCAPTCHA API url"),
+            hostnames,
             site_key,
         }
     }
