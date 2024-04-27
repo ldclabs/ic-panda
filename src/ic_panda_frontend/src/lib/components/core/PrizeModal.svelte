@@ -21,11 +21,11 @@
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
-  import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
+  import PrizeClaimed from './PrizeClaimed.svelte'
   import PrizeShow from './PrizeShow.svelte'
 
   // Props
@@ -195,59 +195,9 @@
   }
 </script>
 
-<ModalCard {parent}>
-  {#if result}
-    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
-      <IconCheckbox />
-    </div>
-    <div class="text-center">
-      <p class="mt-4">
-        <span>
-          You have successfully claimed <b
-            >{formatNumber(Number(result.claimed) / Number(PANDAToken.one))}</b
-          >
-          PANDA tokens.
-        </span>
-      </p>
-      <p class="">
-        <span>
-          Current average claimable amount:
-          <b>
-            {formatNumber(Number(result.average) / Number(PANDAToken.one))}
-          </b>
-        </span>
-      </p>
-      <p class="">
-        <span>
-          Total amount:
-          <b>
-            {formatNumber(Number(prizeInfo?.amount) / Number(PANDAToken.one))}
-          </b>
-        </span>
-      </p>
-      {#if result.claimed < result.average}
-        <p class="">
-          <b>
-            The More Lucky Balance you have, the larger your claim in a Lucky
-            PANDA Prize.
-          </b>
-        </p>
-      {/if}
-      <p class="mt-4 text-left">
-        Follow the <a
-          title="Follow on Twitter"
-          class="text-panda underline"
-          href="https://twitter.com/ICPandaDAO"
-          target="_blank">ICPanda Twitter</a
-        >, or join the
-        <a
-          title="Join the Community"
-          class="text-panda underline"
-          href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
-          target="_blank">ICPanda Community</a
-        >, to get the latest prize messages in time.
-      </p>
-    </div>
+<ModalCard {parent} width="w-[380px]">
+  {#if prizeInfo && result}
+    <PrizeClaimed {prizeInfo} {result} close={closePrizeShow} />
   {:else if prizeInfo && (principal.isAnonymous() || meetRequirements == 3)}
     <PrizeShow {prizeInfo} {claimPrize} close={closePrizeShow} />
   {:else}
@@ -338,7 +288,7 @@
         <a
           type="button"
           title="Follow on Twitter"
-          class="btn btn-sm rounded-xl border-2 border-gray/10"
+          class="btn btn-sm rounded-xl border-[1px] border-gray/10"
           href="https://twitter.com/ICPandaDAO"
           target="_blank"
         >
@@ -348,7 +298,7 @@
         <a
           type="button"
           title="Join the Community"
-          class="btn btn-sm rounded-xl border-2 border-gray/10"
+          class="btn btn-sm rounded-xl border-[1px] border-gray/10"
           href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
           target="_blank"
         >

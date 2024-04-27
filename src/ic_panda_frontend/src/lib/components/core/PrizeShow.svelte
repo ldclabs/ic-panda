@@ -86,7 +86,7 @@
         max={prizeInfo.quantity}
       />
     </div>
-    <div class="pb-8 pt-4 text-center text-white/90">
+    <div class="pb-6 pt-6 text-center text-white/90">
       {#if principal.isAnonymous()}
         <button
           class="btn m-auto flex w-6/12 flex-row items-center gap-2 bg-white text-orange-600"
@@ -117,7 +117,7 @@
     </div>
   </div>
   <button
-    class="z-1 btn btn-icon m-auto block w-fit translate-y-[40px] text-white *:scale-125 hover:scale-110"
+    class="z-1 btn btn-icon m-auto block w-fit translate-y-14 text-white *:scale-125 hover:scale-110"
     on:click={close}
   >
     <IconCloseCircleLine />
