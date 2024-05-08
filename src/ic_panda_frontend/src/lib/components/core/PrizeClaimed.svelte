@@ -38,15 +38,15 @@
     </div>
   </div>
   <div
-    class="ss:h-[410px] relative mt-[-132px] h-[400px] bg-[url('/_assets/images/prize-claimed-bg.webp')] bg-[length:100%_auto] bg-no-repeat"
+    class="relative mt-[-132px] h-[400px] bg-[url('/_assets/images/prize-claimed-bg.webp')] bg-[length:100%_auto] bg-no-repeat min-[410px]:h-[410px]"
   >
-    <div class="m-auto w-72 pt-[210px] text-center text-white sm:pt-[240px]">
+    <div class="sm:pt-[240px] m-auto w-72 pt-[210px] text-center text-white">
       <span class="text-lg font-semibold">
         The more lucky balance you hold, the bigger prize you grab.
       </span>
     </div>
     <div
-      class="absolute bottom-6 flex w-full flex-row justify-center gap-2 text-white sm:pt-12"
+      class="sm:pt-12 absolute bottom-6 flex w-full flex-row justify-center gap-2 text-white"
     >
       <a
         type="button"
