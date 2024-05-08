@@ -158,7 +158,10 @@
             >2</span
           >
           <span class="flex-auto">
-            Have at least <b>50 PANDA</b> in your <b>Lucky Balance</b>.
+            Have at least <b
+              >{Number($stateStore?.airdrop_amount[0] || 10n) / 2} PANDA</b
+            >
+            in your <b>Lucky Balance</b>.
           </span>
         </li>
         <li>

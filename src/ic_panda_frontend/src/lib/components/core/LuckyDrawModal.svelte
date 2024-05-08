@@ -6,7 +6,8 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type LuckyDrawOutput
+    type LuckyDrawOutput,
+    type State
   } from '$lib/canisters/luckypool'
   import {
     tokenLedgerAPIAsync,
@@ -19,7 +20,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
-  import { decodePrize, type Prize } from '$lib/types/prize'
+  import { decodeAirdropCode, type Prize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import {
     ICPToken,
@@ -32,6 +33,7 @@
   import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
+  import { type Readable } from 'svelte/store'
 
   // Props
   /** Exposes parent props to this component. */
@@ -49,7 +51,7 @@
   let result: LuckyDrawOutput
   let lottiePlayerRef: HTMLDivElement
   let cryptogramInfo: Prize | null = null
-  let defaultClaimable = 10
+  let luckyPoolState: Readable<State | null>
 
   const luckyPoolPrincipal = Principal.fromText(LUCKYPOOL_CANISTER_ID)
 
@@ -76,7 +78,7 @@
         amount: [amount]
       })
       if (result.airdrop_cryptogram.length > 0) {
-        cryptogramInfo = decodePrize(result.airdrop_cryptogram[0] || '')
+        cryptogramInfo = decodeAirdropCode(result.airdrop_cryptogram[0] || '')
       }
       setTimeout(() => {
         lottiePlayerRef?.remove()
@@ -135,12 +137,12 @@
     icpLedgerAPI = await icpLedgerAPIAsync()
     tokenLedgerAPI = await tokenLedgerAPIAsync()
 
+    luckyPoolState = luckyPoolAPI.stateStore
+
     icpBalance = await icpLedgerAPI.balance()
     luckyPoolBalance = await tokenLedgerAPI.getBalanceOf(luckyPoolPrincipal)
 
     validating = checkInput() == ''
-    const defaultAirdrop = await luckyPoolAPI.defaultAirdropState()
-    defaultClaimable = Number(defaultAirdrop.claimable / PANDAToken.one)
   })
 
   $: luckyPoolBalanceDisplay = formatToken(
@@ -213,7 +215,9 @@
         </p>
         <p class="text-left">
           When a new user claims the airdrop using your code, you'll also
-          receive an additional <b>{defaultClaimable / 2}</b> tokens per user.
+          receive an additional <b
+            >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2}</b
+          > tokens per user.
         </p>
       {/if}
     </div>

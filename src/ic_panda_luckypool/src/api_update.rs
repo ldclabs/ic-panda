@@ -167,10 +167,10 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOu
         return Err("user is banned".to_string());
     }
     let (airdrop_amount, _) = store::state::airdrop_amount_balance();
-    if claimable < airdrop_amount * TOKEN_1 {
+    if claimable < (airdrop_amount / 2) * TOKEN_1 {
         return Err(format!(
             "the lucky balance must be more than {} PANDA tokens to claim prize.",
-            airdrop_amount
+            airdrop_amount / 2
         ));
     }
 

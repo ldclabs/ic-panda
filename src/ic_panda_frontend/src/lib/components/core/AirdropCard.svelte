@@ -27,7 +27,7 @@
   let totalBalance = 0n
   let claimableAmount = 0n
   let claimedAmount = 0n
-  let luckyCode = 'acbefg'
+  let luckyCode = ''
 
   const modalStore = getModalStore()
 

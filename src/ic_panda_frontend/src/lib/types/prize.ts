@@ -16,3 +16,16 @@ export function decodePrize(code: string): Prize | null {
     return null
   }
 }
+
+export function decodeAirdropCode(code: string): Prize | null {
+  if (!code) return null
+
+  try {
+    const cryptogram: Uint8Array[] = decodeCBOR(base64ToBytes(code))
+    const prize: Prize = decodeCBOR(cryptogram[0] as Uint8Array)
+    if (prize.length !== 5 || prize[3] > 0 || !prize[4]) return null
+    return prize
+  } catch (_) {
+    return null
+  }
+}

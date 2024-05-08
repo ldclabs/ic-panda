@@ -6,7 +6,8 @@
     luckyPoolAPIAsync,
     type AirdropState,
     type ClaimPrizeOutput,
-    type PrizeOutput
+    type PrizeOutput,
+    type State
   } from '$lib/canisters/luckypool'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -49,6 +50,7 @@
   let meetRequirements = 3
   let luckyPoolAPI: LuckyPoolAPI
   let airdropState: Readable<AirdropState | null>
+  let luckyPoolState: Readable<State | null>
   let prizeInfo: PrizeOutput | null = !validating
     ? null
     : {
@@ -145,6 +147,7 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
+    luckyPoolState = luckyPoolAPI.stateStore
     checkValidity()
 
     if (validating) {
@@ -219,7 +222,11 @@
         {:else}
           <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
-        <span>Have at lest <b>50 PANDA</b> in your wallet</span>
+        <span
+          >Have at lest <b
+            >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2} PANDA</b
+          > in your wallet</span
+        >
       </p>
     </div>
     <form

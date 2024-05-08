@@ -3,7 +3,8 @@
   import {
     LuckyPoolAPI,
     luckyPoolAPIAsync,
-    type AirdropState
+    type AirdropState,
+    type State
   } from '$lib/canisters/luckypool'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
@@ -19,6 +20,7 @@
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
+  import { type Readable } from 'svelte/store'
 
   // Props
   /** Exposes parent props to this component. */
@@ -33,7 +35,7 @@
   let luckyPoolAPI: LuckyPoolAPI
   let luckyCode = $page.url.searchParams.get('ref') || ''
   let result: AirdropState
-  let defaultClaimable = 10
+  let luckyPoolState: Readable<State | null>
   let principal = $authStore.identity.getPrincipal()
 
   const toastStore = getToastStore()
@@ -122,8 +124,7 @@
 
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
-    const defaultAirdrop = await luckyPoolAPI.defaultAirdropState()
-    defaultClaimable = Number(defaultAirdrop.claimable / PANDAToken.one)
+    luckyPoolState = luckyPoolAPI.stateStore
   })
 </script>
 
@@ -159,7 +160,9 @@
         <br />
         <span>
           When a new user claims the airdrop using your lucky code, you'll also
-          receive an additional <b>{defaultClaimable / 2}</b> tokens per user.
+          receive an additional <b
+            >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2}</b
+          > tokens per user.
         </span>
       </p>
     </div>
