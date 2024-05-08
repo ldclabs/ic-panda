@@ -3,9 +3,8 @@ use lib_panda::{mac_256, ChallengeState, Cryptogram, Ed25519Message, VerifyingKe
 use serde_bytes::ByteBuf;
 
 use crate::{
-    icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_balance_of,
-    token_transfer_from, token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TOKEN_CANISTER,
-    TRANS_FEE,
+    icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_transfer_from,
+    token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TRANS_FEE,
 };
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
@@ -136,7 +135,8 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOu
         .code
         .strip_prefix("PRIZE:")
         .unwrap_or(args.code.as_str());
-    let (prize, prize_data) = store::Prize::try_decode(&key, Some(caller), cryptogram)?;
+    let (prize, prize_data) = store::Prize::try_decode(&key, Some(caller), cryptogram)
+        .map_err(|err| format!("invalid prize code, {}", err))?;
     let now_ms = ic_cdk::api::time() / 1000000;
     let now_sec = now_ms / 1000;
     if !prize.is_valid(now_sec) {
@@ -166,13 +166,12 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOu
     if caller_code == 0 {
         return Err("user is banned".to_string());
     }
-    if claimable < TOKEN_1 * 10 {
-        let balance = token_balance_of(TOKEN_CANISTER, caller)
-            .await
-            .unwrap_or(Nat::from(0u64));
-        if (claimable + balance) < TOKEN_1 * 10 {
-            return Err("the balance must be more than 10 tokens to claim prize.".to_string());
-        }
+    let (airdrop_amount, _) = store::state::airdrop_amount_balance();
+    if claimable < airdrop_amount * TOKEN_1 {
+        return Err(format!(
+            "the lucky balance must be more than {} PANDA tokens to claim prize.",
+            airdrop_amount
+        ));
     }
 
     let (amount, avg) =
@@ -476,7 +475,7 @@ async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String
     }
     let mut name_state = store::naming::get(&caller_code).ok_or("no name to update".to_string())?;
 
-    name_state.0 = args.name.clone();
+    name_state.0.clone_from(&args.name);
     if !store::naming::try_update_name(caller_code, &old, name_state.clone()) {
         return Err("failed to update name".to_string());
     }

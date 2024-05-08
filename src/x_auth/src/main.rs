@@ -59,7 +59,7 @@ async fn main() {
             std::env::var("GRECAPTCHA_API_KEY").unwrap(),
             std::env::var("GRECAPTCHA_HOSTNAMES")
                 .unwrap()
-                .split(",")
+                .split(',')
                 .map(|s| s.trim().to_string())
                 .collect(),
         )),

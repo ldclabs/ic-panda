@@ -22,7 +22,7 @@ pub struct ReCAPTCHAOutput {
 }
 
 impl ReCAPTCHAOutput {
-    pub fn is_valid(&self, score: f32, event: &Event, hostnames: &Vec<String>) -> bool {
+    pub fn is_valid(&self, score: f32, event: &Event, hostnames: &[String]) -> bool {
         if !self.token_properties.valid
             || self.risk_analysis.score < score
             || self.token_properties.action != event.expected_action

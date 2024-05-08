@@ -285,6 +285,7 @@ pub struct NameOutput {
 mod test {
     use super::*;
     use lib_panda::to_cbor_bytes;
+    use std::fmt::Write;
 
     #[test]
     fn test_print_memo() {
@@ -294,10 +295,10 @@ mod test {
         };
         let data = to_cbor_bytes(&memo);
         println!("{}", hex::encode(&data));
-        let s = data
-            .iter()
-            .map(|b| format!("\\{:02x}", b))
-            .collect::<String>();
+        let s = data.iter().fold(String::new(), |mut output, b| {
+            let _ = write!(output, "\\{b:02x}");
+            output
+        });
         // candid blob:
         println!("blob \"{}\"", s);
     }
