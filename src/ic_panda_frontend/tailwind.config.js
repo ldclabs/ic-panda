@@ -27,6 +27,9 @@ const config = {
       amber: colors.amber,
       red: colors.red
     },
+    screens: {
+      'ss': '410px'
+    },
     extend: {}
   },
   plugins: [

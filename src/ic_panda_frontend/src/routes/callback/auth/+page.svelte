@@ -15,7 +15,7 @@
     } else if (hash.startsWith('#error=')) {
       msg = {
         kind: 'XAuth',
-        error: hash.slice(7)
+        error: decodeURIComponent(hash.slice(7))
       }
     } else {
       msg = {

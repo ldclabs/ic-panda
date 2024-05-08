@@ -280,7 +280,7 @@ pub async fn callback(
         ctx.set("challenge", challenge.into()).await;
     } else {
         redirect_uri.set_fragment(Some(
-            "error=The account does not meet the verification requirements",
+            "error=The X account does not meet the verification requirements:\n1. registered for more than 30 day;\n2. with a profile picture set;\n3. with more than 3 followers or more than 3 tweets.",
         ));
     }
 

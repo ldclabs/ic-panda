@@ -115,7 +115,7 @@
         autohide: false,
         hideDismiss: false,
         background: 'variant-filled-error',
-        message: errMessage(err)
+        message: errMessage(err).replaceAll('\\n', '<br />')
       })
     }
   }

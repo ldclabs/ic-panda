@@ -38,7 +38,7 @@
     </div>
   </div>
   <div
-    class="mt-[-132px] bg-[url('/_assets/images/prize-claimed-bg.webp')] bg-[length:100%_auto] bg-no-repeat"
+    class="ss:h-[410px] relative mt-[-132px] h-[400px] bg-[url('/_assets/images/prize-claimed-bg.webp')] bg-[length:100%_auto] bg-no-repeat"
   >
     <div class="m-auto w-72 pt-[210px] text-center text-white sm:pt-[240px]">
       <span class="text-lg font-semibold">
@@ -46,7 +46,7 @@
       </span>
     </div>
     <div
-      class="flex flex-row justify-center gap-2 pb-8 pt-16 text-white sm:pt-12"
+      class="absolute bottom-6 flex w-full flex-row justify-center gap-2 text-white sm:pt-12"
     >
       <a
         type="button"
