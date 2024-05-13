@@ -66,12 +66,11 @@ impl TwitterUser {
             None => 0,
         };
 
-        if hours > 30 * 24 && self.profile_image_url.is_some() {
+        if hours > 60 * 24 && self.profile_image_url.is_some() {
             if let Some(ref metrics) = self.public_metrics {
-                if metrics.get("followers_count").unwrap_or(&0) > &3 {
-                    return true;
-                }
-                if metrics.get("tweet_count").unwrap_or(&0) > &3 {
+                if metrics.get("followers_count").unwrap_or(&0) > &3
+                    && metrics.get("tweet_count").unwrap_or(&0) > &3
+                {
                     return true;
                 }
             }
@@ -280,7 +279,7 @@ pub async fn callback(
         ctx.set("challenge", challenge.into()).await;
     } else {
         redirect_uri.set_fragment(Some(
-            "error=The X account does not meet the verification requirements:\n1. registered for more than 30 day;\n2. with a profile picture set;\n3. with more than 3 followers or more than 3 tweets.",
+            "error=The X account does not meet the verification requirements:\n1. registered for more than 60 day;\n2. with a profile picture set;\n3. with more than 3 followers and more than 3 tweets.",
         ));
     }
 
