@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
-use crate::{is_controller_or_manager, nat_to_u64, store, MILLISECONDS};
+use crate::{is_controller_or_manager, nat_to_u64, store as istore, MILLISECONDS};
 
 // Compatible API with ic-asserts, @dfinity/assets
 
@@ -32,7 +32,7 @@ fn unwrap_hash(v: Option<ByteBuf>) -> Option<[u8; 32]> {
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn store(arg: StoreArg) {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    let id = store::fs::add_file(store::FileMetadata {
+    let id = istore::fs::add_file(istore::FileMetadata {
         name: arg.key,
         content_type: arg.content_type,
         hash: unwrap_hash(arg.sha256),
@@ -42,7 +42,7 @@ fn store(arg: StoreArg) {
     .map_err(|err| ic_cdk::trap(&format!("failed to add metadata: {}", err)))
     .unwrap();
 
-    let _ = store::fs::append_chunk(id, now_ms, arg.content.into_vec())
+    let _ = istore::fs::update_chunk(id, 0, now_ms, arg.content.into_vec())
         .map_err(|err| ic_cdk::trap(&format!("failed to add content: {}", err)));
 }
 
@@ -54,7 +54,7 @@ pub struct CreateBatchResponse {
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn create_batch() -> CreateBatchResponse {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    let id = store::fs::add_file(store::FileMetadata {
+    let id = istore::fs::add_file(istore::FileMetadata {
         created_at: now_ms,
         ..Default::default()
     })
@@ -69,6 +69,7 @@ fn create_batch() -> CreateBatchResponse {
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct CreateChunkArg {
     pub batch_id: Nat,
+    pub chunk_id: Nat, // add chunk_id
     pub content: ByteBuf,
 }
 
@@ -80,8 +81,9 @@ pub struct CreateChunkResponse {
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    let (chunk_id, _) = store::fs::append_chunk(
+    let (chunk_id, _) = istore::fs::update_chunk(
         nat_to_u64(&arg.batch_id) as u32,
+        nat_to_u64(&arg.chunk_id) as u32,
         now_ms,
         arg.content.into_vec(),
     )
@@ -127,7 +129,7 @@ pub struct CommitBatchArguments {
 fn commit_batch(arg: CommitBatchArguments) {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
 
-    let res = store::fs::update_file(nat_to_u64(&arg.batch_id) as u32, |meta| {
+    let res = istore::fs::update_file(nat_to_u64(&arg.batch_id) as u32, |meta| {
         meta.updated_at = now_ms;
         for op in arg.operations {
             match op {
@@ -159,5 +161,5 @@ pub struct DeleteBatchArguments {
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn delete_batch(arg: DeleteBatchArguments) {
-    let _ = store::fs::delete_file(nat_to_u64(&arg.batch_id) as u32);
+    let _ = istore::fs::delete_file(nat_to_u64(&arg.batch_id) as u32);
 }

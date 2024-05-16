@@ -14,7 +14,7 @@ fn state() -> Result<store::State, ()> {
 }
 
 #[ic_cdk::query]
-async fn file_meta(id: u32) -> Result<types::FileMetadataOutput, String> {
+fn file_meta(id: u32) -> Result<types::FileMetadataOutput, String> {
     match store::fs::get_file(id) {
         Some(meta) => Ok(types::FileMetadataOutput {
             id,
@@ -32,7 +32,7 @@ async fn file_meta(id: u32) -> Result<types::FileMetadataOutput, String> {
 }
 
 #[ic_cdk::query]
-async fn files(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::FileMetadataOutput> {
+fn files(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::FileMetadataOutput> {
     let max_prev = store::state::with(|s| s.file_id).saturating_add(1) as u64;
     let prev = prev
         .as_ref()

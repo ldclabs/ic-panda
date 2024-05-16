@@ -7,7 +7,7 @@ fn init() {
 }
 
 #[ic_cdk::pre_upgrade]
-pub fn pre_upgrade() {
+fn pre_upgrade() {
     store::state::save();
 }
 

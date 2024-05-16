@@ -286,6 +286,10 @@ pub mod fs {
         })
     }
 
+    pub fn get_chunk(file_id: u32, chunk_id: u32) -> Option<FileChunk> {
+        FS_DATA.with(|r| r.borrow().get(&FileId(file_id, chunk_id)))
+    }
+
     pub fn get_full_chunks(id: u32) -> Result<Vec<u8>, String> {
         let (size, chunks) = FS_METADATA.with(|r| match r.borrow().get(&id) {
             None => Err(format!("file not found: {}", id)),
@@ -322,7 +326,12 @@ pub mod fs {
         })
     }
 
-    pub fn append_chunk(file_id: u32, now_ms: u64, chunk: Vec<u8>) -> Result<(u32, u32), String> {
+    pub fn update_chunk(
+        file_id: u32,
+        chunk_id: u32,
+        now_ms: u64,
+        chunk: Vec<u8>,
+    ) -> Result<(u32, u32), String> {
         if chunk.is_empty() {
             return Err("empty chunk".to_string());
         }
@@ -333,25 +342,30 @@ pub mod fs {
                 MAX_CHUNK_SIZE
             ));
         }
-        let chunk_id = update_file(file_id, |meta| {
-            let chunk_id = meta.chunks;
-            meta.chunks += 1;
+
+        update_file(file_id, |meta| {
+            let mut crc32 = crc32fast::Hasher::new_with_initial(chunk_id);
+            crc32.update(&chunk);
+            let checksum = crc32.finalize();
             meta.updated_at = now_ms;
             meta.filled_size += chunk.len();
+            match FS_DATA.with(|r| {
+                r.borrow_mut()
+                    .insert(FileId(file_id, chunk_id), FileChunk(chunk))
+            }) {
+                None => {
+                    meta.chunks += 1;
+                }
+                Some(old) => {
+                    meta.filled_size -= old.0.len();
+                }
+            }
             if meta.size < meta.filled_size {
                 meta.size = meta.filled_size;
             }
-            chunk_id
+            (chunk_id, checksum)
         })
-        .ok_or_else(|| format!("file not found: {}", file_id))?;
-
-        let checksum = crc32fast::hash(&chunk);
-        FS_DATA.with(|r| {
-            r.borrow_mut()
-                .insert(FileId(file_id, chunk_id), FileChunk(chunk));
-        });
-
-        Ok((chunk_id, checksum))
+        .ok_or_else(|| format!("file not found: {}", file_id))
     }
 
     pub fn delete_file(id: u32) -> Result<(), String> {
@@ -407,12 +421,12 @@ mod test {
         let f1_meta = fs::get_file(f1).unwrap();
         assert_eq!(f1_meta.name, "f1.bin");
 
-        assert!(fs::append_chunk(0, 999, [0u8; 32].to_vec()).is_err());
-        let (chunk_1, checksum_1) = fs::append_chunk(f1, 999, [0u8; 32].to_vec()).unwrap();
-        let (chunk_2, checksum_2) = fs::append_chunk(f1, 1000, [0u8; 32].to_vec()).unwrap();
+        assert!(fs::update_chunk(0, 0, 999, [0u8; 32].to_vec()).is_err());
+        let (chunk_1, checksum_1) = fs::update_chunk(f1, 0, 999, [0u8; 32].to_vec()).unwrap();
+        let (chunk_2, checksum_2) = fs::update_chunk(f1, 1, 1000, [0u8; 32].to_vec()).unwrap();
         assert_eq!(chunk_1, 0);
         assert_eq!(chunk_2, 1);
-        assert_eq!(checksum_1, checksum_2);
+        assert_ne!(checksum_1, checksum_2);
         let f1_data = fs::get_full_chunks(f1).unwrap();
         assert_eq!(f1_data, [0u8; 64]);
 
@@ -428,16 +442,16 @@ mod test {
         })
         .unwrap();
         assert_eq!(f2, 2);
-        fs::append_chunk(f2, 999, [0u8; 16].to_vec()).unwrap();
-        fs::append_chunk(f2, 1000, [1u8; 16].to_vec()).unwrap();
-        fs::append_chunk(f1, 1000, [1u8; 16].to_vec()).unwrap();
-        fs::append_chunk(f2, 1000, [2u8; 16].to_vec()).unwrap();
-        fs::append_chunk(f1, 1000, [2u8; 16].to_vec()).unwrap();
+        fs::update_chunk(f2, 0, 999, [0u8; 16].to_vec()).unwrap();
+        fs::update_chunk(f2, 1, 1000, [1u8; 16].to_vec()).unwrap();
+        fs::update_chunk(f1, 3, 1000, [1u8; 16].to_vec()).unwrap();
+        fs::update_chunk(f2, 2, 1000, [2u8; 16].to_vec()).unwrap();
+        fs::update_chunk(f1, 2, 1000, [2u8; 16].to_vec()).unwrap();
 
         let f1_data = fs::get_full_chunks(f1).unwrap();
         assert_eq!(&f1_data[0..64], &[0u8; 64]);
-        assert_eq!(&f1_data[64..80], &[1u8; 16]);
-        assert_eq!(&f1_data[80..96], &[2u8; 16]);
+        assert_eq!(&f1_data[64..80], &[2u8; 16]);
+        assert_eq!(&f1_data[80..96], &[1u8; 16]);
 
         let f1_meta = fs::get_file(f1).unwrap();
         assert_eq!(f1_meta.size, 96);

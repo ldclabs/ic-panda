@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 
 mod ai;
 mod api_admin;
+// mod api_http; // ignore
 mod api_ic_assets;
 mod api_init;
 mod api_query;
@@ -11,6 +12,7 @@ mod api_update;
 mod store;
 mod types;
 
+// use api_http::*;
 use api_ic_assets::*;
 
 const MILLISECONDS: u64 = 1_000_000;

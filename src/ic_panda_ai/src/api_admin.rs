@@ -23,7 +23,7 @@ fn validate_admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> 
 }
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
-async fn admin_load_model(args: types::LoadModelInput) -> Result<(), String> {
+fn admin_load_model(args: types::LoadModelInput) -> Result<(), String> {
     let config_json = store::fs::get_full_chunks(args.config_id)?;
     let tokenizer_json = store::fs::get_full_chunks(args.tokenizer_id)?;
     let model_safetensors = store::fs::get_full_chunks(args.model_id)?;

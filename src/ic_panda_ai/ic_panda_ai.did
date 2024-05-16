@@ -24,7 +24,7 @@ type CreateAssetArguments = record {
   enable_aliasing : opt bool;
 };
 type CreateBatchResponse = record { batch_id : nat };
-type CreateChunkArg = record { content : blob; batch_id : nat };
+type CreateChunkArg = record { content : blob; batch_id : nat; chunk_id : nat };
 type CreateChunkResponse = record { chunk_id : nat };
 type FileMetadataOutput = record {
   id : nat32;
