@@ -22,6 +22,13 @@ static ANONYMOUS: Principal = Principal::anonymous();
 // "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
 static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
 
+pub fn unwrap_trap<T, E: std::fmt::Debug>(res: Result<T, E>, msg: &str) -> T {
+    match res {
+        Ok(v) => v,
+        Err(err) => ic_cdk::trap(&format!("{}, {:?}", msg, err)),
+    }
+}
+
 fn nat_to_u64(nat: &Nat) -> u64 {
     nat.0.to_u64().unwrap_or(0)
 }

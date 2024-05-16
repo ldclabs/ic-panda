@@ -1,4 +1,4 @@
-use crate::{is_authenticated, store, types};
+use crate::{is_authenticated, store, types, unwrap_trap};
 
 use serde_json::json;
 
@@ -12,12 +12,14 @@ async fn chat(args: types::ChatInput) -> Result<types::ChatOutput, String> {
         "content": args.prompt,
     }]);
     let mut w = Vec::new();
-    let tokens = store::run_ai(
-        &serde_json::to_string(&msg).map_err(|err| format!("{:?}", err))?,
-        args.max_tokens.unwrap_or(1024).min(4096) as usize,
-        &mut w,
-    )
-    .map_err(|err| format!("{:?}", err))?;
+    let tokens = unwrap_trap(
+        store::run_ai(
+            &unwrap_trap(serde_json::to_string(&msg), "failed to serialize prompt"),
+            args.max_tokens.unwrap_or(1024).min(4096) as usize,
+            &mut w,
+        ),
+        "failed to run AI",
+    );
 
     store::state::with_mut(|s| {
         s.chat_count = s.chat_count.saturating_add(1);
@@ -25,6 +27,7 @@ async fn chat(args: types::ChatInput) -> Result<types::ChatOutput, String> {
 
     Ok(types::ChatOutput {
         message: String::from_utf8(w).map_err(|err| format!("{:?}", err))?,
+        instructions: ic_cdk::api::performance_counter(1),
         tokens,
     })
 }

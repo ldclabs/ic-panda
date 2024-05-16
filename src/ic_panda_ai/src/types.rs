@@ -23,6 +23,7 @@ pub struct ChatInput {
 pub struct ChatOutput {
     pub message: String,
     pub tokens: u32,
+    pub instructions: u64,
 }
 
 #[derive(CandidType, Clone, Serialize)]
@@ -36,4 +37,11 @@ pub struct FileMetadataOutput {
     pub chunks: u32,
     pub filled_size: u32,
     pub hash: Option<ByteBuf>,
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct LoadModelOutput {
+    pub load_file_instructions: u64,
+    pub load_mode_instructions: u64,
+    pub total_instructions: u64,
 }

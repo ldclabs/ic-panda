@@ -10,7 +10,11 @@ type ChatInput = record {
   max_tokens : opt nat32;
   prompt : text;
 };
-type ChatOutput = record { tokens : nat32; message : text };
+type ChatOutput = record {
+  instructions : nat64;
+  tokens : nat32;
+  message : text;
+};
 type CommitBatchArguments = record {
   batch_id : nat;
   operations : vec BatchOperation;
@@ -42,10 +46,16 @@ type LoadModelInput = record {
   config_id : nat32;
   model_id : nat32;
 };
-type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : ChatOutput; Err : text };
-type Result_2 = variant { Ok : FileMetadataOutput; Err : text };
-type Result_3 = variant { Ok : State; Err };
+type LoadModelOutput = record {
+  total_instructions : nat64;
+  load_mode_instructions : nat64;
+  load_file_instructions : nat64;
+};
+type Result = variant { Ok : LoadModelOutput; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : ChatOutput; Err : text };
+type Result_3 = variant { Ok : FileMetadataOutput; Err : text };
+type Result_4 = variant { Ok : State; Err };
 type SetAssetContentArguments = record {
   key : text;
   sha256 : opt blob;
@@ -70,16 +80,16 @@ type StoreArg = record {
 };
 service : () -> {
   admin_load_model : (LoadModelInput) -> (Result);
-  admin_set_managers : (vec principal) -> (Result);
+  admin_set_managers : (vec principal) -> (Result_1);
   api_version : () -> (nat16) query;
-  chat : (ChatInput) -> (Result_1);
+  chat : (ChatInput) -> (Result_2);
   commit_batch : (CommitBatchArguments) -> ();
   create_batch : () -> (CreateBatchResponse);
   create_chunk : (CreateChunkArg) -> (CreateChunkResponse);
   delete_batch : (CreateBatchResponse) -> ();
-  file_meta : (nat32) -> (Result_2) query;
+  file_meta : (nat32) -> (Result_3) query;
   files : (opt nat, opt nat) -> (vec FileMetadataOutput) query;
-  state : () -> (Result_3) query;
+  state : () -> (Result_4) query;
   store : (StoreArg) -> ();
-  validate_admin_set_managers : (vec principal) -> (Result);
+  validate_admin_set_managers : (vec principal) -> (Result_1);
 }
