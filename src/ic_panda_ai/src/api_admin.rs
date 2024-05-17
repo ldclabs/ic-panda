@@ -33,6 +33,8 @@ fn admin_load_model(args: types::LoadModelInput) -> Result<types::LoadModelOutpu
         total_instructions: 0,
     };
 
+    ic_cdk::println!("load_file_instructions: {}", output.load_file_instructions);
+
     store::load_ai(
         &ai::Args {
             temperature: Some(0.618),

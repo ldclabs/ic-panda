@@ -34,3 +34,4 @@ tokenizers = { git = "https://github.com/ldclabs/tokenizers", default-features =
 ] }
 anyhow = "1"
 crc32fast = "1.4"
+ic-oss-types = "0.1"

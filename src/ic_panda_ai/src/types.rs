@@ -1,4 +1,4 @@
-use candid::{CandidType, Nat};
+use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -24,19 +24,6 @@ pub struct ChatOutput {
     pub message: String,
     pub tokens: u32,
     pub instructions: u64,
-}
-
-#[derive(CandidType, Clone, Serialize)]
-pub struct FileMetadataOutput {
-    pub id: u32,
-    pub name: String,
-    pub size: u32,
-    pub content_type: String,
-    pub created_at: Nat, // unix timestamp in seconds
-    pub updated_at: Nat, // unix timestamp in seconds
-    pub chunks: u32,
-    pub filled_size: u32,
-    pub hash: Option<ByteBuf>,
 }
 
 #[derive(CandidType, Clone, Serialize)]

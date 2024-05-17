@@ -132,3 +132,6 @@ dfx deploy
 Open the frontend in your default browser
 
 http://c63a7-6yaaa-aaaap-ab3gq-cai.localhost:4943/
+
+## License
+Copyright © 2024 [LDC Labs](https://github.com/ldclabs).

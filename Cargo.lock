@@ -1506,6 +1506,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-oss-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e1941277c9abed23ba84f81fbf6035b23103394936a8632feb1be91a6052610"
+dependencies = [
+ "candid",
+ "crc32fast",
+ "num-traits",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
 name = "ic-stable-structures"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1538,6 +1551,7 @@ dependencies = [
  "hmac",
  "ic-cdk",
  "ic-cdk-timers",
+ "ic-oss-types",
  "ic-stable-structures",
  "lib_panda",
  "num-traits",

@@ -1,7 +1,8 @@
 use candid::Nat;
+use ic_oss_types::file::FileInfo;
 use serde_bytes::ByteBuf;
 
-use crate::{nat_to_u64, store, types};
+use crate::{nat_to_u64, store};
 
 #[ic_cdk::query]
 fn api_version() -> u16 {
@@ -14,25 +15,27 @@ fn state() -> Result<store::State, ()> {
 }
 
 #[ic_cdk::query]
-fn file_meta(id: u32) -> Result<types::FileMetadataOutput, String> {
+fn file_meta(id: u32) -> Result<FileInfo, String> {
     match store::fs::get_file(id) {
-        Some(meta) => Ok(types::FileMetadataOutput {
+        Some(meta) => Ok(FileInfo {
             id,
+            parent: meta.parent,
             name: meta.name,
-            size: meta.size as u32,
             content_type: meta.content_type,
+            size: Nat::from(meta.size),
+            filled: Nat::from(meta.filled),
             created_at: Nat::from(meta.created_at),
             updated_at: Nat::from(meta.updated_at),
             chunks: meta.chunks,
-            filled_size: meta.filled_size as u32,
             hash: meta.hash.map(ByteBuf::from),
+            status: meta.status,
         }),
         None => Err("file not found".to_string()),
     }
 }
 
 #[ic_cdk::query]
-fn files(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::FileMetadataOutput> {
+fn files(prev: Option<Nat>, take: Option<Nat>) -> Vec<FileInfo> {
     let max_prev = store::state::with(|s| s.file_id).saturating_add(1) as u64;
     let prev = prev
         .as_ref()

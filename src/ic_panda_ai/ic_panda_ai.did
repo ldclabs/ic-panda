@@ -1,7 +1,3 @@
-type BatchOperation = variant {
-  CreateAsset : CreateAssetArguments;
-  SetAssetContent : SetAssetContentArguments;
-};
 type ChatInput = record {
   top_p : opt float32;
   challenge : opt blob;
@@ -15,31 +11,31 @@ type ChatOutput = record {
   tokens : nat32;
   message : text;
 };
-type CommitBatchArguments = record {
-  batch_id : nat;
-  operations : vec BatchOperation;
-};
-type CreateAssetArguments = record {
-  key : text;
+type CreateFileInput = record {
+  status : opt int8;
+  content : opt blob;
+  hash : opt blob;
+  name : text;
+  size : opt nat;
   content_type : text;
-  headers : opt vec record { text; text };
-  allow_raw_access : opt bool;
-  max_age : opt nat64;
-  enable_aliasing : opt bool;
 };
-type CreateBatchResponse = record { batch_id : nat };
-type CreateChunkArg = record { content : blob; batch_id : nat; chunk_id : nat };
-type CreateChunkResponse = record { chunk_id : nat };
-type FileMetadataOutput = record {
+type CreateFileOutput = record {
   id : nat32;
+  chunks_crc32 : vec nat32;
+  created_at : nat;
+};
+type FileInfo = record {
+  id : nat32;
+  status : int8;
   updated_at : nat;
   hash : opt blob;
   name : text;
-  size : nat32;
+  size : nat;
   content_type : text;
   created_at : nat;
-  filled_size : nat32;
+  filled : nat;
   chunks : nat32;
+  parent : nat32;
 };
 type LoadModelInput = record {
   tokenizer_id : nat32;
@@ -54,14 +50,11 @@ type LoadModelOutput = record {
 type Result = variant { Ok : LoadModelOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
 type Result_2 = variant { Ok : ChatOutput; Err : text };
-type Result_3 = variant { Ok : FileMetadataOutput; Err : text };
-type Result_4 = variant { Ok : State; Err };
-type SetAssetContentArguments = record {
-  key : text;
-  sha256 : opt blob;
-  chunk_ids : vec nat;
-  content_encoding : text;
-};
+type Result_3 = variant { Ok : CreateFileOutput; Err : text };
+type Result_4 = variant { Ok : FileInfo; Err : text };
+type Result_5 = variant { Ok : State; Err };
+type Result_6 = variant { Ok : UpdateFileOutput; Err : text };
+type Result_7 = variant { Ok : UpdateFileChunkOutput; Err : text };
 type State = record {
   managers : vec principal;
   ai_config : nat32;
@@ -70,26 +63,30 @@ type State = record {
   ai_tokenizer : nat32;
   file_id : nat32;
 };
-type StoreArg = record {
-  key : text;
+type UpdateFileChunkInput = record {
+  id : nat32;
+  chunk_index : nat32;
   content : blob;
-  sha256 : opt blob;
-  content_type : text;
-  aliased : opt bool;
-  content_encoding : text;
 };
+type UpdateFileChunkOutput = record { updated_at : nat; crc32 : nat32 };
+type UpdateFileInput = record {
+  id : nat32;
+  status : opt int8;
+  hash : opt blob;
+  name : opt text;
+  content_type : opt text;
+};
+type UpdateFileOutput = record { updated_at : nat };
 service : () -> {
   admin_load_model : (LoadModelInput) -> (Result);
   admin_set_managers : (vec principal) -> (Result_1);
   api_version : () -> (nat16) query;
   chat : (ChatInput) -> (Result_2);
-  commit_batch : (CommitBatchArguments) -> ();
-  create_batch : () -> (CreateBatchResponse);
-  create_chunk : (CreateChunkArg) -> (CreateChunkResponse);
-  delete_batch : (CreateBatchResponse) -> ();
-  file_meta : (nat32) -> (Result_3) query;
-  files : (opt nat, opt nat) -> (vec FileMetadataOutput) query;
-  state : () -> (Result_4) query;
-  store : (StoreArg) -> ();
+  create_file : (CreateFileInput) -> (Result_3);
+  file_meta : (nat32) -> (Result_4) query;
+  files : (opt nat, opt nat) -> (vec FileInfo) query;
+  state : () -> (Result_5) query;
+  update_file : (UpdateFileInput) -> (Result_6);
+  update_file_chunk : (UpdateFileChunkInput) -> (Result_7);
   validate_admin_set_managers : (vec principal) -> (Result_1);
 }
