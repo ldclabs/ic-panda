@@ -2,6 +2,10 @@
 name = "ic_panda_ai"
 version = "0.1.0"
 edition = "2021"
+description = "an DeAI app, an LLM chatbot, named Panda Oracle, running in an ICP canister"
+publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_panda_ai"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
