@@ -93,12 +93,6 @@ impl TextGeneration {
             .map_err(anyhow::Error::msg)?
             .get_ids()
             .to_vec();
-        // for &t in tokens.iter() {
-        //     if let Some(t) = token_stream.next_token(&self.tokenizer, t)? {
-        //         w.write_all(t.as_bytes())?;
-        //     }
-        // }
-        // w.flush()?;
 
         let mut generated_tokens = 0u32;
         let eos_token = match self.tokenizer.get_vocab(true).get("<|endoftext|>").copied() {

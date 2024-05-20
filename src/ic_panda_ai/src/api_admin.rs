@@ -24,6 +24,8 @@ fn validate_admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> 
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn admin_load_model(args: types::LoadModelInput) -> Result<types::LoadModelOutput, String> {
+    let _ = store::unload_ai();
+
     let config_json = store::fs::get_full_chunks(args.config_id)?;
     let tokenizer_json = store::fs::get_full_chunks(args.tokenizer_id)?;
     let model_safetensors = store::fs::get_full_chunks(args.model_id)?;
@@ -32,8 +34,6 @@ fn admin_load_model(args: types::LoadModelInput) -> Result<types::LoadModelOutpu
         load_mode_instructions: 0,
         total_instructions: 0,
     };
-
-    ic_cdk::println!("load_file_instructions: {}", output.load_file_instructions);
 
     store::load_ai(
         &ai::Args {
@@ -51,6 +51,7 @@ fn admin_load_model(args: types::LoadModelInput) -> Result<types::LoadModelOutpu
 
     output.load_mode_instructions =
         ic_cdk::api::performance_counter(1) - output.load_file_instructions;
+
     store::state::with_mut(|s| {
         s.ai_config = args.config_id;
         s.ai_tokenizer = args.tokenizer_id;

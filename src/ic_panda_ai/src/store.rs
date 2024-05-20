@@ -174,9 +174,15 @@ pub fn load_ai(
     tokenizer_json: &[u8],
     model_safetensors: Vec<u8>,
 ) -> Result<(), String> {
+    AI.with(|r| r.borrow_mut().model = None);
     let model = ai::TextGeneration::load(args, config_json, tokenizer_json, model_safetensors)
         .map_err(|err| format!("{:?}", err))?;
     AI.with(|r| r.borrow_mut().model = Some(model));
+    Ok(())
+}
+
+pub fn unload_ai() -> Result<(), String> {
+    AI.with(|r| r.borrow_mut().model = None);
     Ok(())
 }
 
