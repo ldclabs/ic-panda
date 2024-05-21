@@ -15,10 +15,10 @@ fn pre_upgrade() {
 fn post_upgrade() {
     let s = store::state::load();
     store::init_rand();
-    store::load_model(&types::LoadModelInput {
+    let _ = store::load_model(&types::LoadModelInput {
         config_id: s.ai_config,
         tokenizer_id: s.ai_tokenizer,
         model_id: s.ai_model,
     })
-    .ok();
+    .map_err(|err| ic_cdk::trap(&format!("failed to load model: {:?}", err)));
 }

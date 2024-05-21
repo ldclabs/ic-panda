@@ -174,11 +174,16 @@ pub fn init_rand() {
 
 pub fn load_model(args: &types::LoadModelInput) -> Result<(), String> {
     AI_MODEL.with(|r| {
+        // let start = ic_cdk::api::performance_counter(1);
         *r.borrow_mut() = Some(AIModel {
             config: fs::get_full_chunks(args.config_id)?,
             tokenizer: fs::get_full_chunks(args.tokenizer_id)?,
             model: fs::get_full_chunks(args.model_id)?,
         });
+        // ic_cdk::println!(
+        //     "load_model_instructions: {}",
+        //     ic_cdk::api::performance_counter(1) - start
+        // );
         Ok(())
     })
 }

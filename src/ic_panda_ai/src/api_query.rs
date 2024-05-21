@@ -58,11 +58,9 @@ async fn chat(args: types::ChatInput) -> Result<types::ChatOutput, String> {
         "content": args.prompt,
     }]);
 
-    let mut seed: Vec<u8> = args.seed.unwrap_or_default().to_be_bytes().to_vec();
-    seed.extend_from_slice(ic_cdk::id().as_slice());
-    let seed = sha3_256(&seed);
-    let seed = u64::from_be_bytes(seed[..8].try_into().unwrap());
-
+    let seed = args.seed.unwrap_or_else(|| {
+        u64::from_be_bytes(sha3_256(ic_cdk::id().as_slice())[..8].try_into().unwrap())
+    });
     let sample_len = args.max_tokens.unwrap_or(1024).min(4096) as usize;
     let mut w = Vec::new();
     let tokens = unwrap_trap(
