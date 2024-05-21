@@ -1,11 +1,11 @@
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::generation::LogitsProcessor;
-use candle_transformers::models::qwen2::{Config as ConfigBase, Model};
+use candle_transformers::models::qwen2::{Config as ConfigBase, ModelForCausalLM};
 use tokenizers::Tokenizer;
 
 pub struct TextGeneration {
-    model: Model,
+    model: ModelForCausalLM,
     device: Device,
     tokenizer: Tokenizer,
     logits_processor: LogitsProcessor,
@@ -31,7 +31,7 @@ pub struct Args {
 impl TextGeneration {
     #[allow(clippy::too_many_arguments)]
     fn new(
-        model: Model,
+        model: ModelForCausalLM,
         tokenizer: Tokenizer,
         seed: u64,
         temp: Option<f64>,
@@ -55,7 +55,7 @@ impl TextGeneration {
         args: &Args,
         config_json: &[u8],
         tokenizer_json: &[u8],
-        model_safetensors: Vec<u8>,
+        model_safetensors: &[u8],
     ) -> anyhow::Result<Self> {
         let tokenizer = Tokenizer::from_bytes(tokenizer_json).map_err(anyhow::Error::msg)?;
 
@@ -67,8 +67,8 @@ impl TextGeneration {
             DType::F32
         };
 
-        let vb = VarBuilder::from_buffered_safetensors(model_safetensors, dtype, &device)?;
-        let model = Model::new(&config, vb)?;
+        let vb = VarBuilder::from_slice_safetensors(model_safetensors, dtype, &device)?;
+        let model = ModelForCausalLM::new(&config, vb)?;
 
         Ok(TextGeneration::new(
             model,

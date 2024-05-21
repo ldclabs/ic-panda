@@ -3,6 +3,7 @@ type ChatInput = record {
   challenge : opt blob;
   messages : opt vec text;
   temperature : opt float32;
+  seed : opt nat64;
   max_tokens : opt nat32;
   prompt : text;
 };
@@ -18,6 +19,7 @@ type CreateFileInput = record {
   name : text;
   size : opt nat;
   content_type : text;
+  parent : nat32;
 };
 type CreateFileOutput = record {
   id : nat32;
@@ -75,17 +77,19 @@ type UpdateFileInput = record {
   hash : opt blob;
   name : opt text;
   content_type : opt text;
+  parent : opt nat32;
 };
 type UpdateFileOutput = record { updated_at : nat };
 service : () -> {
   admin_load_model : (LoadModelInput) -> (Result);
   admin_set_managers : (vec principal) -> (Result_1);
   api_version : () -> (nat16) query;
-  chat : (ChatInput) -> (Result_2);
+  chat : (ChatInput) -> (Result_2) query;
   create_file : (CreateFileInput) -> (Result_3);
   file_meta : (nat32) -> (Result_4) query;
   files : (opt nat, opt nat) -> (vec FileInfo) query;
   state : () -> (Result_5) query;
+  update_chat : (ChatInput) -> (Result_2);
   update_file : (UpdateFileInput) -> (Result_6);
   update_file_chunk : (UpdateFileChunkInput) -> (Result_7);
   validate_admin_set_managers : (vec principal) -> (Result_1);

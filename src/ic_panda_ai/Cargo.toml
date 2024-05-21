@@ -30,9 +30,10 @@ ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }
 getrandom = { workspace = true }
 rand = { workspace = true }
-candle-core = { version = "0.5", features = [] }
-candle-nn = { version = "0.5", features = [] }
-candle-transformers = { version = "0.5", features = [] }
+candle-core = { git = "https://github.com/ldclabs/candle", features = [] }
+candle-nn = { git = "https://github.com/ldclabs/candle", features = [] }
+candle-transformers = { git = "https://github.com/ldclabs/candle", features = [
+] }
 tokenizers = { git = "https://github.com/ldclabs/tokenizers", default-features = false, features = [
   "unstable_wasm",
 ] }

@@ -1,4 +1,4 @@
-use crate::store;
+use crate::{store, types};
 
 #[ic_cdk::init]
 fn init() {
@@ -13,6 +13,12 @@ fn pre_upgrade() {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    store::state::load();
+    let s = store::state::load();
     store::init_rand();
+    store::load_model(&types::LoadModelInput {
+        config_id: s.ai_config,
+        tokenizer_id: s.ai_tokenizer,
+        model_id: s.ai_model,
+    })
+    .ok();
 }

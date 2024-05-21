@@ -17,6 +17,7 @@ pub struct ChatInput {
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub challenge: Option<ByteBuf>,
+    pub seed: Option<u64>,
 }
 
 #[derive(CandidType, Clone, Serialize)]

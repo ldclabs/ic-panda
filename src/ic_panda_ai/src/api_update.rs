@@ -3,27 +3,47 @@ use ic_oss_types::file::{
     CreateFileInput, CreateFileOutput, UpdateFileChunkInput, UpdateFileChunkOutput,
     UpdateFileInput, UpdateFileOutput, MAX_CHUNK_SIZE,
 };
+use lib_panda::sha3_256;
 use serde_json::json;
 
 use crate::{
-    is_authenticated, is_controller_or_manager, store, types, unwrap_hash, unwrap_trap,
+    ai, is_authenticated, is_controller_or_manager, store, types, unwrap_hash, unwrap_trap,
     MILLISECONDS,
 };
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn chat(args: types::ChatInput) -> Result<types::ChatOutput, String> {
+async fn update_chat(args: types::ChatInput) -> Result<types::ChatOutput, String> {
     let msg = json!([{
         "role": "system",
-        "content": "You are a giant panda prophet with top-level intelligence, the best friend and assistant to humans.",
-    },{
+        "content": "You are a giant panda with human intelligence, the best friend and assistant to humans, named \"Panda Oracle\", born on the Internet Computer (ICP).",
+    }, {
         "role": "user",
         "content": args.prompt,
     }]);
+
+    let mut seed: Vec<u8> = args
+        .seed
+        .unwrap_or(ic_cdk::api::time())
+        .to_be_bytes()
+        .to_vec();
+    seed.extend_from_slice(ic_cdk::id().as_slice());
+    let seed = sha3_256(&seed);
+    let seed = u64::from_be_bytes(seed[..8].try_into().unwrap());
+
+    let sample_len = args.max_tokens.unwrap_or(1024).min(4096) as usize;
     let mut w = Vec::new();
     let tokens = unwrap_trap(
         store::run_ai(
+            &ai::Args {
+                temperature: Some(0.618),
+                top_p: Some(0.382),
+                seed,
+                sample_len,
+                repeat_penalty: 1.1,
+                repeat_last_n: 64,
+            },
             &unwrap_trap(serde_json::to_string(&msg), "failed to serialize prompt"),
-            args.max_tokens.unwrap_or(1024).min(4096) as usize,
+            sample_len,
             &mut w,
         ),
         "failed to run AI",

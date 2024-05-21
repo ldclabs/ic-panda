@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet, ops, time::Duration};
 
-use crate::ai;
+use crate::{ai, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -111,8 +111,11 @@ impl Storable for FileChunk {
     }
 }
 
+#[derive(Default)]
 pub struct AIModel {
-    pub model: Option<ai::TextGeneration>,
+    pub config: Vec<u8>,
+    pub tokenizer: Vec<u8>,
+    pub model: Vec<u8>,
 }
 
 const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
@@ -122,7 +125,8 @@ const FS_DATA_MEMORY_ID: MemoryId = MemoryId::new(2);
 thread_local! {
     static RNG: RefCell<Option<StdRng>> = const { RefCell::new(None) };
     static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
-    static AI: RefCell<AIModel> = const { RefCell::new(AIModel{model: None}) };
+
+    static AI_MODEL: RefCell<Option<AIModel>> = const { RefCell::new(None) };
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
@@ -168,33 +172,29 @@ pub fn init_rand() {
     register_custom_getrandom!(custom_getrandom);
 }
 
-pub fn load_ai(
-    args: &ai::Args,
-    config_json: &[u8],
-    tokenizer_json: &[u8],
-    model_safetensors: Vec<u8>,
-) -> Result<(), String> {
-    AI.with(|r| r.borrow_mut().model = None);
-    let model = ai::TextGeneration::load(args, config_json, tokenizer_json, model_safetensors)
-        .map_err(|err| format!("{:?}", err))?;
-    AI.with(|r| r.borrow_mut().model = Some(model));
-    Ok(())
+pub fn load_model(args: &types::LoadModelInput) -> Result<(), String> {
+    AI_MODEL.with(|r| {
+        *r.borrow_mut() = Some(AIModel {
+            config: fs::get_full_chunks(args.config_id)?,
+            tokenizer: fs::get_full_chunks(args.tokenizer_id)?,
+            model: fs::get_full_chunks(args.model_id)?,
+        });
+        Ok(())
+    })
 }
 
-pub fn unload_ai() -> Result<(), String> {
-    AI.with(|r| r.borrow_mut().model = None);
-    Ok(())
-}
-
-pub fn run_ai<W>(prompt: &str, sample_len: usize, w: &mut W) -> Result<u32, String>
+pub fn run_ai<W>(args: &ai::Args, prompt: &str, sample_len: usize, w: &mut W) -> Result<u32, String>
 where
     W: std::io::Write,
 {
-    AI.with(|r| {
-        let mut m = r.borrow_mut();
-        let ai = m.model.as_mut().ok_or("AI model not loaded")?;
-        ai.run(prompt, sample_len, w)
-            .map_err(|err| format!("{:?}", err))
+    AI_MODEL.with(|r| match r.borrow().as_ref() {
+        None => Err("AI model not loaded".to_string()),
+        Some(m) => {
+            let mut ai = ai::TextGeneration::load(args, &m.config, &m.tokenizer, &m.model)
+                .map_err(|err| format!("{:?}", err))?;
+            ai.run(prompt, sample_len, w)
+                .map_err(|err| format!("{:?}", err))
+        }
     })
 }
 
@@ -213,13 +213,14 @@ pub mod state {
         STATE_HEAP.with(|r| f(&mut r.borrow_mut()))
     }
 
-    pub fn load() {
+    pub fn load() -> State {
         STATE.with(|r| {
             let s = r.borrow().get().clone();
             STATE_HEAP.with(|h| {
-                *h.borrow_mut() = s;
+                *h.borrow_mut() = s.clone();
             });
-        });
+            s
+        })
     }
 
     pub fn save() {
