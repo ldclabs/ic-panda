@@ -13,6 +13,7 @@ type ChatOutput = record {
   message : text;
 };
 type CreateFileInput = record {
+  ert : opt text;
   status : opt int8;
   content : opt blob;
   hash : opt blob;
@@ -28,6 +29,7 @@ type CreateFileOutput = record {
 };
 type FileInfo = record {
   id : nat32;
+  ert : opt text;
   status : int8;
   updated_at : nat;
   hash : opt blob;
@@ -55,8 +57,8 @@ type Result_2 = variant { Ok : ChatOutput; Err : text };
 type Result_3 = variant { Ok : CreateFileOutput; Err : text };
 type Result_4 = variant { Ok : FileInfo; Err : text };
 type Result_5 = variant { Ok : State; Err };
-type Result_6 = variant { Ok : UpdateFileOutput; Err : text };
-type Result_7 = variant { Ok : UpdateFileChunkOutput; Err : text };
+type Result_6 = variant { Ok : UpdateFileChunkOutput; Err : text };
+type Result_7 = variant { Ok : UpdateFileOutput; Err : text };
 type State = record {
   managers : vec principal;
   ai_config : nat32;
@@ -73,6 +75,7 @@ type UpdateFileChunkInput = record {
 type UpdateFileChunkOutput = record { updated_at : nat; crc32 : nat32 };
 type UpdateFileInput = record {
   id : nat32;
+  ert : opt text;
   status : opt int8;
   hash : opt blob;
   name : opt text;
@@ -90,7 +93,7 @@ service : () -> {
   files : (opt nat, opt nat) -> (vec FileInfo) query;
   state : () -> (Result_5) query;
   update_chat : (ChatInput) -> (Result_2);
-  update_file : (UpdateFileInput) -> (Result_6);
-  update_file_chunk : (UpdateFileChunkInput) -> (Result_7);
+  update_file_chunk : (UpdateFileChunkInput) -> (Result_6);
+  update_file_info : (UpdateFileInput) -> (Result_7);
   validate_admin_set_managers : (vec principal) -> (Result_1);
 }

@@ -401,7 +401,7 @@ dependencies = [
 [[package]]
 name = "candle-core"
 version = "0.5.1"
-source = "git+https://github.com/ldclabs/candle#7ebc3548e19fb8d40940fa2315b3f817058e7e96"
+source = "git+https://github.com/ldclabs/candle#72e7ca529a3c243bef844f822a9668eaf8e36807"
 dependencies = [
  "byteorder",
  "gemm",
@@ -421,7 +421,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.5.1"
-source = "git+https://github.com/ldclabs/candle#7ebc3548e19fb8d40940fa2315b3f817058e7e96"
+source = "git+https://github.com/ldclabs/candle#72e7ca529a3c243bef844f822a9668eaf8e36807"
 dependencies = [
  "candle-core",
  "half",
@@ -435,7 +435,7 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.5.1"
-source = "git+https://github.com/ldclabs/candle#7ebc3548e19fb8d40940fa2315b3f817058e7e96"
+source = "git+https://github.com/ldclabs/candle#72e7ca529a3c243bef844f822a9668eaf8e36807"
 dependencies = [
  "byteorder",
  "candle-core",
@@ -1511,13 +1511,14 @@ dependencies = [
 
 [[package]]
 name = "ic-oss-types"
-version = "0.1.1"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3ea60f01d432d28dd2e7984beb415e330df7eea4223f0575b55c42ccaea0617"
+checksum = "e6da559c28a961fe0b9861cd62f46e0e6a53686ea84a7e04a37f3baff31e5b20"
 dependencies = [
  "base64 0.21.7",
  "candid",
  "crc32fast",
+ "hex",
  "num-traits",
  "serde",
  "serde_bytes",
@@ -2115,9 +2116,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.18.12"
+version = "0.18.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "140dfe6dada20716bd5f7284406747c73061a56a0a5d4ad5aee7957c5f71606c"
+checksum = "762ad20f6b65f5a33874de3b7506d6cf6631d37fb9c0c6ee0e310d7210a167d9"
 dependencies = [
  "bytemuck",
  "libm",
@@ -3604,9 +3605,9 @@ checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
 
 [[package]]
 name = "zip"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1f4a27345eb6f7aa7bd015ba7eb4175fa4e1b462a29874b779e0bbcf96c6ac7"
+checksum = "1b7a5a9285bd4ee13bdeb3f8a4917eb46557e53f270c783849db8bef37b0ad00"
 dependencies = [
  "arbitrary",
  "crc32fast",

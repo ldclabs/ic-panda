@@ -3,12 +3,10 @@ use ic_oss_types::file::{
     CreateFileInput, CreateFileOutput, UpdateFileChunkInput, UpdateFileChunkOutput,
     UpdateFileInput, UpdateFileOutput, MAX_CHUNK_SIZE,
 };
-use lib_panda::sha3_256;
 use serde_json::json;
 
 use crate::{
-    ai, is_authenticated, is_controller_or_manager, store, types, unwrap_hash, unwrap_trap,
-    MILLISECONDS,
+    ai, is_authenticated, is_controller_or_manager, store, types, unwrap_trap, MILLISECONDS,
 };
 
 #[ic_cdk::update(guard = "is_authenticated")]
@@ -21,7 +19,7 @@ async fn update_chat(args: types::ChatInput) -> Result<types::ChatOutput, String
         "content": args.prompt,
     }]);
 
-    let seed = args.seed.unwrap_or_else(|| ic_cdk::api::time());
+    let seed = args.seed.unwrap_or_else(ic_cdk::api::time);
     let sample_len = args.max_tokens.unwrap_or(1024).min(4096) as usize;
     let mut w = Vec::new();
     let tokens = unwrap_trap(
@@ -62,7 +60,7 @@ fn create_file(input: CreateFileInput) -> Result<CreateFileOutput, String> {
         store::fs::add_file(store::FileMetadata {
             name: input.name,
             content_type: input.content_type,
-            hash: unwrap_hash(input.hash),
+            hash: input.hash,
             created_at: now_ms,
             ..Default::default()
         }),
@@ -88,7 +86,7 @@ fn create_file(input: CreateFileInput) -> Result<CreateFileOutput, String> {
 }
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
-fn update_file(input: UpdateFileInput) -> Result<UpdateFileOutput, String> {
+fn update_file_info(input: UpdateFileInput) -> Result<UpdateFileOutput, String> {
     unwrap_trap(input.validate(), "invalid UpdateFileInput");
 
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
@@ -100,7 +98,7 @@ fn update_file(input: UpdateFileInput) -> Result<UpdateFileOutput, String> {
             metadata.content_type = content_type;
         }
         if input.hash.is_some() {
-            metadata.hash = unwrap_hash(input.hash);
+            metadata.hash = input.hash;
         }
     });
 

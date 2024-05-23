@@ -1,7 +1,6 @@
 use candid::Nat;
 use ic_oss_types::file::FileInfo;
 use lib_panda::sha3_256;
-use serde_bytes::ByteBuf;
 use serde_json::json;
 
 use crate::{ai, nat_to_u64, store, types, unwrap_trap};
@@ -19,19 +18,7 @@ fn state() -> Result<store::State, ()> {
 #[ic_cdk::query]
 fn file_meta(id: u32) -> Result<FileInfo, String> {
     match store::fs::get_file(id) {
-        Some(meta) => Ok(FileInfo {
-            id,
-            parent: meta.parent,
-            name: meta.name,
-            content_type: meta.content_type,
-            size: Nat::from(meta.size),
-            filled: Nat::from(meta.filled),
-            created_at: Nat::from(meta.created_at),
-            updated_at: Nat::from(meta.updated_at),
-            chunks: meta.chunks,
-            hash: meta.hash.map(ByteBuf::from),
-            status: meta.status,
-        }),
+        Some(meta) => Ok(meta.into_info(id)),
         None => Err("file not found".to_string()),
     }
 }

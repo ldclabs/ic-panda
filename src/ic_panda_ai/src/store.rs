@@ -67,7 +67,6 @@ impl Storable for FileId {
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct FileMetadata {
-    pub parent: u32, // 0: root
     pub name: String,
     pub content_type: String, // MIME types
     pub size: u64,
@@ -75,8 +74,7 @@ pub struct FileMetadata {
     pub created_at: u64, // unix timestamp in milliseconds
     pub updated_at: u64, // unix timestamp in milliseconds
     pub chunks: u32,
-    pub status: i8, // -1: archived; 0: readable and writable; 1: readonly
-    pub hash: Option<[u8; 32]>,
+    pub hash: Option<ByteBuf>,
 }
 
 impl Storable for FileMetadata {
@@ -90,6 +88,23 @@ impl Storable for FileMetadata {
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
         from_reader(&bytes[..]).expect("failed to decode FileMetadata data")
+    }
+}
+
+impl FileMetadata {
+    pub fn into_info(self, id: u32) -> FileInfo {
+        FileInfo {
+            id,
+            name: self.name,
+            content_type: self.content_type,
+            size: Nat::from(self.size),
+            filled: Nat::from(self.filled),
+            created_at: Nat::from(self.created_at),
+            updated_at: Nat::from(self.updated_at),
+            chunks: self.chunks,
+            hash: self.hash,
+            ..Default::default()
+        }
     }
 }
 
@@ -253,19 +268,7 @@ pub mod fs {
             let mut id = prev.saturating_sub(1);
             while id > 0 {
                 if let Some(meta) = m.get(&id) {
-                    res.push(FileInfo {
-                        id,
-                        parent: meta.parent,
-                        name: meta.name,
-                        content_type: meta.content_type,
-                        size: Nat::from(meta.size),
-                        filled: Nat::from(meta.filled),
-                        created_at: Nat::from(meta.created_at),
-                        updated_at: Nat::from(meta.updated_at),
-                        chunks: meta.chunks,
-                        hash: meta.hash.map(ByteBuf::from),
-                        status: meta.status,
-                    });
+                    res.push(meta.into_info(id));
                     if res.len() >= take as usize {
                         break;
                     }

@@ -1,6 +1,5 @@
 use candid::{Nat, Principal};
 use num_traits::cast::ToPrimitive;
-use serde_bytes::ByteBuf;
 use std::collections::BTreeSet;
 
 mod ai;
@@ -25,18 +24,6 @@ pub fn unwrap_trap<T, E: std::fmt::Debug>(res: Result<T, E>, msg: &str) -> T {
         Ok(v) => v,
         Err(err) => ic_cdk::trap(&format!("{}, {:?}", msg, err)),
     }
-}
-
-fn unwrap_hash(v: Option<ByteBuf>) -> Option<[u8; 32]> {
-    v.and_then(|v| {
-        if v.len() == 32 {
-            let mut hash = [0; 32];
-            hash.copy_from_slice(&v[..]);
-            Some(hash)
-        } else {
-            None
-        }
-    })
 }
 
 fn nat_to_u64(nat: &Nat) -> u64 {
