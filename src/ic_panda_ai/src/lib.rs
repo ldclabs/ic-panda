@@ -1,5 +1,6 @@
 use candid::{Nat, Principal};
 use num_traits::cast::ToPrimitive;
+use serde_bytes::ByteBuf;
 use std::collections::BTreeSet;
 
 mod ai;

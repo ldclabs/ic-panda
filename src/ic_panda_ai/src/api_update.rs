@@ -3,6 +3,7 @@ use ic_oss_types::file::{
     CreateFileInput, CreateFileOutput, UpdateFileChunkInput, UpdateFileChunkOutput,
     UpdateFileInput, UpdateFileOutput, MAX_CHUNK_SIZE,
 };
+use serde_bytes::ByteBuf;
 use serde_json::json;
 
 use crate::{
@@ -51,7 +52,10 @@ async fn update_chat(args: types::ChatInput) -> Result<types::ChatOutput, String
 }
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
-fn create_file(input: CreateFileInput) -> Result<CreateFileOutput, String> {
+fn create_file(
+    input: CreateFileInput,
+    _access_token: Option<ByteBuf>,
+) -> Result<CreateFileOutput, String> {
     // use trap to make the update fail.
     unwrap_trap(input.validate(), "invalid CreateFileInput");
 
@@ -86,7 +90,10 @@ fn create_file(input: CreateFileInput) -> Result<CreateFileOutput, String> {
 }
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
-fn update_file_info(input: UpdateFileInput) -> Result<UpdateFileOutput, String> {
+fn update_file_info(
+    input: UpdateFileInput,
+    _access_token: Option<ByteBuf>,
+) -> Result<UpdateFileOutput, String> {
     unwrap_trap(input.validate(), "invalid UpdateFileInput");
 
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
@@ -111,7 +118,10 @@ fn update_file_info(input: UpdateFileInput) -> Result<UpdateFileOutput, String> 
 }
 
 #[ic_cdk::update(guard = "is_controller_or_manager")]
-fn update_file_chunk(input: UpdateFileChunkInput) -> Result<UpdateFileChunkOutput, String> {
+fn update_file_chunk(
+    input: UpdateFileChunkInput,
+    _access_token: Option<ByteBuf>,
+) -> Result<UpdateFileChunkOutput, String> {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     let (_, crc32) = unwrap_trap(
         store::fs::update_chunk(
@@ -127,4 +137,9 @@ fn update_file_chunk(input: UpdateFileChunkInput) -> Result<UpdateFileChunkOutpu
         crc32,
         updated_at: Nat::from(now_ms),
     })
+}
+
+#[ic_cdk::update(guard = "is_controller_or_manager")]
+fn delete_file(id: u32, _access_token: Option<ByteBuf>) -> Result<(), String> {
+    store::fs::delete_file(id).map_err(|err| ic_cdk::trap(&err))
 }

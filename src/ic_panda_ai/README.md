@@ -7,13 +7,15 @@ https://dashboard.internetcomputer.org/canister/bwwuq-byaaa-aaaan-qmk4q-cai
 
 ## Running locally
 
+Prerequisites: Replica must support **SIMD** and the update message instructions limit should be adjusted to above **2000B**.
+
 Deploy to local network:
 ```bash
 dfx canister create --specified-id bwwuq-byaaa-aaaan-qmk4q-cai ic_panda_ai
 dfx deploy ic_panda_ai
 
 # install upload tool
-cargo install --bin ic-oss-cli --git https://github.com/ldclabs/ic-oss
+cargo install ic-oss-cli
 # create a identity for uploading model files
 ic-oss-cli identity --new --file myid.pem
 # Output:

@@ -1,9 +1,9 @@
-use candid::Nat;
 use ic_oss_types::file::FileInfo;
 use lib_panda::sha3_256;
+use serde_bytes::ByteBuf;
 use serde_json::json;
 
-use crate::{ai, nat_to_u64, store, types, unwrap_trap};
+use crate::{ai, store, types, unwrap_trap};
 
 #[ic_cdk::query]
 fn api_version() -> u16 {
@@ -16,7 +16,7 @@ fn state() -> Result<store::State, ()> {
 }
 
 #[ic_cdk::query]
-fn file_meta(id: u32) -> Result<FileInfo, String> {
+fn get_file_info(id: u32, _access_token: Option<ByteBuf>) -> Result<FileInfo, String> {
     match store::fs::get_file(id) {
         Some(meta) => Ok(meta.into_info(id)),
         None => Err("file not found".to_string()),
@@ -24,14 +24,15 @@ fn file_meta(id: u32) -> Result<FileInfo, String> {
 }
 
 #[ic_cdk::query]
-fn files(prev: Option<Nat>, take: Option<Nat>) -> Vec<FileInfo> {
-    let max_prev = store::state::with(|s| s.file_id).saturating_add(1) as u64;
-    let prev = prev
-        .as_ref()
-        .map(nat_to_u64)
-        .unwrap_or(max_prev)
-        .min(max_prev) as u32;
-    let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as u32;
+fn list_files(
+    _parent: u32,
+    prev: Option<u32>,
+    take: Option<u32>,
+    _access_token: Option<ByteBuf>,
+) -> Vec<FileInfo> {
+    let max_prev = store::state::with(|s| s.file_id).saturating_add(1);
+    let prev = prev.unwrap_or(max_prev).min(max_prev);
+    let take = take.unwrap_or(10).min(100);
     store::fs::list_files(prev, take)
 }
 

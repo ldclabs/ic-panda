@@ -88,12 +88,13 @@ service : () -> {
   admin_set_managers : (vec principal) -> (Result_1);
   api_version : () -> (nat16) query;
   chat : (ChatInput) -> (Result_2) query;
-  create_file : (CreateFileInput) -> (Result_3);
-  file_meta : (nat32) -> (Result_4) query;
-  files : (opt nat, opt nat) -> (vec FileInfo) query;
+  create_file : (CreateFileInput, opt blob) -> (Result_3);
+  delete_file : (nat32, opt blob) -> (Result_1);
+  get_file_info : (nat32, opt blob) -> (Result_4) query;
+  list_files : (nat32, opt nat32, opt nat32, opt blob) -> (vec FileInfo) query;
   state : () -> (Result_5) query;
   update_chat : (ChatInput) -> (Result_2);
-  update_file_chunk : (UpdateFileChunkInput) -> (Result_6);
-  update_file_info : (UpdateFileInput) -> (Result_7);
+  update_file_chunk : (UpdateFileChunkInput, opt blob) -> (Result_6);
+  update_file_info : (UpdateFileInput, opt blob) -> (Result_7);
   validate_admin_set_managers : (vec principal) -> (Result_1);
 }
