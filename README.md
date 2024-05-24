@@ -65,6 +65,7 @@ dfx canister create --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canist
 dfx canister create --specified-id c63a7-6yaaa-aaaap-ab3gq-cai ic_panda_frontend
 dfx canister create --specified-id f75us-gyaaa-aaaap-ab3wq-cai ic_panda_badges
 dfx canister create --specified-id a7cug-2qaaa-aaaap-ab3la-cai ic_panda_luckypool
+dfx canister create --specified-id q5mxo-eyaaa-aaaap-ahfoq-cai ic_panda_ai
 
 # Deploys the ICP Ledger canister with the specified initial values
 dfx identity use default
@@ -131,3 +132,6 @@ dfx deploy
 Open the frontend in your default browser
 
 http://c63a7-6yaaa-aaaap-ab3gq-cai.localhost:4943/
+
+## License
+Copyright © 2024 [LDC Labs](https://github.com/ldclabs).
