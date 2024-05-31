@@ -1511,12 +1511,13 @@ dependencies = [
 
 [[package]]
 name = "ic-oss-types"
-version = "0.1.3"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6da559c28a961fe0b9861cd62f46e0e6a53686ea84a7e04a37f3baff31e5b20"
+checksum = "ab7854cc24a60a2c5e2d808332f4b1e9505f54a36763524a180bad97f32c044d"
 dependencies = [
  "base64 0.21.7",
  "candid",
+ "ciborium",
  "crc32fast",
  "hex",
  "num-traits",

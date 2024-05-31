@@ -1,10 +1,7 @@
 use candid::{CandidType, Nat, Principal};
 use ciborium::{from_reader, into_writer};
 use getrandom::register_custom_getrandom;
-use ic_oss_types::{
-    crc32_with_initial,
-    file::{FileInfo, MAX_CHUNK_SIZE, MAX_FILE_SIZE},
-};
+use ic_oss_types::file::{FileChunk, FileInfo, MAX_CHUNK_SIZE, MAX_FILE_SIZE};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -109,9 +106,9 @@ impl FileMetadata {
 }
 
 #[derive(Clone, Default, Deserialize, Serialize)]
-pub struct FileChunk(pub Vec<u8>);
+pub struct Chunk(pub Vec<u8>);
 
-impl Storable for FileChunk {
+impl Storable for Chunk {
     const BOUND: Bound = Bound::Bounded {
         max_size: MAX_CHUNK_SIZE,
         is_fixed_size: false,
@@ -159,7 +156,7 @@ thread_local! {
         )
     );
 
-    static FS_DATA: RefCell<StableBTreeMap<FileId, FileChunk, Memory>> = RefCell::new(
+    static FS_DATA: RefCell<StableBTreeMap<FileId, Chunk, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(FS_DATA_MEMORY_ID)),
         )
@@ -306,8 +303,12 @@ pub mod fs {
         })
     }
 
-    pub fn get_chunk(file_id: u32, chunk_index: u32) -> Option<FileChunk> {
-        FS_DATA.with(|r| r.borrow().get(&FileId(file_id, chunk_index)))
+    pub fn get_chunk(id: u32, chunk_index: u32) -> Option<FileChunk> {
+        FS_DATA.with(|r| {
+            r.borrow()
+                .get(&FileId(id, chunk_index))
+                .map(|v| FileChunk(chunk_index, ByteBuf::from(v.0)))
+        })
     }
 
     pub fn get_full_chunks(id: u32) -> Result<Vec<u8>, String> {
@@ -358,7 +359,7 @@ pub mod fs {
         chunk_index: u32,
         now_ms: u64,
         chunk: Vec<u8>,
-    ) -> Result<(u32, u32), String> {
+    ) -> Result<u64, String> {
         if chunk.is_empty() {
             return Err("empty chunk".to_string());
         }
@@ -370,33 +371,41 @@ pub mod fs {
             ));
         }
 
-        update_file(file_id, |meta| {
-            let checksum = crc32_with_initial(chunk_index, &chunk);
-            meta.updated_at = now_ms;
-            meta.filled += chunk.len() as u64;
-            if meta.filled > MAX_FILE_SIZE {
-                ic_cdk::trap(&format!("file size exceeds limit: {}", MAX_FILE_SIZE));
-            }
-
-            match FS_DATA.with(|r| {
-                r.borrow_mut()
-                    .insert(FileId(file_id, chunk_index), FileChunk(chunk))
-            }) {
-                None => {
-                    if meta.chunks <= chunk_index {
-                        meta.chunks = chunk_index + 1;
+        FS_METADATA.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&file_id) {
+                None => Err(format!("file not found: {}", file_id)),
+                Some(mut metadata) => {
+                    metadata.updated_at = now_ms;
+                    metadata.filled += chunk.len() as u64;
+                    if metadata.filled > MAX_FILE_SIZE {
+                        panic!("file size exceeds limit: {}", MAX_FILE_SIZE);
                     }
-                }
-                Some(old) => {
-                    meta.filled -= old.0.len() as u64;
+
+                    match FS_DATA.with(|r| {
+                        r.borrow_mut()
+                            .insert(FileId(file_id, chunk_index), Chunk(chunk))
+                    }) {
+                        None => {
+                            if metadata.chunks <= chunk_index {
+                                metadata.chunks = chunk_index + 1;
+                            }
+                        }
+                        Some(old) => {
+                            metadata.filled -= old.0.len() as u64;
+                        }
+                    }
+
+                    let filled = metadata.filled;
+                    if metadata.size < filled {
+                        metadata.size = filled;
+                    }
+
+                    m.insert(file_id, metadata);
+                    Ok(filled)
                 }
             }
-            if meta.size < meta.filled {
-                meta.size = meta.filled;
-            }
-            (chunk_index, checksum)
         })
-        .ok_or_else(|| format!("file not found: {}", file_id))
     }
 
     pub fn delete_file(id: u32) -> Result<(), String> {
@@ -453,11 +462,8 @@ mod test {
         assert_eq!(f1_meta.name, "f1.bin");
 
         assert!(fs::update_chunk(0, 0, 999, [0u8; 32].to_vec()).is_err());
-        let (chunk_1, checksum_1) = fs::update_chunk(f1, 0, 999, [0u8; 32].to_vec()).unwrap();
-        let (chunk_2, checksum_2) = fs::update_chunk(f1, 1, 1000, [0u8; 32].to_vec()).unwrap();
-        assert_eq!(chunk_1, 0);
-        assert_eq!(chunk_2, 1);
-        assert_ne!(checksum_1, checksum_2);
+        let _ = fs::update_chunk(f1, 0, 999, [0u8; 32].to_vec()).unwrap();
+        let _ = fs::update_chunk(f1, 1, 1000, [0u8; 32].to_vec()).unwrap();
         let f1_data = fs::get_full_chunks(f1).unwrap();
         assert_eq!(f1_data, [0u8; 64]);
 

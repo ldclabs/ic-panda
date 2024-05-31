@@ -18,15 +18,12 @@ type CreateFileInput = record {
   content : opt blob;
   hash : opt blob;
   name : text;
+  crc32 : opt nat32;
   size : opt nat;
   content_type : text;
   parent : nat32;
 };
-type CreateFileOutput = record {
-  id : nat32;
-  chunks_crc32 : vec nat32;
-  created_at : nat;
-};
+type CreateFileOutput = record { id : nat32; created_at : nat };
 type FileInfo = record {
   id : nat32;
   ert : opt text;
@@ -71,8 +68,9 @@ type UpdateFileChunkInput = record {
   id : nat32;
   chunk_index : nat32;
   content : blob;
+  crc32 : opt nat32;
 };
-type UpdateFileChunkOutput = record { updated_at : nat; crc32 : nat32 };
+type UpdateFileChunkOutput = record { updated_at : nat; filled : nat };
 type UpdateFileInput = record {
   id : nat32;
   ert : opt text;
