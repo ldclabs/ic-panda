@@ -19,7 +19,7 @@ import {
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
-import { unwrapResult } from '$lib/types/result'
+import { unwrapOptionResult, unwrapResult } from '$lib/types/result'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
@@ -36,8 +36,8 @@ export type PrizeClaimLog = _PrizeClaimLog
 export type ClaimPrizeOutput = _ClaimPrizeOutput
 
 export class LuckyPoolAPI {
-  principal: Principal
-  actor: _SERVICE
+  readonly principal: Principal
+  private actor: _SERVICE
   private _state = writable<State | null>(null)
   private _airdropState = writable<AirdropState | null>(null)
   private _nameState = writable<NameOutput | null>(null)
@@ -155,20 +155,12 @@ export class LuckyPoolAPI {
 
   async nameOf(): Promise<NameOutput | null> {
     const res = await this.actor.name_of([])
-    return unwrapResult(
-      res,
-      'call name_of failed',
-      true
-    ) as unknown as NameOutput
+    return unwrapOptionResult(res, 'call name_of failed')
   }
 
   async nameLookup(name: string): Promise<NameOutput | null> {
     const res = await this.actor.name_lookup(name)
-    return unwrapResult(
-      res,
-      'call name_lookup failed',
-      true
-    ) as unknown as NameOutput
+    return unwrapOptionResult(res, 'call name_lookup failed')
   }
 
   async registerName(name: string): Promise<NameOutput> {

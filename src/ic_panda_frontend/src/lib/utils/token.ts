@@ -7,6 +7,7 @@ const locale = new Intl.Locale(window?.navigator.language || 'en')
 export interface TokenInfo extends Token {
   fee: bigint
   one: bigint
+  canisterId: string
 }
 
 export const ICPToken: TokenInfo = {
@@ -14,7 +15,8 @@ export const ICPToken: TokenInfo = {
   symbol: 'ICP',
   decimals: 8,
   fee: 10000n,
-  one: 100000000n
+  one: 100000000n,
+  canisterId: 'ryjl3-tyaaa-aaaaa-aaaba-cai' // ic & local
 }
 
 export const PANDAToken: TokenInfo = {
@@ -22,7 +24,26 @@ export const PANDAToken: TokenInfo = {
   symbol: 'PANDA',
   decimals: 8,
   fee: 10000n,
-  one: 100000000n
+  one: 100000000n,
+  canisterId: 'druyg-tyaaa-aaaaq-aactq-cai' // ic & local
+}
+
+export const ckDOGEToken: TokenInfo = {
+  name: 'Chain-key DogeCoin',
+  symbol: 'ckDOGE',
+  decimals: 8,
+  fee: 100000n,
+  one: 100000000n,
+  canisterId: 'b77ix-eeaaa-aaaaa-qaada-cai' // local
+}
+
+export const DOGEToken: TokenInfo = {
+  name: 'DogeCoin',
+  symbol: 'DOGE',
+  decimals: 8,
+  fee: 1000000n,
+  one: 100000000n,
+  canisterId: '' // local
 }
 
 export interface TokenAmountDisplay {

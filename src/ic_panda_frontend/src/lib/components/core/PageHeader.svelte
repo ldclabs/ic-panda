@@ -38,21 +38,24 @@
     hover="hover:bg-primary-500/10"
     class="overflow-y-hidden first:ml-2 max-md:max-w-[calc(100vw-100px)]"
   >
-    <TabAnchor href="/" selected={$page.url.hash === ''} on:click={scrollToTop}>
+    <TabAnchor
+      href="/"
+      selected={$page.url.pathname == '/' && $page.url.hash === ''}
+      on:click={scrollToTop}
+    >
       Home
     </TabAnchor>
-    <TabAnchor href="#luckypool" selected={$page.url.hash === '#luckypool'}>
+    <TabAnchor
+      href="/wallet"
+      selected={$page.url.pathname.startsWith('/wallet')}
+    >
+      Chain Fusion
+    </TabAnchor>
+    <TabAnchor href="/#luckypool" selected={$page.url.hash === '#luckypool'}>
       Lucky Pool
     </TabAnchor>
-    <TabAnchor href="#tokenomics" selected={$page.url.hash === '#tokenomics'}>
+    <TabAnchor href="/#tokenomics" selected={$page.url.hash === '#tokenomics'}>
       Tokenomics
-    </TabAnchor>
-    <TabAnchor
-      class="max-md:hidden"
-      href="#roadmap"
-      selected={$page.url.hash === '#roadmap'}
-    >
-      Roadmap
     </TabAnchor>
   </TabGroup>
 

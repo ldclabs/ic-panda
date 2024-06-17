@@ -13,8 +13,8 @@ import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
 export class ICPLedgerAPI {
-  principal: Principal
-  actor: _SERVICE
+  readonly principal: Principal
+  private actor: _SERVICE
 
   static async with(identity: Identity): Promise<ICPLedgerAPI> {
     const actor = await createActor<_SERVICE>({
