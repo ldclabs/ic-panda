@@ -22,7 +22,7 @@ const config = {
     //   serviceWorker: 'src/service-worker.ts'
     // },
     alias: {
-      $declarations: '../declarations'
+      $declarations: './src/declarations'
     },
     env: {
       dir: '../../.env'

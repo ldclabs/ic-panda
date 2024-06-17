@@ -36,19 +36,19 @@
       "workspace": "ic_panda_frontend"
     },
     "internet_identity": {
-      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-06-07/internet_identity.did",
       "remote": {
         "id": {
           "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
         }
       },
       "type": "custom",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-06-07/internet_identity_dev.wasm.gz"
     },
     "icp_ledger_canister": {
       "type": "custom",
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/9866a6f5cb43c54e3d87fa02a4eb80d0f159dddb/rs/rosetta-api/icp_ledger/ledger.did",
-      "wasm": "https://download.dfinity.systems/ic/9866a6f5cb43c54e3d87fa02a4eb80d0f159dddb/canisters/ledger-canister.wasm.gz",
+      "candid": "https://raw.githubusercontent.com/dfinity/ic/246d0ce0784d9990c06904809722ce5c2c816269/rs/rosetta-api/icp_ledger/ledger.did",
+      "wasm": "https://download.dfinity.systems/ic/246d0ce0784d9990c06904809722ce5c2c816269/canisters/ledger-canister.wasm.gz",
       "remote": {
         "id": {
           "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
@@ -56,9 +56,9 @@
       }
     },
     "icrc1_ledger_canister": {
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/9866a6f5cb43c54e3d87fa02a4eb80d0f159dddb/rs/rosetta-api/icrc1/ledger/ledger.did",
+      "candid": "https://raw.githubusercontent.com/dfinity/ic/246d0ce0784d9990c06904809722ce5c2c816269/rs/rosetta-api/icrc1/ledger/ledger.did",
       "type": "custom",
-      "wasm": "https://download.dfinity.systems/ic/9866a6f5cb43c54e3d87fa02a4eb80d0f159dddb/canisters/ic-icrc1-ledger.wasm.gz"
+      "wasm": "https://download.dfinity.systems/ic/246d0ce0784d9990c06904809722ce5c2c816269/canisters/ic-icrc1-ledger.wasm.gz"
     }
   },
   "defaults": {

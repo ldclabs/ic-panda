@@ -14,7 +14,6 @@
     shift
   } from '@floating-ui/dom'
   import {
-    AppShell,
     Modal,
     Toast,
     getToastStore,
@@ -100,11 +99,24 @@
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 
-<AppShell regionPage="scroll-smooth" scrollbarGutter="stable both-edges">
-  <svelte:fragment slot="header"><PageHeader /></svelte:fragment>
-  <slot />
-  <svelte:fragment slot="pageFooter"><PageFooter /></svelte:fragment>
-</AppShell>
+<div id="appShell" class="flex h-full w-full flex-col overflow-hidden">
+  <header id="shell-header" class="z-10 flex-none">
+    <PageHeader />
+  </header>
+
+  <div
+    id="page"
+    class="flex flex-1 flex-col overflow-x-hidden scroll-smooth"
+    style:scrollbar-gutter="stable both-edges"
+    on:scroll
+  >
+    <main id="page-content" class="flex-auto"><slot /></main>
+
+    <footer id="page-footer" class="flex-none">
+      <PageFooter />
+    </footer>
+  </div>
+</div>
 
 {#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
   <ReloadPrompt />

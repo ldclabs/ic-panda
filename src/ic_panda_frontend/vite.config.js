@@ -99,7 +99,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      $declarations: resolve('../declarations')
+      $declarations: resolve('./src/declarations')
     }
   }
 })

@@ -8,6 +8,7 @@
     "@ldclabs/cose-ts": "^1.2.0",
     "@noble/hashes": "^1.4.0",
     "@paulmillr/qr": "^0.1.1",
+    "@scure/base": "^1.1.7",
     "cborg": "^4.2.1"
   },
   "devDependencies": {
