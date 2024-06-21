@@ -150,17 +150,25 @@ export class LuckyPoolAPI {
   }
 
   async myLuckydrawLogs(): Promise<LuckyDrawLog[]> {
-    return this.actor.my_luckydraw_logs([], [20])
+    return this.actor.my_luckydraw_logs([], [20n])
   }
 
   async nameOf(): Promise<NameOutput | null> {
     const res = await this.actor.name_of([])
-    return unwrapResult(res, 'call name_of failed', true)
+    return unwrapResult(
+      res,
+      'call name_of failed',
+      true
+    ) as unknown as NameOutput
   }
 
   async nameLookup(name: string): Promise<NameOutput | null> {
     const res = await this.actor.name_lookup(name)
-    return unwrapResult(res, 'call name_lookup failed', true)
+    return unwrapResult(
+      res,
+      'call name_lookup failed',
+      true
+    ) as unknown as NameOutput
   }
 
   async registerName(name: string): Promise<NameOutput> {

@@ -380,9 +380,14 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
+              class="card inline-flex flex-row content-center items-center bg-white p-6 text-gray/50 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+            >
+              <span>Launch Panda Badges System (Suspend)</span>
+            </p>
+            <p
               class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
-              <span>Launch Panda Badges System</span>
+              <span>Chain Fusion: <b>ckDOGE</b></span>
             </p>
           </div>
         </div>
@@ -400,9 +405,19 @@
           </h3>
           <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
             <p
+              class="card inline-flex flex-row content-center items-center bg-white p-6 text-gray/50 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+            >
+              <span>Launch Panda NFT Platform (Suspend)</span>
+            </p>
+            <p
               class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
-              <span>Launch Panda NFT Platform</span>
+              <span>Chain Fusion: More Chain-key Tokens</span>
+            </p>
+            <p
+              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
+            >
+              <span>ICPanda AI: Panda Oracle</span>
             </p>
             <p
               class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
@@ -427,7 +442,7 @@
             <p
               class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
             >
-              <span>Launch Panda Meme Brand Platform</span>
+              <span>Launch Panda Meme Brand Platform (SFT & VC)</span>
             </p>
           </div>
         </div>

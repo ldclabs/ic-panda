@@ -89,7 +89,7 @@ export class ICPLedgerAPI {
     } else {
       const address = AccountIdentifier.fromHex(to)
       const res = await this.actor.transfer({
-        memo: 0,
+        memo: 0n,
         amount: { e8s: amount.toUlps() },
         fee: { e8s: (amount.token as TokenInfo).fee },
         from_subaccount: [],
