@@ -1,0 +1,104 @@
+type BlockRef = record { height : nat64; hash : blob };
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type CreateTxInput = record {
+  from_subaccount : opt blob;
+  fee_rate : nat64;
+  address : text;
+  utxos : vec Utxo;
+  amount : nat64;
+};
+type CreateTxOutput = record {
+  tx : blob;
+  fee : nat64;
+  tip_height : nat64;
+  instructions : nat64;
+};
+type InitArgs = record {
+  ecdsa_key_name : text;
+  chain : nat8;
+  prev_start_height : nat64;
+  prev_start_blockhash : text;
+  min_confirmations : nat32;
+};
+type RPCAgent = record {
+  proxy_token : opt text;
+  api_token : opt text;
+  endpoint : text;
+  name : text;
+  max_cycles : nat64;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : CreateTxOutput; Err : text };
+type Result_2 = variant { Ok : text; Err : text };
+type Result_3 = variant { Ok : nat64; Err : text };
+type Result_4 = variant { Ok : State; Err };
+type Result_5 = variant { Ok : BlockRef; Err : text };
+type Result_6 = variant { Ok : UnspentTx; Err : text };
+type Result_7 = variant { Ok : UtxosOutput; Err : text };
+type Result_8 = variant { Ok : SendTxOutput; Err : text };
+type SendTxInput = record { tx : blob; from_subaccount : opt blob };
+type SendTxOutput = record {
+  tip_height : nat64;
+  txid : blob;
+  instructions : nat64;
+};
+type State = record {
+  start_height : nat64;
+  processed_height : nat64;
+  tip_height : nat64;
+  ecdsa_key_name : opt text;
+  managers : vec principal;
+  rpc_proxy_public_key : opt text;
+  chain : text;
+  confirmed_height : nat64;
+  unconfirmed_utxos : nat64;
+  unprocessed_blocks : nat64;
+  syncing_status : opt int8;
+  last_errors : vec text;
+  confirmed_utxs : nat64;
+  tip_blockhash : text;
+  unconfirmed_utxs : nat64;
+  min_confirmations : nat32;
+  processed_blockhash : text;
+  rpc_agents : vec RPCAgent;
+  confirmed_utxos : nat64;
+  start_blockhash : text;
+};
+type TxStatus = record {
+  height : nat64;
+  tip_height : nat64;
+  confirmed_height : nat64;
+};
+type UnspentTx = record {
+  height : nat64;
+  output : vec blob;
+  spent : vec opt blob;
+};
+type UpgradeArgs = record { min_confirmations : opt nat32 };
+type Utxo = record { height : nat64; value : nat64; txid : blob; vout : nat32 };
+type UtxosOutput = record {
+  tip_height : nat64;
+  confirmed_height : nat64;
+  utxos : vec Utxo;
+  tip_blockhash : blob;
+};
+service : (opt ChainArgs) -> {
+  admin_restart_syncing : (opt int8) -> (Result);
+  admin_set_agent : (vec RPCAgent) -> (Result);
+  admin_set_managers : (vec principal) -> (Result);
+  api_version : () -> (nat16) query;
+  create_tx : (CreateTxInput) -> (Result_1);
+  get_address : () -> (Result_2) query;
+  get_balance : (text) -> (Result_3) query;
+  get_balance_b : (blob) -> (nat64) query;
+  get_state : () -> (Result_4) query;
+  get_tip : () -> (Result_5) query;
+  get_tx_status : (blob) -> (opt TxStatus) query;
+  get_utx : (text) -> (Result_6) query;
+  get_utx_b : (blob) -> (opt UnspentTx) query;
+  list_utxos : (text, nat16, bool) -> (Result_7) query;
+  list_utxos_b : (blob, nat16, bool) -> (Result_7) query;
+  send_tx : (SendTxInput) -> (Result_8);
+  sign_and_send_tx : (SendTxInput) -> (Result_8);
+  validate_admin_set_managers : (vec principal) -> (Result);
+}

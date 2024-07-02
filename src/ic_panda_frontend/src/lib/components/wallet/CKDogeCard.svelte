@@ -288,7 +288,6 @@
           <thead>
             <tr>
               <th>Transaction</th>
-              <th>Vout</th>
               <th>Amount</th>
               <th>Confirmations</th>
               <th>Minted</th>
@@ -299,12 +298,11 @@
               <tr>
                 <td
                   ><a
-                    class="block w-40 truncate underline underline-offset-4"
+                    class="block w-60 truncate underline underline-offset-4"
                     href={chain.txExplorer(row.txid)}
                     target="_blank">{row.txid}</a
                   ></td
                 >
-                <td>{row.vout}</td>
                 <td
                   >{formatNumber(
                     Number(row.value) / Number(DOGEToken.one),
@@ -312,7 +310,12 @@
                   )}</td
                 >
                 <td>{tipHeight - row.height}</td>
-                <td>{row.minted_at?.toLocaleString() || '-'}</td>
+                <td
+                  >{row.minted_at?.toLocaleString() ||
+                    (tipHeight - row.height >= min_confirmations
+                      ? 'mintable'
+                      : 'wait confirmations')}</td
+                >
               </tr>
             {/each}
           </tbody>
