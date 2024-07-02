@@ -8,14 +8,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { errMessage } from '$lib/types/result'
   import { Chain, toHashString } from '$lib/utils/dogecoin'
-  import {
-    DOGEToken,
-    TokenAmount,
-    ckDOGEToken,
-    formatToken,
-    type TokenAmountDisplay,
-    type TokenInfo
-  } from '$lib/utils/token'
+  import { ckDOGEToken, DOGEToken, TokenDisplay } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { focusTrap } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
@@ -31,8 +24,6 @@
   export let chain: Chain
   export let onFinish: () => void
 
-  const token: TokenInfo = Object.assign({}, ckDOGEToken)
-
   let stepN: 0 | 1 = 0
   let submitting = false
   let validating = false
@@ -42,12 +33,8 @@
   let sendFrom = principal
   let sendTo = ''
   let sendAmount = 0
-  let sendFee = getTextAmount(token.fee)
   let txOutput: { txid: string; url: string; explorer: string } | null = null
-  let tokenAmount = TokenAmount.fromNumber({
-    amount: sendAmount || 0,
-    token
-  })
+  let token: TokenDisplay = new TokenDisplay(ckDOGEToken, 0n)
 
   function switchTokenName(name: 'DOGE' | 'ckDOGE') {
     sendTo = ''
@@ -55,19 +42,13 @@
     switch (name) {
       case 'DOGE':
         sendFrom = dogeAddress
-        token.fee = DOGEToken.fee
-        sendFee = getTextAmount(token.fee)
+        token = new TokenDisplay(DOGEToken, 0n, false)
         break
       case 'ckDOGE':
         sendFrom = principal
-        token.fee = ckDOGEToken.fee
-        sendFee = getTextAmount(token.fee)
+        token = new TokenDisplay(ckDOGEToken, 0n)
         break
     }
-  }
-
-  function getTextAmount(amount: bigint): TokenAmountDisplay {
-    return formatToken(TokenAmount.fromUlps({ amount, token }))
   }
 
   async function sendToCopyPaste(e: Event) {
@@ -86,7 +67,9 @@
     e.preventDefault()
 
     if (formRef) {
-      sendAmount = getTextAmount(availableBalance - token.fee).amountNum
+      token.amount =
+        availableBalance > token.fee ? availableBalance - token.fee : 0n
+      sendAmount = token.num
       const input = formRef['sendAmount'] as HTMLInputElement
       input?.setCustomValidity('')
       validating = formRef.checkValidity()
@@ -122,12 +105,9 @@
     if (sendAmountEle?.value.startsWith('0')) {
       sendAmountEle.value = sendAmount.toString()
     }
-    tokenAmount = TokenAmount.fromNumber({
-      amount: sendAmount || 0,
-      token
-    })
+    token.num = sendAmount || 0
 
-    if (tokenAmount.toUlps() + token.fee > availableBalance) {
+    if (token.total > availableBalance) {
       sendAmountEle?.setCustomValidity('Amount exceeds available balance')
     }
 
@@ -137,7 +117,7 @@
   function onClear() {
     sendTo = ''
     sendAmount = 0
-    sendFee = getTextAmount(token.fee)
+    token.amount = 0n
 
     stepN = 0
     submitting = false
@@ -149,15 +129,11 @@
   async function onContinue() {
     stepN = 1
     sendError = ''
-    tokenAmount = TokenAmount.fromNumber({
-      amount: sendAmount || 0,
-      token
-    })
 
     if (tokenName == 'DOGE') {
       await tokenLedgerAPI.ensureAllowance(
         ckDogeMinterAPI.canisterId,
-        tokenAmount.toUlps()
+        token.total
       )
     }
   }
@@ -175,7 +151,7 @@
           const output = await ckDogeMinterAPI.burnCKDoge({
             fee_rate: 0n,
             address: sendTo,
-            amount: tokenAmount.toUlps()
+            amount: token.total
           })
 
           const txid = toHashString(output.txid)
@@ -186,7 +162,7 @@
           }
           break
         case 'ckDOGE':
-          let blk = await tokenLedgerAPI.transfer(sendTo, tokenAmount)
+          let blk = await tokenLedgerAPI.transfer(sendTo, token.amount)
 
           txOutput = {
             txid: `block index: ${blk}`,
@@ -303,7 +279,7 @@
               ? '(billed to source)'
               : ''}</p
           >
-          <p>{sendFee.full} {token.symbol}</p>
+          <p>{token.displayFee()} {token.token.symbol}</p>
         </div>
       </form>
       <!-- prettier-ignore -->
@@ -320,7 +296,6 @@
       </footer>
     </div>
   {:else if stepN === 1}
-    {@const tokenAmountDisplay = formatToken(tokenAmount)}
     <div class="flex w-full flex-col gap-4">
       <div class="flex flex-col gap-2 text-sm *:gap-2">
         <h4 class="h4 text-center">Review Transaction</h4>
@@ -333,26 +308,28 @@
         <div class="flex flex-row justify-between">
           <span>Available Balance</span>
           <span class="text-pretty break-words text-right">
-            {getTextAmount(availableBalance).full}
-            {token.symbol}
+            {token.displayValue(availableBalance)}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">
           <span>Sending Amount</span>
           <span class="text-right">
-            {tokenAmountDisplay.full}
-            {token.symbol}
+            {token.display()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">
           <span>Transaction Fee</span>
-          <span class="text-right">{sendFee.full} {token.symbol}</span>
+          <span class="text-right"
+            >{token.displayFee()} {token.token.symbol}</span
+          >
         </div>
         <div class="flex flex-row justify-between">
           <span>Total Deducted</span>
           <span class="text-right">
-            {tokenAmountDisplay.feeAndFull}
-            {token.symbol}
+            {token.displayTotal()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-end text-panda *:scale-110">
@@ -361,8 +338,8 @@
         <div class="flex flex-row justify-between">
           <span>Received Amount</span>
           <span class="text-right">
-            {tokenAmountDisplay.full}
-            {token.symbol}
+            {token.displayReceived()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">

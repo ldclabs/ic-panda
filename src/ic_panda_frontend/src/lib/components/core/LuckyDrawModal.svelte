@@ -23,11 +23,10 @@
   import { decodeAirdropCode, type Prize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import {
+    formatNumber,
     ICPToken,
     PANDAToken,
-    TokenAmount,
-    formatNumber,
-    formatToken
+    TokenDisplay
   } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
@@ -145,12 +144,8 @@
     validating = checkInput() == ''
   })
 
-  $: luckyPoolBalanceDisplay = formatToken(
-    TokenAmount.fromUlps({ amount: luckyPoolBalance, token: PANDAToken })
-  )
-  $: icpBalanceDisplay = formatToken(
-    TokenAmount.fromUlps({ amount: icpBalance, token: ICPToken })
-  )
+  $: luckyPoolBalanceDisplay = new TokenDisplay(PANDAToken, luckyPoolBalance)
+  $: icpBalanceDisplay = new TokenDisplay(ICPToken, icpBalance)
 </script>
 
 <ModalCard {parent}>
@@ -293,8 +288,8 @@
           <b>Your ICP Balance:</b>
         </div>
         <div class="flex flex-row gap-1 text-gray/50">
-          <span>{icpBalanceDisplay.display}</span>
-          <span>{icpBalanceDisplay.symbol}</span>
+          <span>{icpBalanceDisplay.display()}</span>
+          <span>{icpBalanceDisplay.token.symbol}</span>
         </div>
       </div>
       <div class="mt-1 flex flex-row items-center justify-between">
@@ -303,8 +298,8 @@
           <b>Lucky Pool Balance:</b>
         </div>
         <div class="flex flex-row gap-1 text-gray/50">
-          <span>{luckyPoolBalanceDisplay.display}</span>
-          <span>{luckyPoolBalanceDisplay.symbol}</span>
+          <span>{luckyPoolBalanceDisplay.display()}</span>
+          <span>{luckyPoolBalanceDisplay.token.symbol}</span>
         </div>
       </div>
     </div>
