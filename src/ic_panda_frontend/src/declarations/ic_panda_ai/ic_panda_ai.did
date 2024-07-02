@@ -1,0 +1,98 @@
+type ChatInput = record {
+  top_p : opt float32;
+  challenge : opt blob;
+  messages : opt vec text;
+  temperature : opt float32;
+  seed : opt nat64;
+  max_tokens : opt nat32;
+  prompt : text;
+};
+type ChatOutput = record {
+  instructions : nat64;
+  tokens : nat32;
+  message : text;
+};
+type CreateFileInput = record {
+  ert : opt text;
+  status : opt int8;
+  content : opt blob;
+  hash : opt blob;
+  name : text;
+  crc32 : opt nat32;
+  size : opt nat;
+  content_type : text;
+  parent : nat32;
+};
+type CreateFileOutput = record { id : nat32; created_at : nat };
+type FileInfo = record {
+  id : nat32;
+  ert : opt text;
+  status : int8;
+  updated_at : nat;
+  hash : opt blob;
+  name : text;
+  size : nat;
+  content_type : text;
+  created_at : nat;
+  filled : nat;
+  chunks : nat32;
+  parent : nat32;
+};
+type LoadModelInput = record {
+  tokenizer_id : nat32;
+  config_id : nat32;
+  model_id : nat32;
+};
+type LoadModelOutput = record {
+  total_instructions : nat64;
+  load_mode_instructions : nat64;
+  load_file_instructions : nat64;
+};
+type Result = variant { Ok : LoadModelOutput; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : ChatOutput; Err : text };
+type Result_3 = variant { Ok : CreateFileOutput; Err : text };
+type Result_4 = variant { Ok : FileInfo; Err : text };
+type Result_5 = variant { Ok : State; Err };
+type Result_6 = variant { Ok : UpdateFileChunkOutput; Err : text };
+type Result_7 = variant { Ok : UpdateFileOutput; Err : text };
+type State = record {
+  managers : vec principal;
+  ai_config : nat32;
+  ai_model : nat32;
+  chat_count : nat64;
+  ai_tokenizer : nat32;
+  file_id : nat32;
+};
+type UpdateFileChunkInput = record {
+  id : nat32;
+  chunk_index : nat32;
+  content : blob;
+  crc32 : opt nat32;
+};
+type UpdateFileChunkOutput = record { updated_at : nat; filled : nat };
+type UpdateFileInput = record {
+  id : nat32;
+  ert : opt text;
+  status : opt int8;
+  hash : opt blob;
+  name : opt text;
+  content_type : opt text;
+  parent : opt nat32;
+};
+type UpdateFileOutput = record { updated_at : nat };
+service : () -> {
+  admin_load_model : (LoadModelInput) -> (Result);
+  admin_set_managers : (vec principal) -> (Result_1);
+  api_version : () -> (nat16) query;
+  chat : (ChatInput) -> (Result_2) query;
+  create_file : (CreateFileInput, opt blob) -> (Result_3);
+  delete_file : (nat32, opt blob) -> (Result_1);
+  get_file_info : (nat32, opt blob) -> (Result_4) query;
+  list_files : (nat32, opt nat32, opt nat32, opt blob) -> (vec FileInfo) query;
+  state : () -> (Result_5) query;
+  update_chat : (ChatInput) -> (Result_2);
+  update_file_chunk : (UpdateFileChunkInput, opt blob) -> (Result_6);
+  update_file_info : (UpdateFileInput, opt blob) -> (Result_7);
+  validate_admin_set_managers : (vec principal) -> (Result_1);
+}
