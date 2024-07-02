@@ -11,13 +11,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { errMessage } from '$lib/types/result'
   import { Chain, toHashString } from '$lib/utils/dogecoin'
-  import {
-    DOGEToken,
-    TokenAmount,
-    formatToken,
-    type TokenAmountDisplay,
-    type TokenInfo
-  } from '$lib/utils/token'
+  import { DOGEToken, TokenDisplay } from '$lib/utils/token'
   import { focusTrap } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
 
@@ -30,8 +24,6 @@
   export let chain: Chain
   export let onFinish: () => void
 
-  const token: TokenInfo = Object.assign({}, DOGEToken)
-
   let stepN: 0 | 1 = 0
   let submitting = false
   let validating = false
@@ -39,17 +31,9 @@
   let sendError = ''
   let sendTo = ''
   let sendAmount = 0
-  let sendFee = getTextAmount(token.fee)
   let tx: CreateTxOutput | null = null
   let txOutput: SendTxOutput | null = null
-  let tokenAmount = TokenAmount.fromNumber({
-    amount: sendAmount || 0,
-    token
-  })
-
-  function getTextAmount(amount: bigint): TokenAmountDisplay {
-    return formatToken(TokenAmount.fromUlps({ amount, token }))
-  }
+  let token = new TokenDisplay(DOGEToken, 0n, true)
 
   async function sendToCopyPaste(e: Event) {
     e.preventDefault()
@@ -67,7 +51,9 @@
     e.preventDefault()
 
     if (formRef) {
-      sendAmount = getTextAmount(availableBalance - token.fee).amountNum
+      token.amount =
+        availableBalance > token.fee ? availableBalance - token.fee : 0n
+      sendAmount = token.num
       const input = formRef['sendAmount'] as HTMLInputElement
       input?.setCustomValidity('')
       validating = formRef.checkValidity()
@@ -96,12 +82,9 @@
     if (sendAmountEle?.value.startsWith('0')) {
       sendAmountEle.value = sendAmount.toString()
     }
-    tokenAmount = TokenAmount.fromNumber({
-      amount: sendAmount || 0,
-      token
-    })
+    token.num = sendAmount || 0
 
-    if (tokenAmount.toUlps() + token.fee > availableBalance) {
+    if (token.total > availableBalance) {
       sendAmountEle?.setCustomValidity('Amount exceeds available balance')
     }
 
@@ -111,7 +94,7 @@
   function onClear() {
     sendTo = ''
     sendAmount = 0
-    sendFee = getTextAmount(token.fee)
+    token.amount = 0n
 
     stepN = 0
     submitting = false
@@ -125,20 +108,15 @@
     submitting = true
 
     try {
-      tokenAmount = TokenAmount.fromNumber({
-        amount: sendAmount || 0,
-        token
-      })
       tx = await ckDogeCanisterAPI.createTx({
         from_subaccount: [],
         fee_rate: 0n,
         address: sendTo,
         utxos: [],
-        amount: tokenAmount.toUlps()
+        amount: token.amount
       })
 
       token.fee = tx.fee
-      sendFee = getTextAmount(token.fee)
       stepN = 1
       sendError = ''
     } catch (err) {
@@ -241,7 +219,7 @@
         </label>
         <div>
           <p>Transaction Fee (billed to source)</p>
-          <p>{sendFee.full} {token.symbol}</p>
+          <p>{token.displayFee()} {token.token.symbol}</p>
         </div>
       </form>
       <!-- prettier-ignore -->
@@ -258,7 +236,6 @@
       </footer>
     </div>
   {:else if tx}
-    {@const tokenAmountDisplay = formatToken(tokenAmount)}
     <div class="flex w-full flex-col gap-4">
       <div class="flex flex-col gap-2 text-sm *:gap-2">
         <h4 class="h4 text-center">Review Transaction</h4>
@@ -271,26 +248,28 @@
         <div class="flex flex-row justify-between">
           <span>Available Balance</span>
           <span class="text-pretty break-words text-right">
-            {getTextAmount(availableBalance).full}
-            {token.symbol}
+            {token.displayValue(availableBalance)}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">
           <span>Sending Amount</span>
           <span class="text-right">
-            {tokenAmountDisplay.full}
-            {token.symbol}
+            {token.display()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">
           <span>Transaction Fee</span>
-          <span class="text-right">{sendFee.full} {token.symbol}</span>
+          <span class="text-right"
+            >{token.displayFee()} {token.token.symbol}</span
+          >
         </div>
         <div class="flex flex-row justify-between">
           <span>Total Deducted</span>
           <span class="text-right">
-            {tokenAmountDisplay.feeAndFull}
-            {token.symbol}
+            {token.displayTotal()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-end text-panda *:scale-110">
@@ -299,8 +278,8 @@
         <div class="flex flex-row justify-between">
           <span>Received Amount</span>
           <span class="text-right">
-            {tokenAmountDisplay.full}
-            {token.symbol}
+            {token.displayReceived()}
+            {token.token.symbol}
           </span>
         </div>
         <div class="flex flex-row justify-between">

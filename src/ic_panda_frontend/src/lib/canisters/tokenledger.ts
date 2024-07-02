@@ -5,12 +5,7 @@ import {
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
 import { asyncFactory } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
-import {
-  ckDOGEToken,
-  PANDAToken,
-  TokenAmount,
-  type TokenInfo
-} from '$lib/utils/token'
+import { ckDOGEToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
@@ -83,12 +78,12 @@ export class TokenLedgerAPI {
     }
   }
 
-  async transfer(to: string, amount: TokenAmount): Promise<bigint> {
+  async transfer(to: string, amount: bigint): Promise<bigint> {
     const principal = Principal.fromText(to)
     const res = await this.actor.icrc1_transfer({
       from_subaccount: [],
       to: { owner: principal, subaccount: [] },
-      amount: amount.toUlps(),
+      amount,
       fee: [],
       memo: [],
       created_at_time: [BigInt(Date.now() * 1_000_000)]
