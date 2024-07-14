@@ -1,0 +1,33 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
+    - name: Build canisters
+      run: |
+        rustup target add wasm32-unknown-unknown
+        cargo install ic-wasm
+        mkdir out
+        cargo build --target wasm32-unknown-unknown --release --locked -p ic_panda_luckypool -p ic_panda_ai
+        for CAN in ic_panda_luckypool ic_panda_ai
+        do
+          cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
+          cp "src/$CAN/$CAN.did" "out/$CAN.did"
+          WASM="out/$CAN.wasm"
+          ic-wasm $WASM -o $WASM metadata candid:service -f "out/$CAN.did" -v public
+          ic-wasm $WASM -o $WASM shrink
+          gzip $WASM
+          SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
+          echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
+        done
+        ls -lah out
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: out/*
