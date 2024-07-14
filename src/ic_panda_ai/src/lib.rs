@@ -44,7 +44,7 @@ fn is_controller_or_manager() -> Result<(), String> {
     let caller = ic_cdk::caller();
     if caller == DAO_CANISTER
         || ic_cdk::api::is_controller(&caller)
-        || store::state::is_manager(&caller)
+        || store::fs::is_manager(&caller)
     {
         Ok(())
     } else {

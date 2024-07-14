@@ -30,7 +30,7 @@ hmac = "0.12"
 sha2 = "0.10"
 sha3 = "0.10"
 num-traits = "0.2"
-ic-cdk = "0.14"
+ic-cdk = "0.15"
 ic-cdk-timers = "0.8"
 ic-stable-structures = "0.6"
 getrandom = { version = "0.2", features = ["custom"] }

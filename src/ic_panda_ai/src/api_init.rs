@@ -2,17 +2,18 @@ use crate::{store, types};
 
 #[ic_cdk::init]
 fn init() {
-    store::state::save();
     store::init_rand();
 }
 
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     store::state::save();
+    store::fs::save();
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    store::fs::load();
     let s = store::state::load();
     store::init_rand();
     if s.ai_model > 0 {

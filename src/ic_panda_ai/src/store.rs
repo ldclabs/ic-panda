@@ -1,7 +1,5 @@
-use candid::{CandidType, Nat, Principal};
 use ciborium::{from_reader, into_writer};
 use getrandom::register_custom_getrandom;
-use ic_oss_types::file::{FileChunk, FileInfo, MAX_CHUNK_SIZE, MAX_FILE_SIZE};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -9,21 +7,18 @@ use ic_stable_structures::{
 };
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
-use std::{borrow::Cow, cell::RefCell, collections::BTreeSet, ops, time::Duration};
+use std::{borrow::Cow, cell::RefCell, time::Duration};
 
 use crate::{ai, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-#[derive(CandidType, Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 pub struct State {
     pub chat_count: u64,
-    pub file_id: u32,
     pub ai_config: u32,
     pub ai_tokenizer: u32,
     pub ai_model: u32,
-    pub managers: BTreeSet<Principal>,
 }
 
 impl Storable for State {
@@ -40,89 +35,6 @@ impl Storable for State {
     }
 }
 
-// FileId: (file id, chunk id)
-// a file is a collection of chunks.
-// max chunk size is 64*1024 bytes
-#[derive(Clone, Default, Deserialize, Serialize, Ord, PartialOrd, Eq, PartialEq)]
-pub struct FileId(pub u32, pub u32);
-impl Storable for FileId {
-    const BOUND: Bound = Bound::Bounded {
-        max_size: 11,
-        is_fixed_size: false,
-    };
-
-    fn to_bytes(&self) -> Cow<[u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode FileId data");
-        Cow::Owned(buf)
-    }
-
-    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode FileId data")
-    }
-}
-
-#[derive(Clone, Default, Deserialize, Serialize)]
-pub struct FileMetadata {
-    pub name: String,
-    pub content_type: String, // MIME types
-    pub size: u64,
-    pub filled: u64,
-    pub created_at: u64, // unix timestamp in milliseconds
-    pub updated_at: u64, // unix timestamp in milliseconds
-    pub chunks: u32,
-    pub hash: Option<ByteBuf>,
-}
-
-impl Storable for FileMetadata {
-    const BOUND: Bound = Bound::Unbounded;
-
-    fn to_bytes(&self) -> Cow<[u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode FileMetadata data");
-        Cow::Owned(buf)
-    }
-
-    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode FileMetadata data")
-    }
-}
-
-impl FileMetadata {
-    pub fn into_info(self, id: u32) -> FileInfo {
-        FileInfo {
-            id,
-            name: self.name,
-            content_type: self.content_type,
-            size: Nat::from(self.size),
-            filled: Nat::from(self.filled),
-            created_at: Nat::from(self.created_at),
-            updated_at: Nat::from(self.updated_at),
-            chunks: self.chunks,
-            hash: self.hash,
-            ..Default::default()
-        }
-    }
-}
-
-#[derive(Clone, Default, Deserialize, Serialize)]
-pub struct Chunk(pub Vec<u8>);
-
-impl Storable for Chunk {
-    const BOUND: Bound = Bound::Bounded {
-        max_size: MAX_CHUNK_SIZE,
-        is_fixed_size: false,
-    };
-
-    fn to_bytes(&self) -> Cow<[u8]> {
-        Cow::Borrowed(&self.0)
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        Self(bytes.to_vec())
-    }
-}
-
 #[derive(Default)]
 pub struct AIModel {
     pub config: Vec<u8>,
@@ -136,32 +48,29 @@ const FS_DATA_MEMORY_ID: MemoryId = MemoryId::new(2);
 
 thread_local! {
     static RNG: RefCell<Option<StdRng>> = const { RefCell::new(None) };
-    static STATE_HEAP: RefCell<State> = RefCell::new(State::default());
+    static STATE: RefCell<State> = RefCell::new(State::default());
 
     static AI_MODEL: RefCell<Option<AIModel>> = const { RefCell::new(None) };
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    static STATE: RefCell<StableCell<State, Memory>> = RefCell::new(
+    static STATE_STORE: RefCell<StableCell<State, Memory>> = RefCell::new(
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             State::default()
-        ).expect("failed to init STATE store")
+        ).expect("failed to init STATE_STORE")
     );
 
-    static FS_METADATA: RefCell<StableBTreeMap<u32, FileMetadata, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with_borrow(|m| m.get(FS_METADATA_MEMORY_ID)),
-        )
-    );
-
-    static FS_DATA: RefCell<StableBTreeMap<FileId, Chunk, Memory>> = RefCell::new(
+    // `FS_CHUNKS_STORE`` is needed by `ic_oss_can::ic_oss_fs` macro
+    static FS_CHUNKS_STORE: RefCell<StableBTreeMap<ic_oss_can::types::FileId, ic_oss_can::types::Chunk, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(FS_DATA_MEMORY_ID)),
         )
     );
 }
+
+ic_oss_can::ic_oss_fs!();
 
 async fn set_rand() {
     let (rr,) = ic_cdk::api::management_canister::main::raw_rand()
@@ -218,22 +127,18 @@ where
 pub mod state {
     use super::*;
 
-    pub fn is_manager(caller: &Principal) -> bool {
-        STATE_HEAP.with(|r| r.borrow().managers.contains(caller))
-    }
-
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
-        STATE_HEAP.with(|r| f(&r.borrow()))
+        STATE.with(|r| f(&r.borrow()))
     }
 
     pub fn with_mut<R>(f: impl FnOnce(&mut State) -> R) -> R {
-        STATE_HEAP.with(|r| f(&mut r.borrow_mut()))
+        STATE.with(|r| f(&mut r.borrow_mut()))
     }
 
     pub fn load() -> State {
-        STATE.with(|r| {
+        STATE_STORE.with(|r| {
             let s = r.borrow().get().clone();
-            STATE_HEAP.with(|h| {
+            STATE.with(|h| {
                 *h.borrow_mut() = s.clone();
             });
             s
@@ -241,268 +146,12 @@ pub mod state {
     }
 
     pub fn save() {
-        STATE_HEAP.with(|h| {
-            STATE.with(|r| {
+        STATE.with(|h| {
+            STATE_STORE.with(|r| {
                 r.borrow_mut()
                     .set(h.borrow().clone())
-                    .expect("failed to set STATE data");
+                    .expect("failed to set STATE_STORE data");
             });
         });
-    }
-}
-
-pub mod fs {
-    use super::*;
-
-    pub fn get_file(id: u32) -> Option<FileMetadata> {
-        FS_METADATA.with(|r| r.borrow().get(&id))
-    }
-
-    pub fn list_files(prev: u32, take: u32) -> Vec<FileInfo> {
-        FS_METADATA.with(|r| {
-            let m = r.borrow();
-            let mut res = Vec::with_capacity(take as usize);
-            let mut id = prev.saturating_sub(1);
-            while id > 0 {
-                if let Some(meta) = m.get(&id) {
-                    res.push(meta.into_info(id));
-                    if res.len() >= take as usize {
-                        break;
-                    }
-                }
-                id = id.saturating_sub(1);
-            }
-            res
-        })
-    }
-
-    pub fn add_file(meta: FileMetadata) -> Result<u32, String> {
-        let id = state::with_mut(|s| {
-            s.file_id = s.file_id.saturating_add(1);
-            s.file_id
-        });
-        if id == u32::MAX {
-            return Err("file id overflow".to_string());
-        }
-
-        FS_METADATA.with(|r| r.borrow_mut().insert(id, meta));
-        Ok(id)
-    }
-
-    pub fn update_file<R>(id: u32, f: impl FnOnce(&mut FileMetadata) -> R) -> Option<R> {
-        FS_METADATA.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&id) {
-                None => None,
-                Some(mut meta) => {
-                    let r = f(&mut meta);
-                    m.insert(id, meta);
-                    Some(r)
-                }
-            }
-        })
-    }
-
-    pub fn get_chunk(id: u32, chunk_index: u32) -> Option<FileChunk> {
-        FS_DATA.with(|r| {
-            r.borrow()
-                .get(&FileId(id, chunk_index))
-                .map(|v| FileChunk(chunk_index, ByteBuf::from(v.0)))
-        })
-    }
-
-    pub fn get_full_chunks(id: u32) -> Result<Vec<u8>, String> {
-        let (size, chunks) = FS_METADATA.with(|r| match r.borrow().get(&id) {
-            None => Err(format!("file not found: {}", id)),
-            Some(meta) => {
-                if meta.size != meta.filled {
-                    return Err("file not fully uploaded".to_string());
-                }
-                Ok((meta.size, meta.chunks))
-            }
-        })?;
-
-        if size > MAX_FILE_SIZE.min(usize::MAX as u64) {
-            return Err(format!(
-                "file size exceeds limit: {}",
-                MAX_FILE_SIZE.min(usize::MAX as u64)
-            ));
-        }
-
-        FS_DATA.with(|r| {
-            let mut filled = 0usize;
-            let mut buf = Vec::with_capacity(size as usize);
-            if chunks == 0 {
-                return Ok(buf);
-            }
-
-            for (_, chunk) in r.borrow().range((
-                ops::Bound::Included(FileId(id, 0)),
-                ops::Bound::Included(FileId(id, chunks - 1)),
-            )) {
-                filled += chunk.0.len();
-                buf.extend_from_slice(&chunk.0);
-            }
-
-            if filled as u64 != size {
-                return Err(format!(
-                    "file size mismatch, expected {}, got {}",
-                    size, filled
-                ));
-            }
-            Ok(buf)
-        })
-    }
-
-    pub fn update_chunk(
-        file_id: u32,
-        chunk_index: u32,
-        now_ms: u64,
-        chunk: Vec<u8>,
-    ) -> Result<u64, String> {
-        if chunk.is_empty() {
-            return Err("empty chunk".to_string());
-        }
-
-        if chunk.len() > MAX_CHUNK_SIZE as usize {
-            return Err(format!(
-                "chunk size too large, max size is {} bytes",
-                MAX_CHUNK_SIZE
-            ));
-        }
-
-        FS_METADATA.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&file_id) {
-                None => Err(format!("file not found: {}", file_id)),
-                Some(mut metadata) => {
-                    metadata.updated_at = now_ms;
-                    metadata.filled += chunk.len() as u64;
-                    if metadata.filled > MAX_FILE_SIZE {
-                        panic!("file size exceeds limit: {}", MAX_FILE_SIZE);
-                    }
-
-                    match FS_DATA.with(|r| {
-                        r.borrow_mut()
-                            .insert(FileId(file_id, chunk_index), Chunk(chunk))
-                    }) {
-                        None => {
-                            if metadata.chunks <= chunk_index {
-                                metadata.chunks = chunk_index + 1;
-                            }
-                        }
-                        Some(old) => {
-                            metadata.filled -= old.0.len() as u64;
-                        }
-                    }
-
-                    let filled = metadata.filled;
-                    if metadata.size < filled {
-                        metadata.size = filled;
-                    }
-
-                    m.insert(file_id, metadata);
-                    Ok(filled)
-                }
-            }
-        })
-    }
-
-    pub fn delete_file(id: u32) -> Result<(), String> {
-        let chunks = FS_METADATA.with(|r| {
-            if let Some(meta) = r.borrow_mut().remove(&id) {
-                return meta.chunks;
-            }
-            0u32
-        });
-
-        FS_DATA.with(|r| {
-            for chunk_index in 0..chunks {
-                r.borrow_mut().remove(&FileId(id, chunk_index));
-            }
-        });
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_bound_max_size() {
-        let v = FileId(u32::MAX, u32::MAX);
-        let v = v.to_bytes();
-        println!("FileId max_size: {:?}, {}", v.len(), hex::encode(&v));
-
-        let v = FileId(0u32, 0u32);
-        let v = v.to_bytes();
-        println!("FileId min_size: {:?}, {}", v.len(), hex::encode(&v));
-    }
-
-    #[test]
-    fn test_fs() {
-        assert!(fs::get_file(0).is_none());
-        assert!(fs::get_full_chunks(0).is_err());
-        assert!(fs::get_full_chunks(1).is_err());
-
-        let f1 = fs::add_file(FileMetadata {
-            name: "f1.bin".to_string(),
-            ..Default::default()
-        })
-        .unwrap();
-        assert_eq!(f1, 1);
-
-        assert!(fs::get_full_chunks(0).is_err());
-        let f1_data = fs::get_full_chunks(f1).unwrap();
-        assert!(f1_data.is_empty());
-
-        let f1_meta = fs::get_file(f1).unwrap();
-        assert_eq!(f1_meta.name, "f1.bin");
-
-        assert!(fs::update_chunk(0, 0, 999, [0u8; 32].to_vec()).is_err());
-        let _ = fs::update_chunk(f1, 0, 999, [0u8; 32].to_vec()).unwrap();
-        let _ = fs::update_chunk(f1, 1, 1000, [0u8; 32].to_vec()).unwrap();
-        let f1_data = fs::get_full_chunks(f1).unwrap();
-        assert_eq!(f1_data, [0u8; 64]);
-
-        let f1_meta = fs::get_file(f1).unwrap();
-        assert_eq!(f1_meta.name, "f1.bin");
-        assert_eq!(f1_meta.size, 64);
-        assert_eq!(f1_meta.filled, 64);
-        assert_eq!(f1_meta.chunks, 2);
-
-        let f2 = fs::add_file(FileMetadata {
-            name: "f2.bin".to_string(),
-            ..Default::default()
-        })
-        .unwrap();
-        assert_eq!(f2, 2);
-        fs::update_chunk(f2, 0, 999, [0u8; 16].to_vec()).unwrap();
-        fs::update_chunk(f2, 1, 1000, [1u8; 16].to_vec()).unwrap();
-        fs::update_chunk(f1, 3, 1000, [1u8; 16].to_vec()).unwrap();
-        fs::update_chunk(f2, 2, 1000, [2u8; 16].to_vec()).unwrap();
-        fs::update_chunk(f1, 2, 1000, [2u8; 16].to_vec()).unwrap();
-
-        let f1_data = fs::get_full_chunks(f1).unwrap();
-        assert_eq!(&f1_data[0..64], &[0u8; 64]);
-        assert_eq!(&f1_data[64..80], &[2u8; 16]);
-        assert_eq!(&f1_data[80..96], &[1u8; 16]);
-
-        let f1_meta = fs::get_file(f1).unwrap();
-        assert_eq!(f1_meta.size, 96);
-        assert_eq!(f1_meta.filled, 96);
-        assert_eq!(f1_meta.chunks, 4);
-
-        let f2_data = fs::get_full_chunks(f2).unwrap();
-        assert_eq!(&f2_data[0..16], &[0u8; 16]);
-        assert_eq!(&f2_data[16..32], &[1u8; 16]);
-        assert_eq!(&f2_data[32..48], &[2u8; 16]);
-
-        let f2_meta = fs::get_file(f2).unwrap();
-        assert_eq!(f2_meta.size, 48);
-        assert_eq!(f2_meta.filled, 48);
-        assert_eq!(f2_meta.chunks, 3);
     }
 }

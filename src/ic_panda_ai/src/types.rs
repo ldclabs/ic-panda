@@ -1,6 +1,7 @@
-use candid::CandidType;
+use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use std::collections::BTreeSet;
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct LoadModelInput {
@@ -32,4 +33,18 @@ pub struct LoadModelOutput {
     pub load_file_instructions: u64,
     pub load_mode_instructions: u64,
     pub total_instructions: u64,
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct StateInfo {
+    pub chat_count: u64,
+    pub ai_config: u32,
+    pub ai_tokenizer: u32,
+    pub ai_model: u32,
+    pub file_id: u32,
+    pub max_file_size: u64,
+    pub visibility: u8, // 0: private; 1: public
+    pub total_files: u64,
+    pub total_chunks: u64,
+    pub managers: BTreeSet<Principal>,
 }

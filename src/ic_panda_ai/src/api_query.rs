@@ -11,29 +11,21 @@ fn api_version() -> u16 {
 }
 
 #[ic_cdk::query]
-fn state() -> Result<store::State, ()> {
-    Ok(store::state::with(|r| r.clone()))
-}
-
-#[ic_cdk::query]
-fn get_file_info(id: u32, _access_token: Option<ByteBuf>) -> Result<FileInfo, String> {
-    match store::fs::get_file(id) {
-        Some(meta) => Ok(meta.into_info(id)),
-        None => Err("file not found".to_string()),
-    }
-}
-
-#[ic_cdk::query]
-fn list_files(
-    _parent: u32,
-    prev: Option<u32>,
-    take: Option<u32>,
-    _access_token: Option<ByteBuf>,
-) -> Vec<FileInfo> {
-    let max_prev = store::state::with(|s| s.file_id).saturating_add(1);
-    let prev = prev.unwrap_or(max_prev).min(max_prev);
-    let take = take.unwrap_or(10).min(100);
-    store::fs::list_files(prev, take)
+fn state() -> Result<types::StateInfo, ()> {
+    Ok(store::state::with(|r| {
+        store::fs::with(|fs| types::StateInfo {
+            chat_count: r.chat_count,
+            ai_config: r.ai_config,
+            ai_tokenizer: r.ai_tokenizer,
+            ai_model: r.ai_model,
+            file_id: fs.file_id,
+            max_file_size: fs.max_file_size,
+            visibility: fs.visibility,
+            total_files: fs.files.len() as u64,
+            total_chunks: store::fs::total_chunks(),
+            managers: fs.managers.clone(),
+        })
+    }))
 }
 
 #[ic_cdk::query]

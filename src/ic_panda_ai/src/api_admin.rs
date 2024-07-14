@@ -5,9 +5,8 @@ use crate::{is_controller, is_controller_or_manager, store, types, ANONYMOUS};
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> {
-    store::state::with_mut(|r| {
-        r.managers = args;
-    });
+    validate_admin_set_managers(args.clone())?;
+    store::fs::set_managers(args);
     Ok(())
 }
 

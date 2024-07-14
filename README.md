@@ -1,5 +1,5 @@
 # ICPanda DAO
-> A decentralized Panda meme brand built on the Internet Computer.
+🐼 A decentralized Panda meme brand built on the Internet Computer.
 
 ## Whitepaper
 
