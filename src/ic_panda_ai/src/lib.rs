@@ -13,8 +13,6 @@ mod types;
 
 use ic_oss_types::file::*;
 
-const MILLISECONDS: u64 = 1_000_000;
-
 static ANONYMOUS: Principal = Principal::anonymous();
 
 // "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
