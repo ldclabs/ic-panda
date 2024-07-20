@@ -45,12 +45,12 @@
     >
       Home
     </TabAnchor>
-    <TabAnchor
+    <!-- <TabAnchor
       href="/wallet"
       selected={$page.url.pathname.startsWith('/wallet')}
     >
       Chain Fusion
-    </TabAnchor>
+    </TabAnchor> -->
     <TabAnchor href="/#luckypool" selected={$page.url.hash === '#luckypool'}>
       Lucky Pool
     </TabAnchor>
