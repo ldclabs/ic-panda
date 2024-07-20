@@ -1,4 +1,5 @@
 export const idlFactory = ({ IDL }) => {
+  const Value = IDL.Rec();
   const LoadModelInput = IDL.Record({
     'tokenizer_id' : IDL.Nat32,
     'config_id' : IDL.Nat32,
@@ -26,46 +27,63 @@ export const idlFactory = ({ IDL }) => {
     'message' : IDL.Text,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ChatOutput, 'Err' : IDL.Text });
+  Value.fill(
+    IDL.Variant({
+      'Int' : IDL.Int,
+      'Map' : IDL.Vec(IDL.Tuple(IDL.Text, Value)),
+      'Nat' : IDL.Nat,
+      'Nat64' : IDL.Nat64,
+      'Blob' : IDL.Vec(IDL.Nat8),
+      'Text' : IDL.Text,
+      'Array' : IDL.Vec(Value),
+    })
+  );
   const CreateFileInput = IDL.Record({
-    'ert' : IDL.Opt(IDL.Text),
     'status' : IDL.Opt(IDL.Int8),
     'content' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'custom' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, Value))),
     'hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'name' : IDL.Text,
     'crc32' : IDL.Opt(IDL.Nat32),
-    'size' : IDL.Opt(IDL.Nat),
+    'size' : IDL.Opt(IDL.Nat64),
     'content_type' : IDL.Text,
     'parent' : IDL.Nat32,
   });
   const CreateFileOutput = IDL.Record({
     'id' : IDL.Nat32,
-    'created_at' : IDL.Nat,
+    'created_at' : IDL.Nat64,
   });
   const Result_3 = IDL.Variant({ 'Ok' : CreateFileOutput, 'Err' : IDL.Text });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : IDL.Text });
   const FileInfo = IDL.Record({
+    'ex' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, Value))),
     'id' : IDL.Nat32,
-    'ert' : IDL.Opt(IDL.Text),
     'status' : IDL.Int8,
-    'updated_at' : IDL.Nat,
+    'updated_at' : IDL.Nat64,
+    'custom' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, Value))),
     'hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'name' : IDL.Text,
-    'size' : IDL.Nat,
+    'size' : IDL.Nat64,
     'content_type' : IDL.Text,
-    'created_at' : IDL.Nat,
-    'filled' : IDL.Nat,
+    'created_at' : IDL.Nat64,
+    'filled' : IDL.Nat64,
     'chunks' : IDL.Nat32,
     'parent' : IDL.Nat32,
   });
-  const Result_4 = IDL.Variant({ 'Ok' : FileInfo, 'Err' : IDL.Text });
-  const State = IDL.Record({
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(FileInfo), 'Err' : IDL.Text });
+  const StateInfo = IDL.Record({
+    'total_chunks' : IDL.Nat64,
     'managers' : IDL.Vec(IDL.Principal),
+    'total_files' : IDL.Nat64,
     'ai_config' : IDL.Nat32,
     'ai_model' : IDL.Nat32,
+    'max_file_size' : IDL.Nat64,
+    'visibility' : IDL.Nat8,
     'chat_count' : IDL.Nat64,
     'ai_tokenizer' : IDL.Nat32,
     'file_id' : IDL.Nat32,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : State, 'Err' : IDL.Null });
+  const Result_6 = IDL.Variant({ 'Ok' : StateInfo, 'Err' : IDL.Null });
   const UpdateFileChunkInput = IDL.Record({
     'id' : IDL.Nat32,
     'chunk_index' : IDL.Nat32,
@@ -73,24 +91,23 @@ export const idlFactory = ({ IDL }) => {
     'crc32' : IDL.Opt(IDL.Nat32),
   });
   const UpdateFileChunkOutput = IDL.Record({
-    'updated_at' : IDL.Nat,
-    'filled' : IDL.Nat,
+    'updated_at' : IDL.Nat64,
+    'filled' : IDL.Nat64,
   });
-  const Result_6 = IDL.Variant({
+  const Result_7 = IDL.Variant({
     'Ok' : UpdateFileChunkOutput,
     'Err' : IDL.Text,
   });
   const UpdateFileInput = IDL.Record({
     'id' : IDL.Nat32,
-    'ert' : IDL.Opt(IDL.Text),
     'status' : IDL.Opt(IDL.Int8),
+    'custom' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, Value))),
     'hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'name' : IDL.Opt(IDL.Text),
     'content_type' : IDL.Opt(IDL.Text),
-    'parent' : IDL.Opt(IDL.Nat32),
   });
-  const UpdateFileOutput = IDL.Record({ 'updated_at' : IDL.Nat });
-  const Result_7 = IDL.Variant({ 'Ok' : UpdateFileOutput, 'Err' : IDL.Text });
+  const UpdateFileOutput = IDL.Record({ 'updated_at' : IDL.Nat64 });
+  const Result_8 = IDL.Variant({ 'Ok' : UpdateFileOutput, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_load_model' : IDL.Func([LoadModelInput], [Result], []),
     'admin_set_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
@@ -103,13 +120,8 @@ export const idlFactory = ({ IDL }) => {
       ),
     'delete_file' : IDL.Func(
         [IDL.Nat32, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_1],
-        [],
-      ),
-    'get_file_info' : IDL.Func(
-        [IDL.Nat32, IDL.Opt(IDL.Vec(IDL.Nat8))],
         [Result_4],
-        ['query'],
+        [],
       ),
     'list_files' : IDL.Func(
         [
@@ -118,19 +130,19 @@ export const idlFactory = ({ IDL }) => {
           IDL.Opt(IDL.Nat32),
           IDL.Opt(IDL.Vec(IDL.Nat8)),
         ],
-        [IDL.Vec(FileInfo)],
+        [Result_5],
         ['query'],
       ),
-    'state' : IDL.Func([], [Result_5], ['query']),
+    'state' : IDL.Func([], [Result_6], ['query']),
     'update_chat' : IDL.Func([ChatInput], [Result_2], []),
     'update_file_chunk' : IDL.Func(
         [UpdateFileChunkInput, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_6],
+        [Result_7],
         [],
       ),
     'update_file_info' : IDL.Func(
         [UpdateFileInput, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_7],
+        [Result_8],
         [],
       ),
     'validate_admin_set_managers' : IDL.Func(

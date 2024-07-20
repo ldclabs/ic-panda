@@ -17,9 +17,9 @@ export interface ChatOutput {
   'message' : string,
 }
 export interface CreateFileInput {
-  'ert' : [] | [string],
   'status' : [] | [number],
   'content' : [] | [Uint8Array | number[]],
+  'custom' : [] | [Array<[string, Value]>],
   'hash' : [] | [Uint8Array | number[]],
   'name' : string,
   'crc32' : [] | [number],
@@ -29,10 +29,11 @@ export interface CreateFileInput {
 }
 export interface CreateFileOutput { 'id' : number, 'created_at' : bigint }
 export interface FileInfo {
+  'ex' : [] | [Array<[string, Value]>],
   'id' : number,
-  'ert' : [] | [string],
   'status' : number,
   'updated_at' : bigint,
+  'custom' : [] | [Array<[string, Value]>],
   'hash' : [] | [Uint8Array | number[]],
   'name' : string,
   'size' : bigint,
@@ -60,18 +61,24 @@ export type Result_2 = { 'Ok' : ChatOutput } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : CreateFileOutput } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : FileInfo } |
+export type Result_4 = { 'Ok' : boolean } |
   { 'Err' : string };
-export type Result_5 = { 'Ok' : State } |
+export type Result_5 = { 'Ok' : Array<FileInfo> } |
+  { 'Err' : string };
+export type Result_6 = { 'Ok' : StateInfo } |
   { 'Err' : null };
-export type Result_6 = { 'Ok' : UpdateFileChunkOutput } |
+export type Result_7 = { 'Ok' : UpdateFileChunkOutput } |
   { 'Err' : string };
-export type Result_7 = { 'Ok' : UpdateFileOutput } |
+export type Result_8 = { 'Ok' : UpdateFileOutput } |
   { 'Err' : string };
-export interface State {
+export interface StateInfo {
+  'total_chunks' : bigint,
   'managers' : Array<Principal>,
+  'total_files' : bigint,
   'ai_config' : number,
   'ai_model' : number,
+  'max_file_size' : bigint,
+  'visibility' : number,
   'chat_count' : bigint,
   'ai_tokenizer' : number,
   'file_id' : number,
@@ -88,14 +95,20 @@ export interface UpdateFileChunkOutput {
 }
 export interface UpdateFileInput {
   'id' : number,
-  'ert' : [] | [string],
   'status' : [] | [number],
+  'custom' : [] | [Array<[string, Value]>],
   'hash' : [] | [Uint8Array | number[]],
   'name' : [] | [string],
   'content_type' : [] | [string],
-  'parent' : [] | [number],
 }
 export interface UpdateFileOutput { 'updated_at' : bigint }
+export type Value = { 'Int' : bigint } |
+  { 'Map' : Array<[string, Value]> } |
+  { 'Nat' : bigint } |
+  { 'Nat64' : bigint } |
+  { 'Blob' : Uint8Array | number[] } |
+  { 'Text' : string } |
+  { 'Array' : Array<Value> };
 export interface _SERVICE {
   'admin_load_model' : ActorMethod<[LoadModelInput], Result>,
   'admin_set_managers' : ActorMethod<[Array<Principal>], Result_1>,
@@ -105,24 +118,20 @@ export interface _SERVICE {
     [CreateFileInput, [] | [Uint8Array | number[]]],
     Result_3
   >,
-  'delete_file' : ActorMethod<[number, [] | [Uint8Array | number[]]], Result_1>,
-  'get_file_info' : ActorMethod<
-    [number, [] | [Uint8Array | number[]]],
-    Result_4
-  >,
+  'delete_file' : ActorMethod<[number, [] | [Uint8Array | number[]]], Result_4>,
   'list_files' : ActorMethod<
     [number, [] | [number], [] | [number], [] | [Uint8Array | number[]]],
-    Array<FileInfo>
+    Result_5
   >,
-  'state' : ActorMethod<[], Result_5>,
+  'state' : ActorMethod<[], Result_6>,
   'update_chat' : ActorMethod<[ChatInput], Result_2>,
   'update_file_chunk' : ActorMethod<
     [UpdateFileChunkInput, [] | [Uint8Array | number[]]],
-    Result_6
+    Result_7
   >,
   'update_file_info' : ActorMethod<
     [UpdateFileInput, [] | [Uint8Array | number[]]],
-    Result_7
+    Result_8
   >,
   'validate_admin_set_managers' : ActorMethod<[Array<Principal>], Result_1>,
 }
