@@ -7,14 +7,14 @@ import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import { AccountIdentifier } from '$lib/utils/account_identifier'
-import { TokenAmount, type TokenInfo } from '$lib/utils/token'
+import { ICPToken } from '$lib/utils/token'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
 export class ICPLedgerAPI {
-  principal: Principal
-  actor: _SERVICE
+  readonly principal: Principal
+  private actor: _SERVICE
 
   static async with(identity: Identity): Promise<ICPLedgerAPI> {
     const actor = await createActor<_SERVICE>({
@@ -73,13 +73,13 @@ export class ICPLedgerAPI {
     }
   }
 
-  async transfer(to: string, amount: TokenAmount): Promise<bigint> {
+  async transfer(to: string, amount: bigint): Promise<bigint> {
     if (to.includes('-')) {
       const principal = Principal.fromText(to)
       const res = await this.actor.icrc1_transfer({
         from_subaccount: [],
         to: { owner: principal, subaccount: [] },
-        amount: amount.toUlps(),
+        amount: amount,
         fee: [],
         memo: [],
         created_at_time: [BigInt(Date.now() * 1_000_000)]
@@ -90,8 +90,8 @@ export class ICPLedgerAPI {
       const address = AccountIdentifier.fromHex(to)
       const res = await this.actor.transfer({
         memo: 0n,
-        amount: { e8s: amount.toUlps() },
-        fee: { e8s: (amount.token as TokenInfo).fee },
+        amount: { e8s: amount },
+        fee: { e8s: ICPToken.fee },
         from_subaccount: [],
         to: address.toUint8Array(),
         created_at_time: [{ timestamp_nanos: BigInt(Date.now() * 1_000_000) }]

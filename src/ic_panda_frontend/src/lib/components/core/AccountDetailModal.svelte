@@ -79,14 +79,14 @@
   }
 
   async function handleICPTransfer(args: SendTokenArgs) {
-    const idx = await icpLedgerAPI.transfer(args.to, args.tokenAmount)
+    const idx = await icpLedgerAPI.transfer(args.to, args.amount)
     icpBalance = icpLedgerAPI.balance()
     availableICPBalance = await icpBalance
     return idx
   }
 
   async function handlePANDATransfer(args: SendTokenArgs) {
-    const idx = await tokenLedgerAPI.transfer(args.to, args.tokenAmount)
+    const idx = await tokenLedgerAPI.transfer(args.to, args.amount)
     pandaBalance = tokenLedgerAPI.balance()
     availablePandaBalance = await pandaBalance
     return idx

@@ -15,7 +15,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
   import { errMessage } from '$lib/types/result'
-  import { formatNumber, PANDAToken } from '$lib/utils/token'
+  import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'

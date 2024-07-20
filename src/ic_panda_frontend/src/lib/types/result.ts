@@ -21,14 +21,24 @@ export class ErrData<T> extends Error {
 
 export function unwrapResult<T, E>(
   res: Result<T, E>,
-  msg: string = 'error result',
-  opt = false
+  msg: string = 'error result'
 ): T {
   if ('Err' in res) {
     throw ErrData.from(msg, res.Err)
   }
 
-  if (opt && Array.isArray(res.Ok)) {
+  return res.Ok
+}
+
+export function unwrapOptionResult<T, E>(
+  res: Result<[] | [T], E>,
+  msg: string = 'error result'
+): T | null {
+  if ('Err' in res) {
+    throw ErrData.from(msg, res.Err)
+  }
+
+  if (Array.isArray(res.Ok)) {
     return res.Ok[0] || null
   }
 
@@ -38,7 +48,9 @@ export function unwrapResult<T, E>(
 export function errMessage(err: any): string {
   console.error(err)
   if (err?.data) {
-    return JSON.stringify(err.data)
+    return JSON.stringify(err.data, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )
   }
   if (err?.message) {
     return err.message

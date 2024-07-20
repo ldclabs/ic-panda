@@ -3,31 +3,37 @@ import {
   type _SERVICE,
   type Allowance
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
-import { TOKEN_LEDGER_CANISTER_ID } from '$lib/constants'
 import { asyncFactory } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
-import { TokenAmount } from '$lib/utils/token'
+import { ckDOGEToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
 export class TokenLedgerAPI {
-  principal: Principal
-  actor: _SERVICE
+  readonly principal: Principal
+  readonly canisterId: Principal
+  readonly token: TokenInfo
+  private actor: _SERVICE
 
-  static async with(identity: Identity): Promise<TokenLedgerAPI> {
+  static async with(
+    identity: Identity,
+    token: TokenInfo
+  ): Promise<TokenLedgerAPI> {
     const actor = await createActor<_SERVICE>({
-      canisterId: TOKEN_LEDGER_CANISTER_ID,
+      canisterId: token.canisterId,
       idlFactory: idlFactory,
       identity
     })
 
-    return new TokenLedgerAPI(identity.getPrincipal(), actor)
+    return new TokenLedgerAPI(identity.getPrincipal(), token, actor)
   }
 
-  constructor(principal: Principal, actor: _SERVICE) {
+  constructor(principal: Principal, token: TokenInfo, actor: _SERVICE) {
     this.principal = principal
+    this.canisterId = Principal.fromText(token.canisterId)
     this.actor = actor
+    this.token = token
   }
 
   async balance(): Promise<bigint> {
@@ -72,12 +78,12 @@ export class TokenLedgerAPI {
     }
   }
 
-  async transfer(to: string, amount: TokenAmount): Promise<bigint> {
+  async transfer(to: string, amount: bigint): Promise<bigint> {
     const principal = Principal.fromText(to)
     const res = await this.actor.icrc1_transfer({
       from_subaccount: [],
       to: { owner: principal, subaccount: [] },
-      amount: amount.toUlps(),
+      amount,
       fee: [],
       memo: [],
       created_at_time: [BigInt(Date.now() * 1_000_000)]
@@ -88,8 +94,15 @@ export class TokenLedgerAPI {
 }
 
 const tokenLedgerAPIStore = asyncFactory((identity) =>
-  TokenLedgerAPI.with(identity)
+  TokenLedgerAPI.with(identity, PANDAToken)
 )
 
 export const tokenLedgerAPIAsync = async () =>
   (await tokenLedgerAPIStore).async()
+
+const ckDOGETokenLedgerAPIStore = asyncFactory((identity) =>
+  TokenLedgerAPI.with(identity, ckDOGEToken)
+)
+
+export const ckDOGETokenLedgerAPIAsync = async () =>
+  (await ckDOGETokenLedgerAPIStore).async()

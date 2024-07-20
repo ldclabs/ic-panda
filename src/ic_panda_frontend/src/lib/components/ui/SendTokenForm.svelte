@@ -4,12 +4,7 @@
   import { ErrData } from '$lib/types/result'
   import type { SendTokenArgs } from '$lib/types/token'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import {
-    TokenAmount,
-    formatToken,
-    type TokenAmountDisplay,
-    type TokenInfo
-  } from '$lib/utils/token'
+  import { TokenDisplay, type TokenInfo } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import Loading from './Loading.svelte'
 
@@ -21,6 +16,8 @@
   let stepN: 0 | 1 = 0
   let submitting = false
   let validating = false
+  let sendTo = ''
+  let sendAmount = 0
   let formRef: HTMLFormElement
   let transferSuccess: bigint | null = null
   let transferError: ErrData<any> | null = null
@@ -32,28 +29,19 @@
     total: string
   } | null = null
 
-  const tokenFee = getTextAmount(token.fee)
+  let tokenDisplay = new TokenDisplay(token, 0n)
 
   const addressTip =
     'Principal' + (token.symbol == 'ICP' ? ' or ICP Address' : '')
-
-  // Form Data
-  const formData: SendTokenArgs = {
-    tokenAmount: TokenAmount.fromUlps({ amount: 0n, token }),
-    to: '',
-    amount: 0
-  }
-
-  function getTextAmount(amount: bigint): TokenAmountDisplay {
-    return formatToken(TokenAmount.fromUlps({ amount, token }))
-  }
 
   function setMaxAmount(e: Event) {
     e.stopPropagation()
     e.preventDefault()
 
     if (formRef) {
-      formData.amount = getTextAmount(availableBalance - token.fee).amountNum
+      tokenDisplay.amount =
+        availableBalance > token.fee ? availableBalance - token.fee : 0n
+      sendAmount = tokenDisplay.num
       const input = formRef['amount'] as HTMLInputElement
       input?.setCustomValidity('')
       validating = formRef.checkValidity()
@@ -63,16 +51,16 @@
   function validateAddress(e: Event) {
     const input = e.target as HTMLInputElement
 
-    if (token.symbol == 'ICP' && !formData.to.includes('-')) {
+    if (token.symbol == 'ICP' && !sendTo.includes('-')) {
       try {
-        AccountIdentifier.fromHex(formData.to)
+        AccountIdentifier.fromHex(sendTo)
       } catch (error) {
         input.setCustomValidity('Invalid ICP address')
         return
       }
     } else {
       try {
-        Principal.fromText(formData.to)
+        Principal.fromText(sendTo)
       } catch (error) {
         input.setCustomValidity('Invalid principal')
         return
@@ -84,20 +72,18 @@
 
   function validateAmount(e: Event) {
     const input = e.target as HTMLInputElement
-    if (
-      formData.amount > getTextAmount(availableBalance - token.fee).amountNum
-    ) {
+    if (tokenDisplay.total > availableBalance) {
       input.setCustomValidity('Amount exceeds available balance')
       return
     }
 
-    if (formData.amount <= 0.001) {
+    if (sendAmount <= 0.001) {
       input.setCustomValidity('Amount must be greater than 0.001')
       return
     }
 
     if (input.value.startsWith('0')) {
-      input.value = formData.amount.toString()
+      input.value = sendAmount.toString()
     }
 
     input.setCustomValidity('')
@@ -105,16 +91,17 @@
 
   function onFormChange(e: Event) {
     const form = e.currentTarget as HTMLFormElement
-    if (formData.amount <= 0.001) {
+    if (sendAmount <= 0.001) {
       const input = form['amount'] as HTMLInputElement
       input?.setCustomValidity('Amount must be greater than 0.001')
     }
+    tokenDisplay.num = sendAmount || 0
     validating = form.checkValidity()
   }
 
   function onClear() {
-    formData.to = ''
-    formData.amount = 0
+    sendTo = ''
+    sendAmount = 0
 
     stepN = 0
     submitting = false
@@ -130,10 +117,10 @@
     transferError = null
     txInfo = {
       from: sendFrom.toString(),
-      to: formData.to,
-      balance: getTextAmount(availableBalance).full,
-      amount: tokenAmountDisplay.full,
-      total: tokenAmountDisplay.feeAndFull
+      to: sendTo,
+      balance: tokenDisplay.displayValue(availableBalance),
+      amount: tokenDisplay.display(),
+      total: tokenDisplay.displayTotal()
     }
   }
 
@@ -145,7 +132,10 @@
 
   function onFormSubmit() {
     submitting = true
-    onSubmit(formData)
+    onSubmit({
+      to: sendTo,
+      amount: tokenDisplay.amount
+    })
       .then((n) => {
         submitting = false
         validating = false
@@ -156,12 +146,6 @@
         transferError = err
       })
   }
-
-  $: formData.tokenAmount = TokenAmount.fromNumber({
-    amount: formData.amount || 0,
-    token
-  })
-  $: tokenAmountDisplay = formatToken(formData.tokenAmount)
 </script>
 
 {#if stepN === 0}
@@ -173,10 +157,10 @@
         <input
           class="peer input bg-gray/5 valid:input-success hover:bg-white/90"
           type="text"
-          name="to"
+          name="sendTo"
           minlength="8"
           maxlength="65"
-          bind:value={formData.to}
+          bind:value={sendTo}
           on:input={validateAddress}
           placeholder={addressTip}
           disabled={submitting}
@@ -202,7 +186,7 @@
           name="amount"
           min="0"
           step="any"
-          bind:value={formData.amount}
+          bind:value={sendAmount}
           on:input={validateAmount}
           placeholder="Amount"
           disabled={submitting}
@@ -214,7 +198,7 @@
       </label>
       <div>
         <p>Transaction Fee (billed to source)</p>
-        <p>{tokenFee.full} {token.symbol}</p>
+        <p>{tokenDisplay.displayFee()} {token.symbol}</p>
       </div>
     </form>
     <!-- prettier-ignore -->
@@ -249,7 +233,9 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>Transaction Fee</span>
-        <span class="text-right">{tokenFee.full} {token.symbol}</span>
+        <span class="text-right"
+          >{tokenDisplay.displayFee()} {token.symbol}</span
+        >
       </div>
       <div class="flex flex-row justify-between">
         <span>Total Deducted</span>
