@@ -2,7 +2,7 @@
 members = [
   "src/cli_cryptogram",
   "src/ic_panda_ai",
-  "src/ic_panda_badges",
+  "src/ic_panda_infra",
   "src/ic_panda_luckypool",
   "src/lib_panda",
   "src/x_auth",

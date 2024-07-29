@@ -9,12 +9,12 @@
       "optimize": "cycles",
       "type": "rust"
     },
-    "ic_panda_badges": {
-      "candid": "src/ic_panda_badges/ic_panda_badges.did",
+    "ic_panda_infra": {
+      "candid": "src/ic_panda_infra/ic_panda_infra.did",
       "declarations": {
         "node_compatibility": true
       },
-      "package": "ic_panda_badges",
+      "package": "ic_panda_infra",
       "optimize": "cycles",
       "type": "rust"
     },

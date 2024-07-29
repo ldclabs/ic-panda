@@ -32,15 +32,15 @@
 PANDA is the only token issued by ICPanda DAO. By holding PANDA tokens, users can participate in:
 
 1. Governance decisions of ICPanda DAO and receive rewards;
-2. Purchasing panda badges;
+2. Purchasing panda infra services;
 3. Creation and trading of panda culture NFTs;
 4. Activities on the ICPanda meme brand platform.
 
 ## Roadmap
 
 1. [x] February 2024: Project launch; completion of seed investor fundraising.
-2. [ ] Q1 2024: Transition to DAO via SNS; launch of the lucky pool feature; PANDA tokens listed on DEX, while also promoting token listing on CEX.
-3. [ ] Q2 2024: Launch of the panda badges system.
+2. [x] Q1 2024: Transition to DAO via SNS; launch of the lucky pool feature; PANDA tokens listed on DEX, while also promoting token listing on CEX.
+3. [ ] Q2 2024: Launch of the panda infra services.
 4. [ ] Q3 2024: Launch of the panda culture NFT creation and trading platform.
 5. [ ] Q4 2024: Launch of the decentralized and open panda meme brand platform.
 
@@ -63,7 +63,7 @@ dfx start
 dfx canister create --specified-id rdmx6-jaaaa-aaaaa-aaadq-cai internet_identity
 dfx canister create --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister
 dfx canister create --specified-id c63a7-6yaaa-aaaap-ab3gq-cai ic_panda_frontend
-dfx canister create --specified-id f75us-gyaaa-aaaap-ab3wq-cai ic_panda_badges
+dfx canister create --specified-id f75us-gyaaa-aaaap-ab3wq-cai ic_panda_infra
 dfx canister create --specified-id a7cug-2qaaa-aaaap-ab3la-cai ic_panda_luckypool
 dfx canister create --specified-id q5mxo-eyaaa-aaaap-ahfoq-cai ic_panda_ai
 
