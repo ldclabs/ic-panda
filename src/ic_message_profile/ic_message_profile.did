@@ -1,0 +1,4 @@
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type InitArgs = record { managers : vec principal; name : text };
+type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+service : (opt ChainArgs) -> {}

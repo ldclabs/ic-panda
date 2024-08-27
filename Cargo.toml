@@ -1,6 +1,9 @@
 [workspace]
 members = [
   "src/cli_cryptogram",
+  "src/ic_message",
+  "src/ic_message_channel",
+  "src/ic_message_profile",
   "src/ic_panda_ai",
   "src/ic_panda_infra",
   "src/ic_panda_luckypool",
@@ -30,5 +33,6 @@ num-traits = "0.2"
 ic-cdk = "0.15"
 ic-cdk-timers = "0.8"
 ic-stable-structures = "0.6"
+ic_cose_types = "0.1"
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", features = ["getrandom"] }

@@ -1,0 +1,142 @@
+type AddMessageInput = record {
+  reply_to : opt nat32;
+  channel : nat32;
+  payload : blob;
+};
+type AddMessageOutput = record {
+  id : nat32;
+  kind : nat8;
+  created_at : nat64;
+  channel : nat32;
+};
+type CanisterStatusResponse = record {
+  status : CanisterStatusType;
+  memory_size : nat;
+  cycles : nat;
+  settings : DefiniteCanisterSettings;
+  query_stats : QueryStats;
+  idle_cycles_burned_per_day : nat;
+  module_hash : opt blob;
+  reserved_cycles : nat;
+};
+type CanisterStatusType = variant { stopped; stopping; running };
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type ChannelBasicInfo = record {
+  id : nat32;
+  updated_at : nat64;
+  name : text;
+  last_message_at : nat32;
+  last_message_by : principal;
+  my_setting : ChannelSetting;
+};
+type ChannelCreateInput = record {
+  dek : blob;
+  managers : vec record { principal; ChannelECDHInput };
+  name : text;
+  description : text;
+  created_by : principal;
+};
+type ChannelECDHInput = record {
+  ecdh_remote : opt record { blob; blob };
+  ecdh_pub : opt blob;
+};
+type ChannelInfo = record {
+  id : nat32;
+  dek : blob;
+  updated_at : nat64;
+  members : vec principal;
+  managers : vec principal;
+  name : text;
+  description : text;
+  last_message_at : nat32;
+  last_message_by : principal;
+  created_at : nat64;
+  created_by : principal;
+  my_setting : ChannelSetting;
+};
+type ChannelSetting = record {
+  mute : bool;
+  ecdh_remote : opt record { blob; blob };
+  unread : nat32;
+  last_read : nat32;
+  ecdh_pub : opt blob;
+};
+type ChannelUpdateInput = record {
+  id : nat32;
+  name : opt text;
+  description : opt text;
+};
+type ChannelUpdateMemberInput = record {
+  id : nat32;
+  member : principal;
+  ecdh : ChannelECDHInput;
+};
+type ChannelUpdateMySettingInput = record {
+  id : nat32;
+  ecdh : opt ChannelECDHInput;
+  mute : opt bool;
+  last_read : opt nat32;
+};
+type DefiniteCanisterSettings = record {
+  freezing_threshold : nat;
+  controllers : vec principal;
+  reserved_cycles_limit : nat;
+  log_visibility : LogVisibility;
+  wasm_memory_limit : nat;
+  memory_allocation : nat;
+  compute_allocation : nat;
+};
+type InitArgs = record { managers : vec principal; name : text };
+type LogVisibility = variant { controllers; public };
+type Message = record {
+  id : nat32;
+  reply_to : nat32;
+  kind : nat8;
+  created_at : nat64;
+  created_by : principal;
+  channel : nat32;
+  payload : blob;
+};
+type QueryStats = record {
+  response_payload_bytes_total : nat;
+  num_instructions_total : nat;
+  num_calls_total : nat;
+  request_payload_bytes_total : nat;
+};
+type Result = variant { Ok : AddMessageOutput; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : vec ChannelBasicInfo; Err : text };
+type Result_3 = variant { Ok : ChannelInfo; Err : text };
+type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
+type Result_5 = variant { Ok : opt ChannelInfo; Err : text };
+type Result_6 = variant { Ok : Message; Err : text };
+type Result_7 = variant { Ok : StateInfo; Err : text };
+type Result_8 = variant { Ok : vec Message; Err : text };
+type Result_9 = variant { Ok : nat64; Err : text };
+type StateInfo = record {
+  channel_id : nat32;
+  managers : vec principal;
+  name : text;
+  channels_total : nat64;
+  messages_total : nat64;
+};
+type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+service : (opt ChainArgs) -> {
+  add_message : (AddMessageInput) -> (Result);
+  admin_add_managers : (vec principal) -> (Result_1);
+  admin_remove_managers : (vec principal) -> (Result_1);
+  batch_get_channels : (vec nat32) -> (Result_2) query;
+  create_channel : (ChannelCreateInput) -> (Result_3);
+  get_canister_status : () -> (Result_4) query;
+  get_channel_if_update : (nat32, nat64) -> (Result_5) query;
+  get_message : (nat32, nat32) -> (Result_6) query;
+  get_state : () -> (Result_7) query;
+  list_messages : (nat32, opt nat32, opt nat32, opt nat32) -> (Result_8) query;
+  quit_channel : (ChannelUpdateMySettingInput) -> (Result_1);
+  update_channel : (ChannelUpdateInput) -> (Result_9);
+  update_manager : (ChannelUpdateMemberInput) -> (Result_9);
+  update_member : (ChannelUpdateMemberInput) -> (Result_9);
+  update_my_setting : (ChannelUpdateMySettingInput) -> (Result_1);
+  validate_admin_add_managers : (vec principal) -> (Result_1);
+  validate_admin_remove_managers : (vec principal) -> (Result_1);
+}

@@ -1,5 +1,9 @@
+use candid::Principal;
+
 #[ic_cdk::query]
 fn api_version() -> u16 {
+    let id: Principal = ic_cdk::caller();
+    ic_cdk::println!("{}", id);
     1
 }
 

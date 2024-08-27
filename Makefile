@@ -15,13 +15,14 @@ twiggy:
 
 # cargo install ic-wasm
 build-wasm:
-	cargo build --release --target wasm32-unknown-unknown --package ic_panda_ai
+	cargo build --release --target wasm32-unknown-unknown --package ic_message
+	cargo build --release --target wasm32-unknown-unknown --package ic_message_channel
+	cargo build --release --target wasm32-unknown-unknown --package ic_message_profile
 	cargo build --release --target wasm32-unknown-unknown --package ic_panda_luckypool
-
-shrink-wasm:
-	ic-wasm -o target/wasm32-unknown-unknown/release/ic_panda_ai_optimized.wasm target/wasm32-unknown-unknown/release/ic_panda_ai.wasm shrink
 
 # cargo install candid-extractor
 build-did:
-	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_ai.wasm > src/ic_panda_ai/ic_panda_ai.did
+	candid-extractor target/wasm32-unknown-unknown/release/ic_message.wasm > src/ic_message/ic_message.did
+	candid-extractor target/wasm32-unknown-unknown/release/ic_message_channel.wasm > src/ic_message_channel/ic_message_channel.did
+	candid-extractor target/wasm32-unknown-unknown/release/ic_message_profile.wasm > src/ic_message_profile/ic_message_profile.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm > src/ic_panda_luckypool/ic_panda_luckypool.did
