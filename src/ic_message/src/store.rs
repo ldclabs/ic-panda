@@ -1,13 +1,15 @@
-use candid::Principal;
+use candid::{Nat, Principal};
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::namespace::{CreateNamespaceInput, NamespaceInfo};
-use ic_message_types::profile::UserInfo;
+use ic_message_types::{profile::UserInfo, NameBlock};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, Storable,
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteArray;
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
 use crate::{call, token_transfer_from, types};
@@ -25,6 +27,29 @@ pub struct State {
     pub price: types::Price,
     pub incoming_total: u128,
     pub transfer_out_total: u128,
+    pub next_block_height: u64,
+    pub next_block_phash: ByteArray<32>,
+}
+
+impl State {
+    pub fn root_hash(&self) -> [u8; 32] {
+        self.hash_tree().digest()
+    }
+
+    pub fn hash_tree(&self) -> HashTreeNode {
+        HashTreeNode::Fork(Box::new((
+            HashTreeNode::Labeled(
+                Label::from("next_block_height"),
+                Box::new(HashTreeNode::Leaf(
+                    self.next_block_height.to_be_bytes().to_vec(),
+                )),
+            ),
+            HashTreeNode::Labeled(
+                Label::from("next_block_phash"),
+                Box::new(HashTreeNode::Leaf(self.next_block_phash.to_vec())),
+            ),
+        )))
+    }
 }
 
 impl Storable for State {
@@ -91,6 +116,8 @@ impl Storable for User {
 const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
 const NAME_MEMORY_ID: MemoryId = MemoryId::new(1);
 const USER_MEMORY_ID: MemoryId = MemoryId::new(2);
+const NAME_BLK_INDEX_MEMORY_ID: MemoryId = MemoryId::new(3);
+const NAME_BLK_DATA_MEMORY_ID: MemoryId = MemoryId::new(4);
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
@@ -115,6 +142,13 @@ thread_local! {
         StableBTreeMap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(USER_MEMORY_ID)),
         )
+    );
+
+    static NAME_BLOCKS: RefCell<StableLog<Vec<u8>, Memory, Memory>> = RefCell::new(
+        StableLog::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(NAME_BLK_INDEX_MEMORY_ID)),
+            MEMORY_MANAGER.with_borrow(|m| m.get(NAME_BLK_DATA_MEMORY_ID)),
+        ).expect("failed to init NameBlock store")
     );
 }
 
@@ -161,6 +195,11 @@ pub mod state {
 }
 
 pub mod user {
+    use ic_cose_types::{cose::sha3_256, to_cbor_bytes};
+    use icrc_ledger_types::icrc3::blocks::{
+        BlockWithId, GetBlocksRequest, GetBlocksResult, ICRC3GenericBlock,
+    };
+
     use super::*;
 
     pub fn names_total() -> u64 {
@@ -197,7 +236,13 @@ pub mod user {
             }
         });
 
-        call(info.profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        call(
+            info.profile_canister,
+            "admin_upsert_profile",
+            (caller, None::<(Principal, u64)>),
+            0,
+        )
+        .await?;
         Ok(info)
     }
 
@@ -214,13 +259,20 @@ pub mod user {
             }
         })?;
 
-        call(user_profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        call(
+            user_profile_canister,
+            "admin_upsert_profile",
+            (caller, None::<(Principal, u64)>),
+            0,
+        )
+        .await?;
         Ok(())
     }
 
     pub async fn register_username(
         caller: Principal,
         username: String,
+        now_ms: u64,
     ) -> Result<UserInfo, String> {
         let (cose_canister, profile_canister, price) = state::with(|s| {
             (
@@ -265,16 +317,28 @@ pub mod user {
             Ok(blk) => blk,
         };
 
-        if ln.len() <= 7 {
-            state::with_mut(|s| {
+        state::with_mut(|s| {
+            if ln.len() <= 7 {
                 s.short_usernames.insert(ln.clone());
-                s.incoming_total += amount as u128;
+            }
+            s.incoming_total += amount as u128;
+            let blk = NameBlock {
+                height: s.next_block_height,
+                phash: s.next_block_phash,
+                name: ln.clone(),
+                user: caller,
+                timestamp: now_ms,
+            };
+            let blk = to_cbor_bytes(&blk);
+            s.next_block_height += 1;
+            s.next_block_phash = sha3_256(&blk).into();
+            NAME_BLOCKS.with(|r| {
+                r.borrow_mut()
+                    .append(&blk)
+                    .expect("failed to append NameBlock");
             });
-        } else {
-            state::with_mut(|s| {
-                s.incoming_total += amount as u128;
-            });
-        }
+            ic_cdk::api::set_certified_data(s.root_hash().as_slice());
+        });
 
         let _: Result<NamespaceInfo, String> = call(
             cose_canister,
@@ -319,7 +383,13 @@ pub mod user {
             }
         });
 
-        call(info.profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        call(
+            info.profile_canister,
+            "admin_upsert_profile",
+            (caller, None::<(Principal, u64)>),
+            0,
+        )
+        .await?;
         Ok(info)
     }
 
@@ -373,6 +443,51 @@ pub mod user {
                 .collect()
         })
     }
+
+    pub fn get_blocks(args: Vec<GetBlocksRequest>) -> GetBlocksResult {
+        const MAX_BLOCKS_PER_RESPONSE: u64 = 100;
+
+        let next_block_height = state::with(|s| s.next_block_height);
+
+        NAME_BLOCKS.with(|r| {
+            let logs = r.borrow();
+            let logs_len = logs.len();
+            let mut blocks = vec![];
+            for arg in args {
+                let (start, length) = arg
+                    .as_start_and_length()
+                    .unwrap_or_else(|msg| ic_cdk::api::trap(&msg));
+
+                let max_length = MAX_BLOCKS_PER_RESPONSE.saturating_sub(blocks.len() as u64);
+                if max_length == 0 {
+                    break;
+                }
+
+                let length = max_length.min(length).min(logs_len - start);
+                for i in start..start + length {
+                    match logs.get(i) {
+                        None => break,
+                        Some(block) => {
+                            blocks.push(BlockWithId {
+                                id: Nat::from(i),
+                                block: ICRC3GenericBlock::Blob(block.into()),
+                            });
+                        }
+                    }
+                }
+
+                if blocks.len() as u64 >= MAX_BLOCKS_PER_RESPONSE {
+                    break;
+                }
+            }
+
+            GetBlocksResult {
+                log_length: Nat::from(next_block_height),
+                blocks,
+                archived_blocks: vec![],
+            }
+        })
+    }
 }
 
 pub mod channel {
@@ -396,10 +511,15 @@ pub mod channel {
         let channel_canister = channel_canister.ok_or_else(|| "no channel canister".to_string())?;
         let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
 
-        let user_profile_canister = USER_STORE.with(|r| {
+        let amount = price.channel.saturating_sub(types::TOKEN_FEE);
+        if amount == 0 {
+            return Err("invalid channel price".to_string());
+        }
+
+        let (user_profile_canister, is_new) = USER_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&caller) {
-                Some(user) => user.profile_canister,
+                Some(user) => (user.profile_canister, false),
                 None => {
                     let user = User {
                         name: input.name.clone(),
@@ -409,16 +529,19 @@ pub mod channel {
                         paid: 0,
                     };
                     m.insert(caller, user.clone());
-                    profile_canister
+                    (profile_canister, true)
                 }
             }
         });
 
-        call(user_profile_canister, "admin_upsert_profile", (caller,), 0).await?;
-
-        let amount = price.channel.saturating_sub(types::TOKEN_FEE);
-        if amount == 0 {
-            return Err("invalid channel price".to_string());
+        if is_new {
+            call(
+                user_profile_canister,
+                "admin_upsert_profile",
+                (caller, None::<(Principal, u64)>),
+                0,
+            )
+            .await?;
         }
 
         token_transfer_from(
@@ -440,7 +563,16 @@ pub mod channel {
         input.paid = amount;
         let res: Result<ChannelInfo, String> =
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
-        res
+        let res = res?;
+
+        call(
+            user_profile_canister,
+            "admin_upsert_profile",
+            (caller, Some((res.canister, res.id))),
+            0,
+        )
+        .await?;
+        Ok(res)
     }
 
     pub async fn save_channel_kek(caller: Principal, input: ChannelKEKInput) -> Result<(), String> {
@@ -450,7 +582,7 @@ pub mod channel {
         let user_cose = user_cose.ok_or_else(|| "user has no COSE namespace".to_string())?;
         let res: Result<CreateSettingOutput, String> = call(
             user_cose.0,
-            "admin_create_setting",
+            "setting_create",
             (
                 SettingPath {
                     ns: user_cose.1.to_ascii_lowercase(),

@@ -13,6 +13,9 @@ fn update_channel(input: types::UpdateChannelInput) -> Result<u64, String> {
         if let Some(name) = input.name {
             c.name = name;
         }
+        if let Some(image) = input.image {
+            c.image = image;
+        }
         if let Some(description) = input.description {
             c.description = description;
         }

@@ -49,5 +49,6 @@ ic-cdk-timers = "0.8"
 ic-stable-structures = "0.6"
 icrc-ledger-types = "0.1"
 ic_cose_types = "0.3"
+ic-certification = "2.6"
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", features = ["getrandom"] }

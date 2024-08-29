@@ -26,6 +26,7 @@ type ChannelBasicInfo = record {
   updated_at : nat64;
   name : text;
   paid : nat64;
+  image : text;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;
@@ -46,6 +47,7 @@ type ChannelInfo = record {
   created_at : nat64;
   created_by : principal;
   canister : principal;
+  image : text;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;
@@ -64,6 +66,7 @@ type CreateChannelInput = record {
   paid : nat64;
   description : text;
   created_by : principal;
+  image : text;
 };
 type DefiniteCanisterSettings = record {
   freezing_threshold : nat;
@@ -113,6 +116,7 @@ type UpdateChannelInput = record {
   id : nat32;
   name : opt text;
   description : opt text;
+  image : opt text;
 };
 type UpdateChannelMemberInput = record {
   id : nat32;

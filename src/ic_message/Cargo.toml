@@ -25,3 +25,4 @@ ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
 ic_cose_types = { workspace = true }
+ic-certification = { workspace = true }

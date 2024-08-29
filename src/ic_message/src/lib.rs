@@ -6,6 +6,10 @@ use ic_message_types::{
     channel::{ChannelInfo, CreateChannelInput},
     profile::UserInfo,
 };
+use icrc_ledger_types::icrc3::{
+    archive::{GetArchivesArgs, GetArchivesResult},
+    blocks::{GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate, SupportedBlockType},
+};
 use icrc_ledger_types::{
     icrc1::{
         account::Account,

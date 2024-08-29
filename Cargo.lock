@@ -1667,6 +1667,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-certification"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e64ee3d8b6e81b51f245716d3e0badb63c283c00f3c9fb5d5219afc30b5bf821"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_bytes",
+ "sha2",
+]
+
+[[package]]
 name = "ic-ledger-types"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1771,6 +1783,7 @@ dependencies = [
  "ciborium",
  "getrandom",
  "ic-cdk 0.15.1",
+ "ic-certification",
  "ic-stable-structures",
  "ic_cose_types",
  "ic_message_types",

@@ -46,6 +46,8 @@ pub struct Channel {
     pub name: String,
     #[serde(rename = "d")]
     pub description: String,
+    #[serde(rename = "i")]
+    pub image: String,
     #[serde(rename = "m")]
     pub managers: HashMap<Principal, ChannelSetting>,
     #[serde(rename = "p")]
@@ -58,6 +60,8 @@ pub struct Channel {
     pub created_by: Principal,
     #[serde(rename = "ua")]
     pub updated_at: u64,
+    #[serde(rename = "ms")]
+    pub message_start: u32,
     #[serde(rename = "la")]
     pub latest_message_at: u32,
     #[serde(rename = "lb")]
@@ -86,12 +90,14 @@ impl Channel {
             id,
             canister,
             name: self.name,
+            image: self.image,
             description: self.description,
             managers: self.managers.into_keys().collect(),
             members: self.members.into_keys().collect(),
             dek: self.dek,
             created_at: self.created_at,
             created_by: self.created_by,
+            message_start: self.message_start,
             latest_message_at: self.latest_message_at,
             latest_message_by: self.latest_message_by,
             updated_at: self.updated_at,
@@ -340,6 +346,10 @@ pub mod channel {
     }
 
     pub fn add_sys_message(caller: Principal, now_ms: u64, mid: MessageId, message: String) {
+        if mid.1 == u32::MAX {
+            ic_cdk::trap("message id overflow");
+        }
+
         MESSAGE_STORE.with(|r| {
             r.borrow_mut().insert(
                 mid,
@@ -364,6 +374,10 @@ pub mod channel {
             s.channel_id
         });
 
+        if id == u32::MAX {
+            ic_cdk::trap("channel id overflow");
+        }
+
         add_sys_message(
             caller,
             now_ms,
@@ -379,6 +393,7 @@ pub mod channel {
         CHANNEL_STORE.with(|r| {
             let channel = Channel {
                 name: input.name,
+                image: input.image,
                 description: input.description,
                 managers: input
                     .managers
@@ -389,6 +404,7 @@ pub mod channel {
                 dek: input.dek,
                 created_at: now_ms,
                 created_by: input.created_by,
+                message_start: 1,
                 latest_message_at: 1,
                 latest_message_by: caller,
                 paid: input.paid,
@@ -492,7 +508,7 @@ pub mod channel {
 
                         MESSAGE_STORE.with(|r| {
                             let mut messages = r.borrow_mut();
-                            for i in 1..v.latest_message_at + 1 {
+                            for i in v.message_start..v.latest_message_at + 1 {
                                 messages.remove(&MessageId(id, i));
                             }
                         });
@@ -517,11 +533,15 @@ pub mod channel {
                         Err("caller is not a manager or member".to_string())?;
                     }
 
-                    if v.latest_message_at >= types::MAX_CHANNEL_MESSAGES {
+                    if v.latest_message_at + 1 - v.message_start >= types::MAX_CHANNEL_MESSAGES {
                         Err("too many messages".to_string())?;
                     }
 
                     v.latest_message_at += 1;
+                    if v.latest_message_at == u32::MAX {
+                        Err("message id overflow".to_string())?;
+                    }
+
                     v.latest_message_by = msg.created_by;
                     let mid = v.latest_message_at;
                     state::with_mut(|s| {
@@ -587,6 +607,7 @@ pub mod channel {
                         output.push(types::ChannelBasicInfo {
                             id,
                             name: v.name.clone(),
+                            image: v.image.clone(),
                             updated_at: v.updated_at,
                             latest_message_at: v.latest_message_at,
                             latest_message_by: v.latest_message_by,

@@ -2,8 +2,13 @@ use candid::Principal;
 use ic_cdk::api::management_canister::main::{
     canister_status, CanisterIdRecord, CanisterStatusResponse,
 };
-use ic_cose_types::format_error;
+use ic_cose_types::{format_error, to_cbor_bytes};
 use ic_message_types::profile::UserInfo;
+use icrc_ledger_types::icrc3::{
+    archive::{GetArchivesArgs, GetArchivesResult},
+    blocks::{GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate, SupportedBlockType},
+};
+use serde_bytes::ByteBuf;
 use std::collections::BTreeSet;
 
 use crate::{is_authenticated, store, types};
@@ -34,6 +39,35 @@ async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
     .await
     .map_err(format_error)?;
     Ok(res)
+}
+
+#[ic_cdk::query]
+pub fn icrc3_supported_block_types() -> Vec<SupportedBlockType> {
+    vec![SupportedBlockType {
+        block_type: "ic-message".to_string(),
+        url: "https://github.com/ldclabs/ic-panda/tree/main/src/ic_message".to_string(),
+    }]
+}
+
+#[ic_cdk::query]
+pub fn icrc3_get_tip_certificate() -> Option<ICRC3DataCertificate> {
+    let certificate = ByteBuf::from(ic_cdk::api::data_certificate()?);
+    let hash_tree = store::state::with(|s| s.hash_tree());
+    let buf = to_cbor_bytes(&hash_tree);
+    Some(ICRC3DataCertificate {
+        certificate,
+        hash_tree: ByteBuf::from(buf),
+    })
+}
+
+#[ic_cdk::query]
+pub fn icrc3_get_archives(_args: GetArchivesArgs) -> GetArchivesResult {
+    vec![] // TODO: implement
+}
+
+#[ic_cdk::query]
+pub fn icrc3_get_blocks(args: Vec<GetBlocksRequest>) -> GetBlocksResult {
+    store::user::get_blocks(args)
 }
 
 #[ic_cdk::query]

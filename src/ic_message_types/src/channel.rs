@@ -20,6 +20,7 @@ pub struct ChannelInfo {
     pub id: u32,
     pub canister: Principal,
     pub name: String,
+    pub image: String,
     pub description: String,
     pub managers: BTreeSet<Principal>,
     pub members: BTreeSet<Principal>,
@@ -28,6 +29,7 @@ pub struct ChannelInfo {
     pub created_by: Principal,
     pub updated_at: u64,
     pub paid: u64,
+    pub message_start: u32,
     pub latest_message_at: u32,
     pub latest_message_by: Principal,
     pub my_setting: ChannelSetting,
@@ -37,6 +39,7 @@ pub struct ChannelInfo {
 pub struct ChannelBasicInfo {
     pub id: u32,
     pub name: String,
+    pub image: String,
     pub updated_at: u64,
     pub latest_message_at: u32,
     pub latest_message_by: Principal,
@@ -67,6 +70,7 @@ pub struct Message {
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct CreateChannelInput {
     pub name: String,
+    pub image: String,
     pub description: String,
     pub managers: HashMap<Principal, ChannelECDHInput>,
     pub dek: ByteBuf,
@@ -116,6 +120,7 @@ pub fn channel_kek_key(canister: &Principal, id: u32) -> ByteBuf {
 pub struct UpdateChannelInput {
     pub id: u32,
     pub name: Option<String>,
+    pub image: Option<String>,
     pub description: Option<String>,
 }
 
@@ -127,6 +132,12 @@ impl UpdateChannelInput {
             }
             if name.len() > 64 {
                 Err("name is too long".to_string())?;
+            }
+        }
+
+        if let Some(ref image) = self.image {
+            if !image.starts_with("https://") {
+                Err("invalid image url".to_string())?;
             }
         }
 

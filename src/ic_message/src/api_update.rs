@@ -1,4 +1,4 @@
-use ic_cose_types::validate_key;
+use ic_cose_types::{validate_key, MILLISECONDS};
 use ic_message_types::{
     channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
     profile::UserInfo,
@@ -18,7 +18,8 @@ async fn register_username(username: String) -> Result<UserInfo, String> {
     }
 
     let caller = ic_cdk::caller();
-    store::user::register_username(caller, username).await
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::user::register_username(caller, username, now_ms).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

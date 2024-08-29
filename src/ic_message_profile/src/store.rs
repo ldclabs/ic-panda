@@ -50,10 +50,51 @@ pub struct Profile {
     pub created_at: u64,
 }
 
+impl Profile {
+    pub fn into_info(
+        self,
+        caller: Principal,
+        canister: Principal,
+        is_caller: bool,
+    ) -> types::ProfileInfo {
+        types::ProfileInfo {
+            id: caller,
+            canister,
+            bio: self.bio,
+            active_at: self.active_at,
+            created_at: self.created_at,
+            following: if is_caller {
+                Some(self.following)
+            } else {
+                None
+            },
+            channels: if is_caller {
+                Some(
+                    self.channels
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                k,
+                                types::ChannelSetting {
+                                    pin: v.pin,
+                                    alias: v.alias,
+                                    tags: v.tags,
+                                },
+                            )
+                        })
+                        .collect(),
+                )
+            } else {
+                None
+            },
+        }
+    }
+}
+
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct ChannelSetting {
     #[serde(rename = "a")]
-    pub pin: u16,
+    pub pin: u32,
     #[serde(rename = "a")]
     pub alias: String,
     #[serde(rename = "t")]
@@ -148,23 +189,39 @@ pub mod profile {
         PROFILE_STORE.with(|r| r.borrow().len())
     }
 
-    pub fn upsert(user: Principal, now_ms: u64) -> Result<(), String> {
+    pub fn upsert(
+        user: Principal,
+        now_ms: u64,
+        channel: Option<(Principal, u64)>,
+    ) -> Result<(), String> {
         PROFILE_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&user) {
                 Some(mut p) => {
                     p.active_at = now_ms;
+                    if let Some(cid) = channel {
+                        let max_pin = p.channels.values().map(|v| v.pin).max().unwrap_or_default();
+                        p.channels.insert(
+                            cid,
+                            ChannelSetting {
+                                pin: max_pin.saturating_add(1),
+                                alias: "".to_string(),
+                                tags: BTreeSet::new(),
+                            },
+                        );
+                    }
                     m.insert(user, p);
                 }
                 None => {
-                    m.insert(
-                        user,
-                        Profile {
-                            created_at: now_ms,
-                            active_at: now_ms,
-                            ..Default::default()
-                        },
-                    );
+                    let mut p = Profile {
+                        created_at: now_ms,
+                        active_at: now_ms,
+                        ..Default::default()
+                    };
+                    if let Some(cid) = channel {
+                        p.channels.insert(cid, ChannelSetting::default());
+                    }
+                    m.insert(user, p);
                 }
             }
 
@@ -216,31 +273,8 @@ pub mod profile {
                     }
 
                     p.active_at = now_ms;
-                    let info = types::ProfileInfo {
-                        id: user,
-                        canister: ic_cdk::id(),
-                        bio: p.bio.clone(),
-                        active_at: p.active_at,
-                        created_at: p.created_at,
-                        following: Some(p.following.clone()),
-                        channels: Some(
-                            p.channels
-                                .iter()
-                                .map(|(k, v)| {
-                                    (
-                                        *k,
-                                        types::ChannelSetting {
-                                            pin: v.pin,
-                                            alias: v.alias.clone(),
-                                            tags: v.tags.clone(),
-                                        },
-                                    )
-                                })
-                                .collect(),
-                        ),
-                    };
-                    m.insert(user, p);
-                    Ok(info)
+                    m.insert(user, p.clone());
+                    Ok(p.into_info(user, ic_cdk::id(), true))
                 }
                 None => Err("profile not found".to_string()),
             }
@@ -249,33 +283,7 @@ pub mod profile {
 
     pub fn get(user: Principal, is_caller: bool) -> Result<types::ProfileInfo, String> {
         PROFILE_STORE.with(|r| match r.borrow_mut().get(&user) {
-            Some(v) => Ok(types::ProfileInfo {
-                id: user,
-                canister: ic_cdk::id(),
-                bio: v.bio,
-                active_at: v.active_at,
-                created_at: v.created_at,
-                following: if is_caller { Some(v.following) } else { None },
-                channels: if is_caller {
-                    Some(
-                        v.channels
-                            .into_iter()
-                            .map(|(k, v)| {
-                                (
-                                    k,
-                                    types::ChannelSetting {
-                                        pin: v.pin,
-                                        alias: v.alias,
-                                        tags: v.tags,
-                                    },
-                                )
-                            })
-                            .collect(),
-                    )
-                } else {
-                    None
-                },
-            }),
+            Some(v) => Ok(v.into_info(user, ic_cdk::id(), is_caller)),
             None => Err("profile not found".to_string()),
         })
     }

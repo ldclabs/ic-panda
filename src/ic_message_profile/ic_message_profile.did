@@ -10,7 +10,7 @@ type CanisterStatusResponse = record {
 };
 type CanisterStatusType = variant { stopped; stopping; running };
 type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
-type ChannelSetting = record { pin : nat16; alias : text; tags : vec text };
+type ChannelSetting = record { pin : nat32; alias : text; tags : vec text };
 type DefiniteCanisterSettings = record {
   freezing_threshold : nat;
   controllers : vec principal;
@@ -57,7 +57,9 @@ type UpgradeArgs = record { managers : opt vec principal; name : opt text };
 service : (opt ChainArgs) -> {
   admin_add_managers : (vec principal) -> (Result);
   admin_remove_managers : (vec principal) -> (Result);
-  admin_upsert_profile : (principal) -> (Result);
+  admin_upsert_profile : (principal, opt record { principal; nat64 }) -> (
+      Result,
+    );
   get_canister_status : () -> (Result_1) query;
   get_profile : (opt principal) -> (Result_2) query;
   get_state : () -> (Result_3) query;

@@ -23,11 +23,11 @@ fn admin_remove_managers(args: BTreeSet<Principal>) -> Result<(), String> {
 }
 
 #[ic_cdk::update]
-fn admin_upsert_profile(user: Principal) -> Result<(), String> {
+fn admin_upsert_profile(user: Principal, channel: Option<(Principal, u64)>) -> Result<(), String> {
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
-    store::profile::upsert(user, now_ms)
+    store::profile::upsert(user, now_ms, channel)
 }
 
 #[ic_cdk::update]

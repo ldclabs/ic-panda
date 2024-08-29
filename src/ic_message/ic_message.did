@@ -1,3 +1,8 @@
+type ArchivedBlocks = record {
+  args : vec GetBlocksRequest;
+  callback : func (vec GetBlocksRequest) -> (GetBlocksResult) query;
+};
+type BlockWithId = record { id : nat; block : ICRC3Value };
 type CanisterKind = variant { Cose; Channel; Profile };
 type CanisterStatusResponse = record {
   status : CanisterStatusType;
@@ -27,6 +32,7 @@ type ChannelInfo = record {
   created_at : nat64;
   created_by : principal;
   canister : principal;
+  image : text;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;
@@ -46,6 +52,7 @@ type CreateChannelInput = record {
   paid : nat64;
   description : text;
   created_by : principal;
+  image : text;
 };
 type DefiniteCanisterSettings = record {
   freezing_threshold : nat;
@@ -55,6 +62,27 @@ type DefiniteCanisterSettings = record {
   wasm_memory_limit : nat;
   memory_allocation : nat;
   compute_allocation : nat;
+};
+type GetArchivesArgs = record { from : opt principal };
+type GetBlocksRequest = record { start : nat; length : nat };
+type GetBlocksResult = record {
+  log_length : nat;
+  blocks : vec BlockWithId;
+  archived_blocks : vec ArchivedBlocks;
+};
+type ICRC3ArchiveInfo = record {
+  end : nat;
+  canister_id : principal;
+  start : nat;
+};
+type ICRC3DataCertificate = record { certificate : blob; hash_tree : blob };
+type ICRC3Value = variant {
+  Int : int;
+  Map : vec record { text; ICRC3Value };
+  Nat : nat;
+  Blob : blob;
+  Text : text;
+  Array : vec ICRC3Value;
 };
 type InitArgs = record { managers : vec principal; name : text };
 type LogVisibility = variant { controllers; public };
@@ -91,6 +119,7 @@ type StateInfo = record {
   incoming_total : nat;
   channel_canisters : vec principal;
 };
+type SupportedBlockType = record { url : text; block_type : text };
 type UpdatePriceInput = record {
   name_l1 : opt nat64;
   name_l2 : opt nat64;
@@ -121,6 +150,10 @@ service : (opt ChainArgs) -> {
   get_canister_status : () -> (Result_4) query;
   get_state : () -> (Result_5) query;
   get_user : (opt principal) -> (Result_3) query;
+  icrc3_get_archives : (GetArchivesArgs) -> (vec ICRC3ArchiveInfo) query;
+  icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
+  icrc3_get_tip_certificate : () -> (opt ICRC3DataCertificate) query;
+  icrc3_supported_block_types : () -> (vec SupportedBlockType) query;
   register_username : (text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_6) query;

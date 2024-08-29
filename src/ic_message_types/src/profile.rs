@@ -29,7 +29,7 @@ pub struct ProfileInfo {
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct ChannelSetting {
-    pub pin: u16,
+    pub pin: u32,
     pub alias: String,
     pub tags: BTreeSet<String>,
 }
