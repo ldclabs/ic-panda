@@ -1,4 +1,134 @@
+type CanisterKind = variant { Cose; Channel; Profile };
+type CanisterStatusResponse = record {
+  status : CanisterStatusType;
+  memory_size : nat;
+  cycles : nat;
+  settings : DefiniteCanisterSettings;
+  query_stats : QueryStats;
+  idle_cycles_burned_per_day : nat;
+  module_hash : opt blob;
+  reserved_cycles : nat;
+};
+type CanisterStatusType = variant { stopped; stopping; running };
 type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type ChannelECDHInput = record {
+  ecdh_remote : opt record { blob; blob };
+  ecdh_pub : opt blob;
+};
+type ChannelInfo = record {
+  id : nat32;
+  dek : blob;
+  updated_at : nat64;
+  members : vec principal;
+  managers : vec principal;
+  name : text;
+  paid : nat64;
+  description : text;
+  created_at : nat64;
+  created_by : principal;
+  canister : principal;
+  latest_message_at : nat32;
+  latest_message_by : principal;
+  my_setting : ChannelSetting;
+};
+type ChannelKEKInput = record { id : nat32; kek : blob; canister : principal };
+type ChannelSetting = record {
+  mute : bool;
+  ecdh_remote : opt record { blob; blob };
+  unread : nat32;
+  last_read : nat32;
+  ecdh_pub : opt blob;
+};
+type CreateChannelInput = record {
+  dek : blob;
+  managers : vec record { principal; ChannelECDHInput };
+  name : text;
+  paid : nat64;
+  description : text;
+  created_by : principal;
+};
+type DefiniteCanisterSettings = record {
+  freezing_threshold : nat;
+  controllers : vec principal;
+  reserved_cycles_limit : nat;
+  log_visibility : LogVisibility;
+  wasm_memory_limit : nat;
+  memory_allocation : nat;
+  compute_allocation : nat;
+};
 type InitArgs = record { managers : vec principal; name : text };
+type LogVisibility = variant { controllers; public };
+type Price = record {
+  name_l1 : nat64;
+  name_l2 : nat64;
+  name_l3 : nat64;
+  name_l5 : nat64;
+  name_l7 : nat64;
+  channel : nat64;
+};
+type QueryStats = record {
+  response_payload_bytes_total : nat;
+  num_instructions_total : nat;
+  num_calls_total : nat;
+  request_payload_bytes_total : nat;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : vec UserInfo; Err : text };
+type Result_2 = variant { Ok : ChannelInfo; Err : text };
+type Result_3 = variant { Ok : UserInfo; Err : text };
+type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
+type Result_5 = variant { Ok : StateInfo; Err : text };
+type Result_6 = variant { Ok : vec text; Err : text };
+type StateInfo = record {
+  managers : vec principal;
+  name : text;
+  profile_canisters : vec principal;
+  names_total : nat64;
+  transfer_out_total : nat;
+  users_total : nat64;
+  price : Price;
+  cose_canisters : vec principal;
+  incoming_total : nat;
+  channel_canisters : vec principal;
+};
+type UpdatePriceInput = record {
+  name_l1 : opt nat64;
+  name_l2 : opt nat64;
+  name_l3 : opt nat64;
+  name_l5 : opt nat64;
+  name_l7 : opt nat64;
+  channel : opt nat64;
+};
 type UpgradeArgs = record { managers : opt vec principal; name : opt text };
-service : (opt ChainArgs) -> {}
+type UserInfo = record {
+  id : principal;
+  username : opt text;
+  cose_canister : opt principal;
+  name : text;
+  paid : nat64;
+  image : text;
+  profile_canister : principal;
+};
+service : (opt ChainArgs) -> {
+  admin_add_canister : (CanisterKind, principal) -> (Result);
+  admin_add_managers : (vec principal) -> (Result);
+  admin_collect_token : (nat) -> (Result);
+  admin_remove_managers : (vec principal) -> (Result);
+  admin_update_price : (UpdatePriceInput) -> (Result);
+  batch_get_users : (vec principal) -> (Result_1) query;
+  create_channel : (CreateChannelInput) -> (Result_2);
+  get_by_username : (text) -> (Result_3) query;
+  get_canister_status : () -> (Result_4) query;
+  get_state : () -> (Result_5) query;
+  get_user : (opt principal) -> (Result_3) query;
+  register_username : (text) -> (Result_3);
+  save_channel_kek : (ChannelKEKInput) -> (Result);
+  search_username : (text) -> (Result_6) query;
+  update_my_image : (text) -> (Result);
+  update_my_name : (text) -> (Result_3);
+  validate_admin_add_canister : (CanisterKind, principal) -> (Result);
+  validate_admin_add_managers : (vec principal) -> (Result);
+  validate_admin_collect_token : (nat) -> (Result);
+  validate_admin_remove_managers : (vec principal) -> (Result);
+  validate_admin_update_price : (UpdatePriceInput) -> (Result);
+}

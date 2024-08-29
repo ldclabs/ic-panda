@@ -1,7 +1,8 @@
 [package]
-name = "ic_message_channel"
-publish = false
-repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_message_channel"
+name = "ic_message_types"
+description = "A Rust types library used for integrating with ICPanda Messages."
+publish = true
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_message_types"
 version.workspace = true
 edition.workspace = true
 keywords.workspace = true
@@ -11,10 +12,8 @@ license.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
 
 [dependencies]
-ic_message_types = { path = "../ic_message_types", version = "0.6" }
 candid = { workspace = true }
 ciborium = { workspace = true }
 serde = { workspace = true }

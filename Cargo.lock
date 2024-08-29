@@ -616,6 +616,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 
 [[package]]
+name = "const-hex"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94fb8a24a26d37e1ffd45343323dc9fe6654ceea44c12f2fcb3d7ac29e610bc6"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "hex",
+ "proptest",
+ "serde",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1413,6 +1426,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hkdf"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
+dependencies = [
+ "hmac",
+]
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1719,15 +1741,17 @@ checksum = "8de254dd67bbd58073e23dc1c8553ba12fa1dc610a19de94ad2bbcd0460c067f"
 
 [[package]]
 name = "ic_cose_types"
-version = "0.1.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d96bb6153739535ad8d417a49349e4ae8cb3505be2df71a923fb6782345c5b"
+checksum = "a6c9d307cbc732bec95516c2da8558208b9b08a13ba8f31405a7a9c6ce7c74c6"
 dependencies = [
  "aes-gcm",
  "candid",
  "ciborium",
+ "const-hex",
  "coset",
  "ed25519-dalek",
+ "hkdf",
  "hmac",
  "icrc-ledger-types",
  "k256",
@@ -1741,7 +1765,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -1749,12 +1773,16 @@ dependencies = [
  "ic-cdk 0.15.1",
  "ic-stable-structures",
  "ic_cose_types",
+ "ic_message_types",
+ "icrc-ledger-types",
+ "num-traits",
  "serde",
+ "serde_bytes",
 ]
 
 [[package]]
 name = "ic_message_channel"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -1762,13 +1790,29 @@ dependencies = [
  "ic-cdk 0.15.1",
  "ic-stable-structures",
  "ic_cose_types",
+ "ic_message_types",
  "serde",
  "serde_bytes",
 ]
 
 [[package]]
 name = "ic_message_profile"
-version = "0.1.0"
+version = "0.6.0"
+dependencies = [
+ "candid",
+ "ciborium",
+ "getrandom",
+ "ic-cdk 0.15.1",
+ "ic-stable-structures",
+ "ic_cose_types",
+ "ic_message_types",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
+name = "ic_message_types"
+version = "0.6.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -1815,7 +1859,7 @@ dependencies = [
 
 [[package]]
 name = "ic_panda_luckypool"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "base64 0.21.7",
  "candid",
@@ -2398,6 +2442,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "proptest"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4c2511913b88df1637da85cc8d96ec8e43a3f8bb8ccb71ee1ac240d6f3df58d"
+dependencies = [
+ "bitflags 2.6.0",
+ "lazy_static",
+ "num-traits",
+ "rand",
+ "rand_chacha",
+ "rand_xorshift",
+ "regex-syntax",
+ "unarray",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2528,6 +2588,15 @@ checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
 dependencies = [
  "num-traits",
  "rand",
+]
+
+[[package]]
+name = "rand_xorshift"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
+dependencies = [
+ "rand_core",
 ]
 
 [[package]]
@@ -3535,6 +3604,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 
 [[package]]
+name = "unarray"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
+
+[[package]]
 name = "unicode-bidi"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3944,7 +4019,7 @@ dependencies = [
 
 [[package]]
 name = "x-auth"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",

@@ -1,5 +1,7 @@
 use candid::Principal;
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use ic_cose_types::types::namespace::{CreateNamespaceInput, NamespaceInfo};
+use ic_message_types::profile::UserInfo;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -8,12 +10,21 @@ use ic_stable_structures::{
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
+use crate::{call, token_transfer_from, types};
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct State {
     pub name: String,
     pub managers: BTreeSet<Principal>,
+    pub cose_canisters: Vec<Principal>,
+    pub profile_canisters: Vec<Principal>,
+    pub channel_canisters: Vec<Principal>,
+    pub short_usernames: BTreeSet<String>, // names that length <= 7
+    pub price: types::Price,
+    pub incoming_total: u128,
+    pub transfer_out_total: u128,
 }
 
 impl Storable for State {
@@ -40,6 +51,27 @@ pub struct User {
     pub profile_canister: Principal, // profile canister
     #[serde(rename = "cn")]
     pub cose_namespace: Option<(Principal, String)>, // namespace in shared COSE service
+    #[serde(rename = "pa")]
+    pub paid: u64,
+}
+
+impl User {
+    pub fn into_info(self, id: Principal) -> UserInfo {
+        let (cose_canister, username) = match self.cose_namespace {
+            Some((c, n)) => (Some(c), Some(n)),
+            None => (None, None),
+        };
+
+        UserInfo {
+            id,
+            name: self.name.clone(),
+            image: self.image.clone(),
+            profile_canister: self.profile_canister,
+            username,
+            cose_canister,
+            paid: self.paid,
+        }
+    }
 }
 
 impl Storable for User {
@@ -125,5 +157,319 @@ pub mod state {
                     .expect("failed to set STATE_STORE data");
             });
         });
+    }
+}
+
+pub mod user {
+    use super::*;
+
+    pub fn names_total() -> u64 {
+        NAME_STORE.with(|r| r.borrow().len())
+    }
+
+    pub fn users_total() -> u64 {
+        USER_STORE.with(|r| r.borrow().len())
+    }
+
+    pub async fn update_name(caller: Principal, name: String) -> Result<UserInfo, String> {
+        let profile_canister = state::with(|s| s.profile_canisters.last().cloned());
+        let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
+
+        let info = USER_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&caller) {
+                Some(mut user) => {
+                    user.name = name;
+                    m.insert(caller, user.clone());
+                    user.into_info(caller)
+                }
+                None => {
+                    let user = User {
+                        name,
+                        image: "".to_string(),
+                        profile_canister,
+                        cose_namespace: None,
+                        paid: 0,
+                    };
+                    m.insert(caller, user.clone());
+                    user.into_info(caller)
+                }
+            }
+        });
+
+        call(info.profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        Ok(info)
+    }
+
+    pub async fn update_image(caller: Principal, image: String) -> Result<(), String> {
+        let user_profile_canister = USER_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&caller) {
+                Some(mut user) => {
+                    user.image = image;
+                    m.insert(caller, user.clone());
+                    Ok(user.profile_canister)
+                }
+                None => Err("user not found".to_string()),
+            }
+        })?;
+
+        call(user_profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        Ok(())
+    }
+
+    pub async fn register_username(
+        caller: Principal,
+        username: String,
+    ) -> Result<UserInfo, String> {
+        let (cose_canister, profile_canister, price) = state::with(|s| {
+            (
+                s.cose_canisters.last().cloned(),
+                s.profile_canisters.last().cloned(),
+                s.price.clone(),
+            )
+        });
+        let cose_canister = cose_canister.ok_or_else(|| "no COSE canister".to_string())?;
+        let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
+
+        let ln = username.to_lowercase();
+        let amount = price.get(ln.len()).saturating_sub(types::TOKEN_FEE);
+        if amount == 0 {
+            return Err("invalid username length".to_string());
+        }
+
+        NAME_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&ln) {
+                Some(_) => Err("username already registered".to_string()),
+                None => {
+                    m.insert(ln.clone(), caller);
+                    Ok(())
+                }
+            }
+        })?;
+
+        let blk = match token_transfer_from(
+            caller,
+            amount.into(),
+            format!("register_username: {}", username),
+        )
+        .await
+        {
+            Err(err) => {
+                NAME_STORE.with(|r| {
+                    r.borrow_mut().remove(&ln);
+                });
+                return Err(err);
+            }
+            Ok(blk) => blk,
+        };
+
+        if ln.len() <= 7 {
+            state::with_mut(|s| {
+                s.short_usernames.insert(ln.clone());
+                s.incoming_total += amount as u128;
+            });
+        } else {
+            state::with_mut(|s| {
+                s.incoming_total += amount as u128;
+            });
+        }
+
+        let _: Result<NamespaceInfo, String> = call(
+            cose_canister,
+            "admin_create_namespace",
+            (CreateNamespaceInput {
+                name: ln.clone(),
+                visibility: 0,
+                desc: Some(format!(
+                    "registered by {}, $PANDA block: {}",
+                    caller.to_text(),
+                    blk
+                )),
+                max_payload_size: Some(1024),
+                managers: BTreeSet::from([ic_cdk::id()]),
+                auditors: BTreeSet::from([caller]),
+                users: BTreeSet::from([caller]),
+            },),
+            0,
+        )
+        .await?;
+
+        let info = USER_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&caller) {
+                Some(mut user) => {
+                    user.paid = amount;
+                    user.cose_namespace = Some((cose_canister, username));
+                    m.insert(caller, user.clone());
+                    user.into_info(caller)
+                }
+                None => {
+                    let user = User {
+                        name: username.clone(),
+                        image: "".to_string(),
+                        profile_canister,
+                        cose_namespace: Some((cose_canister, username)),
+                        paid: amount,
+                    };
+                    m.insert(caller, user.clone());
+                    user.into_info(caller)
+                }
+            }
+        });
+
+        call(info.profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+        Ok(info)
+    }
+
+    pub fn search_username(prefix: String) -> Vec<String> {
+        state::with(|s| {
+            if prefix.len() <= 7 {
+                s.short_usernames
+                    .iter()
+                    .filter(|n| n.starts_with(&prefix))
+                    .cloned()
+                    .collect()
+            } else {
+                NAME_STORE.with(|r| {
+                    if r.borrow().contains_key(&prefix) {
+                        vec![prefix]
+                    } else {
+                        vec![]
+                    }
+                })
+            }
+        })
+    }
+
+    pub fn get_by_username(username: String) -> Result<UserInfo, String> {
+        state::with(|s| {
+            if username.len() <= 7 && !s.short_usernames.contains(&username) {
+                None
+            } else {
+                NAME_STORE.with(|r| match r.borrow().get(&username) {
+                    Some(id) => USER_STORE.with(|m| m.borrow().get(&id).map(|u| u.into_info(id))),
+                    None => None,
+                })
+            }
+        })
+        .ok_or_else(|| "user not found".to_string())
+    }
+
+    pub fn get(user: Principal) -> Result<UserInfo, String> {
+        USER_STORE.with(|m| {
+            m.borrow()
+                .get(&user)
+                .map(|u| u.into_info(user))
+                .ok_or_else(|| "user not found".to_string())
+        })
+    }
+
+    pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {
+        USER_STORE.with(|r| {
+            ids.iter()
+                .filter_map(|id| r.borrow().get(id).map(|u| u.into_info(*id)))
+                .collect()
+        })
+    }
+}
+
+pub mod channel {
+    use super::*;
+    use ic_cose_types::types::setting::{CreateSettingInput, CreateSettingOutput, SettingPath};
+    use ic_message_types::channel::{
+        channel_kek_key, ChannelInfo, ChannelKEKInput, CreateChannelInput,
+    };
+
+    pub async fn create_channel(
+        caller: Principal,
+        mut input: CreateChannelInput,
+    ) -> Result<ChannelInfo, String> {
+        let (channel_canister, profile_canister, price) = state::with(|s| {
+            (
+                s.channel_canisters.last().cloned(),
+                s.profile_canisters.last().cloned(),
+                s.price.clone(),
+            )
+        });
+        let channel_canister = channel_canister.ok_or_else(|| "no channel canister".to_string())?;
+        let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
+
+        let user_profile_canister = USER_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&caller) {
+                Some(user) => user.profile_canister,
+                None => {
+                    let user = User {
+                        name: input.name.clone(),
+                        image: "".to_string(),
+                        profile_canister,
+                        cose_namespace: None,
+                        paid: 0,
+                    };
+                    m.insert(caller, user.clone());
+                    profile_canister
+                }
+            }
+        });
+
+        call(user_profile_canister, "admin_upsert_profile", (caller,), 0).await?;
+
+        let amount = price.channel.saturating_sub(types::TOKEN_FEE);
+        if amount == 0 {
+            return Err("invalid channel price".to_string());
+        }
+
+        token_transfer_from(
+            caller,
+            amount.into(),
+            format!(
+                "create channel {} in {}",
+                input.name,
+                channel_canister.to_text()
+            ),
+        )
+        .await?;
+
+        state::with_mut(|s| {
+            s.incoming_total += amount as u128;
+        });
+
+        input.created_by = caller;
+        input.paid = amount;
+        let res: Result<ChannelInfo, String> =
+            call(channel_canister, "admin_create_channel", (input,), 0).await?;
+        res
+    }
+
+    pub async fn save_channel_kek(caller: Principal, input: ChannelKEKInput) -> Result<(), String> {
+        let user_cose = USER_STORE
+            .with(|r| r.borrow().get(&caller).map(|u| u.cose_namespace))
+            .ok_or_else(|| "user not found".to_string())?;
+        let user_cose = user_cose.ok_or_else(|| "user has no COSE namespace".to_string())?;
+        let res: Result<CreateSettingOutput, String> = call(
+            user_cose.0,
+            "admin_create_setting",
+            (
+                SettingPath {
+                    ns: user_cose.1.to_ascii_lowercase(),
+                    user_owned: false,
+                    subject: Some(caller),
+                    key: channel_kek_key(&input.canister, input.id),
+                    version: 0,
+                },
+                CreateSettingInput {
+                    payload: None,
+                    desc: None,
+                    status: None,
+                    tags: None,
+                    dek: Some(input.kek),
+                },
+            ),
+            0,
+        )
+        .await?;
+        res.map(|_| ())
     }
 }

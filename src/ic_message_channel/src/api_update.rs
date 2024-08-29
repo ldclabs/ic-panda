@@ -4,17 +4,7 @@ use std::collections::hash_map::Entry;
 use crate::{is_authenticated, store, types};
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn create_channel(input: types::ChannelCreateInput) -> Result<types::ChannelInfo, String> {
-    input.validate()?;
-
-    let caller = ic_cdk::caller();
-    let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    store::state::is_manager(&caller)?;
-    store::channel::create(caller, input, now_ms)
-}
-
-#[ic_cdk::update(guard = "is_authenticated")]
-fn update_channel(input: types::ChannelUpdateInput) -> Result<u64, String> {
+fn update_channel(input: types::UpdateChannelInput) -> Result<u64, String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
@@ -27,13 +17,13 @@ fn update_channel(input: types::ChannelUpdateInput) -> Result<u64, String> {
             c.description = description;
         }
         c.updated_at = now_ms;
-        c.last_message_at += 1;
-        c.last_message_by = caller;
+        c.latest_message_at += 1;
+        c.latest_message_by = caller;
 
         store::channel::add_sys_message(
             caller,
             now_ms,
-            store::MessageId(input.id, c.last_message_at),
+            store::MessageId(input.id, c.latest_message_at),
             types::SYS_MSG_CHANNEL_UPDATE_INFO.to_string(),
         );
         Ok(c.updated_at)
@@ -41,7 +31,7 @@ fn update_channel(input: types::ChannelUpdateInput) -> Result<u64, String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn update_manager(input: types::ChannelUpdateMemberInput) -> Result<u64, String> {
+fn update_manager(input: types::UpdateChannelMemberInput) -> Result<u64, String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
@@ -74,13 +64,17 @@ fn update_manager(input: types::ChannelUpdateMemberInput) -> Result<u64, String>
 
         c.updated_at = now_ms;
         if is_new {
-            c.last_message_at += 1;
-            c.last_message_by = caller;
+            c.latest_message_at += 1;
+            c.latest_message_by = caller;
+
+            if !store::state::user_add_channel(input.member, input.id, c.latest_message_at) {
+                Err("too many channels".to_string())?;
+            }
 
             store::channel::add_sys_message(
                 caller,
                 now_ms,
-                store::MessageId(input.id, c.last_message_at),
+                store::MessageId(input.id, c.latest_message_at),
                 format!(
                     "{}: {}",
                     types::SYS_MSG_CHANNEL_ADD_MANAGER,
@@ -93,7 +87,7 @@ fn update_manager(input: types::ChannelUpdateMemberInput) -> Result<u64, String>
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn update_member(input: types::ChannelUpdateMemberInput) -> Result<u64, String> {
+fn update_member(input: types::UpdateChannelMemberInput) -> Result<u64, String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
@@ -119,13 +113,16 @@ fn update_member(input: types::ChannelUpdateMemberInput) -> Result<u64, String> 
 
         c.updated_at = now_ms;
         if is_new {
-            c.last_message_at += 1;
-            c.last_message_by = caller;
+            c.latest_message_at += 1;
+            c.latest_message_by = caller;
 
+            if !store::state::user_add_channel(input.member, input.id, c.latest_message_at) {
+                Err("too many channels".to_string())?;
+            }
             store::channel::add_sys_message(
                 caller,
                 now_ms,
-                store::MessageId(input.id, c.last_message_at),
+                store::MessageId(input.id, c.latest_message_at),
                 format!(
                     "{}: {}",
                     types::SYS_MSG_CHANNEL_ADD_MEMBER,
@@ -138,7 +135,16 @@ fn update_member(input: types::ChannelUpdateMemberInput) -> Result<u64, String> 
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn update_my_setting(input: types::ChannelUpdateMySettingInput) -> Result<(), String> {
+fn remove_member(input: types::UpdateChannelMemberInput) -> Result<(), String> {
+    input.validate()?;
+
+    let caller = ic_cdk::caller();
+    store::channel::remove_member(caller, input.member, input.id)?;
+    Ok(())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn update_my_setting(input: types::UpdateMySettingInput) -> Result<(), String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
@@ -147,11 +153,11 @@ fn update_my_setting(input: types::ChannelUpdateMySettingInput) -> Result<(), St
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn quit_channel(input: types::ChannelUpdateMySettingInput) -> Result<(), String> {
+fn quit_channel(input: types::UpdateMySettingInput, delete_channel: bool) -> Result<(), String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::quit(caller, input.id)?;
+    store::channel::quit(caller, input.id, delete_channel)?;
     Ok(())
 }
 

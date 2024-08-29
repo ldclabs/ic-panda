@@ -11,7 +11,7 @@ use serde_bytes::{ByteArray, ByteBuf};
 use std::{
     borrow::Cow,
     cell::RefCell,
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
 };
 
 use crate::types;
@@ -23,6 +23,7 @@ pub struct State {
     pub name: String,
     pub managers: BTreeSet<Principal>,
     pub channel_id: u32,
+    pub user_channels: HashMap<Principal, BTreeMap<u32, u32>>,
 }
 
 impl Storable for State {
@@ -58,13 +59,15 @@ pub struct Channel {
     #[serde(rename = "ua")]
     pub updated_at: u64,
     #[serde(rename = "la")]
-    pub last_message_at: u32,
+    pub latest_message_at: u32,
     #[serde(rename = "lb")]
-    pub last_message_by: Principal,
+    pub latest_message_by: Principal,
+    #[serde(rename = "pa")]
+    pub paid: u64,
 }
 
 impl Channel {
-    pub fn into_info(self, caller: Principal, id: u32) -> types::ChannelInfo {
+    pub fn into_info(self, caller: Principal, canister: Principal, id: u32) -> types::ChannelInfo {
         let my_setting = if let Some(s) = self.managers.get(&caller) {
             s.to_owned().into()
         } else if let Some(s) = self.members.get(&caller) {
@@ -81,6 +84,7 @@ impl Channel {
 
         types::ChannelInfo {
             id,
+            canister,
             name: self.name,
             description: self.description,
             managers: self.managers.into_keys().collect(),
@@ -88,9 +92,10 @@ impl Channel {
             dek: self.dek,
             created_at: self.created_at,
             created_by: self.created_by,
-            last_message_at: self.last_message_at,
-            last_message_by: self.last_message_by,
+            latest_message_at: self.latest_message_at,
+            latest_message_by: self.latest_message_by,
             updated_at: self.updated_at,
+            paid: self.paid,
             my_setting,
         }
     }
@@ -258,6 +263,22 @@ pub mod state {
         })
     }
 
+    pub fn user_add_channel(user: Principal, id: u32, mid: u32) -> bool {
+        with_mut(|s| {
+            let map = s.user_channels.entry(user).or_default();
+            if map.len() >= types::MAX_USER_CHANNELS && !map.contains_key(&id) {
+                false
+            } else {
+                map.insert(id, mid);
+                true
+            }
+        })
+    }
+
+    pub fn user_channels(user: &Principal) -> BTreeMap<u32, u32> {
+        with(|s| s.user_channels.get(user).cloned().unwrap_or_default())
+    }
+
     pub fn load() {
         let mut scratch = [0; 4096];
         STATE_STORE.with(|r| {
@@ -335,7 +356,7 @@ pub mod channel {
 
     pub fn create(
         caller: Principal,
-        input: types::ChannelCreateInput,
+        input: types::CreateChannelInput,
         now_ms: u64,
     ) -> Result<types::ChannelInfo, String> {
         let id = state::with_mut(|s| {
@@ -368,20 +389,20 @@ pub mod channel {
                 dek: input.dek,
                 created_at: now_ms,
                 created_by: input.created_by,
-                last_message_at: 1,
-                last_message_by: caller,
+                latest_message_at: 1,
+                latest_message_by: caller,
+                paid: input.paid,
                 updated_at: now_ms,
             };
 
-            let output = channel.clone().into_info(input.created_by, id);
-            r.borrow_mut().insert(id, channel);
-            Ok(output)
+            r.borrow_mut().insert(id, channel.clone());
+            Ok(channel.into_info(input.created_by, ic_cdk::id(), id))
         })
     }
 
     pub fn update_my_setting(
         caller: Principal,
-        input: types::ChannelUpdateMySettingInput,
+        input: types::UpdateMySettingInput,
     ) -> Result<(), String> {
         CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
@@ -416,7 +437,31 @@ pub mod channel {
         })
     }
 
-    pub fn quit(caller: Principal, id: u32) -> Result<(), String> {
+    pub fn remove_member(caller: Principal, member: Principal, id: u32) -> Result<(), String> {
+        CHANNEL_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&id) {
+                None => Err("channel not found".to_string()),
+                Some(mut v) => {
+                    if !v.managers.contains_key(&caller) {
+                        Err("caller is not a manager".to_string())?;
+                    }
+
+                    v.members.remove(&member);
+                    state::with_mut(|s| {
+                        if let Some(channels) = s.user_channels.get_mut(&member) {
+                            channels.remove(&id);
+                        }
+                    });
+
+                    m.insert(id, v);
+                    Ok(())
+                }
+            }
+        })
+    }
+
+    pub fn quit(caller: Principal, id: u32, delete_channel: bool) -> Result<(), String> {
         CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&id) {
@@ -424,13 +469,30 @@ pub mod channel {
                 Some(mut v) => {
                     v.members.remove(&caller);
                     v.managers.remove(&caller);
+                    if v.managers.is_empty() && !delete_channel {
+                        Err("no managers".to_string())?;
+                    }
+
+                    state::with_mut(|s| {
+                        if let Some(channels) = s.user_channels.get_mut(&caller) {
+                            channels.remove(&id);
+                        }
+                    });
 
                     // remove channel if no managers
                     if v.managers.is_empty() {
                         m.remove(&id);
+                        state::with_mut(|s| {
+                            for u in v.members.keys() {
+                                if let Some(channels) = s.user_channels.get_mut(u) {
+                                    channels.remove(&id);
+                                }
+                            }
+                        });
+
                         MESSAGE_STORE.with(|r| {
                             let mut messages = r.borrow_mut();
-                            for i in 1..v.last_message_at + 1 {
+                            for i in 1..v.latest_message_at + 1 {
                                 messages.remove(&MessageId(id, i));
                             }
                         });
@@ -455,23 +517,31 @@ pub mod channel {
                         Err("caller is not a manager or member".to_string())?;
                     }
 
-                    if v.last_message_at >= types::MAX_CHANNEL_MESSAGES {
+                    if v.latest_message_at >= types::MAX_CHANNEL_MESSAGES {
                         Err("too many messages".to_string())?;
                     }
 
-                    v.last_message_at += 1;
-                    v.last_message_by = msg.created_by;
-                    for (p, s) in v.managers.iter_mut() {
-                        if p != &msg.created_by {
-                            s.unread += 1;
+                    v.latest_message_at += 1;
+                    v.latest_message_by = msg.created_by;
+                    let mid = v.latest_message_at;
+                    state::with_mut(|s| {
+                        for (p, c) in v.managers.iter_mut() {
+                            if p != &msg.created_by {
+                                c.unread += 1;
+                            }
+                            if let Some(channels) = s.user_channels.get_mut(p) {
+                                channels.insert(id, mid);
+                            }
                         }
-                    }
-                    for (p, s) in v.members.iter_mut() {
-                        if p != &msg.created_by {
-                            s.unread += 1;
+                        for (p, c) in v.members.iter_mut() {
+                            if p != &msg.created_by {
+                                c.unread += 1;
+                            }
+                            if let Some(channels) = s.user_channels.get_mut(p) {
+                                channels.insert(id, mid);
+                            }
                         }
-                    }
-                    let mid = v.last_message_at;
+                    });
                     m.insert(id, v);
                     MESSAGE_STORE.with(|r| r.borrow_mut().insert(MessageId(id, mid), msg));
                     Ok(mid)
@@ -493,7 +563,7 @@ pub mod channel {
                 }
 
                 if v.updated_at > updated_at {
-                    Ok(Some(v.into_info(caller, id)))
+                    Ok(Some(v.into_info(caller, ic_cdk::id(), id)))
                 } else {
                     Ok(None)
                 }
@@ -509,15 +579,18 @@ pub mod channel {
                 if let Some(v) = m.get(&id) {
                     let my_setting = if let Some(s) = v.managers.get(&caller) {
                         Some(s)
-                    } else { v.members.get(&caller) };
+                    } else {
+                        v.members.get(&caller)
+                    };
 
                     if let Some(my_setting) = my_setting {
                         output.push(types::ChannelBasicInfo {
                             id,
                             name: v.name.clone(),
                             updated_at: v.updated_at,
-                            last_message_at: v.last_message_at,
-                            last_message_by: v.last_message_by,
+                            latest_message_at: v.latest_message_at,
+                            latest_message_by: v.latest_message_by,
+                            paid: v.paid,
                             my_setting: my_setting.to_owned().into(),
                         });
                     }
@@ -559,8 +632,8 @@ pub mod channel {
                     Err("caller is not a manager or member".to_string())?;
                 }
 
-                let end = if prev == 0 || prev > v.last_message_at {
-                    v.last_message_at + 1
+                let end = if prev == 0 || prev > v.latest_message_at {
+                    v.latest_message_at + 1
                 } else {
                     prev
                 };

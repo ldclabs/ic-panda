@@ -1,7 +1,12 @@
 [package]
 name = "ic_message"
-version = "0.1.0"
-edition = "2021"
+publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_message"
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,10 +14,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+ic_message_types = { path = "../ic_message_types", version = "0.6" }
 candid = { workspace = true }
 ciborium = { workspace = true }
+num-traits = { workspace = true }
 serde = { workspace = true }
+serde_bytes = { workspace = true }
 getrandom = { workspace = true }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
+icrc-ledger-types = { workspace = true }
 ic_cose_types = { workspace = true }

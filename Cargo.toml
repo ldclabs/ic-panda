@@ -12,6 +12,20 @@ members = [
 ]
 resolver = "2"
 
+[profile.release]
+debug = false
+lto = true
+strip = true
+opt-level = 's'
+
+[workspace.package]
+edition = "2021"
+version = "0.6.0"
+repository = "https://github.com/ldclabs/ic-panda"
+keywords = ["canister", "icp", "panda"]
+categories = ["web-programming"]
+license = "MIT OR Apache-2.0"
+
 [workspace.dependencies]
 async-trait = "0.1"
 bytes = "1"
@@ -33,6 +47,7 @@ num-traits = "0.2"
 ic-cdk = "0.15"
 ic-cdk-timers = "0.8"
 ic-stable-structures = "0.6"
-ic_cose_types = "0.1"
+icrc-ledger-types = "0.1"
+ic_cose_types = "0.3"
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", features = ["getrandom"] }

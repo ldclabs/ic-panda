@@ -1,9 +1,12 @@
 [package]
 name = "x-auth"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.64"
 publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/x-auth"
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "x-auth"

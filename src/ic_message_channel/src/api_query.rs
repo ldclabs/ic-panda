@@ -2,7 +2,7 @@ use ic_cdk::api::management_canister::main::{
     canister_status, CanisterIdRecord, CanisterStatusResponse,
 };
 use ic_cose_types::format_error;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{is_authenticated, store, types};
 
@@ -44,6 +44,24 @@ async fn batch_get_channels(ids: BTreeSet<u32>) -> Result<Vec<types::ChannelBasi
     }
 
     Ok(store::channel::batch_get(ic_cdk::caller(), ids))
+}
+
+#[ic_cdk::query(guard = "is_authenticated")]
+async fn my_channels() -> Result<Vec<types::ChannelBasicInfo>, String> {
+    let caller = ic_cdk::caller();
+    let ids: BTreeSet<u32> = store::state::with(|s| {
+        s.user_channels
+            .get(&caller)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or_default()
+    });
+    Ok(store::channel::batch_get(caller, ids))
+}
+
+#[ic_cdk::query(guard = "is_authenticated")]
+async fn my_channels_latest() -> Result<BTreeMap<u32, u32>, String> {
+    let caller = ic_cdk::caller();
+    Ok(store::state::user_channels(&caller))
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]

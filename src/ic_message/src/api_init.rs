@@ -2,7 +2,7 @@ use candid::{CandidType, Principal};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
-use crate::store;
+use crate::{store, types};
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub enum ChainArgs {
@@ -24,6 +24,17 @@ pub struct UpgradeArgs {
 
 #[ic_cdk::init]
 fn init(args: Option<ChainArgs>) {
+    store::state::with_mut(|s| {
+        s.price = types::Price {
+            channel: 1000 * types::TOKEN_1,
+            name_l1: 1_000_000 * types::TOKEN_1,
+            name_l2: 200_000 * types::TOKEN_1,
+            name_l3: 50_000 * types::TOKEN_1,
+            name_l5: 10_000 * types::TOKEN_1,
+            name_l7: 5000 * types::TOKEN_1,
+        };
+    });
+
     match args {
         None => {}
         Some(ChainArgs::Init(args)) => {

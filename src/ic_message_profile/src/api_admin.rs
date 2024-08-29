@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_cose_types::{validate_principals, MILLISECONDS};
 use std::collections::BTreeSet;
 
-use crate::{is_controller, store, types};
+use crate::{is_controller, store};
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_add_managers(mut args: BTreeSet<Principal>) -> Result<(), String> {
@@ -23,13 +23,11 @@ fn admin_remove_managers(args: BTreeSet<Principal>) -> Result<(), String> {
 }
 
 #[ic_cdk::update]
-fn admin_create_channel(input: types::CreateChannelInput) -> Result<types::ChannelInfo, String> {
-    input.validate()?;
-
+fn admin_upsert_profile(user: Principal) -> Result<(), String> {
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
-    store::channel::create(caller, input, now_ms)
+    store::profile::upsert(user, now_ms)
 }
 
 #[ic_cdk::update]
