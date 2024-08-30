@@ -13,7 +13,6 @@ pub struct UserInfo {
     pub profile_canister: Principal,
     pub cose_canister: Option<Principal>,
     pub username: Option<String>,
-    pub paid: u64,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]

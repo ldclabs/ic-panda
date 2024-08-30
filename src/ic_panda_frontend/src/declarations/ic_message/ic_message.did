@@ -33,7 +33,6 @@ type ChannelInfo = record {
   created_by : principal;
   canister : principal;
   image : text;
-  message_start : nat32;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;
@@ -114,10 +113,8 @@ type StateInfo = record {
   profile_canisters : vec principal;
   names_total : nat64;
   transfer_out_total : nat;
-  next_block_height : nat64;
   users_total : nat64;
   price : Price;
-  next_block_phash : blob;
   cose_canisters : vec principal;
   incoming_total : nat;
   channel_canisters : vec principal;
@@ -137,6 +134,7 @@ type UserInfo = record {
   username : opt text;
   cose_canister : opt principal;
   name : text;
+  paid : nat64;
   image : text;
   profile_canister : principal;
 };

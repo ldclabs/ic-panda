@@ -1,0 +1,176 @@
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type CreateNamespaceInput = record {
+  managers : vec principal;
+  desc : opt text;
+  name : text;
+  max_payload_size : opt nat64;
+  auditors : vec principal;
+  users : vec principal;
+  visibility : nat8;
+};
+type CreateSettingInput = record {
+  dek : opt blob;
+  status : opt int8;
+  desc : opt text;
+  tags : opt vec record { text; text };
+  payload : opt blob;
+};
+type CreateSettingOutput = record {
+  updated_at : nat64;
+  created_at : nat64;
+  version : nat32;
+};
+type ECDHInput = record { public_key : blob; nonce : blob };
+type ECDHOutput = record { public_key : blob; payload : blob };
+type InitArgs = record {
+  freezing_threshold : nat64;
+  ecdsa_key_name : text;
+  name : text;
+  schnorr_key_name : text;
+  allowed_apis : vec text;
+  subnet_size : nat64;
+  vetkd_key_name : text;
+};
+type NamespaceInfo = record {
+  status : int8;
+  updated_at : nat64;
+  managers : vec principal;
+  payload_bytes_total : nat64;
+  desc : text;
+  name : text;
+  max_payload_size : nat64;
+  created_at : nat64;
+  auditors : vec principal;
+  settings_total : nat64;
+  user_settings_total : nat64;
+  users : vec principal;
+  visibility : nat8;
+  gas_balance : nat;
+};
+type PublicKeyInput = record { ns : text; derivation_path : vec blob };
+type PublicKeyOutput = record { public_key : blob; chain_code : blob };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : NamespaceInfo; Err : text };
+type Result_10 = variant { Ok : StateInfo; Err : text };
+type Result_2 = variant { Ok : vec NamespaceInfo; Err : text };
+type Result_3 = variant { Ok : ECDHOutput; Err : text };
+type Result_4 = variant { Ok : PublicKeyOutput; Err : text };
+type Result_5 = variant { Ok : blob; Err : text };
+type Result_6 = variant { Ok : nat; Err : text };
+type Result_7 = variant { Ok : CreateSettingOutput; Err : text };
+type Result_8 = variant { Ok : SettingInfo; Err : text };
+type Result_9 = variant { Ok : SettingArchivedPayload; Err : text };
+type SchnorrAlgorithm = variant { ed25519; bip340secp256k1 };
+type SettingArchivedPayload = record {
+  dek : opt blob;
+  version : nat32;
+  deprecated : bool;
+  archived_at : nat64;
+  payload : blob;
+};
+type SettingInfo = record {
+  dek : opt blob;
+  key : blob;
+  readers : vec principal;
+  status : int8;
+  updated_at : nat64;
+  subject : principal;
+  desc : text;
+  tags : vec record { text; text };
+  created_at : nat64;
+  version : nat32;
+  payload : opt blob;
+};
+type SettingPath = record {
+  ns : text;
+  key : blob;
+  subject : opt principal;
+  version : nat32;
+  user_owned : bool;
+};
+type SignIdentityInput = record { ns : text; audience : text };
+type SignInput = record {
+  ns : text;
+  derivation_path : vec blob;
+  message : blob;
+};
+type StateInfo = record {
+  freezing_threshold : nat64;
+  ecdsa_key_name : text;
+  managers : vec principal;
+  name : text;
+  auditors : vec principal;
+  schnorr_key_name : text;
+  allowed_apis : vec text;
+  subnet_size : nat64;
+  namespace_total : nat64;
+  vetkd_key_name : text;
+};
+type UpdateNamespaceInput = record {
+  status : opt int8;
+  desc : opt text;
+  name : text;
+  max_payload_size : opt nat64;
+  visibility : opt nat8;
+};
+type UpdateSettingInfoInput = record {
+  status : opt int8;
+  desc : opt text;
+  tags : opt vec record { text; text };
+};
+type UpdateSettingPayloadInput = record {
+  status : opt int8;
+  deprecate_current : opt bool;
+  payload : blob;
+};
+type UpgradeArgs = record {
+  freezing_threshold : opt nat64;
+  name : opt text;
+  subnet_size : opt nat64;
+};
+service : (opt ChainArgs) -> {
+  admin_add_allowed_apis : (vec text) -> (Result);
+  admin_add_auditors : (vec principal) -> (Result);
+  admin_add_managers : (vec principal) -> (Result);
+  admin_create_namespace : (CreateNamespaceInput) -> (Result_1);
+  admin_list_namespace : (opt text, opt nat32) -> (Result_2) query;
+  admin_remove_allowed_apis : (vec text) -> (Result);
+  admin_remove_auditors : (vec principal) -> (Result);
+  admin_remove_managers : (vec principal) -> (Result);
+  ecdh_cose_encrypted_key : (SettingPath, ECDHInput) -> (Result_3);
+  ecdsa_public_key : (opt PublicKeyInput) -> (Result_4) query;
+  ecdsa_sign : (SignInput) -> (Result_5);
+  namespace_add_auditors : (text, vec principal) -> (Result);
+  namespace_add_managers : (text, vec principal) -> (Result);
+  namespace_add_users : (text, vec principal) -> (Result);
+  namespace_get_info : (text) -> (Result_1) query;
+  namespace_remove_auditors : (text, vec principal) -> (Result);
+  namespace_remove_managers : (text, vec principal) -> (Result);
+  namespace_remove_users : (text, vec principal) -> (Result);
+  namespace_top_up : (text, nat) -> (Result_6);
+  namespace_update_info : (UpdateNamespaceInput) -> (Result);
+  schnorr_public_key : (SchnorrAlgorithm, opt PublicKeyInput) -> (
+      Result_4,
+    ) query;
+  schnorr_sign : (SchnorrAlgorithm, SignInput) -> (Result_5);
+  schnorr_sign_identity : (SchnorrAlgorithm, SignIdentityInput) -> (Result_5);
+  setting_add_readers : (SettingPath, vec principal) -> (Result);
+  setting_create : (SettingPath, CreateSettingInput) -> (Result_7);
+  setting_get : (SettingPath) -> (Result_8) query;
+  setting_get_archived_payload : (SettingPath) -> (Result_9) query;
+  setting_get_info : (SettingPath) -> (Result_8) query;
+  setting_remove_readers : (SettingPath, vec principal) -> (Result);
+  setting_update_info : (SettingPath, UpdateSettingInfoInput) -> (Result_7);
+  setting_update_payload : (SettingPath, UpdateSettingPayloadInput) -> (
+      Result_7,
+    );
+  state_get_info : () -> (Result_10) query;
+  validate_admin_add_allowed_apis : (vec text) -> (Result);
+  validate_admin_add_auditors : (vec principal) -> (Result);
+  validate_admin_add_managers : (vec principal) -> (Result);
+  validate_admin_remove_allowed_apis : (vec text) -> (Result);
+  validate_admin_remove_auditors : (vec principal) -> (Result);
+  validate_admin_remove_managers : (vec principal) -> (Result);
+  vetkd_encrypted_key : (SettingPath, blob) -> (Result_5);
+  vetkd_public_key : (SettingPath) -> (Result_5);
+}

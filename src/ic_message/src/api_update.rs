@@ -8,14 +8,13 @@ use crate::{is_authenticated, store, types};
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn register_username(username: String) -> Result<UserInfo, String> {
-    if username.len() > types::MAX_USER_NS_SIZE {
+    if username.len() > types::MAX_USER_SIZE {
         Err("username is too long".to_string())?;
     }
-
-    validate_key(&username.to_ascii_lowercase())?;
-    if username.starts_with("-") || username.starts_with("_") {
+    if username.starts_with("_") {
         Err("invalid username".to_string())?;
     }
+    validate_key(&username.to_ascii_lowercase())?;
 
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;

@@ -74,27 +74,21 @@ pub struct User {
     pub image: String,
     #[serde(rename = "p")]
     pub profile_canister: Principal, // profile canister
-    #[serde(rename = "cn")]
-    pub cose_namespace: Option<(Principal, String)>, // namespace in shared COSE service
-    #[serde(rename = "pa")]
-    pub paid: u64,
+    #[serde(rename = "c")]
+    pub cose_canister: Option<Principal>, // COSE canister
+    #[serde(rename = "u")]
+    pub username: Option<String>,
 }
 
 impl User {
     pub fn into_info(self, id: Principal) -> UserInfo {
-        let (cose_canister, username) = match self.cose_namespace {
-            Some((c, n)) => (Some(c), Some(n)),
-            None => (None, None),
-        };
-
         UserInfo {
             id,
-            name: self.name.clone(),
-            image: self.image.clone(),
+            name: self.name,
+            image: self.image,
             profile_canister: self.profile_canister,
-            username,
-            cose_canister,
-            paid: self.paid,
+            cose_canister: self.cose_canister,
+            username: self.username,
         }
     }
 }
@@ -227,8 +221,8 @@ pub mod user {
                         name,
                         image: "".to_string(),
                         profile_canister,
-                        cose_namespace: None,
-                        paid: 0,
+                        cose_canister: None,
+                        username: None,
                     };
                     m.insert(caller, user.clone());
                     user.into_info(caller)
@@ -236,7 +230,7 @@ pub mod user {
             }
         });
 
-        call(
+        let _: Result<(), String> = call(
             info.profile_canister,
             "admin_upsert_profile",
             (caller, None::<(Principal, u64)>),
@@ -259,7 +253,7 @@ pub mod user {
             }
         })?;
 
-        call(
+        let _: Result<(), String> = call(
             user_profile_canister,
             "admin_upsert_profile",
             (caller, None::<(Principal, u64)>),
@@ -325,8 +319,10 @@ pub mod user {
             let blk = NameBlock {
                 height: s.next_block_height,
                 phash: s.next_block_phash,
-                name: ln.clone(),
+                name: ln,
                 user: caller,
+                from: None,
+                value: amount,
                 timestamp: now_ms,
             };
             let blk = to_cbor_bytes(&blk);
@@ -344,12 +340,11 @@ pub mod user {
             cose_canister,
             "admin_create_namespace",
             (CreateNamespaceInput {
-                name: ln.clone(),
+                name: caller.to_text().replace("-", "_"),
                 visibility: 0,
                 desc: Some(format!(
-                    "registered by {}, $PANDA block: {}",
-                    caller.to_text(),
-                    blk
+                    "register_username: {}, $PANDA block: {}",
+                    username, blk
                 )),
                 max_payload_size: Some(1024),
                 managers: BTreeSet::from([ic_cdk::id()]),
@@ -364,8 +359,8 @@ pub mod user {
             let mut m = r.borrow_mut();
             match m.get(&caller) {
                 Some(mut user) => {
-                    user.paid = amount;
-                    user.cose_namespace = Some((cose_canister, username));
+                    user.cose_canister = Some(cose_canister);
+                    user.username = Some(username);
                     m.insert(caller, user.clone());
                     user.into_info(caller)
                 }
@@ -374,8 +369,8 @@ pub mod user {
                         name: username.clone(),
                         image: "".to_string(),
                         profile_canister,
-                        cose_namespace: Some((cose_canister, username)),
-                        paid: amount,
+                        cose_canister: Some(cose_canister),
+                        username: Some(username),
                     };
                     m.insert(caller, user.clone());
                     user.into_info(caller)
@@ -383,7 +378,7 @@ pub mod user {
             }
         });
 
-        call(
+        let _: Result<(), String> = call(
             info.profile_canister,
             "admin_upsert_profile",
             (caller, None::<(Principal, u64)>),
@@ -525,8 +520,8 @@ pub mod channel {
                         name: input.name.clone(),
                         image: "".to_string(),
                         profile_canister,
-                        cose_namespace: None,
-                        paid: 0,
+                        cose_canister: None,
+                        username: None,
                     };
                     m.insert(caller, user.clone());
                     (profile_canister, true)
@@ -535,7 +530,7 @@ pub mod channel {
         });
 
         if is_new {
-            call(
+            let _: Result<(), String> = call(
                 user_profile_canister,
                 "admin_upsert_profile",
                 (caller, None::<(Principal, u64)>),
@@ -565,7 +560,7 @@ pub mod channel {
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
         let res = res?;
 
-        call(
+        let _: Result<(), String> = call(
             user_profile_canister,
             "admin_upsert_profile",
             (caller, Some((res.canister, res.id))),
@@ -576,16 +571,16 @@ pub mod channel {
     }
 
     pub async fn save_channel_kek(caller: Principal, input: ChannelKEKInput) -> Result<(), String> {
-        let user_cose = USER_STORE
-            .with(|r| r.borrow().get(&caller).map(|u| u.cose_namespace))
+        let cose_canister = USER_STORE
+            .with(|r| r.borrow().get(&caller).map(|u| u.cose_canister))
             .ok_or_else(|| "user not found".to_string())?;
-        let user_cose = user_cose.ok_or_else(|| "user has no COSE namespace".to_string())?;
+        let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
         let res: Result<CreateSettingOutput, String> = call(
-            user_cose.0,
+            cose_canister,
             "setting_create",
             (
                 SettingPath {
-                    ns: user_cose.1.to_ascii_lowercase(),
+                    ns: caller.to_text().replace("-", "_"),
                     user_owned: false,
                     subject: Some(caller),
                     key: channel_kek_key(&input.canister, input.id),

@@ -32,10 +32,10 @@ fn admin_add_canister(kind: types::CanisterKind, id: Principal) -> Result<(), St
                 s.cose_canisters.push(id);
             }
             types::CanisterKind::Profile => {
-                s.cose_canisters.push(id);
+                s.profile_canisters.push(id);
             }
             types::CanisterKind::Channel => {
-                s.cose_canisters.push(id);
+                s.channel_canisters.push(id);
             }
         }
         Ok(())

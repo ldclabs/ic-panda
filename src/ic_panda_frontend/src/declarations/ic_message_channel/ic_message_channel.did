@@ -48,7 +48,6 @@ type ChannelInfo = record {
   created_by : principal;
   canister : principal;
   image : text;
-  message_start : nat32;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;

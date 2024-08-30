@@ -1,5 +1,32 @@
 {
   "canisters": {
+    "ic_message": {
+      "candid": "src/ic_message/ic_message.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_message",
+      "optimize": "cycles",
+      "type": "rust"
+    },
+    "ic_message_channel": {
+      "candid": "src/ic_message_channel/ic_message_channel.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_message_channel",
+      "optimize": "cycles",
+      "type": "rust"
+    },
+    "ic_message_profile": {
+      "candid": "src/ic_message_profile/ic_message_profile.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_message_profile",
+      "optimize": "cycles",
+      "type": "rust"
+    },
     "ic_panda_luckypool": {
       "candid": "src/ic_panda_luckypool/ic_panda_luckypool.did",
       "declarations": {

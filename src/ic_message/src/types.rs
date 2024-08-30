@@ -1,5 +1,6 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteArray;
 use std::collections::BTreeSet;
 
 pub const TOKEN_1: u64 = 100_000_000;
@@ -7,7 +8,7 @@ pub const TOKEN_FEE: u64 = 10_000; // 0.0001 token
 pub const MIN_NAME_PRICE: u64 = TOKEN_1;
 pub const MIN_CHANNEL_PRICE: u64 = TOKEN_1;
 pub const MAX_USER_NAME_SIZE: usize = 32;
-pub const MAX_USER_NS_SIZE: usize = 16;
+pub const MAX_USER_SIZE: usize = 20;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct StateInfo {
@@ -21,6 +22,8 @@ pub struct StateInfo {
     pub users_total: u64,
     pub incoming_total: u128,
     pub transfer_out_total: u128,
+    pub next_block_height: u64,
+    pub next_block_phash: ByteArray<32>,
 }
 
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]

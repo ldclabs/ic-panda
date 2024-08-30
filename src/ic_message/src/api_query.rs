@@ -26,6 +26,8 @@ fn get_state() -> Result<types::StateInfo, String> {
         users_total: store::user::users_total(),
         incoming_total: s.incoming_total,
         transfer_out_total: s.transfer_out_total,
+        next_block_height: s.next_block_height,
+        next_block_phash: s.next_block_phash,
     }))
 }
 

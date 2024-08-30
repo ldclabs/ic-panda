@@ -15,6 +15,10 @@ pub struct NameBlock {
     pub name: String,
     #[serde(rename = "u")]
     pub user: Principal,
+    #[serde(rename = "f")]
+    pub from: Option<Principal>,
+    #[serde(rename = "v")]
+    pub value: u64,
     #[serde(rename = "t")]
     pub timestamp: u64, // milliseconds
 }

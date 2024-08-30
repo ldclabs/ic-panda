@@ -1,0 +1,69 @@
+type CanisterStatusResponse = record {
+  status : CanisterStatusType;
+  memory_size : nat;
+  cycles : nat;
+  settings : DefiniteCanisterSettings;
+  query_stats : QueryStats;
+  idle_cycles_burned_per_day : nat;
+  module_hash : opt blob;
+  reserved_cycles : nat;
+};
+type CanisterStatusType = variant { stopped; stopping; running };
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type ChannelSetting = record { pin : nat32; alias : text; tags : vec text };
+type DefiniteCanisterSettings = record {
+  freezing_threshold : nat;
+  controllers : vec principal;
+  reserved_cycles_limit : nat;
+  log_visibility : LogVisibility;
+  wasm_memory_limit : nat;
+  memory_allocation : nat;
+  compute_allocation : nat;
+};
+type InitArgs = record { managers : vec principal; name : text };
+type LogVisibility = variant { controllers; public };
+type ProfileInfo = record {
+  id : principal;
+  bio : text;
+  active_at : nat64;
+  created_at : nat64;
+  channels : opt vec record { record { principal; nat64 }; ChannelSetting };
+  canister : principal;
+  following : opt vec principal;
+};
+type QueryStats = record {
+  response_payload_bytes_total : nat;
+  num_instructions_total : nat;
+  num_calls_total : nat;
+  request_payload_bytes_total : nat;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : CanisterStatusResponse; Err : text };
+type Result_2 = variant { Ok : ProfileInfo; Err : text };
+type Result_3 = variant { Ok : StateInfo; Err : text };
+type StateInfo = record {
+  managers : vec principal;
+  profiles_total : nat64;
+  name : text;
+};
+type UpdateProfileInput = record {
+  bio : opt text;
+  remove_channels : vec record { principal; nat64 };
+  upsert_channels : vec record { record { principal; nat64 }; ChannelSetting };
+  follow : vec principal;
+  unfollow : vec principal;
+};
+type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+service : (opt ChainArgs) -> {
+  admin_add_managers : (vec principal) -> (Result);
+  admin_remove_managers : (vec principal) -> (Result);
+  admin_upsert_profile : (principal, opt record { principal; nat64 }) -> (
+      Result,
+    );
+  get_canister_status : () -> (Result_1) query;
+  get_profile : (opt principal) -> (Result_2) query;
+  get_state : () -> (Result_3) query;
+  update_profile : (UpdateProfileInput) -> (Result_2);
+  validate_admin_add_managers : (vec principal) -> (Result);
+  validate_admin_remove_managers : (vec principal) -> (Result);
+}
