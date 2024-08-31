@@ -29,6 +29,7 @@ pub struct ChannelInfo {
     pub created_by: Principal,
     pub updated_at: u64,
     pub paid: u64,
+    pub gas: u64,
     pub message_start: u32,
     pub latest_message_at: u32,
     pub latest_message_by: Principal,
@@ -44,6 +45,7 @@ pub struct ChannelBasicInfo {
     pub latest_message_at: u32,
     pub latest_message_by: Principal,
     pub paid: u64,
+    pub gas: u64,
     pub my_setting: ChannelSetting,
 }
 

@@ -23,6 +23,7 @@ type ChannelECDHInput = record {
 type ChannelInfo = record {
   id : nat32;
   dek : blob;
+  gas : nat64;
   updated_at : nat64;
   members : vec principal;
   managers : vec principal;

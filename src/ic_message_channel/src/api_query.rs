@@ -12,6 +12,8 @@ fn get_state() -> Result<types::StateInfo, String> {
         name: s.name.clone(),
         managers: s.managers.clone(),
         channel_id: s.channel_id,
+        incoming_gas: s.incoming_gas,
+        burned_gas: s.burned_gas,
         channels_total: store::channel::channels_total(),
         messages_total: store::channel::messages_total(),
     }))

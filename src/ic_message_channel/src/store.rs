@@ -16,6 +16,9 @@ use std::{
 
 use crate::types;
 
+const MESSAGE_PER_USER_GAS: u64 = 10000;
+const MESSAGE_PER_BYTE_GAS: u64 = 1000;
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -24,6 +27,10 @@ pub struct State {
     pub managers: BTreeSet<Principal>,
     pub channel_id: u32,
     pub user_channels: HashMap<Principal, BTreeMap<u32, u32>>,
+    #[serde(default)]
+    pub incoming_gas: u128,
+    #[serde(default)]
+    pub burned_gas: u128,
 }
 
 impl Storable for State {
@@ -68,6 +75,8 @@ pub struct Channel {
     pub latest_message_by: Principal,
     #[serde(rename = "pa")]
     pub paid: u64,
+    #[serde(rename = "g")]
+    pub gas: u64,
 }
 
 impl Channel {
@@ -102,6 +111,7 @@ impl Channel {
             latest_message_by: self.latest_message_by,
             updated_at: self.updated_at,
             paid: self.paid,
+            gas: self.gas,
             my_setting,
         }
     }
@@ -349,18 +359,16 @@ pub mod channel {
         if mid.1 == u32::MAX {
             ic_cdk::trap("message id overflow");
         }
+        let message = Message {
+            kind: 1,
+            reply_to: 0,
+            created_at: now_ms,
+            created_by: caller,
+            payload: to_cbor_bytes(&message).into(),
+        };
 
         MESSAGE_STORE.with(|r| {
-            r.borrow_mut().insert(
-                mid,
-                Message {
-                    kind: 1,
-                    reply_to: 0,
-                    created_at: now_ms,
-                    created_by: caller,
-                    payload: to_cbor_bytes(&message).into(),
-                },
-            );
+            r.borrow_mut().insert(mid, message);
         });
     }
 
@@ -370,6 +378,7 @@ pub mod channel {
         now_ms: u64,
     ) -> Result<types::ChannelInfo, String> {
         let id = state::with_mut(|s| {
+            s.incoming_gas = s.incoming_gas.saturating_add(input.paid as u128);
             s.channel_id = s.channel_id.saturating_add(1);
             s.channel_id
         });
@@ -408,6 +417,7 @@ pub mod channel {
                 latest_message_at: 1,
                 latest_message_by: caller,
                 paid: input.paid,
+                gas: input.paid,
                 updated_at: now_ms,
             };
 
@@ -541,10 +551,17 @@ pub mod channel {
                     if v.latest_message_at == u32::MAX {
                         Err("message id overflow".to_string())?;
                     }
-
+                    let gas = MESSAGE_PER_USER_GAS * (v.managers.len() + v.members.len()) as u64
+                        + MESSAGE_PER_BYTE_GAS * msg.payload.len() as u64;
+                    if v.gas < gas {
+                        Err("not enough gas".to_string())?;
+                    }
+                    v.gas = v.gas.saturating_sub(gas);
                     v.latest_message_by = msg.created_by;
                     let mid = v.latest_message_at;
                     state::with_mut(|s| {
+                        s.burned_gas = s.burned_gas.saturating_add(gas as u128);
+
                         for (p, c) in v.managers.iter_mut() {
                             if p != &msg.created_by {
                                 c.unread += 1;
@@ -612,6 +629,7 @@ pub mod channel {
                             latest_message_at: v.latest_message_at,
                             latest_message_by: v.latest_message_by,
                             paid: v.paid,
+                            gas: v.gas,
                             my_setting: my_setting.to_owned().into(),
                         });
                     }

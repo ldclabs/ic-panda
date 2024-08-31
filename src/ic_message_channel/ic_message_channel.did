@@ -23,6 +23,7 @@ type CanisterStatusType = variant { stopped; stopping; running };
 type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
 type ChannelBasicInfo = record {
   id : nat32;
+  gas : nat64;
   updated_at : nat64;
   name : text;
   paid : nat64;
@@ -38,6 +39,7 @@ type ChannelECDHInput = record {
 type ChannelInfo = record {
   id : nat32;
   dek : blob;
+  gas : nat64;
   updated_at : nat64;
   members : vec principal;
   managers : vec principal;
@@ -108,8 +110,10 @@ type Result_8 = variant { Ok : vec Message; Err : text };
 type Result_9 = variant { Ok : vec record { nat32; nat32 }; Err : text };
 type StateInfo = record {
   channel_id : nat32;
+  incoming_gas : nat;
   managers : vec principal;
   name : text;
+  burned_gas : nat;
   channels_total : nat64;
   messages_total : nat64;
 };
