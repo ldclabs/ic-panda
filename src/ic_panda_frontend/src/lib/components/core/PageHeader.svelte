@@ -45,6 +45,12 @@
     >
       Home
     </TabAnchor>
+    <TabAnchor
+      href="/_/messages"
+      selected={$page.url.pathname.startsWith('/messages')}
+    >
+      Messages
+    </TabAnchor>
     <!-- <TabAnchor
       href="/wallet"
       selected={$page.url.pathname.startsWith('/wallet')}

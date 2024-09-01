@@ -19,12 +19,16 @@ export class KVStore {
 
   async getItem<T>(key: IDBValidKey): Promise<T | null> {
     const db = await this.db
-    return (await db.get(KVStore.storeName, key)) || null
+
+    const value = (await db.get(KVStore.storeName, key)) || null
+    console.log('getItem', key, value)
+    return value
   }
 
   async setItem<T>(key: IDBValidKey, value: T): Promise<void> {
     const db = await this.db
     const tx = db.transaction(KVStore.storeName, 'readwrite')
+    console.log('setItem', key, value)
     await Promise.all([tx.store.put(value, key), tx.done])
   }
 

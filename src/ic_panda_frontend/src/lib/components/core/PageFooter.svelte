@@ -6,7 +6,7 @@
       href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
       target="_blank"
     >
-      Internet Computer (IC)
-    </a>
+      Internet Computer
+    </a> blockchain.
   </p>
 </div>

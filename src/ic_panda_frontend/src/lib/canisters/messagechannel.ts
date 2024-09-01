@@ -1,0 +1,125 @@
+import {
+  idlFactory,
+  type AddMessageInput,
+  type AddMessageOutput,
+  type ChannelBasicInfo,
+  type ChannelInfo,
+  type Message,
+  type UpdateChannelInput,
+  type UpdateChannelMemberInput,
+  type UpdateMySettingInput,
+  type _SERVICE
+} from '$declarations/ic_message_channel/ic_message_channel.did.js'
+import { unwrapResult } from '$lib/types/result'
+import type { Identity } from '@dfinity/agent'
+import { Principal } from '@dfinity/principal'
+import { createActor } from './actors'
+
+export class ChannelAPI {
+  readonly principal: Principal
+  readonly canisterId: Principal
+  private actor: _SERVICE
+
+  static async with(
+    identity: Identity,
+    canister: Principal
+  ): Promise<ChannelAPI> {
+    const actor = await createActor<_SERVICE>({
+      canisterId: canister,
+      idlFactory: idlFactory,
+      identity
+    })
+
+    const api = new ChannelAPI(identity.getPrincipal(), canister, actor)
+    return api
+  }
+
+  constructor(principal: Principal, canister: Principal, actor: _SERVICE) {
+    this.principal = principal
+    this.canisterId = canister
+    this.actor = actor
+  }
+
+  async add_message(input: AddMessageInput): Promise<AddMessageOutput> {
+    const res = await this.actor.add_message(input)
+    return unwrapResult(res, 'call add_message failed')
+  }
+
+  async batch_get_channels(ids: number[]): Promise<ChannelBasicInfo[]> {
+    const res = await this.actor.batch_get_channels(ids)
+    return unwrapResult(res, 'call batch_get_channels failed')
+  }
+
+  async get_channel_if_update(
+    id: number,
+    updated_at: bigint
+  ): Promise<ChannelInfo | null> {
+    const res = await this.actor.get_channel_if_update(id, updated_at)
+    const info = unwrapResult(res, 'call get_channel_if_update failed')
+    return info.length == 1 ? info[0] : null
+  }
+
+  async get_message(channel: number, id: number): Promise<Message> {
+    const res = await this.actor.get_message(channel, id)
+    return unwrapResult(res, 'call get_message failed')
+  }
+
+  async list_messages(
+    channel: number,
+    prev: number = 0,
+    take: number = 20,
+    util: number = 0
+  ): Promise<Message[]> {
+    const res = await this.actor.list_messages(
+      channel,
+      prev == 0 ? [] : [prev],
+      take == 0 ? [] : [take],
+      util == 0 ? [] : [util]
+    )
+    return unwrapResult(res, 'call list_messages failed')
+  }
+
+  async my_channels(): Promise<ChannelBasicInfo[]> {
+    const res = await this.actor.my_channels()
+    return unwrapResult(res, 'call my_channels failed')
+  }
+
+  async my_channels_latest(): Promise<Array<[number, number]>> {
+    const res = await this.actor.my_channels_latest()
+    return unwrapResult(res, 'call my_channels_latest failed')
+  }
+
+  async remove_member(input: UpdateChannelMemberInput): Promise<null> {
+    const res = await this.actor.remove_member(input)
+    return unwrapResult(res, 'call remove_member failed')
+  }
+
+  async update_channel(input: UpdateChannelInput): Promise<Message> {
+    const res = await this.actor.update_channel(input)
+    return unwrapResult(res, 'call update_channel failed')
+  }
+
+  async update_manager(
+    input: UpdateChannelMemberInput
+  ): Promise<[bigint, Message | null]> {
+    const res = await this.actor.update_manager(input)
+    const [updated_at, message] = unwrapResult(
+      res,
+      'call update_manager failed'
+    )
+    return [updated_at, message.length == 1 ? message[0] : null]
+  }
+
+  async update_member(
+    input: UpdateChannelMemberInput
+  ): Promise<[bigint, Message | null]> {
+    const res = await this.actor.update_member(input)
+    const [updated_at, message] = unwrapResult(res, 'call update_member failed')
+    return [updated_at, message.length == 1 ? message[0] : null]
+  }
+
+  async update_my_setting(input: UpdateMySettingInput): Promise<null> {
+    const res = await this.actor.update_my_setting(input)
+    return unwrapResult(res, 'call update_my_setting failed')
+  }
+}
