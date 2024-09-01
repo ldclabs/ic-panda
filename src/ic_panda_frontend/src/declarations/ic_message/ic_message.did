@@ -23,6 +23,7 @@ type ChannelECDHInput = record {
 type ChannelInfo = record {
   id : nat32;
   dek : blob;
+  gas : nat64;
   updated_at : nat64;
   members : vec principal;
   managers : vec principal;
@@ -33,6 +34,7 @@ type ChannelInfo = record {
   created_by : principal;
   canister : principal;
   image : text;
+  message_start : nat32;
   latest_message_at : nat32;
   latest_message_by : principal;
   my_setting : ChannelSetting;
@@ -113,8 +115,10 @@ type StateInfo = record {
   profile_canisters : vec principal;
   names_total : nat64;
   transfer_out_total : nat;
+  next_block_height : nat64;
   users_total : nat64;
   price : Price;
+  next_block_phash : blob;
   cose_canisters : vec principal;
   incoming_total : nat;
   channel_canisters : vec principal;
@@ -134,7 +138,6 @@ type UserInfo = record {
   username : opt text;
   cose_canister : opt principal;
   name : text;
-  paid : nat64;
   image : text;
   profile_canister : principal;
 };
@@ -154,7 +157,7 @@ service : (opt ChainArgs) -> {
   icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
   icrc3_get_tip_certificate : () -> (opt ICRC3DataCertificate) query;
   icrc3_supported_block_types : () -> (vec SupportedBlockType) query;
-  register_username : (text) -> (Result_3);
+  register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_6) query;
   update_my_image : (text) -> (Result);

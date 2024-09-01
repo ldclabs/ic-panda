@@ -157,7 +157,7 @@ service : (opt ChainArgs) -> {
   icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
   icrc3_get_tip_certificate : () -> (opt ICRC3DataCertificate) query;
   icrc3_supported_block_types : () -> (vec SupportedBlockType) query;
-  register_username : (text) -> (Result_3);
+  register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_6) query;
   update_my_image : (text) -> (Result);

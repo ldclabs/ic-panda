@@ -99,7 +99,7 @@ type QueryStats = record {
 };
 type Result = variant { Ok : AddMessageOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : nat64; Err : text };
+type Result_10 = variant { Ok : record { nat64; opt Message }; Err : text };
 type Result_2 = variant { Ok : ChannelInfo; Err : text };
 type Result_3 = variant { Ok : vec ChannelBasicInfo; Err : text };
 type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
@@ -150,7 +150,7 @@ service : (opt ChainArgs) -> {
   my_channels_latest : () -> (Result_9) query;
   quit_channel : (UpdateMySettingInput, bool) -> (Result_1);
   remove_member : (UpdateChannelMemberInput) -> (Result_1);
-  update_channel : (UpdateChannelInput) -> (Result_10);
+  update_channel : (UpdateChannelInput) -> (Result_6);
   update_manager : (UpdateChannelMemberInput) -> (Result_10);
   update_member : (UpdateChannelMemberInput) -> (Result_10);
   update_my_setting : (UpdateMySettingInput) -> (Result_1);

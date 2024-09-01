@@ -355,7 +355,12 @@ pub mod channel {
         })
     }
 
-    pub fn add_sys_message(caller: Principal, now_ms: u64, mid: MessageId, message: String) {
+    pub fn add_sys_message(
+        caller: Principal,
+        now_ms: u64,
+        mid: MessageId,
+        message: String,
+    ) -> types::Message {
         if mid.1 == u32::MAX {
             ic_cdk::trap("message id overflow");
         }
@@ -366,10 +371,11 @@ pub mod channel {
             created_by: caller,
             payload: to_cbor_bytes(&message).into(),
         };
-
+        let info = message.clone().into_info(mid.0, mid.1);
         MESSAGE_STORE.with(|r| {
             r.borrow_mut().insert(mid, message);
         });
+        info
     }
 
     pub fn create(

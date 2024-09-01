@@ -30,6 +30,7 @@ export type ChainArgs = { 'Upgrade' : UpgradeArgs } |
   { 'Init' : InitArgs };
 export interface ChannelBasicInfo {
   'id' : number,
+  'gas' : bigint,
   'updated_at' : bigint,
   'name' : string,
   'paid' : bigint,
@@ -45,6 +46,7 @@ export interface ChannelECDHInput {
 export interface ChannelInfo {
   'id' : number,
   'dek' : Uint8Array | number[],
+  'gas' : bigint,
   'updated_at' : bigint,
   'members' : Array<Principal>,
   'managers' : Array<Principal>,
@@ -55,6 +57,7 @@ export interface ChannelInfo {
   'created_by' : Principal,
   'canister' : Principal,
   'image' : string,
+  'message_start' : number,
   'latest_message_at' : number,
   'latest_message_by' : Principal,
   'my_setting' : ChannelSetting,
@@ -106,7 +109,7 @@ export type Result = { 'Ok' : AddMessageOutput } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : bigint } |
+export type Result_10 = { 'Ok' : [bigint, [] | [Message]] } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : ChannelInfo } |
   { 'Err' : string };
@@ -126,8 +129,10 @@ export type Result_9 = { 'Ok' : Array<[number, number]> } |
   { 'Err' : string };
 export interface StateInfo {
   'channel_id' : number,
+  'incoming_gas' : bigint,
   'managers' : Array<Principal>,
   'name' : string,
+  'burned_gas' : bigint,
   'channels_total' : bigint,
   'messages_total' : bigint,
 }
@@ -170,7 +175,7 @@ export interface _SERVICE {
   'my_channels_latest' : ActorMethod<[], Result_9>,
   'quit_channel' : ActorMethod<[UpdateMySettingInput, boolean], Result_1>,
   'remove_member' : ActorMethod<[UpdateChannelMemberInput], Result_1>,
-  'update_channel' : ActorMethod<[UpdateChannelInput], Result_10>,
+  'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
   'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
   'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
   'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_1>,

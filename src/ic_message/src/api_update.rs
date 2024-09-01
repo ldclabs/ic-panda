@@ -7,7 +7,7 @@ use ic_message_types::{
 use crate::{is_authenticated, store, types};
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn register_username(username: String) -> Result<UserInfo, String> {
+async fn register_username(username: String, name: Option<String>) -> Result<UserInfo, String> {
     if username.len() > types::MAX_USER_SIZE {
         Err("username is too long".to_string())?;
     }
@@ -16,9 +16,21 @@ async fn register_username(username: String) -> Result<UserInfo, String> {
     }
     validate_key(&username.to_ascii_lowercase())?;
 
+    if let Some(ref name) = name {
+        if name.is_empty() {
+            Err("name is empty".to_string())?;
+        }
+        if name.len() > types::MAX_USER_NAME_SIZE {
+            Err("name is too long".to_string())?;
+        }
+        if name != name.trim() {
+            Err("name has leading or trailing spaces".to_string())?;
+        }
+    }
+
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    store::user::register_username(caller, username, now_ms).await
+    store::user::register_username(caller, username.clone(), name.unwrap_or(username), now_ms).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

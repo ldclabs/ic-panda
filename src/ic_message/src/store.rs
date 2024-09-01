@@ -266,6 +266,7 @@ pub mod user {
     pub async fn register_username(
         caller: Principal,
         username: String,
+        name: String,
         now_ms: u64,
     ) -> Result<UserInfo, String> {
         let (cose_canister, profile_canister, price) = state::with(|s| {
@@ -366,7 +367,7 @@ pub mod user {
                 }
                 None => {
                     let user = User {
-                        name: username.clone(),
+                        name: name,
                         image: "".to_string(),
                         profile_canister,
                         cose_canister: Some(cose_canister),

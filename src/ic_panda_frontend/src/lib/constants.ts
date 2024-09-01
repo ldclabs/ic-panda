@@ -14,6 +14,8 @@ export const TOKEN_LEDGER_CANISTER_ID = 'druyg-tyaaa-aaaaq-aactq-cai' // ic & lo
 export const CKDOGE_MINTER_CANISTER_ID = 'bw4dl-smaaa-aaaaa-qaacq-cai' // local
 export const CKDOGE_CHAIN_CANISTER_ID = 'be2us-64aaa-aaaaa-qaabq-cai' // local
 
+export const MESSAGE_CANISTER_ID = 'ajuq4-ruaaa-aaaaa-qaaga-cai' // local
+
 export const X_AUTH_KEY = 'ICPanda:XAuth'
 export const X_AUTH_ENDPIONT = 'https://auth.panda.fans/idp/twitter/authorize'
 export const X_AUTH_CHALLENGE_ENDPIONT = 'https://auth.panda.fans/challenge'

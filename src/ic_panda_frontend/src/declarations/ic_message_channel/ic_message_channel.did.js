@@ -44,6 +44,7 @@ export const idlFactory = ({ IDL }) => {
   const ChannelInfo = IDL.Record({
     'id' : IDL.Nat32,
     'dek' : IDL.Vec(IDL.Nat8),
+    'gas' : IDL.Nat64,
     'updated_at' : IDL.Nat64,
     'members' : IDL.Vec(IDL.Principal),
     'managers' : IDL.Vec(IDL.Principal),
@@ -54,6 +55,7 @@ export const idlFactory = ({ IDL }) => {
     'created_by' : IDL.Principal,
     'canister' : IDL.Principal,
     'image' : IDL.Text,
+    'message_start' : IDL.Nat32,
     'latest_message_at' : IDL.Nat32,
     'latest_message_by' : IDL.Principal,
     'my_setting' : ChannelSetting,
@@ -61,6 +63,7 @@ export const idlFactory = ({ IDL }) => {
   const Result_2 = IDL.Variant({ 'Ok' : ChannelInfo, 'Err' : IDL.Text });
   const ChannelBasicInfo = IDL.Record({
     'id' : IDL.Nat32,
+    'gas' : IDL.Nat64,
     'updated_at' : IDL.Nat64,
     'name' : IDL.Text,
     'paid' : IDL.Nat64,
@@ -127,8 +130,10 @@ export const idlFactory = ({ IDL }) => {
   const Result_6 = IDL.Variant({ 'Ok' : Message, 'Err' : IDL.Text });
   const StateInfo = IDL.Record({
     'channel_id' : IDL.Nat32,
+    'incoming_gas' : IDL.Nat,
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
+    'burned_gas' : IDL.Nat,
     'channels_total' : IDL.Nat64,
     'messages_total' : IDL.Nat64,
   });
@@ -155,7 +160,10 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Opt(IDL.Text),
     'image' : IDL.Opt(IDL.Text),
   });
-  const Result_10 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
+  const Result_10 = IDL.Variant({
+    'Ok' : IDL.Tuple(IDL.Nat64, IDL.Opt(Message)),
+    'Err' : IDL.Text,
+  });
   return IDL.Service({
     'add_message' : IDL.Func([AddMessageInput], [Result], []),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
@@ -187,7 +195,7 @@ export const idlFactory = ({ IDL }) => {
     'my_channels_latest' : IDL.Func([], [Result_9], ['query']),
     'quit_channel' : IDL.Func([UpdateMySettingInput, IDL.Bool], [Result_1], []),
     'remove_member' : IDL.Func([UpdateChannelMemberInput], [Result_1], []),
-    'update_channel' : IDL.Func([UpdateChannelInput], [Result_10], []),
+    'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
     'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
     'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
     'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_1], []),
