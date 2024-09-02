@@ -1,4 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb'
+import { restorePrincipalObject } from './auth'
 
 export type IDBValidKey = string | number | Date | BufferSource | IDBValidKey[]
 
@@ -21,8 +22,8 @@ export class KVStore {
     const db = await this.db
 
     const value = (await db.get(KVStore.storeName, key)) || null
-    console.log('getItem', key, value)
-    return value
+    console.log('getItem', key, restorePrincipalObject(value))
+    return restorePrincipalObject(value)
   }
 
   async setItem<T>(key: IDBValidKey, value: T): Promise<void> {

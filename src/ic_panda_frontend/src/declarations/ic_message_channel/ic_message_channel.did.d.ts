@@ -34,9 +34,11 @@ export interface ChannelBasicInfo {
   'updated_at' : bigint,
   'name' : string,
   'paid' : bigint,
+  'canister' : Principal,
   'image' : string,
-  'latest_message_at' : number,
+  'latest_message_at' : bigint,
   'latest_message_by' : Principal,
+  'latest_message_id' : number,
   'my_setting' : ChannelSetting,
 }
 export interface ChannelECDHInput {
@@ -58,8 +60,9 @@ export interface ChannelInfo {
   'canister' : Principal,
   'image' : string,
   'message_start' : number,
-  'latest_message_at' : number,
+  'latest_message_at' : bigint,
   'latest_message_by' : Principal,
+  'latest_message_id' : number,
   'my_setting' : ChannelSetting,
 }
 export interface ChannelSetting {
@@ -96,6 +99,7 @@ export interface Message {
   'kind' : number,
   'created_at' : bigint,
   'created_by' : Principal,
+  'canister' : Principal,
   'channel' : number,
   'payload' : Uint8Array | number[],
 }
@@ -108,8 +112,6 @@ export interface QueryStats {
 export type Result = { 'Ok' : AddMessageOutput } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : null } |
-  { 'Err' : string };
-export type Result_10 = { 'Ok' : [bigint, [] | [Message]] } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : ChannelInfo } |
   { 'Err' : string };
@@ -125,7 +127,7 @@ export type Result_7 = { 'Ok' : StateInfo } |
   { 'Err' : string };
 export type Result_8 = { 'Ok' : Array<Message> } |
   { 'Err' : string };
-export type Result_9 = { 'Ok' : Array<[number, number]> } |
+export type Result_9 = { 'Ok' : [bigint, [] | [Message]] } |
   { 'Err' : string };
 export interface StateInfo {
   'channel_id' : number,
@@ -168,16 +170,15 @@ export interface _SERVICE {
   'get_message' : ActorMethod<[number, number], Result_6>,
   'get_state' : ActorMethod<[], Result_7>,
   'list_messages' : ActorMethod<
-    [number, [] | [number], [] | [number], [] | [number]],
+    [number, [] | [number], [] | [number]],
     Result_8
   >,
-  'my_channels' : ActorMethod<[], Result_3>,
-  'my_channels_latest' : ActorMethod<[], Result_9>,
+  'my_channels_if_update' : ActorMethod<[[] | [bigint]], Result_3>,
   'quit_channel' : ActorMethod<[UpdateMySettingInput, boolean], Result_1>,
   'remove_member' : ActorMethod<[UpdateChannelMemberInput], Result_1>,
   'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
-  'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
-  'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
+  'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
+  'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
   'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_1>,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,

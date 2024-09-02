@@ -1,5 +1,6 @@
 use candid::Principal;
 use ic_cose_types::{validate_principals, MILLISECONDS};
+use serde_bytes::ByteArray;
 use std::collections::BTreeSet;
 
 use crate::{is_controller, store};
@@ -28,6 +29,14 @@ fn admin_upsert_profile(user: Principal, channel: Option<(Principal, u64)>) -> R
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
     store::profile::upsert(user, now_ms, channel)
+}
+
+#[ic_cdk::update]
+fn admin_update_profile_ecdh_pub(user: Principal, ecdh_pub: ByteArray<32>) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::state::is_manager(&caller)?;
+    store::profile::admin_update_profile_ecdh_pub(user, now_ms, ecdh_pub)
 }
 
 #[ic_cdk::update]

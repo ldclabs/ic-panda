@@ -21,6 +21,7 @@ fn get_state() -> Result<types::StateInfo, String> {
         cose_canisters: s.cose_canisters.clone(),
         profile_canisters: s.profile_canisters.clone(),
         channel_canisters: s.channel_canisters.clone(),
+        matured_channel_canisters: s.matured_channel_canisters.clone(),
         price: s.price.clone(),
         names_total: store::user::names_total(),
         users_total: store::user::users_total(),

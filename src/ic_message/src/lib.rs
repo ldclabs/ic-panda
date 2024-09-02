@@ -17,7 +17,7 @@ use icrc_ledger_types::{
     },
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
-use serde_bytes::ByteBuf;
+use serde_bytes::{ByteArray, ByteBuf};
 use std::collections::BTreeSet;
 
 mod api_admin;

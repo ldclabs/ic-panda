@@ -31,7 +31,8 @@ pub struct ChannelInfo {
     pub paid: u64,
     pub gas: u64,
     pub message_start: u32,
-    pub latest_message_at: u32,
+    pub latest_message_id: u32,
+    pub latest_message_at: u64,
     pub latest_message_by: Principal,
     pub my_setting: ChannelSetting,
 }
@@ -39,10 +40,12 @@ pub struct ChannelInfo {
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct ChannelBasicInfo {
     pub id: u32,
+    pub canister: Principal,
     pub name: String,
     pub image: String,
     pub updated_at: u64,
-    pub latest_message_at: u32,
+    pub latest_message_id: u32,
+    pub latest_message_at: u64,
     pub latest_message_by: Principal,
     pub paid: u64,
     pub gas: u64,
@@ -62,6 +65,7 @@ pub struct ChannelSetting {
 pub struct Message {
     pub id: u32,
     pub channel: u32,
+    pub canister: Principal,
     pub kind: u8,      // 0: created by user, 1: created by system
     pub reply_to: u32, // 0 means not a reply
     pub created_at: u64,

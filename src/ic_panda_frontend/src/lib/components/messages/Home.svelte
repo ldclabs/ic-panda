@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { getModalStore } from '@skeletonlabs/skeleton'
@@ -26,15 +24,7 @@
     }
   }
 
-  onMount(() => {
-    if ($page.url.hash == '#get-started' && !principal.isAnonymous()) {
-      goto('')
-      modalStore.trigger({
-        type: 'component',
-        component: { ref: UserRegisterModel }
-      })
-    }
-  })
+  onMount(() => {})
 
   $: principal = $authStore.identity.getPrincipal()
 </script>

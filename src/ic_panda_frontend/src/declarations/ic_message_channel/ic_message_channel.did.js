@@ -56,8 +56,9 @@ export const idlFactory = ({ IDL }) => {
     'canister' : IDL.Principal,
     'image' : IDL.Text,
     'message_start' : IDL.Nat32,
-    'latest_message_at' : IDL.Nat32,
+    'latest_message_at' : IDL.Nat64,
     'latest_message_by' : IDL.Principal,
+    'latest_message_id' : IDL.Nat32,
     'my_setting' : ChannelSetting,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ChannelInfo, 'Err' : IDL.Text });
@@ -67,9 +68,11 @@ export const idlFactory = ({ IDL }) => {
     'updated_at' : IDL.Nat64,
     'name' : IDL.Text,
     'paid' : IDL.Nat64,
+    'canister' : IDL.Principal,
     'image' : IDL.Text,
-    'latest_message_at' : IDL.Nat32,
+    'latest_message_at' : IDL.Nat64,
     'latest_message_by' : IDL.Principal,
+    'latest_message_id' : IDL.Nat32,
     'my_setting' : ChannelSetting,
   });
   const Result_3 = IDL.Variant({
@@ -124,6 +127,7 @@ export const idlFactory = ({ IDL }) => {
     'kind' : IDL.Nat8,
     'created_at' : IDL.Nat64,
     'created_by' : IDL.Principal,
+    'canister' : IDL.Principal,
     'channel' : IDL.Nat32,
     'payload' : IDL.Vec(IDL.Nat8),
   });
@@ -139,10 +143,6 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_7 = IDL.Variant({ 'Ok' : StateInfo, 'Err' : IDL.Text });
   const Result_8 = IDL.Variant({ 'Ok' : IDL.Vec(Message), 'Err' : IDL.Text });
-  const Result_9 = IDL.Variant({
-    'Ok' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
-    'Err' : IDL.Text,
-  });
   const UpdateMySettingInput = IDL.Record({
     'id' : IDL.Nat32,
     'ecdh' : IDL.Opt(ChannelECDHInput),
@@ -160,7 +160,7 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Opt(IDL.Text),
     'image' : IDL.Opt(IDL.Text),
   });
-  const Result_10 = IDL.Variant({
+  const Result_9 = IDL.Variant({
     'Ok' : IDL.Tuple(IDL.Nat64, IDL.Opt(Message)),
     'Err' : IDL.Text,
   });
@@ -187,17 +187,20 @@ export const idlFactory = ({ IDL }) => {
     'get_message' : IDL.Func([IDL.Nat32, IDL.Nat32], [Result_6], ['query']),
     'get_state' : IDL.Func([], [Result_7], ['query']),
     'list_messages' : IDL.Func(
-        [IDL.Nat32, IDL.Opt(IDL.Nat32), IDL.Opt(IDL.Nat32), IDL.Opt(IDL.Nat32)],
+        [IDL.Nat32, IDL.Opt(IDL.Nat32), IDL.Opt(IDL.Nat32)],
         [Result_8],
         ['query'],
       ),
-    'my_channels' : IDL.Func([], [Result_3], ['query']),
-    'my_channels_latest' : IDL.Func([], [Result_9], ['query']),
+    'my_channels_if_update' : IDL.Func(
+        [IDL.Opt(IDL.Nat64)],
+        [Result_3],
+        ['query'],
+      ),
     'quit_channel' : IDL.Func([UpdateMySettingInput, IDL.Bool], [Result_1], []),
     'remove_member' : IDL.Func([UpdateChannelMemberInput], [Result_1], []),
     'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
-    'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
-    'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
+    'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
+    'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
     'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_1], []),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],

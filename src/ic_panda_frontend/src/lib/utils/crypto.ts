@@ -1,9 +1,11 @@
 import { AesGcmKey } from '@ldclabs/cose-ts/aesgcm'
+import { ECDHKey } from '@ldclabs/cose-ts/ecdh'
 import { Encrypt0Message } from '@ldclabs/cose-ts/encrypt0'
 import { Header } from '@ldclabs/cose-ts/header'
 import { hkdf256 } from '@ldclabs/cose-ts/hkdf'
 import * as iana from '@ldclabs/cose-ts/iana'
 import { KDFContext, PartyInfo, SuppPubInfo } from '@ldclabs/cose-ts/kdfcontext'
+import { randomBytes } from '@ldclabs/cose-ts/utils'
 import { argon2id } from '@noble/hashes/argon2'
 
 export {
@@ -23,6 +25,11 @@ export {
 
 export { AesGcmKey } from '@ldclabs/cose-ts/aesgcm'
 export { ECDHKey } from '@ldclabs/cose-ts/ecdh'
+export * as iana from '@ldclabs/cose-ts/iana'
+
+export function generateECDHKey(): ECDHKey {
+  return ECDHKey.generate(iana.EllipticCurveX25519)
+}
 
 export function hashPassword(password: string, salt: string): Uint8Array {
   // default params from https://docs.rs/argon2/latest/argon2/struct.Params.html
@@ -54,14 +61,16 @@ export async function coseA256GCMEncrypt0(
   key: AesGcmKey,
   payload: Uint8Array,
   aad: Uint8Array,
-  nonce: Uint8Array, // 12 bytes
   key_id?: Uint8Array
 ): Promise<Uint8Array> {
   const protect = new Header().setParam(
     iana.HeaderParameterAlg,
     iana.AlgorithmA256GCM
   )
-  const unprotected = new Header().setParam(iana.HeaderParameterIV, nonce)
+  const unprotected = new Header().setParam(
+    iana.HeaderParameterIV,
+    randomBytes(12)
+  )
   if (key_id) {
     unprotected.setParam(iana.HeaderParameterKid, key_id)
   }

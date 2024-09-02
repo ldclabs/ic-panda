@@ -20,13 +20,14 @@ fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, St
             c.description = description;
         }
         c.updated_at = now_ms;
-        c.latest_message_at += 1;
+        c.latest_message_id += 1;
+        c.latest_message_at = now_ms;
         c.latest_message_by = caller;
 
         Ok(store::channel::add_sys_message(
             caller,
             now_ms,
-            store::MessageId(input.id, c.latest_message_at),
+            store::MessageId(input.id, c.latest_message_id),
             types::SYS_MSG_CHANNEL_UPDATE_INFO.to_string(),
         ))
     })
@@ -68,7 +69,8 @@ fn update_manager(
 
         c.updated_at = now_ms;
         if is_new {
-            c.latest_message_at += 1;
+            c.latest_message_id += 1;
+            c.latest_message_at = now_ms;
             c.latest_message_by = caller;
 
             if !store::state::user_add_channel(input.member, input.id, c.latest_message_at) {
@@ -80,7 +82,7 @@ fn update_manager(
                 Some(store::channel::add_sys_message(
                     caller,
                     now_ms,
-                    store::MessageId(input.id, c.latest_message_at),
+                    store::MessageId(input.id, c.latest_message_id),
                     format!(
                         "{}: {}",
                         types::SYS_MSG_CHANNEL_ADD_MANAGER,
@@ -123,7 +125,8 @@ fn update_member(
 
         c.updated_at = now_ms;
         if is_new {
-            c.latest_message_at += 1;
+            c.latest_message_id += 1;
+            c.latest_message_at = now_ms;
             c.latest_message_by = caller;
 
             if !store::state::user_add_channel(input.member, input.id, c.latest_message_at) {
@@ -134,7 +137,7 @@ fn update_member(
                 Some(store::channel::add_sys_message(
                     caller,
                     now_ms,
-                    store::MessageId(input.id, c.latest_message_at),
+                    store::MessageId(input.id, c.latest_message_id),
                     format!(
                         "{}: {}",
                         types::SYS_MSG_CHANNEL_ADD_MEMBER,

@@ -30,6 +30,14 @@ export function unwrapResult<T, E>(
   return res.Ok
 }
 
+export function unwrapOption<T>(res: [] | [T]): T | null {
+  if (Array.isArray(res) && res.length == 1) {
+    return res[0]
+  }
+
+  return null
+}
+
 export function unwrapOptionResult<T, E>(
   res: Result<[] | [T], E>,
   msg: string = 'error result'
@@ -38,11 +46,7 @@ export function unwrapOptionResult<T, E>(
     throw ErrData.from(msg, res.Err)
   }
 
-  if (Array.isArray(res.Ok)) {
-    return res.Ok[0] || null
-  }
-
-  return res.Ok
+  return unwrapOption(res.Ok)
 }
 
 export function errMessage(err: any): string {

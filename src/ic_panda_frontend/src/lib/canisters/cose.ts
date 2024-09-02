@@ -11,6 +11,13 @@ import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
+export {
+  type ECDHInput,
+  type ECDHOutput,
+  type SettingInfo,
+  type SettingPath
+} from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
+
 export class CoseAPI {
   readonly principal: Principal
   readonly canisterId: Principal

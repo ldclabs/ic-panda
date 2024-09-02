@@ -26,7 +26,7 @@ pub struct State {
     pub name: String,
     pub managers: BTreeSet<Principal>,
     pub channel_id: u32,
-    pub user_channels: HashMap<Principal, BTreeMap<u32, u32>>,
+    pub user_channels: HashMap<Principal, BTreeMap<u32, u64>>,
     #[serde(default)]
     pub incoming_gas: u128,
     #[serde(default)]
@@ -69,8 +69,10 @@ pub struct Channel {
     pub updated_at: u64,
     #[serde(rename = "ms")]
     pub message_start: u32,
+    #[serde(rename = "li")]
+    pub latest_message_id: u32,
     #[serde(rename = "la")]
-    pub latest_message_at: u32,
+    pub latest_message_at: u64,
     #[serde(rename = "lb")]
     pub latest_message_by: Principal,
     #[serde(rename = "pa")]
@@ -107,6 +109,7 @@ impl Channel {
             created_at: self.created_at,
             created_by: self.created_by,
             message_start: self.message_start,
+            latest_message_id: self.latest_message_id,
             latest_message_at: self.latest_message_at,
             latest_message_by: self.latest_message_by,
             updated_at: self.updated_at,
@@ -184,10 +187,11 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn into_info(self, channel: u32, id: u32) -> types::Message {
+    pub fn into_info(self, canister: Principal, channel: u32, id: u32) -> types::Message {
         types::Message {
             id,
             channel,
+            canister,
             kind: self.kind,
             reply_to: self.reply_to,
             created_at: self.created_at,
@@ -279,20 +283,16 @@ pub mod state {
         })
     }
 
-    pub fn user_add_channel(user: Principal, id: u32, mid: u32) -> bool {
+    pub fn user_add_channel(user: Principal, id: u32, latest_message_at: u64) -> bool {
         with_mut(|s| {
             let map = s.user_channels.entry(user).or_default();
             if map.len() >= types::MAX_USER_CHANNELS && !map.contains_key(&id) {
                 false
             } else {
-                map.insert(id, mid);
+                map.insert(id, latest_message_at);
                 true
             }
         })
-    }
-
-    pub fn user_channels(user: &Principal) -> BTreeMap<u32, u32> {
-        with(|s| s.user_channels.get(user).cloned().unwrap_or_default())
     }
 
     pub fn load() {
@@ -371,7 +371,7 @@ pub mod channel {
             created_by: caller,
             payload: to_cbor_bytes(&message).into(),
         };
-        let info = message.clone().into_info(mid.0, mid.1);
+        let info = message.clone().into_info(ic_cdk::id(), mid.0, mid.1);
         MESSAGE_STORE.with(|r| {
             r.borrow_mut().insert(mid, message);
         });
@@ -420,7 +420,8 @@ pub mod channel {
                 created_at: now_ms,
                 created_by: input.created_by,
                 message_start: 1,
-                latest_message_at: 1,
+                latest_message_id: 1,
+                latest_message_at: now_ms,
                 latest_message_by: caller,
                 paid: input.paid,
                 gas: input.paid,
@@ -524,7 +525,7 @@ pub mod channel {
 
                         MESSAGE_STORE.with(|r| {
                             let mut messages = r.borrow_mut();
-                            for i in v.message_start..v.latest_message_at + 1 {
+                            for i in v.message_start..v.latest_message_id + 1 {
                                 messages.remove(&MessageId(id, i));
                             }
                         });
@@ -549,12 +550,12 @@ pub mod channel {
                         Err("caller is not a manager or member".to_string())?;
                     }
 
-                    if v.latest_message_at + 1 - v.message_start >= types::MAX_CHANNEL_MESSAGES {
+                    if v.latest_message_id + 1 - v.message_start >= types::MAX_CHANNEL_MESSAGES {
                         Err("too many messages".to_string())?;
                     }
 
-                    v.latest_message_at += 1;
-                    if v.latest_message_at == u32::MAX {
+                    v.latest_message_id += 1;
+                    if v.latest_message_id == u32::MAX {
                         Err("message id overflow".to_string())?;
                     }
                     let gas = MESSAGE_PER_USER_GAS * (v.managers.len() + v.members.len()) as u64
@@ -564,7 +565,9 @@ pub mod channel {
                     }
                     v.gas = v.gas.saturating_sub(gas);
                     v.latest_message_by = msg.created_by;
-                    let mid = v.latest_message_at;
+                    v.latest_message_at = msg.created_at;
+                    let at = v.latest_message_at;
+                    let mid = v.latest_message_id;
                     state::with_mut(|s| {
                         s.burned_gas = s.burned_gas.saturating_add(gas as u128);
 
@@ -573,7 +576,7 @@ pub mod channel {
                                 c.unread += 1;
                             }
                             if let Some(channels) = s.user_channels.get_mut(p) {
-                                channels.insert(id, mid);
+                                channels.insert(id, at);
                             }
                         }
                         for (p, c) in v.members.iter_mut() {
@@ -581,7 +584,7 @@ pub mod channel {
                                 c.unread += 1;
                             }
                             if let Some(channels) = s.user_channels.get_mut(p) {
-                                channels.insert(id, mid);
+                                channels.insert(id, at);
                             }
                         }
                     });
@@ -615,6 +618,7 @@ pub mod channel {
     }
 
     pub fn batch_get(caller: Principal, ids: BTreeSet<u32>) -> Vec<types::ChannelBasicInfo> {
+        let canister = ic_cdk::id();
         CHANNEL_STORE.with(|r| {
             let m = r.borrow();
             let mut output = Vec::with_capacity(ids.len());
@@ -629,9 +633,11 @@ pub mod channel {
                     if let Some(my_setting) = my_setting {
                         output.push(types::ChannelBasicInfo {
                             id,
+                            canister,
                             name: v.name.clone(),
                             image: v.image.clone(),
                             updated_at: v.updated_at,
+                            latest_message_id: v.latest_message_id,
                             latest_message_at: v.latest_message_at,
                             latest_message_by: v.latest_message_by,
                             paid: v.paid,
@@ -656,7 +662,7 @@ pub mod channel {
                 MESSAGE_STORE.with(|r| {
                     r.borrow()
                         .get(&MessageId(channel, id))
-                        .map(|msg| msg.into_info(channel, id))
+                        .map(|msg| msg.into_info(ic_cdk::id(), channel, id))
                         .ok_or("message not found".to_string())
                 })
             }
@@ -666,10 +672,10 @@ pub mod channel {
     pub fn list_messages(
         caller: Principal,
         channel: u32,
-        prev: u32,
-        take: u32,
-        util: u32,
+        start: u32,
+        end: u32,
     ) -> Result<Vec<types::Message>, String> {
+        let canister = ic_cdk::id();
         CHANNEL_STORE.with(|r| match r.borrow().get(&channel) {
             None => Err("channel not found".to_string()),
             Some(v) => {
@@ -677,21 +683,28 @@ pub mod channel {
                     Err("caller is not a manager or member".to_string())?;
                 }
 
-                let end = if prev == 0 || prev > v.latest_message_at {
-                    v.latest_message_at + 1
+                let start = if start == 0 {
+                    1
+                } else if start > v.latest_message_id {
+                    v.latest_message_id + 1
                 } else {
-                    prev
+                    start
                 };
-                let start = if util == 0 || util >= prev { 1 } else { util };
+
+                let end = if end <= start || end > v.latest_message_id {
+                    v.latest_message_id + 1
+                } else {
+                    end
+                };
+                let start = if end - start > 100 { end - 100 } else { start };
+
                 MESSAGE_STORE.with(|r| {
                     let m = r.borrow();
-                    let mut output = Vec::with_capacity(take as usize);
-                    for i in (start..end).rev() {
-                        if output.len() >= take as usize {
-                            break;
-                        }
-                        if let Some(msg) = m.get(&MessageId(channel, i)) {
-                            output.push(msg.into_info(channel, i));
+                    let mut output = Vec::with_capacity((end - start) as usize);
+                    for i in start..end {
+                        match m.get(&MessageId(channel, i)) {
+                            Some(msg) => output.push(msg.into_info(canister, channel, i)),
+                            None => break,
                         }
                     }
                     Ok(output)

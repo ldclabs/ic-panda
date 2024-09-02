@@ -1,9 +1,13 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import { myMessageStateAsync, type MyMessageState } from '$lib/stores/user'
+  import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import Home from './Home.svelte'
+  import PasswordModel from './PasswordModel.svelte'
+
+  const modalStore = getModalStore()
 
   let myState: MyMessageState
   let myInfo: Readable<UserInfo>
@@ -12,6 +16,20 @@
     myState = await myMessageStateAsync()
     myInfo = myState.info
     console.log('myInfo', $myInfo)
+    const mk = await myState.masterKey()
+    if (!myState.principal.isAnonymous() && (!mk || !mk.isOpened())) {
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: PasswordModel,
+          props: {
+            myState: myState,
+            myInfo: myInfo,
+            masterKey: mk
+          }
+        }
+      })
+    }
   })
 </script>
 

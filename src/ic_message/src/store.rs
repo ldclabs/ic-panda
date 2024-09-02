@@ -1,7 +1,10 @@
 use candid::{Nat, Principal};
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
 use ic_certification::{HashTreeNode, Label};
-use ic_cose_types::types::namespace::{CreateNamespaceInput, NamespaceInfo};
+use ic_cose_types::types::{
+    namespace::{CreateNamespaceInput, NamespaceInfo},
+    setting::{CreateSettingInput, CreateSettingOutput, SettingPath},
+};
 use ic_message_types::{profile::UserInfo, NameBlock};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
@@ -9,7 +12,7 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteArray;
+use serde_bytes::{ByteArray, ByteBuf};
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
 
 use crate::{call, token_transfer_from, types};
@@ -23,6 +26,8 @@ pub struct State {
     pub cose_canisters: Vec<Principal>,
     pub profile_canisters: Vec<Principal>,
     pub channel_canisters: Vec<Principal>,
+    #[serde(default)]
+    pub matured_channel_canisters: BTreeSet<Principal>,
     pub short_usernames: BTreeSet<String>, // names that length <= 7
     pub price: types::Price,
     pub incoming_total: u128,
@@ -263,6 +268,53 @@ pub mod user {
         Ok(())
     }
 
+    pub async fn update_my_ecdh(
+        caller: Principal,
+        ecdh_pub: ByteArray<32>,
+        encrypted_ecdh: ByteBuf,
+    ) -> Result<(), String> {
+        let (cose_canister, profile_canister) = USER_STORE
+            .with(|r| {
+                r.borrow()
+                    .get(&caller)
+                    .map(|u| (u.cose_canister, u.profile_canister))
+            })
+            .ok_or_else(|| "user not found".to_string())?;
+        let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
+        let res: Result<CreateSettingOutput, String> = call(
+            cose_canister,
+            "setting_create",
+            (
+                SettingPath {
+                    ns: caller.to_text().replace("-", "_"),
+                    user_owned: false,
+                    subject: Some(caller),
+                    key: b"StaticECDH".to_vec().into(),
+                    version: 0,
+                },
+                CreateSettingInput {
+                    payload: None,
+                    desc: None,
+                    status: None,
+                    tags: None,
+                    dek: Some(encrypted_ecdh),
+                },
+            ),
+            0,
+        )
+        .await?;
+        if res.is_ok() {
+            let _: Result<(), String> = call(
+                profile_canister,
+                "admin_update_profile_ecdh_pub",
+                (caller, ecdh_pub),
+                0,
+            )
+            .await?;
+        }
+        res.map(|_| ())
+    }
+
     pub async fn register_username(
         caller: Principal,
         username: String,
@@ -488,22 +540,28 @@ pub mod user {
 
 pub mod channel {
     use super::*;
-    use ic_cose_types::types::setting::{CreateSettingInput, CreateSettingOutput, SettingPath};
     use ic_message_types::channel::{
         channel_kek_key, ChannelInfo, ChannelKEKInput, CreateChannelInput,
     };
 
     pub async fn create_channel(
         caller: Principal,
+        now_ms: u64,
         mut input: CreateChannelInput,
     ) -> Result<ChannelInfo, String> {
         let (channel_canister, profile_canister, price) = state::with(|s| {
+            let i = if s.channel_canisters.len() > 1 {
+                now_ms % s.channel_canisters.len() as u64
+            } else {
+                0
+            };
             (
-                s.channel_canisters.last().cloned(),
+                s.channel_canisters.get(i as usize).cloned(),
                 s.profile_canisters.last().cloned(),
                 s.price.clone(),
             )
         });
+
         let channel_canister = channel_canister.ok_or_else(|| "no channel canister".to_string())?;
         let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
 

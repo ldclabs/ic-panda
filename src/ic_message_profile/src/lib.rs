@@ -1,6 +1,7 @@
 use candid::Principal;
 use ic_cdk::api::management_canister::main::CanisterStatusResponse;
 use ic_cose_types::ANONYMOUS;
+use serde_bytes::ByteArray;
 use std::collections::BTreeSet;
 
 mod api_admin;

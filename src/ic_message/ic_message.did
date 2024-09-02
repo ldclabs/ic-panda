@@ -35,8 +35,9 @@ type ChannelInfo = record {
   canister : principal;
   image : text;
   message_start : nat32;
-  latest_message_at : nat32;
+  latest_message_at : nat64;
   latest_message_by : principal;
+  latest_message_id : nat32;
   my_setting : ChannelSetting;
 };
 type ChannelKEKInput = record { id : nat32; kek : blob; canister : principal };
@@ -116,6 +117,7 @@ type StateInfo = record {
   names_total : nat64;
   transfer_out_total : nat;
   next_block_height : nat64;
+  matured_channel_canisters : vec principal;
   users_total : nat64;
   price : Price;
   next_block_phash : blob;
@@ -160,6 +162,7 @@ service : (opt ChainArgs) -> {
   register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_6) query;
+  update_my_ecdh : (blob, blob) -> (Result);
   update_my_image : (text) -> (Result);
   update_my_name : (text) -> (Result_3);
   validate_admin_add_canister : (CanisterKind, principal) -> (Result);

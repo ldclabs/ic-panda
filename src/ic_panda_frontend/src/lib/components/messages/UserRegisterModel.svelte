@@ -23,9 +23,7 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let availablePandaBalance = 0n
 
-  // const modalStore = getModalStore()
   const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
@@ -37,6 +35,7 @@
 
   let validating = false
   let submitting = false
+  let availablePandaBalance = 0n
 
   let nameInput = ''
   let usernameInput = ''
@@ -117,6 +116,10 @@
           usernameInput,
           nameInput
         )
+        await myMessageState.api.refreshMyInfo()
+        setTimeout(async () => {
+          parent && parent['onClose']()
+        }, 5000)
       }
     } catch (err: any) {
       submitting = false
@@ -233,10 +236,10 @@
           <b>2.</b> Have your keys encrypted and stored on-chain, allowing sync across
           multiple devices (otherwise, the keys is stored only in the browser database,
           and clearing browser data or device issues may result in key loss, making
-          messages undecryptable);
+          messages undecryptable).
         </p>
         <p class="text-gray/50">
-          <b>3.</b> Get a personal profile page;
+          <b>3.</b> Get a personal profile page.
         </p>
         <p class="text-gray/50">
           <b>4.</b> Usernames cannot be changed, but can be transferred to another

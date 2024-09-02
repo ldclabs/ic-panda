@@ -29,6 +29,7 @@ type ProfileInfo = record {
   created_at : nat64;
   channels : opt vec record { record { principal; nat64 }; ChannelSetting };
   canister : principal;
+  ecdh_pub : opt blob;
   following : opt vec principal;
 };
 type QueryStats = record {
@@ -57,6 +58,7 @@ type UpgradeArgs = record { managers : opt vec principal; name : opt text };
 service : (opt ChainArgs) -> {
   admin_add_managers : (vec principal) -> (Result);
   admin_remove_managers : (vec principal) -> (Result);
+  admin_update_profile_ecdh_pub : (principal, blob) -> (Result);
   admin_upsert_profile : (principal, opt record { principal; nat64 }) -> (
       Result,
     );

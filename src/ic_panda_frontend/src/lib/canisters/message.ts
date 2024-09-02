@@ -19,6 +19,7 @@ import { ChannelAPI } from './messagechannel'
 import { ProfileAPI } from './messageprofile'
 
 export {
+  type ChannelECDHInput,
   type StateInfo,
   type UserInfo
 } from '$declarations/ic_message/ic_message.did.js'
@@ -28,6 +29,8 @@ export class MessageCanisterAPI {
   readonly principal: Principal
   readonly canisterId: Principal
   private actor: _SERVICE
+  private $state: StateInfo | null = null
+  private $myInfo: UserInfo | null = null
   private _state = writable<StateInfo | null>(null)
   private _myInfo = writable<UserInfo | null>(null)
 
@@ -58,6 +61,14 @@ export class MessageCanisterAPI {
     return readonly(this._myInfo)
   }
 
+  get state(): StateInfo | null {
+    return this.$state
+  }
+
+  get myInfo(): UserInfo | null {
+    return this.$myInfo
+  }
+
   async profileAPI(canister: Principal): Promise<ProfileAPI> {
     return ProfileAPI.with(this.identity, canister)
   }
@@ -72,8 +83,8 @@ export class MessageCanisterAPI {
 
   async refreshState(): Promise<void> {
     const state = await this.actor.get_state()
-    console.log('state', state)
-    this._state.set(unwrapResult(state, 'call get_state failed'))
+    this.$state = unwrapResult(state, 'call get_state failed')
+    this._state.set(this.$state)
   }
 
   async refreshMyInfo(): Promise<void> {
@@ -81,10 +92,10 @@ export class MessageCanisterAPI {
       return
     }
 
-    const info = await this.actor.get_user([])
-    console.log('info', info)
     try {
-      this._myInfo.set(unwrapResult(info, 'call get_user failed'))
+      const info = await this.actor.get_user([])
+      this.$myInfo = unwrapResult(info, 'call get_user failed')
+      this._myInfo.set(this.$myInfo)
     } catch (e) {}
   }
 
@@ -137,6 +148,14 @@ export class MessageCanisterAPI {
   async update_my_name(name: string): Promise<UserInfo> {
     const res = await this.actor.update_my_name(name)
     return unwrapResult(res, 'call update_my_name failed')
+  }
+
+  async update_my_ecdh(
+    ecdhPub: Uint8Array,
+    encryptedECDH: Uint8Array
+  ): Promise<null> {
+    const res = await this.actor.update_my_ecdh(ecdhPub, encryptedECDH)
+    return unwrapResult(res, 'call update_my_ecdh failed')
   }
 }
 

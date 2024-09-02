@@ -1,8 +1,9 @@
-use ic_cose_types::{validate_key, MILLISECONDS};
+use ic_cose_types::{cose::encrypt0::try_decode_encrypt0, validate_key, MILLISECONDS};
 use ic_message_types::{
     channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
     profile::UserInfo,
 };
+use serde_bytes::{ByteArray, ByteBuf};
 
 use crate::{is_authenticated, store, types};
 
@@ -60,11 +61,19 @@ async fn update_my_image(image: String) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
+async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdn: ByteBuf) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    try_decode_encrypt0(&encrypted_ecdn)?;
+    store::user::update_my_ecdh(caller, ecdh_pub, encrypted_ecdn).await
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
 async fn create_channel(input: CreateChannelInput) -> Result<ChannelInfo, String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::create_channel(caller, input).await
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::create_channel(caller, now_ms, input).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

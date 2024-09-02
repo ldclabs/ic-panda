@@ -27,9 +27,11 @@ type ChannelBasicInfo = record {
   updated_at : nat64;
   name : text;
   paid : nat64;
+  canister : principal;
   image : text;
-  latest_message_at : nat32;
+  latest_message_at : nat64;
   latest_message_by : principal;
+  latest_message_id : nat32;
   my_setting : ChannelSetting;
 };
 type ChannelECDHInput = record {
@@ -51,8 +53,9 @@ type ChannelInfo = record {
   canister : principal;
   image : text;
   message_start : nat32;
-  latest_message_at : nat32;
+  latest_message_at : nat64;
   latest_message_by : principal;
+  latest_message_id : nat32;
   my_setting : ChannelSetting;
 };
 type ChannelSetting = record {
@@ -88,6 +91,7 @@ type Message = record {
   kind : nat8;
   created_at : nat64;
   created_by : principal;
+  canister : principal;
   channel : nat32;
   payload : blob;
 };
@@ -99,7 +103,6 @@ type QueryStats = record {
 };
 type Result = variant { Ok : AddMessageOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : record { nat64; opt Message }; Err : text };
 type Result_2 = variant { Ok : ChannelInfo; Err : text };
 type Result_3 = variant { Ok : vec ChannelBasicInfo; Err : text };
 type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
@@ -107,7 +110,7 @@ type Result_5 = variant { Ok : opt ChannelInfo; Err : text };
 type Result_6 = variant { Ok : Message; Err : text };
 type Result_7 = variant { Ok : StateInfo; Err : text };
 type Result_8 = variant { Ok : vec Message; Err : text };
-type Result_9 = variant { Ok : vec record { nat32; nat32 }; Err : text };
+type Result_9 = variant { Ok : record { nat64; opt Message }; Err : text };
 type StateInfo = record {
   channel_id : nat32;
   incoming_gas : nat;
@@ -145,14 +148,13 @@ service : (opt ChainArgs) -> {
   get_channel_if_update : (nat32, nat64) -> (Result_5) query;
   get_message : (nat32, nat32) -> (Result_6) query;
   get_state : () -> (Result_7) query;
-  list_messages : (nat32, opt nat32, opt nat32, opt nat32) -> (Result_8) query;
-  my_channels : () -> (Result_3) query;
-  my_channels_latest : () -> (Result_9) query;
+  list_messages : (nat32, opt nat32, opt nat32) -> (Result_8) query;
+  my_channels_if_update : (opt nat64) -> (Result_3) query;
   quit_channel : (UpdateMySettingInput, bool) -> (Result_1);
   remove_member : (UpdateChannelMemberInput) -> (Result_1);
   update_channel : (UpdateChannelInput) -> (Result_6);
-  update_manager : (UpdateChannelMemberInput) -> (Result_10);
-  update_member : (UpdateChannelMemberInput) -> (Result_10);
+  update_manager : (UpdateChannelMemberInput) -> (Result_9);
+  update_member : (UpdateChannelMemberInput) -> (Result_9);
   update_my_setting : (UpdateMySettingInput) -> (Result_1);
   validate_admin_add_managers : (vec principal) -> (Result_1);
   validate_admin_remove_managers : (vec principal) -> (Result_1);

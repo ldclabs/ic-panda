@@ -7,12 +7,17 @@ import {
 import { unwrapResult } from '$lib/types/result'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
+import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
+
+export { type ProfileInfo } from '$declarations/ic_message_profile/ic_message_profile.did.js'
 
 export class ProfileAPI {
   readonly principal: Principal
   readonly canisterId: Principal
   private actor: _SERVICE
+  private $myProfile: ProfileInfo | null = null
+  private _myProfile = writable<ProfileInfo | null>(null)
 
   static async with(
     identity: Identity,
@@ -32,6 +37,26 @@ export class ProfileAPI {
     this.principal = principal
     this.canisterId = canister
     this.actor = actor
+  }
+
+  get myProfileStore(): Readable<ProfileInfo | null> {
+    return readonly(this._myProfile)
+  }
+
+  get myProfile(): ProfileInfo | null {
+    return this.$myProfile
+  }
+
+  async refreshMyProfile(): Promise<void> {
+    if (this.principal.isAnonymous()) {
+      return
+    }
+
+    try {
+      const info = await this.actor.get_profile([])
+      this.$myProfile = unwrapResult(info, 'call get_profile failed')
+      this._myProfile.set(this.$myProfile)
+    } catch (e) {}
   }
 
   async get_profile(id: Principal): Promise<ProfileInfo> {

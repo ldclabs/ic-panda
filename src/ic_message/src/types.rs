@@ -17,6 +17,7 @@ pub struct StateInfo {
     pub cose_canisters: Vec<Principal>,
     pub profile_canisters: Vec<Principal>,
     pub channel_canisters: Vec<Principal>,
+    pub matured_channel_canisters: BTreeSet<Principal>,
     pub price: Price,
     pub names_total: u64,
     pub users_total: u64,

@@ -15,6 +15,16 @@ import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
+export {
+  type ChannelBasicInfo,
+  type ChannelInfo,
+  type Message
+} from '$declarations/ic_message_channel/ic_message_channel.did.js'
+
+interface CompareChannel {
+  latest_message_at: bigint
+}
+
 export class ChannelAPI {
   readonly principal: Principal
   readonly canisterId: Principal
@@ -32,6 +42,10 @@ export class ChannelAPI {
 
     const api = new ChannelAPI(identity.getPrincipal(), canister, actor)
     return api
+  }
+
+  static compareChannels(a: CompareChannel, b: CompareChannel): number {
+    return Number(b.latest_message_at - a.latest_message_at)
   }
 
   constructor(principal: Principal, canister: Principal, actor: _SERVICE) {
@@ -66,27 +80,18 @@ export class ChannelAPI {
 
   async list_messages(
     channel: number,
-    prev: number = 0,
-    take: number = 20,
-    util: number = 0
+    start: number = 0,
+    end: number = 0
   ): Promise<Message[]> {
-    const res = await this.actor.list_messages(
-      channel,
-      prev == 0 ? [] : [prev],
-      take == 0 ? [] : [take],
-      util == 0 ? [] : [util]
-    )
+    const res = await this.actor.list_messages(channel, [start], [end])
     return unwrapResult(res, 'call list_messages failed')
   }
 
-  async my_channels(): Promise<ChannelBasicInfo[]> {
-    const res = await this.actor.my_channels()
-    return unwrapResult(res, 'call my_channels failed')
-  }
-
-  async my_channels_latest(): Promise<Array<[number, number]>> {
-    const res = await this.actor.my_channels_latest()
-    return unwrapResult(res, 'call my_channels_latest failed')
+  async my_channels(
+    latest_message_at: bigint = 0n
+  ): Promise<ChannelBasicInfo[]> {
+    const res = await this.actor.my_channels_if_update([latest_message_at])
+    return unwrapResult(res, 'call my_channels_if_update failed')
   }
 
   async remove_member(input: UpdateChannelMemberInput): Promise<null> {
