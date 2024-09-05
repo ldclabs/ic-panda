@@ -169,12 +169,12 @@ export interface _SERVICE {
   'get_channel_if_update' : ActorMethod<[number, bigint], Result_5>,
   'get_message' : ActorMethod<[number, number], Result_6>,
   'get_state' : ActorMethod<[], Result_7>,
+  'leave_channel' : ActorMethod<[UpdateMySettingInput, boolean], Result_1>,
   'list_messages' : ActorMethod<
     [number, [] | [number], [] | [number]],
     Result_8
   >,
   'my_channels_if_update' : ActorMethod<[[] | [bigint]], Result_3>,
-  'quit_channel' : ActorMethod<[UpdateMySettingInput, boolean], Result_1>,
   'remove_member' : ActorMethod<[UpdateChannelMemberInput], Result_1>,
   'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
   'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_9>,

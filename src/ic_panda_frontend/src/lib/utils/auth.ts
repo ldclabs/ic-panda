@@ -1,6 +1,5 @@
 import type { Identity } from '@dfinity/agent'
 import { AuthClient } from '@dfinity/auth-client'
-import { Principal } from '@dfinity/principal'
 
 export const createAuthClient = (): Promise<AuthClient> =>
   AuthClient.create({
@@ -31,29 +30,4 @@ export function shortId(id: string, long: boolean = false): string {
     return id.length > 28 ? id.slice(0, 14) + '...' + id.slice(-14) : id
   }
   return id.length > 14 ? id.slice(0, 7) + '...' + id.slice(-7) : id
-}
-
-export function restorePrincipalObject(obj: any): any {
-  if (!obj || obj instanceof Principal || obj instanceof Uint8Array) {
-    return obj
-  }
-
-  if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      obj[i] = restorePrincipalObject(obj[i])
-    }
-    return obj
-  }
-
-  if (typeof obj === 'object') {
-    if (obj._isPrincipal === true) {
-      return Principal.from(obj)
-    }
-
-    for (const key of Object.keys(obj)) {
-      obj[key] = restorePrincipalObject(obj[key])
-    }
-  }
-
-  return obj
 }

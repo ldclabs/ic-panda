@@ -6,13 +6,15 @@
   } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
-  import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
-  import { myMessageStateAsync, type MyMessageState } from '$lib/stores/user'
-  import { errMessage } from '$lib/types/result'
+  import { errMessage, unwrapOption } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
+  import {
+    myMessageStateAsync,
+    type MyMessageState
+  } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -35,8 +37,10 @@
 
   let validating = false
   let submitting = false
+  let editMode = false
   let availablePandaBalance = 0n
 
+  let username = ''
   let nameInput = ''
   let usernameInput = ''
   let usernameErr = ''
@@ -60,30 +64,6 @@
 
     amount = getPrice(usernameInput)
     return ''
-  }
-
-  async function nameCopyPaste(e: Event) {
-    e.stopPropagation()
-    e.preventDefault()
-
-    if (nameInput == '') {
-      nameInput = await navigator.clipboard.readText()
-    } else {
-      nameInput = ''
-    }
-    checkName()
-  }
-
-  async function usernameCopyPaste(e: Event) {
-    e.stopPropagation()
-    e.preventDefault()
-
-    if (usernameInput == '') {
-      usernameInput = await navigator.clipboard.readText()
-    } else {
-      usernameInput = ''
-    }
-    checkUsername()
   }
 
   async function onRegister(e: Event) {
@@ -116,11 +96,12 @@
           usernameInput,
           nameInput
         )
-        await myMessageState.api.refreshMyInfo()
-        setTimeout(async () => {
-          parent && parent['onClose']()
-        }, 5000)
       }
+
+      await myMessageState.api.refreshMyInfo()
+      setTimeout(async () => {
+        parent && parent['onClose']()
+      }, 3000)
     } catch (err: any) {
       submitting = false
       validating = false
@@ -171,8 +152,11 @@
     myMessageState = await myMessageStateAsync()
     messageState = myMessageState.api.stateStore
     userInfo = myMessageState.info
-    nameInput = $userInfo?.name || ''
-    result = $userInfo
+    if ($userInfo) {
+      editMode = true
+      nameInput = $userInfo.name || ''
+      username = unwrapOption($userInfo.username) || ''
+    }
 
     tokenLedgerAPI = await tokenLedgerAPIAsync()
     const pandaBalance = tokenLedgerAPI.balance()
@@ -196,7 +180,9 @@
       >
     </div>
   {:else}
-    <div class="!mt-0 text-center text-xl font-bold">Register Name</div>
+    <div class="!mt-0 text-center text-xl font-bold"
+      >{editMode ? 'Edit' : 'Register'} Name</div
+    >
 
     <form
       class="m-auto !mt-4 flex flex-col content-center"
@@ -204,7 +190,7 @@
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
           type="text"
           name="nameInput"
           minlength="1"
@@ -214,18 +200,6 @@
           placeholder="Display name"
           required
         />
-        <a
-          class="btn absolute right-0 top-0 outline-0"
-          type="button"
-          href="/"
-          on:click={nameCopyPaste}
-        >
-          {#if nameInput == ''}
-            <span>Paste</span>
-          {:else}
-            <span class="*:scale-90"><IconDeleteBin /></span>
-          {/if}
-        </a>
       </div>
       <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />
       <div class="!mt-4 space-y-2 rounded-xl bg-gray/5 p-4">
@@ -234,7 +208,7 @@
         </p>
         <p class="text-gray/50">
           <b>2.</b> Have your keys encrypted and stored on-chain, allowing sync across
-          multiple devices (otherwise, the keys is stored only in the browser database,
+          multiple devices (otherwise, the keys is stored only in the browser storage,
           and clearing browser data or device issues may result in key loss, making
           messages undecryptable).
         </p>
@@ -264,32 +238,26 @@
       </div>
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
           type="text"
           name="usernameInput"
           minlength="1"
           maxlength="20"
           bind:value={usernameInput}
-          disabled={submitting}
-          placeholder="https://panda.fans/[username]"
+          disabled={submitting || (editMode && username != '')}
+          placeholder="https://panda.fans/{username || '[username]'}"
         />
-        <a
-          class="btn absolute right-0 top-0 outline-0"
-          type="button"
-          href="/"
-          on:click={usernameCopyPaste}
-        >
-          {#if usernameInput == ''}
-            <span>Paste</span>
-          {:else}
-            <span class="*:scale-90"><IconDeleteBin /></span>
-          {/if}
-        </a>
-        <p
-          class="h-5 pl-3 text-sm text-error-500 {usernameErr == ''
-            ? 'invisible'
-            : 'visiable'}">{usernameErr}</p
-        >
+        <div class="absolute right-1 top-0 h-10 text-sm leading-10 text-panda">
+          <span>{formatNumber(Number(amount) / Number(PANDAToken.one))}</span>
+          <span>{PANDAToken.symbol}</span>
+        </div>
+        {#if !editMode}
+          <p
+            class="h-5 pl-3 text-sm text-error-500 {usernameErr == ''
+              ? 'invisible'
+              : 'visiable'}">{usernameErr}</p
+          >
+        {/if}
       </div>
     </form>
     <footer class="m-auto !mt-6">
@@ -302,7 +270,7 @@
           <span class=""><IconCircleSpin /></span>
           <span>Processing...</span>
         {:else}
-          <span>Register Now</span>
+          <span>{editMode ? 'Save' : 'Register Now'}</span>
         {/if}
       </button>
     </footer>

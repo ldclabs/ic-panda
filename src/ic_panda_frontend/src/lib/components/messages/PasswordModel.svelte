@@ -1,9 +1,9 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { MasterKey, type MyMessageState } from '$lib/stores/user'
   import { errMessage } from '$lib/types/result'
-  import { AesGcmKey, randomBytes, utf8ToBytes } from '$lib/utils/crypto'
+  import { AesGcmKey, encodeCBOR, randomBytes } from '$lib/utils/crypto'
+  import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
   import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
@@ -14,7 +14,7 @@
   export let masterKey: MasterKey | null
 
   const toastStore = getToastStore()
-  const keyId = utf8ToBytes(String(Date.now()))
+  const keyId = encodeCBOR(String(Date.now()))
 
   let validating = false
   let submitting = false
@@ -46,8 +46,10 @@
             myState.id,
             cachedPassword ? 7 * 24 * 60 * 60 * 1000 : 0
           )
+
+          await myState.initStaticECDHKey()
           parent && parent['onClose']()
-        } catch (_err) {
+        } catch (err) {
           throw new Error('Incorrect password')
         }
 
@@ -70,6 +72,7 @@
         cachedPassword ? 7 * 24 * 60 * 60 * 1000 : 0
       )
 
+      await myState.initStaticECDHKey()
       parent && parent['onClose']()
     } catch (err: any) {
       submitting = false
@@ -96,7 +99,7 @@
 
   onMount(async () => {
     if (!masterKey && myState.ecdhAvailable()) {
-      ecdhKeyPromise = myState.loadECDHCoseEncryptedKey(keyId)
+      ecdhKeyPromise = myState.fetchECDHCoseEncryptedKey(keyId)
     }
   })
 </script>
@@ -117,7 +120,7 @@
           remotely.
         </p>
         <p class="text-gray/50">
-          <b>2.</b> By default, the hashed password is cached in the browser database
+          <b>2.</b> By default, the hashed password is cached in the browser storage
           for 7 days.
         </p>
       </div>

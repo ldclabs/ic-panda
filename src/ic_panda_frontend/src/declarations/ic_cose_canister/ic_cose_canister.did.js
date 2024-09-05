@@ -127,7 +127,7 @@ export const idlFactory = ({ IDL }) => {
     'version' : IDL.Nat32,
     'deprecated' : IDL.Bool,
     'archived_at' : IDL.Nat64,
-    'payload' : IDL.Vec(IDL.Nat8),
+    'payload' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const Result_9 = IDL.Variant({
     'Ok' : SettingArchivedPayload,
@@ -139,9 +139,10 @@ export const idlFactory = ({ IDL }) => {
     'tags' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))),
   });
   const UpdateSettingPayloadInput = IDL.Record({
+    'dek' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'status' : IDL.Opt(IDL.Int8),
     'deprecate_current' : IDL.Opt(IDL.Bool),
-    'payload' : IDL.Vec(IDL.Nat8),
+    'payload' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const StateInfo = IDL.Record({
     'freezing_threshold' : IDL.Nat64,

@@ -3,7 +3,10 @@ use ciborium::{from_reader, from_reader_with_buffer, into_writer};
 use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::{
     namespace::{CreateNamespaceInput, NamespaceInfo},
-    setting::{CreateSettingInput, CreateSettingOutput, SettingPath},
+    setting::{
+        CreateSettingInput, CreateSettingOutput, SettingInfo, SettingPath, UpdateSettingOutput,
+        UpdateSettingPayloadInput,
+    },
 };
 use ic_message_types::{profile::UserInfo, NameBlock};
 use ic_stable_structures::{
@@ -281,28 +284,56 @@ pub mod user {
             })
             .ok_or_else(|| "user not found".to_string())?;
         let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
-        let res: Result<CreateSettingOutput, String> = call(
-            cose_canister,
-            "setting_create",
-            (
-                SettingPath {
-                    ns: caller.to_text().replace("-", "_"),
-                    user_owned: false,
-                    subject: Some(caller),
-                    key: b"StaticECDH".to_vec().into(),
-                    version: 0,
-                },
-                CreateSettingInput {
-                    payload: None,
-                    desc: None,
-                    status: None,
-                    tags: None,
-                    dek: Some(encrypted_ecdh),
-                },
-            ),
-            0,
-        )
-        .await?;
+        let mut sp = SettingPath {
+            ns: caller.to_text().replace("-", "_"),
+            user_owned: false,
+            subject: Some(caller),
+            key: b"StaticECDH".to_vec().into(),
+            version: 0,
+        };
+        let res: Result<SettingInfo, String> =
+            call(cose_canister, "setting_get_info", (sp.clone(),), 0).await?;
+        let res = match res {
+            Ok(info) => {
+                sp.version = info.version;
+                let res: Result<UpdateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_update_payload",
+                    (
+                        sp,
+                        UpdateSettingPayloadInput {
+                            payload: None,
+                            status: None,
+                            deprecate_current: None,
+                            dek: Some(encrypted_ecdh),
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+            Err(_) => {
+                let res: Result<CreateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_create",
+                    (
+                        sp,
+                        CreateSettingInput {
+                            payload: None,
+                            desc: None,
+                            status: None,
+                            tags: None,
+                            dek: Some(encrypted_ecdh),
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+        };
+
         if res.is_ok() {
             let _: Result<(), String> = call(
                 profile_canister,
@@ -312,7 +343,7 @@ pub mod user {
             )
             .await?;
         }
-        res.map(|_| ())
+        res
     }
 
     pub async fn register_username(
@@ -348,21 +379,16 @@ pub mod user {
             }
         })?;
 
-        let blk = match token_transfer_from(
-            caller,
-            amount.into(),
-            format!("register_username: {}", username),
-        )
-        .await
-        {
-            Err(err) => {
-                NAME_STORE.with(|r| {
-                    r.borrow_mut().remove(&ln);
-                });
-                return Err(err);
-            }
-            Ok(blk) => blk,
-        };
+        let blk =
+            match token_transfer_from(caller, amount.into(), format!("RU: {}", username)).await {
+                Err(err) => {
+                    NAME_STORE.with(|r| {
+                        r.borrow_mut().remove(&ln);
+                    });
+                    return Err(err);
+                }
+                Ok(blk) => blk,
+            };
 
         state::with_mut(|s| {
             if ln.len() <= 7 {
@@ -598,16 +624,7 @@ pub mod channel {
             .await?;
         }
 
-        token_transfer_from(
-            caller,
-            amount.into(),
-            format!(
-                "create channel {} in {}",
-                input.name,
-                channel_canister.to_text()
-            ),
-        )
-        .await?;
+        token_transfer_from(caller, amount.into(), format!("CC")).await?;
 
         state::with_mut(|s| {
             s.incoming_total += amount as u128;
@@ -634,28 +651,56 @@ pub mod channel {
             .with(|r| r.borrow().get(&caller).map(|u| u.cose_canister))
             .ok_or_else(|| "user not found".to_string())?;
         let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
-        let res: Result<CreateSettingOutput, String> = call(
-            cose_canister,
-            "setting_create",
-            (
-                SettingPath {
-                    ns: caller.to_text().replace("-", "_"),
-                    user_owned: false,
-                    subject: Some(caller),
-                    key: channel_kek_key(&input.canister, input.id),
-                    version: 0,
-                },
-                CreateSettingInput {
-                    payload: None,
-                    desc: None,
-                    status: None,
-                    tags: None,
-                    dek: Some(input.kek),
-                },
-            ),
-            0,
-        )
-        .await?;
+        let mut sp = SettingPath {
+            ns: caller.to_text().replace("-", "_"),
+            user_owned: false,
+            subject: Some(caller),
+            key: channel_kek_key(&input.canister, input.id),
+            version: 0,
+        };
+        let res: Result<SettingInfo, String> =
+            call(cose_canister, "setting_get_info", (sp.clone(),), 0).await?;
+        let res = match res {
+            Ok(info) => {
+                sp.version = info.version;
+                let res: Result<UpdateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_update_payload",
+                    (
+                        sp,
+                        UpdateSettingPayloadInput {
+                            payload: None,
+                            status: None,
+                            deprecate_current: None,
+                            dek: Some(input.kek),
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+            Err(_) => {
+                let res: Result<CreateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_create",
+                    (
+                        sp,
+                        CreateSettingInput {
+                            payload: None,
+                            desc: None,
+                            status: None,
+                            tags: None,
+                            dek: Some(input.kek),
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+        };
+
         res.map(|_| ())
     }
 }

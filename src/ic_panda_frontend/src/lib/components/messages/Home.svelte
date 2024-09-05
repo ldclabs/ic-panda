@@ -1,22 +1,34 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
+  import { type UserInfo } from '$lib/canisters/message'
   import { signIn } from '$lib/services/auth'
-  import { authStore } from '$lib/stores/auth'
+  import {
+    myMessageStateAsync,
+    type MyMessageState
+  } from '$src/lib/stores/message'
   import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
+  import { type Readable } from 'svelte/store'
   import UserRegisterModel from './UserRegisterModel.svelte'
+
+  export let myState: MyMessageState
+  export let myInfo: Readable<UserInfo>
 
   const modalStore = getModalStore()
 
   async function getStartedHandler() {
-    if (principal.isAnonymous()) {
+    if (myState.principal.isAnonymous()) {
       const res = await signIn({})
-      if (res.success == 'ok') {
+      myState = await myMessageStateAsync()
+      myInfo = myState.info
+      if (!$myInfo && res.success == 'ok') {
         modalStore.trigger({
           type: 'component',
           component: { ref: UserRegisterModel }
         })
       }
-    } else {
+    } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
         component: { ref: UserRegisterModel }
@@ -24,9 +36,11 @@
     }
   }
 
-  onMount(() => {})
-
-  $: principal = $authStore.identity.getPrincipal()
+  onMount(() => {
+    if ($page.params['channel']) {
+      goto('/_/messages')
+    }
+  })
 </script>
 
 <div class="mt-4 max-w-4xl">

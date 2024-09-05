@@ -34,7 +34,7 @@
     justify="justify-left md:justify-center"
     border="border-none"
     padding="px-2 py-2 md:px-6 md:py-3"
-    active="border-b-4 border-primary-500/80"
+    active="*:border-b-4 *:border-primary-500/80"
     hover="hover:bg-primary-500/10"
     class="overflow-y-hidden first:ml-2 max-md:max-w-[calc(100vw-100px)]"
   >
@@ -47,9 +47,9 @@
     </TabAnchor>
     <TabAnchor
       href="/_/messages"
-      selected={$page.url.pathname.startsWith('/messages')}
+      selected={$page.url.pathname.startsWith('/_/messages')}
     >
-      Messages
+      E2EE Messages
     </TabAnchor>
     <!-- <TabAnchor
       href="/wallet"
@@ -57,11 +57,8 @@
     >
       Chain Fusion
     </TabAnchor> -->
-    <TabAnchor href="/#luckypool" selected={$page.url.hash === '#luckypool'}>
-      Lucky Pool
-    </TabAnchor>
-    <TabAnchor href="/#tokenomics" selected={$page.url.hash === '#tokenomics'}>
-      Tokenomics
+    <TabAnchor href="https://github.com/ldclabs" target="_blank">
+      Web3 Infras
     </TabAnchor>
   </TabGroup>
 

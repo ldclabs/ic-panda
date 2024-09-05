@@ -3,6 +3,7 @@
   import AirdropCard from '$lib/components/core/AirdropCard.svelte'
   import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
+  import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PrizeCard from '$lib/components/core/PrizeCard.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconExchangeDollar from '$lib/components/icons/IconExchangeDollar.svelte'
@@ -449,6 +450,10 @@
       </Saos>
     </div>
   </div>
+
+  <footer id="page-footer" class="flex-none">
+    <PageFooter />
+  </footer>
 </div>
 
 <style>

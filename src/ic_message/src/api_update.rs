@@ -61,10 +61,10 @@ async fn update_my_image(image: String) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdn: ByteBuf) -> Result<(), String> {
+async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdh: ByteBuf) -> Result<(), String> {
     let caller = ic_cdk::caller();
-    try_decode_encrypt0(&encrypted_ecdn)?;
-    store::user::update_my_ecdh(caller, ecdh_pub, encrypted_ecdn).await
+    try_decode_encrypt0(&encrypted_ecdh)?;
+    store::user::update_my_ecdh(caller, ecdh_pub, encrypted_ecdh).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

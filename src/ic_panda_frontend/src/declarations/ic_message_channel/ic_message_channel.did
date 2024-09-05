@@ -148,9 +148,9 @@ service : (opt ChainArgs) -> {
   get_channel_if_update : (nat32, nat64) -> (Result_5) query;
   get_message : (nat32, nat32) -> (Result_6) query;
   get_state : () -> (Result_7) query;
+  leave_channel : (UpdateMySettingInput, bool) -> (Result_1);
   list_messages : (nat32, opt nat32, opt nat32) -> (Result_8) query;
   my_channels_if_update : (opt nat64) -> (Result_3) query;
-  quit_channel : (UpdateMySettingInput, bool) -> (Result_1);
   remove_member : (UpdateChannelMemberInput) -> (Result_1);
   update_channel : (UpdateChannelInput) -> (Result_6);
   update_manager : (UpdateChannelMemberInput) -> (Result_9);

@@ -142,13 +142,13 @@ export const idlFactory = ({ IDL }) => {
     'messages_total' : IDL.Nat64,
   });
   const Result_7 = IDL.Variant({ 'Ok' : StateInfo, 'Err' : IDL.Text });
-  const Result_8 = IDL.Variant({ 'Ok' : IDL.Vec(Message), 'Err' : IDL.Text });
   const UpdateMySettingInput = IDL.Record({
     'id' : IDL.Nat32,
     'ecdh' : IDL.Opt(ChannelECDHInput),
     'mute' : IDL.Opt(IDL.Bool),
     'last_read' : IDL.Opt(IDL.Nat32),
   });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Vec(Message), 'Err' : IDL.Text });
   const UpdateChannelMemberInput = IDL.Record({
     'id' : IDL.Nat32,
     'member' : IDL.Principal,
@@ -186,6 +186,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_message' : IDL.Func([IDL.Nat32, IDL.Nat32], [Result_6], ['query']),
     'get_state' : IDL.Func([], [Result_7], ['query']),
+    'leave_channel' : IDL.Func(
+        [UpdateMySettingInput, IDL.Bool],
+        [Result_1],
+        [],
+      ),
     'list_messages' : IDL.Func(
         [IDL.Nat32, IDL.Opt(IDL.Nat32), IDL.Opt(IDL.Nat32)],
         [Result_8],
@@ -196,7 +201,6 @@ export const idlFactory = ({ IDL }) => {
         [Result_3],
         ['query'],
       ),
-    'quit_channel' : IDL.Func([UpdateMySettingInput, IDL.Bool], [Result_1], []),
     'remove_member' : IDL.Func([UpdateChannelMemberInput], [Result_1], []),
     'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
     'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),

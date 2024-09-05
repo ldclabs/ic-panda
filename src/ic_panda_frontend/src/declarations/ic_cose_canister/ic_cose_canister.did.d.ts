@@ -95,7 +95,7 @@ export interface SettingArchivedPayload {
   'version' : number,
   'deprecated' : boolean,
   'archived_at' : bigint,
-  'payload' : Uint8Array | number[],
+  'payload' : [] | [Uint8Array | number[]],
 }
 export interface SettingInfo {
   'dek' : [] | [Uint8Array | number[]],
@@ -148,9 +148,10 @@ export interface UpdateSettingInfoInput {
   'tags' : [] | [Array<[string, string]>],
 }
 export interface UpdateSettingPayloadInput {
+  'dek' : [] | [Uint8Array | number[]],
   'status' : [] | [number],
   'deprecate_current' : [] | [boolean],
-  'payload' : Uint8Array | number[],
+  'payload' : [] | [Uint8Array | number[]],
 }
 export interface UpgradeArgs {
   'freezing_threshold' : [] | [bigint],

@@ -170,11 +170,11 @@ fn update_my_setting(input: types::UpdateMySettingInput) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn quit_channel(input: types::UpdateMySettingInput, delete_channel: bool) -> Result<(), String> {
+fn leave_channel(input: types::UpdateMySettingInput, delete_channel: bool) -> Result<(), String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::quit(caller, input.id, delete_channel)?;
+    store::channel::leave(caller, input.id, delete_channel)?;
     Ok(())
 }
 

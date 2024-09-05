@@ -61,7 +61,7 @@ export async function coseA256GCMEncrypt0(
   key: AesGcmKey,
   payload: Uint8Array,
   aad: Uint8Array,
-  key_id?: Uint8Array
+  keyId?: Uint8Array
 ): Promise<Uint8Array> {
   const protect = new Header().setParam(
     iana.HeaderParameterAlg,
@@ -71,8 +71,9 @@ export async function coseA256GCMEncrypt0(
     iana.HeaderParameterIV,
     randomBytes(12)
   )
-  if (key_id) {
-    unprotected.setParam(iana.HeaderParameterKid, key_id)
+
+  if (keyId) {
+    unprotected.setParam(iana.HeaderParameterKid, keyId)
   }
   const msg = new Encrypt0Message(payload, protect, unprotected)
   return await msg.toBytes(key, aad)

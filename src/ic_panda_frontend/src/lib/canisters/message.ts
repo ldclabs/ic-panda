@@ -20,6 +20,7 @@ import { ProfileAPI } from './messageprofile'
 
 export {
   type ChannelECDHInput,
+  type ChannelInfo,
   type StateInfo,
   type UserInfo
 } from '$declarations/ic_message/ic_message.did.js'

@@ -66,7 +66,7 @@ type SettingArchivedPayload = record {
   version : nat32;
   deprecated : bool;
   archived_at : nat64;
-  payload : blob;
+  payload : opt blob;
 };
 type SettingInfo = record {
   dek : opt blob;
@@ -119,9 +119,10 @@ type UpdateSettingInfoInput = record {
   tags : opt vec record { text; text };
 };
 type UpdateSettingPayloadInput = record {
+  dek : opt blob;
   status : opt int8;
   deprecate_current : opt bool;
-  payload : blob;
+  payload : opt blob;
 };
 type UpgradeArgs = record {
   freezing_threshold : opt nat64;

@@ -386,6 +386,10 @@ pub mod channel {
         let id = state::with_mut(|s| {
             s.incoming_gas = s.incoming_gas.saturating_add(input.paid as u128);
             s.channel_id = s.channel_id.saturating_add(1);
+            s.user_channels
+                .entry(input.created_by)
+                .or_default()
+                .insert(s.channel_id, now_ms);
             s.channel_id
         });
 
@@ -494,7 +498,7 @@ pub mod channel {
         })
     }
 
-    pub fn quit(caller: Principal, id: u32, delete_channel: bool) -> Result<(), String> {
+    pub fn leave(caller: Principal, id: u32, delete_channel: bool) -> Result<(), String> {
         CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&id) {

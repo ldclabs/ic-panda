@@ -48,6 +48,27 @@ export class ChannelAPI {
     return Number(b.latest_message_at - a.latest_message_at)
   }
 
+  static channelParam(channel: { id: number; canister: Principal }): string {
+    return `${channel.canister.toText()}/${channel.id}`
+  }
+
+  static parseChannelParam(param: string): {
+    id: number
+    canister: Principal | null
+  } {
+    const ss = param.split('/')
+    if (ss.length == 2) {
+      const rt = {
+        id: parseInt(ss[1] || ''),
+        canister: Principal.fromText(ss[0] || '')
+      }
+      if (rt.id > 0) {
+        return rt
+      }
+    }
+    return { id: 0, canister: null }
+  }
+
   constructor(principal: Principal, canister: Principal, actor: _SERVICE) {
     this.principal = principal
     this.canisterId = canister
