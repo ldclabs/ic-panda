@@ -6,7 +6,7 @@
   import IconSendPlaneFill from '$lib/components/icons/IconSendPlaneFill.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { errMessage } from '$lib/types/result'
+  import { toastRun } from '$lib/stores/toast'
   import {
     coseA256GCMEncrypt0,
     encodeCBOR,
@@ -20,13 +20,12 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import type { Principal } from '@dfinity/principal'
-  import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
+  import { Avatar } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
 
   export let channelId: string
 
-  const toastStore = getToastStore()
   const { canister, id } = ChannelAPI.parseChannelParam(channelId)
 
   let myID: Principal
@@ -67,14 +66,14 @@
     } as ScrollToOptions)
   }
 
-  async function sendMessage() {
+  function sendMessage() {
     newMessage = newMessage.trim()
     if (!newMessage) {
       return
     }
 
-    try {
-      submitting = true
+    submitting = true
+    toastRun(async () => {
       const input = {
         reply_to: [] as [] | [number],
         channel: id,
@@ -102,15 +101,9 @@
       submitting = false
       await tick()
       scrollChatBottom('smooth')
-    } catch (err: any) {
+    }).finally(() => {
       submitting = false
-      toastStore.trigger({
-        autohide: false,
-        hideDismiss: false,
-        background: 'variant-filled-error',
-        message: errMessage(err)
-      })
-    }
+    })
   }
 
   function onPromptKeydown(event: KeyboardEvent): void {
@@ -154,13 +147,15 @@
   }
 
   onMount(() => {
-    if (canister) {
-      loadChannel(canister, id).catch((err) =>
-        console.error('loadChannel ERROR:', err)
-      )
-    } else {
-      goto('/_/messages')
-    }
+    const { abort } = toastRun(async (signal: AbortSignal) => {
+      if (canister && !signal.aborted) {
+        await loadChannel(canister, id)
+      } else {
+        goto('/_/messages')
+      }
+    })
+
+    return abort
   })
 
   $: {

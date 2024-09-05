@@ -9,15 +9,16 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
-  import { errMessage, unwrapOption } from '$lib/types/result'
+  import { toastRun } from '$lib/stores/toast'
+  import { unwrapOption } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import {
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
-  import { getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
+  import debounce from 'debounce'
+  import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
@@ -26,11 +27,10 @@
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
-  const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
   let tokenLedgerAPI: TokenLedgerAPI
-  let myMessageState: MyMessageState
+  let myState: MyMessageState
 
   let messageState: Readable<StateInfo | null>
   let userInfo: Readable<UserInfo | null>
@@ -46,6 +46,7 @@
   let usernameErr = ''
   let amount = 0n
   let result: UserInfo | null = null
+  let existUsernames: string[] = []
 
   function checkName() {
     nameInput = nameInput.trim()
@@ -66,52 +67,31 @@
     return ''
   }
 
-  async function onRegister(e: Event) {
+  async function onRegister() {
     submitting = true
-    if (amount > availablePandaBalance) {
-      usernameErr = 'Insufficient balance'
-      submitting = false
-      validating = true
-      return
-    }
-
-    try {
-      if (!usernameInput) {
-        result = await myMessageState.api.update_my_name(nameInput)
-      } else {
-        try {
-          const res = await myMessageState.api.get_by_username(usernameInput)
-          if (res) {
-            usernameErr = 'Try another one, this username is occupied'
-            submitting = false
-            validating = true
-            return
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
-        result = await myMessageState.api.register_username(
-          usernameInput,
-          nameInput
-        )
+    toastRun(async (signal: AbortSignal) => {
+      if (amount > availablePandaBalance) {
+        usernameErr = 'Insufficient balance'
+        submitting = false
+        validating = true
+        return
       }
 
-      await myMessageState.api.refreshMyInfo()
+      if (!usernameInput) {
+        result = await myState.api.update_my_name(nameInput)
+      } else {
+        await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
+        result = await myState.api.register_username(usernameInput, nameInput)
+      }
+
+      await myState.api.refreshMyInfo()
       setTimeout(async () => {
         parent && parent['onClose']()
       }, 3000)
-    } catch (err: any) {
+    }).finally(() => {
       submitting = false
       validating = false
-      toastStore.trigger({
-        autohide: false,
-        hideDismiss: false,
-        background: 'variant-filled-error',
-        message: errMessage(err)
-      })
-    }
+    })
   }
 
   function onFormChange(e: Event) {
@@ -148,19 +128,47 @@
     }
   }
 
-  onMount(async () => {
-    myMessageState = await myMessageStateAsync()
-    messageState = myMessageState.api.stateStore
-    userInfo = myMessageState.info
-    if ($userInfo) {
-      editMode = true
-      nameInput = $userInfo.name || ''
-      username = unwrapOption($userInfo.username) || ''
+  const debouncedSearch = debounce(async () => {
+    const name = usernameInput.trim()
+    if (name && myState) {
+      try {
+        existUsernames = await myState.api.search_username(name)
+      } catch (e) {
+        // ignore
+      }
     }
+  }, 618)
 
-    tokenLedgerAPI = await tokenLedgerAPIAsync()
-    const pandaBalance = tokenLedgerAPI.balance()
-    availablePandaBalance = await pandaBalance
+  function onSearchUsername(e: KeyboardEvent) {
+    existUsernames.length = 0
+    debouncedSearch()
+  }
+
+  onMount(() => {
+    const { abort } = toastRun(async (signal: AbortSignal) => {
+      myState = await myMessageStateAsync()
+      messageState = myState.api.stateStore
+      userInfo = myState.info
+      if ($userInfo) {
+        editMode = true
+        nameInput = $userInfo.name || ''
+        username = unwrapOption($userInfo.username) || ''
+      }
+
+      if (signal.aborted) {
+        return
+      }
+
+      tokenLedgerAPI = await tokenLedgerAPIAsync()
+      const pandaBalance = tokenLedgerAPI.balance()
+      availablePandaBalance = await pandaBalance
+    })
+
+    return abort
+  })
+
+  onDestroy(() => {
+    debouncedSearch.clear()
   })
 </script>
 
@@ -171,13 +179,13 @@
     </div>
     <div class="text-center">
       <p class="mt-4">
-        <span> You have successfully registered the name: </span>
+        <span>You have successfully registered the name: </span>
       </p>
-      <p class="my-2 text-center text-lg font-bold"
-        >{result.username.length == 1
+      <p class="my-2 text-center text-lg font-bold">
+        {result.username.length == 1
           ? result.name + ' (' + result.username[0] + ')'
-          : result.name}</p
-      >
+          : result.name}
+      </p>
     </div>
   {:else}
     <div class="!mt-0 text-center text-xl font-bold"
@@ -244,12 +252,22 @@
           minlength="1"
           maxlength="20"
           bind:value={usernameInput}
+          on:keydown={onSearchUsername}
           disabled={submitting || (editMode && username != '')}
           placeholder="https://panda.fans/{username || '[username]'}"
         />
-        <div class="absolute right-1 top-0 h-10 text-sm leading-10 text-panda">
-          <span>{formatNumber(Number(amount) / Number(PANDAToken.one))}</span>
-          <span>{PANDAToken.symbol}</span>
+        <div class="absolute right-1 top-0 h-10 text-sm leading-10">
+          {#if existUsernames.includes(usernameInput.trim())}
+            <span class="text-error-500">occupied!</span>
+          {:else}
+            <span
+              class={amount > availablePandaBalance
+                ? 'text-error-500'
+                : 'text-panda'}
+              >{formatNumber(Number(amount) / Number(PANDAToken.one))}</span
+            >
+            <span>{PANDAToken.symbol}</span>
+          {/if}
         </div>
         {#if !editMode}
           <p

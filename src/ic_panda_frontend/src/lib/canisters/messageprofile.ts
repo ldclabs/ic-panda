@@ -10,7 +10,10 @@ import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 
-export { type ProfileInfo } from '$declarations/ic_message_profile/ic_message_profile.did.js'
+export {
+  type ProfileInfo,
+  type UpdateProfileInput
+} from '$declarations/ic_message_profile/ic_message_profile.did.js'
 
 export class ProfileAPI {
   readonly principal: Principal

@@ -3,6 +3,7 @@
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
   import { signIn } from '$lib/services/auth'
+  import { toastRun } from '$lib/stores/toast'
   import {
     myMessageStateAsync,
     type MyMessageState
@@ -17,23 +18,25 @@
 
   const modalStore = getModalStore()
 
-  async function getStartedHandler() {
-    if (myState.principal.isAnonymous()) {
-      const res = await signIn({})
-      myState = await myMessageStateAsync()
-      myInfo = myState.info
-      if (!$myInfo && res.success == 'ok') {
+  function getStartedHandler() {
+    toastRun(async () => {
+      if (myState.principal.isAnonymous()) {
+        const res = await signIn({})
+        myState = await myMessageStateAsync()
+        myInfo = myState.info
+        if (!$myInfo && res.success == 'ok') {
+          modalStore.trigger({
+            type: 'component',
+            component: { ref: UserRegisterModel }
+          })
+        }
+      } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
           component: { ref: UserRegisterModel }
         })
       }
-    } else if (!$myInfo) {
-      modalStore.trigger({
-        type: 'component',
-        component: { ref: UserRegisterModel }
-      })
-    }
+    })
   }
 
   onMount(() => {

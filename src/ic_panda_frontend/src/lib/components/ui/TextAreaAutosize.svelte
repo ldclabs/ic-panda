@@ -22,5 +22,9 @@
     height: 100%;
     top: 0;
     resize: none;
+    outline: none;
+  }
+  textarea:focus {
+    outline: none !important;
   }
 </style>

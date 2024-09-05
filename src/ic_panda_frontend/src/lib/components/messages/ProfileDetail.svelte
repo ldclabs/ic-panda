@@ -2,6 +2,7 @@
   import { type UserInfo } from '$lib/canisters/message'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import Loading from '$lib/components/ui/Loading.svelte'
+  import { toastRun } from '$lib/stores/toast'
   import { md } from '$lib/utils/markdown'
   import {
     myMessageStateAsync,
@@ -11,6 +12,7 @@
   import { Avatar, getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
+  import ProfileEditModel from './ProfileEditModel.svelte'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
   export let userId: Principal
@@ -18,25 +20,52 @@
   const modalStore = getModalStore()
   let myID: Principal
   let myState: MyMessageState
-  let myInfo: Readable<UserInfo>
   let userInfo: Readable<UserInfo & ProfileInfo>
 
   async function loadProfile(user: Principal | string) {
     myState = await myMessageStateAsync()
-    myInfo = myState.info
     myID = myState.principal
     userInfo = await myState.loadProfile(user)
+  }
+
+  async function saveProfile(profile: UserInfo & ProfileInfo) {
+    if (profile.name !== $userInfo.name) {
+      await myState.api.update_my_name(profile.name)
+      await myState.api.refreshMyInfo()
+      // myInfo = myState.info
+    }
+
+    const bio = profile.bio.trim()
+    if (bio !== $userInfo.bio) {
+      await myState.updateProfile($userInfo.profile_canister, {
+        bio: [bio],
+        remove_channels: [],
+        upsert_channels: [],
+        follow: [],
+        unfollow: []
+      })
+    }
+
+    userInfo = await myState.loadProfile(myState.principal)
   }
 
   function onMeHandler() {
     modalStore.trigger({
       type: 'component',
-      component: { ref: UserRegisterModel }
+      component: {
+        ref:
+          $userInfo.username.length == 1 ? ProfileEditModel : UserRegisterModel,
+        props: {
+          myInfo: userInfo,
+          onSave: saveProfile
+        }
+      }
     })
   }
 
   onMount(() => {
-    loadProfile(userId).catch((err) => console.error('loadProfile ERROR:', err))
+    const { abort } = toastRun(() => loadProfile(userId))
+    return abort
   })
 </script>
 
@@ -69,7 +98,7 @@
         <p class="text-gray/60">@{$userInfo.username[0]}</p>
       {/if}
       {#if $userInfo.bio}
-        <div>
+        <div class="mt-2">
           {@html md.render($userInfo.bio)}
         </div>
       {/if}

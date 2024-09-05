@@ -10,14 +10,14 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
-  import { errMessage } from '$lib/types/result'
+  import { toastRun } from '$lib/stores/toast'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import {
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -26,7 +26,6 @@
   export let parent: SvelteComponent
   export let add_managers: [Principal, Uint8Array | null][] = []
 
-  const toastStore = getToastStore()
   const modalStore = getModalStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
@@ -48,10 +47,9 @@
     return ''
   }
 
-  async function onCreateChannel(e: Event) {
+  function onCreateChannel(e: Event) {
     submitting = true
-
-    try {
+    toastRun(async () => {
       if (amount > availablePandaBalance) {
         throw new Error('Insufficient balance')
       }
@@ -82,16 +80,10 @@
 
       modalStore.close()
       goto(`/_/messages/${result.canister}/${result.id}`)
-    } catch (err: any) {
+    }).finally(() => {
       submitting = false
       validating = false
-      toastStore.trigger({
-        autohide: false,
-        hideDismiss: false,
-        background: 'variant-filled-error',
-        message: errMessage(err)
-      })
-    }
+    })
   }
 
   function onFormChange(e: Event) {
@@ -103,20 +95,27 @@
     validating = form.checkValidity()
   }
 
-  onMount(async () => {
-    myState = await myMessageStateAsync()
-    stateInfo = myState.api.stateStore as Readable<StateInfo>
-    myUserInfo = myState.info
-    amount = $stateInfo.price.channel
+  onMount(() => {
+    const { abort } = toastRun(async (signal: AbortSignal) => {
+      myState = await myMessageStateAsync()
+      stateInfo = myState.api.stateStore as Readable<StateInfo>
+      myUserInfo = myState.info
+      amount = $stateInfo.price.channel
 
-    tokenLedgerAPI = await tokenLedgerAPIAsync()
-    const pandaBalance = tokenLedgerAPI.balance()
-    availablePandaBalance = await pandaBalance
+      if (signal.aborted) {
+        return
+      }
+      tokenLedgerAPI = await tokenLedgerAPIAsync()
+      const pandaBalance = tokenLedgerAPI.balance()
+      availablePandaBalance = await pandaBalance
+    })
+
+    return abort
   })
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Create Channel</div>
+  <div class="!mt-0 text-center text-xl font-bold">Create a channel</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -140,7 +139,7 @@
         bind:value={descriptionInput}
         minHeight="60"
         maxHeight="120"
-        class="rounded-xl border-gray/10 bg-white/20 ring-0 invalid:input-warning hover:bg-white/90"
+        class="rounded-xl border-[1px] border-gray/10 focus:border-[1px]"
         name="descriptionInput"
         placeholder="Channel description..."
       />

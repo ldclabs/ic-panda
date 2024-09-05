@@ -1,10 +1,9 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { errMessage } from '$lib/types/result'
+  import { toastRun } from '$lib/stores/toast'
   import { AesGcmKey, encodeCBOR, randomBytes } from '$lib/utils/crypto'
   import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
-  import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -13,7 +12,6 @@
   export let myState: MyMessageState
   export let masterKey: MasterKey | null
 
-  const toastStore = getToastStore()
   const keyId = encodeCBOR(String(Date.now()))
 
   let validating = false
@@ -35,10 +33,10 @@
     return ''
   }
 
-  async function onComfirm(_e: Event) {
+  function onComfirm() {
     submitting = true
 
-    try {
+    toastRun(async () => {
       if (masterKey) {
         try {
           await masterKey.open(
@@ -74,16 +72,10 @@
 
       await myState.initStaticECDHKey()
       parent && parent['onClose']()
-    } catch (err: any) {
+    }).finally(() => {
       submitting = false
       validating = false
-      toastStore.trigger({
-        autohide: true,
-        hideDismiss: false,
-        background: 'variant-filled-error',
-        message: errMessage(err)
-      })
-    }
+    })
   }
 
   function onFormChange(e: Event) {
@@ -97,10 +89,13 @@
     validating = form.checkValidity()
   }
 
-  onMount(async () => {
-    if (!masterKey && myState.ecdhAvailable()) {
-      ecdhKeyPromise = myState.fetchECDHCoseEncryptedKey(keyId)
-    }
+  onMount(() => {
+    const { abort } = toastRun(async () => {
+      if (!masterKey && myState.ecdhAvailable()) {
+        ecdhKeyPromise = myState.fetchECDHCoseEncryptedKey(keyId)
+      }
+    })
+    return abort
   })
 </script>
 

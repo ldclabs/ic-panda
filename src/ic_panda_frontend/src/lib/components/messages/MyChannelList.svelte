@@ -5,6 +5,7 @@
     ChannelAPI,
     type ChannelBasicInfo
   } from '$lib/canisters/messagechannel'
+  import { toastRun } from '$lib/stores/toast'
   import {
     myMessageStateAsync,
     type MyMessageState
@@ -17,27 +18,30 @@
   let myChannels: Readable<ChannelBasicInfo[]> = readable([])
   let currentChannel: string = ''
 
-  function gotoChannel(cid: string) {
-    if (cid != currentChannel) {
-      currentChannel = cid
-      goto(`/_/messages/${cid}`)
+  function gotoChannel(channelId: string) {
+    if (channelId != currentChannel) {
+      currentChannel = channelId
+      goto(`/_/messages/${channelId}`)
     }
   }
 
-  async function activeChannel(cid: string) {
-    const { canister } = ChannelAPI.parseChannelParam(cid)
+  function activeChannel(channelId: string) {
+    const { canister } = ChannelAPI.parseChannelParam(channelId)
     if (canister) {
-      currentChannel = cid
+      currentChannel = channelId
       return
     }
 
     goto('/_/messages')
   }
 
-  onMount(async () => {
-    myState = await myMessageStateAsync()
-    myChannels = await myState.loadMyChannelsStream()
-    activeChannel($page.params['channel'] || '')
+  onMount(() => {
+    const { abort } = toastRun(async () => {
+      myState = await myMessageStateAsync()
+      myChannels = await myState.loadMyChannelsStream()
+      activeChannel($page.params['channel'] || '')
+    })
+    return abort
   })
 </script>
 

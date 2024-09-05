@@ -4,7 +4,6 @@
   import { type UserInfo } from '$lib/canisters/message'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import { Avatar, getModalStore } from '@skeletonlabs/skeleton'
-  import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
   import ChannelDetail from './ChannelDetail.svelte'
@@ -25,11 +24,6 @@
     })
   }
 
-  // When DOM mounted, scroll to bottom
-  onMount(() => {
-    console.log('$page', $page)
-  })
-
   $: channelId = $page.params['channel'] || ''
 </script>
 
@@ -43,15 +37,18 @@
     >
       <!-- Header -->
       <header
-        class="flex flex-row items-center gap-2 border-b border-surface-500/30 p-4"
+        class="flex flex-row items-center gap-2 border-b border-surface-500/30 p-2"
       >
         <input
           class="input bg-gray/5 rounded-container-token"
           type="search"
-          placeholder="Search..."
+          placeholder="Filter channels..."
         />
-        <button type="button" class="btn-icon" on:click={onCreateChannelHandler}
-          ><span><IconAdd /></span></button
+        <button
+          type="button"
+          class="btn-icon"
+          title="Create a channel"
+          on:click={onCreateChannelHandler}><span><IconAdd /></span></button
         >
       </header>
       <!-- List -->

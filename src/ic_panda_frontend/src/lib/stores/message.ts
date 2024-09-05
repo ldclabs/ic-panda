@@ -11,7 +11,11 @@ import {
   type ChannelInfo,
   type Message
 } from '$lib/canisters/messagechannel'
-import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
+import {
+  ProfileAPI,
+  type ProfileInfo,
+  type UpdateProfileInput
+} from '$lib/canisters/messageprofile'
 import { MESSAGE_CANISTER_ID } from '$lib/constants'
 import { unwrapOption } from '$lib/types/result'
 import {
@@ -493,6 +497,15 @@ export class MyMessageState {
         })
       }
     )
+  }
+
+  async updateProfile(
+    profile_canister: Principal,
+    input: UpdateProfileInput
+  ): Promise<void> {
+    const api = await this.api.profileAPI(profile_canister)
+    const profile = await api.update_profile(input)
+    await KVS.set<ProfileInfo>('Profiles', profile)
   }
 
   async loadChannelInfo(

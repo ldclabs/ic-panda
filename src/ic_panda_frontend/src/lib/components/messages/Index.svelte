@@ -1,6 +1,7 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import { authStore } from '$lib/stores/auth'
+  import { toastRun } from '$lib/stores/toast'
   import {
     myMessageStateAsync,
     type MyMessageState
@@ -37,16 +38,16 @@
   }
 
   onMount(() => {
-    initState().catch((err) => console.error(err))
+    const { abort } = toastRun(initState)
+    return abort
   })
 
   $: {
     if (myState) {
       if (
-        myState.principal.toString() !=
-        $authStore.identity.getPrincipal().toString()
+        $authStore.identity.getPrincipal().compareTo(myState.principal) != 'eq'
       ) {
-        initState().catch((err) => console.error(err))
+        toastRun(initState)
       }
     }
   }
