@@ -172,6 +172,7 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Tuple(IDL.Nat64, IDL.Opt(Message)),
     'Err' : IDL.Text,
   });
+  const Result_10 = IDL.Variant({ 'Ok' : ChannelSetting, 'Err' : IDL.Text });
   return IDL.Service({
     'add_message' : IDL.Func([AddMessageInput], [Result], []),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
@@ -213,7 +214,7 @@ export const idlFactory = ({ IDL }) => {
     'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
     'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
     'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
-    'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_1], []),
+    'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_10], []),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result_1],

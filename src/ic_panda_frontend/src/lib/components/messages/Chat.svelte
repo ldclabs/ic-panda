@@ -23,11 +23,11 @@
 <section
   class="card mt-4 h-full w-full max-w-4xl rounded-b-none rounded-t-2xl bg-white"
 >
-  <div class="chat grid h-full w-full grid-cols-1 lg:grid-cols-[30%_1fr]">
+  <div
+    class="grid h-full w-full grid-cols-1 sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr]"
+  >
     <!-- Navigation -->
-    <div
-      class="hidden grid-rows-[1fr_auto] border-r border-surface-500/30 lg:grid"
-    >
+    <div class="grid grid-rows-[1fr_auto] border-surface-500/30 sm:border-r">
       <!-- List -->
       <MyChannelList />
       <!-- Footer -->
@@ -60,7 +60,7 @@
       {/key}
     {:else}
       <div
-        class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 rounded-tr-2xl bg-white"
+        class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 bg-white sm:rounded-tr-2xl"
       >
         <ProfileDetail userId={myState.id} />
       </div>

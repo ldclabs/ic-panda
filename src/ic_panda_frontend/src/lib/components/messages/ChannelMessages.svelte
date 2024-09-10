@@ -3,6 +3,7 @@
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
+  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconSendPlaneFill from '$lib/components/icons/IconSendPlaneFill.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
@@ -12,6 +13,7 @@
     encodeCBOR,
     type AesGcmKey
   } from '$lib/utils/crypto'
+  import { scrollOnBottom } from '$lib/utils/window'
   import {
     getCurrentTimestamp,
     toDisplayUserInfo,
@@ -19,7 +21,7 @@
     type MessageInfo,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import type { Principal } from '@dfinity/principal'
+  import { sleep } from '$src/lib/utils/helper'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
@@ -41,7 +43,9 @@
   // Messages
   let submitting = false
   let newMessage = ''
+  let messageStart = 1
   let latestMessageId = 1
+  let lastRead = 1
 
   function sortMessages(msgs: MessageInfo[]): MessageInfo[] {
     msgs.sort((a, b) => a.id - b.id)
@@ -61,10 +65,12 @@
   }
 
   function scrollChatBottom(behavior?: ScrollBehavior): void {
-    elemChat.scrollTo({
-      top: elemChat.scrollHeight,
-      behavior
-    } as ScrollToOptions)
+    if (elemChat) {
+      elemChat.scrollTo({
+        top: elemChat.scrollHeight,
+        behavior
+      } as ScrollToOptions)
+    }
   }
 
   function sendMessage() {
@@ -116,34 +122,62 @@
   }
 
   const debouncedUpdateMyLastRead = debounce(async () => {
-    await myState.updateMyLastRead(canister, id, latestMessageId)
+    await myState.updateMyLastRead(canister, id, lastRead)
   }, 6000)
 
-  async function loadMessages(canister: Principal, id: number) {
-    channelAPI = await myState.api.channelAPI(canister)
-    dek = await myState.decryptChannelDEK(channelInfo)
+  let topLoading = false
+  async function loadPrevMessages(start: number, end: number) {
+    if (topLoading) {
+      return
+    }
+
+    topLoading = true
     const prevMessages = await myState.loadPrevMessages(
       canister,
       id,
       dek,
-      channelInfo.latest_message_id + 1
+      start,
+      end
     )
-
     if (prevMessages.length > 0) {
-      messageFeed.update((prev) => [...prevMessages, ...prev])
+      messageFeed.update((prev) => sortMessages([...prevMessages, ...prev]))
+    }
+    topLoading = false
+  }
+
+  let bottomLoading = false
+  async function loadNextMessages(start: number) {
+    if (bottomLoading) {
+      return
     }
 
-    latestMessage = await myState.loadLatestMessageStream(
+    bottomLoading = true
+    const messages = await myState.loadPrevMessages(
       canister,
       id,
       dek,
-      channelInfo.latest_message_id + 1
+      start,
+      start + 20
     )
+    let last = 0
+    if (messages.length > 0) {
+      last = messages.at(-1)!.id
+      messageFeed.update((prev) => sortMessages([...prev, ...messages]))
+    }
+    bottomLoading = false
+
+    if (last >= latestMessageId && !$latestMessage) {
+      latestMessage = await myState.loadLatestMessageStream(
+        canister,
+        id,
+        dek,
+        last + 1
+      )
+    }
 
     await tick()
-    debouncedUpdateMyLastRead()
-    debouncedUpdateMyLastRead.trigger()
-    scrollChatBottom()
+    await sleep(1000)
+    lastRead = last || lastRead
   }
 
   onMount(() => {
@@ -152,13 +186,49 @@
         if (!channelInfo._kek) {
           channelInfo = await myState.refreshMyChannel(channelInfo)
         }
-        await loadMessages(canister, id)
+
+        messageStart = channelInfo.message_start
+        latestMessageId = channelInfo.latest_message_id
+        lastRead = channelInfo.my_setting.last_read
+        channelAPI = await myState.api.channelAPI(canister)
+        dek = await myState.decryptChannelDEK(channelInfo)
+        await loadPrevMessages(messageStart, lastRead + 1)
+        await tick()
+        scrollChatBottom()
+
+        await loadNextMessages(lastRead + 1)
+        await tick()
+        debouncedUpdateMyLastRead()
+        debouncedUpdateMyLastRead.trigger()
       } else {
         goto('/_/messages')
       }
     }, toastStore)
 
-    return abort
+    const abortScroll = scrollOnBottom(elemChat, {
+      onTop: () => {
+        if (dek && !topLoading) {
+          const front = $messageFeed[0]
+          if (front && front.id > messageStart) {
+            loadPrevMessages(messageStart, front.id)
+          }
+        }
+      },
+
+      onBottom: () => {
+        if (dek && !bottomLoading) {
+          const back = $messageFeed.at(-1)
+          if (back && back.id < latestMessageId) {
+            loadNextMessages(back.id)
+          }
+        }
+      }
+    })
+
+    return () => {
+      abortScroll()
+      abort()
+    }
   })
 
   onDestroy(() => {
@@ -177,11 +247,18 @@
 
 <div class="grid max-h-[calc(100dvh-140px)] grid-rows-[1fr_auto] bg-gray/5">
   <!-- Conversation -->
-  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-20">
+  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-10">
+    <div class="grid justify-center">
+      <span
+        class="text-panda/50 transition duration-700 ease-in-out {topLoading
+          ? 'visible scale-125'
+          : 'invisible scale-0'}"><Loading /></span
+      >
+    </div>
     {#each $messageFeed as msg (msg.id)}
       {#if msg.created_by.compareTo(myState.principal) !== 'eq'}
         <div
-          class="grid grid-cols-[auto_1fr] gap-2"
+          class="grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
           id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
         >
           <Avatar
@@ -189,54 +266,54 @@
             fill="fill-white"
             width="w-10"
           />
-          <div class="mr-14 flex flex-col">
+          <div class="flex flex-col">
             <header class="flex items-center justify-between">
               <p class="font-bold">{msg.created_user.name}</p>
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card w-full rounded-tl-none {msg.kind === 1
-                ? 'border-none bg-transparent text-xs text-gray/60'
+              class="card max-h-[600px] w-full overflow-auto rounded-tl-none border-none {msg.kind !==
+                1 && msg.id > lastRead
+                ? 'shadow-md shadow-gold'
+                : ''}  {msg.kind === 1
+                ? 'bg-transparent text-xs text-gray/60'
                 : 'bg-white'}"
             >
               {#if msg.error}
                 <p
-                  class="variant-filled-error max-h-[600px] max-w-[480px] overflow-auto text-pretty px-4 py-2 text-error-500"
+                  class="variant-filled-error text-pretty px-4 py-2 text-error-500"
                   >{msg.error}</p
                 >
               {:else}
-                <pre
-                  class="max-h-[600px] w-full overflow-auto text-pretty px-4 py-2"
-                  >{msg.message}</pre
-                >
+                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
               {/if}
             </div>
           </div>
+          <div></div>
         </div>
       {:else}
         <div
-          class="grid grid-cols-[1fr_auto] gap-2"
+          class="grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
           id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
         >
-          <div class="ml-14 flex flex-col">
+          <div></div>
+          <div class="flex flex-col">
             <header class="flex items-center justify-end">
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card variant-soft-primary rounded-tr-none {msg.kind === 1
-                ? 'border-none bg-transparent text-xs text-gray/60'
-                : 'bg-white'}"
+              class="card max-h-[600px] w-full overflow-auto rounded-tr-none border-none {msg.kind ===
+              1
+                ? 'bg-transparent text-xs text-gray/60'
+                : 'bg-panda/20'}"
             >
               {#if msg.error}
                 <p
-                  class="variant-filled-error max-h-[600px] max-w-[480px] overflow-auto text-pretty px-4 py-2 text-error-500"
+                  class="variant-filled-error text-pretty px-4 py-2 text-error-500"
                   >{msg.error}</p
                 >
               {:else}
-                <pre
-                  class="max-h-[600px] w-full max-w-[480px] overflow-auto text-pretty px-4 py-2"
-                  >{msg.message}</pre
-                >
+                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
               {/if}
             </div>
           </div>
@@ -249,6 +326,13 @@
         </div>
       {/if}
     {/each}
+    <div class="grid justify-center">
+      <span
+        class="text-panda/50 transition duration-700 ease-in-out {bottomLoading
+          ? 'visible scale-125'
+          : 'invisible scale-0'}"><Loading /></span
+      >
+    </div>
   </section>
   <!-- Prompt -->
   <section class="self-end border-t border-surface-500/30 bg-white p-4">
@@ -275,7 +359,7 @@
         on:click={sendMessage}
       >
         {#if submitting}
-          <span class="text-panda *:size-5"><Loading /></span>
+          <span class="text-panda *:size-5"><IconCircleSpin /></span>
         {:else}
           <span
             class="transition duration-700 ease-in-out *:size-5 {submitting

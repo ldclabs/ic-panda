@@ -59,7 +59,9 @@
   })
 </script>
 
-<div class="grid max-h-[calc(100dvh-80px)] grid-rows-[auto_1fr] rounded-tr-2xl">
+<div
+  class="grid max-h-[calc(100dvh-80px)] grid-rows-[auto_1fr] sm:rounded-tr-2xl"
+>
   <header
     class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/30 px-4 py-2"
   >

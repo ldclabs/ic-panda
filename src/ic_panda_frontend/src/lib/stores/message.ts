@@ -490,12 +490,16 @@ export class MyMessageState {
 
     const ek = await this.mustStaticECDHKey()
     const api = await this.api.channelAPI(info.canister)
-    await api.update_my_setting({
+    const setting = await api.update_my_setting({
       id: info.id,
       ecdh: [{ ecdh_pub: [ek.getPublicKey()], ecdh_remote: [] }],
       mute: [],
       last_read: []
     })
+    const channel = this._myChannels.get(`${info.canister.toText()}:${info.id}`)
+    if (channel) {
+      channel.my_setting = setting
+    }
   }
 
   async acceptKEK(info: ChannelInfoEx): Promise<void> {
@@ -529,12 +533,17 @@ export class MyMessageState {
     await this.saveChannelKEK(info.canister, info.id, encryptedKEK)
 
     const api = await this.api.channelAPI(info.canister)
-    await api.update_my_setting({
+    const setting = await api.update_my_setting({
       id: info.id,
       ecdh: [{ ecdh_pub: [], ecdh_remote: [] }],
       mute: [],
       last_read: []
     })
+    const channel = this._myChannels.get(`${info.canister.toText()}:${info.id}`)
+    if (channel) {
+      channel.my_setting = setting
+    }
+
     info._kek = encryptedKEK
   }
 
@@ -1076,16 +1085,21 @@ export class MyMessageState {
     canister: Principal,
     channelId: number,
     dek: AesGcmKey,
+    start: number, // maybe included
     end: number // not included
   ): Promise<MessageInfo[]> {
     const api = await this.api.channelAPI(canister)
     const prefix = [canister.toUint8Array(), channelId]
-    let start = end - 20
     if (start < 1) {
       start = 1
     }
-    if (end === start) {
+
+    if (end <= start) {
       return []
+    }
+
+    if (end - start > 20) {
+      start = end - 20
     }
 
     let messages: MessageCacheInfo[] = []
@@ -1130,7 +1144,7 @@ export class MyMessageState {
     lastRead: number
   ): Promise<void> {
     const api = await this.api.channelAPI(canister)
-    await api.update_my_setting({
+    const setting = await api.update_my_setting({
       id: channelId,
       ecdh: [],
       mute: [],
@@ -1139,11 +1153,7 @@ export class MyMessageState {
 
     const channel = this._myChannels.get(`${canister.toText()}:${channelId}`)
     if (channel) {
-      channel.my_setting = {
-        ...channel.my_setting,
-        last_read: lastRead,
-        unread: 0
-      }
+      channel.my_setting = setting
     }
   }
 

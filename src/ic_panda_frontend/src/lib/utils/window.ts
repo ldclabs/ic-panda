@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { isNullish } from '@dfinity/utils'
+import debounce from 'debounce'
 
 const STR_UNDEFINED = 'undefined'
 
@@ -86,15 +87,65 @@ export const popupCenter = ({
 }
 
 export function clickOutside(node: HTMLElement, callback: () => void = noop) {
-  const handleClick = (e: PointerEvent) => {
-    if (!node.contains(e.target as Node)) {
+  const handler = (ev: PointerEvent) => {
+    if (!node.contains(ev.target as Node)) {
       callback()
     }
   }
 
-  onWindowEvent('pointerup', handleClick)
+  onWindowEvent('pointerup', handler)
 
   return () => {
-    offWindowEvent('pointerup', handleClick)
+    offWindowEvent('pointerup', handler)
+  }
+}
+
+export function scrollOnBottom(
+  node: HTMLElement,
+  {
+    onTop,
+    onBottom,
+    onMoveUp,
+    onMoveDown
+  }: {
+    onTop?: (() => void) | undefined
+    onBottom?: (() => void) | undefined
+    onMoveUp?: (() => void) | undefined
+    onMoveDown?: (() => void) | undefined
+  }
+) {
+  const callTop = onTop && debounce(onTop, 618, { immediate: true })
+  const callBottom = onBottom && debounce(onBottom, 618, { immediate: true })
+  const callMoveUp = onMoveUp && debounce(onMoveUp, 618, { immediate: true })
+  const callMoveDown =
+    onMoveDown && debounce(onMoveDown, 618, { immediate: true })
+
+  let lastScrollTop = 0
+  const handler = (ev: Event) => {
+    const target = ev.currentTarget as HTMLElement
+    if (target.scrollTop > lastScrollTop) {
+      callMoveUp && callMoveUp()
+    } else {
+      callMoveDown && callMoveDown()
+    }
+
+    if (target.scrollTop < lastScrollTop && target.scrollTop <= 5) {
+      callTop && callTop()
+    } else if (
+      target.scrollTop > lastScrollTop &&
+      target.clientHeight + target.scrollTop + 5 >= target.scrollHeight
+    ) {
+      callBottom && callBottom()
+    }
+
+    lastScrollTop = target.scrollTop
+  }
+
+  node.addEventListener('scroll', handler)
+  return () => {
+    node.removeEventListener('scroll', handler)
+    callBottom && callBottom.clear()
+    callMoveUp && callMoveUp.clear()
+    callMoveDown && callMoveDown.clear()
   }
 }

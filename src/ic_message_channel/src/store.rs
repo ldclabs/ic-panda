@@ -474,7 +474,7 @@ pub mod channel {
         caller: Principal,
         input: types::UpdateMySettingInput,
         now_ms: u64,
-    ) -> Result<(), String> {
+    ) -> Result<types::ChannelSetting, String> {
         CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&input.id) {
@@ -502,9 +502,11 @@ pub mod channel {
                         setting.ecdh_remote = ecdh.ecdh_remote;
                     }
                     setting.updated_at = now_ms;
+
+                    let rt = setting.to_owned().into();
                     state::update_users_channel(&[&caller], input.id, now_ms);
                     m.insert(input.id, v);
-                    Ok(())
+                    Ok(rt)
                 }
             }
         })

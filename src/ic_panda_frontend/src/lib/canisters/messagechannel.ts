@@ -4,6 +4,7 @@ import {
   type AddMessageOutput,
   type ChannelBasicInfo,
   type ChannelInfo,
+  type ChannelSetting,
   type Message,
   type UpdateChannelInput,
   type UpdateChannelMemberInput,
@@ -160,7 +161,9 @@ export class ChannelAPI {
     return [updated_at, message.length == 1 ? message[0] : null]
   }
 
-  async update_my_setting(input: UpdateMySettingInput): Promise<null> {
+  async update_my_setting(
+    input: UpdateMySettingInput
+  ): Promise<ChannelSetting> {
     const res = await this.actor.update_my_setting(input)
     return unwrapResult(res, 'call update_my_setting failed')
   }

@@ -121,6 +121,8 @@ export type Result = { 'Ok' : AddMessageOutput } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : string };
+export type Result_10 = { 'Ok' : ChannelSetting } |
+  { 'Err' : string };
 export type Result_2 = { 'Ok' : ChannelInfo } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : Array<ChannelBasicInfo> } |
@@ -187,7 +189,7 @@ export interface _SERVICE {
   'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
   'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
   'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
-  'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_1>,
+  'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_10>,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,
 }
