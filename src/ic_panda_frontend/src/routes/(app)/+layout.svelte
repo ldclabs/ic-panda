@@ -1,10 +1,10 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
   import { GOOGLE_RECAPTCHA_ID } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
   import { initReconnect, isOnline } from '$lib/utils/window'
+  import '$src/app.pcss'
   import {
     arrow,
     autoUpdate,
@@ -22,7 +22,6 @@
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
-  import '../../app.pcss'
 
   initReconnect(
     () => console.log('Device is online:', isOnline()),
@@ -111,10 +110,6 @@
     on:scroll
   >
     <main id="page-content" class="flex-auto"><slot /></main>
-
-    <footer id="page-footer" class="flex-none">
-      <PageFooter />
-    </footer>
   </div>
 </div>
 

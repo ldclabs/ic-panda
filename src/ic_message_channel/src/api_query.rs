@@ -2,7 +2,7 @@ use ic_cdk::api::management_canister::main::{
     canister_status, CanisterIdRecord, CanisterStatusResponse,
 };
 use ic_cose_types::format_error;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::{is_authenticated, store, types};
 
@@ -49,21 +49,22 @@ async fn batch_get_channels(ids: BTreeSet<u32>) -> Result<Vec<types::ChannelBasi
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]
-async fn my_channels() -> Result<Vec<types::ChannelBasicInfo>, String> {
+async fn my_channels_if_update(
+    updated_at: Option<u64>,
+) -> Result<Vec<types::ChannelBasicInfo>, String> {
     let caller = ic_cdk::caller();
+    let updated_at = updated_at.unwrap_or(0);
     let ids: BTreeSet<u32> = store::state::with(|s| {
         s.user_channels
             .get(&caller)
-            .map(|m| m.keys().cloned().collect())
+            .map(|m| {
+                m.iter()
+                    .filter_map(|(k, v)| if v > &updated_at { Some(*k) } else { None })
+                    .collect()
+            })
             .unwrap_or_default()
     });
     Ok(store::channel::batch_get(caller, ids))
-}
-
-#[ic_cdk::query(guard = "is_authenticated")]
-async fn my_channels_latest() -> Result<BTreeMap<u32, u32>, String> {
-    let caller = ic_cdk::caller();
-    Ok(store::state::user_channels(&caller))
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]
@@ -75,11 +76,9 @@ fn get_message(channel: u32, id: u32) -> Result<types::Message, String> {
 #[ic_cdk::query(guard = "is_authenticated")]
 fn list_messages(
     channel: u32,
-    prev: Option<u32>,
-    take: Option<u32>,
-    util: Option<u32>,
+    start: Option<u32>,
+    end: Option<u32>,
 ) -> Result<Vec<types::Message>, String> {
     let caller = ic_cdk::caller();
-    let take = take.unwrap_or(10).min(100);
-    store::channel::list_messages(caller, channel, prev.unwrap_or(0), take, util.unwrap_or(0))
+    store::channel::list_messages(caller, channel, start.unwrap_or(0), end.unwrap_or(0))
 }

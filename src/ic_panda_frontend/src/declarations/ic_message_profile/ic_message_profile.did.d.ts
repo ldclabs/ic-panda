@@ -41,6 +41,7 @@ export interface ProfileInfo {
   'created_at' : bigint,
   'channels' : [] | [Array<[[Principal, bigint], ChannelSetting]>],
   'canister' : Principal,
+  'ecdh_pub' : [] | [Uint8Array | number[]],
   'following' : [] | [Array<Principal>],
 }
 export interface QueryStats {
@@ -76,6 +77,10 @@ export interface UpgradeArgs {
 export interface _SERVICE {
   'admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
   'admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
+  'admin_update_profile_ecdh_pub' : ActorMethod<
+    [Principal, Uint8Array | number[]],
+    Result
+  >,
   'admin_upsert_profile' : ActorMethod<
     [Principal, [] | [[Principal, bigint]]],
     Result

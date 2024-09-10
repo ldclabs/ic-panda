@@ -61,6 +61,7 @@ export const idlFactory = ({ IDL }) => {
       IDL.Vec(IDL.Tuple(IDL.Tuple(IDL.Principal, IDL.Nat64), ChannelSetting))
     ),
     'canister' : IDL.Principal,
+    'ecdh_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'following' : IDL.Opt(IDL.Vec(IDL.Principal)),
   });
   const Result_2 = IDL.Variant({ 'Ok' : ProfileInfo, 'Err' : IDL.Text });
@@ -82,6 +83,11 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'admin_remove_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
+    'admin_update_profile_ecdh_pub' : IDL.Func(
+        [IDL.Principal, IDL.Vec(IDL.Nat8)],
+        [Result],
+        [],
+      ),
     'admin_upsert_profile' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Tuple(IDL.Principal, IDL.Nat64))],
         [Result],

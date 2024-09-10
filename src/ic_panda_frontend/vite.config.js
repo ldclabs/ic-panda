@@ -99,6 +99,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      $src: resolve('./src'),
       $declarations: resolve('./src/declarations')
     }
   }

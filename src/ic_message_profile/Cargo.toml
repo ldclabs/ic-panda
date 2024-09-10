@@ -14,7 +14,7 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-ic_message_types = { path = "../ic_message_types", version = "0.6" }
+ic_message_types = { path = "../ic_message_types", version = "2" }
 candid = { workspace = true }
 ciborium = { workspace = true }
 serde = { workspace = true }

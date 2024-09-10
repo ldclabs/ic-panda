@@ -88,19 +88,6 @@ const initAuthStore = (): AuthStore => {
 
 export const authStore = initAuthStore()
 
-// export function withFactory<T>(
-//   factory: (authStore: AuthStoreData) => Promise<T>,
-//   initialValue: T
-// ): Readable<T> {
-//   return derived(
-//     authStore,
-//     ($authStore, set) => {
-//       factory($authStore).then(set)
-//     },
-//     initialValue
-//   )
-// }
-
 export interface AsyncReadable<T> extends Readable<T> {
   async(): Promise<T>
 }

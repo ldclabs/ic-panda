@@ -66,7 +66,7 @@
       claimableAmount = $airdropState?.claimable || 0n
       claimedAmount = $airdropState?.claimed || 0n
       luckyCode = $airdropState?.lucky_code[0] || ''
-      if (luckyPoolAPI?.principal.toString() != principal.toString()) {
+      if (luckyPoolAPI.principal.toString() != principal.toString()) {
         luckyPoolAPIAsync().then((_luckyPoolAPI) => {
           luckyPoolAPI = _luckyPoolAPI
         })

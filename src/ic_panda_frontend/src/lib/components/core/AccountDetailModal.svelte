@@ -112,43 +112,45 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold">Account</div>
-  <div class="!mt-5 flex flex-col gap-2">
-    <div class="">Name</div>
-    <div class="relative">
-      <input
-        class="input truncate rounded-xl border-gray/10 bg-white/20 pr-36 invalid:input-warning hover:bg-white/90"
-        type="text"
-        name="pandaName"
-        bind:value={name}
-        disabled={true}
-        placeholder="Register your brand name"
-      />
-      {#if name == ''}
-        <button
-          class="btn absolute right-0 top-0 text-panda outline-0"
-          on:click={() => editName(0)}
-        >
-          <span>Register</span>
-        </button>
-      {:else}
-        <div class="absolute right-0 top-0 flex flex-row items-center">
+  {#if name != ''}
+    <div class="!mt-5 flex flex-col gap-2">
+      <div class="">Name</div>
+      <div class="relative">
+        <input
+          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-36 invalid:input-warning hover:bg-white/90"
+          type="text"
+          name="pandaName"
+          bind:value={name}
+          disabled={true}
+          placeholder="Register your brand name"
+        />
+        {#if name == ''}
           <button
-            class="btn px-1 text-gray/50 outline-0"
-            on:click={() => editName(1)}
+            class="btn absolute right-0 top-0 text-panda outline-0"
+            on:click={() => editName(0)}
           >
-            <span>Update</span>
+            <span>Register</span>
           </button>
-          <button
-            class="btn px-2 text-warning-500 outline-0"
-            on:click={() => editName(2)}
-          >
-            <span>Unregister</span>
-          </button>
-        </div>
-      {/if}
+        {:else}
+          <div class="absolute right-0 top-0 flex flex-row items-center">
+            <button
+              class="btn px-1 text-gray/50 outline-0"
+              on:click={() => editName(1)}
+            >
+              <span>Update</span>
+            </button>
+            <button
+              class="btn px-2 text-warning-500 outline-0"
+              on:click={() => editName(2)}
+            >
+              <span>Unregister</span>
+            </button>
+          </div>
+        {/if}
+      </div>
     </div>
-  </div>
-  <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+  {/if}
   <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-gray/5 px-4 py-3">
     <TextClipboardPopup
       textLable="Principal:"

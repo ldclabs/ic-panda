@@ -1,5 +1,6 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteArray;
 use std::collections::{BTreeSet, HashMap};
 
 pub const MAX_PROFILE_FOLLOWING: usize = 2048;
@@ -24,6 +25,7 @@ pub struct ProfileInfo {
     pub created_at: u64,
     pub following: Option<BTreeSet<Principal>>,
     pub channels: Option<HashMap<(Principal, u64), ChannelSetting>>,
+    pub ecdh_pub: Option<ByteArray<32>>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]

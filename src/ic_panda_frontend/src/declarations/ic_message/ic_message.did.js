@@ -47,6 +47,7 @@ export const idlFactory = ({ IDL }) => {
     'image' : IDL.Text,
   });
   const ChannelSetting = IDL.Record({
+    'updated_at' : IDL.Nat64,
     'mute' : IDL.Bool,
     'ecdh_remote' : IDL.Opt(IDL.Tuple(IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8))),
     'unread' : IDL.Nat32,
@@ -58,6 +59,15 @@ export const idlFactory = ({ IDL }) => {
     'dek' : IDL.Vec(IDL.Nat8),
     'gas' : IDL.Nat64,
     'updated_at' : IDL.Nat64,
+    'ecdh_request' : IDL.Vec(
+      IDL.Tuple(
+        IDL.Principal,
+        IDL.Tuple(
+          IDL.Vec(IDL.Nat8),
+          IDL.Opt(IDL.Tuple(IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8))),
+        ),
+      )
+    ),
     'members' : IDL.Vec(IDL.Principal),
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
@@ -68,8 +78,9 @@ export const idlFactory = ({ IDL }) => {
     'canister' : IDL.Principal,
     'image' : IDL.Text,
     'message_start' : IDL.Nat32,
-    'latest_message_at' : IDL.Nat32,
+    'latest_message_at' : IDL.Nat64,
     'latest_message_by' : IDL.Principal,
+    'latest_message_id' : IDL.Nat32,
     'my_setting' : ChannelSetting,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ChannelInfo, 'Err' : IDL.Text });
@@ -127,6 +138,7 @@ export const idlFactory = ({ IDL }) => {
     'names_total' : IDL.Nat64,
     'transfer_out_total' : IDL.Nat,
     'next_block_height' : IDL.Nat64,
+    'matured_channel_canisters' : IDL.Vec(IDL.Principal),
     'users_total' : IDL.Nat64,
     'price' : Price,
     'next_block_phash' : IDL.Vec(IDL.Nat8),
@@ -232,6 +244,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'save_channel_kek' : IDL.Func([ChannelKEKInput], [Result], []),
     'search_username' : IDL.Func([IDL.Text], [Result_6], ['query']),
+    'update_my_ecdh' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result],
+        [],
+      ),
     'update_my_image' : IDL.Func([IDL.Text], [Result], []),
     'update_my_name' : IDL.Func([IDL.Text], [Result_3], []),
     'validate_admin_add_canister' : IDL.Func(

@@ -34,6 +34,15 @@ export interface ChannelInfo {
   'dek' : Uint8Array | number[],
   'gas' : bigint,
   'updated_at' : bigint,
+  'ecdh_request' : Array<
+    [
+      Principal,
+      [
+        Uint8Array | number[],
+        [] | [[Uint8Array | number[], Uint8Array | number[]]],
+      ],
+    ]
+  >,
   'members' : Array<Principal>,
   'managers' : Array<Principal>,
   'name' : string,
@@ -44,8 +53,9 @@ export interface ChannelInfo {
   'canister' : Principal,
   'image' : string,
   'message_start' : number,
-  'latest_message_at' : number,
+  'latest_message_at' : bigint,
   'latest_message_by' : Principal,
+  'latest_message_id' : number,
   'my_setting' : ChannelSetting,
 }
 export interface ChannelKEKInput {
@@ -54,6 +64,7 @@ export interface ChannelKEKInput {
   'canister' : Principal,
 }
 export interface ChannelSetting {
+  'updated_at' : bigint,
   'mute' : boolean,
   'ecdh_remote' : [] | [[Uint8Array | number[], Uint8Array | number[]]],
   'unread' : number,
@@ -138,6 +149,7 @@ export interface StateInfo {
   'names_total' : bigint,
   'transfer_out_total' : bigint,
   'next_block_height' : bigint,
+  'matured_channel_canisters' : Array<Principal>,
   'users_total' : bigint,
   'price' : Price,
   'next_block_phash' : Uint8Array | number[],
@@ -188,6 +200,10 @@ export interface _SERVICE {
   'register_username' : ActorMethod<[string, [] | [string]], Result_3>,
   'save_channel_kek' : ActorMethod<[ChannelKEKInput], Result>,
   'search_username' : ActorMethod<[string], Result_6>,
+  'update_my_ecdh' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result
+  >,
   'update_my_image' : ActorMethod<[string], Result>,
   'update_my_name' : ActorMethod<[string], Result_3>,
   'validate_admin_add_canister' : ActorMethod<

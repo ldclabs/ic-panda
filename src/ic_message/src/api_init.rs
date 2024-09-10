@@ -30,7 +30,7 @@ fn init(args: Option<ChainArgs>) {
             name_l1: 1_000_000 * types::TOKEN_1,
             name_l2: 200_000 * types::TOKEN_1,
             name_l3: 50_000 * types::TOKEN_1,
-            name_l5: 10_000 * types::TOKEN_1,
+            name_l5: 20_000 * types::TOKEN_1,
             name_l7: 5000 * types::TOKEN_1,
         };
     });

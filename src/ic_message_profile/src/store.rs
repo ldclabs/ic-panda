@@ -6,6 +6,7 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, StableCell, Storable,
 };
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteArray;
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -48,6 +49,8 @@ pub struct Profile {
     pub channels: HashMap<(Principal, u64), ChannelSetting>,
     #[serde(rename = "ca")]
     pub created_at: u64,
+    #[serde(rename = "ep")]
+    pub ecdh_pub: Option<ByteArray<32>>,
 }
 
 impl Profile {
@@ -63,6 +66,7 @@ impl Profile {
             bio: self.bio,
             active_at: self.active_at,
             created_at: self.created_at,
+            ecdh_pub: self.ecdh_pub,
             following: if is_caller {
                 Some(self.following)
             } else {
@@ -226,6 +230,25 @@ pub mod profile {
             }
 
             Ok(())
+        })
+    }
+
+    pub fn admin_update_profile_ecdh_pub(
+        user: Principal,
+        now_ms: u64,
+        ecdh_pub: ByteArray<32>,
+    ) -> Result<(), String> {
+        PROFILE_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&user) {
+                Some(mut p) => {
+                    p.ecdh_pub = Some(ecdh_pub);
+                    p.active_at = now_ms;
+                    m.insert(user, p);
+                    Ok(())
+                }
+                None => Err("profile not found".to_string()),
+            }
         })
     }
 

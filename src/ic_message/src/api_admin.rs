@@ -108,7 +108,7 @@ fn validate_admin_add_canister(kind: types::CanisterKind, id: Principal) -> Resu
                 }
             }
             types::CanisterKind::Channel => {
-                if s.profile_canisters.contains(&id) {
+                if s.channel_canisters.contains(&id) || s.matured_channel_canisters.contains(&id) {
                     Err("Channel canister is already added".to_string())?;
                 }
             }
