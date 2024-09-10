@@ -17,15 +17,19 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
+  const toastStore = getToastStore()
+  const modalStore = getModalStore()
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let initState: null | (() => Promise<void>) = null
 
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
@@ -85,10 +89,15 @@
       }
 
       await myState.api.refreshMyInfo()
-      setTimeout(async () => {
-        parent && parent['onClose']()
-      }, 3000)
-    }).finally(() => {
+      if (initState) {
+        modalStore.close()
+        initState()
+      } else {
+        setTimeout(async () => {
+          modalStore.close()
+        }, 3000)
+      }
+    }, toastStore).finally(() => {
       submitting = false
       validating = false
     })
@@ -139,7 +148,7 @@
     }
   }, 618)
 
-  function onSearchUsername(e: KeyboardEvent) {
+  function onSearchUsername() {
     existUsernames.length = 0
     debouncedSearch()
   }
@@ -162,7 +171,7 @@
       tokenLedgerAPI = await tokenLedgerAPIAsync()
       const pandaBalance = tokenLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
-    })
+    }, toastStore)
 
     return abort
   })
@@ -203,6 +212,7 @@
           name="nameInput"
           minlength="1"
           maxlength="32"
+          data-1p-ignore
           bind:value={nameInput}
           disabled={submitting}
           placeholder="Display name"
@@ -251,8 +261,9 @@
           name="usernameInput"
           minlength="1"
           maxlength="20"
+          data-1p-ignore
           bind:value={usernameInput}
-          on:keydown={onSearchUsername}
+          on:input={onSearchUsername}
           disabled={submitting || (editMode && username != '')}
           placeholder="https://panda.fans/{username || '[username]'}"
         />

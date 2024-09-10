@@ -17,8 +17,11 @@ import { createActor } from './actors'
 
 export {
   type ChannelBasicInfo,
+  type ChannelECDHInput,
   type ChannelInfo,
-  type Message
+  type ChannelSetting,
+  type Message,
+  type UpdateChannelInput
 } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 
 interface CompareChannel {
@@ -118,6 +121,19 @@ export class ChannelAPI {
   async remove_member(input: UpdateChannelMemberInput): Promise<null> {
     const res = await this.actor.remove_member(input)
     return unwrapResult(res, 'call remove_member failed')
+  }
+
+  async leave_channel(id: number, delete_channel: boolean): Promise<null> {
+    const res = await this.actor.leave_channel(
+      {
+        id,
+        ecdh: [],
+        mute: [],
+        last_read: []
+      },
+      delete_channel
+    )
+    return unwrapResult(res, 'call leave_channel failed')
   }
 
   async update_channel(input: UpdateChannelInput): Promise<Message> {

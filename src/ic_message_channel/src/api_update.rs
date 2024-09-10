@@ -1,7 +1,12 @@
+use candid::Principal;
 use ic_cose_types::MILLISECONDS;
 use std::collections::hash_map::Entry;
 
-use crate::{is_authenticated, store, types};
+use crate::{
+    is_authenticated,
+    store::{self, ChannelSetting},
+    types,
+};
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, String> {
@@ -24,6 +29,8 @@ fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, St
         c.latest_message_at = now_ms;
         c.latest_message_by = caller;
 
+        let users: Vec<&Principal> = c.managers.keys().chain(c.members.keys()).collect();
+        store::state::update_users_channel(&users, input.id, now_ms);
         Ok(store::channel::add_sys_message(
             caller,
             now_ms,
@@ -45,19 +52,25 @@ fn update_manager(
         let is_new = match c.managers.entry(input.member) {
             Entry::Occupied(mut e) => {
                 let s = e.get_mut();
-                s.ecdh_pub = input.ecdh.ecdh_pub;
+                if s.ecdh_pub != input.ecdh.ecdh_pub {
+                    Err("ecdh_pub mismatch".to_string())?;
+                }
                 s.ecdh_remote = input.ecdh.ecdh_remote;
+                s.updated_at = now_ms;
                 false
             }
             Entry::Vacant(e) => match c.members.remove(&input.member) {
                 Some(mut s) => {
-                    s.ecdh_pub = input.ecdh.ecdh_pub;
+                    if s.ecdh_pub != input.ecdh.ecdh_pub {
+                        Err("ecdh_pub mismatch".to_string())?;
+                    }
                     s.ecdh_remote = input.ecdh.ecdh_remote;
+                    s.updated_at = now_ms;
                     e.insert(s);
                     true
                 }
                 None => {
-                    e.insert(input.ecdh.into());
+                    e.insert(ChannelSetting::from_ecdh(input.ecdh, now_ms));
                     true
                 }
             },
@@ -73,7 +86,7 @@ fn update_manager(
             c.latest_message_at = now_ms;
             c.latest_message_by = caller;
 
-            if !store::state::user_add_channel(input.member, input.id, c.latest_message_at) {
+            if !store::state::user_add_channel(input.member, input.id, now_ms) {
                 Err("too many channels".to_string())?;
             }
 
@@ -91,6 +104,7 @@ fn update_manager(
                 )),
             ))
         } else {
+            store::state::update_users_channel(&[&input.member], input.id, now_ms);
             Ok((now_ms, None))
         }
     })
@@ -109,15 +123,21 @@ fn update_member(
             Err("member is a manager".to_string())?;
         }
 
-        let mut is_new = true;
-        c.members
-            .entry(input.member)
-            .and_modify(|s| {
-                s.ecdh_pub = input.ecdh.ecdh_pub;
+        let is_new = match c.members.entry(input.member) {
+            Entry::Occupied(mut e) => {
+                let s = e.get_mut();
+                if s.ecdh_pub != input.ecdh.ecdh_pub {
+                    Err("ecdh_pub mismatch".to_string())?;
+                }
                 s.ecdh_remote = input.ecdh.ecdh_remote.clone();
-                is_new = false;
-            })
-            .or_insert(input.ecdh.into());
+                s.updated_at = now_ms;
+                false
+            }
+            Entry::Vacant(e) => {
+                e.insert(ChannelSetting::from_ecdh(input.ecdh, now_ms));
+                true
+            }
+        };
 
         if c.members.len() > types::MAX_CHANNEL_MEMBERS {
             Err("too many members".to_string())?;
@@ -146,6 +166,7 @@ fn update_member(
                 )),
             ))
         } else {
+            store::state::update_users_channel(&[&input.member], input.id, now_ms);
             Ok((now_ms, None))
         }
     })
@@ -156,7 +177,8 @@ fn remove_member(input: types::UpdateChannelMemberInput) -> Result<(), String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::remove_member(caller, input.member, input.id)?;
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::remove_member(caller, input.member, input.id, now_ms)?;
     Ok(())
 }
 
@@ -165,7 +187,8 @@ fn update_my_setting(input: types::UpdateMySettingInput) -> Result<(), String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::update_my_setting(caller, input)?;
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::update_my_setting(caller, input, now_ms)?;
     Ok(())
 }
 
@@ -174,7 +197,8 @@ fn leave_channel(input: types::UpdateMySettingInput, delete_channel: bool) -> Re
     input.validate()?;
 
     let caller = ic_cdk::caller();
-    store::channel::leave(caller, input.id, delete_channel)?;
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::leave(caller, input.id, delete_channel, now_ms)?;
     Ok(())
 }
 

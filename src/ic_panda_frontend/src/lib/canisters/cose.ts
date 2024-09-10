@@ -50,7 +50,6 @@ export class CoseAPI {
 
   async setting_get(path: SettingPath): Promise<SettingInfo> {
     const res = await this.actor.setting_get(path)
-    console.log('setting', path, res)
     return unwrapResult(res, 'call setting_get failed')
   }
 }

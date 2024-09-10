@@ -2,8 +2,9 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import { AesGcmKey, encodeCBOR, randomBytes } from '$lib/utils/crypto'
+  import { encodeCBOR, randomBytes } from '$lib/utils/crypto'
   import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
+  import { getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -12,7 +13,9 @@
   export let myState: MyMessageState
   export let masterKey: MasterKey | null
 
-  const keyId = encodeCBOR(String(Date.now()))
+  const toastStore = getToastStore()
+  const keyId = encodeCBOR('ICPanda_Messages_Master_Key')
+  const PasswordExpire = 7 * 24 * 60 * 60 * 1000
 
   let validating = false
   let submitting = false
@@ -20,8 +23,8 @@
   let passwordInput1 = ''
   let passwordInput2 = ''
   let passwordErr = ''
+  let processingTip = 'Derive keys...'
   let cachedPassword = masterKey ? masterKey.cachedPassword() : true
-  let ecdhKeyPromise: Promise<AesGcmKey> | null = null
 
   function checkPassword() {
     passwordErr = ''
@@ -37,15 +40,23 @@
     submitting = true
 
     toastRun(async () => {
+      const kind = myState.masterKeyKind()
+
       if (masterKey) {
         try {
           await masterKey.open(
             passwordInput1,
             myState.id,
-            cachedPassword ? 7 * 24 * 60 * 60 * 1000 : 0
+            cachedPassword ? PasswordExpire : 0
           )
 
-          await myState.initStaticECDHKey()
+          if (masterKey.kind !== kind) {
+            processingTip = 'Migrate keys...'
+            await myState.migrateKeys()
+          } else {
+            await myState.initStaticECDHKey()
+          }
+
           parent && parent['onClose']()
         } catch (err) {
           throw new Error('Incorrect password')
@@ -58,21 +69,30 @@
         throw new Error('passwords do not match')
       }
 
-      const kind = ecdhKeyPromise ? 'ECDH' : 'Local'
-      const remoteSecret = ecdhKeyPromise
-        ? (await ecdhKeyPromise).getSecretKey()
-        : randomBytes(32)
+      let remoteSecret: Uint8Array
+      switch (kind) {
+        case 'Local':
+          remoteSecret = randomBytes(32)
+          break
+        case 'ECDH':
+          const remoteKey = await myState.fetchECDHCoseEncryptedKey(keyId)
+          remoteSecret = remoteKey.getSecretKey()
+          break
+        default:
+          throw new Error('Invalid master key kind')
+      }
+
       await myState.setMasterKey(
         kind,
         keyId,
         passwordInput1,
         remoteSecret,
-        cachedPassword ? 7 * 24 * 60 * 60 * 1000 : 0
+        cachedPassword ? PasswordExpire : 0
       )
 
       await myState.initStaticECDHKey()
       parent && parent['onClose']()
-    }).finally(() => {
+    }, toastStore).finally(() => {
       submitting = false
       validating = false
     })
@@ -89,14 +109,7 @@
     validating = form.checkValidity()
   }
 
-  onMount(() => {
-    const { abort } = toastRun(async () => {
-      if (!masterKey && myState.ecdhAvailable()) {
-        ecdhKeyPromise = myState.fetchECDHCoseEncryptedKey(keyId)
-      }
-    })
-    return abort
-  })
+  onMount(() => {})
 </script>
 
 <ModalCard {parent}>
@@ -162,7 +175,7 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{processingTip}</span>
       {:else}
         <span>Comfirm</span>
       {/if}

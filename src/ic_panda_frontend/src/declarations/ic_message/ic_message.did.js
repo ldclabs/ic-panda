@@ -47,6 +47,7 @@ export const idlFactory = ({ IDL }) => {
     'image' : IDL.Text,
   });
   const ChannelSetting = IDL.Record({
+    'updated_at' : IDL.Nat64,
     'mute' : IDL.Bool,
     'ecdh_remote' : IDL.Opt(IDL.Tuple(IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8))),
     'unread' : IDL.Nat32,
@@ -58,6 +59,15 @@ export const idlFactory = ({ IDL }) => {
     'dek' : IDL.Vec(IDL.Nat8),
     'gas' : IDL.Nat64,
     'updated_at' : IDL.Nat64,
+    'ecdh_request' : IDL.Vec(
+      IDL.Tuple(
+        IDL.Principal,
+        IDL.Tuple(
+          IDL.Vec(IDL.Nat8),
+          IDL.Opt(IDL.Tuple(IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8))),
+        ),
+      )
+    ),
     'members' : IDL.Vec(IDL.Principal),
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,

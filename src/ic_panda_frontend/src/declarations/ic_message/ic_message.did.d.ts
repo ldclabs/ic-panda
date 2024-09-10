@@ -34,6 +34,15 @@ export interface ChannelInfo {
   'dek' : Uint8Array | number[],
   'gas' : bigint,
   'updated_at' : bigint,
+  'ecdh_request' : Array<
+    [
+      Principal,
+      [
+        Uint8Array | number[],
+        [] | [[Uint8Array | number[], Uint8Array | number[]]],
+      ],
+    ]
+  >,
   'members' : Array<Principal>,
   'managers' : Array<Principal>,
   'name' : string,
@@ -55,6 +64,7 @@ export interface ChannelKEKInput {
   'canister' : Principal,
 }
 export interface ChannelSetting {
+  'updated_at' : bigint,
   'mute' : boolean,
   'ecdh_remote' : [] | [[Uint8Array | number[], Uint8Array | number[]]],
   'unread' : number,

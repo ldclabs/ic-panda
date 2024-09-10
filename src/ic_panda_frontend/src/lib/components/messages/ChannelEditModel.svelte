@@ -1,48 +1,65 @@
 <script lang="ts">
-  import { type UserInfo } from '$lib/canisters/message'
-  import { type ProfileInfo } from '$lib/canisters/messageprofile'
+  import {
+    type ChannelInfo,
+    type UpdateChannelInput
+  } from '$lib/canisters/messagechannel'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { toastRun } from '$lib/stores/toast'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
-  import { type Readable } from 'svelte/store'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let myInfo: Readable<UserInfo & ProfileInfo>
-  export let onSave: (info: UserInfo & ProfileInfo) => Promise<void>
+  export let channel: ChannelInfo
+  export let onSave: (input: UpdateChannelInput) => Promise<void>
 
-  const toastStore = getToastStore()
   const modalStore = getModalStore()
 
   let validating = false
   let submitting = false
 
-  let nameInput = $myInfo.name || ''
-  let descriptionInput = $myInfo.bio || ''
+  let nameInput = channel.name
+  let descriptionInput = channel.description
 
-  function checkName() {
-    nameInput = nameInput.trim()
+  function checkInput() {
+    const name = nameInput.trim()
+    if (!name) {
+      nameInput = ''
+    }
     return ''
   }
 
-  async function onSaveHandler() {
+  function onClickSave(e: Event) {
     submitting = true
-    toastRun(async (signal: AbortSignal) => {
-      await onSave({
-        ...$myInfo,
-        name: nameInput.trim(),
-        bio: descriptionInput.trim()
-      })
+    const input: UpdateChannelInput = {
+      id: channel.id,
+      name: [],
+      description: [],
+      image: []
+    }
+    const name = nameInput.trim()
+    if (name && name !== channel.name) {
+      input.name = [name]
+    }
+    const desc = descriptionInput.trim()
+    if (desc && desc !== channel.description) {
+      input.description = [desc]
+    }
 
+    if (input.name.length || input.description.length) {
+      onSave(input)
+        .then(() => {
+          modalStore.close()
+        })
+        .catch((e) => {
+          console.error(e)
+          submitting = false
+        })
+    } else {
       modalStore.close()
-    }, toastStore).finally(() => {
-      submitting = false
-      validating = false
-    })
+    }
   }
 
   function onFormChange(e: Event) {
@@ -50,35 +67,29 @@
     e.preventDefault()
 
     const form = e.currentTarget as HTMLFormElement
-    ;(form['nameInput'] as HTMLInputElement)?.setCustomValidity(checkName())
-
+    checkInput()
     validating = form.checkValidity()
   }
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Edit profile</div>
+  <div class="!mt-0 text-center text-xl font-bold">Edit channel</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    on:input|preventDefault|stopPropagation={onFormChange}
   >
     <div class="relative">
-      <p class="rounded-xl border-[1px] border-gray/10 px-3 py-2">
-        <span class="text-gray/60">https://panda.fans/</span>
-        <span>{$myInfo.username[0]}</span>
-      </p>
-    </div>
-    <div class="relative mt-4">
       <input
         class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
         type="text"
         name="nameInput"
         minlength="1"
         maxlength="32"
+        data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
-        placeholder="Display name"
+        placeholder="Channel name"
         required
       />
     </div>
@@ -89,8 +100,7 @@
         maxHeight="120"
         class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
         name="descriptionInput"
-        disabled={submitting}
-        placeholder="User bio..."
+        placeholder="Channel description..."
       />
     </div>
   </form>
@@ -98,7 +108,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onSaveHandler}
+      on:click={onClickSave}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

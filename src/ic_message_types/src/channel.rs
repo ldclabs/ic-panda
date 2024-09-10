@@ -6,7 +6,7 @@ use std::collections::{BTreeSet, HashMap};
 
 pub const MAX_CHANNEL_MANAGERS: usize = 5;
 pub const MAX_CHANNEL_MEMBERS: usize = 100;
-pub const MAX_CHANNEL_MESSAGES: u32 = 256 * 256;
+pub const MAX_CHANNEL_MESSAGES: u32 = 10000;
 pub const MAX_USER_CHANNELS: usize = 1000;
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 32; // 32KB
 
@@ -35,6 +35,7 @@ pub struct ChannelInfo {
     pub latest_message_at: u64,
     pub latest_message_by: Principal,
     pub my_setting: ChannelSetting,
+    pub ecdh_request: HashMap<Principal, (ByteArray<32>, Option<(ByteArray<32>, ByteBuf)>)>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
@@ -59,13 +60,12 @@ pub struct ChannelSetting {
     pub mute: bool,
     pub ecdh_pub: Option<ByteArray<32>>,
     pub ecdh_remote: Option<(ByteArray<32>, ByteBuf)>,
+    pub updated_at: u64,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct Message {
     pub id: u32,
-    pub channel: u32,
-    pub canister: Principal,
     pub kind: u8,      // 0: created by user, 1: created by system
     pub reply_to: u32, // 0 means not a reply
     pub created_at: u64,

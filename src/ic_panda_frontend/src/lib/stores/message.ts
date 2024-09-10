@@ -36,7 +36,13 @@ import {
 import { KVStore } from '$lib/utils/store'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
-import { derived, readable, type Readable } from 'svelte/store'
+import {
+  derived,
+  readable,
+  readonly,
+  writable,
+  type Readable
+} from 'svelte/store'
 import { asyncFactory } from './auth'
 
 const KVS = new KVStore('ICPanda', 1, [
@@ -63,11 +69,13 @@ const KVS = new KVStore('ICPanda', 1, [
   ]
 ])
 
-const cacheExp = 2 * 24 * 3600 * 1000
+const usersCacheExp = 2 * 3600 * 1000
 
 export function getCurrentTimestamp(ts: bigint): string {
   return new Date(Number(ts)).toLocaleString()
 }
+
+type MessageCacheInfo = Message & { canister: Principal; channel: number }
 
 export interface MessageInfo {
   id: number
@@ -77,29 +85,53 @@ export interface MessageInfo {
   created_time: string
   created_user: DisplayUserInfo
   canister: Principal
+  channel: number
   message: string
   error: string
   src?: Message
 }
 
 export interface DisplayUserInfo {
-  id: string
+  _id: string
   username: string
   name: string
   image: string
+  src?: UserInfo
+}
+
+// 0: none, 1: request key, 2: key filled
+export type ECDHRequestStatus = 0 | 1 | 2
+
+export type DisplayUserInfoEx = DisplayUserInfo & {
+  is_manager: boolean
+  ecdh_request: ECDHRequestStatus
+}
+
+export type ChannelBasicInfoEx = ChannelBasicInfo & {
+  channelId: string
+  latest_message_time: string
+  latest_message_user: DisplayUserInfo
+}
+
+type ChannelCacheInfo = ChannelInfo & { _get_by: string }
+
+export type ChannelInfoEx = ChannelInfo & {
+  _kek: Uint8Array | null
+  _managers: string[]
 }
 
 export class MyMessageState {
-  readonly principal: Principal
   readonly id: string
+  readonly principal: Principal
   readonly api: MessageCanisterAPI
-  readonly coseAPI: CoseAPI | null = null
   readonly profileAPI: ProfileAPI | null = null
-  readonly info: Readable<UserInfo>
+  readonly info: Readable<UserInfo | null>
 
-  private _mk: MasterKey | null = null
+  private _coseAPI: CoseAPI | null = null
+  private _mks: MasterKey[] = []
   private _ek: ECDHKey | null = null
   private _myChannels = new Map<string, ChannelBasicInfo>()
+  private _myChannelsStream = writable<ChannelBasicInfo[]>([])
   private _channelDEKs = new Map<String, AesGcmKey>()
 
   static async with(identity: Identity): Promise<MyMessageState> {
@@ -126,7 +158,7 @@ export class MyMessageState {
     this.principal = principal
     this.id = principal.toText()
     this.api = api
-    this.coseAPI = coseAPI
+    this._coseAPI = coseAPI
     this.profileAPI = profileAPI
     this.info = derived(api.myInfoStore, ($info, set) => {
       if ($info) {
@@ -142,20 +174,41 @@ export class MyMessageState {
     })
   }
 
-  ecdhAvailable(): boolean {
-    return this.coseAPI != null
+  masterKeyKind(): 'Local' | 'ECDH' | 'VetKey' {
+    return this._coseAPI != null ? 'ECDH' : 'Local'
   }
 
   async masterKey(): Promise<MasterKey | null> {
-    if (!this._mk || !this._mk.isUser(this.principal)) {
-      this._mk = null
-      const info = await KVS.get<MasterKeyInfo>('Keys', `${this.id}:MK`)
-      if (info) {
-        this._mk = await MasterKey.fromInfo(this.principal, info)
+    const mk = this._mks.at(-1)
+    if (!mk || !mk.isUser(this.principal)) {
+      let keys = (await KVS.get<MasterKeyInfo[]>('Keys', `${this.id}:MK`)) || []
+      if (!Array.isArray(keys)) {
+        keys = [keys]
       }
+      this._mks = await Promise.all(
+        keys.map((key) => MasterKey.fromInfo(this.principal, key))
+      )
     }
 
-    return this._mk
+    return this._mks.at(-1) || null
+  }
+
+  async mustMasterKey(): Promise<MasterKey> {
+    const mk = await this.masterKey()
+    if (!mk) {
+      throw new Error('Master key not ready')
+    }
+    return mk
+  }
+
+  async mustStaticECDHKey(): Promise<ECDHKey> {
+    if (!this._ek) {
+      await this.initStaticECDHKey()
+    }
+    if (!this._ek) {
+      throw new Error('ECDH key not ready')
+    }
+    return this._ek
   }
 
   async setMasterKey(
@@ -165,7 +218,11 @@ export class MyMessageState {
     remoteSecret: Uint8Array,
     passwordExpire: number // milliseconds
   ): Promise<void> {
-    this._mk = await MasterKey.from(
+    if (this._mks.length > 10) {
+      throw new Error('Too many master keys')
+    }
+
+    const mk = await MasterKey.from(
       this.principal,
       kind,
       keyId,
@@ -174,19 +231,88 @@ export class MyMessageState {
       remoteSecret,
       passwordExpire > 0 ? passwordExpire + Date.now() : 0
     )
+    this._mks.push(mk)
 
-    await KVS.set('Keys', this._mk.toInfo(), `${this.id}:MK`)
+    await KVS.set(
+      'Keys',
+      this._mks.map((k) => k.toInfo()),
+      `${this.id}:MK`
+    )
+  }
+
+  async migrateKeys(): Promise<void> {
+    const mk = await this.mustMasterKey()
+    if (mk.kind != 'Local') {
+      throw new Error('Master key kind not supported')
+    }
+    if (!mk.isOpened()) {
+      throw new Error('Master key not opened')
+    }
+
+    const state = this.api.state
+    if (!state) {
+      throw new Error('Message state not ready')
+    }
+    const myInfo = await this.api.myInfo
+    if (!myInfo) {
+      throw new Error('User info not ready')
+    }
+    const cose_canister = myInfo.cose_canister[0]
+    if (!cose_canister) {
+      throw new Error('username not ready')
+    }
+
+    // save local keys to COSE after username is set
+    this._coseAPI = await this.api.coseAPI(cose_canister)
+    const keyId = encodeCBOR('ICPanda_Messages_Master_Key')
+    const aad = new Uint8Array()
+    const remoteMK = await this.fetchECDHCoseEncryptedKey(keyId)
+    const newMK = await mk.toNewMasterKey(
+      'ECDH',
+      keyId,
+      remoteMK.getSecretKey()
+    )
+    await this.initMyChannels()
+    const channels = Array.from(this._myChannels.values())
+    const mKey = mk.toA256GCMKey()
+    const nmKey = newMK.toA256GCMKey()
+    for (const ch of channels) {
+      const encrypted0 = await KVS.get<Uint8Array>(
+        'Keys',
+        `${this.id}:${ch.canister.toText()}:${ch.id}:KEK`
+      )
+      if (!encrypted0) {
+        continue
+      }
+
+      try {
+        let data = await coseA256GCMDecrypt0(mKey, encrypted0, aad)
+        data = await coseA256GCMEncrypt0(nmKey, data, aad)
+        await this.saveChannelKEK(ch.canister, ch.id, data)
+      } catch (err) {
+        console.error('migrateKeys', err)
+      }
+    }
+
+    this._mks.push(newMK)
+    await KVS.set(
+      'Keys',
+      this._mks.map((k) => k.toInfo()),
+      `${this.id}:MK`
+    )
+
+    await this.initStaticECDHKey()
   }
 
   async fetchECDHCoseEncryptedKey(keyId: Uint8Array): Promise<AesGcmKey> {
-    if (!this.coseAPI) {
-      throw new Error('COSE API not available')
+    if (!this._coseAPI) {
+      throw new Error('COSE API not ready')
     }
 
     const ns = this.id.replaceAll('-', '_')
     const aad = this.principal.toUint8Array()
     const ecdh = generateECDHKey()
-    const output = await this.coseAPI.ecdh_cose_encrypted_key(
+    const output = await this._coseAPI.ecdh_cose_encrypted_key(
       {
         ns,
         key: keyId,
@@ -214,11 +340,7 @@ export class MyMessageState {
   }
 
   async initStaticECDHKey(): Promise<void> {
-    const mk = (await this.masterKey())?.toA256GCMKey()
-    if (!mk) {
-      throw new Error('Master key not found')
-    }
-
+    const mk = (await this.mustMasterKey()).toA256GCMKey()
     const aad = this.principal.toUint8Array()
     try {
       const encrypted0 = await this.loadStaticECDHKey()
@@ -244,12 +366,12 @@ export class MyMessageState {
       return encrypted0
     }
 
-    if (!this.coseAPI) {
+    if (!this._coseAPI) {
       throw new Error('COSE API not available')
     }
 
     const ns = this.id.replaceAll('-', '_')
-    const output = await this.coseAPI.setting_get({
+    const output = await this._coseAPI.setting_get({
       ns,
       key: utf8ToBytes('StaticECDH'),
       subject: [this.principal],
@@ -276,30 +398,25 @@ export class MyMessageState {
   ): Promise<void> {
     await KVS.set<Uint8Array>('Keys', encrypted0 as Uint8Array, `${this.id}:EK`)
 
-    if (this.coseAPI) {
+    if (this._coseAPI) {
       await this.api.update_my_ecdh(ecdh_pub, encrypted0)
     }
   }
 
-  async decryptChannelDEK(
-    canister: Principal,
-    id: number,
-    encrypted0: Uint8Array
-  ): Promise<AesGcmKey> {
-    let dek = this._channelDEKs.get(`${canister.toText()}:${id}`)
-    console.log('decryptChannelDEK', dek, encrypted0)
+  async decryptChannelDEK(info: ChannelInfoEx): Promise<AesGcmKey> {
+    let dek = this._channelDEKs.get(`${info.canister.toText()}:${info.id}`)
     if (!dek) {
-      const mk = (await this.masterKey())?.toA256GCMKey()
-      if (!mk) {
-        throw new Error('Master key not found')
+      if (!info._kek) {
+        throw new Error('Channel KEK not ready')
       }
+
+      const mk = (await this.mustMasterKey()).toA256GCMKey()
       const aad = new Uint8Array()
-      let data = await this.loadChannelKEK(canister, id)
-      data = await coseA256GCMDecrypt0(mk, data, aad)
+      let data = await coseA256GCMDecrypt0(mk, info._kek, aad)
       const kek = AesGcmKey.fromBytes(data)
-      data = await coseA256GCMDecrypt0(kek, encrypted0, aad)
+      data = await coseA256GCMDecrypt0(kek, info.dek as Uint8Array, aad)
       dek = AesGcmKey.fromBytes(data)
-      this._channelDEKs.set(`${canister.toText()}:${id}`, dek)
+      this._channelDEKs.set(`${info.canister.toText()}:${info.id}`, dek)
     }
 
     return dek
@@ -315,19 +432,18 @@ export class MyMessageState {
       return encrypted0
     }
 
-    if (!this.coseAPI) {
+    if (!this._coseAPI) {
       throw new Error('COSE API not available')
     }
 
     const ns = this.id.replaceAll('-', '_')
-    const output = await this.coseAPI.setting_get({
+    const output = await this._coseAPI.setting_get({
       ns,
       key: encodeCBOR([canister.toUint8Array(), id]),
       subject: [this.principal],
       version: 0,
       user_owned: false
     })
-    console.log('setting', output)
 
     if (output.dek.length != 1) {
       throw new Error('Channel KEK not found')
@@ -353,7 +469,7 @@ export class MyMessageState {
       `${this.id}:${canister.toText()}:${id}:KEK`
     )
 
-    if (this.coseAPI) {
+    if (this._coseAPI) {
       await this.api.save_channel_kek({
         id: id,
         canister: canister,
@@ -362,18 +478,194 @@ export class MyMessageState {
     }
   }
 
+  async requestKEK(info: ChannelInfo): Promise<void> {
+    const pub = unwrapOption(info.my_setting.ecdh_pub) as Uint8Array
+    const remote = unwrapOption(info.my_setting.ecdh_remote) as [
+      Uint8Array,
+      Uint8Array
+    ]
+    if (pub || remote) {
+      throw new Error('KEK exchange parameters exist')
+    }
+
+    const ek = await this.mustStaticECDHKey()
+    const api = await this.api.channelAPI(info.canister)
+    await api.update_my_setting({
+      id: info.id,
+      ecdh: [{ ecdh_pub: [ek.getPublicKey()], ecdh_remote: [] }],
+      mute: [],
+      last_read: []
+    })
+  }
+
+  async acceptKEK(info: ChannelInfoEx): Promise<void> {
+    const pub = unwrapOption(info.my_setting.ecdh_pub) as Uint8Array
+    const remote = unwrapOption(info.my_setting.ecdh_remote) as [
+      Uint8Array,
+      Uint8Array
+    ]
+    if (!pub || !remote) {
+      throw new Error('Invalid KEK exchange parameters')
+    }
+
+    const mk = (await this.mustMasterKey()).toA256GCMKey()
+    const ek = await this.mustStaticECDHKey()
+    if (compareBytes(ek.getPublicKey(), pub) !== 0) {
+      throw new Error('ECDH public key not match')
+    }
+
+    const aad = new Uint8Array()
+    const secret = ek.ecdh(
+      ECDHKey.fromPublic(iana.EllipticCurveX25519, remote[0])
+    )
+
+    const payload = await coseA256GCMDecrypt0(
+      AesGcmKey.fromSecret(secret),
+      remote[1],
+      aad
+    )
+
+    const encryptedKEK = await coseA256GCMEncrypt0(mk, payload, aad)
+    await this.saveChannelKEK(info.canister, info.id, encryptedKEK)
+
+    const api = await this.api.channelAPI(info.canister)
+    await api.update_my_setting({
+      id: info.id,
+      ecdh: [{ ecdh_pub: [], ecdh_remote: [] }],
+      mute: [],
+      last_read: []
+    })
+    info._kek = encryptedKEK
+  }
+
+  async adminExchangeKEK(info: ChannelInfoEx): Promise<void> {
+    if (info.ecdh_request.length == 0) {
+      return
+    }
+
+    const mk = (await this.mustMasterKey()).toA256GCMKey()
+    const kek = await this.loadChannelKEK(info.canister, info.id)
+    const aad = new Uint8Array()
+    const payload = await coseA256GCMDecrypt0(mk, kek, aad)
+    const api = await this.api.channelAPI(info.canister)
+    for (const [member, [pub, remote]] of info.ecdh_request) {
+      if (remote.length > 0) {
+        // exchange already done
+        continue
+      }
+
+      const ecdhInput = await exchangeSecret(pub as Uint8Array, payload, aad)
+      if (info._managers.includes(member.toText())) {
+        await api.update_manager({
+          id: info.id,
+          member,
+          ecdh: ecdhInput
+        })
+      } else {
+        await api.update_member({
+          id: info.id,
+          member,
+          ecdh: ecdhInput
+        })
+      }
+    }
+  }
+
+  async adminAddMembers(
+    info: ChannelInfoEx,
+    kind: 'Manager' | 'Member',
+    members: Array<[Principal, Uint8Array | null]>
+  ): Promise<void> {
+    if (members.length == 0) {
+      return
+    }
+
+    const mk = (await this.mustMasterKey()).toA256GCMKey()
+    const kek = await this.loadChannelKEK(info.canister, info.id)
+    const aad = new Uint8Array()
+    const payload = await coseA256GCMDecrypt0(mk, kek, aad)
+    const api = await this.api.channelAPI(info.canister)
+    for (const [member, pub] of members) {
+      const input = {
+        id: info.id,
+        member,
+        ecdh: {
+          ecdh_remote: [],
+          ecdh_pub: []
+        } as ChannelECDHInput
+      }
+      if (pub) {
+        input.ecdh = await exchangeSecret(pub, payload, aad)
+      }
+      if (kind == 'Manager') {
+        await api.update_manager(input)
+      } else {
+        await api.update_member(input)
+      }
+    }
+  }
+
+  async channelMembers(
+    channel: ChannelInfoEx,
+    me: UserInfo
+  ): Promise<DisplayUserInfoEx[]> {
+    const ids = [...channel.managers, ...channel.members]
+    const todo = new Set(ids.map((id) => id.toText()))
+    const users = await this.batchLoadUsersInfo(ids)
+    const ecdh_request = new Map<string, ECDHRequestStatus>()
+    for (const [member, [_, remote]] of channel.ecdh_request) {
+      ecdh_request.set(member.toText(), remote.length > 0 ? 2 : 1)
+    }
+    const myInfo = toDisplayUserInfo(me) as DisplayUserInfoEx
+    myInfo.is_manager = channel._managers.includes(myInfo._id)
+    myInfo.ecdh_request = ecdh_request.get(myInfo._id) || 0
+    const members: DisplayUserInfoEx[] = []
+    for (const user of users) {
+      const info = toDisplayUserInfo(user) as DisplayUserInfoEx
+      todo.delete(info._id)
+      if (info._id != myInfo._id) {
+        info.is_manager = channel._managers.includes(info._id)
+        info.ecdh_request = ecdh_request.get(info._id) || 0
+        members.push(info)
+      }
+    }
+    members.sort((a, b) => {
+      if (a.is_manager) {
+        if (!b.is_manager) {
+          return -1
+        }
+        return a.name.localeCompare(b.name)
+      }
+      if (b.is_manager) {
+        return 1
+      }
+      return a.name.localeCompare(b.name)
+    })
+    members.unshift(myInfo)
+    for (const id of todo) {
+      members.push({
+        _id: id,
+        username: '',
+        name: id,
+        image: '',
+        is_manager: false,
+        ecdh_request: 0
+      })
+    }
+    return members
+  }
+
   private async initMyChannels(): Promise<void> {
     if (this._myChannels.size == 0) {
       const channels =
         (await KVS.get<ChannelBasicInfo[]>('My', `${this.id}:Channels`)) || []
-      // channels.sort(ChannelAPI.compareChannels)
       for (const info of channels) {
         this._myChannels.set(`${info.canister.toText()}:${info.id}`, info)
       }
     }
   }
 
-  async addMyChannel(info: ChannelBasicInfo | ChannelInfo): Promise<void> {
+  async addMyChannel(info: ChannelInfo): Promise<void> {
     await this.initMyChannels()
 
     this._myChannels.set(`${info.canister.toText()}:${info.id}`, {
@@ -393,6 +685,8 @@ export class MyMessageState {
     const channels = Array.from(this._myChannels.values())
     channels.sort(ChannelAPI.compareChannels)
     await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
+    await KVS.set<ChannelCacheInfo>('Channels', { ...info, _get_by: this.id })
+    this._myChannelsStream.set(channels)
   }
 
   async removeMyChannel(canister: Principal, id: number): Promise<void> {
@@ -402,76 +696,158 @@ export class MyMessageState {
     const channels = Array.from(this._myChannels.values())
     channels.sort(ChannelAPI.compareChannels)
     await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
+    const key = [canister.toUint8Array(), id]
+    await KVS.delete('Channels', key)
+    await KVS.delete(
+      'Messages',
+      IDBKeyRange.bound([...key, 0], [...key, 4294967295], false, true)
+    )
+    this._myChannelsStream.set(channels)
   }
 
-  async loadMyChannelsStream(): Promise<Readable<ChannelBasicInfo[]>> {
+  async refreshMyChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
+    const api = await this.api.channelAPI(info.canister)
+    const ninfo = (await api.get_channel_if_update(
+      info.id,
+      0n
+    )) as ChannelCacheInfo
+    if (!ninfo) {
+      throw new Error('Channel not found')
+    }
+    ninfo._get_by = this.id
+    await this.addMyChannel(ninfo)
+    let kek = info._kek
+    if (kek) {
+      kek = await this.loadChannelKEK(info.canister, info.id)
+    }
+
+    return {
+      ...ninfo,
+      _kek: kek,
+      _managers: ninfo.managers.map((m) => m.toText())
+    }
+  }
+
+  async refreshMyChannels(signal: AbortSignal): Promise<void> {
     const state = this.api.state
     if (!state) {
       throw new Error('Wait for message state')
     }
 
     await this.initMyChannels()
+    const ids: Principal[] = [
+      ...state.channel_canisters,
+      ...state.matured_channel_canisters
+    ]
+
+    await Promise.all(
+      ids.map(async (id) => {
+        const api = await this.api.channelAPI(id)
+
+        let latest_message_at = 0n
+        const prefix = id.toText()
+        for (const [key, info] of this._myChannels) {
+          if (key.startsWith(prefix)) {
+            if (latest_message_at < info.latest_message_at) {
+              latest_message_at = info.latest_message_at
+            }
+          }
+        }
+
+        if (signal.aborted) {
+          return
+        }
+
+        let channels = await api.my_channels(latest_message_at)
+        if (channels.length > 0) {
+          for (const channel of channels) {
+            this._myChannels.set(
+              `${channel.canister.toText()}:${channel.id}`,
+              channel
+            )
+          }
+
+          channels = Array.from(this._myChannels.values())
+          channels.sort(ChannelAPI.compareChannels)
+          await KVS.set<ChannelBasicInfo[]>(
+            'My',
+            channels,
+            `${this.id}:Channels`
+          )
+        } else {
+          channels = Array.from(this._myChannels.values())
+          channels.sort(ChannelAPI.compareChannels)
+        }
+
+        this._myChannelsStream.set(channels)
+      })
+    )
+  }
+
+  async loadMyChannelsStream(): Promise<Readable<ChannelBasicInfoEx[]>> {
+    await this.initMyChannels()
+
+    const usersMap = new Map<String, UserInfo>()
+    const channelMapfFn = (c: ChannelBasicInfo) => {
+      const info = usersMap.get(c.latest_message_by.toText())
+      return {
+        ...c,
+        channelId: ChannelAPI.channelParam(c),
+        latest_message_time: getCurrentTimestamp(c.latest_message_at),
+        latest_message_user: toDisplayUserInfo(info)
+      } as ChannelBasicInfoEx
+    }
+
     const channels = Array.from(this._myChannels.values())
     channels.sort(ChannelAPI.compareChannels)
 
-    return readable(channels, (set) => {
-      let stopped = false
-      const timers: any[] = []
-      const ids: Principal[] = [
-        ...state.channel_canisters,
-        ...state.matured_channel_canisters
-      ]
-
-      Promise.all(
-        ids.map(async (id) => {
-          const api = await this.api.channelAPI(id)
-          if (stopped) {
-            return
-          }
-
-          let latest_message_at = 0n
-          const task = () => {
-            console.log('task: loadMyChannels', latest_message_at, id.toText())
-            api.my_channels(latest_message_at).then((channels) => {
-              if (channels.length > 0) {
-                for (const info of channels) {
-                  if (latest_message_at < info.latest_message_at) {
-                    latest_message_at = info.latest_message_at
-                  }
-
-                  this._myChannels.set(
-                    `${info.canister.toText()}:${info.id}`,
-                    info
-                  )
-                }
-
-                channels = Array.from(this._myChannels.values())
-                channels.sort(ChannelAPI.compareChannels)
-                KVS.set<ChannelBasicInfo[]>(
-                  'My',
-                  channels,
-                  `${this.id}:Channels`
-                )
-                set(channels)
-              }
-            })
-          }
-
-          task()
-          timers.push(setInterval(task, 60000))
-        })
+    return readonly(
+      derived(
+        this._myChannelsStream,
+        (channels, set) => {
+          this.batchLoadUsersInfo(
+            channels.map((c) => c.latest_message_by)
+          ).then(async (users) => {
+            for (const info of users) {
+              usersMap.set(info.id.toText(), info)
+            }
+            set(channels.map(channelMapfFn))
+          })
+        },
+        channels.map(channelMapfFn)
       )
+    )
+  }
 
-      return () => {
-        stopped = true
-        timers.forEach((t) => clearInterval(t))
+  async loadMyProfile(): Promise<Readable<UserInfo & ProfileInfo>> {
+    const now = Date.now()
+    let info = await this.getCacheUserInfo(now, this.principal)
+    if (!info) {
+      info = await this.api.get_user(this.principal)
+      await this.setCacheUserInfo(now, info)
+    }
+
+    const profile = await KVS.get<ProfileInfo>('My', `${this.id}:Profile`)
+
+    const api = await this.api.profileAPI(info.profile_canister)
+    return readable(
+      { ...info, ...profile } as UserInfo & ProfileInfo,
+      (set) => {
+        api.get_profile(info.id).then(async (profile) => {
+          await KVS.set<ProfileInfo>('My', profile, `${this.id}:Profile`)
+          set({ ...info, ...profile })
+        })
       }
-    })
+    )
   }
 
   async loadProfile(
     user: Principal | string
   ): Promise<Readable<UserInfo & ProfileInfo>> {
+    if (!user) {
+      throw new Error('Invalid Username')
+    }
+
     const now = Date.now()
     let info = await this.getCacheUserInfo(now, user)
     if (!info) {
@@ -499,6 +875,38 @@ export class MyMessageState {
     )
   }
 
+  async tryLoadProfile(
+    user: Principal | string
+  ): Promise<(UserInfo & ProfileInfo) | null> {
+    if (user) {
+      try {
+        const now = Date.now()
+        let info = await this.getCacheUserInfo(now, user)
+        if (!info) {
+          info =
+            typeof user == 'string'
+              ? await this.api.get_by_username(user)
+              : await this.api.get_user(user)
+          await this.setCacheUserInfo(now, info)
+        }
+
+        let profile = await KVS.get<ProfileInfo>(
+          'Profiles',
+          info.id.toUint8Array()
+        )
+        if (!profile) {
+          const api = await this.api.profileAPI(info.profile_canister)
+          profile = await api.get_profile(info.id)
+          await KVS.set<ProfileInfo>('Profiles', profile)
+        }
+
+        return { ...info, ...profile }
+      } catch (err) {}
+    }
+
+    return null
+  }
+
   async updateProfile(
     profile_canister: Principal,
     input: UpdateProfileInput
@@ -511,46 +919,93 @@ export class MyMessageState {
   async loadChannelInfo(
     canister: Principal,
     id: number
-  ): Promise<Readable<ChannelInfo>> {
-    const k = [canister.toUint8Array(), id]
+  ): Promise<Readable<ChannelInfoEx>> {
     const api = await this.api.channelAPI(canister)
-    let info = await KVS.get<ChannelInfo>('Channels', k)
-    const refresh = !!info
+    let info = await KVS.get<ChannelCacheInfo>('Channels', [
+      canister.toUint8Array(),
+      id
+    ])
+
+    if (info) {
+      const isManager = info.managers.some(
+        (m) => m.compareTo(this.principal) === 'eq'
+      )
+
+      if (
+        !isManager &&
+        !info.members.some((m) => m.compareTo(this.principal) === 'eq')
+      ) {
+        info = null
+      }
+    }
+
+    let refresh = !!info
     if (!info) {
-      info = await api.get_channel_if_update(id, 0n)
+      info = (await api.get_channel_if_update(id, 0n)) as ChannelCacheInfo
       if (!info) {
         throw new Error('Channel not found')
       }
 
-      await KVS.set<ChannelInfo>('Channels', info)
+      info._get_by = this.id
+      await this.addMyChannel(info)
+    } else if (info._get_by != this.id) {
+      refresh = true
+      info.ecdh_request = []
+      info.my_setting = {
+        ecdh_pub: [],
+        ecdh_remote: [],
+        mute: false,
+        last_read: 1,
+        unread: 0,
+        updated_at: 0n
+      }
     }
 
-    return readable(info, (set) => {
-      if (refresh) {
-        api.get_channel_if_update(id, info.updated_at).then(async (channel) => {
-          if (channel) {
-            await KVS.set<ChannelInfo>('Channels', channel)
-            set(channel)
-          }
-        })
+    let kek = null
+    try {
+      kek = await this.loadChannelKEK(info.canister, info.id)
+    } catch (err) {}
+
+    return readable<ChannelInfoEx>(
+      {
+        ...info,
+        _kek: kek,
+        _managers: info.managers.map((m) => m.toText())
+      },
+      (set) => {
+        if (refresh) {
+          api
+            .get_channel_if_update(id, info.updated_at)
+            .then(async (channel) => {
+              if (channel) {
+                await this.addMyChannel(channel)
+                set({
+                  ...channel,
+                  _kek: kek,
+                  _managers: info.managers.map((m) => m.toText())
+                })
+              }
+            })
+        }
       }
-    })
+    )
   }
 
   async loadLatestMessageStream(
-    dek: AesGcmKey,
     canister: Principal,
     channelId: number,
+    dek: AesGcmKey,
     messageId: number
   ): Promise<Readable<MessageInfo | null>> {
     const api = await this.api.channelAPI(canister)
-    let message = await KVS.get<Message>('Messages', [
+    let message = await KVS.get<MessageCacheInfo>('Messages', [
       canister.toUint8Array(),
       channelId,
       messageId
     ])
     let latestMessageId = message ? messageId + 1 : messageId
-    const info = (await this.messagesToInfo(dek, message))[0] || null
+    const info =
+      (await this.messagesToInfo(canister, channelId, dek, message))[0] || null
 
     return readable(info, (set) => {
       let stopped = false
@@ -560,9 +1015,18 @@ export class MyMessageState {
           if (msgs.length > 0) {
             for (const msg of msgs) {
               latestMessageId = msg.id + 1
-              await KVS.set<Message>('Messages', msg)
+              await KVS.set<MessageCacheInfo>('Messages', {
+                ...msg,
+                canister,
+                channel: channelId
+              })
             }
-            const infos = await this.messagesToInfo(dek, msgs)
+            const infos = await this.messagesToInfo(
+              canister,
+              channelId,
+              dek,
+              msgs
+            )
 
             for (const info of infos) {
               await Promise.resolve()
@@ -585,9 +1049,9 @@ export class MyMessageState {
   }
 
   async loadPrevMessages(
-    dek: AesGcmKey,
     canister: Principal,
     channelId: number,
+    dek: AesGcmKey,
     end: number // not included
   ): Promise<MessageInfo[]> {
     const api = await this.api.channelAPI(canister)
@@ -600,7 +1064,7 @@ export class MyMessageState {
       return []
     }
 
-    let messages: Message[] = []
+    let messages: MessageCacheInfo[] = []
     const iter = await KVS.iterate(
       'Messages',
       IDBKeyRange.bound([...prefix, start], [...prefix, end], false, true)
@@ -616,15 +1080,52 @@ export class MyMessageState {
     }
 
     if (i < end) {
-      let items = await api.list_messages(channelId, i, end)
-      await KVS.add<Message>('Messages', items)
+      let items = (await api.list_messages(
+        channelId,
+        i,
+        end
+      )) as MessageCacheInfo[]
+      items = items.map((msg) => {
+        return {
+          ...msg,
+          canister,
+          channel: channelId
+        }
+      })
+
+      await KVS.setMany<MessageCacheInfo>('Messages', items)
       messages = [...messages, ...items]
     }
 
-    return await this.messagesToInfo(dek, messages)
+    return await this.messagesToInfo(canister, channelId, dek, messages)
+  }
+
+  async updateMyLastRead(
+    canister: Principal,
+    channelId: number,
+    lastRead: number
+  ): Promise<void> {
+    const api = await this.api.channelAPI(canister)
+    await api.update_my_setting({
+      id: channelId,
+      ecdh: [],
+      mute: [],
+      last_read: [lastRead]
+    })
+
+    const channel = this._myChannels.get(`${canister.toText()}:${channelId}`)
+    if (channel) {
+      channel.my_setting = {
+        ...channel.my_setting,
+        last_read: lastRead,
+        unread: 0
+      }
+    }
   }
 
   async messagesToInfo(
+    canister: Principal,
+    channelId: number,
     dek: AesGcmKey,
     msgs: Message | Message[] | null
   ): Promise<MessageInfo[]> {
@@ -651,7 +1152,8 @@ export class MyMessageState {
         created_by: msg.created_by,
         created_time: getCurrentTimestamp(msg.created_at),
         created_user: toDisplayUserInfo(info),
-        canister: msg.canister,
+        canister: canister,
+        channel: channelId,
         message: '',
         error: '',
         src: msg
@@ -713,7 +1215,7 @@ export class MyMessageState {
       0,
       null
     ]
-    return info && now - ts < cacheExp ? info : null
+    return info && now - ts < usersCacheExp ? info : null
   }
 
   private async setCacheUserInfo(now: number, info: UserInfo) {
@@ -854,6 +1356,34 @@ export class MasterKey {
     return AesGcmKey.fromSecret(this.secret, this.keyId)
   }
 
+  async toNewMasterKey(
+    kind: 'ECDH' | 'VetKey',
+    keyId: Uint8Array,
+    remoteSecret: Uint8Array
+  ): Promise<MasterKey> {
+    if (!this.secret || !this.passwordSecrect) {
+      throw new Error('master key is not opened')
+    }
+
+    const secret = deriveA256GCMSecret(this.passwordSecrect, remoteSecret)
+    const key = AesGcmKey.fromSecret(secret, keyId)
+    const encryptedSecret = await coseA256GCMEncrypt0(
+      AesGcmKey.fromSecret(this.passwordSecrect),
+      key.toBytes(),
+      this.aad
+    )
+    const mk = new MasterKey(
+      kind,
+      keyId,
+      encryptedSecret,
+      this.aad,
+      this.passwordExpireAt
+    )
+    mk.passwordSecrect = this.passwordSecrect
+    mk.secret = secret
+    return mk
+  }
+
   async generateChannelKey(
     managers: Array<[Principal, Uint8Array | null]> = []
   ): Promise<{
@@ -924,18 +1454,19 @@ async function exchangeSecret(
 export function toDisplayUserInfo(info?: UserInfo) {
   if (!info) {
     return {
-      id: '',
+      _id: '',
       username: '',
       name: 'Unknown',
       image: ''
     }
   }
 
-  const id = info.id.toText()
+  const _id = info.id.toText()
   return {
-    id,
+    _id,
     username: unwrapOption(info.username) || '',
     name: info.name || 'Unknown',
-    image: info.image
+    image: info.image,
+    src: info
   }
 }

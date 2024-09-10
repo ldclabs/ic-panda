@@ -54,10 +54,8 @@ export class KVStore {
       }
 
       cursor = await cursor.continue()
-      console.log('iterate 999', storeName, cursor?.key)
     }
 
-    console.log('iterate return', storeName)
     return await tx.done
   }
 
@@ -68,17 +66,28 @@ export class KVStore {
     await tx.done
   }
 
-  async add<T>(storeName: string, values: T[]): Promise<void> {
+  async setMany<T>(storeName: string, values: T[]): Promise<void> {
     const db = await this.db
     const tx = db.transaction(storeName, 'readwrite')
     const keyPath = tx.store.keyPath
     await Promise.all(
-      values.map((value) => tx.store.add(encodeObjectPrincipal(value, keyPath)))
+      values.map((value) => tx.store.put(encodeObjectPrincipal(value, keyPath)))
     )
     await tx.done
   }
 
-  async delete(storeName: string, key: IDBValidKey): Promise<void> {
+  async add<T>(storeName: string, value: T): Promise<void> {
+    const db = await this.db
+    const tx = db.transaction(storeName, 'readwrite')
+    const keyPath = tx.store.keyPath
+    await tx.store.add(encodeObjectPrincipal(value, keyPath))
+    await tx.done
+  }
+
+  async delete(
+    storeName: string,
+    key: IDBValidKey | IDBKeyRange
+  ): Promise<void> {
     const db = await this.db
     const tx = db.transaction(storeName, 'readwrite')
     await tx.store.delete(key)

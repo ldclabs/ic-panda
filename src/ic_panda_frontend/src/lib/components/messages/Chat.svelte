@@ -2,26 +2,17 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
-  import IconAdd from '$lib/components/icons/IconAdd.svelte'
-  import { Avatar, getModalStore } from '@skeletonlabs/skeleton'
+  import { Avatar } from '@skeletonlabs/skeleton'
   import { type Readable } from 'svelte/store'
-  import ChannelCreateModel from './ChannelCreateModel.svelte'
+
   import ChannelDetail from './ChannelDetail.svelte'
   import MyChannelList from './MyChannelList.svelte'
   import ProfileDetail from './ProfileDetail.svelte'
 
   export let myInfo: Readable<UserInfo>
 
-  const modalStore = getModalStore()
   function onMeHandler() {
     goto('/_/messages')
-  }
-
-  function onCreateChannelHandler() {
-    modalStore.trigger({
-      type: 'component',
-      component: { ref: ChannelCreateModel }
-    })
   }
 
   $: channelId = $page.params['channel'] || ''
@@ -33,26 +24,9 @@
   <div class="chat grid h-full w-full grid-cols-1 lg:grid-cols-[30%_1fr]">
     <!-- Navigation -->
     <div
-      class="hidden grid-rows-[auto_1fr_auto] border-r border-surface-500/30 lg:grid"
+      class="hidden grid-rows-[1fr_auto] border-r border-surface-500/30 lg:grid"
     >
-      <!-- Header -->
-      <header
-        class="flex flex-row items-center gap-2 border-b border-surface-500/30 p-2"
-      >
-        <input
-          class="input bg-gray/5 rounded-container-token"
-          type="search"
-          placeholder="Filter channels..."
-        />
-        <button
-          type="button"
-          class="btn-icon"
-          title="Create a channel"
-          on:click={onCreateChannelHandler}><span><IconAdd /></span></button
-        >
-      </header>
       <!-- List -->
-
       <MyChannelList />
       <!-- Footer -->
       <footer class="border-t border-surface-500/30">
@@ -72,7 +46,7 @@
               class="ml-1 {$myInfo.username[0]
                 ? 'text-gray/50'
                 : 'text-gray/40'}"
-              >({$myInfo.username[0] || 'get username'})</span
+              >({$myInfo.username[0] || 'Get a username'})</span
             ></div
           >
         </button>
@@ -83,7 +57,11 @@
         <ChannelDetail {channelId} />
       {/key}
     {:else}
-      <ProfileDetail userId={$myInfo.id} />
+      <div
+        class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 rounded-tr-2xl bg-white"
+      >
+        <ProfileDetail userId={$myInfo.id} />
+      </div>
     {/if}
   </div>
 </section>

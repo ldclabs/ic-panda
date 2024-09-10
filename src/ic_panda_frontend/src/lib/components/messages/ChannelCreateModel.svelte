@@ -17,7 +17,7 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -27,12 +27,13 @@
   export let add_managers: [Principal, Uint8Array | null][] = []
 
   const modalStore = getModalStore()
+  const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
   let tokenLedgerAPI: TokenLedgerAPI
   let myState: MyMessageState
   let stateInfo: Readable<StateInfo>
-  let myUserInfo: Readable<UserInfo>
+  let myInfo: Readable<UserInfo>
 
   let validating = false
   let submitting = false
@@ -43,7 +44,10 @@
   let amount = 0n
 
   function checkInput() {
-    nameInput = nameInput.trim()
+    const name = nameInput.trim()
+    if (!name) {
+      nameInput = ''
+    }
     return ''
   }
 
@@ -54,13 +58,18 @@
         throw new Error('Insufficient balance')
       }
 
+      const name = nameInput.trim()
+      if (!name) {
+        throw new Error('Invalid channel name')
+      }
+
       const mk = await myState.masterKey()
       if (!mk || !mk.isOpened()) {
         throw new Error('Invalid master key')
       }
 
       const { dek, kek, managers } = await mk.generateChannelKey([
-        [$myUserInfo.id, null],
+        [$myInfo.id, null],
         ...add_managers
       ])
 
@@ -71,7 +80,7 @@
         name: nameInput.trim(),
         paid: amount,
         description: descriptionInput.trim(),
-        created_by: $myUserInfo.id,
+        created_by: $myInfo.id,
         image: ''
       })
 
@@ -80,7 +89,7 @@
 
       modalStore.close()
       goto(`/_/messages/${result.canister}/${result.id}`)
-    }).finally(() => {
+    }, toastStore).finally(() => {
       submitting = false
       validating = false
     })
@@ -99,7 +108,7 @@
     const { abort } = toastRun(async (signal: AbortSignal) => {
       myState = await myMessageStateAsync()
       stateInfo = myState.api.stateStore as Readable<StateInfo>
-      myUserInfo = myState.info
+      myInfo = myState.info as Readable<UserInfo>
       amount = $stateInfo.price.channel
 
       if (signal.aborted) {
@@ -108,7 +117,7 @@
       tokenLedgerAPI = await tokenLedgerAPIAsync()
       const pandaBalance = tokenLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
-    })
+    }, toastStore)
 
     return abort
   })
@@ -119,7 +128,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    on:input|preventDefault|stopPropagation={onFormChange}
   >
     <div class="relative">
       <input
@@ -128,6 +137,7 @@
         name="nameInput"
         minlength="1"
         maxlength="32"
+        data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
         placeholder="Channel name"
@@ -139,7 +149,7 @@
         bind:value={descriptionInput}
         minHeight="60"
         maxHeight="120"
-        class="rounded-xl border-[1px] border-gray/10 focus:border-[1px]"
+        class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
         name="descriptionInput"
         placeholder="Channel description..."
       />
@@ -147,20 +157,22 @@
     <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />
     <div class="!mt-4 space-y-2 rounded-xl bg-gray/5 p-4">
       <p class="text-gray/50">
-        <b>1.</b> Username is optional. By registering a username, you will:
+        <b>1.</b> Creating a message channel costs 1000 PANDA tokens for gas; sending
+        messages will consumes gas.
       </p>
       <p class="text-gray/50">
-        <b>2.</b> Have your keys encrypted and stored on-chain, allowing sync across
-        multiple devices (otherwise, the keys is stored only in the browser storage,
-        and clearing browser data or device issues may result in key loss, making
-        messages undecryptable).
+        <b>2.</b> A channel can have up to 5 managers and 100 members.
       </p>
       <p class="text-gray/50">
-        <b>3.</b> Get a personal profile page.
+        <b>3.</b> The channel can store up to 10,000 messages. Once the limit is
+        reached, old messages must be deleted to send new ones.
       </p>
       <p class="text-gray/50">
-        <b>4.</b> Usernames cannot be changed, but can be transferred to another
-        user in the future, allowing you to set a new username after the transfer.
+        <b>4.</b> Each message can be up to 32 KB in size.
+      </p>
+      <p class="text-gray/50">
+        <b>5.</b> Managers can only remove regular members, not other managers. If
+        the last manager leaves, the channel and all messages will be deleted.
       </p>
     </div>
     <div class="!mt-4 mb-2 text-sm">

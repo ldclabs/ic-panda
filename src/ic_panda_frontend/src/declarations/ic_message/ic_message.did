@@ -25,6 +25,10 @@ type ChannelInfo = record {
   dek : blob;
   gas : nat64;
   updated_at : nat64;
+  ecdh_request : vec record {
+    principal;
+    record { blob; opt record { blob; blob } };
+  };
   members : vec principal;
   managers : vec principal;
   name : text;
@@ -42,6 +46,7 @@ type ChannelInfo = record {
 };
 type ChannelKEKInput = record { id : nat32; kek : blob; canister : principal };
 type ChannelSetting = record {
+  updated_at : nat64;
   mute : bool;
   ecdh_remote : opt record { blob; blob };
   unread : nat32;

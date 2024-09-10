@@ -84,6 +84,10 @@ export async function coseA256GCMDecrypt0(
   data: Uint8Array,
   aad: Uint8Array
 ): Promise<Uint8Array> {
-  const msg = await Encrypt0Message.fromBytes(key, data, aad)
-  return msg.payload
+  try {
+    const msg = await Encrypt0Message.fromBytes(key, data, aad)
+    return msg.payload
+  } catch (err) {
+    throw new Error(`Failed to decrypt: ${err}`)
+  }
 }

@@ -50,6 +50,15 @@ export interface ChannelInfo {
   'dek' : Uint8Array | number[],
   'gas' : bigint,
   'updated_at' : bigint,
+  'ecdh_request' : Array<
+    [
+      Principal,
+      [
+        Uint8Array | number[],
+        [] | [[Uint8Array | number[], Uint8Array | number[]]],
+      ],
+    ]
+  >,
   'members' : Array<Principal>,
   'managers' : Array<Principal>,
   'name' : string,
@@ -66,6 +75,7 @@ export interface ChannelInfo {
   'my_setting' : ChannelSetting,
 }
 export interface ChannelSetting {
+  'updated_at' : bigint,
   'mute' : boolean,
   'ecdh_remote' : [] | [[Uint8Array | number[], Uint8Array | number[]]],
   'unread' : number,
@@ -99,8 +109,6 @@ export interface Message {
   'kind' : number,
   'created_at' : bigint,
   'created_by' : Principal,
-  'canister' : Principal,
-  'channel' : number,
   'payload' : Uint8Array | number[],
 }
 export interface QueryStats {

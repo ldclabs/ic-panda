@@ -50,22 +50,16 @@ async fn batch_get_channels(ids: BTreeSet<u32>) -> Result<Vec<types::ChannelBasi
 
 #[ic_cdk::query(guard = "is_authenticated")]
 async fn my_channels_if_update(
-    latest_message_at: Option<u64>,
+    updated_at: Option<u64>,
 ) -> Result<Vec<types::ChannelBasicInfo>, String> {
     let caller = ic_cdk::caller();
-    let latest_message_at = latest_message_at.unwrap_or(0);
+    let updated_at = updated_at.unwrap_or(0);
     let ids: BTreeSet<u32> = store::state::with(|s| {
         s.user_channels
             .get(&caller)
             .map(|m| {
                 m.iter()
-                    .filter_map(|(k, v)| {
-                        if v > &latest_message_at {
-                            Some(*k)
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|(k, v)| if v > &updated_at { Some(*k) } else { None })
                     .collect()
             })
             .unwrap_or_default()

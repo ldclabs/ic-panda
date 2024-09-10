@@ -1,263 +1,102 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
-  import { ChannelAPI, type ChannelInfo } from '$lib/canisters/messagechannel'
-  import IconAdd from '$lib/components/icons/IconAdd.svelte'
-  import IconSendPlaneFill from '$lib/components/icons/IconSendPlaneFill.svelte'
-  import Loading from '$lib/components/ui/Loading.svelte'
-  import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
+  import { ChannelAPI } from '$lib/canisters/messagechannel'
+  import IconClose from '$lib/components/icons/IconClose.svelte'
+  import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
+  import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { toastRun } from '$lib/stores/toast'
   import {
-    coseA256GCMEncrypt0,
-    encodeCBOR,
-    type AesGcmKey
-  } from '$lib/utils/crypto'
-  import {
-    getCurrentTimestamp,
     myMessageStateAsync,
-    toDisplayUserInfo,
-    type MessageInfo,
+    type ChannelInfoEx,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import type { Principal } from '@dfinity/principal'
-  import { Avatar } from '@skeletonlabs/skeleton'
-  import { onMount, tick } from 'svelte'
-  import { writable, type Readable, type Writable } from 'svelte/store'
+  import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
+  import { onMount } from 'svelte'
+  import { type Readable } from 'svelte/store'
+  import ChannelMessages from './ChannelMessages.svelte'
+  import ChannelSetting from './ChannelSetting.svelte'
 
   export let channelId: string
 
-  const { canister, id } = ChannelAPI.parseChannelParam(channelId)
+  const toastStore = getToastStore()
 
-  let myID: Principal
   let myState: MyMessageState
   let myInfo: Readable<UserInfo>
-  let channelInfo: Readable<ChannelInfo>
-  let messageFeed: Writable<MessageInfo[]> = writable([])
-  let latestMessage: Readable<MessageInfo | null>
-  let elemChat: HTMLElement
-  let dek: AesGcmKey
-  let channelAPI: ChannelAPI
+  let channelInfo: Readable<ChannelInfoEx>
 
-  // Messages
-  let submitting = false
-  let newMessage = ''
-
-  function sortMessages(msgs: MessageInfo[]): MessageInfo[] {
-    msgs.sort((a, b) => a.id - b.id)
-    return msgs
-  }
-
-  function addMessageInfo(info: MessageInfo) {
-    messageFeed.update((prev) => {
-      for (let i = 0; i < prev.length; i++) {
-        if (prev[i]!.id === info.id) {
-          prev[i] = info
-          return sortMessages([...prev])
-        }
-      }
-      return sortMessages([...prev, info])
-    })
-  }
-
-  function scrollChatBottom(behavior?: ScrollBehavior): void {
-    elemChat.scrollTo({
-      top: elemChat.scrollHeight,
-      behavior
-    } as ScrollToOptions)
-  }
-
-  function sendMessage() {
-    newMessage = newMessage.trim()
-    if (!newMessage) {
-      return
-    }
-
-    submitting = true
-    toastRun(async () => {
-      const input = {
-        reply_to: [] as [] | [number],
-        channel: id,
-        payload: await coseA256GCMEncrypt0(
-          dek,
-          encodeCBOR(newMessage),
-          new Uint8Array()
-        )
-      }
-
-      const res = await channelAPI.add_message(input)
-      addMessageInfo({
-        id: res.id,
-        reply_to: 0,
-        kind: res.kind,
-        created_by: myID,
-        created_time: getCurrentTimestamp(res.created_at),
-        created_user: toDisplayUserInfo($myInfo),
-        canister,
-        message: newMessage,
-        error: ''
-      } as MessageInfo)
-
-      newMessage = ''
-      submitting = false
-      await tick()
-      scrollChatBottom('smooth')
-    }).finally(() => {
-      submitting = false
-    })
-  }
-
-  function onPromptKeydown(event: KeyboardEvent): void {
-    if (!event.shiftKey && !submitting && ['Enter'].includes(event.code)) {
-      event.preventDefault()
-      sendMessage()
-    }
-  }
-
-  async function loadChannel(canister: Principal, id: number) {
-    myState = await myMessageStateAsync()
-    myInfo = myState.info
-    myID = myState.principal
-    channelInfo = await myState.loadChannelInfo(canister, id)
-    channelAPI = await myState.api.channelAPI(canister)
-    dek = await myState.decryptChannelDEK(
-      canister,
-      id,
-      $channelInfo.dek as Uint8Array
-    )
-
-    latestMessage = await myState.loadLatestMessageStream(
-      dek,
-      canister,
-      id,
-      $channelInfo.latest_message_id
-    )
-
-    const prevMessages = await myState.loadPrevMessages(
-      dek,
-      canister,
-      id,
-      $channelInfo.latest_message_id
-    )
-    if (prevMessages.length > 0) {
-      messageFeed.update((prev) => [...prevMessages, ...prev])
-    }
-
-    await tick()
-    scrollChatBottom()
+  let openSettings = false
+  function onCreateChannelHandler() {
+    openSettings = !openSettings
   }
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
+      const { canister, id } = ChannelAPI.parseChannelParam(channelId)
       if (canister && !signal.aborted) {
-        await loadChannel(canister, id)
+        myState = await myMessageStateAsync()
+        myInfo = myState.info as Readable<UserInfo>
+        channelInfo = await myState.loadChannelInfo(canister, id)
+        openSettings = !$channelInfo._kek
       } else {
         goto('/_/messages')
       }
-    })
+    }, toastStore)
 
     return abort
   })
-
-  $: {
-    const info = $latestMessage
-    if (info) {
-      addMessageInfo(info)
-    }
-  }
 </script>
 
-<div
-  class="grid-row-[1fr_minmax(80px,auto)] grid max-h-[calc(100dvh-76px)] rounded-tr-2xl bg-gray/5"
->
-  <!-- Conversation -->
-  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-40">
-    {#each $messageFeed as msg (msg.id)}
-      {#if msg.created_by.compareTo(myID) !== 'eq'}
-        <div class="grid grid-cols-[auto_1fr] gap-2">
-          <Avatar
-            initials={msg.created_user.name}
-            fill="fill-white"
-            width="w-10"
-          />
-          <div class="mr-14 flex flex-col">
-            <header class="flex items-center justify-between">
-              <p class="font-bold">{msg.created_user.name}</p>
-              <small class="opacity-50">{msg.created_time}</small>
-            </header>
-            <div class="card w-full rounded-tl-none bg-white">
-              {#if msg.error}
-                <p
-                  class="variant-filled-error max-h-[600px] max-w-[480px] overflow-auto text-pretty px-4 py-2 text-error-500"
-                  >{msg.error}</p
-                >
-              {:else}
-                <pre
-                  class="max-h-[600px] max-w-[480px] overflow-auto text-pretty px-4 py-2"
-                  >{msg.message}</pre
-                >
-              {/if}
-            </div>
-          </div>
-        </div>
+<div class="grid max-h-[calc(100dvh-80px)] grid-rows-[auto_1fr] rounded-tr-2xl">
+  <header
+    class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/30 px-4 py-2"
+  >
+    <div class="flex flex-row items-center gap-2">
+      {#if $channelInfo}
+        <Avatar
+          initials={$channelInfo.name}
+          background="bg-panda"
+          fill="fill-white"
+          width="w-8"
+        />
+        <span class="flex-1 text-start">
+          {$channelInfo.name +
+            ' (' +
+            ($channelInfo.managers.length + $channelInfo.members.length) +
+            ')'}
+        </span>
       {:else}
-        <div class="grid grid-cols-[1fr_auto] gap-2">
-          <div class="ml-14 flex flex-col">
-            <header class="flex items-center justify-end">
-              <small class="opacity-50">{msg.created_time}</small>
-            </header>
-            <div class="card variant-soft-primary rounded-tr-none">
-              <pre
-                class="max-h-[600px] max-w-[480px] overflow-auto text-pretty px-4 py-2"
-                >{msg.message}</pre
-              >
-            </div>
-          </div>
-          <Avatar
-            initials={msg.created_user.name}
-            background="bg-panda"
-            fill="fill-white"
-            width="w-10"
-          />
-        </div>
+        <Avatar
+          initials=""
+          background="bg-panda"
+          fill="fill-white"
+          width="w-8"
+        />
       {/if}
-    {/each}
-  </section>
-  <!-- Prompt -->
-  <section class="self-end border-t border-surface-500/30 bg-white p-4">
-    <div
-      class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5 rounded-container-token"
-    >
-      <button class="input-group-shim"
-        ><span class="*:size-5"><IconAdd /></span></button
-      >
-      <TextArea
-        bind:value={newMessage}
-        onKeydown={onPromptKeydown}
-        minHeight="40"
-        maxHeight="200"
-        class="max-w-[500px] text-pretty border-0 bg-transparent outline-0 ring-0"
-        name="prompt"
-        id="prompt"
-        disabled={submitting}
-        placeholder="Write a message..."
-      />
-      <button
-        class="input-group-shim"
-        disabled={submitting || !newMessage.trim()}
-        on:click={sendMessage}
-      >
-        {#if submitting}
-          <span class="text-panda *:size-5"><Loading /></span>
-        {:else}
-          <span
-            class="transition duration-700 ease-in-out *:size-5 {submitting
-              ? ''
-              : 'hover:scale-125'}"
-          >
-            <IconSendPlaneFill fill={newMessage.trim() ? 'fill-panda' : ''} />
-          </span>
-        {/if}
-      </button>
     </div>
-  </section>
+    <button
+      type="button"
+      class="btn-icon"
+      title="Channel settings"
+      on:click={onCreateChannelHandler}
+      ><span>
+        {#if openSettings}
+          <IconClose />
+        {:else}
+          <IconMoreFill />
+        {/if}
+      </span></button
+    >
+  </header>
+  {#if $channelInfo}
+    {#if openSettings}
+      <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
+    {:else}
+      <ChannelMessages {myState} {myInfo} {channelInfo} />
+    {/if}
+  {:else}
+    <div class="m-auto size-24 rounded-full *:size-24">
+      <IconPanda />
+    </div>
+  {/if}
 </div>

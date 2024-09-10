@@ -17,5 +17,5 @@
     ]
   },
   "extends": ["../../tsconfig.json", "./.svelte-kit/tsconfig.json"],
-  "include": ["src", "./.svelte-kit/ambient.d.ts"]
+  "include": ["src", "./node_modules/@sveltejs/kit/types/ambient-modules.d.ts"]
 }

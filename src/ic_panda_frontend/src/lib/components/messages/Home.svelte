@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
@@ -8,42 +6,48 @@
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import { getModalStore } from '@skeletonlabs/skeleton'
-  import { onMount } from 'svelte'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getContext } from 'svelte'
   import { type Readable } from 'svelte/store'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
-  export let myState: MyMessageState
-  export let myInfo: Readable<UserInfo>
+  export let myState: MyMessageState | null
+  export let myInfo: Readable<UserInfo | null>
 
+  const toastStore = getToastStore()
   const modalStore = getModalStore()
+  const initState = getContext('InitState')
 
   function getStartedHandler() {
     toastRun(async () => {
-      if (myState.principal.isAnonymous()) {
+      if (myState?.principal.isAnonymous()) {
         const res = await signIn({})
         myState = await myMessageStateAsync()
         myInfo = myState.info
         if (!$myInfo && res.success == 'ok') {
           modalStore.trigger({
             type: 'component',
-            component: { ref: UserRegisterModel }
+            component: {
+              ref: UserRegisterModel,
+              props: {
+                initState: initState || null
+              }
+            }
           })
         }
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
-          component: { ref: UserRegisterModel }
+          component: {
+            ref: UserRegisterModel,
+            props: {
+              initState: initState || null
+            }
+          }
         })
       }
-    })
+    }, toastStore)
   }
-
-  onMount(() => {
-    if ($page.params['channel']) {
-      goto('/_/messages')
-    }
-  })
 </script>
 
 <div class="mt-4 max-w-4xl">
@@ -55,7 +59,7 @@
       target="_blank"
     >
       Internet Computer
-    </a> blockchain. Features:
+    </a> blockchain. Key features:
   </p>
   <ul class="mt-4 flex flex-col gap-4 pl-8">
     <li
@@ -71,6 +75,11 @@
       ><b>Multi-user chats:</b> Message channels support one-to-many chats, where
       a manager can add or remove members and exchange encryption keys. If the last
       manager leaves the channel, all messages in the channel are deleted.</li
+    >
+    <li
+      ><b>On-chain:</b> It operates entirely as a smart contract on the ICP blockchain,
+      controlled by ICPanda DAO, with fully open-source code. It is a trustworthy,
+      secure, verifiable, and unstoppable Web3 application.</li
     >
   </ul>
 </div>

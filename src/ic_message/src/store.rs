@@ -445,7 +445,7 @@ pub mod user {
                 }
                 None => {
                     let user = User {
-                        name: name,
+                        name,
                         image: "".to_string(),
                         profile_canister,
                         cose_canister: Some(cose_canister),
@@ -502,8 +502,8 @@ pub mod user {
     }
 
     pub fn get(user: Principal) -> Result<UserInfo, String> {
-        USER_STORE.with(|m| {
-            m.borrow()
+        USER_STORE.with(|r| {
+            r.borrow()
                 .get(&user)
                 .map(|u| u.into_info(user))
                 .ok_or_else(|| "user not found".to_string())
@@ -512,8 +512,9 @@ pub mod user {
 
     pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {
         USER_STORE.with(|r| {
+            let m = r.borrow();
             ids.iter()
-                .filter_map(|id| r.borrow().get(id).map(|u| u.into_info(*id)))
+                .filter_map(|id| m.get(id).map(|u| u.into_info(*id)))
                 .collect()
         })
     }
@@ -624,7 +625,7 @@ pub mod channel {
             .await?;
         }
 
-        token_transfer_from(caller, amount.into(), format!("CC")).await?;
+        token_transfer_from(caller, amount.into(), "CC".to_string()).await?;
 
         state::with_mut(|s| {
             s.incoming_total += amount as u128;

@@ -34,6 +34,9 @@ export class MessageCanisterAPI {
   private $myInfo: UserInfo | null = null
   private _state = writable<StateInfo | null>(null)
   private _myInfo = writable<UserInfo | null>(null)
+  private _profileAPIs = new Map<string, Promise<ProfileAPI>>()
+  private _channelAPIs = new Map<string, Promise<ChannelAPI>>()
+  private _coseAPIs = new Map<string, Promise<CoseAPI>>()
 
   static async with(identity: Identity): Promise<MessageCanisterAPI> {
     const actor = await createActor<_SERVICE>({
@@ -71,15 +74,30 @@ export class MessageCanisterAPI {
   }
 
   async profileAPI(canister: Principal): Promise<ProfileAPI> {
-    return ProfileAPI.with(this.identity, canister)
+    const key = canister.toText()
+    if (!this._profileAPIs.has(key)) {
+      this._profileAPIs.set(key, ProfileAPI.with(this.identity, canister))
+    }
+
+    return this._profileAPIs.get(key)!
   }
 
   async channelAPI(canister: Principal): Promise<ChannelAPI> {
-    return ChannelAPI.with(this.identity, canister)
+    const key = canister.toText()
+    if (!this._channelAPIs.has(key)) {
+      this._channelAPIs.set(key, ChannelAPI.with(this.identity, canister))
+    }
+
+    return this._channelAPIs.get(key)!
   }
 
   async coseAPI(canister: Principal): Promise<CoseAPI> {
-    return CoseAPI.with(this.identity, canister)
+    const key = canister.toText()
+    if (!this._coseAPIs.has(key)) {
+      this._coseAPIs.set(key, CoseAPI.with(this.identity, canister))
+    }
+
+    return this._coseAPIs.get(key)!
   }
 
   async refreshState(): Promise<void> {

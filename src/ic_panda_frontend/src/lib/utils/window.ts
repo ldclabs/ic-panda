@@ -84,3 +84,17 @@ export const popupCenter = ({
 
   return `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, copyhistory=no, width=${width}, height=${height}, top=${y}, left=${x}`
 }
+
+export function clickOutside(node: HTMLElement, callback: () => void = noop) {
+  const handleClick = (e: PointerEvent) => {
+    if (!node.contains(e.target as Node)) {
+      callback()
+    }
+  }
+
+  onWindowEvent('pointerup', handleClick)
+
+  return () => {
+    offWindowEvent('pointerup', handleClick)
+  }
+}
