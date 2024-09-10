@@ -7,7 +7,6 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { getContext } from 'svelte'
   import { type Readable } from 'svelte/store'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
@@ -16,7 +15,6 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const initState = getContext('InitState')
 
   function getStartedHandler() {
     toastRun(async () => {
@@ -29,9 +27,7 @@
             type: 'component',
             component: {
               ref: UserRegisterModel,
-              props: {
-                initState: initState || null
-              }
+              props: {}
             }
           })
         }
@@ -40,9 +36,7 @@
           type: 'component',
           component: {
             ref: UserRegisterModel,
-            props: {
-              initState: initState || null
-            }
+            props: {}
           }
         })
       }

@@ -27,10 +27,10 @@
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
-  export let channelInfo: Readable<ChannelInfoEx>
+  export let channelInfo: ChannelInfoEx
 
   const toastStore = getToastStore()
-  const { canister, id } = $channelInfo
+  const { canister, id } = channelInfo
 
   let messageFeed: Writable<MessageInfo[]> = writable([])
   let latestMessage: Readable<MessageInfo | null>
@@ -117,28 +117,28 @@
 
   const debouncedUpdateMyLastRead = debounce(async () => {
     await myState.updateMyLastRead(canister, id, latestMessageId)
-  }, 10000)
+  }, 6000)
 
   async function loadMessages(canister: Principal, id: number) {
     channelAPI = await myState.api.channelAPI(canister)
-    dek = await myState.decryptChannelDEK($channelInfo)
-    latestMessage = await myState.loadLatestMessageStream(
-      canister,
-      id,
-      dek,
-      $channelInfo.latest_message_id
-    )
-
+    dek = await myState.decryptChannelDEK(channelInfo)
     const prevMessages = await myState.loadPrevMessages(
       canister,
       id,
       dek,
-      $channelInfo.latest_message_id
+      channelInfo.latest_message_id + 1
     )
 
     if (prevMessages.length > 0) {
       messageFeed.update((prev) => [...prevMessages, ...prev])
     }
+
+    latestMessage = await myState.loadLatestMessageStream(
+      canister,
+      id,
+      dek,
+      channelInfo.latest_message_id + 1
+    )
 
     await tick()
     debouncedUpdateMyLastRead()
@@ -149,6 +149,9 @@
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
       if (!signal.aborted) {
+        if (!channelInfo._kek) {
+          channelInfo = await myState.refreshMyChannel(channelInfo)
+        }
         await loadMessages(canister, id)
       } else {
         goto('/_/messages')
@@ -174,7 +177,7 @@
 
 <div class="grid max-h-[calc(100dvh-140px)] grid-rows-[1fr_auto] bg-gray/5">
   <!-- Conversation -->
-  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-40">
+  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-20">
     {#each $messageFeed as msg (msg.id)}
       {#if msg.created_by.compareTo(myState.principal) !== 'eq'}
         <div

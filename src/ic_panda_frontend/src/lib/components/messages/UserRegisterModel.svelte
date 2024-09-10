@@ -16,11 +16,13 @@
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
+  import { sleep } from '$src/lib/utils/helper'
   import { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
+  import PasswordModel from './PasswordModel.svelte'
 
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
   const toastStore = getToastStore()
@@ -29,7 +31,6 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let initState: null | (() => Promise<void>) = null
 
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
@@ -83,15 +84,28 @@
 
       if (!usernameInput) {
         result = await myState.api.update_my_name(nameInput)
+        await sleep(1000)
+        await myState.api.refreshMyInfo()
       } else {
         await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
         result = await myState.api.register_username(usernameInput, nameInput)
+        await sleep(1000)
+        await myState.refreshState()
       }
 
-      await myState.api.refreshMyInfo()
-      if (initState) {
+      const mk = await myState.masterKey()
+      if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
         modalStore.close()
-        initState()
+        modalStore.trigger({
+          type: 'component',
+          component: {
+            ref: PasswordModel,
+            props: {
+              myState: myState,
+              masterKey: mk
+            }
+          }
+        })
       } else {
         setTimeout(async () => {
           modalStore.close()

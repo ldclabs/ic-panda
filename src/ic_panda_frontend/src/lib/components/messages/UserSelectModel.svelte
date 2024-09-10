@@ -88,7 +88,7 @@
       console.error(err)
       // ignore
     }
-  }, 999)
+  }, 618)
 
   function onSearchUsername() {
     debouncedSearch()
@@ -116,9 +116,22 @@
   async function onSaveHandler() {
     submitting = true
     toastRun(async (signal: AbortSignal) => {
-      const users = $selectedUsers.map(
-        (user) => [user.src!.id, user.ecdhPub] as [Principal, Uint8Array | null]
-      )
+      const users: [Principal, Uint8Array | null][] = []
+      for (const info of $selectedUsers) {
+        if (!info.src!.id) {
+          continue
+        }
+
+        if (!info.ecdhPub) {
+          // try to fetch the latest ecdh public key
+          const ninfo = await myState.tryFetchProfile(info.src!.id)
+          if (ninfo) {
+            info.ecdhPub = unwrapOption(ninfo.ecdh_pub as [] | [Uint8Array])
+          }
+        }
+        users.push([info.src!.id, info.ecdhPub])
+      }
+
       if (users.length > 0) {
         await onSave(users)
       }

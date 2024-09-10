@@ -12,7 +12,7 @@
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { getContext, onMount } from 'svelte'
+  import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ProfileEditModel from './ProfileEditModel.svelte'
   import UserRegisterModel from './UserRegisterModel.svelte'
@@ -21,7 +21,6 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const initState = getContext('InitState')
 
   let myID: Principal
   let myState: MyMessageState
@@ -79,9 +78,7 @@
         type: 'component',
         component: {
           ref: UserRegisterModel,
-          props: {
-            initState: initState || null
-          }
+          props: {}
         }
       })
     }
@@ -95,14 +92,16 @@
     onfinally((info) => {
       if (!info) {
         setTimeout(() => goto('/_/messages'), 2000)
-      } else if (info.id.compareTo(myID) == 'eq' && info.username.length == 0) {
+      } else if (
+        info.id.compareTo(myID) == 'eq' &&
+        info.username.length == 0 &&
+        info.created_at < BigInt(Date.now() - 180 * 1000)
+      ) {
         modalStore.trigger({
           type: 'component',
           component: {
             ref: UserRegisterModel,
-            props: {
-              initState: initState || null
-            }
+            props: {}
           }
         })
       }

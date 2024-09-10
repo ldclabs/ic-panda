@@ -1,3 +1,8 @@
+import {
+  CKDOGE_LEDGER_CANISTER_ID,
+  ICP_LEDGER_CANISTER_ID,
+  TOKEN_LEDGER_CANISTER_ID
+} from '$lib/constants'
 import { TokenAmountV2 as TokenAmount, type Token } from '@dfinity/utils'
 
 export { TokenAmountV2 as TokenAmount } from '@dfinity/utils'
@@ -16,7 +21,7 @@ export const ICPToken: TokenInfo = {
   decimals: 8,
   fee: 10000n,
   one: 100000000n,
-  canisterId: 'ryjl3-tyaaa-aaaaa-aaaba-cai' // ic & local
+  canisterId: ICP_LEDGER_CANISTER_ID
 }
 
 export const PANDAToken: TokenInfo = {
@@ -25,7 +30,7 @@ export const PANDAToken: TokenInfo = {
   decimals: 8,
   fee: 10000n,
   one: 100000000n,
-  canisterId: 'druyg-tyaaa-aaaaq-aactq-cai' // ic & local
+  canisterId: TOKEN_LEDGER_CANISTER_ID
 }
 
 export const ckDOGEToken: TokenInfo = {
@@ -34,7 +39,7 @@ export const ckDOGEToken: TokenInfo = {
   decimals: 8,
   fee: 100000n,
   one: 100000000n,
-  canisterId: 'b77ix-eeaaa-aaaaa-qaada-cai' // local
+  canisterId: CKDOGE_LEDGER_CANISTER_ID
 }
 
 export const DOGEToken: TokenInfo = {

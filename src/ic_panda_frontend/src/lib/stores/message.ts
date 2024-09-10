@@ -12,7 +12,6 @@ import {
   type Message
 } from '$lib/canisters/messagechannel'
 import {
-  ProfileAPI,
   type ProfileInfo,
   type UpdateProfileInput
 } from '$lib/canisters/messageprofile'
@@ -124,7 +123,6 @@ export class MyMessageState {
   readonly id: string
   readonly principal: Principal
   readonly api: MessageCanisterAPI
-  readonly profileAPI: ProfileAPI | null = null
   readonly info: Readable<UserInfo | null>
 
   private _coseAPI: CoseAPI | null = null
@@ -137,29 +135,23 @@ export class MyMessageState {
   static async with(identity: Identity): Promise<MyMessageState> {
     const api = await messageCanisterAPIAsync()
     let coseAPI: CoseAPI | null = null
-    let profileAPI: ProfileAPI | null = null
 
-    if (api.myInfo) {
-      profileAPI = await api.profileAPI(api.myInfo.profile_canister)
-      if (api.myInfo.cose_canister.length == 1) {
-        coseAPI = await api.coseAPI(api.myInfo.cose_canister[0])
-      }
+    if (api.myInfo?.cose_canister.length == 1) {
+      coseAPI = await api.coseAPI(api.myInfo.cose_canister[0])
     }
 
-    return new MyMessageState(identity.getPrincipal(), api, coseAPI, profileAPI)
+    return new MyMessageState(identity.getPrincipal(), api, coseAPI)
   }
 
   constructor(
     principal: Principal,
     api: MessageCanisterAPI,
-    coseAPI: CoseAPI | null,
-    profileAPI: ProfileAPI | null
+    coseAPI: CoseAPI | null
   ) {
     this.principal = principal
     this.id = principal.toText()
     this.api = api
     this._coseAPI = coseAPI
-    this.profileAPI = profileAPI
     this.info = derived(api.myInfoStore, ($info, set) => {
       if ($info) {
         this.setCacheUserInfo(Date.now(), $info)
@@ -176,6 +168,14 @@ export class MyMessageState {
 
   masterKeyKind(): 'Local' | 'ECDH' | 'VetKey' {
     return this._coseAPI != null ? 'ECDH' : 'Local'
+  }
+
+  async refreshState(): Promise<void> {
+    await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])
+    const myInfo = this.api.myInfo
+    if (myInfo?.cose_canister.length == 1) {
+      this._coseAPI = await this.api.coseAPI(myInfo.cose_canister[0])
+    }
   }
 
   async masterKey(): Promise<MasterKey | null> {
@@ -717,8 +717,10 @@ export class MyMessageState {
     ninfo._get_by = this.id
     await this.addMyChannel(ninfo)
     let kek = info._kek
-    if (kek) {
-      kek = await this.loadChannelKEK(info.canister, info.id)
+    if (!kek) {
+      try {
+        kek = await this.loadChannelKEK(info.canister, info.id)
+      } catch (e) {}
     }
 
     return {
@@ -907,6 +909,22 @@ export class MyMessageState {
     return null
   }
 
+  async tryFetchProfile(
+    id: Principal
+  ): Promise<(UserInfo & ProfileInfo) | null> {
+    try {
+      const now = Date.now()
+      const user = await this.api.get_user(id)
+      await this.setCacheUserInfo(now, user)
+      const api = await this.api.profileAPI(user.profile_canister)
+      const profile = await api.get_profile(user.id)
+      await KVS.set<ProfileInfo>('Profiles', profile)
+
+      return { ...user, ...profile }
+    } catch (err) {}
+    return null
+  }
+
   async updateProfile(
     profile_canister: Principal,
     input: UpdateProfileInput
@@ -961,7 +979,7 @@ export class MyMessageState {
       }
     }
 
-    let kek = null
+    let kek: Uint8Array | null = null
     try {
       kek = await this.loadChannelKEK(info.canister, info.id)
     } catch (err) {}
@@ -978,6 +996,12 @@ export class MyMessageState {
             .get_channel_if_update(id, info.updated_at)
             .then(async (channel) => {
               if (channel) {
+                if (!kek) {
+                  try {
+                    kek = await this.loadChannelKEK(info.canister, info.id)
+                  } catch (err) {}
+                }
+
                 await this.addMyChannel(channel)
                 set({
                   ...channel,

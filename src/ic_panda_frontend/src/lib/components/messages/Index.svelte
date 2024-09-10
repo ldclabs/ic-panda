@@ -7,7 +7,7 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, setContext } from 'svelte'
+  import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import Chat from './Chat.svelte'
   import Home from './Home.svelte'
@@ -22,6 +22,7 @@
 
   async function initState() {
     myState = await myMessageStateAsync()
+    await myState.refreshState()
     myInfo = myState.info
     myInfo_ = myInfo as Readable<UserInfo>
     if ($myInfo) {
@@ -41,8 +42,6 @@
     }
   }
 
-  setContext('InitState', initState)
-
   onMount(() => {
     const { abort } = toastRun(initState, toastStore)
     return abort
@@ -60,7 +59,7 @@
 </script>
 
 {#if $myInfo}
-  <Chat myInfo={myInfo_} />
+  <Chat {myState} myInfo={myInfo_} />
 {:else}
   <Home {myState} {myInfo} />
 {/if}

@@ -11,6 +11,7 @@
     type ChannelInfoEx,
     type MyMessageState
   } from '$src/lib/stores/message'
+  import { sleep } from '$src/lib/utils/helper'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -20,20 +21,31 @@
   export let channelId: string
 
   const toastStore = getToastStore()
+  const { canister, id } = ChannelAPI.parseChannelParam(channelId)
 
   let myState: MyMessageState
   let myInfo: Readable<UserInfo>
   let channelInfo: Readable<ChannelInfoEx>
 
   let openSettings = false
-  function onCreateChannelHandler() {
+  let switching = false
+  async function onClickChannelSetting() {
+    if (!canister) return
+    switching = true
+    await Promise.all([
+      async () => {
+        // load latest channel info
+        channelInfo = await myState.loadChannelInfo(canister, id)
+      },
+      sleep(200)
+    ])
     openSettings = !openSettings
+    switching = false
   }
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      const { canister, id } = ChannelAPI.parseChannelParam(channelId)
-      if (canister && !signal.aborted) {
+      if (canister) {
         myState = await myMessageStateAsync()
         myInfo = myState.info as Readable<UserInfo>
         channelInfo = await myState.loadChannelInfo(canister, id)
@@ -78,7 +90,8 @@
       type="button"
       class="btn-icon"
       title="Channel settings"
-      on:click={onCreateChannelHandler}
+      disabled={switching}
+      on:click={onClickChannelSetting}
       ><span>
         {#if openSettings}
           <IconClose />
@@ -92,7 +105,7 @@
     {#if openSettings}
       <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
     {:else}
-      <ChannelMessages {myState} {myInfo} {channelInfo} />
+      <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
     {/if}
   {:else}
     <div class="m-auto size-24 rounded-full *:size-24">

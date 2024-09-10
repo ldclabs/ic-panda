@@ -127,6 +127,8 @@
   function onClickAdminExchangeKeys() {
     adminExchangeKeysSubmitting = true
     toastRun(async (signal: AbortSignal) => {
+      // fetch the latest ECDH request
+      channelInfo = await myState.refreshMyChannel(channelInfo)
       await myState.adminExchangeKEK(channelInfo)
       channelInfo = await myState.refreshMyChannel(channelInfo)
       await loadMembers()
@@ -209,9 +211,8 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      if (!signal.aborted) {
-        await loadMembers()
-      }
+      channelInfo = await myState.refreshMyChannel(channelInfo)
+      await loadMembers()
     }, toastStore)
 
     return abort

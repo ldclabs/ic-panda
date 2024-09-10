@@ -13,6 +13,7 @@ export const ICP_LEDGER_CANISTER_ID = 'ryjl3-tyaaa-aaaaa-aaaba-cai' // ic & loca
 export const TOKEN_LEDGER_CANISTER_ID = 'druyg-tyaaa-aaaaq-aactq-cai' // ic & local
 export const CKDOGE_MINTER_CANISTER_ID = 'bw4dl-smaaa-aaaaa-qaacq-cai' // local
 export const CKDOGE_CHAIN_CANISTER_ID = 'be2us-64aaa-aaaaa-qaabq-cai' // local
+export const CKDOGE_LEDGER_CANISTER_ID = 'b77ix-eeaaa-aaaaa-qaada-cai' // local
 
 export const MESSAGE_CANISTER_ID = 'ajuq4-ruaaa-aaaaa-qaaga-cai' // local
 

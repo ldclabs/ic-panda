@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
+  import { MyMessageState } from '$src/lib/stores/message'
   import { Avatar } from '@skeletonlabs/skeleton'
   import { type Readable } from 'svelte/store'
 
@@ -9,6 +10,7 @@
   import MyChannelList from './MyChannelList.svelte'
   import ProfileDetail from './ProfileDetail.svelte'
 
+  export let myState: MyMessageState // force reactivity when 'myState' updated
   export let myInfo: Readable<UserInfo>
 
   function onMeHandler() {
@@ -60,7 +62,7 @@
       <div
         class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 rounded-tr-2xl bg-white"
       >
-        <ProfileDetail userId={$myInfo.id} />
+        <ProfileDetail userId={myState.id} />
       </div>
     {/if}
   </div>

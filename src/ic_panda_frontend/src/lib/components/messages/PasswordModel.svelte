@@ -15,7 +15,7 @@
 
   const toastStore = getToastStore()
   const keyId = encodeCBOR('ICPanda_Messages_Master_Key')
-  const PasswordExpire = 7 * 24 * 60 * 60 * 1000
+  const PasswordExpire = 14 * 24 * 60 * 60 * 1000
 
   let validating = false
   let submitting = false
@@ -51,7 +51,7 @@
           )
 
           if (masterKey.kind !== kind) {
-            processingTip = 'Migrate keys...'
+            processingTip = 'Migrate encrypted keys to ICP chain ...'
             await myState.migrateKeys()
           } else {
             await myState.initStaticECDHKey()
@@ -164,7 +164,7 @@
     {/if}
     <label class="mt-2 flex items-center">
       <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
-      <p class="ml-2 text-sm text-gray/50">Cache password for 7 days</p>
+      <p class="ml-2 text-sm text-gray/50">Cache password for 14 days</p>
     </label>
   </form>
   <footer class="m-auto !mt-4">
