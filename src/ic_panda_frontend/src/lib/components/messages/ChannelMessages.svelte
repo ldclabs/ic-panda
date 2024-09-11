@@ -182,12 +182,14 @@
       start,
       start + 20
     )
-    let last = 0
+
     if (messages.length > 0) {
-      last = messages.at(-1)!.id
       addMessageInfos(messages)
     }
+
     bottomLoading = false
+    await tick()
+    const last = $messageFeed.at(-1)?.id || latestMessageId
 
     if (last >= latestMessageId && !$latestMessage) {
       latestMessageId = last
@@ -210,6 +212,9 @@
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
         lastRead = channelInfo.my_setting.last_read
+        if (!lastRead) {
+          lastRead = latestMessageId
+        }
         channelAPI = await myState.api.channelAPI(canister)
         dek = await myState.decryptChannelDEK(channelInfo)
         await loadPrevMessages(messageStart, lastRead + 1)
@@ -217,6 +222,11 @@
         scrollIntoView(lastRead)
 
         await loadNextMessages(lastRead + 1)
+        // no scroll
+        if (elemChat.scrollTop == 0) {
+          lastRead = $messageFeed.at(-1)!.id
+          debouncedUpdateMyLastRead()
+        }
       } else {
         goto('/_/messages')
       }
@@ -242,6 +252,7 @@
       inMoveUpViewport: (els) => {
         const [_canister, _channel, mid] = els.at(-1)!.id.split(':')
         const messageId = parseInt(mid || '')
+
         if (messageId > lastRead) {
           lastRead = messageId
           myState.freshMyChannelSetting(canister, id, { last_read: messageId })
@@ -266,6 +277,12 @@
     if (info) {
       latestMessageId = info.id
       addMessageInfos([info])
+      tick().then(() => {
+        if (elemChat.scrollTop == 0) {
+          lastRead = $messageFeed.at(-1)!.id
+          debouncedUpdateMyLastRead()
+        }
+      })
     }
   }
 </script>
@@ -280,7 +297,7 @@
   >
     <div class="grid justify-center">
       <span
-        class="text-panda/50 transition duration-700 ease-in-out {topLoading
+        class="text-panda/50 transition duration-300 ease-out {topLoading
           ? 'visible scale-125'
           : 'invisible scale-0'}"><Loading /></span
       >
@@ -358,7 +375,7 @@
     {/each}
     <div class="grid justify-center">
       <span
-        class="text-panda/50 transition duration-700 ease-in-out {bottomLoading
+        class="text-panda/50 transition duration-300 ease-out {bottomLoading
           ? 'visible scale-125'
           : 'invisible scale-0'}"><Loading /></span
       >

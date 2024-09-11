@@ -153,30 +153,43 @@ export class MyMessageState {
   private _coseAPI: CoseAPI | null = null
   private _mks: MasterKey[] = []
   private _ek: ECDHKey | null = null
+  private _myInfo: UserInfo | null = null
+  private _myProfile: ProfileInfo | null = null
   private _myChannels = new Map<string, ChannelBasicInfo>() // keep the latest channel setting
   private _myChannelsStream = writable<ChannelBasicInfo[]>([])
   private _channelDEKs = new Map<String, AesGcmKey>()
 
   static async with(identity: Identity): Promise<MyMessageState> {
     const api = await messageCanisterAPIAsync()
-    let coseAPI: CoseAPI | null = null
-
-    if (api.myInfo?.cose_canister.length == 1) {
-      coseAPI = await api.coseAPI(api.myInfo.cose_canister[0])
+    const self = new MyMessageState(identity.getPrincipal(), api)
+    const now = Date.now()
+    self._myInfo = api.myInfo
+    if (!self._myInfo) {
+      self._myInfo = await self.getCacheUserInfo(now, self.principal)
     }
+    if (self._myInfo) {
+      await self.setCacheUserInfo(now, self._myInfo)
 
-    return new MyMessageState(identity.getPrincipal(), api, coseAPI)
+      const profileAPI = await api.profileAPI(self._myInfo.profile_canister)
+      await profileAPI.refreshMyProfile()
+      self._myProfile = profileAPI.myProfile
+      if (!self._myProfile) {
+        self._myProfile = await KVS.get<ProfileInfo>('My', `${self.id}:Profile`)
+      } else {
+        await KVS.set<ProfileInfo>('My', self._myProfile, `${self.id}:Profile`)
+      }
+
+      if (self._myInfo.cose_canister.length == 1) {
+        self._coseAPI = await api.coseAPI(self._myInfo.cose_canister[0])
+      }
+    }
+    return self
   }
 
-  constructor(
-    principal: Principal,
-    api: MessageCanisterAPI,
-    coseAPI: CoseAPI | null
-  ) {
+  constructor(principal: Principal, api: MessageCanisterAPI) {
     this.principal = principal
     this.id = principal.toText()
     this.api = api
-    this._coseAPI = coseAPI
     this.info = derived(api.myInfoStore, ($info, set) => {
       if ($info) {
         this.setCacheUserInfo(Date.now(), $info)
@@ -278,11 +291,10 @@ export class MyMessageState {
     if (!state) {
       throw new Error('Message state not ready')
     }
-    const myInfo = await this.api.myInfo
-    if (!myInfo) {
+    if (!this._myInfo) {
       throw new Error('User info not ready')
     }
-    const cose_canister = myInfo.cose_canister[0]
+    const cose_canister = this._myInfo.cose_canister[0]
     if (!cose_canister) {
       throw new Error('username not ready')
     }
@@ -860,26 +872,15 @@ export class MyMessageState {
     )
   }
 
-  async loadMyProfile(): Promise<Readable<UserInfo & ProfileInfo>> {
-    const now = Date.now()
-    let info = await this.getCacheUserInfo(now, this.principal)
-    if (!info) {
-      info = await this.api.get_user(this.principal)
-      await this.setCacheUserInfo(now, info)
+  async loadMyProfile(): Promise<UserInfo & ProfileInfo> {
+    if (!this._myInfo) {
+      throw new Error('My user info not ready')
+    }
+    if (!this._myProfile) {
+      throw new Error('My profile info not ready')
     }
 
-    const profile = await KVS.get<ProfileInfo>('My', `${this.id}:Profile`)
-
-    const api = await this.api.profileAPI(info.profile_canister)
-    return readable(
-      { ...info, ...profile } as UserInfo & ProfileInfo,
-      (set) => {
-        api.get_profile(info.id).then(async (profile) => {
-          await KVS.set<ProfileInfo>('My', profile, `${this.id}:Profile`)
-          set({ ...info, ...profile })
-        })
-      }
-    )
+    return { ...this._myInfo, ...this._myProfile }
   }
 
   async loadProfile(
@@ -965,12 +966,16 @@ export class MyMessageState {
   }
 
   async updateProfile(
-    profile_canister: Principal,
     input: UpdateProfileInput
-  ): Promise<void> {
-    const api = await this.api.profileAPI(profile_canister)
-    const profile = await api.update_profile(input)
-    await KVS.set<ProfileInfo>('Profiles', profile)
+  ): Promise<UserInfo & ProfileInfo> {
+    if (!this._myInfo) {
+      throw new Error('My user info not ready')
+    }
+
+    const api = await this.api.profileAPI(this._myInfo.profile_canister)
+    this._myProfile = await api.update_profile(input)
+    await KVS.set<ProfileInfo>('My', this._myProfile, `${this.id}:Profile`)
+    return { ...this._myInfo, ...this._myProfile }
   }
 
   async loadChannelInfo(
@@ -1103,7 +1108,7 @@ export class MyMessageState {
 
             timer = !stopped && setTimeout(task, 3000)
           } else {
-            timer = !stopped && setTimeout(task, 9000)
+            timer = !stopped && setTimeout(task, 7000)
           }
         })
       }
@@ -1137,8 +1142,6 @@ export class MyMessageState {
       start = end - 20
     }
 
-    console.log('loadMessages', start, end)
-
     let messages: MessageCacheInfo[] = []
     const iter = await KVS.iterate(
       'Messages',
@@ -1155,7 +1158,6 @@ export class MyMessageState {
     }
 
     if (i < end) {
-      console.log('loadMessages fetch', i, end)
       let items = (await api.list_messages(
         channelId,
         i,

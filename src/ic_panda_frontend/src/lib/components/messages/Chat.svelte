@@ -23,7 +23,7 @@
 
   async function onChatBack() {
     channelsListActive = true
-    await sleep(400)
+    await sleep(300)
     goto('/_/messages')
   }
 
@@ -40,7 +40,7 @@
     class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr]"
   >
     <div
-      class="channels-list transition duration-500 ease-out {channelsListActive
+      class="channels-list transition duration-300 ease-out {channelsListActive
         ? ''
         : 'max-sm:-translate-x-full'} grid grid-rows-[1fr_auto] border-r border-surface-500/30 bg-white max-sm:shadow-sm sm:rounded-tl-2xl"
     >

@@ -24,6 +24,7 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let channelName: string = ''
   export let add_managers: [Principal, Uint8Array | null][] = []
 
   const modalStore = getModalStore()
@@ -35,13 +36,13 @@
   let stateInfo: Readable<StateInfo>
   let myInfo: Readable<UserInfo>
 
-  let validating = false
-  let submitting = false
-  let availablePandaBalance = 0n
-
-  let nameInput = ''
+  let nameInput = channelName
   let descriptionInput = ''
   let amount = 0n
+
+  let validating = nameInput.trim() !== ''
+  let submitting = false
+  let availablePandaBalance = 0n
 
   function checkInput() {
     const name = nameInput.trim()
