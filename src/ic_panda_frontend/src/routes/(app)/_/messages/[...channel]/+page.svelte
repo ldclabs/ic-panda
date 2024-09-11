@@ -3,7 +3,7 @@
 </script>
 
 <div
-  class="mx-auto flex h-full w-full max-w-4xl flex-col flex-nowrap content-center items-center"
+  class="mx-auto flex h-full w-full max-w-5xl flex-col flex-nowrap content-center items-center"
 >
   <Index />
 </div>

@@ -77,12 +77,12 @@
     >
   </header>
   <div class="space-y-4 overflow-y-auto">
-    <div class="p-2 text-sm opacity-50"><span>Channels</span></div>
+    <div class="px-4 py-2 text-sm opacity-50"><span>Channels</span></div>
     <div class="!mt-0 flex flex-col space-y-1">
       {#each channels as channel}
         <button
           type="button"
-          class="flex w-full items-center gap-2 p-2 {channel.channelId ===
+          class="flex w-full items-center gap-2 px-4 py-2 {channel.channelId ===
           currentChannel
             ? 'variant-soft-primary'
             : 'bg-surface-hover-token'}"

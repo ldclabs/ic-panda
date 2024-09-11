@@ -270,9 +270,14 @@
   }
 </script>
 
-<div class="grid max-h-[calc(100dvh-140px)] grid-rows-[1fr_auto] bg-gray/5">
+<div
+  class="grid h-[calc(100dvh-110px)] grid-rows-[1fr_auto] bg-gray/5 sm:h-[calc(100dvh-140px)]"
+>
   <!-- Conversation -->
-  <section bind:this={elemChat} class="space-y-4 overflow-y-auto p-4 pb-10">
+  <section
+    bind:this={elemChat}
+    class="space-y-4 overflow-y-auto p-2 pb-10 md:p-4"
+  >
     <div class="grid justify-center">
       <span
         class="text-panda/50 transition duration-700 ease-in-out {topLoading

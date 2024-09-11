@@ -2,10 +2,12 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
+  import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
   import { MyMessageState } from '$src/lib/stores/message'
+  import { sleep } from '$src/lib/utils/helper'
   import { Avatar } from '@skeletonlabs/skeleton'
+  import { setContext } from 'svelte'
   import { type Readable } from 'svelte/store'
-
   import ChannelDetail from './ChannelDetail.svelte'
   import MyChannelList from './MyChannelList.svelte'
   import ProfileDetail from './ProfileDetail.svelte'
@@ -13,25 +15,40 @@
   export let myState: MyMessageState // force reactivity when 'myState' updated
   export let myInfo: Readable<UserInfo>
 
+  let channelsListActive = true
+
   function onMeHandler() {
+    goto('/_/messages/profile')
+  }
+
+  async function onChatBack() {
+    channelsListActive = true
+    await sleep(400)
     goto('/_/messages')
   }
 
+  setContext('onChatBack', onChatBack)
+
   $: channelId = $page.params['channel'] || ''
+  $: channelsListActive = channelId === ''
 </script>
 
 <section
-  class="card mt-4 h-full w-full max-w-4xl rounded-b-none rounded-t-2xl bg-white"
+  class="card h-full w-full rounded-b-none bg-white max-sm:rounded-none sm:mt-4 sm:rounded-t-2xl"
 >
   <div
-    class="grid h-full w-full grid-cols-1 sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr]"
+    class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr]"
   >
-    <div class="grid grid-rows-[1fr_auto] border-surface-500/30 sm:border-r">
+    <div
+      class="channels-list transition duration-500 ease-out {channelsListActive
+        ? ''
+        : 'max-sm:-translate-x-full'} grid grid-rows-[1fr_auto] border-r border-surface-500/30 bg-white max-sm:shadow-sm sm:rounded-tl-2xl"
+    >
       <MyChannelList />
       <footer class="border-t border-surface-500/30">
         <button
           type="button"
-          class="flex w-full items-center space-x-2 p-2"
+          class="flex w-full items-center space-x-2 px-4 py-2"
           on:click={onMeHandler}
         >
           <Avatar
@@ -51,16 +68,33 @@
         </button>
       </footer>
     </div>
-    {#key channelId}
-      {#if channelId}
-        <ChannelDetail {channelId} />
-      {:else}
-        <div
-          class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 bg-white sm:rounded-tr-2xl"
-        >
+    <div
+      class="grid-row-[1fr] grid max-h-[calc(100dvh-80px)] sm:rounded-tr-2xl"
+    >
+      {#key channelId}
+        {#if channelId && channelId !== 'profile'}
+          <ChannelDetail {channelId} />
+        {:else}
+          <div class="h-[60px] px-4 py-2 md:hidden">
+            <button class="btn -ml-6" on:click={onChatBack}
+              ><IconArrowLeftSLine /></button
+            >
+          </div>
           <ProfileDetail userId={myState.id} />
-        </div>
-      {/if}
-    {/key}
+        {/if}
+      {/key}
+    </div>
   </div>
 </section>
+
+<style>
+  @media (max-width: 640px) {
+    .channels-list {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+      width: 100%;
+    }
+  }
+</style>

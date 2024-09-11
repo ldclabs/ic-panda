@@ -225,7 +225,7 @@
 </script>
 
 <div
-  class="grid max-h-[calc(100dvh-136px)] grid-rows-[auto_auto_1fr] items-start overflow-y-auto bg-gray/5 pb-10"
+  class="grid h-[calc(100dvh-110px)] grid-rows-[auto_auto_1fr] items-start overflow-y-auto bg-gray/5 pb-10 sm:h-[calc(100dvh-140px)]"
 >
   <section class="mt-0 flex w-full flex-row items-center gap-4 self-start p-4">
     <Avatar
@@ -337,10 +337,10 @@
     {/if}
   </section>
   <section class="p-4">
-    <div class="mb-2 grid grid-cols-[1fr_auto] items-center">
+    <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
       <span class="text-sm opacity-50">Members</span>
       {#if isManager}
-        <div class="flex flex-row items-center space-x-1">
+        <div class="flex flex-col space-x-1 sm:flex-row">
           <button
             type="button"
             class="btn btn-sm"
