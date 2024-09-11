@@ -9,6 +9,7 @@ import {
   ChannelAPI,
   type ChannelBasicInfo,
   type ChannelInfo,
+  type ChannelSetting,
   type Message
 } from '$lib/canisters/messagechannel'
 import {
@@ -70,8 +71,32 @@ const KVS = new KVStore('ICPanda', 1, [
 
 const usersCacheExp = 2 * 3600 * 1000
 
-export function getCurrentTimestamp(ts: bigint): string {
-  return new Date(Number(ts)).toLocaleString()
+export function getCurrentTimeString(ts: bigint): string {
+  const now = Date.now()
+  const t = Number(ts)
+  if (t >= now - 24 * 3600 * 1000) {
+    return new Date(t).toLocaleTimeString()
+  } else if (t >= now - 7 * 24 * 3600 * 1000) {
+    return new Date(t).toLocaleDateString(undefined, { weekday: 'long' })
+  }
+  return new Date(t).toLocaleDateString()
+}
+
+export function mergeMySetting(
+  old: ChannelSetting,
+  ncs: Partial<ChannelSetting>
+): ChannelSetting {
+  const lastRead = old.last_read
+  const rt = { ...old, ...ncs }
+  if (rt.last_read < lastRead) {
+    rt.last_read = lastRead
+    rt.unread = ncs.unread ? ncs.unread : rt.unread - (lastRead - rt.last_read)
+    if (rt.unread < 0) {
+      rt.unread = 0
+    }
+  }
+
+  return rt
 }
 
 type MessageCacheInfo = Message & { canister: Principal; channel: number }
@@ -112,7 +137,7 @@ export type ChannelBasicInfoEx = ChannelBasicInfo & {
   latest_message_user: DisplayUserInfo
 }
 
-type ChannelCacheInfo = ChannelInfo & { _get_by: string }
+type ChannelModel = ChannelInfo & { _get_by: string }
 
 export type ChannelInfoEx = ChannelInfo & {
   _kek: Uint8Array | null
@@ -128,7 +153,7 @@ export class MyMessageState {
   private _coseAPI: CoseAPI | null = null
   private _mks: MasterKey[] = []
   private _ek: ECDHKey | null = null
-  private _myChannels = new Map<string, ChannelBasicInfo>()
+  private _myChannels = new Map<string, ChannelBasicInfo>() // keep the latest channel setting
   private _myChannelsStream = writable<ChannelBasicInfo[]>([])
   private _channelDEKs = new Map<String, AesGcmKey>()
 
@@ -496,10 +521,7 @@ export class MyMessageState {
       mute: [],
       last_read: []
     })
-    const channel = this._myChannels.get(`${info.canister.toText()}:${info.id}`)
-    if (channel) {
-      channel.my_setting = setting
-    }
+    this.freshMyChannelSetting(info.canister, info.id, setting)
   }
 
   async acceptKEK(info: ChannelInfoEx): Promise<void> {
@@ -539,11 +561,8 @@ export class MyMessageState {
       mute: [],
       last_read: []
     })
-    const channel = this._myChannels.get(`${info.canister.toText()}:${info.id}`)
-    if (channel) {
-      channel.my_setting = setting
-    }
 
+    this.freshMyChannelSetting(info.canister, info.id, setting)
     info._kek = encryptedKEK
   }
 
@@ -674,9 +693,37 @@ export class MyMessageState {
     }
   }
 
+  freshMyChannelSetting(
+    canister: Principal,
+    id: number,
+    setting?: Partial<ChannelSetting>
+  ): ChannelSetting | null {
+    const channel = this._myChannels.get(`${canister.toText()}:${id}`)
+    if (channel && setting) {
+      channel.my_setting = mergeMySetting(channel.my_setting, setting)
+      return channel.my_setting
+    }
+
+    return (setting as ChannelSetting) || null
+  }
+
+  async informMyChannelsStream(save = true): Promise<void> {
+    const channels = Array.from(this._myChannels.values())
+    channels.sort(ChannelAPI.compareChannels)
+    if (save) {
+      await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
+    }
+    this._myChannelsStream.set(channels)
+  }
+
   async addMyChannel(info: ChannelInfo): Promise<void> {
     await this.initMyChannels()
 
+    info.my_setting = this.freshMyChannelSetting(
+      info.canister,
+      info.id,
+      info.my_setting
+    )!
     this._myChannels.set(`${info.canister.toText()}:${info.id}`, {
       id: info.id,
       gas: info.gas,
@@ -691,35 +738,27 @@ export class MyMessageState {
       my_setting: info.my_setting
     })
 
-    const channels = Array.from(this._myChannels.values())
-    channels.sort(ChannelAPI.compareChannels)
-    await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
-    await KVS.set<ChannelCacheInfo>('Channels', { ...info, _get_by: this.id })
-    this._myChannelsStream.set(channels)
+    await KVS.set<ChannelModel>('Channels', { ...info, _get_by: this.id })
+    await this.informMyChannelsStream()
   }
 
   async removeMyChannel(canister: Principal, id: number): Promise<void> {
     await this.initMyChannels()
 
     this._myChannels.delete(`${canister.toText()}:${id}`)
-    const channels = Array.from(this._myChannels.values())
-    channels.sort(ChannelAPI.compareChannels)
-    await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
+
     const key = [canister.toUint8Array(), id]
     await KVS.delete('Channels', key)
     await KVS.delete(
       'Messages',
       IDBKeyRange.bound([...key, 0], [...key, 4294967295], false, true)
     )
-    this._myChannelsStream.set(channels)
+    await this.informMyChannelsStream()
   }
 
   async refreshMyChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
     const api = await this.api.channelAPI(info.canister)
-    const ninfo = (await api.get_channel_if_update(
-      info.id,
-      0n
-    )) as ChannelCacheInfo
+    const ninfo = (await api.get_channel_if_update(info.id, 0n)) as ChannelModel
     if (!ninfo) {
       throw new Error('Channel not found')
     }
@@ -772,25 +811,16 @@ export class MyMessageState {
         let channels = await api.my_channels(latest_message_at)
         if (channels.length > 0) {
           for (const channel of channels) {
-            this._myChannels.set(
-              `${channel.canister.toText()}:${channel.id}`,
-              channel
-            )
+            channel.my_setting = this.freshMyChannelSetting(
+              channel.canister,
+              channel.id,
+              channel.my_setting
+            )!
+            this._myChannels.set(`${prefix}:${channel.id}`, channel)
           }
-
-          channels = Array.from(this._myChannels.values())
-          channels.sort(ChannelAPI.compareChannels)
-          await KVS.set<ChannelBasicInfo[]>(
-            'My',
-            channels,
-            `${this.id}:Channels`
-          )
-        } else {
-          channels = Array.from(this._myChannels.values())
-          channels.sort(ChannelAPI.compareChannels)
         }
 
-        this._myChannelsStream.set(channels)
+        await this.informMyChannelsStream(channels.length > 0)
       })
     )
   }
@@ -804,7 +834,7 @@ export class MyMessageState {
       return {
         ...c,
         channelId: ChannelAPI.channelParam(c),
-        latest_message_time: getCurrentTimestamp(c.latest_message_at),
+        latest_message_time: getCurrentTimeString(c.latest_message_at),
         latest_message_user: toDisplayUserInfo(info)
       } as ChannelBasicInfoEx
     }
@@ -948,7 +978,7 @@ export class MyMessageState {
     id: number
   ): Promise<Readable<ChannelInfoEx>> {
     const api = await this.api.channelAPI(canister)
-    let info = await KVS.get<ChannelCacheInfo>('Channels', [
+    let info = await KVS.get<ChannelModel>('Channels', [
       canister.toUint8Array(),
       id
     ])
@@ -968,7 +998,7 @@ export class MyMessageState {
 
     let refresh = !!info
     if (!info) {
-      info = (await api.get_channel_if_update(id, 0n)) as ChannelCacheInfo
+      info = (await api.get_channel_if_update(id, 0n)) as ChannelModel
       if (!info) {
         throw new Error('Channel not found')
       }
@@ -985,6 +1015,11 @@ export class MyMessageState {
         last_read: 1,
         unread: 0,
         updated_at: 0n
+      }
+    } else {
+      const channel = this._myChannels.get(`${canister.toText()}:${id}`)
+      if (channel) {
+        info.my_setting = mergeMySetting(info.my_setting, channel.my_setting)
       }
     }
 
@@ -1081,7 +1116,7 @@ export class MyMessageState {
     })
   }
 
-  async loadPrevMessages(
+  async loadMessages(
     canister: Principal,
     channelId: number,
     dek: AesGcmKey,
@@ -1102,6 +1137,8 @@ export class MyMessageState {
       start = end - 20
     }
 
+    console.log('loadMessages', start, end)
+
     let messages: MessageCacheInfo[] = []
     const iter = await KVS.iterate(
       'Messages',
@@ -1110,7 +1147,7 @@ export class MyMessageState {
 
     let i = start
     for await (const cursor of iter) {
-      if (cursor.key !== i) {
+      if ((cursor.key as [Uint8Array, number, number])[2] !== i) {
         break
       }
       i += 1
@@ -1118,6 +1155,7 @@ export class MyMessageState {
     }
 
     if (i < end) {
+      console.log('loadMessages fetch', i, end)
       let items = (await api.list_messages(
         channelId,
         i,
@@ -1151,10 +1189,7 @@ export class MyMessageState {
       last_read: [lastRead]
     })
 
-    const channel = this._myChannels.get(`${canister.toText()}:${channelId}`)
-    if (channel) {
-      channel.my_setting = setting
-    }
+    this.freshMyChannelSetting(canister, channelId, setting)
   }
 
   async messagesToInfo(
@@ -1184,7 +1219,7 @@ export class MyMessageState {
         reply_to: msg.reply_to,
         kind: msg.kind,
         created_by: msg.created_by,
-        created_time: getCurrentTimestamp(msg.created_at),
+        created_time: getCurrentTimeString(msg.created_at),
         created_user: toDisplayUserInfo(info),
         canister: canister,
         channel: channelId,
@@ -1198,9 +1233,9 @@ export class MyMessageState {
           msg.kind == 1
             ? (msg.payload as Uint8Array)
             : await coseA256GCMDecrypt0(dek, msg.payload as Uint8Array, aad)
-        m.message = decodeCBOR(payload)
-      } catch (e) {
-        m.error = 'Failed to decrypt message'
+        m.message = decodeMessage(payload)
+      } catch (err) {
+        m.error = `Failed to decrypt message: ${err}`
       }
 
       list.push(m)
@@ -1503,4 +1538,14 @@ export function toDisplayUserInfo(info?: UserInfo) {
     image: info.image,
     src: info
   }
+}
+
+type MessagePayload = string | [string, number, Uint8Array]
+
+function decodeMessage(payload: Uint8Array): string {
+  const rt = decodeCBOR<MessagePayload>(payload)
+  if (Array.isArray(rt)) {
+    return rt[0]
+  }
+  return rt
 }

@@ -100,33 +100,76 @@ export function clickOutside(node: HTMLElement, callback: () => void = noop) {
   }
 }
 
-export function scrollOnBottom(
+export function scrollOnHooks(
   node: HTMLElement,
   {
     onTop,
     onBottom,
     onMoveUp,
-    onMoveDown
+    onMoveDown,
+    inMoveUpViewport,
+    inMoveDownViewport,
+    inViewportHasId = true,
+    inViewportHasClass = ''
   }: {
     onTop?: (() => void) | undefined
     onBottom?: (() => void) | undefined
     onMoveUp?: (() => void) | undefined
     onMoveDown?: (() => void) | undefined
+    inMoveUpViewport?: ((els: HTMLElement[]) => void) | undefined
+    inMoveDownViewport?: ((els: HTMLElement[]) => void) | undefined
+    inViewportHasId?: boolean
+    inViewportHasClass?: string
   }
 ) {
-  const callTop = onTop && debounce(onTop, 618, { immediate: true })
-  const callBottom = onBottom && debounce(onBottom, 618, { immediate: true })
-  const callMoveUp = onMoveUp && debounce(onMoveUp, 618, { immediate: true })
+  const callTop = onTop && debounce(onTop, 618, { immediate: false })
+  const callBottom = onBottom && debounce(onBottom, 618, { immediate: false })
+  const callMoveUp = onMoveUp && debounce(onMoveUp, 618, { immediate: false })
   const callMoveDown =
-    onMoveDown && debounce(onMoveDown, 618, { immediate: true })
+    onMoveDown && debounce(onMoveDown, 618, { immediate: false })
+  const callInMoveUpViewport =
+    inMoveUpViewport && debounce(inMoveUpViewport, 618, { immediate: false })
+  const callInMoveDownViewport =
+    inMoveDownViewport &&
+    debounce(inMoveDownViewport, 618, { immediate: false })
 
   let lastScrollTop = 0
   const handler = (ev: Event) => {
     const target = ev.currentTarget as HTMLElement
     if (target.scrollTop > lastScrollTop) {
       callMoveUp && callMoveUp()
+      if (callInMoveUpViewport) {
+        let children = Array.from(target.children) as HTMLElement[]
+        if (inViewportHasId || inViewportHasClass) {
+          children = children.filter((el) => {
+            if (inViewportHasId) {
+              return !!el.id
+            }
+            return el.classList.contains(inViewportHasClass)
+          })
+        }
+        const els = elementsInViewport(target, children)
+        if (els.length > 0) {
+          callInMoveUpViewport(els)
+        }
+      }
     } else {
       callMoveDown && callMoveDown()
+      if (callInMoveDownViewport) {
+        let children = Array.from(target.children) as HTMLElement[]
+        if (inViewportHasId || inViewportHasClass) {
+          children = children.filter((el) => {
+            if (inViewportHasId) {
+              return !!el.id
+            }
+            return el.classList.contains(inViewportHasClass)
+          })
+        }
+        const els = elementsInViewport(target, children)
+        if (els.length > 0) {
+          callInMoveDownViewport(els)
+        }
+      }
     }
 
     if (target.scrollTop < lastScrollTop && target.scrollTop <= 5) {
@@ -147,5 +190,25 @@ export function scrollOnBottom(
     callBottom && callBottom.clear()
     callMoveUp && callMoveUp.clear()
     callMoveDown && callMoveDown.clear()
+    callInMoveUpViewport && callInMoveUpViewport.clear()
   }
+}
+
+export function elementsInViewport(
+  container: HTMLElement,
+  els: HTMLElement[]
+): HTMLElement[] {
+  const containerRect = container.getBoundingClientRect()
+  const rt: HTMLElement[] = []
+  for (const el of els) {
+    const rect = el.getBoundingClientRect()
+    if (
+      (rect.top >= containerRect.top && rect.top < containerRect.bottom) ||
+      (rect.bottom <= containerRect.bottom && rect.bottom > containerRect.top)
+    ) {
+      rt.push(el)
+    }
+  }
+
+  return rt
 }

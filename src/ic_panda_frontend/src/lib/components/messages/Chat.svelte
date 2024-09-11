@@ -26,11 +26,8 @@
   <div
     class="grid h-full w-full grid-cols-1 sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr]"
   >
-    <!-- Navigation -->
     <div class="grid grid-rows-[1fr_auto] border-surface-500/30 sm:border-r">
-      <!-- List -->
       <MyChannelList />
-      <!-- Footer -->
       <footer class="border-t border-surface-500/30">
         <button
           type="button"
@@ -54,16 +51,16 @@
         </button>
       </footer>
     </div>
-    {#if channelId}
-      {#key channelId}
+    {#key channelId}
+      {#if channelId}
         <ChannelDetail {channelId} />
-      {/key}
-    {:else}
-      <div
-        class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 bg-white sm:rounded-tr-2xl"
-      >
-        <ProfileDetail userId={myState.id} />
-      </div>
-    {/if}
+      {:else}
+        <div
+          class="grid-row-[1fr] grid max-h-[calc(100dvh-76px)] items-start gap-6 bg-white sm:rounded-tr-2xl"
+        >
+          <ProfileDetail userId={myState.id} />
+        </div>
+      {/if}
+    {/key}
   </div>
 </section>

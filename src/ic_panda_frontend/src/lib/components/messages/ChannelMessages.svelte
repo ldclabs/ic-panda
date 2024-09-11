@@ -13,9 +13,9 @@
     encodeCBOR,
     type AesGcmKey
   } from '$lib/utils/crypto'
-  import { scrollOnBottom } from '$lib/utils/window'
+  import { scrollOnHooks } from '$lib/utils/window'
   import {
-    getCurrentTimestamp,
+    getCurrentTimeString,
     toDisplayUserInfo,
     type ChannelInfoEx,
     type MessageInfo,
@@ -52,24 +52,43 @@
     return msgs
   }
 
-  function addMessageInfo(info: MessageInfo) {
+  function addMessageInfos(infos: MessageInfo[]) {
     messageFeed.update((prev) => {
-      for (let i = 0; i < prev.length; i++) {
-        if (prev[i]!.id === info.id) {
-          prev[i] = info
-          return sortMessages([...prev])
+      if (infos.length === 0) {
+        return prev
+      }
+      const rt: MessageInfo[] = [...prev]
+      for (const info of infos) {
+        let found = false
+        for (let i = 0; i < rt.length; i++) {
+          if (rt[i]!.id === info.id) {
+            rt[i] = info
+            found = true
+            break
+          }
+        }
+        if (!found) {
+          rt.push(info)
         }
       }
-      return sortMessages([...prev, info])
+      return sortMessages(rt)
     })
   }
 
-  function scrollChatBottom(behavior?: ScrollBehavior): void {
-    if (elemChat) {
-      elemChat.scrollTo({
-        top: elemChat.scrollHeight,
+  function scrollIntoView(
+    messageId: number,
+    behavior: ScrollBehavior = 'instant',
+    block: ScrollLogicalPosition = 'center'
+  ): void {
+    const ele = document.getElementById(
+      `${canister.toText()}:${id}:${messageId}`
+    )
+
+    if (ele) {
+      ele.scrollIntoView({
+        block,
         behavior
-      } as ScrollToOptions)
+      })
     }
   }
 
@@ -92,23 +111,25 @@
       }
 
       const res = await channelAPI.add_message(input)
-      addMessageInfo({
-        id: res.id,
-        reply_to: 0,
-        kind: res.kind,
-        created_by: myState.principal,
-        created_time: getCurrentTimestamp(res.created_at),
-        created_user: toDisplayUserInfo($myInfo),
-        canister: canister,
-        channel: id,
-        message: newMessage,
-        error: ''
-      } as MessageInfo)
+      addMessageInfos([
+        {
+          id: res.id,
+          reply_to: 0,
+          kind: res.kind,
+          created_by: myState.principal,
+          created_time: getCurrentTimeString(res.created_at),
+          created_user: toDisplayUserInfo($myInfo),
+          canister: canister,
+          channel: id,
+          message: newMessage,
+          error: ''
+        } as MessageInfo
+      ])
 
       newMessage = ''
       submitting = false
-      await tick()
-      scrollChatBottom('smooth')
+      await sleep(314)
+      scrollIntoView(res.id, 'smooth')
     }, toastStore).finally(() => {
       submitting = false
     })
@@ -123,7 +144,7 @@
 
   const debouncedUpdateMyLastRead = debounce(async () => {
     await myState.updateMyLastRead(canister, id, lastRead)
-  }, 6000)
+  }, 1000)
 
   let topLoading = false
   async function loadPrevMessages(start: number, end: number) {
@@ -132,7 +153,7 @@
     }
 
     topLoading = true
-    const prevMessages = await myState.loadPrevMessages(
+    const prevMessages = await myState.loadMessages(
       canister,
       id,
       dek,
@@ -140,7 +161,9 @@
       end
     )
     if (prevMessages.length > 0) {
-      messageFeed.update((prev) => sortMessages([...prevMessages, ...prev]))
+      addMessageInfos(prevMessages)
+      await tick()
+      scrollIntoView(prevMessages.at(-1)!.id, 'instant', 'start')
     }
     topLoading = false
   }
@@ -152,7 +175,7 @@
     }
 
     bottomLoading = true
-    const messages = await myState.loadPrevMessages(
+    const messages = await myState.loadMessages(
       canister,
       id,
       dek,
@@ -162,22 +185,19 @@
     let last = 0
     if (messages.length > 0) {
       last = messages.at(-1)!.id
-      messageFeed.update((prev) => sortMessages([...prev, ...messages]))
+      addMessageInfos(messages)
     }
     bottomLoading = false
 
     if (last >= latestMessageId && !$latestMessage) {
+      latestMessageId = last
       latestMessage = await myState.loadLatestMessageStream(
         canister,
         id,
         dek,
-        last + 1
+        latestMessageId + 1
       )
     }
-
-    await tick()
-    await sleep(1000)
-    lastRead = last || lastRead
   }
 
   onMount(() => {
@@ -194,18 +214,15 @@
         dek = await myState.decryptChannelDEK(channelInfo)
         await loadPrevMessages(messageStart, lastRead + 1)
         await tick()
-        scrollChatBottom()
+        scrollIntoView(lastRead)
 
         await loadNextMessages(lastRead + 1)
-        await tick()
-        debouncedUpdateMyLastRead()
-        debouncedUpdateMyLastRead.trigger()
       } else {
         goto('/_/messages')
       }
     }, toastStore)
 
-    const abortScroll = scrollOnBottom(elemChat, {
+    const abortScroll = scrollOnHooks(elemChat, {
       onTop: () => {
         if (dek && !topLoading) {
           const front = $messageFeed[0]
@@ -214,13 +231,22 @@
           }
         }
       },
-
       onBottom: () => {
         if (dek && !bottomLoading) {
           const back = $messageFeed.at(-1)
           if (back && back.id < latestMessageId) {
             loadNextMessages(back.id)
           }
+        }
+      },
+      inMoveUpViewport: (els) => {
+        const [_canister, _channel, mid] = els.at(-1)!.id.split(':')
+        const messageId = parseInt(mid || '')
+        if (messageId > lastRead) {
+          lastRead = messageId
+          myState.freshMyChannelSetting(canister, id, { last_read: messageId })
+          myState.informMyChannelsStream()
+          debouncedUpdateMyLastRead()
         }
       }
     })
@@ -239,8 +265,7 @@
     const info = $latestMessage
     if (info) {
       latestMessageId = info.id
-      addMessageInfo(info)
-      debouncedUpdateMyLastRead()
+      addMessageInfos([info])
     }
   }
 </script>
