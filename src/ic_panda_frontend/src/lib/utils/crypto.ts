@@ -7,6 +7,8 @@ import * as iana from '@ldclabs/cose-ts/iana'
 import { KDFContext, PartyInfo, SuppPubInfo } from '@ldclabs/cose-ts/kdfcontext'
 import { randomBytes } from '@ldclabs/cose-ts/utils'
 import { argon2id } from '@noble/hashes/argon2'
+import { hmac } from '@noble/hashes/hmac'
+import { sha3_256 } from '@noble/hashes/sha3'
 
 export {
   assertEqual,
@@ -90,4 +92,8 @@ export async function coseA256GCMDecrypt0(
   } catch (err) {
     throw new Error(`Failed to decrypt: ${err}`)
   }
+}
+
+export function hmac3_256(key: Uint8Array, message: Uint8Array): Uint8Array {
+  return hmac(sha3_256, key, message)
 }

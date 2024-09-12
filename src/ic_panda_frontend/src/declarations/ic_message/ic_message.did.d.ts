@@ -158,6 +158,10 @@ export interface StateInfo {
   'channel_canisters' : Array<Principal>,
 }
 export interface SupportedBlockType { 'url' : string, 'block_type' : string }
+export interface UpdateKVInput {
+  'upsert_kv' : Array<[string, Uint8Array | number[]]>,
+  'remove_kv' : Array<string>,
+}
 export interface UpdatePriceInput {
   'name_l1' : [] | [bigint],
   'name_l2' : [] | [bigint],
@@ -205,6 +209,7 @@ export interface _SERVICE {
     Result
   >,
   'update_my_image' : ActorMethod<[string], Result>,
+  'update_my_kv' : ActorMethod<[UpdateKVInput], Result>,
   'update_my_name' : ActorMethod<[string], Result_3>,
   'validate_admin_add_canister' : ActorMethod<
     [CanisterKind, Principal],

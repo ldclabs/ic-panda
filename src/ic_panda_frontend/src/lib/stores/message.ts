@@ -29,6 +29,7 @@ import {
   encodeCBOR,
   generateECDHKey,
   hashPassword,
+  hmac3_256,
   iana,
   randomBytes,
   utf8ToBytes
@@ -70,6 +71,8 @@ const KVS = new KVStore('ICPanda', 1, [
 ])
 
 const usersCacheExp = 2 * 3600 * 1000
+const PWD_HASH_KEY = 'pwd_hash'
+const KEY_ID = encodeCBOR('ICPanda_Messages_Master_Key')
 
 export function getCurrentTimeString(ts: bigint): string {
   const now = Date.now()
@@ -182,6 +185,8 @@ export class MyMessageState {
       if (self._myInfo.cose_canister.length == 1) {
         self._coseAPI = await api.coseAPI(self._myInfo.cose_canister[0])
       }
+
+      self.loadMyKV()
     }
     return self
   }
@@ -251,24 +256,25 @@ export class MyMessageState {
 
   async setMasterKey(
     kind: 'Local' | 'ECDH' | 'VetKey',
-    keyId: Uint8Array,
     password: string,
     remoteSecret: Uint8Array,
     passwordExpire: number // milliseconds
-  ): Promise<void> {
+  ): Promise<MasterKey> {
     if (this._mks.length > 10) {
       throw new Error('Too many master keys')
     }
 
+    const kv = await this.loadMyKV()
     const mk = await MasterKey.from(
       this.principal,
       kind,
-      keyId,
+      kv.get(PWD_HASH_KEY) || null,
       password,
       this.id,
       remoteSecret,
       passwordExpire > 0 ? passwordExpire + Date.now() : 0
     )
+
     this._mks.push(mk)
 
     await KVS.set(
@@ -276,6 +282,7 @@ export class MyMessageState {
       this._mks.map((k) => k.toInfo()),
       `${this.id}:MK`
     )
+    return mk
   }
 
   async migrateKeys(): Promise<void> {
@@ -301,12 +308,11 @@ export class MyMessageState {
 
     // save local keys to COSE after username is set
     this._coseAPI = await this.api.coseAPI(cose_canister)
-    const keyId = encodeCBOR('ICPanda_Messages_Master_Key')
     const aad = new Uint8Array()
-    const remoteMK = await this.fetchECDHCoseEncryptedKey(keyId)
+    const remoteMK = await this.fetchECDHCoseEncryptedKey()
     const newMK = await mk.toNewMasterKey(
       'ECDH',
-      keyId,
+      KEY_ID,
       remoteMK.getSecretKey()
     )
     await this.initMyChannels()
@@ -341,7 +347,7 @@ export class MyMessageState {
     await this.initStaticECDHKey()
   }
 
-  async fetchECDHCoseEncryptedKey(keyId: Uint8Array): Promise<AesGcmKey> {
+  async fetchECDHCoseEncryptedKey(): Promise<AesGcmKey> {
     if (!this._coseAPI) {
       throw new Error('COSE API not ready')
     }
@@ -352,7 +358,7 @@ export class MyMessageState {
     const output = await this._coseAPI.ecdh_cose_encrypted_key(
       {
         ns,
-        key: keyId,
+        key: KEY_ID,
         subject: [this.principal],
         version: 0,
         user_owned: true
@@ -383,7 +389,8 @@ export class MyMessageState {
       const encrypted0 = await this.loadStaticECDHKey()
       const data = await coseA256GCMDecrypt0(mk, encrypted0, aad)
       this._ek = ECDHKey.fromBytes(data)
-    } catch (e) {
+    } catch (err) {
+      console.error('initStaticECDHKey', err)
       this._ek = generateECDHKey()
       this._ek.setKid(encodeCBOR(String(Date.now())))
       const encrypted0 = await coseA256GCMEncrypt0(
@@ -438,6 +445,56 @@ export class MyMessageState {
     if (this._coseAPI) {
       await this.api.update_my_ecdh(ecdh_pub, encrypted0)
     }
+  }
+
+  async loadMyKV(): Promise<Map<string, Uint8Array>> {
+    let kv = await KVS.get<Map<string, Uint8Array>>('My', `${this.id}:KV`)
+
+    if (kv) {
+      console.log('loadMyKV cached', kv)
+      return kv
+    }
+
+    if (!this._coseAPI) {
+      throw new Error('COSE API not available')
+    }
+
+    const ns = this.id.replaceAll('-', '_')
+    const output = await this._coseAPI
+      .setting_get({
+        ns,
+        key: utf8ToBytes('KV'),
+        subject: [this.principal],
+        version: 0,
+        user_owned: false
+      })
+      .catch((e) => null)
+
+    if (output?.payload.length === 1) {
+      kv = decodeCBOR(output.payload[0] as Uint8Array)
+    }
+
+    console.log('loadMyKV', kv, output)
+    if (kv) {
+      await KVS.set<Map<string, Uint8Array>>('My', kv, `${this.id}:KV`)
+    }
+
+    return kv || new Map<string, Uint8Array>()
+  }
+
+  async getPasswordHash(): Promise<Uint8Array | null> {
+    const kv = await this.loadMyKV().catch((e) => null)
+    return kv?.get(PWD_HASH_KEY) || null
+  }
+
+  async savePasswordHash(hash: Uint8Array): Promise<void> {
+    if (!this._coseAPI) {
+      throw new Error('COSE API not available')
+    }
+    await this.api.update_my_kv({
+      upsert_kv: [[PWD_HASH_KEY, hash]],
+      remove_kv: []
+    })
   }
 
   async decryptChannelDEK(info: ChannelInfoEx): Promise<AesGcmKey> {
@@ -1318,7 +1375,7 @@ export class MasterKey {
   static async from(
     user: Principal,
     kind: 'Local' | 'ECDH' | 'VetKey',
-    keyId: Uint8Array,
+    pwdHash: Uint8Array | null,
     password: string,
     salt: string,
     remoteSecret: Uint8Array,
@@ -1326,16 +1383,24 @@ export class MasterKey {
   ): Promise<MasterKey> {
     const aad = user.toUint8Array()
     const passwordSecrect = hashPassword(password, salt)
+    if (pwdHash) {
+      const hash = hmac3_256(KEY_ID, passwordSecrect)
+      if (compareBytes(pwdHash, hash) !== 0) {
+        throw new Error('Invalid password')
+      }
+    }
+
     const secret = deriveA256GCMSecret(passwordSecrect, remoteSecret)
-    const key = AesGcmKey.fromSecret(secret, keyId)
+    const key = AesGcmKey.fromSecret(secret, KEY_ID)
     const encryptedSecret = await coseA256GCMEncrypt0(
       AesGcmKey.fromSecret(passwordSecrect),
       key.toBytes(),
       aad
     )
+
     const mk = new MasterKey(
       kind,
-      keyId,
+      KEY_ID,
       encryptedSecret,
       aad,
       passwordExpireAt
@@ -1425,6 +1490,14 @@ export class MasterKey {
     }
 
     return AesGcmKey.fromSecret(this.secret, this.keyId)
+  }
+
+  passwordHash(): Uint8Array {
+    if (!this.passwordSecrect) {
+      throw new Error('master key is not opened')
+    }
+
+    return hmac3_256(KEY_ID, this.passwordSecrect)
   }
 
   async toNewMasterKey(

@@ -1,7 +1,7 @@
 use ic_cose_types::{cose::encrypt0::try_decode_encrypt0, validate_key, MILLISECONDS};
 use ic_message_types::{
     channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
-    profile::UserInfo,
+    profile::{UpdateKVInput, UserInfo},
 };
 use serde_bytes::{ByteArray, ByteBuf};
 
@@ -65,6 +65,12 @@ async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdh: ByteBuf) -> Res
     let caller = ic_cdk::caller();
     try_decode_encrypt0(&encrypted_ecdh)?;
     store::user::update_my_ecdh(caller, ecdh_pub, encrypted_ecdh).await
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn update_my_kv(input: UpdateKVInput) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    store::user::update_my_kv(caller, input).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

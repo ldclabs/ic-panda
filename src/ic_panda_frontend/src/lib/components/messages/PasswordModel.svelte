@@ -2,9 +2,9 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import { encodeCBOR, randomBytes } from '$lib/utils/crypto'
+  import { randomBytes } from '$lib/utils/crypto'
   import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -14,24 +14,28 @@
   export let masterKey: MasterKey | null
 
   const toastStore = getToastStore()
-  const keyId = encodeCBOR('ICPanda_Messages_Master_Key')
+  const modalStore = getModalStore()
   const PasswordExpire = 14 * 24 * 60 * 60 * 1000
 
   let validating = false
   let submitting = false
 
+  let isSetup = !masterKey
   let passwordInput1 = ''
   let passwordInput2 = ''
-  let passwordErr = ''
+  let passwordTip = ''
   let processingTip = 'Derive keys...'
   let cachedPassword = masterKey ? masterKey.cachedPassword() : true
+  let pwdHash: Uint8Array | null = null
 
   function checkPassword() {
-    passwordErr = ''
+    passwordTip = ''
     if (passwordInput1.length < 6) {
-      passwordErr = 'password must be at least 6 characters long'
+      passwordTip = 'Password must be at least 6 characters long'
     } else if (passwordInput1 !== passwordInput2) {
-      passwordErr = 'password do not match'
+      passwordTip = 'Passwords do not match'
+    } else if (passwordInput2.length > 10) {
+      passwordTip = 'Recommended to use a easy-to-remember password'
     }
     return ''
   }
@@ -42,13 +46,27 @@
     toastRun(async () => {
       const kind = myState.masterKeyKind()
 
-      if (masterKey) {
+      // master key has been derived
+      if (masterKey || pwdHash) {
         try {
-          await masterKey.open(
-            passwordInput1,
-            myState.id,
-            cachedPassword ? PasswordExpire : 0
-          )
+          if (masterKey) {
+            await masterKey.open(
+              passwordInput1,
+              myState.id,
+              cachedPassword ? PasswordExpire : 0
+            )
+            pwdHash = masterKey.passwordHash()
+            await myState.savePasswordHash(pwdHash)
+          } else {
+            const remoteKey = await myState.fetchECDHCoseEncryptedKey()
+            const remoteSecret = remoteKey.getSecretKey()
+            masterKey = await myState.setMasterKey(
+              kind,
+              passwordInput1,
+              remoteSecret,
+              cachedPassword ? PasswordExpire : 0
+            )
+          }
 
           if (masterKey.kind !== kind) {
             processingTip = 'Migrate encrypted keys to ICP chain ...'
@@ -57,7 +75,7 @@
             await myState.initStaticECDHKey()
           }
 
-          parent && parent['onClose']()
+          modalStore.close()
         } catch (err) {
           throw new Error('Incorrect password')
         }
@@ -66,7 +84,7 @@
       }
 
       if (passwordInput1 != passwordInput2) {
-        throw new Error('passwords do not match')
+        throw new Error('Passwords do not match')
       }
 
       let remoteSecret: Uint8Array
@@ -75,23 +93,24 @@
           remoteSecret = randomBytes(32)
           break
         case 'ECDH':
-          const remoteKey = await myState.fetchECDHCoseEncryptedKey(keyId)
+          const remoteKey = await myState.fetchECDHCoseEncryptedKey()
           remoteSecret = remoteKey.getSecretKey()
           break
         default:
           throw new Error('Invalid master key kind')
       }
 
-      await myState.setMasterKey(
+      masterKey = await myState.setMasterKey(
         kind,
-        keyId,
         passwordInput1,
         remoteSecret,
         cachedPassword ? PasswordExpire : 0
       )
-
+      pwdHash = masterKey.passwordHash()
+      await myState.savePasswordHash(pwdHash)
       await myState.initStaticECDHKey()
-      parent && parent['onClose']()
+
+      modalStore.close()
     }, toastStore).finally(() => {
       submitting = false
       validating = false
@@ -109,24 +128,40 @@
     validating = form.checkValidity()
   }
 
-  onMount(() => {})
+  onMount(() => {
+    const { abort } = toastRun(async () => {
+      pwdHash = await myState.getPasswordHash()
+      if (pwdHash) {
+        isSetup = false
+        passwordTip = 'Derive master key with remote key material'
+      }
+    }, toastStore)
+    return abort
+  })
 </script>
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{!masterKey ? 'Setup' : 'Enter'} Password</div
+    >{isSetup ? 'Setup' : 'Enter'} Password</div
   >
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    on:input|preventDefault|stopPropagation={onFormChange}
   >
-    {#if !masterKey}
+    {#if isSetup}
       <div class="space-y-2 rounded-xl bg-gray/5 p-4">
-        <p class="text-gray/50">
-          The password is used only locally to derive the master key along with
-          remote key material; neither the password nor the derived key is
-          stored remotely.<br />It is recommended to use simple and
-          easy-to-remember passwords.
+        <p class="">
+          The password is used only locally to derive the master key with remote
+          key material; neither the password nor the derived key is stored
+          remotely.
+        </p>
+        <p class="">
+          It is recommended to use
+          <b>simple and easy-to-remember passwords</b>.
+        </p>
+        <p class="text-error-500">
+          If you forget the password, you will no longer be able to decrypt the
+          messages!
         </p>
       </div>
     {/if}
@@ -141,7 +176,7 @@
       placeholder="Enter password"
       required
     />
-    {#if !masterKey}
+    {#if isSetup}
       <input
         class="input mt-4 truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
         type="password"
@@ -153,12 +188,12 @@
         placeholder="Enter password again"
         required
       />
-      <p
-        class="h-5 pl-2 text-sm text-error-500 {passwordErr == ''
-          ? 'invisible'
-          : 'visiable'}">{passwordErr}</p
-      >
     {/if}
+    <p
+      class="h-5 pl-2 text-sm text-error-500 {passwordTip == ''
+        ? 'invisible'
+        : 'visiable'}">{passwordTip}</p
+    >
     <label class="mt-2 flex items-center">
       <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
       <p class="ml-2 text-sm text-gray/50">Retain for 14 days</p>

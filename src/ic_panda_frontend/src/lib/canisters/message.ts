@@ -4,6 +4,7 @@ import {
   type ChannelKEKInput,
   type CreateChannelInput,
   type StateInfo,
+  type UpdateKVInput,
   type UserInfo,
   type _SERVICE
 } from '$declarations/ic_message/ic_message.did.js'
@@ -22,6 +23,7 @@ export {
   type ChannelECDHInput,
   type ChannelInfo,
   type StateInfo,
+  type UpdateKVInput,
   type UserInfo
 } from '$declarations/ic_message/ic_message.did.js'
 
@@ -175,6 +177,11 @@ export class MessageCanisterAPI {
   ): Promise<null> {
     const res = await this.actor.update_my_ecdh(ecdhPub, encryptedECDH)
     return unwrapResult(res, 'call update_my_ecdh failed')
+  }
+
+  async update_my_kv(input: UpdateKVInput): Promise<null> {
+    const res = await this.actor.update_my_kv(input)
+    return unwrapResult(res, 'call update_my_kv failed')
   }
 }
 

@@ -1,10 +1,9 @@
 use candid::{utils::ArgumentEncoder, Nat, Principal};
 use ic_cdk::api::management_canister::main::CanisterStatusResponse;
 use ic_cose_types::ANONYMOUS;
-use ic_message_types::channel::ChannelKEKInput;
 use ic_message_types::{
-    channel::{ChannelInfo, CreateChannelInput},
-    profile::UserInfo,
+    channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
+    profile::{UpdateKVInput, UserInfo},
 };
 use icrc_ledger_types::icrc3::{
     archive::{GetArchivesArgs, GetArchivesResult},

@@ -273,11 +273,7 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Request encryption key:</p>
-      {#if channelInfo._kek}
-        <span class="text-sm opacity-50"
-          >Key already exists, no action needed</span
-        >
-      {:else if channelInfo.my_setting.ecdh_remote.length > 0}
+      {#if channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
           class="variant-ringed btn btn-sm text-panda"
@@ -288,6 +284,16 @@
       {:else if channelInfo.my_setting.ecdh_pub.length > 0}
         <span class="text-sm opacity-50"
           >Request sent, waiting for a manager share key</span
+        >
+      {:else if channelInfo._kek}
+        <span class="text-sm opacity-50"
+          >Key already exists, no action needed</span
+        >
+        <button
+          type="button"
+          class="variant-soft-warning btn btn-sm hidden"
+          on:click={onClickMyECDH}
+          disabled={myECDHSubmitting}><span>Request again</span></button
         >
       {:else}
         <button
@@ -305,7 +311,7 @@
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
       <div
-        class="input-group input-group-divider max-w-80 grid-cols-[1fr_auto] bg-gray/5"
+        class="input-group input-group-divider max-w-64 grid-cols-[1fr_auto] bg-gray/5"
       >
         <input
           type="text"

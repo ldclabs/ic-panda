@@ -1,7 +1,7 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteArray;
-use std::collections::{BTreeSet, HashMap};
+use serde_bytes::{ByteArray, ByteBuf};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub const MAX_PROFILE_FOLLOWING: usize = 2048;
 pub const MAX_PROFILE_BIO_SIZE: usize = 2048; // 2KB
@@ -50,6 +50,21 @@ impl UpdateProfileInput {
             if bio.len() > MAX_PROFILE_BIO_SIZE {
                 return Err(format!("bio size limit exceeded: {}", bio.len()));
             }
+        }
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateKVInput {
+    pub upsert_kv: BTreeMap<String, ByteBuf>,
+    pub remove_kv: BTreeSet<String>,
+}
+
+impl UpdateKVInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.upsert_kv.is_empty() || self.remove_kv.is_empty() {
+            return Err("empty upsert_kv or remove_kv".to_string());
         }
         Ok(())
     }

@@ -197,6 +197,10 @@ export const idlFactory = ({ IDL }) => {
     'canister' : IDL.Principal,
   });
   const Result_6 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
+  const UpdateKVInput = IDL.Record({
+    'upsert_kv' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(IDL.Nat8))),
+    'remove_kv' : IDL.Vec(IDL.Text),
+  });
   return IDL.Service({
     'admin_add_canister' : IDL.Func(
         [CanisterKind, IDL.Principal],
@@ -250,6 +254,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'update_my_image' : IDL.Func([IDL.Text], [Result], []),
+    'update_my_kv' : IDL.Func([UpdateKVInput], [Result], []),
     'update_my_name' : IDL.Func([IDL.Text], [Result_3], []),
     'validate_admin_add_canister' : IDL.Func(
         [CanisterKind, IDL.Principal],

@@ -8,7 +8,10 @@ use ic_cose_types::types::{
         UpdateSettingPayloadInput,
     },
 };
-use ic_message_types::{profile::UserInfo, NameBlock};
+use ic_message_types::{
+    profile::{UpdateKVInput, UserInfo},
+    NameBlock,
+};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -16,7 +19,11 @@ use ic_stable_structures::{
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
-use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::{BTreeMap, BTreeSet},
+};
 
 use crate::{call, token_transfer_from, types};
 
@@ -343,6 +350,78 @@ pub mod user {
             )
             .await?;
         }
+        res
+    }
+
+    pub async fn update_my_kv(caller: Principal, input: UpdateKVInput) -> Result<(), String> {
+        let cose_canister = USER_STORE
+            .with(|r| r.borrow().get(&caller).map(|u| u.cose_canister))
+            .ok_or_else(|| "user not found".to_string())?;
+        let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
+        let mut sp = SettingPath {
+            ns: caller.to_text().replace("-", "_"),
+            user_owned: false,
+            subject: Some(caller),
+            key: b"KV".to_vec().into(),
+            version: 0,
+        };
+        let res: Result<SettingInfo, String> =
+            call(cose_canister, "setting_get_info", (sp.clone(),), 0).await?;
+        let res = match res {
+            Ok(info) => {
+                sp.version = info.version;
+                let mut payload: BTreeMap<String, ByteBuf> = info
+                    .payload
+                    .map(|p| from_reader(&p[..]).expect("failed to decode payload"))
+                    .unwrap_or_default();
+                if !input.remove_kv.is_empty() {
+                    payload.retain(|k, _| !input.remove_kv.contains(k));
+                }
+                if !input.upsert_kv.is_empty() {
+                    payload.extend(input.upsert_kv);
+                }
+
+                let res: Result<UpdateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_update_payload",
+                    (
+                        sp,
+                        UpdateSettingPayloadInput {
+                            payload: Some(to_cbor_bytes(&payload).into()),
+                            status: None,
+                            deprecate_current: None,
+                            dek: None,
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+            Err(_) => {
+                if !input.remove_kv.is_empty() {
+                    Err("cannot remove KV from non-existing setting".to_string())?;
+                }
+                let payload = to_cbor_bytes(&input.upsert_kv);
+                let res: Result<CreateSettingOutput, String> = call(
+                    cose_canister,
+                    "setting_create",
+                    (
+                        sp,
+                        CreateSettingInput {
+                            payload: Some(payload.into()),
+                            desc: None,
+                            status: None,
+                            tags: None,
+                            dek: None,
+                        },
+                    ),
+                    0,
+                )
+                .await?;
+                res.map(|_| ())
+            }
+        };
         res
     }
 
