@@ -327,7 +327,7 @@
         <IconCircleSpin />
       </span>
     </div>
-    {#if isManager}
+    {#if isManager && channelInfo._managers.length < 2}
       <p
         class="h-5 text-sm text-error-500 {leavingWord === channelInfo.name
           ? 'visible'

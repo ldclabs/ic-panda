@@ -44,7 +44,7 @@
   }
 </script>
 
-<div class="mt-4 max-w-4xl">
+<div class="mt-12 max-w-4xl px-4">
   <p class="text-lg font-normal antialiased">
     ICPanda Message is a decentralized end-to-end encrypted messaging
     application fully running on the <a
@@ -71,14 +71,19 @@
       manager leaves the channel, all messages in the channel are deleted.</li
     >
     <li
-      ><b>On-chain:</b> It operates entirely as a smart contract on the ICP blockchain,
-      controlled by ICPanda DAO, with fully open-source code. It is a trustworthy,
-      secure, verifiable, and unstoppable Web3 application.</li
+      ><b>On-chain:</b> It operates entirely as a smart contract on the ICP
+      blockchain, controlled by
+      <a
+        class="font-bold underline underline-offset-4"
+        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+        target="_blank">ICPanda DAO</a
+      >, with fully open-source code. It is a trustworthy, secure, verifiable,
+      and unstoppable Web3 application.</li
     >
   </ul>
 </div>
 <div
-  class="mt-8 flex max-w-4xl flex-row items-center justify-center gap-6 max-sm:flex-col *:max-sm:w-60"
+  class="mt-12 flex max-w-4xl flex-row items-center justify-center gap-6 max-sm:flex-col *:max-sm:w-60"
 >
   <button
     on:click={getStartedHandler}

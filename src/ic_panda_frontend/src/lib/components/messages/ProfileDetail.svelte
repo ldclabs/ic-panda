@@ -304,13 +304,13 @@
       </div>
     {/if}
     {#if isMe && $myFollowing.length > 0}
-      <div class="mt-4 flex w-full flex-col gap-4 p-8">
+      <div class="mt-4 flex w-full max-w-2xl flex-col gap-4">
         <div class="">
           <span class="text-sm opacity-50">Following</span>
         </div>
         <div class="!mt-0 space-y-2">
           {#each $myFollowing as member (member._id)}
-            <div class="grid grid-cols-[1fr_auto] items-center">
+            <div class="grid items-center gap-1 sm:grid-cols-[1fr_auto]">
               <div class="flex flex-row items-center space-x-2">
                 <Avatar initials={member.name} fill="fill-white" width="w-10" />
                 <span class="ml-1">{member.name}</span>
@@ -322,9 +322,9 @@
                   >
                 {/if}
               </div>
-              <div class="flex flex-row items-center space-x-2">
+              <div class="flex flex-row items-center justify-end space-x-2">
                 <button
-                  class="variant-soft-warning btn btn-sm"
+                  class="variant-ghost-warning btn btn-sm"
                   type="button"
                   disabled={followingSubmitting !== '' || !member.src}
                   on:click={() =>

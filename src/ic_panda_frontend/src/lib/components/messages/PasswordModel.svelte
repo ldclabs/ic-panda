@@ -123,13 +123,10 @@
     {#if !masterKey}
       <div class="space-y-2 rounded-xl bg-gray/5 p-4">
         <p class="text-gray/50">
-          <b>1.</b> The password is used only locally to derive the master key along
-          with remote key material; neither the password nor the derived key is stored
-          remotely.
-        </p>
-        <p class="text-gray/50">
-          <b>2.</b> By default, the hashed password is cached in the browser storage
-          for 7 days.
+          The password is used only locally to derive the master key along with
+          remote key material; neither the password nor the derived key is
+          stored remotely.<br />It is recommended to use simple and
+          easy-to-remember passwords.
         </p>
       </div>
     {/if}
@@ -164,7 +161,7 @@
     {/if}
     <label class="mt-2 flex items-center">
       <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
-      <p class="ml-2 text-sm text-gray/50">Cache password for 14 days</p>
+      <p class="ml-2 text-sm text-gray/50">Retain for 14 days</p>
     </label>
   </form>
   <footer class="m-auto !mt-4">
