@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -212,6 +213,7 @@
       } else {
         if (info.id.compareTo(myID) == 'eq') {
           if (
+            $page.params['channel'] == 'profile' &&
             info.username.length == 0 &&
             info.created_at < BigInt(Date.now() - 180 * 1000)
           ) {
@@ -356,7 +358,7 @@
     {/if}
   </section>
 {:else}
-  <div class="mt-16 self-center">
+  <div class="mt-16 grid justify-center">
     <span class="text-panda *:size-10"><Loading /></span>
   </div>
 {/if}

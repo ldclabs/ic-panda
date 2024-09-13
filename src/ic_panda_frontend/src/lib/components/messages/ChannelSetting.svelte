@@ -225,9 +225,9 @@
 </script>
 
 <div
-  class="grid h-[calc(100dvh-110px)] grid-rows-[auto_auto_1fr] items-start overflow-y-auto bg-gray/5 pb-10 sm:h-[calc(100dvh-140px)]"
+  class="h-[calc(100dvh-110px)] items-start overflow-y-auto bg-gray/5 pb-10 sm:h-[calc(100dvh-140px)]"
 >
-  <section class="mt-0 flex w-full flex-row items-center gap-4 self-start p-4">
+  <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     <Avatar
       initials={channelInfo.name}
       border="border-4 border-white"
@@ -255,7 +255,19 @@
       {/if}
     </div>
   </section>
-  <section class="space-y-2 p-4">
+  <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
+    <div class="flex flex-row items-center gap-1">
+      <span class="text-sm font-normal text-gray/50">Messages:</span>
+      <span class="font-bold text-panda"
+        >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
+      >
+    </div>
+    <div class="flex flex-row items-center gap-2">
+      <span class="text-sm font-normal text-gray/50">Gas Balance:</span>
+      <span class="font-bold text-panda">{channelInfo.gas}</span>
+    </div>
+  </section>
+  <section class="mt-4 space-y-2 px-4">
     <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
     <div class="flex flex-row items-center gap-4">
       <p>Mute notifications:</p>
@@ -311,11 +323,11 @@
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
       <div
-        class="input-group input-group-divider max-w-64 grid-cols-[1fr_auto] bg-gray/5"
+        class="input-group input-group-divider w-64 grid-cols-[1fr_80px] bg-gray/5"
       >
         <input
           type="text"
-          class="h-8 truncate border-gray/10 py-1 leading-8 invalid:input-warning hover:bg-white/90"
+          class="h-8 !w-36 truncate border-gray/10 py-1 leading-8 invalid:input-warning hover:bg-white/90"
           bind:value={leavingWord}
           placeholder="Enter channel name"
         />
@@ -342,7 +354,7 @@
       >
     {/if}
   </section>
-  <section class="p-4">
+  <section class="mt-4 px-4">
     <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
       <span class="text-sm opacity-50">Members</span>
       {#if isManager}

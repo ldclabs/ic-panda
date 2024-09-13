@@ -28,6 +28,8 @@ export const isVisible = () => {
   return visibilityState == null || visibilityState !== 'hidden'
 }
 
+export const isActive = () => isOnline() && isVisible()
+
 export const initFocus = (callback: () => void) => {
   if (isDocumentDefined) {
     document.addEventListener('visibilitychange', callback)
@@ -122,6 +124,8 @@ export function scrollOnHooks(
     inViewportHasClass?: string
   }
 ) {
+  if (!node) return noop
+
   const callTop = onTop && debounce(onTop, 618, { immediate: false })
   const callBottom = onBottom && debounce(onBottom, 618, { immediate: false })
   const callMoveUp = onMoveUp && debounce(onMoveUp, 618, { immediate: false })
@@ -191,6 +195,7 @@ export function scrollOnHooks(
     callMoveUp && callMoveUp.clear()
     callMoveDown && callMoveDown.clear()
     callInMoveUpViewport && callInMoveUpViewport.clear()
+    callInMoveDownViewport && callInMoveDownViewport.clear()
   }
 }
 

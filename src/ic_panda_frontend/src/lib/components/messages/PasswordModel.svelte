@@ -148,25 +148,8 @@
     class="m-auto !mt-4 flex flex-col content-center"
     on:input|preventDefault|stopPropagation={onFormChange}
   >
-    {#if isSetup}
-      <div class="space-y-2 rounded-xl bg-gray/5 p-4">
-        <p class="">
-          The password is used only locally to derive the master key with remote
-          key material; neither the password nor the derived key is stored
-          remotely.
-        </p>
-        <p class="">
-          It is recommended to use
-          <b>simple and easy-to-remember passwords</b>.
-        </p>
-        <p class="text-error-500">
-          If you forget the password, you will no longer be able to decrypt the
-          messages!
-        </p>
-      </div>
-    {/if}
     <input
-      class="input mt-4 truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
+      class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
       type="password"
       name="passwordInput1"
       minlength="6"
@@ -194,6 +177,24 @@
         ? 'invisible'
         : 'visiable'}">{passwordTip}</p
     >
+    {#if isSetup}
+      <hr class="!border-t-1 mx-[-24px] !border-dashed !border-gray/20" />
+      <div class="!mt-4 space-y-2 rounded-xl bg-gray/5 p-4">
+        <p class="">
+          <b>1.</b> The password is used only locally to derive the master key with
+          remote key material; neither the password nor the derived key is stored
+          remotely.
+        </p>
+        <p class="">
+          <b>2.</b> It is recommended to use
+          <b>simple and easy-to-remember passwords</b>.
+        </p>
+        <p class="text-error-500">
+          <b>3.</b> If you forget the password, you will no longer be able to decrypt
+          the messages!
+        </p>
+      </div>
+    {/if}
     <label class="mt-2 flex items-center">
       <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
       <p class="ml-2 text-sm text-gray/50">Retain for 14 days</p>

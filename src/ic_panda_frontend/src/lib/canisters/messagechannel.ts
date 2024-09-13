@@ -6,6 +6,7 @@ import {
   type ChannelInfo,
   type ChannelSetting,
   type Message,
+  type StateInfo,
   type UpdateChannelInput,
   type UpdateChannelMemberInput,
   type UpdateMySettingInput,
@@ -22,6 +23,7 @@ export {
   type ChannelInfo,
   type ChannelSetting,
   type Message,
+  type StateInfo,
   type UpdateChannelInput
 } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 
@@ -77,6 +79,11 @@ export class ChannelAPI {
     this.principal = principal
     this.canisterId = canister
     this.actor = actor
+  }
+
+  async get_state(): Promise<StateInfo> {
+    const res = await this.actor.get_state()
+    return unwrapResult(res, 'call get_state failed')
   }
 
   async add_message(input: AddMessageInput): Promise<AddMessageOutput> {

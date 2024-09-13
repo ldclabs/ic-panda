@@ -4,6 +4,7 @@
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
   import { toastRun } from '$lib/stores/toast'
+  import { isActive } from '$lib/utils/window'
   import {
     myMessageStateAsync,
     type ChannelBasicInfoEx,
@@ -45,7 +46,7 @@
           return
         }
 
-        myState.refreshMyChannels(signal)
+        isActive() && myState.refreshMyChannels(signal)
       }, 10000)
     }, toastStore)
     return abort

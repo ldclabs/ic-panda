@@ -13,7 +13,7 @@
     encodeCBOR,
     type AesGcmKey
   } from '$lib/utils/crypto'
-  import { scrollOnHooks } from '$lib/utils/window'
+  import { isActive, scrollOnHooks } from '$lib/utils/window'
   import {
     getCurrentTimeString,
     toDisplayUserInfo,
@@ -197,7 +197,8 @@
         canister,
         id,
         dek,
-        latestMessageId + 1
+        latestMessageId + 1,
+        isActive
       )
     }
   }
@@ -293,13 +294,13 @@
   <!-- Conversation -->
   <section
     bind:this={elemChat}
-    class="space-y-4 overflow-y-auto p-2 pb-10 md:p-4"
+    class="snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
   >
     <div class="grid justify-center">
       <span
         class="text-panda/50 transition duration-300 ease-out {topLoading
           ? 'visible scale-125'
-          : 'invisible scale-0'}"><Loading /></span
+          : 'invisible scale-50'}"><Loading /></span
       >
     </div>
     {#each $messageFeed as msg (msg.id)}
@@ -319,7 +320,7 @@
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card max-h-[600px] w-full overflow-auto rounded-tl-none border-none {msg.kind !==
+              class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tl-none border-none {msg.kind !==
                 1 && msg.id > lastRead
                 ? 'shadow-md shadow-gold'
                 : ''}  {msg.kind === 1
@@ -349,7 +350,7 @@
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card max-h-[600px] w-full overflow-auto rounded-tr-none border-none {msg.kind ===
+              class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tr-none border-none {msg.kind ===
               1
                 ? 'bg-transparent text-xs text-gray/60'
                 : 'bg-panda/20'}"

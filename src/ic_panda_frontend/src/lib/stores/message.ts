@@ -165,29 +165,7 @@ export class MyMessageState {
   static async with(identity: Identity): Promise<MyMessageState> {
     const api = await messageCanisterAPIAsync()
     const self = new MyMessageState(identity.getPrincipal(), api)
-    const now = Date.now()
-    self._myInfo = api.myInfo
-    if (!self._myInfo) {
-      self._myInfo = await self.getCacheUserInfo(now, self.principal)
-    }
-    if (self._myInfo) {
-      await self.setCacheUserInfo(now, self._myInfo)
-
-      const profileAPI = await api.profileAPI(self._myInfo.profile_canister)
-      await profileAPI.refreshMyProfile()
-      self._myProfile = profileAPI.myProfile
-      if (!self._myProfile) {
-        self._myProfile = await KVS.get<ProfileInfo>('My', `${self.id}:Profile`)
-      } else {
-        await KVS.set<ProfileInfo>('My', self._myProfile, `${self.id}:Profile`)
-      }
-
-      if (self._myInfo.cose_canister.length == 1) {
-        self._coseAPI = await api.coseAPI(self._myInfo.cose_canister[0])
-      }
-
-      self.loadMyKV()
-    }
+    self.refreshAllState(false)
     return self
   }
 
@@ -213,11 +191,34 @@ export class MyMessageState {
     return this._coseAPI != null ? 'ECDH' : 'Local'
   }
 
-  async refreshState(): Promise<void> {
-    await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])
-    const myInfo = this.api.myInfo
-    if (myInfo?.cose_canister.length == 1) {
-      this._coseAPI = await this.api.coseAPI(myInfo.cose_canister[0])
+  async refreshAllState(force: boolean = true): Promise<void> {
+    if (force) {
+      await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])
+    }
+    const now = Date.now()
+    this._myInfo = this.api.myInfo
+    if (!this._myInfo) {
+      this._myInfo = await this.getCacheUserInfo(now, this.principal)
+    }
+    if (this._myInfo) {
+      await this.setCacheUserInfo(now, this._myInfo)
+
+      const profileAPI = await this.api.profileAPI(
+        this._myInfo.profile_canister
+      )
+      await profileAPI.refreshMyProfile()
+      this._myProfile = profileAPI.myProfile
+      if (!this._myProfile) {
+        this._myProfile = await KVS.get<ProfileInfo>('My', `${this.id}:Profile`)
+      } else {
+        await KVS.set<ProfileInfo>('My', this._myProfile, `${this.id}:Profile`)
+      }
+
+      if (this._myInfo.cose_canister.length == 1) {
+        this._coseAPI = await this.api.coseAPI(this._myInfo.cose_canister[0])
+      }
+
+      this.loadMyKV()
     }
   }
 
@@ -264,11 +265,11 @@ export class MyMessageState {
       throw new Error('Too many master keys')
     }
 
-    const kv = await this.loadMyKV()
+    const pwdHash = await this.getPasswordHash()
     const mk = await MasterKey.from(
       this.principal,
       kind,
-      kv.get(PWD_HASH_KEY) || null,
+      pwdHash,
       password,
       this.id,
       remoteSecret,
@@ -320,10 +321,10 @@ export class MyMessageState {
     const mKey = mk.toA256GCMKey()
     const nmKey = newMK.toA256GCMKey()
     for (const ch of channels) {
-      const encrypted0 = await KVS.get<Uint8Array>(
-        'Keys',
-        `${this.id}:${ch.canister.toText()}:${ch.id}:KEK`
-      )
+      const encrypted0 = await await this.loadChannelKEK(
+        ch.canister,
+        ch.id
+      ).catch((e) => null)
       if (!encrypted0) {
         continue
       }
@@ -451,32 +452,28 @@ export class MyMessageState {
     let kv = await KVS.get<Map<string, Uint8Array>>('My', `${this.id}:KV`)
 
     if (kv) {
-      console.log('loadMyKV cached', kv)
       return kv
     }
 
-    if (!this._coseAPI) {
-      throw new Error('COSE API not available')
-    }
+    if (this._coseAPI) {
+      const ns = this.id.replaceAll('-', '_')
+      const output = await this._coseAPI
+        .setting_get({
+          ns,
+          key: utf8ToBytes('KV'),
+          subject: [this.principal],
+          version: 0,
+          user_owned: false
+        })
+        .catch((e) => null)
 
-    const ns = this.id.replaceAll('-', '_')
-    const output = await this._coseAPI
-      .setting_get({
-        ns,
-        key: utf8ToBytes('KV'),
-        subject: [this.principal],
-        version: 0,
-        user_owned: false
-      })
-      .catch((e) => null)
+      if (output?.payload.length === 1) {
+        kv = decodeCBOR(output.payload[0] as Uint8Array)
+      }
 
-    if (output?.payload.length === 1) {
-      kv = decodeCBOR(output.payload[0] as Uint8Array)
-    }
-
-    console.log('loadMyKV', kv, output)
-    if (kv) {
-      await KVS.set<Map<string, Uint8Array>>('My', kv, `${this.id}:KV`)
+      if (kv) {
+        await KVS.set<Map<string, Uint8Array>>('My', kv, `${this.id}:KV`)
+      }
     }
 
     return kv || new Map<string, Uint8Array>()
@@ -488,13 +485,12 @@ export class MyMessageState {
   }
 
   async savePasswordHash(hash: Uint8Array): Promise<void> {
-    if (!this._coseAPI) {
-      throw new Error('COSE API not available')
+    if (this._coseAPI) {
+      await this.api.update_my_kv({
+        upsert_kv: [[PWD_HASH_KEY, hash]],
+        remove_kv: []
+      })
     }
-    await this.api.update_my_kv({
-      upsert_kv: [[PWD_HASH_KEY, hash]],
-      remove_kv: []
-    })
   }
 
   async decryptChannelDEK(info: ChannelInfoEx): Promise<AesGcmKey> {
@@ -713,6 +709,7 @@ export class MyMessageState {
     for (const [member, [_, remote]] of channel.ecdh_request) {
       ecdh_request.set(member.toText(), remote.length > 0 ? 2 : 1)
     }
+
     const myInfo = toDisplayUserInfo(me) as DisplayUserInfoEx
     myInfo.is_manager = channel._managers.includes(myInfo._id)
     myInfo.ecdh_request = ecdh_request.get(myInfo._id) || 0
@@ -931,10 +928,10 @@ export class MyMessageState {
 
   async loadMyProfile(): Promise<UserInfo & ProfileInfo> {
     if (!this._myInfo) {
-      throw new Error('My user info not ready')
+      throw new Error('User info not ready')
     }
     if (!this._myProfile) {
-      throw new Error('My profile info not ready')
+      throw new Error('Profile info not ready')
     }
 
     return { ...this._myInfo, ...this._myProfile }
@@ -1125,7 +1122,8 @@ export class MyMessageState {
     canister: Principal,
     channelId: number,
     dek: AesGcmKey,
-    messageId: number
+    messageId: number,
+    isActive: () => boolean
   ): Promise<Readable<MessageInfo | null>> {
     const api = await this.api.channelAPI(canister)
     let message = await KVS.get<MessageCacheInfo>('Messages', [
@@ -1140,34 +1138,35 @@ export class MyMessageState {
     return readable(info, (set) => {
       let stopped = false
       let timer: any = null
-      const task = () => {
-        api.list_messages(channelId, latestMessageId).then(async (msgs) => {
-          if (msgs.length > 0) {
-            for (const msg of msgs) {
-              latestMessageId = msg.id + 1
-              await KVS.set<MessageCacheInfo>('Messages', {
-                ...msg,
-                canister,
-                channel: channelId
-              })
-            }
-            const infos = await this.messagesToInfo(
+      const task = async () => {
+        const msgs = isActive()
+          ? await api.list_messages(channelId, latestMessageId)
+          : []
+        if (msgs.length > 0) {
+          for (const msg of msgs) {
+            latestMessageId = msg.id + 1
+            await KVS.set<MessageCacheInfo>('Messages', {
+              ...msg,
               canister,
-              channelId,
-              dek,
-              msgs
-            )
-
-            for (const info of infos) {
-              await Promise.resolve()
-              set(info)
-            }
-
-            timer = !stopped && setTimeout(task, 3000)
-          } else {
-            timer = !stopped && setTimeout(task, 7000)
+              channel: channelId
+            })
           }
-        })
+          const infos = await this.messagesToInfo(
+            canister,
+            channelId,
+            dek,
+            msgs
+          )
+
+          for (const info of infos) {
+            await Promise.resolve()
+            set(info)
+          }
+
+          timer = !stopped && setTimeout(task, 3000)
+        } else {
+          timer = !stopped && setTimeout(task, 7000)
+        }
       }
 
       task()

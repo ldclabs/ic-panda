@@ -8,7 +8,7 @@
   import { authStore } from '$lib/stores/auth'
   import { shortId } from '$lib/utils/auth'
   import { formatNumber, ICPToken, PANDAToken } from '$lib/utils/token'
-  import { isOnline, isVisible } from '$lib/utils/window'
+  import { isActive } from '$lib/utils/window'
   import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -74,7 +74,7 @@
 
       while (interval) {
         await new Promise((res) => setTimeout(res, ms))
-        if (isOnline() && isVisible()) {
+        if (isActive()) {
           await luckyPoolAPI?.refreshAllState()
         }
       }

@@ -152,7 +152,7 @@
         maxHeight="120"
         class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
         name="descriptionInput"
-        placeholder="Channel description..."
+        placeholder="Channel description (not encrypted)..."
       />
     </div>
     <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />
@@ -165,14 +165,7 @@
         <b>2.</b> A channel can have up to 5 managers and 100 members.
       </p>
       <p class="text-gray/50">
-        <b>3.</b> The channel can store up to 10,000 messages. Once the limit is
-        reached, old messages must be deleted to send new ones.
-      </p>
-      <p class="text-gray/50">
-        <b>4.</b> Each message can be up to 32 KB in size.
-      </p>
-      <p class="text-gray/50">
-        <b>5.</b> Managers can only remove regular members, not other managers. If
+        <b>3.</b> Managers can only remove regular members, not other managers. If
         the last manager leaves, the channel and all messages will be deleted.
       </p>
     </div>
