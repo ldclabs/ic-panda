@@ -108,6 +108,7 @@ async function handle(api: MessageCanisterAPI) {
       unread_channels_total += 1
       if (
         !info.my_setting.mute &&
+        info.latest_message_by.compareTo(api.principal) !== 'eq' &&
         info.latest_message_by.toText() != MESSAGE_CANISTER_ID &&
         (!latest_unread_channel ||
           latest_unread_channel.latest_message_at < info.latest_message_at)

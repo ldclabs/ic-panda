@@ -34,11 +34,14 @@
   const toastStore = getToastStore()
   const { canister, id } = channelInfo
 
-  let messageFeed: Writable<MessageInfo[]> = writable([])
+  type MessageInfoEx = MessageInfo & { pid?: number }
+
+  let messageFeed: Writable<MessageInfoEx[]> = writable([])
   let latestMessage: Readable<MessageInfo | null>
   let elemChat: HTMLElement
   let dek: AesGcmKey
   let channelAPI: ChannelAPI
+  let PendingMessageId = 0xffff0000
 
   // Messages
   let submitting = false
@@ -52,16 +55,21 @@
     return msgs
   }
 
-  function addMessageInfos(infos: MessageInfo[]) {
+  function addMessageInfos(infos: MessageInfoEx[]) {
     messageFeed.update((prev) => {
       if (infos.length === 0) {
         return prev
       }
-      const rt: MessageInfo[] = [...prev]
+      const rt: MessageInfoEx[] = [...prev]
       for (const info of infos) {
         let found = false
+        const pid = info.pid || 0
         for (let i = 0; i < rt.length; i++) {
-          if (rt[i]!.id === info.id) {
+          if (pid > 0 && pid === rt[i]!.pid) {
+            rt[i] = info
+            found = true
+            break
+          } else if (info.id === rt[i]!.id) {
             rt[i] = info
             found = true
             break
@@ -109,27 +117,33 @@
           new Uint8Array()
         )
       }
+      PendingMessageId += 1
+      const msg: MessageInfoEx = {
+        id: PendingMessageId,
+        reply_to: 0,
+        kind: 0,
+        created_by: myState.principal,
+        created_time: getCurrentTimeString(Date.now()),
+        created_user: toDisplayUserInfo($myInfo),
+        canister: canister,
+        channel: id,
+        message: newMessage,
+        error: '',
+        pid: PendingMessageId
+      }
+      newMessage = ''
+      addMessageInfos([msg])
+      await tick()
+      scrollIntoView(msg.id, 'smooth')
 
       const res = await channelAPI.add_message(input)
-      addMessageInfos([
-        {
-          id: res.id,
-          reply_to: 0,
-          kind: res.kind,
-          created_by: myState.principal,
-          created_time: getCurrentTimeString(res.created_at),
-          created_user: toDisplayUserInfo($myInfo),
-          canister: canister,
-          channel: id,
-          message: newMessage,
-          error: ''
-        } as MessageInfo
-      ])
+      msg.id = res.id
+      delete msg.pid
+      msg.created_time = getCurrentTimeString(res.created_at)
+      addMessageInfos([msg])
 
-      newMessage = ''
       submitting = false
       await sleep(314)
-      scrollIntoView(res.id, 'smooth')
     }, toastStore).finally(() => {
       submitting = false
     })
@@ -212,7 +226,8 @@
 
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
-        lastRead = channelInfo.my_setting.last_read
+        lastRead = Math.min(channelInfo.my_setting.last_read, latestMessageId)
+
         if (!lastRead) {
           lastRead = latestMessageId
         }
@@ -224,9 +239,12 @@
 
         await loadNextMessages(lastRead + 1)
         // no scroll
-        if (elemChat.scrollTop == 0) {
-          lastRead = $messageFeed.at(-1)!.id
-          debouncedUpdateMyLastRead()
+        if (elemChat?.scrollTop == 0) {
+          const msg = $messageFeed.at(-1)!
+          if (msg.id > lastRead && msg.id !== msg.pid) {
+            lastRead = msg.id
+            debouncedUpdateMyLastRead()
+          }
         }
       } else {
         goto('/_/messages')
@@ -255,7 +273,7 @@
         const messageId = parseInt(mid || '')
 
         if (messageId > lastRead) {
-          lastRead = messageId
+          lastRead = Math.min(messageId, latestMessageId)
           myState.freshMyChannelSetting(canister, id, { last_read: messageId })
           myState.informMyChannelsStream()
           debouncedUpdateMyLastRead()
@@ -279,9 +297,12 @@
       latestMessageId = info.id
       addMessageInfos([info])
       tick().then(() => {
-        if (elemChat.scrollTop == 0) {
-          lastRead = $messageFeed.at(-1)!.id
-          debouncedUpdateMyLastRead()
+        if (elemChat?.scrollTop == 0) {
+          const msg = $messageFeed.at(-1)!
+          if (msg.id > lastRead && msg.id !== msg.pid) {
+            lastRead = msg.id
+            debouncedUpdateMyLastRead()
+          }
         }
       })
     }
@@ -350,7 +371,7 @@
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tr-none border-none {msg.kind ===
+              class="card relative max-h-[600px] min-h-12 w-full rounded-tr-none border-none {msg.kind ===
               1
                 ? 'bg-transparent text-xs text-gray/60'
                 : 'bg-panda/20'}"
@@ -361,7 +382,15 @@
                   >{msg.error}</p
                 >
               {:else}
-                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
+                <pre
+                  class="w-full overflow-auto overscroll-auto text-pretty px-4 py-2"
+                  >{msg.message}</pre
+                >
+              {/if}
+              {#if submitting && msg.pid}
+                <span class="absolute -right-7 top-7 text-panda *:size-5"
+                  ><IconCircleSpin /></span
+                >
               {/if}
             </div>
           </div>

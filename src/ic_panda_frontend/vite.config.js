@@ -83,7 +83,7 @@ export default defineConfig({
         injectionPoint: 'self.__WB_MANIFEST'
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         suppressWarnings: process.env.SUPPRESS_WARNING === 'true',
         type: 'module',
         navigateFallback: '/'

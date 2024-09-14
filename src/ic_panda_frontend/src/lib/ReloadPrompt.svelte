@@ -3,8 +3,8 @@
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const toastStore = getToastStore()
-  const minInterval = 10 * 1000
-  const maxInterval = 10 * 60 * 1000
+  const minInterval = 20 * 1000
+  const maxInterval = 20 * 60 * 1000
 
   const { needRefresh, updateServiceWorker } = useRegisterSW({
     onRegistered(r) {

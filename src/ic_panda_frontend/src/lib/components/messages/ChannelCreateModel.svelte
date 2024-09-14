@@ -17,7 +17,11 @@
     type MyMessageState
   } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    focusTrap,
+    getModalStore,
+    getToastStore
+  } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -130,6 +134,7 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     on:input|preventDefault|stopPropagation={onFormChange}
+    use:focusTrap={true}
   >
     <div class="relative">
       <input
@@ -142,6 +147,7 @@
         bind:value={nameInput}
         disabled={submitting}
         placeholder="Channel name"
+        data-focusindex="0"
         required
       />
     </div>
@@ -153,6 +159,7 @@
         class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
         name="descriptionInput"
         placeholder="Channel description (not encrypted)..."
+        data-focusindex="1"
       />
     </div>
     <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />

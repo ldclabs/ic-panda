@@ -16,7 +16,7 @@ import {
   type ProfileInfo,
   type UpdateProfileInput
 } from '$lib/canisters/messageprofile'
-import { MESSAGE_CANISTER_ID } from '$lib/constants'
+import { MASTER_KEY_ID, MESSAGE_CANISTER_ID } from '$lib/constants'
 import { unwrapOption } from '$lib/types/result'
 import {
   AesGcmKey,
@@ -53,9 +53,10 @@ import {
 
 const usersCacheExp = 2 * 3600 * 1000
 const PWD_HASH_KEY = 'pwd_hash'
-const KEY_ID = encodeCBOR('ICPanda_Messages_Master_Key')
+const KEY_ID = encodeCBOR(MASTER_KEY_ID)
 
-export function getCurrentTimeString(ts: bigint): string {
+export const MAX_MESSAGE_ID = 0xffffffff
+export function getCurrentTimeString(ts: bigint | number): string {
   const now = Date.now()
   const t = Number(ts)
   if (t >= now - 24 * 3600 * 1000) {
@@ -802,7 +803,7 @@ export class MyMessageState {
     await KVS.delete('My', myChannelKey(this.id, canister.toText(), id))
     await KVS.delete(
       'Messages',
-      IDBKeyRange.bound([...key, 0], [...key, 4294967295], false, true)
+      IDBKeyRange.bound([...key, 0], [...key, MAX_MESSAGE_ID], false, true)
     )
     this.informMyChannelsStream()
   }
@@ -1204,26 +1205,27 @@ export class MyMessageState {
       if ((cursor.key as [Uint8Array, number, number])[2] !== i) {
         break
       }
-      i += 1
       messages.push(cursor.value)
+      i += 1
     }
-
     if (i < end) {
       let items = (await api.list_messages(
         channelId,
         i,
         end
       )) as MessageCacheInfo[]
-      items = items.map((msg) => {
-        return {
-          ...msg,
-          canister,
-          channel: channelId
-        }
-      })
+      if (items.length > 0) {
+        items = items.map((msg) => {
+          return {
+            ...msg,
+            canister,
+            channel: channelId
+          }
+        })
 
-      await KVS.setMany<MessageCacheInfo>('Messages', items)
-      messages = [...messages, ...items]
+        await KVS.setMany<MessageCacheInfo>('Messages', items)
+        messages = [...messages, ...items]
+      }
     }
 
     return await this.messagesToInfo(canister, channelId, dek, messages)

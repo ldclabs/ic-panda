@@ -4,7 +4,11 @@
   import { toastRun } from '$lib/stores/toast'
   import { randomBytes } from '$lib/utils/crypto'
   import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    focusTrap,
+    getModalStore,
+    getToastStore
+  } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -147,6 +151,7 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     on:input|preventDefault|stopPropagation={onFormChange}
+    use:focusTrap={true}
   >
     <input
       class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
@@ -157,6 +162,7 @@
       bind:value={passwordInput1}
       disabled={submitting}
       placeholder="Enter password"
+      data-focusindex="0"
       required
     />
     {#if isSetup}
@@ -169,6 +175,7 @@
         bind:value={passwordInput2}
         disabled={submitting}
         placeholder="Enter password again"
+        data-focusindex="1"
         required
       />
     {/if}

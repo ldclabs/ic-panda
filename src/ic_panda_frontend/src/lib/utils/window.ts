@@ -32,8 +32,9 @@ export const isActive = () => isOnline() && isVisible()
 export const initFocus = (callback: () => void) => {
   if (isDocumentDefined) {
     document.addEventListener('visibilitychange', callback)
+  } else {
+    onWindowEvent('focus', callback)
   }
-  onWindowEvent('focus', callback)
   return () => {
     if (isDocumentDefined) {
       document.removeEventListener('visibilitychange', callback)

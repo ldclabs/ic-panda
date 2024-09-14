@@ -17,7 +17,11 @@
   } from '$src/lib/stores/message'
   import { sleep } from '$src/lib/utils/helper'
   import { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    focusTrap,
+    getModalStore,
+    getToastStore
+  } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -200,7 +204,8 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    on:input|preventDefault|stopPropagation={onFormChange}
+    use:focusTrap={true}
   >
     <div class="relative">
       <input
@@ -213,6 +218,7 @@
         bind:value={nameInput}
         disabled={submitting}
         placeholder="Display name"
+        data-focusindex="1"
         required
       />
     </div>
@@ -266,6 +272,7 @@
         on:input={onSearchUsername}
         disabled={submitting || (editMode && username != '')}
         placeholder="https://panda.fans/{username || '[username]'}"
+        data-focusindex="0"
       />
       <div class="absolute right-1 top-0 h-10 text-sm leading-10">
         {#if existUsernames.includes(usernameInput.trim())}

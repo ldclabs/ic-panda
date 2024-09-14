@@ -22,7 +22,6 @@
 
   async function initState() {
     myState = await myMessageStateAsync()
-    await myState.refreshAllState()
     myInfo = myState.info
     myInfo_ = myInfo as Readable<UserInfo>
     if ($myInfo) {

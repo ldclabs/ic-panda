@@ -489,6 +489,10 @@ pub mod channel {
                     };
 
                     if let Some(last_read) = input.last_read {
+                        if last_read > v.latest_message_id {
+                            Err("last_read too large".to_string())?;
+                        }
+
                         if last_read > setting.last_read {
                             setting.last_read = last_read;
                             setting.unread = 0;
