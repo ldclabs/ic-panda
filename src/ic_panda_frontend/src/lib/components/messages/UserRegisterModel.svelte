@@ -53,7 +53,6 @@
   let usernameInput = ''
   let usernameErr = ''
   let amount = 0n
-  let result: UserInfo | null = null
   let existUsernames: string[] = []
 
   function checkName() {
@@ -85,16 +84,17 @@
         return
       }
 
+      let user: UserInfo
       if (!usernameInput) {
-        result = await myState.api.update_my_name(nameInput)
+        user = await myState.api.update_my_name(nameInput)
       } else {
         await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
-        result = await myState.api.register_username(usernameInput, nameInput)
+        user = await myState.api.register_username(usernameInput, nameInput)
       }
+      await myState.setCacheUserInfo(Date.now(), user)
 
       await sleep(618)
-      await myState.refreshAllState()
-
+      await myState.refreshAllState(false)
       const mk = await myState.masterKey()
       if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
         modalStore.close()

@@ -160,9 +160,9 @@ export class MyMessageState {
         this.setCacheUserInfo(Date.now(), $info)
         set($info)
       } else {
-        KVS.get<UserInfo>('Users', this.id).then((info) => {
-          if (info) {
-            set(info)
+        KVS.get<[number, UserInfo]>('Users', this.id).then((rt) => {
+          if (rt) {
+            set(rt[1])
           }
         })
       }
@@ -177,9 +177,11 @@ export class MyMessageState {
     if (force) {
       await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])
     }
+    if (this.principal.isAnonymous()) return
+
     const now = Date.now()
     this._myInfo = this.api.myInfo
-    if (!this._myInfo && !this.principal.isAnonymous()) {
+    if (!this._myInfo) {
       this._myInfo = await this.getCacheUserInfo(now, this.principal)
     }
     if (this._myInfo) {
@@ -1319,7 +1321,7 @@ export class MyMessageState {
     return rt
   }
 
-  private async getCacheUserInfo(
+  async getCacheUserInfo(
     now: number,
     user: Principal | string
   ): Promise<UserInfo | null> {
@@ -1342,7 +1344,7 @@ export class MyMessageState {
     return info && now - ts < usersCacheExp ? info : null
   }
 
-  private async setCacheUserInfo(now: number, info: UserInfo) {
+  async setCacheUserInfo(now: number, info: UserInfo) {
     await KVS.set<[number, UserInfo]>('Users', [now, info], info.id.toText())
 
     if (info.username.length == 1) {

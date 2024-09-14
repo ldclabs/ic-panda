@@ -3,10 +3,10 @@
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const toastStore = getToastStore()
-  const minInterval = 20 * 1000
-  const maxInterval = 20 * 60 * 1000
+  const minInterval = 60 * 1000
+  const maxInterval = 60 * 60 * 1000
 
-  const { needRefresh, updateServiceWorker } = useRegisterSW({
+  const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW({
     onRegistered(r) {
       if (r) {
         let i = 0
@@ -27,9 +27,8 @@
   })
 
   function close(res: { id: string; status: 'queued' | 'closed' }) {
-    if (res.status === 'closed') {
-      needRefresh.set(false)
-    }
+    offlineReady.set(false)
+    needRefresh.set(false)
   }
 
   $: {
