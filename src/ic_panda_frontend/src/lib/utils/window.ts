@@ -1,4 +1,3 @@
-import { browser } from '$app/environment'
 import { isNullish } from '@dfinity/utils'
 import debounce from 'debounce'
 
@@ -70,10 +69,6 @@ export const popupCenter = ({
   width: number
   height: number
 }): string => {
-  if (!browser) {
-    return ''
-  }
-
   if (isNullish(window) || isNullish(window.top)) {
     return ''
   }

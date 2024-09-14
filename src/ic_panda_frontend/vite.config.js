@@ -41,7 +41,7 @@ export default defineConfig({
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
     SvelteKitPWA({
-      srcDir: './src',
+      srcDir: 'src',
       mode: 'production',
       strategies: 'injectManifest',
       // registerType: 'prompt',
@@ -79,10 +79,11 @@ export default defineConfig({
         globPatterns: [
           'client/**/*.{js,json,css,ico,png,jpg,svg,webp,woff,woff2,xml}',
           'prerendered/**/*.html'
-        ]
+        ],
+        injectionPoint: 'self.__WB_MANIFEST'
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
         suppressWarnings: process.env.SUPPRESS_WARNING === 'true',
         type: 'module',
         navigateFallback: '/'
@@ -90,9 +91,13 @@ export default defineConfig({
       // if you have shared info in svelte config file put in a separate module and use it also here
       kit: {
         includeVersionFile: true
-      }
+      },
+      injectRegister: false // 禁用自动注册
     })
   ],
+  worker: {
+    format: 'es' // 确保 worker 使用 ES 模块格式
+  },
   test: {
     environment: 'jsdom',
     setupFiles: 'src/setupTests.js'

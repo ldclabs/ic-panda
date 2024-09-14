@@ -172,6 +172,13 @@
 
   <!-- LINKS_PRELOADER -->
 </head>
+<script type="module">
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js', { type: 'module' })
+      .then((registration) => console.log('Service Worker registered with scope:', registration.scope))
+      .catch((error) => console.error('Service Worker registration failed:', error));
+  }
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZDR50SVZ2P"></script>
 <script>

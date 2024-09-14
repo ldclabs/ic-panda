@@ -29,7 +29,6 @@
     TokenDisplay
   } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
-  import { LottiePlayer } from '@lottiefiles/svelte-lottie-player'
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -150,21 +149,6 @@
 
 <ModalCard {parent}>
   {#if result}
-    <div
-      class="absolute left-0 right-0 top-0 *:m-auto"
-      bind:this={lottiePlayerRef}
-    >
-      <LottiePlayer
-        src="/_assets/animations/celebrate.json"
-        autoplay={true}
-        loop={false}
-        controls={false}
-        renderer="svg"
-        background="transparent"
-        height={360}
-        width={360}
-      />
-    </div>
     <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>

@@ -14,8 +14,15 @@
       "vite-plugin-pwa/svelte",
       "vite/client",
       "@testing-library/jest-dom"
-    ]
+    ],
+    "allowJs": true,
+    "checkJs": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true
   },
   "extends": ["../../tsconfig.json", "./.svelte-kit/tsconfig.json"],
-  "include": ["src", "./node_modules/@sveltejs/kit/types/ambient-modules.d.ts"]
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "vite-env.d.ts", "./node_modules/@sveltejs/kit/types/ambient-modules.d.ts"]
 }
