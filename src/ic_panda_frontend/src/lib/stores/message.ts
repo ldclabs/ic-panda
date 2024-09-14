@@ -34,7 +34,6 @@ import {
   randomBytes,
   utf8ToBytes
 } from '$lib/utils/crypto'
-import { KVStore } from '$lib/utils/store'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import {
@@ -45,30 +44,12 @@ import {
   type Readable
 } from 'svelte/store'
 import { asyncFactory } from './auth'
-
-const KVS = new KVStore('ICPanda', 1, [
-  ['My'],
-  ['Keys'],
-  ['Users'],
-  [
-    'Profiles',
-    {
-      keyPath: '_id'
-    }
-  ],
-  [
-    'Channels',
-    {
-      keyPath: ['_canister', 'id']
-    }
-  ],
-  [
-    'Messages',
-    {
-      keyPath: ['_canister', 'channel', 'id']
-    }
-  ]
-])
+import {
+  KEY_REFRESH_MY_CHANNELS_AT,
+  KVS,
+  myChannelKey,
+  myChannelsRange
+} from './kvstore'
 
 const usersCacheExp = 2 * 3600 * 1000
 const PWD_HASH_KEY = 'pwd_hash'
@@ -751,9 +732,9 @@ export class MyMessageState {
 
   private async initMyChannels(): Promise<void> {
     if (this._myChannels.size == 0) {
-      const channels =
-        (await KVS.get<ChannelBasicInfo[]>('My', `${this.id}:Channels`)) || []
-      for (const info of channels) {
+      const iter = await KVS.iterate('My', myChannelsRange(this.id))
+      for await (const cursor of iter) {
+        const info = cursor.value as ChannelBasicInfo
         this._myChannels.set(`${info.canister.toText()}:${info.id}`, info)
       }
     }
@@ -773,12 +754,9 @@ export class MyMessageState {
     return (setting as ChannelSetting) || null
   }
 
-  async informMyChannelsStream(save = true): Promise<void> {
+  informMyChannelsStream(): void {
     const channels = Array.from(this._myChannels.values())
     channels.sort(ChannelAPI.compareChannels)
-    if (save) {
-      await KVS.set<ChannelBasicInfo[]>('My', channels, `${this.id}:Channels`)
-    }
     this._myChannelsStream.set(channels)
   }
 
@@ -790,7 +768,7 @@ export class MyMessageState {
       info.id,
       info.my_setting
     )!
-    this._myChannels.set(`${info.canister.toText()}:${info.id}`, {
+    const basic: ChannelBasicInfo = {
       id: info.id,
       gas: info.gas,
       updated_at: info.updated_at,
@@ -802,10 +780,16 @@ export class MyMessageState {
       latest_message_by: info.latest_message_by,
       latest_message_id: info.latest_message_id,
       my_setting: info.my_setting
-    })
+    }
+    this._myChannels.set(`${info.canister.toText()}:${info.id}`, basic)
 
     await KVS.set<ChannelModel>('Channels', { ...info, _get_by: this.id })
-    await this.informMyChannelsStream()
+    await KVS.set(
+      'My',
+      basic,
+      myChannelKey(this.id, info.canister.toText(), info.id)
+    )
+    this.informMyChannelsStream()
   }
 
   async removeMyChannel(canister: Principal, id: number): Promise<void> {
@@ -815,11 +799,12 @@ export class MyMessageState {
 
     const key = [canister.toUint8Array(), id]
     await KVS.delete('Channels', key)
+    await KVS.delete('My', myChannelKey(this.id, canister.toText(), id))
     await KVS.delete(
       'Messages',
       IDBKeyRange.bound([...key, 0], [...key, 4294967295], false, true)
     )
-    await this.informMyChannelsStream()
+    this.informMyChannelsStream()
   }
 
   async refreshMyChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
@@ -851,17 +836,22 @@ export class MyMessageState {
     }
 
     await this.initMyChannels()
-    const ids: Principal[] = [
+    const canisters: Principal[] = [
       ...state.channel_canisters,
       ...state.matured_channel_canisters
     ]
 
+    await await KVS.set<number>(
+      'My',
+      Date.now(),
+      this.id + KEY_REFRESH_MY_CHANNELS_AT
+    )
     await Promise.all(
-      ids.map(async (id) => {
-        const api = await this.api.channelAPI(id)
+      canisters.map(async (canister) => {
+        const api = await this.api.channelAPI(canister)
 
         let latest_message_at = 0n
-        const prefix = id.toText()
+        const prefix = canister.toText()
         for (const [key, info] of this._myChannels) {
           if (key.startsWith(prefix)) {
             if (latest_message_at < info.latest_message_at) {
@@ -883,10 +873,15 @@ export class MyMessageState {
               channel.my_setting
             )!
             this._myChannels.set(`${prefix}:${channel.id}`, channel)
+            await KVS.set(
+              'My',
+              channel,
+              myChannelKey(this.id, prefix, channel.id)
+            )
           }
         }
 
-        await this.informMyChannelsStream(channels.length > 0)
+        await this.informMyChannelsStream()
       })
     )
   }

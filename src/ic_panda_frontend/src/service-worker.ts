@@ -6,6 +6,7 @@ import {
   precacheAndRoute,
   type PrecacheEntry
 } from 'workbox-precaching'
+import { notifyd } from './lib/services/notification.sw'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -22,3 +23,5 @@ if (indexHtml) {
 }
 precacheAndRoute(precaches)
 cleanupOutdatedCaches()
+
+notifyd()

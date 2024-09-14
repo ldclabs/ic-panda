@@ -119,10 +119,8 @@ export class ChannelAPI {
     return unwrapResult(res, 'call list_messages failed')
   }
 
-  async my_channels(
-    latest_message_at: bigint = 0n
-  ): Promise<ChannelBasicInfo[]> {
-    const res = await this.actor.my_channels_if_update([latest_message_at])
+  async my_channels(updated_at: bigint = 0n): Promise<ChannelBasicInfo[]> {
+    const res = await this.actor.my_channels_if_update([updated_at])
     return unwrapResult(res, 'call my_channels_if_update failed')
   }
 

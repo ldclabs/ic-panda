@@ -8,7 +8,9 @@
   import Loading from '$lib/components/ui/Loading.svelte'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
+  import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
+  import { KEY_NOTIFY_PERM, KVS } from '$src/lib/stores/kvstore'
   import {
     myMessageStateAsync,
     toDisplayUserInfo,
@@ -17,7 +19,12 @@
   } from '$src/lib/stores/message'
   import { unwrapOption } from '$src/lib/types/result'
   import { Principal } from '@dfinity/principal'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    Avatar,
+    getModalStore,
+    getToastStore,
+    SlideToggle
+  } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import {
     readable,
@@ -39,6 +46,7 @@
   let myState: MyMessageState
   let userInfo: Readable<UserInfo & ProfileInfo>
   let myInfo: (UserInfo & ProfileInfo) | null = null
+  let grantedNotification = Notification.permission === 'granted'
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
@@ -202,6 +210,21 @@
     }
   }
 
+  async function onRequestNotifications() {
+    await sleep(1000)
+    if (grantedNotification) {
+      if (Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission()
+        grantedNotification = perm === 'granted'
+        await KVS.set<string>('My', perm, myID.toText() + KEY_NOTIFY_PERM)
+      } else {
+        await KVS.set<string>('My', 'granted', myID.toText() + KEY_NOTIFY_PERM)
+      }
+    } else {
+      await KVS.set<string>('My', 'denied', myID.toText() + KEY_NOTIFY_PERM)
+    }
+  }
+
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(
       () => loadProfile(userId),
@@ -224,6 +247,13 @@
                 props: {}
               }
             })
+          }
+          const perm = await KVS.get<string>(
+            'My',
+            myID.toText() + KEY_NOTIFY_PERM
+          )
+          if (perm === 'denied') {
+            grantedNotification = false
           }
           await loadMyFollowing()
         } else {
@@ -303,6 +333,20 @@
         >
           <span>Message</span>
         </button>
+      </div>
+    {:else}
+      <div class="mt-4 flex w-full flex-col">
+        <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
+        <div class="flex flex-row items-center gap-4">
+          <p>Notifications:</p>
+          <SlideToggle
+            name="setting-mute"
+            active="bg-panda"
+            size="sm"
+            bind:checked={grantedNotification}
+            on:click={onRequestNotifications}
+          />
+        </div>
       </div>
     {/if}
     {#if isMe && $myFollowing.length > 0}

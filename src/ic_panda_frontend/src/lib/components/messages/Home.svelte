@@ -24,8 +24,9 @@
 
   function getStartedHandler() {
     toastRun(async () => {
-      if (myState?.principal.isAnonymous()) {
+      if (!myState || myState.principal.isAnonymous()) {
         const res = await signIn({})
+        myState = await myMessageStateAsync()
         myInfo = myState.info
         if (!$myInfo && res.success == 'ok') {
           modalStore.trigger({

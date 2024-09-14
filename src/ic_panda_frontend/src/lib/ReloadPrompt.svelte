@@ -22,7 +22,7 @@
       }
     },
     onRegisterError(error) {
-      console.log('SW registration error', error)
+      console.error('SW registration error', error)
     }
   })
 
