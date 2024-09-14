@@ -12,7 +12,7 @@
         let i = 0
         const check = () => {
           i += 1
-          setTimeout(check, i >= 10 ? maxInterval : minInterval)
+          setTimeout(check, i > 7 ? maxInterval : minInterval)
 
           if (!navigator.onLine) return
           console.log('Checking for sw update')

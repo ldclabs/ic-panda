@@ -49,14 +49,7 @@
 
     try {
       await authStore.sync()
-    } catch (err: unknown) {
-      toastStore.trigger({
-        message: String(err),
-        background: 'variant-filled-error',
-        timeout: 5000,
-        hoverable: true
-      })
-    }
+    } catch (err) {}
   }
 
   onMount(syncAuthStore)
@@ -91,8 +84,6 @@
     defer
   ></script>
 </svelte:head>
-
-<svelte:window on:storage={syncAuthStore} />
 
 <Modal position="items-start" class="*:max-h-full" />
 

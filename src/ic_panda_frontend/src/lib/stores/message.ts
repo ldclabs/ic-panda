@@ -147,7 +147,7 @@ export class MyMessageState {
   static async with(identity: Identity): Promise<MyMessageState> {
     const api = await messageCanisterAPIAsync()
     const self = new MyMessageState(identity.getPrincipal(), api)
-    self.refreshAllState(false)
+    await self.refreshAllState(false)
     return self
   }
 
@@ -179,7 +179,7 @@ export class MyMessageState {
     }
     const now = Date.now()
     this._myInfo = this.api.myInfo
-    if (!this._myInfo) {
+    if (!this._myInfo && !this.principal.isAnonymous()) {
       this._myInfo = await this.getCacheUserInfo(now, this.principal)
     }
     if (this._myInfo) {

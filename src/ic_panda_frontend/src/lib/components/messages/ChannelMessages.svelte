@@ -436,7 +436,7 @@
         on:click={sendMessage}
       >
         {#if submitting}
-          <span class="text-panda *:size-5"><IconCircleSpin /></span>
+          <span class="text-gray/20 *:size-5"><IconCircleSpin /></span>
         {:else}
           <span
             class="transition duration-700 ease-in-out *:size-5 {submitting
