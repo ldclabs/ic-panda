@@ -72,7 +72,7 @@
         })
       }
 
-      if (luckyCode && $page.url.searchParams.get('ref')) {
+      if (luckyCode && $page.url?.searchParams.get('ref')) {
         const query = $page.url.searchParams
         query.delete('ref')
         goto(`?${query.toString()}`)

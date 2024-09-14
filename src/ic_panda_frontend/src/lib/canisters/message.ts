@@ -120,6 +120,19 @@ export class MessageCanisterAPI {
     } catch (e) {}
   }
 
+  async my_iv(): Promise<Uint8Array | null> {
+    if (!this.principal.isAnonymous()) {
+      try {
+        const rt = await this.actor.my_iv()
+        return unwrapResult<Uint8Array | number[], string>(
+          rt,
+          'call my_iv failed'
+        ) as Uint8Array
+      } catch (e) {}
+    }
+    return null
+  }
+
   async batch_get_users(ids: Principal[]): Promise<UserInfo[]> {
     const res = await this.actor.batch_get_users(ids)
     return unwrapResult(res, 'call batch_get_users failed')

@@ -40,20 +40,20 @@
   >
     <TabAnchor
       href="/"
-      selected={$page.url.pathname == '/' && $page.url.hash === ''}
+      selected={$page.url?.pathname == '/' && $page.url?.hash === ''}
       on:click={scrollToTop}
     >
       Home
     </TabAnchor>
     <TabAnchor
       href="/_/messages"
-      selected={$page.url.pathname.startsWith('/_/messages')}
+      selected={$page.url?.pathname.startsWith('/_/messages')}
     >
       E2EE Messages
     </TabAnchor>
     <!-- <TabAnchor
       href="/wallet"
-      selected={$page.url.pathname.startsWith('/wallet')}
+      selected={$page.url?.pathname.startsWith('/wallet')}
     >
       Chain Fusion
     </TabAnchor> -->

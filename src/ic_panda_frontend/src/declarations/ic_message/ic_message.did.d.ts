@@ -111,7 +111,11 @@ export type ICRC3Value = { 'Int' : bigint } |
   { 'Blob' : Uint8Array | number[] } |
   { 'Text' : string } |
   { 'Array' : Array<ICRC3Value> };
-export interface InitArgs { 'managers' : Array<Principal>, 'name' : string }
+export interface InitArgs {
+  'managers' : Array<Principal>,
+  'name' : string,
+  'schnorr_key_name' : string,
+}
 export type LogVisibility = { 'controllers' : null } |
   { 'public' : null };
 export interface Price {
@@ -140,9 +144,12 @@ export type Result_4 = { 'Ok' : CanisterStatusResponse } |
   { 'Err' : string };
 export type Result_5 = { 'Ok' : StateInfo } |
   { 'Err' : string };
-export type Result_6 = { 'Ok' : Array<string> } |
+export type Result_6 = { 'Ok' : Uint8Array | number[] } |
+  { 'Err' : string };
+export type Result_7 = { 'Ok' : Array<string> } |
   { 'Err' : string };
 export interface StateInfo {
+  'latest_usernames' : Array<string>,
   'managers' : Array<Principal>,
   'name' : string,
   'profile_canisters' : Array<Principal>,
@@ -173,6 +180,7 @@ export interface UpdatePriceInput {
 export interface UpgradeArgs {
   'managers' : [] | [Array<Principal>],
   'name' : [] | [string],
+  'schnorr_key_name' : [] | [string],
 }
 export interface UserInfo {
   'id' : Principal,
@@ -201,9 +209,10 @@ export interface _SERVICE {
   'icrc3_get_blocks' : ActorMethod<[Array<GetBlocksRequest>], GetBlocksResult>,
   'icrc3_get_tip_certificate' : ActorMethod<[], [] | [ICRC3DataCertificate]>,
   'icrc3_supported_block_types' : ActorMethod<[], Array<SupportedBlockType>>,
+  'my_iv' : ActorMethod<[], Result_6>,
   'register_username' : ActorMethod<[string, [] | [string]], Result_3>,
   'save_channel_kek' : ActorMethod<[ChannelKEKInput], Result>,
-  'search_username' : ActorMethod<[string], Result_6>,
+  'search_username' : ActorMethod<[string], Result_7>,
   'update_my_ecdh' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Result

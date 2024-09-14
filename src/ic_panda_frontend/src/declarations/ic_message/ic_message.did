@@ -92,7 +92,11 @@ type ICRC3Value = variant {
   Text : text;
   Array : vec ICRC3Value;
 };
-type InitArgs = record { managers : vec principal; name : text };
+type InitArgs = record {
+  managers : vec principal;
+  name : text;
+  schnorr_key_name : text;
+};
 type LogVisibility = variant { controllers; public };
 type Price = record {
   name_l1 : nat64;
@@ -114,8 +118,10 @@ type Result_2 = variant { Ok : ChannelInfo; Err : text };
 type Result_3 = variant { Ok : UserInfo; Err : text };
 type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
 type Result_5 = variant { Ok : StateInfo; Err : text };
-type Result_6 = variant { Ok : vec text; Err : text };
+type Result_6 = variant { Ok : blob; Err : text };
+type Result_7 = variant { Ok : vec text; Err : text };
 type StateInfo = record {
+  latest_usernames : vec text;
   managers : vec principal;
   name : text;
   profile_canisters : vec principal;
@@ -143,7 +149,11 @@ type UpdatePriceInput = record {
   name_l7 : opt nat64;
   channel : opt nat64;
 };
-type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+type UpgradeArgs = record {
+  managers : opt vec principal;
+  name : opt text;
+  schnorr_key_name : opt text;
+};
 type UserInfo = record {
   id : principal;
   username : opt text;
@@ -168,9 +178,10 @@ service : (opt ChainArgs) -> {
   icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
   icrc3_get_tip_certificate : () -> (opt ICRC3DataCertificate) query;
   icrc3_supported_block_types : () -> (vec SupportedBlockType) query;
+  my_iv : () -> (Result_6) query;
   register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
-  search_username : (text) -> (Result_6) query;
+  search_username : (text) -> (Result_7) query;
   update_my_ecdh : (blob, blob) -> (Result);
   update_my_image : (text) -> (Result);
   update_my_kv : (UpdateKVInput) -> (Result);

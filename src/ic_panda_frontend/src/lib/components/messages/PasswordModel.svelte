@@ -2,7 +2,6 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import { randomBytes } from '$lib/utils/crypto'
   import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
   import {
     focusTrap,
@@ -49,7 +48,7 @@
 
     toastRun(async () => {
       const kind = myState.masterKeyKind()
-
+      const myIV = await myState.myIV()
       // master key has been derived
       if (masterKey || pwdHash) {
         try {
@@ -57,7 +56,8 @@
             await masterKey.open(
               passwordInput1,
               myState.id,
-              cachedPassword ? PasswordExpire : 0
+              cachedPassword ? PasswordExpire : 0,
+              myIV
             )
             pwdHash = masterKey.passwordHash()
             await myState.savePasswordHash(pwdHash)
@@ -68,13 +68,14 @@
               kind,
               passwordInput1,
               remoteSecret,
-              cachedPassword ? PasswordExpire : 0
+              cachedPassword ? PasswordExpire : 0,
+              myIV
             )
           }
 
           if (masterKey.kind !== kind) {
             processingTip = 'Migrate encrypted keys to ICP chain ...'
-            await myState.migrateKeys()
+            await myState.migrateKeys(myIV)
           } else {
             await myState.initStaticECDHKey()
           }
@@ -94,7 +95,7 @@
       let remoteSecret: Uint8Array
       switch (kind) {
         case 'Local':
-          remoteSecret = randomBytes(32)
+          remoteSecret = new Uint8Array(myIV)
           break
         case 'ECDH':
           const remoteKey = await myState.fetchECDHCoseEncryptedKey()
@@ -108,7 +109,8 @@
         kind,
         passwordInput1,
         remoteSecret,
-        cachedPassword ? PasswordExpire : 0
+        cachedPassword ? PasswordExpire : 0,
+        myIV
       )
       pwdHash = masterKey.passwordHash()
       await myState.savePasswordHash(pwdHash)

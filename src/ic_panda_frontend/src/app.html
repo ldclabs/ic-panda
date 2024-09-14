@@ -172,14 +172,6 @@
 
   <!-- LINKS_PRELOADER -->
 </head>
-<script type="module">
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js', { type: 'module' })
-      .then((registration) => console.log('Service Worker registered with scope:', registration.scope))
-      .catch((error) => console.error('Service Worker registration failed:', error));
-  }
-</script>
-<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZDR50SVZ2P"></script>
 <script>
   window.dataLayer = window.dataLayer || []
@@ -192,16 +184,10 @@
 <body data-theme="skeleton">
   <div class="global-backgroud" style="z-index: -1;"></div>
   <div style="display: contents" class="h-full overflow-hidden">%sveltekit.body%</div>
-
-  <!-- All resources required to boot the DAO can take some times to be downloaded on the IC. -->
-  <!-- That's why we are displaying a spinner while the DAO is starting. -->
-  <!-- Spinner which is then removed as soon as the authentication is initialized (regardless if sign-in or sign-out) -->
   <svg id="app-spinner" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true" data-tid="spinner"
     viewBox="0 0 100 100">
     <circle cx="50%" cy="50%" r="45" />
   </svg>
-
-  <!-- SCRIPT_LOADER -->
 </body>
 
 </html>

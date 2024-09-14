@@ -23,9 +23,10 @@
   async function initState() {
     myState = await myMessageStateAsync()
     myInfo = myState.info
-    myInfo_ = myInfo as Readable<UserInfo>
     if ($myInfo) {
-      const mk = await myState.masterKey()
+      const iv = await myState.myIV()
+      const mk = await myState.masterKey(iv)
+      myInfo_ = myInfo as Readable<UserInfo>
       if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
         modalStore.trigger({
           type: 'component',
@@ -57,7 +58,7 @@
   }
 </script>
 
-{#if $myInfo}
+{#if myInfo_}
   <Chat {myState} myInfo={myInfo_} />
 {:else}
   <Home {myState} {myInfo} />

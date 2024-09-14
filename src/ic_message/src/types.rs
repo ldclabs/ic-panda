@@ -25,6 +25,7 @@ pub struct StateInfo {
     pub transfer_out_total: u128,
     pub next_block_height: u64,
     pub next_block_phash: ByteArray<32>,
+    pub latest_usernames: Vec<String>,
 }
 
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]

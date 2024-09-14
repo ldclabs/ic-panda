@@ -26,12 +26,7 @@
     SlideToggle
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
-  import {
-    readable,
-    writable,
-    type Readable,
-    type Writable
-  } from 'svelte/store'
+  import { derived, writable, type Readable, type Writable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
   import ProfileEditModel from './ProfileEditModel.svelte'
   import UserRegisterModel from './UserRegisterModel.svelte'
@@ -41,49 +36,34 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
+  const myInfo: Writable<(UserInfo & ProfileInfo) | null> = writable(null)
 
   let myID: Principal
   let myState: MyMessageState
   let userInfo: Readable<UserInfo & ProfileInfo>
-  let myInfo: (UserInfo & ProfileInfo) | null = null
+
   let grantedNotification = Notification.permission === 'granted'
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
-    if (myInfo) {
+    if ($myInfo) {
       const users = await myState.batchLoadUsersInfo(
-        myInfo.following.at(0) || []
+        $myInfo.following.at(0) || []
       )
       res.push(...users.map(toDisplayUserInfo))
     }
     myFollowing.set(res)
   }
 
-  async function loadProfile(user: Principal | string) {
-    myState = await myMessageStateAsync()
-    myID = myState.principal
-
-    if (
-      (typeof user === 'string' && user === myState.id) ||
-      (user instanceof Principal && user.compareTo(myID) == 'eq')
-    ) {
-      myInfo = await myState.loadMyProfile()
-      userInfo = readable(myInfo)
-    } else {
-      userInfo = await myState.loadProfile(user)
-    }
-    return $userInfo
-  }
-
   async function saveProfile(profile: UserInfo & ProfileInfo) {
-    if (profile.name !== $userInfo.name) {
+    if (profile.name && profile.name !== $userInfo.name) {
       await myState.api.update_my_name(profile.name)
       await myState.api.refreshMyInfo()
     }
 
     const bio = profile.bio.trim()
     if (bio !== $userInfo.bio) {
-      myInfo = await myState.updateProfile({
+      await myState.updateProfile({
         bio: [bio],
         remove_channels: [],
         upsert_channels: [],
@@ -91,6 +71,9 @@
         unfollow: []
       })
     }
+
+    await myState.refreshAllState(false)
+    myInfo.set(await myState.loadMyProfile())
   }
 
   function onMeHandler() {
@@ -122,8 +105,8 @@
       if (myState?.principal.isAnonymous()) {
         const res = await signIn({})
         myState = await myMessageStateAsync()
-        myInfo = await myState.loadMyProfile().catch(() => null)
-        if (!myInfo && res.success == 'ok') {
+        const rt = await myState.loadMyProfile().catch(() => null)
+        if (!rt && res.success == 'ok') {
           modalStore.trigger({
             type: 'component',
             component: {
@@ -131,8 +114,10 @@
               props: {}
             }
           })
+        } else if (rt) {
+          myInfo.set(rt)
         }
-      } else if (!myInfo) {
+      } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
           component: {
@@ -143,21 +128,25 @@
       } else if (!followingSubmitting) {
         followingSubmitting = user.toText()
         if (fowllowing) {
-          myInfo = await myState.updateProfile({
-            bio: [],
-            remove_channels: [],
-            upsert_channels: [],
-            follow: [user],
-            unfollow: []
-          })
+          myInfo.set(
+            await myState.updateProfile({
+              bio: [],
+              remove_channels: [],
+              upsert_channels: [],
+              follow: [user],
+              unfollow: []
+            })
+          )
         } else {
-          myInfo = await myState.updateProfile({
-            bio: [],
-            remove_channels: [],
-            upsert_channels: [],
-            follow: [],
-            unfollow: [user]
-          })
+          myInfo.set(
+            await myState.updateProfile({
+              bio: [],
+              remove_channels: [],
+              upsert_channels: [],
+              follow: [],
+              unfollow: [user]
+            })
+          )
         }
         await loadMyFollowing()
       }
@@ -170,8 +159,9 @@
     if (myState?.principal.isAnonymous()) {
       const res = await signIn({})
       myState = await myMessageStateAsync()
-      myInfo = await myState.loadMyProfile().catch(() => null)
-      if (!myInfo && res.success == 'ok') {
+      const rt = await myState.loadMyProfile().catch(() => null)
+      myInfo.set(rt)
+      if (!rt && res.success == 'ok') {
         modalStore.trigger({
           type: 'component',
           component: {
@@ -180,7 +170,7 @@
           }
         })
       }
-    } else if (!myInfo) {
+    } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
         component: {
@@ -200,7 +190,7 @@
         component: {
           ref: ChannelCreateModel,
           props: {
-            channelName: `${user.name}, ${myInfo!.name}`,
+            channelName: `${user.name}, ${$myInfo!.name}`,
             add_managers: [
               [user.id, unwrapOption(user.ecdh_pub as [] | [Uint8Array])]
             ]
@@ -226,10 +216,28 @@
   }
 
   onMount(() => {
-    const { abort, finally: onfinally } = toastRun(
-      () => loadProfile(userId),
-      toastStore
-    )
+    const { abort, finally: onfinally } = toastRun(async function () {
+      myState = await myMessageStateAsync()
+      myID = myState.principal
+
+      if (
+        (typeof userId === 'string' && userId === myState.id) ||
+        (userId instanceof Principal && userId.compareTo(myID) == 'eq')
+      ) {
+        const info = await myState.loadMyProfile()
+        myInfo.set(info)
+        userInfo = derived(myInfo, (info, set) => {
+          if (info) {
+            set({
+              ...info
+            })
+          }
+        })
+      } else {
+        userInfo = await myState.loadProfile(userId)
+      }
+      return $userInfo
+    }, toastStore)
     onfinally(async (info) => {
       if (!info) {
         setTimeout(() => goto('/_/messages'), 2000)
@@ -257,7 +265,7 @@
           }
           await loadMyFollowing()
         } else {
-          myInfo = await myState.loadMyProfile().catch(() => null)
+          myInfo.set(await myState.loadMyProfile().catch(() => null))
         }
       }
     })
@@ -266,8 +274,9 @@
 
   $: isMe = $userInfo?.id.compareTo(myID) == 'eq'
   $: isFowllowing =
-    myInfo?.following.at(0)?.some((id) => id.compareTo($userInfo.id) == 'eq') ||
-    false
+    $myInfo?.following
+      .at(0)
+      ?.some((id) => id.compareTo($userInfo.id) == 'eq') || false
 </script>
 
 {#if $userInfo}

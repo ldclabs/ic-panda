@@ -4,10 +4,12 @@ export const idlFactory = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'managers' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'name' : IDL.Opt(IDL.Text),
+    'schnorr_key_name' : IDL.Opt(IDL.Text),
   });
   const InitArgs = IDL.Record({
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
+    'schnorr_key_name' : IDL.Text,
   });
   const ChainArgs = IDL.Variant({ 'Upgrade' : UpgradeArgs, 'Init' : InitArgs });
   const CanisterKind = IDL.Variant({
@@ -132,6 +134,7 @@ export const idlFactory = ({ IDL }) => {
     'channel' : IDL.Nat64,
   });
   const StateInfo = IDL.Record({
+    'latest_usernames' : IDL.Vec(IDL.Text),
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
     'profile_canisters' : IDL.Vec(IDL.Principal),
@@ -191,12 +194,13 @@ export const idlFactory = ({ IDL }) => {
     'url' : IDL.Text,
     'block_type' : IDL.Text,
   });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
   const ChannelKEKInput = IDL.Record({
     'id' : IDL.Nat32,
     'kek' : IDL.Vec(IDL.Nat8),
     'canister' : IDL.Principal,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
+  const Result_7 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
   const UpdateKVInput = IDL.Record({
     'upsert_kv' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(IDL.Nat8))),
     'remove_kv' : IDL.Vec(IDL.Text),
@@ -241,13 +245,14 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(SupportedBlockType)],
         ['query'],
       ),
+    'my_iv' : IDL.Func([], [Result_6], ['query']),
     'register_username' : IDL.Func(
         [IDL.Text, IDL.Opt(IDL.Text)],
         [Result_3],
         [],
       ),
     'save_channel_kek' : IDL.Func([ChannelKEKInput], [Result], []),
-    'search_username' : IDL.Func([IDL.Text], [Result_6], ['query']),
+    'search_username' : IDL.Func([IDL.Text], [Result_7], ['query']),
     'update_my_ecdh' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result],
@@ -279,10 +284,12 @@ export const init = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'managers' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'name' : IDL.Opt(IDL.Text),
+    'schnorr_key_name' : IDL.Opt(IDL.Text),
   });
   const InitArgs = IDL.Record({
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
+    'schnorr_key_name' : IDL.Text,
   });
   const ChainArgs = IDL.Variant({ 'Upgrade' : UpgradeArgs, 'Init' : InitArgs });
   return [IDL.Opt(ChainArgs)];

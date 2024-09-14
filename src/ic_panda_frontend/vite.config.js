@@ -92,7 +92,7 @@ export default defineConfig({
       kit: {
         includeVersionFile: true
       },
-      injectRegister: false // 禁用自动注册
+      injectRegister: 'auto'
     })
   ],
   worker: {

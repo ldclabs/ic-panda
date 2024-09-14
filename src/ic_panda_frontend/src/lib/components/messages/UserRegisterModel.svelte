@@ -15,7 +15,6 @@
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import { sleep } from '$src/lib/utils/helper'
   import { Principal } from '@dfinity/principal'
   import {
     focusTrap,
@@ -84,18 +83,16 @@
         return
       }
 
-      let user: UserInfo
       if (!usernameInput) {
-        user = await myState.api.update_my_name(nameInput)
+        await myState.api.update_my_name(nameInput)
       } else {
         await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
-        user = await myState.api.register_username(usernameInput, nameInput)
+        await myState.api.register_username(usernameInput, nameInput)
       }
-      await myState.setCacheUserInfo(Date.now(), user)
 
-      await sleep(618)
-      await myState.refreshAllState(false)
-      const mk = await myState.masterKey()
+      await myState.refreshAllState(true)
+      const myIV = await myState.myIV()
+      const mk = await myState.masterKey(myIV)
       if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
         modalStore.close()
         modalStore.trigger({

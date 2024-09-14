@@ -90,7 +90,7 @@
   onMount(async () => {
     luckyPoolAPI = await luckyPoolAPIAsync()
 
-    if (decodePrize($page.url.searchParams.get('prize') || '')) {
+    if (decodePrize($page.url?.searchParams.get('prize') || '')) {
       modalStore.close() // close previous modal
       modalStore.trigger({
         type: 'component',

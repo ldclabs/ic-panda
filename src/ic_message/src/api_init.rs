@@ -1,6 +1,6 @@
 use candid::{CandidType, Principal};
 use serde::Deserialize;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, time::Duration};
 
 use crate::{store, types};
 
@@ -14,12 +14,14 @@ pub enum ChainArgs {
 pub struct InitArgs {
     name: String,
     managers: BTreeSet<Principal>,
+    schnorr_key_name: String, // Use "dfx_test_key" for local replica and "test_key_1" for a testing key for testnet and mainnet
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct UpgradeArgs {
     name: Option<String>,
     managers: Option<BTreeSet<Principal>>,
+    schnorr_key_name: Option<String>, // Use "dfx_test_key" for local replica and "test_key_1" for a testing key for testnet and mainnet
 }
 
 #[ic_cdk::init]
@@ -33,6 +35,7 @@ fn init(args: Option<ChainArgs>) {
             name_l5: 20_000 * types::TOKEN_1,
             name_l7: 5000 * types::TOKEN_1,
         };
+        s.schnorr_key_name = "dfx_test_key".to_string();
     });
 
     match args {
@@ -41,6 +44,7 @@ fn init(args: Option<ChainArgs>) {
             store::state::with_mut(|s| {
                 s.name = args.name;
                 s.managers = args.managers;
+                s.schnorr_key_name = args.schnorr_key_name;
             });
         }
         Some(ChainArgs::Upgrade(_)) => {
@@ -49,6 +53,10 @@ fn init(args: Option<ChainArgs>) {
             );
         }
     }
+
+    ic_cdk_timers::set_timer(Duration::from_secs(0), || {
+        ic_cdk::spawn(store::state::try_init_public_key())
+    });
 }
 
 #[ic_cdk::pre_upgrade]
@@ -69,6 +77,9 @@ fn post_upgrade(args: Option<ChainArgs>) {
                 if let Some(managers) = args.managers {
                     s.managers = managers;
                 }
+                if let Some(schnorr_key_name) = args.schnorr_key_name {
+                    s.schnorr_key_name = schnorr_key_name;
+                }
             });
         }
         Some(ChainArgs::Init(_)) => {
@@ -78,4 +89,15 @@ fn post_upgrade(args: Option<ChainArgs>) {
         }
         _ => {}
     }
+
+    store::state::with_mut(|s| {
+        if s.latest_usernames.is_empty() && !s.short_usernames.is_empty() {
+            s.latest_usernames
+                .extend(s.short_usernames.iter().take(20).cloned());
+        }
+    });
+
+    ic_cdk_timers::set_timer(Duration::from_secs(0), || {
+        ic_cdk::spawn(store::state::try_init_public_key())
+    });
 }

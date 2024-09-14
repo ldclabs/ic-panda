@@ -29,6 +29,7 @@ fn get_state() -> Result<types::StateInfo, String> {
         transfer_out_total: s.transfer_out_total,
         next_block_height: s.next_block_height,
         next_block_phash: s.next_block_phash,
+        latest_usernames: s.latest_usernames.clone().into(),
     }))
 }
 
@@ -91,4 +92,10 @@ fn get_user(user: Option<Principal>) -> Result<UserInfo, String> {
 #[ic_cdk::query(guard = "is_authenticated")]
 fn batch_get_users(ids: BTreeSet<Principal>) -> Result<Vec<UserInfo>, String> {
     Ok(store::user::batch_get(ids))
+}
+
+#[ic_cdk::query(guard = "is_authenticated")]
+fn my_iv() -> Result<ByteBuf, String> {
+    let pk = store::state::ed25519_public_key(&ic_cdk::caller())?;
+    Ok(pk.public_key)
 }

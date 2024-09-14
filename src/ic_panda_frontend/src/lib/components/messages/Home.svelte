@@ -1,14 +1,15 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
+  import PageFooter from '$lib/components/core/PageFooter.svelte'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
   import {
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
-  import { type Readable } from 'svelte/store'
+  import { writable, type Readable, type Writable } from 'svelte/store'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
   export let myState: MyMessageState | null
@@ -16,6 +17,7 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
+  const latest_users: Writable<UserInfo[]> = writable([])
 
   let users_total = 0n
   let names_total = 0n
@@ -73,6 +75,14 @@
       messages_total = states.reduce((acc, state) => {
         return acc + (state.messages_total || 0n)
       }, 0n)
+
+      for (const name of myState.api.state?.latest_usernames || []) {
+        const user = await myState.tryLoadUser(name)
+        console.log('fetching user', name, user)
+        if (user) {
+          latest_users.update((users) => [...users, user])
+        }
+      }
     }, toastStore)
     return abort
   })
@@ -128,7 +138,7 @@
     </button>
   </div>
   <div
-    class="card mt-8 flex flex-col justify-around gap-4 bg-transparent p-8 shadow-lg sm:mt-12 sm:flex-row"
+    class="card mt-8 flex flex-col justify-around gap-4 rounded-2xl rounded-b-none bg-transparent bg-white p-8 sm:mt-12 sm:flex-row"
   >
     <div class="flex flex-col items-center">
       <h3 class="h3 text-[28px] font-bold text-panda">
@@ -156,4 +166,34 @@
       </h3>
     </div>
   </div>
+  <div
+    class="card mt-1 flex flex-col space-y-2 rounded-2xl rounded-t-none bg-transparent bg-white p-8 text-sm *:justify-start"
+  >
+    <div class="flex flex-row items-center space-x-2">
+      <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
+      <span class="ml-1 truncate">ICPanda DAO</span>
+      <a href="https://panda.fans/PANDA" class="text-gray/60 hover:text-panda">
+        <span class="">@PANDA</span>
+      </a>
+      <p class="truncate">Ask me anything</p>
+    </div>
+    {#each $latest_users as user (user.id.toText())}
+      <div class="flex flex-row items-center space-x-2">
+        <Avatar initials={user.name} fill="fill-white" width="w-10" />
+        <span class="ml-1 truncate">{user.name}</span>
+        {#if user.username.length > 0}
+          <a
+            href="https://panda.fans/{user.username[0]}"
+            class="text-gray/60 hover:text-panda"
+          >
+            <span class="">@{user.username[0]}</span>
+          </a>
+        {/if}
+      </div>
+    {/each}
+  </div>
 </div>
+
+<footer id="page-footer" class="flex-none">
+  <PageFooter />
+</footer>

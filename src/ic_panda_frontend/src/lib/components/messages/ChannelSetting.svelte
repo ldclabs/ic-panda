@@ -361,7 +361,7 @@
         <div class="flex flex-col space-x-1 sm:flex-row">
           <button
             type="button"
-            class="btn btn-sm"
+            class="btn btn-sm hover:variant-soft-primary"
             on:click={onClickAdminAddManagers}
             disabled={adminAddManagersSubmitting}
           >
@@ -370,7 +370,7 @@
           </button>
           <button
             type="button"
-            class="btn btn-sm"
+            class="btn btn-sm hover:variant-soft-primary"
             on:click={onClickAdminAddMembers}
             disabled={adminAddMembersSubmitting}
           >
@@ -379,7 +379,8 @@
           </button>
           <button
             type="button"
-            class="btn btn-sm {hasExchangeKeys && !adminExchangeKeysSubmitting
+            class="btn btn-sm hover:variant-soft-primary {hasExchangeKeys &&
+            !adminExchangeKeysSubmitting
               ? 'text-panda'
               : 'text-gray/60'}"
             on:click={onClickAdminExchangeKeys}
@@ -428,7 +429,7 @@
           <div class="flex flex-row items-center space-x-2">
             {#if isManager && !member.is_manager}
               <button
-                class="variant-soft-warning btn btn-sm"
+                class="btn btn-sm text-gray/60 hover:variant-soft-warning"
                 type="button"
                 disabled={adminRemoveMembersSubmitting !== ''}
                 on:click={() => onClickAdminRemoveMember(member._id)}

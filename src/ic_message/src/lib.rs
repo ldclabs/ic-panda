@@ -23,6 +23,7 @@ mod api_admin;
 mod api_init;
 mod api_query;
 mod api_update;
+mod schnorr;
 mod store;
 mod types;
 

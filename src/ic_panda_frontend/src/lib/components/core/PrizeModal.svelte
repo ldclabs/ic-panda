@@ -43,7 +43,7 @@
     }
   }
 
-  let cryptogram = prizeCode || $page.url.searchParams.get('prize') || ''
+  let cryptogram = prizeCode || $page.url?.searchParams.get('prize') || ''
   let submitting = false
   let validating = decodePrize(cryptogram) != null
   let canClaim = true
@@ -138,7 +138,7 @@
   function closePrizeShow() {
     modalStore.clear()
 
-    if ($page.url.searchParams.get('prize')) {
+    if ($page.url?.searchParams.get('prize')) {
       const query = $page.url.searchParams
       query.delete('prize')
       goto(`?${query.toString()}`)
@@ -157,7 +157,7 @@
     }
 
     // Remove the prize query parameter from the URL
-    if (!principal.isAnonymous() && $page.url.searchParams.get('prize')) {
+    if (!principal.isAnonymous() && $page.url?.searchParams.get('prize')) {
       const query = $page.url.searchParams
       query.delete('prize')
       goto(`?${query.toString()}`)

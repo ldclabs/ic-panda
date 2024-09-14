@@ -7,6 +7,7 @@ use ic_cose_types::types::{
         CreateSettingInput, CreateSettingOutput, SettingInfo, SettingPath, UpdateSettingOutput,
         UpdateSettingPayloadInput,
     },
+    PublicKeyOutput, SchnorrAlgorithm,
 };
 use ic_message_types::{
     profile::{UpdateKVInput, UserInfo},
@@ -22,9 +23,10 @@ use serde_bytes::{ByteArray, ByteBuf};
 use std::{
     borrow::Cow,
     cell::RefCell,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
 };
 
+use crate::schnorr::{derive_25519_public_key, schnorr_public_key};
 use crate::{call, token_transfer_from, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -44,6 +46,14 @@ pub struct State {
     pub transfer_out_total: u128,
     pub next_block_height: u64,
     pub next_block_phash: ByteArray<32>,
+    #[serde(default)]
+    pub schnorr_key_name: String,
+    #[serde(default)]
+    pub ed25519_public_key: Option<PublicKeyOutput>,
+    #[serde(default)]
+    pub init_vector: ByteArray<32>, // initialization vector should not be exposed
+    #[serde(default)]
+    pub latest_usernames: VecDeque<String>, // 20 latest registered usernames
 }
 
 impl State {
@@ -199,6 +209,51 @@ pub mod state {
                     .set(buf)
                     .expect("failed to set STATE_STORE data");
             });
+        });
+    }
+
+    pub fn ed25519_public_key(caller: &Principal) -> Result<PublicKeyOutput, String> {
+        with(|s| {
+            ic_cdk::print(format!("schnorr_key_name: {}", s.schnorr_key_name));
+            ic_cdk::print(format!("ed25519_public_key: {:?}", s.ed25519_public_key));
+            let pk = s
+                .ed25519_public_key
+                .as_ref()
+                .ok_or("no schnorr ed25519 public key")?;
+
+            let mut path: Vec<Vec<u8>> = Vec::with_capacity(3);
+            path.push(b"ICPanda_IV".to_vec());
+            path.push(caller.to_bytes().to_vec());
+            path.push(s.init_vector.to_vec());
+            derive_25519_public_key(pk, path)
+        })
+    }
+
+    pub async fn try_init_public_key() {
+        let (schnorr_key_name, ed25519_public_key) =
+            with(|s| (s.schnorr_key_name.clone(), s.ed25519_public_key.clone()));
+        if schnorr_key_name.is_empty() || ed25519_public_key.is_some() {
+            return;
+        }
+
+        let ed25519_public_key =
+            schnorr_public_key(schnorr_key_name.clone(), SchnorrAlgorithm::Ed25519, vec![])
+                .await
+                .map_err(|err| {
+                    ic_cdk::print(&format!(
+                        "failed to retrieve Schnorr Ed25519 public key: {err}"
+                    ))
+                })
+                .ok();
+
+        let (mut data,) = ic_cdk::api::management_canister::main::raw_rand()
+            .await
+            .expect("failed to generate IV");
+        data.truncate(32);
+        let iv: [u8; 32] = data.try_into().expect("failed to generate IV");
+        with_mut(|r| {
+            r.ed25519_public_key = ed25519_public_key;
+            r.init_vector = iv.into();
         });
     }
 }
@@ -473,6 +528,10 @@ pub mod user {
             if ln.len() <= 7 {
                 s.short_usernames.insert(ln.clone());
             }
+            s.latest_usernames.push_front(username.clone());
+            if s.latest_usernames.len() > 20 {
+                s.latest_usernames.pop_back();
+            }
             s.incoming_total += amount as u128;
             let blk = NameBlock {
                 height: s.next_block_height,
@@ -500,10 +559,7 @@ pub mod user {
             (CreateNamespaceInput {
                 name: caller.to_text().replace("-", "_"),
                 visibility: 0,
-                desc: Some(format!(
-                    "register_username: {}, $PANDA block: {}",
-                    username, blk
-                )),
+                desc: Some(format!("name: {}, $PANDA block: {}", username, blk)),
                 max_payload_size: Some(1024),
                 managers: BTreeSet::from([ic_cdk::id()]),
                 auditors: BTreeSet::from([caller]),

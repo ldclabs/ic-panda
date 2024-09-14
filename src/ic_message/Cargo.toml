@@ -22,7 +22,9 @@ serde = { workspace = true }
 serde_bytes = { workspace = true }
 getrandom = { workspace = true }
 ic-cdk = { workspace = true }
+ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
 ic_cose_types = { workspace = true }
 ic-certification = { workspace = true }
+ic-crypto-ed25519 = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }

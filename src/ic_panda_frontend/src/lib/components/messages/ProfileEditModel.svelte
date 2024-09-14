@@ -25,7 +25,6 @@
   let descriptionInput = $myInfo.bio || ''
 
   function checkName() {
-    nameInput = nameInput.trim()
     return ''
   }
 

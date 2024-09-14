@@ -33,7 +33,7 @@
   let challenge = ''
   let cryptogram = ''
   let luckyPoolAPI: LuckyPoolAPI
-  let luckyCode = $page.url.searchParams.get('ref') || ''
+  let luckyCode = $page.url?.searchParams.get('ref') || ''
   let result: AirdropState
   let luckyPoolState: Readable<State | null>
   let principal = $authStore.identity.getPrincipal()

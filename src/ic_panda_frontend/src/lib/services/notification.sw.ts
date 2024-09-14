@@ -22,6 +22,7 @@ export async function notifyd() {
   let api: MessageCanisterAPI | null = null
   let refreshStateAt = 0
 
+  console.log('Notification service started')
   while (true) {
     const identity =
       Notification.permission === 'granted' && (await loadIdentity())

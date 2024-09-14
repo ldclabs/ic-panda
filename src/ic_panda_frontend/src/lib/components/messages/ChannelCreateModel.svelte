@@ -68,11 +68,7 @@
         throw new Error('Invalid channel name')
       }
 
-      const mk = await myState.masterKey()
-      if (!mk || !mk.isOpened()) {
-        throw new Error('Invalid master key')
-      }
-
+      const mk = await myState.mustMasterKey()
       const { dek, kek, managers } = await mk.generateChannelKey([
         [$myInfo.id, null],
         ...add_managers
@@ -166,7 +162,7 @@
     <div class="!mt-4 space-y-2 rounded-xl bg-gray/5 p-4">
       <p class="text-gray/50">
         <b>1.</b> Creating a message channel costs 1000 PANDA tokens for gas; sending
-        messages will consumes gas.
+        messages will consume gas.
       </p>
       <p class="text-gray/50">
         <b>2.</b> A channel can have up to 5 managers and 100 members.
