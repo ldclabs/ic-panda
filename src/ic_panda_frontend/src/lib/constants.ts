@@ -15,7 +15,9 @@ export const CKDOGE_MINTER_CANISTER_ID = 'bw4dl-smaaa-aaaaa-qaacq-cai' // local
 export const CKDOGE_CHAIN_CANISTER_ID = 'be2us-64aaa-aaaaa-qaabq-cai' // local
 export const CKDOGE_LEDGER_CANISTER_ID = 'b77ix-eeaaa-aaaaa-qaada-cai' // local
 
-export const MESSAGE_CANISTER_ID = 'ajuq4-ruaaa-aaaaa-qaaga-cai' // local
+export const MESSAGE_CANISTER_ID = IS_LOCAL
+  ? 'ajuq4-ruaaa-aaaaa-qaaga-cai'
+  : 'nscli-qiaaa-aaaaj-qa4pa-cai' // ic & local
 export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
 
 export const X_AUTH_KEY = 'ICPanda:XAuth'

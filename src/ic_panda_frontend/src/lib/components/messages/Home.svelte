@@ -77,10 +77,11 @@
       }, 0n)
 
       for (const name of myState.api.state?.latest_usernames || []) {
-        const user = await myState.tryLoadUser(name)
-        console.log('fetching user', name, user)
-        if (user) {
-          latest_users.update((users) => [...users, user])
+        if (name.toLocaleLowerCase() !== 'panda') {
+          const user = await myState.tryLoadUser(name)
+          if (user) {
+            latest_users.update((users) => [...users, user])
+          }
         }
       }
     }, toastStore)
@@ -167,29 +168,26 @@
     </div>
   </div>
   <div
-    class="card mt-1 flex flex-col space-y-2 rounded-2xl rounded-t-none bg-transparent bg-white p-8 text-sm *:justify-start"
+    class="card mt-1 flex flex-col rounded-2xl rounded-t-none bg-transparent bg-white p-8 text-sm *:justify-start"
   >
-    <div class="flex flex-row items-center space-x-2">
+    <a
+      class="flex flex-row items-center space-x-2 rounded-sm px-2 py-1 hover:variant-soft-primary"
+      href="https://panda.fans/PANDA"
+    >
       <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
       <span class="ml-1 truncate">ICPanda DAO</span>
-      <a href="https://panda.fans/PANDA" class="text-gray/60 hover:text-panda">
-        <span class="">@PANDA</span>
-      </a>
+      <span class="text-gray/60">@PANDA</span>
       <p class="truncate">Ask me anything</p>
-    </div>
+    </a>
     {#each $latest_users as user (user.id.toText())}
-      <div class="flex flex-row items-center space-x-2">
+      <a
+        class="flex flex-row items-center space-x-2 rounded-sm px-2 py-1 hover:variant-soft-primary"
+        href="https://panda.fans/{user.username[0]}"
+      >
         <Avatar initials={user.name} fill="fill-white" width="w-10" />
         <span class="ml-1 truncate">{user.name}</span>
-        {#if user.username.length > 0}
-          <a
-            href="https://panda.fans/{user.username[0]}"
-            class="text-gray/60 hover:text-panda"
-          >
-            <span class="">@{user.username[0]}</span>
-          </a>
-        {/if}
-      </div>
+        <span class="text-gray/60">@{user.username[0]}</span>
+      </a>
     {/each}
   </div>
 </div>

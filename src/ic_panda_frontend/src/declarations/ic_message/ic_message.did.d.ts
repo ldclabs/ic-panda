@@ -2,6 +2,10 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
+export interface Account {
+  'owner' : Principal,
+  'subaccount' : [] | [Uint8Array | number[]],
+}
 export interface ArchivedBlocks {
   'args' : Array<GetBlocksRequest>,
   'callback' : [Principal, string],
@@ -193,7 +197,7 @@ export interface UserInfo {
 export interface _SERVICE {
   'admin_add_canister' : ActorMethod<[CanisterKind, Principal], Result>,
   'admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
-  'admin_collect_token' : ActorMethod<[bigint], Result>,
+  'admin_collect_token' : ActorMethod<[Account, bigint], Result>,
   'admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
   'admin_update_price' : ActorMethod<[UpdatePriceInput], Result>,
   'batch_get_users' : ActorMethod<[Array<Principal>], Result_1>,
@@ -225,7 +229,7 @@ export interface _SERVICE {
     Result
   >,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
-  'validate_admin_collect_token' : ActorMethod<[bigint], Result>,
+  'validate_admin_collect_token' : ActorMethod<[Account, bigint], Result>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
   'validate_admin_update_price' : ActorMethod<[UpdatePriceInput], Result>,
 }

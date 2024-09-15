@@ -38,3 +38,5 @@ export const createActor = (canisterId, options = {}) => {
     ...options.actorOptions,
   });
 };
+
+export const ic_cose_canister = canisterId ? createActor(canisterId) : undefined;

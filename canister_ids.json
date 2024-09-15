@@ -1,12 +1,24 @@
 {
+  "ic_cose_canister": {
+    "ic": "n3bau-gaaaa-aaaaj-qa4oq-cai"
+  },
+  "ic_message": {
+    "ic": "nscli-qiaaa-aaaaj-qa4pa-cai"
+  },
+  "ic_message_channel": {
+    "ic": "nvdn4-5qaaa-aaaaj-qa4pq-cai"
+  },
+  "ic_message_profile": {
+    "ic": "ijyxz-wyaaa-aaaaj-qa4qa-cai"
+  },
   "ic_panda_ai": {
     "ic": "bwwuq-byaaa-aaaan-qmk4q-cai"
   },
-  "ic_panda_infra": {
-    "ic": "f75us-gyaaa-aaaap-ab3wq-cai"
-  },
   "ic_panda_frontend": {
     "ic": "c63a7-6yaaa-aaaap-ab3gq-cai"
+  },
+  "ic_panda_infra": {
+    "ic": "f75us-gyaaa-aaaap-ab3wq-cai"
   },
   "ic_panda_luckypool": {
     "ic": "a7cug-2qaaa-aaaap-ab3la-cai"

@@ -62,6 +62,11 @@
       "type": "assets",
       "workspace": "ic_panda_frontend"
     },
+    "ic_cose_canister": {
+      "candid": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.did",
+      "type": "custom",
+      "wasm": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.wasm.gz"
+    },
     "internet_identity": {
       "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-06-07/internet_identity.did",
       "remote": {

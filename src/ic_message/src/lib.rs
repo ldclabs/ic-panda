@@ -36,7 +36,7 @@ static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 16
 
 fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();
-    if ic_cdk::api::is_controller(&caller) {
+    if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
         Err("user is not a controller".to_string())
@@ -67,16 +67,13 @@ where
     Ok(res)
 }
 
-async fn token_transfer_to(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {
+async fn token_transfer_to(user: Account, amount: Nat, memo: String) -> Result<Nat, String> {
     let res: Result<Nat, TransferError> = call(
         TOKEN_CANISTER,
         "icrc1_transfer",
         (TransferArg {
             from_subaccount: None,
-            to: Account {
-                owner: user,
-                subaccount: None,
-            },
+            to: user,
             fee: None,
             created_at_time: None,
             memo: Some(Memo(ByteBuf::from(memo.into_bytes()))),

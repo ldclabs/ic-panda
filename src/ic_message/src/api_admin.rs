@@ -1,9 +1,10 @@
 use candid::{Nat, Principal};
 use ic_cose_types::validate_principals;
+use icrc_ledger_types::icrc1::account::Account;
 use num_traits::cast::ToPrimitive;
 use std::collections::BTreeSet;
 
-use crate::{is_controller, store, token_transfer_to, types, DAO_CANISTER};
+use crate::{is_controller, store, token_transfer_to, types};
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_add_managers(mut args: BTreeSet<Principal>) -> Result<(), String> {
@@ -69,9 +70,9 @@ fn admin_update_price(args: types::UpdatePriceInput) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_controller")]
-async fn admin_collect_token(amount: Nat) -> Result<(), String> {
+async fn admin_collect_token(user: Account, amount: Nat) -> Result<(), String> {
     let amount64 = amount.0.to_u64().unwrap_or_default();
-    token_transfer_to(DAO_CANISTER, amount, "COLLECT".to_string())
+    token_transfer_to(user, amount, "COLLECT".to_string())
         .await
         .map_err(|err| format!("failed to collect token, {}", err))?;
 
@@ -147,7 +148,7 @@ fn validate_admin_update_price(args: types::UpdatePriceInput) -> Result<(), Stri
 }
 
 #[ic_cdk::update]
-fn validate_admin_collect_token(amount: Nat) -> Result<(), String> {
+fn validate_admin_collect_token(_user: Account, amount: Nat) -> Result<(), String> {
     if amount < types::TOKEN_1 {
         Err("amount must be at least 1 token".to_string())?;
     }

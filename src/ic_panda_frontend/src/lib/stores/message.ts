@@ -233,7 +233,6 @@ export class MyMessageState {
         }
       }
       if (converted) {
-        console.log('masterKey: converted to version 2')
         await KVS.set(
           'Keys',
           this._mks.map((k) => k.toInfo()),
@@ -402,7 +401,6 @@ export class MyMessageState {
       const data = await coseA256GCMDecrypt0(mk, encrypted0, aad)
       this._ek = ECDHKey.fromBytes(data)
     } catch (err) {
-      console.error('initStaticECDHKey', err)
       this._ek = generateECDHKey()
       this._ek.setKid(encodeCBOR(String(Date.now())))
       const encrypted0 = await coseA256GCMEncrypt0(

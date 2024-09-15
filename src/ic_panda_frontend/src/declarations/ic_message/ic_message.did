@@ -1,3 +1,4 @@
+type Account = record { owner : principal; subaccount : opt blob };
 type ArchivedBlocks = record {
   args : vec GetBlocksRequest;
   callback : func (vec GetBlocksRequest) -> (GetBlocksResult) query;
@@ -165,7 +166,7 @@ type UserInfo = record {
 service : (opt ChainArgs) -> {
   admin_add_canister : (CanisterKind, principal) -> (Result);
   admin_add_managers : (vec principal) -> (Result);
-  admin_collect_token : (nat) -> (Result);
+  admin_collect_token : (Account, nat) -> (Result);
   admin_remove_managers : (vec principal) -> (Result);
   admin_update_price : (UpdatePriceInput) -> (Result);
   batch_get_users : (vec principal) -> (Result_1) query;
@@ -188,7 +189,7 @@ service : (opt ChainArgs) -> {
   update_my_name : (text) -> (Result_3);
   validate_admin_add_canister : (CanisterKind, principal) -> (Result);
   validate_admin_add_managers : (vec principal) -> (Result);
-  validate_admin_collect_token : (nat) -> (Result);
+  validate_admin_collect_token : (Account, nat) -> (Result);
   validate_admin_remove_managers : (vec principal) -> (Result);
   validate_admin_update_price : (UpdatePriceInput) -> (Result);
 }

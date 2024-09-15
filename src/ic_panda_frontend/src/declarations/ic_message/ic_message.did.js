@@ -18,6 +18,10 @@ export const idlFactory = ({ IDL }) => {
     'Profile' : IDL.Null,
   });
   const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
+  const Account = IDL.Record({
+    'owner' : IDL.Principal,
+    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
   const UpdatePriceInput = IDL.Record({
     'name_l1' : IDL.Opt(IDL.Nat64),
     'name_l2' : IDL.Opt(IDL.Nat64),
@@ -212,7 +216,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
-    'admin_collect_token' : IDL.Func([IDL.Nat], [Result], []),
+    'admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result], []),
     'admin_remove_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'admin_update_price' : IDL.Func([UpdatePriceInput], [Result], []),
     'batch_get_users' : IDL.Func(
@@ -271,7 +275,7 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'validate_admin_collect_token' : IDL.Func([IDL.Nat], [Result], []),
+    'validate_admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result], []),
     'validate_admin_remove_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result],
