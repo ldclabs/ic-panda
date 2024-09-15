@@ -8,7 +8,6 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { toastRun } from '$lib/stores/toast'
   import {
-    myMessageStateAsync,
     type ChannelInfoEx,
     type MyMessageState
   } from '$src/lib/stores/message'
@@ -20,12 +19,12 @@
   import ChannelSetting from './ChannelSetting.svelte'
 
   export let channelId: string
+  export let myState: MyMessageState
 
   const toastStore = getToastStore()
   const { canister, id } = ChannelAPI.parseChannelParam(channelId)
   const onChatBack = getContext('onChatBack') as () => void
 
-  let myState: MyMessageState
   let myInfo: Readable<UserInfo>
   let channelInfo: Readable<ChannelInfoEx>
 
@@ -49,7 +48,6 @@
     const { abort, finally: onfinally } = toastRun(
       async (signal: AbortSignal) => {
         if (canister) {
-          myState = await myMessageStateAsync()
           myInfo = myState.info as Readable<UserInfo>
           channelInfo = await myState.loadChannelInfo(canister, id)
           openSettings = !$channelInfo._kek

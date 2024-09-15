@@ -6,7 +6,6 @@
   import { toastRun } from '$lib/stores/toast'
   import { isActive } from '$lib/utils/window'
   import {
-    myMessageStateAsync,
     type ChannelBasicInfoEx,
     type MyMessageState
   } from '$src/lib/stores/message'
@@ -15,9 +14,10 @@
   import { readable, type Readable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
 
+  export let myState: MyMessageState
+
   const toastStore = getToastStore()
 
-  let myState: MyMessageState
   let myChannels: Readable<ChannelBasicInfoEx[]> = readable([])
   let filterValue: string = ''
 
@@ -37,7 +37,6 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      myState = await myMessageStateAsync()
       myChannels = await myState.loadMyChannelsStream()
       await myState.refreshMyChannels(signal)
       const timer = setInterval(() => {

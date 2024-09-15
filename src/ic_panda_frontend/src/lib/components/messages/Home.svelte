@@ -12,13 +12,13 @@
   import { writable, type Readable, type Writable } from 'svelte/store'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
-  export let myState: MyMessageState | null
-  export let myInfo: Readable<UserInfo | null>
+  export let myState: MyMessageState
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const latest_users: Writable<UserInfo[]> = writable([])
 
+  let myInfo: Readable<UserInfo | null> = myState.info
   let users_total = 0n
   let names_total = 0n
   let channels_total = 0n
@@ -26,16 +26,21 @@
 
   function getStartedHandler() {
     toastRun(async () => {
-      if (!myState || myState.principal.isAnonymous()) {
+      if (myState.principal.isAnonymous()) {
         const res = await signIn({})
         myState = await myMessageStateAsync()
+        await myState.refreshAllState(true)
         myInfo = myState.info
+        await tick()
+
         if (!$myInfo && res.success == 'ok') {
           modalStore.trigger({
             type: 'component',
             component: {
               ref: UserRegisterModel,
-              props: {}
+              props: {
+                myState
+              }
             }
           })
         }
@@ -44,7 +49,9 @@
           type: 'component',
           component: {
             ref: UserRegisterModel,
-            props: {}
+            props: {
+              myState
+            }
           }
         })
       }
@@ -53,10 +60,6 @@
 
   onMount(() => {
     const { abort } = toastRun(async () => {
-      if (!myState) {
-        myState = await myMessageStateAsync()
-      }
-
       users_total = myState.api.state?.users_total || 0n
       names_total = myState.api.state?.names_total || 0n
       await tick()

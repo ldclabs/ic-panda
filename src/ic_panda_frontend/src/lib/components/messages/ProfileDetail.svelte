@@ -38,7 +38,6 @@
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
   const myInfo: Writable<(UserInfo & ProfileInfo) | null> = writable(null)
 
-  let myID: Principal
   let myState: MyMessageState
   let userInfo: Readable<UserInfo & ProfileInfo>
 
@@ -93,7 +92,9 @@
         type: 'component',
         component: {
           ref: UserRegisterModel,
-          props: {}
+          props: {
+            myState
+          }
         }
       })
     }
@@ -102,27 +103,19 @@
   let followingSubmitting = ''
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
-      if (myState?.principal.isAnonymous()) {
-        const res = await signIn({})
+      if (!myState || myState.principal.isAnonymous()) {
+        await signIn({})
         myState = await myMessageStateAsync()
         const rt = await myState.loadMyProfile().catch(() => null)
-        if (!rt && res.success == 'ok') {
-          modalStore.trigger({
-            type: 'component',
-            component: {
-              ref: UserRegisterModel,
-              props: {}
-            }
-          })
-        } else if (rt) {
-          myInfo.set(rt)
-        }
+        myInfo.set(rt)
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
           component: {
             ref: UserRegisterModel,
-            props: {}
+            props: {
+              myState
+            }
           }
         })
       } else if (!followingSubmitting) {
@@ -156,26 +149,19 @@
   }
 
   async function onCreateChannelHandler(id: Principal) {
-    if (myState?.principal.isAnonymous()) {
-      const res = await signIn({})
+    if (!myState || myState.principal.isAnonymous()) {
+      await signIn({})
       myState = await myMessageStateAsync()
       const rt = await myState.loadMyProfile().catch(() => null)
       myInfo.set(rt)
-      if (!rt && res.success == 'ok') {
-        modalStore.trigger({
-          type: 'component',
-          component: {
-            ref: UserRegisterModel,
-            props: {}
-          }
-        })
-      }
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
         component: {
           ref: UserRegisterModel,
-          props: {}
+          props: {
+            myState
+          }
         }
       })
     } else {
@@ -206,23 +192,22 @@
       if (Notification.permission !== 'granted') {
         const perm = await Notification.requestPermission()
         grantedNotification = perm === 'granted'
-        await KVS.set<string>('My', perm, myID.toText() + KEY_NOTIFY_PERM)
+        await KVS.set<string>('My', perm, myID!.toText() + KEY_NOTIFY_PERM)
       } else {
-        await KVS.set<string>('My', 'granted', myID.toText() + KEY_NOTIFY_PERM)
+        await KVS.set<string>('My', 'granted', myID!.toText() + KEY_NOTIFY_PERM)
       }
     } else {
-      await KVS.set<string>('My', 'denied', myID.toText() + KEY_NOTIFY_PERM)
+      await KVS.set<string>('My', 'denied', myID!.toText() + KEY_NOTIFY_PERM)
     }
   }
 
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
       myState = await myMessageStateAsync()
-      myID = myState.principal
 
       if (
         (typeof userId === 'string' && userId === myState.id) ||
-        (userId instanceof Principal && userId.compareTo(myID) == 'eq')
+        (userId instanceof Principal && myID && userId.compareTo(myID) == 'eq')
       ) {
         const info = await myState.loadMyProfile()
         myInfo.set(info)
@@ -242,7 +227,7 @@
       if (!info) {
         setTimeout(() => goto('/_/messages'), 2000)
       } else {
-        if (info.id.compareTo(myID) == 'eq') {
+        if (myID && info.id.compareTo(myID) == 'eq') {
           if (
             $page.params['channel'] == 'profile' &&
             info.username.length == 0 &&
@@ -252,7 +237,9 @@
               type: 'component',
               component: {
                 ref: UserRegisterModel,
-                props: {}
+                props: {
+                  myState
+                }
               }
             })
           }
@@ -272,7 +259,8 @@
     return abort
   })
 
-  $: isMe = $userInfo?.id.compareTo(myID) == 'eq'
+  $: myID = $myInfo?.id
+  $: isMe = (myID && $userInfo?.id.compareTo(myID)) == 'eq'
   $: isFowllowing =
     $myInfo?.following
       .at(0)

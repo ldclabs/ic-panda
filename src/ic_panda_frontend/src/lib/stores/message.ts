@@ -167,6 +167,11 @@ export class MyMessageState {
     return this._coseAPI != null ? 'ECDH' : 'Local'
   }
 
+  isReady(): boolean {
+    const mk = this._mks.at(-1)
+    return (mk && mk.isUser(this.principal) && mk.isOpened()) || false
+  }
+
   async refreshAllState(force: boolean = true): Promise<void> {
     if (force) {
       await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])

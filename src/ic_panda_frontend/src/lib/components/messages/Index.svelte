@@ -23,23 +23,32 @@
   async function initState() {
     myState = await myMessageStateAsync()
     myInfo = myState.info
-    myInfo_ = myInfo as Readable<UserInfo>
-    if ($myInfo) {
-      const iv = await myState.myIV()
-      const mk = await myState.masterKey(iv)
+  }
 
-      if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
-        modalStore.trigger({
-          type: 'component',
-          component: {
-            ref: PasswordModel,
-            props: {
-              myState: myState,
-              masterKey: mk
-            }
-          }
-        })
+  async function refreshState() {
+    if (myState.isReady()) {
+      if (!myInfo_) {
+        myInfo_ = myInfo as Readable<UserInfo>
       }
+      return
+    }
+
+    const iv = await myState.myIV()
+    const mk = await myState.masterKey(iv)
+    myInfo_ = myInfo as Readable<UserInfo>
+
+    if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
+      modalStore.close()
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: PasswordModel,
+          props: {
+            myState: myState,
+            masterKey: mk
+          }
+        }
+      })
     }
   }
 
@@ -54,13 +63,15 @@
         $authStore.identity.getPrincipal().compareTo(myState.principal) != 'eq'
       ) {
         toastRun(initState, toastStore)
+      } else if ($myInfo) {
+        refreshState()
       }
     }
   }
 </script>
 
-{#if $myInfo}
+{#if myInfo_}
   <Chat {myState} myInfo={myInfo_} />
-{:else}
-  <Home {myState} {myInfo} />
+{:else if myState}
+  <Home {myState} />
 {/if}

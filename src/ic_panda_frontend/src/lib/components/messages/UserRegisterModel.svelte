@@ -11,36 +11,26 @@
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import {
-    myMessageStateAsync,
-    type MyMessageState
-  } from '$src/lib/stores/message'
+  import { type MyMessageState } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import PasswordModel from './PasswordModel.svelte'
 
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
   const toastStore = getToastStore()
-  const modalStore = getModalStore()
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let myState: MyMessageState
 
+  const myInfo: Readable<UserInfo | null> = myState.info
+  const messageState: Readable<StateInfo | null> = myState.api.stateStore
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
   let tokenLedgerAPI: TokenLedgerAPI
-  let myState: MyMessageState
-
-  let messageState: Readable<StateInfo | null>
-  let userInfo: Readable<UserInfo | null>
 
   let validating = false
   let submitting = false
@@ -91,25 +81,7 @@
       }
 
       await myState.refreshAllState(true)
-      const myIV = await myState.myIV()
-      const mk = await myState.masterKey(myIV)
-      if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
-        modalStore.close()
-        modalStore.trigger({
-          type: 'component',
-          component: {
-            ref: PasswordModel,
-            props: {
-              myState: myState,
-              masterKey: mk
-            }
-          }
-        })
-      } else {
-        setTimeout(async () => {
-          modalStore.close()
-        }, 3000)
-      }
+      parent && parent['onClose']()
     }, toastStore).finally(() => {
       submitting = false
       validating = false
@@ -168,13 +140,10 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      myState = await myMessageStateAsync()
-      messageState = myState.api.stateStore
-      userInfo = myState.info
-      if ($userInfo) {
+      if ($myInfo) {
         editMode = true
-        nameInput = $userInfo.name || ''
-        username = unwrapOption($userInfo.username) || ''
+        nameInput = $myInfo.name || ''
+        username = unwrapOption($myInfo.username) || ''
       }
 
       if (signal.aborted) {

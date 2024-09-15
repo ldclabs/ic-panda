@@ -44,7 +44,7 @@
         ? ''
         : 'max-sm:-translate-x-full'} grid grid-rows-[1fr_auto] border-r border-surface-500/30 bg-white max-sm:shadow-sm sm:rounded-tl-2xl"
     >
-      <MyChannelList />
+      <MyChannelList {myState} />
       <footer class="border-t border-surface-500/30">
         <button
           type="button"
@@ -73,7 +73,7 @@
     >
       {#key channelId}
         {#if channelId && channelId !== 'profile'}
-          <ChannelDetail {channelId} />
+          <ChannelDetail {channelId} {myState} />
         {:else}
           <div class="h-[60px] px-4 py-2 md:hidden">
             <button class="btn -ml-6" on:click={onChatBack}
