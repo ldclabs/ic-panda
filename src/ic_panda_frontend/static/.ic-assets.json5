@@ -13,6 +13,7 @@
     },
     {
         "match": "**/*",
+        "security_policy": "standard",
         "headers": {
             // Security: The Content Security Policy (CSP) given below aims at working with many apps rather than providing maximal security.
             // We recommend tightening the CSP for your specific application. Some recommendations are as follows:

@@ -214,8 +214,6 @@ pub mod state {
 
     pub fn ed25519_public_key(caller: &Principal) -> Result<PublicKeyOutput, String> {
         with(|s| {
-            ic_cdk::print(format!("schnorr_key_name: {}", s.schnorr_key_name));
-            ic_cdk::print(format!("ed25519_public_key: {:?}", s.ed25519_public_key));
             let pk = s
                 .ed25519_public_key
                 .as_ref()
