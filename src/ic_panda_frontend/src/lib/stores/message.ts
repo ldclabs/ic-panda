@@ -158,13 +158,7 @@ export class MyMessageState {
     this.info = derived(api.myInfoStore, ($info, set) => {
       if ($info) {
         this.setCacheUserInfo(Date.now(), $info)
-        set($info)
-      } else {
-        KVS.get<[number, UserInfo]>('Users', this.id).then((rt) => {
-          if (rt) {
-            set(rt[1])
-          }
-        })
+        this.refreshAllState(false).then(() => set($info))
       }
     })
   }
