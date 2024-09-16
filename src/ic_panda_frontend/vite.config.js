@@ -53,10 +53,10 @@ export default defineConfig({
         config: true
       },
       manifest: {
-        short_name: 'ICPanda DAO',
+        short_name: 'ICPanda',
         name: 'ICPanda',
         description:
-          'A decentralized Panda meme brand built on the Internet Computer.',
+          'A decentralized Panda meme platform featuring E2E encrypted messaging, lucky draws, airdrops.',
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',
@@ -95,9 +95,6 @@ export default defineConfig({
       injectRegister: 'auto'
     })
   ],
-  worker: {
-    format: 'es' // 确保 worker 使用 ES 模块格式
-  },
   test: {
     environment: 'jsdom',
     setupFiles: 'src/setupTests.js'

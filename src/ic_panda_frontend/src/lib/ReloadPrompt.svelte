@@ -3,22 +3,30 @@
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const toastStore = getToastStore()
-  const minInterval = 60 * 1000
-  const maxInterval = 60 * 60 * 1000
+  const period = 60 * 60 * 1000
+
+  function registerPeriodicSync(swUrl: string, r: ServiceWorkerRegistration) {
+    console.log('Register periodic sync', swUrl)
+
+    async function check() {
+      if ('onLine' in navigator && navigator.onLine) {
+        await r.update()
+      }
+      setTimeout(check, period)
+    }
+
+    setTimeout(check, 60 * 1000)
+  }
 
   const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW({
-    onRegistered(r) {
-      if (r) {
-        let i = 0
-        const check = () => {
-          i += 1
-          setTimeout(check, i > 7 ? maxInterval : minInterval)
-
-          if (!navigator.onLine) return
-          console.log('Checking for sw update')
-          r.update()
-        }
-        setTimeout(check, minInterval)
+    onRegisteredSW(swUrl, r) {
+      if (r?.active?.state === 'activated') {
+        registerPeriodicSync(swUrl, r)
+      } else if (r?.installing) {
+        r.installing.addEventListener('statechange', (e) => {
+          const sw = e.target as ServiceWorker
+          if (sw.state === 'activated') registerPeriodicSync(swUrl, r)
+        })
       }
     },
     onRegisterError(error) {
@@ -26,7 +34,7 @@
     }
   })
 
-  function close(res: { id: string; status: 'queued' | 'closed' }) {
+  function close() {
     offlineReady.set(false)
     needRefresh.set(false)
   }
