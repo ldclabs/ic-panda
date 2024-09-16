@@ -179,7 +179,12 @@
           class="grid w-full grid-cols-[1fr_auto] items-center rounded-none p-2"
         >
           <div class="flex flex-row items-center space-x-2">
-            <Avatar initials={user.name} fill="fill-white" width="w-10" />
+            <Avatar
+              initials={user.name}
+              src={user.image}
+              fill="fill-white"
+              width="w-10"
+            />
             <p class="ml-1 max-w-52 truncate text-ellipsis">
               {user.name + (user.username ? ' @' + user.username : '')}
             </p>
@@ -210,7 +215,12 @@
           disabled={user.isMember || user.isManager}
         >
           <div class="flex flex-row items-center space-x-2">
-            <Avatar initials={user.name} fill="fill-white" width="w-10" />
+            <Avatar
+              initials={user.name}
+              src={user.image}
+              fill="fill-white"
+              width="w-10"
+            />
             <p class="ml-1 max-w-52 truncate text-ellipsis">
               {user.name + (user.username ? ' @' + user.username : '')}
             </p>

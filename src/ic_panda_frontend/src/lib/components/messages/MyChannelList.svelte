@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
+  import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
   import { toastRun } from '$lib/stores/toast'
   import { isActive } from '$lib/utils/window'
@@ -9,7 +10,12 @@
     type ChannelBasicInfoEx,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    Avatar,
+    getModalStore,
+    getToastStore,
+    popup
+  } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { readable, type Readable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
@@ -51,7 +57,7 @@
     return abort
   })
 
-  $: currentChannel = $page.params['channel'] || ''
+  $: currentChannel = ($page?.params || {})['channel'] || ''
   $: channels =
     $myChannels?.filter((c) => {
       const val = filterValue.trim().toLowerCase()
@@ -76,9 +82,47 @@
       on:click={onCreateChannelHandler}><span><IconAdd /></span></button
     >
   </header>
-  <div class="space-y-4 overflow-y-auto">
-    <div class="px-4 py-2 text-sm opacity-50"><span>Channels</span></div>
-    <div class="!mt-0 flex flex-col space-y-1">
+  <div class="overflow-y-auto">
+    <div class="flex flex-row items-center gap-2 px-4 py-2">
+      <span class="text-sm opacity-50">Channels</span>
+      <button
+        class=""
+        use:popup={{
+          event: 'click',
+          target: 'ChannelTipHover',
+          middleware: {
+            size: { availableWidth: 300, availableHeight: 40 }
+          }
+        }}
+      >
+        <span class="opacity-50 *:size-5">
+          <IconInfo />
+        </span>
+      </button>
+      <div
+        class="card z-10 max-w-80 bg-surface-900 p-2 py-1"
+        data-popup="ChannelTipHover"
+      >
+        <p class="min-w-0 text-pretty break-words text-white">
+          <span
+            >In addition to encrypted chats, you can also store confidential
+            information.<br />It's encrypted on-chain and synced across devices,
+            with only you able to read and decrypt it.</span
+          >
+        </p>
+        <div class="arrow bg-surface-900" />
+      </div>
+    </div>
+    {#if channels.length === 0}
+      <div class="px-4 py-2 text-sm"
+        ><span
+          >In addition to encrypted chats, you can also store confidential
+          information.<br />It's encrypted on-chain and synced across devices,
+          with only you able to read and decrypt it.</span
+        ></div
+      >
+    {/if}
+    <div class="flex flex-col space-y-1">
       {#each channels as channel}
         <button
           type="button"
@@ -94,7 +138,12 @@
                 class="badge-icon absolute -right-0 -top-0 z-10 size-2 bg-red-500"
               ></span>
             {/if}
-            <Avatar initials={channel.name} fill="fill-white" width="w-10" />
+            <Avatar
+              initials={channel.name}
+              src={channel.image}
+              fill="fill-white"
+              width="w-10"
+            />
           </div>
           <div class="flex-1">
             <div class="flex flex-row items-center justify-between text-sm">

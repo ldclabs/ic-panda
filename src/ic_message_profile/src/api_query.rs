@@ -4,7 +4,7 @@ use ic_cdk::api::management_canister::main::{
 };
 use ic_cose_types::format_error;
 
-use crate::{is_authenticated, store, types};
+use crate::{store, types};
 
 #[ic_cdk::query]
 fn get_state() -> Result<types::StateInfo, String> {
@@ -27,7 +27,7 @@ async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
     Ok(res)
 }
 
-#[ic_cdk::query(guard = "is_authenticated")]
+#[ic_cdk::query]
 fn get_profile(user: Option<Principal>) -> Result<types::ProfileInfo, String> {
     let caller = ic_cdk::caller();
     let user = user.unwrap_or(caller);

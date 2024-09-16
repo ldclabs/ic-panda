@@ -6,6 +6,8 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
+  import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
@@ -32,6 +34,11 @@
   import UserRegisterModel from './UserRegisterModel.svelte'
 
   export let userId: Principal | string
+
+  // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
+  const PandaID = Principal.fromText(
+    'nmob2-y6p4k-rp5j7-7x2mo-aqceq-lpie2-fjgw7-nkjdu-bkoe4-zjetd-wae'
+  )
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
@@ -170,6 +177,10 @@
       if (!user) {
         return
       }
+      if (!myState.isReady()) {
+        const iv = await myState.myIV()
+        await myState.masterKey(iv)
+      }
 
       modalStore.trigger({
         type: 'component',
@@ -268,18 +279,23 @@
 </script>
 
 {#if $userInfo}
+  {@const display = toDisplayUserInfo($userInfo)}
   <section
     class="flex w-full flex-col items-center gap-0 overflow-y-auto p-4 pb-40 sm:mt-16"
   >
     <Avatar
-      initials={$userInfo.name}
-      border="border-4 border-white"
+      initials={display.name}
+      src={display.image}
+      border="border-4 border-panda/20"
       background="bg-panda"
       fill="fill-white"
       width="w-32"
     />
-    <p class="relative">
-      <span>{$userInfo.name}</span>
+    <p class="relative space-x-1">
+      <span>{display.name}</span>
+      {#if display.username}
+        <span class="text-gray/60">@{display.username}</span>
+      {/if}
       {#if isMe}
         <button
           type="button"
@@ -290,9 +306,10 @@
         </button>
       {/if}
     </p>
-    {#if $userInfo.username.length === 1}
-      <p class="text-gray/60">@{$userInfo.username[0]}</p>
-    {/if}
+    <p class="flex flex-row items-center gap-1 text-sm text-gray/60">
+      <span>{display._id}</span>
+      <TextClipboardButton textValue={display._id} />
+    </p>
     {#if $userInfo.bio}
       <div class="content-markdown mt-2">
         {@html md.render($userInfo.bio)}
@@ -355,13 +372,17 @@
           {#each $myFollowing as member (member._id)}
             <div class="grid items-center gap-1 sm:grid-cols-[1fr_auto]">
               <div class="flex flex-row items-center space-x-2">
-                <Avatar initials={member.name} fill="fill-white" width="w-10" />
+                <Avatar
+                  initials={member.name}
+                  src={member.image}
+                  fill="fill-white"
+                  width="w-10"
+                />
                 <span class="ml-1">{member.name}</span>
                 {#if member.username}
                   <a
                     class="text-gray/60 underline underline-offset-4"
-                    href="https://panda.fans/{member.username}"
-                    >@{member.username}</a
+                    href="{APP_ORIGIN}/{member.username}">@{member.username}</a
                   >
                 {/if}
               </div>
@@ -398,6 +419,30 @@
       </div>
     {/if}
   </section>
+  {#if userId.toString().toUpperCase() !== 'PANDA'}
+    <div class="m-auto flex flex-col items-center space-y-2 self-end text-sm">
+      <div class="flex flex-row items-center">
+        <a
+          class="flex flex-row items-center space-x-1"
+          href="https://panda.fans/PANDA"
+        >
+          <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-8" />
+          <span class="ml-1 truncate">ICPanda DAO</span>
+          <span class="text-gray/60">@PANDA</span>
+        </a>
+        <button
+          type="button"
+          title="End-to-end encrypted message"
+          class="variant-ringed-primary btn btn-sm ml-2 w-32 hover:variant-soft-primary"
+          on:click={() => onCreateChannelHandler(PandaID)}
+        >
+          <span>Message</span>
+        </button>
+      </div>
+      <p class="text-gray/60">If you encounter any issues, please message me.</p
+      >
+    </div>
+  {/if}
 {:else}
   <div class="mt-16 grid justify-center">
     <span class="text-panda *:size-10"><Loading /></span>

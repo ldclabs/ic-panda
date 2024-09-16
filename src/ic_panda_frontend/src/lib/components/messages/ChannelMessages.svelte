@@ -332,6 +332,7 @@
         >
           <Avatar
             initials={msg.created_user.name}
+            src={msg.created_user.image}
             fill="fill-white"
             width="w-10"
           />
@@ -396,6 +397,7 @@
           </div>
           <Avatar
             initials={msg.created_user.name}
+            src={msg.created_user.image}
             background="bg-panda"
             fill="fill-white"
             width="w-10"

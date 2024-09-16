@@ -6,7 +6,7 @@ source "$(pwd)"/proposals/env.sh
 # build and get batch_id, evidence:
 # dfx deploy ic_panda_frontend --ic --by-proposal
 
-export BLOB="$(didc encode --format blob '(record {batch_id=44:nat; evidence=blob "\b5\81\62\88\ca\97\70\e1\31\a9\b1\16\5c\93\42\6f\3b\30\19\4b\4b\87\7e\24\a9\bb\aa\d4\fc\f8\dc\11"})')"
+export BLOB="$(didc encode --format blob '(record {batch_id=45:nat; evidence=blob "\31\35\c9\6f\80\85\c9\25\4b\42\78\bf\a9\b4\f9\12\59\80\a5\62\9b\77\85\51\4b\e8\08\93\ee\1d\20\29"})')"
 
 quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $PROPOSAL_PEM_FILE $PROPOSAL_NEURON_ID --proposal "(
     record {

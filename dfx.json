@@ -7,6 +7,7 @@
       },
       "package": "ic_message",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_message_channel": {
@@ -16,6 +17,7 @@
       },
       "package": "ic_message_channel",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_message_profile": {
@@ -25,6 +27,7 @@
       },
       "package": "ic_message_profile",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_panda_luckypool": {
@@ -34,6 +37,7 @@
       },
       "package": "ic_panda_luckypool",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_panda_infra": {
@@ -43,6 +47,7 @@
       },
       "package": "ic_panda_infra",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_panda_ai": {
@@ -52,6 +57,7 @@
       },
       "package": "ic_panda_ai",
       "optimize": "cycles",
+      "gzip": true,
       "type": "rust"
     },
     "ic_panda_frontend": {
@@ -61,6 +67,16 @@
       ],
       "type": "assets",
       "workspace": "ic_panda_frontend"
+    },
+    "ic_message_channel_02": {
+      "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",
+      "type": "custom",
+      "wasm": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
+    },
+    "ic_message_channel_03": {
+      "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",
+      "type": "custom",
+      "wasm": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
     },
     "ic_cose_canister": {
       "candid": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.did",

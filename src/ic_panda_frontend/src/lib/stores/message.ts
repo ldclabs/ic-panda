@@ -1329,14 +1329,18 @@ export class MyMessageState {
         src: msg
       }
 
-      try {
-        const payload =
-          msg.kind == 1
-            ? (msg.payload as Uint8Array)
-            : await coseA256GCMDecrypt0(dek, msg.payload as Uint8Array, aad)
-        m.message = decodeMessage(payload)
-      } catch (err) {
-        m.error = `Failed to decrypt message: ${err}`
+      if (msg.payload.length === 0) {
+        m.error = 'Message deleted'
+      } else {
+        try {
+          const payload =
+            msg.kind == 1
+              ? (msg.payload as Uint8Array)
+              : await coseA256GCMDecrypt0(dek, msg.payload as Uint8Array, aad)
+          m.message = decodeMessage(payload)
+        } catch (err) {
+          m.error = `Failed to decrypt message: ${err}`
+        }
       }
 
       list.push(m)
@@ -1708,13 +1712,17 @@ export function toDisplayUserInfo(info?: UserInfo) {
   }
 
   const _id = info.id.toText()
-  return {
+  const rt = {
     _id,
     username: unwrapOption(info.username) || '',
     name: info.name || 'Unknown',
     image: info.image,
     src: info
   }
+  if (rt.username.toLocaleUpperCase() === 'PANDA') {
+    rt.image = '/_assets/logo.svg'
+  }
+  return rt
 }
 
 type MessagePayload = string | [string, number, Uint8Array]

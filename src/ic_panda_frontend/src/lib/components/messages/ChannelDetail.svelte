@@ -81,6 +81,7 @@
       {#if $channelInfo}
         <Avatar
           initials={$channelInfo.name}
+          src={$channelInfo.image}
           background="bg-panda"
           fill="fill-white"
           width="w-8"

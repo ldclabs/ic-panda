@@ -29,7 +29,7 @@
 
   setContext('onChatBack', onChatBack)
 
-  $: channelId = $page.params['channel'] || ''
+  $: channelId = ($page?.params || {})['channel'] || ''
   $: channelsListActive = channelId === ''
 </script>
 
@@ -53,6 +53,7 @@
         >
           <Avatar
             initials={$myInfo.name}
+            src={$myInfo.image}
             fill="fill-white"
             background="bg-panda"
             width="w-10"

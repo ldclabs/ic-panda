@@ -230,6 +230,7 @@
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     <Avatar
       initials={channelInfo.name}
+      src={channelInfo.image}
       border="border-4 border-white"
       background="bg-panda"
       fill="fill-white"
@@ -405,6 +406,7 @@
           <div class="flex flex-row items-center space-x-2">
             <Avatar
               initials={member.name}
+              src={member.image}
               fill="fill-white"
               width="w-10"
               border={member._id === myID ? 'border-2 border-panda' : ''}

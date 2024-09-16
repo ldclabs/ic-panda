@@ -81,7 +81,7 @@ fn search_username(prefix: String) -> Result<Vec<String>, String> {
 
 #[ic_cdk::query]
 fn get_by_username(username: String) -> Result<UserInfo, String> {
-    store::user::get_by_username(username)
+    store::user::get_by_username(username.to_ascii_lowercase())
 }
 
 #[ic_cdk::query]

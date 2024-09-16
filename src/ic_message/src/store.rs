@@ -219,10 +219,11 @@ pub mod state {
                 .as_ref()
                 .ok_or("no schnorr ed25519 public key")?;
 
-            let mut path: Vec<Vec<u8>> = Vec::with_capacity(3);
-            path.push(b"ICPanda_IV".to_vec());
-            path.push(caller.to_bytes().to_vec());
-            path.push(s.init_vector.to_vec());
+            let path: Vec<Vec<u8>> = vec![
+                b"ICPanda_IV".to_vec(),
+                caller.to_bytes().to_vec(),
+                s.init_vector.to_vec(),
+            ];
             derive_25519_public_key(pk, path)
         })
     }
@@ -420,7 +421,8 @@ pub mod user {
         };
         let res: Result<SettingInfo, String> =
             call(cose_canister, "setting_get_info", (sp.clone(),), 0).await?;
-        let res = match res {
+
+        match res {
             Ok(info) => {
                 sp.version = info.version;
                 let mut payload: BTreeMap<String, ByteBuf> = info
@@ -474,8 +476,7 @@ pub mod user {
                 .await?;
                 res.map(|_| ())
             }
-        };
-        res
+        }
     }
 
     pub async fn register_username(

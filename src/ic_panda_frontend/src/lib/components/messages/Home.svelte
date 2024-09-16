@@ -1,6 +1,7 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
   import {
@@ -174,8 +175,8 @@
     class="card mt-1 flex flex-col rounded-2xl rounded-t-none bg-transparent bg-white p-8 text-sm *:justify-start"
   >
     <a
-      class="flex flex-row items-center space-x-2 rounded-sm px-2 py-1 hover:variant-soft-primary"
-      href="https://panda.fans/PANDA"
+      class="flex flex-row items-center space-x-2 rounded-md px-2 py-1 hover:variant-soft-primary"
+      href="{APP_ORIGIN}/PANDA"
     >
       <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
       <span class="ml-1 truncate">ICPanda DAO</span>
@@ -185,9 +186,14 @@
     {#each $latest_users as user (user.id.toText())}
       <a
         class="flex flex-row items-center space-x-2 rounded-sm px-2 py-1 hover:variant-soft-primary"
-        href="https://panda.fans/{user.username[0]}"
+        href="{APP_ORIGIN}/{user.username[0]}"
       >
-        <Avatar initials={user.name} fill="fill-white" width="w-10" />
+        <Avatar
+          initials={user.name}
+          src={user.image}
+          fill="fill-white"
+          width="w-10"
+        />
         <span class="ml-1 truncate">{user.name}</span>
         <span class="text-gray/60">@{user.username[0]}</span>
       </a>
