@@ -69,16 +69,18 @@ export function getCurrentTimeString(ts: bigint | number): string {
 
 export function mergeMySetting(
   old: ChannelSetting,
-  ncs: Partial<ChannelSetting>
+  ncs: Partial<ChannelSetting>,
+  latestId: number
 ): ChannelSetting {
-  const lastRead = old.last_read
   const rt = { ...old, ...ncs }
-  if (rt.last_read < lastRead) {
-    rt.last_read = lastRead
-    rt.unread = ncs.unread ? ncs.unread : rt.unread - (lastRead - rt.last_read)
-    if (rt.unread < 0) {
-      rt.unread = 0
-    }
+  if (rt.last_read < old.last_read) {
+    rt.last_read = old.last_read
+  }
+  rt.unread = ncs.unread
+    ? ncs.unread
+    : rt.unread - (rt.last_read - old.last_read)
+  if (rt.unread < 0 || rt.last_read >= latestId) {
+    rt.unread = 0
   }
 
   return rt
@@ -594,7 +596,7 @@ export class MyMessageState {
       mute: [],
       last_read: []
     })
-    this.freshMyChannelSetting(info.canister, info.id, setting)
+    this.updateMyChannelSetting(info.canister, info.id, setting)
   }
 
   async acceptKEK(info: ChannelInfoEx): Promise<void> {
@@ -635,7 +637,7 @@ export class MyMessageState {
       last_read: []
     })
 
-    this.freshMyChannelSetting(info.canister, info.id, setting)
+    this.updateMyChannelSetting(info.canister, info.id, setting)
     info._kek = encryptedKEK
   }
 
@@ -767,14 +769,20 @@ export class MyMessageState {
     }
   }
 
-  freshMyChannelSetting(
+  updateMyChannelSetting(
     canister: Principal,
     id: number,
-    setting?: Partial<ChannelSetting>
+    setting?: Partial<ChannelSetting>,
+    latestMessageId?: number
   ): ChannelSetting | null {
     const channel = this._myChannels.get(`${canister.toText()}:${id}`)
+
     if (channel && setting) {
-      channel.my_setting = mergeMySetting(channel.my_setting, setting)
+      channel.my_setting = mergeMySetting(
+        channel.my_setting,
+        setting,
+        latestMessageId || channel.latest_message_id
+      )
       return channel.my_setting
     }
 
@@ -790,7 +798,7 @@ export class MyMessageState {
   async addMyChannel(info: ChannelInfo): Promise<void> {
     await this.initMyChannels()
 
-    info.my_setting = this.freshMyChannelSetting(
+    info.my_setting = this.updateMyChannelSetting(
       info.canister,
       info.id,
       info.my_setting
@@ -856,6 +864,31 @@ export class MyMessageState {
     }
   }
 
+  async cleanupMyChannels(): Promise<void> {
+    const state = this.api.state
+    if (!state) {
+      throw new Error('Wait for message state')
+    }
+
+    const canisters: Principal[] = [
+      ...state.channel_canisters,
+      ...state.matured_channel_canisters
+    ]
+
+    await Promise.all(
+      canisters.map(async (canister) => {
+        const api = await this.api.channelAPI(canister)
+        const ids = await api.my_channel_ids()
+        const prefix = canister.toText()
+        for (const [key, info] of this._myChannels) {
+          if (key.startsWith(prefix) && !ids.includes(info.id)) {
+            await this.removeMyChannel(canister, info.id)
+          }
+        }
+      })
+    )
+  }
+
   async refreshMyChannels(signal: AbortSignal): Promise<void> {
     const state = this.api.state
     if (!state) {
@@ -884,6 +917,9 @@ export class MyMessageState {
             if (latest_message_at < info.latest_message_at) {
               latest_message_at = info.latest_message_at
             }
+            if (latest_message_at < info.my_setting.updated_at) {
+              latest_message_at = info.my_setting.updated_at
+            }
           }
         }
 
@@ -894,10 +930,11 @@ export class MyMessageState {
         let channels = await api.my_channels(latest_message_at)
         if (channels.length > 0) {
           for (const channel of channels) {
-            channel.my_setting = this.freshMyChannelSetting(
+            channel.my_setting = this.updateMyChannelSetting(
               channel.canister,
               channel.id,
-              channel.my_setting
+              channel.my_setting,
+              channel.latest_message_id
             )!
             this._myChannels.set(`${prefix}:${channel.id}`, channel)
             await KVS.set(
@@ -1120,7 +1157,11 @@ export class MyMessageState {
     } else {
       const channel = this._myChannels.get(`${canister.toText()}:${id}`)
       if (channel) {
-        info.my_setting = mergeMySetting(info.my_setting, channel.my_setting)
+        info.my_setting = mergeMySetting(
+          info.my_setting,
+          channel.my_setting,
+          channel.latest_message_id
+        )
       }
     }
 
@@ -1290,7 +1331,7 @@ export class MyMessageState {
       last_read: [lastRead]
     })
 
-    this.freshMyChannelSetting(canister, channelId, setting)
+    this.updateMyChannelSetting(canister, channelId, setting)
   }
 
   async messagesToInfo(

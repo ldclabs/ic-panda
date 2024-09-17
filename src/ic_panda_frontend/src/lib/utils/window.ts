@@ -29,7 +29,8 @@ export const isVisible = () => {
 
 export const isActive = () => isOnline() && isVisible()
 
-export const initFocus = (callback: () => void) => {
+export const initFocus = (callback: (ev: Event) => void) => {
+  // TODO: callback will be triggered 2 times when the page is focused.
   if (isDocumentDefined) {
     document.addEventListener('visibilitychange', callback)
   } else {
@@ -203,9 +204,12 @@ export function elementsInViewport(
   const rt: HTMLElement[] = []
   for (const el of els) {
     const rect = el.getBoundingClientRect()
+    const threadhold = 0.5 * rect.height
     if (
-      (rect.top >= containerRect.top && rect.top < containerRect.bottom) ||
-      (rect.bottom <= containerRect.bottom && rect.bottom > containerRect.top)
+      (rect.top >= containerRect.top &&
+        rect.top + threadhold < containerRect.bottom) ||
+      (rect.bottom <= containerRect.bottom &&
+        rect.bottom - threadhold > containerRect.top)
     ) {
       rt.push(el)
     }

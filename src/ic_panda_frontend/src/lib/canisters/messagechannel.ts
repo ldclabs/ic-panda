@@ -119,6 +119,12 @@ export class ChannelAPI {
     return unwrapResult(res, 'call list_messages failed')
   }
 
+  async my_channel_ids(): Promise<number[]> {
+    const res = await this.actor.my_channel_ids()
+    const rt = unwrapResult(res, 'call my_channel_ids failed')
+    return rt instanceof Uint32Array ? Array.from(rt) : rt
+  }
+
   async my_channels(updated_at: bigint = 0n): Promise<ChannelBasicInfo[]> {
     const res = await this.actor.my_channels_if_update([updated_at])
     return unwrapResult(res, 'call my_channels_if_update failed')

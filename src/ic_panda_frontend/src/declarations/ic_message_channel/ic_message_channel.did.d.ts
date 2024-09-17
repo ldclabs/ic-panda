@@ -121,7 +121,9 @@ export type Result = { 'Ok' : AddMessageOutput } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : ChannelSetting } |
+export type Result_10 = { 'Ok' : [bigint, [] | [Message]] } |
+  { 'Err' : string };
+export type Result_11 = { 'Ok' : ChannelSetting } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : ChannelInfo } |
   { 'Err' : string };
@@ -137,7 +139,7 @@ export type Result_7 = { 'Ok' : StateInfo } |
   { 'Err' : string };
 export type Result_8 = { 'Ok' : Array<Message> } |
   { 'Err' : string };
-export type Result_9 = { 'Ok' : [bigint, [] | [Message]] } |
+export type Result_9 = { 'Ok' : Uint32Array | number[] } |
   { 'Err' : string };
 export interface StateInfo {
   'channel_id' : number,
@@ -184,12 +186,13 @@ export interface _SERVICE {
     [number, [] | [number], [] | [number]],
     Result_8
   >,
+  'my_channel_ids' : ActorMethod<[], Result_9>,
   'my_channels_if_update' : ActorMethod<[[] | [bigint]], Result_3>,
   'remove_member' : ActorMethod<[UpdateChannelMemberInput], Result_1>,
   'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
-  'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
-  'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_9>,
-  'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_10>,
+  'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
+  'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
+  'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_11>,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,
 }

@@ -157,6 +157,7 @@ export const idlFactory = ({ IDL }) => {
     'last_read' : IDL.Opt(IDL.Nat32),
   });
   const Result_8 = IDL.Variant({ 'Ok' : IDL.Vec(Message), 'Err' : IDL.Text });
+  const Result_9 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat32), 'Err' : IDL.Text });
   const UpdateChannelMemberInput = IDL.Record({
     'id' : IDL.Nat32,
     'member' : IDL.Principal,
@@ -168,11 +169,11 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Opt(IDL.Text),
     'image' : IDL.Opt(IDL.Text),
   });
-  const Result_9 = IDL.Variant({
+  const Result_10 = IDL.Variant({
     'Ok' : IDL.Tuple(IDL.Nat64, IDL.Opt(Message)),
     'Err' : IDL.Text,
   });
-  const Result_10 = IDL.Variant({ 'Ok' : ChannelSetting, 'Err' : IDL.Text });
+  const Result_11 = IDL.Variant({ 'Ok' : ChannelSetting, 'Err' : IDL.Text });
   return IDL.Service({
     'add_message' : IDL.Func([AddMessageInput], [Result], []),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
@@ -205,6 +206,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_8],
         ['query'],
       ),
+    'my_channel_ids' : IDL.Func([], [Result_9], ['query']),
     'my_channels_if_update' : IDL.Func(
         [IDL.Opt(IDL.Nat64)],
         [Result_3],
@@ -212,9 +214,9 @@ export const idlFactory = ({ IDL }) => {
       ),
     'remove_member' : IDL.Func([UpdateChannelMemberInput], [Result_1], []),
     'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
-    'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
-    'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_9], []),
-    'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_10], []),
+    'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
+    'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
+    'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_11], []),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result_1],

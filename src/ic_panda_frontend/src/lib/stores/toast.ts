@@ -5,7 +5,7 @@ import { type ToastStore } from '@skeletonlabs/skeleton'
 export { tryRun, type TryRunResult } from '$lib/utils/tryrun'
 
 export function toastRun<T>(
-  fn: (signal: AbortSignal) => T | Promise<T>,
+  fn: (signal: AbortSignal, abortingQue: (() => void)[]) => T | Promise<T>,
   toastStore: ToastStore,
   option?: {
     autohide?: boolean

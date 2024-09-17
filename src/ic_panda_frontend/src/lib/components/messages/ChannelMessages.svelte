@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
@@ -13,7 +12,11 @@
     encodeCBOR,
     type AesGcmKey
   } from '$lib/utils/crypto'
-  import { isActive, scrollOnHooks } from '$lib/utils/window'
+  import {
+    elementsInViewport,
+    isActive,
+    scrollOnHooks
+  } from '$lib/utils/window'
   import {
     getCurrentTimeString,
     toDisplayUserInfo,
@@ -31,6 +34,7 @@
   export let myInfo: Readable<UserInfo>
   export let channelInfo: ChannelInfoEx
 
+  const MaybeMaxMessageId = 0xffff0000
   const toastStore = getToastStore()
   const { canister, id } = channelInfo
 
@@ -41,7 +45,7 @@
   let elemChat: HTMLElement
   let dek: AesGcmKey
   let channelAPI: ChannelAPI
-  let PendingMessageId = 0xffff0000
+  let PendingMessageId = MaybeMaxMessageId
 
   // Messages
   let submitting = false
@@ -156,9 +160,13 @@
     }
   }
 
-  const debouncedUpdateMyLastRead = debounce(async () => {
-    await myState.updateMyLastRead(canister, id, lastRead)
-  }, 1000)
+  const debouncedUpdateMyLastRead = debounce(
+    async () => {
+      await myState.updateMyLastRead(canister, id, lastRead)
+    },
+    5000,
+    { immediate: true }
+  )
 
   let topLoading = false
   async function loadPrevMessages(start: number, end: number) {
@@ -217,20 +225,31 @@
     }
   }
 
+  function updateLastRead(messageId: number) {
+    if (messageId > lastRead) {
+      lastRead = messageId
+      myState.updateMyChannelSetting(canister, id, {
+        last_read: lastRead
+      })
+      myState.informMyChannelsStream()
+      debouncedUpdateMyLastRead()
+    }
+  }
+
   onMount(() => {
-    const { abort } = toastRun(async (signal: AbortSignal) => {
-      if (!signal.aborted) {
+    const { abort } = toastRun(
+      async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         if (!channelInfo._kek) {
           channelInfo = await myState.refreshMyChannel(channelInfo)
         }
 
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
-        lastRead = Math.min(channelInfo.my_setting.last_read, latestMessageId)
+        lastRead = Math.max(
+          Math.min(channelInfo.my_setting.last_read, MaybeMaxMessageId),
+          latestMessageId
+        )
 
-        if (!lastRead) {
-          lastRead = latestMessageId
-        }
         channelAPI = await myState.api.channelAPI(canister)
         dek = await myState.decryptChannelDEK(channelInfo)
         await loadPrevMessages(messageStart, lastRead + 1)
@@ -240,51 +259,46 @@
         await loadNextMessages(lastRead + 1)
         // no scroll
         if (elemChat?.scrollTop == 0) {
-          const msg = $messageFeed.at(-1)!
-          if (msg.id > lastRead && msg.id !== msg.pid) {
+          const msg = $messageFeed.at(-1)
+          if (msg && msg.id > lastRead && msg.id !== msg.pid) {
             lastRead = msg.id
             debouncedUpdateMyLastRead()
           }
+        } else {
+          scrollIntoView(lastRead + 1, 'smooth')
         }
-      } else {
-        goto('/_/messages')
-      }
-    }, toastStore)
 
-    const abortScroll = scrollOnHooks(elemChat, {
-      onTop: () => {
-        if (dek && !topLoading) {
-          const front = $messageFeed[0]
-          if (front && front.id > messageStart) {
-            loadPrevMessages(messageStart, front.id)
+        const abortScroll = scrollOnHooks(elemChat, {
+          onTop: () => {
+            if (dek && !topLoading) {
+              const front = $messageFeed[0]
+              if (front && front.id > messageStart) {
+                loadPrevMessages(messageStart, front.id)
+              }
+            }
+          },
+          onBottom: () => {
+            if (dek && !bottomLoading) {
+              const back = $messageFeed.at(-1)
+              if (back && back.id < latestMessageId) {
+                loadNextMessages(back.id)
+              }
+            }
+          },
+          inMoveUpViewport: (els) => {
+            const [_canister, _channel, mid] = els.at(-1)!.id.split(':')
+            const messageId = parseInt(mid || '')
+
+            // messageId may be a pid
+            updateLastRead(Math.min(messageId, latestMessageId))
           }
-        }
+        })
+        abortingQue.push(abortScroll)
       },
-      onBottom: () => {
-        if (dek && !bottomLoading) {
-          const back = $messageFeed.at(-1)
-          if (back && back.id < latestMessageId) {
-            loadNextMessages(back.id)
-          }
-        }
-      },
-      inMoveUpViewport: (els) => {
-        const [_canister, _channel, mid] = els.at(-1)!.id.split(':')
-        const messageId = parseInt(mid || '')
+      toastStore
+    )
 
-        if (messageId > lastRead) {
-          lastRead = Math.min(messageId, latestMessageId)
-          myState.freshMyChannelSetting(canister, id, { last_read: messageId })
-          myState.informMyChannelsStream()
-          debouncedUpdateMyLastRead()
-        }
-      }
-    })
-
-    return () => {
-      abortScroll()
-      abort()
-    }
+    return abort
   })
 
   onDestroy(() => {
@@ -293,15 +307,17 @@
 
   $: {
     const info = $latestMessage
-    if (info) {
+    if (info && elemChat) {
       latestMessageId = info.id
       addMessageInfos([info])
       tick().then(() => {
-        if (elemChat?.scrollTop == 0) {
-          const msg = $messageFeed.at(-1)!
-          if (msg.id > lastRead && msg.id !== msg.pid) {
-            lastRead = msg.id
-            debouncedUpdateMyLastRead()
+        const msg = $messageFeed.at(-1)
+        if (msg && msg.id > lastRead && msg.id !== msg.pid) {
+          const ele = document.getElementById(
+            `${canister.toText()}:${id}:${msg.id}`
+          )
+          if (ele && elementsInViewport(elemChat, [ele]).length > 0) {
+            updateLastRead(msg.id)
           }
         }
       })
@@ -366,13 +382,17 @@
           class="grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
           id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
         >
-          <div></div>
-          <div class="flex flex-col">
+          <div class="mt-[34px] flex flex-row justify-end">
+            {#if submitting && msg.pid}
+              <span class=" text-panda *:size-5"><IconCircleSpin /></span>
+            {/if}
+          </div>
+          <div class=" flex flex-col">
             <header class="flex items-center justify-end">
               <small class="opacity-50">{msg.created_time}</small>
             </header>
             <div
-              class="card relative max-h-[600px] min-h-12 w-full rounded-tr-none border-none {msg.kind ===
+              class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tr-none border-none {msg.kind ===
               1
                 ? 'bg-transparent text-xs text-gray/60'
                 : 'bg-panda/20'}"
@@ -383,15 +403,7 @@
                   >{msg.error}</p
                 >
               {:else}
-                <pre
-                  class="w-full overflow-auto overscroll-auto text-pretty px-4 py-2"
-                  >{msg.message}</pre
-                >
-              {/if}
-              {#if submitting && msg.pid}
-                <span class="absolute -right-7 top-7 text-panda *:size-5"
-                  ><IconCircleSpin /></span
-                >
+                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
               {/if}
             </div>
           </div>

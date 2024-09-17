@@ -5,7 +5,7 @@
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import { isActive } from '$lib/utils/window'
+  import { initFocus, isActive } from '$lib/utils/window'
   import {
     type ChannelBasicInfoEx,
     type MyMessageState
@@ -16,15 +16,16 @@
     getToastStore,
     popup
   } from '@skeletonlabs/skeleton'
+  import debounce from 'debounce'
   import { onMount } from 'svelte'
-  import { readable, type Readable } from 'svelte/store'
+  import { type Readable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
 
   export let myState: MyMessageState
 
   const toastStore = getToastStore()
 
-  let myChannels: Readable<ChannelBasicInfoEx[]> = readable([])
+  let myChannels: Readable<ChannelBasicInfoEx[]>
   let filterValue: string = ''
 
   const modalStore = getModalStore()
@@ -42,18 +43,37 @@
   }
 
   onMount(() => {
-    const { abort } = toastRun(async (signal: AbortSignal) => {
-      myChannels = await myState.loadMyChannelsStream()
-      await myState.refreshMyChannels(signal)
-      const timer = setInterval(() => {
-        if (signal.aborted) {
-          clearInterval(timer)
-          return
-        }
+    const { abort } = toastRun(
+      async (signal: AbortSignal, abortingQue: (() => void)[]) => {
+        myChannels = await myState.loadMyChannelsStream()
 
-        isActive() && myState.refreshMyChannels(signal)
-      }, 10000)
-    }, toastStore)
+        myState.cleanupMyChannels().catch((e) => {
+          console.error('cleanupMyChannels', e)
+        })
+        const debouncedrefreshMyChannels = debounce(
+          async () => {
+            await myState.refreshMyChannels(signal)
+          },
+          3000,
+          { immediate: true }
+        )
+        abortingQue.push(debouncedrefreshMyChannels.clear)
+        debouncedrefreshMyChannels()
+
+        const focusAbort = initFocus(() => {
+          debouncedrefreshMyChannels()
+        })
+        abortingQue.push(focusAbort)
+
+        const timer = setInterval(() => {
+          isActive() && debouncedrefreshMyChannels()
+        }, 10000)
+
+        abortingQue.push(() => clearInterval(timer))
+      },
+      toastStore
+    )
+
     return abort
   })
 
@@ -133,7 +153,7 @@
           on:click={() => gotoChannel(channel.channelId)}
         >
           <div class="relative inline-block">
-            {#if channel.my_setting.unread > 0}
+            {#if channel.my_setting.unread > 0 || channel.my_setting.ecdh_remote.length > 0}
               <span
                 class="badge-icon absolute -right-0 -top-0 z-10 size-2 bg-red-500"
               ></span>

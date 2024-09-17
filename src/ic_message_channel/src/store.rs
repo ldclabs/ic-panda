@@ -419,10 +419,13 @@ pub mod channel {
         let id = state::with_mut(|s| {
             s.incoming_gas = s.incoming_gas.saturating_add(input.paid as u128);
             s.channel_id = s.channel_id.saturating_add(1);
-            s.user_channels
-                .entry(input.created_by)
-                .or_default()
-                .insert(s.channel_id, now_ms);
+            for p in input.managers.keys() {
+                s.user_channels
+                    .entry(*p)
+                    .or_default()
+                    .insert(s.channel_id, now_ms);
+            }
+
             s.channel_id
         });
 
@@ -492,11 +495,13 @@ pub mod channel {
                         if last_read > v.latest_message_id {
                             Err("last_read too large".to_string())?;
                         }
-
-                        if last_read > setting.last_read {
-                            setting.last_read = last_read;
+                        if last_read == v.latest_message_id {
                             setting.unread = 0;
+                        } else if last_read > setting.last_read {
+                            setting.unread =
+                                setting.unread.saturating_sub(last_read - setting.last_read);
                         }
+                        setting.last_read = last_read;
                     }
                     if let Some(mute) = input.mute {
                         setting.mute = mute;
@@ -535,6 +540,9 @@ pub mod channel {
                     state::with_mut(|s| {
                         if let Some(channels) = s.user_channels.get_mut(&member) {
                             channels.remove(&id);
+                            if channels.is_empty() {
+                                s.user_channels.remove(&member);
+                            }
                         }
                     });
 
@@ -566,6 +574,9 @@ pub mod channel {
                     state::with_mut(|s| {
                         if let Some(channels) = s.user_channels.get_mut(&caller) {
                             channels.remove(&id);
+                            if channels.is_empty() {
+                                s.user_channels.remove(&caller);
+                            }
                         }
                     });
 
@@ -576,13 +587,16 @@ pub mod channel {
                             for u in v.members.keys() {
                                 if let Some(channels) = s.user_channels.get_mut(u) {
                                     channels.remove(&id);
+                                    if channels.is_empty() {
+                                        s.user_channels.remove(u);
+                                    }
                                 }
                             }
                         });
 
                         MESSAGE_STORE.with(|r| {
                             let mut messages = r.borrow_mut();
-                            for i in v.message_start..v.latest_message_id + 1 {
+                            for i in v.message_start..=v.latest_message_id {
                                 messages.remove(&MessageId(id, i));
                             }
                         });
