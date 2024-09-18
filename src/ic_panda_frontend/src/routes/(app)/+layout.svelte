@@ -1,7 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
-  import { GOOGLE_RECAPTCHA_ID } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
@@ -80,11 +79,6 @@
 
 <svelte:head>
   {@html webManifest}
-  <script
-    src="https://www.google.com/recaptcha/enterprise.js?render={GOOGLE_RECAPTCHA_ID}&badge=inline"
-    async
-    defer
-  ></script>
 </svelte:head>
 
 <Modal position="items-start" class="*:max-h-full" />

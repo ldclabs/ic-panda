@@ -23,5 +23,3 @@ export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
 export const X_AUTH_KEY = 'ICPanda:XAuth'
 export const X_AUTH_ENDPIONT = 'https://auth.panda.fans/idp/twitter/authorize'
 export const X_AUTH_CHALLENGE_ENDPIONT = 'https://auth.panda.fans/challenge'
-
-export const GOOGLE_RECAPTCHA_ID = '6LduPbIpAAAAANSOUfb-8bU45eilZFSmlSguN5TO'

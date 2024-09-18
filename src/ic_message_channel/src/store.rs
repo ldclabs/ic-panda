@@ -353,25 +353,6 @@ pub mod state {
             });
         });
     }
-
-    // temporary solution to fix user_channels
-    pub fn update_user_channels() {
-        with_mut(|s| {
-            CHANNEL_STORE.with(|r| {
-                let m = r.borrow();
-                let now_ms = ic_cdk::api::time() / 1e6 as u64;
-                for id in 1..s.channel_id {
-                    if let Some(v) = m.get(&id) {
-                        for p in v.managers.keys() {
-                            s.user_channels
-                                .entry(*p)
-                                .or_insert(BTreeMap::from([(id, now_ms)]));
-                        }
-                    }
-                }
-            });
-        });
-    }
 }
 
 pub mod channel {
@@ -831,6 +812,9 @@ pub mod channel {
                             Some(mut msg) => {
                                 if msg.created_by != caller {
                                     Err("caller is not the creator".to_string())?;
+                                }
+                                if msg.kind == 1 {
+                                    Err("system message cannot be deleted".to_string())?;
                                 }
 
                                 msg.payload.clear();
