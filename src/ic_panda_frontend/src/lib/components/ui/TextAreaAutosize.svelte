@@ -2,13 +2,14 @@
   export let value = ''
   export let minHeight = '40'
   export let maxHeight = '200'
+  export let containerClass = ''
   export let onKeydown: (event: KeyboardEvent) => void = () => {}
 </script>
 
-<div class="relative !p-0">
+<div class="relative !p-0 {containerClass}">
   <pre
     aria-hidden="true"
-    class="invisible py-2"
+    class="invisible w-full text-pretty px-3 py-2"
     style="min-height: {minHeight}px; max-height: {maxHeight}px"
     >{value + ' '}</pre
   >
@@ -19,9 +20,10 @@
 <style>
   textarea {
     position: absolute;
-    width: 100%;
-    height: 100%;
     top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     resize: none;
   }
 </style>

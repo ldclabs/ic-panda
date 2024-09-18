@@ -1,7 +1,6 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
-  import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconMore2Line from '$lib/components/icons/IconMore2Line.svelte'
@@ -51,7 +50,7 @@
   let PendingMessageId = MaybeMaxMessageId
 
   // Messages
-  let submitting = false
+  let submitting = 0
   let newMessage = ''
   let messageStart = 1
   let latestMessageId = 1
@@ -109,11 +108,10 @@
 
   function sendMessage() {
     newMessage = newMessage.trim()
-    if (!newMessage) {
+    if (!newMessage || submitting > 0) {
       return
     }
 
-    submitting = true
     toastRun(async () => {
       const input = {
         reply_to: [] as [] | [number],
@@ -124,7 +122,7 @@
           new Uint8Array()
         )
       }
-      PendingMessageId += 1
+      submitting = PendingMessageId
       const msg: MessageInfoEx = {
         id: PendingMessageId,
         reply_to: 0,
@@ -150,10 +148,10 @@
       msg.created_time = getCurrentTimeString(res.created_at)
       addMessageInfos([msg])
 
-      submitting = false
+      submitting = 0
       await sleep(314)
     }, toastStore).finally(() => {
-      submitting = false
+      submitting = 0
     })
   }
 
@@ -249,7 +247,7 @@
   function onPopupDeleteMessage() {
     const msg = { ...popupState.meta }
     if (msg) {
-      submitting = true
+      submitting = msg.id
       myState
         .deleteMessage(msg.canister, msg.channel, msg.id)
         .then(() => {
@@ -260,7 +258,7 @@
           addMessageInfos([msg])
         })
         .finally(() => {
-          submitting = false
+          submitting = 0
         })
     }
   }
@@ -430,7 +428,7 @@
           id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
         >
           <div class="mt-6 flex flex-row justify-end">
-            {#if submitting && msg.pid}
+            {#if submitting === msg.id}
               <span class="pt-[10px] text-panda *:size-5"
                 ><IconCircleSpin /></span
               >
@@ -485,32 +483,30 @@
   <!-- Prompt -->
   <section class="self-end border-t border-surface-500/30 bg-white p-4">
     <div
-      class="input-group input-group-divider grid-cols-[auto_1fr_auto] bg-gray/5 rounded-container-token"
+      class="input-group input-group-divider grid-cols-[1fr_52px] bg-gray/5 rounded-container-token"
     >
-      <button class="input-group-shim" disabled>
-        <span class="*:size-5 *:text-gray/20"><IconAdd /></span>
-      </button>
       <TextArea
         bind:value={newMessage}
         onKeydown={onPromptKeydown}
         minHeight="40"
         maxHeight="200"
-        class="textarea max-w-[500px] text-pretty border-0 bg-transparent outline-0 ring-0"
+        containerClass=""
+        class="textarea text-pretty border-0 bg-transparent outline-0 ring-0"
         name="prompt"
         id="prompt"
-        disabled={submitting}
+        disabled={submitting > 0}
         placeholder="Write a message..."
       />
       <button
         class="input-group-shim"
-        disabled={submitting || !newMessage.trim()}
+        disabled={submitting > 0 || !newMessage.trim()}
         on:click={sendMessage}
       >
         {#if submitting}
           <span class="text-gray/20 *:size-5"><IconCircleSpin /></span>
         {:else}
           <span
-            class="transition duration-700 ease-in-out *:size-5 {submitting
+            class="transition duration-700 ease-in-out *:size-5 {submitting > 0
               ? ''
               : 'hover:scale-125'}"
           >
