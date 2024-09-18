@@ -48,7 +48,7 @@
       <footer class="border-t border-surface-500/30">
         <button
           type="button"
-          class="flex w-full items-center space-x-2 px-4 py-2"
+          class="flex w-full items-center space-x-2 p-2"
           on:click={onMeHandler}
         >
           <Avatar

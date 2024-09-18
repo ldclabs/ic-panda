@@ -67,4 +67,6 @@ fn post_upgrade(args: Option<ChainArgs>) {
         }
         _ => {}
     }
+
+    store::state::update_user_channels();
 }

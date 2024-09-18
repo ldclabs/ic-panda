@@ -54,6 +54,7 @@ export interface ChannelInfo {
   'description' : string,
   'created_at' : bigint,
   'created_by' : Principal,
+  'deleted_messages' : Uint32Array | number[],
   'canister' : Principal,
   'image' : string,
   'message_start' : number,

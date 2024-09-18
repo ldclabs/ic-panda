@@ -8,8 +8,9 @@
 <div class="relative !p-0">
   <pre
     aria-hidden="true"
-    class="invisible"
-    style="min-height: {minHeight}px; max-height: {maxHeight}px">{value}</pre
+    class="invisible py-2"
+    style="min-height: {minHeight}px; max-height: {maxHeight}px"
+    >{value + ' '}</pre
   >
 
   <textarea bind:value on:keydown={onKeydown} {...$$restProps}></textarea>

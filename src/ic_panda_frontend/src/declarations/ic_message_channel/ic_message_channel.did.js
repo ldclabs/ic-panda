@@ -63,6 +63,7 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'created_at' : IDL.Nat64,
     'created_by' : IDL.Principal,
+    'deleted_messages' : IDL.Vec(IDL.Nat32),
     'canister' : IDL.Principal,
     'image' : IDL.Text,
     'message_start' : IDL.Nat32,
@@ -88,6 +89,10 @@ export const idlFactory = ({ IDL }) => {
   const Result_3 = IDL.Variant({
     'Ok' : IDL.Vec(ChannelBasicInfo),
     'Err' : IDL.Text,
+  });
+  const DeleteMessageInput = IDL.Record({
+    'id' : IDL.Nat32,
+    'channel' : IDL.Nat32,
   });
   const CanisterStatusType = IDL.Variant({
     'stopped' : IDL.Null,
@@ -163,6 +168,10 @@ export const idlFactory = ({ IDL }) => {
     'member' : IDL.Principal,
     'ecdh' : ChannelECDHInput,
   });
+  const TruncateMessageInput = IDL.Record({
+    'to' : IDL.Nat32,
+    'channel' : IDL.Nat32,
+  });
   const UpdateChannelInput = IDL.Record({
     'id' : IDL.Nat32,
     'name' : IDL.Opt(IDL.Text),
@@ -188,6 +197,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_3],
         ['query'],
       ),
+    'delete_message' : IDL.Func([DeleteMessageInput], [Result_1], []),
     'get_canister_status' : IDL.Func([], [Result_4], ['query']),
     'get_channel_if_update' : IDL.Func(
         [IDL.Nat32, IDL.Nat64],
@@ -213,6 +223,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'remove_member' : IDL.Func([UpdateChannelMemberInput], [Result_1], []),
+    'truncate_messages' : IDL.Func([TruncateMessageInput], [Result_1], []),
     'update_channel' : IDL.Func([UpdateChannelInput], [Result_6], []),
     'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
     'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),

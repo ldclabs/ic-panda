@@ -103,7 +103,7 @@
     >
   </header>
   <div class="overflow-y-auto">
-    <div class="flex flex-row items-center gap-2 px-4 py-2">
+    <div class="flex flex-row items-center gap-2 p-2">
       <span class="text-sm opacity-50">Channels</span>
       <button
         class=""
@@ -142,11 +142,11 @@
         ></div
       >
     {/if}
-    <div class="flex flex-col space-y-1">
+    <div class="flex flex-col divide-y divide-gray/5">
       {#each channels as channel}
         <button
           type="button"
-          class="flex w-full items-center gap-2 px-4 py-2 {channel.channelId ===
+          class="flex w-full items-center gap-2 p-2 {channel.channelId ===
           currentChannel
             ? 'variant-soft-primary'
             : 'bg-surface-hover-token'}"

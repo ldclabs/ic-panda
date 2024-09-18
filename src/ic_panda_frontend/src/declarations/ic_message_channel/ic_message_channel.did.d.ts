@@ -66,6 +66,7 @@ export interface ChannelInfo {
   'description' : string,
   'created_at' : bigint,
   'created_by' : Principal,
+  'deleted_messages' : Uint32Array | number[],
   'canister' : Principal,
   'image' : string,
   'message_start' : number,
@@ -100,6 +101,7 @@ export interface DefiniteCanisterSettings {
   'memory_allocation' : bigint,
   'compute_allocation' : bigint,
 }
+export interface DeleteMessageInput { 'id' : number, 'channel' : number }
 export interface InitArgs { 'managers' : Array<Principal>, 'name' : string }
 export type LogVisibility = { 'controllers' : null } |
   { 'public' : null };
@@ -150,6 +152,7 @@ export interface StateInfo {
   'channels_total' : bigint,
   'messages_total' : bigint,
 }
+export interface TruncateMessageInput { 'to' : number, 'channel' : number }
 export interface UpdateChannelInput {
   'id' : number,
   'name' : [] | [string],
@@ -177,6 +180,7 @@ export interface _SERVICE {
   'admin_create_channel' : ActorMethod<[CreateChannelInput], Result_2>,
   'admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'batch_get_channels' : ActorMethod<[Uint32Array | number[]], Result_3>,
+  'delete_message' : ActorMethod<[DeleteMessageInput], Result_1>,
   'get_canister_status' : ActorMethod<[], Result_4>,
   'get_channel_if_update' : ActorMethod<[number, bigint], Result_5>,
   'get_message' : ActorMethod<[number, number], Result_6>,
@@ -189,6 +193,7 @@ export interface _SERVICE {
   'my_channel_ids' : ActorMethod<[], Result_9>,
   'my_channels_if_update' : ActorMethod<[[] | [bigint]], Result_3>,
   'remove_member' : ActorMethod<[UpdateChannelMemberInput], Result_1>,
+  'truncate_messages' : ActorMethod<[TruncateMessageInput], Result_1>,
   'update_channel' : ActorMethod<[UpdateChannelInput], Result_6>,
   'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
   'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_10>,

@@ -81,6 +81,7 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'created_at' : IDL.Nat64,
     'created_by' : IDL.Principal,
+    'deleted_messages' : IDL.Vec(IDL.Nat32),
     'canister' : IDL.Principal,
     'image' : IDL.Text,
     'message_start' : IDL.Nat32,

@@ -93,7 +93,7 @@
   })
 </script>
 
-<div class="mt-12 max-w-4xl px-4">
+<div class="mt-12 flex max-w-5xl flex-1 flex-col px-4">
   <div class="">
     <p class="text-lg font-normal antialiased">
       ICPanda Message is a decentralized end-to-end encrypted messaging
@@ -172,10 +172,10 @@
     </div>
   </div>
   <div
-    class="card mt-1 flex flex-col rounded-2xl rounded-t-none bg-transparent bg-white p-8 text-sm *:justify-start"
+    class="card mt-1 flex flex-col divide-y divide-gray/5 rounded-2xl rounded-t-none bg-transparent bg-white p-2 text-sm *:justify-start sm:p-8"
   >
     <a
-      class="flex flex-row items-center space-x-2 rounded-md px-2 py-1 hover:variant-soft-primary"
+      class="flex flex-row items-center space-x-2 rounded px-2 py-1 hover:variant-soft-primary"
       href="{APP_ORIGIN}/PANDA"
     >
       <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
@@ -185,7 +185,7 @@
     </a>
     {#each $latest_users as user (user.id.toText())}
       <a
-        class="flex flex-row items-center space-x-2 rounded-sm px-2 py-1 hover:variant-soft-primary"
+        class="flex flex-row items-center space-x-2 rounded px-2 py-1 hover:variant-soft-primary"
         href="{APP_ORIGIN}/{user.username[0]}"
       >
         <Avatar

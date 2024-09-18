@@ -119,6 +119,11 @@ export class ChannelAPI {
     return unwrapResult(res, 'call list_messages failed')
   }
 
+  async delete_message(channel: number, id: number): Promise<null> {
+    const res = await this.actor.delete_message({ id, channel })
+    return unwrapResult(res, 'call delete_message failed')
+  }
+
   async my_channel_ids(): Promise<number[]> {
     const res = await this.actor.my_channel_ids()
     const rt = unwrapResult(res, 'call my_channel_ids failed')

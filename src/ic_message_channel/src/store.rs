@@ -79,6 +79,8 @@ pub struct Channel {
     pub paid: u64,
     #[serde(rename = "g")]
     pub gas: u64,
+    #[serde(default, rename = "dm")]
+    pub deleted_messages: BTreeSet<u32>,
 }
 
 impl Channel {
@@ -135,6 +137,7 @@ impl Channel {
             updated_at: self.updated_at,
             paid: self.paid,
             gas: self.gas,
+            deleted_messages: self.deleted_messages,
             my_setting,
             ecdh_request,
         }
@@ -350,6 +353,25 @@ pub mod state {
             });
         });
     }
+
+    // temporary solution to fix user_channels
+    pub fn update_user_channels() {
+        with_mut(|s| {
+            CHANNEL_STORE.with(|r| {
+                let m = r.borrow();
+                let now_ms = ic_cdk::api::time() / 1e6 as u64;
+                for id in 1..s.channel_id {
+                    if let Some(v) = m.get(&id) {
+                        for p in v.managers.keys() {
+                            s.user_channels
+                                .entry(*p)
+                                .or_insert(BTreeMap::from([(id, now_ms)]));
+                        }
+                    }
+                }
+            });
+        });
+    }
 }
 
 pub mod channel {
@@ -466,6 +488,7 @@ pub mod channel {
                 paid: input.paid,
                 gas: input.paid,
                 updated_at: now_ms,
+                deleted_messages: BTreeSet::new(),
             };
 
             r.borrow_mut().insert(id, channel.clone());
@@ -647,17 +670,13 @@ pub mod channel {
                             if p != &msg.created_by {
                                 c.unread += 1;
                             }
-                            if let Some(channels) = s.user_channels.get_mut(p) {
-                                channels.insert(id, at);
-                            }
+                            s.user_channels.entry(*p).or_default().insert(id, at);
                         }
                         for (p, c) in v.members.iter_mut() {
                             if p != &msg.created_by {
                                 c.unread += 1;
                             }
-                            if let Some(channels) = s.user_channels.get_mut(p) {
-                                channels.insert(id, at);
-                            }
+                            s.user_channels.entry(*p).or_default().insert(id, at);
                         }
                     });
                     m.insert(id, v);
@@ -787,6 +806,80 @@ pub mod channel {
                     Ok(output)
                 })
             }
+        })
+    }
+
+    pub fn delete_message(
+        caller: Principal,
+        channel: u32,
+        id: u32,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        CHANNEL_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&channel) {
+                None => Err("channel not found".to_string()),
+                Some(mut v) => {
+                    if !v.managers.contains_key(&caller) && !v.members.contains_key(&caller) {
+                        Err("caller is not a manager or member".to_string())?;
+                    }
+
+                    MESSAGE_STORE.with(|rr| {
+                        let mut mm = rr.borrow_mut();
+                        match mm.get(&MessageId(channel, id)) {
+                            None => Err("message not found".to_string()),
+                            Some(mut msg) => {
+                                if msg.created_by != caller {
+                                    Err("caller is not the creator".to_string())?;
+                                }
+
+                                msg.payload.clear();
+                                mm.insert(MessageId(channel, id), msg);
+                                v.updated_at = now_ms;
+                                v.deleted_messages.insert(id);
+                                m.insert(channel, v);
+                                Ok(())
+                            }
+                        }
+                    })
+                }
+            }
+        })
+    }
+
+    pub fn truncate_messages(
+        caller: Principal,
+        channel: u32,
+        to: u32,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let message_start = CHANNEL_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&channel) {
+                None => Err("channel not found".to_string()),
+                Some(mut v) => {
+                    if !v.managers.contains_key(&caller) {
+                        return Err("caller is not a manager".to_string());
+                    }
+                    if to <= v.message_start {
+                        return Err("invalid 'to'".to_string());
+                    }
+
+                    let message_start = v.message_start;
+                    v.message_start = to;
+                    v.updated_at = now_ms;
+                    v.deleted_messages.retain(|&i| i >= to);
+                    m.insert(channel, v);
+                    Ok(message_start)
+                }
+            }
+        })?;
+        MESSAGE_STORE.with(|rr| {
+            let mut mm = rr.borrow_mut();
+            for i in message_start..to {
+                mm.remove(&MessageId(channel, i));
+            }
+            Ok(())
         })
     }
 }

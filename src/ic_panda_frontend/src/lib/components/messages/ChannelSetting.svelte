@@ -400,9 +400,9 @@
         </div>
       {/if}
     </div>
-    <div class="!mt-0 space-y-2">
+    <div class="!mt-0 divide-y divide-gray/5">
       {#each $members as member (member._id)}
-        <div class="grid grid-cols-[1fr_auto] items-center">
+        <div class="grid grid-cols-[1fr_auto] items-center py-1">
           <div class="flex flex-row items-center space-x-2">
             <Avatar
               initials={member.name}

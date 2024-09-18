@@ -224,3 +224,18 @@ fn add_message(input: types::AddMessageInput) -> Result<types::AddMessageOutput,
         created_at: now_ms,
     })
 }
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn delete_message(input: types::DeleteMessageInput) -> Result<(), String> {
+    input.validate()?;
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::delete_message(ic_cdk::caller(), input.channel, input.id, now_ms)
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn truncate_messages(input: types::TruncateMessageInput) -> Result<(), String> {
+    input.validate()?;
+
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::truncate_messages(ic_cdk::caller(), input.channel, input.to, now_ms)
+}

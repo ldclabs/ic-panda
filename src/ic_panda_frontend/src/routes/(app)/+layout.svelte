@@ -5,6 +5,7 @@
   import { authStore } from '$lib/stores/auth'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
+  import { storePopup as storePopup2 } from '$src/lib/utils/Popup'
   import {
     arrow,
     autoUpdate,
@@ -36,6 +37,7 @@
   )
   initializeStores()
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
+  storePopup2.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
 
   /**

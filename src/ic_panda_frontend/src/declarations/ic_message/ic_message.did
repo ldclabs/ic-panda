@@ -37,6 +37,7 @@ type ChannelInfo = record {
   description : text;
   created_at : nat64;
   created_by : principal;
+  deleted_messages : vec nat32;
   canister : principal;
   image : text;
   message_start : nat32;

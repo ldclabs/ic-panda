@@ -99,6 +99,7 @@ export interface MessageInfo {
   channel: number
   message: string
   error: string
+  isDeleted: boolean
   src?: Message
 }
 
@@ -1143,6 +1144,7 @@ export class MyMessageState {
 
       info._get_by = this.id
       await this.addMyChannel(info)
+      this.updateChannelDeletedMessages(info)
     } else if (info._get_by != this.id) {
       refresh = true
       info.ecdh_request = []
@@ -1187,8 +1189,9 @@ export class MyMessageState {
                     kek = await this.loadChannelKEK(info.canister, info.id)
                   } catch (err) {}
                 }
-
+                ;(channel as ChannelModel)._get_by = this.id
                 await this.addMyChannel(channel)
+                this.updateChannelDeletedMessages(channel)
                 set({
                   ...channel,
                   _kek: kek,
@@ -1318,6 +1321,57 @@ export class MyMessageState {
     return await this.messagesToInfo(canister, channelId, dek, messages)
   }
 
+  async deleteMessage(
+    canister: Principal,
+    channelId: number,
+    messageId: number
+  ): Promise<void> {
+    const api = await this.api.channelAPI(canister)
+    await api.delete_message(channelId, messageId)
+    await this.updateDeletedMessage(
+      canister.toUint8Array(),
+      channelId,
+      messageId
+    )
+  }
+
+  async updateDeletedMessage(
+    canister: Uint8Array,
+    channelId: number,
+    messageId: number
+  ): Promise<void> {
+    const msg = await KVS.get<MessageCacheInfo>('Messages', [
+      canister,
+      channelId,
+      messageId
+    ])
+    if (msg) {
+      msg.payload = new Uint8Array()
+      await KVS.set<MessageCacheInfo>('Messages', msg)
+    }
+  }
+
+  async updateChannelDeletedMessages(info: ChannelInfo): Promise<void> {
+    if (info.message_start > 1) {
+      const key = [info.canister.toUint8Array(), info.id]
+      await KVS.delete(
+        'Messages',
+        IDBKeyRange.bound(
+          [...key, 1],
+          [...key, info.message_start],
+          false,
+          true
+        )
+      )
+    }
+    if (info.deleted_messages && info.deleted_messages.length > 0) {
+      const canister = info.canister.toUint8Array()
+      for (const id of info.deleted_messages) {
+        await this.updateDeletedMessage(canister, info.id, id)
+      }
+    }
+  }
+
   async updateMyLastRead(
     canister: Principal,
     channelId: number,
@@ -1356,7 +1410,7 @@ export class MyMessageState {
     const list = []
     for (const msg of msgs) {
       const info = usersMap.get(msg.created_by.toText())
-      const m = {
+      const m: MessageInfo = {
         id: msg.id,
         reply_to: msg.reply_to,
         kind: msg.kind,
@@ -1367,11 +1421,13 @@ export class MyMessageState {
         channel: channelId,
         message: '',
         error: '',
+        isDeleted: false,
         src: msg
       }
 
       if (msg.payload.length === 0) {
-        m.error = 'Message deleted'
+        m.error = `Message is deleted by ${m.created_user.name}`
+        m.isDeleted = true
       } else {
         try {
           const payload =

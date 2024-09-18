@@ -34,6 +34,7 @@ pub struct ChannelInfo {
     pub latest_message_id: u32,
     pub latest_message_at: u64,
     pub latest_message_by: Principal,
+    pub deleted_messages: BTreeSet<u32>,
     pub my_setting: ChannelSetting,
     pub ecdh_request: HashMap<Principal, (ByteArray<32>, Option<(ByteArray<32>, ByteBuf)>)>,
 }
@@ -226,4 +227,40 @@ pub struct AddMessageOutput {
     pub channel: u32,
     pub kind: u8,
     pub created_at: u64,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct DeleteMessageInput {
+    pub channel: u32,
+    pub id: u32,
+}
+
+impl DeleteMessageInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.channel < 1 {
+            Err("channel is invalid".to_string())?;
+        }
+        if self.id < 1 {
+            Err("id is invalid".to_string())?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct TruncateMessageInput {
+    pub channel: u32,
+    pub to: u32,
+}
+
+impl TruncateMessageInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.channel < 1 {
+            Err("channel is invalid".to_string())?;
+        }
+        if self.to < 2 {
+            Err("to is invalid".to_string())?;
+        }
+        Ok(())
+    }
 }

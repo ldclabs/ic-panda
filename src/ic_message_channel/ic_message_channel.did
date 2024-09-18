@@ -54,6 +54,7 @@ type ChannelInfo = record {
   description : text;
   created_at : nat64;
   created_by : principal;
+  deleted_messages : vec nat32;
   canister : principal;
   image : text;
   message_start : nat32;
@@ -88,6 +89,7 @@ type DefiniteCanisterSettings = record {
   memory_allocation : nat;
   compute_allocation : nat;
 };
+type DeleteMessageInput = record { id : nat32; channel : nat32 };
 type InitArgs = record { managers : vec principal; name : text };
 type LogVisibility = variant { controllers; public };
 type Message = record {
@@ -125,6 +127,7 @@ type StateInfo = record {
   channels_total : nat64;
   messages_total : nat64;
 };
+type TruncateMessageInput = record { to : nat32; channel : nat32 };
 type UpdateChannelInput = record {
   id : nat32;
   name : opt text;
@@ -149,6 +152,7 @@ service : (opt ChainArgs) -> {
   admin_create_channel : (CreateChannelInput) -> (Result_2);
   admin_remove_managers : (vec principal) -> (Result_1);
   batch_get_channels : (vec nat32) -> (Result_3) query;
+  delete_message : (DeleteMessageInput) -> (Result_1);
   get_canister_status : () -> (Result_4) query;
   get_channel_if_update : (nat32, nat64) -> (Result_5) query;
   get_message : (nat32, nat32) -> (Result_6) query;
@@ -158,6 +162,7 @@ service : (opt ChainArgs) -> {
   my_channel_ids : () -> (Result_9) query;
   my_channels_if_update : (opt nat64) -> (Result_3) query;
   remove_member : (UpdateChannelMemberInput) -> (Result_1);
+  truncate_messages : (TruncateMessageInput) -> (Result_1);
   update_channel : (UpdateChannelInput) -> (Result_6);
   update_manager : (UpdateChannelMemberInput) -> (Result_10);
   update_member : (UpdateChannelMemberInput) -> (Result_10);
