@@ -1372,6 +1372,10 @@ export class MyMessageState {
     }
   }
 
+  async clearCachedMessages(): Promise<void> {
+    await KVS.clear('Messages')
+  }
+
   async updateMyLastRead(
     canister: Principal,
     channelId: number,

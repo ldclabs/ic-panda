@@ -4,6 +4,8 @@ import { type ToastStore } from '@skeletonlabs/skeleton'
 
 export { tryRun, type TryRunResult } from '$lib/utils/tryrun'
 
+export const ErrorLogs: Error[] = []
+
 export function toastRun<T>(
   fn: (signal: AbortSignal, abortingQue: (() => void)[]) => T | Promise<T>,
   toastStore: ToastStore,
@@ -14,12 +16,19 @@ export function toastRun<T>(
   }
 ): TryRunResult<T> {
   return tryRun(fn, (err: any) => {
-    toastStore.trigger({
-      autohide: true,
-      hideDismiss: false,
-      background: 'variant-filled-error',
-      message: errMessage(err),
-      ...option
-    })
+    if (err) {
+      ErrorLogs.push(err)
+      if (ErrorLogs.length > 20) {
+        ErrorLogs.shift()
+      }
+
+      toastStore.trigger({
+        timeout: 15000,
+        hideDismiss: false,
+        background: 'variant-soft-error',
+        message: errMessage(err),
+        ...option
+      })
+    }
   })
 }

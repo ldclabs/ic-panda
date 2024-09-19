@@ -50,7 +50,6 @@ export function unwrapOptionResult<T, E>(
 }
 
 export function errMessage(err: any): string {
-  console.error(err)
   if (err?.data) {
     return JSON.stringify(err.data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value

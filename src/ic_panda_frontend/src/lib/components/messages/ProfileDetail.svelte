@@ -9,7 +9,7 @@
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
-  import { toastRun } from '$lib/stores/toast'
+  import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import { KEY_NOTIFY_PERM, KVS } from '$src/lib/stores/kvstore'
@@ -19,7 +19,7 @@
     type DisplayUserInfo,
     type MyMessageState
   } from '$src/lib/stores/message'
-  import { unwrapOption } from '$src/lib/types/result'
+  import { errMessage, unwrapOption } from '$src/lib/types/result'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -49,6 +49,7 @@
   let userInfo: Readable<UserInfo & ProfileInfo>
 
   let grantedNotification = Notification.permission === 'granted'
+  let displayDebug = false
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
@@ -212,6 +213,15 @@
     }
   }
 
+  let clearCachedMessagesSubmitting = false
+  function onClearCachedMessages() {
+    clearCachedMessagesSubmitting = true
+    myState.clearCachedMessages().finally(async () => {
+      await sleep(1000)
+      clearCachedMessagesSubmitting = false
+    })
+  }
+
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
       myState = await myMessageStateAsync()
@@ -270,6 +280,10 @@
     return abort
   })
 
+  function errorLogsText(logs: Error[]): string {
+    return logs.map((log) => `${errMessage(log)}\n${log.stack}`).join('\n')
+  }
+
   $: myID = $myInfo?.id
   $: isMe = (myID && $userInfo?.id.compareTo(myID)) == 'eq'
   $: isFowllowing =
@@ -281,7 +295,7 @@
 {#if $userInfo}
   {@const display = toDisplayUserInfo($userInfo)}
   <section
-    class="flex w-full flex-col items-center gap-0 overflow-y-auto p-4 pb-40 sm:mt-16"
+    class="flex w-full flex-col items-center gap-0 overflow-y-auto p-8 pb-40 sm:mt-16"
   >
     <Avatar
       initials={display.name}
@@ -350,7 +364,11 @@
       </div>
     {:else}
       <div class="mt-4 flex w-full flex-col">
-        <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
+        <div class="mb-2 text-sm opacity-50"
+          ><button on:click={() => (displayDebug = !displayDebug)}>
+            <span>My Setting</span>
+          </button></div
+        >
         <div class="flex flex-row items-center gap-4">
           <p>Notifications:</p>
           <SlideToggle
@@ -362,9 +380,40 @@
           />
         </div>
       </div>
+      {#if displayDebug}
+        <div class="mt-4 flex w-full flex-col">
+          <div class="mb-2 text-sm opacity-50"><span>Debug</span></div>
+          <div class="flex flex-row items-center gap-4">
+            <p>Clear cached messages:</p>
+            <button
+              type="button"
+              class="variant-ringed btn btn-sm hover:variant-ghost-warning"
+              disabled={clearCachedMessagesSubmitting}
+              on:click={onClearCachedMessages}
+            >
+              <span>Clear (safe)</span>
+              <span
+                class="text-panda *:size-4 {clearCachedMessagesSubmitting
+                  ? ''
+                  : 'hidden'}"
+              >
+                <IconCircleSpin />
+              </span>
+            </button>
+          </div>
+          {#if ErrorLogs.length > 0}
+            {@const value = errorLogsText(ErrorLogs)}
+            <div class="flex flex-row items-center gap-4">
+              <p>Error logs:</p>
+              <p class="text-warning-500">{ErrorLogs.length}</p>
+              <TextClipboardButton textValue={value} />
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/if}
     {#if isMe && $myFollowing.length > 0}
-      <div class="mt-4 flex w-full max-w-2xl flex-col gap-4">
+      <div class="mt-4 flex w-full flex-col gap-4">
         <div class="">
           <span class="text-sm opacity-50">Following</span>
         </div>
