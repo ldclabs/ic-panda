@@ -117,7 +117,7 @@
           class="card max-w-80 bg-surface-800 px-2 py-0 text-white"
           data-popup="AirdropTipHover"
         >
-          <p class="min-w-0 text-pretty break-words">
+          <p class="min-w-0 text-balance break-words">
             We will gradually increase the number of PANDA tokens available for
             airdrop to ensure an orderly distribution.
           </p>

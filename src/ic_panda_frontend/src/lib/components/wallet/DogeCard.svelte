@@ -125,7 +125,7 @@
       <TextTokenAmount class="" token={DOGEToken} amount={dogeBalance} />
     </h3>
 
-    <p class="mt-2 min-w-0 text-pretty break-words">
+    <p class="mt-2 min-w-0 text-balance break-words">
       DOGE is the native Dogecoin hold by the Internet Computer's <b
         >chain-key</b
       >
@@ -152,7 +152,7 @@
         Send
       </button>
     </div>
-    <p class="mt-4 min-w-0 text-pretty break-words text-sm text-gray/50">
+    <p class="mt-4 min-w-0 text-balance break-words text-sm text-gray/50">
       Check tip
       <a
         class="font-bold text-secondary-500 underline underline-offset-4"

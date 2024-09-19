@@ -253,7 +253,7 @@
       <TextTokenAmount class="" token={ckDOGEToken} amount={ckDogeBalance} />
     </h3>
 
-    <p class="mt-2 min-w-0 text-pretty break-words">
+    <p class="mt-2 min-w-0 text-balance break-words">
       ckDOGE is a multi-chain Dogecoin twin on the Internet Computer created by
       canister smart contracts that directly hold native Dogecoin. Note:
       incoming Dogecoin transactions require <span class="font-bold"
@@ -273,7 +273,7 @@
         <span class="*:size-12"><IconDOGE /></span>
         <div class="flex flex-col">
           <p class="font-bold">DOGE address to mint ckDOGE:</p>
-          <p class="min-w-0 text-pretty break-words max-sm:max-w-52"
+          <p class="min-w-0 text-balance break-words max-sm:max-w-52"
             >{ckDogeAddress}</p
           >
         </div>

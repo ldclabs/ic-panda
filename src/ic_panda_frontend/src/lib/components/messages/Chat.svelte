@@ -58,7 +58,7 @@
             background="bg-panda"
             width="w-10"
           />
-          <div class="flex-1 text-pretty text-start text-sm"
+          <div class="flex-1 text-start text-sm"
             ><span>{$myInfo.name}</span><span
               class="ml-1 {$myInfo.username[0]
                 ? 'text-gray/50'

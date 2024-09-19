@@ -123,7 +123,7 @@
         class="card z-10 max-w-80 bg-surface-900 p-2 py-1"
         data-popup="ChannelTipHover"
       >
-        <p class="min-w-0 text-pretty break-words text-white">
+        <p class="min-w-0 text-balance break-words text-white">
           <span
             >In addition to encrypted chats, you can also store confidential
             information.<br />It's encrypted on-chain and synced across devices,

@@ -213,13 +213,13 @@
       <h4 class="h4 text-center">Review Transaction</h4>
       <div class="flex flex-row justify-between">
         <span>From</span>
-        <span class="min-w-0 text-pretty break-words text-right">
+        <span class="min-w-0 text-balance break-words text-right">
           {txInfo.from}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
-        <span class="text-pretty break-words text-right">
+        <span class="text-balance break-words text-right">
           {txInfo.balance}
           {token.symbol}
         </span>
@@ -256,7 +256,7 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>To</span>
-        <p class="min-w-0 text-pretty break-words text-right">
+        <p class="min-w-0 text-balance break-words text-right">
           {txInfo.to}
         </p>
       </div>

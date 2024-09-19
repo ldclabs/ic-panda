@@ -305,7 +305,7 @@
         class="flex flex-row items-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-red-50 p-2 text-orange-500"
       >
         <p class=""><IconLink /></p>
-        <p class="w-full text-pretty break-all text-left">
+        <p class="w-full text-balance break-all text-left">
           {link}
         </p>
       </div>

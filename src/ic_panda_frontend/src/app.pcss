@@ -38,10 +38,6 @@ body {
 :root {
 }
 
-.grecaptcha-badge {
-  display: none;
-}
-
 .global-backgroud {
   overflow: hidden;
   position: fixed;
@@ -71,6 +67,13 @@ body {
     top right / 459px auto no-repeat fixed
       url('/_assets/images/texture-right.webp'),
     white;
+}
+
+@supports not (text-wrap: balance) {
+  .text-balance {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
 }
 
 @media (max-width: 1024px) {

@@ -89,7 +89,7 @@
     <div class="flex flex-row items-center gap-4">
       <div class="flex flex-col">
         <p class="font-bold">{addressInfo.name} Address:</p>
-        <p class="min-w-0 text-pretty break-words max-sm:max-w-64"
+        <p class="min-w-0 text-balance break-words max-sm:max-w-64"
           >{addressInfo.address}</p
         >
       </div>

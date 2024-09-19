@@ -241,13 +241,13 @@
         <h4 class="h4 text-center">Review Transaction</h4>
         <div class="flex flex-row justify-between">
           <span>From</span>
-          <span class="min-w-0 text-pretty break-words text-right">
+          <span class="min-w-0 text-balance break-words text-right">
             {sendFrom}
           </span>
         </div>
         <div class="flex flex-row justify-between">
           <span>Available Balance</span>
-          <span class="text-pretty break-words text-right">
+          <span class="text-balance break-words text-right">
             {token.displayValue(availableBalance)}
             {token.token.symbol}
           </span>
@@ -284,7 +284,7 @@
         </div>
         <div class="flex flex-row justify-between">
           <span>To</span>
-          <p class="min-w-0 text-pretty break-words text-right">
+          <p class="min-w-0 text-balance break-words text-right">
             {sendTo}
           </p>
         </div>
@@ -295,7 +295,7 @@
         {:else if txOutput}
           {@const txid = toHashString(txOutput.txid)}
           <p class="text-lg text-success-500">Send transaction Success</p>
-          <p class="min-w-0 max-w-full text-pretty break-words">
+          <p class="min-w-0 max-w-full text-balance break-words">
             {txid}, check it on the
             <a
               class="font-bold text-secondary-500 underline underline-offset-4"
@@ -305,7 +305,7 @@
           </p>
         {:else if sendError}
           <p class="text-lg text-error-500">Transfer failed</p>
-          <p class="min-w-0 max-w-full text-pretty break-words">
+          <p class="min-w-0 max-w-full text-balance break-words">
             {sendError}
           </p>
         {/if}

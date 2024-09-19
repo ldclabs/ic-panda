@@ -381,7 +381,7 @@
     {#each $messageFeed as msg (msg.id)}
       {#if msg.isDeleted}
         <div class="grid justify-center">
-          <p class="text-pretty bg-transparent p-2 text-xs text-gray/60"
+          <p class="text-balance bg-transparent p-2 text-xs text-gray/60"
             >{msg.error}</p
           >
         </div>
@@ -412,11 +412,14 @@
                 : 'bg-white'}"
             >
               {#if msg.error}
-                <p class="w-full text-pretty px-4 py-2 text-sm text-gray/60"
+                <p class="w-full text-balance px-4 py-2 text-sm text-gray/60"
                   >{msg.error}</p
                 >
               {:else}
-                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
+                <pre
+                  class="w-full whitespace-break-spaces break-words px-4 py-2"
+                  >{msg.message}</pre
+                >
               {/if}
             </div>
           </div>
@@ -454,11 +457,14 @@
                 : 'variant-soft-primary text-black'}"
             >
               {#if msg.error}
-                <p class="w-full text-pretty px-4 py-2 text-sm text-gray/60"
+                <p class="w-full text-balance px-4 py-2 text-sm text-gray/60"
                   >{msg.error}</p
                 >
               {:else}
-                <pre class="w-full text-pretty px-4 py-2">{msg.message}</pre>
+                <pre
+                  class="w-full whitespace-break-spaces break-words px-4 py-2"
+                  >{msg.message}</pre
+                >
               {/if}
             </div>
           </div>
@@ -491,7 +497,7 @@
         minHeight="40"
         maxHeight="200"
         containerClass=""
-        class="textarea text-pretty border-0 bg-transparent outline-0 ring-0"
+        class="textarea whitespace-break-spaces break-words border-0 bg-transparent outline-0 ring-0"
         name="prompt"
         id="prompt"
         disabled={submitting > 0}
