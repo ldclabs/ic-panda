@@ -6,6 +6,7 @@
     myMessageStateAsync,
     type MyMessageState
   } from '$src/lib/stores/message'
+  import { sleep } from '$src/lib/utils/helper'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -22,11 +23,11 @@
 
   async function initState() {
     myState = await myMessageStateAsync()
-    myInfo = myState.info
+    myInfo = myState.agent.subscribeUser()
   }
 
   async function refreshState() {
-    if (myState.isReady()) {
+    if (myState.isReady2()) {
       if (!myInfo_) {
         myInfo_ = myInfo as Readable<UserInfo>
       }
@@ -39,6 +40,8 @@
 
     if (!mk || !mk.isOpened() || myState.masterKeyKind() !== mk.kind) {
       modalStore.close()
+      await sleep(618)
+
       modalStore.trigger({
         type: 'component',
         component: {
@@ -64,7 +67,7 @@
       ) {
         toastRun(initState, toastStore)
       } else if ($myInfo) {
-        refreshState()
+        toastRun(refreshState, toastStore)
       }
     }
   }

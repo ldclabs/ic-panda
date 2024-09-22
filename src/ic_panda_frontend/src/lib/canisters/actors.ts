@@ -55,5 +55,5 @@ const createAgent = ({
     identity,
     fetchRootKey: IS_LOCAL,
     host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
-    verifyQuerySignatures: true
+    verifyQuerySignatures: false
   })

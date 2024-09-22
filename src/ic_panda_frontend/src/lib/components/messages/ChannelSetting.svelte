@@ -60,7 +60,7 @@
             return toastRun(async (signal: AbortSignal) => {
               const api = await myState.api.channelAPI(canister)
               await api.update_channel(input)
-              channelInfo = await myState.refreshMyChannel(channelInfo)
+              channelInfo = await myState.refreshChannel(channelInfo)
             }, toastStore).finally()
           }
         }
@@ -81,7 +81,7 @@
         mute: [mute],
         last_read: []
       })
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
     }, toastStore).finally(() => {
       muteSubmitting = false
     })
@@ -98,7 +98,7 @@
         await myState.requestKEK(channelInfo)
       }
 
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
     }, toastStore).finally(() => {
       myECDHSubmitting = false
     })
@@ -115,7 +115,7 @@
     toastRun(async (signal: AbortSignal) => {
       const api = await myState.api.channelAPI(canister)
       await api.leave_channel(id, true)
-      await myState.removeMyChannel(canister, id)
+      await myState.removeChannel(canister, id)
 
       goto('/_/messages')
     }, toastStore).finally(() => {
@@ -128,9 +128,9 @@
     adminExchangeKeysSubmitting = true
     toastRun(async (signal: AbortSignal) => {
       // fetch the latest ECDH request
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await myState.adminExchangeKEK(channelInfo)
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminExchangeKeysSubmitting = false
@@ -152,7 +152,7 @@
             adminAddManagersSubmitting = true
             toastRun(async (signal: AbortSignal) => {
               await myState.adminAddMembers(channelInfo, 'Manager', members)
-              channelInfo = await myState.refreshMyChannel(channelInfo)
+              channelInfo = await myState.refreshChannel(channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddManagersSubmitting = false
@@ -178,7 +178,7 @@
             adminAddMembersSubmitting = true
             toastRun(async (signal: AbortSignal) => {
               await myState.adminAddMembers(channelInfo, 'Member', members)
-              channelInfo = await myState.refreshMyChannel(channelInfo)
+              channelInfo = await myState.refreshChannel(channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddMembersSubmitting = false
@@ -202,7 +202,7 @@
         } as ChannelECDHInput
       })
 
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminRemoveMembersSubmitting = ''
@@ -211,7 +211,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      channelInfo = await myState.refreshMyChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await loadMembers()
     }, toastStore)
 

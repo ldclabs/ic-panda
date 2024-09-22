@@ -19,7 +19,7 @@
   const modalStore = getModalStore()
   const latest_users: Writable<UserInfo[]> = writable([])
 
-  let myInfo: Readable<UserInfo | null> = myState.info
+  let myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   let users_total = 0n
   let names_total = 0n
   let channels_total = 0n
@@ -30,8 +30,7 @@
       if (myState.principal.isAnonymous()) {
         const res = await signIn({})
         myState = await myMessageStateAsync()
-        await myState.refreshAllState(true)
-        myInfo = myState.info
+        myInfo = myState.agent.subscribeUser()
         await tick()
 
         if (!$myInfo && res.success == 'ok') {

@@ -48,7 +48,7 @@
     const { abort, finally: onfinally } = toastRun(
       async (signal: AbortSignal) => {
         if (canister) {
-          myInfo = myState.info as Readable<UserInfo>
+          myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
           channelInfo = await myState.loadChannelInfo(canister, id)
           openSettings = !$channelInfo._kek
           return channelInfo

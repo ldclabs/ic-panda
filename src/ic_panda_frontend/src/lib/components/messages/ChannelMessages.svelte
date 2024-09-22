@@ -220,9 +220,8 @@
       latestMessage = await myState.loadLatestMessageStream(
         canister,
         id,
-        dek,
         latestMessageId + 1,
-        isActive
+        dek
       )
     }
   }
@@ -233,7 +232,6 @@
       myState.updateMyChannelSetting(canister, id, {
         last_read: lastRead
       })
-      myState.informMyChannelsStream()
       debouncedUpdateMyLastRead()
     }
   }
@@ -268,16 +266,13 @@
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         abortingQue.push(popupDestroy)
 
-        if (!channelInfo._kek) {
-          channelInfo = await myState.refreshMyChannel(channelInfo)
-        }
-
+        channelInfo = await myState.refreshChannel(channelInfo)
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
-        lastRead = Math.max(
-          Math.min(channelInfo.my_setting.last_read, MaybeMaxMessageId),
-          latestMessageId
-        )
+        lastRead = Math.min(channelInfo.my_setting.last_read, MaybeMaxMessageId)
+        if (lastRead === 0) {
+          lastRead = latestMessageId
+        }
 
         channelAPI = await myState.api.channelAPI(canister)
         dek = await myState.decryptChannelDEK(channelInfo)
@@ -323,6 +318,21 @@
           }
         })
         abortingQue.push(abortScroll)
+
+        const polling = async () => {
+          if (signal.aborted) return
+          let msgs: any[] = []
+          if (isActive() && latestMessage) {
+            msgs = await myState.agent.fetchLatestMessages(
+              canister,
+              id,
+              latestMessageId + 1
+            )
+          }
+
+          setTimeout(polling, msgs.length > 0 ? 3000 : 7000)
+        }
+        polling()
       },
       toastStore
     )

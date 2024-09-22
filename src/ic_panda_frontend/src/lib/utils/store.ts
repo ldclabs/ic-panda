@@ -40,7 +40,7 @@ export class KVStore {
 
   async *iterate(
     storeName: string,
-    query: IDBValidKey | IDBKeyRange,
+    query?: IDBValidKey | IDBKeyRange,
     direction?: IDBCursorDirection
   ) {
     const db = await this.db

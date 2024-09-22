@@ -47,9 +47,6 @@
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         myChannels = await myState.loadMyChannelsStream()
 
-        myState.cleanupMyChannels().catch((e) => {
-          console.error('cleanupMyChannels', e)
-        })
         const debouncedrefreshMyChannels = debounce(
           async () => {
             await myState.refreshMyChannels(signal)

@@ -82,7 +82,9 @@
 
           modalStore.close()
         } catch (err) {
-          throw new Error('Incorrect password')
+          const er = new Error('Incorrect password')
+          ;(er as any).data = err
+          throw er
         }
 
         return

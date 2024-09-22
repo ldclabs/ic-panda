@@ -2,7 +2,10 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
-  import { type ProfileInfo } from '$lib/canisters/messageprofile'
+  import {
+    type ProfileInfo,
+    type UpdateProfileInput
+  } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
@@ -12,13 +15,13 @@
   import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
-  import { KEY_NOTIFY_PERM, KVS } from '$src/lib/stores/kvstore'
   import {
     myMessageStateAsync,
     toDisplayUserInfo,
     type DisplayUserInfo,
     type MyMessageState
   } from '$src/lib/stores/message'
+  import { MessageAgent } from '$src/lib/stores/message_agent'
   import { errMessage, unwrapOption } from '$src/lib/types/result'
   import { Principal } from '@dfinity/principal'
   import {
@@ -43,10 +46,10 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
-  const myInfo: Writable<(UserInfo & ProfileInfo) | null> = writable(null)
 
   let myState: MyMessageState
   let userInfo: Readable<UserInfo & ProfileInfo>
+  let myInfo: Readable<(UserInfo & ProfileInfo) | null>
 
   let grantedNotification = Notification.permission === 'granted'
   let displayDebug = false
@@ -64,23 +67,21 @@
 
   async function saveProfile(profile: UserInfo & ProfileInfo) {
     if (profile.name && profile.name !== $userInfo.name) {
-      await myState.api.update_my_name(profile.name)
-      await myState.api.refreshMyInfo()
+      const user = await myState.api.update_my_name(profile.name)
+      await myState.agent.setUser(user)
     }
 
     const bio = profile.bio.trim()
     if (bio !== $userInfo.bio) {
-      await myState.updateProfile({
+      const profile = await myState.agent.profileAPI.update_profile({
         bio: [bio],
         remove_channels: [],
         upsert_channels: [],
         follow: [],
         unfollow: []
       })
+      await myState.agent.setProfile(profile)
     }
-
-    await myState.refreshAllState(false)
-    myInfo.set(await myState.loadMyProfile())
   }
 
   function onMeHandler() {
@@ -114,8 +115,7 @@
       if (!myState || myState.principal.isAnonymous()) {
         await signIn({})
         myState = await myMessageStateAsync()
-        const rt = await myState.loadMyProfile().catch(() => null)
-        myInfo.set(rt)
+        myInfo = await myState.agent.subscribeProfile()
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -128,27 +128,23 @@
         })
       } else if (!followingSubmitting) {
         followingSubmitting = user.toText()
-        if (fowllowing) {
-          myInfo.set(
-            await myState.updateProfile({
+        const input: UpdateProfileInput = fowllowing
+          ? {
               bio: [],
               remove_channels: [],
               upsert_channels: [],
               follow: [user],
               unfollow: []
-            })
-          )
-        } else {
-          myInfo.set(
-            await myState.updateProfile({
+            }
+          : {
               bio: [],
               remove_channels: [],
               upsert_channels: [],
               follow: [],
               unfollow: [user]
-            })
-          )
-        }
+            }
+        const profile = await myState.agent.profileAPI.update_profile(input)
+        await myState.agent.setProfile(profile)
         await loadMyFollowing()
       }
     }, toastStore).finally(() => {
@@ -160,8 +156,7 @@
     if (!myState || myState.principal.isAnonymous()) {
       await signIn({})
       myState = await myMessageStateAsync()
-      const rt = await myState.loadMyProfile().catch(() => null)
-      myInfo.set(rt)
+      myInfo = await myState.agent.subscribeProfile()
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
@@ -204,12 +199,18 @@
       if (Notification.permission !== 'granted') {
         const perm = await Notification.requestPermission()
         grantedNotification = perm === 'granted'
-        await KVS.set<string>('My', perm, myID!.toText() + KEY_NOTIFY_PERM)
+        await myState.agent.setLocal<string>(MessageAgent.KEY_NOTIFY_PERM, perm)
       } else {
-        await KVS.set<string>('My', 'granted', myID!.toText() + KEY_NOTIFY_PERM)
+        await myState.agent.setLocal<string>(
+          MessageAgent.KEY_NOTIFY_PERM,
+          'granted'
+        )
       }
     } else {
-      await KVS.set<string>('My', 'denied', myID!.toText() + KEY_NOTIFY_PERM)
+      await myState.agent.setLocal<string>(
+        MessageAgent.KEY_NOTIFY_PERM,
+        'denied'
+      )
     }
   }
 
@@ -225,13 +226,12 @@
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
       myState = await myMessageStateAsync()
+      myInfo = await myState.agent.subscribeProfile()
 
       if (
         (typeof userId === 'string' && userId === myState.id) ||
         (userId instanceof Principal && myID && userId.compareTo(myID) == 'eq')
       ) {
-        const info = await myState.loadMyProfile()
-        myInfo.set(info)
         userInfo = derived(myInfo, (info, set) => {
           if (info) {
             set({
@@ -264,16 +264,13 @@
               }
             })
           }
-          const perm = await KVS.get<string>(
-            'My',
-            myID.toText() + KEY_NOTIFY_PERM
+          const perm = await myState.agent.getLocal<string>(
+            MessageAgent.KEY_NOTIFY_PERM
           )
           if (perm === 'denied') {
             grantedNotification = false
           }
           await loadMyFollowing()
-        } else {
-          myInfo.set(await myState.loadMyProfile().catch(() => null))
         }
       }
     })
@@ -287,9 +284,11 @@
   $: myID = $myInfo?.id
   $: isMe = (myID && $userInfo?.id.compareTo(myID)) == 'eq'
   $: isFowllowing =
-    $myInfo?.following
-      .at(0)
-      ?.some((id) => id.compareTo($userInfo.id) == 'eq') || false
+    ($userInfo &&
+      $myInfo?.following
+        .at(0)
+        ?.some((id) => id.compareTo($userInfo.id) == 'eq')) ||
+    false
 </script>
 
 {#if $userInfo}

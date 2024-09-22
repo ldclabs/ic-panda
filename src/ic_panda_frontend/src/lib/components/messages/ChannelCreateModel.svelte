@@ -86,7 +86,7 @@
       })
 
       await myState.saveChannelKEK(result.canister, result.id, kek)
-      await myState.addMyChannel(result)
+      await myState.agent.setChannel(result)
 
       modalStore.close()
       goto(`/_/messages/${result.canister}/${result.id}`)
@@ -109,7 +109,7 @@
     const { abort } = toastRun(async (signal: AbortSignal) => {
       myState = await myMessageStateAsync()
       stateInfo = myState.api.stateStore as Readable<StateInfo>
-      myInfo = myState.info as Readable<UserInfo>
+      myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
       amount = $stateInfo.price.channel
 
       if (signal.aborted) {

@@ -26,7 +26,7 @@
   export let parent: SvelteComponent
   export let myState: MyMessageState
 
-  const myInfo: Readable<UserInfo | null> = myState.info
+  const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   const messageState: Readable<StateInfo | null> = myState.api.stateStore
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
@@ -80,8 +80,8 @@
         await myState.api.register_username(usernameInput, nameInput)
       }
 
-      await myState.refreshAllState(true)
       parent && parent['onClose']()
+      await myState.agent.fetchUser()
     }, toastStore).finally(() => {
       submitting = false
       validating = false

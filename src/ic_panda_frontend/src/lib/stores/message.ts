@@ -1,6 +1,4 @@
-import { CoseAPI } from '$lib/canisters/cose'
 import {
-  messageCanisterAPIAsync,
   type ChannelECDHInput,
   type MessageCanisterAPI,
   type UserInfo
@@ -12,11 +10,8 @@ import {
   type ChannelSetting,
   type Message
 } from '$lib/canisters/messagechannel'
-import {
-  type ProfileInfo,
-  type UpdateProfileInput
-} from '$lib/canisters/messageprofile'
-import { MASTER_KEY_ID, MESSAGE_CANISTER_ID } from '$lib/constants'
+import { type ProfileInfo } from '$lib/canisters/messageprofile'
+import { MASTER_KEY_ID } from '$lib/constants'
 import { unwrapOption } from '$lib/types/result'
 import {
   AesGcmKey,
@@ -36,22 +31,11 @@ import {
 } from '$lib/utils/crypto'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
-import {
-  derived,
-  readable,
-  readonly,
-  writable,
-  type Readable
-} from 'svelte/store'
+import { derived, readable, type Readable } from 'svelte/store'
 import { asyncFactory } from './auth'
-import {
-  KEY_REFRESH_MY_CHANNELS_AT,
-  KVS,
-  myChannelKey,
-  myChannelsRange
-} from './kvstore'
+import { getProfile, getUser, setProfile, setUser } from './kvstore'
+import { MessageAgent } from './message_agent'
 
-const usersCacheExp = 2 * 3600 * 1000
 const PWD_HASH_KEY = 'pwd_hash'
 const KEY_ID = encodeCBOR(MASTER_KEY_ID)
 
@@ -70,7 +54,7 @@ export function getCurrentTimeString(ts: bigint | number): string {
 export function mergeMySetting(
   old: ChannelSetting,
   ncs: Partial<ChannelSetting>,
-  latestId: number
+  lastRead: number
 ): ChannelSetting {
   const rt = { ...old, ...ncs }
   if (rt.last_read < old.last_read) {
@@ -79,14 +63,12 @@ export function mergeMySetting(
   rt.unread = ncs.unread
     ? ncs.unread
     : rt.unread - (rt.last_read - old.last_read)
-  if (rt.unread < 0 || rt.last_read >= latestId) {
+  if (rt.unread < 0 || rt.last_read >= lastRead) {
     rt.unread = 0
   }
 
   return rt
 }
-
-type MessageCacheInfo = Message & { canister: Principal; channel: number }
 
 export interface MessageInfo {
   id: number
@@ -125,8 +107,6 @@ export type ChannelBasicInfoEx = ChannelBasicInfo & {
   latest_message_user: DisplayUserInfo
 }
 
-type ChannelModel = ChannelInfo & { _get_by: string }
-
 export type ChannelInfoEx = ChannelInfo & {
   _kek: Uint8Array | null
   _managers: string[]
@@ -134,40 +114,32 @@ export type ChannelInfoEx = ChannelInfo & {
 
 export class MyMessageState {
   readonly id: string
+  readonly ns: string
   readonly principal: Principal
   readonly api: MessageCanisterAPI
-  readonly info: Readable<UserInfo | null>
+  readonly agent: MessageAgent
 
-  private _coseAPI: CoseAPI | null = null
   private _mks: MasterKey[] = []
   private _ek: ECDHKey | null = null
-  private _myInfo: UserInfo | null = null
-  private _myProfile: ProfileInfo | null = null
-  private _myChannels = new Map<string, ChannelBasicInfo>() // keep the latest channel setting
-  private _myChannelsStream = writable<ChannelBasicInfo[]>([])
   private _channelDEKs = new Map<String, AesGcmKey>()
 
   static async with(identity: Identity): Promise<MyMessageState> {
-    const api = await messageCanisterAPIAsync()
-    const self = new MyMessageState(identity.getPrincipal(), api)
-    await self.refreshAllState(false)
+    const agent = await MessageAgent.with(identity)
+    const self = new MyMessageState(agent)
+    await self.init()
     return self
   }
 
-  constructor(principal: Principal, api: MessageCanisterAPI) {
-    this.principal = principal
-    this.id = principal.toText()
-    this.api = api
-    this.info = derived(api.myInfoStore, ($info, set) => {
-      if ($info) {
-        this.setCacheUserInfo(Date.now(), $info)
-        this.refreshAllState(false).then(() => set($info))
-      }
-    })
+  private constructor(agent: MessageAgent) {
+    this.principal = agent.principal
+    this.id = agent.id
+    this.ns = this.id.replaceAll('-', '_')
+    this.api = agent.api
+    this.agent = agent
   }
 
   masterKeyKind(): 'Local' | 'ECDH' | 'VetKey' {
-    return this._coseAPI != null ? 'ECDH' : 'Local'
+    return this.agent.hasCOSE ? 'ECDH' : 'Local'
   }
 
   isReady(): boolean {
@@ -175,37 +147,19 @@ export class MyMessageState {
     return (mk && mk.isUser(this.principal) && mk.isOpened()) || false
   }
 
-  async refreshAllState(force: boolean = true): Promise<void> {
-    if (force) {
-      await Promise.all([this.api.refreshMyInfo(), this.api.refreshState()])
-    }
-    if (this.principal.isAnonymous()) return
+  isReady2(): boolean {
+    const mk = this._mks.at(-1)
+    return (
+      (mk &&
+        mk.isUser(this.principal) &&
+        mk.isOpened() &&
+        this.masterKeyKind() === mk.kind) ||
+      false
+    )
+  }
 
-    const now = Date.now()
-    this._myInfo = this.api.myInfo
-    if (!this._myInfo) {
-      this._myInfo = await this.getCacheUserInfo(now, this.principal)
-    }
-    if (this._myInfo) {
-      await this.setCacheUserInfo(now, this._myInfo)
-
-      const profileAPI = await this.api.profileAPI(
-        this._myInfo.profile_canister
-      )
-      await profileAPI.refreshMyProfile()
-      this._myProfile = profileAPI.myProfile
-      if (!this._myProfile) {
-        this._myProfile = await KVS.get<ProfileInfo>('My', `${this.id}:Profile`)
-      } else {
-        await KVS.set<ProfileInfo>('My', this._myProfile, `${this.id}:Profile`)
-      }
-
-      if (this._myInfo.cose_canister.length == 1) {
-        this._coseAPI = await this.api.coseAPI(this._myInfo.cose_canister[0])
-      }
-
-      this.loadMyKV()
-    }
+  private async init(): Promise<void> {
+    await this.agent.migrateKeys()
   }
 
   async myIV(): Promise<Uint8Array> {
@@ -220,38 +174,20 @@ export class MyMessageState {
   async masterKey(myIV: Uint8Array): Promise<MasterKey | null> {
     const mk = this._mks.at(-1)
     if (!mk || !mk.isUser(this.principal)) {
-      let keys = (await KVS.get<MasterKeyInfo[]>('Keys', `${this.id}:MK`)) || []
-      if (!Array.isArray(keys)) {
-        keys = [keys]
-      }
+      let keys = await this.agent.getMasterKeys<MasterKeyInfo>()
       this._mks = await Promise.all(
         keys.map((key) => MasterKey.fromInfo(this.principal, key, myIV))
       )
-      let converted = false
-      for (let i = 0; i < this._mks.length; i++) {
-        if (this._mks[i]!.version !== 2) {
-          this._mks[i] = await this._mks[i]!.toV2MasterKey(myIV)
-          converted = true
-        }
-      }
-      if (converted) {
-        await KVS.set(
-          'Keys',
-          this._mks.map((k) => k.toInfo()),
-          `${this.id}:MK`
-        )
-      }
     }
 
     return this._mks.at(-1) || null
   }
 
   async mustMasterKey(): Promise<MasterKey> {
-    const mk = this._mks.at(-1)
-    if (!mk || !mk.isUser(this.principal) || !mk.isOpened()) {
+    if (!this.isReady()) {
       throw new Error('Master key not ready')
     }
-    return mk
+    return this._mks.at(-1)!
   }
 
   async mustStaticECDHKey(): Promise<ECDHKey> {
@@ -288,12 +224,7 @@ export class MyMessageState {
     )
 
     this._mks.push(mk)
-
-    await KVS.set(
-      'Keys',
-      this._mks.map((k) => k.toInfo()),
-      `${this.id}:MK`
-    )
+    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
     return mk
   }
 
@@ -306,20 +237,7 @@ export class MyMessageState {
       throw new Error('Master key not opened')
     }
 
-    const state = this.api.state
-    if (!state) {
-      throw new Error('Message state not ready')
-    }
-    if (!this._myInfo) {
-      throw new Error('User info not ready')
-    }
-    const cose_canister = this._myInfo.cose_canister[0]
-    if (!cose_canister) {
-      throw new Error('username not ready')
-    }
-
     // save local keys to COSE after username is set
-    this._coseAPI = await this.api.coseAPI(cose_canister)
     const aad = new Uint8Array()
     const remoteMK = await this.fetchECDHCoseEncryptedKey()
     const newMK = await mk.toNewMasterKey(
@@ -328,8 +246,7 @@ export class MyMessageState {
       remoteMK.getSecretKey(),
       myIV
     )
-    await this.initMyChannels()
-    const channels = Array.from(this._myChannels.values())
+    const channels = await this.agent.loadMyChannels()
     const mKey = mk.toA256GCMKey()
     const nmKey = newMK.toA256GCMKey()
     for (const ch of channels) {
@@ -351,26 +268,17 @@ export class MyMessageState {
     }
 
     this._mks.push(newMK)
-    await KVS.set(
-      'Keys',
-      this._mks.map((k) => k.toInfo()),
-      `${this.id}:MK`
-    )
-
+    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
     await this.initStaticECDHKey()
   }
 
   async fetchECDHCoseEncryptedKey(): Promise<AesGcmKey> {
-    if (!this._coseAPI) {
-      throw new Error('username is required to continue')
-    }
-
-    const ns = this.id.replaceAll('-', '_')
+    const coseAPI = this.agent.coseAPI
     const aad = this.principal.toUint8Array()
     const ecdh = generateECDHKey()
-    const output = await this._coseAPI.ecdh_cose_encrypted_key(
+    const output = await coseAPI.ecdh_cose_encrypted_key(
       {
-        ns,
+        ns: this.ns,
         key: KEY_ID,
         subject: [this.principal],
         version: 0,
@@ -416,35 +324,25 @@ export class MyMessageState {
   }
 
   async loadStaticECDHKey(): Promise<Uint8Array> {
-    const encrypted0 = await KVS.get<Uint8Array>('Keys', `${this.id}:EK`)
-
-    if (encrypted0) {
-      return encrypted0
+    const ek = await this.agent.getECDHKey()
+    if (ek) {
+      return ek
     }
 
-    if (!this._coseAPI) {
-      throw new Error('username is required to continue')
-    }
-
-    const ns = this.id.replaceAll('-', '_')
-    const output = await this._coseAPI.setting_get({
-      ns,
+    const coseAPI = this.agent.coseAPI
+    const output = await coseAPI.setting_get({
+      ns: this.ns,
       key: utf8ToBytes('StaticECDH'),
       subject: [this.principal],
       version: 0,
       user_owned: false
     })
 
-    if (output.dek.length != 1) {
+    if (!output.dek[0]) {
       throw new Error('Static ECDH not found')
     }
 
-    await KVS.set<Uint8Array>(
-      'Keys',
-      output.dek[0] as Uint8Array,
-      `${this.id}:EK`
-    )
-
+    await this.agent.setECDHKey(output.dek[0] as Uint8Array)
     return output.dek[0] as Uint8Array
   }
 
@@ -452,51 +350,24 @@ export class MyMessageState {
     ecdh_pub: Uint8Array,
     encrypted0: Uint8Array
   ): Promise<void> {
-    await KVS.set<Uint8Array>('Keys', encrypted0 as Uint8Array, `${this.id}:EK`)
+    await this.agent.setECDHKey(encrypted0)
 
-    if (this._coseAPI) {
+    if (this.agent.hasCOSE) {
       await this.api.update_my_ecdh(ecdh_pub, encrypted0)
     }
   }
 
   async loadMyKV(): Promise<Map<string, Uint8Array>> {
-    let kv = await KVS.get<Map<string, Uint8Array>>('My', `${this.id}:KV`)
-
-    if (kv) {
-      return kv
-    }
-
-    if (this._coseAPI) {
-      const ns = this.id.replaceAll('-', '_')
-      const output = await this._coseAPI
-        .setting_get({
-          ns,
-          key: utf8ToBytes('KV'),
-          subject: [this.principal],
-          version: 0,
-          user_owned: false
-        })
-        .catch((e) => null)
-
-      if (output?.payload.length === 1) {
-        kv = decodeCBOR(output.payload[0] as Uint8Array)
-      }
-
-      if (kv) {
-        await KVS.set<Map<string, Uint8Array>>('My', kv, `${this.id}:KV`)
-      }
-    }
-
-    return kv || new Map<string, Uint8Array>()
+    return await this.agent.getKV()
   }
 
   async getPasswordHash(): Promise<Uint8Array | null> {
-    const kv = await this.loadMyKV().catch((e) => null)
-    return kv?.get(PWD_HASH_KEY) || null
+    const kv = await this.agent.getKV()
+    return kv.get(PWD_HASH_KEY) || null
   }
 
   async savePasswordHash(hash: Uint8Array): Promise<void> {
-    if (this._coseAPI) {
+    if (this.agent.hasCOSE) {
       await this.api.update_my_kv({
         upsert_kv: [[PWD_HASH_KEY, hash]],
         remove_kv: []
@@ -524,57 +395,40 @@ export class MyMessageState {
   }
 
   async loadChannelKEK(canister: Principal, id: number): Promise<Uint8Array> {
-    const encrypted0 = await KVS.get<Uint8Array>(
-      'Keys',
-      `${this.id}:${canister.toText()}:${id}:KEK`
-    )
+    let kek = await this.agent.getKEK(canister, id)
 
-    if (encrypted0) {
-      return encrypted0
+    if (kek) {
+      return kek
     }
-
-    if (!this._coseAPI) {
-      throw new Error('username is required to continue')
-    }
-
-    const ns = this.id.replaceAll('-', '_')
-    const output = await this._coseAPI.setting_get({
-      ns,
+    const output = await this.agent.coseAPI.setting_get({
+      ns: this.ns,
       key: encodeCBOR([canister.toUint8Array(), id]),
       subject: [this.principal],
       version: 0,
       user_owned: false
     })
 
-    if (output.dek.length != 1) {
+    kek = output.dek[0] as Uint8Array
+    if (!kek) {
       throw new Error('Channel encryption key not found')
     }
 
-    await KVS.set<Uint8Array>(
-      'Keys',
-      output.dek[0] as Uint8Array,
-      `${this.id}:${canister.toText()}:${id}:KEK`
-    )
-
-    return output.dek[0] as Uint8Array
+    await this.agent.setKEK(canister, id, kek)
+    return kek
   }
 
   async saveChannelKEK(
     canister: Principal,
     id: number,
-    encrypted0: Uint8Array
+    kek: Uint8Array
   ): Promise<void> {
-    await KVS.set<Uint8Array>(
-      'Keys',
-      encrypted0 as Uint8Array,
-      `${this.id}:${canister.toText()}:${id}:KEK`
-    )
+    await this.agent.setKEK(canister, id, kek)
 
-    if (this._coseAPI) {
+    if (this.agent.hasCOSE) {
       await this.api.save_channel_kek({
-        id: id,
-        canister: canister,
-        kek: encrypted0
+        id,
+        canister,
+        kek
       })
     }
   }
@@ -760,102 +614,37 @@ export class MyMessageState {
     return members
   }
 
-  private async initMyChannels(): Promise<void> {
-    if (this._myChannels.size == 0) {
-      const iter = await KVS.iterate('My', myChannelsRange(this.id))
-      for await (const cursor of iter) {
-        const info = cursor.value as ChannelBasicInfo
-        this._myChannels.set(`${info.canister.toText()}:${info.id}`, info)
-      }
-    }
-  }
-
-  updateMyChannelSetting(
+  async updateMyChannelSetting(
     canister: Principal,
     id: number,
     setting?: Partial<ChannelSetting>,
     latestMessageId?: number
-  ): ChannelSetting | null {
-    const channel = this._myChannels.get(`${canister.toText()}:${id}`)
+  ): Promise<void> {
+    const channel = await this.agent.getChannel(canister, id)
 
-    if (channel && setting) {
+    if (setting) {
       channel.my_setting = mergeMySetting(
         channel.my_setting,
         setting,
         latestMessageId || channel.latest_message_id
       )
-      return channel.my_setting
+      await this.agent.setChannel(channel)
     }
-
-    return (setting as ChannelSetting) || null
   }
 
-  informMyChannelsStream(): void {
-    const channels = Array.from(this._myChannels.values())
-    channels.sort(ChannelAPI.compareChannels)
-    this._myChannelsStream.set(channels)
+  async removeChannel(canister: Principal, id: number): Promise<void> {
+    await this.agent.removeChannel(canister, id)
   }
 
-  async addMyChannel(info: ChannelInfo): Promise<void> {
-    await this.initMyChannels()
-
-    info.my_setting = this.updateMyChannelSetting(
-      info.canister,
-      info.id,
-      info.my_setting
-    )!
-    const basic: ChannelBasicInfo = {
-      id: info.id,
-      gas: info.gas,
-      updated_at: info.updated_at,
-      name: info.name,
-      paid: info.paid,
-      canister: info.canister,
-      image: info.image,
-      latest_message_at: info.latest_message_at,
-      latest_message_by: info.latest_message_by,
-      latest_message_id: info.latest_message_id,
-      my_setting: info.my_setting
-    }
-    this._myChannels.set(`${info.canister.toText()}:${info.id}`, basic)
-
-    await KVS.set<ChannelModel>('Channels', { ...info, _get_by: this.id })
-    await KVS.set(
-      'My',
-      basic,
-      myChannelKey(this.id, info.canister.toText(), info.id)
-    )
-    this.informMyChannelsStream()
-  }
-
-  async removeMyChannel(canister: Principal, id: number): Promise<void> {
-    await this.initMyChannels()
-
-    this._myChannels.delete(`${canister.toText()}:${id}`)
-
-    const key = [canister.toUint8Array(), id]
-    await KVS.delete('Channels', key)
-    await KVS.delete('My', myChannelKey(this.id, canister.toText(), id))
-    await KVS.delete(
-      'Messages',
-      IDBKeyRange.bound([...key, 0], [...key, MAX_MESSAGE_ID], false, true)
-    )
-    this.informMyChannelsStream()
-  }
-
-  async refreshMyChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
-    const api = await this.api.channelAPI(info.canister)
-    const ninfo = (await api.get_channel_if_update(info.id, 0n)) as ChannelModel
+  async refreshChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
+    const ninfo = await this.agent.fetchChannel(info.canister, info.id, 0n)
     if (!ninfo) {
       throw new Error('Channel not found')
     }
-    ninfo._get_by = this.id
-    await this.addMyChannel(ninfo)
+
     let kek = info._kek
     if (!kek) {
-      try {
-        kek = await this.loadChannelKEK(info.canister, info.id)
-      } catch (e) {}
+      kek = await this.loadChannelKEK(info.canister, info.id).catch((e) => null)
     }
 
     return {
@@ -865,95 +654,12 @@ export class MyMessageState {
     }
   }
 
-  async cleanupMyChannels(): Promise<void> {
-    const state = this.api.state
-    if (!state) {
-      throw new Error('Wait for message state')
-    }
-
-    const canisters: Principal[] = [
-      ...state.channel_canisters,
-      ...state.matured_channel_canisters
-    ]
-
-    await Promise.all(
-      canisters.map(async (canister) => {
-        const api = await this.api.channelAPI(canister)
-        const ids = await api.my_channel_ids()
-        const prefix = canister.toText()
-        for (const [key, info] of this._myChannels) {
-          if (key.startsWith(prefix) && !ids.includes(info.id)) {
-            await this.removeMyChannel(canister, info.id)
-          }
-        }
-      })
-    )
-  }
-
   async refreshMyChannels(signal: AbortSignal): Promise<void> {
-    const state = this.api.state
-    if (!state) {
-      throw new Error('Wait for message state')
-    }
-
-    await this.initMyChannels()
-    const canisters: Principal[] = [
-      ...state.channel_canisters,
-      ...state.matured_channel_canisters
-    ]
-
-    await await KVS.set<number>(
-      'My',
-      Date.now(),
-      this.id + KEY_REFRESH_MY_CHANNELS_AT
-    )
-    await Promise.all(
-      canisters.map(async (canister) => {
-        const api = await this.api.channelAPI(canister)
-
-        let latest_message_at = 0n
-        const prefix = canister.toText()
-        for (const [key, info] of this._myChannels) {
-          if (key.startsWith(prefix)) {
-            if (latest_message_at < info.latest_message_at) {
-              latest_message_at = info.latest_message_at
-            }
-            if (latest_message_at < info.my_setting.updated_at) {
-              latest_message_at = info.my_setting.updated_at
-            }
-          }
-        }
-
-        if (signal.aborted) {
-          return
-        }
-
-        let channels = await api.my_channels(latest_message_at)
-        if (channels.length > 0) {
-          for (const channel of channels) {
-            channel.my_setting = this.updateMyChannelSetting(
-              channel.canister,
-              channel.id,
-              channel.my_setting,
-              channel.latest_message_id
-            )!
-            this._myChannels.set(`${prefix}:${channel.id}`, channel)
-            await KVS.set(
-              'My',
-              channel,
-              myChannelKey(this.id, prefix, channel.id)
-            )
-          }
-        }
-
-        await this.informMyChannelsStream()
-      })
-    )
+    this.agent.fetchMyChannels(signal)
   }
 
   async loadMyChannelsStream(): Promise<Readable<ChannelBasicInfoEx[]>> {
-    await this.initMyChannels()
-
+    const stream = await this.agent.subscribeMyChannels()
     const usersMap = new Map<String, UserInfo>()
     const channelMapfFn = (c: ChannelBasicInfo) => {
       const info = usersMap.get(c.latest_message_by.toText())
@@ -965,36 +671,31 @@ export class MyMessageState {
       } as ChannelBasicInfoEx
     }
 
-    const channels = Array.from(this._myChannels.values())
-    channels.sort(ChannelAPI.compareChannels)
-
-    return readonly(
-      derived(
-        this._myChannelsStream,
-        (channels, set) => {
-          this.batchLoadUsersInfo(
-            channels.map((c) => c.latest_message_by)
-          ).then(async (users) => {
-            for (const info of users) {
-              usersMap.set(info.id.toText(), info)
-            }
-            set(channels.map(channelMapfFn))
-          })
-        },
-        channels.map(channelMapfFn)
+    return derived(stream, (channels, set) => {
+      this.batchLoadUsersInfo(channels.map((c) => c.latest_message_by)).then(
+        async (users) => {
+          for (const info of users) {
+            usersMap.set(info.id.toText(), info)
+          }
+          set(channels.map(channelMapfFn))
+        }
       )
-    )
+    })
   }
 
-  async loadMyProfile(): Promise<UserInfo & ProfileInfo> {
-    if (!this._myInfo) {
-      throw new Error('User info not ready')
-    }
-    if (!this._myProfile) {
-      throw new Error('Profile info not ready')
-    }
-
-    return { ...this._myInfo, ...this._myProfile }
+  async loadChannelInfo(
+    canister: Principal,
+    id: number
+  ): Promise<Readable<ChannelInfoEx>> {
+    const channel = await this.agent.subscribeChannel(canister, id)
+    const kek = await this.loadChannelKEK(canister, id).catch((e) => null)
+    return derived(channel, ($channel, set) => {
+      set({
+        ...$channel,
+        _kek: kek,
+        _managers: $channel.managers.map((m) => m.toText())
+      })
+    })
   }
 
   async loadProfile(
@@ -1005,26 +706,23 @@ export class MyMessageState {
     }
 
     const now = Date.now()
-    let info = await this.getCacheUserInfo(now, user)
+    let info = await getUser(now, user)
     if (!info) {
       info =
         typeof user == 'string'
           ? await this.api.get_by_username(user)
           : await this.api.get_user(user)
-      await this.setCacheUserInfo(now, info)
+      await setUser(now, info)
     }
 
-    const profile = await KVS.get<ProfileInfo>(
-      'Profiles',
-      info.id.toUint8Array()
-    )
+    const profile = await getProfile(info.id)
 
     const api = await this.api.profileAPI(info.profile_canister)
     return readable(
       { ...info, ...profile } as UserInfo & ProfileInfo,
       (set) => {
         api.get_profile(info.id).then(async (profile) => {
-          await KVS.set<ProfileInfo>('Profiles', profile)
+          await setProfile(profile)
           set({ ...info, ...profile })
         })
       }
@@ -1035,13 +733,13 @@ export class MyMessageState {
     if (user) {
       try {
         const now = Date.now()
-        let info = await this.getCacheUserInfo(now, user)
+        let info = await getUser(now, user)
         if (!info) {
           info =
             typeof user == 'string'
               ? await this.api.get_by_username(user)
               : await this.api.get_user(user)
-          await this.setCacheUserInfo(now, info)
+          await setUser(now, info)
         }
 
         return info
@@ -1056,27 +754,19 @@ export class MyMessageState {
   ): Promise<(UserInfo & ProfileInfo) | null> {
     if (user) {
       try {
-        const now = Date.now()
-        let info = await this.getCacheUserInfo(now, user)
-        if (!info) {
-          info =
-            typeof user == 'string'
-              ? await this.api.get_by_username(user)
-              : await this.api.get_user(user)
-          await this.setCacheUserInfo(now, info)
+        const userInfo = await this.tryLoadUser(user)
+        if (!userInfo) {
+          return null
         }
 
-        let profile = await KVS.get<ProfileInfo>(
-          'Profiles',
-          info.id.toUint8Array()
-        )
+        let profile = await getProfile(userInfo.id)
         if (!profile) {
-          const api = await this.api.profileAPI(info.profile_canister)
-          profile = await api.get_profile(info.id)
-          await KVS.set<ProfileInfo>('Profiles', profile)
+          const api = await this.api.profileAPI(userInfo.profile_canister)
+          profile = await api.get_profile(userInfo.id)
+          await setProfile(profile)
         }
 
-        return { ...info, ...profile }
+        return { ...userInfo, ...profile }
       } catch (err) {}
     }
 
@@ -1089,176 +779,35 @@ export class MyMessageState {
     try {
       const now = Date.now()
       const user = await this.api.get_user(id)
-      await this.setCacheUserInfo(now, user)
+      await setUser(now, user)
       const api = await this.api.profileAPI(user.profile_canister)
       const profile = await api.get_profile(user.id)
-      await KVS.set<ProfileInfo>('Profiles', profile)
+      await setProfile(profile)
 
       return { ...user, ...profile }
     } catch (err) {}
     return null
   }
 
-  async updateProfile(
-    input: UpdateProfileInput
-  ): Promise<UserInfo & ProfileInfo> {
-    if (!this._myInfo) {
-      throw new Error('My user info not ready')
-    }
-
-    const api = await this.api.profileAPI(this._myInfo.profile_canister)
-    this._myProfile = await api.update_profile(input)
-    await KVS.set<ProfileInfo>('My', this._myProfile, `${this.id}:Profile`)
-    return { ...this._myInfo, ...this._myProfile }
-  }
-
-  async loadChannelInfo(
-    canister: Principal,
-    id: number
-  ): Promise<Readable<ChannelInfoEx>> {
-    const api = await this.api.channelAPI(canister)
-    let info = await KVS.get<ChannelModel>('Channels', [
-      canister.toUint8Array(),
-      id
-    ])
-
-    if (info) {
-      const isManager = info.managers.some(
-        (m) => m.compareTo(this.principal) === 'eq'
-      )
-
-      if (
-        !isManager &&
-        !info.members.some((m) => m.compareTo(this.principal) === 'eq')
-      ) {
-        info = null
-      }
-    }
-
-    let refresh = !!info
-    if (!info) {
-      info = (await api.get_channel_if_update(id, 0n)) as ChannelModel
-      if (!info) {
-        throw new Error('Channel not found')
-      }
-
-      info._get_by = this.id
-      await this.addMyChannel(info)
-      this.updateChannelDeletedMessages(info)
-    } else if (info._get_by != this.id) {
-      refresh = true
-      info.ecdh_request = []
-      info.my_setting = {
-        ecdh_pub: [],
-        ecdh_remote: [],
-        mute: false,
-        last_read: 1,
-        unread: 0,
-        updated_at: 0n
-      }
-    } else {
-      const channel = this._myChannels.get(`${canister.toText()}:${id}`)
-      if (channel) {
-        info.my_setting = mergeMySetting(
-          info.my_setting,
-          channel.my_setting,
-          channel.latest_message_id
-        )
-      }
-    }
-
-    let kek: Uint8Array | null = null
-    try {
-      kek = await this.loadChannelKEK(info.canister, info.id)
-    } catch (err) {}
-
-    return readable<ChannelInfoEx>(
-      {
-        ...info,
-        _kek: kek,
-        _managers: info.managers.map((m) => m.toText())
-      },
-      (set) => {
-        if (refresh) {
-          api
-            .get_channel_if_update(id, info.updated_at)
-            .then(async (channel) => {
-              if (channel) {
-                if (!kek) {
-                  try {
-                    kek = await this.loadChannelKEK(info.canister, info.id)
-                  } catch (err) {}
-                }
-                ;(channel as ChannelModel)._get_by = this.id
-                await this.addMyChannel(channel)
-                this.updateChannelDeletedMessages(channel)
-                set({
-                  ...channel,
-                  _kek: kek,
-                  _managers: info.managers.map((m) => m.toText())
-                })
-              }
-            })
-        }
-      }
-    )
-  }
-
   async loadLatestMessageStream(
     canister: Principal,
     channelId: number,
-    dek: AesGcmKey,
     messageId: number,
-    isActive: () => boolean
+    dek: AesGcmKey,
+    signal?: AbortSignal
   ): Promise<Readable<MessageInfo | null>> {
-    const api = await this.api.channelAPI(canister)
-    let message = await KVS.get<MessageCacheInfo>('Messages', [
-      canister.toUint8Array(),
+    const stream = this.agent.subscribeLatestMessage(
+      canister,
       channelId,
-      messageId
-    ])
-    let latestMessageId = message ? messageId + 1 : messageId
-    const info =
-      (await this.messagesToInfo(canister, channelId, dek, message))[0] || null
+      messageId,
+      signal
+    )
 
-    return readable(info, (set) => {
-      let stopped = false
-      let timer: any = null
-      const task = async () => {
-        const msgs = isActive()
-          ? await api.list_messages(channelId, latestMessageId)
-          : []
-        if (msgs.length > 0) {
-          for (const msg of msgs) {
-            latestMessageId = msg.id + 1
-            await KVS.set<MessageCacheInfo>('Messages', {
-              ...msg,
-              canister,
-              channel: channelId
-            })
-          }
-          const infos = await this.messagesToInfo(
-            canister,
-            channelId,
-            dek,
-            msgs
-          )
-
-          for (const info of infos) {
-            await Promise.resolve()
-            set(info)
-          }
-
-          timer = !stopped && setTimeout(task, 3000)
-        } else {
-          timer = !stopped && setTimeout(task, 7000)
-        }
-      }
-
-      task()
-      return () => {
-        stopped = true
-        clearTimeout(timer)
+    return derived(stream, ($msg, set) => {
+      if ($msg) {
+        this.messagesToInfo(canister, channelId, dek, $msg).then((msgs) => {
+          msgs[0] && set(msgs[0])
+        })
       }
     })
   }
@@ -1270,53 +819,12 @@ export class MyMessageState {
     start: number, // maybe included
     end: number // not included
   ): Promise<MessageInfo[]> {
-    const api = await this.api.channelAPI(canister)
-    const prefix = [canister.toUint8Array(), channelId]
-    if (start < 1) {
-      start = 1
-    }
-
-    if (end <= start) {
-      return []
-    }
-
-    if (end - start > 20) {
-      start = end - 20
-    }
-
-    let messages: MessageCacheInfo[] = []
-    const iter = await KVS.iterate(
-      'Messages',
-      IDBKeyRange.bound([...prefix, start], [...prefix, end], false, true)
+    const messages = await this.agent.loadMessages(
+      canister,
+      channelId,
+      start,
+      end
     )
-
-    let i = start
-    for await (const cursor of iter) {
-      if ((cursor.key as [Uint8Array, number, number])[2] !== i) {
-        break
-      }
-      messages.push(cursor.value)
-      i += 1
-    }
-    if (i < end) {
-      let items = (await api.list_messages(
-        channelId,
-        i,
-        end
-      )) as MessageCacheInfo[]
-      if (items.length > 0) {
-        items = items.map((msg) => {
-          return {
-            ...msg,
-            canister,
-            channel: channelId
-          }
-        })
-
-        await KVS.setMany<MessageCacheInfo>('Messages', items)
-        messages = [...messages, ...items]
-      }
-    }
 
     return await this.messagesToInfo(canister, channelId, dek, messages)
   }
@@ -1328,68 +836,31 @@ export class MyMessageState {
   ): Promise<void> {
     const api = await this.api.channelAPI(canister)
     await api.delete_message(channelId, messageId)
-    await this.updateDeletedMessage(
+    await this.agent.updateDeletedMessage(
       canister.toUint8Array(),
       channelId,
       messageId
     )
   }
 
-  async updateDeletedMessage(
-    canister: Uint8Array,
-    channelId: number,
-    messageId: number
-  ): Promise<void> {
-    const msg = await KVS.get<MessageCacheInfo>('Messages', [
-      canister,
-      channelId,
-      messageId
-    ])
-    if (msg) {
-      msg.payload = new Uint8Array()
-      await KVS.set<MessageCacheInfo>('Messages', msg)
-    }
-  }
-
-  async updateChannelDeletedMessages(info: ChannelInfo): Promise<void> {
-    if (info.message_start > 1) {
-      const key = [info.canister.toUint8Array(), info.id]
-      await KVS.delete(
-        'Messages',
-        IDBKeyRange.bound(
-          [...key, 1],
-          [...key, info.message_start],
-          false,
-          true
-        )
-      )
-    }
-    if (info.deleted_messages && info.deleted_messages.length > 0) {
-      const canister = info.canister.toUint8Array()
-      for (const id of info.deleted_messages) {
-        await this.updateDeletedMessage(canister, info.id, id)
-      }
-    }
-  }
-
   async clearCachedMessages(): Promise<void> {
-    await KVS.clear('Messages')
+    await this.agent.clearCachedMessages()
   }
 
   async updateMyLastRead(
     canister: Principal,
-    channelId: number,
+    channel: number,
     lastRead: number
   ): Promise<void> {
     const api = await this.api.channelAPI(canister)
     const setting = await api.update_my_setting({
-      id: channelId,
+      id: channel,
       ecdh: [],
       mute: [],
       last_read: [lastRead]
     })
 
-    this.updateMyChannelSetting(canister, channelId, setting)
+    await this.updateMyChannelSetting(canister, channel, setting)
   }
 
   async messagesToInfo(
@@ -1455,7 +926,7 @@ export class MyMessageState {
     const todo: Principal[] = []
     const now = Date.now()
     for (const id of ids) {
-      const info = await this.getCacheUserInfo(now, id)
+      const info = await getUser(now, id)
       if (info) {
         rt.push(info)
       } else {
@@ -1465,40 +936,9 @@ export class MyMessageState {
     const users = await this.api.batch_get_users(todo)
     for (const info of users) {
       rt.push(info)
-      await this.setCacheUserInfo(now, info)
+      await setUser(now, info)
     }
     return rt
-  }
-
-  async getCacheUserInfo(
-    now: number,
-    user: Principal | string
-  ): Promise<UserInfo | null> {
-    const k = typeof user == 'string' ? user : user.toText()
-    if (k === MESSAGE_CANISTER_ID) {
-      return {
-        id: user as Principal,
-        username: ['_'],
-        cose_canister: [],
-        name: 'System',
-        image: '',
-        profile_canister: user as Principal
-      }
-    }
-
-    let [ts, info] = (await KVS.get<[number, UserInfo]>('Users', k)) || [
-      0,
-      null
-    ]
-    return info && now - ts < usersCacheExp ? info : null
-  }
-
-  private async setCacheUserInfo(now: number, info: UserInfo) {
-    await KVS.set<[number, UserInfo]>('Users', [now, info], info.id.toText())
-
-    if (info.username.length == 1) {
-      await KVS.set<[number, UserInfo]>('Users', [now, info], info.username[0])
-    }
   }
 }
 

@@ -4,7 +4,6 @@ import { join } from 'path'
 import colors from 'tailwindcss/colors'
 
 const config = {
-  // darkMode: 'class',
   content: [
     './src/lib/**/*.{html,svelte,ts}',
     './src/routes/**/*.{html,svelte,ts}',
