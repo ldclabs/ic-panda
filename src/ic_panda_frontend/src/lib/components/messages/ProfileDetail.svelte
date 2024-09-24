@@ -15,6 +15,7 @@
   import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
+  import { isNotificationSupported } from '$lib/utils/window'
   import {
     myMessageStateAsync,
     toDisplayUserInfo,
@@ -51,7 +52,8 @@
   let userInfo: Readable<UserInfo & ProfileInfo>
   let myInfo: Readable<(UserInfo & ProfileInfo) | null>
 
-  let grantedNotification = Notification.permission === 'granted'
+  let grantedNotification =
+    isNotificationSupported && Notification.permission === 'granted'
   let displayDebug = false
 
   async function loadMyFollowing() {

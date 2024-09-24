@@ -20,7 +20,9 @@ export async function notifyd() {
   console.log('Notification service started')
   while (true) {
     const identity =
-      Notification.permission === 'granted' && (await loadIdentity())
+      'Notification' in globalThis &&
+      Notification.permission === 'granted' &&
+      (await loadIdentity())
     if (identity) {
       const now = Date.now()
       await tryRun(async () => {
