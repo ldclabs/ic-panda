@@ -42,7 +42,6 @@
 
   let nameInput = channelName
   let descriptionInput = ''
-  let amount = 0n
 
   let validating = nameInput.trim() !== ''
   let submitting = false
@@ -59,7 +58,7 @@
   function onCreateChannel(e: Event) {
     submitting = true
     toastRun(async () => {
-      if (amount > availablePandaBalance) {
+      if (channelPrice > availablePandaBalance) {
         throw new Error('Insufficient balance')
       }
 
@@ -74,12 +73,17 @@
         ...add_managers
       ])
 
-      await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
+      if (channelPrice > 0n) {
+        await tokenLedgerAPI.ensureAllowance(
+          messageCanisterPrincipal,
+          channelPrice
+        )
+      }
       const result = await myState.api.create_channel({
         dek,
         managers,
         name: nameInput.trim(),
-        paid: amount,
+        paid: channelPrice,
         description: descriptionInput.trim(),
         created_by: $myInfo.id,
         image: ''
@@ -110,7 +114,6 @@
       myState = await myMessageStateAsync()
       stateInfo = myState.api.stateStore as Readable<StateInfo>
       myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
-      amount = $stateInfo.price.channel
 
       if (signal.aborted) {
         return
@@ -122,6 +125,8 @@
 
     return abort
   })
+
+  $: channelPrice = $stateInfo ? $stateInfo.price.channel : 100_000_000_000n
 </script>
 
 <ModalCard {parent}>
@@ -161,8 +166,10 @@
     <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />
     <div class="!mt-4 space-y-2 rounded-xl bg-gray/5 p-4">
       <p class="text-gray/50">
-        <b>1.</b> Creating a message channel costs 1000 PANDA tokens for gas; sending
-        messages will consume gas.
+        <b>1.</b> Creating a message channel costs
+        <span class="text-panda"
+          >{formatNumber(Number(channelPrice) / Number(PANDAToken.one))}</span
+        > PANDA tokens for gas; sending messages will consume gas.
       </p>
       <p class="text-gray/50">
         <b>2.</b> A channel can have up to 5 managers and 100 members.
@@ -192,7 +199,9 @@
   <footer class="m-auto !mt-6">
     <button
       class="variant-filled-primary btn w-full text-white"
-      disabled={submitting || !validating || amount > availablePandaBalance}
+      disabled={submitting ||
+        !validating ||
+        channelPrice > availablePandaBalance}
       on:click={onCreateChannel}
     >
       {#if submitting}

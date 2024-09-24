@@ -138,8 +138,8 @@ fn validate_admin_update_price(args: types::UpdatePriceInput) -> Result<(), Stri
             }
         }
         if let Some(price) = args.name_l1 {
-            if price <= args.name_l3.unwrap_or(s.price.name_l3) {
-                Err("name_l1 must be greater than name_l3".to_string())?;
+            if price <= args.name_l2.unwrap_or(s.price.name_l2) {
+                Err("name_l1 must be greater than name_l2".to_string())?;
             }
         }
         Ok::<(), String>(())

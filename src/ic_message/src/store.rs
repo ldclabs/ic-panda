@@ -727,9 +727,6 @@ pub mod channel {
         let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
 
         let amount = price.channel.saturating_sub(types::TOKEN_FEE);
-        if amount == 0 {
-            return Err("invalid channel price".to_string());
-        }
 
         let (user_profile_canister, is_new) = USER_STORE.with(|r| {
             let mut m = r.borrow_mut();
@@ -759,26 +756,19 @@ pub mod channel {
             .await?;
         }
 
-        token_transfer_from(caller, amount.into(), "CC".to_string()).await?;
+        if amount > 0 {
+            token_transfer_from(caller, amount.into(), "CC".to_string()).await?;
 
-        state::with_mut(|s| {
-            s.incoming_total += amount as u128;
-        });
+            state::with_mut(|s| {
+                s.incoming_total += amount as u128;
+            });
+        }
 
         input.created_by = caller;
         input.paid = amount;
         let res: Result<ChannelInfo, String> =
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
-        let res = res?;
-
-        let _: Result<(), String> = call(
-            user_profile_canister,
-            "admin_upsert_profile",
-            (caller, Some((res.canister, res.id))),
-            0,
-        )
-        .await?;
-        Ok(res)
+        res
     }
 
     pub async fn save_channel_kek(caller: Principal, input: ChannelKEKInput) -> Result<(), String> {

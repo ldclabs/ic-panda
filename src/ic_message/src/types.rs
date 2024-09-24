@@ -6,7 +6,6 @@ use std::collections::BTreeSet;
 pub const TOKEN_1: u64 = 100_000_000;
 pub const TOKEN_FEE: u64 = 10_000; // 0.0001 token
 pub const MIN_NAME_PRICE: u64 = TOKEN_1;
-pub const MIN_CHANNEL_PRICE: u64 = TOKEN_1;
 pub const MAX_USER_NAME_SIZE: usize = 32;
 pub const MAX_USER_SIZE: usize = 20;
 
@@ -69,11 +68,6 @@ pub struct UpdatePriceInput {
 
 impl UpdatePriceInput {
     pub fn validate(&self) -> Result<(), String> {
-        if let Some(price) = self.channel {
-            if price < MIN_CHANNEL_PRICE {
-                return Err(format!("channel price too low: {}", price));
-            }
-        }
         if let Some(price) = self.name_l1 {
             if price < MIN_NAME_PRICE {
                 return Err(format!("name price too low: {}", price));

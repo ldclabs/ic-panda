@@ -18,6 +18,7 @@ use crate::types;
 
 const MESSAGE_PER_USER_GAS: u64 = 10000;
 const MESSAGE_PER_BYTE_GAS: u64 = 1000;
+const FREE_GAS: u64 = 100_000_000;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -420,7 +421,9 @@ pub mod channel {
         now_ms: u64,
     ) -> Result<types::ChannelInfo, String> {
         let id = state::with_mut(|s| {
-            s.incoming_gas = s.incoming_gas.saturating_add(input.paid as u128);
+            if input.paid > 0 {
+                s.incoming_gas = s.incoming_gas.saturating_add(input.paid as u128);
+            }
             s.channel_id = s.channel_id.saturating_add(1);
             for p in input.managers.keys() {
                 s.user_channels
@@ -467,7 +470,7 @@ pub mod channel {
                 latest_message_at: now_ms,
                 latest_message_by: caller,
                 paid: input.paid,
-                gas: input.paid,
+                gas: input.paid.max(FREE_GAS),
                 updated_at: now_ms,
                 deleted_messages: BTreeSet::new(),
             };
@@ -637,7 +640,7 @@ pub mod channel {
                     let gas = MESSAGE_PER_USER_GAS * (v.managers.len() + v.members.len()) as u64
                         + MESSAGE_PER_BYTE_GAS * msg.payload.len() as u64;
                     if v.gas < gas {
-                        Err("not enough gas".to_string())?;
+                        Err("insufficient gas balance".to_string())?;
                     }
                     v.gas = v.gas.saturating_sub(gas);
                     v.latest_message_by = msg.created_by;
