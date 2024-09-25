@@ -1,11 +1,9 @@
 <script lang="ts">
   import { LuckyPoolAPI, luckyPoolAPIAsync } from '$lib/canisters/luckypool'
   import AirdropCard from '$lib/components/core/AirdropCard.svelte'
-  import LuckyDrawCard from '$lib/components/core/LuckyDrawCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
   import PrizeCard from '$lib/components/core/PrizeCard.svelte'
-  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconExchangeDollar from '$lib/components/icons/IconExchangeDollar.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
@@ -146,14 +144,6 @@
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
       >
-        <LuckyDrawCard />
-      </Saos>
-    </div>
-    <div class="mt-6 w-full max-w-[820px]">
-      <Saos
-        once={true}
-        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-      >
         <LuckyPoolChart />
       </Saos>
     </div>
@@ -277,178 +267,22 @@
             </li>
             <li>
               <span class="variant-soft-primary badge-icon p-4">2</span>
-              <span class="flex-auto">Purchasing panda badges</span>
+              <span class="flex-auto">Participate in PANDA Prize</span>
             </li>
             <li>
               <span class="variant-soft-primary badge-icon p-4">3</span>
-              <span class="flex-auto">
-                Creation and trading of panda culture NFTs
-              </span>
+              <span class="flex-auto">Purchasing E2EE messages service</span>
             </li>
             <li>
               <span class="variant-soft-primary badge-icon p-4">4</span>
               <span class="flex-auto">
-                Activities on the ICPanda meme brand platform
+                Purchasing other Web3 infrastructure services in the future
               </span>
             </li>
           </ol>
         </div>
       </div>
     </Saos>
-  </div>
-
-  <div
-    class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
-  >
-    <h2 id="roadmap" class="h2 font-extrabold uppercase">Roadmap</h2>
-    <div class="v-timeline mt-8 max-w-full">
-      <Saos once={true} animation={'slide-top 0.6s ease-in-out both'}>
-        <div class="relative mb-8 ml-4 mt-8 lg:mb-16">
-          <img
-            class="absolute left-[-64px] top-[-16px] transition duration-700 ease-in-out hover:scale-125"
-            src="/_assets/images/panda-badge-1.webp"
-            alt="Panda badge"
-          />
-          <h3 class="h3 ml-4 font-bold">
-            <span class="mr-1 text-panda">Feb</span>
-            2024
-          </h3>
-          <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>Project Launch</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>Seed Fundraising</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>Website On IC</span>
-            </p>
-          </div>
-        </div>
-      </Saos>
-      <Saos once={true} animation={'slide-top 0.6s ease-in-out both'}>
-        <div class="relative mb-8 ml-4 mt-8 lg:mb-16">
-          <img
-            class="absolute left-[-64px] top-[-16px] transition duration-700 ease-in-out hover:scale-125"
-            src="/_assets/images/panda-badge-2.webp"
-            alt="Panda badge"
-          />
-          <h3 class="h3 ml-4 font-bold">
-            <span class="mr-1 text-panda">Q1</span>
-            2024
-          </h3>
-          <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>SNS Swap</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>Launch Lucky Pool</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span class="mr-2 text-panda"><IconCheckbox /></span>
-              <span>List PANDA Token on DEX</span>
-            </p>
-          </div>
-        </div>
-      </Saos>
-      <Saos once={true} animation={'slide-top 0.6s ease-in-out both'}>
-        <div class="relative mb-8 ml-4 mt-8 lg:mb-16">
-          <img
-            class="absolute left-[-64px] top-[-16px] transition duration-700 ease-in-out hover:scale-125"
-            src="/_assets/images/panda-badge-3.webp"
-            alt="Panda badge"
-          />
-          <h3 class="h3 ml-4 font-bold">
-            <span class="mr-1 text-panda">Q2</span>
-            2024
-          </h3>
-          <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 text-gray/50 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>Launch Panda Badges System (Suspend)</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>Chain Fusion: <b>ckDOGE</b></span>
-            </p>
-          </div>
-        </div>
-      </Saos>
-      <Saos once={true} animation={'slide-top 0.6s ease-in-out both'}>
-        <div class="relative mb-8 ml-4 mt-8 lg:mb-16">
-          <img
-            class="absolute left-[-64px] top-[-16px] transition duration-700 ease-in-out hover:scale-125"
-            src="/_assets/images/panda-badge-4.webp"
-            alt="Panda badge"
-          />
-          <h3 class="h3 ml-4 font-bold">
-            <span class="mr-1 text-panda">Q3</span>
-            2024
-          </h3>
-          <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 text-gray/50 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>Launch Panda NFT Platform (Suspend)</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>Chain Fusion: More Chain-key Tokens</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>ICPanda AI: Panda Oracle</span>
-            </p>
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>List PANDA Token on CEX</span>
-            </p>
-          </div>
-        </div>
-      </Saos>
-      <Saos once={true} animation={'slide-top 0.6s ease-in-out both'}>
-        <div class="relative mb-8 ml-4 mt-8 lg:mb-16">
-          <img
-            class="absolute left-[-64px] top-[-16px] transition duration-700 ease-in-out hover:scale-125"
-            src="/_assets/images/panda-badge-5.webp"
-            alt="Panda badge"
-          />
-          <h3 class="h3 ml-4 font-bold">
-            <span class="mr-1 text-panda">Q4</span>
-            2024
-          </h3>
-          <div class="mt-4 flex flex-row gap-4 overflow-x-auto p-4">
-            <p
-              class="card inline-flex flex-row content-center items-center bg-white p-6 shadow-md transition duration-700 ease-in-out hover:-translate-y-2 lg:px-8"
-            >
-              <span>Launch Panda Meme Brand Platform (SFT & VC)</span>
-            </p>
-          </div>
-        </div>
-      </Saos>
-    </div>
   </div>
 
   <footer id="page-footer" class="flex-none">
