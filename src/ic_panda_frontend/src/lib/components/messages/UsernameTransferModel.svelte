@@ -1,61 +1,59 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
-  import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { toastRun } from '$lib/stores/toast'
+  import {
+    myMessageStateAsync,
+    type MyMessageState
+  } from '$src/lib/stores/message'
+  import { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { type SvelteComponent } from 'svelte'
+  import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import UsernameTransferModel from './UsernameTransferModel.svelte'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let myInfo: Readable<UserInfo & ProfileInfo>
-  export let onSave: (info: UserInfo & ProfileInfo) => Promise<void>
+  export let myInfo: Readable<UserInfo>
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
 
+  let myState: MyMessageState
   let validating = false
   let submitting = false
 
-  let nameInput = $myInfo.name || ''
-  let descriptionInput = $myInfo.bio || ''
+  let usernameInput = ''
+  let toInput = ''
 
-  function checkName() {
+  function checkUsername() {
+    if (usernameInput !== $myInfo.username[0]) {
+      return 'Username does not match'
+    }
+    return ''
+  }
+
+  function checkPrincipal() {
+    try {
+      Principal.fromText(toInput)
+    } catch (_err) {
+      return 'Invalid principal'
+    }
     return ''
   }
 
   function onSaveHandler() {
     submitting = true
     toastRun(async (signal: AbortSignal) => {
-      await onSave({
-        ...$myInfo,
-        name: nameInput.trim(),
-        bio: descriptionInput.trim()
-      })
-
+      const to = Principal.fromText(toInput)
+      await myState.api.transfer_username(to)
+      await myState.agent.fetchUser()
       modalStore.close()
     }, toastStore).finally(() => {
+      modalStore.close()
       submitting = false
       validating = false
-    })
-  }
-
-  function onTransferUsernameHandler() {
-    modalStore.close()
-    modalStore.trigger({
-      type: 'component',
-      component: {
-        ref: UsernameTransferModel,
-        props: {
-          myInfo: myInfo,
-          onSave: onSave
-        }
-      }
     })
   }
 
@@ -64,55 +62,52 @@
     e.preventDefault()
 
     const form = e.currentTarget as HTMLFormElement
-    ;(form['nameInput'] as HTMLInputElement)?.setCustomValidity(checkName())
+    ;(form['usernameInput'] as HTMLInputElement)?.setCustomValidity(
+      checkUsername()
+    )
+    ;(form['toInput'] as HTMLInputElement)?.setCustomValidity(checkPrincipal())
 
     validating = form.checkValidity()
   }
+
+  onMount(async () => {
+    myState = await myMessageStateAsync()
+  })
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Edit profile</div>
+  <div class="!mt-0 text-center text-xl font-bold">Transfer Username</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
   >
-    <div class="relative">
-      <div
-        class="flex flex-row justify-between rounded-xl border-[1px] border-gray/10 px-3 py-2"
-      >
-        <p>
-          <span class="text-gray/60">https://panda.fans/</span>
-          <span>{$myInfo.username[0]}</span>
-        </p>
-        <button
-          class="btn btn-sm p-0 text-gray/60 hover:text-panda"
-          on:click={onTransferUsernameHandler}>Transfer</button
-        >
-      </div>
+    <div class="relative mt-4">
+      <input
+        class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
+        type="text"
+        name="usernameInput"
+        minlength="1"
+        maxlength="20"
+        data-1p-ignore
+        bind:value={usernameInput}
+        disabled={submitting}
+        placeholder="Enter username"
+        required
+      />
     </div>
     <div class="relative mt-4">
       <input
         class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
         type="text"
-        name="nameInput"
-        minlength="1"
-        maxlength="32"
-        bind:value={nameInput}
+        name="toInput"
+        minlength="27"
+        maxlength="63"
+        data-1p-ignore
+        bind:value={toInput}
         disabled={submitting}
-        placeholder="Display name"
+        placeholder="Enter principal to receive username"
         required
-      />
-    </div>
-    <div class="relative mt-4">
-      <TextArea
-        bind:value={descriptionInput}
-        minHeight="60"
-        maxHeight="120"
-        class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
-        name="descriptionInput"
-        disabled={submitting}
-        placeholder="User bio..."
       />
     </div>
   </form>
@@ -126,7 +121,7 @@
         <span class=""><IconCircleSpin /></span>
         <span>Processing...</span>
       {:else}
-        <span>Save</span>
+        <span>Transfer</span>
       {/if}
     </button>
   </footer>

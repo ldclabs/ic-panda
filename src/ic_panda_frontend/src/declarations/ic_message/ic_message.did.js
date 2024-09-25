@@ -210,6 +210,7 @@ export const idlFactory = ({ IDL }) => {
     'upsert_kv' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(IDL.Nat8))),
     'remove_kv' : IDL.Vec(IDL.Text),
   });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_add_canister' : IDL.Func(
         [CanisterKind, IDL.Principal],
@@ -258,6 +259,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'save_channel_kek' : IDL.Func([ChannelKEKInput], [Result], []),
     'search_username' : IDL.Func([IDL.Text], [Result_7], ['query']),
+    'transfer_username' : IDL.Func([IDL.Principal], [Result], []),
     'update_my_ecdh' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result],
@@ -266,6 +268,11 @@ export const idlFactory = ({ IDL }) => {
     'update_my_image' : IDL.Func([IDL.Text], [Result], []),
     'update_my_kv' : IDL.Func([UpdateKVInput], [Result], []),
     'update_my_name' : IDL.Func([IDL.Text], [Result_3], []),
+    'validate2_admin_update_price' : IDL.Func(
+        [UpdatePriceInput],
+        [Result_8],
+        [],
+      ),
     'validate_admin_add_canister' : IDL.Func(
         [CanisterKind, IDL.Principal],
         [Result],

@@ -1,3 +1,4 @@
+use candid::Principal;
 use ic_cose_types::{cose::encrypt0::try_decode_encrypt0, validate_key, MILLISECONDS};
 use ic_message_types::{
     channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
@@ -32,6 +33,17 @@ async fn register_username(username: String, name: Option<String>) -> Result<Use
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::user::register_username(caller, username.clone(), name.unwrap_or(username), now_ms).await
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn transfer_username(to: Principal) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    if caller == to {
+        Err("cannot transfer to self".to_string())?;
+    }
+
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::user::transfer_username(caller, to, now_ms).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

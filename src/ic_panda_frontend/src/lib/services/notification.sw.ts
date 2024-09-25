@@ -14,15 +14,15 @@ globalThis.addEventListener('notificationclick', handleNotificationClick)
 const notifies = new Map<string, NotificationOptions>()
 
 export async function notifyd() {
+  if (!('Notification' in globalThis)) return
+
   let agent: MessageAgent | null = null
   let refreshStateAt = 0
 
   console.log('Notification service started')
   while (true) {
     const identity =
-      'Notification' in globalThis &&
-      Notification.permission === 'granted' &&
-      (await loadIdentity())
+      Notification.permission === 'granted' && (await loadIdentity())
     if (identity) {
       const now = Date.now()
       await tryRun(async () => {

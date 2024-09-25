@@ -284,7 +284,11 @@
         // no scroll
         if (elemChat?.scrollTop == 0) {
           const msg = $messageFeed.at(-1)
-          if (msg && msg.id > lastRead && msg.id !== msg.pid) {
+          if (
+            msg &&
+            msg.id > channelInfo.my_setting.last_read &&
+            msg.id !== msg.pid
+          ) {
             lastRead = msg.id
             debouncedUpdateMyLastRead()
           }

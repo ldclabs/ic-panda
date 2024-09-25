@@ -501,6 +501,17 @@ pub mod user {
             return Err("invalid username length".to_string());
         }
 
+        let has_username = USER_STORE.with(|r| {
+            r.borrow()
+                .get(&caller)
+                .map(|u| u.username.is_some())
+                .unwrap_or_default()
+        });
+
+        if has_username {
+            return Err("caller already has username".to_string());
+        }
+
         NAME_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&ln) {
@@ -552,6 +563,7 @@ pub mod user {
             ic_cdk::api::set_certified_data(s.root_hash().as_slice());
         });
 
+        // the user's namespace maybe exists, but we don't care about the result
         let _: Result<NamespaceInfo, String> = call(
             cose_canister,
             "admin_create_namespace",
@@ -572,7 +584,9 @@ pub mod user {
             let mut m = r.borrow_mut();
             match m.get(&caller) {
                 Some(mut user) => {
-                    user.cose_canister = Some(cose_canister);
+                    if user.cose_canister.is_none() {
+                        user.cose_canister = Some(cose_canister);
+                    }
                     user.username = Some(username);
                     m.insert(caller, user.clone());
                     user.into_info(caller)
@@ -599,6 +613,138 @@ pub mod user {
         )
         .await?;
         Ok(info)
+    }
+
+    pub async fn transfer_username(
+        caller: Principal,
+        to: Principal,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let (cose_canister, profile_canister) = state::with(|s| {
+            (
+                s.cose_canisters.last().cloned(),
+                s.profile_canisters.last().cloned(),
+            )
+        });
+        let cose_canister = cose_canister.ok_or_else(|| "no COSE canister".to_string())?;
+        let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
+
+        let username = USER_STORE.with(|r| {
+            r.borrow()
+                .get(&caller)
+                .ok_or_else(|| "caller not found".to_string())?
+                .username
+                .ok_or_else(|| "caller has no username".to_string())
+        })?;
+
+        let ln = username.to_lowercase();
+        let (new_profile, new_cose) = NAME_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&ln) {
+                Some(owner) => {
+                    if owner != caller {
+                        Err("username not owned by caller".to_string())
+                    } else {
+                        let rt = USER_STORE.with(|r| {
+                            let mut new_cose = false;
+                            let mut new_profile = false;
+                            let mut m = r.borrow_mut();
+                            match m.get(&to) {
+                                Some(mut user) => {
+                                    if let Some(username) = user.username {
+                                        Err(format!(
+                                            "{} already has username {}",
+                                            to.to_text(),
+                                            username
+                                        ))?;
+                                    }
+                                    user.username = Some(username.clone());
+                                    if user.cose_canister.is_none() {
+                                        new_cose = true;
+                                        user.cose_canister = Some(cose_canister);
+                                    }
+                                    m.insert(to, user);
+                                }
+                                None => {
+                                    new_cose = true;
+                                    new_profile = true;
+                                    m.insert(
+                                        to,
+                                        User {
+                                            name: username.clone(),
+                                            image: "".to_string(),
+                                            profile_canister: profile_canister,
+                                            cose_canister: Some(cose_canister),
+                                            username: Some(username.clone()),
+                                        },
+                                    );
+                                }
+                            }
+
+                            if let Some(mut user) = m.get(&caller) {
+                                user.username = None;
+                                m.insert(caller, user.clone());
+                            }
+                            Ok::<(bool, bool), String>((new_profile, new_cose))
+                        })?;
+                        m.insert(ln.clone(), to);
+                        Ok(rt)
+                    }
+                }
+                None => Err("username not found".to_string()),
+            }
+        })?;
+
+        state::with_mut(|s| {
+            let blk = NameBlock {
+                height: s.next_block_height,
+                phash: s.next_block_phash,
+                name: ln,
+                user: to,
+                from: Some(caller),
+                value: 0,
+                timestamp: now_ms,
+            };
+            let blk = to_cbor_bytes(&blk);
+            s.next_block_height += 1;
+            s.next_block_phash = sha3_256(&blk).into();
+            NAME_BLOCKS.with(|r| {
+                r.borrow_mut()
+                    .append(&blk)
+                    .expect("failed to append NameBlock");
+            });
+            ic_cdk::api::set_certified_data(s.root_hash().as_slice());
+        });
+
+        if new_profile {
+            let _: Result<(), String> = call(
+                profile_canister,
+                "admin_upsert_profile",
+                (to, None::<(Principal, u64)>),
+                0,
+            )
+            .await?;
+        }
+
+        if new_cose {
+            let _: Result<NamespaceInfo, String> = call(
+                cose_canister,
+                "admin_create_namespace",
+                (CreateNamespaceInput {
+                    name: to.to_text().replace("-", "_"),
+                    visibility: 0,
+                    desc: Some(format!("name: {}", username)),
+                    max_payload_size: Some(1024),
+                    managers: BTreeSet::from([ic_cdk::id()]),
+                    auditors: BTreeSet::from([to]),
+                    users: BTreeSet::from([to]),
+                },),
+                0,
+            )
+            .await?;
+        }
+
+        Ok(())
     }
 
     pub fn search_username(prefix: String) -> Vec<String> {

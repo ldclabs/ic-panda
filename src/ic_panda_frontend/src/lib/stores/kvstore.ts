@@ -47,7 +47,12 @@ export async function getUser(
   }
 
   let [ts, info] = (await KVS.get<[number, UserInfo]>('Users', k)) || [0, null]
-  return info && now - ts < USERS_CACHE_EXP ? info : null
+  info = info && now - ts < USERS_CACHE_EXP ? info : null
+  if (typeof user == 'string' && info && info.username[0] !== user) {
+    // username has been changed
+    info = null
+  }
+  return info
 }
 
 export async function getUser2(

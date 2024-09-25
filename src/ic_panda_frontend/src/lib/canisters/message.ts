@@ -164,6 +164,11 @@ export class MessageCanisterAPI {
     return unwrapResult(res, 'call register_username failed')
   }
 
+  async transfer_username(to: Principal): Promise<null> {
+    const res = await this.actor.transfer_username(to)
+    return unwrapResult(res, 'call transfer_username failed')
+  }
+
   async save_channel_kek(input: ChannelKEKInput): Promise<null> {
     const res = await this.actor.save_channel_kek(input)
     return unwrapResult(res, 'call save_channel_kek failed')

@@ -122,6 +122,7 @@ type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
 type Result_5 = variant { Ok : StateInfo; Err : text };
 type Result_6 = variant { Ok : blob; Err : text };
 type Result_7 = variant { Ok : vec text; Err : text };
+type Result_8 = variant { Ok : text; Err : text };
 type StateInfo = record {
   latest_usernames : vec text;
   managers : vec principal;
@@ -184,10 +185,12 @@ service : (opt ChainArgs) -> {
   register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_7) query;
+  transfer_username : (principal) -> (Result);
   update_my_ecdh : (blob, blob) -> (Result);
   update_my_image : (text) -> (Result);
   update_my_kv : (UpdateKVInput) -> (Result);
   update_my_name : (text) -> (Result_3);
+  validate2_admin_update_price : (UpdatePriceInput) -> (Result_8);
   validate_admin_add_canister : (CanisterKind, principal) -> (Result);
   validate_admin_add_managers : (vec principal) -> (Result);
   validate_admin_collect_token : (Account, nat) -> (Result);

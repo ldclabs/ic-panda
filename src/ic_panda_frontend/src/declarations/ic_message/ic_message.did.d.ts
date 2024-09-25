@@ -153,6 +153,8 @@ export type Result_6 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : string };
 export type Result_7 = { 'Ok' : Array<string> } |
   { 'Err' : string };
+export type Result_8 = { 'Ok' : string } |
+  { 'Err' : string };
 export interface StateInfo {
   'latest_usernames' : Array<string>,
   'managers' : Array<Principal>,
@@ -218,6 +220,7 @@ export interface _SERVICE {
   'register_username' : ActorMethod<[string, [] | [string]], Result_3>,
   'save_channel_kek' : ActorMethod<[ChannelKEKInput], Result>,
   'search_username' : ActorMethod<[string], Result_7>,
+  'transfer_username' : ActorMethod<[Principal], Result>,
   'update_my_ecdh' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Result
@@ -225,6 +228,7 @@ export interface _SERVICE {
   'update_my_image' : ActorMethod<[string], Result>,
   'update_my_kv' : ActorMethod<[UpdateKVInput], Result>,
   'update_my_name' : ActorMethod<[string], Result_3>,
+  'validate2_admin_update_price' : ActorMethod<[UpdatePriceInput], Result_8>,
   'validate_admin_add_canister' : ActorMethod<
     [CanisterKind, Principal],
     Result
