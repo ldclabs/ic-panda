@@ -97,6 +97,7 @@ export const idlFactory = ({ IDL }) => {
     'get_profile' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_2], ['query']),
     'get_state' : IDL.Func([], [Result_3], ['query']),
     'update_profile' : IDL.Func([UpdateProfileInput], [Result_2], []),
+    'update_profile_ecdh_pub' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result],

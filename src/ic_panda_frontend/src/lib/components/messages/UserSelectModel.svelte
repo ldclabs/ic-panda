@@ -1,6 +1,5 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
-  import IconCheckLine from '$lib/components/icons/IconCheckLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconSubtractLine from '$lib/components/icons/IconSubtractLine.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -224,11 +223,6 @@
             <p class="ml-1 max-w-52 truncate text-ellipsis">
               {user.name + (user.username ? ' @' + user.username : '')}
             </p>
-          </div>
-          <div class="">
-            {#if !user.isMember && !user.isManager}
-              <span class="text-gray/60 *:size-6"><IconCheckLine /></span>
-            {/if}
           </div>
         </button>
       {/each}

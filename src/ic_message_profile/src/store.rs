@@ -233,7 +233,7 @@ pub mod profile {
         })
     }
 
-    pub fn admin_update_profile_ecdh_pub(
+    pub fn update_profile_ecdh_pub(
         user: Principal,
         now_ms: u64,
         ecdh_pub: ByteArray<32>,

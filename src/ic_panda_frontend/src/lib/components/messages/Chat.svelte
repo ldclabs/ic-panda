@@ -74,7 +74,7 @@
     >
       {#key channelId}
         {#if channelId && channelId !== 'profile'}
-          <ChannelDetail {channelId} {myState} />
+          <ChannelDetail {channelId} {myState} {myInfo} />
         {:else}
           <div class="h-[60px] px-4 py-2 md:hidden">
             <button class="btn -ml-6" on:click={onChatBack}

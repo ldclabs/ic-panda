@@ -71,4 +71,9 @@ export class ProfileAPI {
     const res = await this.actor.update_profile(input)
     return unwrapResult(res, 'call update_profile failed')
   }
+
+  async update_profile_ecdh_pub(input: Uint8Array): Promise<null> {
+    const res = await this.actor.update_profile_ecdh_pub(input)
+    return unwrapResult(res, 'call update_profile_ecdh_pub failed')
+  }
 }

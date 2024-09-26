@@ -11,6 +11,7 @@
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import IconExchange2Line from '$lib/components/icons/IconExchange2Line.svelte'
   import { toastRun } from '$lib/stores/toast'
+  import { errMessage } from '$lib/types/result'
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import {
@@ -93,7 +94,20 @@
 
     toastRun(async (signal: AbortSignal) => {
       if (channelInfo.my_setting.ecdh_remote.length === 1) {
-        await myState.acceptKEK(channelInfo)
+        try {
+          await myState.acceptKEK(channelInfo)
+        } catch (err: any) {
+          toastStore.trigger({
+            timeout: 10000,
+            hideDismiss: false,
+            background: 'variant-soft-error',
+            message: `Failed to receive the key. A new key has been requested.\n<br />Error: ${errMessage(err)}`
+          })
+          const my_setting = { ...channelInfo.my_setting }
+          my_setting.ecdh_remote = []
+          my_setting.ecdh_pub = []
+          await myState.requestKEK({ ...channelInfo, my_setting })
+        }
       } else {
         await myState.requestKEK(channelInfo)
       }

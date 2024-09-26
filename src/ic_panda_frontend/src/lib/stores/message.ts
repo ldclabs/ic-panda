@@ -269,7 +269,7 @@ export class MyMessageState {
 
     this._mks.push(newMK)
     await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
-    await this.initStaticECDHKey()
+    await this.initStaticECDHKey(mKey)
   }
 
   async fetchECDHCoseEncryptedKey(): Promise<AesGcmKey> {
@@ -303,13 +303,22 @@ export class MyMessageState {
     return AesGcmKey.fromBytes(data)
   }
 
-  async initStaticECDHKey(): Promise<void> {
+  async initStaticECDHKey(prevMK?: AesGcmKey): Promise<void> {
     const mk = (await this.mustMasterKey()).toA256GCMKey()
     const aad = this.principal.toUint8Array()
     try {
-      const encrypted0 = await this.loadStaticECDHKey()
-      const data = await coseA256GCMDecrypt0(mk, encrypted0, aad)
+      let encrypted0 = await this.loadStaticECDHKey()
+      const data = await coseA256GCMDecrypt0(prevMK || mk, encrypted0, aad)
       this._ek = ECDHKey.fromBytes(data)
+      if (prevMK) {
+        encrypted0 = await coseA256GCMEncrypt0(
+          mk,
+          this._ek.toBytes(),
+          aad,
+          mk.kid
+        )
+        await this.saveStaticECDHKey(this._ek.getPublicKey(), encrypted0)
+      }
     } catch (err) {
       this._ek = generateECDHKey()
       this._ek.setKid(encodeCBOR(String(Date.now())))
@@ -354,6 +363,8 @@ export class MyMessageState {
 
     if (this.agent.hasCOSE) {
       await this.api.update_my_ecdh(ecdh_pub, encrypted0)
+    } else {
+      await this.agent.profileAPI.update_profile_ecdh_pub(ecdh_pub)
     }
   }
 

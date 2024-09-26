@@ -89,6 +89,7 @@ export interface _SERVICE {
   'get_profile' : ActorMethod<[[] | [Principal]], Result_2>,
   'get_state' : ActorMethod<[], Result_3>,
   'update_profile' : ActorMethod<[UpdateProfileInput], Result_2>,
+  'update_profile_ecdh_pub' : ActorMethod<[Uint8Array | number[]], Result>,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
 }

@@ -20,12 +20,12 @@
 
   export let channelId: string
   export let myState: MyMessageState
+  export let myInfo: Readable<UserInfo>
 
   const toastStore = getToastStore()
   const { canister, id } = ChannelAPI.parseChannelParam(channelId)
   const onChatBack = getContext('onChatBack') as () => void
 
-  let myInfo: Readable<UserInfo>
   let channelInfo: Readable<ChannelInfoEx>
 
   let openSettings = false
@@ -48,7 +48,6 @@
     const { abort, finally: onfinally } = toastRun(
       async (signal: AbortSignal) => {
         if (canister) {
-          myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
           channelInfo = await myState.loadChannelInfo(canister, id)
           openSettings = !$channelInfo._kek
           return channelInfo

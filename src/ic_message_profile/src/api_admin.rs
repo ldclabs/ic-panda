@@ -36,7 +36,7 @@ fn admin_update_profile_ecdh_pub(user: Principal, ecdh_pub: ByteArray<32>) -> Re
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
-    store::profile::admin_update_profile_ecdh_pub(user, now_ms, ecdh_pub)
+    store::profile::update_profile_ecdh_pub(user, now_ms, ecdh_pub)
 }
 
 #[ic_cdk::update]
