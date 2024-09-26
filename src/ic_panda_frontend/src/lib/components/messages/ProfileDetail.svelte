@@ -283,6 +283,7 @@
     return logs.map((log) => `${errMessage(log)}\n${log.stack}`).join('\n')
   }
 
+  $: channelId = ($page?.params || {})['channel'] || ''
   $: myID = $myInfo?.id
   $: isMe = (myID && $userInfo?.id.compareTo(myID)) == 'eq'
   $: isFowllowing =
@@ -469,7 +470,7 @@
       </div>
     {/if}
   </section>
-  {#if userId.toString().toUpperCase() !== 'PANDA'}
+  {#if channelId === 'profile' && userId.toString().toUpperCase() !== 'PANDA'}
     <div class="m-auto flex flex-col items-center space-y-2 self-end text-sm">
       <div class="flex flex-row items-center">
         <a

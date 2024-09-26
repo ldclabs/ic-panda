@@ -204,7 +204,7 @@
       id,
       dek,
       start,
-      Math.min(start + 20, latestMessageId)
+      Math.min(start + 20, latestMessageId + 1)
     )
 
     if (messages.length > 0) {

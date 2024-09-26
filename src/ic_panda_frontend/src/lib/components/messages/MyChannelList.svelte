@@ -99,7 +99,7 @@
       on:click={onCreateChannelHandler}><span><IconAdd /></span></button
     >
   </header>
-  <div class="overflow-y-auto">
+  <div class="h-[calc(100dvh-170px)] overflow-y-auto sm:h-[calc(100dvh-200px)]">
     <div class="flex flex-row items-center gap-2 p-2">
       <span class="text-sm opacity-50">Channels</span>
       <button
