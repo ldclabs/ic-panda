@@ -22,6 +22,10 @@ import { KVS } from './kvstore'
 
 export type CachedMessage = Message & { canister: Principal; channel: number }
 
+export interface SyncAt {
+  _sync_at: number
+}
+
 // should be running in Web Workers.
 export class MessageAgent extends EventTarget {
   readonly id: string
@@ -328,8 +332,11 @@ export class MessageAgent extends EventTarget {
 
   // ------------ Channels ------------
 
-  async getChannel(canister: Principal, id: number): Promise<ChannelInfo> {
-    let val = await this._db.get<ChannelInfo>('Channels', [
+  async getChannel(
+    canister: Principal,
+    id: number
+  ): Promise<ChannelInfo & SyncAt> {
+    let val = await this._db.get<ChannelInfo & SyncAt>('Channels', [
       canister.toUint8Array(),
       id
     ])
@@ -343,7 +350,7 @@ export class MessageAgent extends EventTarget {
     canister: Principal,
     id: number,
     signal?: AbortSignal
-  ): Promise<Readable<ChannelInfo>> {
+  ): Promise<Readable<ChannelInfo & SyncAt>> {
     const channel = await this.getChannel(canister, id)
     const eventType = `Channel:${canister.toText()}/${id}`
     return readable(channel, (set) => {
@@ -467,7 +474,7 @@ export class MessageAgent extends EventTarget {
     canister: Principal,
     id: number,
     updated_at: bigint = 0n
-  ): Promise<ChannelInfo> {
+  ): Promise<ChannelInfo & SyncAt> {
     const api = await this.api.channelAPI(canister)
     const channel = await api.get_channel_if_update(id, updated_at)
     if (!channel) {
@@ -490,7 +497,7 @@ export class MessageAgent extends EventTarget {
     for (const mid of channel.deleted_messages) {
       await this.updateDeletedMessage(canisterId, id, mid)
     }
-    return (await this.setChannel(channel)) as ChannelInfo
+    return (await this.setChannel(channel)) as ChannelInfo & SyncAt
   }
 
   async setChannel(
@@ -500,7 +507,7 @@ export class MessageAgent extends EventTarget {
       channel.canister.toUint8Array(),
       channel.id
     ])
-    val = { ...val, ...channel } as ChannelInfo
+    val = { ...val, ...channel, _sync_at: Date.now() } as ChannelInfo & SyncAt
     await this._db.set('Channels', val)
     this.dispatchEvent(
       new CustomEvent(`Channel:${val.canister.toText()}/${val.id}`, {

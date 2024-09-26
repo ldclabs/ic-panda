@@ -27,6 +27,9 @@ export const createActor = async <T = Record<string, ActorMethod>>({
   return Actor.createActor(idlFactory, {
     agent,
     canisterId
+    // queryTransform: (methodName: string, args: unknown[], callConfig: any) => {
+    //   console.log('queryTransform', methodName, args, callConfig)
+    // }
   })
 }
 

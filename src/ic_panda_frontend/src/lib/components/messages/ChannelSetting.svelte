@@ -10,6 +10,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import IconExchange2Line from '$lib/components/icons/IconExchange2Line.svelte'
+  import IconLogout from '$lib/components/icons/IconLogout.svelte'
   import { toastRun } from '$lib/stores/toast'
   import { errMessage } from '$lib/types/result'
   import { sleep } from '$lib/utils/helper'
@@ -351,7 +352,7 @@
           class="variant-filled-warning disabled:variant-filled-surface"
           on:click={onClickMyLeaving}
           disabled={myLeavingSubmitting || leavingWord != channelInfo.name}
-          >Leave</button
+          ><span class="*:size-5"><IconLogout /></span></button
         >
       </div>
       <span

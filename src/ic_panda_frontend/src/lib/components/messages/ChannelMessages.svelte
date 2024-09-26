@@ -204,7 +204,7 @@
       id,
       dek,
       start,
-      start + 20
+      Math.min(start + 20, latestMessageId)
     )
 
     if (messages.length > 0) {
@@ -266,7 +266,12 @@
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         abortingQue.push(popupDestroy)
 
-        channelInfo = await myState.refreshChannel(channelInfo)
+        if (
+          !channelInfo._kek ||
+          channelInfo._sync_at < Date.now() - 5 * 60 * 1000
+        ) {
+          channelInfo = await myState.refreshChannel(channelInfo)
+        }
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
         lastRead = Math.min(channelInfo.my_setting.last_read, MaybeMaxMessageId)

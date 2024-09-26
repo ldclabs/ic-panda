@@ -34,7 +34,7 @@ import { Principal } from '@dfinity/principal'
 import { derived, readable, type Readable } from 'svelte/store'
 import { asyncFactory } from './auth'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
-import { MessageAgent } from './message_agent'
+import { MessageAgent, type SyncAt } from './message_agent'
 
 const PWD_HASH_KEY = 'pwd_hash'
 const KEY_ID = encodeCBOR(MASTER_KEY_ID)
@@ -107,10 +107,11 @@ export type ChannelBasicInfoEx = ChannelBasicInfo & {
   latest_message_user: DisplayUserInfo
 }
 
-export type ChannelInfoEx = ChannelInfo & {
-  _kek: Uint8Array | null
-  _managers: string[]
-}
+export type ChannelInfoEx = ChannelInfo &
+  SyncAt & {
+    _kek: Uint8Array | null
+    _managers: string[]
+  }
 
 export class MyMessageState {
   readonly id: string
@@ -944,10 +945,12 @@ export class MyMessageState {
         todo.push(id)
       }
     }
-    const users = await this.api.batch_get_users(todo)
-    for (const info of users) {
-      rt.push(info)
-      await setUser(now, info)
+    if (todo.length > 0) {
+      const users = await this.api.batch_get_users(todo)
+      for (const info of users) {
+        rt.push(info)
+        await setUser(now, info)
+      }
     }
     return rt
   }
