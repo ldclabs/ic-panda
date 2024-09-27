@@ -21,6 +21,12 @@ fn validate_admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> 
     Ok(())
 }
 
+#[ic_cdk::update]
+fn validate2_admin_set_managers(args: BTreeSet<Principal>) -> Result<String, String> {
+    validate_admin_set_managers(args)?;
+    Ok("ok".to_string())
+}
+
 #[ic_cdk::update(guard = "is_controller_or_manager")]
 fn admin_load_model(args: types::LoadModelInput) -> Result<types::LoadModelOutput, String> {
     store::load_model(&args)?;

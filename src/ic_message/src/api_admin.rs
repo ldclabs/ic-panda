@@ -89,9 +89,21 @@ fn validate_admin_add_managers(args: BTreeSet<Principal>) -> Result<(), String> 
 }
 
 #[ic_cdk::update]
+fn validate2_admin_add_managers(args: BTreeSet<Principal>) -> Result<String, String> {
+    validate_principals(&args)?;
+    Ok("ok".to_string())
+}
+
+#[ic_cdk::update]
 fn validate_admin_remove_managers(args: BTreeSet<Principal>) -> Result<(), String> {
     validate_principals(&args)?;
     Ok(())
+}
+
+#[ic_cdk::update]
+fn validate2_admin_remove_managers(args: BTreeSet<Principal>) -> Result<String, String> {
+    validate_principals(&args)?;
+    Ok("ok".to_string())
 }
 
 #[ic_cdk::update]
@@ -116,6 +128,15 @@ fn validate_admin_add_canister(kind: types::CanisterKind, id: Principal) -> Resu
         }
         Ok(())
     })
+}
+
+#[ic_cdk::update]
+fn validate2_admin_add_canister(
+    kind: types::CanisterKind,
+    id: Principal,
+) -> Result<String, String> {
+    validate_admin_add_canister(kind, id)?;
+    Ok("ok".to_string())
 }
 
 #[ic_cdk::update]
@@ -159,4 +180,10 @@ fn validate_admin_collect_token(_user: Account, amount: Nat) -> Result<(), Strin
     }
 
     Ok(())
+}
+
+#[ic_cdk::update]
+fn validate2_admin_collect_token(user: Account, amount: Nat) -> Result<String, String> {
+    validate_admin_collect_token(user, amount)?;
+    Ok("ok".to_string())
 }

@@ -15,10 +15,6 @@ license.workspace = true
 
 [dependencies]
 candid = { workspace = true }
-ciborium = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-getrandom = { workspace = true }
-ic-cdk = { workspace = true }
-ic-stable-structures = { workspace = true }
 ic_cose_types = { workspace = true }

@@ -33,6 +33,12 @@ async fn validate_admin_collect_icp(amount: Nat) -> Result<(), String> {
     Ok(())
 }
 
+#[ic_cdk::update]
+async fn validate2_admin_collect_icp(amount: Nat) -> Result<String, String> {
+    validate_admin_collect_icp(amount).await?;
+    Ok("ok".to_string())
+}
+
 // Set the managers.
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> {
@@ -51,6 +57,12 @@ fn validate_admin_set_managers(args: BTreeSet<Principal>) -> Result<(), String> 
         return Err("anonymous user is not allowed".to_string());
     }
     Ok(())
+}
+
+#[ic_cdk::update]
+fn validate2_admin_set_managers(args: BTreeSet<Principal>) -> Result<String, String> {
+    validate_admin_set_managers(args)?;
+    Ok("ok".to_string())
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
