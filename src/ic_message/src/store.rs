@@ -848,7 +848,7 @@ pub mod user {
 pub mod channel {
     use super::*;
     use ic_message_types::channel::{
-        channel_kek_key, ChannelInfo, ChannelKEKInput, CreateChannelInput,
+        channel_kek_key, ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput,
     };
 
     pub async fn create_channel(
@@ -914,6 +914,30 @@ pub mod channel {
         input.paid = amount;
         let res: Result<ChannelInfo, String> =
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
+        res
+    }
+
+    pub async fn topup_channel(
+        caller: Principal,
+        mut input: ChannelTopupInput,
+    ) -> Result<ChannelInfo, String> {
+        input.payer = caller;
+        state::with(|s| {
+            if !s.channel_canisters.contains(&input.canister)
+                && !s.matured_channel_canisters.contains(&input.canister)
+            {
+                Err("channel canister not found".to_string())
+            } else {
+                Ok(())
+            }
+        })?;
+        let amount = input.amount.saturating_sub(types::TOKEN_FEE);
+        token_transfer_from(caller, amount.into(), "TC".to_string()).await?;
+        state::with_mut(|s| {
+            s.incoming_total += amount as u128;
+        });
+        let res: Result<ChannelInfo, String> =
+            call(input.canister, "admin_topup_channel", (input,), 0).await?;
         res
     }
 

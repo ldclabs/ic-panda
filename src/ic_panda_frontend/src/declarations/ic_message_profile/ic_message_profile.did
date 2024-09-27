@@ -42,6 +42,7 @@ type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : CanisterStatusResponse; Err : text };
 type Result_2 = variant { Ok : ProfileInfo; Err : text };
 type Result_3 = variant { Ok : StateInfo; Err : text };
+type Result_4 = variant { Ok : text; Err : text };
 type StateInfo = record {
   managers : vec principal;
   profiles_total : nat64;
@@ -67,6 +68,8 @@ service : (opt ChainArgs) -> {
   get_state : () -> (Result_3) query;
   update_profile : (UpdateProfileInput) -> (Result_2);
   update_profile_ecdh_pub : (blob) -> (Result);
+  validate2_admin_add_managers : (vec principal) -> (Result_4);
+  validate2_admin_remove_managers : (vec principal) -> (Result_4);
   validate_admin_add_managers : (vec principal) -> (Result);
   validate_admin_remove_managers : (vec principal) -> (Result);
 }

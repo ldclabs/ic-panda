@@ -175,6 +175,8 @@ service : () -> {
   state : () -> (Result_11) query;
   unregister_name : (NameInput) -> (Result_12);
   update_name : (NameInput) -> (Result_10);
+  validate2_admin_collect_icp : (nat) -> (Result_7);
+  validate2_admin_set_managers : (vec principal) -> (Result_7);
   validate_admin_collect_icp : (nat) -> (Result_1);
   validate_admin_set_managers : (vec principal) -> (Result_1);
   whoami : () -> (Result_13) query;

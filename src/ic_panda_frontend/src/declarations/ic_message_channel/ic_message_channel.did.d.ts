@@ -83,6 +83,12 @@ export interface ChannelSetting {
   'last_read' : number,
   'ecdh_pub' : [] | [Uint8Array | number[]],
 }
+export interface ChannelTopupInput {
+  'id' : number,
+  'canister' : Principal,
+  'payer' : Principal,
+  'amount' : bigint,
+}
 export interface CreateChannelInput {
   'dek' : Uint8Array | number[],
   'managers' : Array<[Principal, ChannelECDHInput]>,
@@ -126,6 +132,8 @@ export type Result_1 = { 'Ok' : null } |
 export type Result_10 = { 'Ok' : [bigint, [] | [Message]] } |
   { 'Err' : string };
 export type Result_11 = { 'Ok' : ChannelSetting } |
+  { 'Err' : string };
+export type Result_12 = { 'Ok' : string } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : ChannelInfo } |
   { 'Err' : string };
@@ -179,6 +187,7 @@ export interface _SERVICE {
   'admin_add_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'admin_create_channel' : ActorMethod<[CreateChannelInput], Result_2>,
   'admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,
+  'admin_topup_channel' : ActorMethod<[ChannelTopupInput], Result_2>,
   'batch_get_channels' : ActorMethod<[Uint32Array | number[]], Result_3>,
   'delete_message' : ActorMethod<[DeleteMessageInput], Result_1>,
   'get_canister_status' : ActorMethod<[], Result_4>,
@@ -198,6 +207,11 @@ export interface _SERVICE {
   'update_manager' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
   'update_member' : ActorMethod<[UpdateChannelMemberInput], Result_10>,
   'update_my_setting' : ActorMethod<[UpdateMySettingInput], Result_11>,
+  'validate2_admin_add_managers' : ActorMethod<[Array<Principal>], Result_12>,
+  'validate2_admin_remove_managers' : ActorMethod<
+    [Array<Principal>],
+    Result_12
+  >,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_1>,
 }

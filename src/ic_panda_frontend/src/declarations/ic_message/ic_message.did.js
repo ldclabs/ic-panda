@@ -206,6 +206,12 @@ export const idlFactory = ({ IDL }) => {
     'canister' : IDL.Principal,
   });
   const Result_7 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
+  const ChannelTopupInput = IDL.Record({
+    'id' : IDL.Nat32,
+    'canister' : IDL.Principal,
+    'payer' : IDL.Principal,
+    'amount' : IDL.Nat64,
+  });
   const UpdateKVInput = IDL.Record({
     'upsert_kv' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(IDL.Nat8))),
     'remove_kv' : IDL.Vec(IDL.Text),
@@ -259,6 +265,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'save_channel_kek' : IDL.Func([ChannelKEKInput], [Result], []),
     'search_username' : IDL.Func([IDL.Text], [Result_7], ['query']),
+    'topup_channel' : IDL.Func([ChannelTopupInput], [Result_2], []),
     'transfer_username' : IDL.Func([IDL.Principal], [Result], []),
     'update_my_ecdh' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
@@ -268,6 +275,26 @@ export const idlFactory = ({ IDL }) => {
     'update_my_image' : IDL.Func([IDL.Text], [Result], []),
     'update_my_kv' : IDL.Func([UpdateKVInput], [Result], []),
     'update_my_name' : IDL.Func([IDL.Text], [Result_3], []),
+    'validate2_admin_add_canister' : IDL.Func(
+        [CanisterKind, IDL.Principal],
+        [Result_8],
+        [],
+      ),
+    'validate2_admin_add_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_8],
+        [],
+      ),
+    'validate2_admin_collect_token' : IDL.Func(
+        [Account, IDL.Nat],
+        [Result_8],
+        [],
+      ),
+    'validate2_admin_remove_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_8],
+        [],
+      ),
     'validate2_admin_update_price' : IDL.Func(
         [UpdatePriceInput],
         [Result_8],

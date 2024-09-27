@@ -33,6 +33,14 @@ fn admin_create_channel(input: types::CreateChannelInput) -> Result<types::Chann
 }
 
 #[ic_cdk::update]
+fn admin_topup_channel(input: types::ChannelTopupInput) -> Result<types::ChannelInfo, String> {
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::state::is_manager(&caller)?;
+    store::channel::topup(input.payer, input.id, input.amount, now_ms)
+}
+
+#[ic_cdk::update]
 fn validate_admin_add_managers(args: BTreeSet<Principal>) -> Result<(), String> {
     validate_principals(&args)?;
     Ok(())

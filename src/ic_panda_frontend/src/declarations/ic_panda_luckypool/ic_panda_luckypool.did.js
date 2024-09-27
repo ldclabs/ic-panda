@@ -258,6 +258,12 @@ export const idlFactory = ({ IDL }) => {
     'state' : IDL.Func([], [Result_11], ['query']),
     'unregister_name' : IDL.Func([NameInput], [Result_12], []),
     'update_name' : IDL.Func([NameInput], [Result_10], []),
+    'validate2_admin_collect_icp' : IDL.Func([IDL.Nat], [Result_7], []),
+    'validate2_admin_set_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_7],
+        [],
+      ),
     'validate_admin_collect_icp' : IDL.Func([IDL.Nat], [Result_1], []),
     'validate_admin_set_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],

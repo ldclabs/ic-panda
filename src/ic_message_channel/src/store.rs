@@ -480,6 +480,39 @@ pub mod channel {
         })
     }
 
+    pub fn topup(
+        payer: Principal,
+        id: u32,
+        amount: u64,
+        now_ms: u64,
+    ) -> Result<types::ChannelInfo, String> {
+        CHANNEL_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&id) {
+                None => Err("channel not found".to_string()),
+                Some(mut c) => {
+                    let gas = c.gas.saturating_add(amount);
+                    c.gas = gas;
+                    c.latest_message_id += 1;
+                    c.latest_message_at = now_ms;
+                    c.latest_message_by = payer;
+                    c.paid = c.paid.saturating_add(amount);
+                    add_sys_message(
+                        payer,
+                        now_ms,
+                        MessageId(id, c.latest_message_id),
+                        format!("{}: {}", types::SYS_MSG_CHANNEL_TOPUP, amount),
+                    );
+                    state::with_mut(|s| {
+                        s.incoming_gas = s.incoming_gas.saturating_add(amount as u128);
+                    });
+                    m.insert(id, c.clone());
+                    Ok(c.into_info(payer, ic_cdk::id(), id))
+                }
+            }
+        })
+    }
+
     pub fn update_my_setting(
         caller: Principal,
         input: types::UpdateMySettingInput,

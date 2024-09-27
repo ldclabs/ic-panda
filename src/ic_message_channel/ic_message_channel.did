@@ -71,6 +71,12 @@ type ChannelSetting = record {
   last_read : nat32;
   ecdh_pub : opt blob;
 };
+type ChannelTopupInput = record {
+  id : nat32;
+  canister : principal;
+  payer : principal;
+  amount : nat64;
+};
 type CreateChannelInput = record {
   dek : blob;
   managers : vec record { principal; ChannelECDHInput };
@@ -152,6 +158,7 @@ service : (opt ChainArgs) -> {
   admin_add_managers : (vec principal) -> (Result_1);
   admin_create_channel : (CreateChannelInput) -> (Result_2);
   admin_remove_managers : (vec principal) -> (Result_1);
+  admin_topup_channel : (ChannelTopupInput) -> (Result_2);
   batch_get_channels : (vec nat32) -> (Result_3) query;
   delete_message : (DeleteMessageInput) -> (Result_1);
   get_canister_status : () -> (Result_4) query;

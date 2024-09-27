@@ -9,8 +9,10 @@ pub const MAX_CHANNEL_MEMBERS: usize = 100;
 pub const MAX_CHANNEL_MESSAGES: u32 = 10000;
 pub const MAX_USER_CHANNELS: usize = 1000;
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 32; // 32KB
+pub const MIN_TOPUP_AMOUNT: u64 = 100_000_000; // 1 token
 
 pub static SYS_MSG_CHANNEL_CREATE: &str = "Channel.Create";
+pub static SYS_MSG_CHANNEL_TOPUP: &str = "Channel.Topup";
 pub static SYS_MSG_CHANNEL_UPDATE_INFO: &str = "Channel.Update.Info";
 pub static SYS_MSG_CHANNEL_ADD_MANAGER: &str = "Channel.Add.Manager";
 pub static SYS_MSG_CHANNEL_ADD_MEMBER: &str = "Channel.Add.Member";
@@ -117,6 +119,23 @@ pub struct ChannelKEKInput {
     pub id: u32,
     pub canister: Principal,
     pub kek: ByteBuf, // encrypted key to decrypt channel dek
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct ChannelTopupInput {
+    pub id: u32,
+    pub canister: Principal,
+    pub payer: Principal,
+    pub amount: u64,
+}
+
+impl ChannelTopupInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.amount < MIN_TOPUP_AMOUNT {
+            Err("amount is too small".to_string())?;
+        }
+        Ok(())
+    }
 }
 
 pub fn channel_kek_key(canister: &Principal, id: u32) -> ByteBuf {

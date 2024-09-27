@@ -55,6 +55,12 @@ type ChannelSetting = record {
   last_read : nat32;
   ecdh_pub : opt blob;
 };
+type ChannelTopupInput = record {
+  id : nat32;
+  canister : principal;
+  payer : principal;
+  amount : nat64;
+};
 type CreateChannelInput = record {
   dek : blob;
   managers : vec record { principal; ChannelECDHInput };
@@ -185,6 +191,7 @@ service : (opt ChainArgs) -> {
   register_username : (text, opt text) -> (Result_3);
   save_channel_kek : (ChannelKEKInput) -> (Result);
   search_username : (text) -> (Result_7) query;
+  topup_channel : (ChannelTopupInput) -> (Result_2);
   transfer_username : (principal) -> (Result);
   update_my_ecdh : (blob, blob) -> (Result);
   update_my_image : (text) -> (Result);

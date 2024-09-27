@@ -80,6 +80,7 @@ export const idlFactory = ({ IDL }) => {
     'follow' : IDL.Vec(IDL.Principal),
     'unfollow' : IDL.Vec(IDL.Principal),
   });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'admin_remove_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
@@ -98,6 +99,16 @@ export const idlFactory = ({ IDL }) => {
     'get_state' : IDL.Func([], [Result_3], ['query']),
     'update_profile' : IDL.Func([UpdateProfileInput], [Result_2], []),
     'update_profile_ecdh_pub' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
+    'validate2_admin_add_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_4],
+        [],
+      ),
+    'validate2_admin_remove_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_4],
+        [],
+      ),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result],

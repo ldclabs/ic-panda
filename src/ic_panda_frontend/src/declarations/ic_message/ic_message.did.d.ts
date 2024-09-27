@@ -76,6 +76,12 @@ export interface ChannelSetting {
   'last_read' : number,
   'ecdh_pub' : [] | [Uint8Array | number[]],
 }
+export interface ChannelTopupInput {
+  'id' : number,
+  'canister' : Principal,
+  'payer' : Principal,
+  'amount' : bigint,
+}
 export interface CreateChannelInput {
   'dek' : Uint8Array | number[],
   'managers' : Array<[Principal, ChannelECDHInput]>,
@@ -220,6 +226,7 @@ export interface _SERVICE {
   'register_username' : ActorMethod<[string, [] | [string]], Result_3>,
   'save_channel_kek' : ActorMethod<[ChannelKEKInput], Result>,
   'search_username' : ActorMethod<[string], Result_7>,
+  'topup_channel' : ActorMethod<[ChannelTopupInput], Result_2>,
   'transfer_username' : ActorMethod<[Principal], Result>,
   'update_my_ecdh' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
@@ -228,6 +235,13 @@ export interface _SERVICE {
   'update_my_image' : ActorMethod<[string], Result>,
   'update_my_kv' : ActorMethod<[UpdateKVInput], Result>,
   'update_my_name' : ActorMethod<[string], Result_3>,
+  'validate2_admin_add_canister' : ActorMethod<
+    [CanisterKind, Principal],
+    Result_8
+  >,
+  'validate2_admin_add_managers' : ActorMethod<[Array<Principal>], Result_8>,
+  'validate2_admin_collect_token' : ActorMethod<[Account, bigint], Result_8>,
+  'validate2_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_8>,
   'validate2_admin_update_price' : ActorMethod<[UpdatePriceInput], Result_8>,
   'validate_admin_add_canister' : ActorMethod<
     [CanisterKind, Principal],

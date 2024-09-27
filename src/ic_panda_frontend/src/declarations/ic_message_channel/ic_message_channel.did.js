@@ -73,6 +73,12 @@ export const idlFactory = ({ IDL }) => {
     'my_setting' : ChannelSetting,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ChannelInfo, 'Err' : IDL.Text });
+  const ChannelTopupInput = IDL.Record({
+    'id' : IDL.Nat32,
+    'canister' : IDL.Principal,
+    'payer' : IDL.Principal,
+    'amount' : IDL.Nat64,
+  });
   const ChannelBasicInfo = IDL.Record({
     'id' : IDL.Nat32,
     'gas' : IDL.Nat64,
@@ -183,6 +189,7 @@ export const idlFactory = ({ IDL }) => {
     'Err' : IDL.Text,
   });
   const Result_11 = IDL.Variant({ 'Ok' : ChannelSetting, 'Err' : IDL.Text });
+  const Result_12 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'add_message' : IDL.Func([AddMessageInput], [Result], []),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
@@ -192,6 +199,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_1],
         [],
       ),
+    'admin_topup_channel' : IDL.Func([ChannelTopupInput], [Result_2], []),
     'batch_get_channels' : IDL.Func(
         [IDL.Vec(IDL.Nat32)],
         [Result_3],
@@ -228,6 +236,16 @@ export const idlFactory = ({ IDL }) => {
     'update_manager' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
     'update_member' : IDL.Func([UpdateChannelMemberInput], [Result_10], []),
     'update_my_setting' : IDL.Func([UpdateMySettingInput], [Result_11], []),
+    'validate2_admin_add_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_12],
+        [],
+      ),
+    'validate2_admin_remove_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_12],
+        [],
+      ),
     'validate_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result_1],

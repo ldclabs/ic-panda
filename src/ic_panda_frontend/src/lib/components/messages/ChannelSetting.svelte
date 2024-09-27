@@ -30,6 +30,7 @@
   import { onMount } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ChannelEditModel from './ChannelEditModel.svelte'
+  import ChannelTopupModel from './ChannelTopupModel.svelte'
   import UserSelectModel from './UserSelectModel.svelte'
 
   export let myState: MyMessageState
@@ -65,6 +66,19 @@
               channelInfo = await myState.refreshChannel(channelInfo)
             }, toastStore).finally()
           }
+        }
+      }
+    })
+  }
+
+  function onClickTopupChannel() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ChannelTopupModel,
+        props: {
+          myState,
+          channel: channelInfo
         }
       }
     })
@@ -282,6 +296,14 @@
       <span class="text-sm font-normal text-gray/50">Gas Balance:</span>
       <span class="font-bold text-panda">{channelInfo.gas}</span>
     </div>
+    <button
+      type="button"
+      class="btn btn-sm hover:variant-soft-primary"
+      on:click={onClickTopupChannel}
+    >
+      <span class="*:size-4"><IconAdd /></span>
+      <span>Topup</span>
+    </button>
   </section>
   <section class="mt-4 space-y-2 px-4">
     <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
@@ -304,7 +326,7 @@
       {#if channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
-          class="variant-ringed btn btn-sm text-panda"
+          class="variant-filled-success btn btn-sm"
           on:click={onClickMyECDH}
           disabled={myECDHSubmitting}
           ><span>Key received, accept it</span></button
@@ -319,14 +341,14 @@
         >
         <button
           type="button"
-          class="variant-soft-warning btn btn-sm hidden"
+          class="variant-filled-warning btn btn-sm hidden"
           on:click={onClickMyECDH}
           disabled={myECDHSubmitting}><span>Request again</span></button
         >
       {:else}
         <button
           type="button"
-          class="variant-ringed btn btn-sm text-red-500"
+          class="variant-filled-error btn btn-sm"
           on:click={onClickMyECDH}
           disabled={myECDHSubmitting}
           ><span>No key to decrypt messages, make a request</span></button
@@ -338,14 +360,12 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
-      <div
-        class="input-group input-group-divider w-64 grid-cols-[1fr_80px] bg-gray/5"
-      >
+      <div class="input-group w-60 grid-cols-[1fr_80px] bg-gray/5">
         <input
           type="text"
-          class="h-8 !w-36 truncate border-gray/10 py-1 leading-8 invalid:input-warning hover:bg-white/90"
+          class="h-8 !w-44 truncate border-gray/10 py-1 leading-8 invalid:input-warning hover:bg-white/90"
           bind:value={leavingWord}
-          placeholder="Enter channel name"
+          placeholder="channel name"
         />
         <button
           type="button"

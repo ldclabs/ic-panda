@@ -58,6 +58,8 @@ export type Result_2 = { 'Ok' : ProfileInfo } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : StateInfo } |
   { 'Err' : string };
+export type Result_4 = { 'Ok' : string } |
+  { 'Err' : string };
 export interface StateInfo {
   'managers' : Array<Principal>,
   'profiles_total' : bigint,
@@ -90,6 +92,8 @@ export interface _SERVICE {
   'get_state' : ActorMethod<[], Result_3>,
   'update_profile' : ActorMethod<[UpdateProfileInput], Result_2>,
   'update_profile_ecdh_pub' : ActorMethod<[Uint8Array | number[]], Result>,
+  'validate2_admin_add_managers' : ActorMethod<[Array<Principal>], Result_4>,
+  'validate2_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_4>,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
 }

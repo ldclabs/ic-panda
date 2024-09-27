@@ -1,7 +1,7 @@
 use candid::Principal;
 use ic_cose_types::{cose::encrypt0::try_decode_encrypt0, validate_key, MILLISECONDS};
 use ic_message_types::{
-    channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
+    channel::{ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput},
     profile::{UpdateKVInput, UserInfo},
 };
 use serde_bytes::{ByteArray, ByteBuf};
@@ -92,6 +92,14 @@ async fn create_channel(input: CreateChannelInput) -> Result<ChannelInfo, String
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::create_channel(caller, now_ms, input).await
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn topup_channel(input: ChannelTopupInput) -> Result<ChannelInfo, String> {
+    input.validate()?;
+
+    let caller = ic_cdk::caller();
+    store::channel::topup_channel(caller, input).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

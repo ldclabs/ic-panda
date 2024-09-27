@@ -2,6 +2,7 @@ import {
   idlFactory,
   type ChannelInfo,
   type ChannelKEKInput,
+  type ChannelTopupInput,
   type CreateChannelInput,
   type StateInfo,
   type UpdateKVInput,
@@ -141,6 +142,11 @@ export class MessageCanisterAPI {
   async create_channel(input: CreateChannelInput): Promise<ChannelInfo> {
     const res = await this.actor.create_channel(input)
     return unwrapResult(res, 'call create_channel failed')
+  }
+
+  async topup_channel(input: ChannelTopupInput): Promise<ChannelInfo> {
+    const res = await this.actor.topup_channel(input)
+    return unwrapResult(res, 'call topup_channel failed')
   }
 
   async get_by_username(username: string): Promise<UserInfo> {

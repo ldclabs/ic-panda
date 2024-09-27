@@ -219,6 +219,8 @@ export interface _SERVICE {
   'state' : ActorMethod<[], Result_11>,
   'unregister_name' : ActorMethod<[NameInput], Result_12>,
   'update_name' : ActorMethod<[NameInput], Result_10>,
+  'validate2_admin_collect_icp' : ActorMethod<[bigint], Result_7>,
+  'validate2_admin_set_managers' : ActorMethod<[Array<Principal>], Result_7>,
   'validate_admin_collect_icp' : ActorMethod<[bigint], Result_1>,
   'validate_admin_set_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'whoami' : ActorMethod<[], Result_13>,

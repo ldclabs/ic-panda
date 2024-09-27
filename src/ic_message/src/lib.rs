@@ -2,7 +2,7 @@ use candid::{utils::ArgumentEncoder, Nat, Principal};
 use ic_cdk::api::management_canister::main::CanisterStatusResponse;
 use ic_cose_types::ANONYMOUS;
 use ic_message_types::{
-    channel::{ChannelInfo, ChannelKEKInput, CreateChannelInput},
+    channel::{ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput},
     profile::{UpdateKVInput, UserInfo},
 };
 use icrc_ledger_types::icrc3::{

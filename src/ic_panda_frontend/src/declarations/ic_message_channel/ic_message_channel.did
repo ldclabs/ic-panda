@@ -71,6 +71,12 @@ type ChannelSetting = record {
   last_read : nat32;
   ecdh_pub : opt blob;
 };
+type ChannelTopupInput = record {
+  id : nat32;
+  canister : principal;
+  payer : principal;
+  amount : nat64;
+};
 type CreateChannelInput = record {
   dek : blob;
   managers : vec record { principal; ChannelECDHInput };
@@ -110,6 +116,7 @@ type Result = variant { Ok : AddMessageOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
 type Result_10 = variant { Ok : record { nat64; opt Message }; Err : text };
 type Result_11 = variant { Ok : ChannelSetting; Err : text };
+type Result_12 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : ChannelInfo; Err : text };
 type Result_3 = variant { Ok : vec ChannelBasicInfo; Err : text };
 type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
@@ -151,6 +158,7 @@ service : (opt ChainArgs) -> {
   admin_add_managers : (vec principal) -> (Result_1);
   admin_create_channel : (CreateChannelInput) -> (Result_2);
   admin_remove_managers : (vec principal) -> (Result_1);
+  admin_topup_channel : (ChannelTopupInput) -> (Result_2);
   batch_get_channels : (vec nat32) -> (Result_3) query;
   delete_message : (DeleteMessageInput) -> (Result_1);
   get_canister_status : () -> (Result_4) query;
@@ -167,6 +175,8 @@ service : (opt ChainArgs) -> {
   update_manager : (UpdateChannelMemberInput) -> (Result_10);
   update_member : (UpdateChannelMemberInput) -> (Result_10);
   update_my_setting : (UpdateMySettingInput) -> (Result_11);
+  validate2_admin_add_managers : (vec principal) -> (Result_12);
+  validate2_admin_remove_managers : (vec principal) -> (Result_12);
   validate_admin_add_managers : (vec principal) -> (Result_1);
   validate_admin_remove_managers : (vec principal) -> (Result_1);
 }
