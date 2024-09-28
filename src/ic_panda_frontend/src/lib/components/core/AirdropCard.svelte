@@ -1,12 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import {
-    luckyPoolAPIAsync,
-    type AirdropState,
-    type LuckyPoolAPI,
-    type State
-  } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconAlarmWarning from '$lib/components/icons/IconAlarmWarning.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
@@ -16,20 +11,17 @@
   import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getModalStore, popup } from '@skeletonlabs/skeleton'
-  import { onMount } from 'svelte'
-  import { type Readable } from 'svelte/store'
   import AirdropModal from './AirdropModal.svelte'
   import LuckyTransferModal from './LuckyTransferModal.svelte'
 
-  let luckyPoolState: Readable<State | null>
-  let airdropState: Readable<AirdropState | null>
-  let luckyPoolAPI: LuckyPoolAPI
+  const modalStore = getModalStore()
+  const luckyPoolState = luckyPoolAPI.stateStore
+  const airdropState = luckyPoolAPI.airdropStateStore
+
   let totalBalance = 0n
   let claimableAmount = 0n
   let claimedAmount = 0n
   let luckyCode = ''
-
-  const modalStore = getModalStore()
 
   function claimNowHandler() {
     if (principal.isAnonymous()) {
@@ -53,30 +45,17 @@
     }
   }
 
-  onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-  })
-
   $: principal = $authStore.identity.getPrincipal()
   $: {
-    if (luckyPoolAPI) {
-      luckyPoolState = luckyPoolAPI.stateStore
-      airdropState = luckyPoolAPI.airdropStateStore
-      totalBalance = $luckyPoolState?.airdrop_balance || 0n
-      claimableAmount = $airdropState?.claimable || 0n
-      claimedAmount = $airdropState?.claimed || 0n
-      luckyCode = $airdropState?.lucky_code[0] || ''
-      if (luckyPoolAPI.principal.toString() != principal.toString()) {
-        luckyPoolAPIAsync().then((_luckyPoolAPI) => {
-          luckyPoolAPI = _luckyPoolAPI
-        })
-      }
+    totalBalance = $luckyPoolState?.airdrop_balance || 0n
+    claimableAmount = $airdropState?.claimable || 0n
+    claimedAmount = $airdropState?.claimed || 0n
+    luckyCode = $airdropState?.lucky_code[0] || ''
 
-      if (luckyCode && $page.url?.searchParams.get('ref')) {
-        const query = $page.url.searchParams
-        query.delete('ref')
-        goto(`?${query.toString()}`)
-      }
+    if (luckyCode && $page.url?.searchParams.get('ref')) {
+      const query = $page.url.searchParams
+      query.delete('ref')
+      goto(`?${query.toString()}`)
     }
   }
 </script>

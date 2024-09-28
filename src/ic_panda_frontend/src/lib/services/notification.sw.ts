@@ -16,30 +16,17 @@ const notifies = new Map<string, NotificationOptions>()
 export async function notifyd() {
   if (!('Notification' in globalThis)) return
 
-  let agent: MessageAgent | null = null
-  let refreshStateAt = 0
-
   console.log('Notification service started')
   while (true) {
     const identity =
       Notification.permission === 'granted' && (await loadIdentity())
     if (identity) {
-      const now = Date.now()
       await tryRun(async () => {
-        if (
-          !agent ||
-          agent.principal.compareTo(identity.getPrincipal()) !== 'eq' ||
-          now > refreshStateAt + 20 * 60 * 1000
-        ) {
-          agent = await MessageAgent.with(identity)
-          refreshStateAt = now
-        }
-        await handle(agent)
+        const mAgent = await MessageAgent.create()
+        await handle(mAgent)
       }).finally()
       await sleep(5 * 60 * 1000)
     } else {
-      // console.log('No identity')
-      await sleep(20 * 60 * 1000)
     }
   }
 }

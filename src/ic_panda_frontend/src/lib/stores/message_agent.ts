@@ -1,5 +1,9 @@
 import { CoseAPI } from '$lib/canisters/cose'
-import { MessageCanisterAPI, type UserInfo } from '$lib/canisters/message'
+import {
+  messageCanisterAPI,
+  type MessageCanisterAPI,
+  type UserInfo
+} from '$lib/canisters/message'
 import {
   ChannelAPI,
   type ChannelBasicInfo,
@@ -7,6 +11,7 @@ import {
   type Message
 } from '$lib/canisters/messagechannel'
 import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
+import { agent } from '$lib/stores/auth'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
 import type { Identity } from '@dfinity/agent'
@@ -70,23 +75,23 @@ export class MessageAgent extends EventTarget {
     )
   }
 
-  static async with(identity: Identity): Promise<MessageAgent> {
-    const api = await MessageCanisterAPI.with(identity)
-    const cli = new MessageAgent(identity, api)
-    if (api.myInfo) {
+  static async create(): Promise<MessageAgent> {
+    const cli = new MessageAgent()
+    await cli.api.refreshAllState()
+    if (cli.api.myInfo) {
       // save latest user info
-      await cli.setUser(api.myInfo)
+      await cli.setUser(cli.api.myInfo)
     }
     return cli
   }
 
-  private constructor(identity: Identity, api: MessageCanisterAPI) {
+  private constructor() {
     super()
 
-    this.identity = identity
-    this.principal = identity.getPrincipal()
+    this.identity = agent.id
+    this.principal = agent.id.getPrincipal()
     this.id = this.principal.toText()
-    this.api = api
+    this.api = messageCanisterAPI
     this._db = new KVStore('ICPanda_' + this.id, 1, [
       ['My'],
       ['Keys'],
@@ -125,7 +130,7 @@ export class MessageAgent extends EventTarget {
     return this._coseAPI
   }
 
-  async channelAPI(canister: Principal): Promise<ChannelAPI> {
+  channelAPI(canister: Principal): ChannelAPI {
     return this.api.channelAPI(canister)
   }
 
@@ -138,7 +143,6 @@ export class MessageAgent extends EventTarget {
       return
     }
 
-    mks = (await KVS.get<any[]>('Keys', `${this.id}:MK`)) || []
     if (!Array.isArray(mks)) {
       mks = [mks]
     }
@@ -280,10 +284,10 @@ export class MessageAgent extends EventTarget {
   async setUser(info: UserInfo): Promise<UserInfo> {
     const val = { ...info }
     if (!this._profileAPI) {
-      this._profileAPI = await this.api.profileAPI(info.profile_canister)
+      this._profileAPI = this.api.profileAPI(info.profile_canister)
     }
     if (!this._coseAPI && info.cose_canister[0]) {
-      this._coseAPI = await this.api.coseAPI(info.cose_canister[0])
+      this._coseAPI = this.api.coseAPI(info.cose_canister[0])
     }
     await this._db.set<UserInfo>('My', val, 'User')
     this._user.set(val)
@@ -427,7 +431,7 @@ export class MessageAgent extends EventTarget {
     await this.setLocal(MessageAgent.KEY_REFRESH_MY_CHANNELS_AT, Date.now())
     await Promise.all(
       canisters.map(async (canister) => {
-        const api = await this.api.channelAPI(canister)
+        const api = this.api.channelAPI(canister)
         const ids = await api.my_channel_ids()
         const canisterId = canister.toUint8Array()
 
@@ -475,7 +479,7 @@ export class MessageAgent extends EventTarget {
     id: number,
     updated_at: bigint = 0n
   ): Promise<ChannelInfo & SyncAt> {
-    const api = await this.api.channelAPI(canister)
+    const api = this.api.channelAPI(canister)
     const channel = await api.get_channel_if_update(id, updated_at)
     if (!channel) {
       throw new Error('Channel not found')
@@ -617,7 +621,7 @@ export class MessageAgent extends EventTarget {
     start: number,
     end: number = 0
   ): Promise<CachedMessage[]> {
-    const api = await this.api.channelAPI(canister)
+    const api = this.api.channelAPI(canister)
     const items = (await api.list_messages(channel, start, end)).map((msg) => {
       return { ...msg, canister, channel }
     })

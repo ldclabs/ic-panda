@@ -4,10 +4,7 @@
   import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
   import { toastRun } from '$lib/stores/toast'
-  import {
-    myMessageStateAsync,
-    type MyMessageState
-  } from '$src/lib/stores/message'
+  import { type MyMessageState } from '$src/lib/stores/message'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
@@ -28,22 +25,7 @@
   function getStartedHandler() {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
-        const res = await signIn({})
-        myState = await myMessageStateAsync()
-        myInfo = myState.agent.subscribeUser()
-        await tick()
-
-        if (!$myInfo && res.success == 'ok') {
-          modalStore.trigger({
-            type: 'component',
-            component: {
-              ref: UserRegisterModel,
-              props: {
-                myState
-              }
-            }
-          })
-        }
+        signIn({})
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -67,7 +49,7 @@
       const ids = myState.api.state?.channel_canisters || []
       const states = await Promise.all(
         ids.map(async (id) => {
-          const api = await myState!.api.channelAPI(id)
+          const api = myState.api.channelAPI(id)
           return await api.get_state()
         })
       )

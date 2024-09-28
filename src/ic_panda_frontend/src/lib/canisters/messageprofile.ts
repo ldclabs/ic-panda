@@ -4,8 +4,8 @@ import {
   type UpdateProfileInput,
   type _SERVICE
 } from '$declarations/ic_message_profile/ic_message_profile.did.js'
+import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
-import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
@@ -16,30 +16,17 @@ export {
 } from '$declarations/ic_message_profile/ic_message_profile.did.js'
 
 export class ProfileAPI {
-  readonly principal: Principal
   readonly canisterId: Principal
   private actor: _SERVICE
   private $myProfile: ProfileInfo | null = null
   private _myProfile = writable<ProfileInfo | null>(null)
 
-  static async with(
-    identity: Identity,
-    canister: Principal
-  ): Promise<ProfileAPI> {
-    const actor = await createActor<_SERVICE>({
-      canisterId: canister,
-      idlFactory: idlFactory,
-      identity
-    })
-
-    const api = new ProfileAPI(identity.getPrincipal(), canister, actor)
-    return api
-  }
-
-  constructor(principal: Principal, canister: Principal, actor: _SERVICE) {
-    this.principal = principal
+  constructor(canister: Principal) {
     this.canisterId = canister
-    this.actor = actor
+    this.actor = createActor<_SERVICE>({
+      canisterId: canister,
+      idlFactory: idlFactory
+    })
   }
 
   get myProfileStore(): Readable<ProfileInfo | null> {
@@ -51,7 +38,7 @@ export class ProfileAPI {
   }
 
   async refreshMyProfile(): Promise<void> {
-    if (this.principal.isAnonymous()) {
+    if (agent.id.getPrincipal().isAnonymous()) {
       return
     }
 

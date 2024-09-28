@@ -2,12 +2,9 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type AirdropState,
+    luckyPoolAPI,
     type ClaimPrizeOutput,
-    type PrizeOutput,
-    type State
+    type PrizeOutput
   } from '$lib/canisters/luckypool'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -24,7 +21,6 @@
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
-  import { type Readable } from 'svelte/store'
   import PrizeClaimed from './PrizeClaimed.svelte'
   import PrizeShow from './PrizeShow.svelte'
 
@@ -32,6 +28,9 @@
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
   export let prizeCode: string = ''
+
+  const airdropState = luckyPoolAPI.airdropStateStore
+  const luckyPoolState = luckyPoolAPI.stateStore
 
   if (prizeCode.startsWith('http')) {
     const url = new URL(prizeCode)
@@ -47,9 +46,6 @@
   let validating = decodePrize(cryptogram) != null
   let canClaim = true
   let meetRequirements = 3
-  let luckyPoolAPI: LuckyPoolAPI
-  let airdropState: Readable<AirdropState | null>
-  let luckyPoolState: Readable<State | null>
   let prizeInfo: PrizeOutput | null = !validating
     ? null
     : {
@@ -103,7 +99,7 @@
         const prize = decodePrize(cryptogram)
         const token = await challengeToken(
           {
-            principal: luckyPoolAPI.principal.toUint8Array(),
+            principal: principal.toUint8Array(),
             message: encodeCBOR(prize)
           },
           'claim_prize'
@@ -143,8 +139,6 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-    luckyPoolState = luckyPoolAPI.stateStore
     checkValidity()
 
     if (validating) {
@@ -163,34 +157,21 @@
 
   $: principal = $authStore.identity.getPrincipal()
   $: {
-    if (luckyPoolAPI) {
-      airdropState = luckyPoolAPI.airdropStateStore
-      let _meetRequirements = 0
-      if ($airdropState?.lucky_code[0]) {
-        _meetRequirements = _meetRequirements | 1
-      }
-      if ($airdropState?.claimable && $airdropState?.claimable >= 50n) {
-        _meetRequirements = _meetRequirements | 2
-        meetRequirements = _meetRequirements
-      }
+    let _meetRequirements = 0
+    if ($airdropState?.lucky_code[0]) {
+      _meetRequirements = _meetRequirements | 1
+    }
+    if ($airdropState?.claimable && $airdropState?.claimable >= 50n) {
+      _meetRequirements = _meetRequirements | 2
+      meetRequirements = _meetRequirements
+    }
 
-      if (luckyPoolAPI?.principal.toString() != principal.toString()) {
-        luckyPoolAPIAsync().then((_luckyPoolAPI) => {
-          meetRequirements = 3
-          luckyPoolAPI = _luckyPoolAPI
-        })
-      }
-
-      if (
-        validating &&
-        (prizeInfo == null || prizeInfo.code[0] != cryptogram)
-      ) {
-        luckyPoolAPI.prizeInfo(cryptogram).then((info) => {
-          prizeInfo = info
-          canClaim =
-            prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
-        })
-      }
+    if (validating && (prizeInfo == null || prizeInfo.code[0] != cryptogram)) {
+      luckyPoolAPI.prizeInfo(cryptogram).then((info) => {
+        prizeInfo = info
+        canClaim =
+          prizeInfo.filled < prizeInfo.quantity && prizeInfo.ended_at == 0n
+      })
     }
   }
 </script>

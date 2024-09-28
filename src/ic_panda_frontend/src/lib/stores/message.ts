@@ -13,6 +13,7 @@ import {
 import { type ProfileInfo } from '$lib/canisters/messageprofile'
 import { MASTER_KEY_ID } from '$lib/constants'
 import { unwrapOption } from '$lib/types/result'
+import { agent } from '$lib/utils/auth'
 import {
   AesGcmKey,
   compareBytes,
@@ -29,10 +30,8 @@ import {
   randomBytes,
   utf8ToBytes
 } from '$lib/utils/crypto'
-import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { derived, readable, type Readable } from 'svelte/store'
-import { asyncFactory } from './auth'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
 import { MessageAgent, type SyncAt } from './message_agent'
 
@@ -124,9 +123,20 @@ export class MyMessageState {
   private _ek: ECDHKey | null = null
   private _channelDEKs = new Map<String, AesGcmKey>()
 
-  static async with(identity: Identity): Promise<MyMessageState> {
-    const agent = await MessageAgent.with(identity)
-    const self = new MyMessageState(agent)
+  private static _instance: MyMessageState | null = null
+
+  static async load(): Promise<MyMessageState> {
+    if (
+      MyMessageState._instance &&
+      MyMessageState._instance.principal.compareTo(agent.id.getPrincipal()) ===
+        'eq'
+    ) {
+      return MyMessageState._instance
+    }
+
+    const mAgent = await MessageAgent.create()
+    const self = new MyMessageState(mAgent)
+    MyMessageState._instance = self
     await self.init()
     return self
   }
@@ -456,7 +466,7 @@ export class MyMessageState {
     }
 
     const ek = await this.mustStaticECDHKey()
-    const api = await this.api.channelAPI(info.canister)
+    const api = this.api.channelAPI(info.canister)
     const setting = await api.update_my_setting({
       id: info.id,
       ecdh: [{ ecdh_pub: [ek.getPublicKey()], ecdh_remote: [] }],
@@ -496,7 +506,7 @@ export class MyMessageState {
     const encryptedKEK = await coseA256GCMEncrypt0(mk, payload, aad)
     await this.saveChannelKEK(info.canister, info.id, encryptedKEK)
 
-    const api = await this.api.channelAPI(info.canister)
+    const api = this.api.channelAPI(info.canister)
     const setting = await api.update_my_setting({
       id: info.id,
       ecdh: [{ ecdh_pub: [], ecdh_remote: [] }],
@@ -517,7 +527,7 @@ export class MyMessageState {
     const kek = await this.loadChannelKEK(info.canister, info.id)
     const aad = new Uint8Array()
     const payload = await coseA256GCMDecrypt0(mk, kek, aad)
-    const api = await this.api.channelAPI(info.canister)
+    const api = this.api.channelAPI(info.canister)
     for (const [member, [pub, remote]] of info.ecdh_request) {
       if (remote.length > 0) {
         // exchange already done
@@ -554,7 +564,7 @@ export class MyMessageState {
     const kek = await this.loadChannelKEK(info.canister, info.id)
     const aad = new Uint8Array()
     const payload = await coseA256GCMDecrypt0(mk, kek, aad)
-    const api = await this.api.channelAPI(info.canister)
+    const api = this.api.channelAPI(info.canister)
     for (const [member, pub] of members) {
       const input = {
         id: info.id,
@@ -846,7 +856,7 @@ export class MyMessageState {
     channelId: number,
     messageId: number
   ): Promise<void> {
-    const api = await this.api.channelAPI(canister)
+    const api = this.api.channelAPI(canister)
     await api.delete_message(channelId, messageId)
     await this.agent.updateDeletedMessage(
       canister.toUint8Array(),
@@ -864,7 +874,7 @@ export class MyMessageState {
     channel: number,
     lastRead: number
   ): Promise<void> {
-    const api = await this.api.channelAPI(canister)
+    const api = this.api.channelAPI(canister)
     const setting = await api.update_my_setting({
       id: channel,
       ecdh: [],
@@ -1228,13 +1238,6 @@ export class MasterKey {
     }
   }
 }
-
-const myMessageStateStore = asyncFactory((identity) =>
-  MyMessageState.with(identity)
-)
-
-export const myMessageStateAsync = async () =>
-  (await myMessageStateStore).async()
 
 async function exchangeSecret(
   remotePub: Uint8Array,

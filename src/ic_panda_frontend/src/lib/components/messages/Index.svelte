@@ -1,11 +1,7 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
-  import { authStore } from '$lib/stores/auth'
   import { toastRun } from '$lib/stores/toast'
-  import {
-    myMessageStateAsync,
-    type MyMessageState
-  } from '$src/lib/stores/message'
+  import { MyMessageState } from '$src/lib/stores/message'
   import { sleep } from '$src/lib/utils/helper'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
@@ -22,18 +18,18 @@
   let myInfo_: Readable<UserInfo>
 
   async function initState() {
-    myState = await myMessageStateAsync()
-    myInfo = myState.agent.subscribeUser()
-  }
+    myState = await MyMessageState.load()
+    if (myState.principal.isAnonymous()) {
+      return
+    }
 
-  async function refreshState() {
+    myInfo = myState.agent.subscribeUser()
     if (myState.isReady2()) {
       if (!myInfo_) {
         myInfo_ = myInfo as Readable<UserInfo>
       }
       return
     }
-
     const iv = await myState.myIV()
     const mk = await myState.masterKey(iv)
     myInfo_ = myInfo as Readable<UserInfo>
@@ -59,18 +55,6 @@
     const { abort } = toastRun(initState, toastStore)
     return abort
   })
-
-  $: {
-    if (myState) {
-      if (
-        $authStore.identity.getPrincipal().compareTo(myState.principal) != 'eq'
-      ) {
-        toastRun(initState, toastStore)
-      } else if ($myInfo) {
-        toastRun(refreshState, toastStore)
-      }
-    }
-  }
 </script>
 
 {#if myInfo_}

@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type AirdropState
-  } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI, type AirdropState } from '$lib/canisters/luckypool'
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
@@ -18,8 +14,7 @@
     getModalStore,
     getToastStore
   } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
-  import { type Readable } from 'svelte/store'
+  import { type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -28,8 +23,7 @@
   let submitting = false
   let validating = false
   let showTips = true
-  let luckyPoolAPI: LuckyPoolAPI
-  let airdropState: Readable<AirdropState | null>
+  let airdropState = luckyPoolAPI.airdropStateStore
   let inputAmount = 0
   let claimableAmount = 0n
   let result: AirdropState
@@ -95,16 +89,7 @@
     })
   }
 
-  onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-  })
-
-  $: {
-    if (luckyPoolAPI) {
-      airdropState = luckyPoolAPI.airdropStateStore
-      claimableAmount = $airdropState?.claimable || 0n
-    }
-  }
+  $: claimableAmount = $airdropState?.claimable || 0n
 </script>
 
 <ModalCard {parent}>

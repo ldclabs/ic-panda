@@ -3,24 +3,21 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import {
-    myMessageStateAsync,
-    type MyMessageState
-  } from '$src/lib/stores/message'
+  import { type MyMessageState } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
+  import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
-  export let myInfo: Readable<UserInfo>
+  export let myState: MyMessageState
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
+  const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
 
-  let myState: MyMessageState
   let validating = false
   let submitting = false
 
@@ -69,10 +66,6 @@
 
     validating = form.checkValidity()
   }
-
-  onMount(async () => {
-    myState = await myMessageStateAsync()
-  })
 </script>
 
 <ModalCard {parent}>

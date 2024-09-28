@@ -17,7 +17,6 @@
   import { md } from '$lib/utils/markdown'
   import { isNotificationSupported } from '$lib/utils/window'
   import {
-    myMessageStateAsync,
     toDisplayUserInfo,
     type DisplayUserInfo,
     type MyMessageState
@@ -38,6 +37,7 @@
   import UserRegisterModel from './UserRegisterModel.svelte'
 
   export let userId: Principal | string
+  export let myState: MyMessageState
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
   const PandaID = Principal.fromText(
@@ -48,7 +48,6 @@
   const modalStore = getModalStore()
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
 
-  let myState: MyMessageState
   let userInfo: Readable<UserInfo & ProfileInfo>
   let myInfo: Readable<(UserInfo & ProfileInfo) | null>
 
@@ -114,10 +113,8 @@
   let followingSubmitting = ''
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
-      if (!myState || myState.principal.isAnonymous()) {
-        await signIn({})
-        myState = await myMessageStateAsync()
-        myInfo = await myState.agent.subscribeProfile()
+      if (myState.principal.isAnonymous()) {
+        signIn({})
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -156,9 +153,7 @@
 
   async function onCreateChannelHandler(id: Principal) {
     if (!myState || myState.principal.isAnonymous()) {
-      await signIn({})
-      myState = await myMessageStateAsync()
-      myInfo = await myState.agent.subscribeProfile()
+      signIn({})
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
@@ -185,6 +180,7 @@
         component: {
           ref: ChannelCreateModel,
           props: {
+            myState,
             channelName: `${user.name}, ${$myInfo!.name}`,
             add_managers: [
               [user.id, unwrapOption(user.ecdh_pub as [] | [Uint8Array])]
@@ -227,7 +223,6 @@
 
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
-      myState = await myMessageStateAsync()
       myInfo = await myState.agent.subscribeProfile()
 
       if (
@@ -246,6 +241,7 @@
       }
       return $userInfo
     }, toastStore)
+
     onfinally(async (info) => {
       if (!info) {
         setTimeout(() => goto('/_/messages'), 2000)

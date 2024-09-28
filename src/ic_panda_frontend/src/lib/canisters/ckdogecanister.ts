@@ -37,10 +37,9 @@ export class CKDogeCanisterAPI {
   private _state = writable<State | null>(null)
 
   static async with(identity: Identity): Promise<CKDogeCanisterAPI> {
-    const actor = await createActor<_SERVICE>({
+    const actor = createActor<_SERVICE>({
       canisterId: CKDOGE_CHAIN_CANISTER_ID,
-      idlFactory: idlFactory,
-      identity
+      idlFactory: idlFactory
     })
 
     const api = new CKDogeCanisterAPI(identity.getPrincipal(), actor)

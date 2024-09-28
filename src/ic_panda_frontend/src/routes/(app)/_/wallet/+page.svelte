@@ -1,6 +1,9 @@
 <script lang="ts">
   import Cards from '$lib/components/wallet/Cards.svelte'
+  import { authStore } from '$lib/stores/auth'
   import Saos from 'saos'
+
+  $: principal = $authStore.identity.getPrincipal()
 </script>
 
 <div
@@ -14,7 +17,9 @@
         once={true}
         animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
       >
-        <Cards />
+        {#key principal.toText()}
+          <Cards />
+        {/key}
       </Saos>
     </div>
   </div>

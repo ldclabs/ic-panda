@@ -10,7 +10,7 @@ import {
   type _SERVICE
 } from '$declarations/ic_message/ic_message.did.js'
 import { MESSAGE_CANISTER_ID } from '$lib/constants'
-import { asyncFactory } from '$lib/stores/auth'
+import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
@@ -29,35 +29,30 @@ export {
 } from '$declarations/ic_message/ic_message.did.js'
 
 export class MessageCanisterAPI {
-  readonly identity: Identity
-  readonly principal: Principal
   readonly canisterId: Principal
   private actor: _SERVICE
   private $state: StateInfo | null = null
   private $myInfo: UserInfo | null = null
   private _state = writable<StateInfo | null>(null)
   private _myInfo = writable<UserInfo | null>(null)
-  private _profileAPIs = new Map<string, Promise<ProfileAPI>>()
-  private _channelAPIs = new Map<string, Promise<ChannelAPI>>()
-  private _coseAPIs = new Map<string, Promise<CoseAPI>>()
+  private _profileAPIs = new Map<string, ProfileAPI>()
+  private _channelAPIs = new Map<string, ChannelAPI>()
+  private _coseAPIs = new Map<string, CoseAPI>()
 
-  static async with(identity: Identity): Promise<MessageCanisterAPI> {
-    const actor = await createActor<_SERVICE>({
+  constructor() {
+    this.canisterId = Principal.fromText(MESSAGE_CANISTER_ID)
+    this.actor = createActor<_SERVICE>({
       canisterId: MESSAGE_CANISTER_ID,
-      idlFactory: idlFactory,
-      identity
+      idlFactory: idlFactory
     })
-
-    const api = new MessageCanisterAPI(identity, actor)
-    await Promise.all([api.refreshState(), api.refreshMyInfo()])
-    return api
   }
 
-  constructor(identity: Identity, actor: _SERVICE) {
-    this.identity = identity
-    this.principal = identity.getPrincipal()
-    this.canisterId = Principal.fromText(MESSAGE_CANISTER_ID)
-    this.actor = actor
+  get identity(): Identity {
+    return agent.id
+  }
+
+  get principal(): Principal {
+    return agent.id.getPrincipal()
   }
 
   get stateStore(): Readable<StateInfo | null> {
@@ -76,31 +71,35 @@ export class MessageCanisterAPI {
     return this.$myInfo
   }
 
-  async profileAPI(canister: Principal): Promise<ProfileAPI> {
+  profileAPI(canister: Principal): ProfileAPI {
     const key = canister.toText()
     if (!this._profileAPIs.has(key)) {
-      this._profileAPIs.set(key, ProfileAPI.with(this.identity, canister))
+      this._profileAPIs.set(key, new ProfileAPI(canister))
     }
 
     return this._profileAPIs.get(key)!
   }
 
-  async channelAPI(canister: Principal): Promise<ChannelAPI> {
+  channelAPI(canister: Principal): ChannelAPI {
     const key = canister.toText()
     if (!this._channelAPIs.has(key)) {
-      this._channelAPIs.set(key, ChannelAPI.with(this.identity, canister))
+      this._channelAPIs.set(key, new ChannelAPI(canister))
     }
 
     return this._channelAPIs.get(key)!
   }
 
-  async coseAPI(canister: Principal): Promise<CoseAPI> {
+  coseAPI(canister: Principal): CoseAPI {
     const key = canister.toText()
     if (!this._coseAPIs.has(key)) {
-      this._coseAPIs.set(key, CoseAPI.with(this.identity, canister))
+      this._coseAPIs.set(key, new CoseAPI(canister))
     }
 
     return this._coseAPIs.get(key)!
+  }
+
+  async refreshAllState(): Promise<void> {
+    await Promise.all([this.refreshState(), this.refreshMyInfo()])
   }
 
   async refreshState(): Promise<void> {
@@ -209,9 +208,4 @@ export class MessageCanisterAPI {
   }
 }
 
-const messageCanisterAPIStore = asyncFactory((identity) =>
-  MessageCanisterAPI.with(identity)
-)
-
-export const messageCanisterAPIAsync = async () =>
-  (await messageCanisterAPIStore).async()
+export const messageCanisterAPI = new MessageCanisterAPI()

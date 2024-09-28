@@ -81,7 +81,7 @@
               ><IconArrowLeftSLine /></button
             >
           </div>
-          <ProfileDetail userId={myState.id} />
+          <ProfileDetail userId={myState.id} {myState} />
         {/if}
       {/key}
     </div>

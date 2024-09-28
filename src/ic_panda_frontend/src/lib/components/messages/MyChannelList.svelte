@@ -32,7 +32,7 @@
   function onCreateChannelHandler() {
     modalStore.trigger({
       type: 'component',
-      component: { ref: ChannelCreateModel }
+      component: { ref: ChannelCreateModel, props: { myState } }
     })
   }
 

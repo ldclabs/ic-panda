@@ -1,14 +1,7 @@
 <script lang="ts">
-  import { ICPLedgerAPI, icpLedgerAPIAsync } from '$lib/canisters/icpledger'
-  import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type NameOutput
-  } from '$lib/canisters/luckypool'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { icpLedgerAPI } from '$lib/canisters/icpledger'
+  import { luckyPoolAPI, type NameOutput } from '$lib/canisters/luckypool'
+  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
   import IconLogout from '$lib/components/icons/IconLogout.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
@@ -44,10 +37,6 @@
   let availableICPBalance = 0n
   let availablePandaBalance = 0n
   let nameState: Readable<NameOutput | null>
-
-  let icpLedgerAPI: ICPLedgerAPI
-  let tokenLedgerAPI: TokenLedgerAPI
-  let luckyPoolAPI: LuckyPoolAPI
 
   const modalStore = getModalStore()
 
@@ -93,13 +82,10 @@
   }
 
   onMount(async () => {
-    icpLedgerAPI = await icpLedgerAPIAsync()
     icpBalance = icpLedgerAPI.balance()
 
-    tokenLedgerAPI = await tokenLedgerAPIAsync()
     pandaBalance = tokenLedgerAPI.balance()
 
-    luckyPoolAPI = await luckyPoolAPIAsync()
     await luckyPoolAPI.refreshNameState()
     nameState = luckyPoolAPI.nameStateStore
 

@@ -1,10 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores'
-  import {
-    luckyPoolAPIAsync,
-    type LuckyPoolAPI,
-    type State
-  } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconGoldPanda2 from '$lib/components/icons/IconGoldPanda2.svelte'
   import IconHistory from '$lib/components/icons/IconHistory.svelte'
   import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
@@ -14,16 +10,14 @@
   import { decodePrize } from '$lib/types/prize'
   import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
-  import { type Readable } from 'svelte/store'
   import PrizeCreateModal from './PrizeCreateModal.svelte'
   import PrizeHistoryModal from './PrizeHistoryModal.svelte'
   import PrizeModal from './PrizeModal.svelte'
 
-  let stateStore: Readable<State | null>
-  let luckyPoolAPI: LuckyPoolAPI
-  let prizeSubsidy: [] | [bigint, number, number, number, number, number] = []
-
+  const stateStore = luckyPoolAPI.stateStore
   const modalStore = getModalStore()
+
+  let prizeSubsidy: [] | [bigint, number, number, number, number, number] = []
 
   function claimPrizeHandler() {
     if (principal.isAnonymous()) {
@@ -88,8 +82,6 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-
     if (decodePrize($page.url?.searchParams.get('prize') || '')) {
       modalStore.close() // close previous modal
       modalStore.trigger({
@@ -100,18 +92,7 @@
   })
 
   $: principal = $authStore.identity.getPrincipal()
-  $: {
-    if (luckyPoolAPI) {
-      stateStore = luckyPoolAPI.stateStore
-      prizeSubsidy = $stateStore?.prize_subsidy[0] || []
-
-      if (luckyPoolAPI?.principal.toString() != principal.toString()) {
-        luckyPoolAPIAsync().then((_luckyPoolAPI) => {
-          luckyPoolAPI = _luckyPoolAPI
-        })
-      }
-    }
-  }
+  $: prizeSubsidy = $stateStore?.prize_subsidy[0] || []
 </script>
 
 <div class="rounded-2xl bg-gradient-to-r from-amber-50 to-red-50">

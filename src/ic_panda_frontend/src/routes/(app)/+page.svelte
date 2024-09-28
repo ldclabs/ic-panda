@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LuckyPoolAPI, luckyPoolAPIAsync } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import AirdropCard from '$lib/components/core/AirdropCard.svelte'
   import LuckyPoolChart from '$lib/components/core/LuckyPoolChart.svelte'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
@@ -9,18 +9,17 @@
   import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
+  import { authStore } from '$lib/stores/auth'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
 
-  let luckyPoolAPI: LuckyPoolAPI
-
   onMount(async () => {
-    await new Promise((res) => setTimeout(res, 3000))
+    await luckyPoolAPI.refreshAllState()
 
-    luckyPoolAPI = await luckyPoolAPIAsync()
+    await new Promise((res) => setTimeout(res, 3000))
     const notifications = await luckyPoolAPI.notifications()
 
     for (const n of notifications) {
@@ -33,6 +32,8 @@
       })
     }
   })
+
+  $: principal = $authStore.identity.getPrincipal()
 </script>
 
 <div
@@ -119,35 +120,37 @@
     </a>
   </div>
 
-  <div
-    class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
-  >
-    <h2 id="luckypool" class="h2 font-extrabold uppercase">Lucky Pool</h2>
-    <div class="mt-8 w-full max-w-[820px]">
-      <Saos
-        once={true}
-        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-      >
-        <AirdropCard />
-      </Saos>
+  {#key principal.toText()}
+    <div
+      class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
+    >
+      <h2 id="luckypool" class="h2 font-extrabold uppercase">Lucky Pool</h2>
+      <div class="mt-8 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <AirdropCard />
+        </Saos>
+      </div>
+      <div class="mt-6 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <PrizeCard />
+        </Saos>
+      </div>
+      <div class="mt-6 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <LuckyPoolChart />
+        </Saos>
+      </div>
     </div>
-    <div class="mt-6 w-full max-w-[820px]">
-      <Saos
-        once={true}
-        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-      >
-        <PrizeCard />
-      </Saos>
-    </div>
-    <div class="mt-6 w-full max-w-[820px]">
-      <Saos
-        once={true}
-        animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-      >
-        <LuckyPoolChart />
-      </Saos>
-    </div>
-  </div>
+  {/key}
 
   <div
     class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"

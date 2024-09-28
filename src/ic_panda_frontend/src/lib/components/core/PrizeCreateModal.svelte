@@ -1,15 +1,11 @@
 <script lang="ts">
   import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
+    luckyPoolAPI,
     type AddPrizeInput,
     type NameOutput,
     type PrizeOutput
   } from '$lib/canisters/luckypool'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
@@ -49,8 +45,6 @@
 
   let submitting = false
   let validating = false
-  let luckyPoolAPI: LuckyPoolAPI
-  let tokenLedgerAPI: TokenLedgerAPI
   let nameState: Readable<NameOutput | null>
   let formThis: HTMLFormElement
 
@@ -264,8 +258,6 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-    tokenLedgerAPI = await tokenLedgerAPIAsync()
     pandaBalance = await tokenLedgerAPI.balance()
 
     await luckyPoolAPI.refreshNameState()

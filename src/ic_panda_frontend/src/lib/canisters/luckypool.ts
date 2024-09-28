@@ -18,10 +18,8 @@ import {
   type State as _State
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
-import { asyncFactory } from '$lib/stores/auth'
+import { agent } from '$lib/stores/auth'
 import { unwrapOptionResult, unwrapResult } from '$lib/types/result'
-import type { Identity } from '@dfinity/agent'
-import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 
@@ -36,27 +34,16 @@ export type PrizeClaimLog = _PrizeClaimLog
 export type ClaimPrizeOutput = _ClaimPrizeOutput
 
 export class LuckyPoolAPI {
-  readonly principal: Principal
   private actor: _SERVICE
   private _state = writable<State | null>(null)
   private _airdropState = writable<AirdropState | null>(null)
   private _nameState = writable<NameOutput | null>(null)
 
-  static async with(identity: Identity): Promise<LuckyPoolAPI> {
-    const actor = await createActor<_SERVICE>({
+  constructor() {
+    this.actor = createActor<_SERVICE>({
       canisterId: LUCKYPOOL_CANISTER_ID,
-      idlFactory: idlFactory,
-      identity
+      idlFactory: idlFactory
     })
-
-    const api = new LuckyPoolAPI(identity.getPrincipal(), actor)
-    await api.refreshAllState()
-    return api
-  }
-
-  constructor(principal: Principal, actor: _SERVICE) {
-    this.principal = principal
-    this.actor = actor
   }
 
   get stateStore(): Readable<State | null> {
@@ -115,7 +102,7 @@ export class LuckyPoolAPI {
   }
 
   async prizeInfo(code: string): Promise<PrizeOutput> {
-    const res = await this.actor.prize_info(code, [this.principal])
+    const res = await this.actor.prize_info(code, [agent.id.getPrincipal()])
     return unwrapResult(res, 'call prize_info failed')
   }
 
@@ -124,7 +111,7 @@ export class LuckyPoolAPI {
     take: bigint
   ): Promise<Array<PrizeClaimLog>> {
     const res = await this.actor.prize_claim_logs(
-      this.principal,
+      agent.id.getPrincipal(),
       prev > 0n ? [prev] : [],
       take > 0n ? [take] : []
     )
@@ -133,7 +120,7 @@ export class LuckyPoolAPI {
 
   async prizeIssueLogs(prev_ts: bigint): Promise<Array<PrizeOutput>> {
     const res = await this.actor.prize_issue_logs(
-      this.principal,
+      agent.id.getPrincipal(),
       prev_ts > 0n ? [prev_ts] : []
     )
     return res
@@ -185,8 +172,4 @@ export class LuckyPoolAPI {
   }
 }
 
-const luckyPoolAPIStore = asyncFactory((identity) =>
-  LuckyPoolAPI.with(identity)
-)
-
-export const luckyPoolAPIAsync = async () => (await luckyPoolAPIStore).async()
+export const luckyPoolAPI = new LuckyPoolAPI()

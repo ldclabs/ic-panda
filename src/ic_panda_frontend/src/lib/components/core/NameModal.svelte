@@ -1,13 +1,6 @@
 <script lang="ts">
-  import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type NameOutput
-  } from '$lib/canisters/luckypool'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { luckyPoolAPI, type NameOutput } from '$lib/canisters/luckypool'
+  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
@@ -18,7 +11,7 @@
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
+  import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   // Props
@@ -41,9 +34,6 @@
   let nameErr = ''
   let result: NameOutput | null = null
   let refund: bigint | null = null
-
-  let luckyPoolAPI: LuckyPoolAPI
-  let tokenLedgerAPI: TokenLedgerAPI
 
   function checkName() {
     nameErr = ''
@@ -165,11 +155,6 @@
     input?.setCustomValidity(checkName())
     validating = form.checkValidity()
   }
-
-  onMount(async () => {
-    tokenLedgerAPI = await tokenLedgerAPIAsync()
-    luckyPoolAPI = await luckyPoolAPIAsync()
-  })
 </script>
 
 <ModalCard {parent}>

@@ -7,7 +7,6 @@ import {
   type _SERVICE
 } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
 import { unwrapResult } from '$lib/types/result'
-import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
@@ -19,25 +18,15 @@ export {
 } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
 
 export class CoseAPI {
-  readonly principal: Principal
   readonly canisterId: Principal
   private actor: _SERVICE
 
-  static async with(identity: Identity, canister: Principal): Promise<CoseAPI> {
-    const actor = await createActor<_SERVICE>({
-      canisterId: canister,
-      idlFactory: idlFactory,
-      identity
-    })
-
-    const api = new CoseAPI(identity.getPrincipal(), canister, actor)
-    return api
-  }
-
-  constructor(principal: Principal, canister: Principal, actor: _SERVICE) {
-    this.principal = principal
+  constructor(canister: Principal) {
     this.canisterId = canister
-    this.actor = actor
+    this.actor = createActor<_SERVICE>({
+      canisterId: canister,
+      idlFactory: idlFactory
+    })
   }
 
   async ecdh_cose_encrypted_key(

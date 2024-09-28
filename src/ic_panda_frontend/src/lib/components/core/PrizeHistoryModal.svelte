@@ -1,7 +1,6 @@
 <script lang="ts">
   import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
+    luckyPoolAPI,
     type PrizeClaimLog,
     type PrizeOutput
   } from '$lib/canisters/luckypool'
@@ -21,7 +20,6 @@
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
 
-  let luckyPoolAPI: LuckyPoolAPI
   let tabSet: number = 0
   let prizeClaimLogsRes: Promise<Array<PrizeClaimLog>>
   let prizeIssueLogsRes: Promise<Array<PrizeOutput>>
@@ -59,7 +57,6 @@
   }
 
   onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
     prizeClaimLogsRes = prizeClaimLogs()
     prizeIssueLogsRes = prizeIssueLogs()
   })

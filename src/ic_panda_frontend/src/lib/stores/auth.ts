@@ -1,9 +1,11 @@
 import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
-import { createAuthClient } from '$lib/utils/auth'
+import { agent, anonymousIdentity, createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
-import { AnonymousIdentity, type Identity } from '@dfinity/agent'
+import { type Identity } from '@dfinity/agent'
 import { nonNullish } from '@dfinity/utils'
 import { derived, get, writable, type Readable } from 'svelte/store'
+
+export { agent, anonymousIdentity } from '$lib/utils/auth'
 
 export interface AuthStoreData {
   identity: Identity
@@ -13,7 +15,12 @@ export interface AuthSignInParams {
   domain?: 'ic0.app' | 'internetcomputer.org'
 }
 
-export const anonymousIdentity = new AnonymousIdentity()
+// Fetch the root key for local development
+export async function fetchRootKey() {
+  if (IS_LOCAL) {
+    await Promise.all([agent.fetchRootKey(), agent.syncTime()])
+  }
+}
 
 export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
@@ -39,6 +46,7 @@ const initAuthStore = (): AuthStore => {
     sync: async () => {
       const authClient = await authClientPromise
       const isAuthenticated = await authClient.isAuthenticated()
+      agent.setIdentity(authClient.getIdentity())
       if (isAuthenticated) {
         set({
           identity: authClient.getIdentity()
@@ -60,6 +68,8 @@ const initAuthStore = (): AuthStore => {
           // 7 days in nanoseconds
           maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
           onSuccess: () => {
+            agent.setIdentity(authClient.getIdentity())
+
             set({
               identity: authClient.getIdentity()
             })
@@ -79,6 +89,7 @@ const initAuthStore = (): AuthStore => {
       const authClient = await authClientPromise
       await authClient.logout()
 
+      agent.setIdentity(anonymousIdentity)
       set({
         identity: anonymousIdentity
       })

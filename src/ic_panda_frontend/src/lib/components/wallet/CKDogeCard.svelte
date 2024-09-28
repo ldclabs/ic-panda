@@ -8,10 +8,7 @@
     CKDogeMinterAPI,
     ckDogeMinterAPIAsync
   } from '$lib/canisters/ckdogeminter'
-  import {
-    ckDOGETokenLedgerAPIAsync,
-    TokenLedgerAPI
-  } from '$lib/canisters/tokenledger'
+  import { ckDOGETokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconCkDOGE from '$lib/components/icons/IconCkDOGE.svelte'
   import IconDOGE from '$lib/components/icons/IconDOGE.svelte'
@@ -39,7 +36,6 @@
 
   let ckDogeMinterAPI: CKDogeMinterAPI
   let ckDogeCanisterAPI: CKDogeCanisterAPI
-  let tokenLedgerAPI: TokenLedgerAPI
   let ckDogeCanisterState: Readable<State | null>
   let ckDogeBalance = Promise.resolve(0n)
   let chain = new Chain('test')
@@ -63,7 +59,7 @@
             dogeAddress: ckDogeAddress,
             principal: principal.toString(),
             onFinish: () => {
-              ckDogeBalance = tokenLedgerAPI.balance()
+              ckDogeBalance = ckDOGETokenLedgerAPI.balance()
             }
           }
         }
@@ -81,13 +77,13 @@
           ref: CKDogeSendModal,
           props: {
             ckDogeMinterAPI,
-            tokenLedgerAPI,
+            tokenLedgerAPI: ckDOGETokenLedgerAPI,
             principal,
             dogeAddress: ckDogeAddress,
             availableBalance: await ckDogeBalance,
             chain,
             onFinish: () => {
-              ckDogeBalance = tokenLedgerAPI.balance()
+              ckDogeBalance = ckDOGETokenLedgerAPI.balance()
             }
           }
         }
@@ -177,7 +173,7 @@
     isMinting = true
     try {
       const mintOutput = await ckDogeMinterAPI.mintCKDoge()
-      ckDogeBalance = tokenLedgerAPI.balance()
+      ckDogeBalance = ckDOGETokenLedgerAPI.balance()
       fetchUTXOsHandler()
       mintable == 0n
       toastStore.trigger({
@@ -202,14 +198,13 @@
   onMount(async () => {
     ckDogeMinterAPI = await ckDogeMinterAPIAsync()
     ckDogeCanisterAPI = await ckDogeCanisterAPIAsync()
-    tokenLedgerAPI = await ckDOGETokenLedgerAPIAsync()
 
     ckDogeCanisterState = ckDogeCanisterAPI.stateStore
     chain = new Chain($ckDogeCanisterState?.chain || 'test')
     min_confirmations =
       $ckDogeCanisterState?.min_confirmations || min_confirmations
     if (!principal.isAnonymous()) {
-      ckDogeBalance = tokenLedgerAPI.balance()
+      ckDogeBalance = ckDOGETokenLedgerAPI.balance()
       ckDogeAddress = await ckDogeMinterAPI.getAddress()
     }
   })
@@ -217,22 +212,14 @@
   $: principal = $authStore.identity.getPrincipal()
   $: tipHeight = $ckDogeCanisterState?.tip_height || 0n
   $: {
-    if (tokenLedgerAPI) {
+    if (ckDOGETokenLedgerAPI) {
       ckDogeCanisterState = ckDogeCanisterAPI.stateStore
-      if (tokenLedgerAPI?.principal.toString() != principal.toString()) {
-        ckDOGETokenLedgerAPIAsync().then(async (_api) => {
-          tokenLedgerAPI = _api
-          if (!principal.isAnonymous()) {
-            ckDogeBalance = tokenLedgerAPI.balance()
-          }
-        })
-        ckDogeMinterAPIAsync().then(async (_api) => {
-          ckDogeMinterAPI = _api
-          if (!principal.isAnonymous()) {
-            ckDogeAddress = await ckDogeMinterAPI.getAddress()
-          }
-        })
-      }
+      ckDogeMinterAPIAsync().then(async (_api) => {
+        ckDogeMinterAPI = _api
+        if (!principal.isAnonymous()) {
+          ckDogeAddress = await ckDogeMinterAPI.getAddress()
+        }
+      })
     }
   }
 </script>

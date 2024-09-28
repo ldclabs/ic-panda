@@ -1,9 +1,6 @@
 <script lang="ts">
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -24,8 +21,6 @@
   export let channel: ChannelInfo
 
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
-
-  let tokenLedgerAPI: TokenLedgerAPI
 
   let validating = false
   let submitting = false
@@ -95,7 +90,6 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      tokenLedgerAPI = await tokenLedgerAPIAsync()
       const pandaBalance = tokenLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
     }, toastStore)

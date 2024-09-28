@@ -4,35 +4,25 @@ import {
   type Allowance
 } from '$declarations/icp_ledger_canister/icp_ledger_canister.did.js'
 import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
-import { asyncFactory } from '$lib/stores/auth'
+import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import { AccountIdentifier } from '$lib/utils/account_identifier'
 import { ICPToken } from '$lib/utils/token'
-import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
 export class ICPLedgerAPI {
-  readonly principal: Principal
   private actor: _SERVICE
 
-  static async with(identity: Identity): Promise<ICPLedgerAPI> {
-    const actor = await createActor<_SERVICE>({
+  constructor() {
+    this.actor = createActor<_SERVICE>({
       canisterId: ICP_LEDGER_CANISTER_ID,
-      idlFactory: idlFactory,
-      identity
+      idlFactory: idlFactory
     })
-
-    return new ICPLedgerAPI(identity.getPrincipal(), actor)
-  }
-
-  constructor(principal: Principal, actor: _SERVICE) {
-    this.principal = principal
-    this.actor = actor
   }
 
   async balance(): Promise<bigint> {
-    return this.getBalanceOf(this.principal)
+    return this.getBalanceOf(agent.id.getPrincipal())
   }
 
   async getBalanceOf(owner: Principal): Promise<bigint> {
@@ -41,7 +31,7 @@ export class ICPLedgerAPI {
 
   async allowance(spender: Principal): Promise<Allowance> {
     return this.actor.icrc2_allowance({
-      account: { owner: this.principal, subaccount: [] },
+      account: { owner: agent.id.getPrincipal(), subaccount: [] },
       spender: { owner: spender, subaccount: [] }
     })
   }
@@ -102,8 +92,4 @@ export class ICPLedgerAPI {
   }
 }
 
-const icpLedgerAPIStore = asyncFactory((identity) =>
-  ICPLedgerAPI.with(identity)
-)
-
-export const icpLedgerAPIAsync = async () => (await icpLedgerAPIStore).async()
+export const icpLedgerAPI = new ICPLedgerAPI()

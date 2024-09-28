@@ -1,11 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores'
-  import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type AirdropState,
-    type State
-  } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI, type AirdropState } from '$lib/canisters/luckypool'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -19,8 +14,7 @@
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, type SvelteComponent } from 'svelte'
-  import { type Readable } from 'svelte/store'
+  import { type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -32,10 +26,9 @@
   let validating = false
   let challenge = ''
   let cryptogram = ''
-  let luckyPoolAPI: LuckyPoolAPI
   let luckyCode = $page?.url?.searchParams.get('ref') || ''
   let result: AirdropState
-  let luckyPoolState: Readable<State | null>
+  let luckyPoolState = luckyPoolAPI.stateStore
   let principal = $authStore.identity.getPrincipal()
 
   const toastStore = getToastStore()
@@ -121,11 +114,6 @@
       })
     }
   }
-
-  onMount(async () => {
-    luckyPoolAPI = await luckyPoolAPIAsync()
-    luckyPoolState = luckyPoolAPI.stateStore
-  })
 </script>
 
 <ModalCard {parent}>

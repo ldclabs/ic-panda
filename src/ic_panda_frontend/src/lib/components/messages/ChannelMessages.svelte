@@ -285,7 +285,7 @@
           lastRead = latestMessageId
         }
 
-        channelAPI = await myState.api.channelAPI(canister)
+        channelAPI = myState.api.channelAPI(canister)
         dek = await myState.decryptChannelDEK(channelInfo)
         await loadPrevMessages(messageStart, lastRead + 1)
         await tick()

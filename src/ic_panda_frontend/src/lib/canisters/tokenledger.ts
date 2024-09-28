@@ -3,41 +3,28 @@ import {
   type _SERVICE,
   type Allowance
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
-import { asyncFactory } from '$lib/stores/auth'
+import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import { ckDOGEToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
-import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
 export class TokenLedgerAPI {
-  readonly principal: Principal
   readonly canisterId: Principal
   readonly token: TokenInfo
   private actor: _SERVICE
 
-  static async with(
-    identity: Identity,
-    token: TokenInfo
-  ): Promise<TokenLedgerAPI> {
-    const actor = await createActor<_SERVICE>({
-      canisterId: token.canisterId,
-      idlFactory: idlFactory,
-      identity
-    })
-
-    return new TokenLedgerAPI(identity.getPrincipal(), token, actor)
-  }
-
-  constructor(principal: Principal, token: TokenInfo, actor: _SERVICE) {
-    this.principal = principal
+  constructor(token: TokenInfo) {
     this.canisterId = Principal.fromText(token.canisterId)
-    this.actor = actor
+    this.actor = createActor<_SERVICE>({
+      canisterId: token.canisterId,
+      idlFactory: idlFactory
+    })
     this.token = token
   }
 
   async balance(): Promise<bigint> {
-    return this.getBalanceOf(this.principal)
+    return this.getBalanceOf(agent.id.getPrincipal())
   }
 
   async getBalanceOf(owner: Principal): Promise<bigint> {
@@ -46,7 +33,7 @@ export class TokenLedgerAPI {
 
   async allowance(spender: Principal): Promise<Allowance> {
     return this.actor.icrc2_allowance({
-      account: { owner: this.principal, subaccount: [] },
+      account: { owner: agent.id.getPrincipal(), subaccount: [] },
       spender: { owner: spender, subaccount: [] }
     })
   }
@@ -93,16 +80,6 @@ export class TokenLedgerAPI {
   }
 }
 
-const tokenLedgerAPIStore = asyncFactory((identity) =>
-  TokenLedgerAPI.with(identity, PANDAToken)
-)
+export const tokenLedgerAPI = new TokenLedgerAPI(PANDAToken)
 
-export const tokenLedgerAPIAsync = async () =>
-  (await tokenLedgerAPIStore).async()
-
-const ckDOGETokenLedgerAPIStore = asyncFactory((identity) =>
-  TokenLedgerAPI.with(identity, ckDOGEToken)
-)
-
-export const ckDOGETokenLedgerAPIAsync = async () =>
-  (await ckDOGETokenLedgerAPIStore).async()
+export const ckDOGETokenLedgerAPI = new TokenLedgerAPI(ckDOGEToken)

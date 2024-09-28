@@ -61,7 +61,7 @@
           channel: channelInfo,
           onSave: (input: UpdateChannelInput) => {
             return toastRun(async (signal: AbortSignal) => {
-              const api = await myState.api.channelAPI(canister)
+              const api = myState.api.channelAPI(canister)
               await api.update_channel(input)
               channelInfo = await myState.refreshChannel(channelInfo)
             }, toastStore).finally()
@@ -89,7 +89,7 @@
     muteSubmitting = true
 
     toastRun(async (signal: AbortSignal) => {
-      const api = await myState.api.channelAPI(canister)
+      const api = myState.api.channelAPI(canister)
       await sleep(1000)
       await api.update_my_setting({
         id,
@@ -142,7 +142,7 @@
 
     myLeavingSubmitting = true
     toastRun(async (signal: AbortSignal) => {
-      const api = await myState.api.channelAPI(canister)
+      const api = myState.api.channelAPI(canister)
       await api.leave_channel(id, true)
       await myState.removeChannel(canister, id)
 
@@ -221,7 +221,7 @@
   let adminRemoveMembersSubmitting = ''
   function onClickAdminRemoveMember(_id: string) {
     toastRun(async (signal: AbortSignal) => {
-      const api = await myState.api.channelAPI(canister)
+      const api = myState.api.channelAPI(canister)
       await api.remove_member({
         id,
         member: Principal.fromText(_id),

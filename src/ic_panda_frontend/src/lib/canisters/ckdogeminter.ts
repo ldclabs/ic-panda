@@ -22,10 +22,9 @@ export class CKDogeMinterAPI {
   private _state = writable<State | null>(null)
 
   static async with(identity: Identity): Promise<CKDogeMinterAPI> {
-    const actor = await createActor<_SERVICE>({
+    const actor = createActor<_SERVICE>({
       canisterId: CKDOGE_MINTER_CANISTER_ID,
-      idlFactory: idlFactory,
-      identity
+      idlFactory: idlFactory
     })
 
     const api = new CKDogeMinterAPI(identity.getPrincipal(), actor)

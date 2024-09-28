@@ -1,10 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
-  import {
-    TokenLedgerAPI,
-    tokenLedgerAPIAsync
-  } from '$lib/canisters/tokenledger'
+  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -12,10 +9,7 @@
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
   import { toastRun } from '$lib/stores/toast'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import {
-    myMessageStateAsync,
-    type MyMessageState
-  } from '$src/lib/stores/message'
+  import { MyMessageState } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import {
     focusTrap,
@@ -28,17 +22,15 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let myState: MyMessageState
   export let channelName: string = ''
   export let add_managers: [Principal, Uint8Array | null][] = []
 
   const modalStore = getModalStore()
   const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
-
-  let tokenLedgerAPI: TokenLedgerAPI
-  let myState: MyMessageState
-  let stateInfo: Readable<StateInfo>
-  let myInfo: Readable<UserInfo>
+  const stateInfo = myState.api.stateStore as Readable<StateInfo>
+  const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
 
   let nameInput = channelName
   let descriptionInput = ''
@@ -111,14 +103,6 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      myState = await myMessageStateAsync()
-      stateInfo = myState.api.stateStore as Readable<StateInfo>
-      myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
-
-      if (signal.aborted) {
-        return
-      }
-      tokenLedgerAPI = await tokenLedgerAPIAsync()
       const pandaBalance = tokenLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
     }, toastStore)

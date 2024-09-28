@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    LuckyPoolAPI,
-    luckyPoolAPIAsync,
-    type State
-  } from '$lib/canisters/luckypool'
+  import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
   import { authStore } from '$lib/stores/auth'
   import { shortId } from '$lib/utils/auth'
@@ -11,11 +7,9 @@
   import { isActive } from '$lib/utils/window'
   import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
-  import { type Readable } from 'svelte/store'
 
   let tabSet: number = 0
-  let luckyPoolAPI: LuckyPoolAPI
-  let luckyPoolState: Readable<State | null>
+  let luckyPoolState = luckyPoolAPI.stateStore
   let airdropRecords: any[]
   let luckydrawRecords: any[]
   let highestLuckydrawRecords: any[]
@@ -68,14 +62,12 @@
   onMount(() => {
     let interval = true
     ;(async () => {
-      luckyPoolAPI = await luckyPoolAPIAsync()
-      luckyPoolState = luckyPoolAPI.stateStore
       const ms = principal.isAnonymous() ? 20000 : 10000
 
       while (interval) {
         await new Promise((res) => setTimeout(res, ms))
         if (isActive()) {
-          await luckyPoolAPI?.refreshAllState()
+          await luckyPoolAPI.refreshAllState()
         }
       }
     })()
@@ -87,12 +79,9 @@
 
   $: principal = $authStore.identity.getPrincipal()
   $: {
-    if (luckyPoolAPI) {
-      luckyPoolState = luckyPoolAPI.stateStore
-      airdropRecords = $luckyPoolState?.latest_airdrop_logs || []
-      luckydrawRecords = $luckyPoolState?.latest_luckydraw_logs || []
-      highestLuckydrawRecords = $luckyPoolState?.luckiest_luckydraw_logs || []
-    }
+    airdropRecords = $luckyPoolState?.latest_airdrop_logs || []
+    luckydrawRecords = $luckyPoolState?.latest_luckydraw_logs || []
+    highestLuckydrawRecords = $luckyPoolState?.luckiest_luckydraw_logs || []
   }
 </script>
 
