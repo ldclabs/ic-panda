@@ -1,0 +1,29 @@
+<script lang="ts">
+  import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
+  import IconCopy from '$lib/components/icons/IconCopy.svelte'
+  import { clipboard } from '@skeletonlabs/skeleton'
+
+  export let textValue: string
+
+  let copiedClass = ''
+
+  function onCopyHandler(): void {
+    copiedClass = '!text-panda'
+    setTimeout(() => {
+      copiedClass = ''
+    }, 5000)
+  }
+</script>
+
+<button
+  class="{copiedClass} float-right mt-[3px] *:size-5"
+  use:clipboard={textValue}
+  on:click={onCopyHandler}
+  disabled={copiedClass != ''}
+>
+  {#if copiedClass != ''}
+    <IconCheckbox />
+  {:else}
+    <IconCopy />
+  {/if}
+</button>

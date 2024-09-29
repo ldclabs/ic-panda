@@ -1,0 +1,43 @@
+/* Write your global styles here, in PostCSS syntax */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* https://www.skeleton.dev/components/app-shell */
+html,
+body {
+  @apply h-full overflow-hidden;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(255, 255, 255, 0.05) !important;
+}
+
+body {
+}
+
+/* https://www.skeleton.dev/docs/themes */
+:root [data-theme='skeleton'] {
+  --theme-font-family-base: -apple-system, BlinkMacSystemFont, 'system-ui',
+    'Segoe UI', 'Noto Sans', Roboto, Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  background: linear-gradient(
+    180deg,
+    rgba(17, 194, 145, 0.1) -2%,
+    rgba(255, 255, 255, 0) 35%
+  );
+}
+
+.icpanda-message {
+  font-family: -apple-system, BlinkMacSystemFont, 'system-ui', 'Segoe UI',
+    'Noto Sans', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji';
+}
+
+@supports not (text-wrap: balance) {
+  .text-balance {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "*": "prettier --write --ignore-unknown",
+  "*.css": "stylelint --fix",
+  "*.{js,jsx,ts,tsx,svelte}": "eslint --fix",
+  "package.json": "sort-package-json"
+}

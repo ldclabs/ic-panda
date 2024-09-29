@@ -1,0 +1,28 @@
+[
+    {
+        "match": ".well-known",
+        "ignore": false
+    },
+    {
+        "match": ".well-known/ii-alternative-origins",
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json"
+        },
+        "ignore": false
+    },
+    {
+        "match": "**/*",
+        "security_policy": "standard",
+        "headers": {
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' https://pbs.twimg.com data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
+            "Permissions-Policy": "autoplay=*, camera=*, cross-origin-isolated=*, display-capture=*, encrypted-media=*, fullscreen=*, keyboard-map=*, microphone=*, payment=*, picture-in-picture=*, clipboard-read=*, clipboard-write=*",
+            "X-Frame-Options": "DENY",
+            "Referrer-Policy": "same-origin",
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+            "X-Content-Type-Options": "nosniff",
+            "X-XSS-Protection": "1; mode=block"
+        },
+        "allow_raw_access": false
+    }
+]
