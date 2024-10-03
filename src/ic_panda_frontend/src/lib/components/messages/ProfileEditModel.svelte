@@ -4,6 +4,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
+  import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
@@ -13,6 +14,7 @@
   // Props
   /** Exposes parent props to this component. */
   export let parent: SvelteComponent
+  export let myState: MyMessageState
   export let myInfo: Readable<UserInfo & ProfileInfo>
   export let onSave: (info: UserInfo & ProfileInfo) => Promise<void>
 
@@ -52,8 +54,7 @@
       component: {
         ref: UsernameTransferModel,
         props: {
-          myInfo: myInfo,
-          onSave: onSave
+          myState
         }
       }
     })

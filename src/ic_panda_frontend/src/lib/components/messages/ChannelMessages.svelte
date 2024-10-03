@@ -8,26 +8,26 @@
   import IconSendPlaneFill from '$lib/components/icons/IconSendPlaneFill.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { toastRun } from '$lib/stores/toast'
-  import {
-    coseA256GCMEncrypt0,
-    encodeCBOR,
-    type AesGcmKey
-  } from '$lib/utils/crypto'
-  import {
-    elementsInViewport,
-    isActive,
-    scrollOnHooks
-  } from '$lib/utils/window'
   import {
     getCurrentTimeString,
     toDisplayUserInfo,
     type ChannelInfoEx,
     type MessageInfo,
     type MyMessageState
-  } from '$src/lib/stores/message'
-  import { sleep } from '$src/lib/utils/helper'
-  import { initPopup } from '$src/lib/utils/Popup'
+  } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
+  import {
+    coseA256GCMEncrypt0,
+    encodeCBOR,
+    type AesGcmKey
+  } from '$lib/utils/crypto'
+  import { sleep } from '$lib/utils/helper'
+  import { initPopup } from '$lib/utils/Popup'
+  import {
+    elementsInViewport,
+    isActive,
+    scrollOnHooks
+  } from '$lib/utils/window'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'

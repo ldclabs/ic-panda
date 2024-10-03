@@ -9,9 +9,9 @@
     type MyMessageState
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
+  import { unwrapOption } from '$lib/types/result'
   import { clickOutside } from '$lib/utils/window'
   import type { ProfileInfo } from '$src/declarations/ic_message_profile/ic_message_profile.did'
-  import { unwrapOption } from '$src/lib/types/result'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'

@@ -6,12 +6,9 @@
   import IconClose from '$lib/components/icons/IconClose.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
+  import { type ChannelInfoEx, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import {
-    type ChannelInfoEx,
-    type MyMessageState
-  } from '$src/lib/stores/message'
-  import { sleep } from '$src/lib/utils/helper'
+  import { sleep } from '$lib/utils/helper'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import { getContext, onMount } from 'svelte'
   import { type Readable } from 'svelte/store'

@@ -4,12 +4,12 @@
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconInfo from '$lib/components/icons/IconInfo.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
-  import { toastRun } from '$lib/stores/toast'
-  import { initFocus, isActive } from '$lib/utils/window'
   import {
     type ChannelBasicInfoEx,
     type MyMessageState
-  } from '$src/lib/stores/message'
+  } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
+  import { initFocus, isActive } from '$lib/utils/window'
   import {
     Avatar,
     getModalStore,

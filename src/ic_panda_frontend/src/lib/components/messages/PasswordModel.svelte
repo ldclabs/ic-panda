@@ -1,8 +1,8 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { MasterKey, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { MasterKey, type MyMessageState } from '$src/lib/stores/message'
   import {
     focusTrap,
     getModalStore,

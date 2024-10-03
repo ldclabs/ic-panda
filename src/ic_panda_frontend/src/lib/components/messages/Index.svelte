@@ -1,8 +1,8 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
+  import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { MyMessageState } from '$src/lib/stores/message'
-  import { sleep } from '$src/lib/utils/helper'
+  import { sleep } from '$lib/utils/helper'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'

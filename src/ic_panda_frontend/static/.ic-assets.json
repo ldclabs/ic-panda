@@ -15,8 +15,8 @@
         "match": "**/*",
         "security_policy": "standard",
         "headers": {
-            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com;connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://*.panda.fans https://www.google-analytics.com;img-src 'self' https://www.googletagmanager.com data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';frame-src https://www.google.com https://www.gstatic.com;form-action 'self';upgrade-insecure-requests;",
-            "Permissions-Policy": "Permissions-Policy: autoplay=*, camera=*, cross-origin-isolated=*, display-capture=*, encrypted-media=*, fullscreen=*, keyboard-map=*, microphone=*, payment=*, picture-in-picture=*, clipboard-read=*, clipboard-write=*",
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://*.panda.fans;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';frame-src;form-action 'self';upgrade-insecure-requests;",
+            "Permissions-Policy": "autoplay=*, camera=*, cross-origin-isolated=*, display-capture=*, encrypted-media=*, fullscreen=*, keyboard-map=*, microphone=*, payment=*, picture-in-picture=*, clipboard-read=*, clipboard-write=*",
             "X-Frame-Options": "DENY",
             "Referrer-Policy": "same-origin",
             "Strict-Transport-Security": "max-age=31536000; includeSubDomains",

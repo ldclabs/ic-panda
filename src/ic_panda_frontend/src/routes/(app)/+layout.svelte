@@ -2,9 +2,9 @@
   import { browser } from '$app/environment'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
   import { authStore, fetchRootKey } from '$lib/stores/auth'
+  import { storePopup as storePopup2 } from '$lib/utils/Popup'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
-  import { storePopup as storePopup2 } from '$src/lib/utils/Popup'
   import {
     arrow,
     autoUpdate,

@@ -12,17 +12,17 @@
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { signIn } from '$lib/services/auth'
-  import { ErrorLogs, toastRun } from '$lib/stores/toast'
-  import { sleep } from '$lib/utils/helper'
-  import { md } from '$lib/utils/markdown'
-  import { isNotificationSupported } from '$lib/utils/window'
   import {
     toDisplayUserInfo,
     type DisplayUserInfo,
     type MyMessageState
-  } from '$src/lib/stores/message'
-  import { MessageAgent } from '$src/lib/stores/message_agent'
-  import { errMessage, unwrapOption } from '$src/lib/types/result'
+  } from '$lib/stores/message'
+  import { MessageAgent } from '$lib/stores/message_agent'
+  import { ErrorLogs, toastRun } from '$lib/stores/toast'
+  import { errMessage, unwrapOption } from '$lib/types/result'
+  import { sleep } from '$lib/utils/helper'
+  import { md } from '$lib/utils/markdown'
+  import { isNotificationSupported } from '$lib/utils/window'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -92,6 +92,7 @@
         component: {
           ref: ProfileEditModel,
           props: {
+            myState,
             myInfo: userInfo,
             onSave: saveProfile
           }

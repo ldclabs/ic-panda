@@ -7,9 +7,9 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { MyMessageState } from '$src/lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import {
     focusTrap,

@@ -2,7 +2,7 @@
   import { page } from '$app/stores'
   import ProfileDetail from '$lib/components/messages/ProfileDetail.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { MyMessageState } from '$src/lib/stores/message'
+  import { MyMessageState } from '$lib/stores/message'
 
   $: username = ($page?.params || {})['username'] || ''
   $: pageKey = $authStore.identity.getPrincipal() + ':' + username

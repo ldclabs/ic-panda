@@ -11,15 +11,15 @@
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import IconExchange2Line from '$lib/components/icons/IconExchange2Line.svelte'
   import IconLogout from '$lib/components/icons/IconLogout.svelte'
-  import { toastRun } from '$lib/stores/toast'
-  import { errMessage } from '$lib/types/result'
-  import { sleep } from '$lib/utils/helper'
-  import { md } from '$lib/utils/markdown'
   import {
     type ChannelInfoEx,
     type DisplayUserInfoEx,
     type MyMessageState
-  } from '$src/lib/stores/message'
+  } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
+  import { errMessage } from '$lib/types/result'
+  import { sleep } from '$lib/utils/helper'
+  import { md } from '$lib/utils/markdown'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
