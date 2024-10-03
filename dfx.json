@@ -68,6 +68,14 @@
       "type": "assets",
       "workspace": "ic_panda_frontend"
     },
+    "ic_message_frontend": {
+      "dependencies": [],
+      "source": [
+        "src/ic_message_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "ic_message_frontend"
+    },
     "ic_message_channel_02": {
       "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",
       "type": "custom",

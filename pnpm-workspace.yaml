@@ -1,2 +1,3 @@
 packages:
+  - 'src/ic_message_frontend'
   - 'src/ic_panda_frontend'
