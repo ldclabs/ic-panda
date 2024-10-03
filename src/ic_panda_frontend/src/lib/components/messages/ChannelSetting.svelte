@@ -136,7 +136,7 @@
   let leavingWord = ''
   let myLeavingSubmitting = false
   function onClickMyLeaving() {
-    if (leavingWord != channelInfo.name) {
+    if (leavingWord.trim() != channelInfo.name) {
       return
     }
 
@@ -371,7 +371,8 @@
           type="button"
           class="variant-filled-warning disabled:variant-filled-surface"
           on:click={onClickMyLeaving}
-          disabled={myLeavingSubmitting || leavingWord != channelInfo.name}
+          disabled={myLeavingSubmitting ||
+            leavingWord.trim() != channelInfo.name}
           ><span class="*:size-5"><IconLogout /></span></button
         >
       </div>

@@ -25,7 +25,7 @@
   let toInput = ''
 
   function checkUsername() {
-    if (usernameInput !== $myInfo.username[0]) {
+    if (usernameInput.trim() !== $myInfo.username[0]) {
       return 'Username does not match'
     }
     return ''
