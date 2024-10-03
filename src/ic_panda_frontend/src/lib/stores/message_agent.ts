@@ -301,10 +301,11 @@ export class MessageAgent extends EventTarget {
     return val || (await this.fetchProfile())
   }
 
-  subscribeProfile(): Readable<null | (ProfileInfo & UserInfo)> {
-    this.getProfile()
-      .then((profile) => this._profile.set(profile))
-      .catch(console.error)
+  async subscribeProfile(): Promise<Readable<null | (ProfileInfo & UserInfo)>> {
+    const profile = await this.getProfile().catch(() => null)
+    if (profile) {
+      this._profile.set(profile)
+    }
 
     return derived(
       [this._user, this._profile],

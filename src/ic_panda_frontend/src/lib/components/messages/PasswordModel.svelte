@@ -61,6 +61,7 @@
             )
             pwdHash = masterKey.passwordHash()
             await myState.savePasswordHash(pwdHash)
+            await myState.saveMasterKeys()
           } else {
             const remoteKey = await myState.fetchECDHCoseEncryptedKey()
             const remoteSecret = remoteKey.getSecretKey()

@@ -78,9 +78,10 @@
   <div class="">
     <p class="text-lg font-normal antialiased">
       ICPanda Message is a decentralized end-to-end encrypted messaging
-      application fully running on the <a
-        class="font-bold text-secondary-500 underline underline-offset-4"
-        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+      application fully running on the
+      <a
+        class="underline underline-offset-4"
+        href="https://internetcomputer.org"
         target="_blank"
       >
         Internet Computer
@@ -93,8 +94,11 @@
           class="font-bold underline underline-offset-4"
           href="https://datatracker.ietf.org/doc/html/rfc9052"
           target="_blank">RFC 9052 (COSE)</a
-        > standard on the client side and stored on the ICP blockchain. These messages
-        can only be decrypted on the client side.</li
+        >
+        standard and
+        <b>quantum secure AES-256-GCM algorithm</b> on the client side and stored
+        on the ICP blockchain. These messages can only be decrypted on the client
+        side.</li
       >
       <li
         ><b>Multi-user chats:</b> Message channels support one-to-many chats, where

@@ -239,6 +239,12 @@ export class MyMessageState {
     return mk
   }
 
+  async saveMasterKeys(): Promise<void> {
+    if (this._mks.length > 0) {
+      await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
+    }
+  }
+
   async migrateKeys(myIV: Uint8Array): Promise<void> {
     const mk = await this.mustMasterKey()
     if (mk.kind != 'Local') {
