@@ -41,7 +41,7 @@
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
   const PandaID = Principal.fromText(
-    '5xnvq-xgmgi-xwocc-kh6yu-jzlrx-ddgmt-436xt-hzg3c-6s2ru-wk3as-5ae'
+    'nmob2-y6p4k-rp5j7-7x2mo-aqceq-lpie2-fjgw7-nkjdu-bkoe4-zjetd-wae'
   )
 
   const toastStore = getToastStore()
