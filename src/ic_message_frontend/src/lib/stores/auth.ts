@@ -64,7 +64,10 @@ const initAuthStore = (): AuthStore => {
             ? `http://${INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`
             : `https://identity.${domain ?? 'ic0.app'}`
 
+        const derivationOrigin = IS_LOCAL ? undefined : 'https://panda.fans'
+
         await authClient.login({
+          derivationOrigin: derivationOrigin as string,
           // 7 days in nanoseconds
           maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
           onSuccess: () => {
