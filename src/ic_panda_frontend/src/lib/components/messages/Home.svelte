@@ -120,11 +120,20 @@
   <div
     class="mt-12 flex max-w-4xl flex-row items-center justify-center gap-6 max-sm:flex-col *:max-sm:w-60"
   >
+    <a
+      type="button"
+      class="rainbow-button bg-slate-950 group relative w-64 overflow-hidden px-6 py-2 text-center text-white transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+      target="_blank"
+      href="https://dmsg.net"
+    >
+      <span class="relative z-10 text-lg">Launch app (dMsg.net)</span>
+      <span class="rainbow-border"></span>
+    </a>
     <button
       on:click={getStartedHandler}
-      class="bg-slate-950 variant-filled btn w-[320px]"
+      class="variant-ringed-primary btn transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
     >
-      <span class="text-center">Get started</span>
+      <span class="text-center">Get started (legacy)</span>
     </button>
   </div>
   <div
@@ -189,3 +198,76 @@
 <footer id="page-footer" class="flex-none">
   <PageFooter />
 </footer>
+
+<style>
+  :global(.rainbow-button) {
+    position: relative;
+    border-radius: 9999px; /* 使用一个很大的值来确保完全圆角 */
+  }
+
+  :global(.rainbow-border) {
+    position: absolute;
+    inset: -3px;
+    background-image: linear-gradient(
+      to right,
+      #00ffff,
+      #1e90ff,
+      #4b0082,
+      #8a2be2,
+      #00bfff,
+      #1e90ff,
+      #00ffff
+    );
+    background-size: 200% 100%;
+    animation: move-gradient 4s linear infinite;
+    z-index: 0;
+    border-radius: 9999px;
+    filter: blur(3px);
+    opacity: 0.9;
+    transition: all 0.3s ease;
+  }
+
+  :global(.rainbow-button:hover .rainbow-border) {
+    filter: blur(2px);
+    opacity: 1;
+    inset: -4px;
+  }
+
+  :global(.rainbow-button::before) {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: inherit;
+    border-radius: inherit;
+    filter: blur(7px);
+    opacity: 0.6;
+    z-index: -1;
+  }
+
+  :global(.rainbow-button::after) {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: radial-gradient(
+      circle,
+      rgb(36, 44, 70) 60%,
+      rgba(36, 44, 70, 0.9) 100%
+    );
+    border-radius: 9999px;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  :global(.rainbow-button:hover::after) {
+    inset: 3px;
+  }
+
+  @keyframes move-gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+</style>

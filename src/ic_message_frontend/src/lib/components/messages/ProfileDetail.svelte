@@ -295,7 +295,7 @@
 {#if $userInfo}
   {@const display = toDisplayUserInfo($userInfo)}
   <section
-    class="mx-auto flex w-full max-w-3xl flex-col items-center gap-0 overflow-y-auto p-8 pb-40"
+    class="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 overflow-y-auto p-8 pb-40"
   >
     <Avatar
       initials={display.name}
@@ -303,10 +303,10 @@
       border="border-4 border-panda/20"
       background="bg-panda"
       fill="fill-white"
-      width="w-32"
+      width="w-24"
     />
     <p class="relative space-x-1">
-      <span>{display.name}</span>
+      <span class="font-bold">{display.name}</span>
       {#if display.username}
         <span class="text-neutral-600">@{display.username}</span>
       {/if}
@@ -320,15 +320,15 @@
         </button>
       {/if}
     </p>
-    <p class="flex flex-row items-center gap-1 text-sm text-neutral-600">
-      <span>{display._id}</span>
-      <TextClipboardButton textValue={display._id} />
-    </p>
     {#if $userInfo.bio}
-      <div class="content-markdown mt-2">
+      <div class="content-markdown">
         {@html md.render($userInfo.bio)}
       </div>
     {/if}
+    <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-600">
+      <span>Principal: {display._id}</span>
+      <TextClipboardButton textValue={display._id} />
+    </p>
     {#if !isMe}
       <div class="mt-4 flex flex-row gap-4">
         <button

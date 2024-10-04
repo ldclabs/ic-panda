@@ -66,12 +66,14 @@
   >
     <slot />
     <div
-      class="nav grid items-start gap-2 border-surface-500/20 bg-gray-100/50 *:flex *:cursor-pointer *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
+      class="nav grid items-start gap-2 border-surface-500/20 bg-gray-100/50 *:flex *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
     >
       <a
         href="/_/profile"
         role="button"
-        class={selectedProfile ? 'text-primary-500' : ''}
+        class="transition-all {selectedProfile
+          ? 'cursor-default text-primary-500'
+          : 'hover:scale-105'}"
       >
         <span><IconUser /></span>
         <span>Profile</span>
@@ -79,14 +81,16 @@
       <a
         href="/_/messages"
         role="button"
-        class={selectedMessages ? 'text-primary-500' : ''}
+        class="transition-all {selectedMessages
+          ? 'cursor-default text-primary-500'
+          : 'hover:scale-105'}"
       >
         <span><IconMessage3Line /></span>
 
         <span>Messages</span>
       </a>
       <button
-        class="btn px-0"
+        class="btn px-0 transition-all hover:scale-105"
         on:click={(ev) => {
           popupOpenOn(ev.currentTarget)
         }}
