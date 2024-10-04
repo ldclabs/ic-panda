@@ -38,7 +38,7 @@
     {
       title: 'ICPSwap',
       image: '/_assets/images/icpswap.webp',
-      url: 'https://www.icpswap.com/',
+      url: 'https://www.icpswap.com',
       bg: 'bg-gray-900'
     },
     {
@@ -50,6 +50,18 @@
       title: 'ICPCoins',
       image: '/_assets/images/icpcoins.webp',
       url: 'https://icpcoins.com'
+    },
+    {
+      title: 'ICPTokens',
+      image: '/_assets/images/icptokens.webp',
+      url: 'https://icptokens.net',
+      bg: 'bg-gray-900'
+    },
+    {
+      title: 'ICLight',
+      image: '/_assets/images/iclight.webp',
+      url: 'https://iclight.io',
+      bg: 'bg-gray-900'
     }
   ]
 
@@ -347,16 +359,17 @@
         <h2 class="h2">Ecosystem partners</h2>
       </div>
       <div
-        class="mt-2 flex w-full snap-x snap-mandatory scroll-px-6 gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-6 md:justify-center"
+        class="mt-2 flex w-full snap-x snap-mandatory scroll-px-6 items-center justify-around gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-6"
       >
         {#each partners as partner (partner.url)}
           <a
-            class="shrink-0 snap-center rounded-sm p-2 {partner.bg ||
-              'bg-white'}"
+            class="min-w-48 shrink-0 snap-center rounded-lg p-2 {partner.bg
+              ? partner.bg + ' border border-gray-300'
+              : 'bg-white'}"
             target="_blank"
             href={partner.url}
           >
-            <img class="h-10" src={partner.image} alt={partner.title} />
+            <img class="mx-auto h-10" src={partner.image} alt={partner.title} />
           </a>
         {/each}
       </div>
