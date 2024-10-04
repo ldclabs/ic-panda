@@ -50,6 +50,10 @@ export class AuthAgent extends HttpAgent {
     return this._id
   }
 
+  isAnonymous() {
+    return this._id.getPrincipal().isAnonymous()
+  }
+
   setIdentity(id: Identity) {
     this._id = id
     super.replaceIdentity(id)

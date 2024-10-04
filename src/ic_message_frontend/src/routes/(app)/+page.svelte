@@ -10,6 +10,11 @@
   import { writable, type Writable } from 'svelte/store'
   import UserRegisterModel from '$lib/components/messages/UserRegisterModel.svelte'
   import Saos from 'saos'
+  import { initPopup } from '$lib/utils/popup'
+  import { onDestroy } from 'svelte'
+  import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
+  import { agent } from '$lib/utils/auth'
+  import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
 
   interface Saying {
     name: string
@@ -121,6 +126,10 @@
     }
   ]
 
+  const { popupOpenOn, popupDestroy } = initPopup({
+    target: 'popupNavigationMore'
+  })
+
   let myState: MyMessageState
   let users_total = 0n
   let names_total = 0n
@@ -184,6 +193,10 @@
     }, toastStore)
     return abort
   })
+
+  onDestroy(() => {
+    popupDestroy()
+  })
 </script>
 
 <div class="landing-page w-full">
@@ -211,13 +224,25 @@
             Internet Computer
           </a> blockchain.
         </p>
-        <button
-          on:click={onLaunchAppHandler}
-          class="rainbow-button group relative w-[320px] overflow-hidden bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
-        >
-          <span class="relative z-10 text-lg">Launch app</span>
-          <span class="rainbow-border"></span>
-        </button>
+        <div class="flex flex-row gap-2">
+          <button
+            on:click={onLaunchAppHandler}
+            class="rainbow-button group relative w-[280px] overflow-hidden bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+          >
+            <span class="relative z-10 text-lg">Launch app</span>
+            <span class="rainbow-border"></span>
+          </button>
+          {#if !agent.isAnonymous()}
+            <button
+              class="btn px-4 text-white transition-all hover:scale-105"
+              on:click={(ev) => {
+                popupOpenOn(ev.currentTarget)
+              }}
+            >
+              <span><IconMoreFill /></span>
+            </button>
+          {/if}
+        </div>
       </div>
     </Saos>
     <Saos
@@ -429,6 +454,7 @@
     </footer>
   </div>
 </div>
+<MoreMenuPopup target="popupNavigationMore" />
 
 <style>
   .landing-page {

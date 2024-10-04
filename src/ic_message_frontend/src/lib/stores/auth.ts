@@ -88,13 +88,13 @@ const initAuthStore = (): AuthStore => {
       }),
 
     signOut: async () => {
-      const authClient = await authClientPromise
-      await authClient.logout()
-
       agent.setIdentity(anonymousIdentity)
       set({
         identity: anonymousIdentity
       })
+      const authClient = await authClientPromise
+      await authClient.logout()
+      window.location.reload() // force reload to clear all auth state!!
     }
   }
 }

@@ -259,21 +259,6 @@
         setTimeout(() => goto(fallbackUrl), 1000)
       } else {
         if (myID && $userInfo.id.compareTo(myID) == 'eq') {
-          if (
-            $page.params['channel'] == 'profile' &&
-            $userInfo.username.length == 0 &&
-            $userInfo.created_at < BigInt(Date.now() - 180 * 1000)
-          ) {
-            modalStore.trigger({
-              type: 'component',
-              component: {
-                ref: UserRegisterModel,
-                props: {
-                  myState
-                }
-              }
-            })
-          }
           const perm = await myState.agent.getLocal<string>(
             MessageAgent.KEY_NOTIFY_PERM
           )
@@ -294,208 +279,213 @@
 
 {#if $userInfo}
   {@const display = toDisplayUserInfo($userInfo)}
-  <section
-    class="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 overflow-y-auto p-8 pb-40"
-  >
-    <Avatar
-      initials={display.name}
-      src={display.image}
-      border="border-4 border-panda/20"
-      background="bg-panda"
-      fill="fill-white"
-      width="w-24"
-    />
-    <p class="relative space-x-1">
-      <span class="font-bold">{display.name}</span>
-      {#if display.username}
-        <span class="text-neutral-600">@{display.username}</span>
-      {/if}
-      {#if isMe}
-        <button
-          type="button"
-          class="btn absolute right-[-28px] top-1 p-0 text-neutral-600"
-          on:click={onMeHandler}
-        >
-          <span class="*:size-4"><IconEditLine /></span>
-        </button>
-      {/if}
-    </p>
-    {#if $userInfo.bio}
-      <div class="content-markdown">
-        {@html md.render($userInfo.bio)}
+  <section class="h-[calc(100dvh-60px)] w-full overflow-y-auto md:h-dvh">
+    <div
+      class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-20"
+    >
+      <div class="size-24">
+        <Avatar
+          initials={display.name}
+          src={display.image}
+          border="border-4 border-panda/20"
+          background="bg-panda"
+          fill="fill-white"
+          width="size-24"
+        />
       </div>
-    {/if}
-    <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-600">
-      <span>Principal: {display._id}</span>
-      <TextClipboardButton textValue={display._id} />
-    </p>
-    {#if !isMe}
-      <div class="mt-4 flex flex-row gap-4">
-        <button
-          type="button"
-          class="{isFowllowing
-            ? 'variant-ghost-primary'
-            : 'variant-filled'} group btn btn-sm w-32"
-          disabled={followingSubmitting !== ''}
-          on:click={() => onFollowHandler($userInfo.id, !isFowllowing)}
-        >
-          {#if isFowllowing}
-            <span class="group-hover:hidden">Following</span>
-            <span class="hidden text-error-500 group-hover:inline"
-              >Unfollow</span
-            >
-          {:else}
-            <span class="">Follow</span>
-          {/if}
-          <span
-            class="text-panda *:size-4 {followingSubmitting ? '' : 'hidden'}"
+      <p class="relative space-x-1">
+        <span class="font-bold">{display.name}</span>
+        {#if display.username}
+          <span class="text-neutral-600">@{display.username}</span>
+        {/if}
+        {#if isMe}
+          <button
+            type="button"
+            class="btn absolute right-[-28px] top-1 p-0 text-neutral-600"
+            on:click={onMeHandler}
           >
-            <IconCircleSpin />
-          </span>
-        </button>
-        <button
-          type="button"
-          title="End-to-end encrypted message"
-          class="variant-filled btn btn-sm w-32"
-          on:click={() => onCreateChannelHandler($userInfo.id)}
-        >
-          <span>Message</span>
-        </button>
-      </div>
-    {:else}
-      <div class="mt-4 flex w-full flex-col">
-        <div class="mb-2 text-sm opacity-50"
-          ><button on:click={() => (displayDebug = !displayDebug)}>
-            <span>My Setting</span>
-          </button></div
-        >
-        <div class="flex flex-row items-center gap-4">
-          <p>Notifications:</p>
-          <SlideToggle
-            name="setting-mute"
-            active="bg-panda"
-            size="sm"
-            bind:checked={grantedNotification}
-            on:click={onRequestNotifications}
-          />
+            <span class="*:size-4"><IconEditLine /></span>
+          </button>
+        {/if}
+      </p>
+      {#if $userInfo.bio}
+        <div class="content-markdown">
+          {@html md.render($userInfo.bio)}
         </div>
-      </div>
-      {#if displayDebug}
-        <div class="mt-4 flex w-full flex-col">
-          <div class="mb-2 text-sm opacity-50"><span>Debug</span></div>
-          <div class="flex flex-row items-center gap-4">
-            <p>Clear cached messages:</p>
-            <button
-              type="button"
-              class="variant-ringed btn btn-sm hover:variant-ghost-warning"
-              disabled={clearCachedMessagesSubmitting}
-              on:click={onClearCachedMessages}
-            >
-              <span>Clear (safe)</span>
-              <span
-                class="text-panda *:size-4 {clearCachedMessagesSubmitting
-                  ? ''
-                  : 'hidden'}"
+      {/if}
+      <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-600">
+        <span>Principal: {display._id}</span>
+        <TextClipboardButton textValue={display._id} />
+      </p>
+      {#if !isMe}
+        <div class="mt-4 flex flex-row gap-4">
+          <button
+            type="button"
+            class="{isFowllowing
+              ? 'variant-ghost-primary'
+              : 'variant-filled'} group btn btn-sm w-32"
+            disabled={followingSubmitting !== ''}
+            on:click={() => onFollowHandler($userInfo.id, !isFowllowing)}
+          >
+            {#if isFowllowing}
+              <span class="group-hover:hidden">Following</span>
+              <span class="hidden text-error-500 group-hover:inline"
+                >Unfollow</span
               >
-                <IconCircleSpin />
-              </span>
-            </button>
-          </div>
-          {#if ErrorLogs.length > 0}
-            {@const value = errorLogsText(ErrorLogs)}
-            <div class="flex flex-row items-center gap-4">
-              <p>Error logs:</p>
-              <p class="text-warning-500">{ErrorLogs.length}</p>
-              <TextClipboardButton textValue={value} />
-            </div>
-          {/if}
-        </div>
-      {/if}
-    {/if}
-    {#if isMe && $myFollowing.length > 0}
-      <div class="mt-4 flex w-full flex-col gap-4">
-        <div class="">
-          <span class="text-sm opacity-50">Following</span>
-        </div>
-        <div class="!mt-0 space-y-2">
-          {#each $myFollowing as member (member._id)}
-            <div class="grid items-center gap-1 sm:grid-cols-[1fr_auto]">
-              <div class="flex flex-row items-center space-x-2">
-                <Avatar
-                  initials={member.name}
-                  src={member.image}
-                  fill="fill-white"
-                  width="w-10"
-                />
-                <span class="ml-1">{member.name}</span>
-                {#if member.username}
-                  <a
-                    class="text-neutral-600 underline underline-offset-4"
-                    href="{APP_ORIGIN}/{member.username}">@{member.username}</a
-                  >
-                {/if}
-              </div>
-              <div class="flex flex-row items-center justify-end space-x-2">
-                <button
-                  class="variant-ghost-warning btn btn-sm"
-                  type="button"
-                  disabled={followingSubmitting !== '' || !member.src}
-                  on:click={() =>
-                    member.src && onFollowHandler(member.src.id, false)}
-                >
-                  <span>Unfollow</span>
-                  <span
-                    class="text-panda *:size-4 {followingSubmitting ===
-                    member._id
-                      ? ''
-                      : 'hidden'}"
-                  >
-                    <IconCircleSpin />
-                  </span>
-                </button>
-                <button
-                  class="variant-filled btn btn-sm"
-                  type="button"
-                  on:click={() =>
-                    member.src && onCreateChannelHandler(member.src.id)}
-                >
-                  <span>Message</span>
-                </button>
-              </div>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
-    {#if pathname.startsWith('/_/profile') && userId
-        .toString()
-        .toUpperCase() !== 'PANDA'}
-      <div
-        class="mx-auto mt-48 flex flex-col items-center space-y-2 self-end text-sm"
-      >
-        <div class="flex flex-row items-center">
-          <a
-            class="flex flex-row items-center space-x-1"
-            href="https://dmsg.net/PANDA"
-          >
-            <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-8" />
-            <span class="ml-1 truncate">ICPanda</span>
-            <span class="text-neutral-600">@PANDA</span>
-          </a>
+            {:else}
+              <span class="">Follow</span>
+            {/if}
+            <span
+              class="text-panda *:size-4 {followingSubmitting ? '' : 'hidden'}"
+            >
+              <IconCircleSpin />
+            </span>
+          </button>
           <button
             type="button"
             title="End-to-end encrypted message"
-            class="variant-ringed-primary btn btn-sm ml-2 w-32 hover:variant-soft-primary"
-            on:click={() => onCreateChannelHandler(PandaID)}
+            class="variant-filled btn btn-sm w-32"
+            on:click={() => onCreateChannelHandler($userInfo.id)}
           >
             <span>Message</span>
           </button>
         </div>
-        <p class="text-neutral-600"
-          >If you encounter any issues, please message me.</p
+      {:else}
+        <div class="mt-4 flex w-full flex-col">
+          <div class="mb-2 text-sm opacity-50"
+            ><button on:click={() => (displayDebug = !displayDebug)}>
+              <span>My Setting</span>
+            </button></div
+          >
+          <div class="flex flex-row items-center gap-4">
+            <p>Notifications:</p>
+            <SlideToggle
+              name="setting-mute"
+              active="bg-panda"
+              size="sm"
+              bind:checked={grantedNotification}
+              on:click={onRequestNotifications}
+            />
+          </div>
+        </div>
+        {#if displayDebug}
+          <div class="mt-4 flex w-full flex-col">
+            <div class="mb-2 text-sm opacity-50"><span>Debug</span></div>
+            <div class="flex flex-row items-center gap-4">
+              <p>Clear cached messages:</p>
+              <button
+                type="button"
+                class="variant-ringed btn btn-sm hover:variant-ghost-warning"
+                disabled={clearCachedMessagesSubmitting}
+                on:click={onClearCachedMessages}
+              >
+                <span>Clear (safe)</span>
+                <span
+                  class="text-panda *:size-4 {clearCachedMessagesSubmitting
+                    ? ''
+                    : 'hidden'}"
+                >
+                  <IconCircleSpin />
+                </span>
+              </button>
+            </div>
+            {#if ErrorLogs.length > 0}
+              {@const value = errorLogsText(ErrorLogs)}
+              <div class="flex flex-row items-center gap-4">
+                <p>Error logs:</p>
+                <p class="text-warning-500">{ErrorLogs.length}</p>
+                <TextClipboardButton textValue={value} />
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {/if}
+      {#if isMe && $myFollowing.length > 0}
+        <div class="mt-4 flex w-full flex-col gap-4">
+          <div class="">
+            <span class="text-sm opacity-50">Following</span>
+          </div>
+          <div class="!mt-0 space-y-2">
+            {#each $myFollowing as member (member._id)}
+              <div class="grid items-center gap-1 sm:grid-cols-[1fr_auto]">
+                <div class="flex flex-row items-center space-x-2">
+                  <Avatar
+                    initials={member.name}
+                    src={member.image}
+                    fill="fill-white"
+                    width="w-10"
+                  />
+                  <span class="ml-1">{member.name}</span>
+                  {#if member.username}
+                    <a
+                      class="text-neutral-600 underline underline-offset-4"
+                      href="{APP_ORIGIN}/{member.username}"
+                      >@{member.username}</a
+                    >
+                  {/if}
+                </div>
+                <div class="flex flex-row items-center justify-end space-x-2">
+                  <button
+                    class="variant-ghost-warning btn btn-sm"
+                    type="button"
+                    disabled={followingSubmitting !== '' || !member.src}
+                    on:click={() =>
+                      member.src && onFollowHandler(member.src.id, false)}
+                  >
+                    <span>Unfollow</span>
+                    <span
+                      class="text-panda *:size-4 {followingSubmitting ===
+                      member._id
+                        ? ''
+                        : 'hidden'}"
+                    >
+                      <IconCircleSpin />
+                    </span>
+                  </button>
+                  <button
+                    class="variant-filled btn btn-sm"
+                    type="button"
+                    on:click={() =>
+                      member.src && onCreateChannelHandler(member.src.id)}
+                  >
+                    <span>Message</span>
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+      {#if pathname.startsWith('/_/profile') && userId
+          .toString()
+          .toUpperCase() !== 'PANDA'}
+        <div
+          class="mx-auto mt-48 flex flex-col items-center space-y-2 self-end text-sm"
         >
-      </div>
-    {/if}
+          <div class="flex flex-row items-center">
+            <a
+              class="flex flex-row items-center space-x-1"
+              href="https://dmsg.net/PANDA"
+            >
+              <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-8" />
+              <span class="ml-1 truncate">ICPanda</span>
+              <span class="text-neutral-600">@PANDA</span>
+            </a>
+            <button
+              type="button"
+              title="End-to-end encrypted message"
+              class="variant-ringed-primary btn btn-sm ml-2 w-32 hover:variant-soft-primary"
+              on:click={() => onCreateChannelHandler(PandaID)}
+            >
+              <span>Message</span>
+            </button>
+          </div>
+          <p class="text-neutral-600"
+            >If you encounter any issues, please message me.</p
+          >
+        </div>
+      {/if}
+    </div>
   </section>
 {:else}
   <div class="mt-16 grid justify-center">

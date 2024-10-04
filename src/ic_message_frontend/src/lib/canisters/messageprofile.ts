@@ -38,7 +38,7 @@ export class ProfileAPI {
   }
 
   async refreshMyProfile(): Promise<void> {
-    if (agent.id.getPrincipal().isAnonymous()) {
+    if (agent.isAnonymous()) {
       return
     }
 

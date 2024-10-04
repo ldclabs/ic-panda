@@ -681,6 +681,7 @@ export class MyMessageState {
   }
 
   async refreshMyChannels(signal: AbortSignal): Promise<void> {
+    if (agent.isAnonymous()) return
     this.agent.fetchMyChannels(signal)
   }
 

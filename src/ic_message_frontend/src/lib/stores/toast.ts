@@ -1,5 +1,6 @@
 import { errMessage } from '$lib/types/result'
 import { tryRun, type TryRunResult } from '$lib/utils/tryrun'
+import { agent } from '$lib/utils/auth'
 import { type ToastStore } from '@skeletonlabs/skeleton'
 
 export { tryRun, type TryRunResult } from '$lib/utils/tryrun'
@@ -21,6 +22,8 @@ export function toastRun<T>(
       if (ErrorLogs.length > 20) {
         ErrorLogs.shift()
       }
+
+      if (agent.isAnonymous()) return
 
       toastStore.trigger({
         timeout: 15000,
