@@ -405,7 +405,7 @@
           class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm text-neutral-600"
         >
           <button class="btn btn-sm" on:click={onPopupDeleteMessage}>
-            <span class="*:size-4"><IconDeleteBin /></span><span>Delete</span>
+            <span class="*:size-5"><IconDeleteBin /></span><span>Delete</span>
           </button>
         </div>
       </div>

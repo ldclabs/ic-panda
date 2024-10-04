@@ -38,8 +38,7 @@
     {
       title: 'ICPSwap',
       image: '/_assets/images/icpswap.webp',
-      url: 'https://www.icpswap.com',
-      bg: 'bg-gray-900'
+      url: 'https://www.icpswap.com'
     },
     {
       title: 'OpenChat',
@@ -54,14 +53,12 @@
     {
       title: 'ICPTokens',
       image: '/_assets/images/icptokens.webp',
-      url: 'https://icptokens.net',
-      bg: 'bg-gray-900'
+      url: 'https://icptokens.net'
     },
     {
       title: 'ICLight',
       image: '/_assets/images/iclight.webp',
-      url: 'https://iclight.io',
-      bg: 'bg-gray-900'
+      url: 'https://iclight.io'
     }
   ]
 
@@ -216,9 +213,10 @@
         </p>
         <button
           on:click={onLaunchAppHandler}
-          class="btn w-[320px] bg-white shadow-2xl transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
+          class="rainbow-button group relative w-[320px] overflow-hidden bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
         >
-          <span class="text-lg">Launch app</span>
+          <span class="relative z-10 text-lg">Launch app</span>
+          <span class="rainbow-border"></span>
         </button>
       </div>
     </Saos>
@@ -358,20 +356,24 @@
       <div class="text-center">
         <h2 class="h2">Ecosystem partners</h2>
       </div>
-      <div
-        class="mt-2 flex w-full snap-x snap-mandatory scroll-px-6 items-center justify-around gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-6"
-      >
-        {#each partners as partner (partner.url)}
-          <a
-            class="min-w-48 shrink-0 snap-center rounded-lg p-2 {partner.bg
-              ? partner.bg + ' border border-gray-300'
-              : 'bg-white'}"
-            target="_blank"
-            href={partner.url}
-          >
-            <img class="mx-auto h-10" src={partner.image} alt={partner.title} />
-          </a>
-        {/each}
+      <div class="partner-scroll-container">
+        <div class="partner-scroll">
+          {#each [...partners, ...partners] as partner (partner.url + Math.random())}
+            <a
+              class="partner-item {partner.bg
+                ? partner.bg + ' border border-gray-300'
+                : 'bg-white'}"
+              target="_blank"
+              href={partner.url}
+            >
+              <img
+                class="mx-auto h-10"
+                src={partner.image}
+                alt={partner.title}
+              />
+            </a>
+          {/each}
+        </div>
       </div>
     </div>
     <div
@@ -447,11 +449,11 @@
   .pandas-backgroud {
     background-image: url('/_assets/images/pandas.webp');
     background-repeat: repeat-x;
-    background-size: auto 320px;
+    background-size: 1734px 320px;
     animation: slideBackground 60s linear infinite;
 
     @media (min-width: 640px) {
-      background-size: auto 500px;
+      background-size: 1734px 500px;
     }
   }
 
@@ -460,8 +462,123 @@
       background-position: 0 0;
     }
     to {
-      background-position: 1734px 0;
+      background-position: -1734px 0;
     }
+  }
+
+  :global(.rainbow-button) {
+    position: relative;
+    border-radius: 9999px; /* 使用一个很大的值来确保完全圆角 */
+  }
+
+  :global(.rainbow-border) {
+    position: absolute;
+    inset: -3px;
+    background-image: linear-gradient(
+      to right,
+      #00ffff,
+      #1e90ff,
+      #4b0082,
+      #8a2be2,
+      #00bfff,
+      #1e90ff,
+      #00ffff
+    );
+    background-size: 200% 100%;
+    animation: move-gradient 4s linear infinite;
+    z-index: 0;
+    border-radius: 9999px;
+    filter: blur(3px);
+    opacity: 0.9;
+    transition: all 0.3s ease;
+  }
+
+  :global(.rainbow-button:hover .rainbow-border) {
+    filter: blur(2px);
+    opacity: 1;
+    inset: -4px;
+  }
+
+  :global(.rainbow-button::before) {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: inherit;
+    border-radius: inherit;
+    filter: blur(7px);
+    opacity: 0.6;
+    z-index: -1;
+  }
+
+  :global(.rainbow-button::after) {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: radial-gradient(
+      circle,
+      white 60%,
+      rgba(255, 255, 255, 0.9) 100%
+    );
+    border-radius: 9999px;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  :global(.rainbow-button:hover::after) {
+    inset: 3px;
+  }
+
+  @keyframes move-gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  .partner-scroll-container {
+    width: 100%;
+    overflow: hidden;
+    padding: 10px 0;
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .partner-scroll {
+    display: flex;
+    width: max-content;
+    animation: scroll 30s linear infinite;
+  }
+
+  .partner-item {
+    flex: 0 0 auto;
+    min-width: 160px;
+    max-width: 250px;
+    margin-right: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .partner-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* 鼠标悬停时暂停动画 */
+  .partner-scroll-container:hover .partner-scroll {
+    animation-play-state: paused;
   }
 
   /**

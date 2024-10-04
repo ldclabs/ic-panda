@@ -31,17 +31,20 @@
   <header
     class="flex h-[60px] w-full flex-row items-center justify-between px-4 py-2"
   >
-    <button class="btn btn-icon" on:click={onGobackHandler}
-      ><IconArrowLeftSLine /></button
+    <button
+      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+      on:click={onGobackHandler}><IconArrowLeftSLine /></button
     >
-    <button class="btn btn-icon" on:click={onCloseHandler}><IconClose /></button
+    <button
+      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+      on:click={onCloseHandler}><IconClose /></button
     >
   </header>
   {#key pageKey}
     {#if myState}
       <ProfileDetail userId={username} {myState} />
     {:else}
-      <div class="placeholder-circle mt-8 w-32 animate-pulse" />
+      <div class="placeholder-circle mt-8 w-24 animate-pulse" />
     {/if}
   {/key}
 </div>

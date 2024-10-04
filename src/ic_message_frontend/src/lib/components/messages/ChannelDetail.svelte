@@ -69,8 +69,9 @@
     class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/20 px-4 py-2"
   >
     <div class="md:hidden">
-      <button class="btn btn-icon" on:click={onChatBack}
-        ><IconArrowLeftSLine /></button
+      <button
+        class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+        on:click={onChatBack}><IconArrowLeftSLine /></button
       >
     </div>
     <div class="flex flex-row items-center gap-2">
@@ -99,7 +100,7 @@
     </div>
     <button
       type="button"
-      class="btn-icon"
+      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
       title="Channel settings"
       disabled={switching}
       on:click={onClickChannelSetting}

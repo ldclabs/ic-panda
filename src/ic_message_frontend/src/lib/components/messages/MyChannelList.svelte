@@ -86,9 +86,10 @@
     />
     <button
       type="button"
-      class="btn-icon h-10 rounded-lg bg-gray-900/5 text-neutral-500 hover:text-neutral-900"
+      class="btn-icon h-10 rounded-lg bg-gray-900/5 text-neutral-500 hover:text-neutral-950"
       title="Create a channel"
-      on:click={onCreateChannelHandler}><span><IconAdd /></span></button
+      on:click={onCreateChannelHandler}
+      ><span class="hover:scale-110"><IconAdd /></span></button
     >
   </header>
   <div class="flex flex-col overflow-y-auto pb-10">
