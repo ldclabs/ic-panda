@@ -19,4 +19,4 @@ quill sns make-proposal --canister-ids-file ./sns_openchat_canister_ids.json --p
     }
 )" > proposal-message.json
 
-quill send proposal-message.json
+# quill send proposal-message.json
