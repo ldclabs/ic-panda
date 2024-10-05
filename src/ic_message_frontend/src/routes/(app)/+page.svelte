@@ -432,7 +432,7 @@
       </div>
     </div>
 
-    <footer id="page-footer" class="text-surface-900-50-token px-4 pb-24 pt-12">
+    <footer id="page-footer" class="px-4 pb-24 pt-12 text-surface-400">
       <div class="flex h-16 flex-col items-center">
         <p class="flex flex-row items-center gap-1">
           <span class="text-sm">© 2024</span>
@@ -478,11 +478,11 @@
   .pandas-backgroud {
     background-image: url('/_assets/images/pandas.webp');
     background-repeat: repeat-x;
-    background-size: 1734px 320px;
+    background-size: auto 320px;
     animation: slideBackground 60s linear infinite;
 
     @media (min-width: 640px) {
-      background-size: 1734px 500px;
+      background-size: 1734px 492px;
     }
   }
 

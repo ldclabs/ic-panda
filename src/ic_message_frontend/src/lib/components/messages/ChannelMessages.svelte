@@ -511,7 +511,7 @@
                     {#if submitting === msg.id}
                       <span class="text-panda *:size-5"><IconCircleSpin /></span
                       >
-                    {:else}
+                    {:else if msg.kind !== 1}
                       <button
                         class="popup-trigger btn invisible h-10 p-0 group-hover:visible"
                         on:click={(ev) => {
