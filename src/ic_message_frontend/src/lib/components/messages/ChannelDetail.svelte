@@ -35,7 +35,7 @@
         // load latest channel info
         channelInfo = await myState.loadChannelInfo(canister, id)
       },
-      sleep(200)
+      sleep(100)
     ])
     openSettings = !openSettings
     switching = false
@@ -66,7 +66,7 @@
 
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
   <header
-    class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/20 px-4 py-2"
+    class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/20 px-0 py-2 md:px-4"
   >
     <div class="md:hidden">
       <button
@@ -81,7 +81,7 @@
           src={$channelInfo.image}
           background="bg-panda"
           fill="fill-white"
-          width="w-8"
+          width="w-10"
         />
         <span class="flex-1 text-start">
           {$channelInfo.name +

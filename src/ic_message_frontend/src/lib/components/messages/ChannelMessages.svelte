@@ -414,13 +414,17 @@
       class="text-surface-900-50-token snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
     >
       <div
-        class="card w-52 max-w-sm bg-white p-0"
+        class="card z-10 w-40 max-w-sm bg-white p-0"
         data-popup="popupMessageOperation"
       >
         <div
           class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm"
         >
-          <button class="btn btn-sm" on:click={onPopupDeleteMessage}>
+          <button
+            type="button"
+            class="btn btn-sm w-full justify-start"
+            on:click={onPopupDeleteMessage}
+          >
             <span class="*:size-5"><IconDeleteBin /></span><span>Delete</span>
           </button>
         </div>
@@ -444,6 +448,7 @@
           >
             <button
               class="btn p-0"
+              disabled={msg.created_user.username === '_'}
               on:click={() => {
                 onClickUser(msg.created_by)
               }}
@@ -457,28 +462,30 @@
             </button>
 
             <div class="flex flex-col">
-              <header class="flex items-center justify-between text-sm">
+              <header class="flex flex-row items-center gap-2 text-sm">
                 <p>{msg.created_user.name}</p>
                 <small>{msg.created_time}</small>
               </header>
-              <div
-                class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tl-none border-none {msg.kind !==
-                  1 && msg.id > lastRead
-                  ? 'shadow-md shadow-gold'
-                  : ''}  {msg.kind === 1
-                  ? 'bg-transparent text-xs'
-                  : 'bg-white'}"
-              >
-                {#if msg.error}
-                  <p class="w-full text-balance px-4 py-2 text-sm"
-                    >{msg.error}</p
-                  >
-                {:else}
-                  <pre
-                    class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
-                    >{msg.message}</pre
-                  >
-                {/if}
+              <div class="flex flex-col items-start">
+                <div
+                  class="card max-h-[600px] w-fit overflow-auto overscroll-auto rounded-tl-none border-none {msg.kind !==
+                    1 && msg.id > lastRead
+                    ? 'shadow-md shadow-gold'
+                    : ''}  {msg.kind === 1
+                    ? 'bg-transparent text-xs'
+                    : 'bg-white'}"
+                >
+                  {#if msg.error}
+                    <p class="w-full text-balance px-4 py-2 text-sm"
+                      >{msg.error}</p
+                    >
+                  {:else}
+                    <pre
+                      class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
+                      >{msg.message}</pre
+                    >
+                  {/if}
+                </div>
               </div>
             </div>
             <div></div>
@@ -488,42 +495,44 @@
             class="group grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
-            <div class="mt-6 flex flex-row justify-end">
-              {#if submitting === msg.id}
-                <span class="pt-[10px] text-panda *:size-5"
-                  ><IconCircleSpin /></span
-                >
-              {:else}
-                <button
-                  class="popup-trigger btn invisible h-10 p-0 group-hover:visible"
-                  on:click={(ev) => {
-                    popupOpenOn(ev.currentTarget, msg)
-                  }}
-                >
-                  <span class="*:size-5"><IconMore2Line /></span>
-                </button>
-              {/if}
-            </div>
-            <div class=" flex flex-col">
-              <header class="flex items-center justify-end text-sm">
+            <div></div>
+            <div class="flex flex-col">
+              <header class="flex flex-col items-end text-sm">
                 <small>{msg.created_time}</small>
               </header>
-              <div
-                class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tr-none border-none {msg.kind ===
-                1
-                  ? 'bg-transparent text-xs'
-                  : 'variant-soft-primary text-black'}"
-              >
-                {#if msg.error}
-                  <p class="w-full text-balance px-4 py-2 text-sm"
-                    >{msg.error}</p
-                  >
-                {:else}
-                  <pre
-                    class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
-                    >{msg.message}</pre
-                  >
-                {/if}
+              <div class="flex flex-col items-end">
+                <div
+                  class="card relative overflow-visible rounded-tr-none border-none {msg.kind ===
+                  1
+                    ? 'bg-transparent text-xs'
+                    : 'variant-soft-primary text-black'}"
+                >
+                  <div class="absolute -left-6 top-0">
+                    {#if submitting === msg.id}
+                      <span class="text-panda *:size-5"><IconCircleSpin /></span
+                      >
+                    {:else}
+                      <button
+                        class="popup-trigger btn invisible h-10 p-0 group-hover:visible"
+                        on:click={(ev) => {
+                          popupOpenOn(ev.currentTarget, msg)
+                        }}
+                      >
+                        <span class="*:size-5"><IconMore2Line /></span>
+                      </button>
+                    {/if}
+                  </div>
+                  <div class="max-h-[600px] overflow-auto overscroll-auto">
+                    {#if msg.error}
+                      <p class="text-balance px-4 py-2 text-sm">{msg.error}</p>
+                    {:else}
+                      <pre
+                        class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
+                        >{msg.message}</pre
+                      >
+                    {/if}
+                  </div>
+                </div>
               </div>
             </div>
             <Avatar

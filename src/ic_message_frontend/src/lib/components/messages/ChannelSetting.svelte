@@ -438,7 +438,7 @@
     </div>
     <div class="!mt-0">
       {#each $members as member (member._id)}
-        <div class="grid grid-cols-[1fr_auto] items-center py-1">
+        <div class="group grid grid-cols-[1fr_auto] items-center py-1">
           <div class="flex flex-row items-center space-x-2">
             <Avatar
               initials={member.name}
@@ -467,7 +467,7 @@
           <div class="flex flex-row items-center space-x-2">
             {#if isManager && !member.is_manager}
               <button
-                class="btn btn-sm text-neutral-500 hover:variant-soft-warning"
+                class="variant-soft-warning btn btn-sm invisible group-hover:visible"
                 type="button"
                 disabled={adminRemoveMembersSubmitting !== ''}
                 on:click={() => onClickAdminRemoveMember(member._id)}

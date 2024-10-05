@@ -380,7 +380,7 @@
                     </span>
                   </button>
                   <button
-                    class="variant-filled btn btn-sm"
+                    class="variant-filled-primary btn btn-sm"
                     type="button"
                     on:click={() =>
                       member.src && onCreateChannelHandler(member.src.id)}
