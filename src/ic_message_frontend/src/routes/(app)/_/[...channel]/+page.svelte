@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import Chat from '$lib/components/messages/Chat.svelte'
   import { MyMessageState } from '$lib/stores/message'
   import { onMount } from 'svelte'
@@ -7,6 +8,9 @@
   let myState: MyMessageState
   onMount(async () => {
     myState = await MyMessageState.load()
+    if (myState.principal.isAnonymous()) {
+      return goto('/')
+    }
   })
 </script>
 

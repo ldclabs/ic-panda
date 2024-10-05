@@ -28,10 +28,12 @@
   } from '$lib/stores/message'
   import { sleep } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
-  import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
+  import { Avatar, getToastStore, getModalStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
+  import ProfileModel from './ProfileModel.svelte'
+  import { type Principal } from '@dfinity/principal'
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
@@ -39,6 +41,7 @@
 
   const MaybeMaxMessageId = 0xffff0000
   const toastStore = getToastStore()
+  const modalStore = getModalStore()
   const { canister, id } = channelInfo
 
   type MessageInfoEx = MessageInfo & { pid?: number }
@@ -110,6 +113,19 @@
         behavior
       })
     }
+  }
+
+  function onClickUser(userId: Principal) {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ProfileModel,
+        props: {
+          myState,
+          userId
+        }
+      }
+    })
   }
 
   function sendMessage() {
@@ -395,14 +411,14 @@
   {:else}
     <section
       bind:this={elemChat}
-      class="snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
+      class="text-surface-900-50-token snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
     >
       <div
         class="card w-52 max-w-sm bg-white p-0"
         data-popup="popupMessageOperation"
       >
         <div
-          class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm text-neutral-600"
+          class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm"
         >
           <button class="btn btn-sm" on:click={onPopupDeleteMessage}>
             <span class="*:size-5"><IconDeleteBin /></span><span>Delete</span>
@@ -419,25 +435,29 @@
       {#each $messageFeed as msg (msg.id)}
         {#if msg.isDeleted}
           <div class="grid justify-center">
-            <p class="text-balance bg-transparent p-2 text-xs text-neutral-600"
-              >{msg.error}</p
-            >
+            <p class="text-balance bg-transparent p-2 text-xs">{msg.error}</p>
           </div>
         {:else if msg.created_by.compareTo(myState.principal) !== 'eq'}
           <div
             class="grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
-            <Avatar
-              initials={msg.created_user.name}
-              src={msg.created_user.image}
-              fill="fill-white"
-              width="w-10"
-            />
+            <button
+              class="btn p-0"
+              on:click={() => {
+                onClickUser(msg.created_by)
+              }}
+            >
+              <Avatar
+                initials={msg.created_user.name}
+                src={msg.created_user.image}
+                fill="fill-white"
+                width="w-10"
+              />
+            </button>
+
             <div class="flex flex-col">
-              <header
-                class="flex items-center justify-between text-sm text-neutral-600"
-              >
+              <header class="flex items-center justify-between text-sm">
                 <p>{msg.created_user.name}</p>
                 <small>{msg.created_time}</small>
               </header>
@@ -446,12 +466,11 @@
                   1 && msg.id > lastRead
                   ? 'shadow-md shadow-gold'
                   : ''}  {msg.kind === 1
-                  ? 'bg-transparent text-xs text-neutral-600'
+                  ? 'bg-transparent text-xs'
                   : 'bg-white'}"
               >
                 {#if msg.error}
-                  <p
-                    class="w-full text-balance px-4 py-2 text-sm text-neutral-600"
+                  <p class="w-full text-balance px-4 py-2 text-sm"
                     >{msg.error}</p
                   >
                 {:else}
@@ -481,27 +500,22 @@
                     popupOpenOn(ev.currentTarget, msg)
                   }}
                 >
-                  <span class="text-neutral-600 *:size-5"
-                    ><IconMore2Line /></span
-                  >
+                  <span class="*:size-5"><IconMore2Line /></span>
                 </button>
               {/if}
             </div>
             <div class=" flex flex-col">
-              <header
-                class="flex items-center justify-end text-sm text-neutral-600"
-              >
+              <header class="flex items-center justify-end text-sm">
                 <small>{msg.created_time}</small>
               </header>
               <div
                 class="card max-h-[600px] min-h-12 w-full overflow-auto overscroll-auto rounded-tr-none border-none {msg.kind ===
                 1
-                  ? 'bg-transparent text-xs text-neutral-600'
+                  ? 'bg-transparent text-xs'
                   : 'variant-soft-primary text-black'}"
               >
                 {#if msg.error}
-                  <p
-                    class="w-full text-balance px-4 py-2 text-sm text-neutral-600"
+                  <p class="w-full text-balance px-4 py-2 text-sm"
                     >{msg.error}</p
                   >
                 {:else}
@@ -540,15 +554,15 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="textarea whitespace-break-spaces break-words border-0 bg-transparent outline-0 ring-0"
+      class="textarea whitespace-break-spaces break-words border-0 !bg-transparent outline-0 ring-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}
       placeholder="Write a message..."
     />
     <button
-      class="btn btn-sm absolute bottom-3 right-4 rounded-full bg-gray-500/60 {newMessage.trim()
-        ? 'bg-gray-500/30 text-black'
+      class="btn btn-sm absolute bottom-3 right-4 rounded-full bg-surface-500/60 {newMessage.trim()
+        ? 'bg-surface-500/30 text-black'
         : ''}"
       disabled={submitting > 0 || !newMessage.trim()}
       on:click={sendMessage}

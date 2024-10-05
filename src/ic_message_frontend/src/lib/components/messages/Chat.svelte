@@ -40,8 +40,8 @@
 
   onMount(() => {
     const { abort } = toastRun(async function () {
-      if (myState.principal.isAnonymous() || !$myInfo) {
-        return goto('/')
+      if (!$myInfo) {
+        return goto('/_/profile')
       }
 
       if (!isReady) {
@@ -50,7 +50,6 @@
         isReady = !!mk && mk.isOpened() && myState.masterKeyKind() === mk.kind
         if (!isReady) {
           modalStore.close()
-          await sleep(618)
 
           modalStore.trigger({
             type: 'component',
@@ -76,13 +75,13 @@
   class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
 >
   <div
-    class="channels-list h-full transition-transform duration-300 {channelsListActive
+    class="channels-list h-full transition-transform duration-300 dark:bg-neutral-950 {channelsListActive
       ? ''
       : 'max-sm:-translate-x-full'} border-surface-500/20 bg-white sm:border-r"
   >
     <MyChannelList {myState} />
   </div>
-  <div class="h-full bg-gray-900/5">
+  <div class="h-full bg-surface-900/5">
     {#key channelParam}
       {#if channelId.canister && isReady}
         <ChannelDetail {channelId} {myState} {myInfo} />

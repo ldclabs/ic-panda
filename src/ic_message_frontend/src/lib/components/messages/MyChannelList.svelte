@@ -79,14 +79,14 @@
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
   <header class="flex h-[60px] flex-row items-center gap-4 p-4 pr-4">
     <input
-      class="input truncate rounded-lg border-0 bg-gray-900/5"
+      class="input truncate rounded-lg border-0 bg-surface-900/5"
       type="search"
       bind:value={filterValue}
       placeholder="Filter channels..."
     />
     <button
       type="button"
-      class="btn-icon h-10 rounded-lg bg-gray-900/5 text-neutral-500 hover:text-neutral-950"
+      class="btn btn-icon h-10 rounded-lg bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100"
       title="Create a channel"
       on:click={onCreateChannelHandler}
       ><span class="hover:scale-110"><IconAdd /></span></button
@@ -114,7 +114,7 @@
         <div class="relative inline-block">
           {#if channel.my_setting.unread > 0 || channel.my_setting.ecdh_remote.length > 0}
             <span
-              class="badge-icon absolute -right-0 -top-0 z-10 size-2 bg-red-500"
+              class="badge-icon absolute -right-0 -top-0 z-10 size-3 bg-error-500"
             ></span>
           {/if}
           <Avatar
@@ -130,18 +130,18 @@
               {channel.name}
             </span>
             {#if channel.my_setting.mute}
-              <span class="text-neutral-400 *:size-3"
+              <span class="text-surface-400 *:size-3"
                 ><IconNotificationOffLine /></span
               >
             {:else if channel.my_setting.unread > 0}
               <span class="text-xs">{channel.my_setting.unread}</span>
             {/if}
           </div>
-          <div class="flex flex-row text-xs">
-            <span class="text-neutral-600">
+          <div class="flex flex-row space-x-1 text-xs text-surface-500">
+            <span>
               {channel.latest_message_user.name}
             </span>
-            <span class="pl-1 text-neutral-400">
+            <span>
               {channel.latest_message_time}
             </span>
           </div>

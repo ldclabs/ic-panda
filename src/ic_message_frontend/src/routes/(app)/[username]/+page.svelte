@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import ProfileDetail from '$lib/components/messages/ProfileDetail.svelte'
+  import ProfileDetail from '$src/lib/components/messages/ProfileDetail.svelte'
   import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
   import { authStore } from '$lib/stores/auth'
   import { MyMessageState } from '$lib/stores/message'
@@ -9,6 +9,7 @@
   import { onMount } from 'svelte'
 
   let myState: MyMessageState
+  $: isDark = document.documentElement.classList.contains('dark')
   $: username = ($page?.params || {})['username'] || ''
   $: pageKey = $authStore.identity.getPrincipal() + ':' + username
 
@@ -25,18 +26,16 @@
   })
 </script>
 
-<div
-  class="m-auto flex min-h-full w-full max-w-3xl flex-col items-center bg-white shadow-md"
->
+<div class="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-24">
   <header
-    class="flex h-[60px] w-full flex-row items-center justify-between px-4 py-2"
+    class="flex h-[60px] w-full flex-row items-center justify-between px-0 py-2"
   >
     <button
-      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+      class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
       on:click={onGobackHandler}><IconArrowLeftSLine /></button
     >
     <button
-      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+      class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
       on:click={onCloseHandler}><IconClose /></button
     >
   </header>
@@ -48,3 +47,31 @@
     {/if}
   {/key}
 </div>
+<footer
+  id="page-footer"
+  class="text-surface-900-50-token fixed inset-x-0 bottom-0 px-4 py-12"
+>
+  <div class="flex h-16 flex-col items-center">
+    <p class="flex flex-row items-center gap-1">
+      <span class="text-sm">© 2024</span>
+      <a class="" href="https://panda.fans" target="_blank"
+        ><img
+          class="w-28"
+          src={isDark
+            ? '/_assets/icpanda-dao-white.svg'
+            : '/_assets/icpanda-dao.svg'}
+          alt="ICPanda DAO"
+        /></a
+      >
+    </p>
+    <p class="mt-2 text-center text-sm capitalize antialiased">
+      A decentralized Panda meme brand fully running on the <a
+        class="underline underline-offset-4"
+        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+        target="_blank"
+      >
+        Internet Computer
+      </a> blockchain.
+    </p>
+  </div>
+</footer>

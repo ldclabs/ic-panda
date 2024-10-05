@@ -31,7 +31,7 @@
   {#if textLable != ''}
     <span class="mr-2 font-medium">{textLable}</span>
   {/if}
-  <span class="text-neutral-600 {copiedClass}" use:popup={textHover}>
+  <span class="text-neutral-500 {copiedClass}" use:popup={textHover}>
     {textName}
   </span>
   <button

@@ -160,7 +160,7 @@
   <div class="!mt-0 text-center text-xl font-bold">{title}</div>
   <section class="relative m-auto !mt-4 flex flex-col content-center">
     <input
-      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
       type="text"
       name="userInput"
       minlength="1"
@@ -171,7 +171,7 @@
       placeholder="username or principal"
     />
     <div
-      class="card mt-4 max-h-96 min-h-48 w-full space-y-1 overflow-y-auto bg-gray-500/5 py-2"
+      class="card mt-4 max-h-96 min-h-48 w-full space-y-1 overflow-y-auto bg-surface-500/5 py-2"
     >
       {#each $selectedUsers as user (user._id)}
         <div

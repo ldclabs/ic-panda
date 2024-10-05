@@ -17,6 +17,7 @@
     Toast,
     getToastStore,
     initializeStores,
+    setInitialClassState,
     storePopup
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
@@ -45,6 +46,7 @@
   let initAuth = false
   onMount(async () => {
     if (browser) {
+      setInitialClassState()
       await fetchRootKey()
 
       try {
@@ -68,7 +70,7 @@
 
 {#if initAuth}
   <div
-    class="grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+    class="relative grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
   >
     <slot />
   </div>

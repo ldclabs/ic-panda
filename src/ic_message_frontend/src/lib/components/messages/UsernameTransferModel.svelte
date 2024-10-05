@@ -77,7 +77,7 @@
   >
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="usernameInput"
         minlength="1"
@@ -91,7 +91,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="toInput"
         minlength="27"

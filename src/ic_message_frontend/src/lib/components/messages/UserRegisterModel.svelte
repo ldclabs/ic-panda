@@ -189,7 +189,7 @@
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="nameInput"
         minlength="1"
@@ -203,7 +203,7 @@
       />
     </div>
     <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
-    <div class="!mt-4 space-y-2 rounded-xl bg-gray-500/5 p-4">
+    <div class="!mt-4 space-y-2 rounded-xl">
       <p class="">
         <b>1.</b> Username is optional. By registering a username, you will:
       </p>
@@ -230,7 +230,7 @@
           <span class="*:size-6"><IconPanda /></span>
           <b>Your Wallet Balance:</b>
         </div>
-        <div class="flex flex-row gap-1 text-neutral-600">
+        <div class="flex flex-row gap-1 text-neutral-500">
           <span
             >{formatNumber(
               Number(availablePandaBalance) / Number(PANDAToken.one)
@@ -252,7 +252,7 @@
     </div>
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="usernameInput"
         minlength="1"

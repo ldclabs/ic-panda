@@ -130,6 +130,8 @@
     target: 'popupNavigationMore'
   })
 
+  $: isAnonymous = agent.isAnonymous()
+
   let myState: MyMessageState
   let users_total = 0n
   let names_total = 0n
@@ -138,8 +140,9 @@
 
   async function onLaunchAppHandler() {
     // always load the latest one
+    isAnonymous = agent.isAnonymous()
     myState = await MyMessageState.load()
-    if (myState.principal.isAnonymous()) {
+    if (isAnonymous) {
       await authStore.signIn({})
       myState = await MyMessageState.load()
       onLaunchAppHandler()
@@ -229,12 +232,14 @@
             on:click={onLaunchAppHandler}
             class="rainbow-button group relative w-[280px] overflow-hidden bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
           >
-            <span class="relative z-10 text-lg">Launch app</span>
+            <span class="relative z-10 text-lg text-neutral-950"
+              >Launch app</span
+            >
             <span class="rainbow-border"></span>
           </button>
-          {#if !agent.isAnonymous()}
+          {#if !isAnonymous}
             <button
-              class="btn px-4 text-white transition-all hover:scale-105"
+              class="btn px-4 text-white transition-all hover:scale-125"
               on:click={(ev) => {
                 popupOpenOn(ev.currentTarget)
               }}
@@ -367,7 +372,7 @@
                   width="w-10"
                 />
                 <span class="ml-1 truncate text-neutral-200">{user.name}</span>
-                <span class="text-neutral-600">@{user.username[0]}</span>
+                <span class="text-neutral-500">@{user.username[0]}</span>
               </div>
             </a>
           {/each}
@@ -386,7 +391,7 @@
           {#each [...partners, ...partners] as partner (partner.url + Math.random())}
             <a
               class="partner-item {partner.bg
-                ? partner.bg + ' border border-gray-300'
+                ? partner.bg + ' border border-surface-300'
                 : 'bg-white'}"
               target="_blank"
               href={partner.url}
@@ -427,9 +432,9 @@
       </div>
     </div>
 
-    <footer id="page-footer" class="px-4 pb-24 pt-12">
+    <footer id="page-footer" class="text-surface-900-50-token px-4 pb-24 pt-12">
       <div class="flex h-16 flex-col items-center">
-        <p class="flex flex-row items-center gap-1 text-white">
+        <p class="flex flex-row items-center gap-1">
           <span class="text-sm">© 2024</span>
           <a class="" href="https://panda.fans" target="_blank"
             ><img
@@ -439,9 +444,7 @@
             /></a
           >
         </p>
-        <p
-          class="mt-2 text-center text-sm capitalize text-neutral-300 antialiased"
-        >
+        <p class="mt-2 text-center text-sm capitalize antialiased">
           A decentralized Panda meme brand fully running on the <a
             class="underline underline-offset-4"
             href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"

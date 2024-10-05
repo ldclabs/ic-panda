@@ -254,7 +254,7 @@
 </script>
 
 <div
-  class="h-[calc(100dvh-110px)] items-start overflow-y-auto bg-gray-500/5 pb-10 sm:h-[calc(100dvh-140px)]"
+  class="h-[calc(100dvh-120px)] items-start overflow-y-auto bg-surface-500/5 pb-10 md:h-[calc(100dvh-60px)]"
 >
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     <Avatar
@@ -271,7 +271,7 @@
         {#if isManager}
           <button
             type="button"
-            class="btn ml-2 p-0 text-neutral-600"
+            class="btn ml-2 p-0 text-neutral-500"
             on:click={onClickEditChannel}
           >
             <span class="*:size-4"><IconEditLine /></span>
@@ -287,13 +287,13 @@
   </section>
   <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
-      <span class="text-sm font-normal text-neutral-600">Messages:</span>
+      <span class="text-sm font-normal text-neutral-500">Messages:</span>
       <span class="font-bold text-panda"
         >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
-      <span class="text-sm font-normal text-neutral-600">Gas Balance:</span>
+      <span class="text-sm font-normal text-neutral-500">Gas Balance:</span>
       <span class="font-bold text-panda">{channelInfo.gas}</span>
     </div>
     <button
@@ -360,10 +360,10 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
-      <div class="input-group w-60 grid-cols-[1fr_80px] bg-gray-500/5">
+      <div class="input-group w-60 grid-cols-[1fr_80px] bg-surface-500/5">
         <input
           type="text"
-          class="border-gray/10 h-8 !w-44 truncate py-1 leading-8 invalid:input-warning hover:bg-white/90"
+          class="border-gray/10 h-8 !w-44 truncate py-1 leading-8 invalid:input-warning"
           bind:value={leavingWord}
           placeholder="channel name"
         />
@@ -419,7 +419,7 @@
             class="btn btn-sm hover:variant-soft-primary {hasExchangeKeys &&
             !adminExchangeKeysSubmitting
               ? 'text-panda'
-              : 'text-neutral-600'}"
+              : 'text-neutral-500'}"
             on:click={onClickAdminExchangeKeys}
             disabled={adminExchangeKeysSubmitting || !hasExchangeKeys}
           >
@@ -436,7 +436,7 @@
         </div>
       {/if}
     </div>
-    <div class="divide-gray/5 !mt-0 divide-y">
+    <div class="!mt-0">
       {#each $members as member (member._id)}
         <div class="grid grid-cols-[1fr_auto] items-center py-1">
           <div class="flex flex-row items-center space-x-2">
@@ -449,17 +449,17 @@
             />
             <span class="ml-1">{member.name}</span>
             {#if member.username}
-              <span class="text-neutral-600">@{member.username}</span>
+              <span class="text-neutral-500">@{member.username}</span>
             {/if}
             {#if member.is_manager}
-              <span class="text-neutral-600 *:size-4"><IconAdminLine /></span>
+              <span class="text-neutral-500 *:size-4"><IconAdminLine /></span>
             {/if}
             {#if member.ecdh_request === 1}
-              <span class="variant-ringed-primary badge text-neutral-600"
+              <span class="variant-ringed-primary badge text-neutral-500"
                 >Request key</span
               >
             {:else if member.ecdh_request === 2}
-              <span class="variant-ringed-surface badge text-neutral-600"
+              <span class="variant-ringed-surface badge text-neutral-500"
                 >Key filled</span
               >
             {/if}
@@ -467,7 +467,7 @@
           <div class="flex flex-row items-center space-x-2">
             {#if isManager && !member.is_manager}
               <button
-                class="btn btn-sm text-neutral-600 hover:variant-soft-warning"
+                class="btn btn-sm text-neutral-500 hover:variant-soft-warning"
                 type="button"
                 disabled={adminRemoveMembersSubmitting !== ''}
                 on:click={() => onClickAdminRemoveMember(member._id)}

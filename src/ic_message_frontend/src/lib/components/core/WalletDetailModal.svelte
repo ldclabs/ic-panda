@@ -51,7 +51,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold">Wallet</div>
-  <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-gray-500/5 px-4 py-3">
+  <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-surface-500/20 px-4 py-3">
     <TextClipboardPopup
       textLable="Address:"
       textName={shortId(principal.toString())}

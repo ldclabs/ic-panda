@@ -110,7 +110,7 @@
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning"
         type="number"
         name="amountInput"
         min="0"
@@ -122,7 +122,7 @@
         data-focusindex="1"
         required
       />
-      <div class="absolute right-2 top-2 text-neutral-600 outline-0"
+      <div class="absolute right-2 top-2 text-neutral-500 outline-0"
         >{PANDAToken.symbol}</div
       >
       <p class="h-5 pl-3 text-sm {topupErr ? 'text-error-500' : 'text-panda'}"
@@ -135,7 +135,7 @@
           <span class="*:size-6"><IconPanda /></span>
           <b>Your Wallet Balance:</b>
         </div>
-        <div class="flex flex-row gap-1 text-neutral-600">
+        <div class="flex flex-row gap-1 text-neutral-500">
           <span
             >{formatNumber(
               Number(availablePandaBalance) / Number(PANDAToken.one)

@@ -70,7 +70,7 @@
   >
     <div class="md:hidden">
       <button
-        class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+        class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950 dark:hover:text-surface-100"
         on:click={onChatBack}><IconArrowLeftSLine /></button
       >
     </div>
@@ -100,7 +100,7 @@
     </div>
     <button
       type="button"
-      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950"
+      class="btn btn-icon text-neutral-500 hover:scale-110 hover:text-neutral-950 dark:hover:text-surface-100"
       title="Channel settings"
       disabled={switching}
       on:click={onClickChannelSetting}

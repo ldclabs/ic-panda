@@ -155,7 +155,7 @@
       <label class="label">
         <span>Send to destination</span>
         <input
-          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success hover:bg-white/90"
+          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success"
           type="text"
           name="sendTo"
           minlength="8"
@@ -182,7 +182,7 @@
           <span class="!ml-1">Max</span>
         </a>
         <input
-          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success hover:bg-white/90"
+          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success"
           type="number"
           name="amount"
           min="0"

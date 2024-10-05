@@ -25,13 +25,13 @@
   }
 
   function onLogoutHandler(): void {
-    authStore.signOut()
+    authStore.signOut('/')
   }
 </script>
 
 <div class="card z-20 w-52 bg-white px-0 py-2 shadow-lg" data-popup={target}>
   <div
-    class="flex flex-col items-start text-sm text-neutral-500 *:bg-surface-hover-token *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
+    class="flex flex-col items-start text-sm *:bg-surface-hover-token *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
   >
     <button type="button" on:click={onWalletHandler}>
       <span class="*:size-5"><IconWallet /></span>
@@ -56,7 +56,7 @@
     <button type="button" on:click={() => window.location.reload()}>
       <span class="*:size-5"><IconRefresh /></span>
       <span>Reload App</span>
-      <span class="text-neutral-400">(v{APP_VERSION})</span>
+      <span class="text-surface-500">(v{APP_VERSION})</span>
     </button>
     <button
       type="button"

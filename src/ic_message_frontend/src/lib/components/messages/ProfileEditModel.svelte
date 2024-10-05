@@ -84,11 +84,11 @@
         class="border-gray/10 flex flex-row justify-between rounded-xl border-[1px] px-3 py-2"
       >
         <p>
-          <span class="text-neutral-600">{APP_ORIGIN + '/'}</span>
+          <span class="text-neutral-500">{APP_ORIGIN + '/'}</span>
           <span>{$myInfo.username[0]}</span>
         </p>
         <button
-          class="btn btn-sm p-0 text-neutral-600 hover:text-panda"
+          class="btn btn-sm p-0 text-neutral-500 hover:text-panda"
           on:click|preventDefault|stopPropagation={onTransferUsernameHandler}
           >Transfer</button
         >
@@ -96,7 +96,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="nameInput"
         minlength="1"
@@ -113,7 +113,7 @@
         bind:value={descriptionInput}
         minHeight="60"
         maxHeight="120"
-        class="border-gray/10 textarea rounded-xl bg-white/20 hover:bg-white/90"
+        class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
         disabled={submitting}
         placeholder="User bio..."

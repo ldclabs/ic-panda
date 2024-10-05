@@ -37,11 +37,11 @@
 
 {#key principal.toText()}
   <div
-    class="mx-auto grid h-dvh w-full bg-white shadow-md max-md:grid-rows-[1fr_auto] md:max-w-5xl md:grid-cols-[auto_1fr]"
+    class="mx-auto grid h-dvh w-full bg-white shadow-md max-md:grid-rows-[1fr_auto] md:max-w-5xl md:grid-cols-[auto_1fr] dark:bg-neutral-900"
   >
     <slot />
     <div
-      class="nav grid items-start gap-2 border-surface-500/20 bg-gray-100/50 *:flex *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
+      class="nav grid items-start gap-2 border-surface-500/20 *:flex *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
     >
       <a
         href="/_/profile"

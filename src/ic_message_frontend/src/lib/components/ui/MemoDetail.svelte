@@ -14,13 +14,13 @@
 {#if detail}
   <div class="mt-2 pl-8 text-sm">
     <p><b>Message:</b></p>
-    <p class="text-neutral-600">
+    <p class="text-neutral-500">
       {detail.message || '-'}
     </p>
     {#if detail.link}
       <p><b>Link:</b></p>
       <a
-        class="block w-full truncate text-neutral-600 underline"
+        class="block w-full truncate text-neutral-500 underline"
         href={detail.link}
         target="_blank">{detail.link}</a
       >

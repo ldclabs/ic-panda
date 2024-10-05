@@ -127,7 +127,9 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Create a channel</div>
+  <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
+    >Create a channel</div
+  >
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -136,7 +138,7 @@
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="nameInput"
         minlength="1"
@@ -154,24 +156,24 @@
         bind:value={descriptionInput}
         minHeight="60"
         maxHeight="120"
-        class="border-gray/10 textarea rounded-xl bg-white/20 hover:bg-white/90"
+        class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
         placeholder="Channel description (not encrypted)..."
         data-focusindex="1"
       />
     </div>
     <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
-    <div class="!mt-4 space-y-2 rounded-xl bg-gray-500/5 p-4">
-      <p class="text-neutral-600">
+    <div class="!mt-4 space-y-2 rounded-xl">
+      <p>
         <b>1.</b> Creating a message channel costs
         <span class="text-panda"
           >{formatNumber(Number(channelPrice) / Number(PANDAToken.one))}</span
         > PANDA tokens for gas; sending messages will consume gas.
       </p>
-      <p class="text-neutral-600">
+      <p>
         <b>2.</b> A channel can have up to 5 managers and 100 members.
       </p>
-      <p class="text-neutral-600">
+      <p>
         <b>3.</b> Managers can only remove regular members, not other managers. If
         the last manager leaves, the channel and all messages will be deleted.
       </p>
@@ -182,7 +184,7 @@
           <span class="*:size-6"><IconPanda /></span>
           <b>Your Wallet Balance:</b>
         </div>
-        <div class="flex flex-row gap-1 text-neutral-600">
+        <div class="flex flex-row gap-1">
           <span
             >{formatNumber(
               Number(availablePandaBalance) / Number(PANDAToken.one)
@@ -205,7 +207,7 @@
   </form>
   <footer class="m-auto !mt-6">
     <button
-      class="variant-filled-primary btn w-full text-white"
+      class="variant-filled-primary btn w-full"
       disabled={submitting ||
         !validating ||
         channelPrice > availablePandaBalance}

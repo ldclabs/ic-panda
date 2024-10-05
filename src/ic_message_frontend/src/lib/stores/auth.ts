@@ -26,7 +26,7 @@ export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
   getIdentity: () => Promise<Identity>
   signIn: (params: AuthSignInParams) => Promise<void>
-  signOut: () => Promise<void>
+  signOut: (url: string) => Promise<void>
 }
 
 const initAuthStore = (): AuthStore => {
@@ -87,14 +87,14 @@ const initAuthStore = (): AuthStore => {
         })
       }),
 
-    signOut: async () => {
+    signOut: async (url: string) => {
       agent.setIdentity(anonymousIdentity)
       set({
         identity: anonymousIdentity
       })
       const authClient = await authClientPromise
       await authClient.logout()
-      window.location.reload() // force reload to clear all auth state!!
+      window.location.assign(url) // force reload to clear all auth state!!
     }
   }
 }

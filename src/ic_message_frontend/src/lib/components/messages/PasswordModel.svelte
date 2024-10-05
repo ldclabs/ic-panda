@@ -162,7 +162,7 @@
     use:focusTrap={true}
   >
     <input
-      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
       type="password"
       name="passwordInput1"
       minlength="6"
@@ -175,7 +175,7 @@
     />
     {#if isSetup}
       <input
-        class="border-gray/10 input mt-4 truncate rounded-xl bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input mt-4 truncate rounded-xl bg-white/20 invalid:input-warning"
         type="password"
         name="passwordInput2"
         minlength="6"
@@ -194,7 +194,7 @@
     >
     {#if isSetup}
       <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
-      <div class="!mt-4 space-y-2 rounded-xl bg-gray-500/5 p-4">
+      <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
         <p class="">
           <b>1.</b> The password is used only locally to derive the master key with
           remote key material; neither the password nor the derived key is stored
@@ -212,7 +212,7 @@
     {/if}
     <label class="mt-2 flex items-center">
       <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
-      <p class="ml-2 text-sm text-neutral-600">Retain for 14 days</p>
+      <p class="ml-2 text-sm text-neutral-500">Retain for 14 days</p>
     </label>
   </form>
   <footer class="m-auto !mt-4">

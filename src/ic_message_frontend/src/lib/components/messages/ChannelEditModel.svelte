@@ -81,7 +81,7 @@
   >
     <div class="relative">
       <input
-        class="input truncate rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
+        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
         name="nameInput"
         minlength="1"
@@ -98,7 +98,7 @@
         bind:value={descriptionInput}
         minHeight="60"
         maxHeight="120"
-        class="textarea rounded-xl border-gray/10 bg-white/20 hover:bg-white/90"
+        class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
         placeholder="Channel description..."
       />

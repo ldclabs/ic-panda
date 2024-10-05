@@ -14,11 +14,15 @@ html {
   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(255, 255, 255, 0.05) !important;
 }
 
+html.dark {
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.05) !important;
+}
+
 body {
 }
 
 /* https://www.skeleton.dev/docs/themes */
-:root [data-theme='skeleton'] {
+:root [data-theme='icpanda'] {
   --theme-font-family-base: -apple-system, BlinkMacSystemFont, 'system-ui',
     'Segoe UI', 'Noto Sans', Roboto, Helvetica, Arial, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji';
@@ -28,11 +32,27 @@ body {
     rgba(255, 255, 255, 0) 35%
   );
 }
+.dark:root [data-theme='icpanda'] {
+  background-color: hsla(0, 100%, 1%, 1);
+  background-image: radial-gradient(
+      at 0% 0%,
+      hsla(137, 58%, 16%, 0.98) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 40% 20%, hsla(27, 100%, 1%, 1) 0px, transparent 50%),
+    radial-gradient(at 100% 60%, hsla(137, 58%, 16%, 0.98) 0px, transparent 50%);
+}
 
 .icpanda-message {
   font-family: -apple-system, BlinkMacSystemFont, 'system-ui', 'Segoe UI',
     'Noto Sans', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji';
+}
+
+.content-markdown :global(a) {
+  text-underline-offset: 4px;
+  text-decoration-line: underline;
+  font-weight: 500;
 }
 
 @supports not (text-wrap: balance) {
