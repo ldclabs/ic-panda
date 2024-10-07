@@ -555,7 +555,7 @@
     </section>
   {/if}
   <section
-    class="relative border-t border-surface-500/20 py-2 pl-2 pr-16 md:pr-24"
+    class="group relative border-t border-surface-500/20 py-2 pl-2 pr-16 md:pr-24"
   >
     <TextArea
       bind:value={newMessage}
@@ -570,14 +570,14 @@
       placeholder="Write a message..."
     />
     <button
-      class="btn btn-sm absolute bottom-3 right-4 rounded-full bg-surface-500/60 {newMessage.trim()
-        ? 'bg-surface-500/30 text-black'
+      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow-xl backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:translate-y-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {newMessage.trim()
+        ? ' before:translate-y-0 before:scale-150'
         : ''}"
       disabled={submitting > 0 || !newMessage.trim()}
       on:click={sendMessage}
     >
       {#if submitting}
-        <span class="text-neutral-300 *:size-5"><IconCircleSpin /></span>
+        <span class="*:size-5"><IconCircleSpin /></span>
       {:else}
         <span class="*:size-5">
           <IconSendPlaneFill />

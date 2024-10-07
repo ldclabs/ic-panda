@@ -230,9 +230,10 @@
         <div class="flex flex-row gap-2">
           <button
             on:click={onLaunchAppHandler}
-            class="rainbow-button group relative w-[280px] overflow-hidden bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+            class="rainbow-button group relative w-[280px] overflow-hidden border border-black/50 bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
           >
-            <span class="relative z-10 text-lg text-neutral-950"
+            <span
+              class="relative z-10 text-lg text-neutral-700 transition-all duration-300 group-hover:text-neutral-950"
               >Launch app</span
             >
             <span class="rainbow-border"></span>
@@ -525,7 +526,7 @@
   :global(.rainbow-button:hover .rainbow-border) {
     filter: blur(2px);
     opacity: 1;
-    inset: -4px;
+    inset: -6px;
   }
 
   :global(.rainbow-button::before) {
@@ -534,7 +535,7 @@
     inset: -1px;
     background: inherit;
     border-radius: inherit;
-    filter: blur(7px);
+    filter: blur(3px);
     opacity: 0.6;
     z-index: -1;
   }
@@ -542,19 +543,16 @@
   :global(.rainbow-button::after) {
     content: '';
     position: absolute;
-    inset: 2px;
-    background: radial-gradient(
-      circle,
-      white 60%,
-      rgba(255, 255, 255, 0.9) 100%
-    );
+    inset: 4px;
+    background: radial-gradient(circle, white 61%, rgba(255, 255, 255, 1) 100%);
     border-radius: 9999px;
+    filter: blur(1px);
     z-index: 1;
     transition: all 0.3s ease;
   }
 
   :global(.rainbow-button:hover::after) {
-    inset: 3px;
+    inset: 5px;
   }
 
   @keyframes move-gradient {
