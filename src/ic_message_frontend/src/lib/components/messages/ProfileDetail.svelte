@@ -149,7 +149,6 @@
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
       myInfo = await myState.agent.subscribeProfile()
-      console.log('myInfo', userId, $myInfo)
       if (
         (typeof userId === 'string' && userId === myState.id) ||
         (userId instanceof Principal &&
