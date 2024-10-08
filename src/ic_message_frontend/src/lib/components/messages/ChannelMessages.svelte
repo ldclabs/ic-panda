@@ -43,6 +43,7 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const { canister, id } = channelInfo
+  const messageCacheKey = `${canister.toText()}:${id}:NewMessage`
 
   type MessageInfoEx = MessageInfo & { pid?: number }
 
@@ -55,11 +56,30 @@
 
   // Messages
   let submitting = 0
-  let newMessage = ''
+  let newMessage = sessionStorage.getItem(messageCacheKey) || ''
   let messageStart = 1
   let latestMessageId = 1
   let lastRead = 1
   let hasKEK = true
+
+  $: {
+    const info = $latestMessage
+    if (info && elemChat) {
+      latestMessageId = info.id
+      addMessages([info])
+      tick().then(() => {
+        const msg = $messageFeed.at(-1)
+        if (msg && msg.id > lastRead && msg.id !== msg.pid) {
+          const ele = document.getElementById(
+            `${canister.toText()}:${id}:${msg.id}`
+          )
+          if (ele && elementsInViewport(elemChat, [ele]).length > 0) {
+            updateLastRead(msg.id)
+          }
+        }
+      })
+    }
+  }
 
   function sortMessages(msgs: MessageInfo[]): MessageInfo[] {
     msgs.sort((a, b) => a.id - b.id)
@@ -160,6 +180,7 @@
         pid: PendingMessageId
       }
       newMessage = ''
+      sessionStorage.removeItem(messageCacheKey)
       addMessages([msg])
       await tick()
       scrollIntoView(msg.id, 'smooth')
@@ -307,6 +328,7 @@
         scrollIntoView(lastRead)
 
         await loadNextMessages(lastRead + 1)
+        await tick()
         // no scroll
         if (elemChat?.scrollTop == 0) {
           const msg = $messageFeed.at(-1)
@@ -371,27 +393,12 @@
   })
 
   onDestroy(() => {
-    debouncedUpdateMyLastRead.flush()
-  })
-
-  $: {
-    const info = $latestMessage
-    if (info && elemChat) {
-      latestMessageId = info.id
-      addMessages([info])
-      tick().then(() => {
-        const msg = $messageFeed.at(-1)
-        if (msg && msg.id > lastRead && msg.id !== msg.pid) {
-          const ele = document.getElementById(
-            `${canister.toText()}:${id}:${msg.id}`
-          )
-          if (ele && elementsInViewport(elemChat, [ele]).length > 0) {
-            updateLastRead(msg.id)
-          }
-        }
-      })
+    newMessage = newMessage.trim()
+    if (newMessage) {
+      sessionStorage.setItem(messageCacheKey, newMessage)
     }
-  }
+    debouncedUpdateMyLastRead.trigger()
+  })
 </script>
 
 <div
@@ -570,9 +577,9 @@
       placeholder="Write a message..."
     />
     <button
-      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow-xl backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:translate-y-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {newMessage.trim()
-        ? ' before:translate-y-0 before:scale-150'
-        : ''}"
+      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {newMessage.trim()
+        ? 'before:translate-y-0 before:scale-150'
+        : 'before:translate-y-full'}"
       disabled={submitting > 0 || !newMessage.trim()}
       on:click={sendMessage}
     >

@@ -104,14 +104,18 @@
       title="Channel settings"
       disabled={switching}
       on:click={onClickChannelSetting}
-      ><span>
+    >
+      {#if !openSettings && $channelInfo?.ecdh_request.length > 0}
+        <span class="badge-icon z-10 size-2 bg-error-500"></span>
+      {/if}
+      <span>
         {#if openSettings}
           <IconClose />
         {:else}
           <IconMoreFill />
         {/if}
-      </span></button
-    >
+      </span>
+    </button>
   </header>
   {#if $channelInfo}
     {#if openSettings}

@@ -43,6 +43,11 @@
   const myID = $myInfo.id.toText()
   const { canister, id } = channelInfo
 
+  $: hasExchangeKeys =
+    channelInfo.ecdh_request.filter(
+      (r) => r[0].toText() !== myID && r[1][1].length === 0
+    ).length > 0
+
   let mute = channelInfo.my_setting.mute
   let isManager = false
 
@@ -246,11 +251,6 @@
 
     return abort
   })
-
-  $: hasExchangeKeys =
-    channelInfo.ecdh_request.filter(
-      (r) => r[0].toText() !== myID && r[1][1].length === 0
-    ).length > 0
 </script>
 
 <div
@@ -360,27 +360,30 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
-      <div class="input-group w-60 grid-cols-[1fr_80px] bg-surface-500/5">
+      <div
+        class="input-group w-full max-w-60 grid-cols-[1fr_auto] bg-surface-500/5"
+      >
         <input
           type="text"
-          class="border-gray/10 h-8 !w-44 truncate py-1 leading-8 invalid:input-warning"
+          class="border-gray/10 h-8 truncate py-1 leading-8 invalid:input-warning"
           bind:value={leavingWord}
           placeholder="channel name"
         />
         <button
           type="button"
-          class="variant-filled-warning disabled:variant-filled-surface"
+          class="variant-filled-warning !px-2 disabled:variant-filled-surface"
           on:click={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
             leavingWord.trim() != channelInfo.name}
-          ><span class="*:size-5"><IconLogout /></span></button
+          ><span class="*:size-5">
+            {#if myLeavingSubmitting}
+              <IconCircleSpin />
+            {:else}
+              <IconLogout />
+            {/if}
+          </span></button
         >
       </div>
-      <span
-        class="text-panda *:size-4 {myLeavingSubmitting ? '' : 'invisible'}"
-      >
-        <IconCircleSpin />
-      </span>
     </div>
     {#if isManager && channelInfo._managers.length < 2}
       <p
