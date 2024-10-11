@@ -1,4 +1,6 @@
+import type { Principal } from '@dfinity/principal'
 import { decodeCBOR, encodeCBOR } from '@ldclabs/cose-ts/utils'
+import { IS_LOCAL } from '$lib/constants'
 
 export type URLSearchParamsInit =
   | URLSearchParams
@@ -88,4 +90,10 @@ export function revokeBlobURL(url: string) {
   } catch {
     // ...
   }
+}
+
+export function avatarUrl(canister: Principal, id: number, name: string) {
+  return IS_LOCAL
+    ? `http://${canister.toText()}.localhost:4943/f/${id}?filename=${name}&inline`
+    : `https://${canister.toText()}.icp0.io/f/${id}?filename=${name}&inline`
 }

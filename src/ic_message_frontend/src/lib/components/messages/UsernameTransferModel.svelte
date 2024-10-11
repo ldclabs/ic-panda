@@ -2,8 +2,8 @@
   import { type UserInfo } from '$lib/canisters/message'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { toastRun } from '$lib/stores/toast'
   import { type MyMessageState } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
   import { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
@@ -69,7 +69,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Transfer Username</div>
+  <div class="!mt-0 text-center text-xl font-bold">Transfer username</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"

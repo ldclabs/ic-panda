@@ -12,10 +12,10 @@ export function createActor<T = Record<string, ActorMethod>>({
 }): ActorSubclass<T> {
   // Creates an actor with using the candid interface and the HttpAgent
   return Actor.createActor(idlFactory, {
-    agent,
-    canisterId
     // queryTransform: (methodName: string, args: unknown[], callConfig: any) => {
     //   console.log('queryTransform', methodName, args, callConfig)
-    // }
+    // },
+    agent,
+    canisterId
   })
 }

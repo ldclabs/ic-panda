@@ -1,4 +1,4 @@
-use candid::Principal;
+use candid::{utils::ArgumentEncoder, Principal};
 use ic_cdk::api::management_canister::main::CanisterStatusResponse;
 use ic_cose_types::ANONYMOUS;
 use serde_bytes::ByteArray;
@@ -28,6 +28,22 @@ fn is_authenticated() -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+async fn call<In, Out>(id: Principal, method: &str, args: In, cycles: u128) -> Result<Out, String>
+where
+    In: ArgumentEncoder + Send,
+    Out: candid::CandidType + for<'a> candid::Deserialize<'a>,
+{
+    let (res,): (Out,) = ic_cdk::api::call::call_with_payment128(id, method, args, cycles)
+        .await
+        .map_err(|(code, msg)| {
+            format!(
+                "failed to call {} on {:?}, code: {}, message: {}",
+                method, &id, code as u32, msg
+            )
+        })?;
+    Ok(res)
 }
 
 #[cfg(all(

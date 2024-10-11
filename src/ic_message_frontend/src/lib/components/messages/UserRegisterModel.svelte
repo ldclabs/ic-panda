@@ -1,25 +1,25 @@
 <script lang="ts">
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
   import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
+  import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { MESSAGE_CANISTER_ID, APP_ORIGIN } from '$lib/constants'
+  import { APP_ORIGIN, MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { type MyMessageState } from '$lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import {
     focusTrap,
-    getToastStore,
-    getModalStore
+    getModalStore,
+    getToastStore
   } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import IconAdd from '$lib/components/icons/IconAdd.svelte'
-  import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
 
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
   const toastStore = getToastStore()
@@ -179,7 +179,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{editMode ? 'Edit' : 'Register'} Name</div
+    >{editMode ? 'Edit' : 'Register'} name</div
   >
 
   <form

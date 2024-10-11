@@ -1,5 +1,9 @@
 use candid::Principal;
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use ic_oss_types::{
+    cose::Token,
+    file::{CreateFileInput, CreateFileOutput, UpdateFileInput, UpdateFileOutput},
+};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -13,7 +17,7 @@ use std::{
     collections::{BTreeSet, HashMap},
 };
 
-use crate::types;
+use crate::{call, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -21,6 +25,10 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 pub struct State {
     pub name: String,
     pub managers: BTreeSet<Principal>,
+    #[serde(default)]
+    pub ic_oss_cluster: Option<Principal>,
+    #[serde(default)]
+    pub ic_oss_buckets: Vec<Principal>,
 }
 
 impl Storable for State {
@@ -51,6 +59,10 @@ pub struct Profile {
     pub created_at: u64,
     #[serde(rename = "ep")]
     pub ecdh_pub: Option<ByteArray<32>>,
+    #[serde(default, rename = "i")]
+    pub image_file: Option<(Principal, u32)>, // image file: (ic-oss-bucket canister, file_id)
+    #[serde(default, rename = "l")]
+    pub links: Vec<types::Link>,
 }
 
 impl Profile {
@@ -66,6 +78,8 @@ impl Profile {
             bio: self.bio,
             active_at: self.active_at,
             created_at: self.created_at,
+            image_file: self.image_file,
+            links: self.links,
             ecdh_pub: self.ecdh_pub,
             following: if is_caller {
                 Some(self.following)
@@ -187,10 +201,28 @@ pub mod state {
 }
 
 pub mod profile {
+    use serde_bytes::ByteBuf;
+
     use super::*;
 
     pub fn profiles_total() -> u64 {
         PROFILE_STORE.with(|r| r.borrow().len())
+    }
+
+    pub fn with_mut<R>(
+        user: Principal,
+        f: impl FnOnce(&mut Profile) -> Result<R, String>,
+    ) -> Result<R, String> {
+        PROFILE_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            match m.get(&user) {
+                None => Err("profile not found".to_string()),
+                Some(mut p) => f(&mut p).map(|r| {
+                    m.insert(user, p);
+                    r
+                }),
+            }
+        })
     }
 
     pub fn upsert(
@@ -301,6 +333,91 @@ pub mod profile {
                 }
                 None => Err("profile not found".to_string()),
             }
+        })
+    }
+
+    pub async fn upload_image_token(
+        user: Principal,
+        now_ms: u64,
+        input: types::UploadImageInput,
+    ) -> Result<types::UploadImageOutput, String> {
+        let (ic_oss_cluster, ic_oss_bucket) =
+            state::with(|s| (s.ic_oss_cluster.clone(), s.ic_oss_buckets.last().cloned()));
+        let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+        let ic_oss_bucket = ic_oss_bucket.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+
+        let image = PROFILE_STORE.with(|r| match r.borrow().get(&user) {
+            None => Err("profile not found".to_string()),
+            Some(p) => Ok(p.image_file),
+        })?;
+
+        let name = input.filename(now_ms.to_string());
+        let image = match image {
+            Some(image) => {
+                let res: Result<UpdateFileOutput, String> = call(
+                    image.0,
+                    "update_file_info",
+                    (
+                        UpdateFileInput {
+                            id: image.1,
+                            name: Some(name.clone()),
+                            content_type: Some(input.content_type),
+                            size: Some(input.size),
+                            ..Default::default()
+                        },
+                        None::<ByteBuf>,
+                    ),
+                    0,
+                )
+                .await?;
+                res?;
+                image
+            }
+            None => {
+                let res: Result<CreateFileOutput, String> = call(
+                    ic_oss_bucket,
+                    "create_file",
+                    (
+                        CreateFileInput {
+                            parent: 0,
+                            name: name.clone(),
+                            content_type: input.content_type,
+                            size: Some(input.size),
+                            ..Default::default()
+                        },
+                        None::<ByteBuf>,
+                    ),
+                    0,
+                )
+                .await?;
+                let res = res?;
+                with_mut(user, |p| {
+                    p.image_file = Some((ic_oss_bucket, res.id));
+                    Ok(())
+                })?;
+                (ic_oss_bucket, res.id)
+            }
+        };
+
+        let res: Result<ByteBuf, String> = call(
+            ic_oss_cluster,
+            "admin_weak_access_token",
+            (
+                Token {
+                    subject: user,
+                    audience: image.0,
+                    policies: format!("File.Write:{}", image.1),
+                },
+                now_ms / 1000,
+                60 * 10 as u64, // 10 minutes
+            ),
+            0,
+        )
+        .await?;
+        Ok(types::UploadImageOutput {
+            name,
+            image,
+            access_token: res?,
         })
     }
 

@@ -18,3 +18,4 @@ candid = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 ic_cose_types = { workspace = true }
+ic-oss-types = { workspace = true }

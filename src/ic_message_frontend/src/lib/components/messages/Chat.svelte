@@ -1,19 +1,18 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import { toastRun } from '$lib/stores/toast'
   import { type UserInfo } from '$lib/canisters/message'
+  import { ChannelAPI } from '$lib/canisters/messagechannel'
   import { MyMessageState } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
-  import { setContext } from 'svelte'
+  import type { Principal } from '@dfinity/principal'
+  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { onMount, setContext } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelDetail from './ChannelDetail.svelte'
   import MyChannelList from './MyChannelList.svelte'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import PasswordModel from './PasswordModel.svelte'
-  import { onMount } from 'svelte'
-  import { ChannelAPI } from '$lib/canisters/messagechannel'
-  import type { Principal } from '@dfinity/principal'
 
   export let myState: MyMessageState
 

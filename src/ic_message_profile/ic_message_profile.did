@@ -1,3 +1,4 @@
+type CanisterKind = variant { OssBucket; OssCluster };
 type CanisterStatusResponse = record {
   status : CanisterStatusType;
   memory_size : nat;
@@ -21,6 +22,7 @@ type DefiniteCanisterSettings = record {
   compute_allocation : nat;
 };
 type InitArgs = record { managers : vec principal; name : text };
+type Link = record { uri : text; title : text; image : opt text };
 type LogVisibility = variant { controllers; public };
 type ProfileInfo = record {
   id : principal;
@@ -28,6 +30,8 @@ type ProfileInfo = record {
   active_at : nat64;
   created_at : nat64;
   channels : opt vec record { record { principal; nat64 }; ChannelSetting };
+  image_file : opt record { principal; nat32 };
+  links : vec Link;
   canister : principal;
   ecdh_pub : opt blob;
   following : opt vec principal;
@@ -42,11 +46,14 @@ type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : CanisterStatusResponse; Err : text };
 type Result_2 = variant { Ok : ProfileInfo; Err : text };
 type Result_3 = variant { Ok : StateInfo; Err : text };
-type Result_4 = variant { Ok : text; Err : text };
+type Result_4 = variant { Ok : UploadImageOutput; Err : text };
+type Result_5 = variant { Ok : text; Err : text };
 type StateInfo = record {
   managers : vec principal;
   profiles_total : nat64;
   name : text;
+  ic_oss_cluster : opt principal;
+  ic_oss_buckets : vec principal;
 };
 type UpdateProfileInput = record {
   bio : opt text;
@@ -56,7 +63,14 @@ type UpdateProfileInput = record {
   unfollow : vec principal;
 };
 type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+type UploadImageInput = record { size : nat64; content_type : text };
+type UploadImageOutput = record {
+  name : text;
+  image : record { principal; nat32 };
+  access_token : blob;
+};
 service : (opt ChainArgs) -> {
+  admin_add_canister : (CanisterKind, principal) -> (Result);
   admin_add_managers : (vec principal) -> (Result);
   admin_remove_managers : (vec principal) -> (Result);
   admin_update_profile_ecdh_pub : (principal, blob) -> (Result);
@@ -66,10 +80,13 @@ service : (opt ChainArgs) -> {
   get_canister_status : () -> (Result_1) query;
   get_profile : (opt principal) -> (Result_2) query;
   get_state : () -> (Result_3) query;
+  update_links : (vec Link) -> (Result);
   update_profile : (UpdateProfileInput) -> (Result_2);
   update_profile_ecdh_pub : (blob) -> (Result);
-  validate2_admin_add_managers : (vec principal) -> (Result_4);
-  validate2_admin_remove_managers : (vec principal) -> (Result_4);
+  upload_image_token : (UploadImageInput) -> (Result_4);
+  validate2_admin_add_managers : (vec principal) -> (Result_5);
+  validate2_admin_remove_managers : (vec principal) -> (Result_5);
+  validate_admin_add_canister : (CanisterKind, principal) -> (Result_5);
   validate_admin_add_managers : (vec principal) -> (Result);
   validate_admin_remove_managers : (vec principal) -> (Result);
 }

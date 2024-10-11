@@ -273,8 +273,8 @@
               >
               standard and
               <b class="text-white">quantum secure AES-256-GCM algorithm</b> on the
-              client side and stored on the ICP blockchain. These messages can only
-              be decrypted on the client side.
+              client side and stored permanently on the ICP blockchain. These messages
+              can only be decrypted on the client side.
             </p>
           </div>
           <div class="pt-8 md:pt-10">
@@ -293,7 +293,7 @@
               ><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3
             >
             <p class="mt-4 text-neutral-300">
-              It operates entirely as a smart contract on the ICP blockchain,
+              It runs entirely as a smart contract on the ICP blockchain,
               controlled by
               <a
                 class="text-white underline underline-offset-4"
@@ -479,12 +479,8 @@
   .pandas-backgroud {
     background-image: url('/_assets/images/pandas.webp');
     background-repeat: repeat-x;
-    background-size: auto 320px;
+    background-size: 1734px auto;
     animation: slideBackground 60s linear infinite;
-
-    @media (min-width: 640px) {
-      background-size: 1734px 492px;
-    }
   }
 
   @keyframes slideBackground {
@@ -498,7 +494,7 @@
 
   :global(.rainbow-button) {
     position: relative;
-    border-radius: 9999px; /* 使用一个很大的值来确保完全圆角 */
+    border-radius: 9999px;
   }
 
   :global(.rainbow-border) {

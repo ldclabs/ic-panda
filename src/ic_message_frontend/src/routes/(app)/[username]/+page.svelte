@@ -1,11 +1,11 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import ProfileDetail from '$src/lib/components/messages/ProfileDetail.svelte'
   import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
+  import IconClose from '$lib/components/icons/IconClose.svelte'
   import { authStore } from '$lib/stores/auth'
   import { MyMessageState } from '$lib/stores/message'
-  import IconClose from '$lib/components/icons/IconClose.svelte'
+  import ProfileDetail from '$src/lib/components/messages/ProfileDetail.svelte'
   import { onMount } from 'svelte'
 
   let myState: MyMessageState
@@ -43,7 +43,7 @@
     {#if myState}
       <ProfileDetail userId={username} {myState} />
     {:else}
-      <div class="placeholder-circle mt-8 w-24 animate-pulse" />
+      <div class="placeholder-circle mt-2 w-40 animate-pulse" />
     {/if}
   {/key}
 </div>

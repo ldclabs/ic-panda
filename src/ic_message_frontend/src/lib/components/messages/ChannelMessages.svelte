@@ -2,23 +2,12 @@
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
+  import IconSendPlaneFill from '$lib/components/icons/IconArrowUpLine2.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconMore2Line from '$lib/components/icons/IconMore2Line.svelte'
-  import IconSendPlaneFill from '$lib/components/icons/IconArrowUpLine2.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { toastRun } from '$lib/stores/toast'
-  import {
-    coseA256GCMEncrypt0,
-    encodeCBOR,
-    type AesGcmKey
-  } from '$lib/utils/crypto'
-  import {
-    elementsInViewport,
-    isActive,
-    scrollOnHooks
-  } from '$lib/utils/window'
   import {
     getCurrentTimeString,
     toDisplayUserInfo,
@@ -26,14 +15,25 @@
     type MessageInfo,
     type MyMessageState
   } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
+  import {
+    coseA256GCMEncrypt0,
+    encodeCBOR,
+    type AesGcmKey
+  } from '$lib/utils/crypto'
   import { sleep } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
-  import { Avatar, getToastStore, getModalStore } from '@skeletonlabs/skeleton'
+  import {
+    elementsInViewport,
+    isActive,
+    scrollOnHooks
+  } from '$lib/utils/window'
+  import { type Principal } from '@dfinity/principal'
+  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ProfileModel from './ProfileModel.svelte'
-  import { type Principal } from '@dfinity/principal'
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
@@ -545,7 +545,7 @@
             <Avatar
               initials={msg.created_user.name}
               src={msg.created_user.image}
-              background="bg-panda"
+              background={msg.created_user.image ? '' : 'bg-panda'}
               fill="fill-white"
               width="w-10"
             />

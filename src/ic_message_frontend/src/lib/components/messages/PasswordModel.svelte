@@ -1,8 +1,8 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { toastRun } from '$lib/stores/toast'
   import { MasterKey, type MyMessageState } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
   import {
     focusTrap,
     getModalStore,
@@ -154,7 +154,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{isSetup ? 'Setup' : 'Enter'} Password</div
+    >{isSetup ? 'Setup' : 'Enter'} password</div
   >
   <form
     class="m-auto !mt-4 flex flex-col content-center"

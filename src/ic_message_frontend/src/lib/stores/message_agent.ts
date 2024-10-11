@@ -23,6 +23,7 @@ import {
   writable,
   type Readable
 } from 'svelte/store'
+import { setUser as kvsSetUser } from './kvstore'
 
 export type CachedMessage = Message & { canister: Principal; channel: number }
 
@@ -248,6 +249,7 @@ export class MessageAgent extends EventTarget {
     }
     await this._db.set<UserInfo>('My', val, 'User')
     this._user.set(val)
+    await kvsSetUser(Date.now(), val)
     return val
   }
 

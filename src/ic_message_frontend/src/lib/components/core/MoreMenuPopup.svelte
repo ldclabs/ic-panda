@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { authStore } from '$lib/stores/auth'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
-  import IconLogout from '$lib/components/icons/IconLogout.svelte'
-  import IconGithub from '$lib/components/icons/IconGithub.svelte'
-  import IconExchange from '$lib/components/icons/IconExchangeDollar.svelte'
-  import IconHomeLine from '$lib/components/icons/IconHomeLine.svelte'
-  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
   import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import IconExchange from '$lib/components/icons/IconExchangeDollar.svelte'
+  import IconGithub from '$lib/components/icons/IconGithub.svelte'
+  import IconHomeLine from '$lib/components/icons/IconHomeLine.svelte'
+  import IconLogout from '$lib/components/icons/IconLogout.svelte'
+  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
+  import IconWallet from '$lib/components/icons/IconWallet.svelte'
   import { APP_VERSION } from '$lib/constants'
+  import { authStore } from '$lib/stores/auth'
+  import { getModalStore } from '@skeletonlabs/skeleton'
 
   export let target: string
 

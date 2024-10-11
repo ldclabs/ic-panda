@@ -5,9 +5,9 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { PANDAToken, TokenDisplay, formatNumber } from '$lib/utils/token'
-  import { type MyMessageState } from '$lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -101,7 +101,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Topup Gas</div>
+  <div class="!mt-0 text-center text-xl font-bold">Topup gas</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"

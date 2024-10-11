@@ -2,14 +2,16 @@
   import { goto } from '$app/navigation'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
   import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
+  import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { MyMessageState } from '$lib/stores/message'
   import { Principal } from '@dfinity/principal'
   import {
     focusTrap,
@@ -18,8 +20,6 @@
   } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import IconAdd from '$lib/components/icons/IconAdd.svelte'
-  import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
 
   // Props
   /** Exposes parent props to this component. */

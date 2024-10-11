@@ -2,6 +2,8 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
+export type CanisterKind = { 'OssBucket' : null } |
+  { 'OssCluster' : null };
 export interface CanisterStatusResponse {
   'status' : CanisterStatusType,
   'memory_size' : bigint,
@@ -32,6 +34,11 @@ export interface DefiniteCanisterSettings {
   'compute_allocation' : bigint,
 }
 export interface InitArgs { 'managers' : Array<Principal>, 'name' : string }
+export interface Link {
+  'uri' : string,
+  'title' : string,
+  'image' : [] | [string],
+}
 export type LogVisibility = { 'controllers' : null } |
   { 'public' : null };
 export interface ProfileInfo {
@@ -40,6 +47,8 @@ export interface ProfileInfo {
   'active_at' : bigint,
   'created_at' : bigint,
   'channels' : [] | [Array<[[Principal, bigint], ChannelSetting]>],
+  'image_file' : [] | [[Principal, number]],
+  'links' : Array<Link>,
   'canister' : Principal,
   'ecdh_pub' : [] | [Uint8Array | number[]],
   'following' : [] | [Array<Principal>],
@@ -58,12 +67,16 @@ export type Result_2 = { 'Ok' : ProfileInfo } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : StateInfo } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : string } |
+export type Result_4 = { 'Ok' : UploadImageOutput } |
+  { 'Err' : string };
+export type Result_5 = { 'Ok' : string } |
   { 'Err' : string };
 export interface StateInfo {
   'managers' : Array<Principal>,
   'profiles_total' : bigint,
   'name' : string,
+  'ic_oss_cluster' : [] | [Principal],
+  'ic_oss_buckets' : Array<Principal>,
 }
 export interface UpdateProfileInput {
   'bio' : [] | [string],
@@ -76,7 +89,14 @@ export interface UpgradeArgs {
   'managers' : [] | [Array<Principal>],
   'name' : [] | [string],
 }
+export interface UploadImageInput { 'size' : bigint, 'content_type' : string }
+export interface UploadImageOutput {
+  'name' : string,
+  'image' : [Principal, number],
+  'access_token' : Uint8Array | number[],
+}
 export interface _SERVICE {
+  'admin_add_canister' : ActorMethod<[CanisterKind, Principal], Result>,
   'admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
   'admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
   'admin_update_profile_ecdh_pub' : ActorMethod<
@@ -90,10 +110,16 @@ export interface _SERVICE {
   'get_canister_status' : ActorMethod<[], Result_1>,
   'get_profile' : ActorMethod<[[] | [Principal]], Result_2>,
   'get_state' : ActorMethod<[], Result_3>,
+  'update_links' : ActorMethod<[Array<Link>], Result>,
   'update_profile' : ActorMethod<[UpdateProfileInput], Result_2>,
   'update_profile_ecdh_pub' : ActorMethod<[Uint8Array | number[]], Result>,
-  'validate2_admin_add_managers' : ActorMethod<[Array<Principal>], Result_4>,
-  'validate2_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_4>,
+  'upload_image_token' : ActorMethod<[UploadImageInput], Result_4>,
+  'validate2_admin_add_managers' : ActorMethod<[Array<Principal>], Result_5>,
+  'validate2_admin_remove_managers' : ActorMethod<[Array<Principal>], Result_5>,
+  'validate_admin_add_canister' : ActorMethod<
+    [CanisterKind, Principal],
+    Result_5
+  >,
   'validate_admin_add_managers' : ActorMethod<[Array<Principal>], Result>,
   'validate_admin_remove_managers' : ActorMethod<[Array<Principal>], Result>,
 }

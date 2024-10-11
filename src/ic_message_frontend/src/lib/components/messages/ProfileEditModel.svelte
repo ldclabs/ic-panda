@@ -4,13 +4,13 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
+  import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
   import UsernameTransferModel from './UsernameTransferModel.svelte'
-  import { APP_ORIGIN } from '$lib/constants'
-  import { type MyMessageState } from '$lib/stores/message'
 
   // Props
   /** Exposes parent props to this component. */

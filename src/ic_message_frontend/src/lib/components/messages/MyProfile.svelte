@@ -5,23 +5,25 @@
     type ProfileInfo,
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
+  import AvatarUploadModal from '$lib/components/core/AvatarUploadModal.svelte'
+  import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
-  import { ErrorLogs, toastRun } from '$lib/stores/toast'
-  import { sleep } from '$lib/utils/helper'
-  import { md } from '$lib/utils/markdown'
-  import { isNotificationSupported } from '$lib/utils/window'
   import {
     toDisplayUserInfo,
     type DisplayUserInfo,
     type MyMessageState
   } from '$lib/stores/message'
   import { MessageAgent } from '$lib/stores/message_agent'
+  import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { errMessage, unwrapOption } from '$lib/types/result'
+  import { sleep } from '$lib/utils/helper'
+  import { md } from '$lib/utils/markdown'
+  import { isNotificationSupported } from '$lib/utils/window'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -109,6 +111,18 @@
         }
       })
     }
+  }
+
+  function onUploadAvatarHandler() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: AvatarUploadModal,
+        props: {
+          myState
+        }
+      }
+    })
   }
 
   let followingSubmitting = ''
@@ -252,16 +266,23 @@
     <div
       class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-20"
     >
-      <div class="size-24">
+      <button
+        class="group btn relative p-0 hover:bg-surface-500/50"
+        on:click={onUploadAvatarHandler}
+      >
         <Avatar
           initials={display.name}
           src={display.image}
           border="border-4 border-panda/20"
-          background="bg-panda"
+          background={display.image ? '' : 'bg-panda'}
           fill="fill-white"
-          width="size-24"
+          width="size-40"
         />
-      </div>
+        <span
+          class="invisible absolute left-1/2 top-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 text-surface-500 transition-all *:size-6 group-hover:visible"
+          ><IconCameraLine /></span
+        >
+      </button>
       <p class="relative space-x-1">
         <span class="font-bold">{display.name}</span>
         {#if display.username}

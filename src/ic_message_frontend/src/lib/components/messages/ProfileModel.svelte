@@ -1,9 +1,9 @@
 <script lang="ts">
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type MyMessageState } from '$lib/stores/message'
+  import { type Principal } from '@dfinity/principal'
   import { type SvelteComponent } from 'svelte'
   import ProfileDetail from './ProfileDetail.svelte'
-  import { type Principal } from '@dfinity/principal'
 
   // Props
   /** Exposes parent props to this component. */

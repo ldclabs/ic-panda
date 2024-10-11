@@ -5,15 +5,15 @@
   import IconClose from '$lib/components/icons/IconClose.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
-  import { toastRun } from '$lib/stores/toast'
   import { type ChannelInfoEx, type MyMessageState } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
+  import type { Principal } from '@dfinity/principal'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import { getContext, onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelMessages from './ChannelMessages.svelte'
   import ChannelSetting from './ChannelSetting.svelte'
-  import type { Principal } from '@dfinity/principal'
 
   export let channelId: { canister: Principal; id: number }
   export let myState: MyMessageState
@@ -79,7 +79,7 @@
         <Avatar
           initials={$channelInfo.name}
           src={$channelInfo.image}
-          background="bg-panda"
+          background={$channelInfo.image ? '' : 'bg-panda'}
           fill="fill-white"
           width="w-10"
         />

@@ -1,7 +1,10 @@
 import {
   idlFactory,
+  type Link,
   type ProfileInfo,
   type UpdateProfileInput,
+  type UploadImageInput,
+  type UploadImageOutput,
   type _SERVICE
 } from '$declarations/ic_message_profile/ic_message_profile.did.js'
 import { agent } from '$lib/stores/auth'
@@ -62,5 +65,17 @@ export class ProfileAPI {
   async update_profile_ecdh_pub(input: Uint8Array): Promise<null> {
     const res = await this.actor.update_profile_ecdh_pub(input)
     return unwrapResult(res, 'call update_profile_ecdh_pub failed')
+  }
+
+  async upload_image_token(
+    input: UploadImageInput
+  ): Promise<UploadImageOutput> {
+    const res = await this.actor.upload_image_token(input)
+    return unwrapResult(res, 'call upload_image_token failed')
+  }
+
+  async update_links(input: Link[]): Promise<null> {
+    const res = await this.actor.update_links(input)
+    return unwrapResult(res, 'call update_links failed')
   }
 }

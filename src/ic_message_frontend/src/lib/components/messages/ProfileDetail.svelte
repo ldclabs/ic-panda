@@ -9,17 +9,17 @@
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { toastRun } from '$lib/stores/toast'
-  import { md } from '$lib/utils/markdown'
   import { toDisplayUserInfo, type MyMessageState } from '$lib/stores/message'
+  import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
+  import { md } from '$lib/utils/markdown'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { derived, type Readable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
-  import UserRegisterModel from './UserRegisterModel.svelte'
   import PasswordModel from './PasswordModel.svelte'
+  import UserRegisterModel from './UserRegisterModel.svelte'
 
   export let userId: Principal | string
   export let myState: MyMessageState
@@ -180,14 +180,14 @@
 {#if $userInfo}
   {@const display = toDisplayUserInfo($userInfo)}
   <div class="mx-auto flex w-full flex-col items-center gap-1">
-    <div class="size-24">
+    <div class="size-40">
       <Avatar
         initials={display.name}
         src={display.image}
         border="border-4 border-panda/20"
-        background="bg-panda"
+        background={display.image ? '' : 'bg-panda'}
         fill="fill-white"
-        width="size-24"
+        width="w-40"
       />
     </div>
     <p class="relative space-x-1">
