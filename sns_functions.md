@@ -1,0 +1,11 @@
+1_000 c63a7-6yaaa-aaaap-ab3gq-cai commit_proposed_batch
+1_001 a7cug-2qaaa-aaaap-ab3la-cai admin_set_managers
+1_002 a7cug-2qaaa-aaaap-ab3la-cai admin_collect_icp
+1_003 c63a7-6yaaa-aaaap-ab3gq-cai grant_permission
+1_004 6sul7-xqaaa-aaaap-ahdsq-cai withdraw
+1_100 2fvu6-tqaaa-aaaap-akksa-cai commit_proposed_batch
+1_101 nscli-qiaaa-aaaaj-qa4pa-cai admin_add_canister
+1_102 nscli-qiaaa-aaaaj-qa4pa-cai admin_update_price
+1_103 nscli-qiaaa-aaaaj-qa4pa-cai admin_collect_token
+1_104 nscli-qiaaa-aaaaj-qa4pa-cai admin_update_price
+1_105 ijyxz-wyaaa-aaaaj-qa4qa-cai admin_add_canister
