@@ -91,6 +91,16 @@
       "type": "custom",
       "wasm": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.wasm.gz"
     },
+    "ic_oss_cluster": {
+      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.3/ic_oss_cluster.did",
+      "type": "custom",
+      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.3/ic_oss_cluster.wasm.gz"
+    },
+    "ic_oss_bucket": {
+      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.3/ic_oss_bucket.did",
+      "type": "custom",
+      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.3/ic_oss_bucket.wasm.gz"
+    },
     "internet_identity": {
       "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-06-07/internet_identity.did",
       "remote": {

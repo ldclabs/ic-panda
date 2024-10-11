@@ -12,9 +12,12 @@ mod types;
 
 use crate::api_init::ChainArgs;
 
+// "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
+static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
+
 fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();
-    if ic_cdk::api::is_controller(&caller) {
+    if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
         Err("user is not a controller".to_string())
