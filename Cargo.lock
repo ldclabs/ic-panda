@@ -1717,9 +1717,9 @@ dependencies = [
 
 [[package]]
 name = "ic-oss-types"
-version = "0.9.0"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "943b9efbbf23b2d3ba97a6a17cbc6a1b78a2e0868e016cba352d8f54da0829eb"
+checksum = "f150140c8a7ea45454244e4973138471d675b9771c94dfb173bd8fd6392a7190"
 dependencies = [
  "base64 0.21.7",
  "candid",
@@ -1778,7 +1778,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -1798,7 +1798,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_channel"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -1813,13 +1813,13 @@ dependencies = [
 
 [[package]]
 name = "ic_message_profile"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "candid",
  "ciborium",
  "getrandom",
  "ic-cdk 0.16.0",
- "ic-oss-types 0.9.0",
+ "ic-oss-types 0.9.3",
  "ic-stable-structures",
  "ic_cose_types",
  "ic_message_types",
@@ -1829,10 +1829,10 @@ dependencies = [
 
 [[package]]
 name = "ic_message_types"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "candid",
- "ic-oss-types 0.9.0",
+ "ic-oss-types 0.9.3",
  "ic_cose_types",
  "serde",
  "serde_bytes",
@@ -1873,7 +1873,7 @@ dependencies = [
 
 [[package]]
 name = "ic_panda_luckypool"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "base64 0.21.7",
  "candid",
@@ -4053,7 +4053,7 @@ dependencies = [
 
 [[package]]
 name = "x-auth"
-version = "2.2.4"
+version = "2.5.0"
 dependencies = [
  "anyhow",
  "async-trait",

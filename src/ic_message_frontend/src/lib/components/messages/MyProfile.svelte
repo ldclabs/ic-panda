@@ -2,12 +2,15 @@
   import { page } from '$app/stores'
   import { type UserInfo } from '$lib/canisters/message'
   import {
+    type Link,
     type ProfileInfo,
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
   import AvatarUploadModal from '$lib/components/core/AvatarUploadModal.svelte'
+  import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
@@ -24,6 +27,7 @@
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import { isNotificationSupported } from '$lib/utils/window'
+  import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -35,6 +39,7 @@
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ChannelCreateModel from './ChannelCreateModel.svelte'
+  import LinkEditModal from './LinkEditModal.svelte'
   import ProfileEditModel from './ProfileEditModel.svelte'
   import UserRegisterModel from './UserRegisterModel.svelte'
 
@@ -56,6 +61,7 @@
   let displayDebug = false
 
   $: pathname = $page?.url?.pathname || ''
+  $: links = $myInfo?.links || []
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
@@ -227,6 +233,48 @@
     }
   }
 
+  let editLinkSubmitting = -1
+  async function onEditLink(link: Link | null = null, index: number = -1) {
+    const _links = [...links]
+    const profile = await myState.agent.getProfile()
+    editLinkSubmitting = index
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: LinkEditModal,
+        props: {
+          link,
+          onSave: async (link: Link) => {
+            if (index >= 0) {
+              _links[index] = link
+            } else {
+              _links.push(link)
+            }
+            await myState.agent.profileAPI.update_links(_links)
+            await myState.agent.setProfile({
+              ...profile,
+              links: _links
+            })
+            editLinkSubmitting = -1
+          }
+        }
+      }
+    })
+  }
+
+  let deleteLinkSubmitting = -1
+  async function onDeleteLink(index: number) {
+    deleteLinkSubmitting = index
+    const _links = [...links.slice(0, index), ...links.slice(index + 1)]
+    const profile = await myState.agent.getProfile()
+    await myState.agent.profileAPI.update_links(_links)
+    await myState.agent.setProfile({
+      ...profile,
+      links: _links
+    })
+    deleteLinkSubmitting = -1
+  }
+
   let clearCachedMessagesSubmitting = false
   function onClearCachedMessages() {
     clearCachedMessagesSubmitting = true
@@ -286,11 +334,14 @@
       <p class="relative space-x-1">
         <span class="font-bold">{display.name}</span>
         {#if display.username}
-          <span class="text-neutral-500">@{display.username}</span>
+          <a
+            class="text-neutral-500 underline underline-offset-4 hover:text-surface-900-50-token"
+            href="{APP_ORIGIN}/{display.username}">@{display.username}</a
+          >
         {/if}
         <button
           type="button"
-          class="btn absolute right-[-28px] top-1 p-0 text-neutral-500"
+          class="btn absolute right-[-28px] top-2 p-0 text-neutral-500 hover:text-surface-900-50-token"
           on:click={onMeHandler}
         >
           <span class="*:size-4"><IconEditLine /></span>
@@ -305,7 +356,56 @@
         <span>Principal: {display._id}</span>
         <TextClipboardButton textValue={display._id} />
       </p>
-      <div class="mt-4 flex w-full flex-col gap-2">
+      <div
+        class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
+      >
+        {#each links as link, i}
+          <div class="relative w-full">
+            <LinkItem {link} />
+            <div
+              class="absolute right-3 top-4 flex flex-row gap-2 text-neutral-500/50"
+            >
+              <button
+                type="button"
+                class="hover:text-surface-900-50-token"
+                disabled={editLinkSubmitting !== -1}
+                on:click={() => onEditLink(link, i)}
+              >
+                <span class="*:size-6">
+                  {#if editLinkSubmitting === i}
+                    <IconCircleSpin />
+                  {:else}
+                    <IconEditLine />
+                  {/if}
+                </span>
+              </button>
+              <button
+                type="button"
+                class="hover:text-surface-900-50-token"
+                disabled={deleteLinkSubmitting !== -1}
+                on:click={() => onDeleteLink(i)}
+              >
+                <span class="*:size-6">
+                  {#if deleteLinkSubmitting === i}
+                    <IconCircleSpin />
+                  {:else}
+                    <IconDeleteBin />
+                  {/if}
+                </span>
+              </button>
+            </div>
+          </div>
+        {/each}
+        <button
+          type="button"
+          class="bg-surface-hover-token flex w-full flex-row items-center justify-center gap-2 rounded-lg border border-surface-500/10 px-2 py-4 text-neutral-500 hover:text-surface-900-50-token"
+          on:click={() => onEditLink()}
+        >
+          <span class="*:size-5"><IconAdd /></span>
+          <span>Add Link</span>
+        </button>
+      </div>
+      <div class="mt-6 flex w-full flex-col gap-2">
         <div class="mb-2 text-sm opacity-50"
           ><button on:click={() => (displayDebug = !displayDebug)}>
             <span>My Setting</span>

@@ -14,6 +14,7 @@ import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 
 export {
+  type Link,
   type ProfileInfo,
   type UpdateProfileInput
 } from '$declarations/ic_message_profile/ic_message_profile.did.js'

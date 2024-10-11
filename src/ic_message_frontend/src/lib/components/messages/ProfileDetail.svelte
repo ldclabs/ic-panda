@@ -13,6 +13,7 @@
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
   import { md } from '$lib/utils/markdown'
+  import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
@@ -38,6 +39,7 @@
         .at(0)
         ?.some((id) => id.compareTo($userInfo.id) == 'eq')) ||
     false
+  $: links = $userInfo?.links || []
 
   let followingSubmitting = ''
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
@@ -205,8 +207,15 @@
       <span>Principal: {display._id}</span>
       <TextClipboardButton textValue={display._id} />
     </p>
+    <div
+      class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
+    >
+      {#each links as link}
+        <LinkItem {link} />
+      {/each}
+    </div>
     {#if !isMe}
-      <div class="mt-4 flex flex-row gap-4">
+      <div class="mt-6 flex flex-row gap-4">
         <button
           type="button"
           class="{isFowllowing

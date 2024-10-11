@@ -23,7 +23,7 @@ import {
   writable,
   type Readable
 } from 'svelte/store'
-import { setUser as kvsSetUser } from './kvstore'
+import { setProfile as kvsSetProfile, setUser as kvsSetUser } from './kvstore'
 
 export type CachedMessage = Message & { canister: Principal; channel: number }
 
@@ -248,8 +248,8 @@ export class MessageAgent extends EventTarget {
       this._coseAPI = this.api.coseAPI(info.cose_canister[0])
     }
     await this._db.set<UserInfo>('My', val, 'User')
-    this._user.set(val)
     await kvsSetUser(Date.now(), val)
+    this._user.set(val)
     return val
   }
 
@@ -290,6 +290,7 @@ export class MessageAgent extends EventTarget {
   async setProfile(info: ProfileInfo): Promise<ProfileInfo> {
     const val = { ...info }
     await this._db.set<ProfileInfo>('My', val, 'Profile')
+    await kvsSetProfile(val)
     this._profile.set(val)
     return val
   }
