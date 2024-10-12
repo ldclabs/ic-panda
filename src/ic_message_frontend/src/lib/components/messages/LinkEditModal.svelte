@@ -52,7 +52,7 @@
         type="text"
         name="titleInput"
         minlength="1"
-        maxlength="128"
+        maxlength="120"
         data-1p-ignore
         bind:value={titleInput}
         disabled={submitting}
@@ -66,7 +66,7 @@
         type="text"
         name="uriInput"
         minlength="1"
-        maxlength="128"
+        maxlength="120"
         data-1p-ignore
         bind:value={uriInput}
         disabled={submitting}

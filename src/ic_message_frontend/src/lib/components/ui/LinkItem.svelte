@@ -26,18 +26,18 @@
     class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4"
   >
     <span>{link.title}</span>
-    <span class="*:size-5"><IconLink /></span>
+    <span class="text-surface-500 *:size-5"><IconLink /></span>
   </a>
 {:else}
   <button
-    class="{copiedClass} bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4"
+    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4"
     use:clipboard={link.uri}
     on:click={onCopyHandler}
     disabled={copiedClass != ''}
   >
     <span>{link.title}</span>
-    <span>{link.uri}</span>
-    <span class="*:size-5"
+    <span class={copiedClass}>{link.uri}</span>
+    <span class="text-surface-500 *:size-5"
       >{#if copiedClass != ''}
         <IconCheckbox />
       {:else}

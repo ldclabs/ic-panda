@@ -26,52 +26,56 @@
   })
 </script>
 
-<div class="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-24">
-  <header
-    class="flex h-[60px] w-full flex-row items-center justify-between px-0 py-2"
+<div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col">
+  <div
+    class="relative flex w-full flex-[1_0_auto] flex-col items-center px-4 pb-12"
   >
-    <button
-      class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-      on:click={onGobackHandler}><IconArrowLeftSLine /></button
+    <header
+      class="sticky top-0 flex h-[60px] w-full flex-row items-center justify-between px-0 py-2"
     >
-    <button
-      class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-      on:click={onCloseHandler}><IconClose /></button
-    >
-  </header>
-  {#key pageKey}
-    {#if myState}
-      <ProfileDetail userId={username} {myState} />
-    {:else}
-      <div class="placeholder-circle mt-2 w-40 animate-pulse" />
-    {/if}
-  {/key}
-</div>
-<footer
-  id="page-footer"
-  class="text-surface-900-50-token fixed inset-x-0 bottom-0 px-4 py-12"
->
-  <div class="flex h-16 flex-col items-center">
-    <p class="flex flex-row items-center gap-1">
-      <span class="text-sm">© 2024</span>
-      <a class="" href="https://panda.fans" target="_blank"
-        ><img
-          class="w-28"
-          src={isDark
-            ? '/_assets/icpanda-dao-white.svg'
-            : '/_assets/icpanda-dao.svg'}
-          alt="ICPanda DAO"
-        /></a
+      <button
+        class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
+        on:click={onGobackHandler}><IconArrowLeftSLine /></button
       >
-    </p>
-    <p class="mt-2 text-center text-sm capitalize antialiased">
-      A decentralized Panda meme brand fully running on the <a
-        class="underline underline-offset-4"
-        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
-        target="_blank"
+      <button
+        class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
+        on:click={onCloseHandler}><IconClose /></button
       >
-        Internet Computer
-      </a> blockchain.
-    </p>
+    </header>
+    {#key pageKey}
+      {#if myState}
+        <ProfileDetail userId={username} {myState} />
+      {:else}
+        <div class="placeholder-circle mt-2 w-40 animate-pulse" />
+      {/if}
+    {/key}
   </div>
-</footer>
+  <footer
+    id="page-footer"
+    class="text-surface-900-50-token shrink-0 px-4 py-12"
+  >
+    <div class="flex h-16 flex-col items-center">
+      <p class="flex flex-row items-center gap-1">
+        <span class="text-sm">© 2024</span>
+        <a class="" href="https://panda.fans" target="_blank"
+          ><img
+            class="w-28"
+            src={isDark
+              ? '/_assets/icpanda-dao-white.svg'
+              : '/_assets/icpanda-dao.svg'}
+            alt="ICPanda DAO"
+          /></a
+        >
+      </p>
+      <p class="mt-2 text-center text-sm capitalize antialiased">
+        A decentralized Panda meme brand fully running on the <a
+          class="underline underline-offset-4"
+          href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+          target="_blank"
+        >
+          Internet Computer
+        </a> blockchain.
+      </p>
+    </div>
+  </footer>
+</div>

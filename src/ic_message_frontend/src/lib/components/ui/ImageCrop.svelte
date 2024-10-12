@@ -21,6 +21,7 @@
     height: number
   } = { width: 200, height: 200 }
   export let cropShape: 'rect' | 'round' = 'round'
+  export let imageType = 'image/webp'
   export let quality: number = 0.7
 
   let image: string
@@ -67,9 +68,10 @@
 
       canvas.toBlob(
         (blob) => {
+          // default to 'image/webp' or 'image/png'
           blob && dispatch('cropcomplete', { blob })
         },
-        'image/webp',
+        imageType,
         quality
       )
     }

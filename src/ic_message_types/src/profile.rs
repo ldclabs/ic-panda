@@ -104,8 +104,9 @@ impl UploadImageInput {
         if self.size > CHUNK_SIZE as u64 {
             return Err("invalid size".to_string());
         }
-        if self.content_type != "image/webp" && self.content_type != "image/svg+xml" {
-            return Err("invalid content_type".to_string());
+        match self.content_type.as_str() {
+            "image/webp" | "image/png" | "image/jpeg" | "image/svg+xml" => {}
+            _ => return Err(format!("invalid content_type {}", self.content_type)),
         }
         Ok(())
     }
@@ -113,6 +114,8 @@ impl UploadImageInput {
     pub fn filename(&self, name: String) -> String {
         match self.content_type.as_str() {
             "image/webp" => format!("{}.webp", name),
+            "image/png" => format!("{}.png", name),
+            "image/jpeg" => format!("{}.jpg", name),
             "image/svg+xml" => format!("{}.svg", name),
             _ => name,
         }

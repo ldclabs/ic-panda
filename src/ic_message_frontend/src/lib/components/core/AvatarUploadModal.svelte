@@ -13,7 +13,7 @@
     toFixedChunkSizeReadable
   } from '@ldclabs/ic_oss_ts'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { type SvelteComponent } from 'svelte'
+  import { onDestroy, type SvelteComponent } from 'svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -30,6 +30,7 @@
   function handleAvatarUpload(event: CustomEvent) {
     blob = event.detail.blob || null
     if (blob) {
+      croppedUrl && URL.revokeObjectURL(croppedUrl)
       croppedUrl = URL.createObjectURL(blob)
     }
   }
@@ -65,6 +66,10 @@
       modalStore.close()
     }, toastStore)
   }
+
+  onDestroy(() => {
+    croppedUrl && URL.revokeObjectURL(croppedUrl)
+  })
 </script>
 
 <ModalCard {parent}>

@@ -312,7 +312,7 @@
   {@const display = toDisplayUserInfo($myInfo)}
   <section class="h-[calc(100dvh-60px)] w-full overflow-y-auto md:h-dvh">
     <div
-      class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-20"
+      class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-12"
     >
       <button
         class="group btn relative p-0 hover:bg-surface-500/50"
@@ -360,18 +360,18 @@
         class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
       >
         {#each links as link, i}
-          <div class="relative w-full">
+          <div class="relative w-full pr-[72px]">
             <LinkItem {link} />
             <div
-              class="absolute right-3 top-4 flex flex-row gap-2 text-neutral-500/50"
+              class="absolute right-0 top-1/2 flex -translate-y-1/2 flex-row gap-1 text-neutral-500/50"
             >
               <button
                 type="button"
-                class="hover:text-surface-900-50-token"
+                class="p-1 hover:text-surface-900-50-token"
                 disabled={editLinkSubmitting !== -1}
                 on:click={() => onEditLink(link, i)}
               >
-                <span class="*:size-6">
+                <span class="*:size-5">
                   {#if editLinkSubmitting === i}
                     <IconCircleSpin />
                   {:else}
@@ -381,11 +381,11 @@
               </button>
               <button
                 type="button"
-                class="hover:text-surface-900-50-token"
+                class="p-1 hover:text-surface-900-50-token"
                 disabled={deleteLinkSubmitting !== -1}
                 on:click={() => onDeleteLink(i)}
               >
-                <span class="*:size-6">
+                <span class="*:size-5">
                   {#if deleteLinkSubmitting === i}
                     <IconCircleSpin />
                   {:else}
@@ -516,7 +516,7 @@
       {/if}
       {#if pathname.startsWith('/_/profile') && myState.principal.compareTo(PandaID) !== 'eq'}
         <div
-          class="mx-auto mt-48 flex flex-col items-center space-y-2 self-end text-sm"
+          class="mx-auto mt-24 flex flex-col items-center space-y-2 self-end text-sm"
         >
           <div class="flex flex-row items-center">
             <a
