@@ -1,6 +1,6 @@
 const src = globalThis.location?.href || ''
 
-export const APP_VERSION = '2.5.2'
+export const APP_VERSION = '2.5.3'
 export const IS_LOCAL = src.includes('localhost') || src.includes('127.0.0.1')
 export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
