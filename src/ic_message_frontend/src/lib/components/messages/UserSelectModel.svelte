@@ -25,12 +25,13 @@
   }
 
   export let parent: SvelteComponent
-  export let title: string = 'Add members'
+  export let isAddManager: boolean = false
   export let existsManagers: string[] = []
   export let existsMembers: string[] = []
   export let myState: MyMessageState
   export let onSave: (users: [Principal, Uint8Array | null][]) => Promise<void>
 
+  const title: string = isAddManager ? 'Add Managers' : 'Add members'
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const selectedUsers: Writable<MemberInfoEx[]> = writable([])
@@ -201,7 +202,8 @@
     <div
       bind:this={elemSearcher}
       class="card absolute left-0 top-10 mt-4 max-h-48 w-full space-y-1 overflow-y-auto bg-white py-2 shadow-xl {$searchUsers.reduce(
-        (acc, val) => (val.isManager || val.isMember ? acc : acc + 1),
+        (acc, val) =>
+          val.isManager || (val.isMember && !isAddManager) ? acc : acc + 1,
         0
       ) === 0
         ? 'hidden'
@@ -211,7 +213,7 @@
         <button
           class="pointer btn grid w-full grid-cols-[1fr_auto] items-center rounded-none p-2 hover:bg-panda/10"
           on:click={() => onSelectUser(user)}
-          disabled={user.isMember || user.isManager}
+          disabled={user.isManager || (user.isMember && !isAddManager)}
         >
           <div class="flex flex-row items-center space-x-2">
             <Avatar

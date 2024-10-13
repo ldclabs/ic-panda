@@ -332,8 +332,6 @@ export class MessageAgent extends EventTarget {
   async subscribeMyChannels(
     signal?: AbortSignal
   ): Promise<Readable<ChannelBasicInfo[]>> {
-    const eventType = `Channel`
-
     let channels = await this.loadMyChannels()
     if (channels.length === 0) {
       await this.fetchMyChannels(signal)
@@ -341,7 +339,7 @@ export class MessageAgent extends EventTarget {
     }
     channels.sort(ChannelAPI.compareChannels)
     return readable(channels, (_set, update) => {
-      const listener = (ev: Event) => {
+      const updateListener = (ev: Event) => {
         const info = MessageAgent.channelBasicInfo((ev as CustomEvent).detail)
 
         update((prev) => {
@@ -359,13 +357,31 @@ export class MessageAgent extends EventTarget {
           return [...prev]
         })
       }
+      const removeListener = (ev: Event) => {
+        const { canister, id } = (ev as CustomEvent).detail
+        update((prev) =>
+          prev.filter(
+            (c) => c.canister.compareTo(canister) !== 'eq' || c.id !== id
+          )
+        )
+      }
+
       this.addEventListener(
-        eventType,
-        listener,
+        'Channel',
+        updateListener,
         signal ? { signal } : undefined
       )
 
-      return () => this.removeEventListener(eventType, listener)
+      this.addEventListener(
+        'RemoveChannel',
+        removeListener,
+        signal ? { signal } : undefined
+      )
+
+      return () => {
+        this.removeEventListener('Channel', updateListener)
+        this.removeEventListener('RemoveChannel', removeListener)
+      }
     })
   }
 
@@ -438,7 +454,8 @@ export class MessageAgent extends EventTarget {
   async fetchChannel(
     canister: Principal,
     id: number,
-    updated_at: bigint = 0n
+    updated_at: bigint = 0n,
+    silent: boolean = false
   ): Promise<ChannelInfo & SyncAt> {
     const api = this.api.channelAPI(canister)
     const channel = await api.get_channel_if_update(id, updated_at)
@@ -462,11 +479,13 @@ export class MessageAgent extends EventTarget {
     for (const mid of channel.deleted_messages) {
       await this.updateDeletedMessage(canisterId, id, mid)
     }
-    return (await this.setChannel(channel)) as ChannelInfo & SyncAt
+
+    return (await this.setChannel(channel, silent)) as ChannelInfo & SyncAt
   }
 
   async setChannel(
-    channel: ChannelInfo | ChannelBasicInfo
+    channel: ChannelInfo | ChannelBasicInfo,
+    silent: boolean = false
   ): Promise<ChannelInfo | ChannelBasicInfo> {
     let val = await this._db.get<ChannelInfo>('Channels', [
       channel.canister.toUint8Array(),
@@ -474,12 +493,14 @@ export class MessageAgent extends EventTarget {
     ])
     val = { ...val, ...channel, _sync_at: Date.now() } as ChannelInfo & SyncAt
     await this._db.set('Channels', val)
-    this.dispatchEvent(
-      new CustomEvent(`Channel:${val.canister.toText()}/${val.id}`, {
-        detail: val
-      })
-    )
-    this.dispatchEvent(new CustomEvent('Channel', { detail: val }))
+    if (!silent) {
+      this.dispatchEvent(
+        new CustomEvent(`Channel:${val.canister.toText()}/${val.id}`, {
+          detail: val
+        })
+      )
+      this.dispatchEvent(new CustomEvent('Channel', { detail: val }))
+    }
     return val
   }
 

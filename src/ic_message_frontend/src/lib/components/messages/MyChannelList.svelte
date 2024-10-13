@@ -3,6 +3,7 @@
   import { page } from '$app/stores'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
+  import Loading from '$lib/components/ui/Loading.svelte'
   import {
     type ChannelBasicInfoEx,
     type MyMessageState
@@ -19,6 +20,7 @@
 
   const toastStore = getToastStore()
 
+  let isLoading = true
   let myChannels: Readable<ChannelBasicInfoEx[]>
   let filterValue: string = ''
 
@@ -61,6 +63,7 @@
         }, 10000)
 
         abortingQue.push(() => clearInterval(timer))
+        isLoading = false
       },
       toastStore
     )
@@ -93,7 +96,9 @@
     >
   </header>
   <div class="flex flex-col overflow-y-auto pb-10">
-    {#if channels.length === 0}
+    {#if isLoading}
+      <Loading />
+    {:else if channels.length === 0}
       <div class="px-4 py-2 text-sm">
         <span
           >In addition to encrypted chats, you can also store confidential

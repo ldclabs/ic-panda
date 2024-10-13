@@ -5,6 +5,7 @@
   import IconClose from '$lib/components/icons/IconClose.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
+  import Loading from '$lib/components/ui/Loading.svelte'
   import { type ChannelInfoEx, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
@@ -24,8 +25,8 @@
   const onChatBack = getContext('onChatBack') as () => void
 
   let channelInfo: Readable<ChannelInfoEx>
-
-  let openSettings = false
+  let isLoading = true
+  let openMessages = true
   let switching = false
   async function onClickChannelSetting() {
     if (!canister) return
@@ -37,7 +38,7 @@
       },
       sleep(100)
     ])
-    openSettings = !openSettings
+    openMessages = !openMessages
     switching = false
   }
 
@@ -46,7 +47,16 @@
       async (signal: AbortSignal) => {
         if (canister) {
           channelInfo = await myState.loadChannelInfo(canister, id)
-          openSettings = !$channelInfo._kek
+          openMessages = !!$channelInfo?._kek
+          if (openMessages) {
+            try {
+              // try to decrypt channel DEK
+              await myState.decryptChannelDEK($channelInfo)
+            } catch (_e) {
+              openMessages = false
+            }
+          }
+          isLoading = false
           return channelInfo
         }
         return null
@@ -105,23 +115,25 @@
       disabled={switching}
       on:click={onClickChannelSetting}
     >
-      {#if !openSettings && $channelInfo?.ecdh_request.length > 0}
+      {#if openMessages && $channelInfo?.ecdh_request.length > 0}
         <span class="badge-icon z-10 size-2 bg-error-500"></span>
       {/if}
       <span>
-        {#if openSettings}
-          <IconClose />
-        {:else}
+        {#if openMessages}
           <IconMoreFill />
+        {:else}
+          <IconClose />
         {/if}
       </span>
     </button>
   </header>
-  {#if $channelInfo}
-    {#if openSettings}
-      <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
-    {:else}
+  {#if isLoading}
+    <Loading />
+  {:else if $channelInfo}
+    {#if openMessages}
       <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
+    {:else}
+      <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
     {/if}
   {:else}
     <div class="m-auto size-24 rounded-full *:size-24">

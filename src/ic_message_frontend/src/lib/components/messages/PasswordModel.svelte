@@ -25,6 +25,7 @@
   let submitting = false
 
   let isSetup = !masterKey
+  let isReset = false
   let passwordInput1 = ''
   let passwordInput2 = ''
   let passwordTip = ''
@@ -44,6 +45,12 @@
     return ''
   }
 
+  function onReset() {
+    if (isReset) return
+    isReset = true
+    passwordTip = ''
+  }
+
   function onComfirm() {
     submitting = true
 
@@ -51,7 +58,7 @@
       const kind = myState.masterKeyKind()
       const myIV = await myState.myIV()
       // master key has been derived
-      if (masterKey || pwdHash) {
+      if (!isReset && (masterKey || pwdHash)) {
         try {
           if (masterKey) {
             await masterKey.open(
@@ -110,16 +117,26 @@
           throw new Error('Invalid master key kind')
       }
 
-      masterKey = await myState.setMasterKey(
-        kind,
-        passwordInput1,
-        remoteSecret,
-        cachedPassword ? PasswordExpire : 0,
-        myIV
-      )
-      pwdHash = masterKey.passwordHash()
-      await myState.savePasswordHash(pwdHash)
-      await myState.initStaticECDHKey()
+      if (isReset) {
+        masterKey = await myState.resetMasterKey(
+          kind,
+          passwordInput1,
+          remoteSecret,
+          cachedPassword ? PasswordExpire : 0,
+          myIV
+        )
+      } else {
+        masterKey = await myState.setMasterKey(
+          kind,
+          passwordInput1,
+          remoteSecret,
+          cachedPassword ? PasswordExpire : 0,
+          myIV
+        )
+        pwdHash = masterKey.passwordHash()
+        await myState.savePasswordHash(pwdHash)
+        await myState.initStaticECDHKey()
+      }
 
       modalStore.close()
       onFinished()
@@ -154,7 +171,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{isSetup ? 'Setup' : 'Enter'} password</div
+    >{isReset ? 'Reset' : isSetup ? 'Setup' : 'Enter'} password</div
   >
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -173,7 +190,7 @@
       data-focusindex="0"
       required
     />
-    {#if isSetup}
+    {#if isReset || isSetup}
       <input
         class="border-gray/10 input mt-4 truncate rounded-xl bg-white/20 invalid:input-warning"
         type="password"
@@ -192,7 +209,23 @@
         ? 'invisible'
         : 'visiable'}">{passwordTip}</p
     >
-    {#if isSetup}
+    {#if isReset}
+      <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
+      <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
+        <p class="">
+          <b>1.</b> Resetting your password will invalidate the keys used to decrypt
+          all channel messages.
+        </p>
+        <p class="">
+          <b>2.</b> If there are other managers in the channel, you can obtain new
+          channel key from them.
+        </p>
+        <p class="text-error-500">
+          <b>3.</b> Otherwise, you will no longer be able to decrypt the messages
+          and will need to leave the channel.
+        </p>
+      </div>
+    {:else if isSetup}
       <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
       <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
         <p class="">
@@ -210,10 +243,25 @@
         </p>
       </div>
     {/if}
-    <label class="mt-2 flex items-center">
-      <input class="checkbox" type="checkbox" bind:checked={cachedPassword} />
-      <p class="ml-2 text-sm text-neutral-500">Retain for 14 days</p>
-    </label>
+    {#if !isReset}
+      <div class="mt-2 flex flex-row justify-between text-sm text-neutral-500">
+        <label class="flex items-center">
+          <input
+            class="checkbox"
+            type="checkbox"
+            disabled={submitting}
+            bind:checked={cachedPassword}
+          />
+          <p class="ml-2">Retain for 14 days</p>
+        </label>
+        <button
+          type="button"
+          class="btn btn-sm hover:text-neutral-950 dark:hover:text-surface-100"
+          disabled={submitting}
+          on:click={onReset}>Forgot password?</button
+        >
+      </div>
+    {/if}
   </form>
   <footer class="m-auto !mt-4">
     <button

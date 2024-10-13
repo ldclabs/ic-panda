@@ -74,9 +74,9 @@
   class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
 >
   <div
-    class="channels-list h-full transition-transform duration-300 dark:bg-neutral-950 {channelsListActive
+    class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelsListActive
       ? ''
-      : 'max-sm:-translate-x-full'} border-surface-500/20 bg-white sm:border-r"
+      : 'max-sm:-translate-x-full'} border-surface-500/20 bg-white max-sm:absolute max-sm:bottom-0 max-sm:top-0 max-sm:z-10 sm:border-r"
   >
     <MyChannelList {myState} />
   </div>
@@ -96,15 +96,3 @@
     {/key}
   </div>
 </div>
-
-<style>
-  @media (max-width: 640px) {
-    .channels-list {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      z-index: 10;
-      width: 100%;
-    }
-  }
-</style>

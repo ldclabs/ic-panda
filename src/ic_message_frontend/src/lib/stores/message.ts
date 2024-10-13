@@ -109,6 +109,7 @@ export type ChannelBasicInfoEx = ChannelBasicInfo & {
 export type ChannelInfoEx = ChannelInfo &
   SyncAt & {
     _kek: Uint8Array | null
+    _invalidKEK: boolean
     _managers: string[]
   }
 
@@ -234,6 +235,34 @@ export class MyMessageState {
 
     this._mks.push(mk)
     await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
+    return mk
+  }
+
+  async resetMasterKey(
+    kind: 'Local' | 'ECDH' | 'VetKey',
+    password: string,
+    remoteSecret: Uint8Array,
+    passwordExpire: number, // milliseconds
+    myIV: Uint8Array
+  ): Promise<MasterKey> {
+    const mk = await MasterKey.from(
+      this.principal,
+      kind,
+      null,
+      password,
+      this.id,
+      remoteSecret,
+      passwordExpire > 0 ? passwordExpire + Date.now() : 0,
+      myIV
+    )
+
+    this._mks.length = 0
+    this._mks.push(mk)
+    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
+
+    const pwdHash = mk.passwordHash()
+    await this.savePasswordHash(pwdHash)
+    await this.initStaticECDHKey()
     return mk
   }
 
@@ -408,12 +437,14 @@ export class MyMessageState {
         throw new Error('Channel encryption key not ready')
       }
 
+      info._invalidKEK = true
       const mk = (await this.mustMasterKey()).toA256GCMKey()
       const aad = new Uint8Array()
       let data = await coseA256GCMDecrypt0(mk, info._kek, aad)
       const kek = AesGcmKey.fromBytes(data)
       data = await coseA256GCMDecrypt0(kek, info.dek as Uint8Array, aad)
       dek = AesGcmKey.fromBytes(data)
+      info._invalidKEK = false
       this._channelDEKs.set(`${info.canister.toText()}:${info.id}`, dek)
     }
 
@@ -460,15 +491,6 @@ export class MyMessageState {
   }
 
   async requestKEK(info: ChannelInfo): Promise<void> {
-    const pub = unwrapOption(info.my_setting.ecdh_pub) as Uint8Array
-    const remote = unwrapOption(info.my_setting.ecdh_remote) as [
-      Uint8Array,
-      Uint8Array
-    ]
-    if (pub || remote) {
-      throw new Error('KEK exchange parameters exist')
-    }
-
     const ek = await this.mustStaticECDHKey()
     const api = this.api.channelAPI(info.canister)
     const setting = await api.update_my_setting({
@@ -589,6 +611,20 @@ export class MyMessageState {
     }
   }
 
+  async adminAddManager(info: ChannelInfoEx, member: Principal): Promise<void> {
+    const api = this.api.channelAPI(info.canister)
+    const input = {
+      id: info.id,
+      member,
+      ecdh: {
+        ecdh_remote: [],
+        ecdh_pub: []
+      } as ChannelECDHInput
+    }
+
+    await api.update_manager(input)
+  }
+
   async channelMembers(
     channel: ChannelInfoEx,
     me: UserInfo
@@ -662,8 +698,16 @@ export class MyMessageState {
     await this.agent.removeChannel(canister, id)
   }
 
-  async refreshChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
-    const ninfo = await this.agent.fetchChannel(info.canister, info.id, 0n)
+  async refreshChannel(
+    info: ChannelInfoEx,
+    silent: boolean = false
+  ): Promise<ChannelInfoEx> {
+    const ninfo = await this.agent.fetchChannel(
+      info.canister,
+      info.id,
+      0n,
+      silent
+    )
     if (!ninfo) {
       throw new Error('Channel not found')
     }
@@ -672,10 +716,10 @@ export class MyMessageState {
     if (!kek) {
       kek = await this.loadChannelKEK(info.canister, info.id).catch((e) => null)
     }
-
     return {
       ...ninfo,
       _kek: kek,
+      _invalidKEK: info._invalidKEK,
       _managers: ninfo.managers.map((m) => m.toText())
     }
   }
@@ -720,6 +764,7 @@ export class MyMessageState {
       set({
         ...$channel,
         _kek: kek,
+        _invalidKEK: false,
         _managers: $channel.managers.map((m) => m.toText())
       })
     })

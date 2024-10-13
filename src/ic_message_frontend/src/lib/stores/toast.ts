@@ -18,6 +18,7 @@ export function toastRun<T>(
 ): TryRunResult<T> {
   return tryRun(fn, (err: any) => {
     if (err) {
+      console.error(err)
       ErrorLogs.push(err)
       if (ErrorLogs.length > 20) {
         ErrorLogs.shift()

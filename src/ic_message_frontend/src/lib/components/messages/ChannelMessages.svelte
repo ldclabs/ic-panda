@@ -488,7 +488,7 @@
                     >
                   {:else}
                     <pre
-                      class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
+                      class="icpanda-message w-full whitespace-break-spaces break-all px-4 py-2"
                       >{msg.message}</pre
                     >
                   {/if}
@@ -534,7 +534,7 @@
                       <p class="text-balance px-4 py-2 text-sm">{msg.error}</p>
                     {:else}
                       <pre
-                        class="icpanda-message w-full whitespace-break-spaces break-words px-4 py-2"
+                        class="icpanda-message w-full whitespace-break-spaces break-all px-4 py-2"
                         >{msg.message}</pre
                       >
                     {/if}
@@ -570,7 +570,7 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="textarea whitespace-break-spaces break-words border-0 !bg-transparent outline-0 ring-0"
+      class="textarea whitespace-break-spaces break-all border-0 !bg-transparent outline-0 ring-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}

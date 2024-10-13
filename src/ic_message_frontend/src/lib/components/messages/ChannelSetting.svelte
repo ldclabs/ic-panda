@@ -43,13 +43,26 @@
   const myID = $myInfo.id.toText()
   const { canister, id } = channelInfo
 
+  let mute = channelInfo.my_setting.mute
+  let isManager = false
+  let kekStatus = 0
+
+  $: {
+    if (channelInfo.my_setting.ecdh_remote.length > 0) {
+      kekStatus = 1 // should accept the key
+    } else if (channelInfo.my_setting.ecdh_pub.length > 0) {
+      kekStatus = 2 // should wait for the key
+    } else if (channelInfo._kek && !channelInfo._invalidKEK) {
+      kekStatus = 3 // key exists
+    } else {
+      kekStatus = 0
+    }
+  }
+
   $: hasExchangeKeys =
     channelInfo.ecdh_request.filter(
       (r) => r[0].toText() !== myID && r[1][1].length === 0
     ).length > 0
-
-  let mute = channelInfo.my_setting.mute
-  let isManager = false
 
   async function loadMembers() {
     const res = await myState.channelMembers(channelInfo, $myInfo)
@@ -116,6 +129,7 @@
       if (channelInfo.my_setting.ecdh_remote.length === 1) {
         try {
           await myState.acceptKEK(channelInfo)
+          await myState.decryptChannelDEK(channelInfo)
         } catch (err: any) {
           toastStore.trigger({
             timeout: 10000,
@@ -173,19 +187,30 @@
 
   let adminAddManagersSubmitting = false
   function onClickAdminAddManagers() {
+    const existsMembers = channelInfo.members.map((m) => m.toText())
     modalStore.trigger({
       type: 'component',
       component: {
         ref: UserSelectModel,
         props: {
-          title: 'Add managers',
+          isAddManager: true,
           existsManagers: channelInfo._managers,
-          existsMembers: channelInfo.members.map((m) => m.toText()),
+          existsMembers,
           myState: myState,
           onSave: (members: Array<[Principal, Uint8Array | null]>) => {
             adminAddManagersSubmitting = true
             toastRun(async (signal: AbortSignal) => {
-              await myState.adminAddMembers(channelInfo, 'Manager', members)
+              // adminAddManager
+              const member = members[0]
+              if (
+                member &&
+                members.length === 1 &&
+                existsMembers.includes(member[0].toText())
+              ) {
+                await myState.adminAddManager(channelInfo, member[0])
+              } else {
+                await myState.adminAddMembers(channelInfo, 'Manager', members)
+              }
               channelInfo = await myState.refreshChannel(channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
@@ -204,7 +229,7 @@
       component: {
         ref: UserSelectModel,
         props: {
-          title: 'Add members',
+          isAddManager: false,
           existsManagers: channelInfo._managers,
           existsMembers: channelInfo.members.map((m) => m.toText()),
           myState: myState,
@@ -245,7 +270,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      channelInfo = await myState.refreshChannel(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo, true)
       await loadMembers()
     }, toastStore)
 
@@ -323,7 +348,7 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Request encryption key:</p>
-      {#if channelInfo.my_setting.ecdh_remote.length > 0}
+      {#if kekStatus === 1}
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
@@ -331,19 +356,13 @@
           disabled={myECDHSubmitting}
           ><span>Key received, accept it</span></button
         >
-      {:else if channelInfo.my_setting.ecdh_pub.length > 0}
+      {:else if kekStatus === 2}
         <span class="text-sm opacity-50"
           >Request sent, waiting for a manager share key</span
         >
-      {:else if channelInfo._kek}
+      {:else if kekStatus === 3}
         <span class="text-sm opacity-50"
           >Key already exists, no action needed</span
-        >
-        <button
-          type="button"
-          class="variant-filled-warning btn btn-sm hidden"
-          on:click={onClickMyECDH}
-          disabled={myECDHSubmitting}><span>Request again</span></button
         >
       {:else}
         <button
