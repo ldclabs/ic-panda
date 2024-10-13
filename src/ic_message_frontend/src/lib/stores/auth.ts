@@ -1,5 +1,5 @@
 import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
-import { agent, anonymousIdentity, authClientPromise } from '$lib/utils/auth'
+import { agent, anonymousIdentity, createAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
 import { type Identity } from '@dfinity/agent'
 import { nonNullish } from '@dfinity/utils'
@@ -30,6 +30,7 @@ export interface AuthStore extends Readable<AuthStoreData> {
 }
 
 const initAuthStore = (): AuthStore => {
+  const authClientPromise = createAuthClient()
   const { subscribe, set } = writable<AuthStoreData>({
     identity: anonymousIdentity
   })

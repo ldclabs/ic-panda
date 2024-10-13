@@ -7,20 +7,30 @@ import {
 } from '@dfinity/agent'
 import { AuthClient } from '@dfinity/auth-client'
 
-export const authClientPromise = AuthClient.create({
-  keyType: 'Ed25519',
-  idleOptions: {
-    disableIdle: true,
-    disableDefaultIdleCallback: true
-  }
-})
+// export const authClientPromise = AuthClient.create({
+//   keyType: 'Ed25519',
+//   idleOptions: {
+//     disableIdle: true,
+//     disableDefaultIdleCallback: true
+//   }
+// })
+// should create a new authClient for each login
+export function createAuthClient(): Promise<AuthClient> {
+  return AuthClient.create({
+    keyType: 'Ed25519',
+    idleOptions: {
+      disableIdle: true,
+      disableDefaultIdleCallback: true
+    }
+  })
+}
 
 /**
  * In certain features, we want to execute jobs with the authenticated identity without getting it from the auth.store.
  * This is notably useful for Web Workers which do not have access to the window.
  */
 export const loadIdentity = async (): Promise<Identity | undefined> => {
-  const authClient = await authClientPromise
+  const authClient = await createAuthClient()
   const authenticated = await authClient.isAuthenticated()
 
   agent.setIdentity(authClient.getIdentity())
