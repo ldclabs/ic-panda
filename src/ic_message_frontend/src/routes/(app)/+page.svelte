@@ -1,20 +1,19 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
+  import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
+  import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
-  import { toastRun } from '$lib/stores/toast'
   import { MyMessageState } from '$lib/stores/message'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onMount, tick } from 'svelte'
-  import { writable, type Writable } from 'svelte/store'
-  import UserRegisterModel from '$lib/components/messages/UserRegisterModel.svelte'
-  import Saos from 'saos'
-  import { initPopup } from '$lib/utils/popup'
-  import { onDestroy } from 'svelte'
-  import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
+  import { toastRun } from '$lib/stores/toast'
   import { agent } from '$lib/utils/auth'
-  import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
+  import { initPopup } from '$lib/utils/popup'
+  import UserRegisterModal from '$src/lib/components/messages/UserRegisterModal.svelte'
+  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import Saos from 'saos'
+  import { onDestroy, onMount, tick } from 'svelte'
+  import { writable, type Writable } from 'svelte/store'
 
   interface Saying {
     name: string
@@ -150,7 +149,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: UserRegisterModel,
+          ref: UserRegisterModal,
           props: {
             myState,
             onFinished: onLaunchAppHandler
@@ -427,7 +426,7 @@
               <span class="truncate">{saying.name}</span>
               <span class="text-neutral-400">@{saying.handle}</span>
             </div>
-            <p class="mt-2 text-balance text-neutral-300">{saying.message}</p>
+            <p class="mt-2 text-pretty text-neutral-300">{saying.message}</p>
           </a>
         {/each}
       </div>

@@ -10,7 +10,7 @@
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import UsernameTransferModel from './UsernameTransferModel.svelte'
+  import UsernameTransferModal from './UsernameTransferModal.svelte'
 
   // Props
   /** Exposes parent props to this component. */
@@ -53,7 +53,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: UsernameTransferModel,
+        ref: UsernameTransferModal,
         props: {
           myState
         }

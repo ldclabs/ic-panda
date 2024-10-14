@@ -55,7 +55,17 @@ body {
   font-weight: 500;
 }
 
+@supports not (text-wrap: pretty) {
+  .text-pretty {
+    text-wrap: balance;
+  }
+}
+
 @supports not (text-wrap: balance) {
+  .text-pretty {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
   .text-balance {
     white-space: normal;
     overflow-wrap: break-word;

@@ -44,7 +44,7 @@
     class="card max-w-80 bg-surface-800 px-2 py-1 text-white"
     data-popup={textHover.target}
   >
-    <p class="text-balance break-all">{textName}</p>
+    <p class="text-pretty break-all">{textName}</p>
     <div class="arrow bg-surface-800" />
   </div>
 </div>

@@ -3,9 +3,13 @@
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
   import IconLink from '$lib/components/icons/IconLink.svelte'
+  import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
   import { clipboard } from '@skeletonlabs/skeleton'
 
   export let link: Link
+  export let onQrHandler:
+    | ((qrTitle: string, qrValue: string, qrLogo?: string) => void)
+    | null = null
 
   let copiedClass = ''
 
@@ -23,20 +27,28 @@
     href={link.uri}
     target="_blank"
     rel="noopener noreferrer"
-    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4"
+    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
   >
     <span>{link.title}</span>
     <span class="text-surface-500 *:size-5"><IconLink /></span>
+    {#if onQrHandler}
+      <button
+        class="flex flex-row items-center gap-2"
+        on:click|stopPropagation|preventDefault={() =>
+          onQrHandler(link.title, link.uri)}
+      >
+        <span class="text-surface-500 *:size-5"><IconQrCode /></span>
+      </button>
+    {/if}
   </a>
 {:else}
   <button
-    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4"
+    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
     use:clipboard={link.uri}
     on:click={onCopyHandler}
     disabled={copiedClass != ''}
   >
-    <span>{link.title}</span>
-    <span class={copiedClass}>{link.uri}</span>
+    <div>{link.title}<span class="ml-1 {copiedClass}">{link.uri}</span></div>
     <span class="text-surface-500 *:size-5"
       >{#if copiedClass != ''}
         <IconCheckbox />
@@ -44,5 +56,14 @@
         <IconCopy />
       {/if}</span
     >
+    {#if onQrHandler}
+      <button
+        class="flex flex-row items-center gap-2"
+        on:click|stopPropagation|preventDefault={() =>
+          onQrHandler(link.title, link.uri)}
+      >
+        <span class="text-surface-500 *:size-5"><IconQrCode /></span>
+      </button>
+    {/if}
   </button>
 {/if}

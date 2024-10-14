@@ -14,7 +14,7 @@
   import debounce from 'debounce'
   import { onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
-  import ChannelCreateModel from './ChannelCreateModel.svelte'
+  import ChannelCreateModal from './ChannelCreateModal.svelte'
 
   export let myState: MyMessageState
 
@@ -28,7 +28,7 @@
   function onCreateChannelHandler() {
     modalStore.trigger({
       type: 'component',
-      component: { ref: ChannelCreateModel, props: { myState } }
+      component: { ref: ChannelCreateModal, props: { myState } }
     })
   }
 

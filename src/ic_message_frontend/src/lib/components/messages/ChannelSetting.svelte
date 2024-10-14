@@ -29,9 +29,9 @@
   } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
-  import ChannelEditModel from './ChannelEditModel.svelte'
-  import ChannelTopupModel from './ChannelTopupModel.svelte'
-  import UserSelectModel from './UserSelectModel.svelte'
+  import ChannelEditModal from './ChannelEditModal.svelte'
+  import ChannelTopupModal from './ChannelTopupModal.svelte'
+  import UserSelectModal from './UserSelectModal.svelte'
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
@@ -74,7 +74,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: ChannelEditModel,
+        ref: ChannelEditModal,
         props: {
           channel: channelInfo,
           onSave: (input: UpdateChannelInput) => {
@@ -93,7 +93,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: ChannelTopupModel,
+        ref: ChannelTopupModal,
         props: {
           myState,
           channel: channelInfo
@@ -191,7 +191,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: UserSelectModel,
+        ref: UserSelectModal,
         props: {
           isAddManager: true,
           existsManagers: channelInfo._managers,
@@ -227,7 +227,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: UserSelectModel,
+        ref: UserSelectModal,
         props: {
           isAddManager: false,
           existsManagers: channelInfo._managers,

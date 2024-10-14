@@ -38,10 +38,10 @@
   } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
-  import ChannelCreateModel from './ChannelCreateModel.svelte'
+  import ChannelCreateModal from './ChannelCreateModal.svelte'
   import LinkEditModal from './LinkEditModal.svelte'
-  import ProfileEditModel from './ProfileEditModel.svelte'
-  import UserRegisterModel from './UserRegisterModel.svelte'
+  import ProfileEditModal from './ProfileEditModal.svelte'
+  import UserRegisterModal from './UserRegisterModal.svelte'
 
   export let myState: MyMessageState
 
@@ -98,7 +98,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: ProfileEditModel,
+          ref: ProfileEditModal,
           props: {
             myState,
             myInfo,
@@ -110,7 +110,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: UserRegisterModel,
+          ref: UserRegisterModal,
           props: {
             myState
           }
@@ -140,7 +140,7 @@
         modalStore.trigger({
           type: 'component',
           component: {
-            ref: UserRegisterModel,
+            ref: UserRegisterModal,
             props: {
               myState
             }
@@ -179,7 +179,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: UserRegisterModel,
+          ref: UserRegisterModal,
           props: {
             myState
           }
@@ -199,7 +199,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: ChannelCreateModel,
+          ref: ChannelCreateModal,
           props: {
             myState,
             channelName: `${user.name}, ${$myInfo!.name}`,

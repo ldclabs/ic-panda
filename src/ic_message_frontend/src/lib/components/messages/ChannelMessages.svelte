@@ -33,7 +33,7 @@
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
-  import ProfileModel from './ProfileModel.svelte'
+  import ProfileModal from './ProfileModal.svelte'
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
@@ -139,7 +139,7 @@
     modalStore.trigger({
       type: 'component',
       component: {
-        ref: ProfileModel,
+        ref: ProfileModal,
         props: {
           myState,
           userId
@@ -446,7 +446,7 @@
       {#each $messageFeed as msg (msg.id)}
         {#if msg.isDeleted}
           <div class="grid justify-center">
-            <p class="text-balance bg-transparent p-2 text-xs">{msg.error}</p>
+            <p class="text-pretty bg-transparent p-2 text-xs">{msg.error}</p>
           </div>
         {:else if msg.created_by.compareTo(myState.principal) !== 'eq'}
           <div
@@ -483,12 +483,12 @@
                     : 'bg-white'}"
                 >
                   {#if msg.error}
-                    <p class="w-full text-balance px-4 py-2 text-sm"
+                    <p class="w-full text-pretty px-4 py-2 text-sm"
                       >{msg.error}</p
                     >
                   {:else}
                     <pre
-                      class="icpanda-message w-full whitespace-break-spaces break-all px-4 py-2"
+                      class="icpanda-message w-full text-pretty break-all px-4 py-2"
                       >{msg.message}</pre
                     >
                   {/if}
@@ -531,10 +531,10 @@
                   </div>
                   <div class="max-h-[600px] overflow-auto overscroll-auto">
                     {#if msg.error}
-                      <p class="text-balance px-4 py-2 text-sm">{msg.error}</p>
+                      <p class="text-pretty px-4 py-2 text-sm">{msg.error}</p>
                     {:else}
                       <pre
-                        class="icpanda-message w-full whitespace-break-spaces break-all px-4 py-2"
+                        class="icpanda-message w-full text-pretty break-all px-4 py-2"
                         >{msg.message}</pre
                       >
                     {/if}
@@ -570,7 +570,7 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="textarea whitespace-break-spaces break-all border-0 !bg-transparent outline-0 ring-0"
+      class="textarea text-pretty break-all border-0 !bg-transparent outline-0 ring-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}

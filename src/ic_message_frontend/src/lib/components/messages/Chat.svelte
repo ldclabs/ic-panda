@@ -12,7 +12,7 @@
   import { type Readable } from 'svelte/store'
   import ChannelDetail from './ChannelDetail.svelte'
   import MyChannelList from './MyChannelList.svelte'
-  import PasswordModel from './PasswordModel.svelte'
+  import PasswordModal from './PasswordModal.svelte'
 
   export let myState: MyMessageState
 
@@ -53,7 +53,7 @@
           modalStore.trigger({
             type: 'component',
             component: {
-              ref: PasswordModel,
+              ref: PasswordModal,
               props: {
                 myState: myState,
                 masterKey: mk,

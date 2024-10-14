@@ -6,21 +6,24 @@
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
+  import LinkItem from '$lib/components/ui/LinkItem.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
+  import QrModal from '$lib/components/ui/QrModal.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
+  import { APP_ORIGIN } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
   import { toDisplayUserInfo, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
   import { md } from '$lib/utils/markdown'
-  import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { derived, type Readable } from 'svelte/store'
-  import ChannelCreateModel from './ChannelCreateModel.svelte'
-  import PasswordModel from './PasswordModel.svelte'
-  import UserRegisterModel from './UserRegisterModel.svelte'
+  import ChannelCreateModal from './ChannelCreateModal.svelte'
+  import PasswordModal from './PasswordModal.svelte'
+  import UserRegisterModal from './UserRegisterModal.svelte'
 
   export let userId: Principal | string
   export let myState: MyMessageState
@@ -51,7 +54,7 @@
         modalStore.trigger({
           type: 'component',
           component: {
-            ref: UserRegisterModel,
+            ref: UserRegisterModal,
             props: {
               myState,
               onFinished: async () => {
@@ -93,7 +96,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: UserRegisterModel,
+          ref: UserRegisterModal,
           props: {
             myState,
             onFinished: async () => {
@@ -118,7 +121,7 @@
           modalStore.trigger({
             type: 'component',
             component: {
-              ref: PasswordModel,
+              ref: PasswordModal,
               props: {
                 myState: myState,
                 masterKey: mk,
@@ -135,7 +138,7 @@
       modalStore.trigger({
         type: 'component',
         component: {
-          ref: ChannelCreateModel,
+          ref: ChannelCreateModal,
           props: {
             myState,
             channelName: `${user.name}, ${$myInfo!.name}`,
@@ -146,6 +149,20 @@
         }
       })
     }
+  }
+
+  function onQrHandler(qrTitle: string, qrValue: string, qrLogo: string = '') {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: QrModal,
+        props: {
+          qrTitle,
+          qrValue,
+          qrLogo
+        }
+      }
+    })
   }
 
   onMount(() => {
@@ -192,10 +209,21 @@
         width="w-40"
       />
     </div>
-    <p class="relative space-x-1">
+    <p class="flex flex-row items-center gap-1">
       <span class="font-bold">{display.name}</span>
       {#if display.username}
-        <span class="text-neutral-500">@{display.username}</span>
+        <button
+          class="flex flex-row items-center gap-2"
+          on:click={() =>
+            onQrHandler(
+              display.name,
+              `${APP_ORIGIN}/${display.username}`,
+              display.image
+            )}
+        >
+          <span class="text-neutral-500">@{display.username}</span>
+          <span class="text-neutral-500 *:size-5"><IconQrCode /></span>
+        </button>
       {/if}
     </p>
     {#if $userInfo.bio}
@@ -206,12 +234,18 @@
     <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-500">
       <span>Principal: {display._id}</span>
       <TextClipboardButton textValue={display._id} />
+      <button
+        class="flex flex-row items-center gap-2"
+        on:click={() => onQrHandler('Principal', display._id)}
+      >
+        <span class="*:size-5"><IconQrCode /></span>
+      </button>
     </p>
     <div
       class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
     >
       {#each links as link}
-        <LinkItem {link} />
+        <LinkItem {link} {onQrHandler} />
       {/each}
     </div>
     {#if !isMe}

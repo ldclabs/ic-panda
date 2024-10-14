@@ -9,7 +9,7 @@
 <div class="relative !p-0 {containerClass}">
   <pre
     aria-hidden="true"
-    class="invisible w-full whitespace-break-spaces break-all px-3 py-2"
+    class="invisible w-full text-pretty break-all px-3 py-2"
     style="min-height: {minHeight}px; max-height: {maxHeight}px"
     >{value + ' '}</pre
   >
