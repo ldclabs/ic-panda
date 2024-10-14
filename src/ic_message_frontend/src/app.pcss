@@ -57,16 +57,12 @@ body {
 
 @supports not (text-wrap: pretty) {
   .text-pretty {
-    text-wrap: balance;
+    text-wrap: wrap;
   }
 }
 
-@supports not (text-wrap: balance) {
+@supports not (text-wrap: wrap) {
   .text-pretty {
-    white-space: normal;
-    overflow-wrap: break-word;
-  }
-  .text-balance {
     white-space: normal;
     overflow-wrap: break-word;
   }

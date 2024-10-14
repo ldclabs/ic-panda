@@ -537,7 +537,7 @@
             </button>
           </div>
           <p class="text-neutral-500"
-            >If you encounter any issues, please message me.</p
+            >If you encounter any issues, please message us.</p
           >
         </div>
       {/if}

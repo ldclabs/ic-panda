@@ -236,7 +236,7 @@
       <TextClipboardButton textValue={display._id} />
       <button
         class="flex flex-row items-center gap-2"
-        on:click={() => onQrHandler('Principal', display._id)}
+        on:click={() => onQrHandler('Principal ID', display._id)}
       >
         <span class="*:size-5"><IconQrCode /></span>
       </button>
