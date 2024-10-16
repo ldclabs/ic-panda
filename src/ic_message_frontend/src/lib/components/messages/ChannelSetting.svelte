@@ -84,7 +84,7 @@
         ref: ChannelTopupModal,
         props: {
           myState,
-          channel: channelInfo
+          channel: $channelInfo
         }
       }
     })
