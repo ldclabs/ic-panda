@@ -133,7 +133,7 @@
     {#if openMessages}
       <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
     {:else}
-      <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
+      <ChannelSetting {myState} {myInfo} {channelInfo} />
     {/if}
   {:else}
     <div class="m-auto size-24 rounded-full *:size-24">

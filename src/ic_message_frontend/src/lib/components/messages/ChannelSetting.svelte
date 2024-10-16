@@ -35,38 +35,26 @@
 
   export let myState: MyMessageState
   export let myInfo: Readable<UserInfo>
-  export let channelInfo: ChannelInfoEx
+  export let channelInfo: Readable<ChannelInfoEx>
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const members: Writable<DisplayUserInfoEx[]> = writable([])
   const myID = $myInfo.id.toText()
-  const { canister, id } = channelInfo
+  const { canister, id } = $channelInfo
 
-  let mute = channelInfo.my_setting.mute
+  let mute = $channelInfo.my_setting.mute
   let isManager = false
-  let kekStatus = 0
-
-  $: {
-    if (channelInfo.my_setting.ecdh_remote.length > 0) {
-      kekStatus = 1 // should accept the key
-    } else if (channelInfo.my_setting.ecdh_pub.length > 0) {
-      kekStatus = 2 // should wait for the key
-    } else if (channelInfo._kek && !channelInfo._invalidKEK) {
-      kekStatus = 3 // key exists
-    } else {
-      kekStatus = 0
-    }
-  }
+  let validKEK = true
 
   $: hasExchangeKeys =
-    channelInfo.ecdh_request.filter(
+    $channelInfo.ecdh_request.filter(
       (r) => r[0].toText() !== myID && r[1][1].length === 0
     ).length > 0
 
   async function loadMembers() {
-    const res = await myState.channelMembers(channelInfo, $myInfo)
-    isManager = channelInfo._managers.includes(myID)
+    const res = await myState.channelMembers($channelInfo, $myInfo)
+    isManager = $channelInfo._managers.includes(myID)
     members.set(res)
   }
 
@@ -76,12 +64,12 @@
       component: {
         ref: ChannelEditModal,
         props: {
-          channel: channelInfo,
+          channel: $channelInfo,
           onSave: (input: UpdateChannelInput) => {
             return toastRun(async (signal: AbortSignal) => {
               const api = myState.api.channelAPI(canister)
               await api.update_channel(input)
-              channelInfo = await myState.refreshChannel(channelInfo)
+              await myState.refreshChannel($channelInfo)
             }, toastStore).finally()
           }
         }
@@ -115,7 +103,7 @@
         mute: [mute],
         last_read: []
       })
-      channelInfo = await myState.refreshChannel(channelInfo)
+      await myState.refreshChannel($channelInfo)
     }, toastStore).finally(() => {
       muteSubmitting = false
     })
@@ -126,27 +114,29 @@
     myECDHSubmitting = true
 
     toastRun(async (signal: AbortSignal) => {
-      if (channelInfo.my_setting.ecdh_remote.length === 1) {
+      if ($channelInfo.my_setting.ecdh_remote.length === 1) {
         try {
-          await myState.acceptKEK(channelInfo)
-          await myState.decryptChannelDEK(channelInfo)
+          await myState.acceptKEK($channelInfo)
+          await myState.decryptChannelDEK($channelInfo)
+          validKEK = true
         } catch (err: any) {
+          validKEK = false
           toastStore.trigger({
             timeout: 10000,
             hideDismiss: false,
             background: 'variant-soft-error',
             message: `Failed to receive the key. A new key has been requested.\n<br />Error: ${errMessage(err)}`
           })
-          const my_setting = { ...channelInfo.my_setting }
+          const my_setting = { ...$channelInfo.my_setting }
           my_setting.ecdh_remote = []
           my_setting.ecdh_pub = []
-          await myState.requestKEK({ ...channelInfo, my_setting })
+          await myState.requestKEK({ ...$channelInfo, my_setting })
         }
       } else {
-        await myState.requestKEK(channelInfo)
+        await myState.requestKEK($channelInfo)
       }
 
-      channelInfo = await myState.refreshChannel(channelInfo)
+      await myState.refreshChannel($channelInfo)
     }, toastStore).finally(() => {
       myECDHSubmitting = false
     })
@@ -155,7 +145,7 @@
   let leavingWord = ''
   let myLeavingSubmitting = false
   function onClickMyLeaving() {
-    if (leavingWord.trim() != channelInfo.name) {
+    if (leavingWord.trim() != $channelInfo.name) {
       return
     }
 
@@ -176,9 +166,9 @@
     adminExchangeKeysSubmitting = true
     toastRun(async (signal: AbortSignal) => {
       // fetch the latest ECDH request
-      channelInfo = await myState.refreshChannel(channelInfo)
-      await myState.adminExchangeKEK(channelInfo)
-      channelInfo = await myState.refreshChannel(channelInfo)
+      await myState.refreshChannel($channelInfo)
+      await myState.adminExchangeKEK($channelInfo)
+      await myState.refreshChannel($channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminExchangeKeysSubmitting = false
@@ -187,14 +177,14 @@
 
   let adminAddManagersSubmitting = false
   function onClickAdminAddManagers() {
-    const existsMembers = channelInfo.members.map((m) => m.toText())
+    const existsMembers = $channelInfo.members.map((m) => m.toText())
     modalStore.trigger({
       type: 'component',
       component: {
         ref: UserSelectModal,
         props: {
           isAddManager: true,
-          existsManagers: channelInfo._managers,
+          existsManagers: $channelInfo._managers,
           existsMembers,
           myState: myState,
           onSave: (members: Array<[Principal, Uint8Array | null]>) => {
@@ -207,11 +197,11 @@
                 members.length === 1 &&
                 existsMembers.includes(member[0].toText())
               ) {
-                await myState.adminAddManager(channelInfo, member[0])
+                await myState.adminAddManager($channelInfo, member[0])
               } else {
-                await myState.adminAddMembers(channelInfo, 'Manager', members)
+                await myState.adminAddMembers($channelInfo, 'Manager', members)
               }
-              channelInfo = await myState.refreshChannel(channelInfo)
+              await myState.refreshChannel($channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddManagersSubmitting = false
@@ -230,14 +220,14 @@
         ref: UserSelectModal,
         props: {
           isAddManager: false,
-          existsManagers: channelInfo._managers,
-          existsMembers: channelInfo.members.map((m) => m.toText()),
+          existsManagers: $channelInfo._managers,
+          existsMembers: $channelInfo.members.map((m) => m.toText()),
           myState: myState,
           onSave: (members: Array<[Principal, Uint8Array | null]>) => {
             adminAddMembersSubmitting = true
             toastRun(async (signal: AbortSignal) => {
-              await myState.adminAddMembers(channelInfo, 'Member', members)
-              channelInfo = await myState.refreshChannel(channelInfo)
+              await myState.adminAddMembers($channelInfo, 'Member', members)
+              await myState.refreshChannel($channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddMembersSubmitting = false
@@ -261,7 +251,7 @@
         } as ChannelECDHInput
       })
 
-      channelInfo = await myState.refreshChannel(channelInfo)
+      await myState.refreshChannel($channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminRemoveMembersSubmitting = ''
@@ -270,7 +260,13 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      channelInfo = await myState.refreshChannel(channelInfo, true)
+      await myState.refreshChannel($channelInfo, true)
+      try {
+        await myState.decryptChannelDEK($channelInfo)
+        validKEK = true
+      } catch (_e) {
+        validKEK = false
+      }
       await loadMembers()
     }, toastStore)
 
@@ -283,16 +279,16 @@
 >
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     <Avatar
-      initials={channelInfo.name}
-      src={channelInfo.image}
+      initials={$channelInfo.name}
+      src={$channelInfo.image}
       border="border-4 border-white"
-      background={channelInfo.image ? '' : 'bg-panda'}
+      background={$channelInfo.image ? '' : 'bg-panda'}
       fill="fill-white"
       width="w-16"
     />
     <div class="flex-1">
       <p class="flex flex-row">
-        <span>{channelInfo.name}</span>
+        <span>{$channelInfo.name}</span>
         {#if isManager}
           <button
             type="button"
@@ -303,9 +299,9 @@
           </button>
         {/if}
       </p>
-      {#if channelInfo.description}
+      {#if $channelInfo.description}
         <div class="mt-2">
-          {@html md.render(channelInfo.description)}
+          {@html md.render($channelInfo.description)}
         </div>
       {/if}
     </div>
@@ -314,12 +310,12 @@
     <div class="flex flex-row items-center gap-1">
       <span class="text-sm font-normal text-neutral-500">Messages:</span>
       <span class="font-bold text-panda"
-        >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
+        >{$channelInfo.latest_message_id - $channelInfo.message_start + 1}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Gas Balance:</span>
-      <span class="font-bold text-panda">{channelInfo.gas}</span>
+      <span class="font-bold text-panda">{$channelInfo.gas}</span>
     </div>
     <button
       type="button"
@@ -348,7 +344,7 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Request encryption key:</p>
-      {#if kekStatus === 1}
+      {#if $channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
@@ -356,11 +352,11 @@
           disabled={myECDHSubmitting}
           ><span>Key received, accept it</span></button
         >
-      {:else if kekStatus === 2}
+      {:else if $channelInfo.my_setting.ecdh_pub.length > 0}
         <span class="text-sm opacity-50"
           >Request sent, waiting for a manager share key</span
         >
-      {:else if kekStatus === 3}
+      {:else if validKEK}
         <span class="text-sm opacity-50"
           >Key already exists, no action needed</span
         >
@@ -393,7 +389,7 @@
           class="variant-filled-warning !px-2 disabled:variant-filled-surface"
           on:click={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
-            leavingWord.trim() != channelInfo.name}
+            leavingWord.trim() != $channelInfo.name}
           ><span class="*:size-5">
             {#if myLeavingSubmitting}
               <IconCircleSpin />
@@ -404,9 +400,9 @@
         >
       </div>
     </div>
-    {#if isManager && channelInfo._managers.length < 2}
+    {#if isManager && $channelInfo._managers.length < 2}
       <p
-        class="h-5 text-sm text-error-500 {leavingWord === channelInfo.name
+        class="h-5 text-sm text-error-500 {leavingWord === $channelInfo.name
           ? 'visible'
           : 'invisible'}"
         >You are the only manager. Leaving the channel will delete all its data.</p

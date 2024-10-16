@@ -109,7 +109,6 @@ export type ChannelBasicInfoEx = ChannelBasicInfo & {
 export type ChannelInfoEx = ChannelInfo &
   SyncAt & {
     _kek: Uint8Array | null
-    _invalidKEK: boolean
     _managers: string[]
   }
 
@@ -437,14 +436,12 @@ export class MyMessageState {
         throw new Error('Channel encryption key not ready')
       }
 
-      info._invalidKEK = true
       const mk = (await this.mustMasterKey()).toA256GCMKey()
       const aad = new Uint8Array()
       let data = await coseA256GCMDecrypt0(mk, info._kek, aad)
       const kek = AesGcmKey.fromBytes(data)
       data = await coseA256GCMDecrypt0(kek, info.dek as Uint8Array, aad)
       dek = AesGcmKey.fromBytes(data)
-      info._invalidKEK = false
       this._channelDEKs.set(`${info.canister.toText()}:${info.id}`, dek)
     }
 
@@ -719,7 +716,6 @@ export class MyMessageState {
     return {
       ...ninfo,
       _kek: kek,
-      _invalidKEK: info._invalidKEK,
       _managers: ninfo.managers.map((m) => m.toText())
     }
   }
@@ -761,12 +757,23 @@ export class MyMessageState {
     const channel = await this.agent.subscribeChannel(canister, id)
     const kek = await this.loadChannelKEK(canister, id).catch((e) => null)
     return derived(channel, ($channel, set) => {
-      set({
-        ...$channel,
-        _kek: kek,
-        _invalidKEK: false,
-        _managers: $channel.managers.map((m) => m.toText())
-      })
+      if (kek) {
+        set({
+          ...$channel,
+          _kek: kek,
+          _managers: $channel.managers.map((m) => m.toText())
+        })
+      } else {
+        this.loadChannelKEK(canister, id)
+          .catch((e) => null)
+          .then((kek) => {
+            set({
+              ...$channel,
+              _kek: kek,
+              _managers: $channel.managers.map((m) => m.toText())
+            })
+          })
+      }
     })
   }
 
