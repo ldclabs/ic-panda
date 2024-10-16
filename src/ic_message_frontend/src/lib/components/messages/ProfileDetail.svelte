@@ -135,6 +135,7 @@
         return
       }
 
+      modalStore.close()
       modalStore.trigger({
         type: 'component',
         component: {
@@ -152,6 +153,7 @@
   }
 
   function onQrHandler(qrTitle: string, qrValue: string, qrLogo: string = '') {
+    modalStore.close()
     modalStore.trigger({
       type: 'component',
       component: {
