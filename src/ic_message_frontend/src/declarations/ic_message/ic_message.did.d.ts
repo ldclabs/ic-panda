@@ -33,6 +33,12 @@ export interface ChannelECDHInput {
   'ecdh_remote' : [] | [[Uint8Array | number[], Uint8Array | number[]]],
   'ecdh_pub' : [] | [Uint8Array | number[]],
 }
+export interface ChannelFilesState {
+  'files_size_total' : bigint,
+  'file_max_size' : bigint,
+  'files_total' : bigint,
+  'file_storage' : [Principal, number],
+}
 export interface ChannelInfo {
   'id' : number,
   'dek' : Uint8Array | number[],
@@ -61,6 +67,7 @@ export interface ChannelInfo {
   'latest_message_at' : bigint,
   'latest_message_by' : Principal,
   'latest_message_id' : number,
+  'files_state' : [] | [ChannelFilesState],
   'my_setting' : ChannelSetting,
 }
 export interface ChannelKEKInput {

@@ -16,6 +16,7 @@ pub static SYS_MSG_CHANNEL_TOPUP: &str = "Channel.Topup";
 pub static SYS_MSG_CHANNEL_UPDATE_INFO: &str = "Channel.Update.Info";
 pub static SYS_MSG_CHANNEL_ADD_MANAGER: &str = "Channel.Add.Manager";
 pub static SYS_MSG_CHANNEL_ADD_MEMBER: &str = "Channel.Add.Member";
+pub static SYS_MSG_CHANNEL_UPLOAD_FILE: &str = "Channel.Upload.File";
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct ChannelInfo {
@@ -39,6 +40,16 @@ pub struct ChannelInfo {
     pub deleted_messages: BTreeSet<u32>,
     pub my_setting: ChannelSetting,
     pub ecdh_request: HashMap<Principal, (ByteArray<32>, Option<(ByteArray<32>, ByteBuf)>)>,
+    #[serde(default)]
+    pub files_state: Option<ChannelFilesState>,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct ChannelFilesState {
+    pub file_storage: (Principal, u32),
+    pub file_max_size: u64,
+    pub files_total: u64,
+    pub files_size_total: u64,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
@@ -162,7 +173,7 @@ impl UpdateChannelInput {
         }
 
         if let Some(ref image) = self.image {
-            if !image.starts_with("https://") {
+            if !image.starts_with("http") {
                 Err("invalid image url".to_string())?;
             }
         }
@@ -171,6 +182,21 @@ impl UpdateChannelInput {
             if description.len() > 256 {
                 Err("description is too long".to_string())?;
             }
+        }
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateChannelStorageInput {
+    pub id: u32,
+    pub file_max_size: u64,
+}
+
+impl UpdateChannelStorageInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.file_max_size > 1024 * 1024 * 100 {
+            Err("file_max_size is too large".to_string())?;
         }
         Ok(())
     }
@@ -282,4 +308,37 @@ impl TruncateMessageInput {
         }
         Ok(())
     }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct UploadFileInput {
+    pub channel: u32,
+    pub size: u64,            // encrypted file size with COSE_Encrypt0
+    pub content_type: String, // file content type
+}
+
+impl UploadFileInput {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.channel < 1 {
+            Err("channel is invalid".to_string())?;
+        }
+        if self.size < 80 {
+            Err("size is invalid".to_string())?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct UploadFileOutput {
+    pub id: u32,
+    pub storage: (Principal, u32),
+    pub access_token: ByteBuf,
+    pub name: String,
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
+pub struct DownloadFilesToken {
+    pub storage: (Principal, u32),
+    pub access_token: ByteBuf,
 }

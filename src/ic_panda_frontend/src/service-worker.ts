@@ -6,9 +6,6 @@ import {
   precacheAndRoute,
   type PrecacheEntry
 } from 'workbox-precaching'
-// ServiceWorker script evaluation failed:
-// Uncaught SyntaxError: Cannot use 'import.meta' outside a module (at service-worker.js:28:948)
-import { notifyd } from './lib/services/notification.sw'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -25,5 +22,3 @@ if (indexHtml) {
 }
 precacheAndRoute(precaches)
 cleanupOutdatedCaches()
-
-notifyd()

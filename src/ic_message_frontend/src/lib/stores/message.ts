@@ -12,6 +12,7 @@ import {
 } from '$lib/canisters/messagechannel'
 import { type ProfileInfo } from '$lib/canisters/messageprofile'
 import { MASTER_KEY_ID } from '$lib/constants'
+import { MessageDetail } from '$lib/types/message'
 import { unwrapOption } from '$lib/types/result'
 import { agent } from '$lib/utils/auth'
 import {
@@ -19,7 +20,6 @@ import {
   compareBytes,
   coseA256GCMDecrypt0,
   coseA256GCMEncrypt0,
-  decodeCBOR,
   deriveA256GCMSecret,
   ECDHKey,
   encodeCBOR,
@@ -30,6 +30,7 @@ import {
   randomBytes,
   utf8ToBytes
 } from '$lib/utils/crypto'
+import { getCurrentTimeString } from '$lib/utils/helper'
 import { Principal } from '@dfinity/principal'
 import { derived, readable, type Readable } from 'svelte/store'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
@@ -39,16 +40,6 @@ const PWD_HASH_KEY = 'pwd_hash'
 const KEY_ID = encodeCBOR(MASTER_KEY_ID)
 
 export const MAX_MESSAGE_ID = 0xffffffff
-export function getCurrentTimeString(ts: bigint | number): string {
-  const now = Date.now()
-  const t = Number(ts)
-  if (t >= now - 24 * 3600 * 1000) {
-    return new Date(t).toLocaleTimeString()
-  } else if (t >= now - 7 * 24 * 3600 * 1000) {
-    return new Date(t).toLocaleDateString(undefined, { weekday: 'long' })
-  }
-  return new Date(t).toLocaleDateString()
-}
 
 export function mergeMySetting(
   old: ChannelSetting,
@@ -81,6 +72,7 @@ export interface MessageInfo {
   message: string
   error: string
   isDeleted: boolean
+  detail: MessageDetail<any> | null
   src?: Message
 }
 
@@ -976,6 +968,7 @@ export class MyMessageState {
         message: '',
         error: '',
         isDeleted: false,
+        detail: null,
         src: msg
       }
 
@@ -988,7 +981,9 @@ export class MyMessageState {
             msg.kind == 1
               ? (msg.payload as Uint8Array)
               : await coseA256GCMDecrypt0(dek, msg.payload as Uint8Array, aad)
-          m.message = decodeMessage(payload)
+          m.detail = MessageDetail.from(payload)
+          m.message = m.detail.message
+          m.error = m.detail.error
         } catch (err) {
           m.error = `Failed to decrypt message: ${err}`
         }
@@ -1337,16 +1332,6 @@ export function toDisplayUserInfo(info?: UserInfo) {
   }
   if (rt.username.toLocaleUpperCase() === 'PANDA') {
     rt.image = '/_assets/logo.svg'
-  }
-  return rt
-}
-
-type MessagePayload = string | [string, number, Uint8Array]
-
-function decodeMessage(payload: Uint8Array): string {
-  const rt = decodeCBOR<MessagePayload>(payload)
-  if (Array.isArray(rt)) {
-    return rt[0]
   }
   return rt
 }

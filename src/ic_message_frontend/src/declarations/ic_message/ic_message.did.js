@@ -52,6 +52,12 @@ export const idlFactory = ({ IDL }) => {
     'created_by' : IDL.Principal,
     'image' : IDL.Text,
   });
+  const ChannelFilesState = IDL.Record({
+    'files_size_total' : IDL.Nat64,
+    'file_max_size' : IDL.Nat64,
+    'files_total' : IDL.Nat64,
+    'file_storage' : IDL.Tuple(IDL.Principal, IDL.Nat32),
+  });
   const ChannelSetting = IDL.Record({
     'updated_at' : IDL.Nat64,
     'mute' : IDL.Bool,
@@ -88,6 +94,7 @@ export const idlFactory = ({ IDL }) => {
     'latest_message_at' : IDL.Nat64,
     'latest_message_by' : IDL.Principal,
     'latest_message_id' : IDL.Nat32,
+    'files_state' : IDL.Opt(ChannelFilesState),
     'my_setting' : ChannelSetting,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ChannelInfo, 'Err' : IDL.Text });

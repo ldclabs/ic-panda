@@ -95,8 +95,8 @@ impl Link {
 
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UploadImageInput {
-    pub content_type: String, // image/webp or image/svg+xml
     pub size: u64,            // should <= 256KB
+    pub content_type: String, // image/webp or image/svg+xml
 }
 
 impl UploadImageInput {

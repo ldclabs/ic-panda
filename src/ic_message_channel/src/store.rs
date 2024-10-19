@@ -1,6 +1,12 @@
 use candid::Principal;
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
 use ic_cose_types::to_cbor_bytes;
+use ic_oss_types::{
+    cose::Token,
+    file::{CreateFileInput, CreateFileOutput},
+    folder::{CreateFolderInput, CreateFolderOutput},
+    MapValue,
+};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -14,11 +20,12 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
 };
 
-use crate::types;
+use crate::{call, types};
 
 const MESSAGE_PER_USER_GAS: u64 = 10000;
 const MESSAGE_PER_BYTE_GAS: u64 = 1000;
 const FREE_GAS: u64 = 100_000_000;
+const UPLOAD_FILE_GAS_THRESHOLD: u64 = 10_000_000;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -32,6 +39,10 @@ pub struct State {
     pub incoming_gas: u128,
     #[serde(default)]
     pub burned_gas: u128,
+    #[serde(default)]
+    pub ic_oss_cluster: Option<Principal>,
+    #[serde(default)]
+    pub ic_oss_buckets: Vec<Principal>,
 }
 
 impl Storable for State {
@@ -82,6 +93,14 @@ pub struct Channel {
     pub gas: u64,
     #[serde(default, rename = "dm")]
     pub deleted_messages: BTreeSet<u32>,
+    #[serde(default, rename = "fs")]
+    pub file_storage: Option<(Principal, u32)>, //  (ic-oss-bucket canister, folder_id)
+    #[serde(default, rename = "fms")]
+    pub file_max_size: u64,
+    #[serde(default, rename = "ft")]
+    pub files_total: u64,
+    #[serde(default, rename = "fst")]
+    pub files_size_total: u64,
 }
 
 impl Channel {
@@ -141,6 +160,16 @@ impl Channel {
             deleted_messages: self.deleted_messages,
             my_setting,
             ecdh_request,
+            files_state: if let Some(storage) = self.file_storage {
+                Some(types::ChannelFilesState {
+                    file_storage: storage,
+                    file_max_size: self.file_max_size,
+                    files_total: self.files_total,
+                    files_size_total: self.files_size_total,
+                })
+            } else {
+                None
+            },
         }
     }
 }
@@ -357,6 +386,7 @@ pub mod state {
 }
 
 pub mod channel {
+
     use super::*;
 
     pub fn channels_total() -> u64 {
@@ -365,6 +395,22 @@ pub mod channel {
 
     pub fn messages_total() -> u64 {
         MESSAGE_STORE.with(|r| r.borrow().len())
+    }
+
+    pub fn manager_with<R>(
+        caller: Principal,
+        id: u32,
+        f: impl FnOnce(Channel) -> Result<R, String>,
+    ) -> Result<R, String> {
+        CHANNEL_STORE.with(|r| match r.borrow().get(&id) {
+            None => Err("channel not found".to_string()),
+            Some(v) => {
+                if !v.managers.contains_key(&caller) {
+                    Err("caller is not a manager".to_string())?;
+                }
+                f(v)
+            }
+        })
     }
 
     pub fn manager_with_mut<R>(
@@ -473,6 +519,10 @@ pub mod channel {
                 gas: input.paid.max(FREE_GAS),
                 updated_at: now_ms,
                 deleted_messages: BTreeSet::new(),
+                file_storage: None,
+                file_max_size: 0,
+                files_total: 0,
+                files_size_total: 0,
             };
 
             r.borrow_mut().insert(id, channel.clone());
@@ -491,6 +541,10 @@ pub mod channel {
             match m.get(&id) {
                 None => Err("channel not found".to_string()),
                 Some(mut c) => {
+                    if !c.managers.contains_key(&payer) && !c.members.contains_key(&payer) {
+                        Err("caller is not a manager or member".to_string())?;
+                    }
+
                     let gas = c.gas.saturating_add(amount);
                     c.gas = gas;
                     c.latest_message_id += 1;
@@ -701,6 +755,243 @@ pub mod channel {
                     Ok(mid)
                 }
             }
+        })
+    }
+
+    pub async fn update_storage(
+        id: u32,
+        caller: Principal,
+        file_max_size: u64,
+        now_ms: u64,
+    ) -> Result<types::Message, String> {
+        let self_id = ic_cdk::id();
+        let (ic_oss_cluster, ic_oss_bucket) =
+            state::with(|s| (s.ic_oss_cluster.clone(), s.ic_oss_buckets.last().cloned()));
+        let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+        let ic_oss_bucket = ic_oss_bucket.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+
+        let file_storage = manager_with(caller, id, |c| Ok(c.file_storage))?;
+        let file_storage = if let Some(f) = file_storage {
+            f
+        } else {
+            let token: Result<ByteBuf, String> = call(
+                ic_oss_cluster,
+                "admin_weak_access_token",
+                (
+                    Token {
+                        subject: self_id,
+                        audience: ic_oss_bucket,
+                        policies: "Bucket.Write.Folder".to_string(),
+                    },
+                    now_ms / 1000,
+                    60 * 10 as u64,
+                ),
+                0,
+            )
+            .await?;
+            let token = token?;
+            let res: Result<CreateFolderOutput, String> = call(
+                ic_oss_bucket,
+                "create_folder",
+                (
+                    CreateFolderInput {
+                        parent: 0,
+                        name: format!("{}:{}", self_id.to_text(), id),
+                    },
+                    Some(token),
+                ),
+                0,
+            )
+            .await?;
+            let res = res?;
+            (ic_oss_bucket, res.id)
+        };
+
+        let msg = manager_with_mut(caller, id, |c| {
+            if c.file_storage.is_none() {
+                c.file_storage = Some(file_storage);
+            }
+            c.file_max_size = file_max_size;
+            c.updated_at = now_ms;
+            c.latest_message_id += 1;
+            c.latest_message_at = now_ms;
+            c.latest_message_by = caller;
+
+            Ok(add_sys_message(
+                caller,
+                now_ms,
+                MessageId(id, c.latest_message_id),
+                format!(
+                    "{}: file storage enabled, max file size {} bytes",
+                    types::SYS_MSG_CHANNEL_UPDATE_INFO,
+                    file_max_size
+                ),
+            ))
+        })?;
+        Ok(msg)
+    }
+
+    pub async fn upload_file_token(
+        id: u32,
+        caller: Principal,
+        file_size: u64,
+        file_name: String,
+        content_type: String,
+        custom: Option<MapValue>,
+        now_ms: u64,
+    ) -> Result<types::UploadFileOutput, String> {
+        let self_id = ic_cdk::id();
+        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+        let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+
+        let (channel, file_storage, gas) = CHANNEL_STORE.with(|r| match r.borrow().get(&id) {
+            None => Err("channel not found".to_string()),
+            Some(v) => {
+                if !v.managers.contains_key(&caller) && !v.members.contains_key(&caller) {
+                    Err("caller is not a manager or member".to_string())?;
+                }
+                let file_storage = match v.file_storage {
+                    Some(f) => f,
+                    None => Err("file storage not enabled".to_string())?,
+                };
+                if file_size > v.file_max_size {
+                    Err("file size too large".to_string())?;
+                }
+                if v.latest_message_id + 1 - v.message_start >= types::MAX_CHANNEL_MESSAGES {
+                    Err("too many messages".to_string())?;
+                }
+
+                let gas = MESSAGE_PER_USER_GAS * (v.managers.len() + v.members.len()) as u64
+                    + MESSAGE_PER_BYTE_GAS * file_size;
+                if v.gas < gas + UPLOAD_FILE_GAS_THRESHOLD {
+                    Err("insufficient gas balance".to_string())?;
+                }
+                Ok((v, file_storage, gas))
+            }
+        })?;
+
+        let token: Result<ByteBuf, String> = call(
+            ic_oss_cluster,
+            "admin_weak_access_token",
+            (
+                Token {
+                    subject: self_id,
+                    audience: file_storage.0,
+                    policies: "Bucket.Write.File".to_string(),
+                },
+                now_ms / 1000,
+                60 * 10 as u64,
+            ),
+            0,
+        )
+        .await?;
+        let token = token?;
+
+        let res: Result<CreateFileOutput, String> = call(
+            file_storage.0,
+            "create_file",
+            (
+                CreateFileInput {
+                    parent: file_storage.1,
+                    name: file_name.clone(),
+                    size: Some(file_size),
+                    content_type,
+                    custom,
+                    ..Default::default()
+                },
+                Some(token),
+            ),
+            0,
+        )
+        .await?;
+        let res = res?;
+
+        let token: Result<ByteBuf, String> = call(
+            ic_oss_cluster,
+            "admin_weak_access_token",
+            (
+                Token {
+                    subject: caller,
+                    audience: file_storage.0,
+                    policies: format!("File.Write:{}", res.id),
+                },
+                now_ms / 1000,
+                60 * 30 as u64, // 30 minutes
+            ),
+            0,
+        )
+        .await?;
+
+        CHANNEL_STORE.with(|r| {
+            let mut m = r.borrow_mut();
+            let mut v = channel;
+            v.gas = v.gas.saturating_sub(gas);
+            v.latest_message_id += 1;
+            v.latest_message_by = caller;
+            v.latest_message_at = now_ms;
+            v.files_size_total += file_size;
+            v.files_total += 1;
+            add_sys_message(
+                caller,
+                now_ms,
+                MessageId(id, v.latest_message_id),
+                format!(
+                    "{}: file {}, {} bytes, created by {}",
+                    types::SYS_MSG_CHANNEL_UPLOAD_FILE,
+                    res.id,
+                    file_size,
+                    caller.to_text(),
+                ),
+            );
+            m.insert(id, v);
+        });
+        Ok(types::UploadFileOutput {
+            id: res.id,
+            storage: file_storage,
+            name: file_name,
+            access_token: token?,
+        })
+    }
+
+    pub async fn download_files_token(
+        id: u32,
+        caller: Principal,
+        now_ms: u64,
+    ) -> Result<types::DownloadFilesToken, String> {
+        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+        let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+
+        let file_storage = CHANNEL_STORE.with(|r| match r.borrow().get(&id) {
+            None => Err("channel not found".to_string()),
+            Some(v) => {
+                if !v.managers.contains_key(&caller) && !v.members.contains_key(&caller) {
+                    Err("caller is not a manager or member".to_string())?;
+                }
+                match v.file_storage {
+                    Some(f) => Ok(f),
+                    None => Err("file storage not enabled".to_string())?,
+                }
+            }
+        })?;
+
+        let token: Result<ByteBuf, String> = call(
+            ic_oss_cluster,
+            "admin_weak_access_token",
+            (
+                Token {
+                    subject: caller,
+                    audience: file_storage.0,
+                    policies: format!("Folder.Read:{}", file_storage.1),
+                },
+                now_ms / 1000,
+                60 * 60 as u64, // 60 minutes
+            ),
+            0,
+        )
+        .await?;
+        Ok(types::DownloadFilesToken {
+            storage: file_storage,
+            access_token: token?,
         })
     }
 

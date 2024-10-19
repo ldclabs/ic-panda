@@ -162,3 +162,14 @@ export function mapToObj(m: any) {
   }
   return obj
 }
+
+export async function fetchFile(
+  url: string,
+  opts?: RequestInit
+): Promise<Blob> {
+  const resp = await fetch(url, opts)
+  if (resp.status != 200) {
+    throw new Error(await resp.text())
+  }
+  return await resp.blob()
+}

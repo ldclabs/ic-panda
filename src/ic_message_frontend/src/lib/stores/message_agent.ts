@@ -12,10 +12,12 @@ import {
 } from '$lib/canisters/messagechannel'
 import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
 import { agent } from '$lib/stores/auth'
+import { type FilePayload } from '$lib/types/message'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
 import type { Identity } from '@dfinity/agent'
 import type { Principal } from '@dfinity/principal'
+import { Claims } from '@ldclabs/cose-ts/cwt'
 import {
   derived,
   readable,
@@ -174,6 +176,31 @@ export class MessageAgent extends EventTarget {
     )
   }
 
+  async getChannelStorageToken(
+    canister: Principal,
+    id: number
+  ): Promise<[Uint8Array, number, [Principal, number]]> {
+    let rt = await this._db.get<[Uint8Array, number, [Principal, number]]>(
+      'Keys',
+      `CST:${canister.toText()}:${id}`
+    )
+
+    if (rt && rt[1] >= Date.now()) {
+      return rt
+    }
+
+    const api = this.api.channelAPI(canister)
+    const token = await api.download_files_token(id)
+    const access_token = Uint8Array.from(token.access_token)
+    const [_protectedBytes, _unprotected, payload, _signature] = decodeCBOR(
+      access_token
+    ) as [Uint8Array, any, Uint8Array, Uint8Array]
+    const claims = Claims.fromBytes(payload)
+    rt = [access_token, (claims.exp - 300) * 1000, token.storage]
+    await this._db.set('Keys', rt, `CST:${canister.toText()}:${id}`)
+    return rt
+  }
+
   // ------------ User ------------
 
   async getKV(): Promise<Map<string, Uint8Array>> {
@@ -251,6 +278,29 @@ export class MessageAgent extends EventTarget {
     await kvsSetUser(Date.now(), val)
     this._user.set(val)
     return val
+  }
+
+  async getUploadingFile(
+    canister: Principal,
+    id: number
+  ): Promise<FilePayload | null> {
+    const val = await this._db.get<FilePayload>(
+      'My',
+      `File:${canister.toText()}:${id}`
+    )
+    return val || null
+  }
+
+  async setUploadingFile(
+    canister: Principal,
+    id: number,
+    val: FilePayload
+  ): Promise<void> {
+    await this._db.set('My', val, `File:${canister.toText()}:${id}`)
+  }
+
+  async deleteUploadingFile(canister: Principal, id: number): Promise<void> {
+    await this._db.delete('My', `File:${canister.toText()}:${id}`)
   }
 
   // ------------ Profile ------------
