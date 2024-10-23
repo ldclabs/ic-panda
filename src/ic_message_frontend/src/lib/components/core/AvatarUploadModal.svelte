@@ -5,7 +5,7 @@
   import { agent } from '$lib/stores/auth'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { avatarUrl } from '$lib/utils/url'
+  import { imageUrl } from '$lib/utils/url'
   import ImageCrop from '$src/lib/components/ui/ImageCrop.svelte'
   import {
     BucketCanister,
@@ -57,7 +57,7 @@
       })
       const uploader = new Uploader(bucketClient)
       await uploader.upload_chunks(file, token.image[1], blob.size)
-      const url = avatarUrl(token.image[0], token.image[1], token.name)
+      const url = imageUrl(token.image[0], token.image[1], token.name)
       await myState.api.update_my_image(url)
       await myState.agent.setUser({
         ...myState.api.myInfo,

@@ -2,14 +2,18 @@
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
-  import IconSendPlaneFill from '$lib/components/icons/IconArrowUpLine2.svelte'
+  import IconArrowUpLine2 from '$lib/components/icons/IconArrowUpLine2.svelte'
+  import IconCheckLine from '$lib/components/icons/IconCheckLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
+  import IconEmotionHappyLine from '$lib/components/icons/IconEmotionHappyLine.svelte'
+  import IconFileImageLine from '$lib/components/icons/IconFileImageLine.svelte'
   import IconMore2Line from '$lib/components/icons/IconMore2Line.svelte'
+  import EmojisPopup from '$lib/components/ui/EmojisPopup.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
+  import { agent } from '$lib/stores/auth'
   import {
-    getCurrentTimeString,
     toDisplayUserInfo,
     type ChannelInfoEx,
     type MessageInfo,
@@ -17,11 +21,16 @@
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import {
-    coseA256GCMEncrypt0,
-    encodeCBOR,
-    type AesGcmKey
-  } from '$lib/utils/crypto'
-  import { sleep } from '$lib/utils/helper'
+    MessageDetail,
+    MessageKind,
+    type FilePayload
+  } from '$lib/types/message'
+  import { coseA256GCMEncrypt0, type AesGcmKey } from '$lib/utils/crypto'
+  import {
+    getBytesString,
+    getCurrentTimeString,
+    sleep
+  } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
   import {
     elementsInViewport,
@@ -29,10 +38,24 @@
     scrollOnHooks
   } from '$lib/utils/window'
   import { type Principal } from '@dfinity/principal'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import {
+    BucketCanister,
+    Uploader,
+    toFixedChunkSizeReadable,
+    type Progress
+  } from '@ldclabs/ic_oss_ts'
+  import {
+    Avatar,
+    getModalStore,
+    getToastStore,
+    popup,
+    type PopupSettings
+  } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
+  import ChannelFileCard from './ChannelFileCard.svelte'
+  import ChannelUploadModal from './ChannelUploadModal.svelte'
   import ProfileModal from './ProfileModal.svelte'
 
   export let myState: MyMessageState
@@ -44,6 +67,12 @@
   const modalStore = getModalStore()
   const { canister, id } = channelInfo
   const messageCacheKey = `${canister.toText()}:${id}:NewMessage`
+
+  const emojisPopup: PopupSettings = {
+    event: 'click',
+    target: 'popupEmojisCard',
+    placement: 'top'
+  }
 
   type MessageInfoEx = MessageInfo & { pid?: number }
 
@@ -61,6 +90,7 @@
   let latestMessageId = 1
   let lastRead = 1
   let hasKEK = true
+  let fileInput: HTMLInputElement
 
   $: {
     const info = $latestMessage
@@ -79,6 +109,87 @@
         }
       })
     }
+  }
+
+  function onUploadButtonClick() {
+    if (fileInput) fileInput.click()
+  }
+
+  let uploading: (Progress & { name: string }) | null = null
+  let filePayload: FilePayload | null = null
+  function onUploadChangeHandler(e: Event): void {
+    const file = (e.target as HTMLInputElement)?.files![0] || null
+    if (!file) return
+
+    uploading = {
+      filled: 0,
+      size: file.size,
+      name: file.name,
+      chunkIndex: 0,
+      concurrency: 1
+    }
+
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ChannelUploadModal,
+        props: {
+          channel: channelInfo,
+          file,
+          encryptBlob: async (blob: Blob) => {
+            return coseA256GCMEncrypt0(
+              dek,
+              new Uint8Array(await blob.arrayBuffer()),
+              new Uint8Array()
+            )
+          },
+          onReady: async (data: Uint8Array, mime: string) => {
+            const api = await myState.api.channelAPI(channelInfo.canister)
+            const token = await api.upload_file_token({
+              size: BigInt(data.byteLength),
+              content_type: mime,
+              channel: channelInfo.id
+            })
+            const stream = await toFixedChunkSizeReadable({
+              content: data,
+              name: token.name,
+              contentType: mime
+            })
+            const bucketClient = BucketCanister.create({
+              agent,
+              canisterId: token.storage[0],
+              accessToken: new Uint8Array(token.access_token)
+            })
+            const uploader = new Uploader(bucketClient)
+            await uploader.upload_chunks(
+              stream,
+              token.id,
+              data.byteLength,
+              null,
+              [],
+              (progress: Progress) => {
+                uploading = { ...progress, name: file.name }
+              }
+            )
+
+            uploading = null
+            filePayload = {
+              canister: token.storage[0].toUint8Array(),
+              id: token.id,
+              name: file.name,
+              size: file.size,
+              type: file.type
+            }
+            // cache for sending
+            await myState.agent.setUploadingFile(
+              channelInfo.canister,
+              channelInfo.id,
+              filePayload
+            )
+          }
+        }
+      }
+    })
   }
 
   function sortMessages(msgs: MessageInfo[]): MessageInfo[] {
@@ -148,11 +259,31 @@
     })
   }
 
+  function addEmoji(emoji: string) {
+    if (emoji) {
+      newMessage += emoji
+    }
+  }
+
+  $: messageReady =
+    submitting == 0 &&
+    uploading == null &&
+    (!!newMessage.trim() || !!filePayload)
+
   function sendMessage() {
     newMessage = newMessage.trim()
-    if (!newMessage || submitting > 0) {
+    if (!messageReady) {
       return
     }
+
+    submitting = PendingMessageId
+    const detail = filePayload
+      ? new MessageDetail(
+          newMessage || filePayload.name,
+          MessageKind.File,
+          filePayload
+        )
+      : new MessageDetail(newMessage)
 
     toastRun(async () => {
       const input = {
@@ -160,11 +291,10 @@
         channel: id,
         payload: await coseA256GCMEncrypt0(
           dek,
-          encodeCBOR(newMessage),
+          detail.toBytes(),
           new Uint8Array()
         )
       }
-      submitting = PendingMessageId
       const msg: MessageInfoEx = {
         id: PendingMessageId,
         reply_to: 0,
@@ -174,18 +304,28 @@
         created_user: toDisplayUserInfo($myInfo),
         canister: canister,
         channel: id,
-        message: newMessage,
+        message: detail.message,
         error: '',
         isDeleted: false,
+        detail,
         pid: PendingMessageId
       }
+
       newMessage = ''
+      uploading = null
+      filePayload = null
       sessionStorage.removeItem(messageCacheKey)
       addMessages([msg])
       await tick()
-      scrollIntoView(msg.id, 'smooth')
+      scrollIntoView(msg.id, 'smooth', 'end')
 
       const res = await channelAPI.add_message(input)
+      // file send, clean cache
+      await myState.agent.deleteUploadingFile(
+        channelInfo.canister,
+        channelInfo.id
+      )
+
       msg.id = res.id
       msg.created_time = getCurrentTimeString(res.created_at)
       addMessages([msg])
@@ -329,6 +469,12 @@
 
         await loadNextMessages(lastRead + 1)
         await tick()
+
+        // try to load unsend file
+        filePayload = await myState.agent.getUploadingFile(
+          channelInfo.canister,
+          channelInfo.id
+        )
         // no scroll
         if (elemChat?.scrollTop == 0) {
           const msg = $messageFeed.at(-1)
@@ -421,6 +567,12 @@
       class="text-surface-900-50-token snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
     >
       <div
+        class="card bg-surface-50-900-token z-20 max-w-96"
+        data-popup="popupEmojisCard"
+      >
+        <EmojisPopup {addEmoji} />
+      </div>
+      <div
         class="card z-10 w-40 max-w-sm bg-white p-0"
         data-popup="popupMessageOperation"
       >
@@ -486,11 +638,17 @@
                     <p class="w-full text-pretty px-4 py-2 text-sm"
                       >{msg.error}</p
                     >
-                  {:else}
+                  {:else if msg.message}
                     <pre
                       class="icpanda-message w-full text-pretty break-all px-4 py-2"
                       >{msg.message}</pre
                     >
+                  {/if}
+                  {#if msg.detail}
+                    {@const file = msg.detail.asFile()}
+                    {#if file}
+                      <ChannelFileCard {myState} {file} {dek} {canister} {id} />
+                    {/if}
                   {/if}
                 </div>
               </div>
@@ -532,11 +690,23 @@
                   <div class="max-h-[600px] overflow-auto overscroll-auto">
                     {#if msg.error}
                       <p class="text-pretty px-4 py-2 text-sm">{msg.error}</p>
-                    {:else}
+                    {:else if msg.message}
                       <pre
                         class="icpanda-message w-full text-pretty break-all px-4 py-2"
                         >{msg.message}</pre
                       >
+                    {/if}
+                    {#if msg.detail}
+                      {@const file = msg.detail.asFile()}
+                      {#if file}
+                        <ChannelFileCard
+                          {myState}
+                          {file}
+                          {dek}
+                          {canister}
+                          {id}
+                        />
+                      {/if}
                     {/if}
                   </div>
                 </div>
@@ -564,6 +734,54 @@
   <section
     class="group relative border-t border-surface-500/20 py-2 pl-2 pr-16 md:pr-24"
   >
+    <div class="flex flex-row items-center gap-0 pl-1 text-surface-500">
+      <button
+        class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
+        disabled={submitting > 0}
+        use:popup={emojisPopup}
+      >
+        <span class="*:size-5"><IconEmotionHappyLine /></span>
+      </button>
+      <div class="flex flex-row items-center">
+        <!-- NOTE: Don't use `hidden` as it prevents `required` from operating -->
+        <div class="h-0 w-0 overflow-hidden">
+          <input
+            type="file"
+            bind:this={fileInput}
+            on:change={onUploadChangeHandler}
+          />
+        </div>
+        <button
+          class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
+          disabled={submitting > 0 || uploading != null || filePayload != null}
+          on:click={onUploadButtonClick}
+        >
+          <span class="*:size-5">
+            <IconFileImageLine />
+          </span>
+        </button>
+
+        {#if filePayload}
+          <div class="btn btn-sm px-2 text-primary-500">
+            <span
+              >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
+            >
+            <span class="*:size-5">
+              <IconCheckLine />
+            </span>
+          </div>
+        {:else if uploading}
+          <div class="btn btn-sm px-2">
+            <span
+              >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
+            >
+            <span class="*:size-5">
+              <IconCircleSpin />
+            </span>
+          </div>
+        {/if}
+      </div>
+    </div>
     <TextArea
       bind:value={newMessage}
       onKeydown={onPromptKeydown}
@@ -577,17 +795,17 @@
       placeholder="Write a message..."
     />
     <button
-      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {newMessage.trim()
+      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {messageReady
         ? 'before:translate-y-0 before:scale-150'
         : 'before:translate-y-full'}"
-      disabled={submitting > 0 || !newMessage.trim()}
+      disabled={!messageReady}
       on:click={sendMessage}
     >
       {#if submitting}
         <span class="*:size-5"><IconCircleSpin /></span>
       {:else}
         <span class="*:size-5">
-          <IconSendPlaneFill />
+          <IconArrowUpLine2 />
         </span>
       {/if}
     </button>

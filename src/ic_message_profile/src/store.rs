@@ -3,6 +3,7 @@ use ciborium::{from_reader, from_reader_with_buffer, into_writer};
 use ic_oss_types::{
     cose::Token,
     file::{CreateFileInput, CreateFileOutput, UpdateFileInput, UpdateFileOutput},
+    MapValue,
 };
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
@@ -352,6 +353,23 @@ pub mod profile {
         })?;
 
         let name = input.filename(now_ms.to_string());
+        let token: Result<ByteBuf, String> = call(
+            ic_oss_cluster,
+            "admin_weak_access_token",
+            (
+                Token {
+                    subject: ic_cdk::id(),
+                    audience: image.clone().map(|i| i.0).unwrap_or(ic_oss_bucket),
+                    policies: "File.Write".to_string(),
+                },
+                now_ms / 1000,
+                60 * 10 as u64, // 10 minutes
+            ),
+            0,
+        )
+        .await?;
+        let token = token?;
+        let custom = MapValue::from([("by_hash".to_string(), "read".into())]);
         let image = match image {
             Some(image) => {
                 let res: Result<UpdateFileOutput, String> = call(
@@ -363,9 +381,10 @@ pub mod profile {
                             name: Some(name.clone()),
                             content_type: Some(input.content_type),
                             size: Some(input.size),
+                            custom: Some(custom),
                             ..Default::default()
                         },
-                        None::<ByteBuf>,
+                        Some(token),
                     ),
                     0,
                 )
@@ -383,9 +402,10 @@ pub mod profile {
                             name: name.clone(),
                             content_type: input.content_type,
                             size: Some(input.size),
+                            custom: Some(custom),
                             ..Default::default()
                         },
-                        None::<ByteBuf>,
+                        Some(token),
                     ),
                     0,
                 )
@@ -399,7 +419,7 @@ pub mod profile {
             }
         };
 
-        let res: Result<ByteBuf, String> = call(
+        let token: Result<ByteBuf, String> = call(
             ic_oss_cluster,
             "admin_weak_access_token",
             (
@@ -417,7 +437,7 @@ pub mod profile {
         Ok(types::UploadImageOutput {
             name,
             image,
-            access_token: res?,
+            access_token: token?,
         })
     }
 

@@ -7,6 +7,7 @@
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
+  import { getShortNumber } from '$lib/utils/helper'
   import { PANDAToken, TokenDisplay, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
@@ -126,7 +127,7 @@
         >{PANDAToken.symbol}</div
       >
       <p class="h-5 pl-3 text-sm {topupErr ? 'text-error-500' : 'text-panda'}"
-        >{topupErr ? topupErr : tokenDisplay.total + ' Gas'}</p
+        >{topupErr ? topupErr : getShortNumber(tokenDisplay.total) + ' Gas'}</p
       >
     </div>
     <div class="!mt-4 mb-2 text-sm">

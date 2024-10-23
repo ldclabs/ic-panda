@@ -64,7 +64,7 @@ async fn update_my_name(name: String) -> Result<UserInfo, String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn update_my_image(image: String) -> Result<(), String> {
-    if !image.starts_with("https://") {
+    if !image.starts_with("http") {
         Err("invalid image url".to_string())?;
     }
 

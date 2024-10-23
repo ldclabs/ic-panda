@@ -21,6 +21,12 @@ type ChannelECDHInput = record {
   ecdh_remote : opt record { blob; blob };
   ecdh_pub : opt blob;
 };
+type ChannelFilesState = record {
+  files_size_total : nat64;
+  file_max_size : nat64;
+  files_total : nat64;
+  file_storage : record { principal; nat32 };
+};
 type ChannelInfo = record {
   id : nat32;
   dek : blob;
@@ -44,6 +50,7 @@ type ChannelInfo = record {
   latest_message_at : nat64;
   latest_message_by : principal;
   latest_message_id : nat32;
+  files_state : opt ChannelFilesState;
   my_setting : ChannelSetting;
 };
 type ChannelKEKInput = record { id : nat32; kek : blob; canister : principal };

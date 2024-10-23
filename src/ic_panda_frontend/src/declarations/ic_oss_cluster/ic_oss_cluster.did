@@ -1,0 +1,102 @@
+type AddWasmInput = record { wasm : blob; description : text };
+type BucketDeploymentInfo = record {
+  args : opt blob;
+  prev_hash : blob;
+  error : opt text;
+  deploy_at : nat64;
+  canister : principal;
+  wasm_hash : blob;
+};
+type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type ClusterInfo = record {
+  ecdsa_token_public_key : text;
+  schnorr_ed25519_token_public_key : text;
+  bucket_wasm_total : nat64;
+  ecdsa_key_name : text;
+  managers : vec principal;
+  name : text;
+  bucket_deployed_total : nat64;
+  token_expiration : nat64;
+  weak_ed25519_token_public_key : text;
+  bucket_latest_version : blob;
+  schnorr_key_name : text;
+  bucket_deployment_logs : nat64;
+  subject_authz_total : nat64;
+};
+type DeployWasmInput = record { args : opt blob; canister : principal };
+type InitArgs = record {
+  ecdsa_key_name : text;
+  name : text;
+  token_expiration : nat64;
+  bucket_topup_threshold : nat;
+  bucket_topup_amount : nat;
+  schnorr_key_name : text;
+};
+type Result = variant { Ok : blob; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : vec blob; Err : text };
+type Result_3 = variant { Ok : nat; Err : text };
+type Result_4 = variant { Ok : vec BucketDeploymentInfo; Err : text };
+type Result_5 = variant { Ok : WasmInfo; Err : text };
+type Result_6 = variant { Ok : vec principal; Err : text };
+type Result_7 = variant { Ok : ClusterInfo; Err : text };
+type Result_8 = variant { Ok : vec record { principal; text }; Err : text };
+type Result_9 = variant { Ok : text; Err : text };
+type Token = record {
+  subject : principal;
+  audience : principal;
+  policies : text;
+};
+type UpgradeArgs = record {
+  name : opt text;
+  token_expiration : opt nat64;
+  bucket_topup_threshold : opt nat;
+  bucket_topup_amount : opt nat;
+};
+type WasmInfo = record {
+  hash : blob;
+  wasm : blob;
+  description : text;
+  created_at : nat64;
+  created_by : principal;
+};
+service : (opt ChainArgs) -> {
+  access_token : (principal) -> (Result);
+  admin_add_managers : (vec principal) -> (Result_1);
+  admin_add_wasm : (AddWasmInput, opt blob) -> (Result_1);
+  admin_attach_policies : (Token) -> (Result_1);
+  admin_batch_call_buckets : (vec principal, text, opt blob) -> (Result_2);
+  admin_deploy_bucket : (DeployWasmInput, opt blob) -> (Result_1);
+  admin_detach_policies : (Token) -> (Result_1);
+  admin_ed25519_access_token : (Token) -> (Result);
+  admin_remove_managers : (vec principal) -> (Result_1);
+  admin_set_managers : (vec principal) -> (Result_1);
+  admin_sign_access_token : (Token) -> (Result);
+  admin_topup_all_buckets : () -> (Result_3);
+  admin_upgrade_all_buckets : (opt blob) -> (Result_1);
+  admin_weak_access_token : (Token, nat64, nat64) -> (Result) query;
+  bucket_deployment_logs : (opt nat, opt nat) -> (Result_4) query;
+  ed25519_access_token : (principal) -> (Result);
+  get_bucket_wasm : (blob) -> (Result_5) query;
+  get_buckets : () -> (Result_6) query;
+  get_cluster_info : () -> (Result_7) query;
+  get_deployed_buckets : () -> (Result_4) query;
+  get_subject_policies : (principal) -> (Result_8) query;
+  get_subject_policies_for : (principal, principal) -> (Result_9) query;
+  validate2_admin_add_wasm : (AddWasmInput, opt blob) -> (Result_9);
+  validate2_admin_batch_call_buckets : (vec principal, text, opt blob) -> (
+      Result_9,
+    );
+  validate2_admin_deploy_bucket : (DeployWasmInput, opt blob) -> (Result_9);
+  validate2_admin_set_managers : (vec principal) -> (Result_9);
+  validate2_admin_upgrade_all_buckets : (opt blob) -> (Result_9);
+  validate_admin_add_managers : (vec principal) -> (Result_9);
+  validate_admin_add_wasm : (AddWasmInput, opt blob) -> (Result_1);
+  validate_admin_batch_call_buckets : (vec principal, text, opt blob) -> (
+      Result_2,
+    );
+  validate_admin_deploy_bucket : (DeployWasmInput, opt blob) -> (Result_1);
+  validate_admin_remove_managers : (vec principal) -> (Result_9);
+  validate_admin_set_managers : (vec principal) -> (Result_1);
+  validate_admin_upgrade_all_buckets : (opt blob) -> (Result_1);
+}

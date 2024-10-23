@@ -1,9 +1,9 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { authStore, fetchRootKey } from '$lib/stores/auth'
+  import { storePopup as storePopup2 } from '$lib/utils/popup'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
-  import { storePopup as storePopup2 } from '$lib/utils/popup'
   import {
     arrow,
     autoUpdate,

@@ -23,11 +23,14 @@
   export let cropShape: 'rect' | 'round' = 'round'
   export let imageType = 'image/webp'
   export let quality: number = 0.7
+  export let file: File | null = null
 
   let image: string
   let crop = { x: 0, y: 0 }
   let zoom = 1
   let croppedAreaPixels: CropArea
+
+  readImage(file)
 
   const dispatch = createEventDispatcher<{
     cropcomplete: { blob: Blob }
@@ -35,6 +38,10 @@
 
   function onFileSelected(e: Event) {
     const file = (e.target as HTMLInputElement)?.files![0] || null
+    readImage(file)
+  }
+
+  function readImage(file: File | null) {
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => {

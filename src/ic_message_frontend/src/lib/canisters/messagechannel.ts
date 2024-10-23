@@ -5,11 +5,15 @@ import {
   type ChannelBasicInfo,
   type ChannelInfo,
   type ChannelSetting,
+  type DownloadFilesToken,
   type Message,
   type StateInfo,
   type UpdateChannelInput,
   type UpdateChannelMemberInput,
+  type UpdateChannelStorageInput,
   type UpdateMySettingInput,
+  type UploadFileInput,
+  type UploadFileOutput,
   type _SERVICE
 } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 import { unwrapResult } from '$lib/types/result'
@@ -23,7 +27,8 @@ export {
   type ChannelSetting,
   type Message,
   type StateInfo,
-  type UpdateChannelInput
+  type UpdateChannelInput,
+  type UpdateChannelStorageInput
 } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 
 interface CompareChannel {
@@ -144,6 +149,11 @@ export class ChannelAPI {
     return unwrapResult(res, 'call update_channel failed')
   }
 
+  async update_storage(input: UpdateChannelStorageInput): Promise<Message> {
+    const res = await this.actor.update_storage(input)
+    return unwrapResult(res, 'call update_storage failed')
+  }
+
   async update_manager(
     input: UpdateChannelMemberInput
   ): Promise<[bigint, Message | null]> {
@@ -168,5 +178,20 @@ export class ChannelAPI {
   ): Promise<ChannelSetting> {
     const res = await this.actor.update_my_setting(input)
     return unwrapResult(res, 'call update_my_setting failed')
+  }
+
+  async upload_file_token(input: UploadFileInput): Promise<UploadFileOutput> {
+    const res = await this.actor.upload_file_token(input)
+    return unwrapResult(res, 'call upload_file_token failed')
+  }
+
+  async upload_image_token(input: UploadFileInput): Promise<UploadFileOutput> {
+    const res = await this.actor.upload_image_token(input)
+    return unwrapResult(res, 'call upload_image_token failed')
+  }
+
+  async download_files_token(channel: number): Promise<DownloadFilesToken> {
+    const res = await this.actor.download_files_token(channel)
+    return unwrapResult(res, 'call download_files_token failed')
   }
 }

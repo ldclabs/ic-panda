@@ -8,6 +8,10 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
   });
   const ChainArgs = IDL.Variant({ 'Upgrade' : UpgradeArgs, 'Init' : InitArgs });
+  const CanisterKind = IDL.Variant({
+    'OssBucket' : IDL.Null,
+    'OssCluster' : IDL.Null,
+  });
   const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const CanisterStatusType = IDL.Variant({
     'stopped' : IDL.Null,
@@ -52,6 +56,11 @@ export const idlFactory = ({ IDL }) => {
     'alias' : IDL.Text,
     'tags' : IDL.Vec(IDL.Text),
   });
+  const Link = IDL.Record({
+    'uri' : IDL.Text,
+    'title' : IDL.Text,
+    'image' : IDL.Opt(IDL.Text),
+  });
   const ProfileInfo = IDL.Record({
     'id' : IDL.Principal,
     'bio' : IDL.Text,
@@ -60,6 +69,8 @@ export const idlFactory = ({ IDL }) => {
     'channels' : IDL.Opt(
       IDL.Vec(IDL.Tuple(IDL.Tuple(IDL.Principal, IDL.Nat64), ChannelSetting))
     ),
+    'image_file' : IDL.Opt(IDL.Tuple(IDL.Principal, IDL.Nat32)),
+    'links' : IDL.Vec(Link),
     'canister' : IDL.Principal,
     'ecdh_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'following' : IDL.Opt(IDL.Vec(IDL.Principal)),
@@ -69,6 +80,8 @@ export const idlFactory = ({ IDL }) => {
     'managers' : IDL.Vec(IDL.Principal),
     'profiles_total' : IDL.Nat64,
     'name' : IDL.Text,
+    'ic_oss_cluster' : IDL.Opt(IDL.Principal),
+    'ic_oss_buckets' : IDL.Vec(IDL.Principal),
   });
   const Result_3 = IDL.Variant({ 'Ok' : StateInfo, 'Err' : IDL.Text });
   const UpdateProfileInput = IDL.Record({
@@ -80,8 +93,23 @@ export const idlFactory = ({ IDL }) => {
     'follow' : IDL.Vec(IDL.Principal),
     'unfollow' : IDL.Vec(IDL.Principal),
   });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const UploadImageInput = IDL.Record({
+    'size' : IDL.Nat64,
+    'content_type' : IDL.Text,
+  });
+  const UploadImageOutput = IDL.Record({
+    'name' : IDL.Text,
+    'image' : IDL.Tuple(IDL.Principal, IDL.Nat32),
+    'access_token' : IDL.Vec(IDL.Nat8),
+  });
+  const Result_4 = IDL.Variant({ 'Ok' : UploadImageOutput, 'Err' : IDL.Text });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
+    'admin_add_canister' : IDL.Func(
+        [CanisterKind, IDL.Principal],
+        [Result],
+        [],
+      ),
     'admin_add_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'admin_remove_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'admin_update_profile_ecdh_pub' : IDL.Func(
@@ -97,16 +125,23 @@ export const idlFactory = ({ IDL }) => {
     'get_canister_status' : IDL.Func([], [Result_1], ['query']),
     'get_profile' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_2], ['query']),
     'get_state' : IDL.Func([], [Result_3], ['query']),
+    'update_links' : IDL.Func([IDL.Vec(Link)], [Result], []),
     'update_profile' : IDL.Func([UpdateProfileInput], [Result_2], []),
     'update_profile_ecdh_pub' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
+    'upload_image_token' : IDL.Func([UploadImageInput], [Result_4], []),
     'validate2_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'validate2_admin_remove_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
-        [Result_4],
+        [Result_5],
+        [],
+      ),
+    'validate_admin_add_canister' : IDL.Func(
+        [CanisterKind, IDL.Principal],
+        [Result_5],
         [],
       ),
     'validate_admin_add_managers' : IDL.Func(

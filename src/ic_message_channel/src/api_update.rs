@@ -1,5 +1,7 @@
 use candid::Principal;
 use ic_cose_types::MILLISECONDS;
+use ic_message_types::profile::UploadImageInput;
+use ic_oss_types::MapValue;
 use std::collections::hash_map::Entry;
 
 use crate::{
@@ -38,6 +40,15 @@ fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, St
             types::SYS_MSG_CHANNEL_UPDATE_INFO.to_string(),
         ))
     })
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+async fn update_storage(input: types::UpdateChannelStorageInput) -> Result<types::Message, String> {
+    input.validate()?;
+
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::update_storage(input.id, caller, input.file_max_size, now_ms).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
@@ -238,4 +249,58 @@ fn truncate_messages(input: types::TruncateMessageInput) -> Result<(), String> {
 
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::truncate_messages(ic_cdk::caller(), input.channel, input.to, now_ms)
+}
+
+#[ic_cdk::update]
+async fn upload_image_token(
+    input: types::UploadFileInput,
+) -> Result<types::UploadFileOutput, String> {
+    input.validate()?;
+    let image = UploadImageInput {
+        size: input.size,
+        content_type: input.content_type,
+    };
+    image.validate()?;
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    // image should not be encrypted
+    let custom = MapValue::from([("by_hash".to_string(), "read".into())]);
+    store::channel::upload_file_token(
+        input.channel,
+        caller,
+        input.size,
+        image.filename(now_ms.to_string()),
+        image.content_type,
+        Some(custom),
+        now_ms,
+    )
+    .await
+}
+
+#[ic_cdk::update]
+async fn upload_file_token(
+    input: types::UploadFileInput,
+) -> Result<types::UploadFileOutput, String> {
+    input.validate()?;
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    // file should be encrypted by the caller with COSE_Encrypt0
+    let custom = MapValue::from([("content_type".to_string(), input.content_type.into())]);
+    store::channel::upload_file_token(
+        input.channel,
+        caller,
+        input.size,
+        format!("{}.cbor", now_ms),
+        "application/cbor".to_string(),
+        Some(custom),
+        now_ms,
+    )
+    .await
+}
+
+#[ic_cdk::update]
+async fn download_files_token(channel: u32) -> Result<types::DownloadFilesToken, String> {
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::channel::download_files_token(channel, caller, now_ms).await
 }

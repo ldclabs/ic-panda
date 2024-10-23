@@ -7,6 +7,7 @@
   } from '$lib/canisters/messagechannel'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconAdminLine from '$lib/components/icons/IconAdminLine.svelte'
+  import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import IconExchange2Line from '$lib/components/icons/IconExchange2Line.svelte'
@@ -18,8 +19,9 @@
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { errMessage } from '$lib/types/result'
-  import { sleep } from '$lib/utils/helper'
+  import { getBytesString, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
+  import { formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -30,7 +32,9 @@
   import { onMount } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ChannelEditModal from './ChannelEditModal.svelte'
+  import ChannelImageUploadModal from './ChannelImageUploadModal.svelte'
   import ChannelTopupModal from './ChannelTopupModal.svelte'
+  import ChannelUpdateStorageModal from './ChannelUpdateStorageModal.svelte'
   import UserSelectModal from './UserSelectModal.svelte'
 
   export let myState: MyMessageState
@@ -47,6 +51,11 @@
   let isManager = false
   let validKEK = true
 
+  $: files_state = $channelInfo.files_state[0] || {
+    files_size_total: 0n,
+    file_max_size: 0n,
+    files_total: 0n
+  }
   $: hasExchangeKeys =
     $channelInfo.ecdh_request.filter(
       (r) => r[0].toText() !== myID && r[1][1].length === 0
@@ -56,6 +65,22 @@
     const res = await myState.channelMembers($channelInfo, $myInfo)
     isManager = $channelInfo._managers.includes(myID)
     members.set(res)
+  }
+
+  function onUploadChannelImage() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ChannelImageUploadModal,
+        props: {
+          myState,
+          channel: $channelInfo,
+          onFinished: () => {
+            myState.refreshChannel($channelInfo)
+          }
+        }
+      }
+    })
   }
 
   function onClickEditChannel() {
@@ -85,6 +110,22 @@
         props: {
           myState,
           channel: $channelInfo
+        }
+      }
+    })
+  }
+
+  function onClickUpdateChannelStorage() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ChannelUpdateStorageModal,
+        props: {
+          myState,
+          channel: $channelInfo,
+          onFinished: () => {
+            myState.refreshChannel($channelInfo)
+          }
         }
       }
     })
@@ -278,14 +319,34 @@
   class="h-[calc(100dvh-120px)] items-start overflow-y-auto bg-surface-500/5 pb-10 md:h-[calc(100dvh-60px)]"
 >
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
-    <Avatar
-      initials={$channelInfo.name}
-      src={$channelInfo.image}
-      border="border-4 border-white"
-      background={$channelInfo.image ? '' : 'bg-panda'}
-      fill="fill-white"
-      width="w-16"
-    />
+    {#if isManager}
+      <button
+        class="group btn relative p-0 hover:bg-surface-500/50"
+        on:click={onUploadChannelImage}
+      >
+        <Avatar
+          initials={$channelInfo.name}
+          src={$channelInfo.image}
+          border="border-4 border-white"
+          background={$channelInfo.image ? '' : 'bg-panda'}
+          fill="fill-white"
+          width="size-20"
+        />
+        <span
+          class="invisible absolute left-1/2 top-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 text-surface-500 transition-all *:size-6 group-hover:visible"
+          ><IconCameraLine /></span
+        >
+      </button>
+    {:else}
+      <Avatar
+        initials={$channelInfo.name}
+        src={$channelInfo.image}
+        border="border-4 border-white"
+        background={$channelInfo.image ? '' : 'bg-panda'}
+        fill="fill-white"
+        width="size-20"
+      />
+    {/if}
     <div class="flex-1">
       <p class="flex flex-row">
         <span>{$channelInfo.name}</span>
@@ -315,7 +376,9 @@
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Gas Balance:</span>
-      <span class="font-bold text-panda">{$channelInfo.gas}</span>
+      <span class="font-bold text-panda"
+        >{formatNumber(Number($channelInfo.gas))}</span
+      >
     </div>
     <button
       type="button"
@@ -325,6 +388,34 @@
       <span class="*:size-4"><IconAdd /></span>
       <span>Topup</span>
     </button>
+  </section>
+  <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
+    <div class="flex flex-row items-center gap-1">
+      <span class="text-sm font-normal text-neutral-500">Files:</span>
+      <span class="font-bold text-panda">{files_state.files_total}</span>
+    </div>
+    <div class="flex flex-row items-center gap-2">
+      <span class="text-sm font-normal text-neutral-500">Total size:</span>
+      <span class="font-bold text-panda"
+        >{getBytesString(files_state.files_size_total)}</span
+      >
+    </div>
+    <div class="flex flex-row items-center gap-2">
+      <span class="text-sm font-normal text-neutral-500">Max file size:</span>
+      <span class="font-bold text-panda"
+        >{getBytesString(files_state.file_max_size)}</span
+      >
+    </div>
+    {#if isManager}
+      <button
+        type="button"
+        class="btn btn-sm hover:variant-soft-primary"
+        on:click={onClickUpdateChannelStorage}
+      >
+        <span class="*:size-4"><IconEditLine /></span>
+        <span>Update</span>
+      </button>
+    {/if}
   </section>
   <section class="mt-4 space-y-2 px-4">
     <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>

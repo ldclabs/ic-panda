@@ -1,6 +1,6 @@
-import type { Principal } from '@dfinity/principal'
-import { decodeCBOR, encodeCBOR } from '@ldclabs/cose-ts/utils'
 import { IS_LOCAL } from '$lib/constants'
+import { Principal } from '@dfinity/principal'
+import { decodeCBOR, encodeCBOR } from '@ldclabs/cose-ts/utils'
 
 export type URLSearchParamsInit =
   | URLSearchParams
@@ -92,8 +92,30 @@ export function revokeBlobURL(url: string) {
   }
 }
 
-export function avatarUrl(canister: Principal, id: number, name: string) {
-  return IS_LOCAL
-    ? `http://${canister.toText()}.localhost:4943/f/${id}?filename=${name}&inline`
-    : `https://${canister.toText()}.icp0.io/f/${id}?filename=${name}&inline`
+export function imageUrl(
+  canister: Principal | Uint8Array,
+  id: number,
+  name: string,
+  token?: string
+) {
+  if (canister instanceof Uint8Array) canister = Principal.from(canister)
+  let url = IS_LOCAL
+    ? `http://${canister.toText()}.localhost:4943/f/${id}?inline`
+    : `https://${canister.toText()}.icp0.io/f/${id}?inline`
+  if (token) url += `&token=${token}`
+  return url + `&filename=${name}`
+}
+
+export function downloadUrl(
+  canister: Principal | Uint8Array,
+  id: number,
+  name: string,
+  token?: string
+) {
+  if (canister instanceof Uint8Array) canister = Principal.from(canister)
+  let url = IS_LOCAL
+    ? `http://${canister.toText()}.localhost:4943/f/${id}?`
+    : `https://${canister.toText()}.icp0.io/f/${id}?`
+  if (token) return url + `token=${token}&filename=${name}`
+  return url + `filename=${name}`
 }

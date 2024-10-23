@@ -9,6 +9,7 @@ type AddMessageOutput = record {
   created_at : nat64;
   channel : nat32;
 };
+type CanisterKind = variant { OssBucket; OssCluster };
 type CanisterStatusResponse = record {
   status : CanisterStatusType;
   memory_size : nat;
@@ -38,6 +39,12 @@ type ChannelECDHInput = record {
   ecdh_remote : opt record { blob; blob };
   ecdh_pub : opt blob;
 };
+type ChannelFilesState = record {
+  files_size_total : nat64;
+  file_max_size : nat64;
+  files_total : nat64;
+  file_storage : record { principal; nat32 };
+};
 type ChannelInfo = record {
   id : nat32;
   dek : blob;
@@ -61,6 +68,7 @@ type ChannelInfo = record {
   latest_message_at : nat64;
   latest_message_by : principal;
   latest_message_id : nat32;
+  files_state : opt ChannelFilesState;
   my_setting : ChannelSetting;
 };
 type ChannelSetting = record {
@@ -96,6 +104,10 @@ type DefiniteCanisterSettings = record {
   compute_allocation : nat;
 };
 type DeleteMessageInput = record { id : nat32; channel : nat32 };
+type DownloadFilesToken = record {
+  storage : record { principal; nat32 };
+  access_token : blob;
+};
 type InitArgs = record { managers : vec principal; name : text };
 type LogVisibility = variant { controllers; public };
 type Message = record {
@@ -114,22 +126,26 @@ type QueryStats = record {
 };
 type Result = variant { Ok : AddMessageOutput; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_10 = variant { Ok : record { nat64; opt Message }; Err : text };
-type Result_11 = variant { Ok : ChannelSetting; Err : text };
-type Result_12 = variant { Ok : text; Err : text };
+type Result_10 = variant { Ok : vec nat32; Err : text };
+type Result_11 = variant { Ok : record { nat64; opt Message }; Err : text };
+type Result_12 = variant { Ok : ChannelSetting; Err : text };
+type Result_13 = variant { Ok : UploadFileOutput; Err : text };
+type Result_14 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : ChannelInfo; Err : text };
 type Result_3 = variant { Ok : vec ChannelBasicInfo; Err : text };
-type Result_4 = variant { Ok : CanisterStatusResponse; Err : text };
-type Result_5 = variant { Ok : opt ChannelInfo; Err : text };
-type Result_6 = variant { Ok : Message; Err : text };
-type Result_7 = variant { Ok : StateInfo; Err : text };
-type Result_8 = variant { Ok : vec Message; Err : text };
-type Result_9 = variant { Ok : vec nat32; Err : text };
+type Result_4 = variant { Ok : DownloadFilesToken; Err : text };
+type Result_5 = variant { Ok : CanisterStatusResponse; Err : text };
+type Result_6 = variant { Ok : opt ChannelInfo; Err : text };
+type Result_7 = variant { Ok : Message; Err : text };
+type Result_8 = variant { Ok : StateInfo; Err : text };
+type Result_9 = variant { Ok : vec Message; Err : text };
 type StateInfo = record {
   channel_id : nat32;
   incoming_gas : nat;
   managers : vec principal;
   name : text;
+  ic_oss_cluster : opt principal;
+  ic_oss_buckets : vec principal;
   burned_gas : nat;
   channels_total : nat64;
   messages_total : nat64;
@@ -146,6 +162,7 @@ type UpdateChannelMemberInput = record {
   member : principal;
   ecdh : ChannelECDHInput;
 };
+type UpdateChannelStorageInput = record { id : nat32; file_max_size : nat64 };
 type UpdateMySettingInput = record {
   id : nat32;
   ecdh : opt ChannelECDHInput;
@@ -153,30 +170,47 @@ type UpdateMySettingInput = record {
   last_read : opt nat32;
 };
 type UpgradeArgs = record { managers : opt vec principal; name : opt text };
+type UploadFileInput = record {
+  size : nat64;
+  content_type : text;
+  channel : nat32;
+};
+type UploadFileOutput = record {
+  id : nat32;
+  storage : record { principal; nat32 };
+  name : text;
+  access_token : blob;
+};
 service : (opt ChainArgs) -> {
   add_message : (AddMessageInput) -> (Result);
+  admin_add_canister : (CanisterKind, principal) -> (Result_1);
   admin_add_managers : (vec principal) -> (Result_1);
   admin_create_channel : (CreateChannelInput) -> (Result_2);
   admin_remove_managers : (vec principal) -> (Result_1);
   admin_topup_channel : (ChannelTopupInput) -> (Result_2);
   batch_get_channels : (vec nat32) -> (Result_3) query;
   delete_message : (DeleteMessageInput) -> (Result_1);
-  get_canister_status : () -> (Result_4) query;
-  get_channel_if_update : (nat32, nat64) -> (Result_5) query;
-  get_message : (nat32, nat32) -> (Result_6) query;
-  get_state : () -> (Result_7) query;
+  download_files_token : (nat32) -> (Result_4);
+  get_canister_status : () -> (Result_5) query;
+  get_channel_if_update : (nat32, nat64) -> (Result_6) query;
+  get_message : (nat32, nat32) -> (Result_7) query;
+  get_state : () -> (Result_8) query;
   leave_channel : (UpdateMySettingInput, bool) -> (Result_1);
-  list_messages : (nat32, opt nat32, opt nat32) -> (Result_8) query;
-  my_channel_ids : () -> (Result_9) query;
+  list_messages : (nat32, opt nat32, opt nat32) -> (Result_9) query;
+  my_channel_ids : () -> (Result_10) query;
   my_channels_if_update : (opt nat64) -> (Result_3) query;
   remove_member : (UpdateChannelMemberInput) -> (Result_1);
   truncate_messages : (TruncateMessageInput) -> (Result_1);
-  update_channel : (UpdateChannelInput) -> (Result_6);
-  update_manager : (UpdateChannelMemberInput) -> (Result_10);
-  update_member : (UpdateChannelMemberInput) -> (Result_10);
-  update_my_setting : (UpdateMySettingInput) -> (Result_11);
-  validate2_admin_add_managers : (vec principal) -> (Result_12);
-  validate2_admin_remove_managers : (vec principal) -> (Result_12);
+  update_channel : (UpdateChannelInput) -> (Result_7);
+  update_manager : (UpdateChannelMemberInput) -> (Result_11);
+  update_member : (UpdateChannelMemberInput) -> (Result_11);
+  update_my_setting : (UpdateMySettingInput) -> (Result_12);
+  update_storage : (UpdateChannelStorageInput) -> (Result_7);
+  upload_file_token : (UploadFileInput) -> (Result_13);
+  upload_image_token : (UploadFileInput) -> (Result_13);
+  validate2_admin_add_managers : (vec principal) -> (Result_14);
+  validate2_admin_remove_managers : (vec principal) -> (Result_14);
+  validate_admin_add_canister : (CanisterKind, principal) -> (Result_14);
   validate_admin_add_managers : (vec principal) -> (Result_1);
   validate_admin_remove_managers : (vec principal) -> (Result_1);
 }

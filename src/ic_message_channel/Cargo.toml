@@ -23,3 +23,4 @@ getrandom = { workspace = true }
 ic-cdk = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic_cose_types = { workspace = true }
+ic-oss-types = { workspace = true }
