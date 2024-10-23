@@ -104,27 +104,27 @@
 
 <div class="flex w-full flex-col items-center justify-center">
   {#if imageUrl}
-    <button
-      type="button"
-      class="w-full border-t border-surface-500/20 p-4"
-      on:click={onPreviewImage}
-    >
+    <button type="button" class="w-full p-4" on:click={onPreviewImage}>
       <img src={imageUrl} alt={file.name} />
     </button>
   {/if}
-  <button
-    type="button"
-    class="flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-none border-t border-surface-500/20 p-4"
-    disabled={downloading}
-    on:click={onDownloadFile}
+  <div
+    class="flex w-full flex-row items-center justify-center border-t border-surface-500/20 px-4"
   >
-    <span>{file.name}</span>
-    <span class="text-surface-500 *:size-5">
-      {#if downloading}
-        <IconCircleSpin />
-      {:else}
-        <IconDownload />
-      {/if}
-    </span>
-  </button>
+    <p class="text-pretty break-all py-2"><span>{file.name}</span></p>
+    <button
+      type="button"
+      class="btn btn-sm text-surface-500 hover:text-black dark:hover:text-white"
+      disabled={downloading}
+      on:click={onDownloadFile}
+    >
+      <span class="*:size-5">
+        {#if downloading}
+          <IconCircleSpin />
+        {:else}
+          <IconDownload />
+        {/if}
+      </span>
+    </button>
+  </div>
 </div>

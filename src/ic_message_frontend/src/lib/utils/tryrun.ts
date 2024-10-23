@@ -14,6 +14,7 @@ export function tryRun<T>(
     try {
       return await fn(controller.signal, abortingQue)
     } catch (err: any) {
+      if (controller.signal.aborted) return null
       if (onerror) {
         onerror(err)
       } else {
@@ -25,8 +26,8 @@ export function tryRun<T>(
 
   return {
     controller,
-    abort: () => {
-      controller.abort()
+    abort: (reason = 'tryRun aborted') => {
+      controller.abort(reason)
       abortingQue.forEach((aborting) => aborting())
     },
     finally: (onfinally) => rt.then((res) => onfinally && onfinally(res))

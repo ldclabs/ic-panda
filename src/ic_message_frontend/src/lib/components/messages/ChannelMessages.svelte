@@ -121,14 +121,6 @@
     const file = (e.target as HTMLInputElement)?.files![0] || null
     if (!file) return
 
-    uploading = {
-      filled: 0,
-      size: file.size,
-      name: file.name,
-      chunkIndex: 0,
-      concurrency: 1
-    }
-
     modalStore.trigger({
       type: 'component',
       component: {
@@ -143,49 +135,60 @@
               new Uint8Array()
             )
           },
-          onReady: async (data: Uint8Array, mime: string) => {
-            const api = await myState.api.channelAPI(channelInfo.canister)
-            const token = await api.upload_file_token({
-              size: BigInt(data.byteLength),
-              content_type: mime,
-              channel: channelInfo.id
-            })
-            const stream = await toFixedChunkSizeReadable({
-              content: data,
-              name: token.name,
-              contentType: mime
-            })
-            const bucketClient = BucketCanister.create({
-              agent,
-              canisterId: token.storage[0],
-              accessToken: new Uint8Array(token.access_token)
-            })
-            const uploader = new Uploader(bucketClient)
-            await uploader.upload_chunks(
-              stream,
-              token.id,
-              data.byteLength,
-              null,
-              [],
-              (progress: Progress) => {
-                uploading = { ...progress, name: file.name }
-              }
-            )
-
-            uploading = null
-            filePayload = {
-              canister: token.storage[0].toUint8Array(),
-              id: token.id,
-              name: file.name,
+          onReady: (data: Uint8Array, mime: string) => {
+            uploading = {
+              filled: 0,
               size: file.size,
-              type: file.type
+              name: file.name,
+              chunkIndex: 0,
+              concurrency: 1
             }
-            // cache for sending
-            await myState.agent.setUploadingFile(
-              channelInfo.canister,
-              channelInfo.id,
-              filePayload
-            )
+
+            toastRun(async () => {
+              const api = await myState.api.channelAPI(channelInfo.canister)
+              const token = await api.upload_file_token({
+                size: BigInt(data.byteLength),
+                content_type: mime,
+                channel: channelInfo.id
+              })
+              const stream = await toFixedChunkSizeReadable({
+                content: data,
+                name: token.name,
+                contentType: mime
+              })
+              const bucketClient = BucketCanister.create({
+                agent,
+                canisterId: token.storage[0],
+                accessToken: new Uint8Array(token.access_token)
+              })
+              const uploader = new Uploader(bucketClient)
+              await uploader.upload_chunks(
+                stream,
+                token.id,
+                data.byteLength,
+                null,
+                [],
+                (progress: Progress) => {
+                  uploading = { ...progress, name: file.name }
+                }
+              )
+
+              filePayload = {
+                canister: token.storage[0].toUint8Array(),
+                id: token.id,
+                name: file.name,
+                size: file.size,
+                type: file.type
+              }
+              // cache for sending
+              await myState.agent.setUploadingFile(
+                channelInfo.canister,
+                channelInfo.id,
+                filePayload
+              )
+            }, toastStore).finally(() => {
+              uploading = null
+            })
           }
         }
       }
@@ -278,11 +281,7 @@
 
     submitting = PendingMessageId
     const detail = filePayload
-      ? new MessageDetail(
-          newMessage || filePayload.name,
-          MessageKind.File,
-          filePayload
-        )
+      ? new MessageDetail(newMessage, MessageKind.File, filePayload)
       : new MessageDetail(newMessage)
 
     toastRun(async () => {
@@ -432,6 +431,7 @@
         .then(() => {
           msg.payload = new Uint8Array()
           msg.message = ''
+          msg.detail = null
           msg.error = `Message is deleted by ${msg.created_user.name}`
           msg.isDeleted = true
           addMessages([msg])
@@ -763,7 +763,7 @@
 
         {#if filePayload}
           <div class="btn btn-sm px-2 text-primary-500">
-            <span
+            <span class="max-w-52 truncate"
               >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
             >
             <span class="*:size-5">
@@ -771,8 +771,8 @@
             </span>
           </div>
         {:else if uploading}
-          <div class="btn btn-sm px-2">
-            <span
+          <div class="btn btn-sm truncate px-2">
+            <span class="max-w-52 text-pretty break-all"
               >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
             >
             <span class="*:size-5">

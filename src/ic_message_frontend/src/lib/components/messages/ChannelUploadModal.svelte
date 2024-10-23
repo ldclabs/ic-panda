@@ -2,9 +2,8 @@
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { toastRun } from '$lib/stores/toast'
   import { getBytesString, getShortNumber } from '$lib/utils/helper'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
 
   export let parent: SvelteComponent
@@ -16,7 +15,6 @@
   const MESSAGE_PER_USER_GAS = 10000
   const MESSAGE_PER_BYTE_GAS = 1000
   const UPLOAD_FILE_GAS_THRESHOLD = 10_000_000
-  const toastStore = getToastStore()
   const modalStore = getModalStore()
   const filesState = channel.files_state[0] || {
     file_max_size: 0n,
@@ -53,10 +51,8 @@
   function uploadFile() {
     if (submitting) return
     submitting = true
-    toastRun(async () => {
-      if (data.byteLength > 0) onReady(data, mime)
-      modalStore.close()
-    }, toastStore)
+    if (data.byteLength > 0) onReady(data, mime)
+    modalStore.close()
   }
 
   checkFile(file)

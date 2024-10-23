@@ -648,13 +648,13 @@ pub mod channel {
         })
     }
 
-    pub fn leave(
+    pub async fn leave(
         caller: Principal,
         id: u32,
         delete_channel: bool,
         now_ms: u64,
     ) -> Result<(), String> {
-        CHANNEL_STORE.with(|r| {
+        let file_storage = CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&id) {
                 None => Err("channel not found".to_string()),
@@ -694,14 +694,43 @@ pub mod channel {
                                 messages.remove(&MessageId(id, i));
                             }
                         });
+                        // remove file storage
+                        Ok(v.file_storage)
                     } else {
                         v.updated_at = now_ms;
                         m.insert(id, v);
+                        Ok(None)
                     }
-                    Ok(())
                 }
             }
-        })
+        })?;
+
+        if let Some((ic_oss_bucket, folder_id)) = file_storage {
+            let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+            let ic_oss_cluster =
+                ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
+            let self_id = ic_cdk::id();
+            let token: Result<ByteBuf, String> = call(
+                ic_oss_cluster,
+                "admin_weak_access_token",
+                (
+                    Token {
+                        subject: self_id,
+                        audience: ic_oss_bucket,
+                        policies: "Bucket.Delete.Folder".to_string(),
+                    },
+                    now_ms / 1000,
+                    60 * 10 as u64,
+                ),
+                0,
+            )
+            .await?;
+            let token = token?;
+
+            let _: Result<bool, String> =
+                call(ic_oss_bucket, "delete_folder", (folder_id, Some(token)), 0).await?;
+        }
+        Ok(())
     }
 
     pub fn add_message(id: u32, msg: Message) -> Result<u32, String> {
@@ -837,7 +866,7 @@ pub mod channel {
         file_size: u64,
         file_name: String,
         content_type: String,
-        custom: Option<MapValue>,
+        custom: MapValue,
         now_ms: u64,
     ) -> Result<types::UploadFileOutput, String> {
         let self_id = ic_cdk::id();
@@ -880,7 +909,7 @@ pub mod channel {
                     policies: "Bucket.Write.File".to_string(),
                 },
                 now_ms / 1000,
-                60 * 10 as u64,
+                10 * 60 as u64,
             ),
             0,
         )
@@ -896,7 +925,7 @@ pub mod channel {
                     name: file_name.clone(),
                     size: Some(file_size),
                     content_type,
-                    custom,
+                    custom: Some(custom),
                     ..Default::default()
                 },
                 Some(token),
@@ -916,7 +945,7 @@ pub mod channel {
                     policies: format!("File.Write:{}", res.id),
                 },
                 now_ms / 1000,
-                60 * 30 as u64, // 30 minutes
+                30 * 60 as u64, // 30 minutes
             ),
             0,
         )
@@ -984,7 +1013,7 @@ pub mod channel {
                     policies: format!("Folder.Read:{}", file_storage.1),
                 },
                 now_ms / 1000,
-                60 * 60 as u64, // 60 minutes
+                48 * 3600 as u64, // 2 days
             ),
             0,
         )
