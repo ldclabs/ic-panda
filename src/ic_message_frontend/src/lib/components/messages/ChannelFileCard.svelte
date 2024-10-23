@@ -14,7 +14,7 @@
   import { downloadUrl } from '$lib/utils/url'
   import type { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onDestroy, onMount } from 'svelte'
+  import { onDestroy, onMount, tick } from 'svelte'
 
   export let myState: MyMessageState
   export let file: FilePayload
@@ -84,10 +84,12 @@
     const { abort } = toastRun(
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         if (file.type.startsWith('image/')) {
+          downloading = true
+          await tick()
           const data = await downloadFile({ signal })
           blobUrl = URL.createObjectURL(new Blob([data], { type: file.type }))
           imageUrl = blobUrl
-
+          downloading = false
           abortingQue.push(() => URL.revokeObjectURL(blobUrl))
         }
       },
@@ -102,15 +104,23 @@
   })
 </script>
 
-<div class="flex w-full flex-col items-center justify-center">
+<div
+  class="flex w-full flex-col items-center justify-center border-t border-surface-500/20"
+>
   {#if imageUrl}
-    <button type="button" class="w-full p-4" on:click={onPreviewImage}>
+    <button
+      type="button"
+      class="w-full border-b border-surface-500/20 p-4"
+      on:click={onPreviewImage}
+    >
       <img src={imageUrl} alt={file.name} />
     </button>
+  {:else if file.type.startsWith('image/') && downloading}
+    <div class="flex h-10 w-full items-center justify-center *:size-5">
+      <IconCircleSpin />
+    </div>
   {/if}
-  <div
-    class="flex w-full flex-row items-center justify-center border-t border-surface-500/20 px-4"
-  >
+  <div class="flex w-full flex-row items-center justify-center px-4">
     <p class="text-pretty break-all py-2"><span>{file.name}</span></p>
     <button
       type="button"

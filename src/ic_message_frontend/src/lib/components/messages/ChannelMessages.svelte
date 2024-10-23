@@ -71,7 +71,8 @@
   const emojisPopup: PopupSettings = {
     event: 'click',
     target: 'popupEmojisCard',
-    placement: 'top'
+    placement: 'top',
+    closeQuery: '' // important
   }
 
   type MessageInfoEx = MessageInfo & { pid?: number }
@@ -117,8 +118,16 @@
 
   let uploading: (Progress & { name: string }) | null = null
   let filePayload: FilePayload | null = null
+
   function onUploadChangeHandler(e: Event): void {
-    const file = (e.target as HTMLInputElement)?.files![0] || null
+    const files = (e.target as HTMLInputElement)?.files || []
+    if (files.length > 0) {
+      onFilesChange(files as FileList)
+    }
+  }
+
+  function onFilesChange(files: FileList): void {
+    const file = files[0] || null
     if (!file) return
 
     modalStore.trigger({
@@ -606,7 +615,7 @@
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
             <button
-              class="btn p-0"
+              class="btn h-fit p-0"
               disabled={msg.created_user.username === '_'}
               on:click={() => {
                 onClickUser(msg.created_by)
@@ -638,9 +647,9 @@
                     <p class="w-full text-pretty px-4 py-2 text-sm"
                       >{msg.error}</p
                     >
-                  {:else if msg.message}
+                  {:else}
                     <pre
-                      class="icpanda-message w-full text-pretty break-all px-4 py-2"
+                      class="icpanda-message min-h-4 w-full text-pretty break-all px-4 py-2"
                       >{msg.message}</pre
                     >
                   {/if}
@@ -690,9 +699,9 @@
                   <div class="max-h-[600px] overflow-auto overscroll-auto">
                     {#if msg.error}
                       <p class="text-pretty px-4 py-2 text-sm">{msg.error}</p>
-                    {:else if msg.message}
+                    {:else}
                       <pre
-                        class="icpanda-message w-full text-pretty break-all px-4 py-2"
+                        class="icpanda-message min-h-4 w-full text-pretty break-all px-4 py-2"
                         >{msg.message}</pre
                       >
                     {/if}
@@ -785,6 +794,7 @@
     <TextArea
       bind:value={newMessage}
       onKeydown={onPromptKeydown}
+      {onFilesChange}
       minHeight="40"
       maxHeight="200"
       containerClass=""

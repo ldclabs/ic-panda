@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { fly } from 'svelte/transition'
-
   export let addEmoji: (emoji: string) => void = () => {}
 
   const setIcons = ['😃', '🤡', '👋', '🐼', '🚀', '🎁']
@@ -288,13 +286,13 @@
   }
 </script>
 
-<section class="w-64" transition:fly={{ y: -30 }}>
+<section class="w-[264px]">
   <header class="border-b border-surface-500/20">
     {#each setIcons as icon, i}
       <button
         class="btn p-2 text-2xl"
-        on:mouseover={() => chooseEmojiSet(i)}
-        on:focus
+        on:pointerenter={() => chooseEmojiSet(i)}
+        on:click|stopPropagation={() => chooseEmojiSet(i)}
       >
         {icon}
       </button>

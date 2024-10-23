@@ -9,3 +9,6 @@
 1_103 nscli-qiaaa-aaaaj-qa4pa-cai admin_collect_token
 1_104 nscli-qiaaa-aaaaj-qa4pa-cai admin_update_price
 1_105 ijyxz-wyaaa-aaaaj-qa4qa-cai admin_add_canister
+1_106 nvdn4-5qaaa-aaaaj-qa4pq-cai admin_add_canister
+1_107 zof5a-5yaaa-aaaai-acr2q-cai admin_add_canister
+1_108 4jxyd-pqaaa-aaaah-qdqtq-cai admin_add_canister
