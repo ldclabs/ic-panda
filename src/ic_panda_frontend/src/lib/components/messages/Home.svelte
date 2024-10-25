@@ -1,14 +1,12 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
-  import { type MyMessageState } from '$lib/stores/message'
+  import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { onMount, tick } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
-
-  export let myState: MyMessageState
 
   const toastStore = getToastStore()
   const latest_users: Writable<UserInfo[]> = writable([])
@@ -20,6 +18,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async () => {
+      const myState = await MyMessageState.load()
       users_total = myState.api.state?.users_total || 0n
       names_total = myState.api.state?.names_total || 0n
       await tick()

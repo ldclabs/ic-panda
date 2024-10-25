@@ -1,13 +1,11 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import Loading from '$lib/components/ui/Loading.svelte'
-  import { onMount } from 'svelte'
 
-  $: username = ($page?.params || {})['username'] || ''
-  onMount(async () => {
-    goto(`https://dmsg.net/${username}`)
-  })
+  const username = ($page?.params || {})['username'] || ''
+  window.location.assign(`https://dmsg.net/${username}`)
 </script>
 
-<Loading />
+<div class="flex h-full w-full flex-col items-center justify-center">
+  <Loading />
+</div>
