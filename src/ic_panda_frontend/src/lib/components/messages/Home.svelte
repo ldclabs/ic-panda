@@ -1,44 +1,22 @@
 <script lang="ts">
   import { type UserInfo } from '$lib/canisters/message'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
-  import { APP_ORIGIN } from '$lib/constants'
-  import { signIn } from '$lib/services/auth'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
+  import Saos from 'saos'
   import { onMount, tick } from 'svelte'
-  import { writable, type Readable, type Writable } from 'svelte/store'
-  import UserRegisterModel from './UserRegisterModel.svelte'
+  import { writable, type Writable } from 'svelte/store'
 
   export let myState: MyMessageState
 
   const toastStore = getToastStore()
-  const modalStore = getModalStore()
   const latest_users: Writable<UserInfo[]> = writable([])
 
-  let myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   let users_total = 0n
   let names_total = 0n
   let channels_total = 0n
   let messages_total = 0n
-
-  function getStartedHandler() {
-    toastRun(async () => {
-      if (myState.principal.isAnonymous()) {
-        signIn({})
-      } else if (!$myInfo) {
-        modalStore.trigger({
-          type: 'component',
-          component: {
-            ref: UserRegisterModel,
-            props: {
-              myState
-            }
-          }
-        })
-      }
-    }, toastStore)
-  }
 
   onMount(() => {
     const { abort } = toastRun(async () => {
@@ -74,68 +52,91 @@
   })
 </script>
 
-<div class="mt-12 flex max-w-5xl flex-1 flex-col px-4">
-  <div class="">
-    <p class="text-lg font-normal antialiased">
-      ICPanda Message is a decentralized end-to-end encrypted messaging
-      application fully running on the
-      <a
-        class="underline underline-offset-4"
-        href="https://internetcomputer.org"
-        target="_blank"
-      >
-        Internet Computer
-      </a> blockchain. Key features:
-    </p>
-    <ul class="mt-4 flex flex-col gap-4 pl-8">
-      <li
-        ><b>End-to-end encryption:</b> All user messages are encrypted using the
-        <a
-          class="font-bold underline underline-offset-4"
-          href="https://datatracker.ietf.org/doc/html/rfc9052"
-          target="_blank">RFC 9052 (COSE)</a
-        >
-        standard and
-        <b>quantum secure AES-256-GCM algorithm</b> on the client side and stored
-        on the ICP blockchain. These messages can only be decrypted on the client
-        side.</li
-      >
-      <li
-        ><b>Multi-user chats:</b> Message channels support one-to-many chats, where
-        a manager can add or remove members and exchange encryption keys. If the
-        last manager leaves the channel, all messages in the channel are deleted.</li
-      >
-      <li
-        ><b>On-chain:</b> It operates entirely as a smart contract on the ICP
-        blockchain, controlled by
-        <a
-          class="font-bold underline underline-offset-4"
-          href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
-          target="_blank">ICPanda DAO</a
-        >, with fully open-source code. It is a trustworthy, secure, verifiable,
-        and unstoppable Web3 application.</li
-      >
-    </ul>
-  </div>
-  <div
-    class="mt-12 flex max-w-4xl flex-row items-center justify-center gap-6 max-sm:flex-col *:max-sm:w-60"
+<div class="mt-12 flex max-w-4xl flex-1 flex-col px-4 md:mt-24">
+  <Saos
+    animation="scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both"
   >
-    <a
-      type="button"
-      class="rainbow-button bg-slate-950 group relative w-64 overflow-hidden px-6 py-2 text-center text-white transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
-      target="_blank"
-      href="https://dmsg.net"
+    <div class="flex w-full flex-col items-center justify-center gap-10 px-4">
+      <img
+        class="w-[332px]"
+        src="/_assets/icpanda-message.black.webp"
+        alt="ICPanda message brand"
+      />
+      <p class="text-xl font-normal antialiased">
+        ICPanda Message (dMsg.net) is a decentralized end-to-end encrypted
+        messaging application fully running on the <a
+          class="underline underline-offset-4"
+          href="https://internetcomputer.org"
+          target="_blank"
+        >
+          Internet Computer
+        </a> blockchain.
+      </p>
+      <div class="w-full">
+        <a
+          type="button"
+          class="rainbow-button bg-slate-950 group relative m-auto block w-64 overflow-hidden px-6 py-2 text-center text-white transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+          target="_blank"
+          href="https://dmsg.net"
+        >
+          <span class="relative z-10 text-lg">Launch app (dMsg.net)</span>
+          <span class="rainbow-border"></span>
+        </a>
+      </div>
+    </div>
+  </Saos>
+  <Saos
+    once={true}
+    animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
+  >
+    <div
+      class="mt-12 flex w-full max-w-5xl flex-col items-center justify-center gap-6 px-4 text-black md:mt-24"
     >
-      <span class="relative z-10 text-lg">Launch app (dMsg.net)</span>
-      <span class="rainbow-border"></span>
-    </a>
-    <button
-      on:click={getStartedHandler}
-      class="variant-ringed-primary btn transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
-    >
-      <span class="text-center">Get started (legacy)</span>
-    </button>
-  </div>
+      <div class="text-center"><h2 class="h2">Key Features</h2></div>
+      <div class="divide-neutral-500 flex flex-col gap-8 divide-y md:gap-10">
+        <div>
+          <h3 class="h3"
+            ><span class="pr-2 text-5xl">🔐</span>End-to-end Encryption</h3
+          >
+          <p class="text-neutral-300 mt-4">
+            All user messages are encrypted using the
+            <a
+              class="underline underline-offset-4"
+              href="https://datatracker.ietf.org/doc/html/rfc9052"
+              target="_blank">RFC 9052 (COSE)</a
+            >
+            standard and
+            <b>quantum secure AES-256-GCM algorithm</b> on the client side and stored
+            permanently on the ICP blockchain. These messages can only be decrypted
+            on the client side.
+          </p>
+        </div>
+        <div class="pt-8 md:pt-4">
+          <h3 class="h3"
+            ><span class="pr-2 text-5xl">💬</span>Multi-user Chats</h3
+          >
+          <p class="text-neutral-300 mt-4">
+            Message channels support one-to-many chats, where a manager can add
+            or remove members and exchange encryption keys. If the last manager
+            leaves the channel, all messages in the channel are deleted.
+          </p>
+        </div>
+        <div class="pt-8 md:pt-4">
+          <h3 class="h3"><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3>
+          <p class="text-neutral-300 mt-4">
+            It runs entirely as a smart contract on the ICP blockchain,
+            controlled by
+            <a
+              class="underline underline-offset-4"
+              href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+              target="_blank">ICPanda DAO</a
+            >, with fully open-source code. It is a trustworthy, secure,
+            verifiable, and unstoppable Web3 application.
+          </p>
+        </div>
+      </div>
+    </div>
+  </Saos>
   <div
     class="card mt-8 flex flex-col justify-around gap-4 rounded-2xl rounded-b-none bg-transparent bg-white p-8 sm:mt-12 sm:flex-row"
   >
@@ -170,7 +171,7 @@
   >
     <a
       class="flex flex-row items-center space-x-2 rounded px-2 py-1 hover:variant-soft-primary"
-      href="{APP_ORIGIN}/PANDA"
+      href="https://dmsg.net/PANDA"
     >
       <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
       <span class="ml-1 truncate">ICPanda DAO</span>
@@ -180,7 +181,7 @@
     {#each $latest_users as user (user.id.toText())}
       <a
         class="flex flex-row items-center space-x-2 rounded px-2 py-1 hover:variant-soft-primary"
-        href="{APP_ORIGIN}/{user.username[0]}"
+        href="https://dmsg.net/{user.username[0]}"
       >
         <Avatar
           initials={user.name}
@@ -230,7 +231,7 @@
   :global(.rainbow-button:hover .rainbow-border) {
     filter: blur(2px);
     opacity: 1;
-    inset: -4px;
+    inset: -6px;
   }
 
   :global(.rainbow-button::before) {
@@ -239,7 +240,7 @@
     inset: -1px;
     background: inherit;
     border-radius: inherit;
-    filter: blur(7px);
+    filter: blur(3px);
     opacity: 0.6;
     z-index: -1;
   }
@@ -247,7 +248,7 @@
   :global(.rainbow-button::after) {
     content: '';
     position: absolute;
-    inset: 2px;
+    inset: 4px;
     background: radial-gradient(
       circle,
       rgb(36, 44, 70) 60%,
@@ -268,6 +269,26 @@
     }
     100% {
       background-position: 200% 50%;
+    }
+  }
+
+  @keyframes -global-slide-top {
+    0% {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes -global-scale-down-center {
+    0% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
     }
   }
 </style>

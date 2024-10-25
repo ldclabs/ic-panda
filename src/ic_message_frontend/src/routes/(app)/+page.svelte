@@ -37,32 +37,42 @@
     {
       title: 'The Internet Computer',
       image: '/_assets/images/internet-computer.webp',
-      url: 'https://internetcomputer.org'
+      url: 'https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai'
     },
     {
       title: 'ICPSwap',
       image: '/_assets/images/icpswap.webp',
-      url: 'https://www.icpswap.com'
+      url: 'https://info.icpswap.com/swap/pool/details/5fq4w-lyaaa-aaaag-qjqta-cai'
+    },
+    {
+      title: 'CoinGecko',
+      image: '/_assets/images/coingecko.webp',
+      url: 'https://www.coingecko.com/en/coins/icpanda-dao'
+    },
+    {
+      title: 'DefiLlama',
+      image: '/_assets/images/defillama.webp',
+      url: 'https://defillama.com/governance/icpanda-dao'
     },
     {
       title: 'OpenChat',
       image: '/_assets/images/openchat.webp',
-      url: 'https://oc.app/home'
-    },
-    {
-      title: 'ICPCoins',
-      image: '/_assets/images/icpcoins.webp',
-      url: 'https://icpcoins.com'
+      url: 'https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai'
     },
     {
       title: 'ICPTokens',
       image: '/_assets/images/icptokens.webp',
-      url: 'https://icptokens.net'
+      url: 'https://icptokens.net/token/druyg-tyaaa-aaaaq-aactq-cai'
+    },
+    {
+      title: 'ICPCoins',
+      image: '/_assets/images/icpcoins.webp',
+      url: 'https://icpcoins.com/#/token/PANDA'
     },
     {
       title: 'ICLight',
       image: '/_assets/images/iclight.webp',
-      url: 'https://iclight.io'
+      url: 'https://iclight.io/ICDex/PANDA/ICP'
     }
   ]
 
@@ -206,7 +216,7 @@
     class="pandas-backgroud flex w-full max-w-[1800px] flex-col items-center pt-12 md:pt-24"
   >
     <Saos
-      animation={'scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both'}
+      animation="scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both"
     >
       <div
         class="flex w-full max-w-3xl flex-col items-center justify-center gap-10 px-4"
@@ -252,7 +262,7 @@
     </Saos>
     <Saos
       once={true}
-      animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+      animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
     >
       <div
         class="mt-12 flex w-full max-w-4xl flex-col items-center justify-center gap-6 px-4 text-white md:mt-24"
@@ -307,7 +317,7 @@
     </Saos>
     <Saos
       once={true}
-      animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+      animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
     >
       <div
         class="mt-12 flex w-full max-w-4xl flex-col items-center justify-center gap-6 px-4 text-white md:mt-24"

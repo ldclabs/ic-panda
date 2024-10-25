@@ -1,19 +1,13 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import ProfileDetail from '$lib/components/messages/ProfileDetail.svelte'
-  import { authStore } from '$lib/stores/auth'
-  import { MyMessageState } from '$lib/stores/message'
+  import Loading from '$lib/components/ui/Loading.svelte'
+  import { onMount } from 'svelte'
 
   $: username = ($page?.params || {})['username'] || ''
-  $: pageKey = $authStore.identity.getPrincipal() + ':' + username
+  onMount(async () => {
+    goto(`https://dmsg.net/${username}`)
+  })
 </script>
 
-<div class="m-auto mt-4 flex max-w-4xl flex-col items-center">
-  {#key pageKey}
-    {#await MyMessageState.load()}
-      <div class="placeholder-circle mt-8 w-32 animate-pulse sm:mt-24" />
-    {:then myState}
-      <ProfileDetail userId={username} {myState} />
-    {/await}
-  {/key}
-</div>
+<Loading />

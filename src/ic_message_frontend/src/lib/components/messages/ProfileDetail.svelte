@@ -243,13 +243,6 @@
         <span class="*:size-5"><IconQrCode /></span>
       </button>
     </p>
-    <div
-      class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
-    >
-      {#each links as link}
-        <LinkItem {link} {onQrHandler} />
-      {/each}
-    </div>
     {#if !isMe}
       <div class="mt-6 flex flex-row gap-4">
         <button
@@ -284,6 +277,13 @@
         </button>
       </div>
     {/if}
+    <div
+      class="mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4"
+    >
+      {#each links as link}
+        <LinkItem {link} {onQrHandler} />
+      {/each}
+    </div>
   </div>
 {:else}
   <div class="mt-16 grid justify-center">

@@ -46,7 +46,7 @@
       {#if myState}
         <ProfileDetail userId={username} {myState} />
       {:else}
-        <div class="placeholder-circle mt-2 w-40 animate-pulse" />
+        <div class="placeholder-circle mt-2 w-40 animate-pulse"></div>
       {/if}
     {/key}
   </div>

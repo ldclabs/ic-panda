@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import MyProfile from '$src/lib/components/messages/MyProfile.svelte'
-  import { MyMessageState } from '$lib/stores/message'
-  import { onMount } from 'svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
+  import { MyMessageState } from '$lib/stores/message'
+  import MyProfile from '$src/lib/components/messages/MyProfile.svelte'
+  import { onMount } from 'svelte'
 
   let myState: MyMessageState
   onMount(async () => {

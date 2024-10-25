@@ -33,7 +33,7 @@
       data-popup="TAD-{amountString}"
     >
       <p>{amountString}</p>
-      <div class="arrow bg-surface-800" />
+      <div class="arrow bg-surface-800"></div>
     </div>
   {:catch}
     <span class="text-right">N/A</span>

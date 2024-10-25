@@ -51,6 +51,6 @@
     data-popup={textHover.target}
   >
     <p class="text-pretty break-all">{textValue}</p>
-    <div class="arrow bg-surface-800" />
+    <div class="arrow bg-surface-800"></div>
   </div>
 </div>

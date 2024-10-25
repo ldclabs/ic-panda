@@ -48,7 +48,7 @@
     on:click={onCopyHandler}
     disabled={copiedClass != ''}
   >
-    <div>{link.title}<span class="ml-1 {copiedClass}">{link.uri}</span></div>
+    <div>{link.title}<span class="ml-2 {copiedClass}">{link.uri}</span></div>
     <span class="text-surface-500 *:size-5"
       >{#if copiedClass != ''}
         <IconCheckbox />
@@ -57,13 +57,17 @@
       {/if}</span
     >
     {#if onQrHandler}
-      <button
+      <a
         class="flex flex-row items-center gap-2"
+        type="button"
+        role="button"
+        href="/"
+        tabindex="0"
         on:click|stopPropagation|preventDefault={() =>
           onQrHandler(link.title, link.uri)}
       >
         <span class="text-surface-500 *:size-5"><IconQrCode /></span>
-      </button>
+      </a>
     {/if}
   </button>
 {/if}

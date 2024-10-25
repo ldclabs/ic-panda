@@ -58,12 +58,12 @@
 
     initAuth = true
   })
-
-  $: webManifest = pwaInfo ? pwaInfo.webManifest.linkTag : ''
 </script>
 
 <svelte:head>
-  {@html webManifest}
+  {#if pwaInfo?.webManifest.linkTag}
+    {@html pwaInfo.webManifest.linkTag}
+  {/if}
 </svelte:head>
 
 <Modal position="items-start" class="*:max-h-full" />
