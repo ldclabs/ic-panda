@@ -11,7 +11,7 @@ fn get_state() -> Result<types::StateInfo, String> {
     Ok(store::state::with(|s| types::StateInfo {
         name: s.name.clone(),
         managers: s.managers.clone(),
-        ic_oss_cluster: s.ic_oss_cluster.clone(),
+        ic_oss_cluster: s.ic_oss_cluster,
         ic_oss_buckets: s.ic_oss_buckets.clone(),
         channel_id: s.channel_id,
         incoming_gas: s.incoming_gas,
@@ -56,7 +56,7 @@ async fn my_channel_ids() -> Result<Vec<u32>, String> {
     let ids: Vec<u32> = store::state::with(|s| {
         s.user_channels
             .get(&caller)
-            .map(|m| m.keys().map(|k| *k).collect())
+            .map(|m| m.keys().copied().collect())
             .unwrap_or_default()
     });
     Ok(ids)

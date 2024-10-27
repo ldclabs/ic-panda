@@ -11,7 +11,7 @@ fn get_state() -> Result<types::StateInfo, String> {
     Ok(store::state::with(|s| types::StateInfo {
         name: s.name.clone(),
         managers: s.managers.clone(),
-        ic_oss_cluster: s.ic_oss_cluster.clone(),
+        ic_oss_cluster: s.ic_oss_cluster,
         ic_oss_buckets: s.ic_oss_buckets.clone(),
         profiles_total: store::profile::profiles_total(),
     }))

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "src/cli_airdrop",
   "src/cli_cryptogram",
   "src/ic_message",
   "src/ic_message_channel",
@@ -44,6 +45,7 @@ hmac = "0.12"
 sha2 = "0.10"
 sha3 = "0.10"
 num-traits = "0.2"
+ic-agent = "0.39"
 ic-cdk = "0.16"
 ic-cdk-timers = "0.10"
 ic-stable-structures = "0.6"

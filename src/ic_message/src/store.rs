@@ -239,7 +239,7 @@ pub mod state {
             schnorr_public_key(schnorr_key_name.clone(), SchnorrAlgorithm::Ed25519, vec![])
                 .await
                 .map_err(|err| {
-                    ic_cdk::print(&format!(
+                    ic_cdk::print(format!(
                         "failed to retrieve Schnorr Ed25519 public key: {err}"
                     ))
                 })
@@ -673,7 +673,7 @@ pub mod user {
                                         User {
                                             name: username.clone(),
                                             image: "".to_string(),
-                                            profile_canister: profile_canister,
+                                            profile_canister,
                                             cose_canister: Some(cose_canister),
                                             username: Some(username.clone()),
                                         },

@@ -218,9 +218,8 @@ pub mod profile {
             let mut m = r.borrow_mut();
             match m.get(&user) {
                 None => Err("profile not found".to_string()),
-                Some(mut p) => f(&mut p).map(|r| {
+                Some(mut p) => f(&mut p).inspect(|r| {
                     m.insert(user, p);
-                    r
                 }),
             }
         })
@@ -343,7 +342,7 @@ pub mod profile {
         input: types::UploadImageInput,
     ) -> Result<types::UploadImageOutput, String> {
         let (ic_oss_cluster, ic_oss_bucket) =
-            state::with(|s| (s.ic_oss_cluster.clone(), s.ic_oss_buckets.last().cloned()));
+            state::with(|s| (s.ic_oss_cluster, s.ic_oss_buckets.last().cloned()));
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
         let ic_oss_bucket = ic_oss_bucket.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
 
@@ -359,11 +358,11 @@ pub mod profile {
             (
                 Token {
                     subject: ic_cdk::id(),
-                    audience: image.clone().map(|i| i.0).unwrap_or(ic_oss_bucket),
+                    audience: image.map(|i| i.0).unwrap_or(ic_oss_bucket),
                     policies: "File.Write".to_string(),
                 },
                 now_ms / 1000,
-                60 * 10 as u64, // 10 minutes
+                60 * 10_u64, // 10 minutes
             ),
             0,
         )
@@ -429,7 +428,7 @@ pub mod profile {
                     policies: format!("File.Write:{}", image.1),
                 },
                 now_ms / 1000,
-                60 * 10 as u64, // 10 minutes
+                60 * 10_u64, // 10 minutes
             ),
             0,
         )

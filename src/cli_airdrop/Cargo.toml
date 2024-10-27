@@ -1,0 +1,26 @@
+[package]
+name = "cli_airdrop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cli_airdrop"
+path = "src/main.rs"
+
+[dependencies]
+candid = { workspace = true, features = ["value", "printer"] }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+ic-agent = { workspace = true }
+ic-certification = { workspace = true }
+clap = { version = "=4.5", features = ["derive"] }
+ciborium = { workspace = true }
+num-traits = { workspace = true }
+icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
+ic-icrc1 = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
+ic-ledger-core = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
+ic-icrc1-tokens-u64 = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
+ic-cbor = "2.6"

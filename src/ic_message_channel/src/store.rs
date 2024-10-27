@@ -706,7 +706,7 @@ pub mod channel {
         })?;
 
         if let Some((ic_oss_bucket, folder_id)) = file_storage {
-            let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+            let ic_oss_cluster = state::with(|s| s.ic_oss_cluster);
             let ic_oss_cluster =
                 ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
             let self_id = ic_cdk::id();
@@ -720,7 +720,7 @@ pub mod channel {
                         policies: "Bucket.Delete.Folder".to_string(),
                     },
                     now_ms / 1000,
-                    60 * 10 as u64,
+                    60 * 10_u64,
                 ),
                 0,
             )
@@ -795,7 +795,7 @@ pub mod channel {
     ) -> Result<types::Message, String> {
         let self_id = ic_cdk::id();
         let (ic_oss_cluster, ic_oss_bucket) =
-            state::with(|s| (s.ic_oss_cluster.clone(), s.ic_oss_buckets.last().cloned()));
+            state::with(|s| (s.ic_oss_cluster, s.ic_oss_buckets.last().cloned()));
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
         let ic_oss_bucket = ic_oss_bucket.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
 
@@ -813,7 +813,7 @@ pub mod channel {
                         policies: "Bucket.Write.Folder".to_string(),
                     },
                     now_ms / 1000,
-                    60 * 10 as u64,
+                    60 * 10_u64,
                 ),
                 0,
             )
@@ -870,7 +870,7 @@ pub mod channel {
         now_ms: u64,
     ) -> Result<types::UploadFileOutput, String> {
         let self_id = ic_cdk::id();
-        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster);
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
 
         let (channel, file_storage, gas) = CHANNEL_STORE.with(|r| match r.borrow().get(&id) {
@@ -909,7 +909,7 @@ pub mod channel {
                     policies: "Bucket.Write.File".to_string(),
                 },
                 now_ms / 1000,
-                10 * 60 as u64,
+                10 * 60_u64,
             ),
             0,
         )
@@ -945,7 +945,7 @@ pub mod channel {
                     policies: format!("File.Write:{}", res.id),
                 },
                 now_ms / 1000,
-                30 * 60 as u64, // 30 minutes
+                30 * 60_u64, // 30 minutes
             ),
             0,
         )
@@ -987,7 +987,7 @@ pub mod channel {
         caller: Principal,
         now_ms: u64,
     ) -> Result<types::DownloadFilesToken, String> {
-        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster.clone());
+        let ic_oss_cluster = state::with(|s| s.ic_oss_cluster);
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
 
         let file_storage = CHANNEL_STORE.with(|r| match r.borrow().get(&id) {
@@ -1013,7 +1013,7 @@ pub mod channel {
                     policies: format!("Folder.Read:{}", file_storage.1),
                 },
                 now_ms / 1000,
-                48 * 3600 as u64, // 2 days
+                48 * 3600_u64, // 2 days
             ),
             0,
         )
