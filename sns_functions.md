@@ -12,3 +12,8 @@
 1_106 nvdn4-5qaaa-aaaaj-qa4pq-cai admin_add_canister
 1_107 zof5a-5yaaa-aaaai-acr2q-cai admin_add_canister
 1_108 4jxyd-pqaaa-aaaah-qdqtq-cai admin_add_canister
+1_109 nscli-qiaaa-aaaaj-qa4pa-cai admin_remove_managers
+1_110 ijyxz-wyaaa-aaaaj-qa4qa-cai admin_remove_managers
+1_111 nvdn4-5qaaa-aaaaj-qa4pq-cai admin_remove_managers
+1_112 zof5a-5yaaa-aaaai-acr2q-cai admin_remove_managers
+1_113 4jxyd-pqaaa-aaaah-qdqtq-cai admin_remove_managers
