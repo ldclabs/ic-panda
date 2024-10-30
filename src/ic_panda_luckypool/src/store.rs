@@ -75,7 +75,7 @@ impl State {
                 let mut airdrops: Vec<types::Airdrop> = Vec::new();
                 let mut ledger_airdropped = false;
                 let mut neurons_airdropped = false;
-                if let Some(list) = x.neurons.get(&user) {
+                if let Some(list) = x.ledger.get(&user) {
                     ledger_airdropped = !list.is_empty() && !x.ledger_todo_list.contains(&user);
                     list.iter()
                         .map(|a| types::Airdrop {
@@ -85,7 +85,7 @@ impl State {
                         })
                         .for_each(|x| airdrops.push(x))
                 };
-                if let Some(list) = x.ledger.get(&user) {
+                if let Some(list) = x.neurons.get(&user) {
                     neurons_airdropped = !list.is_empty() && !x.neurons_todo_list.contains(&user);
                     list.iter()
                         .map(|a| types::Airdrop {

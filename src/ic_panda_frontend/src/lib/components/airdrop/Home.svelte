@@ -39,7 +39,6 @@
 
   function checkInput() {
     if (userInput) {
-      console.log('Checking input:', userInput)
       try {
         user = Principal.fromText(userInput.trim())
         validating = true
