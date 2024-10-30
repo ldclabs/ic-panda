@@ -3,9 +3,64 @@ use ciborium::from_reader;
 use ic_stable_structures::Storable;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use std::collections::BTreeSet;
 use url::Url;
 
 use crate::{store, utils, MAX_PRIZE_CLAIMABLE, TOKEN_1};
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct State {
+    pub airdrop_balance: u64,
+    pub total_airdrop: u64,
+    pub total_airdrop_count: u64,
+    pub total_luckydraw: u64,
+    pub total_luckydraw_icp: u64,
+    pub total_luckydraw_count: u64,
+    pub total_prize: Option<u64>,
+    pub total_prize_count: Option<u64>,  // prize claiming count
+    pub total_prizes_count: Option<u64>, // total prizes count
+    pub latest_airdrop_logs: Vec<AirdropLog>, // latest 10 airdrop logs
+    pub luckiest_luckydraw_logs: Vec<LuckyDrawLog>, // latest 10 luckiest luckydraw logs
+    pub latest_luckydraw_logs: Vec<LuckyDrawLog>, // latest 10 luckydraw logs
+    pub managers: Option<BTreeSet<Principal>>,
+    pub airdrop_amount: Option<u64>,
+    pub prize_subsidy: Option<SysPrizeSubsidy>,
+    pub lucky_code: Option<u32>,
+}
+
+#[derive(CandidType, Default, Clone, Serialize)]
+pub struct Airdrops108Output {
+    pub airdrops: Vec<Airdrop>,
+    pub ledger_airdropped: bool,
+    pub ledger_hash: String,
+    pub ledger_updated_at: u64, // ms
+    pub ledger_weight_total: u64,
+    pub neurons_airdropped: bool,
+    pub neurons_hash: String,
+    pub neurons_updated_at: u64,
+    pub neurons_weight_total: u64,
+    pub tokens_per_weight: f64,
+    pub tokens_distributed: u64,
+    pub status: i8,
+    pub error: Option<String>,
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct Airdrop {
+    pub weight: u64,
+    pub subaccount: Option<String>,
+    pub neuron_id: Option<String>,
+}
+
+#[derive(CandidType, Clone, Serialize)]
+pub struct SysPrizeSubsidy(
+    pub u64, // Prize fee in PANDA * TOKEN_1
+    pub u16, // Min quantity requirement for subsidy
+    pub u32, // Min total amount tokens requirement for subsidy
+    pub u8,  // Subsidy ratio, [0, 50]
+    pub u32, // Max subsidy tokens per prize
+    pub u16, // Subsidy count limit
+);
 
 #[derive(CandidType, Clone, Serialize)]
 pub struct CaptchaOutput {

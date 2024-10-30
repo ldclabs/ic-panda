@@ -14,8 +14,8 @@ fn whoami() -> Result<Principal, ()> {
 }
 
 #[ic_cdk::query]
-fn state() -> Result<store::State, ()> {
-    Ok(store::state::with(|r| r.clone()))
+fn state() -> Result<types::State, ()> {
+    Ok(store::state::with(|r| r.to_info()))
 }
 
 #[ic_cdk::query]
@@ -54,6 +54,12 @@ async fn name_lookup(name: String) -> Result<Option<types::NameOutput>, ()> {
             annual_fee: Nat::from(n.3 as u64 * TOKEN_1),
         }),
     )
+}
+
+#[ic_cdk::query]
+async fn airdrops108_of(owner: Option<Principal>) -> Result<types::Airdrops108Output, ()> {
+    let owner = owner.unwrap_or(ic_cdk::caller());
+    Ok(store::state::with(|r| r.airdrops(owner)))
 }
 
 #[ic_cdk::query]

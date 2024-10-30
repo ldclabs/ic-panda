@@ -2139,21 +2139,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-ledger-types"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a144b5b4c9e4b164b338440cfbdcf9f30ff45e3d48a3be62d2424996dc93d6f"
-dependencies = [
- "candid",
- "crc32fast",
- "hex",
- "ic-cdk 0.16.0",
- "serde",
- "serde_bytes",
- "sha2 0.10.8",
-]
-
-[[package]]
 name = "ic-management-canister-types"
 version = "0.9.0"
 source = "git+https://github.com/dfinity/ic/?rev=d19fa446ab35780b2c6d8b82ea32d808cca558d5#d19fa446ab35780b2c6d8b82ea32d808cca558d5"
@@ -2450,7 +2435,6 @@ dependencies = [
  "hex",
  "ic-cdk 0.16.0",
  "ic-cdk-timers",
- "ic-ledger-types",
  "ic-stable-structures",
  "icrc-ledger-types 0.1.6",
  "lib_panda",
@@ -3182,7 +3166,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.82",

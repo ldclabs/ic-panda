@@ -26,7 +26,6 @@ ic-cdk = { workspace = true }
 ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
-ic-ledger-types = "0.13"
 once_cell = "1.19"
 scopeguard = "1.2"
 finl_unicode = "1.2"

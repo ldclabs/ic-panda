@@ -1,4 +1,5 @@
 use candid::Nat;
+use icrc_ledger_types::icrc1::account::Account;
 use lib_panda::{mac_256, ChallengeState, Cryptogram, Ed25519Message, VerifyingKey};
 use serde_bytes::ByteBuf;
 
@@ -220,7 +221,16 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
             }
 
             let state = store::airdrop::withdraw(caller, amount)?;
-            if let Err(err) = token_transfer_to(caller, args.amount, "WITHDRAW".to_string()).await {
+            if let Err(err) = token_transfer_to(
+                Account {
+                    owner: caller,
+                    subaccount: None,
+                },
+                args.amount,
+                "WITHDRAW".to_string(),
+            )
+            .await
+            {
                 let _ = store::airdrop::deposit(caller, amount);
                 return Err(format!("failed to transfer tokens, {}", err));
             }
@@ -236,6 +246,8 @@ async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropState
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput, String> {
+    Err("The lucky draw has been suspend. See: https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/108".to_string())?;
+
     let icp01 = if args.icp == 0 {
         args.amount.map_or(0, |v| nat_to_u64(&v) * 10 / TOKEN_1)
     } else {
@@ -519,9 +531,16 @@ async fn unregister_name(args: types::NameInput) -> Result<Nat, String> {
     let n = (du / y + if r > 3600 * 24 * 7 { 1 } else { 0 }) as u32;
     let refund = name_state.2.saturating_sub(n * name_state.3) as u64 * TOKEN_1;
     if refund > 0 {
-        let _ = token_transfer_to(caller, Nat::from(refund), "NAME:UNREG".to_string())
-            .await
-            .map_err(|err| format!("failed to refund, {}", err))?;
+        let _ = token_transfer_to(
+            Account {
+                owner: caller,
+                subaccount: None,
+            },
+            Nat::from(refund),
+            "NAME:UNREG".to_string(),
+        )
+        .await
+        .map_err(|err| format!("failed to refund, {}", err))?;
     }
 
     Ok(Nat::from(refund))

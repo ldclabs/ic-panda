@@ -4,10 +4,11 @@ use clap::{Parser, Subcommand};
 use ic_agent::identity::AnonymousIdentity;
 use ic_icrc1::Operation;
 use icrc_ledger_types::icrc1::account::Account;
-use num_traits::{cast::ToPrimitive, Saturating};
+use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
 use sha2::Digest;
+use std::fmt::Write;
 use std::{
     collections::BTreeMap,
     time::{SystemTime, UNIX_EPOCH},
@@ -47,6 +48,15 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    Blob {
+        /// file path to read
+        #[arg(long)]
+        path: String,
+
+        /// file path to write
+        #[arg(long)]
+        output: Option<String>,
+    },
     Neurons {},
     Ledger {
         /// blocks store directory
@@ -60,6 +70,7 @@ pub enum Commands {
     },
 }
 
+// cargo run -p cli_airdrop -- blob --path ./debug/ledger_airdrops_1730272519.cbor.7c054a384a1db11259b9451b172b8c8eedc01144e448d802c686f9bbd1f47381
 // cargo run -p cli_airdrop -- neurons
 // cargo run -p cli_airdrop -- sync --store ./debug/panda_blocks
 // cargo run -p cli_airdrop -- ledger --store ./debug/panda_blocks
@@ -73,6 +84,27 @@ async fn main() -> Result<(), String> {
     let snapshot = SNAPSHOT_TIME.min(now);
 
     match &cli.command {
+        Some(Commands::Blob { path, output }) => match std::fs::read(path) {
+            Ok(data) => {
+                let s = data.iter().fold(String::new(), |mut output, b| {
+                    let _ = write!(output, "\\{b:02x}");
+                    output
+                });
+                // candid blob:
+                let s = format!("blob \"{}\"", s);
+                match output {
+                    Some(output) => {
+                        std::fs::write(output, s.as_bytes()).map_err(format_error)?;
+                    }
+                    None => {
+                        println!("{}", s);
+                    }
+                }
+            }
+            Err(err) => {
+                return Err(format!("{:?}", err));
+            }
+        },
         Some(Commands::Neurons {}) => {
             let cli = NeuronAgent {
                 agent,
@@ -112,7 +144,7 @@ async fn main() -> Result<(), String> {
                             total_e8s += amount;
                             airdrops
                                 .entry(principal)
-                                .or_insert_with(|| vec![])
+                                .or_default()
                                 .push(Airdrop(amount, None, Some(neuron_id)));
                         }
                     }
@@ -223,8 +255,8 @@ async fn main() -> Result<(), String> {
                     ));
                     total_e8s += *amount;
                     airdrops
-                        .entry(account.owner.clone())
-                        .or_insert_with(|| vec![])
+                        .entry(account.owner)
+                        .or_default()
                         .push(Airdrop(
                             *amount,
                             account.subaccount.map(ByteArray::from),

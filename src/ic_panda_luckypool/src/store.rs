@@ -5,10 +5,11 @@ use ic_stable_structures::{
     storable::Bound,
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, StableMinHeap, Storable,
 };
+use icrc_ledger_types::icrc1::account::Account;
 use lib_panda::{mac_256, Cryptogram};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
+use serde_bytes::{ByteArray, ByteBuf};
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -21,7 +22,7 @@ use crate::{types, SECOND, TOKEN_1, TOKEN_SMALL_UNIT};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-#[derive(CandidType, Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 pub struct State {
     pub airdrop_balance: u64,
     pub total_airdrop: u64,
@@ -39,7 +40,102 @@ pub struct State {
     pub airdrop_amount: Option<u64>,
     pub prize_subsidy: Option<SysPrizeSubsidy>,
     pub lucky_code: Option<u32>,
+    pub airdrops108: Option<Airdrops108>,
 }
+
+impl State {
+    pub fn to_info(&self) -> types::State {
+        types::State {
+            airdrop_balance: self.airdrop_balance,
+            total_airdrop: self.total_airdrop,
+            total_airdrop_count: self.total_airdrop_count,
+            total_luckydraw: self.total_luckydraw,
+            total_luckydraw_icp: self.total_luckydraw_icp,
+            total_luckydraw_count: self.total_luckydraw_count,
+            total_prize: self.total_prize,
+            total_prize_count: self.total_prize_count,
+            total_prizes_count: self.total_prizes_count,
+            latest_airdrop_logs: self.latest_airdrop_logs.clone(),
+            luckiest_luckydraw_logs: self.luckiest_luckydraw_logs.clone(),
+            latest_luckydraw_logs: self.latest_luckydraw_logs.clone(),
+            managers: self.managers.clone(),
+            airdrop_amount: self.airdrop_amount,
+            prize_subsidy: self
+                .prize_subsidy
+                .as_ref()
+                .map(|x| types::SysPrizeSubsidy(x.0, x.1, x.2, x.3, x.4, x.5)),
+            lucky_code: self.lucky_code,
+        }
+    }
+
+    pub fn airdrops(&self, user: Principal) -> types::Airdrops108Output {
+        self.airdrops108
+            .as_ref()
+            .map(|x| {
+                let mut airdrops: Vec<types::Airdrop> = Vec::new();
+                let mut ledger_airdropped = false;
+                let mut neurons_airdropped = false;
+                if let Some(list) = x.neurons.get(&user) {
+                    ledger_airdropped = !list.is_empty() && !x.ledger_todo_list.contains(&user);
+                    list.iter()
+                        .map(|a| types::Airdrop {
+                            weight: a.0,
+                            subaccount: a.1.as_ref().map(|x| hex::encode(x.as_slice())),
+                            neuron_id: a.2.as_ref().map(|x| hex::encode(x.as_slice())),
+                        })
+                        .for_each(|x| airdrops.push(x))
+                };
+                if let Some(list) = x.ledger.get(&user) {
+                    neurons_airdropped = !list.is_empty() && !x.neurons_todo_list.contains(&user);
+                    list.iter()
+                        .map(|a| types::Airdrop {
+                            weight: a.0,
+                            subaccount: a.1.as_ref().map(|x| hex::encode(x.as_slice())),
+                            neuron_id: a.2.as_ref().map(|x| hex::encode(x.as_slice())),
+                        })
+                        .for_each(|x| airdrops.push(x))
+                };
+                types::Airdrops108Output {
+                    airdrops,
+                    ledger_airdropped,
+                    neurons_airdropped,
+                    ledger_hash: hex::encode(x.ledger_hash.as_slice()),
+                    ledger_updated_at: x.ledger_updated_at,
+                    ledger_weight_total: x.ledger_weight_total,
+                    neurons_hash: hex::encode(x.neurons_hash.as_slice()),
+                    neurons_updated_at: x.neurons_updated_at,
+                    neurons_weight_total: x.neurons_weight_total,
+                    tokens_distributed: x.tokens_distributed,
+                    tokens_per_weight: x.tokens_per_weight,
+                    status: x.status,
+                    error: x.error.clone(),
+                }
+            })
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Clone, Default, Deserialize, Serialize)]
+pub struct Airdrops108 {
+    pub ledger: BTreeMap<Principal, Vec<Airdrop>>,
+    pub ledger_todo_list: BTreeSet<Principal>,
+    pub ledger_hash: ByteArray<32>,
+    pub ledger_updated_at: u64,
+    pub ledger_weight_total: u64,
+    pub neurons: BTreeMap<Principal, Vec<Airdrop>>,
+    pub neurons_todo_list: BTreeSet<Principal>,
+    pub neurons_hash: ByteArray<32>,
+    pub neurons_updated_at: u64,
+    pub neurons_weight_total: u64,
+    pub tokens_distributed: u64,
+    pub tokens_per_weight: f64,
+    pub status: i8, // -1: error, 0: wait, 1: started, 2: finished
+    pub error: Option<String>,
+}
+
+// owner -> (amount_e8s, opt subaccount, opt neuronid)
+#[derive(Clone, Deserialize, Serialize)]
+pub struct Airdrop(pub u64, pub Option<ByteArray<32>>, pub Option<ByteBuf>);
 
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
@@ -1233,6 +1329,8 @@ pub mod naming {
 
 pub mod state {
     use super::*;
+    use crate::{token_balance_of, token_transfer_to, TOKEN_CANISTER};
+    use std::time::Duration;
 
     pub fn is_manager(caller: &Principal) -> bool {
         STATE_HEAP.with(|r| {
@@ -1290,6 +1388,109 @@ pub mod state {
                     .expect("failed to set STATE data");
             });
         });
+    }
+
+    pub async fn start_airdrops108() {
+        match process_airdrops108().await {
+            Ok(true) => {
+                ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
+                    ic_cdk::spawn(start_airdrops108())
+                });
+            }
+            Ok(false) => {
+                with_mut(|s| {
+                    if let Some(a) = s.airdrops108.as_mut() {
+                        a.status = 2;
+                    }
+                });
+            }
+            Err(err) => {
+                with_mut(|s| {
+                    if let Some(a) = s.airdrops108.as_mut() {
+                        a.error = Some(err);
+                        a.status = -1;
+                    };
+                });
+            }
+        };
+    }
+
+    pub async fn process_airdrops108() -> Result<bool, String> {
+        let mut is_ledger = false;
+        let res = with(|s| {
+            s.airdrops108.as_ref().map(|a| {
+                if let Some(user) = a.ledger_todo_list.first() {
+                    is_ledger = true;
+                    let weight_total = a
+                        .ledger
+                        .get(user)
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .map(|v| v.0)
+                        .sum::<u64>();
+                    return if weight_total > 0 {
+                        Some((*user, a.tokens_per_weight, weight_total))
+                    } else {
+                        None
+                    };
+                }
+                if let Some(user) = a.neurons_todo_list.first() {
+                    let weight_total = a
+                        .neurons
+                        .get(user)
+                        .unwrap_or(&vec![])
+                        .iter()
+                        .map(|v| v.0)
+                        .sum::<u64>();
+                    return if weight_total > 0 {
+                        Some((*user, a.tokens_per_weight, weight_total))
+                    } else {
+                        None
+                    };
+                }
+                None::<(Principal, f64, u64)>
+            })
+        })
+        .flatten();
+
+        if let Some((user, tokens_per_weight, weight_total)) = res {
+            let check_balance = if is_ledger {
+                token_balance_of(TOKEN_CANISTER, user).await?
+            } else {
+                Nat::from(weight_total)
+            };
+            // https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/184
+            // if the user don't have enough balance, we will skip the airdrop.
+            let airdropped = if check_balance >= weight_total {
+                let amount = (weight_total as f64 * tokens_per_weight).round() as u64;
+                token_transfer_to(
+                    Account {
+                        owner: user,
+                        subaccount: None,
+                    },
+                    amount.into(),
+                    "AIRDROP108".to_string(),
+                )
+                .await?;
+                amount
+            } else {
+                0
+            };
+
+            with_mut(|s| {
+                if let Some(a) = s.airdrops108.as_mut() {
+                    if is_ledger {
+                        a.ledger_todo_list.remove(&user);
+                    } else {
+                        a.neurons_todo_list.remove(&user);
+                    }
+                    a.tokens_distributed += airdropped;
+                };
+            });
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 }
 

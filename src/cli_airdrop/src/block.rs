@@ -232,11 +232,7 @@ impl<'a> Iterator for BlocksIter<'a> {
             }
         }
 
-        if let Some(block) = self.blocks.remove(&index) {
-            Some((index, block))
-        } else {
-            None
-        }
+        self.blocks.remove(&index).map(|block| (index, block))
     }
 }
 

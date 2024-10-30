@@ -1,11 +1,15 @@
 use base64::{engine::general_purpose, Engine};
 use candid::{Nat, Principal};
-use lib_panda::{bytes32_from_base64, Cryptogram};
-use std::collections::BTreeSet;
+use ciborium::from_reader;
+use icrc_ledger_types::icrc1::account::Account;
+use lib_panda::{bytes32_from_base64, sha256, Cryptogram};
+use serde_bytes::ByteBuf;
+use std::collections::{BTreeMap, BTreeSet};
+use std::time::Duration;
 
 use crate::{
-    icp_transfer_to, is_authenticated, is_controller, store, token_balance_of, types, ANONYMOUS,
-    DAO_CANISTER, ICP_1, ICP_CANISTER, SECOND, TOKEN_1, TRANS_FEE,
+    icp_transfer_to, is_authenticated, is_controller, store, token_transfer_to, types,
+    AIRDROP108_TIME_NS, AIRDROP108_TOKENS, ANONYMOUS, DAO_CANISTER, ICP_1, SECOND, TOKEN_1,
 };
 
 #[ic_cdk::update(guard = "is_controller")]
@@ -17,25 +21,46 @@ async fn admin_collect_icp(amount: Nat) -> Result<(), String> {
 }
 
 #[ic_cdk::update]
-async fn validate_admin_collect_icp(amount: Nat) -> Result<(), String> {
+fn validate_admin_collect_icp(amount: Nat) -> Result<(), String> {
     if amount < ICP_1 {
         return Err("amount must be at least 1 ICP".to_string());
-    }
-
-    let balance = token_balance_of(ICP_CANISTER, ic_cdk::id())
-        .await
-        .unwrap_or(Nat::from(0u64));
-
-    if amount + TRANS_FEE > balance {
-        return Err(format!("insufficient ICP balance: {}", balance));
     }
 
     Ok(())
 }
 
 #[ic_cdk::update]
-async fn validate2_admin_collect_icp(amount: Nat) -> Result<String, String> {
-    validate_admin_collect_icp(amount).await?;
+fn validate2_admin_collect_icp(amount: Nat) -> Result<String, String> {
+    validate_admin_collect_icp(amount)?;
+    Ok("ok".to_string())
+}
+
+#[ic_cdk::update(guard = "is_controller")]
+async fn admin_collect_tokens(amount: Nat) -> Result<(), String> {
+    // https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/account/dwv6s-6aaaa-aaaaq-aacta-cai-3ajyuja.f6cc24dd368235dbdf2b3c792e399ac10f00a0003373de6d0960ae55ca873ebb
+    token_transfer_to(
+        Account {
+            owner: DAO_CANISTER,
+            subaccount: Some(
+                hex::decode("f6cc24dd368235dbdf2b3c792e399ac10f00a0003373de6d0960ae55ca873ebb")
+                    .unwrap()
+                    .try_into()
+                    .unwrap(),
+            ),
+        },
+        amount,
+        "COLLECT".to_string(),
+    )
+    .await
+    .map_err(|err| format!("failed to collect PANDA, {}", err))?;
+    Ok(())
+}
+
+#[ic_cdk::update]
+async fn validate_admin_collect_tokens(amount: Nat) -> Result<String, String> {
+    if amount < TOKEN_1 {
+        return Err("amount must be at least 1 PANDA".to_string());
+    }
     Ok("ok".to_string())
 }
 
@@ -207,4 +232,94 @@ fn manager_set_challenge_pub_key(key: String) -> Result<(), String> {
     let key = bytes32_from_base64(&key)?;
     store::keys::set_challenge_pub_key(key);
     Ok(())
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_update_airdrops108_ledger_list(data: ByteBuf) -> Result<u64, String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    let now = ic_cdk::api::time();
+    if now + 3600 * SECOND > AIRDROP108_TIME_NS {
+        return Err("can not update airdrop list".to_string());
+    }
+
+    let airdrops: BTreeMap<Principal, Vec<store::Airdrop>> =
+        from_reader(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
+    let hash = sha256(&data);
+    let principals = airdrops.keys().cloned().collect::<BTreeSet<_>>();
+    let weight_total = airdrops.values().flatten().map(|a| a.0).sum::<u64>();
+    let count = principals.len() as u64;
+    store::state::with_mut(|r| {
+        let airdrops108 = r.airdrops108.get_or_insert(Default::default());
+        if airdrops108.status != 0 {
+            return Err("can not update airdrop list".to_string());
+        }
+        airdrops108.ledger = airdrops;
+        airdrops108.ledger_todo_list = principals;
+        airdrops108.ledger_hash = hash.into();
+        airdrops108.ledger_updated_at = now / 1_000_000;
+        airdrops108.ledger_weight_total = weight_total;
+        airdrops108.tokens_per_weight =
+            AIRDROP108_TOKENS as f64 / (weight_total + airdrops108.neurons_weight_total) as f64;
+        Ok(())
+    })?;
+
+    Ok(count)
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_update_airdrops108_neurons_list(data: ByteBuf) -> Result<u64, String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+    let now = ic_cdk::api::time();
+    if now + 3600 * SECOND > AIRDROP108_TIME_NS {
+        return Err("can not update airdrop list".to_string());
+    }
+
+    let airdrops: BTreeMap<Principal, Vec<store::Airdrop>> =
+        from_reader(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
+    let hash = sha256(&data);
+    let principals = airdrops.keys().cloned().collect::<BTreeSet<_>>();
+    let weight_total = airdrops.values().flatten().map(|a| a.0).sum::<u64>();
+    let count = principals.len() as u64;
+    store::state::with_mut(|r| {
+        let airdrops108 = r.airdrops108.get_or_insert(Default::default());
+        if airdrops108.status != 0 {
+            return Err("can not update airdrop list".to_string());
+        }
+        airdrops108.neurons = airdrops;
+        airdrops108.neurons_todo_list = principals;
+        airdrops108.neurons_hash = hash.into();
+        airdrops108.neurons_updated_at = now / 1_000_000;
+        airdrops108.neurons_weight_total = weight_total;
+        airdrops108.tokens_per_weight =
+            AIRDROP108_TOKENS as f64 / (weight_total + airdrops108.ledger_weight_total) as f64;
+        Ok(())
+    })?;
+
+    Ok(count)
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn manager_start_airdrops108() -> Result<bool, String> {
+    if !store::state::is_manager(&ic_cdk::caller()) {
+        return Err("user is not a manager".to_string());
+    }
+
+    let res = store::state::with_mut(|r| {
+        if let Some(ref mut airdrops108) = r.airdrops108 {
+            if !airdrops108.status < 1 {
+                airdrops108.status = 1;
+                let delay = AIRDROP108_TIME_NS.saturating_sub(ic_cdk::api::time());
+                ic_cdk_timers::set_timer(Duration::from_nanos(delay), || {
+                    ic_cdk::spawn(store::state::start_airdrops108())
+                });
+                return true;
+            }
+        }
+        false
+    });
+    Ok(res)
 }

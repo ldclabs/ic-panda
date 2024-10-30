@@ -218,7 +218,7 @@ pub mod profile {
             let mut m = r.borrow_mut();
             match m.get(&user) {
                 None => Err("profile not found".to_string()),
-                Some(mut p) => f(&mut p).inspect(|r| {
+                Some(mut p) => f(&mut p).inspect(|_r| {
                     m.insert(user, p);
                 }),
             }

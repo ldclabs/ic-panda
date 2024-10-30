@@ -25,11 +25,15 @@ const TRANS_FEE: u64 = 10_000; // 0.0001 ICP
 const TOKEN_1: u64 = 100_000_000;
 const TOKEN_SMALL_UNIT: u64 = 10_000; // 0.0001 token
 const MAX_PRIZE_CLAIMABLE: u64 = 420_000; // 420_000 tokens * TOKEN_SMALL_UNIT < u32::MAX
-const ICP_1: u64 = ic_ledger_types::Tokens::SUBDIVIDABLE_BY;
+const ICP_1: u64 = 100_000_000;
+
+// https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/108
+const AIRDROP108_TIME_NS: u64 = 1731283200 * SECOND; // '2024-11-11T00:00:00.000Z'
+const AIRDROP108_TOKENS: u64 = 320_000_000 * TOKEN_1;
 
 static ANONYMOUS: Principal = Principal::anonymous();
-static ICP_CANISTER: Principal = ic_ledger_types::MAINNET_LEDGER_CANISTER_ID;
-
+// MAINNET_LEDGER_CANISTER_ID
+static ICP_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 2, 1, 1]);
 // "druyg-tyaaa-aaaaq-aactq-cai" PANDA token canister id
 static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
 // "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
@@ -95,16 +99,13 @@ async fn icp_transfer_from(user: Principal, amount: Nat, memo: String) -> Result
     res.map_err(|err| format!("failed to transfer ICP from user, error: {:?}", err))
 }
 
-async fn token_transfer_to(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {
+async fn token_transfer_to(account: Account, amount: Nat, memo: String) -> Result<Nat, String> {
     let (res,): (Result<Nat, TransferError>,) = ic_cdk::call(
         TOKEN_CANISTER,
         "icrc1_transfer",
         (TransferArg {
             from_subaccount: None,
-            to: Account {
-                owner: user,
-                subaccount: None,
-            },
+            to: account,
             fee: None,
             created_at_time: None,
             memo: Some(Memo(ByteBuf::from(memo.to_bytes()))),
