@@ -15,6 +15,11 @@ export interface AddPrizeInputV2 {
   'quantity' : number,
   'expire' : number,
 }
+export interface Airdrop {
+  'weight' : bigint,
+  'subaccount' : [] | [string],
+  'neuron_id' : [] | [string],
+}
 export interface AirdropClaimInput {
   'recaptcha' : [] | [string],
   'challenge' : string,
@@ -46,6 +51,21 @@ export interface AirdropStateOutput {
   'lucky_code' : [] | [string],
   'claimed' : bigint,
   'claimable' : bigint,
+}
+export interface Airdrops108Output {
+  'status' : number,
+  'ledger_updated_at' : bigint,
+  'airdrops' : Array<Airdrop>,
+  'ledger_weight_total' : bigint,
+  'tokens_per_weight' : number,
+  'error' : [] | [string],
+  'neurons_hash' : string,
+  'neurons_airdropped' : boolean,
+  'ledger_hash' : string,
+  'tokens_distributed' : bigint,
+  'neurons_weight_total' : bigint,
+  'neurons_updated_at' : bigint,
+  'ledger_airdropped' : boolean,
 }
 export interface CaptchaOutput { 'challenge' : string, 'img_base64' : string }
 export interface ClaimPrizeInput {
@@ -114,29 +134,35 @@ export type Result = { 'Ok' : PrizeOutput } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : NameOutput } |
+export type Result_10 = { 'Ok' : bigint } |
   { 'Err' : string };
-export type Result_11 = { 'Ok' : State } |
+export type Result_11 = { 'Ok' : [] | [NameOutput] } |
   { 'Err' : null };
-export type Result_12 = { 'Ok' : bigint } |
+export type Result_12 = { 'Ok' : Principal } |
   { 'Err' : string };
-export type Result_13 = { 'Ok' : Principal } |
+export type Result_13 = { 'Ok' : NameOutput } |
+  { 'Err' : string };
+export type Result_14 = { 'Ok' : State } |
+  { 'Err' : null };
+export type Result_15 = { 'Ok' : bigint } |
+  { 'Err' : string };
+export type Result_16 = { 'Ok' : Principal } |
   { 'Err' : null };
 export type Result_2 = { 'Ok' : AirdropStateOutput } |
   { 'Err' : string };
 export type Result_3 = { 'Ok' : AirdropStateOutput } |
   { 'Err' : null };
-export type Result_4 = { 'Ok' : CaptchaOutput } |
-  { 'Err' : string };
-export type Result_5 = { 'Ok' : ClaimPrizeOutput } |
-  { 'Err' : string };
-export type Result_6 = { 'Ok' : LuckyDrawOutput } |
-  { 'Err' : string };
-export type Result_7 = { 'Ok' : string } |
-  { 'Err' : string };
-export type Result_8 = { 'Ok' : [] | [NameOutput] } |
+export type Result_4 = { 'Ok' : Airdrops108Output } |
   { 'Err' : null };
-export type Result_9 = { 'Ok' : Principal } |
+export type Result_5 = { 'Ok' : CaptchaOutput } |
+  { 'Err' : string };
+export type Result_6 = { 'Ok' : ClaimPrizeOutput } |
+  { 'Err' : string };
+export type Result_7 = { 'Ok' : LuckyDrawOutput } |
+  { 'Err' : string };
+export type Result_8 = { 'Ok' : string } |
+  { 'Err' : string };
+export type Result_9 = { 'Ok' : boolean } |
   { 'Err' : string };
 export interface State {
   'latest_luckydraw_logs' : Array<LuckyDrawLog>,
@@ -159,6 +185,7 @@ export interface State {
 export interface _SERVICE {
   'add_prize' : ActorMethod<[AddPrizeInputV2], Result>,
   'admin_collect_icp' : ActorMethod<[bigint], Result_1>,
+  'admin_collect_tokens' : ActorMethod<[bigint], Result_1>,
   'admin_set_managers' : ActorMethod<[Array<Principal>], Result_1>,
   'airdrop' : ActorMethod<[AirdropClaimInput], Result_2>,
   'airdrop_codes_of' : ActorMethod<[Principal], Array<AirdropCodeOutput>>,
@@ -167,27 +194,37 @@ export interface _SERVICE {
     Array<AirdropLog>
   >,
   'airdrop_state_of' : ActorMethod<[[] | [Principal]], Result_3>,
+  'airdrops108_of' : ActorMethod<[[] | [Principal]], Result_4>,
   'api_version' : ActorMethod<[], number>,
-  'captcha' : ActorMethod<[], Result_4>,
-  'claim_prize' : ActorMethod<[ClaimPrizeInput], Result_5>,
+  'captcha' : ActorMethod<[], Result_5>,
+  'claim_prize' : ActorMethod<[ClaimPrizeInput], Result_6>,
   'harvest' : ActorMethod<[AirdropHarvestInput], Result_2>,
-  'luckydraw' : ActorMethod<[LuckyDrawInput], Result_6>,
+  'luckydraw' : ActorMethod<[LuckyDrawInput], Result_7>,
   'luckydraw_logs' : ActorMethod<
     [[] | [bigint], [] | [bigint]],
     Array<LuckyDrawLog>
   >,
   'manager_add_notification' : ActorMethod<[Notification], Result_1>,
-  'manager_add_prize' : ActorMethod<[AddPrizeInput], Result_7>,
-  'manager_add_prize_v2' : ActorMethod<[AddPrizeInputV2], Result_7>,
+  'manager_add_prize' : ActorMethod<[AddPrizeInput], Result_8>,
+  'manager_add_prize_v2' : ActorMethod<[AddPrizeInputV2], Result_8>,
   'manager_ban_users' : ActorMethod<[Array<Principal>], Result_1>,
-  'manager_get_airdrop_key' : ActorMethod<[], Result_7>,
+  'manager_get_airdrop_key' : ActorMethod<[], Result_8>,
   'manager_remove_notifications' : ActorMethod<
     [Uint8Array | number[]],
     Result_1
   >,
   'manager_set_challenge_pub_key' : ActorMethod<[string], Result_1>,
+  'manager_start_airdrops108' : ActorMethod<[], Result_9>,
   'manager_update_airdrop_amount' : ActorMethod<[bigint], Result_1>,
   'manager_update_airdrop_balance' : ActorMethod<[bigint], Result_1>,
+  'manager_update_airdrops108_ledger_list' : ActorMethod<
+    [Uint8Array | number[]],
+    Result_10
+  >,
+  'manager_update_airdrops108_neurons_list' : ActorMethod<
+    [Uint8Array | number[]],
+    Result_10
+  >,
   'manager_update_prize_subsidy' : ActorMethod<
     [[] | [[bigint, number, number, number, number, number]]],
     Result_1
@@ -196,10 +233,10 @@ export interface _SERVICE {
     [[] | [bigint], [] | [bigint]],
     Array<LuckyDrawLog>
   >,
-  'name_lookup' : ActorMethod<[string], Result_8>,
-  'name_of' : ActorMethod<[[] | [Principal]], Result_8>,
+  'name_lookup' : ActorMethod<[string], Result_11>,
+  'name_of' : ActorMethod<[[] | [Principal]], Result_11>,
   'notifications' : ActorMethod<[], Array<Notification>>,
-  'principal_by_luckycode' : ActorMethod<[string], Result_9>,
+  'principal_by_luckycode' : ActorMethod<[string], Result_12>,
   'prize' : ActorMethod<[string], Result_2>,
   'prize_claim_logs' : ActorMethod<
     [Principal, [] | [bigint], [] | [bigint]],
@@ -215,15 +252,16 @@ export interface _SERVICE {
     [[] | [Principal]],
     Array<[number, number, number, number, number, number]>
   >,
-  'register_name' : ActorMethod<[NameInput], Result_10>,
-  'state' : ActorMethod<[], Result_11>,
-  'unregister_name' : ActorMethod<[NameInput], Result_12>,
-  'update_name' : ActorMethod<[NameInput], Result_10>,
-  'validate2_admin_collect_icp' : ActorMethod<[bigint], Result_7>,
-  'validate2_admin_set_managers' : ActorMethod<[Array<Principal>], Result_7>,
+  'register_name' : ActorMethod<[NameInput], Result_13>,
+  'state' : ActorMethod<[], Result_14>,
+  'unregister_name' : ActorMethod<[NameInput], Result_15>,
+  'update_name' : ActorMethod<[NameInput], Result_13>,
+  'validate2_admin_collect_icp' : ActorMethod<[bigint], Result_8>,
+  'validate2_admin_set_managers' : ActorMethod<[Array<Principal>], Result_8>,
   'validate_admin_collect_icp' : ActorMethod<[bigint], Result_1>,
+  'validate_admin_collect_tokens' : ActorMethod<[bigint], Result_8>,
   'validate_admin_set_managers' : ActorMethod<[Array<Principal>], Result_1>,
-  'whoami' : ActorMethod<[], Result_13>,
+  'whoami' : ActorMethod<[], Result_16>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

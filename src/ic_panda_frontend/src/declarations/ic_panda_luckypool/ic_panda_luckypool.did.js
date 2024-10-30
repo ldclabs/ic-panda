@@ -56,11 +56,32 @@ export const idlFactory = ({ IDL }) => {
     'amount' : IDL.Nat,
   });
   const Result_3 = IDL.Variant({ 'Ok' : AirdropStateOutput, 'Err' : IDL.Null });
+  const Airdrop = IDL.Record({
+    'weight' : IDL.Nat64,
+    'subaccount' : IDL.Opt(IDL.Text),
+    'neuron_id' : IDL.Opt(IDL.Text),
+  });
+  const Airdrops108Output = IDL.Record({
+    'status' : IDL.Int8,
+    'ledger_updated_at' : IDL.Nat64,
+    'airdrops' : IDL.Vec(Airdrop),
+    'ledger_weight_total' : IDL.Nat64,
+    'tokens_per_weight' : IDL.Float64,
+    'error' : IDL.Opt(IDL.Text),
+    'neurons_hash' : IDL.Text,
+    'neurons_airdropped' : IDL.Bool,
+    'ledger_hash' : IDL.Text,
+    'tokens_distributed' : IDL.Nat64,
+    'neurons_weight_total' : IDL.Nat64,
+    'neurons_updated_at' : IDL.Nat64,
+    'ledger_airdropped' : IDL.Bool,
+  });
+  const Result_4 = IDL.Variant({ 'Ok' : Airdrops108Output, 'Err' : IDL.Null });
   const CaptchaOutput = IDL.Record({
     'challenge' : IDL.Text,
     'img_base64' : IDL.Text,
   });
-  const Result_4 = IDL.Variant({ 'Ok' : CaptchaOutput, 'Err' : IDL.Text });
+  const Result_5 = IDL.Variant({ 'Ok' : CaptchaOutput, 'Err' : IDL.Text });
   const ClaimPrizeInput = IDL.Record({
     'challenge' : IDL.Vec(IDL.Nat8),
     'code' : IDL.Text,
@@ -70,7 +91,7 @@ export const idlFactory = ({ IDL }) => {
     'claimed' : IDL.Nat,
     'state' : AirdropStateOutput,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : ClaimPrizeOutput, 'Err' : IDL.Text });
+  const Result_6 = IDL.Variant({ 'Ok' : ClaimPrizeOutput, 'Err' : IDL.Text });
   const AirdropHarvestInput = IDL.Record({
     'recaptcha' : IDL.Opt(IDL.Text),
     'amount' : IDL.Nat,
@@ -86,7 +107,7 @@ export const idlFactory = ({ IDL }) => {
     'random' : IDL.Nat64,
     'amount' : IDL.Nat,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : LuckyDrawOutput, 'Err' : IDL.Text });
+  const Result_7 = IDL.Variant({ 'Ok' : LuckyDrawOutput, 'Err' : IDL.Text });
   const LuckyDrawLog = IDL.Record({
     'id' : IDL.Nat,
     'ts' : IDL.Nat64,
@@ -107,7 +128,9 @@ export const idlFactory = ({ IDL }) => {
     'quantity' : IDL.Nat16,
     'expire' : IDL.Nat16,
   });
-  const Result_7 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const Result_9 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : IDL.Text });
+  const Result_10 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   const NameOutput = IDL.Record({
     'code' : IDL.Text,
     'name' : IDL.Text,
@@ -115,11 +138,11 @@ export const idlFactory = ({ IDL }) => {
     'deposit' : IDL.Nat,
     'created_at' : IDL.Nat64,
   });
-  const Result_8 = IDL.Variant({
+  const Result_11 = IDL.Variant({
     'Ok' : IDL.Opt(NameOutput),
     'Err' : IDL.Null,
   });
-  const Result_9 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Text });
+  const Result_12 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Text });
   const PrizeClaimLog = IDL.Record({
     'claimed_at' : IDL.Nat64,
     'prize' : PrizeOutput,
@@ -129,7 +152,7 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'old_name' : IDL.Opt(IDL.Text),
   });
-  const Result_10 = IDL.Variant({ 'Ok' : NameOutput, 'Err' : IDL.Text });
+  const Result_13 = IDL.Variant({ 'Ok' : NameOutput, 'Err' : IDL.Text });
   const State = IDL.Record({
     'latest_luckydraw_logs' : IDL.Vec(LuckyDrawLog),
     'total_luckydraw' : IDL.Nat64,
@@ -150,12 +173,13 @@ export const idlFactory = ({ IDL }) => {
     ),
     'total_luckydraw_icp' : IDL.Nat64,
   });
-  const Result_11 = IDL.Variant({ 'Ok' : State, 'Err' : IDL.Null });
-  const Result_12 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : IDL.Text });
-  const Result_13 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Null });
+  const Result_14 = IDL.Variant({ 'Ok' : State, 'Err' : IDL.Null });
+  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : IDL.Text });
+  const Result_16 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Null });
   return IDL.Service({
     'add_prize' : IDL.Func([AddPrizeInputV2], [Result], []),
     'admin_collect_icp' : IDL.Func([IDL.Nat], [Result_1], []),
+    'admin_collect_tokens' : IDL.Func([IDL.Nat], [Result_1], []),
     'admin_set_managers' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
     'airdrop' : IDL.Func([AirdropClaimInput], [Result_2], []),
     'airdrop_codes_of' : IDL.Func(
@@ -173,29 +197,45 @@ export const idlFactory = ({ IDL }) => {
         [Result_3],
         ['query'],
       ),
+    'airdrops108_of' : IDL.Func(
+        [IDL.Opt(IDL.Principal)],
+        [Result_4],
+        ['query'],
+      ),
     'api_version' : IDL.Func([], [IDL.Nat16], ['query']),
-    'captcha' : IDL.Func([], [Result_4], []),
-    'claim_prize' : IDL.Func([ClaimPrizeInput], [Result_5], []),
+    'captcha' : IDL.Func([], [Result_5], []),
+    'claim_prize' : IDL.Func([ClaimPrizeInput], [Result_6], []),
     'harvest' : IDL.Func([AirdropHarvestInput], [Result_2], []),
-    'luckydraw' : IDL.Func([LuckyDrawInput], [Result_6], []),
+    'luckydraw' : IDL.Func([LuckyDrawInput], [Result_7], []),
     'luckydraw_logs' : IDL.Func(
         [IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
         [IDL.Vec(LuckyDrawLog)],
         ['query'],
       ),
     'manager_add_notification' : IDL.Func([Notification], [Result_1], []),
-    'manager_add_prize' : IDL.Func([AddPrizeInput], [Result_7], []),
-    'manager_add_prize_v2' : IDL.Func([AddPrizeInputV2], [Result_7], []),
+    'manager_add_prize' : IDL.Func([AddPrizeInput], [Result_8], []),
+    'manager_add_prize_v2' : IDL.Func([AddPrizeInputV2], [Result_8], []),
     'manager_ban_users' : IDL.Func([IDL.Vec(IDL.Principal)], [Result_1], []),
-    'manager_get_airdrop_key' : IDL.Func([], [Result_7], ['query']),
+    'manager_get_airdrop_key' : IDL.Func([], [Result_8], ['query']),
     'manager_remove_notifications' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [Result_1],
         [],
       ),
     'manager_set_challenge_pub_key' : IDL.Func([IDL.Text], [Result_1], []),
+    'manager_start_airdrops108' : IDL.Func([], [Result_9], []),
     'manager_update_airdrop_amount' : IDL.Func([IDL.Nat64], [Result_1], []),
     'manager_update_airdrop_balance' : IDL.Func([IDL.Nat64], [Result_1], []),
+    'manager_update_airdrops108_ledger_list' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_10],
+        [],
+      ),
+    'manager_update_airdrops108_neurons_list' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_10],
+        [],
+      ),
     'manager_update_prize_subsidy' : IDL.Func(
         [
           IDL.Opt(
@@ -217,10 +257,10 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(LuckyDrawLog)],
         ['query'],
       ),
-    'name_lookup' : IDL.Func([IDL.Text], [Result_8], ['query']),
-    'name_of' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_8], ['query']),
+    'name_lookup' : IDL.Func([IDL.Text], [Result_11], ['query']),
+    'name_of' : IDL.Func([IDL.Opt(IDL.Principal)], [Result_11], ['query']),
     'notifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
-    'principal_by_luckycode' : IDL.Func([IDL.Text], [Result_9], ['query']),
+    'principal_by_luckycode' : IDL.Func([IDL.Text], [Result_12], ['query']),
     'prize' : IDL.Func([IDL.Text], [Result_2], []),
     'prize_claim_logs' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
@@ -254,23 +294,24 @@ export const idlFactory = ({ IDL }) => {
         ],
         ['query'],
       ),
-    'register_name' : IDL.Func([NameInput], [Result_10], []),
-    'state' : IDL.Func([], [Result_11], ['query']),
-    'unregister_name' : IDL.Func([NameInput], [Result_12], []),
-    'update_name' : IDL.Func([NameInput], [Result_10], []),
-    'validate2_admin_collect_icp' : IDL.Func([IDL.Nat], [Result_7], []),
+    'register_name' : IDL.Func([NameInput], [Result_13], []),
+    'state' : IDL.Func([], [Result_14], ['query']),
+    'unregister_name' : IDL.Func([NameInput], [Result_15], []),
+    'update_name' : IDL.Func([NameInput], [Result_13], []),
+    'validate2_admin_collect_icp' : IDL.Func([IDL.Nat], [Result_8], []),
     'validate2_admin_set_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
-        [Result_7],
+        [Result_8],
         [],
       ),
     'validate_admin_collect_icp' : IDL.Func([IDL.Nat], [Result_1], []),
+    'validate_admin_collect_tokens' : IDL.Func([IDL.Nat], [Result_8], []),
     'validate_admin_set_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
         [Result_1],
         [],
       ),
-    'whoami' : IDL.Func([], [Result_13], ['query']),
+    'whoami' : IDL.Func([], [Result_16], ['query']),
   });
 };
 export const init = ({ IDL }) => { return []; };

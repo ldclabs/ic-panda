@@ -13,7 +13,7 @@
   import { authStore } from '$lib/stores/auth'
   import type { SendTokenArgs } from '$lib/types/token'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
-  import { shortId } from '$lib/utils/auth'
+  import { shortId } from '$lib/utils/helper'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import {

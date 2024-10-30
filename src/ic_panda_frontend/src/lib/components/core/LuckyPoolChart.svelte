@@ -2,7 +2,7 @@
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { shortId } from '$lib/utils/auth'
+  import { shortId } from '$lib/utils/helper'
   import { formatNumber, ICPToken, PANDAToken } from '$lib/utils/token'
   import { isActive } from '$lib/utils/window'
   import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'

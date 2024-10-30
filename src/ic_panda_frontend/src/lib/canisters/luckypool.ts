@@ -1,37 +1,43 @@
 import {
   idlFactory,
+  type AddPrizeInputV2,
   type AirdropClaimInput,
   type AirdropHarvestInput,
   type AirdropStateOutput,
+  type Airdrops108Output,
   type CaptchaOutput,
   type ClaimPrizeInput,
+  type ClaimPrizeOutput,
   type LuckyDrawInput,
   type LuckyDrawLog,
+  type LuckyDrawOutput,
+  type NameOutput,
   type Notification,
-  type AddPrizeInputV2 as _AddPrizeInput,
-  type ClaimPrizeOutput as _ClaimPrizeOutput,
-  type LuckyDrawOutput as _LuckyDrawOutput,
-  type NameOutput as _NameOutput,
-  type PrizeClaimLog as _PrizeClaimLog,
-  type PrizeOutput as _PrizeOutput,
-  type _SERVICE,
-  type State as _State
+  type PrizeClaimLog,
+  type PrizeOutput,
+  type State,
+  type _SERVICE
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
 import { agent } from '$lib/stores/auth'
 import { unwrapOptionResult, unwrapResult } from '$lib/types/result'
+import type { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 
-export type State = _State
 export type AirdropState = AirdropStateOutput
 export type Captcha = CaptchaOutput
-export type LuckyDrawOutput = _LuckyDrawOutput
-export type NameOutput = _NameOutput
-export type AddPrizeInput = _AddPrizeInput
-export type PrizeOutput = _PrizeOutput
-export type PrizeClaimLog = _PrizeClaimLog
-export type ClaimPrizeOutput = _ClaimPrizeOutput
+
+export {
+  type AddPrizeInputV2,
+  type Airdrops108Output,
+  type ClaimPrizeOutput,
+  type LuckyDrawOutput,
+  type NameOutput,
+  type PrizeClaimLog,
+  type PrizeOutput,
+  type State
+} from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 
 export class LuckyPoolAPI {
   private actor: _SERVICE
@@ -91,12 +97,17 @@ export class LuckyPoolAPI {
     return unwrapResult(res, 'call airdrop failed')
   }
 
+  async airdrops108Of(user: Principal): Promise<Airdrops108Output | null> {
+    const res = await this.actor.airdrops108_of([user])
+    return unwrapResult(res, 'call airdrops108_of failed')
+  }
+
   async claimPrize(input: ClaimPrizeInput): Promise<ClaimPrizeOutput> {
     const res = await this.actor.claim_prize(input)
     return unwrapResult(res, 'call claim_prize failed')
   }
 
-  async createPrize(input: AddPrizeInput): Promise<PrizeOutput> {
+  async createPrize(input: AddPrizeInputV2): Promise<PrizeOutput> {
     const res = await this.actor.add_prize(input)
     return unwrapResult(res, 'call add_prize failed')
   }

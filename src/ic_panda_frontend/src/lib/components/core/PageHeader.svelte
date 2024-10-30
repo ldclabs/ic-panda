@@ -51,6 +51,12 @@
     >
       E2EE Messages
     </TabAnchor>
+    <TabAnchor
+      href="/_/airdrop"
+      selected={$page.url?.pathname.startsWith('/_/airdrop')}
+    >
+      Airdrop 108
+    </TabAnchor>
     <!-- <TabAnchor
       href="/wallet"
       selected={$page.url?.pathname.startsWith('/wallet')}

@@ -193,3 +193,16 @@ body {
     transform: translateX(-17px);
   }
 }
+
+@supports not (text-wrap: pretty) {
+  .text-pretty {
+    text-wrap: wrap;
+  }
+}
+
+@supports not (text-wrap: wrap) {
+  .text-pretty {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}
