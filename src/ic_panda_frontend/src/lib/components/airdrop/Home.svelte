@@ -27,7 +27,7 @@
   function getStatus(status: number) {
     switch (status) {
       case 0:
-        return 'Not Started'
+        return `Will start at ${new Date(1731283200000).toLocaleString()}`
       case 1:
         return 'Started'
       case 2:
@@ -46,6 +46,15 @@
         validating = false
       }
     }
+  }
+
+  function estimateAirdrop(airdropOutput: Airdrops108Output) {
+    return Math.round(
+      Number(
+        airdropOutput.airdrops.reduce((prev, cur) => prev + cur.weight, 0n) /
+          token_1
+      ) * airdropOutput.tokens_per_weight
+    )
   }
 
   onMount(() => {
@@ -117,6 +126,7 @@
     class="card mx-auto mt-4 flex w-fit flex-col border-gray/10 bg-transparent p-4 *:justify-start"
   >
     {#if airdropOutput}
+      {@const tokens = estimateAirdrop(airdropOutput)}
       <div class="text-gray/80 *:text-pretty *:break-all">
         <div class="*:text-pretty *:break-all">
           <p class="text-panda">
@@ -135,6 +145,11 @@
                 ? 'YES'
                 : 'NO'}</p
             >
+            <p>
+              Estimate airdrop tokens: <b
+                >{`${getShortNumber(tokens)} (${tokens})`}</b
+              >
+            </p>
             <ul class="mt-2">
               {#each airdropOutput.airdrops as airdrop}
                 <li
