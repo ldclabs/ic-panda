@@ -16,20 +16,26 @@
   const token_1 = 100000000n
 
   let user: Principal = $authStore.identity.getPrincipal()
+  let userDisplay = user.toText()
   let userInput: string = user.isAnonymous() ? '' : user.toText()
   let airdropOutput: Airdrops108Output | null = null
   let validating = false
 
   async function getAirdropOutput() {
+    userDisplay = user.toText()
     airdropOutput = await luckyPoolAPI.airdrops108Of(user)
   }
 
   function getStatus(status: number) {
+    const now = Date.now()
+    const startAt = new Date(1731283200000).toLocaleString()
     switch (status) {
       case 0:
-        return `Will start at ${new Date(1731283200000).toLocaleString()}`
+        return `Will start at ${startAt}`
       case 1:
-        return 'Started'
+        return now >= 1731283200000
+          ? `Started at ${startAt}`
+          : `Will start at ${startAt}`
       case 2:
         return 'Finished'
       default:
@@ -130,7 +136,7 @@
       <div class="text-gray/80 *:text-pretty *:break-all">
         <div class="*:text-pretty *:break-all">
           <p class="text-panda">
-            Principal: {user.toText()}
+            Principal: {userDisplay}
           </p>
           {#if airdropOutput.airdrops.length == 0}
             <p>No airdrop available.</p>
