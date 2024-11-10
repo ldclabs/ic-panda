@@ -43,7 +43,11 @@
   import ProfileEditModal from './ProfileEditModal.svelte'
   import UserRegisterModal from './UserRegisterModal.svelte'
 
-  export let myState: MyMessageState
+  interface Props {
+    myState: MyMessageState
+  }
+
+  let { myState }: Props = $props()
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
   const PandaID = Principal.fromText(
@@ -54,14 +58,15 @@
   const modalStore = getModalStore()
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
 
-  let myInfo: Readable<(UserInfo & ProfileInfo) | null>
+  let myInfo: Readable<(UserInfo & ProfileInfo) | null> | undefined = $state()
 
-  let grantedNotification =
+  let grantedNotification = $state(
     isNotificationSupported && Notification.permission === 'granted'
-  let displayDebug = false
+  )
+  let displayDebug = $state(false)
 
-  $: pathname = $page?.url?.pathname || ''
-  $: links = $myInfo?.links || []
+  let pathname = $derived($page?.url?.pathname || '')
+  let links = $derived($myInfo?.links || [])
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
@@ -131,7 +136,7 @@
     })
   }
 
-  let followingSubmitting = ''
+  let followingSubmitting = $state('')
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
@@ -233,7 +238,7 @@
     }
   }
 
-  let editLinkSubmitting = -1
+  let editLinkSubmitting = $state(-1)
   async function onEditLink(link: Link | null = null, index: number = -1) {
     const _links = [...links]
     const profile = await myState.agent.getProfile()
@@ -262,7 +267,7 @@
     })
   }
 
-  let deleteLinkSubmitting = -1
+  let deleteLinkSubmitting = $state(-1)
   async function onDeleteLink(index: number) {
     deleteLinkSubmitting = index
     const _links = [...links.slice(0, index), ...links.slice(index + 1)]
@@ -275,7 +280,7 @@
     deleteLinkSubmitting = -1
   }
 
-  let clearCachedMessagesSubmitting = false
+  let clearCachedMessagesSubmitting = $state(false)
   function onClearCachedMessages() {
     clearCachedMessagesSubmitting = true
     myState.clearCachedMessages().finally(async () => {
@@ -316,7 +321,7 @@
     >
       <button
         class="group btn relative p-0 hover:bg-surface-500/50"
-        on:click={onUploadAvatarHandler}
+        onclick={onUploadAvatarHandler}
       >
         <Avatar
           initials={display.name}
@@ -342,7 +347,7 @@
         <button
           type="button"
           class="btn absolute right-[-28px] top-2 p-0 text-neutral-500 hover:text-surface-900-50-token"
-          on:click={onMeHandler}
+          onclick={onMeHandler}
         >
           <span class="*:size-4"><IconEditLine /></span>
         </button>
@@ -369,7 +374,7 @@
                 type="button"
                 class="p-1 hover:text-surface-900-50-token"
                 disabled={editLinkSubmitting !== -1}
-                on:click={() => onEditLink(link, i)}
+                onclick={() => onEditLink(link, i)}
               >
                 <span class="*:size-5">
                   {#if editLinkSubmitting === i}
@@ -383,7 +388,7 @@
                 type="button"
                 class="p-1 hover:text-surface-900-50-token"
                 disabled={deleteLinkSubmitting !== -1}
-                on:click={() => onDeleteLink(i)}
+                onclick={() => onDeleteLink(i)}
               >
                 <span class="*:size-5">
                   {#if deleteLinkSubmitting === i}
@@ -399,7 +404,7 @@
         <button
           type="button"
           class="bg-surface-hover-token flex w-full flex-row items-center justify-center gap-2 rounded-lg border border-surface-500/10 px-2 py-4 text-neutral-500 hover:text-surface-900-50-token"
-          on:click={() => onEditLink()}
+          onclick={() => onEditLink()}
         >
           <span class="*:size-5"><IconAdd /></span>
           <span>Add Link</span>
@@ -407,7 +412,7 @@
       </div>
       <div class="mt-6 flex w-full flex-col gap-2">
         <div class="mb-2 text-sm opacity-50"
-          ><button on:click={() => (displayDebug = !displayDebug)}>
+          ><button onclick={() => (displayDebug = !displayDebug)}>
             <span>My Setting</span>
           </button></div
         >
@@ -435,7 +440,7 @@
               type="button"
               class="variant-ringed btn btn-sm hover:variant-ghost-warning"
               disabled={clearCachedMessagesSubmitting}
-              on:click={onClearCachedMessages}
+              onclick={onClearCachedMessages}
             >
               <span>Clear (safe)</span>
               <span
@@ -487,7 +492,7 @@
                     class="variant-ghost-warning btn btn-sm"
                     type="button"
                     disabled={followingSubmitting !== '' || !member.src}
-                    on:click={() =>
+                    onclick={() =>
                       member.src && onFollowHandler(member.src.id, false)}
                   >
                     <span>Unfollow</span>
@@ -503,7 +508,7 @@
                   <button
                     class="variant-filled-primary btn btn-sm"
                     type="button"
-                    on:click={() =>
+                    onclick={() =>
                       member.src && onCreateChannelHandler(member.src.id)}
                   >
                     <span>Message</span>
@@ -531,7 +536,7 @@
               type="button"
               title="End-to-end encrypted message"
               class="variant-filled-primary btn btn-sm ml-2 w-32"
-              on:click={() => onCreateChannelHandler(PandaID)}
+              onclick={() => onCreateChannelHandler(PandaID)}
             >
               <span>Message</span>
             </button>

@@ -4,10 +4,15 @@
   import { type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let imageUrl: string
-  export let imageName: string
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    imageUrl: string
+    imageName: string
+  }
+
+  let { parent, imageUrl, imageName }: Props = $props()
 
   const modalStore = getModalStore()
 </script>
@@ -18,7 +23,7 @@
   <div class="card bg-surface-50-900-token relative w-dvw">
     <button
       class="z-1 btn btn-icon absolute right-1 top-1 text-neutral-500 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
-      on:click={parent['onClose']}
+      onclick={parent['onClose']}
     >
       <IconClose />
     </button>

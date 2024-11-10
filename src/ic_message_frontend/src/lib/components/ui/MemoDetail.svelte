@@ -3,8 +3,13 @@
   import { decodeCBOR } from '@ldclabs/cose-ts/utils'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let memo: Uint8Array | number[] | null
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    memo: Uint8Array | number[] | null
+  }
+
+  let { memo }: Props = $props()
 
   const detail: { message: string; link: string } | null = memo
     ? mapToObj(decodeCBOR(memo as Uint8Array))

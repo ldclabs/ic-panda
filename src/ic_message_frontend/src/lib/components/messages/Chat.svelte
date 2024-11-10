@@ -14,20 +14,27 @@
   import MyChannelList from './MyChannelList.svelte'
   import PasswordModal from './PasswordModal.svelte'
 
-  export let myState: MyMessageState
+  interface Props {
+    myState: MyMessageState
+  }
+
+  let { myState }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const myInfo: Readable<UserInfo> =
     myState.agent.subscribeUser() as Readable<UserInfo>
 
-  $: channelParam = ($page?.params || {})['channel'] || ''
-  $: channelId = ChannelAPI.parseChannelParam(channelParam) as {
-    canister: Principal
-    id: number
-  }
-  $: channelsListActive = !channelId.canister
-  $: isReady = myState.isReady2()
+  let channelParam = $derived(($page?.params || {})['channel'] || '')
+  let channelId = $derived(
+    ChannelAPI.parseChannelParam(channelParam) as {
+      canister: Principal
+      id: number
+    }
+  )
+  // svelte-ignore state_referenced_locally
+  let channelsListActive = $state(!channelId.canister)
+  let isReady = $state(myState.isReady2())
 
   async function onChatBack() {
     channelsListActive = true

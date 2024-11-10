@@ -16,19 +16,24 @@
   const toastStore = getToastStore()
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let channel: ChannelInfo
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    channel: ChannelInfo
+  }
+
+  let { parent, myState, channel }: Props = $props()
 
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
-  let validating = false
-  let submitting = false
-  let availablePandaBalance = 0n
+  let validating = $state(false)
+  let submitting = $state(false)
+  let availablePandaBalance = $state(0n)
 
-  let amountInput = 0
-  let topupErr = ''
+  let amountInput = $state(0)
+  let topupErr = $state('')
 
   async function onTopup() {
     submitting = true
@@ -98,7 +103,9 @@
     return abort
   })
 
-  $: tokenDisplay = TokenDisplay.fromNumber(PANDAToken, amountInput || 0, false)
+  let tokenDisplay = $derived(
+    TokenDisplay.fromNumber(PANDAToken, amountInput || 0, false)
+  )
 </script>
 
 <ModalCard {parent}>
@@ -106,7 +113,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
     use:focusTrap={true}
   >
     <div class="relative">
@@ -117,7 +124,7 @@
         min="0"
         step="any"
         bind:value={amountInput}
-        on:input={validateAmount}
+        oninput={validateAmount}
         disabled={submitting}
         placeholder="Enter an amount >=1"
         data-focusindex="1"
@@ -153,7 +160,7 @@
       disabled={submitting ||
         !validating ||
         tokenDisplay.total > availablePandaBalance}
-      on:click={onTopup}
+      onclick={onTopup}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

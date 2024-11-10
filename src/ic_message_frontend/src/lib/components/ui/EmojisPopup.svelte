@@ -1,5 +1,9 @@
 <script lang="ts">
-  export let addEmoji: (emoji: string) => void = () => {}
+  interface Props {
+    addEmoji?: (emoji: string) => void
+  }
+
+  let { addEmoji = () => {} }: Props = $props()
 
   const setIcons = ['😃', '🤡', '👋', '🐼', '🚀', '🎁']
   const emojiSets = [
@@ -275,7 +279,7 @@
     }
   ]
 
-  let emojis: string[] = []
+  let emojis: string[] = $state([])
   function chooseEmojiSet(id: number) {
     emojis = emojiSets[id]?.set || emojiSets[0]!.set
   }
@@ -291,8 +295,8 @@
     {#each setIcons as icon, i}
       <button
         class="btn p-2 text-2xl"
-        on:pointerenter={() => chooseEmojiSet(i)}
-        on:click|stopPropagation={() => chooseEmojiSet(i)}
+        onpointerenter={() => chooseEmojiSet(i)}
+        onclick={() => chooseEmojiSet(i)}
       >
         {icon}
       </button>
@@ -301,7 +305,7 @@
 
   <div class="flex h-60 flex-row flex-wrap overflow-y-auto">
     {#each emojis as emoji}
-      <button class="btn p-2 text-2xl" on:click={onClickEmoji}>{emoji}</button>
+      <button class="btn p-2 text-2xl" onclick={onClickEmoji}>{emoji}</button>
     {/each}
   </div>
 </section>

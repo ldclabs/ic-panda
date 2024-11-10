@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import {
+    type Link,
     type ProfileInfo,
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
@@ -25,26 +26,36 @@
   import PasswordModal from './PasswordModal.svelte'
   import UserRegisterModal from './UserRegisterModal.svelte'
 
-  export let userId: Principal | string
-  export let myState: MyMessageState
+  interface Props {
+    /** Exposes parent props to this component. */
+    userId: Principal | string
+    myState: MyMessageState
+  }
+
+  let { userId, myState }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
 
   let userInfo: Readable<UserInfo & ProfileInfo>
   let myInfo: Readable<(UserInfo & ProfileInfo) | null>
+  let isReady = $state(myState.isReady2())
+  let isMe = $state(false)
+  let isFowllowing = $state(false)
+  let links: Link[] = $state([])
 
-  $: isMe = myState.id === $userInfo?.id.toText()
-  $: isReady = myState.isReady2()
-  $: isFowllowing =
-    ($userInfo &&
-      $myInfo?.following
-        .at(0)
-        ?.some((id) => id.compareTo($userInfo.id) == 'eq')) ||
-    false
-  $: links = $userInfo?.links || []
+  $effect(() => {
+    isMe = myState.id === $userInfo?.id.toText()
+    isFowllowing =
+      ($userInfo &&
+        $myInfo?.following
+          .at(0)
+          ?.some((id) => id.compareTo($userInfo.id) == 'eq')) ||
+      false
+    links = $userInfo?.links || []
+  })
 
-  let followingSubmitting = ''
+  let followingSubmitting = $state('')
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
@@ -216,7 +227,7 @@
       {#if display.username}
         <button
           class="flex flex-row items-center gap-2"
-          on:click={() =>
+          onclick={() =>
             onQrHandler(
               display.name,
               `${APP_ORIGIN}/${display.username}`,
@@ -238,7 +249,7 @@
       <TextClipboardButton textValue={display._id} />
       <button
         class="flex flex-row items-center gap-2"
-        on:click={() => onQrHandler('Principal ID', display._id)}
+        onclick={() => onQrHandler('Principal ID', display._id)}
       >
         <span class="*:size-5"><IconQrCode /></span>
       </button>
@@ -251,7 +262,7 @@
             ? 'variant-ghost-primary'
             : 'variant-filled'} group btn btn-sm w-32"
           disabled={followingSubmitting !== ''}
-          on:click={() => onFollowHandler($userInfo.id, !isFowllowing)}
+          onclick={() => onFollowHandler($userInfo.id, !isFowllowing)}
         >
           {#if isFowllowing}
             <span class="group-hover:hidden">Following</span>
@@ -271,7 +282,7 @@
           type="button"
           title="End-to-end encrypted message"
           class="variant-filled-primary btn btn-sm w-32"
-          on:click={() => onCreateChannelHandler($userInfo.id)}
+          onclick={() => onCreateChannelHandler($userInfo.id)}
         >
           <span>Message</span>
         </button>

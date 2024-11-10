@@ -6,11 +6,15 @@
   import { getModalStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
 
-  export let parent: SvelteComponent
-  export let channel: ChannelInfo
-  export let file: File
-  export let encryptBlob: (blob: Blob) => Promise<Uint8Array>
-  export let onReady: (data: Uint8Array, type: string) => void
+  interface Props {
+    parent: SvelteComponent
+    channel: ChannelInfo
+    file: File
+    encryptBlob: (blob: Blob) => Promise<Uint8Array>
+    onReady: (data: Uint8Array, type: string) => void
+  }
+
+  let { parent, channel, file, encryptBlob, onReady }: Props = $props()
 
   const MESSAGE_PER_USER_GAS = 10000
   const MESSAGE_PER_BYTE_GAS = 1000
@@ -21,11 +25,11 @@
     file_storage: []
   }
 
-  let data: Uint8Array = new Uint8Array()
+  let data: Uint8Array = $state(new Uint8Array())
   let mime = file.type
-  let submitting = false
-  let uploadErr = ''
-  let gas = 0
+  let submitting = $state(false)
+  let uploadErr = $state('')
+  let gas = $state(0)
 
   async function checkFile(b: Blob) {
     data = await encryptBlob(b)
@@ -74,7 +78,7 @@
   <button
     class="variant-filled-primary btn !mt-6 w-full"
     disabled={submitting || !data.byteLength || uploadErr != ''}
-    on:click={uploadFile}
+    onclick={uploadFile}
   >
     {#if submitting}
       <span class=""><IconCircleSpin /></span>

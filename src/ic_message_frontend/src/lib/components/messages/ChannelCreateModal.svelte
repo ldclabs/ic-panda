@@ -22,11 +22,16 @@
   import { type Readable } from 'svelte/store'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let channelName: string = ''
-  export let add_managers: [Principal, Uint8Array | null][] = []
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    channelName?: string
+    add_managers?: [Principal, Uint8Array | null][]
+  }
+
+  let { parent, myState, channelName = '', add_managers = [] }: Props = $props()
 
   const modalStore = getModalStore()
   const toastStore = getToastStore()
@@ -34,12 +39,11 @@
   const stateInfo = myState.api.stateStore as Readable<StateInfo>
   const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
 
-  let nameInput = channelName
-  let descriptionInput = ''
-
-  let validating = nameInput.trim() !== ''
-  let submitting = false
-  let availablePandaBalance = 0n
+  let nameInput = $state(channelName)
+  let descriptionInput = $state('')
+  let validating = $state(channelName.trim() !== '')
+  let submitting = $state(false)
+  let availablePandaBalance = $state(0n)
 
   function checkInput() {
     const name = nameInput.trim()
@@ -123,7 +127,9 @@
     return abort
   })
 
-  $: channelPrice = $stateInfo ? $stateInfo.price.channel : 100_000_000_000n
+  let channelPrice = $derived(
+    $stateInfo ? $stateInfo.price.channel : 100_000_000_000n
+  )
 </script>
 
 <ModalCard {parent}>
@@ -133,7 +139,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
     use:focusTrap={true}
   >
     <div class="relative">
@@ -196,7 +202,7 @@
           <button
             type="button"
             class="btn btn-sm hover:variant-soft-primary"
-            on:click={onOpenWallet}
+            onclick={onOpenWallet}
           >
             <span class="*:size-4"><IconAdd /></span>
             <span>Topup</span>
@@ -211,7 +217,7 @@
       disabled={submitting ||
         !validating ||
         channelPrice > availablePandaBalance}
-      on:click={onCreateChannel}
+      onclick={onCreateChannel}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

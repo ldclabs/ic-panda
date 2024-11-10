@@ -8,28 +8,32 @@
   import { Principal } from '@dfinity/principal'
   import Loading from './Loading.svelte'
 
-  export let token: TokenInfo
-  export let availableBalance: bigint = 0n
-  export let sendFrom: Principal
-  export let onSubmit: (args: SendTokenArgs) => Promise<bigint>
+  interface Props {
+    token: TokenInfo
+    availableBalance?: bigint
+    sendFrom: Principal
+    onSubmit: (args: SendTokenArgs) => Promise<bigint>
+  }
 
-  let stepN: 0 | 1 = 0
-  let submitting = false
-  let validating = false
-  let sendTo = ''
-  let sendAmount = 0
-  let formRef: HTMLFormElement
-  let transferSuccess: bigint | null = null
-  let transferError: ErrData<any> | null = null
+  let { token, availableBalance = 0n, sendFrom, onSubmit }: Props = $props()
+
+  let stepN: 0 | 1 = $state(0)
+  let submitting = $state(false)
+  let validating = $state(false)
+  let sendTo = $state('')
+  let sendAmount = $state(0)
+  let formRef: HTMLFormElement | undefined = $state()
+  let transferSuccess: bigint | null = $state(null)
+  let transferError: ErrData<any> | null = $state(null)
   let txInfo: {
     from: string
     to: string
     balance: string
     amount: string
     total: string
-  } | null = null
+  } | null = $state(null)
 
-  let tokenDisplay = new TokenDisplay(token, 0n)
+  let tokenDisplay = $state(new TokenDisplay(token, 0n))
 
   const addressTip =
     'Principal' + (token.symbol == 'ICP' ? ' or ICP Address' : '')
@@ -151,7 +155,7 @@
 {#if stepN === 0}
   <div class="flex w-full flex-col gap-4">
     <!-- Enable for debugging: -->
-    <form class="flex flex-col" bind:this={formRef} on:change={onFormChange}>
+    <form class="flex flex-col" bind:this={formRef} onchange={onFormChange}>
       <label class="label">
         <span>Send to destination</span>
         <input
@@ -162,7 +166,7 @@
           maxlength="65"
           data-1p-ignore
           bind:value={sendTo}
-          on:input={validateAddress}
+          oninput={validateAddress}
           placeholder={addressTip}
           disabled={submitting}
           required
@@ -176,7 +180,7 @@
         <a
           class="btn float-right !mt-0 p-0 hover:text-secondary-500/100"
           href="/"
-          on:click={setMaxAmount}
+          onclick={setMaxAmount}
         >
           <span class="*:w-5"><IconCornerDownLeft /></span>
           <span class="!ml-1">Max</span>
@@ -188,7 +192,7 @@
           min="0"
           step="any"
           bind:value={sendAmount}
-          on:input={validateAmount}
+          oninput={validateAmount}
           placeholder="Amount"
           disabled={submitting}
           required
@@ -204,8 +208,8 @@
     </form>
     <!-- prettier-ignore -->
     <footer class="flex flex-row justify-end gap-4">
-			<button class="btn btn-md variant-ghost-surface" disabled={submitting} on:click={onClear}>Clear</button>
-			<button class="btn btn-md variant-ghost-primary" disabled={submitting || !validating} on:click={onContinue}>Continue</button>
+			<button class="btn btn-md variant-ghost-surface" disabled={submitting} onclick={onClear}>Clear</button>
+			<button class="btn btn-md variant-ghost-primary" disabled={submitting || !validating} onclick={onContinue}>Continue</button>
 		</footer>
   </div>
 {:else if txInfo != null}
@@ -284,14 +288,14 @@
       <button
         class="variant-ghost-surface btn max-md:btn-sm"
         disabled={submitting}
-        on:click={onPrevStep}
+        onclick={onPrevStep}
       >
         Edit Transaction
       </button>
       <button
         class="variant-ghost-primary btn max-md:btn-sm"
         disabled={submitting || !validating}
-        on:click={onFormSubmit}
+        onclick={onFormSubmit}
       >
         Send Now
       </button>

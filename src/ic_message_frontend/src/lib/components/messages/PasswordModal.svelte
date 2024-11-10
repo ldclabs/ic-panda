@@ -10,27 +10,30 @@
   } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
-  // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let masterKey: MasterKey | null
-  export let onFinished: () => void
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    masterKey: MasterKey | null
+    onFinished: () => void
+  }
+
+  let { parent, myState, masterKey = $bindable(), onFinished }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const PasswordExpire = 14 * 24 * 60 * 60 * 1000
 
-  let validating = false
-  let submitting = false
+  let validating = $state(false)
+  let submitting = $state(false)
 
-  let isSetup = !masterKey
-  let isReset = false
-  let passwordInput1 = ''
-  let passwordInput2 = ''
-  let passwordTip = ''
-  let processingTip = 'Derive keys...'
-  let cachedPassword = masterKey ? masterKey.cachedPassword() : true
+  let isSetup = $state(!masterKey)
+  let isReset = $state(false)
+  let passwordInput1 = $state('')
+  let passwordInput2 = $state('')
+  let passwordTip = $state('')
+  let processingTip = $state('Derive keys...')
+  let cachedPassword = $state(masterKey ? masterKey.cachedPassword() : true)
   let pwdHash: Uint8Array | null = null
 
   function checkPassword() {
@@ -175,7 +178,7 @@
   >
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
     use:focusTrap={true}
   >
     <input
@@ -258,7 +261,7 @@
           type="button"
           class="btn btn-sm hover:text-neutral-950 dark:hover:text-surface-100"
           disabled={submitting}
-          on:click={onReset}>Forgot password?</button
+          onclick={onReset}>Forgot password?</button
         >
       </div>
     {/if}
@@ -267,7 +270,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onComfirm}
+      onclick={onComfirm}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

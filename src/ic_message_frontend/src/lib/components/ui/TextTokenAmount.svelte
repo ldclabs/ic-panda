@@ -3,13 +3,15 @@
   import { popup } from '@skeletonlabs/skeleton'
   import Loading from './Loading.svelte'
 
-  let selfClass: string = ''
+  interface Props {
+    class?: string
+    token: TokenInfo
+    amount: Promise<bigint>
+  }
 
-  export { selfClass as class }
-  export let token: TokenInfo
-  export let amount: Promise<bigint>
+  let { class: selfClass = '', token, amount }: Props = $props()
 
-  $: tokenDisplay = async () => new TokenDisplay(token, await amount)
+  let tokenDisplay = $derived(async () => new TokenDisplay(token, await amount))
 </script>
 
 <div class={selfClass}>

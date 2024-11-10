@@ -10,18 +10,23 @@
   import { type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let channel: ChannelInfo
-  export let onSave: (input: UpdateChannelInput) => Promise<void>
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    channel: ChannelInfo
+    onSave: (input: UpdateChannelInput) => Promise<void>
+  }
+
+  let { parent, channel, onSave }: Props = $props()
 
   const modalStore = getModalStore()
 
-  let validating = false
-  let submitting = false
+  let validating = $state(false)
+  let submitting = $state(false)
 
-  let nameInput = channel.name
-  let descriptionInput = channel.description
+  let nameInput = $state(channel.name)
+  let descriptionInput = $state(channel.description)
 
   function checkInput() {
     const name = nameInput.trim()
@@ -77,7 +82,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
   >
     <div class="relative">
       <input
@@ -108,7 +113,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onClickSave}
+      onclick={onClickSave}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

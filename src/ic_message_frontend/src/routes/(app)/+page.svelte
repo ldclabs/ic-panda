@@ -139,19 +139,16 @@
     target: 'popupNavigationMore'
   })
 
-  $: isAnonymous = agent.isAnonymous()
-
   let myState: MyMessageState
-  let users_total = 0n
-  let names_total = 0n
-  let channels_total = 0n
-  let messages_total = 0n
+  let users_total = $state(0n)
+  let names_total = $state(0n)
+  let channels_total = $state(0n)
+  let messages_total = $state(0n)
 
   async function onLaunchAppHandler() {
     // always load the latest one
-    isAnonymous = agent.isAnonymous()
     myState = await MyMessageState.load()
-    if (isAnonymous) {
+    if (agent.isAnonymous()) {
       await authStore.signIn({})
       myState = await MyMessageState.load()
       onLaunchAppHandler()
@@ -238,7 +235,7 @@
         </p>
         <div class="flex flex-row gap-2">
           <button
-            on:click={onLaunchAppHandler}
+            onclick={onLaunchAppHandler}
             class="rainbow-button group relative w-[280px] overflow-hidden border border-black/50 bg-white px-6 py-2 shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
           >
             <span
@@ -247,10 +244,10 @@
             >
             <span class="rainbow-border"></span>
           </button>
-          {#if !isAnonymous}
+          {#if !agent.isAnonymous()}
             <button
               class="btn px-4 text-white transition-all hover:scale-125"
-              on:click={(ev) => {
+              onclick={(ev) => {
                 popupOpenOn(ev.currentTarget)
               }}
             >

@@ -16,13 +16,17 @@
   import { type Readable } from 'svelte/store'
   import ChannelCreateModal from './ChannelCreateModal.svelte'
 
-  export let myState: MyMessageState
+  interface Props {
+    myState: MyMessageState
+  }
+
+  let { myState }: Props = $props()
 
   const toastStore = getToastStore()
 
-  let isLoading = true
-  let myChannels: Readable<ChannelBasicInfoEx[]>
-  let filterValue: string = ''
+  let isLoading = $state(true)
+  let myChannels: Readable<ChannelBasicInfoEx[]> | undefined = $state()
+  let filterValue: string = $state('')
 
   const modalStore = getModalStore()
   function onCreateChannelHandler() {
@@ -71,12 +75,13 @@
     return abort
   })
 
-  $: currentChannel = ($page?.params || {})['channel'] || ''
-  $: channels =
+  let currentChannel = $derived(($page?.params || {})['channel'] || '')
+  let channels = $derived(
     $myChannels?.filter((c) => {
       const val = filterValue.trim().toLowerCase()
       return val ? c.name.toLowerCase().includes(val) : true
     }) || []
+  )
 </script>
 
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
@@ -91,22 +96,11 @@
       type="button"
       class="btn btn-icon h-10 rounded-lg bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100"
       title="Create a channel"
-      on:click={onCreateChannelHandler}
+      onclick={onCreateChannelHandler}
       ><span class="hover:scale-110"><IconAdd /></span></button
     >
   </header>
   <div class="flex flex-col overflow-y-auto pb-10">
-    {#if isLoading}
-      <Loading />
-    {:else if channels.length === 0}
-      <div class="px-4 py-2 text-sm">
-        <span
-          >In addition to encrypted chats, you can also store confidential
-          information.<br />It's encrypted on-chain and synced across devices,
-          with only you able to read and decrypt it.</span
-        >
-      </div>
-    {/if}
     {#each channels as channel}
       <button
         type="button"
@@ -114,7 +108,7 @@
         currentChannel
           ? 'variant-soft-primary'
           : 'bg-surface-hover-token'}"
-        on:click={() => gotoChannel(channel.channelId)}
+        onclick={() => gotoChannel(channel.channelId)}
       >
         <div class="relative inline-block">
           {#if channel.my_setting.unread > 0 || channel.my_setting.ecdh_remote.length > 0}
@@ -152,6 +146,17 @@
           </div>
         </div>
       </button>
+    {:else}
+      <div class="px-4 py-2 text-sm">
+        <span
+          >In addition to encrypted chats, you can also store confidential
+          information.<br />It's encrypted on-chain and synced across devices,
+          with only you able to read and decrypt it.</span
+        >
+      </div>
+      {#if isLoading}
+        <Loading />
+      {/if}
     {/each}
   </div>
 </div>

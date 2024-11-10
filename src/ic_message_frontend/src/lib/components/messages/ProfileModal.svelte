@@ -4,12 +4,14 @@
   import { type Principal } from '@dfinity/principal'
   import { type SvelteComponent } from 'svelte'
   import ProfileDetail from './ProfileDetail.svelte'
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    userId: Principal
+  }
 
-  // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let userId: Principal
+  let { parent, myState, userId }: Props = $props()
 </script>
 
 <ModalCard {parent}>

@@ -6,12 +6,16 @@
   import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
   import { clipboard } from '@skeletonlabs/skeleton'
 
-  export let link: Link
-  export let onQrHandler:
-    | ((qrTitle: string, qrValue: string, qrLogo?: string) => void)
-    | null = null
+  interface Props {
+    link: Link
+    onQrHandler?:
+      | ((qrTitle: string, qrValue: string, qrLogo?: string) => void)
+      | null
+  }
 
-  let copiedClass = ''
+  let { link, onQrHandler = null }: Props = $props()
+
+  let copiedClass = $state('')
 
   function onCopyHandler(): void {
     copiedClass = '!text-primary-500'
@@ -34,8 +38,11 @@
     {#if onQrHandler}
       <button
         class="flex flex-row items-center gap-2"
-        on:click|stopPropagation|preventDefault={() =>
-          onQrHandler(link.title, link.uri)}
+        onclick={(ev) => {
+          ev.preventDefault()
+          ev.stopPropagation()
+          onQrHandler(link.title, link.uri)
+        }}
       >
         <span class="text-surface-500 *:size-5"><IconQrCode /></span>
       </button>
@@ -45,7 +52,7 @@
   <button
     class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
     use:clipboard={link.uri}
-    on:click={onCopyHandler}
+    onclick={onCopyHandler}
     disabled={copiedClass != ''}
   >
     <div>{link.title}<span class="ml-2 {copiedClass}">{link.uri}</span></div>
@@ -63,8 +70,11 @@
         role="button"
         href="/"
         tabindex="0"
-        on:click|stopPropagation|preventDefault={() =>
-          onQrHandler(link.title, link.uri)}
+        onclick={(ev) => {
+          ev.preventDefault()
+          ev.stopPropagation()
+          onQrHandler(link.title, link.uri)
+        }}
       >
         <span class="text-surface-500 *:size-5"><IconQrCode /></span>
       </a>

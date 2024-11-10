@@ -10,7 +10,11 @@
   import { authStore } from '$lib/stores/auth'
   import { getModalStore } from '@skeletonlabs/skeleton'
 
-  export let target: string
+  interface Props {
+    target: string
+  }
+
+  let { target }: Props = $props()
 
   const modalStore = getModalStore()
 
@@ -33,7 +37,7 @@
   <div
     class="flex flex-col items-start text-sm *:bg-surface-hover-token *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
   >
-    <button type="button" on:click={onWalletHandler}>
+    <button type="button" onclick={onWalletHandler}>
       <span class="*:size-5"><IconWallet /></span>
       <span>Wallet</span>
     </button>
@@ -53,7 +57,7 @@
       <span class="*:size-5"><IconGithub /></span>
       <span>Source Code</span>
     </a>
-    <button type="button" on:click={() => window.location.reload()}>
+    <button type="button" onclick={() => window.location.reload()}>
       <span class="*:size-5"><IconRefresh /></span>
       <span>Reload App</span>
       <span class="text-surface-500">(v{APP_VERSION})</span>
@@ -61,7 +65,7 @@
     <button
       type="button"
       class="border-t border-surface-500/20"
-      on:click={onLogoutHandler}
+      onclick={onLogoutHandler}
     >
       <span class="*:size-5"><IconLogout /></span>
       <span>Sign Out</span>

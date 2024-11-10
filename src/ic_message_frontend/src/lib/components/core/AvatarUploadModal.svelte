@@ -16,22 +16,27 @@
   import { onDestroy, type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+  }
+
+  let { parent, myState }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
 
-  let blob: Blob | null = null
-  let croppedUrl = ''
-  let submitting = false
+  let blob: Blob | null = $state(null)
+  let croppedUrl = $state('')
+  let submitting = $state(false)
 
-  function handleAvatarUpload(event: CustomEvent) {
-    blob = event.detail.blob || null
-    if (blob) {
+  function handleAvatarUpload(obj: { blob: Blob }) {
+    if (obj.blob) {
+      blob = obj.blob
       croppedUrl && URL.revokeObjectURL(croppedUrl)
-      croppedUrl = URL.createObjectURL(blob)
+      croppedUrl = URL.createObjectURL(obj.blob)
     }
   }
 
@@ -75,7 +80,7 @@
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold">Update avatar</div>
   <div class="mx-auto !mt-6 space-y-4">
-    <ImageCrop on:cropcomplete={handleAvatarUpload} />
+    <ImageCrop oncropcomplete={handleAvatarUpload} />
 
     <div class="mx-auto size-[200px] rounded bg-surface-500/10">
       {#if croppedUrl}
@@ -92,7 +97,7 @@
   <button
     class="variant-filled-primary btn !mt-6 w-full"
     disabled={submitting || !blob}
-    on:click={uploadImage}
+    onclick={uploadImage}
     >{#if submitting}
       <span class=""><IconCircleSpin /></span>
       <span>Processing...</span>

@@ -13,20 +13,25 @@
   const toastStore = getToastStore()
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let channel: ChannelInfo
-  export let onFinished: () => void
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    channel: ChannelInfo
+    onFinished: () => void
+  }
+
+  let { parent, myState, channel, onFinished }: Props = $props()
 
   const fileMaxSize = Number(
     unwrapOption(channel.files_state)?.file_max_size || 0n
   )
 
-  let maxSizeInput = fileMaxSize || 1024 * 1024 * 10
-  let maxSizeErr = ''
-  let validating = maxSizeInput != fileMaxSize
-  let submitting = false
+  let maxSizeInput = $state(fileMaxSize || 1024 * 1024 * 10)
+  let maxSizeErr = $state('')
+  let validating = $state(fileMaxSize != 1024 * 1024 * 10)
+  let submitting = $state(false)
 
   async function onTopup() {
     submitting = true
@@ -76,10 +81,8 @@
     validating = form.checkValidity()
   }
 
-  $: tokenDisplay = TokenDisplay.fromNumber(
-    PANDAToken,
-    (maxSizeInput || 0) * 1000,
-    false
+  let tokenDisplay = $derived(
+    TokenDisplay.fromNumber(PANDAToken, (maxSizeInput || 0) * 1000, false)
   )
 </script>
 
@@ -88,7 +91,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
     use:focusTrap={true}
   >
     <div class="relative">
@@ -99,7 +102,7 @@
         min="0"
         step="any"
         bind:value={maxSizeInput}
-        on:input={validateFileSize}
+        oninput={validateFileSize}
         disabled={submitting}
         placeholder="Enter max file size"
         data-focusindex="1"
@@ -130,7 +133,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating || fileMaxSize == maxSizeInput}
-      on:click={onTopup}
+      onclick={onTopup}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

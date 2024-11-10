@@ -15,15 +15,20 @@
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+  }
+
+  let { parent }: Props = $props()
 
   let principal = $authStore.identity.getPrincipal()
 
-  let icpBalance = Promise.resolve(0n)
-  let pandaBalance = Promise.resolve(0n)
-  let availableICPBalance = 0n
-  let availablePandaBalance = 0n
+  let icpBalance = $state(Promise.resolve(0n))
+  let pandaBalance = $state(Promise.resolve(0n))
+  let availableICPBalance = $state(0n)
+  let availablePandaBalance = $state(0n)
 
   async function handleICPTransfer(args: SendTokenArgs) {
     const idx = await icpLedgerAPI.transfer(args.to, args.amount)
@@ -41,7 +46,6 @@
 
   onMount(async () => {
     icpBalance = icpLedgerAPI.balance()
-
     pandaBalance = tokenLedgerAPI.balance()
 
     availableICPBalance = await icpBalance
@@ -66,10 +70,10 @@
     regionControl="border-b border-gray/10 !rounded-none"
   >
     <AccordionItem regionControl="outline-0">
-      <svelte:fragment slot="lead">
+      {#snippet lead()}
         <span class="*:size-8"><IconIcLogo /></span>
-      </svelte:fragment>
-      <svelte:fragment slot="summary">
+      {/snippet}
+      {#snippet summary()}
         <div class="flex flex-row items-center justify-between leading-8">
           <span class="">Internet Computer</span>
           <TextTokenAmount
@@ -78,21 +82,21 @@
             amount={icpBalance}
           />
         </div>
-      </svelte:fragment>
-      <svelte:fragment slot="content">
+      {/snippet}
+      {#snippet content()}
         <SendTokenForm
           sendFrom={principal}
           availableBalance={availableICPBalance}
           token={ICPToken}
           onSubmit={handleICPTransfer}
         />
-      </svelte:fragment>
+      {/snippet}
     </AccordionItem>
     <AccordionItem regionControl="outline-0">
-      <svelte:fragment slot="lead">
+      {#snippet lead()}
         <span class="*:size-8"><IconPanda /></span>
-      </svelte:fragment>
-      <svelte:fragment slot="summary">
+      {/snippet}
+      {#snippet summary()}
         <div class="flex flex-row items-center justify-between leading-8">
           <span class="">ICPanda</span>
           <TextTokenAmount
@@ -101,15 +105,15 @@
             amount={pandaBalance}
           />
         </div>
-      </svelte:fragment>
-      <svelte:fragment slot="content">
+      {/snippet}
+      {#snippet content()}
         <SendTokenForm
           sendFrom={principal}
           availableBalance={availablePandaBalance}
           token={PANDAToken}
           onSubmit={handlePANDATransfer}
         />
-      </svelte:fragment>
+      {/snippet}
     </AccordionItem>
   </Accordion>
 </ModalCard>

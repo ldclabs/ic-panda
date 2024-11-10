@@ -16,18 +16,22 @@
   import ChannelMessages from './ChannelMessages.svelte'
   import ChannelSetting from './ChannelSetting.svelte'
 
-  export let channelId: { canister: Principal; id: number }
-  export let myState: MyMessageState
-  export let myInfo: Readable<UserInfo>
+  interface Props {
+    channelId: { canister: Principal; id: number }
+    myState: MyMessageState
+    myInfo: Readable<UserInfo>
+  }
+
+  let { channelId, myState, myInfo }: Props = $props()
 
   const toastStore = getToastStore()
   const { canister, id } = channelId
   const onChatBack = getContext('onChatBack') as () => void
 
-  let channelInfo: Readable<ChannelInfoEx>
-  let isLoading = true
-  let openMessages = true
-  let switching = false
+  let channelInfo: Readable<ChannelInfoEx> | undefined = $state()
+  let isLoading = $state(true)
+  let openMessages = $state(true)
+  let switching = $state(false)
   async function onClickChannelSetting() {
     if (!canister) return
     switching = true
@@ -51,7 +55,7 @@
           if (openMessages) {
             try {
               // try to decrypt channel DEK
-              await myState.decryptChannelDEK($channelInfo)
+              await myState.decryptChannelDEK($channelInfo!)
             } catch (_e) {
               openMessages = false
             }
@@ -81,7 +85,7 @@
     <div class="md:hidden">
       <button
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        on:click={onChatBack}><IconArrowLeftSLine /></button
+        onclick={onChatBack}><IconArrowLeftSLine /></button
       >
     </div>
     <div class="flex flex-row items-center gap-2">
@@ -113,9 +117,9 @@
       class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
       title="Channel settings"
       disabled={switching}
-      on:click={onClickChannelSetting}
+      onclick={onClickChannelSetting}
     >
-      {#if openMessages && $channelInfo?.ecdh_request.length > 0}
+      {#if channelInfo && openMessages && ($channelInfo?.ecdh_request || []).length > 0}
         <span class="badge-icon z-10 size-2 bg-error-500"></span>
       {/if}
       <span>
@@ -132,7 +136,7 @@
   {:else if $channelInfo}
     {#if openMessages}
       <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
-    {:else}
+    {:else if channelInfo}
       <ChannelSetting {myState} {myInfo} {channelInfo} />
     {/if}
   {:else}

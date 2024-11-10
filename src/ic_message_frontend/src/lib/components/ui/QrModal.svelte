@@ -5,10 +5,19 @@
   import { Avatar } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
 
-  export let parent: SvelteComponent
-  export let qrTitle: string = 'ICPanda Message'
-  export let qrValue: string = 'https://dmsg.net'
-  export let qrLogo: string = ''
+  interface Props {
+    parent: SvelteComponent
+    qrTitle?: string
+    qrValue?: string
+    qrLogo?: string
+  }
+
+  let {
+    parent,
+    qrTitle = 'ICPanda Message',
+    qrValue = 'https://dmsg.net',
+    qrLogo = ''
+  }: Props = $props()
 </script>
 
 <ModalCard {parent}>

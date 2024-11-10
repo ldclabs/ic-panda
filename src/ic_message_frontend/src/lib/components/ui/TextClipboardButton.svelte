@@ -3,9 +3,13 @@
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
   import { clipboard } from '@skeletonlabs/skeleton'
 
-  export let textValue: string
+  interface Props {
+    textValue: string
+  }
 
-  let copiedClass = ''
+  let { textValue }: Props = $props()
+
+  let copiedClass = $state('')
 
   function onCopyHandler(): void {
     copiedClass = '!text-panda'
@@ -18,7 +22,7 @@
 <button
   class="{copiedClass} float-right mt-[3px] *:size-5"
   use:clipboard={textValue}
-  on:click={onCopyHandler}
+  onclick={onCopyHandler}
   disabled={copiedClass != ''}
 >
   {#if copiedClass != ''}

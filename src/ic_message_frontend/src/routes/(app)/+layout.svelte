@@ -4,6 +4,7 @@
   import { storePopup as storePopup2 } from '$lib/utils/popup'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
+  import Loading from '$src/lib/components/ui/Loading.svelte'
   import {
     arrow,
     autoUpdate,
@@ -20,8 +21,13 @@
     setInitialClassState,
     storePopup
   } from '@skeletonlabs/skeleton'
-  import { onMount } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
+  interface Props {
+    children?: Snippet
+  }
+
+  let { children }: Props = $props()
 
   initReconnect(
     () => console.log('Device is online:', isOnline()),
@@ -43,7 +49,7 @@
    * Init authentication
    */
 
-  let initAuth = false
+  let initAuth = $state(false)
   onMount(async () => {
     if (browser) {
       setInitialClassState()
@@ -56,6 +62,8 @@
 
     initAuth = true
   })
+
+  const children_render = $derived(children)
 </script>
 
 <svelte:head>
@@ -68,13 +76,15 @@
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 
-{#if initAuth}
-  <div
-    class="relative grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
-  >
-    <slot />
-  </div>
-{/if}
+<div
+  class="relative grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+>
+  {#if initAuth}
+    {@render children_render?.()}
+  {:else}
+    <Loading />
+  {/if}
+</div>
 
 {#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
   <ReloadPrompt />

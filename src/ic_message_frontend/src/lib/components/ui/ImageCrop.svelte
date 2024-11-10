@@ -2,7 +2,6 @@
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import { FileButton } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
-  import { createEventDispatcher } from 'svelte'
   import Cropper from 'svelte-easy-crop'
 
   interface CropArea {
@@ -12,29 +11,36 @@
     height: number
   }
 
-  let selfClass: string =
-    'mx-auto w-[200px] h-[200px] rounded *:rounded bg-surface-500/20'
+  interface Props {
+    class?: string
+    cropSize?: {
+      width: number
+      height: number
+    }
+    cropShape?: 'rect' | 'round'
+    imageType?: string
+    quality?: number
+    file?: File | null
+    oncropcomplete: (obj: { blob: Blob }) => void
+  }
 
-  export { selfClass as class }
-  export let cropSize: {
-    width: number
-    height: number
-  } = { width: 200, height: 200 }
-  export let cropShape: 'rect' | 'round' = 'round'
-  export let imageType = 'image/webp'
-  export let quality: number = 0.7
-  export let file: File | null = null
+  let {
+    class:
+      selfClass = 'mx-auto w-[200px] h-[200px] rounded *:rounded bg-surface-500/20',
+    cropSize = { width: 200, height: 200 },
+    cropShape = 'round',
+    imageType = 'image/webp',
+    quality = 0.7,
+    file = null,
+    oncropcomplete
+  }: Props = $props()
 
-  let image: string
-  let crop = { x: 0, y: 0 }
-  let zoom = 1
+  let image: string = $state('')
+  let crop = $state({ x: 0, y: 0 })
+  let zoom = $state(1)
   let croppedAreaPixels: CropArea
 
   readImage(file)
-
-  const dispatch = createEventDispatcher<{
-    cropcomplete: { blob: Blob }
-  }>()
 
   function onFileSelected(e: Event) {
     const file = (e.target as HTMLInputElement)?.files![0] || null
@@ -76,7 +82,7 @@
       canvas.toBlob(
         (blob) => {
           // default to 'image/webp' or 'image/png'
-          blob && dispatch('cropcomplete', { blob })
+          blob && oncropcomplete({ blob })
         },
         imageType,
         quality

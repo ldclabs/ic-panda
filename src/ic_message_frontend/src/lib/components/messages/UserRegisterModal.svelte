@@ -24,28 +24,30 @@
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
   const toastStore = getToastStore()
   const modalStore = getModalStore()
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    onFinished?: () => void
+  }
 
-  // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let onFinished: () => void = () => {}
+  let { parent, myState, onFinished = () => {} }: Props = $props()
 
   const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   const messageState: Readable<StateInfo | null> = myState.api.stateStore
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
-  let validating = false
-  let submitting = false
-  let editMode = false
-  let availablePandaBalance = 0n
+  let validating = $state(false)
+  let submitting = $state(false)
+  let editMode = $state(false)
+  let availablePandaBalance = $state(0n)
 
-  let username = ''
-  let nameInput = ''
-  let usernameInput = ''
-  let usernameErr = ''
-  let amount = 0n
-  let existUsernames: string[] = []
+  let username = $state('')
+  let nameInput = $state('')
+  let usernameInput = $state('')
+  let usernameErr = $state('')
+  let amount = $state(0n)
+  let existUsernames: string[] = $state([])
 
   function checkName() {
     nameInput = nameInput.trim()
@@ -184,7 +186,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation={onFormChange}
+    onchange={onFormChange}
     use:focusTrap={true}
   >
     <div class="relative">
@@ -242,7 +244,7 @@
           <button
             type="button"
             class="btn btn-sm hover:variant-soft-primary"
-            on:click={onOpenWallet}
+            onclick={onOpenWallet}
           >
             <span class="*:size-4"><IconAdd /></span>
             <span>Topup</span>
@@ -259,7 +261,7 @@
         maxlength="20"
         data-1p-ignore
         bind:value={usernameInput}
-        on:input={onSearchUsername}
+        oninput={onSearchUsername}
         disabled={submitting || (editMode && username != '')}
         placeholder="{APP_ORIGIN}/{username || '[username]'}"
         data-focusindex="0"
@@ -290,7 +292,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating || amount > availablePandaBalance}
-      on:click={onRegister}
+      onclick={onRegister}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

@@ -1,12 +1,25 @@
 <script lang="ts">
-  export let value = ''
-  export let minHeight = '40'
-  export let maxHeight = '200'
-  export let containerClass = ''
-  export let onFilesChange: null | ((files: FileList) => void) = null
-  export let onKeydown: (event: KeyboardEvent) => void
+  interface Props {
+    value?: string
+    minHeight?: string
+    maxHeight?: string
+    containerClass?: string
+    onFilesChange?: null | ((files: FileList) => void)
+    onKeydown?: (event: KeyboardEvent) => void
+    [key: string]: any
+  }
 
-  let dragOver = false
+  let {
+    value = $bindable(''),
+    minHeight = '40',
+    maxHeight = '200',
+    containerClass = '',
+    onFilesChange = null,
+    onKeydown,
+    ...rest
+  }: Props = $props()
+
+  let dragOver = $state(false)
 
   function handleDragEnter(event: DragEvent) {
     event.preventDefault()
@@ -46,13 +59,12 @@
 
   <textarea
     bind:value
-    on:keydown={onKeydown}
-    on:dragenter={onFilesChange && handleDragEnter}
-    on:dragover|preventDefault
-    on:dragleave={onFilesChange && handleDragLeave}
-    on:drop={onFilesChange && handleDrop}
-    on:paste={onFilesChange && handlePaste}
-    {...$$restProps}
+    onkeydown={onKeydown}
+    ondragenter={onFilesChange && handleDragEnter}
+    ondragleave={onFilesChange && handleDragLeave}
+    ondrop={onFilesChange && handleDrop}
+    onpaste={onFilesChange && handlePaste}
+    {...rest}
   ></textarea>
 </div>
 

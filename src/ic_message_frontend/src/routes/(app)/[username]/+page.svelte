@@ -8,13 +8,13 @@
   import ProfileDetail from '$src/lib/components/messages/ProfileDetail.svelte'
   import { onMount } from 'svelte'
 
-  let myState: MyMessageState
-  $: isDark = document.documentElement.classList.contains('dark')
-  $: username = ($page?.params || {})['username'] || ''
-  $: pageKey = $authStore.identity.getPrincipal() + ':' + username
+  let myState: MyMessageState | undefined = $state()
+  let isDark = $derived(document.documentElement.classList.contains('dark'))
+  let username = $derived(($page?.params || {})['username'] || '')
+  let pageKey = $derived($authStore.identity.getPrincipal() + ':' + username)
 
   function onCloseHandler() {
-    goto(myState.api.myInfo ? '/_/messages' : '/')
+    goto(myState?.api.myInfo ? '/_/messages' : '/')
   }
 
   function onGobackHandler() {
@@ -35,11 +35,11 @@
     >
       <button
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        on:click={onGobackHandler}><IconArrowLeftSLine /></button
+        onclick={onGobackHandler}><IconArrowLeftSLine /></button
       >
       <button
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        on:click={onCloseHandler}><IconClose /></button
+        onclick={onCloseHandler}><IconClose /></button
       >
     </header>
     {#key pageKey}

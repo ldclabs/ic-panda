@@ -12,21 +12,24 @@
   import { type Readable } from 'svelte/store'
   import UsernameTransferModal from './UsernameTransferModal.svelte'
 
-  // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
-  export let myInfo: Readable<UserInfo & ProfileInfo>
-  export let onSave: (info: UserInfo & ProfileInfo) => Promise<void>
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+    myInfo: Readable<UserInfo & ProfileInfo>
+    onSave: (info: UserInfo & ProfileInfo) => Promise<void>
+  }
+
+  let { parent, myState, myInfo, onSave }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
 
-  let validating = false
-  let submitting = false
+  let validating = $state(false)
+  let submitting = $state(false)
 
-  let nameInput = $myInfo.name || ''
-  let descriptionInput = $myInfo.bio || ''
+  let nameInput = $state($myInfo.name || '')
+  let descriptionInput = $state($myInfo.bio || '')
 
   function checkName() {
     return ''
@@ -77,7 +80,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    onchange={onFormChange}
   >
     <div class="relative">
       <div
@@ -89,8 +92,7 @@
         </p>
         <button
           class="btn btn-sm p-0 text-neutral-500 hover:text-panda"
-          on:click|preventDefault|stopPropagation={onTransferUsernameHandler}
-          >Transfer</button
+          onclick={onTransferUsernameHandler}>Transfer</button
         >
       </div>
     </div>
@@ -124,7 +126,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onSaveHandler}
+      onclick={onSaveHandler}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

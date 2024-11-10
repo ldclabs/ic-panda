@@ -58,9 +58,13 @@
   import ChannelUploadModal from './ChannelUploadModal.svelte'
   import ProfileModal from './ProfileModal.svelte'
 
-  export let myState: MyMessageState
-  export let myInfo: Readable<UserInfo>
-  export let channelInfo: ChannelInfoEx
+  interface Props {
+    myState: MyMessageState
+    myInfo: Readable<UserInfo>
+    channelInfo: ChannelInfoEx
+  }
+
+  let { myState, myInfo, channelInfo = $bindable() }: Props = $props()
 
   const MaybeMaxMessageId = 0xffff0000
   const toastStore = getToastStore()
@@ -78,46 +82,27 @@
   type MessageInfoEx = MessageInfo & { pid?: number }
 
   let messageFeed: Writable<MessageInfoEx[]> = writable([])
-  let latestMessage: Readable<MessageInfo | null>
-  let elemChat: HTMLElement
-  let dek: AesGcmKey
+  let latestMessage: Readable<MessageInfo | null> | undefined = $state()
+  let elemChat: HTMLElement | undefined = $state()
+  let dek: AesGcmKey | undefined = $state()
   let channelAPI: ChannelAPI
   let PendingMessageId = MaybeMaxMessageId
 
   // Messages
-  let submitting = 0
-  let newMessage = sessionStorage.getItem(messageCacheKey) || ''
+  let submitting = $state(0)
+  let newMessage = $state(sessionStorage.getItem(messageCacheKey) || '')
   let messageStart = 1
-  let latestMessageId = 1
-  let lastRead = 1
-  let hasKEK = true
-  let fileInput: HTMLInputElement
-
-  $: {
-    const info = $latestMessage
-    if (info && elemChat) {
-      latestMessageId = info.id
-      addMessages([info])
-      tick().then(() => {
-        const msg = $messageFeed.at(-1)
-        if (msg && msg.id > lastRead && msg.id !== msg.pid) {
-          const ele = document.getElementById(
-            `${canister.toText()}:${id}:${msg.id}`
-          )
-          if (ele && elementsInViewport(elemChat, [ele]).length > 0) {
-            updateLastRead(msg.id)
-          }
-        }
-      })
-    }
-  }
+  let latestMessageId = $state(1)
+  let lastRead = $state(1)
+  let hasKEK = $state(true)
+  let fileInput: HTMLInputElement | undefined = $state()
 
   function onUploadButtonClick() {
     if (fileInput) fileInput.click()
   }
 
-  let uploading: (Progress & { name: string }) | null = null
-  let filePayload: FilePayload | null = null
+  let uploading: (Progress & { name: string }) | null = $state(null)
+  let filePayload: FilePayload | null = $state(null)
 
   function onUploadChangeHandler(e: Event): void {
     const files = (e.target as HTMLInputElement)?.files || []
@@ -128,7 +113,7 @@
 
   function onFilesChange(files: FileList): void {
     const file = files[0] || null
-    if (!file) return
+    if (!file || !dek) return
 
     modalStore.trigger({
       type: 'component',
@@ -139,7 +124,7 @@
           file,
           encryptBlob: async (blob: Blob) => {
             return coseA256GCMEncrypt0(
-              dek,
+              dek!,
               new Uint8Array(await blob.arrayBuffer()),
               new Uint8Array()
             )
@@ -277,14 +262,9 @@
     }
   }
 
-  $: messageReady =
-    submitting == 0 &&
-    uploading == null &&
-    (!!newMessage.trim() || !!filePayload)
-
   function sendMessage() {
     newMessage = newMessage.trim()
-    if (!messageReady) {
+    if (!messageReady || !dek) {
       return
     }
 
@@ -298,7 +278,7 @@
         reply_to: [] as [] | [number],
         channel: id,
         payload: await coseA256GCMEncrypt0(
-          dek,
+          dek!,
           detail.toBytes(),
           new Uint8Array()
         )
@@ -360,9 +340,9 @@
     { immediate: true }
   )
 
-  let topLoading = false
+  let topLoading = $state(false)
   async function loadPrevMessages(start: number, end: number) {
-    if (topLoading) {
+    if (topLoading || !dek) {
       return
     }
 
@@ -382,9 +362,9 @@
     topLoading = false
   }
 
-  let bottomLoading = false
+  let bottomLoading = $state(false)
   async function loadNextMessages(start: number) {
-    if (bottomLoading) {
+    if (bottomLoading || !dek) {
       return
     }
 
@@ -463,6 +443,10 @@
           channelInfo = await myState.refreshChannel(channelInfo)
         }
         hasKEK = !!channelInfo._kek
+        if (!hasKEK) {
+          return
+        }
+
         messageStart = channelInfo.message_start
         latestMessageId = channelInfo.latest_message_id
         lastRead = Math.min(channelInfo.my_setting.last_read, MaybeMaxMessageId)
@@ -479,13 +463,17 @@
         await loadNextMessages(lastRead + 1)
         await tick()
 
+        if (!elemChat) {
+          return
+        }
+
         // try to load unsend file
         filePayload = await myState.agent.getUploadingFile(
           channelInfo.canister,
           channelInfo.id
         )
         // no scroll
-        if (elemChat?.scrollTop == 0) {
+        if (elemChat.scrollTop == 0) {
           const msg = $messageFeed.at(-1)
           if (
             msg &&
@@ -554,6 +542,35 @@
     }
     debouncedUpdateMyLastRead.trigger()
   })
+
+  $effect(() => {
+    const info = $latestMessage
+    if (info && elemChat) {
+      latestMessageId = info.id
+      addMessages([info])
+      tick().then(() => {
+        const msg = $messageFeed.at(-1)
+        if (msg && msg.id > lastRead && msg.id !== msg.pid) {
+          const ele = document.getElementById(
+            `${canister.toText()}:${id}:${msg.id}`
+          )
+          if (
+            ele &&
+            elemChat &&
+            elementsInViewport(elemChat, [ele]).length > 0
+          ) {
+            updateLastRead(msg.id)
+          }
+        }
+      })
+    }
+  })
+
+  let messageReady = $derived(
+    submitting == 0 &&
+      uploading == null &&
+      (!!newMessage.trim() || !!filePayload)
+  )
 </script>
 
 <div
@@ -591,7 +608,7 @@
           <button
             type="button"
             class="btn btn-sm w-full justify-start"
-            on:click={onPopupDeleteMessage}
+            onclick={onPopupDeleteMessage}
           >
             <span class="*:size-5"><IconDeleteBin /></span><span>Delete</span>
           </button>
@@ -617,7 +634,7 @@
             <button
               class="btn h-fit p-0"
               disabled={msg.created_user.username === '_'}
-              on:click={() => {
+              onclick={() => {
                 onClickUser(msg.created_by)
               }}
             >
@@ -655,7 +672,7 @@
                   {/if}
                   {#if msg.detail}
                     {@const file = msg.detail.asFile()}
-                    {#if file}
+                    {#if file && dek}
                       <ChannelFileCard {myState} {file} {dek} {canister} {id} />
                     {/if}
                   {/if}
@@ -688,7 +705,7 @@
                     {:else if msg.kind !== 1}
                       <button
                         class="popup-trigger btn invisible h-10 p-0 group-hover:visible"
-                        on:click={(ev) => {
+                        onclick={(ev) => {
                           popupOpenOn(ev.currentTarget, msg)
                         }}
                       >
@@ -707,7 +724,7 @@
                     {/if}
                     {#if msg.detail}
                       {@const file = msg.detail.asFile()}
-                      {#if file}
+                      {#if file && dek}
                         <ChannelFileCard
                           {myState}
                           {file}
@@ -757,13 +774,13 @@
           <input
             type="file"
             bind:this={fileInput}
-            on:change={onUploadChangeHandler}
+            onchange={onUploadChangeHandler}
           />
         </div>
         <button
           class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
           disabled={submitting > 0 || uploading != null || filePayload != null}
-          on:click={onUploadButtonClick}
+          onclick={onUploadButtonClick}
         >
           <span class="*:size-5">
             <IconFileImageLine />
@@ -809,7 +826,7 @@
         ? 'before:translate-y-0 before:scale-150'
         : 'before:translate-y-full'}"
       disabled={!messageReady}
-      on:click={sendMessage}
+      onclick={sendMessage}
     >
       {#if submitting}
         <span class="*:size-5"><IconCircleSpin /></span>

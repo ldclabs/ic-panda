@@ -5,7 +5,7 @@
   import { onMount } from 'svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
 
-  let myState: MyMessageState
+  let myState: MyMessageState = $state()
   onMount(async () => {
     myState = await MyMessageState.load()
     if (myState.principal.isAnonymous()) {

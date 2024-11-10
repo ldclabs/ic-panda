@@ -16,11 +16,15 @@
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onDestroy, onMount, tick } from 'svelte'
 
-  export let myState: MyMessageState
-  export let file: FilePayload
-  export let dek: AesGcmKey
-  export let canister: Principal
-  export let id: number
+  interface Props {
+    myState: MyMessageState
+    file: FilePayload
+    dek: AesGcmKey
+    canister: Principal
+    id: number
+  }
+
+  let { myState, file, dek, canister, id }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
@@ -41,8 +45,8 @@
   }
 
   let blobUrl: string
-  let imageUrl = ''
-  let downloading = false
+  let imageUrl = $state('')
+  let downloading = $state(false)
   function onDownloadFile() {
     if (downloading) return
     downloading = true
@@ -111,7 +115,7 @@
     <button
       type="button"
       class="w-full border-b border-surface-500/20 p-4"
-      on:click={onPreviewImage}
+      onclick={onPreviewImage}
     >
       <img src={imageUrl} alt={file.name} />
     </button>
@@ -126,7 +130,7 @@
       type="button"
       class="btn btn-sm text-surface-500 hover:text-black dark:hover:text-white"
       disabled={downloading}
-      on:click={onDownloadFile}
+      onclick={onDownloadFile}
     >
       <span class="*:size-5">
         {#if downloading}

@@ -7,22 +7,31 @@
   import { type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let link: Link | null = null
-  export let onSave: (link: Link) => Promise<void>
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    link?: Link | null
+    onSave: (link: Link) => Promise<void>
+  }
+
+  let { parent, link = null, onSave }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
 
-  let submitting = false
-  let uriInput = link ? link.uri : ''
-  let titleInput = link ? link.title : ''
-  $: validating =
-    uriInput.length > 0 &&
-    uriInput.trim() == uriInput &&
-    titleInput.length > 0 &&
-    titleInput.trim() == titleInput
+  let submitting = $state(false)
+  let uriInput = $state(link ? link.uri : '')
+  let titleInput = $state(link ? link.title : '')
+  let validating = $state(false)
+
+  $effect(() => {
+    validating =
+      uriInput.length > 0 &&
+      uriInput.trim() == uriInput &&
+      titleInput.length > 0 &&
+      titleInput.trim() == titleInput
+  })
 
   function onSaveHandler() {
     submitting = true
@@ -34,10 +43,7 @@
       })
 
       modalStore.close()
-    }, toastStore).finally(() => {
-      submitting = false
-      validating = false
-    })
+    }, toastStore).finally(() => {})
   }
 </script>
 
@@ -79,7 +85,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onSaveHandler}
+      onclick={onSaveHandler}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

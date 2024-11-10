@@ -5,7 +5,7 @@
   import MyProfile from '$src/lib/components/messages/MyProfile.svelte'
   import { onMount } from 'svelte'
 
-  let myState: MyMessageState
+  let myState: MyMessageState = $state()
   onMount(async () => {
     myState = await MyMessageState.load()
     if (myState.principal.isAnonymous()) {

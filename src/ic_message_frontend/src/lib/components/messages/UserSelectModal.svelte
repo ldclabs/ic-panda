@@ -24,12 +24,23 @@
     ecdhPub: Uint8Array | null
   }
 
-  export let parent: SvelteComponent
-  export let isAddManager: boolean = false
-  export let existsManagers: string[] = []
-  export let existsMembers: string[] = []
-  export let myState: MyMessageState
-  export let onSave: (users: [Principal, Uint8Array | null][]) => Promise<void>
+  interface Props {
+    parent: SvelteComponent
+    isAddManager?: boolean
+    existsManagers?: string[]
+    existsMembers?: string[]
+    myState: MyMessageState
+    onSave: (users: [Principal, Uint8Array | null][]) => Promise<void>
+  }
+
+  let {
+    parent,
+    isAddManager = false,
+    existsManagers = [],
+    existsMembers = [],
+    myState,
+    onSave
+  }: Props = $props()
 
   const title: string = isAddManager ? 'Add Managers' : 'Add members'
   const toastStore = getToastStore()
@@ -45,9 +56,9 @@
     return info
   }
 
-  let elemSearcher: HTMLElement
-  let userInput = ''
-  let submitting = false
+  let elemSearcher: HTMLElement | undefined = $state()
+  let userInput = $state('')
+  let submitting = $state(false)
 
   const debouncedSearch = debounce(async () => {
     const name = userInput.trim()
@@ -143,6 +154,10 @@
   }
 
   onMount(() => {
+    if (!elemSearcher) {
+      return
+    }
+
     const aborter = clickOutside(elemSearcher, () => {
       searchUsers.set([])
     })
@@ -168,7 +183,7 @@
       maxlength="64"
       data-1p-ignore
       bind:value={userInput}
-      on:input={onSearchUsername}
+      oninput={onSearchUsername}
       placeholder="username or principal"
     />
     <div
@@ -191,7 +206,7 @@
           </div>
           <button
             class="pointer btn btn-sm hover:bg-panda/10"
-            on:click={() => onUnSelectUser(user)}
+            onclick={() => onUnSelectUser(user)}
           >
             <span class="text-neutral-300 *:size-6"><IconSubtractLine /></span>
           </button>
@@ -212,7 +227,7 @@
       {#each $searchUsers as user (user._id)}
         <button
           class="pointer btn grid w-full grid-cols-[1fr_auto] items-center rounded-none p-2 hover:bg-panda/10"
-          on:click={() => onSelectUser(user)}
+          onclick={() => onSelectUser(user)}
           disabled={user.isManager || (user.isMember && !isAddManager)}
         >
           <div class="flex flex-row items-center space-x-2">
@@ -234,7 +249,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || $selectedUsers.length === 0}
-      on:click={onSaveHandler}
+      onclick={onSaveHandler}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

@@ -9,20 +9,23 @@
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
-  // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let myState: MyMessageState
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    myState: MyMessageState
+  }
+
+  let { parent, myState }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
 
-  let validating = false
-  let submitting = false
+  let validating = $state(false)
+  let submitting = $state(false)
 
-  let usernameInput = ''
-  let toInput = ''
+  let usernameInput = $state('')
+  let toInput = $state('')
 
   function checkUsername() {
     if (usernameInput.trim() !== $myInfo.username[0]) {
@@ -73,7 +76,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    on:input|preventDefault|stopPropagation|stopImmediatePropagation={onFormChange}
+    onchange={onFormChange}
   >
     <div class="relative mt-4">
       <input
@@ -108,7 +111,7 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      on:click={onSaveHandler}
+      onclick={onSaveHandler}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>

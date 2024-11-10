@@ -4,11 +4,17 @@
   import type { PopupSettings } from '@skeletonlabs/skeleton'
   import { clipboard, popup } from '@skeletonlabs/skeleton'
 
-  let selfClass: string = 'align-middle'
+  interface Props {
+    class?: string
+    textName: string
+    textValue: string
+  }
 
-  export { selfClass as class }
-  export let textName: string
-  export let textValue: string
+  let {
+    class: selfClass = 'align-middle',
+    textName,
+    textValue
+  }: Props = $props()
 
   const textHover: PopupSettings = {
     event: 'hover',
@@ -16,7 +22,7 @@
     placement: 'top'
   }
 
-  let copiedClass = ''
+  let copiedClass = $state('')
 
   function onCopyHandler(): void {
     copiedClass = '!text-panda'
@@ -31,7 +37,7 @@
     class="{copiedClass} float-right mt-[3px] *:size-5"
     use:popup={textHover}
     use:clipboard={textValue}
-    on:click={onCopyHandler}
+    onclick={onCopyHandler}
     disabled={copiedClass != ''}
   >
     {#if copiedClass != ''}
@@ -45,6 +51,6 @@
     data-popup={textHover.target}
   >
     <p class="text-pretty break-all">{textName}</p>
-    <div class="arrow bg-surface-800" />
+    <div class="arrow bg-surface-800"></div>
   </div>
 </div>

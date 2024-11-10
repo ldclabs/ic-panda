@@ -37,9 +37,13 @@
   import ChannelUpdateStorageModal from './ChannelUpdateStorageModal.svelte'
   import UserSelectModal from './UserSelectModal.svelte'
 
-  export let myState: MyMessageState
-  export let myInfo: Readable<UserInfo>
-  export let channelInfo: Readable<ChannelInfoEx>
+  interface Props {
+    myState: MyMessageState
+    myInfo: Readable<UserInfo>
+    channelInfo: Readable<ChannelInfoEx>
+  }
+
+  let { myState, myInfo, channelInfo }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
@@ -47,19 +51,22 @@
   const myID = $myInfo.id.toText()
   const { canister, id } = $channelInfo
 
-  let mute = $channelInfo.my_setting.mute
-  let isManager = false
-  let validKEK = true
+  let mute = $state($channelInfo.my_setting.mute)
+  let isManager = $state(false)
+  let validKEK = $state(true)
 
-  $: files_state = $channelInfo.files_state[0] || {
-    files_size_total: 0n,
-    file_max_size: 0n,
-    files_total: 0n
-  }
-  $: hasExchangeKeys =
+  let files_state = $derived(
+    $channelInfo.files_state[0] || {
+      files_size_total: 0n,
+      file_max_size: 0n,
+      files_total: 0n
+    }
+  )
+  let hasExchangeKeys = $derived(
     $channelInfo.ecdh_request.filter(
       (r) => r[0].toText() !== myID && r[1][1].length === 0
     ).length > 0
+  )
 
   async function loadMembers() {
     const res = await myState.channelMembers($channelInfo, $myInfo)
@@ -131,7 +138,7 @@
     })
   }
 
-  let muteSubmitting = false
+  let muteSubmitting = $state(false)
   function onClickMute() {
     muteSubmitting = true
 
@@ -150,7 +157,7 @@
     })
   }
 
-  let myECDHSubmitting = false
+  let myECDHSubmitting = $state(false)
   function onClickMyECDH() {
     myECDHSubmitting = true
 
@@ -183,8 +190,8 @@
     })
   }
 
-  let leavingWord = ''
-  let myLeavingSubmitting = false
+  let leavingWord = $state('')
+  let myLeavingSubmitting = $state(false)
   function onClickMyLeaving() {
     if (leavingWord.trim() != $channelInfo.name) {
       return
@@ -202,7 +209,7 @@
     })
   }
 
-  let adminExchangeKeysSubmitting = false
+  let adminExchangeKeysSubmitting = $state(false)
   function onClickAdminExchangeKeys() {
     adminExchangeKeysSubmitting = true
     toastRun(async (signal: AbortSignal) => {
@@ -216,7 +223,7 @@
     })
   }
 
-  let adminAddManagersSubmitting = false
+  let adminAddManagersSubmitting = $state(false)
   function onClickAdminAddManagers() {
     const existsMembers = $channelInfo.members.map((m) => m.toText())
     modalStore.trigger({
@@ -253,7 +260,7 @@
     })
   }
 
-  let adminAddMembersSubmitting = false
+  let adminAddMembersSubmitting = $state(false)
   function onClickAdminAddMembers() {
     modalStore.trigger({
       type: 'component',
@@ -279,7 +286,7 @@
     })
   }
 
-  let adminRemoveMembersSubmitting = ''
+  let adminRemoveMembersSubmitting = $state('')
   function onClickAdminRemoveMember(_id: string) {
     toastRun(async (signal: AbortSignal) => {
       const api = myState.api.channelAPI(canister)
@@ -322,7 +329,7 @@
     {#if isManager}
       <button
         class="group btn relative p-0 hover:bg-surface-500/50"
-        on:click={onUploadChannelImage}
+        onclick={onUploadChannelImage}
       >
         <Avatar
           initials={$channelInfo.name}
@@ -354,7 +361,7 @@
           <button
             type="button"
             class="btn ml-2 p-0 text-neutral-500"
-            on:click={onClickEditChannel}
+            onclick={onClickEditChannel}
           >
             <span class="*:size-4"><IconEditLine /></span>
           </button>
@@ -383,7 +390,7 @@
     <button
       type="button"
       class="btn btn-sm hover:variant-soft-primary"
-      on:click={onClickTopupChannel}
+      onclick={onClickTopupChannel}
     >
       <span class="*:size-4"><IconAdd /></span>
       <span>Topup</span>
@@ -410,7 +417,7 @@
       <button
         type="button"
         class="btn btn-sm hover:variant-soft-primary"
-        on:click={onClickUpdateChannelStorage}
+        onclick={onClickUpdateChannelStorage}
       >
         <span class="*:size-4"><IconEditLine /></span>
         <span>Update</span>
@@ -439,7 +446,7 @@
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
-          on:click={onClickMyECDH}
+          onclick={onClickMyECDH}
           disabled={myECDHSubmitting}
           ><span>Key received, accept it</span></button
         >
@@ -455,7 +462,7 @@
         <button
           type="button"
           class="variant-filled-error btn btn-sm"
-          on:click={onClickMyECDH}
+          onclick={onClickMyECDH}
           disabled={myECDHSubmitting}
           ><span>No key to decrypt messages, make a request</span></button
         >
@@ -478,7 +485,7 @@
         <button
           type="button"
           class="variant-filled-warning !px-2 disabled:variant-filled-surface"
-          on:click={onClickMyLeaving}
+          onclick={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
             leavingWord.trim() != $channelInfo.name}
           ><span class="*:size-5">
@@ -508,7 +515,7 @@
           <button
             type="button"
             class="btn btn-sm hover:variant-soft-primary"
-            on:click={onClickAdminAddManagers}
+            onclick={onClickAdminAddManagers}
             disabled={adminAddManagersSubmitting}
           >
             <span class="*:size-4"><IconAdd /></span>
@@ -517,7 +524,7 @@
           <button
             type="button"
             class="btn btn-sm hover:variant-soft-primary"
-            on:click={onClickAdminAddMembers}
+            onclick={onClickAdminAddMembers}
             disabled={adminAddMembersSubmitting}
           >
             <span class="*:size-4"><IconAdd /></span>
@@ -529,7 +536,7 @@
             !adminExchangeKeysSubmitting
               ? 'text-panda'
               : 'text-neutral-500'}"
-            on:click={onClickAdminExchangeKeys}
+            onclick={onClickAdminExchangeKeys}
             disabled={adminExchangeKeysSubmitting || !hasExchangeKeys}
           >
             <span class="*:size-4"><IconExchange2Line /></span>
@@ -579,7 +586,7 @@
                 class="variant-soft-warning btn btn-sm invisible group-hover:visible"
                 type="button"
                 disabled={adminRemoveMembersSubmitting !== ''}
-                on:click={() => onClickAdminRemoveMember(member._id)}
+                onclick={() => onClickAdminRemoveMember(member._id)}
               >
                 <span>Remove</span>
               </button>

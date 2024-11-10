@@ -39,7 +39,7 @@
     needRefresh.set(false)
   }
 
-  $: {
+  $effect(() => {
     if ($needRefresh) {
       toastStore.trigger({
         autohide: false,
@@ -52,7 +52,7 @@
         callback: close
       })
     }
-  }
+  })
 </script>
 
 <!-- placeholder for the reload prompt -->

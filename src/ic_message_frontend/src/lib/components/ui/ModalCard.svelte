@@ -4,11 +4,19 @@
   import { type SvelteComponent } from 'svelte'
 
   // Props
-  /** Exposes parent props to this component. */
-  export let parent: SvelteComponent
-  export let width: string = 'w-full'
+
+  interface Props {
+    /** Exposes parent props to this component. */
+    parent: SvelteComponent
+    width?: string
+    children?: import('svelte').Snippet<[any]>
+  }
+
+  let { parent, width = 'w-full', children }: Props = $props()
 
   const modalStore = getModalStore()
+
+  const children_render = $derived(children)
 </script>
 
 {#if $modalStore[0]}
@@ -19,7 +27,7 @@
   >
     <button
       class="z-1 btn btn-icon absolute right-2 top-2 text-neutral-500 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
-      on:click={parent['onClose']}
+      onclick={parent['onClose']}
     >
       <IconClose />
     </button>
@@ -28,6 +36,6 @@
         {$modalStore[0].title}
       </header>
     {/if}
-    <slot {parent} />
+    {@render children_render?.({ parent })}
   </div>
 {/if}
