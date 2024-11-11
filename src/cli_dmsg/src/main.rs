@@ -1,4 +1,4 @@
-use candid::{Nat, Principal};
+use candid::{pretty::candid::value::pp_value, CandidType, IDLValue, Nat, Principal};
 use chrono::prelude::*;
 use ciborium::{from_reader, into_writer};
 use clap::{Parser, Subcommand};
@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::{
     collections::BTreeMap,
+    fmt::Write,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -50,6 +51,16 @@ pub enum Commands {
 
         #[arg(long, short)]
         usernames: Vec<String>,
+    },
+    Blocks {
+        #[arg(long, short)]
+        start: u64,
+
+        #[arg(long, short)]
+        length: u64,
+
+        #[arg(long, short)]
+        format: Option<String>,
     },
 }
 
@@ -111,7 +122,7 @@ async fn main() -> Result<(), String> {
                         let now = start_at.duration_since(UNIX_EPOCH).map_err(format_error)?;
                         let now = now.as_millis() as u64;
                         let _ = agent
-                            .send_token_to(&TOKEN_CANISTER, user.id, amount_e8s.into())
+                            .send_token_to(&TOKEN_CANISTER, user.id, amount_e8s)
                             .await?;
                         sr.0.insert(username.clone(), (user.id, amount_e8s, now));
                         let utc: DateTime<Utc> = Utc.timestamp_millis_opt(now as i64).unwrap();
@@ -130,6 +141,35 @@ async fn main() -> Result<(), String> {
             let send_total: u64 = sr.0.iter().map(|(_, (_, amount, _))| *amount).sum();
             println!("Sent count: {}", sr.0.len());
             println!("Total sent: {}", pretty_amount(send_total));
+        }
+
+        Some(Commands::Blocks {
+            start,
+            length,
+            format,
+        }) => {
+            let agent = DMsgAgent {
+                agent,
+                canister_id: MSG_CANISTER,
+            };
+            let blocks = agent
+                .icrc3_get_blocks((*start).into(), (*length).into())
+                .await?;
+
+            match format {
+                Some(_) => {
+                    let mut ss = String::new();
+                    for block in blocks {
+                        write!(&mut ss, " -u {}", block.name).map_err(format_error)?;
+                    }
+                    println!("{}", ss);
+                }
+                None => {
+                    for block in blocks {
+                        println!("{:?}", block);
+                    }
+                }
+            }
         }
 
         None => {}
@@ -153,6 +193,16 @@ where
     T: std::fmt::Debug,
 {
     format!("{:?}", err)
+}
+
+fn pretty_println<T>(data: &T) -> Result<(), String>
+where
+    T: CandidType,
+{
+    let val = IDLValue::try_from_candid_type(data).map_err(format_error)?;
+    let doc = pp_value(7, &val);
+    println!("{}", doc.pretty(120));
+    Ok(())
 }
 
 fn pretty_amount(amount: u64) -> String {

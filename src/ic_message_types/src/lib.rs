@@ -5,7 +5,7 @@ use serde_bytes::ByteArray;
 pub mod channel;
 pub mod profile;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NameBlock {
     #[serde(rename = "h")]
     pub height: u64,
