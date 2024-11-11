@@ -1,10 +1,10 @@
 [package]
-name = "cli_airdrop"
+name = "cli_dmsg"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "cli_airdrop"
+name = "cli_dmsg"
 path = "src/main.rs"
 
 [dependencies]
@@ -16,11 +16,12 @@ sha2 = { workspace = true }
 tokio = { workspace = true }
 ic-agent = { workspace = true }
 ic-certification = { workspace = true }
-clap = { workspace = true }
 ciborium = { workspace = true }
 num-traits = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
 icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
 ic-icrc1 = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
 ic-ledger-core = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
 ic-icrc1-tokens-u64 = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
-ic-cbor = "2.6"
+ic_message_types = { path = "../ic_message_types", version = "2" }

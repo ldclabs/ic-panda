@@ -25,6 +25,7 @@ serde_json = { workspace = true }
 serde_bytes = { workspace = true }
 ciborium = { workspace = true }
 base64 = { workspace = true }
+chrono = { workspace = true }
 anyhow = "1"
 http = "1"
 dotenvy = "0.15"
@@ -55,7 +56,6 @@ reqwest = { version = "0.12", features = [
   "http2",
 ], default-features = false }
 url = { version = "2" }
-chrono = { version = "0.4", features = ["serde"] }
 tower_governor = { git = "https://github.com/ldclabs/tower-governor.git", features = [
   "axum",
 ], default-features = false }

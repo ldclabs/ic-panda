@@ -2,6 +2,7 @@
 members = [
   "src/cli_airdrop",
   "src/cli_cryptogram",
+  "src/cli_dmsg",
   "src/ic_message",
   "src/ic_message_channel",
   "src/ic_message_profile",
@@ -55,3 +56,5 @@ ic-certification = "2.6"
 ic-oss-types = "0.9"
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", features = ["getrandom"] }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "=4.5", features = ["derive"] }
