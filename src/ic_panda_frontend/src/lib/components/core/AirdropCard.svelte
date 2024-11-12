@@ -100,7 +100,7 @@
             We will gradually increase the number of PANDA tokens available for
             airdrop to ensure an orderly distribution.
           </p>
-          <div class="arrow bg-surface-800" />
+          <div class="arrow bg-surface-800"></div>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@
 
 {#if $modalStore[0]}
   <!-- This is a hack to fix the focus issue -->
-  <button class="hidden"></button>
+  <button class="hidden">x</button>
   <div
     class="card relative mt-12 {width} max-w-[420px] space-y-4 rounded-3xl bg-white p-6 shadow-xl max-md:mt-8"
   >

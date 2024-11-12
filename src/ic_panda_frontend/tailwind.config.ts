@@ -5,8 +5,7 @@ import colors from 'tailwindcss/colors'
 
 const config = {
   content: [
-    './src/lib/**/*.{html,svelte,ts}',
-    './src/routes/**/*.{html,svelte,ts}',
+    './src/**/*.{html,js,svelte,ts}',
     join(
       require.resolve('@skeletonlabs/skeleton'),
       '../**/*.{html,svelte,js,ts}'

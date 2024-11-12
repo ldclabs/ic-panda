@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     luckyPoolAPI,
-    type AddPrizeInput,
+    type AddPrizeInputV2 as AddPrizeInput,
     type NameOutput,
     type PrizeOutput
   } from '$lib/canisters/luckypool'
@@ -504,7 +504,7 @@
             name="prizeInputMessage"
             bind:value={prizeInputMessage}
             disabled={submitting}
-          />
+          ></textarea>
           <button
             class="btn absolute right-0 top-6 outline-0"
             disabled={submitting}

@@ -99,7 +99,7 @@
   <div class="!mt-0 text-center text-xl font-bold">{title}</div>
   <div class="relative">
     <!-- svelte-ignore a11y-media-has-caption -->
-    <video bind:this={videoPlayer} on:play={scanQR} />
+    <video bind:this={videoPlayer} on:play={scanQR}></video>
     {#if scan}
       <section class="absolute left-0 top-0 h-full w-full"></section>
     {/if}

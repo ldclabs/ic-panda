@@ -25,7 +25,6 @@ export {
   utf8ToBytes
 } from '@ldclabs/cose-ts/utils'
 
-export { AesGcmKey } from '@ldclabs/cose-ts/aesgcm'
 export { ECDHKey } from '@ldclabs/cose-ts/ecdh'
 export * as iana from '@ldclabs/cose-ts/iana'
 

@@ -218,26 +218,32 @@
               end: 20
             },
             {
-              label: 'DAO Treasury - Lucky Pool to All',
+              label: 'DAO Treasury - Airdropped to holders',
               color: 'rgba(234,179,8,0.5)',
               start: 20,
-              end: 70
+              end: 52
+            },
+            {
+              label: 'DAO Treasury - Airdrop to new users',
+              color: 'rgba(234,179,8,0.6)',
+              start: 52,
+              end: 62
             },
             {
               label: 'DAO Treasury - Community Incentive',
-              color: 'rgba(234,179,8,0.6)',
-              start: 70,
+              color: 'rgba(234,179,8,0.7)',
+              start: 62,
               end: 80
             },
             {
               label: 'DAO Treasury - CEX Incentive',
-              color: 'rgba(234,179,8,0.7)',
+              color: 'rgba(234,179,8,0.8)',
               start: 80,
               end: 90
             },
             {
               label: 'DAO Treasury - DEX Liquidity',
-              color: 'rgba(234,179,8,0.8)',
+              color: 'rgba(234,179,8,0.9)',
               start: 90,
               end: 100
             }

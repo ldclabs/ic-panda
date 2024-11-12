@@ -45,6 +45,6 @@
     data-popup={textHover.target}
   >
     <p class="text-balance break-words">{textName}</p>
-    <div class="arrow bg-surface-800" />
+    <div class="arrow bg-surface-800"></div>
   </div>
 </div>
