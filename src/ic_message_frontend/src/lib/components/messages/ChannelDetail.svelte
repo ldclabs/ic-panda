@@ -12,7 +12,7 @@
   import type { Principal } from '@dfinity/principal'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import { getContext, onMount } from 'svelte'
-  import { type Readable } from 'svelte/store'
+  import { readable, type Readable } from 'svelte/store'
   import ChannelMessages from './ChannelMessages.svelte'
   import ChannelSetting from './ChannelSetting.svelte'
 
@@ -28,7 +28,7 @@
   const { canister, id } = channelId
   const onChatBack = getContext('onChatBack') as () => void
 
-  let channelInfo: Readable<ChannelInfoEx> | undefined = $state()
+  let channelInfo: Readable<ChannelInfoEx | null> = $state(readable(null))
   let isLoading = $state(true)
   let openMessages = $state(true)
   let switching = $state(false)
@@ -136,8 +136,8 @@
   {:else if $channelInfo}
     {#if openMessages}
       <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
-    {:else if channelInfo}
-      <ChannelSetting {myState} {myInfo} {channelInfo} />
+    {:else}
+      <ChannelSetting {myState} {myInfo} channelInfo={$channelInfo} />
     {/if}
   {:else}
     <div class="m-auto size-24 rounded-full *:size-24">

@@ -40,37 +40,41 @@
   interface Props {
     myState: MyMessageState
     myInfo: Readable<UserInfo>
-    channelInfo: Readable<ChannelInfoEx>
+    channelInfo: ChannelInfoEx
   }
 
-  let { myState, myInfo, channelInfo }: Props = $props()
+  let props: Props = $props()
+  let { myState, myInfo } = props
 
+  let channelInfo = $state(props.channelInfo)
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const members: Writable<DisplayUserInfoEx[]> = writable([])
   const myID = $myInfo.id.toText()
-  const { canister, id } = $channelInfo
 
-  let mute = $state($channelInfo.my_setting.mute)
+  // svelte-ignore state_referenced_locally
+  const { canister, id } = channelInfo
+  // svelte-ignore state_referenced_locally
+  let mute = $state(channelInfo.my_setting.mute)
   let isManager = $state(false)
   let validKEK = $state(true)
 
   let files_state = $derived(
-    $channelInfo.files_state[0] || {
+    channelInfo.files_state[0] || {
       files_size_total: 0n,
       file_max_size: 0n,
       files_total: 0n
     }
   )
   let hasExchangeKeys = $derived(
-    $channelInfo.ecdh_request.filter(
+    channelInfo.ecdh_request.filter(
       (r) => r[0].toText() !== myID && r[1][1].length === 0
     ).length > 0
   )
 
   async function loadMembers() {
-    const res = await myState.channelMembers($channelInfo, $myInfo)
-    isManager = $channelInfo._managers.includes(myID)
+    const res = await myState.channelMembers(channelInfo, $myInfo)
+    isManager = channelInfo._managers.includes(myID)
     members.set(res)
   }
 
@@ -81,9 +85,9 @@
         ref: ChannelImageUploadModal,
         props: {
           myState,
-          channel: $channelInfo,
-          onFinished: () => {
-            myState.refreshChannel($channelInfo)
+          channel: channelInfo,
+          onFinished: async () => {
+            channelInfo = await myState.refreshChannel(channelInfo)
           }
         }
       }
@@ -96,12 +100,12 @@
       component: {
         ref: ChannelEditModal,
         props: {
-          channel: $channelInfo,
+          channel: channelInfo,
           onSave: (input: UpdateChannelInput) => {
             return toastRun(async (signal: AbortSignal) => {
               const api = myState.api.channelAPI(canister)
               await api.update_channel(input)
-              await myState.refreshChannel($channelInfo)
+              channelInfo = await myState.refreshChannel(channelInfo)
             }, toastStore).finally()
           }
         }
@@ -116,7 +120,7 @@
         ref: ChannelTopupModal,
         props: {
           myState,
-          channel: $channelInfo
+          channel: channelInfo
         }
       }
     })
@@ -129,9 +133,9 @@
         ref: ChannelUpdateStorageModal,
         props: {
           myState,
-          channel: $channelInfo,
-          onFinished: () => {
-            myState.refreshChannel($channelInfo)
+          channel: channelInfo,
+          onFinished: async () => {
+            channelInfo = await myState.refreshChannel(channelInfo)
           }
         }
       }
@@ -151,7 +155,7 @@
         mute: [mute],
         last_read: []
       })
-      await myState.refreshChannel($channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
     }, toastStore).finally(() => {
       muteSubmitting = false
     })
@@ -162,10 +166,10 @@
     myECDHSubmitting = true
 
     toastRun(async (signal: AbortSignal) => {
-      if ($channelInfo.my_setting.ecdh_remote.length === 1) {
+      if (channelInfo.my_setting.ecdh_remote.length === 1) {
         try {
-          await myState.acceptKEK($channelInfo)
-          await myState.decryptChannelDEK($channelInfo)
+          await myState.acceptKEK(channelInfo)
+          await myState.decryptChannelDEK(channelInfo)
           validKEK = true
         } catch (err: any) {
           validKEK = false
@@ -175,16 +179,16 @@
             background: 'variant-soft-error',
             message: `Failed to receive the key. A new key has been requested.\n<br />Error: ${errMessage(err)}`
           })
-          const my_setting = { ...$channelInfo.my_setting }
+          const my_setting = { ...channelInfo.my_setting }
           my_setting.ecdh_remote = []
           my_setting.ecdh_pub = []
-          await myState.requestKEK({ ...$channelInfo, my_setting })
+          await myState.requestKEK({ ...channelInfo, my_setting })
         }
       } else {
-        await myState.requestKEK($channelInfo)
+        await myState.requestKEK(channelInfo)
       }
 
-      await myState.refreshChannel($channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
     }, toastStore).finally(() => {
       myECDHSubmitting = false
     })
@@ -193,7 +197,7 @@
   let leavingWord = $state('')
   let myLeavingSubmitting = $state(false)
   function onClickMyLeaving() {
-    if (leavingWord.trim() != $channelInfo.name) {
+    if (leavingWord.trim() != channelInfo.name) {
       return
     }
 
@@ -214,9 +218,9 @@
     adminExchangeKeysSubmitting = true
     toastRun(async (signal: AbortSignal) => {
       // fetch the latest ECDH request
-      await myState.refreshChannel($channelInfo)
-      await myState.adminExchangeKEK($channelInfo)
-      await myState.refreshChannel($channelInfo)
+      await myState.refreshChannel(channelInfo)
+      await myState.adminExchangeKEK(channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminExchangeKeysSubmitting = false
@@ -225,14 +229,14 @@
 
   let adminAddManagersSubmitting = $state(false)
   function onClickAdminAddManagers() {
-    const existsMembers = $channelInfo.members.map((m) => m.toText())
+    const existsMembers = channelInfo.members.map((m) => m.toText())
     modalStore.trigger({
       type: 'component',
       component: {
         ref: UserSelectModal,
         props: {
           isAddManager: true,
-          existsManagers: $channelInfo._managers,
+          existsManagers: channelInfo._managers,
           existsMembers,
           myState: myState,
           onSave: (members: Array<[Principal, Uint8Array | null]>) => {
@@ -245,11 +249,11 @@
                 members.length === 1 &&
                 existsMembers.includes(member[0].toText())
               ) {
-                await myState.adminAddManager($channelInfo, member[0])
+                await myState.adminAddManager(channelInfo, member[0])
               } else {
-                await myState.adminAddMembers($channelInfo, 'Manager', members)
+                await myState.adminAddMembers(channelInfo, 'Manager', members)
               }
-              await myState.refreshChannel($channelInfo)
+              channelInfo = await myState.refreshChannel(channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddManagersSubmitting = false
@@ -268,14 +272,14 @@
         ref: UserSelectModal,
         props: {
           isAddManager: false,
-          existsManagers: $channelInfo._managers,
-          existsMembers: $channelInfo.members.map((m) => m.toText()),
+          existsManagers: channelInfo._managers,
+          existsMembers: channelInfo.members.map((m) => m.toText()),
           myState: myState,
           onSave: (members: Array<[Principal, Uint8Array | null]>) => {
             adminAddMembersSubmitting = true
             toastRun(async (signal: AbortSignal) => {
-              await myState.adminAddMembers($channelInfo, 'Member', members)
-              await myState.refreshChannel($channelInfo)
+              await myState.adminAddMembers(channelInfo, 'Member', members)
+              channelInfo = await myState.refreshChannel(channelInfo)
               await loadMembers()
             }, toastStore).finally(() => {
               adminAddMembersSubmitting = false
@@ -299,7 +303,7 @@
         } as ChannelECDHInput
       })
 
-      await myState.refreshChannel($channelInfo)
+      channelInfo = await myState.refreshChannel(channelInfo)
       await loadMembers()
     }, toastStore).finally(() => {
       adminRemoveMembersSubmitting = ''
@@ -308,9 +312,9 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      await myState.refreshChannel($channelInfo, true)
+      channelInfo = await myState.refreshChannel(channelInfo, true)
       try {
-        await myState.decryptChannelDEK($channelInfo)
+        await myState.decryptChannelDEK(channelInfo)
         validKEK = true
       } catch (_e) {
         validKEK = false
@@ -332,10 +336,10 @@
         onclick={onUploadChannelImage}
       >
         <Avatar
-          initials={$channelInfo.name}
-          src={$channelInfo.image}
+          initials={channelInfo.name}
+          src={channelInfo.image}
           border="border-4 border-white"
-          background={$channelInfo.image ? '' : 'bg-panda'}
+          background={channelInfo.image ? '' : 'bg-panda'}
           fill="fill-white"
           width="size-20"
         />
@@ -346,17 +350,17 @@
       </button>
     {:else}
       <Avatar
-        initials={$channelInfo.name}
-        src={$channelInfo.image}
+        initials={channelInfo.name}
+        src={channelInfo.image}
         border="border-4 border-white"
-        background={$channelInfo.image ? '' : 'bg-panda'}
+        background={channelInfo.image ? '' : 'bg-panda'}
         fill="fill-white"
         width="size-20"
       />
     {/if}
     <div class="flex-1">
       <p class="flex flex-row">
-        <span>{$channelInfo.name}</span>
+        <span>{channelInfo.name}</span>
         {#if isManager}
           <button
             type="button"
@@ -367,9 +371,9 @@
           </button>
         {/if}
       </p>
-      {#if $channelInfo.description}
+      {#if channelInfo.description}
         <div class="mt-2">
-          {@html md.render($channelInfo.description)}
+          {@html md.render(channelInfo.description)}
         </div>
       {/if}
     </div>
@@ -378,13 +382,13 @@
     <div class="flex flex-row items-center gap-1">
       <span class="text-sm font-normal text-neutral-500">Messages:</span>
       <span class="font-bold text-panda"
-        >{$channelInfo.latest_message_id - $channelInfo.message_start + 1}</span
+        >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Gas Balance:</span>
       <span class="font-bold text-panda"
-        >{formatNumber(Number($channelInfo.gas))}</span
+        >{formatNumber(Number(channelInfo.gas))}</span
       >
     </div>
     <button
@@ -442,7 +446,7 @@
     </div>
     <div class="flex flex-row items-center gap-4">
       <p>Request encryption key:</p>
-      {#if $channelInfo.my_setting.ecdh_remote.length > 0}
+      {#if channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
@@ -450,7 +454,7 @@
           disabled={myECDHSubmitting}
           ><span>Key received, accept it</span></button
         >
-      {:else if $channelInfo.my_setting.ecdh_pub.length > 0}
+      {:else if channelInfo.my_setting.ecdh_pub.length > 0}
         <span class="text-sm opacity-50"
           >Request sent, waiting for a manager share key</span
         >
@@ -487,7 +491,7 @@
           class="variant-filled-warning !px-2 disabled:variant-filled-surface"
           onclick={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
-            leavingWord.trim() != $channelInfo.name}
+            leavingWord.trim() != channelInfo.name}
           ><span class="*:size-5">
             {#if myLeavingSubmitting}
               <IconCircleSpin />
@@ -498,9 +502,9 @@
         >
       </div>
     </div>
-    {#if isManager && $channelInfo._managers.length < 2}
+    {#if isManager && channelInfo._managers.length < 2}
       <p
-        class="h-5 text-sm text-error-500 {leavingWord === $channelInfo.name
+        class="h-5 text-sm text-error-500 {leavingWord === channelInfo.name
           ? 'visible'
           : 'invisible'}"
         >You are the only manager. Leaving the channel will delete all its data.</p

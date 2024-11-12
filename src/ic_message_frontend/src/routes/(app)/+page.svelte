@@ -132,6 +132,14 @@
       handle: 'yoopsbro',
       message: `All this talk about Quantum computers being the next existential threat to our IT and then this team has already created a solution lol.`,
       messageUrl: 'https://x.com/yoopsbro/status/1840375057467756986'
+    },
+    {
+      name: 'Hitman 杀手',
+      image:
+        'https://pbs.twimg.com/profile_images/1785713155785564160/m_o-xyFu_200x200.jpg',
+      handle: 'Hit_ICP',
+      message: `Before @ICPandaDAO created http://dmsg.net, I was very scared of losing my seed phrase to Google Cloud since that's where I saved it. But dMsg has provided me with a tamperproof storage for my seed phrase and other important files. E2E encrypted, fully #OnChain.`,
+      messageUrl: 'https://x.com/Hit_ICP/status/1855463620852814281'
     }
   ]
 

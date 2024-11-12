@@ -5,7 +5,6 @@
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { sleep } from '$lib/utils/helper'
   import type { Principal } from '@dfinity/principal'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, setContext } from 'svelte'
@@ -25,20 +24,18 @@
   const myInfo: Readable<UserInfo> =
     myState.agent.subscribeUser() as Readable<UserInfo>
 
-  let channelParam = $derived(($page?.params || {})['channel'] || '')
-  let channelId = $derived(
+  const channelParam = $derived(($page?.params || {})['channel'] || '')
+  const channelId = $derived(
     ChannelAPI.parseChannelParam(channelParam) as {
       canister: Principal
       id: number
     }
   )
+
   // svelte-ignore state_referenced_locally
-  let channelsListActive = $state(!channelId.canister)
   let isReady = $state(myState.isReady2())
 
   async function onChatBack() {
-    channelsListActive = true
-    await sleep(300)
     goto('/_/messages')
   }
 
@@ -81,9 +78,9 @@
   class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
 >
   <div
-    class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelsListActive
-      ? ''
-      : 'max-sm:-translate-x-full'} border-surface-500/20 bg-white max-sm:absolute max-sm:bottom-0 max-sm:top-0 max-sm:z-10 sm:border-r"
+    class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelId.canister
+      ? 'max-sm:-translate-x-full'
+      : ''} border-surface-500/20 bg-white max-sm:absolute max-sm:bottom-0 max-sm:top-0 max-sm:z-10 sm:border-r"
   >
     <MyChannelList {myState} />
   </div>

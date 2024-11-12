@@ -13,8 +13,11 @@
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
   import { onMount } from 'svelte'
-  import { type Readable } from 'svelte/store'
+  import { readable, type Readable } from 'svelte/store'
   import ChannelCreateModal from './ChannelCreateModal.svelte'
+
+  const toastStore = getToastStore()
+  const modalStore = getModalStore()
 
   interface Props {
     myState: MyMessageState
@@ -22,13 +25,18 @@
 
   let { myState }: Props = $props()
 
-  const toastStore = getToastStore()
-
   let isLoading = $state(true)
-  let myChannels: Readable<ChannelBasicInfoEx[]> | undefined = $state()
+  let myChannels: Readable<ChannelBasicInfoEx[]> = $state(readable([]))
   let filterValue: string = $state('')
 
-  const modalStore = getModalStore()
+  const currentChannel = $derived(($page?.params || {})['channel'] || '')
+  const channels = $derived.by(() => {
+    return ($myChannels || []).filter((c) => {
+      const val = filterValue.trim().toLowerCase()
+      return val ? c.name.toLowerCase().includes(val) : true
+    })
+  })
+
   function onCreateChannelHandler() {
     modalStore.trigger({
       type: 'component',
@@ -74,14 +82,6 @@
 
     return abort
   })
-
-  let currentChannel = $derived(($page?.params || {})['channel'] || '')
-  let channels = $derived(
-    $myChannels?.filter((c) => {
-      const val = filterValue.trim().toLowerCase()
-      return val ? c.name.toLowerCase().includes(val) : true
-    }) || []
-  )
 </script>
 
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
