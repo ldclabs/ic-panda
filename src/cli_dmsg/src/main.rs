@@ -67,7 +67,8 @@ pub enum Commands {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct SendRecords(pub BTreeMap<String, (Principal, u64, u64)>);
 
-// ./target/debug/cli_dmsg  send -u zensh -u panda -a 5000 -r debug/records.cbor
+// ./target/debug/cli_dmsg blocks -s 0 -l 100 -f any
+// ./target/debug/cli_dmsg -i debug/oss.pem send -a 5000 -r debug/records.cbor -u zensh -u panda
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let cli = Cli::parse();
