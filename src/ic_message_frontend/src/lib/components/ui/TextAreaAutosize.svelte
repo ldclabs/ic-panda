@@ -52,7 +52,7 @@
 <div class="relative !p-0 {containerClass}" class:drag-over={dragOver}>
   <pre
     aria-hidden="true"
-    class="invisible w-full text-pretty break-all px-3 py-2"
+    class="break-word invisible w-full text-pretty px-3 py-2"
     style="min-height: {minHeight}px; max-height: {maxHeight}px"
     >{value + ' '}</pre
   >

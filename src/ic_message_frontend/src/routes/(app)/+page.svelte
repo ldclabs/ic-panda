@@ -120,7 +120,7 @@
     {
       name: 'CaptainOblivious, G.e.D🐉ICP-XTC-BOB, mostly ICP',
       image:
-        'https://pbs.twimg.com/profile_images/1805268628692226048/w2MXQEvm_200x200.jpg',
+        'https://pbs.twimg.com/profile_images/1845911941115428865/3-ZLd1qh_400x400.jpg',
       handle: 'idontpfreely',
       message: `When ICpanda first came around, I admit, i shit on em pretty bad. They've proven to be a highly capable team on the IC. My bad.`,
       messageUrl: 'https://x.com/idontpfreely/status/1838805032596025568'
@@ -142,6 +142,7 @@
       messageUrl: 'https://x.com/Hit_ICP/status/1855463620852814281'
     }
   ]
+  saying_list.reverse()
 
   const { popupOpenOn, popupDestroy } = initPopup({
     target: 'popupNavigationMore'

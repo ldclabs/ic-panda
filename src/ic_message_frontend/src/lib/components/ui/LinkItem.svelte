@@ -6,11 +6,11 @@
   import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
   import { clipboard } from '@skeletonlabs/skeleton'
 
+  type OnQrHandler = (qrTitle: string, qrValue: string, qrLogo?: string) => void
+
   interface Props {
     link: Link
-    onQrHandler?:
-      | ((qrTitle: string, qrValue: string, qrLogo?: string) => void)
-      | null
+    onQrHandler?: OnQrHandler | null
   }
 
   let { link, onQrHandler = null }: Props = $props()
@@ -25,6 +25,20 @@
   }
 </script>
 
+{#snippet qrButton(link: Link, onQrHandler: OnQrHandler)}
+  <button
+    class="flex flex-row items-center gap-2"
+    type="button"
+    onclick={(ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      onQrHandler(link.title, link.uri)
+    }}
+  >
+    <span class="text-surface-500 *:size-5"><IconQrCode /></span>
+  </button>
+{/snippet}
+
 {#if link.uri.startsWith('http')}
   <a
     type="button"
@@ -36,24 +50,20 @@
     <span>{link.title}</span>
     <span class="text-surface-500 *:size-5"><IconLink /></span>
     {#if onQrHandler}
-      <button
-        class="flex flex-row items-center gap-2"
-        onclick={(ev) => {
-          ev.preventDefault()
-          ev.stopPropagation()
-          onQrHandler(link.title, link.uri)
-        }}
-      >
-        <span class="text-surface-500 *:size-5"><IconQrCode /></span>
-      </button>
+      {@render qrButton(link, onQrHandler)}
     {/if}
   </a>
 {:else}
-  <button
+  <a
+    type="button"
+    href="/"
     class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
     use:clipboard={link.uri}
-    onclick={onCopyHandler}
-    disabled={copiedClass != ''}
+    onclick={(ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      onCopyHandler()
+    }}
   >
     <div>{link.title}<span class="ml-2 {copiedClass}">{link.uri}</span></div>
     <span class="text-surface-500 *:size-5"
@@ -64,20 +74,7 @@
       {/if}</span
     >
     {#if onQrHandler}
-      <a
-        class="flex flex-row items-center gap-2"
-        type="button"
-        role="button"
-        href="/"
-        tabindex="0"
-        onclick={(ev) => {
-          ev.preventDefault()
-          ev.stopPropagation()
-          onQrHandler(link.title, link.uri)
-        }}
-      >
-        <span class="text-surface-500 *:size-5"><IconQrCode /></span>
-      </a>
+      {@render qrButton(link, onQrHandler)}
     {/if}
-  </button>
+  </a>
 {/if}

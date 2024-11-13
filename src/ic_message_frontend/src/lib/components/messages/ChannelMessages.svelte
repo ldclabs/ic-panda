@@ -573,6 +573,22 @@
   )
 </script>
 
+{#snippet msgDetail(msg: MessageInfo)}
+  {#if msg.error}
+    <p class="w-full text-pretty px-4 py-2 text-sm">{msg.error}</p>
+  {:else}
+    <pre class="icpanda-message break-word min-h-4 w-full text-pretty px-4 py-2"
+      >{msg.message}</pre
+    >
+  {/if}
+  {#if msg.detail}
+    {@const file = msg.detail.asFile()}
+    {#if file && dek}
+      <ChannelFileCard {myState} {file} {dek} {canister} {id} />
+    {/if}
+  {/if}
+{/snippet}
+
 <div
   class="grid h-[calc(100dvh-120px)] grid-rows-[1fr_auto] md:h-[calc(100dvh-60px)]"
 >
@@ -660,22 +676,7 @@
                     ? 'bg-transparent text-xs'
                     : 'bg-white'}"
                 >
-                  {#if msg.error}
-                    <p class="w-full text-pretty px-4 py-2 text-sm"
-                      >{msg.error}</p
-                    >
-                  {:else}
-                    <pre
-                      class="icpanda-message min-h-4 w-full text-pretty break-all px-4 py-2"
-                      >{msg.message}</pre
-                    >
-                  {/if}
-                  {#if msg.detail}
-                    {@const file = msg.detail.asFile()}
-                    {#if file && dek}
-                      <ChannelFileCard {myState} {file} {dek} {canister} {id} />
-                    {/if}
-                  {/if}
+                  {@render msgDetail(msg)}
                 </div>
               </div>
             </div>
@@ -714,26 +715,7 @@
                     {/if}
                   </div>
                   <div class="max-h-[600px] overflow-auto overscroll-auto">
-                    {#if msg.error}
-                      <p class="text-pretty px-4 py-2 text-sm">{msg.error}</p>
-                    {:else}
-                      <pre
-                        class="icpanda-message min-h-4 w-full text-pretty break-all px-4 py-2"
-                        >{msg.message}</pre
-                      >
-                    {/if}
-                    {#if msg.detail}
-                      {@const file = msg.detail.asFile()}
-                      {#if file && dek}
-                        <ChannelFileCard
-                          {myState}
-                          {file}
-                          {dek}
-                          {canister}
-                          {id}
-                        />
-                      {/if}
-                    {/if}
+                    {@render msgDetail(msg)}
                   </div>
                 </div>
               </div>
@@ -798,7 +780,7 @@
           </div>
         {:else if uploading}
           <div class="btn btn-sm truncate px-2">
-            <span class="max-w-52 text-pretty break-all"
+            <span class="break-word max-w-52 text-pretty"
               >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
             >
             <span class="*:size-5">
@@ -815,7 +797,7 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="textarea text-pretty break-all border-0 !bg-transparent outline-0 ring-0"
+      class="break-word textarea text-pretty border-0 !bg-transparent outline-0 ring-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}

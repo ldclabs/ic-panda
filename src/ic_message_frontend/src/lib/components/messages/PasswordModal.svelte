@@ -54,7 +54,7 @@
     passwordTip = ''
   }
 
-  function onComfirm() {
+  function onConfirm() {
     submitting = true
 
     toastRun(async () => {
@@ -270,13 +270,13 @@
     <button
       class="variant-filled-primary btn w-full text-white"
       disabled={submitting || !validating}
-      onclick={onComfirm}
+      onclick={onConfirm}
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
         <span>{processingTip}</span>
       {:else}
-        <span>Comfirm</span>
+        <span>Confirm</span>
       {/if}
     </button>
   </footer>

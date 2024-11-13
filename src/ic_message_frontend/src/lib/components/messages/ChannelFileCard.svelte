@@ -125,7 +125,7 @@
     </div>
   {/if}
   <div class="flex w-full flex-row items-center justify-center px-4">
-    <p class="text-pretty break-all py-2"><span>{file.name}</span></p>
+    <p class="break-word text-pretty py-2"><span>{file.name}</span></p>
     <button
       type="button"
       class="btn btn-sm text-surface-500 hover:text-black dark:hover:text-white"
