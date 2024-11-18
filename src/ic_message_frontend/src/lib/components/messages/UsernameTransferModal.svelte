@@ -76,7 +76,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    onchange={onFormChange}
+    oninput={onFormChange}
   >
     <div class="relative mt-4">
       <input

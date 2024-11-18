@@ -178,7 +178,7 @@
               await myState.agent.setUploadingFile(
                 channelInfo.canister,
                 channelInfo.id,
-                filePayload
+                $state.snapshot(filePayload)
               )
             }, toastStore).finally(() => {
               uploading = null
@@ -756,7 +756,7 @@
           <input
             type="file"
             bind:this={fileInput}
-            onchange={onUploadChangeHandler}
+            oninput={onUploadChangeHandler}
           />
         </div>
         <button

@@ -155,7 +155,7 @@
 {#if stepN === 0}
   <div class="flex w-full flex-col gap-4">
     <!-- Enable for debugging: -->
-    <form class="flex flex-col" bind:this={formRef} onchange={onFormChange}>
+    <form class="flex flex-col" bind:this={formRef} oninput={onFormChange}>
       <label class="label">
         <span>Send to destination</span>
         <input

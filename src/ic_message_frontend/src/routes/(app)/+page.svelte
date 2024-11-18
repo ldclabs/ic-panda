@@ -219,7 +219,7 @@
 
 <div class="landing-page w-full">
   <div
-    class="pandas-backgroud flex w-full max-w-[1800px] flex-col items-center pt-12 md:pt-24"
+    class="pandas-backgroud mx-auto flex w-full max-w-[1800px] flex-col items-center pt-12 md:pt-24"
   >
     <Saos
       animation="scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both"

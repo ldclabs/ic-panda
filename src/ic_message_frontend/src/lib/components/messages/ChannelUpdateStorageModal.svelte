@@ -91,7 +91,7 @@
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
-    onchange={onFormChange}
+    oninput={onFormChange}
     use:focusTrap={true}
   >
     <div class="relative">
