@@ -224,7 +224,7 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
-        <span class="break-word text-pretty text-right">
+        <span class="text-pretty break-words text-right">
           {txInfo.balance}
           {token.symbol}
         </span>

@@ -577,7 +577,8 @@
   {#if msg.error}
     <p class="w-full text-pretty px-4 py-2 text-sm">{msg.error}</p>
   {:else}
-    <pre class="icpanda-message break-word min-h-4 w-full text-pretty px-4 py-2"
+    <pre
+      class="icpanda-message min-h-4 w-full text-pretty break-words px-4 py-2"
       >{msg.message}</pre
     >
   {/if}
@@ -780,7 +781,7 @@
           </div>
         {:else if uploading}
           <div class="btn btn-sm truncate px-2">
-            <span class="break-word max-w-52 text-pretty"
+            <span class="max-w-52 text-pretty break-words"
               >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
             >
             <span class="*:size-5">
@@ -797,7 +798,7 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="break-word textarea text-pretty border-0 !bg-transparent outline-0 ring-0"
+      class="textarea text-pretty break-words border-0 !bg-transparent outline-0 ring-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}
