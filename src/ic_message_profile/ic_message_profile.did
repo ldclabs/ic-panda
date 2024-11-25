@@ -23,7 +23,11 @@ type DefiniteCanisterSettings = record {
 };
 type InitArgs = record { managers : vec principal; name : text };
 type Link = record { uri : text; title : text; image : opt text };
-type LogVisibility = variant { controllers; public };
+type LogVisibility = variant {
+  controllers;
+  public;
+  allowed_viewers : vec principal;
+};
 type ProfileInfo = record {
   id : principal;
   bio : text;

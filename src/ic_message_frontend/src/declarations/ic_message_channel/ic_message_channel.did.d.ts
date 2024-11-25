@@ -123,7 +123,8 @@ export interface DownloadFilesToken {
 }
 export interface InitArgs { 'managers' : Array<Principal>, 'name' : string }
 export type LogVisibility = { 'controllers' : null } |
-  { 'public' : null };
+  { 'public' : null } |
+  { 'allowed_viewers' : Array<Principal> };
 export interface Message {
   'id' : number,
   'reply_to' : number,

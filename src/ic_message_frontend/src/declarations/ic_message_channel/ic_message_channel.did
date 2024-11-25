@@ -109,7 +109,11 @@ type DownloadFilesToken = record {
   access_token : blob;
 };
 type InitArgs = record { managers : vec principal; name : text };
-type LogVisibility = variant { controllers; public };
+type LogVisibility = variant {
+  controllers;
+  public;
+  allowed_viewers : vec principal;
+};
 type Message = record {
   id : nat32;
   reply_to : nat32;

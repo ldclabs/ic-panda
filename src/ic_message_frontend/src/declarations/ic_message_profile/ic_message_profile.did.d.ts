@@ -40,7 +40,8 @@ export interface Link {
   'image' : [] | [string],
 }
 export type LogVisibility = { 'controllers' : null } |
-  { 'public' : null };
+  { 'public' : null } |
+  { 'allowed_viewers' : Array<Principal> };
 export interface ProfileInfo {
   'id' : Principal,
   'bio' : string,

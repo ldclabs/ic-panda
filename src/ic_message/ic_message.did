@@ -112,7 +112,11 @@ type InitArgs = record {
   name : text;
   schnorr_key_name : text;
 };
-type LogVisibility = variant { controllers; public };
+type LogVisibility = variant {
+  controllers;
+  public;
+  allowed_viewers : vec principal;
+};
 type Price = record {
   name_l1 : nat64;
   name_l2 : nat64;

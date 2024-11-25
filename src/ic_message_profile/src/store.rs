@@ -112,7 +112,7 @@ impl Profile {
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct ChannelSetting {
-    #[serde(rename = "a")]
+    #[serde(rename = "p")]
     pub pin: u32,
     #[serde(rename = "a")]
     pub alias: String,

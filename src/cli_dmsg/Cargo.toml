@@ -17,5 +17,5 @@ ciborium = { workspace = true }
 num-traits = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
-icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "d19fa446ab35780b2c6d8b82ea32d808cca558d5" }
+icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
 ic_message_types = { path = "../ic_message_types", version = "2" }

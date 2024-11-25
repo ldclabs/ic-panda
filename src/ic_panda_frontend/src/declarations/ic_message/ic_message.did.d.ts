@@ -135,7 +135,8 @@ export interface InitArgs {
   'schnorr_key_name' : string,
 }
 export type LogVisibility = { 'controllers' : null } |
-  { 'public' : null };
+  { 'public' : null } |
+  { 'allowed_viewers' : Array<Principal> };
 export interface Price {
   'name_l1' : bigint,
   'name_l2' : bigint,

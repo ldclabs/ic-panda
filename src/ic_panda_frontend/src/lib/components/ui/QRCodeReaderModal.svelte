@@ -2,7 +2,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { errMessage } from '$lib/types/result'
   import { sleep } from '$lib/utils/helper'
-  import decodeQR from '@paulmillr/qr/decode'
+  import decodeQR from '@paulmillr/qr/decode.js'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
 
