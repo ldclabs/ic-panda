@@ -339,17 +339,19 @@
       <p class="relative space-x-1">
         <span class="font-bold">{display.name}</span>
         {#if display.username}
+          {@const link = `${APP_ORIGIN}/${display.username}`}
           <a
             class="text-neutral-500 underline underline-offset-4 hover:text-surface-900-50-token"
-            href="{APP_ORIGIN}/{display.username}">@{display.username}</a
+            href={link}>@{display.username}</a
           >
+          <TextClipboardButton textValue={link} />
         {/if}
         <button
           type="button"
-          class="btn absolute right-[-28px] top-2 p-0 text-neutral-500 hover:text-surface-900-50-token"
+          class="btn absolute right-[-28px] top-1 p-0 text-neutral-500 hover:text-surface-900-50-token"
           onclick={onMeHandler}
         >
-          <span class="*:size-4"><IconEditLine /></span>
+          <span class="*:size-5"><IconEditLine /></span>
         </button>
       </p>
       {#if $myInfo.bio}

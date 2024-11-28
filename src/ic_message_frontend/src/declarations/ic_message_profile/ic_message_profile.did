@@ -36,6 +36,7 @@ type ProfileInfo = record {
   channels : opt vec record { record { principal; nat64 }; ChannelSetting };
   image_file : opt record { principal; nat32 };
   links : vec Link;
+  tokens : vec principal;
   canister : principal;
   ecdh_pub : opt blob;
   following : opt vec principal;
@@ -87,6 +88,7 @@ service : (opt ChainArgs) -> {
   update_links : (vec Link) -> (Result);
   update_profile : (UpdateProfileInput) -> (Result_2);
   update_profile_ecdh_pub : (blob) -> (Result);
+  update_tokens : (vec principal) -> (Result);
   upload_image_token : (UploadImageInput) -> (Result_4);
   validate2_admin_add_managers : (vec principal) -> (Result_5);
   validate2_admin_remove_managers : (vec principal) -> (Result_5);

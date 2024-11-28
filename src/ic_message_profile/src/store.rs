@@ -64,6 +64,8 @@ pub struct Profile {
     pub image_file: Option<(Principal, u32)>, // image file: (ic-oss-bucket canister, file_id)
     #[serde(default, rename = "l")]
     pub links: Vec<types::Link>,
+    #[serde(default, rename = "t")]
+    pub tokens: Vec<Principal>, // token ledger canister
 }
 
 impl Profile {
@@ -81,6 +83,7 @@ impl Profile {
             created_at: self.created_at,
             image_file: self.image_file,
             links: self.links,
+            tokens: self.tokens,
             ecdh_pub: self.ecdh_pub,
             following: if is_caller {
                 Some(self.following)

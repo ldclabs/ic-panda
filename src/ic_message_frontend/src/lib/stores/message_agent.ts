@@ -11,12 +11,14 @@ import {
   type Message
 } from '$lib/canisters/messagechannel'
 import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
+import { TokenLedgerAPI } from '$lib/canisters/tokenledger'
 import { agent } from '$lib/stores/auth'
 import { type FilePayload } from '$lib/types/message'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
+import { type TokenInfo } from '$lib/utils/token'
 import type { Identity } from '@dfinity/agent'
-import type { Principal } from '@dfinity/principal'
+import { Principal } from '@dfinity/principal'
 import { Claims } from '@ldclabs/cose-ts/cwt'
 import {
   derived,
@@ -307,6 +309,10 @@ export class MessageAgent extends EventTarget {
 
   async getProfile(): Promise<ProfileInfo> {
     const val = await this._db.get<ProfileInfo>('My', 'Profile')
+    if (val) {
+      // refresh profile in background
+      this.fetchProfile().catch(() => {})
+    }
     return val || (await this.fetchProfile())
   }
 
@@ -343,6 +349,45 @@ export class MessageAgent extends EventTarget {
     await kvsSetProfile(val)
     this._profile.set(val)
     return val
+  }
+
+  async loadTokens(tokenIDs: Principal[]): Promise<TokenInfo[]> {
+    const tokens: TokenInfo[] = []
+    if (tokenIDs.length === 0) {
+      return tokens
+    }
+
+    for (const id of tokenIDs) {
+      const ledgerID = id.toText()
+      let token = await this._db.get<TokenInfo>('My', `Token:${ledgerID}`)
+      if (!token) {
+        token = await this.fetchToken(ledgerID)
+      }
+      if (token) {
+        tokens.push(token)
+      }
+    }
+
+    return tokens
+  }
+
+  async fetchToken(ledgerID: string): Promise<TokenInfo | null> {
+    try {
+      const id = Principal.fromText(ledgerID)
+      const api = await TokenLedgerAPI.fromID(id)
+      await this._db.set<TokenInfo>(
+        'My',
+        Object.assign({}, api.token),
+        `Token:${id.toText()}`
+      )
+      return api.token
+    } catch (e) {
+      return null
+    }
+  }
+
+  async cleanTokenCache(ledgerID: string): Promise<void> {
+    await this._db.delete('My', `Token:${ledgerID}`)
   }
 
   // ------------ Channels ------------

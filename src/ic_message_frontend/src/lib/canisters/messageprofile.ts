@@ -79,4 +79,9 @@ export class ProfileAPI {
     const res = await this.actor.update_links(input)
     return unwrapResult(res, 'call update_links failed')
   }
+
+  async update_tokens(input: Principal[]): Promise<null> {
+    const res = await this.actor.update_tokens(input)
+    return unwrapResult(res, 'call update_tokens failed')
+  }
 }

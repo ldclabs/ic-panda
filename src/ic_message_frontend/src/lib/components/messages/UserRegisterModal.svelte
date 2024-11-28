@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
-  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
   import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -92,7 +92,7 @@
       if (!usernameInput) {
         await myState.api.update_my_name(nameInput)
       } else {
-        await tokenLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
+        await pandaLedgerAPI.ensureAllowance(messageCanisterPrincipal, amount)
         await myState.api.register_username(usernameInput, nameInput)
       }
 
@@ -167,7 +167,7 @@
         return
       }
 
-      const pandaBalance = tokenLedgerAPI.balance()
+      const pandaBalance = pandaLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
     }, toastStore)
 

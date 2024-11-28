@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
-  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -13,8 +13,6 @@
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount, type SvelteComponent } from 'svelte'
 
-  const toastStore = getToastStore()
-
   // Props
 
   interface Props {
@@ -26,6 +24,7 @@
 
   let { parent, myState, channel }: Props = $props()
 
+  const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
 
   let validating = $state(false)
@@ -45,7 +44,7 @@
         return
       }
 
-      await tokenLedgerAPI.ensureAllowance(
+      await pandaLedgerAPI.ensureAllowance(
         messageCanisterPrincipal,
         tokenDisplay.total
       )
@@ -96,7 +95,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      const pandaBalance = tokenLedgerAPI.balance()
+      const pandaBalance = pandaLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
     }, toastStore)
 

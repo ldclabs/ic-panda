@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
-  import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
   import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -72,7 +72,7 @@
       ])
 
       if (channelPrice > 0n) {
-        await tokenLedgerAPI.ensureAllowance(
+        await pandaLedgerAPI.ensureAllowance(
           messageCanisterPrincipal,
           channelPrice
         )
@@ -120,7 +120,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      const pandaBalance = tokenLedgerAPI.balance()
+      const pandaBalance = pandaLedgerAPI.balance()
       availablePandaBalance = await pandaBalance
     }, toastStore)
 

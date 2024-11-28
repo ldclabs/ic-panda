@@ -23,6 +23,47 @@ export class TokenLedgerAPI {
     this.token = token
   }
 
+  static async fromID(canisterId: Principal): Promise<TokenLedgerAPI> {
+    const actor = createActor<_SERVICE>({
+      canisterId,
+      idlFactory: idlFactory
+    })
+    const metadata = await actor.icrc1_metadata()
+    const token: TokenInfo = {
+      name: 'Internet Computer',
+      symbol: 'ICP',
+      decimals: 8,
+      fee: 10000n,
+      one: 100000000n,
+      logo: '',
+      canisterId: canisterId.toText()
+    }
+
+    for (const [key, value] of metadata) {
+      switch (key) {
+        case 'icrc1:name':
+          token.name = (value as { 'Text': string }).Text
+          continue
+        case 'icrc1:symbol':
+          token.symbol = (value as { 'Text': string }).Text
+          continue
+        case 'icrc1:decimals':
+          const decimals = (value as { 'Nat': bigint }).Nat
+          token.decimals = Number(decimals)
+          token.one = 10n ** decimals
+          continue
+        case 'icrc1:fee':
+          token.fee = (value as { 'Nat': bigint }).Nat
+          continue
+        case 'icrc1:logo':
+          token.logo = (value as { 'Text': string }).Text
+          continue
+      }
+    }
+
+    return new TokenLedgerAPI(token)
+  }
+
   async balance(): Promise<bigint> {
     return this.getBalanceOf(agent.id.getPrincipal())
   }
@@ -80,4 +121,4 @@ export class TokenLedgerAPI {
   }
 }
 
-export const tokenLedgerAPI = new TokenLedgerAPI(PANDAToken)
+export const pandaLedgerAPI = new TokenLedgerAPI(PANDAToken)

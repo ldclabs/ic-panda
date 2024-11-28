@@ -11,6 +11,7 @@ const locale = new Intl.Locale(window?.navigator.language || 'en')
 export interface TokenInfo extends Token {
   fee: bigint
   one: bigint
+  logo: string // base64 encoded
   canisterId: string
 }
 
@@ -20,6 +21,7 @@ export const ICPToken: TokenInfo = {
   decimals: 8,
   fee: 10000n,
   one: 100000000n,
+  logo: '',
   canisterId: ICP_LEDGER_CANISTER_ID
 }
 
@@ -29,6 +31,7 @@ export const PANDAToken: TokenInfo = {
   decimals: 8,
   fee: 10000n,
   one: 100000000n,
+  logo: '',
   canisterId: TOKEN_LEDGER_CANISTER_ID
 }
 

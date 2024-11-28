@@ -7,6 +7,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 pub const MAX_PROFILE_FOLLOWING: usize = 2048;
 pub const MAX_PROFILE_BIO_SIZE: usize = 2048; // 2KB
 pub const MAX_PROFILE_LINKS: usize = 100;
+pub const MAX_PROFILE_TOKENS: usize = 100;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct UserInfo {
@@ -27,6 +28,7 @@ pub struct ProfileInfo {
     pub created_at: u64,
     pub image_file: Option<(Principal, u32)>, // image file: (ic-oss-bucket canister, file_id)
     pub links: Vec<Link>,
+    pub tokens: Vec<Principal>,
     pub following: Option<BTreeSet<Principal>>,
     pub channels: Option<HashMap<(Principal, u64), ChannelSetting>>,
     pub ecdh_pub: Option<ByteArray<32>>,

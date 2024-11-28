@@ -1,3 +1,4 @@
+use candid::Principal;
 use ic_cose_types::MILLISECONDS;
 use serde_bytes::ByteArray;
 
@@ -31,6 +32,32 @@ fn update_links(links: Vec<types::Link>) -> Result<(), String> {
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::profile::with_mut(caller, |p| {
         p.links = links;
+        p.active_at = now_ms;
+        Ok(())
+    })
+}
+
+#[ic_cdk::update]
+fn update_tokens(tokens: Vec<Principal>) -> Result<(), String> {
+    if tokens.len() > types::MAX_PROFILE_TOKENS {
+        return Err("too many tokens".to_string());
+    }
+    let mut c = tokens.clone();
+    c.dedup();
+    if c.len() != tokens.len() {
+        return Err("duplicate tokens".to_string());
+    }
+
+    for t in &tokens {
+        if t.as_slice().len() != 10 {
+            return Err("invalid token canister ID".to_string());
+        }
+    }
+
+    let caller = ic_cdk::caller();
+    let now_ms = ic_cdk::api::time() / MILLISECONDS;
+    store::profile::with_mut(caller, |p| {
+        p.tokens = tokens;
         p.active_at = now_ms;
         Ok(())
     })

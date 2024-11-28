@@ -16,10 +16,12 @@
   import {
     Modal,
     Toast,
+    getModalStore,
     getToastStore,
     initializeStores,
     setInitialClassState,
-    storePopup
+    storePopup,
+    type ModalSettings
   } from '@skeletonlabs/skeleton'
   import { onMount, type Snippet } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
@@ -44,6 +46,14 @@
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   storePopup2.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
+  const modalStore = getModalStore()
+
+  ;(modalStore as any).trigger2 = (modal: ModalSettings) => {
+    modalStore.update((mStore) => {
+      mStore.unshift(modal)
+      return mStore
+    })
+  }
 
   /**
    * Init authentication
