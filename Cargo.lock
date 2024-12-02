@@ -2341,6 +2341,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic_dmsg_minter"
+version = "2.6.5"
+dependencies = [
+ "candid",
+ "ciborium",
+ "ic-cdk 0.17.0",
+ "ic-stable-structures",
+ "icrc-ledger-types 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
 name = "ic_message"
 version = "2.6.5"
 dependencies = [

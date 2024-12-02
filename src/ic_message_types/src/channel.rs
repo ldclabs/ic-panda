@@ -123,6 +123,16 @@ impl CreateChannelInput {
         try_decode_encrypt0(&self.dek)?;
         Ok(())
     }
+
+    pub fn get_miner(&self) -> Option<Principal> {
+        for manager in self.managers.keys() {
+            if *manager != self.created_by {
+                return Some(*manager);
+            }
+        }
+
+        None
+    }
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]

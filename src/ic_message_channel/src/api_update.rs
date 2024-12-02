@@ -194,12 +194,14 @@ fn remove_member(input: types::UpdateChannelMemberInput) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-fn update_my_setting(input: types::UpdateMySettingInput) -> Result<types::ChannelSetting, String> {
+async fn update_my_setting(
+    input: types::UpdateMySettingInput,
+) -> Result<types::ChannelSetting, String> {
     input.validate()?;
 
     let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    store::channel::update_my_setting(caller, input, now_ms)
+    store::channel::update_my_setting(caller, input, now_ms).await
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

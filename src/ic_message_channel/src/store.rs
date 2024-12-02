@@ -386,8 +386,8 @@ pub mod state {
 }
 
 pub mod channel {
-
     use super::*;
+    use crate::MINTER_CANISTER;
 
     pub fn channels_total() -> u64 {
         CHANNEL_STORE.with(|r| r.borrow().len())
@@ -567,20 +567,20 @@ pub mod channel {
         })
     }
 
-    pub fn update_my_setting(
+    pub async fn update_my_setting(
         caller: Principal,
         input: types::UpdateMySettingInput,
         now_ms: u64,
     ) -> Result<types::ChannelSetting, String> {
-        CHANNEL_STORE.with(|r| {
+        let (try_mint_payer, setting) = CHANNEL_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&input.id) {
                 None => Err("channel not found".to_string()),
                 Some(mut v) => {
-                    let setting = match v.members.get_mut(&caller) {
-                        Some(s) => s,
+                    let (setting, is_manager) = match v.members.get_mut(&caller) {
+                        Some(s) => (s, false),
                         None => match v.managers.get_mut(&caller) {
-                            Some(s) => s,
+                            Some(s) => (s, true),
                             None => Err("caller is not a manager or member".to_string())?,
                         },
                     };
@@ -600,19 +600,36 @@ pub mod channel {
                     if let Some(mute) = input.mute {
                         setting.mute = mute;
                     }
+
+                    let mut try_mint_payer: Option<Principal> = None;
                     if let Some(ecdh) = input.ecdh {
                         setting.ecdh_pub = ecdh.ecdh_pub;
                         setting.ecdh_remote = ecdh.ecdh_remote;
+                        // It maybe a miner accepted ECDH key
+                        if is_manager
+                            && caller != v.created_by
+                            && setting.ecdh_pub.is_none()
+                            && setting.ecdh_remote.is_none()
+                        {
+                            try_mint_payer = Some(v.created_by);
+                        }
                     }
                     setting.updated_at = now_ms;
 
                     let rt = setting.to_owned().into();
                     state::update_users_channel(&[&caller], input.id, now_ms);
                     m.insert(input.id, v);
-                    Ok(rt)
+                    Ok((try_mint_payer, rt))
                 }
             }
-        })
+        })?;
+
+        if let Some(payer) = try_mint_payer {
+            let _: Result<Option<u64>, String> =
+                call(MINTER_CANISTER, "try_commit", (caller, payer), 0).await;
+        }
+
+        Ok(setting)
     }
 
     pub fn remove_member(

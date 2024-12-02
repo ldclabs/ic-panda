@@ -1,6 +1,15 @@
 {
+  "dmsg_index_canister": {
+    "ic": "qc6wh-6yaaa-aaaap-anuza-cai"
+  },
+  "dmsg_ledger_canister": {
+    "ic": "ocqzv-tyaaa-aaaar-qal4a-cai"
+  },
   "ic_cose_canister": {
     "ic": "n3bau-gaaaa-aaaaj-qa4oq-cai"
+  },
+  "ic_dmsg_minter": {
+    "ic": "ql553-iqaaa-aaaap-anuyq-cai"
   },
   "ic_message": {
     "ic": "nscli-qiaaa-aaaaj-qa4pa-cai"

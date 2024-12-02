@@ -790,6 +790,14 @@ pub mod user {
         })
     }
 
+    pub fn has_username(user: &Principal) -> bool {
+        USER_STORE.with(|r| {
+            r.borrow()
+                .get(user)
+                .map_or(false, |u| u.username.is_some())
+        })
+    }
+
     pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {
         USER_STORE.with(|r| {
             let m = r.borrow();
@@ -847,6 +855,7 @@ pub mod user {
 
 pub mod channel {
     use super::*;
+    use crate::MINTER_CANISTER;
     use ic_message_types::channel::{
         channel_kek_key, ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput,
     };
@@ -910,10 +919,21 @@ pub mod channel {
             });
         }
 
-        input.created_by = caller;
         input.paid = amount;
+        let miner = input.get_miner();
         let res: Result<ChannelInfo, String> =
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
+
+        // try to mint $DMSG for the miner
+        if res.is_ok() {
+            if let Some(miner) = miner {
+                if user::has_username(&miner) {
+                    let _: Result<bool, String> =
+                        call(MINTER_CANISTER, "try_prepare", (miner, caller), 0).await;
+                }
+            }
+        }
+
         res
     }
 

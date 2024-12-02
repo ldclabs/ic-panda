@@ -3,6 +3,7 @@ members = [
   "src/cli_airdrop",
   "src/cli_cryptogram",
   "src/cli_dmsg",
+  "src/ic_dmsg_minter",
   "src/ic_message",
   "src/ic_message_channel",
   "src/ic_message_profile",

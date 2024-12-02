@@ -86,10 +86,11 @@ async fn update_my_kv(input: UpdateKVInput) -> Result<(), String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn create_channel(input: CreateChannelInput) -> Result<ChannelInfo, String> {
+async fn create_channel(mut input: CreateChannelInput) -> Result<ChannelInfo, String> {
+    let caller = ic_cdk::caller();
+    input.created_by = caller;
     input.validate()?;
 
-    let caller = ic_cdk::caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::create_channel(caller, now_ms, input).await
 }

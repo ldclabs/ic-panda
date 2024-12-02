@@ -33,6 +33,8 @@ use crate::api_init::ChainArgs;
 static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
 // "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
 static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
+// "ql553-iqaaa-aaaap-anuyq-cai" dMsg minter canister id
+static MINTER_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 109, 49, 1, 1]);
 
 fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();

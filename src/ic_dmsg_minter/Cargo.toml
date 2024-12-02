@@ -1,0 +1,23 @@
+[package]
+name = "ic_dmsg_minter"
+publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = { workspace = true }
+ciborium = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+ic-cdk = { workspace = true }
+ic-stable-structures = { workspace = true }
+icrc-ledger-types = { workspace = true }
