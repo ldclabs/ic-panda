@@ -9,6 +9,9 @@ lint:
 fix:
 	@cargo clippy --fix --workspace --tests
 
+test:
+	@cargo test --workspace -- --nocapture
+
 # cargo install twiggy
 twiggy:
 	twiggy top -n 12 target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm
