@@ -88,7 +88,8 @@
             if (
               !myState ||
               token.canisterId === icpTokenInfo.canisterId ||
-              token.canisterId === pandaTokenInfo.canisterId
+              token.canisterId === pandaTokenInfo.canisterId ||
+              token.canisterId === dmsgTokenInfo.canisterId
             ) {
               return
             }
@@ -139,6 +140,7 @@
     if (!myState.principal.isAnonymous()) {
       icpTokenInfo.balance = await icpLedgerAPI.balance()
       pandaTokenInfo.balance = await pandaLedgerAPI.balance()
+      dmsgTokenInfo.balance = await dmsgLedgerAPI.balance()
 
       myInfo = await myState.agent.getProfile().catch(() => null)
       if (myInfo) {
@@ -246,19 +248,21 @@
       type="button"
       class="flex w-fit flex-row items-center gap-2 text-primary-500"
       target="_blank"
-      href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+      href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Buy $PANDA on ICPswap</span>
+      <span class="hover:underline"
+        >Buy $PANDA on OISY Wallet (Fiat Currency)</span
+      >
     </a>
     <a
       type="button"
       class="flex w-fit flex-row items-center gap-2 text-primary-500"
       target="_blank"
-      href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
+      href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Buy $PANDA on OISY Wallet</span>
+      <span class="hover:underline">Buy $PANDA on ICPswap</span>
     </a>
   </div>
 </ModalCard>
