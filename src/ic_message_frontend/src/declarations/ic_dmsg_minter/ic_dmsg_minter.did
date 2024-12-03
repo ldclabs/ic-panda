@@ -1,0 +1,27 @@
+type InitArgs = record {
+  preparers : vec principal;
+  committers : vec principal;
+};
+type LinkLog = record {
+  rewards : nat64;
+  linker : record { principal; principal };
+  minted_at : nat64;
+};
+type MinterArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type State = record {
+  preparers : vec principal;
+  next_block_height : nat64;
+  minted_total : nat64;
+  committers : vec principal;
+};
+type UpgradeArgs = record {
+  preparers : opt vec principal;
+  committers : opt vec principal;
+};
+service : (opt MinterArgs) -> {
+  get_block : (nat64) -> (opt LinkLog) query;
+  get_state : () -> (State) query;
+  list_blocks : (opt nat64, opt nat64) -> (vec LinkLog) query;
+  try_commit : (principal, principal) -> (opt nat64);
+  try_prepare : (principal, principal) -> (bool);
+}

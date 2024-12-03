@@ -23,7 +23,7 @@ opt-level = 's'
 
 [workspace.package]
 edition = "2021"
-version = "2.6.5"
+version = "2.8.0"
 repository = "https://github.com/ldclabs/ic-panda"
 keywords = ["canister", "icp", "panda"]
 categories = ["web-programming"]

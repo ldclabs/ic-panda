@@ -72,6 +72,7 @@ export const idlFactory = ({ IDL }) => {
     ),
     'image_file' : IDL.Opt(IDL.Tuple(IDL.Principal, IDL.Nat32)),
     'links' : IDL.Vec(Link),
+    'tokens' : IDL.Vec(IDL.Principal),
     'canister' : IDL.Principal,
     'ecdh_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'following' : IDL.Opt(IDL.Vec(IDL.Principal)),
@@ -129,6 +130,7 @@ export const idlFactory = ({ IDL }) => {
     'update_links' : IDL.Func([IDL.Vec(Link)], [Result], []),
     'update_profile' : IDL.Func([UpdateProfileInput], [Result_2], []),
     'update_profile_ecdh_pub' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
+    'update_tokens' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
     'upload_image_token' : IDL.Func([UploadImageInput], [Result_4], []),
     'validate2_admin_add_managers' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
