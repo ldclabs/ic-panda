@@ -305,6 +305,20 @@
           </div>
           <div class="pt-8 md:pt-10">
             <h3 class="h3"
+              ><span class="pr-2 text-5xl">⛏</span>Proof of Link (PoL) Mining</h3
+            >
+            <p class="mt-4 text-neutral-300">
+              Fairly mint DMSG through
+              <a
+                class="text-white underline underline-offset-4"
+                href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
+                target="_blank">Proof of Link (PoL)</a
+              >, rewards users for creating verified connections, fostering
+              genuine engagement and decentralization.
+            </p>
+          </div>
+          <div class="pt-8 md:pt-10">
+            <h3 class="h3"
               ><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3
             >
             <p class="mt-4 text-neutral-300">

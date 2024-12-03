@@ -1,10 +1,15 @@
 <script lang="ts">
   import { icpLedgerAPI } from '$lib/canisters/icpledger'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
-  import { pandaLedgerAPI, TokenLedgerAPI } from '$lib/canisters/tokenledger'
+  import {
+    dmsgLedgerAPI,
+    pandaLedgerAPI,
+    TokenLedgerAPI
+  } from '$lib/canisters/tokenledger'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
+  import IconDmsg from '$lib/components/icons/IconDmsg.svelte'
   import IconExternalLinkLine from '$lib/components/icons/IconExternalLinkLine.svelte'
   import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
@@ -15,6 +20,7 @@
   import type { LedgerAPI } from '$lib/types/token'
   import { shortId } from '$lib/utils/auth'
   import {
+    DMSGToken,
     ICPToken,
     PANDAToken,
     TokenDisplay,
@@ -51,6 +57,11 @@
   let pandaTokenInfo: TokenInfoEx = $state({
     ...PANDAToken,
     api: pandaLedgerAPI,
+    balance: 0n
+  })
+  let dmsgTokenInfo: TokenInfoEx = $state({
+    ...DMSGToken,
+    api: dmsgLedgerAPI,
     balance: 0n
   })
 
@@ -151,6 +162,10 @@
   <span class="*:size-12"><IconPanda /></span>
 {/snippet}
 
+{#snippet dmsgLogo()}
+  <span class="*:size-12"><IconDmsg /></span>
+{/snippet}
+
 {#snippet tokenItem(token: TokenInfoEx, logo?: Snippet, canDelete?: boolean)}
   <a
     type="button"
@@ -213,6 +228,7 @@
   <div class="!mt-2 flex flex-col gap-0">
     {@render tokenItem(icpTokenInfo, icpLogo)}
     {@render tokenItem(pandaTokenInfo, pandaLogo)}
+    {@render tokenItem(dmsgTokenInfo, dmsgLogo)}
     {#each myTokens as token (token.canisterId)}
       {@render tokenItem(token, undefined, true)}
     {/each}

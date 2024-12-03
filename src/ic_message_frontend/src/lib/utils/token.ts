@@ -1,4 +1,5 @@
 import {
+  DMSG_LEDGER_CANISTER_ID,
   ICP_LEDGER_CANISTER_ID,
   TOKEN_LEDGER_CANISTER_ID
 } from '$lib/constants'
@@ -33,6 +34,16 @@ export const PANDAToken: TokenInfo = {
   one: 100000000n,
   logo: '',
   canisterId: TOKEN_LEDGER_CANISTER_ID
+}
+
+export const DMSGToken: TokenInfo = {
+  name: 'dMsg.net',
+  symbol: 'DMSG',
+  decimals: 8,
+  fee: 10000n,
+  one: 100000000n,
+  logo: '',
+  canisterId: DMSG_LEDGER_CANISTER_ID
 }
 
 export function formatNumber(val: number, maxDigits: number = 3): string {

@@ -142,8 +142,8 @@
               }
             }
           })
+          return
         }
-        return
       }
 
       modalStore.close()
@@ -255,7 +255,7 @@
       </button>
     </p>
     {#if !isMe}
-      <div class="mt-6 flex flex-row gap-4">
+      <div class="mt-6 flex flex-row items-end gap-4">
         <button
           type="button"
           class="{isFowllowing
@@ -286,6 +286,11 @@
         >
           <span>Message</span>
         </button>
+        <a
+          class="text-sm text-surface-500 underline"
+          href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
+          target="_blank">Mint $DMSG</a
+        >
       </div>
     {/if}
     <div
