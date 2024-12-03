@@ -91,7 +91,7 @@
       await myState.agent.setChannel(result)
 
       modalStore.close()
-      goto(`/_/messages/${result.canister}/${result.id}`)
+      goto(`/_/${result.canister}/${result.id}`)
     }, toastStore).finally(() => {
       submitting = false
       validating = false

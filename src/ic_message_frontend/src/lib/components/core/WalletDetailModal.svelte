@@ -243,7 +243,7 @@
       <span>Import Token</span>
     </button>
   </div>
-  <div class="mt-4 flex flex-col gap-3 px-4 py-3">
+  <div class="mt-4 flex flex-col gap-3 px-4 py-3 text-sm">
     <a
       type="button"
       class="flex w-fit flex-row items-center gap-2 text-primary-500"
@@ -251,9 +251,7 @@
       href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline"
-        >Buy $PANDA on OISY Wallet (Fiat Currency)</span
-      >
+      <span class="hover:underline">Buy PANDA on OISY (Fiat Currency)</span>
     </a>
     <a
       type="button"
@@ -262,7 +260,7 @@
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Buy $PANDA on ICPswap</span>
+      <span class="hover:underline">Buy PANDA on ICPswap</span>
     </a>
   </div>
 </ModalCard>

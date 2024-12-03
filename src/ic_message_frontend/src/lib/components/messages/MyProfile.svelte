@@ -24,6 +24,7 @@
   import { MessageAgent } from '$lib/stores/message_agent'
   import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { errMessage, unwrapOption } from '$lib/types/result'
+  import { shortId } from '$lib/utils/auth'
   import { sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import { isNotificationSupported } from '$lib/utils/window'
@@ -360,7 +361,7 @@
         </div>
       {/if}
       <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-500">
-        <span>Principal: {display._id}</span>
+        <span>Principal: {shortId(display._id)}</span>
         <TextClipboardButton textValue={display._id} />
       </p>
       <div

@@ -17,6 +17,7 @@
   import { toDisplayUserInfo, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
+  import { shortId } from '$lib/utils/auth'
   import { md } from '$lib/utils/markdown'
   import { Principal } from '@dfinity/principal'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
@@ -245,7 +246,7 @@
       </div>
     {/if}
     <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-500">
-      <span>Principal: {display._id}</span>
+      <span>Principal: {shortId(display._id)}</span>
       <TextClipboardButton textValue={display._id} />
       <button
         class="flex flex-row items-center gap-2"
