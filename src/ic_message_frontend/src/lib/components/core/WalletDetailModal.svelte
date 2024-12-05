@@ -168,7 +168,11 @@
   <span class="*:size-12"><IconDmsg /></span>
 {/snippet}
 
-{#snippet tokenItem(token: TokenInfoEx, logo?: Snippet, canDelete?: boolean)}
+{#snippet tokenItem(
+  token: TokenInfoEx,
+  logo?: () => ReturnType<Snippet>,
+  canDelete?: boolean
+)}
   <a
     type="button"
     href="/"

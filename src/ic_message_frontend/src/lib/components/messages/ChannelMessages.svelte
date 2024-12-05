@@ -326,7 +326,13 @@
   }
 
   function onPromptKeydown(event: KeyboardEvent): void {
-    if (!event.shiftKey && !submitting && ['Enter'].includes(event.code)) {
+    // https://www.zhangxinxu.com/wordpress/2023/02/js-enter-submit-compositionupdate/
+    if (
+      !event.shiftKey &&
+      !submitting &&
+      (event.keyCode == 13 ||
+        (!event.isComposing && ['Enter'].includes(event.code)))
+    ) {
       event.preventDefault()
       sendMessage()
     }
