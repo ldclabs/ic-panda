@@ -19,6 +19,9 @@ importers:
       '@dfinity/candid':
         specifier: ^2.1.3
         version: 2.1.3(@dfinity/principal@2.1.3)
+      '@dfinity/oisy-wallet-signer':
+        specifier: ^0.0.3
+        version: 0.0.3(ke7edaauoazui5yf4kcfpcnu4m)
       '@dfinity/principal':
         specifier: ^2.1.3
         version: 2.1.3
@@ -1081,6 +1084,36 @@ packages:
       '@dfinity/agent': ^1.3.0
       '@dfinity/principal': ^1.3.0
       '@peculiar/webcrypto': ^1.4.0
+
+  '@dfinity/ledger-icp@2.6.4':
+    resolution: {integrity: sha512-RbvDiMcMRCok4c3s4xoHg8nwatsFFZgQcZkV/TTn7MpfnLgmMWtTGx97astv0fpj5cCLOl/NXbJhJd+Z+g8eEg==}
+    peerDependencies:
+      '@dfinity/agent': ^2.0.0
+      '@dfinity/candid': ^2.0.0
+      '@dfinity/principal': ^2.0.0
+      '@dfinity/utils': ^2.7.1
+
+  '@dfinity/ledger-icrc@2.6.4':
+    resolution: {integrity: sha512-Q7B/D6NhmWQW4qFWZVaV8B6efuRto7hDa0GmT1hxeeUPcyXt42AtfNgyqByDu82Wsank90AW4hgBS0UhKGEB9Q==}
+    peerDependencies:
+      '@dfinity/agent': ^2.0.0
+      '@dfinity/candid': ^2.0.0
+      '@dfinity/principal': ^2.0.0
+      '@dfinity/utils': ^2.7.1
+
+  '@dfinity/oisy-wallet-signer@0.0.3':
+    resolution: {integrity: sha512-vZnJFI+E6QlMP/vPl+XtMAs+kboZUJr7Osmlb6bPfMfspeh64ZEeFuMEfa80K+nN1YbQjcDgJZ25EWb0hj4jdQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@dfinity/agent': ^2.1.2
+      '@dfinity/candid': ^2.1.2
+      '@dfinity/ledger-icp': ^2.6.1
+      '@dfinity/ledger-icrc': ^2.6.1
+      '@dfinity/principal': ^2.1.2
+      '@dfinity/utils': ^2.5.2
+      borc: ^2.1.1
+      simple-cbor: ^0.4.1
+      zod: ^3.23.8
 
   '@dfinity/principal@2.1.3':
     resolution: {integrity: sha512-HtiAfZcs+ToPYFepVJdFlorIfPA56KzC6J97ZuH2lGNMTAfJA+NEBzLe476B4wVCAwZ0TiGJ27J4ks9O79DFEg==}
@@ -4981,6 +5014,9 @@ packages:
   zimmerframe@1.1.2:
     resolution: {integrity: sha512-rAbqEGa8ovJy4pyBxZM70hg4pE6gDgaQ0Sl9M3enG3I0d6H4XSAM3GeNGLKnsBpuijUow064sf7ww1nutC5/3w==}
 
+  zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
@@ -5838,6 +5874,32 @@ snapshots:
       '@noble/hashes': 1.6.1
       '@peculiar/webcrypto': 1.4.6
       borc: 2.1.2
+
+  '@dfinity/ledger-icp@2.6.4(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)(@dfinity/utils@2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))':
+    dependencies:
+      '@dfinity/agent': 2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+      '@dfinity/candid': 2.1.3(@dfinity/principal@2.1.3)
+      '@dfinity/principal': 2.1.3
+      '@dfinity/utils': 2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+
+  '@dfinity/ledger-icrc@2.6.4(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)(@dfinity/utils@2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))':
+    dependencies:
+      '@dfinity/agent': 2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+      '@dfinity/candid': 2.1.3(@dfinity/principal@2.1.3)
+      '@dfinity/principal': 2.1.3
+      '@dfinity/utils': 2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+
+  '@dfinity/oisy-wallet-signer@0.0.3(ke7edaauoazui5yf4kcfpcnu4m)':
+    dependencies:
+      '@dfinity/agent': 2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+      '@dfinity/candid': 2.1.3(@dfinity/principal@2.1.3)
+      '@dfinity/ledger-icp': 2.6.4(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)(@dfinity/utils@2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))
+      '@dfinity/ledger-icrc': 2.6.4(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)(@dfinity/utils@2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))
+      '@dfinity/principal': 2.1.3
+      '@dfinity/utils': 2.7.1(@dfinity/agent@2.1.3(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3))(@dfinity/candid@2.1.3(@dfinity/principal@2.1.3))(@dfinity/principal@2.1.3)
+      borc: 2.1.2
+      simple-cbor: 0.4.1
+      zod: 3.23.8
 
   '@dfinity/principal@2.1.3':
     dependencies:
@@ -9829,3 +9891,5 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zimmerframe@1.1.2: {}
+
+  zod@3.23.8: {}

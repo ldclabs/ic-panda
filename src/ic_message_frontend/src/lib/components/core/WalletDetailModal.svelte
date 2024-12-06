@@ -30,6 +30,7 @@
   import { getModalStore } from '@skeletonlabs/skeleton'
   import { onMount, type Snippet, type SvelteComponent } from 'svelte'
   import ImportTokenModal from './ImportTokenModal.svelte'
+  import TopupTokenModal from './TopupTokenModal.svelte'
   import TransferTokenModal from './TransferTokenModal.svelte'
 
   // Props
@@ -112,6 +113,22 @@
     })
   }
 
+  function onClickTopupPANDA() {
+    ;(modalStore as any).trigger2({
+      type: 'component',
+      component: {
+        ref: TopupTokenModal,
+        props: {
+          to: myState!.principal,
+          token: PANDAToken,
+          onfinish: async () => {
+            pandaTokenInfo.balance = await pandaLedgerAPI.balance()
+          }
+        }
+      }
+    })
+  }
+
   let deleteTokenSubmitting = $state('')
   async function onDeleteToken(id: string) {
     if (!myState) {
@@ -138,19 +155,29 @@
   onMount(async () => {
     myState = await MyMessageState.load()
     if (!myState.principal.isAnonymous()) {
-      icpTokenInfo.balance = await icpLedgerAPI.balance()
-      pandaTokenInfo.balance = await pandaLedgerAPI.balance()
-      dmsgTokenInfo.balance = await dmsgLedgerAPI.balance()
+      icpLedgerAPI.balance().then((balance) => {
+        icpTokenInfo.balance = balance
+      })
 
-      myInfo = await myState.agent.getProfile().catch(() => null)
+      pandaLedgerAPI.balance().then((balance) => {
+        pandaTokenInfo.balance = balance
+      })
+
+      dmsgLedgerAPI.balance().then((balance) => {
+        dmsgTokenInfo.balance = balance
+      })
+
+      myInfo = await myState!.agent.getProfile().catch(() => null)
       if (myInfo) {
         const tokens = await myState.agent.loadTokens(myInfo.tokens)
-        myTokens = await Promise.all(
-          tokens.map((token) => {
-            const api = new TokenLedgerAPI(token)
-            return api.balance().then((balance) => ({ ...token, api, balance }))
-          })
-        )
+        myTokens = tokens.map((token) => {
+          const api = new TokenLedgerAPI(token)
+          return { ...token, api, balance: 0n }
+        })
+
+        for (const token of myTokens) {
+          token.api.balance().then((balance) => (token.balance = balance))
+        }
       }
     }
   })
@@ -231,6 +258,14 @@
       textValue={principal.toString()}
     />
   </div>
+  <button
+    type="button"
+    class="variant-filled-primary btn flex w-full flex-row items-center justify-center rounded-xl px-4 py-3"
+    onclick={onClickTopupPANDA}
+  >
+    <span>Topup PANDA from OISY Wallet</span>
+  </button>
+  <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
   <div class="!mt-2 flex flex-col gap-0">
     {@render tokenItem(icpTokenInfo, icpLogo)}
     {@render tokenItem(pandaTokenInfo, pandaLogo)}
@@ -255,7 +290,7 @@
       href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Buy PANDA on OISY (Fiat Currency)</span>
+      <span class="hover:underline">Get PANDA from OISY (Fiat Money)</span>
     </a>
     <a
       type="button"
@@ -264,7 +299,7 @@
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Buy PANDA on ICPswap</span>
+      <span class="hover:underline">Get PANDA from ICPswap</span>
     </a>
   </div>
 </ModalCard>

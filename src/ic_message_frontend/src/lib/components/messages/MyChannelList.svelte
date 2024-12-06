@@ -123,11 +123,21 @@
             width="w-10"
           />
         </div>
-        <div class="flex-1">
-          <div class="flex flex-row items-center justify-between text-sm">
-            <span>
-              {channel.name}
-            </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-left text-sm">
+            {channel.name}
+          </p>
+          <div
+            class="flex flex-row items-center justify-between space-x-1 text-xs text-surface-500"
+          >
+            <p>
+              <span>
+                {channel.latest_message_user.name}
+              </span>
+              <span>
+                {channel.latest_message_time}
+              </span>
+            </p>
             {#if channel.my_setting.mute}
               <span class="text-surface-400 *:size-3"
                 ><IconNotificationOffLine /></span
@@ -135,14 +145,6 @@
             {:else if channel.my_setting.unread > 0}
               <span class="text-xs">{channel.my_setting.unread}</span>
             {/if}
-          </div>
-          <div class="flex flex-row space-x-1 text-xs text-surface-500">
-            <span>
-              {channel.latest_message_user.name}
-            </span>
-            <span>
-              {channel.latest_message_time}
-            </span>
           </div>
         </div>
       </button>
