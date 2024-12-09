@@ -1,6 +1,6 @@
 const src = globalThis.location?.href || ''
 
-export const APP_VERSION = '2.8.4'
+export const APP_VERSION = '2.8.5'
 export const IS_LOCAL = src.includes('localhost') || src.includes('127.0.0.1')
 export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
@@ -12,7 +12,7 @@ export const ICP_LEDGER_CANISTER_ID = 'ryjl3-tyaaa-aaaaa-aaaba-cai' // ic & loca
 export const TOKEN_LEDGER_CANISTER_ID = 'druyg-tyaaa-aaaaq-aactq-cai' // ic & local
 export const DMSG_LEDGER_CANISTER_ID = 'ocqzv-tyaaa-aaaar-qal4a-cai' // ic & local
 
-export const MESSAGE_CANISTER_ID = IS_LOCAL
-  ? 'ajuq4-ruaaa-aaaaa-qaaga-cai'
-  : 'nscli-qiaaa-aaaaj-qa4pa-cai' // ic & local
+export const MESSAGE_CANISTER_ID = 'nscli-qiaaa-aaaaj-qa4pa-cai' // ic & local
 export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
+
+export const ICPSWAP_TOKENS_CANISTER_ID = 'moe7a-tiaaa-aaaag-qclfq-cai'

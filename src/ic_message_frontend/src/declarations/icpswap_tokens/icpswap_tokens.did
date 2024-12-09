@@ -1,0 +1,18 @@
+type PublicTokenOverview =
+ record {
+   address: text;
+   feesUSD: float64;
+   id: nat;
+   name: text;
+   priceUSD: float64;
+   priceUSDChange: float64;
+   standard: text;
+   symbol: text;
+   totalVolumeUSD: float64;
+   txCount: int;
+   volumeUSD: float64;
+   volumeUSD1d: float64;
+   volumeUSD7d: float64;
+ };
+
+service : { getToken: (text) -> (PublicTokenOverview) query; }

@@ -5,10 +5,13 @@
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
+  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { agent } from '$lib/utils/auth'
+  import { getPriceNumber } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
+  import { ICPToken, PANDAToken } from '$lib/utils/token'
   import UserRegisterModal from '$src/lib/components/messages/UserRegisterModal.svelte'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
@@ -33,6 +36,8 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const latest_users: Writable<UserInfo[]> = writable([])
+  const icpPrice = getTokenPrice(ICPToken.canisterId, true)
+  const pandaPrice = getTokenPrice(PANDAToken.canisterId, true)
   const partners: Partner[] = [
     {
       title: 'The Internet Computer',
@@ -217,7 +222,31 @@
   })
 </script>
 
+{#snippet tokenPrice(price: TokenPrice)}
+  {@const color =
+    price.priceUSDChange > 0 ? 'text-primary-500' : 'text-error-500'}
+  <div class="flex flex-row items-center justify-between gap-2">
+    <span class="">{price.symbol}</span>
+    <span class={color}>{'$' + getPriceNumber(price.priceUSD)}</span>
+    <span class={color}>
+      {(price.priceUSDChange > 0 ? '↑' : '') +
+        price.priceUSDChange.toFixed(2) +
+        '%'}</span
+    >
+  </div>
+{/snippet}
+
 <div class="landing-page w-full">
+  <div
+    class="card m-auto flex max-w-3xl flex-col bg-transparent py-2 text-white md:flex-row md:justify-around"
+  >
+    {#if $icpPrice}
+      {@render tokenPrice($icpPrice)}
+    {/if}
+    {#if $pandaPrice}
+      {@render tokenPrice($pandaPrice)}
+    {/if}
+  </div>
   <div
     class="pandas-backgroud mx-auto flex w-full max-w-[1800px] flex-col items-center pt-12 md:pt-24"
   >

@@ -4,9 +4,9 @@ import {
   type Allowance
 } from '$declarations/icp_ledger_canister/icp_ledger_canister.did.js'
 import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
-import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
 import { AccountIdentifier } from '$lib/utils/account_identifier'
+import { agent } from '$lib/utils/auth'
 import { ICPToken } from '$lib/utils/token'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'

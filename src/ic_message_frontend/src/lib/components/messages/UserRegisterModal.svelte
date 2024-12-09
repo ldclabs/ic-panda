@@ -7,9 +7,11 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { APP_ORIGIN, MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { getTokenPrice } from '$lib/stores/exchange'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
+  import { getPriceNumber } from '$lib/utils/helper'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import {
@@ -24,6 +26,7 @@
   const usernameReg = /^[a-z0-9][a-z0-9_]{0,19}$/i
   const toastStore = getToastStore()
   const modalStore = getModalStore()
+
   interface Props {
     /** Exposes parent props to this component. */
     parent: SvelteComponent
@@ -36,6 +39,7 @@
   const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   const messageState: Readable<StateInfo | null> = myState.api.stateStore
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
+  const pandaPrice = getTokenPrice(PANDAToken.canisterId)
 
   let validating = $state(false)
   let submitting = $state(false)
@@ -274,7 +278,15 @@
             class={amount > availablePandaBalance
               ? 'text-error-500'
               : 'text-panda'}
-            >{formatNumber(Number(amount) / Number(PANDAToken.one))}</span
+            >{formatNumber(Number(amount) / Number(PANDAToken.one)) +
+              ($pandaPrice && amount > 0n
+                ? ' ($' +
+                  getPriceNumber(
+                    $pandaPrice.priceUSD *
+                      (Number(amount) / Number(PANDAToken.one))
+                  ) +
+                  ')'
+                : '')}</span
           >
           <span>{PANDAToken.symbol}</span>
         {/if}

@@ -38,3 +38,18 @@ export function getShortNumber(v: number | BigInt): string {
   }
   return `${(n / 1000 / 1000 / 1000 / 1000).toFixed(2)}T`
 }
+
+export function getPriceNumber(v: number): string {
+  if (v < 0.001) {
+    return v.toFixed(6)
+  } else if (v < 0.01) {
+    return v.toFixed(5)
+  } else if (v < 0.1) {
+    return v.toFixed(4)
+  } else if (v < 1) {
+    return v.toFixed(3)
+  } else if (v < 10) {
+    return v.toFixed(2)
+  }
+  return v.toFixed(1)
+}

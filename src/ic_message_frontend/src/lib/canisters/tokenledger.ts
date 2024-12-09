@@ -3,8 +3,8 @@ import {
   type _SERVICE,
   type Allowance
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
-import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
+import { agent } from '$lib/utils/auth'
 import { DMSGToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'

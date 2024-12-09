@@ -1,5 +1,6 @@
 <script lang="ts">
   import { icpLedgerAPI } from '$lib/canisters/icpledger'
+  import { icpSwapAPI } from '$lib/canisters/icpswap'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import {
     dmsgLedgerAPI,
@@ -19,6 +20,7 @@
   import { MyMessageState } from '$lib/stores/message'
   import type { LedgerAPI } from '$lib/types/token'
   import { shortId } from '$lib/utils/auth'
+  import { getPriceNumber } from '$lib/utils/helper'
   import {
     DMSGToken,
     ICPToken,
@@ -65,6 +67,11 @@
     api: dmsgLedgerAPI,
     balance: 0n
   })
+
+  async function getTokenValue(token: TokenInfoEx) {
+    const price = await icpSwapAPI.getToken(token.canisterId)
+    return new TokenDisplay(token, token.balance).num * (price?.priceUSD || 0)
+  }
 
   function onClickToken(token: TokenInfoEx) {
     ;(modalStore as any).trigger2({
@@ -224,6 +231,11 @@
       </div>
       <div class="flex flex-row justify-between text-sm text-surface-500">
         <span class="">{token.name}</span>
+        {#await getTokenValue(token) then value}
+          {#if value > 0}
+            <span class="">{'$' + getPriceNumber(value)}</span>
+          {/if}
+        {/await}
       </div>
     </div>
     {#if canDelete}
@@ -263,7 +275,7 @@
     class="variant-filled-primary btn flex w-full flex-row items-center justify-center rounded-xl px-4 py-3"
     onclick={onClickTopupPANDA}
   >
-    <span>Topup PANDA from OISY Wallet</span>
+    <span>Topup PANDA via OISY Wallet</span>
   </button>
   <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
   <div class="!mt-2 flex flex-col gap-0">

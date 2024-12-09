@@ -5,8 +5,6 @@ import { type Identity } from '@dfinity/agent'
 import { nonNullish } from '@dfinity/utils'
 import { derived, get, writable, type Readable } from 'svelte/store'
 
-export { agent, anonymousIdentity } from '$lib/utils/auth'
-
 export interface AuthStoreData {
   identity: Identity
 }

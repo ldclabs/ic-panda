@@ -2,9 +2,9 @@
   import { type UserInfo } from '$lib/canisters/message'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { agent } from '$lib/stores/auth'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
+  import { agent } from '$lib/utils/auth'
   import { imageUrl } from '$lib/utils/url'
   import ImageCrop from '$src/lib/components/ui/ImageCrop.svelte'
   import {

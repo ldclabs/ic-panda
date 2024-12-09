@@ -77,3 +77,9 @@ export const agent = new AuthAgent({
   host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
   verifyQuerySignatures: false
 })
+
+export const anonAgent = new AuthAgent({
+  identity: anonymousIdentity,
+  host: 'https://icp-api.io',
+  verifyQuerySignatures: false
+})

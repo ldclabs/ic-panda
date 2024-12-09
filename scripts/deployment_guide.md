@@ -20,12 +20,15 @@ dfx canister create --specified-id 2fvu6-tqaaa-aaaap-akksa-cai ic_message_fronte
 dfx canister create --specified-id n3bau-gaaaa-aaaaj-qa4oq-cai ic_cose_canister
 dfx canister create --specified-id 5szpn-tiaaa-aaaaj-qncoq-cai ic_oss_cluster
 dfx canister create --specified-id 532er-faaaa-aaaaj-qncpa-cai ic_oss_bucket
+dfx canister create --specified-id qc6wh-6yaaa-aaaap-anuza-cai dmsg_index_canister
+dfx canister create --specified-id ocqzv-tyaaa-aaaar-qal4a-cai dmsg_ledger_canister
+dfx canister create --specified-id ql553-iqaaa-aaaap-anuyq-cai ic_dmsg_minter
 
 # Deploys the ICP Ledger canister with the specified initial values
 dfx identity use default
 export MINTER_ACCOUNT_ID=$(dfx ledger account-id)
 export DEFAULT_ACCOUNT_ID=$(dfx ledger account-id)
-dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister --argument "
+dfx deploy icp_ledger_canister --argument "
   (variant {
     Init = record {
       minting_account = \"$MINTER_ACCOUNT_ID\";

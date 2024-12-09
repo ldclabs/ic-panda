@@ -9,8 +9,10 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { MESSAGE_CANISTER_ID } from '$lib/constants'
+  import { getTokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
+  import { getPriceNumber } from '$lib/utils/helper'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import {
@@ -38,6 +40,7 @@
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
   const stateInfo = myState.api.stateStore as Readable<StateInfo>
   const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
+  const pandaPrice = getTokenPrice(PANDAToken.canisterId)
 
   let nameInput = $state(channelName)
   let descriptionInput = $state('')
@@ -173,7 +176,15 @@
       <p>
         <b>1.</b> Creating a message channel costs
         <span class="text-panda"
-          >{formatNumber(Number(channelPrice) / Number(PANDAToken.one))}</span
+          >{formatNumber(Number(channelPrice) / Number(PANDAToken.one)) +
+            ($pandaPrice
+              ? ' ($' +
+                getPriceNumber(
+                  $pandaPrice.priceUSD *
+                    (Number(channelPrice) / Number(PANDAToken.one))
+                ) +
+                ')'
+              : '')}</span
         > PANDA tokens for gas; sending messages will consume gas.
       </p>
       <p>

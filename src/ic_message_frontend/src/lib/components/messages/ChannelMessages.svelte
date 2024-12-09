@@ -12,7 +12,6 @@
   import EmojisPopup from '$lib/components/ui/EmojisPopup.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { agent } from '$lib/stores/auth'
   import {
     toDisplayUserInfo,
     type ChannelInfoEx,
@@ -25,6 +24,7 @@
     MessageKind,
     type FilePayload
   } from '$lib/types/message'
+  import { agent } from '$lib/utils/auth'
   import { coseA256GCMEncrypt0, type AesGcmKey } from '$lib/utils/crypto'
   import {
     getBytesString,
