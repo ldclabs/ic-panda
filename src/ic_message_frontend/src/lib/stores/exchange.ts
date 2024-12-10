@@ -20,7 +20,6 @@ export function getTokenPrice(
     const f = () =>
       icpSwapAPI.getToken(token).then((data) => {
         if (data) {
-          console.log('price', data)
           priceCache[token] = data
           set(data)
         }

@@ -56,7 +56,7 @@ export default defineConfig({
         short_name: 'dMsg',
         name: 'dMsg.net',
         description:
-          'ICPanda Message (dMsg.net) is a decentralized end-to-end encrypted messaging application fully running on the Internet Computer blockchain.',
+          'ICPanda Message (dMsg.net) is the world\'s 1st decentralized end-to-end encrypted messaging application fully running on the Internet Computer blockchain.',
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',

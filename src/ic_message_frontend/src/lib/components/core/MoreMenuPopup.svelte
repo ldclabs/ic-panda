@@ -51,7 +51,7 @@
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExchange /></span>
-      <span>Exchange $PANDA</span>
+      <span>Exchange PANDA</span>
     </a>
     <a type="button" target="_blank" href="https://github.com/ldclabs/ic-panda">
       <span class="*:size-5"><IconGithub /></span>

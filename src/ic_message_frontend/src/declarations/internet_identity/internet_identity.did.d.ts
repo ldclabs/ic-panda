@@ -71,6 +71,17 @@ export interface BufferedArchiveEntry {
   'anchor_number' : UserNumber,
   'timestamp' : Timestamp,
 }
+export interface CaptchaConfig {
+  'max_unsolved_captchas' : bigint,
+  'captcha_trigger' : {
+      'Dynamic' : {
+        'reference_rate_sampling_interval_s' : bigint,
+        'threshold_pct' : number,
+        'current_rate_sampling_interval_s' : bigint,
+      }
+    } |
+    { 'Static' : { 'CaptchaDisabled' : null } | { 'CaptchaEnabled' : null } },
+}
 export type CaptchaResult = ChallengeResult;
 export interface Challenge {
   'png_base64' : string,
@@ -78,6 +89,10 @@ export interface Challenge {
 }
 export type ChallengeKey = string;
 export interface ChallengeResult { 'key' : ChallengeKey, 'chars' : string }
+export interface CheckCaptchaArg { 'solution' : string }
+export type CheckCaptchaError = { 'NoRegistrationFlow' : null } |
+  { 'UnexpectedCall' : { 'next_step' : RegistrationFlowNextStep } } |
+  { 'WrongSolution' : { 'new_captcha_png_base64' : string } };
 export type CredentialId = Uint8Array | number[];
 export interface Delegation {
   'pubkey' : PublicKey,
@@ -147,6 +162,17 @@ export interface IdAliasCredentials {
   'rp_id_alias_credential' : SignedIdAlias,
   'issuer_id_alias_credential' : SignedIdAlias,
 }
+export interface IdRegFinishArg { 'authn_method' : AuthnMethodData }
+export type IdRegFinishError = { 'NoRegistrationFlow' : null } |
+  { 'UnexpectedCall' : { 'next_step' : RegistrationFlowNextStep } } |
+  { 'InvalidAuthnMethod' : string } |
+  { 'IdentityLimitReached' : null } |
+  { 'StorageError' : string };
+export interface IdRegFinishResult { 'identity_number' : bigint }
+export interface IdRegNextStepResult { 'next_step' : RegistrationFlowNextStep }
+export type IdRegStartError = { 'InvalidCaller' : null } |
+  { 'AlreadyInProgress' : null } |
+  { 'RateLimitExceeded' : null };
 export interface IdentityAnchorInfo {
   'devices' : Array<DeviceWithUsage>,
   'device_registration' : [] | [DeviceRegistrationInfo],
@@ -173,14 +199,12 @@ export type IdentityMetadataReplaceError = {
     }
   };
 export type IdentityNumber = bigint;
-export type IdentityRegisterError = { 'BadCaptcha' : null } |
-  { 'CanisterFull' : null } |
-  { 'InvalidMetadata' : string };
 export interface InternetIdentityInit {
   'assigned_user_number_range' : [] | [[bigint, bigint]],
-  'max_inflight_captchas' : [] | [bigint],
   'archive_config' : [] | [ArchiveConfig],
   'canister_creation_cycles_cost' : [] | [bigint],
+  'related_origins' : [] | [Array<string>],
+  'captcha_config' : [] | [CaptchaConfig],
   'register_rate_limit' : [] | [RateLimitConfig],
 }
 export interface InternetIdentityStats {
@@ -235,6 +259,10 @@ export interface RateLimitConfig {
 export type RegisterResponse = { 'bad_challenge' : null } |
   { 'canister_full' : null } |
   { 'registered' : { 'user_number' : UserNumber } };
+export type RegistrationFlowNextStep = {
+    'CheckCaptcha' : { 'captcha_png_base64' : string }
+  } |
+  { 'Finish' : null };
 export type SessionKey = PublicKey;
 export interface SignedDelegation {
   'signature' : Uint8Array | number[],
@@ -322,7 +350,12 @@ export interface _SERVICE {
     { 'Ok' : null } |
       { 'Err' : AuthnMethodSecuritySettingsReplaceError }
   >,
-  'captcha_create' : ActorMethod<[], { 'Ok' : Challenge } | { 'Err' : null }>,
+  'check_captcha' : ActorMethod<
+    [CheckCaptchaArg],
+    { 'Ok' : IdRegNextStepResult } |
+      { 'Err' : CheckCaptchaError }
+  >,
+  'config' : ActorMethod<[], InternetIdentityInit>,
   'create_challenge' : ActorMethod<[], Challenge>,
   'deploy_archive' : ActorMethod<[Uint8Array | number[]], DeployArchiveResult>,
   'enter_device_registration_mode' : ActorMethod<[UserNumber], Timestamp>,
@@ -357,10 +390,15 @@ export interface _SERVICE {
     { 'Ok' : null } |
       { 'Err' : IdentityMetadataReplaceError }
   >,
-  'identity_register' : ActorMethod<
-    [AuthnMethodData, CaptchaResult, [] | [Principal]],
-    { 'Ok' : IdentityNumber } |
-      { 'Err' : IdentityRegisterError }
+  'identity_registration_finish' : ActorMethod<
+    [IdRegFinishArg],
+    { 'Ok' : IdRegFinishResult } |
+      { 'Err' : IdRegFinishError }
+  >,
+  'identity_registration_start' : ActorMethod<
+    [],
+    { 'Ok' : IdRegNextStepResult } |
+      { 'Err' : IdRegStartError }
   >,
   'init_salt' : ActorMethod<[], undefined>,
   'lookup' : ActorMethod<[UserNumber], Array<DeviceData>>,

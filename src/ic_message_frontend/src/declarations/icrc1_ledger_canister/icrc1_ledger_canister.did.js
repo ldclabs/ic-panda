@@ -33,7 +33,6 @@ export const idlFactory = ({ IDL }) => {
     'token_symbol' : IDL.Opt(IDL.Text),
     'transfer_fee' : IDL.Opt(IDL.Nat),
     'metadata' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, MetadataValue))),
-    'maximum_number_of_accounts' : IDL.Opt(IDL.Nat64),
     'accounts_overflow_trim_quantity' : IDL.Opt(IDL.Nat64),
     'change_fee_collector' : IDL.Opt(ChangeFeeCollector),
     'max_memo_length' : IDL.Opt(IDL.Nat16),
@@ -207,7 +206,10 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : BlockIndex,
     'Err' : TransferError,
   });
-  const icrc21_consent_message_metadata = IDL.Record({ 'language' : IDL.Text });
+  const icrc21_consent_message_metadata = IDL.Record({
+    'utc_offset_minutes' : IDL.Opt(IDL.Int16),
+    'language' : IDL.Text,
+  });
   const icrc21_consent_message_spec = IDL.Record({
     'metadata' : icrc21_consent_message_metadata,
     'device_spec' : IDL.Opt(
@@ -448,7 +450,6 @@ export const init = ({ IDL }) => {
     'token_symbol' : IDL.Opt(IDL.Text),
     'transfer_fee' : IDL.Opt(IDL.Nat),
     'metadata' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, MetadataValue))),
-    'maximum_number_of_accounts' : IDL.Opt(IDL.Nat64),
     'accounts_overflow_trim_quantity' : IDL.Opt(IDL.Nat64),
     'change_fee_collector' : IDL.Opt(ChangeFeeCollector),
     'max_memo_length' : IDL.Opt(IDL.Nat16),

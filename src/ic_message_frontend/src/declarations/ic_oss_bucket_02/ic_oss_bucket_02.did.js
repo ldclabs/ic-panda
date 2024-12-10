@@ -1,5 +1,6 @@
 export const idlFactory = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'max_custom_data_size' : IDL.Opt(IDL.Nat16),
     'max_children' : IDL.Opt(IDL.Nat16),
     'enable_hash_index' : IDL.Opt(IDL.Bool),
@@ -7,6 +8,7 @@ export const idlFactory = ({ IDL }) => {
     'max_folder_depth' : IDL.Opt(IDL.Nat8),
   });
   const InitArgs = IDL.Record({
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Text,
     'max_custom_data_size' : IDL.Nat16,
     'max_children' : IDL.Nat16,
@@ -66,6 +68,7 @@ export const idlFactory = ({ IDL }) => {
     'total_chunks' : IDL.Nat64,
     'trusted_eddsa_pub_keys' : IDL.Vec(IDL.Vec(IDL.Nat8)),
     'managers' : IDL.Vec(IDL.Principal),
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Text,
     'max_custom_data_size' : IDL.Nat16,
     'auditors' : IDL.Vec(IDL.Principal),
@@ -365,6 +368,7 @@ export const idlFactory = ({ IDL }) => {
 };
 export const init = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'max_custom_data_size' : IDL.Opt(IDL.Nat16),
     'max_children' : IDL.Opt(IDL.Nat16),
     'enable_hash_index' : IDL.Opt(IDL.Bool),
@@ -372,6 +376,7 @@ export const init = ({ IDL }) => {
     'max_folder_depth' : IDL.Opt(IDL.Nat8),
   });
   const InitArgs = IDL.Record({
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Text,
     'max_custom_data_size' : IDL.Nat16,
     'max_children' : IDL.Nat16,

@@ -248,7 +248,7 @@
     {/if}
   </div>
   <div
-    class="pandas-backgroud mx-auto flex w-full max-w-[1800px] flex-col items-center pt-12 md:pt-24"
+    class="pandas-backgroud mx-auto flex w-full max-w-[1800px] flex-col items-center pt-12"
   >
     <Saos
       animation="scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both"
@@ -262,8 +262,8 @@
           alt="ICPanda message brand"
         />
         <p class="text-xl font-normal text-white antialiased">
-          ICPanda Message (dMsg.net) is a decentralized end-to-end encrypted
-          messaging application fully running on the <a
+          ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end
+          encrypted messaging application fully running on the <a
             class="underline underline-offset-4"
             href="https://internetcomputer.org"
             target="_blank"

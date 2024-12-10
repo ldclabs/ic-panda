@@ -1,6 +1,5 @@
 <script lang="ts">
   import { icpLedgerAPI } from '$lib/canisters/icpledger'
-  import { icpSwapAPI } from '$lib/canisters/icpswap'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import {
     dmsgLedgerAPI,
@@ -17,6 +16,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardPopup from '$lib/components/ui/TextClipboardPopup.svelte'
   import { authStore } from '$lib/stores/auth'
+  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
   import type { LedgerAPI } from '$lib/types/token'
   import { shortId } from '$lib/utils/auth'
@@ -42,7 +42,11 @@
     parent: SvelteComponent
   }
 
-  type TokenInfoEx = TokenInfo & { api: LedgerAPI; balance: bigint }
+  type TokenInfoEx = TokenInfo & {
+    api: LedgerAPI
+    balance: bigint
+    price: TokenPrice | null
+  }
 
   let { parent }: Props = $props()
 
@@ -55,23 +59,33 @@
   let icpTokenInfo: TokenInfoEx = $state({
     ...ICPToken,
     api: icpLedgerAPI,
-    balance: 0n
+    balance: 0n,
+    price: null
   })
+  getTokenPrice(icpTokenInfo.canisterId).subscribe((price) => {
+    icpTokenInfo.price = price
+  })
+
   let pandaTokenInfo: TokenInfoEx = $state({
     ...PANDAToken,
     api: pandaLedgerAPI,
-    balance: 0n
+    balance: 0n,
+    price: null
   })
+  getTokenPrice(PANDAToken.canisterId).subscribe((price) => {
+    pandaTokenInfo.price = price
+  })
+
   let dmsgTokenInfo: TokenInfoEx = $state({
     ...DMSGToken,
     api: dmsgLedgerAPI,
-    balance: 0n
+    balance: 0n,
+    price: null
   })
 
-  async function getTokenValue(token: TokenInfoEx) {
-    const price = await icpSwapAPI.getToken(token.canisterId)
-    return new TokenDisplay(token, token.balance).num * (price?.priceUSD || 0)
-  }
+  getTokenPrice(DMSGToken.canisterId).subscribe((price) => {
+    dmsgTokenInfo.price = price
+  })
 
   function onClickToken(token: TokenInfoEx) {
     ;(modalStore as any).trigger2({
@@ -179,11 +193,19 @@
         const tokens = await myState.agent.loadTokens(myInfo.tokens)
         myTokens = tokens.map((token) => {
           const api = new TokenLedgerAPI(token)
-          return { ...token, api, balance: 0n }
+          return {
+            ...token,
+            api,
+            balance: 0n,
+            price: null
+          }
         })
 
         for (const token of myTokens) {
           token.api.balance().then((balance) => (token.balance = balance))
+          getTokenPrice(token.canisterId).subscribe((price) => {
+            token.price = price
+          })
         }
       }
     }
@@ -207,6 +229,8 @@
   logo?: () => ReturnType<Snippet>,
   canDelete?: boolean
 )}
+  {@const tokenInfo = new TokenDisplay(token, token.balance)}
+  {@const tokenValue = tokenInfo.num * (token.price?.priceUSD || 0)}
   <a
     type="button"
     href="/"
@@ -227,15 +251,13 @@
     <div class="pl-2">
       <div class="flex flex-row justify-between">
         <span class="">{token.symbol}</span>
-        <span class="">{new TokenDisplay(token, token.balance).display()}</span>
+        <span class="">{tokenInfo.display()}</span>
       </div>
       <div class="flex flex-row justify-between text-sm text-surface-500">
         <span class="">{token.name}</span>
-        {#await getTokenValue(token) then value}
-          {#if value > 0}
-            <span class="">{'$' + getPriceNumber(value)}</span>
-          {/if}
-        {/await}
+        {#if tokenValue > 0}
+          <span class="">{'$' + getPriceNumber(tokenValue)}</span>
+        {/if}
       </div>
     </div>
     {#if canDelete}
