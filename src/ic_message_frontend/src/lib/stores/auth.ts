@@ -13,6 +13,7 @@ import {
   setNameIdentity
 } from '$lib/utils/auth'
 import { encodeCBOR, toArrayBuffer } from '$lib/utils/crypto'
+import { popupCenter } from '$lib/utils/window'
 import type { DerEncodedPublicKey, Identity, Signature } from '@dfinity/agent'
 import {
   Delegation,
@@ -54,6 +55,7 @@ export interface AuthStore extends Readable<AuthStoreData> {
 }
 
 function initAuthStore(): AuthStore {
+  const authClientPromise = createAuthClient()
   let identity: IdentityEx | null = null
   let srcIdentity: IdentityEx | null = null
   // srcAgent is used to sign in with username
@@ -151,10 +153,12 @@ function initAuthStore(): AuthStore {
       window.location.assign('/_/messages')
     },
 
-    signIn: async () => {
-      const authClient = await createAuthClient()
-      return new Promise<void>((resolve, reject) => {
-        authClient.login({
+    signIn: () =>
+      new Promise<void>(async (resolve, reject) => {
+        // Important: authClientPromise should be resolved here
+        // https://ffan0811.medium.com/window-open-returns-null-in-safari-and-firefox-after-allowing-pop-up-on-the-browser-4e4e45e7d926
+        const authClient = await authClientPromise
+        await authClient.login({
           derivationOrigin: DERIVATION_ORIGIN as string,
           maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
           onSuccess: () => {
@@ -176,10 +180,13 @@ function initAuthStore(): AuthStore {
             console.error(err)
             reject(err)
           },
-          identityProvider: IDENTITY_PROVIDER
+          identityProvider: IDENTITY_PROVIDER,
+          windowOpenerFeatures: popupCenter({
+            width: 576,
+            height: 625
+          })
         })
-      })
-    },
+      }),
 
     logout: async (url: string) => {
       dynAgent.setIdentity(anonymousIdentity)
