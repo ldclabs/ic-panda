@@ -4,8 +4,9 @@ import {
   type PublicTokenOverview
 } from '$declarations/icpswap_tokens/icpswap_tokens.did.js'
 import { ICPSWAP_TOKENS_CANISTER_ID } from '$lib/constants'
+import { anonAgent } from '$lib/utils/auth'
 import { Principal } from '@dfinity/principal'
-import { createAnonActor } from './actors'
+import { createActor } from './actors'
 
 export { type PublicTokenOverview } from '$declarations/icpswap_tokens/icpswap_tokens.did.js'
 
@@ -15,9 +16,10 @@ export class ICPSwapAPI {
 
   constructor(canisterId: Principal) {
     this.canisterId = canisterId
-    this.actor = createAnonActor<_SERVICE>({
+    this.actor = createActor<_SERVICE>({
       canisterId: canisterId,
-      idlFactory: idlFactory
+      idlFactory: idlFactory,
+      agent: anonAgent
     })
   }
 

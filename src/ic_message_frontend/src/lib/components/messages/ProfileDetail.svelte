@@ -60,7 +60,7 @@
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
-        await authStore.signIn({})
+        await authStore.signIn()
         window.location.reload()
       } else if (!$myInfo) {
         modalStore.trigger({
@@ -102,7 +102,7 @@
 
   async function onCreateChannelHandler(id: Principal) {
     if (myState.principal.isAnonymous()) {
-      await authStore.signIn({})
+      await authStore.signIn()
       window.location.reload()
     } else if (!$myInfo) {
       modalStore.trigger({

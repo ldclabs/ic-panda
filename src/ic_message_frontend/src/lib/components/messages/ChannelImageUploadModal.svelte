@@ -4,7 +4,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { agent } from '$lib/utils/auth'
+  import { dynAgent } from '$lib/utils/auth'
   import { bytesToBase64Url } from '$lib/utils/crypto'
   import { imageUrl } from '$lib/utils/url'
   import ImageCrop from '$src/lib/components/ui/ImageCrop.svelte'
@@ -60,7 +60,7 @@
         contentType: blob.type
       })
       const bucketClient = BucketCanister.create({
-        agent,
+        agent: dynAgent,
         canisterId: token.storage[0],
         accessToken: new Uint8Array(token.access_token)
       })

@@ -7,6 +7,8 @@ members = [
   "src/ic_message",
   "src/ic_message_channel",
   "src/ic_message_profile",
+  "src/ic_message_types",
+  "src/ic_name_identity",
   "src/ic_panda_ai",
   "src/ic_panda_infra",
   "src/ic_panda_luckypool",
@@ -23,7 +25,7 @@ opt-level = 's'
 
 [workspace.package]
 edition = "2021"
-version = "2.8.1"
+version = "2.9.0"
 repository = "https://github.com/ldclabs/ic-panda"
 keywords = ["canister", "icp", "panda"]
 categories = ["web-programming"]
@@ -55,7 +57,9 @@ icrc-ledger-types = "0.1"
 ic_cose_types = "0.4"
 ic-certification = "2.6"
 ic-oss-types = "0.9"
+ic-canister-sig-creation = "1.1"
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", features = ["getrandom"] }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "=4.5", features = ["derive"] }
+ic-crypto-standalone-sig-verifier = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }

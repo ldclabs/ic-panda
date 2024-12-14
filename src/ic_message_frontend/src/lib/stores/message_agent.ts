@@ -13,7 +13,7 @@ import {
 import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
 import { TokenLedgerAPI } from '$lib/canisters/tokenledger'
 import { type FilePayload } from '$lib/types/message'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
 import { type TokenInfo } from '$lib/utils/token'
@@ -92,8 +92,8 @@ export class MessageAgent extends EventTarget {
   private constructor() {
     super()
 
-    this.identity = agent.id
-    this.principal = agent.id.getPrincipal()
+    this.identity = dynAgent.id
+    this.principal = dynAgent.id.getPrincipal()
     this.id = this.principal.toText()
     this.api = messageCanisterAPI
     this._db = new KVStore('ICPanda_' + this.id, 1, [

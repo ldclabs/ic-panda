@@ -133,6 +133,14 @@
           continue
         }
 
+        if (info.isManager) {
+          continue
+        }
+
+        if (!isAddManager && (info.isManager || info.isMember)) {
+          continue
+        }
+
         if (!info.ecdhPub) {
           // try to fetch the latest ecdh public key
           const ninfo = await myState.tryFetchProfile(info.src!.id)

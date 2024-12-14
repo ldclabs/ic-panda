@@ -1,4 +1,5 @@
 use candid::{utils::ArgumentEncoder, Nat, Principal};
+use ic_canister_sig_creation::CanisterSigPublicKey;
 use ic_cdk::api::management_canister::main::CanisterStatusResponse;
 use ic_cose_types::ANONYMOUS;
 use ic_message_types::{
@@ -35,6 +36,9 @@ static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 
 static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
 // "ql553-iqaaa-aaaap-anuyq-cai" dMsg minter canister id
 static MINTER_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 1, 224, 109, 49, 1, 1]);
+// "2rgax-kyaaa-aaaap-anvba-cai" dMsg minter canister id
+static NAME_IDENTITY_CANISTER: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 1, 224, 109, 66, 1, 1]);
 
 fn is_controller() -> Result<(), String> {
     let caller = ic_cdk::caller();
@@ -51,6 +55,11 @@ fn is_authenticated() -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+fn get_name_principal(name: &str) -> Principal {
+    let user_key = CanisterSigPublicKey::new(NAME_IDENTITY_CANISTER, name.as_bytes().to_vec());
+    Principal::self_authenticating(user_key.to_der().as_slice())
 }
 
 async fn call<In, Out>(id: Principal, method: &str, args: In, cycles: u128) -> Result<Out, String>

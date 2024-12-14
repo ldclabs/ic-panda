@@ -244,7 +244,6 @@ export interface UpgradeArgs {
   'token_symbol' : [] | [string],
   'transfer_fee' : [] | [bigint],
   'metadata' : [] | [Array<[string, MetadataValue]>],
-  'maximum_number_of_accounts' : [] | [bigint],
   'accounts_overflow_trim_quantity' : [] | [bigint],
   'change_fee_collector' : [] | [ChangeFeeCollector],
   'max_memo_length' : [] | [number],
@@ -266,7 +265,10 @@ export type icrc21_consent_message = {
     'LineDisplayMessage' : { 'pages' : Array<{ 'lines' : Array<string> }> }
   } |
   { 'GenericDisplayMessage' : string };
-export interface icrc21_consent_message_metadata { 'language' : string }
+export interface icrc21_consent_message_metadata {
+  'utc_offset_minutes' : [] | [number],
+  'language' : string,
+}
 export interface icrc21_consent_message_request {
   'arg' : Uint8Array | number[],
   'method' : string,

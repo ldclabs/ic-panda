@@ -40,6 +40,16 @@
       "gzip": true,
       "type": "rust"
     },
+    "ic_name_identity": {
+      "candid": "src/ic_name_identity/ic_name_identity.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_name_identity",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
     "ic_panda_luckypool": {
       "candid": "src/ic_panda_luckypool/ic_panda_luckypool.did",
       "declarations": {
@@ -97,24 +107,24 @@
       "wasm": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
     },
     "ic_cose_canister": {
-      "candid": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.did",
+      "candid": "https://github.com/ldclabs/ic-cose/releases/download/v0.4.0/ic_cose_canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-cose/releases/download/v0.3.2/ic_cose_canister.wasm.gz"
+      "wasm": "https://github.com/ldclabs/ic-cose/releases/download/v0.4.0/ic_cose_canister.wasm.gz"
     },
     "ic_oss_cluster": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_cluster.did",
+      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_cluster.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_cluster.wasm.gz"
+      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_cluster.wasm.gz"
     },
     "ic_oss_bucket": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_bucket.did",
+      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_bucket.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_bucket.wasm.gz"
+      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_bucket.wasm.gz"
     },
     "ic_oss_bucket_02": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_bucket.did",
+      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_bucket.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.7/ic_oss_bucket.wasm.gz"
+      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v0.9.10/ic_oss_bucket.wasm.gz"
     },
     "internet_identity": {
       "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",

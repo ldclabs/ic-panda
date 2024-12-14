@@ -6,12 +6,15 @@
     type ProfileInfo,
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
+  import { type Delegator } from '$lib/canisters/nameidentity'
   import AvatarUploadModal from '$lib/components/core/AvatarUploadModal.svelte'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
+  import IconAdminLine from '$lib/components/icons/IconAdminLine.svelte'
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDeleteBin from '$lib/components/icons/IconDeleteBin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
+  import IconUserForbidLine from '$lib/components/icons/IconUserForbidLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
@@ -39,16 +42,23 @@
   } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
+  import ActivateUsernameAccountModal from './ActivateUsernameAccountModal.svelte'
   import ChannelCreateModal from './ChannelCreateModal.svelte'
   import LinkEditModal from './LinkEditModal.svelte'
   import ProfileEditModal from './ProfileEditModal.svelte'
   import UserRegisterModal from './UserRegisterModal.svelte'
+  import UserSelectModal from './UserSelectModal.svelte'
 
   interface Props {
     myState: MyMessageState
   }
 
   let { myState }: Props = $props()
+
+  type DisplayUserInfoEx = DisplayUserInfo & {
+    role: number
+    sign_in_at: number
+  }
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
   const PandaID = Principal.fromText(
@@ -58,6 +68,7 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const myFollowing: Writable<DisplayUserInfo[]> = writable([])
+  const srcIdentity = authStore.srcIdentity?.getPrincipal().toText() || ''
 
   let myInfo: Readable<(UserInfo & ProfileInfo) | null> | undefined = $state()
 
@@ -68,6 +79,20 @@
 
   let pathname = $derived($page?.url?.pathname || '')
   let links = $derived($myInfo?.links || [])
+  let myUsername = $derived($myInfo?.username[0] || '')
+  let isUsernameAccount = $state(!!authStore.identity?.username)
+  let usernameAccount = $state(
+    authStore.identity?.getPrincipal().toText() || ''
+  )
+  let delegators: Delegator[] = $state([])
+  let delegatorsInfo: DisplayUserInfoEx[] = $state([])
+  let isManager = $derived(
+    srcIdentity != '' &&
+      delegators.some(
+        (delegator) =>
+          delegator.role == 1 && delegator.owner.toText() == srcIdentity
+      )
+  )
 
   async function loadMyFollowing() {
     const res: DisplayUserInfo[] = []
@@ -78,6 +103,42 @@
       res.push(...users.map(toDisplayUserInfo))
     }
     myFollowing.set(res)
+  }
+
+  async function loadDelegators() {
+    delegators = await authStore.nameIdentityAPI
+      .get_delegators(authStore.identity?.username || myUsername)
+      .catch(() => [])
+    if (!isUsernameAccount) {
+      return
+    }
+
+    const res: DisplayUserInfoEx[] = []
+    const users = await myState.batchLoadUsersInfo(
+      delegators.map((delegator) => delegator.owner)
+    )
+    const userInfos = users.map(toDisplayUserInfo)
+    for (const user of delegators) {
+      const _id = user.owner.toText()
+      const info = userInfos.find(
+        (info) => info._id === _id
+      ) as DisplayUserInfoEx
+      if (info) {
+        info.role = user.role
+        info.sign_in_at = Number(user.sign_in_at)
+        res.push(info)
+      } else {
+        res.push({
+          _id,
+          username: '',
+          name: 'Unknown',
+          image: '',
+          role: user.role,
+          sign_in_at: Number(user.sign_in_at)
+        })
+      }
+    }
+    delegatorsInfo = res
   }
 
   async function saveProfile(profile: UserInfo & ProfileInfo) {
@@ -141,7 +202,7 @@
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
-        await authStore.signIn({})
+        await authStore.signIn()
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -180,7 +241,7 @@
 
   async function onCreateChannelHandler(id: Principal) {
     if (!myState || myState.principal.isAnonymous()) {
-      await authStore.signIn({})
+      await authStore.signIn()
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
@@ -281,6 +342,103 @@
     deleteLinkSubmitting = -1
   }
 
+  let adminAddManagersSubmitting = $state(false)
+  function onClickAdminAddManagers() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: UserSelectModal,
+        props: {
+          isAddManager: true,
+          existsManagers: delegators
+            .filter((delegator) => delegator.role == 1)
+            .map((delegator) => delegator.owner.toText()),
+          existsMembers: [],
+          myState: myState,
+          onSave: (members: Array<[Principal, Uint8Array | null]>) => {
+            adminAddManagersSubmitting = true
+            toastRun(async (signal: AbortSignal) => {
+              for (const [id, _] of members) {
+                await authStore.nameIdentityAPI.add_delegator(
+                  authStore.identity?.username || myUsername,
+                  id,
+                  1
+                )
+              }
+
+              await loadDelegators()
+            }, toastStore).finally(() => {
+              adminAddManagersSubmitting = false
+            })
+          }
+        }
+      }
+    })
+  }
+
+  let adminAddMembersSubmitting = $state(false)
+  function onClickAdminAddMembers() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: UserSelectModal,
+        props: {
+          isAddManager: false,
+          existsManagers: delegators
+            .filter((delegator) => delegator.role == 1)
+            .map((delegator) => delegator.owner.toText()),
+          existsMembers: delegators
+            .filter((delegator) => delegator.role < 1)
+            .map((delegator) => delegator.owner.toText()),
+          myState: myState,
+          onSave: (members: Array<[Principal, Uint8Array | null]>) => {
+            adminAddMembersSubmitting = true
+            toastRun(async (signal: AbortSignal) => {
+              for (const [id, _] of members) {
+                await authStore.nameIdentityAPI.add_delegator(
+                  authStore.identity?.username || myUsername,
+                  id,
+                  0
+                )
+              }
+
+              await loadDelegators()
+            }, toastStore).finally(() => {
+              adminAddMembersSubmitting = false
+            })
+          }
+        }
+      }
+    })
+  }
+
+  let adminRemoveDelegatorsSubmitting = $state('')
+  function onClickAdminRemoveMember(id: string) {
+    adminRemoveDelegatorsSubmitting = id
+    toastRun(async (signal: AbortSignal) => {
+      await authStore.nameIdentityAPI.remove_delegator(
+        authStore.identity?.username || myUsername,
+        Principal.fromText(id)
+      )
+      await loadDelegators()
+    }, toastStore).finally(() => {
+      adminRemoveDelegatorsSubmitting = ''
+    })
+  }
+
+  function onActivateUsernameAccountHandler() {
+    modalStore.trigger({
+      type: 'component',
+      component: {
+        ref: ActivateUsernameAccountModal,
+        props: {
+          username: myUsername,
+          usernameAccount
+        }
+      }
+    })
+  }
+
   let clearCachedMessagesSubmitting = $state(false)
   function onClearCachedMessages() {
     clearCachedMessagesSubmitting = true
@@ -293,6 +451,15 @@
   onMount(() => {
     const { abort, finally: onfinally } = toastRun(async function () {
       myInfo = await myState.agent.subscribeProfile()
+      if (myUsername || isUsernameAccount) {
+        loadDelegators()
+      }
+
+      if (myUsername && !usernameAccount) {
+        usernameAccount = (
+          await authStore.nameIdentityAPI.get_principal(myUsername)
+        ).toText()
+      }
     }, toastStore)
 
     onfinally(async () => {
@@ -413,6 +580,126 @@
           <span>Add Link</span>
         </button>
       </div>
+      {#if isUsernameAccount}
+        <div class="mt-6 flex w-full flex-col gap-2">
+          <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
+            <span class="text-sm opacity-50">Delegate Accounts</span>
+            <div class="flex flex-col space-x-1 sm:flex-row">
+              <button
+                type="button"
+                class="btn btn-sm hover:variant-soft-primary"
+                onclick={onClickAdminAddManagers || adminAddManagersSubmitting}
+                disabled={!isManager}
+              >
+                <span class="*:size-4"><IconAdd /></span>
+                <span>Managers</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm hover:variant-soft-primary"
+                onclick={onClickAdminAddMembers}
+                disabled={!isManager || adminAddMembersSubmitting}
+              >
+                <span class="*:size-4"><IconAdd /></span>
+                <span>Members</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col">
+            {#if !myUsername}
+              <p class="mb-2">
+                This is a <b>Username Permanent Account</b>, please transfer the
+                username
+                <span class="font-semibold text-primary-500"
+                  >{authStore.identity!.username}</span
+                > to this account.
+              </p>
+            {/if}
+            {#each delegatorsInfo as member (member._id)}
+              <div class="group grid grid-cols-[1fr_auto] items-center py-1">
+                <div class="flex flex-row items-center space-x-2">
+                  <Avatar
+                    initials={member.name}
+                    src={member.image}
+                    fill="fill-white"
+                    width="w-10"
+                    border={member._id === srcIdentity
+                      ? 'border-2 border-panda'
+                      : ''}
+                  />
+                  <span class="ml-1">{member.name}</span>
+                  {#if member.username}
+                    <span class="text-neutral-500">@{member.username}</span>
+                  {/if}
+                  {#if member.role == 1}
+                    <span class="text-neutral-500 *:size-4"
+                      ><IconAdminLine /></span
+                    >
+                  {:else if member.role == -1}
+                    <span class="text-neutral-500 *:size-4"
+                      ><IconUserForbidLine /></span
+                    >
+                  {/if}
+                </div>
+                <div class="flex flex-row items-center space-x-2">
+                  {#if isManager && member.role != 1}
+                    <button
+                      class="variant-soft-warning btn btn-sm invisible group-hover:visible"
+                      type="button"
+                      disabled={adminRemoveDelegatorsSubmitting !== ''}
+                      onclick={() => onClickAdminRemoveMember(member._id)}
+                    >
+                      <span>Remove</span>
+                    </button>
+                    <span
+                      class="text-panda *:size-4 {adminRemoveDelegatorsSubmitting ===
+                      member._id
+                        ? ''
+                        : 'invisible'}"
+                    >
+                      <IconCircleSpin />
+                    </span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {:else if myUsername}
+        <div class="mt-6 flex w-full flex-col gap-2">
+          <div class="mb-2">
+            <span class="text-sm opacity-50">Username Permanent Account</span>
+            <button
+              type="button"
+              class="variant-filled-primary btn btn-sm ml-4 py-1"
+              onclick={onActivateUsernameAccountHandler}
+            >
+              <span>Activate</span>
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-4">
+            <p>
+              A <b>username permanent account</b> is a fixed account generated from
+              the username that does not change. This account supports adding multiple
+              delegate accounts, allowing multiple users to use it simultaneously,
+              making it ideal for team collaboration.
+            </p>
+            {#if delegators.length > 0}
+              <p>
+                The permanent account for <span
+                  class="font-semibold text-primary-500">{myUsername}</span
+                >
+                has been activated, with the Principal ID:<br />
+                <span class="font-semibold">{usernameAccount}</span>.<br />
+                Please transfer the username to this account and switch to it in
+                "More" menu for management.
+              </p>
+            {/if}
+          </div>
+        </div>
+      {/if}
       <div class="mt-6 flex w-full flex-col gap-2">
         <div class="mb-2 text-sm opacity-50"
           ><button onclick={() => (displayDebug = !displayDebug)}>

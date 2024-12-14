@@ -1,6 +1,7 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
+  import { authStore } from '$lib/stores/auth'
   import { MasterKey, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import {
@@ -27,6 +28,7 @@
   let validating = $state(false)
   let submitting = $state(false)
 
+  let isUsernameAccount = $state(!!authStore.identity?.username)
   let isSetup = $state(!masterKey)
   let isReset = $state(false)
   let passwordInput1 = $state('')
@@ -244,6 +246,12 @@
           <b>3.</b> If you forget the password, you will no longer be able to decrypt
           the messages!
         </p>
+        {#if isUsernameAccount}
+          <p class="text-error-500">
+            <b>4.</b> This is a <b>Username Permanent Account</b>, the password
+            will be shared for team collaboration
+          </p>
+        {/if}
       </div>
     {/if}
     {#if !isReset}

@@ -23,7 +23,7 @@
     storePopup,
     type ModalSettings
   } from '@skeletonlabs/skeleton'
-  import { onMount, type Snippet } from 'svelte'
+  import { onMount, setContext, type Snippet } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
   interface Props {
     children?: Snippet
@@ -59,7 +59,8 @@
    * Init authentication
    */
 
-  let initAuth = $state(false)
+  let globalLoading = $state({ value: true })
+  setContext('globalLoading', globalLoading)
   onMount(async () => {
     if (browser) {
       setInitialClassState()
@@ -70,7 +71,7 @@
       } catch (err) {}
     }
 
-    initAuth = true
+    globalLoading.value = false
   })
 
   const children_render = $derived(children)
@@ -89,10 +90,10 @@
 <div
   class="relative grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
 >
-  {#if initAuth}
-    {@render children_render?.()}
-  {:else}
+  {#if globalLoading.value}
     <Loading />
+  {:else}
+    {@render children_render?.()}
   {/if}
 </div>
 

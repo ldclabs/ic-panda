@@ -8,7 +8,7 @@
   import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { agent } from '$lib/utils/auth'
+  import { dynAgent } from '$lib/utils/auth'
   import { getPriceNumber } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
@@ -162,8 +162,8 @@
   async function onLaunchAppHandler() {
     // always load the latest one
     myState = await MyMessageState.load()
-    if (agent.isAnonymous()) {
-      await authStore.signIn({})
+    if (dynAgent.isAnonymous()) {
+      await authStore.signIn()
       myState = await MyMessageState.load()
       onLaunchAppHandler()
     } else if (!myState.api.myInfo) {
@@ -238,7 +238,7 @@
 
 <div class="landing-page w-full">
   <div
-    class="card m-auto flex max-w-3xl flex-col bg-transparent py-2 text-white md:flex-row md:justify-around"
+    class="card m-auto flex max-w-3xl flex-col bg-transparent p-2 text-white md:flex-row md:justify-around"
   >
     {#if $icpPrice}
       {@render tokenPrice($icpPrice)}
@@ -282,7 +282,7 @@
             >
             <span class="rainbow-border"></span>
           </button>
-          {#if !agent.isAnonymous()}
+          {#if !dynAgent.isAnonymous()}
             <button
               class="btn px-4 text-white transition-all hover:scale-125"
               onclick={(ev) => {

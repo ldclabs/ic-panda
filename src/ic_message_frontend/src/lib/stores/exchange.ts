@@ -23,7 +23,7 @@ export function getTokenPrice(
           priceCache[token] = data
           set(data)
         }
-        s && setTimeout(f, 10000)
+        s && setTimeout(f, 60000)
       })
 
     f()

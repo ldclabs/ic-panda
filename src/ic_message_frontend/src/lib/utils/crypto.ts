@@ -29,6 +29,27 @@ export { AesGcmKey } from '@ldclabs/cose-ts/aesgcm'
 export { ECDHKey } from '@ldclabs/cose-ts/ecdh'
 export * as iana from '@ldclabs/cose-ts/iana'
 
+export function toArrayBuffer(
+  data: Uint8Array | number[],
+  property?: string
+): ArrayBuffer {
+  if (!(data instanceof Uint8Array)) {
+    data = new Uint8Array(data)
+  }
+  const buf = data.buffer.slice(
+    data.byteOffset,
+    data.byteOffset + data.byteLength
+  ) as ArrayBuffer
+
+  if (property) {
+    Object.defineProperty(buf, 'property', {
+      enumerable: false,
+      value: undefined
+    })
+  }
+  return buf
+}
+
 export function generateECDHKey(): ECDHKey {
   return ECDHKey.generate(iana.EllipticCurveX25519)
 }

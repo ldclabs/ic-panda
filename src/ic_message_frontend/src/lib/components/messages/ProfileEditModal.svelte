@@ -2,11 +2,13 @@
   import { type UserInfo } from '$lib/canisters/message'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
+  import IconOrganizationChart from '$lib/components/icons/IconOrganizationChart.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
+  import { authStore } from '$src/lib/stores/auth'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -24,6 +26,7 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
+  const nameAccount = authStore.identity?.username || ''
 
   let validating = $state(false)
   let submitting = $state(false)
@@ -90,10 +93,16 @@
           <span class="text-neutral-500">{APP_ORIGIN + '/'}</span>
           <span>{$myInfo.username[0]}</span>
         </p>
-        <button
-          class="btn btn-sm p-0 text-neutral-500 hover:text-panda"
-          onclick={onTransferUsernameHandler}>Transfer</button
-        >
+        {#if nameAccount && nameAccount == $myInfo.username[0]}
+          <span class="text-neutral-500 *:size-5"
+            ><IconOrganizationChart /></span
+          >
+        {:else}
+          <button
+            class="btn btn-sm p-0 text-neutral-500 hover:text-panda"
+            onclick={onTransferUsernameHandler}>Transfer</button
+          >
+        {/if}
       </div>
     </div>
     <div class="relative mt-4">

@@ -27,4 +27,5 @@ ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
 ic_cose_types = { workspace = true }
 ic-certification = { workspace = true }
+ic-canister-sig-creation = { workspace = true }
 ic-crypto-ed25519 = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }

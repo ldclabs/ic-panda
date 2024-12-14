@@ -11,7 +11,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconEditLine from '$lib/components/icons/IconEditLine.svelte'
   import IconExchange2Line from '$lib/components/icons/IconExchange2Line.svelte'
-  import IconLogout from '$lib/components/icons/IconLogout.svelte'
+  import IconLogoutCircleRLine from '$lib/components/icons/IconLogoutCircleRLine.svelte'
   import {
     type ChannelInfoEx,
     type DisplayUserInfoEx,
@@ -292,6 +292,7 @@
 
   let adminRemoveMembersSubmitting = $state('')
   function onClickAdminRemoveMember(_id: string) {
+    adminRemoveMembersSubmitting = _id
     toastRun(async (signal: AbortSignal) => {
       const api = myState.api.channelAPI(canister)
       await api.remove_member({
@@ -417,16 +418,15 @@
         >{getBytesString(files_state.file_max_size)}</span
       >
     </div>
-    {#if isManager}
-      <button
-        type="button"
-        class="btn btn-sm hover:variant-soft-primary"
-        onclick={onClickUpdateChannelStorage}
-      >
-        <span class="*:size-4"><IconEditLine /></span>
-        <span>Update</span>
-      </button>
-    {/if}
+    <button
+      type="button"
+      class="btn btn-sm hover:variant-soft-primary"
+      disabled={!isManager}
+      onclick={onClickUpdateChannelStorage}
+    >
+      <span class="*:size-4"><IconEditLine /></span>
+      <span>Update</span>
+    </button>
   </section>
   <section class="mt-4 space-y-2 px-4">
     <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
@@ -496,7 +496,7 @@
             {#if myLeavingSubmitting}
               <IconCircleSpin />
             {:else}
-              <IconLogout />
+              <IconLogoutCircleRLine />
             {/if}
           </span></button
         >
@@ -514,47 +514,47 @@
   <section class="mt-4 px-4">
     <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
       <span class="text-sm opacity-50">Members</span>
-      {#if isManager}
-        <div class="flex flex-col space-x-1 sm:flex-row">
-          <button
-            type="button"
-            class="btn btn-sm hover:variant-soft-primary"
-            onclick={onClickAdminAddManagers}
-            disabled={adminAddManagersSubmitting}
+      <div class="flex flex-col space-x-1 sm:flex-row">
+        <button
+          type="button"
+          class="btn btn-sm hover:variant-soft-primary"
+          onclick={onClickAdminAddManagers}
+          disabled={!isManager || adminAddManagersSubmitting}
+        >
+          <span class="*:size-4"><IconAdd /></span>
+          <span>Managers</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm hover:variant-soft-primary"
+          onclick={onClickAdminAddMembers}
+          disabled={!isManager || adminAddMembersSubmitting}
+        >
+          <span class="*:size-4"><IconAdd /></span>
+          <span>Members</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm hover:variant-soft-primary {hasExchangeKeys &&
+          !adminExchangeKeysSubmitting
+            ? 'text-panda'
+            : 'text-neutral-500'}"
+          onclick={onClickAdminExchangeKeys}
+          disabled={!isManager ||
+            adminExchangeKeysSubmitting ||
+            !hasExchangeKeys}
+        >
+          <span class="*:size-4"><IconExchange2Line /></span>
+          <span>Exchange keys</span>
+          <span
+            class="text-panda *:size-4 {adminExchangeKeysSubmitting
+              ? ''
+              : 'invisible'}"
           >
-            <span class="*:size-4"><IconAdd /></span>
-            <span>Managers</span>
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm hover:variant-soft-primary"
-            onclick={onClickAdminAddMembers}
-            disabled={adminAddMembersSubmitting}
-          >
-            <span class="*:size-4"><IconAdd /></span>
-            <span>Members</span>
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm hover:variant-soft-primary {hasExchangeKeys &&
-            !adminExchangeKeysSubmitting
-              ? 'text-panda'
-              : 'text-neutral-500'}"
-            onclick={onClickAdminExchangeKeys}
-            disabled={adminExchangeKeysSubmitting || !hasExchangeKeys}
-          >
-            <span class="*:size-4"><IconExchange2Line /></span>
-            <span>Exchange keys</span>
-            <span
-              class="text-panda *:size-4 {adminExchangeKeysSubmitting
-                ? ''
-                : 'invisible'}"
-            >
-              <IconCircleSpin />
-            </span>
-          </button>
-        </div>
-      {/if}
+            <IconCircleSpin />
+          </span>
+        </button>
+      </div>
     </div>
     <div class="!mt-0">
       {#each $members as member (member._id)}

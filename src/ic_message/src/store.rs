@@ -27,7 +27,7 @@ use std::{
 };
 
 use crate::schnorr::{derive_25519_public_key, schnorr_public_key};
-use crate::{call, token_transfer_from, types};
+use crate::{call, get_name_principal, token_transfer_from, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -638,6 +638,10 @@ pub mod user {
         })?;
 
         let ln = username.to_lowercase();
+        if get_name_principal(&ln) == caller {
+            return Err("cannot transfer username".to_string());
+        }
+
         let (new_profile, new_cose) = NAME_STORE.with(|r| {
             let mut m = r.borrow_mut();
             match m.get(&ln) {
@@ -791,11 +795,7 @@ pub mod user {
     }
 
     pub fn has_username(user: &Principal) -> bool {
-        USER_STORE.with(|r| {
-            r.borrow()
-                .get(user)
-                .map_or(false, |u| u.username.is_some())
-        })
+        USER_STORE.with(|r| r.borrow().get(user).map_or(false, |u| u.username.is_some()))
     }
 
     pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {

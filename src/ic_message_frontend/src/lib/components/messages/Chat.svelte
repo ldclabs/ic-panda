@@ -44,7 +44,7 @@
   onMount(() => {
     const { abort } = toastRun(async function () {
       if (!$myInfo) {
-        return goto('/_/profile')
+        return goto('/')
       }
 
       if (!isReady) {

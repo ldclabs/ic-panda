@@ -24,7 +24,7 @@
     MessageKind,
     type FilePayload
   } from '$lib/types/message'
-  import { agent } from '$lib/utils/auth'
+  import { dynAgent } from '$lib/utils/auth'
   import { coseA256GCMEncrypt0, type AesGcmKey } from '$lib/utils/crypto'
   import {
     getBytesString,
@@ -151,7 +151,7 @@
                 contentType: mime
               })
               const bucketClient = BucketCanister.create({
-                agent,
+                agent: dynAgent,
                 canisterId: token.storage[0],
                 accessToken: new Uint8Array(token.access_token)
               })

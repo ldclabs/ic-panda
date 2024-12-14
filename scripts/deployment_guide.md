@@ -23,6 +23,7 @@ dfx canister create --specified-id 532er-faaaa-aaaaj-qncpa-cai ic_oss_bucket
 dfx canister create --specified-id qc6wh-6yaaa-aaaap-anuza-cai dmsg_index_canister
 dfx canister create --specified-id ocqzv-tyaaa-aaaar-qal4a-cai dmsg_ledger_canister
 dfx canister create --specified-id ql553-iqaaa-aaaap-anuyq-cai ic_dmsg_minter
+dfx canister create --specified-id 2rgax-kyaaa-aaaap-anvba-cai ic_name_identity
 
 # Deploys the ICP Ledger canister with the specified initial values
 dfx identity use default

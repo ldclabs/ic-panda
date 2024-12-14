@@ -1,5 +1,5 @@
 import { errMessage } from '$lib/types/result'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { tryRun, type TryRunResult } from '$lib/utils/tryrun'
 import { type ToastStore } from '@skeletonlabs/skeleton'
 
@@ -24,7 +24,7 @@ export function toastRun<T>(
         ErrorLogs.shift()
       }
 
-      if (agent.isAnonymous()) return
+      if (dynAgent.isAnonymous()) return
 
       toastStore.trigger({
         timeout: 15000,

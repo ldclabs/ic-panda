@@ -8,7 +8,7 @@ import {
   type _SERVICE
 } from '$declarations/ic_message_profile/ic_message_profile.did.js'
 import { unwrapResult } from '$lib/types/result'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
@@ -42,7 +42,7 @@ export class ProfileAPI {
   }
 
   async refreshMyProfile(): Promise<void> {
-    if (agent.isAnonymous()) {
+    if (dynAgent.isAnonymous()) {
       return
     }
 

@@ -14,7 +14,7 @@ import { type ProfileInfo } from '$lib/canisters/messageprofile'
 import { MASTER_KEY_ID } from '$lib/constants'
 import { MessageDetail } from '$lib/types/message'
 import { unwrapOption } from '$lib/types/result'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import {
   AesGcmKey,
   compareBytes,
@@ -120,8 +120,9 @@ export class MyMessageState {
   static async load(): Promise<MyMessageState> {
     if (
       MyMessageState._instance &&
-      MyMessageState._instance.principal.compareTo(agent.id.getPrincipal()) ===
-        'eq'
+      MyMessageState._instance.principal.compareTo(
+        dynAgent.id.getPrincipal()
+      ) === 'eq'
     ) {
       return MyMessageState._instance
     }
@@ -713,7 +714,7 @@ export class MyMessageState {
   }
 
   async refreshMyChannels(signal: AbortSignal): Promise<void> {
-    if (agent.isAnonymous()) return
+    if (dynAgent.isAnonymous()) return
     this.agent.fetchMyChannels(signal)
   }
 

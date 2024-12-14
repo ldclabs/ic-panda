@@ -209,7 +209,7 @@ pub struct BlocksIter<'a> {
     blocks: Blocks,
 }
 
-impl<'a> Iterator for BlocksIter<'a> {
+impl Iterator for BlocksIter<'_> {
     type Item = (u64, BlockToken64);
 
     fn next(&mut self) -> Option<Self::Item> {

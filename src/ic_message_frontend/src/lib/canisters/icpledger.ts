@@ -6,7 +6,7 @@ import {
 import { ICP_LEDGER_CANISTER_ID } from '$lib/constants'
 import { unwrapResult } from '$lib/types/result'
 import { AccountIdentifier } from '$lib/utils/account_identifier'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { ICPToken } from '$lib/utils/token'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
@@ -22,7 +22,7 @@ export class ICPLedgerAPI {
   }
 
   async balance(): Promise<bigint> {
-    return this.getBalanceOf(agent.id.getPrincipal())
+    return this.getBalanceOf(dynAgent.id.getPrincipal())
   }
 
   async getBalanceOf(owner: Principal): Promise<bigint> {
@@ -31,7 +31,7 @@ export class ICPLedgerAPI {
 
   async allowance(spender: Principal): Promise<Allowance> {
     return this.actor.icrc2_allowance({
-      account: { owner: agent.id.getPrincipal(), subaccount: [] },
+      account: { owner: dynAgent.id.getPrincipal(), subaccount: [] },
       spender: { owner: spender, subaccount: [] }
     })
   }
