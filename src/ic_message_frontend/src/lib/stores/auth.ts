@@ -13,7 +13,6 @@ import {
   setNameIdentity
 } from '$lib/utils/auth'
 import { encodeCBOR, toArrayBuffer } from '$lib/utils/crypto'
-import { popupCenter } from '$lib/utils/window'
 import type { DerEncodedPublicKey, Identity, Signature } from '@dfinity/agent'
 import {
   Delegation,
@@ -173,12 +172,11 @@ function initAuthStore(): AuthStore {
 
             resolve()
           },
-          onError: reject,
-          identityProvider: IDENTITY_PROVIDER,
-          windowOpenerFeatures: popupCenter({
-            width: 576,
-            height: 625
-          })
+          onError: (err) => {
+            console.error(err)
+            reject(err)
+          },
+          identityProvider: IDENTITY_PROVIDER
         })
       })
     },

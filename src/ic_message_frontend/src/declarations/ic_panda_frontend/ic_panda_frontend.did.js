@@ -7,7 +7,7 @@ export const idlFactory = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'set_permissions' : IDL.Opt(SetPermissions),
   });
-  const InitArgs = IDL.Record({ 'set_permissions' : IDL.Opt(SetPermissions) });
+  const InitArgs = IDL.Record({});
   const AssetCanisterArgs = IDL.Variant({
     'Upgrade' : UpgradeArgs,
     'Init' : InitArgs,
@@ -287,7 +287,7 @@ export const init = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'set_permissions' : IDL.Opt(SetPermissions),
   });
-  const InitArgs = IDL.Record({ 'set_permissions' : IDL.Opt(SetPermissions) });
+  const InitArgs = IDL.Record({});
   const AssetCanisterArgs = IDL.Variant({
     'Upgrade' : UpgradeArgs,
     'Init' : InitArgs,

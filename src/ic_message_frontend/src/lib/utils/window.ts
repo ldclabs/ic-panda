@@ -84,7 +84,7 @@ export const popupCenter = ({
   const y = innerHeight / 2 + screenY - height / 2
   const x = innerWidth / 2 + screenX - width / 2
 
-  return `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, copyhistory=no, width=${width}, height=${height}, top=${y}, left=${x}`
+  return `width=${width},height=${height},top=${y},left=${x}`
 }
 
 export function clickOutside(node: HTMLElement, callback: () => void = noop) {

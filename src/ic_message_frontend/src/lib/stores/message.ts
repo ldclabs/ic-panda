@@ -1331,8 +1331,5 @@ export function toDisplayUserInfo(info?: UserInfo) {
     image: info.image,
     src: info
   }
-  if (rt.username.toLocaleUpperCase() === 'PANDA') {
-    rt.image = '/_assets/logo.svg'
-  }
   return rt
 }

@@ -62,7 +62,7 @@
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
   const PandaID = Principal.fromText(
-    'nmob2-y6p4k-rp5j7-7x2mo-aqceq-lpie2-fjgw7-nkjdu-bkoe4-zjetd-wae'
+    '77ibd-jp5kr-moeco-kgoar-rro5v-5tng4-krif5-5h2i6-osf2f-2sjtv-kqe'
   )
 
   const toastStore = getToastStore()
@@ -81,9 +81,7 @@
   let links = $derived($myInfo?.links || [])
   let myUsername = $derived($myInfo?.username[0] || '')
   let isUsernameAccount = $state(!!authStore.identity?.username)
-  let usernameAccount = $state(
-    authStore.identity?.getPrincipal().toText() || ''
-  )
+  let usernameAccount = $state('')
   let delegators: Delegator[] = $state([])
   let delegatorsInfo: DisplayUserInfoEx[] = $state([])
   let isManager = $derived(
