@@ -412,7 +412,11 @@
             href="{APP_ORIGIN}/PANDA"
           >
             <div class="flex flex-row items-center space-x-2 max-md:max-w-72">
-              <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-10" />
+              <Avatar
+                src="/_assets/logo_panda.png"
+                fill="fill-white"
+                width="w-10"
+              />
               <span class="ml-1 truncate text-neutral-200">ICPanda</span>
               <span class="">@PANDA</span>
               <p class="truncate max-md:hidden">| Ask me anything</p>

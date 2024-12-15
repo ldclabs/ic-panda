@@ -89,17 +89,24 @@
     myID = myState.id
     const accounts = await authStore.nameIdentityAPI.get_my_accounts()
     hasNameAccounts = !!accounts.length
-    myAccounts = []
     if (!hasNameAccounts) {
+      myAccounts = []
       return
     }
-    const srcId = authStore.srcIdentity?.getPrincipal()!
 
-    const users = await myState.batchLoadUsersInfo([
-      srcId,
-      ...accounts.map((account) => account.account)
-    ])
+    const srcId = authStore.srcIdentity?.getPrincipal()!
+    const srcUser = await myState.tryLoadUser(srcId)
+    if (!srcUser) {
+      // should not happen
+      return
+    }
+
+    const users = await myState.batchLoadUsersInfo(
+      accounts.map((account) => account.account)
+    )
+
     const userInfos = users.map(toDisplayUserInfo)
+    const rt = []
     for (const ac of accounts) {
       const _id = ac.account.toText()
       const info = userInfos.find(
@@ -110,9 +117,9 @@
           info.username = ac.name
         }
         info.isNameAccount = true
-        myAccounts.push(info)
+        rt.push(info)
       } else {
-        myAccounts.push({
+        rt.push({
           _id,
           username: ac.name,
           name: ac.name,
@@ -121,7 +128,9 @@
         })
       }
     }
-    myAccounts.push(userInfos[0] as DisplayUserInfoEx)
+
+    rt.push(toDisplayUserInfo(srcUser) as DisplayUserInfoEx)
+    myAccounts = rt
   }
 
   onMount(() => {
@@ -193,7 +202,7 @@
           fill="fill-white"
           width="w-8"
         />
-        <span class="truncate">
+        <span class="max-w-44 truncate">
           {info.name + (info.username ? ' @' + info.username : '')}
         </span>
         {#if info.isNameAccount && myID !== info._id}

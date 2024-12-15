@@ -680,9 +680,9 @@
 
           <div class="flex flex-col gap-4">
             <p>
-              A <b>username permanent account</b> is a fixed account generated from
-              the username that does not change. This account supports adding multiple
-              delegate accounts, allowing multiple users to use it simultaneously,
+              A <b>username permanent account</b> is a standalone fixed account generated
+              from the username that does not change. This account supports adding
+              multiple delegate accounts, allowing multiple users to use it simultaneously,
               making it ideal for team collaboration.
             </p>
             {#if delegators.length > 0}
@@ -817,7 +817,11 @@
               class="flex flex-row items-center space-x-2"
               href="https://dmsg.net/PANDA"
             >
-              <Avatar src="/_assets/logo.svg" fill="fill-white" width="w-8" />
+              <Avatar
+                src="/_assets/logo_panda.png"
+                fill="fill-white"
+                width="w-8"
+              />
               <span class="ml-1 truncate">ICPanda</span>
               <span class="text-neutral-500">@PANDA</span>
             </a>
