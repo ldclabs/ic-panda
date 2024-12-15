@@ -453,7 +453,7 @@
         loadDelegators()
       }
 
-      if (myUsername && !usernameAccount) {
+      if (myUsername) {
         usernameAccount = (
           await authStore.nameIdentityAPI.get_principal(myUsername)
         ).toText()
@@ -672,6 +672,7 @@
               type="button"
               class="variant-filled-primary btn btn-sm ml-4 py-1"
               onclick={onActivateUsernameAccountHandler}
+              disabled={delegators.length > 0}
             >
               <span>Activate</span>
             </button>

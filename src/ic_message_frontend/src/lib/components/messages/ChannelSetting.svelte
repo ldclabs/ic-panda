@@ -41,10 +41,11 @@
     myState: MyMessageState
     myInfo: Readable<UserInfo>
     channelInfo: ChannelInfoEx
+    close: () => void
   }
 
   let props: Props = $props()
-  let { myState, myInfo } = props
+  let { myState, myInfo, close } = props
 
   let channelInfo = $state(props.channelInfo)
   const toastStore = getToastStore()
@@ -171,6 +172,7 @@
           await myState.acceptKEK(channelInfo)
           await myState.decryptChannelDEK(channelInfo)
           validKEK = true
+          close()
         } catch (err: any) {
           validKEK = false
           toastStore.trigger({
@@ -330,6 +332,23 @@
 <div
   class="h-[calc(100dvh-120px)] items-start overflow-y-auto bg-surface-500/5 pb-10 md:h-[calc(100dvh-60px)]"
 >
+  {#if channelInfo.my_setting.ecdh_remote.length > 0}
+    <section class="mt-4 px-4">
+      <button
+        type="button"
+        class="variant-filled-success btn w-full"
+        onclick={onClickMyECDH}
+        disabled={myECDHSubmitting}
+      >
+        <span>Accept encryption key and start chat</span>
+        {#if myECDHSubmitting}
+          <span class=" text-panda *:size-4">
+            <IconCircleSpin />
+          </span>
+        {/if}
+      </button>
+    </section>
+  {/if}
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     {#if isManager}
       <button
@@ -488,7 +507,7 @@
         />
         <button
           type="button"
-          class="variant-filled-warning !px-2 disabled:variant-filled-surface"
+          class="variant-filled-error !px-2 disabled:variant-filled-surface"
           onclick={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
             leavingWord.trim() != channelInfo.name}

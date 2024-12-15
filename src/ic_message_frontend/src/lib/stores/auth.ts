@@ -37,21 +37,22 @@ const IDENTITY_PROVIDER = IS_LOCAL
 
 const DERIVATION_ORIGIN = IS_LOCAL ? undefined : 'https://panda.fans'
 
-// Fetch the root key for local development
-export async function fetchRootKey() {
-  if (IS_LOCAL) {
-    await Promise.all([dynAgent.fetchRootKey(), dynAgent.syncTime()])
-  }
-}
-
 export interface AuthStore extends Readable<AuthStoreData> {
   nameIdentityAPI: NameIdentityAPI
   get srcIdentity(): IdentityEx | null
   get identity(): IdentityEx | null
+  ready(): Promise<void>
   sync: () => Promise<void>
   switch: (username: string) => Promise<void>
   signIn: () => Promise<void>
   logout: (url: string) => Promise<void>
+}
+
+// Fetch the root key for local development
+async function fetchRootKey() {
+  if (IS_LOCAL) {
+    await Promise.all([dynAgent.fetchRootKey(), dynAgent.syncTime()])
+  }
 }
 
 function initAuthStore(): AuthStore {
@@ -79,8 +80,14 @@ function initAuthStore(): AuthStore {
       return identity
     },
 
+    ready: async () => {
+      await fetchRootKey()
+      await authClientPromise
+    },
+
     sync: async () => {
-      srcIdentity = await loadIdentity()
+      const authClient = await authClientPromise
+      srcIdentity = await loadIdentity(authClient)
       if (srcIdentity) {
         srcAgent.setIdentity(srcIdentity)
       }

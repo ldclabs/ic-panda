@@ -1,21 +1,30 @@
 {
+  "__Candid_UI": {
+    "local": "bd3sg-teaaa-aaaaa-qaaba-cai"
+  },
   "dmsg_index_canister": {
-    "ic": "qc6wh-6yaaa-aaaap-anuza-cai"
+    "ic": "qc6wh-6yaaa-aaaap-anuza-cai",
+    "local": "qc6wh-6yaaa-aaaap-anuza-cai"
   },
   "dmsg_ledger_canister": {
-    "ic": "ocqzv-tyaaa-aaaar-qal4a-cai"
+    "ic": "ocqzv-tyaaa-aaaar-qal4a-cai",
+    "local": "ocqzv-tyaaa-aaaar-qal4a-cai"
   },
   "ic_cose_canister": {
-    "ic": "n3bau-gaaaa-aaaaj-qa4oq-cai"
+    "ic": "n3bau-gaaaa-aaaaj-qa4oq-cai",
+    "local": "n3bau-gaaaa-aaaaj-qa4oq-cai"
   },
   "ic_dmsg_minter": {
-    "ic": "ql553-iqaaa-aaaap-anuyq-cai"
+    "ic": "ql553-iqaaa-aaaap-anuyq-cai",
+    "local": "ql553-iqaaa-aaaap-anuyq-cai"
   },
   "ic_message": {
-    "ic": "nscli-qiaaa-aaaaj-qa4pa-cai"
+    "ic": "nscli-qiaaa-aaaaj-qa4pa-cai",
+    "local": "nscli-qiaaa-aaaaj-qa4pa-cai"
   },
   "ic_message_channel": {
-    "ic": "nvdn4-5qaaa-aaaaj-qa4pq-cai"
+    "ic": "nvdn4-5qaaa-aaaaj-qa4pq-cai",
+    "local": "nvdn4-5qaaa-aaaaj-qa4pq-cai"
   },
   "ic_message_channel_02": {
     "ic": "zof5a-5yaaa-aaaai-acr2q-cai"
@@ -24,33 +33,49 @@
     "ic": "4jxyd-pqaaa-aaaah-qdqtq-cai"
   },
   "ic_message_frontend": {
-    "ic": "2fvu6-tqaaa-aaaap-akksa-cai"
+    "ic": "2fvu6-tqaaa-aaaap-akksa-cai",
+    "local": "2fvu6-tqaaa-aaaap-akksa-cai"
   },
   "ic_message_profile": {
-    "ic": "ijyxz-wyaaa-aaaaj-qa4qa-cai"
+    "ic": "ijyxz-wyaaa-aaaaj-qa4qa-cai",
+    "local": "ijyxz-wyaaa-aaaaj-qa4qa-cai"
   },
   "ic_name_identity": {
-    "ic": "2rgax-kyaaa-aaaap-anvba-cai"
+    "ic": "2rgax-kyaaa-aaaap-anvba-cai",
+    "local": "2rgax-kyaaa-aaaap-anvba-cai"
   },
   "ic_oss_bucket": {
-    "ic": "532er-faaaa-aaaaj-qncpa-cai"
+    "ic": "532er-faaaa-aaaaj-qncpa-cai",
+    "local": "532er-faaaa-aaaaj-qncpa-cai"
   },
   "ic_oss_bucket_02": {
     "ic": "sb6zj-3aaaa-aaaaj-qndla-cai"
   },
   "ic_oss_cluster": {
-    "ic": "5szpn-tiaaa-aaaaj-qncoq-cai"
+    "ic": "5szpn-tiaaa-aaaaj-qncoq-cai",
+    "local": "5szpn-tiaaa-aaaaj-qncoq-cai"
   },
   "ic_panda_ai": {
     "ic": "bwwuq-byaaa-aaaan-qmk4q-cai"
   },
   "ic_panda_frontend": {
-    "ic": "c63a7-6yaaa-aaaap-ab3gq-cai"
+    "ic": "c63a7-6yaaa-aaaap-ab3gq-cai",
+    "local": "c63a7-6yaaa-aaaap-ab3gq-cai"
   },
   "ic_panda_infra": {
     "ic": "f75us-gyaaa-aaaap-ab3wq-cai"
   },
   "ic_panda_luckypool": {
-    "ic": "a7cug-2qaaa-aaaap-ab3la-cai"
+    "ic": "a7cug-2qaaa-aaaap-ab3la-cai",
+    "local": "a7cug-2qaaa-aaaap-ab3la-cai"
+  },
+  "icp_ledger_canister": {
+    "local": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+  },
+  "icrc1_ledger_canister": {
+    "local": "druyg-tyaaa-aaaaq-aactq-cai"
+  },
+  "internet_identity": {
+    "local": "rdmx6-jaaaa-aaaaa-aaadq-cai"
   }
 }

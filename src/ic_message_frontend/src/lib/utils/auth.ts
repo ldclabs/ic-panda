@@ -85,8 +85,10 @@ export async function setNameIdentity(
   }
 }
 
-export async function loadIdentity(): Promise<IdentityEx | null> {
-  const authClient = await createAuthClient()
+export async function loadIdentity(
+  client?: AuthClient
+): Promise<IdentityEx | null> {
+  const authClient = client || (await createAuthClient())
   const authenticated = await authClient.isAuthenticated()
 
   // Not authenticated therefore we provide no identity as a result

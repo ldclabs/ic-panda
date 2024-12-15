@@ -34,6 +34,7 @@
   let myAccounts: DisplayUserInfoEx[] = $state([])
   let myID = $state('')
   let hasNameAccounts = $state(false)
+  let selfElement: HTMLElement | null = null
 
   function onWalletHandler(): void {
     modalStore.trigger({
@@ -124,16 +125,22 @@
   }
 
   onMount(() => {
-    const { abort } = toastRun(loadMyAccounts, toastStore)
+    const { abort, finally: onfinally } = toastRun(async () => {
+      await loadMyAccounts()
+      onfinally(() => {
+        selfElement?.classList.remove('popup-not-ready')
+      })
+    }, toastStore)
     return abort
   })
 </script>
 
 <div
-  class="card z-20 {hasNameAccounts
+  class="popup-not-ready card z-20 {hasNameAccounts
     ? 'w-72'
     : 'w-52'} bg-white px-0 py-2 shadow-lg"
   data-popup={target}
+  bind:this={selfElement}
 >
   <div
     class="flex flex-col items-start text-sm *:bg-surface-hover-token *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
@@ -194,7 +201,7 @@
             type="button"
             href="/"
             rel="noopener noreferrer"
-            class="btn absolute right-0 px-2 text-surface-500 hover:text-warning-500"
+            class="btn absolute right-0 px-2 text-surface-500 hover:text-error-500"
             onclick={(ev) => {
               ev.preventDefault()
               ev.stopPropagation()
@@ -208,7 +215,7 @@
     {/each}
     <button type="button" onclick={onLogoutHandler}>
       <span class="*:size-5"><IconLogout /></span>
-      <span>Sign Out</span>
+      <span>Logout</span>
     </button>
   </div>
 </div>

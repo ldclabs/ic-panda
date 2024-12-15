@@ -144,6 +144,7 @@ export function initPopup(args: PopupSettings) {
       return
     }
 
+    if (elemPopup.classList.contains('popup-not-ready')) return
     if (popupState.open) {
       closeElemPopup()
     }

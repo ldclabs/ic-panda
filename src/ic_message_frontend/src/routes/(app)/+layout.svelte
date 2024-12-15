@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { authStore, fetchRootKey } from '$lib/stores/auth'
+  import { authStore } from '$lib/stores/auth'
   import { storePopup as storePopup2 } from '$lib/utils/popup'
   import { initReconnect, isOnline } from '$lib/utils/window'
   import '$src/app.pcss'
@@ -64,7 +64,7 @@
   onMount(async () => {
     if (browser) {
       setInitialClassState()
-      await fetchRootKey()
+      await authStore.ready()
 
       try {
         await authStore.sync()
