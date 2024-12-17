@@ -1,6 +1,6 @@
 const src = globalThis.location?.href || ''
 
-export const APP_VERSION = '2.8.0'
+export const APP_VERSION = '2.9.0'
 export const IS_LOCAL = src.includes('localhost') || src.includes('127.0.0.1')
 export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
@@ -23,3 +23,5 @@ export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
 export const X_AUTH_KEY = 'ICPanda:XAuth'
 export const X_AUTH_ENDPIONT = 'https://auth.panda.fans/idp/twitter/authorize'
 export const X_AUTH_CHALLENGE_ENDPIONT = 'https://auth.panda.fans/challenge'
+
+export const ICPSWAP_TOKENS_CANISTER_ID = 'moe7a-tiaaa-aaaag-qclfq-cai'

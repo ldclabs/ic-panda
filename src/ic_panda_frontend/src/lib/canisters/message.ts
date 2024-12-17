@@ -10,8 +10,8 @@ import {
   type _SERVICE
 } from '$declarations/ic_message/ic_message.did.js'
 import { MESSAGE_CANISTER_ID } from '$lib/constants'
-import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
+import { dynAgent } from '$lib/utils/auth'
 import type { Identity } from '@dfinity/agent'
 import { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
@@ -48,11 +48,11 @@ export class MessageCanisterAPI {
   }
 
   get identity(): Identity {
-    return agent.id
+    return dynAgent.id
   }
 
   get principal(): Principal {
-    return agent.id.getPrincipal()
+    return dynAgent.id.getPrincipal()
   }
 
   get stateStore(): Readable<StateInfo | null> {

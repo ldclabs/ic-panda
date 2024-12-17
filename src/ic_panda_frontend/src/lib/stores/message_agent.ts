@@ -6,7 +6,7 @@ import {
 } from '$lib/canisters/message'
 import { ChannelAPI } from '$lib/canisters/messagechannel'
 import { ProfileAPI, type ProfileInfo } from '$lib/canisters/messageprofile'
-import { agent } from '$lib/stores/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
 import type { Identity } from '@dfinity/agent'
@@ -47,8 +47,8 @@ export class MessageAgent extends EventTarget {
   private constructor() {
     super()
 
-    this.identity = agent.id
-    this.principal = agent.id.getPrincipal()
+    this.identity = dynAgent.id
+    this.principal = dynAgent.id.getPrincipal()
     this.id = this.principal.toText()
     this.api = messageCanisterAPI
     this._db = new KVStore('ICPanda_' + this.id, 1, [

@@ -19,8 +19,8 @@ import {
   type _SERVICE
 } from '$declarations/ic_panda_luckypool/ic_panda_luckypool.did.js'
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
-import { agent } from '$lib/stores/auth'
 import { unwrapOptionResult, unwrapResult } from '$lib/types/result'
+import { dynAgent } from '$lib/utils/auth'
 import type { Principal } from '@dfinity/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
@@ -113,7 +113,7 @@ export class LuckyPoolAPI {
   }
 
   async prizeInfo(code: string): Promise<PrizeOutput> {
-    const res = await this.actor.prize_info(code, [agent.id.getPrincipal()])
+    const res = await this.actor.prize_info(code, [dynAgent.id.getPrincipal()])
     return unwrapResult(res, 'call prize_info failed')
   }
 
@@ -122,7 +122,7 @@ export class LuckyPoolAPI {
     take: bigint
   ): Promise<Array<PrizeClaimLog>> {
     const res = await this.actor.prize_claim_logs(
-      agent.id.getPrincipal(),
+      dynAgent.id.getPrincipal(),
       prev > 0n ? [prev] : [],
       take > 0n ? [take] : []
     )
@@ -131,7 +131,7 @@ export class LuckyPoolAPI {
 
   async prizeIssueLogs(prev_ts: bigint): Promise<Array<PrizeOutput>> {
     const res = await this.actor.prize_issue_logs(
-      agent.id.getPrincipal(),
+      dynAgent.id.getPrincipal(),
       prev_ts > 0n ? [prev_ts] : []
     )
     return res

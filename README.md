@@ -1,5 +1,7 @@
 # ICPanda DAO
-🐼 A decentralized Panda meme platform featuring E2E encrypted messaging, lucky draws, airdrops.
+🐼 A technical panda fully running on the Internet Computer blockchain, building chain-native infrastructures and practical Web3 apps.
+
+About us: https://dmsg.net/panda
 
 ## dMsg (ICPanda Message)
 

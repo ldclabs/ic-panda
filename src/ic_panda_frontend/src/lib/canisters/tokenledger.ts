@@ -3,8 +3,8 @@ import {
   type _SERVICE,
   type Allowance
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
-import { agent } from '$lib/stores/auth'
 import { unwrapResult } from '$lib/types/result'
+import { dynAgent } from '$lib/utils/auth'
 import { ckDOGEToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
@@ -24,7 +24,7 @@ export class TokenLedgerAPI {
   }
 
   async balance(): Promise<bigint> {
-    return this.getBalanceOf(agent.id.getPrincipal())
+    return this.getBalanceOf(dynAgent.id.getPrincipal())
   }
 
   async getBalanceOf(owner: Principal): Promise<bigint> {
@@ -33,7 +33,7 @@ export class TokenLedgerAPI {
 
   async allowance(spender: Principal): Promise<Allowance> {
     return this.actor.icrc2_allowance({
-      account: { owner: agent.id.getPrincipal(), subaccount: [] },
+      account: { owner: dynAgent.id.getPrincipal(), subaccount: [] },
       spender: { owner: spender, subaccount: [] }
     })
   }

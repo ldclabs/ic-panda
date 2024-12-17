@@ -68,13 +68,13 @@
         >
       </p>
       <p class="mt-2 text-center text-sm capitalize antialiased">
-        A decentralized Panda meme brand fully running on the <a
+        A technical panda fully running on the <a
           class="underline underline-offset-4"
           href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
           target="_blank"
         >
           Internet Computer
-        </a> blockchain.
+        </a> blockchain, building chain-native infras and practical Web3 apps.
       </p>
     </div>
   </footer>

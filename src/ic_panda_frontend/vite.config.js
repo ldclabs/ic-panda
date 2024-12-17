@@ -56,7 +56,7 @@ export default defineConfig({
         short_name: 'ICPanda',
         name: 'ICPanda',
         description:
-          'A decentralized Panda meme platform featuring E2E encrypted messaging, lucky draws, airdrops.',
+          'A technical panda fully running on the Internet Computer blockchain, building chain-native infrastructures and practical Web3 apps. About us: https://dmsg.net/panda',
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',

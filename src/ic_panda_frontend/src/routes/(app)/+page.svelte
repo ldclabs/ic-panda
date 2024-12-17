@@ -6,15 +6,20 @@
   import PrizeCard from '$lib/components/core/PrizeCard.svelte'
   import IconExchangeDollar from '$lib/components/icons/IconExchangeDollar.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
-  import IconOpenChat from '$lib/components/icons/IconOpenChat.svelte'
+  import IconLink from '$lib/components/icons/IconLink.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import { authStore } from '$lib/stores/auth'
+  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
+  import { getPriceNumber } from '$lib/utils/helper'
+  import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
+  const icpPrice = getTokenPrice(ICPToken.canisterId, true)
+  const pandaPrice = getTokenPrice(PANDAToken.canisterId, true)
 
   onMount(async () => {
     await luckyPoolAPI.refreshAllState()
@@ -36,8 +41,22 @@
   $: principal = $authStore.identity.getPrincipal()
 </script>
 
+{#snippet tokenPrice(price: TokenPrice)}
+  {@const color =
+    price.priceUSDChange > 0 ? 'text-primary-500' : 'text-error-500'}
+  <div class="flex flex-row items-center justify-between gap-2">
+    <span class="">{price.symbol}</span>
+    <span class={color}>{'$' + getPriceNumber(price.priceUSD)}</span>
+    <span class={color}>
+      {(price.priceUSDChange > 0 ? '↑' : '') +
+        price.priceUSDChange.toFixed(2) +
+        '%'}</span
+    >
+  </div>
+{/snippet}
+
 <div
-  class="mb-12 mt-12 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-24"
+  class="mt-10 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-20"
 >
   <div class="flex flex-col items-center">
     <Saos
@@ -58,20 +77,18 @@
       <a
         class="font-bold text-panda underline underline-offset-4"
         href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
-        target="_blank">ICPanda DAO</a
+        target="_blank">ICPanda</a
       >
-      is dedicated to building the Panda meme brand across the
+      is technical panda fully running on the
       <a
         class="font-bold text-secondary-500 underline underline-offset-4"
         href="https://internetcomputer.org/"
         target="_blank"
       >
-        Internet Computer's
+        Internet Computer
       </a>
-      decentralized ecosystem, enhancing the connection between pandas and humans.
-      Our focus extends beyond the animals themselves, embracing all valuable and
-      praiseworthy ideas, positioning the Panda meme as a symbol of cherished concepts
-      globally.
+      blockchain. We are dedicated to build chain-native infrastructures and practical
+      Web3 apps.
     </p>
   </div>
 
@@ -90,16 +107,6 @@
     </a>
     <a
       type="button"
-      title="Join the Community"
-      class="bg-slate-950 variant-filled btn"
-      href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
-      target="_blank"
-    >
-      <span><IconOpenChat /></span>
-      <span class="text-left">Community</span>
-    </a>
-    <a
-      type="button"
       title="View Source Code"
       class="bg-slate-950 variant-filled btn"
       href="https://github.com/ldclabs/ic-panda"
@@ -112,50 +119,38 @@
       type="button"
       title="Exchange Tokens"
       class="bg-slate-950 variant-filled btn"
-      href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+      href="https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
       target="_blank"
     >
       <span><IconExchangeDollar /></span>
       <span class="text-left">Exchange</span>
     </a>
+    <a
+      type="button"
+      title="Contact Us"
+      class="bg-slate-950 variant-filled btn"
+      href="https://dmsg.net/PANDA"
+      target="_blank"
+    >
+      <span><IconLink /></span>
+      <span class="text-left">dMsg.net</span>
+    </a>
   </div>
 
-  {#key principal.toText()}
-    <div
-      class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
-    >
-      <h2 id="luckypool" class="h2 font-extrabold uppercase">Lucky Pool</h2>
-      <div class="mt-8 w-full max-w-[820px]">
-        <Saos
-          once={true}
-          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-        >
-          <AirdropCard />
-        </Saos>
-      </div>
-      <div class="mt-6 w-full max-w-[820px]">
-        <Saos
-          once={true}
-          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-        >
-          <PrizeCard />
-        </Saos>
-      </div>
-      <div class="mt-6 w-full max-w-[820px]">
-        <Saos
-          once={true}
-          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
-        >
-          <LuckyPoolChart />
-        </Saos>
-      </div>
-    </div>
-  {/key}
-
   <div
-    class="mt-12 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-24"
+    class="mt-10 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-20"
   >
     <h2 id="tokenomics" class="h2 font-extrabold uppercase">Tokenomics</h2>
+    <div
+      class="m-auto flex max-w-3xl flex-col bg-transparent p-2 md:flex-row md:gap-4"
+    >
+      {#if $icpPrice}
+        {@render tokenPrice($icpPrice)}
+      {/if}
+      {#if $pandaPrice}
+        {@render tokenPrice($pandaPrice)}
+      {/if}
+    </div>
     <div class="mt-8 flex w-full flex-col justify-evenly gap-y-4 sm:flex-row">
       <Saos
         once={true}
@@ -168,7 +163,7 @@
               ><a
                 class="underline underline-offset-4"
                 title="ICPanda Token Info"
-                href="https://info.icpswap.com/token/details/druyg-tyaaa-aaaaq-aactq-cai"
+                href="https://www.coingecko.com/en/coins/icpanda-dao"
                 target="_blank">ICPanda</a
               ></p
             >
@@ -179,14 +174,14 @@
               ><a
                 class="underline underline-offset-4"
                 title="Buy PANDA Tokens"
-                href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+                href="https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
                 target="_blank">PANDA</a
               >
             </p>
           </h3>
           <h3 class="h3 font-bold">
-            <p>Total Supply</p>
-            <p class="text-panda">1,000,000,000</p>
+            <p>Max Supply</p>
+            <p class="text-panda">1,080,000,000</p>
           </h3>
         </div>
       </Saos>
@@ -218,7 +213,7 @@
               end: 20
             },
             {
-              label: 'DAO Treasury - Airdropped to holders',
+              label: 'Airdropped to holders',
               color: 'rgba(234,179,8,0.5)',
               start: 20,
               end: 52
@@ -280,7 +275,9 @@
             </li>
             <li>
               <span class="variant-soft-primary badge-icon p-4">3</span>
-              <span class="flex-auto">Purchasing E2EE messages service</span>
+              <span class="flex-auto"
+                >Purchasing ICPanda Web3 apps, such as dMsg.net</span
+              >
             </li>
             <li>
               <span class="variant-soft-primary badge-icon p-4">4</span>
@@ -293,6 +290,38 @@
       </div>
     </Saos>
   </div>
+
+  {#key principal.toText()}
+    <div
+      class="mt-10 flex w-full max-w-4xl flex-col flex-nowrap content-center items-center sm:mt-20"
+    >
+      <h2 id="luckypool" class="h2 font-extrabold uppercase">Lucky Pool</h2>
+      <div class="mt-8 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <AirdropCard />
+        </Saos>
+      </div>
+      <div class="mt-6 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <PrizeCard />
+        </Saos>
+      </div>
+      <div class="mt-6 w-full max-w-[820px]">
+        <Saos
+          once={true}
+          animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
+        >
+          <LuckyPoolChart />
+        </Saos>
+      </div>
+    </div>
+  {/key}
 
   <footer id="page-footer" class="flex-none">
     <PageFooter />

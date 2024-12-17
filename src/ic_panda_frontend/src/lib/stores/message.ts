@@ -1,7 +1,7 @@
 import { type MessageCanisterAPI, type UserInfo } from '$lib/canisters/message'
 import { type ProfileInfo } from '$lib/canisters/messageprofile'
 import { unwrapOption } from '$lib/types/result'
-import { agent } from '$lib/utils/auth'
+import { dynAgent } from '$lib/utils/auth'
 import { Principal } from '@dfinity/principal'
 import { readable, type Readable } from 'svelte/store'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
@@ -27,8 +27,9 @@ export class MyMessageState {
   static async load(): Promise<MyMessageState> {
     if (
       MyMessageState._instance &&
-      MyMessageState._instance.principal.compareTo(agent.id.getPrincipal()) ===
-        'eq'
+      MyMessageState._instance.principal.compareTo(
+        dynAgent.id.getPrincipal()
+      ) === 'eq'
     ) {
       return MyMessageState._instance
     }

@@ -23,7 +23,7 @@ export const loadIdentity = async (): Promise<Identity | undefined> => {
   const authClient = await authClientPromise
   const authenticated = await authClient.isAuthenticated()
 
-  agent.setIdentity(authClient.getIdentity())
+  dynAgent.setIdentity(authClient.getIdentity())
   // Not authenticated therefore we provide no identity as a result
   if (!authenticated) {
     return undefined
@@ -51,8 +51,14 @@ export class AuthAgent extends HttpAgent {
 
 export const anonymousIdentity = new AnonymousIdentity()
 
-export const agent = new AuthAgent({
+export const dynAgent = new AuthAgent({
   identity: anonymousIdentity,
   host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
+  verifyQuerySignatures: false
+})
+
+export const anonAgent = new AuthAgent({
+  identity: anonymousIdentity,
+  host: 'https://icp-api.io',
   verifyQuerySignatures: false
 })

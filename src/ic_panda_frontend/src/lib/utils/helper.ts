@@ -22,3 +22,18 @@ export function shortId(id: string, long: boolean = false): string {
   }
   return id.length > 14 ? id.slice(0, 7) + '...' + id.slice(-7) : id
 }
+
+export function getPriceNumber(v: number): string {
+  if (v < 0.001) {
+    return v.toFixed(6)
+  } else if (v < 0.01) {
+    return v.toFixed(5)
+  } else if (v < 0.1) {
+    return v.toFixed(4)
+  } else if (v < 1) {
+    return v.toFixed(3)
+  } else if (v < 10) {
+    return v.toFixed(2)
+  }
+  return v.toFixed(1)
+}
