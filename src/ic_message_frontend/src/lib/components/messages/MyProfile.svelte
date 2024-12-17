@@ -28,7 +28,7 @@
   import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { errMessage, unwrapOption } from '$lib/types/result'
   import { shortId } from '$lib/utils/auth'
-  import { sleep } from '$lib/utils/helper'
+  import { getCurrentTimeString, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import { isNotificationSupported } from '$lib/utils/window'
   import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
@@ -57,7 +57,7 @@
 
   type DisplayUserInfoEx = DisplayUserInfo & {
     role: number
-    sign_in_at: number
+    sign_in_at: bigint
   }
 
   // local: gnhwq-7p3rq-chahe-22f7s-btty6-ntken-g6dff-xwbyd-4qfse-37euh-5ae
@@ -123,7 +123,7 @@
       ) as DisplayUserInfoEx
       if (info) {
         info.role = user.role
-        info.sign_in_at = Number(user.sign_in_at)
+        info.sign_in_at = user.sign_in_at
         res.push(info)
       } else {
         res.push({
@@ -132,7 +132,7 @@
           name: 'Unknown',
           image: '',
           role: user.role,
-          sign_in_at: Number(user.sign_in_at)
+          sign_in_at: user.sign_in_at
         })
       }
     }
@@ -637,6 +637,13 @@
                   {:else if member.role == -1}
                     <span class="text-neutral-500 *:size-4"
                       ><IconUserForbidLine /></span
+                    >
+                  {/if}
+                  {#if member.sign_in_at > 0}
+                    <span class="text-neutral-500"
+                      >(Sign in at {getCurrentTimeString(
+                        member.sign_in_at
+                      )})</span
                     >
                   {/if}
                 </div>

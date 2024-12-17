@@ -11,6 +11,7 @@ export interface TokenPrice {
 
 const priceCache: Record<string, TokenPrice> = {}
 
+// Or get from: https://uvevg-iyaaa-aaaak-ac27q-cai.raw.ic0.app/tickers
 export function getTokenPrice(
   token: string,
   syncing: boolean = false
