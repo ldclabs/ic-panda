@@ -10,19 +10,20 @@ use crate::{is_authenticated, store, types};
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn register_username(username: String, name: Option<String>) -> Result<UserInfo, String> {
-    if username.len() > types::MAX_USER_SIZE {
+    if username.len() > types::MAX_USER_NAME_SIZE {
         Err("username is too long".to_string())?;
     }
     if username.starts_with("_") {
         Err("invalid username".to_string())?;
     }
+
     validate_key(&username.to_ascii_lowercase())?;
 
     if let Some(ref name) = name {
         if name.is_empty() {
             Err("name is empty".to_string())?;
         }
-        if name.len() > types::MAX_USER_NAME_SIZE {
+        if name.len() > types::MAX_DISPLAY_NAME_SIZE {
             Err("name is too long".to_string())?;
         }
         if name != name.trim() {

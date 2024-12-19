@@ -8,7 +8,9 @@ pub const MAX_PROFILE_FOLLOWING: usize = 2048;
 pub const MAX_PROFILE_BIO_SIZE: usize = 2048; // 2KB
 pub const MAX_PROFILE_LINKS: usize = 100;
 pub const MAX_PROFILE_TOKENS: usize = 100;
-
+pub const MAX_PROFILE_CHANNEL_ALIAS_LEN: usize = 20;
+pub const MAX_PROFILE_CHANNEL_TAGS_LEN: usize = 5;
+pub const MAX_PROFILE_CHANNEL_TAG_LEN: usize = 20;
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct UserInfo {
     pub id: Principal,
@@ -57,6 +59,30 @@ impl UpdateProfileInput {
                 return Err(format!("bio size limit exceeded: {}", bio.len()));
             }
         }
+        // Check for conflicts in follow and unfollow
+        if !self.follow.is_disjoint(&self.unfollow) {
+            return Err("conflicting principals in follow and unfollow".to_string());
+        }
+
+        for (channel, setting) in self.upsert_channels.iter() {
+            if self.remove_channels.contains(channel) {
+                return Err(format!(
+                    "channel {:?} exists in both upsert and remove",
+                    channel
+                ));
+            }
+            if setting.alias.len() > MAX_PROFILE_CHANNEL_ALIAS_LEN {
+                return Err(format!("channel alias too long: {}", setting.alias.len()));
+            }
+            if setting.tags.len() > MAX_PROFILE_CHANNEL_TAGS_LEN {
+                return Err(format!("too many tags: {}", setting.tags.len()));
+            }
+            for tag in &setting.tags {
+                if tag.len() > MAX_PROFILE_CHANNEL_TAG_LEN {
+                    return Err(format!("tag too long: {}", tag.len()));
+                }
+            }
+        }
         Ok(())
     }
 }
@@ -98,7 +124,7 @@ impl Link {
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UploadImageInput {
     pub size: u64,            // should <= 256KB
-    pub content_type: String, // image/webp or image/svg+xml
+    pub content_type: String, // "image/webp" | "image/png" | "image/jpeg" | "image/svg+xml"
 }
 
 impl UploadImageInput {

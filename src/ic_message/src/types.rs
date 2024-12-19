@@ -6,8 +6,8 @@ use std::collections::BTreeSet;
 pub const TOKEN_1: u64 = 100_000_000;
 pub const TOKEN_FEE: u64 = 10_000; // 0.0001 token
 pub const MIN_NAME_PRICE: u64 = TOKEN_1;
-pub const MAX_USER_NAME_SIZE: usize = 32;
-pub const MAX_USER_SIZE: usize = 20;
+pub const MAX_DISPLAY_NAME_SIZE: usize = 32;
+pub const MAX_USER_NAME_SIZE: usize = 20;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct StateInfo {
