@@ -122,6 +122,7 @@ fn sign_in(name: String, pubkey: ByteBuf, sig: ByteBuf) -> Result<SignInResponse
         .map_err(|err| format!("challenge verification failed: {:?}", err))?;
 
     let user_key = CanisterSigPublicKey::new(ic_cdk::id(), name.as_bytes().to_vec());
+    store::state::delegator_sign_in(&name, &caller, now_ms)?;
     let session_expires_in_ms = store::state::with_mut(|state| {
         state.sign_in_count = state.sign_in_count.saturating_add(1);
         state.session_expires_in_ms
