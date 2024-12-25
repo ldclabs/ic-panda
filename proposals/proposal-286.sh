@@ -20,4 +20,4 @@ quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $
     }
 )' > proposal-message.json
 
-quill send proposal-message.json
+# quill send proposal-message.json

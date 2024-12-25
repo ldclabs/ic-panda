@@ -20,3 +20,4 @@
 1_112 zof5a-5yaaa-aaaai-acr2q-cai admin_remove_managers
 1_113 4jxyd-pqaaa-aaaah-qdqtq-cai admin_remove_managers
 1_114 5szpn-tiaaa-aaaaj-qncoq-cai admin_update_bucket_canister_settings
+1_115 5szpn-tiaaa-aaaaj-qncoq-cai admin_deploy_bucket
