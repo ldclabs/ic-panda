@@ -52,7 +52,7 @@ async fn update_my_name(name: String) -> Result<UserInfo, String> {
     if name.is_empty() {
         Err("name is empty".to_string())?;
     }
-    if name.len() > types::MAX_USER_NAME_SIZE {
+    if name.len() > types::MAX_DISPLAY_NAME_SIZE {
         Err("name is too long".to_string())?;
     }
     if name != name.trim() {
@@ -64,13 +64,27 @@ async fn update_my_name(name: String) -> Result<UserInfo, String> {
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
-async fn update_my_image(image: String) -> Result<(), String> {
+fn update_my_username(username: String) -> Result<UserInfo, String> {
+    if username.len() > types::MAX_USER_NAME_SIZE {
+        Err("username is too long".to_string())?;
+    }
+    if username.starts_with("_") {
+        Err("invalid username".to_string())?;
+    }
+    validate_key(&username.to_ascii_lowercase())?;
+
+    let caller = ic_cdk::caller();
+    store::user::update_username(caller, username)
+}
+
+#[ic_cdk::update(guard = "is_authenticated")]
+fn update_my_image(image: String) -> Result<(), String> {
     if !image.starts_with("http") {
         Err("invalid image url".to_string())?;
     }
 
     let caller = ic_cdk::caller();
-    store::user::update_image(caller, image).await
+    store::user::update_image(caller, image)
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]

@@ -243,6 +243,7 @@ export interface _SERVICE {
   'update_my_image' : ActorMethod<[string], Result>,
   'update_my_kv' : ActorMethod<[UpdateKVInput], Result>,
   'update_my_name' : ActorMethod<[string], Result_3>,
+  'update_my_username' : ActorMethod<[string], Result_3>,
   'validate2_admin_add_canister' : ActorMethod<
     [CanisterKind, Principal],
     Result_8

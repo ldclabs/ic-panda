@@ -175,15 +175,15 @@ pub mod state {
     use super::*;
 
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
-        STATE.with(|r| f(&r.borrow()))
+        STATE.with_borrow(f)
     }
 
     pub fn with_mut<R>(f: impl FnOnce(&mut State) -> R) -> R {
-        STATE.with(|r| f(&mut r.borrow_mut()))
+        STATE.with_borrow_mut(f)
     }
 
     pub fn is_manager(caller: &Principal) -> Result<(), String> {
-        STATE.with(|r| match r.borrow().managers.contains(caller) {
+        STATE.with_borrow(|r| match r.managers.contains(caller) {
             true => Ok(()),
             false => Err("caller is not a manager".to_string()),
         })
@@ -191,29 +191,27 @@ pub mod state {
 
     pub fn load() {
         let mut scratch = [0; 4096];
-        STATE_STORE.with(|r| {
-            STATE.with(|h| {
-                let v: State = from_reader_with_buffer(&r.borrow().get()[..], &mut scratch)
+        STATE_STORE.with_borrow(|r| {
+            STATE.with_borrow_mut(|h| {
+                let v: State = from_reader_with_buffer(&r.get()[..], &mut scratch)
                     .expect("failed to decode STATE_STORE data");
-                *h.borrow_mut() = v;
+                *h = v;
             });
         });
     }
 
     pub fn save() {
-        STATE.with(|h| {
-            STATE_STORE.with(|r| {
+        STATE.with_borrow(|h| {
+            STATE_STORE.with_borrow_mut(|r| {
                 let mut buf = vec![];
-                into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut()
-                    .set(buf)
-                    .expect("failed to set STATE_STORE data");
+                into_writer(h, &mut buf).expect("failed to encode STATE_STORE data");
+                r.set(buf).expect("failed to set STATE_STORE data");
             });
         });
     }
 
     pub fn ed25519_public_key(caller: &Principal) -> Result<PublicKeyOutput, String> {
-        with(|s| {
+        STATE.with_borrow(|s| {
             let pk = s
                 .ed25519_public_key
                 .as_ref()
@@ -230,7 +228,7 @@ pub mod state {
 
     pub async fn try_init_public_key() {
         let (schnorr_key_name, ed25519_public_key) =
-            with(|s| (s.schnorr_key_name.clone(), s.ed25519_public_key.clone()));
+            STATE.with_borrow(|s| (s.schnorr_key_name.clone(), s.ed25519_public_key.clone()));
         if schnorr_key_name.is_empty() || ed25519_public_key.is_some() {
             return;
         }
@@ -250,7 +248,7 @@ pub mod state {
             .expect("failed to generate IV");
         data.truncate(32);
         let iv: [u8; 32] = data.try_into().expect("failed to generate IV");
-        with_mut(|r| {
+        STATE.with_borrow_mut(|r| {
             r.ed25519_public_key = ed25519_public_key;
             r.init_vector = iv.into();
         });
@@ -266,70 +264,73 @@ pub mod user {
     use super::*;
 
     pub fn names_total() -> u64 {
-        NAME_STORE.with(|r| r.borrow().len())
+        NAME_STORE.with_borrow(|r| r.len())
     }
 
     pub fn users_total() -> u64 {
-        USER_STORE.with(|r| r.borrow().len())
+        USER_STORE.with_borrow(|r| r.len())
     }
 
     pub async fn update_name(caller: Principal, name: String) -> Result<UserInfo, String> {
         let profile_canister = state::with(|s| s.profile_canisters.last().cloned());
         let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
 
-        let info = USER_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&caller) {
-                Some(mut user) => {
-                    user.name = name;
-                    m.insert(caller, user.clone());
-                    user.into_info(caller)
-                }
-                None => {
-                    let user = User {
-                        name,
-                        image: "".to_string(),
-                        profile_canister,
-                        cose_canister: None,
-                        username: None,
-                    };
-                    m.insert(caller, user.clone());
-                    user.into_info(caller)
-                }
+        let (new_profile, info) = USER_STORE.with_borrow_mut(|r| match r.get(&caller) {
+            Some(mut user) => {
+                user.name = name;
+                r.insert(caller, user.clone());
+                (false, user.into_info(caller))
+            }
+            None => {
+                let user = User {
+                    name,
+                    image: "".to_string(),
+                    profile_canister,
+                    cose_canister: None,
+                    username: None,
+                };
+                r.insert(caller, user.clone());
+                (true, user.into_info(caller))
             }
         });
 
-        let _: Result<(), String> = call(
-            info.profile_canister,
-            "admin_upsert_profile",
-            (caller, None::<(Principal, u64)>),
-            0,
-        )
-        .await?;
+        if new_profile {
+            let _: Result<(), String> = call(
+                info.profile_canister,
+                "admin_upsert_profile",
+                (caller, None::<(Principal, u64)>),
+                0,
+            )
+            .await?;
+        }
         Ok(info)
     }
 
-    pub async fn update_image(caller: Principal, image: String) -> Result<(), String> {
-        let user_profile_canister = USER_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&caller) {
-                Some(mut user) => {
-                    user.image = image;
-                    m.insert(caller, user.clone());
-                    Ok(user.profile_canister)
-                }
-                None => Err("user not found".to_string()),
+    pub fn update_username(caller: Principal, username: String) -> Result<UserInfo, String> {
+        USER_STORE.with_borrow_mut(|r| match r.get(&caller) {
+            Some(mut user) => {
+                let ln = username.to_lowercase();
+                NAME_STORE.with_borrow(|r| match r.get(&ln) {
+                    Some(id) if id == caller => Ok(()),
+                    _ => Err("username not match".to_string()),
+                })?;
+                user.username = Some(username);
+                r.insert(caller, user.clone());
+                Ok(user.into_info(caller))
             }
-        })?;
+            None => Err("user not found".to_string()),
+        })
+    }
 
-        let _: Result<(), String> = call(
-            user_profile_canister,
-            "admin_upsert_profile",
-            (caller, None::<(Principal, u64)>),
-            0,
-        )
-        .await?;
-        Ok(())
+    pub fn update_image(caller: Principal, image: String) -> Result<(), String> {
+        USER_STORE.with_borrow_mut(|r| match r.get(&caller) {
+            Some(mut user) => {
+                user.image = image;
+                r.insert(caller, user);
+                Ok(())
+            }
+            None => Err("user not found".to_string()),
+        })
     }
 
     pub async fn update_my_ecdh(
@@ -338,9 +339,8 @@ pub mod user {
         encrypted_ecdh: ByteBuf,
     ) -> Result<(), String> {
         let (cose_canister, profile_canister) = USER_STORE
-            .with(|r| {
-                r.borrow()
-                    .get(&caller)
+            .with_borrow(|r| {
+                r.get(&caller)
                     .map(|u| (u.cose_canister, u.profile_canister))
             })
             .ok_or_else(|| "user not found".to_string())?;
@@ -409,7 +409,7 @@ pub mod user {
 
     pub async fn update_my_kv(caller: Principal, input: UpdateKVInput) -> Result<(), String> {
         let cose_canister = USER_STORE
-            .with(|r| r.borrow().get(&caller).map(|u| u.cose_canister))
+            .with_borrow(|r| r.get(&caller).map(|u| u.cose_canister))
             .ok_or_else(|| "user not found".to_string())?;
         let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
         let mut sp = SettingPath {
@@ -501,9 +501,8 @@ pub mod user {
             return Err("invalid username length".to_string());
         }
 
-        let has_username = USER_STORE.with(|r| {
-            r.borrow()
-                .get(&caller)
+        let has_username = USER_STORE.with_borrow(|r| {
+            r.get(&caller)
                 .map(|u| u.username.is_some())
                 .unwrap_or_default()
         });
@@ -512,22 +511,19 @@ pub mod user {
             return Err("caller already has username".to_string());
         }
 
-        NAME_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&ln) {
-                Some(_) => Err("username already registered".to_string()),
-                None => {
-                    m.insert(ln.clone(), caller);
-                    Ok(())
-                }
+        NAME_STORE.with_borrow_mut(|r| match r.get(&ln) {
+            Some(_) => Err("username already registered".to_string()),
+            None => {
+                r.insert(ln.clone(), caller);
+                Ok(())
             }
         })?;
 
         let blk =
             match token_transfer_from(caller, amount.into(), format!("RU: {}", username)).await {
                 Err(err) => {
-                    NAME_STORE.with(|r| {
-                        r.borrow_mut().remove(&ln);
+                    NAME_STORE.with_borrow_mut(|r| {
+                        r.remove(&ln);
                     });
                     return Err(err);
                 }
@@ -555,10 +551,8 @@ pub mod user {
             let blk = to_cbor_bytes(&blk);
             s.next_block_height += 1;
             s.next_block_phash = sha3_256(&blk).into();
-            NAME_BLOCKS.with(|r| {
-                r.borrow_mut()
-                    .append(&blk)
-                    .expect("failed to append NameBlock");
+            NAME_BLOCKS.with_borrow_mut(|r| {
+                r.append(&blk).expect("failed to append NameBlock");
             });
             ic_cdk::api::set_certified_data(s.root_hash().as_slice());
         });
@@ -581,38 +575,37 @@ pub mod user {
         )
         .await?;
 
-        let info = USER_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&caller) {
-                Some(mut user) => {
-                    if user.cose_canister.is_none() {
-                        user.cose_canister = Some(cose_canister);
-                    }
-                    user.username = Some(username);
-                    m.insert(caller, user.clone());
-                    user.into_info(caller)
+        let (new_profile, info) = USER_STORE.with_borrow_mut(|r| match r.get(&caller) {
+            Some(mut user) => {
+                if user.cose_canister.is_none() {
+                    user.cose_canister = Some(cose_canister);
                 }
-                None => {
-                    let user = User {
-                        name,
-                        image: "".to_string(),
-                        profile_canister,
-                        cose_canister: Some(cose_canister),
-                        username: Some(username),
-                    };
-                    m.insert(caller, user.clone());
-                    user.into_info(caller)
-                }
+                user.username = Some(username);
+                r.insert(caller, user.clone());
+                (false, user.into_info(caller))
+            }
+            None => {
+                let user = User {
+                    name,
+                    image: "".to_string(),
+                    profile_canister,
+                    cose_canister: Some(cose_canister),
+                    username: Some(username),
+                };
+                r.insert(caller, user.clone());
+                (true, user.into_info(caller))
             }
         });
 
-        let _: Result<(), String> = call(
-            info.profile_canister,
-            "admin_upsert_profile",
-            (caller, None::<(Principal, u64)>),
-            0,
-        )
-        .await?;
+        if new_profile {
+            let _: Result<(), String> = call(
+                info.profile_canister,
+                "admin_upsert_profile",
+                (caller, None::<(Principal, u64)>),
+                0,
+            )
+            .await?;
+        }
         Ok(info)
     }
 
@@ -630,9 +623,8 @@ pub mod user {
         let cose_canister = cose_canister.ok_or_else(|| "no COSE canister".to_string())?;
         let profile_canister = profile_canister.ok_or_else(|| "no profile canister".to_string())?;
 
-        let username = USER_STORE.with(|r| {
-            r.borrow()
-                .get(&caller)
+        let username = USER_STORE.with_borrow(|r| {
+            r.get(&caller)
                 .ok_or_else(|| "caller not found".to_string())?
                 .username
                 .ok_or_else(|| "caller has no username".to_string())
@@ -643,61 +635,57 @@ pub mod user {
             return Err("cannot transfer username".to_string());
         }
 
-        let (new_profile, new_cose) = NAME_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&ln) {
-                Some(owner) => {
-                    if owner != caller {
-                        Err("username not owned by caller".to_string())
-                    } else {
-                        let rt = USER_STORE.with(|r| {
-                            let mut new_cose = false;
-                            let mut new_profile = false;
-                            let mut m = r.borrow_mut();
-                            match m.get(&to) {
-                                Some(mut user) => {
-                                    if let Some(username) = user.username {
-                                        Err(format!(
-                                            "{} already has username {}",
-                                            to.to_text(),
-                                            username
-                                        ))?;
-                                    }
-                                    user.username = Some(username.clone());
-                                    if user.cose_canister.is_none() {
-                                        new_cose = true;
-                                        user.cose_canister = Some(cose_canister);
-                                    }
-                                    m.insert(to, user);
+        let (new_profile, new_cose) = NAME_STORE.with_borrow_mut(|r| match r.get(&ln) {
+            Some(owner) => {
+                if owner != caller {
+                    Err("username not owned by caller".to_string())
+                } else {
+                    let rt = USER_STORE.with_borrow_mut(|rr| {
+                        let mut new_cose = false;
+                        let mut new_profile = false;
+                        match rr.get(&to) {
+                            Some(mut user) => {
+                                if let Some(username) = user.username {
+                                    Err(format!(
+                                        "{} already has username {}",
+                                        to.to_text(),
+                                        username
+                                    ))?;
                                 }
-                                None => {
+                                user.username = Some(username.clone());
+                                if user.cose_canister.is_none() {
                                     new_cose = true;
-                                    new_profile = true;
-                                    m.insert(
-                                        to,
-                                        User {
-                                            name: username.clone(),
-                                            image: "".to_string(),
-                                            profile_canister,
-                                            cose_canister: Some(cose_canister),
-                                            username: Some(username.clone()),
-                                        },
-                                    );
+                                    user.cose_canister = Some(cose_canister);
                                 }
+                                rr.insert(to, user);
                             }
+                            None => {
+                                new_cose = true;
+                                new_profile = true;
+                                rr.insert(
+                                    to,
+                                    User {
+                                        name: username.clone(),
+                                        image: "".to_string(),
+                                        profile_canister,
+                                        cose_canister: Some(cose_canister),
+                                        username: Some(username.clone()),
+                                    },
+                                );
+                            }
+                        }
 
-                            if let Some(mut user) = m.get(&caller) {
-                                user.username = None;
-                                m.insert(caller, user.clone());
-                            }
-                            Ok::<(bool, bool), String>((new_profile, new_cose))
-                        })?;
-                        m.insert(ln.clone(), to);
-                        Ok(rt)
-                    }
+                        if let Some(mut user) = rr.get(&caller) {
+                            user.username = None;
+                            rr.insert(caller, user.clone());
+                        }
+                        Ok::<(bool, bool), String>((new_profile, new_cose))
+                    })?;
+                    r.insert(ln.clone(), to);
+                    Ok(rt)
                 }
-                None => Err("username not found".to_string()),
             }
+            None => Err("username not found".to_string()),
         })?;
 
         state::with_mut(|s| {
@@ -713,10 +701,8 @@ pub mod user {
             let blk = to_cbor_bytes(&blk);
             s.next_block_height += 1;
             s.next_block_phash = sha3_256(&blk).into();
-            NAME_BLOCKS.with(|r| {
-                r.borrow_mut()
-                    .append(&blk)
-                    .expect("failed to append NameBlock");
+            NAME_BLOCKS.with_borrow_mut(|r| {
+                r.append(&blk).expect("failed to append NameBlock");
             });
             ic_cdk::api::set_certified_data(s.root_hash().as_slice());
         });
@@ -762,8 +748,8 @@ pub mod user {
                     .cloned()
                     .collect()
             } else {
-                NAME_STORE.with(|r| {
-                    if r.borrow().contains_key(&prefix) {
+                NAME_STORE.with_borrow(|r| {
+                    if r.contains_key(&prefix) {
                         vec![prefix]
                     } else {
                         vec![]
@@ -778,8 +764,8 @@ pub mod user {
             if username.len() <= 7 && !s.short_usernames.contains(&username) {
                 None
             } else {
-                NAME_STORE.with(|r| match r.borrow().get(&username) {
-                    Some(id) => USER_STORE.with(|m| m.borrow().get(&id).map(|u| u.into_info(id))),
+                NAME_STORE.with_borrow(|r| match r.get(&username) {
+                    Some(id) => USER_STORE.with_borrow(|rr| rr.get(&id).map(|u| u.into_info(id))),
                     None => None,
                 })
             }
@@ -788,23 +774,21 @@ pub mod user {
     }
 
     pub fn get(user: Principal) -> Result<UserInfo, String> {
-        USER_STORE.with(|r| {
-            r.borrow()
-                .get(&user)
+        USER_STORE.with_borrow(|r| {
+            r.get(&user)
                 .map(|u| u.into_info(user))
                 .ok_or_else(|| "user not found".to_string())
         })
     }
 
     pub fn has_username(user: &Principal) -> bool {
-        USER_STORE.with(|r| r.borrow().get(user).map_or(false, |u| u.username.is_some()))
+        USER_STORE.with_borrow(|r| r.get(user).map_or(false, |u| u.username.is_some()))
     }
 
     pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {
-        USER_STORE.with(|r| {
-            let m = r.borrow();
+        USER_STORE.with_borrow(|r| {
             ids.iter()
-                .filter_map(|id| m.get(id).map(|u| u.into_info(*id)))
+                .filter_map(|id| r.get(id).map(|u| u.into_info(*id)))
                 .collect()
         })
     }
@@ -814,8 +798,7 @@ pub mod user {
 
         let next_block_height = state::with(|s| s.next_block_height);
 
-        NAME_BLOCKS.with(|r| {
-            let logs = r.borrow();
+        NAME_BLOCKS.with_borrow(|logs| {
             let logs_len = logs.len();
             let mut blocks = vec![];
             for arg in args {
@@ -885,9 +868,8 @@ pub mod channel {
 
         let amount = price.channel.saturating_sub(types::TOKEN_FEE);
 
-        let (user_profile_canister, is_new) = USER_STORE.with(|r| {
-            let mut m = r.borrow_mut();
-            match m.get(&caller) {
+        let (user_profile_canister, is_new) =
+            USER_STORE.with_borrow_mut(|r| match r.get(&caller) {
                 Some(user) => (user.profile_canister, false),
                 None => {
                     let user = User {
@@ -897,11 +879,10 @@ pub mod channel {
                         cose_canister: None,
                         username: None,
                     };
-                    m.insert(caller, user.clone());
+                    r.insert(caller, user.clone());
                     (profile_canister, true)
                 }
-            }
-        });
+            });
 
         if is_new {
             let _: Result<(), String> = call(
@@ -965,7 +946,7 @@ pub mod channel {
 
     pub async fn save_channel_kek(caller: Principal, input: ChannelKEKInput) -> Result<(), String> {
         let cose_canister = USER_STORE
-            .with(|r| r.borrow().get(&caller).map(|u| u.cose_canister))
+            .with_borrow(|r| r.get(&caller).map(|u| u.cose_canister))
             .ok_or_else(|| "user not found".to_string())?;
         let cose_canister = cose_canister.ok_or_else(|| "user has no COSE service".to_string())?;
         let mut sp = SettingPath {

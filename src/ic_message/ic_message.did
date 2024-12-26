@@ -208,6 +208,7 @@ service : (opt ChainArgs) -> {
   update_my_image : (text) -> (Result);
   update_my_kv : (UpdateKVInput) -> (Result);
   update_my_name : (text) -> (Result_3);
+  update_my_username : (text) -> (Result_3);
   validate2_admin_add_canister : (CanisterKind, principal) -> (Result_8);
   validate2_admin_add_managers : (vec principal) -> (Result_8);
   validate2_admin_collect_token : (Account, nat) -> (Result_8);
