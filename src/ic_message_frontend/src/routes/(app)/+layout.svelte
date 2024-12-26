@@ -71,6 +71,28 @@
       } catch (err) {}
     }
 
+    if (pwaInfo) {
+      const { registerSW } = await import('virtual:pwa-register')
+      registerSW({
+        immediate: true,
+        onRegistered(r) {
+          if (!r) return
+          console.log(`SW Registered: ${r}`)
+          r.update()
+          setInterval(
+            () => {
+              console.log('Checking for sw update')
+              r.update()
+            },
+            60 * 60 * 1000
+          )
+        },
+        onRegisterError(error) {
+          console.log('SW registration error', error)
+        }
+      })
+    }
+
     globalLoading.value = false
   })
 
@@ -96,7 +118,3 @@
     {@render children_render?.()}
   {/if}
 </div>
-
-{#await import('$lib/ReloadPrompt.svelte') then { default: ReloadPrompt }}
-  <ReloadPrompt />
-{/await}
