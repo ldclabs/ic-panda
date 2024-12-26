@@ -2,7 +2,7 @@ use candid::{Nat, Principal};
 use ciborium::{from_reader, from_reader_with_buffer, into_writer};
 use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::{
-    namespace::{CreateNamespaceInput, NamespaceInfo},
+    namespace::CreateNamespaceInput,
     setting::{
         CreateSettingInput, CreateSettingOutput, SettingInfo, SettingPath, UpdateSettingOutput,
         UpdateSettingPayloadInput,
@@ -564,7 +564,7 @@ pub mod user {
         });
 
         // the user's namespace maybe exists, but we don't care about the result
-        let _: Result<NamespaceInfo, String> = call(
+        let _: Result<types::NamespaceInfo, String> = call(
             cose_canister,
             "admin_create_namespace",
             (CreateNamespaceInput {
@@ -575,6 +575,7 @@ pub mod user {
                 managers: BTreeSet::from([ic_cdk::id()]),
                 auditors: BTreeSet::from([caller]),
                 users: BTreeSet::from([caller]),
+                session_expires_in_ms: None,
             },),
             0,
         )
@@ -731,7 +732,7 @@ pub mod user {
         }
 
         if new_cose {
-            let _: Result<NamespaceInfo, String> = call(
+            let _: Result<types::NamespaceInfo, String> = call(
                 cose_canister,
                 "admin_create_namespace",
                 (CreateNamespaceInput {
@@ -742,6 +743,7 @@ pub mod user {
                     managers: BTreeSet::from([ic_cdk::id()]),
                     auditors: BTreeSet::from([to]),
                     users: BTreeSet::from([to]),
+                    session_expires_in_ms: None,
                 },),
                 0,
             )

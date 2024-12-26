@@ -4,7 +4,6 @@ use ic_agent::{
     hash_tree::{Label, LookupResult},
     Agent,
 };
-use ic_cbor::CertificateToCbor;
 use ic_certification::{
     hash_tree::{HashTreeNode, SubtreeLookupResult},
     Certificate, HashTree,
@@ -105,8 +104,8 @@ impl Icrc1Agent {
             hash_tree,
         } = self.icrc3_get_tip_certificate().await?;
 
-        let certificate = if let Some(certificate) = certificate {
-            Certificate::from_cbor(certificate.as_slice()).map_err(format_error)?
+        let certificate: Certificate = if let Some(certificate) = certificate {
+            from_reader(certificate.as_slice()).map_err(format_error)?
         } else {
             return Err("Certificate not found in the DataCertificate".to_string());
         };

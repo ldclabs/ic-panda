@@ -23,4 +23,3 @@ icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "5d202894864
 ic-icrc1 = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
 ic-ledger-core = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
 ic-icrc1-tokens-u64 = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
-ic-cbor = "2.6"

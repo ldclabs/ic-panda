@@ -1,7 +1,7 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const TOKEN_1: u64 = 100_000_000;
 pub const TOKEN_FEE: u64 = 10_000; // 0.0001 token
@@ -95,4 +95,24 @@ impl UpdatePriceInput {
         }
         Ok(())
     }
+}
+
+#[derive(CandidType, Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct NamespaceInfo {
+    pub name: String,
+    pub desc: String,
+    pub created_at: u64,               // unix timestamp in milliseconds
+    pub updated_at: u64,               // unix timestamp in milliseconds
+    pub max_payload_size: u64,         // max payload size in bytes
+    pub payload_bytes_total: u64,      // total payload size in bytes
+    pub status: i8,                    // -1: archived; 0: readable and writable; 1: readonly
+    pub visibility: u8,                // 0: private; 1: public
+    pub managers: BTreeSet<Principal>, // managers can read and write all settings
+    pub auditors: BTreeSet<Principal>, // auditors can read all settings
+    pub users: BTreeSet<Principal>,    // users can read and write settings they created
+    pub gas_balance: u128,             // cycles
+    pub fixed_id_names: Option<BTreeMap<String, BTreeSet<Principal>>>, // fixed identity names
+    pub session_expires_in_ms: Option<u64>, // session expiration in milliseconds for fixed identity
+    pub settings_total: Option<u64>,   // settings created by managers for users
+    pub user_settings_total: Option<u64>, // settings created by users
 }
