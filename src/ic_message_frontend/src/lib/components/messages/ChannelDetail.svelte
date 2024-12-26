@@ -12,7 +12,7 @@
   import type { Principal } from '@dfinity/principal'
   import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
   import { getContext, onMount } from 'svelte'
-  import { readable, type Readable } from 'svelte/store'
+  import { type Readable } from 'svelte/store'
   import ChannelMessages from './ChannelMessages.svelte'
   import ChannelSetting from './ChannelSetting.svelte'
 
@@ -28,20 +28,14 @@
   const { canister, id } = channelId
   const onChatBack = getContext('onChatBack') as () => void
 
-  let channelInfo: Readable<ChannelInfoEx | null> = $state(readable(null))
+  let channelInfo: ChannelInfoEx | null = $state(null)
   let isLoading = $state(true)
   let openMessages = $state(true)
   let switching = $state(false)
   async function onClickChannelSetting() {
     if (!canister) return
     switching = true
-    await Promise.all([
-      async () => {
-        // load latest channel info
-        channelInfo = await myState.loadChannelInfo(canister, id)
-      },
-      sleep(100)
-    ])
+    await sleep(100)
     openMessages = !openMessages
     switching = false
   }
@@ -51,25 +45,25 @@
       async (signal: AbortSignal) => {
         if (canister) {
           channelInfo = await myState.loadChannelInfo(canister, id)
-          openMessages = !!$channelInfo?._kek
+          openMessages = !!channelInfo._kek
           if (openMessages) {
             try {
               // try to decrypt channel DEK
-              await myState.decryptChannelDEK($channelInfo!)
+              await myState.decryptChannelDEK(channelInfo)
             } catch (_e) {
               openMessages = false
             }
           }
           isLoading = false
-          return channelInfo
+          return true
         }
-        return null
+        return false
       },
       toastStore
     )
 
-    onfinally((channel) => {
-      if (!channel) {
+    onfinally((hasChannel) => {
+      if (!hasChannel) {
         goto('/_/messages')
       }
     })
@@ -89,18 +83,18 @@
       >
     </div>
     <div class="flex flex-row items-center gap-2">
-      {#if $channelInfo}
+      {#if channelInfo}
         <Avatar
-          initials={$channelInfo.name}
-          src={$channelInfo.image}
-          background={$channelInfo.image ? '' : 'bg-panda'}
+          initials={channelInfo.name}
+          src={channelInfo.image}
+          background={channelInfo.image ? '' : 'bg-panda'}
           fill="fill-white"
           width="w-10"
         />
         <span class="flex-1 text-start">
-          {$channelInfo.name +
+          {channelInfo.name +
             ' (' +
-            ($channelInfo.managers.length + $channelInfo.members.length) +
+            (channelInfo.managers.length + channelInfo.members.length) +
             ')'}
         </span>
       {:else}
@@ -119,7 +113,7 @@
       disabled={switching}
       onclick={onClickChannelSetting}
     >
-      {#if channelInfo && openMessages && ($channelInfo?.ecdh_request || []).length > 0}
+      {#if channelInfo && openMessages && (channelInfo?.ecdh_request || []).length > 0}
         <span class="badge-icon z-10 size-2 bg-error-500"></span>
       {/if}
       <span>
@@ -133,14 +127,14 @@
   </header>
   {#if isLoading}
     <Loading />
-  {:else if $channelInfo}
+  {:else if channelInfo}
     {#if openMessages}
-      <ChannelMessages {myState} {myInfo} channelInfo={$channelInfo} />
+      <ChannelMessages {myState} {myInfo} bind:channelInfo />
     {:else}
       <ChannelSetting
         {myState}
         {myInfo}
-        channelInfo={$channelInfo}
+        bind:channelInfo
         close={() => (openMessages = true)}
       />
     {/if}

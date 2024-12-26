@@ -44,10 +44,8 @@
     close: () => void
   }
 
-  let props: Props = $props()
-  let { myState, myInfo, close } = props
+  let { myState, myInfo, close, channelInfo = $bindable() }: Props = $props()
 
-  let channelInfo = $state(props.channelInfo)
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const members: Writable<DisplayUserInfoEx[]> = writable([])
@@ -315,7 +313,7 @@
 
   onMount(() => {
     const { abort } = toastRun(async (signal: AbortSignal) => {
-      channelInfo = await myState.refreshChannel(channelInfo, true)
+      channelInfo = await myState.refreshChannel(channelInfo)
       try {
         await myState.decryptChannelDEK(channelInfo)
         validKEK = true
@@ -340,7 +338,7 @@
         onclick={onClickMyECDH}
         disabled={myECDHSubmitting}
       >
-        <span>Accept encryption key and start chat</span>
+        <span>Accept and start chat</span>
         {#if myECDHSubmitting}
           <span class=" text-panda *:size-4">
             <IconCircleSpin />
@@ -464,30 +462,24 @@
       </span>
     </div>
     <div class="flex flex-row items-center gap-4">
-      <p>Request encryption key:</p>
+      <p>Encryption key:</p>
       {#if channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
           onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}
-          ><span>Key received, accept it</span></button
+          disabled={myECDHSubmitting}><span>Accept</span></button
         >
       {:else if channelInfo.my_setting.ecdh_pub.length > 0}
-        <span class="text-sm opacity-50"
-          >Request sent, waiting for a manager share key</span
-        >
+        <span class="text-sm opacity-50">Waiting for the grant</span>
       {:else if validKEK}
-        <span class="text-sm opacity-50"
-          >Key already exists, no action needed</span
-        >
+        <span class="text-sm opacity-50">Existed</span>
       {:else}
         <button
           type="button"
           class="variant-filled-error btn btn-sm"
           onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}
-          ><span>No key to decrypt messages, make a request</span></button
+          disabled={myECDHSubmitting}><span>Request key</span></button
         >
       {/if}
       <span class="text-panda *:size-4 {myECDHSubmitting ? '' : 'invisible'}">
@@ -503,6 +495,7 @@
           type="text"
           class="border-gray/10 h-8 truncate py-1 leading-8 invalid:input-warning"
           bind:value={leavingWord}
+          onfocus={() => (leavingWord = channelInfo.name)}
           placeholder="channel name"
         />
         <button
@@ -564,7 +557,7 @@
             !hasExchangeKeys}
         >
           <span class="*:size-4"><IconExchange2Line /></span>
-          <span>Exchange keys</span>
+          <span>Grant requests</span>
           <span
             class="text-panda *:size-4 {adminExchangeKeysSubmitting
               ? ''

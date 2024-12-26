@@ -187,7 +187,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{editMode ? 'Edit' : 'Register'} name</div
+    >{editMode ? 'Edit' : 'Account'} name</div
   >
 
   <form
@@ -211,108 +211,110 @@
         required
       />
     </label>
-    <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
-    <label class="label relative mt-4">
-      <div class="flex flex-row items-center justify-between">
-        <span>Username</span>
-        <div class="text-sm">
-          {#if existUsernames.includes(usernameInput.trim())}
-            <span class="text-error-500">occupied!</span>
-          {:else}
+    {#if myState.api.myInfo}
+      <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
+      <label class="label relative mt-4">
+        <div class="flex flex-row items-center justify-between">
+          <span>Username</span>
+          <div class="text-sm">
+            {#if existUsernames.includes(usernameInput.trim())}
+              <span class="text-error-500">occupied!</span>
+            {:else}
+              <span
+                class={amount > availablePandaBalance
+                  ? 'text-error-500'
+                  : 'text-panda'}
+                >{formatNumber(Number(amount) / Number(PANDAToken.one)) +
+                  ($pandaPrice && amount > 0n
+                    ? ' ($' +
+                      getPriceNumber(
+                        $pandaPrice.priceUSD *
+                          (Number(amount) / Number(PANDAToken.one))
+                      ) +
+                      ')'
+                    : '')}</span
+              >
+              <span>{PANDAToken.symbol}</span>
+            {/if}
+          </div>
+        </div>
+        <input
+          class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+          type="text"
+          name="usernameInput"
+          minlength="1"
+          maxlength="20"
+          data-1p-ignore
+          bind:value={usernameInput}
+          oninput={onSearchUsername}
+          disabled={!!usernameAccount ||
+            submitting ||
+            (editMode && username != '')}
+          placeholder="{APP_ORIGIN}/{username || '[username]'}"
+          data-focusindex="0"
+        />
+      </label>
+      {#if usernameErr}
+        <div class="h-10 text-sm text-error-500">{usernameErr}</div>
+      {:else}
+        <div class="flex h-10 flex-row items-center justify-between text-sm">
+          <div class="flex flex-row items-center gap-2 py-1">
+            <span class="*:size-6"><IconPanda /></span>
+            <span>Your Wallet Balance:</span>
+          </div>
+          <div class="flex flex-row gap-1 text-neutral-500">
             <span
-              class={amount > availablePandaBalance
-                ? 'text-error-500'
-                : 'text-panda'}
-              >{formatNumber(Number(amount) / Number(PANDAToken.one)) +
-                ($pandaPrice && amount > 0n
-                  ? ' ($' +
-                    getPriceNumber(
-                      $pandaPrice.priceUSD *
-                        (Number(amount) / Number(PANDAToken.one))
-                    ) +
-                    ')'
-                  : '')}</span
+              >{formatNumber(
+                Number(availablePandaBalance) / Number(PANDAToken.one)
+              )}</span
             >
             <span>{PANDAToken.symbol}</span>
+          </div>
+          {#if amount > availablePandaBalance}
+            <button
+              type="button"
+              class="btn btn-sm hover:variant-soft-primary"
+              onclick={onOpenWallet}
+            >
+              <span class="*:size-4"><IconAdd /></span>
+              <span>Topup</span>
+            </button>
           {/if}
         </div>
-      </div>
-      <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
-        type="text"
-        name="usernameInput"
-        minlength="1"
-        maxlength="20"
-        data-1p-ignore
-        bind:value={usernameInput}
-        oninput={onSearchUsername}
-        disabled={!!usernameAccount ||
-          submitting ||
-          (editMode && username != '')}
-        placeholder="{APP_ORIGIN}/{username || '[username]'}"
-        data-focusindex="0"
-      />
-    </label>
-    {#if usernameErr}
-      <div class="h-10 text-sm text-error-500">{usernameErr}</div>
-    {:else}
-      <div class="flex h-10 flex-row items-center justify-between text-sm">
-        <div class="flex flex-row items-center gap-2 py-1">
-          <span class="*:size-6"><IconPanda /></span>
-          <span>Your Wallet Balance:</span>
-        </div>
-        <div class="flex flex-row gap-1 text-neutral-500">
-          <span
-            >{formatNumber(
-              Number(availablePandaBalance) / Number(PANDAToken.one)
-            )}</span
-          >
-          <span>{PANDAToken.symbol}</span>
-        </div>
-        {#if availablePandaBalance < amount}
-          <button
-            type="button"
-            class="btn btn-sm hover:variant-soft-primary"
-            onclick={onOpenWallet}
-          >
-            <span class="*:size-4"><IconAdd /></span>
-            <span>Topup</span>
-          </button>
-        {/if}
-      </div>
-    {/if}
+      {/if}
 
-    {#if usernameAccount}
-      <div class="mt-2 space-y-1">
-        <p class="">
-          This is a <b>Username Permanent Account</b>, please transfer the
-          username
-          <span class="font-semibold text-primary-500">{usernameAccount}</span> to
-          this account.
-        </p>
-      </div>
-    {:else}
-      <div class="mt-2 space-y-1">
-        <p class="">
-          <b>1.</b> Username is optional. By registering a username, you will:
-        </p>
-        <p class="">
-          <b>2.</b> Have your keys encrypted and stored on-chain, allowing sync
-          across multiple devices.
-          <span class="text-error-500"
-            >Otherwise, the keys is stored only in the browser storage, and
-            clearing browser data or device issues may result in key loss,
-            making messages undecryptable.</span
-          >
-        </p>
-        <p class="">
-          <b>3.</b> Get a personal profile page.
-        </p>
-        <p class="">
-          <b>4.</b> Usernames cannot be changed, but can be transferred to another
-          user in the future, allowing you to set a new username after the transfer.
-        </p>
-      </div>
+      {#if usernameAccount}
+        <div class="mt-2 space-y-1">
+          <p class="">
+            This is a <b>Username Permanent Account</b>, please transfer the
+            username
+            <span class="font-semibold text-primary-500">{usernameAccount}</span
+            > to this account.
+          </p>
+        </div>
+      {:else}
+        <div class="mt-2 space-y-1">
+          <p class="">
+            <b>1.</b> Username is optional. By registering a username, you will:
+          </p>
+          <p class="">
+            <b>2.</b> Have your keys encrypted and stored on-chain, allowing
+            sync across multiple devices.
+            <span class="text-error-500"
+              >Otherwise, the keys is stored only in the browser storage, and
+              clearing browser data or device issues may result in key loss,
+              making messages undecryptable.</span
+            >
+          </p>
+          <p class="">
+            <b>3.</b> Get a personal profile page.
+          </p>
+          <p class="">
+            <b>4.</b> Usernames cannot be changed, but can be transferred to another
+            user in the future, allowing you to set a new username after the transfer.
+          </p>
+        </div>
+      {/if}
     {/if}
   </form>
   <footer class="m-auto !mt-4">
@@ -325,7 +327,7 @@
         <span class=""><IconCircleSpin /></span>
         <span>Processing...</span>
       {:else}
-        <span>{editMode ? 'Save' : 'Register Now'}</span>
+        <span>{editMode ? 'Save' : 'Confirm'}</span>
       {/if}
     </button>
   </footer>

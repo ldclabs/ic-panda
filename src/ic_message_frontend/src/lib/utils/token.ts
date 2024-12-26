@@ -46,7 +46,7 @@ export const DMSGToken: TokenInfo = {
   canisterId: DMSG_LEDGER_CANISTER_ID
 }
 
-export function formatNumber(val: number, maxDigits: number = 3): string {
+export function formatNumber(val: number, maxDigits: number = 4): string {
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: maxDigits,

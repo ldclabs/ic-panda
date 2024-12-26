@@ -442,12 +442,14 @@
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
         abortingQue.push(popupDestroy)
 
-        if (
-          !channelInfo._kek ||
-          channelInfo._sync_at < Date.now() - 5 * 60 * 1000
-        ) {
+        if (!channelInfo._kek) {
           channelInfo = await myState.refreshChannel(channelInfo)
+        } else if (channelInfo._sync_at < Date.now() - 60 * 1000) {
+          myState.loadChannelInfo(canister, id).then((info) => {
+            channelInfo = info
+          })
         }
+
         hasKEK = !!channelInfo._kek
         if (!hasKEK) {
           return

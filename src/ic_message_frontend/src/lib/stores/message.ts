@@ -688,16 +688,8 @@ export class MyMessageState {
     await this.agent.removeChannel(canister, id)
   }
 
-  async refreshChannel(
-    info: ChannelInfoEx,
-    silent: boolean = false
-  ): Promise<ChannelInfoEx> {
-    const ninfo = await this.agent.fetchChannel(
-      info.canister,
-      info.id,
-      0n,
-      silent
-    )
+  async refreshChannel(info: ChannelInfoEx): Promise<ChannelInfoEx> {
+    const ninfo = await this.agent.fetchChannel(info.canister, info.id, 0n)
     if (!ninfo) {
       throw new Error('Channel not found')
     }
@@ -746,28 +738,14 @@ export class MyMessageState {
   async loadChannelInfo(
     canister: Principal,
     id: number
-  ): Promise<Readable<ChannelInfoEx>> {
-    const channel = await this.agent.subscribeChannel(canister, id)
+  ): Promise<ChannelInfoEx> {
+    const channel = await this.agent.getChannel(canister, id)
     const kek = await this.loadChannelKEK(canister, id).catch((e) => null)
-    return derived(channel, ($channel, set) => {
-      if (kek) {
-        set({
-          ...$channel,
-          _kek: kek,
-          _managers: $channel.managers.map((m) => m.toText())
-        })
-      } else {
-        this.loadChannelKEK(canister, id)
-          .catch((e) => null)
-          .then((kek) => {
-            set({
-              ...$channel,
-              _kek: kek,
-              _managers: $channel.managers.map((m) => m.toText())
-            })
-          })
-      }
-    })
+    return {
+      ...channel,
+      _kek: kek,
+      _managers: channel.managers.map((m) => m.toText())
+    }
   }
 
   async loadProfile(

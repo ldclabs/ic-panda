@@ -498,7 +498,7 @@
     <footer id="page-footer" class="px-4 pb-24 pt-12 text-surface-400">
       <div class="flex h-16 flex-col items-center">
         <p class="flex flex-row items-center gap-1">
-          <span class="text-sm">© 2024</span>
+          <span class="text-sm">© 2024-2025</span>
           <a class="" href="https://panda.fans" target="_blank"
             ><img
               class="w-28"

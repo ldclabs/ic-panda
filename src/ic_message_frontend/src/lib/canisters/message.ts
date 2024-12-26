@@ -194,6 +194,11 @@ export class MessageCanisterAPI {
     return unwrapResult(res, 'call update_my_name failed')
   }
 
+  async update_my_username(username: string): Promise<UserInfo> {
+    const res = await this.actor.update_my_username(username)
+    return unwrapResult(res, 'call update_my_username failed')
+  }
+
   async update_my_ecdh(
     ecdhPub: Uint8Array,
     encryptedECDH: Uint8Array
