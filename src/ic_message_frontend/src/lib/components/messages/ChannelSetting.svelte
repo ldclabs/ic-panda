@@ -317,8 +317,9 @@
       try {
         await myState.decryptChannelDEK(channelInfo)
         validKEK = true
-      } catch (_e) {
+      } catch (err) {
         validKEK = false
+        console.error('Failed to decrypt channel DEK', channelInfo._kek, err)
       }
       await loadMembers()
     }, toastStore)

@@ -96,8 +96,4 @@ fn post_upgrade(args: Option<ChainArgs>) {
                 .extend(s.short_usernames.iter().take(20).cloned());
         }
     });
-
-    ic_cdk_timers::set_timer(Duration::from_secs(0), || {
-        ic_cdk::spawn(store::state::try_init_public_key())
-    });
 }
