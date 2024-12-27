@@ -16,7 +16,6 @@
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { onDestroy, onMount, tick } from 'svelte'
-  import { writable, type Writable } from 'svelte/store'
 
   interface Saying {
     name: string
@@ -35,7 +34,6 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const latest_users: Writable<UserInfo[]> = writable([])
   const icpPrice = getTokenPrice(ICPToken.canisterId, true)
   const pandaPrice = getTokenPrice(PANDAToken.canisterId, true)
   const partners: Partner[] = [
@@ -158,6 +156,7 @@
   let names_total = $state(0n)
   let channels_total = $state(0n)
   let messages_total = $state(0n)
+  let latest_users: UserInfo[] = $state([])
 
   async function onLaunchAppHandler() {
     // always load the latest one
@@ -204,12 +203,16 @@
         return acc + (state.messages_total || 0n)
       }, 0n)
 
-      for (const name of myState.api.state?.latest_usernames.slice(0, 7) ||
-        []) {
+      const userIDs = new Set<string>()
+      for (const name of myState.api.state?.latest_usernames || []) {
         if (name.toLocaleLowerCase() !== 'panda') {
           const user = await myState.tryLoadUser(name)
-          if (user) {
-            latest_users.update((users) => [...users, user])
+          if (user && !userIDs.has(user.id.toText())) {
+            userIDs.add(user.id.toText())
+            latest_users.push(user)
+            if (latest_users.length >= 9) {
+              break
+            }
           }
         }
       }
@@ -422,7 +425,7 @@
               <p class="truncate max-md:hidden">| Ask me anything</p>
             </div>
           </a>
-          {#each $latest_users as user (user.id.toText())}
+          {#each latest_users as user}
             <a
               class="group grid w-full grid-cols-[1fr_auto] items-center rounded p-2 text-neutral-400 hover:variant-soft hover:text-white"
               href="{APP_ORIGIN}/{user.username[0]}"

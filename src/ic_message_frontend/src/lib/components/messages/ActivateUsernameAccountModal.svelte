@@ -5,22 +5,22 @@
   import { toastRun } from '$lib/stores/toast'
   import { shortId } from '$lib/utils/auth'
   import { getToastStore } from '@skeletonlabs/skeleton'
-  import { type SvelteComponent } from 'svelte'
+  import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
   interface Props {
     /** Exposes parent props to this component. */
     parent: SvelteComponent
     username: string
-    usernameAccount: string
   }
 
-  let { parent, username, usernameAccount }: Props = $props()
+  let { parent, username }: Props = $props()
 
   const toastStore = getToastStore()
 
   let submitting = $state(false)
   let activated = $state(false)
+  let usernameAccount = $state('')
 
   function onActivate() {
     submitting = true
@@ -35,6 +35,12 @@
       submitting = false
     })
   }
+
+  onMount(async () => {
+    usernameAccount = (
+      await authStore.nameIdentityAPI.get_principal(username)
+    ).toText()
+  })
 </script>
 
 <ModalCard {parent}>

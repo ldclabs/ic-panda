@@ -81,7 +81,6 @@
   let links = $derived($myInfo?.links || [])
   let myUsername = $derived($myInfo?.username[0] || '')
   let isUsernameAccount = $state(!!authStore.identity?.username)
-  let usernameAccount = $state('')
   let delegators: Delegator[] = $state([])
   let delegatorsInfo: DisplayUserInfoEx[] = $state([])
   let isManager = $derived(
@@ -430,8 +429,7 @@
       component: {
         ref: ActivateUsernameAccountModal,
         props: {
-          username: myUsername,
-          usernameAccount
+          username: myUsername
         }
       }
     })
@@ -451,12 +449,6 @@
       myInfo = await myState.agent.subscribeProfile()
       if (myUsername || isUsernameAccount) {
         loadDelegators()
-      }
-
-      if (myUsername) {
-        usernameAccount = (
-          await authStore.nameIdentityAPI.get_principal(myUsername)
-        ).toText()
       }
     }, toastStore)
 
@@ -514,7 +506,9 @@
         {/if}
         <button
           type="button"
-          class="btn absolute right-[-28px] top-1 p-0 text-neutral-500 hover:text-surface-900-50-token"
+          class="btn absolute right-[-28px] top-1 {display.username
+            ? 'text-neutral-500'
+            : 'animate-bounce text-primary-500'} p-0 hover:text-surface-900-50-token"
           onclick={onMeHandler}
         >
           <span class="*:size-5"><IconEditLine /></span>
@@ -698,7 +692,9 @@
                   class="font-semibold text-primary-500">{myUsername}</span
                 >
                 has been activated, with the Principal ID:<br />
-                <span class="font-semibold">{usernameAccount}</span>.<br />
+                {#await authStore.nameIdentityAPI.get_principal(myUsername) then usernameAccount}
+                  <span class="font-semibold">{usernameAccount.toText()}</span>
+                {/await}.<br />
                 Please transfer the username to this account and switch to it in
                 "More" menu for management.
               </p>
