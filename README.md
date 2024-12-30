@@ -52,4 +52,4 @@ PANDA is the only token issued by ICPanda DAO. By holding PANDA tokens, users ca
 - GitHub: [https://github.com/ldclabs/ic-panda](https://github.com/ldclabs/ic-panda)
 
 ## License
-Copyright © 2024 [LDC Labs](https://github.com/ldclabs).
+Copyright © 2024-2025 [LDC Labs](https://github.com/ldclabs).

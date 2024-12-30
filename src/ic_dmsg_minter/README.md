@@ -4,17 +4,17 @@
 
 PoL rewards users for creating verified connections on dMsg.net, fostering genuine engagement and decentralization.
 
-## How does Proof of Link (PoL) Work?
+## How Proof of Link (PoL) Works
 
-1. You must register a username to activate your dMsg.net profile page.
-2. Minting begins when another user visits your profile and sends you a message.
-3. Accepting the message request establishes a connection and completes the minting process, earning you mining rewards.
-4. Only one reward is generated per unique connection between users.
-5. Initial reward: **1 DMSG**, with rewards halving every **21'000'000** blocks.
-6. Mining ends when rewards halve to **0.0001 DMSG** at block height **293'999'999**, capping total supply at **41'997'436.32 DMSG**.
-7. No pre-mined DMSG—all tokens are generated through PoL mining.
+1. To get started, register a username to activate your dMsg.net profile page.
+2. Minting begins when someone visits your profile and sends you a message.
+3. Accept the message request to establish a connection and complete the minting process—you'll earn mining rewards!
+4. Each unique connection between users generates only one reward.
+5. The initial reward is **1 DMSG**, and rewards halve every **21 million** blocks.
+6. Mining ends when rewards reach **0.0001 DMSG** at block height **293,999,999**, capping the total supply at **41,997,436.32 DMSG**.
+7. There's no pre-mined DMSG—all tokens are generated through PoL mining.
 
-Registering a username on dMsg.net costs a minimum of **100 PANDA**, and creating a message channel costs **10 PANDA**.
+Registering a username on dMsg.net costs at least **100 PANDA**, and creating a message channel costs **10 PANDA**.
 
 ## Tokenomics
 
@@ -35,4 +35,4 @@ Registering a username on dMsg.net costs a minimum of **100 PANDA**, and creatin
 - GitHub: [https://github.com/ldclabs/ic-panda](https://github.com/ldclabs/ic-panda)
 
 ## License
-Copyright © 2024 [LDC Labs](https://github.com/ldclabs).
+Copyright © 2024-2025 [LDC Labs](https://github.com/ldclabs).
