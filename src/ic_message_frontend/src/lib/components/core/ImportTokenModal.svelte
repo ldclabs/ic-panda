@@ -64,7 +64,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Import Token</div>
+  <div class="!mt-0 text-center text-xl font-bold">Import token</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"

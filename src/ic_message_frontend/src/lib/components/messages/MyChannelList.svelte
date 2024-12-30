@@ -151,9 +151,9 @@
     {:else}
       <div class="px-4 py-2 text-sm">
         <span
-          >In addition to encrypted chats, you can also store confidential
-          information.<br />It's encrypted on-chain and synced across devices,
-          with only you able to read and decrypt it.</span
+          >Beyond encrypted chats, you can securely store confidential
+          information. It's encrypted, synced across your devices, and only
+          accessible to you.</span
         >
       </div>
       {#if isLoading}

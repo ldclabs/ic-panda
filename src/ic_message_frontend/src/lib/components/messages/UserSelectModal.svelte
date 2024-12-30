@@ -263,7 +263,7 @@
         <span class=""><IconCircleSpin /></span>
         <span>Processing...</span>
       {:else}
-        <span>Save</span>
+        <span>Confirm</span>
       {/if}
     </button>
   </footer>

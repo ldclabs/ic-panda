@@ -569,13 +569,13 @@
           onclick={() => onEditLink()}
         >
           <span class="*:size-5"><IconAdd /></span>
-          <span>Add Link</span>
+          <span>Add link</span>
         </button>
       </div>
       {#if isUsernameAccount}
         <div class="mt-6 flex w-full flex-col gap-2">
           <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
-            <span class="text-sm opacity-50">Delegate Accounts</span>
+            <span class="text-sm opacity-50">Delegate accounts</span>
             <div class="flex flex-col space-x-1 sm:flex-row">
               <button
                 type="button"
@@ -681,22 +681,22 @@
 
           <div class="flex flex-col gap-4">
             <p>
-              A <b>username permanent account</b> is a standalone fixed account generated
-              from the username that does not change. This account supports adding
-              multiple delegate accounts, allowing multiple users to use it simultaneously,
-              making it ideal for team collaboration.
+              A <b>Username Permanent Account</b> is a fixed account tied to your
+              username that never changes. It allows you to add multiple delegate
+              accounts, enabling team members to use it at the same time—perfect
+              for collaboration.
             </p>
             {#if delegators.length > 0}
               <p>
-                The permanent account for <span
-                  class="font-semibold text-primary-500">{myUsername}</span
+                Your permanent <span class="font-semibold text-primary-500"
+                  >{myUsername}</span
                 >
-                has been activated, with the Principal ID:<br />
+                account is now active!<br />Principal ID:
                 {#await authStore.nameIdentityAPI.get_principal(myUsername) then usernameAccount}
                   <span class="font-semibold">{usernameAccount.toText()}</span>
                 {/await}.<br />
-                Please transfer the username to this account and switch to it in
-                "More" menu for management.
+                To manage it, transfer your username to this account and switch to
+                it in the 'More' menu.
               </p>
             {/if}
           </div>
@@ -705,7 +705,7 @@
       <div class="mt-6 flex w-full flex-col gap-2">
         <div class="mb-2 text-sm opacity-50"
           ><button onclick={() => (displayDebug = !displayDebug)}>
-            <span>My Setting</span>
+            <span>My settings</span>
           </button></div
         >
         <div class="flex flex-row items-center gap-4">

@@ -90,7 +90,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Update Image</div>
+  <div class="!mt-0 text-center text-xl font-bold">Update image</div>
   <div class="mx-auto !mt-6 space-y-4">
     <ImageCrop oncropcomplete={handleImageUpload} />
 

@@ -218,38 +218,36 @@
       <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
       <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
         <p class="">
-          <b>1.</b> Resetting your password will invalidate the keys used to decrypt
-          all channel messages.
+          <b>1.</b> Resetting your password will disable the keys needed to decrypt
+          messages in this channel.
         </p>
         <p class="">
-          <b>2.</b> If there are other managers in the channel, you can obtain new
-          channel key from them.
+          <b>2.</b> If there are other managers in the channel, you can request a
+          new channel key from them.
         </p>
         <p class="text-error-500">
-          <b>3.</b> Otherwise, you will no longer be able to decrypt the messages
-          and will need to leave the channel.
+          <b>3.</b> Otherwise, you won't be able to decrypt messages and will need
+          to leave the channel.
         </p>
       </div>
     {:else if isSetup}
       <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
       <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
         <p class="">
-          <b>1.</b> The password is used only locally to derive the master key with
-          remote key material; neither the password nor the derived key is stored
-          remotely.
+          <b>1.</b> Your password is only used locally to generate a master key.
+          Neither your password nor the generated key is ever stored remotely.
         </p>
         <p class="">
-          <b>2.</b> It is recommended to use
-          <b>simple and easy-to-remember passwords</b>.
+          <b>2.</b> We recommend using a simple, easy-to-remember password.
         </p>
         <p class="text-error-500">
-          <b>3.</b> If you forget the password, you will no longer be able to decrypt
-          the messages!
+          <b>3.</b> If you forget your password, you won't be able to decrypt your
+          messages.
         </p>
         {#if isUsernameAccount}
           <p class="text-error-500">
-            <b>4.</b> This is a <b>Username Permanent Account</b>, the password
-            will be shared for team collaboration
+            <b>4.</b> For Permanent Username Accounts, the password is shared to
+            enable team collaboration.
           </p>
         {/if}
       </div>

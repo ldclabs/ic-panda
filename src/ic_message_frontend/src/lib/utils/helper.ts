@@ -25,20 +25,6 @@ export function getBytesString(bytes: number | BigInt): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)}GB`
 }
 
-export function getShortNumber(v: number | BigInt): string {
-  const n = Number(v)
-  if (n < 1000) {
-    return `${n}`
-  } else if (n < 1000 * 1000) {
-    return `${(n / 1000).toFixed(2)}K`
-  } else if (n < 1000 * 1000 * 1000) {
-    return `${(n / 1000 / 1000).toFixed(2)}M`
-  } else if (n < 1000 * 1000 * 1000 * 1000) {
-    return `${(n / 1000 / 1000 / 1000).toFixed(2)}G`
-  }
-  return `${(n / 1000 / 1000 / 1000 / 1000).toFixed(2)}T`
-}
-
 export function getPriceNumber(v: number): string {
   if (v < 0.001) {
     return v.toFixed(6)
@@ -52,4 +38,40 @@ export function getPriceNumber(v: number): string {
     return v.toFixed(2)
   }
   return v.toFixed(1)
+}
+
+export function getShortNumber(v: number | BigInt): string {
+  const n = Number(v)
+  if (n < 1000) {
+    return `${n}`
+  } else if (n < 1000 * 1000) {
+    return `${formatNumber(n / 1000)}K`
+  } else if (n < 1000 * 1000 * 1000) {
+    return `${formatNumber(n / 1000 / 1000)}M`
+  } else if (n < 1000 * 1000 * 1000 * 1000) {
+    return `${formatNumber(n / 1000 / 1000 / 1000)}B`
+  }
+  return `${formatNumber(n / 1000 / 1000 / 1000 / 1000)}T`
+}
+
+export function getShortNumber2(v: number | BigInt): string {
+  const n = Number(v)
+  if (n < 1000) {
+    return `${n}`
+  } else if (n < 1000 * 1000) {
+    return `${formatNumber(n / 1000)} thousand`
+  } else if (n < 1000 * 1000 * 1000) {
+    return `${formatNumber(n / 1000 / 1000)} million`
+  } else if (n < 1000 * 1000 * 1000 * 1000) {
+    return `${formatNumber(n / 1000 / 1000 / 1000)} billion`
+  }
+  return `${formatNumber(n / 1000 / 1000 / 1000 / 1000)} trillion`
+}
+
+function formatNumber(val: number, maxDigits: number = 2): string {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDigits,
+    roundingMode: 'expand'
+  } as Intl.NumberFormatOptions).format(val)
 }

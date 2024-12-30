@@ -196,7 +196,7 @@
     use:focusTrap={true}
   >
     <label class="label relative">
-      <span>Display Name (Required)</span>
+      <span>Name (required)</span>
       <input
         class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
         type="text"
@@ -260,7 +260,7 @@
         <div class="flex h-10 flex-row items-center justify-between text-sm">
           <div class="flex flex-row items-center gap-2 py-1">
             <span class="*:size-6"><IconPanda /></span>
-            <span>Your Wallet Balance:</span>
+            <span>Your wallet balance:</span>
           </div>
           <div class="flex flex-row gap-1 text-neutral-500">
             <span
@@ -295,23 +295,22 @@
       {:else}
         <div class="mt-2 space-y-1">
           <p class="">
-            <b>1.</b> Username is optional. By registering a username, you will:
+            <b>Adding a username is optional. If you register one, you will:</b>
           </p>
-          <p class="">
-            <b>2.</b> Have your keys encrypted and stored on-chain, allowing
-            sync across multiple devices.
+          <p class="indent-4">
+            <b>1.</b> Securely store and sync your keys across devices.
             <span class="text-error-500"
-              >Otherwise, the keys is stored only in the browser storage, and
-              clearing browser data or device issues may result in key loss,
-              making messages undecryptable.</span
+              >Without a username, keys are only saved in your browser, and
+              clearing browser data or device issues could lead to permanent key
+              loss, making messages unreadable.</span
             >
           </p>
-          <p class="">
-            <b>3.</b> Get a personal profile page.
+          <p class="indent-4">
+            <b>2.</b> Create a personal profile page to showcase your identity.
           </p>
-          <p class="">
-            <b>4.</b> Usernames cannot be changed, but can be transferred to another
-            user in the future, allowing you to set a new username after the transfer.
+          <p class="indent-4">
+            <b>3.</b> Usernames are permanent but transferable. You can transfer
+            your username to another user and set a new one afterward.
           </p>
         </div>
       {/if}

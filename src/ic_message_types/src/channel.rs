@@ -5,7 +5,7 @@ use serde_bytes::{ByteArray, ByteBuf};
 use std::collections::{BTreeSet, HashMap};
 
 pub const MAX_CHANNEL_MANAGERS: usize = 5;
-pub const MAX_CHANNEL_MEMBERS: usize = 100;
+pub const MAX_CHANNEL_MEMBERS: usize = 995;
 pub const MAX_CHANNEL_MESSAGES: u32 = 10000;
 pub const MAX_USER_CHANNELS: usize = 1000;
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 32; // 32KB

@@ -604,10 +604,10 @@
   <!-- Conversation -->
   {#if !hasKEK}
     <div class="flex flex-col">
-      <p class="p-2 text-center text-error-500">No encryption key found.</p>
+      <p class="p-2 text-center text-error-500">Access key not available.</p>
       <p class="flex flex-row justify-center p-2 text-error-500">
         <span class="inline"
-          >Please go to channel settings to request the encryption key.</span
+          >Go to channel settings to request access.</span
         >
         <span><IconArrowRightUp /></span>
       </p>

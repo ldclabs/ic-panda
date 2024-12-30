@@ -4,8 +4,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { getBytesString } from '$lib/utils/helper'
-  import { PANDAToken, TokenDisplay } from '$lib/utils/token'
+  import { getBytesString, getShortNumber2 } from '$lib/utils/helper'
   import { unwrapOption } from '$src/lib/types/result'
   import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
   import { type SvelteComponent } from 'svelte'
@@ -80,14 +79,10 @@
     const form = e.currentTarget as HTMLFormElement
     validating = form.checkValidity()
   }
-
-  let tokenDisplay = $derived(
-    TokenDisplay.fromNumber(PANDAToken, (maxSizeInput || 0) * 1000, false)
-  )
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Update Storage</div>
+  <div class="!mt-0 text-center text-xl font-bold">Update storage</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -114,18 +109,19 @@
       <p class="h-5 pl-3 text-sm {maxSizeErr ? 'text-error-500' : 'text-panda'}"
         >{maxSizeErr
           ? maxSizeErr
-          : 'Up to consume' + tokenDisplay.display() + ' Gas'}</p
+          : 'Up to consume ' +
+            getShortNumber2((maxSizeInput || 0) * 1000) +
+            ' Gas'}</p
       >
     </div>
     <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p class="">
-        <b>1.</b> Uploading files consumes gas from the channel, at a rate of 1000
-        gas per byte.
+        <b>1.</b> Uploading files uses channel resources, costing 1000 gas per byte.
       </p>
       <p class="">
-        <b>2.</b> When the channel's gas balance drops below 10,000,000, file uploads
-        will be disabled.
+        <b>2.</b> If the channel's resource balance falls below 10M, file uploads
+        will be temporarily disabled.
       </p>
     </div>
   </form>

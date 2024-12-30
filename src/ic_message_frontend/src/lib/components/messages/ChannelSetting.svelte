@@ -19,9 +19,8 @@
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { errMessage } from '$lib/types/result'
-  import { getBytesString, sleep } from '$lib/utils/helper'
+  import { getBytesString, getShortNumber, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
-  import { formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
@@ -339,7 +338,7 @@
         onclick={onClickMyECDH}
         disabled={myECDHSubmitting}
       >
-        <span>Accept and start chat</span>
+        <span>Activate key to start chatting</span>
         {#if myECDHSubmitting}
           <span class=" text-panda *:size-4">
             <IconCircleSpin />
@@ -405,9 +404,8 @@
       >
     </div>
     <div class="flex flex-row items-center gap-2">
-      <span class="text-sm font-normal text-neutral-500">Gas Balance:</span>
-      <span class="font-bold text-panda"
-        >{formatNumber(Number(channelInfo.gas))}</span
+      <span class="text-sm font-normal text-neutral-500">Gas balance:</span>
+      <span class="font-bold text-panda">{getShortNumber(channelInfo.gas)}</span
       >
     </div>
     <button
@@ -419,7 +417,7 @@
       <span>Topup</span>
     </button>
   </section>
-  <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
+  <section class="mt-0 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
       <span class="text-sm font-normal text-neutral-500">Files:</span>
       <span class="font-bold text-panda">{files_state.files_total}</span>
@@ -447,7 +445,32 @@
     </button>
   </section>
   <section class="mt-4 space-y-2 px-4">
-    <div class="mb-2 text-sm opacity-50"><span>My Setting</span></div>
+    <div class="mb-2 text-sm opacity-50"><span>My settings</span></div>
+    <div class="flex flex-row items-center gap-4">
+      <p>Access key:</p>
+      {#if channelInfo.my_setting.ecdh_remote.length > 0}
+        <button
+          type="button"
+          class="variant-filled-success btn btn-sm"
+          onclick={onClickMyECDH}
+          disabled={myECDHSubmitting}><span>Activate Key</span></button
+        >
+      {:else if channelInfo.my_setting.ecdh_pub.length > 0}
+        <span class="text-sm opacity-50">Pending Approval</span>
+      {:else if validKEK}
+        <span class="text-sm opacity-50">Ready to Use</span>
+      {:else}
+        <button
+          type="button"
+          class="variant-filled-error btn btn-sm"
+          onclick={onClickMyECDH}
+          disabled={myECDHSubmitting}><span>Request Access</span></button
+        >
+      {/if}
+      <span class="text-panda *:size-4 {myECDHSubmitting ? '' : 'invisible'}">
+        <IconCircleSpin />
+      </span>
+    </div>
     <div class="flex flex-row items-center gap-4">
       <p>Mute notifications:</p>
       <SlideToggle
@@ -459,31 +482,6 @@
         disabled={muteSubmitting}
       />
       <span class="text-panda *:size-4 {muteSubmitting ? '' : 'invisible'}">
-        <IconCircleSpin />
-      </span>
-    </div>
-    <div class="flex flex-row items-center gap-4">
-      <p>Encryption key:</p>
-      {#if channelInfo.my_setting.ecdh_remote.length > 0}
-        <button
-          type="button"
-          class="variant-filled-success btn btn-sm"
-          onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}><span>Accept</span></button
-        >
-      {:else if channelInfo.my_setting.ecdh_pub.length > 0}
-        <span class="text-sm opacity-50">Waiting for the grant</span>
-      {:else if validKEK}
-        <span class="text-sm opacity-50">Existed</span>
-      {:else}
-        <button
-          type="button"
-          class="variant-filled-error btn btn-sm"
-          onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}><span>Request key</span></button
-        >
-      {/if}
-      <span class="text-panda *:size-4 {myECDHSubmitting ? '' : 'invisible'}">
         <IconCircleSpin />
       </span>
     </div>
@@ -520,7 +518,8 @@
         class="h-5 text-sm text-error-500 {leavingWord === channelInfo.name
           ? 'visible'
           : 'invisible'}"
-        >You are the only manager. Leaving the channel will delete all its data.</p
+        >You're the only manager of this channel. If you leave, all channel data
+        will be permanently deleted.</p
       >
     {/if}
   </section>
@@ -532,7 +531,9 @@
           type="button"
           class="btn btn-sm hover:variant-soft-primary"
           onclick={onClickAdminAddManagers}
-          disabled={!isManager || adminAddManagersSubmitting}
+          disabled={!isManager ||
+            adminAddManagersSubmitting ||
+            channelInfo.managers.length >= 5}
         >
           <span class="*:size-4"><IconAdd /></span>
           <span>Managers</span>
@@ -541,7 +542,9 @@
           type="button"
           class="btn btn-sm hover:variant-soft-primary"
           onclick={onClickAdminAddMembers}
-          disabled={!isManager || adminAddMembersSubmitting}
+          disabled={!isManager ||
+            adminAddMembersSubmitting ||
+            channelInfo.members.length >= 995}
         >
           <span class="*:size-4"><IconAdd /></span>
           <span>Members</span>
@@ -558,7 +561,7 @@
             !hasExchangeKeys}
         >
           <span class="*:size-4"><IconExchange2Line /></span>
-          <span>Grant requests</span>
+          <span>Approve Requests</span>
           <span
             class="text-panda *:size-4 {adminExchangeKeysSubmitting
               ? ''

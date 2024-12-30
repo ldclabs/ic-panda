@@ -50,7 +50,7 @@ export function formatNumber(val: number, maxDigits: number = 4): string {
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: maxDigits,
-    roundingMode: 'floor'
+    roundingMode: 'trunc'
   } as Intl.NumberFormatOptions).format(val)
 }
 

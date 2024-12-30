@@ -174,7 +174,7 @@
     <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
-        <b>1.</b> Creating a message channel costs
+        <b>1.</b> Creating a message channel requires
         <span class="text-panda"
           >{formatNumber(Number(channelPrice) / Number(PANDAToken.one)) +
             ($pandaPrice
@@ -185,21 +185,22 @@
                 ) +
                 ')'
               : '')}</span
-        > PANDA tokens for gas; sending messages will consume gas.
+        > PANDA tokens as a fee, and sending messages will also incur small costs.
       </p>
       <p>
-        <b>2.</b> A channel can have up to 5 managers and 100 members.
+        <b>2.</b> Each channel can include up to 5 managers and 995 members.
       </p>
       <p>
-        <b>3.</b> Managers can only remove regular members, not other managers. If
-        the last manager leaves, the channel and all messages will be deleted.
+        <b>3.</b> Managers can remove regular members but not other managers. If
+        the last manager leaves, the channel and all its messages will be permanently
+        deleted.
       </p>
     </div>
     <div class="!mt-4 mb-2 text-sm">
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2 py-1">
           <span class="*:size-6"><IconPanda /></span>
-          <b>Your Wallet Balance:</b>
+          <b>Your wallet balance:</b>
         </div>
         <div class="flex flex-row gap-1">
           <span

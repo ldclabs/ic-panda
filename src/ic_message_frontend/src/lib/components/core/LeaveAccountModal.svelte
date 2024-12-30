@@ -21,7 +21,7 @@
 
 <ModalCard {parent}>
   <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
-    >Leave Username Account</div
+    >Leave username account</div
   >
   <div class="!mt-4 space-y-2 rounded-xl">
     <p>

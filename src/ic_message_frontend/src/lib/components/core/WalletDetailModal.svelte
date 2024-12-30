@@ -313,7 +313,7 @@
       onclick={onClickImportToken}
     >
       <span class="*:size-5"><IconAdd /></span>
-      <span>Import Token</span>
+      <span>Import token</span>
     </button>
   </div>
   <div class="mt-4 flex flex-col gap-3 px-4 py-3 text-sm">
