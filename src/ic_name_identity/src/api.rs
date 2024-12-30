@@ -33,9 +33,6 @@ fn get_principal(name: String) -> Result<Principal, String> {
 fn get_delegators(name: String) -> Result<Vec<Delegator>, String> {
     let name = name.to_ascii_lowercase();
     let res = store::state::get_delegations(&name).ok_or_else(|| "name not found".to_string())?;
-    if !res.has_permission(&ic_cdk::caller(), -1) {
-        return Err("caller is not authorized".to_string());
-    }
 
     Ok(res.delegators())
 }
