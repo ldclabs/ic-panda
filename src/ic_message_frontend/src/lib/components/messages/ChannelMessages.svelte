@@ -15,6 +15,7 @@
   import {
     toDisplayUserInfo,
     type ChannelInfoEx,
+    type DisplayUserInfoEx,
     type MessageInfo,
     type MyMessageState
   } from '$lib/stores/message'
@@ -437,6 +438,62 @@
     }
   }
 
+  // mention
+  let showMentionList = $state(false)
+  let mentionQuery = $state('')
+  let mentionPosition = $state(0)
+  let mentionBottom = $state(0)
+  let mentionLeft = $state(0)
+  let channelMembers: DisplayUserInfoEx[] = $state([])
+
+  function onPromptInput(event: Event) {
+    const textarea = event.target as HTMLTextAreaElement
+    const text = textarea.value
+    const cursorPos = textarea.selectionStart || 0
+
+    // Check for @ symbol
+    const lastAtPos = text.lastIndexOf('@', cursorPos - 1)
+    if (lastAtPos >= 0) {
+      const query = text.slice(lastAtPos + 1, cursorPos).trim()
+      mentionQuery = query
+      mentionPosition = lastAtPos
+      showMentionList = true
+      const rect = textarea.getBoundingClientRect()
+      const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight)
+      const linesBeforeCursor =
+        text.substring(0, cursorPos).split('\n').length - 1
+
+      // 计算位置
+      const cursorTop = rect.top + linesBeforeCursor * lineHeight
+      const cursorLeft = rect.left + textarea.selectionStart
+
+      // 确保列表框在视窗内
+      const listHeight = 192 // max-h-48 = 192px
+      const windowHeight = window.innerHeight
+      const offset = 8 // 添加一些间距
+
+      mentionBottom = Math.min(
+        windowHeight - cursorTop - offset, // 下方空间
+        listHeight
+      )
+      mentionLeft = Math.min(
+        cursorLeft,
+        window.innerWidth - 256 // w-64 = 256px
+      )
+    } else {
+      showMentionList = false
+    }
+  }
+
+  function selectMember(member: DisplayUserInfoEx) {
+    const text = newMessage
+    const before = text.slice(0, mentionPosition)
+    const after = text.slice(mentionPosition + mentionQuery.length + 1)
+    newMessage = `${before}@${member.username} ${after}`
+    showMentionList = false
+    mentionQuery = ''
+  }
+
   onMount(() => {
     const { abort } = toastRun(
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
@@ -522,6 +579,10 @@
         })
         abortingQue.push(abortScroll)
 
+        myState
+          .channelMembers(channelInfo, $myInfo)
+          .then((res) => (channelMembers = res))
+
         const polling = async () => {
           if (signal.aborted) return
           let msgs: any[] = []
@@ -606,9 +667,7 @@
     <div class="flex flex-col">
       <p class="p-2 text-center text-error-500">Access key not available.</p>
       <p class="flex flex-row justify-center p-2 text-error-500">
-        <span class="inline"
-          >Go to channel settings to request access.</span
-        >
+        <span class="inline">Go to channel settings to request access.</span>
         <span><IconArrowRightUp /></span>
       </p>
     </div>
@@ -802,6 +861,7 @@
     <TextArea
       bind:value={newMessage}
       onKeydown={onPromptKeydown}
+      onInput={onPromptInput}
       {onFilesChange}
       minHeight="40"
       maxHeight="200"
@@ -827,5 +887,35 @@
         </span>
       {/if}
     </button>
+    {#if showMentionList}
+      <div
+        class="bg-surface-50-900-token fixed z-50 max-h-48 w-64 overflow-y-auto rounded-lg shadow-lg"
+        style="bottom: {mentionBottom}px; left: {mentionLeft}px"
+      >
+        {#each channelMembers.filter((m) => m.username
+              .toLowerCase()
+              .includes(mentionQuery.toLowerCase()) || m.name
+              .toLowerCase()
+              .includes(mentionQuery.toLowerCase())) as member}
+          <button
+            class="btn flex w-full min-w-0 cursor-pointer items-center justify-start rounded-none px-4 py-1 hover:bg-panda/10"
+            onclick={() => selectMember(member)}
+          >
+            <Avatar
+              initials={member.name}
+              src={member.image}
+              fill="fill-white"
+              width="w-10"
+              class="min-w-10"
+            />
+            <div class="min-w-0 flex-1 text-left">
+              <p class="truncate">{member.name}</p>
+              <p class="truncate text-sm text-surface-500">@{member.username}</p
+              >
+            </div>
+          </button>
+        {/each}
+      </div>
+    {/if}
   </section>
 </div>

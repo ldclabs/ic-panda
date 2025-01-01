@@ -6,6 +6,7 @@
     containerClass?: string
     onFilesChange?: null | ((files: FileList) => void)
     onKeydown?: (event: KeyboardEvent) => void
+    onInput?: (event: Event) => void
     [key: string]: any
   }
 
@@ -16,6 +17,7 @@
     containerClass = '',
     onFilesChange = null,
     onKeydown,
+    onInput,
     ...rest
   }: Props = $props()
 
@@ -60,6 +62,7 @@
   <textarea
     bind:value
     onkeydown={onKeydown}
+    oninput={onInput}
     ondragenter={onFilesChange && handleDragEnter}
     ondragleave={onFilesChange && handleDragLeave}
     ondrop={onFilesChange && handleDrop}
