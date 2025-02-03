@@ -201,7 +201,7 @@
           <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
         <span
-          >Have at lest <b
+          >Have at least <b
             >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2} PANDA</b
           > in your wallet</span
         >
