@@ -7,6 +7,7 @@ export interface BucketInfo {
   'total_chunks' : bigint,
   'trusted_eddsa_pub_keys' : Array<Uint8Array | number[]>,
   'managers' : Array<Principal>,
+  'governance_canister' : [] | [Principal],
   'name' : string,
   'max_custom_data_size' : number,
   'auditors' : Array<Principal>,
@@ -86,6 +87,7 @@ export interface FolderInfo {
 }
 export interface FolderName { 'id' : number, 'name' : string }
 export interface InitArgs {
+  'governance_canister' : [] | [Principal],
   'name' : string,
   'max_custom_data_size' : number,
   'max_children' : number,
@@ -96,7 +98,8 @@ export interface InitArgs {
   'file_id' : number,
 }
 export type LogVisibility = { 'controllers' : null } |
-  { 'public' : null };
+  { 'public' : null } |
+  { 'allowed_viewers' : Array<Principal> };
 export type MetadataValue = { 'Int' : bigint } |
   { 'Nat' : bigint } |
   { 'Blob' : Uint8Array | number[] } |
@@ -175,6 +178,7 @@ export interface UpdateFolderInput {
   'name' : [] | [string],
 }
 export interface UpgradeArgs {
+  'governance_canister' : [] | [Principal],
   'max_custom_data_size' : [] | [number],
   'max_children' : [] | [number],
   'enable_hash_index' : [] | [boolean],

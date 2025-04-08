@@ -3,6 +3,7 @@ type BucketInfo = record {
   total_chunks : nat64;
   trusted_eddsa_pub_keys : vec blob;
   managers : vec principal;
+  governance_canister : opt principal;
   name : text;
   max_custom_data_size : nat16;
   auditors : vec principal;
@@ -79,6 +80,7 @@ type FolderInfo = record {
 };
 type FolderName = record { id : nat32; name : text };
 type InitArgs = record {
+  governance_canister : opt principal;
   name : text;
   max_custom_data_size : nat16;
   max_children : nat16;
@@ -88,7 +90,11 @@ type InitArgs = record {
   max_folder_depth : nat8;
   file_id : nat32;
 };
-type LogVisibility = variant { controllers; public };
+type LogVisibility = variant {
+  controllers;
+  public;
+  allowed_viewers : vec principal;
+};
 type MetadataValue = variant { Int : int; Nat : nat; Blob : blob; Text : text };
 type MoveInput = record { id : nat32; to : nat32; from : nat32 };
 type QueryStats = record {
@@ -146,6 +152,7 @@ type UpdateFolderInput = record {
   name : opt text;
 };
 type UpgradeArgs = record {
+  governance_canister : opt principal;
   max_custom_data_size : opt nat16;
   max_children : opt nat16;
   enable_hash_index : opt bool;

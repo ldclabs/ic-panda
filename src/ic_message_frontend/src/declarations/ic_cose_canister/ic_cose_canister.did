@@ -25,6 +25,7 @@ type ECDHOutput = record { public_key : blob; payload : blob };
 type InitArgs = record {
   freezing_threshold : nat64;
   ecdsa_key_name : text;
+  governance_canister : opt principal;
   name : text;
   schnorr_key_name : text;
   allowed_apis : vec text;
@@ -52,6 +53,7 @@ type PublicKeyOutput = record { public_key : blob; chain_code : blob };
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : NamespaceInfo; Err : text };
 type Result_10 = variant { Ok : StateInfo; Err : text };
+type Result_11 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : vec NamespaceInfo; Err : text };
 type Result_3 = variant { Ok : ECDHOutput; Err : text };
 type Result_4 = variant { Ok : PublicKeyOutput; Err : text };
@@ -100,7 +102,10 @@ type StateInfo = record {
   managers : vec principal;
   name : text;
   auditors : vec principal;
+  schnorr_secp256k1_public_key : opt PublicKeyOutput;
+  ecdsa_public_key : opt PublicKeyOutput;
   schnorr_key_name : text;
+  schnorr_ed25519_public_key : opt PublicKeyOutput;
   allowed_apis : vec text;
   subnet_size : nat64;
   namespace_total : nat64;
@@ -126,6 +131,7 @@ type UpdateSettingPayloadInput = record {
 };
 type UpgradeArgs = record {
   freezing_threshold : opt nat64;
+  governance_canister : opt principal;
   name : opt text;
   subnet_size : opt nat64;
 };
@@ -166,6 +172,12 @@ service : (opt ChainArgs) -> {
       Result_7,
     );
   state_get_info : () -> (Result_10) query;
+  validate2_admin_add_allowed_apis : (vec text) -> (Result_11);
+  validate2_admin_add_auditors : (vec principal) -> (Result_11);
+  validate2_admin_add_managers : (vec principal) -> (Result_11);
+  validate2_admin_remove_allowed_apis : (vec text) -> (Result_11);
+  validate2_admin_remove_auditors : (vec principal) -> (Result_11);
+  validate2_admin_remove_managers : (vec principal) -> (Result_11);
   validate_admin_add_allowed_apis : (vec text) -> (Result);
   validate_admin_add_auditors : (vec principal) -> (Result);
   validate_admin_add_managers : (vec principal) -> (Result);

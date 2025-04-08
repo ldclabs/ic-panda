@@ -1,12 +1,14 @@
 export const idlFactory = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'freezing_threshold' : IDL.Opt(IDL.Nat64),
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Opt(IDL.Text),
     'subnet_size' : IDL.Opt(IDL.Nat64),
   });
   const InitArgs = IDL.Record({
     'freezing_threshold' : IDL.Nat64,
     'ecdsa_key_name' : IDL.Text,
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Text,
     'schnorr_key_name' : IDL.Text,
     'allowed_apis' : IDL.Vec(IDL.Text),
@@ -150,13 +152,17 @@ export const idlFactory = ({ IDL }) => {
     'managers' : IDL.Vec(IDL.Principal),
     'name' : IDL.Text,
     'auditors' : IDL.Vec(IDL.Principal),
+    'schnorr_secp256k1_public_key' : IDL.Opt(PublicKeyOutput),
+    'ecdsa_public_key' : IDL.Opt(PublicKeyOutput),
     'schnorr_key_name' : IDL.Text,
+    'schnorr_ed25519_public_key' : IDL.Opt(PublicKeyOutput),
     'allowed_apis' : IDL.Vec(IDL.Text),
     'subnet_size' : IDL.Nat64,
     'namespace_total' : IDL.Nat64,
     'vetkd_key_name' : IDL.Text,
   });
   const Result_10 = IDL.Variant({ 'Ok' : StateInfo, 'Err' : IDL.Text });
+  const Result_11 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_add_allowed_apis' : IDL.Func([IDL.Vec(IDL.Text)], [Result], []),
     'admin_add_auditors' : IDL.Func([IDL.Vec(IDL.Principal)], [Result], []),
@@ -258,6 +264,36 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'state_get_info' : IDL.Func([], [Result_10], ['query']),
+    'validate2_admin_add_allowed_apis' : IDL.Func(
+        [IDL.Vec(IDL.Text)],
+        [Result_11],
+        [],
+      ),
+    'validate2_admin_add_auditors' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_11],
+        [],
+      ),
+    'validate2_admin_add_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_11],
+        [],
+      ),
+    'validate2_admin_remove_allowed_apis' : IDL.Func(
+        [IDL.Vec(IDL.Text)],
+        [Result_11],
+        [],
+      ),
+    'validate2_admin_remove_auditors' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_11],
+        [],
+      ),
+    'validate2_admin_remove_managers' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_11],
+        [],
+      ),
     'validate_admin_add_allowed_apis' : IDL.Func(
         [IDL.Vec(IDL.Text)],
         [Result],
@@ -299,12 +335,14 @@ export const idlFactory = ({ IDL }) => {
 export const init = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'freezing_threshold' : IDL.Opt(IDL.Nat64),
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Opt(IDL.Text),
     'subnet_size' : IDL.Opt(IDL.Nat64),
   });
   const InitArgs = IDL.Record({
     'freezing_threshold' : IDL.Nat64,
     'ecdsa_key_name' : IDL.Text,
+    'governance_canister' : IDL.Opt(IDL.Principal),
     'name' : IDL.Text,
     'schnorr_key_name' : IDL.Text,
     'allowed_apis' : IDL.Vec(IDL.Text),
