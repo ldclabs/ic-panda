@@ -13,6 +13,7 @@ if (process.env.PUBLIC_DFX_NETWORK === 'ic') {
   process.env.NODE_ENV === 'production'
 }
 
+/** @type {import('vite').UserConfig} */
 export default defineConfig({
   define: {
     'process.env.NODE_ENV':
@@ -37,14 +38,14 @@ export default defineConfig({
     }
   },
   plugins: [
-    sveltekit(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    sveltekit(),
     SvelteKitPWA({
       srcDir: 'src',
       mode: 'production',
       strategies: 'injectManifest',
-      // registerType: 'prompt',
+      registerType: 'autoUpdate',
       filename: 'service-worker.ts',
       scope: '/',
       base: '/',

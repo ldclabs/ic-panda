@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { X_AUTH_KEY } from '$lib/constants'
   import { type AuthMessage } from '$lib/types/auth'
   import { onMount } from 'svelte'
 
   let msg: AuthMessage<string> | null = null
   onMount(async () => {
-    const hash = $page.url.hash
+    const hash = page.url.hash
     if (hash.startsWith('#challenge=')) {
       msg = {
         kind: 'XAuth',

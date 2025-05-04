@@ -37,9 +37,9 @@ export default defineConfig({
     }
   },
   plugins: [
-    sveltekit(),
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    sveltekit(),
     SvelteKitPWA({
       srcDir: 'src',
       mode: 'production',

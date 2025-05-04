@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import { MyMessageState } from '$lib/stores/message'
@@ -24,7 +24,7 @@
   const myInfo: Readable<UserInfo> =
     myState.agent.subscribeUser() as Readable<UserInfo>
 
-  const channelParam = $derived(($page?.params || {})['channel'] || '')
+  const channelParam = $derived((page?.params || {})['channel'] || '')
   const channelId = $derived(
     ChannelAPI.parseChannelParam(channelParam) as {
       canister: Principal

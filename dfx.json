@@ -82,6 +82,9 @@
     },
     "ic_panda_frontend": {
       "dependencies": [],
+      "build": [
+        "echo 'Disable dfx build for ic_panda_frontend because some issue, you should run npm build manually'"
+      ],
       "source": [
         "src/ic_panda_frontend/dist"
       ],
@@ -90,6 +93,9 @@
     },
     "ic_message_frontend": {
       "dependencies": [],
+      "build": [
+        "echo 'Disable dfx build for ic_panda_frontend because some issue, you should run npm build manually'"
+      ],
       "source": [
         "src/ic_message_frontend/dist"
       ],

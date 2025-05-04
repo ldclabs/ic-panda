@@ -90,11 +90,7 @@ type InitArgs = record {
   max_folder_depth : nat8;
   file_id : nat32;
 };
-type LogVisibility = variant {
-  controllers;
-  public;
-  allowed_viewers : vec principal;
-};
+type LogVisibility = variant { controllers; public };
 type MetadataValue = variant { Int : int; Nat : nat; Blob : blob; Text : text };
 type MoveInput = record { id : nat32; to : nat32; from : nat32 };
 type QueryStats = record {

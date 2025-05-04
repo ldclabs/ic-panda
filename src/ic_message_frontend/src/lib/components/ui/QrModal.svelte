@@ -1,8 +1,8 @@
 <script lang="ts">
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
-  import encodeQR from '@paulmillr/qr'
   import { Avatar } from '@skeletonlabs/skeleton'
+  import encodeQR from 'qr'
   import { type SvelteComponent } from 'svelte'
 
   interface Props {

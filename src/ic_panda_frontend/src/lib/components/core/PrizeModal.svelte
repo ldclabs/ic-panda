@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import {
     luckyPoolAPI,
     type ClaimPrizeOutput,
@@ -41,7 +41,7 @@
     }
   }
 
-  let cryptogram = prizeCode || $page.url?.searchParams.get('prize') || ''
+  let cryptogram = prizeCode || page.url?.searchParams.get('prize') || ''
   let submitting = false
   let validating = decodePrize(cryptogram) != null
   let canClaim = true
@@ -131,8 +131,8 @@
   function closePrizeShow() {
     modalStore.clear()
 
-    if ($page.url?.searchParams.get('prize')) {
-      const query = $page.url.searchParams
+    if (page.url?.searchParams.get('prize')) {
+      const query = page.url.searchParams
       query.delete('prize')
       goto(`?${query.toString()}`)
     }
@@ -148,8 +148,8 @@
     }
 
     // Remove the prize query parameter from the URL
-    if (!principal.isAnonymous() && $page.url?.searchParams.get('prize')) {
-      const query = $page.url.searchParams
+    if (!principal.isAnonymous() && page.url?.searchParams.get('prize')) {
+      const query = page.url.searchParams
       query.delete('prize')
       goto(`?${query.toString()}`)
     }
@@ -185,7 +185,7 @@
     <h3 class="h3 !mt-0 text-center">🐼 🎁</h3>
     <div class="!mt-0 text-center text-xl font-bold">Get a Prize</div>
     <div class="m-auto mt-5 flex flex-col content-center">
-      <p class="text-sm text-gray/50">Meet requirements:</p>
+      <p class="text-gray/50 text-sm">Meet requirements:</p>
       <p class="mt-3 flex flex-row items-center gap-2">
         {#if meetRequirements != 1 && meetRequirements != 3}
           <span class="*:size-5"><IconCloseCircle /></span>
@@ -215,7 +215,7 @@
         <span>Fill in prize code here:</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
             type="text"
             name="cryptogram"
             minlength="20"
@@ -226,7 +226,7 @@
             required
           />
           <button
-            class="btn absolute right-0 top-0 outline-0"
+            class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={prizeCodeCopyPaste}
           >
@@ -265,15 +265,15 @@
         </button>
       {/if}
     </footer>
-    <hr class="!border-t-1 mx-[-24px] !mt-0 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-0 !border-t-1 !border-dashed" />
     <div class="m-auto !mt-5">
-      <p class="text-sm text-gray/50">To get the latest updates by following:</p
+      <p class="text-gray/50 text-sm">To get the latest updates by following:</p
       >
       <div class="mt-3 flex flex-row justify-between">
         <a
           type="button"
           title="Follow on Twitter"
-          class="btn btn-sm rounded-xl border-[1px] border-gray/10"
+          class="btn btn-sm border-gray/10 rounded-xl border-[1px]"
           href="https://twitter.com/ICPandaDAO"
           target="_blank"
         >
@@ -283,7 +283,7 @@
         <a
           type="button"
           title="Join the Community"
-          class="btn btn-sm rounded-xl border-[1px] border-gray/10"
+          class="btn btn-sm border-gray/10 rounded-xl border-[1px]"
           href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
           target="_blank"
         >

@@ -11,6 +11,7 @@ dfx start
 # Creates the canisters with the specified IDs
 dfx canister create --specified-id rdmx6-jaaaa-aaaaa-aaadq-cai internet_identity
 dfx canister create --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister
+dfx canister create --specified-id druyg-tyaaa-aaaaq-aactq-cai icrc1_ledger_canister
 dfx canister create --specified-id c63a7-6yaaa-aaaap-ab3gq-cai ic_panda_frontend
 dfx canister create --specified-id a7cug-2qaaa-aaaap-ab3la-cai ic_panda_luckypool
 dfx canister create --specified-id nscli-qiaaa-aaaaj-qa4pa-cai ic_message
@@ -65,7 +66,7 @@ export NUM_OF_BLOCK_TO_ARCHIVE=1000
 export CYCLE_FOR_ARCHIVE_CREATION=10000000000000
 export FEATURE_FLAGS=true
 
-dfx deploy icrc1_ledger_canister --specified-id druyg-tyaaa-aaaaq-aactq-cai --argument "(variant {Init =
+dfx deploy icrc1_ledger_canister --argument "(variant {Init =
 record {
      token_symbol = \"${TOKEN_SYMBOL}\";
      token_name = \"${TOKEN_NAME}\";
@@ -83,7 +84,7 @@ record {
  }
 })"
 
-dfx deploy ic_dmsg_minter --specified-id ql553-iqaaa-aaaap-anuyq-cai --argument "(opt variant {Init =
+dfx deploy ic_dmsg_minter --argument "(opt variant {Init =
 record {
      preparers = vec { principal \"nscli-qiaaa-aaaaj-qa4pa-cai\"};
      committers = vec { principal \"nvdn4-5qaaa-aaaaj-qa4pq-cai\";};
@@ -91,7 +92,7 @@ record {
 })"
 
 # Deploys the ICRC-1 token Ledger canister with the specified initial values
-dfx deploy dmsg_ledger_canister --specified-id ocqzv-tyaaa-aaaar-qal4a-cai --argument "(variant {Init =
+dfx deploy dmsg_ledger_canister --argument "(variant {Init =
 record {
      token_symbol = \"DMSG\";
      token_name = \"dMsg.net\";

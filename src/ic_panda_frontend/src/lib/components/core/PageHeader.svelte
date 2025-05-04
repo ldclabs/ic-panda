@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconUser0 from '$lib/components/icons/IconUser0.svelte'
   import IconUser1 from '$lib/components/icons/IconUser1.svelte'
@@ -40,26 +40,26 @@
   >
     <TabAnchor
       href="/"
-      selected={$page.url?.pathname == '/' && $page.url?.hash === ''}
+      selected={page.url?.pathname == '/' && page.url?.hash === ''}
       on:click={scrollToTop}
     >
       Home
     </TabAnchor>
     <TabAnchor
       href="/_/messages"
-      selected={$page.url?.pathname.startsWith('/_/messages')}
+      selected={page.url?.pathname.startsWith('/_/messages')}
     >
       E2EE Messages
     </TabAnchor>
     <TabAnchor
       href="/_/airdrop"
-      selected={$page.url?.pathname.startsWith('/_/airdrop')}
+      selected={page.url?.pathname.startsWith('/_/airdrop')}
     >
       Airdrop 108
     </TabAnchor>
     <!-- <TabAnchor
       href="/wallet"
-      selected={$page.url?.pathname.startsWith('/wallet')}
+      selected={page.url?.pathname.startsWith('/wallet')}
     >
       Chain Fusion
     </TabAnchor> -->
@@ -68,7 +68,7 @@
     </TabAnchor>
   </TabGroup>
 
-  <div class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4">
+  <div class="absolute top-0 right-10 flex h-full flex-row py-2 max-md:right-4">
     {#if $authStore.identity.getPrincipal().isAnonymous()}
       <button
         type="button"

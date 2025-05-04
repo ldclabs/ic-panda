@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconAlarmWarning from '$lib/components/icons/IconAlarmWarning.svelte'
   import IconGoldPanda from '$lib/components/icons/IconGoldPanda.svelte'
@@ -52,8 +52,8 @@
     claimedAmount = $airdropState?.claimed || 0n
     luckyCode = $airdropState?.lucky_code[0] || ''
 
-    if (luckyCode && $page.url?.searchParams.get('ref')) {
-      const query = $page.url.searchParams
+    if (luckyCode && page.url?.searchParams.get('ref')) {
+      const query = page.url.searchParams
       query.delete('ref')
       goto(`?${query.toString()}`)
     }
@@ -63,7 +63,7 @@
 <div
   class="flex flex-col justify-center rounded-2xl bg-white bg-[url('/_assets/images/lucky-pool-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
 >
-  <section class="mb-10 mt-5 flex flex-col justify-center">
+  <section class="mt-5 mb-10 flex flex-col justify-center">
     <h5 class="h5 text-center font-extrabold">
       <span>Free PANDA Airdrop</span>
     </h5>
@@ -74,11 +74,11 @@
         <IconGoldPanda />
       </div>
       <div>
-        <h2 class="h2 font-extrabold text-gold">
+        <h2 class="h2 text-gold font-extrabold">
           {formatNumber(Number(totalBalance / PANDAToken.one))}
         </h2>
         <button
-          class="mt-2 flex flex-row items-center gap-1 text-gray/50"
+          class="text-gray/50 mt-2 flex flex-row items-center gap-1"
           use:popup={{
             event: 'click',
             target: 'AirdropTipHover',
@@ -93,7 +93,7 @@
           </span>
         </button>
         <div
-          class="card max-w-80 bg-surface-800 px-2 py-0 text-white"
+          class="card bg-surface-800 max-w-80 px-2 py-0 text-white"
           data-popup="AirdropTipHover"
         >
           <p class="min-w-0 text-balance break-words">
@@ -108,7 +108,7 @@
   <footer class="m-auto mb-6">
     {#if luckyCode == ''}
       <!-- Anonymous -->
-      <p class="text-sm text-gray/50">Please read the rules before claiming:</p>
+      <p class="text-gray/50 text-sm">Please read the rules before claiming:</p>
       <ol class="list *:mt-3">
         <li>
           <span class="badge-icon bg-pink-500 p-2 text-white">1</span>
@@ -158,7 +158,7 @@
           disabled={claimableAmount === 0n ||
             totalBalance < claimableAmount + PANDAToken.fee}
           on:click={claimNowHandler}
-          class="btn m-auto mt-3 w-[320px] max-w-full bg-pink-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+          class="btn md:btn-lg m-auto mt-3 w-[320px] max-w-full bg-pink-500 font-medium text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
         >
           Understand and Claim Now
         </button>
@@ -170,7 +170,7 @@
       </p>
       <button
         disabled={true}
-        class="variant-filled-primary btn m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn md:btn-lg m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
       >
         Got It
       </button>
@@ -208,7 +208,7 @@
       <button
         disabled={claimableAmount === 0n}
         on:click={transferHandler}
-        class="variant-filled-primary btn m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+        class="variant-filled-primary btn md:btn-lg m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
       >
         {#if claimableAmount > 0n}
           <span>Transfer tokens to wallet</span>

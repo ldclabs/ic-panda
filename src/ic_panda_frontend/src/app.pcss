@@ -1,9 +1,7 @@
-/* Write your global styles here, in PostCSS syntax */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* https://www.skeleton.dev/components/app-shell */
 html,
 body {
   @apply h-full overflow-hidden;
@@ -16,7 +14,8 @@ html {
 
 body {
   /* animation: kenburns-bottom 21s ease-in-out infinite both; */
-  background: radial-gradient(
+  background:
+    radial-gradient(
       61% 61% at 15% 105%,
       rgba(89, 255, 238, 0.2) 0%,
       rgba(89, 255, 238, 0) 100%
@@ -36,15 +35,15 @@ body {
 
 /* https://www.skeleton.dev/docs/themes */
 :root [data-theme='skeleton'] {
-  --theme-font-family-base: -apple-system, BlinkMacSystemFont, 'system-ui',
-    'Segoe UI', 'Noto Sans', Roboto, Helvetica, Arial, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji';
+  --theme-font-family-base:
+    -apple-system, BlinkMacSystemFont, 'system-ui', 'Segoe UI', 'Noto Sans',
+    Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
 
 .icpanda-message {
-  font-family: -apple-system, BlinkMacSystemFont, 'system-ui', 'Segoe UI',
-    'Noto Sans', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'system-ui', 'Segoe UI', 'Noto Sans',
+    Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
 
 .global-backgroud {

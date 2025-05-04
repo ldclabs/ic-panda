@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconNotificationOffLine from '$lib/components/icons/IconNotificationOffLine.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
@@ -29,7 +29,7 @@
   let myChannels: Readable<ChannelBasicInfoEx[]> = $state(readable([]))
   let filterValue: string = $state('')
 
-  const currentChannel = $derived(($page?.params || {})['channel'] || '')
+  const currentChannel = $derived((page?.params || {})['channel'] || '')
   const channels = $derived.by(() => {
     return ($myChannels || []).filter((c) => {
       const val = filterValue.trim().toLowerCase()

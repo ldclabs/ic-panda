@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import Loading from '$lib/components/ui/Loading.svelte'
 
-  const username = ($page?.params || {})['username'] || ''
+  const username = (page?.params || {})['username'] || ''
   window.location.assign(`https://dmsg.net/${username}`)
 </script>
 

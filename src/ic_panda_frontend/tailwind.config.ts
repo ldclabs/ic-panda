@@ -3,6 +3,7 @@ import forms from '@tailwindcss/forms'
 import { join } from 'path'
 import colors from 'tailwindcss/colors'
 
+/** @type {import('tailwindcss').Config} */
 const config = {
   content: [
     './src/**/*.{html,js,svelte,ts}',

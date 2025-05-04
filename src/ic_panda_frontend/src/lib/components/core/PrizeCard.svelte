@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconGoldPanda2 from '$lib/components/icons/IconGoldPanda2.svelte'
   import IconHistory from '$lib/components/icons/IconHistory.svelte'
@@ -82,7 +82,7 @@
   }
 
   onMount(async () => {
-    if (decodePrize($page.url?.searchParams.get('prize') || '')) {
+    if (decodePrize(page.url?.searchParams.get('prize') || '')) {
       modalStore.close() // close previous modal
       modalStore.trigger({
         type: 'component',
@@ -99,7 +99,7 @@
   <div
     class="relative flex flex-col justify-center bg-[url('/_assets/images/prize-giveaway-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
   >
-    <div class="absolute right-4 top-4 flex flex-row gap-3">
+    <div class="absolute top-4 right-4 flex flex-row gap-3">
       <button on:click={prizeHistoryHandler} class="btn btn-sm bg-white">
         <span class="*:size-5"><IconHistory /></span>
         <span>History</span>
@@ -113,14 +113,14 @@
         <span>Create a Prize</span>
       </button>
     </div>
-    <section class="mb-6 mt-5 flex flex-col justify-center max-md:mt-10">
+    <section class="mt-5 mb-6 flex flex-col justify-center max-md:mt-10">
       <h5 class="h5 text-center font-extrabold">
         <span>PANDA Prize Giveaway</span>
       </h5>
     </section>
     <footer class="m-auto mb-6">
       <!-- Anonymous -->
-      <p class="text-sm text-gray/100"
+      <p class="text-gray/100 text-sm"
         >Before claiming, please ensure that you meet the following conditions:</p
       >
       <ol class="list *:!mt-4 *:!rounded-xl *:bg-white *:px-4 *:py-2">
@@ -158,14 +158,14 @@
       <div class="relative mt-4 text-center">
         <button
           on:click={claimPrizeHandler}
-          class="btn m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
+          class="btn md:btn-lg m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
         >
           Claim a Prize
         </button>
         <div class="">
           <button
             on:click={qrPrizeHandler}
-            class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:right-0 sm:top-[calc(50%-16px)]"
+            class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:top-[calc(50%-16px)] sm:right-0"
           >
             <IconQrCode />
           </button>

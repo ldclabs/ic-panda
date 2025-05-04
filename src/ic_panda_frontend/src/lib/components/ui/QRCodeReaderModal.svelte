@@ -2,8 +2,8 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { errMessage } from '$lib/types/result'
   import { sleep } from '$lib/utils/helper'
-  import decodeQR from '@paulmillr/qr/decode.js'
   import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import decodeQR from 'qr/decode.js'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
 
   export let parent: SvelteComponent
@@ -101,7 +101,7 @@
     <!-- svelte-ignore a11y-media-has-caption -->
     <video bind:this={videoPlayer} on:play={scanQR}></video>
     {#if scan}
-      <section class="absolute left-0 top-0 h-full w-full"></section>
+      <section class="absolute top-0 left-0 h-full w-full"></section>
     {/if}
   </div>
 </ModalCard>

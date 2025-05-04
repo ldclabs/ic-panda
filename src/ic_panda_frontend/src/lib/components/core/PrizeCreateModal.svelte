@@ -21,12 +21,12 @@
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
-  import encodeQR from '@paulmillr/qr'
   import {
     focusTrap,
     getModalStore,
     getToastStore
   } from '@skeletonlabs/skeleton'
+  import encodeQR from 'qr'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
   import NameModal from './NameModal.svelte'
@@ -272,32 +272,32 @@
     {@const code = result.code[0]}
     {@const link = `${APP_ORIGIN}/?prize=${code}`}
     {@const qrcode = encodeQR(link, 'svg', { ecc: 'high' })}
-    <div class="text-center text-panda *:m-auto *:size-12">
+    <div class="text-panda text-center *:m-auto *:size-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
       <p class="mt-4">
         <span>Your prize has been successfully created.</span>
       </p>
-      <p class="mt-2 text-left text-gray/50">Prize Code:</p>
+      <p class="text-gray/50 mt-2 text-left">Prize Code:</p>
       <div class="flex flex-row items-center gap-1">
         <p class="truncate text-orange-500">{'PRIZE:' + code}</p>
         <TextClipboardButton textValue={'PRIZE:' + code} />
       </div>
-      <p class="mt-2 text-left text-gray/50">Prize QR Code:</p>
+      <p class="text-gray/50 mt-2 text-left">Prize QR Code:</p>
       <div class="relative items-center">
         {@html qrcode}
         <div
-          class="absolute left-[calc(50%-26px)] top-[calc(50%-26px)] rounded-full border-4 border-white *:size-12"
+          class="absolute top-[calc(50%-26px)] left-[calc(50%-26px)] rounded-full border-4 border-white *:size-12"
           ><IconGoldPanda2 /></div
         >
       </div>
-      <p class="mt-2 text-left text-gray/50">Prize Link:</p>
+      <p class="text-gray/50 mt-2 text-left">Prize Link:</p>
       <div
         class="flex flex-row items-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-red-50 p-2 text-orange-500"
       >
         <p class=""><IconLink /></p>
-        <p class="w-full text-balance break-all text-left">
+        <p class="w-full text-left text-balance break-all">
           {link}
         </p>
       </div>
@@ -318,7 +318,7 @@
   {:else}
     <h3 class="h3 !mt-0 text-center *:m-auto *:size-10"><IconGoldPanda2 /></h3>
     <div class="!mt-0 text-center text-xl font-bold">Panda Prize</div>
-    <div class="!mt-5 rounded-xl bg-gray/5 px-4 py-2 text-sm">
+    <div class="bg-gray/5 !mt-5 rounded-xl px-4 py-2 text-sm">
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconPanda /></span>
@@ -340,7 +340,7 @@
         <span class="text-gray/50">Total prize amount:</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
             type="number"
             name="prizeInputTotalAmount"
             min="1"
@@ -351,7 +351,7 @@
             placeholder="Enter an amount between 1 and 1,000,000"
             required
           />
-          <div class="absolute right-2 top-2 outline-0">{PANDAToken.symbol}</div
+          <div class="absolute top-2 right-2 outline-0">{PANDAToken.symbol}</div
           >
         </div>
       </label>
@@ -368,7 +368,7 @@
             required
           />
           <input
-            class="input ml-4 w-28 truncate rounded-lg border-gray/10 bg-white/20 px-2 py-1 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning ml-4 w-28 truncate rounded-lg bg-white/20 px-2 py-1 hover:bg-white/90"
             type="number"
             name="prizeInputQuantity"
             min="1"
@@ -385,7 +385,7 @@
           <span class="text-gray/50">Designated recipient (Optional):</span>
           <div class="relative">
             <input
-              class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+              class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
               type="text"
               name="prizeInputRecipient"
               bind:value={prizeInputRecipient}
@@ -393,7 +393,7 @@
               disabled={submitting || prizeInputQuantity != 1}
             />
             <button
-              class="btn absolute right-0 top-0 outline-0"
+              class="btn absolute top-0 right-0 outline-0"
               disabled={submitting || prizeInputQuantity != 1}
               on:click={recipientCopyPaste}
             >
@@ -411,7 +411,7 @@
           <div class="flex flex-row items-center justify-between gap-2">
             <label class="flex items-center space-x-2">
               <input
-                class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+                class="radio border-gray/10 border-[2px] bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
                 type="radio"
                 name="prizeInputKind"
                 on:change={onPrizeInputKindChange}
@@ -428,7 +428,7 @@
             </label>
             <label class="flex items-center space-x-2">
               <input
-                class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+                class="radio border-gray/10 border-[2px] bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
                 type="radio"
                 name="prizeInputKind"
                 on:change={onPrizeInputKindChange}
@@ -448,7 +448,7 @@
         <div class="flex flex-row items-center justify-between gap-2">
           <label class="flex items-center space-x-2">
             <input
-              class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+              class="radio border-gray/10 border-[2px] bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
               type="radio"
               name="prizeInputExpire"
               on:change={onPrizeInputExpireChange}
@@ -459,7 +459,7 @@
           </label>
           <label class="flex items-center space-x-2">
             <input
-              class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+              class="radio border-gray/10 border-[2px] bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
               type="radio"
               name="prizeInputExpire"
               on:change={onPrizeInputExpireChange}
@@ -470,7 +470,7 @@
           </label>
           <label class="flex items-center space-x-2">
             <input
-              class="radio border-[2px] border-gray/10 bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
+              class="radio border-gray/10 border-[2px] bg-transparent !outline-0 checked:!border-orange-500 checked:!bg-orange-500"
               type="radio"
               name="prizeInputExpire"
               on:change={onPrizeInputExpireChange}
@@ -485,13 +485,13 @@
         {#if !$nameState?.name}
           <span class="text-gray/50">Your name (Optional):</span>
           <button
-            class="btn !mt-0 !p-0 text-panda outline-0"
+            class="btn text-panda !mt-0 !p-0 outline-0"
             on:click={() => editName(0)}
           >
             <span>Set up in Account</span>
           </button>
         {:else}
-          <span class="pr-2 text-gray/50">Your name:</span>
+          <span class="text-gray/50 pr-2">Your name:</span>
           <span>{$nameState?.name}</span>
         {/if}
       </label>
@@ -499,14 +499,14 @@
         <span class="text-gray/50">Leave a message (Optional):</span>
         <div class="relative">
           <textarea
-            class="textarea rounded-xl border-gray/10 bg-white/20 invalid:input-warning hover:bg-white/90"
+            class="textarea border-gray/10 invalid:input-warning rounded-xl bg-white/20 hover:bg-white/90"
             rows="2"
             name="prizeInputMessage"
             bind:value={prizeInputMessage}
             disabled={submitting}
           ></textarea>
           <button
-            class="btn absolute right-0 top-6 outline-0"
+            class="btn absolute top-6 right-0 outline-0"
             disabled={submitting}
             on:click={messageCopyPaste}
           >
@@ -522,14 +522,14 @@
         <span class="text-gray/50">Leave a link (Optional):</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
             type="text"
             name="prizeInputLink"
             bind:value={prizeInputLink}
             disabled={submitting}
           />
           <button
-            class="btn absolute right-0 top-0 outline-0"
+            class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={linkCopyPaste}
           >
@@ -548,7 +548,7 @@
         prizeInputQuantity,
         prizeInputTotalAmount
       )}
-      <hr class="!border-t-1 mx-[-24px] !mt-4 !border-dashed !border-gray/20" />
+      <hr class="!border-gray/20 mx-[-24px] !mt-4 !border-t-1 !border-dashed" />
       <footer class="!mt-4">
         <div
           class="flex flex-row items-center justify-between text-sm font-medium"

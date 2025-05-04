@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { type UserInfo } from '$lib/canisters/message'
   import {
     type Link,
@@ -77,7 +77,7 @@
   )
   let displayDebug = $state(false)
 
-  let pathname = $derived($page?.url?.pathname || '')
+  let pathname = $derived(page?.url?.pathname || '')
   let links = $derived($myInfo?.links || [])
   let myUsername = $derived($myInfo?.username[0] || '')
   let isUsernameAccount = $state(!!authStore.identity?.username)

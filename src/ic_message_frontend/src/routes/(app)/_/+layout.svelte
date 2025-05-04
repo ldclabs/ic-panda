@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
   import IconMessage3Line from '$lib/components/icons/IconMessage3Line.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
@@ -37,9 +37,9 @@
   })
 
   let principal = $derived($authStore.identity.getPrincipal())
-  let selectedProfile = $derived(selected('Profile', $page.url?.pathname || ''))
+  let selectedProfile = $derived(selected('Profile', page.url?.pathname || ''))
   let selectedMessages = $derived(
-    selected('Messages', $page.url?.pathname || '')
+    selected('Messages', page.url?.pathname || '')
   )
 
   const children_render = $derived(children)

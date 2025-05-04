@@ -2,7 +2,7 @@
   import IconDOGE from '$lib/components/icons/IconDOGE.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
-  import encodeQR from '@paulmillr/qr'
+  import encodeQR from 'qr'
   import { type SvelteComponent } from 'svelte'
 
   // Props
@@ -28,13 +28,13 @@
         {@html qrcode}
       </div>
       <div
-        class="absolute left-[calc(50%-24px)] top-[calc(50%-24px)] rounded-md bg-white p-1 *:size-10"
+        class="absolute top-[calc(50%-24px)] left-[calc(50%-24px)] rounded-md bg-white p-1 *:size-10"
         ><IconDOGE /></div
       >
     </div>
   </div>
   <div
-    class="card !mt-6 flex flex-row items-center justify-between bg-gray/5 p-4"
+    class="card bg-gray/5 !mt-6 flex flex-row items-center justify-between p-4"
   >
     <div class="flex flex-row items-center gap-4">
       <div class="flex flex-col">
@@ -50,7 +50,7 @@
   </div>
   <footer class="!mt-6 flex flex-col items-center">
     <button
-      class="variant-filled btn w-[320px] bg-gray font-medium outline-none"
+      class="variant-filled btn bg-gray w-[320px] font-medium outline-none"
       on:click={onFinishHandler}
     >
       Finish

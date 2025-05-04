@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
   import IconClose from '$lib/components/icons/IconClose.svelte'
   import { authStore } from '$lib/stores/auth'
@@ -10,7 +10,7 @@
 
   let myState: MyMessageState | undefined = $state()
   let isDark = $derived(document.documentElement.classList.contains('dark'))
-  let username = $derived(($page?.params || {})['username'] || '')
+  let username = $derived((page?.params || {})['username'] || '')
   let pageKey = $derived($authStore.identity.getPrincipal() + ':' + username)
 
   function onCloseHandler() {
