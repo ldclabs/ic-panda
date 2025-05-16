@@ -2,6 +2,7 @@
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
   import { FileButton } from '@skeletonlabs/skeleton'
   import debounce from 'debounce'
+  import type { OnCropCompleteEvent } from 'svelte-easy-crop'
   import Cropper from 'svelte-easy-crop'
 
   interface CropArea {
@@ -93,8 +94,8 @@
 
   const debouncedCrop = debounce(convert, 100)
 
-  function onCropComplete(e: CustomEvent) {
-    croppedAreaPixels = e.detail.pixels
+  function onCropComplete(e: OnCropCompleteEvent) {
+    croppedAreaPixels = e.pixels
     debouncedCrop()
   }
 </script>
@@ -111,7 +112,7 @@
       restrictPosition={false}
       {cropSize}
       {cropShape}
-      on:cropcomplete={onCropComplete}
+      oncropcomplete={onCropComplete}
     />
   {:else}
     <FileButton

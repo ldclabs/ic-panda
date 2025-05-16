@@ -11,6 +11,7 @@ pub const MAX_PROFILE_TOKENS: usize = 100;
 pub const MAX_PROFILE_CHANNEL_ALIAS_LEN: usize = 20;
 pub const MAX_PROFILE_CHANNEL_TAGS_LEN: usize = 5;
 pub const MAX_PROFILE_CHANNEL_TAG_LEN: usize = 20;
+
 #[derive(CandidType, Clone, Debug, Deserialize, Serialize)]
 pub struct UserInfo {
     pub id: Principal,
