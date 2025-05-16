@@ -397,7 +397,7 @@ export class MessageAgent extends EventTarget {
     id: number
   ): Promise<ChannelInfo & SyncAt> {
     let val = await this._db.get<ChannelInfo & SyncAt>('Channels', [
-      canister.toUint8Array(),
+      canister.toUint8Array() as BufferSource,
       id
     ])
     if (!MessageAgent.isChannelInfo(val)) {
@@ -581,7 +581,7 @@ export class MessageAgent extends EventTarget {
     channel: ChannelInfo | ChannelBasicInfo
   ): Promise<ChannelInfo | ChannelBasicInfo> {
     let val = await this._db.get<ChannelInfo>('Channels', [
-      channel.canister.toUint8Array(),
+      channel.canister.toUint8Array() as BufferSource,
       channel.id
     ])
     val = { ...val, ...channel, _sync_at: Date.now() } as ChannelInfo & SyncAt
@@ -598,7 +598,7 @@ export class MessageAgent extends EventTarget {
 
   // delete channel and it's messages
   async removeChannel(canister: Principal, id: number): Promise<void> {
-    const canisterKey = canister.toUint8Array()
+    const canisterKey = canister.toUint8Array() as BufferSource
     await this._db.delete('Channels', [canisterKey, id])
     await this._db.delete(
       'Messages',
@@ -718,7 +718,7 @@ export class MessageAgent extends EventTarget {
     messageId: number
   ): Promise<void> {
     const msg = await this._db.get<CachedMessage>('Messages', [
-      canister,
+      canister as BufferSource,
       channel,
       messageId
     ])

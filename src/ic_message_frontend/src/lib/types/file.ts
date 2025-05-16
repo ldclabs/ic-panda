@@ -23,7 +23,7 @@ export class EncryptedFile extends File {
   }
 
   static fromRawBytes(data: Uint8Array, name: string, ctype: string) {
-    return new EncryptedFile([data], name, {
+    return new EncryptedFile([data as BufferSource], name, {
       type: ctype
     })
   }

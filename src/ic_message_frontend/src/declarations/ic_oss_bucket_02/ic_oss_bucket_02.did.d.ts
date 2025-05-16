@@ -98,7 +98,8 @@ export interface InitArgs {
   'file_id' : number,
 }
 export type LogVisibility = { 'controllers' : null } |
-  { 'public' : null };
+  { 'public' : null } |
+  { 'allowed_viewers' : Array<Principal> };
 export type MetadataValue = { 'Int' : bigint } |
   { 'Nat' : bigint } |
   { 'Blob' : Uint8Array | number[] } |

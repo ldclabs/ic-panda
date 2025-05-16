@@ -5,7 +5,7 @@ import {
   bigEndianCrc32,
   uint8ArrayToHexString
 } from '@dfinity/utils'
-import { sha224 } from '@noble/hashes/sha256'
+import { sha224 } from '@noble/hashes/sha2'
 import { hexToBytes } from '@noble/hashes/utils'
 
 // simplified version from ic-js, removed @dfinity/nns-proto

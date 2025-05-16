@@ -82,7 +82,7 @@ export function createRequest(baseURL: string, defaultOptions: RequestInit) {
   ) => {
     return request<T>(path, undefined, {
       method: RequestMethod.POST,
-      body: body ? encodeCBOR(body) : null,
+      body: body ? (encodeCBOR(body) as BufferSource) : null,
       headers: { 'Content-Type': CBOR_MIME_TYPE },
       signal
     })
@@ -94,7 +94,7 @@ export function createRequest(baseURL: string, defaultOptions: RequestInit) {
   ) => {
     return request<T>(path, undefined, {
       method: RequestMethod.PUT,
-      body: body ? encodeCBOR(body) : null,
+      body: body ? (encodeCBOR(body) as BufferSource) : null,
       headers: { 'Content-Type': CBOR_MIME_TYPE },
       signal
     })
@@ -106,7 +106,7 @@ export function createRequest(baseURL: string, defaultOptions: RequestInit) {
   ) => {
     return request<T>(path, undefined, {
       method: RequestMethod.PATCH,
-      body: body ? encodeCBOR(body) : null,
+      body: body ? (encodeCBOR(body) as BufferSource) : null,
       headers: { 'Content-Type': CBOR_MIME_TYPE },
       signal
     })
@@ -119,7 +119,7 @@ export function createRequest(baseURL: string, defaultOptions: RequestInit) {
   ) => {
     return request<T>(path, params, {
       method: RequestMethod.DELETE,
-      body: body ? encodeCBOR(body) : null,
+      body: body ? (encodeCBOR(body) as BufferSource) : null,
       headers: { 'Content-Type': CBOR_MIME_TYPE },
       signal
     })
