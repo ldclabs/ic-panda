@@ -69,7 +69,7 @@
       </p>
     </div>
 
-    {#if !identity.getPrincipal().isAnonymous()}
+    {#if identity.isAuthenticated}
       <div class="mt-8 flex flex-col items-center">
         <button
           type="button"
@@ -92,9 +92,7 @@
         {/if}
       </div>
     {/if}
-    {#if identity
-      .getPrincipal()
-      .isAnonymous() || Date.now() >= identity.expiration - 1000 * 3600 * 24}
+    {#if !identity.isAuthenticated || Date.now() >= identity.expiration - 1000 * 3600 * 24}
       <div class="mt-8 flex flex-col items-center space-y-4">
         <button
           type="button"

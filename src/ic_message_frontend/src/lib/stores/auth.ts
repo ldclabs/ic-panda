@@ -14,7 +14,11 @@ import {
 } from '$lib/utils/auth'
 import { encodeCBOR, toArrayBuffer } from '$lib/utils/crypto'
 import { popupCenter } from '$lib/utils/window'
-import type { DerEncodedPublicKey, Signature } from '@dfinity/agent'
+import {
+  requestIdOf,
+  type DerEncodedPublicKey,
+  type Signature
+} from '@dfinity/agent'
 import {
   Delegation,
   DelegationChain,
@@ -50,6 +54,10 @@ const IDENTITY_PROVIDER = IS_LOCAL
   : 'https://identity.ic0.app'
 
 const DERIVATION_ORIGIN = IS_LOCAL ? undefined : 'https://panda.fans'
+
+const IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR = new TextEncoder().encode(
+  '\x1Aic-request-auth-delegation'
+)
 
 export interface AuthStore extends Readable<AuthStoreData> {
   nameIdentityAPI: NameIdentityAPI
@@ -268,11 +276,27 @@ function initAuthStore(): AuthStore {
         deepLinkSignInRequest
       )
 
-      const sig = await identity.id.sign(toArrayBuffer(request.s))
+      const expiration =
+        BigInt(Date.now() + (request.m || EXPIRATION_MS)) * BigInt(1000000)
+      const delegation: Delegation = new Delegation(
+        toArrayBuffer(request.s),
+        expiration // In nanoseconds.
+      )
+      const challenge = new Uint8Array([
+        ...IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR,
+        ...new Uint8Array(requestIdOf({ ...delegation }))
+      ])
+      const signature = await identity.id.sign(toArrayBuffer(challenge))
       const chain = identity.id.getDelegation()
       const res: DeepLinkSignInResponse = {
         u: new Uint8Array(chain.publicKey),
-        d: chain.delegations.map((delegation) => {
+        d: [
+          ...chain.delegations,
+          {
+            delegation,
+            signature
+          }
+        ].map((delegation) => {
           return {
             d: {
               p: new Uint8Array(delegation.delegation.pubkey),
@@ -287,15 +311,7 @@ function initAuthStore(): AuthStore {
         a: authnMethod,
         o: authnOrign
       }
-      res.d.push({
-        d: {
-          p: request.s,
-          e: 1000000 * (Date.now() + (request.m || EXPIRATION_MS)),
-          t: undefined
-        },
-        s: new Uint8Array(sig)
-      })
-      console.log('res', res)
+
       return encodeCBORString(res)
     },
 

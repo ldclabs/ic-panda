@@ -34,6 +34,10 @@ export class IdentityEx implements Identity {
     return Date.now() >= this.expiration - 1000 * 60 * 5 // 3 minutes before expiration
   }
 
+  get isAuthenticated() {
+    return !this.id.getPrincipal().isAnonymous() && !this.isExpired
+  }
+
   getPrincipal(): Principal {
     return this.id.getPrincipal()
   }
