@@ -17,7 +17,38 @@ import type { Principal } from '@dfinity/principal'
 
 export const EXPIRATION_MS = 1000 * 60 * 60 * 24 * 30 // 30 days
 
-export const anonymousIdentity = new AnonymousIdentity()
+export class IdentityEx implements Identity {
+  constructor(
+    public readonly id: Identity,
+    public readonly expiration: number, // in milliseconds
+    public readonly username: string = '' // this is name identity if username exists
+  ) {
+    this.id = id
+    this.expiration = id.getPrincipal().isAnonymous()
+      ? Number.MAX_SAFE_INTEGER
+      : expiration
+    this.username = username
+  }
+
+  get isExpired() {
+    return Date.now() >= this.expiration - 1000 * 60 * 5 // 3 minutes before expiration
+  }
+
+  getPrincipal(): Principal {
+    return this.id.getPrincipal()
+  }
+
+  transformRequest(request: HttpAgentRequest): Promise<unknown> {
+    if (this.isExpired) {
+      setTimeout(() => logout('/'), 5000)
+      throw new Error('Identity expired, please sign in again')
+    }
+
+    return this.id.transformRequest(request)
+  }
+}
+
+export const anonymousIdentity = new IdentityEx(new AnonymousIdentity(), 0)
 
 // II auth storage
 const storage = new IdbStorage()
@@ -78,7 +109,6 @@ export async function setNameIdentity(
       identity: JSON.stringify(id.identity.toJSON()),
       chain: JSON.stringify(id.chain.toJSON())
     }
-    console.log('setNameIdentity', obj)
     await storage.set(KEY_STORAGE_NAME_IDENTITY, obj)
   } else {
     await storage.remove(KEY_STORAGE_NAME_IDENTITY)
@@ -140,37 +170,6 @@ export function shortId(id: string, long: boolean = false): string {
     return id.length > 28 ? id.slice(0, 14) + '...' + id.slice(-14) : id
   }
   return id.length > 14 ? id.slice(0, 7) + '...' + id.slice(-7) : id
-}
-
-export class IdentityEx implements Identity {
-  constructor(
-    public readonly id: Identity,
-    public readonly expiration: number, // in milliseconds
-    public readonly username: string = '' // this is name identity if username exists
-  ) {
-    this.id = id
-    this.expiration = id.getPrincipal().isAnonymous()
-      ? Number.MAX_SAFE_INTEGER
-      : expiration
-    this.username = username
-  }
-
-  get isExpired() {
-    return Date.now() >= this.expiration - 1000 * 60 * 5 // 3 minutes before expiration
-  }
-
-  getPrincipal(): Principal {
-    return this.id.getPrincipal()
-  }
-
-  transformRequest(request: HttpAgentRequest): Promise<unknown> {
-    if (this.isExpired) {
-      setTimeout(() => logout('/'), 5000)
-      throw new Error('Identity expired, please sign in again')
-    }
-
-    return this.id.transformRequest(request)
-  }
 }
 
 export class AuthAgent extends HttpAgent {

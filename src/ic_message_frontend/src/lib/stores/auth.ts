@@ -14,21 +14,35 @@ import {
 } from '$lib/utils/auth'
 import { encodeCBOR, toArrayBuffer } from '$lib/utils/crypto'
 import { popupCenter } from '$lib/utils/window'
-import type { DerEncodedPublicKey, Identity, Signature } from '@dfinity/agent'
+import type { DerEncodedPublicKey, Signature } from '@dfinity/agent'
 import {
   Delegation,
   DelegationChain,
+  DelegationIdentity,
   Ed25519KeyIdentity,
   Ed25519PublicKey
 } from '@dfinity/identity'
+import type { Principal } from '@dfinity/principal'
+import { base64ToBytes, bytesToBase64Url } from '@ldclabs/cose-ts/utils'
+import { decode, encode } from 'cborg'
 import { writable, type Readable } from 'svelte/store'
 
 export interface AuthStoreData {
-  identity: Identity
+  identity: IdentityEx
 }
 
-export interface AuthSignInParams {
-  domain?: 'ic0.app' | 'internetcomputer.org'
+export interface InternetIdentityAuthResponseSuccess {
+  kind: 'authorize-client-success'
+  delegations: {
+    delegation: {
+      pubkey: Uint8Array
+      expiration: bigint
+      targets?: Principal[]
+    }
+    signature: Uint8Array
+  }[]
+  userPublicKey: Uint8Array
+  authnMethod: 'passkey' | 'pin' | 'recovery'
 }
 
 const IDENTITY_PROVIDER = IS_LOCAL
@@ -45,6 +59,8 @@ export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
   switch: (username: string) => Promise<void>
   signIn: () => Promise<void>
+  signIn2: () => Promise<void>
+  deepLinkSignIn: (deepLinkSignInRequest: string) => Promise<string>
   logout: (url: string) => Promise<void>
 }
 
@@ -57,6 +73,8 @@ async function fetchRootKey() {
 
 function initAuthStore(): AuthStore {
   const authClientPromise = createAuthClient()
+  let authnMethod = ''
+  let authnOrign = ''
   let identity: IdentityEx | null = null
   let srcIdentity: IdentityEx | null = null
   // srcAgent is used to sign in with username
@@ -93,6 +111,10 @@ function initAuthStore(): AuthStore {
       }
 
       const nameIdentity = await loadNameIdentity()
+      if (nameIdentity) {
+        authnMethod = 'dMsg' // dMsg name identity
+      }
+
       identity = nameIdentity || srcIdentity
       dynAgent.setIdentity(identity || anonymousIdentity)
       set({
@@ -168,7 +190,9 @@ function initAuthStore(): AuthStore {
         await authClient.login({
           derivationOrigin: DERIVATION_ORIGIN as string,
           maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
-          onSuccess: () => {
+          onSuccess: (msg) => {
+            authnMethod = msg.authnMethod
+            authnOrign = DERIVATION_ORIGIN || location.origin
             srcIdentity = new IdentityEx(
               authClient.getIdentity(),
               Date.now() + EXPIRATION_MS
@@ -195,6 +219,86 @@ function initAuthStore(): AuthStore {
         })
       }),
 
+    signIn2: () =>
+      new Promise<void>(async (resolve, reject) => {
+        // Important: authClientPromise should be resolved here
+        // https://ffan0811.medium.com/window-open-returns-null-in-safari-and-firefox-after-allowing-pop-up-on-the-browser-4e4e45e7d926
+        const authClient = await authClientPromise
+        await authClient.login({
+          maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
+          onSuccess: (msg) => {
+            authnMethod = msg.authnMethod
+            authnOrign = location.origin
+
+            srcIdentity = new IdentityEx(
+              authClient.getIdentity(),
+              Date.now() + EXPIRATION_MS
+            )
+            identity = srcIdentity
+            dynAgent.setIdentity(identity)
+            srcAgent.setIdentity(identity)
+
+            set({
+              identity
+            })
+
+            resolve()
+          },
+          onError: (err) => {
+            console.error(err)
+            reject(err)
+          },
+          windowOpenerFeatures: popupCenter({
+            width: 576,
+            height: 625
+          })
+        })
+      }),
+
+    deepLinkSignIn: async (deepLinkSignInRequest: string) => {
+      if (!identity) {
+        throw new Error('No signed identity found')
+      }
+
+      if (!(identity.id instanceof DelegationIdentity)) {
+        throw new Error('Identity is not a DelegationIdentity')
+      }
+
+      const request: DeepLinkSignInRequest = decodeCBORString(
+        deepLinkSignInRequest
+      )
+
+      const sig = await identity.id.sign(toArrayBuffer(request.s))
+      const chain = identity.id.getDelegation()
+      const res: DeepLinkSignInResponse = {
+        u: new Uint8Array(chain.publicKey),
+        d: chain.delegations.map((delegation) => {
+          return {
+            d: {
+              p: new Uint8Array(delegation.delegation.pubkey),
+              e: Number(delegation.delegation.expiration),
+              t: delegation.delegation.targets
+                ? delegation.delegation.targets.map((t) => t.toUint8Array())
+                : undefined
+            },
+            s: new Uint8Array(delegation.signature)
+          }
+        }),
+        a: authnMethod,
+        o: authnOrign
+      }
+      res.d.push({
+        d: {
+          p: request.s,
+          e: 1000000 * (Date.now() + (request.m || EXPIRATION_MS)),
+          t: undefined
+        },
+        s: new Uint8Array(sig)
+      })
+      console.log('res', res)
+      return encodeCBORString(res)
+    },
+
     logout: async (url: string) => {
       dynAgent.setIdentity(anonymousIdentity)
       srcAgent.setIdentity(anonymousIdentity)
@@ -210,21 +314,88 @@ function initAuthStore(): AuthStore {
 
 export const authStore = initAuthStore()
 
-export async function signIn(): Promise<{
-  result: 'ok' | 'cancelled' | 'error'
-  error?: unknown
-}> {
-  try {
-    await authStore.signIn()
+// export async function signIn(g2: Boolean | null): Promise<{
+//   result: 'ok' | 'cancelled' | 'error'
+//   error?: unknown
+// }> {
+//   try {
+//     if (g2) {
+//       await authStore.signIn2()
+//     } else {
+//       await authStore.signIn()
+//     }
 
-    return { result: 'ok' }
-  } catch (error: unknown) {
-    if (error === 'UserInterrupt') {
-      // We do not display an error if user explicitly cancelled the process of sign-in
-      return { result: 'cancelled' }
-    }
+//     return { result: 'ok' }
+//   } catch (error: unknown) {
+//     if (error === 'UserInterrupt') {
+//       // We do not display an error if user explicitly cancelled the process of sign-in
+//       return { result: 'cancelled' }
+//     }
 
-    return { result: 'error', error }
-  } finally {
-  }
+//     return { result: 'error', error }
+//   } finally {
+//   }
+// }
+
+function decodeCBORString<T>(payload: string): T {
+  const data = base64ToBytes(payload)
+  return decode(data)
+}
+
+function encodeCBORString<T>(obj: T): string {
+  const data = encode(obj)
+  return bytesToBase64Url(new Uint8Array(data))
+}
+
+// pub struct SignInRequest {
+//     #[serde(rename = "s")]
+//     pub session_pubkey: ByteBufB64,
+//     #[serde(rename = "m")]
+//     pub max_time_to_live: u64, // in miniseconds
+// }
+interface DeepLinkSignInRequest {
+  s: Uint8Array
+  m: number
+}
+
+// pub struct Delegation {
+//     /// The delegated-to key.
+//     #[serde(alias = "p")]
+//     pub pubkey: ByteBufB64,
+//     /// A nanosecond timestamp after which this delegation is no longer valid.
+//     #[serde(alias = "e")]
+//     pub expiration: u64,
+//     /// If present, this delegation only applies to requests sent to one of these canisters.
+//     #[serde(default, skip_serializing_if = "Option::is_none")]
+//     #[serde(alias = "t")]
+//     pub targets: Option<Vec<Principal>>,
+// }
+//
+// pub struct SignedDelegation {
+//     /// The signed delegation.
+//     #[serde(alias = "d")]
+//     pub delegation: Delegation,
+//     /// The signature for the delegation.
+//     #[serde(alias = "s")]
+//     pub signature: ByteBufB64,
+// }
+//
+// pub struct SignInResponse {
+//     #[serde(rename = "u")]
+//     pub user_pubkey: ByteBufB64,
+//     #[serde(rename = "d")]
+//     pub delegations: Vec<SignedDelegation>,
+//     #[serde(rename = "a")]
+//     pub authn_method: String,
+//     #[serde(rename = "o")]
+//     pub origin: String,
+// }
+interface DeepLinkSignInResponse {
+  u: Uint8Array
+  d: {
+    d: { p: Uint8Array; e: number; t: Uint8Array[] | undefined }
+    s: Uint8Array
+  }[]
+  a: String
+  o: String
 }
