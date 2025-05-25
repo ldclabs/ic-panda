@@ -42,14 +42,12 @@
     if (!submitting) {
       submitting = true
       const res = await authStore.deepLinkSignIn(payload)
-      console.log('res', res)
 
       let url = new URL(nextUrl!)
       url.searchParams.set('os', os!)
       url.searchParams.set('action', action!)
       url.hash = res
-      console.log('url', url.toString())
-      // window.location.assign(url)
+      window.location.assign(url)
     }
   }
 </script>

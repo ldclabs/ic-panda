@@ -298,13 +298,16 @@ function initAuthStore(): AuthStore {
           }
         ].map((delegation) => {
           return {
-            d: {
-              p: new Uint8Array(delegation.delegation.pubkey),
-              e: Number(delegation.delegation.expiration),
-              t: delegation.delegation.targets
-                ? delegation.delegation.targets.map((t) => t.toUint8Array())
-                : undefined
-            },
+            d: delegation.delegation.targets
+              ? {
+                  p: new Uint8Array(delegation.delegation.pubkey),
+                  e: delegation.delegation.expiration,
+                  t: delegation.delegation.targets.map((t) => t.toUint8Array())
+                }
+              : {
+                  p: new Uint8Array(delegation.delegation.pubkey),
+                  e: delegation.delegation.expiration
+                },
             s: new Uint8Array(delegation.signature)
           }
         }),
@@ -409,7 +412,7 @@ interface DeepLinkSignInRequest {
 interface DeepLinkSignInResponse {
   u: Uint8Array
   d: {
-    d: { p: Uint8Array; e: number; t: Uint8Array[] | undefined }
+    d: { p: Uint8Array; e: bigint; t?: Uint8Array[] }
     s: Uint8Array
   }[]
   a: String
