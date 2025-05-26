@@ -4,12 +4,12 @@
     type Airdrops108Output
   } from '$lib/canisters/luckypool'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
+  import Saos from '$lib/components/ui/Saos.svelte'
   import { authStore } from '$lib/stores/auth'
   import { toastRun } from '$lib/stores/toast'
   import { getShortNumber, shortId } from '$lib/utils/helper'
   import { Principal } from '@dfinity/principal'
   import { getToastStore } from '@skeletonlabs/skeleton'
-  import Saos from 'saos'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
@@ -221,6 +221,6 @@
   </div>
 </div>
 
-<footer id="page-footer" class="flex-none">
+<footer id="page-footer" class="mt-20 flex-none lg:mt-60">
   <PageFooter />
 </footer>

@@ -99,13 +99,13 @@
   <div
     class="relative flex flex-col justify-center bg-[url('/_assets/images/prize-giveaway-bg.webp')] bg-[length:100%_auto] bg-no-repeat p-4"
   >
-    <div class="absolute top-4 right-4 flex flex-row gap-3">
+    <div class="absolute right-4 top-4 flex flex-row gap-3">
       <button on:click={prizeHistoryHandler} class="btn btn-sm bg-white">
         <span class="*:size-5"><IconHistory /></span>
         <span>History</span>
       </button>
       <button
-        disabled={prizeSubsidy.length == 0}
+        disabled={true}
         on:click={createPrizeHandler}
         class="btn btn-sm bg-white"
       >
@@ -113,14 +113,14 @@
         <span>Create a Prize</span>
       </button>
     </div>
-    <section class="mt-5 mb-6 flex flex-col justify-center max-md:mt-10">
+    <section class="mb-6 mt-5 flex flex-col justify-center max-md:mt-10">
       <h5 class="h5 text-center font-extrabold">
         <span>PANDA Prize Giveaway</span>
       </h5>
     </section>
     <footer class="m-auto mb-6">
       <!-- Anonymous -->
-      <p class="text-gray/100 text-sm"
+      <p class="text-sm text-gray/100"
         >Before claiming, please ensure that you meet the following conditions:</p
       >
       <ol class="list *:!mt-4 *:!rounded-xl *:bg-white *:px-4 *:py-2">
@@ -157,15 +157,17 @@
       </ol>
       <div class="relative mt-4 text-center">
         <button
+          disabled={false}
           on:click={claimPrizeHandler}
-          class="btn md:btn-lg m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
+          class="btn m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out md:btn-lg hover:scale-110 hover:shadow"
         >
           Claim a Prize
         </button>
         <div class="">
           <button
+            disabled={true}
             on:click={qrPrizeHandler}
-            class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:top-[calc(50%-16px)] sm:right-0"
+            class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:right-0 sm:top-[calc(50%-16px)]"
           >
             <IconQrCode />
           </button>

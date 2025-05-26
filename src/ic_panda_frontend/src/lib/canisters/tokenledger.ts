@@ -5,7 +5,7 @@ import {
 } from '$declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.js'
 import { unwrapResult } from '$lib/types/result'
 import { dynAgent } from '$lib/utils/auth'
-import { ckDOGEToken, PANDAToken, type TokenInfo } from '$lib/utils/token'
+import { PANDAToken, type TokenInfo } from '$lib/utils/token'
 import { Principal } from '@dfinity/principal'
 import { createActor } from './actors'
 
@@ -81,5 +81,3 @@ export class TokenLedgerAPI {
 }
 
 export const tokenLedgerAPI = new TokenLedgerAPI(PANDAToken)
-
-export const ckDOGETokenLedgerAPI = new TokenLedgerAPI(ckDOGEToken)

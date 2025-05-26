@@ -46,19 +46,30 @@
       Home
     </TabAnchor>
     <TabAnchor
-      href="/_/messages"
-      selected={page.url?.pathname.startsWith('/_/messages')}
+      href="#anda-ai"
+      selected={page.url?.pathname == '/' && page.url?.hash === '#anda-ai'}
+      on:click={scrollToTop}
     >
-      E2EE Messages
+      Anda AI
+    </TabAnchor>
+    <TabAnchor
+      href="#dmsg-net"
+      selected={page.url?.pathname == '/' && page.url?.hash === 'dmsg-net'}
+      on:click={scrollToTop}
+    >
+      dMsg
+    </TabAnchor>
+    <TabAnchor
+      href="/_/luckypool"
+      selected={page.url?.pathname.startsWith('/_/luckypool')}
+    >
+      Lucky Pool
     </TabAnchor>
     <TabAnchor
       href="/_/airdrop"
       selected={page.url?.pathname.startsWith('/_/airdrop')}
     >
       Airdrop 108
-    </TabAnchor>
-    <TabAnchor href="https://github.com/ldclabs" target="_blank">
-      Web3 Infras
     </TabAnchor>
   </TabGroup>
 

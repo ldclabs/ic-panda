@@ -1,5 +1,4 @@
 import {
-  CKDOGE_LEDGER_CANISTER_ID,
   ICP_LEDGER_CANISTER_ID,
   TOKEN_LEDGER_CANISTER_ID
 } from '$lib/constants'
@@ -31,24 +30,6 @@ export const PANDAToken: TokenInfo = {
   fee: 10000n,
   one: 100000000n,
   canisterId: TOKEN_LEDGER_CANISTER_ID
-}
-
-export const ckDOGEToken: TokenInfo = {
-  name: 'Chain-key DogeCoin',
-  symbol: 'ckDOGE',
-  decimals: 8,
-  fee: 100000n,
-  one: 100000000n,
-  canisterId: CKDOGE_LEDGER_CANISTER_ID
-}
-
-export const DOGEToken: TokenInfo = {
-  name: 'DogeCoin',
-  symbol: 'DOGE',
-  decimals: 8,
-  fee: 1000000n,
-  one: 100000000n,
-  canisterId: '' // local
 }
 
 export function formatNumber(val: number, maxDigits: number = 3): string {

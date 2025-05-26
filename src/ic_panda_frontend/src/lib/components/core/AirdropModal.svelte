@@ -9,8 +9,6 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
-  import { XAuth } from '$lib/services/auth'
-  import { authStore } from '$lib/stores/auth'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { getToastStore } from '@skeletonlabs/skeleton'
@@ -29,7 +27,7 @@
   let luckyCode = page?.url?.searchParams.get('ref') || ''
   let result: AirdropState
   let luckyPoolState = luckyPoolAPI.stateStore
-  let principal = $authStore.identity.getPrincipal()
+  // let principal = $authStore.identity.getPrincipal()
 
   const toastStore = getToastStore()
   const luckyLink = `${APP_ORIGIN}/?ref=`
@@ -101,7 +99,8 @@
 
     oAuthSubmitting = true
     try {
-      challenge = await XAuth.authorize(principal)
+      // disable
+      // challenge = await XAuth.authorize(principal)
       checkValidity()
     } catch (err: any) {
       oAuthSubmitting = false
@@ -118,7 +117,7 @@
 
 <ModalCard {parent}>
   {#if result}
-    <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
+    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
@@ -158,7 +157,7 @@
     <h3 class="h3 !mt-0 text-center">🪂 🎁</h3>
     <div class="!mt-0 text-center text-xl font-bold">Get the Airdrop</div>
     <div class="m-auto !mt-0 flex flex-col content-center">
-      <h6 class="h6 mt-5 mb-4 text-center font-bold">
+      <h6 class="h6 mb-4 mt-5 text-center font-bold">
         <span>STEP 1: Get verified</span>
       </h6>
       <button
@@ -188,7 +187,7 @@
     </div>
 
     <hr
-      class="!border-gray/20 mx-[-24px] !border-t-1 !border-dashed {dmChallenge
+      class="!border-t-1 mx-[-24px] !border-dashed !border-gray/20 {dmChallenge
         ? '!mt-6'
         : '!mt-3'}"
     />
@@ -196,14 +195,14 @@
       class="m-auto !mt-0 flex flex-col content-center"
       on:input={onFormChange}
     >
-      <h6 class="h6 mt-5 mb-4 text-center font-bold">
+      <h6 class="h6 mb-4 mt-5 text-center font-bold">
         <span>STEP 2 : Fill-in airdrop code</span>
       </h6>
       <label class="label {!dmChallenge ? 'collapse h-0' : 'visible mb-2'}">
         <span>Airdrop code:</span>
         <div class="relative">
           <input
-            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
+            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
             type="text"
             name="cryptogram"
             minlength="20"
@@ -213,7 +212,7 @@
             disabled={submitting}
           />
           <button
-            class="btn absolute top-0 right-0 outline-0"
+            class="btn absolute right-0 top-0 outline-0"
             disabled={submitting}
             on:click={airdropCodeCopyPaste}
           >
@@ -233,7 +232,7 @@
         <span>Lucky Code (Optinal):</span>
         <div class="relative">
           <input
-            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
+            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
             type="text"
             name="luckyCode"
             minlength="6"
@@ -243,7 +242,7 @@
             disabled={submitting}
           />
           <button
-            class="btn absolute top-0 right-0 outline-0"
+            class="btn absolute right-0 top-0 outline-0"
             disabled={submitting}
             on:click={luckyCodeCopyPaste}
           >

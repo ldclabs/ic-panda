@@ -24,6 +24,7 @@ const config = {
       pink: colors.pink,
       orange: colors.orange,
       amber: colors.amber,
+      indigo: colors.indigo,
       red: colors.red
     },
     extend: {}
