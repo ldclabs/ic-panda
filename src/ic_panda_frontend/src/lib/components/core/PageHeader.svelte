@@ -57,18 +57,12 @@
     >
       Airdrop 108
     </TabAnchor>
-    <!-- <TabAnchor
-      href="/wallet"
-      selected={page.url?.pathname.startsWith('/wallet')}
-    >
-      Chain Fusion
-    </TabAnchor> -->
     <TabAnchor href="https://github.com/ldclabs" target="_blank">
       Web3 Infras
     </TabAnchor>
   </TabGroup>
 
-  <div class="absolute top-0 right-10 flex h-full flex-row py-2 max-md:right-4">
+  <div class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4">
     {#if $authStore.identity.getPrincipal().isAnonymous()}
       <button
         type="button"

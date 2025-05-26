@@ -62,7 +62,9 @@ export function toURLSearchParams(params: URLSearchParamsInit) {
 export function createBlobURL(object: unknown) {
   return btoa(
     URL.createObjectURL(
-      new Blob([encodeCBOR(object)], { type: 'application/cbor' })
+      new Blob([encodeCBOR(object) as BufferSource], {
+        type: 'application/cbor'
+      })
     )
   )
 }

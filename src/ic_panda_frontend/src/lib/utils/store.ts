@@ -62,7 +62,10 @@ export class KVStore {
   async set<T>(storeName: string, value: T, key?: IDBValidKey): Promise<void> {
     const db = await this.db
     const tx = db.transaction(storeName, 'readwrite')
-    await tx.store.put(encodeObjectPrincipal(value, tx.store.keyPath), key)
+    await tx.store.put(
+      encodeObjectPrincipal(value, tx.store.keyPath || ''),
+      key
+    )
     await tx.done
   }
 
@@ -71,7 +74,9 @@ export class KVStore {
     const tx = db.transaction(storeName, 'readwrite')
     const keyPath = tx.store.keyPath
     await Promise.all(
-      values.map((value) => tx.store.put(encodeObjectPrincipal(value, keyPath)))
+      values.map((value) =>
+        tx.store.put(encodeObjectPrincipal(value, keyPath || ''))
+      )
     )
     await tx.done
   }
@@ -80,7 +85,7 @@ export class KVStore {
     const db = await this.db
     const tx = db.transaction(storeName, 'readwrite')
     const keyPath = tx.store.keyPath
-    await tx.store.add(encodeObjectPrincipal(value, keyPath))
+    await tx.store.add(encodeObjectPrincipal(value, keyPath || ''))
     await tx.done
   }
 
