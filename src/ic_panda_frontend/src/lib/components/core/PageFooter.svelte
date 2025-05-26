@@ -5,13 +5,13 @@
       ><img class="w-28" src="/_assets/icpanda-dao.svg" alt="ICPanda DAO" /></a
     >
   </p>
-  <p class="text-slate-900/50 mt-2 text-center text-sm capitalize antialiased">
+  <p class="text-black-900/50 mt-2 text-center text-sm">
     A technical panda fully running on the <a
       class="font-bold text-secondary-500 underline underline-offset-4"
       href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
       target="_blank"
     >
       Internet Computer
-    </a> blockchain, building chain-native infras and practical Web3 apps.
+    </a> blockchain, building chain-native infras, Anda AI and dMsg.net
   </p>
 </div>

@@ -65,12 +65,12 @@
     >
       Lucky Pool
     </TabAnchor>
-    <TabAnchor
+    <!-- <TabAnchor
       href="/_/airdrop"
       selected={page.url?.pathname.startsWith('/_/airdrop')}
     >
       Airdrop 108
-    </TabAnchor>
+    </TabAnchor> -->
   </TabGroup>
 
   <div class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4">
