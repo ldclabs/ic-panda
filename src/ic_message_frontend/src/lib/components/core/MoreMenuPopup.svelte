@@ -145,9 +145,7 @@
 </script>
 
 <div
-  class="popup-not-ready card z-20 {hasNameAccounts
-    ? 'w-72'
-    : 'w-52'} bg-white px-0 py-2 shadow-lg"
+  class="popup-not-ready card z-20 w-64 bg-white px-0 py-2 shadow-lg"
   data-popup={target}
   bind:this={selfElement}
 >
@@ -168,7 +166,15 @@
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExchange /></span>
-      <span>Exchange PANDA</span>
+      <span>Get PANDA via ICPSwap</span>
+    </a>
+    <a
+      type="button"
+      target="_blank"
+      href="https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai"
+    >
+      <span class="*:size-5"><IconExchange /></span>
+      <span>Get PANDA via KongSwap</span>
     </a>
     <a type="button" target="_blank" href="https://github.com/ldclabs/ic-panda">
       <span class="*:size-5"><IconGithub /></span>

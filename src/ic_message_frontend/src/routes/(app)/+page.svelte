@@ -5,6 +5,7 @@
   import SignInModal from '$lib/components/core/SignInModal.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import UserRegisterModal from '$lib/components/messages/UserRegisterModal.svelte'
+  import Saos from '$lib/components/ui/Saos.svelte'
   import { APP_ORIGIN } from '$lib/constants'
   import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
@@ -14,7 +15,6 @@
   import { initPopup } from '$lib/utils/popup'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import Saos from 'saos'
   import { onDestroy, onMount, tick } from 'svelte'
 
   interface Saying {
@@ -45,7 +45,12 @@
     {
       title: 'ICPSwap',
       image: '/_assets/images/icpswap.webp',
-      url: 'https://info.icpswap.com/swap/pool/details/5fq4w-lyaaa-aaaag-qjqta-cai'
+      url: 'https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai'
+    },
+    {
+      title: 'KongSwap',
+      image: '/_assets/images/kongswap.webp',
+      url: 'https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai'
     },
     {
       title: 'CoinGecko',
@@ -71,6 +76,11 @@
       title: 'ICPCoins',
       image: '/_assets/images/icpcoins.webp',
       url: 'https://icpcoins.com/#/token/PANDA'
+    },
+    {
+      title: 'ICExplorer',
+      image: '/_assets/images/icexplorer.webp',
+      url: 'https://www.icexplorer.io/token/details/druyg-tyaaa-aaaaq-aactq-cai'
     },
     {
       title: 'ICLight',

@@ -68,7 +68,7 @@
     </div>
 
     {#if identity.isAuthenticated}
-      <div class="mt-8 flex flex-col items-center">
+      <div class="!mt-8 flex flex-col items-center">
         <button
           type="button"
           class="variant-filled-primary btn w-96 max-w-full"
@@ -91,7 +91,7 @@
       </div>
     {/if}
     {#if !identity.isAuthenticated || Date.now() >= identity.expiration - 1000 * 3600 * 24}
-      <div class="mt-8 flex flex-col items-center space-y-4">
+      <div class="!mt-8 flex flex-col items-center space-y-4">
         <button
           type="button"
           class="variant-filled-primary btn w-80"

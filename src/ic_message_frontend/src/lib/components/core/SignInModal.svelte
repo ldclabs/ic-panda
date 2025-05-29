@@ -17,7 +17,7 @@
   <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
     >Sign In with</div
   >
-  <div class="mt-8 flex flex-col items-center space-y-4">
+  <div class="!mt-8 flex flex-col items-center space-y-4">
     <button
       type="button"
       class="variant-filled-primary btn w-80"
