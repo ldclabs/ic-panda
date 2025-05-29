@@ -2,9 +2,10 @@
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
+  import SignInModal from '$lib/components/core/SignInModal.svelte'
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
+  import UserRegisterModal from '$lib/components/messages/UserRegisterModal.svelte'
   import { APP_ORIGIN } from '$lib/constants'
-  import { authStore } from '$lib/stores/auth'
   import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
@@ -12,7 +13,6 @@
   import { getPriceNumber } from '$lib/utils/helper'
   import { initPopup } from '$lib/utils/popup'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
-  import UserRegisterModal from '$src/lib/components/messages/UserRegisterModal.svelte'
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import Saos from 'saos'
   import { onDestroy, onMount, tick } from 'svelte'
@@ -162,9 +162,15 @@
     // always load the latest one
     myState = await MyMessageState.load()
     if (dynAgent.isAnonymous()) {
-      await authStore.signIn()
-      myState = await MyMessageState.load()
-      onLaunchAppHandler()
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: SignInModal,
+          props: {
+            onCompleted: onLaunchAppHandler
+          }
+        }
+      })
     } else if (!myState.api.myInfo) {
       modalStore.trigger({
         type: 'component',
@@ -172,7 +178,7 @@
           ref: UserRegisterModal,
           props: {
             myState,
-            onFinished: onLaunchAppHandler
+            onCompleted: onLaunchAppHandler
           }
         }
       })
@@ -528,11 +534,8 @@
 <style>
   .landing-page {
     background-color: hsla(0, 100%, 1%, 1);
-    background-image: radial-gradient(
-        at 0% 0%,
-        hsla(137, 58%, 16%, 0.98) 0px,
-        transparent 50%
-      ),
+    background-image:
+      radial-gradient(at 0% 0%, hsla(137, 58%, 16%, 0.98) 0px, transparent 50%),
       radial-gradient(at 40% 20%, hsla(27, 100%, 1%, 1) 0px, transparent 50%),
       radial-gradient(
         at 100% 60%,

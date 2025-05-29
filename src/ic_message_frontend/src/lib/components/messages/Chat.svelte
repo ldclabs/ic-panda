@@ -61,7 +61,7 @@
               props: {
                 myState: myState,
                 masterKey: mk,
-                onFinished: () => {
+                onCompleted: () => {
                   isReady = myState.isReady2()
                 }
               }

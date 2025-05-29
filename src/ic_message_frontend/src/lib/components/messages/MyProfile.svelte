@@ -8,6 +8,7 @@
   } from '$lib/canisters/messageprofile'
   import { type Delegator } from '$lib/canisters/nameidentity'
   import AvatarUploadModal from '$lib/components/core/AvatarUploadModal.svelte'
+  import SignInModal from '$lib/components/core/SignInModal.svelte'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
   import IconAdminLine from '$lib/components/icons/IconAdminLine.svelte'
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
@@ -199,7 +200,17 @@
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
-        await authStore.signIn()
+        modalStore.trigger({
+          type: 'component',
+          component: {
+            ref: SignInModal,
+            props: {
+              onCompleted: () => {
+                onFollowHandler(user, fowllowing)
+              }
+            }
+          }
+        })
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -238,7 +249,17 @@
 
   async function onCreateChannelHandler(id: Principal) {
     if (!myState || myState.principal.isAnonymous()) {
-      await authStore.signIn()
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: SignInModal,
+          props: {
+            onCompleted: () => {
+              onCreateChannelHandler(id)
+            }
+          }
+        }
+      })
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',

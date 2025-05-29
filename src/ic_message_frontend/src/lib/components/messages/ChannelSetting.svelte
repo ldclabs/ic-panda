@@ -84,7 +84,7 @@
         props: {
           myState,
           channel: channelInfo,
-          onFinished: async () => {
+          onCompleted: async () => {
             channelInfo = await myState.refreshChannel(channelInfo)
           }
         }
@@ -132,7 +132,7 @@
         props: {
           myState,
           channel: channelInfo,
-          onFinished: async () => {
+          onCompleted: async () => {
             channelInfo = await myState.refreshChannel(channelInfo)
           }
         }

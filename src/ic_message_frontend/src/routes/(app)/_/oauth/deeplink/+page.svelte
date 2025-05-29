@@ -82,9 +82,9 @@
             </span>
           {/if}
         </button>
-        {#if Date.now() >= identity.expiration - 1000 * 3600 * 24}
+        {#if Date.now() >= identity.expiration - 1000 * 3600 * 48}
           <p class="mt-2 text-sm text-error-500">
-            Your identity will expire in less than 24 hours. Please sign in
+            Your identity will expire in less than 48 hours. Please sign in
             again.
           </p>
         {/if}
@@ -94,7 +94,7 @@
       <div class="mt-8 flex flex-col items-center space-y-4">
         <button
           type="button"
-          class="variant-filled-secondary btn w-80"
+          class="variant-filled-primary btn w-80"
           disabled={submitting}
           onclick={() => {
             authStore.signIn2()
@@ -104,13 +104,13 @@
         </button>
         <button
           type="button"
-          class="variant-filled-tertiary btn w-80"
+          class="variant-filled-secondary btn w-80"
           disabled={submitting}
           onclick={() => {
             authStore.signIn()
           }}
         >
-          Sign in with https://identity.ic0.app (legacy)
+          Sign in with identity.ic0.app (legacy)
         </button>
       </div>
     {/if}

@@ -142,7 +142,7 @@
         props: {
           to: myState!.principal,
           token: PANDAToken,
-          onfinish: async () => {
+          onCompleted: async () => {
             pandaTokenInfo.balance = await pandaLedgerAPI.balance()
           }
         }

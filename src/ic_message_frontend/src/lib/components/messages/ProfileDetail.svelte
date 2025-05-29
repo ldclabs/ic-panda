@@ -6,6 +6,7 @@
     type ProfileInfo,
     type UpdateProfileInput
   } from '$lib/canisters/messageprofile'
+  import SignInModal from '$lib/components/core/SignInModal.svelte'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
   import LinkItem from '$lib/components/ui/LinkItem.svelte'
@@ -13,7 +14,6 @@
   import QrModal from '$lib/components/ui/QrModal.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
   import { APP_ORIGIN } from '$lib/constants'
-  import { authStore } from '$lib/stores/auth'
   import { toDisplayUserInfo, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
@@ -60,8 +60,17 @@
   function onFollowHandler(user: Principal, fowllowing: boolean = true) {
     toastRun(async () => {
       if (myState.principal.isAnonymous()) {
-        await authStore.signIn()
-        window.location.reload()
+        modalStore.trigger({
+          type: 'component',
+          component: {
+            ref: SignInModal,
+            props: {
+              onCompleted: () => {
+                onFollowHandler(user, fowllowing)
+              }
+            }
+          }
+        })
       } else if (!$myInfo) {
         modalStore.trigger({
           type: 'component',
@@ -69,7 +78,7 @@
             ref: UserRegisterModal,
             props: {
               myState,
-              onFinished: async () => {
+              onCompleted: async () => {
                 myInfo = await myState.agent.subscribeProfile()
               }
             }
@@ -102,8 +111,17 @@
 
   async function onCreateChannelHandler(id: Principal) {
     if (myState.principal.isAnonymous()) {
-      await authStore.signIn()
-      window.location.reload()
+      modalStore.trigger({
+        type: 'component',
+        component: {
+          ref: SignInModal,
+          props: {
+            onCompleted: () => {
+              onCreateChannelHandler(id)
+            }
+          }
+        }
+      })
     } else if (!$myInfo) {
       modalStore.trigger({
         type: 'component',
@@ -111,7 +129,7 @@
           ref: UserRegisterModal,
           props: {
             myState,
-            onFinished: async () => {
+            onCompleted: async () => {
               myInfo = await myState.agent.subscribeProfile()
             }
           }
@@ -137,7 +155,7 @@
               props: {
                 myState: myState,
                 masterKey: mk,
-                onFinished: () => {
+                onCompleted: () => {
                   isReady = myState.isReady2()
                 }
               }

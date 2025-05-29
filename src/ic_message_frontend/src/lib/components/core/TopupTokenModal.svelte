@@ -17,10 +17,10 @@
     parent: SvelteComponent
     token: TokenInfo
     to: Principal
-    onfinish: () => Promise<void>
+    onCompleted: () => Promise<void>
   }
 
-  let { parent, to, token, onfinish }: Props = $props()
+  let { parent, to, token, onCompleted }: Props = $props()
 
   const toastStore = getToastStore()
   let loading = $state(true)
@@ -51,7 +51,7 @@
     toastRun(async function () {
       const ta = TokenAmount.fromNumber({ amount: topupAmount, token })
       await oisyWallet.transfer(to, token.canisterId, ta.toE8s())
-      await onfinish()
+      await onCompleted()
     }, toastStore).finally(() => {
       parent['onClose'] && parent['onClose']()
     })

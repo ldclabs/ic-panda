@@ -23,10 +23,10 @@
     parent: SvelteComponent
     myState: MyMessageState
     channel: ChannelInfo
-    onFinished: () => void
+    onCompleted: () => void
   }
 
-  let { parent, myState, channel, onFinished }: Props = $props()
+  let { parent, myState, channel, onCompleted }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
@@ -79,7 +79,7 @@
         image: [url]
       })
 
-      onFinished()
+      onCompleted()
       modalStore.close()
     }, toastStore)
   }

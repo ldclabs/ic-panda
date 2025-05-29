@@ -16,10 +16,15 @@
     parent: SvelteComponent
     myState: MyMessageState
     masterKey: MasterKey | null
-    onFinished: () => void
+    onCompleted: () => void
   }
 
-  let { parent, myState, masterKey = $bindable(), onFinished }: Props = $props()
+  let {
+    parent,
+    myState,
+    masterKey = $bindable(),
+    onCompleted
+  }: Props = $props()
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
@@ -95,7 +100,7 @@
           }
 
           modalStore.close()
-          onFinished()
+          onCompleted()
         } catch (err) {
           const er = new Error('Incorrect password')
           ;(er as any).data = err
@@ -144,7 +149,7 @@
       }
 
       modalStore.close()
-      onFinished()
+      onCompleted()
     }, toastStore).finally(() => {
       submitting = false
       validating = false

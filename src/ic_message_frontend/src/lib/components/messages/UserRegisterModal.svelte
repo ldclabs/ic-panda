@@ -33,10 +33,10 @@
     /** Exposes parent props to this component. */
     parent: SvelteComponent
     myState: MyMessageState
-    onFinished?: () => void
+    onCompleted?: () => void
   }
 
-  let { parent, myState, onFinished = () => {} }: Props = $props()
+  let { parent, myState, onCompleted = () => {} }: Props = $props()
 
   const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   const messageState: Readable<StateInfo | null> = myState.api.stateStore
@@ -104,7 +104,7 @@
 
       parent && parent['onClose']()
       await myState.agent.fetchUser()
-      onFinished()
+      onCompleted()
     }, toastStore).finally(() => {
       submitting = false
       validating = false

@@ -18,10 +18,10 @@
     parent: SvelteComponent
     myState: MyMessageState
     channel: ChannelInfo
-    onFinished: () => void
+    onCompleted: () => void
   }
 
-  let { parent, myState, channel, onFinished }: Props = $props()
+  let { parent, myState, channel, onCompleted }: Props = $props()
 
   const fileMaxSize = Number(
     unwrapOption(channel.files_state)?.file_max_size || 0n
@@ -42,7 +42,7 @@
         file_max_size
       })
 
-      onFinished()
+      onCompleted()
       parent && parent['onClose']()
     }, toastStore).finally(() => {
       submitting = false
