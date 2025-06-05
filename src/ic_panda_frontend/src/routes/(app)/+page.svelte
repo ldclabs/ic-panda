@@ -85,7 +85,7 @@
       >
         Internet Computer
       </a>
-      blockchain, building chain-native infrastructures, Anda AI and dMsg.net
+      blockchain, building chain-native infrastructures, Anda.AI and dMsg.net
     </p>
   </div>
 
@@ -153,8 +153,11 @@
     <p class="mx-auto mt-4 max-w-2xl text-lg text-gray/80">
       Discover the distribution and utility of PANDA tokens
     </p>
-    <div
-      class="m-auto mt-0 flex max-w-3xl flex-col justify-center bg-transparent p-2 md:flex-row md:gap-4"
+    <a
+      title="Exchange Tokens"
+      class="m-auto mt-0 flex max-w-3xl flex-col justify-center rounded-lg bg-transparent p-2 transition-colors duration-300 ease-in-out hover:bg-primary-500/10 md:flex-row md:gap-4"
+      href="https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+      target="_blank"
     >
       {#if $icpPrice}
         {@render tokenPrice($icpPrice)}
@@ -162,7 +165,7 @@
       {#if $pandaPrice}
         {@render tokenPrice($pandaPrice)}
       {/if}
-    </div>
+    </a>
   </div>
   <div
     class="grid w-full max-w-4xl grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16"
@@ -295,7 +298,7 @@
 
       <div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
         <div
-          class="rounded-xl border border-gray/20 bg-gray/10 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex items-start gap-4">
             <span class="variant-soft-primary badge-icon p-3 text-lg font-bold"
@@ -311,7 +314,7 @@
           </div>
         </div>
         <div
-          class="rounded-xl border border-gray/20 bg-gray/10 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex items-start gap-4">
             <span
@@ -335,7 +338,7 @@
 </section>
 
 <section
-  class="mt-20 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-60"
+  class="lg:mt-50 mt-10 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
   id="anda-ai"
 >
   <Saos
@@ -389,7 +392,7 @@
 
       <div class="flex w-full flex-col gap-10">
         <div
-          class="rounded-xl border border-gray/20 bg-gray/10 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
             <h3 class="h3">ANDA Protocol</h3>
@@ -422,7 +425,7 @@
         </div>
 
         <div
-          class="rounded-xl border border-gray/20 bg-gray/10 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
             <h3 class="h3">ANDA DB</h3>
@@ -453,7 +456,7 @@
         </div>
 
         <div
-          class="rounded-xl border border-gray/20 bg-gray/10 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
             <h3 class="h3">ANDA Cloud</h3>
@@ -488,7 +491,7 @@
 </section>
 
 <section
-  class="mt-20 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-60"
+  class="lg:mt-50 mt-10 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
   id="dmsg-net"
 >
   <Saos

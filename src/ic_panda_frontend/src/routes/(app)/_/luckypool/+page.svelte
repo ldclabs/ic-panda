@@ -9,12 +9,17 @@
 
   onMount(async () => {
     await luckyPoolAPI.refreshAllState()
+
+    window.document.getElementById('page')?.scrollTo(0, 0)
   })
 
   $: principal = $authStore.identity.getPrincipal()
 </script>
 
-<div class="flex flex-col flex-nowrap content-center items-center px-4">
+<div
+  class="flex flex-col flex-nowrap content-center items-center px-4 pt-10"
+  id="lucky-pool"
+>
   {#key principal.toText()}
     <div
       class="flex w-full max-w-4xl flex-col flex-nowrap content-center items-center"

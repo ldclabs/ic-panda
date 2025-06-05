@@ -46,14 +46,14 @@
       Home
     </TabAnchor>
     <TabAnchor
-      href="#anda-ai"
+      href="/#anda-ai"
       selected={page.url?.pathname == '/' && page.url?.hash === '#anda-ai'}
       on:click={scrollToTop}
     >
       Anda AI
     </TabAnchor>
     <TabAnchor
-      href="#dmsg-net"
+      href="/#dmsg-net"
       selected={page.url?.pathname == '/' && page.url?.hash === 'dmsg-net'}
       on:click={scrollToTop}
     >

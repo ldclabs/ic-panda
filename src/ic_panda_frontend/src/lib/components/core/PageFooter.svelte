@@ -12,6 +12,6 @@
       target="_blank"
     >
       Internet Computer
-    </a> blockchain, building chain-native infras, Anda AI and dMsg.net
+    </a> blockchain, building chain-native infras, Anda.AI and dMsg.net
   </p>
 </div>
