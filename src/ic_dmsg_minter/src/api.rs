@@ -76,7 +76,7 @@ fn get_state() -> store::State {
 
 #[ic_cdk::update]
 fn try_prepare(miner: Principal, payer: Principal) -> bool {
-    if store::state::with(|s| !s.preparers.contains(&ic_cdk::caller())) {
+    if store::state::with(|s| !s.preparers.contains(&ic_cdk::api::msg_caller())) {
         ic_cdk::trap("unauthorized");
     }
 
@@ -85,7 +85,7 @@ fn try_prepare(miner: Principal, payer: Principal) -> bool {
 
 #[ic_cdk::update]
 async fn try_commit(miner: Principal, payer: Principal) -> Option<u64> {
-    if store::state::with(|s| !s.committers.contains(&ic_cdk::caller())) {
+    if store::state::with(|s| !s.committers.contains(&ic_cdk::api::msg_caller())) {
         ic_cdk::trap("unauthorized");
     }
 

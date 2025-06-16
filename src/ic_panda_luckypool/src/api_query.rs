@@ -10,7 +10,7 @@ fn api_version() -> u16 {
 
 #[ic_cdk::query]
 fn whoami() -> Result<Principal, ()> {
-    Ok(ic_cdk::caller())
+    Ok(ic_cdk::api::msg_caller())
 }
 
 #[ic_cdk::query]
@@ -20,7 +20,7 @@ fn state() -> Result<types::State, ()> {
 
 #[ic_cdk::query]
 async fn name_of(owner: Option<Principal>) -> Result<Option<types::NameOutput>, ()> {
-    let owner = owner.unwrap_or(ic_cdk::caller());
+    let owner = owner.unwrap_or(ic_cdk::api::msg_caller());
     if owner == ANONYMOUS {
         return Ok(None);
     }
@@ -58,13 +58,13 @@ async fn name_lookup(name: String) -> Result<Option<types::NameOutput>, ()> {
 
 #[ic_cdk::query]
 async fn airdrops108_of(owner: Option<Principal>) -> Result<types::Airdrops108Output, ()> {
-    let owner = owner.unwrap_or(ic_cdk::caller());
+    let owner = owner.unwrap_or(ic_cdk::api::msg_caller());
     Ok(store::state::with(|r| r.airdrops(owner)))
 }
 
 #[ic_cdk::query]
 async fn airdrop_state_of(owner: Option<Principal>) -> Result<types::AirdropStateOutput, ()> {
-    let owner = owner.unwrap_or(ic_cdk::caller());
+    let owner = owner.unwrap_or(ic_cdk::api::msg_caller());
     let (airdrop_amount, _) = store::state::airdrop_amount_balance();
     if owner == ANONYMOUS {
         return Ok(types::AirdropStateOutput {
@@ -106,7 +106,7 @@ async fn luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::Luck
 async fn my_luckydraw_logs(prev: Option<Nat>, take: Option<Nat>) -> Vec<types::LuckyDrawLog> {
     let prev = prev.as_ref().map(nat_to_u64);
     let take = take.as_ref().map(nat_to_u64).unwrap_or(10).min(100) as usize;
-    store::luckydraw::logs(prev, take, Some(ic_cdk::caller()))
+    store::luckydraw::logs(prev, take, Some(ic_cdk::api::msg_caller()))
 }
 
 #[ic_cdk::query]
@@ -117,7 +117,7 @@ async fn notifications() -> Vec<types::Notification> {
 // (Issuer code, Issue time, Expire, Claimable amount, Quantity, Filled quantity)
 #[ic_cdk::query]
 async fn prizes_of(owner: Option<Principal>) -> Vec<(u32, u32, u16, u32, u16, u16)> {
-    let owner = owner.unwrap_or(ic_cdk::caller());
+    let owner = owner.unwrap_or(ic_cdk::api::msg_caller());
     if owner == ANONYMOUS {
         return vec![];
     }
@@ -204,7 +204,7 @@ async fn prize_issue_logs(owner: Principal, prev_ts: Option<Nat>) -> Vec<types::
         return vec![];
     }
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if owner != caller && !store::state::is_manager(&caller) {
         return vec![];
     }
@@ -226,7 +226,7 @@ async fn prize_issue_logs(owner: Principal, prev_ts: Option<Nat>) -> Vec<types::
 
 #[ic_cdk::query]
 async fn prize_ongoing() -> Vec<types::PrizeOutput> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::state::is_manager(&caller) {
         return vec![];
     }
@@ -236,7 +236,7 @@ async fn prize_ongoing() -> Vec<types::PrizeOutput> {
 
 #[ic_cdk::query]
 async fn principal_by_luckycode(luckycode: String) -> Result<Principal, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::state::is_manager(&caller) {
         return Err("user is not a manager".to_string());
     }

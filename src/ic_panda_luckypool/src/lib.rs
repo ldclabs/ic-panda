@@ -1,4 +1,4 @@
-use candid::{Nat, Principal};
+use candid::{utils::ArgumentEncoder, Nat, Principal};
 use ic_stable_structures::Storable;
 use icrc_ledger_types::{
     icrc1::{
@@ -44,7 +44,7 @@ fn nat_to_u64(nat: &Nat) -> u64 {
 }
 
 fn is_controller() -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
@@ -53,29 +53,47 @@ fn is_controller() -> Result<(), String> {
 }
 
 fn is_authenticated() -> Result<(), String> {
-    if ic_cdk::caller() == ANONYMOUS {
+    if ic_cdk::api::msg_caller() == ANONYMOUS {
         Err("anonymous user is not allowed".to_string())
     } else {
         Ok(())
     }
 }
 
+async fn call<In, Out>(id: Principal, method: &str, args: In, cycles: u128) -> Result<Out, String>
+where
+    In: ArgumentEncoder + Send,
+    Out: candid::CandidType + for<'a> candid::Deserialize<'a>,
+{
+    let res = ic_cdk::call::Call::bounded_wait(id, method)
+        .with_args(&args)
+        .with_cycles(cycles)
+        .await
+        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, &id, err))?;
+    res.candid().map_err(|err| {
+        format!(
+            "failed to decode response from {} on {:?}, error: {:?}",
+            method, &id, err
+        )
+    })
+}
+
 async fn token_balance_of(canister: Principal, user: Principal) -> Result<Nat, String> {
-    let (balance,) = ic_cdk::call(
+    let balance = call(
         canister,
         "icrc1_balance_of",
         (Account {
             owner: user,
             subaccount: None,
         },),
+        0,
     )
-    .await
-    .map_err(|err| format!("failed to get balance, error: {:?}", err))?;
+    .await?;
     Ok(balance)
 }
 
 async fn icp_transfer_from(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {
-    let (res,): (Result<Nat, TransferFromError>,) = ic_cdk::call(
+    let res: Result<Nat, TransferFromError> = call(
         ICP_CANISTER,
         "icrc2_transfer_from",
         (TransferFromArgs {
@@ -85,7 +103,7 @@ async fn icp_transfer_from(user: Principal, amount: Nat, memo: String) -> Result
                 subaccount: None,
             },
             to: Account {
-                owner: ic_cdk::id(),
+                owner: ic_cdk::api::canister_self(),
                 subaccount: None,
             },
             fee: None,
@@ -93,14 +111,14 @@ async fn icp_transfer_from(user: Principal, amount: Nat, memo: String) -> Result
             memo: Some(Memo(ByteBuf::from(memo.to_bytes()))),
             amount,
         },),
+        0,
     )
-    .await
-    .map_err(|err| format!("failed to call icrc2_transfer_from, error: {:?}", err))?;
+    .await?;
     res.map_err(|err| format!("failed to transfer ICP from user, error: {:?}", err))
 }
 
 async fn token_transfer_to(account: Account, amount: Nat, memo: String) -> Result<Nat, String> {
-    let (res,): (Result<Nat, TransferError>,) = ic_cdk::call(
+    let res: Result<Nat, TransferError> = call(
         TOKEN_CANISTER,
         "icrc1_transfer",
         (TransferArg {
@@ -111,14 +129,14 @@ async fn token_transfer_to(account: Account, amount: Nat, memo: String) -> Resul
             memo: Some(Memo(ByteBuf::from(memo.to_bytes()))),
             amount,
         },),
+        0,
     )
-    .await
-    .map_err(|err| format!("failed to call icrc1_transfer, error: {:?}", err))?;
+    .await?;
     res.map_err(|err| format!("failed to transfer tokens, error: {:?}", err))
 }
 
 async fn token_transfer_from(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {
-    let (res,): (Result<Nat, TransferFromError>,) = ic_cdk::call(
+    let res: Result<Nat, TransferFromError> = call(
         TOKEN_CANISTER,
         "icrc2_transfer_from",
         (TransferFromArgs {
@@ -128,7 +146,7 @@ async fn token_transfer_from(user: Principal, amount: Nat, memo: String) -> Resu
                 subaccount: None,
             },
             to: Account {
-                owner: ic_cdk::id(),
+                owner: ic_cdk::api::canister_self(),
                 subaccount: None,
             },
             fee: None,
@@ -136,14 +154,14 @@ async fn token_transfer_from(user: Principal, amount: Nat, memo: String) -> Resu
             memo: Some(Memo(ByteBuf::from(memo.to_bytes()))),
             amount,
         },),
+        0,
     )
-    .await
-    .map_err(|err| format!("failed to call icrc2_transfer_from, error: {:?}", err))?;
+    .await?;
     res.map_err(|err| format!("failed to transfer tokens from user, error: {:?}", err))
 }
 
 async fn icp_transfer_to(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {
-    let (res,): (Result<Nat, TransferError>,) = ic_cdk::call(
+    let res: Result<Nat, TransferError> = call(
         ICP_CANISTER,
         "icrc1_transfer",
         (TransferArg {
@@ -157,9 +175,9 @@ async fn icp_transfer_to(user: Principal, amount: Nat, memo: String) -> Result<N
             memo: Some(Memo(ByteBuf::from(memo.to_bytes()))),
             amount,
         },),
+        0,
     )
-    .await
-    .map_err(|err| format!("failed to call icrc1_transfer, error: {:?}", err))?;
+    .await?;
     res.map_err(|err| format!("failed to transfer ICP, error: {:?}", err))
 }
 

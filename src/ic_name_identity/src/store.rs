@@ -4,7 +4,7 @@ use ic_canister_sig_creation::{
     signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG},
     DELEGATION_SIG_DOMAIN,
 };
-use ic_cdk::api::set_certified_data;
+use ic_cdk::api::certified_data_set;
 use ic_certification::labeled_hash;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
@@ -204,7 +204,7 @@ pub mod state {
             };
             sigs.add_signature(&sig_inputs);
 
-            set_certified_data(&labeled_hash(LABEL_SIG, &sigs.root_hash()));
+            certified_data_set(labeled_hash(LABEL_SIG, &sigs.root_hash()));
         });
     }
 

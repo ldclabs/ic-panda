@@ -1,6 +1,6 @@
 use candid::{utils::ArgumentEncoder, Nat, Principal};
 use ic_canister_sig_creation::CanisterSigPublicKey;
-use ic_cdk::api::management_canister::main::CanisterStatusResponse;
+use ic_cdk::management_canister::CanisterStatusResult;
 use ic_cose_types::ANONYMOUS;
 use ic_message_types::{
     channel::{ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput},
@@ -41,7 +41,7 @@ static NAME_IDENTITY_CANISTER: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 1, 224, 109, 66, 1, 1]);
 
 fn is_controller() -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if caller == DAO_CANISTER || ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
@@ -50,7 +50,7 @@ fn is_controller() -> Result<(), String> {
 }
 
 fn is_authenticated() -> Result<(), String> {
-    if ic_cdk::caller() == ANONYMOUS {
+    if ic_cdk::api::msg_caller() == ANONYMOUS {
         Err("anonymous user is not allowed".to_string())
     } else {
         Ok(())
@@ -67,15 +67,17 @@ where
     In: ArgumentEncoder + Send,
     Out: candid::CandidType + for<'a> candid::Deserialize<'a>,
 {
-    let (res,): (Out,) = ic_cdk::api::call::call_with_payment128(id, method, args, cycles)
+    let res = ic_cdk::call::Call::bounded_wait(id, method)
+        .with_args(&args)
+        .with_cycles(cycles)
         .await
-        .map_err(|(code, msg)| {
-            format!(
-                "failed to call {} on {:?}, code: {}, message: {}",
-                method, &id, code as u32, msg
-            )
-        })?;
-    Ok(res)
+        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, &id, err))?;
+    res.candid().map_err(|err| {
+        format!(
+            "failed to decode response from {} on {:?}, error: {:?}",
+            method, &id, err
+        )
+    })
 }
 
 async fn token_transfer_to(user: Account, amount: Nat, memo: String) -> Result<Nat, String> {
@@ -107,7 +109,7 @@ async fn token_transfer_from(user: Principal, amount: Nat, memo: String) -> Resu
                 subaccount: None,
             },
             to: Account {
-                owner: ic_cdk::id(),
+                owner: ic_cdk::api::canister_self(),
                 subaccount: None,
             },
             fee: None,
@@ -120,22 +122,5 @@ async fn token_transfer_from(user: Principal, amount: Nat, memo: String) -> Resu
     .await?;
     res.map_err(|err| format!("failed to transfer tokens from user, error: {:?}", err))
 }
-
-#[cfg(all(
-    target_arch = "wasm32",
-    target_vendor = "unknown",
-    target_os = "unknown"
-))]
-/// A getrandom implementation that always fails
-pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}
-
-#[cfg(all(
-    target_arch = "wasm32",
-    target_vendor = "unknown",
-    target_os = "unknown"
-))]
-getrandom::register_custom_getrandom!(always_fail);
 
 ic_cdk::export_candid!();

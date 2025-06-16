@@ -332,7 +332,7 @@ pub mod profile {
 
                     p.active_at = now_ms;
                     m.insert(user, p.clone());
-                    Ok(p.into_info(user, ic_cdk::id(), true))
+                    Ok(p.into_info(user, ic_cdk::api::canister_self(), true))
                 }
                 None => Err("profile not found".to_string()),
             }
@@ -360,7 +360,7 @@ pub mod profile {
             "admin_weak_access_token",
             (
                 Token {
-                    subject: ic_cdk::id(),
+                    subject: ic_cdk::api::canister_self(),
                     audience: image.map(|i| i.0).unwrap_or(ic_oss_bucket),
                     policies: "File.Write".to_string(),
                 },
@@ -445,7 +445,7 @@ pub mod profile {
 
     pub fn get(user: Principal, is_caller: bool) -> Result<types::ProfileInfo, String> {
         PROFILE_STORE.with(|r| match r.borrow_mut().get(&user) {
-            Some(v) => Ok(v.into_info(user, ic_cdk::id(), is_caller)),
+            Some(v) => Ok(v.into_info(user, ic_cdk::api::canister_self(), is_caller)),
             None => Err("profile not found".to_string()),
         })
     }

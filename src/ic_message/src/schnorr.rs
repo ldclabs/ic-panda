@@ -1,4 +1,5 @@
 use candid::{CandidType, Principal};
+use ic_cdk::management_canister as mgt;
 use ic_cose_types::{
     format_error,
     types::{PublicKeyOutput, SchnorrAlgorithm},
@@ -10,10 +11,10 @@ pub fn derive_25519_public_key(
     public_key: &PublicKeyOutput,
     derivation_path: Vec<Vec<u8>>,
 ) -> Result<PublicKeyOutput, String> {
-    let path = ic_crypto_ed25519::DerivationPath::new(
+    let path = ic_ed25519::DerivationPath::new(
         derivation_path
             .into_iter()
-            .map(ic_crypto_ed25519::DerivationIndex)
+            .map(ic_ed25519::DerivationIndex)
             .collect(),
     );
 
@@ -22,8 +23,8 @@ pub fn derive_25519_public_key(
         .to_vec()
         .try_into()
         .map_err(format_error)?;
-    let pk = ic_crypto_ed25519::PublicKey::deserialize_raw(&public_key.public_key)
-        .map_err(format_error)?;
+    let pk =
+        ic_ed25519::PublicKey::deserialize_raw(&public_key.public_key).map_err(format_error)?;
     let (derived_public_key, derived_chain_code) =
         pk.derive_subkey_with_chain_code(&path, &chain_code);
 
@@ -60,24 +61,23 @@ pub struct SchnorrKeyId {
 
 pub async fn schnorr_public_key(
     key_name: String,
-    alg: SchnorrAlgorithm,
+    alg: mgt::SchnorrAlgorithm,
     derivation_path: Vec<Vec<u8>>,
 ) -> Result<PublicKeyOutput, String> {
-    let args = SchnorrPublicKeyArgs {
+    let args = mgt::SchnorrPublicKeyArgs {
         canister_id: None,
         derivation_path,
-        key_id: SchnorrKeyId {
+        key_id: mgt::SchnorrKeyId {
             algorithm: alg,
             name: key_name,
         },
     };
 
-    let (res,): (PublicKeyOutput,) = ic_cdk::call(
-        Principal::management_canister(),
-        "schnorr_public_key",
-        (args,),
-    )
-    .await
-    .map_err(|err| format!("schnorr_public_key failed {:?}", err))?;
-    Ok(res)
+    let rt = mgt::schnorr_public_key(&args)
+        .await
+        .map_err(|err| format!("schnorr_public_key failed {:?}", err))?;
+    Ok(PublicKeyOutput {
+        public_key: ByteBuf::from(rt.public_key),
+        chain_code: ByteBuf::from(rt.chain_code),
+    })
 }

@@ -18,7 +18,7 @@ async fn captcha() -> Result<types::CaptchaOutput, String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOutput, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let key = *store::keys::AIRDROP_KEY;
     let now_sec = ic_cdk::api::time() / SECOND;
     let prize = if !args.challenge.is_empty() {
@@ -130,7 +130,7 @@ async fn prize(_: String) -> Result<types::AirdropStateOutput, String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOutput, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let key = *store::keys::PRIZE_KEY;
     let cryptogram = args
         .code
@@ -196,7 +196,7 @@ async fn claim_prize(args: types::ClaimPrizeInput) -> Result<types::ClaimPrizeOu
 
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn harvest(args: types::AirdropHarvestInput) -> Result<types::AirdropStateOutput, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -261,7 +261,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
         return Err("The lucky draw pool has been drawn empty.".to_string());
     }
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -277,10 +277,10 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     }
 
     let now_sec = ic_cdk::api::time() / SECOND;
-    let rr = ic_cdk::api::management_canister::main::raw_rand()
+    let rr = ic_cdk::management_canister::raw_rand()
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
-    let (x, amount) = luckydraw_amount(&mac_256(&rr.0, b"ICPanda"));
+    let (x, amount) = luckydraw_amount(&mac_256(&rr, b"ICPanda"));
     let is_luckiest = amount == LUCKIEST_AIRDROP_AMOUNT * TOKEN_1;
     let icp = icp01 * ICP_1 / 10;
     let amount = icp01 * amount / 10;
@@ -364,7 +364,7 @@ async fn add_prize(args: types::AddPrizeInputV2) -> Result<types::PrizeOutput, S
     let prize_subsidy =
         store::state::with(|r| r.prize_subsidy.clone()).ok_or("can not add prize currently.")?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -419,7 +419,7 @@ async fn add_prize(args: types::AddPrizeInputV2) -> Result<types::PrizeOutput, S
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn register_name(args: types::NameInput) -> Result<types::NameOutput, String> {
     args.validate()?;
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -472,7 +472,7 @@ async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String
     args.validate()?;
     let old = args.old_name.ok_or("old name is required".to_string())?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }
@@ -504,7 +504,7 @@ async fn update_name(args: types::NameInput) -> Result<types::NameOutput, String
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn unregister_name(args: types::NameInput) -> Result<Nat, String> {
     args.validate()?;
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::user::active(caller) {
         return Err("try again later".to_string());
     }

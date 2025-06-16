@@ -28,7 +28,7 @@ static IC_HOST: &str = "https://icp-api.io";
 const SNAPSHOT_TIME: u64 = 1730419200; // '2024-10-31T24:00:00.000Z'
 const SECOND: u64 = 1_000_000_000;
 const DEFAULT_FEE: u64 = 10_000; // 0.0001 PANDA
-const MIN_AIRDROP_BALANCE: u64 = 1000_000_000_000; // 10000 PANDA
+const MIN_AIRDROP_BALANCE: u64 = 1_000_000_000_000; // 10000 PANDA
 
 // "druyg-tyaaa-aaaaq-aactq-cai" PANDA token canister id
 static TOKEN_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 167, 1, 1]);
@@ -142,13 +142,14 @@ async fn main() -> Result<(), String> {
                             logs.push_str(&log);
                             print!("{}", log);
                             total_e8s += amount;
-                            airdrops
-                                .entry(principal)
-                                .or_default()
-                                .push(Airdrop(amount, None, Some(neuron_id)));
+                            airdrops.entry(principal).or_default().push(Airdrop(
+                                amount,
+                                None,
+                                Some(neuron_id),
+                            ));
                         }
                     }
-                    // pretty_println(&neuron)?;
+                    pretty_println(&neuron)?;
                     neurons.push(neuron);
                 }
             }
@@ -254,14 +255,11 @@ async fn main() -> Result<(), String> {
                         account.subaccount.map(|v| hex::encode(v.as_slice()))
                     ));
                     total_e8s += *amount;
-                    airdrops
-                        .entry(account.owner)
-                        .or_default()
-                        .push(Airdrop(
-                            *amount,
-                            account.subaccount.map(ByteArray::from),
-                            None,
-                        ));
+                    airdrops.entry(account.owner).or_default().push(Airdrop(
+                        *amount,
+                        account.subaccount.map(ByteArray::from),
+                        None,
+                    ));
                 }
             }
 

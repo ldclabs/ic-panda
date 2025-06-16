@@ -21,15 +21,17 @@ where
     In: ArgumentEncoder + Send,
     Out: candid::CandidType + for<'a> candid::Deserialize<'a>,
 {
-    let (res,): (Out,) = ic_cdk::api::call::call_with_payment128(id, method, args, cycles)
+    let res = ic_cdk::call::Call::bounded_wait(id, method)
+        .with_args(&args)
+        .with_cycles(cycles)
         .await
-        .map_err(|(code, msg)| {
-            format!(
-                "failed to call {} on {:?}, code: {}, message: {}",
-                method, &id, code as u32, msg
-            )
-        })?;
-    Ok(res)
+        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, &id, err))?;
+    res.candid().map_err(|err| {
+        format!(
+            "failed to decode response from {} on {:?}, error: {:?}",
+            method, &id, err
+        )
+    })
 }
 
 async fn token_transfer_to(user: Principal, amount: Nat, memo: String) -> Result<Nat, String> {

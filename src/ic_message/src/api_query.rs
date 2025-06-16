@@ -1,7 +1,5 @@
 use candid::Principal;
-use ic_cdk::api::management_canister::main::{
-    canister_status, CanisterIdRecord, CanisterStatusResponse,
-};
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
 use ic_cose_types::{format_error, to_cbor_bytes};
 use ic_message_types::profile::UserInfo;
 use icrc_ledger_types::icrc3::{
@@ -34,11 +32,11 @@ fn get_state() -> Result<types::StateInfo, String> {
 }
 
 #[ic_cdk::query]
-async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
-    store::state::is_manager(&ic_cdk::caller())?;
+async fn get_canister_status() -> Result<CanisterStatusResult, String> {
+    store::state::is_manager(&ic_cdk::api::msg_caller())?;
 
-    let (res,) = canister_status(CanisterIdRecord {
-        canister_id: ic_cdk::id(),
+    let res = canister_status(&CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
     })
     .await
     .map_err(format_error)?;
@@ -86,7 +84,7 @@ fn get_by_username(username: String) -> Result<UserInfo, String> {
 
 #[ic_cdk::query]
 fn get_user(user: Option<Principal>) -> Result<UserInfo, String> {
-    store::user::get(user.unwrap_or(ic_cdk::caller()))
+    store::user::get(user.unwrap_or(ic_cdk::api::msg_caller()))
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]
@@ -96,6 +94,6 @@ fn batch_get_users(ids: BTreeSet<Principal>) -> Result<Vec<UserInfo>, String> {
 
 #[ic_cdk::query(guard = "is_authenticated")]
 fn my_iv() -> Result<ByteBuf, String> {
-    let pk = store::state::ed25519_public_key(&ic_cdk::caller())?;
+    let pk = store::state::ed25519_public_key(&ic_cdk::api::msg_caller())?;
     Ok(pk.public_key)
 }

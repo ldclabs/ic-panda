@@ -237,13 +237,13 @@ pub mod state {
             schnorr_public_key(schnorr_key_name.clone(), SchnorrAlgorithm::Ed25519, vec![])
                 .await
                 .map_err(|err| {
-                    ic_cdk::print(format!(
+                    ic_cdk::api::debug_print(format!(
                         "failed to retrieve Schnorr Ed25519 public key: {err}"
                     ))
                 })
                 .ok();
 
-        let (mut data,) = ic_cdk::api::management_canister::main::raw_rand()
+        let mut data = ic_cdk::management_canister::raw_rand()
             .await
             .expect("failed to generate IV");
         data.truncate(32);
@@ -554,7 +554,7 @@ pub mod user {
             NAME_BLOCKS.with_borrow_mut(|r| {
                 r.append(&blk).expect("failed to append NameBlock");
             });
-            ic_cdk::api::set_certified_data(s.root_hash().as_slice());
+            ic_cdk::api::certified_data_set(s.root_hash().as_slice());
         });
 
         // the user's namespace maybe exists, but we don't care about the result
@@ -566,7 +566,7 @@ pub mod user {
                 visibility: 0,
                 desc: Some(format!("name: {}, $PANDA block: {}", username, blk)),
                 max_payload_size: Some(1024),
-                managers: BTreeSet::from([ic_cdk::id()]),
+                managers: BTreeSet::from([ic_cdk::api::canister_self()]),
                 auditors: BTreeSet::from([caller]),
                 users: BTreeSet::from([caller]),
                 session_expires_in_ms: None,
@@ -704,7 +704,7 @@ pub mod user {
             NAME_BLOCKS.with_borrow_mut(|r| {
                 r.append(&blk).expect("failed to append NameBlock");
             });
-            ic_cdk::api::set_certified_data(s.root_hash().as_slice());
+            ic_cdk::api::certified_data_set(s.root_hash().as_slice());
         });
 
         if new_profile {
@@ -726,7 +726,7 @@ pub mod user {
                     visibility: 0,
                     desc: Some(format!("name: {}", username)),
                     max_payload_size: Some(1024),
-                    managers: BTreeSet::from([ic_cdk::id()]),
+                    managers: BTreeSet::from([ic_cdk::api::canister_self()]),
                     auditors: BTreeSet::from([to]),
                     users: BTreeSet::from([to]),
                     session_expires_in_ms: None,
@@ -782,7 +782,7 @@ pub mod user {
     }
 
     pub fn has_username(user: &Principal) -> bool {
-        USER_STORE.with_borrow(|r| r.get(user).map_or(false, |u| u.username.is_some()))
+        USER_STORE.with_borrow(|r| r.get(user).is_some_and(|u| u.username.is_some()))
     }
 
     pub fn batch_get(ids: BTreeSet<Principal>) -> Vec<UserInfo> {

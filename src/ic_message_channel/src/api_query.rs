@@ -1,6 +1,4 @@
-use ic_cdk::api::management_canister::main::{
-    canister_status, CanisterIdRecord, CanisterStatusResponse,
-};
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
 use ic_cose_types::format_error;
 use std::collections::BTreeSet;
 
@@ -22,11 +20,11 @@ fn get_state() -> Result<types::StateInfo, String> {
 }
 
 #[ic_cdk::query]
-async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
-    store::state::is_manager(&ic_cdk::caller())?;
+async fn get_canister_status() -> Result<CanisterStatusResult, String> {
+    store::state::is_manager(&ic_cdk::api::msg_caller())?;
 
-    let (res,) = canister_status(CanisterIdRecord {
-        canister_id: ic_cdk::id(),
+    let res = canister_status(&CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
     })
     .await
     .map_err(format_error)?;
@@ -38,7 +36,7 @@ async fn get_channel_if_update(
     id: u32,
     updated_at: u64,
 ) -> Result<Option<types::ChannelInfo>, String> {
-    store::channel::get_if_update(ic_cdk::caller(), id, updated_at)
+    store::channel::get_if_update(ic_cdk::api::msg_caller(), id, updated_at)
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]
@@ -47,12 +45,12 @@ async fn batch_get_channels(ids: BTreeSet<u32>) -> Result<Vec<types::ChannelBasi
         return Err("too many channels".to_string());
     }
 
-    Ok(store::channel::batch_get(ic_cdk::caller(), ids))
+    Ok(store::channel::batch_get(ic_cdk::api::msg_caller(), ids))
 }
 
 #[ic_cdk::query(guard = "is_authenticated")]
 async fn my_channel_ids() -> Result<Vec<u32>, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let ids: Vec<u32> = store::state::with(|s| {
         s.user_channels
             .get(&caller)
@@ -66,7 +64,7 @@ async fn my_channel_ids() -> Result<Vec<u32>, String> {
 async fn my_channels_if_update(
     updated_at: Option<u64>,
 ) -> Result<Vec<types::ChannelBasicInfo>, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let updated_at = updated_at.unwrap_or(0);
     let ids: BTreeSet<u32> = store::state::with(|s| {
         s.user_channels
@@ -83,7 +81,7 @@ async fn my_channels_if_update(
 
 #[ic_cdk::query(guard = "is_authenticated")]
 fn get_message(channel: u32, id: u32) -> Result<types::Message, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     store::channel::get_message(caller, channel, id)
 }
 
@@ -93,6 +91,6 @@ fn list_messages(
     start: Option<u32>,
     end: Option<u32>,
 ) -> Result<Vec<types::Message>, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     store::channel::list_messages(caller, channel, start.unwrap_or(0), end.unwrap_or(0))
 }

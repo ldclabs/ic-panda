@@ -7,7 +7,7 @@ fn init() {
     store::state::save();
 
     ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(store::keys::load())
+        ic_cdk::futures::spawn(store::keys::load())
     });
 }
 
@@ -22,7 +22,7 @@ fn post_upgrade() {
     store::state::load();
 
     ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-        ic_cdk::spawn(store::keys::load())
+        ic_cdk::futures::spawn(store::keys::load())
     });
 
     // canister_global_timer can not support unbounded type!!!

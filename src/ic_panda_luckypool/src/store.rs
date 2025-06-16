@@ -615,10 +615,10 @@ pub mod keys {
                 None => vec![],
             };
             if secret.len() != 32 {
-                let rr = ic_cdk::api::management_canister::main::raw_rand()
+                let rr = ic_cdk::management_canister::raw_rand()
                     .await
                     .expect("failed to get random bytes");
-                secret = mac_256(&rr.0, b"CAPTCHA_SECRET").to_vec();
+                secret = mac_256(&rr, b"CAPTCHA_SECRET").to_vec();
             }
             CAPTCHA_SECRET.with(|r| r.borrow_mut().copy_from_slice(&secret));
         }
@@ -1394,7 +1394,7 @@ pub mod state {
         match process_airdrops108().await {
             Ok(true) => {
                 ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-                    ic_cdk::spawn(start_airdrops108())
+                    ic_cdk::futures::spawn(start_airdrops108())
                 });
             }
             Ok(false) => {

@@ -20,6 +20,7 @@ pub async fn build_agent(host: &str, identity: Box<dyn Identity>) -> Result<Agen
     Ok(agent)
 }
 
+#[allow(dead_code)]
 pub async fn update_call<In, Out>(
     agent: &Agent,
     canister_id: &Principal,

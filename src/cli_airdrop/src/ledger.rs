@@ -40,6 +40,7 @@ impl Icrc1Agent {
         Ok(output)
     }
 
+    #[allow(dead_code)]
     pub async fn icrc3_get_archives(
         &self,
         args: GetArchivesArgs,

@@ -140,6 +140,7 @@ impl Neuron {
 }
 
 // "dwv6s-6aaaa-aaaaq-aacta-cai" ICPanda DAO canister id
+#[allow(dead_code)]
 static DAO_CANISTER: Principal = Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 166, 1, 1]);
 
 #[derive(Clone)]

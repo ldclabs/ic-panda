@@ -14,6 +14,7 @@ pub use structured_logger::unix_ms;
 pub static IP_KEY_EXTRACTOR: SmartIpKeyExtractor = SmartIpKeyExtractor {};
 
 pub struct ReqContext {
+    #[allow(dead_code)]
     pub rid: String, // from x-request-id header
     pub unix_ms: u64,
     pub start: Instant,

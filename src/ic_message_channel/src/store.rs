@@ -526,7 +526,7 @@ pub mod channel {
             };
 
             r.borrow_mut().insert(id, channel.clone());
-            Ok(channel.into_info(input.created_by, ic_cdk::id(), id))
+            Ok(channel.into_info(input.created_by, ic_cdk::api::canister_self(), id))
         })
     }
 
@@ -561,7 +561,7 @@ pub mod channel {
                         s.incoming_gas = s.incoming_gas.saturating_add(amount as u128);
                     });
                     m.insert(id, c.clone());
-                    Ok(c.into_info(payer, ic_cdk::id(), id))
+                    Ok(c.into_info(payer, ic_cdk::api::canister_self(), id))
                 }
             }
         })
@@ -726,7 +726,7 @@ pub mod channel {
             let ic_oss_cluster = state::with(|s| s.ic_oss_cluster);
             let ic_oss_cluster =
                 ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
-            let self_id = ic_cdk::id();
+            let self_id = ic_cdk::api::canister_self();
             let token: Result<ByteBuf, String> = call(
                 ic_oss_cluster,
                 "admin_weak_access_token",
@@ -810,7 +810,7 @@ pub mod channel {
         file_max_size: u64,
         now_ms: u64,
     ) -> Result<types::Message, String> {
-        let self_id = ic_cdk::id();
+        let self_id = ic_cdk::api::canister_self();
         let (ic_oss_cluster, ic_oss_bucket) =
             state::with(|s| (s.ic_oss_cluster, s.ic_oss_buckets.last().cloned()));
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
@@ -886,7 +886,7 @@ pub mod channel {
         custom: MapValue,
         now_ms: u64,
     ) -> Result<types::UploadFileOutput, String> {
-        let self_id = ic_cdk::id();
+        let self_id = ic_cdk::api::canister_self();
         let ic_oss_cluster = state::with(|s| s.ic_oss_cluster);
         let ic_oss_cluster = ic_oss_cluster.ok_or_else(|| "ic_oss_cluster not set".to_string())?;
 
@@ -1060,7 +1060,7 @@ pub mod channel {
                 };
 
                 if v.updated_at > updated_at || my_setting.updated_at > updated_at {
-                    Ok(Some(v.into_info(caller, ic_cdk::id(), id)))
+                    Ok(Some(v.into_info(caller, ic_cdk::api::canister_self(), id)))
                 } else {
                     Ok(None)
                 }
@@ -1069,7 +1069,7 @@ pub mod channel {
     }
 
     pub fn batch_get(caller: Principal, ids: BTreeSet<u32>) -> Vec<types::ChannelBasicInfo> {
-        let canister = ic_cdk::id();
+        let canister = ic_cdk::api::canister_self();
         CHANNEL_STORE.with(|r| {
             let m = r.borrow();
             let mut output = Vec::with_capacity(ids.len());

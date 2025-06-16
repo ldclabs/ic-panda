@@ -6,8 +6,9 @@ use std::collections::BTreeSet;
 use crate::{is_controller, store, types};
 
 #[ic_cdk::update(guard = "is_controller")]
-fn admin_add_managers(mut args: BTreeSet<Principal>) -> Result<(), String> {
+fn admin_add_managers(args: BTreeSet<Principal>) -> Result<(), String> {
     validate_principals(&args)?;
+    let mut args = args;
     store::state::with_mut(|r| {
         r.managers.append(&mut args);
         Ok(())
@@ -41,7 +42,7 @@ fn admin_add_canister(kind: types::CanisterKind, id: Principal) -> Result<(), St
 
 #[ic_cdk::update]
 fn admin_upsert_profile(user: Principal, channel: Option<(Principal, u64)>) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
     store::profile::upsert(user, now_ms, channel)
@@ -49,7 +50,7 @@ fn admin_upsert_profile(user: Principal, channel: Option<(Principal, u64)>) -> R
 
 #[ic_cdk::update]
 fn admin_update_profile_ecdh_pub(user: Principal, ecdh_pub: ByteArray<32>) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::state::is_manager(&caller)?;
     store::profile::update_profile_ecdh_pub(user, now_ms, ecdh_pub)

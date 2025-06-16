@@ -20,12 +20,12 @@ ciborium = { workspace = true }
 num-traits = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-getrandom = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-timers = { workspace = true }
+ic-ed25519 = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }
 ic_cose_types = { workspace = true }
 ic-certification = { workspace = true }
 ic-canister-sig-creation = { workspace = true }
-ic-crypto-ed25519 = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
+ic-dummy-getrandom-for-wasm = { workspace = true }

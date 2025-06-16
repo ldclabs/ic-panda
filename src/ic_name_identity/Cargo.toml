@@ -24,5 +24,6 @@ serde_bytes = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-canister-sig-creation = { workspace = true }
 ic-certification = { workspace = true }
-ic-crypto-standalone-sig-verifier = { workspace = true }
-getrandom = { workspace = true }
+ic-dummy-getrandom-for-wasm = { workspace = true }
+ic_auth_types = { workspace = true }
+ic_auth_verifier = { workspace = true }

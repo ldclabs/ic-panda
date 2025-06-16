@@ -196,6 +196,7 @@ where
     format!("{:?}", err)
 }
 
+#[allow(dead_code)]
 fn pretty_println<T>(data: &T) -> Result<(), String>
 where
     T: CandidType,

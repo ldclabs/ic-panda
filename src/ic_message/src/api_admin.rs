@@ -7,8 +7,9 @@ use std::collections::BTreeSet;
 use crate::{is_controller, store, token_transfer_to, types};
 
 #[ic_cdk::update(guard = "is_controller")]
-fn admin_add_managers(mut args: BTreeSet<Principal>) -> Result<(), String> {
+fn admin_add_managers(args: BTreeSet<Principal>) -> Result<(), String> {
     validate_principals(&args)?;
+    let mut args = args;
     store::state::with_mut(|s| {
         s.managers.append(&mut args);
         Ok(())

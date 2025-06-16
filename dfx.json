@@ -60,26 +60,6 @@
       "gzip": true,
       "type": "rust"
     },
-    "ic_panda_infra": {
-      "candid": "src/ic_panda_infra/ic_panda_infra.did",
-      "declarations": {
-        "node_compatibility": true
-      },
-      "package": "ic_panda_infra",
-      "optimize": "cycles",
-      "gzip": true,
-      "type": "rust"
-    },
-    "ic_panda_ai": {
-      "candid": "src/ic_panda_ai/ic_panda_ai.did",
-      "declarations": {
-        "node_compatibility": true
-      },
-      "package": "ic_panda_ai",
-      "optimize": "cycles",
-      "gzip": true,
-      "type": "rust"
-    },
     "ic_panda_frontend": {
       "dependencies": [],
       "build": [

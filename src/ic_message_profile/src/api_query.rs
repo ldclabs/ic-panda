@@ -1,7 +1,5 @@
 use candid::Principal;
-use ic_cdk::api::management_canister::main::{
-    canister_status, CanisterIdRecord, CanisterStatusResponse,
-};
+use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
 use ic_cose_types::format_error;
 
 use crate::{store, types};
@@ -18,11 +16,11 @@ fn get_state() -> Result<types::StateInfo, String> {
 }
 
 #[ic_cdk::query]
-async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
-    store::state::is_manager(&ic_cdk::caller())?;
+async fn get_canister_status() -> Result<CanisterStatusResult, String> {
+    store::state::is_manager(&ic_cdk::api::msg_caller())?;
 
-    let (res,) = canister_status(CanisterIdRecord {
-        canister_id: ic_cdk::id(),
+    let res = canister_status(&CanisterStatusArgs {
+        canister_id: ic_cdk::api::canister_self(),
     })
     .await
     .map_err(format_error)?;
@@ -31,7 +29,7 @@ async fn get_canister_status() -> Result<CanisterStatusResponse, String> {
 
 #[ic_cdk::query]
 fn get_profile(user: Option<Principal>) -> Result<types::ProfileInfo, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let user = user.unwrap_or(caller);
     store::profile::get(user, caller == user)
 }

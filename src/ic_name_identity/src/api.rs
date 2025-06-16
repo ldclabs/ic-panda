@@ -1,13 +1,12 @@
 use candid::Principal;
 use ciborium::into_writer;
+use ic_auth_types::{Delegation, SignInResponse, SignedDelegation};
+use ic_auth_verifier::{user_public_key_from_der, verify_basic_sig};
 use ic_canister_sig_creation::{delegation_signature_msg, CanisterSigPublicKey};
-use ic_crypto_standalone_sig_verifier::{
-    user_public_key_from_bytes, verify_basic_sig_by_public_key,
-};
 use ic_message_types::profile::UserInfo;
 use serde_bytes::ByteBuf;
 
-use crate::types::{Delegation, Delegator, NameAccount, SignInResponse, SignedDelegation};
+use crate::types::{Delegator, NameAccount};
 use crate::{call, store, NAMECHAIN_CANISTER};
 
 const MILLISECONDS: u64 = 1000000;
@@ -19,13 +18,15 @@ fn get_state() -> Result<store::State, String> {
 
 #[ic_cdk::query]
 fn whoami() -> Result<Principal, String> {
-    Ok(ic_cdk::caller())
+    Ok(ic_cdk::api::msg_caller())
 }
 
 #[ic_cdk::query]
 fn get_principal(name: String) -> Result<Principal, String> {
-    let user_key =
-        CanisterSigPublicKey::new(ic_cdk::id(), name.to_ascii_lowercase().as_bytes().to_vec());
+    let user_key = CanisterSigPublicKey::new(
+        ic_cdk::api::canister_self(),
+        name.to_ascii_lowercase().as_bytes().to_vec(),
+    );
     Ok(Principal::self_authenticating(user_key.to_der().as_slice()))
 }
 
@@ -39,8 +40,8 @@ fn get_delegators(name: String) -> Result<Vec<Delegator>, String> {
 
 #[ic_cdk::query]
 fn get_my_accounts() -> Result<Vec<NameAccount>, String> {
-    let caller = ic_cdk::caller();
-    let canister = ic_cdk::id();
+    let caller = ic_cdk::api::msg_caller();
+    let canister = ic_cdk::api::canister_self();
     let names = store::state::get_names(&caller).unwrap_or_default();
     Ok(names
         .into_iter()
@@ -55,7 +56,7 @@ fn get_my_accounts() -> Result<Vec<NameAccount>, String> {
 
 #[ic_cdk::update]
 async fn activate_name(name: String) -> Result<Vec<Delegator>, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
 
     let name = name.to_ascii_lowercase();
     let delegations = store::state::get_delegations(&name);
@@ -79,7 +80,7 @@ fn add_delegator(name: String, delegator: Principal, role: i8) -> Result<Vec<Del
         return Err(format!("invalid status, {}", role));
     }
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
 
     let name = name.to_ascii_lowercase();
     let delegations =
@@ -93,32 +94,33 @@ fn add_delegator(name: String, delegator: Principal, role: i8) -> Result<Vec<Del
 
 #[ic_cdk::update]
 fn remove_delegator(name: String, delegator: Principal) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let name = name.to_ascii_lowercase();
     store::state::remove_delegator(&name, &caller, &delegator)
 }
 
 #[ic_cdk::update]
 fn leave_delegation(name: String) -> Result<(), String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let name = name.to_ascii_lowercase();
     store::state::remove_delegator(&name, &caller, &caller)
 }
 
 #[ic_cdk::update]
 fn sign_in(name: String, pubkey: ByteBuf, sig: ByteBuf) -> Result<SignInResponse, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     let name = name.to_ascii_lowercase();
 
-    let (pk, _) = user_public_key_from_bytes(pubkey.as_slice())
+    let (alg, pk) = user_public_key_from_der(pubkey.as_slice())
         .map_err(|err| format!("invalid public key: {:?}", err))?;
     let mut msg = vec![];
     into_writer(&(&name, &caller), &mut msg).expect("failed to encode Delegations data");
-    verify_basic_sig_by_public_key(pk.algorithm_id, &msg, sig.as_slice(), &pk.key)
+    verify_basic_sig(alg, &pk, &msg, sig.as_slice())
         .map_err(|err| format!("challenge verification failed: {:?}", err))?;
 
-    let user_key = CanisterSigPublicKey::new(ic_cdk::id(), name.as_bytes().to_vec());
+    let user_key =
+        CanisterSigPublicKey::new(ic_cdk::api::canister_self(), name.as_bytes().to_vec());
     store::state::delegator_sign_in(&name, &caller, now_ms)?;
     let session_expires_in_ms = store::state::with_mut(|state| {
         state.sign_in_count = state.sign_in_count.saturating_add(1);
@@ -146,10 +148,10 @@ fn get_delegation(
 
     Ok(SignedDelegation {
         delegation: Delegation {
-            pubkey,
+            pubkey: pubkey.into(),
             expiration,
             targets: None,
         },
-        signature: ByteBuf::from(signature),
+        signature: signature.into(),
     })
 }

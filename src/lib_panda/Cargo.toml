@@ -2,7 +2,7 @@
 name = "lib_panda"
 publish = false
 repository = "https://github.com/ldclabs/ic-panda/tree/main/src/lib_panda"
-version = "0.2.2"
+version = "0.2.3"
 edition.workspace = true
 keywords.workspace = true
 categories.workspace = true

@@ -13,7 +13,7 @@ name = "x-auth"
 path = "src/main.rs"
 
 [dependencies]
-lib_panda = { path = "../lib_panda", version = "0.2.2" }
+lib_panda = { path = "../lib_panda", version = "0.2" }
 bytes = { workspace = true }
 candid = { workspace = true }
 tokio = { workspace = true }

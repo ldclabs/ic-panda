@@ -8,6 +8,7 @@ name = "cli_dmsg"
 path = "src/main.rs"
 
 [dependencies]
+ic_message_types = { path = "../ic_message_types", version = "2" }
 candid = { workspace = true, features = ["value", "printer"] }
 serde = { workspace = true }
 sha2 = { workspace = true }
@@ -17,5 +18,4 @@ ciborium = { workspace = true }
 num-traits = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
-icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
-ic_message_types = { path = "../ic_message_types", version = "2" }
+icrc-ledger-types = { workspace = true }

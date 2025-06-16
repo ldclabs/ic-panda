@@ -92,7 +92,7 @@ fn validate2_admin_set_managers(args: BTreeSet<Principal>) -> Result<String, Str
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_update_airdrop_balance(airdrop_balance: u64) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     store::state::with_mut(|state| state.airdrop_balance = airdrop_balance);
@@ -101,7 +101,7 @@ fn manager_update_airdrop_balance(airdrop_balance: u64) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_update_airdrop_amount(airdrop_amount: u64) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     if airdrop_amount > 100 {
@@ -114,7 +114,7 @@ fn manager_update_airdrop_amount(airdrop_amount: u64) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_add_notification(args: types::Notification) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     store::notification::add(args);
@@ -123,7 +123,7 @@ fn manager_add_notification(args: types::Notification) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_remove_notifications(ids: Vec<u8>) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     store::notification::remove(ids);
@@ -132,7 +132,7 @@ fn manager_remove_notifications(ids: Vec<u8>) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_ban_users(ids: Vec<Principal>) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     store::airdrop::ban_users(ids)
@@ -140,7 +140,7 @@ fn manager_ban_users(ids: Vec<Principal>) -> Result<(), String> {
 
 #[ic_cdk::query(guard = "is_authenticated")]
 fn manager_get_airdrop_key() -> Result<String, String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     Ok(general_purpose::URL_SAFE_NO_PAD.encode(*store::keys::AIRDROP_KEY))
@@ -148,7 +148,7 @@ fn manager_get_airdrop_key() -> Result<String, String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_update_prize_subsidy(subsidy: Option<store::SysPrizeSubsidy>) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     if let Some(ref subsidy) = subsidy {
@@ -185,7 +185,7 @@ fn manager_add_prize(args: types::AddPrizeInput) -> Result<String, String> {
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_add_prize_v2(args: types::AddPrizeInputV2) -> Result<String, String> {
     args.validate()?;
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if !store::state::is_manager(&caller) {
         return Err("user is not a manager".to_string());
     }
@@ -226,7 +226,7 @@ fn manager_add_prize_v2(args: types::AddPrizeInputV2) -> Result<String, String> 
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_set_challenge_pub_key(key: String) -> Result<(), String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     let key = bytes32_from_base64(&key)?;
@@ -236,7 +236,7 @@ fn manager_set_challenge_pub_key(key: String) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_update_airdrops108_ledger_list(data: ByteBuf) -> Result<u64, String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     let now = ic_cdk::api::time();
@@ -270,7 +270,7 @@ fn manager_update_airdrops108_ledger_list(data: ByteBuf) -> Result<u64, String> 
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_update_airdrops108_neurons_list(data: ByteBuf) -> Result<u64, String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
     let now = ic_cdk::api::time();
@@ -304,7 +304,7 @@ fn manager_update_airdrops108_neurons_list(data: ByteBuf) -> Result<u64, String>
 
 #[ic_cdk::update(guard = "is_authenticated")]
 fn manager_start_airdrops108() -> Result<bool, String> {
-    if !store::state::is_manager(&ic_cdk::caller()) {
+    if !store::state::is_manager(&ic_cdk::api::msg_caller()) {
         return Err("user is not a manager".to_string());
     }
 
@@ -314,7 +314,7 @@ fn manager_start_airdrops108() -> Result<bool, String> {
                 airdrops108.status = 1;
                 let delay = AIRDROP108_TIME_NS.saturating_sub(ic_cdk::api::time());
                 ic_cdk_timers::set_timer(Duration::from_nanos(delay), || {
-                    ic_cdk::spawn(store::state::start_airdrops108())
+                    ic_cdk::futures::spawn(store::state::start_airdrops108())
                 });
                 return true;
             }

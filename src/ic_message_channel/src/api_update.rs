@@ -14,7 +14,7 @@ use crate::{
 fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::manager_with_mut(caller, input.id, |c| {
         if let Some(name) = input.name {
@@ -46,7 +46,7 @@ fn update_channel(input: types::UpdateChannelInput) -> Result<types::Message, St
 async fn update_storage(input: types::UpdateChannelStorageInput) -> Result<types::Message, String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::update_storage(input.id, caller, input.file_max_size, now_ms).await
 }
@@ -57,7 +57,7 @@ fn update_manager(
 ) -> Result<(u64, Option<types::Message>), String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::manager_with_mut(caller, input.id, |c| {
         let is_new = match c.managers.entry(input.member) {
@@ -127,7 +127,7 @@ fn update_member(
 ) -> Result<(u64, Option<types::Message>), String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::manager_with_mut(caller, input.id, |c| {
         if c.managers.contains_key(&input.member) {
@@ -187,7 +187,7 @@ fn update_member(
 fn remove_member(input: types::UpdateChannelMemberInput) -> Result<(), String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::remove_member(caller, input.member, input.id, now_ms)?;
     Ok(())
@@ -199,7 +199,7 @@ async fn update_my_setting(
 ) -> Result<types::ChannelSetting, String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::update_my_setting(caller, input, now_ms).await
 }
@@ -211,7 +211,7 @@ async fn leave_channel(
 ) -> Result<(), String> {
     input.validate()?;
 
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::leave(caller, input.id, delete_channel, now_ms).await
 }
@@ -226,7 +226,7 @@ fn add_message(input: types::AddMessageInput) -> Result<types::AddMessageOutput,
         store::Message {
             kind: 0,
             reply_to: input.reply_to.unwrap_or_default(),
-            created_by: ic_cdk::caller(),
+            created_by: ic_cdk::api::msg_caller(),
             created_at: now_ms,
             payload: input.payload,
         },
@@ -244,7 +244,7 @@ fn add_message(input: types::AddMessageInput) -> Result<types::AddMessageOutput,
 fn delete_message(input: types::DeleteMessageInput) -> Result<(), String> {
     input.validate()?;
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    store::channel::delete_message(ic_cdk::caller(), input.channel, input.id, now_ms)
+    store::channel::delete_message(ic_cdk::api::msg_caller(), input.channel, input.id, now_ms)
 }
 
 #[ic_cdk::update(guard = "is_authenticated")]
@@ -252,7 +252,7 @@ fn truncate_messages(input: types::TruncateMessageInput) -> Result<(), String> {
     input.validate()?;
 
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
-    store::channel::truncate_messages(ic_cdk::caller(), input.channel, input.to, now_ms)
+    store::channel::truncate_messages(ic_cdk::api::msg_caller(), input.channel, input.to, now_ms)
 }
 
 #[ic_cdk::update]
@@ -265,7 +265,7 @@ async fn upload_image_token(
         content_type: input.content_type,
     };
     image.validate()?;
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     // image should not be encrypted
     let custom = MapValue::from([
@@ -289,7 +289,7 @@ async fn upload_file_token(
     input: types::UploadFileInput,
 ) -> Result<types::UploadFileOutput, String> {
     input.validate()?;
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     // file should be encrypted by the caller with COSE_Encrypt0
     let custom = MapValue::from([
@@ -310,7 +310,7 @@ async fn upload_file_token(
 
 #[ic_cdk::update]
 async fn download_files_token(channel: u32) -> Result<types::DownloadFilesToken, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let now_ms = ic_cdk::api::time() / MILLISECONDS;
     store::channel::download_files_token(channel, caller, now_ms).await
 }
