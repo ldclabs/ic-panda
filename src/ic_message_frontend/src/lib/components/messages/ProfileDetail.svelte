@@ -155,6 +155,7 @@
               props: {
                 myState: myState,
                 masterKey: mk,
+                iv,
                 onCompleted: () => {
                   isReady = myState.isReady2()
                 }

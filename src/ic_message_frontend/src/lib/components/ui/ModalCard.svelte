@@ -9,10 +9,11 @@
     /** Exposes parent props to this component. */
     parent: SvelteComponent
     width?: string
+    cardClass?: string
     children?: import('svelte').Snippet<[any]>
   }
 
-  let { parent, width = 'w-full', children }: Props = $props()
+  let { parent, width = 'w-full', cardClass = '', children }: Props = $props()
 
   const modalStore = getModalStore()
 
@@ -23,7 +24,7 @@
   <!-- This is a hack to fix the focus issue -->
   <button class="hidden">x</button>
   <div
-    class="card relative lg:mt-12 {width} max-w-[420px] space-y-4 rounded-3xl bg-white p-6 shadow-xl md:mt-8"
+    class="card relative lg:mt-12 {width} max-w-[420px] space-y-4 rounded-3xl bg-white p-6 shadow-xl md:mt-8 {cardClass}"
   >
     <button
       class="z-1 btn btn-icon absolute right-2 top-2 text-neutral-500 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"

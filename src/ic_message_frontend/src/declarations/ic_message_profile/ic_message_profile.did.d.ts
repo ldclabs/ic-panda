@@ -4,7 +4,8 @@ import type { IDL } from '@dfinity/candid';
 
 export type CanisterKind = { 'OssBucket' : null } |
   { 'OssCluster' : null };
-export interface CanisterStatusResponse {
+export interface CanisterStatusResult {
+  'memory_metrics' : MemoryMetrics,
   'status' : CanisterStatusType,
   'memory_size' : bigint,
   'cycles' : bigint,
@@ -26,6 +27,7 @@ export interface ChannelSetting {
 }
 export interface DefiniteCanisterSettings {
   'freezing_threshold' : bigint,
+  'wasm_memory_threshold' : bigint,
   'controllers' : Array<Principal>,
   'reserved_cycles_limit' : bigint,
   'log_visibility' : LogVisibility,
@@ -42,6 +44,16 @@ export interface Link {
 export type LogVisibility = { 'controllers' : null } |
   { 'public' : null } |
   { 'allowed_viewers' : Array<Principal> };
+export interface MemoryMetrics {
+  'wasm_binary_size' : bigint,
+  'wasm_chunk_store_size' : bigint,
+  'canister_history_size' : bigint,
+  'stable_memory_size' : bigint,
+  'snapshots_size' : bigint,
+  'wasm_memory_size' : bigint,
+  'global_memory_size' : bigint,
+  'custom_sections_size' : bigint,
+}
 export interface ProfileInfo {
   'id' : Principal,
   'bio' : string,
@@ -63,7 +75,7 @@ export interface QueryStats {
 }
 export type Result = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_1 = { 'Ok' : CanisterStatusResponse } |
+export type Result_1 = { 'Ok' : CanisterStatusResult } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : ProfileInfo } |
   { 'Err' : string };

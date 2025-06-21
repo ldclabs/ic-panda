@@ -1,4 +1,5 @@
 <script lang="ts">
+  import IconIcLogo from '$lib/components/icons/IconIcLogo.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { authStore } from '$lib/stores/auth'
   import { type SvelteComponent } from 'svelte'
@@ -13,11 +14,9 @@
   let submitting = $state(false)
 </script>
 
-<ModalCard {parent}>
-  <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
-    >Sign In with</div
-  >
-  <div class="!mt-8 flex flex-col items-center space-y-4">
+<ModalCard {parent} cardClass="backdrop-blur-sm bg-white/30">
+  <div class="!mt-0 text-center text-xl font-bold text-white">Sign In with</div>
+  <div class="!mt-8 flex flex-col items-center space-y-6">
     <button
       type="button"
       class="variant-filled-primary btn w-80"
@@ -36,7 +35,8 @@
           })
       }}
     >
-      Internet Identity
+      <span class="mr-2 *:size-6 *:scale-110"><IconIcLogo /></span>
+      <span>Internet Identity</span>
     </button>
     <button
       type="button"
@@ -56,7 +56,7 @@
           })
       }}
     >
-      identity.ic0.app (legacy)
+      <span>identity.ic0.app (legacy)</span>
     </button>
   </div>
 </ModalCard>

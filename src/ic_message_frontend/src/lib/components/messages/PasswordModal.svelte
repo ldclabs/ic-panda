@@ -1,7 +1,6 @@
 <script lang="ts">
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
-  import { authStore } from '$lib/stores/auth'
   import { MasterKey, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import {
@@ -16,6 +15,7 @@
     parent: SvelteComponent
     myState: MyMessageState
     masterKey: MasterKey | null
+    iv: Uint8Array
     onCompleted: () => void
   }
 
@@ -23,6 +23,7 @@
     parent,
     myState,
     masterKey = $bindable(),
+    iv,
     onCompleted
   }: Props = $props()
 
@@ -33,7 +34,6 @@
   let validating = $state(false)
   let submitting = $state(false)
 
-  let isUsernameAccount = $state(!!authStore.identity?.username)
   let isSetup = $state(!masterKey)
   let isReset = $state(false)
   let passwordInput1 = $state('')
@@ -65,8 +65,7 @@
     submitting = true
 
     toastRun(async () => {
-      const kind = myState.masterKeyKind()
-      const myIV = await myState.myIV()
+      let kind = myState.masterKeyKind()
       // master key has been derived
       if (!isReset && (masterKey || pwdHash)) {
         try {
@@ -75,26 +74,32 @@
               passwordInput1,
               myState.id,
               cachedPassword ? PasswordExpire : 0,
-              myIV
+              iv
             )
-            pwdHash = masterKey.passwordHash()
-            await myState.savePasswordHash(pwdHash)
-            await myState.saveMasterKeys()
+          } else if (kind == 'Local') {
+            masterKey = await myState.setMasterKey(
+              'Local',
+              passwordInput1,
+              new Uint8Array(iv),
+              cachedPassword ? PasswordExpire : 0,
+              iv
+            )
           } else {
             const remoteKey = await myState.fetchECDHCoseEncryptedKey()
             const remoteSecret = remoteKey.getSecretKey()
             masterKey = await myState.setMasterKey(
-              kind,
+              'ECDH',
               passwordInput1,
               remoteSecret,
               cachedPassword ? PasswordExpire : 0,
-              myIV
+              iv
             )
           }
 
+          await myState.saveMasterKeys()
           if (masterKey.kind !== kind) {
-            processingTip = 'Migrate encrypted keys to ICP chain ...'
-            await myState.migrateKeys(myIV)
+            processingTip = 'VetKeys: migrate keys to ICP chain ...'
+            await myState.migrateKeys(iv)
           } else {
             await myState.initStaticECDHKey()
           }
@@ -110,6 +115,7 @@
         return
       }
 
+      // setup or reset password
       if (passwordInput1 != passwordInput2) {
         throw new Error('Passwords do not match')
       }
@@ -117,14 +123,12 @@
       let remoteSecret: Uint8Array
       switch (kind) {
         case 'Local':
-          remoteSecret = new Uint8Array(myIV)
-          break
-        case 'ECDH':
-          const remoteKey = await myState.fetchECDHCoseEncryptedKey()
-          remoteSecret = remoteKey.getSecretKey()
+          remoteSecret = new Uint8Array(iv)
           break
         default:
-          throw new Error('Invalid master key kind')
+          kind = 'ECDH' // legacy kind
+          const remoteKey = await myState.fetchECDHCoseEncryptedKey()
+          remoteSecret = remoteKey.getSecretKey()
       }
 
       if (isReset) {
@@ -133,7 +137,7 @@
           passwordInput1,
           remoteSecret,
           cachedPassword ? PasswordExpire : 0,
-          myIV
+          iv
         )
       } else {
         masterKey = await myState.setMasterKey(
@@ -141,12 +145,14 @@
           passwordInput1,
           remoteSecret,
           cachedPassword ? PasswordExpire : 0,
-          myIV
+          iv
         )
-        pwdHash = masterKey.passwordHash()
-        await myState.savePasswordHash(pwdHash)
-        await myState.initStaticECDHKey()
       }
+
+      await myState.saveMasterKeys()
+      pwdHash = masterKey.passwordHash()
+      await myState.savePasswordHash(pwdHash)
+      await myState.initStaticECDHKey()
 
       modalStore.close()
       onCompleted()
@@ -169,6 +175,10 @@
 
   onMount(() => {
     const { abort } = toastRun(async () => {
+      if (masterKey?.kind == 'VetKey') {
+        throw new Error('No password required for VetKey encryption.')
+      }
+
       pwdHash = await myState.getPasswordHash()
       if (pwdHash) {
         isSetup = false
@@ -231,8 +241,7 @@
           new channel key from them.
         </p>
         <p class="text-error-500">
-          <b>3.</b> Otherwise, you won't be able to decrypt messages and will need
-          to leave the channel.
+          <b>3.</b> No password needed after account upgrade.
         </p>
       </div>
     {:else if isSetup}
@@ -246,15 +255,8 @@
           <b>2.</b> We recommend using a simple, easy-to-remember password.
         </p>
         <p class="text-error-500">
-          <b>3.</b> If you forget your password, you won't be able to decrypt your
-          messages.
+          <b>3.</b> No password needed after account upgrade.
         </p>
-        {#if isUsernameAccount}
-          <p class="text-error-500">
-            <b>4.</b> For Permanent Username Accounts, the password is shared to
-            enable team collaboration.
-          </p>
-        {/if}
       </div>
     {/if}
     {#if !isReset}

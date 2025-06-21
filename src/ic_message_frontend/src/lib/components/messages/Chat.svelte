@@ -49,8 +49,11 @@
 
       if (!isReady) {
         const iv = await myState.myIV()
-        const mk = await myState.masterKey(iv)
-        isReady = !!mk && mk.isOpened() && myState.masterKeyKind() === mk.kind
+        const masterKey = await myState.masterKey(iv)
+        isReady =
+          !!masterKey &&
+          masterKey.isOpened() &&
+          myState.masterKeyKind() === masterKey.kind
         if (!isReady) {
           modalStore.close()
 
@@ -59,8 +62,9 @@
             component: {
               ref: PasswordModal,
               props: {
-                myState: myState,
-                masterKey: mk,
+                myState,
+                masterKey,
+                iv,
                 onCompleted: () => {
                   isReady = myState.isReady2()
                 }

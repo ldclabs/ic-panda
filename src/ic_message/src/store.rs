@@ -395,6 +395,7 @@ pub mod user {
             }
         };
 
+        // todo: Remove it after frontend upgrade
         if res.is_ok() {
             let _: Result<(), String> = call(
                 profile_canister,

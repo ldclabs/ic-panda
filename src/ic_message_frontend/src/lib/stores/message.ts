@@ -1,3 +1,4 @@
+import { type SettingPath } from '$lib/canisters/cose'
 import {
   type ChannelECDHInput,
   type MessageCanisterAPI,
@@ -143,7 +144,7 @@ export class MyMessageState {
   }
 
   masterKeyKind(): 'Local' | 'ECDH' | 'VetKey' {
-    return this.agent.hasCOSE ? 'ECDH' : 'Local'
+    return this.agent.hasCOSE ? 'VetKey' : 'Local'
   }
 
   isReady(): boolean {
@@ -174,15 +175,26 @@ export class MyMessageState {
   }
 
   async masterKey(myIV: Uint8Array): Promise<MasterKey | null> {
-    const mk = this._mks.at(-1)
+    let mk = this._mks.at(-1)
     if (!mk || !mk.isUser(this.principal)) {
       let keys = await this.agent.getMasterKeys<MasterKeyInfo>()
-      this._mks = await Promise.all(
-        keys.map((key) => MasterKey.fromInfo(this.principal, key, myIV))
-      )
+      this._mks = keys.map((key) => MasterKey.fromInfo(this.principal, key))
+
+      if (this._mks.length == 0 && this.agent.hasCOSE) {
+        try {
+          mk = await this.fetchMasterKeyWithVetkey(myIV)
+          this._mks.push(mk)
+          await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
+        } catch (_err) {}
+      }
     }
 
-    return this._mks.at(-1) || null
+    mk = this._mks.at(-1)
+    if (mk) {
+      await mk.tryOpen(myIV)
+    }
+
+    return mk || null
   }
 
   async mustMasterKey(): Promise<MasterKey> {
@@ -226,7 +238,6 @@ export class MyMessageState {
     )
 
     this._mks.push(mk)
-    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
     return mk
   }
 
@@ -250,11 +261,6 @@ export class MyMessageState {
 
     this._mks.length = 0
     this._mks.push(mk)
-    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
-
-    const pwdHash = mk.passwordHash()
-    await this.savePasswordHash(pwdHash)
-    await this.initStaticECDHKey()
     return mk
   }
 
@@ -266,46 +272,50 @@ export class MyMessageState {
 
   async migrateKeys(myIV: Uint8Array): Promise<void> {
     const mk = await this.mustMasterKey()
-    if (mk.kind != 'Local') {
-      throw new Error('Master key kind not supported')
-    }
     if (!mk.isOpened()) {
       throw new Error('Master key not opened')
     }
 
-    // save local keys to COSE after username is set
-    const aad = new Uint8Array()
-    const remoteMK = await this.fetchECDHCoseEncryptedKey()
-    const newMK = await mk.toNewMasterKey(
-      'ECDH',
-      KEY_ID,
-      remoteMK.getSecretKey(),
-      myIV
-    )
-    const channels = await this.agent.loadMyChannels()
-    const mKey = mk.toA256GCMKey()
-    const nmKey = newMK.toA256GCMKey()
-    for (const ch of channels) {
-      const encrypted0 = await await this.loadChannelKEK(
-        ch.canister,
-        ch.id
-      ).catch((e) => null)
-      if (!encrypted0) {
-        continue
-      }
+    if (mk.kind != 'Local' && mk.kind != 'ECDH') {
+      return
+    }
 
-      try {
-        let data = await coseA256GCMDecrypt0(mKey, encrypted0, aad)
-        data = await coseA256GCMEncrypt0(nmKey, data, aad)
-        await this.saveChannelKEK(ch.canister, ch.id, data)
-      } catch (err) {
-        console.error('migrateKeys', err)
+    const mKey = mk.toA256GCMKey()
+    const aad = new Uint8Array()
+
+    // reuse existing ECDH master key
+    const newSecret = mk.kind == 'ECDH' ? mKey.getSecret() : randomBytes(32)
+
+    const nKey = AesGcmKey.fromSecret(newSecret, KEY_ID)
+    const newMK = await MasterKey.fromVetkey(nKey, myIV, mk.aad)
+    await this.initMasterKeyWithVetkey(nKey)
+
+    this._mks.push(newMK)
+    await this.saveMasterKeys()
+
+    if (mk.kind == 'Local') {
+      // migrate existing channel KEKs
+      const channels = await this.agent.loadMyChannels()
+      for (const ch of channels) {
+        const encrypted0 = await await this.loadChannelKEK(
+          ch.canister,
+          ch.id
+        ).catch((e) => null)
+        if (!encrypted0) {
+          continue
+        }
+
+        try {
+          let data = await coseA256GCMDecrypt0(mKey, encrypted0, aad)
+          data = await coseA256GCMEncrypt0(nKey, data, aad)
+          await this.saveChannelKEK(ch.canister, ch.id, data)
+        } catch (err) {
+          console.error('migrateKeys', err)
+        }
       }
     }
 
-    this._mks.push(newMK)
-    await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
-    await this.initStaticECDHKey(mKey)
+    await this.initStaticECDHKey(mk.kind == 'Local' ? mKey : undefined)
   }
 
   async fetchECDHCoseEncryptedKey(): Promise<AesGcmKey> {
@@ -339,14 +349,88 @@ export class MyMessageState {
     return AesGcmKey.fromBytes(data)
   }
 
+  async fetchMasterKeyWithVetkey(myIV: Uint8Array): Promise<MasterKey> {
+    const coseAPI = this.agent.coseAPI
+    const path: SettingPath = {
+      ns: this.ns,
+      key: KEY_ID,
+      subject: [this.principal],
+      version: 0,
+      user_owned: true
+    }
+    const aad = this.principal.toUint8Array()
+    const output = await coseAPI.setting_get(path)
+
+    const encrypted0 = output.dek[0] as Uint8Array
+    if (!encrypted0) {
+      throw new Error('Master key not found')
+    }
+    const [vk, _dpk] = await coseAPI.vetkey(path)
+    const kekSecret = vk.deriveSymmetricKey('', 32)
+
+    const data = await coseA256GCMDecrypt0(
+      AesGcmKey.fromSecret(kekSecret),
+      encrypted0,
+      aad
+    )
+    const key = AesGcmKey.fromBytes(data)
+
+    return await MasterKey.fromVetkey(key, myIV, aad)
+  }
+
+  async initMasterKeyWithVetkey(mKey: AesGcmKey): Promise<void> {
+    const coseAPI = this.agent.coseAPI
+    const path: SettingPath = {
+      ns: this.ns,
+      key: KEY_ID,
+      subject: [this.principal],
+      version: 0,
+      user_owned: true
+    }
+    const aad = this.principal.toUint8Array()
+    try {
+      const output = await coseAPI.setting_get(path)
+      if (output) {
+        throw new Error('Master key already exists')
+      }
+    } catch (_err) {}
+
+    const [vk, _dpk] = await coseAPI.vetkey(path)
+    const kekSecret = vk.deriveSymmetricKey('', 32)
+
+    const encrypted0 = await coseA256GCMEncrypt0(
+      AesGcmKey.fromSecret(kekSecret),
+      mKey.toBytes(),
+      aad,
+      KEY_ID
+    )
+
+    await coseAPI.setting_create(path, {
+      dek: [encrypted0],
+      status: [],
+      payload: [],
+      desc: [],
+      tags: []
+    })
+  }
+
   async initStaticECDHKey(prevMK?: AesGcmKey): Promise<void> {
     const mk = (await this.mustMasterKey()).toA256GCMKey()
     const aad = this.principal.toUint8Array()
     try {
       let encrypted0 = await this.loadStaticECDHKey()
-      const data = await coseA256GCMDecrypt0(prevMK || mk, encrypted0, aad)
-      this._ek = ECDHKey.fromBytes(data)
-      if (prevMK) {
+
+      try {
+        const data = await coseA256GCMDecrypt0(prevMK || mk, encrypted0, aad)
+        this._ek = ECDHKey.fromBytes(data)
+      } catch (_err) {
+        if (prevMK) {
+          const data = await coseA256GCMDecrypt0(mk, encrypted0, aad)
+          this._ek = ECDHKey.fromBytes(data)
+        }
+      }
+
+      if (prevMK && this._ek) {
         encrypted0 = await coseA256GCMEncrypt0(
           mk,
           this._ek.toBytes(),
@@ -369,26 +453,27 @@ export class MyMessageState {
   }
 
   async loadStaticECDHKey(): Promise<Uint8Array> {
-    const ek = await this.agent.getECDHKey()
-    if (ek) {
-      return ek
+    let ek = await this.agent.getECDHKey()
+    if (this.agent.hasCOSE) {
+      // always fetch the latest ECDH key from COSE
+      const coseAPI = this.agent.coseAPI
+      const output = await coseAPI.setting_get({
+        ns: this.ns,
+        key: utf8ToBytes('StaticECDH'),
+        subject: [this.principal],
+        version: 0,
+        user_owned: false
+      })
+
+      ek = output.dek[0] as Uint8Array
+      await this.agent.setECDHKey(ek)
     }
 
-    const coseAPI = this.agent.coseAPI
-    const output = await coseAPI.setting_get({
-      ns: this.ns,
-      key: utf8ToBytes('StaticECDH'),
-      subject: [this.principal],
-      version: 0,
-      user_owned: false
-    })
-
-    if (!output.dek[0]) {
+    if (!ek) {
       throw new Error('Static ECDH not found')
     }
 
-    await this.agent.setECDHKey(output.dek[0] as Uint8Array)
-    return output.dek[0] as Uint8Array
+    return ek
   }
 
   async saveStaticECDHKey(
@@ -399,7 +484,12 @@ export class MyMessageState {
 
     if (this.agent.hasCOSE) {
       await this.api.update_my_ecdh(ecdh_pub, encrypted0)
-    } else {
+    }
+    const profile = await this.agent.fetchProfile()
+    if (
+      !profile.ecdh_pub[0] ||
+      compareBytes(profile.ecdh_pub[0] as Uint8Array, ecdh_pub) !== 0
+    ) {
       await this.agent.profileAPI.update_profile_ecdh_pub(ecdh_pub)
     }
   }
@@ -1000,21 +1090,21 @@ export class MyMessageState {
 interface MasterKeyInfo {
   kind: 'Local' | 'ECDH' | 'VetKey'
   keyId: Uint8Array
-  passwordSecrect: Uint8Array | null
+  passwordSecrect: Uint8Array
   encryptedSecret: Uint8Array
   passwordExpireAt: number
-  version?: number
+  version: number
 }
 
 export class MasterKey {
   readonly kind: 'Local' | 'ECDH' | 'VetKey'
   readonly keyId: Uint8Array
   readonly version: number
-  private readonly aad: Uint8Array
-  private readonly encryptedSecret: Uint8Array
+  readonly aad: Uint8Array
   private passwordExpireAt: number
-  private passwordSecrect: Uint8Array | null = null
-  private secret: Uint8Array | null = null
+  private passwordSecrect: Uint8Array
+  private readonly encryptedSecret: Uint8Array
+  private aesGcmKey: AesGcmKey | null = null
 
   static async from(
     user: Principal,
@@ -1050,35 +1140,50 @@ export class MasterKey {
       2,
       encryptedSecret,
       aad,
-      passwordExpireAt
+      passwordExpireAt,
+      passwordSecrect
     )
-    mk.passwordSecrect = passwordSecrect
-    mk.secret = secret
+
+    mk.aesGcmKey = key
     return mk
   }
 
-  static async fromInfo(
-    user: Principal,
-    info: MasterKeyInfo,
-    myIV?: Uint8Array
+  static async fromVetkey(
+    mKey: AesGcmKey,
+    myIV: Uint8Array,
+    aad: Uint8Array
   ): Promise<MasterKey> {
+    const passwordSecrect = new Uint8Array()
+    const kek = deriveA256GCMSecret(passwordSecrect, myIV)
+    const encryptedSecret = await coseA256GCMEncrypt0(
+      AesGcmKey.fromSecret(kek),
+      mKey.toBytes(),
+      aad
+    )
+
     const mk = new MasterKey(
+      'VetKey',
+      KEY_ID,
+      2,
+      encryptedSecret,
+      aad,
+      0,
+      passwordSecrect
+    )
+    mk.aesGcmKey = mKey
+    return mk
+  }
+
+  static fromInfo(user: Principal, info: MasterKeyInfo): MasterKey {
+    return new MasterKey(
       info.kind,
       info.keyId,
       info.version || 1,
       info.encryptedSecret,
       user.toUint8Array(),
-      info.passwordExpireAt
+      info.passwordExpireAt,
+      info.passwordSecrect
     )
-
-    if (info.passwordSecrect && info.passwordExpireAt >= Date.now()) {
-      if (mk.version !== 2) {
-        await mk._open(info.passwordSecrect)
-      } else if (myIV) {
-        await mk._openV2(info.passwordSecrect, myIV)
-      }
-    }
-    return mk
   }
 
   constructor(
@@ -1087,7 +1192,8 @@ export class MasterKey {
     version: number,
     encryptedSecret: Uint8Array,
     aad: Uint8Array,
-    passwordExpireAt: number
+    passwordExpireAt: number,
+    passwordSecrect: Uint8Array
   ) {
     this.kind = kind
     this.keyId = keyId
@@ -1095,6 +1201,15 @@ export class MasterKey {
     this.aad = aad
     this.encryptedSecret = encryptedSecret
     this.passwordExpireAt = passwordExpireAt
+    this.passwordSecrect = passwordSecrect
+  }
+
+  async tryOpen(myIV: Uint8Array): Promise<void> {
+    if (this.kind == 'VetKey' || this.passwordExpireAt >= Date.now()) {
+      try {
+        await this._openV2(this.passwordSecrect, myIV)
+      } catch (_err) {}
+    }
   }
 
   async open(
@@ -1104,27 +1219,16 @@ export class MasterKey {
     myIV: Uint8Array
   ): Promise<void> {
     this.passwordExpireAt = passwordExpire > 0 ? passwordExpire + Date.now() : 0
-    return this.version !== 2
-      ? await this._open(hashPassword(password, salt))
-      : await this._openV2(hashPassword(password, salt), myIV)
-  }
+    const passwordSecrect =
+      this.kind == 'VetKey' ? new Uint8Array() : hashPassword(password, salt)
 
-  private async _open(passwordSecrect: Uint8Array): Promise<void> {
-    this.passwordSecrect = passwordSecrect
-    const data = await coseA256GCMDecrypt0(
-      AesGcmKey.fromSecret(this.passwordSecrect),
-      this.encryptedSecret,
-      this.aad
-    )
-    const key = AesGcmKey.fromBytes(data)
-    this.secret = key.getSecretKey()
+    await this._openV2(passwordSecrect, myIV)
   }
 
   private async _openV2(
     passwordSecrect: Uint8Array,
     myIV: Uint8Array
   ): Promise<void> {
-    this.passwordSecrect = passwordSecrect
     const kek = deriveA256GCMSecret(passwordSecrect, myIV)
     const data = await coseA256GCMDecrypt0(
       AesGcmKey.fromSecret(kek),
@@ -1132,11 +1236,12 @@ export class MasterKey {
       this.aad
     )
     const key = AesGcmKey.fromBytes(data)
-    this.secret = key.getSecretKey()
+    this.passwordSecrect = passwordSecrect
+    this.aesGcmKey = key
   }
 
   isOpened(): boolean {
-    return this.secret != null
+    return this.aesGcmKey != null
   }
 
   cachedPassword(): boolean {
@@ -1152,83 +1257,22 @@ export class MasterKey {
       kind: this.kind,
       keyId: this.keyId,
       version: this.version,
-      passwordSecrect:
-        this.passwordExpireAt > Date.now() ? this.passwordSecrect : null,
+      passwordSecrect: this.passwordSecrect,
       encryptedSecret: this.encryptedSecret,
       passwordExpireAt: this.passwordExpireAt
     }
   }
 
   toA256GCMKey(): AesGcmKey {
-    if (!this.secret) {
+    if (!this.aesGcmKey) {
       throw new Error('master key is not opened')
     }
 
-    return AesGcmKey.fromSecret(this.secret, this.keyId)
+    return this.aesGcmKey
   }
 
   passwordHash(): Uint8Array {
-    if (!this.passwordSecrect) {
-      throw new Error('master key is not opened')
-    }
-
     return hmac3_256(KEY_ID, this.passwordSecrect)
-  }
-
-  async toV2MasterKey(myIV: Uint8Array): Promise<MasterKey> {
-    if (!this.secret || !this.passwordSecrect) {
-      throw new Error('master key is not opened')
-    }
-
-    const kek = deriveA256GCMSecret(this.passwordSecrect, myIV)
-    const key = AesGcmKey.fromSecret(this.secret, this.keyId)
-    const encryptedSecret = await coseA256GCMEncrypt0(
-      AesGcmKey.fromSecret(kek),
-      key.toBytes(),
-      this.aad
-    )
-    const mk = new MasterKey(
-      this.kind,
-      this.keyId,
-      2,
-      encryptedSecret,
-      this.aad,
-      this.passwordExpireAt
-    )
-    mk.passwordSecrect = this.passwordSecrect
-    mk.secret = this.secret
-    return mk
-  }
-
-  async toNewMasterKey(
-    kind: 'ECDH' | 'VetKey',
-    keyId: Uint8Array,
-    remoteSecret: Uint8Array,
-    myIV: Uint8Array
-  ): Promise<MasterKey> {
-    if (!this.secret || !this.passwordSecrect) {
-      throw new Error('master key is not opened')
-    }
-
-    const kek = deriveA256GCMSecret(this.passwordSecrect, myIV)
-    const secret = deriveA256GCMSecret(this.passwordSecrect, remoteSecret)
-    const key = AesGcmKey.fromSecret(secret, keyId)
-    const encryptedSecret = await coseA256GCMEncrypt0(
-      AesGcmKey.fromSecret(kek),
-      key.toBytes(),
-      this.aad
-    )
-    const mk = new MasterKey(
-      kind,
-      keyId,
-      2,
-      encryptedSecret,
-      this.aad,
-      this.passwordExpireAt
-    )
-    mk.passwordSecrect = this.passwordSecrect
-    mk.secret = secret
-    return mk
   }
 
   async generateChannelKey(

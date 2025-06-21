@@ -105,7 +105,11 @@
   {/if}
 </svelte:head>
 
-<Modal position="items-start" class="*:max-h-full" />
+<Modal
+  position="items-start"
+  class="*:max-h-full"
+  regionBackdrop="!bg-black/10"
+/>
 
 <Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
 
