@@ -85,7 +85,10 @@ export async function setUser(now: number, info: UserInfo): Promise<void> {
 }
 
 export async function getProfile(user: Principal): Promise<ProfileInfo | null> {
-  return await KVS.get<ProfileInfo>('Profiles', user.toUint8Array())
+  return await KVS.get<ProfileInfo>(
+    'Profiles',
+    user.toUint8Array() as BufferSource
+  )
 }
 
 export async function setProfile(info: ProfileInfo): Promise<void> {

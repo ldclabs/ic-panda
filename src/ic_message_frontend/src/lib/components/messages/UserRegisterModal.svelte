@@ -250,10 +250,15 @@
           disabled={!!usernameAccount ||
             submitting ||
             (editMode && username != '')}
-          placeholder="{APP_ORIGIN}/{username || '[username]'}"
+          placeholder=""
           data-focusindex="0"
         />
       </label>
+      <div class="h-10 text-sm text-success-600"
+        >Profile URL:<span class="ml-2"
+          >{APP_ORIGIN}/{usernameInput || '[username]'}</span
+        ></div
+      >
       {#if usernameErr}
         <div class="h-10 text-sm text-error-500">{usernameErr}</div>
       {:else}
@@ -295,22 +300,27 @@
       {:else}
         <div class="mt-2 space-y-1">
           <p class="">
-            <b>Adding a username is optional. If you register one, you will:</b>
+            <b>Set a username to upgrade account, you will:</b>
           </p>
           <p class="indent-4">
-            <b>1.</b> Securely store and sync your keys across devices.
+            <b>1.</b> Securely store and sync your keys across devices with
+            <a
+              class="text-primary-500 underline underline-offset-4"
+              href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
+              target="_blank">vetKeys</a
+            >.
             <span class="text-error-500"
-              >Without a username, keys are only saved in your browser, and
-              clearing browser data or device issues could lead to permanent key
-              loss, making messages unreadable.</span
+              >Otherwise, keys are only saved in your browser, and clearing
+              browser data or device issues could lead to permanent key loss,
+              making messages unreadable.</span
             >
           </p>
           <p class="indent-4">
-            <b>2.</b> Create a personal profile page to showcase your identity.
+            <b>2.</b> Have a public profile page to showcase your identity.
           </p>
           <p class="indent-4">
-            <b>3.</b> Usernames are permanent but transferable. You can transfer
-            your username to another user and set a new one afterward.
+            <b>3.</b> Username is permanent but transferable. You can transfer it
+            to another user and set a new one afterward.
           </p>
         </div>
       {/if}

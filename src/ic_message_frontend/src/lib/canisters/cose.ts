@@ -6,9 +6,10 @@ import {
   type ECDHOutput,
   type SettingInfo,
   type SettingPath,
+  type UpdateSettingPayloadInput,
   type _SERVICE
 } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
-import { unwrapResult } from '$lib/types/result'
+import { unwrapNotFound, unwrapResult } from '$lib/types/result'
 import { Principal } from '@dfinity/principal'
 import {
   DerivedPublicKey,
@@ -68,11 +69,78 @@ export class CoseAPI {
     return unwrapResult(res, 'call setting_get failed')
   }
 
+  async setting_try_get(path: SettingPath): Promise<SettingInfo | null> {
+    const res = await this.actor.setting_get(path)
+    return unwrapNotFound(res, 'call setting_get failed')
+  }
+
+  // returns: [SettingInfo, fallback]
+  async setting_get_or_migrate(path: SettingPath): Promise<SettingInfo> {
+    let res = await this.actor.setting_get(path)
+    let rt = unwrapNotFound(res, 'call setting_get failed')
+    if (!rt && path.user_owned) {
+      res = await this.actor.setting_get({ ...path, user_owned: false })
+      rt = unwrapResult(res, 'call setting_get failed')
+
+      await this.setting_create(path, {
+        dek: rt.dek,
+        payload: rt.payload,
+        status: [],
+        desc: [],
+        tags: []
+      })
+        .then((r) => {
+          console.log(`migrate setting ${JSON.stringify(path)}`, r)
+        })
+        .catch((e) => {
+          console.error(`Failed to create setting ${JSON.stringify(path)}`, e)
+        })
+    }
+
+    if (!rt) {
+      throw new Error(`NotFound: Setting not found, ${JSON.stringify(path)}`)
+    }
+
+    return rt
+  }
+
   async setting_create(
     path: SettingPath,
     input: CreateSettingInput
   ): Promise<CreateSettingOutput> {
     const res = await this.actor.setting_create(path, input)
     return unwrapResult(res, 'call setting_create failed')
+  }
+
+  async setting_update_payload(
+    path: SettingPath,
+    input: UpdateSettingPayloadInput
+  ): Promise<CreateSettingOutput> {
+    const res = await this.actor.setting_update_payload(path, input)
+    return unwrapResult(res, 'call setting_create failed')
+  }
+
+  async setting_upsert(
+    path: SettingPath,
+    input: CreateSettingInput
+  ): Promise<CreateSettingOutput> {
+    const res = await this.actor.setting_get(path)
+    let rt = unwrapNotFound(res, 'call setting_get failed')
+
+    if (rt) {
+      // update
+      return this.setting_update_payload(
+        { ...path, version: rt.version },
+        {
+          dek: input.dek,
+          payload: input.payload,
+          status: [],
+          deprecate_current: []
+        }
+      )
+    } else {
+      // create
+      return this.setting_create(path, input)
+    }
   }
 }

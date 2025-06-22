@@ -25,21 +25,18 @@
     type DisplayUserInfo,
     type MyMessageState
   } from '$lib/stores/message'
-  import { MessageAgent } from '$lib/stores/message_agent'
   import { ErrorLogs, toastRun } from '$lib/stores/toast'
   import { errMessage, unwrapOption } from '$lib/types/result'
   import { shortId } from '$lib/utils/auth'
   import { getCurrentTimeString, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
-  import { isNotificationSupported } from '$lib/utils/window'
   import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
   import { Principal } from '@dfinity/principal'
   import {
     Avatar,
     getModalStore,
     getToastStore,
-    LightSwitch,
-    SlideToggle
+    LightSwitch
   } from '@skeletonlabs/skeleton'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
@@ -72,10 +69,6 @@
   const srcIdentity = authStore.srcIdentity?.getPrincipal().toText() || ''
 
   let myInfo: Readable<(UserInfo & ProfileInfo) | null> | undefined = $state()
-
-  let grantedNotification = $state(
-    isNotificationSupported && Notification.permission === 'granted'
-  )
   let displayDebug = $state(false)
 
   let pathname = $derived(page?.url?.pathname || '')
@@ -297,26 +290,26 @@
     }
   }
 
-  async function onRequestNotifications() {
-    await sleep(1000)
-    if (grantedNotification) {
-      if (Notification.permission !== 'granted') {
-        const perm = await Notification.requestPermission()
-        grantedNotification = perm === 'granted'
-        await myState.agent.setLocal<string>(MessageAgent.KEY_NOTIFY_PERM, perm)
-      } else {
-        await myState.agent.setLocal<string>(
-          MessageAgent.KEY_NOTIFY_PERM,
-          'granted'
-        )
-      }
-    } else {
-      await myState.agent.setLocal<string>(
-        MessageAgent.KEY_NOTIFY_PERM,
-        'denied'
-      )
-    }
-  }
+  // async function onRequestNotifications() {
+  //   await sleep(1000)
+  //   if (grantedNotification) {
+  //     if (Notification.permission !== 'granted') {
+  //       const perm = await Notification.requestPermission()
+  //       grantedNotification = perm === 'granted'
+  //       await myState.agent.setLocal<string>(MessageAgent.KEY_NOTIFY_PERM, perm)
+  //     } else {
+  //       await myState.agent.setLocal<string>(
+  //         MessageAgent.KEY_NOTIFY_PERM,
+  //         'granted'
+  //       )
+  //     }
+  //   } else {
+  //     await myState.agent.setLocal<string>(
+  //       MessageAgent.KEY_NOTIFY_PERM,
+  //       'denied'
+  //     )
+  //   }
+  // }
 
   let editLinkSubmitting = $state(-1)
   async function onEditLink(link: Link | null = null, index: number = -1) {
@@ -476,12 +469,6 @@
     onfinally(async () => {
       await tick()
 
-      const perm = await myState.agent.getLocal<string>(
-        MessageAgent.KEY_NOTIFY_PERM
-      )
-      if (perm === 'denied') {
-        grantedNotification = false
-      }
       await loadMyFollowing()
     })
     return abort
@@ -732,16 +719,6 @@
         <div class="flex flex-row items-center gap-4">
           <p>Dark mode:</p>
           <LightSwitch />
-        </div>
-        <div class="flex flex-row items-center gap-4">
-          <p>Notifications:</p>
-          <SlideToggle
-            name="setting-mute"
-            active="bg-panda"
-            size="sm"
-            bind:checked={grantedNotification}
-            on:click={onRequestNotifications}
-          />
         </div>
       </div>
       {#if displayDebug}

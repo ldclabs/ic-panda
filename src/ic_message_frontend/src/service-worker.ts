@@ -6,8 +6,6 @@ import {
   precacheAndRoute,
   type PrecacheEntry
 } from 'workbox-precaching'
-// 'service worker script execution timed out' in safari
-// import { notifyd } from './lib/services/notification.sw'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -24,5 +22,3 @@ if (indexHtml) {
 }
 precacheAndRoute(precaches)
 cleanupOutdatedCaches()
-
-// notifyd()

@@ -182,7 +182,7 @@ export class MyMessageState {
 
       if (this._mks.length == 0 && this.agent.hasCOSE) {
         try {
-          mk = await this.fetchMasterKeyWithVetkey(myIV)
+          mk = await this.fetchOrInitMasterKeyWithVetkey(myIV)
           this._mks.push(mk)
           await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
         } catch (_err) {}
@@ -349,7 +349,7 @@ export class MyMessageState {
     return AesGcmKey.fromBytes(data)
   }
 
-  async fetchMasterKeyWithVetkey(myIV: Uint8Array): Promise<MasterKey> {
+  async fetchOrInitMasterKeyWithVetkey(myIV: Uint8Array): Promise<MasterKey> {
     const coseAPI = this.agent.coseAPI
     const path: SettingPath = {
       ns: this.ns,
@@ -359,7 +359,20 @@ export class MyMessageState {
       user_owned: true
     }
     const aad = this.principal.toUint8Array()
-    const output = await coseAPI.setting_get(path)
+    const output = await coseAPI.setting_try_get(path)
+
+    if (!output) {
+      const pwdHash = await this.getPasswordHash()
+      if (pwdHash) {
+        throw new Error('ECDH master key exists')
+      }
+
+      const newSecret = randomBytes(32)
+      const nKey = AesGcmKey.fromSecret(newSecret, KEY_ID)
+      const newMK = await MasterKey.fromVetkey(nKey, myIV, aad)
+      await this.initMasterKeyWithVetkey(nKey)
+      return newMK
+    }
 
     const encrypted0 = output.dek[0] as Uint8Array
     if (!encrypted0) {
@@ -388,13 +401,6 @@ export class MyMessageState {
       user_owned: true
     }
     const aad = this.principal.toUint8Array()
-    try {
-      const output = await coseAPI.setting_get(path)
-      if (output) {
-        throw new Error('Master key already exists')
-      }
-    } catch (_err) {}
-
     const [vk, _dpk] = await coseAPI.vetkey(path)
     const kekSecret = vk.deriveSymmetricKey('', 32)
 
@@ -423,10 +429,12 @@ export class MyMessageState {
       try {
         const data = await coseA256GCMDecrypt0(prevMK || mk, encrypted0, aad)
         this._ek = ECDHKey.fromBytes(data)
-      } catch (_err) {
+      } catch (err) {
         if (prevMK) {
           const data = await coseA256GCMDecrypt0(mk, encrypted0, aad)
           this._ek = ECDHKey.fromBytes(data)
+        } else {
+          throw err
         }
       }
 
@@ -457,12 +465,12 @@ export class MyMessageState {
     if (this.agent.hasCOSE) {
       // always fetch the latest ECDH key from COSE
       const coseAPI = this.agent.coseAPI
-      const output = await coseAPI.setting_get({
+      const output = await coseAPI.setting_get_or_migrate({
         ns: this.ns,
         key: utf8ToBytes('StaticECDH'),
         subject: [this.principal],
         version: 0,
-        user_owned: false
+        user_owned: true
       })
 
       ek = output.dek[0] as Uint8Array
@@ -483,8 +491,24 @@ export class MyMessageState {
     await this.agent.setECDHKey(encrypted0)
 
     if (this.agent.hasCOSE) {
-      await this.api.update_my_ecdh(ecdh_pub, encrypted0)
+      await this.agent.coseAPI.setting_upsert(
+        {
+          ns: this.ns,
+          key: utf8ToBytes('StaticECDH'),
+          subject: [this.principal],
+          version: 0,
+          user_owned: true
+        },
+        {
+          dek: [encrypted0],
+          status: [],
+          desc: [],
+          tags: [],
+          payload: []
+        }
+      )
     }
+
     const profile = await this.agent.fetchProfile()
     if (
       !profile.ecdh_pub[0] ||
@@ -494,15 +518,13 @@ export class MyMessageState {
     }
   }
 
-  async loadMyKV(): Promise<Map<string, Uint8Array>> {
-    return await this.agent.getKV()
-  }
-
+  // DEPRECATED
   async getPasswordHash(): Promise<Uint8Array | null> {
     const kv = await this.agent.getKV()
     return kv.get(PWD_HASH_KEY) || null
   }
 
+  // DEPRECATED
   async savePasswordHash(hash: Uint8Array): Promise<void> {
     if (this.agent.hasCOSE) {
       await this.api.update_my_kv({
@@ -537,12 +559,12 @@ export class MyMessageState {
     if (kek) {
       return kek
     }
-    const output = await this.agent.coseAPI.setting_get({
+    const output = await this.agent.coseAPI.setting_get_or_migrate({
       ns: this.ns,
       key: encodeCBOR([canister.toUint8Array(), id]),
       subject: [this.principal],
       version: 0,
-      user_owned: false
+      user_owned: true
     })
 
     kek = output.dek[0] as Uint8Array
@@ -562,11 +584,22 @@ export class MyMessageState {
     await this.agent.setKEK(canister, id, kek)
 
     if (this.agent.hasCOSE) {
-      await this.api.save_channel_kek({
-        id,
-        canister,
-        kek
-      })
+      await this.agent.coseAPI.setting_upsert(
+        {
+          ns: this.ns,
+          key: encodeCBOR([canister.toUint8Array(), id]),
+          subject: [this.principal],
+          version: 0,
+          user_owned: true
+        },
+        {
+          dek: [kek],
+          status: [],
+          desc: [],
+          tags: [],
+          payload: []
+        }
+      )
     }
   }
 

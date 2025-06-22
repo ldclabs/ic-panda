@@ -87,6 +87,7 @@ fn update_my_image(image: String) -> Result<(), String> {
     store::user::update_image(caller, image)
 }
 
+// DEPRECATED
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdh: ByteBuf) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
@@ -94,6 +95,7 @@ async fn update_my_ecdh(ecdh_pub: ByteArray<32>, encrypted_ecdh: ByteBuf) -> Res
     store::user::update_my_ecdh(caller, ecdh_pub, encrypted_ecdh).await
 }
 
+// DEPRECATED
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn update_my_kv(input: UpdateKVInput) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
@@ -119,6 +121,7 @@ async fn topup_channel(input: ChannelTopupInput) -> Result<ChannelInfo, String> 
     store::channel::topup_channel(caller, input).await
 }
 
+// DEPRECATED
 #[ic_cdk::update(guard = "is_authenticated")]
 async fn save_channel_kek(input: ChannelKEKInput) -> Result<(), String> {
     let caller = ic_cdk::api::msg_caller();
