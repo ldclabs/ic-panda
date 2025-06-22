@@ -22,4 +22,5 @@
 1_114 5szpn-tiaaa-aaaaj-qncoq-cai admin_update_bucket_canister_settings
 1_115 5szpn-tiaaa-aaaaj-qncoq-cai admin_deploy_bucket
 1_116 n3bau-gaaaa-aaaaj-qa4oq-cai admin_remove_managers
+1_117 n3bau-gaaaa-aaaaj-qa4oq-cai admin_add_allowed_apis
 2_000 7i4z4-fyaaa-aaaap-anzsa-cai transferPosition
