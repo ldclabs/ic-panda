@@ -511,16 +511,24 @@
             href={link}>@{display.username}</a
           >
           <TextClipboardButton textValue={link} />
+          <button
+            type="button"
+            class="btn absolute right-[-32px] top-1 p-0 text-neutral-500 hover:text-surface-900-50-token"
+            onclick={onMeHandler}
+          >
+            <span class="*:size-5"><IconEditLine /></span>
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="btn absolute right-[-108px] top-1 p-0 text-primary-500 hover:text-surface-900-50-token"
+            onclick={onMeHandler}
+          >
+            <span class="animate-bounce *:size-5"><IconEditLine /></span><span
+              >Upgrade</span
+            >
+          </button>
         {/if}
-        <button
-          type="button"
-          class="btn absolute right-[-28px] top-1 {display.username
-            ? 'text-neutral-500'
-            : 'animate-bounce text-primary-500'} p-0 hover:text-surface-900-50-token"
-          onclick={onMeHandler}
-        >
-          <span class="*:size-5"><IconEditLine /></span>
-        </button>
       </p>
       {#if $myInfo.bio}
         <div class="content-markdown">

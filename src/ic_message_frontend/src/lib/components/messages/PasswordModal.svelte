@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { MasterKey, type MyMessageState } from '$lib/stores/message'
@@ -61,6 +62,13 @@
     passwordTip = ''
   }
 
+  function onUpgrade(e: MouseEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    modalStore.close()
+    goto('/_/profile')
+  }
+
   function onConfirm() {
     submitting = true
 
@@ -98,7 +106,7 @@
 
           await myState.saveMasterKeys()
           if (masterKey.kind !== kind) {
-            processingTip = 'VetKeys: migrate keys to ICP chain ...'
+            processingTip = 'vetKeys: migrate keys to ICP chain ...'
             await myState.migrateKeys(iv)
           } else {
             await myState.initStaticECDHKey()
@@ -241,21 +249,34 @@
           new channel key from them.
         </p>
         <p class="text-error-500">
-          <b>3.</b> No password needed after account upgrade.
+          <b>3.</b> No password needed after
+          <a
+            type="button"
+            class="underline underline-offset-4"
+            href="/_/profile"
+            onclick={onUpgrade}>upgrading account</a
+          >.
         </p>
       </div>
     {:else if isSetup}
       <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
       <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
         <p class="">
-          <b>1.</b> Your password is only used locally to generate a master key.
-          Neither your password nor the generated key is ever stored remotely.
+          <b>1.</b> Your password is only used locally to derive a master key. Neither
+          your password nor the generated key is ever stored remotely.
         </p>
         <p class="">
           <b>2.</b> We recommend using a simple, easy-to-remember password.
         </p>
         <p class="text-error-500">
-          <b>3.</b> No password needed after account upgrade.
+          <b
+            >3. No password needed after <a
+              type="button"
+              class="underline underline-offset-4"
+              href="/_/profile"
+              onclick={onUpgrade}>upgrading account</a
+            >.</b
+          >
         </p>
       </div>
     {/if}

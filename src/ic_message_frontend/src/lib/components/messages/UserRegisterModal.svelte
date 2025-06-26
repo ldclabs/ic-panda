@@ -300,27 +300,31 @@
       {:else}
         <div class="mt-2 space-y-1">
           <p class="">
-            <b>Set a username to upgrade account, you will:</b>
+            <b
+              >Set a username to upgrade your account and unlock these benefits:</b
+            >
           </p>
           <p class="indent-4">
-            <b>1.</b> Securely store and sync your keys across devices with
+            <b>1. Secure, cross-device key backup</b> – Your keys are synced
+            on-chain via
             <a
               class="text-primary-500 underline underline-offset-4"
               href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
               target="_blank">vetKeys</a
-            >.
+            >
+            encryption instead of being browser-only, preventing permanent loss if
+            you clear data or switch devices.
             <span class="text-error-500"
-              >Otherwise, keys are only saved in your browser, and clearing
-              browser data or device issues could lead to permanent key loss,
-              making messages unreadable.</span
+              >(Otherwise, keys stay locally and may become irretrievable,
+              locking your messages forever.)</span
             >
           </p>
           <p class="indent-4">
-            <b>2.</b> Have a public profile page to showcase your identity.
+            <b>2. A public profile page</b> – Establish and showcase your identity.
           </p>
           <p class="indent-4">
-            <b>3.</b> Username is permanent but transferable. You can transfer it
-            to another user and set a new one afterward.
+            <b>3. Permanent yet transferable username</b> – You can transfer it to
+            another user and claim a new one later.
           </p>
         </div>
       {/if}

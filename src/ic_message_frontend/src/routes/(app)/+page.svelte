@@ -17,14 +17,6 @@
   import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
   import { onDestroy, onMount, tick } from 'svelte'
 
-  interface Saying {
-    name: string
-    image: string
-    handle: string
-    message: string
-    messageUrl: string
-  }
-
   interface Partner {
     title: string
     image: string
@@ -88,74 +80,6 @@
       url: 'https://iclight.io/ICDex/PANDA/ICP'
     }
   ]
-
-  const saying_list: Saying[] = [
-    {
-      name: 'Ajki',
-      image:
-        'https://pbs.twimg.com/profile_images/1516102462347915278/agqi9CB2_200x200.jpg',
-      handle: 'ajki76',
-      message: `#InternetComputer $ICP breakthrough in E2EE (End-to-End Encryption) Messaging!💡 #ICPanda revolutionizes secure communication with blockchain-powered encryption. 🔐 ...`,
-      messageUrl: 'https://x.com/ajki76/status/1836100231622201785'
-    },
-    {
-      name: 'jan.icp ∞',
-      image:
-        'https://pbs.twimg.com/profile_images/1811395883612721152/szXkkW-7_200x200.jpg',
-      handle: 'JanCamenisch',
-      message: `fully e2e encrypted messaging fully e2e decentralized: talk to me at http://panda.fans/jan and experience the power of #icp @ICPandaDAO`,
-      messageUrl: 'https://x.com/JanCamenisch/status/1838317278351282431'
-    },
-    {
-      name: 'jason.icp ∞',
-      image:
-        'https://pbs.twimg.com/profile_images/1788932421834113024/57RoZo_C_200x200.jpg',
-      handle: 'ICP_Japan',
-      message: `All hacked roads lead to $ICP and @UtopiaCloudLabs by @dfinity ✨♾✨ Did you know that @ICPandaDAO recently launched a fully decentralised e2e encrypted messaging service that runs on the $ICP blockchain? ⛓️‍💥🐼💬🐼⛓️‍💥`,
-      messageUrl: 'https://x.com/ICP_Japan/status/1837003852220092738'
-    },
-    {
-      name: 'DFINITY Developers ∞',
-      image:
-        'https://pbs.twimg.com/profile_images/1700228415327023104/l4MdrvwA_200x200.jpg',
-      handle: 'DFINITYDev',
-      message: `@ICPandaDAO Messaging (https://panda.fans/_/messages) is a decentralized end-to-end encrypted #messaging app developed on #ICP. It uses CBOR Object Signing and Encryption standard by the @ietf within ICP canisters. Learn more 👇`,
-      messageUrl: 'https://x.com/DFINITYDev/status/1838335826184540319'
-    },
-    {
-      name: 'goodcoin.icp ∞',
-      image:
-        'https://pbs.twimg.com/profile_images/1653076547107012615/JUgSoeNy_200x200.jpg',
-      handle: 'plsak',
-      message: `[#ICP/#ecosystem] 👉 I originally thought that $PANDA (@ICPandaDAO) is just a meme, but they do #AI, they do #messaging, I dunno, looks #coolish 🤞`,
-      messageUrl: 'https://x.com/plsak/status/1836076387477704789'
-    },
-    {
-      name: 'CaptainOblivious, G.e.D🐉ICP-XTC-BOB, mostly ICP',
-      image:
-        'https://pbs.twimg.com/profile_images/1845911941115428865/3-ZLd1qh_400x400.jpg',
-      handle: 'idontpfreely',
-      message: `When ICpanda first came around, I admit, i shit on em pretty bad. They've proven to be a highly capable team on the IC. My bad.`,
-      messageUrl: 'https://x.com/idontpfreely/status/1838805032596025568'
-    },
-    {
-      name: 'sai ∞',
-      image:
-        'https://pbs.twimg.com/profile_images/1837659383674925056/kWU5f-px_200x200.jpg',
-      handle: 'yoopsbro',
-      message: `All this talk about Quantum computers being the next existential threat to our IT and then this team has already created a solution lol.`,
-      messageUrl: 'https://x.com/yoopsbro/status/1840375057467756986'
-    },
-    {
-      name: 'Hitman 杀手',
-      image:
-        'https://pbs.twimg.com/profile_images/1785713155785564160/m_o-xyFu_200x200.jpg',
-      handle: 'Hit_ICP',
-      message: `Before @ICPandaDAO created http://dmsg.net, I was very scared of losing my seed phrase to Google Cloud since that's where I saved it. But dMsg has provided me with a tamperproof storage for my seed phrase and other important files. E2E encrypted, fully #OnChain.`,
-      messageUrl: 'https://x.com/Hit_ICP/status/1855463620852814281'
-    }
-  ]
-  saying_list.reverse()
 
   const { popupOpenOn, popupDestroy } = initPopup({
     target: 'popupNavigationMore'
@@ -282,13 +206,7 @@
         />
         <p class="text-xl font-normal text-white antialiased">
           ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end
-          encrypted messaging application fully running on the <a
-            class="underline underline-offset-4"
-            href="https://internetcomputer.org"
-            target="_blank"
-          >
-            Internet Computer
-          </a> blockchain.
+          encrypted messaging application fully running on the blockchain.
         </p>
         <div class="flex flex-row gap-2">
           <button
@@ -328,16 +246,19 @@
               ><span class="pr-2 text-5xl">🔐</span>End-to-end Encryption</h3
             >
             <p class="mt-4 text-neutral-300">
-              All user messages are encrypted using the
+              All user messages and files are encrypted client side using the
               <a
-                class="text-white underline underline-offset-4"
+                class="font-bold text-white underline underline-offset-4"
                 href="https://datatracker.ietf.org/doc/html/rfc9052"
                 target="_blank">RFC 9052 (COSE)</a
               >
               standard and
-              <b class="text-white">quantum secure AES-256-GCM algorithm</b> on the
-              client side and stored permanently on the ICP blockchain. These messages
-              can only be decrypted on the client side.
+              <a
+                class="font-bold text-white underline underline-offset-4"
+                href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
+                target="_blank">On-Chain vetKeys</a
+              >, then stored permanently on the ICP blockchain. Decryption is
+              possible only on the client side.
             </p>
           </div>
           <div class="pt-8 md:pt-10">
@@ -356,7 +277,7 @@
               ><span class="pr-2 text-5xl">⛏</span>Proof of Link (PoL) Mining</h3
             >
             <p class="mt-4 text-neutral-300">
-              Fairly mint DMSG through
+              Fairly mint $DMSG through
               <a
                 class="text-white underline underline-offset-4"
                 href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
@@ -371,7 +292,7 @@
             >
             <p class="mt-4 text-neutral-300">
               It runs entirely as a smart contract on the ICP blockchain,
-              controlled by
+              governed by
               <a
                 class="text-white underline underline-offset-4"
                 href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
@@ -488,31 +409,6 @@
         </div>
       </div>
     </div>
-    <div
-      class="mt-12 flex w-full flex-col items-center justify-center gap-6 px-4 text-white md:mt-24"
-    >
-      <div class="text-center">
-        <h2 class="h2">What people are saying</h2>
-      </div>
-      <div
-        class="mt-2 flex w-full snap-x snap-mandatory scroll-px-6 gap-6 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-6 *:w-80 *:rounded-xl *:border *:border-neutral-400"
-      >
-        {#each saying_list as saying (saying.messageUrl)}
-          <a
-            class="shrink-0 snap-center p-6 hover:variant-soft hover:text-white"
-            target="_blank"
-            href={saying.messageUrl}
-          >
-            <div class="flex flex-row items-center space-x-2">
-              <Avatar src={saying.image} width="w-10" />
-              <span class="truncate">{saying.name}</span>
-              <span class="text-neutral-400">@{saying.handle}</span>
-            </div>
-            <p class="mt-2 text-pretty text-neutral-300">{saying.message}</p>
-          </a>
-        {/each}
-      </div>
-    </div>
 
     <footer id="page-footer" class="px-4 pb-24 pt-12 text-surface-400">
       <div class="flex h-16 flex-col items-center">
@@ -526,14 +422,24 @@
             /></a
           >
         </p>
-        <p class="mt-2 text-center text-sm capitalize antialiased">
+        <p class="mt-2 text-center text-sm antialiased">
           A technical panda fully running on the <a
             class="underline underline-offset-4"
             href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
             target="_blank"
           >
             Internet Computer
-          </a> blockchain, building chain-native infras and practical Web3 apps.
+          </a>
+          blockchain, building chain-native infrastructures,
+          <a
+            class="underline underline-offset-4"
+            href="https://anda.ai"
+            target="_blank">Anda.AI</a
+          >
+          and
+          <a class="underline underline-offset-4" href="https://dmsg.net"
+            >dMsg.net</a
+          >.
         </p>
       </div>
     </footer>
