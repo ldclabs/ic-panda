@@ -180,9 +180,15 @@ export class MyMessageState {
       let keys = await this.agent.getMasterKeys<MasterKeyInfo>()
       this._mks = keys.map((key) => MasterKey.fromInfo(this.principal, key))
 
-      if (this._mks.length == 0 && this.agent.hasCOSE) {
+      if (
+        this.agent.hasCOSE &&
+        (this._mks.length == 0 || this._mks.at(-1)?.kind != 'VetKey')
+      ) {
         try {
-          mk = await this.fetchOrInitMasterKeyWithVetkey(myIV)
+          mk = await this.fetchOrInitMasterKeyWithVetkey(
+            myIV,
+            this._mks.at(-1)?.kind == 'ECDH'
+          )
           this._mks.push(mk)
           await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
         } catch (_err) {}
@@ -349,7 +355,10 @@ export class MyMessageState {
     return AesGcmKey.fromBytes(data)
   }
 
-  async fetchOrInitMasterKeyWithVetkey(myIV: Uint8Array): Promise<MasterKey> {
+  async fetchOrInitMasterKeyWithVetkey(
+    myIV: Uint8Array,
+    notInit: boolean
+  ): Promise<MasterKey> {
     const coseAPI = this.agent.coseAPI
     const path: SettingPath = {
       ns: this.ns,
@@ -362,6 +371,10 @@ export class MyMessageState {
     const output = await coseAPI.setting_try_get(path)
 
     if (!output) {
+      if (notInit) {
+        throw new Error('vetKey not found')
+      }
+
       const pwdHash = await this.getPasswordHash()
       if (pwdHash) {
         throw new Error('ECDH master key exists')
