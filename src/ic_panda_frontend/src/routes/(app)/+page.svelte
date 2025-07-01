@@ -509,14 +509,8 @@
       <p
         class="text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
       >
-        ICPanda Message (dMsg.net) is a decentralized end-to-end encrypted
-        messaging application fully running on the <a
-          class="font-bold text-secondary-500 underline underline-offset-4"
-          href="https://internetcomputer.org"
-          target="_blank"
-        >
-          Internet Computer
-        </a> blockchain
+        ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end
+          encrypted messaging application fully running on the blockchain.
       </p>
       <div class="w-full">
         <a
@@ -544,16 +538,19 @@
             ><span class="pr-2 text-5xl">🔐</span>End-to-end Encryption</h3
           >
           <p class="text-neutral-300 mt-4">
-            All user messages are encrypted using the
+            All user messages and files are encrypted client side using the
             <a
               class="underline underline-offset-4"
               href="https://datatracker.ietf.org/doc/html/rfc9052"
               target="_blank">RFC 9052 (COSE)</a
             >
             standard and
-            <b>quantum secure AES-256-GCM algorithm</b> on the client side and stored
-            permanently on the ICP blockchain. These messages can only be decrypted
-            on the client side.
+              <a
+                class="underline underline-offset-4"
+                href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
+                target="_blank">On-Chain vetKeys</a
+              >, then stored permanently on the ICP blockchain. Decryption is
+              possible only on the client side.
           </p>
         </div>
         <div class="pt-8 md:pt-10">
@@ -571,7 +568,7 @@
             ><span class="pr-2 text-5xl">⛏</span>Proof of Link (PoL) Mining</h3
           >
           <p class="text-neutral-300 mt-4">
-            Fairly mint DMSG through
+            Fairly mint $DMSG through
             <a
               class="underline underline-offset-4"
               href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
@@ -584,7 +581,7 @@
           <h3 class="h3"><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3>
           <p class="text-neutral-300 mt-4">
             It runs entirely as a smart contract on the ICP blockchain,
-            controlled by
+            governed by
             <a
               class="underline underline-offset-4"
               href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
