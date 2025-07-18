@@ -73,23 +73,27 @@
     </TabAnchor> -->
   </TabGroup>
 
-  <div class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4">
-    {#if $authStore.identity.getPrincipal().isAnonymous()}
-      <button
-        type="button"
-        class="btn bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:px-3"
-        on:click={handleSignIn}
-      >
-        <span class="max-md:hidden"><IconUser0 /></span>
-        <span class="max-md:!ml-0">Login</span>
-      </button>
-    {:else}
-      <button
-        class="btn btn-icon size-10 bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:size-7"
-        on:click={showAccountDetail}
-      >
-        <span class="md:scale-110"><IconUser1 /></span>
-      </button>
-    {/if}
-  </div>
+  {#if page.url?.pathname.startsWith('/_/luckypool')}
+    <div
+      class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4"
+    >
+      {#if $authStore.identity.getPrincipal().isAnonymous()}
+        <button
+          type="button"
+          class="btn bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:px-3"
+          on:click={handleSignIn}
+        >
+          <span class="max-md:hidden"><IconUser0 /></span>
+          <span class="max-md:!ml-0">Login</span>
+        </button>
+      {:else}
+        <button
+          class="btn btn-icon size-10 bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:size-7"
+          on:click={showAccountDetail}
+        >
+          <span class="md:scale-110"><IconUser1 /></span>
+        </button>
+      {/if}
+    </div>
+  {/if}
 </div>

@@ -57,7 +57,7 @@ export class CoseAPI {
     const dpk = DerivedPublicKey.deserialize(
       unwrapResult(pk, 'call vetkd_public_key failed') as Uint8Array
     )
-    const evk = new EncryptedVetKey(
+    const evk = EncryptedVetKey.deserialize(
       unwrapResult(ek, 'call vetkd_encrypted_key failed') as Uint8Array
     )
     const vk = evk.decryptAndVerify(tsk, dpk, path.key as Uint8Array)
