@@ -1,4 +1,3 @@
-import { isNullish } from '@dfinity/utils'
 import debounce from 'debounce'
 
 const STR_UNDEFINED = 'undefined'
@@ -73,7 +72,7 @@ export const popupCenter = ({
   width: number
   height: number
 }): string => {
-  if (isNullish(window) || isNullish(window.top)) {
+  if (!window || !window.top) {
     return ''
   }
 
