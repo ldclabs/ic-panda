@@ -32,7 +32,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 async-trait = "0.1"
 bytes = "1"
-base64 = "0.21"
+base64 = "0.22"
 candid = "0.10"
 ciborium = "0.2"
 log = "0.4"
@@ -47,18 +47,18 @@ hmac = "0.12"
 sha2 = "0.10"
 sha3 = "0.10"
 num-traits = "0.2"
-ic-agent = "0.40"
+ic-agent = "0.44"
 ic-cdk = "0.18"
 ic-cdk-timers = "0.12"
-ic-stable-structures = "0.6"
+ic-stable-structures = "0.7"
 icrc-ledger-types = "0.1"
-ic_auth_types = "0.5"
-ic_auth_verifier = { version = "0.5" }
-ic_cose_types = "0.8"
+ic_auth_types = "0.6"
+ic_auth_verifier = { version = "0.6" }
+ic_cose_types = "0.9"
 ic-certification = "3.0"
-ic-oss-types = "1.1"
+ic-oss-types = "1.2"
 ic-canister-sig-creation = "1.3"
-ic-ed25519 = { version = "0.2" }
+ic-ed25519 = { version = "0.3" }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "=4.5", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"

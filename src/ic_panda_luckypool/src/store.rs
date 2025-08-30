@@ -140,7 +140,13 @@ pub struct Airdrop(pub u64, pub Option<ByteArray<32>>, pub Option<ByteBuf>);
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode State data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
@@ -167,7 +173,13 @@ impl Storable for SysPrizeSubsidy {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode SysPrizeSubsidy data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode SysPrizeSubsidy data");
         Cow::Owned(buf)
@@ -204,7 +216,13 @@ impl Storable for AirdropState {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode AirdropState data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode AirdropState data");
         Cow::Owned(buf)
@@ -238,7 +256,13 @@ impl Storable for AirdropLog {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode AirdropLog data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode AirdropLog data");
         Cow::Owned(buf)
@@ -273,7 +297,13 @@ impl Storable for LuckyDrawLog {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode LuckyDrawLog data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode LuckyDrawLog data");
         Cow::Owned(buf)
@@ -302,7 +332,13 @@ impl Storable for Prize {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Prize data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Prize data");
         Cow::Owned(buf)
@@ -342,7 +378,13 @@ pub struct IssuerPrizes(pub BTreeMap<(u32, u16, u32, u16), u16>);
 impl Storable for IssuerPrizes {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode IssuerPrizes data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode IssuerPrizes data");
         Cow::Owned(buf)
@@ -359,7 +401,13 @@ pub struct Principals(BTreeSet<Principal>);
 impl Storable for Principals {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Principals data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Principals data");
         Cow::Owned(buf)
@@ -384,7 +432,13 @@ pub struct PrizeInfo(
 impl Storable for PrizeInfo {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeInfo data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode PrizeInfo data");
         Cow::Owned(buf)
@@ -401,7 +455,13 @@ pub struct PrizeRecipients(BTreeMap<u32, u32>);
 impl Storable for PrizeRecipients {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeRecipients data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode PrizeRecipients data");
         Cow::Owned(buf)
@@ -418,7 +478,13 @@ pub struct PrizeClaimLogs(Vec<(Prize, u64, u64)>);
 impl Storable for PrizeClaimLogs {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeClaimLogs data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode PrizeClaimLogs data");
         Cow::Owned(buf)
@@ -439,7 +505,13 @@ impl Storable for PrizeRefund {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode PrizeRefund data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode PrizeRefund data");
         Cow::Owned(buf)
@@ -464,7 +536,13 @@ impl Storable for NamingState {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode NamingState data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode NamingState data");
         Cow::Owned(buf)
@@ -512,7 +590,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             State::default()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static AIRDROP: RefCell<StableBTreeMap<Principal, AirdropState, Memory>> = RefCell::new(
@@ -531,14 +609,14 @@ thread_local! {
         StableLog::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(AIRDROP_LOG_INDEX_MEMORY_ID)),
             MEMORY_MANAGER.with_borrow(|m| m.get(AIRDROP_LOG_DATA_MEMORY_ID)),
-        ).expect("failed to init AIRDROP_LOGS store")
+        )
     );
 
     static LUCKYDRAW_LOGS: RefCell<StableLog<LuckyDrawLog, Memory, Memory>> = RefCell::new(
         StableLog::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(LUCKYDRAW_LOG_INDEX_MEMORY_ID)),
             MEMORY_MANAGER.with_borrow(|m| m.get(LUCKYDRAW_LOG_DATA_MEMORY_ID)),
-        ).expect("failed to init LUCKY_DRAW_LOGS store")
+        )
     );
 
     // Only use for airdrop cryptogram.
@@ -600,7 +678,7 @@ thread_local! {
     static PRIZE_REFUND: RefCell<StableMinHeap<PrizeRefund, Memory>> = RefCell::new(
         StableMinHeap::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(PRIZE_REFUND_MEMORY_ID)),
-        ).expect("failed to init PRIZE_REFUND store")
+        )
     );
 }
 
@@ -608,7 +686,12 @@ pub mod keys {
     use super::*;
 
     pub async fn load() {
-        let keys = KEYS.with(|r| r.borrow().iter().collect::<BTreeMap<String, Vec<u8>>>());
+        let keys = KEYS.with(|r| {
+            r.borrow()
+                .iter()
+                .map(|i| (i.key().clone(), i.value()))
+                .collect::<BTreeMap<String, Vec<u8>>>()
+        });
         {
             let mut secret: Vec<u8> = match keys.get("CAPTCHA_SECRET") {
                 Some(secret) => secret.clone(),
@@ -935,9 +1018,8 @@ pub mod prize {
     pub fn add_refund_job(prize: Prize) -> Result<(), String> {
         let check_time = prize.1 + prize.2 as u32 + 1;
         PRIZE_REFUND.with(|r| {
-            r.borrow_mut()
-                .push(&PrizeRefund(check_time, prize))
-                .map_err(|err| format!("failed to add refund job, error {:?}", err))
+            r.borrow_mut().push(&PrizeRefund(check_time, prize));
+            Ok(())
         })
     }
 
@@ -1227,13 +1309,14 @@ pub mod prize {
             let du = 60 * 24 * 30;
             let start_ts = prev_ts.saturating_sub(du);
             let mut logs: Vec<types::PrizeOutput> = Vec::new();
-            for (prize, info) in r
+            for i in r
                 .borrow()
                 .range(Prize::range_bounds_of(issuer, start_ts, prev_ts))
             {
+                let prize = i.key();
                 logs.push(types::PrizeOutput::from(
-                    &prize,
-                    &info,
+                    prize,
+                    &i.value(),
                     name.clone(),
                     if prize.4 > 1 {
                         Some(prize.encode(&key, None))
@@ -1383,9 +1466,7 @@ pub mod state {
     pub fn save() {
         STATE_HEAP.with(|h| {
             STATE.with(|r| {
-                r.borrow_mut()
-                    .set(h.borrow().clone())
-                    .expect("failed to set STATE data");
+                r.borrow_mut().set(h.borrow().clone());
             });
         });
     }
@@ -1604,12 +1685,12 @@ mod test {
             m.insert(Prize(10001, 2, 0, 0, 0), 6);
             m.insert(Prize(10000, 2, 1, 0, 0), 7);
 
-            let vs: Vec<u64> = m.iter().map(|(_, v)| v).collect();
+            let vs: Vec<u64> = m.iter().map(|i| i.value()).collect();
             assert_eq!(vs, vec![5, 1, 2, 7, 4, 3, 6]);
 
             let vs: Vec<u64> = m
                 .range(Prize::range_bounds_of(10000, 0, u32::MAX))
-                .map(|(_, v)| v)
+                .map(|i| i.value())
                 .collect();
             assert_eq!(vs, vec![1, 2, 7, 4]);
             m.clear_new();

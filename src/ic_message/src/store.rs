@@ -80,7 +80,13 @@ impl State {
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode State data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
@@ -121,7 +127,13 @@ impl User {
 impl Storable for User {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode User data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode User data");
         Cow::Owned(buf)
@@ -148,7 +160,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             Vec::new()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static NAME_STORE: RefCell<StableBTreeMap<String, Principal, Memory>> = RefCell::new(
@@ -167,7 +179,7 @@ thread_local! {
         StableLog::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(NAME_BLK_INDEX_MEMORY_ID)),
             MEMORY_MANAGER.with_borrow(|m| m.get(NAME_BLK_DATA_MEMORY_ID)),
-        ).expect("failed to init NameBlock store")
+        )
     );
 }
 
@@ -205,7 +217,7 @@ pub mod state {
             STATE_STORE.with_borrow_mut(|r| {
                 let mut buf = vec![];
                 into_writer(h, &mut buf).expect("failed to encode STATE_STORE data");
-                r.set(buf).expect("failed to set STATE_STORE data");
+                r.set(buf);
             });
         });
     }

@@ -101,7 +101,13 @@ impl Delegations {
 impl Storable for Delegations {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Delegations data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self, &mut buf).expect("failed to encode Delegations data");
         Cow::Owned(buf)
@@ -117,7 +123,13 @@ pub struct Names(BTreeSet<String>);
 impl Storable for Names {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self.0, &mut buf).expect("failed to encode Names data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&self.0, &mut buf).expect("failed to encode Names data");
         Cow::Owned(buf)
@@ -145,7 +157,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             Vec::new()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static NAME_DELEGATIONS_STORE: RefCell<StableBTreeMap<String, Delegations, Memory>> = RefCell::new(
@@ -188,9 +200,7 @@ pub mod state {
             STATE_STORE.with(|r| {
                 let mut buf = vec![];
                 into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut()
-                    .set(buf)
-                    .expect("failed to set STATE_STORE data");
+                r.borrow_mut().set(buf);
             });
         });
     }

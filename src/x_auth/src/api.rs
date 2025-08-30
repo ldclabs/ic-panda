@@ -135,12 +135,11 @@ mod test {
     use super::*;
     use base64::{engine::general_purpose, Engine};
     use lib_panda::{Ed25519Message, VerifyingKey};
-    use rand_core::{OsRng, RngCore};
 
     #[test]
     fn test_ed25519_message() {
         let mut secret = [0u8; 32];
-        OsRng.fill_bytes(&mut secret);
+        rand::fill(&mut secret);
 
         let sk = SigningKey::from_bytes(&secret);
         let pk = VerifyingKey::from(&sk);

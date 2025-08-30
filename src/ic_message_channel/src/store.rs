@@ -48,7 +48,13 @@ pub struct State {
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode State data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
@@ -219,7 +225,13 @@ impl ChannelSetting {
 impl Storable for Channel {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Channel data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Channel data");
         Cow::Owned(buf)
@@ -260,7 +272,13 @@ impl Message {
 impl Storable for Message {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Message data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Message data");
         Cow::Owned(buf)
@@ -280,7 +298,13 @@ impl Storable for MessageId {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode MessageId data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode MessageId data");
         Cow::Owned(buf)
@@ -305,7 +329,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             Vec::new()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static CHANNEL_STORE: RefCell<StableBTreeMap<u32, Channel, Memory>> = RefCell::new(
@@ -377,9 +401,7 @@ pub mod state {
             STATE_STORE.with(|r| {
                 let mut buf = vec![];
                 into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut()
-                    .set(buf)
-                    .expect("failed to set STATE_STORE data");
+                r.borrow_mut().set(buf);
             });
         });
     }

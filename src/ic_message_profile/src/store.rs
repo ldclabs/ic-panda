@@ -35,7 +35,13 @@ pub struct State {
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode State data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
@@ -126,7 +132,13 @@ pub struct ChannelSetting {
 impl Storable for Profile {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Profile data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Profile data");
         Cow::Owned(buf)
@@ -151,7 +163,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             Vec::new()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static PROFILE_STORE: RefCell<StableBTreeMap<Principal, Profile, Memory>> = RefCell::new(
@@ -196,9 +208,7 @@ pub mod state {
             STATE_STORE.with(|r| {
                 let mut buf = vec![];
                 into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut()
-                    .set(buf)
-                    .expect("failed to set STATE_STORE data");
+                r.borrow_mut().set(buf);
             });
         });
     }

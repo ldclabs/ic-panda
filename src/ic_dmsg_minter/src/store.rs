@@ -21,7 +21,13 @@ pub struct State {
 impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode State data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode State data");
         Cow::Owned(buf)
@@ -41,7 +47,13 @@ impl Storable for Linker {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode Linker data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(self, &mut buf).expect("failed to encode Linker data");
         Cow::Owned(buf)
@@ -65,7 +77,14 @@ impl Storable for LinkLog {
         is_fixed_size: false,
     };
 
-    fn to_bytes(&self) -> Cow<[u8]> {
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&(&self.linker, &self.rewards, &self.minted_at), &mut buf)
+            .expect("failed to encode LinkLog data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
         let mut buf = vec![];
         into_writer(&(&self.linker, &self.rewards, &self.minted_at), &mut buf)
             .expect("failed to encode LinkLog data");
@@ -98,7 +117,7 @@ thread_local! {
         StableCell::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(STATE_MEMORY_ID)),
             Vec::new()
-        ).expect("failed to init STATE store")
+        )
     );
 
     static LINKER_STORE: RefCell<StableBTreeMap<Linker, u64, Memory>> = RefCell::new(
@@ -111,7 +130,7 @@ thread_local! {
         StableLog::init(
             MEMORY_MANAGER.with_borrow(|m| m.get(LINKER_BLK_INDEX_MEMORY_ID)),
             MEMORY_MANAGER.with_borrow(|m| m.get(LINKER_BLK_DATA_MEMORY_ID)),
-        ).expect("failed to init Linker store")
+        )
     );
 }
 
@@ -142,9 +161,7 @@ pub mod state {
             STATE_STORE.with(|r| {
                 let mut buf = vec![];
                 into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut()
-                    .set(buf)
-                    .expect("failed to set STATE_STORE data");
+                r.borrow_mut().set(buf);
             });
         });
     }

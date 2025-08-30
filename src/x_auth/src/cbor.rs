@@ -1,11 +1,8 @@
 use crate::erring::HTTPError;
-use async_trait::async_trait;
 use axum::{
-    body::Body,
-    extract::FromRequest,
+    extract::{FromRequest, Request},
     http::{
         header::{self, HeaderValue},
-        request::Request,
         StatusCode,
     },
     response::{IntoResponse, Response},
@@ -38,15 +35,14 @@ impl<T> Deref for Cbor<T> {
     }
 }
 
-#[async_trait]
-impl<T, S> FromRequest<S> for Cbor<T>
+impl<S, T> FromRequest<S> for Cbor<T>
 where
-    T: DeserializeOwned + Send + Sync,
+    T: DeserializeOwned,
     S: Send + Sync,
 {
     type Rejection = HTTPError;
 
-    async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let bytes = Bytes::from_request(req, state).await.map_err(|err| {
             HTTPError::new(
                 StatusCode::BAD_REQUEST.as_u16(),

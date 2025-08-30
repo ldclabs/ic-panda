@@ -120,15 +120,11 @@ async fn main() {
         )
         .route(
             "/idp/twitter/callback",
-            routing::get(api_twitter::callback).layer(GovernorLayer {
-                config: callback_limiter_conf,
-            }),
+            routing::get(api_twitter::callback).layer(GovernorLayer::new(callback_limiter_conf)),
         )
         .route(
             "/challenge/:kind",
-            routing::post(api::challenge).layer(GovernorLayer {
-                config: challenge_limiter_conf,
-            }),
+            routing::post(api::challenge).layer(GovernorLayer::new(challenge_limiter_conf)),
         )
         .layer((
             CatchPanicLayer::new(),
