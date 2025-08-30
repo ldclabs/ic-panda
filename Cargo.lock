@@ -2157,7 +2157,7 @@ dependencies = [
 
 [[package]]
 name = "ic_dmsg_minter"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -2170,7 +2170,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -2191,7 +2191,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_channel"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -2207,7 +2207,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_profile"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -2223,7 +2223,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_types"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ic-oss-types",
@@ -2234,7 +2234,7 @@ dependencies = [
 
 [[package]]
 name = "ic_name_identity"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "candid",
  "ciborium",
@@ -2252,7 +2252,7 @@ dependencies = [
 
 [[package]]
 name = "ic_panda_luckypool"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "base64 0.22.1",
  "candid",
@@ -4621,7 +4621,7 @@ checksum = "ea2f10b9bb0928dfb1b42b65e1f9e36f7f54dbdf08457afefb38afcdec4fa2bb"
 
 [[package]]
 name = "x-auth"
-version = "2.12.0"
+version = "2.13.0"
 dependencies = [
  "anyhow",
  "async-trait",
