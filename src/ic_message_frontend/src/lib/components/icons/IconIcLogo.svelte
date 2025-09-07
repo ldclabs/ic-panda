@@ -20,7 +20,7 @@
     </clipPath>
   </defs>
   <g clip-path="url(#a)">
-    <rect width="24" height="24" fill="#FFF" rx="12" />
+    <rect width="24" height="24" fill="#1e212c" rx="12" />
     <g clip-path="url(#b)">
       <path
         fill="url(#c)"
