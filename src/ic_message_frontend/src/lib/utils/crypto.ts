@@ -50,6 +50,23 @@ export function toArrayBuffer(
   return buf
 }
 
+export function toUint8Array(
+  data: Uint8Array | number[],
+  property?: string
+): Uint8Array {
+  if (!(data instanceof Uint8Array)) {
+    data = new Uint8Array(data)
+  }
+
+  if (property) {
+    Object.defineProperty(data, 'property', {
+      enumerable: false,
+      value: undefined
+    })
+  }
+  return data
+}
+
 export function generateECDHKey(): ECDHKey {
   return ECDHKey.generate(iana.EllipticCurveX25519)
 }

@@ -42,6 +42,7 @@ export const idlFactory = ({ IDL }) => {
     'sha256' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'chunk_ids' : IDL.Vec(ChunkId),
     'content_encoding' : IDL.Text,
+    'last_chunk' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const BatchOperationKind = IDL.Variant({
     'SetAssetProperties' : SetAssetPropertiesArguments,
@@ -113,6 +114,7 @@ export const idlFactory = ({ IDL }) => {
   const HttpResponse = IDL.Record({
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(HeaderField),
+    'upgrade' : IDL.Opt(IDL.Bool),
     'streaming_strategy' : IDL.Opt(StreamingStrategy),
     'status_code' : IDL.Nat16,
   });

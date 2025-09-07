@@ -12,7 +12,7 @@ import {
   logout,
   setNameIdentity
 } from '$lib/utils/auth'
-import { encodeCBOR, toArrayBuffer } from '$lib/utils/crypto'
+import { encodeCBOR, toUint8Array } from '$lib/utils/crypto'
 import { popupCenter } from '$lib/utils/window'
 import {
   requestIdOf,
@@ -67,7 +67,7 @@ export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
   switch: (username: string) => Promise<void>
   signIn: () => Promise<void>
-  signIn2: () => Promise<void>
+  signIn2: (provider?: string) => Promise<void>
   deepLinkSignIn: (deepLinkSignInRequest: string) => Promise<string>
   logout: (url: string) => Promise<void>
 }
@@ -149,7 +149,7 @@ function initAuthStore(): AuthStore {
         username.toLocaleLowerCase(),
         srcIdentity.getPrincipal().toUint8Array()
       ])
-      const sig = await sessionKey.sign(toArrayBuffer(msg))
+      const sig = await sessionKey.sign(toUint8Array(msg))
       const res = await nameIdentityAPI.sign_in(
         username,
         pubkey,
@@ -165,17 +165,17 @@ function initAuthStore(): AuthStore {
         [
           {
             delegation: new Delegation(
-              toArrayBuffer(signedDelegation.delegation.pubkey),
+              toUint8Array(signedDelegation.delegation.pubkey),
               signedDelegation.delegation.expiration,
               signedDelegation.delegation.targets[0]
             ),
-            signature: toArrayBuffer(
+            signature: toUint8Array(
               signedDelegation.signature,
               '__signature__'
             ) as Signature
           }
         ],
-        toArrayBuffer(
+        toUint8Array(
           res.user_key,
           '__derEncodedPublicKey__'
         ) as DerEncodedPublicKey
@@ -227,13 +227,14 @@ function initAuthStore(): AuthStore {
         })
       }),
 
-    signIn2: () =>
+    signIn2: (identityProvider = 'https://identity.internetcomputer.org') =>
       new Promise<void>(async (resolve, reject) => {
         // Important: authClientPromise should be resolved here
         // https://ffan0811.medium.com/window-open-returns-null-in-safari-and-firefox-after-allowing-pop-up-on-the-browser-4e4e45e7d926
         const authClient = await authClientPromise
         await authClient.login({
           maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
+          identityProvider,
           onSuccess: (msg) => {
             authnMethod = msg.authnMethod
             authnOrign = location.origin
@@ -279,14 +280,14 @@ function initAuthStore(): AuthStore {
       const expiration =
         BigInt(Date.now() + (request.m || EXPIRATION_MS)) * BigInt(1000000)
       const delegation: Delegation = new Delegation(
-        toArrayBuffer(request.s),
+        toUint8Array(request.s),
         expiration // In nanoseconds.
       )
       const challenge = new Uint8Array([
         ...IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR,
         ...new Uint8Array(requestIdOf({ ...delegation }))
       ])
-      const signature = await identity.id.sign(toArrayBuffer(challenge))
+      const signature = await identity.id.sign(toUint8Array(challenge))
       const chain = identity.id.getDelegation()
       const res: DeepLinkSignInResponse = {
         u: new Uint8Array(chain.publicKey),

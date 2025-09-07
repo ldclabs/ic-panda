@@ -14,6 +14,9 @@ export type BatchOperationKind = {
   { 'SetAssetContent' : SetAssetContentArguments } |
   { 'Clear' : ClearArguments };
 export type ChunkId = bigint;
+/**
+ * Reset everything
+ */
 export type ClearArguments = {};
 export interface CommitBatchArguments {
   'batch_id' : BatchId,
@@ -45,6 +48,9 @@ export interface CreateAssetArguments {
   'max_age' : [] | [bigint],
   'enable_aliasing' : [] | [boolean],
 }
+/**
+ * Delete an asset
+ */
 export interface DeleteAssetArguments { 'key' : Key }
 export interface DeleteBatchArguments { 'batch_id' : BatchId }
 export interface GrantPermission {
@@ -62,6 +68,7 @@ export interface HttpRequest {
 export interface HttpResponse {
   'body' : Uint8Array | number[],
   'headers' : Array<HeaderField>,
+  'upgrade' : [] | [boolean],
   'streaming_strategy' : [] | [StreamingStrategy],
   'status_code' : number,
 }
@@ -75,11 +82,15 @@ export interface RevokePermission {
   'permission' : Permission,
   'of_principal' : Principal,
 }
+/**
+ * Add or change content for an asset, by content encoding
+ */
 export interface SetAssetContentArguments {
   'key' : Key,
   'sha256' : [] | [Uint8Array | number[]],
   'chunk_ids' : Array<ChunkId>,
   'content_encoding' : string,
+  'last_chunk' : [] | [Uint8Array | number[]],
 }
 export interface SetAssetPropertiesArguments {
   'key' : Key,
@@ -88,6 +99,9 @@ export interface SetAssetPropertiesArguments {
   'allow_raw_access' : [] | [[] | [boolean]],
   'max_age' : [] | [[] | [bigint]],
 }
+/**
+ * / Sets the list of principals granted each permission.
+ */
 export interface SetPermissions {
   'prepare' : Array<Principal>,
   'commit' : Array<Principal>,
@@ -110,6 +124,9 @@ export type StreamingStrategy = {
     }
   };
 export type Time = bigint;
+/**
+ * Remove content for an asset, by content encoding
+ */
 export interface UnsetAssetContentArguments {
   'key' : Key,
   'content_encoding' : string,
@@ -125,11 +142,20 @@ export interface _SERVICE {
     { 'certificate' : Uint8Array | number[], 'tree' : Uint8Array | number[] }
   >,
   'clear' : ActorMethod<[ClearArguments], undefined>,
+  /**
+   * Perform all operations successfully, or reject
+   */
   'commit_batch' : ActorMethod<[CommitBatchArguments], undefined>,
+  /**
+   * Given a batch already proposed, perform all operations successfully, or reject
+   */
   'commit_proposed_batch' : ActorMethod<
     [CommitProposedBatchArguments],
     undefined
   >,
+  /**
+   * Compute a hash over the CommitBatchArguments.  Call until it returns Some(evidence).
+   */
   'compute_evidence' : ActorMethod<
     [ComputeEvidenceArguments],
     [] | [Uint8Array | number[]]
@@ -147,6 +173,9 @@ export interface _SERVICE {
   >,
   'deauthorize' : ActorMethod<[Principal], undefined>,
   'delete_asset' : ActorMethod<[DeleteAssetArguments], undefined>,
+  /**
+   * Delete a batch that has been created, or proposed for commit, but not yet committed
+   */
   'delete_batch' : ActorMethod<[DeleteBatchArguments], undefined>,
   'get' : ActorMethod<
     [{ 'key' : Key, 'accept_encodings' : Array<string> }],
@@ -167,6 +196,10 @@ export interface _SERVICE {
       'max_age' : [] | [bigint],
     }
   >,
+  /**
+   * if get() returned chunks > 1, call this to retrieve them.
+   * chunks may or may not be split up at the same boundaries as presented to create_chunk().
+   */
   'get_chunk' : ActorMethod<
     [
       {
@@ -204,6 +237,9 @@ export interface _SERVICE {
   >,
   'list_authorized' : ActorMethod<[], Array<Principal>>,
   'list_permitted' : ActorMethod<[ListPermitted], Array<Principal>>,
+  /**
+   * Save the batch operations for later commit
+   */
   'propose_commit_batch' : ActorMethod<[CommitBatchArguments], undefined>,
   'revoke_permission' : ActorMethod<[RevokePermission], undefined>,
   'set_asset_content' : ActorMethod<[SetAssetContentArguments], undefined>,
@@ -211,6 +247,10 @@ export interface _SERVICE {
     [SetAssetPropertiesArguments],
     undefined
   >,
+  /**
+   * Single call to create an asset with content for a single content encoding that
+   * fits within the message ingress limit.
+   */
   'store' : ActorMethod<
     [
       {

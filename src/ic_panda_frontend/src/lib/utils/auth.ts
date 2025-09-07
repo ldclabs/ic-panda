@@ -54,11 +54,13 @@ export const anonymousIdentity = new AnonymousIdentity()
 export const dynAgent = new AuthAgent({
   identity: anonymousIdentity,
   host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
-  verifyQuerySignatures: false
+  verifyQuerySignatures: false,
+  shouldFetchRootKey: IS_LOCAL
 })
 
 export const anonAgent = new AuthAgent({
   identity: anonymousIdentity,
   host: 'https://icp-api.io',
-  verifyQuerySignatures: false
+  verifyQuerySignatures: false,
+  shouldFetchRootKey: IS_LOCAL
 })
