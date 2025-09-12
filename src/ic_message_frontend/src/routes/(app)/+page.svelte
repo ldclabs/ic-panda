@@ -7,7 +7,7 @@
   import UserRegisterModal from '$lib/components/messages/UserRegisterModal.svelte'
   import Saos from '$lib/components/ui/Saos.svelte'
   import { APP_ORIGIN } from '$lib/constants'
-  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
+  import { tokensPrice, type TokenPrice } from '$lib/stores/icpswap.svelte'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { dynAgent } from '$lib/utils/auth'
@@ -26,8 +26,8 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const icpPrice = getTokenPrice(ICPToken.canisterId, true)
-  const pandaPrice = getTokenPrice(PANDAToken.canisterId, true)
+  const icpPrice = $derived(tokensPrice.get(ICPToken.canisterId))
+  const pandaPrice = $derived(tokensPrice.get(PANDAToken.canisterId))
   const partners: Partner[] = [
     {
       title: 'The Internet Computer',
@@ -183,11 +183,11 @@
   <div
     class="card m-auto flex max-w-3xl flex-col bg-transparent p-2 text-white md:flex-row md:justify-around"
   >
-    {#if $icpPrice}
-      {@render tokenPrice($icpPrice)}
+    {#if icpPrice}
+      {@render tokenPrice(icpPrice)}
     {/if}
-    {#if $pandaPrice}
-      {@render tokenPrice($pandaPrice)}
+    {#if pandaPrice}
+      {@render tokenPrice(pandaPrice)}
     {/if}
   </div>
   <div

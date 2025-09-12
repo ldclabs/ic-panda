@@ -15,7 +15,7 @@
   let submitting = $state(false)
 </script>
 
-<ModalCard {parent} cardClass="backdrop-blur-sm bg-primary-900/80">
+<ModalCard {parent} cardClass="backdrop-blur-sm !bg-primary-900/80">
   <div class="!mt-0 text-center text-xl font-bold text-white">Sign In with</div>
   <div class="!mt-8 flex flex-col items-center space-y-8">
     <button

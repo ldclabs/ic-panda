@@ -6,15 +6,15 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import IconX from '$lib/components/icons/IconX.svelte'
   import Saos from '$lib/components/ui/Saos.svelte'
-  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
+  import { tokensPrice, type TokenPrice } from '$lib/stores/icpswap.svelte'
   import { getPriceNumber } from '$lib/utils/helper'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
-  const icpPrice = getTokenPrice(ICPToken.canisterId, true)
-  const pandaPrice = getTokenPrice(PANDAToken.canisterId, true)
+  const icpPrice = $derived(tokensPrice.get(ICPToken.canisterId))
+  const pandaPrice = $derived(tokensPrice.get(PANDAToken.canisterId))
 
   onMount(async () => {
     await new Promise((res) => setTimeout(res, 3000))
@@ -159,11 +159,11 @@
       href="https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
       target="_blank"
     >
-      {#if $icpPrice}
-        {@render tokenPrice($icpPrice)}
+      {#if icpPrice}
+        {@render tokenPrice(icpPrice)}
       {/if}
-      {#if $pandaPrice}
-        {@render tokenPrice($pandaPrice)}
+      {#if pandaPrice}
+        {@render tokenPrice(pandaPrice)}
       {/if}
     </a>
   </div>
@@ -510,7 +510,7 @@
         class="text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
       >
         ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end
-          encrypted messaging application fully running on the blockchain.
+        encrypted messaging application fully running on the blockchain.
       </p>
       <div class="w-full">
         <a
@@ -545,12 +545,12 @@
               target="_blank">RFC 9052 (COSE)</a
             >
             standard and
-              <a
-                class="underline underline-offset-4"
-                href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
-                target="_blank">On-Chain vetKeys</a
-              >, then stored permanently on the ICP blockchain. Decryption is
-              possible only on the client side.
+            <a
+              class="underline underline-offset-4"
+              href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
+              target="_blank">On-Chain vetKeys</a
+            >, then stored permanently on the ICP blockchain. Decryption is
+            possible only on the client side.
           </p>
         </div>
         <div class="pt-8 md:pt-10">
@@ -580,8 +580,8 @@
         <div class="pt-8 md:pt-10">
           <h3 class="h3"><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3>
           <p class="text-neutral-300 mt-4">
-            It runs entirely as a smart contract on the ICP blockchain,
-            governed by
+            It runs entirely as a smart contract on the ICP blockchain, governed
+            by
             <a
               class="underline underline-offset-4"
               href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"

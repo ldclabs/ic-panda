@@ -9,6 +9,7 @@ type BucketDeploymentInfo = record {
 };
 type CanisterSettings = record {
   freezing_threshold : opt nat;
+  wasm_memory_threshold : opt nat;
   controllers : opt vec principal;
   reserved_cycles_limit : opt nat;
   log_visibility : opt LogVisibility;
@@ -16,7 +17,8 @@ type CanisterSettings = record {
   memory_allocation : opt nat;
   compute_allocation : opt nat;
 };
-type CanisterStatusResponse = record {
+type CanisterStatusResult = record {
+  memory_metrics : MemoryMetrics;
   status : CanisterStatusType;
   memory_size : nat;
   cycles : nat;
@@ -47,6 +49,7 @@ type ClusterInfo = record {
 };
 type DefiniteCanisterSettings = record {
   freezing_threshold : nat;
+  wasm_memory_threshold : nat;
   controllers : vec principal;
   reserved_cycles_limit : nat;
   log_visibility : LogVisibility;
@@ -69,6 +72,16 @@ type LogVisibility = variant {
   public;
   allowed_viewers : vec principal;
 };
+type MemoryMetrics = record {
+  wasm_binary_size : nat;
+  wasm_chunk_store_size : nat;
+  canister_history_size : nat;
+  stable_memory_size : nat;
+  snapshots_size : nat;
+  wasm_memory_size : nat;
+  global_memory_size : nat;
+  custom_sections_size : nat;
+};
 type QueryStats = record {
   response_payload_bytes_total : nat;
   num_instructions_total : nat;
@@ -85,14 +98,14 @@ type Result_4 = variant { Ok : nat; Err : text };
 type Result_5 = variant { Ok : vec BucketDeploymentInfo; Err : text };
 type Result_6 = variant { Ok : WasmInfo; Err : text };
 type Result_7 = variant { Ok : vec principal; Err : text };
-type Result_8 = variant { Ok : CanisterStatusResponse; Err : text };
+type Result_8 = variant { Ok : CanisterStatusResult; Err : text };
 type Result_9 = variant { Ok : ClusterInfo; Err : text };
 type Token = record {
   subject : principal;
   audience : principal;
   policies : text;
 };
-type UpdateSettingsArgument = record {
+type UpdateSettingsArgs = record {
   canister_id : principal;
   settings : CanisterSettings;
 };
@@ -118,6 +131,9 @@ service : (opt ChainArgs) -> {
   admin_attach_policies : (Token) -> (Result_1);
   admin_batch_call_buckets : (vec principal, text, opt blob) -> (Result_2);
   admin_create_bucket : (opt CanisterSettings, opt blob) -> (Result_3);
+  admin_create_bucket_on : (principal, opt CanisterSettings, opt blob) -> (
+      Result_3,
+    );
   admin_deploy_bucket : (DeployWasmInput, opt blob) -> (Result_1);
   admin_detach_policies : (Token) -> (Result_1);
   admin_ed25519_access_token : (Token) -> (Result);
@@ -126,9 +142,7 @@ service : (opt ChainArgs) -> {
   admin_set_managers : (vec principal) -> (Result_1);
   admin_sign_access_token : (Token) -> (Result);
   admin_topup_all_buckets : () -> (Result_4);
-  admin_update_bucket_canister_settings : (UpdateSettingsArgument) -> (
-      Result_1,
-    );
+  admin_update_bucket_canister_settings : (UpdateSettingsArgs) -> (Result_1);
   admin_upgrade_all_buckets : (opt blob) -> (Result_1);
   admin_weak_access_token : (Token, nat64, nat64) -> (Result) query;
   bucket_deployment_logs : (opt nat, opt nat) -> (Result_5) query;
@@ -156,11 +170,16 @@ service : (opt ChainArgs) -> {
   validate_admin_create_bucket : (opt CanisterSettings, opt blob) -> (
       Result_11,
     );
+  validate_admin_create_bucket_on : (
+      principal,
+      opt CanisterSettings,
+      opt blob,
+    ) -> (Result_11);
   validate_admin_deploy_bucket : (DeployWasmInput, opt blob) -> (Result_1);
   validate_admin_remove_committers : (vec principal) -> (Result_11);
   validate_admin_remove_managers : (vec principal) -> (Result_11);
   validate_admin_set_managers : (vec principal) -> (Result_1);
-  validate_admin_update_bucket_canister_settings : (UpdateSettingsArgument) -> (
+  validate_admin_update_bucket_canister_settings : (UpdateSettingsArgs) -> (
       Result_11,
     );
   validate_admin_upgrade_all_buckets : (opt blob) -> (Result_1);

@@ -50,3 +50,5 @@ export class ICPSwapAPI {
 export const icpSwapAPI = new ICPSwapAPI(
   Principal.fromText(ICPSWAP_TOKENS_CANISTER_ID)
 )
+
+// https://uvevg-iyaaa-aaaak-ac27q-cai.raw.ic0.app/

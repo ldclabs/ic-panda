@@ -16,7 +16,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardPopup from '$lib/components/ui/TextClipboardPopup.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { getTokenPrice, type TokenPrice } from '$lib/stores/exchange'
+  import { tokensPrice, type TokenPrice } from '$lib/stores/icpswap.svelte'
   import { MyMessageState } from '$lib/stores/message'
   import type { LedgerAPI } from '$lib/types/token'
   import { shortId } from '$lib/utils/auth'
@@ -30,7 +30,7 @@
   } from '$lib/utils/token'
   import { Principal } from '@dfinity/principal'
   import { getModalStore } from '@skeletonlabs/skeleton'
-  import { onMount, type Snippet, type SvelteComponent } from 'svelte'
+  import { onMount, tick, type Snippet, type SvelteComponent } from 'svelte'
   import ImportTokenModal from './ImportTokenModal.svelte'
   import TopupTokenModal from './TopupTokenModal.svelte'
   import TransferTokenModal from './TransferTokenModal.svelte'
@@ -42,10 +42,17 @@
     parent: SvelteComponent
   }
 
-  type TokenInfoEx = TokenInfo & {
+  class TokenInfoEx {
+    token: TokenInfo
     api: LedgerAPI
-    balance: bigint
-    price: TokenPrice | null
+    price: TokenPrice | undefined
+    balance: bigint = $state(0n)
+
+    constructor(token: TokenInfo) {
+      this.token = token
+      this.api = new TokenLedgerAPI(token)
+      this.price = $derived(tokensPrice.get(this.token.canisterId))
+    }
   }
 
   let { parent }: Props = $props()
@@ -54,38 +61,17 @@
   let myState: MyMessageState | null = $state(null)
   let principal = $authStore.identity.getPrincipal()
   let myInfo: ProfileInfo | null = $state(null)
+  let myTokensInfo = $state<TokenInfo[]>([])
 
-  let myTokens = $state<TokenInfoEx[]>([])
-  let icpTokenInfo: TokenInfoEx = $state({
-    ...ICPToken,
-    api: icpLedgerAPI,
-    balance: 0n,
-    price: null
-  })
-  getTokenPrice(icpTokenInfo.canisterId).subscribe((price) => {
-    icpTokenInfo.price = price
+  const myTokens = $derived.by(() => {
+    return myTokensInfo.map((token) => {
+      return new TokenInfoEx(token)
+    })
   })
 
-  let pandaTokenInfo: TokenInfoEx = $state({
-    ...PANDAToken,
-    api: pandaLedgerAPI,
-    balance: 0n,
-    price: null
-  })
-  getTokenPrice(PANDAToken.canisterId).subscribe((price) => {
-    pandaTokenInfo.price = price
-  })
-
-  let dmsgTokenInfo: TokenInfoEx = $state({
-    ...DMSGToken,
-    api: dmsgLedgerAPI,
-    balance: 0n,
-    price: null
-  })
-
-  getTokenPrice(DMSGToken.canisterId).subscribe((price) => {
-    dmsgTokenInfo.price = price
-  })
+  const icpTokenInfo = new TokenInfoEx(ICPToken)
+  const pandaTokenInfo = new TokenInfoEx(PANDAToken)
+  const dmsgTokenInfo = new TokenInfoEx(DMSGToken)
 
   function onClickToken(token: TokenInfoEx) {
     ;(modalStore as any).trigger2({
@@ -109,18 +95,18 @@
           onsave: async (token: TokenInfoEx) => {
             if (
               !myState ||
-              token.canisterId === icpTokenInfo.canisterId ||
-              token.canisterId === pandaTokenInfo.canisterId ||
-              token.canisterId === dmsgTokenInfo.canisterId
+              token.token.canisterId === icpTokenInfo.token.canisterId ||
+              token.token.canisterId === pandaTokenInfo.token.canisterId ||
+              token.token.canisterId === dmsgTokenInfo.token.canisterId
             ) {
               return
             }
-            const tokenIds = myTokens.map((v) => v.canisterId)
-            if (tokenIds.includes(token.canisterId)) {
+            const tokenIds = myTokens.map((v) => v.token.canisterId)
+            if (tokenIds.includes(token.token.canisterId)) {
               return
             }
 
-            tokenIds.push(token.canisterId)
+            tokenIds.push(token.token.canisterId)
             const tokens = tokenIds.map((v) => Principal.fromText(v))
             const profile = await myState.agent.getProfile()
             await myState.agent.profileAPI.update_tokens(tokens)
@@ -155,7 +141,7 @@
     if (!myState) {
       return
     }
-    let tokenIds = myTokens.map((v) => v.canisterId)
+    let tokenIds = myTokens.map((v) => v.token.canisterId)
     if (!tokenIds.includes(id)) {
       return
     }
@@ -169,7 +155,7 @@
       ...profile,
       tokens
     })
-    myTokens = myTokens.filter((v) => v.canisterId !== id)
+    myTokensInfo = myTokensInfo.filter((v) => v.canisterId !== id)
     deleteTokenSubmitting = ''
   }
 
@@ -190,22 +176,11 @@
 
       myInfo = await myState!.agent.getProfile().catch(() => null)
       if (myInfo) {
-        const tokens = await myState.agent.loadTokens(myInfo.tokens)
-        myTokens = tokens.map((token) => {
-          const api = new TokenLedgerAPI(token)
-          return {
-            ...token,
-            api,
-            balance: 0n,
-            price: null
-          }
-        })
+        myTokensInfo = await myState.agent.loadTokens(myInfo.tokens)
+        await tick()
 
         for (const token of myTokens) {
           token.api.balance().then((balance) => (token.balance = balance))
-          getTokenPrice(token.canisterId).subscribe((price) => {
-            token.price = price
-          })
         }
       }
     }
@@ -229,7 +204,7 @@
   logo?: () => ReturnType<Snippet>,
   canDelete?: boolean
 )}
-  {@const tokenInfo = new TokenDisplay(token, token.balance)}
+  {@const tokenInfo = new TokenDisplay(token.token, token.balance)}
   {@const tokenValue = tokenInfo.num * (token.price?.priceUSD || 0)}
   <a
     type="button"
@@ -246,15 +221,15 @@
     {#if logo}
       {@render logo()}
     {:else}
-      <img class="size-12" alt={token.name} src={token.logo} />
+      <img class="size-12" alt={token.token.name} src={token.token.logo} />
     {/if}
     <div class="pl-2">
       <div class="flex flex-row justify-between">
-        <span class="">{token.symbol}</span>
+        <span class="">{token.token.symbol}</span>
         <span class="">{tokenInfo.display()}</span>
       </div>
       <div class="flex flex-row justify-between text-sm text-surface-500">
-        <span class="">{token.name}</span>
+        <span class="">{token.token.name}</span>
         {#if tokenValue > 0}
           <span class="">{'$' + getPriceNumber(tokenValue)}</span>
         {/if}
@@ -264,15 +239,15 @@
       <button
         type="button"
         class="absolute right-[-28px] top-4 p-1 text-neutral-500/50 hover:text-surface-900-50-token"
-        disabled={deleteTokenSubmitting == token.canisterId}
+        disabled={deleteTokenSubmitting == token.token.canisterId}
         onclick={(ev) => {
           ev.preventDefault()
           ev.stopPropagation()
-          onDeleteToken(token.canisterId)
+          onDeleteToken(token.token.canisterId)
         }}
       >
         <span class="*:size-5">
-          {#if deleteTokenSubmitting == token.canisterId}
+          {#if deleteTokenSubmitting == token.token.canisterId}
             <IconCircleSpin />
           {:else}
             <IconDeleteBin />
@@ -304,7 +279,7 @@
     {@render tokenItem(icpTokenInfo, icpLogo)}
     {@render tokenItem(pandaTokenInfo, pandaLogo)}
     {@render tokenItem(dmsgTokenInfo, dmsgLogo)}
-    {#each myTokens as token (token.canisterId)}
+    {#each myTokens as token (token.token.canisterId)}
       {@render tokenItem(token, undefined, true)}
     {/each}
     <button

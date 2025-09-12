@@ -7,7 +7,7 @@
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { APP_ORIGIN, MESSAGE_CANISTER_ID } from '$lib/constants'
-  import { getTokenPrice } from '$lib/stores/exchange'
+  import { tokensPrice } from '$lib/stores/icpswap.svelte'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
@@ -41,7 +41,7 @@
   const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
   const messageState: Readable<StateInfo | null> = myState.api.stateStore
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
-  const pandaPrice = getTokenPrice(PANDAToken.canisterId)
+  const pandaPrice = $derived(tokensPrice.get(PANDAToken.canisterId))
 
   let validating = $state(false)
   let submitting = $state(false)
@@ -225,10 +225,10 @@
                   ? 'text-error-500'
                   : 'text-panda'}
                 >{formatNumber(Number(amount) / Number(PANDAToken.one)) +
-                  ($pandaPrice && amount > 0n
+                  (pandaPrice && amount > 0n
                     ? ' ($' +
                       getPriceNumber(
-                        $pandaPrice.priceUSD *
+                        pandaPrice.priceUSD *
                           (Number(amount) / Number(PANDAToken.one))
                       ) +
                       ')'
