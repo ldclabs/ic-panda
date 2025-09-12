@@ -11,14 +11,12 @@ export function joinURL(
   params?: URLSearchParamsInit
 ) {
   const url = new URL(baseURL)
-  const search1 = url.search
-  url.search = ''
-  url.href += path === '' || path.startsWith('?') ? path : '/' + path
-  const search2 = url.search
-  url.search = search1
-  toURLSearchParams(search2).forEach((value, key) => {
-    url.searchParams.set(key, value)
-  })
+  if (path) {
+    if (!url.pathname.endsWith('/')) url.pathname += '/'
+    if (path.startsWith('/')) path = path.slice(1)
+      url.pathname += path
+  }
+
   toURLSearchParams(params ?? {}).forEach((value, key) => {
     url.searchParams.set(key, value)
   })
