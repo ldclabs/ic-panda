@@ -15,7 +15,7 @@
         "match": "**/*",
         "security_policy": "standard",
         "headers": {
-            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://*.panda.fans;img-src 'self' https://pbs.twimg.com https://*.icp0.io data: blob:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';frame-src;form-action 'self';upgrade-insecure-requests;",
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://api.icpswap.com https://*.panda.fans;img-src 'self' https://pbs.twimg.com https://*.icp0.io data: blob:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';frame-src;form-action 'self';upgrade-insecure-requests;",
             "Permissions-Policy": "autoplay=*, camera=*, cross-origin-isolated=*, display-capture=*, encrypted-media=*, fullscreen=*, keyboard-map=*, microphone=*, payment=*, picture-in-picture=*, clipboard-read=*, clipboard-write=*",
             "X-Frame-Options": "DENY",
             "Referrer-Policy": "same-origin",
