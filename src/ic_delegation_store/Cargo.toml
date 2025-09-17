@@ -1,0 +1,31 @@
+[package]
+name = "ic_delegation_store"
+description = ""
+publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_delegation_store"
+version.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = { workspace = true }
+candid = { workspace = true }
+ciborium = { workspace = true }
+ic-cdk = { workspace = true }
+serde = { workspace = true }
+ic-stable-structures = { workspace = true }
+ic-http-certification = { workspace = true }
+ic-dummy-getrandom-for-wasm = { workspace = true }
+ic_auth_types = { workspace = true }
+ic_auth_verifier = { workspace = true, features = ["envelope"] }
+lazy_static = { workspace = true }
+once_cell = { workspace = true }
+url = { workspace = true }
+serde_json = { workspace = true }

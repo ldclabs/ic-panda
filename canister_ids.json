@@ -14,6 +14,9 @@
     "ic": "n3bau-gaaaa-aaaaj-qa4oq-cai",
     "local": "n3bau-gaaaa-aaaaj-qa4oq-cai"
   },
+  "ic_delegation_store": {
+    "ic": "asxpf-ciaaa-aaaap-an33a-cai"
+  },
   "ic_dmsg_minter": {
     "ic": "ql553-iqaaa-aaaap-anuyq-cai",
     "local": "ql553-iqaaa-aaaap-anuyq-cai"

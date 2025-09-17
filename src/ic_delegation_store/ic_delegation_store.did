@@ -1,0 +1,4 @@
+type CanisterArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type InitArgs = record { allowed_origins : vec text };
+type UpgradeArgs = record { allowed_origins : opt vec text };
+service : (opt CanisterArgs) -> {}

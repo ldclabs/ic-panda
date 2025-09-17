@@ -3,6 +3,7 @@ members = [
   "src/cli_airdrop",
   "src/cli_cryptogram",
   "src/cli_dmsg",
+  "src/ic_delegation_store",
   "src/ic_dmsg_minter",
   "src/ic_message",
   "src/ic_message_channel",
@@ -30,7 +31,6 @@ categories = ["web-programming"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-async-trait = "0.1"
 bytes = "1"
 base64 = "0.22"
 candid = "0.10"
@@ -59,6 +59,9 @@ ic-certification = "3.0"
 ic-oss-types = "1.2"
 ic-canister-sig-creation = "1.3"
 ic-ed25519 = { version = "0.3" }
+ic-http-certification = "3"
+lazy_static = "1.5"
+once_cell = "1.21"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "=4.5", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"

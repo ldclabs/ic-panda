@@ -18,6 +18,7 @@ twiggy:
 
 # cargo install ic-wasm
 build-wasm:
+	cargo build --release --target wasm32-unknown-unknown --package ic_delegation_store
 	cargo build --release --target wasm32-unknown-unknown --package ic_dmsg_minter
 	cargo build --release --target wasm32-unknown-unknown --package ic_message
 	cargo build --release --target wasm32-unknown-unknown --package ic_message_channel
@@ -27,6 +28,7 @@ build-wasm:
 
 # cargo install candid-extractor
 build-did:
+	candid-extractor target/wasm32-unknown-unknown/release/ic_delegation_store.wasm > src/ic_delegation_store/ic_delegation_store.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_dmsg_minter.wasm > src/ic_dmsg_minter/ic_dmsg_minter.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_message.wasm > src/ic_message/ic_message.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_message_channel.wasm > src/ic_message_channel/ic_message_channel.did
