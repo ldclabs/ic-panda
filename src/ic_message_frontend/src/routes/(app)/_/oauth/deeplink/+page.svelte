@@ -91,26 +91,36 @@
       </div>
     {/if}
     {#if !identity.isAuthenticated || Date.now() >= identity.expiration - 1000 * 3600 * 24}
-      <div class="!mt-8 flex flex-col items-center space-y-4">
+      <div class="!mt-8 flex flex-col items-center space-y-6">
         <button
           type="button"
-          class="variant-filled-primary btn w-80"
+          class="variant-filled-primary btn btn-lg w-80"
+          disabled={submitting}
+          onclick={() => {
+            authStore.signIn2('https://id.ai')
+          }}
+        >
+          Internet Identity v2
+        </button>
+        <button
+          type="button"
+          class="variant-filled-primary btn btn-lg w-80"
           disabled={submitting}
           onclick={() => {
             authStore.signIn2()
           }}
         >
-          Sign in with Internet Identity
+          Internet Identity
         </button>
         <button
           type="button"
-          class="variant-filled-secondary btn w-80"
+          class="variant-filled-surface btn btn-lg w-80"
           disabled={submitting}
           onclick={() => {
             authStore.signIn()
           }}
         >
-          Sign in with identity.ic0.app (legacy)
+          identity.ic0.app (legacy)
         </button>
       </div>
     {/if}
