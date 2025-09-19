@@ -57,7 +57,7 @@ export default defineConfig({
         short_name: 'ICPanda',
         name: 'ICPanda',
         description:
-          'A technical panda fully running on the Internet Computer blockchain, building chain-native infrastructures and practical Web3 apps. About us: https://dmsg.net/panda',
+          'Breathing life into sovereign AI. We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3. https://Anda.AI | https://dMsg.net',
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',

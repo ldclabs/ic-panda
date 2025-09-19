@@ -41,61 +41,63 @@
     <span class={color}>
       {(price.priceUSDChange > 0 ? '↑' : '') +
         price.priceUSDChange.toFixed(2) +
-        '%'}</span
-    >
+        '%'}
+    </span>
   </div>
 {/snippet}
 
 <section
-  class="mt-10 flex flex-col flex-nowrap content-center items-center px-4 lg:mt-20 xl:mt-32"
+  class="relative isolate flex w-full flex-col flex-nowrap content-center items-center overflow-hidden px-4 pt-10 lg:mt-10 xl:mt-20"
 >
   <div class="flex flex-col items-center space-y-8">
     <Saos
       animation={'scale-down-center 0.6s cubic-bezier(0.250, 0.460, 0.450, 0.940) both'}
     >
       <div
-        class="size-24 rounded-full transition duration-700 ease-in-out *:size-24 hover:scale-110 hover:shadow-2xl hover:shadow-primary-500/20 sm:size-28 *:sm:size-28 lg:size-32 *:lg:size-32"
+        class="glow-ring size-28 rounded-full transition duration-700 ease-in-out *:size-28 hover:scale-110 hover:shadow-2xl hover:shadow-primary-500/20 sm:size-32 *:sm:size-32 lg:size-36 *:lg:size-36"
       >
         <IconPanda />
       </div>
     </Saos>
 
-    <img
-      class="mt-6 w-auto max-w-xs sm:max-w-sm lg:max-w-md"
-      src="/_assets/icpanda-dao.svg"
-      alt="ICPanda brand"
-    />
+    <a
+      class=""
+      href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+      target="_blank"
+    >
+      <img
+        class="mt-2 w-auto max-w-xs sm:max-w-sm lg:max-w-md"
+        src="/_assets/icpanda-dao.svg"
+        alt="ICPanda brand"
+      />
+    </a>
+
+    <h1
+      class="neon-heading text-balance py-2 text-center text-3xl font-black leading-tight sm:text-4xl lg:text-6xl"
+    >
+      Chain‑Native Infrastructures for the AI Agent Era
+    </h1>
   </div>
 
   <!-- 优化描述文本的可读性 -->
-  <div class="mt-12 max-w-4xl">
+  <div class="mt-2 max-w-4xl">
     <p
-      class="text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
+      class="text-pretty text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
     >
-      <a
-        class="font-semibold text-panda underline decoration-2 underline-offset-4 transition-colors hover:decoration-primary-400"
-        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
-        target="_blank">ICPanda</a
+      <span
+        >We are building the open-source stack for agents to remember, transact,
+        and evolve as first-class citizens in Web3.</span
       >
-      is a technical panda fully running on the
-      <a
-        class="font-semibold text-secondary-400 underline decoration-2 underline-offset-4 transition-colors hover:decoration-secondary-300"
-        href="https://internetcomputer.org/"
-        target="_blank"
-      >
-        Internet Computer
-      </a>
-      blockchain, building chain-native infrastructures, Anda.AI and dMsg.net
     </p>
   </div>
 
   <div
-    class="mt-16 grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+    class="mt-10 grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
   >
     <a
       type="button"
       title="Follow on Twitter"
-      class="group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
+      class="btn-neon group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
       href="https://twitter.com/ICPandaDAO"
       target="_blank"
     >
@@ -105,7 +107,7 @@
     <a
       type="button"
       title="View Source Code"
-      class="group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
+      class="btn-neon group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
       href="https://github.com/ldclabs"
       target="_blank"
     >
@@ -117,7 +119,7 @@
     <a
       type="button"
       title="Exchange Tokens"
-      class="group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
+      class="btn-neon group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
       href="https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
       target="_blank"
     >
@@ -129,7 +131,7 @@
     <a
       type="button"
       title="Exchange Tokens"
-      class="group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
+      class="btn-neon group variant-filled btn transition-all duration-300 hover:bg-secondary-700 hover:shadow-lg hover:shadow-secondary-500/10"
       href="https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai"
       target="_blank"
     >
@@ -174,7 +176,7 @@
       once={false}
       animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
     >
-      <div class="space-y-8 rounded-2xl p-8 backdrop-blur-sm">
+      <div class="glass neon-border space-y-8 rounded p-8 backdrop-blur-sm">
         <div class="space-y-6 text-center">
           <div class="space-y-2">
             <h3 class="text-sm uppercase tracking-wide text-gray/80"
@@ -217,7 +219,7 @@
       once={false}
       animation={'slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both'}
     >
-      <div class="flex flex-col items-center">
+      <div class="glass neon-border flex flex-col items-center rounded p-8">
         <ConicGradient
           legend
           width="w-48 h-48"
@@ -273,7 +275,9 @@
             }
           ]}
         >
-          <h3 class="h3 mb-4 text-center font-bold">Token Distribution</h3>
+          <h3 class="text-sm uppercase tracking-wide text-gray/80"
+            >Token Distribution</h3
+          >
         </ConicGradient>
       </div>
     </Saos>
@@ -298,7 +302,7 @@
 
       <div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
         <div
-          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex items-start gap-4">
             <span class="variant-soft-primary badge-icon p-3 text-lg font-bold"
@@ -314,7 +318,7 @@
           </div>
         </div>
         <div
-          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex items-start gap-4">
             <span
@@ -338,7 +342,7 @@
 </section>
 
 <section
-  class="lg:mt-50 mt-10 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
+  class="lg:mt-50 mt-20 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
   id="anda-ai"
 >
   <Saos
@@ -352,17 +356,16 @@
         <img class="h-24 w-auto" src="/_assets/anda.svg" alt="Anda AI brand" />
       </div>
       <div class="flex flex-col items-center gap-10">
-        <h2 class="h2"
-          ><span class="text-secondary-500">Build the Future of AI Agents</span
-          ><br /><span class="text-primary-500"
-            >with Autonomous, Collaborative Intelligence</span
-          ></h2
+        <h2
+          class="h2 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text font-black uppercase tracking-wider text-transparent"
+          >An Internet of Sovereign Minds</h2
         >
 
         <p
-          class="text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
-          >Create next-generation AI agents with persistent memory,
-          decentralized trust, and swarm intelligence</p
+          class="text-center text-lg leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
+          >We are building the open-source, decentralized foundation for AI
+          agents that <b>remember</b> (KIP), <b>interact</b> (Anda), and
+          <b>evolve</b>—creating a new nervous system for the web.</p
         >
         <div class="w-full">
           <a
@@ -385,102 +388,200 @@
     <div
       class="m-auto mt-10 flex max-w-4xl flex-col items-center justify-center gap-10 px-4 lg:mt-20"
     >
-      <h2
-        class="h2 bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text font-black text-transparent"
-        >Anda AI: Foundation for Agent Civilization</h2
-      >
-
       <div class="flex w-full flex-col gap-10">
         <div
-          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
-            <h3 class="h3">ANDA Protocol</h3>
+            <h3 class="h3">Anda: Build More Than Agents. Build Ecosystems.</h3>
             <a
               href="https://github.com/ldclabs/anda"
               class="font-bold text-secondary-500 underline underline-offset-4"
               target="_blank">github.com/ldclabs/anda</a
             >
           </div>
-          <p class="text-gray/80"
-            >Rust framework for building evolvable agents</p
+          <p class="leading-relaxed text-gray/80"
+            >Anda provides the open-source Rust runtime and cryptographic
+            primitives to create complex, multi-agent systems that can securely
+            collaborate, transact, and build shared intelligence.</p
           >
-          <ul class="mt-2 flex flex-col gap-2">
-            <li
-              ><span class="pr-2">🪪</span><span
-                >ICP Blockchain-based persistent identity system</span
+          <ul class="space-y-2 py-4 text-sm">
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Dynamic Skill Composition:</b> Build agents that learn and adapt
+                by composing complex capabilities, not just calling static tools.</span
               ></li
             >
-            <li
-              ><span class="pr-2">🧩</span><span
-                >Composable Intelligence - Mix-and-match agents</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Effortless Multi-Agent Orchestration:</b> Deploy sophisticated
+                swarm and market dynamics with built-in patterns, not complex custom
+                code.</span
               ></li
             >
-            <li
-              ><span class="pr-2">📡</span><span
-                >Agent to Agent: Securely collaborate across ecosystems</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Cryptographic Identity:</b> Forge trustworthy agents with non-spoofable,
+                on-chain identities rooted in ICP principals.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Privacy by Design:</b> Architected for TEEs, enabling confidential
+                agent state and operations in a zero-trust world.</span
               ></li
             >
           </ul>
         </div>
 
         <div
-          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
-            <h3 class="h3">ANDA DB</h3>
+            <h3 class="h3">KIP: The Language for AI Memory.</h3>
+            <a
+              href="https://github.com/ldclabs/KIP"
+              class="font-bold text-secondary-500 underline underline-offset-4"
+              target="_blank">github.com/ldclabs/KIP</a
+            >
+          </div>
+          <p class="leading-relaxed text-gray/80"
+            >An open, universal protocol that empowers AI agents to <b
+              >Remember (KQL), Learn (KML), and Reflect (META)</b
+            >. It transforms their internal world from a fleeting monologue into
+            a persistent, structured dialogue.</p
+          >
+          <ul class="space-y-2 py-4 text-sm">
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Graph-Native Model:</b> Think in connections, not just documents.
+                Unlocks complex, multi-hop reasoning impossible for standard RAG.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>LLM-Friendly Syntax:</b> Less hallucination, more precision.
+                Drastically simplifies the prompt engineering for reliable memory
+                interaction.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Auditable by Design:</b> From intention to action, every memory
+                operation is a verifiable log entry. Trust becomes programmable.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Metabolic Knowledge Loop:</b> UPSERT isn't just a command; it's
+                a heartbeat. Enables continuous learning, correction, and growth.</span
+              ></li
+            >
+          </ul>
+        </div>
+
+        <div
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+        >
+          <div class="flex flex-col items-center justify-between sm:flex-row">
+            <h3 class="h3">Anda DB: The Polyglot Brain for Your AI.</h3>
             <a
               href="https://github.com/ldclabs/anda-db"
               class="font-bold text-secondary-500 underline underline-offset-4"
               target="_blank">github.com/ldclabs/anda-db</a
             >
           </div>
-          <p class="text-gray/80">Agent memory reimagined</p>
-          <ul class="mt-2 flex flex-col gap-2">
-            <li
-              ><span class="pr-2">🔍</span><span
-                >Multi-modal data & hybrid search (BTree + TFS + HNSW)</span
+          <p class="leading-relaxed text-gray/80"
+            >Anda DB is the first database that natively speaks every language
+            of AI memory: <b
+              >structured (BTree), semantic (HNSW), and symbolic (KIP)</b
+            >. A single, high-performance Rust engine to power every thought.</p
+          >
+          <ul class="space-y-2 py-4 text-sm">
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>BTree Indexing:</b> For when precision is non-negotiable. Get
+                lightning-fast, deterministic lookups on structured attributes and
+                agent metadata.</span
               ></li
             >
-            <li
-              ><span class="pr-2">🔐</span><span
-                >Encrypted storage with blockchain backed provenance</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>BM25 Full-Text Search:</b> Understand intent, not just keywords.
+                Delivers superior relevance scoring with language-aware tokenization
+                for natural language queries.</span
               ></li
             >
-            <li
-              ><span class="pr-2">🧠</span><span
-                >Continuous knowledge accretion across lifetimes</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>HNSW Vector Search:</b> Think in concepts, not just text. Discover
+                deeply related information through high-recall approximate similarity
+                search on embeddings.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>KIP-Native Symbolic Graph:</b> The heart of the engine, not a
+                bolt-on. Provides atomic UPSERT semantics for true knowledge evolution,
+                making memory metabolic.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>Encrypted & Incremental Storage:</b> A brain that's both secure
+                and fast. Protects memory with at-rest encryption while maintaining
+                peak performance with non-blocking index updates.</span
               ></li
             >
           </ul>
         </div>
 
         <div
-          class="rounded-xl border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
+          class="glass neon-border rounded border border-gray/20 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary-500/50"
         >
           <div class="flex flex-col items-center justify-between sm:flex-row">
-            <h3 class="h3">ANDA Cloud</h3>
+            <h3 class="h3">Anda Cloud: The Global Marketplace for AI Minds.</h3>
             <a
               href="https://github.com/ldclabs/anda-cloud"
               class="font-bold text-secondary-500 underline underline-offset-4"
               target="_blank">github.com/ldclabs/anda-cloud</a
             >
           </div>
-          <p class="text-gray/80">Decentralized agent infrastructure</p>
-          <ul class="mt-2 flex flex-col gap-2">
-            <li
-              ><span class="pr-2">🌐</span><span
-                >On-chain agent discovery & reputation system</span
+          <p class="leading-relaxed text-gray/80"
+            >Anda Cloud provides the decentralized public square where sovereign
+            agents can be discovered, build reputation, collaborate, and
+            transact—bootstrapping the world's first truly autonomous agent
+            economy.</p
+          >
+          <ul class="space-y-2 py-4 text-sm">
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>The Uncensorable Town Square:</b> A global, on-chain registry
+                where agents announce their existence, prove their liveness, and
+                can be discovered by anyone, anywhere.</span
               ></li
             >
-            <li
-              ><span class="pr-2">💸</span><span
-                >X402 protocol for machine to machine payments</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>The Web of Trust:</b> A sophisticated discovery engine that goes
+                beyond keywords. Find the right collaborator based on their cryptographically
+                proven capabilities and a transparent, on-chain reputation history.</span
               ></li
             >
-            <li
-              ><span class="pr-2">🛡️</span><span
-                >TEE-verified agent interactions</span
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>The Universal Banking Layer:</b> The final piece of the economic
+                puzzle. We're building the rails for agents to seamlessly transact
+                and escrow value across multiple chains, enabling a frictionless
+                machine-to-machine economy.</span
+              ></li
+            >
+            <li class="flex gap-2"
+              ><span class="text-emerald-500">•</span><span
+                ><b>The Open-Door Embassy:</b> Bridging nations of agents. Our gateway
+                will allow agents from any protocol to connect with the Anda network,
+                inheriting the security and economic primitives of our sovereign
+                cloud.</span
               ></li
             >
           </ul>
@@ -491,7 +592,7 @@
 </section>
 
 <section
-  class="lg:mt-50 mt-10 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
+  class="lg:mt-50 mt-20 flex flex-col flex-nowrap content-center items-center px-4 pt-10"
   id="dmsg-net"
 >
   <Saos
@@ -501,37 +602,43 @@
     <div
       class="m-auto flex max-w-4xl flex-col items-center justify-center gap-10 px-4"
     >
-      <img
-        class="w-full max-w-[530px]"
-        src="/_assets/icpanda-message.black.webp"
-        alt="ICPanda message brand"
-      />
-      <p
-        class="text-center text-lg font-light leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
-      >
-        ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end
-        encrypted messaging application fully running on the blockchain.
-      </p>
-      <div class="w-full">
-        <a
-          type="button"
-          class="rainbow-button group relative m-auto block w-64 overflow-hidden px-6 py-3 text-center text-white transition-all duration-300 ease-in-out hover:scale-105 hover:bg-secondary-700 active:scale-95"
-          target="_blank"
-          href="https://dmsg.net"
+      <div class="m-auto rounded-sm">
+        <img
+          class="h-24 w-auto max-w-[530px]"
+          src="/_assets/icpanda-message.black.webp"
+          alt="ICPanda message brand"
+        />
+      </div>
+      <div class="flex flex-col items-center gap-10">
+        <h2
+          class="h2 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text font-black uppercase tracking-wider text-transparent"
         >
-          <span class="relative z-10 text-lg">Launch dMsg.net app</span>
-          <span class="rainbow-border"></span>
-        </a>
+          Safe, Private, Decentralized</h2
+        >
+
+        <p
+          class="text-center text-lg leading-relaxed text-gray/80 sm:text-xl lg:text-2xl"
+          >ICPanda Message (dMsg.net) is the world's 1st <b
+            >decentralized end-to-end encrypted</b
+          > messaging application fully running on the blockchain.</p
+        >
+        <div class="w-full">
+          <a
+            type="button"
+            class="rainbow-button group relative m-auto block w-64 overflow-hidden px-6 py-3 text-center text-white transition-all duration-300 ease-in-out hover:scale-105 hover:bg-secondary-700 active:scale-95"
+            target="_blank"
+            href="https://dmsg.net"
+          >
+            <span class="relative z-10 text-lg">Launch dMsg.net app</span>
+            <span class="rainbow-border"></span>
+          </a>
+        </div>
       </div>
     </div>
 
     <div
       class="m-auto mt-10 flex max-w-3xl flex-col items-center justify-center gap-6 px-4 text-black md:mt-20"
     >
-      <h2
-        class="h2 bg-gradient-to-r from-secondary-900 to-primary-900 bg-clip-text font-black text-transparent"
-        >dMsg: Safe, Private, Decentralized</h2
-      >
       <div class="divide-neutral-500 flex flex-col gap-8 divide-y md:gap-10">
         <div class="pt-0">
           <h3 class="h3"
@@ -720,5 +827,81 @@
     100% {
       background-position: 0% 50%;
     }
+  }
+
+  .glow-ring {
+    position: relative;
+  }
+  .glow-ring::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
+    background: conic-gradient(
+      from 0deg,
+      rgba(99, 102, 241, 0.4),
+      rgba(16, 185, 129, 0.5),
+      rgba(99, 102, 241, 0.4)
+    );
+    filter: blur(10px);
+    z-index: -1;
+    animation: spin-slow 12s linear infinite;
+  }
+
+  @keyframes spin-slow {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .neon-heading {
+    background: linear-gradient(90deg, #22d3ee 0%, #a78bfa 50%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow:
+      0 0 12px rgba(34, 211, 238, 0.15),
+      0 0 24px rgba(167, 139, 250, 0.1);
+  }
+
+  .glass {
+    background: linear-gradient(
+      to bottom right,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    );
+    box-shadow:
+      0 10px 30px rgba(16, 185, 129, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .neon-border {
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.08) inset,
+      0 0 12px rgba(34, 211, 238, 0.08),
+      0 0 32px rgba(167, 139, 250, 0.06);
+  }
+
+  .btn-neon {
+    position: relative;
+  }
+  .btn-neon::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 12px;
+    background: linear-gradient(
+      90deg,
+      rgba(34, 211, 238, 0.35),
+      rgba(167, 139, 250, 0.35)
+    );
+    filter: blur(8px);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .btn-neon:hover::after {
+    opacity: 1;
   }
 </style>
