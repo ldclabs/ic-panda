@@ -2,16 +2,29 @@
   const year = new Date().getFullYear()
 </script>
 
-<div class="inset-x-0 mb-10 mt-20 flex h-16 flex-col items-center">
-  <p class="flex flex-row items-center gap-1">
-    <span class="text-sm">© 2024-{year}</span>
-    <a
-      class=""
-      href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
-      target="_blank"
-      ><img class="w-28" src="/_assets/icpanda-dao.svg" alt="ICPanda DAO" /></a
+<div class="mb-10 mt-20 flex flex-col items-center gap-4">
+  <div class="flex flex-col items-center gap-4 sm:flex-row">
+    <div class="flex flex-row items-center gap-1">
+      <span class="text-sm">© 2024-{year}</span>
+      <a
+        class=""
+        href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai"
+        target="_blank"
+        ><img
+          class="w-28"
+          src="/_assets/icpanda-dao.svg"
+          alt="ICPanda DAO"
+        /></a
+      >
+    </div>
+    <a class="" href="https://internetcomputer.org" target="_blank"
+      ><img
+        class="w-40"
+        src="/_assets/fully-on-chain-icp.svg"
+        alt="Fully On-Chain"
+      /></a
     >
-  </p>
+  </div>
   <p class="mt-2 text-center text-sm antialiased">
     Breathing life into sovereign AI.<br />We are building the open-source stack
     for agents to remember, transact, and evolve as first-class citizens in

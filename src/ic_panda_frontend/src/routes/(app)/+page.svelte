@@ -350,7 +350,7 @@
     animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
   >
     <div
-      class="m-auto flex max-w-4xl flex-col items-center justify-center gap-10 px-4"
+      class="m-auto flex max-w-4xl flex-col items-center justify-center gap-10"
     >
       <div class="m-auto rounded-sm">
         <img class="h-24 w-auto" src="/_assets/anda.svg" alt="Anda AI brand" />
@@ -386,7 +386,7 @@
     animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
   >
     <div
-      class="m-auto mt-10 flex max-w-4xl flex-col items-center justify-center gap-10 px-4 lg:mt-20"
+      class="m-auto mt-10 flex max-w-3xl flex-col items-center justify-center gap-10 lg:mt-20"
     >
       <div class="flex w-full flex-col gap-10">
         <div
@@ -600,11 +600,11 @@
     animation="slide-top 0.6s cubic-bezier(.25,.46,.45,.94) both"
   >
     <div
-      class="m-auto flex max-w-4xl flex-col items-center justify-center gap-10 px-4"
+      class="m-auto flex max-w-4xl flex-col items-center justify-center gap-10"
     >
       <div class="m-auto rounded-sm">
         <img
-          class="h-24 w-auto max-w-[530px]"
+          class="w-full max-w-[530px]"
           src="/_assets/icpanda-message.black.webp"
           alt="ICPanda message brand"
         />
@@ -637,7 +637,7 @@
     </div>
 
     <div
-      class="m-auto mt-10 flex max-w-3xl flex-col items-center justify-center gap-6 px-4 text-black md:mt-20"
+      class="m-auto mt-10 flex max-w-3xl flex-col items-center justify-center gap-6 text-black md:mt-20"
     >
       <div class="divide-neutral-500 flex flex-col gap-8 divide-y md:gap-10">
         <div class="pt-0">
