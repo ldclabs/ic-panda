@@ -2,33 +2,33 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: Swatinem/rust-cache@v2
-    - name: Build canisters
-      run: |
-        rustup target add wasm32-unknown-unknown
-        cargo install ic-wasm
-        mkdir out
-        cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity
-        for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity
-        do
-          cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
-          cp "src/$CAN/$CAN.did" "out/$CAN.did"
-          WASM="out/$CAN.wasm"
-          ic-wasm $WASM -o $WASM metadata candid:service -f "out/$CAN.did" -v public
-          ic-wasm $WASM -o $WASM shrink
-          ic-wasm $WASM -o $WASM optimize O3 --inline-functions-with-loops
-          gzip $WASM
-          SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
-          echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
-        done
-        ls -lah out
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: out/*
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Build canisters
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install ic-wasm
+          mkdir out
+          cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store
+          for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store
+          do
+            cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
+            cp "src/$CAN/$CAN.did" "out/$CAN.did"
+            WASM="out/$CAN.wasm"
+            ic-wasm $WASM -o $WASM metadata candid:service -f "out/$CAN.did" -v public
+            ic-wasm $WASM -o $WASM shrink
+            ic-wasm $WASM -o $WASM optimize O3 --inline-functions-with-loops
+            gzip $WASM
+            SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
+            echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
+          done
+          ls -lah out
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*

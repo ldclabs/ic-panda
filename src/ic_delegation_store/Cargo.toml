@@ -1,6 +1,6 @@
 [package]
 name = "ic_delegation_store"
-description = ""
+description = "Relay the delegation information for II authentication"
 publish = false
 repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_delegation_store"
 version.workspace = true
