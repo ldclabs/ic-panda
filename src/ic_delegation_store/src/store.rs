@@ -220,7 +220,7 @@ pub mod state {
 }
 
 #[inline]
-fn normalize_origin<'a>(s: &'a str) -> &'a str {
+fn normalize_origin(s: &str) -> &str {
     // 简单归一化：去空白、去尾部/、小写、去掉 http:80 / https:443 默认端口
     let o = s.trim().trim_end_matches('/');
     if o.starts_with("http://") && o.ends_with(":80") {

@@ -1,10 +1,5 @@
-use candid::{CandidType, Principal};
 use ic_cdk::management_canister as mgt;
-use ic_cose_types::{
-    format_error,
-    types::{PublicKeyOutput, SchnorrAlgorithm},
-};
-use serde::{Deserialize, Serialize};
+use ic_cose_types::{format_error, types::PublicKeyOutput};
 use serde_bytes::ByteBuf;
 
 pub fn derive_25519_public_key(
@@ -32,31 +27,6 @@ pub fn derive_25519_public_key(
         public_key: ByteBuf::from(derived_public_key.serialize_raw()),
         chain_code: ByteBuf::from(derived_chain_code),
     })
-}
-
-#[derive(CandidType, Deserialize, Serialize, Debug)]
-pub struct SignWithSchnorrArgs {
-    pub message: Vec<u8>,
-    pub derivation_path: Vec<Vec<u8>>,
-    pub key_id: SchnorrKeyId,
-}
-
-#[derive(CandidType, Deserialize, Serialize, Debug)]
-pub struct SignWithSchnorrResult {
-    pub signature: Vec<u8>,
-}
-
-#[derive(CandidType, Deserialize, Serialize, Debug)]
-pub struct SchnorrPublicKeyArgs {
-    pub canister_id: Option<Principal>,
-    pub derivation_path: Vec<Vec<u8>>,
-    pub key_id: SchnorrKeyId,
-}
-
-#[derive(CandidType, Deserialize, Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SchnorrKeyId {
-    algorithm: SchnorrAlgorithm,
-    name: String,
 }
 
 pub async fn schnorr_public_key(

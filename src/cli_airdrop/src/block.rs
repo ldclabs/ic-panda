@@ -113,7 +113,7 @@ impl BlocksClient {
         start_index: u64,
         mut parent_hash: Option<[u8; 32]>,
     ) -> Result<TipBlock, String> {
-        if start_index % BATCH_LENGTH != 0 {
+        if !start_index.is_multiple_of(BATCH_LENGTH) {
             return Err(format!(
                 "The start index {} is not a multiple of the batch length {}",
                 start_index, BATCH_LENGTH

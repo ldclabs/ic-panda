@@ -21,13 +21,10 @@ pub struct UpgradeArgs {
 
 #[ic_cdk::init]
 fn init(args: Option<CanisterArgs>) {
-    match args {
-        Some(CanisterArgs::Init(args)) => {
-            store::state::with_mut(|s| {
-                s.allowed_origins = args.allowed_origins;
-            });
-        }
-        _ => {}
+    if let Some(CanisterArgs::Init(args)) = args {
+        store::state::with_mut(|s| {
+            s.allowed_origins = args.allowed_origins;
+        });
     }
 
     store::state::init_http_certified_data();
