@@ -1,5 +1,15 @@
 {
   "canisters": {
+    "evm_icp_bridge": {
+      "candid": "src/evm_icp_bridge/evm_icp_bridge.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "evm_icp_bridge",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
     "ic_delegation_store": {
       "candid": "src/ic_delegation_store/ic_delegation_store.did",
       "declarations": {
