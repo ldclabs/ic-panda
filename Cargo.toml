@@ -38,6 +38,7 @@ base64 = "0.22"
 candid = "0.10"
 ciborium = "0.2"
 log = "0.4"
+futures = "0.3"
 serde = "1"
 serde_bytes = "0.11"
 serde_json = { version = "1", features = ["preserve_order"] }

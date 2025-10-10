@@ -15,10 +15,11 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["rpc"] }
 base64 = { workspace = true }
 candid = { workspace = true }
 ciborium = { workspace = true }
+futures = { workspace = true }
 ic-cdk = { workspace = true }
 ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }

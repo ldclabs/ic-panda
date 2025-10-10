@@ -3,6 +3,7 @@ mod api_admin;
 mod api_http;
 mod api_init;
 mod ecdsa;
+mod evm;
 mod store;
 
 use api_init::CanisterArgs;

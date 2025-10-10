@@ -15,6 +15,7 @@ pub struct InitArgs {
     pub key_name: String,
     pub token_name: String,
     pub token_symbol: String,
+    pub token_decimals: u8,
     pub token_logo: String,
     pub token_ledger: Principal,
     pub governance_canister: Option<Principal>,
@@ -36,6 +37,7 @@ fn init(args: Option<CanisterArgs>) {
             s.key_name = args.key_name;
             s.token_name = args.token_name;
             s.token_symbol = args.token_symbol;
+            s.token_decimals = args.token_decimals;
             s.token_logo = args.token_logo;
             s.token_ledger = args.token_ledger;
             s.governance_canister = args.governance_canister;
