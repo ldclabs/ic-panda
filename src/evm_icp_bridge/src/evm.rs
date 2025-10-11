@@ -18,6 +18,7 @@ pub static APP_AGENT: &str = concat!(
 
 pub struct EvmClient {
     pub providers: Vec<String>,
+    pub max_confirmations: u64,
     pub api_token: Option<String>,
 }
 
@@ -35,6 +36,7 @@ pub struct RPCResponse<T> {
     error: Option<Value>,
 }
 
+// https://www.quicknode.com/docs/ethereum
 impl EvmClient {
     pub async fn chain_id(&self, now_ms: u64) -> Result<u64, String> {
         let res: String = self
@@ -50,7 +52,7 @@ impl EvmClient {
         hex_to_u128(&res)
     }
 
-    pub async fn finalized_block_number(&self, now_ms: u64) -> Result<u64, String> {
+    pub async fn block_number(&self, now_ms: u64) -> Result<u64, String> {
         let res: String = self
             .call(
                 format!("eth_blockNumber-{}", now_ms),
@@ -58,8 +60,7 @@ impl EvmClient {
                 &[],
             )
             .await?;
-        let num = hex_to_u64(&res)?;
-        Ok(num.saturating_sub(42)) // consider a block finalized if it is 42 blocks deep
+        hex_to_u64(&res)
     }
 
     pub async fn get_transaction_count(
@@ -92,7 +93,7 @@ impl EvmClient {
         &self,
         now_ms: u64,
         tx_hash: &TxHash,
-    ) -> Result<TransactionReceipt, String> {
+    ) -> Result<Option<TransactionReceipt>, String> {
         self.call(
             format!("eth_getTransactionReceipt-{}", now_ms),
             "eth_getTransactionReceipt",
@@ -103,11 +104,11 @@ impl EvmClient {
 
     pub async fn send_raw_transaction(
         &self,
-        idempotency_key: String,
+        now_ms: u64,
         signed_tx: String,
-    ) -> Result<TxHash, String> {
+    ) -> Result<Value, String> {
         self.call(
-            idempotency_key,
+            format!("eth_sendRawTransaction-{}", now_ms),
             "eth_sendRawTransaction",
             &[signed_tx.into()],
         )
@@ -322,4 +323,11 @@ fn decode_abi_uint(bytes: &[u8]) -> Result<U256, String> {
         return Err("abi uint result must be 32 bytes".to_string());
     }
     Ok(U256::from_be_slice(bytes))
+}
+
+fn decode_abi_address(bytes: &[u8]) -> Result<Address, String> {
+    if bytes.len() != 32 {
+        return Err("abi address result must be 32 bytes".to_string());
+    }
+    Address::try_from(&bytes[12..32]).map_err(|err| err.to_string())
 }

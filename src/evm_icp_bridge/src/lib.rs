@@ -4,9 +4,9 @@ mod api_http;
 mod api_init;
 mod ecdsa;
 mod evm;
+mod helper;
 mod store;
 
 use api_init::CanisterArgs;
-use store::StateInfo;
 
 ic_cdk::export_candid!();

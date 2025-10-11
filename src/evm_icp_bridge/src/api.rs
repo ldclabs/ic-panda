@@ -1,10 +1,7 @@
-use candid::Principal;
-use ic_cose_types::ANONYMOUS;
-
-use crate::{store, store::StateInfo};
+use crate::{helper::msg_caller, store};
 
 #[ic_cdk::query]
-fn info() -> Result<StateInfo, String> {
+fn info() -> Result<store::StateInfo, String> {
     Ok(store::state::info())
 }
 
@@ -15,11 +12,13 @@ fn evm_address() -> Result<String, String> {
     Ok(addr.to_string())
 }
 
-fn msg_caller() -> Result<Principal, String> {
-    let caller = ic_cdk::api::msg_caller();
-    if caller == ANONYMOUS {
-        Err("anonymous user is not allowed".to_string())
-    } else {
-        Ok(caller)
-    }
+#[ic_cdk::update]
+async fn bridge(
+    from_chain: String,
+    to_chain: String,
+    icp_amount: u128,
+) -> Result<store::BridgeTx, String> {
+    let caller = msg_caller()?;
+    let now_ms = ic_cdk::api::time() / 1_000_000;
+    store::state::bridge(from_chain, to_chain, icp_amount, caller, now_ms).await
 }

@@ -1,8 +1,8 @@
 use alloy::{
     consensus::{SignableTransaction, Signed, TxEip1559},
-    primitives::{hex, Address, Signature, U256},
+    primitives::{hex, Address, Bytes, Signature, TxHash, U256},
 };
-use candid::{CandidType, Principal};
+use candid::{CandidType, Nat, Principal};
 use ciborium::{from_reader, into_writer};
 use ic_cose_types::{format_error, types::PublicKeyOutput};
 use ic_http_certification::{
@@ -11,18 +11,27 @@ use ic_http_certification::{
 };
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
-    DefaultMemoryImpl, StableCell,
+    storable::Bound,
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
+use icrc_ledger_types::{
+    icrc1::{account::Account, transfer::TransferArg},
+    icrc2::transfer_from::{TransferFromArgs, TransferFromError},
+};
+use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
 use std::{
+    borrow::Cow,
     cell::RefCell,
-    collections::{HashMap, VecDeque},
+    collections::{BTreeSet, HashMap, HashSet, VecDeque},
+    time::Duration,
 };
 
 use crate::{
     ecdsa::{derive_public_key, ecdsa_public_key, sign_with_ecdsa},
     evm::{encode_erc20_transfer, EvmClient},
+    helper::{call, convert_amount},
 };
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -37,14 +46,18 @@ pub struct State {
     pub token_decimals: u8,
     pub token_logo: String,
     pub token_ledger: Principal,
+    pub min_threshold_to_bridge: u128,
     // chain_name => (contract_address, decimals, chain_id)
     pub evm_token_contracts: HashMap<String, (Address, u8, u64)>,
     // chain_name => (latest_finalized_block_number, gas_price)
     pub evm_finalized_block: HashMap<String, (u64, u128)>,
-    pub evm_providers: HashMap<String, Vec<String>>,
+    // chain_name => (max_confirmations, [provider_url])
+    pub evm_providers: HashMap<String, (u64, Vec<String>)>,
     pub ecdsa_public_key: PublicKeyOutput,
     pub governance_canister: Option<Principal>,
-    pub pending: HashMap<String, VecDeque<BridgeLog>>,
+    pub pending: VecDeque<BridgeLog>,
+    // (round, running)
+    pub finalize_bridging_round: (u64, bool),
 }
 
 #[derive(CandidType, Serialize, Deserialize)]
@@ -57,9 +70,11 @@ pub struct StateInfo {
     pub token_decimals: u8,
     pub token_logo: String,
     pub token_ledger: Principal,
+    pub min_threshold_to_bridge: u128,
     pub evm_token_contracts: HashMap<String, (String, u8, u64)>,
     pub evm_finalized_block: HashMap<String, (u64, u128)>,
-    pub evm_providers: HashMap<String, Vec<String>>,
+    pub evm_providers: HashMap<String, (u64, Vec<String>)>,
+    pub finalize_bridging_round: u64,
 }
 
 impl From<&State> for StateInfo {
@@ -73,6 +88,7 @@ impl From<&State> for StateInfo {
             token_decimals: s.token_decimals,
             token_logo: s.token_logo.clone(),
             token_ledger: s.token_ledger,
+            min_threshold_to_bridge: s.min_threshold_to_bridge,
             evm_token_contracts: s
                 .evm_token_contracts
                 .iter()
@@ -89,6 +105,7 @@ impl From<&State> for StateInfo {
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect(),
+            finalize_bridging_round: s.finalize_bridging_round.0,
         }
     }
 }
@@ -104,6 +121,7 @@ impl State {
             token_decimals: 8,
             token_logo: "https://532er-faaaa-aaaaj-qncpa-cai.icp0.io/f/374?inline&filename=1734188626561.webp".to_string(),
             token_ledger: Principal::from_text("druyg-tyaaa-aaaaq-aactq-cai").unwrap(), // mainnet ledger
+            min_threshold_to_bridge: 100_000_000, // 1 Token (8 decimals)
             evm_token_contracts: HashMap::new(),
             evm_providers: HashMap::new(),
             evm_finalized_block: HashMap::new(),
@@ -112,21 +130,39 @@ impl State {
                 chain_code: vec![].into(),
             },
             governance_canister: None,
-            pending: HashMap::new(),
+            pending: VecDeque::new(),
+            finalize_bridging_round: (0, false),
         }
     }
 }
 
-#[derive(Clone, CandidType, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, CandidType, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum BridgeTarget {
     Icp,
-    Evm(u64),
+    Evm(String), // chain_name
 }
 
 #[derive(Clone, CandidType, Serialize, Deserialize, PartialEq, Eq)]
 pub enum BridgeTx {
-    Icp(u64),
-    Evm(ByteArray<32>),
+    Icp(bool, u64),           // (finalized, block_height)
+    Evm(bool, ByteArray<32>), // (finalized, tx_hash)
+}
+
+impl BridgeTx {
+    pub fn is_finalized(&self) -> bool {
+        match self {
+            BridgeTx::Icp(finalized, _) => *finalized,
+            BridgeTx::Evm(finalized, _) => *finalized,
+        }
+    }
+
+    pub fn same_with(&self, other: &BridgeTx) -> bool {
+        match (self, other) {
+            (BridgeTx::Icp(_, tx1), BridgeTx::Icp(_, tx2)) => tx1 == tx2,
+            (BridgeTx::Evm(_, tx1), BridgeTx::Evm(_, tx2)) => tx1 == tx2,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, CandidType, Serialize, Deserialize)]
@@ -134,13 +170,76 @@ pub struct BridgeLog {
     pub user: Principal,
     pub from: BridgeTarget,
     pub to: BridgeTarget,
-    pub icp_value: u128,
-    pub from_tx: Option<BridgeTx>,
+    pub icp_amount: u128,
+    pub from_tx: BridgeTx,
     pub to_tx: Option<BridgeTx>,
-    pub timestamp: u64,
+    pub created_at: u64,
+    pub finalized_at: u64,
+}
+
+impl BridgeLog {
+    pub fn is_finalized(&self) -> bool {
+        self.from_tx.is_finalized() && self.to_tx.as_ref().is_some_and(|tx| tx.is_finalized())
+    }
+
+    pub fn same_with(&self, other: &BridgeLog) -> bool {
+        self.user == other.user
+            && self.from == other.from
+            && self.to == other.to
+            && self.icp_amount == other.icp_amount
+            && self.from_tx.same_with(&other.from_tx)
+    }
+}
+
+impl Storable for BridgeLog {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode BridgeLog data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode BridgeLog data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode BridgeLog data")
+    }
+}
+
+#[derive(Clone, CandidType, Default, Serialize, Deserialize)]
+pub struct UserLogs {
+    pub logs: BTreeSet<u64>, // finalized_at timestamps
+}
+
+impl Storable for UserLogs {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn into_bytes(self) -> Vec<u8> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode UserLogs data");
+        buf
+    }
+
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        let mut buf = vec![];
+        into_writer(&self, &mut buf).expect("failed to encode UserLogs data");
+        Cow::Owned(buf)
+    }
+
+    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        from_reader(&bytes[..]).expect("failed to decode UserLogs data")
+    }
 }
 
 const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
+const USER_LOGS_MEMORY_ID: MemoryId = MemoryId::new(1);
+const BRIDGE_LOGS_INDEX_MEMORY_ID: MemoryId = MemoryId::new(2);
+const BRIDGE_LOGS_DATA_MEMORY_ID: MemoryId = MemoryId::new(3);
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::new());
@@ -155,11 +254,25 @@ thread_local! {
             Vec::new()
         )
     );
+
+    static USER_LOGS: RefCell<StableBTreeMap<Principal, UserLogs, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(USER_LOGS_MEMORY_ID)),
+        )
+    );
+
+    static BRIDGE_LOGS: RefCell<StableLog<BridgeLog, Memory, Memory>> = RefCell::new(
+        StableLog::init(
+            MEMORY_MANAGER.with_borrow(|m| m.get(BRIDGE_LOGS_INDEX_MEMORY_ID)),
+            MEMORY_MANAGER.with_borrow(|m| m.get(BRIDGE_LOGS_DATA_MEMORY_ID)),
+        )
+    );
 }
 
 pub mod state {
     use super::*;
 
+    use alloy::eips::Encodable2718;
     use lazy_static::lazy_static;
     use once_cell::sync::Lazy;
 
@@ -248,22 +361,332 @@ pub mod state {
         STATE.with_borrow(|s| {
             s.evm_providers
                 .get(chain)
-                .map(|providers| EvmClient {
+                .map(|(max_confirmations, providers)| EvmClient {
                     providers: providers.clone(),
+                    max_confirmations: *max_confirmations,
                     api_token: None,
                 })
                 .unwrap_or_else(|| EvmClient {
                     providers: vec![],
+                    max_confirmations: 1,
                     api_token: None,
                 })
         })
     }
 
-    pub async fn build_erc20_transfer_tx(
+    pub async fn bridge(
+        from_chain: String,
+        to_chain: String,
+        icp_amount: u128,
+        user: Principal,
+        now_ms: u64,
+    ) -> Result<BridgeTx, String> {
+        if from_chain == to_chain {
+            return Err("from_chain and to_chain cannot be the same".to_string());
+        }
+
+        let (from, to, token_ledger) = STATE.with_borrow(|s| {
+            if icp_amount < s.min_threshold_to_bridge {
+                return Err(format!(
+                    "amount {} is below the minimum threshold to bridge {}",
+                    icp_amount, s.min_threshold_to_bridge
+                ));
+            }
+            let from = if from_chain == "ICP" {
+                BridgeTarget::Icp
+            } else {
+                if !s.evm_token_contracts.contains_key(&from_chain) {
+                    return Err(format!(
+                        "from_chain {} not found or not supported",
+                        from_chain
+                    ));
+                }
+                BridgeTarget::Evm(from_chain)
+            };
+            let to = if to_chain == "ICP" {
+                BridgeTarget::Icp
+            } else {
+                if !s.evm_token_contracts.contains_key(&to_chain) {
+                    return Err(format!("to_chain {} not found or not supported", to_chain));
+                }
+
+                BridgeTarget::Evm(to_chain)
+            };
+
+            let mut pending_task: HashSet<(Principal, BridgeTarget)> = HashSet::new();
+            for log in s.pending.iter() {
+                if log.user == user && !log.from_tx.is_finalized()
+                    && !pending_task.insert((log.user, log.from.clone())) {
+                        return Err(format!(
+                            "there is already a pending bridging task from {:?} for user {:?}",
+                            log.from, log.user
+                        ));
+                    }
+            }
+
+            Ok((from, to, s.token_ledger))
+        })?;
+
+        let from_tx = match &from {
+            BridgeTarget::Icp => from_icp(token_ledger, user, icp_amount).await?,
+            BridgeTarget::Evm(chain) => from_evm(chain, user, icp_amount, now_ms).await?,
+        };
+
+        let delay = if from == BridgeTarget::Icp { 0 } else { 7 };
+        let round = STATE.with_borrow_mut(|s| {
+            s.pending.push_back(BridgeLog {
+                user,
+                from,
+                to,
+                icp_amount,
+                from_tx: from_tx.clone(),
+                to_tx: None,
+                created_at: now_ms,
+                finalized_at: 0,
+            });
+            s.finalize_bridging_round.0
+        });
+
+        ic_cdk_timers::set_timer(Duration::from_secs(delay), move || {
+            ic_cdk::futures::spawn(finalize_bridging(round))
+        });
+
+        Ok(from_tx)
+    }
+
+    async fn finalize_bridging(round: u64) {
+        let tasks = STATE.with_borrow_mut(|s| {
+            if s.finalize_bridging_round.1 || round < s.finalize_bridging_round.0 {
+                // already running or old round
+                return None;
+            }
+
+            if s.pending.is_empty() {
+                return None;
+            }
+
+            s.finalize_bridging_round.1 = true;
+            // take up to 3 pending tasks to process in parallel
+            Some(s.pending.iter().take(3).cloned().collect::<Vec<_>>())
+        });
+
+        if let Some(tasks) = tasks {
+            match try_finalize_tasks(tasks).await {
+                Ok(tasks) => {
+                    let now_ms = ic_cdk::api::time() / 1_000_000;
+                    STATE.with_borrow_mut(|s| {
+                        for task in tasks {
+                            for t in s.pending.iter_mut() {
+                                if t.same_with(&task) {
+                                    *t = task;
+                                    if t.to_tx.as_ref().is_some_and(|tx| tx.is_finalized()) {
+                                        t.finalized_at = now_ms;
+                                        let idx = BRIDGE_LOGS
+                                            .with_borrow_mut(|r| r.append(t))
+                                            .expect("failed to append to BRIDGE_LOGS");
+                                        USER_LOGS.with_borrow_mut(|r| {
+                                            let mut logs = r.get(&t.user).unwrap_or_default();
+                                            logs.logs.insert(idx);
+                                            r.insert(t.user, logs)
+                                                .expect("failed to insert to USER_LOGS");
+                                        });
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        s.pending.retain(|t| !t.is_finalized());
+                    });
+                }
+                Err(err) => {
+                    ic_cdk::api::debug_print(format!("finalize_tasks failed: {err}"));
+                }
+            }
+
+            let round = STATE.with_borrow_mut(|s| {
+                s.finalize_bridging_round = (s.finalize_bridging_round.0 + 1, false);
+
+                if s.pending.is_empty() {
+                    0
+                } else {
+                    s.finalize_bridging_round.0
+                }
+            });
+
+            if round > 0 {
+                ic_cdk_timers::set_timer(Duration::from_secs(1), move || {
+                    ic_cdk::futures::spawn(finalize_bridging(round))
+                });
+            }
+        }
+    }
+
+    async fn try_finalize_tasks(tasks: Vec<BridgeLog>) -> Result<Vec<BridgeLog>, String> {
+        let now_ms = ic_cdk::api::time() / 1_000_000;
+        futures::future::try_join_all(tasks.into_iter().map(|task| process_task(task, now_ms)))
+            .await
+    }
+
+    async fn process_task(mut task: BridgeLog, now_ms: u64) -> Result<BridgeLog, String> {
+        let from_finalized = match (&task.from, &mut task.from_tx) {
+            (BridgeTarget::Evm(chain), BridgeTx::Evm(finalized, tx_hash)) if !*finalized => {
+                let tx_hash: TxHash = (**tx_hash).into();
+                let from_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
+                if from_finalized {
+                    *finalized = true;
+                }
+                from_finalized
+            }
+            _ => true,
+        };
+
+        if !from_finalized {
+            return Ok(task);
+        }
+
+        match (&task.to, &mut task.to_tx) {
+            (BridgeTarget::Icp, None) => {
+                let token_ledger = STATE.with_borrow(|s| s.token_ledger);
+                let to_tx = to_icp(token_ledger, task.user, task.icp_amount).await?;
+                task.to_tx = Some(to_tx);
+            }
+            (BridgeTarget::Evm(chain), None) => {
+                let to_tx = to_evm(chain, task.user, task.icp_amount, now_ms).await?;
+                task.to_tx = Some(to_tx);
+            }
+            (BridgeTarget::Evm(chain), Some(BridgeTx::Evm(finalized, tx_hash))) if !*finalized => {
+                let tx_hash: TxHash = (**tx_hash).into();
+                let to_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
+                if to_finalized {
+                    *finalized = true;
+                }
+            }
+            _ => {}
+        }
+
+        Ok(task)
+    }
+
+    async fn from_icp(
+        token_ledger: Principal,
+        user: Principal,
+        icp_amount: u128,
+    ) -> Result<BridgeTx, String> {
+        let res: Result<Nat, TransferFromError> = call(
+            token_ledger,
+            "icrc2_transfer_from",
+            (TransferFromArgs {
+                spender_subaccount: None,
+                from: Account {
+                    owner: user,
+                    subaccount: None,
+                },
+                to: Account {
+                    owner: ic_cdk::api::canister_self(),
+                    subaccount: None,
+                },
+                fee: None,
+                created_at_time: None,
+                memo: None,
+                amount: icp_amount.into(),
+            },),
+            0,
+        )
+        .await?;
+        let res =
+            res.map_err(|err| format!("failed to transfer ICP from user, error: {:?}", err))?;
+        let idx = res
+            .0
+            .to_u64()
+            .ok_or_else(|| "block height too large".to_string())?;
+        Ok(BridgeTx::Icp(true, idx))
+    }
+
+    async fn to_icp(
+        token_ledger: Principal,
+        user: Principal,
+        icp_amount: u128,
+    ) -> Result<BridgeTx, String> {
+        let res: Result<Nat, TransferFromError> = call(
+            token_ledger,
+            "icrc1_transfer",
+            (TransferArg {
+                from_subaccount: None,
+                to: Account {
+                    owner: user,
+                    subaccount: None,
+                },
+                fee: None,
+                created_at_time: None,
+                memo: None,
+                amount: icp_amount.into(),
+            },),
+            0,
+        )
+        .await?;
+        let res = res.map_err(|err| format!("failed to transfer ICP to user, error: {:?}", err))?;
+        let idx = res
+            .0
+            .to_u64()
+            .ok_or_else(|| "block height too large".to_string())?;
+        Ok(BridgeTx::Icp(true, idx))
+    }
+
+    async fn from_evm(
+        chain: &str,
+        user: Principal,
+        icp_amount: u128,
+        now_ms: u64,
+    ) -> Result<BridgeTx, String> {
+        let client = evm_client(chain);
+        let signed_tx = build_erc20_transfer_tx(
+            chain,
+            &user,
+            &ic_cdk::api::canister_self(),
+            icp_amount,
+            now_ms,
+        )
+        .await?;
+        let tx_hash: [u8; 32] = (*signed_tx.hash()).into();
+        let mut data = Vec::new();
+        signed_tx.encode_2718(&mut data);
+
+        let _ = client
+            .send_raw_transaction(now_ms, Bytes::from(data).to_string())
+            .await?;
+        Ok(BridgeTx::Evm(false, tx_hash.into()))
+    }
+
+    async fn to_evm(
+        chain: &str,
+        user: Principal,
+        icp_amount: u128,
+        now_ms: u64,
+    ) -> Result<BridgeTx, String> {
+        let client = evm_client(chain);
+        let signed_tx = build_erc20_transfer_tx(
+            chain,
+            &ic_cdk::api::canister_self(),
+            &user,
+            icp_amount,
+            now_ms,
+        )
+        .await?;
+        let tx_hash: [u8; 32] = (*signed_tx.hash()).into();
+        let mut data = Vec::new();
+        signed_tx.encode_2718(&mut data);
+
+        let _ = client
+            .send_raw_transaction(now_ms, Bytes::from(data).to_string())
+            .await?;
+        Ok(BridgeTx::Evm(false, tx_hash.into()))
+    }
+
+    async fn build_erc20_transfer_tx(
         chain: &str,
         from: &Principal,
         to: &Principal,
-        icp_value: u128,
+        icp_amount: u128,
         now_ms: u64,
     ) -> Result<Signed<TxEip1559>, String> {
         if from == to {
@@ -271,15 +694,13 @@ pub mod state {
         }
 
         let (key_name, from_pk, mut tx) = STATE.with_borrow(|s| {
-            let (contract, dec, chain_id) = s
+            let (contract, decimals, chain_id) = s
                 .evm_token_contracts
                 .get(chain)
                 .cloned()
                 .ok_or_else(|| "chain not found".to_string())?;
-            let value = icp_value
-                .checked_mul(10u128.pow((dec - s.token_decimals) as u32))
-                .ok_or_else(|| "value overflow".to_string())?;
 
+            let value = convert_amount(icp_amount, s.token_decimals, decimals)?;
             let from_pk = derive_public_key(&s.ecdsa_public_key, vec![from.as_slice().to_vec()])
                 .expect("derive_public_key failed");
 
@@ -329,6 +750,39 @@ pub mod state {
 
         let signed_tx = tx.into_signed(signature);
         Ok(signed_tx)
+    }
+
+    async fn check_evm_tx_finalized(
+        chain: &str,
+        tx_hash: &TxHash,
+        now_ms: u64,
+    ) -> Result<bool, String> {
+        let client = evm_client(chain);
+        let (number, receipt) = futures::future::join(
+            client.block_number(now_ms),
+            client.get_transaction_receipt(now_ms, tx_hash),
+        )
+        .await;
+        match (number, receipt) {
+            (Ok(number), Ok(Some(receipt))) => {
+                if let Some(block_number) = receipt.block_number {
+                    if block_number + client.max_confirmations <= number {
+                        // TODO: validate receipt.logs
+                        // log.address == 代币合约地址
+                        // log.topics[0] == keccak256("Transfer(address,address,uint256)") = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+                        // log.topics[1] == from 地址（32 字节左填充）
+                        // log.topics[2] == to 地址（32 字节左填充）
+                        // log.data 为 uint256 的转账数量（ABI 编码）
+                        return Ok(receipt.status());
+                    }
+                }
+                Ok(false)
+            }
+            (Err(err), _) | (_, Err(err)) => {
+                Err(format!("failed to check evm tx finalized, error: {err}"))
+            }
+            _ => Ok(false),
+        }
     }
 }
 
