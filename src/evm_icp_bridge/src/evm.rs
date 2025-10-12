@@ -78,16 +78,16 @@ impl EvmClient {
         hex_to_u64(&res)
     }
 
-    pub async fn get_balance(&self, now_ms: u64, address: &Address) -> Result<u128, String> {
-        let res: String = self
-            .call(
-                format!("eth_getBalance-{}", now_ms),
-                "eth_getBalance",
-                &[address.to_string().into(), "finalized".into()],
-            )
-            .await?;
-        hex_to_u128(&res)
-    }
+    // pub async fn get_balance(&self, now_ms: u64, address: &Address) -> Result<u128, String> {
+    //     let res: String = self
+    //         .call(
+    //             format!("eth_getBalance-{}", now_ms),
+    //             "eth_getBalance",
+    //             &[address.to_string().into(), "finalized".into()],
+    //         )
+    //         .await?;
+    //     hex_to_u128(&res)
+    // }
 
     pub async fn get_transaction_receipt(
         &self,
@@ -137,12 +137,12 @@ impl EvmClient {
         <Vec<u8>>::from_hex(res).map_err(|err| err.to_string())
     }
 
-    pub async fn erc20_name(&self, now_ms: u64, contract: &Address) -> Result<String, String> {
-        let res = self
-            .call_contract(now_ms, contract, "0x06fdde03".to_string())
-            .await?;
-        decode_abi_string(&res)
-    }
+    // pub async fn erc20_name(&self, now_ms: u64, contract: &Address) -> Result<String, String> {
+    //     let res = self
+    //         .call_contract(now_ms, contract, "0x06fdde03".to_string())
+    //         .await?;
+    //     decode_abi_string(&res)
+    // }
 
     pub async fn erc20_symbol(&self, now_ms: u64, contract: &Address) -> Result<String, String> {
         let res = self
@@ -325,9 +325,9 @@ fn decode_abi_uint(bytes: &[u8]) -> Result<U256, String> {
     Ok(U256::from_be_slice(bytes))
 }
 
-fn decode_abi_address(bytes: &[u8]) -> Result<Address, String> {
-    if bytes.len() != 32 {
-        return Err("abi address result must be 32 bytes".to_string());
-    }
-    Address::try_from(&bytes[12..32]).map_err(|err| err.to_string())
-}
+// fn decode_abi_address(bytes: &[u8]) -> Result<Address, String> {
+//     if bytes.len() != 32 {
+//         return Err("abi address result must be 32 bytes".to_string());
+//     }
+//     Address::try_from(&bytes[12..32]).map_err(|err| err.to_string())
+// }

@@ -1,5 +1,6 @@
 use alloy::{
     consensus::{SignableTransaction, Signed, TxEip1559},
+    eips::Encodable2718,
     primitives::{hex, Address, Bytes, Signature, TxHash, U256},
 };
 use candid::{CandidType, Nat, Principal};
@@ -175,6 +176,7 @@ pub struct BridgeLog {
     pub to_tx: Option<BridgeTx>,
     pub created_at: u64,
     pub finalized_at: u64,
+    pub error: Option<String>,
 }
 
 impl BridgeLog {
@@ -270,6 +272,8 @@ thread_local! {
 }
 
 pub mod state {
+    use std::u64;
+
     use super::*;
 
     use alloy::eips::Encodable2718;
@@ -413,15 +417,17 @@ pub mod state {
                 BridgeTarget::Evm(to_chain)
             };
 
-            let mut pending_task: HashSet<(Principal, BridgeTarget)> = HashSet::new();
+            let mut user_pending_task: HashSet<(Principal, BridgeTarget)> = HashSet::new();
             for log in s.pending.iter() {
-                if log.user == user && !log.from_tx.is_finalized()
-                    && !pending_task.insert((log.user, log.from.clone())) {
-                        return Err(format!(
-                            "there is already a pending bridging task from {:?} for user {:?}",
-                            log.from, log.user
-                        ));
-                    }
+                if log.user == user
+                    && matches!(log.from_tx, BridgeTx::Evm(false, _))
+                    && !user_pending_task.insert((log.user, log.from.clone()))
+                {
+                    return Err(format!(
+                        "there is already a pending bridging task from {:?} for user {:?}",
+                        log.from, log.user
+                    ));
+                }
             }
 
             Ok((from, to, s.token_ledger))
@@ -443,6 +449,7 @@ pub mod state {
                 to_tx: None,
                 created_at: now_ms,
                 finalized_at: 0,
+                error: None,
             });
             s.finalize_bridging_round.0
         });
@@ -452,6 +459,36 @@ pub mod state {
         });
 
         Ok(from_tx)
+    }
+
+    pub fn logs(user: Principal, prev: Option<u64>, take: usize) -> Vec<BridgeLog> {
+        USER_LOGS.with_borrow(|r| {
+            let item = r.get(&user).unwrap_or_default();
+            if item.logs.is_empty() {
+                return vec![];
+            }
+            let ids = item
+                .logs
+                .range(..prev.unwrap_or(u64::MAX))
+                .rev()
+                .take(take)
+                .cloned()
+                .collect::<Vec<u64>>();
+
+            if ids.is_empty() {
+                return vec![];
+            }
+
+            BRIDGE_LOGS.with_borrow(|log_store| {
+                let mut logs: Vec<BridgeLog> = Vec::with_capacity(ids.len());
+                for id in ids {
+                    if let Some(log) = log_store.get(id) {
+                        logs.push(log);
+                    }
+                }
+                logs
+            })
+        })
     }
 
     async fn finalize_bridging(round: u64) {
@@ -467,43 +504,47 @@ pub mod state {
 
             s.finalize_bridging_round.1 = true;
             // take up to 3 pending tasks to process in parallel
-            Some(s.pending.iter().take(3).cloned().collect::<Vec<_>>())
+            let mut tasks = Vec::with_capacity(3);
+            let mut locker_pending_task: HashSet<(Principal, BridgeTarget)> = HashSet::new();
+            for task in s.pending.iter().take(3) {
+                if matches!(task.to_tx, Some(BridgeTx::Evm(false, _)))
+                    && !locker_pending_task.insert((s.icp_address, task.to.clone()))
+                {
+                    // another task for the same evm chain is still pending
+                    break;
+                }
+
+                tasks.push(task.clone());
+            }
+            Some(tasks)
         });
 
         if let Some(tasks) = tasks {
-            match try_finalize_tasks(tasks).await {
-                Ok(tasks) => {
-                    let now_ms = ic_cdk::api::time() / 1_000_000;
-                    STATE.with_borrow_mut(|s| {
-                        for task in tasks {
-                            for t in s.pending.iter_mut() {
-                                if t.same_with(&task) {
-                                    *t = task;
-                                    if t.to_tx.as_ref().is_some_and(|tx| tx.is_finalized()) {
-                                        t.finalized_at = now_ms;
-                                        let idx = BRIDGE_LOGS
-                                            .with_borrow_mut(|r| r.append(t))
-                                            .expect("failed to append to BRIDGE_LOGS");
-                                        USER_LOGS.with_borrow_mut(|r| {
-                                            let mut logs = r.get(&t.user).unwrap_or_default();
-                                            logs.logs.insert(idx);
-                                            r.insert(t.user, logs)
-                                                .expect("failed to insert to USER_LOGS");
-                                        });
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                        s.pending.retain(|t| !t.is_finalized());
-                    });
-                }
-                Err(err) => {
-                    ic_cdk::api::debug_print(format!("finalize_tasks failed: {err}"));
-                }
-            }
-
+            let tasks = try_finalize_tasks(tasks).await;
+            let now_ms = ic_cdk::api::time() / 1_000_000;
             let round = STATE.with_borrow_mut(|s| {
+                for task in tasks {
+                    for t in s.pending.iter_mut() {
+                        if t.same_with(&task) {
+                            *t = task;
+                            if t.to_tx.as_ref().is_some_and(|tx| tx.is_finalized()) {
+                                t.error = None;
+                                t.finalized_at = now_ms;
+                                let idx = BRIDGE_LOGS
+                                    .with_borrow_mut(|r| r.append(t))
+                                    .expect("failed to append to BRIDGE_LOGS");
+                                USER_LOGS.with_borrow_mut(|r| {
+                                    let mut logs = r.get(&t.user).unwrap_or_default();
+                                    logs.logs.insert(idx);
+                                    r.insert(t.user, logs)
+                                        .expect("failed to insert to USER_LOGS");
+                                });
+                            }
+                            break;
+                        }
+                    }
+                }
+                s.pending.retain(|t| !t.is_finalized());
                 s.finalize_bridging_round = (s.finalize_bridging_round.0 + 1, false);
 
                 if s.pending.is_empty() {
@@ -521,50 +562,59 @@ pub mod state {
         }
     }
 
-    async fn try_finalize_tasks(tasks: Vec<BridgeLog>) -> Result<Vec<BridgeLog>, String> {
+    async fn try_finalize_tasks(tasks: Vec<BridgeLog>) -> Vec<BridgeLog> {
         let now_ms = ic_cdk::api::time() / 1_000_000;
-        futures::future::try_join_all(tasks.into_iter().map(|task| process_task(task, now_ms)))
-            .await
+        futures::future::join_all(tasks.into_iter().map(|task| process_task(task, now_ms))).await
     }
 
-    async fn process_task(mut task: BridgeLog, now_ms: u64) -> Result<BridgeLog, String> {
-        let from_finalized = match (&task.from, &mut task.from_tx) {
-            (BridgeTarget::Evm(chain), BridgeTx::Evm(finalized, tx_hash)) if !*finalized => {
-                let tx_hash: TxHash = (**tx_hash).into();
-                let from_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
-                if from_finalized {
-                    *finalized = true;
+    async fn process_task(mut task: BridgeLog, now_ms: u64) -> BridgeLog {
+        let rt = async {
+            let from_finalized = match (&task.from, &mut task.from_tx) {
+                (BridgeTarget::Evm(chain), BridgeTx::Evm(finalized, tx_hash)) if !*finalized => {
+                    let tx_hash: TxHash = (**tx_hash).into();
+                    let from_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
+                    if from_finalized {
+                        *finalized = true;
+                    }
+                    from_finalized
                 }
-                from_finalized
-            }
-            _ => true,
-        };
+                _ => true,
+            };
 
-        if !from_finalized {
-            return Ok(task);
+            if from_finalized {
+                match (&task.to, &mut task.to_tx) {
+                    (BridgeTarget::Icp, None) => {
+                        let token_ledger = STATE.with_borrow(|s| s.token_ledger);
+                        let to_tx = to_icp(token_ledger, task.user, task.icp_amount).await?;
+                        task.to_tx = Some(to_tx);
+                    }
+                    (BridgeTarget::Evm(chain), None) => {
+                        let to_tx = to_evm(chain, task.user, task.icp_amount, now_ms).await?;
+                        task.to_tx = Some(to_tx);
+                    }
+                    (BridgeTarget::Evm(chain), Some(BridgeTx::Evm(finalized, tx_hash)))
+                        if !*finalized =>
+                    {
+                        let tx_hash: TxHash = (**tx_hash).into();
+                        let to_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
+                        if to_finalized {
+                            *finalized = true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            Ok::<(), String>(())
+        }
+        .await;
+
+        if let Err(err) = rt {
+            ic_cdk::api::debug_print(format!("finalize_tasks failed: {err}"));
+            task.error = Some(err);
         }
 
-        match (&task.to, &mut task.to_tx) {
-            (BridgeTarget::Icp, None) => {
-                let token_ledger = STATE.with_borrow(|s| s.token_ledger);
-                let to_tx = to_icp(token_ledger, task.user, task.icp_amount).await?;
-                task.to_tx = Some(to_tx);
-            }
-            (BridgeTarget::Evm(chain), None) => {
-                let to_tx = to_evm(chain, task.user, task.icp_amount, now_ms).await?;
-                task.to_tx = Some(to_tx);
-            }
-            (BridgeTarget::Evm(chain), Some(BridgeTx::Evm(finalized, tx_hash))) if !*finalized => {
-                let tx_hash: TxHash = (**tx_hash).into();
-                let to_finalized = check_evm_tx_finalized(chain, &tx_hash, now_ms).await?;
-                if to_finalized {
-                    *finalized = true;
-                }
-            }
-            _ => {}
-        }
-
-        Ok(task)
+        task
     }
 
     async fn from_icp(
@@ -638,18 +688,11 @@ pub mod state {
         icp_amount: u128,
         now_ms: u64,
     ) -> Result<BridgeTx, String> {
-        let client = evm_client(chain);
-        let signed_tx = build_erc20_transfer_tx(
-            chain,
-            &user,
-            &ic_cdk::api::canister_self(),
-            icp_amount,
-            now_ms,
-        )
-        .await?;
+        let to_addr = STATE.with_borrow(|s| s.evm_address);
+        let (client, signed_tx) =
+            build_erc20_transfer_tx(chain, &user, &to_addr, icp_amount, now_ms).await?;
         let tx_hash: [u8; 32] = (*signed_tx.hash()).into();
-        let mut data = Vec::new();
-        signed_tx.encode_2718(&mut data);
+        let data = signed_tx.encoded_2718();
 
         let _ = client
             .send_raw_transaction(now_ms, Bytes::from(data).to_string())
@@ -663,18 +706,18 @@ pub mod state {
         icp_amount: u128,
         now_ms: u64,
     ) -> Result<BridgeTx, String> {
-        let client = evm_client(chain);
-        let signed_tx = build_erc20_transfer_tx(
+        let to_addr = evm_address(&user);
+        let (client, signed_tx) = build_erc20_transfer_tx(
             chain,
             &ic_cdk::api::canister_self(),
-            &user,
+            &to_addr,
             icp_amount,
             now_ms,
         )
         .await?;
+
         let tx_hash: [u8; 32] = (*signed_tx.hash()).into();
-        let mut data = Vec::new();
-        signed_tx.encode_2718(&mut data);
+        let data = signed_tx.encoded_2718();
 
         let _ = client
             .send_raw_transaction(now_ms, Bytes::from(data).to_string())
@@ -682,17 +725,13 @@ pub mod state {
         Ok(BridgeTx::Evm(false, tx_hash.into()))
     }
 
-    async fn build_erc20_transfer_tx(
+    pub async fn build_erc20_transfer_tx(
         chain: &str,
         from: &Principal,
-        to: &Principal,
+        to_addr: &Address,
         icp_amount: u128,
         now_ms: u64,
-    ) -> Result<Signed<TxEip1559>, String> {
-        if from == to {
-            return Err("from and to cannot be the same".to_string());
-        }
-
+    ) -> Result<(EvmClient, Signed<TxEip1559>), String> {
         let (key_name, from_pk, mut tx) = STATE.with_borrow(|s| {
             let (contract, decimals, chain_id) = s
                 .evm_token_contracts
@@ -703,14 +742,6 @@ pub mod state {
             let value = convert_amount(icp_amount, s.token_decimals, decimals)?;
             let from_pk = derive_public_key(&s.ecdsa_public_key, vec![from.as_slice().to_vec()])
                 .expect("derive_public_key failed");
-
-            let to_addr = if to == &s.icp_address {
-                s.evm_address
-            } else {
-                let pk = derive_public_key(&s.ecdsa_public_key, vec![to.as_slice().to_vec()])
-                    .expect("derive_public_key failed");
-                pubkey_bytes_to_address(&pk.public_key)
-            };
 
             let input = encode_erc20_transfer(&to_addr, value);
             let gas_price = s
@@ -735,6 +766,9 @@ pub mod state {
         })?;
 
         let from_addr = pubkey_bytes_to_address(&from_pk.public_key);
+        if &from_addr == to_addr {
+            return Err("from and to cannot be the same".to_string());
+        }
         let client = evm_client(chain);
         let nonce = client.get_transaction_count(now_ms, &from_addr).await?;
         tx.nonce = nonce;
@@ -749,7 +783,7 @@ pub mod state {
         );
 
         let signed_tx = tx.into_signed(signature);
-        Ok(signed_tx)
+        Ok((client, signed_tx))
     }
 
     async fn check_evm_tx_finalized(
