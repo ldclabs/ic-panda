@@ -7,8 +7,8 @@ export BLOB="$(didc encode --format blob '(record {canister=principal "sb6zj-3aa
 
 quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $PROPOSAL_PEM_FILE $PROPOSAL_NEURON_ID --proposal "(
     record {
-        title = \"Execute admin_deploy_bucket() to update ic-oss-ic_oss_bucket_02 WASM to v1.2.0\";
-        url = \"https://github.com/ldclabs/ic-oss/releases/tag/v1.2.0\";
+        title = \"Execute admin_deploy_bucket() to update ic-oss-ic_oss_bucket_02 WASM to v1.2.2\";
+        url = \"https://github.com/ldclabs/ic-oss/releases/tag/v1.2.2\";
         summary = \"This proposal executes admin_deploy_bucket() on ic_oss_cluster 5szpn-tiaaa-aaaaj-qncoq-cai to upgrade ic_oss_bucket_02 sb6zj-3aaaa-aaaaj-qndla-cai.\";
         action = opt variant {
             ExecuteGenericNervousSystemFunction = record {
