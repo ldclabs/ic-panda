@@ -7,7 +7,7 @@
   import IconX from '$lib/components/icons/IconX.svelte'
   import Saos from '$lib/components/ui/Saos.svelte'
   import { tokensPrice, type TokenPrice } from '$lib/stores/icpswap.svelte'
-  import { getPriceNumber } from '$lib/utils/helper'
+  import { getPriceNumber, pruneAddress } from '$lib/utils/helper'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
   import { ConicGradient, getToastStore } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
@@ -211,6 +211,29 @@
               >Max Supply</h3
             >
             <p class="text-2xl font-bold text-panda">1,080,000,000</p>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm uppercase tracking-wide text-gray/80"
+              >Contracts</h3
+            >
+            <p class="text"
+              >ICP Chain: <a
+                class="underline decoration-1 underline-offset-4 transition-colors hover:text-primary-400"
+                title="PANDA contract on ICP chain"
+                href="https://dashboard.internetcomputer.org/canister/druyg-tyaaa-aaaaq-aactq-cai"
+                target="_blank">{pruneAddress('druyg-tyaaa-aaaaq-aactq-cai')}</a
+              ></p
+            >
+            <p class="text"
+              >BNB Chain: <a
+                class="underline decoration-1 underline-offset-4 transition-colors hover:text-primary-400"
+                title="PANDA contract on BNB chain"
+                href="https://bscscan.com/token/0xe74583edaff618d88463554b84bc675196b36990"
+                target="_blank"
+                >{pruneAddress('0xe74583edAFF618D88463554b84Bc675196b36990')}</a
+              ></p
+            >
           </div>
         </div>
       </div>

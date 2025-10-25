@@ -36,5 +36,9 @@
     >
     <span class="mx-1">|</span>
     <a class="underline underline-offset-4" href="https://dmsg.net">dMsg.net</a>
+    <span class="mx-1">|</span>
+    <a class="underline underline-offset-4" href="https://1bridge.app"
+      >One Bridge</a
+    >
   </p>
 </div>

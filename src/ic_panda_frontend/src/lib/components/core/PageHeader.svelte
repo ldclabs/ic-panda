@@ -65,6 +65,13 @@
     >
       Lucky Pool
     </TabAnchor>
+    <TabAnchor
+      href="https://1bridge.app/?token=PANDA&from=ICP&to=BNB"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Bridge
+    </TabAnchor>
     <!-- <TabAnchor
       href="/_/airdrop"
       selected={page.url?.pathname.startsWith('/_/airdrop')}
