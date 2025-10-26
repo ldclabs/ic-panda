@@ -23,4 +23,6 @@
 1_115 5szpn-tiaaa-aaaaj-qncoq-cai admin_deploy_bucket
 1_116 n3bau-gaaaa-aaaaj-qa4oq-cai admin_remove_managers
 1_117 n3bau-gaaaa-aaaaj-qa4oq-cai admin_add_allowed_apis
+1_200 lxeb6-dyaaa-aaaap-an2ga-cai commit_proposed_batch
+1_300 ejwdq-iyaaa-aaaap-an47q-cai commit_proposed_batch
 2_000 7i4z4-fyaaa-aaaap-anzsa-cai transferPosition
