@@ -8,7 +8,7 @@
 
   // Props
 
-  type TokenInfoEx = TokenInfo & { api: LedgerAPI; balance: bigint }
+  type TokenInfoEx = { token: TokenInfo; api: LedgerAPI; balance: bigint }
 
   interface Props {
     /** Exposes parent props to this component. */
@@ -27,12 +27,14 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Transfer {token.symbol}</div>
+  <div class="!mt-0 text-center text-xl font-bold"
+    >Transfer {token.token.symbol}</div
+  >
   <div class="mx-auto !mt-6 space-y-4">
     <SendTokenForm
       sendFrom={principal}
       availableBalance={token.balance}
-      {token}
+      token={token.token}
       onSubmit={handleTokenTransfer}
     />
   </div>
