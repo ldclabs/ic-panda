@@ -14,8 +14,8 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo install ic-wasm
           mkdir out
-          cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store
-          for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store
+          cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
+          for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
           do
             cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
             cp "src/$CAN/$CAN.did" "out/$CAN.did"

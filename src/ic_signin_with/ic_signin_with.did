@@ -1,0 +1,63 @@
+type CanisterArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type Delegation = record {
+  pubkey : blob;
+  targets : opt vec principal;
+  expiration : nat64;
+};
+type InitArgs = record {
+  session_expires_in_ms : nat64;
+  governance_canister : opt principal;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : SignedDelegation; Err : text };
+type Result_2 = variant { Ok : text; Err : text };
+type Result_3 = variant { Ok : StateInfo; Err : text };
+type Result_4 = variant { Ok : blob; Err : text };
+type Result_5 = variant { Ok : SignInResponse; Err : text };
+type Result_6 = variant { Ok : principal; Err : text };
+type SignInResponse = record {
+  user_key : blob;
+  seed : blob;
+  expiration : nat64;
+};
+type SignedDelegation = record { signature : blob; delegation : Delegation };
+type StateInfo = record {
+  session_expires_in_ms : nat64;
+  governance_canister : opt principal;
+  statement : text;
+  domains : vec record { text; text };
+};
+type UpgradeArgs = record {
+  session_expires_in_ms : opt nat64;
+  governance_canister : opt principal;
+};
+service : (opt CanisterArgs) -> {
+  admin_remove_domain : (text) -> (Result);
+  admin_update_domain : (text, text) -> (Result);
+  admin_update_statement : (text) -> (Result);
+  get_delegation : (blob, blob, nat64) -> (Result_1) query;
+  get_sign_in_with_ethereum_message : (text, text, nat32, nat64) -> (
+      Result_2,
+    ) query;
+  get_sign_in_with_solana_message : (text, text, nat64) -> (Result_2) query;
+  info : () -> (Result_3) query;
+  my_iv : () -> (Result_4) query;
+  sign_in_with_ethereum : (
+      text,
+      text,
+      nat32,
+      nat64,
+      text,
+      blob,
+      blob,
+      blob,
+    ) -> (Result_5);
+  sign_in_with_solana : (text, text, nat64, text, blob, blob, blob) -> (
+      Result_5,
+    );
+  validate_admin_remove_domain : (text) -> (Result_2);
+  validate_admin_update_domain : (text, text) -> (Result_2);
+  validate_admin_update_statement : (text) -> (Result_2);
+  verify_envelope : (blob, opt principal, opt blob) -> (Result_6) query;
+  whoami : () -> (Result_6) query;
+}

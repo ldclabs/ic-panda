@@ -60,6 +60,16 @@
       "gzip": true,
       "type": "rust"
     },
+    "ic_signin_with": {
+      "candid": "src/ic_signin_with/ic_signin_with.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "ic_signin_with",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
     "ic_panda_luckypool": {
       "candid": "src/ic_panda_luckypool/ic_panda_luckypool.did",
       "declarations": {

@@ -66,6 +66,10 @@
     "ic": "a7cug-2qaaa-aaaap-ab3la-cai",
     "local": "a7cug-2qaaa-aaaap-ab3la-cai"
   },
+  "ic_signin_with": {
+    "ic": "ny3i7-miaaa-aaaap-an5mq-cai",
+    "local": "ny3i7-miaaa-aaaap-an5mq-cai"
+  },
   "icp_ledger_canister": {
     "local": "ryjl3-tyaaa-aaaaa-aaaba-cai"
   },

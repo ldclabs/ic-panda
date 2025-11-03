@@ -12,10 +12,6 @@ fix:
 test:
 	@cargo test --workspace -- --nocapture
 
-# cargo install twiggy
-twiggy:
-	twiggy top -n 12 target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm
-
 # cargo install ic-wasm
 build-wasm:
 	cargo build --release --target wasm32-unknown-unknown --package ic_delegation_store
@@ -25,6 +21,7 @@ build-wasm:
 	cargo build --release --target wasm32-unknown-unknown --package ic_message_profile
 	cargo build --release --target wasm32-unknown-unknown --package ic_name_identity
 	cargo build --release --target wasm32-unknown-unknown --package ic_panda_luckypool
+	cargo build --release --target wasm32-unknown-unknown --package ic_signin_with
 
 # cargo install candid-extractor
 build-did:
@@ -35,3 +32,5 @@ build-did:
 	candid-extractor target/wasm32-unknown-unknown/release/ic_message_profile.wasm > src/ic_message_profile/ic_message_profile.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_name_identity.wasm > src/ic_name_identity/ic_name_identity.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm > src/ic_panda_luckypool/ic_panda_luckypool.did
+	candid-extractor target/wasm32-unknown-unknown/release/ic_signin_with.wasm > src/ic_signin_with/ic_signin_with.did
+	dfx generate

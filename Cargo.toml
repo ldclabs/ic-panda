@@ -11,6 +11,7 @@ members = [
   "src/ic_message_types",
   "src/ic_name_identity",
   "src/ic_panda_luckypool",
+  "src/ic_signin_with",
   "src/lib_panda",
   "src/x_auth",
 ]
@@ -24,7 +25,7 @@ opt-level = 's'
 
 [workspace.package]
 edition = "2021"
-version = "2.13.1"
+version = "2.14.0"
 repository = "https://github.com/ldclabs/ic-panda"
 keywords = ["canister", "icp", "panda"]
 categories = ["web-programming"]
@@ -33,6 +34,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 bytes = "1"
 base64 = "0.22"
+bs58 = "0.5"
 candid = "0.10"
 ciborium = "0.2"
 log = "0.4"
@@ -46,19 +48,20 @@ hex = "0.4"
 hmac = "0.12"
 sha2 = "0.10"
 sha3 = "0.10"
+k256 = { version = "0.13" }
 num-traits = "0.2"
 ic-agent = "0.44"
 ic-cdk = "0.18"
 ic-cdk-timers = "0.12"
 ic-stable-structures = "0.7"
 icrc-ledger-types = "0.1"
-ic_auth_types = "0.6"
-ic_auth_verifier = { version = "0.6" }
+ic_auth_types = "0.7"
+ic_auth_verifier = { version = "0.7" }
 ic_cose_types = "0.9"
 ic-certification = "3.0"
 ic-oss-types = "1.2"
 ic-canister-sig-creation = "1.3"
-ic-ed25519 = "0.3"
+ic-ed25519 = "0.4"
 ic-http-certification = "3"
 lazy_static = "1.5"
 once_cell = "1.21"
@@ -66,6 +69,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "=4.5", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
 url = "2.5"
+time = { version = "0.3", features = ["formatting"] }
 
 [workspace.metadata.cargo-shear]
 ignored = ["ic-dummy-getrandom-for-wasm"]
