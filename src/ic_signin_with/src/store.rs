@@ -39,7 +39,7 @@ impl From<&State> for StateInfo {
             domains: state.domains.clone(),
             statement: state.statement.clone(),
             session_expires_in_ms: state.session_expires_in_ms,
-            governance_canister: state.governance_canister.clone(),
+            governance_canister: state.governance_canister,
         }
     }
 }

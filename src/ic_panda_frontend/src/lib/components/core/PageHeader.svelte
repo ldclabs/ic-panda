@@ -60,17 +60,17 @@
       dMsg
     </TabAnchor>
     <TabAnchor
-      href="/_/luckypool"
-      selected={page.url?.pathname.startsWith('/_/luckypool')}
-    >
-      Lucky Pool
-    </TabAnchor>
-    <TabAnchor
       href="https://1bridge.app/?token=PANDA&from=ICP&to=BNB"
       target="_blank"
       rel="noopener noreferrer"
     >
       Bridge
+    </TabAnchor>
+    <TabAnchor
+      href="/_/luckypool"
+      selected={page.url?.pathname.startsWith('/_/luckypool')}
+    >
+      Lucky Pool
     </TabAnchor>
     <!-- <TabAnchor
       href="/_/airdrop"

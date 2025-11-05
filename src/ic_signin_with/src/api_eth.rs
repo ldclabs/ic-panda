@@ -20,6 +20,7 @@ fn get_sign_in_with_ethereum_message(
     Ok(msg)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[ic_cdk::update]
 fn sign_in_with_ethereum(
     domain: String,                // Domain requesting sign-in
@@ -39,8 +40,6 @@ fn sign_in_with_ethereum(
     if !message.starts_with(&msg) {
         return Err("signed message does not match expected message".to_string());
     }
-
-    ic_cdk::api::debug_print(format!("message_sig {} {}", message_sig.len(), message_sig));
 
     let _addr = recover_eth_address(&message, &message_sig)?;
     if addr != _addr {
