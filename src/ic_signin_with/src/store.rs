@@ -6,6 +6,10 @@ use ic_canister_sig_creation::{
 };
 use ic_cdk::api::certified_data_set;
 use ic_certification::labeled_hash;
+use ic_http_certification::{
+    cel::{create_cel_expr, DefaultCelBuilder},
+    HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
+};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableCell,
@@ -49,6 +53,7 @@ const STATE_MEMORY_ID: MemoryId = MemoryId::new(0);
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
     static SIGNATURES : RefCell<SignatureMap> = RefCell::new(SignatureMap::default());
+    static HTTP_TREE: RefCell<HttpCertificationTree> = RefCell::new(HttpCertificationTree::default());
 
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
@@ -64,6 +69,19 @@ thread_local! {
 
 pub mod state {
     use super::*;
+    use lazy_static::lazy_static;
+    use once_cell::sync::Lazy;
+
+    lazy_static! {
+        pub static ref DEFAULT_EXPR_PATH: HttpCertificationPath<'static> =
+            HttpCertificationPath::wildcard("");
+        pub static ref DEFAULT_CERTIFICATION: HttpCertification = HttpCertification::skip();
+        pub static ref DEFAULT_CEL_EXPR: String =
+            create_cel_expr(&DefaultCelBuilder::skip_certification());
+    }
+
+    pub static DEFAULT_CERT_ENTRY: Lazy<HttpCertificationTreeEntry> =
+        Lazy::new(|| HttpCertificationTreeEntry::new(&*DEFAULT_EXPR_PATH, *DEFAULT_CERTIFICATION));
 
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
         STATE.with_borrow(f)
@@ -71,6 +89,18 @@ pub mod state {
 
     pub fn with_mut<R>(f: impl FnOnce(&mut State) -> R) -> R {
         STATE.with_borrow_mut(f)
+    }
+
+    pub fn http_tree_with<R>(f: impl FnOnce(&HttpCertificationTree) -> R) -> R {
+        HTTP_TREE.with(|r| f(&r.borrow()))
+    }
+
+    pub fn init_http_certified_data() {
+        HTTP_TREE.with(|r| {
+            let mut tree = r.borrow_mut();
+            tree.insert(&DEFAULT_CERT_ENTRY);
+            ic_cdk::api::certified_data_set(tree.root_hash())
+        });
     }
 
     pub fn load() {

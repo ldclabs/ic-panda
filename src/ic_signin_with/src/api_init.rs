@@ -37,6 +37,7 @@ fn init(args: Option<CanisterArgs>) {
         });
     }
 
+    store::state::init_http_certified_data();
     ic_cdk_timers::set_timer(Duration::from_secs(0), || {
         ic_cdk::futures::spawn(store::state::init())
     });
@@ -67,4 +68,6 @@ fn post_upgrade(args: Option<CanisterArgs>) {
         }
         _ => {}
     }
+
+    store::state::init_http_certified_data();
 }

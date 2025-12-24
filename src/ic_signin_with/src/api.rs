@@ -38,7 +38,7 @@ fn get_delegation(
 }
 
 #[ic_cdk::query]
-fn verify_envelope(
+pub fn verify_envelope(
     signed_envelope: ByteBufB64,
     expect_target: Option<Principal>,
     expect_digest: Option<ByteArrayB64<32>>,

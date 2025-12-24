@@ -2382,6 +2382,7 @@ dependencies = [
 name = "ic_signin_with"
 version = "2.14.0"
 dependencies = [
+ "base64 0.22.1",
  "bs58",
  "candid",
  "ciborium",
@@ -2392,13 +2393,17 @@ dependencies = [
  "ic-cdk-timers",
  "ic-certification 3.0.3",
  "ic-dummy-getrandom-for-wasm",
+ "ic-http-certification",
  "ic-stable-structures 0.7.2",
  "ic_auth_types",
  "ic_auth_verifier",
  "k256",
+ "lazy_static",
  "lib_panda",
+ "once_cell",
  "serde",
  "serde_bytes",
+ "serde_json",
  "time",
  "url",
 ]

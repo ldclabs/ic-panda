@@ -18,7 +18,6 @@ export class KVStore {
       throw new Error('stores is empty')
     }
 
-    stores.push()
     this.db = openDB(dbName, version, {
       upgrade(db) {
         for (const store of stores) {
