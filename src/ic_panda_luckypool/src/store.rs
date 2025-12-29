@@ -1474,9 +1474,7 @@ pub mod state {
     pub async fn start_airdrops108() {
         match process_airdrops108().await {
             Ok(true) => {
-                ic_cdk_timers::set_timer(Duration::from_nanos(0), || {
-                    ic_cdk::futures::spawn(start_airdrops108())
-                });
+                ic_cdk_timers::set_timer(Duration::from_nanos(0), start_airdrops108());
             }
             Ok(false) => {
                 with_mut(|s| {

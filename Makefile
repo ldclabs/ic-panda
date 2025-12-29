@@ -14,14 +14,7 @@ test:
 
 # cargo install ic-wasm
 build-wasm:
-	cargo build --release --target wasm32-unknown-unknown --package ic_delegation_store
-	cargo build --release --target wasm32-unknown-unknown --package ic_dmsg_minter
-	cargo build --release --target wasm32-unknown-unknown --package ic_message
-	cargo build --release --target wasm32-unknown-unknown --package ic_message_channel
-	cargo build --release --target wasm32-unknown-unknown --package ic_message_profile
-	cargo build --release --target wasm32-unknown-unknown --package ic_name_identity
-	cargo build --release --target wasm32-unknown-unknown --package ic_panda_luckypool
-	cargo build --release --target wasm32-unknown-unknown --package ic_signin_with
+	cargo build --release --target wasm32-unknown-unknown -p ic_delegation_store -p ic_dmsg_minter -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_panda_luckypool -p ic_signin_with
 
 # cargo install candid-extractor
 build-did:

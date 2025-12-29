@@ -313,9 +313,10 @@ fn manager_start_airdrops108() -> Result<bool, String> {
             if !airdrops108.status < 1 {
                 airdrops108.status = 1;
                 let delay = AIRDROP108_TIME_NS.saturating_sub(ic_cdk::api::time());
-                ic_cdk_timers::set_timer(Duration::from_nanos(delay), || {
-                    ic_cdk::futures::spawn(store::state::start_airdrops108())
-                });
+                ic_cdk_timers::set_timer(
+                    Duration::from_nanos(delay),
+                    store::state::start_airdrops108(),
+                );
                 return true;
             }
         }

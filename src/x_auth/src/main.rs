@@ -1,5 +1,6 @@
 use axum::{middleware, routing, Router};
 use dotenvy::dotenv;
+use http::StatusCode;
 use lib_panda::{bytes32_from_base64, SigningKey};
 use reqwest::ClientBuilder;
 use std::net::SocketAddr;
@@ -128,7 +129,10 @@ async fn main() {
         )
         .layer((
             CatchPanicLayer::new(),
-            TimeoutLayer::new(Duration::from_secs(10)),
+            TimeoutLayer::with_status_code(
+                StatusCode::from_u16(504).unwrap(),
+                Duration::from_secs(10),
+            ),
             CorsLayer::very_permissive(),
             middleware::from_fn(context::middleware),
             CompressionLayer::new().compress_when(SizeAbove::new(256)),
