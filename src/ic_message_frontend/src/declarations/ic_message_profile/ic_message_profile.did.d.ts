@@ -8,6 +8,8 @@ export interface CanisterStatusResult {
   'memory_metrics' : MemoryMetrics,
   'status' : CanisterStatusType,
   'memory_size' : bigint,
+  'ready_for_migration' : boolean,
+  'version' : bigint,
   'cycles' : bigint,
   'settings' : DefiniteCanisterSettings,
   'query_stats' : QueryStats,
@@ -28,6 +30,7 @@ export interface ChannelSetting {
 export interface DefiniteCanisterSettings {
   'freezing_threshold' : bigint,
   'wasm_memory_threshold' : bigint,
+  'environment_variables' : Array<EnvironmentVariable>,
   'controllers' : Array<Principal>,
   'reserved_cycles_limit' : bigint,
   'log_visibility' : LogVisibility,
@@ -35,6 +38,7 @@ export interface DefiniteCanisterSettings {
   'memory_allocation' : bigint,
   'compute_allocation' : bigint,
 }
+export interface EnvironmentVariable { 'value' : string, 'name' : string }
 export interface InitArgs { 'managers' : Array<Principal>, 'name' : string }
 export interface Link {
   'uri' : string,

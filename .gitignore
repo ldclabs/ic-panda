@@ -9,6 +9,7 @@
 
 # dfx temporary files
 .dfx/
+.claude
 
 # generated files
 src/declarations

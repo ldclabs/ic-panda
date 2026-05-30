@@ -14,6 +14,8 @@ type CanisterStatusResult = record {
   memory_metrics : MemoryMetrics;
   status : CanisterStatusType;
   memory_size : nat;
+  ready_for_migration : bool;
+  version : nat64;
   cycles : nat;
   settings : DefiniteCanisterSettings;
   query_stats : QueryStats;
@@ -98,6 +100,7 @@ type CreateChannelInput = record {
 type DefiniteCanisterSettings = record {
   freezing_threshold : nat;
   wasm_memory_threshold : nat;
+  environment_variables : vec EnvironmentVariable;
   controllers : vec principal;
   reserved_cycles_limit : nat;
   log_visibility : LogVisibility;
@@ -110,6 +113,7 @@ type DownloadFilesToken = record {
   storage : record { principal; nat32 };
   access_token : blob;
 };
+type EnvironmentVariable = record { value : text; name : text };
 type InitArgs = record { managers : vec principal; name : text };
 type LogVisibility = variant {
   controllers;
