@@ -32,7 +32,7 @@
         class="flex items-center justify-between gap-4 border-b border-dashed border-ink/25 p-6 md:col-span-4 md:flex-col md:items-start md:justify-start md:border-b-0 md:border-r md:p-8"
       >
         <div>
-          <h3 class="display text-3xl">dMsg</h3>
+          <h3 class="display-sm text-3xl">dMsg</h3>
           <p class="mt-2 font-mono text-xs text-ink-70">dmsg.net</p>
         </div>
         <span

@@ -20,7 +20,9 @@
               class="font-mono text-xs tabular-nums text-ink-30 md:col-span-1"
               >{p.index}</span
             >
-            <dt class="display text-2xl md:col-span-4 md:text-3xl">{p.name}</dt>
+            <dt class="display-sm text-2xl md:col-span-4 md:text-3xl"
+              >{p.name}</dt
+            >
             <dd
               class="text-pretty leading-relaxed text-ink-70 md:col-span-7 md:pt-1"
             >

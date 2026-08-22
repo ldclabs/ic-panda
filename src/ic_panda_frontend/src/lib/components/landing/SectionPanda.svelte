@@ -213,7 +213,7 @@
             <p class="font-mono text-xs tabular-nums text-ink-30">
               {role.index}
             </p>
-            <h4 class="display mt-6 text-3xl">{role.name}</h4>
+            <h4 class="display-sm mt-6 text-3xl">{role.name}</h4>
             <p class="mt-4 text-pretty leading-relaxed text-ink-70">
               {role.body}
             </p>

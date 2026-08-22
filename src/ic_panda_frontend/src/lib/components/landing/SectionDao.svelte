@@ -42,7 +42,7 @@
           rel="noreferrer"
         >
           <div>
-            <h3 class="display text-2xl">{entry.name}</h3>
+            <h3 class="display-sm text-2xl">{entry.name}</h3>
             <p class="mt-3 text-sm leading-relaxed text-ink-70">{entry.body}</p>
           </div>
           <p

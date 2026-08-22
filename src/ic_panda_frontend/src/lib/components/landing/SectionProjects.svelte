@@ -81,7 +81,7 @@
       <footer
         class="flex flex-col gap-6 border-t border-ink/10 p-6 md:flex-row md:items-center md:justify-between md:p-10"
       >
-        <p class="display text-xl md:text-2xl">
+        <p class="display-sm text-xl md:text-2xl">
           Memory gives intelligence continuity through time.
         </p>
         <div class="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-4">

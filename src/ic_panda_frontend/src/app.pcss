@@ -151,9 +151,21 @@ body {
     @apply font-mono text-xs font-medium uppercase leading-[1.5] tracking-[0.18em] text-ink-70;
   }
 
-  /* Display headline: tight, heavy, optically balanced. */
+  /* Display headline: tight, heavy, optically balanced. Tuned for 36px+. */
   .display {
     @apply font-display font-black leading-[0.92] tracking-[-0.035em] text-ink;
+
+    font-variant-ligatures: none;
+  }
+
+  /*
+   * Same voice at card-title sizes. Display tracking is a large-type
+   * technique: at 20-30px it closes word spaces faster than it tightens
+   * letters, jamming wide glyphs like `&` into their neighbours. Leading
+   * also has to relax, since these titles wrap.
+   */
+  .display-sm {
+    @apply font-display font-black leading-tight tracking-[-0.01em] text-ink;
 
     font-variant-ligatures: none;
   }

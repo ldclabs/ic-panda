@@ -46,7 +46,7 @@
           </span>
           <span class="font-mono text-sm font-semibold">ICPanda DAO</span>
         </div>
-        <p class="display mt-6 max-w-sm text-2xl">
+        <p class="display-sm mt-6 max-w-sm text-2xl">
           From Sovereign Minds to Sovereign Markets.
         </p>
         <p
