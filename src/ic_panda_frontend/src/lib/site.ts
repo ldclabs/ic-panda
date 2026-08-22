@@ -18,8 +18,7 @@ export const LINKS = {
   // organization
   github: 'https://github.com/ldclabs',
   githubRepo: 'https://github.com/ldclabs/ic-panda',
-  whitepaper:
-    'https://github.com/ldclabs/ic-panda/blob/main/whitepaper/2026.en.md',
+  whitepaper: 'https://github.com/ldclabs/ic-panda/blob/main/whitepaper/en.md',
   x: 'https://x.com/ICPandaDAO',
   openchat: 'https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai',
   // Preferred route for reaching the DAO.
@@ -169,7 +168,9 @@ export const DAO_ENTRIES = [
     href: LINKS.snsNeurons
   },
   {
-    name: 'Treasury & Token',
+    // Spelled out on purpose: Archivo's ampersand is an "Ɛ"-shaped et-ligature
+    // that reads as a broken character, and the family ships no alternate.
+    name: 'Treasury and Token',
     body: 'Verify assets and transactions on-chain.',
     cta: 'View ICP Dashboard',
     href: LINKS.snsDashboard
