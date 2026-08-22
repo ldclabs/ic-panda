@@ -18,6 +18,8 @@ export const LINKS = {
   // organization
   github: 'https://github.com/ldclabs',
   githubRepo: 'https://github.com/ldclabs/ic-panda',
+  whitepaper:
+    'https://github.com/ldclabs/ic-panda/blob/main/whitepaper/2026.en.md',
   x: 'https://x.com/ICPandaDAO',
   openchat: 'https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai',
   // Preferred route for reaching the DAO.

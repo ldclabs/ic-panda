@@ -10,7 +10,8 @@
       items: [
         { label: 'PANDA', href: '/#panda', external: false },
         { label: 'Governance', href: '/#dao', external: false },
-        { label: 'Projects', href: '/#projects', external: false }
+        { label: 'Projects', href: '/#projects', external: false },
+        { label: 'Whitepaper', href: LINKS.whitepaper, external: true }
       ]
     },
     {
