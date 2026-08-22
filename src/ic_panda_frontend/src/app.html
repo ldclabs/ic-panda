@@ -7,12 +7,15 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
 
-  <title>ICPanda DAO</title>
+  <title>ICPanda DAO — From Sovereign Minds to Sovereign Markets</title>
   <link href="https://panda.fans" rel="canonical" />
-  <meta content="ICPanda" property="og:title" />
+  <meta content="From Sovereign Minds to Sovereign Markets." property="og:title" />
   <meta
-    content="Breathing life into sovereign AI. We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3."
-    name="description" property="og:description" />
+    content="ICPanda DAO is an on-chain builder collective creating open infrastructure for persistent AI cognition and verifiable crypto capital formation. Governed by PANDA through the Internet Computer SNS."
+    name="description" />
+  <meta
+    content="Meet ICPanda DAO, PANDA, Anda, and TokenList — open infrastructure for persistent intelligence and verifiable on-chain markets."
+    property="og:description" />
   <meta content="website" property="og:type" />
   <meta content="https://panda.fans" property="og:url" />
   <meta content="https://panda.fans/_assets/images/icpanda-dao.webp" property="og:image" />
@@ -35,14 +38,18 @@
   <meta name="msapplication-TileColor" content="#11c291" />
   <meta name="msapplication-config" content="/_assets/favicons/browserconfig.xml" />
 
-  <meta content="#ffffff" name="theme-color" />
+  <!-- Self-hosted brand type: no external font requests. -->
+  <link rel="preload" as="font" type="font/woff2" href="/_assets/fonts/archivo-latin.woff2" crossorigin />
+  <link rel="preload" as="font" type="font/woff2" href="/_assets/fonts/plexmono-400-latin.woff2" crossorigin />
+
+  <meta content="#f2f1ec" name="theme-color" />
   %sveltekit.head%
 
   <style>
     #app-spinner {
       --spinner-size: 30px;
 
-      color: #c0bbc4;
+      color: rgba(11, 11, 11, 0.35);
 
       width: var(--spinner-size);
       height: var(--spinner-size);
@@ -175,7 +182,7 @@
 </head>
 
 <body data-theme="skeleton">
-  <div class="global-backgroud" style="z-index: -1;"></div>
+  <div class="page-ground" style="z-index: -1;"></div>
   <div style="display: contents" class="h-full overflow-hidden">%sveltekit.body%</div>
   <svg id="app-spinner" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true" data-tid="spinner"
     viewBox="0 0 100 100">

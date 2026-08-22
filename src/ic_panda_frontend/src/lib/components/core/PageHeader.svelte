@@ -1,13 +1,28 @@
 <script lang="ts">
   import { page } from '$app/state'
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
+  import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
+  import IconClose from '$lib/components/icons/IconClose.svelte'
+  import IconGithub from '$lib/components/icons/IconGithub.svelte'
+  import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import IconUser0 from '$lib/components/icons/IconUser0.svelte'
   import IconUser1 from '$lib/components/icons/IconUser1.svelte'
+  import IconX from '$lib/components/icons/IconX.svelte'
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
-  import { TabAnchor, TabGroup, getModalStore } from '@skeletonlabs/skeleton'
+  import { LINKS, NAV } from '$lib/site'
+  import { getModalStore } from '@skeletonlabs/skeleton'
 
   const modalStore = getModalStore()
+
+  let menuOpen = $state(false)
+
+  const isApp = $derived(page.url?.pathname.startsWith('/_/') ?? false)
+  const anonymous = $derived($authStore.identity.getPrincipal().isAnonymous())
+
+  function isActive(href: string): boolean {
+    return page.url?.pathname === '/' && '/' + page.url.hash === href
+  }
 
   async function handleSignIn() {
     await signIn({})
@@ -20,87 +35,138 @@
     })
   }
 
-  function scrollToTop(ev: MouseEvent) {
-    // AppShell page
+  function goHome(ev: MouseEvent) {
+    menuOpen = false
     window.document.getElementById('page')?.scrollTo(0, 0)
     if (ev.detail == 2) {
-      window.location.reload() // for PWA that has no refresh button
+      window.location.reload() // double click reloads, for standalone windows
     }
   }
 </script>
 
-<div class="relative mt-3 border-none p-0 max-md:mt-1">
-  <TabGroup
-    justify="justify-left md:justify-center"
-    border="border-none"
-    padding="px-2 py-2 md:px-6 md:py-3"
-    active="*:border-b-4 *:border-primary-500/80"
-    hover="hover:bg-primary-500/10"
-    class="overflow-y-hidden first:ml-2 max-md:max-w-[calc(100vw-100px)]"
+<div class="border-b border-ink/15 bg-paper/85 backdrop-blur-md">
+  <div
+    class="mx-auto flex h-14 w-full max-w-[1180px] items-center gap-4 px-5 md:h-16 md:px-10"
   >
-    <TabAnchor
+    <!-- Wordmark -->
+    <a
+      class="group flex shrink-0 items-center gap-2.5"
       href="/"
-      selected={page.url?.pathname == '/' && page.url?.hash === ''}
-      on:click={scrollToTop}
+      onclick={goHome}
+      title="ICPanda DAO"
     >
-      Home
-    </TabAnchor>
-    <TabAnchor
-      href="/#anda-ai"
-      selected={page.url?.pathname == '/' && page.url?.hash === '#anda-ai'}
-      on:click={scrollToTop}
-    >
-      Anda AI
-    </TabAnchor>
-    <TabAnchor
-      href="/#dmsg-net"
-      selected={page.url?.pathname == '/' && page.url?.hash === 'dmsg-net'}
-      on:click={scrollToTop}
-    >
-      dMsg
-    </TabAnchor>
-    <TabAnchor
-      href="https://1bridge.app/?token=PANDA&from=ICP&to=BNB"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Bridge
-    </TabAnchor>
-    <TabAnchor
-      href="/_/luckypool"
-      selected={page.url?.pathname.startsWith('/_/luckypool')}
-    >
-      Lucky Pool
-    </TabAnchor>
-    <!-- <TabAnchor
-      href="/_/airdrop"
-      selected={page.url?.pathname.startsWith('/_/airdrop')}
-    >
-      Airdrop 108
-    </TabAnchor> -->
-  </TabGroup>
+      <span
+        class="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/15 transition-transform duration-300 *:size-7 group-hover:rotate-[8deg]"
+      >
+        <IconPanda />
+      </span>
+      <span class="font-mono text-sm font-semibold tracking-[0.02em]">
+        ICPanda DAO
+      </span>
+    </a>
 
-  {#if page.url?.pathname.startsWith('/_/luckypool')}
-    <div
-      class="absolute right-10 top-0 flex h-full flex-row py-2 max-md:right-4"
-    >
-      {#if $authStore.identity.getPrincipal().isAnonymous()}
-        <button
-          type="button"
-          class="btn bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:px-3"
-          on:click={handleSignIn}
+    <!-- Primary nav -->
+    <nav class="ml-auto hidden items-center gap-7 md:flex">
+      {#each NAV as item (item.href)}
+        <a
+          class="relative font-mono text-sm text-ink-70 transition-colors duration-200 hover:text-ink"
+          class:!text-ink={isActive(item.href)}
+          href={item.href}
+          onclick={() => (menuOpen = false)}
         >
-          <span class="max-md:hidden"><IconUser0 /></span>
-          <span class="max-md:!ml-0">Login</span>
-        </button>
-      {:else}
-        <button
-          class="btn btn-icon size-10 bg-white/80 transition duration-500 ease-in-out hover:bg-white/100 hover:shadow-md max-md:size-7"
-          on:click={showAccountDetail}
-        >
-          <span class="md:scale-110"><IconUser1 /></span>
-        </button>
+          {item.label}
+          {#if isActive(item.href)}
+            <span class="absolute -bottom-1.5 left-0 h-px w-full bg-ink"></span>
+          {/if}
+        </a>
+      {/each}
+    </nav>
+
+    <div class="ml-auto flex items-center gap-1 md:ml-6 md:gap-2">
+      <a
+        class="hidden size-9 items-center justify-center text-ink-70 transition-colors hover:text-ink md:flex"
+        href={LINKS.github}
+        target="_blank"
+        rel="noreferrer"
+        title="GitHub"
+        aria-label="GitHub"><IconGithub /></a
+      >
+      <a
+        class="hidden size-9 items-center justify-center text-ink-70 transition-colors hover:text-ink md:flex"
+        href={LINKS.x}
+        target="_blank"
+        rel="noreferrer"
+        title="X"
+        aria-label="X"><IconX /></a
+      >
+
+      {#if isApp}
+        {#if anonymous}
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 border border-ink px-3 py-2 font-mono text-xs uppercase tracking-[0.08em] text-ink transition-colors hover:bg-ink hover:text-paper"
+            onclick={handleSignIn}
+          >
+            <span class="*:size-4 max-md:hidden"><IconUser0 /></span>
+            <span>Login</span>
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="flex size-9 items-center justify-center border border-ink/20 transition-colors hover:border-ink"
+            onclick={showAccountDetail}
+            aria-label="Account"
+          >
+            <span class="*:size-5"><IconUser1 /></span>
+          </button>
+        {/if}
       {/if}
+
+      <button
+        type="button"
+        class="flex size-9 items-center justify-center text-ink md:hidden"
+        onclick={() => (menuOpen = !menuOpen)}
+        aria-expanded={menuOpen}
+        aria-label="Menu"
+      >
+        {#if menuOpen}
+          <span class="*:size-6"><IconClose /></span>
+        {:else}
+          <span class="flex w-5 flex-col gap-[5px]" aria-hidden="true">
+            <span class="h-px w-full bg-ink"></span>
+            <span class="h-px w-full bg-ink"></span>
+            <span class="h-px w-3/5 bg-ink"></span>
+          </span>
+        {/if}
+      </button>
     </div>
+  </div>
+
+  <!-- Mobile menu -->
+  {#if menuOpen}
+    <nav class="border-t border-ink/15 bg-paper px-5 pb-4 pt-2 md:hidden">
+      {#each NAV as item (item.href)}
+        <a
+          class="block border-b border-ink/10 py-3 font-mono text-sm"
+          href={item.href}
+          onclick={() => (menuOpen = false)}>{item.label}</a
+        >
+      {/each}
+      <div class="flex items-center gap-6 pt-4">
+        <a
+          class="link-mark"
+          href={LINKS.github}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span>GitHub</span>
+          <span class="*:size-4"><IconArrowRightUp /></span>
+        </a>
+        <a class="link-mark" href={LINKS.x} target="_blank" rel="noreferrer">
+          <span>X</span>
+          <span class="*:size-4"><IconArrowRightUp /></span>
+        </a>
+      </div>
+    </nav>
   {/if}
 </div>

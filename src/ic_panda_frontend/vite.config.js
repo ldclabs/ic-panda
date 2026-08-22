@@ -1,7 +1,6 @@
 /// <reference types="vitest" />
 
 import { sveltekit } from '@sveltejs/kit/vite'
-import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 import dotenv from 'dotenv'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
@@ -40,61 +39,7 @@ export default defineConfig({
   plugins: [
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
-    sveltekit(),
-    SvelteKitPWA({
-      srcDir: 'src',
-      mode: 'production',
-      strategies: 'injectManifest',
-      registerType: 'autoUpdate',
-      filename: 'service-worker.ts',
-      scope: '/',
-      base: '/',
-      selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
-      pwaAssets: {
-        config: true
-      },
-      manifest: {
-        short_name: 'ICPanda',
-        name: 'ICPanda',
-        description:
-          'Breathing life into sovereign AI. We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3. https://Anda.AI | https://dMsg.net',
-        icons: [
-          {
-            src: '/_assets/favicons/android-chrome-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/_assets/favicons/android-chrome-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ],
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        theme_color: '#ffffff',
-        background_color: '#ffffff'
-      },
-      injectManifest: {
-        globPatterns: [
-          'client/**/*.{js,json,css,ico,png,jpg,svg,webp,woff,woff2,xml}',
-          'prerendered/**/*.html'
-        ],
-        injectionPoint: 'self.__WB_MANIFEST'
-      },
-      devOptions: {
-        enabled: false,
-        suppressWarnings: process.env.SUPPRESS_WARNING === 'true',
-        type: 'module',
-        navigateFallback: '/'
-      },
-      // if you have shared info in svelte config file put in a separate module and use it also here
-      kit: {
-        includeVersionFile: true
-      },
-      injectRegister: 'auto'
-    })
+    sveltekit()
   ],
   test: {
     environment: 'jsdom',

@@ -27,6 +27,11 @@ export class TokenLedgerAPI {
     return this.getBalanceOf(dynAgent.id.getPrincipal())
   }
 
+  /** Live circulating supply, in the token's smallest unit. */
+  async totalSupply(): Promise<bigint> {
+    return this.actor.icrc1_total_supply()
+  }
+
   async getBalanceOf(owner: Principal): Promise<bigint> {
     return this.actor.icrc1_balance_of({ owner, subaccount: [] })
   }
