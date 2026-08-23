@@ -11,7 +11,7 @@
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { LINKS, NAV } from '$lib/site'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
 
   const modalStore = getModalStore()
 

@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
 
 /**
  * Typography — self-hosted, no external requests.
@@ -107,17 +106,6 @@ body {
   font-family: theme('fontFamily.sans');
 }
 
-/* https://www.skeleton.dev/docs/themes */
-:root [data-theme='skeleton'] {
-  --theme-font-family-base:
-    'Archivo', -apple-system, blinkmacsystemfont, 'system-ui', 'Segoe UI',
-    'Noto Sans', roboto, helvetica, arial, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji';
-  --theme-font-family-heading:
-    'Archivo', -apple-system, blinkmacsystemfont, 'system-ui', 'Segoe UI',
-    'Noto Sans', roboto, helvetica, arial, sans-serif;
-}
-
 /**
  * Page ground: bone paper, a hairline engineering grid, and a faint grain.
  * Fixed so it never scrolls with #page.
@@ -146,14 +134,126 @@ body {
 }
 
 @layer components {
+  /* Local replacements for the small set of Skeleton utility classes used by
+   * the application. They are intentionally styling-only; interaction lives
+   * in the Svelte components under lib/components/ui. */
+  .card {
+    @apply rounded-xl;
+  }
+
+  .btn {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply min-h-8 px-3 py-1.5 text-sm;
+  }
+
+  .btn-lg {
+    @apply min-h-12 px-6 py-3 text-lg;
+  }
+
+  .btn-icon {
+    @apply size-10 p-2;
+  }
+
+  .input {
+    @apply focus:border-panda focus:ring-panda w-full rounded-lg border border-black/15 bg-white px-3 py-2 transition outline-none focus:ring-1;
+  }
+
+  .input-group {
+    @apply grid w-full items-stretch;
+  }
+
+  .input-group-divider > :not(:first-child) {
+    @apply border-l border-black/15;
+  }
+
+  .input-warning {
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500;
+  }
+
+  .input-success {
+    @apply border-panda focus:border-panda focus:ring-panda;
+  }
+
+  .label {
+    @apply flex flex-col gap-1.5 text-sm font-medium;
+  }
+
+  .badge-icon {
+    @apply inline-flex size-8 shrink-0 items-center justify-center rounded-full;
+  }
+
+  .list {
+    @apply flex list-none flex-col gap-3 p-0;
+  }
+
+  .list > li {
+    @apply flex items-center gap-3;
+  }
+
+  .variant-filled,
+  .variant-filled-primary {
+    @apply bg-panda text-white;
+  }
+
+  .variant-filled-secondary {
+    @apply bg-indigo-600 text-white;
+  }
+
+  .variant-filled-warning {
+    @apply bg-amber-500 text-black;
+  }
+
+  .variant-ghost-primary {
+    @apply bg-panda/10 text-panda;
+  }
+
+  .variant-ghost-surface {
+    @apply bg-black/5 text-black;
+  }
+
+  .bg-surface-800 {
+    @apply bg-black/85;
+  }
+
+  .text-warning-500 {
+    @apply text-amber-600;
+  }
+
+  .text-primary-500 {
+    @apply text-panda;
+  }
+
+  .h2 {
+    @apply text-3xl leading-tight;
+  }
+
+  .h3 {
+    @apply text-2xl leading-tight;
+  }
+
+  .h4 {
+    @apply text-xl leading-snug;
+  }
+
+  .h5 {
+    @apply text-lg leading-snug;
+  }
+
+  .h6 {
+    @apply text-base leading-normal;
+  }
+
   /* Small mono label: section kickers, table headers, status chips. */
   .eyebrow {
-    @apply font-mono text-xs font-medium uppercase leading-[1.5] tracking-[0.18em] text-ink-70;
+    @apply text-ink-70 font-mono text-xs leading-[1.5] font-medium tracking-[0.18em] uppercase;
   }
 
   /* Display headline: tight, heavy, optically balanced. Tuned for 36px+. */
   .display {
-    @apply font-display font-black leading-[0.92] tracking-[-0.035em] text-ink;
+    @apply font-display text-ink leading-[0.92] font-black tracking-[-0.035em];
 
     font-variant-ligatures: none;
   }
@@ -165,28 +265,28 @@ body {
    * also has to relax, since these titles wrap.
    */
   .display-sm {
-    @apply font-display font-black leading-tight tracking-[-0.01em] text-ink;
+    @apply font-display text-ink leading-tight font-black tracking-[-0.01em];
 
     font-variant-ligatures: none;
   }
 
   /* Hairline framing used across every section block. */
   .rule-box {
-    @apply border border-ink/15 bg-white;
+    @apply border-ink/15 border bg-white;
   }
 
   .rule-t {
-    @apply border-t border-ink/15;
+    @apply border-ink/15 border-t;
   }
 
   /* Underline that grows on hover — the only link flourish on the page. */
   .link-mark {
-    @apply relative inline-flex items-center gap-1 font-mono text-sm font-medium text-ink;
+    @apply text-ink relative inline-flex items-center gap-1 font-mono text-sm font-medium;
   }
 
   .link-mark::after {
     content: '';
-    @apply absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-ink transition-transform duration-300 ease-out;
+    @apply bg-ink absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 transition-transform duration-300 ease-out;
   }
 
   .link-mark:hover::after {
@@ -195,12 +295,12 @@ body {
 
   /* Solid ink button. */
   .btn-ink {
-    @apply inline-flex items-center justify-center gap-2 border border-ink bg-ink px-6 py-3 font-mono text-sm font-medium uppercase tracking-[0.08em] text-paper transition-colors duration-200 hover:bg-transparent hover:text-ink;
+    @apply border-ink bg-ink text-paper hover:text-ink inline-flex items-center justify-center gap-2 border px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200 hover:bg-transparent;
   }
 
   /* Outlined counterpart. */
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 border border-ink/25 bg-transparent px-6 py-3 font-mono text-sm font-medium uppercase tracking-[0.08em] text-ink transition-colors duration-200 hover:border-ink hover:bg-ink hover:text-paper;
+    @apply border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-paper inline-flex items-center justify-center gap-2 border bg-transparent px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200;
   }
 }
 

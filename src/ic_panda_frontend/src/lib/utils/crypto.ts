@@ -21,7 +21,6 @@ export {
   encodeCBOR,
   hexToBytes,
   randomBytes,
-  toBytes,
   utf8ToBytes
 } from '@ldclabs/cose-ts/utils'
 

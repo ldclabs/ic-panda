@@ -19,13 +19,9 @@
   import { APP_ORIGIN, LUCKYPOOL_CANISTER_ID } from '$lib/constants'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
+  import { Principal } from '@icp-sdk/core/principal'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import encodeQR from 'qr'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -334,7 +330,6 @@
       class="flex flex-col gap-4"
       bind:this={formThis}
       on:input={onFormChange}
-      use:focusTrap={true}
     >
       <label class="label">
         <span class="text-gray/50">Total prize amount:</span>

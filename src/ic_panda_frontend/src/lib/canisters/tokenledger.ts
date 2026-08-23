@@ -6,7 +6,7 @@ import {
 import { unwrapResult } from '$lib/types/result'
 import { dynAgent } from '$lib/utils/auth'
 import { PANDAToken, type TokenInfo } from '$lib/utils/token'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { createActor } from './actors'
 
 export class TokenLedgerAPI {

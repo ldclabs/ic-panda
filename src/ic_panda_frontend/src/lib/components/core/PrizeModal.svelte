@@ -19,7 +19,7 @@
   import { decodePrize } from '$lib/types/prize'
   import { errMessage } from '$lib/types/result'
   import { encodeCBOR } from '@ldclabs/cose-ts/utils'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
   import PrizeClaimed from './PrizeClaimed.svelte'
   import PrizeShow from './PrizeShow.svelte'

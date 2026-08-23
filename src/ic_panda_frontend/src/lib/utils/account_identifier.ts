@@ -1,12 +1,19 @@
-import type { Principal } from '@dfinity/principal'
-import {
-  arrayOfNumberToUint8Array,
-  asciiStringToByteArray,
-  bigEndianCrc32,
-  uint8ArrayToHexString
-} from '@dfinity/utils'
+import type { Principal } from '@icp-sdk/core/principal'
 import { sha224 } from '@noble/hashes/sha2'
-import { hexToBytes } from '@noble/hashes/utils'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
+
+function crc32(bytes: Uint8Array): Uint8Array {
+  let crc = 0xffffffff
+  for (const byte of bytes) {
+    crc ^= byte
+    for (let bit = 0; bit < 8; bit++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0)
+    }
+  }
+  const out = new Uint8Array(4)
+  new DataView(out.buffer).setUint32(0, (crc ^ 0xffffffff) >>> 0, false)
+  return out
+}
 
 // simplified version from ic-js, removed @dfinity/nns-proto
 export class AccountIdentifier {
@@ -24,11 +31,11 @@ export class AccountIdentifier {
     subAccount?: SubAccount
   }): AccountIdentifier {
     // Hash (sha224) the principal, the subAccount and some padding
-    const padding = asciiStringToByteArray('\x0Aaccount-id')
+    const padding = Array.from('\x0Aaccount-id', (char) => char.charCodeAt(0))
 
     const shaObj = sha224.create()
     shaObj.update(
-      arrayOfNumberToUint8Array([
+      Uint8Array.from([
         ...padding,
         ...principal.toUint8Array(),
         ...subAccount.toUint8Array()
@@ -37,13 +44,13 @@ export class AccountIdentifier {
     const hash = shaObj.digest()
 
     // Prepend the checksum of the hash and convert to a hex string
-    const checksum = bigEndianCrc32(hash)
+    const checksum = crc32(hash)
     const bytes = new Uint8Array([...checksum, ...hash])
     return new AccountIdentifier(bytes)
   }
 
   public toHex(): string {
-    return uint8ArrayToHexString(this.bytes)
+    return bytesToHex(this.bytes)
   }
 
   public toUint8Array(): Uint8Array {

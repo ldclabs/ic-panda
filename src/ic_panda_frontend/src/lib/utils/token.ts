@@ -2,11 +2,86 @@ import {
   ICP_LEDGER_CANISTER_ID,
   TOKEN_LEDGER_CANISTER_ID
 } from '$lib/constants'
-import { TokenAmountV2 as TokenAmount, type Token } from '@dfinity/utils'
+const locale = new Intl.Locale(globalThis.navigator?.language || 'en')
 
-export { TokenAmountV2 as TokenAmount } from '@dfinity/utils'
+export interface Token {
+  symbol: string
+  name: string
+  decimals: number
+  logo?: string
+}
 
-const locale = new Intl.Locale(window?.navigator.language || 'en')
+export enum FromStringToTokenError {
+  FractionalMoreThan8Decimals,
+  InvalidFormat,
+  FractionalTooManyDecimals
+}
+
+export class TokenAmount {
+  private constructor(
+    private readonly ulps: bigint,
+    public readonly token: Token
+  ) {}
+
+  static fromUlps({ amount, token }: { amount: bigint; token: Token }) {
+    return new TokenAmount(amount, token)
+  }
+
+  static fromString({
+    amount,
+    token
+  }: {
+    amount: string
+    token: Token
+  }): TokenAmount | FromStringToTokenError {
+    const ulps = convertStringToUlps(amount, token.decimals)
+    return typeof ulps === 'bigint' ? new TokenAmount(ulps, token) : ulps
+  }
+
+  static fromNumber({ amount, token }: { amount: number; token: Token }) {
+    const value = TokenAmount.fromString({
+      amount: amount.toFixed(token.decimals),
+      token
+    })
+    if (value instanceof TokenAmount) return value
+    if (value === FromStringToTokenError.FractionalTooManyDecimals) {
+      throw new Error(
+        `Number ${amount} has more than ${token.decimals} decimals`
+      )
+    }
+    throw new Error(`Invalid number ${amount}`)
+  }
+
+  toUlps(): bigint {
+    return this.ulps
+  }
+}
+
+function convertStringToUlps(
+  value: string,
+  decimals: number
+): bigint | FromStringToTokenError {
+  const amount = value.trim().replace(/[,']/g, '')
+  const match = amount.match(/\d*(\.\d*)?/)
+  if (!match || match[0] !== amount) return FromStringToTokenError.InvalidFormat
+
+  const [integral, fractional] = amount.split('.')
+  let ulps = 0n
+  const one = 10n ** BigInt(decimals)
+
+  try {
+    if (integral) ulps += BigInt(integral) * one
+    if (fractional) {
+      if (fractional.length > decimals) {
+        return FromStringToTokenError.FractionalTooManyDecimals
+      }
+      ulps += BigInt(fractional.padEnd(decimals, '0'))
+    }
+  } catch {
+    return FromStringToTokenError.InvalidFormat
+  }
+  return ulps
+}
 
 export interface TokenInfo extends Token {
   fee: bigint

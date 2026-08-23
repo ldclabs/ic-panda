@@ -1,8 +1,7 @@
 import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
-import { anonymousIdentity, authClientPromise, dynAgent } from '$lib/utils/auth'
+import { anonymousIdentity, dynAgent, getAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
-import { type Identity } from '@dfinity/agent'
-import { nonNullish } from '@dfinity/utils'
+import { type Identity } from '@icp-sdk/core/agent'
 import { derived, get, writable, type Readable } from 'svelte/store'
 
 export interface AuthStoreData {
@@ -36,55 +35,47 @@ const initAuthStore = (): AuthStore => {
     subscribe,
 
     getIdentity: async () => {
-      const authClient = await authClientPromise
+      const authClient = getAuthClient()
       return authClient.getIdentity()
     },
 
     sync: async () => {
-      const authClient = await authClientPromise
-      const isAuthenticated = await authClient.isAuthenticated()
-      dynAgent.setIdentity(authClient.getIdentity())
+      const authClient = getAuthClient()
+      const isAuthenticated = authClient.isAuthenticated()
+      const identity = await authClient.getIdentity()
+      dynAgent.setIdentity(identity)
       if (isAuthenticated) {
-        set({
-          identity: authClient.getIdentity()
-        })
+        set({ identity })
       }
     },
 
-    signIn: ({ domain }: AuthSignInParams) =>
-      // eslint-disable-next-line no-async-promise-executor
-      new Promise<void>(async (resolve, reject) => {
-        const authClient = await authClientPromise
+    signIn: async ({ domain }: AuthSignInParams) => {
+      const identityProvider =
+        INTERNET_IDENTITY_CANISTER_ID != null && IS_LOCAL
+          ? `http://${INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`
+          : `https://identity.${domain ?? 'ic0.app'}`
 
-        const identityProvider =
-          nonNullish(INTERNET_IDENTITY_CANISTER_ID) && IS_LOCAL
-            ? `http://${INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`
-            : `https://identity.${domain ?? 'ic0.app'}`
-
-        await authClient.login({
-          // 7 days in nanoseconds
-          maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
-          onSuccess: () => {
-            dynAgent.setIdentity(authClient.getIdentity())
-
-            set({
-              identity: authClient.getIdentity()
-            })
-
-            resolve()
-          },
-          onError: reject,
+      const authClient = getAuthClient(
+        {
           identityProvider,
           windowOpenerFeatures: popupCenter({
             width: 576,
             height: 625
           })
-        })
-      }),
+        },
+        true
+      )
+      const identity = await authClient.signIn({
+        // 7 days in nanoseconds
+        maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000)
+      })
+      dynAgent.setIdentity(identity)
+      set({ identity })
+    },
 
     signOut: async () => {
-      const authClient = await authClientPromise
-      await authClient.logout()
+      const authClient = getAuthClient()
+      await authClient.signOut()
 
       dynAgent.setIdentity(anonymousIdentity)
       set({

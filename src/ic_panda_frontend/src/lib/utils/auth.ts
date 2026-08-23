@@ -4,32 +4,45 @@ import {
   HttpAgent,
   type HttpAgentOptions,
   type Identity
-} from '@dfinity/agent'
-import { AuthClient } from '@dfinity/auth-client'
+} from '@icp-sdk/core/agent'
+import { AuthClient, type AuthClientCreateOptions } from '@icp-sdk/auth/client'
 
-export const authClientPromise = AuthClient.create({
-  keyType: 'Ed25519',
-  idleOptions: {
-    disableIdle: true,
-    disableDefaultIdleCallback: true
+let authClient: AuthClient | undefined
+
+export function getAuthClient(
+  options?: AuthClientCreateOptions,
+  replace = false
+): AuthClient {
+  if (!authClient || replace) {
+    authClient = new AuthClient({
+      keyType: 'Ed25519',
+      ...options,
+      idleOptions: {
+        disableIdle: true,
+        disableDefaultIdleCallback: true,
+        ...options?.idleOptions
+      }
+    })
   }
-})
+  return authClient
+}
 
 /**
  * In certain features, we want to execute jobs with the authenticated identity without getting it from the auth.store.
  * This is notably useful for Web Workers which do not have access to the window.
  */
 export const loadIdentity = async (): Promise<Identity | undefined> => {
-  const authClient = await authClientPromise
-  const authenticated = await authClient.isAuthenticated()
+  const authClient = getAuthClient()
+  const authenticated = authClient.isAuthenticated()
+  const identity = await authClient.getIdentity()
 
-  dynAgent.setIdentity(authClient.getIdentity())
+  dynAgent.setIdentity(identity)
   // Not authenticated therefore we provide no identity as a result
   if (!authenticated) {
     return undefined
   }
 
-  return authClient.getIdentity()
+  return identity
 }
 
 export class AuthAgent extends HttpAgent {

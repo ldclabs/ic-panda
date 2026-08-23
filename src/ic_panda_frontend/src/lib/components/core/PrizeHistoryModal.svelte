@@ -13,7 +13,7 @@
   import { APP_ORIGIN } from '$lib/constants'
   import { errMessage } from '$lib/types/result'
   import { formatNumber, PANDAToken } from '$lib/utils/token'
-  import { getToastStore, Tab, TabGroup } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -64,22 +64,20 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold">Prize History</div>
-  <TabGroup
-    justify="justify-center"
-    border="border-none"
-    padding="px-0 py-2 mx-6"
-    active="border-b-4 border-primary-500/80"
-    hover="hover:bg-transparent"
-    class="!mt-2"
-  >
-    <Tab bind:group={tabSet} name="Receive" value={0}>
-      <span>Receive</span>
-    </Tab>
-    <Tab bind:group={tabSet} name="Send" value={1}>
-      <span>Send</span>
-    </Tab>
-    <!-- Tab Panels --->
-    <svelte:fragment slot="panel">
+  <div class="!mt-2">
+    <div class="mx-6 flex justify-center" role="tablist">
+      {#each ['Receive', 'Send'] as label, index}
+        <button
+          class="border-b-4 px-6 py-2 {tabSet === index
+            ? 'border-panda font-semibold'
+            : 'border-transparent text-gray/50'}"
+          role="tab"
+          aria-selected={tabSet === index}
+          on:click={() => (tabSet = index)}
+        >{label}</button>
+      {/each}
+    </div>
+    <div class="mt-3">
       <div class="space-y-3">
         {#if luckyPoolAPI && tabSet === 0}
           {#await prizeClaimLogsRes}
@@ -251,6 +249,6 @@
           {/await}
         {/if}
       </div>
-    </svelte:fragment>
-  </TabGroup>
+    </div>
+  </div>
 </ModalCard>

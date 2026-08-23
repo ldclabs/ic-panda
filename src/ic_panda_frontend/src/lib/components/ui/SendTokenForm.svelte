@@ -5,7 +5,7 @@
   import type { SendTokenArgs } from '$lib/types/token'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { TokenDisplay, type TokenInfo } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
+  import { Principal } from '@icp-sdk/core/principal'
   import Loading from './Loading.svelte'
 
   export let token: TokenInfo
@@ -166,14 +166,14 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-xs text-error-500 peer-invalid:visible">
+        <span class="invisible text-xs text-red-500 peer-invalid:visible">
           Enter a valid {addressTip}.
         </span>
       </label>
       <label class="label">
         <span>Amount</span>
         <a
-          class="btn float-right !mt-0 p-0 hover:text-secondary-500/100"
+          class="btn float-right !mt-0 p-0 hover:text-indigo-500"
           href="/"
           on:click={setMaxAmount}
         >
@@ -192,7 +192,7 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-xs text-error-500 peer-invalid:visible">
+        <span class="invisible text-xs text-red-500 peer-invalid:visible">
           Enter a valid amount.
         </span>
       </label>
@@ -267,11 +267,11 @@
       {#if submitting}
         <span class="text-panda *:h-8 *:w-8"><Loading /></span>
       {:else if transferSuccess != null}
-        <p class="text-lg text-success-500">
+        <p class="text-lg text-panda">
           Transfer success at block {transferSuccess}
         </p>
       {:else if transferError != null}
-        <p class="text-lg text-error-500">Transfer failed</p>
+        <p class="text-lg text-red-500">Transfer failed</p>
         <p>
           {JSON.stringify(transferError.data, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value

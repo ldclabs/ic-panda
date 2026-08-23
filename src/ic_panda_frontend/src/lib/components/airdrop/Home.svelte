@@ -8,8 +8,8 @@
   import { authStore } from '$lib/stores/auth'
   import { toastRun } from '$lib/stores/toast'
   import { getShortNumber, shortId } from '$lib/utils/helper'
-  import { Principal } from '@dfinity/principal'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()
@@ -120,7 +120,7 @@
             placeholder="Enter principal ID ..."
           />
           <button
-            class="variant-filled-primary cursor-pointer text-white disabled:cursor-not-allowed disabled:bg-primary-500/50"
+            class="variant-filled-primary cursor-pointer text-white disabled:cursor-not-allowed disabled:bg-panda/50"
             disabled={!validating}
             on:click={getAirdropOutput}>Check</button
           >

@@ -1,6 +1,6 @@
 <script lang="ts">
   import IconClose from '$lib/components/icons/IconClose.svelte'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   // Props

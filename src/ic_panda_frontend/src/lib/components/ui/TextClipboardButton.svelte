@@ -1,13 +1,12 @@
 <script lang="ts">
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
-  import { clipboard } from '@skeletonlabs/skeleton'
-
   export let textValue: string
 
   let copiedClass = ''
 
-  function onCopyHandler(): void {
+  async function onCopyHandler(): Promise<void> {
+    await navigator.clipboard.writeText(textValue)
     copiedClass = '!text-panda'
     setTimeout(() => {
       copiedClass = ''
@@ -17,7 +16,6 @@
 
 <button
   class="{copiedClass} float-right mt-[3px] *:size-5"
-  use:clipboard={textValue}
   on:click={onCopyHandler}
   disabled={copiedClass != ''}
 >

@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 
 import { sveltekit } from '@sveltejs/kit/vite'
+import tailwindcss from '@tailwindcss/vite'
 import dotenv from 'dotenv'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
@@ -21,13 +22,6 @@ export default defineConfig({
   build: {
     emptyOutDir: true
   },
-  optimizeDeps: {
-    esbuildOptions: {
-      define: {
-        global: 'globalThis'
-      }
-    }
-  },
   server: {
     proxy: {
       '/api': {
@@ -39,6 +33,7 @@ export default defineConfig({
   plugins: [
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    tailwindcss(),
     sveltekit()
   ],
   test: {

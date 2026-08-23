@@ -15,12 +15,8 @@
   import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { shortId } from '$lib/utils/helper'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
-  import {
-    Accordion,
-    AccordionItem,
-    getModalStore
-  } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
   import NameModal from './NameModal.svelte'
@@ -150,59 +146,50 @@
     />
   </div>
 
-  <Accordion
-    hover="hover:border-surface-200/80"
-    padding="px-0 py-4"
-    spacing="space-y-0"
-    regionControl="border-b border-gray/10 !rounded-none"
-  >
-    <AccordionItem regionControl="outline-0">
-      <svelte:fragment slot="lead">
+  <div class="divide-y divide-gray/10">
+    <details class="group">
+      <summary class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none">
         <span class="*:size-8"><IconIcLogo /></span>
-      </svelte:fragment>
-      <svelte:fragment slot="summary">
-        <div class="flex flex-row items-center justify-between leading-8">
-          <span class="">Internet Computer</span>
+        <span class="flex flex-1 items-center justify-between leading-8">
+          <span>Internet Computer</span>
           <TextTokenAmount
             class="flex flex-row items-center gap-2 pl-4"
             token={ICPToken}
             amount={icpBalance}
           />
-        </div>
-      </svelte:fragment>
-      <svelte:fragment slot="content">
+        </span>
+      </summary>
+      <div class="pb-4">
         <SendTokenForm
           sendFrom={principal}
           availableBalance={availableICPBalance}
           token={ICPToken}
           onSubmit={handleICPTransfer}
         />
-      </svelte:fragment>
-    </AccordionItem>
-    <AccordionItem regionControl="outline-0">
-      <svelte:fragment slot="lead">
+      </div>
+    </details>
+    <details class="group">
+      <summary class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none">
         <span class="*:size-8"><IconPanda /></span>
-      </svelte:fragment>
-      <svelte:fragment slot="summary">
-        <div class="flex flex-row items-center justify-between leading-8">
-          <span class="">ICPanda</span>
+        <span class="flex flex-1 items-center justify-between leading-8">
+          <span>ICPanda</span>
           <TextTokenAmount
             class="flex flex-row items-center gap-2 pl-4"
             token={PANDAToken}
             amount={pandaBalance}
           />
-        </div>
-      </svelte:fragment>
-      <svelte:fragment slot="content">
+        </span>
+      </summary>
+      <div class="pb-4">
         <SendTokenForm
           sendFrom={principal}
           availableBalance={availablePandaBalance}
           token={PANDAToken}
           onSubmit={handlePANDATransfer}
         />
-      </svelte:fragment>
-    </AccordionItem>
-  </Accordion>
+      </div>
+    </details>
+  </div>
   <footer class="!mt-8 {parent['regionFooter']} !justify-center">
     <button class="variant-filled btn" on:click={onLogoutHandler}>
       <IconLogout />

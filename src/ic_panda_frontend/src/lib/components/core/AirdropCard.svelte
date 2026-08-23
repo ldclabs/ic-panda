@@ -10,7 +10,7 @@
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getModalStore, popup } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import AirdropModal from './AirdropModal.svelte'
   import LuckyTransferModal from './LuckyTransferModal.svelte'
 
@@ -22,6 +22,7 @@
   let claimableAmount = 0n
   let claimedAmount = 0n
   let luckyCode = ''
+  let showBalanceTip = false
 
   function claimNowHandler() {
     if (principal.isAnonymous()) {
@@ -79,29 +80,22 @@
         </h2>
         <button
           class="text-gray/50 mt-2 flex flex-row items-center gap-1"
-          use:popup={{
-            event: 'click',
-            target: 'AirdropTipHover',
-            middleware: {
-              size: { availableWidth: 300, availableHeight: 40 }
-            }
-          }}
+          aria-expanded={showBalanceTip}
+          on:click={() => (showBalanceTip = !showBalanceTip)}
         >
           <span>Current available balance</span>
           <span>
             <IconInfo />
           </span>
         </button>
-        <div
-          class="card bg-surface-800 max-w-80 px-2 py-0 text-white"
-          data-popup="AirdropTipHover"
-        >
-          <p class="min-w-0 text-balance break-words">
-            We will gradually increase the number of PANDA tokens available for
-            airdrop to ensure an orderly distribution.
-          </p>
-          <div class="arrow bg-surface-800"></div>
-        </div>
+        {#if showBalanceTip}
+          <div class="card mt-2 max-w-80 bg-surface-800 px-3 py-2 text-sm text-white">
+            <p class="min-w-0 text-balance break-words">
+              We will gradually increase the number of PANDA tokens available for
+              airdrop to ensure an orderly distribution.
+            </p>
+          </div>
+        {/if}
       </div>
     </div>
   </section>

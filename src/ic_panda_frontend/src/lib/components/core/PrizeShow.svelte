@@ -9,7 +9,7 @@
   import { mapToObj } from '$lib/utils/fetcher'
   import { formatNumber, PANDAToken } from '$lib/utils/token'
   import { decodeCBOR } from '@ldclabs/cose-ts/utils'
-  import { ProgressBar } from '@skeletonlabs/skeleton'
+  import ProgressBar from '$lib/components/ui/ProgressBar.svelte'
 
   export let prizeInfo: PrizeOutput
   export let claimPrize: () => Promise<void>

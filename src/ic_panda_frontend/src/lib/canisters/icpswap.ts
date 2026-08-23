@@ -5,7 +5,7 @@ import {
 } from '$declarations/icpswap_tokens/icpswap_tokens.did.js'
 import { ICPSWAP_TOKENS_CANISTER_ID } from '$lib/constants'
 import { anonAgent } from '$lib/utils/auth'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { createActor } from './actors'
 
 export { type PublicTokenOverview } from '$declarations/icpswap_tokens/icpswap_tokens.did.js'

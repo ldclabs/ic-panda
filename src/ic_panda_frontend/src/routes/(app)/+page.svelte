@@ -8,7 +8,7 @@
   import SectionPanda from '$lib/components/landing/SectionPanda.svelte'
   import SectionPrinciples from '$lib/components/landing/SectionPrinciples.svelte'
   import SectionProjects from '$lib/components/landing/SectionProjects.svelte'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount } from 'svelte'
 
   const toastStore = getToastStore()

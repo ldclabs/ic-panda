@@ -1,26 +1,13 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { afterNavigate } from '$app/navigation'
+  import ModalHost from '$lib/components/ui/ModalHost.svelte'
   import PageHeader from '$lib/components/core/PageHeader.svelte'
+  import ToastHost from '$lib/components/ui/ToastHost.svelte'
   import { authStore, fetchRootKey } from '$lib/stores/auth'
-  import { storePopup as storePopup2 } from '$lib/utils/Popup'
+  import { getToastStore } from '$lib/ui/stores'
   import { initReconnect, isOnline } from '$lib/utils/window'
-  import '$src/app.pcss'
-  import {
-    arrow,
-    autoUpdate,
-    computePosition,
-    flip,
-    offset,
-    shift
-  } from '@floating-ui/dom'
-  import {
-    Modal,
-    Toast,
-    getToastStore,
-    initializeStores,
-    storePopup
-  } from '@skeletonlabs/skeleton'
+  import '$src/app.css'
   import { onMount } from 'svelte'
 
   initReconnect(
@@ -34,9 +21,6 @@
         hoverable: true
       })
   )
-  initializeStores()
-  storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
-  storePopup2.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
 
   /**
@@ -143,9 +127,8 @@
   })
 </script>
 
-<Modal position="items-start" class="*:max-h-full" />
-
-<Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
+<ModalHost />
+<ToastHost />
 
 {#if initAuth}
   <div id="appShell" class="flex h-full w-full flex-col overflow-hidden">

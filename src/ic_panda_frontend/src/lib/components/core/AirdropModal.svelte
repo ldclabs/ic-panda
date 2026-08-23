@@ -11,7 +11,7 @@
   import { APP_ORIGIN } from '$lib/constants'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   // Props

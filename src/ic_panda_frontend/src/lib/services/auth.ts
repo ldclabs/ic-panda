@@ -8,7 +8,7 @@ import { authStore, type AuthSignInParams } from '$lib/stores/auth'
 import { type AuthMessage } from '$lib/types/auth'
 import { createRequest, type SuccessResponse } from '$lib/utils/fetcher'
 import { popupCenter } from '$lib/utils/window'
-import type { Principal } from '@dfinity/principal'
+import type { Principal } from '@icp-sdk/core/principal'
 
 export const signIn = async (
   params: AuthSignInParams = {}

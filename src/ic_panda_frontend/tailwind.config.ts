@@ -1,6 +1,4 @@
-import { skeleton } from '@skeletonlabs/tw-plugin'
 import forms from '@tailwindcss/forms'
-import { join } from 'path'
 import colors from 'tailwindcss/colors'
 
 const sansStack = [
@@ -30,13 +28,7 @@ const monoStack = [
 
 /** @type {import('tailwindcss').Config} */
 const config = {
-  content: [
-    './src/**/*.{html,js,svelte,ts}',
-    join(
-      require.resolve('@skeletonlabs/skeleton'),
-      '../**/*.{html,svelte,js,ts}'
-    )
-  ],
+  content: ['./src/**/*.{html,js,svelte,ts}'],
   theme: {
     colors: {
       transparent: 'transparent',
@@ -70,12 +62,7 @@ const config = {
       }
     }
   },
-  plugins: [
-    forms,
-    skeleton({
-      themes: { preset: [{ name: 'skeleton', enhancements: true }] }
-    })
-  ],
+  plugins: [forms],
   safelist: ['text-black']
 }
 

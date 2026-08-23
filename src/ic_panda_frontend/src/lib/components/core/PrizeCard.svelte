@@ -8,7 +8,7 @@
   import { signIn } from '$lib/services/auth'
   import { authStore } from '$lib/stores/auth'
   import { decodePrize } from '$lib/types/prize'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import { onMount } from 'svelte'
   import PrizeCreateModal from './PrizeCreateModal.svelte'
   import PrizeHistoryModal from './PrizeHistoryModal.svelte'

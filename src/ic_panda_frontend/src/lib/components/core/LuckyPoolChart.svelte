@@ -1,11 +1,12 @@
 <script lang="ts">
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
+  import DataTable from '$lib/components/ui/DataTable.svelte'
+  import ProgressBar from '$lib/components/ui/ProgressBar.svelte'
   import { authStore } from '$lib/stores/auth'
   import { shortId } from '$lib/utils/helper'
   import { formatNumber, ICPToken, PANDAToken } from '$lib/utils/token'
   import { isActive } from '$lib/utils/window'
-  import { ProgressBar, Tab, TabGroup, Table } from '@skeletonlabs/skeleton'
   import { onMount } from 'svelte'
 
   let tabSet: number = 0
@@ -155,70 +156,43 @@
   class="card mt-1 flex flex-col items-center rounded-2xl rounded-t-none bg-white px-10 py-4"
 >
   {#if $luckyPoolState}
-    <TabGroup
-      justify="justify-center"
-      border="border-none"
-      padding="px-2 py-2 md:px-6 md:py-3"
-      active="border-b-4 border-primary-500/80"
-      hover="hover:bg-primary-500/10"
-      class="w-full"
-    >
-      <Tab bind:group={tabSet} name="AirdropRecords" value={0}>
-        Airdrop Records
-      </Tab>
-      <Tab bind:group={tabSet} name="LuckyDrawRecords" value={1}>
-        Lucky Draw Records
-      </Tab>
-      <Tab bind:group={tabSet} name="MyLuckyDrawRecords" value={2}>
-        My Lucky Draw
-      </Tab>
-      <!-- Tab Panels --->
-      <svelte:fragment slot="panel">
-        {#if tabSet === 0}
-          <Table
-            class="-mt-4 mb-8"
-            regionHeadCell="bg-white"
-            regionBody="*:!border-gray/5"
-            regionCell="bg-white !py-3 text-sm text-gray/60"
-            source={airdropRecordsSource(airdropRecords)}
+    <div class="w-full">
+      <div class="mb-4 flex justify-center overflow-x-auto" role="tablist">
+        {#each ['Airdrop Records', 'Lucky Draw Records', 'My Lucky Draw'] as label, index}
+          <button
+            class="border-b-4 px-2 py-2 text-sm transition md:px-6 md:py-3 {tabSet ===
+            index
+              ? 'border-panda text-black'
+              : 'border-transparent text-gray/50 hover:bg-panda/10'}"
+            role="tab"
+            aria-selected={tabSet === index}
+            on:click={() => (tabSet = index)}
+          >{label}</button>
+        {/each}
+      </div>
+
+      {#if tabSet === 0}
+        <DataTable class="mb-8" source={airdropRecordsSource(airdropRecords)} />
+      {:else if tabSet === 1}
+        <DataTable class="mb-8" source={luckydrawRecordsSource(luckydrawRecords)} />
+        {#if highestLuckydrawRecords.length > 0}
+          <div class="mb-4 text-center">
+            <button class="btn m-auto rounded-xl bg-panda/10 font-bold text-panda">
+              <span><IconCrown /></span>
+              <span>Top 3 Luckiest Draw</span>
+            </button>
+          </div>
+          <DataTable
+            class="mb-8"
+            hideHead={true}
+            source={luckydrawRecordsSource(highestLuckydrawRecords)}
           />
-        {:else if tabSet === 1}
-          <Table
-            class="-mt-4 mb-8"
-            regionHeadCell="bg-white"
-            regionBody="*:!border-gray/5"
-            regionCell="bg-white !py-3 text-sm text-gray/60"
-            source={luckydrawRecordsSource(luckydrawRecords)}
-          />
-          {#if highestLuckydrawRecords.length > 0}
-            <div class="-mt-4 mb-4 text-center">
-              <button
-                class="btn m-auto rounded-xl bg-panda/10 font-bold text-panda"
-              >
-                <span><IconCrown /></span>
-                <span>Top 3 Luckiest Draw</span>
-              </button>
-            </div>
-            <Table
-              class="mb-8"
-              regionHeadCell="bg-white hidden"
-              regionBody="*:!border-gray/5"
-              regionCell="bg-white !py-3 text-sm text-gray/60"
-              source={luckydrawRecordsSource(highestLuckydrawRecords)}
-            />
-          {/if}
-        {:else}
-          {#await myLuckydrawRecordsSource() then items}
-            <Table
-              class="-mt-4 mb-8"
-              regionHeadCell="bg-white"
-              regionBody="*:!border-gray/5"
-              regionCell="bg-white !py-3 text-sm text-gray/60"
-              source={items}
-            />
-          {/await}
         {/if}
-      </svelte:fragment>
-    </TabGroup>
+      {:else}
+        {#await myLuckydrawRecordsSource() then items}
+          <DataTable class="mb-8" source={items} />
+        {/await}
+      {/if}
+    </div>
   {/if}
 </div>

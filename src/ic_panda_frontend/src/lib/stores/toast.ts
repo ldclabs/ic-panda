@@ -1,6 +1,6 @@
 import { errMessage } from '$lib/types/result'
 import { tryRun, type TryRunResult } from '$lib/utils/tryrun'
-import { type ToastStore } from '@skeletonlabs/skeleton'
+import { type ToastStore } from '$lib/ui/stores'
 
 export { tryRun, type TryRunResult } from '$lib/utils/tryrun'
 

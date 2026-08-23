@@ -11,12 +11,13 @@
 
   let { href, label, variant = 'mark', class: klass = '' }: Props = $props()
 
-  const base =
+  const base = $derived(
     variant === 'ink'
       ? 'btn-ink'
       : variant === 'outline'
         ? 'btn-outline'
         : 'link-mark'
+  )
 </script>
 
 <a class="{base} {klass}" {href} target="_blank" rel="noreferrer">

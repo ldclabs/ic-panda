@@ -21,7 +21,7 @@ import {
 import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
 import { unwrapOptionResult, unwrapResult } from '$lib/types/result'
 import { dynAgent } from '$lib/utils/auth'
-import type { Principal } from '@dfinity/principal'
+import type { Principal } from '@icp-sdk/core/principal'
 import { readonly, writable, type Readable } from 'svelte/store'
 import { createActor } from './actors'
 

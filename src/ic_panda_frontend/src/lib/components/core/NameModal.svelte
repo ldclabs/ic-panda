@@ -9,8 +9,8 @@
   import { LUCKYPOOL_CANISTER_ID } from '$lib/constants'
   import { errMessage } from '$lib/types/result'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -259,7 +259,7 @@
           {/if}
         </button>
         <p
-          class="h-5 pl-3 text-sm text-error-500 {nameErr == ''
+          class="h-5 pl-3 text-sm text-red-500 {nameErr == ''
             ? 'invisible'
             : 'visiable'}">{nameErr}</p
         >
@@ -317,7 +317,7 @@
           {/if}
         </button>
         <p
-          class="h-5 pl-3 text-sm text-error-500 {nameErr == ''
+          class="h-5 pl-3 text-sm text-red-500 {nameErr == ''
             ? 'invisible'
             : 'visiable'}">{nameErr}</p
         >
