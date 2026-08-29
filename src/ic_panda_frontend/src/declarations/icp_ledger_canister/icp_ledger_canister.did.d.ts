@@ -325,7 +325,6 @@ export interface TimeStamp {
   'timestamp_nanos': bigint
 }
 /**
- * This is the official Ledger interface that is guaranteed to be backward compatible.
  * Amount of tokens, measured in 10^-8 of a token.
  */
 export interface Tokens {
