@@ -24,7 +24,9 @@
       )}"
       role={toast.background?.includes('error') ? 'alert' : 'status'}
     >
-      <p class="min-w-0 flex-1 text-sm break-words">{toast.message}</p>
+      <p class="min-w-0 flex-1 text-sm break-words whitespace-pre-line">
+        {toast.message}
+      </p>
       {#if !toast.hideDismiss}
         <button
           class="shrink-0 text-lg leading-none opacity-60 hover:opacity-100"

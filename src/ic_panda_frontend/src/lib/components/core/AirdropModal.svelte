@@ -109,7 +109,7 @@
         autohide: false,
         hideDismiss: false,
         background: 'variant-filled-error',
-        message: errMessage(err).replaceAll('\\n', '<br />')
+        message: errMessage(err).replaceAll('\\n', '\n')
       })
     }
   }

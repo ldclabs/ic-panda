@@ -12,17 +12,40 @@ export interface ModalSettings {
 
 export interface ModalStore extends Readable<ModalSettings[]> {
   trigger: (settings: ModalSettings) => void
-  close: () => void
+  close: (value?: unknown) => void
   clear: () => void
 }
 
 function createModalStore(): ModalStore {
   const { subscribe, set } = writable<ModalSettings[]>([])
+  let pending: ModalSettings['response']
+
+  /**
+   * Settles the open modal's response exactly once. Callers await it (see
+   * PrizeCard's QR scan), so a modal that goes away without answering has to
+   * resolve with undefined rather than leave them pending forever.
+   */
+  const settle = (value?: unknown) => {
+    const response = pending
+    pending = undefined
+    response?.(value)
+  }
+
   return {
     subscribe,
-    trigger: (settings) => set([settings]),
-    close: () => set([]),
-    clear: () => set([])
+    trigger: (settings) => {
+      settle()
+      pending = settings.response
+      set([settings])
+    },
+    close: (value?: unknown) => {
+      settle(value)
+      set([])
+    },
+    clear: () => {
+      settle()
+      set([])
+    }
   }
 }
 

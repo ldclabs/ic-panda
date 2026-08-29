@@ -76,10 +76,7 @@
       )
       try {
         const code = decodeQR(data)
-        if ($modalStore[0]?.response) {
-          $modalStore[0].response(code)
-        }
-        modalStore.close()
+        modalStore.close(code)
         return
       } catch (err) {}
 

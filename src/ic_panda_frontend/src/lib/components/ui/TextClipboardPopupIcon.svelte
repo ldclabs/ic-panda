@@ -10,7 +10,14 @@
   let copiedClass = ''
 
   async function onCopyHandler(): Promise<void> {
-    await navigator.clipboard.writeText(textValue)
+    // Rejects when the document isn't focused, and is missing outright on a
+    // non-secure origin. Don't claim success we didn't get.
+    try {
+      await navigator.clipboard.writeText(textValue)
+    } catch (err) {
+      console.error('Copy to clipboard failed:', err)
+      return
+    }
     copiedClass = '!text-panda'
     setTimeout(() => {
       copiedClass = ''
