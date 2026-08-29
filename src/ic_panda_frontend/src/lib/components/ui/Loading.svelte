@@ -1,4 +1,4 @@
-<div class="m-auto h-fit w-fit text-primary-500">
+<div class="text-primary-500 m-auto h-fit w-fit">
   <svg
     class="h-5 w-5 animate-spin"
     xmlns="http://www.w3.org/2000/svg"

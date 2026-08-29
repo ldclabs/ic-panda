@@ -90,7 +90,7 @@
 
 <ModalCard {parent}>
   {#if result}
-    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+    <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
@@ -103,7 +103,7 @@
       </p>
     </div>
     <div
-      class="!mt-12 flex flex-row justify-between rounded-lg bg-gray/5 px-4 py-3"
+      class="bg-gray/5 !mt-12 flex flex-row justify-between rounded-lg px-4 py-3"
     >
       <div class="flex flex-row items-center">
         <span><IconWallet /></span>
@@ -124,7 +124,7 @@
   {:else}
     <h3 class="h3 !mt-0 text-center">💳</h3>
     <div class="!mt-0 text-center text-xl font-bold">Transfer to Wallet</div>
-    <div class="space-y-2 rounded-xl bg-gray/5 p-4 text-gray/50">
+    <div class="bg-gray/5 text-gray/50 space-y-2 rounded-xl p-4">
       <p class="">
         <span>
           The <b>More Lucky Balance</b> you have, the larger your claim in a
@@ -152,27 +152,27 @@
         <p>1m: claim up to 10.44 * avg.</p>
       </div>
       <button
-        class="btn ml-[-1px] !flex p-0 text-gray/50 outline-0"
+        class="btn text-gray/50 ml-[-1px] !flex p-0 outline-0"
         on:click={() => {
           showTips = !showTips
         }}
       >
         <span class="">Lucky balance tips</span>
         <span
-          class="duration-400 transition ease-in-out {showTips
+          class="transition duration-400 ease-in-out {showTips
             ? 'rotate-180'
             : 'rotate-0'}"><IconArrowDownLine /></span
         >
       </button>
     </div>
-    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
     <div class="!mt-5 text-sm">
       <div class="mt-1 flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconGoldPanda /></span>
           <b>Your Lucky Balance:</b>
         </div>
-        <div class="flex flex-row gap-1 text-gray/50">
+        <div class="text-gray/50 flex flex-row gap-1">
           <span
             >{formatNumber(
               Number(claimableAmount) / Number(PANDAToken.one)
@@ -182,13 +182,10 @@
         </div>
       </div>
     </div>
-    <form
-      class="flex flex-col gap-2"
-      on:input={onFormChange}
-    >
+    <form class="flex flex-col gap-2" on:input={onFormChange}>
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
           type="number"
           name="pandaTokens"
           step="any"
@@ -197,7 +194,7 @@
           placeholder="Enter an amount at least 1 token"
           required
         />
-        <div class="absolute right-2 top-2 outline-0">PANDA</div>
+        <div class="absolute top-2 right-2 outline-0">PANDA</div>
       </div>
     </form>
     <footer class="!mt-6">

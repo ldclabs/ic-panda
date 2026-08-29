@@ -1,5 +1,9 @@
 import { AuthAgent, dynAgent } from '$lib/utils/auth'
-import { Actor, type ActorMethod, type ActorSubclass } from '@icp-sdk/core/agent'
+import {
+  Actor,
+  type ActorMethod,
+  type ActorSubclass
+} from '@icp-sdk/core/agent'
 import type { IDL } from '@icp-sdk/core/candid'
 import type { Principal } from '@icp-sdk/core/principal'
 

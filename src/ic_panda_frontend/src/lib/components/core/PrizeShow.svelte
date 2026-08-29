@@ -36,7 +36,7 @@
     : null
 </script>
 
-<section class="absolute left-0 right-0 top-0 !m-0 rounded-3xl">
+<section class="absolute top-0 right-0 left-0 !m-0 rounded-3xl">
   <div
     class="relative bg-[url('/_assets/images/prize-bg.webp')] bg-[length:100%_auto] bg-no-repeat"
   >
@@ -86,7 +86,7 @@
         max={prizeInfo.quantity}
       />
     </div>
-    <div class="pb-6 pt-6 text-center text-white/90">
+    <div class="pt-6 pb-6 text-center text-white/90">
       {#if principal.isAnonymous()}
         <button
           class="btn m-auto flex w-6/12 flex-row items-center gap-2 bg-white text-orange-600"
@@ -117,7 +117,7 @@
     </div>
   </div>
   <button
-    class="z-1 btn btn-icon m-auto block w-fit translate-y-14 text-white *:scale-125 hover:scale-110"
+    class="btn btn-icon z-1 m-auto block w-fit translate-y-14 text-white *:scale-125 hover:scale-110"
     on:click={close}
   >
     <IconCloseCircleLine />

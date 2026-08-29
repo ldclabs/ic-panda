@@ -13,7 +13,7 @@
   export let close: () => void
 </script>
 
-<section class="absolute left-0 right-0 top-0 !m-0 rounded-3xl">
+<section class="absolute top-0 right-0 left-0 !m-0 rounded-3xl">
   <div class="prize-header rounded-3xl p-4">
     <div class="h-44 rounded-2xl bg-white pt-6 text-center">
       <p class="text-sm font-semibold">
@@ -23,9 +23,9 @@
       </p>
       <p class="text-4xl font-bold">
         {formatNumber(Number(result.claimed) / Number(PANDAToken.one))}
-        <span class="text-sm text-gray/50">PANDA</span>
+        <span class="text-gray/50 text-sm">PANDA</span>
       </p>
-      <p class="text-sm text-gray/50">
+      <p class="text-gray/50 text-sm">
         <span>
           Current avg amount:
           {formatNumber(Number(result.average) / Number(PANDAToken.one))}
@@ -40,13 +40,13 @@
   <div
     class="relative mt-[-132px] h-[400px] bg-[url('/_assets/images/prize-claimed-bg.webp')] bg-[length:100%_auto] bg-no-repeat min-[410px]:h-[410px]"
   >
-    <div class="sm:pt-[240px] m-auto w-72 pt-[210px] text-center text-white">
+    <div class="m-auto w-72 pt-[210px] text-center text-white sm:pt-[240px]">
       <span class="text-lg font-semibold">
         The more lucky balance you hold, the bigger prize you grab.
       </span>
     </div>
     <div
-      class="sm:pt-12 absolute bottom-6 flex w-full flex-row justify-center gap-2 text-white"
+      class="absolute bottom-6 flex w-full flex-row justify-center gap-2 text-white sm:pt-12"
     >
       <a
         type="button"
@@ -71,7 +71,7 @@
     </div>
   </div>
   <button
-    class="z-1 btn btn-icon m-auto block w-fit translate-y-8 text-white *:scale-125 hover:scale-110"
+    class="btn btn-icon z-1 m-auto block w-fit translate-y-8 text-white *:scale-125 hover:scale-110"
     on:click={close}
   >
     <IconCloseCircleLine />

@@ -99,7 +99,7 @@
       <div class="">Name</div>
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-36 invalid:input-warning hover:bg-white/90"
+          class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-36 hover:bg-white/90"
           type="text"
           name="pandaName"
           bind:value={name}
@@ -108,21 +108,21 @@
         />
         {#if name == ''}
           <button
-            class="btn absolute right-0 top-0 text-panda outline-0"
+            class="btn text-panda absolute top-0 right-0 outline-0"
             on:click={() => editName(0)}
           >
             <span>Register</span>
           </button>
         {:else}
-          <div class="absolute right-0 top-0 flex flex-row items-center">
+          <div class="absolute top-0 right-0 flex flex-row items-center">
             <button
-              class="btn px-1 text-gray/50 outline-0"
+              class="btn text-gray/50 px-1 outline-0"
               on:click={() => editName(1)}
             >
               <span>Update</span>
             </button>
             <button
-              class="btn px-2 text-warning-500 outline-0"
+              class="btn text-warning-500 px-2 outline-0"
               on:click={() => editName(2)}
             >
               <span>Unregister</span>
@@ -131,9 +131,9 @@
         {/if}
       </div>
     </div>
-    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
   {/if}
-  <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-gray/5 px-4 py-3">
+  <div class="bg-gray/5 !mt-6 flex flex-col gap-3 rounded-xl px-4 py-3">
     <TextClipboardPopup
       textLable="Principal:"
       textName={shortId(principal.toString())}
@@ -146,9 +146,11 @@
     />
   </div>
 
-  <div class="divide-y divide-gray/10">
+  <div class="divide-gray/10 divide-y">
     <details class="group">
-      <summary class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none">
+      <summary
+        class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none"
+      >
         <span class="*:size-8"><IconIcLogo /></span>
         <span class="flex flex-1 items-center justify-between leading-8">
           <span>Internet Computer</span>
@@ -169,7 +171,9 @@
       </div>
     </details>
     <details class="group">
-      <summary class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none">
+      <summary
+        class="flex cursor-pointer list-none items-center gap-3 py-4 outline-none"
+      >
         <span class="*:size-8"><IconPanda /></span>
         <span class="flex flex-1 items-center justify-between leading-8">
           <span>ICPanda</span>

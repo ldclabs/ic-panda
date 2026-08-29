@@ -1,20 +1,20 @@
 export const idlFactory = ({ IDL }) => {
   const UpgradeArgs = IDL.Record({
     'preparers': IDL.Opt(IDL.Vec(IDL.Principal)),
-    'committers': IDL.Opt(IDL.Vec(IDL.Principal)),
+    'committers': IDL.Opt(IDL.Vec(IDL.Principal))
   })
   const InitArgs = IDL.Record({
     'preparers': IDL.Vec(IDL.Principal),
-    'committers': IDL.Vec(IDL.Principal),
+    'committers': IDL.Vec(IDL.Principal)
   })
   const MinterArgs = IDL.Variant({
     'Upgrade': UpgradeArgs,
-    'Init': InitArgs,
+    'Init': InitArgs
   })
   const LinkLog = IDL.Record({
     'rewards': IDL.Nat64,
     'linker': IDL.Tuple(IDL.Principal, IDL.Principal),
-    'minted_at': IDL.Nat64,
+    'minted_at': IDL.Nat64
   })
   const PublicTokenOverview = IDL.Record({
     'address': IDL.Text,
@@ -29,9 +29,9 @@ export const idlFactory = ({ IDL }) => {
     'txCount': IDL.Int,
     'volumeUSD': IDL.Float64,
     'volumeUSD1d': IDL.Float64,
-    'volumeUSD7d': IDL.Float64,
+    'volumeUSD7d': IDL.Float64
   })
   return IDL.Service({
-    'getToken': IDL.Func([IDL.Text], [PublicTokenOverview], ['query']),
+    'getToken': IDL.Func([IDL.Text], [PublicTokenOverview], ['query'])
   })
 }

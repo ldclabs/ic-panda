@@ -15,24 +15,24 @@
 
 <section
   id="community"
-  class="scroll-mt-16 border-t border-ink/15 bg-ink text-paper"
+  class="border-ink/15 bg-ink text-paper scroll-mt-16 border-t"
 >
   <div class="mx-auto w-full max-w-6xl px-5 py-16 md:px-10 md:py-24">
-    <div class="flex items-center gap-4 border-b border-paper/15 pb-4">
+    <div class="border-paper/15 flex items-center gap-4 border-b pb-4">
       <span
-        class="font-mono text-xs font-medium uppercase tabular-nums leading-none tracking-[0.18em]"
+        class="font-mono text-xs leading-none font-medium tracking-[0.18em] uppercase tabular-nums"
         >07</span
       >
-      <span class="h-px flex-1 bg-paper/20"></span>
+      <span class="bg-paper/20 h-px flex-1"></span>
       <span
-        class="font-mono text-xs font-medium uppercase leading-none tracking-[0.18em] text-paper/50"
+        class="text-paper/50 font-mono text-xs leading-none font-medium tracking-[0.18em] uppercase"
         >ICPanda DAO</span
       >
     </div>
 
     <Reveal>
       <h2
-        class="mt-14 font-display text-[clamp(3rem,10vw,7rem)] font-black leading-[0.9] tracking-[-0.04em]"
+        class="font-display mt-14 text-[clamp(3rem,10vw,7rem)] leading-[0.9] font-black tracking-[-0.04em]"
       >
         Build the commons.
       </h2>
@@ -40,21 +40,21 @@
 
     <div class="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-12">
       <Reveal delay={80} class="lg:col-span-7">
-        <p class="text-pretty text-lg leading-relaxed text-paper/80">
+        <p class="text-paper/80 text-lg leading-relaxed text-pretty">
           Protocols become infrastructure when others can build on them.
         </p>
-        <p class="mt-4 text-pretty leading-relaxed text-paper/60">
+        <p class="text-paper/60 mt-4 leading-relaxed text-pretty">
           Explore the code. Participate in governance. Test the protocols.
           Challenge our assumptions. Build something we did not imagine.
         </p>
       </Reveal>
 
       <Reveal delay={140} class="lg:col-span-5">
-        <ul class="border-t border-paper/15">
+        <ul class="border-paper/15 border-t">
           {#each actions as action (action.label)}
             <li>
               <a
-                class="group flex items-center justify-between gap-4 border-b border-paper/15 py-5 transition-colors duration-200 hover:text-panda"
+                class="group border-paper/15 hover:text-panda flex items-center justify-between gap-4 border-b py-5 transition-colors duration-200"
                 href={action.href}
                 target="_blank"
                 rel="noreferrer"
@@ -68,7 +68,7 @@
                   </span>
                 </span>
                 <span
-                  class="text-paper/40 transition-transform duration-200 *:size-5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-panda"
+                  class="text-paper/40 group-hover:text-panda transition-transform duration-200 *:size-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                   aria-hidden="true"><IconArrowRightUp /></span
                 >
               </a>

@@ -120,7 +120,7 @@
             placeholder="Enter principal ID ..."
           />
           <button
-            class="variant-filled-primary cursor-pointer text-white disabled:cursor-not-allowed disabled:bg-panda/50"
+            class="variant-filled-primary disabled:bg-panda/50 cursor-pointer text-white disabled:cursor-not-allowed"
             disabled={!validating}
             on:click={getAirdropOutput}>Check</button
           >
@@ -129,7 +129,7 @@
     </div>
   </Saos>
   <div
-    class="card mx-auto mt-4 flex w-fit flex-col border-gray/10 bg-transparent p-4 *:justify-start"
+    class="card border-gray/10 mx-auto mt-4 flex w-fit flex-col bg-transparent p-4 *:justify-start"
   >
     {#if airdropOutput}
       {@const tokens = estimateAirdrop(airdropOutput)}
@@ -184,7 +184,7 @@
             </ul>
           {/if}
         </div>
-        <hr class="!border-t-1 mx-[-16px] my-2 !border-gray/10" />
+        <hr class="!border-gray/10 mx-[-16px] my-2 !border-t-1" />
         <p>Airdrop status: <b>{getStatus(airdropOutput.status)}</b></p>
         <p>
           Tokens per weight: <b>{airdropOutput.tokens_per_weight.toFixed(4)}</b>

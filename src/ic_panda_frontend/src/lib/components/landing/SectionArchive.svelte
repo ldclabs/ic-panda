@@ -16,7 +16,7 @@
     </div>
     <div class="lg:col-span-6 lg:pt-3">
       <Reveal delay={80}>
-        <p class="text-pretty text-lg leading-relaxed text-ink-70">
+        <p class="text-ink-70 text-lg leading-relaxed text-pretty">
           Not every project needs to live forever. Every serious experiment
           should leave knowledge behind.
         </p>
@@ -26,34 +26,34 @@
 
   <Reveal>
     <article
-      class="mb-16 grid grid-cols-1 border border-dashed border-ink/25 md:mb-24 md:grid-cols-12"
+      class="border-ink/25 mb-16 grid grid-cols-1 border border-dashed md:mb-24 md:grid-cols-12"
     >
       <div
-        class="flex items-center justify-between gap-4 border-b border-dashed border-ink/25 p-6 md:col-span-4 md:flex-col md:items-start md:justify-start md:border-b-0 md:border-r md:p-8"
+        class="border-ink/25 flex items-center justify-between gap-4 border-b border-dashed p-6 md:col-span-4 md:flex-col md:items-start md:justify-start md:border-r md:border-b-0 md:p-8"
       >
         <div>
           <h3 class="display-sm text-3xl">dMsg</h3>
-          <p class="mt-2 font-mono text-xs text-ink-70">dmsg.net</p>
+          <p class="text-ink-70 mt-2 font-mono text-xs">dmsg.net</p>
         </div>
         <span
-          class="inline-flex items-center gap-2 border border-ink/25 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-ink-70 md:mt-8"
+          class="border-ink/25 text-ink-70 inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-xs tracking-[0.14em] uppercase md:mt-8"
         >
-          <span class="size-1.5 rounded-full bg-ink/40"></span>
+          <span class="bg-ink/40 size-1.5 rounded-full"></span>
           Archived · Development paused
         </span>
       </div>
 
       <div class="p-6 md:col-span-8 md:p-8">
-        <p class="text-pretty leading-relaxed text-ink-70">
+        <p class="text-ink-70 leading-relaxed text-pretty">
           A decentralized end-to-end encrypted messaging application built fully
           on the Internet Computer.
         </p>
-        <p class="mt-4 text-pretty leading-relaxed text-ink-70">
+        <p class="text-ink-70 mt-4 leading-relaxed text-pretty">
           dMsg explored sovereign identity, encrypted communication,
           decentralized storage, and cryptographic key management — ideas that
           helped shape later ICPanda DAO infrastructure.
         </p>
-        <p class="mt-4 text-pretty text-sm leading-relaxed text-ink-70">
+        <p class="text-ink-70 mt-4 text-sm leading-relaxed text-pretty">
           The application is no longer under active development, but its code
           and technical work remain part of our open-source history.
         </p>

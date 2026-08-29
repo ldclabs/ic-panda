@@ -14,7 +14,7 @@ export function joinURL(
   if (path) {
     if (!url.pathname.endsWith('/')) url.pathname += '/'
     if (path.startsWith('/')) path = path.slice(1)
-      url.pathname += path
+    url.pathname += path
   }
 
   toURLSearchParams(params ?? {}).forEach((value, key) => {

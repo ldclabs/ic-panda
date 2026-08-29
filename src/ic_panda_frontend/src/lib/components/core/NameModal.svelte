@@ -159,21 +159,20 @@
 
 <ModalCard {parent}>
   {#if result}
-    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+    <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
       <p class="mt-4">
         <span>
-          You have successfully {nameEditMode == 0 ? 'registered' : 'updated'} a
-          name:
+          You have successfully {nameEditMode == 0 ? 'registered' : 'updated'} a name:
         </span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{result.name}</p>
       <p class="text-left">You can update the name for free at any time.</p>
     </div>
   {:else if refund !== null}
-    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+    <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
@@ -190,7 +189,7 @@
     </div>
   {:else if nameEditMode == 0}
     <div class="!mt-0 text-center text-xl font-bold">Register Name</div>
-    <div class="space-y-2 rounded-xl bg-gray/5 p-4">
+    <div class="bg-gray/5 space-y-2 rounded-xl p-4">
       <p class="text-gray/50">
         <b>1.</b> To register a name, pay a
         <b
@@ -213,14 +212,14 @@
         after fee deductions will be refunded to your lucky balance.
       </p>
     </div>
-    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
     <div class="!mt-5 text-sm">
       <div class="mt-1 flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconPanda /></span>
           <b>Your Wallet Balance:</b>
         </div>
-        <div class="flex flex-row gap-1 text-gray/50">
+        <div class="text-gray/50 flex flex-row gap-1">
           <span
             >{formatNumber(
               Number(availablePandaBalance) / Number(PANDAToken.one)
@@ -236,7 +235,7 @@
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
           type="text"
           name="nameInput"
           minlength="2"
@@ -248,7 +247,7 @@
           required
         />
         <button
-          class="btn absolute right-0 top-0 outline-0"
+          class="btn absolute top-0 right-0 outline-0"
           disabled={submitting}
           on:click={nameCopyPaste}
         >
@@ -281,21 +280,21 @@
     </footer>
   {:else if nameEditMode == 1}
     <div class="!mt-0 text-center text-xl font-bold">Update Name</div>
-    <div class="space-y-2 rounded-xl bg-gray/5 p-4">
-      <p class="mt-4 text-gray/50">
+    <div class="bg-gray/5 space-y-2 rounded-xl p-4">
+      <p class="text-gray/50 mt-4">
         <span>You are updating the name:</span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{$nameState?.name || ''}</p>
       <p class="text-gray/50">You can update it for free at any time.</p>
     </div>
-    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
     <form
       class="m-auto !mt-6 flex flex-col content-center"
       on:input={onFormChange}
     >
       <div class="relative">
         <input
-          class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+          class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
           type="text"
           name="nameInput"
           minlength="2"
@@ -306,7 +305,7 @@
           required
         />
         <button
-          class="btn absolute right-0 top-0 outline-0"
+          class="btn absolute top-0 right-0 outline-0"
           disabled={submitting}
           on:click={nameCopyPaste}
         >
@@ -339,8 +338,8 @@
     </footer>
   {:else if nameEditMode == 2}
     <div class="!mt-0 text-center text-xl font-bold">Unregister Name</div>
-    <div class="space-y-2 rounded-xl bg-gray/5 p-4">
-      <p class="mt-4 text-gray/50">
+    <div class="bg-gray/5 space-y-2 rounded-xl p-4">
+      <p class="text-gray/50 mt-4">
         <span>You are unregistering the name:</span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{$nameState?.name || ''}</p>
@@ -363,7 +362,7 @@
         yours permanently.
       </p>
     </div>
-    <hr class="!border-t-1 mx-[-24px] !mt-6 !border-dashed !border-gray/20" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
     <footer class="m-auto !mt-6">
       <button
         class="variant-filled-warning btn w-full text-white"

@@ -117,7 +117,7 @@
 
 <ModalCard {parent}>
   {#if result}
-    <div class="text-center text-panda *:m-auto *:h-12 *:w-12">
+    <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
       <IconCheckbox />
     </div>
     <div class="text-center">
@@ -157,7 +157,7 @@
     <h3 class="h3 !mt-0 text-center">🪂 🎁</h3>
     <div class="!mt-0 text-center text-xl font-bold">Get the Airdrop</div>
     <div class="m-auto !mt-0 flex flex-col content-center">
-      <h6 class="h6 mb-4 mt-5 text-center font-bold">
+      <h6 class="h6 mt-5 mb-4 text-center font-bold">
         <span>STEP 1: Get verified</span>
       </h6>
       <button
@@ -187,7 +187,7 @@
     </div>
 
     <hr
-      class="!border-t-1 mx-[-24px] !border-dashed !border-gray/20 {dmChallenge
+      class="!border-gray/20 mx-[-24px] !border-t-1 !border-dashed {dmChallenge
         ? '!mt-6'
         : '!mt-3'}"
     />
@@ -195,14 +195,14 @@
       class="m-auto !mt-0 flex flex-col content-center"
       on:input={onFormChange}
     >
-      <h6 class="h6 mb-4 mt-5 text-center font-bold">
+      <h6 class="h6 mt-5 mb-4 text-center font-bold">
         <span>STEP 2 : Fill-in airdrop code</span>
       </h6>
       <label class="label {!dmChallenge ? 'collapse h-0' : 'visible mb-2'}">
         <span>Airdrop code:</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
             type="text"
             name="cryptogram"
             minlength="20"
@@ -212,7 +212,7 @@
             disabled={submitting}
           />
           <button
-            class="btn absolute right-0 top-0 outline-0"
+            class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={airdropCodeCopyPaste}
           >
@@ -232,7 +232,7 @@
         <span>Lucky Code (Optinal):</span>
         <div class="relative">
           <input
-            class="input truncate rounded-xl border-gray/10 bg-white/20 pr-16 invalid:input-warning hover:bg-white/90"
+            class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
             type="text"
             name="luckyCode"
             minlength="6"
@@ -242,7 +242,7 @@
             disabled={submitting}
           />
           <button
-            class="btn absolute right-0 top-0 outline-0"
+            class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={luckyCodeCopyPaste}
           >

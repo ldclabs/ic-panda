@@ -70,11 +70,11 @@
         <button
           class="border-b-4 px-6 py-2 {tabSet === index
             ? 'border-panda font-semibold'
-            : 'border-transparent text-gray/50'}"
+            : 'text-gray/50 border-transparent'}"
           role="tab"
           aria-selected={tabSet === index}
-          on:click={() => (tabSet = index)}
-        >{label}</button>
+          on:click={() => (tabSet = index)}>{label}</button
+        >
       {/each}
     </div>
     <div class="mt-3">
@@ -84,7 +84,7 @@
             <div class="m-auto w-fit text-center"><Loading /></div>
           {:then items}
             {#each items as item}
-              <div class="rounded-lg bg-gray/5 p-3">
+              <div class="bg-gray/5 rounded-lg p-3">
                 <div class="flex flex-row items-center justify-between">
                   <div class="flex flex-row items-center gap-2">
                     <span class="text-panda"><IconArrowDownFill /></span>
@@ -95,7 +95,7 @@
                     </span>
                   </div>
                   <div class="">
-                    <span class="font-semibold text-panda">
+                    <span class="text-panda font-semibold">
                       {formatNumber(
                         Number(item.amount) / Number(PANDAToken.one)
                       ) + ' PANDA'}
@@ -122,7 +122,7 @@
                 item.code.length > 0
                   ? `${APP_ORIGIN}?prize=${item.code[0]}`
                   : '-'}
-              <div class="rounded-lg bg-gray/5 p-3">
+              <div class="bg-gray/5 rounded-lg p-3">
                 <div class="flex flex-row items-center justify-between">
                   <div class="flex flex-row items-center gap-2">
                     <span class=""><IconArrowUpFill /></span>
@@ -133,7 +133,7 @@
                     </span>
                   </div>
                   <div class="">
-                    <span class="font-semibold text-panda">
+                    <span class="text-panda font-semibold">
                       {'-' +
                         formatNumber(
                           Number(
@@ -223,7 +223,7 @@
                 >
                   <span>Prize Link:</span>
                   <div class="flex w-[220px] flex-row items-center gap-1">
-                    <p class="w-full truncate text-gray/50">{link}</p>
+                    <p class="text-gray/50 w-full truncate">{link}</p>
                     {#if link !== '-'}
                       <TextClipboardButton textValue={link} />
                     {/if}

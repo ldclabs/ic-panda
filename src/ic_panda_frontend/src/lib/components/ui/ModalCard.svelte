@@ -18,7 +18,7 @@
     class="card relative mt-12 {width} max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-xl max-md:mt-8"
   >
     <button
-      class="z-1 btn btn-icon absolute right-2 top-2 text-gray/30 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
+      class="btn btn-icon text-gray/30 absolute top-2 right-2 z-1 *:scale-125 hover:scale-110 max-md:top-2 max-md:right-2"
       on:click={parent['onClose']}
     >
       <IconClose />

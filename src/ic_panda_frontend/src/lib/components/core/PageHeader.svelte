@@ -44,7 +44,7 @@
   }
 </script>
 
-<div class="border-b border-ink/15 bg-paper/85 backdrop-blur-md">
+<div class="border-ink/15 bg-paper/85 border-b backdrop-blur-md">
   <div
     class="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-5 md:h-16 md:px-10"
   >
@@ -56,7 +56,7 @@
       title="ICPanda DAO"
     >
       <span
-        class="shrink-0 overflow-hidden rounded-full ring-1 ring-panda transition-transform duration-300 *:size-10 group-hover:rotate-[8deg]"
+        class="ring-panda shrink-0 overflow-hidden rounded-full ring-1 transition-transform duration-300 *:size-10 group-hover:rotate-[8deg]"
       >
         <IconPanda />
       </span>
@@ -69,14 +69,14 @@
     <nav class="ml-auto hidden items-center gap-7 md:flex">
       {#each NAV as item (item.href)}
         <a
-          class="relative font-mono text-sm text-ink-70 transition-colors duration-200 hover:text-ink"
+          class="text-ink-70 hover:text-ink relative font-mono text-sm transition-colors duration-200"
           class:!text-ink={isActive(item.href)}
           href={item.href}
           onclick={() => (menuOpen = false)}
         >
           {item.label}
           {#if isActive(item.href)}
-            <span class="absolute -bottom-1.5 left-0 h-px w-full bg-ink"></span>
+            <span class="bg-ink absolute -bottom-1.5 left-0 h-px w-full"></span>
           {/if}
         </a>
       {/each}
@@ -84,7 +84,7 @@
 
     <div class="ml-auto flex items-center gap-1 md:ml-6 md:gap-2">
       <a
-        class="hidden size-9 items-center justify-center text-ink-70 transition-colors hover:text-ink md:flex"
+        class="text-ink-70 hover:text-ink hidden size-9 items-center justify-center transition-colors md:flex"
         href={LINKS.github}
         target="_blank"
         rel="noreferrer"
@@ -92,7 +92,7 @@
         aria-label="GitHub"><IconGithub /></a
       >
       <a
-        class="hidden size-9 items-center justify-center text-ink-70 transition-colors hover:text-ink md:flex"
+        class="text-ink-70 hover:text-ink hidden size-9 items-center justify-center transition-colors md:flex"
         href={LINKS.x}
         target="_blank"
         rel="noreferrer"
@@ -104,7 +104,7 @@
         {#if anonymous}
           <button
             type="button"
-            class="inline-flex items-center gap-2 border border-ink px-3 py-2 font-mono text-xs uppercase tracking-[0.08em] text-ink transition-colors hover:bg-ink hover:text-paper"
+            class="border-ink text-ink hover:bg-ink hover:text-paper inline-flex items-center gap-2 border px-3 py-2 font-mono text-xs tracking-[0.08em] uppercase transition-colors"
             onclick={handleSignIn}
           >
             <span class="*:size-4 max-md:hidden"><IconUser0 /></span>
@@ -113,7 +113,7 @@
         {:else}
           <button
             type="button"
-            class="flex size-9 items-center justify-center border border-ink/20 transition-colors hover:border-ink"
+            class="border-ink/20 hover:border-ink flex size-9 items-center justify-center border transition-colors"
             onclick={showAccountDetail}
             aria-label="Account"
           >
@@ -124,7 +124,7 @@
 
       <button
         type="button"
-        class="flex size-9 items-center justify-center text-ink md:hidden"
+        class="text-ink flex size-9 items-center justify-center md:hidden"
         onclick={() => (menuOpen = !menuOpen)}
         aria-expanded={menuOpen}
         aria-label="Menu"
@@ -133,9 +133,9 @@
           <span class="*:size-6"><IconClose /></span>
         {:else}
           <span class="flex w-5 flex-col gap-[5px]" aria-hidden="true">
-            <span class="h-px w-full bg-ink"></span>
-            <span class="h-px w-full bg-ink"></span>
-            <span class="h-px w-3/5 bg-ink"></span>
+            <span class="bg-ink h-px w-full"></span>
+            <span class="bg-ink h-px w-full"></span>
+            <span class="bg-ink h-px w-3/5"></span>
           </span>
         {/if}
       </button>
@@ -144,10 +144,10 @@
 
   <!-- Mobile menu -->
   {#if menuOpen}
-    <nav class="border-t border-ink/15 bg-paper px-5 pb-4 pt-2 md:hidden">
+    <nav class="border-ink/15 bg-paper border-t px-5 pt-2 pb-4 md:hidden">
       {#each NAV as item (item.href)}
         <a
-          class="block border-b border-ink/10 py-3 font-mono text-sm"
+          class="border-ink/10 block border-b py-3 font-mono text-sm"
           href={item.href}
           onclick={() => (menuOpen = false)}>{item.label}</a
         >

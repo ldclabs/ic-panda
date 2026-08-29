@@ -99,36 +99,36 @@
       String(Math.round((consumedAmount * 100) / TotalAmount)) + '%'}
     <div class="mt-4 flex w-full flex-row justify-around gap-2 max-sm:flex-col">
       <div class="flex flex-col items-center">
-        <h3 class="h3 text-[28px] font-bold text-panda">
-          <span class="text-sm font-normal text-gray/50">Total:</span>
+        <h3 class="h3 text-panda text-[28px] font-bold">
+          <span class="text-gray/50 text-sm font-normal">Total:</span>
           {formatNumber(Number($luckyPoolState.total_airdrop / PANDAToken.one))}
         </h3>
-        <p class="text-sm text-gray/50">
+        <p class="text-gray/50 text-sm">
           Airdrop Count: {Number($luckyPoolState.total_airdrop_count)}
         </p>
       </div>
 
       <div class="flex flex-col items-center">
-        <h3 class="h3 text-[28px] font-bold text-panda">
-          <span class="text-sm font-normal text-gray/50">Total:</span>
+        <h3 class="h3 text-panda text-[28px] font-bold">
+          <span class="text-gray/50 text-sm font-normal">Total:</span>
           {formatNumber(
             Number(($luckyPoolState.total_prize[0] || 0n) / PANDAToken.one)
           )}
         </h3>
-        <p class="text-sm text-gray/50">
+        <p class="text-gray/50 text-sm">
           Prizes Count: {Number($luckyPoolState.total_prizes_count[0] || 0n)},
           Claim Count: {Number($luckyPoolState.total_prize_count[0] || 0n)}
         </p>
       </div>
 
       <div class="flex flex-col items-center">
-        <h3 class="h3 text-[28px] font-bold text-panda">
-          <span class="text-sm font-normal text-gray/50">Total:</span>
+        <h3 class="h3 text-panda text-[28px] font-bold">
+          <span class="text-gray/50 text-sm font-normal">Total:</span>
           {formatNumber(
             Number($luckyPoolState.total_luckydraw / PANDAToken.one)
           )}
         </h3>
-        <p class="text-sm text-gray/50">
+        <p class="text-gray/50 text-sm">
           Lucky Draw Count: {Number($luckyPoolState.total_luckydraw_count)}
         </p>
       </div>
@@ -143,7 +143,7 @@
         max={TotalAmount}
       />
       <div
-        class="btn btn-sm absolute -top-2 translate-x-[-28px] border-2 border-panda bg-white py-[2px] text-base font-bold text-panda"
+        class="btn btn-sm border-panda text-panda absolute -top-2 translate-x-[-28px] border-2 bg-white py-[2px] text-base font-bold"
         style:left={percent}
       >
         {percent}
@@ -163,21 +163,26 @@
             class="border-b-4 px-2 py-2 text-sm transition md:px-6 md:py-3 {tabSet ===
             index
               ? 'border-panda text-black'
-              : 'border-transparent text-gray/50 hover:bg-panda/10'}"
+              : 'text-gray/50 hover:bg-panda/10 border-transparent'}"
             role="tab"
             aria-selected={tabSet === index}
-            on:click={() => (tabSet = index)}
-          >{label}</button>
+            on:click={() => (tabSet = index)}>{label}</button
+          >
         {/each}
       </div>
 
       {#if tabSet === 0}
         <DataTable class="mb-8" source={airdropRecordsSource(airdropRecords)} />
       {:else if tabSet === 1}
-        <DataTable class="mb-8" source={luckydrawRecordsSource(luckydrawRecords)} />
+        <DataTable
+          class="mb-8"
+          source={luckydrawRecordsSource(luckydrawRecords)}
+        />
         {#if highestLuckydrawRecords.length > 0}
           <div class="mb-4 text-center">
-            <button class="btn m-auto rounded-xl bg-panda/10 font-bold text-panda">
+            <button
+              class="btn bg-panda/10 text-panda m-auto rounded-xl font-bold"
+            >
               <span><IconCrown /></span>
               <span>Top 3 Luckiest Draw</span>
             </button>

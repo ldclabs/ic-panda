@@ -43,7 +43,7 @@
     </div>
     <div class="lg:col-span-7 lg:pt-3">
       <Reveal delay={80}>
-        <p class="text-pretty text-lg leading-relaxed text-ink-70">
+        <p class="text-ink-70 text-lg leading-relaxed text-pretty">
           PANDA is the governance and coordination token of ICPanda DAO. It
           connects community governance, treasury decisions, ecosystem
           incentives, and the projects we build in the open.
@@ -54,18 +54,18 @@
 
   <!-- Supply: a fixed historical figure beside the live on-chain one -->
   <Reveal>
-    <div class="grid grid-cols-1 border-t border-ink/15 sm:grid-cols-2">
-      <div class="border-b border-ink/10 py-6 sm:border-b-0 sm:pr-6">
+    <div class="border-ink/15 grid grid-cols-1 border-t sm:grid-cols-2">
+      <div class="border-ink/10 border-b py-6 sm:border-b-0 sm:pr-6">
         <p class="eyebrow">Genesis Supply</p>
         <p class="mt-3 font-mono text-2xl font-medium tabular-nums md:text-3xl">
           {GENESIS_SUPPLY}
         </p>
-        <p class="mt-1 font-mono text-xs tracking-[0.14em] text-ink-70">
+        <p class="text-ink-70 mt-1 font-mono text-xs tracking-[0.14em]">
           PANDA · at launch
         </p>
       </div>
 
-      <div class="py-6 sm:border-l sm:border-ink/10 sm:pl-6">
+      <div class="sm:border-ink/10 py-6 sm:border-l sm:pl-6">
         <p class="eyebrow">
           Current Supply
           <span
@@ -80,7 +80,7 @@
           >
             {currentSupply}
           </p>
-          <p class="mt-1 font-mono text-xs tracking-[0.14em] text-ink-70">
+          <p class="text-ink-70 mt-1 font-mono text-xs tracking-[0.14em]">
             PANDA · live from the ledger
           </p>
         {:else}
@@ -91,14 +91,14 @@
               class="!text-base"
             />
           </p>
-          <p class="mt-2 font-mono text-xs tracking-[0.14em] text-ink-70">
+          <p class="text-ink-70 mt-2 font-mono text-xs tracking-[0.14em]">
             PANDA · reading the ledger
           </p>
         {/if}
       </div>
     </div>
 
-    <p class="mt-4 max-w-2xl font-mono text-xs leading-relaxed text-ink-70">
+    <p class="text-ink-70 mt-4 max-w-2xl font-mono text-xs leading-relaxed">
       Current supply moves with SNS voting rewards minted since genesis, net of
       tokens burned. It is queried directly from the ledger canister, not
       restated here.
@@ -107,11 +107,11 @@
 
   <!-- Token facts -->
   <Reveal>
-    <div class="mt-10 grid grid-cols-1 border-t border-ink/15 sm:grid-cols-3">
+    <div class="border-ink/15 mt-10 grid grid-cols-1 border-t sm:grid-cols-3">
       {#each TOKEN_FACTS as fact, i (fact.label)}
         <div
-          class="border-b border-ink/10 py-6 sm:border-b-0 sm:px-6 {i > 0
-            ? 'sm:border-l sm:border-ink/10'
+          class="border-ink/10 border-b py-6 sm:border-b-0 sm:px-6 {i > 0
+            ? 'sm:border-ink/10 sm:border-l'
             : 'sm:pl-0'}"
         >
           <p class="eyebrow">{fact.label}</p>
@@ -128,13 +128,13 @@
   <!-- Canonical ledger -->
   <Reveal>
     <div
-      class="mt-10 flex flex-col gap-6 border border-ink/15 bg-white p-6 md:flex-row md:items-center md:justify-between md:p-8"
+      class="border-ink/15 mt-10 flex flex-col gap-6 border bg-white p-6 md:flex-row md:items-center md:justify-between md:p-8"
     >
       <div class="min-w-0">
         <p class="eyebrow">Canonical ICP Ledger</p>
         <div class="mt-3 flex items-center gap-2">
           <a
-            class="link-mark break-all !text-sm sm:!text-base"
+            class="link-mark !text-sm break-all sm:!text-base"
             href={LINKS.ledgerCanister}
             target="_blank"
             rel="noreferrer">{PANDA_LEDGER_CANISTER_ID}</a
@@ -150,14 +150,14 @@
       />
     </div>
 
-    <p class="mt-4 max-w-2xl font-mono text-xs leading-relaxed text-ink-70">
+    <p class="text-ink-70 mt-4 max-w-2xl font-mono text-xs leading-relaxed">
       Supply, governance, proposals, neurons, and other live DAO data should
       always be verified on-chain.
     </p>
   </Reveal>
 
   <!-- Genesis allocation -->
-  <div class="mt-16 border-t border-ink/15 pt-14 md:mt-24 md:pt-20">
+  <div class="border-ink/15 mt-16 border-t pt-14 md:mt-24 md:pt-20">
     <div class="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
       <div class="lg:col-span-5">
         <Reveal>
@@ -166,11 +166,11 @@
             Built for community ownership.
           </h3>
           <p
-            class="display mt-8 text-[clamp(4.5rem,13vw,9rem)] leading-none text-panda"
+            class="display text-panda mt-8 text-[clamp(4.5rem,13vw,9rem)] leading-none"
           >
             80%
           </p>
-          <p class="mt-4 max-w-sm text-pretty leading-relaxed text-ink-70">
+          <p class="text-ink-70 mt-4 max-w-sm leading-relaxed text-pretty">
             At genesis, 80% of PANDA was allocated to the DAO Treasury, placing
             the majority of the token supply under community governance.
           </p>
@@ -181,9 +181,9 @@
         <Reveal delay={80}>
           <AllocationChart />
 
-          <div class="mt-8 border-l-2 border-ink/20 pl-5">
+          <div class="border-ink/20 mt-8 border-l-2 pl-5">
             <p class="eyebrow">Historical allocation</p>
-            <p class="mt-3 text-pretty text-sm leading-relaxed text-ink-70">
+            <p class="text-ink-70 mt-3 text-sm leading-relaxed text-pretty">
               This section describes the genesis allocation of PANDA. Treasury
               distributions, governance rewards, burns, transfers, and other
               changes after launch are reflected in the on-chain state.
@@ -202,19 +202,19 @@
   </div>
 
   <!-- What PANDA does -->
-  <div class="mt-16 border-t border-ink/15 pt-14 md:mt-24 md:pt-20">
+  <div class="border-ink/15 mt-16 border-t pt-14 md:mt-24 md:pt-20">
     <Reveal>
       <p class="eyebrow">What PANDA Does</p>
     </Reveal>
     <Reveal>
-      <div class="mt-10 grid grid-cols-1 gap-px bg-ink/15 md:grid-cols-3">
+      <div class="bg-ink/15 mt-10 grid grid-cols-1 gap-px md:grid-cols-3">
         {#each PANDA_ROLES as role (role.name)}
           <div class="h-full bg-white p-6 md:p-8">
-            <p class="font-mono text-xs tabular-nums text-ink-30">
+            <p class="text-ink-30 font-mono text-xs tabular-nums">
               {role.index}
             </p>
             <h4 class="display-sm mt-6 text-3xl">{role.name}</h4>
-            <p class="mt-4 text-pretty leading-relaxed text-ink-70">
+            <p class="text-ink-70 mt-4 leading-relaxed text-pretty">
               {role.body}
             </p>
           </div>
@@ -226,14 +226,14 @@
   <!-- Trade (deliberately the smallest thing in this section) -->
   <Reveal>
     <div
-      class="mb-16 mt-10 flex flex-col gap-4 border-t border-ink/10 pt-6 md:mb-24 md:flex-row md:items-center md:justify-between"
+      class="border-ink/10 mt-10 mb-16 flex flex-col gap-4 border-t pt-6 md:mb-24 md:flex-row md:items-center md:justify-between"
     >
       <p class="eyebrow">Trade PANDA</p>
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
         <LinkOut href={LINKS.icpswap} label="ICPSwap" />
         <LinkOut href={LINKS.bridge} label="Bridge to BNB" />
         <a
-          class="font-mono text-xs text-ink-70 underline decoration-ink/20 underline-offset-4 transition-colors hover:text-ink"
+          class="text-ink-70 decoration-ink/20 hover:text-ink font-mono text-xs underline underline-offset-4 transition-colors"
           href={LINKS.bscscan}
           target="_blank"
           rel="noreferrer"

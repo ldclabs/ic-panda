@@ -498,8 +498,7 @@
             rows="2"
             name="prizeInputMessage"
             bind:value={prizeInputMessage}
-            disabled={submitting}
-          ></textarea>
+            disabled={submitting}></textarea>
           <button
             class="btn absolute top-6 right-0 outline-0"
             disabled={submitting}

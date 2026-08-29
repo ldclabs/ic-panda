@@ -20,7 +20,7 @@
     {#if detail.link}
       <p><b>Link:</b></p>
       <a
-        class="block w-full truncate text-gray/50 underline"
+        class="text-gray/50 block w-full truncate underline"
         href={detail.link}
         target="_blank">{detail.link}</a
       >

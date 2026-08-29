@@ -34,13 +34,13 @@
   ]
 </script>
 
-<div class="border-t border-ink/15">
+<div class="border-ink/15 border-t">
   <div class="mx-auto w-full max-w-6xl px-5 py-14 md:px-10 md:py-16">
     <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-10">
       <div class="lg:col-span-5">
         <div class="flex items-center gap-3">
           <span
-            class="shrink-0 overflow-hidden rounded-full ring-1 ring-ink/15 *:size-10"
+            class="ring-ink/15 shrink-0 overflow-hidden rounded-full ring-1 *:size-10"
           >
             <IconPanda />
           </span>
@@ -50,13 +50,13 @@
           From Sovereign Minds to Sovereign Markets.
         </p>
         <p
-          class="mt-4 max-w-sm text-pretty text-sm leading-relaxed text-ink-70"
+          class="text-ink-70 mt-4 max-w-sm text-sm leading-relaxed text-pretty"
         >
           Open-source infrastructure for persistent intelligence and verifiable
           markets.
         </p>
 
-        <div class="mt-8 max-w-sm border-t border-ink/10 pt-6">
+        <div class="border-ink/10 mt-8 max-w-sm border-t pt-6">
           <p class="eyebrow">Get in touch</p>
           <a
             class="link-mark mt-3 !text-base"
@@ -67,7 +67,7 @@
             <span>al.ink/ICPanda</span>
             <span class="text-ink-30">↗</span>
           </a>
-          <p class="mt-3 text-sm leading-relaxed text-ink-70">
+          <p class="text-ink-70 mt-3 text-sm leading-relaxed">
             alink is the preferred way to reach ICPanda DAO.
           </p>
         </div>
@@ -80,12 +80,12 @@
             {#each column.items as item (item.label)}
               <li>
                 <a
-                  class="font-mono text-sm text-ink-70 transition-colors duration-200 hover:text-ink"
+                  class="text-ink-70 hover:text-ink font-mono text-sm transition-colors duration-200"
                   href={item.href}
                   target={item.external ? '_blank' : undefined}
                   rel={item.external ? 'noreferrer' : undefined}
                 >
-                  {item.label}{#if item.external}<span class="ml-1 text-ink-30"
+                  {item.label}{#if item.external}<span class="text-ink-30 ml-1"
                       >↗</span
                     >{/if}
                 </a>
@@ -97,17 +97,17 @@
     </div>
 
     <div
-      class="mt-14 flex flex-col gap-4 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between"
+      class="border-ink/10 mt-14 flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-center sm:justify-between"
     >
       <a
-        class="font-mono text-xs text-ink-70 transition-colors hover:text-ink"
+        class="text-ink-70 hover:text-ink font-mono text-xs transition-colors"
         href={LINKS.internetComputer}
         target="_blank"
         rel="noreferrer"
       >
         Built on the Internet Computer.
       </a>
-      <p class="font-mono text-xs text-ink-70">
+      <p class="text-ink-70 font-mono text-xs">
         © 2024-{year} ICPanda DAO
       </p>
     </div>

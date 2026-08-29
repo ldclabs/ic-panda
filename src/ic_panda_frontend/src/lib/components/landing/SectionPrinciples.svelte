@@ -10,21 +10,21 @@
       <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">Open by default.</h2>
     </Reveal>
 
-    <dl class="isolate mt-12 border-t border-ink/15">
+    <dl class="border-ink/15 isolate mt-12 border-t">
       {#each PRINCIPLES as p, i (p.name)}
         <Reveal delay={i * 60}>
           <div
-            class="principle-row relative grid grid-cols-1 gap-3 border-b border-ink/10 py-7 md:grid-cols-12 md:gap-6 md:py-9"
+            class="principle-row border-ink/10 relative grid grid-cols-1 gap-3 border-b py-7 md:grid-cols-12 md:gap-6 md:py-9"
           >
             <span
-              class="font-mono text-xs tabular-nums text-ink-30 md:col-span-1"
+              class="text-ink-30 font-mono text-xs tabular-nums md:col-span-1"
               >{p.index}</span
             >
             <dt class="display-sm text-2xl md:col-span-4 md:text-3xl"
               >{p.name}</dt
             >
             <dd
-              class="text-pretty leading-relaxed text-ink-70 md:col-span-7 md:pt-1"
+              class="text-ink-70 leading-relaxed text-pretty md:col-span-7 md:pt-1"
             >
               {p.body}
             </dd>

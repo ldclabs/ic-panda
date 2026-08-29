@@ -213,13 +213,13 @@
       <h4 class="h4 text-center">Review Transaction</h4>
       <div class="flex flex-row justify-between">
         <span>From</span>
-        <span class="min-w-0 text-balance break-words text-right">
+        <span class="min-w-0 text-right text-balance break-words">
           {txInfo.from}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
-        <span class="text-balance break-words text-right">
+        <span class="text-right text-balance break-words">
           {txInfo.balance}
           {token.symbol}
         </span>
@@ -244,7 +244,7 @@
           {token.symbol}
         </span>
       </div>
-      <div class="flex flex-row justify-end text-panda *:scale-110">
+      <div class="text-panda flex flex-row justify-end *:scale-110">
         <IconArrowDown />
       </div>
       <div class="flex flex-row justify-between">
@@ -256,7 +256,7 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>To</span>
-        <p class="min-w-0 text-balance break-words text-right">
+        <p class="min-w-0 text-right text-balance break-words">
           {txInfo.to}
         </p>
       </div>
@@ -267,7 +267,7 @@
       {#if submitting}
         <span class="text-panda *:h-8 *:w-8"><Loading /></span>
       {:else if transferSuccess != null}
-        <p class="text-lg text-panda">
+        <p class="text-panda text-lg">
           Transfer success at block {transferSuccess}
         </p>
       {:else if transferError != null}

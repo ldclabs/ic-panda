@@ -89,10 +89,12 @@
           </span>
         </button>
         {#if showBalanceTip}
-          <div class="card mt-2 max-w-80 bg-surface-800 px-3 py-2 text-sm text-white">
+          <div
+            class="card bg-surface-800 mt-2 max-w-80 px-3 py-2 text-sm text-white"
+          >
             <p class="min-w-0 text-balance break-words">
-              We will gradually increase the number of PANDA tokens available for
-              airdrop to ensure an orderly distribution.
+              We will gradually increase the number of PANDA tokens available
+              for airdrop to ensure an orderly distribution.
             </p>
           </div>
         {/if}
@@ -183,8 +185,8 @@
           > PANDA tokens
         </span>
         <span>
-          ({formatNumber(Number(claimedAmount) / Number(PANDAToken.one))} tokens
-          transferred out)
+          ({formatNumber(Number(claimedAmount) / Number(PANDAToken.one))} tokens transferred
+          out)
         </span>
       </p>
       <p class="mt-3">
