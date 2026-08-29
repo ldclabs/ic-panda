@@ -10,11 +10,11 @@
       <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">Open by default.</h2>
     </Reveal>
 
-    <dl class="mt-12 border-t border-ink/15">
+    <dl class="isolate mt-12 border-t border-ink/15">
       {#each PRINCIPLES as p, i (p.name)}
         <Reveal delay={i * 60}>
           <div
-            class="group grid grid-cols-1 gap-3 border-b border-ink/10 py-7 transition-colors duration-200 hover:bg-white md:grid-cols-12 md:gap-6 md:py-9"
+            class="principle-row relative grid grid-cols-1 gap-3 border-b border-ink/10 py-7 md:grid-cols-12 md:gap-6 md:py-9"
           >
             <span
               class="font-mono text-xs tabular-nums text-ink-30 md:col-span-1"
@@ -34,3 +34,38 @@
     </dl>
   </div>
 </SectionShell>
+
+<style>
+  /* The hover plate bleeds past the row box so the white ground clears the
+   * text on both sides. Keeping it on a pseudo-element leaves the row's own
+   * box alone, so the rules stay aligned with the section grid. Painted
+   * behind the content inside the list's isolation context.
+   *
+   * The bleed matches the shell's gutter (px-5) below md, so the plate runs
+   * flush to the viewport edge instead of leaving a 4px sliver of paper. */
+  .principle-row::before {
+    content: '';
+    position: absolute;
+    inset: 0 -1.25rem;
+    z-index: -1;
+    background: var(--surface);
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+
+  .principle-row:hover::before {
+    opacity: 1;
+  }
+
+  @media (min-width: 768px) {
+    .principle-row::before {
+      inset: 0 -1.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .principle-row::before {
+      transition: none;
+    }
+  }
+</style>

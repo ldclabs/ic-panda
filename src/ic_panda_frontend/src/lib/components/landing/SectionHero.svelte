@@ -5,14 +5,14 @@
 
 <section id="hero" class="relative">
   <div
-    class="mx-auto w-full max-w-[1180px] px-5 pb-16 pt-14 md:px-10 md:pb-24 md:pt-20"
+    class="mx-auto w-full max-w-6xl px-5 pb-16 pt-14 md:px-10 md:pb-24 md:pt-20"
   >
     <p class="eyebrow">
       Open Source <span class="text-panda">·</span> On-chain Governed
       <span class="text-panda">·</span> Built on ICP
     </p>
 
-    <h1 class="display mt-7 text-[clamp(2.25rem,7.2vw,6rem)]">
+    <h1 class="display mt-7 text-[clamp(2.25rem,7.2vw,5.6rem)]">
       From Sovereign Minds<br />to Sovereign Markets.<span
         class="caret ml-3 inline-block h-[0.58em] w-[0.26em] bg-panda align-baseline"
         aria-hidden="true"

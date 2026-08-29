@@ -46,7 +46,7 @@
 
 <div class="border-b border-ink/15 bg-paper/85 backdrop-blur-md">
   <div
-    class="mx-auto flex h-14 w-full max-w-[1180px] items-center gap-4 px-5 md:h-16 md:px-10"
+    class="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-5 md:h-16 md:px-10"
   >
     <!-- Wordmark -->
     <a
@@ -56,11 +56,11 @@
       title="ICPanda DAO"
     >
       <span
-        class="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/15 transition-transform duration-300 *:size-7 group-hover:rotate-[8deg]"
+        class="shrink-0 overflow-hidden rounded-full ring-1 ring-panda transition-transform duration-300 *:size-10 group-hover:rotate-[8deg]"
       >
         <IconPanda />
       </span>
-      <span class="font-mono text-sm font-semibold tracking-[0.02em]">
+      <span class="font-mono text-xl font-semibold tracking-[0.02em]">
         ICPanda DAO
       </span>
     </a>

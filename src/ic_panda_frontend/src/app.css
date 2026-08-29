@@ -82,12 +82,15 @@
 }
 
 :root {
-  --paper: #f2f1ec;
+  --paper: #eff2f6;
   --surface: #ffffff;
   --ink: #0b0b0b;
   --rule: rgb(11 11 11 / 14%);
   --rule-soft: rgb(11 11 11 / 6%);
   --panda: #11c291;
+  /* Background grid hairline: neon blue, kept low-alpha so the blueprint
+   * grid stays a texture rather than a foreground element. */
+  --grid: rgb(0 200 255 / 17%);
 }
 
 html,
@@ -107,7 +110,7 @@ body {
 }
 
 /**
- * Page ground: bone paper, a hairline engineering grid, and a faint grain.
+ * Page ground: cool paper, a hairline engineering grid, and a faint grain.
  * Fixed so it never scrolls with #page.
  */
 .page-ground {
@@ -116,8 +119,8 @@ body {
   overflow: hidden;
   background-color: var(--paper);
   background-image:
-    linear-gradient(var(--rule-soft) 1px, transparent 1px),
-    linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 96px 96px;
   background-position: center top;
 }

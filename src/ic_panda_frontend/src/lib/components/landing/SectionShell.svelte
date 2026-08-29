@@ -15,7 +15,7 @@
 </script>
 
 <section {id} class="scroll-mt-16 border-t border-ink/15 {klass}">
-  <div class="mx-auto w-full max-w-[1180px] px-5 md:px-10">
+  <div class="mx-auto w-full max-w-6xl px-5 md:px-10">
     <div
       class="flex items-center gap-4 border-b border-ink/10 py-4 md:sticky md:top-0 md:z-[1] md:bg-paper/90 md:backdrop-blur"
     >

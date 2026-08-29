@@ -36,9 +36,9 @@ const config = {
       panda: '#11c291',
       gold: '#fbbf24',
       gray: '#0a0a0a',
-      // v2 brand ground: bone paper + ink, with a few tuned ink tints so
+      // v2 brand ground: cool paper + ink, with a few tuned ink tints so
       // secondary copy stays legible without introducing a grey scale.
-      paper: '#f2f1ec',
+      paper: '#eff2f6',
       ink: {
         DEFAULT: '#0b0b0b',
         90: 'rgb(11 11 11 / 0.9)',

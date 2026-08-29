@@ -24,13 +24,13 @@
     <div
       class="flex w-full max-w-4xl flex-col flex-nowrap content-center items-center"
     >
-      <div class="mt-8 w-full max-w-[820px]">
+      <div class="mt-8 w-full max-w-4xl">
         <AirdropCard />
       </div>
-      <div class="mt-6 w-full max-w-[820px]">
+      <div class="mt-6 w-full max-w-4xl">
         <PrizeCard />
       </div>
-      <div class="mt-6 w-full max-w-[820px]">
+      <div class="mt-6 w-full max-w-4xl">
         <LuckyPoolChart />
       </div>
     </div>

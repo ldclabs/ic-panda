@@ -17,7 +17,7 @@
   id="community"
   class="scroll-mt-16 border-t border-ink/15 bg-ink text-paper"
 >
-  <div class="mx-auto w-full max-w-[1180px] px-5 py-16 md:px-10 md:py-24">
+  <div class="mx-auto w-full max-w-6xl px-5 py-16 md:px-10 md:py-24">
     <div class="flex items-center gap-4 border-b border-paper/15 pb-4">
       <span
         class="font-mono text-xs font-medium uppercase tabular-nums leading-none tracking-[0.18em]"

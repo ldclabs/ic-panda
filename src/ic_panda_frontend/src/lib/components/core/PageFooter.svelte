@@ -35,12 +35,12 @@
 </script>
 
 <div class="border-t border-ink/15">
-  <div class="mx-auto w-full max-w-[1180px] px-5 py-14 md:px-10 md:py-16">
+  <div class="mx-auto w-full max-w-6xl px-5 py-14 md:px-10 md:py-16">
     <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-10">
       <div class="lg:col-span-5">
         <div class="flex items-center gap-3">
           <span
-            class="size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/15 *:size-8"
+            class="shrink-0 overflow-hidden rounded-full ring-1 ring-ink/15 *:size-10"
           >
             <IconPanda />
           </span>
