@@ -18,7 +18,7 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 use crate::types;
 
-const MAX_DELEGATIONS: usize = 8;
+pub(crate) const MAX_DELEGATIONS: usize = 8;
 
 #[derive(CandidType, Clone, Default, Deserialize, Serialize)]
 pub struct State {
@@ -38,19 +38,40 @@ pub struct Delegator {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct Delegations(Vec<Delegator>);
+pub(crate) struct Delegations(Vec<Delegator>);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Upsert {
+    Unchanged,
+    Updated,
+    Inserted,
+}
 
 impl Delegations {
-    pub fn has_permission(&self, delegator: &Principal, role: i8) -> bool {
-        self.0
-            .iter()
-            .any(|d| &d.owner == delegator && d.role >= role)
+    fn is_manager(&self, delegator: &Principal) -> bool {
+        self.0.iter().any(|d| &d.owner == delegator && d.role == 1)
     }
 
-    pub fn add(&mut self, delegator: Principal, role: i8) {
-        if let Some(d) = self.0.iter_mut().find(|d| d.owner == delegator) {
-            d.role = role;
-            return;
+    fn upsert(&mut self, delegator: Principal, role: i8) -> Result<Upsert, String> {
+        if let Some(index) = self.0.iter().position(|d| d.owner == delegator) {
+            if self.0[index].role == role {
+                return Ok(Upsert::Unchanged);
+            }
+            if self.0[index].role == 1
+                && role != 1
+                && !self
+                    .0
+                    .iter()
+                    .enumerate()
+                    .any(|(other, d)| other != index && d.role == 1)
+            {
+                return Err("cannot demote the last manager".to_string());
+            }
+            self.0[index].role = role;
+            return Ok(Upsert::Updated);
+        }
+        if self.0.len() >= MAX_DELEGATIONS {
+            return Err("max delegations reached".to_string());
         }
 
         self.0.push(Delegator {
@@ -58,43 +79,65 @@ impl Delegations {
             sign_in_at: 0,
             role,
         });
+        Ok(Upsert::Inserted)
     }
 
-    pub fn remove(&mut self, caller: &Principal, delegator: &Principal) -> Result<(), String> {
+    fn remove(&mut self, caller: &Principal, delegator: &Principal) -> Result<(), String> {
         if self.0.len() <= 1 {
             return Err("cannot remove the last delegator".to_string());
         }
 
+        let target_index = self
+            .0
+            .iter()
+            .position(|d| &d.owner == delegator)
+            .ok_or_else(|| "delegator not found".to_string())?;
         if caller != delegator {
-            if let Some(d) = self.0.iter().find(|d| &d.owner == caller) {
-                if d.role != 1 {
-                    return Err("caller is not a manager".to_string());
-                }
+            let caller_role = self
+                .0
+                .iter()
+                .find(|d| &d.owner == caller)
+                .map(|d| d.role)
+                .ok_or_else(|| "caller is not a manager".to_string())?;
+            if caller_role != 1 {
+                return Err("caller is not a manager".to_string());
             }
-            if let Some(d) = self.0.iter().find(|d| &d.owner == delegator) {
-                if d.role == 1 {
-                    return Err("manager can not be removed".to_string());
-                }
+            if self.0[target_index].role == 1 {
+                return Err("manager can not be removed".to_string());
             }
         }
 
-        self.0.retain(|d| &d.owner != delegator);
-        if self.0.len() == 1 {
-            self.0[0].role = 1;
+        self.0.remove(target_index);
+        if !self.0.iter().any(|d| d.role == 1) {
+            let promote = self.0.iter().position(|d| d.role == 0).unwrap_or(0);
+            self.0[promote].role = 1;
         }
 
         Ok(())
     }
 
-    pub fn delegators(self) -> Vec<types::Delegator> {
+    pub fn delegators(&self) -> Vec<types::Delegator> {
         self.0
-            .into_iter()
+            .iter()
             .map(|d| types::Delegator {
                 owner: d.owner,
                 sign_in_at: d.sign_in_at,
                 role: d.role,
             })
             .collect()
+    }
+
+    pub fn record_sign_in(&mut self, delegator: &Principal, now_ms: u64) -> Result<(), String> {
+        let delegator = self
+            .0
+            .iter_mut()
+            .find(|d| &d.owner == delegator)
+            .ok_or_else(|| "caller is not authorized".to_string())?;
+        if delegator.role == -1 {
+            return Err("delegator is suspended".to_string());
+        }
+        delegator.sign_in_at = now_ms;
+        Ok(())
     }
 }
 
@@ -176,6 +219,37 @@ thread_local! {
 pub mod state {
     use super::*;
 
+    fn add_name(
+        store: &mut StableBTreeMap<Principal, Names, Memory>,
+        delegator: &Principal,
+        name: &str,
+    ) {
+        let mut names = store
+            .get(delegator)
+            .unwrap_or_else(|| Names(BTreeSet::new()));
+        if names.0.insert(name.to_owned()) {
+            store.insert(*delegator, names);
+        }
+    }
+
+    fn remove_name(
+        store: &mut StableBTreeMap<Principal, Names, Memory>,
+        delegator: &Principal,
+        name: &String,
+    ) {
+        let Some(mut names) = store.get(delegator) else {
+            return;
+        };
+        if !names.0.remove(name) {
+            return;
+        }
+        if names.0.is_empty() {
+            store.remove(delegator);
+        } else {
+            store.insert(*delegator, names);
+        }
+    }
+
     pub fn with<R>(f: impl FnOnce(&State) -> R) -> R {
         STATE.with_borrow(f)
     }
@@ -232,28 +306,49 @@ pub mod state {
 
     pub fn add_delegator(
         name: &String,
+        caller: &Principal,
         delegator: &Principal,
         role: i8,
     ) -> Result<Vec<types::Delegator>, String> {
-        let res = NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
-            let mut delegations = store.get(name).unwrap_or_else(|| Delegations(Vec::new()));
-            if delegations.0.len() >= MAX_DELEGATIONS {
-                return Err("max delegations reached".to_string());
+        let result = NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
+            let mut delegations = store
+                .get(name)
+                .ok_or_else(|| "name not found".to_string())?;
+            if !delegations.is_manager(caller) {
+                return Err("caller is not a manager".to_string());
             }
-            delegations.add(*delegator, role);
-            let res = delegations.clone().delegators();
-            store.insert(name.clone(), delegations);
-            Ok(res)
+            let change = delegations.upsert(*delegator, role)?;
+            let result = delegations.delegators();
+            if change != Upsert::Unchanged {
+                store.insert(name.clone(), delegations);
+            }
+            Ok::<_, String>(result)
         })?;
 
-        MY_NAMES_STORE.with_borrow_mut(|store| {
-            let mut names = store
-                .get(delegator)
-                .unwrap_or_else(|| Names(BTreeSet::new()));
-            names.0.insert(name.clone());
-            store.insert(*delegator, names);
-        });
-        Ok(res)
+        // This also lazily repairs reverse-index entries missing from older versions.
+        MY_NAMES_STORE.with_borrow_mut(|store| add_name(store, delegator, name));
+        Ok(result)
+    }
+
+    pub fn activate_name(
+        name: &String,
+        owner: &Principal,
+    ) -> Result<Vec<types::Delegator>, String> {
+        let result = NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
+            if store.contains_key(name) {
+                return Err("name is already activated".to_string());
+            }
+            let delegations = Delegations(vec![Delegator {
+                owner: *owner,
+                sign_in_at: 0,
+                role: 1,
+            }]);
+            let result = delegations.delegators();
+            store.insert(name.clone(), delegations);
+            Ok::<_, String>(result)
+        })?;
+        MY_NAMES_STORE.with_borrow_mut(|store| add_name(store, owner, name));
+        Ok(result)
     }
 
     pub fn remove_delegator(
@@ -267,78 +362,184 @@ pub mod state {
                 .ok_or_else(|| "name not found".to_string())?;
             delegations.remove(caller, delegator)?;
             store.insert(name.clone(), delegations);
-
-            MY_NAMES_STORE.with_borrow_mut(|store| {
-                if let Some(mut names) = store.get(delegator) {
-                    names.0.remove(name);
-                    if names.0.is_empty() {
-                        store.remove(delegator);
-                    } else {
-                        store.insert(*delegator, names);
-                    }
-                }
-            });
-            Ok(())
-        })
+            Ok::<_, String>(())
+        })?;
+        MY_NAMES_STORE.with_borrow_mut(|store| remove_name(store, delegator, name));
+        Ok(())
     }
 
     pub fn reset_delegators(name: &String, delegators: BTreeSet<Principal>) -> Result<(), String> {
-        NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
-            if let Some(delegations) = store.get(name) {
-                MY_NAMES_STORE.with_borrow_mut(|store| {
-                    for delegator in delegations.0 {
-                        if let Some(mut names) = store.get(&delegator.owner) {
-                            names.0.remove(name);
-                            if names.0.is_empty() {
-                                store.remove(&delegator.owner);
-                            } else {
-                                store.insert(delegator.owner, names);
-                            }
-                        }
-                    }
-                });
-            }
-            let delegations = Delegations(
-                delegators
-                    .into_iter()
-                    .map(|p| Delegator {
-                        owner: p,
-                        sign_in_at: 0,
-                        role: 1,
-                    })
-                    .collect(),
-            );
-            store.insert(name.clone(), delegations);
-            Ok(())
-        })
-    }
+        if delegators.is_empty() {
+            return Err("delegators is empty".to_string());
+        }
+        if delegators.len() > MAX_DELEGATIONS {
+            return Err("max delegations reached".to_string());
+        }
 
-    pub fn delegator_sign_in(
-        name: &String,
-        delegator: &Principal,
-        now_ms: u64,
-    ) -> Result<(), String> {
-        NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
-            if let Some(mut delegations) = store.get(name) {
-                if let Some(d) = delegations.0.iter_mut().find(|d| &d.owner == delegator) {
-                    if d.role == -1 {
-                        return Err("delegator is suspended".to_string());
-                    }
-
-                    d.sign_in_at = now_ms;
-                    store.insert(name.clone(), delegations);
-                    return Ok(());
+        let previous = NAME_DELEGATIONS_STORE
+            .with_borrow(|store| store.get(name))
+            .unwrap_or_else(|| Delegations(Vec::new()));
+        MY_NAMES_STORE.with_borrow_mut(|store| {
+            for old in &previous.0 {
+                if !delegators.contains(&old.owner) {
+                    remove_name(store, &old.owner, name);
                 }
             }
-            Err("caller is not authorized".to_string())
-        })
+            // Also repairs reverse-index entries missing from older reset operations.
+            for delegator in &delegators {
+                add_name(store, delegator, name);
+            }
+        });
+
+        let delegations = Delegations(
+            delegators
+                .into_iter()
+                .map(|owner| Delegator {
+                    owner,
+                    sign_in_at: 0,
+                    role: 1,
+                })
+                .collect(),
+        );
+        NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
+            store.insert(name.clone(), delegations);
+        });
+        Ok(())
     }
 
     pub fn get_delegations(name: &String) -> Option<Delegations> {
         NAME_DELEGATIONS_STORE.with_borrow(|store| store.get(name))
     }
 
+    pub fn name_exists(name: &String) -> bool {
+        NAME_DELEGATIONS_STORE.with_borrow(|store| store.contains_key(name))
+    }
+
+    pub fn set_delegations(name: &str, delegations: Delegations) {
+        NAME_DELEGATIONS_STORE.with_borrow_mut(|store| {
+            store.insert(name.to_owned(), delegations);
+        });
+    }
+
     pub fn get_names(delegator: &Principal) -> Option<BTreeSet<String>> {
         MY_NAMES_STORE.with_borrow(|store| store.get(delegator).map(|names| names.0))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn principal(id: u8) -> Principal {
+        Principal::from_slice(&[id])
+    }
+
+    fn delegations(entries: &[(u8, i8)]) -> Delegations {
+        Delegations(
+            entries
+                .iter()
+                .map(|(id, role)| Delegator {
+                    owner: principal(*id),
+                    sign_in_at: 0,
+                    role: *role,
+                })
+                .collect(),
+        )
+    }
+
+    #[test]
+    fn unauthorized_principal_cannot_remove_a_delegator() {
+        let mut value = delegations(&[(1, 1), (2, 0)]);
+
+        assert_eq!(
+            value.remove(&principal(3), &principal(2)).unwrap_err(),
+            "caller is not a manager"
+        );
+        assert_eq!(value.0.len(), 2);
+    }
+
+    #[test]
+    fn manager_can_remove_member_but_not_another_manager() {
+        let mut value = delegations(&[(1, 1), (2, 1), (3, 0)]);
+
+        assert_eq!(
+            value.remove(&principal(1), &principal(2)).unwrap_err(),
+            "manager can not be removed"
+        );
+        value.remove(&principal(1), &principal(3)).unwrap();
+        assert_eq!(value.0.len(), 2);
+    }
+
+    #[test]
+    fn leaving_promotes_the_only_remaining_delegator() {
+        let mut value = delegations(&[(1, 1), (2, 0)]);
+
+        value.remove(&principal(1), &principal(1)).unwrap();
+        assert_eq!(value.0[0].owner, principal(2));
+        assert_eq!(value.0[0].role, 1);
+    }
+
+    #[test]
+    fn leaving_last_manager_promotes_an_active_member() {
+        let mut value = delegations(&[(1, 1), (2, -1), (3, 0)]);
+
+        value.remove(&principal(1), &principal(1)).unwrap();
+        assert_eq!(value.0[0].role, -1);
+        assert_eq!(value.0[1].owner, principal(3));
+        assert_eq!(value.0[1].role, 1);
+    }
+
+    #[test]
+    fn last_manager_cannot_be_demoted() {
+        let mut value = delegations(&[(1, 1), (2, 0)]);
+
+        assert_eq!(
+            value.upsert(principal(1), 0).unwrap_err(),
+            "cannot demote the last manager"
+        );
+        value.upsert(principal(2), 1).unwrap();
+        assert_eq!(value.upsert(principal(1), 0).unwrap(), Upsert::Updated);
+    }
+
+    #[test]
+    fn full_delegation_set_still_allows_role_updates() {
+        let mut value = Delegations(Vec::new());
+        for id in 1..=MAX_DELEGATIONS as u8 {
+            assert_eq!(value.upsert(principal(id), 0).unwrap(), Upsert::Inserted);
+        }
+
+        assert_eq!(value.upsert(principal(1), 1).unwrap(), Upsert::Updated);
+        assert_eq!(value.upsert(principal(1), 1).unwrap(), Upsert::Unchanged);
+        assert_eq!(
+            value.upsert(principal(99), 0).unwrap_err(),
+            "max delegations reached"
+        );
+    }
+
+    #[test]
+    fn sign_in_updates_only_authorized_active_delegators() {
+        let mut value = delegations(&[(1, 0), (2, -1)]);
+
+        value.record_sign_in(&principal(1), 42).unwrap();
+        assert_eq!(value.0[0].sign_in_at, 42);
+        assert_eq!(
+            value.record_sign_in(&principal(2), 42).unwrap_err(),
+            "delegator is suspended"
+        );
+        assert_eq!(
+            value.record_sign_in(&principal(3), 42).unwrap_err(),
+            "caller is not authorized"
+        );
+    }
+
+    #[test]
+    fn stable_delegation_encoding_remains_round_trip_compatible() {
+        let value = delegations(&[(1, 1), (2, 0)]);
+        let bytes = value.to_bytes();
+        let decoded = Delegations::from_bytes(bytes);
+
+        assert_eq!(decoded.0.len(), 2);
+        assert_eq!(decoded.0[0].owner, principal(1));
+        assert_eq!(decoded.0[1].role, 0);
     }
 }

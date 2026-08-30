@@ -2329,7 +2329,6 @@ dependencies = [
  "ic-stable-structures 0.7.2",
  "ic_auth_types",
  "ic_auth_verifier",
- "ic_message_types",
  "serde",
  "serde_bytes",
 ]

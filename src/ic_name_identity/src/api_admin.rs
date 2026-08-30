@@ -1,11 +1,28 @@
 use candid::Principal;
 use std::collections::BTreeSet;
 
-use crate::{is_controller, store};
+use crate::{api::normalize_name, is_controller, store};
+
+fn validate_delegators(delegators: &BTreeSet<Principal>) -> Result<(), String> {
+    if delegators.is_empty() {
+        return Err("delegators is empty".to_string());
+    }
+    if delegators.len() > store::MAX_DELEGATIONS {
+        return Err(format!(
+            "delegators exceed the limit {}",
+            store::MAX_DELEGATIONS
+        ));
+    }
+    if delegators.contains(&Principal::anonymous()) {
+        return Err("anonymous delegator is not allowed".to_string());
+    }
+    Ok(())
+}
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_reset_name(name: String, delegators: BTreeSet<Principal>) -> Result<(), String> {
-    let name = name.to_ascii_lowercase();
+    let name = normalize_name(name)?;
+    validate_delegators(&delegators)?;
     store::state::reset_delegators(&name, delegators)
 }
 
@@ -14,12 +31,8 @@ fn validate_admin_reset_name(
     name: String,
     delegators: BTreeSet<Principal>,
 ) -> Result<String, String> {
-    if name.is_empty() {
-        return Err("name is empty".to_string());
-    }
-    if delegators.is_empty() {
-        return Err("delegators is empty".to_string());
-    }
+    normalize_name(name)?;
+    validate_delegators(&delegators)?;
 
     Ok("ok".to_string())
 }

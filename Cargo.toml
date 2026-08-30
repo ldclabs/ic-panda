@@ -23,6 +23,9 @@ lto = true
 strip = true
 opt-level = 's'
 
+[profile.release.package.ic_name_identity]
+codegen-units = 1
+
 [workspace.package]
 edition = "2021"
 version = "2.14.0"
