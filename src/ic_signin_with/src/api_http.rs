@@ -29,12 +29,18 @@ struct HttpError {
 
 #[ic_cdk::query(hidden = true)]
 fn http_request(request: HttpRequest<'static>) -> HttpResponse {
+    // Build the certification headers first so error responses stay verifiable by the
+    // HTTP gateway; an uncertified response is rejected before the client ever sees it.
+    let certified = certified_headers(request.url());
     let req_path = match request.get_path() {
         Ok(path) => path,
-        Err(err) => return error_response(400, err.to_string(), basic_headers()),
+        Err(err) => {
+            let headers = certified.unwrap_or_else(|_| basic_headers());
+            return error_response(400, err.to_string(), headers);
+        }
     };
 
-    let mut headers = match certified_headers(request.url()) {
+    let mut headers = match certified {
         Ok(headers) => headers,
         Err(err) => return error_response(500, err, basic_headers()),
     };

@@ -42,6 +42,13 @@ impl Storable for State {
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        // The previous `StableCell<Vec<u8>>` layout left the cell empty until the first
+        // `pre_upgrade` wrote it, so an empty payload means "never persisted" rather than
+        // "corrupt" — trapping here would brick `post_upgrade` with no way back out.
+        if bytes.is_empty() {
+            return Self::default();
+        }
+
         let mut scratch = [0u8; 4_096];
         from_reader_with_buffer(bytes.as_ref(), &mut scratch)
             .expect("failed to decode stable canister state")
@@ -210,6 +217,15 @@ mod tests {
     fn stable_state_encoding_round_trips() {
         let state = sample_state();
         assert_eq!(State::from_bytes(state.to_bytes()), state);
+    }
+
+    #[test]
+    fn state_cell_reads_an_unwritten_vec_cell_as_the_default() {
+        let memory = VectorMemory::default();
+        drop(StableCell::init(memory.clone(), Vec::<u8>::new()));
+
+        let new_cell = StableCell::<State, _>::init(memory, State::default());
+        assert_eq!(new_cell.get(), &State::default());
     }
 
     #[test]
