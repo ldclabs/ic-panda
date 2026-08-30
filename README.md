@@ -272,6 +272,6 @@ ICPanda DAO builds in public.
 
 ## License
 
-Unless otherwise noted, source code in this repository is licensed under the repository's applicable open-source license.
+Licensed under the [Apache License, Version 2.0](./LICENSE).
 
 Copyright © 2024–2026 LDC Labs and contributors.

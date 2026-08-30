@@ -35,4 +35,6 @@ Registering a username on dMsg.net costs at least **100 PANDA**, and creating a 
 - GitHub: [https://github.com/ldclabs/ic-panda](https://github.com/ldclabs/ic-panda)
 
 ## License
-Copyright © 2024-2025 [LDC Labs](https://github.com/ldclabs).
+Licensed under the [Apache License, Version 2.0](../../LICENSE).
+
+Copyright © 2024-2026 [LDC Labs](https://github.com/ldclabs) and contributors.

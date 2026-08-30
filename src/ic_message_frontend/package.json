@@ -72,6 +72,7 @@
     "workbox-strategies": "^7.3.0",
     "workbox-window": "^7.3.0"
   },
+  "license": "Apache-2.0",
   "name": "ic_message_frontend",
   "private": true,
   "scripts": {
