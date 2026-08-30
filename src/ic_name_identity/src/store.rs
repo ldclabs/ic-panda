@@ -52,20 +52,30 @@ impl Delegations {
         self.0.iter().any(|d| &d.owner == delegator && d.role == 1)
     }
 
-    fn upsert(&mut self, delegator: Principal, role: i8) -> Result<Upsert, String> {
+    fn upsert(
+        &mut self,
+        caller: &Principal,
+        delegator: Principal,
+        role: i8,
+    ) -> Result<Upsert, String> {
         if let Some(index) = self.0.iter().position(|d| d.owner == delegator) {
             if self.0[index].role == role {
                 return Ok(Upsert::Unchanged);
             }
-            if self.0[index].role == 1
-                && role != 1
-                && !self
+            if self.0[index].role == 1 && role != 1 {
+                // A manager can only step down by itself, otherwise demoting a peer would
+                // bypass the "manager can not be removed" invariant enforced by `remove`.
+                if &delegator != caller {
+                    return Err("manager can not be demoted".to_string());
+                }
+                if !self
                     .0
                     .iter()
                     .enumerate()
                     .any(|(other, d)| other != index && d.role == 1)
-            {
-                return Err("cannot demote the last manager".to_string());
+                {
+                    return Err("cannot demote the last manager".to_string());
+                }
             }
             self.0[index].role = role;
             return Ok(Upsert::Updated);
@@ -107,11 +117,23 @@ impl Delegations {
             }
         }
 
-        self.0.remove(target_index);
-        if !self.0.iter().any(|d| d.role == 1) {
-            let promote = self.0.iter().position(|d| d.role == 0).unwrap_or(0);
+        // Never leave the name without a manager, and never promote a suspended delegator.
+        if !self
+            .0
+            .iter()
+            .enumerate()
+            .any(|(other, d)| other != target_index && d.role == 1)
+        {
+            let promote = self
+                .0
+                .iter()
+                .enumerate()
+                .find(|(other, d)| *other != target_index && d.role == 0)
+                .map(|(other, _)| other)
+                .ok_or_else(|| "no active delegator can be promoted to manager".to_string())?;
             self.0[promote].role = 1;
         }
+        self.0.remove(target_index);
 
         Ok(())
     }
@@ -235,7 +257,7 @@ pub mod state {
     fn remove_name(
         store: &mut StableBTreeMap<Principal, Names, Memory>,
         delegator: &Principal,
-        name: &String,
+        name: &str,
     ) {
         let Some(mut names) = store.get(delegator) else {
             return;
@@ -317,7 +339,7 @@ pub mod state {
             if !delegations.is_manager(caller) {
                 return Err("caller is not a manager".to_string());
             }
-            let change = delegations.upsert(*delegator, role)?;
+            let change = delegations.upsert(caller, *delegator, role)?;
             let result = delegations.delegators();
             if change != Upsert::Unchanged {
                 store.insert(name.clone(), delegations);
@@ -490,28 +512,68 @@ mod tests {
     }
 
     #[test]
+    fn a_suspended_delegator_is_never_promoted_to_manager() {
+        let mut value = delegations(&[(1, 1), (2, -1)]);
+
+        assert_eq!(
+            value.remove(&principal(1), &principal(1)).unwrap_err(),
+            "no active delegator can be promoted to manager"
+        );
+        assert_eq!(value.0.len(), 2);
+        assert_eq!(value.0[1].role, -1);
+    }
+
+    #[test]
     fn last_manager_cannot_be_demoted() {
         let mut value = delegations(&[(1, 1), (2, 0)]);
 
         assert_eq!(
-            value.upsert(principal(1), 0).unwrap_err(),
+            value.upsert(&principal(1), principal(1), 0).unwrap_err(),
             "cannot demote the last manager"
         );
-        value.upsert(principal(2), 1).unwrap();
-        assert_eq!(value.upsert(principal(1), 0).unwrap(), Upsert::Updated);
+        value.upsert(&principal(1), principal(2), 1).unwrap();
+        assert_eq!(
+            value.upsert(&principal(1), principal(1), 0).unwrap(),
+            Upsert::Updated
+        );
+    }
+
+    #[test]
+    fn manager_cannot_demote_a_peer_manager() {
+        let mut value = delegations(&[(1, 1), (2, 1), (3, 0)]);
+
+        assert_eq!(
+            value.upsert(&principal(1), principal(2), -1).unwrap_err(),
+            "manager can not be demoted"
+        );
+        assert_eq!(value.0[1].role, 1);
+        // Promoting a member is still allowed.
+        assert_eq!(
+            value.upsert(&principal(1), principal(3), 1).unwrap(),
+            Upsert::Updated
+        );
     }
 
     #[test]
     fn full_delegation_set_still_allows_role_updates() {
         let mut value = Delegations(Vec::new());
         for id in 1..=MAX_DELEGATIONS as u8 {
-            assert_eq!(value.upsert(principal(id), 0).unwrap(), Upsert::Inserted);
+            assert_eq!(
+                value.upsert(&principal(1), principal(id), 0).unwrap(),
+                Upsert::Inserted
+            );
         }
 
-        assert_eq!(value.upsert(principal(1), 1).unwrap(), Upsert::Updated);
-        assert_eq!(value.upsert(principal(1), 1).unwrap(), Upsert::Unchanged);
         assert_eq!(
-            value.upsert(principal(99), 0).unwrap_err(),
+            value.upsert(&principal(1), principal(1), 1).unwrap(),
+            Upsert::Updated
+        );
+        assert_eq!(
+            value.upsert(&principal(1), principal(1), 1).unwrap(),
+            Upsert::Unchanged
+        );
+        assert_eq!(
+            value.upsert(&principal(1), principal(99), 0).unwrap_err(),
             "max delegations reached"
         );
     }
