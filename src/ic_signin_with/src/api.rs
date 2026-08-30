@@ -6,7 +6,15 @@ use ic_canister_sig_creation::delegation_signature_msg;
 use lib_panda::mac_256;
 use serde_bytes::ByteBuf;
 
-use crate::{helper::msg_caller, store};
+use crate::{
+    helper::{
+        authenticated_caller, MAX_PUBLIC_KEY_DER_BYTES, MAX_SIGNED_ENVELOPE_BYTES,
+        NANOSECONDS_PER_MILLISECOND,
+    },
+    store,
+};
+
+const MAX_DELEGATION_SEED_BYTES: usize = 32;
 
 #[ic_cdk::query]
 fn info() -> Result<store::StateInfo, String> {
@@ -24,6 +32,12 @@ fn get_delegation(
     pubkey: ByteBuf,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
+    if seed.is_empty() || seed.len() > MAX_DELEGATION_SEED_BYTES {
+        return Err("invalid seed length".to_string());
+    }
+    if pubkey.is_empty() || pubkey.len() > MAX_PUBLIC_KEY_DER_BYTES {
+        return Err("invalid public key length".to_string());
+    }
     let delegation_hash = delegation_signature_msg(pubkey.as_slice(), expiration, None);
     let signature = store::state::get_signature(seed.as_slice(), delegation_hash.as_slice())?;
 
@@ -43,9 +57,12 @@ pub fn verify_envelope(
     expect_target: Option<Principal>,
     expect_digest: Option<ByteArrayB64<32>>,
 ) -> Result<Principal, String> {
-    let now_ms = ic_cdk::api::time() / 1_000_000;
+    if signed_envelope.len() > MAX_SIGNED_ENVELOPE_BYTES {
+        return Err("signed envelope is too large".to_string());
+    }
+    let now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
     let signed_envelope: SignedEnvelope = from_reader(signed_envelope.as_slice())
-        .map_err(|e| format!("failed to decode signed envelope: {:?}", e))?;
+        .map_err(|err| format!("failed to decode signed envelope: {err}"))?;
     signed_envelope.verify(
         now_ms,
         expect_target,
@@ -56,8 +73,11 @@ pub fn verify_envelope(
 
 #[ic_cdk::query]
 fn my_iv() -> Result<ByteArrayB64<32>, String> {
-    let caller = msg_caller()?;
+    let caller = authenticated_caller()?;
     store::state::with(|s| {
+        if s.nonce_iv.as_slice().iter().all(|byte| *byte == 0) {
+            return Err("canister is still initializing".to_string());
+        }
         let pk = mac_256(s.nonce_iv.as_slice(), caller.as_slice());
         Ok(pk.into())
     })

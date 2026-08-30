@@ -8,7 +8,13 @@ use serde_bytes::ByteBuf;
 
 use crate::store;
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Default)]
+const CBOR: &str = "application/cbor";
+const JSON: &str = "application/json";
+const IC_CERTIFICATE_HEADER: &str = "ic-certificate";
+const IC_CERTIFICATE_EXPRESSION_HEADER: &str = "ic-certificateexpression";
+const MAX_HTTP_REQUEST_BODY_BYTES: usize = 512 * 1_024;
+
+#[derive(CandidType, Serialize)]
 pub struct HttpResponse {
     pub status_code: u16,
     pub headers: Vec<HeaderField>,
@@ -21,21 +27,57 @@ struct HttpError {
     message: String,
 }
 
-static CBOR: &str = "application/cbor";
-static JSON: &str = "application/json";
-static IC_CERTIFICATE_HEADER: &str = "ic-certificate";
-static IC_CERTIFICATE_EXPRESSION_HEADER: &str = "ic-certificateexpression";
-
 #[ic_cdk::query(hidden = true)]
-async fn http_request(request: HttpRequest<'static>) -> HttpResponse {
-    let witness = store::state::http_tree_with(|t| {
-        t.witness(&store::state::DEFAULT_CERT_ENTRY, request.url())
-            .expect("get witness failed")
-    });
+fn http_request(request: HttpRequest<'static>) -> HttpResponse {
+    let req_path = match request.get_path() {
+        Ok(path) => path,
+        Err(err) => return error_response(400, err.to_string(), basic_headers()),
+    };
 
-    let certified_data = ic_cdk::api::data_certificate().expect("no data certificate available");
+    let mut headers = match certified_headers(request.url()) {
+        Ok(headers) => headers,
+        Err(err) => return error_response(500, err, basic_headers()),
+    };
+    let request_cbor = header_contains(request.headers(), "content-type", CBOR);
+    let response_cbor = request_cbor || header_contains(request.headers(), "accept", CBOR);
 
-    let mut headers = vec![
+    let result = match (request.method().as_str(), req_path.as_str()) {
+        ("HEAD", _) => Ok(Vec::new()),
+        ("POST", "/verify_envelope") => post_verify(request.body(), request_cbor, response_cbor),
+        (method, path) => Err(HttpError {
+            status_code: 404,
+            message: format!("method {method}, path: {path}"),
+        }),
+    };
+
+    match result {
+        Ok(body) => {
+            headers.push((
+                "content-type".to_string(),
+                if response_cbor { CBOR } else { JSON }.to_string(),
+            ));
+            headers.push(("content-length".to_string(), body.len().to_string()));
+            HttpResponse {
+                status_code: 200,
+                headers,
+                body: body.into(),
+                upgrade: None,
+            }
+        }
+        Err(err) => error_response(err.status_code, err.message, headers),
+    }
+}
+
+fn certified_headers(request_url: &str) -> Result<Vec<HeaderField>, String> {
+    let witness = store::state::http_witness(request_url)?;
+    let certificate = ic_cdk::api::data_certificate()
+        .ok_or_else(|| "data certificate is unavailable".to_string())?;
+    let witness = cbor_into_vec(&witness)
+        .map_err(|err| format!("failed to serialize HTTP witness: {err}"))?;
+    let expression_path = cbor_into_vec(&store::state::DEFAULT_EXPR_PATH.to_expr_path())
+        .map_err(|err| format!("failed to serialize expression path: {err}"))?;
+
+    Ok(vec![
         ("x-content-type-options".to_string(), "nosniff".to_string()),
         (
             IC_CERTIFICATE_EXPRESSION_HEADER.to_string(),
@@ -45,114 +87,110 @@ async fn http_request(request: HttpRequest<'static>) -> HttpResponse {
             IC_CERTIFICATE_HEADER.to_string(),
             format!(
                 "certificate=:{}:, tree=:{}:, expr_path=:{}:, version=2",
-                BASE64.encode(certified_data),
-                BASE64.encode(cbor_into_vec(&witness).expect("failed to serialize witness")),
-                BASE64.encode(
-                    cbor_into_vec(&store::state::DEFAULT_EXPR_PATH.to_expr_path())
-                        .expect("failed to serialize expr path")
-                )
+                BASE64.encode(certificate),
+                BASE64.encode(witness),
+                BASE64.encode(expression_path),
             ),
         ),
-    ];
-
-    let req_path = match request.get_path() {
-        Ok(path) => path,
-        Err(err) => {
-            headers.push(("content-type".to_string(), "text/plain".to_string()));
-            return HttpResponse {
-                status_code: 400,
-                headers,
-                body: err.to_string().into_bytes().into(),
-                upgrade: None,
-            };
-        }
-    };
-
-    let in_cbor = supports_cbor(request.headers());
-
-    let rt = match (request.method().as_str(), req_path.as_str()) {
-        ("HEAD", _) => Ok(Vec::new()),
-        ("POST", "/verify_envelope") => post_verify(request.body(), in_cbor),
-        (method, path) => Err(HttpError {
-            status_code: 404,
-            message: format!("method {method}, path: {path}"),
-        }),
-    };
-
-    match rt {
-        Ok(body) => {
-            if in_cbor {
-                headers.push(("content-type".to_string(), CBOR.to_string()));
-            } else {
-                headers.push(("content-type".to_string(), JSON.to_string()));
-            }
-            headers.push(("content-length".to_string(), body.len().to_string()));
-            HttpResponse {
-                status_code: 200,
-                headers,
-                body: body.into(),
-                upgrade: None,
-            }
-        }
-        Err(err) => {
-            headers.push(("content-type".to_string(), "text/plain".to_string()));
-            HttpResponse {
-                status_code: err.status_code,
-                headers,
-                body: err.message.into_bytes().into(),
-                upgrade: None,
-            }
-        }
-    }
+    ])
 }
 
-fn post_verify(body: &[u8], in_cbor: bool) -> Result<Vec<u8>, HttpError> {
-    let req: VerifyEnvelopeReqeust = if in_cbor {
-        from_reader(body).map_err(|e| HttpError {
+fn post_verify(body: &[u8], request_cbor: bool, response_cbor: bool) -> Result<Vec<u8>, HttpError> {
+    if body.len() > MAX_HTTP_REQUEST_BODY_BYTES {
+        return Err(HttpError {
+            status_code: 413,
+            message: "request body is too large".to_string(),
+        });
+    }
+
+    let request: VerifyEnvelopeRequest = if request_cbor {
+        from_reader(body).map_err(|err| HttpError {
             status_code: 400,
-            message: format!("failed to decode request body: {:?}", e),
+            message: format!("failed to decode request body: {err}"),
         })?
     } else {
-        serde_json::from_slice(body).map_err(|e| HttpError {
+        serde_json::from_slice(body).map_err(|err| HttpError {
             status_code: 400,
-            message: format!("failed to decode request body: {:?}", e),
+            message: format!("failed to decode request body: {err}"),
         })?
     };
 
-    let principal =
-        crate::api::verify_envelope(req.signed_envelope, req.expect_target, req.expect_digest)
-            .map_err(|e| HttpError {
-                status_code: 401,
-                message: format!("failed to verify envelope: {}", e),
-            })?;
+    let principal = crate::api::verify_envelope(
+        request.signed_envelope,
+        request.expect_target,
+        request.expect_digest,
+    )
+    .map_err(|err| HttpError {
+        status_code: 401,
+        message: format!("failed to verify envelope: {err}"),
+    })?;
 
-    if in_cbor {
-        cbor_into_vec(&VerifyEnvelopeResponse { result: principal }).map_err(|e| HttpError {
+    let response = VerifyEnvelopeResponse { result: principal };
+    if response_cbor {
+        cbor_into_vec(&response).map_err(|err| HttpError {
             status_code: 500,
-            message: format!("failed to encode response body: {:?}", e),
+            message: format!("failed to encode response body: {err}"),
         })
     } else {
-        serde_json::to_vec(&VerifyEnvelopeResponse { result: principal }).map_err(|e| HttpError {
+        serde_json::to_vec(&response).map_err(|err| HttpError {
             status_code: 500,
-            message: format!("failed to encode response body: {:?}", e),
+            message: format!("failed to encode response body: {err}"),
         })
     }
 }
 
-fn supports_cbor(headers: &[HeaderField]) -> bool {
-    headers
-        .iter()
-        .any(|(name, value)| (name == "accept" || name == "content-type") && value.contains(CBOR))
+fn basic_headers() -> Vec<HeaderField> {
+    vec![("x-content-type-options".to_string(), "nosniff".to_string())]
 }
 
-#[derive(Deserialize, Clone, Default)]
-struct VerifyEnvelopeReqeust {
-    pub signed_envelope: ByteBufB64,
-    pub expect_target: Option<Principal>,
-    pub expect_digest: Option<ByteArrayB64<32>>,
+fn error_response(
+    status_code: u16,
+    message: String,
+    mut headers: Vec<HeaderField>,
+) -> HttpResponse {
+    headers.push(("content-type".to_string(), "text/plain".to_string()));
+    headers.push(("content-length".to_string(), message.len().to_string()));
+    HttpResponse {
+        status_code,
+        headers,
+        body: message.into_bytes().into(),
+        upgrade: None,
+    }
 }
 
-#[derive(Serialize, Clone)]
+fn header_contains(headers: &[HeaderField], expected_name: &str, expected_value: &str) -> bool {
+    headers.iter().any(|(name, value)| {
+        name.eq_ignore_ascii_case(expected_name)
+            && value
+                .as_bytes()
+                .windows(expected_value.len())
+                .any(|part| part.eq_ignore_ascii_case(expected_value.as_bytes()))
+    })
+}
+
+#[derive(Deserialize)]
+struct VerifyEnvelopeRequest {
+    signed_envelope: ByteBufB64,
+    expect_target: Option<Principal>,
+    expect_digest: Option<ByteArrayB64<32>>,
+}
+
+#[derive(Serialize)]
 struct VerifyEnvelopeResponse {
-    pub result: Principal,
+    result: Principal,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_negotiation_is_case_insensitive() {
+        let headers = vec![(
+            "Content-Type".to_string(),
+            "Application/CBOR; charset=binary".to_string(),
+        )];
+        assert!(header_contains(&headers, "content-type", CBOR));
+        assert!(!header_contains(&headers, "accept", CBOR));
+    }
 }
