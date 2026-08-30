@@ -47,6 +47,7 @@ export const LINKS = {
   // apps still served from this canister
   bridge: 'https://1bridge.app/?token=PANDA&from=ICP&to=BNB',
   icpswap: `https://app.icpswap.com/swap/pro?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=${PANDA_LEDGER_CANISTER_ID}`,
+  coingecko: 'https://www.coingecko.com/en/coins/icpanda-dao',
   bscscan: `https://bscscan.com/token/${PANDA_BNB_CONTRACT}`
 } as const
 

@@ -232,6 +232,7 @@
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
         <LinkOut href={LINKS.icpswap} label="ICPSwap" />
         <LinkOut href={LINKS.bridge} label="Bridge to BNB" />
+        <LinkOut href={LINKS.coingecko} label="CoinGecko" />
         <a
           class="text-ink-70 decoration-ink/20 hover:text-ink font-mono text-xs underline underline-offset-4 transition-colors"
           href={LINKS.bscscan}
