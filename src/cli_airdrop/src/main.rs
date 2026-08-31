@@ -1,5 +1,5 @@
 use candid::{pretty::candid::value::pp_value, CandidType, IDLValue, Nat, Principal};
-use ciborium::into_writer;
+use cbor2::to_vec;
 use clap::{Parser, Subcommand};
 use ic_agent::identity::AnonymousIdentity;
 use ic_icrc1::Operation;
@@ -331,9 +331,7 @@ fn pretty_amount(amount: u64) -> String {
 }
 
 pub fn to_cbor_bytes(obj: &impl Serialize) -> Vec<u8> {
-    let mut buf: Vec<u8> = Vec::new();
-    into_writer(obj, &mut buf).expect("failed to encode in CBOR format");
-    buf
+    to_vec(obj).expect("failed to encode in CBOR format")
 }
 
 pub fn sha256(data: &[u8]) -> [u8; 32] {

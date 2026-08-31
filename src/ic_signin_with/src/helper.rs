@@ -1,5 +1,5 @@
+use base64::{engine::general_purpose::URL_SAFE as BASE64_URL, Engine};
 use candid::Principal;
-use ic_auth_types::BytesB64;
 use ic_auth_verifier::{sha3_256, user_public_key_from_der, verify_basic_sig, Algorithm};
 use std::fmt::{self, Write as _};
 
@@ -197,6 +197,10 @@ struct SignInMessage<'a> {
     expiration_time: u64,
 }
 
+// Wallets sign this rendering verbatim, so every byte of it is wire format. The
+// nonce is encoded here rather than through a helper type's `Display`: that of
+// `ic_auth_types::BytesB64` grew a `b64:` prefix in 0.10, which would have
+// invalidated every sign-in message without changing a line of this crate.
 impl fmt::Display for SignInMessage<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -216,7 +220,7 @@ impl fmt::Display for SignInMessage<'_> {
             statement = self.statement,
             uri = self.uri,
             network = self.network,
-            nonce = BytesB64::from(&self.nonce[..]),
+            nonce = BASE64_URL.encode(self.nonce),
             issued_at = Rfc3339Seconds(self.issued_at / 1_000),
             expiration_time = Rfc3339Seconds(self.expiration_time / 1_000),
         )

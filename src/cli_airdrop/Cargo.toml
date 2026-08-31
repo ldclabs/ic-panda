@@ -18,7 +18,7 @@ tokio = { workspace = true }
 ic-agent = { workspace = true }
 ic-certification = { workspace = true }
 clap = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 num-traits = { workspace = true }
 icrc-ledger-types = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }
 ic-icrc1 = { git = "https://github.com/dfinity/ic/", rev = "5d202894864f4db4a5a46f44422aebc80c3d321b" }

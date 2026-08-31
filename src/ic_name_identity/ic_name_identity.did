@@ -1,8 +1,24 @@
 type ChainArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+// A delegation from one key to another.
+// 
+// If key A signs a delegation containing key B, then key B may be used to
+// authenticate as key A's corresponding principal(s).
 type Delegation = record {
+  // The kinds of requests this delegation permits.
+  permissions : opt DelegationPermissions;
+  // The delegated-to key.
   pubkey : blob;
+  // If present, this delegation only applies to requests sent to one of these canisters.
   targets : opt vec principal;
+  // A nanosecond timestamp after which this delegation is no longer valid.
   expiration : nat64;
+};
+// The kinds of requests a [`Delegation`] permits.
+type DelegationPermissions = variant {
+  // All request types are permitted.
+  all;
+  // Only query calls and `read_state` requests are permitted.
+  queries;
 };
 type Delegator = record { owner : principal; role : int8; sign_in_at : nat64 };
 type InitArgs = record { session_expires_in_ms : nat64; name : text };
@@ -16,11 +32,21 @@ type Result_5 = variant { Ok : State; Err : text };
 type Result_6 = variant { Ok : SignInResponse; Err : text };
 type Result_7 = variant { Ok : text; Err : text };
 type SignInResponse = record {
+  // The user canister public key. This key is used to derive the user principal.
   user_key : blob;
+  // The seed component used to derive the user key.
   seed : blob;
+  // The session expiration time in nanoseconds since the UNIX epoch. This is the time at which
+  // the delegation will no longer be valid.
   expiration : nat64;
 };
-type SignedDelegation = record { signature : blob; delegation : Delegation };
+// SignedDelegation is a [`Delegation`] that has been signed by an [`Identity`](https://docs.rs/ic-agent/latest/ic_agent/trait.Identity.html).
+type SignedDelegation = record {
+  // The signature for the delegation.
+  signature : blob;
+  // The signed delegation.
+  delegation : Delegation;
+};
 type State = record {
   session_expires_in_ms : nat64;
   name : text;

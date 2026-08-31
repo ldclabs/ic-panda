@@ -1,5 +1,5 @@
 use candid::{Nat, Principal};
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_agent::Agent;
 use ic_message_types::{profile::UserInfo, NameBlock};
 use icrc_ledger_types::icrc1::{
@@ -76,7 +76,7 @@ impl DMsgAgent {
             .flat_map(|b| match b.block {
                 ICRC3GenericBlock::Blob(blob) => {
                     let res: Result<NameBlock, String> =
-                        from_reader(blob.as_slice()).map_err(format_error);
+                        from_slice(blob.as_slice()).map_err(format_error);
                     res
                 }
                 _ => panic!("unexpected block type"),

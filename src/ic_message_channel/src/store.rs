@@ -1,5 +1,5 @@
 use candid::Principal;
-use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_cose_types::to_cbor_bytes;
 use ic_oss_types::{
     cose::Token,
@@ -49,19 +49,15 @@ impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode State data");
-        buf
+        to_vec(&self).expect("failed to encode State data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode State data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode State data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode State data")
+        from_slice(&bytes[..]).expect("failed to decode State data")
     }
 }
 
@@ -226,19 +222,15 @@ impl Storable for Channel {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Channel data");
-        buf
+        to_vec(&self).expect("failed to encode Channel data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Channel data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Channel data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Channel data")
+        from_slice(&bytes[..]).expect("failed to decode Channel data")
     }
 }
 
@@ -273,19 +265,15 @@ impl Storable for Message {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Message data");
-        buf
+        to_vec(&self).expect("failed to encode Message data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Message data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Message data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Message data")
+        from_slice(&bytes[..]).expect("failed to decode Message data")
     }
 }
 
@@ -299,19 +287,15 @@ impl Storable for MessageId {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode MessageId data");
-        buf
+        to_vec(&self).expect("failed to encode MessageId data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode MessageId data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode MessageId data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode MessageId data")
+        from_slice(&bytes[..]).expect("failed to decode MessageId data")
     }
 }
 
@@ -386,11 +370,10 @@ pub mod state {
     }
 
     pub fn load() {
-        let mut scratch = [0; 4096];
         STATE_STORE.with(|r| {
             STATE.with(|h| {
-                let v: State = from_reader_with_buffer(&r.borrow().get()[..], &mut scratch)
-                    .expect("failed to decode STATE_STORE data");
+                let v: State =
+                    from_slice(&r.borrow().get()[..]).expect("failed to decode STATE_STORE data");
                 *h.borrow_mut() = v;
             });
         });
@@ -399,9 +382,8 @@ pub mod state {
     pub fn save() {
         STATE.with(|h| {
             STATE_STORE.with(|r| {
-                let mut buf = vec![];
-                into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut().set(buf);
+                r.borrow_mut()
+                    .set(to_vec(&(*h.borrow())).expect("failed to encode STATE_STORE data"));
             });
         });
     }

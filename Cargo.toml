@@ -12,6 +12,7 @@ members = [
   "src/ic_name_identity",
   "src/ic_panda_luckypool",
   "src/ic_signin_with",
+  "src/lib_dummy_getrandom",
   "src/lib_panda",
   "src/x_auth",
 ]
@@ -31,7 +32,7 @@ codegen-units = 1
 
 [workspace.package]
 edition = "2021"
-version = "2.14.0"
+version = "2.15.0"
 repository = "https://github.com/ldclabs/ic-panda"
 keywords = ["canister", "icp", "panda"]
 categories = ["web-programming"]
@@ -39,44 +40,45 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 bytes = "1"
-base64 = "0.22"
+base64 = "0.23"
 bs58 = "0.5"
 candid = "0.10"
-ciborium = "0.2"
+cbor2 = "1"
 log = "0.4"
 serde = "1"
 serde_bytes = "0.11"
 serde_json = { version = "1", features = ["preserve_order"] }
 structured-logger = "1"
 tokio = { version = "1", features = ["full"] }
-ed25519-dalek = "2"
+ed25519-dalek = "3"
 hex = "0.4"
-hmac = "0.12"
+hmac = "0.13"
 http = "1"
-sha2 = "0.10"
-sha3 = "0.10"
+sha2 = "0.11"
+sha3 = "0.12"
 k256 = { version = "0.13" }
 num-traits = "0.2"
-ic-agent = "0.45"
-ic-cdk = "0.19"
+ic-agent = "0.49"
+ic-cdk = "0.20"
+ic-cdk-management-canister = "0.1"
 ic-cdk-timers = "1.0"
 ic-stable-structures = "0.7"
-icrc-ledger-types = "0.1"
-ic_auth_types = "0.7"
-ic_auth_verifier = { version = "0.7" }
-ic_cose_types = "0.9"
-ic-certification = "3.0"
-ic-oss-types = "1.2"
+icrc-ledger-types = "0.2"
+ic_auth_types = "0.10"
+ic_auth_verifier = { version = "0.10" }
+ic_cose_types = "0.10"
+ic-certification = "3.2"
+ic-oss-types = "1.3"
 ic-canister-sig-creation = "1.3"
 ic-ed25519 = "0.4"
 ic-http-certification = "3"
 lazy_static = "1.5"
 once_cell = "1.21"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "=4.5", features = ["derive"] }
+clap = { version = "=4.6", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
+getrandom = "0.4"
 url = "2.5"
-time = { version = "0.3", features = ["formatting"] }
 
 [workspace.metadata.cargo-shear]
-ignored = ["ic-dummy-getrandom-for-wasm"]
+ignored = ["ic-dummy-getrandom-for-wasm", "lib_dummy_getrandom"]

@@ -1,5 +1,5 @@
 use candid::{CandidType, Principal};
-use ciborium::into_writer;
+use cbor2::to_writer;
 use ic_auth_types::{Delegation, SignInResponse, SignedDelegation};
 use ic_auth_verifier::{user_public_key_from_der, verify_basic_sig, Algorithm};
 use ic_canister_sig_creation::{delegation_signature_msg, CanisterSigPublicKey};
@@ -182,7 +182,7 @@ fn sign_in(name: String, pubkey: ByteBuf, sig: ByteBuf) -> Result<SignInResponse
     delegations.record_sign_in(&caller, now_ms)?;
 
     let mut msg = Vec::with_capacity(name.len() + caller.as_slice().len() + 16);
-    into_writer(&(&name, &caller), &mut msg)
+    to_writer(&(&name, &caller), &mut msg)
         .map_err(|err| format!("failed to encode challenge: {err}"))?;
     verify_challenge(pubkey.as_slice(), &msg, sig.as_slice())?;
 
@@ -228,6 +228,7 @@ fn get_delegation(
             pubkey: pubkey.into(),
             expiration,
             targets: None,
+            permissions: None,
         },
         signature: signature.into(),
     })

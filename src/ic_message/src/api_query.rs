@@ -1,5 +1,5 @@
 use candid::Principal;
-use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
+use ic_cdk_management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
 use ic_cose_types::{format_error, to_cbor_bytes};
 use ic_message_types::profile::UserInfo;
 use icrc_ledger_types::icrc3::{

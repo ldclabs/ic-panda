@@ -50,7 +50,7 @@ where
             )
         })?;
 
-        let value: T = ciborium::from_reader(&bytes[..]).map_err(|err| HTTPError {
+        let value: T = cbor2::from_slice(&bytes[..]).map_err(|err| HTTPError {
             code: StatusCode::BAD_REQUEST.as_u16(),
             message: format!("Invalid CBOR body, {}", err),
             data: None,
@@ -67,7 +67,7 @@ where
         // Use a small initial capacity of 128 bytes like serde_json::to_vec
         // https://docs.rs/serde_json/1.0.82/src/serde_json/ser.rs.html#2189
         let mut buf = BytesMut::with_capacity(128).writer();
-        let res: Result<Response, Box<dyn Error>> = match ciborium::into_writer(&self.0, &mut buf) {
+        let res: Result<Response, Box<dyn Error>> = match cbor2::to_writer(&self.0, &mut buf) {
             Ok(()) => Ok((
                 [(
                     header::CONTENT_TYPE,

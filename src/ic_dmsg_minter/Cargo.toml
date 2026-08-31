@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 ic-cdk = { workspace = true }

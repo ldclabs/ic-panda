@@ -277,7 +277,7 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     }
 
     let now_sec = ic_cdk::api::time() / SECOND;
-    let rr = ic_cdk::management_canister::raw_rand()
+    let rr = ic_cdk_management_canister::raw_rand()
         .await
         .map_err(|_err| "failed to get random bytes".to_string())?;
     let (x, amount) = luckydraw_amount(&mac_256(&rr, b"ICPanda"));

@@ -1,5 +1,5 @@
 use candid::CandidType;
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_icrc1::{blocks::generic_block_to_encoded_block, Block};
 use ic_icrc1_tokens_u64::U64;
 use ic_ledger_core::block::{BlockType, EncodedBlock};
@@ -59,7 +59,7 @@ impl BlocksClient {
 
                 match std::fs::read(self.store_dir.join(format!("{}.cbor", idx))) {
                     Ok(data) => {
-                        let blks: Blocks = from_reader(data.as_slice()).map_err(format_error)?;
+                        let blks: Blocks = from_slice(data.as_slice()).map_err(format_error)?;
                         if prev_tip == (idx + 1) * BATCH_LENGTH - 1 {
                             let blk = blks
                                 .get(&prev_tip)
@@ -224,7 +224,7 @@ impl Iterator for BlocksIter<'_> {
             let idx = index / BATCH_LENGTH;
             let blks: Option<Blocks> =
                 match std::fs::read(self.client.store_dir.join(format!("{}.cbor", idx))) {
-                    Ok(data) => from_reader(data.as_slice()).ok(),
+                    Ok(data) => from_slice(data.as_slice()).ok(),
                     Err(_) => None,
                 };
             if let Some(blks) = blks {

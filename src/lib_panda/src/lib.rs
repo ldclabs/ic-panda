@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose, Engine};
 use candid::Principal;
-use ciborium::{from_reader, into_writer};
-use hmac::{Hmac, Mac};
+use cbor2::{from_slice, to_vec};
+use hmac::{KeyInit, Mac, SimpleHmac};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha3::{Digest, Sha3_256};
@@ -21,13 +21,15 @@ pub fn sha3_256(data: &[u8]) -> [u8; 32] {
 }
 
 pub fn mac_256(key: &[u8], add: &[u8]) -> [u8; 32] {
-    let mut mac = Hmac::<Sha3_256>::new_from_slice(key).expect("HMAC can take key of any size");
+    let mut mac =
+        SimpleHmac::<Sha3_256>::new_from_slice(key).expect("HMAC can take key of any size");
     mac.update(add);
     mac.finalize().into_bytes().into()
 }
 
 pub fn mac_256_2(key: &[u8], add1: &[u8], add2: &[u8]) -> [u8; 32] {
-    let mut mac = Hmac::<Sha3_256>::new_from_slice(key).expect("HMAC can take key of any size");
+    let mut mac =
+        SimpleHmac::<Sha3_256>::new_from_slice(key).expect("HMAC can take key of any size");
     mac.update(add1);
     mac.update(add2);
     mac.finalize().into_bytes().into()
@@ -35,9 +37,7 @@ pub fn mac_256_2(key: &[u8], add1: &[u8], add2: &[u8]) -> [u8; 32] {
 
 // to_cbor_bytes returns the CBOR encoding of the given object that implements the Serialize trait.
 pub fn to_cbor_bytes(obj: &impl Serialize) -> Vec<u8> {
-    let mut buf: Vec<u8> = Vec::new();
-    into_writer(obj, &mut buf).expect("failed to encode in CBOR format");
-    buf
+    to_vec(obj).expect("failed to encode in CBOR format")
 }
 
 pub fn bytes32_from_base64(s: &str) -> Result<[u8; 32], String> {
@@ -70,7 +70,7 @@ where
 
     fn verify(&self, key: &[u8], expire_at: u64, challenge: &[u8]) -> Result<(), String> {
         let arr: (u64, ByteBuf) =
-            from_reader(challenge).map_err(|_err| "failed to decode the challenge")?;
+            from_slice(challenge).map_err(|_err| "failed to decode the challenge")?;
 
         if arr.0 < expire_at {
             return Err("the challenge is expired".to_string());
@@ -127,7 +127,7 @@ where
             .decode(cryptogram)
             .map_err(|_err| "failed to decode base64 cryptogram")?;
         let arr: (ByteBuf, ByteBuf) =
-            from_reader(&data[..]).map_err(|_err| "failed to decode cryptogram")?;
+            from_slice(&data[..]).map_err(|_err| "failed to decode cryptogram")?;
         let mac = match subject {
             Some(subject) => mac_256_2(key, &arr.0, subject.as_slice()),
             None => mac_256(key, &arr.0),
@@ -135,7 +135,7 @@ where
         if &mac[0..8] != arr.1.as_slice() {
             return Err("failed to verify the cryptogram".to_string());
         }
-        from_reader(arr.0.as_slice()).map_err(|_err| "failed to decode cryptogram".to_string())
+        from_slice(arr.0.as_slice()).map_err(|_err| "failed to decode cryptogram".to_string())
     }
 
     fn try_decode(
@@ -147,7 +147,7 @@ where
             .decode(cryptogram)
             .map_err(|_err| "failed to decode base64 cryptogram")?;
         let arr: (ByteBuf, ByteBuf) =
-            from_reader(&data[..]).map_err(|_err| "failed to decode cryptogram")?;
+            from_slice(&data[..]).map_err(|_err| "failed to decode cryptogram")?;
 
         let mut mac = mac_256(key, &arr.0);
         if &mac[0..8] != arr.1.as_slice() {
@@ -158,7 +158,7 @@ where
                 return Err("failed to verify the cryptogram".to_string());
             }
         }
-        let sel = from_reader(arr.0.as_slice())
+        let sel = from_slice(arr.0.as_slice())
             .map_err(|_err| "failed to decode cryptogram".to_string())?;
         Ok((sel, arr.0))
     }
@@ -192,12 +192,12 @@ where
 
     fn verify(key: &VerifyingKey, msg: &[u8]) -> Result<Self, String> {
         let arr: (ByteBuf, ByteBuf) =
-            from_reader(msg).map_err(|_err| "failed to decode Ed25519 message")?;
+            from_slice(msg).map_err(|_err| "failed to decode Ed25519 message")?;
         let sig = Signature::from_slice(arr.1.as_slice())
             .map_err(|_err| "failed to parse Ed25519 signature")?;
         key.verify_strict(arr.0.as_slice(), &sig)
             .map_err(|_| "failed to verify Ed25519 signature")?;
-        from_reader(arr.0.as_slice()).map_err(|_err| "failed to decode Ed25519 message".to_string())
+        from_slice(arr.0.as_slice()).map_err(|_err| "failed to decode Ed25519 message".to_string())
     }
 
     fn verify_from(key: &VerifyingKey, msg: &str) -> Result<Self, String> {
@@ -237,14 +237,14 @@ mod test {
         let prize = Prize(0, 999, 0, 0, 0);
         let subject = Principal::anonymous();
         let cryptogram = prize.encode(key, Some(subject));
-        println!("cryptogram: {}", cryptogram); // gkiFABkD5wAAAEjSOJCPQS-eDw
+        assert_eq!(cryptogram, "gkiFABkD5wAAAEjSOJCPQS-eDw");
         let res = Prize::decode(key, Some(subject), &cryptogram).unwrap();
         assert_eq!(prize, res);
         assert!(Prize::decode(key, None, &cryptogram).is_err());
 
         let prize = Prize(u32::MAX, u32::MAX, u16::MAX, u32::MAX, u16::MAX);
         let cryptogram = prize.encode(key, None);
-        println!("cryptogram: {}", cryptogram); // glaFGv____8a_____xn__xr_____Gf__SBt10SXZQ3eD
+        assert_eq!(cryptogram, "glaFGv____8a_____xn__xr_____Gf__SBt10SXZQ3eD");
         let res = Prize::decode(key, None, &cryptogram).unwrap();
         assert_eq!(prize, res);
         assert!(Prize::decode(key, Some(subject), &cryptogram).is_err());
@@ -260,7 +260,7 @@ mod test {
         let pk = VerifyingKey::from(&sk);
         let state = ChallengeState((Principal::anonymous(), "1234567890".to_string(), 1000));
         let msg = state.sign_to(&sk);
-        println!("message: {}", msg); // message: glGDQQRqMTIzNDU2Nzg5MBkD6FhAyABxVV7f4L9QXL_MP0-VZE5EMzu288JeF0kHz4FxvByZlHaSmZx_BCEIxOouOY0CCgJEuTxkUnpZF24EpQozBw
+        assert_eq!(msg, "glGDQQRqMTIzNDU2Nzg5MBkD6FhAyABxVV7f4L9QXL_MP0-VZE5EMzu288JeF0kHz4FxvByZlHaSmZx_BCEIxOouOY0CCgJEuTxkUnpZF24EpQozBw");
         let state2 = ChallengeState::verify_from(&pk, &msg).unwrap();
         assert_eq!(state, state2);
     }

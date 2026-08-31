@@ -9,13 +9,13 @@ keywords.workspace = true
 categories.workspace = true
 license.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[lib]
-
 [dependencies]
 candid = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 ic_cose_types = { workspace = true }
 ic-oss-types = { workspace = true }
+
+[lib]
+test = false
+doctest = false

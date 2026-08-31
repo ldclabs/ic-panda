@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use candid::{CandidType, Principal};
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_auth_types::{cbor_into_vec, ByteArrayB64, ByteBufB64};
 use ic_http_certification::{HeaderField, HttpRequest};
 use serde::{Deserialize, Serialize};
@@ -110,7 +110,7 @@ fn post_verify(body: &[u8], request_cbor: bool, response_cbor: bool) -> Result<V
     }
 
     let request: VerifyEnvelopeRequest = if request_cbor {
-        from_reader(body).map_err(|err| HttpError {
+        from_slice(body).map_err(|err| HttpError {
             status_code: 400,
             message: format!("failed to decode request body: {err}"),
         })?

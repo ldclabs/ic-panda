@@ -1,5 +1,5 @@
 use candid::{CandidType, Principal};
-use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -22,19 +22,15 @@ impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode State data");
-        buf
+        to_vec(&self).expect("failed to encode State data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode State data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode State data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode State data")
+        from_slice(&bytes[..]).expect("failed to decode State data")
     }
 }
 
@@ -48,19 +44,15 @@ impl Storable for Linker {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Linker data");
-        buf
+        to_vec(&self).expect("failed to encode Linker data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Linker data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Linker data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Linker data")
+        from_slice(&bytes[..]).expect("failed to decode Linker data")
     }
 }
 
@@ -78,22 +70,20 @@ impl Storable for LinkLog {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&(&self.linker, &self.rewards, &self.minted_at), &mut buf)
-            .expect("failed to encode LinkLog data");
-        buf
+        to_vec(&(&self.linker, &self.rewards, &self.minted_at))
+            .expect("failed to encode LinkLog data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&(&self.linker, &self.rewards, &self.minted_at), &mut buf)
-            .expect("failed to encode LinkLog data");
-        Cow::Owned(buf)
+        Cow::Owned(
+            to_vec(&(&self.linker, &self.rewards, &self.minted_at))
+                .expect("failed to encode LinkLog data"),
+        )
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
         let res: (Linker, u64, u64) =
-            from_reader(&bytes[..]).expect("failed to decode LinkLog data");
+            from_slice(&bytes[..]).expect("failed to decode LinkLog data");
         Self {
             linker: res.0,
             rewards: res.1,
@@ -146,11 +136,10 @@ pub mod state {
     }
 
     pub fn load() {
-        let mut scratch = [0; 4096];
         STATE_STORE.with(|r| {
             STATE.with(|h| {
-                let v: State = from_reader_with_buffer(&r.borrow().get()[..], &mut scratch)
-                    .expect("failed to decode STATE_STORE data");
+                let v: State =
+                    from_slice(&r.borrow().get()[..]).expect("failed to decode STATE_STORE data");
                 *h.borrow_mut() = v;
             });
         });
@@ -159,9 +148,8 @@ pub mod state {
     pub fn save() {
         STATE.with(|h| {
             STATE_STORE.with(|r| {
-                let mut buf = vec![];
-                into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut().set(buf);
+                r.borrow_mut()
+                    .set(to_vec(&(*h.borrow())).expect("failed to encode STATE_STORE data"));
             });
         });
     }

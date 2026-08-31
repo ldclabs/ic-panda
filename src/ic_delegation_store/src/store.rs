@@ -1,4 +1,4 @@
-use ciborium::{from_reader, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_auth_types::ByteBufB64;
 use ic_auth_verifier::{verify_delegation_chain, SignInResponse};
 use ic_http_certification::{
@@ -76,7 +76,7 @@ impl State {
 
         let now_ms = ic_cdk::api::time() / 1_000_000;
 
-        let obj: SignInResponse = from_reader(&signed_delegation[..])
+        let obj: SignInResponse = from_slice(&signed_delegation[..])
             .map_err(|e| format!("failed to decode signed delegation: {}", e))?;
 
         let session_pubkey = obj
@@ -185,7 +185,7 @@ pub mod state {
         STATE_STORE.with(|r| {
             STATE.with(|h| {
                 let v: StableState =
-                    from_reader(&r.borrow().get()[..]).expect("failed to decode STATE_STORE data");
+                    from_slice(&r.borrow().get()[..]).expect("failed to decode STATE_STORE data");
                 h.borrow_mut().allowed_origins = v.allowed_origins;
             });
         });
@@ -194,15 +194,12 @@ pub mod state {
     pub fn save() {
         STATE.with(|h| {
             STATE_STORE.with(|r| {
-                let mut buf = vec![];
-                into_writer(
-                    &StableState {
+                r.borrow_mut().set(
+                    to_vec(&StableState {
                         allowed_origins: h.borrow().allowed_origins.clone(),
-                    },
-                    &mut buf,
-                )
-                .expect("failed to encode STATE_STORE data");
-                r.borrow_mut().set(buf);
+                    })
+                    .expect("failed to encode STATE_STORE data"),
+                );
             });
         });
     }

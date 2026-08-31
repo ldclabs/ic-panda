@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose, Engine};
 use candid::{Nat, Principal};
-use ciborium::from_reader;
+use cbor2::from_slice;
 use icrc_ledger_types::icrc1::account::Account;
 use lib_panda::{bytes32_from_base64, sha256, Cryptogram};
 use serde_bytes::ByteBuf;
@@ -245,7 +245,7 @@ fn manager_update_airdrops108_ledger_list(data: ByteBuf) -> Result<u64, String> 
     }
 
     let airdrops: BTreeMap<Principal, Vec<store::Airdrop>> =
-        from_reader(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
+        from_slice(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
     let hash = sha256(&data);
     let principals = airdrops.keys().cloned().collect::<BTreeSet<_>>();
     let weight_total = airdrops.values().flatten().map(|a| a.0).sum::<u64>();
@@ -279,7 +279,7 @@ fn manager_update_airdrops108_neurons_list(data: ByteBuf) -> Result<u64, String>
     }
 
     let airdrops: BTreeMap<Principal, Vec<store::Airdrop>> =
-        from_reader(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
+        from_slice(&data[..]).map_err(|err| format!("failed to decode airdrops: {:?}", err))?;
     let hash = sha256(&data);
     let principals = airdrops.keys().cloned().collect::<BTreeSet<_>>();
     let weight_total = airdrops.values().flatten().map(|a| a.0).sum::<u64>();

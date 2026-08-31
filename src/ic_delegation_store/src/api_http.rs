@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use candid::CandidType;
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_auth_types::{cbor_into_vec, ByteBufB64};
 use ic_http_certification::{HeaderField, HttpRequest, HttpUpdateRequest};
 use serde::{Deserialize, Serialize};
@@ -237,7 +237,7 @@ fn get_delegation(url: Url, origin: Option<String>, in_cbor: bool) -> Result<Vec
 
 async fn put_delegation(body: &[u8], origin: String, in_cbor: bool) -> Result<Vec<u8>, String> {
     let req: Request = if in_cbor {
-        from_reader(body)
+        from_slice(body)
             .map_err(|err| format!("failed to decode Request from CBOR, error: {err}"))?
     } else {
         serde_json::from_slice(body)

@@ -1,5 +1,5 @@
 use candid::{CandidType, Nat, Principal};
-use ciborium::{from_reader, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
@@ -141,19 +141,15 @@ impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode State data");
-        buf
+        to_vec(&self).expect("failed to encode State data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode State data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode State data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode State data")
+        from_slice(&bytes[..]).expect("failed to decode State data")
     }
 }
 
@@ -174,19 +170,15 @@ impl Storable for SysPrizeSubsidy {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode SysPrizeSubsidy data");
-        buf
+        to_vec(&self).expect("failed to encode SysPrizeSubsidy data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode SysPrizeSubsidy data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode SysPrizeSubsidy data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode SysPrizeSubsidy data")
+        from_slice(&bytes[..]).expect("failed to decode SysPrizeSubsidy data")
     }
 }
 
@@ -217,19 +209,15 @@ impl Storable for AirdropState {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode AirdropState data");
-        buf
+        to_vec(&self).expect("failed to encode AirdropState data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode AirdropState data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode AirdropState data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode AirdropState data")
+        from_slice(&bytes[..]).expect("failed to decode AirdropState data")
     }
 }
 
@@ -257,19 +245,15 @@ impl Storable for AirdropLog {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode AirdropLog data");
-        buf
+        to_vec(&self).expect("failed to encode AirdropLog data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode AirdropLog data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode AirdropLog data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode AirdropLog data")
+        from_slice(&bytes[..]).expect("failed to decode AirdropLog data")
     }
 }
 
@@ -298,19 +282,15 @@ impl Storable for LuckyDrawLog {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode LuckyDrawLog data");
-        buf
+        to_vec(&self).expect("failed to encode LuckyDrawLog data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode LuckyDrawLog data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode LuckyDrawLog data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode LuckyDrawLog data")
+        from_slice(&bytes[..]).expect("failed to decode LuckyDrawLog data")
     }
 }
 
@@ -333,19 +313,15 @@ impl Storable for Prize {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Prize data");
-        buf
+        to_vec(&self).expect("failed to encode Prize data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Prize data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Prize data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Prize data")
+        from_slice(&bytes[..]).expect("failed to decode Prize data")
     }
 }
 
@@ -379,19 +355,15 @@ impl Storable for IssuerPrizes {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode IssuerPrizes data");
-        buf
+        to_vec(&self).expect("failed to encode IssuerPrizes data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode IssuerPrizes data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode IssuerPrizes data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode IssuerPrizes data")
+        from_slice(&bytes[..]).expect("failed to decode IssuerPrizes data")
     }
 }
 
@@ -402,19 +374,15 @@ impl Storable for Principals {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Principals data");
-        buf
+        to_vec(&self).expect("failed to encode Principals data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Principals data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Principals data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Principals data")
+        from_slice(&bytes[..]).expect("failed to decode Principals data")
     }
 }
 
@@ -433,19 +401,15 @@ impl Storable for PrizeInfo {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeInfo data");
-        buf
+        to_vec(&self).expect("failed to encode PrizeInfo data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeInfo data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode PrizeInfo data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode PrizeInfo data")
+        from_slice(&bytes[..]).expect("failed to decode PrizeInfo data")
     }
 }
 
@@ -456,19 +420,15 @@ impl Storable for PrizeRecipients {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeRecipients data");
-        buf
+        to_vec(&self).expect("failed to encode PrizeRecipients data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode PrizeRecipients data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode PrizeRecipients data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode PrizeRecipients data")
+        from_slice(&bytes[..]).expect("failed to decode PrizeRecipients data")
     }
 }
 
@@ -479,19 +439,15 @@ impl Storable for PrizeClaimLogs {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeClaimLogs data");
-        buf
+        to_vec(&self).expect("failed to encode PrizeClaimLogs data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeClaimLogs data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode PrizeClaimLogs data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode PrizeClaimLogs data")
+        from_slice(&bytes[..]).expect("failed to decode PrizeClaimLogs data")
     }
 }
 
@@ -506,19 +462,15 @@ impl Storable for PrizeRefund {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeRefund data");
-        buf
+        to_vec(&self).expect("failed to encode PrizeRefund data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode PrizeRefund data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode PrizeRefund data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode PrizeRefund data")
+        from_slice(&bytes[..]).expect("failed to decode PrizeRefund data")
     }
 }
 
@@ -537,19 +489,15 @@ impl Storable for NamingState {
     };
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode NamingState data");
-        buf
+        to_vec(&self).expect("failed to encode NamingState data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode NamingState data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(&self).expect("failed to encode NamingState data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode NamingState data")
+        from_slice(&bytes[..]).expect("failed to decode NamingState data")
     }
 }
 
@@ -698,7 +646,7 @@ pub mod keys {
                 None => vec![],
             };
             if secret.len() != 32 {
-                let rr = ic_cdk::management_canister::raw_rand()
+                let rr = ic_cdk_management_canister::raw_rand()
                     .await
                     .expect("failed to get random bytes");
                 secret = mac_256(&rr, b"CAPTCHA_SECRET").to_vec();

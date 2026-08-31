@@ -1,4 +1,4 @@
-use ic_cdk::management_canister as mgt;
+use ic_cdk_management_canister as mgt;
 use ic_cose_types::{format_error, types::PublicKeyOutput};
 use serde_bytes::ByteBuf;
 

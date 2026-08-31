@@ -1,5 +1,5 @@
 use candid::{utils::ArgumentEncoder, Principal};
-use ic_cdk::management_canister::CanisterStatusResult;
+use ic_cdk_management_canister::CanisterStatusResult;
 use ic_cose_types::ANONYMOUS;
 use std::collections::BTreeSet;
 
@@ -43,11 +43,11 @@ where
         .with_args(&args)
         .with_cycles(cycles)
         .await
-        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, &id, err))?;
+        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, id, err))?;
     res.candid().map_err(|err| {
         format!(
             "failed to decode response from {} on {:?}, error: {:?}",
-            method, &id, err
+            method, id, err
         )
     })
 }

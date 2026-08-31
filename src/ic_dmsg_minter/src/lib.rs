@@ -25,11 +25,11 @@ where
         .with_args(&args)
         .with_cycles(cycles)
         .await
-        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, &id, err))?;
+        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, id, err))?;
     res.candid().map_err(|err| {
         format!(
             "failed to decode response from {} on {:?}, error: {:?}",
-            method, &id, err
+            method, id, err
         )
     })
 }

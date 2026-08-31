@@ -1,6 +1,6 @@
 use candid::{pretty::candid::value::pp_value, CandidType, IDLValue, Nat, Principal};
+use cbor2::{from_slice, to_vec};
 use chrono::prelude::*;
-use ciborium::{from_reader, into_writer};
 use clap::{Parser, Subcommand};
 use ic_agent::{
     identity::{AnonymousIdentity, BasicIdentity},
@@ -73,7 +73,7 @@ pub struct SendRecords(pub BTreeMap<String, (Principal, u64, u64)>);
 async fn main() -> Result<(), String> {
     let cli = Cli::parse();
     let identity = load_identity(&cli.id_file)?;
-    println!("principal: {}", &identity.sender().unwrap().to_text());
+    println!("principal: {}", identity.sender().unwrap().to_text());
 
     let agent = build_agent(IC_HOST, Box::new(identity)).await?;
 
@@ -91,7 +91,7 @@ async fn main() -> Result<(), String> {
             }
 
             let mut sr = match std::fs::read(record_file) {
-                Ok(data) => from_reader(&data[..]).map_err(format_error)?,
+                Ok(data) => from_slice(&data[..]).map_err(format_error)?,
                 Err(_) => SendRecords(BTreeMap::new()),
             };
             let agent = DMsgAgent {
@@ -217,9 +217,7 @@ fn pretty_amount(amount: u64) -> String {
 }
 
 pub fn to_cbor_bytes(obj: &impl Serialize) -> Vec<u8> {
-    let mut buf: Vec<u8> = Vec::new();
-    into_writer(obj, &mut buf).expect("failed to encode in CBOR format");
-    buf
+    to_vec(obj).expect("failed to encode in CBOR format")
 }
 
 pub fn sha256(data: &[u8]) -> [u8; 32] {

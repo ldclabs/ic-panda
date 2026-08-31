@@ -13,16 +13,18 @@ license.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
+test = false
 
 [dependencies]
 base64 = { workspace = true }
 candid = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 ic-cdk = { workspace = true }
 serde = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-http-certification = { workspace = true }
 ic-dummy-getrandom-for-wasm = { workspace = true }
+lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 ic_auth_types = { workspace = true }
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
 lazy_static = { workspace = true }

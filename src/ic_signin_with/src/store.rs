@@ -1,5 +1,5 @@
 use candid::{CandidType, Principal};
-use ciborium::{from_reader_with_buffer, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_canister_sig_creation::{
     signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG},
     DELEGATION_SIG_DOMAIN,
@@ -49,16 +49,12 @@ impl Storable for State {
             return Self::default();
         }
 
-        let mut scratch = [0u8; 4_096];
-        from_reader_with_buffer(bytes.as_ref(), &mut scratch)
-            .expect("failed to decode stable canister state")
+        from_slice(bytes.as_ref()).expect("failed to decode stable canister state")
     }
 }
 
 fn encode_state(state: &State) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    into_writer(state, &mut bytes).expect("failed to encode stable canister state");
-    bytes
+    to_vec(state).expect("failed to encode stable canister state")
 }
 
 #[derive(CandidType, Clone, Default, Deserialize, Serialize)]
@@ -133,7 +129,7 @@ pub mod state {
     }
 
     pub async fn initialize_nonce() {
-        let nonce: [u8; 32] = ic_cdk::management_canister::raw_rand()
+        let nonce: [u8; 32] = ic_cdk_management_canister::raw_rand()
             .await
             .expect("failed to generate nonce IV")
             .try_into()
@@ -217,6 +213,26 @@ mod tests {
     fn stable_state_encoding_round_trips() {
         let state = sample_state();
         assert_eq!(State::from_bytes(state.to_bytes()), state);
+    }
+
+    #[test]
+    fn stable_state_encoding_matches_the_deployed_bytes() {
+        // Live canisters hold state written by the previous CBOR encoder, so this
+        // pins the exact bytes it produced rather than round-tripping through
+        // whichever encoder is current: a round trip passes even if the format
+        // silently changes, and the upgrade would then read back garbage.
+        const DEPLOYED: &str =
+            "a567646f6d61696e73a16b6578616d706c652e636f6d7368747470733a2f2f6578616d\
+706c652e636f6d686e6f6e63655f69765820070707070707070707070707070707070707070707070707070707070707\
+07076973746174656d656e74675369676e20696e7573657373696f6e5f657870697265735f696e5f6d731a0036ee8073\
+676f7665726e616e63655f63616e697374657243010203";
+
+        let expected: Vec<u8> = (0..DEPLOYED.len() / 2)
+            .map(|i| u8::from_str_radix(&DEPLOYED[i * 2..i * 2 + 2], 16).unwrap())
+            .collect();
+
+        assert_eq!(encode_state(&sample_state()), expected);
+        assert_eq!(State::from_bytes(Cow::Owned(expected)), sample_state());
     }
 
     #[test]

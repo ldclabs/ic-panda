@@ -19,11 +19,12 @@ lib_panda = { path = "../lib_panda", version = "0.2" }
 base64 = { workspace = true }
 bs58 = { workspace = true }
 candid = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 ed25519-dalek = { workspace = true }
 hex = { workspace = true }
 http = { workspace = true }
 ic-cdk = { workspace = true }
+ic-cdk-management-canister = { workspace = true }
 k256 = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
@@ -33,6 +34,7 @@ ic-stable-structures = { workspace = true }
 ic-canister-sig-creation = { workspace = true }
 ic-certification = { workspace = true }
 ic-dummy-getrandom-for-wasm = { workspace = true }
+lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 ic_auth_types = { workspace = true }
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
 ic-http-certification = { workspace = true }

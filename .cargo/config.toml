@@ -1,0 +1,6 @@
+# `getrandom` 0.4 (pulled in by the RustCrypto stack) refuses to build for
+# wasm32-unknown-unknown unless a backend is chosen. Canisters get randomness from
+# the management canister's `raw_rand`, never from `getrandom`, so select the custom
+# backend; `lib_dummy_getrandom` registers one that always fails.
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="custom"']

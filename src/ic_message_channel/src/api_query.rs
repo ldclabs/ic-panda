@@ -1,4 +1,4 @@
-use ic_cdk::management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
+use ic_cdk_management_canister::{canister_status, CanisterStatusArgs, CanisterStatusResult};
 use ic_cose_types::format_error;
 use std::collections::BTreeSet;
 

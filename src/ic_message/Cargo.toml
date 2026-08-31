@@ -12,15 +12,17 @@ license.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
+test = false
 
 [dependencies]
 ic_message_types = { path = "../ic_message_types", version = "2" }
 candid = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 num-traits = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 ic-cdk = { workspace = true }
+ic-cdk-management-canister = { workspace = true }
 ic-cdk-timers = { workspace = true }
 ic-ed25519 = { workspace = true }
 ic-stable-structures = { workspace = true }
@@ -29,3 +31,4 @@ ic_cose_types = { workspace = true }
 ic-certification = { workspace = true }
 ic-canister-sig-creation = { workspace = true }
 ic-dummy-getrandom-for-wasm = { workspace = true }
+lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }

@@ -1,0 +1,16 @@
+[package]
+name = "lib_dummy_getrandom"
+publish = false
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/lib_dummy_getrandom"
+version = "0.1.0"
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[target.'cfg(all(target_arch = "wasm32", target_vendor = "unknown", target_os = "unknown"))'.dependencies]
+getrandom = { workspace = true }
+
+[lib]
+test = false
+doctest = false

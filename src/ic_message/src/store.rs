@@ -1,5 +1,5 @@
 use candid::{Nat, Principal};
-use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::{
     namespace::CreateNamespaceInput,
@@ -81,19 +81,15 @@ impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode State data");
-        buf
+        to_vec(&self).expect("failed to encode State data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode State data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode State data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode State data")
+        from_slice(&bytes[..]).expect("failed to decode State data")
     }
 }
 
@@ -128,19 +124,15 @@ impl Storable for User {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode User data");
-        buf
+        to_vec(&self).expect("failed to encode User data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode User data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode User data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode User data")
+        from_slice(&bytes[..]).expect("failed to decode User data")
     }
 }
 
@@ -202,11 +194,9 @@ pub mod state {
     }
 
     pub fn load() {
-        let mut scratch = [0; 4096];
         STATE_STORE.with_borrow(|r| {
             STATE.with_borrow_mut(|h| {
-                let v: State = from_reader_with_buffer(&r.get()[..], &mut scratch)
-                    .expect("failed to decode STATE_STORE data");
+                let v: State = from_slice(&r.get()[..]).expect("failed to decode STATE_STORE data");
                 *h = v;
             });
         });
@@ -215,9 +205,7 @@ pub mod state {
     pub fn save() {
         STATE.with_borrow(|h| {
             STATE_STORE.with_borrow_mut(|r| {
-                let mut buf = vec![];
-                into_writer(h, &mut buf).expect("failed to encode STATE_STORE data");
-                r.set(buf);
+                r.set(to_vec(h).expect("failed to encode STATE_STORE data"));
             });
         });
     }
@@ -255,7 +243,7 @@ pub mod state {
                 })
                 .ok();
 
-        let mut data = ic_cdk::management_canister::raw_rand()
+        let mut data = ic_cdk_management_canister::raw_rand()
             .await
             .expect("failed to generate IV");
         data.truncate(32);
@@ -439,7 +427,7 @@ pub mod user {
                 sp.version = info.version;
                 let mut payload: BTreeMap<String, ByteBuf> = info
                     .payload
-                    .map(|p| from_reader(&p[..]).expect("failed to decode payload"))
+                    .map(|p| from_slice(&p[..]).expect("failed to decode payload"))
                     .unwrap_or_default();
                 if !input.remove_kv.is_empty() {
                     payload.retain(|k, _| !input.remove_kv.contains(k));

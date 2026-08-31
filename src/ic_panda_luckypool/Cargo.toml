@@ -16,13 +16,14 @@ crate-type = ["cdylib"]
 [dependencies]
 lib_panda = { path = "../lib_panda", version = "0.2" }
 candid = { workspace = true }
-ciborium = { workspace = true }
+cbor2 = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 base64 = { workspace = true }
 num-traits = { workspace = true }
 ic-cdk = { workspace = true }
+ic-cdk-management-canister = { workspace = true }
 ic-cdk-timers = { workspace = true }
 ic-stable-structures = { workspace = true }
 icrc-ledger-types = { workspace = true }

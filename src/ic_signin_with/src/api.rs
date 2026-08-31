@@ -1,5 +1,5 @@
 use candid::Principal;
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_auth_types::{ByteArrayB64, ByteBufB64, Delegation, SignedDelegation};
 use ic_auth_verifier::SignedEnvelope;
 use ic_canister_sig_creation::delegation_signature_msg;
@@ -46,6 +46,7 @@ fn get_delegation(
             pubkey: pubkey.into(),
             expiration,
             targets: None,
+            permissions: None,
         },
         signature: signature.into(),
     })
@@ -61,7 +62,7 @@ pub fn verify_envelope(
         return Err("signed envelope is too large".to_string());
     }
     let now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
-    let signed_envelope: SignedEnvelope = from_reader(signed_envelope.as_slice())
+    let signed_envelope: SignedEnvelope = from_slice(signed_envelope.as_slice())
         .map_err(|err| format!("failed to decode signed envelope: {err}"))?;
     signed_envelope.verify(
         now_ms,

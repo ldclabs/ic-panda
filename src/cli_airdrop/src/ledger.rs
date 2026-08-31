@@ -1,5 +1,5 @@
 use candid::Principal;
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_agent::{
     hash_tree::{Label, LookupResult},
     Agent,
@@ -106,12 +106,12 @@ impl Icrc1Agent {
         } = self.icrc3_get_tip_certificate().await?;
 
         let certificate: Certificate = if let Some(certificate) = certificate {
-            from_reader(certificate.as_slice()).map_err(format_error)?
+            from_slice(certificate.as_slice()).map_err(format_error)?
         } else {
             return Err("Certificate not found in the DataCertificate".to_string());
         };
 
-        let hash_tree: HashTree = from_reader(hash_tree.as_slice()).map_err(format_error)?;
+        let hash_tree: HashTree = from_slice(hash_tree.as_slice()).map_err(format_error)?;
         self.verify_root_hash(&certificate, &hash_tree.digest())
             .await?;
 

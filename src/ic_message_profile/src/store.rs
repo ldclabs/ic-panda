@@ -1,5 +1,5 @@
 use candid::Principal;
-use ciborium::{from_reader, from_reader_with_buffer, into_writer};
+use cbor2::{from_slice, to_vec};
 use ic_oss_types::{
     cose::Token,
     file::{CreateFileInput, CreateFileOutput, UpdateFileInput, UpdateFileOutput},
@@ -36,19 +36,15 @@ impl Storable for State {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode State data");
-        buf
+        to_vec(&self).expect("failed to encode State data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode State data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode State data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode State data")
+        from_slice(&bytes[..]).expect("failed to decode State data")
     }
 }
 
@@ -133,19 +129,15 @@ impl Storable for Profile {
     const BOUND: Bound = Bound::Unbounded;
 
     fn into_bytes(self) -> Vec<u8> {
-        let mut buf = vec![];
-        into_writer(&self, &mut buf).expect("failed to encode Profile data");
-        buf
+        to_vec(&self).expect("failed to encode Profile data")
     }
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        let mut buf = vec![];
-        into_writer(self, &mut buf).expect("failed to encode Profile data");
-        Cow::Owned(buf)
+        Cow::Owned(to_vec(self).expect("failed to encode Profile data"))
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        from_reader(&bytes[..]).expect("failed to decode Profile data")
+        from_slice(&bytes[..]).expect("failed to decode Profile data")
     }
 }
 
@@ -154,7 +146,6 @@ const PROFILE_MEMORY_ID: MemoryId = MemoryId::new(1);
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
-
 
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
@@ -193,11 +184,10 @@ pub mod state {
     }
 
     pub fn load() {
-        let mut scratch = [0; 4096];
         STATE_STORE.with(|r| {
             STATE.with(|h| {
-                let v: State = from_reader_with_buffer(&r.borrow().get()[..], &mut scratch)
-                    .expect("failed to decode STATE_STORE data");
+                let v: State =
+                    from_slice(&r.borrow().get()[..]).expect("failed to decode STATE_STORE data");
                 *h.borrow_mut() = v;
             });
         });
@@ -206,9 +196,8 @@ pub mod state {
     pub fn save() {
         STATE.with(|h| {
             STATE_STORE.with(|r| {
-                let mut buf = vec![];
-                into_writer(&(*h.borrow()), &mut buf).expect("failed to encode STATE_STORE data");
-                r.borrow_mut().set(buf);
+                r.borrow_mut()
+                    .set(to_vec(&(*h.borrow())).expect("failed to encode STATE_STORE data"));
             });
         });
     }

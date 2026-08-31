@@ -1,5 +1,5 @@
 use candid::{CandidType, Nat, Principal};
-use ciborium::from_reader;
+use cbor2::from_slice;
 use ic_stable_structures::Storable;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -161,7 +161,7 @@ impl AddPrizeInputV2 {
         }
         if let Some(ref memo) = self.memo {
             let memo: PrizeMemo =
-                from_reader(&memo[..]).map_err(|_err| "invalid memo".to_string())?;
+                from_slice(&memo[..]).map_err(|_err| "invalid memo".to_string())?;
             memo.validate()?;
         }
         if self.recipient.is_some() && self.quantity > 1 {
