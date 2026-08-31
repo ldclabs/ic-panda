@@ -12,7 +12,18 @@ jobs:
       - name: Build canisters
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install ic-wasm
+          cargo install ic-wasm --version 0.11.1 --locked
+          BINARYEN_VERSION="version_131"
+          BINARYEN_ARCHIVE="binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz"
+          BINARYEN_DIR="$(mktemp -d)"
+          curl --fail --location --retry 3 \
+            --output "$BINARYEN_DIR/$BINARYEN_ARCHIVE" \
+            "https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/$BINARYEN_ARCHIVE"
+          echo "b5bf1f0eaf17c63ee588ff7a5954dc8f6ce2c26989051c66f24dfe9ece3e46db  $BINARYEN_DIR/$BINARYEN_ARCHIVE" | sha256sum --check --strict
+          tar -xzf "$BINARYEN_DIR/$BINARYEN_ARCHIVE" -C "$BINARYEN_DIR"
+          WASM_OPT="$BINARYEN_DIR/binaryen-$BINARYEN_VERSION/bin/wasm-opt"
+          ic-wasm --version
+          "$WASM_OPT" --version
           mkdir out
           cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
           for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
@@ -22,7 +33,20 @@ jobs:
             WASM="out/$CAN.wasm"
             ic-wasm $WASM -o $WASM metadata candid:service -f "out/$CAN.did" -v public
             ic-wasm $WASM -o $WASM shrink
-            ic-wasm $WASM -o $WASM optimize O3 --inline-functions-with-loops
+            "$WASM_OPT" \
+              -O3 \
+              --enable-mutable-globals \
+              --enable-nontrapping-float-to-int \
+              --enable-simd \
+              --enable-bulk-memory \
+              --enable-sign-ext \
+              --enable-reference-types \
+              --enable-memory64 \
+              --enable-multivalue \
+              --enable-tail-call \
+              --inline-functions-with-loops \
+              "$WASM" -o "$WASM.optimized"
+            mv "$WASM.optimized" "$WASM"
             gzip $WASM
             SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
             echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
