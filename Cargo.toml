@@ -27,6 +27,10 @@ opt-level = 's'
 [profile.release.package.ic_name_identity]
 codegen-units = 1
 
+[profile.release.package.ic_delegation_store]
+codegen-units = 1
+opt-level = 3
+
 [profile.release.package.ic_signin_with]
 codegen-units = 1
 
@@ -79,6 +83,7 @@ clap = { version = "=4.6", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
 getrandom = "0.4"
 url = "2.5"
+urlencoding = "2.1"
 
 [workspace.metadata.cargo-shear]
 ignored = ["ic-dummy-getrandom-for-wasm", "lib_dummy_getrandom"]

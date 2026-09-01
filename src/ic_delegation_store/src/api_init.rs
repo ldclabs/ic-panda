@@ -21,39 +21,42 @@ pub struct UpgradeArgs {
 
 #[ic_cdk::init]
 fn init(args: Option<CanisterArgs>) {
-    if let Some(CanisterArgs::Init(args)) = args {
-        store::state::with_mut(|s| {
-            s.allowed_origins = args.allowed_origins;
-        });
+    match args {
+        Some(CanisterArgs::Init(args)) => set_allowed_origins(args.allowed_origins),
+        Some(CanisterArgs::Upgrade(_)) => {
+            ic_cdk::trap("cannot initialize the canister with Upgrade args")
+        }
+        None => {}
     }
 
-    store::state::init_http_certified_data();
-}
-
-#[ic_cdk::pre_upgrade]
-fn pre_upgrade() {
-    store::state::save();
+    store::state::init_certified_data();
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade(args: Option<CanisterArgs>) {
-    store::state::load();
-
     match args {
         Some(CanisterArgs::Upgrade(args)) => {
-            store::state::with_mut(|s| {
-                if let Some(origins) = args.allowed_origins {
-                    s.allowed_origins = origins;
-                }
-            });
+            if let Some(origins) = args.allowed_origins {
+                set_allowed_origins(origins);
+            } else {
+                normalize_allowed_origins();
+            }
         }
         Some(CanisterArgs::Init(_)) => {
-            ic_cdk::trap(
-                "cannot upgrade the canister with an Init args. Please provide an Upgrade args.",
-            );
+            ic_cdk::trap("cannot upgrade the canister with Init args");
         }
-        _ => {}
+        None => normalize_allowed_origins(),
     }
 
-    store::state::init_http_certified_data();
+    store::state::init_certified_data();
+}
+
+fn set_allowed_origins(origins: Vec<String>) {
+    store::config::set_allowed_origins(origins)
+        .unwrap_or_else(|err| ic_cdk::trap(format!("invalid allowed_origins: {err}")));
+}
+
+fn normalize_allowed_origins() {
+    store::config::normalize_allowed_origins()
+        .unwrap_or_else(|err| ic_cdk::trap(format!("invalid persisted allowed_origins: {err}")));
 }
