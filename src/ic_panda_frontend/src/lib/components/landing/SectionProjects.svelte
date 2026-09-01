@@ -28,7 +28,7 @@
 
   <!-- ── Anda ────────────────────────────────────────────────────────── -->
   <Reveal>
-    <article class="border-ink/15 border bg-white">
+    <article class="border-ink/15 overflow-hidden rounded-xl border bg-white">
       <header
         class="border-ink/10 flex flex-col gap-6 border-b p-6 md:flex-row md:items-start md:justify-between md:p-10"
       >
@@ -94,7 +94,9 @@
 
   <!-- ── TokenList ───────────────────────────────────────────────────── -->
   <Reveal>
-    <article class="bg-ink text-paper mt-6 mb-16 md:mb-24">
+    <article
+      class="bg-ink text-paper mt-6 mb-16 overflow-hidden rounded-xl md:mb-24"
+    >
       <header
         class="border-paper/15 flex flex-col gap-6 border-b p-6 md:flex-row md:items-start md:justify-between md:p-10"
       >
@@ -154,7 +156,7 @@
           </p>
         </div>
         <a
-          class="border-paper bg-paper text-ink hover:text-paper inline-flex shrink-0 items-center justify-center gap-2 border px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200 hover:bg-transparent"
+          class="border-paper bg-paper text-ink hover:text-paper inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200 hover:bg-transparent"
           href={LINKS.tokenlist}
           target="_blank"
           rel="noreferrer"

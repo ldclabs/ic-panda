@@ -32,7 +32,7 @@
 
   <Reveal>
     <div
-      class="border-ink/15 bg-ink/15 mb-16 grid grid-cols-1 gap-px border-t md:mb-24 md:grid-cols-2 lg:grid-cols-4"
+      class="border-ink/15 bg-ink/15 mb-16 grid grid-cols-1 gap-px overflow-hidden rounded-xl border md:mb-24 md:grid-cols-2 lg:grid-cols-4"
     >
       {#each DAO_ENTRIES as entry (entry.name)}
         <a

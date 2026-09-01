@@ -2574,7 +2574,7 @@ dependencies = [
 
 [[package]]
 name = "ic_delegation_store"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2595,7 +2595,7 @@ dependencies = [
 
 [[package]]
 name = "ic_dmsg_minter"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2608,7 +2608,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2631,7 +2631,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_channel"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2649,7 +2649,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_profile"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2667,7 +2667,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_types"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "ic-oss-types",
@@ -2678,7 +2678,7 @@ dependencies = [
 
 [[package]]
 name = "ic_name_identity"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -2696,7 +2696,7 @@ dependencies = [
 
 [[package]]
 name = "ic_panda_luckypool"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "base64 0.23.1",
  "candid",
@@ -2733,7 +2733,7 @@ dependencies = [
 
 [[package]]
 name = "ic_signin_with"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "base64 0.23.1",
  "bs58",
@@ -5479,7 +5479,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "x-auth"
-version = "2.15.0"
+version = "2.15.1"
 dependencies = [
  "anyhow",
  "axum",

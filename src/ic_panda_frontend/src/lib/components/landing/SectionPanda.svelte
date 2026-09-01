@@ -128,7 +128,7 @@
   <!-- Canonical ledger -->
   <Reveal>
     <div
-      class="border-ink/15 mt-10 flex flex-col gap-6 border bg-white p-6 md:flex-row md:items-center md:justify-between md:p-8"
+      class="border-ink/15 mt-10 flex flex-col gap-6 rounded-xl border bg-white p-6 md:flex-row md:items-center md:justify-between md:p-8"
     >
       <div class="min-w-0">
         <p class="eyebrow">Canonical ICP Ledger</p>
@@ -207,7 +207,9 @@
       <p class="eyebrow">What PANDA Does</p>
     </Reveal>
     <Reveal>
-      <div class="bg-ink/15 mt-10 grid grid-cols-1 gap-px md:grid-cols-3">
+      <div
+        class="bg-ink/15 mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-xl md:grid-cols-3"
+      >
         {#each PANDA_ROLES as role (role.name)}
           <div class="h-full bg-white p-6 md:p-8">
             <p class="text-ink-30 font-mono text-xs tabular-nums">

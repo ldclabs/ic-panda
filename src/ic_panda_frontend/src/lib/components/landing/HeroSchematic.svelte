@@ -12,7 +12,7 @@
     <span class="text-panda">●</span>
   </figcaption>
 
-  <div class="border-ink border px-4 py-3 text-center">
+  <div class="border-ink rounded-lg border px-4 py-3 text-center">
     <span class="font-mono text-xs font-semibold tracking-[0.2em] uppercase">
       ICPanda DAO
     </span>
@@ -30,7 +30,7 @@
       href={LINKS.anda}
       target="_blank"
       rel="noreferrer"
-      class="group border-ink/20 bg-paper/60 hover:border-ink flex flex-col justify-between border p-3 transition-colors duration-200"
+      class="group border-ink/20 bg-paper/60 hover:border-ink flex flex-col justify-between rounded-lg border p-3 transition-colors duration-200"
     >
       <div>
         <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
@@ -49,7 +49,7 @@
       href={LINKS.tokenlist}
       target="_blank"
       rel="noreferrer"
-      class="group border-ink/20 bg-paper/60 hover:border-ink flex flex-col justify-between border p-3 transition-colors duration-200"
+      class="group border-ink/20 bg-paper/60 hover:border-ink flex flex-col justify-between rounded-lg border p-3 transition-colors duration-200"
     >
       <div>
         <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
@@ -72,7 +72,7 @@
   </div>
 
   <div
-    class="border-ink bg-ink text-paper flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border px-4 py-3"
+    class="border-ink bg-ink text-paper flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border px-4 py-3"
   >
     <span class="font-mono text-xs font-semibold tracking-[0.2em]">PANDA</span>
     <span class="font-mono text-xs tracking-[0.1em] uppercase opacity-70">

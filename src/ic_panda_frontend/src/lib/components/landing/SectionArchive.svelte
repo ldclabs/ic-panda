@@ -26,7 +26,7 @@
 
   <Reveal>
     <article
-      class="border-ink/25 mb-16 grid grid-cols-1 border border-dashed md:mb-24 md:grid-cols-12"
+      class="border-ink/25 mb-16 grid grid-cols-1 rounded-xl border border-dashed md:mb-24 md:grid-cols-12"
     >
       <div
         class="border-ink/25 flex items-center justify-between gap-4 border-b border-dashed p-6 md:col-span-4 md:flex-col md:items-start md:justify-start md:border-r md:border-b-0 md:p-8"
@@ -36,7 +36,7 @@
           <p class="text-ink-70 mt-2 font-mono text-xs">dmsg.net</p>
         </div>
         <span
-          class="border-ink/25 text-ink-70 inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-xs tracking-[0.14em] uppercase md:mt-8"
+          class="border-ink/25 text-ink-70 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-xs tracking-[0.14em] uppercase md:mt-8"
         >
           <span class="bg-ink/40 size-1.5 rounded-full"></span>
           Archived · Development paused

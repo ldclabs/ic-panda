@@ -26,7 +26,7 @@
 
   function claimNowHandler() {
     if (principal.isAnonymous()) {
-      signIn({})
+      signIn()
     } else {
       modalStore.trigger({
         type: 'component',
@@ -37,7 +37,7 @@
 
   function transferHandler() {
     if (principal.isAnonymous()) {
-      signIn({})
+      signIn()
     } else {
       modalStore.trigger({
         type: 'component',

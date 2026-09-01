@@ -25,7 +25,7 @@
   }
 
   async function handleSignIn() {
-    await signIn({})
+    await signIn()
   }
 
   function showAccountDetail() {
@@ -104,7 +104,7 @@
         {#if anonymous}
           <button
             type="button"
-            class="border-ink text-ink hover:bg-ink hover:text-paper inline-flex items-center gap-2 border px-3 py-2 font-mono text-xs tracking-[0.08em] uppercase transition-colors"
+            class="border-ink text-ink hover:bg-ink hover:text-paper inline-flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-xs tracking-[0.08em] uppercase transition-colors"
             onclick={handleSignIn}
           >
             <span class="*:size-4 max-md:hidden"><IconUser0 /></span>
@@ -113,7 +113,7 @@
         {:else}
           <button
             type="button"
-            class="border-ink/20 hover:border-ink flex size-9 items-center justify-center border transition-colors"
+            class="border-ink/20 hover:border-ink flex size-9 items-center justify-center rounded-lg border transition-colors"
             onclick={showAccountDetail}
             aria-label="Account"
           >

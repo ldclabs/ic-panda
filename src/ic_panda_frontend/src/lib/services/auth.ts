@@ -4,17 +4,18 @@ import {
   X_AUTH_ENDPIONT,
   X_AUTH_KEY
 } from '$lib/constants'
-import { authStore, type AuthSignInParams } from '$lib/stores/auth'
+import { authStore } from '$lib/stores/auth'
 import { type AuthMessage } from '$lib/types/auth'
 import { createRequest, type SuccessResponse } from '$lib/utils/fetcher'
 import { popupCenter } from '$lib/utils/window'
 import type { Principal } from '@icp-sdk/core/principal'
 
-export const signIn = async (
-  params: AuthSignInParams = {}
-): Promise<{ success: 'ok' | 'cancelled' | 'error'; err?: unknown }> => {
+export const signIn = async (): Promise<{
+  success: 'ok' | 'cancelled' | 'error'
+  err?: unknown
+}> => {
   try {
-    await authStore.signIn(params)
+    await authStore.signIn()
 
     return { success: 'ok' }
   } catch (err: unknown) {

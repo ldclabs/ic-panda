@@ -1,15 +1,13 @@
-import { INTERNET_IDENTITY_CANISTER_ID, IS_LOCAL } from '$lib/constants'
+import { IS_LOCAL } from '$lib/constants'
 import { anonymousIdentity, dynAgent, getAuthClient } from '$lib/utils/auth'
 import { popupCenter } from '$lib/utils/window'
 import { type Identity } from '@icp-sdk/core/agent'
 import { derived, get, writable, type Readable } from 'svelte/store'
 
+const IDENTITY_PROVIDER = 'https://id.ai/authorize'
+
 export interface AuthStoreData {
   identity: Identity
-}
-
-export interface AuthSignInParams {
-  domain?: 'ic0.app' | 'internetcomputer.org'
 }
 
 // Fetch the root key for local development
@@ -22,7 +20,7 @@ export async function fetchRootKey() {
 export interface AuthStore extends Readable<AuthStoreData> {
   sync: () => Promise<void>
   getIdentity: () => Promise<Identity>
-  signIn: (params: AuthSignInParams) => Promise<void>
+  signIn: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -49,12 +47,8 @@ const initAuthStore = (): AuthStore => {
       }
     },
 
-    signIn: async ({ domain }: AuthSignInParams) => {
-      const identityProvider =
-        INTERNET_IDENTITY_CANISTER_ID != null && IS_LOCAL
-          ? `http://${INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`
-          : `https://identity.${domain ?? 'ic0.app'}`
-
+    signIn: async () => {
+      const identityProvider = IDENTITY_PROVIDER
       const authClient = getAuthClient(
         {
           identityProvider,

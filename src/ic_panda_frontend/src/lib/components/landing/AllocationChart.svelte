@@ -10,7 +10,7 @@
 <div class="w-full">
   <!-- Genesis supply bar: 4 / 4 / 12 / 80 -->
   <div
-    class="border-ink flex h-14 w-full overflow-hidden border"
+    class="border-ink flex h-14 w-full overflow-hidden rounded-lg border"
     role="img"
     aria-label="Genesis allocation: 4% development team, 4% seed funders, 12% SNS swap, 80% DAO treasury"
   >
@@ -35,7 +35,9 @@
     <div class="flex h-3">
       <span class="bg-ink/30 ml-[62.5%] block h-3 w-px"></span>
     </div>
-    <div class="border-ink/30 flex h-8 w-full overflow-hidden border">
+    <div
+      class="border-ink/30 flex h-8 w-full overflow-hidden rounded-lg border"
+    >
       {#each TREASURY_ALLOCATION as item, i (item.name)}
         <span
           class="bg-ink/10 h-full {i > 0 ? 'border-ink/30 border-l' : ''}"

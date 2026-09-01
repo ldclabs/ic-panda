@@ -275,7 +275,7 @@ body {
 
   /* Hairline framing used across every section block. */
   .rule-box {
-    @apply border-ink/15 border bg-white;
+    @apply border-ink/15 rounded-xl border bg-white;
   }
 
   .rule-t {
@@ -298,12 +298,12 @@ body {
 
   /* Solid ink button. */
   .btn-ink {
-    @apply border-ink bg-ink text-paper hover:text-ink inline-flex items-center justify-center gap-2 border px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200 hover:bg-transparent;
+    @apply border-ink bg-ink text-paper hover:text-ink inline-flex items-center justify-center gap-2 rounded-lg border px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200 hover:bg-transparent;
   }
 
   /* Outlined counterpart. */
   .btn-outline {
-    @apply border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-paper inline-flex items-center justify-center gap-2 border bg-transparent px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200;
+    @apply border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-paper inline-flex items-center justify-center gap-2 rounded-lg border bg-transparent px-6 py-3 font-mono text-sm font-medium tracking-[0.08em] uppercase transition-colors duration-200;
   }
 }
 
