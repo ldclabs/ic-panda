@@ -12,8 +12,9 @@
   import { unwrapOption } from '$lib/types/result'
   import { clickOutside } from '$lib/utils/window'
   import type { ProfileInfo } from '$src/declarations/ic_message_profile/ic_message_profile.did'
-  import { Principal } from '@dfinity/principal'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
@@ -184,7 +185,7 @@
   <div class="!mt-0 text-center text-xl font-bold">{title}</div>
   <section class="relative m-auto !mt-4 flex flex-col content-center">
     <input
-      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+      class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
       type="text"
       name="userInput"
       minlength="1"
@@ -195,7 +196,7 @@
       placeholder="username or principal"
     />
     <div
-      class="card mt-4 max-h-96 min-h-48 w-full space-y-1 overflow-y-auto bg-surface-500/5 py-2"
+      class="card bg-surface-500/5 mt-4 max-h-96 min-h-48 w-full space-y-1 overflow-y-auto py-2"
     >
       {#each $selectedUsers as user (user._id)}
         <div
@@ -224,7 +225,7 @@
 
     <div
       bind:this={elemSearcher}
-      class="card absolute left-0 top-10 mt-4 max-h-48 w-full space-y-1 overflow-y-auto bg-white py-2 shadow-xl {$searchUsers.reduce(
+      class="card absolute top-10 left-0 mt-4 max-h-48 w-full space-y-1 overflow-y-auto bg-white py-2 shadow-xl {$searchUsers.reduce(
         (acc, val) =>
           val.isManager || (val.isMember && !isAddManager) ? acc : acc + 1,
         0
@@ -234,7 +235,7 @@
     >
       {#each $searchUsers as user (user._id)}
         <button
-          class="pointer btn grid w-full grid-cols-[1fr_auto] items-center rounded-none p-2 hover:bg-panda/10"
+          class="pointer btn hover:bg-panda/10 grid w-full grid-cols-[1fr_auto] items-center rounded-none p-2"
           onclick={() => onSelectUser(user)}
           disabled={user.isManager || (user.isMember && !isAddManager)}
         >

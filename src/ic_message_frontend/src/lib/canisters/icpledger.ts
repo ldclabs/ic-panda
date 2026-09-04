@@ -8,7 +8,7 @@ import { unwrapResult } from '$lib/types/result'
 import { AccountIdentifier } from '$lib/utils/account_identifier'
 import { dynAgent } from '$lib/utils/auth'
 import { ICPToken } from '$lib/utils/token'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { createActor } from './actors'
 
 export class ICPLedgerAPI {

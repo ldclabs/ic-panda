@@ -3,7 +3,7 @@
   import SendTokenForm from '$lib/components/ui/SendTokenForm.svelte'
   import type { LedgerAPI, SendTokenArgs } from '$lib/types/token'
   import { type TokenInfo } from '$lib/utils/token'
-  import type { Principal } from '@dfinity/principal'
+  import type { Principal } from '@icp-sdk/core/principal'
   import { type SvelteComponent } from 'svelte'
 
   // Props

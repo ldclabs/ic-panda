@@ -3,7 +3,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   // Props
@@ -54,7 +54,7 @@
   <form class="m-auto !mt-4 flex flex-col content-center">
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="titleInput"
         minlength="1"
@@ -68,7 +68,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="uriInput"
         minlength="1"

@@ -1,6 +1,6 @@
 <script lang="ts">
   import IconCameraLine from '$lib/components/icons/IconCameraLine.svelte'
-  import { FileButton } from '@skeletonlabs/skeleton'
+  import FileButton from '$lib/components/ui/FileButton.svelte'
   import debounce from 'debounce'
   import type { OnCropCompleteEvent } from 'svelte-easy-crop'
   import Cropper from 'svelte-easy-crop'
@@ -119,7 +119,7 @@
       name="files"
       accept="image/*"
       button="btn btn-icon w-full h-full *:size-8 *:text-surface-500 outline-0 ring-0"
-      on:change={onFileSelected}><IconCameraLine /></FileButton
+      onchange={onFileSelected}><IconCameraLine /></FileButton
     >
   {/if}
 </div>

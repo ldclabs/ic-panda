@@ -10,7 +10,8 @@
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { initFocus, isActive } from '$lib/utils/window'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import debounce from 'debounce'
   import { onMount } from 'svelte'
   import { readable, type Readable } from 'svelte/store'
@@ -87,14 +88,14 @@
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
   <header class="flex h-[60px] flex-row items-center gap-4 p-4 pr-4">
     <input
-      class="input truncate rounded-lg border-0 bg-surface-900/5"
+      class="input bg-surface-900/5 truncate rounded-lg border-0"
       type="search"
       bind:value={filterValue}
       placeholder="Filter channels..."
     />
     <button
       type="button"
-      class="btn btn-icon h-10 rounded-lg bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100"
+      class="btn btn-icon bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100 h-10 rounded-lg"
       title="Create a channel"
       onclick={onCreateChannelHandler}
       ><span class="hover:scale-110"><IconAdd /></span></button
@@ -113,7 +114,7 @@
         <div class="relative inline-block">
           {#if channel.my_setting.unread > 0 || channel.my_setting.ecdh_remote.length > 0}
             <span
-              class="badge-icon absolute -right-0 -top-0 z-10 size-3 bg-error-500"
+              class="badge-icon bg-error-500 absolute -top-0 -right-0 z-10 size-3"
             ></span>
           {/if}
           <Avatar
@@ -128,7 +129,7 @@
             {channel.name}
           </p>
           <div
-            class="flex flex-row items-center justify-between space-x-1 text-xs text-surface-500"
+            class="text-surface-500 flex flex-row items-center justify-between space-x-1 text-xs"
           >
             <p>
               <span>

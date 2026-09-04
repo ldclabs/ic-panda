@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { autoFocus } from '$lib/actions/focus'
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -6,7 +7,7 @@
   import { toastRun } from '$lib/stores/toast'
   import { getBytesString, getShortNumber2 } from '$lib/utils/helper'
   import { unwrapOption } from '$src/lib/types/result'
-  import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   const toastStore = getToastStore()
@@ -87,11 +88,11 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     oninput={onFormChange}
-    use:focusTrap={true}
+    use:autoFocus
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 pr-20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20 pr-20"
         type="number"
         name="maxSizeInput"
         min="0"
@@ -103,7 +104,7 @@
         data-focusindex="1"
         required
       />
-      <div class="absolute right-2 top-2 text-neutral-500 outline-0"
+      <div class="absolute top-2 right-2 text-neutral-500 outline-0"
         >{getBytesString(maxSizeInput)}</div
       >
       <p class="h-5 pl-3 text-sm {maxSizeErr ? 'text-error-500' : 'text-panda'}"
@@ -114,7 +115,7 @@
             ' Gas'}</p
       >
     </div>
-    <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-4 !border-t-1 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p class="">
         <b>1.</b> Uploading files uses channel resources, costing 1000 gas per byte.

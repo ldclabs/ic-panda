@@ -5,8 +5,8 @@
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import { MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import type { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import type { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, setContext } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelDetail from './ChannelDetail.svelte'
@@ -84,11 +84,11 @@
   <div
     class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelId.canister
       ? 'max-sm:-translate-x-full'
-      : ''} border-surface-500/20 bg-white max-sm:absolute max-sm:bottom-0 max-sm:top-0 max-sm:z-10 sm:border-r"
+      : ''} border-surface-500/20 bg-white max-sm:absolute max-sm:top-0 max-sm:bottom-0 max-sm:z-10 sm:border-r"
   >
     <MyChannelList {myState} />
   </div>
-  <div class="h-full bg-surface-900/5">
+  <div class="bg-surface-900/5 h-full">
     {#key channelParam}
       {#if channelId.canister && isReady}
         <ChannelDetail {channelId} {myState} {myInfo} />

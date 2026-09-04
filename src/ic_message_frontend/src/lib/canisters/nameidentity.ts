@@ -9,7 +9,7 @@ import {
 import { NAME_IDENTITY_CANISTER_ID } from '$lib/constants'
 import { unwrapResult } from '$lib/types/result'
 import { AuthAgent } from '$lib/utils/auth'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { createActor } from './actors'
 
 export type {

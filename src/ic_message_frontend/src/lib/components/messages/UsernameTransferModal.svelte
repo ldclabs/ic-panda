@@ -4,8 +4,8 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -80,7 +80,7 @@
   >
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="usernameInput"
         minlength="1"
@@ -94,7 +94,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="toInput"
         minlength="27"

@@ -19,8 +19,9 @@
   import { unwrapOption } from '$lib/types/result'
   import { shortId } from '$lib/utils/auth'
   import { md } from '$lib/utils/markdown'
-  import { Principal } from '@dfinity/principal'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, tick } from 'svelte'
   import { derived, type Readable } from 'svelte/store'
   import ChannelCreateModal from './ChannelCreateModal.svelte'
@@ -286,7 +287,7 @@
         >
           {#if isFowllowing}
             <span class="group-hover:hidden">Following</span>
-            <span class="hidden text-error-500 group-hover:inline"
+            <span class="text-error-500 hidden group-hover:inline"
               >Unfollow</span
             >
           {:else}
@@ -307,7 +308,7 @@
           <span>Message</span>
         </button>
         <a
-          class="text-sm text-surface-500 underline"
+          class="text-surface-500 text-sm underline"
           href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
           target="_blank">Mint $DMSG</a
         >

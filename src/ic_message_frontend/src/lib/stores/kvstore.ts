@@ -2,7 +2,7 @@ import { type UserInfo } from '$lib/canisters/message'
 import { type ProfileInfo } from '$lib/canisters/messageprofile'
 import { MESSAGE_CANISTER_ID } from '$lib/constants'
 import { KVStore } from '$lib/utils/store'
-import type { Principal } from '@dfinity/principal'
+import type { Principal } from '@icp-sdk/core/principal'
 
 const USERS_CACHE_EXP = 2 * 3600 * 1000
 

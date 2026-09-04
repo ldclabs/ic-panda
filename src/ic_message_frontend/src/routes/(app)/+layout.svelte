@@ -1,30 +1,17 @@
 <script lang="ts">
   import { browser } from '$app/environment'
+  import ModalHost from '$lib/components/ui/ModalHost.svelte'
+  import ToastHost from '$lib/components/ui/ToastHost.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { storePopup as storePopup2 } from '$lib/utils/popup'
+  import { setInitialClassState } from '$lib/ui/mode'
+  import { getToastStore } from '$lib/ui/stores'
   import { initReconnect, isOnline } from '$lib/utils/window'
-  import '$src/app.pcss'
+  import '$src/app.css'
   import Loading from '$src/lib/components/ui/Loading.svelte'
-  import {
-    arrow,
-    autoUpdate,
-    computePosition,
-    flip,
-    offset,
-    shift
-  } from '@floating-ui/dom'
-  import {
-    Modal,
-    Toast,
-    getModalStore,
-    getToastStore,
-    initializeStores,
-    setInitialClassState,
-    storePopup,
-    type ModalSettings
-  } from '@skeletonlabs/skeleton'
+  import { Tooltip } from 'bits-ui'
   import { onMount, setContext, type Snippet } from 'svelte'
   import { pwaInfo } from 'virtual:pwa-info'
+
   interface Props {
     children?: Snippet
   }
@@ -42,18 +29,7 @@
         hoverable: true
       })
   )
-  initializeStores()
-  storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
-  storePopup2.set({ computePosition, autoUpdate, offset, shift, flip, arrow })
   const toastStore = getToastStore()
-  const modalStore = getModalStore()
-
-  ;(modalStore as any).trigger2 = (modal: ModalSettings) => {
-    modalStore.update((mStore) => {
-      mStore.unshift(modal)
-      return mStore
-    })
-  }
 
   /**
    * Init authentication
@@ -105,20 +81,19 @@
   {/if}
 </svelte:head>
 
-<Modal
-  position="items-start"
-  class="*:max-h-full"
-  regionBackdrop="!bg-black/10"
-/>
+<ModalHost />
 
-<Toast position="br" width="max-w-xl w-full" zIndex="z-[10000]" />
+<ToastHost />
 
-<div
-  class="relative grid h-full w-full grid-cols-1 overflow-y-auto overflow-x-hidden scroll-smooth"
->
-  {#if globalLoading.value}
-    <Loading />
-  {:else}
-    {@render children_render?.()}
-  {/if}
-</div>
+<!-- One provider for every HoverPopup in the app. -->
+<Tooltip.Provider delayDuration={150}>
+  <div
+    class="relative grid h-full w-full grid-cols-1 overflow-x-hidden overflow-y-auto scroll-smooth"
+  >
+    {#if globalLoading.value}
+      <Loading />
+    {:else}
+      {@render children_render?.()}
+    {/if}
+  </div>
+</Tooltip.Provider>

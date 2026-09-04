@@ -1,6 +1,6 @@
 <script lang="ts">
   import IconClose from '$lib/components/icons/IconClose.svelte'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   // Props
@@ -17,26 +17,25 @@
 
   const modalStore = getModalStore()
 
+  // ModalHost only renders the visible modal, so the head of the stack is
+  // always this one.
+  const title = $derived($modalStore[0]?.title)
   const children_render = $derived(children)
 </script>
 
-{#if $modalStore[0]}
-  <!-- This is a hack to fix the focus issue -->
-  <button class="hidden">x</button>
-  <div
-    class="card relative lg:mt-12 {width} max-w-[420px] space-y-4 rounded-3xl bg-white p-6 shadow-xl md:mt-8 {cardClass}"
+<div
+  class="card relative lg:mt-12 {width} max-w-[420px] space-y-4 rounded-3xl bg-white p-6 shadow-xl md:mt-8 {cardClass}"
+>
+  <button
+    class="btn btn-icon absolute top-2 right-2 z-1 text-neutral-500 *:scale-125 hover:scale-110 max-md:top-2 max-md:right-2"
+    onclick={parent['onClose']}
   >
-    <button
-      class="z-1 btn btn-icon absolute right-2 top-2 text-neutral-500 *:scale-125 hover:scale-110 max-md:right-2 max-md:top-2"
-      onclick={parent['onClose']}
-    >
-      <IconClose />
-    </button>
-    {#if $modalStore[0].title}
-      <header class="!mt-0 text-center text-xl font-bold">
-        {$modalStore[0].title}
-      </header>
-    {/if}
-    {@render children_render?.({ parent })}
-  </div>
-{/if}
+    <IconClose />
+  </button>
+  {#if title}
+    <header class="!mt-0 text-center text-xl font-bold">
+      {title}
+    </header>
+  {/if}
+  {@render children_render?.({ parent })}
+</div>

@@ -32,26 +32,21 @@
     getCurrentTimeString,
     sleep
   } from '$lib/utils/helper'
-  import { initPopup } from '$lib/utils/popup'
   import {
     elementsInViewport,
     isActive,
     scrollOnHooks
   } from '$lib/utils/window'
-  import { type Principal } from '@dfinity/principal'
+  import { type Principal } from '@icp-sdk/core/principal'
   import {
     BucketCanister,
     Uploader,
     toFixedChunkSizeReadable,
     type Progress
   } from '@ldclabs/ic_oss_ts'
-  import {
-    Avatar,
-    getModalStore,
-    getToastStore,
-    popup,
-    type PopupSettings
-  } from '@skeletonlabs/skeleton'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
+  import { Popover } from 'bits-ui'
   import debounce from 'debounce'
   import { onDestroy, onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
@@ -72,13 +67,6 @@
   const modalStore = getModalStore()
   const { canister, id } = channelInfo
   const messageCacheKey = `${canister.toText()}:${id}:NewMessage`
-
-  const emojisPopup: PopupSettings = {
-    event: 'click',
-    target: 'popupEmojisCard',
-    placement: 'top',
-    closeQuery: '' // important
-  }
 
   type MessageInfoEx = MessageInfo & { pid?: number }
 
@@ -413,13 +401,8 @@
     }
   }
 
-  const { popupState, popupOpenOn, popupDestroy } = initPopup({
-    target: 'popupMessageOperation',
-    triggerNodeClass: 'popup-trigger'
-  })
-
-  function onPopupDeleteMessage() {
-    const msg = { ...popupState.meta }
+  function onPopupDeleteMessage(meta: MessageInfoEx) {
+    const msg: MessageInfoEx & { payload?: Uint8Array } = { ...meta }
     if (msg) {
       submitting = msg.id
       myState
@@ -497,8 +480,6 @@
   onMount(() => {
     const { abort } = toastRun(
       async (signal: AbortSignal, abortingQue: (() => void)[]) => {
-        abortingQue.push(popupDestroy)
-
         if (!channelInfo._kek) {
           channelInfo = await myState.refreshChannel(channelInfo)
         } else if (channelInfo._sync_at < Date.now() - 60 * 1000) {
@@ -644,10 +625,10 @@
 
 {#snippet msgDetail(msg: MessageInfo)}
   {#if msg.error}
-    <p class="w-full text-pretty px-4 py-2 text-sm">{msg.error}</p>
+    <p class="w-full px-4 py-2 text-sm text-pretty">{msg.error}</p>
   {:else}
     <pre
-      class="icpanda-message min-h-4 w-full text-pretty break-words px-4 py-2"
+      class="icpanda-message min-h-4 w-full px-4 py-2 text-pretty break-words"
       >{msg.message}</pre
     >
   {/if}
@@ -665,8 +646,8 @@
   <!-- Conversation -->
   {#if !hasKEK}
     <div class="flex flex-col">
-      <p class="p-2 text-center text-error-500">Access key not available.</p>
-      <p class="flex flex-row justify-center p-2 text-error-500">
+      <p class="text-error-500 p-2 text-center">Access key not available.</p>
+      <p class="text-error-500 flex flex-row justify-center p-2">
         <span class="inline">Go to channel settings to request access.</span>
         <span><IconArrowRightUp /></span>
       </p>
@@ -676,28 +657,6 @@
       bind:this={elemChat}
       class="text-surface-900-50-token snap-y snap-mandatory scroll-py-8 space-y-4 overflow-y-auto scroll-smooth p-2 pb-10 md:p-4"
     >
-      <div
-        class="card bg-surface-50-900-token z-20 max-w-96"
-        data-popup="popupEmojisCard"
-      >
-        <EmojisPopup {addEmoji} />
-      </div>
-      <div
-        class="card z-10 w-40 max-w-sm bg-white p-0"
-        data-popup="popupMessageOperation"
-      >
-        <div
-          class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm"
-        >
-          <button
-            type="button"
-            class="btn btn-sm w-full justify-start"
-            onclick={onPopupDeleteMessage}
-          >
-            <span class="*:size-5"><IconDeleteBin /></span><span>Delete</span>
-          </button>
-        </div>
-      </div>
       <div class="grid justify-center">
         <span
           class="text-panda/50 transition duration-300 ease-out {topLoading
@@ -708,7 +667,7 @@
       {#each $messageFeed as msg (msg.id)}
         {#if msg.isDeleted}
           <div class="grid justify-center">
-            <p class="text-pretty bg-transparent p-2 text-xs">{msg.error}</p>
+            <p class="bg-transparent p-2 text-xs text-pretty">{msg.error}</p>
           </div>
         {:else if msg.created_by.compareTo(myState.principal) !== 'eq'}
           <div
@@ -739,7 +698,7 @@
                 <div
                   class="card max-h-[600px] w-fit overflow-auto overscroll-auto rounded-tl-none border-none {msg.kind !==
                     1 && msg.id > lastRead
-                    ? 'shadow-md shadow-gold'
+                    ? 'shadow-gold shadow-md'
                     : ''}  {msg.kind === 1
                     ? 'bg-transparent text-xs'
                     : 'bg-white'}"
@@ -767,19 +726,38 @@
                     ? 'bg-transparent text-xs'
                     : 'variant-soft-primary text-black'}"
                 >
-                  <div class="absolute -left-6 top-0">
+                  <div class="absolute top-0 -left-6">
                     {#if submitting === msg.id}
                       <span class="text-panda *:size-5"><IconCircleSpin /></span
                       >
                     {:else if msg.kind !== 1}
-                      <button
-                        class="popup-trigger btn invisible h-10 p-0 group-hover:visible"
-                        onclick={(ev) => {
-                          popupOpenOn(ev.currentTarget, msg)
-                        }}
-                      >
-                        <span class="*:size-5"><IconMore2Line /></span>
-                      </button>
+                      <Popover.Root>
+                        <Popover.Trigger
+                          class="btn invisible h-10 p-0 group-hover:visible"
+                        >
+                          <span class="*:size-5"><IconMore2Line /></span>
+                        </Popover.Trigger>
+                        <Popover.Portal>
+                          <Popover.Content
+                            side="bottom"
+                            align="start"
+                            sideOffset={4}
+                            class="card z-[10001] w-40 max-w-sm bg-white p-0 shadow-lg"
+                          >
+                            <div
+                              class="divide-gray/5 flex flex-col items-start divide-y p-2 text-sm"
+                            >
+                              <Popover.Close
+                                class="btn btn-sm w-full justify-start"
+                                onclick={() => onPopupDeleteMessage(msg)}
+                              >
+                                <span class="*:size-5"><IconDeleteBin /></span
+                                ><span>Delete</span>
+                              </Popover.Close>
+                            </div>
+                          </Popover.Content>
+                        </Popover.Portal>
+                      </Popover.Root>
                     {/if}
                   </div>
                   <div class="max-h-[600px] overflow-auto overscroll-auto">
@@ -808,16 +786,27 @@
     </section>
   {/if}
   <section
-    class="group relative border-t border-surface-500/20 py-2 pl-2 pr-16 md:pr-24"
+    class="group border-surface-500/20 relative border-t py-2 pr-16 pl-2 md:pr-24"
   >
-    <div class="flex flex-row items-center gap-0 pl-1 text-surface-500">
-      <button
-        class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
-        disabled={submitting > 0}
-        use:popup={emojisPopup}
-      >
-        <span class="*:size-5"><IconEmotionHappyLine /></span>
-      </button>
+    <div class="text-surface-500 flex flex-row items-center gap-0 pl-1">
+      <Popover.Root>
+        <Popover.Trigger
+          class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
+          disabled={submitting > 0}
+        >
+          <span class="*:size-5"><IconEmotionHappyLine /></span>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="top"
+            align="start"
+            sideOffset={8}
+            class="card bg-surface-50-900-token z-[10001] max-w-96 shadow-lg"
+          >
+            <EmojisPopup {addEmoji} />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
       <div class="flex flex-row items-center">
         <!-- NOTE: Don't use `hidden` as it prevents `required` from operating -->
         <div class="h-0 w-0 overflow-hidden">
@@ -838,7 +827,7 @@
         </button>
 
         {#if filePayload}
-          <div class="btn btn-sm px-2 text-primary-500">
+          <div class="btn btn-sm text-primary-500 px-2">
             <span class="max-w-52 truncate"
               >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
             >
@@ -866,14 +855,14 @@
       minHeight="40"
       maxHeight="200"
       containerClass=""
-      class="textarea text-pretty break-words border-0 !bg-transparent outline-0 ring-0"
+      class="textarea border-0 !bg-transparent text-pretty break-words ring-0 outline-0"
       name="prompt"
       id="prompt"
       disabled={submitting > 0}
       placeholder="Write a message..."
     />
     <button
-      class="btn btn-sm absolute bottom-3 right-4 overflow-hidden rounded-full border-2 border-white bg-surface-500/60 py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:bg-primary-500 before:transition-all before:duration-500 group-hover:bg-surface-300/60 {messageReady
+      class="btn btn-sm bg-surface-500/60 before:bg-primary-500 group-hover:bg-surface-300/60 absolute right-4 bottom-3 overflow-hidden rounded-full border-2 border-white py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:transition-all before:duration-500 {messageReady
         ? 'before:translate-y-0 before:scale-150'
         : 'before:translate-y-full'}"
       disabled={!messageReady}
@@ -898,7 +887,7 @@
               .toLowerCase()
               .includes(mentionQuery.toLowerCase())) as member}
           <button
-            class="btn flex w-full min-w-0 cursor-pointer items-center justify-start rounded-none px-4 py-1 hover:bg-panda/10"
+            class="btn hover:bg-panda/10 flex w-full min-w-0 cursor-pointer items-center justify-start rounded-none px-4 py-1"
             onclick={() => selectMember(member)}
           >
             <Avatar
@@ -910,7 +899,7 @@
             />
             <div class="min-w-0 flex-1 text-left">
               <p class="truncate">{member.name}</p>
-              <p class="truncate text-sm text-surface-500">@{member.username}</p
+              <p class="text-surface-500 truncate text-sm">@{member.username}</p
               >
             </div>
           </button>

@@ -1,0 +1,696 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+/**
+ * ICPanda theme.
+ *
+ * These are the exact channel triplets the Skeleton `icpanda` theme shipped
+ * (see the removed `icpanda-theme.ts`). Keeping them as `--color-*` custom
+ * properties means the Tailwind palette (`tailwind.config.ts`) and the
+ * compatibility layer at the bottom of this file share one source of truth,
+ * and the port is colour-for-colour identical to the Skeleton build.
+ *
+ * https://dfinity.frontify.com/d/pD7yZhsmpqos/internet-computer#/internet-computer/colors
+ */
+:root {
+  /* =~= Theme properties =~= */
+  --theme-font-family-base:
+    -apple-system, blinkmacsystemfont, 'system-ui', 'Segoe UI', 'Noto Sans',
+    roboto, helvetica, arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --theme-font-family-heading: var(--theme-font-family-base);
+  --theme-font-color-base: 0 0 0;
+  --theme-font-color-dark: 255 255 255;
+  --theme-rounded-base: 9999px;
+  --theme-rounded-container: 8px;
+  --theme-border-base: 1px;
+
+  /* =~= Theme on-x colours =~= */
+  --on-primary: 255 255 255;
+  --on-secondary: 255 255 255;
+  --on-tertiary: 255 255 255;
+  --on-success: 255 255 255;
+  --on-warning: 255 255 255;
+  --on-error: 255 255 255;
+  --on-surface: 255 255 255;
+
+  /* primary | #11c291 */
+  --color-primary-50: 219 246 239;
+  --color-primary-100: 207 243 233;
+  --color-primary-200: 196 240 228;
+  --color-primary-300: 160 231 211;
+  --color-primary-400: 88 212 178;
+  --color-primary-500: 17 194 145;
+  --color-primary-600: 15 175 131;
+  --color-primary-700: 13 146 109;
+  --color-primary-800: 10 116 87;
+  --color-primary-900: 8 95 71;
+
+  /* secondary | #3b00b9 */
+  --color-secondary-50: 226 217 245;
+  --color-secondary-100: 216 204 241;
+  --color-secondary-200: 206 191 238;
+  --color-secondary-300: 177 153 227;
+  --color-secondary-400: 118 77 206;
+  --color-secondary-500: 59 0 185;
+  --color-secondary-600: 53 0 167;
+  --color-secondary-700: 44 0 139;
+  --color-secondary-800: 35 0 111;
+  --color-secondary-900: 29 0 91;
+
+  /* tertiary | #29abe2 */
+  --color-tertiary-50: 223 242 251;
+  --color-tertiary-100: 212 238 249;
+  --color-tertiary-200: 202 234 248;
+  --color-tertiary-300: 169 221 243;
+  --color-tertiary-400: 105 196 235;
+  --color-tertiary-500: 41 171 226;
+  --color-tertiary-600: 37 154 203;
+  --color-tertiary-700: 31 128 170;
+  --color-tertiary-800: 25 103 136;
+  --color-tertiary-900: 20 84 111;
+
+  /* success | #84cc16 */
+  --color-success-50: 237 247 220;
+  --color-success-100: 230 245 208;
+  --color-success-200: 224 242 197;
+  --color-success-300: 206 235 162;
+  --color-success-400: 169 219 92;
+  --color-success-500: 132 204 22;
+  --color-success-600: 119 184 20;
+  --color-success-700: 99 153 17;
+  --color-success-800: 79 122 13;
+  --color-success-900: 65 100 11;
+
+  /* warning | #fbb03b */
+  --color-warning-50: 254 243 226;
+  --color-warning-100: 254 239 216;
+  --color-warning-200: 254 235 206;
+  --color-warning-300: 253 223 177;
+  --color-warning-400: 252 200 118;
+  --color-warning-500: 251 176 59;
+  --color-warning-600: 226 158 53;
+  --color-warning-700: 188 132 44;
+  --color-warning-800: 151 106 35;
+  --color-warning-900: 123 86 29;
+
+  /* error | #ed1e79 */
+  --color-error-50: 252 221 235;
+  --color-error-100: 251 210 228;
+  --color-error-200: 251 199 222;
+  --color-error-300: 248 165 201;
+  --color-error-400: 242 98 161;
+  --color-error-500: 237 30 121;
+  --color-error-600: 213 27 109;
+  --color-error-700: 178 23 91;
+  --color-error-800: 142 18 73;
+  --color-error-900: 116 15 59;
+
+  /* surface | #737373 */
+  --color-surface-50: 234 234 234;
+  --color-surface-100: 227 227 227;
+  --color-surface-200: 220 220 220;
+  --color-surface-300: 199 199 199;
+  --color-surface-400: 157 157 157;
+  --color-surface-500: 115 115 115;
+  --color-surface-600: 104 104 104;
+  --color-surface-700: 86 86 86;
+  --color-surface-800: 69 69 69;
+  --color-surface-900: 56 56 56;
+}
+
+html,
+body {
+  @apply h-full overflow-hidden;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: rgb(0 0 0 / 20%) rgb(255 255 255 / 5%) !important;
+}
+
+html.dark {
+  scrollbar-color: rgb(255 255 255 / 20%) rgb(0 0 0 / 5%) !important;
+}
+
+body {
+  color: rgb(var(--theme-font-color-base));
+  font-family: var(--theme-font-family-base);
+}
+
+.dark body {
+  color: rgb(var(--theme-font-color-dark));
+}
+
+:root [data-theme='icpanda'] {
+  background: linear-gradient(
+    180deg,
+    rgb(17 194 145 / 10%) -2%,
+    rgb(255 255 255 / 0%) 35%
+  );
+}
+
+.dark:root [data-theme='icpanda'] {
+  background-color: hsl(0deg 100% 1% / 100%);
+  background-image:
+    radial-gradient(at 0% 0%, hsl(137deg 58% 16% / 98%) 0, transparent 50%),
+    radial-gradient(at 40% 20%, hsl(27deg 100% 1% / 100%) 0, transparent 50%),
+    radial-gradient(at 100% 60%, hsl(137deg 58% 16% / 98%) 0, transparent 50%);
+}
+
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.icpanda-message {
+  font-family: var(--theme-font-family-base);
+}
+
+.content-markdown :global(a) {
+  text-underline-offset: 4px;
+  text-decoration-line: underline;
+  font-weight: 500;
+}
+
+@supports not (text-wrap: pretty) {
+  .text-pretty {
+    text-wrap: wrap;
+  }
+}
+
+@supports not (text-wrap: wrap) {
+  .text-pretty {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ * Skeleton compatibility layer
+ * ---------------------------------------------------------------------------
+ *
+ * `@skeletonlabs/skeleton` is gone; its interactive parts now live in
+ * `lib/components/ui` on top of bits-ui. What remains here is the styling-only
+ * half of the framework — the class names the markup already uses. Values are
+ * ported verbatim from the Skeleton 2.11 Tailwind plugin so the UI keeps its
+ * exact appearance.
+ *
+ * These sit in the `components` layer, so plain Tailwind utilities written in
+ * markup still win over them, matching how Skeleton behaved.
+ */
+@layer components {
+  /* =~= Typography =~= */
+  .h1 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-3xl leading-9;
+  }
+
+  .h2 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-2xl leading-8;
+  }
+
+  .h3 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-xl leading-7;
+  }
+
+  .h4 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-lg leading-7;
+  }
+
+  .h5 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-base leading-6;
+  }
+
+  .h6 {
+    font-family: var(--theme-font-family-heading);
+    @apply text-sm leading-5;
+  }
+
+  /* =~= Buttons =~= */
+  .btn,
+  .btn-icon {
+    @apply inline-flex items-center justify-center text-center whitespace-nowrap transition-all duration-150 ease-in-out;
+  }
+
+  .btn {
+    border-radius: var(--theme-rounded-base);
+    @apply px-5 py-[9px] text-base;
+  }
+
+  .btn > :not([hidden]) ~ :not([hidden]),
+  .btn-icon > :not([hidden]) ~ :not([hidden]) {
+    @apply ml-2;
+  }
+
+  .btn:hover,
+  .btn-icon:hover {
+    filter: brightness(1.15);
+  }
+
+  .btn:active,
+  .btn-icon:active {
+    filter: brightness(0.9);
+    @apply scale-95;
+  }
+
+  .btn:disabled,
+  .btn-icon:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+  }
+
+  .btn:disabled:hover,
+  .btn-icon:disabled:hover {
+    filter: brightness(1);
+  }
+
+  .btn:disabled:active,
+  .btn-icon:disabled:active {
+    filter: brightness(1);
+    @apply scale-100;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  /* `btn-md` was never a Skeleton class; defined here so the few call sites
+   * that use it land on the default size instead of nothing. */
+  .btn-md {
+    @apply px-5 py-[9px] text-base;
+  }
+
+  .btn-lg {
+    @apply px-7 py-3 text-lg;
+  }
+
+  .btn-icon {
+    @apply aspect-square w-[43px] rounded-full p-0 text-base;
+  }
+
+  .btn-icon-sm {
+    @apply aspect-square w-[33px] text-sm;
+  }
+
+  /* =~= Cards =~= */
+  .card {
+    background-color: rgb(var(--color-surface-100));
+    box-shadow: inset 0 0 0 1px rgb(23 23 23 / 5%);
+    border-radius: var(--theme-rounded-container);
+  }
+
+  .dark .card {
+    background-color: rgb(var(--color-surface-800));
+    box-shadow: inset 0 0 0 1px rgb(250 250 250 / 5%);
+  }
+
+  /* =~= Forms =~= */
+  .input,
+  .textarea,
+  .select,
+  .input-group {
+    width: 100%;
+    background-color: rgb(var(--color-surface-200));
+    border-width: var(--theme-border-base);
+    border-color: rgb(var(--color-surface-400));
+    box-shadow: none !important;
+    @apply transition duration-200 ease-in-out;
+  }
+
+  .dark .input,
+  .dark .textarea,
+  .dark .select,
+  .dark .input-group {
+    background-color: rgb(var(--color-surface-700));
+    border-color: rgb(var(--color-surface-500));
+  }
+
+  .input,
+  .input-group {
+    border-radius: var(--theme-rounded-base);
+  }
+
+  .textarea,
+  .select {
+    border-radius: var(--theme-rounded-container);
+  }
+
+  .input:hover,
+  .textarea:hover,
+  .select:hover,
+  .input-group:hover,
+  .input:focus,
+  .textarea:focus,
+  .select:focus,
+  .input-group:focus {
+    filter: brightness(1.05);
+  }
+
+  .input:focus-within,
+  .textarea:focus-within,
+  .select:focus-within,
+  .input-group:focus-within {
+    border-color: rgb(var(--color-primary-500));
+  }
+
+  .input:disabled,
+  .textarea:disabled,
+  .select:disabled,
+  .input-group > input:disabled,
+  .input-group > textarea:disabled,
+  .input-group > select:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+  }
+
+  .input:disabled:hover,
+  .textarea:disabled:hover,
+  .select:disabled:hover,
+  .input[readonly],
+  .textarea[readonly],
+  .select[readonly],
+  .input[readonly]:hover,
+  .textarea[readonly]:hover,
+  .select[readonly]:hover {
+    filter: brightness(1) !important;
+  }
+
+  .input[readonly],
+  .textarea[readonly],
+  .select[readonly] {
+    cursor: not-allowed !important;
+    border-color: transparent !important;
+  }
+
+  .select {
+    @apply p-2 pr-8;
+  }
+
+  .input-group {
+    @apply grid overflow-hidden;
+  }
+
+  .input-group div,
+  .input-group a,
+  .input-group button {
+    @apply flex items-center justify-between px-4;
+  }
+
+  .input-group-divider input,
+  .input-group-divider select,
+  .input-group-divider div,
+  .input-group-divider a {
+    border-left-width: 1px;
+    border-color: rgb(var(--color-surface-400));
+    box-shadow: none !important;
+    min-width: fit-content !important;
+  }
+
+  .input-group-divider *:first-child {
+    border-left-width: 0 !important;
+  }
+
+  .input-success {
+    background-color: rgb(var(--color-success-200));
+    border-color: rgb(var(--color-success-500));
+    color: rgb(var(--color-success-700));
+  }
+
+  .input-warning {
+    background-color: rgb(var(--color-warning-200));
+    border-color: rgb(var(--color-warning-500));
+    color: rgb(var(--color-warning-700));
+  }
+
+  .input-error {
+    background-color: rgb(var(--color-error-200));
+    border-color: rgb(var(--color-error-500));
+    color: rgb(var(--color-error-700));
+  }
+
+  .label > :not([hidden]) ~ :not([hidden]) {
+    @apply mt-1;
+  }
+
+  /* =~= Lists & badges =~= */
+  .list {
+    @apply list-none;
+  }
+
+  .list li {
+    border-radius: var(--theme-rounded-base);
+    @apply flex items-center;
+  }
+
+  .list li > :not([hidden]) ~ :not([hidden]) {
+    @apply ml-4;
+  }
+
+  .badge {
+    border-radius: var(--theme-rounded-base);
+    @apply inline-flex items-center justify-center px-2 py-1 text-xs font-semibold whitespace-nowrap;
+  }
+
+  .badge > :not([hidden]) ~ :not([hidden]) {
+    @apply ml-2;
+  }
+
+  .badge-icon {
+    @apply flex size-5 items-center justify-center rounded-full text-xs font-semibold shadow;
+  }
+
+  .placeholder-circle {
+    background-color: rgb(var(--color-surface-300));
+    @apply aspect-square rounded-full;
+  }
+
+  /* =~= Design tokens =~= */
+  .bg-surface-hover-token:hover {
+    background-color: rgb(var(--color-surface-500) / 5%);
+  }
+
+  .dark .bg-surface-hover-token:hover {
+    background-color: rgb(var(--color-surface-500) / 10%);
+  }
+
+  .bg-surface-50-900-token {
+    background-color: rgb(var(--color-surface-50));
+  }
+
+  .dark .bg-surface-50-900-token {
+    background-color: rgb(var(--color-surface-900));
+  }
+
+  .bg-surface-100-800-token {
+    background-color: rgb(var(--color-surface-100));
+  }
+
+  .dark .bg-surface-100-800-token {
+    background-color: rgb(var(--color-surface-800));
+  }
+
+  .bg-surface-200-700-token {
+    background-color: rgb(var(--color-surface-200));
+  }
+
+  .dark .bg-surface-200-700-token {
+    background-color: rgb(var(--color-surface-700));
+  }
+
+  .text-surface-900-50-token {
+    color: rgb(var(--color-surface-900));
+  }
+
+  .dark .text-surface-900-50-token {
+    color: rgb(var(--color-surface-50));
+  }
+
+  .text-token {
+    color: rgb(var(--theme-font-color-base));
+  }
+
+  .dark .text-token {
+    color: rgb(var(--theme-font-color-dark));
+  }
+}
+
+/**
+ * Skeleton colour variants.
+ *
+ * Generated by hand from the plugin output: `filled` is a solid 500 with the
+ * palette's on-colour, `soft` a 20% 400 wash with 700/200 text, `ghost` a 20%
+ * 500 wash inside a 1px inset ring, and `ringed` that ring over nothing.
+ * `surface` deviates from the pattern exactly as Skeleton did.
+ */
+@layer components {
+  .variant-filled {
+    background-color: rgb(var(--color-surface-900));
+    color: rgb(var(--color-surface-50));
+  }
+
+  .dark .variant-filled {
+    background-color: rgb(var(--color-surface-50));
+    color: rgb(var(--color-surface-900));
+  }
+
+  .variant-filled-primary {
+    background-color: rgb(var(--color-primary-500));
+    color: rgb(var(--on-primary));
+  }
+
+  .variant-filled-secondary {
+    background-color: rgb(var(--color-secondary-500));
+    color: rgb(var(--on-secondary));
+  }
+
+  .variant-filled-tertiary {
+    background-color: rgb(var(--color-tertiary-500));
+    color: rgb(var(--on-tertiary));
+  }
+
+  .variant-filled-success {
+    background-color: rgb(var(--color-success-500));
+    color: rgb(var(--on-success));
+  }
+
+  .variant-filled-warning {
+    background-color: rgb(var(--color-warning-500));
+    color: rgb(var(--on-warning));
+  }
+
+  .variant-filled-error {
+    background-color: rgb(var(--color-error-500));
+    color: rgb(var(--on-error));
+  }
+
+  .variant-filled-surface {
+    background-color: rgb(var(--color-surface-400));
+    color: rgb(var(--on-surface));
+  }
+
+  .dark .variant-filled-surface {
+    background-color: rgb(var(--color-surface-500));
+  }
+
+  .variant-soft,
+  .variant-soft-surface {
+    background-color: rgb(var(--color-surface-400) / 20%);
+    color: rgb(var(--color-surface-700));
+  }
+
+  .dark .variant-soft,
+  .dark .variant-soft-surface {
+    color: rgb(var(--color-surface-200));
+  }
+
+  .variant-soft-primary {
+    background-color: rgb(var(--color-primary-400) / 20%);
+    color: rgb(var(--color-primary-700));
+  }
+
+  .dark .variant-soft-primary {
+    color: rgb(var(--color-primary-200));
+  }
+
+  .variant-soft-secondary {
+    background-color: rgb(var(--color-secondary-400) / 20%);
+    color: rgb(var(--color-secondary-700));
+  }
+
+  .dark .variant-soft-secondary {
+    color: rgb(var(--color-secondary-200));
+  }
+
+  .variant-soft-tertiary {
+    background-color: rgb(var(--color-tertiary-400) / 20%);
+    color: rgb(var(--color-tertiary-700));
+  }
+
+  .dark .variant-soft-tertiary {
+    color: rgb(var(--color-tertiary-200));
+  }
+
+  .variant-soft-success {
+    background-color: rgb(var(--color-success-400) / 20%);
+    color: rgb(var(--color-success-700));
+  }
+
+  .dark .variant-soft-success {
+    color: rgb(var(--color-success-200));
+  }
+
+  .variant-soft-warning {
+    background-color: rgb(var(--color-warning-400) / 20%);
+    color: rgb(var(--color-warning-700));
+  }
+
+  .dark .variant-soft-warning {
+    color: rgb(var(--color-warning-200));
+  }
+
+  .variant-soft-error {
+    background-color: rgb(var(--color-error-400) / 20%);
+    color: rgb(var(--color-error-700));
+  }
+
+  .dark .variant-soft-error {
+    color: rgb(var(--color-error-200));
+  }
+
+  .variant-ghost,
+  .variant-ghost-surface {
+    background-color: rgb(var(--color-surface-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-surface-500));
+  }
+
+  .variant-ghost-primary {
+    background-color: rgb(var(--color-primary-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-primary-500));
+  }
+
+  .variant-ghost-secondary {
+    background-color: rgb(var(--color-secondary-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-secondary-500));
+  }
+
+  .variant-ghost-tertiary {
+    background-color: rgb(var(--color-tertiary-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-tertiary-500));
+  }
+
+  .variant-ghost-success {
+    background-color: rgb(var(--color-success-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-success-500));
+  }
+
+  .variant-ghost-warning {
+    background-color: rgb(var(--color-warning-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-warning-500));
+  }
+
+  .variant-ghost-error {
+    background-color: rgb(var(--color-error-500) / 20%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-error-500));
+  }
+
+  .variant-ringed,
+  .variant-ringed-surface {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px rgb(var(--color-surface-500));
+  }
+
+  .variant-ringed-primary {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px rgb(var(--color-primary-500));
+  }
+
+  .variant-ringed-error {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px rgb(var(--color-error-500));
+  }
+}

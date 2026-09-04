@@ -3,7 +3,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { getBytesString, getShortNumber } from '$lib/utils/helper'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   interface Props {

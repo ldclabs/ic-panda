@@ -5,15 +5,19 @@ import {
   type HttpAgentOptions,
   type HttpAgentRequest,
   type Identity
-} from '@dfinity/agent'
-import { AuthClient, IdbStorage } from '@dfinity/auth-client'
+} from '@icp-sdk/core/agent'
+import {
+  AuthClient,
+  IdbStorage,
+  type AuthClientCreateOptions
+} from '@icp-sdk/auth/client'
 import {
   DelegationChain,
   DelegationIdentity,
   Ed25519KeyIdentity,
   isDelegationValid
-} from '@dfinity/identity'
-import type { Principal } from '@dfinity/principal'
+} from '@icp-sdk/core/identity'
+import type { Principal } from '@icp-sdk/core/principal'
 
 export const EXPIRATION_MS = 1000 * 60 * 60 * 24 * 30 // 30 days
 
@@ -54,16 +58,26 @@ export class IdentityEx implements Identity {
 
 export const anonymousIdentity = new IdentityEx(new AnonymousIdentity(), 0)
 
-// II auth storage
+// II auth storage. `@icp-sdk/auth` keeps the same IndexedDB layout as the
+// `@dfinity/auth-client` it replaces ('auth-client-db' / 'ic-keyval', v1), so
+// sessions and the name identity below survive the migration.
 const storage = new IdbStorage()
 
-// should create a new authClient for each login
-export function createAuthClient(): Promise<AuthClient> {
-  return AuthClient.create({
+/**
+ * Builds an auth client. The identity provider and window options belong to
+ * the client itself now (they used to be arguments of `login`), so sign-in
+ * still creates a fresh client per attempt.
+ */
+export function createAuthClient(
+  options?: AuthClientCreateOptions
+): AuthClient {
+  return new AuthClient({
     keyType: 'Ed25519',
+    ...options,
     idleOptions: {
       disableIdle: true,
-      disableDefaultIdleCallback: true
+      disableDefaultIdleCallback: true,
+      ...options?.idleOptions
     }
   })
 }
@@ -122,13 +136,23 @@ export async function setNameIdentity(
 export async function loadIdentity(
   client?: AuthClient
 ): Promise<IdentityEx | null> {
-  const authClient = client || (await createAuthClient())
-  const authenticated = await authClient.isAuthenticated()
+  const authClient = client || createAuthClient()
+  // `getIdentity` restores the persisted session, returning the anonymous
+  // identity when there is nothing valid to restore.
+  //
+  // Deliberately not `authClient.isAuthenticated()`: that reads a
+  // `ic-delegation_expiration` flag which `@icp-sdk/auth` only writes when it
+  // performs the sign-in itself. Sessions carried over from
+  // `@dfinity/auth-client` have no such flag, so trusting it would sign out
+  // every existing user on upgrade even though their delegation is intact.
+  const identity = await authClient.getIdentity()
 
   // Not authenticated therefore we provide no identity as a result
-  if (authenticated) {
+  if (!identity.getPrincipal().isAnonymous()) {
     const expiration = await tryGetDelegationExpiration()
-    return new IdentityEx(authClient.getIdentity(), expiration)
+    if (Date.now() < expiration) {
+      return new IdentityEx(identity, expiration)
+    }
   }
 
   return null
@@ -164,8 +188,7 @@ function getDelegationExpiration(chain: DelegationChain): number {
 export async function logout(url?: string): Promise<void> {
   dynAgent.setIdentity(anonymousIdentity)
   await setNameIdentity(null)
-  const authClient = await createAuthClient()
-  await authClient.logout()
+  await createAuthClient().signOut()
   url && window.location.assign(url) // force reload to clear all auth state!!
 }
 

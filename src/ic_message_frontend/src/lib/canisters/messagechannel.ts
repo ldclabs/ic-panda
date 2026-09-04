@@ -17,7 +17,7 @@ import {
   type _SERVICE
 } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 import { unwrapResult } from '$lib/types/result'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { createActor } from './actors'
 
 export {

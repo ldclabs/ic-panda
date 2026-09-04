@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { autoFocus } from '$lib/actions/focus'
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -9,8 +10,8 @@
   import { toastRun } from '$lib/stores/toast'
   import { getShortNumber2 } from '$lib/utils/helper'
   import { PANDAToken, TokenDisplay, formatNumber } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
-  import { focusTrap, getToastStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -113,11 +114,11 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     oninput={onFormChange}
-    use:focusTrap={true}
+    use:autoFocus
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 pr-16 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20 pr-16"
         type="number"
         name="amountInput"
         min="0"
@@ -129,7 +130,7 @@
         data-focusindex="1"
         required
       />
-      <div class="absolute right-2 top-2 text-neutral-500 outline-0"
+      <div class="absolute top-2 right-2 text-neutral-500 outline-0"
         >{PANDAToken.symbol}</div
       >
       <p class="h-5 pl-3 text-sm {topupErr ? 'text-error-500' : 'text-panda'}"

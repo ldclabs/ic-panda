@@ -17,16 +17,17 @@ import { popupCenter } from '$lib/utils/window'
 import {
   requestIdOf,
   type DerEncodedPublicKey,
+  type Identity,
   type Signature
-} from '@dfinity/agent'
+} from '@icp-sdk/core/agent'
 import {
   Delegation,
   DelegationChain,
   DelegationIdentity,
   Ed25519KeyIdentity,
   Ed25519PublicKey
-} from '@dfinity/identity'
-import type { Principal } from '@dfinity/principal'
+} from '@icp-sdk/core/identity'
+import type { Principal } from '@icp-sdk/core/principal'
 import { base64ToBytes, bytesToBase64Url } from '@ldclabs/cose-ts/utils'
 import { decode, encode } from 'cborg'
 import { writable, type Readable } from 'svelte/store'
@@ -80,7 +81,15 @@ async function fetchRootKey() {
 }
 
 function initAuthStore(): AuthStore {
-  const authClientPromise = createAuthClient()
+  // Sign-in has to build its own client because the identity provider is now a
+  // construction option rather than a login option. Whichever client last held
+  // a session becomes the one `sync` reads, so a re-sync after sign-in sees the
+  // signed-in identity rather than this client's memoized anonymous one.
+  let authClient = createAuthClient()
+  // `@icp-sdk/auth` resolves sign-in to an identity and no longer reports which
+  // authentication method Internet Identity used, so this stays empty for II
+  // sign-ins and is only meaningful for the dMsg name identity below. It is
+  // passed through verbatim as `authn_method` in the deep-link response.
   let authnMethod = ''
   let authnOrign = ''
   let identity: IdentityEx | null = null
@@ -95,6 +104,47 @@ function initAuthStore(): AuthStore {
     identity: anonymousIdentity
   })
 
+  async function signInWith({
+    identityProvider,
+    derivationOrigin,
+    origin
+  }: {
+    identityProvider: string
+    derivationOrigin?: string
+    origin: string
+  }): Promise<void> {
+    // A fresh client per attempt: the identity provider, derivation origin and
+    // popup geometry are construction options in `@icp-sdk/auth`.
+    const client = createAuthClient({
+      identityProvider,
+      ...(derivationOrigin ? { derivationOrigin } : {}),
+      windowOpenerFeatures: popupCenter({ width: 576, height: 625 })
+    })
+
+    let id: Identity
+    try {
+      id = await client.signIn({
+        maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n
+      })
+    } catch (err) {
+      // Not every caller attaches a handler (the deep-link page does not), so
+      // log before rethrowing or the failure is invisible.
+      console.error(err)
+      throw err
+    }
+
+    authClient = client
+
+    authnMethod = ''
+    authnOrign = origin
+    srcIdentity = new IdentityEx(id, Date.now() + EXPIRATION_MS)
+    identity = srcIdentity
+    dynAgent.setIdentity(identity)
+    srcAgent.setIdentity(identity)
+
+    set({ identity })
+  }
+
   const nameIdentityAPI = new NameIdentityAPI(srcAgent)
   const store = {
     subscribe,
@@ -106,13 +156,9 @@ function initAuthStore(): AuthStore {
       return identity
     },
 
-    ready: async () => {
-      await fetchRootKey()
-      await authClientPromise
-    },
+    ready: () => fetchRootKey(),
 
     sync: async () => {
-      const authClient = await authClientPromise
       srcIdentity = await loadIdentity(authClient)
       if (srcIdentity) {
         srcAgent.setIdentity(srcIdentity)
@@ -191,78 +237,14 @@ function initAuthStore(): AuthStore {
     },
 
     signIn: () =>
-      new Promise<void>(async (resolve, reject) => {
-        // Important: authClientPromise should be resolved here
-        // https://ffan0811.medium.com/window-open-returns-null-in-safari-and-firefox-after-allowing-pop-up-on-the-browser-4e4e45e7d926
-        const authClient = await authClientPromise
-        await authClient.login({
-          derivationOrigin: DERIVATION_ORIGIN as string,
-          maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
-          onSuccess: (msg) => {
-            authnMethod = msg.authnMethod
-            authnOrign = DERIVATION_ORIGIN || location.origin
-            srcIdentity = new IdentityEx(
-              authClient.getIdentity(),
-              Date.now() + EXPIRATION_MS
-            )
-            identity = srcIdentity
-            dynAgent.setIdentity(identity)
-            srcAgent.setIdentity(identity)
-
-            set({
-              identity
-            })
-
-            resolve()
-          },
-          onError: (err) => {
-            console.error(err)
-            reject(err)
-          },
-          identityProvider: IDENTITY_PROVIDER,
-          windowOpenerFeatures: popupCenter({
-            width: 576,
-            height: 625
-          })
-        })
+      signInWith({
+        identityProvider: IDENTITY_PROVIDER,
+        ...(DERIVATION_ORIGIN ? { derivationOrigin: DERIVATION_ORIGIN } : {}),
+        origin: DERIVATION_ORIGIN || location.origin
       }),
 
     signIn2: (identityProvider = 'https://identity.internetcomputer.org') =>
-      new Promise<void>(async (resolve, reject) => {
-        // Important: authClientPromise should be resolved here
-        // https://ffan0811.medium.com/window-open-returns-null-in-safari-and-firefox-after-allowing-pop-up-on-the-browser-4e4e45e7d926
-        const authClient = await authClientPromise
-        await authClient.login({
-          maxTimeToLive: BigInt(EXPIRATION_MS) * 1000000n,
-          identityProvider,
-          onSuccess: (msg) => {
-            authnMethod = msg.authnMethod
-            authnOrign = location.origin
-
-            srcIdentity = new IdentityEx(
-              authClient.getIdentity(),
-              Date.now() + EXPIRATION_MS
-            )
-            identity = srcIdentity
-            dynAgent.setIdentity(identity)
-            srcAgent.setIdentity(identity)
-
-            set({
-              identity
-            })
-
-            resolve()
-          },
-          onError: (err) => {
-            console.error(err)
-            reject(err)
-          },
-          windowOpenerFeatures: popupCenter({
-            width: 576,
-            height: 625
-          })
-        })
-      }),
+      signInWith({ identityProvider, origin: location.origin }),
 
     deepLinkSignIn: async (deepLinkSignInRequest: string) => {
       if (!identity) {

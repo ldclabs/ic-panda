@@ -1,7 +1,7 @@
 <script lang="ts">
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
-  import { clipboard } from '@skeletonlabs/skeleton'
+  import { clipboard } from '$lib/actions/clipboard'
 
   interface Props {
     textValue: string

@@ -5,7 +5,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import type { LedgerAPI } from '$lib/types/token'
   import { TokenDisplay, type TokenInfo } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
+  import { Principal } from '@icp-sdk/core/principal'
   import { tick, type SvelteComponent } from 'svelte'
 
   // Props
@@ -77,7 +77,7 @@
       </p>
       <a
         type="button"
-        class="mt-2 flex w-fit flex-row items-center gap-2 text-primary-500"
+        class="text-primary-500 mt-2 flex w-fit flex-row items-center gap-2"
         target="_blank"
         href="https://internetcomputer.org/docs/current/developer-docs/daos/nns/using-the-nns-dapp/nns-dapp-importing-tokens"
       >
@@ -87,7 +87,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="ledgerId"
         maxlength="27"
@@ -108,7 +108,7 @@
               >{new TokenDisplay(token, token.balance).display()}</span
             >
           </div>
-          <div class="flex flex-row justify-between text-sm text-surface-500">
+          <div class="text-surface-500 flex flex-row justify-between text-sm">
             <span class="">{token.name}</span>
           </div>
         </div>

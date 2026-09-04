@@ -17,15 +17,20 @@
     type DisplayUserInfo
   } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { getContext, onMount } from 'svelte'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
+  import { Popover } from 'bits-ui'
+  import { getContext, onMount, type Snippet } from 'svelte'
   import LeaveAccountModal from './LeaveAccountModal.svelte'
 
   interface Props {
-    target: string
+    /** Class for the trigger button. */
+    triggerClass?: string
+    /** Contents of the trigger button. */
+    trigger: Snippet
   }
 
-  let { target }: Props = $props()
+  let { triggerClass = '', trigger }: Props = $props()
 
   type DisplayUserInfoEx = DisplayUserInfo & { isNameAccount?: boolean }
 
@@ -34,7 +39,10 @@
   let myAccounts: DisplayUserInfoEx[] = $state([])
   let myID = $state('')
   let hasNameAccounts = $state(false)
-  let selfElement: HTMLElement | null = null
+  // The accounts list is fetched lazily; until it lands the menu would pop
+  // open and then resize under the pointer, so hold it closed.
+  let ready = $state(false)
+  let open = $state(false)
 
   function onWalletHandler(): void {
     modalStore.trigger({
@@ -137,100 +145,119 @@
     const { abort, finally: onfinally } = toastRun(async () => {
       await loadMyAccounts()
       onfinally(() => {
-        selfElement?.classList.remove('popup-not-ready')
+        ready = true
       })
     }, toastStore)
     return abort
   })
 </script>
 
-<div
-  class="popup-not-ready card z-20 w-64 bg-white px-0 py-2 shadow-lg"
-  data-popup={target}
-  bind:this={selfElement}
+<Popover.Root
+  {open}
+  onOpenChange={(next: boolean) => {
+    // Keep the trigger enabled — Skeleton's version stayed clickable and
+    // simply refused to open until the accounts request had landed.
+    open = next && ready
+  }}
 >
-  <div
-    class="flex flex-col items-start text-sm *:bg-surface-hover-token *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
-  >
-    <button type="button" onclick={onWalletHandler}>
-      <span class="*:size-5"><IconWallet /></span>
-      <span>Wallet</span>
-    </button>
-    <a type="button" href="/">
-      <span class="*:size-5"><IconHomeLine /></span>
-      <span>Home Page</span>
-    </a>
-    <a
-      type="button"
-      target="_blank"
-      href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+  <Popover.Trigger class={triggerClass}>
+    {@render trigger()}
+  </Popover.Trigger>
+  <Popover.Portal>
+    <Popover.Content
+      side="top"
+      align="end"
+      sideOffset={8}
+      class="card z-[10001] w-64 bg-white px-0 py-2 shadow-lg"
     >
-      <span class="*:size-5"><IconExchange /></span>
-      <span>Get PANDA via ICPSwap</span>
-    </a>
-    <a
-      type="button"
-      target="_blank"
-      href="https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai"
-    >
-      <span class="*:size-5"><IconExchange /></span>
-      <span>Get PANDA via KongSwap</span>
-    </a>
-    <a type="button" target="_blank" href="https://github.com/ldclabs/ic-panda">
-      <span class="*:size-5"><IconGithub /></span>
-      <span>Source Code</span>
-    </a>
-    <button
-      type="button"
-      class="border-b border-surface-500/20"
-      onclick={() => window.location.reload()}
-    >
-      <span class="*:size-5"><IconRefresh /></span>
-      <span>Reload App</span>
-      <span class="text-surface-500">(v{APP_VERSION})</span>
-    </button>
-    {#each myAccounts as info (info._id)}
-      <button
-        type="button"
-        class="relative items-center !py-1 disabled:bg-surface-50-900-token"
-        disabled={myID === info._id || switching !== ''}
-        onclick={() => onSwitchHandler(info)}
+      <div
+        class="*:bg-surface-hover-token flex flex-col items-start text-sm *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
       >
-        {#if info.isNameAccount}
-          <span class="*:size-5"><IconOrganizationChart /></span>
-        {:else}
-          <span class="*:size-5"><IconUser0 /></span>
-        {/if}
-        <Avatar
-          initials={info.name}
-          src={info.image}
-          class="!overflow-visible"
-          fill="fill-white"
-          width="w-8"
-        />
-        <span class="max-w-44 truncate">
-          {info.name + (info.username ? ' @' + info.username : '')}
-        </span>
-        {#if info.isNameAccount && myID !== info._id}
-          <a
+        <button type="button" onclick={onWalletHandler}>
+          <span class="*:size-5"><IconWallet /></span>
+          <span>Wallet</span>
+        </button>
+        <a type="button" href="/">
+          <span class="*:size-5"><IconHomeLine /></span>
+          <span>Home Page</span>
+        </a>
+        <a
+          type="button"
+          target="_blank"
+          href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
+        >
+          <span class="*:size-5"><IconExchange /></span>
+          <span>Get PANDA via ICPSwap</span>
+        </a>
+        <a
+          type="button"
+          target="_blank"
+          href="https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai"
+        >
+          <span class="*:size-5"><IconExchange /></span>
+          <span>Get PANDA via KongSwap</span>
+        </a>
+        <a
+          type="button"
+          target="_blank"
+          href="https://github.com/ldclabs/ic-panda"
+        >
+          <span class="*:size-5"><IconGithub /></span>
+          <span>Source Code</span>
+        </a>
+        <button
+          type="button"
+          class="border-surface-500/20 border-b"
+          onclick={() => window.location.reload()}
+        >
+          <span class="*:size-5"><IconRefresh /></span>
+          <span>Reload App</span>
+          <span class="text-surface-500">(v{APP_VERSION})</span>
+        </button>
+        {#each myAccounts as info (info._id)}
+          <button
             type="button"
-            href="/"
-            rel="noopener noreferrer"
-            class="btn absolute right-0 px-2 text-surface-500 hover:text-error-500"
-            onclick={(ev) => {
-              ev.preventDefault()
-              ev.stopPropagation()
-              onLeaveAccountHandler(info.username)
-            }}
+            class="disabled:bg-surface-50-900-token relative items-center !py-1"
+            disabled={myID === info._id || switching !== ''}
+            onclick={() => onSwitchHandler(info)}
           >
-            <span class="*:size-5"><IconLogoutCircleRLine /></span>
-          </a>
-        {/if}
-      </button>
-    {/each}
-    <button type="button" onclick={onLogoutHandler}>
-      <span class="*:size-5"><IconLogout /></span>
-      <span>Logout</span>
-    </button>
-  </div>
-</div>
+            {#if info.isNameAccount}
+              <span class="*:size-5"><IconOrganizationChart /></span>
+            {:else}
+              <span class="*:size-5"><IconUser0 /></span>
+            {/if}
+            <Avatar
+              initials={info.name}
+              src={info.image}
+              class="!overflow-visible"
+              fill="fill-white"
+              width="w-8"
+            />
+            <span class="max-w-44 truncate">
+              {info.name + (info.username ? ' @' + info.username : '')}
+            </span>
+            {#if info.isNameAccount && myID !== info._id}
+              <a
+                type="button"
+                href="/"
+                rel="noopener noreferrer"
+                class="btn text-surface-500 hover:text-error-500 absolute right-0 px-2"
+                onclick={(ev) => {
+                  ev.preventDefault()
+                  ev.stopPropagation()
+                  onLeaveAccountHandler(info.username)
+                }}
+              >
+                <span class="*:size-5"><IconLogoutCircleRLine /></span>
+              </a>
+            {/if}
+          </button>
+        {/each}
+        <button type="button" onclick={onLogoutHandler}>
+          <span class="*:size-5"><IconLogout /></span>
+          <span>Logout</span>
+        </button>
+      </div>
+    </Popover.Content>
+  </Popover.Portal>
+</Popover.Root>

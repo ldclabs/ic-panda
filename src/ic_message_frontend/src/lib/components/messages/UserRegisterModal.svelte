@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { autoFocus } from '$lib/actions/focus'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
   import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
   import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
@@ -14,12 +15,8 @@
   import { getPriceNumber } from '$lib/utils/helper'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { authStore } from '$src/lib/stores/auth'
-  import { Principal } from '@dfinity/principal'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import debounce from 'debounce'
   import { onDestroy, onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
@@ -193,12 +190,12 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     oninput={onFormChange}
-    use:focusTrap={true}
+    use:autoFocus
   >
     <label class="label relative">
       <span>Name (required)</span>
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="nameInput"
         minlength="1"
@@ -212,7 +209,7 @@
       />
     </label>
     {#if myState.api.myInfo}
-      <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
+      <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
       <label class="label relative mt-4">
         <div class="flex flex-row items-center justify-between">
           <span>Username</span>
@@ -239,7 +236,7 @@
           </div>
         </div>
         <input
-          class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+          class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
           type="text"
           name="usernameInput"
           minlength="1"
@@ -254,13 +251,13 @@
           data-focusindex="0"
         />
       </label>
-      <div class="h-10 text-sm text-success-600"
+      <div class="text-success-600 h-10 text-sm"
         >Profile URL:<span class="ml-2"
           >{APP_ORIGIN}/{usernameInput || '[username]'}</span
         ></div
       >
       {#if usernameErr}
-        <div class="h-10 text-sm text-error-500">{usernameErr}</div>
+        <div class="text-error-500 h-10 text-sm">{usernameErr}</div>
       {:else}
         <div class="flex h-10 flex-row items-center justify-between text-sm">
           <div class="flex flex-row items-center gap-2 py-1">
@@ -293,7 +290,7 @@
           <p class="">
             This is a <b>Username Permanent Account</b>, please transfer the
             username
-            <span class="font-semibold text-primary-500">{usernameAccount}</span
+            <span class="text-primary-500 font-semibold">{usernameAccount}</span
             > to this account.
           </p>
         </div>

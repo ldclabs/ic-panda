@@ -9,8 +9,9 @@
   import { type ChannelInfoEx, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { sleep } from '$lib/utils/helper'
-  import type { Principal } from '@dfinity/principal'
-  import { Avatar, getToastStore } from '@skeletonlabs/skeleton'
+  import type { Principal } from '@icp-sdk/core/principal'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getToastStore } from '$lib/ui/stores'
   import { getContext, onMount } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelMessages from './ChannelMessages.svelte'
@@ -74,7 +75,7 @@
 
 <div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
   <header
-    class="flex h-[60px] flex-row items-center justify-between gap-2 border-b border-surface-500/20 px-0 py-2 md:px-4"
+    class="border-surface-500/20 flex h-[60px] flex-row items-center justify-between gap-2 border-b px-0 py-2 md:px-4"
   >
     <div class="md:hidden">
       <button
@@ -114,7 +115,7 @@
       onclick={onClickChannelSetting}
     >
       {#if channelInfo && openMessages && (channelInfo?.ecdh_request || []).length > 0}
-        <span class="badge-icon z-10 size-2 bg-error-500"></span>
+        <span class="badge-icon bg-error-500 z-10 size-2"></span>
       {/if}
       <span>
         {#if openMessages}

@@ -6,7 +6,7 @@
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { getModalStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
 
   // Props
@@ -86,7 +86,7 @@
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="nameInput"
         minlength="1"

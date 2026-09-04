@@ -6,9 +6,9 @@ import { hkdf256 } from '@ldclabs/cose-ts/hkdf'
 import * as iana from '@ldclabs/cose-ts/iana'
 import { KDFContext, PartyInfo, SuppPubInfo } from '@ldclabs/cose-ts/kdfcontext'
 import { randomBytes } from '@ldclabs/cose-ts/utils'
-import { argon2id } from '@noble/hashes/argon2'
-import { hmac } from '@noble/hashes/hmac'
-import { sha3_256 } from '@noble/hashes/sha3'
+import { argon2id } from '@noble/hashes/argon2.js'
+import { hmac } from '@noble/hashes/hmac.js'
+import { sha3_256 } from '@noble/hashes/sha3.js'
 
 export {
   assertEqual,
@@ -21,7 +21,6 @@ export {
   encodeCBOR,
   hexToBytes,
   randomBytes,
-  toBytes,
   utf8ToBytes
 } from '@ldclabs/cose-ts/utils'
 

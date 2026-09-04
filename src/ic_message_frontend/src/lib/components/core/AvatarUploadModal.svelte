@@ -12,7 +12,8 @@
     Uploader,
     toFixedChunkSizeReadable
   } from '@ldclabs/ic_oss_ts'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onDestroy, type SvelteComponent } from 'svelte'
 
   // Props
@@ -82,7 +83,7 @@
   <div class="mx-auto !mt-6 space-y-4">
     <ImageCrop oncropcomplete={handleAvatarUpload} />
 
-    <div class="mx-auto size-[200px] rounded bg-surface-500/10">
+    <div class="bg-surface-500/10 mx-auto size-[200px] rounded">
       {#if croppedUrl}
         <Avatar
           src={croppedUrl}

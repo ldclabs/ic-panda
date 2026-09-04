@@ -1,7 +1,7 @@
 <script lang="ts">
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextClipboardButton from '$lib/components/ui/TextClipboardButton.svelte'
-  import { Avatar } from '@skeletonlabs/skeleton'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
   import encodeQR from 'qr'
   import { type SvelteComponent } from 'svelte'
 
@@ -27,14 +27,14 @@
   })}
   <div class="!mt-0 truncate text-center text-xl font-bold">{qrTitle}</div>
   <div
-    class="relative m-auto !mt-4 items-center rounded-xl border-2 border-primary-500/50 bg-primary-500/10 p-2"
+    class="border-primary-500/50 bg-primary-500/10 relative m-auto !mt-4 items-center rounded-xl border-2 p-2"
   >
     <div class="bg-white">
       {@html qrcode}
     </div>
     {#if qrLogo}
       <div
-        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 *:size-12"
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 *:size-12"
       >
         <Avatar
           src={qrLogo}
@@ -46,7 +46,7 @@
     {/if}
   </div>
   <div
-    class="text-surface-900-50-token mt-2 flex flex-row items-center justify-center gap-2 text-pretty break-all text-sm"
+    class="text-surface-900-50-token mt-2 flex flex-row items-center justify-center gap-2 text-sm text-pretty break-all"
   >
     <span>{qrValue}</span>
     <TextClipboardButton textValue={qrValue} />

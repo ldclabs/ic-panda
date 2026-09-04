@@ -18,5 +18,12 @@
   "workspaces": [
     "src/ic_message_frontend",
     "src/ic_panda_frontend"
-  ]
+  ],
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@icp-sdk/core": "6"
+      }
+    }
+  }
 }

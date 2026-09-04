@@ -5,18 +5,13 @@
   import IconMoreFill from '$lib/components/icons/IconMoreFill.svelte'
   import IconUser from '$lib/components/icons/IconUser1.svelte'
   import { authStore } from '$lib/stores/auth'
-  import { initPopup } from '$lib/utils/popup'
-  import { onDestroy, type Snippet } from 'svelte'
+  import { type Snippet } from 'svelte'
 
   interface Props {
     children?: Snippet
   }
 
   let { children }: Props = $props()
-
-  const { popupOpenOn, popupDestroy } = initPopup({
-    target: 'popupNavigationMore'
-  })
 
   function selected(
     tab: 'Profile' | 'Messages' | 'More',
@@ -31,10 +26,6 @@
     }
     return tab === 'More'
   }
-
-  onDestroy(() => {
-    popupDestroy()
-  })
 
   let principal = $derived($authStore.identity.getPrincipal())
   let selectedProfile = $derived(selected('Profile', page.url?.pathname || ''))
@@ -51,13 +42,13 @@
   >
     {@render children_render?.()}
     <div
-      class="nav grid items-start gap-2 border-surface-500/20 *:flex *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
+      class="nav border-surface-500/20 grid items-start gap-2 *:flex *:flex-col *:items-center *:justify-center *:py-1 *:text-xs max-md:h-[60px] max-md:grid-cols-3 max-md:border-t md:order-first md:grid-rows-[auto_1fr_auto] md:border-r md:p-2"
     >
       <a
         href="/_/profile"
         role="button"
         class="transition-all {selectedProfile
-          ? 'cursor-default text-primary-500'
+          ? 'text-primary-500 cursor-default'
           : 'hover:scale-105'}"
       >
         <span><IconUser /></span>
@@ -67,26 +58,22 @@
         href="/_/messages"
         role="button"
         class="transition-all {selectedMessages
-          ? 'cursor-default text-primary-500'
+          ? 'text-primary-500 cursor-default'
           : 'hover:scale-105'}"
       >
         <span><IconMessage3Line /></span>
 
         <span>Messages</span>
       </a>
-      <button
-        class="btn px-0 transition-all hover:scale-105"
-        onclick={(ev) => {
-          popupOpenOn(ev.currentTarget)
-        }}
-      >
-        <span><IconMoreFill /></span>
-        <span class="!m-0">More</span>
-      </button>
+      <MoreMenuPopup triggerClass="btn px-0 transition-all hover:scale-105">
+        {#snippet trigger()}
+          <span><IconMoreFill /></span>
+          <span class="!m-0">More</span>
+        {/snippet}
+      </MoreMenuPopup>
     </div>
   </div>
 {/key}
-<MoreMenuPopup target="popupNavigationMore" />
 
 <style>
   @media (min-width: 768px) {

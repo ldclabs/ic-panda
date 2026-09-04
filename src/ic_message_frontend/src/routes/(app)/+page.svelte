@@ -12,10 +12,10 @@
   import { toastRun } from '$lib/stores/toast'
   import { dynAgent } from '$lib/utils/auth'
   import { getPriceNumber } from '$lib/utils/helper'
-  import { initPopup } from '$lib/utils/popup'
   import { ICPToken, PANDAToken } from '$lib/utils/token'
-  import { Avatar, getModalStore, getToastStore } from '@skeletonlabs/skeleton'
-  import { onDestroy, onMount, tick } from 'svelte'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
+  import { onMount, tick } from 'svelte'
 
   interface Partner {
     title: string
@@ -81,10 +81,6 @@
       url: 'https://iclight.io/ICDex/PANDA/ICP'
     }
   ]
-
-  const { popupOpenOn, popupDestroy } = initPopup({
-    target: 'popupNavigationMore'
-  })
 
   let myState: MyMessageState
   let users_total = $state(0n)
@@ -160,10 +156,6 @@
     }, toastStore)
     return abort
   })
-
-  onDestroy(() => {
-    popupDestroy()
-  })
 </script>
 
 {#snippet tokenPrice(price: TokenPrice)}
@@ -221,14 +213,13 @@
             <span class="rainbow-border"></span>
           </button>
           {#if !dynAgent.isAnonymous()}
-            <button
-              class="btn px-4 text-white transition-all hover:scale-125"
-              onclick={(ev) => {
-                popupOpenOn(ev.currentTarget)
-              }}
+            <MoreMenuPopup
+              triggerClass="btn px-4 text-white transition-all hover:scale-125"
             >
-              <span><IconMoreFill /></span>
-            </button>
+              {#snippet trigger()}
+                <span><IconMoreFill /></span>
+              {/snippet}
+            </MoreMenuPopup>
           {/if}
         </div>
       </div>
@@ -288,8 +279,7 @@
             </p>
           </div>
           <div class="pt-8 md:pt-10">
-            <h3 class="h3"
-              ><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3
+            <h3 class="h3"><span class="pr-2 text-5xl">⛓</span>100% On-Chain</h3
             >
             <p class="mt-4 text-neutral-300">
               It runs entirely as a smart contract on the ICP blockchain,
@@ -349,7 +339,7 @@
           class="mt-6 flex w-full flex-col items-center justify-center gap-1"
         >
           <a
-            class="group grid w-full grid-cols-[1fr_auto] items-center rounded p-2 text-neutral-400 hover:variant-soft hover:text-white"
+            class="group hover:variant-soft grid w-full grid-cols-[1fr_auto] items-center rounded p-2 text-neutral-400 hover:text-white"
             href="{APP_ORIGIN}/PANDA"
           >
             <div class="flex flex-row items-center space-x-2 max-md:max-w-72">
@@ -365,7 +355,7 @@
           </a>
           {#each latest_users as user}
             <a
-              class="group grid w-full grid-cols-[1fr_auto] items-center rounded p-2 text-neutral-400 hover:variant-soft hover:text-white"
+              class="group hover:variant-soft grid w-full grid-cols-[1fr_auto] items-center rounded p-2 text-neutral-400 hover:text-white"
               href="{APP_ORIGIN}/{user.username[0]}"
             >
               <div class="flex flex-row items-center space-x-2">
@@ -392,10 +382,10 @@
       </div>
       <div class="partner-scroll-container">
         <div class="partner-scroll">
-          {#each [...partners, ...partners] as partner (partner.url + Math.random())}
+          {#each [...partners, ...partners] as partner, i (partner.url + '-' + i)}
             <a
               class="partner-item {partner.bg
-                ? partner.bg + ' border border-surface-300'
+                ? partner.bg + ' border-surface-300 border'
                 : 'bg-white'}"
               target="_blank"
               href={partner.url}
@@ -411,7 +401,7 @@
       </div>
     </div>
 
-    <footer id="page-footer" class="px-4 pb-24 pt-12 text-surface-400">
+    <footer id="page-footer" class="text-surface-400 px-4 pt-12 pb-24">
       <div class="flex h-16 flex-col items-center">
         <p class="flex flex-row items-center gap-1">
           <span class="text-sm">© 2024-{year}</span>
@@ -447,7 +437,6 @@
     </footer>
   </div>
 </div>
-<MoreMenuPopup target="popupNavigationMore" />
 
 <style>
   .landing-page {

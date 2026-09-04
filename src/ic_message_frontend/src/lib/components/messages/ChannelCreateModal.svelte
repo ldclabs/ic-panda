@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { autoFocus } from '$lib/actions/focus'
   import { goto } from '$app/navigation'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
   import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
@@ -14,12 +15,8 @@
   import { toastRun } from '$lib/stores/toast'
   import { getPriceNumber } from '$lib/utils/helper'
   import { PANDAToken, formatNumber } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
@@ -143,11 +140,11 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     oninput={onFormChange}
-    use:focusTrap={true}
+    use:autoFocus
   >
     <div class="relative">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="nameInput"
         minlength="1"
@@ -171,7 +168,7 @@
         data-focusindex="1"
       />
     </div>
-    <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-4 !border-dashed" />
+    <hr class="!border-gray/20 mx-[-24px] !mt-4 !border-t-1 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
         <b>1.</b> Creating a message channel requires
@@ -191,8 +188,8 @@
         <b>2.</b> Each channel can include up to 5 managers and 995 members.
       </p>
       <p>
-        <b>3.</b> Managers can remove regular members but not other managers. If
-        the last manager leaves, the channel and all its messages will be permanently
+        <b>3.</b> Managers can remove regular members but not other managers. If the
+        last manager leaves, the channel and all its messages will be permanently
         deleted.
       </p>
     </div>

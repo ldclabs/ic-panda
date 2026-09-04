@@ -17,8 +17,8 @@ import { dynAgent } from '$lib/utils/auth'
 import { decodeCBOR, utf8ToBytes } from '$lib/utils/crypto'
 import { KVStore } from '$lib/utils/store'
 import { type TokenInfo } from '$lib/utils/token'
-import type { Identity } from '@dfinity/agent'
-import { Principal } from '@dfinity/principal'
+import type { Identity } from '@icp-sdk/core/agent'
+import { Principal } from '@icp-sdk/core/principal'
 import { Claims } from '@ldclabs/cose-ts/cwt'
 import {
   derived,

@@ -5,7 +5,7 @@
   import type { SendTokenArgs } from '$lib/types/token'
   import { AccountIdentifier } from '$lib/utils/account_identifier'
   import { TokenDisplay, type TokenInfo } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
+  import { Principal } from '@icp-sdk/core/principal'
   import Loading from './Loading.svelte'
 
   interface Props {
@@ -159,7 +159,7 @@
       <label class="label">
         <span>Send to destination</span>
         <input
-          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success"
+          class="border-gray/10 peer input valid:input-success truncate rounded-xl bg-white/20"
           type="text"
           name="sendTo"
           minlength="8"
@@ -171,14 +171,14 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-xs text-error-500 peer-invalid:visible">
+        <span class="text-error-500 invisible text-xs peer-invalid:visible">
           Enter a valid {addressTip}.
         </span>
       </label>
       <label class="label">
         <span>Amount</span>
         <a
-          class="btn float-right !mt-0 p-0 hover:text-secondary-500/100"
+          class="btn hover:text-secondary-500/100 float-right !mt-0 p-0"
           href="/"
           onclick={setMaxAmount}
         >
@@ -186,7 +186,7 @@
           <span class="!ml-1">Max</span>
         </a>
         <input
-          class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success"
+          class="border-gray/10 peer input valid:input-success truncate rounded-xl bg-white/20"
           type="number"
           name="amount"
           min="0"
@@ -197,7 +197,7 @@
           disabled={submitting}
           required
         />
-        <span class="invisible text-xs text-error-500 peer-invalid:visible">
+        <span class="text-error-500 invisible text-xs peer-invalid:visible">
           Enter a valid amount.
         </span>
       </label>
@@ -218,13 +218,13 @@
       <h4 class="h4 text-center">Review Transaction</h4>
       <div class="flex flex-row justify-between">
         <span>From</span>
-        <span class="min-w-0 text-pretty break-all text-right">
+        <span class="min-w-0 text-right text-pretty break-all">
           {txInfo.from}
         </span>
       </div>
       <div class="flex flex-row justify-between">
         <span>Available Balance</span>
-        <span class="text-pretty break-words text-right">
+        <span class="text-right text-pretty break-words">
           {txInfo.balance}
           {token.symbol}
         </span>
@@ -249,7 +249,7 @@
           {token.symbol}
         </span>
       </div>
-      <div class="flex flex-row justify-end text-panda *:scale-110">
+      <div class="text-panda flex flex-row justify-end *:scale-110">
         <IconArrowDown />
       </div>
       <div class="flex flex-row justify-between">
@@ -261,7 +261,7 @@
       </div>
       <div class="flex flex-row justify-between">
         <span>To</span>
-        <p class="min-w-0 text-pretty break-all text-right">
+        <p class="min-w-0 text-right text-pretty break-all">
           {txInfo.to}
         </p>
       </div>
@@ -272,11 +272,11 @@
       {#if submitting}
         <span class="text-panda *:h-8 *:w-8"><Loading /></span>
       {:else if transferSuccess != null}
-        <p class="text-lg text-success-500">
+        <p class="text-success-500 text-lg">
           Transfer success at block {transferSuccess}
         </p>
       {:else if transferError != null}
-        <p class="text-lg text-error-500">Transfer failed</p>
+        <p class="text-error-500 text-lg">Transfer failed</p>
         <p>
           {JSON.stringify(transferError.data, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value

@@ -32,7 +32,7 @@ import {
   utf8ToBytes
 } from '$lib/utils/crypto'
 import { getCurrentTimeString } from '$lib/utils/helper'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { derived, readable, type Readable } from 'svelte/store'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
 import { MessageAgent, type SyncAt } from './message_agent'

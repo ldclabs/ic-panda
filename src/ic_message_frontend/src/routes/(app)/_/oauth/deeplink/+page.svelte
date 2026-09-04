@@ -57,11 +57,11 @@
     class="w-full max-w-2xl space-y-8 rounded-lg bg-white p-6 shadow-md dark:bg-neutral-900"
   >
     <div class="text-center">
-      <h1 class="text-gray-900 text-2xl font-normal dark:text-white"
+      <h1 class="text-2xl font-normal text-gray-900 dark:text-white"
         >Choose Identity 🔑</h1
       >
-      <p class="text-gray-600 dark:text-gray-400 mt-2">
-        to connect to <span class="text-pretty break-words text-2xl font-bold"
+      <p class="mt-2 text-gray-600 dark:text-gray-400">
+        to connect to <span class="text-2xl font-bold text-pretty break-words"
           >{origin}</span
         >
       </p>
@@ -83,7 +83,7 @@
           {/if}
         </button>
         {#if Date.now() >= identity.expiration - 1000 * 3600 * 48}
-          <p class="mt-2 text-sm text-error-500">
+          <p class="text-error-500 mt-2 text-sm">
             Your identity will expire in less than 48 hours. Please sign in
             again.
           </p>
@@ -126,7 +126,7 @@
     {/if}
     {#if error}
       <div class="mt-8 flex flex-col items-center space-y-4">
-        <p class="mt-2 text-lg text-error-500">{error}</p>
+        <p class="text-error-500 mt-2 text-lg">{error}</p>
       </div>
     {/if}
 

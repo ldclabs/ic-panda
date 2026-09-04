@@ -21,13 +21,10 @@
   import { errMessage } from '$lib/types/result'
   import { getBytesString, getShortNumber, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
-  import { Principal } from '@dfinity/principal'
-  import {
-    Avatar,
-    SlideToggle,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import SlideToggle from '$lib/components/ui/SlideToggle.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ChannelEditModal from './ChannelEditModal.svelte'
@@ -141,7 +138,9 @@
   }
 
   let muteSubmitting = $state(false)
-  function onClickMute() {
+  // Receives the value the toggle moved to; reading `mute` here would race the
+  // switch's own state update.
+  function onClickMute(muted: boolean) {
     muteSubmitting = true
 
     toastRun(async (signal: AbortSignal) => {
@@ -150,7 +149,7 @@
       await api.update_my_setting({
         id,
         ecdh: [],
-        mute: [mute],
+        mute: [muted],
         last_read: []
       })
       channelInfo = await myState.refreshChannel(channelInfo)
@@ -176,7 +175,9 @@
             timeout: 10000,
             hideDismiss: false,
             background: 'variant-soft-error',
-            message: `Failed to receive the key. A new key has been requested.\n<br />Error: ${errMessage(err)}`
+            // Toasts render as text now, not HTML, so the line break is the
+            // newline alone — the host preserves it with `whitespace-pre-line`.
+            message: `Failed to receive the key. A new key has been requested.\nError: ${errMessage(err)}`
           })
           const my_setting = { ...channelInfo.my_setting }
           my_setting.ecdh_remote = []
@@ -328,7 +329,7 @@
 </script>
 
 <div
-  class="h-[calc(100dvh-120px)] items-start overflow-y-auto bg-surface-500/5 pb-10 md:h-[calc(100dvh-60px)]"
+  class="bg-surface-500/5 h-[calc(100dvh-120px)] items-start overflow-y-auto pb-10 md:h-[calc(100dvh-60px)]"
 >
   {#if channelInfo.my_setting.ecdh_remote.length > 0}
     <section class="mt-4 px-4">
@@ -350,7 +351,7 @@
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     {#if isManager}
       <button
-        class="group btn relative p-0 hover:bg-surface-500/50"
+        class="group btn hover:bg-surface-500/50 relative p-0"
         onclick={onUploadChannelImage}
       >
         <Avatar
@@ -362,7 +363,7 @@
           width="size-20"
         />
         <span
-          class="invisible absolute left-1/2 top-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 text-surface-500 transition-all *:size-6 group-hover:visible"
+          class="text-surface-500 invisible absolute top-1/2 left-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 transition-all *:size-6 group-hover:visible"
           ><IconCameraLine /></span
         >
       </button>
@@ -399,13 +400,13 @@
   <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
       <span class="text-sm font-normal text-neutral-500">Messages:</span>
-      <span class="font-bold text-panda"
+      <span class="text-panda font-bold"
         >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Gas balance:</span>
-      <span class="font-bold text-panda">{getShortNumber(channelInfo.gas)}</span
+      <span class="text-panda font-bold">{getShortNumber(channelInfo.gas)}</span
       >
     </div>
     <button
@@ -420,17 +421,17 @@
   <section class="mt-0 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
       <span class="text-sm font-normal text-neutral-500">Files:</span>
-      <span class="font-bold text-panda">{files_state.files_total}</span>
+      <span class="text-panda font-bold">{files_state.files_total}</span>
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Total size:</span>
-      <span class="font-bold text-panda"
+      <span class="text-panda font-bold"
         >{getBytesString(files_state.files_size_total)}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
       <span class="text-sm font-normal text-neutral-500">Max file size:</span>
-      <span class="font-bold text-panda"
+      <span class="text-panda font-bold"
         >{getBytesString(files_state.file_max_size)}</span
       >
     </div>
@@ -478,7 +479,7 @@
         active="bg-panda"
         size="sm"
         bind:checked={mute}
-        on:click={onClickMute}
+        onCheckedChange={onClickMute}
         disabled={muteSubmitting}
       />
       <span class="text-panda *:size-4 {muteSubmitting ? '' : 'invisible'}">
@@ -488,18 +489,18 @@
     <div class="flex flex-row items-center gap-4">
       <p>Leave channel:</p>
       <div
-        class="input-group w-full max-w-60 grid-cols-[1fr_auto] bg-surface-500/5"
+        class="input-group bg-surface-500/5 w-full max-w-60 grid-cols-[1fr_auto]"
       >
         <input
           type="text"
-          class="border-gray/10 h-8 truncate py-1 leading-8 invalid:input-warning"
+          class="border-gray/10 invalid:input-warning h-8 truncate py-1 leading-8"
           bind:value={leavingWord}
           onfocus={() => (leavingWord = channelInfo.name)}
           placeholder="channel name"
         />
         <button
           type="button"
-          class="variant-filled-error !px-2 disabled:variant-filled-surface"
+          class="variant-filled-error disabled:variant-filled-surface !px-2"
           onclick={onClickMyLeaving}
           disabled={myLeavingSubmitting ||
             leavingWord.trim() != channelInfo.name}
@@ -515,7 +516,7 @@
     </div>
     {#if isManager && channelInfo._managers.length < 2}
       <p
-        class="h-5 text-sm text-error-500 {leavingWord === channelInfo.name
+        class="text-error-500 h-5 text-sm {leavingWord === channelInfo.name
           ? 'visible'
           : 'invisible'}"
         >You're the only manager of this channel. If you leave, all channel data

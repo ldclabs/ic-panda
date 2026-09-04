@@ -4,7 +4,7 @@
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
   import IconLink from '$lib/components/icons/IconLink.svelte'
   import IconQrCode from '$lib/components/icons/IconQrCode.svelte'
-  import { clipboard } from '@skeletonlabs/skeleton'
+  import { clipboard } from '$lib/actions/clipboard'
 
   type OnQrHandler = (qrTitle: string, qrValue: string, qrLogo?: string) => void
 
@@ -45,7 +45,7 @@
     href={link.uri}
     target="_blank"
     rel="noopener noreferrer"
-    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
+    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4 text-pretty break-all"
   >
     <span>{link.title}</span>
     <span class="text-surface-500 *:size-5"><IconLink /></span>
@@ -57,7 +57,7 @@
   <a
     type="button"
     href="/"
-    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 text-pretty break-all rounded-lg px-2 py-4"
+    class="bg-surface-hover-token bg-surface-50-900-token flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-4 text-pretty break-all"
     use:clipboard={link.uri}
     onclick={(ev) => {
       ev.preventDefault()

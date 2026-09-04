@@ -1,14 +1,11 @@
 <script lang="ts">
+  import { autoFocus } from '$lib/actions/focus'
   import { goto } from '$app/navigation'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { MasterKey, type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
-  import {
-    focusTrap,
-    getModalStore,
-    getToastStore
-  } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
 
   interface Props {
@@ -204,10 +201,10 @@
   <form
     class="m-auto !mt-4 flex flex-col content-center"
     oninput={onFormChange}
-    use:focusTrap={true}
+    use:autoFocus
   >
     <input
-      class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+      class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
       type="password"
       name="passwordInput1"
       minlength="6"
@@ -220,7 +217,7 @@
     />
     {#if isReset || isSetup}
       <input
-        class="border-gray/10 input mt-4 truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning mt-4 truncate rounded-xl bg-white/20"
         type="password"
         name="passwordInput2"
         minlength="6"
@@ -233,13 +230,13 @@
       />
     {/if}
     <p
-      class="h-5 pl-2 text-sm text-error-500 {passwordTip == ''
+      class="text-error-500 h-5 pl-2 text-sm {passwordTip == ''
         ? 'invisible'
         : 'visiable'}">{passwordTip}</p
     >
     {#if isReset}
-      <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
-      <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
+      <hr class="!border-gray/20 mx-[-24px] !border-t-1 !border-dashed" />
+      <div class="bg-surface-500/5 !mt-4 space-y-2 rounded-xl p-4">
         <p class="">
           <b>1.</b> Resetting your password will disable the keys needed to decrypt
           messages in this channel.
@@ -259,8 +256,8 @@
         </p>
       </div>
     {:else if isSetup}
-      <hr class="!border-t-1 !border-gray/20 mx-[-24px] !border-dashed" />
-      <div class="!mt-4 space-y-2 rounded-xl bg-surface-500/5 p-4">
+      <hr class="!border-gray/20 mx-[-24px] !border-t-1 !border-dashed" />
+      <div class="bg-surface-500/5 !mt-4 space-y-2 rounded-xl p-4">
         <p class="">
           <b>1.</b> Your password is only used locally to derive a master key. Neither
           your password nor the generated key is ever stored remotely.
@@ -293,7 +290,7 @@
         </label>
         <button
           type="button"
-          class="btn btn-sm hover:text-neutral-950 dark:hover:text-surface-100"
+          class="btn btn-sm dark:hover:text-surface-100 hover:text-neutral-950"
           disabled={submitting}
           onclick={onReset}>Forgot password?</button
         >

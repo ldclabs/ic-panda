@@ -9,7 +9,7 @@
   import { type MyMessageState } from '$lib/stores/message'
   import { toastRun } from '$lib/stores/toast'
   import { authStore } from '$src/lib/stores/auth'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
   import UsernameTransferModal from './UsernameTransferModal.svelte'
@@ -99,7 +99,7 @@
           >
         {:else}
           <button
-            class="btn btn-sm p-0 text-neutral-500 hover:text-panda"
+            class="btn btn-sm hover:text-panda p-0 text-neutral-500"
             onclick={onTransferUsernameHandler}>Transfer</button
           >
         {/if}
@@ -107,7 +107,7 @@
     </div>
     <div class="relative mt-4">
       <input
-        class="border-gray/10 input truncate rounded-xl bg-white/20 invalid:input-warning"
+        class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
         name="nameInput"
         minlength="1"

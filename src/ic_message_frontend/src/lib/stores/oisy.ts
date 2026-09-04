@@ -1,6 +1,6 @@
 import type { IcrcAccount } from '@dfinity/oisy-wallet-signer'
 import { IcrcWallet } from '@dfinity/oisy-wallet-signer/icrc-wallet'
-import type { Principal } from '@dfinity/principal'
+import type { Principal } from '@icp-sdk/core/principal'
 
 const OISY_WALLET_HOST = 'https://oisy.com/sign'
 

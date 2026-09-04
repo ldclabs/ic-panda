@@ -4,7 +4,7 @@
   import { authStore } from '$lib/stores/auth'
   import { toastRun } from '$lib/stores/toast'
   import { shortId } from '$lib/utils/auth'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -51,19 +51,19 @@
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
         <b>1.</b> Your permanent account generated from
-        <span class="font-semibold text-primary-500">{username}</span>
+        <span class="text-primary-500 font-semibold">{username}</span>
         is: <span class="font-semibold">{usernameAccount}</span>.
       </p>
       <p>
-        <b>2.</b> You should transfer the username to this account and switch to
-        it for management.
+        <b>2.</b> You should transfer the username to this account and switch to it
+        for management.
       </p>
     </div>
   {:else}
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
         <b>1.</b> Your permanent account generated from
-        <span class="font-semibold text-primary-500">{username}</span>
+        <span class="text-primary-500 font-semibold">{username}</span>
         is: <span class="font-semibold">{usernameAccount}</span>.
       </p>
       <p>

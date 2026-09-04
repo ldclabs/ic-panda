@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 
 import { sveltekit } from '@sveltejs/kit/vite'
+import tailwindcss from '@tailwindcss/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 import dotenv from 'dotenv'
 import { resolve } from 'node:path'
@@ -39,6 +40,7 @@ export default defineConfig({
   plugins: [
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
+    tailwindcss(),
     sveltekit(),
     SvelteKitPWA({
       srcDir: 'src',
@@ -49,14 +51,11 @@ export default defineConfig({
       scope: '/',
       base: '/',
       selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
-      pwaAssets: {
-        config: true
-      },
       manifest: {
         short_name: 'dMsg',
         name: 'dMsg.net',
         description:
-          'ICPanda Message (dMsg.net) is the world\'s 1st decentralized end-to-end encrypted messaging application fully running on the Internet Computer blockchain.',
+          "ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end encrypted messaging application fully running on the Internet Computer blockchain.",
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',

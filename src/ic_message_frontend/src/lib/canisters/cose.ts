@@ -10,7 +10,7 @@ import {
   type _SERVICE
 } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
 import { unwrapNotFound, unwrapResult } from '$lib/types/result'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import {
   DerivedPublicKey,
   EncryptedVetKey,

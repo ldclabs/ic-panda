@@ -28,8 +28,8 @@
     TokenDisplay,
     type TokenInfo
   } from '$lib/utils/token'
-  import { Principal } from '@dfinity/principal'
-  import { getModalStore } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore } from '$lib/ui/stores'
   import { onMount, tick, type Snippet, type SvelteComponent } from 'svelte'
   import ImportTokenModal from './ImportTokenModal.svelte'
   import TopupTokenModal from './TopupTokenModal.svelte'
@@ -74,7 +74,7 @@
   const dmsgTokenInfo = new TokenInfoEx(DMSGToken)
 
   function onClickToken(token: TokenInfoEx) {
-    ;(modalStore as any).trigger2({
+    modalStore.triggerFirst({
       type: 'component',
       component: {
         ref: TransferTokenModal,
@@ -87,7 +87,7 @@
   }
 
   function onClickImportToken() {
-    ;(modalStore as any).trigger2({
+    modalStore.triggerFirst({
       type: 'component',
       component: {
         ref: ImportTokenModal,
@@ -121,7 +121,7 @@
   }
 
   function onClickTopupPANDA() {
-    ;(modalStore as any).trigger2({
+    modalStore.triggerFirst({
       type: 'component',
       component: {
         ref: TopupTokenModal,
@@ -228,7 +228,7 @@
         <span class="">{token.token.symbol}</span>
         <span class="">{tokenInfo.display()}</span>
       </div>
-      <div class="flex flex-row justify-between text-sm text-surface-500">
+      <div class="text-surface-500 flex flex-row justify-between text-sm">
         <span class="">{token.token.name}</span>
         {#if tokenValue > 0}
           <span class="">{'$' + getPriceNumber(tokenValue)}</span>
@@ -238,7 +238,7 @@
     {#if canDelete}
       <button
         type="button"
-        class="absolute right-[-28px] top-4 p-1 text-neutral-500/50 hover:text-surface-900-50-token"
+        class="hover:text-surface-900-50-token absolute top-4 right-[-28px] p-1 text-neutral-500/50"
         disabled={deleteTokenSubmitting == token.token.canisterId}
         onclick={(ev) => {
           ev.preventDefault()
@@ -260,7 +260,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold">dMsg Wallet</div>
-  <div class="!mt-6 flex flex-col gap-3 rounded-xl bg-surface-500/20 px-4 py-3">
+  <div class="bg-surface-500/20 !mt-6 flex flex-col gap-3 rounded-xl px-4 py-3">
     <TextClipboardPopup
       textLable="Address:"
       textName={shortId(principal.toString())}
@@ -274,7 +274,7 @@
   >
     <span>Topup PANDA via OISY Wallet</span>
   </button>
-  <hr class="!border-t-1 !border-gray/20 mx-[-24px] !mt-6 !border-dashed" />
+  <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
   <div class="!mt-2 flex flex-col gap-0">
     {@render tokenItem(icpTokenInfo, icpLogo)}
     {@render tokenItem(pandaTokenInfo, pandaLogo)}
@@ -294,7 +294,7 @@
   <div class="mt-4 flex flex-col gap-3 px-4 py-3 text-sm">
     <a
       type="button"
-      class="flex w-fit flex-row items-center gap-2 text-primary-500"
+      class="text-primary-500 flex w-fit flex-row items-center gap-2"
       target="_blank"
       href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
     >
@@ -303,7 +303,7 @@
     </a>
     <a
       type="button"
-      class="flex w-fit flex-row items-center gap-2 text-primary-500"
+      class="text-primary-500 flex w-fit flex-row items-center gap-2"
       target="_blank"
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >

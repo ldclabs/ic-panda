@@ -6,8 +6,8 @@
   import { toastRun } from '$lib/stores/toast'
   import { TokenAmount, type TokenInfo } from '$lib/utils/token'
   import type { IcrcAccount } from '@dfinity/oisy-wallet-signer'
-  import type { Principal } from '@dfinity/principal'
-  import { getToastStore } from '@skeletonlabs/skeleton'
+  import type { Principal } from '@icp-sdk/core/principal'
+  import { getToastStore } from '$lib/ui/stores'
   import { onMount, type SvelteComponent } from 'svelte'
 
   // Props
@@ -50,7 +50,7 @@
     submitting = true
     toastRun(async function () {
       const ta = TokenAmount.fromNumber({ amount: topupAmount, token })
-      await oisyWallet.transfer(to, token.canisterId, ta.toE8s())
+      await oisyWallet.transfer(to, token.canisterId, ta.toUlps())
       await onCompleted()
     }, toastStore).finally(() => {
       parent['onClose'] && parent['onClose']()
@@ -84,7 +84,7 @@
     {/if}
     <div class="relative mt-4">
       <input
-        class="border-gray/10 peer input truncate rounded-xl bg-white/20 valid:input-success"
+        class="border-gray/10 peer input valid:input-success truncate rounded-xl bg-white/20"
         type="number"
         name="amount"
         min="0"

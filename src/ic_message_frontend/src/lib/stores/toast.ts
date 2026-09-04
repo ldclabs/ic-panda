@@ -1,7 +1,7 @@
 import { errMessage } from '$lib/types/result'
 import { dynAgent } from '$lib/utils/auth'
 import { tryRun, type TryRunResult } from '$lib/utils/tryrun'
-import { type ToastStore } from '@skeletonlabs/skeleton'
+import { type ToastStore } from '$lib/ui/stores'
 
 export { tryRun, type TryRunResult } from '$lib/utils/tryrun'
 

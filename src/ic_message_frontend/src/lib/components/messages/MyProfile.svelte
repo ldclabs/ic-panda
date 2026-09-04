@@ -31,13 +31,10 @@
   import { getCurrentTimeString, sleep } from '$lib/utils/helper'
   import { md } from '$lib/utils/markdown'
   import LinkItem from '$src/lib/components/ui/LinkItem.svelte'
-  import { Principal } from '@dfinity/principal'
-  import {
-    Avatar,
-    getModalStore,
-    getToastStore,
-    LightSwitch
-  } from '@skeletonlabs/skeleton'
+  import { Principal } from '@icp-sdk/core/principal'
+  import Avatar from '$lib/components/ui/Avatar.svelte'
+  import LightSwitch from '$lib/components/ui/LightSwitch.svelte'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onMount, tick } from 'svelte'
   import { writable, type Readable, type Writable } from 'svelte/store'
   import ActivateUsernameAccountModal from './ActivateUsernameAccountModal.svelte'
@@ -486,7 +483,7 @@
       class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-12"
     >
       <button
-        class="group btn relative p-0 hover:bg-surface-500/50"
+        class="group btn hover:bg-surface-500/50 relative p-0"
         onclick={onUploadAvatarHandler}
       >
         <Avatar
@@ -498,7 +495,7 @@
           width="size-40"
         />
         <span
-          class="invisible absolute left-1/2 top-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 text-surface-500 transition-all *:size-6 group-hover:visible"
+          class="text-surface-500 invisible absolute top-1/2 left-1/2 !ml-0 -translate-x-1/2 -translate-y-1/2 transition-all *:size-6 group-hover:visible"
           ><IconCameraLine /></span
         >
       </button>
@@ -507,13 +504,13 @@
         {#if display.username}
           {@const link = `${APP_ORIGIN}/${display.username}`}
           <a
-            class="text-neutral-500 underline underline-offset-4 hover:text-surface-900-50-token"
+            class="hover:text-surface-900-50-token text-neutral-500 underline underline-offset-4"
             href={link}>@{display.username}</a
           >
           <TextClipboardButton textValue={link} />
           <button
             type="button"
-            class="btn absolute right-[-32px] top-1 p-0 text-neutral-500 hover:text-surface-900-50-token"
+            class="btn hover:text-surface-900-50-token absolute top-1 right-[-32px] p-0 text-neutral-500"
             onclick={onMeHandler}
           >
             <span class="*:size-5"><IconEditLine /></span>
@@ -521,7 +518,7 @@
         {:else}
           <button
             type="button"
-            class="btn absolute right-[-108px] top-1 p-0 text-primary-500 hover:text-surface-900-50-token"
+            class="btn text-primary-500 hover:text-surface-900-50-token absolute top-1 right-[-108px] p-0"
             onclick={onMeHandler}
           >
             <span class="animate-bounce *:size-5"><IconEditLine /></span><span
@@ -546,11 +543,11 @@
           <div class="relative w-full pr-[72px]">
             <LinkItem {link} />
             <div
-              class="absolute right-0 top-1/2 flex -translate-y-1/2 flex-row gap-1 text-neutral-500/50"
+              class="absolute top-1/2 right-0 flex -translate-y-1/2 flex-row gap-1 text-neutral-500/50"
             >
               <button
                 type="button"
-                class="p-1 hover:text-surface-900-50-token"
+                class="hover:text-surface-900-50-token p-1"
                 disabled={editLinkSubmitting !== -1}
                 onclick={() => onEditLink(link, i)}
               >
@@ -564,7 +561,7 @@
               </button>
               <button
                 type="button"
-                class="p-1 hover:text-surface-900-50-token"
+                class="hover:text-surface-900-50-token p-1"
                 disabled={deleteLinkSubmitting !== -1}
                 onclick={() => onDeleteLink(i)}
               >
@@ -581,7 +578,7 @@
         {/each}
         <button
           type="button"
-          class="bg-surface-hover-token flex w-full flex-row items-center justify-center gap-2 rounded-lg border border-surface-500/10 px-2 py-4 text-neutral-500 hover:text-surface-900-50-token"
+          class="bg-surface-hover-token border-surface-500/10 hover:text-surface-900-50-token flex w-full flex-row items-center justify-center gap-2 rounded-lg border px-2 py-4 text-neutral-500"
           onclick={() => onEditLink()}
         >
           <span class="*:size-5"><IconAdd /></span>
@@ -619,7 +616,7 @@
               <p class="mb-2">
                 This is a <b>Username Permanent Account</b>, please transfer the
                 username
-                <span class="font-semibold text-primary-500"
+                <span class="text-primary-500 font-semibold"
                   >{authStore.identity!.username}</span
                 > to this account.
               </p>
@@ -699,12 +696,12 @@
             <p>
               A <b>Username Permanent Account</b> is a fixed account tied to your
               username that never changes. It allows you to add multiple delegate
-              accounts, enabling team members to use it at the same time—perfect
-              for collaboration.
+              accounts, enabling team members to use it at the same time—perfect for
+              collaboration.
             </p>
             {#if delegators.length > 0}
               <p>
-                Your permanent <span class="font-semibold text-primary-500"
+                Your permanent <span class="text-primary-500 font-semibold"
                   >{myUsername}</span
                 >
                 account is now active!<br />Principal ID:

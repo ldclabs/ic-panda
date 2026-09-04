@@ -1,5 +1,5 @@
 import { IS_LOCAL } from '$lib/constants'
-import { Principal } from '@dfinity/principal'
+import { Principal } from '@icp-sdk/core/principal'
 import { decodeCBOR, encodeCBOR } from '@ldclabs/cose-ts/utils'
 
 export type URLSearchParamsInit =
@@ -16,7 +16,7 @@ export function joinURL(
   if (path) {
     if (!url.pathname.endsWith('/')) url.pathname += '/'
     if (path.startsWith('/')) path = path.slice(1)
-      url.pathname += path
+    url.pathname += path
   }
 
   toURLSearchParams(params ?? {}).forEach((value, key) => {

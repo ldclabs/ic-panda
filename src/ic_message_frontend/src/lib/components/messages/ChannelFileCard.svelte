@@ -12,8 +12,8 @@
   } from '$lib/utils/crypto'
   import { fetchFile } from '$lib/utils/fetcher'
   import { downloadUrl } from '$lib/utils/url'
-  import type { Principal } from '@dfinity/principal'
-  import { getModalStore, getToastStore } from '@skeletonlabs/skeleton'
+  import type { Principal } from '@icp-sdk/core/principal'
+  import { getModalStore, getToastStore } from '$lib/ui/stores'
   import { onDestroy, onMount, tick } from 'svelte'
 
   interface Props {
@@ -53,7 +53,9 @@
     const { finally: onfinally } = toastRun(async (signal: AbortSignal) => {
       if (!blobUrl) {
         const data = await downloadFile({ signal })
-        blobUrl = URL.createObjectURL(new Blob([data], { type: file.type }))
+        blobUrl = URL.createObjectURL(
+          new Blob([data as BlobPart], { type: file.type })
+        )
       }
 
       const a = document.createElement('a')
@@ -91,7 +93,9 @@
           downloading = true
           await tick()
           const data = await downloadFile({ signal })
-          blobUrl = URL.createObjectURL(new Blob([data], { type: file.type }))
+          blobUrl = URL.createObjectURL(
+            new Blob([data as BlobPart], { type: file.type })
+          )
           imageUrl = blobUrl
           downloading = false
           abortingQue.push(() => URL.revokeObjectURL(blobUrl))
@@ -109,12 +113,12 @@
 </script>
 
 <div
-  class="flex w-full flex-col items-center justify-center border-t border-surface-500/20"
+  class="border-surface-500/20 flex w-full flex-col items-center justify-center border-t"
 >
   {#if imageUrl}
     <button
       type="button"
-      class="w-full border-b border-surface-500/20 p-4"
+      class="border-surface-500/20 w-full border-b p-4"
       onclick={onPreviewImage}
     >
       <img src={imageUrl} alt={file.name} />
@@ -125,7 +129,7 @@
     </div>
   {/if}
   <div class="flex w-full flex-row items-center justify-center px-4">
-    <p class="text-pretty break-words py-2"><span>{file.name}</span></p>
+    <p class="py-2 text-pretty break-words"><span>{file.name}</span></p>
     <button
       type="button"
       class="btn btn-sm text-surface-500 hover:text-black dark:hover:text-white"
