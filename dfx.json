@@ -91,16 +91,16 @@
       "type": "assets",
       "workspace": "ic_panda_frontend"
     },
-    "ic_message_frontend": {
+    "dmsg_frontend": {
       "dependencies": [],
       "build": [
-        "echo 'Disable dfx build for ic_panda_frontend because some issue, you should run npm build manually'"
+        "echo 'Disable dfx build for dmsg_frontend because some issue, you should run npm build manually'"
       ],
       "source": [
-        "src/ic_message_frontend/dist"
+        "src/dmsg_frontend/dist"
       ],
       "type": "assets",
-      "workspace": "ic_message_frontend"
+      "workspace": "dmsg_frontend"
     },
     "ic_message_channel_02": {
       "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",

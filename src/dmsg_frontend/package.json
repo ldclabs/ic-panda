@@ -77,7 +77,6 @@
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
     "ncu": "npx npm-check-updates -u",
-    "prebuild": "dfx generate && cp -r '../declarations' './src/' && node scripts/migrate-declarations.mjs",
     "preview": "vite preview",
     "setup": "npm i && dfx deploy",
     "start": "vite dev --port 3000",

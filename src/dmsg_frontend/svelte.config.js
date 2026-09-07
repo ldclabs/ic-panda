@@ -23,7 +23,7 @@ const config = {
     // },
     alias: {
       $src: './src',
-      $declarations: './src/declarations'
+      $declarations: '../declarations'
     },
     env: {
       dir: '../../.env'

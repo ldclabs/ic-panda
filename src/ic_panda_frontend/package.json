@@ -61,7 +61,6 @@
   "scripts": {
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
-    "prebuild": "dfx generate && cp -r '../declarations/ic_panda_luckypool' '../declarations/icp_ledger_canister' '../declarations/icrc1_ledger_canister' './src/declarations' && node scripts/migrate-declarations.mjs",
     "setup": "npm i && dfx deploy",
     "start": "vite dev --port 3000",
     "ncu": "npx npm-check-updates -u",
