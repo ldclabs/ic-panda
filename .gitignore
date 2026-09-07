@@ -28,3 +28,7 @@ dist/
 debug
 misc
 proposal-message.json
+
+# Internal dMsg product and implementation documents belong in the private repository.
+/docs/dMsg_PRD_*.md
+/docs/dMsg_implementation_*.md

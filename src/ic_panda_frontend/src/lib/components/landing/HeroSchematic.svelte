@@ -4,7 +4,7 @@
 
 <!--
   The whole brand structure in one hairline schematic:
-  DAO on top, two frontiers below, PANDA as the coordination bus underneath.
+  DAO on top, product directions below, PANDA as the coordination bus underneath.
 -->
 <figure class="rule-box p-5 md:p-6" aria-label="ICPanda DAO structure">
   <figcaption class="eyebrow mb-5 flex items-center justify-between">
@@ -61,6 +61,26 @@
       </div>
       <p class="mt-4 font-mono text-xs font-semibold">
         <span class="text-ink-30">→</span> TokenList
+      </p>
+    </a>
+
+    <a
+      href="#dmsg"
+      class="group border-ink/20 bg-paper/60 hover:border-ink col-span-2 rounded-lg border p-3 transition-colors duration-200"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
+          Personal Control
+        </p>
+        <span class="text-ink-70 font-mono text-[0.625rem] uppercase">
+          Chrome extension
+        </span>
+      </div>
+      <p class="text-ink-70 mt-2 text-sm leading-snug">
+        Private workspace · Identity signing
+      </p>
+      <p class="mt-3 font-mono text-xs font-semibold">
+        <span class="text-ink-30">→</span> dMsg
       </p>
     </a>
   </div>

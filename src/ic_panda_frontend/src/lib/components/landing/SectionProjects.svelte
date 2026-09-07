@@ -3,6 +3,7 @@
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { ANDA_MODULES, LINKS, TOKENLIST_STAGES } from '$lib/site'
   import LinkOut from './LinkOut.svelte'
+  import ProjectDmsg from './ProjectDmsg.svelte'
   import SectionShell from './SectionShell.svelte'
 </script>
 
@@ -12,15 +13,17 @@
       <Reveal>
         <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">
           Open infrastructure for<br class="hidden md:block" />
-          intelligence and markets.
+          intelligence, markets,<br class="hidden md:block" />
+          and personal control.
         </h2>
       </Reveal>
     </div>
     <div class="lg:col-span-5 lg:pt-3">
       <Reveal delay={80}>
         <p class="text-ink-70 text-lg leading-relaxed text-pretty">
-          ICPanda DAO builds at two emerging frontiers: persistent machine
-          cognition and verifiable on-chain capital formation.
+          Anda advances persistent machine cognition. TokenList builds
+          verifiable capital formation. dMsg puts an encrypted private workspace
+          and identity signing tools in your browser.
         </p>
       </Reveal>
     </div>
@@ -94,9 +97,7 @@
 
   <!-- ── TokenList ───────────────────────────────────────────────────── -->
   <Reveal>
-    <article
-      class="bg-ink text-paper mt-6 mb-16 overflow-hidden rounded-xl md:mb-24"
-    >
+    <article class="bg-ink text-paper mt-6 overflow-hidden rounded-xl">
       <header
         class="border-paper/15 flex flex-col gap-6 border-b p-6 md:flex-row md:items-start md:justify-between md:p-10"
       >
@@ -167,4 +168,6 @@
       </footer>
     </article>
   </Reveal>
+
+  <ProjectDmsg />
 </SectionShell>

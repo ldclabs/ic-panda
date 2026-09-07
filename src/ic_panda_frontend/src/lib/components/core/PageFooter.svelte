@@ -19,7 +19,7 @@
       items: [
         { label: 'Anda', href: LINKS.anda, external: true },
         { label: 'TokenList', href: LINKS.tokenlist, external: true },
-        { label: 'dMsg · Archive', href: '/#archive', external: false }
+        { label: 'dMsg', href: '/#dmsg', external: false }
       ]
     },
     {
@@ -52,8 +52,8 @@
         <p
           class="text-ink-70 mt-4 max-w-sm text-sm leading-relaxed text-pretty"
         >
-          Open-source infrastructure for persistent intelligence and verifiable
-          markets.
+          Open-source infrastructure for persistent intelligence, verifiable
+          markets, and personal control over secrets, identity, and signing.
         </p>
 
         <div class="border-ink/10 mt-8 max-w-sm border-t pt-6">

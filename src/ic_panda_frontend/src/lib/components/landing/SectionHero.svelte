@@ -28,10 +28,12 @@
         >
           ICPanda DAO is an on-chain builder collective creating open
           infrastructure for
-          <span class="text-ink font-medium">persistent AI cognition</span>
-          and
+          <span class="text-ink font-medium">persistent AI cognition</span>,
           <span class="text-ink font-medium"
             >verifiable crypto capital formation</span
+          >, and
+          <span class="text-ink font-medium"
+            >personal control over secrets, identity, and signing</span
           >.
         </p>
 

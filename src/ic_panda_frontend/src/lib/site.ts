@@ -2,8 +2,8 @@
  * Single source of truth for the panda.fans brand surface.
  *
  * panda.fans answers "who is building & governing?".
- * anda.ai and tokenlist.ing carry their own technical narratives — this site
- * links to them instead of restating them.
+ * Anda, TokenList, and dMsg carry their own technical narratives — this site
+ * explains what each product offers and links to its own home.
  *
  * Narrative belongs to ICPanda DAO. Facts belong on-chain.
  */
@@ -40,9 +40,10 @@ export const LINKS = {
   mibGithub: 'https://github.com/ldclabs/MIB',
   tokenlist: 'https://tokenlist.ing',
 
-  // archive
   dmsg: 'https://dmsg.net',
   dmsgGithub: 'https://github.com/ldclabs/ic-panda/tree/main/src/ic_message',
+  dmsgOverview:
+    'https://github.com/ldclabs/ic-panda/blob/main/whitepaper/en.md#102-dmsg',
 
   // apps still served from this canister
   bridge: 'https://1bridge.app/?token=PANDA&from=ICP&to=BNB',
@@ -152,6 +153,30 @@ export const TOKENLIST_STAGES = [
     code: 'DAO',
     verb: 'Govern',
     body: 'Move from issuance to long-term community coordination and on-chain governance.'
+  }
+] as const
+
+/** Public capabilities of the dMsg Chrome extension. */
+export const DMSG_CAPABILITIES = [
+  {
+    index: '01',
+    name: 'Your private vault',
+    body: 'Keep notes, credentials, key material, and files encrypted on your device. Local search, encrypted exports, and recovery put your workspace within reach.'
+  },
+  {
+    index: '02',
+    name: 'Encrypted collaboration',
+    body: 'Exchange messages and files in private channels. Choose who joins, what they can share, and which parts of your history they can read.'
+  },
+  {
+    index: '03',
+    name: 'Contact on your terms',
+    body: 'Set a price in supported tokens for unsolicited messages, or accept only contacts and invitations. Payment buys a place in your inbox, never a promised reply.'
+  },
+  {
+    index: '04',
+    name: 'Sign with clear intent',
+    body: 'Carry your identity across apps. Review the source, exact content, and purpose of a file, statement, or authorization before approving its signature.'
   }
 ] as const
 
