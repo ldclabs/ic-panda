@@ -11,13 +11,14 @@
   let submitting = $state(false)
   let error = $state('')
 
-  async function signIn(provider: 'current' | 'ii' | 'legacy') {
+  async function signIn(provider: 'current' | 'internetcomputer' | 'legacy') {
     if (submitting) return
     submitting = true
     error = ''
     try {
       if (provider === 'legacy') await authStore.signIn()
-      else if (provider === 'current') await authStore.signIn2('https://id.ai')
+      else if (provider === 'current')
+        await authStore.signIn2('https://id.ai/authorize')
       else await authStore.signIn2()
       parent['onClose']()
       await onCompleted()
@@ -51,7 +52,7 @@
         >{$t('id.ai · Current site identity')}</span
       ></button
     >
-    <button disabled={submitting} onclick={() => signIn('ii')}
+    <button disabled={submitting} onclick={() => signIn('internetcomputer')}
       ><strong>Internet Identity</strong><span
         >{$t('identity.internetcomputer.org · Current site identity')}</span
       ></button

@@ -103,69 +103,102 @@
       "workspace": "dmsg_frontend"
     },
     "ic_message_channel_02": {
-      "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",
+      "candid": ".dfx/downloads/ic_message_channel_02/2595d01a6ccf80b9/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
+      "wasm": ".dfx/downloads/ic_message_channel_02/2595d01a6ccf80b9/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_message_channel_02/2595d01a6ccf80b9 https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
+      ]
     },
     "ic_message_channel_03": {
-      "candid": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did",
+      "candid": ".dfx/downloads/ic_message_channel_03/2595d01a6ccf80b9/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
+      "wasm": ".dfx/downloads/ic_message_channel_03/2595d01a6ccf80b9/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_message_channel_03/2595d01a6ccf80b9 https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.did https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz"
+      ]
     },
     "ic_cose_canister": {
-      "candid": "https://github.com/ldclabs/ic-cose/releases/download/v0.9.1/ic_cose_canister.did",
+      "candid": ".dfx/downloads/ic_cose_canister/c34326da76757719/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-cose/releases/download/v0.9.1/ic_cose_canister.wasm.gz"
+      "wasm": ".dfx/downloads/ic_cose_canister/c34326da76757719/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_cose_canister/c34326da76757719 https://github.com/ldclabs/ic-cose/releases/download/v0.9.1/ic_cose_canister.did https://github.com/ldclabs/ic-cose/releases/download/v0.9.1/ic_cose_canister.wasm.gz"
+      ]
     },
     "ic_oss_cluster": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_cluster.did",
+      "candid": ".dfx/downloads/ic_oss_cluster/8b41e3264904b4d8/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_cluster.wasm.gz"
+      "wasm": ".dfx/downloads/ic_oss_cluster/8b41e3264904b4d8/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_oss_cluster/8b41e3264904b4d8 https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_cluster.did https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_cluster.wasm.gz"
+      ]
     },
     "ic_oss_bucket": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.did",
+      "candid": ".dfx/downloads/ic_oss_bucket/4b9961cf0d463e5a/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz"
+      "wasm": ".dfx/downloads/ic_oss_bucket/4b9961cf0d463e5a/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_oss_bucket/4b9961cf0d463e5a https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.did https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz"
+      ]
     },
     "ic_oss_bucket_02": {
-      "candid": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.did",
+      "candid": ".dfx/downloads/ic_oss_bucket_02/4b9961cf0d463e5a/canister.did",
       "type": "custom",
-      "wasm": "https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz"
+      "wasm": ".dfx/downloads/ic_oss_bucket_02/4b9961cf0d463e5a/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/ic_oss_bucket_02/4b9961cf0d463e5a https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.did https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz"
+      ]
     },
     "internet_identity": {
-      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",
+      "candid": ".dfx/downloads/internet_identity/1f7effc379b913b7/canister.did",
       "remote": {
         "id": {
           "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
         }
       },
       "type": "custom",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz"
+      "wasm": ".dfx/downloads/internet_identity/1f7effc379b913b7/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/internet_identity/1f7effc379b913b7 https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz"
+      ]
     },
     "icp_ledger_canister": {
       "type": "custom",
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/246d0ce0784d9990c06904809722ce5c2c816269/rs/rosetta-api/icp_ledger/ledger.did",
-      "wasm": "https://download.dfinity.systems/ic/246d0ce0784d9990c06904809722ce5c2c816269/canisters/ledger-canister.wasm.gz",
+      "candid": ".dfx/downloads/icp_ledger_canister/8485bf8b97b58e81/canister.did",
+      "wasm": ".dfx/downloads/icp_ledger_canister/8485bf8b97b58e81/canister.wasm.gz",
       "remote": {
         "id": {
           "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
         }
-      }
+      },
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/icp_ledger_canister/8485bf8b97b58e81 https://raw.githubusercontent.com/dfinity/ic/246d0ce0784d9990c06904809722ce5c2c816269/rs/rosetta-api/icp_ledger/ledger.did https://download.dfinity.systems/ic/246d0ce0784d9990c06904809722ce5c2c816269/canisters/ledger-canister.wasm.gz"
+      ]
     },
     "icrc1_ledger_canister": {
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/ledger/ledger.did",
+      "candid": ".dfx/downloads/icrc1_ledger_canister/a850f4d74de26cd6/canister.did",
       "type": "custom",
-      "wasm": "https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz"
+      "wasm": ".dfx/downloads/icrc1_ledger_canister/a850f4d74de26cd6/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/icrc1_ledger_canister/a850f4d74de26cd6 https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/ledger/ledger.did https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz"
+      ]
     },
     "dmsg_ledger_canister": {
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/ledger/ledger.did",
+      "candid": ".dfx/downloads/dmsg_ledger_canister/a850f4d74de26cd6/canister.did",
       "type": "custom",
-      "wasm": "https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz"
+      "wasm": ".dfx/downloads/dmsg_ledger_canister/a850f4d74de26cd6/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/dmsg_ledger_canister/a850f4d74de26cd6 https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/ledger/ledger.did https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz"
+      ]
     },
     "dmsg_index_canister": {
-      "candid": "https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/index-ng/index-ng.did",
+      "candid": ".dfx/downloads/dmsg_index_canister/d8db4f84c243749d/canister.did",
       "type": "custom",
-      "wasm": "https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-index-ng.wasm.gz"
+      "wasm": ".dfx/downloads/dmsg_index_canister/d8db4f84c243749d/canister.wasm.gz",
+      "build": [
+        "bash scripts/download-canister.sh .dfx/downloads/dmsg_index_canister/d8db4f84c243749d https://raw.githubusercontent.com/dfinity/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/rs/ledger_suite/icrc1/index-ng/index-ng.did https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-index-ng.wasm.gz"
+      ]
     },
     "dmsg_handle": {
       "candid": "src/dmsg_handle/dmsg_handle.did",

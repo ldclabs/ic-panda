@@ -1,5 +1,29 @@
 # Deployment Guide
 
+## Deploying a single frontend
+
+Build the frontend assets first, then prepare the upload as usual:
+
+```bash
+pnpm --filter ic_panda_frontend build
+dfx deploy ic_panda_frontend --ic --by-proposal
+```
+
+For dMsg, substitute `dmsg_frontend` in both commands. The asset canisters'
+dfx build steps intentionally do not run the frontend build.
+
+dfx 0.32 downloads remote `candid` and `wasm` URLs for every custom canister
+before filtering the build targets, even when deploying a frontend with no
+dependencies. Custom canisters therefore use local paths and invoke
+`scripts/download-canister.sh` in their own build steps. Only selected custom
+canisters download their release files; successful downloads are cached under
+`.dfx/downloads/`. This requires `bash` and `curl` when building those canisters.
+
+When updating a custom canister release, update both URLs in its `build` command
+and the cache directory in `build`, `candid`, and `wasm`. The directory suffix is
+the first 16 hex characters of SHA-256 of `CANDID_URL + "\n" + WASM_URL` (no final
+newline). Delete that cache directory to force a fresh download of the same URLs.
+
 ## Running the project locally
 
 If you want to test your project locally, you can use the following commands:

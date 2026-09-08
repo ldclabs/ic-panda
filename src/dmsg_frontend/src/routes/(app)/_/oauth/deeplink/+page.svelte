@@ -101,30 +101,10 @@
           class="variant-filled-primary btn btn-lg w-80"
           disabled={submitting}
           onclick={() => {
-            authStore.signIn2('https://id.ai')
-          }}
-        >
-          Internet Identity v2
-        </button>
-        <button
-          type="button"
-          class="variant-filled-primary btn btn-lg w-80"
-          disabled={submitting}
-          onclick={() => {
-            authStore.signIn2()
+            authStore.signIn2('https://id.ai/authorize')
           }}
         >
           Internet Identity
-        </button>
-        <button
-          type="button"
-          class="variant-filled-surface btn btn-lg w-80"
-          disabled={submitting}
-          onclick={() => {
-            authStore.signIn()
-          }}
-        >
-          identity.ic0.app (legacy)
         </button>
       </div>
     {/if}

@@ -50,9 +50,7 @@ export interface InternetIdentityAuthResponseSuccess {
   authnMethod: 'passkey' | 'pin' | 'recovery'
 }
 
-const IDENTITY_PROVIDER = IS_LOCAL
-  ? 'http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943'
-  : 'https://identity.ic0.app'
+const IDENTITY_PROVIDER = 'https://id.ai/authorize'
 
 const DERIVATION_ORIGIN = IS_LOCAL ? undefined : 'https://panda.fans'
 
