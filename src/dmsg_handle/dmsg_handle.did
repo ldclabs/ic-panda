@@ -1,0 +1,140 @@
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
+type Account = record { owner : principal; subaccount : opt blob };
+type CertifiedBatch = record {
+  certificate : blob;
+  schema : nat16;
+  entries : vec CertifiedEntry;
+  canister : principal;
+};
+type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+type Error = variant {
+  MigrationKeyUnavailable;
+  LegacyWriteDisabled;
+  InvalidInput : text;
+  RekeyRequired;
+  VersionConflict;
+  ExecutionUnknown;
+  IntegrityFailed;
+  NotFound;
+  FeeBlocked;
+  DeviceNotApproved;
+  Locked;
+  RecoveryIncomplete;
+  PolicyStale;
+  IdempotencyConflict;
+  UnsupportedProtocol;
+  Unavailable : text;
+  Forbidden;
+  ResultExpired;
+  Expired;
+  QuotaExceeded;
+  AuthRequired;
+  Pending;
+};
+type HandleAction = variant { AcceptTransfer; Register; Transfer; ClaimLegacy };
+type HandleEvent = record {
+  at : nat64;
+  to : blob;
+  previous : blob;
+  from : opt blob;
+  version : nat64;
+  handle : text;
+  legacy_snapshot : blob;
+  sequence : nat64;
+};
+type HandleInit = record {
+  max_pending : nat32;
+  home_user : principal;
+  ledger : principal;
+  ledger_fee : nat;
+};
+type HandleIntent = record {
+  handle_canister : principal;
+  action : HandleAction;
+  subject : blob;
+  op_id : blob;
+  target_subject : opt blob;
+  handle : text;
+  expected_version : nat64;
+  terms_digest : blob;
+};
+type HandleOperation = record {
+  registration : Registration;
+  memo : blob;
+  ledger_block : opt nat64;
+  created_at : nat64;
+  digest : blob;
+  phase : HandlePhase;
+  amount : nat;
+  expires_at : nat64;
+};
+type HandlePhase = variant {
+  Committed;
+  Reserved;
+  Paid;
+  RefundPending;
+  ChargeUnknown;
+  Charging;
+  Expired;
+};
+type HandleRecord = record {
+  event_tip : blob;
+  owner_subject : blob;
+  version : nat64;
+  handle : text;
+};
+type LegacyReservation = record {
+  // Frozen administrator principals, never ordinary delegators. Empty means
+  // an ambiguous name-account owner stays quarantined.
+  frozen_admins : vec principal;
+  handle : text;
+  legacy_name_principal : opt principal;
+  legacy_owner : principal;
+  quarantined : bool;
+};
+type LegacySnapshot = record {
+  event_tip : blob;
+  source_canister : principal;
+  count : nat64;
+  entries_digest : blob;
+  snapshot_id : blob;
+  freeze_version : nat64;
+};
+type Registration = record {
+  fee : nat;
+  intent : HandleIntent;
+  payer : Account;
+};
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : HandleRecord; Err : Error };
+type Result_2 = variant { Ok : HandleOperation; Err : Error };
+type Result_3 = variant { Ok : opt LegacyReservation; Err : Error };
+type Result_4 = variant { Ok : SnapshotProgress; Err : Error };
+type Result_5 = variant { Ok : vec LegacyReservation; Err : Error };
+type Result_6 = variant { Ok : CertifiedBatch; Err : Error };
+type SnapshotProgress = record {
+  last_handle : opt text;
+  snapshot : opt LegacySnapshot;
+  imported : nat64;
+  sealed : bool;
+  rolling_digest : blob;
+};
+service : (HandleInit) -> {
+  begin_legacy_snapshot : (LegacySnapshot) -> (Result);
+  claim_legacy_handle : (HandleIntent, blob) -> (Result_1);
+  commit_handle : (blob, blob) -> (Result_2);
+  expire_handle_reservation : (blob, blob) -> (Result);
+  get_handle_event : (nat64) -> (opt HandleEvent) query;
+  get_handle_operation : (blob, blob) -> (Result_2) query;
+  get_legacy_reservation : (text) -> (Result_3) query;
+  import_legacy_handles : (blob, vec LegacyReservation) -> (Result_4);
+  list_legacy_reservations : (opt text) -> (Result_5) query;
+  reconcile_handle_charge : (blob, blob, nat64) -> (Result_2);
+  reserve_handle : (Registration) -> (Result_2);
+  resolve_handle_certified : (vec text) -> (Result_6) query;
+  seal_legacy_snapshot : () -> (Result_4);
+  snapshot_certified : () -> (Result_6) query;
+  snapshot_progress : () -> (SnapshotProgress) query;
+  transfer_handle : (HandleIntent, HandleIntent) -> (Result_1);
+}

@@ -1,0 +1,122 @@
+type Algorithm = variant { VetKdBls12381; Ed25519; Bip340; EcdsaSecp256k1 };
+type CoseInit = record {
+  masters : vec MasterKey;
+  executing_canister : principal;
+  derivation_version : nat16;
+  daily_cycles : nat;
+  initial_home_user : principal;
+  daily_executions : nat32;
+  environment : Environment;
+};
+type Environment = variant { Local; Production; Staging };
+type Error = variant {
+  MigrationKeyUnavailable;
+  LegacyWriteDisabled;
+  InvalidInput : text;
+  RekeyRequired;
+  VersionConflict;
+  ExecutionUnknown;
+  IntegrityFailed;
+  NotFound;
+  FeeBlocked;
+  DeviceNotApproved;
+  Locked;
+  RecoveryIncomplete;
+  PolicyStale;
+  IdempotencyConflict;
+  UnsupportedProtocol;
+  Unavailable : text;
+  Forbidden;
+  ResultExpired;
+  Expired;
+  QuotaExceeded;
+  AuthRequired;
+  Pending;
+};
+type ExecutionGrant = record {
+  request_id : blob;
+  device_sequence : nat64;
+  execution_sequence : nat64;
+  subject : blob;
+  kind : ExecutionKind;
+  approved_at : nat64;
+  device_id : blob;
+  security_epoch : nat64;
+  home_cose : principal;
+  max_cycles : nat;
+  home_user : principal;
+  expires_at : nat64;
+};
+type ExecutionKind = variant {
+  Sign : record { key : KeyRequest; canonical_payload : blob };
+  Derive : record {
+    generation : nat64;
+    transport_key : blob;
+    root_op_id : opt blob;
+  };
+};
+type ExecutionResult = record {
+  key : opt KeyDescriptor;
+  status : ExecutionStatus;
+  result : opt blob;
+  charged_cycles : nat;
+};
+type ExecutionStatus = variant {
+  Failed;
+  Executing;
+  Authorized;
+  Unknown;
+  ResultExpired;
+  Completed;
+};
+type Initialization = variant { Ready; Uninitialized; Initializing };
+type KeyDescriptor = record {
+  algorithm : Algorithm;
+  key_generation : nat64;
+  public_key_fingerprint : blob;
+  provider : opt text;
+  subject : blob;
+  derivation_version : nat16;
+  public_key : blob;
+  key_id : blob;
+  home_cose : principal;
+  environment : Environment;
+  master_key_name : text;
+  purpose : KeyPurpose;
+};
+type KeyPurpose = variant {
+  ContentRoot;
+  FileAttestation;
+  ProviderController;
+  Identity;
+  Statement;
+};
+type KeyRequest = record {
+  algorithm : Algorithm;
+  provider : opt text;
+  generation : nat64;
+  purpose : KeyPurpose;
+};
+type KeyState = record {
+  initialization : Initialization;
+  fingerprints : vec blob;
+  error : opt text;
+  config : CoseInit;
+};
+type MasterKey = record {
+  algorithm : Algorithm;
+  expected_fingerprint : blob;
+  key_name : text;
+};
+type Result = variant { Ok : KeyDescriptor; Err : Error };
+type Result_1 = variant { Ok : ExecutionResult; Err : Error };
+type Result_2 = variant { Ok : KeyState; Err : Error };
+type Result_3 = variant { Ok; Err : Error };
+service : (CoseInit) -> {
+  describe_key : (blob) -> (Result) query;
+  execute : (ExecutionGrant) -> (Result_1);
+  get_execution : (blob, blob) -> (Result_1) query;
+  initialize_keys : () -> (Result_2);
+  key_state : () -> (KeyState) query;
+  register_subject : (blob) -> (Result_3);
+}

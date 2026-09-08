@@ -1,0 +1,341 @@
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
+type Account = record { owner : principal; subaccount : opt blob };
+type AccountCommand = variant {
+  DisputeRecovery : record { op_id : blob; dispute : blob };
+  ConfirmRecovery : record { proof : blob };
+  BindAuth : record { "principal" : principal; nonce : blob };
+  ReserveRoot : record { op_id : blob; expected_generation : nat64 };
+  RemoveAuth : record { "principal" : principal };
+  AuthorizeHandle : record { intent : HandleIntent };
+  SetRecovery : record { proof : blob; policy : RecoveryPolicy };
+  AddDevice : record { device : DeviceInput; proof : blob };
+  CommitRoot : record {
+    op_id : blob;
+    root : ContentRootRef;
+    expected_generation : nat64;
+  };
+  RevokeDevice : record { device_id : blob };
+  SetPolicy : record { policy : SensitivePolicy };
+};
+type AccountMutation = record {
+  subject : blob;
+  command : AccountCommand;
+  approval : Approval;
+  expected_version : nat64;
+};
+type AccountStatus = variant { Active; RecoveryDisputed };
+type Algorithm = variant { VetKdBls12381; Ed25519; Bip340; EcdsaSecp256k1 };
+type Approval = record {
+  request_id : blob;
+  signature : blob;
+  device_id : blob;
+  security_epoch : nat64;
+  expires_at : nat64;
+  sequence : nat64;
+};
+type AuthorizedExecution = record {
+  result : ExecutionResult;
+  command_digest : blob;
+  grant : ExecutionGrant;
+};
+type Budget = record { day : nat64; executions : nat32; cycles : nat };
+type Capability = variant {
+  FormalApprove;
+  ContentSign;
+  VaultUnlock;
+  RootManage;
+  PaymentOffer;
+};
+type CertifiedBatch = record {
+  certificate : blob;
+  schema : nat16;
+  entries : vec CertifiedEntry;
+  canister : principal;
+};
+type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+type ContentRootRef = record {
+  key_generation : nat64;
+  derivation_version : nat16;
+  recovery_generation : nat64;
+  generation : nat64;
+  suite : text;
+  home_cose : principal;
+  bundle_digest : blob;
+};
+type ControllerRole = variant { Administrator; Member };
+type CreateSubject = record {
+  op_id : blob;
+  device : DeviceInput;
+  proof : blob;
+  expires_at : nat64;
+};
+type Device = record {
+  added_at : nat64;
+  added_by : opt blob;
+  revoked_at : opt nat64;
+  next_sequence : nat64;
+  input : DeviceInput;
+};
+type DeviceInput = record {
+  capabilities : vec Capability;
+  role : ControllerRole;
+  device_id : blob;
+  hpke_pub : blob;
+  signing_pub : blob;
+};
+type Environment = variant { Local; Production; Staging };
+type Error = variant {
+  MigrationKeyUnavailable;
+  LegacyWriteDisabled;
+  InvalidInput : text;
+  RekeyRequired;
+  VersionConflict;
+  ExecutionUnknown;
+  IntegrityFailed;
+  NotFound;
+  FeeBlocked;
+  DeviceNotApproved;
+  Locked;
+  RecoveryIncomplete;
+  PolicyStale;
+  IdempotencyConflict;
+  UnsupportedProtocol;
+  Unavailable : text;
+  Forbidden;
+  ResultExpired;
+  Expired;
+  QuotaExceeded;
+  AuthRequired;
+  Pending;
+};
+type ExecuteRequest = record {
+  subject : blob;
+  kind : ExecutionKind;
+  max_cycles : nat;
+  approval : Approval;
+};
+type ExecutionGrant = record {
+  request_id : blob;
+  device_sequence : nat64;
+  execution_sequence : nat64;
+  subject : blob;
+  kind : ExecutionKind;
+  approved_at : nat64;
+  device_id : blob;
+  security_epoch : nat64;
+  home_cose : principal;
+  max_cycles : nat;
+  home_user : principal;
+  expires_at : nat64;
+};
+type ExecutionKind = variant {
+  Sign : record { key : KeyRequest; canonical_payload : blob };
+  Derive : record {
+    generation : nat64;
+    transport_key : blob;
+    root_op_id : opt blob;
+  };
+};
+type ExecutionResult = record {
+  key : opt KeyDescriptor;
+  status : ExecutionStatus;
+  result : opt blob;
+  charged_cycles : nat;
+};
+type ExecutionStatus = variant {
+  Failed;
+  Executing;
+  Authorized;
+  Unknown;
+  ResultExpired;
+  Completed;
+};
+type HandleAction = variant { AcceptTransfer; Register; Transfer; ClaimLegacy };
+type HandleAuthorization = record {
+  intent : HandleIntent;
+  consumed : bool;
+  expires_at : nat64;
+};
+type HandleIntent = record {
+  handle_canister : principal;
+  action : HandleAction;
+  subject : blob;
+  op_id : blob;
+  target_subject : opt blob;
+  handle : text;
+  expected_version : nat64;
+  terms_digest : blob;
+};
+type KeyDescriptor = record {
+  algorithm : Algorithm;
+  key_generation : nat64;
+  public_key_fingerprint : blob;
+  provider : opt text;
+  subject : blob;
+  derivation_version : nat16;
+  public_key : blob;
+  key_id : blob;
+  home_cose : principal;
+  environment : Environment;
+  master_key_name : text;
+  purpose : KeyPurpose;
+};
+type KeyPurpose = variant {
+  ContentRoot;
+  FileAttestation;
+  ProviderController;
+  Identity;
+  Statement;
+};
+type KeyRequest = record {
+  algorithm : Algorithm;
+  provider : opt text;
+  generation : nat64;
+  purpose : KeyPurpose;
+};
+type OperationReceipt = record {
+  id : blob;
+  account_version : nat64;
+  digest : blob;
+};
+type PaymentOffer = record {
+  quote_scope : blob;
+  issued_at : nat64;
+  subject : blob;
+  recipient : Account;
+  device_id : blob;
+  security_epoch : nat64;
+  version : nat64;
+  ledger : principal;
+  offer_id : blob;
+  home_payment : principal;
+  expires_at : nat64;
+  recipient_net : nat;
+};
+type PendingRecovery = record {
+  reconfirmed : bool;
+  request : RecoveryRequest;
+  execute_after : nat64;
+  confirmation : opt RecoveryConfirmation;
+  dispute : opt blob;
+};
+type RecoveryConfirmation = record {
+  request_id : blob;
+  dispute : blob;
+  expires_at : nat64;
+};
+type RecoveryPolicy = record {
+  delay_ns : nat64;
+  generation : nat64;
+  hpke_pub : blob;
+  signing_pub : blob;
+};
+type RecoveryRequest = record {
+  op_id : blob;
+  generation : nat64;
+  device : DeviceInput;
+  new_auth : principal;
+  expires_at : nat64;
+};
+type Result = variant { Ok : ExecutionResult; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+type Result_10 = variant { Ok : nat64; Err : Error };
+type Result_2 = variant { Ok : blob; Err : Error };
+type Result_3 = variant {
+  Ok : record { SecuritySnapshot; vec record { blob; Device } };
+  Err : Error;
+};
+type Result_4 = variant { Ok : AuthorizedExecution; Err : Error };
+type Result_5 = variant { Ok : OperationReceipt; Err : Error };
+type Result_6 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_7 = variant { Ok : opt ContentRootRef; Err : Error };
+type Result_8 = variant { Ok : Subject; Err : Error };
+type Result_9 = variant { Ok : CertifiedBatch; Err : Error };
+type RootReservation = record {
+  op_id : blob;
+  generation : nat64;
+  security_epoch : nat64;
+  expected_generation : nat64;
+  expires_at : nat64;
+};
+type SecuritySnapshot = record {
+  content_root_generation : nat64;
+  account_version : nat64;
+  recovery_nonce : nat64;
+  content_root_digest : opt blob;
+  devices_root : blob;
+  recovery_hpke_pub : opt blob;
+  schema : nat16;
+  security_epoch : nat64;
+  recovery_root_version : nat64;
+  home_user : principal;
+  subject_id : blob;
+  recovery_delay_ns : opt nat64;
+  recovery_signing_pub : opt blob;
+  vault_write_state : VaultWriteState;
+  account_status : AccountStatus;
+  pending_recovery_digest : opt blob;
+};
+type SensitivePolicy = record {
+  daily_cycles : nat;
+  daily_executions : nat32;
+  frozen : bool;
+  allowed_purposes : vec KeyPurpose;
+};
+type SignedOffer = record { signature : blob; offer : PaymentOffer };
+type Subject = record {
+  status : AccountStatus;
+  account_version : nat64;
+  auth_bindings : vec principal;
+  recovery_nonce : nat64;
+  root_slot : opt RootReservation;
+  executions : vec record { blob; AuthorizedExecution };
+  security_epoch : nat64;
+  pending_recovery : opt PendingRecovery;
+  home_cose : principal;
+  home_user : principal;
+  subject_id : blob;
+  operations : vec OperationReceipt;
+  next_execution_sequence : nat64;
+  handle_authorizations : vec record { blob; HandleAuthorization };
+  sensitive_policy : SensitivePolicy;
+  recovery : opt RecoveryPolicy;
+  current_root : opt ContentRootRef;
+  next_root_generation : nat64;
+  recovery_checked : bool;
+  budget : Budget;
+  devices : vec record { blob; Device };
+  vault_write_state : VaultWriteState;
+};
+type UserInit = record {
+  handle_canister : principal;
+  daily_new_subjects : nat32;
+  max_subjects : nat64;
+  home_cose : principal;
+  payment_canister : principal;
+};
+type VaultWriteState = variant { RekeyRequired; Ready; Uninitialized };
+service : (UserInit) -> {
+  authorize_and_execute : (ExecuteRequest) -> (Result);
+  // Only the new authentication principal may reserve its own binding. The
+  // existing subject's administrator must separately approve the exact nonce.
+  begin_auth_binding : (blob, blob, nat64) -> (Result_1);
+  complete_recovery : (blob) -> (Result_1);
+  consume_handle_authorization : (HandleIntent) -> (Result_1);
+  create_subject : (CreateSubject) -> (Result_2);
+  get_device_bundle : (blob) -> (Result_3) query;
+  get_execution : (blob, blob) -> (Result_4) query;
+  get_operation : (blob, blob) -> (Result_5) query;
+  get_recovery_request : (blob) -> (Result_6) query;
+  get_root_ref : (blob) -> (Result_7) query;
+  get_subject : (blob) -> (Result_8) query;
+  mutate_account : (AccountMutation) -> (Result_5);
+  my_subject : () -> (opt blob) query;
+  prune_auth_bindings : (blob) -> (opt blob);
+  reconcile_execution : (blob, blob) -> (Result);
+  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_1);
+  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_1);
+  security_snapshot_batch : (vec blob) -> (Result_9) query;
+  verify_payment_offer : (SignedOffer) -> (Result_10);
+}

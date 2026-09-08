@@ -1,5 +1,12 @@
 [workspace]
 members = [
+  "src/dmsg_types",
+  "src/dmsg_handle",
+  "src/dmsg_user",
+  "src/dmsg_cose",
+  "src/dmsg_payment",
+  "tests/dmsg_integration",
+  "tests/dmsg_test_ledger",
   "src/cli_airdrop",
   "src/cli_cryptogram",
   "src/cli_dmsg",

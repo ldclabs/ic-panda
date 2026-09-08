@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Build canisters
         run: |
@@ -25,8 +28,8 @@ jobs:
           ic-wasm --version
           "$WASM_OPT" --version
           mkdir out
-          cargo build --target wasm32-unknown-unknown --release --locked -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
-          for CAN in ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
+          cargo build --target wasm32-unknown-unknown --release --locked -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
+          for CAN in dmsg_user dmsg_handle dmsg_cose dmsg_payment ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
           do
             cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
             cp "src/$CAN/$CAN.did" "out/$CAN.did"

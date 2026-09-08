@@ -1,0 +1,205 @@
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
+type Account = record { owner : principal; subaccount : opt blob };
+type AdmissionReceipt = record {
+  protocol : nat16;
+  retain_until : nat64;
+  relay_id : blob;
+  envelope_digest : blob;
+  size : nat32;
+  accept_by : nat64;
+  admission_seq : nat64;
+  quote_digest : blob;
+  stored_at : nat64;
+  policy_version : nat64;
+  escrow_id : blob;
+  home_payment : principal;
+  signer_epoch : nat64;
+  fund_by : nat64;
+  inbox_key_version : nat64;
+};
+type CertifiedBatch = record {
+  certificate : blob;
+  schema : nat16;
+  entries : vec CertifiedEntry;
+  canister : principal;
+};
+type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+type Deposit = record {
+  committed_at : nat64;
+  from : Account;
+  refundable : nat;
+  block : nat64;
+  amount : nat;
+};
+type Error = variant {
+  MigrationKeyUnavailable;
+  LegacyWriteDisabled;
+  InvalidInput : text;
+  RekeyRequired;
+  VersionConflict;
+  ExecutionUnknown;
+  IntegrityFailed;
+  NotFound;
+  FeeBlocked;
+  DeviceNotApproved;
+  Locked;
+  RecoveryIncomplete;
+  PolicyStale;
+  IdempotencyConflict;
+  UnsupportedProtocol;
+  Unavailable : text;
+  Forbidden;
+  ResultExpired;
+  Expired;
+  QuotaExceeded;
+  AuthRequired;
+  Pending;
+};
+type Escrow = record {
+  next_leg : nat64;
+  liabilities : nat;
+  decision : FundsDecision;
+  pending_payouts : nat32;
+  op_id : blob;
+  subaccount : blob;
+  network_fees : nat;
+  quote : Quote;
+  transferred : nat;
+  funded_at : opt nat64;
+  version : nat64;
+  quote_digest : blob;
+  payer_principal : principal;
+  receipt_digest : opt blob;
+  primary_remaining : nat;
+  escrow_id : blob;
+  funding_ref : opt nat64;
+  confirmed_in : nat;
+};
+type FundsDecision = variant { SettlementCommitted; RefundCommitted; Pending };
+type LegKind = variant {
+  Refund : record { funding_block : nat64 };
+  Platform;
+  ReserveRefund;
+  Recipient;
+};
+type LegStatus = variant {
+  Superseded;
+  FeeBlocked;
+  Rejected;
+  Succeeded;
+  InFlight;
+  Unknown;
+  Pending;
+};
+type OpenEscrow = record {
+  quote_signature : blob;
+  offer : SignedOffer;
+  op_id : blob;
+  quote : Quote;
+};
+type PaymentInit = record {
+  service_fee : nat;
+  daily_orders : nat32;
+  platform : Account;
+  enabled : bool;
+  home_user : principal;
+  ledger : principal;
+  ledger_fee : nat;
+  signer : ReceiptSigner;
+  max_open_per_payer : nat32;
+  max_fee : nat;
+};
+type PaymentOffer = record {
+  quote_scope : blob;
+  issued_at : nat64;
+  subject : blob;
+  recipient : Account;
+  device_id : blob;
+  security_epoch : nat64;
+  version : nat64;
+  ledger : principal;
+  offer_id : blob;
+  home_payment : principal;
+  expires_at : nat64;
+  recipient_net : nat;
+};
+type Quote = record {
+  quote_scope : blob;
+  fee_reserve : nat;
+  service_fee : nat;
+  max_network_fee : nat;
+  envelope_digest : blob;
+  accept_by : nat64;
+  offer_digest : blob;
+  recipient : Account;
+  platform : Account;
+  created_at : nat64;
+  ledger : principal;
+  quote_id : blob;
+  max_bytes : nat32;
+  payer : Account;
+  amount : nat;
+  home_payment : principal;
+  retain_ns : nat64;
+  recipient_net : nat;
+  signer_epoch : nat64;
+  fund_by : nat64;
+};
+type ReceiptSigner = record {
+  revoked : bool;
+  public_key : blob;
+  epoch : nat64;
+  valid_until : nat64;
+  valid_from : nat64;
+};
+type Result = variant { Ok : Escrow; Err : Error };
+type Result_1 = variant { Ok : TransferLeg; Err : Error };
+type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_3 = variant { Ok : ReceiptSigner; Err : Error };
+type Result_4 = variant { Ok : vec Escrow; Err : Error };
+type Result_5 = variant { Ok : vec TransferLeg; Err : Error };
+type Result_6 = variant { Ok; Err : Error };
+type SignedOffer = record { signature : blob; offer : PaymentOffer };
+type SignedReceipt = record { signature : blob; receipt : AdmissionReceipt };
+type TransferLeg = record {
+  to : Account;
+  fee : nat;
+  status : LegStatus;
+  replaces : opt nat64;
+  history_digest : blob;
+  kind : LegKind;
+  memo : blob;
+  leg_id : nat64;
+  block : opt nat64;
+  created_at_time : nat64;
+  escrow_id : blob;
+  revision : nat64;
+  amount : nat;
+  expected_fee : opt nat;
+};
+service : (PaymentInit) -> {
+  check_funding : (blob, nat64) -> (Result);
+  claim_deposit_refund : (blob, nat64) -> (Result_1);
+  claim_fee_reserve : (blob) -> (Result_1);
+  expiry_refund : (blob) -> (Result);
+  finalize_receipt : (SignedReceipt) -> (Result);
+  get_deposit : (blob, nat64) -> (opt Deposit) query;
+  get_escrow : (blob) -> (Result) query;
+  get_escrow_by_operation : (principal, blob) -> (Result) query;
+  get_escrow_certified : (vec blob) -> (Result_2) query;
+  get_receipt_signer : (nat64) -> (Result_3) query;
+  get_transfer : (blob, nat64) -> (Result_1) query;
+  list_my_escrows : (opt blob) -> (Result_4) query;
+  list_transfers : (blob, opt nat64) -> (Result_5) query;
+  open_escrow : (OpenEscrow) -> (Result);
+  process_transfer : (blob, nat64) -> (Result_1);
+  reconcile_transfer : (blob, nat64, nat64) -> (Result_1);
+  // Only an unambiguously rejected transfer may receive new parameters. Keep
+  // its immutable old leg for audit, consume approved reserve for beneficiary
+  // fees, and return all refund remainders to the original source.
+  revise_rejected_transfer : (blob, nat64, nat) -> (Result_1);
+  revoke_receipt_signer : (nat64) -> (Result_6);
+  rotate_receipt_signer : (ReceiptSigner) -> (Result_6);
+  set_orders_enabled : (bool) -> (Result_6);
+}
