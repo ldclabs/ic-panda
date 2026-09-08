@@ -100,12 +100,6 @@
 
 <svelte:head>
   <title>{$t('dMsg — Your space. Your say.')}</title>
-  <meta
-    name="description"
-    content={$t(
-      'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.'
-    )}
-  />
   <meta name="color-scheme" content="light" />
 </svelte:head>
 <svelte:window onkeydown={onEscape} />

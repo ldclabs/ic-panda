@@ -27,12 +27,17 @@ Use the reactive `$t` store in components. Keep presentation arrays reactive
 (`$derived` in runes components, `$:` in legacy components). For event-time errors
 outside components use `tr`. Unknown remote error text remains unchanged.
 
-The root layout waits for the initial catalog. Other languages load on demand;
+The root layout's load function waits for the initial catalog, so the page and
+its fragment targets exist when SvelteKit restores scroll. Other languages load on demand;
 a failed switch leaves the previous language usable and can be retried. A failed
 startup catalog falls back to English without deleting the stored preference.
 `setLocale` applies document `lang` and `dir`, persists the choice when storage is
 available, and protects against out-of-order downloads. `app.html` also sets
 `lang` and `dir` before paint; its detection logic is checked against the registry.
+
+`app.html` includes a default title and description for the static SPA fallback.
+The root layout localizes that same description element in place, while page
+titles can override the localized default. Do not add a second description tag.
 
 The locale store is a client-only SPA singleton. Root `+layout.ts` disables SSR.
 Before enabling SSR, move locale state into a per-request Svelte context.

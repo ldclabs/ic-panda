@@ -186,4 +186,19 @@
       font-size: 19px;
     }
   }
+  @media (max-width: 600px) {
+    .legacy-entry .site-header {
+      height: auto;
+    }
+    .legacy-entry .nav-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding-block: 12px;
+    }
+    .nav-wrap > .text-link {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
 </style>

@@ -84,29 +84,29 @@ export default {
   'Try a rule. This example is not saved.':
     '试选一条联络规则（此演示示例不会被保存）。',
   'Privacy, with the details included': '严谨可查的隐私架构',
-  'Private content.': '内容绝对私密。',
+  'Private content.': '私密内容。',
   'Clear boundaries.': '权责界限分明。',
   'The new dMsg is designed around encryption on your device, with distinct roles for the cloud and ICP.':
-    '全新 dMsg 始终围绕本地设备端原生加密构建，云端分发与 ICP 底层链上各司其职。',
+    '全新 dMsg 以设备端加密为设计基础，云端与 ICP 各有明确职责。',
   'Understand the trust model': '深入了解信任模型',
   'Your device handles private content.': '私密数据由本地设备端处理。',
   'Authorized, unlocked devices encrypt and decrypt your notes, messages, and files. A third-party connection does not open your vault.':
-    '只有经过授权且解锁的设备才能加解密你的笔记、消息和文件。连接第三方应用绝不会开启你的私密保险库。',
-  'The cloud stores and delivers ciphertext.': '云端仅负责密文的存储与投递。',
+    '经授权且已解锁的设备负责加解密你的笔记、消息和文件。连接第三方应用不会开放你的私人保险库。',
+  'The cloud stores and delivers ciphertext.': '云端存储和投递密文。',
   'Cloudflare supports encrypted storage, delivery, and collaboration state. Operational metadata is visible where needed to run the service.':
-    'Cloudflare 为密文存储、投递和协作状态提供支持。仅在维持服务正常运转所必需时，保留必要的运维元数据。',
+    'Cloudflare 支持密文存储、投递和协作状态管理。服务方可见必要的运行元数据。',
   'ICP anchors core control.': 'ICP 锚定核心主权控制。',
   'Identity ownership, device and recovery roots, formal signing, and final payment state have their own on-chain rules. Ordinary messages are not written on-chain one by one.':
-    '身份所有权归属、设备凭证与恢复根、正式链上签名及最终支付清算均由底层合约严格保障。日常交流的普通消息绝不会逐条冗余上链。',
+    '身份所有权、设备与恢复根、正式签名及最终支付状态各自受链上规则约束。普通消息不会逐条写入区块链。',
   'Encryption has a scope.': '密码学加密有其明确的作用域。',
   'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
-    '加密严密保护的是内容本身，而非所有的外部行为关联。身份标识、调用行为、支付流水以及投递元数据在必要时仍可能可被观察。',
+    '加密保护内容，无法隐藏所有关系或行为。身份、调用、支付和投递元数据仍可能可见。',
   'Availability still matters.': '网络可用性始终至关重要。',
   'A relay can delay or withhold content. Signatures and local history do not guarantee that every device has the latest cloud state.':
-    '网络中继节点可能发生延迟或暂存。单纯依靠签名与本地历史记录，无法替代云端最新状态的确定性同步。',
+    '中继服务可以延迟或拒绝交付内容。签名与本地历史不能保证每台设备都拥有云端最新状态。',
   'Copies can outlive access.': '已被导出的副本在权限收回后依然存在。',
   'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.':
-    '撤销访问权限并通过轮换密钥可严密保护后续新产生的内容，但无法物理抹去接收方早已下载的文件、截图或已知晓的机密。',
+    '撤销访问并更换密钥可保护未来内容，但无法抹去已下载的副本、截图或对方已知的秘密。',
   'Evidence over promises': '代码为据，胜于空诺',
   'Trust you can': '经得起审视的',
   'examine.': '透明信任。',
@@ -114,11 +114,11 @@ export default {
     '真正的隐私保护需要的不仅是一枚漂亮的营销徽章。你应当清晰洞察哪些信息属于公开域、你具体做出了哪些授权，以及灾难恢复究竟依赖什么。',
   'Inspect the public code.': '随时审阅开源代码。',
   'Client and protocol work lives in the public repository. The production cloud service has its own operational trust boundary.':
-    '客户端核心逻辑与协议实现完全开源在公共仓库中。生产环境的云端基础设施亦拥有清晰可鉴的运维信任边界。',
+    '客户端与协议的开发代码位于公开仓库。生产云端服务有独立的运维信任边界。',
   'Explore the repository': '前往代码仓库探索',
   'Keep permissions separate.': '坚持权限严格隔离。',
   'Proving identity, reading shared content, approving a device, and signing a file each need their own scope. One does not imply the others.':
-    '身份证明、共享内容阅读、新设备接入授权以及文件加密签名，各自拥有独立的权限范围，绝不能混为一谈或相互越权。',
+    '身份证明、共享内容阅读、设备批准和文件签名各自需要独立的权限范围。一项权限不意味着其他权限。',
   'See the request flow': '查看授权请求流转机制',
   'Plan for independent recovery.': '规划严密的独立恢复机制。',
   'The recovery design pairs a complete encrypted backup with a separately stored code. Missing ciphertext cannot be recovered from a code alone.':
@@ -144,9 +144,9 @@ export default {
   'Receive the result and verify content, signature, and authorization separately.':
     '应用接收签名结果，并分别对明文内容、数字签名及授权凭据进行确定性校验。',
   'Planned file-signing pilot. Project permissions remain with TokenList.':
-    '规划中的文件数字签名试点方案。项目资产与核心权限依然完全由 TokenList 严密掌管。',
+    '规划中的文件签名试点。项目权限仍由 TokenList 管理。',
   'Planned scoped controller integration. Its accounts and grants remain separate.':
-    '规划中的限定范围控制器集成方案。相关账户资产与权限委派保持严格物理隔离。',
+    '规划中的限定范围控制器集成。相关账户与授权保持独立。',
   'Integrations are planned, not generally available. Connecting an app never means automatic signing.':
     '上述生态集成仍处于规划阶段，尚未正式开放。连接任何第三方应用均绝不意味着授予自动签名的特权。',
   'A few useful answers': '常见问题解答',
@@ -220,7 +220,7 @@ export default {
   'Do I need a username or PANDA to start?':
     '刚开始使用时，必须购买用户名或持有 PANDA 代币吗？',
   'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.':
-    '全新规划的个人私人工作空间设计为零门槛可用，无需购买任何个性域名或强制添加联系人。老版本中的用户名持有者将在未来的数据迁移中无缝保留其专属名称，绝无二次付费要求。旧版代币余额与历史权益将按既定方案妥善承接。',
+    '新的个人工作空间设计为无需购买用户名或添加联系人即可使用。计划通过迁移保留现有持有者的用户名，无需再次付费认领。旧版代币余额与权益另行处理。',
   'Does logging in unlock my private content?':
     '登录操作会直接解锁我所有的私密数据吗？',
   'No. Login, device authorization, local unlock, and formal signing have separate permissions. Connecting a third-party app will not give it general access to your vault or automatic signing rights.':
@@ -231,7 +231,7 @@ export default {
   'Is everything stored on the blockchain?':
     '所有的聊天内容与文件都会被保存在区块链上吗？',
   'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
-    '并非如此。我们严谨的工程架构坚持在已授权的本地设备端完成数据的高强度加密，并将加密密文托管于高性能云端。ICP 原生智能合约仅用于确权核心身份所有权、密钥控制权、正式签名凭证与最终结算状态。服务运维元数据、云端高可用性、客户端迭代更新与社区自治规则构成了清晰可考的信任边界。',
+    '不会。计划中的设计在已授权设备上加密私密内容，并将密文存入云端。ICP 保存核心身份、控制、正式签名和支付状态。服务元数据、云端可用性、客户端更新和治理仍属于信任边界。',
   'Will the full workspace work on my phone?':
     '完整的私人工作空间支持在智能手机上使用吗？',
   'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
@@ -246,9 +246,9 @@ export default {
   'The right content. The right people.': '恰当的内容，只交托给对的人。',
   'Know exactly what you’re signing.': '每一笔签名，皆了然于胸。',
   'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    '将 API 密钥、系统凭据、私密备忘与敏感文件安全归拢一处。全新扩展以个人的私密工作空间为第一优先级，无需依赖社交关系链或购买付费域名。',
+    '集中保存 API 密钥、凭据、私密笔记和文件。计划中的扩展优先提供个人工作空间，无需联系人或付费用户名。',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
-    '在端到端加密的对话或频道中共享项目文档与核心文件。定向邀请特定成员进入独立空间，其权限与你的私人保险库保持严密物理隔离。',
+    '在加密会话或频道中共享项目笔记和文件。邀请他人进入指定空间，其访问权限与个人保险库分开。',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
     '逐项核实发起请求的应用来源、所选身份、目标文件的精准版本与签名用途。连接外部应用与批准其签名请求属于两个独立决断。',
   'Private notes': '私密备忘',
@@ -262,7 +262,7 @@ export default {
   'Interactive example': '交互式体验示例',
   'Example vault locked': '示例保险库已锁定',
   'A real vault will require an authorized device and local unlock.':
-    '真实的私密保险库将严格要求已认证的本地设备与本地密码解锁。',
+    '实际保险库需要已获授权的设备，并在本地解锁。',
   'Unlock example': '解锁示例',
   'Production API key': '生产环境 API 密钥',
   'Example project · Sample credential': '示例项目 · 演示凭据',
@@ -293,7 +293,7 @@ export default {
   'Product preview · Chrome extension in development':
     '产品设计预览 · Chrome 扩展深度开发中',
   'Examples run locally. Nothing is sent or signed.':
-    '所有示例逻辑均在本地沙箱运行，绝不向外发送任何数据或进行任何签名。',
+    '示例在本地运行，不会发送数据或生成签名。',
   'Useful on your own.': '独享亦得力。',
   'Start with one private note or credential. A public identity is an optional doorway, not a prerequisite.':
     '哪怕仅用于保存一条私密备忘或 API 密钥，它也能为你提供极致价值。公开主权身份仅是按需开启的入口，绝非使用门槛。',
