@@ -1,3 +1,4 @@
 packages:
+  - 'src/dmsg_app'
   - 'src/dmsg_frontend'
   - 'src/ic_panda_frontend'

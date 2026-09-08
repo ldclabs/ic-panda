@@ -1,0 +1,10 @@
+{
+  "environment": "local",
+  "icHost": "https://icp-api.io",
+  "relayOrigin": "",
+  "canisters": { "user": "", "handle": "", "cose": "", "payment": "" },
+  "externalOrigins": [],
+  "derivationOrigins": ["https://dmsg.net", "https://panda.fans"],
+  "release": "R0",
+  "cloudProtocol": "dmsg-cloud/0.1"
+}

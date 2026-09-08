@@ -1,0 +1,39 @@
+{
+  "name": "dmsg_app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5176",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.tools.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "build": "vite build && node scripts/verify-build.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4176",
+    "bindings": "node scripts/bindings.mjs"
+  },
+  "dependencies": {
+    "@hpke/core": "^1.7.5",
+    "@hpke/dhkem-x25519": "^1.6.0",
+    "@icp-sdk/core": "^6.1.0",
+    "@icp-sdk/signer": "^5.6.3",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.3.0",
+    "cborg": "^6.1.1",
+    "idb": "^8.0.3",
+    "svelte": "^5.56.10",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@types/chrome": "^0.1.20",
+    "@types/node": "^26.2.0",
+    "fake-indexeddb": "^6.2.4",
+    "svelte-check": "^4.7.6",
+    "typescript": "~6.0.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
