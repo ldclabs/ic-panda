@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { luckyPoolAPI, type AirdropState } from '$lib/canisters/luckypool'
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
@@ -64,7 +65,7 @@
   function checkInput() {
     const amount = transferAmount(inputAmount)
     if (amount < PANDAToken.one || amount > claimableAmount) {
-      return 'invalid amount'
+      return $t('invalid amount')
     }
     return ''
   }
@@ -96,9 +97,12 @@
     <div class="text-center">
       <p class="mt-4">
         <span>
-          You have successfully transferred <b
-            >{formatNumber(Number(transferred) / Number(PANDAToken.one))}</b
-          > PANDA tokens to your wallet.
+          {$t(
+            'You have successfully transferred {amount} PANDA to your wallet.',
+            {
+              amount: formatNumber(Number(transferred) / Number(PANDAToken.one))
+            }
+          )}
         </span>
       </p>
     </div>
@@ -107,49 +111,51 @@
     >
       <div class="flex flex-row items-center">
         <span><IconWallet /></span>
-        <span class="ml-2">Wallet</span>
+        <span class="ml-2">{$t('Wallet')}</span>
       </div>
       <div class="flex flex-row items-center">
         <span>
-          {'+ ' + formatNumber(inputAmount)}
+          {$locale && '+ ' + formatNumber(inputAmount)}
         </span>
         <span class="ml-2 *:size-6"><IconGoldPanda /></span>
       </div>
     </div>
     <div class="!mt-12">
       <button class="variant-filled btn m-auto block" on:click={onCheckWallet}>
-        Check Wallet
+        {$t('Check Wallet')}
       </button>
     </div>
   {:else}
     <h3 class="h3 !mt-0 text-center">💳</h3>
-    <div class="!mt-0 text-center text-xl font-bold">Transfer to Wallet</div>
+    <div class="!mt-0 text-center text-xl font-bold"
+      >{$t('Transfer to Wallet')}</div
+    >
     <div class="bg-gray/5 text-gray/50 space-y-2 rounded-xl p-4">
       <p class="">
         <span>
-          The <b>More Lucky Balance</b> you have, the larger your claim in a
-          <b>Lucky PANDA Prize</b>.
+          {$t('The more lucky balance you hold, the bigger prize you grab.')}
         </span>
         <span>
-          <b>20%</b> chance to claim the avg; <b>80%</b> chance depends on your lucky
-          balance:
+          {$t(
+            'There is a 20% chance of claiming the average amount. The other 80% depends on your Lucky Balance:'
+          )}
         </span>
       </p>
       <div class="text-sm {showTips ? '' : 'hidden'}">
-        <p>10: claim up to 0.1 * avg;</p>
-        <p>100: claim up to 0.29 * avg;</p>
-        <p>200: claim up to 0.44 * avg;</p>
-        <p>500: claim up to 0.78 * avg;</p>
-        <p>900: claim up to 1.09 * avg;</p>
-        <p>1k: claim up to 1.15 * avg;</p>
-        <p>1.5k: claim up to 1.42 * avg;</p>
-        <p>2k: claim up to 1.64 * avg;</p>
-        <p>5k: claim up to 2.43 * avg;</p>
-        <p>10k: claim up to 3.15 * avg;</p>
-        <p>50k: claim up to 5.21 * avg;</p>
-        <p>100k: claim up to 6.25 * avg;</p>
-        <p>500k: claim up to 9.06 * avg;</p>
-        <p>1m: claim up to 10.44 * avg.</p>
+        <p>{$t('10: claim up to 0.1 * avg;')}</p>
+        <p>{$t('100: claim up to 0.29 * avg;')}</p>
+        <p>{$t('200: claim up to 0.44 * avg;')}</p>
+        <p>{$t('500: claim up to 0.78 * avg;')}</p>
+        <p>{$t('900: claim up to 1.09 * avg;')}</p>
+        <p>{$t('1k: claim up to 1.15 * avg;')}</p>
+        <p>{$t('1.5k: claim up to 1.42 * avg;')}</p>
+        <p>{$t('2k: claim up to 1.64 * avg;')}</p>
+        <p>{$t('5k: claim up to 2.43 * avg;')}</p>
+        <p>{$t('10k: claim up to 3.15 * avg;')}</p>
+        <p>{$t('50k: claim up to 5.21 * avg;')}</p>
+        <p>{$t('100k: claim up to 6.25 * avg;')}</p>
+        <p>{$t('500k: claim up to 9.06 * avg;')}</p>
+        <p>{$t('1m: claim up to 10.44 * avg.')}</p>
       </div>
       <button
         class="btn text-gray/50 ml-[-1px] !flex p-0 outline-0"
@@ -157,7 +163,7 @@
           showTips = !showTips
         }}
       >
-        <span class="">Lucky balance tips</span>
+        <span class="">{$t('Lucky balance tips')}</span>
         <span
           class="transition duration-400 ease-in-out {showTips
             ? 'rotate-180'
@@ -170,13 +176,14 @@
       <div class="mt-1 flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconGoldPanda /></span>
-          <b>Your Lucky Balance:</b>
+          <b>{$t('Your Lucky Balance:')}</b>
         </div>
         <div class="text-gray/50 flex flex-row gap-1">
           <span
-            >{formatNumber(
-              Number(claimableAmount) / Number(PANDAToken.one)
-            )}</span
+            >{$locale &&
+              formatNumber(
+                Number(claimableAmount) / Number(PANDAToken.one)
+              )}</span
           >
           <span>{PANDAToken.symbol}</span>
         </div>
@@ -191,7 +198,7 @@
           step="any"
           bind:value={inputAmount}
           disabled={submitting}
-          placeholder="Enter an amount at least 1 token"
+          placeholder={$t('Enter an amount at least 1 token')}
           required
         />
         <div class="absolute top-2 right-2 outline-0">PANDA</div>
@@ -205,9 +212,9 @@
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
+          <span>{$t('Processing...')}</span>
         {:else}
-          <span>Transfer Now</span>
+          <span>{$t('Transfer Now')}</span>
         {/if}
       </button>
     </footer>

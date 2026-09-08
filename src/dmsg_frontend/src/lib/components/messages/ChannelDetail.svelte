@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
@@ -80,6 +81,7 @@
   >
     <div class="md:hidden">
       <button
+        aria-label={$t('Back to channels')}
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
         onclick={onChatBack}><IconArrowLeftSLine /></button
       >
@@ -111,7 +113,7 @@
     {#if !LEGACY_READ_ONLY}<button
         type="button"
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        title="Channel settings"
+        title={$t('Channel settings')}
         disabled={switching}
         onclick={onClickChannelSetting}
       >
@@ -135,10 +137,10 @@
       <ChannelMessages {myState} {myInfo} bind:channelInfo />
     {:else if LEGACY_READ_ONLY}
       <div class="archive-empty"
-        ><h2>History could not be unlocked</h2><p
-          >This channel’s existing access key is missing or could not decrypt
-          its content. Use your original browser and recovery materials. New key
-          requests and key replacement are unavailable in the read-only app.</p
+        ><h2>{$t('History could not be unlocked')}</h2><p
+          >{$t(
+            'This channel’s existing access key is missing or could not decrypt its content. Use your original browser and recovery materials. New key requests and key replacement are unavailable in the read-only app.'
+          )}</p
         ></div
       >
     {:else}

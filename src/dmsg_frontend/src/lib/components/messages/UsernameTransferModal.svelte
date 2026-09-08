@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type UserInfo } from '$lib/canisters/message'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -29,7 +30,7 @@
 
   function checkUsername() {
     if (usernameInput.trim() !== $myInfo.username[0]) {
-      return 'Username does not match'
+      return $t('Username does not match')
     }
     return ''
   }
@@ -38,7 +39,7 @@
     try {
       Principal.fromText(toInput)
     } catch (_err) {
-      return 'Invalid principal'
+      return $t('Invalid principal')
     }
     return ''
   }
@@ -72,7 +73,9 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Transfer username</div>
+  <div class="!mt-0 text-center text-xl font-bold"
+    >{$t('Transfer username')}</div
+  >
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -88,7 +91,7 @@
         data-1p-ignore
         bind:value={usernameInput}
         disabled={submitting}
-        placeholder="Enter username"
+        placeholder={$t('Enter username')}
         required
       />
     </div>
@@ -102,7 +105,7 @@
         data-1p-ignore
         bind:value={toInput}
         disabled={submitting}
-        placeholder="Enter principal to receive username"
+        placeholder={$t('Enter principal to receive username')}
         required
       />
     </div>
@@ -115,9 +118,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Transfer</span>
+        <span>{$t('Transfer')}</span>
       {/if}
     </button>
   </footer>

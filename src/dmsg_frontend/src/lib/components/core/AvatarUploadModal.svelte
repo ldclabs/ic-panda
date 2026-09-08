@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type UserInfo } from '$lib/canisters/message'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -79,7 +80,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Update avatar</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Update avatar')}</div>
   <div class="mx-auto !mt-6 space-y-4">
     <ImageCrop oncropcomplete={handleAvatarUpload} />
 
@@ -101,9 +102,9 @@
     onclick={uploadImage}
     >{#if submitting}
       <span class=""><IconCircleSpin /></span>
-      <span>Processing...</span>
+      <span>{$t('Processing...')}</span>
     {:else}
-      <span>Update</span>
+      <span>{$t('Update')}</span>
     {/if}</button
   >
 </ModalCard>

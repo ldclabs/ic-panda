@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type SvelteComponent } from 'svelte'
@@ -21,12 +22,11 @@
 
 <ModalCard {parent}>
   <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
-    >Leave username account</div
+    >{$t('Leave username account')}</div
   >
   <div class="!mt-4 space-y-2 rounded-xl">
     <p>
-      Are you sure you wish to leave account
-      <span class="font-semibold text-primary-500">{username}</span>?
+      {$t('Are you sure you wish to leave account {name}?', { name: username })}
     </p>
   </div>
 
@@ -38,9 +38,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Confirm</span>
+        <span>{$t('Confirm')}</span>
       {/if}
     </button>
   </footer>

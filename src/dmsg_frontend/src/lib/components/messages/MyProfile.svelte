@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { page } from '$app/state'
   import { type UserInfo } from '$lib/canisters/message'
   import {
@@ -119,7 +120,7 @@
         res.push({
           _id,
           username: '',
-          name: 'Unknown',
+          name: $t('Unknown'),
           image: '',
           role: user.role,
           sign_in_at: user.sign_in_at
@@ -483,6 +484,7 @@
       class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center gap-1 p-8 pb-12"
     >
       <button
+        aria-label={$t('Update avatar')}
         class="group btn hover:bg-surface-500/50 relative p-0"
         onclick={onUploadAvatarHandler}
       >
@@ -509,6 +511,7 @@
           >
           <TextClipboardButton textValue={link} />
           <button
+            aria-label={$t('Edit profile')}
             type="button"
             class="btn hover:text-surface-900-50-token absolute top-1 right-[-32px] p-0 text-neutral-500"
             onclick={onMeHandler}
@@ -522,7 +525,7 @@
             onclick={onMeHandler}
           >
             <span class="animate-bounce *:size-5"><IconEditLine /></span><span
-              >Upgrade</span
+              >{$t('Upgrade')}</span
             >
           </button>
         {/if}
@@ -533,7 +536,7 @@
         </div>
       {/if}
       <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-500">
-        <span>Principal: {shortId(display._id)}</span>
+        <span>{$t('Principal:')} {shortId(display._id)}</span>
         <TextClipboardButton textValue={display._id} />
       </p>
       <div
@@ -546,6 +549,7 @@
               class="absolute top-1/2 right-0 flex -translate-y-1/2 flex-row gap-1 text-neutral-500/50"
             >
               <button
+                aria-label={$t('Edit')}
                 type="button"
                 class="hover:text-surface-900-50-token p-1"
                 disabled={editLinkSubmitting !== -1}
@@ -560,6 +564,7 @@
                 </span>
               </button>
               <button
+                aria-label={$t('Delete')}
                 type="button"
                 class="hover:text-surface-900-50-token p-1"
                 disabled={deleteLinkSubmitting !== -1}
@@ -582,13 +587,13 @@
           onclick={() => onEditLink()}
         >
           <span class="*:size-5"><IconAdd /></span>
-          <span>Add link</span>
+          <span>{$t('Add link')}</span>
         </button>
       </div>
       {#if isUsernameAccount}
         <div class="mt-6 flex w-full flex-col gap-2">
           <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
-            <span class="text-sm opacity-50">Delegate accounts</span>
+            <span class="text-sm opacity-50">{$t('Delegate accounts')}</span>
             <div class="flex flex-col space-x-1 sm:flex-row">
               <button
                 type="button"
@@ -597,7 +602,7 @@
                 disabled={!isManager}
               >
                 <span class="*:size-4"><IconAdd /></span>
-                <span>Managers</span>
+                <span>{$t('Managers')}</span>
               </button>
               <button
                 type="button"
@@ -606,7 +611,7 @@
                 disabled={!isManager || adminAddMembersSubmitting}
               >
                 <span class="*:size-4"><IconAdd /></span>
-                <span>Members</span>
+                <span>{$t('Members')}</span>
               </button>
             </div>
           </div>
@@ -614,11 +619,10 @@
           <div class="flex flex-col">
             {#if !myUsername}
               <p class="mb-2">
-                This is a <b>Username Permanent Account</b>, please transfer the
-                username
-                <span class="text-primary-500 font-semibold"
-                  >{authStore.identity!.username}</span
-                > to this account.
+                {$t(
+                  'This is a Username Permanent Account. Transfer {username} to this account.',
+                  { username: authStore.identity!.username }
+                )}
               </p>
             {/if}
             {#each delegatorsInfo as member (member._id)}
@@ -648,9 +652,9 @@
                   {/if}
                   {#if member.sign_in_at > 0}
                     <span class="text-neutral-500"
-                      >(Sign in at {getCurrentTimeString(
-                        member.sign_in_at
-                      )})</span
+                      >{$t('(Signed in at {time})', {
+                        time: getCurrentTimeString(member.sign_in_at, $locale)
+                      })}</span
                     >
                   {/if}
                 </div>
@@ -662,7 +666,7 @@
                       disabled={adminRemoveDelegatorsSubmitting !== ''}
                       onclick={() => onClickAdminRemoveMember(member._id)}
                     >
-                      <span>Remove</span>
+                      <span>{$t('Remove')}</span>
                     </button>
                     <span
                       class="text-panda *:size-4 {adminRemoveDelegatorsSubmitting ===
@@ -681,35 +685,36 @@
       {:else if myUsername}
         <div class="mt-6 flex w-full flex-col gap-2">
           <div class="mb-2">
-            <span class="text-sm opacity-50">Username Permanent Account</span>
+            <span class="text-sm opacity-50"
+              >{$t('Username Permanent Account')}</span
+            >
             <button
               type="button"
               class="variant-filled-primary btn btn-sm ml-4 py-1"
               onclick={onActivateUsernameAccountHandler}
               disabled={delegators.length > 0}
             >
-              <span>Activate</span>
+              <span>{$t('Activate')}</span>
             </button>
           </div>
 
           <div class="flex flex-col gap-4">
             <p>
-              A <b>Username Permanent Account</b> is a fixed account tied to your
-              username that never changes. It allows you to add multiple delegate
-              accounts, enabling team members to use it at the same time—perfect for
-              collaboration.
+              {$t(
+                'A Username Permanent Account is a fixed account tied to your username. It supports multiple delegate accounts so team members can use it together.'
+              )}
             </p>
             {#if delegators.length > 0}
               <p>
-                Your permanent <span class="text-primary-500 font-semibold"
-                  >{myUsername}</span
-                >
-                account is now active!<br />Principal ID:
+                {$t('Your permanent account for {username} is now active!', {
+                  username: myUsername
+                })}<br />{$t('Principal ID:')}
                 {#await authStore.nameIdentityAPI.get_principal(myUsername) then usernameAccount}
                   <span class="font-semibold">{usernameAccount.toText()}</span>
                 {/await}.<br />
-                To manage it, transfer your username to this account and switch to
-                it in the 'More' menu.
+                {$t(
+                  "To manage it, transfer your username to this account and switch to it in the 'More' menu."
+                )}
               </p>
             {/if}
           </div>
@@ -718,26 +723,26 @@
       <div class="mt-6 flex w-full flex-col gap-2">
         <div class="mb-2 text-sm opacity-50"
           ><button onclick={() => (displayDebug = !displayDebug)}>
-            <span>My settings</span>
+            <span>{$t('My settings')}</span>
           </button></div
         >
         <div class="flex flex-row items-center gap-4">
-          <p>Dark mode:</p>
+          <p>{$t('Dark mode:')}</p>
           <LightSwitch />
         </div>
       </div>
       {#if displayDebug}
         <div class="mt-4 flex w-full flex-col">
-          <div class="mb-2 text-sm opacity-50"><span>Debug</span></div>
+          <div class="mb-2 text-sm opacity-50"><span>{$t('Debug')}</span></div>
           <div class="flex flex-row items-center gap-4">
-            <p>Clear cached messages:</p>
+            <p>{$t('Clear cached messages:')}</p>
             <button
               type="button"
               class="variant-ringed btn btn-sm hover:variant-ghost-warning"
               disabled={clearCachedMessagesSubmitting}
               onclick={onClearCachedMessages}
             >
-              <span>Clear (safe)</span>
+              <span>{$t('Clear (safe)')}</span>
               <span
                 class="text-panda *:size-4 {clearCachedMessagesSubmitting
                   ? ''
@@ -750,7 +755,7 @@
           {#if ErrorLogs.length > 0}
             {@const value = errorLogsText(ErrorLogs)}
             <div class="flex flex-row items-center gap-4">
-              <p>Error logs:</p>
+              <p>{$t('Error logs:')}</p>
               <p class="text-warning-500">{ErrorLogs.length}</p>
               <TextClipboardButton textValue={value} />
             </div>
@@ -761,7 +766,7 @@
       {#if $myFollowing.length > 0}
         <div class="mt-4 flex w-full flex-col gap-4">
           <div class="">
-            <span class="text-sm opacity-50">Following</span>
+            <span class="text-sm opacity-50">{$t('Following')}</span>
           </div>
           <div class="!mt-0 space-y-2">
             {#each $myFollowing as member (member._id)}
@@ -790,7 +795,7 @@
                     onclick={() =>
                       member.src && onFollowHandler(member.src.id, false)}
                   >
-                    <span>Unfollow</span>
+                    <span>{$t('Unfollow')}</span>
                     <span
                       class="text-panda *:size-4 {followingSubmitting ===
                       member._id
@@ -806,7 +811,7 @@
                     onclick={() =>
                       member.src && onCreateChannelHandler(member.src.id)}
                   >
-                    <span>Message</span>
+                    <span>{$t('Message')}</span>
                   </button>
                 </div>
               </div>
@@ -833,15 +838,15 @@
             </a>
             <button
               type="button"
-              title="End-to-end encrypted message"
+              title={$t('End-to-end encrypted message')}
               class="variant-filled-primary btn btn-sm ml-2 w-32"
               onclick={() => onCreateChannelHandler(PandaID)}
             >
-              <span>Message</span>
+              <span>{$t('Message')}</span>
             </button>
           </div>
           <p class="text-neutral-500"
-            >If you encounter any issues, please message us.</p
+            >{$t('If you encounter any issues, please message us.')}</p
           >
         </div>
       {/if}

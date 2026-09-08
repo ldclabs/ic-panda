@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { autoFocus } from '$lib/actions/focus'
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -55,13 +56,13 @@
     const input = e.target as HTMLInputElement
     if (!Number.isSafeInteger(maxSizeInput) || maxSizeInput < 0) {
       maxSizeErr = 'Invalid max file size, should be a positive integer'
-      input.setCustomValidity(maxSizeErr)
+      input.setCustomValidity($t(maxSizeErr))
       return
     }
 
     if (maxSizeInput > 1024 * 1024 * 100) {
       maxSizeErr = 'Max file size should be less than 100MB'
-      input.setCustomValidity(maxSizeErr)
+      input.setCustomValidity($t(maxSizeErr))
       return
     }
 
@@ -83,7 +84,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Update storage</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Update storage')}</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -100,29 +101,35 @@
         bind:value={maxSizeInput}
         oninput={validateFileSize}
         disabled={submitting}
-        placeholder="Enter max file size"
+        placeholder={$t('Enter max file size')}
         data-focusindex="1"
         required
       />
       <div class="absolute top-2 right-2 text-neutral-500 outline-0"
-        >{getBytesString(maxSizeInput)}</div
+        >{getBytesString(maxSizeInput, $locale)}</div
       >
       <p class="h-5 pl-3 text-sm {maxSizeErr ? 'text-error-500' : 'text-panda'}"
-        >{maxSizeErr
-          ? maxSizeErr
-          : 'Up to consume ' +
-            getShortNumber2((maxSizeInput || 0) * 1000) +
-            ' Gas'}</p
+        >{$locale &&
+          (maxSizeErr
+            ? $t(maxSizeErr)
+            : $t('Estimated gas: {amount}', {
+                amount: getShortNumber2((maxSizeInput || 0) * 1000)
+              }))}</p
       >
     </div>
     <hr class="!border-gray/20 mx-[-24px] !mt-4 !border-t-1 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p class="">
-        <b>1.</b> Uploading files uses channel resources, costing 1000 gas per byte.
+        <b>1.</b>
+        {$t(
+          'Uploading files uses channel resources, costing 1000 gas per byte.'
+        )}
       </p>
       <p class="">
-        <b>2.</b> If the channel's resource balance falls below 10M, file uploads
-        will be temporarily disabled.
+        <b>2.</b>
+        {$t(
+          "If the channel's resource balance falls below 10M, file uploads will be temporarily disabled."
+        )}
       </p>
     </div>
   </form>
@@ -134,9 +141,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Save</span>
+        <span>{$t('Save')}</span>
       {/if}
     </button>
   </footer>

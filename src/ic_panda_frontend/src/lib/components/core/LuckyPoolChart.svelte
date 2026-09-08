@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale, type Locale } from '$lib/i18n'
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconCrown from '$lib/components/icons/IconCrown.svelte'
   import DataTable from '$lib/components/ui/DataTable.svelte'
@@ -17,11 +18,11 @@
 
   const TotalAmount = 500000000 // in PANDA tokens
 
-  function airdropRecordsSource(items: any[]) {
+  function airdropRecordsSource(items: any[], language: Locale) {
     return {
-      head: ['Time', 'ID', 'User', '$PANDA'],
+      head: [$t('Time'), 'ID', $t('User'), '$PANDA'],
       body: items.map((item) => [
-        new Date(Number(item.ts) * 1000).toLocaleString(),
+        new Date(Number(item.ts) * 1000).toLocaleString(language),
         String(item.id),
         shortId(item.caller.toString()),
         item.amount > 0
@@ -31,26 +32,18 @@
     }
   }
 
-  function luckydrawRecordsSource(items: any[]) {
+  function luckydrawRecordsSource(items: any[], language: Locale) {
     return {
-      head: ['Time', 'ID', 'User', '$PANDA', '$ICP Cost', 'Random No.'],
+      head: [
+        $t('Time'),
+        'ID',
+        $t('User'),
+        '$PANDA',
+        $t('$ICP Cost'),
+        $t('Random No.')
+      ],
       body: items.map((item) => [
-        new Date(Number(item.ts) * 1000).toLocaleString(),
-        String(item.id),
-        shortId(item.caller.toString()),
-        formatNumber(Number(item.amount) / Number(PANDAToken.one)),
-        formatNumber(Number(item.icp_amount) / Number(ICPToken.one)),
-        String(item.random)
-      ])
-    }
-  }
-
-  async function myLuckydrawRecordsSource() {
-    const items = await luckyPoolAPI.myLuckydrawLogs()
-    return {
-      head: ['Time', 'ID', 'User', '$PANDA', '$ICP Cost', 'Random No.'],
-      body: items.map((item) => [
-        new Date(Number(item.ts) * 1000).toLocaleString(),
+        new Date(Number(item.ts) * 1000).toLocaleString(language),
         String(item.id),
         shortId(item.caller.toString()),
         formatNumber(Number(item.amount) / Number(PANDAToken.one)),
@@ -89,7 +82,9 @@
 <div
   class="card flex flex-col items-center rounded-2xl rounded-b-none bg-white p-10"
 >
-  <h3 class="h3 text-center font-black">Lucky Pool Consumption Progress</h3>
+  <h3 class="h3 text-center font-black"
+    >{$t('Lucky Pool Consumption Progress')}</h3
+  >
   {#if $luckyPoolState}
     {@const consumedAmount = Number(
       ($luckyPoolState.total_luckydraw + $luckyPoolState.total_airdrop) /
@@ -100,42 +95,52 @@
     <div class="mt-4 flex w-full flex-row justify-around gap-2 max-sm:flex-col">
       <div class="flex flex-col items-center">
         <h3 class="h3 text-panda text-[28px] font-bold">
-          <span class="text-gray/50 text-sm font-normal">Total:</span>
-          {formatNumber(Number($luckyPoolState.total_airdrop / PANDAToken.one))}
+          <span class="text-gray/50 text-sm font-normal">{$t('Total:')}</span>
+          {$locale &&
+            formatNumber(
+              Number($luckyPoolState.total_airdrop / PANDAToken.one)
+            )}
         </h3>
         <p class="text-gray/50 text-sm">
-          Airdrop Count: {Number($luckyPoolState.total_airdrop_count)}
+          {$t('Airdrop Count:')}
+          {Number($luckyPoolState.total_airdrop_count)}
         </p>
       </div>
 
       <div class="flex flex-col items-center">
         <h3 class="h3 text-panda text-[28px] font-bold">
-          <span class="text-gray/50 text-sm font-normal">Total:</span>
-          {formatNumber(
-            Number(($luckyPoolState.total_prize[0] || 0n) / PANDAToken.one)
-          )}
+          <span class="text-gray/50 text-sm font-normal">{$t('Total:')}</span>
+          {$locale &&
+            formatNumber(
+              Number(($luckyPoolState.total_prize[0] || 0n) / PANDAToken.one)
+            )}
         </h3>
         <p class="text-gray/50 text-sm">
-          Prizes Count: {Number($luckyPoolState.total_prizes_count[0] || 0n)},
-          Claim Count: {Number($luckyPoolState.total_prize_count[0] || 0n)}
+          {$t('Prizes Count:')}
+          {Number($luckyPoolState.total_prizes_count[0] || 0n)}{$t(
+            ', Claim Count:'
+          )}
+          {Number($luckyPoolState.total_prize_count[0] || 0n)}
         </p>
       </div>
 
       <div class="flex flex-col items-center">
         <h3 class="h3 text-panda text-[28px] font-bold">
-          <span class="text-gray/50 text-sm font-normal">Total:</span>
-          {formatNumber(
-            Number($luckyPoolState.total_luckydraw / PANDAToken.one)
-          )}
+          <span class="text-gray/50 text-sm font-normal">{$t('Total:')}</span>
+          {$locale &&
+            formatNumber(
+              Number($luckyPoolState.total_luckydraw / PANDAToken.one)
+            )}
         </h3>
         <p class="text-gray/50 text-sm">
-          Lucky Draw Count: {Number($luckyPoolState.total_luckydraw_count)}
+          {$t('Lucky Draw Count:')}
+          {Number($luckyPoolState.total_luckydraw_count)}
         </p>
       </div>
     </div>
     <div class="relative mt-8 w-full">
       <ProgressBar
-        label="Lucky Pool Consumption Progress"
+        label={$t('Lucky Pool Consumption Progress')}
         height="h-4"
         meter="bg-panda"
         track="bg-gray/10"
@@ -158,7 +163,7 @@
   {#if $luckyPoolState}
     <div class="w-full">
       <div class="mb-4 flex justify-center overflow-x-auto" role="tablist">
-        {#each ['Airdrop Records', 'Lucky Draw Records', 'My Lucky Draw'] as label, index}
+        {#each [$t('Airdrop Records'), $t('Lucky Draw Records'), $t('My Lucky Draw')] as label, index}
           <button
             class="border-b-4 px-2 py-2 text-sm transition md:px-6 md:py-3 {tabSet ===
             index
@@ -172,11 +177,14 @@
       </div>
 
       {#if tabSet === 0}
-        <DataTable class="mb-8" source={airdropRecordsSource(airdropRecords)} />
+        <DataTable
+          class="mb-8"
+          source={airdropRecordsSource(airdropRecords, $locale)}
+        />
       {:else if tabSet === 1}
         <DataTable
           class="mb-8"
-          source={luckydrawRecordsSource(luckydrawRecords)}
+          source={luckydrawRecordsSource(luckydrawRecords, $locale)}
         />
         {#if highestLuckydrawRecords.length > 0}
           <div class="mb-4 text-center">
@@ -184,18 +192,21 @@
               class="btn bg-panda/10 text-panda m-auto rounded-xl font-bold"
             >
               <span><IconCrown /></span>
-              <span>Top 3 Luckiest Draw</span>
+              <span>{$t('Top 3 Luckiest Draw')}</span>
             </button>
           </div>
           <DataTable
             class="mb-8"
             hideHead={true}
-            source={luckydrawRecordsSource(highestLuckydrawRecords)}
+            source={luckydrawRecordsSource(highestLuckydrawRecords, $locale)}
           />
         {/if}
       {:else}
-        {#await myLuckydrawRecordsSource() then items}
-          <DataTable class="mb-8" source={items} />
+        {#await luckyPoolAPI.myLuckydrawLogs() then items}
+          <DataTable
+            class="mb-8"
+            source={luckydrawRecordsSource(items, $locale)}
+          />
         {/await}
       {/if}
     </div>

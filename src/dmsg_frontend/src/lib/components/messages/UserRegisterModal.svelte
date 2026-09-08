@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { autoFocus } from '$lib/actions/focus'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
   import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
@@ -64,7 +65,7 @@
     if (usernameInput && !usernameReg.test(usernameInput)) {
       usernameErr =
         'username must be 1-20 characters long and contain only letters, numbers, and underscores'
-      return usernameErr
+      return $t(usernameErr)
     }
 
     amount = getPrice(usernameInput)
@@ -184,7 +185,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{editMode ? 'Edit' : 'Account'} name</div
+    >{$t(editMode ? 'Edit name' : 'Account name')}</div
   >
 
   <form
@@ -193,7 +194,7 @@
     use:autoFocus
   >
     <label class="label relative">
-      <span>Name (required)</span>
+      <span>{$t('Name (required)')}</span>
       <input
         class="border-gray/10 input invalid:input-warning truncate rounded-xl bg-white/20"
         type="text"
@@ -203,7 +204,7 @@
         data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
-        placeholder="Display name"
+        placeholder={$t('Display name')}
         data-focusindex="1"
         required
       />
@@ -212,24 +213,25 @@
       <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
       <label class="label relative mt-4">
         <div class="flex flex-row items-center justify-between">
-          <span>Username</span>
+          <span>{$t('Username')}</span>
           <div class="text-sm">
             {#if existUsernames.includes(usernameInput.trim())}
-              <span class="text-error-500">occupied!</span>
+              <span class="text-error-500">{$t('occupied!')}</span>
             {:else}
               <span
                 class={amount > availablePandaBalance
                   ? 'text-error-500'
                   : 'text-panda'}
-                >{formatNumber(Number(amount) / Number(PANDAToken.one)) +
-                  (pandaPrice && amount > 0n
-                    ? ' ($' +
-                      getPriceNumber(
-                        pandaPrice.priceUSD *
-                          (Number(amount) / Number(PANDAToken.one))
-                      ) +
-                      ')'
-                    : '')}</span
+                >{$locale &&
+                  formatNumber(Number(amount) / Number(PANDAToken.one)) +
+                    (pandaPrice && amount > 0n
+                      ? ' ($' +
+                        getPriceNumber(
+                          pandaPrice.priceUSD *
+                            (Number(amount) / Number(PANDAToken.one))
+                        ) +
+                        ')'
+                      : '')}</span
               >
               <span>{PANDAToken.symbol}</span>
             {/if}
@@ -252,23 +254,24 @@
         />
       </label>
       <div class="text-success-600 h-10 text-sm"
-        >Profile URL:<span class="ml-2"
+        >{$t('Profile URL:')}<span class="ml-2"
           >{APP_ORIGIN}/{usernameInput || '[username]'}</span
         ></div
       >
       {#if usernameErr}
-        <div class="text-error-500 h-10 text-sm">{usernameErr}</div>
+        <div class="text-error-500 h-10 text-sm">{$t(usernameErr)}</div>
       {:else}
         <div class="flex h-10 flex-row items-center justify-between text-sm">
           <div class="flex flex-row items-center gap-2 py-1">
             <span class="*:size-6"><IconPanda /></span>
-            <span>Your wallet balance:</span>
+            <span>{$t('Your wallet balance:')}</span>
           </div>
           <div class="flex flex-row gap-1 text-neutral-500">
             <span
-              >{formatNumber(
-                Number(availablePandaBalance) / Number(PANDAToken.one)
-              )}</span
+              >{$locale &&
+                formatNumber(
+                  Number(availablePandaBalance) / Number(PANDAToken.one)
+                )}</span
             >
             <span>{PANDAToken.symbol}</span>
           </div>
@@ -279,7 +282,7 @@
               onclick={onOpenWallet}
             >
               <span class="*:size-4"><IconAdd /></span>
-              <span>Topup</span>
+              <span>{$t('Topup')}</span>
             </button>
           {/if}
         </div>
@@ -288,40 +291,46 @@
       {#if usernameAccount}
         <div class="mt-2 space-y-1">
           <p class="">
-            This is a <b>Username Permanent Account</b>, please transfer the
-            username
-            <span class="text-primary-500 font-semibold">{usernameAccount}</span
-            > to this account.
+            {$t(
+              'This is a Username Permanent Account. Transfer {username} to this account.',
+              { username: usernameAccount }
+            )}
           </p>
         </div>
       {:else}
         <div class="mt-2 space-y-1">
           <p class="">
             <b
-              >Set a username to upgrade your account and unlock these benefits:</b
+              >{$t(
+                'Set a username to upgrade your account and unlock these benefits:'
+              )}</b
             >
           </p>
           <p class="indent-4">
-            <b>1. Secure, cross-device key backup</b> – Your keys are synced
-            on-chain via
+            <b>{$t('1. Secure, cross-device key backup')}</b>
+            {$t(
+              'Your keys are synced on-chain with vetKeys encryption instead of being browser-only, preventing permanent loss when clearing data or switching devices.'
+            )}
             <a
               class="text-primary-500 underline underline-offset-4"
               href="https://internetcomputer.org/docs/building-apps/network-features/vetkeys/introduction"
-              target="_blank">vetKeys</a
+              target="_blank">vetKeys ↗</a
             >
-            encryption instead of being browser-only, preventing permanent loss if
-            you clear data or switch devices.
             <span class="text-error-500"
-              >(Otherwise, keys stay locally and may become irretrievable,
-              locking your messages forever.)</span
+              >{$t(
+                '(Otherwise, keys stay locally and may become irretrievable, locking your messages forever.)'
+              )}</span
             >
           </p>
           <p class="indent-4">
-            <b>2. A public profile page</b> – Establish and showcase your identity.
+            <b>{$t('2. A public profile page')}</b>
+            {$t('– Establish and showcase your identity.')}
           </p>
           <p class="indent-4">
-            <b>3. Permanent yet transferable username</b> – You can transfer it to
-            another user and claim a new one later.
+            <b>{$t('3. Permanent yet transferable username')}</b>
+            {$t(
+              '– You can transfer it to another user and claim a new one later.'
+            )}
           </p>
         </div>
       {/if}
@@ -335,9 +344,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>{editMode ? 'Save' : 'Confirm'}</span>
+        <span>{editMode ? $t('Save') : $t('Confirm')}</span>
       {/if}
     </button>
   </footer>

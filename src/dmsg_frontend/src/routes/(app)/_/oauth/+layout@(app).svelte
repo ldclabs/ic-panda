@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   let { children } = $props()
   const year = new Date().getFullYear()
   let isDark = $derived(document.documentElement.classList.contains('dark'))
@@ -20,9 +21,9 @@
       >
     </p>
     <p class="mt-2 text-center text-sm antialiased">
-      Breathing life into sovereign AI.<br />We are building the open-source
-      stack for agents to remember, transact, and evolve as first-class citizens
-      in Web3.<br />
+      {$t('Breathing life into sovereign AI.')}<br />{$t(
+        'We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3.'
+      )}<br />
       <a
         class="underline underline-offset-4"
         href="https://anda.ai"

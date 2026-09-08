@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { errMessage } from '$lib/types/result'
   import { sleep } from '$lib/utils/helper'
@@ -93,7 +94,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">{title}</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t(title)}</div>
   <div class="relative">
     <!-- svelte-ignore a11y-media-has-caption -->
     <video bind:this={videoPlayer} on:play={scanQR}></video>

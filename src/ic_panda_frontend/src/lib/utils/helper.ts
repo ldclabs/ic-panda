@@ -1,19 +1,13 @@
+import { currentLocale } from '$lib/i18n'
 export async function sleep(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, ms))
 }
 
 export function getShortNumber(v: number | BigInt): string {
-  const n = Number(v)
-  if (n < 1000) {
-    return `${n}`
-  } else if (n < 1000 * 1000) {
-    return `${(n / 1000).toFixed(2)}K`
-  } else if (n < 1000 * 1000 * 1000) {
-    return `${(n / 1000 / 1000).toFixed(2)}M`
-  } else if (n < 1000 * 1000 * 1000 * 1000) {
-    return `${(n / 1000 / 1000 / 1000).toFixed(2)}G`
-  }
-  return `${(n / 1000 / 1000 / 1000 / 1000).toFixed(2)}T`
+  return new Intl.NumberFormat(currentLocale(), {
+    notation: 'compact',
+    maximumFractionDigits: 2
+  }).format(Number(v))
 }
 
 export function shortId(id: string, long: boolean = false): string {
@@ -23,19 +17,14 @@ export function shortId(id: string, long: boolean = false): string {
   return id.length > 14 ? id.slice(0, 7) + '...' + id.slice(-7) : id
 }
 
-export function getPriceNumber(v: number): string {
-  if (v < 0.001) {
-    return v.toFixed(6)
-  } else if (v < 0.01) {
-    return v.toFixed(5)
-  } else if (v < 0.1) {
-    return v.toFixed(4)
-  } else if (v < 1) {
-    return v.toFixed(3)
-  } else if (v < 10) {
-    return v.toFixed(2)
-  }
-  return v.toFixed(1)
+export function getPriceNumber(v: number, language = currentLocale()): string {
+  const digits =
+    v < 0.001 ? 6 : v < 0.01 ? 5 : v < 0.1 ? 4 : v < 1 ? 3 : v < 10 ? 2 : 1
+  return new Intl.NumberFormat(language, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: false
+  }).format(v)
 }
 
 export function pruneAddress(id: string, long?: boolean): string {

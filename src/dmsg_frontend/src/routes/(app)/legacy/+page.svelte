@@ -1,4 +1,6 @@
 <script lang="ts">
+  import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import SignInModal from '$lib/components/core/SignInModal.svelte'
   import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
@@ -18,7 +20,7 @@
     if ($authStore.identity.getPrincipal().isAnonymous()) {
       modalStore.trigger({
         type: 'component',
-        title: 'Sign in to your archive',
+        title: $t('Sign in to your archive'),
         component: { ref: SignInModal, props: { onCompleted: openArchive } }
       })
       return
@@ -45,7 +47,7 @@
 </script>
 
 <svelte:head
-  ><title>dMsg — Legacy archive</title><meta
+  ><title>{$t('dMsg — Legacy archive')}</title><meta
     name="robots"
     content="noindex"
   /></svelte:head
@@ -53,73 +55,77 @@
 <div class="dmsg-site legacy-entry">
   <header class="site-header"
     ><div class="wrap nav-wrap"
-      ><Brand /><a class="text-link" href="/" data-sveltekit-reload
-        >Back to dMsg<Icon name="arrow-right" /></a
+      ><Brand />
+      <LocaleSwitcher /><a class="text-link" href="/" data-sveltekit-reload
+        >{$t('Back to dMsg')}<Icon name="arrow-right" /></a
       ></div
     ></header
   >
   <main class="wrap">
     <section class="section legacy-intro">
-      <div class="eyebrow section-label">Legacy app / Read-only</div>
-      <h1>Your history.<br />Still in your hands.</h1>
+      <div class="eyebrow section-label">{$t('Legacy app / Read-only')}</div>
+      <h1>{$t('Your history.')}<br />{$t('Still in your hands.')}</h1>
       <p class="lead"
-        >Read your existing conversations and download the attachments you can
-        already access.</p
+        >{$t(
+          'Read your existing conversations and download the attachments you can already access.'
+        )}</p
       >
       <p
-        >New messages, uploads, profile edits, username changes, and payments
-        are disabled in this app. The new Chrome workspace and migration flow
-        are not available yet.</p
+        >{$t(
+          'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.'
+        )}</p
       >
       <div class="hero-actions"
         ><button class="button primary" onclick={openArchive} disabled={loading}
           >{loading
-            ? 'Opening archive…'
+            ? $t('Opening archive…')
             : $authStore.identity.getPrincipal().isAnonymous()
-              ? 'Sign in to read your history'
-              : 'Open message archive'}<Icon name="arrow-right" /></button
+              ? $t('Sign in to read your history')
+              : $t('Open message archive')}<Icon name="arrow-right" /></button
         >{#if !$authStore.identity.getPrincipal().isAnonymous()}<MoreMenuPopup
             triggerClass="text-link"
-            >{#snippet trigger()}Account options{/snippet}</MoreMenuPopup
+            >{#snippet trigger()}{$t(
+                'Account options'
+              )}{/snippet}</MoreMenuPopup
           >{/if}</div
       >
-      {#if error}<p class="entry-error" role="alert">{error}</p><button
+      {#if error}<p class="entry-error" role="alert">{$t(error)}</p><button
           class="text-link"
-          onclick={openArchive}>Try again</button
+          onclick={openArchive}>{$t('Try again')}</button
         >{/if}
       {#if noAccount}<div class="entry-error" role="status"
-          ><strong>No legacy account found for this identity.</strong><p
-            >Use the original sign-in provider or switch to your existing
-            username account in Account options. New account registration is
-            closed.</p
+          ><strong>{$t('No legacy account found for this identity.')}</strong><p
+            >{$t(
+              'Use the original sign-in provider or switch to your existing username account in Account options. New account registration is closed.'
+            )}</p
           ><button class="text-link" onclick={() => authStore.logout('/legacy')}
-            >Sign out and use another identity</button
+            >{$t('Sign out and use another identity')}</button
           ></div
         >{/if}
     </section>
     <section class="legacy-guidance rule"
       ><div
-        ><span class="step-number">01 / KEEP YOUR BROWSER DATA</span><h2
-          >Start where your keys live.</h2
+        ><span class="step-number">{$t('01 / KEEP YOUR BROWSER DATA')}</span><h2
+          >{$t('Start where your keys live.')}</h2
         ><p
-          >If you used Local key mode, use the original browser and this
-          original website address. Do not clear site data before preserving
-          your recovery materials.</p
+          >{$t(
+            'If you used Local key mode, use the original browser and this original website address. Do not clear site data before preserving your recovery materials.'
+          )}</p
         ></div
       ><div
-        ><span class="step-number">02 / USE YOUR EXISTING IDENTITY</span><h2
-          >Sign in as before.</h2
-        ><p
-          >The original Internet Identity and username account options are
-          retained. A different login origin can lead to a different account.</p
+        ><span class="step-number">{$t('02 / USE YOUR EXISTING IDENTITY')}</span
+        ><h2>{$t('Sign in as before.')}</h2><p
+          >{$t(
+            'The original Internet Identity and username account options are retained. A different login origin can lead to a different account.'
+          )}</p
         ></div
       ><div
-        ><span class="step-number">03 / READ AND DOWNLOAD</span><h2
-          >Keep accessible files.</h2
+        ><span class="step-number">{$t('03 / READ AND DOWNLOAD')}</span><h2
+          >{$t('Keep accessible files.')}</h2
         ><p
-          >Open old channels and download their attachments. Missing keys or
-          inaccessible history are reported; no keys are reset or replaced to
-          make an archive appear complete.</p
+          >{$t(
+            'Open old channels and download their attachments. Missing keys or inaccessible history are reported; no keys are reset or replaced to make an archive appear complete.'
+          )}</p
         ></div
       ></section
     >

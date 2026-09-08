@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { icpLedgerAPI } from '$lib/canisters/icpledger'
   import { luckyPoolAPI, type NameOutput } from '$lib/canisters/luckypool'
   import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
@@ -93,10 +94,10 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Account</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Account')}</div>
   {#if name != ''}
     <div class="!mt-5 flex flex-col gap-2">
-      <div class="">Name</div>
+      <div class="">{$t('Name')}</div>
       <div class="relative">
         <input
           class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-36 hover:bg-white/90"
@@ -104,14 +105,14 @@
           name="pandaName"
           bind:value={name}
           disabled={true}
-          placeholder="Register your brand name"
+          placeholder={$t('Register your brand name')}
         />
         {#if name == ''}
           <button
             class="btn text-panda absolute top-0 right-0 outline-0"
             on:click={() => editName(0)}
           >
-            <span>Register</span>
+            <span>{$t('Register')}</span>
           </button>
         {:else}
           <div class="absolute top-0 right-0 flex flex-row items-center">
@@ -119,13 +120,13 @@
               class="btn text-gray/50 px-1 outline-0"
               on:click={() => editName(1)}
             >
-              <span>Update</span>
+              <span>{$t('Update')}</span>
             </button>
             <button
               class="btn text-warning-500 px-2 outline-0"
               on:click={() => editName(2)}
             >
-              <span>Unregister</span>
+              <span>{$t('Unregister')}</span>
             </button>
           </div>
         {/if}
@@ -135,12 +136,12 @@
   {/if}
   <div class="bg-gray/5 !mt-6 flex flex-col gap-3 rounded-xl px-4 py-3">
     <TextClipboardPopup
-      textLable="Principal:"
+      textLable={$t('Principal:')}
       textName={shortId(principal.toString())}
       textValue={principal.toString()}
     />
     <TextClipboardPopup
-      textLable="ICP Address:"
+      textLable={$t('ICP Address:')}
       textName={shortId(icpAddress)}
       textValue={icpAddress}
     />
@@ -197,7 +198,7 @@
   <footer class="!mt-8 {parent['regionFooter']} !justify-center">
     <button class="variant-filled btn" on:click={onLogoutHandler}>
       <IconLogout />
-      <span>Logout</span>
+      <span>{$t('Logout')}</span>
     </button>
   </footer>
 </ModalCard>

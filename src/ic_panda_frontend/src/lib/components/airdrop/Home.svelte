@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import {
     luckyPoolAPI,
     type Airdrops108Output
@@ -28,18 +29,18 @@
 
   function getStatus(status: number) {
     const now = Date.now()
-    const startAt = new Date(1731283200000).toLocaleString()
+    const startAt = new Date(1731283200000).toLocaleString($locale)
     switch (status) {
       case 0:
-        return `Will start at ${startAt}`
+        return $t('Will start at {time}', { time: startAt })
       case 1:
         return now >= 1731283200000
-          ? `Started at ${startAt}`
-          : `Will start at ${startAt}`
+          ? $t('Started at {time}', { time: startAt })
+          : $t('Will start at {time}', { time: startAt })
       case 2:
-        return 'Finished'
+        return $t('Finished')
       default:
-        return 'Unknown'
+        return $t('Unknown')
     }
   }
 
@@ -77,7 +78,7 @@
   >
     <div class="flex w-full flex-col items-center justify-center gap-4 px-4">
       <p class="text-2xl font-normal antialiased">
-        An airdrop of <b>320 million PANDA</b> tokens to our loyal holders!
+        {$t('An airdrop of 320 million PANDA tokens for our loyal holders!')}
       </p>
       <ul class="">
         <li>
@@ -86,11 +87,12 @@
             href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/108"
             target="_blank"
           >
-            Proposal 108:
+            {$t('Proposal 108:')}
           </a>
           <span
-            >Neurons and wallets with over 10,000 PANDA will be eligible.
-            Snapshot Date: Oct 31, 2024 (24:00 UTC).</span
+            >{$t(
+              'Neurons and wallets with over 10,000 PANDA will be eligible. Snapshot Date: Oct 31, 2024 (24:00 UTC).'
+            )}</span
           >
         </li>
         <li>
@@ -99,11 +101,12 @@
             href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/184"
             target="_blank"
           >
-            Proposal 184:
+            {$t('Proposal 184:')}
           </a>
           <span
-            >Disqualify any wallet with a decreased PANDA balance after the
-            snapshot from receiving the airdrop.</span
+            >{$t(
+              'Disqualify any wallet with a decreased PANDA balance after the snapshot from receiving the airdrop.'
+            )}</span
           >
         </li>
       </ul>
@@ -117,12 +120,12 @@
             class="input truncate rounded-none border-0 !bg-white"
             bind:value={userInput}
             on:input={checkInput}
-            placeholder="Enter principal ID ..."
+            placeholder={$t('Enter principal ID ...')}
           />
           <button
             class="variant-filled-primary disabled:bg-panda/50 cursor-pointer text-white disabled:cursor-not-allowed"
             disabled={!validating}
-            on:click={getAirdropOutput}>Check</button
+            on:click={getAirdropOutput}>{$t('Check')}</button
           >
         </div>
       </div>
@@ -135,36 +138,33 @@
       {@const tokens = estimateAirdrop(airdropOutput)}
       <div class="text-gray/80 *:text-pretty *:break-all">
         <div class="*:text-pretty *:break-all">
-          <p class="text-panda">
-            Principal: {userDisplay}
-          </p>
+          <p class="text-panda"> {$t('Principal:')} {userDisplay} </p>
           {#if airdropOutput.airdrops.length == 0}
-            <p>No airdrop available.</p>
+            <p>{$t('No airdrop available.')}</p>
           {:else}
             <p
-              >Neurons airdrop processed? {airdropOutput.neurons_airdropped
-                ? 'YES'
-                : 'NO'}</p
+              >{$t('Neurons airdrop processed?')}
+              {airdropOutput.neurons_airdropped ? $t('YES') : $t('NO')}</p
             >
             <p
-              >Ledger airdrop processed? {airdropOutput.ledger_airdropped
-                ? 'YES'
-                : 'NO'}</p
+              >{$t('Ledger airdrop processed?')}
+              {airdropOutput.ledger_airdropped ? $t('YES') : $t('NO')}</p
             >
             <p>
-              Estimate airdrop tokens: <b
-                >{`${getShortNumber(tokens)} (${tokens})`}</b
-              >
+              {$t('Estimate airdrop tokens:')}
+              <b>{$locale && `${getShortNumber(tokens)} (${tokens})`}</b>
             </p>
             <ul class="mt-2">
               {#each airdropOutput.airdrops as airdrop}
                 <li
-                  >Airdrop weight: <span
-                    >{getShortNumber(airdrop.weight / token_1)}</span
+                  >{$t('Airdrop weight:')}
+                  <span
+                    >{$locale && getShortNumber(airdrop.weight / token_1)}</span
                   >
                   {#if airdrop.neuron_id[0]}
                     <span>
-                      , from neuron: <a
+                      {$t(', from neuron:')}
+                      <a
                         class="underline underline-offset-4"
                         target="_blank"
                         href="https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/neuron/{airdrop
@@ -174,10 +174,10 @@
                       </a>
                     </span>
                   {:else}
-                    <span>, from ledger.</span>
+                    <span>{$t(', from ledger.')}</span>
                   {/if}
                   {#if airdrop.subaccount[0]}
-                    <span>Subaccount: {airdrop.subaccount[0]}</span>
+                    <span>{$t('Subaccount:')} {airdrop.subaccount[0]}</span>
                   {/if}
                 </li>
               {/each}
@@ -185,36 +185,50 @@
           {/if}
         </div>
         <hr class="!border-gray/10 mx-[-16px] my-2 !border-t-1" />
-        <p>Airdrop status: <b>{getStatus(airdropOutput.status)}</b></p>
+        <p
+          >{$t('Airdrop status:')}
+          <b>{$locale && getStatus(airdropOutput.status)}</b></p
+        >
         <p>
-          Tokens per weight: <b>{airdropOutput.tokens_per_weight.toFixed(4)}</b>
+          {$t('Tokens per weight:')}
+          <b>{airdropOutput.tokens_per_weight.toFixed(4)}</b>
         </p>
         <p>
-          Tokens distributed: <b
-            >{getShortNumber(airdropOutput.tokens_distributed / token_1)}</b
+          {$t('Tokens distributed:')}
+          <b
+            >{$locale &&
+              getShortNumber(airdropOutput.tokens_distributed / token_1)}</b
           >
         </p>
         <p class="mt-2">
-          Total ledger weight: <b
-            >{getShortNumber(airdropOutput.ledger_weight_total / token_1)}</b
+          {$t('Total ledger weight:')}
+          <b
+            >{$locale &&
+              getShortNumber(airdropOutput.ledger_weight_total / token_1)}</b
           >
         </p>
-        <p>Ledger snapshot hash: {airdropOutput.ledger_hash}</p>
+        <p>{$t('Ledger snapshot hash:')} {airdropOutput.ledger_hash}</p>
         <p>
-          Ledger snapshot updated at: {new Date(
-            Number(airdropOutput.ledger_updated_at)
-          ).toLocaleString()}
+          {$t('Ledger snapshot updated at:')}
+          {$locale &&
+            new Date(Number(airdropOutput.ledger_updated_at)).toLocaleString(
+              $locale
+            )}
         </p>
         <p class="mt-2">
-          Total neurons weight: <b
-            >{getShortNumber(airdropOutput.neurons_weight_total / token_1)}</b
+          {$t('Total neurons weight:')}
+          <b
+            >{$locale &&
+              getShortNumber(airdropOutput.neurons_weight_total / token_1)}</b
           >
         </p>
-        <p>Neurons snapshot hash: {airdropOutput.neurons_hash}</p>
+        <p>{$t('Neurons snapshot hash:')} {airdropOutput.neurons_hash}</p>
         <p>
-          Neurons snapshot updated at: {new Date(
-            Number(airdropOutput.neurons_updated_at)
-          ).toLocaleString()}
+          {$t('Neurons snapshot updated at:')}
+          {$locale &&
+            new Date(Number(airdropOutput.neurons_updated_at)).toLocaleString(
+              $locale
+            )}
         </p>
       </div>
     {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
+  import { formatNumber } from '$lib/utils/token'
   import { page } from '$app/state'
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import IconGoldPanda2 from '$lib/components/icons/IconGoldPanda2.svelte'
@@ -102,7 +104,7 @@
     <div class="absolute top-4 right-4 flex flex-row gap-3">
       <button on:click={prizeHistoryHandler} class="btn btn-sm bg-white">
         <span class="*:size-5"><IconHistory /></span>
-        <span>History</span>
+        <span>{$t('History')}</span>
       </button>
       <button
         disabled={true}
@@ -110,18 +112,20 @@
         class="btn btn-sm bg-white"
       >
         <span class="*:size-5"><IconGoldPanda2 /></span>
-        <span>Create a Prize</span>
+        <span>{$t('Create a Prize')}</span>
       </button>
     </div>
     <section class="mt-5 mb-6 flex flex-col justify-center max-md:mt-10">
       <h5 class="h5 text-center font-extrabold">
-        <span>PANDA Prize Giveaway</span>
+        <span>{$t('PANDA Prize Giveaway')}</span>
       </h5>
     </section>
     <footer class="m-auto mb-6">
       <!-- Anonymous -->
       <p class="text-gray/100 text-sm"
-        >Before claiming, please ensure that you meet the following conditions:</p
+        >{$t(
+          'Before claiming, please ensure that you meet the following conditions:'
+        )}</p
       >
       <ol class="list *:!mt-4 *:!rounded-xl *:bg-white *:px-4 *:py-2">
         <li>
@@ -130,7 +134,7 @@
             >1</span
           >
           <span class="flex-auto">
-            Have your own <b>Lucky Code</b> through airdrop.
+            {$t('Have your own Lucky Code from an airdrop.')}
           </span>
         </li>
         <li>
@@ -139,10 +143,11 @@
             >2</span
           >
           <span class="flex-auto">
-            Have at least <b
-              >{Number($stateStore?.airdrop_amount[0] || 10n) / 2} PANDA</b
-            >
-            in your <b>Lucky Balance</b>.
+            {$t('Hold at least {amount} PANDA in your Lucky Balance.', {
+              amount: formatNumber(
+                Number($stateStore?.airdrop_amount[0] || 10n) / 2
+              )
+            })}
           </span>
         </li>
         <li>
@@ -151,7 +156,9 @@
             >3</span
           >
           <span class="flex-auto">
-            Each reward has a limit on quantity. First come, first served.
+            {$t(
+              'Each reward has a limit on quantity. First come, first served.'
+            )}
           </span>
         </li>
       </ol>
@@ -161,10 +168,11 @@
           on:click={claimPrizeHandler}
           class="btn md:btn-lg m-auto mt-3 w-[320px] max-w-full bg-gradient-to-r from-amber-300 to-red-500 font-medium text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
         >
-          Claim a Prize
+          {$t('Claim a Prize')}
         </button>
         <div class="">
           <button
+            aria-label={$t('Scan Prize QR Code')}
             disabled={true}
             on:click={qrPrizeHandler}
             class="btn btn-icon text-orange-600 *:size-8 sm:absolute sm:top-[calc(50%-16px)] sm:right-0"

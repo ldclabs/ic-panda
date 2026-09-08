@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
   import IconGithub from '$lib/components/icons/IconGithub.svelte'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
@@ -6,10 +7,10 @@
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { LINKS } from '$lib/site'
 
-  const actions = [
-    { label: 'Explore GitHub', href: LINKS.github, icon: IconGithub },
-    { label: 'Join Governance', href: LINKS.snsProposals, icon: IconPanda },
-    { label: 'Follow @ICPandaDAO', href: LINKS.x, icon: IconX }
+  $: actions = [
+    { label: $t('Explore GitHub'), href: LINKS.github, icon: IconGithub },
+    { label: $t('Join Governance'), href: LINKS.snsProposals, icon: IconPanda },
+    { label: $t('Follow @ICPandaDAO'), href: LINKS.x, icon: IconX }
   ]
 </script>
 
@@ -34,18 +35,19 @@
       <h2
         class="font-display mt-14 text-[clamp(3rem,10vw,7rem)] leading-[0.9] font-black tracking-[-0.04em]"
       >
-        Build the commons.
+        {$t('Build the commons.')}
       </h2>
     </Reveal>
 
     <div class="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-12">
       <Reveal delay={80} class="lg:col-span-7">
         <p class="text-paper/80 text-lg leading-relaxed text-pretty">
-          Protocols become infrastructure when others can build on them.
+          {$t('Protocols become infrastructure when others can build on them.')}
         </p>
         <p class="text-paper/60 mt-4 leading-relaxed text-pretty">
-          Explore the code. Participate in governance. Test the protocols.
-          Challenge our assumptions. Build something we did not imagine.
+          {$t(
+            'Explore the code. Participate in governance. Test the protocols. Challenge our assumptions. Build something we did not imagine.'
+          )}
         </p>
       </Reveal>
 
@@ -64,7 +66,7 @@
                     <action.icon />
                   </span>
                   <span class="font-mono text-sm font-medium">
-                    {action.label}
+                    {$t(action.label)}
                   </span>
                 </span>
                 <span

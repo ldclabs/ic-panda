@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
+  import { getCurrentTimeString } from '$lib/utils/helper'
   import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
@@ -92,13 +94,13 @@
       class="input bg-surface-900/5 truncate rounded-lg border-0"
       type="search"
       bind:value={filterValue}
-      aria-label="Filter legacy channels"
-      placeholder="Filter channels..."
+      aria-label={$t('Filter legacy channels')}
+      placeholder={$t('Filter channels...')}
     />
     {#if !LEGACY_READ_ONLY}<button
         type="button"
         class="btn btn-icon bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100 h-10 rounded-lg"
-        title="Create a channel"
+        title={$t('Create a channel')}
         onclick={onCreateChannelHandler}
         ><span class="hover:scale-110"><IconAdd /></span></button
       >
@@ -139,7 +141,7 @@
                 {channel.latest_message_user.name}
               </span>
               <span>
-                {channel.latest_message_time}
+                {getCurrentTimeString(channel.latest_message_at, $locale)}
               </span>
             </p>
             {#if channel.my_setting.mute}
@@ -155,8 +157,9 @@
     {:else}
       <div class="px-4 py-2 text-sm">
         <span
-          >No matching legacy channels. Try a different filter or check that you
-          signed in with your original identity.</span
+          >{$t(
+            'No matching legacy channels. Try a different filter or check that you signed in with your original identity.'
+          )}</span
         >
       </div>
       {#if isLoading}

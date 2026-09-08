@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import {
@@ -177,7 +178,10 @@
             background: 'variant-soft-error',
             // Toasts render as text now, not HTML, so the line break is the
             // newline alone — the host preserves it with `whitespace-pre-line`.
-            message: `Failed to receive the key. A new key has been requested.\nError: ${errMessage(err)}`
+            message: $t(
+              'Failed to receive the key. A new key has been requested. Error: {error}',
+              { error: errMessage(err) }
+            )
           })
           const my_setting = { ...channelInfo.my_setting }
           my_setting.ecdh_remote = []
@@ -339,7 +343,7 @@
         onclick={onClickMyECDH}
         disabled={myECDHSubmitting}
       >
-        <span>Activate key to start chatting</span>
+        <span>{$t('Activate key to start chatting')}</span>
         {#if myECDHSubmitting}
           <span class=" text-panda *:size-4">
             <IconCircleSpin />
@@ -351,6 +355,7 @@
   <section class="mt-4 flex w-full flex-row items-center gap-4 self-start px-4">
     {#if isManager}
       <button
+        aria-label={$t('Update image')}
         class="group btn hover:bg-surface-500/50 relative p-0"
         onclick={onUploadChannelImage}
       >
@@ -382,6 +387,7 @@
         <span>{channelInfo.name}</span>
         {#if isManager}
           <button
+            aria-label={$t('Edit channel')}
             type="button"
             class="btn ml-2 p-0 text-neutral-500"
             onclick={onClickEditChannel}
@@ -399,14 +405,18 @@
   </section>
   <section class="mt-2 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
-      <span class="text-sm font-normal text-neutral-500">Messages:</span>
+      <span class="text-sm font-normal text-neutral-500">{$t('Messages:')}</span
+      >
       <span class="text-panda font-bold"
         >{channelInfo.latest_message_id - channelInfo.message_start + 1}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
-      <span class="text-sm font-normal text-neutral-500">Gas balance:</span>
-      <span class="text-panda font-bold">{getShortNumber(channelInfo.gas)}</span
+      <span class="text-sm font-normal text-neutral-500"
+        >{$t('Gas balance:')}</span
+      >
+      <span class="text-panda font-bold"
+        >{$locale && getShortNumber(channelInfo.gas)}</span
       >
     </div>
     <button
@@ -415,24 +425,28 @@
       onclick={onClickTopupChannel}
     >
       <span class="*:size-4"><IconAdd /></span>
-      <span>Topup</span>
+      <span>{$t('Topup')}</span>
     </button>
   </section>
   <section class="mt-0 flex flex-row gap-2 px-4 max-sm:flex-col">
     <div class="flex flex-row items-center gap-1">
-      <span class="text-sm font-normal text-neutral-500">Files:</span>
+      <span class="text-sm font-normal text-neutral-500">{$t('Files:')}</span>
       <span class="text-panda font-bold">{files_state.files_total}</span>
     </div>
     <div class="flex flex-row items-center gap-2">
-      <span class="text-sm font-normal text-neutral-500">Total size:</span>
+      <span class="text-sm font-normal text-neutral-500"
+        >{$t('Total size:')}</span
+      >
       <span class="text-panda font-bold"
-        >{getBytesString(files_state.files_size_total)}</span
+        >{getBytesString(files_state.files_size_total, $locale)}</span
       >
     </div>
     <div class="flex flex-row items-center gap-2">
-      <span class="text-sm font-normal text-neutral-500">Max file size:</span>
+      <span class="text-sm font-normal text-neutral-500"
+        >{$t('Max file size:')}</span
+      >
       <span class="text-panda font-bold"
-        >{getBytesString(files_state.file_max_size)}</span
+        >{getBytesString(files_state.file_max_size, $locale)}</span
       >
     </div>
     <button
@@ -442,30 +456,31 @@
       onclick={onClickUpdateChannelStorage}
     >
       <span class="*:size-4"><IconEditLine /></span>
-      <span>Update</span>
+      <span>{$t('Update')}</span>
     </button>
   </section>
   <section class="mt-4 space-y-2 px-4">
-    <div class="mb-2 text-sm opacity-50"><span>My settings</span></div>
+    <div class="mb-2 text-sm opacity-50"><span>{$t('My settings')}</span></div>
     <div class="flex flex-row items-center gap-4">
-      <p>Access key:</p>
+      <p>{$t('Access key:')}</p>
       {#if channelInfo.my_setting.ecdh_remote.length > 0}
         <button
           type="button"
           class="variant-filled-success btn btn-sm"
           onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}><span>Activate Key</span></button
+          disabled={myECDHSubmitting}><span>{$t('Activate Key')}</span></button
         >
       {:else if channelInfo.my_setting.ecdh_pub.length > 0}
-        <span class="text-sm opacity-50">Pending Approval</span>
+        <span class="text-sm opacity-50">{$t('Pending Approval')}</span>
       {:else if validKEK}
-        <span class="text-sm opacity-50">Ready to Use</span>
+        <span class="text-sm opacity-50">{$t('Ready to Use')}</span>
       {:else}
         <button
           type="button"
           class="variant-filled-error btn btn-sm"
           onclick={onClickMyECDH}
-          disabled={myECDHSubmitting}><span>Request Access</span></button
+          disabled={myECDHSubmitting}
+          ><span>{$t('Request Access')}</span></button
         >
       {/if}
       <span class="text-panda *:size-4 {myECDHSubmitting ? '' : 'invisible'}">
@@ -473,8 +488,9 @@
       </span>
     </div>
     <div class="flex flex-row items-center gap-4">
-      <p>Mute notifications:</p>
+      <p>{$t('Mute notifications:')}</p>
       <SlideToggle
+        label={$t('Mute notifications:')}
         name="setting-mute"
         active="bg-panda"
         size="sm"
@@ -487,7 +503,7 @@
       </span>
     </div>
     <div class="flex flex-row items-center gap-4">
-      <p>Leave channel:</p>
+      <p>{$t('Leave channel:')}</p>
       <div
         class="input-group bg-surface-500/5 w-full max-w-60 grid-cols-[1fr_auto]"
       >
@@ -496,9 +512,10 @@
           class="border-gray/10 invalid:input-warning h-8 truncate py-1 leading-8"
           bind:value={leavingWord}
           onfocus={() => (leavingWord = channelInfo.name)}
-          placeholder="channel name"
+          placeholder={$t('channel name')}
         />
         <button
+          aria-label={$t('Leave channel:')}
           type="button"
           class="variant-filled-error disabled:variant-filled-surface !px-2"
           onclick={onClickMyLeaving}
@@ -519,14 +536,15 @@
         class="text-error-500 h-5 text-sm {leavingWord === channelInfo.name
           ? 'visible'
           : 'invisible'}"
-        >You're the only manager of this channel. If you leave, all channel data
-        will be permanently deleted.</p
+        >{$t(
+          "You're the only manager of this channel. If you leave, all channel data will be permanently deleted."
+        )}</p
       >
     {/if}
   </section>
   <section class="mt-4 px-4">
     <div class="mb-2 items-center sm:grid sm:grid-cols-[1fr_auto]">
-      <span class="text-sm opacity-50">Members</span>
+      <span class="text-sm opacity-50">{$t('Members')}</span>
       <div class="flex flex-col space-x-1 sm:flex-row">
         <button
           type="button"
@@ -537,7 +555,7 @@
             channelInfo.managers.length >= 5}
         >
           <span class="*:size-4"><IconAdd /></span>
-          <span>Managers</span>
+          <span>{$t('Managers')}</span>
         </button>
         <button
           type="button"
@@ -548,7 +566,7 @@
             channelInfo.members.length >= 995}
         >
           <span class="*:size-4"><IconAdd /></span>
-          <span>Members</span>
+          <span>{$t('Members')}</span>
         </button>
         <button
           type="button"
@@ -562,7 +580,7 @@
             !hasExchangeKeys}
         >
           <span class="*:size-4"><IconExchange2Line /></span>
-          <span>Approve Requests</span>
+          <span>{$t('Approve Requests')}</span>
           <span
             class="text-panda *:size-4 {adminExchangeKeysSubmitting
               ? ''
@@ -593,11 +611,11 @@
             {/if}
             {#if member.ecdh_request === 1}
               <span class="variant-ringed-primary badge text-neutral-500"
-                >Request key</span
+                >{$t('Request key')}</span
               >
             {:else if member.ecdh_request === 2}
               <span class="variant-ringed-surface badge text-neutral-500"
-                >Key filled</span
+                >{$t('Key filled')}</span
               >
             {/if}
           </div>
@@ -609,7 +627,7 @@
                 disabled={adminRemoveMembersSubmitting !== ''}
                 onclick={() => onClickAdminRemoveMember(member._id)}
               >
-                <span>Remove</span>
+                <span>{$t('Remove')}</span>
               </button>
               <span
                 class="text-panda *:size-4 {adminRemoveMembersSubmitting ===

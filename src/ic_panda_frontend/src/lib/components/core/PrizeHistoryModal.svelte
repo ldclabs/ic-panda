@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import {
     luckyPoolAPI,
     type PrizeClaimLog,
@@ -63,10 +64,10 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Prize History</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Prize History')}</div>
   <div class="!mt-2">
     <div class="mx-6 flex justify-center" role="tablist">
-      {#each ['Receive', 'Send'] as label, index}
+      {#each [$t('Receive'), $t('Send')] as label, index}
         <button
           class="border-b-4 px-6 py-2 {tabSet === index
             ? 'border-panda font-semibold'
@@ -89,24 +90,25 @@
                   <div class="flex flex-row items-center gap-2">
                     <span class="text-panda"><IconArrowDownFill /></span>
                     <span class="text-sm">
-                      {new Date(
-                        Number(item.claimed_at * 1000n)
-                      ).toLocaleString()}
+                      {$locale &&
+                        new Date(
+                          Number(item.claimed_at * 1000n)
+                        ).toLocaleString($locale)}
                     </span>
                   </div>
                   <div class="">
                     <span class="text-panda font-semibold">
-                      {formatNumber(
-                        Number(item.amount) / Number(PANDAToken.one)
-                      ) + ' PANDA'}
+                      {$locale &&
+                        formatNumber(
+                          Number(item.amount) / Number(PANDAToken.one)
+                        ) + ' PANDA'}
                     </span>
                   </div>
                 </div>
                 <div class="mt-2 pl-8 text-sm">
                   <b
-                    >From: {item.prize.name.length > 0
-                      ? item.prize.name[0]
-                      : '-'}</b
+                    >{$t('From:')}
+                    {item.prize.name.length > 0 ? item.prize.name[0] : '-'}</b
                   >
                 </div>
                 <MemoDetail memo={item.prize.memo[0] || null} />
@@ -127,101 +129,115 @@
                   <div class="flex flex-row items-center gap-2">
                     <span class=""><IconArrowUpFill /></span>
                     <span class="text-sm">
-                      {new Date(
-                        Number(item.issued_at * 1000n)
-                      ).toLocaleString()}
+                      {$locale &&
+                        new Date(Number(item.issued_at * 1000n)).toLocaleString(
+                          $locale
+                        )}
                     </span>
                   </div>
                   <div class="">
                     <span class="text-panda font-semibold">
-                      {'-' +
-                        formatNumber(
-                          Number(
-                            item.amount +
-                              item.fee -
-                              item.sys_subsidy -
-                              item.refund_amount
-                          ) / Number(PANDAToken.one)
-                        ) +
-                        ' PANDA'}
+                      {$locale &&
+                        '-' +
+                          formatNumber(
+                            Number(
+                              item.amount +
+                                item.fee -
+                                item.sys_subsidy -
+                                item.refund_amount
+                            ) / Number(PANDAToken.one)
+                          ) +
+                          ' PANDA'}
                     </span>
                   </div>
                 </div>
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Total amount:</span>
+                  <span>{$t('Total amount:')}</span>
                   <span
-                    >{'-' +
-                      formatNumber(
-                        Number(item.amount) / Number(PANDAToken.one)
-                      ) +
-                      ' PANDA'}</span
+                    >{$locale &&
+                      '-' +
+                        formatNumber(
+                          Number(item.amount) / Number(PANDAToken.one)
+                        ) +
+                        ' PANDA'}</span
                   >
                 </div>
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Prize fee:</span>
+                  <span>{$t('Prize fee:')}</span>
                   <span
-                    >{'-' +
-                      formatNumber(Number(item.fee) / Number(PANDAToken.one)) +
-                      ' PANDA'}</span
+                    >{$locale &&
+                      '-' +
+                        formatNumber(
+                          Number(item.fee) / Number(PANDAToken.one)
+                        ) +
+                        ' PANDA'}</span
                   >
                 </div>
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Subsidy:</span>
+                  <span>{$t('Subsidy:')}</span>
                   <span
-                    >{'+' +
-                      formatNumber(
-                        Number(item.sys_subsidy) / Number(PANDAToken.one)
-                      ) +
-                      ' PANDA'}</span
+                    >{$locale &&
+                      '+' +
+                        formatNumber(
+                          Number(item.sys_subsidy) / Number(PANDAToken.one)
+                        ) +
+                        ' PANDA'}</span
                   >
                 </div>
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Distribution:</span>
+                  <span>{$t('Distribution:')}</span>
                   <span>
-                    {item.kind == 0 ? 'Equal' : 'Random'}
+                    {item.kind == 0 ? $t('Equal') : $t('Random')}
                   </span>
                 </div>
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Quantity:</span>
+                  <span>{$t('Quantity:')}</span>
                   <span>
-                    {`${item.filled}/${item.quantity} Claimed`}
+                    {$t('{filled}/{quantity} Claimed', {
+                      filled: item.filled,
+                      quantity: item.quantity
+                    })}
                   </span>
                 </div>
                 {#if item.ended_at > 0n}
                   <div
                     class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                   >
-                    <span>End at:</span>
+                    <span>{$t('End at:')}</span>
                     <span>
-                      {new Date(Number(item.ended_at * 1000n)).toLocaleString()}
+                      {$locale &&
+                        new Date(Number(item.ended_at * 1000n)).toLocaleString(
+                          $locale
+                        )}
                     </span>
                   </div>
                 {:else}
                   <div
                     class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                   >
-                    <span>Expire at:</span>
+                    <span>{$t('Expire at:')}</span>
                     <span>
-                      {new Date(
-                        Number((item.issued_at + item.expire) * 1000n)
-                      ).toLocaleString()}
+                      {$locale &&
+                        new Date(
+                          Number((item.issued_at + item.expire) * 1000n)
+                        ).toLocaleString($locale)}
                     </span>
                   </div>
                 {/if}
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Prize Link:</span>
+                  <span>{$t('Prize Link:')}</span>
                   <div class="flex w-[220px] flex-row items-center gap-1">
                     <p class="text-gray/50 w-full truncate">{link}</p>
                     {#if link !== '-'}
@@ -232,15 +248,16 @@
                 <div
                   class="mt-2 flex flex-row items-center justify-between gap-2 pl-8 text-sm"
                 >
-                  <span>Refund:</span>
+                  <span>{$t('Refund:')}</span>
                   <span
-                    >{item.refund_amount > 0n
-                      ? '+' +
-                        formatNumber(
-                          Number(item.refund_amount) / Number(PANDAToken.one)
-                        ) +
-                        ' PANDA'
-                      : '-'}</span
+                    >{$locale &&
+                      (item.refund_amount > 0n
+                        ? '+' +
+                          formatNumber(
+                            Number(item.refund_amount) / Number(PANDAToken.one)
+                          ) +
+                          ' PANDA'
+                        : '-')}</span
                   >
                 </div>
                 <MemoDetail memo={item.memo[0] || null} />

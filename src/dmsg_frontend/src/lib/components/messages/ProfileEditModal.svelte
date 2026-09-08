@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type UserInfo } from '$lib/canisters/message'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
@@ -79,7 +80,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Edit profile</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Edit profile')}</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -100,7 +101,7 @@
         {:else}
           <button
             class="btn btn-sm hover:text-panda p-0 text-neutral-500"
-            onclick={onTransferUsernameHandler}>Transfer</button
+            onclick={onTransferUsernameHandler}>{$t('Transfer')}</button
           >
         {/if}
       </div>
@@ -115,7 +116,7 @@
         data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
-        placeholder="Display name"
+        placeholder={$t('Display name')}
         required
       />
     </div>
@@ -127,7 +128,7 @@
         class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
         disabled={submitting}
-        placeholder="User bio..."
+        placeholder={$t('User bio...')}
       />
     </div>
   </form>
@@ -139,9 +140,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Save</span>
+        <span>{$t('Save')}</span>
       {/if}
     </button>
   </footer>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { autoFocus } from '$lib/actions/focus'
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import { pandaLedgerAPI } from '$lib/canisters/tokenledger'
@@ -68,13 +69,13 @@
     const input = e.target as HTMLInputElement
     if (tokenDisplay.total > availablePandaBalance) {
       topupErr = 'Insufficient balance'
-      input.setCustomValidity(topupErr)
+      input.setCustomValidity($t(topupErr))
       return
     }
 
     if (amountInput < 1) {
       topupErr = 'Amount must be greater than 1'
-      input.setCustomValidity(topupErr)
+      input.setCustomValidity($t(topupErr))
       return
     }
 
@@ -109,7 +110,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Topup gas</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Topup gas')}</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -126,7 +127,7 @@
         bind:value={amountInput}
         oninput={validateAmount}
         disabled={submitting}
-        placeholder="Enter an amount >=1"
+        placeholder={$t('Enter an amount >=1')}
         data-focusindex="1"
         required
       />
@@ -134,20 +135,26 @@
         >{PANDAToken.symbol}</div
       >
       <p class="h-5 pl-3 text-sm {topupErr ? 'text-error-500' : 'text-panda'}"
-        >{topupErr ? topupErr : getShortNumber2(tokenDisplay.total) + ' Gas'}</p
+        >{$locale &&
+          (topupErr
+            ? $t(topupErr)
+            : $t('Estimated gas: {amount}', {
+                amount: getShortNumber2(tokenDisplay.total)
+              }))}</p
       >
     </div>
     <div class="!mt-4 mb-2 text-sm">
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconPanda /></span>
-          <b>Your wallet balance:</b>
+          <b>{$t('Your wallet balance:')}</b>
         </div>
         <div class="flex flex-row gap-1 text-neutral-500">
           <span
-            >{formatNumber(
-              Number(availablePandaBalance) / Number(PANDAToken.one)
-            )}</span
+            >{$locale &&
+              formatNumber(
+                Number(availablePandaBalance) / Number(PANDAToken.one)
+              )}</span
           >
           <span>{PANDAToken.symbol}</span>
         </div>
@@ -164,9 +171,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Topup</span>
+        <span>{$t('Topup')}</span>
       {/if}
     </button>
   </footer>

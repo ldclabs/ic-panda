@@ -1,4 +1,6 @@
 <script lang="ts">
+  import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
   import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
   import Brand from '$lib/components/landing/Brand.svelte'
@@ -13,24 +15,25 @@
 <div class="dmsg-site legacy-app">
   <header class="archive-header">
     <Brand />
+    <LocaleSwitcher />
     <a href="/legacy" class="archive-label"
-      >Legacy archive <span>Read-only</span></a
+      >{$t('Legacy archive')} <span>{$t('Read-only')}</span></a
     >
-    <nav aria-label="Archive navigation">
+    <nav aria-label={$t('Archive navigation')}>
       <a
         href="/_/messages"
         aria-current={!page.url.pathname.startsWith('/_/profile')
           ? 'page'
-          : undefined}>Messages</a
+          : undefined}>{$t('Messages')}</a
       >
       <a
         href="/_/profile"
         aria-current={page.url.pathname.startsWith('/_/profile')
           ? 'page'
-          : undefined}>Profile</a
+          : undefined}>{$t('Profile')}</a
       >
       <MoreMenuPopup triggerClass="text-link"
-        >{#snippet trigger()}Account{/snippet}</MoreMenuPopup
+        >{#snippet trigger()}{$t('Account')}{/snippet}</MoreMenuPopup
       >
     </nav>
   </header>

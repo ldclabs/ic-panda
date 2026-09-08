@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   /**
    * Replaces Skeleton's `FileButton`: a hidden file input driven by a visible
    * button, so the trigger can be styled freely.
@@ -52,6 +53,6 @@
     {disabled}
     onclick={() => fileInput?.click()}
   >
-    {#if children}{@render children()}{:else}Select a File{/if}
+    {#if children}{@render children()}{:else}{$t('Select a File')}{/if}
   </button>
 </div>

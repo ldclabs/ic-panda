@@ -1,193 +1,263 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      ;(() => {
+        const supported = ['en', 'zh', 'ru', 'ar', 'fr', 'es']
+        const match = (value) =>
+          typeof value === 'string' &&
+          supported.find(
+            (code) => code === value.trim().toLowerCase().split(/[-_]/)[0]
+          )
+        let stored
+        try {
+          stored = localStorage.getItem('icpanda:locale')
+        } catch {}
+        const locale =
+          match(stored) ||
+          (navigator.languages?.length
+            ? navigator.languages
+            : [navigator.language]
+          )
+            .map(match)
+            .find(Boolean) ||
+          'en'
+        document.documentElement.lang = locale
+        document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
+      })()
+    </script>
 
-<head>
-  <!-- CONTENT_SECURITY_POLICY -->
+    <!-- CONTENT_SECURITY_POLICY -->
 
-  <meta charset="utf-8" />
-  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+    <meta
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      name="viewport"
+    />
 
-  <title>ICPanda DAO — From Sovereign Minds to Sovereign Markets</title>
-  <link href="https://panda.fans" rel="canonical" />
-  <meta content="From Sovereign Minds to Sovereign Markets." property="og:title" />
-  <meta
-    content="ICPanda DAO builds open infrastructure for persistent AI cognition, verifiable capital formation, and personal control over secrets, identity, and signing. Governed by PANDA through the Internet Computer SNS."
-    name="description" />
-  <meta
-    content="Meet ICPanda DAO, PANDA, Anda, TokenList, and dMsg: the Chrome extension for keeping secrets, sharing encrypted files, and signing across apps."
-    property="og:description" />
-  <meta content="website" property="og:type" />
-  <meta content="https://panda.fans" property="og:url" />
-  <meta content="https://panda.fans/_assets/images/icpanda-dao.webp" property="og:image" />
-  <meta content="summary_large_image" name="twitter:card" />
-  <meta content="@ICPandaDAO" name="twitter:creator" />
+    <link href="https://panda.fans" rel="canonical" />
+    <meta
+      content="From Sovereign Minds to Sovereign Markets."
+      property="og:title"
+    />
+    <meta
+      content="Meet ICPanda DAO, PANDA, Anda, TokenList, and dMsg: the Chrome extension for keeping secrets, sharing encrypted files, and signing across apps."
+      property="og:description"
+    />
+    <meta content="website" property="og:type" />
+    <meta content="https://panda.fans" property="og:url" />
+    <meta
+      content="https://panda.fans/_assets/images/icpanda-dao.webp"
+      property="og:image"
+    />
+    <meta content="summary_large_image" name="twitter:card" />
+    <meta content="@ICPandaDAO" name="twitter:creator" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/_assets/favicons/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/_assets/favicons/favicon-16x16.png" />
-  <link rel="shortcut icon" href="/favicon.ico" />
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/_assets/favicons/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/_assets/favicons/favicon-16x16.png"
+    />
+    <link rel="shortcut icon" href="/favicon.ico" />
 
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-status-bar-style" content="#5bbad5" />
-  <meta name="mobile-web-app-title" content="ICPanda" />
-  <link rel="apple-touch-icon" href="/_assets/favicons/apple-touch-icon.png" />
-  <link rel="mask-icon" href="/_assets/favicons/safari-pinned-tab.svg" color="#5bbad5" />
+    <!-- iOS meta tags & icons -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="#5bbad5" />
+    <meta name="mobile-web-app-title" content="ICPanda" />
+    <link
+      rel="apple-touch-icon"
+      href="/_assets/favicons/apple-touch-icon.png"
+    />
+    <link
+      rel="mask-icon"
+      href="/_assets/favicons/safari-pinned-tab.svg"
+      color="#5bbad5"
+    />
 
-  <!-- MS -->
-  <meta name="msapplication-TileColor" content="#11c291" />
-  <meta name="msapplication-config" content="/_assets/favicons/browserconfig.xml" />
+    <!-- MS -->
+    <meta name="msapplication-TileColor" content="#11c291" />
+    <meta
+      name="msapplication-config"
+      content="/_assets/favicons/browserconfig.xml"
+    />
 
-  <!-- Self-hosted brand type: no external font requests. -->
-  <link rel="preload" as="font" type="font/woff2" href="/_assets/fonts/archivo-latin.woff2" crossorigin />
-  <link rel="preload" as="font" type="font/woff2" href="/_assets/fonts/plexmono-400-latin.woff2" crossorigin />
+    <!-- Self-hosted brand type: no external font requests. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/_assets/fonts/archivo-latin.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/_assets/fonts/plexmono-400-latin.woff2"
+      crossorigin
+    />
 
-  <meta content="#eff2f6" name="theme-color" />
-  %sveltekit.head%
+    <meta content="#eff2f6" name="theme-color" />
+    %sveltekit.head%
 
-  <style>
-    #app-spinner {
-      --spinner-size: 30px;
+    <style>
+      #app-spinner {
+        --spinner-size: 30px;
 
-      color: rgba(11, 11, 11, 0.35);
+        color: rgba(11, 11, 11, 0.35);
 
-      width: var(--spinner-size);
-      height: var(--spinner-size);
+        width: var(--spinner-size);
+        height: var(--spinner-size);
 
-      animation: app-spinner-linear-rotate 2000ms linear infinite;
+        animation: app-spinner-linear-rotate 2000ms linear infinite;
 
-      position: absolute;
-      top: calc(50% - (var(--spinner-size) / 2));
-      left: calc(50% - (var(--spinner-size) / 2));
+        position: absolute;
+        top: calc(50% - (var(--spinner-size) / 2));
+        left: calc(50% - (var(--spinner-size) / 2));
 
-      --radius: 45px;
-      --circumference: calc(3.14159265359 * var(--radius) * 2);
+        --radius: 45px;
+        --circumference: calc(3.14159265359 * var(--radius) * 2);
 
-      --start: calc((1 - 0.05) * var(--circumference));
-      --end: calc((1 - 0.8) * var(--circumference));
-    }
-
-    #app-spinner circle {
-      stroke-dasharray: var(--circumference);
-      stroke-width: 10%;
-      transform-origin: 50% 50% 0;
-
-      transition-property: stroke;
-
-      animation-name: app-spinner-stroke-rotate-100;
-      animation-duration: 4000ms;
-      animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
-      animation-iteration-count: infinite;
-
-      fill: transparent;
-      stroke: currentColor;
-
-      transition: stroke-dashoffset 225ms linear;
-    }
-
-    @keyframes app-spinner-linear-rotate {
-      0% {
-        transform: rotate(0deg);
+        --start: calc((1 - 0.05) * var(--circumference));
+        --end: calc((1 - 0.8) * var(--circumference));
       }
 
-      100% {
-        transform: rotate(360deg);
-      }
-    }
+      #app-spinner circle {
+        stroke-dasharray: var(--circumference);
+        stroke-width: 10%;
+        transform-origin: 50% 50% 0;
 
-    @keyframes app-spinner-stroke-rotate-100 {
-      0% {
-        stroke-dashoffset: var(--start);
-        transform: rotate(0);
-      }
+        transition-property: stroke;
 
-      12.5% {
-        stroke-dashoffset: var(--end);
-        transform: rotate(0);
-      }
+        animation-name: app-spinner-stroke-rotate-100;
+        animation-duration: 4000ms;
+        animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
+        animation-iteration-count: infinite;
 
-      12.5001% {
-        stroke-dashoffset: var(--end);
-        transform: rotateX(180deg) rotate(72.5deg);
+        fill: transparent;
+        stroke: currentColor;
+
+        transition: stroke-dashoffset 225ms linear;
       }
 
-      25% {
-        stroke-dashoffset: var(--start);
-        transform: rotateX(180deg) rotate(72.5deg);
+      @keyframes app-spinner-linear-rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
       }
 
-      25.0001% {
-        stroke-dashoffset: var(--start);
-        transform: rotate(270deg);
+      @keyframes app-spinner-stroke-rotate-100 {
+        0% {
+          stroke-dashoffset: var(--start);
+          transform: rotate(0);
+        }
+
+        12.5% {
+          stroke-dashoffset: var(--end);
+          transform: rotate(0);
+        }
+
+        12.5001% {
+          stroke-dashoffset: var(--end);
+          transform: rotateX(180deg) rotate(72.5deg);
+        }
+
+        25% {
+          stroke-dashoffset: var(--start);
+          transform: rotateX(180deg) rotate(72.5deg);
+        }
+
+        25.0001% {
+          stroke-dashoffset: var(--start);
+          transform: rotate(270deg);
+        }
+
+        37.5% {
+          stroke-dashoffset: var(--end);
+          transform: rotate(270deg);
+        }
+
+        37.5001% {
+          stroke-dashoffset: var(--end);
+          transform: rotateX(180deg) rotate(161.5deg);
+        }
+
+        50% {
+          stroke-dashoffset: var(--start);
+          transform: rotateX(180deg) rotate(161.5deg);
+        }
+
+        50.0001% {
+          stroke-dashoffset: var(--start);
+          transform: rotate(180deg);
+        }
+
+        62.5% {
+          stroke-dashoffset: var(--end);
+          transform: rotate(180deg);
+        }
+
+        62.5001% {
+          stroke-dashoffset: var(--end);
+          transform: rotateX(180deg) rotate(251.5deg);
+        }
+
+        75% {
+          stroke-dashoffset: var(--start);
+          transform: rotateX(180deg) rotate(251.5deg);
+        }
+
+        75.0001% {
+          stroke-dashoffset: var(--start);
+          transform: rotate(90deg);
+        }
+
+        87.5% {
+          stroke-dashoffset: var(--end);
+          transform: rotate(90deg);
+        }
+
+        87.5001% {
+          stroke-dashoffset: var(--end);
+          transform: rotateX(180deg) rotate(341.5deg);
+        }
+
+        100% {
+          stroke-dashoffset: var(--start);
+          transform: rotateX(180deg) rotate(341.5deg);
+        }
       }
+    </style>
 
-      37.5% {
-        stroke-dashoffset: var(--end);
-        transform: rotate(270deg);
-      }
+    <!-- LINKS_PRELOADER -->
+  </head>
 
-      37.5001% {
-        stroke-dashoffset: var(--end);
-        transform: rotateX(180deg) rotate(161.5deg);
-      }
-
-      50% {
-        stroke-dashoffset: var(--start);
-        transform: rotateX(180deg) rotate(161.5deg);
-      }
-
-      50.0001% {
-        stroke-dashoffset: var(--start);
-        transform: rotate(180deg);
-      }
-
-      62.5% {
-        stroke-dashoffset: var(--end);
-        transform: rotate(180deg);
-      }
-
-      62.5001% {
-        stroke-dashoffset: var(--end);
-        transform: rotateX(180deg) rotate(251.5deg);
-      }
-
-      75% {
-        stroke-dashoffset: var(--start);
-        transform: rotateX(180deg) rotate(251.5deg);
-      }
-
-      75.0001% {
-        stroke-dashoffset: var(--start);
-        transform: rotate(90deg);
-      }
-
-      87.5% {
-        stroke-dashoffset: var(--end);
-        transform: rotate(90deg);
-      }
-
-      87.5001% {
-        stroke-dashoffset: var(--end);
-        transform: rotateX(180deg) rotate(341.5deg);
-      }
-
-      100% {
-        stroke-dashoffset: var(--start);
-        transform: rotateX(180deg) rotate(341.5deg);
-      }
-    }
-  </style>
-
-  <!-- LINKS_PRELOADER -->
-</head>
-
-<body>
-  <div class="page-ground" style="z-index: -1;"></div>
-  <div style="display: contents" class="h-full overflow-hidden">%sveltekit.body%</div>
-  <svg id="app-spinner" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true" data-tid="spinner"
-    viewBox="0 0 100 100">
-    <circle cx="50%" cy="50%" r="45" />
-  </svg>
-</body>
-
+  <body>
+    <div class="page-ground" style="z-index: -1"></div>
+    <div style="display: contents" class="h-full overflow-hidden"
+      >%sveltekit.body%</div
+    >
+    <svg
+      id="app-spinner"
+      preserveAspectRatio="xMidYMid meet"
+      focusable="false"
+      aria-hidden="true"
+      data-tid="spinner"
+      viewBox="0 0 100 100"
+    >
+      <circle cx="50%" cy="50%" r="45" />
+    </svg>
+  </body>
 </html>

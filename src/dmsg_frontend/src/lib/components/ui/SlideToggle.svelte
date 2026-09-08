@@ -60,6 +60,6 @@
   <Switch.Thumb
     class="pointer-events-none rounded-full bg-white shadow-sm transition-transform duration-200 {thumb[
       size
-    ]} {checked ? 'translate-x-full' : 'translate-x-0'}"
+    ]} {checked ? 'translate-x-full rtl:-translate-x-full' : 'translate-x-0'}"
   />
 </Switch.Root>

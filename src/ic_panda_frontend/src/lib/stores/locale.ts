@@ -1,5 +1,4 @@
-import { readable } from 'svelte/store'
+import { derived } from 'svelte/store'
+import { locale as selectedLocale } from '$lib/i18n'
 
-export const locale = readable(
-  new Intl.Locale(window?.navigator.language || 'en')
-)
+export const locale = derived(selectedLocale, (value) => new Intl.Locale(value))

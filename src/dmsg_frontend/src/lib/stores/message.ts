@@ -31,7 +31,6 @@ import {
   randomBytes,
   utf8ToBytes
 } from '$lib/utils/crypto'
-import { getCurrentTimeString } from '$lib/utils/helper'
 import { Principal } from '@icp-sdk/core/principal'
 import { derived, readable, type Readable } from 'svelte/store'
 import { getProfile, getUser, setProfile, setUser } from './kvstore'
@@ -66,7 +65,7 @@ export interface MessageInfo {
   reply_to: number
   kind: number
   created_by: Principal
-  created_time: string
+  created_at: bigint | number
   created_user: DisplayUserInfo
   canister: Principal
   channel: number
@@ -95,7 +94,6 @@ export type DisplayUserInfoEx = DisplayUserInfo & {
 
 export type ChannelBasicInfoEx = ChannelBasicInfo & {
   channelId: string
-  latest_message_time: string
   latest_message_user: DisplayUserInfo
 }
 
@@ -843,7 +841,6 @@ export class MyMessageState {
       return {
         ...c,
         channelId: ChannelAPI.channelParam(c),
-        latest_message_time: getCurrentTimeString(c.latest_message_at),
         latest_message_user: toDisplayUserInfo(info)
       } as ChannelBasicInfoEx
     }
@@ -1065,7 +1062,7 @@ export class MyMessageState {
         reply_to: msg.reply_to,
         kind: msg.kind,
         created_by: msg.created_by,
-        created_time: getCurrentTimeString(msg.created_at),
+        created_at: msg.created_at,
         created_user: toDisplayUserInfo(info),
         canister: canister,
         channel: channelId,

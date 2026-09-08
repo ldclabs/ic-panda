@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import {
     getModeOsPrefers,
     modeCurrent,
@@ -39,15 +40,15 @@
 <Switch.Root
   checked={isLight}
   {onCheckedChange}
-  {title}
-  aria-label="Light Switch"
+  title={$t(title)}
+  aria-label={$t('Light Switch')}
   class="ring-surface-500/30 flex h-6 w-12 cursor-pointer items-center rounded-full ring-[1px] transition-all duration-200 {isLight
     ? 'bg-surface-50'
     : 'bg-surface-900'} {selfClass}"
 >
   <Switch.Thumb
     class="flex aspect-square h-6 scale-[0.8] items-center justify-center rounded-full transition-all duration-200 {isLight
-      ? 'bg-surface-900 translate-x-[100%]'
+      ? 'bg-surface-900 translate-x-full rtl:-translate-x-full'
       : 'bg-surface-50'}"
   >
     <svg

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { TokenDisplay, type TokenInfo } from '$lib/utils/token'
   import Loading from './Loading.svelte'
 
@@ -16,13 +17,13 @@
     <span><Loading /></span>
     <span>{token.symbol}</span>
   {:then val}
-    {@const amountString = val.display()}
+    {@const amountString = $locale && val.display()}
     <span class="text-right font-medium" title={amountString}>
-      {val.short()}
+      {$locale && val.short()}
     </span>
     <span>{token.symbol}</span>
   {:catch}
-    <span class="text-right">N/A</span>
+    <span class="text-right">{$t('Not available')}</span>
     <span>{token.symbol}</span>
   {/await}
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { ANDA_MODULES, LINKS, TOKENLIST_STAGES } from '$lib/site'
@@ -7,23 +8,23 @@
   import SectionShell from './SectionShell.svelte'
 </script>
 
-<SectionShell id="projects" index="03" label="Projects">
+<SectionShell id="projects" index="03" label={$t('Projects')}>
   <div class="grid grid-cols-1 gap-10 py-14 lg:grid-cols-12 lg:gap-12 lg:py-20">
     <div class="lg:col-span-7">
       <Reveal>
         <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">
-          Open infrastructure for<br class="hidden md:block" />
-          intelligence, markets,<br class="hidden md:block" />
-          and personal control.
+          {$t('Open infrastructure for')}<br class="hidden md:block" />
+          {$t('intelligence, markets,')}<br class="hidden md:block" />
+          {$t('and personal control.')}
         </h2>
       </Reveal>
     </div>
     <div class="lg:col-span-5 lg:pt-3">
       <Reveal delay={80}>
         <p class="text-ink-70 text-lg leading-relaxed text-pretty">
-          Anda advances persistent machine cognition. TokenList builds
-          verifiable capital formation. dMsg puts an encrypted private workspace
-          and identity signing tools in your browser.
+          {$t(
+            'Anda advances persistent machine cognition. TokenList builds verifiable capital formation. dMsg puts an encrypted private workspace and identity signing tools in your browser.'
+          )}
         </p>
       </Reveal>
     </div>
@@ -36,15 +37,14 @@
         class="border-ink/10 flex flex-col gap-6 border-b p-6 md:flex-row md:items-start md:justify-between md:p-10"
       >
         <div class="max-w-2xl">
-          <p class="eyebrow">Sovereign AI · Open Protocols</p>
+          <p class="eyebrow">{$t('Sovereign AI · Open Protocols')}</p>
           <h3 class="display mt-5 text-[clamp(2rem,4.5vw,3.25rem)]">
-            Give intelligence a past.
+            {$t('Give intelligence a past.')}
           </h3>
           <p class="text-ink-70 mt-6 leading-relaxed text-pretty">
-            AI agents should not start from zero every time. Anda develops open
-            protocols, infrastructure, and benchmarks for agents that preserve
-            cognitive state, learn from experience, and let the past
-            meaningfully change future decisions.
+            {$t(
+              'AI agents should not start from zero every time. Anda develops open protocols, infrastructure, and benchmarks for agents that preserve cognitive state, learn from experience, and let the past meaningfully change future decisions.'
+            )}
           </p>
         </div>
         <img
@@ -66,16 +66,16 @@
           >
             <div class="flex items-start justify-between gap-4">
               <h4 class="font-mono text-lg font-semibold tracking-tight">
-                {mod.name}
+                {$t(mod.name)}
               </h4>
               <span
                 class="text-ink-30 group-hover:text-ink shrink-0 transition-colors *:size-5"
                 aria-hidden="true"><IconArrowRightUp /></span
               >
             </div>
-            <p class="eyebrow mt-2">{mod.kind}</p>
+            <p class="eyebrow mt-2">{$t(mod.kind)}</p>
             <p class="text-ink-70 mt-4 text-sm leading-relaxed text-pretty">
-              {mod.body}
+              {$t(mod.body)}
             </p>
           </a>
         {/each}
@@ -85,11 +85,11 @@
         class="border-ink/10 flex flex-col gap-6 border-t p-6 md:flex-row md:items-center md:justify-between md:p-10"
       >
         <p class="display-sm text-xl md:text-2xl">
-          Memory gives intelligence continuity through time.
+          {$t('Memory gives intelligence continuity through time.')}
         </p>
         <div class="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-4">
-          <LinkOut href={LINKS.anda} label="Explore Anda.ai" />
-          <LinkOut href={LINKS.andaGithub} label="View Open Source" />
+          <LinkOut href={LINKS.anda} label={$t('Explore Anda.ai')} />
+          <LinkOut href={LINKS.andaGithub} label={$t('View Open Source')} />
         </div>
       </footer>
     </article>
@@ -105,17 +105,17 @@
           <p
             class="text-paper/50 font-mono text-xs leading-none font-medium tracking-[0.18em] uppercase"
           >
-            On-chain Markets · Multi-chain
+            {$t('On-chain Markets · Multi-chain')}
           </p>
           <h3
             class="font-display mt-5 text-[clamp(2rem,4.5vw,3.25rem)] leading-[0.95] font-black tracking-[-0.035em]"
           >
-            Infrastructure for verifiable crypto capital formation.
+            {$t('Infrastructure for verifiable crypto capital formation.')}
           </h3>
           <p class="text-paper/70 mt-6 leading-relaxed text-pretty">
-            TokenList builds open infrastructure for creating, issuing, and
-            governing on-chain assets with transparent rules and verifiable
-            execution.
+            {$t(
+              'TokenList builds open infrastructure for creating, issuing, and governing on-chain assets with transparent rules and verifiable execution.'
+            )}
           </p>
         </div>
         <span
@@ -135,10 +135,10 @@
             <p
               class="text-panda mt-2 font-mono text-xs tracking-[0.18em] uppercase"
             >
-              {stage.verb}
+              {$t(stage.verb)}
             </p>
             <p class="text-paper/70 mt-4 text-sm leading-relaxed text-pretty">
-              {stage.body}
+              {$t(stage.body)}
             </p>
           </div>
         {/each}
@@ -149,11 +149,12 @@
       >
         <div>
           <p class="font-mono text-sm font-semibold tracking-[0.2em]">
-            CREATE <span class="text-paper/40">→</span> ISSUE
-            <span class="text-paper/40">→</span> GOVERN
+            {$t('CREATE')} <span class="text-paper/40">→</span>
+            {$t('ISSUE')} <span class="text-paper/40">→</span>
+            {$t('GOVERN')}
           </p>
           <p class="text-paper/60 mt-2 text-sm">
-            From an asset's first block to its community-owned future.
+            {$t("From an asset's first block to its community-owned future.")}
           </p>
         </div>
         <a
@@ -162,7 +163,7 @@
           target="_blank"
           rel="noreferrer"
         >
-          <span>Explore TokenList.ing</span>
+          <span>{$t('Explore TokenList.ing')}</span>
           <span class="*:size-4" aria-hidden="true"><IconArrowRightUp /></span>
         </a>
       </footer>

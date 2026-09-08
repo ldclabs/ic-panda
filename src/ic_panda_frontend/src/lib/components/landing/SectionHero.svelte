@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
   import HeroSchematic from './HeroSchematic.svelte'
 </script>
@@ -8,12 +9,13 @@
     class="mx-auto w-full max-w-6xl px-5 pt-14 pb-16 md:px-10 md:pt-20 md:pb-24"
   >
     <p class="eyebrow">
-      Open Source <span class="text-panda">·</span> On-chain Governed
-      <span class="text-panda">·</span> Built on ICP
+      {$t('Open Source')} <span class="text-panda">·</span>
+      {$t('On-chain Governed')} <span class="text-panda">·</span>
+      {$t('Built on ICP')}
     </p>
 
     <h1 class="display mt-7 text-[clamp(2.25rem,7.2vw,5.6rem)]">
-      From Sovereign Minds<br />to Sovereign Markets.<span
+      {$t('From Sovereign Minds')}<br />{$t('to Sovereign Markets.')}<span
         class="caret bg-panda ml-3 inline-block h-[0.58em] w-[0.26em] align-baseline"
         aria-hidden="true"
       ></span>
@@ -26,27 +28,23 @@
         <p
           class="text-ink-70 max-w-2xl text-lg leading-relaxed text-pretty md:text-xl"
         >
-          ICPanda DAO is an on-chain builder collective creating open
-          infrastructure for
-          <span class="text-ink font-medium">persistent AI cognition</span>,
-          <span class="text-ink font-medium"
-            >verifiable crypto capital formation</span
-          >, and
-          <span class="text-ink font-medium"
-            >personal control over secrets, identity, and signing</span
-          >.
+          {$t(
+            'ICPanda DAO is an on-chain builder collective creating open infrastructure for persistent AI cognition, verifiable crypto capital formation, and personal control over secrets, identity, and signing.'
+          )}
         </p>
 
         <div class="mt-10 flex flex-col gap-3 sm:flex-row">
-          <a class="btn-ink" href="#panda">Explore PANDA</a>
+          <a class="btn-ink" href="#panda">{$t('Explore PANDA')}</a>
           <a class="btn-outline" href="#projects">
-            What We Build
+            {$t('What We Build')}
             <span class="*:size-4"><IconArrowDownLine /></span>
           </a>
         </div>
 
         <p class="text-ink-70 mt-10 max-w-md font-mono text-xs leading-relaxed">
-          Governed by the community through PANDA and the Internet Computer SNS.
+          {$t(
+            'Governed by the community through PANDA and the Internet Computer SNS.'
+          )}
         </p>
       </div>
 

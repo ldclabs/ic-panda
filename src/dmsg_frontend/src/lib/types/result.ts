@@ -1,3 +1,5 @@
+import { tr } from '$lib/i18n'
+
 export interface Ok<T> {
   Ok: T
 }
@@ -72,7 +74,7 @@ export function errMessage(err: any): string {
     )
   }
   if (err?.message) {
-    return err.message
+    return tr(err.message)
   }
-  return String(err)
+  return tr(String(err))
 }

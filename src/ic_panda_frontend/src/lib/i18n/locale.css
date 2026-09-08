@@ -1,0 +1,52 @@
+/* Use system fallbacks for CJK/Cyrillic/Arabic without extra font downloads. */
+html[lang='zh'] {
+  --locale-font: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+html[lang='ru'] {
+  --locale-font: system-ui, sans-serif;
+}
+html[lang='ar'] {
+  --locale-font: 'Geeza Pro', 'Noto Sans Arabic', Tahoma, sans-serif;
+}
+html:is([lang='zh'], [lang='ru'], [lang='ar']) body,
+html:is([lang='zh'], [lang='ru'], [lang='ar'])
+  :is(.dmsg-site, .display, .font-mono, .eyebrow, .archive-account-menu) {
+  font-family: var(--locale-font);
+}
+html[lang='ar'] :is(h1, h2, h3, .eyebrow, .display) {
+  letter-spacing: normal;
+}
+html[dir='rtl'] .text-left {
+  text-align: start;
+}
+html[dir='rtl'] .text-right {
+  text-align: end;
+}
+html[dir='rtl']
+  :is(
+    input[type='url'],
+    input[type='email'],
+    input[type='number'],
+    code:not([dir]),
+    pre:not([dir])
+  ) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+html[dir='rtl']
+  :is(
+    .sign-in-options button,
+    .archive-account-menu > a,
+    .archive-account-menu > button
+  ) {
+  text-align: start;
+}
+
+html[dir='rtl']
+  .dmsg-site
+  img:is([src$='/arrow-right.svg'], [src$='/arrow-up-right.svg']) {
+  transform: scaleX(-1);
+}
+html[dir='rtl'] .dmsg-site :is(.task-tabs button, .story, .rules) {
+  text-align: start;
+}

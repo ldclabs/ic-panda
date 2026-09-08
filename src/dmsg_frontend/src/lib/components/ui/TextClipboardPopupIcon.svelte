@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { clipboard } from '$lib/actions/clipboard'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
@@ -30,6 +31,7 @@
   <HoverPopup>
     {#snippet trigger(props)}
       <button
+        aria-label={$t('Copy to clipboard')}
         {...props}
         class="{copiedClass} float-right mt-[3px] *:size-5"
         use:clipboard={textValue}

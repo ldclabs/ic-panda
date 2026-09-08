@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { authStore } from '$lib/stores/auth'
   import type { SvelteComponent } from 'svelte'
@@ -36,30 +37,35 @@
   showTitle={false}
   cardClass="!rounded-2xl !bg-white !text-[#10251f]"
 >
-  <h2 class="!mt-0 pr-8 text-xl font-semibold">Sign in to your archive</h2>
+  <h2 class="!mt-0 pr-8 text-xl font-semibold"
+    >{$t('Sign in to your archive')}</h2
+  >
   <p class="text-sm text-[#4e6257]"
-    >Choose the provider you used before. Your existing account and login origin
-    determine which history you can read.</p
+    >{$t(
+      'Choose the provider you used before. Your existing account and login origin determine which history you can read.'
+    )}</p
   >
   <div class="sign-in-options">
     <button disabled={submitting} onclick={() => signIn('current')}
       ><strong>Internet Identity</strong><span
-        >id.ai · Current site identity</span
+        >{$t('id.ai · Current site identity')}</span
       ></button
     >
     <button disabled={submitting} onclick={() => signIn('ii')}
       ><strong>Internet Identity</strong><span
-        >identity.internetcomputer.org · Current site identity</span
+        >{$t('identity.internetcomputer.org · Current site identity')}</span
       ></button
     >
     <button disabled={submitting} onclick={() => signIn('legacy')}
-      ><strong>Original legacy sign-in</strong><span
-        >identity.ic0.app · panda.fans identity</span
+      ><strong>{$t('Original legacy sign-in')}</strong><span
+        >{$t('identity.ic0.app · panda.fans identity')}</span
       ></button
     >
   </div>
-  {#if submitting}<p class="text-sm" role="status">Waiting for sign-in…</p>{/if}
-  {#if error}<p class="text-sm text-red-800" role="alert">{error}</p>{/if}
+  {#if submitting}<p class="text-sm" role="status"
+      >{$t('Waiting for sign-in…')}</p
+    >{/if}
+  {#if error}<p class="text-sm text-red-800" role="alert">{$t(error)}</p>{/if}
 </ModalCard>
 
 <style>

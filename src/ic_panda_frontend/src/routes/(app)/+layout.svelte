@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { browser } from '$app/environment'
   import { afterNavigate } from '$app/navigation'
   import ModalHost from '$lib/components/ui/ModalHost.svelte'
@@ -15,7 +16,7 @@
     () =>
       toastStore.trigger({
         hideDismiss: false,
-        message: 'Device is offline',
+        message: $t('Device is offline'),
         background: 'variant-filled-error',
         timeout: 5000,
         hoverable: true

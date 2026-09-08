@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
@@ -267,11 +268,12 @@
       </div>
     {/if}
     <p class="mt-2 flex flex-row items-center gap-1 text-sm text-neutral-500">
-      <span>Principal: {shortId(display._id)}</span>
+      <span>{$t('Principal:')} {shortId(display._id)}</span>
       <TextClipboardButton textValue={display._id} />
       <button
+        aria-label={$t('Show QR code')}
         class="flex flex-row items-center gap-2"
-        onclick={() => onQrHandler('Principal ID', display._id)}
+        onclick={() => onQrHandler($t('Principal ID'), display._id)}
       >
         <span class="*:size-5"><IconQrCode /></span>
       </button>
@@ -287,12 +289,12 @@
           onclick={() => onFollowHandler($userInfo.id, !isFowllowing)}
         >
           {#if isFowllowing}
-            <span class="group-hover:hidden">Following</span>
+            <span class="group-hover:hidden">{$t('Following')}</span>
             <span class="text-error-500 hidden group-hover:inline"
-              >Unfollow</span
+              >{$t('Unfollow')}</span
             >
           {:else}
-            <span class="">Follow</span>
+            <span class="">{$t('Follow')}</span>
           {/if}
           <span
             class="text-panda *:size-4 {followingSubmitting ? '' : 'hidden'}"
@@ -302,16 +304,16 @@
         </button>
         <button
           type="button"
-          title="End-to-end encrypted message"
+          title={$t('End-to-end encrypted message')}
           class="variant-filled-primary btn btn-sm w-32"
           onclick={() => onCreateChannelHandler($userInfo.id)}
         >
-          <span>Message</span>
+          <span>{$t('Message')}</span>
         </button>
         <a
           class="text-surface-500 text-sm underline"
           href="https://github.com/ldclabs/ic-panda/tree/main/src/ic_dmsg_minter"
-          target="_blank">Mint $DMSG</a
+          target="_blank">{$t('Mint $DMSG')}</a
         >
       </div>
     {/if}

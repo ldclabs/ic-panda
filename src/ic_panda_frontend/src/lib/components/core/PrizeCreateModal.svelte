@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import {
     luckyPoolAPI,
     type AddPrizeInputV2 as AddPrizeInput,
@@ -225,7 +226,7 @@
       try {
         Principal.fromText(prizeInputRecipient)
       } catch (_) {
-        prizeInputRecipientEle?.setCustomValidity('invalid principal')
+        prizeInputRecipientEle?.setCustomValidity($t('invalid principal'))
       }
     }
 
@@ -233,20 +234,22 @@
     prizeInputMessageEle?.setCustomValidity('')
     const _prizeInputMessage = prizeInputMessage.trim()
     if (_prizeInputMessage.length > 120) {
-      prizeInputMessageEle?.setCustomValidity('message is too long')
+      prizeInputMessageEle?.setCustomValidity($t('message is too long'))
     }
 
     const prizeInputLinkEle = form['prizeInputLink'] as HTMLInputElement
     prizeInputLinkEle?.setCustomValidity('')
     if (prizeInputLink != '') {
       if (_prizeInputMessage.length == 0) {
-        prizeInputMessageEle?.setCustomValidity('message is required for link')
+        prizeInputMessageEle?.setCustomValidity(
+          $t('message is required for link')
+        )
       }
 
       try {
         new URL(prizeInputLink)
       } catch (_) {
-        prizeInputLinkEle?.setCustomValidity('invalid link')
+        prizeInputLinkEle?.setCustomValidity($t('invalid link'))
       }
     }
 
@@ -273,14 +276,14 @@
     </div>
     <div class="text-center">
       <p class="mt-4">
-        <span>Your prize has been successfully created.</span>
+        <span>{$t('Your prize has been successfully created.')}</span>
       </p>
-      <p class="text-gray/50 mt-2 text-left">Prize Code:</p>
+      <p class="text-gray/50 mt-2 text-left">{$t('Prize Code:')}</p>
       <div class="flex flex-row items-center gap-1">
         <p class="truncate text-orange-500">{'PRIZE:' + code}</p>
         <TextClipboardButton textValue={'PRIZE:' + code} />
       </div>
-      <p class="text-gray/50 mt-2 text-left">Prize QR Code:</p>
+      <p class="text-gray/50 mt-2 text-left">{$t('Prize QR Code:')}</p>
       <div class="relative items-center">
         {@html qrcode}
         <div
@@ -288,7 +291,7 @@
           ><IconGoldPanda2 /></div
         >
       </div>
-      <p class="text-gray/50 mt-2 text-left">Prize Link:</p>
+      <p class="text-gray/50 mt-2 text-left">{$t('Prize Link:')}</p>
       <div
         class="flex flex-row items-center gap-2 rounded-lg bg-gradient-to-r from-amber-50 to-red-50 p-2 text-orange-500"
       >
@@ -306,22 +309,25 @@
       on:click={(e) => copyPrizeLink(e, link)}
     >
       {#if linkCopied}
-        <span>Prize Link Copied</span><IconCheckbox />
+        <span>{$t('Prize Link Copied')}</span><IconCheckbox />
       {:else}
-        <span>Copy the Prize Link</span>
+        <span>{$t('Copy the Prize Link')}</span>
       {/if}
     </button>
   {:else}
     <h3 class="h3 !mt-0 text-center *:m-auto *:size-10"><IconGoldPanda2 /></h3>
-    <div class="!mt-0 text-center text-xl font-bold">Panda Prize</div>
+    <div class="!mt-0 text-center text-xl font-bold">{$t('Panda Prize')}</div>
     <div class="bg-gray/5 !mt-5 rounded-xl px-4 py-2 text-sm">
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconPanda /></span>
-          <b>Your Wallet Balance:</b>
+          <b>{$t('Your Wallet Balance:')}</b>
         </div>
         <div class="flex flex-row gap-1 font-bold">
-          <b>{formatNumber(Number(pandaBalance) / Number(PANDAToken.one))}</b>
+          <b
+            >{$locale &&
+              formatNumber(Number(pandaBalance) / Number(PANDAToken.one))}</b
+          >
           <b>{PANDAToken.symbol}</b>
         </div>
       </div>
@@ -332,7 +338,7 @@
       on:input={onFormChange}
     >
       <label class="label">
-        <span class="text-gray/50">Total prize amount:</span>
+        <span class="text-gray/50">{$t('Total prize amount:')}</span>
         <div class="relative">
           <input
             class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
@@ -343,7 +349,7 @@
             step="1"
             bind:value={prizeInputTotalAmount}
             disabled={submitting}
-            placeholder="Enter an amount between 1 and 1,000,000"
+            placeholder={$t('Enter an amount between 1 and 1,000,000')}
             required
           />
           <div class="absolute top-2 right-2 outline-0">{PANDAToken.symbol}</div
@@ -351,7 +357,7 @@
         </div>
       </label>
       <label class="label">
-        <span class="text-gray/50">Number of winners:</span>
+        <span class="text-gray/50">{$t('Number of winners:')}</span>
         <div class="flex flex-row items-center">
           <input
             class="cursor-pointer accent-orange-500 outline-0"
@@ -377,23 +383,26 @@
       </label>
       {#if prizeInputQuantity == 1}
         <label class="label">
-          <span class="text-gray/50">Designated recipient (Optional):</span>
+          <span class="text-gray/50"
+            >{$t('Designated recipient (Optional):')}</span
+          >
           <div class="relative">
             <input
               class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
               type="text"
               name="prizeInputRecipient"
               bind:value={prizeInputRecipient}
-              placeholder="Enter recipient principal"
+              placeholder={$t('Enter recipient principal')}
               disabled={submitting || prizeInputQuantity != 1}
             />
             <button
+              aria-label={$t(prizeInputRecipient ? 'Clear' : 'Paste')}
               class="btn absolute top-0 right-0 outline-0"
               disabled={submitting || prizeInputQuantity != 1}
               on:click={recipientCopyPaste}
             >
               {#if prizeInputRecipient == ''}
-                <span>Paste</span>
+                <span>{$t('Paste')}</span>
               {:else}
                 <span class="*:scale-90"><IconDeleteBin /></span>
               {/if}
@@ -402,7 +411,7 @@
         </label>
       {:else}
         <label class="label">
-          <span class="text-gray/50">Prize distribution:</span>
+          <span class="text-gray/50">{$t('Prize distribution:')}</span>
           <div class="flex flex-row items-center justify-between gap-2">
             <label class="flex items-center space-x-2">
               <input
@@ -415,9 +424,9 @@
               />
               <p class="flex flex-row items-center gap-1">
                 <span class=""><IconDice /></span>
-                <span class="">Random</span>
+                <span class="">{$t('Random')}</span>
                 {#if prizeSubsidy.length == 6 && prizeSubsidy[5] > 0}
-                  <span class="text-orange-500">(+Subsidy)</span>
+                  <span class="text-orange-500">{$t('(+Subsidy)')}</span>
                 {/if}
               </p>
             </label>
@@ -432,14 +441,14 @@
               />
               <p class="flex flex-row items-center gap-1">
                 <span class=""><IconEqualizer /></span>
-                <span class="">Equal</span>
+                <span class="">{$t('Equal')}</span>
               </p>
             </label>
           </div>
         </label>
       {/if}
       <label class="label">
-        <span class="text-gray/50">Validity period:</span>
+        <span class="text-gray/50">{$t('Validity period:')}</span>
         <div class="flex flex-row items-center justify-between gap-2">
           <label class="flex items-center space-x-2">
             <input
@@ -450,7 +459,7 @@
               checked={prizeInputExpire == 60}
               value="60"
             />
-            <p>1 Hour</p>
+            <p>{$t('1 Hour')}</p>
           </label>
           <label class="flex items-center space-x-2">
             <input
@@ -461,7 +470,7 @@
               checked={prizeInputExpire == 1440}
               value="1440"
             />
-            <p>1 Day</p>
+            <p>{$t('1 Day')}</p>
           </label>
           <label class="flex items-center space-x-2">
             <input
@@ -472,26 +481,26 @@
               checked={prizeInputExpire == 10080}
               value="10080"
             />
-            <p>1 Week</p>
+            <p>{$t('1 Week')}</p>
           </label>
         </div>
       </label>
       <label class="label mt-2">
         {#if !$nameState?.name}
-          <span class="text-gray/50">Your name (Optional):</span>
+          <span class="text-gray/50">{$t('Your name (Optional):')}</span>
           <button
             class="btn text-panda !mt-0 !p-0 outline-0"
             on:click={() => editName(0)}
           >
-            <span>Set up in Account</span>
+            <span>{$t('Set up in Account')}</span>
           </button>
         {:else}
-          <span class="text-gray/50 pr-2">Your name:</span>
+          <span class="text-gray/50 pr-2">{$t('Your name:')}</span>
           <span>{$nameState?.name}</span>
         {/if}
       </label>
       <label class="label">
-        <span class="text-gray/50">Leave a message (Optional):</span>
+        <span class="text-gray/50">{$t('Leave a message (Optional):')}</span>
         <div class="relative">
           <textarea
             class="textarea border-gray/10 invalid:input-warning rounded-xl bg-white/20 hover:bg-white/90"
@@ -500,12 +509,13 @@
             bind:value={prizeInputMessage}
             disabled={submitting}></textarea>
           <button
+            aria-label={$t(prizeInputMessage ? 'Clear' : 'Paste')}
             class="btn absolute top-6 right-0 outline-0"
             disabled={submitting}
             on:click={messageCopyPaste}
           >
             {#if prizeInputMessage == ''}
-              <span>Paste</span>
+              <span>{$t('Paste')}</span>
             {:else}
               <span class="*:scale-90"><IconDeleteBin /></span>
             {/if}
@@ -513,7 +523,7 @@
         </div>
       </label>
       <label class="label">
-        <span class="text-gray/50">Leave a link (Optional):</span>
+        <span class="text-gray/50">{$t('Leave a link (Optional):')}</span>
         <div class="relative">
           <input
             class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
@@ -523,12 +533,13 @@
             disabled={submitting}
           />
           <button
+            aria-label={$t(prizeInputLink ? 'Clear' : 'Paste')}
             class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={linkCopyPaste}
           >
             {#if prizeInputLink == ''}
-              <span>Paste</span>
+              <span>{$t('Paste')}</span>
             {:else}
               <span class="*:scale-90"><IconDeleteBin /></span>
             {/if}
@@ -548,10 +559,10 @@
           class="flex flex-row items-center justify-between text-sm font-medium"
         >
           <div class="flex flex-row items-center gap-2">
-            <span>Total prize amount:</span>
+            <span>{$t('Total prize amount:')}</span>
           </div>
           <div class="flex flex-row gap-1">
-            <span>{formatNumber(prizeInputTotalAmount)}</span>
+            <span>{$locale && formatNumber(prizeInputTotalAmount)}</span>
             <span>{PANDAToken.symbol}</span>
           </div>
         </div>
@@ -559,13 +570,14 @@
           class="flex flex-row items-center justify-between text-sm font-medium"
         >
           <div class="flex flex-row items-center gap-2">
-            <span>Prize service fee:</span>
+            <span>{$t('Prize service fee:')}</span>
           </div>
           <div class="flex flex-row gap-1">
             <span
-              >{formatNumber(
-                Number(prizeSubsidy[0]) / Number(PANDAToken.one)
-              )}</span
+              >{$locale &&
+                formatNumber(
+                  Number(prizeSubsidy[0]) / Number(PANDAToken.one)
+                )}</span
             >
             <span>{PANDAToken.symbol}</span>
           </div>
@@ -575,7 +587,7 @@
             class="flex flex-row items-center justify-between text-sm font-medium text-orange-500"
           >
             <div class="flex flex-row items-center gap-2">
-              <span>Subsidy from Lucky Pool:</span>
+              <span>{$t('Subsidy from Lucky Pool:')}</span>
             </div>
             <div class="flex flex-row gap-1">
               <span>- {subsidy}</span>
@@ -587,10 +599,12 @@
           class="flex flex-row items-center justify-between text-sm font-medium"
         >
           <div class="flex flex-row items-center gap-2">
-            <span>Final payment:</span>
+            <span>{$t('Final payment:')}</span>
           </div>
           <div class="flex flex-row gap-1 font-bold">
-            <span>{formatNumber(Number(payment) / Number(PANDAToken.one))}</span
+            <span
+              >{$locale &&
+                formatNumber(Number(payment) / Number(PANDAToken.one))}</span
             >
             <span>{PANDAToken.symbol}</span>
           </div>
@@ -604,9 +618,9 @@
         >
           {#if submitting}
             <span class=""><IconCircleSpin /></span>
-            <span>Processing...</span>
+            <span>{$t('Processing...')}</span>
           {:else}
-            <span>Create Now</span>
+            <span>{$t('Create Now')}</span>
           {/if}
         </button>
       </footer>

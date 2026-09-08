@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { type MasterKey, type MyMessageState } from '$lib/stores/message'
   import { onMount, type SvelteComponent } from 'svelte'
@@ -74,17 +75,18 @@
 </script>
 
 <ModalCard {parent} cardClass="!bg-white !text-[#10251f]">
-  <h2 class="text-xl font-semibold">Unlock legacy history</h2>
+  <h2 class="text-xl font-semibold">{$t('Unlock legacy history')}</h2>
   <p class="mt-3 text-sm text-[#4e6257]"
-    >Use your existing password. This only unlocks historical content; it does
-    not upgrade, reset, or replace your keys.</p
+    >{$t(
+      'Use your existing password. This only unlocks historical content; it does not upgrade, reset, or replace your keys.'
+    )}</p
   >
   {#if checking}<p class="mt-4" role="status"
-      >Checking existing recovery materials…</p
+      >{$t('Checking existing recovery materials…')}</p
     >
   {:else if recoverable}
     <form class="mt-5 flex flex-col gap-4" onsubmit={unlock}>
-      <label for="legacy-password">Existing password</label>
+      <label for="legacy-password">{$t('Existing password')}</label>
       <input
         id="legacy-password"
         class="input rounded-lg border border-[#607566] bg-white"
@@ -98,13 +100,14 @@
         class="btn rounded-lg bg-[#145c45] px-5 py-3 text-white"
         type="submit"
         disabled={busy || !password}
-        >{busy ? 'Unlocking…' : 'Unlock history'}</button
+        >{busy ? $t('Unlocking…') : $t('Unlock history')}</button
       >
     </form>
   {:else}<p class="mt-4 rounded-lg bg-[#edf1ea] p-4 text-sm"
-      >Existing key material was not found. Return to the original browser and
-      account, or use your existing recovery materials. Local keys cannot be
-      recreated by resetting a password.</p
+      >{$t(
+        'Existing key material was not found. Return to the original browser and account, or use your existing recovery materials. Local keys cannot be recreated by resetting a password.'
+      )}</p
     >{/if}
-  {#if error}<p class="mt-4 text-sm text-red-800" role="alert">{error}</p>{/if}
+  {#if error}<p class="mt-4 text-sm text-red-800" role="alert">{$t(error)}</p
+    >{/if}
 </ModalCard>

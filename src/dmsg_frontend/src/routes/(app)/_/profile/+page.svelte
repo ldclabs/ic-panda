@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { MyMessageState } from '$lib/stores/message'
   import ProfileDetail from '$lib/components/messages/ProfileDetail.svelte'
@@ -26,20 +27,20 @@
 </script>
 
 <svelte:head
-  ><title>dMsg — Legacy profile</title><meta
+  ><title>{$t('dMsg — Legacy profile')}</title><meta
     name="robots"
     content="noindex"
   /></svelte:head
 >
 {#if myState}<div class="mx-auto max-w-3xl p-6"
-    ><p class="archive-notice">Legacy profile · Read-only</p><ProfileDetail
-      {myState}
-      userId={myState.principal}
-    /></div
+    ><p class="archive-notice">{$t('Legacy profile · Read-only')}</p
+    ><ProfileDetail {myState} userId={myState.principal} /></div
   >
 {:else if error}<div class="archive-empty"
-    ><p role="alert">{error}</p><button class="button secondary" onclick={load}
-      >Try again</button
+    ><p role="alert">{$t(error)}</p><button
+      class="button secondary"
+      onclick={load}>{$t('Try again')}</button
     ></div
   >
-{:else}<p class="archive-empty" role="status">Loading legacy profile…</p>{/if}
+{:else}<p class="archive-empty" role="status">{$t('Loading legacy profile…')}</p
+  >{/if}

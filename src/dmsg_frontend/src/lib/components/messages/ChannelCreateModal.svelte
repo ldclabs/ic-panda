@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { autoFocus } from '$lib/actions/focus'
   import { goto } from '$app/navigation'
   import { type StateInfo, type UserInfo } from '$lib/canisters/message'
@@ -57,12 +58,12 @@
     submitting = true
     toastRun(async () => {
       if (channelPrice > availablePandaBalance) {
-        throw new Error('Insufficient balance')
+        throw new Error($t('Insufficient balance'))
       }
 
       const name = nameInput.trim()
       if (!name) {
-        throw new Error('Invalid channel name')
+        throw new Error($t('Invalid channel name'))
       }
 
       const mk = await myState.mustMasterKey()
@@ -134,7 +135,7 @@
 
 <ModalCard {parent}>
   <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
-    >Create a channel</div
+    >{$t('Create a channel')}</div
   >
 
   <form
@@ -152,7 +153,7 @@
         data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
-        placeholder="Channel name"
+        placeholder={$t('Channel name')}
         data-focusindex="0"
         required
       />
@@ -164,46 +165,54 @@
         maxHeight="120"
         class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
-        placeholder="Channel description (not encrypted)..."
+        placeholder={$t('Channel description (not encrypted)...')}
         data-focusindex="1"
       />
     </div>
     <hr class="!border-gray/20 mx-[-24px] !mt-4 !border-t-1 !border-dashed" />
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
-        <b>1.</b> Creating a message channel requires
-        <span class="text-panda"
-          >{formatNumber(Number(channelPrice) / Number(PANDAToken.one)) +
-            (pandaPrice
-              ? ' ($' +
+        <b>1.</b>
+        {$t(
+          'Creating a message channel costs {amount} PANDA. Sending messages also incurs small costs.',
+          {
+            amount: formatNumber(Number(channelPrice) / Number(PANDAToken.one))
+          }
+        )}
+        {#if pandaPrice && channelPrice > 0n}
+          <span dir="ltr"
+            >({$locale &&
+              '$' +
                 getPriceNumber(
                   pandaPrice.priceUSD *
                     (Number(channelPrice) / Number(PANDAToken.one))
-                ) +
-                ')'
-              : '')}</span
-        > PANDA tokens as a fee, and sending messages will also incur small costs.
+                )})</span
+          >
+        {/if}
       </p>
       <p>
-        <b>2.</b> Each channel can include up to 5 managers and 995 members.
+        <b>2.</b>
+        {$t('Each channel can include up to 5 managers and 995 members.')}
       </p>
       <p>
-        <b>3.</b> Managers can remove regular members but not other managers. If the
-        last manager leaves, the channel and all its messages will be permanently
-        deleted.
+        <b>3.</b>
+        {$t(
+          'Managers can remove regular members but not other managers. If the last manager leaves, the channel and all its messages will be permanently deleted.'
+        )}
       </p>
     </div>
     <div class="!mt-4 mb-2 text-sm">
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2 py-1">
           <span class="*:size-6"><IconPanda /></span>
-          <b>Your wallet balance:</b>
+          <b>{$t('Your wallet balance:')}</b>
         </div>
         <div class="flex flex-row gap-1">
           <span
-            >{formatNumber(
-              Number(availablePandaBalance) / Number(PANDAToken.one)
-            )}</span
+            >{$locale &&
+              formatNumber(
+                Number(availablePandaBalance) / Number(PANDAToken.one)
+              )}</span
           >
           <span>{PANDAToken.symbol}</span>
         </div>
@@ -214,7 +223,7 @@
             onclick={onOpenWallet}
           >
             <span class="*:size-4"><IconAdd /></span>
-            <span>Topup</span>
+            <span>{$t('Topup')}</span>
           </button>
         {/if}
       </div>
@@ -230,9 +239,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Create Now</span>
+        <span>{$t('Create Now')}</span>
       {/if}
     </button>
   </footer>

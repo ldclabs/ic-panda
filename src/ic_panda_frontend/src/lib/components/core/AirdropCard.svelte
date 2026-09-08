@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
@@ -66,7 +67,7 @@
 >
   <section class="mt-5 mb-10 flex flex-col justify-center">
     <h5 class="h5 text-center font-extrabold">
-      <span>Free PANDA Airdrop</span>
+      <span>{$t('Free PANDA Airdrop')}</span>
     </h5>
     <div class="m-auto mt-5 flex flex-row gap-4">
       <div
@@ -76,14 +77,14 @@
       </div>
       <div>
         <h2 class="h2 text-gold font-extrabold">
-          {formatNumber(Number(totalBalance / PANDAToken.one))}
+          {$locale && formatNumber(Number(totalBalance / PANDAToken.one))}
         </h2>
         <button
           class="text-gray/50 mt-2 flex flex-row items-center gap-1"
           aria-expanded={showBalanceTip}
           on:click={() => (showBalanceTip = !showBalanceTip)}
         >
-          <span>Current available balance</span>
+          <span>{$t('Current available balance')}</span>
           <span>
             <IconInfo />
           </span>
@@ -93,8 +94,9 @@
             class="card bg-surface-800 mt-2 max-w-80 px-3 py-2 text-sm text-white"
           >
             <p class="min-w-0 text-balance break-words">
-              We will gradually increase the number of PANDA tokens available
-              for airdrop to ensure an orderly distribution.
+              {$t(
+                'We will gradually increase the number of PANDA tokens available for airdrop to ensure an orderly distribution.'
+              )}
             </p>
           </div>
         {/if}
@@ -104,42 +106,45 @@
   <footer class="m-auto mb-6">
     {#if luckyCode == ''}
       <!-- Anonymous -->
-      <p class="text-gray/50 text-sm">Please read the rules before claiming:</p>
+      <p class="text-gray/50 text-sm"
+        >{$t('Please read the rules before claiming:')}</p
+      >
       <ol class="list *:mt-3">
         <li>
           <span class="badge-icon bg-pink-500 p-2 text-white">1</span>
           <span class="flex-auto">
-            New users can get <b class="text-pink-500">
-              {formatNumber(Number(claimableAmount / PANDAToken.one))} PANDA
-            </b>
-            or
-            <b class="text-pink-500">
-              {formatNumber(
-                Number(
-                  (claimableAmount + claimableAmount / 2n) / PANDAToken.one
+            {$t(
+              'New users can get {amount} PANDA, or {bonus} PANDA with a LUCKY CODE.',
+              {
+                amount: formatNumber(Number(claimableAmount / PANDAToken.one)),
+                bonus: formatNumber(
+                  Number(
+                    (claimableAmount + claimableAmount / 2n) / PANDAToken.one
+                  )
                 )
-              )} PANDA
-            </b>
-            with <b class="text-pink-500">LUCKY CODE</b>.
+              }
+            )}
           </span>
         </li>
         <li>
           <span class="badge-icon bg-pink-500 p-2 text-white">2</span>
           <span class="flex-auto">
-            Your <b>LUCKY CODE</b> will be generated after claiming the airdrop.
+            {$t(
+              'Your LUCKY CODE will be generated after claiming the airdrop.'
+            )}
           </span>
         </li>
         <li>
           <span class="badge-icon bg-pink-500 p-2 text-white">3</span>
           <span class="flex-auto">
-            For each successful <b class="text-pink-500"
-              >referral with LUCKY CODE</b
-            >, you gain an additional
-            <b class="text-pink-500"
-              >{formatNumber(
-                Number(claimableAmount / (2n * PANDAToken.one))
-              )}</b
-            >.
+            {$t(
+              'For each successful referral with your LUCKY CODE, you gain an additional {amount} PANDA.',
+              {
+                amount: formatNumber(
+                  Number(claimableAmount / (2n * PANDAToken.one))
+                )
+              }
+            )}
           </span>
         </li>
       </ol>
@@ -147,8 +152,9 @@
         <p
           class="flex flex-row content-center items-center gap-2 text-sm font-medium text-pink-500"
         >
-          <span class="*:size-5"><IconAlarmWarning /></span>Each user
-          <span>can only claim ONCE.</span>
+          <span class="*:size-5"><IconAlarmWarning /></span><span
+            >{$t('Each user can only claim ONCE.')}</span
+          >
         </p>
         <button
           disabled={claimableAmount === 0n ||
@@ -156,46 +162,48 @@
           on:click={claimNowHandler}
           class="btn md:btn-lg m-auto mt-3 w-[320px] max-w-full bg-pink-500 font-medium text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
         >
-          Understand and Claim Now
+          {$t('Understand and Claim Now')}
         </button>
       </div>
     {:else if luckyCode == 'AAAAAA'}
       <!-- banned user -->
       <p class="">
-        <span>Sorry, you can not claim the airdrop.</span>
+        <span>{$t('Sorry, you can not claim the airdrop.')}</span>
       </p>
       <button
         disabled={true}
         class="variant-filled-primary btn md:btn-lg m-auto mt-3 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
       >
-        Got It
+        {$t('Got It')}
       </button>
     {:else}
       <p class="">
         <span>
-          The more lucky balance you have, the larger your claim in a
-          <b>Lucky PANDA Prize</b>.
+          {$t('The more lucky balance you hold, the bigger prize you grab.')}
         </span>
       </p>
       <p class="mt-3">
-        <span><b>Lucky Balance:</b></span>
+        <span><b>{$t('Lucky Balance:')}</b></span>
         <span>
           <b class="text-panda"
-            >{formatNumber(Number(claimableAmount) / Number(PANDAToken.one))}</b
-          > PANDA tokens
+            >{$locale &&
+              formatNumber(Number(claimableAmount) / Number(PANDAToken.one))}</b
+          >
+          {$t('PANDA tokens')}
         </span>
         <span>
-          ({formatNumber(Number(claimedAmount) / Number(PANDAToken.one))} tokens transferred
-          out)
+          ({$locale &&
+            formatNumber(Number(claimedAmount) / Number(PANDAToken.one))}
+          {$t('tokens transferred out)')}
         </span>
       </p>
       <p class="mt-3">
-        <span>Lucky Code:</span>
+        <span>{$t('Lucky Code:')}</span>
         <span class="text-panda"><b>{luckyCode}</b></span>
         <TextClipboardButton textValue={luckyCode} />
       </p>
       <p class="mt-3">
-        <span>Link:</span>
+        <span>{$t('Link:')}</span>
         <span>
           {`${APP_ORIGIN}/?ref=${luckyCode}`}
         </span>
@@ -207,9 +215,9 @@
         class="variant-filled-primary btn md:btn-lg m-auto mt-10 flex w-[320px] max-w-full flex-row items-center gap-2 text-white transition duration-700 ease-in-out hover:scale-110 hover:shadow"
       >
         {#if claimableAmount > 0n}
-          <span>Transfer tokens to wallet</span>
+          <span>{$t('Transfer tokens to wallet')}</span>
         {:else}
-          <span>No token to transfer</span>
+          <span>{$t('No token to transfer')}</span>
         {/if}
       </button>
     {/if}

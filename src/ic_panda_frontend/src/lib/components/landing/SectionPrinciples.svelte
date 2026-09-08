@@ -1,13 +1,16 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { PRINCIPLES } from '$lib/site'
   import SectionShell from './SectionShell.svelte'
 </script>
 
-<SectionShell id="principles" index="05" label="How We Build">
+<SectionShell id="principles" index="05" label={$t('How We Build')}>
   <div class="py-14 lg:py-20">
     <Reveal>
-      <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">Open by default.</h2>
+      <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]"
+        >{$t('Open by default.')}</h2
+      >
     </Reveal>
 
     <dl class="border-ink/15 isolate mt-12 border-t">
@@ -21,12 +24,12 @@
               >{p.index}</span
             >
             <dt class="display-sm text-2xl md:col-span-4 md:text-3xl"
-              >{p.name}</dt
+              >{$t(p.name)}</dt
             >
             <dd
               class="text-ink-70 leading-relaxed text-pretty md:col-span-7 md:pt-1"
             >
-              {p.body}
+              {$t(p.body)}
             </dd>
           </div>
         </Reveal>

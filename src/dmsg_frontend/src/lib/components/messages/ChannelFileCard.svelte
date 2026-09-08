@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconDownload from '$lib/components/icons/IconDownload.svelte'
   import ImagePreview from '$lib/components/ui/ImagePreview.svelte'
@@ -132,6 +133,7 @@
   <div class="flex w-full flex-row items-center justify-center px-4">
     <p class="py-2 text-pretty break-words"><span>{file.name}</span></p>
     <button
+      aria-label={$t('Download file')}
       type="button"
       class="btn btn-sm text-surface-500 hover:text-black dark:hover:text-white"
       disabled={downloading}

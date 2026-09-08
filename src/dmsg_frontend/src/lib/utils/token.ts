@@ -3,7 +3,7 @@ import {
   ICP_LEDGER_CANISTER_ID,
   TOKEN_LEDGER_CANISTER_ID
 } from '$lib/constants'
-const locale = new Intl.Locale(globalThis.navigator?.language || 'en')
+import { currentLocale, type Locale } from '$lib/i18n'
 
 export interface Token {
   symbol: string
@@ -127,7 +127,7 @@ export const DMSGToken: TokenInfo = {
 }
 
 export function formatNumber(val: number, maxDigits: number = 4): string {
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(currentLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: maxDigits,
     roundingMode: 'trunc'
@@ -138,7 +138,21 @@ export class TokenDisplay {
   readonly billedToSource: boolean
   readonly token: TokenInfo
   readonly one: bigint
-  readonly formater: Intl.NumberFormat
+  private formatterLocale?: Locale
+  private numberFormatter?: Intl.NumberFormat
+
+  get formater(): Intl.NumberFormat {
+    const language = currentLocale()
+    if (!this.numberFormatter || this.formatterLocale !== language) {
+      this.numberFormatter = new Intl.NumberFormat(language, {
+        minimumFractionDigits: Math.min(1, this.token.decimals),
+        maximumFractionDigits: this.token.decimals,
+        roundingMode: 'floor'
+      } as Intl.NumberFormatOptions)
+      this.formatterLocale = language
+    }
+    return this.numberFormatter
+  }
 
   amount: bigint
   fee: bigint
@@ -176,11 +190,6 @@ export class TokenDisplay {
     this.billedToSource = billedToSource
     this.token = token
     this.one = 10n ** BigInt(token.decimals)
-    this.formater = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: token.decimals,
-      roundingMode: 'floor'
-    } as Intl.NumberFormatOptions)
     this.amount = amount
     this.fee = token.fee
   }

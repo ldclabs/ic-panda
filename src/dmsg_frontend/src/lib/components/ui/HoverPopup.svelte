@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, localeDir } from '$lib/i18n'
   import { Tooltip } from 'bits-ui'
 
   /**
@@ -39,6 +40,7 @@
   </Tooltip.Trigger>
   <Tooltip.Portal>
     <Tooltip.Content
+      dir={localeDir($locale)}
       {side}
       sideOffset={8}
       class="card bg-surface-800 z-[10001] max-w-80 px-2 py-1 text-white shadow-lg {contentClass}"

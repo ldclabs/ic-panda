@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import IconArrowDown from '$lib/components/icons/IconArrowDown.svelte'
   import IconCornerDownLeft from '$lib/components/icons/IconCornerDownLeft.svelte'
   import { ErrData } from '$lib/types/result'
@@ -24,15 +25,18 @@
   let txInfo: {
     from: string
     to: string
-    balance: string
-    amount: string
-    total: string
+    balance: bigint
+    amount: bigint
+    total: bigint
   } | null = null
 
   let tokenDisplay = new TokenDisplay(token, 0n)
 
-  const addressTip =
-    'Principal' + (token.symbol == 'ICP' ? ' or ICP Address' : '')
+  $: addressTip = $t(
+    token.symbol == 'ICP'
+      ? 'Enter a valid Principal ID or ICP address.'
+      : 'Enter a valid Principal ID.'
+  )
 
   function setMaxAmount(e: Event) {
     e.stopPropagation()
@@ -55,14 +59,14 @@
       try {
         AccountIdentifier.fromHex(sendTo)
       } catch (error) {
-        input.setCustomValidity('Invalid ICP address')
+        input.setCustomValidity($t('Invalid ICP address'))
         return
       }
     } else {
       try {
         Principal.fromText(sendTo)
       } catch (error) {
-        input.setCustomValidity('Invalid principal')
+        input.setCustomValidity($t('Invalid principal'))
         return
       }
     }
@@ -73,12 +77,12 @@
   function validateAmount(e: Event) {
     const input = e.target as HTMLInputElement
     if (tokenDisplay.total > availableBalance) {
-      input.setCustomValidity('Amount exceeds available balance')
+      input.setCustomValidity($t('Amount exceeds available balance'))
       return
     }
 
     if (sendAmount <= 0.001) {
-      input.setCustomValidity('Amount must be greater than 0.001')
+      input.setCustomValidity($t('Amount must be greater than 0.001'))
       return
     }
 
@@ -93,7 +97,7 @@
     const form = e.currentTarget as HTMLFormElement
     if (sendAmount <= 0.001) {
       const input = form['amount'] as HTMLInputElement
-      input?.setCustomValidity('Amount must be greater than 0.001')
+      input?.setCustomValidity($t('Amount must be greater than 0.001'))
     }
     tokenDisplay.num = sendAmount || 0
     validating = form.checkValidity()
@@ -118,9 +122,9 @@
     txInfo = {
       from: sendFrom.toString(),
       to: sendTo,
-      balance: tokenDisplay.displayValue(availableBalance),
-      amount: tokenDisplay.display(),
-      total: tokenDisplay.displayTotal()
+      balance: availableBalance,
+      amount: tokenDisplay.amount,
+      total: tokenDisplay.total
     }
   }
 
@@ -153,7 +157,7 @@
     <!-- Enable for debugging: -->
     <form class="flex flex-col" bind:this={formRef} on:change={onFormChange}>
       <label class="label">
-        <span>Send to destination</span>
+        <span>{$t('Send to destination')}</span>
         <input
           class="peer input bg-gray/5 valid:input-success hover:bg-white/90"
           type="text"
@@ -167,18 +171,18 @@
           required
         />
         <span class="invisible text-xs text-red-500 peer-invalid:visible">
-          Enter a valid {addressTip}.
+          {addressTip}
         </span>
       </label>
       <label class="label">
-        <span>Amount</span>
+        <span>{$t('Amount')}</span>
         <a
           class="btn float-right !mt-0 p-0 hover:text-indigo-500"
           href="/"
           on:click={setMaxAmount}
         >
           <span class="*:w-5"><IconCornerDownLeft /></span>
-          <span class="!ml-1">Max</span>
+          <span class="!ml-1">{$t('Max')}</span>
         </a>
         <input
           class="peer input bg-gray/5 valid:input-success hover:bg-white/90"
@@ -188,59 +192,59 @@
           step="any"
           bind:value={sendAmount}
           on:input={validateAmount}
-          placeholder="Amount"
+          placeholder={$t('Amount')}
           disabled={submitting}
           required
         />
         <span class="invisible text-xs text-red-500 peer-invalid:visible">
-          Enter a valid amount.
+          {$t('Enter a valid amount.')}
         </span>
       </label>
       <div>
-        <p>Transaction Fee (billed to source)</p>
-        <p>{tokenDisplay.displayFee()} {token.symbol}</p>
+        <p>{$t('Transaction Fee (billed to source)')}</p>
+        <p>{$locale && tokenDisplay.displayFee()} {token.symbol}</p>
       </div>
     </form>
     <!-- prettier-ignore -->
     <footer class="flex flex-row justify-end gap-4">
-			<button class="btn variant-ghost-surface max-md:btn-sm" disabled={submitting} on:click={onClear}>Clear</button>
-			<button class="btn variant-ghost-primary max-md:btn-sm" disabled={submitting || !validating} on:click={onContinue}>Continue</button>
+			<button class="btn variant-ghost-surface max-md:btn-sm" disabled={submitting} on:click={onClear}>{$t("Clear")}</button>
+			<button class="btn variant-ghost-primary max-md:btn-sm" disabled={submitting || !validating} on:click={onContinue}>{$t("Continue")}</button>
 		</footer>
   </div>
 {:else if txInfo != null}
   <div class="flex w-full flex-col gap-4">
     <div class="flex flex-col gap-2 text-sm *:gap-2">
-      <h4 class="h4 text-center">Review Transaction</h4>
+      <h4 class="h4 text-center">{$t('Review Transaction')}</h4>
       <div class="flex flex-row justify-between">
-        <span>From</span>
+        <span>{$t('From')}</span>
         <span class="min-w-0 text-right text-balance break-words">
           {txInfo.from}
         </span>
       </div>
       <div class="flex flex-row justify-between">
-        <span>Available Balance</span>
+        <span>{$t('Available Balance')}</span>
         <span class="text-right text-balance break-words">
-          {txInfo.balance}
+          {$locale && tokenDisplay.displayValue(txInfo.balance)}
           {token.symbol}
         </span>
       </div>
       <div class="flex flex-row justify-between">
-        <span>Sending Amount</span>
+        <span>{$t('Sending Amount')}</span>
         <span class="text-right">
-          {txInfo.amount}
+          {$locale && tokenDisplay.displayValue(txInfo.amount)}
           {token.symbol}
         </span>
       </div>
       <div class="flex flex-row justify-between">
-        <span>Transaction Fee</span>
+        <span>{$t('Transaction Fee')}</span>
         <span class="text-right"
-          >{tokenDisplay.displayFee()} {token.symbol}</span
+          >{$locale && tokenDisplay.displayFee()} {token.symbol}</span
         >
       </div>
       <div class="flex flex-row justify-between">
-        <span>Total Deducted</span>
+        <span>{$t('Total Deducted')}</span>
         <span class="text-right">
-          {txInfo.total}
+          {$locale && tokenDisplay.displayValue(txInfo.total)}
           {token.symbol}
         </span>
       </div>
@@ -248,14 +252,14 @@
         <IconArrowDown />
       </div>
       <div class="flex flex-row justify-between">
-        <span>Received Amount</span>
+        <span>{$t('Received Amount')}</span>
         <span class="text-right">
-          {txInfo.amount}
+          {$locale && tokenDisplay.displayValue(txInfo.amount)}
           {token.symbol}
         </span>
       </div>
       <div class="flex flex-row justify-between">
-        <span>To</span>
+        <span>{$t('To')}</span>
         <p class="min-w-0 text-right text-balance break-words">
           {txInfo.to}
         </p>
@@ -268,10 +272,12 @@
         <span class="text-panda *:h-8 *:w-8"><Loading /></span>
       {:else if transferSuccess != null}
         <p class="text-panda text-lg">
-          Transfer success at block {transferSuccess}
+          {$t('Transfer succeeded at block {block}.', {
+            block: transferSuccess
+          })}
         </p>
       {:else if transferError != null}
-        <p class="text-lg text-red-500">Transfer failed</p>
+        <p class="text-lg text-red-500">{$t('Transfer failed')}</p>
         <p>
           {JSON.stringify(transferError.data, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
@@ -285,14 +291,14 @@
         disabled={submitting}
         on:click={onPrevStep}
       >
-        Edit Transaction
+        {$t('Edit Transaction')}
       </button>
       <button
         class="variant-ghost-primary btn max-md:btn-sm"
         disabled={submitting || !validating}
         on:click={onFormSubmit}
       >
-        Send Now
+        {$t('Send Now')}
       </button>
     </footer>
   </div>

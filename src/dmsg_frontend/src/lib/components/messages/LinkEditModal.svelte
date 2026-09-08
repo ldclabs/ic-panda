@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type Link } from '$lib/canisters/messageprofile'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -49,7 +50,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{link ? 'Update link' : 'Add link'}</div
+    >{link ? $t('Update link') : $t('Add link')}</div
   >
   <form class="m-auto !mt-4 flex flex-col content-center">
     <div class="relative mt-4">
@@ -62,7 +63,7 @@
         data-1p-ignore
         bind:value={titleInput}
         disabled={submitting}
-        placeholder="Enter title"
+        placeholder={$t('Enter title')}
         required
       />
     </div>
@@ -76,7 +77,7 @@
         data-1p-ignore
         bind:value={uriInput}
         disabled={submitting}
-        placeholder="Enter uri"
+        placeholder={$t('Enter uri')}
         required
       />
     </div>
@@ -89,9 +90,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Save</span>
+        <span>{$t('Save')}</span>
       {/if}
     </button>
   </footer>

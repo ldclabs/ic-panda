@@ -16,7 +16,7 @@
   "packageManager": "pnpm@10.15.1",
   "type": "module",
   "workspaces": [
-    "src/ic_message_frontend",
+    "src/dmsg_frontend",
     "src/ic_panda_frontend"
   ],
   "pnpm": {

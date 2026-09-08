@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import {
     type ChannelInfo,
     type UpdateChannelInput
@@ -78,7 +79,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Edit channel</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Edit channel')}</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -94,7 +95,7 @@
         data-1p-ignore
         bind:value={nameInput}
         disabled={submitting}
-        placeholder="Channel name"
+        placeholder={$t('Channel name')}
         required
       />
     </div>
@@ -105,7 +106,7 @@
         maxHeight="120"
         class="border-gray/10 textarea rounded-xl bg-white/20"
         name="descriptionInput"
-        placeholder="Channel description..."
+        placeholder={$t('Channel description...')}
       />
     </div>
   </form>
@@ -117,9 +118,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Save</span>
+        <span>{$t('Save')}</span>
       {/if}
     </button>
   </footer>

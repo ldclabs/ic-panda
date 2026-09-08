@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import Loading from '$lib/components/ui/Loading.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -34,7 +35,9 @@
 
     validating = false
     if (topupAmount < 1) {
-      input.setCustomValidity(`Amount must be greater than 1 ${token.symbol}`)
+      input.setCustomValidity(
+        $t('Amount must be greater than 1 {symbol}', { symbol: token.symbol })
+      )
       return
     }
 
@@ -68,7 +71,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >{`Topup ${token.symbol} from OISY`}</div
+    >{$t('Topup {symbol} from OISY', { symbol: token.symbol })}</div
   >
 
   <form class="m-auto !mt-4 flex flex-col content-center">
@@ -78,8 +81,8 @@
       </div>
     {:else if account}
       <div class="space-y-2">
-        <p>From: {account.owner}</p>
-        <p>To: {to.toText()}</p>
+        <p>{$t('From:')} {account.owner}</p>
+        <p>{$t('To:')} {to.toText()}</p>
       </div>
     {/if}
     <div class="relative mt-4">
@@ -91,7 +94,7 @@
         step="any"
         bind:value={topupAmount}
         oninput={validateAmount}
-        placeholder="Enter amount"
+        placeholder={$t('Enter amount')}
         disabled={loading || submitting}
         required
       />
@@ -105,9 +108,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Topup</span>
+        <span>{$t('Topup')}</span>
       {/if}
     </button>
   </footer>

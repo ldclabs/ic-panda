@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale, localeDir, errorText } from '$lib/i18n'
   import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
@@ -278,7 +279,7 @@
         reply_to: 0,
         kind: 0,
         created_by: myState.principal,
-        created_time: getCurrentTimeString(Date.now()),
+        created_at: Date.now(),
         created_user: toDisplayUserInfo($myInfo),
         canister: canister,
         channel: id,
@@ -305,7 +306,7 @@
       )
 
       msg.id = res.id
-      msg.created_time = getCurrentTimeString(res.created_at)
+      msg.created_at = res.created_at
       addMessages([msg])
 
       submitting = 0
@@ -413,7 +414,7 @@
           msg.payload = new Uint8Array()
           msg.message = ''
           msg.detail = null
-          msg.error = `Message is deleted by ${msg.created_user.name}`
+          msg.error = ''
           msg.isDeleted = true
           addMessages([msg])
         })
@@ -627,9 +628,10 @@
 
 {#snippet msgDetail(msg: MessageInfo)}
   {#if msg.error}
-    <p class="w-full px-4 py-2 text-sm text-pretty">{msg.error}</p>
+    <p class="w-full px-4 py-2 text-sm text-pretty">{$errorText(msg.error)}</p>
   {:else}
     <pre
+      dir="auto"
       class="icpanda-message min-h-4 w-full px-4 py-2 text-pretty break-words"
       >{msg.message}</pre
     >
@@ -646,9 +648,13 @@
   <!-- Conversation -->
   {#if !hasKEK}
     <div class="flex flex-col">
-      <p class="text-error-500 p-2 text-center">Access key not available.</p>
+      <p class="text-error-500 p-2 text-center"
+        >{$t('Access key not available.')}</p
+      >
       <p class="text-error-500 flex flex-row justify-center p-2">
-        <span class="inline">Go to channel settings to request access.</span>
+        <span class="inline"
+          >{$t('Go to channel settings to request access.')}</span
+        >
         <span><IconArrowRightUp /></span>
       </p>
     </div>
@@ -667,7 +673,11 @@
       {#each $messageFeed as msg (msg.id)}
         {#if msg.isDeleted}
           <div class="grid justify-center">
-            <p class="bg-transparent p-2 text-xs text-pretty">{msg.error}</p>
+            <p class="bg-transparent p-2 text-xs text-pretty"
+              >{$t('Message is deleted by {name}', {
+                name: msg.created_user.name
+              })}</p
+            >
           </div>
         {:else if msg.created_by.compareTo(myState.principal) !== 'eq'}
           <div
@@ -675,6 +685,7 @@
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
             <button
+              aria-label={$t('Profile')}
               class="btn h-fit p-0"
               disabled={msg.created_user.username === '_'}
               onclick={() => {
@@ -692,7 +703,7 @@
             <div class="flex flex-col">
               <header class="flex flex-row items-center gap-2 text-sm">
                 <p>{msg.created_user.name}</p>
-                <small>{msg.created_time}</small>
+                <small>{getCurrentTimeString(msg.created_at, $locale)}</small>
               </header>
               <div class="flex flex-col items-start">
                 <div
@@ -717,7 +728,7 @@
             <div></div>
             <div class="flex flex-col">
               <header class="flex flex-col items-end text-sm">
-                <small>{msg.created_time}</small>
+                <small>{getCurrentTimeString(msg.created_at, $locale)}</small>
               </header>
               <div class="flex flex-col items-end">
                 <div
@@ -739,6 +750,7 @@
                         </Popover.Trigger>
                         <Popover.Portal>
                           <Popover.Content
+                            dir={localeDir($locale)}
                             side="bottom"
                             align="start"
                             sideOffset={4}
@@ -752,7 +764,7 @@
                                 onclick={() => onPopupDeleteMessage(msg)}
                               >
                                 <span class="*:size-5"><IconDeleteBin /></span
-                                ><span>Delete</span>
+                                ><span>{$t('Delete')}</span>
                               </Popover.Close>
                             </div>
                           </Popover.Content>
@@ -787,7 +799,9 @@
   {/if}
   {#if LEGACY_READ_ONLY}
     <div class="archive-notice"
-      >Read-only archive · Sending, uploads, and changes are disabled.</div
+      >{$t(
+        'Read-only archive · Sending, uploads, and changes are disabled.'
+      )}</div
     >
   {:else}
     <section
@@ -803,6 +817,7 @@
           </Popover.Trigger>
           <Popover.Portal>
             <Popover.Content
+              dir={localeDir($locale)}
               side="top"
               align="start"
               sideOffset={8}
@@ -822,6 +837,7 @@
             />
           </div>
           <button
+            aria-label={$t('Upload file')}
             class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
             disabled={submitting > 0 ||
               uploading != null ||
@@ -836,7 +852,7 @@
           {#if filePayload}
             <div class="btn btn-sm text-primary-500 px-2">
               <span class="max-w-52 truncate"
-                >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
+                >{`${filePayload.name}, ${getBytesString(filePayload.size, $locale)}`}</span
               >
               <span class="*:size-5">
                 <IconCheckLine />
@@ -845,7 +861,7 @@
           {:else if uploading}
             <div class="btn btn-sm truncate px-2">
               <span class="max-w-52 text-pretty break-words"
-                >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
+                >{`${uploading.name}, ${getBytesString(uploading.filled, $locale)}/${getBytesString(uploading.size || uploading.filled, $locale)}`}</span
               >
               <span class="*:size-5">
                 <IconCircleSpin />
@@ -866,9 +882,10 @@
         name="prompt"
         id="prompt"
         disabled={submitting > 0}
-        placeholder="Write a message..."
+        placeholder={$t('Write a message...')}
       />
       <button
+        aria-label={$t('Send message')}
         class="btn btn-sm bg-surface-500/60 before:bg-primary-500 group-hover:bg-surface-300/60 absolute right-4 bottom-3 overflow-hidden rounded-full border-2 border-white py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:transition-all before:duration-500 {messageReady
           ? 'before:translate-y-0 before:scale-150'
           : 'before:translate-y-full'}"

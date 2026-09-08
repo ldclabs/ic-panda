@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { type ChannelInfo } from '$lib/canisters/messagechannel'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
@@ -28,15 +29,27 @@
   let data: Uint8Array = $state(new Uint8Array())
   let mime = file.type
   let submitting = $state(false)
-  let uploadErr = $state('')
   let gas = $state(0)
+  let uploadError = $state<'' | 'size' | 'balance'>('')
+  const uploadErr = $derived(
+    uploadError === 'size'
+      ? $t('File size exceeds {size}', {
+          size: getBytesString(filesState.file_max_size)
+        })
+      : uploadError === 'balance'
+        ? $t('Insufficient gas balance {balance}, requires {required} gas', {
+            balance: getShortNumber(channel.gas),
+            required: getShortNumber(gas + UPLOAD_FILE_GAS_THRESHOLD)
+          })
+        : ''
+  )
 
   async function checkFile(b: Blob) {
     data = await encryptBlob(b)
     if (data.byteLength > Number(filesState.file_max_size)) {
-      uploadErr = `File size exceeds ${getBytesString(filesState.file_max_size)}`
+      uploadError = 'size'
     } else {
-      uploadErr = ''
+      uploadError = ''
     }
 
     // estimate gas
@@ -45,10 +58,10 @@
       (channel.members.length + channel.managers.length) * MESSAGE_PER_USER_GAS
 
     if (
-      uploadErr == '' &&
+      uploadError == '' &&
       gas + UPLOAD_FILE_GAS_THRESHOLD > Number(channel.gas)
     ) {
-      uploadErr = `Insufficient gas balance ${getShortNumber(channel.gas)}, requires ${getShortNumber(gas + UPLOAD_FILE_GAS_THRESHOLD)} gas`
+      uploadError = 'balance'
     }
   }
 
@@ -63,17 +76,26 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Upload file</div>
-  <p class="">{'File name: ' + file.name}</p>
-  <p class="!mt-0">{'File size: ' + file.size + ' bytes'}</p>
-  <p class="!mt-0">{'Encrypted size: ' + data.byteLength + ' bytes'}</p>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Upload file')}</div>
+  <p class="">{$t('File name:') + ' ' + file.name}</p>
+  <p class="!mt-0"
+    >{$t('File size: {size} bytes', {
+      size: file.size.toLocaleString($locale)
+    })}</p
+  >
+  <p class="!mt-0"
+    >{$t('Encrypted size: {size} bytes', {
+      size: data.byteLength.toLocaleString($locale)
+    })}</p
+  >
   <p class={uploadErr ? 'text-error-500' : 'text-panda'}
-    >{uploadErr
-      ? uploadErr
-      : 'Consume ' +
-        getShortNumber(gas) +
-        ' gas, balance ' +
-        getShortNumber(channel.gas)}</p
+    >{$locale &&
+      (uploadErr
+        ? uploadErr
+        : $t('Consume {amount} gas; balance: {balance}.', {
+            amount: getShortNumber(gas),
+            balance: getShortNumber(channel.gas)
+          }))}</p
   >
   <button
     class="variant-filled-primary btn !mt-6 w-full"
@@ -82,9 +104,9 @@
   >
     {#if submitting}
       <span class=""><IconCircleSpin /></span>
-      <span>Processing...</span>
+      <span>{$t('Processing...')}</span>
     {:else}
-      <span>Upload</span>
+      <span>{$t('Upload')}</span>
     {/if}
   </button>
 </ModalCard>

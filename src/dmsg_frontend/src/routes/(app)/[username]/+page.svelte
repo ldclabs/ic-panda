@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
@@ -35,10 +36,12 @@
       class="sticky top-0 flex h-[60px] w-full flex-row items-center justify-between px-0 py-2"
     >
       <button
+        aria-label={$t('Back')}
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
         onclick={onGobackHandler}><IconArrowLeftSLine /></button
       >
       <button
+        aria-label={$t('Close dialog')}
         class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
         onclick={onCloseHandler}><IconClose /></button
       >
@@ -69,9 +72,9 @@
         >
       </p>
       <p class="mt-2 text-center text-sm antialiased">
-        Breathing life into sovereign AI.<br />We are building the open-source
-        stack for agents to remember, transact, and evolve as first-class
-        citizens in Web3.<br />
+        {$t('Breathing life into sovereign AI.')}<br />{$t(
+          'We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3.'
+        )}<br />
         <a
           class="underline underline-offset-4"
           href="https://anda.ai"

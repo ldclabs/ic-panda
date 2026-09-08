@@ -1,4 +1,6 @@
 <script lang="ts">
+  import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
   import AccountDetailModal from '$lib/components/core/AccountDetailModal.svelte'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
@@ -54,19 +56,22 @@
       href="/"
       onclick={goHome}
       title="ICPanda DAO"
+      aria-label="ICPanda DAO"
     >
       <span
         class="ring-panda shrink-0 overflow-hidden rounded-full ring-1 transition-transform duration-300 *:size-10 group-hover:rotate-[8deg]"
       >
         <IconPanda />
       </span>
-      <span class="font-mono text-xl font-semibold tracking-[0.02em]">
+      <span
+        class="hidden font-mono text-xl font-semibold tracking-[0.02em] min-[480px]:inline"
+      >
         ICPanda DAO
       </span>
     </a>
 
     <!-- Primary nav -->
-    <nav class="ml-auto hidden items-center gap-7 md:flex">
+    <nav class="ms-auto hidden items-center gap-7 md:flex">
       {#each NAV as item (item.href)}
         <a
           class="text-ink-70 hover:text-ink relative font-mono text-sm transition-colors duration-200"
@@ -74,7 +79,7 @@
           href={item.href}
           onclick={() => (menuOpen = false)}
         >
-          {item.label}
+          {$t(item.label)}
           {#if isActive(item.href)}
             <span class="bg-ink absolute -bottom-1.5 left-0 h-px w-full"></span>
           {/if}
@@ -82,7 +87,8 @@
       {/each}
     </nav>
 
-    <div class="ml-auto flex items-center gap-1 md:ml-6 md:gap-2">
+    <div class="ms-auto flex items-center gap-1 md:ms-6 md:gap-2">
+      <LocaleSwitcher />
       <a
         class="text-ink-70 hover:text-ink hidden size-9 items-center justify-center transition-colors md:flex"
         href={LINKS.github}
@@ -108,14 +114,14 @@
             onclick={handleSignIn}
           >
             <span class="*:size-4 max-md:hidden"><IconUser0 /></span>
-            <span>Login</span>
+            <span>{$t('Login')}</span>
           </button>
         {:else}
           <button
             type="button"
             class="border-ink/20 hover:border-ink flex size-9 items-center justify-center rounded-lg border transition-colors"
             onclick={showAccountDetail}
-            aria-label="Account"
+            aria-label={$t('Account')}
           >
             <span class="*:size-5"><IconUser1 /></span>
           </button>
@@ -127,7 +133,7 @@
         class="text-ink flex size-9 items-center justify-center md:hidden"
         onclick={() => (menuOpen = !menuOpen)}
         aria-expanded={menuOpen}
-        aria-label="Menu"
+        aria-label={$t('Menu')}
       >
         {#if menuOpen}
           <span class="*:size-6"><IconClose /></span>
@@ -149,7 +155,7 @@
         <a
           class="border-ink/10 block border-b py-3 font-mono text-sm"
           href={item.href}
-          onclick={() => (menuOpen = false)}>{item.label}</a
+          onclick={() => (menuOpen = false)}>{$t(item.label)}</a
         >
       {/each}
       <div class="flex items-center gap-6 pt-4">

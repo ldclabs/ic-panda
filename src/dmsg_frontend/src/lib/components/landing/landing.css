@@ -216,7 +216,7 @@ html:has(.dmsg-site) {
   display: flex;
   align-items: center;
   gap: 26px;
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 14px;
 }
 .dmsg-site nav a {
@@ -266,14 +266,14 @@ html:has(.dmsg-site) {
 }
 .dmsg-site .task-tabs button {
   flex: 1;
-  text-align: left;
+  text-align: start;
   padding: 20px 10px 21px;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   font-size: 15px;
 }
 .dmsg-site .task-tabs button span {
-  margin-right: 17px;
+  margin-inline-end: 17px;
   color: #607566;
   font-variant-numeric: tabular-nums;
 }
@@ -383,7 +383,7 @@ html:has(.dmsg-site) {
   color: var(--muted);
 }
 .dmsg-site .data-row strong {
-  text-align: right;
+  text-align: end;
   font-weight: 550;
   overflow-wrap: anywhere;
 }
@@ -469,7 +469,7 @@ html:has(.dmsg-site) {
   margin: 0;
 }
 .dmsg-site .file-row .icon-button {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .dmsg-site .task-caption {
   display: flex;
@@ -486,8 +486,8 @@ html:has(.dmsg-site) {
   gap: 32px;
 }
 .dmsg-site .capability-notes > div {
-  padding-right: 24px;
-  border-right: 1px solid var(--line);
+  padding-inline-end: 24px;
+  border-inline-end: 1px solid var(--line);
 }
 .dmsg-site .capability-notes > div:last-child {
   border: 0;
@@ -520,7 +520,7 @@ html:has(.dmsg-site) {
 }
 .dmsg-site .profile {
   padding: 28px;
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
 }
 .dmsg-site .avatar-text {
   height: 52px;
@@ -679,12 +679,12 @@ html:has(.dmsg-site) {
   margin: 40px 0 32px;
 }
 .dmsg-site .trust-grid article {
-  border-left: 1px solid var(--line);
+  border-inline-start: 1px solid var(--line);
   padding: 0 24px;
 }
 .dmsg-site .trust-grid article:first-child {
   border: 0;
-  padding-left: 0;
+  padding-inline-start: 0;
 }
 .dmsg-site .trust-grid .icon-box {
   margin-bottom: 24px;
@@ -790,7 +790,7 @@ html:has(.dmsg-site) {
 }
 .dmsg-site .faq details p {
   font-size: 15px;
-  padding-right: 30px;
+  padding-inline-end: 30px;
   margin-bottom: 24px;
   max-width: 650px;
 }
@@ -921,7 +921,7 @@ html:has(.dmsg-site) {
     grid-template-columns: 1fr;
   }
   .dmsg-site .profile {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
   }
   .dmsg-site .hero-copy {
@@ -970,7 +970,7 @@ html:has(.dmsg-site) {
     gap: 8px;
   }
   .dmsg-site .header-action {
-    margin-left: auto;
+    margin-inline-start: auto;
     font-size: 12px;
     padding: 12px 10px;
     min-height: 44px;
@@ -1062,7 +1062,7 @@ html:has(.dmsg-site) {
     margin-top: 32px;
   }
   .dmsg-site .capability-notes > div {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
     padding: 0 0 24px;
   }
@@ -1080,7 +1080,7 @@ html:has(.dmsg-site) {
     grid-template-columns: 0.9fr 1.2fr;
   }
   .dmsg-site .profile {
-    border-right: 1px solid var(--line);
+    border-inline-end: 1px solid var(--line);
     border-bottom: 0;
     padding: 24px;
   }
@@ -1138,7 +1138,7 @@ html:has(.dmsg-site) {
     grid-template-columns: 1fr;
   }
   .dmsg-site .profile {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
   }
   .dmsg-site .profile .avatar-text {
@@ -1211,4 +1211,25 @@ html:has(.dmsg-site):not(:has(.legacy-app)),
 body:has(.dmsg-site):not(:has(.legacy-app)) {
   height: auto;
   overflow: visible;
+}
+
+@media (max-width: 480px) {
+  .dmsg-site .header-action {
+    display: none;
+  }
+  .dmsg-site .nav-wrap > .locale-picker {
+    margin-inline-start: auto;
+  }
+}
+
+/* Cyrillic headings need a smaller minimum on narrow screens so long words
+   remain intact instead of extending beyond the viewport. */
+@media (max-width: 760px) {
+  html[lang='ru'] .dmsg-site .hero h1 {
+    font-size: clamp(40px, 9vw, 68px);
+  }
+  .dmsg-site .task-tabs button {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }

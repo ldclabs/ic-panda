@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconClose from '$lib/components/icons/IconClose.svelte'
   import { getModalStore } from '$lib/ui/stores'
   import { type SvelteComponent } from 'svelte'
@@ -19,13 +20,14 @@
   >
     <button
       class="btn btn-icon text-gray/30 absolute top-2 right-2 z-1 *:scale-125 hover:scale-110 max-md:top-2 max-md:right-2"
+      aria-label={$t('Close dialog')}
       on:click={parent['onClose']}
     >
       <IconClose />
     </button>
     {#if $modalStore[0].title}
       <header class="!mt-0 text-center text-xl font-bold">
-        {$modalStore[0].title}
+        {$t($modalStore[0].title)}
       </header>
     {/if}
     <slot {parent} />

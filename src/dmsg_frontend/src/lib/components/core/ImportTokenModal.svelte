@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { TokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconExternalLinkLine from '$lib/components/icons/IconExternalLinkLine.svelte'
@@ -64,7 +65,7 @@
 </script>
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">Import token</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('Import token')}</div>
 
   <form
     class="m-auto !mt-4 flex flex-col content-center"
@@ -72,8 +73,9 @@
   >
     <div class="">
       <p class="">
-        You can import a new token to wallet by providing its ledger canister
-        ID.
+        {$t(
+          'You can import a new token to wallet by providing its ledger canister ID.'
+        )}
       </p>
       <a
         type="button"
@@ -82,7 +84,9 @@
         href="https://internetcomputer.org/docs/current/developer-docs/daos/nns/using-the-nns-dapp/nns-dapp-importing-tokens"
       >
         <span class="*:size-5"><IconExternalLinkLine /></span>
-        <span class="hover:underline">How to find ICRC token ledger</span>
+        <span class="hover:underline"
+          >{$t('How to find ICRC token ledger')}</span
+        >
       </a>
     </div>
     <div class="relative mt-4">
@@ -105,7 +109,8 @@
           <div class="flex flex-row justify-between">
             <span class="">{token.symbol}</span>
             <span class=""
-              >{new TokenDisplay(token, token.balance).display()}</span
+              >{$locale &&
+                new TokenDisplay(token, token.balance).display()}</span
             >
           </div>
           <div class="text-surface-500 flex flex-row justify-between text-sm">
@@ -115,7 +120,7 @@
       </div>
     {:else if ledgerErr}
       <div class="mt-4">
-        <p class="text-error-500">{ledgerErr}</p>
+        <p class="text-error-500">{$t(ledgerErr)}</p>
       </div>
     {/if}
   </form>
@@ -127,9 +132,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Import</span>
+        <span>{$t('Import')}</span>
       {/if}
     </button>
   </footer>

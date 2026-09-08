@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import SendTokenForm from '$lib/components/ui/SendTokenForm.svelte'
   import type { LedgerAPI, SendTokenArgs } from '$lib/types/token'
@@ -28,7 +29,7 @@
 
 <ModalCard {parent}>
   <div class="!mt-0 text-center text-xl font-bold"
-    >Transfer {token.token.symbol}</div
+    >{$t('Transfer')} {token.token.symbol}</div
   >
   <div class="mx-auto !mt-6 space-y-4">
     <SendTokenForm

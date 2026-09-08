@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  src/ic_message_frontend:
+  src/dmsg_frontend:
     dependencies:
       '@dfinity/oisy-wallet-signer':
         specifier: ^6.0.0

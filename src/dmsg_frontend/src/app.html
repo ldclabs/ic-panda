@@ -1,48 +1,83 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      ;(() => {
+        const supported = ['en', 'zh', 'ru', 'ar', 'fr', 'es']
+        const match = (value) =>
+          typeof value === 'string' &&
+          supported.find(
+            (code) => code === value.trim().toLowerCase().split(/[-_]/)[0]
+          )
+        let stored
+        try {
+          stored = localStorage.getItem('dmsg:locale')
+        } catch {}
+        const locale =
+          match(stored) ||
+          (navigator.languages?.length
+            ? navigator.languages
+            : [navigator.language]
+          )
+            .map(match)
+            .find(Boolean) ||
+          'en'
+        document.documentElement.lang = locale
+        document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
+      })()
+    </script>
 
-<head>
-  <meta charset="utf-8" />
-  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+    <meta
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      name="viewport"
+    />
 
+    <link href="https://dmsg.net" rel="canonical" />
+    <meta content="dMsg — Your space. Your say." property="og:title" />
+    <meta
+      content="A private workspace for secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available read-only."
+      property="og:description"
+    />
+    <meta content="website" property="og:type" />
+    <meta content="https://dmsg.net" property="og:url" />
+    <meta
+      content="https://dmsg.net/_assets/dmsg/og-image.png"
+      property="og:image"
+    />
+    <meta content="1200" property="og:image:width" />
+    <meta content="630" property="og:image:height" />
+    <meta content="image/png" property="og:image:type" />
+    <meta
+      content="dMsg — Your space. Your say. Private workspace. Explicit signatures. Chrome extension coming soon."
+      property="og:image:alt"
+    />
+    <meta content="summary_large_image" name="twitter:card" />
+    <meta
+      content="https://dmsg.net/_assets/dmsg/og-image.png"
+      name="twitter:image"
+    />
+    <meta
+      content="dMsg — Your space. Your say. Private workspace. Explicit signatures. Chrome extension coming soon."
+      name="twitter:image:alt"
+    />
+    <meta content="@ICPandaDAO" name="twitter:creator" />
 
-  <link href="https://dmsg.net" rel="canonical" />
-  <meta content="dMsg — Your space. Your say." property="og:title" />
-  <meta
-    content="A private workspace for secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available read-only."
-    property="og:description" />
-  <meta content="website" property="og:type" />
-  <meta content="https://dmsg.net" property="og:url" />
-  <meta content="https://dmsg.net/_assets/dmsg/og-image.png" property="og:image" />
-  <meta content="1200" property="og:image:width" />
-  <meta content="630" property="og:image:height" />
-  <meta content="image/png" property="og:image:type" />
-  <meta content="dMsg — Your space. Your say. Private workspace. Explicit signatures. Chrome extension coming soon."
-    property="og:image:alt" />
-  <meta content="summary_large_image" name="twitter:card" />
-  <meta content="https://dmsg.net/_assets/dmsg/og-image.png" name="twitter:image" />
-  <meta content="dMsg — Your space. Your say. Private workspace. Explicit signatures. Chrome extension coming soon."
-    name="twitter:image:alt" />
-  <meta content="@ICPandaDAO" name="twitter:creator" />
+    <!-- Reuse the supplied Private Gate asset without inventing a vector master. -->
+    <link rel="icon" type="image/png" href="/_assets/dmsg/private-gate.png" />
+    <link rel="apple-touch-icon" href="/_assets/dmsg/private-gate.png" />
+    <meta name="msapplication-TileColor" content="#145C45" />
+    <meta name="theme-color" content="#F7F8F4" />
 
-  <!-- Reuse the supplied Private Gate asset without inventing a vector master. -->
-  <link rel="icon" type="image/png" href="/_assets/dmsg/private-gate.png" />
-  <link rel="apple-touch-icon" href="/_assets/dmsg/private-gate.png" />
-  <meta name="msapplication-TileColor" content="#145C45">
-  <meta name="theme-color" content="#F7F8F4">
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="#5bbad5" />
+    <meta name="mobile-web-app-title" content="dMsg.net" />
 
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-status-bar-style" content="#5bbad5" />
-  <meta name="mobile-web-app-title" content="dMsg.net" />
+    %sveltekit.head%
+    <!-- LINKS_PRELOADER -->
+  </head>
 
-  %sveltekit.head%
-  <!-- LINKS_PRELOADER -->
-</head>
-
-<body data-theme="icpanda">
-  <div style="display: contents">
-    %sveltekit.body%
-  </div>
-</body>
-
+  <body data-theme="icpanda">
+    <div style="display: contents"> %sveltekit.body% </div>
+  </body>
 </html>

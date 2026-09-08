@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { getModalStore } from '$lib/ui/stores'
   import { Dialog } from 'bits-ui'
 
@@ -25,7 +26,9 @@
       <Dialog.Content
         class="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto p-4 outline-none"
       >
-        <Dialog.Title class="sr-only">{current.title ?? 'Dialog'}</Dialog.Title>
+        <Dialog.Title class="sr-only"
+          >{$t(current.title ?? 'Dialog')}</Dialog.Title
+        >
         <svelte:component
           this={current.component.ref}
           {...current.component.props ?? {}}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import {
     type ClaimPrizeOutput,
     type PrizeOutput
@@ -18,21 +19,24 @@
     <div class="h-44 rounded-2xl bg-white pt-6 text-center">
       <p class="text-sm font-semibold">
         {prizeInfo.name[0]
-          ? 'Prize From ' + prizeInfo.name[0]
-          : 'Good Luck To You'}
+          ? $t('Prize From') + prizeInfo.name[0]
+          : $t('Good Luck To You')}
       </p>
       <p class="text-4xl font-bold">
-        {formatNumber(Number(result.claimed) / Number(PANDAToken.one))}
+        {$locale &&
+          formatNumber(Number(result.claimed) / Number(PANDAToken.one))}
         <span class="text-gray/50 text-sm">PANDA</span>
       </p>
       <p class="text-gray/50 text-sm">
         <span>
-          Current avg amount:
-          {formatNumber(Number(result.average) / Number(PANDAToken.one))}
+          {$t('Current avg amount:')}
+          {$locale &&
+            formatNumber(Number(result.average) / Number(PANDAToken.one))}
         </span>
         <span>
-          Total:
-          {formatNumber(Number(prizeInfo?.amount) / Number(PANDAToken.one))}
+          {$t('Total:')}
+          {$locale &&
+            formatNumber(Number(prizeInfo?.amount) / Number(PANDAToken.one))}
         </span>
       </p>
     </div>
@@ -42,7 +46,7 @@
   >
     <div class="m-auto w-72 pt-[210px] text-center text-white sm:pt-[240px]">
       <span class="text-lg font-semibold">
-        The more lucky balance you hold, the bigger prize you grab.
+        {$t('The more lucky balance you hold, the bigger prize you grab.')}
       </span>
     </div>
     <div
@@ -50,7 +54,7 @@
     >
       <a
         type="button"
-        title="Follow on Twitter"
+        title={$t('Follow on Twitter')}
         class="btn btn-sm rounded-xl border-[1px] border-white/50"
         href="https://twitter.com/ICPandaDAO"
         target="_blank"
@@ -60,17 +64,18 @@
       </a>
       <a
         type="button"
-        title="Join the Community"
+        title={$t('Join the Community')}
         class="btn btn-sm rounded-xl border-[1px] border-white/50"
         href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
         target="_blank"
       >
         <span><IconOpenChat /></span>
-        <span class="text-left">ICPanda Community</span>
+        <span class="text-left">{$t('ICPanda Community')}</span>
       </a>
     </div>
   </div>
   <button
+    aria-label={$t('Close dialog')}
     class="btn btn-icon z-1 m-auto block w-fit translate-y-8 text-white *:scale-125 hover:scale-110"
     on:click={close}
   >

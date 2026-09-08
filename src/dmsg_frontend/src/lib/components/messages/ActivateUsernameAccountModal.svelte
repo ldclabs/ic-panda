@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { authStore } from '$lib/stores/auth'
@@ -45,38 +46,50 @@
 
 <ModalCard {parent}>
   <div class="text-surface-900-50-token !mt-0 text-center text-xl font-bold"
-    >Activate username account</div
+    >{$t('Activate username account')}</div
   >
   {#if activated}
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
-        <b>1.</b> Your permanent account generated from
-        <span class="text-primary-500 font-semibold">{username}</span>
-        is: <span class="font-semibold">{usernameAccount}</span>.
+        <b>1.</b>
+        {$t('Your permanent account for {username} is {account}.', {
+          username,
+          account: usernameAccount
+        })}
       </p>
       <p>
-        <b>2.</b> You should transfer the username to this account and switch to it
-        for management.
+        <b>2.</b>
+        {$t(
+          'You should transfer the username to this account and switch to it for management.'
+        )}
       </p>
     </div>
   {:else}
     <div class="!mt-4 space-y-2 rounded-xl">
       <p>
-        <b>1.</b> Your permanent account generated from
-        <span class="text-primary-500 font-semibold">{username}</span>
-        is: <span class="font-semibold">{usernameAccount}</span>.
+        <b>1.</b>
+        {$t('Your permanent account for {username} is {account}.', {
+          username,
+          account: usernameAccount
+        })}
       </p>
       <p>
-        <b>2.</b> This account allows you to add multiple delegate accounts, enabling
-        team members to use it at the same time—ideal for collaboration.
+        <b>2.</b>
+        {$t(
+          'This account allows you to add multiple delegate accounts, enabling team members to use it at the same time—ideal for collaboration.'
+        )}
       </p>
       <p>
-        <b>3.</b> Once activated, transfer your username to this account and switch
-        to it for management.
+        <b>3.</b>
+        {$t(
+          'Once activated, transfer your username to this account and switch to it for management.'
+        )}
       </p>
       <p>
-        <b>4.</b> After transferring your username to this account, it will be permanently
-        bound and cannot be transferred again.
+        <b>4.</b>
+        {$t(
+          'After transferring your username to this account, it will be permanently bound and cannot be transferred again.'
+        )}
       </p>
     </div>
   {/if}
@@ -88,12 +101,12 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
         <span
           >{activated
-            ? 'Switch to ' + shortId(usernameAccount)
-            : 'Activate Now'}</span
+            ? $t('Switch to {account}', { account: shortId(usernameAccount) })
+            : $t('Activate Now')}</span
         >
       {/if}
     </button>

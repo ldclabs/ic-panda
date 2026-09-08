@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { LINKS } from '$lib/site'
 </script>
 
@@ -6,9 +7,9 @@
   The whole brand structure in one hairline schematic:
   DAO on top, product directions below, PANDA as the coordination bus underneath.
 -->
-<figure class="rule-box p-5 md:p-6" aria-label="ICPanda DAO structure">
+<figure class="rule-box p-5 md:p-6" aria-label={$t('ICPanda DAO structure')}>
   <figcaption class="eyebrow mb-5 flex items-center justify-between">
-    <span>fig.01 — structure</span>
+    <span>{$t('fig.01 — structure')}</span>
     <span class="text-panda">●</span>
   </figcaption>
 
@@ -34,10 +35,10 @@
     >
       <div>
         <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
-          Sovereign<br />Minds
+          {$t('Sovereign Minds')}
         </p>
         <p class="text-ink-70 mt-2 text-sm leading-snug">
-          Persistent AI cognition
+          {$t('Persistent AI cognition')}
         </p>
       </div>
       <p class="mt-4 font-mono text-xs font-semibold">
@@ -53,10 +54,10 @@
     >
       <div>
         <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
-          Sovereign<br />Markets
+          {$t('Sovereign Markets')}
         </p>
         <p class="text-ink-70 mt-2 text-sm leading-snug">
-          Verifiable capital formation
+          {$t('Verifiable capital formation')}
         </p>
       </div>
       <p class="mt-4 font-mono text-xs font-semibold">
@@ -70,14 +71,14 @@
     >
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="font-mono text-xs leading-tight tracking-[0.1em] uppercase">
-          Personal Control
+          {$t('Personal Control')}
         </p>
         <span class="text-ink-70 font-mono text-[0.625rem] uppercase">
-          Chrome extension
+          {$t('Chrome extension')}
         </span>
       </div>
       <p class="text-ink-70 mt-2 text-sm leading-snug">
-        Private workspace · Identity signing
+        {$t('Private workspace · Identity signing')}
       </p>
       <p class="mt-3 font-mono text-xs font-semibold">
         <span class="text-ink-30">→</span> dMsg
@@ -96,7 +97,7 @@
   >
     <span class="font-mono text-xs font-semibold tracking-[0.2em]">PANDA</span>
     <span class="font-mono text-xs tracking-[0.1em] uppercase opacity-70">
-      Governance · Coordination · Treasury
+      {$t('Governance · Coordination · Treasury')}
     </span>
   </div>
 </figure>

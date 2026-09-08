@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type UserInfo } from '$lib/canisters/message'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconSubtractLine from '$lib/components/icons/IconSubtractLine.svelte'
@@ -43,7 +44,7 @@
     onSave
   }: Props = $props()
 
-  const title: string = isAddManager ? 'Add Managers' : 'Add members'
+  const title = $derived(isAddManager ? $t('Add Managers') : $t('Add members'))
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const selectedUsers: Writable<MemberInfoEx[]> = writable([])
@@ -193,7 +194,7 @@
       data-1p-ignore
       bind:value={userInput}
       oninput={onSearchUsername}
-      placeholder="username or principal"
+      placeholder={$t('username or principal')}
     />
     <div
       class="card bg-surface-500/5 mt-4 max-h-96 min-h-48 w-full space-y-1 overflow-y-auto py-2"
@@ -214,6 +215,7 @@
             </p>
           </div>
           <button
+            aria-label={$t('Remove')}
             class="pointer btn btn-sm hover:bg-panda/10"
             onclick={() => onUnSelectUser(user)}
           >
@@ -262,9 +264,9 @@
     >
       {#if submitting}
         <span class=""><IconCircleSpin /></span>
-        <span>Processing...</span>
+        <span>{$t('Processing...')}</span>
       {:else}
-        <span>Confirm</span>
+        <span>{$t('Confirm')}</span>
       {/if}
     </button>
   </footer>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { icpLedgerAPI } from '$lib/canisters/icpledger'
   import { type ProfileInfo } from '$lib/canisters/messageprofile'
   import {
@@ -226,17 +227,18 @@
     <div class="pl-2">
       <div class="flex flex-row justify-between">
         <span class="">{token.token.symbol}</span>
-        <span class="">{tokenInfo.display()}</span>
+        <span class="">{$locale && tokenInfo.display()}</span>
       </div>
       <div class="text-surface-500 flex flex-row justify-between text-sm">
         <span class="">{token.token.name}</span>
         {#if tokenValue > 0}
-          <span class="">{'$' + getPriceNumber(tokenValue)}</span>
+          <span class="">{'$' + getPriceNumber(tokenValue, $locale)}</span>
         {/if}
       </div>
     </div>
     {#if canDelete}
       <button
+        aria-label={$t('Remove')}
         type="button"
         class="hover:text-surface-900-50-token absolute top-4 right-[-28px] p-1 text-neutral-500/50"
         disabled={deleteTokenSubmitting == token.token.canisterId}
@@ -259,10 +261,10 @@
 {/snippet}
 
 <ModalCard {parent}>
-  <div class="!mt-0 text-center text-xl font-bold">dMsg Wallet</div>
+  <div class="!mt-0 text-center text-xl font-bold">{$t('dMsg Wallet')}</div>
   <div class="bg-surface-500/20 !mt-6 flex flex-col gap-3 rounded-xl px-4 py-3">
     <TextClipboardPopup
-      textLable="Address:"
+      textLable={$t('Address:')}
       textName={shortId(principal.toString())}
       textValue={principal.toString()}
     />
@@ -272,7 +274,7 @@
     class="variant-filled-primary btn flex w-full flex-row items-center justify-center rounded-xl px-4 py-3"
     onclick={onClickTopupPANDA}
   >
-    <span>Topup PANDA via OISY Wallet</span>
+    <span>{$t('Topup PANDA via OISY Wallet')}</span>
   </button>
   <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
   <div class="!mt-2 flex flex-col gap-0">
@@ -288,7 +290,7 @@
       onclick={onClickImportToken}
     >
       <span class="*:size-5"><IconAdd /></span>
-      <span>Import token</span>
+      <span>{$t('Import token')}</span>
     </button>
   </div>
   <div class="mt-4 flex flex-col gap-3 px-4 py-3 text-sm">
@@ -299,7 +301,9 @@
       href="https://oisy.com/transactions/?token=ICPanda&network=ICP"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Get PANDA from OISY (Fiat Money)</span>
+      <span class="hover:underline"
+        >{$t('Get PANDA from OISY (Fiat Money)')}</span
+      >
     </a>
     <a
       type="button"
@@ -308,7 +312,7 @@
       href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
     >
       <span class="*:size-5"><IconExternalLinkLine /></span>
-      <span class="hover:underline">Get PANDA from ICPswap</span>
+      <span class="hover:underline">{$t('Get PANDA from ICPswap')}</span>
     </a>
   </div>
 </ModalCard>

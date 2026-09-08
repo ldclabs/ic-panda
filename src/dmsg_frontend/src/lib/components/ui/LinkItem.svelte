@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { type Link } from '$lib/canisters/messageprofile'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
   import IconCopy from '$lib/components/icons/IconCopy.svelte'
@@ -27,6 +28,7 @@
 
 {#snippet qrButton(link: Link, onQrHandler: OnQrHandler)}
   <button
+    aria-label={$t('Show QR code')}
     class="flex flex-row items-center gap-2"
     type="button"
     onclick={(ev) => {

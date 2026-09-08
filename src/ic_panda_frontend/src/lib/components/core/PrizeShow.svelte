@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { type PrizeOutput } from '$lib/canisters/luckypool'
   import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import IconCloseCircleLine from '$lib/components/icons/IconCloseCircleLine.svelte'
@@ -45,14 +46,14 @@
     >
       {#if prizeInfo.kind == 0}
         <span class=""><IconEqualizer /></span>
-        <span class="">Equal distribution</span>
+        <span class="">{$t('Equal distribution')}</span>
       {:else}
         <span class=""><IconDice /></span>
-        <span class="">Random distribution</span>
+        <span class="">{$t('Random distribution')}</span>
       {/if}
     </div>
     <div class="pt-[198px] text-center text-white">
-      <b class="text-2xl">{prizeInfo.name[0] || 'Good Luck To You'}</b>
+      <b class="text-2xl">{prizeInfo.name[0] || $t('Good Luck To You')}</b>
     </div>
     {#if detail}
       <div class="m-auto w-11/12 pt-2 text-center text-white/80">
@@ -71,13 +72,15 @@
 
     <div class="pt-10 text-center font-semibold text-white/90">
       <span>
-        {formatNumber(Number(prizeInfo.amount) / Number(PANDAToken.one))} PANDA:
+        {$locale &&
+          formatNumber(Number(prizeInfo.amount) / Number(PANDAToken.one))}
+        {$t('PANDA:')}
         {`${prizeInfo.filled} / ${prizeInfo.quantity}`}
       </span>
     </div>
     <div class="m-auto w-11/12 pt-2">
       <ProgressBar
-        label="PANDA Prize Claiming Progress"
+        label={$t('PANDA Prize Claiming Progress')}
         height="h-3"
         width="w-10/12"
         meter="bg-white/80"
@@ -92,7 +95,7 @@
           class="btn m-auto flex w-6/12 flex-row items-center gap-2 bg-white text-orange-600"
           on:click={() => signIn()}
         >
-          <span>Login</span>
+          <span>{$t('Login')}</span>
         </button>
       {:else}
         <button
@@ -103,20 +106,21 @@
           on:click={claimHandler}
         >
           {#if prizeInfo.filled == prizeInfo.quantity}
-            <span>Fully Claimed</span>
+            <span>{$t('Fully Claimed')}</span>
           {:else if prizeInfo.ended_at > 0n}
-            <span>Expired</span>
+            <span>{$t('Expired')}</span>
           {:else if submitting}
             <span class=""><IconCircleSpin /></span>
-            <span>Processing...</span>
+            <span>{$t('Processing...')}</span>
           {:else}
-            <span>Claim Now</span>
+            <span>{$t('Claim Now')}</span>
           {/if}
         </button>
       {/if}
     </div>
   </div>
   <button
+    aria-label={$t('Close dialog')}
     class="btn btn-icon z-1 m-auto block w-fit translate-y-14 text-white *:scale-125 hover:scale-110"
     on:click={close}
   >

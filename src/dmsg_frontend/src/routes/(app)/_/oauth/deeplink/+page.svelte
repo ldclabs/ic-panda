@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { authStore } from '$lib/stores/auth'
@@ -31,10 +32,13 @@
       ) {
         origin = url.origin
       } else {
-        error = `Invalid next URL: "${nextUrl}"", only "https://" or "http://localhost" is allowed`
+        error = $t(
+          'Invalid next URL: {url}. Only HTTPS or http://localhost is allowed.',
+          { url: String(nextUrl) }
+        )
       }
     } catch (_) {
-      error = `Invalid next URL: "${nextUrl}"`
+      error = $t('Invalid next URL: {url}', { url: String(nextUrl) })
     }
   })
 
@@ -58,12 +62,11 @@
   >
     <div class="text-center">
       <h1 class="text-2xl font-normal text-gray-900 dark:text-white"
-        >Choose Identity 🔑</h1
+        >{$t('Choose Identity 🔑')}</h1
       >
       <p class="mt-2 text-gray-600 dark:text-gray-400">
-        to connect to <span class="text-2xl font-bold text-pretty break-words"
-          >{origin}</span
-        >
+        {$t('to connect to')}
+        <span class="text-2xl font-bold text-pretty break-words">{origin}</span>
       </p>
     </div>
 
@@ -84,8 +87,9 @@
         </button>
         {#if Date.now() >= identity.expiration - 1000 * 3600 * 48}
           <p class="text-error-500 mt-2 text-sm">
-            Your identity will expire in less than 48 hours. Please sign in
-            again.
+            {$t(
+              'Your identity will expire in less than 48 hours. Please sign in again.'
+            )}
           </p>
         {/if}
       </div>
@@ -126,13 +130,14 @@
     {/if}
     {#if error}
       <div class="mt-8 flex flex-col items-center space-y-4">
-        <p class="text-error-500 mt-2 text-lg">{error}</p>
+        <p class="text-error-500 mt-2 text-lg">{$t(error)}</p>
       </div>
     {/if}
 
     <div class="mt-6 text-center">
       <button class="text-sm" onclick={() => goto('/')}>
-        Return to the <span class="font-bold">dMsg.net</span> home page
+        {$t('Return to the')} <span class="font-bold">dMsg.net</span>
+        {$t('home page')}
       </button>
     </div>
   </div>

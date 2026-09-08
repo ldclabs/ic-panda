@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
   import { X_AUTH_KEY } from '$lib/constants'
   import { type AuthMessage } from '$lib/types/auth'
@@ -20,7 +21,7 @@
     } else {
       msg = {
         kind: 'XAuth',
-        error: 'Invalid callback, missing challenge or error.'
+        error: $t('Invalid callback, missing challenge or error.')
       }
     }
 

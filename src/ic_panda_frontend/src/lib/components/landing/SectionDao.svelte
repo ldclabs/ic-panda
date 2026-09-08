@@ -1,30 +1,30 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { DAO_ENTRIES } from '$lib/site'
   import SectionShell from './SectionShell.svelte'
 </script>
 
-<SectionShell id="dao" index="04" label="Community Governance">
+<SectionShell id="dao" index="04" label={$t('Community Governance')}>
   <div class="grid grid-cols-1 gap-10 py-14 lg:grid-cols-12 lg:gap-12 lg:py-20">
     <div class="lg:col-span-6">
       <Reveal>
         <h2 class="display text-[clamp(2.25rem,5vw,3.5rem)]">
-          Built in the open.<br />Governed on-chain.
+          {$t('Built in the open.')}<br />{$t('Governed on-chain.')}
         </h2>
       </Reveal>
     </div>
     <div class="lg:col-span-6 lg:pt-3">
       <Reveal delay={80}>
         <p class="text-ink-70 text-lg leading-relaxed text-pretty">
-          ICPanda DAO is governed through the Internet Computer's Service
-          Nervous System. PANDA holders can lock tokens in neurons, vote on
-          proposals, participate in governance, and collectively direct
-          DAO-controlled resources.
+          {$t(
+            "ICPanda DAO is governed through the Internet Computer's Service Nervous System. PANDA holders can lock tokens in neurons, vote on proposals, participate in governance, and collectively direct DAO-controlled resources."
+          )}
         </p>
         <p class="text-ink mt-6 font-mono text-sm leading-relaxed">
-          No private governance dashboard.<br />
-          No off-chain substitute for the source of truth.
+          {$t('No private governance dashboard.')}<br />
+          {$t('No off-chain substitute for the source of truth.')}
         </p>
       </Reveal>
     </div>
@@ -42,15 +42,17 @@
           rel="noreferrer"
         >
           <div>
-            <h3 class="display-sm text-2xl">{entry.name}</h3>
-            <p class="text-ink-70 mt-3 text-sm leading-relaxed">{entry.body}</p>
+            <h3 class="display-sm text-2xl">{$t(entry.name)}</h3>
+            <p class="text-ink-70 mt-3 text-sm leading-relaxed"
+              >{$t(entry.body)}</p
+            >
           </div>
           <p
             class="mt-10 flex items-center gap-1.5 font-mono text-xs font-medium"
           >
             <span
               class="group-hover:border-ink border-b border-transparent transition-colors"
-              >{entry.cta}</span
+              >{$t(entry.cta)}</span
             >
             <span class="*:size-4" aria-hidden="true"><IconArrowRightUp /></span
             >

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { getToastStore } from '$lib/ui/stores'
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
@@ -44,9 +45,9 @@
       toastStore.trigger({
         autohide: false,
         classes: 'bg-black',
-        message: 'New version available, click on "Reload" to update.',
+        message: $t('New version available, click on "Reload" to update.'),
         action: {
-          label: 'Reload',
+          label: $t('Reload'),
           response: () => updateServiceWorker(true)
         },
         callback: close

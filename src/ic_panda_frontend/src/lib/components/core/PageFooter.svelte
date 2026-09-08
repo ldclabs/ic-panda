@@ -1,21 +1,22 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import IconPanda from '$lib/components/icons/IconPanda.svelte'
   import { LINKS } from '$lib/site'
 
   const year = new Date().getFullYear()
 
-  const columns = [
+  $: columns = [
     {
-      title: 'Explore',
+      title: $t('Explore'),
       items: [
         { label: 'PANDA', href: '/#panda', external: false },
-        { label: 'Governance', href: '/#dao', external: false },
-        { label: 'Projects', href: '/#projects', external: false },
-        { label: 'Whitepaper', href: LINKS.whitepaper, external: true }
+        { label: $t('Governance'), href: '/#dao', external: false },
+        { label: $t('Projects'), href: '/#projects', external: false },
+        { label: $t('Whitepaper'), href: LINKS.whitepaper, external: true }
       ]
     },
     {
-      title: 'Projects',
+      title: $t('Projects'),
       items: [
         { label: 'Anda', href: LINKS.anda, external: true },
         { label: 'TokenList', href: LINKS.tokenlist, external: true },
@@ -23,7 +24,7 @@
       ]
     },
     {
-      title: 'Community',
+      title: $t('Community'),
       items: [
         { label: 'GitHub', href: LINKS.github, external: true },
         { label: 'X', href: LINKS.x, external: true },
@@ -47,17 +48,18 @@
           <span class="font-mono text-sm font-semibold">ICPanda DAO</span>
         </div>
         <p class="display-sm mt-6 max-w-sm text-2xl">
-          From Sovereign Minds to Sovereign Markets.
+          {$t('From Sovereign Minds to Sovereign Markets.')}
         </p>
         <p
           class="text-ink-70 mt-4 max-w-sm text-sm leading-relaxed text-pretty"
         >
-          Open-source infrastructure for persistent intelligence, verifiable
-          markets, and personal control over secrets, identity, and signing.
+          {$t(
+            'Open-source infrastructure for persistent intelligence, verifiable markets, and personal control over secrets, identity, and signing.'
+          )}
         </p>
 
         <div class="border-ink/10 mt-8 max-w-sm border-t pt-6">
-          <p class="eyebrow">Get in touch</p>
+          <p class="eyebrow">{$t('Get in touch')}</p>
           <a
             class="link-mark mt-3 !text-base"
             href={LINKS.alink}
@@ -68,7 +70,7 @@
             <span class="text-ink-30">↗</span>
           </a>
           <p class="text-ink-70 mt-3 text-sm leading-relaxed">
-            alink is the preferred way to reach ICPanda DAO.
+            {$t('alink is the preferred way to reach ICPanda DAO.')}
           </p>
         </div>
       </div>
@@ -85,8 +87,8 @@
                   target={item.external ? '_blank' : undefined}
                   rel={item.external ? 'noreferrer' : undefined}
                 >
-                  {item.label}{#if item.external}<span class="text-ink-30 ml-1"
-                      >↗</span
+                  {$t(item.label)}{#if item.external}<span
+                      class="text-ink-30 ml-1">↗</span
                     >{/if}
                 </a>
               </li>
@@ -105,7 +107,7 @@
         target="_blank"
         rel="noreferrer"
       >
-        Built on the Internet Computer.
+        {$t('Built on the Internet Computer.')}
       </a>
       <p class="text-ink-70 font-mono text-xs">
         © 2024-{year} ICPanda DAO

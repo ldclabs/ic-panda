@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { type UserInfo } from '$lib/canisters/message'
@@ -78,13 +79,12 @@
 </script>
 
 <div
-  style="height: var(--archive-height)"
   class="relative h-full min-h-0 w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
 >
   <div
     class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelId.canister
-      ? 'max-sm:-translate-x-full'
-      : ''} border-surface-500/20 bg-white max-sm:absolute max-sm:top-0 max-sm:bottom-0 max-sm:z-10 sm:border-r"
+      ? 'max-sm:-translate-x-full max-sm:rtl:translate-x-full'
+      : ''} border-surface-500/20 bg-white max-sm:absolute max-sm:top-0 max-sm:bottom-0 max-sm:z-10 sm:border-e"
   >
     <MyChannelList {myState} />
   </div>
@@ -97,20 +97,20 @@
           <img class="w-24" src="/_assets/dmsg/private-gate.png" alt="dMsg" />
           {#if !isReady}
             <p class="mt-4 px-6 text-center text-sm"
-              >Unlock your existing keys to read this archive.</p
+              >{$t('Unlock your existing keys to read this archive.')}</p
             >
             <button
               class="button primary mt-4"
               onclick={() => {
                 unlockHistory()
-              }}>Unlock legacy history</button
+              }}>{$t('Unlock legacy history')}</button
             >
             {#if channelId.canister}<a class="text-link mt-4" href="/_/messages"
-                >Back to channels</a
+                >{$t('Back to channels')}</a
               >{/if}
           {:else}
             <p class="mt-4 px-6 text-center text-sm"
-              >Choose a channel to read your history.</p
+              >{$t('Choose a channel to read your history.')}</p
             >
           {/if}
         </div>

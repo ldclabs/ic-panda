@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { mapToObj } from '$lib/utils/fetcher'
   import { decodeCBOR } from '@ldclabs/cose-ts/utils'
 
@@ -18,12 +19,12 @@
 
 {#if detail}
   <div class="mt-2 pl-8 text-sm">
-    <p><b>Message:</b></p>
+    <p><b>{$t('Message:')}</b></p>
     <p class="text-neutral-500">
       {detail.message || '-'}
     </p>
     {#if detail.link}
-      <p><b>Link:</b></p>
+      <p><b>{$t('Link:')}</b></p>
       <a
         class="block w-full truncate text-neutral-500 underline"
         href={detail.link}

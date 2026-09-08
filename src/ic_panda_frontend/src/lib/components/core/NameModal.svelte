@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, locale } from '$lib/i18n'
   import { luckyPoolAPI, type NameOutput } from '$lib/canisters/luckypool'
   import { tokenLedgerAPI } from '$lib/canisters/tokenledger'
   import IconCheckbox from '$lib/components/icons/IconCheckbox.svelte'
@@ -45,11 +46,11 @@
       nameInput.includes('\n') ||
       nameInput.includes('\t')
     ) {
-      return 'Enter an name without line break'
+      return $t('Enter a name without line breaks')
     }
 
     if (nameEditMode == 1 && nameInput == $nameState?.name) {
-      return 'The name is the same as the current one'
+      return $t('The name is the same as the current one')
     }
 
     return ''
@@ -165,11 +166,17 @@
     <div class="text-center">
       <p class="mt-4">
         <span>
-          You have successfully {nameEditMode == 0 ? 'registered' : 'updated'} a name:
+          {$t(
+            nameEditMode == 0
+              ? 'You have successfully registered a name:'
+              : 'You have successfully updated a name:'
+          )}
         </span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{result.name}</p>
-      <p class="text-left">You can update the name for free at any time.</p>
+      <p class="text-left"
+        >{$t('You can update the name for free at any time.')}</p
+      >
     </div>
   {:else if refund !== null}
     <div class="text-panda text-center *:m-auto *:h-12 *:w-12">
@@ -177,39 +184,41 @@
     </div>
     <div class="text-center">
       <p class="mt-4">
-        <span>You have successfully unregistered the name:</span>
+        <span>{$t('You have successfully unregistered the name:')}</span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{nameInput}</p>
-      <p class="">
-        <span class="font-bold">
-          {formatNumber(Number(refund) / Number(PANDAToken.one))}
-        </span>
-        <span>tokens refunded, check your <b>Wallet Balance</b>.</span>
-      </p>
+      <p
+        >{$t('{amount} tokens refunded. Check your Wallet Balance.', {
+          amount: formatNumber(Number(refund) / Number(PANDAToken.one))
+        })}</p
+      >
     </div>
   {:else if nameEditMode == 0}
-    <div class="!mt-0 text-center text-xl font-bold">Register Name</div>
+    <div class="!mt-0 text-center text-xl font-bold">{$t('Register Name')}</div>
     <div class="bg-gray/5 space-y-2 rounded-xl p-4">
       <p class="text-gray/50">
-        <b>1.</b> To register a name, pay a
-        <b
-          >{formatNumber(Number(NamingDeposit) / Number(PANDAToken.one))} PANDA tokens
-          deposit</b
-        >. An
-        <b
-          >annual fee of {formatNumber(
-            Number(NamingDeposit / 10n) / Number(PANDAToken.one)
-          )} tokens</b
-        >
-        will be deducted from this deposit. After <b>10 years</b>, the name is
-        yours permanently.
+        <b>1.</b>
+        {$t(
+          'To register a name, pay a deposit of {deposit} PANDA. An annual fee of {fee} PANDA is deducted from the deposit. After 10 years, the name is yours permanently.',
+          {
+            deposit: formatNumber(
+              Number(NamingDeposit) / Number(PANDAToken.one)
+            ),
+            fee: formatNumber(
+              Number(NamingDeposit / 10n) / Number(PANDAToken.one)
+            )
+          }
+        )}
       </p>
       <p class="text-gray/50">
-        <b>2.</b> You can update the name for free at any time.
+        <b>2.</b>
+        {$t('You can update the name for free at any time.')}
       </p>
       <p class="text-gray/50">
-        <b>3.</b> If you unregister the name early, the <b>remaining deposit</b>
-        after fee deductions will be refunded to your lucky balance.
+        <b>3.</b>
+        {$t(
+          'If you unregister the name early, the remaining deposit after fees is refunded to your lucky balance.'
+        )}
       </p>
     </div>
     <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
@@ -217,13 +226,14 @@
       <div class="mt-1 flex flex-row items-center justify-between">
         <div class="flex flex-row items-center gap-2">
           <span class="*:size-6"><IconPanda /></span>
-          <b>Your Wallet Balance:</b>
+          <b>{$t('Your Wallet Balance:')}</b>
         </div>
         <div class="text-gray/50 flex flex-row gap-1">
           <span
-            >{formatNumber(
-              Number(availablePandaBalance) / Number(PANDAToken.one)
-            )}</span
+            >{$locale &&
+              formatNumber(
+                Number(availablePandaBalance) / Number(PANDAToken.one)
+              )}</span
           >
           <span>{PANDAToken.symbol}</span>
         </div>
@@ -243,16 +253,17 @@
           bind:value={nameInput}
           disabled={submitting ||
             availablePandaBalance < 1000n * PANDAToken.one}
-          placeholder="Enter an name without line break"
+          placeholder={$t('Enter a name without line breaks')}
           required
         />
         <button
+          aria-label={$t(nameInput ? 'Clear' : 'Paste')}
           class="btn absolute top-0 right-0 outline-0"
           disabled={submitting}
           on:click={nameCopyPaste}
         >
           {#if nameInput == ''}
-            <span>Paste</span>
+            <span>{$t('Paste')}</span>
           {:else}
             <span class="*:scale-90"><IconDeleteBin /></span>
           {/if}
@@ -260,7 +271,7 @@
         <p
           class="h-5 pl-3 text-sm text-red-500 {nameErr == ''
             ? 'invisible'
-            : 'visiable'}">{nameErr}</p
+            : 'visiable'}">{$t(nameErr)}</p
         >
       </div>
     </form>
@@ -272,20 +283,21 @@
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
+          <span>{$t('Processing...')}</span>
         {:else}
-          <span>Register Now</span>
+          <span>{$t('Register Now')}</span>
         {/if}
       </button>
     </footer>
   {:else if nameEditMode == 1}
-    <div class="!mt-0 text-center text-xl font-bold">Update Name</div>
+    <div class="!mt-0 text-center text-xl font-bold">{$t('Update Name')}</div>
     <div class="bg-gray/5 space-y-2 rounded-xl p-4">
       <p class="text-gray/50 mt-4">
-        <span>You are updating the name:</span>
+        <span>{$t('You are updating the name:')}</span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{$nameState?.name || ''}</p>
-      <p class="text-gray/50">You can update it for free at any time.</p>
+      <p class="text-gray/50">{$t('You can update it for free at any time.')}</p
+      >
     </div>
     <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
     <form
@@ -301,16 +313,17 @@
           maxlength="48"
           bind:value={nameInput}
           disabled={submitting}
-          placeholder="Enter an name without line break"
+          placeholder={$t('Enter a name without line breaks')}
           required
         />
         <button
+          aria-label={$t(nameInput ? 'Clear' : 'Paste')}
           class="btn absolute top-0 right-0 outline-0"
           disabled={submitting}
           on:click={nameCopyPaste}
         >
           {#if nameInput == ''}
-            <span>Paste</span>
+            <span>{$t('Paste')}</span>
           {:else}
             <span class="*:scale-90"><IconDeleteBin /></span>
           {/if}
@@ -318,7 +331,7 @@
         <p
           class="h-5 pl-3 text-sm text-red-500 {nameErr == ''
             ? 'invisible'
-            : 'visiable'}">{nameErr}</p
+            : 'visiable'}">{$t(nameErr)}</p
         >
       </div>
     </form>
@@ -330,36 +343,40 @@
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
+          <span>{$t('Processing...')}</span>
         {:else}
-          <span>Update Now</span>
+          <span>{$t('Update Now')}</span>
         {/if}
       </button>
     </footer>
   {:else if nameEditMode == 2}
-    <div class="!mt-0 text-center text-xl font-bold">Unregister Name</div>
+    <div class="!mt-0 text-center text-xl font-bold"
+      >{$t('Unregister Name')}</div
+    >
     <div class="bg-gray/5 space-y-2 rounded-xl p-4">
       <p class="text-gray/50 mt-4">
-        <span>You are unregistering the name:</span>
+        <span>{$t('You are unregistering the name:')}</span>
       </p>
       <p class="my-2 text-center text-lg font-bold">{$nameState?.name || ''}</p>
       <p class="text-gray/50">
-        <b>1.</b> If you unregister the name early, the <b>remaining deposit</b>
-        after fee deductions will be refunded to your lucky balance.
+        <b>1.</b>
+        {$t(
+          'If you unregister the name early, the remaining deposit after fees is refunded to your lucky balance.'
+        )}
       </p>
       <p class="text-gray/50">
-        <b>2.</b> To register a name again, pay a
-        <b
-          >{formatNumber(Number(NamingDeposit) / Number(PANDAToken.one))} PANDA tokens
-          deposit</b
-        >. An
-        <b
-          >annual fee of {formatNumber(
-            Number(NamingDeposit / 10n) / Number(PANDAToken.one)
-          )} tokens</b
-        >
-        will be deducted from this deposit. After <b>10 years</b>, the name is
-        yours permanently.
+        <b>2.</b>
+        {$t(
+          'To register a name, pay a deposit of {deposit} PANDA. An annual fee of {fee} PANDA is deducted from the deposit. After 10 years, the name is yours permanently.',
+          {
+            deposit: formatNumber(
+              Number(NamingDeposit) / Number(PANDAToken.one)
+            ),
+            fee: formatNumber(
+              Number(NamingDeposit / 10n) / Number(PANDAToken.one)
+            )
+          }
+        )}
       </p>
     </div>
     <hr class="!border-gray/20 mx-[-24px] !mt-6 !border-t-1 !border-dashed" />
@@ -371,9 +388,9 @@
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
+          <span>{$t('Processing...')}</span>
         {:else}
-          <span>Unregister It</span>
+          <span>{$t('Unregister It')}</span>
         {/if}
       </button>
     </footer>

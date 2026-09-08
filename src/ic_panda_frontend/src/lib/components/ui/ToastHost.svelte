@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { getToastStore } from '$lib/ui/stores'
 
   const toastStore = getToastStore()
@@ -30,7 +31,7 @@
       {#if !toast.hideDismiss}
         <button
           class="shrink-0 text-lg leading-none opacity-60 hover:opacity-100"
-          aria-label="Dismiss notification"
+          aria-label={$t('Dismiss notification')}
           on:click={() => toastStore.close(toast.id!)}>&times;</button
         >
       {/if}

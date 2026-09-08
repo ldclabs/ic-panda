@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { formatNumber } from '$lib/utils/token'
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import {
@@ -183,16 +185,16 @@
     <PrizeShow {prizeInfo} {claimPrize} close={closePrizeShow} />
   {:else}
     <h3 class="h3 !mt-0 text-center">🐼 🎁</h3>
-    <div class="!mt-0 text-center text-xl font-bold">Get a Prize</div>
+    <div class="!mt-0 text-center text-xl font-bold">{$t('Get a Prize')}</div>
     <div class="m-auto mt-5 flex flex-col content-center">
-      <p class="text-gray/50 text-sm">Meet requirements:</p>
+      <p class="text-gray/50 text-sm">{$t('Meet requirements:')}</p>
       <p class="mt-3 flex flex-row items-center gap-2">
         {#if meetRequirements != 1 && meetRequirements != 3}
           <span class="*:size-5"><IconCloseCircle /></span>
         {:else}
           <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
-        <span>Have a <b>lucky code</b> through airdrop</span>
+        <span>{$t('Have your own Lucky Code from an airdrop.')}</span>
       </p>
       <p class="mt-3 flex flex-row items-center gap-2">
         {#if meetRequirements != 2 && meetRequirements != 3}
@@ -201,9 +203,11 @@
           <span class="text-orange-500 *:size-5"><IconCheckbox /></span>
         {/if}
         <span
-          >Have at least <b
-            >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2} PANDA</b
-          > in your wallet</span
+          >{$t('Hold at least {amount} PANDA in your wallet.', {
+            amount: formatNumber(
+              Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2
+            )
+          })}</span
         >
       </p>
     </div>
@@ -212,7 +216,7 @@
       on:input={onFormChange}
     >
       <label class="label">
-        <span>Fill in prize code here:</span>
+        <span>{$t('Fill in prize code here:')}</span>
         <div class="relative">
           <input
             class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
@@ -221,17 +225,18 @@
             minlength="20"
             maxlength="50"
             bind:value={cryptogram}
-            placeholder="Enter code"
+            placeholder={$t('Enter code')}
             disabled={submitting}
             required
           />
           <button
+            aria-label={$t(cryptogram ? 'Clear' : 'Paste')}
             class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={prizeCodeCopyPaste}
           >
             {#if cryptogram == ''}
-              <span>Paste</span>
+              <span>{$t('Paste')}</span>
             {:else}
               <span class="*:scale-90"><IconDeleteBin /></span>
             {/if}
@@ -245,7 +250,7 @@
           class="btn flex w-full flex-row items-center gap-2 bg-gradient-to-r from-amber-300 to-red-500 text-white"
           on:click={() => signIn()}
         >
-          <span>Login</span>
+          <span>{$t('Login')}</span>
         </button>
       {:else}
         <button
@@ -258,21 +263,22 @@
         >
           {#if submitting}
             <span class=""><IconCircleSpin /></span>
-            <span>Processing...</span>
+            <span>{$t('Processing...')}</span>
           {:else}
-            <span>Claim Now</span>
+            <span>{$t('Claim Now')}</span>
           {/if}
         </button>
       {/if}
     </footer>
     <hr class="!border-gray/20 mx-[-24px] !mt-0 !border-t-1 !border-dashed" />
     <div class="m-auto !mt-5">
-      <p class="text-gray/50 text-sm">To get the latest updates by following:</p
+      <p class="text-gray/50 text-sm"
+        >{$t('To get the latest updates by following:')}</p
       >
       <div class="mt-3 flex flex-row justify-between">
         <a
           type="button"
-          title="Follow on Twitter"
+          title={$t('Follow on Twitter')}
           class="btn btn-sm border-gray/10 rounded-xl border-[1px]"
           href="https://twitter.com/ICPandaDAO"
           target="_blank"
@@ -282,13 +288,13 @@
         </a>
         <a
           type="button"
-          title="Join the Community"
+          title={$t('Join the Community')}
           class="btn btn-sm border-gray/10 rounded-xl border-[1px]"
           href="https://oc.app/community/dqcvf-haaaa-aaaar-a5uqq-cai"
           target="_blank"
         >
           <span><IconOpenChat /></span>
-          <span class="text-left">ICPanda Community</span>
+          <span class="text-left">{$t('ICPanda Community')}</span>
         </a>
       </div>
     </div>

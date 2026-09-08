@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { goto } from '$app/navigation'
   import Chat from '$lib/components/messages/Chat.svelte'
   import { MyMessageState } from '$lib/stores/message'
@@ -26,16 +27,18 @@
 </script>
 
 <svelte:head
-  ><title>dMsg — Legacy messages</title><meta
+  ><title>{$t('dMsg — Legacy messages')}</title><meta
     name="robots"
     content="noindex"
   /></svelte:head
 >
 {#if myState}<Chat {myState} />
 {:else if error}<div class="archive-empty"
-    ><h1>Could not load your archive</h1><p role="alert">{error}</p><button
-      class="button secondary"
-      onclick={load}>Try again</button
-    ><a class="text-link" href="/legacy">Back to archive information</a></div
+    ><h1>{$t('Could not load your archive')}</h1><p role="alert">{$t(error)}</p
+    ><button class="button secondary" onclick={load}>{$t('Try again')}</button
+    ><a class="text-link" href="/legacy">{$t('Back to archive information')}</a
+    ></div
   >
-{:else}<p class="archive-empty" role="status">Loading legacy messages…</p>{/if}
+{:else}<p class="archive-empty" role="status"
+    >{$t('Loading legacy messages…')}</p
+  >{/if}

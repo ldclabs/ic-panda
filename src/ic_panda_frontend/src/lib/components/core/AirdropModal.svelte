@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { page } from '$app/state'
   import { luckyPoolAPI, type AirdropState } from '$lib/canisters/luckypool'
   import IconArrowDownLine from '$lib/components/icons/IconArrowDownLine.svelte'
@@ -123,42 +124,48 @@
     <div class="text-center">
       <p class="mt-4">
         <span>
-          You have successfully claimed <b
-            >{formatNumber(
+          {$t('You have successfully claimed {amount} PANDA.', {
+            amount: formatNumber(
               Number(result.claimable) / Number(PANDAToken.one)
-            )}</b
-          > PANDA tokens.
+            )
+          })}
         </span>
       </p>
       <p class="mt-4">
-        <span>Your lucky code:</span>
+        <span>{$t('Your lucky code:')}</span>
         <span class="text-panda">{result.lucky_code[0]}</span>
         <TextClipboardButton textValue={result.lucky_code[0] || ''} />
       </p>
       <p class="mt-4">
-        <span>Link:</span>
+        <span>{$t('Link:')}</span>
         <span>
           {luckyLink + result.lucky_code[0]}
         </span>
         <TextClipboardButton textValue={luckyLink + result.lucky_code[0]} />
       </p>
       <p class="mt-4 text-left">
-        <span>Share your lucky code to with others.</span>
+        <span>{$t('Share your lucky code with others.')}</span>
         <br />
         <span>
-          When a new user claims the airdrop using your lucky code, you'll also
-          receive an additional <b
-            >{Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2}</b
-          > tokens per user.
+          {$t(
+            'For each new user who claims with your lucky code, you receive {amount} extra PANDA.',
+            {
+              amount: formatNumber(
+                Number($luckyPoolState?.airdrop_amount[0] || 10n) / 2
+              )
+            }
+          )}
         </span>
       </p>
     </div>
   {:else}
     <h3 class="h3 !mt-0 text-center">🪂 🎁</h3>
-    <div class="!mt-0 text-center text-xl font-bold">Get the Airdrop</div>
+    <div class="!mt-0 text-center text-xl font-bold"
+      >{$t('Get the Airdrop')}</div
+    >
     <div class="m-auto !mt-0 flex flex-col content-center">
       <h6 class="h6 mt-5 mb-4 text-center font-bold">
-        <span>STEP 1: Get verified</span>
+        <span>{$t('STEP 1: Get verified')}</span>
       </h6>
       <button
         class="variant-filled btn w-full rounded-xl {challenge != ''
@@ -172,7 +179,7 @@
         {:else}
           <span><IconX /></span>
         {/if}
-        <span class="">To be Verified by X account</span>
+        <span class="">{$t('To be Verified by X account')}</span>
       </button>
       <button
         class="btn text-gray/50 outline-0 {dmChallenge ? 'hidden' : ''}"
@@ -181,7 +188,7 @@
           dmChallenge = !dmChallenge
         }}
       >
-        <span class="">Another option</span>
+        <span class="">{$t('Another option')}</span>
         <span><IconArrowDownLine /></span>
       </button>
     </div>
@@ -196,10 +203,10 @@
       on:input={onFormChange}
     >
       <h6 class="h6 mt-5 mb-4 text-center font-bold">
-        <span>STEP 2 : Fill-in airdrop code</span>
+        <span>{$t('STEP 2 : Fill-in airdrop code')}</span>
       </h6>
       <label class="label {!dmChallenge ? 'collapse h-0' : 'visible mb-2'}">
-        <span>Airdrop code:</span>
+        <span>{$t('Airdrop code:')}</span>
         <div class="relative">
           <input
             class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
@@ -208,16 +215,17 @@
             minlength="20"
             maxlength="50"
             bind:value={cryptogram}
-            placeholder="Enter code"
+            placeholder={$t('Enter code')}
             disabled={submitting}
           />
           <button
+            aria-label={$t(cryptogram ? 'Clear' : 'Paste')}
             class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={airdropCodeCopyPaste}
           >
             {#if cryptogram == ''}
-              <span>Paste</span>
+              <span>{$t('Paste')}</span>
             {:else}
               <span class="*:scale-90"><IconDeleteBin /></span>
             {/if}
@@ -225,11 +233,12 @@
         </div>
 
         <span class="text-sm text-pink-500">
-          You can get this code from someone participating in <b>Lucky Draw</b>.
+          {$t('You can get this code from someone participating in')}
+          <b>{$t('Lucky Draw')}</b>.
         </span>
       </label>
       <label class="label">
-        <span>Lucky Code (Optinal):</span>
+        <span>{$t('Lucky Code (Optional):')}</span>
         <div class="relative">
           <input
             class="input border-gray/10 invalid:input-warning truncate rounded-xl bg-white/20 pr-16 hover:bg-white/90"
@@ -238,16 +247,17 @@
             minlength="6"
             maxlength="6"
             bind:value={luckyCode}
-            placeholder="Enter code"
+            placeholder={$t('Enter code')}
             disabled={submitting}
           />
           <button
+            aria-label={$t(luckyCode ? 'Clear' : 'Paste')}
             class="btn absolute top-0 right-0 outline-0"
             disabled={submitting}
             on:click={luckyCodeCopyPaste}
           >
             {#if luckyCode == ''}
-              <span>Paste</span>
+              <span>{$t('Paste')}</span>
             {:else}
               <span class="*:scale-90"><IconDeleteBin /></span>
             {/if}
@@ -263,9 +273,9 @@
       >
         {#if submitting}
           <span class=""><IconCircleSpin /></span>
-          <span>Processing...</span>
+          <span>{$t('Processing...')}</span>
         {:else}
-          <span>Claim Now</span>
+          <span>{$t('Claim Now')}</span>
         {/if}
       </button>
     </footer>

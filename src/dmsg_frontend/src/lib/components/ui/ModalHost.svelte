@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n'
   import { getModalStore } from '$lib/ui/stores'
   import { Dialog } from 'bits-ui'
 
@@ -29,7 +30,9 @@
       >
         <!-- The modal bodies draw their own heading; this keeps the dialog
              labelled for assistive technology without showing twice. -->
-        <Dialog.Title class="sr-only">{current.title ?? 'Dialog'}</Dialog.Title>
+        <Dialog.Title class="sr-only"
+          >{$t(current.title ?? 'Dialog')}</Dialog.Title
+        >
         <Component {...current.component.props ?? {}} {parent} />
       </Dialog.Content>
     </Dialog.Portal>
