@@ -12,9 +12,9 @@
 
   let { memo }: Props = $props()
 
-  const detail: { message: string; link: string } | null = memo
-    ? mapToObj(decodeCBOR(memo as Uint8Array))
-    : null
+  const detail: { message: string; link: string } | null = $derived(
+    memo ? mapToObj(decodeCBOR(memo as Uint8Array)) : null
+  )
 </script>
 
 {#if detail}

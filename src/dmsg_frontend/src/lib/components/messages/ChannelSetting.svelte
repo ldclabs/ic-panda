@@ -46,12 +46,10 @@
   const toastStore = getToastStore()
   const modalStore = getModalStore()
   const members: Writable<DisplayUserInfoEx[]> = writable([])
-  const myID = $myInfo.id.toText()
+  const myID = $derived($myInfo.id.toText())
 
-  // svelte-ignore state_referenced_locally
-  const { canister, id } = channelInfo
-  // svelte-ignore state_referenced_locally
-  let mute = $state(channelInfo.my_setting.mute)
+  const { canister, id } = $derived(channelInfo)
+  let mute = $derived(channelInfo.my_setting.mute)
   let isManager = $state(false)
   let validKEK = $state(true)
 

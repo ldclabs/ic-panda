@@ -8,7 +8,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import TextArea from '$lib/components/ui/TextAreaAutosize.svelte'
   import { getModalStore } from '$lib/ui/stores'
-  import { type SvelteComponent } from 'svelte'
+  import { untrack, type SvelteComponent } from 'svelte'
 
   // Props
 
@@ -26,8 +26,13 @@
   let validating = $state(false)
   let submitting = $state(false)
 
-  let nameInput = $state(channel.name)
-  let descriptionInput = $state(channel.description)
+  // Seed this dialog's draft once; refreshes must not overwrite user edits.
+  const initialDraft = untrack(() => ({
+    name: channel.name,
+    description: channel.description
+  }))
+  let nameInput = $state(initialDraft.name)
+  let descriptionInput = $state(initialDraft.description)
 
   function checkInput() {
     const name = nameInput.trim()

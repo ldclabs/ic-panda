@@ -20,7 +20,7 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
+  const myInfo = $derived(myState.agent.subscribeUser() as Readable<UserInfo>)
 
   let validating = $state(false)
   let submitting = $state(false)

@@ -100,6 +100,8 @@ export default defineConfig({
     setupFiles: 'src/setupTests.ts'
   },
   resolve: {
+    // Component tests exercise client runes and lifecycle hooks in jsdom.
+    ...(process.env.VITEST ? { conditions: ['browser'] } : {}),
     alias: {
       $src: resolve('./src'),
       $declarations: resolve('./src/declarations')

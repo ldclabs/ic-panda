@@ -43,7 +43,7 @@
 
   let userInfo: Readable<UserInfo & ProfileInfo>
   let myInfo: Readable<(UserInfo & ProfileInfo) | null>
-  let isReady = $state(myState.isReady2())
+  let isReady = $derived(myState.isReady2())
   let isMe = $state(false)
   let isFowllowing = $state(false)
   let links: Link[] = $state([])

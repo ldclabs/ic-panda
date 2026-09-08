@@ -18,7 +18,7 @@
   import { PANDAToken, formatNumber } from '$lib/utils/token'
   import { Principal } from '@icp-sdk/core/principal'
   import { getModalStore, getToastStore } from '$lib/ui/stores'
-  import { onMount, type SvelteComponent } from 'svelte'
+  import { onMount, untrack, type SvelteComponent } from 'svelte'
   import { type Readable } from 'svelte/store'
 
   // Props
@@ -36,13 +36,15 @@
   const modalStore = getModalStore()
   const toastStore = getToastStore()
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
-  const stateInfo = myState.api.stateStore as Readable<StateInfo>
-  const myInfo = myState.agent.subscribeUser() as Readable<UserInfo>
+  const stateInfo = $derived(myState.api.stateStore as Readable<StateInfo>)
+  const myInfo = $derived(myState.agent.subscribeUser() as Readable<UserInfo>)
   const pandaPrice = $derived(tokensPrice.get(PANDAToken.canisterId))
 
-  let nameInput = $state(channelName)
+  // Seed this dialog's draft once; refreshes must not overwrite user edits.
+  const initialName = untrack(() => channelName)
+  let nameInput = $state(initialName)
   let descriptionInput = $state('')
-  let validating = $state(channelName.trim() !== '')
+  let validating = $state(initialName.trim() !== '')
   let submitting = $state(false)
   let availablePandaBalance = $state(0n)
 

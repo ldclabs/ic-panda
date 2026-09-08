@@ -36,8 +36,12 @@
 
   let { parent, myState, onCompleted = () => {} }: Props = $props()
 
-  const myInfo: Readable<UserInfo | null> = myState.agent.subscribeUser()
-  const messageState: Readable<StateInfo | null> = myState.api.stateStore
+  const myInfo: Readable<UserInfo | null> = $derived(
+    myState.agent.subscribeUser()
+  )
+  const messageState: Readable<StateInfo | null> = $derived(
+    myState.api.stateStore
+  )
   const messageCanisterPrincipal = Principal.fromText(MESSAGE_CANISTER_ID)
   const pandaPrice = $derived(tokensPrice.get(PANDAToken.canisterId))
 

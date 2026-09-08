@@ -22,8 +22,7 @@
 
   const toastStore = getToastStore()
   const modalStore = getModalStore()
-  const myInfo: Readable<UserInfo> =
-    myState.agent.subscribeUser() as Readable<UserInfo>
+  const myInfo = $derived(myState.agent.subscribeUser() as Readable<UserInfo>)
 
   const channelParam = $derived((page?.params || {})['channel'] || '')
   const channelId = $derived(
@@ -33,8 +32,7 @@
     }
   )
 
-  // svelte-ignore state_referenced_locally
-  let isReady = $state(myState.isReady2())
+  let isReady = $derived(myState.isReady2())
 
   async function onChatBack() {
     goto('/_/messages')

@@ -5,7 +5,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { getBytesString, getShortNumber } from '$lib/utils/helper'
   import { getModalStore } from '$lib/ui/stores'
-  import { type SvelteComponent } from 'svelte'
+  import { onMount, type SvelteComponent } from 'svelte'
 
   interface Props {
     parent: SvelteComponent
@@ -21,13 +21,15 @@
   const MESSAGE_PER_BYTE_GAS = 1000
   const UPLOAD_FILE_GAS_THRESHOLD = 10_000_000
   const modalStore = getModalStore()
-  const filesState = channel.files_state[0] || {
-    file_max_size: 0n,
-    file_storage: []
-  }
+  const filesState = $derived(
+    channel.files_state[0] || {
+      file_max_size: 0n,
+      file_storage: []
+    }
+  )
 
   let data: Uint8Array = $state(new Uint8Array())
-  let mime = file.type
+  const mime = $derived(file.type)
   let submitting = $state(false)
   let gas = $state(0)
   let uploadError = $state<'' | 'size' | 'balance'>('')
@@ -72,7 +74,9 @@
     modalStore.close()
   }
 
-  checkFile(file)
+  onMount(() => {
+    void checkFile(file)
+  })
 </script>
 
 <ModalCard {parent}>

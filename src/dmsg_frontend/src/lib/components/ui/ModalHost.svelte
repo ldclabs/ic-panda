@@ -33,7 +33,9 @@
         <Dialog.Title class="sr-only"
           >{$t(current.title ?? 'Dialog')}</Dialog.Title
         >
-        <Component {...current.component.props ?? {}} {parent} />
+        {#key current}
+          <Component {...current.component.props ?? {}} {parent} />
+        {/key}
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>

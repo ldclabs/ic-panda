@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t, locale } from '$lib/i18n'
+  import { untrack } from 'svelte'
   import IconArrowDown from '$lib/components/icons/IconArrowDown.svelte'
   import IconCornerDownLeft from '$lib/components/icons/IconCornerDownLeft.svelte'
   import { ErrData } from '$lib/types/result'
@@ -34,7 +35,9 @@
     total: bigint
   } | null = $state(null)
 
-  let tokenDisplay = $state(new TokenDisplay(token, 0n))
+  // This dialog owns an editable transaction model (including exact Max
+  // amounts). Recreating it on renders would discard the user's input.
+  const tokenDisplay = untrack(() => new TokenDisplay(token, 0n))
 
   const addressTip = $derived(
     $t(
@@ -60,17 +63,19 @@
 
   function validateAddress(e: Event) {
     const input = e.target as HTMLInputElement
+    // Native input handlers run before bind:value updates sendTo.
+    const address = input.value
 
-    if (token.symbol == 'ICP' && !sendTo.includes('-')) {
+    if (token.symbol == 'ICP' && !address.includes('-')) {
       try {
-        AccountIdentifier.fromHex(sendTo)
+        AccountIdentifier.fromHex(address)
       } catch (error) {
         input.setCustomValidity($t('Invalid ICP address'))
         return
       }
     } else {
       try {
-        Principal.fromText(sendTo)
+        Principal.fromText(address)
       } catch (error) {
         input.setCustomValidity($t('Invalid principal'))
         return

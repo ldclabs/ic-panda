@@ -5,7 +5,7 @@
   import ModalCard from '$lib/components/ui/ModalCard.svelte'
   import { toastRun } from '$lib/stores/toast'
   import { getModalStore, getToastStore } from '$lib/ui/stores'
-  import { type SvelteComponent } from 'svelte'
+  import { untrack, type SvelteComponent } from 'svelte'
 
   // Props
 
@@ -22,8 +22,13 @@
   const modalStore = getModalStore()
 
   let submitting = $state(false)
-  let uriInput = $state(link ? link.uri : '')
-  let titleInput = $state(link ? link.title : '')
+  // Keep the user's draft independent of subsequent source-link updates.
+  const initialDraft = untrack(() => ({
+    uri: link?.uri ?? '',
+    title: link?.title ?? ''
+  }))
+  let uriInput = $state(initialDraft.uri)
+  let titleInput = $state(initialDraft.title)
   let validating = $state(false)
 
   $effect(() => {

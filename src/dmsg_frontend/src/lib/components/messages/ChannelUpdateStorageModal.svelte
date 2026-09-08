@@ -9,7 +9,7 @@
   import { getBytesString, getShortNumber2 } from '$lib/utils/helper'
   import { unwrapOption } from '$src/lib/types/result'
   import { getToastStore } from '$lib/ui/stores'
-  import { type SvelteComponent } from 'svelte'
+  import { untrack, type SvelteComponent } from 'svelte'
 
   const toastStore = getToastStore()
 
@@ -25,8 +25,9 @@
 
   let { parent, myState, channel, onCompleted }: Props = $props()
 
-  const fileMaxSize = Number(
-    unwrapOption(channel.files_state)?.file_max_size || 0n
+  // The editable size is a draft initialized when this dialog opens.
+  const fileMaxSize = untrack(() =>
+    Number(unwrapOption(channel.files_state)?.file_max_size || 0n)
   )
 
   let maxSizeInput = $state(fileMaxSize || 1024 * 1024 * 10)

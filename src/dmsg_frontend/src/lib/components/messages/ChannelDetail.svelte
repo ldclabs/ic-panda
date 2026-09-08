@@ -14,7 +14,7 @@
   import type { Principal } from '@icp-sdk/core/principal'
   import Avatar from '$lib/components/ui/Avatar.svelte'
   import { getToastStore } from '$lib/ui/stores'
-  import { getContext, onMount } from 'svelte'
+  import { getContext, onMount, untrack } from 'svelte'
   import { type Readable } from 'svelte/store'
   import ChannelMessages from './ChannelMessages.svelte'
   import ChannelSetting from './ChannelSetting.svelte'
@@ -28,7 +28,9 @@
   let { channelId, myState, myInfo }: Props = $props()
 
   const toastStore = getToastStore()
-  const { canister, id } = channelId
+  // Chat keys this component by channelParam. Keep the ID paired with the
+  // onMount fetch until that instance is destroyed.
+  const { canister, id } = untrack(() => channelId)
   const onChatBack = getContext('onChatBack') as () => void
 
   let channelInfo: ChannelInfoEx | null = $state(null)
