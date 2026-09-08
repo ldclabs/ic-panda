@@ -8,7 +8,7 @@
 
 **白皮书 v1.0 · 2026年8月 · 2026年9月7日修订**
 
-**状态说明：提议由 SNS 治理审议采纳。** 若通过表决采纳，本文档将正式取代 [2024 创世白皮书](2024/zh.md)；创世白皮书将继续作为历史文献存档公开。
+**状态说明：已于2026年9月8日经 [SNS 第504号提案](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504)表决采纳。** 本文档正式取代 [2024 创世白皮书](2024/zh.md)；创世白皮书将继续作为历史文献存档公开。
 
 ## 1. 我们的宗旨
 
@@ -234,6 +234,6 @@ SNS 释放曲线在初始利率与最终利率之间采用二次曲线平滑衰�
 | 版本号                                 | 发布日期                    | 状态说明                                                                          |
 | -------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
 | [创世版 (Genesis Edition)](2024/zh.md) | 2024年                      | 历史存档 (Historical)                                                             |
-| v1.0                                   | 2026年8月；2026年9月7日修订 | 提议由 SNS 治理审议采纳；重构文档结构，明确 dMsg 设计范畴，并更新链上实时快照数据 |
+| v1.0                                   | 2026年8月；2026年9月7日修订 | 已于2026年9月8日经 [SNS 第504号提案](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504)采纳；重构文档结构，明确 dMsg 设计范畴，并更新链上实时快照数据 |
 
-待治理表决通过采纳后，在此记录对应的 SNS 提案编号与通过日期。
+采纳记录：[SNS 第504号提案](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504)于2026年9月8日 07:09:15 UTC 通过并执行。表决采纳的英文原文保留于 [commit 297519a](https://github.com/ldclabs/ic-panda/blob/297519a743209e1d1c016aff22f2d0e960c3b380/whitepaper/en.md)。

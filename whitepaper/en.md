@@ -8,7 +8,7 @@ Open infrastructure for digital sovereignty.
 
 **Whitepaper v1.0 · August 2026 · Revised September 7, 2026**
 
-**Status: Proposed for SNS governance adoption.** If adopted, this document supersedes the [2024 Genesis Whitepaper](2024/en.md), which remains available as a historical record.
+**Status: Adopted by SNS governance through [Proposal #504](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504) on September 8, 2026.** This document supersedes the [2024 Genesis Whitepaper](2024/en.md), which remains available as a historical record.
 
 ## 1. Our Purpose
 
@@ -234,6 +234,6 @@ Future directions are statements of intent. Crypto assets, AI, decentralized sys
 | Version                       | Date                                   | Status                                                                                                                    |
 | ----------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [Genesis Edition](2024/en.md) | 2024                                   | Historical                                                                                                                |
-| v1.0                          | August 2026; revised September 7, 2026 | Proposed for SNS governance adoption; editorial restructuring, clarified dMsg design scope, and updated on-chain snapshot |
+| v1.0                          | August 2026; revised September 7, 2026 | Adopted through [SNS Proposal #504](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504) on September 8, 2026; editorial restructuring, clarified dMsg design scope, and updated on-chain snapshot |
 
-If adopted, record the SNS proposal number and adoption date here.
+Adoption record: [SNS Proposal #504](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504) was adopted and executed on September 8, 2026, at 07:09:15 UTC. The adopted English text is preserved at [commit 297519a](https://github.com/ldclabs/ic-panda/blob/297519a743209e1d1c016aff22f2d0e960c3b380/whitepaper/en.md).
