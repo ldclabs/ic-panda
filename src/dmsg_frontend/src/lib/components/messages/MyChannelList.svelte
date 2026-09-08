@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import IconAdd from '$lib/components/icons/IconAdd.svelte'
@@ -85,21 +86,23 @@
   })
 </script>
 
-<div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
+<div class="grid h-full min-h-0 grid-rows-[auto_1fr]">
   <header class="flex h-[60px] flex-row items-center gap-4 p-4 pr-4">
     <input
       class="input bg-surface-900/5 truncate rounded-lg border-0"
       type="search"
       bind:value={filterValue}
+      aria-label="Filter legacy channels"
       placeholder="Filter channels..."
     />
-    <button
-      type="button"
-      class="btn btn-icon bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100 h-10 rounded-lg"
-      title="Create a channel"
-      onclick={onCreateChannelHandler}
-      ><span class="hover:scale-110"><IconAdd /></span></button
-    >
+    {#if !LEGACY_READ_ONLY}<button
+        type="button"
+        class="btn btn-icon bg-surface-900/5 text-surface-500 hover:text-surface-900 dark:bg-surface-700 dark:hover:text-surface-100 h-10 rounded-lg"
+        title="Create a channel"
+        onclick={onCreateChannelHandler}
+        ><span class="hover:scale-110"><IconAdd /></span></button
+      >
+    {/if}
   </header>
   <div class="flex flex-col overflow-y-auto pb-10">
     {#each channels as channel}
@@ -152,9 +155,8 @@
     {:else}
       <div class="px-4 py-2 text-sm">
         <span
-          >Beyond encrypted chats, you can securely store confidential
-          information. It's encrypted, synced across your devices, and only
-          accessible to you.</span
+          >No matching legacy channels. Try a different filter or check that you
+          signed in with your original identity.</span
         >
       </div>
       {#if isLoading}

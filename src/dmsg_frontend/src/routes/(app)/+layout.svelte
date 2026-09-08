@@ -40,11 +40,13 @@
   onMount(async () => {
     if (browser) {
       setInitialClassState()
-      await authStore.ready()
-
       try {
+        // Restore the saved identity even if the local replica is unavailable.
         await authStore.sync()
-      } catch (err) {}
+        await authStore.ready()
+      } catch (err) {
+        console.error('Legacy authentication initialization failed', err)
+      }
     }
 
     if (pwaInfo) {

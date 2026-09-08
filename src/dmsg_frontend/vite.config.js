@@ -55,7 +55,7 @@ export default defineConfig({
         short_name: 'dMsg',
         name: 'dMsg.net',
         description:
-          "ICPanda Message (dMsg.net) is the world's 1st decentralized end-to-end encrypted messaging application fully running on the Internet Computer blockchain.",
+          'dMsg: a private workspace in development. Legacy messages are available read-only.',
         icons: [
           {
             src: '/_assets/favicons/android-chrome-192x192.png',
@@ -71,8 +71,8 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        theme_color: '#ffffff',
-        background_color: '#000000'
+        theme_color: '#F7F8F4',
+        background_color: '#F7F8F4'
       },
       injectManifest: {
         globPatterns: [
@@ -96,7 +96,8 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
-    setupFiles: 'src/setupTests.js'
+    server: { deps: { inline: ['@ldclabs/cose-ts'] } },
+    setupFiles: 'src/setupTests.ts'
   },
   resolve: {
     alias: {

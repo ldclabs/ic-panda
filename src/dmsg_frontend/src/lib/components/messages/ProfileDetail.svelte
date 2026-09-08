@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import {
@@ -275,7 +276,7 @@
         <span class="*:size-5"><IconQrCode /></span>
       </button>
     </p>
-    {#if !isMe}
+    {#if !LEGACY_READ_ONLY && !isMe}
       <div class="mt-6 flex flex-row items-end gap-4">
         <button
           type="button"

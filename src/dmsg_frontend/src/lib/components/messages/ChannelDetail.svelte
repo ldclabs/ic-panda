@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { goto } from '$app/navigation'
   import { type UserInfo } from '$lib/canisters/message'
   import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
@@ -73,7 +74,7 @@
   })
 </script>
 
-<div class="grid h-[calc(100dvh-60px)] grid-rows-[auto_1fr] md:h-dvh">
+<div class="grid h-full min-h-0 grid-rows-[auto_1fr]">
   <header
     class="border-surface-500/20 flex h-[60px] flex-row items-center justify-between gap-2 border-b px-0 py-2 md:px-4"
   >
@@ -107,30 +108,39 @@
         />
       {/if}
     </div>
-    <button
-      type="button"
-      class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-      title="Channel settings"
-      disabled={switching}
-      onclick={onClickChannelSetting}
-    >
-      {#if channelInfo && openMessages && (channelInfo?.ecdh_request || []).length > 0}
-        <span class="badge-icon bg-error-500 z-10 size-2"></span>
-      {/if}
-      <span>
-        {#if openMessages}
-          <IconMoreFill />
-        {:else}
-          <IconClose />
+    {#if !LEGACY_READ_ONLY}<button
+        type="button"
+        class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
+        title="Channel settings"
+        disabled={switching}
+        onclick={onClickChannelSetting}
+      >
+        {#if channelInfo && openMessages && (channelInfo?.ecdh_request || []).length > 0}
+          <span class="badge-icon bg-error-500 z-10 size-2"></span>
         {/if}
-      </span>
-    </button>
+        <span>
+          {#if openMessages}
+            <IconMoreFill />
+          {:else}
+            <IconClose />
+          {/if}
+        </span>
+      </button>
+    {/if}
   </header>
   {#if isLoading}
     <Loading />
   {:else if channelInfo}
     {#if openMessages}
       <ChannelMessages {myState} {myInfo} bind:channelInfo />
+    {:else if LEGACY_READ_ONLY}
+      <div class="archive-empty"
+        ><h2>History could not be unlocked</h2><p
+          >This channel’s existing access key is missing or could not decrypt
+          its content. Use your original browser and recovery materials. New key
+          requests and key replacement are unavailable in the read-only app.</p
+        ></div
+      >
     {:else}
       <ChannelSetting
         {myState}

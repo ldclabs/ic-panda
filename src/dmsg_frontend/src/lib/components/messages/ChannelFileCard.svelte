@@ -66,7 +66,8 @@
       a.click()
       setTimeout(() => {
         document.body.removeChild(a)
-        URL.revokeObjectURL(blobUrl)
+        // The cached URL also serves repeat downloads and image previews.
+        // Release it on component teardown, not after the first download.
       }, 100)
     }, toastStore)
 

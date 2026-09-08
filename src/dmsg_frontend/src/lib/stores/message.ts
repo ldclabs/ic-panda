@@ -153,14 +153,9 @@ export class MyMessageState {
   }
 
   isReady2(): boolean {
-    const mk = this._mks.at(-1)
-    return (
-      (mk &&
-        mk.isUser(this.principal) &&
-        mk.isOpened() &&
-        this.masterKeyKind() === mk.kind) ||
-      false
-    )
+    // A historical Local/ECDH key remains valid for archive reading. Never
+    // require an upgrade to the current account mode to read old content.
+    return this.isReady()
   }
 
   private async init(): Promise<void> {}
@@ -180,15 +175,9 @@ export class MyMessageState {
       let keys = await this.agent.getMasterKeys<MasterKeyInfo>()
       this._mks = keys.map((key) => MasterKey.fromInfo(this.principal, key))
 
-      if (
-        this.agent.hasCOSE &&
-        (this._mks.length == 0 || this._mks.at(-1)?.kind != 'VetKey')
-      ) {
+      if (this.agent.hasCOSE && this._mks.at(-1)?.kind !== 'VetKey') {
         try {
-          mk = await this.fetchOrInitMasterKeyWithVetkey(
-            myIV,
-            this._mks.at(-1)?.kind == 'ECDH'
-          )
+          mk = await this.fetchOrInitMasterKeyWithVetkey(myIV, true)
           this._mks.push(mk)
           await this.agent.setMasterKeys(this._mks.map((k) => k.toInfo()))
         } catch (_err) {}
@@ -478,7 +467,7 @@ export class MyMessageState {
     if (this.agent.hasCOSE) {
       // always fetch the latest ECDH key from COSE
       const coseAPI = this.agent.coseAPI
-      const output = await coseAPI.setting_get_or_migrate({
+      const output = await coseAPI.setting_get_legacy({
         ns: this.ns,
         key: utf8ToBytes('StaticECDH'),
         subject: [this.principal],
@@ -572,7 +561,7 @@ export class MyMessageState {
     if (kek) {
       return kek
     }
-    const output = await this.agent.coseAPI.setting_get_or_migrate({
+    const output = await this.agent.coseAPI.setting_get_legacy({
       ns: this.ns,
       key: encodeCBOR([canister.toUint8Array(), id]),
       subject: [this.principal],

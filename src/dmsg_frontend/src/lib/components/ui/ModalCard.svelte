@@ -10,10 +10,17 @@
     parent: SvelteComponent
     width?: string
     cardClass?: string
+    showTitle?: boolean
     children?: import('svelte').Snippet<[any]>
   }
 
-  let { parent, width = 'w-full', cardClass = '', children }: Props = $props()
+  let {
+    parent,
+    width = 'w-full',
+    cardClass = '',
+    showTitle = true,
+    children
+  }: Props = $props()
 
   const modalStore = getModalStore()
 
@@ -28,11 +35,12 @@
 >
   <button
     class="btn btn-icon absolute top-2 right-2 z-1 text-neutral-500 *:scale-125 hover:scale-110 max-md:top-2 max-md:right-2"
+    aria-label="Close dialog"
     onclick={parent['onClose']}
   >
     <IconClose />
   </button>
-  {#if title}
+  {#if title && showTitle}
     <header class="!mt-0 text-center text-xl font-bold">
       {title}
     </header>

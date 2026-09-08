@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { LEGACY_READ_ONLY } from '$lib/utils/legacy'
   import { type UserInfo } from '$lib/canisters/message'
   import { ChannelAPI } from '$lib/canisters/messagechannel'
   import IconArrowRightUp from '$lib/components/icons/IconArrowRightUp.svelte'
@@ -329,6 +330,7 @@
 
   const debouncedUpdateMyLastRead = debounce(
     async () => {
+      if (LEGACY_READ_ONLY) return
       await myState.updateMyLastRead(canister, id, lastRead)
     },
     5000,
@@ -392,7 +394,7 @@
   }
 
   function updateLastRead(messageId: number) {
-    if (messageId > lastRead) {
+    if (!LEGACY_READ_ONLY && messageId > lastRead) {
       lastRead = messageId
       myState.updateMyChannelSetting(canister, id, {
         last_read: lastRead
@@ -640,9 +642,7 @@
   {/if}
 {/snippet}
 
-<div
-  class="grid h-[calc(100dvh-120px)] grid-rows-[1fr_auto] md:h-[calc(100dvh-60px)]"
->
+<div class="grid min-h-0 grid-rows-[1fr_auto]">
   <!-- Conversation -->
   {#if !hasKEK}
     <div class="flex flex-col">
@@ -671,7 +671,7 @@
           </div>
         {:else if msg.created_by.compareTo(myState.principal) !== 'eq'}
           <div
-            class="grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
+            class="grid grid-cols-[32px_minmax(0,_1fr)_32px] gap-2"
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
             <button
@@ -711,7 +711,7 @@
           </div>
         {:else}
           <div
-            class="group grid grid-cols-[40px_minmax(200px,_1fr)_40px] gap-2"
+            class="group grid grid-cols-[32px_minmax(0,_1fr)_32px] gap-2"
             id={`${msg.canister.toText()}:${msg.channel}:${msg.id}`}
           >
             <div></div>
@@ -730,7 +730,7 @@
                     {#if submitting === msg.id}
                       <span class="text-panda *:size-5"><IconCircleSpin /></span
                       >
-                    {:else if msg.kind !== 1}
+                    {:else if !LEGACY_READ_ONLY && msg.kind !== 1}
                       <Popover.Root>
                         <Popover.Trigger
                           class="btn invisible h-10 p-0 group-hover:visible"
@@ -785,126 +785,135 @@
       </div>
     </section>
   {/if}
-  <section
-    class="group border-surface-500/20 relative border-t py-2 pr-16 pl-2 md:pr-24"
-  >
-    <div class="text-surface-500 flex flex-row items-center gap-0 pl-1">
-      <Popover.Root>
-        <Popover.Trigger
-          class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
-          disabled={submitting > 0}
-        >
-          <span class="*:size-5"><IconEmotionHappyLine /></span>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
-            side="top"
-            align="start"
-            sideOffset={8}
-            class="card bg-surface-50-900-token z-[10001] max-w-96 shadow-lg"
-          >
-            <EmojisPopup {addEmoji} />
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
-      <div class="flex flex-row items-center">
-        <!-- NOTE: Don't use `hidden` as it prevents `required` from operating -->
-        <div class="h-0 w-0 overflow-hidden">
-          <input
-            type="file"
-            bind:this={fileInput}
-            oninput={onUploadChangeHandler}
-          />
-        </div>
-        <button
-          class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
-          disabled={submitting > 0 || uploading != null || filePayload != null}
-          onclick={onUploadButtonClick}
-        >
-          <span class="*:size-5">
-            <IconFileImageLine />
-          </span>
-        </button>
-
-        {#if filePayload}
-          <div class="btn btn-sm text-primary-500 px-2">
-            <span class="max-w-52 truncate"
-              >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
-            >
-            <span class="*:size-5">
-              <IconCheckLine />
-            </span>
-          </div>
-        {:else if uploading}
-          <div class="btn btn-sm truncate px-2">
-            <span class="max-w-52 text-pretty break-words"
-              >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
-            >
-            <span class="*:size-5">
-              <IconCircleSpin />
-            </span>
-          </div>
-        {/if}
-      </div>
-    </div>
-    <TextArea
-      bind:value={newMessage}
-      onKeydown={onPromptKeydown}
-      onInput={onPromptInput}
-      {onFilesChange}
-      minHeight="40"
-      maxHeight="200"
-      containerClass=""
-      class="textarea border-0 !bg-transparent text-pretty break-words ring-0 outline-0"
-      name="prompt"
-      id="prompt"
-      disabled={submitting > 0}
-      placeholder="Write a message..."
-    />
-    <button
-      class="btn btn-sm bg-surface-500/60 before:bg-primary-500 group-hover:bg-surface-300/60 absolute right-4 bottom-3 overflow-hidden rounded-full border-2 border-white py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:transition-all before:duration-500 {messageReady
-        ? 'before:translate-y-0 before:scale-150'
-        : 'before:translate-y-full'}"
-      disabled={!messageReady}
-      onclick={sendMessage}
+  {#if LEGACY_READ_ONLY}
+    <div class="archive-notice"
+      >Read-only archive · Sending, uploads, and changes are disabled.</div
     >
-      {#if submitting}
-        <span class="*:size-5"><IconCircleSpin /></span>
-      {:else}
-        <span class="*:size-5">
-          <IconArrowUpLine2 />
-        </span>
-      {/if}
-    </button>
-    {#if showMentionList}
-      <div
-        class="bg-surface-50-900-token fixed z-50 max-h-48 w-64 overflow-y-auto rounded-lg shadow-lg"
-        style="bottom: {mentionBottom}px; left: {mentionLeft}px"
-      >
-        {#each channelMembers.filter((m) => m.username
-              .toLowerCase()
-              .includes(mentionQuery.toLowerCase()) || m.name
-              .toLowerCase()
-              .includes(mentionQuery.toLowerCase())) as member}
-          <button
-            class="btn hover:bg-panda/10 flex w-full min-w-0 cursor-pointer items-center justify-start rounded-none px-4 py-1"
-            onclick={() => selectMember(member)}
+  {:else}
+    <section
+      class="group border-surface-500/20 relative border-t py-2 pr-16 pl-2 md:pr-24"
+    >
+      <div class="text-surface-500 flex flex-row items-center gap-0 pl-1">
+        <Popover.Root>
+          <Popover.Trigger
+            class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
+            disabled={submitting > 0}
           >
-            <Avatar
-              initials={member.name}
-              src={member.image}
-              fill="fill-white"
-              width="w-10"
-              class="min-w-10"
+            <span class="*:size-5"><IconEmotionHappyLine /></span>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="top"
+              align="start"
+              sideOffset={8}
+              class="card bg-surface-50-900-token z-[10001] max-w-96 shadow-lg"
+            >
+              <EmojisPopup {addEmoji} />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+        <div class="flex flex-row items-center">
+          <!-- NOTE: Don't use `hidden` as it prevents `required` from operating -->
+          <div class="h-0 w-0 overflow-hidden">
+            <input
+              type="file"
+              bind:this={fileInput}
+              oninput={onUploadChangeHandler}
             />
-            <div class="min-w-0 flex-1 text-left">
-              <p class="truncate">{member.name}</p>
-              <p class="text-surface-500 truncate text-sm">@{member.username}</p
-              >
-            </div>
+          </div>
+          <button
+            class="btn btn-sm px-2 hover:text-black dark:hover:text-white"
+            disabled={submitting > 0 ||
+              uploading != null ||
+              filePayload != null}
+            onclick={onUploadButtonClick}
+          >
+            <span class="*:size-5">
+              <IconFileImageLine />
+            </span>
           </button>
-        {/each}
+
+          {#if filePayload}
+            <div class="btn btn-sm text-primary-500 px-2">
+              <span class="max-w-52 truncate"
+                >{`${filePayload.name}, ${getBytesString(filePayload.size)}`}</span
+              >
+              <span class="*:size-5">
+                <IconCheckLine />
+              </span>
+            </div>
+          {:else if uploading}
+            <div class="btn btn-sm truncate px-2">
+              <span class="max-w-52 text-pretty break-words"
+                >{`${uploading.name}, ${getBytesString(uploading.filled)}/${getBytesString(uploading.size || uploading.filled)}`}</span
+              >
+              <span class="*:size-5">
+                <IconCircleSpin />
+              </span>
+            </div>
+          {/if}
+        </div>
       </div>
-    {/if}
-  </section>
+      <TextArea
+        bind:value={newMessage}
+        onKeydown={onPromptKeydown}
+        onInput={onPromptInput}
+        {onFilesChange}
+        minHeight="40"
+        maxHeight="200"
+        containerClass=""
+        class="textarea border-0 !bg-transparent text-pretty break-words ring-0 outline-0"
+        name="prompt"
+        id="prompt"
+        disabled={submitting > 0}
+        placeholder="Write a message..."
+      />
+      <button
+        class="btn btn-sm bg-surface-500/60 before:bg-primary-500 group-hover:bg-surface-300/60 absolute right-4 bottom-3 overflow-hidden rounded-full border-2 border-white py-1 text-white shadow backdrop-blur-md *:transition-all *:duration-500 before:absolute before:-z-10 before:aspect-square before:w-full before:rounded-full before:transition-all before:duration-500 {messageReady
+          ? 'before:translate-y-0 before:scale-150'
+          : 'before:translate-y-full'}"
+        disabled={!messageReady}
+        onclick={sendMessage}
+      >
+        {#if submitting}
+          <span class="*:size-5"><IconCircleSpin /></span>
+        {:else}
+          <span class="*:size-5">
+            <IconArrowUpLine2 />
+          </span>
+        {/if}
+      </button>
+      {#if showMentionList}
+        <div
+          class="bg-surface-50-900-token fixed z-50 max-h-48 w-64 overflow-y-auto rounded-lg shadow-lg"
+          style="bottom: {mentionBottom}px; left: {mentionLeft}px"
+        >
+          {#each channelMembers.filter((m) => m.username
+                .toLowerCase()
+                .includes(mentionQuery.toLowerCase()) || m.name
+                .toLowerCase()
+                .includes(mentionQuery.toLowerCase())) as member}
+            <button
+              class="btn hover:bg-panda/10 flex w-full min-w-0 cursor-pointer items-center justify-start rounded-none px-4 py-1"
+              onclick={() => selectMember(member)}
+            >
+              <Avatar
+                initials={member.name}
+                src={member.image}
+                fill="fill-white"
+                width="w-10"
+                class="min-w-10"
+              />
+              <div class="min-w-0 flex-1 text-left">
+                <p class="truncate">{member.name}</p>
+                <p class="text-surface-500 truncate text-sm"
+                  >@{member.username}</p
+                >
+              </div>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {/if}
 </div>

@@ -71,30 +71,18 @@ export class CoseAPI {
 
   async setting_try_get(path: SettingPath): Promise<SettingInfo | null> {
     const res = await this.actor.setting_get(path)
-    return unwrapNotFound(res, 'call setting_get failed')
+    return unwrapNotFound<SettingInfo, string>(res, 'call setting_get failed')
   }
 
-  // returns: [SettingInfo, fallback]
-  async setting_get_or_migrate(path: SettingPath): Promise<SettingInfo> {
+  // Read either historical namespace without writing a migration.
+  async setting_get_legacy(path: SettingPath): Promise<SettingInfo> {
     let res = await this.actor.setting_get(path)
-    let rt = unwrapNotFound(res, 'call setting_get failed')
+    let rt = unwrapNotFound<SettingInfo, string>(res, 'call setting_get failed')
     if (!rt && path.user_owned) {
       res = await this.actor.setting_get({ ...path, user_owned: false })
       rt = unwrapResult(res, 'call setting_get failed')
 
-      await this.setting_create(path, {
-        dek: rt.dek,
-        payload: rt.payload,
-        status: [],
-        desc: [],
-        tags: []
-      })
-        .then((r) => {
-          console.log(`migrate setting ${JSON.stringify(path)}`, r)
-        })
-        .catch((e) => {
-          console.error(`Failed to create setting ${JSON.stringify(path)}`, e)
-        })
+      // Read the historical namespace without migrating or rewriting its keys.
     }
 
     if (!rt) {
@@ -125,7 +113,7 @@ export class CoseAPI {
     input: CreateSettingInput
   ): Promise<CreateSettingOutput> {
     const res = await this.actor.setting_get(path)
-    let rt = unwrapNotFound(res, 'call setting_get failed')
+    let rt = unwrapNotFound<SettingInfo, string>(res, 'call setting_get failed')
 
     if (rt) {
       // update

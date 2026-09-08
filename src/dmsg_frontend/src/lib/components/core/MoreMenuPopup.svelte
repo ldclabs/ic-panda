@@ -1,263 +1,134 @@
 <script lang="ts">
-  import WalletDetailModal from '$lib/components/core/WalletDetailModal.svelte'
-  import IconExchange from '$lib/components/icons/IconExchangeDollar.svelte'
-  import IconGithub from '$lib/components/icons/IconGithub.svelte'
-  import IconHomeLine from '$lib/components/icons/IconHomeLine.svelte'
-  import IconLogout from '$lib/components/icons/IconLogout.svelte'
-  import IconLogoutCircleRLine from '$lib/components/icons/IconLogoutCircleRLine.svelte'
-  import IconOrganizationChart from '$lib/components/icons/IconOrganizationChart.svelte'
-  import IconRefresh from '$lib/components/icons/IconRefresh.svelte'
-  import IconUser0 from '$lib/components/icons/IconUser0.svelte'
-  import IconWallet from '$lib/components/icons/IconWallet.svelte'
-  import { APP_VERSION } from '$lib/constants'
   import { authStore } from '$lib/stores/auth'
-  import {
-    MyMessageState,
-    toDisplayUserInfo,
-    type DisplayUserInfo
-  } from '$lib/stores/message'
-  import { toastRun } from '$lib/stores/toast'
-  import Avatar from '$lib/components/ui/Avatar.svelte'
-  import { getModalStore, getToastStore } from '$lib/ui/stores'
+  import { shortId } from '$lib/utils/auth'
   import { Popover } from 'bits-ui'
-  import { getContext, onMount, type Snippet } from 'svelte'
-  import LeaveAccountModal from './LeaveAccountModal.svelte'
+  import type { Snippet } from 'svelte'
 
-  interface Props {
-    /** Class for the trigger button. */
-    triggerClass?: string
-    /** Contents of the trigger button. */
-    trigger: Snippet
-  }
-
-  let { triggerClass = '', trigger }: Props = $props()
-
-  type DisplayUserInfoEx = DisplayUserInfo & { isNameAccount?: boolean }
-
-  const modalStore = getModalStore()
-  const toastStore = getToastStore()
-  let myAccounts: DisplayUserInfoEx[] = $state([])
-  let myID = $state('')
-  let hasNameAccounts = $state(false)
-  // The accounts list is fetched lazily; until it lands the menu would pop
-  // open and then resize under the pointer, so hold it closed.
-  let ready = $state(false)
+  let {
+    triggerClass = '',
+    trigger
+  }: { triggerClass?: string; trigger: Snippet } = $props()
   let open = $state(false)
+  let loading = $state(false)
+  let loaded = $state(false)
+  let switching = $state(false)
+  let error = $state('')
+  let accounts: { name: string; id: string }[] = $state([])
+  const currentId = $derived($authStore.identity.getPrincipal().toText())
 
-  function onWalletHandler(): void {
-    modalStore.trigger({
-      type: 'component',
-      component: {
-        ref: WalletDetailModal,
-        props: {}
-      }
-    })
-  }
-
-  function onLeaveAccountHandler(username: string): void {
-    modalStore.trigger({
-      type: 'component',
-      component: {
-        ref: LeaveAccountModal,
-        props: {
-          username,
-          onConfirm: async () => {
-            return toastRun(async function () {
-              await authStore.nameIdentityAPI.leave_delegation(username)
-              await loadMyAccounts()
-            }, toastStore).finally()
-          }
-        }
-      }
-    })
-  }
-
-  function onLogoutHandler(): void {
-    authStore.logout('/')
-  }
-
-  let switching = $state('')
-  const globalLoading: { value: boolean } = getContext('globalLoading')
-  function onSwitchHandler(info: DisplayUserInfoEx) {
-    switching = info.username
-
-    globalLoading.value = true
-    toastRun(async function () {
-      try {
-        await authStore.switch(info.isNameAccount ? info.username : '')
-      } catch (err) {
-        globalLoading.value = false
-        throw err
-      }
-    }, toastStore)
-  }
-
-  async function loadMyAccounts() {
-    const myState = await MyMessageState.load()
-    myID = myState.id
-    const accounts = await authStore.nameIdentityAPI.get_my_accounts()
-    hasNameAccounts = !!accounts.length
-    if (!hasNameAccounts) {
-      myAccounts = []
-      return
+  async function loadAccounts() {
+    if (loading) return
+    loading = true
+    error = ''
+    try {
+      const result = await authStore.nameIdentityAPI.get_my_accounts()
+      accounts = result.map((account) => ({
+        name: account.name,
+        id: account.account.toText()
+      }))
+      loaded = true
+    } catch (cause) {
+      error =
+        cause instanceof Error
+          ? cause.message
+          : 'Could not load your username accounts.'
+    } finally {
+      loading = false
     }
-
-    const srcId = authStore.srcIdentity?.getPrincipal()!
-    const srcUser = await myState.tryLoadUser(srcId)
-    if (!srcUser) {
-      // should not happen
-      return
-    }
-
-    const users = await myState.batchLoadUsersInfo(
-      accounts.map((account) => account.account)
-    )
-
-    const userInfos = users.map(toDisplayUserInfo)
-    const rt = []
-    for (const ac of accounts) {
-      const _id = ac.account.toText()
-      const info = userInfos.find(
-        (info) => info._id === _id
-      ) as DisplayUserInfoEx
-      if (info) {
-        if (!info.username) {
-          info.username = ac.name
-        }
-        info.isNameAccount = true
-        rt.push(info)
-      } else {
-        rt.push({
-          _id,
-          username: ac.name,
-          name: ac.name,
-          image: '',
-          isNameAccount: true
-        })
-      }
-    }
-
-    rt.push(toDisplayUserInfo(srcUser) as DisplayUserInfoEx)
-    myAccounts = rt
   }
 
-  onMount(() => {
-    const { abort, finally: onfinally } = toastRun(async () => {
-      await loadMyAccounts()
-      onfinally(() => {
-        ready = true
-      })
-    }, toastStore)
-    return abort
-  })
+  async function switchAccount(name: string) {
+    switching = true
+    error = ''
+    try {
+      await authStore.switch(name)
+    } catch (cause) {
+      error =
+        cause instanceof Error ? cause.message : 'Could not switch account.'
+      switching = false
+    }
+  }
 </script>
 
 <Popover.Root
-  {open}
-  onOpenChange={(next: boolean) => {
-    // Keep the trigger enabled — Skeleton's version stayed clickable and
-    // simply refused to open until the accounts request had landed.
-    open = next && ready
+  bind:open
+  onOpenChange={(next) => {
+    if (next && !loaded) void loadAccounts()
   }}
 >
-  <Popover.Trigger class={triggerClass}>
-    {@render trigger()}
-  </Popover.Trigger>
+  <Popover.Trigger class={triggerClass}>{@render trigger()}</Popover.Trigger>
   <Popover.Portal>
     <Popover.Content
-      side="top"
+      side="bottom"
       align="end"
       sideOffset={8}
-      class="card z-[10001] w-64 bg-white px-0 py-2 shadow-lg"
+      class="archive-account-menu z-[10001] w-72 max-w-[calc(100vw-32px)] rounded-xl border border-[#DAE3D9] bg-white p-3 text-sm text-[#10251F] shadow-lg"
     >
-      <div
-        class="*:bg-surface-hover-token flex flex-col items-start text-sm *:flex *:w-full *:flex-row *:gap-2 *:px-3 *:py-2"
-      >
-        <button type="button" onclick={onWalletHandler}>
-          <span class="*:size-5"><IconWallet /></span>
-          <span>Wallet</span>
-        </button>
-        <a type="button" href="/">
-          <span class="*:size-5"><IconHomeLine /></span>
-          <span>Home Page</span>
-        </a>
-        <a
-          type="button"
-          target="_blank"
-          href="https://app.icpswap.com/swap?input=ryjl3-tyaaa-aaaaa-aaaba-cai&output=druyg-tyaaa-aaaaq-aactq-cai"
-        >
-          <span class="*:size-5"><IconExchange /></span>
-          <span>Get PANDA via ICPSwap</span>
-        </a>
-        <a
-          type="button"
-          target="_blank"
-          href="https://www.kongswap.io/stats/druyg-tyaaa-aaaaq-aactq-cai"
-        >
-          <span class="*:size-5"><IconExchange /></span>
-          <span>Get PANDA via KongSwap</span>
-        </a>
-        <a
-          type="button"
-          target="_blank"
-          href="https://github.com/ldclabs/ic-panda"
-        >
-          <span class="*:size-5"><IconGithub /></span>
-          <span>Source Code</span>
-        </a>
-        <button
-          type="button"
-          class="border-surface-500/20 border-b"
-          onclick={() => window.location.reload()}
-        >
-          <span class="*:size-5"><IconRefresh /></span>
-          <span>Reload App</span>
-          <span class="text-surface-500">(v{APP_VERSION})</span>
-        </button>
-        {#each myAccounts as info (info._id)}
+      <p class="px-3 py-2 font-semibold">Legacy account · Read-only</p>
+      <a href="/" data-sveltekit-reload>Back to dMsg</a>
+      <a href="/legacy">Archive information</a>
+      {#if $authStore.identity.getPrincipal().isAnonymous()}
+        <a href="/legacy">Sign in to read your history</a>
+      {:else}
+        {#if authStore.srcIdentity}
           <button
-            type="button"
-            class="disabled:bg-surface-50-900-token relative items-center !py-1"
-            disabled={myID === info._id || switching !== ''}
-            onclick={() => onSwitchHandler(info)}
+            disabled={switching ||
+              currentId === authStore.srcIdentity.getPrincipal().toText()}
+            onclick={() => switchAccount('')}
+            >Original identity · {shortId(
+              authStore.srcIdentity.getPrincipal().toText()
+            )}</button
           >
-            {#if info.isNameAccount}
-              <span class="*:size-5"><IconOrganizationChart /></span>
-            {:else}
-              <span class="*:size-5"><IconUser0 /></span>
-            {/if}
-            <Avatar
-              initials={info.name}
-              src={info.image}
-              class="!overflow-visible"
-              fill="fill-white"
-              width="w-8"
-            />
-            <span class="max-w-44 truncate">
-              {info.name + (info.username ? ' @' + info.username : '')}
-            </span>
-            {#if info.isNameAccount && myID !== info._id}
-              <a
-                type="button"
-                href="/"
-                rel="noopener noreferrer"
-                class="btn text-surface-500 hover:text-error-500 absolute right-0 px-2"
-                onclick={(ev) => {
-                  ev.preventDefault()
-                  ev.stopPropagation()
-                  onLeaveAccountHandler(info.username)
-                }}
-              >
-                <span class="*:size-5"><IconLogoutCircleRLine /></span>
-              </a>
-            {/if}
-          </button>
-        {/each}
-        <button type="button" onclick={onLogoutHandler}>
-          <span class="*:size-5"><IconLogout /></span>
-          <span>Logout</span>
-        </button>
-      </div>
+        {/if}
+        {#each accounts as account (account.id)}<button
+            disabled={switching || currentId === account.id}
+            onclick={() => switchAccount(account.name)}
+            >@{account.name}{currentId === account.id
+              ? ' · Current'
+              : ''}</button
+          >{/each}
+        {#if loading}<p class="px-3 py-2" role="status"
+            >Loading username accounts…</p
+          >{/if}
+        {#if switching}<p class="px-3 py-2" role="status">Switching identity…</p
+          >{/if}
+        {#if error}<p class="px-3 py-2 text-red-800" role="alert">{error}</p
+          ><button onclick={loadAccounts}>Retry account list</button>{/if}
+        <button onclick={() => authStore.logout('/legacy')}>Sign out</button>
+      {/if}
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>
+
+<style>
+  :global(.archive-account-menu) {
+    font-family:
+      Inter,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+  }
+  :global(.archive-account-menu > a),
+  :global(.archive-account-menu > button) {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px;
+    text-align: left;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+  }
+  :global(.archive-account-menu > a:hover),
+  :global(.archive-account-menu > button:hover) {
+    background: #edf1ea;
+  }
+  :global(.archive-account-menu > button:disabled) {
+    color: #4e6257;
+    cursor: default;
+  }
+  :global(.archive-account-menu :focus-visible) {
+    outline: 3px solid #145c45;
+    outline-offset: 2px;
+  }
+</style>

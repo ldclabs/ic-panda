@@ -1,4 +1,5 @@
 import { IS_LOCAL } from '$lib/constants'
+import { assertLegacyCallAllowed } from './legacy'
 import {
   AnonymousIdentity,
   HttpAgent,
@@ -217,6 +218,11 @@ export class AuthAgent extends HttpAgent {
   setIdentity(id: Identity) {
     this._id = id
     super.replaceIdentity(id)
+  }
+
+  override async call(...args: Parameters<HttpAgent['call']>) {
+    assertLegacyCallAllowed(args[1].methodName)
+    return super.call(...args)
   }
 }
 

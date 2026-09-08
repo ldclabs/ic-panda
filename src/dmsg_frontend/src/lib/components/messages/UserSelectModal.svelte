@@ -11,7 +11,7 @@
   import { toastRun } from '$lib/stores/toast'
   import { unwrapOption } from '$lib/types/result'
   import { clickOutside } from '$lib/utils/window'
-  import type { ProfileInfo } from '$src/declarations/ic_message_profile/ic_message_profile.did'
+  import type { ProfileInfo } from '$declarations/ic_message_profile/ic_message_profile.did.js'
   import { Principal } from '@icp-sdk/core/principal'
   import Avatar from '$lib/components/ui/Avatar.svelte'
   import { getModalStore, getToastStore } from '$lib/ui/stores'

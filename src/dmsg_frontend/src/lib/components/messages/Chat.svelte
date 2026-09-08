@@ -41,19 +41,16 @@
 
   setContext('onChatBack', onChatBack)
 
-  onMount(() => {
+  function unlockHistory() {
     const { abort } = toastRun(async function () {
       if (!$myInfo) {
-        return goto('/')
+        return goto('/legacy')
       }
 
       if (!isReady) {
         const iv = await myState.myIV()
         const masterKey = await myState.masterKey(iv)
-        isReady =
-          !!masterKey &&
-          masterKey.isOpened() &&
-          myState.masterKeyKind() === masterKey.kind
+        isReady = !!masterKey && masterKey.isOpened()
         if (!isReady) {
           modalStore.close()
 
@@ -75,11 +72,14 @@
       }
     }, toastStore)
     return abort
-  })
+  }
+
+  onMount(unlockHistory)
 </script>
 
 <div
-  class="relative h-full w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
+  style="height: var(--archive-height)"
+  class="relative h-full min-h-0 w-full sm:grid sm:grid-cols-[220px_1fr] md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr]"
 >
   <div
     class="channels-list h-full w-full transition-transform duration-300 dark:bg-neutral-950 {channelId.canister
@@ -94,11 +94,25 @@
         <ChannelDetail {channelId} {myState} {myInfo} />
       {:else}
         <div class="flex h-full flex-col items-center justify-center">
-          <img
-            class="w-24"
-            src="/_assets/logo.svg"
-            alt="ICPanda message logo"
-          />
+          <img class="w-24" src="/_assets/dmsg/private-gate.png" alt="dMsg" />
+          {#if !isReady}
+            <p class="mt-4 px-6 text-center text-sm"
+              >Unlock your existing keys to read this archive.</p
+            >
+            <button
+              class="button primary mt-4"
+              onclick={() => {
+                unlockHistory()
+              }}>Unlock legacy history</button
+            >
+            {#if channelId.canister}<a class="text-link mt-4" href="/_/messages"
+                >Back to channels</a
+              >{/if}
+          {:else}
+            <p class="mt-4 px-6 text-center text-sm"
+              >Choose a channel to read your history.</p
+            >
+          {/if}
         </div>
       {/if}
     {/key}

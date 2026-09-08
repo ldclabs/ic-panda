@@ -92,7 +92,10 @@ export class ChannelAPI {
     updated_at: bigint
   ): Promise<ChannelInfo | null> {
     const res = await this.actor.get_channel_if_update(id, updated_at)
-    const info = unwrapResult(res, 'call get_channel_if_update failed')
+    const info = unwrapResult<[] | [ChannelInfo], string>(
+      res,
+      'call get_channel_if_update failed'
+    )
     return info.length == 1 ? info[0] : null
   }
 
@@ -117,7 +120,10 @@ export class ChannelAPI {
 
   async my_channel_ids(): Promise<number[]> {
     const res = await this.actor.my_channel_ids()
-    const rt = unwrapResult(res, 'call my_channel_ids failed')
+    const rt = unwrapResult<Uint32Array | number[], string>(
+      res,
+      'call my_channel_ids failed'
+    )
     return rt instanceof Uint32Array ? Array.from(rt) : rt
   }
 
@@ -158,10 +164,10 @@ export class ChannelAPI {
     input: UpdateChannelMemberInput
   ): Promise<[bigint, Message | null]> {
     const res = await this.actor.update_manager(input)
-    const [updated_at, message] = unwrapResult(
-      res,
-      'call update_manager failed'
-    )
+    const [updated_at, message] = unwrapResult<
+      [bigint, [] | [Message]],
+      string
+    >(res, 'call update_manager failed')
     return [updated_at, message.length == 1 ? message[0] : null]
   }
 
@@ -169,7 +175,10 @@ export class ChannelAPI {
     input: UpdateChannelMemberInput
   ): Promise<[bigint, Message | null]> {
     const res = await this.actor.update_member(input)
-    const [updated_at, message] = unwrapResult(res, 'call update_member failed')
+    const [updated_at, message] = unwrapResult<
+      [bigint, [] | [Message]],
+      string
+    >(res, 'call update_member failed')
     return [updated_at, message.length == 1 ? message[0] : null]
   }
 
