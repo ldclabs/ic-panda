@@ -1233,12 +1233,6 @@ body:has(.dmsg-site):not(:has(.legacy-app)) {
   .dmsg-site .nav-wrap {
     gap: 4px;
   }
-  .dmsg-site .nav-wrap .locale-picker [aria-hidden='true'] {
-    display: none;
-  }
-  .dmsg-site .nav-wrap .locale-picker select {
-    width: 96px;
-  }
 }
 
 /* Cyrillic headings need a smaller minimum on narrow screens so long words
