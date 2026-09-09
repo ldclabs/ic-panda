@@ -114,7 +114,7 @@ fn recover_eth_address(
     let verifying_key =
         VerifyingKey::recover_from_prehash(&eip191_hash(message), &signature, recovery_id)
             .map_err(|_| "public key recovery failed".to_string())?;
-    let public_key = verifying_key.to_encoded_point(false);
+    let public_key = verifying_key.to_sec1_point(false);
     let digest = keccak256(&public_key.as_bytes()[1..]);
     let mut address = [0u8; ETH_ADDRESS_BYTES];
     address.copy_from_slice(&digest[12..]);
