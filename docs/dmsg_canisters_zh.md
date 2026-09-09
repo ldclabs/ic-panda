@@ -4,19 +4,19 @@
 
 ## 组件
 
-| 包 | 职责 | Candid |
-| --- | --- | --- |
-| `dmsg_user` | 稳定 subject、认证绑定、设备能力、恢复、根承诺 CAS、敏感执行授权 | [dmsg_user.did](../src/dmsg_user/dmsg_user.did) |
-| `dmsg_handle` | 全局名称、冻结快照预留/认领、PANDA 注册、双方确认转移、认证解析 | [dmsg_handle.did](../src/dmsg_handle/dmsg_handle.did) |
-| `dmsg_cose` | 固定 key home、生产 key 校验、受限签名/vetKD、执行去重与成本上限 | [dmsg_cose.did](../src/dmsg_cose/dmsg_cose.did) |
-| `dmsg_payment` | 固定报价托管、账本入金核验、结算/退款互斥、可恢复出金 outbox | [dmsg_payment.did](../src/dmsg_payment/dmsg_payment.did) |
-| `dmsg_types` | 公开 Rust/Candid 类型、确定性编码、验签、稳定存储和账本适配器 | [源码](../src/dmsg_types/src/lib.rs) |
+| 包             | 职责                                                             | Candid                                                   |
+| -------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| `dmsg_user`    | 稳定 subject、认证绑定、设备能力、恢复、根承诺 CAS、敏感执行授权 | [dmsg_user.did](../src/dmsg_user/dmsg_user.did)          |
+| `dmsg_handle`  | 全局名称、冻结快照预留/认领、PANDA 注册、双方确认转移、认证解析  | [dmsg_handle.did](../src/dmsg_handle/dmsg_handle.did)    |
+| `dmsg_cose`    | 固定 key home、生产 key 校验、受限签名/vetKD、执行去重与成本上限 | [dmsg_cose.did](../src/dmsg_cose/dmsg_cose.did)          |
+| `dmsg_payment` | 固定报价托管、账本入金核验、结算/退款互斥、可恢复出金 outbox     | [dmsg_payment.did](../src/dmsg_payment/dmsg_payment.did) |
+| `dmsg_types`   | 公开 Rust/Candid 类型、确定性编码、验签、稳定存储和账本适配器    | [源码](../src/dmsg_types/src/lib.rs)                     |
 
 所有新实例与旧 `ic_message`/Profile/Channel/COSE 独立。这里没有频道 ACL、内容 grant、消息、文件、profile 正文或定期 checkpoint 更新入口。普通内容同步不调用这些 canister。
 
 ## 构建和验证
 
-工具链：Rust 1.97.1、`wasm32-unknown-unknown` target、Node.js 22+、`candid-extractor` 0.1.6、PocketIC server 13.0.0。依赖版本由 `Cargo.lock` 固定。
+工具链：Rust 1.97.1、`wasm32-unknown-unknown` target、Node.js 22+、`candid-extractor` 0.1.6、PocketIC server 16.0.0。依赖版本由 `Cargo.lock` 固定。
 
 ```sh
 rustup target add wasm32-unknown-unknown

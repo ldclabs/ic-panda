@@ -13,7 +13,7 @@ required-features = ["pocketic-tests"]
 
 [dev-dependencies]
 dmsg_types = { path = "../../src/dmsg_types" }
-pocket-ic = "=13.0.0"
+pocket-ic = "=16.0.0"
 candid.workspace = true
 cbor2.workspace = true
 serde.workspace = true
