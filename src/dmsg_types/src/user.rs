@@ -58,7 +58,7 @@ pub struct RecoveryPolicy {
     pub generation: u64,
     pub signing_pub: Hash,
     pub hpke_pub: Hash,
-    pub delay_ns: u64,
+    pub delay_ms: u64,
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum VaultWriteState {
@@ -232,7 +232,7 @@ pub struct SecuritySnapshot {
     pub recovery_hpke_pub: Option<Hash>,
     pub recovery_signing_pub: Option<Hash>,
     pub recovery_nonce: u64,
-    pub recovery_delay_ns: Option<u64>,
+    pub recovery_delay_ms: Option<u64>,
     pub pending_recovery_digest: Option<Hash>,
     pub content_root_generation: u64,
     pub content_root_digest: Option<Hash>,
@@ -252,7 +252,7 @@ impl Subject {
             recovery_hpke_pub: self.recovery.as_ref().map(|r| r.hpke_pub),
             recovery_signing_pub: self.recovery.as_ref().map(|r| r.signing_pub),
             recovery_nonce: self.recovery_nonce,
-            recovery_delay_ns: self.recovery.as_ref().map(|r| r.delay_ns),
+            recovery_delay_ms: self.recovery.as_ref().map(|r| r.delay_ms),
             pending_recovery_digest: self
                 .pending_recovery
                 .as_ref()

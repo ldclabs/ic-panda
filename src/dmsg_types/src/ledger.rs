@@ -10,6 +10,43 @@ use icrc_ledger_types::{
 use num_traits::ToPrimitive;
 use std::collections::BTreeMap;
 
+/// Serde adapter for protocol accounts. ICRC's external Account type uses an
+/// unannotated array for subaccounts; the dMsg CBOR contract uses fixed bytes.
+pub mod account_cbor {
+    use super::*;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    struct EncodedAccount {
+        owner: Principal,
+        subaccount: Option<Hash>,
+    }
+
+    pub fn value(account: &Account) -> impl Serialize {
+        EncodedAccount {
+            owner: account.owner,
+            subaccount: account.subaccount.map(Hash::new),
+        }
+    }
+
+    pub fn serialize<S: Serializer>(
+        account: &Account,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        value(account).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Account, D::Error> {
+        let account = EncodedAccount::deserialize(deserializer)?;
+        Ok(Account {
+            owner: account.owner,
+            subaccount: account.subaccount.map(Hash::into_array),
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifiedTransfer {
     pub block: u64,
@@ -17,8 +54,10 @@ pub struct VerifiedTransfer {
     pub to: Account,
     pub amount: u128,
     pub fee: Option<u128>,
+    /// Ledger block timestamp converted to Unix milliseconds (floor).
     pub committed_at: u64,
     pub memo: Option<Vec<u8>>,
+    /// Exact sender timestamp in Unix nanoseconds, used for reconciliation.
     pub created_at_time: Option<u64>,
     pub spender: Option<Account>,
 }
@@ -86,7 +125,7 @@ pub fn parse_transfer(block: u64, value: &Value) -> Result<VerifiedTransfer> {
         to: account(field(tx, "to")?)?,
         amount: amount(field(tx, "amt")?)?,
         fee: b.get("fee").or(tx.get("fee")).map(amount).transpose()?,
-        committed_at: uint(field(b, "ts")?)?,
+        committed_at: nanos_to_millis(uint(field(b, "ts")?)?),
         memo: tx.get("memo").map(blob).transpose()?,
         created_at_time: tx.get("ts").map(uint).transpose()?,
         spender: tx.get("spender").map(account).transpose()?,
@@ -157,7 +196,10 @@ mod tests {
             ("amt".into(), n(100)),
             ("ts".into(), n(1)),
         ]);
-        let mut b = BTreeMap::from([("ts".into(), n(999)), ("tx".into(), Value::Map(tx.clone()))]);
+        let mut b = BTreeMap::from([
+            ("ts".into(), n(999_999_999)),
+            ("tx".into(), Value::Map(tx.clone())),
+        ]);
         assert_eq!(
             parse_transfer(7, &Value::Map(b.clone()))
                 .unwrap()
@@ -167,7 +209,7 @@ mod tests {
         b.remove("ts");
         assert!(parse_transfer(7, &Value::Map(b.clone())).is_err());
         tx.insert("op".into(), Value::Text("mint".into()));
-        b.insert("ts".into(), n(999));
+        b.insert("ts".into(), n(999_999_999));
         b.insert("tx".into(), Value::Map(tx));
         assert!(parse_transfer(7, &Value::Map(b)).is_err());
     }
@@ -180,7 +222,7 @@ mod tests {
             ("amt".into(), n(100)),
         ]));
         let mut block = BTreeMap::from([
-            ("ts".into(), n(999)),
+            ("ts".into(), n(999_999_999)),
             ("btype".into(), Value::Text("2xfer".into())),
             ("tx".into(), tx),
         ]);

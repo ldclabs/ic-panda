@@ -263,7 +263,7 @@ export interface RecoveryConfirmation {
   'expires_at' : bigint,
 }
 export interface RecoveryPolicy {
-  'delay_ns' : bigint,
+  'delay_ms' : bigint,
   'generation' : bigint,
   'hpke_pub' : Uint8Array | number[],
   'signing_pub' : Uint8Array | number[],
@@ -318,7 +318,7 @@ export interface SecuritySnapshot {
   'recovery_root_version' : bigint,
   'home_user' : Principal,
   'subject_id' : Uint8Array | number[],
-  'recovery_delay_ns' : [] | [bigint],
+  'recovery_delay_ms' : [] | [bigint],
   'recovery_signing_pub' : [] | [Uint8Array | number[]],
   'vault_write_state' : VaultWriteState,
   'account_status' : AccountStatus,

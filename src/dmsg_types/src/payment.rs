@@ -16,6 +16,7 @@ pub struct ReceiptSigner {
 pub struct PaymentInit {
     pub home_user: Principal,
     pub ledger: Principal,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub platform: Account,
     pub service_fee: u128,
     pub ledger_fee: u128,
@@ -33,6 +34,7 @@ pub struct PaymentOffer {
     pub home_payment: Principal,
     pub offer_id: Hash,
     pub ledger: Principal,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub recipient: Account,
     pub recipient_net: u128,
     pub quote_scope: Hash,
@@ -49,19 +51,22 @@ pub struct SignedOffer {
 pub struct Quote {
     pub quote_id: Hash,
     pub home_payment: Principal,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub payer: Account,
     pub offer_digest: Hash,
     pub quote_scope: Hash,
     pub ledger: Principal,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub recipient: Account,
     pub recipient_net: u128,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub platform: Account,
     pub service_fee: u128,
     pub fee_reserve: u128,
     pub amount: u128,
     pub max_network_fee: u128,
     pub max_bytes: u32,
-    pub retain_ns: u64,
+    pub retain_ms: u64,
     pub envelope_digest: Hash,
     pub signer_epoch: u64,
     pub created_at: u64,
@@ -136,6 +141,7 @@ impl Escrow {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Deposit {
     pub block: u64,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub from: Account,
     pub amount: u128,
     pub committed_at: u64,
@@ -163,10 +169,12 @@ pub struct TransferLeg {
     pub escrow_id: Hash,
     pub leg_id: u64,
     pub kind: LegKind,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub to: Account,
     pub amount: u128,
     pub fee: u128,
     pub memo: Hash,
+    /// Fixed ICRC transfer timestamp in Unix nanoseconds, preserved on retries.
     pub created_at_time: u64,
     pub status: LegStatus,
     pub block: Option<u64>,

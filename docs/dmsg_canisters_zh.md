@@ -37,13 +37,14 @@ PocketIC 测试通过 `dmsg_integration/pocketic-tests` feature 显式启用，�
 
 ## 编码和调用约定
 
-- 时间统一为 ICP 共识时间的 Unix **纳秒**；金额和 cycles 为整数。
-- `SubjectId`、`OpId`、摘要、设备 ID 为 32 字节。Candid 表示为 `blob`，Rust 解码校验固定长度。
+- dMsg 业务时间戳统一为 ICP 共识时间的 Unix **毫秒**，在 canister 入口以 `ic_cdk::api::time() / 1_000_000` 向下取整；时长也使用毫秒。`SECOND = 1_000`、`MINUTE = 60_000`、`DAY = 86_400_000`；恢复延迟和保留时长字段分别为 `delay_ms`、`recovery_delay_ms`、`retain_ms`。金额和 cycles 为整数。
+- ICP 原始时间、证书 `/time`、身份委托期限和 ICRC 账本时间仍遵循平台的**纳秒**约定。证书时间在校验后换算为毫秒；账本外层 `block.ts` 在适配器中向下取整为毫秒后参与业务比较。ICRC `created_at_time` 及 `TransferLeg.created_at_time` 保留纳秒，用 `millis_to_nanos` 检查溢出并转换；账本重试和对账始终保留、比较原始纳秒值。
+- `Hash`、`SubjectId`、`OpId`、摘要、设备 ID 和固定公钥均使用 `serde_bytes::ByteArray<32>`，Candid 表示为 `blob`，Rust 解码校验固定长度。客户端的 CBOR 字节值使用 `Uint8Array`，不能用普通数字数组代替。
 - 签名使用 RFC 8949 core deterministic CBOR。map key 按编码字节排序；拒绝重编码后不一致的正式载荷、未知字段/版本和超长输入。
-- Rust `[u8; 32]` 在 CBOR 中是整数数组；`ByteBuf` 和 Principal 是字节串。不可把 Candid 的 blob 展示方式直接当作 CBOR 格式。
+- CBOR 格式并不规定 Rust `[u8; 32]` 必须是整数数组：Serde 默认按通用数组序列化，需要通过 `#[serde(with = "serde_bytes")]` 或 `serde_bytes` 包装类型显式标记字节语义。这里用 `ByteArray<32>` 统一覆盖字段、元组、`Option`、集合及 map key，使固定字节值编码为 CBOR 字节串（32 字节以 `58 20` 开头）；`ByteBuf` 和 Principal 也编码为字节串。外部 ICRC `Account` 的 `subaccount` 通过 `ledger::account_cbor` 适配，名称付款摘要使用 `charge_terms_digest`。Candid 与 CBOR 的编码约定应分别核对。[Serde 字节编码说明](https://docs.rs/serde_bytes/latest/serde_bytes/)
 - `digest(domain, value) = SHA256(CBOR([1, domain, value]))`。设备签署的是 `approval_message` 返回的 32 字节摘要，使用严格 Ed25519 验签。
 - [`protocol.rs`](../src/dmsg_types/src/protocol.rs) 定义批准摘要：目标 canister、subject、操作域、device、security epoch、单调 sequence、request ID、expires_at、命令摘要全部绑定。
-- [`protocol_vectors.json`](../src/dmsg_types/tests/protocol_vectors.json) 和 [`verify-dmsg-vectors.mjs`](../scripts/verify-dmsg-vectors.mjs) 是独立 Rust/JavaScript 互操作向量，包含大整数和 Principal；向量里的固定 seed 仅用于测试。
+- [`protocol_vectors.json`](../src/dmsg_types/tests/protocol_vectors.json) 和 [`verify-dmsg-vectors.mjs`](../scripts/verify-dmsg-vectors.mjs) 是独立 Rust/JavaScript 互操作向量，包含毫秒时间戳、固定字节值及其容器、ICRC 子账户、大整数和 Principal；向量里的固定 seed 仅用于测试。
 
 账户变更签名域为 `dmsg/account/v1`，命令值为 `[expected_version, AccountCommand]`；执行域为 `dmsg/execute/v1`，命令值为 `[ExecutionKind, max_cycles]`。正式执行的 request_id 必须通过 `execution_request_id(subject, security_epoch, device_id, device_sequence)` 计算，即 `digest("dmsg/execution-request/v1", [subject, security_epoch, device_id, device_sequence])`；不能自行选择随机 ID。user 检查设备序号，cose 校验同一绑定并保留全局执行水位，结果清理后不能使用新序号复用旧 ID。初始设备 PoP、设备新增、恢复登记/核对/请求/再确认、名称、报价和受理收据各有独立域，准确字段顺序以对应 model 和测试为准。
 
@@ -87,7 +88,7 @@ PocketIC 测试通过 `dmsg_integration/pocketic-tests` feature 显式启用，�
 
 名称规则保持 ASCII 小写字母/数字/下划线、最长 20 字符、不能以下划线开始。PANDA 价格保持长度 1/2/3–4/5–6/7+ 对应 100万/20万/5万/2万/5000 PANDA；账本精度 `10^8`，与旧服务一样从标价扣除固定账本 fee 后转入服务。
 
-注册先由 user 批准 `HandleIntent`，再 `reserve_handle` 原子锁定名称和主体操作，最后 `commit_handle`。新的 spender 是 dmsg_handle，旧 allowance 不迁移。付款参数、memo、created_at_time 固定。未知扣款保持锁定，支持原参数重试/Duplicate 和指定账本块对账；不会到期后自动再出售。只有未发起扣款的普通预留可到期释放，旧名称预留不会释放。
+注册先由 user 批准 `HandleIntent`，再 `reserve_handle` 原子锁定名称和主体操作，最后 `commit_handle`。新的 spender 是 dmsg_handle，旧 allowance 不迁移。付款参数和 memo 固定；业务 `created_at` 为毫秒，发送 ICRC 请求及对账时转换为固定的纳秒 `created_at_time`。未知扣款保持锁定，支持原参数重试/Duplicate 和指定账本块对账；不会到期后自动再出售。只有未发起扣款的普通预留可到期释放，旧名称预留不会释放。
 
 `transfer_handle` 要求双方主体针对同一名称、版本、op_id 的授权。转移只改变 HandleRecord 和独立名称事件链；不会改变旧身份、subject、内容 key 或任何应用权限。旧 `ic_message` 的 canister ID、原 myIV、测试根和数据没有被本实现改写。
 
@@ -97,7 +98,7 @@ PaymentInit 固定单一受支持 ledger、user home、平台账户、服务费�
 
 每单独立 subaccount；默认 `fund_by=created_at+15 分钟`，`accept_by=fund_by+30 分钟`。`check_funding` 通过固定账本的 `icrc3_get_blocks` 及其返回的归档 callback 核验 `1xfer`/`2xfer` 记录（btype 优先，缺失时才使用旧 tx.op），使用外层区块 `ts`，不采用付款者提供的交易创建时间。不支持该账本 schema 的资产不得启用。
 
-一笔符合原出资账户、金额及 `block.ts < fund_by` 的转账成为主入金；不合并多笔少付。每个 block 只认领一次，多付、额外付款和迟到入金归其实际原始出资账户。`finalize_receipt` 在已保存入金基础上本地提交唯一结算方向；`now < accept_by` 才能结算，`now >= accept_by` 任何人可提交 `expiry_refund`。未知入金也能先决定退款，迟到查询继续走退款。
+一笔符合原出资账户、金额及 `floor(block.ts / 1_000_000) < fund_by` 的转账成为主入金；适配器输出的 `committed_at`、订单 `funded_at` 和期限均为毫秒。这与原始纳秒时间严格早于毫秒截止时刻等价；恰好到达截止时刻的入金属于迟到款。不合并多笔少付。每个 block 只认领一次，多付、额外付款和迟到入金归其实际原始出资账户。`finalize_receipt` 在已保存入金基础上本地提交唯一结算方向；`now < accept_by` 才能结算，`now >= accept_by` 任何人可提交 `expiry_refund`。未知入金也能先决定退款，迟到查询继续走退款。
 
 `FundsDecision` 是资金方向，**不是到账完成**。固定转账腿保存在 outbox，通过 `process_transfer` 发送；Duplicate 归并为同一成功。Pending、明确失败及 Unknown 的重试均保持原始所有转账参数，也可用 `reconcile_transfer` 查询指定真实账本块，绝不刷新未知转账的 timestamp。只有付款方或本次收款账户的控制者能调用 `revise_rejected_transfer`。BadFee 修复必须使用账本已返回的 expected_fee，其他明确拒绝只能保持原 fee、更新时间戳；不能随意选择一个注定失败的手续费。BadFee 增量只消耗批准上限内的原 fee reserve，不减少 recipient_net。每条出金链最多保留 8 个当前/已拒绝版本，较早的 Superseded 版本折叠到 history_digest；成功、在途和 Unknown 记录不参与清理。leg_id 始终递增，清理不会使旧 ID 再次可执行。无法承担费用时保持 FeeBlocked。
 
@@ -111,7 +112,9 @@ confirmed_in = liabilities + transferred + network_fees
 
 ## 稳定布局与发布前工作
 
-本轮执行 ID 及恢复确认参数属于首版开发合同调整，配套客户端必须使用新 helper 和 Candid；旧开发实例的未执行随机 ID 审批需要重新批准或显式迁移，不能静默重放。正式 key 的派生路径和已提交内容根的派生输入未改变。
+本轮毫秒时间、CBOR 字节编码、执行 ID 及恢复确认参数属于首版开发合同调整，配套客户端必须同步 helper、Candid 绑定和互操作向量。签名域和正式 schema 仍沿用首版版本号，但不能据此混用旧编码。固定字节值的编码变化会改变批准摘要、执行 ID、认证叶、事件链和快照承诺，旧签名与报价必须重新生成，不能静默重放。
+
+正式 key 的原始字节派生路径保持不变；vetKD 的 `CBOR([subject, generation])` 则因 subject 改为字节串而改变，派生出的内容根 key 也会变化。已有开发根必须用旧输入解封后显式换根并更新 bundle，不能仅替换服务端编码。稳定存储版本升为 `STABLE_SCHEMA = 2`，四个 canister 在升级入口拒绝旧版本状态；尚未提供自动迁移器。旧开发实例需重建，或先完成保留原签名证据、根解封能力和账本原始转账参数的显式迁移。
 
 所有状态按记录写入 `ic-stable-structures`，不依赖 pre_upgrade 序列化整个堆。各 canister 的 stable table memory ID 固定在其 `lib.rs`；后续版本只能显式迁移，不能复用 ID 或把旧服务状态直接装入新实例。认证树在升级后由稳定记录重建；大规模状态的升级指令量/内存仍须实测。
 

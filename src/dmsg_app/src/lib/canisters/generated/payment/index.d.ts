@@ -147,7 +147,7 @@ export interface Quote {
   'payer' : Account,
   'amount' : bigint,
   'home_payment' : Principal,
-  'retain_ns' : bigint,
+  'retain_ms' : bigint,
   'recipient_net' : bigint,
   'signer_epoch' : bigint,
   'fund_by' : bigint,

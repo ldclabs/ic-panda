@@ -6,6 +6,26 @@ import assert from 'node:assert/strict'
 
 const input = process.argv[2] ?? new URL('../src/dmsg_types/tests/protocol_vectors.json', import.meta.url)
 const vectors = JSON.parse(readFileSync(input, 'utf8'))
+const fixture = (name) => {
+  const vector = vectors.find((v) => v.name === name)
+  assert(vector, `missing ${name}`)
+  return vector.value
+}
+const field = (value, name) => value.map.find(([k]) => k.text === name)[1]
+const fixedBytes = (value) => assert.match(value.bytes, /^[0-9a-f]{64}$/)
+const formal = fixture('formal_file_v1')
+assert.equal(field(formal, 'expires_at').uint, '1800000000000')
+fixedBytes(field(formal, 'subject'))
+fixedBytes(field(formal, 'request_id'))
+fixedBytes(fixture('root_input_v1').array[0])
+fixedBytes(fixture('principal_and_generation').array[1])
+for (const i of [0, 2]) fixedBytes(fixture('execution_request_id_v1').array[2].array[i])
+const containers = fixture('fixed_bytes_containers').array
+fixedBytes(containers[0])
+fixedBytes(containers[1])
+for (const value of containers[2].map[0]) fixedBytes(value)
+fixedBytes(field(fixture('account_with_subaccount'), 'subaccount'))
+
 function head(major, n) {
   n = BigInt(n)
   if (n < 24n) return Buffer.from([major << 5 | Number(n)])

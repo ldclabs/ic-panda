@@ -32,23 +32,26 @@ fn derivation_request(f: &Fixture, subject: Hash, transport: Vec<u8>) -> Execute
         transport_key: transport.into(),
     };
     let max_cycles = 100_000_000_000u128;
-    let sequence = s.devices[&[1; 32]].next_sequence;
+    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
     let mut approval = Approval {
-        device_id: [1; 32],
+        device_id: Hash::new([1; 32]),
         security_epoch: s.security_epoch,
         sequence,
-        request_id: execution_request_id(subject, s.security_epoch, [1; 32], sequence),
+        request_id: execution_request_id(subject, s.security_epoch, Hash::new([1; 32]), sequence),
         expires_at: time(&f.ic) + MINUTE,
         signature: ByteBuf::new(),
     };
     approval.signature = key(1)
-        .sign(&approval_message(
-            f.user,
-            subject,
-            "dmsg/execute/v1",
-            &(&kind, max_cycles),
-            &approval,
-        ))
+        .sign(
+            approval_message(
+                f.user,
+                subject,
+                "dmsg/execute/v1",
+                &(&kind, max_cycles),
+                &approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();
@@ -67,7 +70,7 @@ fn root_user(f: &Fixture) -> Hash {
         subject,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
-            op_id: [8; 32],
+            op_id: Hash::new([8; 32]),
         },
     )
     .unwrap();
@@ -76,14 +79,14 @@ fn root_user(f: &Fixture) -> Hash {
         subject,
         AccountCommand::CommitRoot {
             expected_generation: 0,
-            op_id: [8; 32],
+            op_id: Hash::new([8; 32]),
             root: ContentRootRef {
                 generation: 1,
                 suite: "dmsg-root-v1".into(),
                 home_cose: f.cose,
                 derivation_version: 1,
                 key_generation: 1,
-                bundle_digest: [12; 32],
+                bundle_digest: Hash::new([12; 32]),
                 recovery_generation: 1,
             },
         },
@@ -101,11 +104,11 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     let owner = f.create(1);
     let snapshot = LegacySnapshot {
         source_canister: person(80),
-        snapshot_id: [5; 32],
+        snapshot_id: Hash::new([5; 32]),
         freeze_version: 1,
-        event_tip: [7; 32],
+        event_tip: Hash::new([7; 32]),
         count: 0,
-        entries_digest: [0; 32],
+        entries_digest: Hash::new([0; 32]),
     };
     let started: Result<()> = update(
         &f.ic,
@@ -125,7 +128,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     sealed.unwrap();
     let amount = price("newname") - 10;
     let payer = account(person(1));
-    let op_id = [11u8; 32];
+    let op_id = Hash::new([11u8; 32]);
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
@@ -134,7 +137,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
         handle: "newname".into(),
         expected_version: 0,
         op_id,
-        terms_digest: digest("dmsg/handle-charge/v1", &(f.ledger, payer, amount, 10u128)),
+        terms_digest: charge_terms_digest(f.ledger, &payer, amount, 10u128),
     };
     f.mutate(
         1,
@@ -211,27 +214,27 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     let snapshot = public.unwrap().0;
     assert_eq!(
         snapshot.recovery_signing_pub,
-        Some(key(70).verifying_key().to_bytes())
+        Some(key(70).verifying_key().to_bytes().into())
     );
     let request = RecoveryRequest {
-        op_id: [41; 32],
+        op_id: Hash::new([41; 32]),
         new_auth: person(9),
         device: device(9),
         generation: snapshot.recovery_root_version,
         expires_at: time(&f.ic) + DAY + MINUTE,
     };
     let signature = key(70)
-        .sign(&digest(
-            "dmsg/recovery-request/v1",
-            &(f.user, subject, snapshot.recovery_nonce, &request),
-        ))
+        .sign(
+            digest(
+                "dmsg/recovery-request/v1",
+                &(f.user, subject, snapshot.recovery_nonce, &request),
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec();
     let pop = key(9)
-        .sign(&digest(
-            "dmsg/recovery-device/v1",
-            &(f.user, subject, &request),
-        ))
+        .sign(digest("dmsg/recovery-device/v1", &(f.user, subject, &request)).as_slice())
         .to_bytes()
         .to_vec();
     let submitted: Result<()> = update(
@@ -252,7 +255,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         subject,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [42; 32],
+            dispute: Hash::new([42; 32]),
         },
     )
     .unwrap();
@@ -290,13 +293,16 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     };
     let sig = ByteBuf::from(
         key(70)
-            .sign(&recovery_confirmation_message(
-                f.user,
-                subject,
-                leaf.recovery_nonce,
-                &request,
-                &confirmation,
-            ))
+            .sign(
+                recovery_confirmation_message(
+                    f.user,
+                    subject,
+                    leaf.recovery_nonce,
+                    &request,
+                    &confirmation,
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec(),
     );
@@ -323,7 +329,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         subject,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [43; 32],
+            dispute: Hash::new([43; 32]),
         },
     )
     .unwrap();
@@ -349,7 +355,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     let restored: Result<Option<PendingRecovery>> =
         query(&f.ic, f.user, person(9), "get_recovery_request", (subject,));
     assert_eq!(restored.unwrap(), Some(confirmed.clone()));
-    f.ic.advance_time(Duration::from_nanos(confirmed.execute_after - time(&f.ic)));
+    f.ic.advance_time(Duration::from_millis(confirmed.execute_after - time(&f.ic)));
     let completed: Result<()> = update(&f.ic, f.user, person(9), "complete_recovery", (subject,));
     completed.unwrap();
     assert_eq!(f.subject(9, subject).auth_bindings, vec![person(9)]);
@@ -410,13 +416,16 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     let mut reused = derivation_request(&f, subject, transport.public_key());
     reused.approval.request_id = first.approval.request_id;
     reused.approval.signature = key(1)
-        .sign(&approval_message(
-            f.user,
-            subject,
-            "dmsg/execute/v1",
-            &(&reused.kind, reused.max_cycles),
-            &reused.approval,
-        ))
+        .sign(
+            approval_message(
+                f.user,
+                subject,
+                "dmsg/execute/v1",
+                &(&reused.kind, reused.max_cycles),
+                &reused.approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();
@@ -432,13 +441,13 @@ fn valid_presigned_offer_survives_a_minute_but_current_revocation_still_applies(
     let mut old = f.order(subject, 2, 1);
     old.offer.offer.expires_at = time(&f.ic) + DAY;
     old.offer.signature = key(2)
-        .sign(&digest("dmsg/payment-offer/v1", &old.offer.offer))
+        .sign(digest("dmsg/payment-offer/v1", &old.offer.offer).as_slice())
         .to_bytes()
         .to_vec()
         .into();
     old.quote.offer_digest = digest("dmsg/payment-offer/v1", &old.offer.offer);
     old.quote_signature = key(50)
-        .sign(&digest("dmsg/quote/v1", &old.quote))
+        .sign(digest("dmsg/quote/v1", &old.quote).as_slice())
         .to_bytes()
         .to_vec()
         .into();
@@ -556,7 +565,7 @@ fn bounded_failed_history_keeps_the_latest_transfer_recoverable() {
     assert_eq!(legs.len(), TRANSFER_HISTORY_LIMIT + 1); // independent platform leg
     let current = legs.iter().find(|l| l.leg_id == latest).unwrap();
     assert_eq!(current.revision, 16);
-    assert_ne!(current.history_digest, [0; 32]);
+    assert_ne!(current.history_digest, Hash::new([0; 32]));
     let stale: Result<TransferLeg> = update(
         &f.ic,
         f.payment,

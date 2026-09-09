@@ -36,14 +36,14 @@ fn config() -> Config {
     CONFIG.with_borrow(|t| t.get(b"config").expect("initialized"))
 }
 fn load(id: &Hash) -> Result<Subject> {
-    SUBJECTS.with_borrow(|t| t.get(id).ok_or(Error::NotFound))
+    SUBJECTS.with_borrow(|t| t.get(id.as_slice()).ok_or(Error::NotFound))
 }
 fn save(s: &Subject) {
-    SUBJECTS.with_borrow_mut(|t| t.put(&s.subject_id, s));
+    SUBJECTS.with_borrow_mut(|t| t.put(s.subject_id.as_slice(), s));
     CERT.with_borrow_mut(|c| c.put(s.subject_id.to_vec(), &s.snapshot()));
 }
 fn now() -> u64 {
-    ic_cdk::api::time()
+    nanos_to_millis(ic_cdk::api::time())
 }
 fn caller() -> Principal {
     ic_cdk::api::msg_caller()
@@ -73,7 +73,7 @@ fn init(args: UserInit) {
         t.put(
             b"config",
             &Config {
-                schema: 1,
+                schema: STABLE_SCHEMA,
                 init: args,
                 day: 0,
                 created_today: 0,
@@ -84,8 +84,12 @@ fn init(args: UserInit) {
 }
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    assert_eq!(
+        config().schema,
+        STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
     CERT.with_borrow(|c| c.publish());
-    assert_eq!(config().schema, 1, "unsupported stable schema");
     SUBJECTS.with_borrow(|t| {
         t.for_each::<Subject>(|key, s| CERT.with_borrow_mut(|c| c.put(key, &s.snapshot())))
     });
@@ -101,7 +105,14 @@ async fn create_subject(input: CreateSubject) -> Result<SubjectId> {
         return Ok(id);
     }
     // Validate the PoP before spending randomness cycles.
-    model::create(me(), cfg.init.home_cose, [1; 32], who, &input, now())?;
+    model::create(
+        me(),
+        cfg.init.home_cose,
+        Hash::new([1; 32]),
+        who,
+        &input,
+        now(),
+    )?;
     ensure(
         SUBJECTS.with_borrow(|t| t.len()) < cfg.init.max_subjects,
         Error::QuotaExceeded,
@@ -130,6 +141,7 @@ async fn create_subject(input: CreateSubject) -> Result<SubjectId> {
     let random = ic_cdk_management_canister::raw_rand()
         .await
         .map_err(|_| Error::Unavailable("randomness".into()))?;
+    let random = Hash::new(random.try_into().map_err(|_| Error::IntegrityFailed)?);
     if let Some(id) = AUTH.with_borrow(|t| t.get::<Hash>(who.as_slice())) {
         return Ok(id);
     }
@@ -146,7 +158,7 @@ async fn create_subject(input: CreateSubject) -> Result<SubjectId> {
     )?;
     let id = digest("dmsg/subject-id/v1", &(me(), random));
     ensure(
-        !SUBJECTS.with_borrow(|t| t.contains(&id)),
+        !SUBJECTS.with_borrow(|t| t.contains(id.as_slice())),
         Error::VersionConflict,
     )?;
     let subject = model::create(me(), cfg.init.home_cose, id, who, &input, now())?;
@@ -350,7 +362,7 @@ fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
     ensure(o.issued_at <= now() && now() < o.expires_at, Error::Expired)?;
     verify(
         &d.input.signing_pub,
-        &digest("dmsg/payment-offer/v1", o),
+        digest("dmsg/payment-offer/v1", o).as_slice(),
         &signed.signature,
     )?;
     Ok(now())

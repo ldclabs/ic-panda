@@ -141,7 +141,7 @@ type Quote = record {
   payer : Account;
   amount : nat;
   home_payment : principal;
-  retain_ns : nat64;
+  retain_ms : nat64;
   recipient_net : nat;
   signer_epoch : nat64;
   fund_by : nat64;
@@ -172,6 +172,7 @@ type TransferLeg = record {
   memo : blob;
   leg_id : nat64;
   block : opt nat64;
+  // Fixed ICRC transfer timestamp in Unix nanoseconds, preserved on retries.
   created_at_time : nat64;
   escrow_id : blob;
   revision : nat64;

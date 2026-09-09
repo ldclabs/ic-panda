@@ -26,7 +26,7 @@ impl Table {
     pub fn get<T: DeserializeOwned>(&self, key: &[u8]) -> Option<T> {
         self.0
             .get(&key.to_vec())
-            .map(|b| cbor2::from_slice(&b).expect("stable schema v1"))
+            .map(|b| cbor2::from_slice(&b).expect("stable record schema"))
     }
     pub fn put<T: Serialize>(&mut self, key: &[u8], value: &T) {
         self.0
@@ -52,7 +52,7 @@ impl Table {
             .map(|item| {
                 (
                     item.key().clone(),
-                    cbor2::from_slice(&item.value()).expect("stable schema v1"),
+                    cbor2::from_slice(&item.value()).expect("stable record schema"),
                 )
             })
             .collect()
@@ -61,7 +61,7 @@ impl Table {
         for item in self.0.iter() {
             f(
                 item.key().clone(),
-                cbor2::from_slice(&item.value()).expect("stable schema v1"),
+                cbor2::from_slice(&item.value()).expect("stable record schema"),
             );
         }
     }

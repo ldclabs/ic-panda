@@ -21,10 +21,11 @@ pub fn create(
     )?;
     verify(
         &input.device.signing_pub,
-        &digest(
+        digest(
             "dmsg/create-subject/v1",
             &(id, caller, &input.device, input.op_id, input.expires_at),
-        ),
+        )
+        .as_slice(),
         &input.proof,
     )?;
     Ok(Subject {
@@ -95,7 +96,7 @@ pub fn check_device<'a, T: serde::Serialize>(
     nonzero(&approval.request_id)?;
     verify(
         &device.input.signing_pub,
-        &approval_message(s.home_user, s.subject_id, domain, payload, approval),
+        approval_message(s.home_user, s.subject_id, domain, payload, approval).as_slice(),
         &approval.signature,
     )?;
     Ok(device)
@@ -191,7 +192,7 @@ pub fn apply(
             )?;
             verify(
                 &device.signing_pub,
-                &digest(
+                digest(
                     "dmsg/add-device/v1",
                     &(
                         s.home_user,
@@ -200,7 +201,8 @@ pub fn apply(
                         m.expected_version,
                         m.approval.request_id,
                     ),
-                ),
+                )
+                .as_slice(),
                 proof,
             )?;
             next.devices.insert(
@@ -259,16 +261,17 @@ pub fn apply(
             let generation = s.recovery.as_ref().map_or(0, |r| r.generation);
             ensure(
                 policy.generation == generation.checked_add(1).ok_or(Error::QuotaExceeded)?
-                    && (DAY..=7 * DAY).contains(&policy.delay_ns),
+                    && (DAY..=7 * DAY).contains(&policy.delay_ms),
                 invalid("recovery generation/delay"),
             )?;
             nonzero(&policy.hpke_pub)?;
             verify(
                 &policy.signing_pub,
-                &digest(
+                digest(
                     "dmsg/recovery-enroll/v1",
                     &(s.home_user, s.subject_id, policy, m.approval.request_id),
-                ),
+                )
+                .as_slice(),
                 proof,
             )?;
             next.recovery = Some(policy.clone());
@@ -280,7 +283,7 @@ pub fn apply(
             let r = s.recovery.as_ref().ok_or(Error::RecoveryIncomplete)?;
             verify(
                 &r.signing_pub,
-                &digest(
+                digest(
                     "dmsg/recovery-check/v1",
                     &(
                         s.home_user,
@@ -289,7 +292,8 @@ pub fn apply(
                         m.expected_version,
                         m.approval.request_id,
                     ),
-                ),
+                )
+                .as_slice(),
                 proof,
             )?;
             next.recovery_checked = true;
@@ -572,24 +576,26 @@ pub fn begin_recovery(
     )?;
     ensure(
         request.generation == policy.generation
-            && request.expires_at > now + policy.delay_ns
+            && request.expires_at > now + policy.delay_ms
             && request.expires_at - now <= 14 * DAY,
         Error::Expired,
     )?;
     verify(
         &policy.signing_pub,
-        &digest(
+        digest(
             "dmsg/recovery-request/v1",
             &(s.home_user, s.subject_id, s.recovery_nonce, request),
-        ),
+        )
+        .as_slice(),
         signature,
     )?;
     verify(
         &request.device.signing_pub,
-        &digest(
+        digest(
             "dmsg/recovery-device/v1",
             &(s.home_user, s.subject_id, request),
-        ),
+        )
+        .as_slice(),
         device_proof,
     )?;
     if let Some(r) = &s.pending_recovery {
@@ -600,7 +606,7 @@ pub fn begin_recovery(
     }
     s.pending_recovery = Some(PendingRecovery {
         request: request.clone(),
-        execute_after: now + policy.delay_ns,
+        execute_after: now + policy.delay_ms,
         dispute: None,
         reconfirmed: false,
         confirmation: None,
@@ -622,13 +628,14 @@ pub fn reconfirm_recovery(
     )?;
     verify(
         &policy.signing_pub,
-        &recovery_confirmation_message(
+        recovery_confirmation_message(
             s.home_user,
             s.subject_id,
             s.recovery_nonce,
             &r.request,
             confirmation,
-        ),
+        )
+        .as_slice(),
         signature,
     )?;
     if r.reconfirmed {
@@ -640,12 +647,12 @@ pub fn reconfirm_recovery(
     }
     expiry(now, confirmation.expires_at, 14 * DAY)?;
     ensure(
-        confirmation.expires_at > now.checked_add(policy.delay_ns).ok_or(Error::Expired)?,
+        confirmation.expires_at > now.checked_add(policy.delay_ms).ok_or(Error::Expired)?,
         Error::Expired,
     )?;
     let r = s.pending_recovery.as_mut().unwrap();
     r.reconfirmed = true;
-    r.execute_after = now + policy.delay_ns;
+    r.execute_after = now + policy.delay_ms;
     r.confirmation = Some(confirmation.clone());
     Ok(())
 }

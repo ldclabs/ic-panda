@@ -226,7 +226,7 @@ type RecoveryConfirmation = record {
   expires_at : nat64;
 };
 type RecoveryPolicy = record {
-  delay_ns : nat64;
+  delay_ms : nat64;
   generation : nat64;
   hpke_pub : blob;
   signing_pub : blob;
@@ -271,7 +271,7 @@ type SecuritySnapshot = record {
   recovery_root_version : nat64;
   home_user : principal;
   subject_id : blob;
-  recovery_delay_ns : opt nat64;
+  recovery_delay_ms : opt nat64;
   recovery_signing_pub : opt blob;
   vault_write_state : VaultWriteState;
   account_status : AccountStatus;

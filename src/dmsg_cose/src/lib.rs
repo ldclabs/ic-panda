@@ -32,13 +32,13 @@ fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.put(b"config", c));
 }
 fn home(subject: &Hash) -> Result<model::Home> {
-    HOMES.with_borrow(|t| t.get(subject).ok_or(Error::NotFound))
+    HOMES.with_borrow(|t| t.get(subject.as_slice()).ok_or(Error::NotFound))
 }
 fn save_home(subject: &Hash, h: &model::Home) {
-    HOMES.with_borrow_mut(|t| t.put(subject, h));
+    HOMES.with_borrow_mut(|t| t.put(subject.as_slice(), h));
 }
 fn now() -> u64 {
-    ic_cdk::api::time()
+    nanos_to_millis(ic_cdk::api::time())
 }
 fn me() -> Principal {
     ic_cdk::api::canister_self()
@@ -62,7 +62,7 @@ fn init(args: CoseInit) {
     args.validate(me())
         .expect("invalid chain-key configuration");
     save_cfg(&Config {
-        schema: 1,
+        schema: STABLE_SCHEMA,
         state: KeyState {
             config: args,
             initialization: Initialization::Uninitialized,
@@ -75,7 +75,10 @@ fn init(args: CoseInit) {
 #[ic_cdk::post_upgrade]
 fn post_upgrade(args: Option<CoseInit>) {
     let mut c = cfg();
-    assert_eq!(c.schema, 1, "unsupported stable schema");
+    assert_eq!(
+        c.schema, STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
     if let Some(args) = args {
         assert_eq!(
             args, c.state.config,
@@ -93,7 +96,7 @@ fn post_upgrade(args: Option<CoseInit>) {
         assert_eq!(c.state.fingerprints.len(), c.state.config.masters.len());
         for (k, fp) in c.state.config.masters.iter().zip(&c.state.fingerprints) {
             assert!(
-                k.expected_fingerprint == [0; 32] || k.expected_fingerprint == *fp,
+                k.expected_fingerprint == Hash::new([0; 32]) || k.expected_fingerprint == *fp,
                 "cached key fingerprint mismatch"
             );
         }
@@ -184,7 +187,7 @@ async fn initialize_keys() -> Result<KeyState> {
                 return Err(e);
             }
         };
-        if k.expected_fingerprint != [0; 32] && fp != k.expected_fingerprint {
+        if k.expected_fingerprint != Hash::new([0; 32]) && fp != k.expected_fingerprint {
             c.state.initialization = Initialization::Uninitialized;
             c.state.error = Some("public key fingerprint mismatch".into());
             save_cfg(&c);
@@ -221,7 +224,7 @@ fn register_subject(subject: Hash) -> Result<()> {
 async fn describe(config: &CoseInit, subject: Hash, key: KeyRequest) -> Result<KeyDescriptor> {
     key.validate()?;
     let id = model::key_id(config, subject, &key);
-    if let Some(d) = KEYS.with_borrow(|t| t.get::<KeyDescriptor>(&id)) {
+    if let Some(d) = KEYS.with_borrow(|t| t.get::<KeyDescriptor>(id.as_slice())) {
         return Ok(d);
     }
     let k = master(config, &key.algorithm)?;
@@ -241,13 +244,13 @@ async fn describe(config: &CoseInit, subject: Hash, key: KeyRequest) -> Result<K
         public_key,
     };
     if d.purpose != KeyPurpose::ContentRoot {
-        KEYS.with_borrow_mut(|t| t.put(&id, &d));
+        KEYS.with_borrow_mut(|t| t.put(id.as_slice(), &d));
     }
     Ok(d)
 }
 #[ic_cdk::query]
 fn describe_key(key_id: Hash) -> Result<KeyDescriptor> {
-    KEYS.with_borrow(|t| t.get(&key_id).ok_or(Error::NotFound))
+    KEYS.with_borrow(|t| t.get(key_id.as_slice()).ok_or(Error::NotFound))
 }
 
 enum ManagementCall {

@@ -24,20 +24,20 @@ fn tree(v: cbor2::Value) -> Json {
 fn vector(name: &str, bytes: Vec<u8>) -> Json {
     let hash = sha256(&bytes);
     let key = SigningKey::from_bytes(&[7; 32]);
-    json!({"name":name,"value":tree(cbor2::from_slice(&bytes).unwrap()),"cbor_hex":hex::encode(bytes),"sha256_hex":hex::encode(hash),"ed25519_public_hex":hex::encode(key.verifying_key().to_bytes()),"signature_over_sha256_hex":hex::encode(key.sign(&hash).to_bytes())})
+    json!({"name":name,"value":tree(cbor2::from_slice(&bytes).unwrap()),"cbor_hex":hex::encode(bytes),"sha256_hex":hex::encode(hash.as_slice()),"ed25519_public_hex":hex::encode(key.verifying_key().to_bytes()),"signature_over_sha256_hex":hex::encode(key.sign(hash.as_slice()).to_bytes())})
 }
 fn main() {
     let payload = FormalPayload {
         schema: 1,
-        subject: [1; 32],
-        request_id: execution_request_id([1; 32], 0, [2; 32], 0),
+        subject: Hash::new([1; 32]),
+        request_id: execution_request_id(Hash::new([1; 32]), 0, Hash::new([2; 32]), 0),
         origin: "https://example.com".into(),
         audience: "release".into(),
-        expires_at: 1_800_000_000_000_000_000,
+        expires_at: 1_800_000_000_000,
         body: FormalBody::FileAttestation {
-            sha256: [3; 32],
+            sha256: Hash::new([3; 32]),
             size: 12345,
-            version: [4; 32],
+            version: Hash::new([4; 32]),
             project: "dmsg".into(),
         },
     };
@@ -45,9 +45,30 @@ fn main() {
         vector("formal_file_v1", canonical(&payload)),
         vector(
             "principal_and_generation",
-            canonical(&(Principal::from_slice(&[0, 1, 1]), [5u8; 32], 42u64)),
+            canonical(&(
+                Principal::from_slice(&[0, 1, 1]),
+                Hash::new([5u8; 32]),
+                42u64,
+            )),
         ),
         vector("amount_over_u64", canonical(&("dmsg/amount/v1", u128::MAX))),
+        vector(
+            "fixed_bytes_containers",
+            canonical(&(
+                Hash::new([6; 32]),
+                Some(Hash::new([7; 32])),
+                std::collections::BTreeMap::from([(Hash::new([8; 32]), Hash::new([9; 32]))]),
+            )),
+        ),
+        vector(
+            "account_with_subaccount",
+            canonical(&ledger::account_cbor::value(
+                &icrc_ledger_types::icrc1::account::Account {
+                    owner: Principal::from_slice(&[0, 1, 1]),
+                    subaccount: Some([10; 32]),
+                },
+            )),
+        ),
         vector(
             "map_key_order",
             canonical(&std::collections::BTreeMap::from([
@@ -55,13 +76,13 @@ fn main() {
                 ("b", 2u64),
             ])),
         ),
-        vector("root_input_v1", canonical(&([1u8; 32], 2u64))),
+        vector("root_input_v1", canonical(&(Hash::new([1u8; 32]), 2u64))),
         vector(
             "execution_request_id_v1",
             canonical(&(
                 1u8,
                 "dmsg/execution-request/v1",
-                ([1u8; 32], 0u64, [2u8; 32], 0u64),
+                (Hash::new([1u8; 32]), 0u64, Hash::new([2u8; 32]), 0u64),
             )),
         ),
     ];

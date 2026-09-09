@@ -42,7 +42,7 @@ fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.put(b"config", c));
 }
 fn now() -> u64 {
-    ic_cdk::api::time()
+    nanos_to_millis(ic_cdk::api::time())
 }
 fn me() -> Principal {
     ic_cdk::api::canister_self()
@@ -54,11 +54,11 @@ fn controller() -> Result<()> {
     ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)
 }
 fn load(id: &Hash) -> Result<Escrow> {
-    ESCROWS.with_borrow(|t| t.get(id).ok_or(Error::NotFound))
+    ESCROWS.with_borrow(|t| t.get(id.as_slice()).ok_or(Error::NotFound))
 }
 fn save(e: &Escrow) {
     assert!(e.conserved(), "funds conservation");
-    ESCROWS.with_borrow_mut(|t| t.put(&e.escrow_id, e));
+    ESCROWS.with_borrow_mut(|t| t.put(e.escrow_id.as_slice(), e));
     CERT.with_borrow_mut(|c| c.put(e.escrow_id.to_vec(), e));
 }
 fn key(id: Hash, n: u64) -> Vec<u8> {
@@ -100,7 +100,7 @@ fn init(args: PaymentInit) {
     nonzero(&args.signer.public_key).expect("receipt key");
     SIGNERS.with_borrow_mut(|t| t.put(&args.signer.epoch.to_be_bytes(), &args.signer));
     save_cfg(&Config {
-        schema: 1,
+        schema: STABLE_SCHEMA,
         init: args,
         day: 0,
         orders_today: 0,
@@ -111,8 +111,12 @@ fn init(args: PaymentInit) {
 }
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    assert_eq!(
+        cfg().schema,
+        STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
     CERT.with_borrow(|c| c.publish());
-    assert_eq!(cfg().schema, 1);
     ESCROWS.with_borrow(|t| t.for_each::<Escrow>(|k, e| CERT.with_borrow_mut(|c| c.put(k, &e))));
 }
 #[ic_cdk::update]
@@ -168,7 +172,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<Escrow> {
         now(),
     )?;
     ensure(
-        !QUOTES.with_borrow(|t| t.contains(&input.quote.quote_id)),
+        !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice())),
         Error::IdempotencyConflict,
     )?;
     ensure(
@@ -208,13 +212,13 @@ async fn open_escrow(input: OpenEscrow) -> Result<Escrow> {
         now(),
     )?;
     ensure(
-        !QUOTES.with_borrow(|t| t.contains(&input.quote.quote_id))
+        !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice()))
             && open_count(who) < c.init.max_open_per_payer,
         Error::QuotaExceeded,
     )?;
     let e = model::escrow(me(), who, &input, quote_digest);
     let count = open_count(who) + 1;
-    QUOTES.with_borrow_mut(|t| t.put(&input.quote.quote_id, &id));
+    QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
     PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
     PAYER_INDEX.with_borrow_mut(|t| {
         t.put(
@@ -425,7 +429,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     leg.status = LegStatus::InFlight;
     put_leg(&leg);
     let args = TransferArg {
-        from_subaccount: Some(e.subaccount),
+        from_subaccount: Some(e.subaccount.into_array()),
         to: leg.to,
         fee: Some(Nat::from(leg.fee)),
         created_at_time: Some(leg.created_at_time),
@@ -516,7 +520,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
         tx.from
             == Account {
                 owner: me(),
-                subaccount: Some(e.subaccount),
+                subaccount: Some(e.subaccount.into_array()),
             }
             && tx.to == l.to
             && tx.amount == l.amount
@@ -562,7 +566,7 @@ fn list_my_escrows(after: Option<Hash>) -> Result<Vec<Escrow>> {
     let entries = PAYER_INDEX.with_borrow(|t| t.page::<Hash>(cursor, 32));
     entries
         .into_iter()
-        .take_while(|(key, _)| key.starts_with(&prefix))
+        .take_while(|(key, _)| key.starts_with(prefix.as_slice()))
         .map(|(_, id)| load(&id))
         .collect()
 }
@@ -573,7 +577,7 @@ fn list_transfers(escrow_id: Hash, after: Option<u64>) -> Result<Vec<TransferLeg
     Ok(LEGS
         .with_borrow(|t| t.page::<TransferLeg>(cursor, 32))
         .into_iter()
-        .take_while(|(key, _)| key.starts_with(&escrow_id))
+        .take_while(|(key, _)| key.starts_with(escrow_id.as_slice()))
         .map(|(_, leg)| leg)
         .collect())
 }

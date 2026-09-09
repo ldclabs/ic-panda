@@ -47,7 +47,7 @@ fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.put(b"config", c));
 }
 fn now() -> u64 {
-    ic_cdk::api::time()
+    nanos_to_millis(ic_cdk::api::time())
 }
 fn me() -> Principal {
     ic_cdk::api::canister_self()
@@ -65,10 +65,10 @@ fn record(name: &str) -> Option<HandleRecord> {
     NAMES.with_borrow(|t| t.get(name.as_bytes()))
 }
 fn op(key: &Hash) -> Result<HandleOperation> {
-    OPS.with_borrow(|t| t.get(key).ok_or(Error::NotFound))
+    OPS.with_borrow(|t| t.get(key.as_slice()).ok_or(Error::NotFound))
 }
 fn save_op(key: &Hash, o: &HandleOperation) {
-    OPS.with_borrow_mut(|t| t.put(key, o));
+    OPS.with_borrow_mut(|t| t.put(key.as_slice(), o));
 }
 fn check_intent(i: &HandleIntent, action: HandleAction) -> Result<()> {
     ensure(
@@ -93,24 +93,28 @@ fn init(args: HandleInit) {
     authenticated(args.ledger).expect("ledger");
     assert!(args.ledger_fee < price("x") && args.max_pending > 0 && args.max_pending <= 10_000);
     save_cfg(&Config {
-        schema: 1,
+        schema: STABLE_SCHEMA,
         init: args,
         progress: SnapshotProgress {
             snapshot: None,
             imported: 0,
-            rolling_digest: [0; 32],
+            rolling_digest: Hash::new([0; 32]),
             last_handle: None,
             sealed: false,
         },
         event_count: 0,
-        event_tip: [0; 32],
+        event_tip: Hash::new([0; 32]),
         pending: 0,
     });
     certify_snapshot();
 }
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    assert_eq!(cfg().schema, 1);
+    assert_eq!(
+        cfg().schema,
+        STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
     NAMES
         .with_borrow(|t| t.for_each::<HandleRecord>(|k, r| CERT.with_borrow_mut(|c| c.put(k, &r))));
     certify_snapshot();
@@ -301,9 +305,11 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
             && i.target_subject.is_none()
             && i.expected_version == 0
             && i.terms_digest
-                == digest(
-                    "dmsg/handle-charge/v1",
-                    &(c.init.ledger, registration.payer, amount, registration.fee),
+                == charge_terms_digest(
+                    c.init.ledger,
+                    &registration.payer,
+                    amount,
+                    registration.fee,
                 ),
         Error::IntegrityFailed,
     )?;
@@ -326,7 +332,8 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
     }
     c = cfg();
     ensure(
-        c.pending < c.init.max_pending && !SUBJECT_OPS.with_borrow(|t| t.contains(&i.subject)),
+        c.pending < c.init.max_pending
+            && !SUBJECT_OPS.with_borrow(|t| t.contains(i.subject.as_slice())),
         Error::QuotaExceeded,
     )?;
     ensure(
@@ -344,7 +351,7 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
         ledger_block: None,
     };
     LOCKS.with_borrow_mut(|t| t.put(i.handle.as_bytes(), &key));
-    SUBJECT_OPS.with_borrow_mut(|t| t.put(&i.subject, &key));
+    SUBJECT_OPS.with_borrow_mut(|t| t.put(i.subject.as_slice(), &key));
     save_op(&key, &o);
     c.pending += 1;
     save_cfg(&c);
@@ -352,7 +359,7 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
 }
 fn release(o: &HandleOperation) {
     LOCKS.with_borrow_mut(|t| t.remove(o.registration.intent.handle.as_bytes()));
-    SUBJECT_OPS.with_borrow_mut(|t| t.remove(&o.registration.intent.subject));
+    SUBJECT_OPS.with_borrow_mut(|t| t.remove(o.registration.intent.subject.as_slice()));
     let mut c = cfg();
     c.pending = c.pending.checked_sub(1).expect("pending accounting");
     save_cfg(&c);
@@ -416,7 +423,7 @@ async fn commit_handle(subject: Hash, op_id: Hash) -> Result<HandleOperation> {
         amount: Nat::from(o.amount),
         fee: Some(Nat::from(o.registration.fee)),
         memo: Some(o.memo.to_vec().into()),
-        created_at_time: Some(o.created_at),
+        created_at_time: Some(millis_to_nanos(o.created_at)?),
     };
     let response: Result<std::result::Result<Nat, TransferFromError>> =
         stable::call(cfg().init.ledger, "icrc2_transfer_from", (args,)).await;
@@ -478,7 +485,7 @@ async fn reconcile_handle_charge(
                 }
             && tx.amount == o.amount
             && tx.memo == Some(o.memo.to_vec())
-            && tx.created_at_time == Some(o.created_at)
+            && tx.created_at_time == Some(millis_to_nanos(o.created_at)?)
             && tx.spender
                 == Some(Account {
                     owner: me(),
@@ -530,7 +537,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         Error::IntegrityFailed,
     )?;
     let key = op_key(from.subject, from.op_id);
-    if let Some((fp, r)) = TRANSFERS.with_borrow(|t| t.get::<(Hash, HandleRecord)>(&key)) {
+    if let Some((fp, r)) = TRANSFERS.with_borrow(|t| t.get::<(Hash, HandleRecord)>(key.as_slice()))
+    {
         ensure(
             fp == digest("dmsg/transfer/v1", &(&from, &accept)),
             Error::IdempotencyConflict,
@@ -546,7 +554,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     )?;
     consume(&from).await?;
     consume(&accept).await?;
-    if let Some((_, r)) = TRANSFERS.with_borrow(|t| t.get::<(Hash, HandleRecord)>(&key)) {
+    if let Some((_, r)) = TRANSFERS.with_borrow(|t| t.get::<(Hash, HandleRecord)>(key.as_slice())) {
         return Ok(r);
     }
     let current = record(&from.handle).ok_or(Error::NotFound)?;
@@ -559,7 +567,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     );
     TRANSFERS.with_borrow_mut(|t| {
         t.put(
-            &key,
+            key.as_slice(),
             &(digest("dmsg/transfer/v1", &(&from, &accept)), &result),
         )
     });

@@ -66,7 +66,7 @@ pub fn validate_quote(
         Error::Expired,
     )?;
     ensure(
-        q.max_bytes > 0 && q.max_bytes <= 8192 && q.retain_ns >= DAY && q.retain_ns <= 365 * DAY,
+        q.max_bytes > 0 && q.max_bytes <= 8192 && q.retain_ms >= DAY && q.retain_ms <= 365 * DAY,
         invalid("storage terms"),
     )?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
@@ -74,7 +74,7 @@ pub fn validate_quote(
     nonzero(&q.quote_id)?;
     nonzero(&q.envelope_digest)?;
     let hash = digest("dmsg/quote/v1", q);
-    verify(&signer.public_key, &hash, &input.quote_signature)?;
+    verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
     Ok(hash)
 }
 pub fn signer_valid(s: &ReceiptSigner, epoch: u64, signed_at: u64, now: u64) -> Result<()> {
@@ -115,7 +115,7 @@ pub fn accept_deposit(e: &mut Escrow, id: Principal, tx: &VerifiedTransfer) -> R
         tx.to
             == Account {
                 owner: id,
-                subaccount: Some(e.subaccount),
+                subaccount: Some(e.subaccount.into_array()),
             }
             && tx.amount > 0
             && tx.from.owner != id,
@@ -180,13 +180,13 @@ pub fn receipt_valid(
             && a.stored_at <= now
             && a.retain_until
                 >= a.stored_at
-                    .checked_add(e.quote.retain_ns)
+                    .checked_add(e.quote.retain_ms)
                     .ok_or(Error::IntegrityFailed)?,
         Error::IntegrityFailed,
     )?;
     signer_valid(s, a.signer_epoch, a.stored_at, now)?;
     let hash = digest("dmsg/admission-receipt/v1", a);
-    verify(&s.public_key, &hash, &r.signature)?;
+    verify(&s.public_key, hash.as_slice(), &r.signature)?;
     Ok(hash)
 }
 pub fn settle(e: &mut Escrow, receipt_digest: Hash, now: u64) -> Result<bool> {
@@ -233,13 +233,13 @@ pub fn leg(
         amount,
         fee,
         memo: digest("dmsg/payment-leg/v1", &(e.escrow_id, leg_id)),
-        created_at_time: now,
+        created_at_time: millis_to_nanos(now).expect("consensus time fits ledger timestamp"),
         status: LegStatus::Pending,
         block: None,
         expected_fee: None,
         revision: 0,
         replaces: None,
-        history_digest: [0; 32],
+        history_digest: Hash::new([0; 32]),
     }
 }
 pub fn revise_leg(

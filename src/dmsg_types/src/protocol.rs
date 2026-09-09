@@ -4,13 +4,30 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::{Digest, Sha256};
 
-pub type Hash = [u8; 32];
+/// Fixed bytes in every Serde context, including tuples, options and map keys.
+/// Candid remains `blob`; ByteArray validates the length when decoding.
+pub type Hash = serde_bytes::ByteArray<32>;
 pub type SubjectId = Hash;
 pub type OpId = Hash;
 pub type Result<T> = std::result::Result<T, Error>;
-pub const NS: u64 = 1_000_000_000;
-pub const MINUTE: u64 = 60 * NS;
+/// Business timestamps and durations are Unix milliseconds.
+pub const SECOND: u64 = 1_000;
+pub const MINUTE: u64 = 60 * SECOND;
 pub const DAY: u64 = 24 * 60 * MINUTE;
+/// ICP system/certificate and ICRC ledger timestamps remain nanoseconds.
+pub const NANOS_PER_MILLISECOND: u64 = 1_000_000;
+/// Reject pre-millisecond / integer-array development state on upgrade.
+pub const STABLE_SCHEMA: u16 = 2;
+
+pub const fn nanos_to_millis(nanos: u64) -> u64 {
+    nanos / NANOS_PER_MILLISECOND
+}
+
+pub fn millis_to_nanos(millis: u64) -> Result<u64> {
+    millis
+        .checked_mul(NANOS_PER_MILLISECOND)
+        .ok_or_else(|| invalid("timestamp overflow"))
+}
 pub const MAX_PAYLOAD: usize = 65_536;
 pub const MAX_BATCH: usize = 64;
 pub const WINDOW: usize = 64;
@@ -58,7 +75,7 @@ pub fn authenticated(caller: Principal) -> Result<()> {
     )
 }
 pub fn sha256(bytes: &[u8]) -> Hash {
-    Sha256::digest(bytes).into()
+    Hash::new(Sha256::digest(bytes).into())
 }
 
 /// RFC 8949 core deterministic CBOR (bytewise map ordering). The schema is
@@ -88,7 +105,7 @@ pub fn expiry(now: u64, expires_at: u64, maximum: u64) -> Result<()> {
     )
 }
 pub fn nonzero(id: &Hash) -> Result<()> {
-    ensure(*id != [0; 32], invalid("zero identifier/key"))
+    ensure(*id != Hash::new([0; 32]), invalid("zero identifier/key"))
 }
 pub fn validate_transport_key(bytes: &[u8]) -> Result<()> {
     let compressed: &[u8; 48] = bytes
@@ -190,19 +207,24 @@ mod tests {
         let sk = SigningKey::from_bytes(&[7; 32]);
         let p = Principal::from_slice(&[1]);
         let mut a = Approval {
-            device_id: [2; 32],
+            device_id: Hash::new([2; 32]),
             security_epoch: 1,
             sequence: 0,
-            request_id: [3; 32],
+            request_id: Hash::new([3; 32]),
             expires_at: 100,
             signature: ByteBuf::new(),
         };
-        let msg = approval_message(p, [4; 32], "root", &42u64, &a);
-        a.signature = sk.sign(&msg).to_bytes().to_vec().into();
-        assert!(verify(&sk.verifying_key().to_bytes(), &msg, &a.signature).is_ok());
+        let msg = approval_message(p, Hash::new([4; 32]), "root", &42u64, &a);
+        a.signature = sk.sign(msg.as_slice()).to_bytes().to_vec().into();
         assert!(verify(
-            &sk.verifying_key().to_bytes(),
-            &approval_message(p, [4; 32], "sign", &42u64, &a),
+            &sk.verifying_key().to_bytes().into(),
+            msg.as_slice(),
+            &a.signature
+        )
+        .is_ok());
+        assert!(verify(
+            &sk.verifying_key().to_bytes().into(),
+            approval_message(p, Hash::new([4; 32]), "sign", &42u64, &a).as_slice(),
             &a.signature
         )
         .is_err());

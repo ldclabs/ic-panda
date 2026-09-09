@@ -10,9 +10,9 @@ fn sk(n: u8) -> SigningKey {
 }
 fn device(n: u8, admin: bool) -> DeviceInput {
     DeviceInput {
-        device_id: [n; 32],
-        signing_pub: sk(n).verifying_key().to_bytes(),
-        hpke_pub: [n; 32],
+        device_id: Hash::new([n; 32]),
+        signing_pub: sk(n).verifying_key().to_bytes().into(),
+        hpke_pub: Hash::new([n; 32]),
         role: if admin {
             ControllerRole::Administrator
         } else {
@@ -33,18 +33,21 @@ fn device(n: u8, admin: bool) -> DeviceInput {
 fn subject() -> Subject {
     let input = CreateSubject {
         device: device(1, true),
-        op_id: [9; 32],
+        op_id: Hash::new([9; 32]),
         expires_at: MINUTE,
         proof: sk(1)
-            .sign(&digest(
-                "dmsg/create-subject/v1",
-                &(p(5), p(1), device(1, true), [9; 32], MINUTE),
-            ))
+            .sign(
+                digest(
+                    "dmsg/create-subject/v1",
+                    &(p(5), p(1), device(1, true), Hash::new([9; 32]), MINUTE),
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec()
             .into(),
     };
-    model::create(p(5), p(6), [8; 32], p(1), &input, 1).unwrap()
+    model::create(p(5), p(6), Hash::new([8; 32]), p(1), &input, 1).unwrap()
 }
 fn mutation(s: &Subject, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
     let mut m = AccountMutation {
@@ -52,22 +55,25 @@ fn mutation(s: &Subject, command: AccountCommand, n: u8, time: u64) -> AccountMu
         expected_version: s.account_version,
         command,
         approval: Approval {
-            device_id: [n; 32],
+            device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
-            sequence: s.devices[&[n; 32]].next_sequence,
+            sequence: s.devices[&Hash::new([n; 32])].next_sequence,
             request_id: digest("test", &(s.account_version, n)),
             expires_at: time + MINUTE,
             signature: ByteBuf::new(),
         },
     };
     m.approval.signature = sk(n)
-        .sign(&approval_message(
-            s.home_user,
-            s.subject_id,
-            "dmsg/account/v1",
-            &(&m.expected_version, &m.command),
-            &m.approval,
-        ))
+        .sign(
+            approval_message(
+                s.home_user,
+                s.subject_id,
+                "dmsg/account/v1",
+                &(&m.expected_version, &m.command),
+                &m.approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();
@@ -81,9 +87,9 @@ fn initialized() -> Subject {
     let mut s = subject();
     s.recovery = Some(RecoveryPolicy {
         generation: 1,
-        signing_pub: sk(3).verifying_key().to_bytes(),
-        hpke_pub: [3; 32],
-        delay_ns: DAY,
+        signing_pub: sk(3).verifying_key().to_bytes().into(),
+        hpke_pub: Hash::new([3; 32]),
+        delay_ms: DAY,
     });
     s.recovery_checked = true;
     s
@@ -96,7 +102,7 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
         &s,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
-            op_id: [5; 32],
+            op_id: Hash::new([5; 32]),
         },
         1,
         1,
@@ -109,7 +115,7 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
             &mut s,
             AccountCommand::ReserveRoot {
                 expected_generation: 0,
-                op_id: [6; 32]
+                op_id: Hash::new([6; 32])
             },
             1
         ),
@@ -122,14 +128,14 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
         home_cose: p(6),
         derivation_version: 1,
         key_generation: 1,
-        bundle_digest: [1; 32],
+        bundle_digest: Hash::new([1; 32]),
         recovery_generation: 1,
     };
     apply(
         &mut s,
         AccountCommand::CommitRoot {
             expected_generation: 0,
-            op_id: [5; 32],
+            op_id: Hash::new([5; 32]),
             root: root.clone(),
         },
         2,
@@ -145,7 +151,7 @@ fn abandoned_root_generation_is_never_reused() {
         &mut s,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
-            op_id: [5; 32],
+            op_id: Hash::new([5; 32]),
         },
         1,
     )
@@ -164,7 +170,7 @@ fn abandoned_root_generation_is_never_reused() {
         &mut s,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
-            op_id: [6; 32],
+            op_id: Hash::new([6; 32]),
         },
         3,
     )
@@ -175,7 +181,7 @@ fn abandoned_root_generation_is_never_reused() {
 fn content_device_cannot_administer_or_approve_formal_execution() {
     let mut s = subject();
     s.devices.insert(
-        [2; 32],
+        Hash::new([2; 32]),
         Device {
             input: device(2, false),
             added_at: 1,
@@ -209,8 +215,8 @@ fn execute_request(s: &Subject, n: u8, time: u64) -> ExecuteRequest {
     let id = execution_request_id(
         s.subject_id,
         s.security_epoch,
-        [n; 32],
-        s.devices[&[n; 32]].next_sequence,
+        Hash::new([n; 32]),
+        s.devices[&Hash::new([n; 32])].next_sequence,
     );
     let payload = FormalPayload {
         schema: 1,
@@ -236,22 +242,25 @@ fn execute_request(s: &Subject, n: u8, time: u64) -> ExecuteRequest {
         },
         max_cycles: 100,
         approval: Approval {
-            device_id: [n; 32],
+            device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
-            sequence: s.devices[&[n; 32]].next_sequence,
+            sequence: s.devices[&Hash::new([n; 32])].next_sequence,
             request_id: id,
             expires_at: time + MINUTE,
             signature: ByteBuf::new(),
         },
     };
     r.approval.signature = sk(n)
-        .sign(&approval_message(
-            s.home_user,
-            s.subject_id,
-            "dmsg/execute/v1",
-            &(&r.kind, r.max_cycles),
-            &r.approval,
-        ))
+        .sign(
+            approval_message(
+                s.home_user,
+                s.subject_id,
+                "dmsg/execute/v1",
+                &(&r.kind, r.max_cycles),
+                &r.approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();
@@ -272,7 +281,7 @@ fn authorize_revoke_order_and_payload_tampering() {
         Err(Error::IdempotencyConflict)
     );
     let mut s = initialized();
-    s.devices.get_mut(&[1; 32]).unwrap().revoked_at = Some(1);
+    s.devices.get_mut(&Hash::new([1; 32])).unwrap().revoked_at = Some(1);
     assert_eq!(
         model::authorize(&mut s, p(1), &r, 1),
         Err(Error::DeviceNotApproved)
@@ -297,30 +306,36 @@ fn authorize_revoke_order_and_payload_tampering() {
 fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     let mut s = initialized();
     let request = RecoveryRequest {
-        op_id: [4; 32],
+        op_id: Hash::new([4; 32]),
         new_auth: p(4),
         device: device(4, true),
         generation: 1,
         expires_at: 10 * DAY,
     };
     let signature = sk(3)
-        .sign(&digest(
-            "dmsg/recovery-request/v1",
-            &(s.home_user, s.subject_id, s.recovery_nonce, &request),
-        ))
+        .sign(
+            digest(
+                "dmsg/recovery-request/v1",
+                &(s.home_user, s.subject_id, s.recovery_nonce, &request),
+            )
+            .as_slice(),
+        )
         .to_bytes();
     let proof = sk(4)
-        .sign(&digest(
-            "dmsg/recovery-device/v1",
-            &(s.home_user, s.subject_id, &request),
-        ))
+        .sign(
+            digest(
+                "dmsg/recovery-device/v1",
+                &(s.home_user, s.subject_id, &request),
+            )
+            .as_slice(),
+        )
         .to_bytes();
     model::begin_recovery(&mut s, &request, &signature, &proof, 1).unwrap();
     apply(
         &mut s,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [6; 32],
+            dispute: Hash::new([6; 32]),
         },
         2,
     )
@@ -331,17 +346,20 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     );
     let confirmation = RecoveryConfirmation {
         request_id: request.op_id,
-        dispute: [6; 32],
+        dispute: Hash::new([6; 32]),
         expires_at: DAY + 2 + 2 * DAY,
     };
     let sig = sk(3)
-        .sign(&recovery_confirmation_message(
-            s.home_user,
-            s.subject_id,
-            s.recovery_nonce,
-            &request,
-            &confirmation,
-        ))
+        .sign(
+            recovery_confirmation_message(
+                s.home_user,
+                s.subject_id,
+                s.recovery_nonce,
+                &request,
+                &confirmation,
+            )
+            .as_slice(),
+        )
         .to_bytes();
     model::reconfirm_recovery(&mut s, &confirmation, &sig, DAY + 2).unwrap();
     let after = s.pending_recovery.as_ref().unwrap().execute_after;
@@ -349,7 +367,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
         &mut s,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [7; 32],
+            dispute: Hash::new([7; 32]),
         },
         DAY + 3,
     )
@@ -379,37 +397,43 @@ fn snapshot_contains_no_auth_routes() {
 #[test]
 fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
     let mut s = initialized();
-    s.recovery.as_mut().unwrap().delay_ns = 7 * DAY;
+    s.recovery.as_mut().unwrap().delay_ms = 7 * DAY;
     let request = RecoveryRequest {
-        op_id: [4; 32],
+        op_id: Hash::new([4; 32]),
         new_auth: p(4),
         device: device(4, true),
         generation: 1,
         expires_at: 1 + 14 * DAY,
     };
     let signature = sk(3)
-        .sign(&digest(
-            "dmsg/recovery-request/v1",
-            &(
-                s.home_user,
-                s.subject_id,
-                s.snapshot().recovery_nonce,
-                &request,
-            ),
-        ))
+        .sign(
+            digest(
+                "dmsg/recovery-request/v1",
+                &(
+                    s.home_user,
+                    s.subject_id,
+                    s.snapshot().recovery_nonce,
+                    &request,
+                ),
+            )
+            .as_slice(),
+        )
         .to_bytes();
     let pop = sk(4)
-        .sign(&digest(
-            "dmsg/recovery-device/v1",
-            &(s.home_user, s.subject_id, &request),
-        ))
+        .sign(
+            digest(
+                "dmsg/recovery-device/v1",
+                &(s.home_user, s.subject_id, &request),
+            )
+            .as_slice(),
+        )
         .to_bytes();
     model::begin_recovery(&mut s, &request, &signature, &pop, 1).unwrap();
     apply(
         &mut s,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [6; 32],
+            dispute: Hash::new([6; 32]),
         },
         7 * DAY,
     )
@@ -426,13 +450,16 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
         expires_at: 15 * DAY,
     };
     let sig = sk(3)
-        .sign(&recovery_confirmation_message(
-            s.home_user,
-            s.subject_id,
-            s.recovery_nonce,
-            &request,
-            &confirmation,
-        ))
+        .sign(
+            recovery_confirmation_message(
+                s.home_user,
+                s.subject_id,
+                s.recovery_nonce,
+                &request,
+                &confirmation,
+            )
+            .as_slice(),
+        )
         .to_bytes();
     let mut tampered = confirmation.clone();
     tampered.expires_at += 1;
@@ -447,7 +474,7 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
         &mut s,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: [7; 32],
+            dispute: Hash::new([7; 32]),
         },
         7 * DAY + 3,
     )
@@ -550,13 +577,16 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
         *canonical_payload = canonical(&payload).into();
     }
     reused.approval.signature = sk(1)
-        .sign(&approval_message(
-            s.home_user,
-            s.subject_id,
-            "dmsg/execute/v1",
-            &(&reused.kind, reused.max_cycles),
-            &reused.approval,
-        ))
+        .sign(
+            approval_message(
+                s.home_user,
+                s.subject_id,
+                "dmsg/execute/v1",
+                &(&reused.kind, reused.max_cycles),
+                &reused.approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();

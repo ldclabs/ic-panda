@@ -9,21 +9,21 @@ fn account(n: u8) -> Account {
 }
 fn input() -> OpenEscrow {
     let o = PaymentOffer {
-        subject: [1; 32],
-        device_id: [1; 32],
+        subject: Hash::new([1; 32]),
+        device_id: Hash::new([1; 32]),
         security_epoch: 0,
         home_payment: account(5).owner,
-        offer_id: [3; 32],
+        offer_id: Hash::new([3; 32]),
         ledger: account(6).owner,
         recipient: account(2),
         recipient_net: 1000,
-        quote_scope: [2; 32],
+        quote_scope: Hash::new([2; 32]),
         version: 1,
         issued_at: 1,
         expires_at: 15 * MINUTE,
     };
     let q = Quote {
-        quote_id: [1; 32],
+        quote_id: Hash::new([1; 32]),
         home_payment: o.home_payment,
         payer: account(1),
         offer_digest: digest("dmsg/payment-offer/v1", &o),
@@ -37,8 +37,8 @@ fn input() -> OpenEscrow {
         amount: 1130,
         max_network_fee: 20,
         max_bytes: 8192,
-        retain_ns: DAY,
-        envelope_digest: [5; 32],
+        retain_ms: DAY,
+        envelope_digest: Hash::new([5; 32]),
         signer_epoch: 1,
         created_at: 1,
         fund_by: 1 + 15 * MINUTE,
@@ -46,12 +46,12 @@ fn input() -> OpenEscrow {
     };
     let key = SigningKey::from_bytes(&[7; 32]);
     let quote_signature = key
-        .sign(&digest("dmsg/quote/v1", &q))
+        .sign(digest("dmsg/quote/v1", &q).as_slice())
         .to_bytes()
         .to_vec()
         .into();
     OpenEscrow {
-        op_id: [1; 32],
+        op_id: Hash::new([1; 32]),
         quote: q,
         quote_signature,
         offer: SignedOffer {
@@ -86,7 +86,7 @@ fn transfer(
         from,
         to: Account {
             owner: me,
-            subaccount: Some(e.subaccount),
+            subaccount: Some(e.subaccount.into_array()),
         },
         amount,
         fee: Some(10),
@@ -103,10 +103,13 @@ fn expiry_is_half_open_and_terminal_decisions_are_exclusive() {
     accept_deposit(&mut e, me, &tx).unwrap();
     let at = e.quote.accept_by;
     let mut a = e.clone();
-    assert_eq!(settle(&mut a, [1; 32], at), Err(Error::Expired));
+    assert_eq!(settle(&mut a, Hash::new([1; 32]), at), Err(Error::Expired));
     refund(&mut a, at).unwrap();
-    assert_eq!(settle(&mut a, [1; 32], at - 1), Err(Error::VersionConflict));
-    settle(&mut e, [1; 32], at - 1).unwrap();
+    assert_eq!(
+        settle(&mut a, Hash::new([1; 32]), at - 1),
+        Err(Error::VersionConflict)
+    );
+    settle(&mut e, Hash::new([1; 32]), at - 1).unwrap();
     assert_eq!(refund(&mut e, at), Err(Error::VersionConflict));
     assert!(e.conserved());
 }
@@ -185,7 +188,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     let key = SigningKey::from_bytes(&[7; 32]);
     let s = ReceiptSigner {
         epoch: 1,
-        public_key: key.verifying_key().to_bytes(),
+        public_key: key.verifying_key().to_bytes().into(),
         valid_from: 0,
         valid_until: DAY,
         revoked: false,
@@ -252,11 +255,12 @@ fn repricing_requires_an_owner_and_the_ledgers_expected_fee() {
     let (mut e, me) = setup();
     let tx = transfer(&e, me, 1, 1130, 2, e.quote.payer);
     accept_deposit(&mut e, me, &tx).unwrap();
-    settle(&mut e, [1; 32], 3).unwrap();
+    settle(&mut e, Hash::new([1; 32]), 3).unwrap();
     e.primary_remaining = 10;
     e.pending_payouts = 2;
     let to = e.quote.recipient;
     let mut old = leg(&mut e, LegKind::Recipient, to, 1000, 10, 3);
+    assert_eq!(old.created_at_time, 3_000_000);
     old.status = LegStatus::FeeBlocked;
     old.expected_fee = Some(20);
     let before = (e.clone(), old.clone());
@@ -271,6 +275,8 @@ fn repricing_requires_an_owner_and_the_ledgers_expected_fee() {
     );
     assert_eq!((e.clone(), old.clone()), before);
     let next = revise_leg(&mut e, &mut old, account(1).owner, 20, 4).unwrap();
+    assert_eq!(old.created_at_time, 3_000_000);
+    assert_eq!(next.created_at_time, 4_000_000);
     assert_eq!(next.amount, 1000);
     assert_eq!(next.fee, 20);
     assert_eq!(next.revision, 1);

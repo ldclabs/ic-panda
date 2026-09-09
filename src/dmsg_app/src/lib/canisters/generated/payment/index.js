@@ -45,7 +45,7 @@ export const idlFactory = ({ IDL }) => {
     'payer' : Account,
     'amount' : IDL.Nat,
     'home_payment' : IDL.Principal,
-    'retain_ns' : IDL.Nat64,
+    'retain_ms' : IDL.Nat64,
     'recipient_net' : IDL.Nat,
     'signer_epoch' : IDL.Nat64,
     'fund_by' : IDL.Nat64,

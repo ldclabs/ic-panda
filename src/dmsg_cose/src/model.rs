@@ -155,19 +155,19 @@ mod tests {
     use super::*;
     fn g(seq: u64) -> ExecutionGrant {
         ExecutionGrant {
-            subject: [1; 32],
+            subject: Hash::new([1; 32]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
-            request_id: execution_request_id([1; 32], 0, [2; 32], seq),
+            request_id: execution_request_id(Hash::new([1; 32]), 0, Hash::new([2; 32]), seq),
             execution_sequence: seq,
             security_epoch: 0,
-            device_id: [2; 32],
+            device_id: Hash::new([2; 32]),
             device_sequence: seq,
             approved_at: 1,
             expires_at: MINUTE,
             kind: ExecutionKind::Derive {
                 generation: 1,
-                root_op_id: Some([3; 32]),
+                root_op_id: Some(Hash::new([3; 32])),
                 transport_key: vec![1; 48].into(),
             },
             max_cycles: 100,

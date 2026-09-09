@@ -56,7 +56,7 @@ fn void<A: ArgumentEncoder>(
         .unwrap();
 }
 fn time(ic: &PocketIc) -> u64 {
-    ic.get_time().as_nanos_since_unix_epoch()
+    nanos_to_millis(ic.get_time().as_nanos_since_unix_epoch())
 }
 fn account(owner: Principal) -> Account {
     Account {
@@ -72,9 +72,9 @@ fn key(n: u8) -> SigningKey {
 }
 fn device(n: u8) -> DeviceInput {
     DeviceInput {
-        device_id: [n; 32],
-        signing_pub: key(n).verifying_key().to_bytes(),
-        hpke_pub: [n; 32],
+        device_id: Hash::new([n; 32]),
+        signing_pub: key(n).verifying_key().to_bytes().into(),
+        hpke_pub: Hash::new([n; 32]),
         role: ControllerRole::Administrator,
         capabilities: vec![
             Capability::RootManage,
@@ -116,12 +116,12 @@ impl Fixture {
                 MasterKey {
                     algorithm: Algorithm::Ed25519,
                     key_name: "key_1".into(),
-                    expected_fingerprint: [0; 32],
+                    expected_fingerprint: Hash::new([0; 32]),
                 },
                 MasterKey {
                     algorithm: Algorithm::VetKdBls12381,
                     key_name: "key_1".into(),
-                    expected_fingerprint: [0; 32],
+                    expected_fingerprint: Hash::new([0; 32]),
                 },
             ],
             daily_executions: 1000,
@@ -129,7 +129,7 @@ impl Fixture {
         };
         let signer = ReceiptSigner {
             epoch: 1,
-            public_key: key(50).verifying_key().to_bytes(),
+            public_key: key(50).verifying_key().to_bytes().into(),
             valid_from: time(&ic),
             valid_until: time(&ic) + 30 * DAY,
             revoked: false,
@@ -202,12 +202,15 @@ impl Fixture {
     fn create(&self, n: u8) -> Hash {
         let expires = time(&self.ic) + MINUTE;
         let dev = device(n);
-        let op = [n; 32];
+        let op = Hash::new([n; 32]);
         let proof = key(n)
-            .sign(&digest(
-                "dmsg/create-subject/v1",
-                &(self.user, person(n), &dev, op, expires),
-            ))
+            .sign(
+                digest(
+                    "dmsg/create-subject/v1",
+                    &(self.user, person(n), &dev, op, expires),
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec()
             .into();
@@ -236,22 +239,25 @@ impl Fixture {
             expected_version: s.account_version,
             command,
             approval: Approval {
-                device_id: [n; 32],
+                device_id: Hash::new([n; 32]),
                 security_epoch: s.security_epoch,
-                sequence: s.devices[&[n; 32]].next_sequence,
+                sequence: s.devices[&Hash::new([n; 32])].next_sequence,
                 request_id: digest("test-operation", &(id, s.account_version)),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: ByteBuf::new(),
             },
         };
         m.approval.signature = key(n)
-            .sign(&approval_message(
-                self.user,
-                id,
-                "dmsg/account/v1",
-                &(&m.expected_version, &m.command),
-                &m.approval,
-            ))
+            .sign(
+                approval_message(
+                    self.user,
+                    id,
+                    "dmsg/account/v1",
+                    &(&m.expected_version, &m.command),
+                    &m.approval,
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec()
             .into();
@@ -262,15 +268,12 @@ impl Fixture {
         let op = digest("test-operation", &(id, s.account_version));
         let policy = RecoveryPolicy {
             generation: 1,
-            signing_pub: key(70).verifying_key().to_bytes(),
-            hpke_pub: [70; 32],
-            delay_ns: DAY,
+            signing_pub: key(70).verifying_key().to_bytes().into(),
+            hpke_pub: Hash::new([70; 32]),
+            delay_ms: DAY,
         };
         let proof = key(70)
-            .sign(&digest(
-                "dmsg/recovery-enroll/v1",
-                &(self.user, id, &policy, op),
-            ))
+            .sign(digest("dmsg/recovery-enroll/v1", &(self.user, id, &policy, op)).as_slice())
             .to_bytes()
             .to_vec()
             .into();
@@ -279,10 +282,13 @@ impl Fixture {
         let s = self.subject(n, id);
         let op = digest("test-operation", &(id, s.account_version));
         let proof = key(70)
-            .sign(&digest(
-                "dmsg/recovery-check/v1",
-                &(self.user, id, 1u64, s.account_version, op),
-            ))
+            .sign(
+                digest(
+                    "dmsg/recovery-check/v1",
+                    &(self.user, id, 1u64, s.account_version, op),
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec()
             .into();
@@ -309,12 +315,12 @@ impl Fixture {
                 from_subaccount: None,
                 to: Account {
                     owner: self.payment,
-                    subaccount: Some(e.subaccount),
+                    subaccount: Some(e.subaccount.into_array()),
                 },
                 amount: amount.into(),
                 fee: Some(10u64.into()),
                 memo: None,
-                created_at_time: Some(time(&self.ic)),
+                created_at_time: Some(millis_to_nanos(time(&self.ic)).unwrap()),
             },),
         );
         r.unwrap().0.to_string().parse().unwrap()
@@ -324,25 +330,25 @@ impl Fixture {
         let now = time(&self.ic);
         let offer = PaymentOffer {
             subject: recipient,
-            device_id: [n; 32],
+            device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
             home_payment: self.payment,
-            offer_id: [nonce; 32],
+            offer_id: Hash::new([nonce; 32]),
             ledger: self.ledger,
             recipient: account(person(n)),
             recipient_net: 1000,
-            quote_scope: [nonce; 32],
+            quote_scope: Hash::new([nonce; 32]),
             version: 1,
             issued_at: now,
             expires_at: now + 15 * MINUTE,
         };
         let signature = key(n)
-            .sign(&digest("dmsg/payment-offer/v1", &offer))
+            .sign(digest("dmsg/payment-offer/v1", &offer).as_slice())
             .to_bytes()
             .to_vec()
             .into();
         let quote = Quote {
-            quote_id: [nonce; 32],
+            quote_id: Hash::new([nonce; 32]),
             home_payment: self.payment,
             payer: account(person(40)),
             offer_digest: digest("dmsg/payment-offer/v1", &offer),
@@ -356,20 +362,20 @@ impl Fixture {
             amount: 1130,
             max_network_fee: 20,
             max_bytes: 8192,
-            retain_ns: DAY,
-            envelope_digest: [3; 32],
+            retain_ms: DAY,
+            envelope_digest: Hash::new([3; 32]),
             signer_epoch: 1,
             created_at: now,
             fund_by: now + 15 * MINUTE,
             accept_by: now + 45 * MINUTE,
         };
         let quote_signature = key(50)
-            .sign(&digest("dmsg/quote/v1", &quote))
+            .sign(digest("dmsg/quote/v1", &quote).as_slice())
             .to_bytes()
             .to_vec()
             .into();
         OpenEscrow {
-            op_id: [nonce; 32],
+            op_id: Hash::new([nonce; 32]),
             quote,
             quote_signature,
             offer: SignedOffer { offer, signature },
@@ -379,7 +385,7 @@ impl Fixture {
         let now = time(&self.ic);
         let receipt = AdmissionReceipt {
             protocol: 1,
-            relay_id: [9; 32],
+            relay_id: Hash::new([9; 32]),
             signer_epoch: 1,
             home_payment: self.payment,
             escrow_id: e.escrow_id,
@@ -395,7 +401,7 @@ impl Fixture {
             accept_by: e.quote.accept_by,
         };
         let signature = key(50)
-            .sign(&digest("dmsg/admission-receipt/v1", &receipt))
+            .sign(digest("dmsg/admission-receipt/v1", &receipt).as_slice())
             .to_bytes()
             .to_vec()
             .into();
@@ -412,25 +418,28 @@ impl Fixture {
         let request_id = execution_request_id(
             subject,
             s.security_epoch,
-            [n; 32],
-            s.devices[&[n; 32]].next_sequence,
+            Hash::new([n; 32]),
+            s.devices[&Hash::new([n; 32])].next_sequence,
         );
         let mut approval = Approval {
-            device_id: [n; 32],
+            device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
-            sequence: s.devices[&[n; 32]].next_sequence,
+            sequence: s.devices[&Hash::new([n; 32])].next_sequence,
             request_id,
             expires_at: time(&self.ic) + MINUTE,
             signature: ByteBuf::new(),
         };
         approval.signature = key(n)
-            .sign(&approval_message(
-                self.user,
-                subject,
-                "dmsg/execute/v1",
-                &(&kind, cost),
-                &approval,
-            ))
+            .sign(
+                approval_message(
+                    self.user,
+                    subject,
+                    "dmsg/execute/v1",
+                    &(&kind, cost),
+                    &approval,
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .to_vec()
             .into();
@@ -461,7 +470,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         subject,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
-            op_id: [8; 32],
+            op_id: Hash::new([8; 32]),
         },
     )
     .unwrap();
@@ -471,7 +480,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         home_cose: f.cose,
         derivation_version: 1,
         key_generation: 1,
-        bundle_digest: [12; 32],
+        bundle_digest: Hash::new([12; 32]),
         recovery_generation: 1,
     };
     f.mutate(
@@ -479,7 +488,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         subject,
         AccountCommand::CommitRoot {
             expected_generation: 0,
-            op_id: [8; 32],
+            op_id: Hash::new([8; 32]),
             root: root.clone(),
         },
     )
@@ -522,8 +531,8 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
     let request_id = execution_request_id(
         subject,
         s.security_epoch,
-        [1; 32],
-        s.devices[&[1; 32]].next_sequence,
+        Hash::new([1; 32]),
+        s.devices[&Hash::new([1; 32])].next_sequence,
     );
     let payload = FormalPayload {
         schema: 1,
@@ -533,9 +542,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         audience: "release".into(),
         expires_at: expires,
         body: FormalBody::FileAttestation {
-            sha256: [31; 32],
+            sha256: Hash::new([31; 32]),
             size: 123,
-            version: [4; 32],
+            version: Hash::new([4; 32]),
             project: "example".into(),
         },
     };
@@ -550,22 +559,25 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         canonical_payload: bytes.clone().into(),
     };
     let mut approval = Approval {
-        device_id: [1; 32],
+        device_id: Hash::new([1; 32]),
         security_epoch: s.security_epoch,
-        sequence: s.devices[&[1; 32]].next_sequence,
+        sequence: s.devices[&Hash::new([1; 32])].next_sequence,
         request_id,
         expires_at: expires,
         signature: ByteBuf::new(),
     };
     let cost = 100_000_000_000u128;
     approval.signature = key(1)
-        .sign(&approval_message(
-            f.user,
-            subject,
-            "dmsg/execute/v1",
-            &(&kind, cost),
-            &approval,
-        ))
+        .sign(
+            approval_message(
+                f.user,
+                subject,
+                "dmsg/execute/v1",
+                &(&kind, cost),
+                &approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .to_vec()
         .into();
@@ -592,8 +604,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
             .public_key
             .to_vec()
             .try_into()
+            .map(Hash::new)
             .unwrap(),
-        &bytes,
+        bytes.as_slice(),
         result.result.as_ref().unwrap(),
     )
     .unwrap();
@@ -671,11 +684,11 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     };
     let snapshot = LegacySnapshot {
         source_canister: person(80),
-        snapshot_id: [5; 32],
+        snapshot_id: Hash::new([5; 32]),
         freeze_version: 1,
-        event_tip: [7; 32],
+        event_tip: Hash::new([7; 32]),
         count: 1,
-        entries_digest: digest("dmsg/legacy-entry/v1", &([0u8; 32], &legacy)),
+        entries_digest: digest("dmsg/legacy-entry/v1", &(Hash::new([0u8; 32]), &legacy)),
     };
     let r: Result<()> = update(
         &f.ic,
@@ -716,7 +729,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         target_subject: None,
         handle: "alice".into(),
         expected_version: 0,
-        op_id: [6; 32],
+        op_id: Hash::new([6; 32]),
         terms_digest: digest(
             "dmsg/legacy-claim/v1",
             &(snapshot.snapshot_id, &legacy, owner),
@@ -746,7 +759,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         (intent, snapshot.snapshot_id),
     );
     assert_eq!(claimed.unwrap().owner_subject, owner);
-    let op_id = [10; 32];
+    let op_id = Hash::new([10; 32]);
     let terms = digest(
         "dmsg/handle-transfer/v1",
         &(f.handle, "alice", owner, target, 1u64, op_id),
@@ -818,8 +831,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         target_subject: None,
         handle: "newname".into(),
         expected_version: 0,
-        op_id: [11; 32],
-        terms_digest: digest("dmsg/handle-charge/v1", &(f.ledger, payer, amount, 10u128)),
+        op_id: Hash::new([11; 32]),
+        terms_digest: charge_terms_digest(f.ledger, &payer, amount, 10u128),
     };
     f.mutate(
         1,
@@ -847,7 +860,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         f.handle,
         person(1),
         "commit_handle",
-        (owner, [11u8; 32]),
+        (owner, Hash::new([11u8; 32])),
     );
     assert_eq!(committed.unwrap().phase, HandlePhase::Committed);
     let replay: Result<HandleOperation> = update(
@@ -855,7 +868,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         f.handle,
         person(1),
         "commit_handle",
-        (owner, [11u8; 32]),
+        (owner, Hash::new([11u8; 32])),
     );
     assert_eq!(replay.unwrap().phase, HandlePhase::Committed);
     let balance: Nat = query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (payer,));

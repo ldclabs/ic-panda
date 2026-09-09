@@ -172,7 +172,7 @@ export const idlFactory = ({ IDL }) => {
     'recovery_root_version' : IDL.Nat64,
     'home_user' : IDL.Principal,
     'subject_id' : IDL.Vec(IDL.Nat8),
-    'recovery_delay_ns' : IDL.Opt(IDL.Nat64),
+    'recovery_delay_ms' : IDL.Opt(IDL.Nat64),
     'recovery_signing_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'vault_write_state' : VaultWriteState,
     'account_status' : AccountStatus,
@@ -273,7 +273,7 @@ export const idlFactory = ({ IDL }) => {
     'allowed_purposes' : IDL.Vec(KeyPurpose),
   });
   const RecoveryPolicy = IDL.Record({
-    'delay_ns' : IDL.Nat64,
+    'delay_ms' : IDL.Nat64,
     'generation' : IDL.Nat64,
     'hpke_pub' : IDL.Vec(IDL.Nat8),
     'signing_pub' : IDL.Vec(IDL.Nat8),

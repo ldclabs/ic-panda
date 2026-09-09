@@ -17,10 +17,10 @@ use num_traits::ToPrimitive;
 use std::{cell::RefCell, collections::BTreeMap};
 thread_local! {static DATA:RefCell<Table>=RefCell::new(Table::new(0));}
 fn balance(a: Account) -> u128 {
-    DATA.with_borrow(|t| t.get(&digest("balance", &a)).unwrap_or(0))
+    DATA.with_borrow(|t| t.get(digest("balance", &a).as_slice()).unwrap_or(0))
 }
 fn write_balance(a: Account, n: u128) {
-    DATA.with_borrow_mut(|t| t.put(&digest("balance", &a), &n));
+    DATA.with_borrow_mut(|t| t.put(digest("balance", &a).as_slice(), &n));
 }
 fn fee() -> u128 {
     DATA.with_borrow(|t| t.get(b"fee").unwrap_or(10))
@@ -63,7 +63,7 @@ fn transfer(
     spender: Option<Account>,
 ) -> std::result::Result<Nat, TransferError> {
     let key = digest("transfer", &(from, a, spender));
-    if let Some(block) = DATA.with_borrow(|t| t.get::<u64>(&key)) {
+    if let Some(block) = DATA.with_borrow(|t| t.get::<u64>(key.as_slice())) {
         return Err(TransferError::Duplicate {
             duplicate_of: block.into(),
         });
@@ -115,7 +115,7 @@ fn transfer(
     DATA.with_borrow_mut(|t| {
         t.put(&index.to_be_bytes(), &block);
         t.put(b"next", &(index + 1));
-        t.put(&key, &index);
+        t.put(key.as_slice(), &index);
     });
     Ok(index.into())
 }

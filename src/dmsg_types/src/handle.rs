@@ -3,6 +3,18 @@ use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
+pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee: u128) -> Hash {
+    digest(
+        "dmsg/handle-charge/v1",
+        &(
+            ledger,
+            crate::ledger::account_cbor::value(payer),
+            amount,
+            fee,
+        ),
+    )
+}
+
 pub fn normalize_handle(handle: &str) -> Result<String> {
     ensure(
         !handle.is_empty() && handle.len() <= 20 && !handle.starts_with('_'),
@@ -91,6 +103,7 @@ pub struct HandleEvent {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Registration {
     pub intent: HandleIntent,
+    #[serde(with = "crate::ledger::account_cbor")]
     pub payer: Account,
     pub fee: u128,
 }
