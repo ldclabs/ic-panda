@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT / "vendor/ic_cose_chain_key"
+TARGET = ROOT / "src/ic_cose_chain_key"
 FILES = ("Cargo.toml", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "src/lib.rs")
 
 
