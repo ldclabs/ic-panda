@@ -1,7 +1,8 @@
 //! Adapter for the DFINITY ICRC ledger's ICRC-3 `1xfer`/`2xfer` blocks. Assets with
 //! another block schema must have a separately reviewed adapter.
-use crate::*;
+use crate::call;
 use candid::{Nat, Principal};
+use dmsg_types::*;
 use icrc_ledger_types::{
     icrc::generic_value::ICRC3Value as Value,
     icrc1::account::Account,
@@ -12,40 +13,6 @@ use std::collections::BTreeMap;
 
 /// Serde adapter for protocol accounts. ICRC's external Account type uses an
 /// unannotated array for subaccounts; the dMsg CBOR contract uses fixed bytes.
-pub mod account_cbor {
-    use super::*;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    #[derive(Serialize, Deserialize)]
-    struct EncodedAccount {
-        owner: Principal,
-        subaccount: Option<Hash>,
-    }
-
-    pub fn value(account: &Account) -> impl Serialize {
-        EncodedAccount {
-            owner: account.owner,
-            subaccount: account.subaccount.map(Hash::new),
-        }
-    }
-
-    pub fn serialize<S: Serializer>(
-        account: &Account,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error> {
-        value(account).serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> std::result::Result<Account, D::Error> {
-        let account = EncodedAccount::deserialize(deserializer)?;
-        Ok(Account {
-            owner: account.owner,
-            subaccount: account.subaccount.map(Hash::into_array),
-        })
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifiedTransfer {
@@ -143,7 +110,7 @@ pub async fn read_transfer(ledger: Principal, index: u64) -> Result<VerifiedTran
     let mut target = ledger;
     let mut method = "icrc3_get_blocks".to_string();
     for _ in 0..4 {
-        let response: GetBlocksResult = stable::call(target, &method, (requests.clone(),)).await?;
+        let response: GetBlocksResult = call(target, &method, (requests.clone(),)).await?;
         ensure(
             response.blocks.len() <= 1 && response.archived_blocks.len() <= 4,
             Error::IntegrityFailed,

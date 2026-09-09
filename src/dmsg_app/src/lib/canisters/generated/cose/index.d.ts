@@ -5,7 +5,6 @@ import type { IDL } from '@icp-sdk/core/candid';
 
 export type Algorithm = { 'VetKdBls12381' : null } |
   { 'Ed25519' : null } |
-  { 'Bip340' : null } |
   { 'EcdsaSecp256k1' : null };
 export interface CoseInit {
   'masters' : Array<MasterKey>,
@@ -13,6 +12,7 @@ export interface CoseInit {
   'derivation_version' : number,
   'daily_cycles' : bigint,
   'initial_home_user' : Principal,
+  'issuer_namespace' : string,
   'daily_executions' : number,
   'environment' : Environment,
 }
@@ -26,12 +26,15 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
   { 'IntegrityFailed' : null } |
+  { 'IdTimestampOutOfRange' : null } |
   { 'NotFound' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
   { 'RecoveryIncomplete' : null } |
+  { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
+  { 'IdGeneratorStateConflict' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
@@ -42,10 +45,10 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
 export interface ExecutionGrant {
+  'account_id' : Uint8Array | number[],
   'request_id' : Uint8Array | number[],
   'device_sequence' : bigint,
   'execution_sequence' : bigint,
-  'subject' : Uint8Array | number[],
   'kind' : ExecutionKind,
   'approved_at' : bigint,
   'device_id' : Uint8Array | number[],
@@ -56,7 +59,12 @@ export interface ExecutionGrant {
   'expires_at' : bigint,
 }
 export type ExecutionKind = {
-    'Sign' : { 'key' : KeyRequest, 'canonical_payload' : Uint8Array | number[] }
+    'Sign' : {
+      'key' : KeyRequest,
+      'public_key_fingerprint' : Uint8Array | number[],
+      'origin' : string,
+      'to_be_signed' : Uint8Array | number[],
+    }
   } |
   {
     'Derive' : {
@@ -65,27 +73,32 @@ export type ExecutionKind = {
       'root_op_id' : [] | [Uint8Array | number[]],
     }
   };
-export interface ExecutionResult {
-  'key' : [] | [KeyDescriptor],
-  'status' : ExecutionStatus,
-  'result' : [] | [Uint8Array | number[]],
-  'charged_cycles' : bigint,
-}
-export type ExecutionStatus = { 'Failed' : null } |
+export type ExecutionOutcome = { 'Failed' : Error } |
   { 'Executing' : null } |
   { 'Authorized' : null } |
-  { 'Unknown' : null } |
+  { 'Unknown' : Error } |
   { 'ResultExpired' : null } |
-  { 'Completed' : null };
+  { 'Completed' : ExecutionOutput };
+export type ExecutionOutput = {
+    'EncryptedRootKey' : {
+      'key' : KeyDescriptor,
+      'encrypted_key' : Uint8Array | number[],
+    }
+  } |
+  { 'Signature' : { 'key' : KeyDescriptor, 'artifact' : SignedArtifact } };
+export interface ExecutionResult {
+  'request_id' : Uint8Array | number[],
+  'charged_cycles' : bigint,
+  'outcome' : ExecutionOutcome,
+}
 export type Initialization = { 'Ready' : null } |
   { 'Uninitialized' : null } |
   { 'Initializing' : null };
 export interface KeyDescriptor {
+  'account_id' : Uint8Array | number[],
   'algorithm' : Algorithm,
   'key_generation' : bigint,
   'public_key_fingerprint' : Uint8Array | number[],
-  'provider' : [] | [string],
-  'subject' : Uint8Array | number[],
   'derivation_version' : number,
   'public_key' : Uint8Array | number[],
   'key_id' : Uint8Array | number[],
@@ -96,15 +109,14 @@ export interface KeyDescriptor {
 }
 export type KeyPurpose = { 'ContentRoot' : null } |
   { 'FileAttestation' : null } |
-  { 'ProviderController' : null } |
-  { 'Identity' : null } |
   { 'Statement' : null };
 export interface KeyRequest {
   'algorithm' : Algorithm,
-  'provider' : [] | [string],
   'generation' : bigint,
   'purpose' : KeyPurpose,
 }
+export type KeySelector = { 'ContentRoot' : { 'generation' : bigint } } |
+  { 'Signing' : SigningKey };
 export interface KeyState {
   'initialization' : Initialization,
   'fingerprints' : Array<Uint8Array | number[]>,
@@ -116,24 +128,33 @@ export interface MasterKey {
   'expected_fingerprint' : Uint8Array | number[],
   'key_name' : string,
 }
-export type Result = { 'Ok' : KeyDescriptor } |
+export type Result = { 'Ok' : ExecutionResult } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : ExecutionResult } |
+export type Result_1 = { 'Ok' : KeyState } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : KeyState } |
+export type Result_2 = { 'Ok' : KeyDescriptor } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : null } |
-  { 'Err' : Error };
+export interface SignedArtifact {
+  'cose_sign1' : Uint8Array | number[],
+  'cose_key' : Uint8Array | number[],
+}
+export type SigningAlgorithm = { 'Ed25519' : null } |
+  { 'EcdsaSecp256k1' : null };
+export interface SigningKey {
+  'algorithm' : SigningAlgorithm,
+  'purpose' : SigningPurpose,
+}
+export type SigningPurpose = { 'FileAttestation' : null } |
+  { 'Statement' : null };
 export interface _SERVICE {
-  'describe_key' : ActorMethod<[Uint8Array | number[]], Result>,
-  'execute' : ActorMethod<[ExecutionGrant], Result_1>,
+  'execute' : ActorMethod<[ExecutionGrant], Result>,
   'get_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_1
+    Result
   >,
-  'initialize_keys' : ActorMethod<[], Result_2>,
+  'initialize_keys' : ActorMethod<[], Result_1>,
   'key_state' : ActorMethod<[], KeyState>,
-  'register_subject' : ActorMethod<[Uint8Array | number[]], Result_3>,
+  'public_key' : ActorMethod<[Uint8Array | number[], KeySelector], Result_2>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

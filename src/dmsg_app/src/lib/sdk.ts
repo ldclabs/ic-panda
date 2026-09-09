@@ -4,7 +4,7 @@ import { ensure } from './errors'
 /** Fixed-origin R0 integration: creates a pending request, never an approval. */
 export function connectDmsg(extensionId: string) {
   ensure(/^[a-p]{32}$/.test(extensionId), 'INVALID_INPUT')
-  const port = chrome.runtime.connect(extensionId, { name: 'dmsg-extension/1' })
+  const port = chrome.runtime.connect(extensionId, { name: 'dmsg-extension/3' })
   const pending = new Map<
     string,
     { resolve: (value: unknown) => void; reject: (reason: Error) => void }
@@ -34,9 +34,9 @@ export function connectDmsg(extensionId: string) {
   return {
     request: (request: SignatureRequest) => send(request),
     get: (requestId: string) =>
-      send({ protocol: 'dmsg-extension/1', method: 'signature.get', requestId }),
+      send({ protocol: 'dmsg-extension/3', method: 'signature.get', requestId }),
     cancel: (requestId: string) =>
-      send({ protocol: 'dmsg-extension/1', method: 'signature.cancel', requestId }),
+      send({ protocol: 'dmsg-extension/3', method: 'signature.cancel', requestId }),
     disconnect: () => port.disconnect()
   }
 }

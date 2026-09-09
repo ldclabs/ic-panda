@@ -75,7 +75,9 @@ export interface Profile {
   publicFields: string[]
 }
 export interface WorkspaceMeta {
+  // Local vault identity used in encryption AAD; never an on-chain AccountId.
   subjectId: string
+  account?: { id: string; issuer: string; homeUser: string }
   deviceId: string
   environment: string
   createdAt: number

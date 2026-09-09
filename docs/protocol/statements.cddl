@@ -1,0 +1,62 @@
+; Document profiles v1 (Statement v3 design), not a general COSE grammar.
+; The media types are experimental, not registered standards.
+signed-statement = text-statement / digest-statement
+text-statement = #6.18([
+  protected: bstr .cbor text-headers,
+  unprotected: evidence-headers,
+  payload: bstr .size (1..4096), ; MUST be valid UTF-8, preserved verbatim
+  signature: signature-bytes
+])
+digest-statement = #6.18([
+  protected: bstr .cbor digest-headers,
+  unprotected: evidence-headers,
+  payload: sha256, ; RFC 9995 hash of the original content
+  signature: signature-bytes
+])
+common-headers = (
+  1: -19 / -47, ; fully specified Ed25519 / ES256K
+  4: bstr .size (1..256), ; opaque kid, not an account or a trust anchor
+  15: identity-claims
+)
+text-headers = {
+  common-headers,
+  2: [15, 16], ; crit: consumers must understand these headers
+  3: "text/plain;charset=utf-8",
+  16: "application/vnd.dmsg.text-statement+cose;v=1"
+}
+digest-headers = {
+  common-headers,
+  2: [15, 16, 258],
+  16: "application/vnd.dmsg.digest-statement+cose;v=1",
+  258: -16, ; SHA-256; header 3 is forbidden by RFC 9995
+  ? 259: tstr .size (1..256), ; media type of the original content
+  ? 260: uri ; location of the original content; never automatically fetched
+}
+identity-claims = {
+  1: uri, ; iss: signer identity, binding verified separately
+  ? 2: tstr .size (1..8192), ; sub: subject of the statement, StringOrURI
+  ? 6: -9223372036854775808..9223372036854775807 ; claimed iat, Unix SECONDS
+}
+evidence-headers = {
+  ? 270: bstr .size (1..131072) ; RFC 9921 DER token; requires independent TSA validation
+}
+uri = tstr .size (1..8192) ; canonical absolute ASCII URI, no credentials/control characters
+sha256 = bstr .size 32
+signature-bytes = bstr .size 64 ; both enabled algorithms use 64 bytes; not a generic COSE limit
+
+; Optional packaging DTO. The portable statement itself is signed-statement.
+signed-artifact = {
+  "cose_sign1": bstr .cbor signed-statement,
+  "cose_key": bstr .cbor public-key
+}
+public-key = ed25519-key / es256k-key
+ed25519-key = { 1: 1, ? 2: bstr, 3: -19, ? 4: [* int], -1: 6, -2: bstr .size 32, * key-label => any }
+es256k-key = { 1: 2, ? 2: bstr, 3: -47, ? 4: [* int], -1: 8, -2: bstr .size 32, -3: (bstr .size 32) / bool, * key-label => any }
+key-label = int / tstr
+; Public keys MUST NOT contain -4 (private d). If key_ops exists, it MUST allow
+; verify (2). If kid exists, it MUST equal the protected kid. Mathematical
+; curve/key validation and these semantic constraints are checked by code.
+; RFC 9679 thumbprints use only required public members, with full EC2 y bytes.
+; Header/claim maps are closed; duplicate keys and unknown critical semantics
+; are errors. crit ordering is emitted as above; validators compare its set.
+; external_aad is empty. The Sig_structure is ["Signature1", protected, h'', payload].

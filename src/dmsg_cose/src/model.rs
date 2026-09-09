@@ -1,18 +1,21 @@
 use candid::Principal;
-use dmsg_types::{cose::*, user::Budget, *};
+use dmsg_protocol::*;
+use dmsg_runtime::*;
+use dmsg_types::{cose::*, *};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Execution {
     pub grant: ExecutionGrant,
     pub digest: Hash,
     pub result: ExecutionResult,
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Home {
     pub home_user: Principal,
     pub terminal_sequence: u64,
+    #[serde(skip)]
     pub executions: BTreeMap<u64, Execution>,
     pub budget: Budget,
 }
@@ -36,7 +39,7 @@ impl Home {
             caller == self.home_user && caller == grant.home_user,
             Error::Forbidden,
         )?;
-        let fp = digest("dmsg/cose-execution/v1", grant);
+        let fp = digest("dmsg/cose-execution/v2", grant);
         if let Some(e) = self
             .executions
             .values()
@@ -59,7 +62,7 @@ impl Home {
         ensure(
             grant.request_id
                 == execution_request_id(
-                    grant.subject,
+                    grant.account_id,
                     grant.security_epoch,
                     grant.device_id,
                     grant.device_sequence,
@@ -72,7 +75,7 @@ impl Home {
                 && grant.expires_at - grant.approved_at <= 5 * MINUTE,
             Error::Expired,
         )?;
-        nonzero(&grant.request_id)?;
+        nonzero(grant.request_id.as_slice())?;
         ensure(cost <= grant.max_cycles, Error::QuotaExceeded)?;
         let mut next = self.clone();
         next.executions.retain(|seq, e| {
@@ -86,9 +89,8 @@ impl Home {
                 grant: grant.clone(),
                 digest: fp,
                 result: ExecutionResult {
-                    status: ExecutionStatus::Executing,
-                    result: None,
-                    key: None,
+                    request_id: grant.request_id,
+                    outcome: ExecutionOutcome::Executing,
                     charged_cycles: cost,
                 },
             },
@@ -104,50 +106,43 @@ impl Home {
         while self
             .executions
             .get(&(self.terminal_sequence + 1))
-            .is_some_and(|e| {
-                matches!(
-                    e.result.status,
-                    ExecutionStatus::Completed
-                        | ExecutionStatus::Failed
-                        | ExecutionStatus::ResultExpired
-                )
-            })
+            .is_some_and(|e| e.result.is_terminal())
         {
             self.terminal_sequence += 1;
         }
     }
 }
 
-pub fn key_id(config: &CoseInit, subject: Hash, key: &KeyRequest) -> Hash {
+pub fn key_id(config: &CoseInit, account_id: AccountId, key: &KeyRequest) -> Hash {
     digest(
-        "dmsg/key-id/v1",
+        "dmsg/key-id/v3",
         &(
             &config.environment,
             config.executing_canister,
             config.derivation_version,
-            subject,
+            account_id,
             key,
         ),
     )
 }
-pub fn path(config: &CoseInit, subject: Hash, key: &KeyRequest) -> Vec<Vec<u8>> {
+pub fn path(config: &CoseInit, account_id: AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
     vec![
-        b"dmsg/formal/v1".to_vec(),
+        b"dmsg/formal/v2".to_vec(),
         canonical(&config.environment),
-        subject.to_vec(),
+        account_id.to_vec(),
         canonical(&key.purpose),
         key.generation.to_be_bytes().to_vec(),
     ]
 }
 pub fn context(config: &CoseInit) -> Vec<u8> {
     canonical(&(
-        "dmsg/content-root/v1",
+        "dmsg/content-root/v2",
         &config.environment,
         config.derivation_version,
     ))
 }
-pub fn root_input(subject: Hash, generation: u64) -> Vec<u8> {
-    canonical(&(subject, generation))
+pub fn root_input(account_id: AccountId, generation: u64) -> Vec<u8> {
+    canonical(&(account_id, generation))
 }
 
 #[cfg(test)]
@@ -155,10 +150,10 @@ mod tests {
     use super::*;
     fn g(seq: u64) -> ExecutionGrant {
         ExecutionGrant {
-            subject: Hash::new([1; 32]),
+            account_id: AccountId::new([1; 12]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
-            request_id: execution_request_id(Hash::new([1; 32]), 0, Hash::new([2; 32]), seq),
+            request_id: execution_request_id(AccountId::new([1; 12]), 0, Hash::new([2; 32]), seq),
             execution_sequence: seq,
             security_epoch: 0,
             device_id: Hash::new([2; 32]),
@@ -173,11 +168,10 @@ mod tests {
             max_cycles: 100,
         }
     }
-    fn done() -> ExecutionResult {
+    fn done(seq: u64) -> ExecutionResult {
         ExecutionResult {
-            status: ExecutionStatus::Completed,
-            result: Some(vec![1].into()),
-            key: None,
+            request_id: g(seq).request_id,
+            outcome: ExecutionOutcome::ResultExpired,
             charged_cycles: 1,
         }
     }
@@ -185,10 +179,10 @@ mod tests {
     fn out_of_order_and_replay_never_skip_a_hole() {
         let mut h = Home::new(g(1).home_user);
         h.prepare(h.home_user, &g(2), 2, 1).unwrap();
-        h.finish(2, done());
+        h.finish(2, done(2));
         assert_eq!(h.terminal_sequence, 0);
         h.prepare(h.home_user, &g(1), 2, 1).unwrap();
-        h.finish(1, done());
+        h.finish(1, done(1));
         assert_eq!(h.terminal_sequence, 2);
         assert!(h.prepare(h.home_user, &g(1), 2, 1).unwrap().is_some());
         let mut bad = g(1);
@@ -216,12 +210,12 @@ mod tests {
     fn cleaned_request_cannot_reuse_id_with_new_device_sequence() {
         let mut h = Home::new(g(1).home_user);
         h.prepare(h.home_user, &g(1), 2, 1).unwrap();
-        h.finish(1, done());
+        h.finish(1, done(1));
         let mut second = g(2);
         second.approved_at = 2 * DAY;
         second.expires_at = 2 * DAY + MINUTE;
         h.prepare(h.home_user, &second, 2 * DAY, 1).unwrap();
-        h.finish(2, done());
+        h.finish(2, done(2));
         assert!(!h.executions.contains_key(&1));
         let mut replay = g(3);
         replay.approved_at = 2 * DAY;
@@ -245,9 +239,9 @@ mod tests {
             grant.approved_at = at;
             grant.expires_at = at + MINUTE;
             h.prepare(h.home_user, &grant, at, 1).unwrap();
-            let mut result = done();
+            let mut result = done(seq);
             if seq == 1 {
-                result.status = ExecutionStatus::Failed;
+                result.outcome = ExecutionOutcome::Failed(Error::UnsupportedProtocol);
             }
             h.finish(seq, result);
         }

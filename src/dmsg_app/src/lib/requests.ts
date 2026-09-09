@@ -21,9 +21,13 @@ export async function enqueueRequest(input: unknown, source: SourceBinding) {
   try {
     const meta = await db.meta()
     ensure(
-      meta && meta.subjectId === request.subjectId,
+      meta &&
+        meta.registered &&
+        meta.account?.id === request.accountId &&
+        meta.account.issuer === request.statement.issuer &&
+        meta.account.homeUser === config.canisters.user,
       'FORBIDDEN',
-      '请求主体与当前工作台不符。'
+      '请先绑定与请求签署者一致的链上账户。'
     )
     const payload = await hpkeSeal(meta.hpkePublic, canonical(request), [
       'dmsg/external-request/1',

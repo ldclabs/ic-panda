@@ -16,12 +16,15 @@ type Error = variant {
   VersionConflict;
   ExecutionUnknown;
   IntegrityFailed;
+  IdTimestampOutOfRange;
   NotFound;
   FeeBlocked;
   DeviceNotApproved;
   Locked;
   RecoveryIncomplete;
+  IdCapacityExceeded;
   PolicyStale;
+  IdGeneratorStateConflict;
   IdempotencyConflict;
   UnsupportedProtocol;
   Unavailable : text;
@@ -50,11 +53,11 @@ type HandleInit = record {
   ledger_fee : nat;
 };
 type HandleIntent = record {
+  account_id : blob;
   handle_canister : principal;
+  target_account : opt blob;
   action : HandleAction;
-  subject : blob;
   op_id : blob;
-  target_subject : opt blob;
   handle : text;
   expected_version : nat64;
   terms_digest : blob;
@@ -80,9 +83,9 @@ type HandlePhase = variant {
 };
 type HandleRecord = record {
   event_tip : blob;
-  owner_subject : blob;
   version : nat64;
   handle : text;
+  owner_account : blob;
 };
 type LegacyReservation = record {
   // Frozen administrator principals, never ordinary delegators. Empty means

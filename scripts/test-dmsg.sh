@@ -2,7 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-packages=(-p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment)
+python3 scripts/sync-cose-chain-key.py
+packages=(-p dmsg_protocol -p dmsg_runtime -p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p ic_cose_chain_key)
 cargo test --locked "${packages[@]}"
 cargo clippy --locked "${packages[@]}" -p dmsg_integration -p dmsg_test_ledger --all-targets --features dmsg_integration/pocketic-tests -- -D warnings
 cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p dmsg_test_ledger
@@ -19,7 +20,7 @@ cargo run --locked --quiet -p dmsg_types --example protocol_vectors > "$task_tmp
 diff -u src/dmsg_types/tests/protocol_vectors.json "$task_tmp/vectors.json"
 node scripts/verify-dmsg-vectors.mjs "$task_tmp/vectors.json"
 
-# PocketIC 13.0.0, matching the pinned host crate. Set POCKET_IC_BIN to use an
+# PocketIC 16.0.0, matching the pinned host crate. Set POCKET_IC_BIN to use an
 # installed server; otherwise the host crate downloads that fixed release.
 export DMSG_WASM_DIR="$wasm_dir"
 cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- --test-threads=1

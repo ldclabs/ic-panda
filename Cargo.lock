@@ -835,6 +835,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f95dcfb785ad8a95f89b2264206696cb41642f821f5de89949cb767d98ed1aeb"
 dependencies = [
  "cbor2",
+ "ed25519-dalek 3.0.0",
  "serde",
  "serde_bytes",
 ]
@@ -1172,11 +1173,15 @@ name = "dmsg_cose"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "ic-cdk",
  "ic-cdk-management-canister",
- "icrc-ledger-types 0.2.0",
+ "ic-stable-structures 0.7.2",
+ "ic_cose_chain_key",
  "lib_dummy_getrandom",
  "serde",
  "serde_bytes",
@@ -1187,10 +1192,14 @@ name = "dmsg_handle"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "ic-cdk",
  "ic-cdk-management-canister",
+ "ic-stable-structures 0.7.2",
  "icrc-ledger-types 0.2.0",
  "lib_dummy_getrandom",
  "serde",
@@ -1203,11 +1212,14 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "ic-certification",
  "ic-vetkeys",
  "icrc-ledger-types 0.2.0",
+ "k256 0.14.0",
  "pocket-ic",
  "serde",
  "serde_bytes",
@@ -1218,12 +1230,53 @@ name = "dmsg_payment"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "ic-cdk",
  "ic-cdk-management-canister",
+ "ic-stable-structures 0.7.2",
  "icrc-ledger-types 0.2.0",
  "lib_dummy_getrandom",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
+name = "dmsg_protocol"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "cbor2",
+ "cose2 0.5.0",
+ "dmsg_types",
+ "ed25519-dalek 3.0.0",
+ "hex",
+ "ic_bls12_381",
+ "icrc-ledger-types 0.2.0",
+ "k256 0.14.0",
+ "mime",
+ "serde",
+ "serde_bytes",
+ "sha2 0.11.0",
+ "url",
+]
+
+[[package]]
+name = "dmsg_runtime"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_types",
+ "ic-cdk",
+ "ic-certification",
+ "ic-stable-structures 0.7.2",
+ "icrc-ledger-types 0.2.0",
+ "num-traits",
  "serde",
  "serde_bytes",
 ]
@@ -1233,8 +1286,10 @@ name = "dmsg_test_ledger"
 version = "0.1.0"
 dependencies = [
  "candid",
- "dmsg_types",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "ic-cdk",
+ "ic-stable-structures 0.7.2",
  "icrc-ledger-types 0.2.0",
  "lib_dummy_getrandom",
  "num-traits",
@@ -1247,20 +1302,15 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "cbor2",
+ "dmsg_protocol",
  "ed25519-dalek 3.0.0",
  "hex",
- "ic-cdk",
- "ic-certification",
- "ic-stable-structures 0.7.2",
+ "ic_auth_types",
  "ic_bls12_381",
  "icrc-ledger-types 0.2.0",
- "lib_dummy_getrandom",
- "num-traits",
  "serde",
  "serde_bytes",
  "serde_json",
- "sha2 0.11.0",
- "url",
 ]
 
 [[package]]
@@ -1269,10 +1319,12 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "cbor2",
+ "dmsg_protocol",
+ "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "ic-cdk",
- "ic-cdk-management-canister",
+ "ic-stable-structures 0.7.2",
  "icrc-ledger-types 0.2.0",
  "lib_dummy_getrandom",
  "serde",
@@ -2024,7 +2076,7 @@ dependencies = [
  "k256 0.13.4",
  "leb128",
  "p256 0.13.2",
- "pem",
+ "pem 3.0.6",
  "pkcs8 0.10.2",
  "rand 0.10.2",
  "rangemap",
@@ -2227,7 +2279,7 @@ dependencies = [
  "hex-literal 0.4.1",
  "hkdf 0.12.4",
  "ic_principal",
- "pem",
+ "pem 3.0.6",
  "rand 0.8.8",
  "thiserror 2.0.18",
  "zeroize",
@@ -2443,6 +2495,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-secp256k1"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bf34836f1c4e8114b6d13b7699428939742e9ad73615bc0be4799ccc5566869"
+dependencies = [
+ "hex-literal 0.4.1",
+ "hmac 0.12.1",
+ "ic_principal",
+ "k256 0.13.4",
+ "num-bigint",
+ "pem 1.1.1",
+ "rand 0.8.8",
+ "rand_chacha",
+ "sha2 0.10.9",
+ "simple_asn1",
+ "zeroize",
+]
+
+[[package]]
 name = "ic-stable-structures"
 version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2594,6 +2665,20 @@ dependencies = [
  "rand_core 0.6.4",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "ic_cose_chain_key"
+version = "0.11.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-management-canister",
+ "ic-dummy-getrandom-for-wasm",
+ "ic-ed25519",
+ "ic-secp256k1",
+ "serde",
+ "serde_bytes",
 ]
 
 [[package]]
@@ -3487,6 +3572,15 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pem"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8835c273a76a90455d7344889b0964598e3316e2a79ede8e36f16bdcf2228b8"
+dependencies = [
+ "base64 0.13.1",
+]
 
 [[package]]
 name = "pem"

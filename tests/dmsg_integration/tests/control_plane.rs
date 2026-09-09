@@ -1,4 +1,6 @@
 use candid::{utils::ArgumentEncoder, CandidType, Nat, Principal};
+use dmsg_protocol::*;
+use dmsg_types::profiles::delivery::*;
 use dmsg_types::{cose::*, handle::*, payment::*, user::*, *};
 use ed25519_dalek::{Signer, SigningKey};
 use icrc_ledger_types::icrc1::{
@@ -33,6 +35,73 @@ fn update<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
         .unwrap_or_else(|e| panic!("{method}: {e:?}"));
     candid::decode_one(&bytes).unwrap_or_else(|e| panic!("decode {method}: {e:?}"))
 }
+// Exercise the public typed interfaces while retaining independently assembled
+// approval bytes in the existing interoperability/regression fixtures.
+fn submit_execution(
+    ic: &PocketIc,
+    user: Principal,
+    caller: Principal,
+    request: ExecuteRequest,
+) -> Result<ExecutionResult> {
+    match request.kind {
+        ExecutionKind::Sign {
+            key,
+            to_be_signed,
+            public_key_fingerprint,
+            origin,
+        } => {
+            let prepared = parse_signing_input(&to_be_signed).unwrap();
+            let algorithm = match key.algorithm {
+                Algorithm::Ed25519 => SigningAlgorithm::Ed25519,
+                Algorithm::EcdsaSecp256k1 => SigningAlgorithm::EcdsaSecp256k1,
+                _ => panic!("signing algorithm"),
+            };
+            update(
+                ic,
+                user,
+                caller,
+                "sign",
+                (SignRequest {
+                    account_id: request.account_id,
+                    key: SigningKeyRef {
+                        algorithm,
+                        kid: prepared.kid.into(),
+                        public_key_fingerprint,
+                    },
+                    statement: prepared.statement,
+                    origin,
+                    max_cycles: request.max_cycles,
+                    approval: request.approval,
+                },),
+            )
+        }
+        ExecutionKind::Derive {
+            generation,
+            root_op_id,
+            transport_key,
+        } => update(
+            ic,
+            user,
+            caller,
+            "derive_root",
+            (DeriveRootRequest {
+                account_id: request.account_id,
+                target: match root_op_id {
+                    Some(op_id) => RootTarget::Candidate { generation, op_id },
+                    None => RootTarget::Current { generation },
+                },
+                transport_public_key: transport_key
+                    .as_slice()
+                    .try_into()
+                    .map(serde_bytes::ByteArray::new)
+                    .unwrap(),
+                max_cycles: request.max_cycles,
+                approval: request.approval,
+            },),
+        ),
+    }
+}
+
 fn query<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
     ic: &PocketIc,
     id: Principal,
@@ -84,6 +153,7 @@ fn device(n: u8) -> DeviceInput {
         ],
     }
 }
+const NAMESPACE: &str = "https://dmsg.test/u/";
 struct Fixture {
     ic: PocketIc,
     user: Principal,
@@ -95,7 +165,11 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
+        Self::with_algorithms(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381])
+    }
+    fn with_algorithms(algorithms: Vec<Algorithm>) -> Self {
         let ic = PocketIcBuilder::new()
+            .with_nns_subnet()
             .with_application_subnet()
             .with_fiduciary_subnet()
             .build();
@@ -108,22 +182,19 @@ impl Fixture {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
         let cose_config = CoseInit {
+            issuer_namespace: NAMESPACE.into(),
             environment: Environment::Local,
             executing_canister: cose,
             initial_home_user: user,
-            derivation_version: 1,
-            masters: vec![
-                MasterKey {
-                    algorithm: Algorithm::Ed25519,
+            derivation_version: 2,
+            masters: algorithms
+                .into_iter()
+                .map(|algorithm| MasterKey {
+                    algorithm,
                     key_name: "key_1".into(),
                     expected_fingerprint: Hash::new([0; 32]),
-                },
-                MasterKey {
-                    algorithm: Algorithm::VetKdBls12381,
-                    key_name: "key_1".into(),
-                    expected_fingerprint: Hash::new([0; 32]),
-                },
-            ],
+                })
+                .collect(),
             daily_executions: 1000,
             daily_cycles: 10_000_000_000_000,
         };
@@ -138,11 +209,13 @@ impl Fixture {
             user,
             wasm("dmsg_user"),
             candid::encode_args((UserInit {
+                issuer_namespace: NAMESPACE.into(),
+                environment: Environment::Local,
                 home_cose: cose,
                 handle_canister: handle,
                 payment_canister: payment,
-                max_subjects: 1000,
-                daily_new_subjects: 100,
+                max_accounts: 1000,
+                daily_new_accounts: 100,
             },))
             .unwrap(),
             None,
@@ -157,8 +230,8 @@ impl Fixture {
             handle,
             wasm("dmsg_handle"),
             candid::encode_args((HandleInit {
-                home_user: user,
                 ledger,
+                home_user: user,
                 ledger_fee: 10,
                 max_pending: 100,
             },))
@@ -169,8 +242,8 @@ impl Fixture {
             payment,
             wasm("dmsg_payment"),
             candid::encode_args((PaymentInit {
-                home_user: user,
                 ledger,
+                home_user: user,
                 platform: account(person(60)),
                 service_fee: 100,
                 ledger_fee: 10,
@@ -190,23 +263,49 @@ impl Fixture {
             None,
         );
         Self {
+            ledger,
             ic,
             user,
             cose,
             handle,
             payment,
-            ledger,
             cose_config,
         }
     }
-    fn create(&self, n: u8) -> Hash {
+    fn key_ref(
+        &self,
+        id: AccountId,
+        purpose: SigningPurpose,
+        algorithm: SigningAlgorithm,
+    ) -> SigningKeyRef {
+        let result: Result<KeyDescriptor> = query(
+            &self.ic,
+            self.cose,
+            Principal::anonymous(),
+            "public_key",
+            (
+                id,
+                KeySelector::Signing(dmsg_types::cose::SigningKey {
+                    purpose,
+                    algorithm: algorithm.clone(),
+                }),
+            ),
+        );
+        let key = result.unwrap();
+        SigningKeyRef {
+            algorithm,
+            kid: key.key_id,
+            public_key_fingerprint: key.public_key_fingerprint,
+        }
+    }
+    fn create_input(&self, n: u8) -> CreateAccount {
         let expires = time(&self.ic) + MINUTE;
         let dev = device(n);
         let op = Hash::new([n; 32]);
         let proof = key(n)
             .sign(
                 digest(
-                    "dmsg/create-subject/v1",
+                    "dmsg/create-account/v1",
                     &(self.user, person(n), &dev, op, expires),
                 )
                 .as_slice(),
@@ -214,28 +313,31 @@ impl Fixture {
             .to_bytes()
             .to_vec()
             .into();
-        let r: Result<Hash> = update(
+        CreateAccount {
+            device: dev,
+            op_id: op,
+            expires_at: expires,
+            proof,
+        }
+    }
+    fn create(&self, n: u8) -> AccountId {
+        let r: Result<AccountId> = update(
             &self.ic,
             self.user,
             person(n),
-            "create_subject",
-            (CreateSubject {
-                device: dev,
-                op_id: op,
-                expires_at: expires,
-                proof,
-            },),
+            "create_account",
+            (self.create_input(n),),
         );
         r.unwrap()
     }
-    fn subject(&self, n: u8, id: Hash) -> Subject {
-        let r: Result<Subject> = query(&self.ic, self.user, person(n), "get_subject", (id,));
+    fn account_id(&self, n: u8, id: AccountId) -> AccountInfo {
+        let r: Result<AccountInfo> = query(&self.ic, self.user, person(n), "get_account", (id,));
         r.unwrap()
     }
-    fn mutate(&self, n: u8, id: Hash, command: AccountCommand) -> Result<OperationReceipt> {
-        let s = self.subject(n, id);
+    fn mutate(&self, n: u8, id: AccountId, command: AccountCommand) -> Result<OperationReceipt> {
+        let s = self.account_id(n, id);
         let mut m = AccountMutation {
-            subject: id,
+            account_id: id,
             expected_version: s.account_version,
             command,
             approval: Approval {
@@ -252,7 +354,7 @@ impl Fixture {
                 approval_message(
                     self.user,
                     id,
-                    "dmsg/account/v1",
+                    "dmsg/account/v2",
                     &(&m.expected_version, &m.command),
                     &m.approval,
                 )
@@ -263,8 +365,8 @@ impl Fixture {
             .into();
         update(&self.ic, self.user, person(n), "mutate_account", (m,))
     }
-    fn recoverable(&self, n: u8, id: Hash) {
-        let s = self.subject(n, id);
+    fn recoverable(&self, n: u8, id: AccountId) {
+        let s = self.account_id(n, id);
         let op = digest("test-operation", &(id, s.account_version));
         let policy = RecoveryPolicy {
             generation: 1,
@@ -279,7 +381,7 @@ impl Fixture {
             .into();
         self.mutate(n, id, AccountCommand::SetRecovery { policy, proof })
             .unwrap();
-        let s = self.subject(n, id);
+        let s = self.account_id(n, id);
         let op = digest("test-operation", &(id, s.account_version));
         let proof = key(70)
             .sign(
@@ -304,7 +406,7 @@ impl Fixture {
             (account(who), n),
         );
     }
-    fn fund(&self, e: &Escrow, amount: u128) -> u64 {
+    fn fund(&self, e: &EscrowInfo, amount: u128) -> u64 {
         self.mint(e.payer_principal, amount + 10);
         let r: std::result::Result<Nat, TransferError> = update(
             &self.ic,
@@ -325,11 +427,11 @@ impl Fixture {
         );
         r.unwrap().0.to_string().parse().unwrap()
     }
-    fn order(&self, recipient: Hash, n: u8, nonce: u8) -> OpenEscrow {
-        let s = self.subject(n, recipient);
+    fn order(&self, recipient: AccountId, n: u8, nonce: u8) -> OpenEscrow {
+        let s = self.account_id(n, recipient);
         let now = time(&self.ic);
         let offer = PaymentOffer {
-            subject: recipient,
+            account_id: recipient,
             device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
             home_payment: self.payment,
@@ -381,7 +483,7 @@ impl Fixture {
             offer: SignedOffer { offer, signature },
         }
     }
-    fn receipt(&self, e: &Escrow) -> SignedReceipt {
+    fn receipt(&self, e: &EscrowInfo) -> SignedReceipt {
         let now = time(&self.ic);
         let receipt = AdmissionReceipt {
             protocol: 1,
@@ -407,8 +509,8 @@ impl Fixture {
             .into();
         SignedReceipt { receipt, signature }
     }
-    fn derive(&self, n: u8, subject: Hash, transport_key: Vec<u8>) -> ExecutionResult {
-        let s = self.subject(n, subject);
+    fn derive(&self, n: u8, account_id: AccountId, transport_key: Vec<u8>) -> ExecutionResult {
+        let s = self.account_id(n, account_id);
         let kind = ExecutionKind::Derive {
             generation: 1,
             root_op_id: None,
@@ -416,7 +518,7 @@ impl Fixture {
         };
         let cost = 100_000_000_000u128;
         let request_id = execution_request_id(
-            subject,
+            account_id,
             s.security_epoch,
             Hash::new([n; 32]),
             s.devices[&Hash::new([n; 32])].next_sequence,
@@ -433,8 +535,8 @@ impl Fixture {
             .sign(
                 approval_message(
                     self.user,
-                    subject,
-                    "dmsg/execute/v1",
+                    account_id,
+                    "dmsg/execute/v3",
                     &(&kind, cost),
                     &approval,
                 )
@@ -443,31 +545,91 @@ impl Fixture {
             .to_bytes()
             .to_vec()
             .into();
-        let r: Result<ExecutionResult> = update(
+        let r = submit_execution(
             &self.ic,
             self.user,
             person(n),
-            "authorize_and_execute",
-            (ExecuteRequest {
-                subject,
+            ExecuteRequest {
+                account_id,
                 kind,
                 max_cycles: cost,
                 approval,
-            },),
+            },
         );
         r.unwrap()
     }
 }
 
+// PocketIC is the trusted certificate source here. Match the witness against
+// its certified_data and the exact path/value; the SDK also checks the BLS root.
+fn certified_value(f: &Fixture, batch: CertifiedBatch, path: &[u8]) -> Vec<u8> {
+    assert_eq!(batch.canister, f.user);
+    assert_eq!(batch.entries.len(), 1);
+    let entry = &batch.entries[0];
+    assert_eq!(entry.key.as_ref(), path);
+    let witness: ic_certification::HashTree = cbor2::from_slice(&entry.witness).unwrap();
+    let cert: ic_certification::Certificate = cbor2::from_slice(&batch.certificate).unwrap();
+    assert_eq!(
+        cert.tree.lookup_path([
+            b"canister".as_slice(),
+            f.user.as_slice(),
+            b"certified_data".as_slice()
+        ]),
+        ic_certification::LookupResult::Found(&witness.digest())
+    );
+    assert_eq!(
+        witness.lookup_path([path]),
+        ic_certification::LookupResult::Found(entry.value.as_ref().unwrap())
+    );
+    entry.value.as_ref().unwrap().to_vec()
+}
+
+#[test]
+fn xid_allocation_is_atomic_idempotent_and_persistent() {
+    let f = Fixture::new();
+    let a = f.create(1);
+    assert_eq!(a.as_slice().len(), 12);
+    assert_eq!(a.to_string().len(), 20);
+    let mut bad = f.create_input(2);
+    bad.proof = vec![0; 64].into();
+    let failed: Result<AccountId> = update(&f.ic, f.user, person(2), "create_account", (bad,));
+    assert!(failed.is_err());
+    let unbound: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
+    assert_eq!(unbound, None);
+    assert_eq!(f.create(1), a);
+    let b = f.create(2);
+    assert!(a < b);
+    let count = |id: AccountId| u32::from_be_bytes([0, id[9], id[10], id[11]]);
+    assert_eq!(count(b), if a[..4] == b[..4] { count(a) + 1 } else { 0 });
+    let fingerprint = digest(
+        "dmsg/account-id-generator/v1",
+        &("dmsg", Environment::Local, NAMESPACE, f.user),
+    );
+    assert_eq!(&b[4..9], &fingerprint[..5]);
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(f.create(2), b);
+    let c = f.create(3);
+    assert!(b < c);
+    assert_eq!(count(c), if b[..4] == c[..4] { count(b) + 1 } else { 0 });
+    let account = f.account_id(3, c);
+    assert_eq!(account.issuer, account_issuer(NAMESPACE, c).unwrap());
+}
+
 #[test]
 fn identity_roots_certification_formal_signing_and_upgrade() {
     let f = Fixture::new();
-    let subject = f.create(1);
-    assert_eq!(f.create(1), subject);
-    f.recoverable(1, subject);
+    let account_id = f.create(1);
+    assert_eq!(f.create(1), account_id);
+    f.recoverable(1, account_id);
     f.mutate(
         1,
-        subject,
+        account_id,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
             op_id: Hash::new([8; 32]),
@@ -478,14 +640,14 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         generation: 1,
         suite: "dmsg-root-v1".into(),
         home_cose: f.cose,
-        derivation_version: 1,
+        derivation_version: 2,
         key_generation: 1,
         bundle_digest: Hash::new([12; 32]),
         recovery_generation: 1,
     };
     f.mutate(
         1,
-        subject,
+        account_id,
         AccountCommand::CommitRoot {
             expected_generation: 0,
             op_id: Hash::new([8; 32]),
@@ -493,14 +655,14 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         },
     )
     .unwrap();
-    let s = f.subject(1, subject);
+    let s = f.account_id(1, account_id);
     assert_eq!(s.current_root, Some(root));
     let batch: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
         Principal::anonymous(),
         "security_snapshot_batch",
-        (vec![subject],),
+        (vec![account_id],),
     );
     let batch = batch.unwrap();
     let witness: ic_certification::HashTree = cbor2::from_slice(&batch.entries[0].witness).unwrap();
@@ -514,11 +676,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         ic_certification::LookupResult::Found(&witness.digest())
     );
     assert_eq!(
-        witness.lookup_path([subject.as_slice()]),
+        witness.lookup_path([account_id.as_slice()]),
         ic_certification::LookupResult::Found(batch.entries[0].value.as_ref().unwrap())
     );
-    let reply: Result<()> = update(&f.ic, f.cose, person(1), "register_subject", (subject,));
-    assert_eq!(reply, Err(Error::Forbidden));
     #[derive(CandidType, Deserialize)]
     struct KeyState {
         initialization: Initialization,
@@ -526,37 +686,39 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
     let init: Result<KeyState> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     assert_eq!(init.unwrap().initialization, Initialization::Ready);
-    let s = f.subject(1, subject);
+    let s = f.account_id(1, account_id);
     let expires = time(&f.ic) + MINUTE;
     let request_id = execution_request_id(
-        subject,
+        account_id,
         s.security_epoch,
         Hash::new([1; 32]),
         s.devices[&Hash::new([1; 32])].next_sequence,
     );
-    let payload = FormalPayload {
-        schema: 1,
-        subject,
-        request_id,
-        origin: "https://example.com".into(),
-        audience: "release".into(),
-        expires_at: expires,
-        body: FormalBody::FileAttestation {
+    let payload = Statement {
+        issuer: account_issuer(NAMESPACE, account_id).unwrap(),
+        subject: Some("release/spec".into()),
+        issued_at: None,
+        content: StatementContent::Digest {
             sha256: Hash::new([31; 32]),
-            size: 123,
-            version: Hash::new([4; 32]),
-            project: "example".into(),
+            content_type: Some("application/pdf".into()),
+            location: None,
         },
     };
-    let bytes = canonical(&payload);
+    let selected = f.key_ref(
+        account_id,
+        SigningPurpose::FileAttestation,
+        SigningAlgorithm::Ed25519,
+    );
+    let (_, to_be_signed) = prepare_cose(&payload, &Algorithm::Ed25519, &selected.kid).unwrap();
     let kind = ExecutionKind::Sign {
         key: KeyRequest {
             purpose: KeyPurpose::FileAttestation,
             algorithm: Algorithm::Ed25519,
             generation: 1,
-            provider: None,
         },
-        canonical_payload: bytes.clone().into(),
+        to_be_signed: to_be_signed.into(),
+        public_key_fingerprint: selected.public_key_fingerprint,
+        origin: "https://example.com".into(),
     };
     let mut approval = Approval {
         device_id: Hash::new([1; 32]),
@@ -571,8 +733,8 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         .sign(
             approval_message(
                 f.user,
-                subject,
-                "dmsg/execute/v1",
+                account_id,
+                "dmsg/execute/v3",
                 &(&kind, cost),
                 &approval,
             )
@@ -582,64 +744,97 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         .to_vec()
         .into();
     let request = ExecuteRequest {
-        subject,
+        account_id,
         kind,
         max_cycles: cost,
         approval,
     };
-    let result: Result<ExecutionResult> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "authorize_and_execute",
-        (request.clone(),),
-    );
+    let result = submit_execution(&f.ic, f.user, person(1), request.clone());
     let result = result.unwrap();
-    assert_eq!(result.status, ExecutionStatus::Completed);
-    verify(
-        &result
-            .key
-            .as_ref()
-            .unwrap()
-            .public_key
-            .to_vec()
-            .try_into()
-            .map(Hash::new)
-            .unwrap(),
-        bytes.as_slice(),
-        result.result.as_ref().unwrap(),
-    )
-    .unwrap();
-    let replay: Result<ExecutionResult> = update(
+    assert_eq!(result.status(), ExecutionStatus::Completed);
+    let ExecutionOutput::Signature { artifact, .. } = result.output().unwrap() else {
+        panic!("signature output")
+    };
+    assert_eq!(verify_artifact(artifact).unwrap(), payload);
+    let batch: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
         person(1),
-        "authorize_and_execute",
-        (request,),
+        "get_execution_receipt",
+        (account_id, request_id),
     );
+    let batch = batch.unwrap();
+    // Optional reproducible fixture for SDK certificate/receipt verification.
+    // The root and account keys belong to this local PocketIC instance only.
+    if let Some(path) = std::env::var_os("DMSG_EXPORT_RECEIPT") {
+        std::fs::write(
+            path,
+            canonical(&(
+                ByteBuf::from(f.ic.root_key().unwrap()),
+                time(&f.ic),
+                &batch,
+                artifact,
+                account_id,
+                request_id,
+                &payload.issuer,
+            )),
+        )
+        .unwrap();
+    }
+    let receipt: ExecutionReceipt = decode_canonical(&certified_value(
+        &f,
+        batch,
+        &execution_receipt_key(account_id, request_id),
+    ))
+    .unwrap();
+    match_execution_receipt(artifact, &receipt).unwrap();
+    assert_eq!(receipt.request_id, request_id);
+    assert_eq!(receipt.account_id, account_id);
+    assert_eq!(receipt.origin, "https://example.com");
+    let mut altered = receipt.clone();
+    altered.to_be_signed_digest = Hash::new([99; 32]);
+    assert_eq!(
+        match_execution_receipt(artifact, &altered),
+        Err(Error::IntegrityFailed)
+    );
+    altered = receipt.clone();
+    altered.public_key_fingerprint = Hash::new([99; 32]);
+    assert_eq!(
+        match_execution_receipt(artifact, &altered),
+        Err(Error::IntegrityFailed)
+    );
+    let denied: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.user,
+        person(2),
+        "get_execution_receipt",
+        (account_id, request_id),
+    );
+    assert!(denied.is_err());
+    let replay = submit_execution(&f.ic, f.user, person(1), request);
     assert_eq!(replay.unwrap(), result);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let derived = f.derive(1, subject, transport.public_key());
-    assert_eq!(derived.status, ExecutionStatus::Completed);
+    let derived = f.derive(1, account_id, transport.public_key());
+    assert_eq!(derived.status(), ExecutionStatus::Completed);
     let encrypted =
-        ic_vetkeys::EncryptedVetKey::deserialize(derived.result.as_ref().unwrap()).unwrap();
+        ic_vetkeys::EncryptedVetKey::deserialize(derived.output().unwrap().bytes()).unwrap();
     let public =
-        ic_vetkeys::DerivedPublicKey::deserialize(&derived.key.as_ref().unwrap().public_key)
+        ic_vetkeys::DerivedPublicKey::deserialize(&derived.output().unwrap().key().public_key)
             .unwrap();
     let root = encrypted
-        .decrypt_and_verify(&transport, &public, &canonical(&(subject, 1u64)))
+        .decrypt_and_verify(&transport, &public, &canonical(&(account_id, 1u64)))
         .unwrap();
     assert!(encrypted
-        .decrypt_and_verify(&transport, &public, &canonical(&(subject, 2u64)))
+        .decrypt_and_verify(&transport, &public, &canonical(&(account_id, 2u64)))
         .is_err());
     let other = ic_vetkeys::TransportSecretKey::from_seed(vec![92; 32]).unwrap();
     assert!(encrypted
-        .decrypt_and_verify(&other, &public, &canonical(&(subject, 1u64)))
+        .decrypt_and_verify(&other, &public, &canonical(&(account_id, 1u64)))
         .is_err());
-    let derived = f.derive(1, subject, other.public_key());
-    let same = ic_vetkeys::EncryptedVetKey::deserialize(derived.result.as_ref().unwrap())
+    let derived = f.derive(1, account_id, other.public_key());
+    let same = ic_vetkeys::EncryptedVetKey::deserialize(derived.output().unwrap().bytes())
         .unwrap()
-        .decrypt_and_verify(&other, &public, &canonical(&(subject, 1u64)))
+        .decrypt_and_verify(&other, &public, &canonical(&(account_id, 1u64)))
         .unwrap();
     assert_eq!(root.serialize(), same.serialize());
     f.ic.upgrade_canister(
@@ -656,7 +851,50 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         None,
     )
     .unwrap();
-    assert_eq!(f.subject(1, subject).current_root, s.current_root);
+    assert_eq!(f.account_id(1, account_id).current_root, s.current_root);
+    let restored: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution_receipt",
+        (account_id, request_id),
+    );
+    let restored: ExecutionReceipt = decode_canonical(&certified_value(
+        &f,
+        restored.unwrap(),
+        &execution_receipt_key(account_id, request_id),
+    ))
+    .unwrap();
+    assert_eq!(restored, receipt);
+    match_execution_receipt(artifact, &restored).unwrap();
+    // Both stores must rehydrate independently persisted executions after upgrade.
+    for expected in [result, derived] {
+        let local: Result<ExecutionResult> = query(
+            &f.ic,
+            f.user,
+            person(1),
+            "get_execution",
+            (account_id, expected.request_id),
+        );
+        let remote: Result<ExecutionResult> = query(
+            &f.ic,
+            f.cose,
+            f.user,
+            "get_execution",
+            (account_id, expected.request_id),
+        );
+        assert_eq!(local.unwrap(), expected);
+        assert_eq!(remote.unwrap(), expected);
+        let replay: Result<ExecutionResult> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "reconcile_execution",
+            (account_id, expected.request_id),
+        );
+        assert_eq!(replay.unwrap(), expected);
+    }
+
     let mut changed = f.cose_config.clone();
     changed.masters[0].key_name = "test_key_1".into();
     assert!(f
@@ -725,8 +963,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::ClaimLegacy,
-        subject: owner,
-        target_subject: None,
+        account_id: owner,
+        target_account: None,
         handle: "alice".into(),
         expected_version: 0,
         op_id: Hash::new([6; 32]),
@@ -758,7 +996,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         "claim_legacy_handle",
         (intent, snapshot.snapshot_id),
     );
-    assert_eq!(claimed.unwrap().owner_subject, owner);
+    assert_eq!(claimed.unwrap().owner_account, owner);
     let op_id = Hash::new([10; 32]);
     let terms = digest(
         "dmsg/handle-transfer/v1",
@@ -767,8 +1005,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let from = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Transfer,
-        subject: owner,
-        target_subject: Some(target),
+        account_id: owner,
+        target_account: Some(target),
         handle: "alice".into(),
         expected_version: 1,
         op_id,
@@ -776,8 +1014,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     };
     let accept = HandleIntent {
         action: HandleAction::AcceptTransfer,
-        subject: target,
-        target_subject: Some(owner),
+        account_id: target,
+        target_account: Some(owner),
         ..from.clone()
     };
     f.mutate(
@@ -812,7 +1050,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         (from.clone(), accept.clone()),
     );
     let transferred = transferred.unwrap();
-    assert_eq!(transferred.owner_subject, target);
+    assert_eq!(transferred.owner_account, target);
     let replay: Result<HandleRecord> = update(
         &f.ic,
         f.handle,
@@ -827,8 +1065,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
-        subject: owner,
-        target_subject: None,
+        account_id: owner,
+        target_account: None,
         handle: "newname".into(),
         expected_version: 0,
         op_id: Hash::new([11; 32]),
@@ -895,7 +1133,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
     let f = Fixture::new();
     let recipient = f.create(2);
     let input = f.order(recipient, 2, 1);
-    let opened: Result<Escrow> = update(
+    let opened: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(40),
@@ -903,10 +1141,10 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         (input.clone(),),
     );
     let e = opened.unwrap();
-    let replay: Result<Escrow> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
+    let replay: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
     assert_eq!(replay.unwrap(), e);
     let block = f.fund(&e, e.quote.amount + 17);
-    let funded: Result<Escrow> = update(
+    let funded: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(40),
@@ -915,9 +1153,9 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
     );
     let funded = funded.unwrap();
     assert_eq!(funded.funding_ref, Some(block));
-    assert!(funded.conserved());
+    assert!(funds_conserved(&funded));
     let signed = f.receipt(&funded);
-    let decided: Result<Escrow> = update(
+    let decided: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(99),
@@ -928,7 +1166,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         decided.unwrap().decision,
         FundsDecision::SettlementCommitted
     );
-    let duplicate: Result<Escrow> = update(
+    let duplicate: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(99),
@@ -1023,16 +1261,17 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         (e.escrow_id, excess.leg_id),
     );
     sent.unwrap();
-    let done: Result<Escrow> = query(&f.ic, f.payment, person(99), "get_escrow", (e.escrow_id,));
+    let done: Result<EscrowInfo> =
+        query(&f.ic, f.payment, person(99), "get_escrow", (e.escrow_id,));
     let done = done.unwrap();
-    assert!(done.conserved());
+    assert!(funds_conserved(&done));
     assert_eq!(done.liabilities, 0);
     let input = f.order(recipient, 2, 2);
-    let second: Result<Escrow> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
+    let second: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
     let second = second.unwrap();
     let late_block = f.fund(&second, 1130);
     f.ic.advance_time(Duration::from_secs(46 * 60));
-    let refund: Result<Escrow> = update(
+    let refund: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(40),
@@ -1040,7 +1279,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         (second.escrow_id,),
     );
     assert_eq!(refund.unwrap().decision, FundsDecision::RefundCommitted);
-    let late: Result<Escrow> = update(
+    let late: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
         person(40),
@@ -1073,7 +1312,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         None,
     )
     .unwrap();
-    let restored: Result<Escrow> = query(
+    let restored: Result<EscrowInfo> = query(
         &f.ic,
         f.payment,
         person(40),
@@ -1082,7 +1321,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
     );
     let restored = restored.unwrap();
     assert_eq!(restored.liabilities, 0);
-    assert!(restored.conserved());
+    assert!(funds_conserved(&restored));
     let revoked: Result<()> = update(
         &f.ic,
         f.payment,
@@ -1091,10 +1330,17 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         (1u64,),
     );
     revoked.unwrap();
-    let original: Result<Escrow> =
+    let original: Result<EscrowInfo> =
         update(&f.ic, f.payment, person(99), "finalize_receipt", (signed,));
     assert_eq!(
         original.unwrap().decision,
         FundsDecision::SettlementCommitted
     );
+}
+
+fn funds_conserved(e: &EscrowInfo) -> bool {
+    e.liabilities
+        .checked_add(e.transferred)
+        .and_then(|v| v.checked_add(e.network_fees))
+        == Some(e.confirmed_in)
 }

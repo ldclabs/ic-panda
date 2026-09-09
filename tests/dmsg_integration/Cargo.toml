@@ -12,6 +12,8 @@ name = "control_plane"
 required-features = ["pocketic-tests"]
 
 [dev-dependencies]
+dmsg_protocol = { path = "../../src/dmsg_protocol" }
+dmsg_runtime = { path = "../../src/dmsg_runtime" }
 dmsg_types = { path = "../../src/dmsg_types" }
 pocket-ic = "=16.0.0"
 candid.workspace = true
@@ -22,3 +24,4 @@ ed25519-dalek.workspace = true
 ic-certification.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys = "=0.9.0"
+k256 = { workspace = true, features = ["ecdsa"] }

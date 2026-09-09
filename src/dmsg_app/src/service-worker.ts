@@ -45,7 +45,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onConnectExternal.addListener((port) => {
   let source: ReturnType<typeof trustedSource>
   try {
-    ensure(port.name === 'dmsg-extension/1', 'UNSUPPORTED_PROTOCOL')
+    ensure(port.name === 'dmsg-extension/3', 'UNSUPPORTED_PROTOCOL')
     source = trustedSource(port.sender ?? {}, config.externalOrigins)
   } catch {
     port.disconnect()
@@ -78,7 +78,7 @@ chrome.runtime.onConnectExternal.addListener((port) => {
           ensure(
             Object.keys(input).every((key) =>
               ['method', 'requestId', 'protocol'].includes(key)
-            ) && input.protocol === 'dmsg-extension/1',
+            ) && input.protocol === 'dmsg-extension/3',
             'INVALID_INPUT'
           )
           const record = (await listRequests()).find((r) => r.id === input.requestId)

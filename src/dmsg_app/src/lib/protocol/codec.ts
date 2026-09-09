@@ -48,7 +48,7 @@ function validate(value: unknown, depth = 0, budget = { left: 50000 }): void {
   if (typeof value === 'number')
     ensure(Number.isSafeInteger(value), 'INVALID_INPUT', '协议不接受浮点数。')
   else if (typeof value === 'bigint')
-    ensure(value >= 0n && value <= 0xffffffffffffffffn, 'INVALID_INPUT')
+    ensure(value >= -0x8000000000000000n && value <= 0xffffffffffffffffn, 'INVALID_INPUT')
   else if (value instanceof Tagged)
     ensure(
       value.tag === 2 &&
@@ -110,7 +110,7 @@ function scan(data: Uint8Array): void {
   item(0)
   ensure(offset === data.length, 'INTEGRITY_FAILED')
 }
-export function decodeCanonical<T = unknown>(data: Uint8Array, max = 262144): T {
+export function decodeBounded(data: Uint8Array, max = 262144): unknown {
   ensure(data.length <= max && data.length > 0, 'QUOTA_EXCEEDED')
   scan(data)
   const value = decode(data, {
@@ -123,6 +123,11 @@ export function decodeCanonical<T = unknown>(data: Uint8Array, max = 262144): T 
     useMaps: true,
     tags: Tagged.preserve(2)
   })
+  validate(value)
+  return value
+}
+export function decodeCanonical<T = unknown>(data: Uint8Array, max = 262144): T {
+  const value = decodeBounded(data, max)
   ensure(equal(canonical(value), data), 'INTEGRITY_FAILED', '数据不是规范 CBOR。')
   // COSE integer-key maps stay maps; domain records become safe objects.
   function records(v: unknown): unknown {

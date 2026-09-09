@@ -1,0 +1,17 @@
+[package]
+name = "ic_cose_chain_key"
+version = "0.11.0"
+edition = "2021"
+description = "Shared ICP chain-key calls, cost estimates and public-key derivation for IC COSE canisters"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ldclabs/ic-cose"
+
+[dependencies]
+candid = "0.10"
+ic-cdk = "0.20"
+ic-dummy-getrandom-for-wasm = "0.1"
+ic-cdk-management-canister = "0.1"
+ic-ed25519 = "0.6"
+ic-secp256k1 = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "0.11"

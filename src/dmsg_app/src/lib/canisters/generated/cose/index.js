@@ -3,7 +3,6 @@ export const idlFactory = ({ IDL }) => {
   const Algorithm = IDL.Variant({
     'VetKdBls12381' : IDL.Null,
     'Ed25519' : IDL.Null,
-    'Bip340' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
   });
   const MasterKey = IDL.Record({
@@ -22,29 +21,46 @@ export const idlFactory = ({ IDL }) => {
     'derivation_version' : IDL.Nat16,
     'daily_cycles' : IDL.Nat,
     'initial_home_user' : IDL.Principal,
+    'issuer_namespace' : IDL.Text,
     'daily_executions' : IDL.Nat32,
     'environment' : Environment,
   });
   const KeyPurpose = IDL.Variant({
     'ContentRoot' : IDL.Null,
     'FileAttestation' : IDL.Null,
-    'ProviderController' : IDL.Null,
-    'Identity' : IDL.Null,
     'Statement' : IDL.Null,
   });
-  const KeyDescriptor = IDL.Record({
+  const KeyRequest = IDL.Record({
     'algorithm' : Algorithm,
-    'key_generation' : IDL.Nat64,
-    'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
-    'provider' : IDL.Opt(IDL.Text),
-    'subject' : IDL.Vec(IDL.Nat8),
-    'derivation_version' : IDL.Nat16,
-    'public_key' : IDL.Vec(IDL.Nat8),
-    'key_id' : IDL.Vec(IDL.Nat8),
-    'home_cose' : IDL.Principal,
-    'environment' : Environment,
-    'master_key_name' : IDL.Text,
+    'generation' : IDL.Nat64,
     'purpose' : KeyPurpose,
+  });
+  const ExecutionKind = IDL.Variant({
+    'Sign' : IDL.Record({
+      'key' : KeyRequest,
+      'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
+      'origin' : IDL.Text,
+      'to_be_signed' : IDL.Vec(IDL.Nat8),
+    }),
+    'Derive' : IDL.Record({
+      'generation' : IDL.Nat64,
+      'transport_key' : IDL.Vec(IDL.Nat8),
+      'root_op_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    }),
+  });
+  const ExecutionGrant = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'request_id' : IDL.Vec(IDL.Nat8),
+    'device_sequence' : IDL.Nat64,
+    'execution_sequence' : IDL.Nat64,
+    'kind' : ExecutionKind,
+    'approved_at' : IDL.Nat64,
+    'device_id' : IDL.Vec(IDL.Nat8),
+    'security_epoch' : IDL.Nat64,
+    'home_cose' : IDL.Principal,
+    'max_cycles' : IDL.Nat,
+    'home_user' : IDL.Principal,
+    'expires_at' : IDL.Nat64,
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
@@ -54,12 +70,15 @@ export const idlFactory = ({ IDL }) => {
     'VersionConflict' : IDL.Null,
     'ExecutionUnknown' : IDL.Null,
     'IntegrityFailed' : IDL.Null,
+    'IdTimestampOutOfRange' : IDL.Null,
     'NotFound' : IDL.Null,
     'FeeBlocked' : IDL.Null,
     'DeviceNotApproved' : IDL.Null,
     'Locked' : IDL.Null,
     'RecoveryIncomplete' : IDL.Null,
+    'IdCapacityExceeded' : IDL.Null,
     'PolicyStale' : IDL.Null,
+    'IdGeneratorStateConflict' : IDL.Null,
     'IdempotencyConflict' : IDL.Null,
     'UnsupportedProtocol' : IDL.Null,
     'Unavailable' : IDL.Text,
@@ -70,53 +89,47 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
-  const KeyRequest = IDL.Record({
+  const KeyDescriptor = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
     'algorithm' : Algorithm,
-    'provider' : IDL.Opt(IDL.Text),
-    'generation' : IDL.Nat64,
+    'key_generation' : IDL.Nat64,
+    'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
+    'derivation_version' : IDL.Nat16,
+    'public_key' : IDL.Vec(IDL.Nat8),
+    'key_id' : IDL.Vec(IDL.Nat8),
+    'home_cose' : IDL.Principal,
+    'environment' : Environment,
+    'master_key_name' : IDL.Text,
     'purpose' : KeyPurpose,
   });
-  const ExecutionKind = IDL.Variant({
-    'Sign' : IDL.Record({
-      'key' : KeyRequest,
-      'canonical_payload' : IDL.Vec(IDL.Nat8),
+  const SignedArtifact = IDL.Record({
+    'cose_sign1' : IDL.Vec(IDL.Nat8),
+    'cose_key' : IDL.Vec(IDL.Nat8),
+  });
+  const ExecutionOutput = IDL.Variant({
+    'EncryptedRootKey' : IDL.Record({
+      'key' : KeyDescriptor,
+      'encrypted_key' : IDL.Vec(IDL.Nat8),
     }),
-    'Derive' : IDL.Record({
-      'generation' : IDL.Nat64,
-      'transport_key' : IDL.Vec(IDL.Nat8),
-      'root_op_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'Signature' : IDL.Record({
+      'key' : KeyDescriptor,
+      'artifact' : SignedArtifact,
     }),
   });
-  const ExecutionGrant = IDL.Record({
-    'request_id' : IDL.Vec(IDL.Nat8),
-    'device_sequence' : IDL.Nat64,
-    'execution_sequence' : IDL.Nat64,
-    'subject' : IDL.Vec(IDL.Nat8),
-    'kind' : ExecutionKind,
-    'approved_at' : IDL.Nat64,
-    'device_id' : IDL.Vec(IDL.Nat8),
-    'security_epoch' : IDL.Nat64,
-    'home_cose' : IDL.Principal,
-    'max_cycles' : IDL.Nat,
-    'home_user' : IDL.Principal,
-    'expires_at' : IDL.Nat64,
-  });
-  const ExecutionStatus = IDL.Variant({
-    'Failed' : IDL.Null,
+  const ExecutionOutcome = IDL.Variant({
+    'Failed' : Error,
     'Executing' : IDL.Null,
     'Authorized' : IDL.Null,
-    'Unknown' : IDL.Null,
+    'Unknown' : Error,
     'ResultExpired' : IDL.Null,
-    'Completed' : IDL.Null,
+    'Completed' : ExecutionOutput,
   });
   const ExecutionResult = IDL.Record({
-    'key' : IDL.Opt(KeyDescriptor),
-    'status' : ExecutionStatus,
-    'result' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'request_id' : IDL.Vec(IDL.Nat8),
     'charged_cycles' : IDL.Nat,
+    'outcome' : ExecutionOutcome,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
+  const Result = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
   const Initialization = IDL.Variant({
     'Ready' : IDL.Null,
     'Uninitialized' : IDL.Null,
@@ -128,26 +141,44 @@ export const idlFactory = ({ IDL }) => {
     'error' : IDL.Opt(IDL.Text),
     'config' : CoseInit,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : KeyState, 'Err' : Error });
-  const Result_3 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Result_1 = IDL.Variant({ 'Ok' : KeyState, 'Err' : Error });
+  const SigningAlgorithm = IDL.Variant({
+    'Ed25519' : IDL.Null,
+    'EcdsaSecp256k1' : IDL.Null,
+  });
+  const SigningPurpose = IDL.Variant({
+    'FileAttestation' : IDL.Null,
+    'Statement' : IDL.Null,
+  });
+  const SigningKey = IDL.Record({
+    'algorithm' : SigningAlgorithm,
+    'purpose' : SigningPurpose,
+  });
+  const KeySelector = IDL.Variant({
+    'ContentRoot' : IDL.Record({ 'generation' : IDL.Nat64 }),
+    'Signing' : SigningKey,
+  });
+  const Result_2 = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
   return IDL.Service({
-    'describe_key' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], ['query']),
-    'execute' : IDL.Func([ExecutionGrant], [Result_1], []),
+    'execute' : IDL.Func([ExecutionGrant], [Result], []),
     'get_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_1],
+        [Result],
         ['query'],
       ),
-    'initialize_keys' : IDL.Func([], [Result_2], []),
+    'initialize_keys' : IDL.Func([], [Result_1], []),
     'key_state' : IDL.Func([], [KeyState], ['query']),
-    'register_subject' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], []),
+    'public_key' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), KeySelector],
+        [Result_2],
+        ['query'],
+      ),
   });
 };
 export const init = ({ IDL }) => {
   const Algorithm = IDL.Variant({
     'VetKdBls12381' : IDL.Null,
     'Ed25519' : IDL.Null,
-    'Bip340' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
   });
   const MasterKey = IDL.Record({
@@ -166,6 +197,7 @@ export const init = ({ IDL }) => {
     'derivation_version' : IDL.Nat16,
     'daily_cycles' : IDL.Nat,
     'initial_home_user' : IDL.Principal,
+    'issuer_namespace' : IDL.Text,
     'daily_executions' : IDL.Nat32,
     'environment' : Environment,
   });

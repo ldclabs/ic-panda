@@ -25,12 +25,15 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
   { 'IntegrityFailed' : null } |
+  { 'IdTimestampOutOfRange' : null } |
   { 'NotFound' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
   { 'RecoveryIncomplete' : null } |
+  { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
+  { 'IdGeneratorStateConflict' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
@@ -61,11 +64,11 @@ export interface HandleInit {
   'ledger_fee' : bigint,
 }
 export interface HandleIntent {
+  'account_id' : Uint8Array | number[],
   'handle_canister' : Principal,
+  'target_account' : [] | [Uint8Array | number[]],
   'action' : HandleAction,
-  'subject' : Uint8Array | number[],
   'op_id' : Uint8Array | number[],
-  'target_subject' : [] | [Uint8Array | number[]],
   'handle' : string,
   'expected_version' : bigint,
   'terms_digest' : Uint8Array | number[],
@@ -89,9 +92,9 @@ export type HandlePhase = { 'Committed' : null } |
   { 'Expired' : null };
 export interface HandleRecord {
   'event_tip' : Uint8Array | number[],
-  'owner_subject' : Uint8Array | number[],
   'version' : bigint,
   'handle' : string,
+  'owner_account' : Uint8Array | number[],
 }
 export interface LegacyReservation {
   'frozen_admins' : Array<Principal>,

@@ -21,14 +21,16 @@ const source: SourceBinding = {
   tabId: 4
 }
 const request = {
-  protocol: 'dmsg-extension/1',
+  protocol: 'dmsg-extension/3',
   method: 'signature.request',
-  subjectId: '11'.repeat(32),
+  accountId: '040g2081040g2081040g',
   requestId: '22'.repeat(32),
   nonce: '33'.repeat(32),
-  audience: 'project',
   expiresAt: String(now + 60000),
-  body: { kind: 'statement', text: 'Confirm this release note.' }
+  statement: {
+    issuer: 'https://dmsg.test/u/040g2081040g2081040g',
+    content: { kind: 'text', text: 'Confirm this release note.' }
+  }
 }
 describe('external request boundary', () => {
   it('accepts only browser-bound allowlisted top-level documents', () => {
@@ -69,7 +71,13 @@ describe('external request boundary', () => {
     const parsed = parseRequest(request, source, now)
     expect(
       parseRequest(
-        { ...request, body: { ...request.body, text: 'Different statement' } },
+        {
+          ...request,
+          statement: {
+            ...request.statement,
+            content: { kind: 'text', text: 'Different statement' }
+          }
+        },
         source,
         now
       ).digest
@@ -78,37 +86,70 @@ describe('external request boundary', () => {
       parseRequest(request, { ...source, documentId: 'document-B' }, now).digest
     ).not.toBe(parsed.digest)
     const spaced = parseRequest(
-      { ...request, body: { ...request.body, text: ` ${request.body.text} ` } },
+      {
+        ...request,
+        statement: {
+          ...request.statement,
+          content: { kind: 'text', text: ` ${request.statement.content.text} ` }
+        }
+      },
       source,
       now
     )
-    expect(spaced.request.body).toEqual({
-      kind: 'statement',
-      text: ` ${request.body.text} `
+    expect(spaced.request.statement.content).toEqual({
+      kind: 'text',
+      text: ` ${request.statement.content.text} `
     })
     expect(spaced.digest).not.toBe(parsed.digest)
     expect(sameSource(source, { ...source, documentId: 'document-B' })).toBe(false)
   })
-  it('uses half-open deadlines and bounded file sizes', () => {
+  it('keeps approval milliseconds separate from signed CWT seconds and rejects old fields', () => {
     expect(() => parseRequest({ ...request, expiresAt: String(now) }, source, now)).toThrow()
     expect(() =>
       parseRequest({ ...request, expiresAt: String(now + 300001) }, source, now)
     ).toThrow()
     expect(() =>
       parseRequest(
+        { ...request, statement: { ...request.statement, issuedAt: '1788800000' } },
+        source,
+        now
+      )
+    ).not.toThrow()
+    expect(() =>
+      parseRequest(
+        { ...request, statement: { ...request.statement, issuedAt: '9223372036854775808' } },
+        source,
+        now
+      )
+    ).toThrow()
+    expect(() =>
+      parseRequest(
         {
           ...request,
-          body: {
-            kind: 'file_attestation',
-            sha256: '11'.repeat(32),
-            version: '22'.repeat(32),
-            size: '104857601',
-            project: 'test'
+          statement: {
+            ...request.statement,
+            content: { kind: 'digest', sha256: '00'.repeat(32) }
           }
         },
         source,
         now
       )
+    ).not.toThrow()
+    expect(() =>
+      parseRequest(
+        {
+          ...request,
+          statement: {
+            ...request.statement,
+            content: { kind: 'digest', sha256: '11'.repeat(32), size: '12' }
+          }
+        },
+        source,
+        now
+      )
+    ).toThrow()
+    expect(() =>
+      parseRequest({ ...request, accountId: '11'.repeat(32) }, source, now)
     ).toThrow()
   })
 })

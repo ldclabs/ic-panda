@@ -9,7 +9,9 @@ crate-type = ["cdylib"]
 test = false
 
 [dependencies]
-dmsg_types = { path = "../../src/dmsg_types" }
+dmsg_protocol = { path = "../../src/dmsg_protocol" }
+dmsg_runtime = { path = "../../src/dmsg_runtime" }
+ic-stable-structures.workspace = true
 candid.workspace = true
 ic-cdk.workspace = true
 icrc-ledger-types.workspace = true

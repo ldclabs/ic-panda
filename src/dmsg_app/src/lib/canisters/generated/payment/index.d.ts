@@ -49,12 +49,15 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
   { 'IntegrityFailed' : null } |
+  { 'IdTimestampOutOfRange' : null } |
   { 'NotFound' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
   { 'RecoveryIncomplete' : null } |
+  { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
+  { 'IdGeneratorStateConflict' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
@@ -64,11 +67,9 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
-export interface Escrow {
-  'next_leg' : bigint,
+export interface EscrowInfo {
   'liabilities' : bigint,
   'decision' : FundsDecision,
-  'pending_payouts' : number,
   'op_id' : Uint8Array | number[],
   'subaccount' : Uint8Array | number[],
   'network_fees' : bigint,
@@ -79,7 +80,6 @@ export interface Escrow {
   'quote_digest' : Uint8Array | number[],
   'payer_principal' : Principal,
   'receipt_digest' : [] | [Uint8Array | number[]],
-  'primary_remaining' : bigint,
   'escrow_id' : Uint8Array | number[],
   'funding_ref' : [] | [bigint],
   'confirmed_in' : bigint,
@@ -117,9 +117,9 @@ export interface PaymentInit {
   'max_fee' : bigint,
 }
 export interface PaymentOffer {
+  'account_id' : Uint8Array | number[],
   'quote_scope' : Uint8Array | number[],
   'issued_at' : bigint,
-  'subject' : Uint8Array | number[],
   'recipient' : Account,
   'device_id' : Uint8Array | number[],
   'security_epoch' : bigint,
@@ -159,7 +159,7 @@ export interface ReceiptSigner {
   'valid_until' : bigint,
   'valid_from' : bigint,
 }
-export type Result = { 'Ok' : Escrow } |
+export type Result = { 'Ok' : EscrowInfo } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : TransferLeg } |
   { 'Err' : Error };
@@ -167,7 +167,7 @@ export type Result_2 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : ReceiptSigner } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : Array<Escrow> } |
+export type Result_4 = { 'Ok' : Array<EscrowInfo> } |
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : Array<TransferLeg> } |
   { 'Err' : Error };

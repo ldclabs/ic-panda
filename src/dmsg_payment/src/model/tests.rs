@@ -9,7 +9,7 @@ fn account(n: u8) -> Account {
 }
 fn input() -> OpenEscrow {
     let o = PaymentOffer {
-        subject: Hash::new([1; 32]),
+        account_id: AccountId::new([1; 12]),
         device_id: Hash::new([1; 32]),
         security_epoch: 0,
         home_payment: account(5).owner,

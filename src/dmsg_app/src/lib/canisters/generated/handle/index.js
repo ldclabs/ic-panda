@@ -22,12 +22,15 @@ export const idlFactory = ({ IDL }) => {
     'VersionConflict' : IDL.Null,
     'ExecutionUnknown' : IDL.Null,
     'IntegrityFailed' : IDL.Null,
+    'IdTimestampOutOfRange' : IDL.Null,
     'NotFound' : IDL.Null,
     'FeeBlocked' : IDL.Null,
     'DeviceNotApproved' : IDL.Null,
     'Locked' : IDL.Null,
     'RecoveryIncomplete' : IDL.Null,
+    'IdCapacityExceeded' : IDL.Null,
     'PolicyStale' : IDL.Null,
+    'IdGeneratorStateConflict' : IDL.Null,
     'IdempotencyConflict' : IDL.Null,
     'UnsupportedProtocol' : IDL.Null,
     'Unavailable' : IDL.Text,
@@ -46,20 +49,20 @@ export const idlFactory = ({ IDL }) => {
     'ClaimLegacy' : IDL.Null,
   });
   const HandleIntent = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
     'handle_canister' : IDL.Principal,
+    'target_account' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'action' : HandleAction,
-    'subject' : IDL.Vec(IDL.Nat8),
     'op_id' : IDL.Vec(IDL.Nat8),
-    'target_subject' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'handle' : IDL.Text,
     'expected_version' : IDL.Nat64,
     'terms_digest' : IDL.Vec(IDL.Nat8),
   });
   const HandleRecord = IDL.Record({
     'event_tip' : IDL.Vec(IDL.Nat8),
-    'owner_subject' : IDL.Vec(IDL.Nat8),
     'version' : IDL.Nat64,
     'handle' : IDL.Text,
+    'owner_account' : IDL.Vec(IDL.Nat8),
   });
   const Result_1 = IDL.Variant({ 'Ok' : HandleRecord, 'Err' : Error });
   const Account = IDL.Record({

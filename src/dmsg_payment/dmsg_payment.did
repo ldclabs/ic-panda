@@ -40,12 +40,15 @@ type Error = variant {
   VersionConflict;
   ExecutionUnknown;
   IntegrityFailed;
+  IdTimestampOutOfRange;
   NotFound;
   FeeBlocked;
   DeviceNotApproved;
   Locked;
   RecoveryIncomplete;
+  IdCapacityExceeded;
   PolicyStale;
+  IdGeneratorStateConflict;
   IdempotencyConflict;
   UnsupportedProtocol;
   Unavailable : text;
@@ -56,11 +59,9 @@ type Error = variant {
   AuthRequired;
   Pending;
 };
-type Escrow = record {
-  next_leg : nat64;
+type EscrowInfo = record {
   liabilities : nat;
   decision : FundsDecision;
-  pending_payouts : nat32;
   op_id : blob;
   subaccount : blob;
   network_fees : nat;
@@ -71,7 +72,6 @@ type Escrow = record {
   quote_digest : blob;
   payer_principal : principal;
   receipt_digest : opt blob;
-  primary_remaining : nat;
   escrow_id : blob;
   funding_ref : opt nat64;
   confirmed_in : nat;
@@ -111,9 +111,9 @@ type PaymentInit = record {
   max_fee : nat;
 };
 type PaymentOffer = record {
+  account_id : blob;
   quote_scope : blob;
   issued_at : nat64;
-  subject : blob;
   recipient : Account;
   device_id : blob;
   security_epoch : nat64;
@@ -153,11 +153,11 @@ type ReceiptSigner = record {
   valid_until : nat64;
   valid_from : nat64;
 };
-type Result = variant { Ok : Escrow; Err : Error };
+type Result = variant { Ok : EscrowInfo; Err : Error };
 type Result_1 = variant { Ok : TransferLeg; Err : Error };
 type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_3 = variant { Ok : ReceiptSigner; Err : Error };
-type Result_4 = variant { Ok : vec Escrow; Err : Error };
+type Result_4 = variant { Ok : vec EscrowInfo; Err : Error };
 type Result_5 = variant { Ok : vec TransferLeg; Err : Error };
 type Result_6 = variant { Ok; Err : Error };
 type SignedOffer = record { signature : blob; offer : PaymentOffer };

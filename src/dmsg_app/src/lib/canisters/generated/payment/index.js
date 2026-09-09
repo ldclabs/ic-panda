@@ -50,11 +50,9 @@ export const idlFactory = ({ IDL }) => {
     'signer_epoch' : IDL.Nat64,
     'fund_by' : IDL.Nat64,
   });
-  const Escrow = IDL.Record({
-    'next_leg' : IDL.Nat64,
+  const EscrowInfo = IDL.Record({
     'liabilities' : IDL.Nat,
     'decision' : FundsDecision,
-    'pending_payouts' : IDL.Nat32,
     'op_id' : IDL.Vec(IDL.Nat8),
     'subaccount' : IDL.Vec(IDL.Nat8),
     'network_fees' : IDL.Nat,
@@ -65,7 +63,6 @@ export const idlFactory = ({ IDL }) => {
     'quote_digest' : IDL.Vec(IDL.Nat8),
     'payer_principal' : IDL.Principal,
     'receipt_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'primary_remaining' : IDL.Nat,
     'escrow_id' : IDL.Vec(IDL.Nat8),
     'funding_ref' : IDL.Opt(IDL.Nat64),
     'confirmed_in' : IDL.Nat,
@@ -78,12 +75,15 @@ export const idlFactory = ({ IDL }) => {
     'VersionConflict' : IDL.Null,
     'ExecutionUnknown' : IDL.Null,
     'IntegrityFailed' : IDL.Null,
+    'IdTimestampOutOfRange' : IDL.Null,
     'NotFound' : IDL.Null,
     'FeeBlocked' : IDL.Null,
     'DeviceNotApproved' : IDL.Null,
     'Locked' : IDL.Null,
     'RecoveryIncomplete' : IDL.Null,
+    'IdCapacityExceeded' : IDL.Null,
     'PolicyStale' : IDL.Null,
+    'IdGeneratorStateConflict' : IDL.Null,
     'IdempotencyConflict' : IDL.Null,
     'UnsupportedProtocol' : IDL.Null,
     'Unavailable' : IDL.Text,
@@ -94,7 +94,7 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({ 'Ok' : Escrow, 'Err' : Error });
+  const Result = IDL.Variant({ 'Ok' : EscrowInfo, 'Err' : Error });
   const LegStatus = IDL.Variant({
     'Superseded' : IDL.Null,
     'FeeBlocked' : IDL.Null,
@@ -168,12 +168,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_2 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const Result_3 = IDL.Variant({ 'Ok' : ReceiptSigner, 'Err' : Error });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(Escrow), 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(EscrowInfo), 'Err' : Error });
   const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(TransferLeg), 'Err' : Error });
   const PaymentOffer = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
     'quote_scope' : IDL.Vec(IDL.Nat8),
     'issued_at' : IDL.Nat64,
-    'subject' : IDL.Vec(IDL.Nat8),
     'recipient' : Account,
     'device_id' : IDL.Vec(IDL.Nat8),
     'security_epoch' : IDL.Nat64,

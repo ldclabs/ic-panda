@@ -61,29 +61,39 @@
     <dl class="evidence-list">
       <div>
         <dt>请求类型</dt>
-        <dd>{payload.body.kind === 'statement' ? '结构化声明' : '文件版本证明'}</dd>
+        <dd>{payload.statement.content.kind === 'text' ? '文本声明' : '内容摘要声明'}</dd>
       </div>
       <div>
-        <dt>签署主体</dt>
-        <dd><code class="hash">{payload.subjectId}</code></dd>
+        <dt>账户 Xid</dt>
+        <dd><code class="hash">{payload.accountId}</code></dd>
       </div>
       <div>
-        <dt>受众</dt>
-        <dd>{payload.audience}</dd>
+        <dt>签署者 URI</dt>
+        <dd>{payload.statement.issuer}</dd>
       </div>
       <div>
-        <dt>到期时间</dt>
+        <dt>声明对象</dt>
+        <dd>{payload.statement.subject ?? '未提供'}</dd>
+      </div>
+      <div>
+        <dt>声明时间（Unix 秒）</dt>
+        <dd>{payload.statement.issuedAt ?? '未提供'}</dd>
+      </div>
+      <div>
+        <dt>批准到期时间</dt>
         <dd>{dateLabel(Number(payload.expiresAt))}</dd>
       </div>
     </dl>
     <section class="review-content">
-      <span class="field-label">实际待签内容</span>{#if payload.body.kind === 'statement'}<p
-          class="preserve-lines"
-        >
-          {payload.body.text}
-        </p>{:else}<p><strong>项目：</strong>{payload.body.project}</p>
-        <p><strong>版本：</strong><code class="hash">{payload.body.version}</code></p>
-        <code class="hash">{payload.body.sha256}</code>
+      <span class="field-label">实际待签内容</span
+      >{#if payload.statement.content.kind === 'text'}<p class="preserve-lines">
+          {payload.statement.content.text}
+        </p>{:else}<p>
+          <strong>内容类型：</strong>{payload.statement.content.contentType ?? '未提供'}
+        </p>
+        <p><strong>内容位置：</strong>{payload.statement.content.location ?? '未提供'}</p>
+        <p><strong>SHA-256：</strong></p>
+        <code class="hash">{payload.statement.content.sha256}</code>
         <div class="notice warning">
           <Icon name="info" />
           <p>仅提供摘要，未核对原文件。不能据此确认文件内容或项目权限。</p>

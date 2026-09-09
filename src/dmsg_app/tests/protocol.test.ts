@@ -7,6 +7,7 @@ import { Tagged } from 'cborg'
 
 type Value = {
   uint?: string
+  int?: string
   text?: string
   bytes?: string
   array?: Value[]
@@ -17,12 +18,15 @@ type Value = {
   value?: Value
 }
 function value(input: Value): unknown {
+  if (input === null || typeof input === 'boolean') return input
   if (input.uint !== undefined)
     return BigInt(input.uint) <= BigInt(Number.MAX_SAFE_INTEGER)
       ? Number(input.uint)
       : BigInt(input.uint)
+  if (input.int !== undefined) return Number(input.int)
   if (input.text !== undefined) return input.text
-  if (input.bytes !== undefined) return unhex(input.bytes)
+  if (input.bytes !== undefined)
+    return input.bytes === '' ? new Uint8Array() : unhex(input.bytes)
   if (input.tag !== undefined) return new Tagged(input.tag, value(input.value!))
   if (input.array !== undefined) return input.array.map(value)
   if (input.map !== undefined) return new Map(input.map.map(([k, v]) => [value(k), value(v)]))
@@ -46,7 +50,13 @@ const vectors = JSON.parse(
 describe('public Rust protocol vectors', () => {
   for (const vector of vectors)
     it(vector.name, () => {
-      const encoded = canonical(value(vector.value))
+      const data = value(vector.value)
+      // COSE's registered tag is outside the content codec's allowed tag set.
+      // Encode its validated array body and the RFC 9052 tag independently.
+      const encoded =
+        data instanceof Tagged && data.tag === 18
+          ? Uint8Array.from([0xd2, ...canonical(data.value)])
+          : canonical(data)
       expect(hex(encoded)).toBe(vector.cbor_hex)
       expect(hash(encoded)).toBe(vector.sha256_hex)
       expect(

@@ -3,41 +3,6 @@ use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
-pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee: u128) -> Hash {
-    digest(
-        "dmsg/handle-charge/v1",
-        &(
-            ledger,
-            crate::ledger::account_cbor::value(payer),
-            amount,
-            fee,
-        ),
-    )
-}
-
-pub fn normalize_handle(handle: &str) -> Result<String> {
-    ensure(
-        !handle.is_empty() && handle.len() <= 20 && !handle.starts_with('_'),
-        invalid("handle length/prefix"),
-    )?;
-    ensure(
-        handle
-            .bytes()
-            .all(|c| c.is_ascii_alphanumeric() || c == b'_'),
-        invalid("handle characters"),
-    )?;
-    Ok(handle.to_ascii_lowercase())
-}
-pub fn price(handle: &str) -> u128 {
-    let tokens = match handle.len() {
-        1 => 1_000_000,
-        2 => 200_000,
-        3 | 4 => 50_000,
-        5 | 6 => 20_000,
-        _ => 5_000,
-    };
-    tokens * 100_000_000
-}
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum HandleAction {
     Register,
@@ -49,8 +14,8 @@ pub enum HandleAction {
 pub struct HandleIntent {
     pub handle_canister: Principal,
     pub action: HandleAction,
-    pub subject: SubjectId,
-    pub target_subject: Option<SubjectId>,
+    pub account_id: AccountId,
+    pub target_account: Option<AccountId>,
     pub handle: String,
     pub expected_version: u64,
     pub op_id: OpId,
@@ -85,7 +50,7 @@ pub struct LegacyReservation {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleRecord {
     pub handle: String,
-    pub owner_subject: SubjectId,
+    pub owner_account: AccountId,
     pub version: u64,
     pub event_tip: Hash,
 }
@@ -94,8 +59,8 @@ pub struct HandleEvent {
     pub sequence: u64,
     pub previous: Hash,
     pub handle: String,
-    pub from: Option<SubjectId>,
-    pub to: SubjectId,
+    pub from: Option<AccountId>,
+    pub to: AccountId,
     pub version: u64,
     pub at: u64,
     pub legacy_snapshot: Hash,
@@ -103,7 +68,7 @@ pub struct HandleEvent {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Registration {
     pub intent: HandleIntent,
-    #[serde(with = "crate::ledger::account_cbor")]
+    #[serde(with = "crate::account::account_cbor")]
     pub payer: Account,
     pub fee: u128,
 }
@@ -127,4 +92,13 @@ pub struct HandleOperation {
     pub expires_at: u64,
     pub memo: Hash,
     pub ledger_block: Option<u64>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone)]
+pub struct SnapshotProgress {
+    pub snapshot: Option<LegacySnapshot>,
+    pub imported: u64,
+    pub rolling_digest: Hash,
+    pub last_handle: Option<String>,
+    pub sealed: bool,
 }

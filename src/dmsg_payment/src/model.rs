@@ -1,5 +1,9 @@
+use crate::state::Escrow;
 use candid::Principal;
-use dmsg_types::{ledger::VerifiedTransfer, payment::*, *};
+use dmsg_protocol::*;
+use dmsg_runtime::ledger::VerifiedTransfer;
+use dmsg_types::profiles::delivery::*;
+use dmsg_types::{payment::*, *};
 use icrc_ledger_types::icrc1::account::Account;
 
 pub fn validate_quote(
@@ -11,7 +15,7 @@ pub fn validate_quote(
     now: u64,
 ) -> Result<Hash> {
     authenticated(payer)?;
-    nonzero(&input.op_id)?;
+    nonzero(input.op_id.as_slice())?;
     let q = &input.quote;
     let o = &input.offer.offer;
     ensure(config.enabled, Error::Locked)?;
@@ -71,8 +75,8 @@ pub fn validate_quote(
     )?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
     signer_valid(signer, q.signer_epoch, q.created_at, now)?;
-    nonzero(&q.quote_id)?;
-    nonzero(&q.envelope_digest)?;
+    nonzero(q.quote_id.as_slice())?;
+    nonzero(q.envelope_digest.as_slice())?;
     let hash = digest("dmsg/quote/v1", q);
     verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
     Ok(hash)

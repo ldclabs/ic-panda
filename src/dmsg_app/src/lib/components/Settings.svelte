@@ -3,7 +3,7 @@
   import { config, isExtension } from '../config'
   import { inspectRelay } from '../services/relay'
   import { login, services } from '../services/ic'
-  import { hex } from '../protocol/codec'
+  import { xidText } from '../protocol/identity'
   import Modal from './Modal.svelte'
   import Icon from './Icon.svelte'
   let tab = $state('recovery'),
@@ -13,7 +13,7 @@
     confirm = $state('')
   let usage = $state<StorageEstimate | null>(null),
     principal = $state(''),
-    linkedSubject = $state(''),
+    linkedAccount = $state(''),
     serviceReport = $state(''),
     derivation = $state(config.derivationOrigins[0])
   let legacyInput = $state<HTMLInputElement>()
@@ -46,8 +46,8 @@
       const identity = await login(session.crypto, session.meta!.transportPublic, derivation),
         api = await services(identity)
       principal = identity.getPrincipal().toText()
-      const subject = await api.user!.my_subject()
-      linkedSubject = subject.length ? hex(Uint8Array.from(subject[0]!)) : ''
+      const account = await api.user!.my_account()
+      linkedAccount = account.length ? xidText(Uint8Array.from(account[0]!)) : ''
     }, '认证完成。登录不会自动批准设备或解锁其他主体的内容。')
   }
 </script>
@@ -182,8 +182,8 @@
           <div>
             <strong>本次认证 Principal</strong><code class="hash">{principal}</code>
             <p>
-              {linkedSubject
-                ? `该认证绑定的主体：${linkedSubject}`
+              {linkedAccount
+                ? `该认证绑定的主体：${linkedAccount}`
                 : '此身份尚未建立新版主体。'} 本地主体和链上主体不会因名称相同而合并。
             </p>
           </div>

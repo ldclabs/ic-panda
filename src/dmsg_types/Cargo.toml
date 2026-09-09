@@ -6,21 +6,16 @@ license.workspace = true
 publish = false
 
 [dependencies]
+ic_auth_types.workspace = true
 candid.workspace = true
-cbor2 = "=1.1.5"
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
-sha2.workspace = true
-ed25519-dalek.workspace = true
-ic-cdk.workspace = true
-ic-stable-structures.workspace = true
-ic-certification.workspace = true
-ic_bls12_381 = "=0.10.1"
 icrc-ledger-types.workspace = true
-num-traits.workspace = true
-url.workspace = true
-lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 
 [dev-dependencies]
+dmsg_protocol = { path = "../dmsg_protocol" }
+cbor2.workspace = true
 hex.workspace = true
 serde_json.workspace = true
+ed25519-dalek.workspace = true
+ic_bls12_381 = "=0.10.1"

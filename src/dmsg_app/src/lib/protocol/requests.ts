@@ -1,51 +1,49 @@
 import { z } from 'zod'
 import { ensure } from '../errors'
-import { canonical, hash } from './codec'
+import { canonical, hash, unhex } from './codec'
+import { assertStatement, type DocumentStatement } from './statements'
 
 const identifier = z
   .string()
   .regex(/^[0-9a-f]{64}$/)
   .refine((v) => !/^0+$/.test(v))
-const fileBody = z
-  .object({
-    kind: z.literal('file_attestation'),
-    sha256: identifier,
-    size: z
-      .string()
-      .regex(/^(0|[1-9][0-9]*)$/)
-      .refine((s) => BigInt(s) <= 104857600n),
-    version: identifier,
-    project: z
-      .string()
-      .min(1)
-      .max(256)
-      .refine((value) => value.trim().length > 0)
-  })
-  .strict()
-const statementBody = z
-  .object({
-    kind: z.literal('statement'),
-    text: z
-      .string()
-      .min(1)
-      .max(4096)
-      .refine((value) => value.trim().length > 0)
-  })
-  .strict()
+const timestamp = z
+  .string()
+  .max(20)
+  .regex(/^-?(0|[1-9][0-9]*)$/)
+  .refine(
+    (v) => BigInt(v) >= -0x8000000000000000n && BigInt(v) <= 0x7fffffffffffffffn && v !== '-0'
+  )
+const contentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('text'), text: z.string().min(1).max(4096) }).strict(),
+  z
+    .object({
+      kind: z.literal('digest'),
+      sha256: z.string().regex(/^[0-9a-f]{64}$/),
+      contentType: z.string().max(256).optional(),
+      location: z.string().max(8192).optional()
+    })
+    .strict()
+])
 export const requestSchema = z
   .object({
-    protocol: z.literal('dmsg-extension/1'),
+    protocol: z.literal('dmsg-extension/3'),
     method: z.literal('signature.request'),
     requestId: identifier,
-    subjectId: identifier,
-    audience: z
-      .string()
-      .min(1)
-      .max(256)
-      .refine((value) => value.trim().length > 0),
+    accountId: z.string().regex(/^[0-9a-v]{19}[0g]$/),
     nonce: identifier,
-    expiresAt: z.string().regex(/^[1-9][0-9]*$/),
-    body: z.discriminatedUnion('kind', [fileBody, statementBody])
+    expiresAt: z
+      .string()
+      .max(16)
+      .regex(/^[1-9][0-9]*$/),
+    statement: z
+      .object({
+        issuer: z.string().max(8192),
+        subject: z.string().max(8192).optional(),
+        issuedAt: timestamp.optional(),
+        content: contentSchema
+      })
+      .strict()
   })
   .strict()
 export type SignatureRequest = z.infer<typeof requestSchema>
@@ -113,15 +111,8 @@ export function parseRequest(input: unknown, source: SourceBinding, now = Date.n
     'EXPIRED',
     '请求期限必须在未来 5 分钟内。'
   )
-  // Only the two structured R1 bodies are accepted. There is no raw signHash,
-  // caller-provided origin, derivation path, controller or transaction method.
-  ensure(
-    new TextEncoder().encode(
-      request.body.kind === 'statement' ? request.body.text : request.body.project
-    ).length <= (request.body.kind === 'statement' ? 4096 : 256),
-    'QUOTA_EXCEEDED'
-  )
-  const digest = hash(canonical(['dmsg/request/1', source.origin, source.documentId, request]))
+  assertStatement(requestStatement(request))
+  const digest = hash(canonical(['dmsg/request/3', source.origin, source.documentId, request]))
   return { request, digest, expiresAt }
 }
 export const sameSource = (a: SourceBinding, b: SourceBinding) =>
@@ -138,4 +129,15 @@ export function assertRequestUnchanged(request: SignatureRequest, stored: Pendin
     'INTEGRITY_FAILED',
     '请求内容或状态已变化，请重新发起。'
   )
+}
+
+export function requestStatement(request: SignatureRequest): DocumentStatement {
+  const s = request.statement
+  return {
+    issuer: s.issuer,
+    subject: s.subject,
+    issuedAt: s.issuedAt === undefined ? undefined : BigInt(s.issuedAt),
+    content:
+      s.content.kind === 'text' ? s.content : { ...s.content, sha256: unhex(s.content.sha256) }
+  }
 }

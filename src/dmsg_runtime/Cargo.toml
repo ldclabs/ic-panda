@@ -1,0 +1,19 @@
+[package]
+name = "dmsg_runtime"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+dmsg_types = { path = "../dmsg_types" }
+dmsg_protocol = { path = "../dmsg_protocol" }
+candid.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_bytes.workspace = true
+cbor2.workspace = true
+ic-cdk.workspace = true
+ic-stable-structures.workspace = true
+ic-certification.workspace = true
+icrc-ledger-types.workspace = true
+num-traits.workspace = true

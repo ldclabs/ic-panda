@@ -1,10 +1,11 @@
-type Algorithm = variant { VetKdBls12381; Ed25519; Bip340; EcdsaSecp256k1 };
+type Algorithm = variant { VetKdBls12381; Ed25519; EcdsaSecp256k1 };
 type CoseInit = record {
   masters : vec MasterKey;
   executing_canister : principal;
   derivation_version : nat16;
   daily_cycles : nat;
   initial_home_user : principal;
+  issuer_namespace : text;
   daily_executions : nat32;
   environment : Environment;
 };
@@ -17,12 +18,15 @@ type Error = variant {
   VersionConflict;
   ExecutionUnknown;
   IntegrityFailed;
+  IdTimestampOutOfRange;
   NotFound;
   FeeBlocked;
   DeviceNotApproved;
   Locked;
   RecoveryIncomplete;
+  IdCapacityExceeded;
   PolicyStale;
+  IdGeneratorStateConflict;
   IdempotencyConflict;
   UnsupportedProtocol;
   Unavailable : text;
@@ -34,10 +38,10 @@ type Error = variant {
   Pending;
 };
 type ExecutionGrant = record {
+  account_id : blob;
   request_id : blob;
   device_sequence : nat64;
   execution_sequence : nat64;
-  subject : blob;
   kind : ExecutionKind;
   approved_at : nat64;
   device_id : blob;
@@ -48,34 +52,41 @@ type ExecutionGrant = record {
   expires_at : nat64;
 };
 type ExecutionKind = variant {
-  Sign : record { key : KeyRequest; canonical_payload : blob };
+  Sign : record {
+    key : KeyRequest;
+    public_key_fingerprint : blob;
+    origin : text;
+    to_be_signed : blob;
+  };
   Derive : record {
     generation : nat64;
     transport_key : blob;
     root_op_id : opt blob;
   };
 };
-type ExecutionResult = record {
-  key : opt KeyDescriptor;
-  status : ExecutionStatus;
-  result : opt blob;
-  charged_cycles : nat;
-};
-type ExecutionStatus = variant {
-  Failed;
+type ExecutionOutcome = variant {
+  Failed : Error;
   Executing;
   Authorized;
-  Unknown;
+  Unknown : Error;
   ResultExpired;
-  Completed;
+  Completed : ExecutionOutput;
+};
+type ExecutionOutput = variant {
+  EncryptedRootKey : record { key : KeyDescriptor; encrypted_key : blob };
+  Signature : record { key : KeyDescriptor; artifact : SignedArtifact };
+};
+type ExecutionResult = record {
+  request_id : blob;
+  charged_cycles : nat;
+  outcome : ExecutionOutcome;
 };
 type Initialization = variant { Ready; Uninitialized; Initializing };
 type KeyDescriptor = record {
+  account_id : blob;
   algorithm : Algorithm;
   key_generation : nat64;
   public_key_fingerprint : blob;
-  provider : opt text;
-  subject : blob;
   derivation_version : nat16;
   public_key : blob;
   key_id : blob;
@@ -84,18 +95,15 @@ type KeyDescriptor = record {
   master_key_name : text;
   purpose : KeyPurpose;
 };
-type KeyPurpose = variant {
-  ContentRoot;
-  FileAttestation;
-  ProviderController;
-  Identity;
-  Statement;
-};
+type KeyPurpose = variant { ContentRoot; FileAttestation; Statement };
 type KeyRequest = record {
   algorithm : Algorithm;
-  provider : opt text;
   generation : nat64;
   purpose : KeyPurpose;
+};
+type KeySelector = variant {
+  ContentRoot : record { generation : nat64 };
+  Signing : SigningKey;
 };
 type KeyState = record {
   initialization : Initialization;
@@ -108,15 +116,23 @@ type MasterKey = record {
   expected_fingerprint : blob;
   key_name : text;
 };
-type Result = variant { Ok : KeyDescriptor; Err : Error };
-type Result_1 = variant { Ok : ExecutionResult; Err : Error };
-type Result_2 = variant { Ok : KeyState; Err : Error };
-type Result_3 = variant { Ok; Err : Error };
+type Result = variant { Ok : ExecutionResult; Err : Error };
+type Result_1 = variant { Ok : KeyState; Err : Error };
+type Result_2 = variant { Ok : KeyDescriptor; Err : Error };
+type SignedArtifact = record { cose_sign1 : blob; cose_key : blob };
+// Only algorithms that can produce a formal signature.
+type SigningAlgorithm = variant { Ed25519; EcdsaSecp256k1 };
+type SigningKey = record {
+  algorithm : SigningAlgorithm;
+  purpose : SigningPurpose;
+};
+type SigningPurpose = variant { FileAttestation; Statement };
 service : (CoseInit) -> {
-  describe_key : (blob) -> (Result) query;
-  execute : (ExecutionGrant) -> (Result_1);
-  get_execution : (blob, blob) -> (Result_1) query;
-  initialize_keys : () -> (Result_2);
+  execute : (ExecutionGrant) -> (Result);
+  get_execution : (blob, blob) -> (Result) query;
+  initialize_keys : () -> (Result_1);
   key_state : () -> (KeyState) query;
-  register_subject : (blob) -> (Result_3);
+  // Public-key math is independent of account existence or execution permission.
+  // No management call, registration or stable write is needed for this query.
+  public_key : (blob, KeySelector) -> (Result_2) query;
 }

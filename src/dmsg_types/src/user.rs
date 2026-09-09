@@ -28,23 +28,7 @@ pub struct DeviceInput {
     pub role: ControllerRole,
     pub capabilities: Vec<Capability>,
 }
-impl DeviceInput {
-    pub fn validate(&self) -> Result<()> {
-        nonzero(&self.device_id)?;
-        nonzero(&self.hpke_pub)?;
-        ed25519_dalek::VerifyingKey::from_bytes(&self.signing_pub)
-            .map_err(|_| Error::IntegrityFailed)?;
-        ensure(
-            !self.capabilities.is_empty() && self.capabilities.len() <= 5,
-            invalid("capabilities"),
-        )?;
-        let unique: std::collections::BTreeSet<_> = self.capabilities.iter().collect();
-        ensure(
-            unique.len() == self.capabilities.len(),
-            invalid("duplicate capability"),
-        )
-    }
-}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Device {
     pub input: DeviceInput,
@@ -106,52 +90,14 @@ impl Default for SensitivePolicy {
         }
     }
 }
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
-pub struct Budget {
-    pub day: u64,
-    pub executions: u32,
-    pub cycles: u128,
-}
-impl Budget {
-    pub fn reserve(
-        &mut self,
-        now: u64,
-        cycles: u128,
-        count_limit: u32,
-        cycle_limit: u128,
-    ) -> Result<()> {
-        let mut next = self.clone();
-        if now / DAY > next.day {
-            next = Self {
-                day: now / DAY,
-                ..Self::default()
-            };
-        }
-        next.executions = next.executions.checked_add(1).ok_or(Error::QuotaExceeded)?;
-        next.cycles = next
-            .cycles
-            .checked_add(cycles)
-            .ok_or(Error::QuotaExceeded)?;
-        ensure(
-            next.executions <= count_limit && next.cycles <= cycle_limit,
-            Error::QuotaExceeded,
-        )?;
-        *self = next;
-        Ok(())
-    }
-}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OperationReceipt {
     pub id: OpId,
     pub digest: Hash,
     pub account_version: u64,
 }
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct HandleAuthorization {
-    pub intent: HandleIntent,
-    pub expires_at: u64,
-    pub consumed: bool,
-}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryRequest {
     pub op_id: OpId,
@@ -182,47 +128,13 @@ impl PendingRecovery {
             .map_or(self.request.expires_at, |c| c.expires_at)
     }
 }
-pub fn recovery_confirmation_message(
-    home: Principal,
-    subject: SubjectId,
-    nonce: u64,
-    request: &RecoveryRequest,
-    confirmation: &RecoveryConfirmation,
-) -> Hash {
-    digest(
-        "dmsg/recovery-reconfirm/v2",
-        &(home, subject, nonce, request, confirmation),
-    )
-}
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct Subject {
-    pub subject_id: SubjectId,
-    pub home_user: Principal,
-    pub home_cose: Principal,
-    pub auth_bindings: Vec<Principal>,
-    pub account_version: u64,
-    pub security_epoch: u64,
-    pub status: AccountStatus,
-    pub devices: BTreeMap<Hash, Device>,
-    pub recovery: Option<RecoveryPolicy>,
-    pub recovery_checked: bool,
-    pub recovery_nonce: u64,
-    pub pending_recovery: Option<PendingRecovery>,
-    pub current_root: Option<ContentRootRef>,
-    pub root_slot: Option<RootReservation>,
-    pub next_root_generation: u64,
-    pub vault_write_state: VaultWriteState,
-    pub sensitive_policy: SensitivePolicy,
-    pub budget: Budget,
-    pub next_execution_sequence: u64,
-    pub operations: Vec<OperationReceipt>,
-    pub handle_authorizations: BTreeMap<OpId, HandleAuthorization>,
-    pub executions: BTreeMap<OpId, AuthorizedExecution>,
-}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SecuritySnapshot {
+    pub issuer: String,
+    pub home_cose: Principal,
     pub schema: u16,
-    pub subject_id: SubjectId,
+    pub account_id: AccountId,
     pub home_user: Principal,
     pub account_status: AccountStatus,
     pub account_version: u64,
@@ -238,41 +150,19 @@ pub struct SecuritySnapshot {
     pub content_root_digest: Option<Hash>,
     pub vault_write_state: VaultWriteState,
 }
-impl Subject {
-    pub fn snapshot(&self) -> SecuritySnapshot {
-        SecuritySnapshot {
-            schema: 1,
-            subject_id: self.subject_id,
-            home_user: self.home_user,
-            account_status: self.status.clone(),
-            account_version: self.account_version,
-            security_epoch: self.security_epoch,
-            devices_root: digest("dmsg/devices/v1", &self.devices),
-            recovery_root_version: self.recovery.as_ref().map_or(0, |r| r.generation),
-            recovery_hpke_pub: self.recovery.as_ref().map(|r| r.hpke_pub),
-            recovery_signing_pub: self.recovery.as_ref().map(|r| r.signing_pub),
-            recovery_nonce: self.recovery_nonce,
-            recovery_delay_ms: self.recovery.as_ref().map(|r| r.delay_ms),
-            pending_recovery_digest: self
-                .pending_recovery
-                .as_ref()
-                .map(|r| digest("dmsg/pending-recovery/v1", r)),
-            content_root_generation: self.current_root.as_ref().map_or(0, |r| r.generation),
-            content_root_digest: self.current_root.as_ref().map(|r| r.bundle_digest),
-            vault_write_state: self.vault_write_state.clone(),
-        }
-    }
-}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct UserInit {
+    pub environment: Environment,
+    pub issuer_namespace: String,
     pub home_cose: Principal,
     pub handle_canister: Principal,
     pub payment_canister: Principal,
-    pub max_subjects: u64,
-    pub daily_new_subjects: u32,
+    pub max_accounts: u64,
+    pub daily_new_accounts: u32,
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CreateSubject {
+pub struct CreateAccount {
     pub device: DeviceInput,
     pub op_id: OpId,
     pub expires_at: u64,
@@ -323,7 +213,7 @@ pub enum AccountCommand {
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountMutation {
-    pub subject: SubjectId,
+    pub account_id: AccountId,
     pub expected_version: u64,
     pub command: AccountCommand,
     pub approval: Approval,
@@ -333,4 +223,24 @@ pub struct DeviceEvidence {
     pub snapshot: SecuritySnapshot,
     pub device: Device,
     pub observed_at: u64,
+}
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AccountInfo {
+    pub issuer: String,
+    pub account_id: AccountId,
+    pub home_user: Principal,
+    pub home_cose: Principal,
+    pub auth_bindings: Vec<Principal>,
+    pub account_version: u64,
+    pub security_epoch: u64,
+    pub status: AccountStatus,
+    pub devices: BTreeMap<Hash, Device>,
+    pub recovery: Option<RecoveryPolicy>,
+    pub recovery_checked: bool,
+    pub recovery_nonce: u64,
+    pub pending_recovery: Option<PendingRecovery>,
+    pub current_root: Option<ContentRootRef>,
+    pub root_slot: Option<RootReservation>,
+    pub vault_write_state: VaultWriteState,
+    pub sensitive_policy: SensitivePolicy,
 }

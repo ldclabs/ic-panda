@@ -1,5 +1,6 @@
 use candid::Principal;
-use dmsg_types::{cose::*, handle::*, *};
+use dmsg_protocol::*;
+use dmsg_types::{cose::*, *};
 
 #[test]
 fn fixed_bytes_keep_their_encoding_in_every_container_and_candid() {
@@ -47,7 +48,7 @@ fn protocol_accounts_encode_subaccounts_as_bytes() {
         owner: Principal::from_slice(&[1]),
         subaccount: Some([2; 32]),
     };
-    let encoded = canonical(&ledger::account_cbor::value(&payer));
+    let encoded = canonical(&account::account_cbor::value(&payer));
     let value: cbor2::Value = cbor2::from_slice(&encoded).unwrap();
     let cbor2::Value::Map(fields) = value else {
         panic!("account map")
@@ -58,7 +59,7 @@ fn protocol_accounts_encode_subaccounts_as_bytes() {
     )));
     #[derive(serde::Serialize, serde::Deserialize, candid::CandidType)]
     struct AccountField {
-        #[serde(with = "ledger::account_cbor")]
+        #[serde(with = "account::account_cbor")]
         payer: Account,
     }
     let field = AccountField { payer };
@@ -103,10 +104,11 @@ fn millisecond_deadlines_and_ledger_conversion_have_explicit_boundaries() {
 fn production_requires_a_fixed_home_key_and_fingerprint() {
     let id = Principal::from_slice(&[1, 1]);
     let mut c = CoseInit {
+        issuer_namespace: "https://dmsg.test/u/".into(),
         environment: Environment::Production,
         executing_canister: id,
         initial_home_user: Principal::from_slice(&[2, 1]),
-        derivation_version: 1,
+        derivation_version: 2,
         masters: vec![MasterKey {
             algorithm: Algorithm::Ed25519,
             key_name: "test_key_1".into(),
@@ -129,64 +131,7 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
     c.masters[0].expected_fingerprint = Hash::new([0; 32]);
     assert!(c.validate(id).is_ok());
 }
-#[test]
-fn unknown_schema_assets_provider_and_noncanonical_payloads_fail_closed() {
-    let request = KeyRequest {
-        purpose: KeyPurpose::Statement,
-        algorithm: Algorithm::Ed25519,
-        generation: 1,
-        provider: None,
-    };
-    let mut p = FormalPayload {
-        schema: 1,
-        subject: Hash::new([1; 32]),
-        request_id: Hash::new([2; 32]),
-        origin: "https://example.com".into(),
-        audience: "app".into(),
-        expires_at: 100,
-        body: FormalBody::Statement {
-            text: "release statement".into(),
-        },
-    };
-    let check = |p: &FormalPayload| {
-        validate_payload(
-            &canonical(p),
-            Hash::new([1; 32]),
-            Hash::new([2; 32]),
-            &request,
-            100,
-        )
-    };
-    assert!(check(&p).is_ok());
-    p.schema = 2;
-    assert_eq!(check(&p), Err(Error::IntegrityFailed));
-    p.schema = 1;
-    p.origin = "https://example.com@evil.com".into();
-    assert!(check(&p).is_err());
-    p.origin = format!("chrome-extension://{}", "a".repeat(32));
-    assert!(check(&p).is_ok());
-    let mut value: cbor2::Value = cbor2::from_slice(&canonical(&p)).unwrap();
-    if let cbor2::Value::Map(ref mut entries) = value {
-        entries.push((
-            cbor2::Value::Text("asset_permission".into()),
-            cbor2::Value::Bool(true),
-        ));
-    }
-    assert!(validate_payload(
-        &canonical(&value),
-        Hash::new([1; 32]),
-        Hash::new([2; 32]),
-        &request,
-        100
-    )
-    .is_err());
-    let mut external = request.clone();
-    external.purpose = KeyPurpose::ProviderController;
-    assert_eq!(external.validate(), Err(Error::UnsupportedProtocol));
-    external = request;
-    external.provider = Some("arbitrary-app".into());
-    assert_eq!(external.validate(), Err(Error::UnsupportedProtocol));
-}
+
 #[test]
 fn legacy_normalization_and_panda_prices_are_preserved() {
     assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
@@ -211,22 +156,22 @@ fn legacy_normalization_and_panda_prices_are_preserved() {
 
 #[test]
 fn execution_ids_bind_the_device_epoch_and_sequence() {
-    let id = execution_request_id(Hash::new([1; 32]), 2, Hash::new([3; 32]), 4);
+    let id = execution_request_id(AccountId::new([1; 12]), 2, Hash::new([3; 32]), 4);
     assert_ne!(
         id,
-        execution_request_id(Hash::new([1; 32]), 2, Hash::new([3; 32]), 5)
+        execution_request_id(AccountId::new([1; 12]), 2, Hash::new([3; 32]), 5)
     );
     assert_ne!(
         id,
-        execution_request_id(Hash::new([1; 32]), 3, Hash::new([3; 32]), 4)
+        execution_request_id(AccountId::new([1; 12]), 3, Hash::new([3; 32]), 4)
     );
     assert_ne!(
         id,
-        execution_request_id(Hash::new([1; 32]), 2, Hash::new([4; 32]), 4)
+        execution_request_id(AccountId::new([1; 12]), 2, Hash::new([4; 32]), 4)
     );
     assert_ne!(
         id,
-        execution_request_id(Hash::new([2; 32]), 2, Hash::new([3; 32]), 4)
+        execution_request_id(AccountId::new([2; 12]), 2, Hash::new([3; 32]), 4)
     );
 }
 
@@ -239,4 +184,29 @@ fn transport_keys_must_be_nonidentity_subgroup_points() {
     let valid = ic_bls12_381::G1Affine::generator().to_compressed();
     assert!(validate_transport_key(&valid).is_ok());
     assert!(validate_transport_key(&valid[..47]).is_err());
+}
+
+#[test]
+fn xid_binary_and_canonical_text_have_distinct_wire_representations() {
+    let id = AccountId::new([1; 12]);
+    let text = id.to_string();
+    assert_eq!(text.len(), 20);
+    assert_eq!(text.parse::<AccountId>().unwrap(), id);
+    assert_eq!(serde_json::to_string(&id).unwrap(), format!("\"{text}\""));
+    assert_eq!(
+        serde_json::from_str::<AccountId>(&format!("\"{text}\"")).unwrap(),
+        id
+    );
+    assert_eq!(canonical(&id), [vec![0x4c], vec![1; 12]].concat());
+    assert_eq!(decode_canonical::<AccountId>(&canonical(&id)).unwrap(), id);
+    assert_eq!(
+        candid::decode_one::<AccountId>(&candid::encode_one(id).unwrap()).unwrap(),
+        id
+    );
+    for len in [0, 11, 13, 29, 32] {
+        let value = serde_bytes::ByteBuf::from(vec![1; len]);
+        assert!(candid::decode_one::<AccountId>(&candid::encode_one(&value).unwrap()).is_err());
+        assert!(decode_canonical::<AccountId>(&canonical(&value)).is_err());
+    }
+    assert!("040g2081040g2081040h".parse::<AccountId>().is_err());
 }

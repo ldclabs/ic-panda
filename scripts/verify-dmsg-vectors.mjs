@@ -11,21 +11,6 @@ const fixture = (name) => {
   assert(vector, `missing ${name}`)
   return vector.value
 }
-const field = (value, name) => value.map.find(([k]) => k.text === name)[1]
-const fixedBytes = (value) => assert.match(value.bytes, /^[0-9a-f]{64}$/)
-const formal = fixture('formal_file_v1')
-assert.equal(field(formal, 'expires_at').uint, '1800000000000')
-fixedBytes(field(formal, 'subject'))
-fixedBytes(field(formal, 'request_id'))
-fixedBytes(fixture('root_input_v1').array[0])
-fixedBytes(fixture('principal_and_generation').array[1])
-for (const i of [0, 2]) fixedBytes(fixture('execution_request_id_v1').array[2].array[i])
-const containers = fixture('fixed_bytes_containers').array
-fixedBytes(containers[0])
-fixedBytes(containers[1])
-for (const value of containers[2].map[0]) fixedBytes(value)
-fixedBytes(field(fixture('account_with_subaccount'), 'subaccount'))
-
 function head(major, n) {
   n = BigInt(n)
   if (n < 24n) return Buffer.from([major << 5 | Number(n)])
@@ -40,6 +25,7 @@ function encode(value) {
   if (value === null) return Buffer.from([0xf6])
   if (typeof value === 'boolean') return Buffer.from([value ? 0xf5 : 0xf4])
   if ('uint' in value) return head(0, value.uint)
+  if ('int' in value) return head(1, -1n - BigInt(value.int))
   if ('tag' in value) return Buffer.concat([head(6, value.tag), encode(value.value)])
   if ('bytes' in value || 'text' in value) {
     const bytes = 'bytes' in value ? Buffer.from(value.bytes, 'hex') : Buffer.from(value.text, 'utf8')
@@ -62,3 +48,52 @@ for (const vector of vectors) {
   assert(verify(null, hash, publicKey, Buffer.from(vector.signature_over_sha256_hex, 'hex')), `${vector.name}: signature`)
 }
 console.log(`Verified ${vectors.length} Rust/JavaScript CBOR, SHA-256 and Ed25519 vectors.`)
+
+// Assemble the profile from registered headers independently of the Rust encoder.
+const B = bytes => ({bytes}), T = text => ({text}), U = n => n < 0 ? {int:String(n)} : {uint:String(n)}
+const M = pairs => ({map:pairs.map(([k,v]) => [U(k),v])})
+const A = (...array) => ({array})
+const hash = bytes => createHash('sha256').update(bytes).digest()
+const key = fixture('cose_key_v3')
+const keyField = n => key.map.find(([k]) => BigInt(k.int ?? k.uint) === BigInt(n))[1]
+assert.deepEqual(keyField(1),U(1)); assert.deepEqual(keyField(3),U(-19)); assert.deepEqual(keyField(-1),U(6))
+const thumbprint = M([[1,U(1)],[-1,U(6)],[-2,keyField(-2)]])
+assert.deepEqual(encode(thumbprint),encode(fixture('key_thumbprint_input')))
+const kid = hash(encode(thumbprint)).toString('hex')
+assert.deepEqual(keyField(2),B(kid))
+const publicKey = createPublicKey({key:Buffer.from(`302a300506032b6570032100${keyField(-2).bytes}`,'hex'),format:'der',type:'spki'})
+const claims = M([[1,fixture('account_issuer')],[2,T('release/spec')],[6,U(1800000000)]])
+for (const [name,digest,timestamped] of [['cose_text_v3',false,false],['cose_digest_v3',true,false],['timestamped_digest_v3',true,true]]) {
+  const cose = fixture(name)
+  assert.equal(cose.tag,18)
+  const [protectedHeaders,unprotected,payload,signature] = cose.value.array
+  const headers = [[1,U(-19)],[2,A(...(digest?[15,16,258]:[15,16]).map(U))],[4,B(kid)],[15,claims],
+    [16,T(`application/vnd.dmsg.${digest?'digest':'text'}-statement+cose;v=1`)]]
+  if (digest) headers.push([258,U(-16)],[259,T('application/pdf')])
+  else headers.push([3,T('text/plain;charset=utf-8')])
+  assert.deepEqual(protectedHeaders,B(encode(M(headers)).toString('hex')),`${name}: protected profile`)
+  assert.deepEqual(payload,B(digest?hash(Buffer.from('document')).toString('hex'):Buffer.from('Approved release v1').toString('hex')))
+  assert.deepEqual(unprotected,timestamped?M([[270,B('3000')]]):M([]))
+  const tbs = encode(A(T('Signature1'),protectedHeaders,B(''),payload))
+  assert.deepEqual(tbs,encode(fixture(digest?'digest_tbs_v3':'text_tbs_v3')))
+  assert(verify(null,tbs,publicKey,Buffer.from(signature.bytes,'hex')),`${name}: standard Ed25519 signature`)
+  if (digest) assert.deepEqual(encode(fixture('ctt_imprint_input')),encode(signature),'RFC 9921 hashes the bstr header too')
+}
+// Xid text encodes exactly 96 bits, with four zero padding bits.
+const account = Buffer.from(fixture('account_id').bytes,'hex')
+assert.equal(account.length,12)
+let bits = BigInt('0x'+account.toString('hex')) << 4n, xid = ''
+for(let i=0;i<20;i++){xid='0123456789abcdefghijklmnopqrstuv'[Number(bits&31n)]+xid;bits >>= 5n}
+assert.equal(xid,fixture('account_xid_text').text)
+assert.equal(fixture('account_issuer').text,`https://dmsg.test/u/${xid}`)
+assert.equal(fixture('management_principal_issuer').text,'https://id.test/ic/mainnet/principals/aaaaa-aa')
+assert.equal(fixture('root_input_v2').array[0].bytes,account.toString('hex'))
+const ns = hash(encode(fixture('allocator_namespace_v1')))
+const allocated = Buffer.concat([Buffer.from('00000064','hex'),ns.subarray(0,5),Buffer.from('000000','hex')])
+assert.equal(fixture('allocated_account_v1').bytes,allocated.toString('hex'))
+const preimage = fixture('execution_request_id_v2'), approval = fixture('sign_approval_v3')
+assert.equal(preimage.array[2].array[0].bytes,account.toString('hex'))
+assert.equal(preimage.array[2].array[2].bytes.length,64)
+assert.deepEqual(approval.array[2].array[6],B(hash(encode(preimage)).toString('hex')))
+assert.equal(approval.array[2].array[7].uint,'1800000000000') // approval milliseconds; CWT seconds above
+console.log('Verified independent COSE text/digest profiles, key thumbprint, timestamp imprint and Xid allocation.')

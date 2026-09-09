@@ -58,13 +58,40 @@ pnpm --dir src/dmsg_app build
 | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | 链上主体创建、认证绑定、设备批准和根 CAS                | 公开类型与连接边界已准备；完整初始化与恢复授权流程尚未接入 UI                                       |
 | 云端同步、正式频道、epoch/HPKE 分发、邀请接受、历史授权 | 需要公开冻结的安全证据与内容合同；当前候选云端叶和 Rust 叶不同，不能仅改标签互通                    |
-| 正式文件/声明阈值签名                                   | 审核/拒绝可用；批准按钮关闭。需实际主体、设备能力、恢复检查、key descriptor、用途编码和执行对账联调 |
+| 正式文件/声明阈值签名                                   | 审核/拒绝可用；批准按钮关闭。类型明确的执行 SDK、批准向量及 canister 联调已有测试；账户初始化和批准 UI 接线仍待完成 |
 | handle 认领、购买和转移                                 | 未开放；本地主体不能被名称查询结果替换                                                              |
 | 付费来信、资金和 provider controller                    | 未开放；需 R1c 资金/协议门禁，无通用 signHash 或钱包入口                                            |
 | 旧 Local / ECDH / VetKey 内容解码                       | 当前可保管用户自行取得的旧档案文件；不自动解码旧 MK/KEK、不写旧 canister、不推断共享频道所有权      |
 | 锁定后收取云端密文                                      | 未接入短期限定读取凭证。后台仅处理本地请求元数据，不持有可刷新的全能会话                            |
 
 本地加密格式是 **`dmsg-backup/1` / `dmsg/content/1` 的客户端候选格式**，不是已发布的云端互操作标准。开发中的本地主体不能通过修改 ID 原地变成另一链上主体；正式迁入必须显式重新封装并验证。
+
+## COSE 执行 SDK
+
+采用两个文档 profile v1，浏览器桥为 `dmsg-extension/3`。文本直接签署 UTF-8，摘要为 RFC 9995 SHA-256；issuer 使用 URI，subject 表示声明对象，issuedAt 是可选的 Unix 秒。账户为 12 字节 Xid，设备/请求编号仍为 32 字节。具体格式见 [公开协议](../../docs/protocol/README.md)。
+
+```ts
+const prepared = prepareSign(accountContext, {
+  origin: browserSource.origin,
+  key: { algorithm: 'Ed25519', kid: descriptor.key_id,
+    publicKeyFingerprint: descriptor.public_key_fingerprint },
+  statement: { issuer: accountContext.issuer,
+    content: { kind: 'text', text: 'Approve this release' } }
+})
+// accountContext 来自已认证账户，含 accountId、issuer、设备、epoch、序号、
+// homeUser、毫秒期限与费用上限；descriptor 来自选定用途的密钥查询。
+// 明确批准后才调用；完整初始化/批准 UI 仍待接线。
+const result = await prepared.approveAndExecute(userCanister, deviceSigner,
+  async signedOperation => encryptedOutbox.save(signedOperation))
+```
+
+[services/cose.ts](src/lib/services/cose.ts) 固定请求副本，批准同时绑定最终 COSE 待签字节、公钥指纹、origin 和执行上下文。同一 prepared 对象只提交一次；review、toBeSigned、approvalMessage 返回副本，完成结果还须匹配被批准的签名内容和公钥。未知结果用 `getExecution` / `reconcileExecution` 查询同一 ID。
+
+[protocol/statements.ts](src/lib/protocol/statements.ts) 提供独立的 Ed25519/ES256K 验证，不访问 issuer URI。结果区分数学签名、内容、身份、授权、时间戳和当前状态。`verifyExecutionReceipt` 先认证 ICP 证书/路径/witness，再把回执与签名匹配，才能确认服务记录的身份和执行授权。它不验证外部 TSA 或当前项目权限。
+
+网页请求使用 `accountId`（规范 Xid）、`statement: {issuer, subject?, issuedAt?, content}`；content 为 `{kind:'text', text}` 或 `{kind:'digest', sha256, contentType?, location?}`，摘要为小写 hex，时间为十进制字符串。requestId/nonce/expiresAt 仅用于浏览器及执行流程，不进入签署正文。
+
+R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不是链上账户 ID**。可选 `account: {id, issuer, homeUser}` 记录明确绑定；外部请求须匹配已注册账户，不能把本地标识截短成 Xid。链上创建/设备批准及完整签署 UI 尚未开放，填写配置不会绕过这些条件。
 
 ## 锁定与恢复
 

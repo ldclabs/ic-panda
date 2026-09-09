@@ -1,0 +1,137 @@
+use crate::*;
+use candid::Principal;
+use dmsg_types::{cose::*, user::*, *};
+
+pub trait DeviceInputExt {
+    fn validate(&self) -> Result<()>;
+}
+impl DeviceInputExt for DeviceInput {
+    fn validate(&self) -> Result<()> {
+        nonzero(self.device_id.as_slice())?;
+        nonzero(self.hpke_pub.as_slice())?;
+        ed25519_dalek::VerifyingKey::from_bytes(&self.signing_pub)
+            .map_err(|_| Error::IntegrityFailed)?;
+        ensure(
+            !self.capabilities.is_empty() && self.capabilities.len() <= 5,
+            invalid("capabilities"),
+        )?;
+        let unique: std::collections::BTreeSet<_> = self.capabilities.iter().collect();
+        ensure(
+            unique.len() == self.capabilities.len(),
+            invalid("duplicate capability"),
+        )
+    }
+}
+
+pub trait SignRequestExt {
+    fn into_execution(self) -> Result<ExecuteRequest>;
+}
+impl SignRequestExt for SignRequest {
+    fn into_execution(self) -> Result<ExecuteRequest> {
+        validate_origin(&self.origin)?;
+        let algorithm: Algorithm = self.key.algorithm.into();
+        let purpose = statement_purpose(&self.statement);
+        let (_, bytes) = prepare_cose(&self.statement, &algorithm, &self.key.kid)?;
+        Ok(ExecuteRequest {
+            account_id: self.account_id,
+            max_cycles: self.max_cycles,
+            approval: self.approval,
+            kind: ExecutionKind::Sign {
+                key: KeyRequest {
+                    purpose,
+                    algorithm,
+                    generation: 1,
+                },
+                to_be_signed: bytes.into(),
+                public_key_fingerprint: self.key.public_key_fingerprint,
+                origin: self.origin,
+            },
+        })
+    }
+}
+
+pub trait CoseInitExt {
+    fn validate(&self, id: Principal) -> Result<()>;
+}
+impl CoseInitExt for CoseInit {
+    fn validate(&self, id: Principal) -> Result<()> {
+        ensure(
+            self.executing_canister == id && self.derivation_version == 2,
+            invalid("immutable key home/version"),
+        )?;
+        authenticated(self.initial_home_user)?;
+        validate_namespace(&self.issuer_namespace)?;
+        ensure(
+            !self.masters.is_empty() && self.masters.len() <= 3,
+            invalid("masters"),
+        )?;
+        for (i, k) in self.masters.iter().enumerate() {
+            ensure(
+                !self.masters[..i].iter().any(|x| x.algorithm == k.algorithm),
+                invalid("duplicate algorithm"),
+            )?;
+            if self.environment == Environment::Production {
+                ensure(k.key_name == "key_1", invalid("production requires key_1"))?;
+                nonzero(k.expected_fingerprint.as_slice())?;
+            } else {
+                ensure(
+                    matches!(k.key_name.as_str(), "key_1" | "test_key_1" | "dfx_test_key"),
+                    invalid("key name"),
+                )?;
+            }
+        }
+        ensure(
+            self.daily_executions > 0 && self.daily_cycles > 0,
+            invalid("hard budgets"),
+        )
+    }
+}
+
+pub trait KeyRequestExt {
+    fn validate(&self) -> Result<()>;
+}
+impl KeyRequestExt for KeyRequest {
+    fn validate(&self) -> Result<()> {
+        ensure(self.generation > 0, invalid("generation"))?;
+        match self.purpose {
+            KeyPurpose::ContentRoot => ensure(
+                self.algorithm == Algorithm::VetKdBls12381,
+                Error::UnsupportedProtocol,
+            ),
+            KeyPurpose::Statement | KeyPurpose::FileAttestation => ensure(
+                self.generation == 1 && self.algorithm != Algorithm::VetKdBls12381,
+                Error::UnsupportedProtocol,
+            ),
+        }
+    }
+}
+
+pub trait ExecuteRequestExt {
+    fn approval_message(&self, home_user: Principal) -> Hash;
+}
+impl ExecuteRequestExt for ExecuteRequest {
+    /// Shared by typed sign/root requests: changing the public Candid interface
+    /// does not change the approved bytes or key derivation domains.
+    fn approval_message(&self, home_user: Principal) -> Hash {
+        approval_message(
+            home_user,
+            self.account_id,
+            "dmsg/execute/v3",
+            &(&self.kind, self.max_cycles),
+            &self.approval,
+        )
+    }
+}
+
+pub fn recovery_confirmation_message(
+    home: Principal,
+    account_id: AccountId,
+    nonce: u64,
+    request: &RecoveryRequest,
+    confirmation: &RecoveryConfirmation,
+) -> Hash {
+    digest(
+        "dmsg/recovery-reconfirm/v2",
+        &(home, account_id, nonce, request, confirmation),
+    )
+}
