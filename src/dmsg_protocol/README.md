@@ -1,68 +1,207 @@
 # dmsg_protocol
 
-公开协议的确定性编码、请求验证和独立签名验证实现。依赖公开数据类型和标准密码库，不调用 ICP，也不读写 canister 内存。
+English | [简体中文](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_protocol/README_zh.md)
 
-## 使用
+Deterministic encoding, document signature verification, and request helpers for dMsg. This crate implements the public protocol on top of [dmsg_types](https://github.com/ldclabs/ic-panda/tree/main/src/dmsg_types). It performs local computation only: no ICP calls, ledger queries, canister storage, network discovery, or account authorization.
 
-```rust
-use dmsg_protocol::verify_artifact;
-use dmsg_types::{Result, SignedArtifact, Statement};
-fn verify(download: &SignedArtifact) -> Result<Statement> {
-    verify_artifact(download)
-}
+Use it to prepare portable COSE documents, verify returned artifacts, construct device approval digests, and check bindings between documents and independently authenticated execution receipts. All public APIs are re-exported at the crate root; the source modules are implementation organization, not public import paths.
+
+## Installation and dependency direction
+
+During development, use paths relative to your application's Cargo.toml:
+
+```toml
+[dependencies]
+dmsg_types = { path = "../ic-panda/src/dmsg_types" }
+dmsg_protocol = { path = "../ic-panda/src/dmsg_protocol" }
 ```
 
-`verify_artifact` 检查 COSE 数学签名、受保护的算法/公钥标识、typ、CWT claims 与对应文档 profile。它不把随包提供的公钥当身份凭证，不验证历史授权，也不把时间戳头的存在当 TSA 验证成功。
+Once both versions are published, the corresponding registry dependencies are:
 
-## 远程签名
+```toml
+[dependencies]
+dmsg_types = "0.1"
+dmsg_protocol = "0.1"
+```
 
-`prepare_cose(statement, algorithm, kid)` 返回 `Sign1Message` 和 RFC 9052 `Sig_structure` 字节。调用实际签名器后用 `finish_cose(to_be_signed, public_key, signature)` 组装 `SignedArtifact { cose_sign1, cose_key }`；组装不代替 `verify_artifact` 的数学验签。依赖版本由 workspace 与 `Cargo.lock` 管理，新消息为 tagged COSE_Sign1，公钥为 public-only COSE_Key。
+The runtime dependency is **dmsg_protocol → dmsg_types**. The reverse reference in the repository is a development dependency used by dmsg_types contract tests and vector generation; applications using only the types do not pull in this protocol crate. Consumers import public DTOs and errors from dmsg_types directly. The examples below also use `ed25519-dalek = "3"` and, for the approval example, `candid = "0.10"`.
 
-基础算法为 Ed25519（COSE -19）；可选 ES256K（-47）。已移除 BIP340 私有 profile。vetKD 不属于这套签名验证接口。
+Publication settings do not prove a version is already on crates.io. Both packages are currently version 0.1.0 in this checkout; see the release notes below for first-publication order.
 
-`SignRequestExt` 等扩展 trait 提供 ICP 请求的规范转换与批准摘要；平台原语仍由 canister 适配器调用。`canonical` 使用 RFC 8949 core deterministic CBOR；签名验证保留外部 COSE 的原始 protected-header 字节。
+## API guide
 
-离线命令行验证示例：`cargo run -p dmsg_protocol --example verify -- artifact.cbor`。输入是包含两个字节串字段的 SignedArtifact CBOR 记录；输出仅报告数学验证。
+| Task | Entry points | What remains the caller's responsibility |
+| --- | --- | --- |
+| Encode protocol records | `canonical`, `decode_canonical`, `sha256`, `digest` | Use the exact public types, domain and value shape; apply business validation |
+| Prepare a document | `validate_statement`, `statement_purpose`, `prepare_cose`, `parse_signing_input` | Obtain user consent, choose a trusted key and invoke the signer |
+| Assemble/verify | `finish_cose`, `verify_artifact`, `verification_report` | Establish issuer identity, authorization and current status |
+| Describe a signing key | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | Authenticate the key source; do not treat a thumbprint as proof of ownership |
+| Identify a signer | `account_issuer`, `principal_issuer`, `parse_account_issuer`, `validate_uri`, `validate_namespace` | Configure a trusted namespace and bind it to authenticated evidence |
+| Prepare ICP approval | `SignRequestExt`, `ExecuteRequestExt`, `approval_message`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
+| Validate request inputs | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | Perform server-side authorization, proof-of-possession checks and state transitions |
+| Check execution evidence | `artifact_signing_bytes`, `match_signing_result`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
+| Handle recovery/names | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | Execute recovery policy and name/ledger operations in their services |
+| Attach timestamp evidence | `timestamp_imprint`, `attach_unverified_timestamp_token`, `signature_digest` | Acquire and independently validate the TSA token and its trust chain |
+| Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
 
-## TSA 接点
+Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
 
-`timestamp_imprint(cose_sign1)` 实现 RFC 9921 CTT 的 SHA-256 message imprint，包括 signature 字节串的 CBOR 头。`attach_unverified_timestamp_token` 可以组装 token 到非保护头 270；它和此函数都不申请令牌、不验证 CMS/X.509、不判断 TSA 资格。TSA 客户端、信任策略、完整证据归档和链上锚定尚未交付。
+## Sign and verify a document locally
 
-## 身份、指纹与认证回执
+This complete example uses a deterministic **test key**. Production signing must use securely generated or externally managed keys.
 
-`account_issuer` / `principal_issuer` 按明确命名空间构造身份 URI，不根据字节长度猜类型。`parse_account_issuer` 严格检查命名空间与 Xid 规范文本。`key_thumbprint` 使用 RFC 9679 SHA-256，EC2 压缩坐标先展开，kid/alg/key_ops 不进入指纹。
+```rust
+use dmsg_protocol::{
+    account_issuer, finish_cose, key_thumbprint, match_signing_result,
+    prepare_cose, public_cose_key, sha256, verification_report,
+};
+use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent, VerificationStatus};
+use ed25519_dalek::{Signer, SigningKey};
 
-身份适配函数每次仅解析一次命名空间；规范 Xid/Principal 后缀只包含非保留 ASCII 字符，拼接后无需再次解析 URL。回执匹配和验证报告在单次调用内复用已解码、验签的 COSE 消息与公钥，保留外部消息的原始 protected-header 字节。
+let signer = SigningKey::from_bytes(&[7; 32]); // Test fixture only.
+let public = signer.verifying_key().to_bytes();
+let algorithm = Algorithm::Ed25519;
+// An empty kid is allowed here to compute the thumbprint first.
+let fingerprint = key_thumbprint(&public_cose_key(&algorithm, &[], &public).unwrap()).unwrap();
+let original = b"Release 1.0 specification";
+let statement = Statement {
+    issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])).unwrap(),
+    subject: Some("release/specification".into()),
+    issued_at: Some(1_800_000_000), // Claimed Unix seconds, not trusted time.
+    content: StatementContent::Digest {
+        sha256: sha256(original),
+        content_type: Some("text/plain".into()),
+        location: None,
+    },
+};
+let (_, tbs) = prepare_cose(&statement, &algorithm, fingerprint.as_slice()).unwrap();
+let signature = signer.sign(&tbs).to_bytes().to_vec();
+let artifact = finish_cose(&tbs, &public, signature).unwrap();
+match_signing_result(&artifact, &tbs, fingerprint).unwrap();
+let report = verification_report(&artifact, Some(original)).unwrap();
+assert_eq!(report.signature, VerificationStatus::Verified);
+assert_eq!(report.content, VerificationStatus::Verified);
+assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
+assert_eq!(report.timestamp, VerificationStatus::NotProvided);
+```
 
-设备输入与 `public_cose_key` 均拒绝不能解码或弱小阶的 Ed25519 公钥。`public_cose_key` 的 kid 最多 256 字节，允许用空 kid 先计算指纹；正式声明的 kid 必须非空。`decode_canonical` 对解码或重新编码失败返回错误；`canonical` / `digest` 面向可序列化的可信协议值，序列化实现失败会 panic。
+`prepare_cose` returns an unsigned message and `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`. Text uses raw UTF-8 (1..4096 bytes); digest documents use the original bytes' 32-byte SHA-256. The Rust Statement enum is not an extra wire payload. Issuer, optional subject and claimed issued_at are protected CWT claims; request ID, browser origin and execution deadline are separate execution metadata.
 
-`verification_report(artifact, original_content)` 区分 signature/content/issuer_binding/authorization/timestamp/current_status。`match_execution_receipt` 只匹配签名产物与回执；调用者必须先验证 IC certificate、canister、路径与 witness。不能直接信任随包提供的回执。
+| Algorithm | COSE label | Signer input | Signature/public key supplied to `finish_cose` |
+| --- | --- | --- | --- |
+| Ed25519 | -19 | Exact tbs bytes | 64-byte signature; raw 32-byte public key |
+| ES256K | -47 | SHA-256(tbs) for a prehash API | 64-byte r\|\|s, not DER; SEC1 secp256k1 public key |
 
-## 互操作
+When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `finish_cose` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
 
-[CDDL 和字节规则](../../docs/protocol/README.md) 是实现依据。向量见 [protocol_vectors.json](../dmsg_types/tests/protocol_vectors.json)，独立 JS 编码器和 Node Ed25519 验证器分别复核编码、COSE Sig_structure、公钥和 CTT 输入：
+## Construct an ICP device approval
+
+The following constructs a local request and device signature; it does not contact a canister or grant permission. Real account IDs, device IDs, epochs, sequences and signing-key references must come from the configured, authenticated services. The fixture IDs and keys are for demonstration only.
+
+```rust
+use candid::Principal;
+use dmsg_protocol::{execution_request_id, ExecuteRequestExt, SignRequestExt};
+use dmsg_types::{
+    cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
+    AccountId, Approval, Hash, Statement, StatementContent,
+};
+use ed25519_dalek::{Signer, SigningKey};
+
+let account_id = AccountId([1; 12]);
+let device_id = Hash::new([2; 32]);
+let security_epoch = 1;
+let sequence = 0;
+let request_id = execution_request_id(&account_id, security_epoch, device_id, sequence);
+let request = SignRequest {
+    account_id,
+    key: SigningKeyRef {
+        algorithm: SigningAlgorithm::Ed25519,
+        kid: vec![3; 32].into(),
+        public_key_fingerprint: Hash::new([3; 32]),
+    },
+    statement: Statement {
+        issuer: "https://example.org/signers/alice".into(),
+        subject: None,
+        issued_at: None,
+        content: StatementContent::Text("Approve release 1.0".into()),
+    },
+    origin: "https://example.org".into(),
+    max_cycles: 1_000_000_000,
+    approval: Approval {
+        device_id, security_epoch, sequence, request_id,
+        expires_at: 1_800_000_060_000, // Unix milliseconds; use a valid live deadline.
+        signature: Vec::new().into(), // Excluded from the approval digest.
+    },
+};
+let mut execution = request.into_execution().unwrap();
+let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
+let digest = execution.approval_message(home_user);
+let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
+execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().to_vec().into();
+assert_eq!(execution.approval.request_id, request_id);
+```
+
+`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. `ExecuteRequestExt::approval_message` binds kind and max_cycles under `dmsg/execute/v3`, wrapped in `dmsg/device-approval/v2`. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
+
+For account mutations, use `approval_message` with `dmsg/account/v2` and `(expected_version, command)`. Recovery reconfirmation uses `recovery_confirmation_message` and the recovery key, not a device key. Sequence consumption, deadline checks and permission decisions happen in the service. After an unknown outcome, reconcile the original request instead of generating a new signing operation.
+
+## Encoding and identity helpers
+
+```rust
+use dmsg_protocol::{canonical, decode_canonical, digest, normalize_handle};
+use dmsg_types::Hash;
+
+let value = Hash::new([0x42; 32]);
+let encoded = canonical(&value);
+assert_eq!(decode_canonical::<Hash>(&encoded).unwrap(), value);
+assert_ne!(digest("example/a/v1", &value), digest("example/b/v1", &value));
+assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
+```
+
+`canonical` uses RFC 8949 core deterministic CBOR. `digest(domain, value)` is `SHA256(CBOR([1, domain, value]))`. Both operate on trusted serializable values and panic if their Serialize implementation fails; neither enforces business semantics. `decode_canonical` caps input at 65,536 bytes and requires exact re-encoding, returning errors for malformed or noncanonical records. It is not the artifact decoder: external COSE verification must preserve the original protected bytes.
+
+AccountId is 12 binary bytes and 20 characters of canonical Xid text. Hash/OpId are 32-byte strings. Identity adapters require an explicit canonical URI namespace ending in `/` or `:`, without query/fragment; they neither discover services nor establish account existence. `validate_origin` accepts an exact HTTPS origin or a 32-letter a..p Chrome extension ID, without a trailing path. Syntax checks do not prove the browser's actual origin.
+
+Business timestamps and durations use milliseconds, while Statement.issued_at uses seconds and ICRC created_at_time uses nanoseconds. `expiry` requires a strictly future deadline within the supplied maximum lifetime. `check_sequence` returns ResultExpired for old sequences and VersionConflict for future/exhausted sequences; it does not update the counter. `price` uses a fixed PANDA schedule with 8 decimal places and requires an already validated handle; it is not a generic token price oracle.
+
+## Evidence and timestamp boundaries
+
+`verification_report` returns Verified for a valid signature. Embedded text is Verified; provided original content must match exactly or by SHA-256. A digest without original content is NotProvided. Issuer binding, authorization and current status remain NotChecked. Timestamp is NotProvided if absent, or NotChecked if an opaque token is attached. Verification failure returns an error rather than a report with a successful signature flag.
+
+Before calling `match_execution_receipt`, independently verify the IC certificate against a trusted root, the expected user canister, witness, requested path and leaf bytes. `execution_receipt_key` constructs the single raw path segment `b"execution/" || account_id[12] || request_id[32]`. The matcher requires schema 1 and Completed, then matches issuer, signing-bytes digest, public-key thumbprint and raw-signature digest. It does not independently check the receipt's account/request IDs, origin, deadline or external project permissions. Authenticate the expected path and separately apply any additional policy.
+
+| Helper | Exact operation | Does not do |
+| --- | --- | --- |
+| `signature_digest` | SHA-256(raw signature bytes) for execution receipts | Verify the signature or dMsg profile |
+| `timestamp_imprint` | SHA-256(CBOR(signature bstr)), including its byte-string header; requires canonical outer framing | Verify a signature, acquire a TSA token or check TSA trust |
+| `attach_unverified_timestamp_token` | Verify the artifact, then attach opaque token bytes at unprotected header 270 | Verify CMS, imprint, certificate chain, TSA policy or revocation |
+
+A token is limited to 131,072 bytes, an encoded COSE_Key to 2,048, and a COSE_Sign1 artifact to 196,608. The timestamp attachment helper refuses an existing token with VersionConflict. Trusted timestamp verification, TSA networking, SCITT transparency, archival and chain anchoring are outside this crate.
+
+## Errors, protocol references, and validation
+
+Functions return `dmsg_types::Result<T>`. Common errors are InvalidInput for malformed semantic inputs, IntegrityFailed for invalid bytes/signatures/bindings, UnsupportedProtocol for unsupported algorithms or profile semantics, and QuotaExceeded for size limits. Consult individual rustdoc entries for exact mappings. Diagnostic strings are not stable machine-readable error codes. Network failures are handled by your transport, not this local crate.
+
+Use the [public protocol](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md), [CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl), [types guide](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/README.md), and [vectors](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/tests/protocol_vectors.json) from the same commit. These links follow main and can change. The document profile media types are experimental project names, not registered standards.
+
+Run from the workspace root:
 
 ```sh
-cargo run -p dmsg_types --example protocol_vectors > /tmp/dmsg-vectors.json
+cargo test -p dmsg_protocol -p dmsg_types --locked
+RUSTDOCFLAGS="-D warnings" cargo doc -p dmsg_protocol --no-deps --locked
+cargo clippy -p dmsg_protocol --all-targets --locked -- -D warnings
+cargo run -p dmsg_types --example protocol_vectors --locked > /tmp/dmsg-vectors.json
 node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 ```
 
-## 验证
+The English README is included as crate documentation and its Rust examples run as doctests. Keep both language versions' example code identical, translating comments only. `missing_docs` warnings help maintain API coverage.
 
-从仓库根目录运行：
+For offline verification, run `cargo run -p dmsg_protocol --example verify -- artifact.cbor`. The input is a CBOR SignedArtifact record containing cose_sign1 and cose_key byte strings, not a bare COSE_Sign1 file. Output reports mathematical verification only. Local performance benchmarks use `cargo bench -p dmsg_protocol --bench validation --locked`; these measure host Rust execution, not canister instructions or end-to-end latency. Real-Wasm integration tests use `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`.
 
-```sh
-cargo test -p dmsg_protocol
-cargo clippy -p dmsg_protocol --all-targets -- -D warnings
-cargo bench -p dmsg_protocol --bench validation --locked
-```
+## Release notes for maintainers
 
-测试覆盖身份和 origin 规范、设备权限和密钥、初始化配置、批准域绑定、时间/序号边界、非规范与畸形 CBOR、两种签名算法、回执绑定及 TSA 大小和信任边界。基准使用固定输入，预热后报告 7 轮每次操作耗时的中位数；比较结果时应保持相同机器、工具链和构建配置。基准衡量本地 Rust 执行，不代表 canister 指令数或端到端延迟。
+Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.1.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
 
-四个真实 Wasm 的调用、恢复、认证查询和资金异常测试：
+Cargo omits the path-only dmsg_protocol development dependency from the normalized dmsg_types package manifest. That avoids a publication dependency cycle, but its repository contract tests and vector example still require the checkout's development dependency. Run these from the workspace; a packaged dmsg_types test suite is not equivalent.
 
-```sh
-POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
-```
-
-开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
+Validate the dmsg_types package first. Once its version is available in the registry, validate dmsg_protocol with `cargo package -p dmsg_protocol --locked` and `cargo publish -p dmsg_protocol --dry-run --locked` before publishing. A local checkout containing dmsg_types is not a substitute for its registry availability during normal package resolution. Development interfaces do not promise compatibility with earlier experimental encodings. Production deployment, external services, capacity and audit acceptance require separate validation.

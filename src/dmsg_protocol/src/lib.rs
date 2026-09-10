@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-//! Deterministic encoding and validation of the public dMsg contracts.
+#![warn(missing_docs)]
 mod codec;
 mod handle;
 mod requests;

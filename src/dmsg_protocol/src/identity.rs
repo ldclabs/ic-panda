@@ -6,6 +6,7 @@ use dmsg_types::*;
 #[cfg(test)]
 mod tests;
 
+/// Maximum canonical identity URI or statement subject size in bytes (8,192).
 pub const MAX_URI_BYTES: usize = 8192;
 const MAX_NAMESPACE_BYTES: usize = MAX_URI_BYTES - 64;
 
@@ -36,10 +37,24 @@ fn parse_uri(value: &str) -> Result<url::Url> {
     Ok(uri)
 }
 
+/// Validate a canonical absolute ASCII URI without rewriting it or fetching it.
+///
+/// Requires 1..8192 bytes, printable ASCII, valid percent escapes, no credentials,
+/// and an exact round-trip through the URL parser. This does not require HTTPS.
+///
+/// # Errors
+/// Malformed or noncanonical identifiers return `Error::InvalidInput`.
 pub fn validate_uri(value: &str) -> Result<()> {
     parse_uri(value).map(|_| ())
 }
 
+/// Validate a fixed identity URI prefix before appending an identity.
+///
+/// Requires a canonical URI of at most 8128 bytes, ending in `/` or `:`, with
+/// no query or fragment. This does not discover an identity service.
+///
+/// # Errors
+/// Invalid prefixes return `Error::InvalidInput`.
 pub fn validate_namespace(value: &str) -> Result<()> {
     ensure_valid(
         value.len() <= MAX_NAMESPACE_BYTES && (value.ends_with('/') || value.ends_with(':')),
@@ -52,6 +67,12 @@ pub fn validate_namespace(value: &str) -> Result<()> {
     )
 }
 
+/// Append canonical Xid text to a validated identity namespace.
+///
+/// Does not allocate an ID, check account existence, or prove ownership.
+///
+/// # Errors
+/// Returns namespace validation errors from [`validate_namespace`].
 pub fn account_issuer(namespace: &str, id: &AccountId) -> Result<String> {
     validate_namespace(namespace)?;
     // Canonical Xid text contains only unreserved ASCII. Appending it to the
@@ -59,12 +80,27 @@ pub fn account_issuer(namespace: &str, id: &AccountId) -> Result<String> {
     Ok(format!("{namespace}{id}"))
 }
 
+/// Append canonical Principal text to a validated identity namespace.
+///
+/// This formats an identifier; it does not authenticate the Principal or reject
+/// anonymous/management Principals as [`crate::authenticated`] does.
+///
+/// # Errors
+/// Returns namespace validation errors from [`validate_namespace`].
 pub fn principal_issuer(namespace: &str, principal: Principal) -> Result<String> {
     validate_namespace(namespace)?;
     // Principal text is also unreserved ASCII and fits the 64-byte reservation.
     Ok(format!("{namespace}{}", principal.to_text()))
 }
 
+/// Extract a canonical Xid from an issuer in the exact expected namespace.
+///
+/// The namespace is explicit: no identity type is inferred from byte length.
+/// Parsing does not authenticate an account or its signing key.
+///
+/// # Errors
+/// Invalid namespaces return `Error::InvalidInput`; a mismatched prefix or
+/// noncanonical Xid suffix returns `Error::IntegrityFailed`.
 pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> {
     validate_namespace(namespace)?;
     // Xid::from_str enforces exact length, lowercase alphabet and zero padding
@@ -76,6 +112,15 @@ pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> 
         .map_err(|_| Error::IntegrityFailed)
 }
 
+/// Validate an exact HTTPS origin or Chrome extension origin, at most 256 bytes.
+///
+/// HTTPS values must equal the URL parser's origin serialization (no path,
+/// trailing slash, credentials, query or fragment). Extension IDs must contain
+/// 32 lowercase letters in a..p. This validates syntax only; the extension must
+/// independently obtain and check the actual browser origin.
+///
+/// # Errors
+/// Invalid origins return `Error::InvalidInput`.
 pub fn validate_origin(origin: &str) -> Result<()> {
     ensure_valid(origin.len() <= 256, "origin")?;
     if let Some(id) = origin.strip_prefix("chrome-extension://") {

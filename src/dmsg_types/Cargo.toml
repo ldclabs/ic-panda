@@ -8,7 +8,7 @@ repository.workspace = true
 readme = "README.md"
 keywords = ["dmsg", "icp", "cose", "signing", "protocol"]
 categories = ["api-bindings", "data-structures"]
-publish = false
+publish = true
 
 [dependencies]
 ic_auth_types.workspace = true

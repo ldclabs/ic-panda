@@ -9,18 +9,31 @@ use dmsg_types::{
 use k256::elliptic_curve::sec1::ToSec1Point;
 use serde_bytes::Bytes;
 
+/// Experimental dMsg text document profile media type (v1), used in protected header 16.
 pub const TEXT_PROFILE: &str = "application/vnd.dmsg.text-statement+cose;v=1";
+/// Experimental dMsg SHA-256 document profile media type (v1), used in protected header 16.
 pub const DIGEST_PROFILE: &str = "application/vnd.dmsg.digest-statement+cose;v=1";
+/// Required content type of the text profile; not used in the digest profile.
 pub const TEXT_CONTENT_TYPE: &str = "text/plain;charset=utf-8";
+/// COSE header 15: protected CWT claims (issuer, optional subject and issued-at).
 pub const CWT_CLAIMS: i64 = 15;
+/// COSE header 16: protected document profile media type.
 pub const TYPE_HEADER: i64 = 16;
+/// COSE header 258: digest profile hash algorithm, fixed to SHA-256 (-16).
 pub const HASH_ALGORITHM: i64 = 258;
+/// COSE header 259: optional original-content media type in the digest profile.
 pub const PREIMAGE_CONTENT_TYPE: i64 = 259;
+/// COSE header 260: optional original-content URI in the digest profile.
 pub const PAYLOAD_LOCATION: i64 = 260;
+/// COSE header 270: unprotected timestamp token; its presence establishes no TSA trust.
 pub const CTT_HEADER: i64 = 270;
+/// Maximum document key identifier size in bytes (256); signing requires a nonempty kid.
 pub const MAX_KID_BYTES: usize = 256;
+/// Maximum opaque timestamp token size in bytes (131,072).
 pub const MAX_TIMESTAMP_BYTES: usize = 131_072;
+/// Maximum encoded public COSE_Key size in bytes (2,048).
 pub const MAX_COSE_KEY_BYTES: usize = 2048;
+/// Maximum COSE_Sign1 size in bytes (196,608), including optional timestamp evidence.
 pub const MAX_ARTIFACT_BYTES: usize = MAX_PAYLOAD + MAX_TIMESTAMP_BYTES;
 const CRITICAL: [Label; 3] = [
     Label::Int(CWT_CLAIMS),
@@ -32,6 +45,10 @@ fn malformed(_: cose2::Error) -> Error {
     Error::IntegrityFailed
 }
 
+/// Map Ed25519 to COSE -19 and ECDSA secp256k1 to COSE ES256K (-47).
+///
+/// # Errors
+/// vetKD is a derivation algorithm and returns `Error::UnsupportedProtocol`.
 pub fn cose_algorithm(algorithm: &Algorithm) -> Result<Label> {
     match algorithm {
         Algorithm::Ed25519 => Ok(iana::AlgorithmEd25519.into()),
@@ -48,6 +65,9 @@ fn from_algorithm(label: &Label) -> Result<Algorithm> {
     }
 }
 
+/// Select Statement for text and FileAttestation for a digest document.
+///
+/// This selects a derivation domain without validating the statement.
 pub fn statement_purpose(statement: &Statement) -> KeyPurpose {
     match statement.content {
         StatementContent::Text(_) => KeyPurpose::Statement,
@@ -62,6 +82,17 @@ fn media_type(value: &str) -> Result<()> {
     )
 }
 
+/// Check the supported document profile's claims and content limits.
+///
+/// Issuer must be a canonical URI. Optional subject is nonempty, at most 8192
+/// UTF-8 bytes, has no control characters, and must be a URI when it contains
+/// `:`, following the StringOrURI rule. Text is 1..4096 bytes. Digest media types
+/// are at most 256 bytes; optional locations are canonical URIs. Claimed issued_at
+/// is not checked against a clock, and original content is not fetched or hashed.
+///
+/// # Errors
+/// Text size violations return `Error::QuotaExceeded`; invalid claims, media types
+/// or locations return `Error::InvalidInput`.
 pub fn validate_statement(statement: &Statement) -> Result<()> {
     validate_uri(&statement.issuer)?;
     if let Some(subject) = &statement.subject {
@@ -106,6 +137,18 @@ fn claims(statement: &Statement) -> Value {
     Value::Map(values)
 }
 
+/// Prepare a document's COSE_Sign1 message and exact bytes to sign.
+///
+/// Returns `(unsigned_message, Sig_structure)`. Claims and profile headers are
+/// protected, text/digest bytes are the payload, and external AAD is empty.
+/// Ed25519 signs the returned bytes directly; ES256K signs their SHA-256 digest
+/// when using a prehash signing API. The kid must contain 1..256 bytes.
+/// No key access, signing, approval or network call occurs here.
+///
+/// # Errors
+/// Returns statement/algorithm validation errors, `Error::InvalidInput` for kid
+/// bounds, `Error::QuotaExceeded` for oversized signing input, or
+/// `Error::IntegrityFailed` if COSE preparation fails.
 pub fn prepare_cose(
     statement: &Statement,
     algorithm: &Algorithm,
@@ -274,15 +317,31 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
     Ok((statement, algorithm, kid))
 }
 
-/// An implementation view; never a wire DTO or a persistence record.
+/// Validated local signing-input view returned by [`parse_signing_input`].
+///
+/// Contains an unsigned COSE message and decoded fields, not a verified artifact,
+/// wire DTO or persistence record. Mutating these fields does not revalidate them.
 pub struct PreparedStatement {
+    /// Unsigned COSE message reconstructed from the validated canonical input.
     pub message: Sign1Message,
+    /// Decoded issuer, subject, issued-at and content view.
     pub statement: Statement,
+    /// Supported formal signing algorithm selected by the protected header.
     pub algorithm: Algorithm,
+    /// Opaque key identifier from the protected header.
     pub kid: Vec<u8>,
 }
 
-/// dMsg signing inputs must use canonical framing; verification preserves incoming protected bytes.
+/// Parse and validate canonical local signing input, not a signed artifact.
+///
+/// Requires `CBOR(["Signature1", protected_bstr, h'', payload_bstr])`, valid
+/// profile headers, and exact canonical reconstruction including the protected
+/// map. Verification of external artifacts instead preserves their original
+/// protected bytes; use [`verify_artifact`] for that path.
+///
+/// # Errors
+/// Returns `Error::QuotaExceeded` above 65,536 bytes, `Error::IntegrityFailed`
+/// for malformed/noncanonical input, or statement/profile validation errors.
 pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
     ensure(bytes.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
     let (context, protected, aad, payload): (&str, &Bytes, &Bytes, &Bytes) =
@@ -309,7 +368,16 @@ pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
     })
 }
 
-/// Empty `kid` is allowed when computing a fingerprint before selecting the signing kid.
+/// Encode a public-only COSE_Key for a supported signing algorithm.
+///
+/// `public` is a raw 32-byte Ed25519 key or a SEC1 secp256k1 point, not CBOR.
+/// The result declares the algorithm and verify operation. Empty kid is allowed
+/// to compute a thumbprint before choosing a signing kid; otherwise kid is at
+/// most 256 bytes. This does not establish key ownership.
+///
+/// # Errors
+/// Invalid/weak Ed25519 keys and invalid EC points return `Error::IntegrityFailed`;
+/// oversized kid returns `Error::InvalidInput`; vetKD returns `Error::UnsupportedProtocol`.
 pub fn public_cose_key(algorithm: &Algorithm, kid: &[u8], public: &[u8]) -> Result<Vec<u8>> {
     ensure_valid(kid.len() <= MAX_KID_BYTES, "kid")?;
     let mut key = Key::new();
@@ -343,7 +411,15 @@ pub fn public_cose_key(algorithm: &Algorithm, kid: &[u8], public: &[u8]) -> Resu
     key.to_vec().map_err(malformed)
 }
 
-/// RFC 9679 SHA-256 thumbprint: only the required public members, no kid/alg/key_ops.
+/// Compute the RFC 9679 SHA-256 thumbprint of required public COSE key members.
+///
+/// Excludes kid, alg and key_ops. Expands compressed secp256k1 y coordinates
+/// before hashing, so compressed/uncompressed forms have the same thumbprint.
+/// This is not raw-public-key SHA-256 or a complete key/profile verifier.
+///
+/// # Errors
+/// Rejects keys above 2048 bytes, private d parameters, missing required members,
+/// unsupported key types, malformed CBOR and invalid compressed EC coordinates.
 pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
     ensure(encoded.len() <= MAX_COSE_KEY_BYTES, Error::QuotaExceeded)?;
     let key = Key::from_slice(encoded).map_err(malformed)?;
@@ -396,6 +472,17 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
     Ok(sha256(&required.to_vec().map_err(malformed)?))
 }
 
+/// Assemble a tagged COSE_Sign1 artifact and public-only key after external signing.
+///
+/// `tbs` must be the exact canonical bytes returned by [`prepare_cose`]; `public`
+/// is raw Ed25519 or SEC1 secp256k1 bytes. `signature` is 64 bytes: an Ed25519
+/// signature or ES256K r||s, not DER. This validates structure and key encoding,
+/// but does not mathematically verify the signature. Use [`match_signing_result`]
+/// or [`verify_artifact`] before accepting a returned artifact.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for wrong signature length, and propagates
+/// signing-input/public-key validation errors.
 pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
     // Both currently enabled algorithms encode r||s / Ed25519 signatures in 64 bytes.
     ensure(signature.len() == 64, Error::IntegrityFailed)?;
@@ -492,7 +579,18 @@ fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
     }
 }
 
-/// Mathematical signature and profile checks only; supplied keys are not trust anchors.
+/// Verify supported COSE document profiles and their mathematical signature.
+///
+/// Checks tagged COSE_Sign1, protected algorithm/kid/claims/profile, critical
+/// headers, public-key constraints and signature. Preserves original protected
+/// bytes. An attached public key is not an identity credential; this does not
+/// check original digest content, issuer ownership, authorization, current status,
+/// or TSA trust. Use [`verification_report`] to also compare supplied content.
+///
+/// # Errors
+/// Size bounds yield `Error::QuotaExceeded`, unknown semantics yield
+/// `Error::UnsupportedProtocol`, and malformed data/key/signature mismatches
+/// usually yield `Error::IntegrityFailed`. Claim validation errors also propagate.
 pub fn verify_artifact(artifact: &SignedArtifact) -> Result<Statement> {
     Ok(verify_and_parse_artifact(artifact)?.statement)
 }
@@ -545,6 +643,17 @@ pub(crate) fn verify_and_parse_artifact(artifact: &SignedArtifact) -> Result<Ver
     })
 }
 
+/// Verify a document and report separate content and evidence statuses.
+///
+/// If `content` is supplied, text must match exactly or its SHA-256 must match
+/// the digest profile. Without it, embedded text is Verified and digest content
+/// is NotProvided. Signature is Verified on success; issuer binding,
+/// authorization and current status remain NotChecked. Timestamp is NotProvided
+/// when absent and NotChecked when a token is attached: no TSA verification occurs.
+///
+/// # Errors
+/// Propagates artifact verification errors; original-content mismatch returns
+/// `Error::IntegrityFailed` rather than a partially successful report.
 pub fn verification_report(
     artifact: &SignedArtifact,
     content: Option<&[u8]>,
@@ -584,8 +693,15 @@ pub fn verification_report(
     })
 }
 
-/// SHA-256 of the encoded signature bstr, including its header (RFC 9921 CTT).
-/// Require canonical outer framing so this encoding is the original signature field.
+/// Compute the RFC 9921 CTT SHA-256 imprint of the encoded signature bstr.
+///
+/// Includes the CBOR byte-string header: `SHA256(CBOR(signature_bstr))`, unlike
+/// [`signature_digest`]. Requires canonical outer framing and a nonempty signature
+/// of at most 16,384 bytes. It does not verify the signature, dMsg profile or TSA.
+///
+/// # Errors
+/// Oversized artifacts return `Error::QuotaExceeded`; decoding, canonical framing
+/// or signature-length failures return `Error::IntegrityFailed`.
 pub fn timestamp_imprint(cose_sign1: &[u8]) -> Result<Hash> {
     ensure(cose_sign1.len() <= MAX_ARTIFACT_BYTES, Error::QuotaExceeded)?;
     let message = Sign1Message::from_slice(cose_sign1).map_err(malformed)?;
@@ -600,7 +716,15 @@ pub fn timestamp_imprint(cose_sign1: &[u8]) -> Result<Hash> {
     ))))
 }
 
-/// Assembly only: CMS, certificate chain, imprint and TSA policy require a TSA verifier.
+/// Attach an unverified timestamp token at unprotected COSE header 270.
+///
+/// First verifies the original artifact, then adds the token while retaining
+/// the key. The token is opaque: CMS signature, certificate chain, imprint,
+/// TSA policy and current status still need an independent TSA verifier.
+///
+/// # Errors
+/// Empty/oversized tokens return `Error::QuotaExceeded`; an existing token returns
+/// `Error::VersionConflict`. Original-artifact verification errors propagate.
 pub fn attach_unverified_timestamp_token(
     artifact: &SignedArtifact,
     token: &[u8],
@@ -621,6 +745,15 @@ pub fn attach_unverified_timestamp_token(
     })
 }
 
+/// Hash raw signature bytes extracted from a COSE_Sign1 message.
+///
+/// Used for execution-receipt matching; unlike [`timestamp_imprint`], the hash
+/// excludes CBOR framing. This extraction helper does not verify the signature,
+/// dMsg profile, canonical outer encoding or key ownership.
+///
+/// # Errors
+/// Oversized artifacts return `Error::QuotaExceeded`; COSE decoding errors return
+/// `Error::IntegrityFailed`.
 pub fn signature_digest(cose_sign1: &[u8]) -> Result<Hash> {
     ensure(cose_sign1.len() <= MAX_ARTIFACT_BYTES, Error::QuotaExceeded)?;
     Ok(sha256(
