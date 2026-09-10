@@ -9,7 +9,6 @@ use std::collections::BTreeMap;
 pub struct HandleAuthorization {
     pub intent: HandleIntent,
     pub expires_at: u64,
-    pub consumed: bool,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
@@ -34,8 +33,9 @@ pub struct AccountState {
     pub next_execution_sequence: u64,
     pub operations: Vec<OperationReceipt>,
     pub handle_authorizations: BTreeMap<OpId, HandleAuthorization>,
-    #[serde(skip)]
-    pub executions: BTreeMap<OpId, AuthorizedExecution>,
+    // None pins a nonterminal execution; Some marks when its result may be
+    // evicted. Payloads and results live only in the execution table.
+    pub execution_expirations: BTreeMap<OpId, Option<u64>>,
 }
 impl AccountState {
     pub fn snapshot(&self, namespace: &str) -> SecuritySnapshot {

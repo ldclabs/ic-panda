@@ -13,3 +13,11 @@ POCKET_IC_BIN=/path/to/pocket-ic cargo test -p dmsg_integration --features pocke
 覆盖：设备/恢复授权、根 CAS、标准 COSE 的 Ed25519/ES256K、Xid 原子发号/重试/升级、认证执行回执与签名绑定、vetKD、独立认证树检查、名称认领/转移/收费、入金/结算/退款、丢失响应、BadFee、迟到资金与升级恢复。测试通过公开 AccountInfo/EscrowInfo 查询，不读取 canister 内部状态。
 
 这些测试不代替真实账本部署、扩展 UI、私有 Worker、TSA 信任验证和容量验收。
+
+`user_execution_retention_survives_a_full_window_and_upgrade` 覆盖 user 执行窗口满额、拒绝无写入、到期清理、旧批准防重放及升级后的认证回执。另有显式运行的 `user_cycles_profile`，以 4 KiB 正文和 0/4/8 条已完成签名历史比较 user canister 的 cycles：
+
+```sh
+DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane user_cycles_profile -- --ignored --nocapture
+```
+
+余额差只包含 user canister，不包含 COSE 和管理 canister 的阈值调用费用。两次比较必须使用相同的依赖、构建配置与 PocketIC 版本。

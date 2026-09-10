@@ -12,10 +12,11 @@ pub(crate) fn authorize(
     input: &ExecuteRequest,
     now: u64,
     namespace: &str,
+    previous: Option<&AuthorizedExecution>,
 ) -> Result<AuthorizedExecution> {
-    let fp = digest("dmsg/execute-request/v2", input);
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
-    if let Some(e) = s.executions.get(&input.approval.request_id) {
+    let fp = digest("dmsg/execute-request/v2", input);
+    if let Some(e) = previous {
         ensure(e.command_digest == fp, Error::IdempotencyConflict)?;
         return Ok(e.clone());
     }
@@ -111,27 +112,33 @@ pub(crate) fn authorize(
             && input.max_cycles <= 100_000_000_000,
         Error::QuotaExceeded,
     )?;
-    let mut next = s.clone();
-    // Remove only terminal results; the per-device sequence and operation
-    // receipt remain authoritative after result eviction.
-    next.executions
-        .retain(|_, e| !e.result.is_terminal() || e.grant.expires_at.saturating_add(DAY) > now);
+    // Count a small index, without loading or cloning historical payloads.
+    let retained = s
+        .execution_expirations
+        .values()
+        .filter(|expires_at| expires_at.is_none_or(|at| at > now))
+        .count();
     ensure(
-        next.executions.len() < WINDOW && next.next_execution_sequence < u64::MAX,
+        retained < WINDOW && s.next_execution_sequence < u64::MAX,
         Error::QuotaExceeded,
     )?;
-    next.budget.reserve(
+    s.budget.reserve(
         now,
         input.max_cycles,
-        next.sensitive_policy.daily_executions,
-        next.sensitive_policy.daily_cycles,
+        s.sensitive_policy.daily_executions,
+        s.sensitive_policy.daily_cycles,
     )?;
+    // All fallible checks have passed, including the atomic budget reservation.
+    // Unknown executions stay pinned; device sequences still reject old requests
+    // after terminal results and operation receipts have been evicted.
+    s.execution_expirations
+        .retain(|_, expires_at| expires_at.is_none_or(|at| at > now));
     let grant = ExecutionGrant {
         account_id: s.account_id.clone(),
         home_user: s.home_user,
         home_cose: s.home_cose,
         request_id: input.approval.request_id,
-        execution_sequence: next.next_execution_sequence,
+        execution_sequence: s.next_execution_sequence,
         security_epoch: s.security_epoch,
         device_id: input.approval.device_id,
         device_sequence: input.approval.sequence,
@@ -140,7 +147,7 @@ pub(crate) fn authorize(
         kind: input.kind.clone(),
         max_cycles: input.max_cycles,
     };
-    next.next_execution_sequence += 1;
+    s.next_execution_sequence += 1;
     let e = AuthorizedExecution {
         grant,
         command_digest: fp,
@@ -150,21 +157,20 @@ pub(crate) fn authorize(
             charged_cycles: 0,
         },
     };
-    next.executions.insert(input.approval.request_id, e.clone());
-    finish(&mut next, &input.approval, fp);
-    *s = next;
+    s.execution_expirations
+        .insert(input.approval.request_id, None);
+    finish(s, &input.approval, fp);
     Ok(e)
 }
 
 pub(crate) fn record_execution_response(
-    s: &mut AccountState,
-    request_id: Hash,
+    execution: &mut AuthorizedExecution,
     response: Result<ExecutionResult>,
-) -> Result<ExecutionResult> {
-    let execution = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
+) -> ExecutionResult {
     if execution.result.is_terminal() {
-        return Ok(execution.result.clone());
+        return execution.result.clone();
     }
+    let request_id = execution.grant.request_id;
     let response = response.and_then(|result| {
         ensure(result.request_id == request_id, Error::IntegrityFailed)?;
         if let ExecutionOutcome::Completed(output) = &result.outcome {
@@ -180,7 +186,7 @@ pub(crate) fn record_execution_response(
                 ) => {
                     match_signing_result(artifact, to_be_signed, *public_key_fingerprint)?;
                     ensure(
-                        key.account_id == s.account_id
+                        key.account_id == execution.grant.account_id
                             && key.home_cose == execution.grant.home_cose
                             && key.algorithm == requested.algorithm
                             && key.purpose == requested.purpose
@@ -193,7 +199,7 @@ pub(crate) fn record_execution_response(
                     ExecutionOutput::EncryptedRootKey { key, .. },
                 ) => {
                     ensure(
-                        key.account_id == s.account_id
+                        key.account_id == execution.grant.account_id
                             && key.home_cose == execution.grant.home_cose
                             && key.algorithm == Algorithm::VetKdBls12381
                             && key.key_generation == *generation,
@@ -207,18 +213,16 @@ pub(crate) fn record_execution_response(
     });
     match response {
         Ok(result) => {
-            execution.result = result.clone();
-            Ok(result)
+            execution.result = result;
         }
         Err(Error::ResultExpired) => {
             execution.result.outcome = ExecutionOutcome::ResultExpired;
-            Ok(execution.result.clone())
         }
         Err(error) => {
             execution.result.outcome = ExecutionOutcome::Unknown(error);
-            Ok(execution.result.clone())
         }
     }
+    execution.result.clone()
 }
 
 pub(crate) fn receipt(

@@ -1,5 +1,95 @@
 use super::*;
 
+// Run explicitly with --ignored --nocapture against each build's DMSG_WASM_DIR.
+// Only the user canister's balance delta is measured; COSE/management fees are
+// excluded. PocketIC's deterministic clock does not model production traffic.
+#[test]
+#[ignore = "cycles comparison for dmsg_user builds"]
+fn user_cycles_profile() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    let policy = SensitivePolicy {
+        daily_executions: 100,
+        ..SensitivePolicy::default()
+    };
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::SetPolicy {
+            policy: policy.clone(),
+        },
+    )
+    .unwrap();
+    let initialized: Result<candid::Reserved> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    initialized.unwrap();
+    for history in 0..9 {
+        let measured = [0, 4, 8].contains(&history);
+        if measured {
+            let offer = f.order(&id, 1, 1).offer;
+            let before = f.ic.cycle_balance(f.user);
+            let checked: Result<u64> =
+                update(&f.ic, f.user, f.payment, "verify_payment_offer", (offer,));
+            checked.unwrap();
+            println!(
+                "user_cycles history={history} method=verify_payment_offer cycles={}",
+                before - f.ic.cycle_balance(f.user)
+            );
+            let before = f.ic.cycle_balance(f.user);
+            f.mutate(
+                1,
+                &id,
+                AccountCommand::SetPolicy {
+                    policy: policy.clone(),
+                },
+            )
+            .unwrap();
+            println!(
+                "user_cycles history={history} method=mutate_account cycles={}",
+                before - f.ic.cycle_balance(f.user)
+            );
+        }
+        let mut request = typed_statement(&f, &id, SigningAlgorithm::Ed25519);
+        request.max_cycles = 100_000_000_000;
+        request.statement.content = StatementContent::Text("x".repeat(4096));
+        request.approval.signature = key(1)
+            .sign(
+                request
+                    .clone()
+                    .into_execution()
+                    .unwrap()
+                    .approval_message(f.user)
+                    .as_slice(),
+            )
+            .to_bytes()
+            .to_vec()
+            .into();
+        let before = f.ic.cycle_balance(f.user);
+        let result: Result<ExecutionResult> =
+            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
+        assert_eq!(
+            result.as_ref().unwrap().status(),
+            ExecutionStatus::Completed,
+            "{result:?}"
+        );
+        if measured {
+            println!(
+                "user_cycles history={history} method=sign cycles={}",
+                before - f.ic.cycle_balance(f.user)
+            );
+            let before = f.ic.cycle_balance(f.user);
+            let retried: Result<ExecutionResult> =
+                update(&f.ic, f.user, person(1), "sign", (request,));
+            assert_eq!(retried, result);
+            println!(
+                "user_cycles history={history} method=sign_retry cycles={}",
+                before - f.ic.cycle_balance(f.user)
+            );
+        }
+    }
+}
+
 fn typed_statement(
     f: &Fixture,
     account_id: &AccountId,
@@ -45,6 +135,117 @@ fn typed_statement(
         .to_vec()
         .into();
     request
+}
+
+#[test]
+fn user_execution_retention_survives_a_full_window_and_upgrade() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::SetPolicy {
+            policy: SensitivePolicy {
+                daily_executions: 100,
+                ..SensitivePolicy::default()
+            },
+        },
+    )
+    .unwrap();
+    let initialized: Result<candid::Reserved> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    initialized.unwrap();
+
+    let request = || {
+        let mut r = typed_statement(&f, &id, SigningAlgorithm::Ed25519);
+        // Authorize cheaply, then get a known cost-limit failure from COSE.
+        r.max_cycles = 1;
+        r.approval.signature = key(1)
+            .sign(
+                r.clone()
+                    .into_execution()
+                    .unwrap()
+                    .approval_message(f.user)
+                    .as_slice(),
+            )
+            .to_bytes()
+            .to_vec()
+            .into();
+        r
+    };
+    let first = request();
+    for n in 0..64 {
+        let r = if n == 0 { first.clone() } else { request() };
+        let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
+        assert_eq!(
+            result.unwrap().outcome,
+            ExecutionOutcome::Failed(Error::QuotaExceeded)
+        );
+    }
+    let before = f.account_id(1, &id);
+    let refused: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request(),));
+    assert_eq!(refused, Err(Error::QuotaExceeded));
+    assert_eq!(f.account_id(1, &id), before);
+
+    f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
+    let next = request();
+    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (next.clone(),));
+    assert_eq!(
+        result.as_ref().unwrap().outcome,
+        ExecutionOutcome::Failed(Error::QuotaExceeded)
+    );
+    let expired: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&id, first.approval.request_id),
+    );
+    assert_eq!(expired, Err(Error::ResultExpired));
+    let receipt: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution_receipt",
+        (&id, first.approval.request_id),
+    );
+    assert_eq!(receipt, Err(Error::ResultExpired));
+
+    let account_before = f.account_id(1, &id);
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(f.account_id(1, &id), account_before);
+    let restored: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&id, next.approval.request_id),
+    );
+    assert_eq!(restored, result);
+    let receipt: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution_receipt",
+        (&id, next.approval.request_id),
+    );
+    let leaf: ExecutionReceipt = cbor2::from_slice(&certified_value(
+        &f,
+        receipt.unwrap(),
+        &execution_receipt_key(&id, next.approval.request_id),
+    ))
+    .unwrap();
+    assert_eq!(leaf.status, ExecutionStatus::Failed);
+    let replayed: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (first,));
+    assert_eq!(replayed, Err(Error::ResultExpired));
+    assert_eq!(f.account_id(1, &id), account_before);
 }
 
 #[test]

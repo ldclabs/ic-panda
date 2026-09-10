@@ -62,7 +62,7 @@ pub(crate) fn create(
         next_execution_sequence: 1,
         operations: vec![],
         handle_authorizations: BTreeMap::new(),
-        executions: BTreeMap::new(),
+        execution_expirations: BTreeMap::new(),
     })
 }
 
@@ -150,8 +150,6 @@ pub(crate) fn apply(
         ensure(r.digest == fp, Error::IdempotencyConflict)?;
         return Ok(r.clone());
     }
-    // Work on a candidate: errors cannot persist a partial device/root change.
-    let mut next = s.clone();
     let payload = (&m.expected_version, &m.command);
     check_device(
         s,
@@ -176,6 +174,9 @@ pub(crate) fn apply(
             Error::Locked,
         )?;
     }
+    // Work on a candidate after authorization: errors cannot persist a partial
+    // device/root change, and rejected callers do not clone the account.
+    let mut next = s.clone();
     match &m.command {
         AccountCommand::AddDevice { device, proof } => {
             device.validate()?;
@@ -382,16 +383,15 @@ pub(crate) fn apply(
             expiry(now, m.approval.expires_at, MINUTE)?;
             nonzero(intent.op_id.as_slice())?;
             next.handle_authorizations.retain(|_, a| a.expires_at > now);
-            ensure(next.handle_authorizations.len() < 32, Error::QuotaExceeded)?;
             if let Some(a) = next.handle_authorizations.get(&intent.op_id) {
                 ensure(a.intent == *intent, Error::IdempotencyConflict)?;
             } else {
+                ensure(next.handle_authorizations.len() < 32, Error::QuotaExceeded)?;
                 next.handle_authorizations.insert(
                     intent.op_id,
                     HandleAuthorization {
                         intent: intent.clone(),
                         expires_at: m.approval.expires_at,
-                        consumed: false,
                     },
                 );
             }

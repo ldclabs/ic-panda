@@ -84,8 +84,6 @@ pub struct HandleAuthorizationRepr {
     pub intent: HandleIntentRepr,
     #[cbor(key = 2)]
     pub expires_at: u64,
-    #[cbor(key = 3)]
-    pub consumed: bool,
 }
 
 impl StableCodec for HandleAuthorization {
@@ -95,7 +93,6 @@ impl StableCodec for HandleAuthorization {
         HandleAuthorizationRepr {
             intent: self.intent.to_repr(),
             expires_at: self.expires_at,
-            consumed: self.consumed,
         }
     }
 
@@ -103,7 +100,6 @@ impl StableCodec for HandleAuthorization {
         Self {
             intent: HandleIntent::from_repr(repr.intent),
             expires_at: repr.expires_at,
-            consumed: repr.consumed,
         }
     }
 }
@@ -158,6 +154,9 @@ pub struct AccountStateRepr {
     #[cbor(key = 21)]
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub handle_authorizations: BTreeMap<OpId, HandleAuthorizationRepr>,
+    #[cbor(key = 22)]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub execution_expirations: BTreeMap<OpId, Option<u64>>,
 }
 
 impl StableCodec for AccountState {
@@ -186,6 +185,7 @@ impl StableCodec for AccountState {
             next_execution_sequence: self.next_execution_sequence,
             operations: self.operations.iter().map(StableCodec::to_repr).collect(),
             handle_authorizations: map_to_repr(&self.handle_authorizations),
+            execution_expirations: self.execution_expirations.clone(),
         }
     }
 
@@ -216,7 +216,7 @@ impl StableCodec for AccountState {
                 .map(OperationReceipt::from_repr)
                 .collect(),
             handle_authorizations: map_from_repr(repr.handle_authorizations),
-            executions: BTreeMap::new(),
+            execution_expirations: repr.execution_expirations,
         }
     }
 }
@@ -306,7 +306,7 @@ mod tests {
             next_execution_sequence: 1,
             operations: vec![],
             handle_authorizations: BTreeMap::new(),
-            executions: BTreeMap::new(),
+            execution_expirations: BTreeMap::new(),
         };
         if !populated {
             return state;
@@ -381,8 +381,15 @@ mod tests {
                             terms_digest: Hash::new([n + 96; 32]),
                         },
                         expires_at: 1_700_000_060_000,
-                        consumed: n % 2 == 0,
                     },
+                )
+            })
+            .collect();
+        state.execution_expirations = (0..64)
+            .map(|n| {
+                (
+                    Hash::new([n; 32]),
+                    (n % 2 == 0).then_some(1_700_086_460_000),
                 )
             })
             .collect();
@@ -425,17 +432,19 @@ mod tests {
 
         let full = account(true);
         let compact = compact_bytes(&full);
-        assert_eq!(compact.len(), 15_207);
+        assert_eq!(compact.len(), 17_642);
         assert_eq!(
             hex(&compact),
-            "c5e05b5b2b41d2a55772953eef76e94261b107b1eb5c40e6bd108019ccca74ca"
+            "d223f6e9440aca419299e68281851295c280c92538465ac5b25d17b9e2efa74f"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
-        assert_eq!(top_keys(&compact), (1..=21).collect::<Vec<_>>());
+        assert_eq!(top_keys(&compact), (1..=22).collect::<Vec<_>>());
+        // The retention index consists of raw IDs/timestamps in both encodings;
+        // integer field keys do not shrink those shared bytes.
         assert!(
-            compact.len() * 100 <= plain.len() * 70,
-            "{} !<= 70% of {}",
+            compact.len() * 100 <= plain.len() * 75,
+            "{} !<= 75% of {}",
             compact.len(),
             plain.len()
         );
@@ -449,7 +458,7 @@ mod tests {
     #[test]
     fn config_and_authorized_execution_round_trip() {
         let config = Config {
-            schema: 3,
+            schema: crate::store::STABLE_SCHEMA,
             init: UserInit {
                 environment: Environment::Production,
                 issuer_namespace: "https://dmsg.example/u/".into(),
@@ -466,7 +475,7 @@ mod tests {
         };
         assert_eq!(
             compact_from_bytes::<Config>(&compact_bytes(&config)).schema,
-            3
+            crate::store::STABLE_SCHEMA
         );
 
         let state = account(false);

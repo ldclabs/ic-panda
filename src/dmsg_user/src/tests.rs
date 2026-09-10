@@ -3,13 +3,55 @@ use dmsg_runtime::Budget;
 use ed25519_dalek::{Signer, SigningKey};
 use std::collections::BTreeMap;
 const NAMESPACE: &str = "https://dmsg.test/u/";
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TestAccount {
+    account: AccountState,
+    executions: BTreeMap<OpId, AuthorizedExecution>,
+}
+impl std::ops::Deref for TestAccount {
+    type Target = AccountState;
+    fn deref(&self) -> &AccountState {
+        &self.account
+    }
+}
+impl std::ops::DerefMut for TestAccount {
+    fn deref_mut(&mut self) -> &mut AccountState {
+        &mut self.account
+    }
+}
+
 fn authorize(
-    s: &mut AccountState,
+    s: &mut TestAccount,
     caller: Principal,
     request: &ExecuteRequest,
     now: u64,
 ) -> Result<crate::state::AuthorizedExecution> {
-    execution::authorize(s, caller, request, now, NAMESPACE)
+    let e = execution::authorize(
+        &mut s.account,
+        caller,
+        request,
+        now,
+        NAMESPACE,
+        s.executions.get(&request.approval.request_id),
+    )?;
+    s.executions
+        .retain(|id, _| s.account.execution_expirations.contains_key(id));
+    s.executions.insert(e.grant.request_id, e.clone());
+    Ok(e)
+}
+fn record_execution_response(
+    s: &mut TestAccount,
+    request_id: OpId,
+    response: Result<ExecutionResult>,
+) -> Result<ExecutionResult> {
+    let e = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
+    let result = execution::record_execution_response(e, response);
+    if result.is_terminal() {
+        s.account
+            .execution_expirations
+            .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
+    }
+    Ok(result)
 }
 fn signing_key() -> SigningKeyRef {
     let public = sk(7).verifying_key().to_bytes();
@@ -95,7 +137,7 @@ fn device(n: u8, admin: bool) -> DeviceInput {
         },
     }
 }
-fn fixture() -> AccountState {
+fn fixture() -> TestAccount {
     let input = CreateAccount {
         device: device(1, true),
         op_id: Hash::new([9; 32]),
@@ -112,7 +154,10 @@ fn fixture() -> AccountState {
             .to_vec()
             .into(),
     };
-    account::create(p(5), p(6), AccountId([8; 12]), p(1), &input, 1).unwrap()
+    TestAccount {
+        account: account::create(p(5), p(6), AccountId([8; 12]), p(1), &input, 1).unwrap(),
+        executions: BTreeMap::new(),
+    }
 }
 fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
     let mut m = AccountMutation {
@@ -148,7 +193,7 @@ fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<Ope
     let m = mutation(s, command, 1, time);
     account::apply(s, p(1), &m, time, p(7))
 }
-fn initialized() -> AccountState {
+fn initialized() -> TestAccount {
     let mut s = fixture();
     s.recovery = Some(RecoveryPolicy {
         generation: 1,
@@ -240,7 +285,7 @@ fn abandoned_root_generation_is_never_reused() {
         3,
     )
     .unwrap();
-    assert_eq!(s.root_slot.unwrap().generation, 2);
+    assert_eq!(s.root_slot.as_ref().unwrap().generation, 2);
 }
 #[test]
 fn content_device_cannot_administer_or_approve_formal_execution() {
@@ -531,7 +576,7 @@ fn expired_remote_results_release_all_unknown_slots() {
     for _ in 0..64 {
         let request = execute_request(&s, 1, 1);
         authorize(&mut s, p(1), &request, 1).unwrap();
-        execution::record_execution_response(
+        record_execution_response(
             &mut s,
             request.approval.request_id,
             Err(Error::ExecutionUnknown),
@@ -540,12 +585,14 @@ fn expired_remote_results_release_all_unknown_slots() {
         requests.push(request);
     }
     let next = execute_request(&s, 1, 2 * DAY);
+    let before = s.clone();
     assert_eq!(
         authorize(&mut s, p(1), &next, 2 * DAY),
         Err(Error::QuotaExceeded)
     );
+    assert_eq!(s, before);
     for request in &requests {
-        let result = execution::record_execution_response(
+        let result = record_execution_response(
             &mut s,
             request.approval.request_id,
             Err(Error::ResultExpired),
@@ -560,10 +607,9 @@ fn expired_remote_results_release_all_unknown_slots() {
         Err(Error::ResultExpired)
     );
     let completed = completed(&s, &next);
-    execution::record_execution_response(&mut s, next.approval.request_id, Ok(completed.clone()))
-        .unwrap();
+    record_execution_response(&mut s, next.approval.request_id, Ok(completed.clone())).unwrap();
     assert_eq!(
-        execution::record_execution_response(
+        record_execution_response(
             &mut s,
             next.approval.request_id,
             Err(Error::ExecutionUnknown)
@@ -577,11 +623,8 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
     let mut s = initialized();
     let first = execute_request(&s, 1, 1);
     authorize(&mut s, p(1), &first, 1).unwrap();
-    s.executions
-        .get_mut(&first.approval.request_id)
-        .unwrap()
-        .result
-        .outcome = ExecutionOutcome::ResultExpired;
+    record_execution_response(&mut s, first.approval.request_id, Err(Error::ResultExpired))
+        .unwrap();
     for at in 10..75 {
         apply(
             &mut s,
@@ -616,4 +659,183 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
         authorize(&mut s, p(1), &reused, 2 * DAY + 1),
         Err(Error::IdempotencyConflict)
     );
+}
+
+#[test]
+fn failed_budget_does_not_prune_expired_results_or_advance_sequences() {
+    let mut s = initialized();
+    let first = execute_request(&s, 1, 1);
+    authorize(&mut s, p(1), &first, 1).unwrap();
+    record_execution_response(&mut s, first.approval.request_id, Err(Error::ResultExpired))
+        .unwrap();
+    s.sensitive_policy.daily_cycles = 0;
+    let next = execute_request(&s, 1, 2 * DAY);
+    let before = s.clone();
+    assert_eq!(
+        authorize(&mut s, p(1), &next, 2 * DAY),
+        Err(Error::QuotaExceeded)
+    );
+    assert_eq!(s, before);
+}
+
+#[test]
+fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
+    let mut s = initialized();
+    CONFIG.with_borrow_mut(|t| {
+        t.set(CompactStored(Some(Config {
+            schema: STABLE_SCHEMA,
+            init: UserInit {
+                environment: Environment::Local,
+                issuer_namespace: NAMESPACE.into(),
+                home_cose: s.home_cose,
+                handle_canister: p(7),
+                payment_canister: p(8),
+                max_accounts: 100,
+                daily_new_accounts: 10,
+            },
+            allocator: XidGenerator::new([1; 5]),
+            allocator_namespace_digest: Hash::new([1; 32]),
+            day: 0,
+            created_today: 0,
+        })))
+    });
+    let request = execute_request(&s, 1, 1);
+    let first = authorize(&mut s, p(1), &request, 1).unwrap();
+    save_execution(&first);
+    let next = execute_request(&s, 1, 1);
+    let second = authorize(&mut s, p(1), &next, 1).unwrap();
+    save_execution(&second);
+
+    // A device policy change commits while the first remote execution is pending.
+    apply(
+        &mut s,
+        AccountCommand::SetPolicy {
+            policy: SensitivePolicy {
+                frozen: true,
+                ..SensitivePolicy::default()
+            },
+        },
+        2,
+    )
+    .unwrap();
+    save(&s.account);
+    let before = load(&s.account_id).unwrap();
+    let snapshot = CERT.with_borrow(|c| c.0.get(s.account_id.as_slice()).cloned());
+    let completed = completed(&s, &request);
+    let mut mismatched = completed.clone();
+    mismatched.request_id = next.approval.request_id;
+    assert_eq!(
+        record_response(&s.account_id, request.approval.request_id, Ok(mismatched))
+            .unwrap()
+            .outcome,
+        ExecutionOutcome::Unknown(Error::IntegrityFailed)
+    );
+    assert_eq!(load(&s.account_id).unwrap(), before);
+
+    assert_eq!(
+        record_response(
+            &s.account_id,
+            request.approval.request_id,
+            Ok(completed.clone())
+        ),
+        Ok(completed.clone())
+    );
+    let mut expected = before;
+    expected.execution_expirations.insert(
+        request.approval.request_id,
+        Some(first.grant.expires_at + DAY),
+    );
+    assert_eq!(load(&s.account_id).unwrap(), expected);
+    assert_eq!(
+        load_execution(&s.account_id, &next.approval.request_id),
+        Some(second)
+    );
+    assert_eq!(
+        CERT.with_borrow(|c| c.0.get(s.account_id.as_slice()).cloned()),
+        snapshot
+    );
+    let receipt_key = execution_receipt_key(&s.account_id, request.approval.request_id);
+    let stored = load_execution(&s.account_id, &request.approval.request_id).unwrap();
+    assert_eq!(
+        CERT.with_borrow(|c| c.0.get(&receipt_key).cloned()),
+        Some(canonical(&execution::receipt(&stored, NAMESPACE).unwrap()))
+    );
+    assert_eq!(
+        record_response(
+            &s.account_id,
+            request.approval.request_id,
+            Err(Error::ExecutionUnknown)
+        ),
+        Ok(completed)
+    );
+
+    let root = CERT.with_borrow(|c| c.0.witness(&receipt_key).digest());
+    CERT.with_borrow_mut(|c| *c = dmsg_runtime::Certification::default());
+    rebuild_certification();
+    assert_eq!(
+        CERT.with_borrow(|c| c.0.witness(&receipt_key).digest()),
+        root
+    );
+
+    remove_execution(&s.account_id, &request.approval.request_id);
+    expected
+        .execution_expirations
+        .remove(&request.approval.request_id);
+    save_account(&expected);
+    assert_eq!(CERT.with_borrow(|c| c.0.get(&receipt_key).cloned()), None);
+    assert_eq!(
+        record_response(
+            &s.account_id,
+            request.approval.request_id,
+            Err(Error::ExecutionUnknown)
+        ),
+        Err(Error::ResultExpired)
+    );
+    assert_eq!(load(&s.account_id).unwrap(), expected);
+}
+
+#[test]
+fn existing_handle_intent_can_be_reapproved_at_capacity() {
+    let mut s = initialized();
+    for n in 0..32 {
+        let intent = dmsg_types::handle::HandleIntent {
+            handle_canister: p(7),
+            action: dmsg_types::handle::HandleAction::Register,
+            account_id: s.account_id.clone(),
+            target_account: None,
+            handle: format!("user{n}"),
+            expected_version: 0,
+            op_id: Hash::new([n + 1; 32]),
+            terms_digest: Hash::new([1; 32]),
+        };
+        apply(&mut s, AccountCommand::AuthorizeHandle { intent }, 1).unwrap();
+    }
+    let intent = s
+        .handle_authorizations
+        .values()
+        .next()
+        .unwrap()
+        .intent
+        .clone();
+    apply(
+        &mut s,
+        AccountCommand::AuthorizeHandle {
+            intent: intent.clone(),
+        },
+        1,
+    )
+    .unwrap();
+    assert_eq!(s.handle_authorizations.len(), 32);
+    let mut altered = intent;
+    altered.terms_digest = Hash::new([2; 32]);
+    let before = s.clone();
+    assert_eq!(
+        apply(
+            &mut s,
+            AccountCommand::AuthorizeHandle { intent: altered },
+            1
+        ),
+        Err(Error::IdempotencyConflict)
+    );
+    assert_eq!(s, before);
 }

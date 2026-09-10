@@ -1,5 +1,5 @@
 use crate::state::*;
-use dmsg_protocol::execution_receipt_key;
+use dmsg_protocol::{canonical, execution_receipt_key};
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_runtime::Certification;
 use dmsg_types::{user::*, *};
@@ -40,37 +40,16 @@ pub(crate) fn config() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
 pub(crate) fn load(id: &AccountId) -> Result<AccountState> {
-    let mut account = ACCOUNTS.with_borrow(|t| t.load(id.as_slice()).ok_or(Error::NotFound))?;
-    account.executions = execution_records(id)
-        .into_iter()
-        .map(|(_, e)| (e.grant.request_id, e))
-        .collect();
-    Ok(account)
+    ACCOUNTS.with_borrow(|t| t.load(id.as_slice()).ok_or(Error::NotFound))
 }
-pub(crate) fn save(s: &AccountState) {
-    for (key, previous) in execution_records(&s.account_id) {
-        if !s.executions.contains_key(&previous.grant.request_id) {
-            EXECUTIONS.with_borrow_mut(|t| t.delete(&key));
-            CERT.with_borrow_mut(|c| {
-                c.remove(&execution_receipt_key(
-                    &s.account_id,
-                    previous.grant.request_id,
-                ))
-            });
-        }
-    }
-    for (id, execution) in &s.executions {
-        let key = [s.account_id.as_slice(), id.as_slice()].concat();
-        EXECUTIONS.with_borrow_mut(|t| {
-            if t.load(&key).as_ref() != Some(execution) {
-                t.put(&key, execution);
-            }
-        });
-    }
-    for execution in s.executions.values() {
-        certify_execution(execution);
-    }
+
+/// Persist internal bookkeeping without changing the public security snapshot.
+pub(crate) fn save_account(s: &AccountState) {
     ACCOUNTS.with_borrow_mut(|t| t.put(s.account_id.as_slice(), s));
+}
+
+pub(crate) fn save(s: &AccountState) {
+    save_account(s);
     CERT.with_borrow_mut(|c| {
         c.put(
             s.account_id.to_vec(),
@@ -79,17 +58,24 @@ pub(crate) fn save(s: &AccountState) {
     });
 }
 
-fn execution_records(account_id: &AccountId) -> Vec<(Vec<u8>, AuthorizedExecution)> {
-    EXECUTIONS
-        .with_borrow(|t| t.page(account_id.to_vec(), dmsg_runtime::WINDOW))
-        .into_iter()
-        .take_while(|(key, _)| key.starts_with(account_id.as_slice()))
-        .collect()
+fn execution_key(account_id: &AccountId, request_id: &OpId) -> Vec<u8> {
+    [account_id.as_slice(), request_id.as_slice()].concat()
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 3;
+pub(crate) fn load_execution(
+    account_id: &AccountId,
+    request_id: &OpId,
+) -> Option<AuthorizedExecution> {
+    EXECUTIONS.with_borrow(|t| t.load(&execution_key(account_id, request_id)))
+}
 
-pub(crate) fn certify_execution(execution: &AuthorizedExecution) {
+pub(crate) fn save_execution(execution: &AuthorizedExecution) {
+    EXECUTIONS.with_borrow_mut(|t| {
+        t.put(
+            &execution_key(&execution.grant.account_id, &execution.grant.request_id),
+            execution,
+        )
+    });
     if let Ok(receipt) = crate::execution::receipt(execution, &config().init.issuer_namespace) {
         CERT.with_borrow_mut(|c| {
             c.put(
@@ -98,4 +84,34 @@ pub(crate) fn certify_execution(execution: &AuthorizedExecution) {
             )
         });
     }
+}
+
+pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
+    EXECUTIONS.with_borrow_mut(|t| t.delete(&execution_key(account_id, request_id)));
+    CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
+}
+
+pub(crate) const STABLE_SCHEMA: u16 = 4;
+
+pub(crate) fn rebuild_certification() {
+    let namespace = config().init.issuer_namespace;
+    CERT.with_borrow_mut(|c| {
+        ACCOUNTS.with_borrow(|t| {
+            t.for_each(|key, s| {
+                c.0.insert(key, canonical(&s.snapshot(&namespace)));
+            });
+        });
+        EXECUTIONS.with_borrow(|t| {
+            t.for_each(|_, execution| {
+                if let Ok(receipt) = crate::execution::receipt(&execution, &namespace) {
+                    c.0.insert(
+                        execution_receipt_key(&receipt.account_id, receipt.request_id),
+                        canonical(&receipt),
+                    );
+                }
+            });
+        });
+        // Upgrades are atomic; publish once after rebuilding both views.
+        c.publish();
+    });
 }

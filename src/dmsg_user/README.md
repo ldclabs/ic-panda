@@ -31,7 +31,32 @@ ICP 上的主体控制服务：认证绑定、设备能力、恢复、内容根�
 
 ## 实现组织
 
-`api.rs` 负责入口和异步协调；账户、执行、恢复规则与内部 `state.rs` 分离；`store.rs` 持有有类型的稳定表和认证视图。执行记录独立存储，不序列化进整个账户。schema 3 的私有 `stable_codec.rs` 递归使用 CBOR 整数 map key，并省略空操作窗口、空授权和 `None` 字段；公共账户、批准与认证编码不变。稳定 memory ID 只属于本实现。
+`api.rs` 负责入口和异步协调；账户、执行、恢复规则与内部 `state.rs` 分离；`store.rs` 持有有类型的稳定表和认证视图。执行记录按 `(account_id, request_id)` 单条访问，普通账户读取不载入历史载荷。账户仅保存最多 64 项的保留索引：`None` 固定未终结记录，时间戳表示终态结果可清理的时间。新授权在通过全部检查后原子更新预算、序号、索引和执行表；回调重新读取单条记录，只更新发生变化的结果及其认证叶。
+
+schema 4 的私有 `stable_codec.rs` 递归使用 CBOR 整数 map key，并省略空窗口、空授权和 `None` 字段；公共账户、批准与认证编码不变。稳定 memory ID 只属于本实现。满设备、操作、名称授权和执行索引的测试样本编码为 17,642 字节；其中新增保留索引以少量常驻字节换取不扫描历史载荷，样本不包括独立执行表、认证树和稳定表节点开销。
+
+账户操作和已终结执行的幂等重试不重复写入。名称授权核销只核对已批准的完整 intent 与期限，名称服务负责业务去重；删除原先从不参与判断的 `consumed` 标记。恢复、设备撤销和预算限制仍在授权阶段执行。
+
+## cycles 实测
+
+2026-09-10 使用 PocketIC 16.0.0、同一 release/wasm32 构建配置比较优化前 `3584293` 的实现与本实现。两次构建使用同一工作区依赖。单账户分别保留 0、4、8 条已完成 Ed25519 签名，每条正文 4 KiB；记录 user canister 的调用前后余额差。以下为保留 8 条历史时的结果：
+
+| 操作 | 优化前 cycles | 优化后 cycles | 降低 |
+| --- | ---: | ---: | ---: |
+| 验证付款 offer | 14,131,472 | 11,750,321 | 16.9% |
+| 修改账户政策 | 31,546,313 | 15,033,801 | 52.3% |
+| 新签名的 user 侧处理 | 84,518,534 | 50,704,863 | 40.0% |
+| 重试已完成签名 | 39,289,743 | 19,432,357 | 50.5% |
+
+无执行历史时，修改账户政策约 14.20M cycles，新签名的 user 侧处理从 48.73M 降至 47.93M。优化主要消除随历史载荷增长的重复反序列化、复制、哈希和认证树更新。
+
+该测试不包含 COSE canister 和管理 canister 的阈值签名费用，也不是整条签名链路或生产账单的节省比例。基准使用确定性本地时钟和单账户，不能推断分片吞吐。可对各自的 Wasm 目录重复运行：
+
+```sh
+DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane user_cycles_profile -- --ignored --nocapture
+```
+
+实现遵循 ICP 的[稳定结构](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[性能测量](https://docs.internetcomputer.org/guides/canister-management/optimization/)与[跨 canister 回调](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)开发指引。仍需单独验证的容量边界：认证树驻留 heap，升级按账户和执行记录总量重建，本次仅将根发布合并为一次；未实施稳定内存认证树或分批重建。终态结果仍在后续有效授权时惰性清理，闲置账户不会主动释放结果。
 
 ## 验证
 

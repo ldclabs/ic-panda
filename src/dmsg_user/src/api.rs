@@ -10,12 +10,15 @@ use serde_bytes::ByteBuf;
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
+
 fn caller() -> Principal {
     ic_cdk::api::msg_caller()
 }
+
 fn me() -> Principal {
     ic_cdk::api::canister_self()
 }
+
 fn own(id: &AccountId) -> Result<AccountState> {
     let s = load(id)?;
     ensure(s.auth_bindings.contains(&caller()), Error::AuthRequired)?;
@@ -54,14 +57,14 @@ fn init(args: UserInit) {
     });
     CERT.with_borrow(|c| c.publish());
 }
+
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let cfg = config();
     assert_eq!(
-        config().schema,
-        STABLE_SCHEMA,
+        cfg.schema, STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
-    let cfg = config();
     xid::validate(
         &cfg.allocator,
         cfg.allocator_namespace_digest,
@@ -70,13 +73,7 @@ fn post_upgrade() {
         me(),
     )
     .expect("immutable allocator");
-    CERT.with_borrow(|c| c.publish());
-    ACCOUNTS.with_borrow(|t| {
-        t.for_each(|key, s| {
-            CERT.with_borrow_mut(|c| c.put(key, &s.snapshot(&config().init.issuer_namespace)))
-        })
-    });
-    EXECUTIONS.with_borrow(|t| t.for_each(|_, execution| certify_execution(&execution)));
+    rebuild_certification();
 }
 
 #[ic_cdk::update]
@@ -140,7 +137,10 @@ fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Re
     authenticated(caller())?;
     nonzero(nonce.as_slice())?;
     expiry(now(), expires_at, 5 * MINUTE)?;
-    load(&account_id)?;
+    ensure(
+        ACCOUNTS.with_borrow(|t| t.contains(account_id.as_slice())),
+        Error::NotFound,
+    )?;
     if let Some(id) = AUTH.with_borrow(|t| t.load(caller().as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
@@ -153,10 +153,11 @@ fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Re
 }
 #[ic_cdk::update]
 fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
+    let now = now();
     let entries = BINDINGS.with_borrow(|t| t.page(after.to_vec(), 64));
     let next = entries.last().map(|(key, _)| ByteBuf::from(key.clone()));
     for (key, (_, _, expires_at)) in entries {
-        if now() >= expires_at {
+        if now >= expires_at {
             BINDINGS.with_borrow_mut(|t| t.delete(&key));
         }
     }
@@ -191,6 +192,9 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
         now(),
         config().init.handle_canister,
     )?;
+    if replay {
+        return Ok(r);
+    }
     if let AccountCommand::BindAuth { principal, .. } = input.command {
         AUTH.with_borrow_mut(|t| t.put(principal.as_slice(), &s.account_id));
         BINDINGS.with_borrow_mut(|t| t.delete(principal.as_slice()));
@@ -205,16 +209,15 @@ fn consume_handle_authorization(intent: HandleIntent) -> Result<()> {
         caller() == config().init.handle_canister && intent.handle_canister == caller(),
         Error::Forbidden,
     )?;
-    let mut s = load(&intent.account_id)?;
+    let s = load(&intent.account_id)?;
     let a = s
         .handle_authorizations
-        .get_mut(&intent.op_id)
+        .get(&intent.op_id)
         .ok_or(Error::NotFound)?;
     ensure(a.intent == intent, Error::IdempotencyConflict)?;
     ensure(now() < a.expires_at, Error::Expired)?;
     // Permission was linearized when the device authorized this exact intent.
-    a.consumed = true;
-    save(&s);
+    // The handle canister deduplicates the operation; revalidation is read-only.
     Ok(())
 }
 
@@ -222,59 +225,102 @@ fn consume_handle_authorization(intent: HandleIntent) -> Result<()> {
 async fn sign(input: SignRequest) -> Result<ExecutionResult> {
     authorize_and_execute(input.into_execution()?).await
 }
+
 #[ic_cdk::update]
 async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     authorize_and_execute(input.into_execution()).await
 }
+
 async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult> {
-    let mut s = load(&input.account_id)?;
+    let mut s = own(&input.account_id)?;
+    let now = now();
+    let previous = load_execution(&input.account_id, &input.approval.request_id);
+    let expired: Vec<_> = s
+        .execution_expirations
+        .iter()
+        .filter_map(|(id, expires_at)| expires_at.filter(|at| *at <= now).map(|_| *id))
+        .collect();
     let e = execution::authorize(
         &mut s,
         caller(),
         &input,
-        now(),
+        now,
         &config().init.issuer_namespace,
+        previous.as_ref(),
     )?;
-    save(&s);
+    if previous.is_none() {
+        // All validation precedes these writes, with no await until the account,
+        // budget, sequence, execution and certification have committed together.
+        for id in expired {
+            remove_execution(&s.account_id, &id);
+        }
+        save_execution(&e);
+        save(&s);
+    }
     if e.result.is_terminal() {
         return Ok(e.result);
     }
     dispatch(e.grant).await
 }
+
 async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
+    let account_id = grant.account_id.clone();
+    let request_id = grant.request_id;
     let response: Result<ExecutionResult> =
-        match stable::call(grant.home_cose, "execute", (grant.clone(),)).await {
+        match stable::call(grant.home_cose, "execute", (grant,)).await {
             Ok(response) => response,
             Err(e) => Err(e),
         };
-    let mut s = load(&grant.account_id)?;
-    let result = execution::record_execution_response(&mut s, grant.request_id, response);
-    save(&s);
-    result
+    record_response(&account_id, request_id, response)
 }
-#[ic_cdk::update]
-async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
-    let mut s = own(&account_id)?;
-    let e = s
-        .executions
-        .get(&request_id)
-        .ok_or(Error::NotFound)?
-        .clone();
+
+fn record_response(
+    account_id: &AccountId,
+    request_id: OpId,
+    response: Result<ExecutionResult>,
+) -> Result<ExecutionResult> {
+    // A callback must read the latest record: a concurrent callback may already
+    // have completed it, or a later authorization may have evicted it.
+    let mut e = load_execution(account_id, &request_id).ok_or(Error::ResultExpired)?;
     if e.result.is_terminal() {
         return Ok(e.result);
     }
+    let previous = e.result.clone();
+    let result = execution::record_execution_response(&mut e, response);
+    if result != previous {
+        if result.is_terminal() {
+            let mut s = load(account_id)?;
+            s.execution_expirations
+                .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
+            // Only the internal retention index changed, not the security leaf.
+            save_account(&s);
+        }
+        save_execution(&e);
+    }
+    Ok(result)
+}
+
+#[ic_cdk::update]
+async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
+    let home_cose = own(&account_id)?.home_cose;
+    let e = load_execution(&account_id, &request_id).ok_or(Error::NotFound)?;
+    if e.result.is_terminal() {
+        return Ok(e.result);
+    }
+    drop(e);
     let response: Result<ExecutionResult> =
-        match stable::call(s.home_cose, "get_execution", (&account_id, request_id)).await {
+        match stable::call(home_cose, "get_execution", (&account_id, request_id)).await {
             Ok(response) => response,
             Err(error) => Err(error),
         };
     if response == Err(Error::NotFound) {
+        let e = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
+        if e.result.is_terminal() {
+            return Ok(e.result);
+        }
         return dispatch(e.grant).await;
     }
-    s = load(&account_id)?;
-    let result = execution::record_execution_response(&mut s, request_id, response);
-    save(&s);
-    result
+    record_response(&account_id, request_id, response)
 }
 
 #[ic_cdk::update]
@@ -293,6 +339,7 @@ fn request_recovery(
     save(&s);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn reconfirm_recovery(
     account_id: AccountId,
@@ -304,6 +351,7 @@ fn reconfirm_recovery(
     save(&s);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn complete_recovery(account_id: AccountId) -> Result<()> {
     if let Some(id) = AUTH.with_borrow(|t| t.load(caller().as_slice())) {
@@ -350,18 +398,22 @@ fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
 fn get_account(account_id: AccountId) -> Result<AccountInfo> {
     Ok(own(&account_id)?.info(&config().init.issuer_namespace))
 }
+
 #[ic_cdk::query]
 fn get_recovery_request(account_id: AccountId) -> Result<Option<PendingRecovery>> {
     recovery::recovery_request(&load(&account_id)?, caller())
 }
+
 #[ic_cdk::query]
 fn my_account() -> Option<AccountId> {
     AUTH.with_borrow(|t| t.load(caller().as_slice()))
 }
+
 #[ic_cdk::query]
 fn get_root_ref(account_id: AccountId) -> Result<Option<ContentRootRef>> {
     Ok(own(&account_id)?.current_root)
 }
+
 #[ic_cdk::query]
 fn get_operation(account_id: AccountId, op_id: Hash) -> Result<OperationReceipt> {
     own(&account_id)?
@@ -370,10 +422,12 @@ fn get_operation(account_id: AccountId, op_id: Hash) -> Result<OperationReceipt>
         .find(|r| r.id == op_id)
         .ok_or(Error::ResultExpired)
 }
+
 #[ic_cdk::query]
 fn security_snapshot_batch(accounts: Vec<AccountId>) -> Result<CertifiedBatch> {
     CERT.with_borrow(|c| c.batch(me(), accounts.into_iter().map(|s| s.to_vec()).collect()))
 }
+
 #[ic_cdk::query]
 fn get_device_bundle(
     account_id: AccountId,
@@ -381,26 +435,26 @@ fn get_device_bundle(
     let s = load(&account_id)?;
     Ok((s.snapshot(&config().init.issuer_namespace), s.devices))
 }
+
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
-    own(&account_id)?
-        .executions
-        .get(&request_id)
-        .map(|e| e.result.clone())
+    own(&account_id)?;
+    load_execution(&account_id, &request_id)
+        .map(|e| e.result)
         .ok_or(Error::ResultExpired)
+}
+
+#[ic_cdk::query]
+fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<CertifiedBatch> {
+    own(&account_id)?;
+    let execution = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
+    ensure(
+        matches!(execution.grant.kind, ExecutionKind::Sign { .. }),
+        Error::UnsupportedProtocol,
+    )?;
+    CERT.with_borrow(|c| c.batch(me(), vec![execution_receipt_key(&account_id, request_id)]))
 }
 
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
-
-#[ic_cdk::query]
-fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<CertifiedBatch> {
-    let account = own(&account_id)?;
-    let execution = account
-        .executions
-        .get(&request_id)
-        .ok_or(Error::ResultExpired)?;
-    crate::execution::receipt(execution, &config().init.issuer_namespace)?;
-    CERT.with_borrow(|c| c.batch(me(), vec![execution_receipt_key(&account_id, request_id)]))
-}
