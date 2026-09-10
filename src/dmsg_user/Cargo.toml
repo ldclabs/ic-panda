@@ -14,6 +14,7 @@ dmsg_runtime = { path = "../dmsg_runtime" }
 ic-stable-structures.workspace = true
 cbor2.workspace = true
 dmsg_types = { path = "../dmsg_types" }
+ic_auth_types.workspace = true
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true

@@ -60,7 +60,7 @@ pub fn validate_transport_key(bytes: &[u8]) -> Result<()> {
 
 pub fn approval_message<T: Serialize>(
     canister: Principal,
-    account_id: AccountId,
+    account_id: &AccountId,
     domain: &str,
     command: &T,
     approval: &Approval,
@@ -82,7 +82,7 @@ pub fn approval_message<T: Serialize>(
 }
 
 pub fn execution_request_id(
-    account_id: AccountId,
+    account_id: &AccountId,
     security_epoch: u64,
     device: Hash,
     sequence: u64,
@@ -119,7 +119,7 @@ mod tests {
             expires_at: 100,
             signature: ByteBuf::new(),
         };
-        let msg = approval_message(p, AccountId::new([4; 12]), "root", &42u64, &a);
+        let msg = approval_message(p, &AccountId([4; 12]), "root", &42u64, &a);
         a.signature = sk.sign(msg.as_slice()).to_bytes().to_vec().into();
         assert!(verify(
             &sk.verifying_key().to_bytes().into(),
@@ -129,7 +129,7 @@ mod tests {
         .is_ok());
         assert!(verify(
             &sk.verifying_key().to_bytes().into(),
-            approval_message(p, AccountId::new([4; 12]), "sign", &42u64, &a).as_slice(),
+            approval_message(p, &AccountId([4; 12]), "sign", &42u64, &a).as_slice(),
             &a.signature
         )
         .is_err());

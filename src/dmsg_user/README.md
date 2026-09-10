@@ -17,9 +17,9 @@ ICP 上的主体控制服务：认证绑定、设备能力、恢复、内容根�
 
 ## 账户与初始化
 
-`UserInit` 指定 environment、固定 issuer_namespace、home_cose 及协作 canister、账户/每日创建配额。账户为独立 `AccountId`（12 字节 Xid），`AccountInfo` 和 schema 2 安全快照都返回 issuer；设备和操作 ID 仍是 32 字节。
+`UserInit` 指定 environment、固定 issuer_namespace、home_cose 及协作 canister、账户/每日创建配额。账户类型 `AccountId` 直接复用 `ic_auth_types::Xid`（12 字节），`AccountInfo` 和 schema 2 安全快照都返回 issuer；设备和操作 ID 仍是 32 字节。
 
-私有模块 `xid.rs` 持久化发号状态；创建校验完成后在同一无 await 消息提交账户、认证索引、配额和计数器。重复认证创建返回原账户，拒绝不消耗编号。时钟回退继续计数；容量或时间溢出明确失败。升级校验完整命名空间 digest，不重置发号器。当前限固定单 home，未来多分配器必须先排除 5 字节指纹碰撞。
+配置直接持久化 `ic_auth_types::XidGenerator` 及完整命名空间 digest，私有模块 `xid.rs` 负责命名空间校验和错误映射；创建校验完成后在同一无 await 消息提交账户、认证索引、配额和计数器。重复认证创建返回原账户，拒绝不消耗编号。时钟回退继续计数；容量或时间溢出明确失败。升级校验完整命名空间 digest，不重置发号器。当前限固定单 home，未来多分配器必须先排除 5 字节指纹碰撞。
 
 ## 调用顺序
 

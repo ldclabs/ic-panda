@@ -1,10 +1,14 @@
 use super::*;
 
-fn typed_statement(f: &Fixture, account_id: AccountId, algorithm: SigningAlgorithm) -> SignRequest {
+fn typed_statement(
+    f: &Fixture,
+    account_id: &AccountId,
+    algorithm: SigningAlgorithm,
+) -> SignRequest {
     let s = f.account_id(1, account_id);
     let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
     let mut request = SignRequest {
-        account_id,
+        account_id: account_id.clone(),
         key: f.key_ref(account_id, SigningPurpose::Statement, algorithm),
         statement: Statement {
             issuer: s.issuer,
@@ -52,7 +56,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         Algorithm::VetKdBls12381,
     ]);
     let account_id = f.create(1);
-    f.recoverable(1, account_id);
+    f.recoverable(1, &account_id);
     let selector = |algorithm| {
         KeySelector::Signing(dmsg_types::cose::SigningKey {
             purpose: SigningPurpose::Statement,
@@ -64,7 +68,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         f.cose,
         Principal::anonymous(),
         "public_key",
-        (account_id, selector(SigningAlgorithm::Ed25519)),
+        (&account_id, selector(SigningAlgorithm::Ed25519)),
     );
     assert!(matches!(not_ready, Err(Error::Unavailable(_))));
     let initialized: Result<candid::Reserved> =
@@ -76,16 +80,16 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
             f.cose,
             Principal::anonymous(),
             "public_key",
-            (account_id, selector(algorithm.clone())),
+            (&account_id, selector(algorithm.clone())),
         );
         let described = described.unwrap();
-        let request = typed_statement(&f, account_id, algorithm.clone());
+        let request = typed_statement(&f, &account_id, algorithm.clone());
         let before: Result<ExecutionResult> = query(
             &f.ic,
             f.cose,
             f.user,
             "get_execution",
-            (account_id, request.approval.request_id),
+            (&account_id, request.approval.request_id),
         );
         assert_eq!(before, Err(Error::NotFound));
         let mut altered = request.clone();
@@ -150,11 +154,11 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
             f.user,
             person(1),
             "get_execution",
-            (account_id, request.approval.request_id),
+            (&account_id, request.approval.request_id),
         );
         assert_eq!(status.unwrap(), signed);
         let grant = ExecutionGrant {
-            account_id,
+            account_id: account_id.clone(),
             home_user: f.user,
             home_cose: f.cose,
             request_id: request.approval.request_id,
@@ -182,7 +186,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         f.cose,
         Principal::anonymous(),
         "public_key",
-        (account_id, selector(SigningAlgorithm::Ed25519)),
+        (&account_id, selector(SigningAlgorithm::Ed25519)),
     );
     assert!(restored.is_ok());
 }
@@ -191,11 +195,11 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
 fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
     let f = Fixture::new();
     let account_id = f.create(1);
-    f.recoverable(1, account_id);
+    f.recoverable(1, &account_id);
     let initialized: Result<candid::Reserved> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     initialized.unwrap();
-    let mut disabled = typed_statement(&f, account_id, SigningAlgorithm::Ed25519);
+    let mut disabled = typed_statement(&f, &account_id, SigningAlgorithm::Ed25519);
     disabled.key.public_key_fingerprint = Hash::new([99; 32]);
     disabled.approval.signature = key(1)
         .sign(
@@ -217,18 +221,18 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
     let op_id = Hash::new([8; 32]);
     f.mutate(
         1,
-        account_id,
+        &account_id,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
             op_id,
         },
     )
     .unwrap();
-    let s = f.account_id(1, account_id);
+    let s = f.account_id(1, &account_id);
     let generation = s.root_slot.as_ref().unwrap().generation;
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     let mut request = DeriveRootRequest {
-        account_id,
+        account_id: account_id.clone(),
         target: RootTarget::Candidate { generation, op_id },
         transport_public_key: transport
             .public_key()
@@ -237,7 +241,7 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
             .map(serde_bytes::ByteArray::new)
             .unwrap(),
         max_cycles: 100_000_000_000,
-        approval: typed_statement(&f, account_id, SigningAlgorithm::Ed25519).approval,
+        approval: typed_statement(&f, &account_id, SigningAlgorithm::Ed25519).approval,
     };
     request.approval.signature = key(1)
         .sign(
@@ -260,19 +264,19 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
         f.cose,
         Principal::anonymous(),
         "public_key",
-        (account_id, KeySelector::ContentRoot { generation }),
+        (&account_id, KeySelector::ContentRoot { generation }),
     );
     assert_eq!(described.unwrap(), *output.key());
     let encrypted = ic_vetkeys::EncryptedVetKey::deserialize(output.bytes()).unwrap();
     let public = ic_vetkeys::DerivedPublicKey::deserialize(&output.key().public_key).unwrap();
     encrypted
-        .decrypt_and_verify(&transport, &public, &canonical(&(account_id, generation)))
+        .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, generation)))
         .unwrap();
 }
 
 fn open_order(f: &Fixture) -> EscrowInfo {
     let account_id = f.create(2);
-    let input = f.order(account_id, 2, 1);
+    let input = f.order(&account_id, 2, 1);
     let opened: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
     opened.unwrap()
 }
@@ -294,7 +298,7 @@ fn settle_order(f: &Fixture, e: &EscrowInfo) -> EscrowInfo {
     );
     decided.unwrap()
 }
-fn derivation_request(f: &Fixture, account_id: AccountId, transport: Vec<u8>) -> ExecuteRequest {
+fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -> ExecuteRequest {
     let s = f.account_id(1, account_id);
     let kind = ExecutionKind::Derive {
         generation: 1,
@@ -331,7 +335,7 @@ fn derivation_request(f: &Fixture, account_id: AccountId, transport: Vec<u8>) ->
         .to_vec()
         .into();
     ExecuteRequest {
-        account_id,
+        account_id: account_id.clone(),
         kind,
         max_cycles,
         approval,
@@ -339,10 +343,10 @@ fn derivation_request(f: &Fixture, account_id: AccountId, transport: Vec<u8>) ->
 }
 fn root_user(f: &Fixture) -> AccountId {
     let account_id = f.create(1);
-    f.recoverable(1, account_id);
+    f.recoverable(1, &account_id);
     f.mutate(
         1,
-        account_id,
+        &account_id,
         AccountCommand::ReserveRoot {
             expected_generation: 0,
             op_id: Hash::new([8; 32]),
@@ -351,7 +355,7 @@ fn root_user(f: &Fixture) -> AccountId {
     .unwrap();
     f.mutate(
         1,
-        account_id,
+        &account_id,
         AccountCommand::CommitRoot {
             expected_generation: 0,
             op_id: Hash::new([8; 32]),
@@ -407,7 +411,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
-        account_id: owner,
+        account_id: owner.clone(),
         target_account: None,
         handle: "newname".into(),
         expected_version: 0,
@@ -416,7 +420,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     };
     f.mutate(
         1,
-        owner,
+        &owner,
         AccountCommand::AuthorizeHandle {
             intent: intent.clone(),
         },
@@ -443,7 +447,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
         (),
     );
     let lost: Result<HandleOperation> =
-        update(&f.ic, f.handle, person(1), "commit_handle", (owner, op_id));
+        update(&f.ic, f.handle, person(1), "commit_handle", (&owner, op_id));
     assert_eq!(lost, Err(Error::ExecutionUnknown));
     let block: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
         &f.ic,
@@ -468,12 +472,12 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
         f.handle,
         person(99),
         "reconcile_handle_charge",
-        (owner, op_id, 0u64),
+        (&owner, op_id, 0u64),
     );
     let reconciled = reconciled.unwrap();
     assert_eq!(reconciled.phase, HandlePhase::Committed);
     let duplicate: Result<HandleOperation> =
-        update(&f.ic, f.handle, person(1), "commit_handle", (owner, op_id));
+        update(&f.ic, f.handle, person(1), "commit_handle", (&owner, op_id));
     assert_eq!(duplicate.unwrap(), reconciled);
     let balance: Nat = query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (payer,));
     assert_eq!(balance, 0u64);
@@ -483,9 +487,14 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
 fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     let f = Fixture::new();
     let account_id = f.create(1);
-    f.recoverable(1, account_id);
-    let public: Result<(SecuritySnapshot, std::collections::BTreeMap<Hash, Device>)> =
-        query(&f.ic, f.user, person(9), "get_device_bundle", (account_id,));
+    f.recoverable(1, &account_id);
+    let public: Result<(SecuritySnapshot, std::collections::BTreeMap<Hash, Device>)> = query(
+        &f.ic,
+        f.user,
+        person(9),
+        "get_device_bundle",
+        (&account_id,),
+    );
     let snapshot = public.unwrap().0;
     assert_eq!(
         snapshot.recovery_signing_pub,
@@ -502,14 +511,14 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         .sign(
             digest(
                 "dmsg/recovery-request/v1",
-                &(f.user, account_id, snapshot.recovery_nonce, &request),
+                &(f.user, &account_id, snapshot.recovery_nonce, &request),
             )
             .as_slice(),
         )
         .to_bytes()
         .to_vec();
     let pop = key(9)
-        .sign(digest("dmsg/recovery-device/v1", &(f.user, account_id, &request)).as_slice())
+        .sign(digest("dmsg/recovery-device/v1", &(f.user, &account_id, &request)).as_slice())
         .to_bytes()
         .to_vec();
     let submitted: Result<()> = update(
@@ -518,7 +527,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         person(9),
         "request_recovery",
         (
-            account_id,
+            &account_id,
             request.clone(),
             ByteBuf::from(signature),
             ByteBuf::from(pop),
@@ -527,21 +536,21 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     submitted.unwrap();
     f.mutate(
         1,
-        account_id,
+        &account_id,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
             dispute: Hash::new([42; 32]),
         },
     )
     .unwrap();
-    let full: Result<AccountInfo> = query(&f.ic, f.user, person(9), "get_account", (account_id,));
+    let full: Result<AccountInfo> = query(&f.ic, f.user, person(9), "get_account", (&account_id,));
     assert_eq!(full, Err(Error::AuthRequired));
     let unauthorized: Result<Option<PendingRecovery>> = query(
         &f.ic,
         f.user,
         person(99),
         "get_recovery_request",
-        (account_id,),
+        (&account_id,),
     );
     assert_eq!(unauthorized, Err(Error::AuthRequired));
     let pending: Result<Option<PendingRecovery>> = query(
@@ -549,7 +558,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "get_recovery_request",
-        (account_id,),
+        (&account_id,),
     );
     let pending = pending.unwrap().unwrap();
     let certified: Result<CertifiedBatch> = query(
@@ -557,7 +566,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "security_snapshot_batch",
-        (vec![account_id],),
+        (vec![&account_id],),
     );
     let leaf: SecuritySnapshot =
         decode_canonical(certified.unwrap().entries[0].value.as_ref().unwrap()).unwrap();
@@ -576,7 +585,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
             .sign(
                 recovery_confirmation_message(
                     f.user,
-                    account_id,
+                    &account_id,
                     leaf.recovery_nonce,
                     &request,
                     &confirmation,
@@ -593,7 +602,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "reconfirm_recovery",
-        (account_id, changed, sig.clone()),
+        (&account_id, changed, sig.clone()),
     );
     assert_eq!(tampered, Err(Error::IntegrityFailed));
     let accepted: Result<()> = update(
@@ -601,12 +610,12 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "reconfirm_recovery",
-        (account_id, confirmation.clone(), sig.clone()),
+        (&account_id, confirmation.clone(), sig.clone()),
     );
     accepted.unwrap();
     f.mutate(
         1,
-        account_id,
+        &account_id,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
             dispute: Hash::new([43; 32]),
@@ -618,7 +627,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "get_recovery_request",
-        (account_id,),
+        (&account_id,),
     );
     let confirmed = confirmed.unwrap().unwrap();
     assert!(confirmed.execute_after > request.expires_at);
@@ -627,7 +636,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "reconfirm_recovery",
-        (account_id, confirmation, sig),
+        (&account_id, confirmation, sig),
     );
     retry.unwrap();
     f.ic.upgrade_canister(
@@ -642,28 +651,33 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "get_recovery_request",
-        (account_id,),
+        (&account_id,),
     );
     assert_eq!(restored.unwrap(), Some(confirmed.clone()));
     f.ic.advance_time(Duration::from_millis(confirmed.execute_after - time(&f.ic)));
-    let completed: Result<()> =
-        update(&f.ic, f.user, person(9), "complete_recovery", (account_id,));
+    let completed: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(9),
+        "complete_recovery",
+        (&account_id,),
+    );
     completed.unwrap();
-    assert_eq!(f.account_id(9, account_id).auth_bindings, vec![person(9)]);
+    assert_eq!(f.account_id(9, &account_id).auth_bindings, vec![person(9)]);
 }
 
 #[test]
 fn invalid_transport_is_rejected_without_consuming_authorization() {
     let f = Fixture::new();
     let account_id = root_user(&f);
-    let before = f.account_id(1, account_id);
-    let bad = derivation_request(&f, account_id, vec![1; 48]);
+    let before = f.account_id(1, &account_id);
+    let bad = derivation_request(&f, &account_id, vec![1; 48]);
     let result: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), bad);
     assert_eq!(result, Err(Error::IntegrityFailed));
-    assert_eq!(f.account_id(1, account_id), before);
+    assert_eq!(f.account_id(1, &account_id), before);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     assert_eq!(
-        f.derive(1, account_id, transport.public_key()).status(),
+        f.derive(1, &account_id, transport.public_key()).status(),
         ExecutionStatus::Completed
     );
 }
@@ -673,13 +687,13 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     let f = Fixture::new();
     let account_id = root_user(&f);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let first = derivation_request(&f, account_id, transport.public_key());
+    let first = derivation_request(&f, &account_id, transport.public_key());
     let result: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), first.clone());
     assert_eq!(result.unwrap().status(), ExecutionStatus::Completed);
     for _ in 0..65 {
         f.mutate(
             1,
-            account_id,
+            &account_id,
             AccountCommand::SetPolicy {
                 policy: SensitivePolicy::default(),
             },
@@ -688,22 +702,22 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     }
     f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![92; 32]).unwrap();
-    f.derive(1, account_id, transport.public_key());
+    f.derive(1, &account_id, transport.public_key());
     let expired: Result<ExecutionResult> = query(
         &f.ic,
         f.cose,
         f.user,
         "get_execution",
-        (account_id, first.approval.request_id),
+        (&account_id, first.approval.request_id),
     );
     assert_eq!(expired, Err(Error::NotFound));
-    let mut reused = derivation_request(&f, account_id, transport.public_key());
+    let mut reused = derivation_request(&f, &account_id, transport.public_key());
     reused.approval.request_id = first.approval.request_id;
     reused.approval.signature = key(1)
         .sign(
             approval_message(
                 f.user,
-                account_id,
+                &account_id,
                 "dmsg/execute/v3",
                 &(&reused.kind, reused.max_cycles),
                 &reused.approval,
@@ -721,7 +735,7 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
 fn valid_presigned_offer_survives_a_minute_but_current_revocation_still_applies() {
     let f = Fixture::new();
     let account_id = f.create(2);
-    let mut old = f.order(account_id, 2, 1);
+    let mut old = f.order(&account_id, 2, 1);
     old.offer.offer.expires_at = time(&f.ic) + DAY;
     old.offer.signature = key(2)
         .sign(digest("dmsg/payment-offer/v1", &old.offer.offer).as_slice())
@@ -737,10 +751,10 @@ fn valid_presigned_offer_survives_a_minute_but_current_revocation_still_applies(
     f.ic.advance_time(Duration::from_secs(61));
     let accepted: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (old,));
     accepted.unwrap();
-    let stale = f.order(account_id, 2, 2);
+    let stale = f.order(&account_id, 2, 2);
     f.mutate(
         2,
-        account_id,
+        &account_id,
         AccountCommand::SetPolicy {
             policy: SensitivePolicy::default(),
         },

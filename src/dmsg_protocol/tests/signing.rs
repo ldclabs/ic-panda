@@ -7,7 +7,7 @@ fn key() -> SigningKey {
 }
 fn statement() -> Statement {
     Statement {
-        issuer: account_issuer("https://dmsg.test/u/", AccountId::new([1; 12])).unwrap(),
+        issuer: account_issuer("https://dmsg.test/u/", &AccountId([1; 12])).unwrap(),
         subject: Some("release/spec".into()),
         issued_at: Some(1_800_000_000),
         content: StatementContent::Digest {
@@ -68,11 +68,11 @@ fn standard_cose_verification_and_variable_identifiers() {
         .unwrap(),
         "https://id.test/ic/mainnet/aaaaa-aa"
     );
-    let account = AccountId::new([1; 12]);
+    let account = AccountId([1; 12]);
     assert_eq!(
         parse_account_issuer(
             "https://dmsg.test/u/",
-            &account_issuer("https://dmsg.test/u/", account).unwrap()
+            &account_issuer("https://dmsg.test/u/", &account).unwrap()
         )
         .unwrap(),
         account

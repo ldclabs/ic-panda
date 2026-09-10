@@ -20,7 +20,7 @@
 
 - Statement v3 设计已实现两个文档 profile v1，执行批准域为 `dmsg/execute/v3`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
 - `sign` 输出 `SignedArtifact { cose_sign1, cose_key }`：RFC 9052 COSE_Sign1 和 public-only COSE_Key。ICP 密钥来源另存于结果的 `key` 描述，不能把公钥查询本身当作身份/授权证明。
-- 内部账户使用独立的 12 字节 Xid `AccountId`，用户服务同步原子发号；初始化增加固定 issuer_namespace，密码派生版本为 2，使用新开发实例。
+- 内部账户的 `AccountId` 直接复用 `ic_auth_types::Xid`（12 字节），用户服务使用共享 `XidGenerator` 同步原子发号；初始化增加固定 issuer_namespace，密码派生版本为 2，使用新开发实例。
 - `get_execution_receipt` 提供认证执行叶，绑定请求 ID、待签字节、公钥和签名；请求元数据不再进入可移植 Statement。
 - `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
 - `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。

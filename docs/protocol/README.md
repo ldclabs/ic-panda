@@ -23,7 +23,7 @@
 
 | 类型 | 二进制 | 文本 |
 | --- | --- | --- |
-| dMsg `AccountId` | 独立类型，Candid blob / CBOR bstr，12 字节 | 规范 Xid：20 字符小写 base32hex，末字符为 0 或 g |
+| dMsg `AccountId` | `ic_auth_types::Xid` 别名，Candid blob / CBOR bstr，12 字节 | 规范 Xid：20 字符小写 base32hex，末字符为 0 或 g |
 | ICP Principal | Candid principal / CBOR 原始 bstr，0..29 字节 | 标准 Principal 文本；空字节管理 canister 也是合法表示 |
 | 设备、操作、SHA-256 | 各自语义类型，32 字节 | 桥接口明确指定编码，不根据长度推断身份类型 |
 | COSE kid | 不透明 bstr，当前 profile 限 1..256 字节 | 无隐含账户语义 |
@@ -85,7 +85,7 @@ digest("dmsg/device-approval/v2", [
 
 ## Xid 发号
 
-用户 canister 内部持久化 `timestamp_seconds[4] || allocator_fingerprint[5] || counter[3]`。指纹取 `digest("dmsg/account-id-generator/v1", ["dmsg", environment, issuer_namespace, creating_canister])` 前 5 字节，并保存完整 namespace digest 用于升级校验。同秒/时钟回退继续计数，新秒从 0 开始；时间溢出或计数耗尽明确失败。
+用户 canister 使用 `ic_auth_types::XidGenerator` 持久化发号，其输出为 `timestamp_seconds[4] || allocator_fingerprint[5] || counter[3]`。指纹取 `digest("dmsg/account-id-generator/v1", ["dmsg", environment, issuer_namespace, creating_canister])` 前 5 字节，并在配置中单独保存完整 namespace digest 用于升级校验。同秒/时钟回退继续计数，新秒从 0 开始；时间溢出或计数耗尽明确失败。
 
 认证、设备 PoP、配额和唯一绑定校验通过后，同一无 await 消息提交账户、认证索引、配额和分配器。已有认证创建重试返回原账户。无 `raw_rand` 或异步创建暂存表。当前固定单 user home；未来多分配器必须先登记并排除指纹碰撞，不能把截断哈希当成绝对全局唯一保证。
 

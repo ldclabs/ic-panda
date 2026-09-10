@@ -31,7 +31,7 @@ fn vector(name: &str, bytes: Vec<u8>) -> Json {
     json!({"name":name,"value":tree(cbor2::from_slice(&bytes).unwrap()),"cbor_hex":hex::encode(bytes),"sha256_hex":hex::encode(hash.as_slice()),"ed25519_public_hex":hex::encode(key.verifying_key().to_bytes()),"signature_over_sha256_hex":hex::encode(key.sign(hash.as_slice()).to_bytes())})
 }
 fn main() {
-    let account = AccountId::new([1; 12]);
+    let account = AccountId([1; 12]);
     let namespace = "https://dmsg.test/u/";
     let signer = SigningKey::from_bytes(&[7; 32]);
     let public = signer.verifying_key().to_bytes();
@@ -39,7 +39,7 @@ fn main() {
     let fingerprint = key_thumbprint(&temp_key).unwrap();
     let kid = fingerprint.to_vec();
     let text = Statement {
-        issuer: account_issuer(namespace, account).unwrap(),
+        issuer: account_issuer(namespace, &account).unwrap(),
         subject: Some("release/spec".into()),
         issued_at: Some(1_800_000_000),
         content: StatementContent::Text("Approved release v1".into()),
@@ -120,7 +120,7 @@ fn main() {
                 ("b", 2u64),
             ])),
         ),
-        vector("root_input_v2", canonical(&(account, 2u64))),
+        vector("root_input_v2", canonical(&(&account, 2u64))),
         vector(
             "root_context_v2",
             canonical(&("dmsg/content-root/v2", Environment::Local, 2u16)),
@@ -140,21 +140,18 @@ fn main() {
         ("dmsg", Environment::Local, namespace, home_user),
     ));
     let hash = sha256(&allocator_namespace);
-    let mut allocated = [0u8; 12];
-    allocated[..4].copy_from_slice(&100u32.to_be_bytes());
-    allocated[4..9].copy_from_slice(&hash[..5]);
+    let (allocated, _) = ic_auth_types::XidGenerator::new(hash[..5].try_into().unwrap())
+        .allocate(100)
+        .unwrap();
     values.push(vector("allocator_namespace_v1", allocator_namespace));
-    values.push(vector(
-        "allocated_account_v1",
-        canonical(&AccountId::new(allocated)),
-    ));
-    let request_id = execution_request_id(account, 0, Hash::new([2; 32]), 0);
+    values.push(vector("allocated_account_v1", canonical(&allocated)));
+    let request_id = execution_request_id(&account, 0, Hash::new([2; 32]), 0);
     values.push(vector(
         "execution_request_id_v2",
         canonical(&(
             1u8,
             "dmsg/execution-request/v2",
-            (account, 0u64, Hash::new([2; 32]), 0u64),
+            (&account, 0u64, Hash::new([2; 32]), 0u64),
         )),
     ));
     let approval = Approval {
@@ -166,7 +163,7 @@ fn main() {
         signature: vec![].into(),
     };
     let sign = SignRequest {
-        account_id: account,
+        account_id: account.clone(),
         key: SigningKeyRef {
             algorithm: SigningAlgorithm::Ed25519,
             kid: kid.into(),
@@ -200,7 +197,7 @@ fn main() {
             "dmsg/device-approval/v2",
             (
                 home_user,
-                input.account_id,
+                &input.account_id,
                 "dmsg/execute/v3",
                 a.device_id,
                 a.security_epoch,

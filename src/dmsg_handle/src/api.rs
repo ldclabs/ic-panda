@@ -163,7 +163,7 @@ fn commit_name(name: &str, from: Option<AccountId>, to: AccountId, version: u64)
         previous: c.event_tip,
         handle: name.into(),
         from,
-        to,
+        to: to.clone(),
         version,
         at: now(),
         legacy_snapshot: c
@@ -219,7 +219,7 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
             && intent.terms_digest
                 == digest(
                     "dmsg/legacy-claim/v1",
-                    &(snapshot_id, &legacy, intent.account_id),
+                    &(snapshot_id, &legacy, &intent.account_id),
                 ),
         Error::IntegrityFailed,
     )?;
@@ -264,7 +264,7 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
                 ),
         Error::IntegrityFailed,
     )?;
-    let key = op_key(i.account_id, i.op_id);
+    let key = op_key(&i.account_id, i.op_id);
     let fp = digest("dmsg/handle-registration/v1", &registration);
     if let Ok(o) = op(&key) {
         ensure(o.digest == fp, Error::IdempotencyConflict)?;
@@ -336,7 +336,7 @@ fn finish_paid(key: &Hash, block: u64) -> Result<HandleOperation> {
     o.ledger_block = Some(block);
     o.phase = HandlePhase::Paid;
     save_op(key, &o);
-    commit_name(&i.handle, None, i.account_id, 1);
+    commit_name(&i.handle, None, i.account_id.clone(), 1);
     o.phase = HandlePhase::Committed;
     save_op(key, &o);
     release(&o);
@@ -344,7 +344,7 @@ fn finish_paid(key: &Hash, block: u64) -> Result<HandleOperation> {
 }
 #[ic_cdk::update]
 async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
-    let key = op_key(account_id, op_id);
+    let key = op_key(&account_id, op_id);
     let mut o = op(&key)?;
     ensure(caller() == o.registration.payer.owner, Error::AuthRequired)?;
     if o.phase == HandlePhase::Committed {
@@ -417,7 +417,7 @@ async fn reconcile_handle_charge(
     op_id: Hash,
     block: u64,
 ) -> Result<HandleOperation> {
-    let key = op_key(account_id, op_id);
+    let key = op_key(&account_id, op_id);
     let o = op(&key)?;
     if o.phase == HandlePhase::Committed {
         return Ok(o);
@@ -448,7 +448,7 @@ async fn reconcile_handle_charge(
 }
 #[ic_cdk::update]
 fn expire_handle_reservation(account_id: AccountId, op_id: Hash) -> Result<()> {
-    let key = op_key(account_id, op_id);
+    let key = op_key(&account_id, op_id);
     let mut o = op(&key)?;
     ensure(
         o.phase == HandlePhase::Reserved && now() >= o.expires_at,
@@ -465,8 +465,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     check_intent(&accept, HandleAction::AcceptTransfer)?;
     ensure(
         from.account_id != accept.account_id
-            && from.target_account == Some(accept.account_id)
-            && accept.target_account == Some(from.account_id)
+            && from.target_account.as_ref() == Some(&accept.account_id)
+            && accept.target_account.as_ref() == Some(&from.account_id)
             && from.handle == accept.handle
             && from.expected_version == accept.expected_version
             && from.op_id == accept.op_id,
@@ -477,8 +477,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         &(
             me(),
             &from.handle,
-            from.account_id,
-            accept.account_id,
+            &from.account_id,
+            &accept.account_id,
             from.expected_version,
             from.op_id,
         ),
@@ -487,7 +487,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         from.terms_digest == terms && accept.terms_digest == terms,
         Error::IntegrityFailed,
     )?;
-    let key = op_key(from.account_id, from.op_id);
+    let key = op_key(&from.account_id, from.op_id);
     if let Some((fp, r)) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
         ensure(
             fp == digest("dmsg/transfer/v1", &(&from, &accept)),
@@ -511,8 +511,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     ensure(current == r, Error::VersionConflict)?;
     let result = commit_name(
         &from.handle,
-        Some(from.account_id),
-        accept.account_id,
+        Some(from.account_id.clone()),
+        accept.account_id.clone(),
         r.version + 1,
     );
     TRANSFERS.with_borrow_mut(|t| {
@@ -536,7 +536,7 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
 }
 #[ic_cdk::query]
 fn get_handle_operation(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
-    op(&op_key(account_id, op_id))
+    op(&op_key(&account_id, op_id))
 }
 #[ic_cdk::query]
 fn get_legacy_reservation(handle: String) -> Result<Option<LegacyReservation>> {

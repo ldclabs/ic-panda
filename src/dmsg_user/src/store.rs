@@ -3,6 +3,7 @@ use dmsg_protocol::execution_receipt_key;
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_runtime::Certification;
 use dmsg_types::{user::*, *};
+use ic_auth_types::XidGenerator;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
@@ -30,7 +31,8 @@ thread_local! {
 pub(crate) struct Config {
     pub(crate) schema: u16,
     pub(crate) init: UserInit,
-    pub(crate) allocator: crate::xid::Generator,
+    pub(crate) allocator: XidGenerator,
+    pub(crate) allocator_namespace_digest: Hash,
     pub(crate) day: u64,
     pub(crate) created_today: u32,
 }
@@ -51,7 +53,7 @@ pub(crate) fn save(s: &AccountState) {
             EXECUTIONS.with_borrow_mut(|t| t.delete(&key));
             CERT.with_borrow_mut(|c| {
                 c.remove(&execution_receipt_key(
-                    s.account_id,
+                    &s.account_id,
                     previous.grant.request_id,
                 ))
             });
@@ -91,7 +93,7 @@ pub(crate) fn certify_execution(execution: &AuthorizedExecution) {
     if let Ok(receipt) = crate::execution::receipt(execution, &config().init.issuer_namespace) {
         CERT.with_borrow_mut(|c| {
             c.put(
-                execution_receipt_key(receipt.account_id, receipt.request_id),
+                execution_receipt_key(&receipt.account_id, receipt.request_id),
                 &receipt,
             )
         });

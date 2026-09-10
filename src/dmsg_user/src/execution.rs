@@ -28,7 +28,7 @@ pub(crate) fn authorize(
     ensure(
         input.approval.request_id
             == execution_request_id(
-                s.account_id,
+                &s.account_id,
                 input.approval.security_epoch,
                 input.approval.device_id,
                 input.approval.sequence,
@@ -61,7 +61,7 @@ pub(crate) fn authorize(
                 Error::UnsupportedProtocol,
             )?;
             ensure(
-                prepared.statement.issuer == account_issuer(namespace, s.account_id)?,
+                prepared.statement.issuer == account_issuer(namespace, &s.account_id)?,
                 Error::IntegrityFailed,
             )?;
             (Capability::FormalApprove, false)
@@ -127,7 +127,7 @@ pub(crate) fn authorize(
         next.sensitive_policy.daily_cycles,
     )?;
     let grant = ExecutionGrant {
-        account_id: s.account_id,
+        account_id: s.account_id.clone(),
         home_user: s.home_user,
         home_cose: s.home_cose,
         request_id: input.approval.request_id,
@@ -246,8 +246,8 @@ pub(crate) fn receipt(
     };
     Ok(ExecutionReceipt {
         schema: 1,
-        account_id: grant.account_id,
-        issuer: account_issuer(namespace, grant.account_id)?,
+        account_id: grant.account_id.clone(),
+        issuer: account_issuer(namespace, &grant.account_id)?,
         request_id: grant.request_id,
         device_id: grant.device_id,
         security_epoch: grant.security_epoch,

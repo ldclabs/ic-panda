@@ -374,9 +374,9 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "2.13.1"
+version = "2.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
+checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 
 [[package]]
 name = "bitvec"
@@ -1325,6 +1325,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "ic-cdk",
  "ic-stable-structures 0.7.2",
+ "ic_auth_types",
  "icrc-ledger-types 0.2.0",
  "lib_dummy_getrandom",
  "serde",
@@ -2613,9 +2614,9 @@ checksum = "c77c8932bff1f09502d0d8c079d5a206a06afe523e35e816162cf4d30b5bf80d"
 
 [[package]]
 name = "ic_auth_types"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4aef7f1a3bb41c9ee2157e2e1a9491752fea41b624ceba438957139c0438f84"
+checksum = "7f9262506c084d9f45c9bb59ff0934eba57f2832df20a48bb1931df554be7c50"
 dependencies = [
  "base64 0.23.1",
  "candid",
@@ -2626,9 +2627,9 @@ dependencies = [
 
 [[package]]
 name = "ic_auth_verifier"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a9f4e3f048b1e59d63d3496350386410bf6519ad28675650e30ffd4d44d271b"
+checksum = "a8dea33b2e0e63c57e9177e3e88d47088efb6ad11233751a4155909487314327"
 dependencies = [
  "base64 0.23.1",
  "candid",

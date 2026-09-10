@@ -3,7 +3,7 @@ use crate::*;
 use cose2::Sign1Message;
 use dmsg_types::{cose::*, *};
 
-pub fn execution_receipt_key(account: AccountId, request: OpId) -> Vec<u8> {
+pub fn execution_receipt_key(account: &AccountId, request: OpId) -> Vec<u8> {
     [
         b"execution/".as_slice(),
         account.as_slice(),

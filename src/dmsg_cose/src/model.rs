@@ -62,7 +62,7 @@ impl Home {
         ensure(
             grant.request_id
                 == execution_request_id(
-                    grant.account_id,
+                    &grant.account_id,
                     grant.security_epoch,
                     grant.device_id,
                     grant.device_sequence,
@@ -113,7 +113,7 @@ impl Home {
     }
 }
 
-pub fn key_id(config: &CoseInit, account_id: AccountId, key: &KeyRequest) -> Hash {
+pub fn key_id(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Hash {
     digest(
         "dmsg/key-id/v3",
         &(
@@ -125,7 +125,7 @@ pub fn key_id(config: &CoseInit, account_id: AccountId, key: &KeyRequest) -> Has
         ),
     )
 }
-pub fn path(config: &CoseInit, account_id: AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
+pub fn path(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
     vec![
         b"dmsg/formal/v2".to_vec(),
         canonical(&config.environment),
@@ -141,7 +141,7 @@ pub fn context(config: &CoseInit) -> Vec<u8> {
         config.derivation_version,
     ))
 }
-pub fn root_input(account_id: AccountId, generation: u64) -> Vec<u8> {
+pub fn root_input(account_id: &AccountId, generation: u64) -> Vec<u8> {
     canonical(&(account_id, generation))
 }
 
@@ -150,10 +150,10 @@ mod tests {
     use super::*;
     fn g(seq: u64) -> ExecutionGrant {
         ExecutionGrant {
-            account_id: AccountId::new([1; 12]),
+            account_id: AccountId([1; 12]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
-            request_id: execution_request_id(AccountId::new([1; 12]), 0, Hash::new([2; 32]), seq),
+            request_id: execution_request_id(&AccountId([1; 12]), 0, Hash::new([2; 32]), seq),
             execution_sequence: seq,
             security_epoch: 0,
             device_id: Hash::new([2; 32]),

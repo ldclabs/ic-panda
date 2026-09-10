@@ -156,22 +156,22 @@ fn legacy_normalization_and_panda_prices_are_preserved() {
 
 #[test]
 fn execution_ids_bind_the_device_epoch_and_sequence() {
-    let id = execution_request_id(AccountId::new([1; 12]), 2, Hash::new([3; 32]), 4);
+    let id = execution_request_id(&AccountId([1; 12]), 2, Hash::new([3; 32]), 4);
     assert_ne!(
         id,
-        execution_request_id(AccountId::new([1; 12]), 2, Hash::new([3; 32]), 5)
+        execution_request_id(&AccountId([1; 12]), 2, Hash::new([3; 32]), 5)
     );
     assert_ne!(
         id,
-        execution_request_id(AccountId::new([1; 12]), 3, Hash::new([3; 32]), 4)
+        execution_request_id(&AccountId([1; 12]), 3, Hash::new([3; 32]), 4)
     );
     assert_ne!(
         id,
-        execution_request_id(AccountId::new([1; 12]), 2, Hash::new([4; 32]), 4)
+        execution_request_id(&AccountId([1; 12]), 2, Hash::new([4; 32]), 4)
     );
     assert_ne!(
         id,
-        execution_request_id(AccountId::new([2; 12]), 2, Hash::new([3; 32]), 4)
+        execution_request_id(&AccountId([2; 12]), 2, Hash::new([3; 32]), 4)
     );
 }
 
@@ -188,7 +188,7 @@ fn transport_keys_must_be_nonidentity_subgroup_points() {
 
 #[test]
 fn xid_binary_and_canonical_text_have_distinct_wire_representations() {
-    let id = AccountId::new([1; 12]);
+    let id = AccountId([1; 12]);
     let text = id.to_string();
     assert_eq!(text.len(), 20);
     assert_eq!(text.parse::<AccountId>().unwrap(), id);
@@ -200,7 +200,7 @@ fn xid_binary_and_canonical_text_have_distinct_wire_representations() {
     assert_eq!(canonical(&id), [vec![0x4c], vec![1; 12]].concat());
     assert_eq!(decode_canonical::<AccountId>(&canonical(&id)).unwrap(), id);
     assert_eq!(
-        candid::decode_one::<AccountId>(&candid::encode_one(id).unwrap()).unwrap(),
+        candid::decode_one::<AccountId>(&candid::encode_one(&id).unwrap()).unwrap(),
         id
     );
     for len in [0, 11, 13, 29, 32] {

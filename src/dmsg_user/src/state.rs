@@ -43,7 +43,7 @@ impl AccountState {
             issuer: format!("{namespace}{}", self.account_id),
             home_cose: self.home_cose,
             schema: 2,
-            account_id: self.account_id,
+            account_id: self.account_id.clone(),
             home_user: self.home_user,
             account_status: self.status.clone(),
             account_version: self.account_version,
@@ -74,7 +74,7 @@ impl AccountState {
     pub fn info(&self, namespace: &str) -> AccountInfo {
         AccountInfo {
             issuer: format!("{namespace}{}", self.account_id),
-            account_id: self.account_id,
+            account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
             auth_bindings: self.auth_bindings.clone(),

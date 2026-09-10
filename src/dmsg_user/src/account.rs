@@ -99,7 +99,7 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
     nonzero(approval.request_id.as_slice())?;
     verify(
         &device.input.signing_pub,
-        approval_message(s.home_user, s.account_id, domain, payload, approval).as_slice(),
+        approval_message(s.home_user, &s.account_id, domain, payload, approval).as_slice(),
         &approval.signature,
     )?;
     Ok(device)
@@ -202,7 +202,7 @@ pub(crate) fn apply(
                     "dmsg/add-device/v1",
                     &(
                         s.home_user,
-                        s.account_id,
+                        &s.account_id,
                         device,
                         m.expected_version,
                         m.approval.request_id,
@@ -275,7 +275,7 @@ pub(crate) fn apply(
                 &policy.signing_pub,
                 digest(
                     "dmsg/recovery-enroll/v1",
-                    &(s.home_user, s.account_id, policy, m.approval.request_id),
+                    &(s.home_user, &s.account_id, policy, m.approval.request_id),
                 )
                 .as_slice(),
                 proof,
@@ -293,7 +293,7 @@ pub(crate) fn apply(
                     "dmsg/recovery-check/v1",
                     &(
                         s.home_user,
-                        s.account_id,
+                        &s.account_id,
                         r.generation,
                         m.expected_version,
                         m.approval.request_id,

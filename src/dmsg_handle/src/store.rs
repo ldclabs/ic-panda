@@ -54,7 +54,7 @@ pub(crate) fn save_op(key: &Hash, o: &HandleOperation) {
     OPS.with_borrow_mut(|t| t.put(key.as_slice(), o));
 }
 
-pub(crate) fn op_key(account_id: AccountId, op: Hash) -> Hash {
+pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 

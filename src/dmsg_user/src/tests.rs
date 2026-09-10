@@ -50,7 +50,7 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
         charged_cycles: 1,
         outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
             key: KeyDescriptor {
-                account_id: s.account_id,
+                account_id: s.account_id.clone(),
                 key_id: signing_key().kid,
                 purpose: KeyPurpose::Statement,
                 algorithm: Algorithm::Ed25519,
@@ -112,11 +112,11 @@ fn fixture() -> AccountState {
             .to_vec()
             .into(),
     };
-    account::create(p(5), p(6), AccountId::new([8; 12]), p(1), &input, 1).unwrap()
+    account::create(p(5), p(6), AccountId([8; 12]), p(1), &input, 1).unwrap()
 }
 fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
     let mut m = AccountMutation {
-        account_id: s.account_id,
+        account_id: s.account_id.clone(),
         expected_version: s.account_version,
         command,
         approval: Approval {
@@ -132,7 +132,7 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
         .sign(
             approval_message(
                 s.home_user,
-                s.account_id,
+                &s.account_id,
                 "dmsg/account/v2",
                 &(&m.expected_version, &m.command),
                 &m.approval,
@@ -275,13 +275,18 @@ fn content_device_cannot_administer_or_approve_formal_execution() {
 }
 fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
     let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
-    let id = execution_request_id(s.account_id, s.security_epoch, Hash::new([n; 32]), sequence);
+    let id = execution_request_id(
+        &s.account_id,
+        s.security_epoch,
+        Hash::new([n; 32]),
+        sequence,
+    );
     let mut r = SignRequest {
-        account_id: s.account_id,
+        account_id: s.account_id.clone(),
         key: signing_key(),
         origin: "https://example.com".into(),
         statement: Statement {
-            issuer: account_issuer(NAMESPACE, s.account_id).unwrap(),
+            issuer: account_issuer(NAMESPACE, &s.account_id).unwrap(),
             subject: Some("release".into()),
             issued_at: None,
             content: StatementContent::Text("Approved release v1".into()),
@@ -345,7 +350,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
         .sign(
             digest(
                 "dmsg/recovery-request/v1",
-                &(s.home_user, s.account_id, s.recovery_nonce, &request),
+                &(s.home_user, &s.account_id, s.recovery_nonce, &request),
             )
             .as_slice(),
         )
@@ -354,7 +359,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
         .sign(
             digest(
                 "dmsg/recovery-device/v1",
-                &(s.home_user, s.account_id, &request),
+                &(s.home_user, &s.account_id, &request),
             )
             .as_slice(),
         )
@@ -382,7 +387,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
         .sign(
             recovery_confirmation_message(
                 s.home_user,
-                s.account_id,
+                &s.account_id,
                 s.recovery_nonce,
                 &request,
                 &confirmation,
@@ -440,7 +445,7 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
                 "dmsg/recovery-request/v1",
                 &(
                     s.home_user,
-                    s.account_id,
+                    &s.account_id,
                     s.snapshot(NAMESPACE).recovery_nonce,
                     &request,
                 ),
@@ -452,7 +457,7 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
         .sign(
             digest(
                 "dmsg/recovery-device/v1",
-                &(s.home_user, s.account_id, &request),
+                &(s.home_user, &s.account_id, &request),
             )
             .as_slice(),
         )
@@ -485,7 +490,7 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
         .sign(
             recovery_confirmation_message(
                 s.home_user,
-                s.account_id,
+                &s.account_id,
                 s.recovery_nonce,
                 &request,
                 &confirmation,
@@ -597,7 +602,7 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
         .sign(
             approval_message(
                 s.home_user,
-                s.account_id,
+                &s.account_id,
                 "dmsg/execute/v3",
                 &(&reused.kind, reused.max_cycles),
                 &reused.approval,

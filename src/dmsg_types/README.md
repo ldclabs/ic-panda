@@ -7,7 +7,7 @@
 | 模块 | 公开内容 |
 | --- | --- |
 | `signing` | `Statement`、`StatementContent`、`SignedArtifact`；可脱离 ICP 存储实现处理 |
-| `account_id` | 独立 12 字节 `AccountId`，规范 Xid 文本与 CBOR/Candid 字节适配 |
+| `account_id` | `ic_auth_types::Xid` 重导出为 `AccountId`，12 字节及规范文本编解码 |
 | `protocol` | 固定字节、毫秒时间、批准、错误与 ICP 认证响应 |
 | `cose` | ICP 签名/vetKD 请求、密钥来源、执行结果和部署参数 |
 | `user` | 账户视图、设备、恢复与根承诺合同 |
@@ -29,7 +29,7 @@ let body = StatementContent::Digest {
 };
 ```
 
-`Hash` 等固定值在 CBOR 中是字节串，在 Candid 中是 blob；长度由合同规定。`AccountId` 为 12 字节，JSON/显示为 20 字符 Xid，不复用 Hash。Statement 的可选 `issued_at` 为 Unix 秒，ICP 业务时间为 Unix 毫秒；ICRC 的 `created_at_time` 仍是纳秒。浏览器 JSON 桥按公开协议单独定义字段编码，不等同于 Rust serde JSON。
+`Hash` 等固定值在 CBOR 中是字节串，在 Candid 中是 blob；长度由合同规定。`AccountId` 是 `ic_auth_types::Xid` 的别名，为 12 字节，JSON/显示为 20 字符 Xid，不复用 Hash。Statement 的可选 `issued_at` 为 Unix 秒，ICP 业务时间为 Unix 毫秒；ICRC 的 `created_at_time` 仍是纳秒。浏览器 JSON 桥按公开协议单独定义字段编码，不等同于 Rust serde JSON。
 
 `Statement` 是标准 COSE 的准备/解析视图，文本 payload 直接为 UTF-8，摘要 payload 直接为 SHA-256；不序列化 Rust 枚举为签署正文。`ExecutionReceipt` 独立绑定执行编号、待签摘要和密钥，`VerificationReport` 区分数学签名与身份/授权/时间的验证结果。
 

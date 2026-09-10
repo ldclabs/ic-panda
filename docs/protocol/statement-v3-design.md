@@ -74,7 +74,7 @@ SDK/ICP 适配接口可以继续接收原生字节，由对应适配器无损转
 
 ### 3.4 dMsg 内部账户采用 Xid
 
-使用独立语义类型 `AccountId`，不再定义 `SubjectId = Hash`。Rust 表达可采用 `AccountId([u8; 12])`，复用 `ic_auth_types::Xid` 的规范文本编解码，并在 JSON 解码时检查规范形式。
+账户使用 `AccountId` 语义名称，在 Rust 中直接重导出 `ic_auth_types::Xid`，不再维护本地包装类型。`AccountId([u8; 12])` 构造原始字节值，规范文本、JSON、CBOR 和 Candid 编解码由共享类型提供。
 
 | 使用位置 | 表示 |
 | --- | --- |
@@ -85,13 +85,13 @@ SDK/ICP 适配接口可以继续接收原生字节，由对应适配器无损转
 
 摘要、密钥标识、设备标识、操作标识分别遵循自己的合同。此次更换账户类型不是对所有 32 字节值的批量替换。
 
-发号实现参考公开项目 `ldclabs/token-listing` 的 `canisters/user/src/accounts/xid.rs`。本次核对的该文件对应仓库基线 `9981d7f`，文件本身无本地修改；没有核对远端。复用其 canister 场景下的持久化分配机制，而不是依赖进程随机状态的通用客户端生成器。
+发号直接复用 `ic_auth_types` 0.10.4 的 `XidGenerator`，显式传入命名空间指纹及时间，并持久化返回的新状态。dMsg 本地只保留命名空间校验和业务错误映射。
 
 ```text
 AccountId = timestamp_seconds[4] || allocator_fingerprint[5] || counter[3]
 ```
 
-三个分段按参考实现采用大端编码。分配器保存 `profile_version`、完整 `namespace_digest`、`fingerprint`、`last_second` 和 `next_counter`。fingerprint 的来源包含固定应用命名空间、环境及创建账户的 canister；准确域与编码已在公开协议和互操作向量中冻结。
+三个分段采用大端编码。`XidGenerator` 保存 `profile_version`、`fingerprint`、`last_second` 和 `next_counter`；user 配置另存完整 `allocator_namespace_digest`。fingerprint 的来源包含固定应用命名空间、环境及创建账户的 canister；准确域与编码已在公开协议和互操作向量中冻结。
 
 发号规则：
 

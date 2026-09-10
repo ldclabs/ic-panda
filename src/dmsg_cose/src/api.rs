@@ -159,9 +159,9 @@ fn key_state() -> KeyState {
 /// No management call, registration or stable write is needed for this query.
 #[ic_cdk::query]
 fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> {
-    describe(&ready()?, account_id, key.into())
+    describe(&ready()?, &account_id, key.into())
 }
-fn describe(c: &Config, account_id: AccountId, key: KeyRequest) -> Result<KeyDescriptor> {
+fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDescriptor> {
     nonzero(account_id.as_slice())?;
     key.validate()?;
     let config = &c.state.config;
@@ -198,7 +198,7 @@ fn describe(c: &Config, account_id: AccountId, key: KeyRequest) -> Result<KeyDes
     };
     Ok(KeyDescriptor {
         key_id,
-        account_id,
+        account_id: account_id.clone(),
         purpose: key.purpose,
         algorithm: key.algorithm,
         home_cose: me(),
@@ -230,17 +230,17 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
             )?;
             ensure(
                 prepared.statement.issuer
-                    == account_issuer(&config.issuer_namespace, g.account_id)?,
+                    == account_issuer(&config.issuer_namespace, &g.account_id)?,
                 Error::IntegrityFailed,
             )?;
-            let descriptor = describe(c, g.account_id, key.clone())?;
+            let descriptor = describe(c, &g.account_id, key.clone())?;
             ensure(
                 descriptor.key_id.as_slice() == prepared.kid
                     && descriptor.public_key_fingerprint == *public_key_fingerprint,
                 Error::IntegrityFailed,
             )?;
             let master = master(config, &key.algorithm)?;
-            let path = model::path(config, g.account_id, key);
+            let path = model::path(config, &g.account_id, key);
             match key.algorithm {
                 Algorithm::Ed25519 => Operation::schnorr(
                     master.key_name,
@@ -265,7 +265,7 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
             Operation::vetkd(
                 master.key_name,
                 model::context(config),
-                model::root_input(g.account_id, *generation),
+                model::root_input(&g.account_id, *generation),
                 transport_key.to_vec(),
             )
         }
@@ -347,7 +347,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
                     }
                     .into(),
                 };
-                match describe(&c, grant.account_id, key) {
+                match describe(&c, &grant.account_id, key) {
                     Err(e) => ExecutionOutcome::Failed(e),
                     Ok(key) => {
                         let response = operation.execute().await;

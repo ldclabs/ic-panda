@@ -45,7 +45,7 @@ pub fn validate_namespace(value: &str) -> Result<()> {
         invalid("identity namespace"),
     )
 }
-pub fn account_issuer(namespace: &str, id: AccountId) -> Result<String> {
+pub fn account_issuer(namespace: &str, id: &AccountId) -> Result<String> {
     validate_namespace(namespace)?;
     let result = format!("{namespace}{id}");
     validate_uri(&result)?;
@@ -66,7 +66,7 @@ pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> 
         .parse::<AccountId>()
         .map_err(|_| Error::IntegrityFailed)?;
     ensure(
-        account_issuer(namespace, id)? == issuer,
+        account_issuer(namespace, &id)? == issuer,
         Error::IntegrityFailed,
     )?;
     Ok(id)

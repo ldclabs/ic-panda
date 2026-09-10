@@ -115,7 +115,7 @@ impl ExecuteRequestExt for ExecuteRequest {
     fn approval_message(&self, home_user: Principal) -> Hash {
         approval_message(
             home_user,
-            self.account_id,
+            &self.account_id,
             "dmsg/execute/v3",
             &(&self.kind, self.max_cycles),
             &self.approval,
@@ -125,7 +125,7 @@ impl ExecuteRequestExt for ExecuteRequest {
 
 pub fn recovery_confirmation_message(
     home: Principal,
-    account_id: AccountId,
+    account_id: &AccountId,
     nonce: u64,
     request: &RecoveryRequest,
     confirmation: &RecoveryConfirmation,

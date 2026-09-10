@@ -34,7 +34,7 @@ pub(crate) fn begin_recovery(
         &policy.signing_pub,
         digest(
             "dmsg/recovery-request/v1",
-            &(s.home_user, s.account_id, s.recovery_nonce, request),
+            &(s.home_user, &s.account_id, s.recovery_nonce, request),
         )
         .as_slice(),
         signature,
@@ -43,7 +43,7 @@ pub(crate) fn begin_recovery(
         &request.device.signing_pub,
         digest(
             "dmsg/recovery-device/v1",
-            &(s.home_user, s.account_id, request),
+            &(s.home_user, &s.account_id, request),
         )
         .as_slice(),
         device_proof,
@@ -81,7 +81,7 @@ pub(crate) fn reconfirm_recovery(
         &policy.signing_pub,
         recovery_confirmation_message(
             s.home_user,
-            s.account_id,
+            &s.account_id,
             s.recovery_nonce,
             &r.request,
             confirmation,

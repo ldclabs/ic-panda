@@ -1,9 +1,10 @@
-use crate::{account, execution, recovery, state::*, store::*};
+use crate::{account, execution, recovery, state::*, store::*, xid};
 use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{cose::*, handle::*, payment::SignedOffer, user::*, *};
+use ic_auth_types::XidGenerator;
 use serde_bytes::ByteBuf;
 
 fn now() -> u64 {
@@ -24,7 +25,13 @@ fn own(id: &AccountId) -> Result<AccountState> {
 #[ic_cdk::init]
 fn init(args: UserInit) {
     validate_namespace(&args.issuer_namespace).expect("identity namespace");
-    let allocator = crate::xid::Generator::new(&args.environment, &args.issuer_namespace, me());
+    let allocator_namespace_digest =
+        xid::namespace_digest(&args.environment, &args.issuer_namespace, me());
+    let allocator = XidGenerator::new(
+        allocator_namespace_digest[..5]
+            .try_into()
+            .expect("five bytes"),
+    );
     for p in [args.home_cose, args.handle_canister, args.payment_canister] {
         authenticated(p).expect("configured canister");
     }
@@ -40,6 +47,7 @@ fn init(args: UserInit) {
             schema: STABLE_SCHEMA,
             init: args,
             allocator,
+            allocator_namespace_digest,
             day: 0,
             created_today: 0,
         })))
@@ -54,9 +62,14 @@ fn post_upgrade() {
         "explicit stable-state migration required"
     );
     let cfg = config();
-    cfg.allocator
-        .validate(&cfg.init.environment, &cfg.init.issuer_namespace, me())
-        .expect("immutable allocator");
+    xid::validate(
+        &cfg.allocator,
+        cfg.allocator_namespace_digest,
+        &cfg.init.environment,
+        &cfg.init.issuer_namespace,
+        me(),
+    )
+    .expect("immutable allocator");
     CERT.with_borrow(|c| c.publish());
     ACCOUNTS.with_borrow(|t| {
         t.for_each(|key, s| {
@@ -92,14 +105,22 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         cfg.created_today < cfg.init.daily_new_accounts,
         Error::QuotaExceeded,
     )?;
-    cfg.allocator
-        .validate(&cfg.init.environment, &cfg.init.issuer_namespace, me())?;
-    let (id, allocator) = cfg.allocator.allocate(now / SECOND)?;
+    xid::validate(
+        &cfg.allocator,
+        cfg.allocator_namespace_digest,
+        &cfg.init.environment,
+        &cfg.init.issuer_namespace,
+        me(),
+    )?;
+    let (id, allocator) = cfg
+        .allocator
+        .allocate(now / SECOND)
+        .map_err(xid::allocation_error)?;
     ensure(
         !ACCOUNTS.with_borrow(|t| t.contains(id.as_slice())),
         Error::IdGeneratorStateConflict,
     )?;
-    let account = account::create(me(), cfg.init.home_cose, id, who, &input, now)?;
+    let account = account::create(me(), cfg.init.home_cose, id.clone(), who, &input, now)?;
     cfg.created_today = cfg
         .created_today
         .checked_add(1)
@@ -243,7 +264,7 @@ async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<
         return Ok(e.result);
     }
     let response: Result<ExecutionResult> =
-        match stable::call(s.home_cose, "get_execution", (account_id, request_id)).await {
+        match stable::call(s.home_cose, "get_execution", (&account_id, request_id)).await {
             Ok(response) => response,
             Err(error) => Err(error),
         };
@@ -381,5 +402,5 @@ fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<Cert
         .get(&request_id)
         .ok_or(Error::ResultExpired)?;
     crate::execution::receipt(execution, &config().init.issuer_namespace)?;
-    CERT.with_borrow(|c| c.batch(me(), vec![execution_receipt_key(account_id, request_id)]))
+    CERT.with_borrow(|c| c.batch(me(), vec![execution_receipt_key(&account_id, request_id)]))
 }
