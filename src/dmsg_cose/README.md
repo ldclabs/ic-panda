@@ -91,6 +91,4 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_cycles_profile -- --ignored --nocapture
 ```
 
-完整脚本当前会被基线提交中已有的 `ic_cose_chain_key/Cargo.toml` 与 `SOURCE.json` 哈希不匹配阻断；不应直接改哈希绕过来源核对。其余检查可按脚本中的独立命令执行。
-
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。

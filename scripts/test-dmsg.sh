@@ -2,7 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-python3 scripts/sync-cose-chain-key.py
 packages=(-p dmsg_protocol -p dmsg_runtime -p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p ic_cose_chain_key)
 cargo test --locked "${packages[@]}"
 cargo clippy --locked "${packages[@]}" -p dmsg_integration -p dmsg_test_ledger --all-targets --features dmsg_integration/pocketic-tests -- -D warnings

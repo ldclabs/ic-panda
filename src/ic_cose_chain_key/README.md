@@ -1,7 +1,14 @@
-# IC COSE chain-key library
+# dMsg chain-key library
 
-Shared Rust implementation used by `ic_cose_canister` and dMsg. It exports no
+Workspace Rust implementation maintained in `ic-panda` for dMsg. It exports no
 Candid entry points and owns no namespace, account, authorization, or storage.
+
+The crate was initially derived from
+[`ldclabs/ic-cose`](https://github.com/ldclabs/ic-cose) commit
+`eccf135fec02fa804347d6efd15f800cbd3b4d8a` under the retained MIT/Apache-2.0
+licenses. It now evolves independently in this repository; upstream changes are
+evaluated and applied explicitly rather than synchronized as a byte-for-byte
+snapshot.
 
 - `Operation`: construct once, estimate request + outgoing call fees, persist the
   authorized execution and budget, then consume the operation with `execute`.

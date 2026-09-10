@@ -1,10 +1,11 @@
 [package]
 name = "ic_cose_chain_key"
 version = "0.11.0"
-edition = "2021"
-description = "Shared ICP chain-key calls, cost estimates and public-key derivation for IC COSE canisters"
+edition.workspace = true
+description = "ICP chain-key calls, cost estimates and public-key derivation for dMsg canisters"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/ldclabs/ic-cose"
+repository = "https://github.com/ldclabs/ic-panda/tree/main/src/ic_cose_chain_key"
+publish = false
 
 [dependencies]
 candid.workspace = true
