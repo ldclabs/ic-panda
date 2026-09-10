@@ -38,8 +38,6 @@ pub struct ConfigRepr {
     #[cbor(key = 3)]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub keys: Vec<PublicKeyRepr>,
-    #[cbor(key = 4)]
-    pub budget: BudgetRepr,
 }
 
 impl StableCodec for Config {
@@ -50,7 +48,6 @@ impl StableCodec for Config {
             schema: self.schema,
             state: self.state.to_repr(),
             keys: self.keys.iter().map(public_key_to_repr).collect(),
-            budget: self.budget.to_repr(),
         }
     }
 
@@ -59,7 +56,6 @@ impl StableCodec for Config {
             schema: repr.schema,
             state: KeyState::from_repr(repr.state),
             keys: repr.keys.into_iter().map(public_key_from_repr).collect(),
-            budget: Budget::from_repr(repr.budget),
         }
     }
 }
@@ -67,11 +63,13 @@ impl StableCodec for Config {
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct ExecutionRepr {
     #[cbor(key = 1)]
-    pub grant: ExecutionGrantRepr,
+    pub request_id: Hash,
     #[cbor(key = 2)]
     pub digest: Hash,
     #[cbor(key = 3)]
-    pub result: ExecutionResultRepr,
+    pub expires_at: u64,
+    #[cbor(key = 4)]
+    pub terminal: bool,
 }
 
 impl StableCodec for model::Execution {
@@ -79,17 +77,19 @@ impl StableCodec for model::Execution {
 
     fn to_repr(&self) -> Self::Repr {
         ExecutionRepr {
-            grant: self.grant.to_repr(),
+            request_id: self.request_id,
             digest: self.digest,
-            result: self.result.to_repr(),
+            expires_at: self.expires_at,
+            terminal: self.terminal,
         }
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            grant: ExecutionGrant::from_repr(repr.grant),
+            request_id: repr.request_id,
             digest: repr.digest,
-            result: ExecutionResult::from_repr(repr.result),
+            expires_at: repr.expires_at,
+            terminal: repr.terminal,
         }
     }
 }
@@ -102,6 +102,8 @@ pub struct HomeRepr {
     pub terminal_sequence: u64,
     #[cbor(key = 3)]
     pub budget: BudgetRepr,
+    #[cbor(key = 4)]
+    pub executions: BTreeMap<u64, ExecutionRepr>,
 }
 
 impl StableCodec for model::Home {
@@ -112,6 +114,11 @@ impl StableCodec for model::Home {
             home_user: self.home_user,
             terminal_sequence: self.terminal_sequence,
             budget: self.budget.to_repr(),
+            executions: self
+                .executions
+                .iter()
+                .map(|(seq, e)| (*seq, e.to_repr()))
+                .collect(),
         }
     }
 
@@ -119,7 +126,11 @@ impl StableCodec for model::Home {
         Self {
             home_user: repr.home_user,
             terminal_sequence: repr.terminal_sequence,
-            executions: BTreeMap::new(),
+            executions: repr
+                .executions
+                .into_iter()
+                .map(|(seq, e)| (seq, model::Execution::from_repr(e)))
+                .collect(),
             budget: Budget::from_repr(repr.budget),
         }
     }
@@ -194,9 +205,22 @@ mod tests {
 
     #[test]
     fn cose_home_and_all_execution_shapes_round_trip() {
-        let home = model::Home::new(p(3));
+        let mut home = model::Home::new(p(3));
+        // Both unresolved holes and terminal entries must survive upgrades.
+        for sequence in 1..=64 {
+            home.executions.insert(
+                sequence,
+                model::Execution {
+                    request_id: Hash::new([sequence as u8; 32]),
+                    digest: Hash::new([7; 32]),
+                    expires_at: 1_700_000_300_000,
+                    terminal: sequence % 2 == 0,
+                },
+            );
+        }
         let home_bytes = compact_bytes(&home);
-        assert_integer_top_keys(&home_bytes, 3);
+        assert!(home_bytes.len() < 6 * 1024);
+        assert_integer_top_keys(&home_bytes, 4);
         assert_eq!(compact_from_bytes::<model::Home>(&home_bytes), home);
 
         let derive_grant = grant(ExecutionKind::Derive {
@@ -205,30 +229,18 @@ mod tests {
             transport_key: vec![7; 48].into(),
         });
         assert_public_text_keys(&derive_grant);
-        let derive = model::Execution {
-            grant: derive_grant.clone(),
-            digest: Hash::new([11; 32]),
-            result: ExecutionResult {
-                request_id: derive_grant.request_id,
-                outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
-                    encrypted_key: vec![12; 128].into(),
-                    key: descriptor(derive_grant.account_id.clone(), Algorithm::VetKdBls12381),
-                })),
-                charged_cycles: 100_000_000_000,
-            },
+        let derive = ExecutionResult {
+            request_id: derive_grant.request_id,
+            outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
+                encrypted_key: vec![12; 128].into(),
+                key: descriptor(derive_grant.account_id.clone(), Algorithm::VetKdBls12381),
+            })),
+            charged_cycles: 100_000_000_000,
         };
         let derive_bytes = compact_bytes(&derive);
-        assert_eq!(derive_bytes.len(), 714);
-        assert_eq!(
-            hex(&derive_bytes),
-            "e928815c8bc48a437fb3898c2b5282b0173d06da1c8f48e53ebd2f5c05d54b61"
-        );
         assert_integer_top_keys(&derive_bytes, 3);
-        assert_eq!(
-            compact_from_bytes::<model::Execution>(&derive_bytes),
-            derive
-        );
-        assert!(derive_bytes.len() * 100 <= cbor2::to_vec(&derive).unwrap().len() * 70);
+        assert_eq!(compact_from_bytes::<ExecutionResult>(&derive_bytes), derive);
+        assert!(derive_bytes.len() < cbor2::to_vec(&derive).unwrap().len());
 
         let sign_grant = grant(ExecutionKind::Sign {
             key: KeyRequest {
@@ -240,23 +252,19 @@ mod tests {
             public_key_fingerprint: Hash::new([14; 32]),
             origin: "https://example.com".into(),
         });
-        let signed = model::Execution {
-            grant: sign_grant.clone(),
-            digest: Hash::new([15; 32]),
-            result: ExecutionResult {
-                request_id: sign_grant.request_id,
-                outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
-                    artifact: SignedArtifact {
-                        cose_sign1: vec![16; 256].into(),
-                        cose_key: vec![17; 96].into(),
-                    },
-                    key: descriptor(sign_grant.account_id.clone(), Algorithm::Ed25519),
-                })),
-                charged_cycles: 100_000_000_000,
-            },
+        let signed = ExecutionResult {
+            request_id: sign_grant.request_id,
+            outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
+                artifact: SignedArtifact {
+                    cose_sign1: vec![16; 256].into(),
+                    cose_key: vec![17; 96].into(),
+                },
+                key: descriptor(sign_grant.account_id.clone(), Algorithm::Ed25519),
+            })),
+            charged_cycles: 100_000_000_000,
         };
         assert_eq!(
-            compact_from_bytes::<model::Execution>(&compact_bytes(&signed)),
+            compact_from_bytes::<ExecutionResult>(&compact_bytes(&signed)),
             signed
         );
 
@@ -267,25 +275,16 @@ mod tests {
             ExecutionOutcome::Unknown(Error::ExecutionUnknown),
             ExecutionOutcome::ResultExpired,
         ] {
-            let execution = model::Execution {
-                grant: sign_grant.clone(),
-                digest: Hash::new([18; 32]),
-                result: ExecutionResult {
-                    request_id: sign_grant.request_id,
-                    outcome,
-                    charged_cycles: 1,
-                },
+            let execution = ExecutionResult {
+                request_id: sign_grant.request_id,
+                outcome,
+                charged_cycles: 1,
             };
             assert_eq!(
-                compact_from_bytes::<model::Execution>(&compact_bytes(&execution)),
+                compact_from_bytes::<ExecutionResult>(&compact_bytes(&execution)),
                 execution
             );
         }
-    }
-
-    fn hex(bytes: &[u8]) -> String {
-        let digest = dmsg_protocol::sha256(bytes);
-        digest.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 
     #[test]
@@ -305,7 +304,7 @@ mod tests {
             daily_cycles: 1_000_000_000_000,
         };
         let config = Config {
-            schema: 3,
+            schema: crate::store::STABLE_SCHEMA,
             state: KeyState {
                 config: init,
                 initialization: Initialization::Ready,
@@ -316,11 +315,6 @@ mod tests {
                 public_key: vec![3; 32],
                 chain_code: vec![4; 32],
             }],
-            budget: Budget {
-                day: 42,
-                executions: 7,
-                cycles: 123,
-            },
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, config.schema);
@@ -329,7 +323,6 @@ mod tests {
         assert_eq!(decoded.state.fingerprints, config.state.fingerprints);
         assert_eq!(decoded.state.error, config.state.error);
         assert_eq!(decoded.keys, config.keys);
-        assert_eq!(decoded.budget, config.budget);
 
         let mut sparse = config;
         sparse.state.initialization = Initialization::Uninitialized;

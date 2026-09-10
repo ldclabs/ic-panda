@@ -1,7 +1,6 @@
 use crate::{model, store::*};
 use candid::Principal;
 use dmsg_protocol::*;
-use dmsg_runtime::Budget;
 use dmsg_types::{cose::*, *};
 use ic_cdk_management_canister as mgmt;
 use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation, PublicKey};
@@ -40,7 +39,6 @@ fn init(args: CoseInit) {
             error: None,
         },
         keys: vec![],
-        budget: Budget::default(),
     });
 }
 
@@ -84,25 +82,15 @@ fn post_upgrade(args: Option<CoseInit>) {
     save_cfg(&c);
 }
 
-fn master(config: &CoseInit, alg: &Algorithm) -> Result<MasterKey> {
-    config
-        .masters
-        .iter()
-        .find(|m| &m.algorithm == alg)
-        .cloned()
-        .ok_or(Error::UnsupportedProtocol)
-}
-
-fn schnorr(alg: &Algorithm) -> mgmt::SchnorrAlgorithm {
-    assert_eq!(*alg, Algorithm::Ed25519);
-    mgmt::SchnorrAlgorithm::Ed25519
-}
-
 async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
     match key.algorithm {
         Algorithm::Ed25519 => {
-            chain_key::schnorr_public_key(key.key_name.clone(), schnorr(&key.algorithm), vec![])
-                .await
+            chain_key::schnorr_public_key(
+                key.key_name.clone(),
+                mgmt::SchnorrAlgorithm::Ed25519,
+                vec![],
+            )
+            .await
         }
         Algorithm::EcdsaSecp256k1 => {
             chain_key::ecdsa_public_key(key.key_name.clone(), vec![]).await
@@ -188,7 +176,7 @@ fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDe
     let path = model::path(config, account_id, &key);
     let public_key = match key.algorithm {
         Algorithm::Ed25519 => {
-            chain_key::derive_schnorr_public_key(schnorr(&key.algorithm), root, path)
+            chain_key::derive_schnorr_public_key(mgmt::SchnorrAlgorithm::Ed25519, root, path)
                 .map(|p| p.public_key)
                 .map_err(Error::Unavailable)?
         }
@@ -223,9 +211,9 @@ fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDe
     })
 }
 
-fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
+fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost, KeyDescriptor)> {
     let config = &c.state.config;
-    let operation = match &g.kind {
+    let (operation, descriptor) = match &g.kind {
         ExecutionKind::Sign {
             key,
             to_be_signed,
@@ -251,20 +239,22 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
                     && descriptor.public_key_fingerprint == *public_key_fingerprint,
                 Error::IntegrityFailed,
             )?;
-            let master = master(config, &key.algorithm)?;
             let path = model::path(config, &g.account_id, key);
-            match key.algorithm {
+            let operation = match key.algorithm {
                 Algorithm::Ed25519 => Operation::schnorr(
-                    master.key_name,
-                    schnorr(&key.algorithm),
+                    descriptor.master_key_name.clone(),
+                    mgmt::SchnorrAlgorithm::Ed25519,
                     path,
                     to_be_signed.to_vec(),
                 ),
-                Algorithm::EcdsaSecp256k1 => {
-                    Operation::ecdsa(master.key_name, path, sha256(to_be_signed).into_array())
-                }
+                Algorithm::EcdsaSecp256k1 => Operation::ecdsa(
+                    descriptor.master_key_name.clone(),
+                    path,
+                    sha256(to_be_signed).into_array(),
+                ),
                 _ => return Err(Error::UnsupportedProtocol),
-            }
+            };
+            (operation, descriptor)
         }
         ExecutionKind::Derive {
             generation,
@@ -273,13 +263,21 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
         } => {
             ensure(*generation > 0, invalid("vetKD generation"))?;
             validate_transport_key(transport_key)?;
-            let master = master(config, &Algorithm::VetKdBls12381)?;
-            Operation::vetkd(
-                master.key_name,
+            let descriptor = describe(
+                c,
+                &g.account_id,
+                KeySelector::ContentRoot {
+                    generation: *generation,
+                }
+                .into(),
+            )?;
+            let operation = Operation::vetkd(
+                descriptor.master_key_name.clone(),
                 model::context(config),
                 model::root_input(&g.account_id, *generation),
                 transport_key.to_vec(),
-            )
+            );
+            (operation, descriptor)
         }
     };
     let cost = operation.cost().map_err(Error::Unavailable)?;
@@ -287,7 +285,7 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
         cost.total().map_err(Error::Unavailable)? <= g.max_cycles,
         Error::QuotaExceeded,
     )?;
-    Ok((operation, cost))
+    Ok((operation, cost, descriptor))
 }
 
 #[ic_cdk::update]
@@ -312,99 +310,101 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         }
         Err(e) => return Err(e),
     };
-    if let Some(e) = h
-        .executions
-        .values()
-        .find(|e| e.grant.request_id == grant.request_id)
-    {
-        ensure(
-            e.digest == digest("dmsg/cose-execution/v2", &grant),
-            Error::IdempotencyConflict,
-        )?;
-        return Ok(e.result.clone());
+    let at = now();
+    if let Some(sequence) = h.check(caller(), &grant, at)? {
+        return execution(&grant.account_id, sequence);
     }
-    let expired = now() >= grant.expires_at;
-    let prepared = prepare(&c, &grant);
-    let reserved = if expired {
-        0
+    // Expired requests still close their sequence, without parsing or deriving keys.
+    let prepared = if at >= grant.expires_at {
+        Err(Error::ResultExpired)
     } else {
-        prepared
-            .as_ref()
-            .map_or(0, |(_, cost)| cost.total().expect("validated cost"))
+        prepare(&c, &grant)
     };
-    h.prepare(caller(), &grant, now(), reserved)?;
-    let mut current_config = cfg();
-    current_config.budget.reserve(
-        now(),
-        reserved,
-        config.daily_executions,
-        config.daily_cycles,
-    )?;
-    save_cfg(&current_config);
-    save_home(&grant.account_id, &h);
+    let reserved = prepared
+        .as_ref()
+        .map_or(0, |(_, cost, _)| cost.total().expect("validated cost"));
+    let removed = h.prepare(&grant, at, reserved)?;
+    // Last fallible check before committing. An Err must not consume a sequence.
+    reserve_budget(at, reserved, config)?;
     let mut result = ExecutionResult {
         request_id: grant.request_id,
         charged_cycles: 0,
         outcome: ExecutionOutcome::Executing,
     };
-    result.outcome = if expired {
-        ExecutionOutcome::ResultExpired
-    } else {
-        match prepared {
-            Err(e) => ExecutionOutcome::Failed(e),
-            Ok((operation, cost)) => {
-                let key = match &grant.kind {
-                    ExecutionKind::Sign { key, .. } => key.clone(),
-                    ExecutionKind::Derive { generation, .. } => KeySelector::ContentRoot {
-                        generation: *generation,
+    let (operation, cost, key) = match prepared {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            result.outcome = if error == Error::ResultExpired {
+                ExecutionOutcome::ResultExpired
+            } else {
+                ExecutionOutcome::Failed(error)
+            };
+            h.finish(grant.execution_sequence, &result);
+            save_execution(
+                &grant.account_id,
+                &h,
+                grant.execution_sequence,
+                &result,
+                &removed,
+            );
+            return Ok(result);
+        }
+    };
+    result.charged_cycles = reserved;
+    save_execution(
+        &grant.account_id,
+        &h,
+        grant.execution_sequence,
+        &result,
+        &removed,
+    );
+    let response = operation.execute().await;
+    result.charged_cycles = chain_key::charged_cycles(
+        cost,
+        response.as_ref().err(),
+        ic_cdk::api::msg_cycles_refunded(),
+    );
+    result.outcome = match response {
+        Ok(bytes) => match &grant.kind {
+            ExecutionKind::Sign { to_be_signed, .. } => {
+                match finish_cose(to_be_signed, &key.public_key, bytes) {
+                    Ok(artifact) => {
+                        ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
+                            artifact,
+                            key,
+                        }))
                     }
-                    .into(),
-                };
-                match describe(&c, &grant.account_id, key) {
-                    Err(e) => ExecutionOutcome::Failed(e),
-                    Ok(key) => {
-                        let response = operation.execute().await;
-                        result.charged_cycles = chain_key::charged_cycles(
-                            cost,
-                            response.as_ref().err(),
-                            ic_cdk::api::msg_cycles_refunded(),
-                        );
-                        match response {
-                            Ok(bytes) => match &grant.kind {
-                                ExecutionKind::Sign { to_be_signed, .. } => {
-                                    match finish_cose(to_be_signed, &key.public_key, bytes) {
-                                        Ok(artifact) => ExecutionOutcome::Completed(Box::new(
-                                            ExecutionOutput::Signature { artifact, key },
-                                        )),
-                                        // The management call has already run. Never retry it
-                                        // because its response could not be packaged.
-                                        Err(error) => ExecutionOutcome::Unknown(error),
-                                    }
-                                }
-                                ExecutionKind::Derive { .. } => ExecutionOutcome::Completed(
-                                    Box::new(ExecutionOutput::EncryptedRootKey {
-                                        encrypted_key: bytes.into(),
-                                        key,
-                                    }),
-                                ),
-                            },
-                            Err(e) => {
-                                let detail = Error::Unavailable(format!("{e:?}"));
-                                if chain_key::classify_failure(&e) == FailureKind::Unknown {
-                                    ExecutionOutcome::Unknown(detail)
-                                } else {
-                                    ExecutionOutcome::Failed(detail)
-                                }
-                            }
-                        }
-                    }
+                    // The management call has already run. Never retry it
+                    // because its response could not be packaged.
+                    Err(error) => ExecutionOutcome::Unknown(error),
                 }
+            }
+            ExecutionKind::Derive { .. } => {
+                ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
+                    encrypted_key: bytes.into(),
+                    key,
+                }))
+            }
+        },
+        Err(e) => {
+            let detail = Error::Unavailable(format!("{e:?}"));
+            if chain_key::classify_failure(&e) == FailureKind::Unknown {
+                ExecutionOutcome::Unknown(detail)
+            } else {
+                ExecutionOutcome::Failed(detail)
             }
         }
     };
+    // Other executions can finish while this management call is in flight.
     let mut current = home(&grant.account_id)?;
-    current.finish(grant.execution_sequence, result.clone());
-    save_home(&grant.account_id, &current);
+    current.finish(grant.execution_sequence, &result);
+    save_execution(
+        &grant.account_id,
+        &current,
+        grant.execution_sequence,
+        &result,
+        &[],
+    );
     Ok(result)
 }
 
@@ -415,9 +415,6 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
         Error::Forbidden,
     )?;
     let h = home(&account_id)?;
-    h.executions
-        .values()
-        .find(|e| e.grant.request_id == request_id)
-        .map(|e| e.result.clone())
-        .ok_or(Error::NotFound)
+    let sequence = h.sequence(&request_id).ok_or(Error::NotFound)?;
+    execution(&account_id, sequence)
 }

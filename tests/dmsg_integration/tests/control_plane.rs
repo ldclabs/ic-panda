@@ -15,6 +15,9 @@ use std::{path::PathBuf, time::Duration};
 #[path = "control_plane/review_regressions.rs"]
 mod review_regressions;
 
+#[path = "control_plane/cose_optimization.rs"]
+mod cose_optimization;
+
 #[path = "control_plane/handle.rs"]
 mod handle_tests;
 
