@@ -1,5 +1,6 @@
 //! Reference implementation; public records are defined by dmsg_types.
 mod api;
+mod calls;
 mod model;
 mod stable_codec;
 mod state;

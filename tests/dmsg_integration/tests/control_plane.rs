@@ -15,6 +15,9 @@ use std::{path::PathBuf, time::Duration};
 #[path = "control_plane/review_regressions.rs"]
 mod review_regressions;
 
+#[path = "control_plane/payment_optimization.rs"]
+mod payment_optimization;
+
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let target = std::env::var_os("DMSG_WASM_DIR")

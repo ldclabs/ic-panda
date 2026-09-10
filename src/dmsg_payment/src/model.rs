@@ -18,7 +18,11 @@ pub fn validate_quote(
     nonzero(input.op_id.as_slice())?;
     let q = &input.quote;
     let o = &input.offer.offer;
-    ensure(config.enabled, Error::Locked)?;
+    quote_current(config, input, signer, now)?;
+    ensure(
+        input.offer.signature.len() == 64,
+        invalid("offer signature"),
+    )?;
     ensure(q.max_network_fee == config.max_fee, Error::IntegrityFailed)?;
     ensure(
         q.home_payment == id
@@ -60,26 +64,39 @@ pub fn validate_quote(
         Error::IntegrityFailed,
     )?;
     ensure(
-        q.created_at <= now
-            && q.fund_by
-                == q.created_at
-                    .checked_add(15 * MINUTE)
-                    .ok_or(Error::Expired)?
-            && q.accept_by == q.fund_by.checked_add(30 * MINUTE).ok_or(Error::Expired)?
-            && now < q.fund_by,
+        q.fund_by
+            == q.created_at
+                .checked_add(15 * MINUTE)
+                .ok_or(Error::Expired)?
+            && q.accept_by == q.fund_by.checked_add(30 * MINUTE).ok_or(Error::Expired)?,
         Error::Expired,
     )?;
     ensure(
         q.max_bytes > 0 && q.max_bytes <= 8192 && q.retain_ms >= DAY && q.retain_ms <= 365 * DAY,
         invalid("storage terms"),
     )?;
-    ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
-    signer_valid(signer, q.signer_epoch, q.created_at, now)?;
     nonzero(q.quote_id.as_slice())?;
     nonzero(q.envelope_digest.as_slice())?;
     let hash = digest("dmsg/quote/v1", q);
     verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
     Ok(hash)
+}
+
+/// The input and payment terms are immutable across await. Only enablement,
+/// deadlines and signer revocation need rechecking after offer verification.
+/// Signer keys/intervals are immutable within an epoch (rotation adds an epoch).
+pub fn quote_current(
+    config: &PaymentInit,
+    input: &OpenEscrow,
+    signer: &ReceiptSigner,
+    now: u64,
+) -> Result<()> {
+    ensure(config.enabled, Error::Locked)?;
+    let q = &input.quote;
+    let o = &input.offer.offer;
+    ensure(q.created_at <= now && now < q.fund_by, Error::Expired)?;
+    ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
+    signer_valid(signer, q.signer_epoch, q.created_at, now)
 }
 
 pub fn signer_valid(s: &ReceiptSigner, epoch: u64, signed_at: u64, now: u64) -> Result<()> {

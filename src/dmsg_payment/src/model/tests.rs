@@ -56,7 +56,7 @@ fn input() -> OpenEscrow {
         quote_signature,
         offer: SignedOffer {
             offer: o,
-            signature: vec![].into(),
+            signature: vec![0; 64].into(),
         },
     }
 }
@@ -206,6 +206,42 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         enabled: true,
     };
     assert!(validate_quote(&c, i.quote.home_payment, i.quote.payer.owner, &i, &s, 2).is_ok());
+    let mut disabled = c.clone();
+    disabled.enabled = false;
+    assert_eq!(quote_current(&disabled, &i, &s, 2), Err(Error::Locked));
+    let mut revoked = s.clone();
+    revoked.revoked = true;
+    assert_eq!(quote_current(&c, &i, &revoked, 2), Err(Error::Forbidden));
+    assert_eq!(
+        quote_current(&c, &i, &s, i.quote.fund_by),
+        Err(Error::Expired)
+    );
+    assert_eq!(
+        quote_current(&c, &i, &s, i.offer.offer.expires_at),
+        Err(Error::Expired)
+    );
+    let mut malformed = i.clone();
+    malformed.offer.signature = vec![0; 65].into();
+    assert!(validate_quote(
+        &c,
+        i.quote.home_payment,
+        i.quote.payer.owner,
+        &malformed,
+        &s,
+        2
+    )
+    .is_err());
+    malformed = i.clone();
+    malformed.quote_signature = vec![0; 64].into();
+    assert!(validate_quote(
+        &c,
+        i.quote.home_payment,
+        i.quote.payer.owner,
+        &malformed,
+        &s,
+        2
+    )
+    .is_err());
     assert!(validate_quote(
         &c,
         i.quote.home_payment,

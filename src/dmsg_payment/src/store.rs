@@ -28,7 +28,10 @@ pub(crate) fn memory(id: u8) -> Memory {
 
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    // Heap survives ordinary messages and await commit points. Persist this
+    // bounded record at upgrade, not on every budget reservation.
+    static CONFIG: RefCell<Option<Config>> = RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().0.clone()));
     pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static FUNDING: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
@@ -42,21 +45,41 @@ thread_local! {
 }
 
 pub(crate) fn cfg() -> Config {
-    CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
+    CONFIG.with_borrow(|c| c.clone().expect("initialized"))
 }
 
 pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
+    CONFIG.with_borrow_mut(|value| *value = Some(c.clone()));
+}
+
+pub(crate) fn persist_config() {
+    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(cfg()))));
 }
 
 pub(crate) fn load(id: &Hash) -> Result<Escrow> {
     ESCROWS.with_borrow(|t| t.load(id.as_slice()).ok_or(Error::NotFound))
 }
 
-pub(crate) fn save(e: &Escrow) {
+/// Persist bookkeeping that does not change EscrowInfo or its certified leaf.
+pub(crate) fn save_escrow(e: &Escrow) {
     assert!(e.conserved(), "funds conservation");
     ESCROWS.with_borrow_mut(|t| t.put(e.escrow_id.as_slice(), e));
+}
+
+pub(crate) fn save(e: &Escrow) {
+    save_escrow(e);
     CERT.with_borrow_mut(|c| c.put(e.escrow_id.to_vec(), &e.info()));
+}
+
+pub(crate) fn rebuild_certification() {
+    CERT.with_borrow_mut(|c| {
+        ESCROWS.with_borrow(|t| {
+            t.for_each(|k, e| {
+                c.0.insert(k, dmsg_protocol::canonical(&e.info()));
+            })
+        });
+        c.publish();
+    });
 }
 
 pub(crate) fn key(id: Hash, n: u64) -> Vec<u8> {

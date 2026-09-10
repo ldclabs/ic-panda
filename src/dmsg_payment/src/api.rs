@@ -1,4 +1,4 @@
-use crate::{model, state::Escrow, store::*};
+use crate::{calls::CallGuard, model, state::Escrow, store::*};
 use candid::{Nat, Principal};
 use dmsg_protocol::*;
 use dmsg_runtime::storage::MapExt;
@@ -50,7 +50,13 @@ fn init(args: PaymentInit) {
         ledger_minute: 0,
         ledger_reads: 0,
     });
+    persist_config();
     CERT.with_borrow(|c| c.publish());
+}
+
+#[ic_cdk::pre_upgrade]
+fn pre_upgrade() {
+    persist_config();
 }
 
 #[ic_cdk::post_upgrade]
@@ -60,8 +66,7 @@ fn post_upgrade() {
         STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
-    CERT.with_borrow(|c| c.publish());
-    ESCROWS.with_borrow(|t| t.for_each(|k, e| CERT.with_borrow_mut(|c| c.put(k, &e.info()))));
+    rebuild_certification();
 }
 
 #[ic_cdk::update]
@@ -105,19 +110,14 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     let who = caller();
     let mut c = cfg();
     let id = digest("dmsg/escrow-id/v1", &(me(), who, input.op_id));
-    let quote_digest = digest("dmsg/quote/v1", &input.quote);
     if let Ok(e) = load(&id) {
-        ensure(e.quote_digest == quote_digest, Error::IdempotencyConflict)?;
+        ensure(
+            e.quote_digest == digest("dmsg/quote/v1", &input.quote),
+            Error::IdempotencyConflict,
+        )?;
         return Ok(e.info());
     }
-    model::validate_quote(
-        &c.init,
-        me(),
-        who,
-        &input,
-        &signer(input.quote.signer_epoch)?,
-        now(),
-    )?;
+    let _call = CallGuard::open(who, input.quote.quote_id)?;
     ensure(
         !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice())),
         Error::IdempotencyConflict,
@@ -131,26 +131,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         c.orders_today = 0;
     }
     ensure(c.orders_today < c.init.daily_orders, Error::QuotaExceeded)?;
-    c.orders_today += 1;
-    save_cfg(&c);
-    let verified: Result<u64> = stable::call(
-        c.init.home_user,
-        "verify_payment_offer",
-        (input.offer.clone(),),
-    )
-    .await?;
-    let observed_at = verified?;
-    ensure(
-        observed_at <= now() && now() - observed_at <= MINUTE,
-        Error::PolicyStale,
-    )?;
-    // Recheck all local contract, signer and quota state after the await.
-    if let Ok(e) = load(&id) {
-        ensure(e.quote_digest == quote_digest, Error::IdempotencyConflict)?;
-        return Ok(e.info());
-    }
-    c = cfg();
-    model::validate_quote(
+    let quote_digest = model::validate_quote(
         &c.init,
         me(),
         who,
@@ -158,11 +139,20 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         &signer(input.quote.signer_epoch)?,
         now(),
     )?;
+    c.orders_today += 1;
+    save_cfg(&c);
+    let verified: Result<u64> =
+        stable::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
+    let observed_at = verified?;
     ensure(
-        !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice()))
-            && open_count(who) < c.init.max_open_per_payer,
-        Error::QuotaExceeded,
+        observed_at <= now() && now() - observed_at <= MINUTE,
+        Error::PolicyStale,
     )?;
+    // The guard holds this payer and quote exclusively until commit. Other
+    // messages can release the payer's slots, but cannot open another order.
+    // Recheck enablement, deadlines and revocation after offer verification.
+    c = cfg();
+    model::quote_current(&c.init, &input, &signer(input.quote.signer_epoch)?, now())?;
     let e = model::escrow(me(), who, &input, quote_digest);
     let count = open_count(who) + 1;
     QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
@@ -201,15 +191,12 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
         ensure(id == escrow_id, Error::IdempotencyConflict)?;
         return Ok(e.info());
     }
+    let _call = CallGuard::funding(block)?;
     reserve_ledger_call()?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     ensure(tx.committed_at <= now(), Error::IntegrityFailed)?;
-    // Concurrent check/finalize/refund may have changed both ownership and the
-    // terminal direction while the trusted ledger was being read.
-    if let Some(id) = FUNDING.with_borrow(|t| t.load(&block.to_be_bytes())) {
-        ensure(id == escrow_id, Error::IdempotencyConflict)?;
-        return Ok(load(&escrow_id)?.info());
-    }
+    // The guard excludes another claim of this block. A concurrent settlement
+    // or refund can still change the order's direction, so reload the escrow.
     let mut current = load(&escrow_id)?;
     let d = model::accept_deposit(&mut current, me(), &tx)?;
     FUNDING.with_borrow_mut(|t| t.put(&block.to_be_bytes(), &escrow_id));
@@ -258,6 +245,9 @@ fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
         return Ok(e.info());
     }
     ensure(e.decision == FundsDecision::Pending, Error::VersionConflict)?;
+    // Reject impossible settlements before doing public-key verification.
+    ensure(now() < e.quote.accept_by, Error::Expired)?;
+    ensure(e.funding_ref.is_some(), Error::Pending)?;
     let hash = model::receipt_valid(
         &e,
         &signed,
@@ -320,7 +310,7 @@ fn claim_deposit_refund(escrow_id: Hash, block: u64) -> Result<TransferLeg> {
     }
     DEPOSITS.with_borrow_mut(|t| t.put(&key(escrow_id, block), &d));
     put_leg(&leg);
-    save(&e);
+    save_escrow(&e);
     Ok(leg)
 }
 
@@ -341,13 +331,17 @@ fn claim_fee_reserve(escrow_id: Hash) -> Result<TransferLeg> {
     let leg = model::leg(&mut e, LegKind::ReserveRefund, to, amount, fee, now());
     e.primary_remaining = 0;
     put_leg(&leg);
-    save(&e);
+    save_escrow(&e);
     Ok(leg)
 }
 
 fn complete(id: Hash, n: u64, block: u64) -> Result<TransferLeg> {
-    let mut e = load(&id)?;
     let mut leg = get_leg(id, n)?;
+    if leg.status == LegStatus::Succeeded {
+        ensure(leg.block == Some(block), Error::IntegrityFailed)?;
+        return Ok(leg);
+    }
+    let mut e = load(&id)?;
     if let Some(old) = OUTGOING.with_borrow(|t| t.load(&block.to_be_bytes())) {
         ensure(old == key(id, n), Error::IdempotencyConflict)?;
     }
@@ -360,7 +354,6 @@ fn complete(id: Hash, n: u64, block: u64) -> Result<TransferLeg> {
 
 #[ic_cdk::update]
 async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
-    let e = load(&escrow_id)?;
     let mut leg = get_leg(escrow_id, leg_id)?;
     if leg.status == LegStatus::Succeeded {
         return Ok(leg);
@@ -376,6 +369,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
             Error::FeeBlocked
         },
     )?;
+    let e = load(&escrow_id)?;
     let was_unknown = leg.status == LegStatus::Unknown;
     reserve_ledger_call()?;
     // The outbox parameters are frozen before await; public retries never
@@ -457,13 +451,12 @@ fn revise_rejected_transfer(escrow_id: Hash, leg_id: u64, fee: u128) -> Result<T
             LEGS.with_borrow_mut(|t| t.delete(&key(escrow_id, parent)));
         }
     }
-    save(&e);
+    save_escrow(&e);
     Ok(new)
 }
 
 #[ic_cdk::update]
 async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<TransferLeg> {
-    let e = load(&escrow_id)?;
     let l = get_leg(escrow_id, leg_id)?;
     if l.status == LegStatus::Succeeded {
         return Ok(l);
@@ -472,6 +465,8 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
         matches!(l.status, LegStatus::InFlight | LegStatus::Unknown),
         Error::VersionConflict,
     )?;
+    let _call = CallGuard::reconcile(escrow_id, leg_id)?;
+    let e = load(&escrow_id)?;
     reserve_ledger_call()?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     ensure(
