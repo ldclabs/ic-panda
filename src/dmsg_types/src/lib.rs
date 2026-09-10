@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-//! Public wire data. Storage, cryptography and platform calls live in other crates.
+#![warn(missing_docs)]
 pub mod account;
 pub mod cose;
 pub mod handle;

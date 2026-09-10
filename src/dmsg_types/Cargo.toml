@@ -3,6 +3,11 @@ name = "dmsg_types"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
+description = "Public data contracts for dMsg document signing, account control, and paid delivery"
+repository.workspace = true
+readme = "README.md"
+keywords = ["dmsg", "icp", "cose", "signing", "protocol"]
+categories = ["api-bindings", "data-structures"]
 publish = false
 
 [dependencies]
