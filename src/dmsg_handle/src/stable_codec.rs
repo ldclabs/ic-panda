@@ -11,8 +11,6 @@ pub struct ConfigRepr {
     pub init: HandleInitRepr,
     #[cbor(key = 3)]
     pub progress: SnapshotProgressRepr,
-    #[cbor(key = 4)]
-    pub event_count: u64,
     #[cbor(key = 5)]
     pub event_tip: Hash,
     #[cbor(key = 6)]
@@ -27,7 +25,6 @@ impl StableCodec for Config {
             schema: self.schema,
             init: self.init.to_repr(),
             progress: self.progress.to_repr(),
-            event_count: self.event_count,
             event_tip: self.event_tip,
             pending: self.pending,
         }
@@ -38,7 +35,6 @@ impl StableCodec for Config {
             schema: repr.schema,
             init: HandleInit::from_repr(repr.init),
             progress: SnapshotProgress::from_repr(repr.progress),
-            event_count: repr.event_count,
             event_tip: repr.event_tip,
             pending: repr.pending,
         }
@@ -221,7 +217,7 @@ mod tests {
     #[test]
     fn handle_config_round_trips() {
         let config = Config {
-            schema: 3,
+            schema: crate::store::STABLE_SCHEMA,
             init: HandleInit {
                 home_user: p(1),
                 ledger: p(2),
@@ -242,7 +238,6 @@ mod tests {
                 last_handle: Some("halfway".into()),
                 sealed: false,
             },
-            event_count: 4,
             event_tip: Hash::new([5; 32]),
             pending: 2,
         };
@@ -257,7 +252,6 @@ mod tests {
         );
         assert_eq!(decoded.progress.last_handle, config.progress.last_handle);
         assert_eq!(decoded.progress.sealed, config.progress.sealed);
-        assert_eq!(decoded.event_count, config.event_count);
         assert_eq!(decoded.event_tip, config.event_tip);
         assert_eq!(decoded.pending, config.pending);
     }

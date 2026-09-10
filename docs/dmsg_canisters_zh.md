@@ -48,7 +48,7 @@ pnpm --dir src/dmsg_app test
 
 四类 canister 保持各自权威：账户批准、名称权属、固定密钥执行、资金终态。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
 
-稳定布局版本由各 canister 的 store.rs 自己维护；当前 `dmsg_user` 为 schema 4，其余三类为 schema 3，使用新实例联调，不读取此前 schema 的开发状态。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
+稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 4 使用 StableLog 保存事件、固定字节名称锁和主体活跃操作集合，并缩小稳定内存分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
 
 生产部署须先创建四个 canister ID，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
