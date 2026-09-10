@@ -30,7 +30,7 @@
 
 ## 代码
 
-`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。
+`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 3 的私有 `stable_codec.rs` 为配置、home 和完整执行结果递归使用 CBOR 整数 map key；公开执行授权、结果和密码协议编码不变。
 
 ## 验证
 

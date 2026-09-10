@@ -18,7 +18,7 @@ ASCII 规范化、PANDA 定价及旧名称导入属于此注册表的业务规�
 
 ## 实现
 
-`api.rs` 保存入口与名称状态转换，`store.rs` 保存有类型的名称、操作、锁和事件表。部署参数由 `HandleInit` 定义。
+`api.rs` 保存入口与名称状态转换，`store.rs` 保存有类型的名称、操作、锁和事件表。schema 3 的私有 `stable_codec.rs` 为配置、名称、导入、操作、事件和转移回执递归使用 CBOR 整数 map key；公开名称摘要和认证叶编码不变。部署参数由 `HandleInit` 定义。
 
 ## 验证
 

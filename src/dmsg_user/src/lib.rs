@@ -3,6 +3,7 @@ mod account;
 mod api;
 mod execution;
 mod recovery;
+mod stable_codec;
 mod state;
 mod store;
 mod xid;

@@ -23,7 +23,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 3 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；公开支付摘要和认证叶编码不变。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 验证
 

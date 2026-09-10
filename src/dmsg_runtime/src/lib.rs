@@ -3,6 +3,7 @@
 mod budget;
 mod certified;
 pub mod ledger;
+pub mod stable_types;
 pub mod storage;
 pub use budget::Budget;
 pub use certified::Certification;

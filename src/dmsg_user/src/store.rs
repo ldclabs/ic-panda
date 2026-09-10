@@ -1,6 +1,6 @@
 use crate::state::*;
 use dmsg_protocol::execution_receipt_key;
-use dmsg_runtime::storage::{MapExt, Stored};
+use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_runtime::Certification;
 use dmsg_types::{user::*, *};
 use ic_auth_types::XidGenerator;
@@ -20,11 +20,11 @@ fn memory(id: u8) -> Memory {
 }
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    pub(crate) static CONFIG: RefCell<StableCell<Stored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), Stored(None)));
-    pub(crate) static ACCOUNTS: RefCell<StableBTreeMap<Vec<u8>, Stored<AccountState>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
+    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    pub(crate) static ACCOUNTS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<AccountState>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static AUTH: RefCell<StableBTreeMap<Vec<u8>, Stored<AccountId>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static BINDINGS: RefCell<StableBTreeMap<Vec<u8>, Stored<PendingBinding>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, Stored<AuthorizedExecution>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
+    pub(crate) static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 #[derive(Serialize, Deserialize, Clone)]
@@ -87,7 +87,7 @@ fn execution_records(account_id: &AccountId) -> Vec<(Vec<u8>, AuthorizedExecutio
         .collect()
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 2;
+pub(crate) const STABLE_SCHEMA: u16 = 3;
 
 pub(crate) fn certify_execution(execution: &AuthorizedExecution) {
     if let Ok(receipt) = crate::execution::receipt(execution, &config().init.issuer_namespace) {

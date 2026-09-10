@@ -1,6 +1,6 @@
 use crate::state::Escrow;
 use candid::Principal;
-use dmsg_runtime::storage::{MapExt, Stored};
+use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_runtime::Certification;
 use dmsg_types::{payment::*, *};
 use ic_stable_structures::{
@@ -25,13 +25,13 @@ pub(crate) fn memory(id: u8) -> Memory {
 }
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    pub(crate) static CONFIG: RefCell<StableCell<Stored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), Stored(None)));
-    pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, Stored<Escrow>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
+    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static FUNDING: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, Stored<Deposit>, Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
-    pub(crate) static LEGS: RefCell<StableBTreeMap<Vec<u8>, Stored<TransferLeg>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
-    pub(crate) static SIGNERS: RefCell<StableBTreeMap<Vec<u8>, Stored<ReceiptSigner>, Memory>> = RefCell::new(StableBTreeMap::init(memory(6)));
+    pub(crate) static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Deposit>, Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
+    pub(crate) static LEGS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferLeg>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
+    pub(crate) static SIGNERS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<ReceiptSigner>, Memory>> = RefCell::new(StableBTreeMap::init(memory(6)));
     pub(crate) static PAYER_OPEN: RefCell<StableBTreeMap<Vec<u8>, Stored<u32>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
     pub(crate) static OUTGOING: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<u8>>, Memory>> = RefCell::new(StableBTreeMap::init(memory(8)));
     pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(9)));
@@ -41,7 +41,7 @@ pub(crate) fn cfg() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
 pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(Stored(Some(c.clone()))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
 }
 
 pub(crate) fn load(id: &Hash) -> Result<Escrow> {
@@ -81,4 +81,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 2;
+pub(crate) const STABLE_SCHEMA: u16 = 3;

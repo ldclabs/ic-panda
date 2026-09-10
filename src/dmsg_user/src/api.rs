@@ -1,7 +1,7 @@
 use crate::{account, execution, recovery, state::*, store::*, xid};
 use candid::Principal;
 use dmsg_protocol::*;
-use dmsg_runtime::storage::{MapExt, Stored};
+use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{cose::*, handle::*, payment::SignedOffer, user::*, *};
 use ic_auth_types::XidGenerator;
@@ -43,7 +43,7 @@ fn init(args: UserInit) {
         "hard limits"
     );
     CONFIG.with_borrow_mut(|t| {
-        t.set(Stored(Some(Config {
+        t.set(CompactStored(Some(Config {
             schema: STABLE_SCHEMA,
             init: args,
             allocator,
@@ -129,7 +129,7 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
     // All fallible validation precedes these writes; one IC message commits all three.
     save(&account);
     AUTH.with_borrow_mut(|t| t.put(who.as_slice(), &id));
-    CONFIG.with_borrow_mut(|t| t.set(Stored(Some(cfg))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(cfg))));
     Ok(id)
 }
 

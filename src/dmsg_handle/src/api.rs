@@ -488,12 +488,12 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         Error::IntegrityFailed,
     )?;
     let key = op_key(&from.account_id, from.op_id);
-    if let Some((fp, r)) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
+    if let Some(receipt) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
         ensure(
-            fp == digest("dmsg/transfer/v1", &(&from, &accept)),
+            receipt.digest == digest("dmsg/transfer/v1", &(&from, &accept)),
             Error::IdempotencyConflict,
         )?;
-        return Ok(r);
+        return Ok(receipt.record);
     }
     let r = record(&from.handle).ok_or(Error::NotFound)?;
     ensure(
@@ -504,8 +504,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     )?;
     consume(&from).await?;
     consume(&accept).await?;
-    if let Some((_, r)) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
-        return Ok(r);
+    if let Some(receipt) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
+        return Ok(receipt.record);
     }
     let current = record(&from.handle).ok_or(Error::NotFound)?;
     ensure(current == r, Error::VersionConflict)?;
@@ -518,10 +518,10 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     TRANSFERS.with_borrow_mut(|t| {
         t.put(
             key.as_slice(),
-            &(
-                digest("dmsg/transfer/v1", &(&from, &accept)),
-                result.clone(),
-            ),
+            &TransferReceipt {
+                digest: digest("dmsg/transfer/v1", &(&from, &accept)),
+                record: result.clone(),
+            },
         )
     });
     Ok(result)
