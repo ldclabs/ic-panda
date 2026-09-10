@@ -6,7 +6,7 @@
 
 **An on-chain Builder DAO creating open infrastructure for digital sovereignty.**
 
-[Website](https://panda.fans/) · [Whitepaper](./whitepaper/2026.en.md) · [Governance](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai) · [alink](https://al.ink/ICPanda) · [X](https://x.com/ICPandaDAO)
+[Website](https://panda.fans/) · [Whitepaper](./whitepaper/en.md) · [Governance](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai) · [alink](https://al.ink/ICPanda) · [X](https://x.com/ICPandaDAO)
 
 </div>
 
@@ -16,20 +16,17 @@
 
 **ICPanda DAO is an on-chain Builder DAO.**
 
-We build open protocols and infrastructure at two emerging frontiers:
+We build open protocols and infrastructure in three complementary directions:
 
-* **Sovereign Minds** — persistent machine cognition, agent identity, memory, experience, and skill.
-* **Sovereign Markets** — verifiable crypto capital formation, from asset creation and issuance to markets and governance.
+* **Anda — Sovereign Minds** — persistent machine cognition, agent identity, memory, experience, and skill.
+* **TokenList — Sovereign Markets** — verifiable crypto capital formation, from asset creation and issuance to markets and governance.
+* **dMsg — Personal Control** — a private workspace for secrets, encrypted collaboration, and explicit signing across applications.
 
 **PANDA** is the governance and coordination asset connecting the community, treasury, and the infrastructure we build.
 
-Our long-term thesis is simple:
+Digital sovereignty means participating in digital systems while retaining meaningful control over identity, memory, assets, and authority.
 
-> **Sovereign minds need memory.**
-> **Sovereign markets need verifiability.**
-> **Sovereign communities need governance.**
-
-We call the larger direction **digital sovereignty**.
+Each project addresses a useful problem independently. Together, they support people and agents working with portable state, inspectable rules, and explicit authority.
 
 ---
 
@@ -53,7 +50,7 @@ Current open infrastructure includes:
 
 > **Memory is the mechanism by which the past participates in future computation.**
 
-**Explore → https://anda.ai/**
+**[Explore Anda →](https://anda.ai/)**
 
 ---
 
@@ -72,7 +69,7 @@ CREATE
    ↓
 ISSUE
    ↓
-DISCOVER
+DISCOVER A PRICE
    ↓
 FORM A MARKET
    ↓
@@ -87,7 +84,32 @@ It is to make the rules and execution of capital formation increasingly **transp
 
 > **The rules of capital formation should be transparent enough to inspect and programmable enough to improve.**
 
-**Explore → https://tokenlist.ing/**
+**[Explore TokenList →](https://tokenlist.ing/)**
+
+---
+
+### 🔐 dMsg — Personal Control
+
+**A Chrome extension for private work and cross-application signing.**
+
+dMsg is evolving from encrypted messaging into a private workspace. Its planned scope includes:
+
+* **Personal vault** — encrypted notes, credentials, key material, and files, with local search and encrypted export.
+* **Encrypted collaboration** — messages and files with explicit membership, publishing roles, and access to history.
+* **Contact rules** — contacts, invitations, blocking, and optional payments for unsolicited requests.
+* **Identity and signing** — a stable identity and explicit approval of signatures for files, statements, and authorizations.
+
+The design assigns plaintext and cryptographic operations to the extension, ciphertext storage and everyday delivery to Cloudflare, and identity roots, device control, formal signing authority, name ownership, and payment settlement to ICP. Ordinary messages and channel updates do not require a separate blockchain update or threshold signature.
+
+The publication model makes the client, protocols, canisters, and recovery tools open source; the production cloud implementation remains private. Content encryption does not hide all operational metadata or guarantee the latest cloud state. Availability, extension updates, and canister upgrades remain trust dependencies.
+
+**Status: In development.** The design is defined, but the complete product is not released. The current extension is an R0 local workspace for encrypted storage, export, and offline recovery; production integration, deployment, audits, and release validation remain to be completed.
+
+* [Chrome extension: capabilities, build instructions, and limitations](./src/dmsg_app/README.md)
+* [Public protocol and verification rules](./docs/protocol/README.md)
+* [Canister implementation and validation boundaries](./docs/dmsg_canisters_zh.md)
+
+**[Explore dMsg →](https://dmsg.net/)**
 
 ---
 
@@ -129,7 +151,7 @@ We do not require every ICPanda project to manufacture artificial PANDA utility.
 
 The allocation above is a **historical genesis record**, not a representation of current ownership or treasury balances.
 
-PANDA continues to use the SNS governance-reward mechanism. Reward parameters are governed by the SNS and may evolve through proposals.
+PANDA uses the SNS governance-reward mechanism. Rewards accrue as neuron maturity, and new tokens are minted when maturity is converted into tokens. Under the reward parameters documented in the whitepaper, PANDA has no fixed maximum supply. Reward parameters may change through governance; they do not guarantee a return to individual holders.
 
 For current supply, transactions, neurons, proposals, treasury state, and governance parameters, use the canonical on-chain source:
 
@@ -151,7 +173,9 @@ ICPanda DAO is the institution.
 
 PANDA is its coordination asset.
 
-Anda and TokenList are major current building directions.
+Anda, TokenList, and dMsg are complementary building directions.
+
+SNS governance directs resources and infrastructure under its control. Association with ICPanda DAO does not by itself place every project component under SNS control.
 
 Individual projects may evolve, be replaced, or end. The DAO should preserve its ability to learn and build again.
 
@@ -161,35 +185,16 @@ Our principle is:
 
 ---
 
-## Experiments & Archive
-
-### dMsg
-
-**Status: Archived · Active development paused**
-
-[dMsg](https://dmsg.net/) was an early ICPanda DAO experiment in fully decentralized end-to-end encrypted communication on the Internet Computer.
-
-It explored technologies including cryptographic identity, encrypted multi-user communication, decentralized storage, and key management.
-
-dMsg is no longer a strategic focus of ICPanda DAO, but its code and technical work remain part of our open-source history.
-
-* [dMsg System Overview](./docs/dMsg_system_overview.md)
-* [dMsg Design Choices](./docs/dMsg_design_choices.md)
-
-> **Archived experiment. Preserved knowledge.**
-
----
-
 ## Whitepaper
 
 ### From Sovereign Minds to Sovereign Markets
 
-The **ICPanda DAO Whitepaper v1.0** defines our current mission, principles, institutional model, and long-term direction.
+The **ICPanda DAO Whitepaper v1.0**, revised September 7, 2026, defines our mission, principles, PANDA's institutional role, and long-term direction. It was adopted through [SNS Proposal #504](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai/proposal/504) on September 8, 2026.
 
 * [English — Whitepaper v1.0](./whitepaper/en.md)
 * [简体中文 — Whitepaper v1.0](./whitepaper/zh.md)
 
-The original 2024 whitepaper is preserved rather than rewritten:
+The adopted whitepaper supersedes the original 2024 edition, which remains available as a historical record:
 
 * [2024 Genesis Whitepaper — Historical Document](./whitepaper/2024/en.md)
 
@@ -204,55 +209,28 @@ We build around a small set of durable principles:
 **Open by default.**
 Infrastructure becomes more valuable when others can inspect, extend, fork, and build upon it.
 
-**Verify where possible.**
-When evidence can replace assertion, prefer evidence.
+**Prefer evidence.**
+Make claims verifiable where practical and disclose the trust that remains.
 
-**Sovereignty without isolation.**
-Open systems should increase the ability to leave, connect, compose, and choose.
+**Preserve choice.**
+Favor portability and interoperability so people can move their data, identity, and relationships between systems.
 
-**Protocols before platforms.**
-Products may come and go. Open protocols can outlive them.
-
-**Leadership and governance can coexist.**
-We prefer visible leadership under transparent governance to either hidden centralization or leaderless paralysis.
-
-**Tokens should serve systems.**
-We do not distort products to manufacture token narratives.
+**Use resources responsibly.**
+Review experiments on their merits, stop work that no longer justifies its cost, and preserve reusable knowledge.
 
 ---
 
 ## The Long Horizon
 
-Our roadmap is not a promise that every current product will exist forever.
+Our long-term work centers on three questions:
 
-It is a direction of travel:
+1. **Persistent cognition:** can agents retain and revise useful experience across time, models, and runtimes, and can we show that it improves their behavior?
+2. **Verifiable capital formation:** can participants inspect and verify more of an asset's lifecycle, from issuance and price discovery to treasury formation and governance?
+3. **Human–agent coordination:** can people delegate work and economic actions to software while retaining explicit authority and an inspectable record of decisions?
 
-```text
-                   DIGITAL SOVEREIGNTY
-                           │
-          ┌────────────────┴────────────────┐
-          │                                 │
- Persistent Intelligence           Verifiable Markets
-          │                                 │
- Identity · Memory                  Assets · Issuance
- Experience · Skill                 Price Discovery
- Agent Coordination                 Governance
-          │                                 │
-          └────────────────┬────────────────┘
-                           │
-                Autonomous Coordination
-                           │
-                           ↓
-              Open Human-Machine Institutions
-```
+Anda, TokenList, and dMsg address complementary parts of these questions. This is a direction for research and integration, not a claim that a complete system already exists. Open interfaces should let other projects participate without adopting the entire ICPanda stack.
 
-We do not know the final form of a sovereign digital society.
-
-But we believe:
-
-> **its intelligence should remember,**
-> **its markets should be verifiable,**
-> **and its institutions should be open.**
+Progress should be judged by useful infrastructure, evidence that it works, and the control it gives its users and communities.
 
 ---
 
@@ -260,13 +238,14 @@ But we believe:
 
 ICPanda DAO builds in public.
 
-* 🌐 **Website:** https://panda.fans/
-* 🧠 **Anda:** https://anda.ai/
-* 📈 **TokenList:** https://tokenlist.ing/
-* 🗳️ **Governance:** https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai
-* 💻 **GitHub:** https://github.com/ldclabs
-* 🔗 **alink:** https://al.ink/ICPanda
-* 🐦 **X:** https://x.com/ICPandaDAO
+* 🌐 **[Website](https://panda.fans/)**
+* 🧠 **[Anda](https://anda.ai/)**
+* 📈 **[TokenList](https://tokenlist.ing/)**
+* 🔐 **[dMsg](https://dmsg.net/)**
+* 🗳️ **[Governance](https://dashboard.internetcomputer.org/sns/d7wvo-iiaaa-aaaaq-aacsq-cai)**
+* 💻 **[GitHub](https://github.com/ldclabs)**
+* 🔗 **[alink](https://al.ink/ICPanda)**
+* 🐦 **[X](https://x.com/ICPandaDAO)**
 
 ---
 
