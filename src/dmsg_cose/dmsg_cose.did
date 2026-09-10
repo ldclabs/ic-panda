@@ -1,132 +1,312 @@
-type Algorithm = variant { VetKdBls12381; Ed25519; EcdsaSecp256k1 };
+// Supported chain-key operations; vetKD derives keys and cannot sign documents.
+type Algorithm = variant {
+  // BLS12-381 vetKD encrypted key derivation; not a document-signature algorithm.
+  VetKdBls12381;
+  // Ed25519 formal signatures (COSE algorithm -19).
+  Ed25519;
+  // ECDSA over secp256k1 (COSE ES256K, -47).
+  EcdsaSecp256k1;
+};
+// Deployment configuration for the COSE executor.
+// Production validation requires fixed master names and nonzero fingerprints;
+// changing derivation inputs changes key identity.
 type CoseInit = record {
+  // Configured algorithm/master-key pins.
   masters : vec MasterKey;
+  // Expected identity of this COSE executor.
   executing_canister : principal;
+  // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
+  // Maximum ICP cycles in a daily budget window.
   daily_cycles : nat;
+  // User canister authorized to supply execution grants.
   initial_home_user : principal;
+  // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
+  // Maximum executions in a daily budget window.
   daily_executions : nat32;
+  // Deployment domain used in validation and derivation.
   environment : Environment;
 };
-type Environment = variant { Local; Production; Staging };
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
+  // Required legacy key material is unavailable.
   MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
   LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // A new content root must be committed before writes can resume.
   RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
   VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
   ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
   IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
   IdTimestampOutOfRange;
+  // The requested record does not exist.
   NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
   FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
   DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
   Locked;
+  // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
   IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
   PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
   IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
   IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
   UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Caller, role or capability does not authorize this operation.
   Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // The applicable deadline has passed.
   Expired;
+  // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
   AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// User-home authorization passed to the configured COSE home.
+// This is a restricted cross-canister contract, not a bearer token that any
+// caller may construct and redeem.
 type ExecutionGrant = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
+  // Device approval sequence consumed by this authorization.
   device_sequence : nat64;
+  // User-home execution sequence for replay protection.
   execution_sequence : nat64;
+  // Authorized operation, identical to the approved request.
   kind : ExecutionKind;
+  // Time authorization was accepted, in Unix milliseconds.
   approved_at : nat64;
+  // 32-byte device identifier, distinct from its signing public key.
   device_id : blob;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // Maximum ICP cycles approved for this execution; not a token amount.
   max_cycles : nat;
+  // User canister authoritative for this account or deployment.
   home_user : principal;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Exact operation covered by device approval and execution authorization.
+// This low-level contract is not an unrestricted raw-signing API.
 type ExecutionKind = variant {
+  // Formal document signing with fixed key, prepared bytes and origin.
   Sign : record {
+    // Purpose, algorithm and generation of the formal signing key.
     key : KeyRequest;
+    // RFC 9679 SHA-256 thumbprint of required public COSE key parameters.
     public_key_fingerprint : blob;
+    // Checked browser origin bound by the device approval.
     origin : text;
+    // Exact canonical COSE Sig_structure bytes; not a raw document hash.
     to_be_signed : blob;
   };
+  // Content-root derivation encrypted to a vetKD transport key.
   Derive : record {
+    // Generation of the selected root or recovery material.
     generation : nat64;
+    // 48-byte compressed vetKD transport public key after request conversion.
     transport_key : blob;
+    // Reservation operation ID for a candidate root; None for the committed root.
     root_op_id : opt blob;
   };
 };
+// Execution lifecycle carrying either output or failure information.
 type ExecutionOutcome = variant {
+  // Execution returned a known failure.
   Failed : Error;
+  // Execution has started and may be awaiting an external call.
   Executing;
+  // Authorization is committed; no completed result is yet available.
   Authorized;
+  // Execution outcome is uncertain; reconcile using the same request ID.
   Unknown : Error;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // Execution completed with a retained output.
   Completed : ExecutionOutput;
 };
+// Successful formal signature or encrypted vetKD derivation result.
 type ExecutionOutput = variant {
-  EncryptedRootKey : record { key : KeyDescriptor; encrypted_key : blob };
-  Signature : record { key : KeyDescriptor; artifact : SignedArtifact };
+  // Encrypted vetKD output and the derivation-key descriptor.
+  EncryptedRootKey : record {
+    // Public descriptor of the key used to produce this output.
+    key : KeyDescriptor;
+    // vetKD result encrypted to the supplied transport public key.
+    encrypted_key : blob;
+  };
+  // Portable signed document and its key provenance.
+  Signature : record {
+    // Public descriptor of the key used to produce this output.
+    key : KeyDescriptor;
+    // Portable COSE document and public key.
+    artifact : SignedArtifact;
+  };
 };
+// Query/retry view of an execution and its charged cycles.
 type ExecutionResult = record {
+  // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
+  // ICP cycles charged for this execution.
   charged_cycles : nat;
+  // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
-type Initialization = variant { Ready; Uninitialized; Initializing };
+// Readiness of configured chain-key public keys.
+type Initialization = variant {
+  // Required material is initialized and ready for use.
+  Ready;
+  // Required material has not been initialized.
+  Uninitialized;
+  // Public-key initialization is in progress.
+  Initializing;
+};
+// Public key provenance and derivation identity.
+// Authenticate its source before using it to bind a key to an account.
+// Key identity depends on the home canister and derivation configuration.
 type KeyDescriptor = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : Algorithm;
+  // Generation included in key derivation; formal signing currently uses 1.
   key_generation : nat64;
+  // RFC 9679 SHA-256 thumbprint for signing keys; SHA-256 of raw public
+  // key bytes for vetKD.
   public_key_fingerprint : blob;
+  // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
+  // Raw Ed25519 key (32 bytes), SEC1 secp256k1 key, or vetKD public key
+  // (96 bytes). This is not an encoded COSE_Key.
   public_key : blob;
+  // COSE thumbprint bytes for formal signing; domain-separated derivation
+  // identifier for vetKD. Treat as opaque.
   key_id : blob;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // Deployment domain used in validation and derivation.
   environment : Environment;
+  // ICP master-key name used for this derived key.
   master_key_name : text;
+  // Key usage domain; part of key derivation.
   purpose : KeyPurpose;
 };
-type KeyPurpose = variant { ContentRoot; FileAttestation; Statement };
+// Domain separation for formal signatures and content-root derivation.
+type KeyPurpose = variant {
+  // Content-root derivation domain, selected by generation.
+  ContentRoot;
+  // Key domain for SHA-256 document attestations.
+  FileAttestation;
+  // Key domain for text statements.
+  Statement;
+};
+// Low-level key derivation selector. Prefer [`KeySelector`] when constructing requests.
 type KeyRequest = record {
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : Algorithm;
+  // Positive key generation; formal signing requires 1, content roots use
+  // the requested root generation.
   generation : nat64;
+  // Key usage domain; part of key derivation.
   purpose : KeyPurpose;
 };
+// Typed selector separating formal signing keys from vetKD content roots.
 type KeySelector = variant {
-  ContentRoot : record { generation : nat64 };
+  // Content-root derivation domain selected by generation.
+  ContentRoot : record {
+    // Content-root generation to derive.
+    generation : nat64;
+  };
+  // Purpose-specific formal signing key.
   Signing : SigningKey;
 };
+// COSE deployment configuration and master-key initialization diagnostics.
 type KeyState = record {
+  // Master public-key initialization state.
   initialization : Initialization;
+  // SHA-256 of raw initialized master public keys, in config.masters order.
   fingerprints : vec blob;
+  // Initialization diagnostic, when one is available.
   error : opt text;
+  // Deployment configuration used by the executor.
   config : CoseInit;
 };
+// Pinned ICP master-key configuration checked during COSE initialization.
 type MasterKey = record {
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : Algorithm;
+  // SHA-256 of raw management public-key bytes, not a COSE thumbprint.
+  // A zero pin is allowed only outside Production.
   expected_fingerprint : blob;
+  // ICP management-canister master-key name.
   key_name : text;
 };
 type Result = variant { Ok : ExecutionResult; Err : Error };
 type Result_1 = variant { Ok : KeyState; Err : Error };
 type Result_2 = variant { Ok : KeyDescriptor; Err : Error };
-type SignedArtifact = record { cose_sign1 : blob; cose_key : blob };
+// Portable signed document plus a public-only COSE_Key.
+// The attached key supports mathematical verification but does not establish
+// who owns the key or whether the signer had authority.
+type SignedArtifact = record {
+  // Tagged RFC 9052 COSE_Sign1 CBOR bytes.
+  cose_sign1 : blob;
+  // Public-only COSE_Key CBOR bytes; never include private key parameters.
+  cose_key : blob;
+};
 // Only algorithms that can produce a formal signature.
-type SigningAlgorithm = variant { Ed25519; EcdsaSecp256k1 };
+type SigningAlgorithm = variant {
+  // Ed25519 formal signatures (COSE algorithm -19).
+  Ed25519;
+  // ECDSA over secp256k1 (COSE ES256K, -47).
+  EcdsaSecp256k1;
+};
+// Formal signing purpose and algorithm, with generation fixed to 1 on conversion.
 type SigningKey = record {
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : SigningAlgorithm;
+  // Key usage domain; part of key derivation.
   purpose : SigningPurpose;
 };
-type SigningPurpose = variant { FileAttestation; Statement };
+// Domain of a formal document signing key; derived from the content profile.
+type SigningPurpose = variant {
+  // Key domain for SHA-256 document attestations.
+  FileAttestation;
+  // Key domain for text statements.
+  Statement;
+};
 service : (CoseInit) -> {
   execute : (ExecutionGrant) -> (Result);
   get_execution : (blob, blob) -> (Result) query;

@@ -198,4 +198,6 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 Rust code blocks in the English README run as doctests. Keep example code identical in both versions, translating only comments. The crate enables `missing_docs` warnings; document new public items as they are added. See the public implementation documentation for protocol and real-canister integration tests.
 
+Rust type documentation is also included in generated Candid interfaces. After changing public type comments, run `make build-dmsg` and `pnpm --dir src/dmsg_app bindings`, then commit the updated `.did` files and generated bindings together. `make test-dmsg` checks that the committed Candid files exactly match the Wasm exports, including comments.
+
 Before publishing, review publication settings in `Cargo.toml`, how the repository-only local `dmsg_protocol` dev-dependency is handled in the release package, and run package/publish dry-runs against the actual package. Complete documentation does not establish production deployment, capacity, external-service readiness, or audit acceptance. These are development interfaces with no compatibility promise for earlier experimental encodings or stable-storage layouts.

@@ -1,156 +1,328 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// Relay attestation that the quoted encrypted envelope was accepted for storage.
+// Signed under `dmsg/admission-receipt/v1`; does not prove reading, a reply,
+// or completion of the on-chain settlement transfers.
 type AdmissionReceipt = record {
+  // Admission receipt protocol version; current version is 1.
   protocol : nat16;
+  // Promised storage retention end in Unix milliseconds.
   retain_until : nat64;
+  // Identifier of the relay attesting admission.
   relay_id : blob;
+  // Commitment to the exact encrypted delivery envelope.
   envelope_digest : blob;
+  // Accepted encrypted envelope size in bytes.
   size : nat32;
+  // Fixed admission/settlement deadline in Unix milliseconds.
   accept_by : nat64;
+  // Relay admission sequence number.
   admission_seq : nat64;
+  // `dmsg/quote/v1` commitment to the exact accepted quote.
   quote_digest : blob;
+  // Time the relay stored the envelope, in Unix milliseconds.
   stored_at : nat64;
+  // Contact-policy version applied at admission.
   policy_version : nat64;
+  // 32-byte identifier of the escrow holding funds.
   escrow_id : blob;
+  // Payment canister authoritative for this escrow/offer.
   home_payment : principal;
+  // Relay signing-key epoch used to verify the quote or receipt.
   signer_epoch : nat64;
+  // Fixed funding deadline in Unix milliseconds.
   fund_by : nat64;
+  // Inbox encryption-key version used by the admitted envelope.
   inbox_key_version : nat64;
 };
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
 type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
   certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
   schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
   entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
   canister : principal;
 };
-type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
+// Verified ledger deposit and its remaining refundable allocation.
 type Deposit = record {
+  // Time the deposit was recorded, in Unix milliseconds.
   committed_at : nat64;
+  // Source ICRC account verified from the ledger deposit.
   from : Account;
+  // Deposit allocation available for refund before the refund network fee.
   refundable : nat;
+  // Verified deposit ledger transaction index.
   block : nat64;
+  // Verified incoming amount in integer ledger base units.
   amount : nat;
 };
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
+  // Required legacy key material is unavailable.
   MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
   LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // A new content root must be committed before writes can resume.
   RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
   VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
   ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
   IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
   IdTimestampOutOfRange;
+  // The requested record does not exist.
   NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
   FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
   DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
   Locked;
+  // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
   IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
   PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
   IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
   IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
   UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Caller, role or capability does not authorize this operation.
   Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // The applicable deadline has passed.
   Expired;
+  // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
   AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// Public escrow accounting view and certified leaf payload.
+// The certified path is the single raw escrow ID. `confirmed_in` equals
+// `liabilities + transferred + network_fees`; a committed decision does not
+// prove successful payout. This view is not the internal storage schema.
 type EscrowInfo = record {
+  // Funds still owed/reserved by the escrow in ledger base units.
   liabilities : nat;
+  // Irreversible choice of settlement or refund, separate from payout progress.
   decision : FundsDecision;
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // 32-byte escrow deposit subaccount owned by the payment canister.
   subaccount : blob;
+  // Total successful outgoing network fees in ledger base units.
   network_fees : nat;
+  // Fixed relay quote accepted when the escrow was opened.
   quote : Quote;
+  // Total successful outgoing transfer amounts, excluding network fees, in base units.
   transferred : nat;
+  // Primary funding time in Unix milliseconds, if funded.
   funded_at : opt nat64;
+  // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
+  // `dmsg/quote/v1` commitment to the exact accepted quote.
   quote_digest : blob;
+  // Authenticated Principal that opened the escrow.
   payer_principal : principal;
+  // Commitment to the admitted receipt chosen for settlement, if any.
   receipt_digest : opt blob;
+  // 32-byte identifier of the escrow holding funds.
   escrow_id : blob;
+  // Ledger block selected as the primary funding deposit, if any.
   funding_ref : opt nat64;
+  // Total verified deposits in integer ledger base units.
   confirmed_in : nat;
 };
-type FundsDecision = variant { SettlementCommitted; RefundCommitted; Pending };
-type LegKind = variant {
-  Refund : record { funding_block : nat64 };
-  Platform;
-  ReserveRefund;
-  Recipient;
-};
-type LegStatus = variant {
-  Superseded;
-  FeeBlocked;
-  Rejected;
-  Succeeded;
-  InFlight;
-  Unknown;
+// Mutually exclusive escrow disposition; does not mean transfers have finished.
+type FundsDecision = variant {
+  // Settlement selected; recipient/platform transfers may still be pending.
+  SettlementCommitted;
+  // Refund selected; refund transfers may still be pending.
+  RefundCommitted;
+  // Neither settlement nor refund has been committed.
   Pending;
 };
+// Destination/purpose of an escrow transfer.
+type LegKind = variant {
+  // Refund of a specific deposit allocation.
+  Refund : record {
+    // Ledger block identifying the deposit to refund.
+    funding_block : nat64;
+  };
+  // Platform service-fee payment.
+  Platform;
+  // Return unused primary funding fee reserve to the payer.
+  ReserveRefund;
+  // Net payment to the recipient.
+  Recipient;
+};
+// One outgoing ledger transfer status, independent of the escrow decision.
+type LegStatus = variant {
+  // A fee revision replaced this leg; do not execute it again.
+  Superseded;
+  // The approved fee or available fee reserve cannot support the transfer.
+  FeeBlocked;
+  // Ledger definitively rejected this transfer.
+  Rejected;
+  // Ledger confirmed this transfer.
+  Succeeded;
+  // Ledger transfer call is in flight.
+  InFlight;
+  // Ledger outcome is uncertain; reconcile this escrow/leg before retrying.
+  Unknown;
+  // Transfer is prepared but has no confirmed ledger result.
+  Pending;
+};
+// Request to open an escrow with a signed quote and recipient authorization.
 type OpenEscrow = record {
+  // Relay Ed25519 signature over the quote digest.
   quote_signature : blob;
+  // Recipient authorization signed by a permitted device.
   offer : SignedOffer;
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Fixed relay quote accepted when the escrow was opened.
   quote : Quote;
 };
+// Escrow service deployment, ledger fees, signer and admission limits.
+// All monetary values are integer ledger base units, not display tokens or cycles.
 type PaymentInit = record {
+  // Platform service fee in integer ledger base units.
   service_fee : nat;
+  // Maximum new escrow orders per daily budget window.
   daily_orders : nat32;
+  // ICRC account receiving the service fee.
   platform : Account;
+  // Whether new payment orders are enabled.
   enabled : bool;
+  // User canister authoritative for this account or deployment.
   home_user : principal;
+  // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Configured network fee in ledger base units.
   ledger_fee : nat;
+  // Authorized quote/admission receipt signer.
   signer : ReceiptSigner;
+  // Maximum simultaneously open escrows per payer.
   max_open_per_payer : nat32;
+  // Maximum permitted network fee in ledger base units.
   max_fee : nat;
 };
+// Recipient device authorization of fixed payment terms.
+// Signed under `dmsg/payment-offer/v1`; does not itself open or fund an escrow.
 type PaymentOffer = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Opaque commitment binding the quote to the offer application scope.
   quote_scope : blob;
+  // Offer issuance time in Unix milliseconds (unlike Statement::issued_at).
   issued_at : nat64;
+  // ICRC account receiving the quoted net payment.
   recipient : Account;
+  // 32-byte device identifier, distinct from its signing public key.
   device_id : blob;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
+  // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Recipient-generated payment offer identifier.
   offer_id : blob;
+  // Payment canister authoritative for this escrow/offer.
   home_payment : principal;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
+  // Amount owed to the recipient, excluding fees, in ledger base units.
   recipient_net : nat;
 };
+// Relay quote binding payment, encrypted envelope and delivery limits.
+// Signed under `dmsg/quote/v1`. All amounts are integer ledger base units;
+// all timestamps are Unix milliseconds. `amount` is recipient_net plus
+// service_fee plus fee_reserve.
 type Quote = record {
+  // Opaque commitment binding the quote to the offer application scope.
   quote_scope : blob;
+  // Ledger base units reserved for outgoing network fees and reserve refund.
   fee_reserve : nat;
+  // Platform service fee in integer ledger base units.
   service_fee : nat;
+  // Maximum network fee allowed by this quote, in ledger base units.
   max_network_fee : nat;
+  // Commitment to the exact encrypted delivery envelope.
   envelope_digest : blob;
+  // Fixed admission/settlement deadline in Unix milliseconds.
   accept_by : nat64;
+  // `dmsg/payment-offer/v1` commitment to the recipient authorization.
   offer_digest : blob;
+  // ICRC account receiving the quoted net payment.
   recipient : Account;
+  // ICRC account receiving the service fee.
   platform : Account;
+  // Creation time in Unix milliseconds.
   created_at : nat64;
+  // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Relay-generated identifier of these fixed quote terms.
   quote_id : blob;
+  // Maximum accepted encrypted envelope size in bytes.
   max_bytes : nat32;
+  // ICRC account required as the source of the primary funding deposit.
   payer : Account;
+  // Total required funding: recipient_net + service_fee + fee_reserve,
+  // in integer ledger base units.
   amount : nat;
+  // Payment canister authoritative for this escrow/offer.
   home_payment : principal;
+  // Required storage retention duration in milliseconds.
   retain_ms : nat64;
+  // Amount owed to the recipient, excluding fees, in ledger base units.
   recipient_net : nat;
+  // Relay signing-key epoch used to verify the quote or receipt.
   signer_epoch : nat64;
+  // Fixed funding deadline in Unix milliseconds.
   fund_by : nat64;
 };
+// Relay Ed25519 key authorized to sign quotes and admission receipts.
 type ReceiptSigner = record {
+  // Whether this signer has been revoked.
   revoked : bool;
+  // 32-byte Ed25519 verification key of the authorized relay.
   public_key : blob;
+  // Signer-key version used to select the relay verification key.
   epoch : nat64;
+  // Exclusive end of signer validity in Unix milliseconds.
   valid_until : nat64;
+  // Inclusive beginning of signer validity in Unix milliseconds.
   valid_from : nat64;
 };
 type Result = variant { Ok : EscrowInfo; Err : Error };
@@ -160,23 +332,51 @@ type Result_3 = variant { Ok : ReceiptSigner; Err : Error };
 type Result_4 = variant { Ok : vec EscrowInfo; Err : Error };
 type Result_5 = variant { Ok : vec TransferLeg; Err : Error };
 type Result_6 = variant { Ok; Err : Error };
-type SignedOffer = record { signature : blob; offer : PaymentOffer };
-type SignedReceipt = record { signature : blob; receipt : AdmissionReceipt };
+// Payment offer and its device Ed25519 signature over the offer digest.
+type SignedOffer = record {
+  // Device Ed25519 signature over the `dmsg/payment-offer/v1` digest.
+  signature : blob;
+  // Recipient authorization signed by a permitted device.
+  offer : PaymentOffer;
+};
+// Admission receipt and the authorized relay Ed25519 signature.
+type SignedReceipt = record {
+  // Relay Ed25519 signature over the `dmsg/admission-receipt/v1` digest.
+  signature : blob;
+  // Admission attestation bound to the escrow and quote.
+  receipt : AdmissionReceipt;
+};
+// One outgoing ICRC transfer with stable deduplication parameters.
+// Reconcile unknown outcomes before retrying; preserve memo and created_at_time.
+// Amounts and fees are integer ledger base units.
 type TransferLeg = record {
+  // ICRC destination of this outgoing transfer.
   to : Account;
+  // Ledger network fee in integer base units.
   fee : nat;
+  // Ledger execution state of this particular transfer leg.
   status : LegStatus;
+  // Previous transfer leg superseded by this revision, if any.
   replaces : opt nat64;
+  // Commitment to the preceding transfer revision; zero for an initial leg.
   history_digest : blob;
+  // Beneficiary or refund allocation paid by this transfer.
   kind : LegKind;
+  // Fixed 32-byte ledger memo used for transfer correlation/deduplication.
   memo : blob;
+  // Transfer identifier within the escrow.
   leg_id : nat64;
+  // Confirmed ledger transaction index, if available.
   block : opt nat64;
   // Fixed ICRC transfer timestamp in Unix nanoseconds, preserved on retries.
   created_at_time : nat64;
+  // 32-byte identifier of the escrow holding funds.
   escrow_id : blob;
+  // Fee-repricing revision of this transfer.
   revision : nat64;
+  // Outgoing amount excluding the network fee, in ledger base units.
   amount : nat;
+  // Network fee reported by the ledger after a BadFee response, if available.
   expected_fee : opt nat;
 };
 service : (PaymentInit) -> {

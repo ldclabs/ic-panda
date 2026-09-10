@@ -1,112 +1,226 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
 type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
   certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
   schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
   entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
   canister : principal;
 };
-type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
+  // Required legacy key material is unavailable.
   MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
   LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // A new content root must be committed before writes can resume.
   RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
   VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
   ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
   IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
   IdTimestampOutOfRange;
+  // The requested record does not exist.
   NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
   FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
   DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
   Locked;
+  // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
   IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
   PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
   IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
   IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
   UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Caller, role or capability does not authorize this operation.
   Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // The applicable deadline has passed.
   Expired;
+  // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
   AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
-type HandleAction = variant { AcceptTransfer; Register; Transfer; ClaimLegacy };
+// Name ownership operation authorized by an account.
+type HandleAction = variant {
+  // Accept a proposed ownership transfer.
+  AcceptTransfer;
+  // Register an available canonical name.
+  Register;
+  // Propose transfer of an owned name.
+  Transfer;
+  // Claim a name reserved in a frozen legacy snapshot.
+  ClaimLegacy;
+};
+// Append-only ownership event linked to its predecessor by digest.
 type HandleEvent = record {
+  // Ownership change time in Unix milliseconds.
   at : nat64;
+  // Account receiving ownership of this name.
   to : blob;
+  // Digest of the preceding ownership event.
   previous : blob;
+  // Previous owner account; None when assigning an unowned name.
   from : opt blob;
+  // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
   handle : text;
+  // Frozen snapshot commitment associated with the event.
   legacy_snapshot : blob;
+  // Monotonic sequence number in this operation/event stream.
   sequence : nat64;
 };
+// Name registry deployment, ledger and pending-operation limits.
 type HandleInit = record {
+  // Maximum pending name operations allowed by this registry.
   max_pending : nat32;
+  // User canister authoritative for this account or deployment.
   home_user : principal;
+  // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Configured network fee in ledger base units.
   ledger_fee : nat;
 };
+// Exact name operation authorized by the user home for the handle canister.
 type HandleIntent = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Name registry responsible for this operation/deployment.
   handle_canister : principal;
+  // Recipient account for transfer-related operations, when required.
   target_account : opt blob;
+  // Name ownership action being authorized.
   action : HandleAction;
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
   handle : text;
+  // Current record version required for compare-and-swap.
   expected_version : nat64;
+  // Commitment to action-specific terms, including charge terms when applicable.
   terms_digest : blob;
 };
+// Query view of a name registration and its ledger charge.
 type HandleOperation = record {
+  // Fixed registration intent and payment terms.
   registration : Registration;
+  // Fixed 32-byte ledger memo used for transfer correlation/deduplication.
   memo : blob;
+  // Confirmed ledger transaction index, if known.
   ledger_block : opt nat64;
+  // Creation time in Unix milliseconds.
   created_at : nat64;
+  // Domain-separated commitment to this operation and its parameters.
   digest : blob;
+  // Current registration lifecycle phase.
   phase : HandlePhase;
+  // Ledger transfer amount in base units, excluding registration.fee.
   amount : nat;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Registration charge/commit lifecycle. Unknown charges require reconciliation.
 type HandlePhase = variant {
+  // Name ownership change is committed.
   Committed;
+  // Name operation reserved before ledger charging.
   Reserved;
+  // Ledger charge succeeded; ownership commit remains.
   Paid;
+  // A registration refund remains to be completed.
   RefundPending;
+  // Ledger charge may have succeeded; reconcile before another charge.
   ChargeUnknown;
+  // Ledger charge is in flight.
   Charging;
+  // The applicable deadline has passed.
   Expired;
 };
+// Current canonical name ownership and event-chain tip.
 type HandleRecord = record {
+  // Digest of the latest committed ownership event.
   event_tip : blob;
+  // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
   handle : text;
+  // Stable dMsg account that currently owns the name.
   owner_account : blob;
 };
+// Frozen name claim; ambiguous ownership is quarantined for resolution.
 type LegacyReservation = record {
   // Frozen administrator principals, never ordinary delegators. Empty means
   // an ambiguous name-account owner stays quarantined.
   frozen_admins : vec principal;
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
   handle : text;
+  // Legacy name-account Principal, if the name used one.
   legacy_name_principal : opt principal;
+  // Owner Principal captured at the legacy freeze.
   legacy_owner : principal;
+  // Whether ambiguous ownership prevents ordinary claim activation.
   quarantined : bool;
 };
+// Manifest committing to frozen legacy name ownership for import.
 type LegacySnapshot = record {
+  // Digest of the latest committed ownership event.
   event_tip : blob;
+  // Legacy registry that produced the frozen snapshot.
   source_canister : principal;
+  // Number of name entries committed by the snapshot.
   count : nat64;
+  // Commitment to the complete frozen name entries.
   entries_digest : blob;
+  // Identifier of the frozen import snapshot.
   snapshot_id : blob;
+  // Legacy state version at the write freeze.
   freeze_version : nat64;
 };
+// Authorized name intent and fixed ledger charge terms.
 type Registration = record {
+  // Ledger network fee in integer base units.
   fee : nat;
+  // Account-authorized name operation.
   intent : HandleIntent;
+  // ICRC account whose allowance funds the registration charge.
   payer : Account;
 };
 type Result = variant { Ok; Err : Error };
@@ -116,11 +230,17 @@ type Result_3 = variant { Ok : opt LegacyReservation; Err : Error };
 type Result_4 = variant { Ok : SnapshotProgress; Err : Error };
 type Result_5 = variant { Ok : vec LegacyReservation; Err : Error };
 type Result_6 = variant { Ok : CertifiedBatch; Err : Error };
+// Progress of the restricted legacy name import process.
 type SnapshotProgress = record {
+  // Last imported canonical name, for ordered continuation.
   last_handle : opt text;
+  // Frozen import manifest, or None before an import begins.
   snapshot : opt LegacySnapshot;
+  // Number of frozen entries imported so far.
   imported : nat64;
+  // Whether the imported snapshot has been finalized.
   sealed : bool;
+  // Running commitment to the imported entry sequence.
   rolling_digest : blob;
 };
 service : (HandleInit) -> {

@@ -1,221 +1,530 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// Sensitive account mutation covered by an [`Approval`].
+// Apply through [`AccountMutation`] with the expected account version.
 type AccountCommand = variant {
-  DisputeRecovery : record { op_id : blob; dispute : blob };
-  ConfirmRecovery : record { proof : blob };
-  BindAuth : record { "principal" : principal; nonce : blob };
-  ReserveRoot : record { op_id : blob; expected_generation : nat64 };
-  RemoveAuth : record { "principal" : principal };
-  AuthorizeHandle : record { intent : HandleIntent };
-  SetRecovery : record { proof : blob; policy : RecoveryPolicy };
-  AddDevice : record { device : DeviceInput; proof : blob };
-  CommitRoot : record {
+  // Record a dispute against a pending recovery operation.
+  DisputeRecovery : record {
+    // Idempotency identifier; reuse only with identical operation parameters.
     op_id : blob;
-    root : ContentRootRef;
+    // Dispute digest to bind a later recovery-key reconfirmation.
+    dispute : blob;
+  };
+  // Confirm configured recovery material.
+  ConfirmRecovery : record {
+    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    proof : blob;
+  };
+  // Bind another proven login Principal.
+  BindAuth : record {
+    // Login Principal to bind or remove.
+    "principal" : principal;
+    // One-time challenge binding the login Principal authorization.
+    nonce : blob;
+  };
+  // Reserve the next content-root generation using compare-and-swap.
+  ReserveRoot : record {
+    // Idempotency identifier; reuse only with identical operation parameters.
+    op_id : blob;
+    // Committed root generation expected for compare-and-swap.
     expected_generation : nat64;
   };
-  RevokeDevice : record { device_id : blob };
-  SetPolicy : record { policy : SensitivePolicy };
+  // Remove a login Principal binding.
+  RemoveAuth : record {
+    // Login Principal to bind or remove.
+    "principal" : principal;
+  };
+  // Authorize a specific operation at the configured name registry.
+  AuthorizeHandle : record {
+    // Account-authorized name operation.
+    intent : HandleIntent;
+  };
+  // Install recovery public keys with proof of possession.
+  SetRecovery : record {
+    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    proof : blob;
+    // New recovery or sensitive-execution policy, as selected by the command.
+    policy : RecoveryPolicy;
+  };
+  // Enroll a device with proof of possession.
+  AddDevice : record {
+    // New device identity, keys and permissions to enroll.
+    device : DeviceInput;
+    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    proof : blob;
+  };
+  // Commit the bundle reference for an active root reservation.
+  CommitRoot : record {
+    // Idempotency identifier; reuse only with identical operation parameters.
+    op_id : blob;
+    // Candidate encrypted root-bundle commitment to commit.
+    root : ContentRootRef;
+    // Committed root generation expected for compare-and-swap.
+    expected_generation : nat64;
+  };
+  // Revoke a device and invalidate affected security state.
+  RevokeDevice : record {
+    // 32-byte device identifier, distinct from its signing public key.
+    device_id : blob;
+  };
+  // Replace sensitive execution policy.
+  SetPolicy : record {
+    // New recovery or sensitive-execution policy, as selected by the command.
+    policy : SensitivePolicy;
+  };
 };
+// Account query view, not a stable-storage record or a certified proof by itself.
 type AccountInfo = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Current account control state.
   status : AccountStatus;
+  // Account mutation revision used for optimistic concurrency.
   account_version : nat64;
+  // Login Principals bound to this stable dMsg account.
   auth_bindings : vec principal;
+  // Replay counter for recovery authorization.
   recovery_nonce : nat64;
+  // Outstanding root reservation, if present.
   root_slot : opt RootReservation;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Active delayed recovery procedure, if any.
   pending_recovery : opt PendingRecovery;
+  // Canonical absolute issuer URI identifying the signer.
   issuer : text;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // User canister authoritative for this account or deployment.
   home_user : principal;
+  // Account-specific chain-key execution restrictions and budgets.
   sensitive_policy : SensitivePolicy;
+  // Configured offline recovery policy, if present.
   recovery : opt RecoveryPolicy;
+  // Committed content-root bundle reference, if initialized.
   current_root : opt ContentRootRef;
+  // Whether recovery setup confirmation has completed.
   recovery_checked : bool;
+  // Complete device map keyed by device ID, including revoked devices.
   devices : vec record { blob; Device };
+  // Whether vault writes may proceed with the current root.
   vault_write_state : VaultWriteState;
 };
+// Compare-and-swap account update with device approval.
+// The approval binds both the expected version and the complete command.
 type AccountMutation = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Complete account mutation covered by the approval.
   command : AccountCommand;
+  // Device approval binding the complete request and replay context.
   approval : Approval;
+  // Current record version required for compare-and-swap.
   expected_version : nat64;
 };
-type AccountStatus = variant { Active; RecoveryDisputed };
-type Algorithm = variant { VetKdBls12381; Ed25519; EcdsaSecp256k1 };
+// Account control state, independent of local application locking.
+type AccountStatus = variant {
+  // Account is not in disputed recovery.
+  Active;
+  // Recovery has been disputed; sensitive operations are restricted.
+  RecoveryDisputed;
+};
+// Supported chain-key operations; vetKD derives keys and cannot sign documents.
+type Algorithm = variant {
+  // BLS12-381 vetKD encrypted key derivation; not a document-signature algorithm.
+  VetKdBls12381;
+  // Ed25519 formal signatures (COSE algorithm -19).
+  Ed25519;
+  // ECDSA over secp256k1 (COSE ES256K, -47).
+  EcdsaSecp256k1;
+};
+// Device Ed25519 approval over a domain-separated operation digest.
+// Construct the digest with the matching `dmsg_protocol` helper; signing the
+// Serde encoding of this struct is not a valid approval.
 type Approval = record {
+  // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
+  // Device Ed25519 signature over the operation-specific approval digest.
   signature : blob;
+  // 32-byte device identifier, distinct from its signing public key.
   device_id : blob;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
+  // Next sequence expected for this device; contributes to replay protection.
   sequence : nat64;
 };
+// Explicit device permission; authentication alone grants none of these rights.
 type Capability = variant {
+  // Approve formal document signing.
   FormalApprove;
+  // Sign ordinary content under device authority.
   ContentSign;
+  // Request content-root derivation for vault access.
   VaultUnlock;
+  // Reserve and commit content roots.
   RootManage;
+  // Authorize recipient payment offers.
   PaymentOffer;
 };
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
 type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
   certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
   schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
   entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
   canister : principal;
 };
-type CertifiedEntry = record { key : blob; value : opt blob; witness : blob };
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
+// Commitment to an encrypted root bundle stored outside the user canister.
+// This contains neither the bundle nor a plaintext content key.
 type ContentRootRef = record {
+  // vetKD key generation; must equal this root generation.
   key_generation : nat64;
+  // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
+  // Recovery public-key generation used to wrap the bundle.
   recovery_generation : nat64;
+  // Reserved content-root generation being committed.
   generation : nat64;
+  // Root bundle suite identifier; current commit validation requires `dmsg-root-v1`.
   suite : text;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // Commitment to the externally stored encrypted root bundle.
   bundle_digest : blob;
 };
-type ControllerRole = variant { Administrator; Member };
+// Account device role, distinct from ICP canister controller privileges.
+type ControllerRole = variant {
+  // Device eligible for account administration, subject to required capabilities.
+  Administrator;
+  // Device with limited capabilities; not an account administrator.
+  Member;
+};
+// Authenticated account creation with initial-device proof of possession.
+// The user canister allocates the AccountId; clients do not choose it.
 type CreateAccount = record {
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Initial administrator device with its keys and requested capabilities.
   device : DeviceInput;
+  // Initial device Ed25519 proof over the account-creation digest.
   proof : blob;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Request a vetKD root encrypted to a caller-generated transport public key.
+// The result is encrypted key material, not a plaintext vault key.
 type DeriveRootRequest = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Committed or reserved candidate root to derive.
   target : RootTarget;
+  // Maximum ICP cycles approved for this execution; not a token amount.
   max_cycles : nat;
+  // Device approval binding the complete request and replay context.
   approval : Approval;
+  // 48-byte compressed vetKD transport public key; protocol validation checks the point.
   transport_public_key : blob;
 };
+// Registered device and replay/revocation state.
 type Device = record {
+  // Enrollment time in Unix milliseconds.
   added_at : nat64;
+  // Approving device ID, when enrollment had an existing-device sponsor.
   added_by : opt blob;
+  // Revocation time in Unix milliseconds, or None if not revoked.
   revoked_at : opt nat64;
+  // Next device approval sequence expected by the user home.
   next_sequence : nat64;
+  // Device identity, keys and permissions registered at enrollment.
   input : DeviceInput;
 };
+// Public keys, role and capabilities proposed for a device.
+// The protocol validates keys and requires proof of possession for enrollment.
 type DeviceInput = record {
+  // Explicit operations permitted to this device.
   capabilities : vec Capability;
+  // Account device role; capabilities are checked separately.
   role : ControllerRole;
+  // 32-byte device identifier, distinct from its signing public key.
   device_id : blob;
+  // 32-byte X25519 public key for recovery/device HPKE envelopes.
   hpke_pub : blob;
+  // 32-byte Ed25519 verification key; protocol validation rejects invalid/weak keys.
   signing_pub : blob;
 };
-type Environment = variant { Local; Production; Staging };
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
+  // Required legacy key material is unavailable.
   MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
   LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // A new content root must be committed before writes can resume.
   RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
   VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
   ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
   IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
   IdTimestampOutOfRange;
+  // The requested record does not exist.
   NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
   FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
   DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
   Locked;
+  // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
   IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
   PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
   IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
   IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
   UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Caller, role or capability does not authorize this operation.
   Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // The applicable deadline has passed.
   Expired;
+  // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
   AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// Execution lifecycle carrying either output or failure information.
 type ExecutionOutcome = variant {
+  // Execution returned a known failure.
   Failed : Error;
+  // Execution has started and may be awaiting an external call.
   Executing;
+  // Authorization is committed; no completed result is yet available.
   Authorized;
+  // Execution outcome is uncertain; reconcile using the same request ID.
   Unknown : Error;
+  // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
+  // Execution completed with a retained output.
   Completed : ExecutionOutput;
 };
+// Successful formal signature or encrypted vetKD derivation result.
 type ExecutionOutput = variant {
-  EncryptedRootKey : record { key : KeyDescriptor; encrypted_key : blob };
-  Signature : record { key : KeyDescriptor; artifact : SignedArtifact };
+  // Encrypted vetKD output and the derivation-key descriptor.
+  EncryptedRootKey : record {
+    // Public descriptor of the key used to produce this output.
+    key : KeyDescriptor;
+    // vetKD result encrypted to the supplied transport public key.
+    encrypted_key : blob;
+  };
+  // Portable signed document and its key provenance.
+  Signature : record {
+    // Public descriptor of the key used to produce this output.
+    key : KeyDescriptor;
+    // Portable COSE document and public key.
+    artifact : SignedArtifact;
+  };
 };
+// Query/retry view of an execution and its charged cycles.
 type ExecutionResult = record {
+  // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
+  // ICP cycles charged for this execution.
   charged_cycles : nat;
+  // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
-type HandleAction = variant { AcceptTransfer; Register; Transfer; ClaimLegacy };
+// Name ownership operation authorized by an account.
+type HandleAction = variant {
+  // Accept a proposed ownership transfer.
+  AcceptTransfer;
+  // Register an available canonical name.
+  Register;
+  // Propose transfer of an owned name.
+  Transfer;
+  // Claim a name reserved in a frozen legacy snapshot.
+  ClaimLegacy;
+};
+// Exact name operation authorized by the user home for the handle canister.
 type HandleIntent = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Name registry responsible for this operation/deployment.
   handle_canister : principal;
+  // Recipient account for transfer-related operations, when required.
   target_account : opt blob;
+  // Name ownership action being authorized.
   action : HandleAction;
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
   handle : text;
+  // Current record version required for compare-and-swap.
   expected_version : nat64;
+  // Commitment to action-specific terms, including charge terms when applicable.
   terms_digest : blob;
 };
+// Public key provenance and derivation identity.
+// Authenticate its source before using it to bind a key to an account.
+// Key identity depends on the home canister and derivation configuration.
 type KeyDescriptor = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : Algorithm;
+  // Generation included in key derivation; formal signing currently uses 1.
   key_generation : nat64;
+  // RFC 9679 SHA-256 thumbprint for signing keys; SHA-256 of raw public
+  // key bytes for vetKD.
   public_key_fingerprint : blob;
+  // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
+  // Raw Ed25519 key (32 bytes), SEC1 secp256k1 key, or vetKD public key
+  // (96 bytes). This is not an encoded COSE_Key.
   public_key : blob;
+  // COSE thumbprint bytes for formal signing; domain-separated derivation
+  // identifier for vetKD. Treat as opaque.
   key_id : blob;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // Deployment domain used in validation and derivation.
   environment : Environment;
+  // ICP master-key name used for this derived key.
   master_key_name : text;
+  // Key usage domain; part of key derivation.
   purpose : KeyPurpose;
 };
-type KeyPurpose = variant { ContentRoot; FileAttestation; Statement };
+// Domain separation for formal signatures and content-root derivation.
+type KeyPurpose = variant {
+  // Content-root derivation domain, selected by generation.
+  ContentRoot;
+  // Key domain for SHA-256 document attestations.
+  FileAttestation;
+  // Key domain for text statements.
+  Statement;
+};
+// Idempotent account mutation result, distinct from a certified execution receipt.
 type OperationReceipt = record {
+  // Operation identifier for idempotent lookup.
   id : blob;
+  // Account mutation revision used for optimistic concurrency.
   account_version : nat64;
+  // Domain-separated commitment to this operation and its parameters.
   digest : blob;
 };
+// Recipient device authorization of fixed payment terms.
+// Signed under `dmsg/payment-offer/v1`; does not itself open or fund an escrow.
 type PaymentOffer = record {
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Opaque commitment binding the quote to the offer application scope.
   quote_scope : blob;
+  // Offer issuance time in Unix milliseconds (unlike Statement::issued_at).
   issued_at : nat64;
+  // ICRC account receiving the quoted net payment.
   recipient : Account;
+  // 32-byte device identifier, distinct from its signing public key.
   device_id : blob;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
+  // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Recipient-generated payment offer identifier.
   offer_id : blob;
+  // Payment canister authoritative for this escrow/offer.
   home_payment : principal;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
+  // Amount owed to the recipient, excluding fees, in ledger base units.
   recipient_net : nat;
 };
+// Delayed recovery state, including any dispute and renewed confirmation.
 type PendingRecovery = record {
+  // Whether the recovery key has reconfirmed after a dispute.
   reconfirmed : bool;
+  // Original delayed recovery proposal.
   request : RecoveryRequest;
+  // Earliest recovery execution time in Unix milliseconds.
   execute_after : nat64;
+  // Reconfirmation with its own deadline; None retains the original deadline.
   confirmation : opt RecoveryConfirmation;
+  // Digest identifying the dispute, if one exists.
   dispute : opt blob;
 };
+// Recovery-key reconfirmation binding a disputed recovery request.
 type RecoveryConfirmation = record {
+  // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
+  // Digest of the dispute explicitly acknowledged by the recovery key.
   dispute : blob;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Offline recovery public keys and delayed takeover policy.
+// No private recovery key or recovery code is stored in this value.
 type RecoveryPolicy = record {
+  // Recovery waiting period in milliseconds.
   delay_ms : nat64;
+  // Recovery-policy generation; replacement must increment the current value.
   generation : nat64;
+  // 32-byte X25519 public key for recovery/device HPKE envelopes.
   hpke_pub : blob;
+  // 32-byte Ed25519 verification key; protocol validation rejects invalid/weak keys.
   signing_pub : blob;
 };
+// Recovery-key-authorized proposal for a new login binding and device.
 type RecoveryRequest = record {
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Recovery-policy generation authorizing this request.
   generation : nat64;
+  // Replacement device to enroll when recovery completes.
   device : DeviceInput;
+  // Login Principal to bind after recovery completes.
   new_auth : principal;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
 type Result = variant { Ok; Err : Error };
@@ -231,88 +540,191 @@ type Result_6 = variant { Ok : OperationReceipt; Err : Error };
 type Result_7 = variant { Ok : opt PendingRecovery; Err : Error };
 type Result_8 = variant { Ok : opt ContentRootRef; Err : Error };
 type Result_9 = variant { Ok : nat64; Err : Error };
+// Temporary compare-and-swap slot for a candidate content root.
 type RootReservation = record {
+  // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
+  // Allocated candidate generation; abandoned reservations may leave gaps.
   generation : nat64;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Committed root generation expected for compare-and-swap.
   expected_generation : nat64;
+  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Select the committed root or the candidate of a reserved root operation.
 type RootTarget = variant {
-  Candidate : record { op_id : blob; generation : nat64 };
-  Current : record { generation : nat64 };
+  // Candidate root associated with an active reservation.
+  Candidate : record {
+    // Operation ID of the root reservation.
+    op_id : blob;
+    // Reserved next root generation.
+    generation : nat64;
+  };
+  // Currently committed content root.
+  Current : record {
+    // Committed root generation.
+    generation : nat64;
+  };
 };
+// Certified account security leaf (current schema 2).
+// The leaf path is the single raw 12-byte account ID. `devices_root` commits
+// to the complete device map, including revocation and replay state. Verify
+// certificate, witness and freshness before using it as authority.
 type SecuritySnapshot = record {
+  // Committed content-root generation; zero before initialization.
   content_root_generation : nat64;
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Account mutation revision used for optimistic concurrency.
   account_version : nat64;
+  // Replay counter for recovery authorization.
   recovery_nonce : nat64;
+  // Committed root-bundle digest, or None before initialization.
   content_root_digest : opt blob;
+  // `dmsg/devices/v1` digest of the complete BTreeMap<Hash, Device>.
   devices_root : blob;
+  // Recovery encryption public key, or None before configuration.
   recovery_hpke_pub : opt blob;
+  // Version of this public certified-leaf format, not the storage schema.
   schema : nat16;
+  // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Current recovery-policy generation.
   recovery_root_version : nat64;
+  // Canonical absolute issuer URI identifying the signer.
   issuer : text;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // User canister authoritative for this account or deployment.
   home_user : principal;
+  // Configured recovery delay in milliseconds, if recovery is configured.
   recovery_delay_ms : opt nat64;
+  // Recovery Ed25519 public key, or None before configuration.
   recovery_signing_pub : opt blob;
+  // Whether vault writes may proceed with the current root.
   vault_write_state : VaultWriteState;
+  // Current account control status.
   account_status : AccountStatus;
+  // Commitment to pending recovery state, if any.
   pending_recovery_digest : opt blob;
 };
+// Account limits on sensitive chain-key execution.
+// The default permits statement/file signing, 20 executions and
+// 1,000,000,000,000 cycles per day; deployment limits also apply.
 type SensitivePolicy = record {
+  // Maximum ICP cycles in a daily budget window.
   daily_cycles : nat;
+  // Maximum executions in a daily budget window.
   daily_executions : nat32;
+  // Whether sensitive execution is frozen by account policy.
   frozen : bool;
+  // Key purposes allowed by this policy.
   allowed_purposes : vec KeyPurpose;
 };
+// Formal signing request submitted to the user canister.
+// Freeze the statement, authenticated key reference, origin and cycle limit
+// before computing the approval. The portable statement has no approval deadline.
 type SignRequest = record {
+  // Algorithm, kid and thumbprint from the authenticated signing-key descriptor.
   key : SigningKeyRef;
+  // Stable 12-byte dMsg account identity; not a Principal or ledger account.
   account_id : blob;
+  // Prepared or parsed document claims and content.
   statement : Statement;
   // Checked browser origin; part of device approval, not of the portable statement.
   origin : text;
+  // Maximum ICP cycles approved for this execution; not a token amount.
   max_cycles : nat;
+  // Device approval binding the complete request and replay context.
   approval : Approval;
 };
-type SignedArtifact = record { cose_sign1 : blob; cose_key : blob };
-type SignedOffer = record { signature : blob; offer : PaymentOffer };
+// Portable signed document plus a public-only COSE_Key.
+// The attached key supports mathematical verification but does not establish
+// who owns the key or whether the signer had authority.
+type SignedArtifact = record {
+  // Tagged RFC 9052 COSE_Sign1 CBOR bytes.
+  cose_sign1 : blob;
+  // Public-only COSE_Key CBOR bytes; never include private key parameters.
+  cose_key : blob;
+};
+// Payment offer and its device Ed25519 signature over the offer digest.
+type SignedOffer = record {
+  // Device Ed25519 signature over the `dmsg/payment-offer/v1` digest.
+  signature : blob;
+  // Recipient authorization signed by a permitted device.
+  offer : PaymentOffer;
+};
 // Only algorithms that can produce a formal signature.
-type SigningAlgorithm = variant { Ed25519; EcdsaSecp256k1 };
+type SigningAlgorithm = variant {
+  // Ed25519 formal signatures (COSE algorithm -19).
+  Ed25519;
+  // ECDSA over secp256k1 (COSE ES256K, -47).
+  EcdsaSecp256k1;
+};
 // Small reference obtained from the authenticated key descriptor.
 type SigningKeyRef = record {
+  // Opaque COSE key identifier from an authenticated descriptor.
   kid : blob;
+  // Cryptographic algorithm selected for this key or operation.
   algorithm : SigningAlgorithm;
+  // RFC 9679 SHA-256 thumbprint of required public COSE key parameters.
   public_key_fingerprint : blob;
 };
+// Portable document preparation/parsed view, not the COSE wire payload.
+// The issuer and optional claims become protected headers; content determines
+// the text or digest profile. Use `dmsg_protocol` to validate and encode it.
 type Statement = record {
   // Claimed Unix seconds, never a TSA assertion or execution deadline.
   issued_at : opt int64;
+  // Document content and profile selection.
   content : StatementContent;
   // The object being described, not the account making the statement.
   subject : opt text;
+  // Canonical absolute issuer URI identifying the signer.
   issuer : text;
 };
+// Document payload selection. Text is signed verbatim; digest signs 32 raw bytes.
 type StatementContent = variant {
+  // Raw UTF-8 text, 1..4096 bytes; no whitespace trimming or Unicode normalization.
   Text : text;
+  // SHA-256 document profile with optional original-content metadata.
   Digest : record {
+    // SHA-256 of the exact original bytes, not their encoded digest text.
     sha256 : blob;
+    // Optional original media type; metadata does not verify the original bytes.
     content_type : opt text;
+    // Optional original-content URI; verification does not fetch it automatically.
     location : opt text;
   };
 };
+// Deployment configuration and account-creation limits for the user home.
 type UserInit = record {
+  // Name registry responsible for this operation/deployment.
   handle_canister : principal;
+  // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
+  // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
+  // Account creation limit per daily budget window.
   daily_new_accounts : nat32;
+  // Configured escrow service.
   payment_canister : principal;
+  // Deployment domain used in validation and derivation.
   environment : Environment;
+  // Maximum accounts admitted by this deployment.
   max_accounts : nat64;
 };
-type VaultWriteState = variant { RekeyRequired; Ready; Uninitialized };
+// Whether new vault writes may use the committed root.
+type VaultWriteState = variant {
+  // A new content root must be committed before writes can resume.
+  RekeyRequired;
+  // Required material is initialized and ready for use.
+  Ready;
+  // Required material has not been initialized.
+  Uninitialized;
+};
 service : (UserInit) -> {
   // Only the new authentication principal may reserve its own binding. The
   // existing account_id's administrator must separately approve the exact nonce.
