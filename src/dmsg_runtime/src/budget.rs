@@ -1,11 +1,13 @@
 use dmsg_types::*;
 use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 pub struct Budget {
     pub day: u64,
     pub executions: u32,
     pub cycles: u128,
 }
+
 impl Budget {
     pub fn reserve(
         &mut self,

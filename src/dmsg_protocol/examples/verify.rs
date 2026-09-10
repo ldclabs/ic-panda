@@ -1,11 +1,15 @@
 //! Offline mathematical verification; trust and authorization require separate evidence.
 use dmsg_types::SignedArtifact;
+use std::io::Read;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args()
         .nth(1)
         .ok_or("usage: verify artifact.cbor")?;
-    let bytes = std::fs::read(path)?;
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)?
+        .take(262_145)
+        .read_to_end(&mut bytes)?;
     if bytes.len() > 262_144 {
         return Err("artifact too large".into());
     }

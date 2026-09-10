@@ -19,10 +19,13 @@ pub(crate) struct Config {
     pub(crate) ledger_minute: u64,
     pub(crate) ledger_reads: u32,
 }
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
@@ -37,9 +40,11 @@ thread_local! {
     pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(9)));
     pub(crate) static CERT:RefCell<Certification>=RefCell::new(Certification::default());
 }
+
 pub(crate) fn cfg() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
+
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
 }

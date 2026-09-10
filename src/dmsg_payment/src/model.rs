@@ -81,6 +81,7 @@ pub fn validate_quote(
     verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
     Ok(hash)
 }
+
 pub fn signer_valid(s: &ReceiptSigner, epoch: u64, signed_at: u64, now: u64) -> Result<()> {
     ensure(
         !s.revoked
@@ -91,6 +92,7 @@ pub fn signer_valid(s: &ReceiptSigner, epoch: u64, signed_at: u64, now: u64) -> 
         Error::Forbidden,
     )
 }
+
 pub fn escrow(id: Principal, payer: Principal, input: &OpenEscrow, quote_digest: Hash) -> Escrow {
     let escrow_id = digest("dmsg/escrow-id/v1", &(id, payer, input.op_id));
     Escrow {
@@ -114,6 +116,7 @@ pub fn escrow(id: Principal, payer: Principal, input: &OpenEscrow, quote_digest:
         pending_payouts: 0,
     }
 }
+
 pub fn accept_deposit(e: &mut Escrow, id: Principal, tx: &VerifiedTransfer) -> Result<Deposit> {
     ensure(
         tx.to
@@ -158,6 +161,7 @@ pub fn accept_deposit(e: &mut Escrow, id: Principal, tx: &VerifiedTransfer) -> R
         refundable,
     })
 }
+
 pub fn receipt_valid(
     e: &Escrow,
     r: &SignedReceipt,
@@ -193,6 +197,7 @@ pub fn receipt_valid(
     verify(&s.public_key, hash.as_slice(), &r.signature)?;
     Ok(hash)
 }
+
 pub fn settle(e: &mut Escrow, receipt_digest: Hash, now: u64) -> Result<bool> {
     if e.decision == FundsDecision::SettlementCommitted {
         ensure(
@@ -209,6 +214,7 @@ pub fn settle(e: &mut Escrow, receipt_digest: Hash, now: u64) -> Result<bool> {
     e.version += 1;
     Ok(true)
 }
+
 pub fn refund(e: &mut Escrow, now: u64) -> Result<bool> {
     if e.decision == FundsDecision::RefundCommitted {
         return Ok(false);
@@ -219,6 +225,7 @@ pub fn refund(e: &mut Escrow, now: u64) -> Result<bool> {
     e.version += 1;
     Ok(true)
 }
+
 pub fn leg(
     e: &mut Escrow,
     kind: LegKind,
@@ -246,6 +253,7 @@ pub fn leg(
         history_digest: Hash::new([0; 32]),
     }
 }
+
 pub fn revise_leg(
     e: &mut Escrow,
     old: &mut TransferLeg,
@@ -298,6 +306,7 @@ pub fn revise_leg(
     *e = next;
     Ok(new)
 }
+
 pub fn complete_leg(e: &mut Escrow, leg: &mut TransferLeg, block: u64) -> Result<()> {
     if leg.status == LegStatus::Succeeded {
         ensure(leg.block == Some(block), Error::IntegrityFailed)?;

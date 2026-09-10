@@ -9,7 +9,9 @@ pub use budget::Budget;
 pub use certified::Certification;
 use dmsg_types::*;
 use serde::de::DeserializeOwned;
+
 pub const WINDOW: usize = 64;
+
 pub async fn call<In, Out>(id: candid::Principal, method: &str, args: In) -> Result<Out>
 where
     In: candid::utils::ArgumentEncoder + Send,

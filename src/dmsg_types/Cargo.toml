@@ -18,4 +18,4 @@ cbor2.workspace = true
 hex.workspace = true
 serde_json.workspace = true
 ed25519-dalek.workspace = true
-ic_bls12_381 = "=0.10.1"
+ic_bls12_381.workspace = true

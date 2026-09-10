@@ -18,15 +18,19 @@ pub(crate) struct Config {
     pub(crate) event_tip: Hash,
     pub(crate) pending: u32,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TransferReceipt {
     pub(crate) digest: Hash,
     pub(crate) record: HandleRecord,
 }
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
@@ -39,9 +43,11 @@ thread_local! {
     pub(crate) static TRANSFERS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferReceipt>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
     pub(crate) static CERT:RefCell<Certification>=RefCell::new(Certification::default());
 }
+
 pub(crate) fn cfg() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
+
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
 }

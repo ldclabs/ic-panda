@@ -103,6 +103,7 @@ pub trait MapExt<V> {
     fn page(&self, after: Vec<u8>, limit: usize) -> Vec<(Vec<u8>, V)>;
     fn for_each(&self, f: impl FnMut(Vec<u8>, V));
 }
+
 impl<V, R, M> MapExt<V> for StableBTreeMap<Vec<u8>, R, M>
 where
     R: StableRecord<V>,

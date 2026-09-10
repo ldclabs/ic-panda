@@ -12,12 +12,15 @@ use icrc_ledger_types::icrc1::{
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
+
 fn me() -> Principal {
     ic_cdk::api::canister_self()
 }
+
 fn caller() -> Principal {
     ic_cdk::api::msg_caller()
 }
+
 fn controller() -> Result<()> {
     ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)
 }
@@ -49,6 +52,7 @@ fn init(args: PaymentInit) {
     });
     CERT.with_borrow(|c| c.publish());
 }
+
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     assert_eq!(
@@ -59,6 +63,7 @@ fn post_upgrade() {
     CERT.with_borrow(|c| c.publish());
     ESCROWS.with_borrow(|t| t.for_each(|k, e| CERT.with_borrow_mut(|c| c.put(k, &e.info()))));
 }
+
 #[ic_cdk::update]
 fn set_orders_enabled(enabled: bool) -> Result<()> {
     controller()?;
@@ -67,6 +72,7 @@ fn set_orders_enabled(enabled: bool) -> Result<()> {
     save_cfg(&c);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     controller()?;
@@ -81,6 +87,7 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     save_cfg(&c);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn revoke_receipt_signer(epoch: u64) -> Result<()> {
     controller()?;
@@ -173,6 +180,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     save(&e);
     Ok(e.info())
 }
+
 fn reserve_ledger_call() -> Result<()> {
     let mut c = cfg();
     let minute = now() / MINUTE;
@@ -185,6 +193,7 @@ fn reserve_ledger_call() -> Result<()> {
     save_cfg(&c);
     Ok(())
 }
+
 #[ic_cdk::update]
 async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
     let e = load(&escrow_id)?;
@@ -237,6 +246,7 @@ fn prepare_settlement(e: &mut Escrow, fee: u128) -> Result<()> {
     e.pending_payouts = count as u32;
     Ok(())
 }
+
 #[ic_cdk::update]
 fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
     let mut e = load(&signed.receipt.escrow_id)?;
@@ -264,6 +274,7 @@ fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
     }
     Ok(e.info())
 }
+
 #[ic_cdk::update]
 fn expiry_refund(escrow_id: Hash) -> Result<EscrowInfo> {
     let mut e = load(&escrow_id)?;
@@ -273,6 +284,7 @@ fn expiry_refund(escrow_id: Hash) -> Result<EscrowInfo> {
     }
     Ok(e.info())
 }
+
 #[ic_cdk::update]
 fn claim_deposit_refund(escrow_id: Hash, block: u64) -> Result<TransferLeg> {
     let mut e = load(&escrow_id)?;
@@ -311,6 +323,7 @@ fn claim_deposit_refund(escrow_id: Hash, block: u64) -> Result<TransferLeg> {
     save(&e);
     Ok(leg)
 }
+
 #[ic_cdk::update]
 fn claim_fee_reserve(escrow_id: Hash) -> Result<TransferLeg> {
     let mut e = load(&escrow_id)?;
@@ -344,6 +357,7 @@ fn complete(id: Hash, n: u64, block: u64) -> Result<TransferLeg> {
     save(&e);
     Ok(leg)
 }
+
 #[ic_cdk::update]
 async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     let e = load(&escrow_id)?;
@@ -417,6 +431,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
         }
     }
 }
+
 /// Only an unambiguously rejected transfer may receive new parameters. Keep
 /// its immutable old leg for audit, consume approved reserve for beneficiary
 /// fees, and return all refund remainders to the original source.
@@ -445,6 +460,7 @@ fn revise_rejected_transfer(escrow_id: Hash, leg_id: u64, fee: u128) -> Result<T
     save(&e);
     Ok(new)
 }
+
 #[ic_cdk::update]
 async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<TransferLeg> {
     let e = load(&escrow_id)?;
@@ -473,30 +489,37 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
     )?;
     complete(escrow_id, leg_id, block)
 }
+
 #[ic_cdk::query]
 fn get_escrow(escrow_id: Hash) -> Result<EscrowInfo> {
     Ok(load(&escrow_id)?.info())
 }
+
 #[ic_cdk::query]
 fn get_escrow_by_operation(payer: Principal, op_id: Hash) -> Result<EscrowInfo> {
     Ok(load(&digest("dmsg/escrow-id/v1", &(me(), payer, op_id)))?.info())
 }
+
 #[ic_cdk::query]
 fn get_escrow_certified(ids: Vec<Hash>) -> Result<CertifiedBatch> {
     CERT.with_borrow(|c| c.batch(me(), ids.into_iter().map(|v| v.to_vec()).collect()))
 }
+
 #[ic_cdk::query]
 fn get_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     get_leg(escrow_id, leg_id)
 }
+
 #[ic_cdk::query]
 fn get_deposit(escrow_id: Hash, block: u64) -> Option<Deposit> {
     DEPOSITS.with_borrow(|t| t.load(&key(escrow_id, block)))
 }
+
 #[ic_cdk::query]
 fn get_receipt_signer(epoch: u64) -> Result<ReceiptSigner> {
     signer(epoch)
 }
+
 #[ic_cdk::query]
 fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
     authenticated(caller())?;
@@ -512,6 +535,7 @@ fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
         .map(|(_, id)| load(&id).map(|e| e.info()))
         .collect()
 }
+
 #[ic_cdk::query]
 fn list_transfers(escrow_id: Hash, after: Option<u64>) -> Result<Vec<TransferLeg>> {
     load(&escrow_id)?;

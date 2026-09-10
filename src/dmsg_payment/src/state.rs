@@ -22,6 +22,7 @@ pub struct Escrow {
     pub next_leg: u64,
     pub pending_payouts: u32,
 }
+
 impl Escrow {
     pub fn conserved(&self) -> bool {
         self.liabilities
@@ -30,6 +31,7 @@ impl Escrow {
             == Some(self.confirmed_in)
     }
 }
+
 impl Escrow {
     pub fn info(&self) -> EscrowInfo {
         EscrowInfo {

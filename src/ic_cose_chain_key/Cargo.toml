@@ -7,11 +7,11 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/ldclabs/ic-cose"
 
 [dependencies]
-candid = "0.10"
-ic-cdk = "0.20"
-ic-dummy-getrandom-for-wasm = "0.1"
-ic-cdk-management-canister = "0.1"
-ic-ed25519 = "0.6"
-ic-secp256k1 = "0.3"
-serde = { version = "1", features = ["derive"] }
-serde_bytes = "0.11"
+candid.workspace = true
+ic-cdk.workspace = true
+ic-dummy-getrandom-for-wasm.workspace = true
+ic-cdk-management-canister.workspace = true
+ic-ed25519.workspace = true
+ic-secp256k1.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true

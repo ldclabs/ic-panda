@@ -7,7 +7,7 @@ use dmsg_types::{
     *,
 };
 use k256::elliptic_curve::sec1::ToSec1Point;
-use serde_bytes::ByteBuf;
+use serde_bytes::Bytes;
 
 pub const TEXT_PROFILE: &str = "application/vnd.dmsg.text-statement+cose;v=1";
 pub const DIGEST_PROFILE: &str = "application/vnd.dmsg.digest-statement+cose;v=1";
@@ -20,11 +20,14 @@ pub const PAYLOAD_LOCATION: i64 = 260;
 pub const CTT_HEADER: i64 = 270;
 pub const MAX_KID_BYTES: usize = 256;
 pub const MAX_TIMESTAMP_BYTES: usize = 131_072;
+pub const MAX_COSE_KEY_BYTES: usize = 2048;
+pub const MAX_ARTIFACT_BYTES: usize = MAX_PAYLOAD + MAX_TIMESTAMP_BYTES;
 const CRITICAL: [Label; 3] = [
     Label::Int(CWT_CLAIMS),
     Label::Int(TYPE_HEADER),
     Label::Int(HASH_ALGORITHM),
 ];
+
 fn malformed(_: cose2::Error) -> Error {
     Error::IntegrityFailed
 }
@@ -36,6 +39,7 @@ pub fn cose_algorithm(algorithm: &Algorithm) -> Result<Label> {
         Algorithm::VetKdBls12381 => Err(Error::UnsupportedProtocol),
     }
 }
+
 fn from_algorithm(label: &Label) -> Result<Algorithm> {
     match label {
         Label::Int(iana::AlgorithmEd25519) => Ok(Algorithm::Ed25519),
@@ -43,26 +47,29 @@ fn from_algorithm(label: &Label) -> Result<Algorithm> {
         _ => Err(Error::UnsupportedProtocol),
     }
 }
+
 pub fn statement_purpose(statement: &Statement) -> KeyPurpose {
     match statement.content {
         StatementContent::Text(_) => KeyPurpose::Statement,
         StatementContent::Digest { .. } => KeyPurpose::FileAttestation,
     }
 }
+
 fn media_type(value: &str) -> Result<()> {
-    ensure(
+    ensure_valid(
         value.len() <= 256 && value.parse::<mime::Mime>().is_ok(),
-        invalid("media type"),
+        "media type",
     )
 }
+
 pub fn validate_statement(statement: &Statement) -> Result<()> {
     validate_uri(&statement.issuer)?;
     if let Some(subject) = &statement.subject {
-        ensure(
+        ensure_valid(
             !subject.is_empty()
                 && subject.len() <= MAX_URI_BYTES
                 && !subject.chars().any(char::is_control),
-            invalid("statement subject"),
+            "statement subject",
         )?;
         if subject.contains(':') {
             validate_uri(subject)?;
@@ -87,6 +94,7 @@ pub fn validate_statement(statement: &Statement) -> Result<()> {
     }
     Ok(())
 }
+
 fn claims(statement: &Statement) -> Value {
     let mut values = vec![(Value::from(1), Value::Text(statement.issuer.clone()))];
     if let Some(subject) = &statement.subject {
@@ -97,16 +105,15 @@ fn claims(statement: &Statement) -> Value {
     }
     Value::Map(values)
 }
+
 pub fn prepare_cose(
     statement: &Statement,
     algorithm: &Algorithm,
     kid: &[u8],
 ) -> Result<(Sign1Message, Vec<u8>)> {
+    let algorithm = cose_algorithm(algorithm)?;
     validate_statement(statement)?;
-    ensure(
-        !kid.is_empty() && kid.len() <= MAX_KID_BYTES,
-        invalid("kid"),
-    )?;
+    ensure_valid(!kid.is_empty() && kid.len() <= MAX_KID_BYTES, "kid")?;
     let payload = match &statement.content {
         StatementContent::Text(text) => text.as_bytes().to_vec(),
         StatementContent::Digest { sha256, .. } => sha256.to_vec(),
@@ -143,18 +150,20 @@ pub fn prepare_cose(
         }
     }
     let tbs = message
-        .prepare_signature(Some(cose_algorithm(algorithm)?), None, None)
+        .prepare_signature(Some(algorithm), None, None)
         .map_err(malformed)?;
     ensure(tbs.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
     Ok((message, tbs))
 }
-fn text(header: &Header, label: i64) -> Result<Option<String>> {
+
+fn text(header: &Header, label: i64) -> Result<Option<&str>> {
     match header.get(label) {
         None => Ok(None),
-        Some(Value::Text(value)) => Ok(Some(value.clone())),
+        Some(Value::Text(value)) => Ok(Some(value)),
         _ => Err(Error::IntegrityFailed),
     }
 }
+
 fn parse_claims(header: &Header) -> Result<(String, Option<String>, Option<i64>)> {
     let Some(Value::Map(values)) = header.get(CWT_CLAIMS) else {
         return Err(Error::IntegrityFailed);
@@ -178,7 +187,8 @@ fn parse_claims(header: &Header) -> Result<(String, Option<String>, Option<i64>)
     }
     Ok((issuer.ok_or(Error::IntegrityFailed)?, subject, issued_at))
 }
-fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, Vec<u8>)> {
+
+fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])> {
     let headers = &message.protected;
     let algorithm = from_algorithm(
         &headers
@@ -189,21 +199,24 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, Vec<u8
     let kid = headers
         .kid()
         .map_err(malformed)?
-        .ok_or(Error::IntegrityFailed)?
-        .to_vec();
+        .ok_or(Error::IntegrityFailed)?;
     ensure(
         !kid.is_empty() && kid.len() <= MAX_KID_BYTES,
         Error::IntegrityFailed,
     )?;
-    ensure(message.unprotected.iter().all(|(label,value)| *label == Label::Int(CTT_HEADER) && matches!(value,Value::Bytes(b) if !b.is_empty() && b.len() <= MAX_TIMESTAMP_BYTES)), Error::UnsupportedProtocol)?;
+    ensure(
+        message.unprotected.iter().all(|(label, value)| {
+            *label == Label::Int(CTT_HEADER)
+                && matches!(value, Value::Bytes(b) if !b.is_empty() && b.len() <= MAX_TIMESTAMP_BYTES)
+        }),
+        Error::UnsupportedProtocol,
+    )?;
     let payload = message.payload.as_deref().ok_or(Error::IntegrityFailed)?;
     let profile = text(headers, TYPE_HEADER)?.ok_or(Error::IntegrityFailed)?;
-    let (allowed, critical, content): (&[i64], &[Label], StatementContent) = match profile.as_str()
-    {
+    let (allowed, critical, content): (&[i64], &[Label], StatementContent) = match profile {
         TEXT_PROFILE => {
             ensure(
-                text(headers, iana::HeaderParameterContentType)?.as_deref()
-                    == Some(TEXT_CONTENT_TYPE),
+                text(headers, iana::HeaderParameterContentType)? == Some(TEXT_CONTENT_TYPE),
                 Error::UnsupportedProtocol,
             )?;
             (
@@ -226,8 +239,8 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, Vec<u8
                 &CRITICAL,
                 StatementContent::Digest {
                     sha256: Hash::new(payload.try_into().map_err(|_| Error::IntegrityFailed)?),
-                    content_type: text(headers, PREIMAGE_CONTENT_TYPE)?,
-                    location: text(headers, PAYLOAD_LOCATION)?,
+                    content_type: text(headers, PREIMAGE_CONTENT_TYPE)?.map(str::to_owned),
+                    location: text(headers, PAYLOAD_LOCATION)?.map(str::to_owned),
                 },
             )
         }
@@ -260,6 +273,7 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, Vec<u8
     validate_statement(&statement)?;
     Ok((statement, algorithm, kid))
 }
+
 /// An implementation view; never a wire DTO or a persistence record.
 pub struct PreparedStatement {
     pub message: Sign1Message,
@@ -267,20 +281,25 @@ pub struct PreparedStatement {
     pub algorithm: Algorithm,
     pub kid: Vec<u8>,
 }
+
 /// dMsg signing inputs must use canonical framing; verification preserves incoming protected bytes.
 pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
-    let (context, protected, aad, payload): (String, ByteBuf, ByteBuf, ByteBuf) =
-        decode_canonical(bytes)?;
+    ensure(bytes.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
+    let (context, protected, aad, payload): (&str, &Bytes, &Bytes, &Bytes) =
+        cbor2::from_slice(bytes).map_err(|_| Error::IntegrityFailed)?;
     ensure(
         context == "Signature1" && aad.is_empty(),
         Error::IntegrityFailed,
     )?;
     let mut message = Sign1Message::new(Some(payload.to_vec()));
-    message.protected = Header::from_slice(&protected).map_err(malformed)?;
+    message.protected = Header::from_slice(protected).map_err(malformed)?;
     let (statement, algorithm, kid) = parse_message(&message)?;
+    let kid = kid.to_vec();
     let actual = message
         .prepare_signature(Some(cose_algorithm(&algorithm)?), None, None)
         .map_err(malformed)?;
+    // This comparison checks the entire canonical framing, including the
+    // protected map. No separate decode/reencode of the outer tuple is needed.
     ensure(actual == bytes, Error::IntegrityFailed)?;
     Ok(PreparedStatement {
         message,
@@ -289,14 +308,17 @@ pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
         kid,
     })
 }
+
+/// Empty `kid` is allowed when computing a fingerprint before selecting the signing kid.
 pub fn public_cose_key(algorithm: &Algorithm, kid: &[u8], public: &[u8]) -> Result<Vec<u8>> {
+    ensure_valid(kid.len() <= MAX_KID_BYTES, "kid")?;
     let mut key = Key::new();
     key.set_alg(cose_algorithm(algorithm)?)
         .set_kid(kid.to_vec());
     key.set_ops([iana::KeyOperationVerify]);
     match algorithm {
         Algorithm::Ed25519 => {
-            ensure(public.len() == 32, Error::IntegrityFailed)?;
+            validate_ed25519_key(public)?;
             key.set_kty(iana::KeyTypeOKP);
             key.insert(iana::OKPKeyParameterCrv, iana::EllipticCurveEd25519);
             key.insert(iana::OKPKeyParameterX, public.to_vec());
@@ -320,15 +342,21 @@ pub fn public_cose_key(algorithm: &Algorithm, kid: &[u8], public: &[u8]) -> Resu
     }
     key.to_vec().map_err(malformed)
 }
+
 /// RFC 9679 SHA-256 thumbprint: only the required public members, no kid/alg/key_ops.
 pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
-    ensure(encoded.len() <= 2048, Error::QuotaExceeded)?;
+    ensure(encoded.len() <= MAX_COSE_KEY_BYTES, Error::QuotaExceeded)?;
     let key = Key::from_slice(encoded).map_err(malformed)?;
+    thumbprint(&key)
+}
+
+pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
     ensure(
         !key.contains_key(iana::OKPKeyParameterD),
         Error::IntegrityFailed,
     )?;
-    let labels: &[i64] = match key.kty().map_err(malformed)? {
+    let key_type = key.kty().map_err(malformed)?;
+    let labels: &[i64] = match key_type {
         Some(Label::Int(iana::KeyTypeOKP)) => &[1, -1, -2],
         Some(Label::Int(iana::KeyTypeEC2)) => &[1, -1, -2, -3],
         _ => return Err(Error::UnsupportedProtocol),
@@ -340,7 +368,7 @@ pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
             key.get(*label).ok_or(Error::IntegrityFailed)?.clone(),
         );
     }
-    if key.kty().map_err(malformed)? == Some(iana::KeyTypeEC2.into()) {
+    if key_type == Some(iana::KeyTypeEC2.into()) {
         if let Some(Value::Bool(odd)) = key.get(iana::EC2KeyParameterY) {
             ensure(
                 key.get_i64(iana::EC2KeyParameterCrv).map_err(malformed)?
@@ -352,10 +380,12 @@ pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
                 .map_err(malformed)?
                 .ok_or(Error::IntegrityFailed)?;
             ensure(x.len() == 32, Error::IntegrityFailed)?;
-            let point =
-                k256::PublicKey::from_sec1_bytes(&[&[if *odd { 3 } else { 2 }][..], x].concat())
-                    .map_err(|_| Error::IntegrityFailed)?
-                    .to_sec1_point(false);
+            let mut compressed = [0; 33];
+            compressed[0] = if *odd { 3 } else { 2 };
+            compressed[1..].copy_from_slice(x);
+            let point = k256::PublicKey::from_sec1_bytes(&compressed)
+                .map_err(|_| Error::IntegrityFailed)?
+                .to_sec1_point(false);
             // RFC 9679 §4.2: thumbprints always use the uncompressed y coordinate.
             required.insert(
                 iana::EC2KeyParameterY,
@@ -365,10 +395,11 @@ pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
     }
     Ok(sha256(&required.to_vec().map_err(malformed)?))
 }
+
 pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
-    let mut prepared = parse_signing_input(tbs)?;
     // Both currently enabled algorithms encode r||s / Ed25519 signatures in 64 bytes.
     ensure(signature.len() == 64, Error::IntegrityFailed)?;
+    let mut prepared = parse_signing_input(tbs)?;
     let key = public_cose_key(&prepared.algorithm, &prepared.kid, public)?;
     prepared
         .message
@@ -379,10 +410,12 @@ pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<Sign
         cose_key: key.into(),
     })
 }
+
 enum ProfileVerifier {
     Ed(cose2::ed25519::Ed25519Verifier),
     Ec(k256::ecdsa::VerifyingKey),
 }
+
 impl Verifier for ProfileVerifier {
     fn alg(&self) -> Option<Label> {
         Some(match self {
@@ -407,6 +440,7 @@ impl Verifier for ProfileVerifier {
         }
     }
 }
+
 fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
     ensure(
         !key.contains_key(iana::OKPKeyParameterD)
@@ -435,26 +469,64 @@ fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
                 .map_err(malformed)?
                 .ok_or(Error::IntegrityFailed)?;
             ensure(x.len() == 32, Error::IntegrityFailed)?;
+            let mut public = [0; 65];
+            public[1..33].copy_from_slice(x);
             let public = match key.get(iana::EC2KeyParameterY) {
-                Some(Value::Bytes(y)) if y.len() == 32 => [&[4u8][..], x, y].concat(),
-                Some(Value::Bool(odd)) => [&[if *odd { 3u8 } else { 2u8 }][..], x].concat(),
+                Some(Value::Bytes(y)) if y.len() == 32 => {
+                    public[0] = 4;
+                    public[33..].copy_from_slice(y);
+                    &public[..]
+                }
+                Some(Value::Bool(odd)) => {
+                    public[0] = if *odd { 3 } else { 2 };
+                    &public[..33]
+                }
                 _ => return Err(Error::IntegrityFailed),
             };
             Ok(ProfileVerifier::Ec(
-                k256::ecdsa::VerifyingKey::from_sec1_bytes(&public)
+                k256::ecdsa::VerifyingKey::from_sec1_bytes(public)
                     .map_err(|_| Error::IntegrityFailed)?,
             ))
         }
         _ => Err(Error::UnsupportedProtocol),
     }
 }
+
 /// Mathematical signature and profile checks only; supplied keys are not trust anchors.
 pub fn verify_artifact(artifact: &SignedArtifact) -> Result<Statement> {
+    Ok(verify_and_parse_artifact(artifact)?.statement)
+}
+
+/// Internal, per-call reuse of verified data; never a cache or a wire type.
+pub(crate) struct VerifiedArtifact {
+    pub statement: Statement,
+    pub message: Sign1Message,
+    pub key: Key,
+}
+
+impl VerifiedArtifact {
+    pub fn signing_bytes(&self) -> Result<Vec<u8>> {
+        Sign1Message::to_be_signed(
+            self.message.protected_raw(),
+            &[],
+            self.message
+                .payload
+                .as_deref()
+                .ok_or(Error::IntegrityFailed)?,
+        )
+        .map_err(malformed)
+    }
+}
+
+pub(crate) fn verify_and_parse_artifact(artifact: &SignedArtifact) -> Result<VerifiedArtifact> {
     ensure(
-        artifact.cose_sign1.first() == Some(&0xd2)
-            && artifact.cose_sign1.len() <= MAX_PAYLOAD + MAX_TIMESTAMP_BYTES
-            && artifact.cose_key.len() <= 2048,
+        artifact.cose_sign1.len() <= MAX_ARTIFACT_BYTES
+            && artifact.cose_key.len() <= MAX_COSE_KEY_BYTES,
         Error::QuotaExceeded,
+    )?;
+    ensure(
+        artifact.cose_sign1.first() == Some(&0xd2),
+        Error::IntegrityFailed,
     )?;
     let message = Sign1Message::from_slice(&artifact.cose_sign1).map_err(malformed)?;
     let (statement, algorithm, kid) = parse_message(&message)?;
@@ -466,13 +538,20 @@ pub fn verify_artifact(artifact: &SignedArtifact) -> Result<Statement> {
     message
         .verify(&verifier(&key, &algorithm)?, None)
         .map_err(malformed)?;
-    Ok(statement)
+    Ok(VerifiedArtifact {
+        statement,
+        message,
+        key,
+    })
 }
+
 pub fn verification_report(
     artifact: &SignedArtifact,
     content: Option<&[u8]>,
 ) -> Result<VerificationReport> {
-    let statement = verify_artifact(artifact)?;
+    let VerifiedArtifact {
+        statement, message, ..
+    } = verify_and_parse_artifact(artifact)?;
     let checked = match (&statement.content, content) {
         (StatementContent::Text(text), Some(bytes)) => {
             ensure(text.as_bytes() == bytes, Error::IntegrityFailed)?;
@@ -490,7 +569,6 @@ pub fn verification_report(
         }
         (StatementContent::Digest { .. }, None) => VerificationStatus::NotProvided,
     };
-    let message = Sign1Message::from_slice(&artifact.cose_sign1).map_err(malformed)?;
     Ok(VerificationReport {
         statement,
         content: checked,
@@ -505,13 +583,11 @@ pub fn verification_report(
         current_status: VerificationStatus::NotChecked,
     })
 }
+
 /// SHA-256 of the encoded signature bstr, including its header (RFC 9921 CTT).
 /// Require canonical outer framing so this encoding is the original signature field.
 pub fn timestamp_imprint(cose_sign1: &[u8]) -> Result<Hash> {
-    ensure(
-        cose_sign1.len() <= MAX_PAYLOAD + MAX_TIMESTAMP_BYTES,
-        Error::QuotaExceeded,
-    )?;
+    ensure(cose_sign1.len() <= MAX_ARTIFACT_BYTES, Error::QuotaExceeded)?;
     let message = Sign1Message::from_slice(cose_sign1).map_err(malformed)?;
     ensure(
         !message.signature().is_empty()
@@ -523,17 +599,17 @@ pub fn timestamp_imprint(cose_sign1: &[u8]) -> Result<Hash> {
         message.signature(),
     ))))
 }
+
 /// Assembly only: CMS, certificate chain, imprint and TSA policy require a TSA verifier.
 pub fn attach_unverified_timestamp_token(
     artifact: &SignedArtifact,
     token: &[u8],
 ) -> Result<SignedArtifact> {
-    verify_artifact(artifact)?;
     ensure(
         !token.is_empty() && token.len() <= MAX_TIMESTAMP_BYTES,
         Error::QuotaExceeded,
     )?;
-    let mut message = Sign1Message::from_slice(&artifact.cose_sign1).map_err(malformed)?;
+    let mut message = verify_and_parse_artifact(artifact)?.message;
     ensure(
         !message.unprotected.contains_key(CTT_HEADER),
         Error::VersionConflict,
@@ -544,11 +620,9 @@ pub fn attach_unverified_timestamp_token(
         cose_key: artifact.cose_key.clone(),
     })
 }
+
 pub fn signature_digest(cose_sign1: &[u8]) -> Result<Hash> {
-    ensure(
-        cose_sign1.len() <= MAX_PAYLOAD + MAX_TIMESTAMP_BYTES,
-        Error::QuotaExceeded,
-    )?;
+    ensure(cose_sign1.len() <= MAX_ARTIFACT_BYTES, Error::QuotaExceeded)?;
     Ok(sha256(
         Sign1Message::from_slice(cose_sign1)
             .map_err(malformed)?

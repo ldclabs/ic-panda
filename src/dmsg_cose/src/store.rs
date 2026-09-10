@@ -17,22 +17,27 @@ pub(crate) struct Config {
     pub(crate) keys: Vec<PublicKey>,
     pub(crate) budget: Budget,
 }
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
     static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Execution>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
 }
+
 pub(crate) fn cfg() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
+
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
 }
+
 pub(crate) fn home(account_id: &AccountId) -> Result<model::Home> {
     let mut home = HOMES.with_borrow(|t| t.load(account_id.as_slice()).ok_or(Error::NotFound))?;
     home.executions = records(account_id)
@@ -41,6 +46,7 @@ pub(crate) fn home(account_id: &AccountId) -> Result<model::Home> {
         .collect();
     Ok(home)
 }
+
 pub(crate) fn save_home(account_id: &AccountId, h: &model::Home) {
     for (key, old) in records(account_id) {
         if !h.executions.contains_key(&old.grant.execution_sequence) {

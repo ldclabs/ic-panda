@@ -28,6 +28,7 @@ pub struct VerifiedTransfer {
     pub created_at_time: Option<u64>,
     pub spender: Option<Account>,
 }
+
 fn map(v: &Value) -> Result<&BTreeMap<String, Value>> {
     if let Value::Map(m) = v {
         Ok(m)
@@ -35,9 +36,11 @@ fn map(v: &Value) -> Result<&BTreeMap<String, Value>> {
         Err(Error::IntegrityFailed)
     }
 }
+
 fn field<'a>(m: &'a BTreeMap<String, Value>, s: &str) -> Result<&'a Value> {
     m.get(s).ok_or(Error::IntegrityFailed)
 }
+
 fn amount(v: &Value) -> Result<u128> {
     match v {
         Value::Nat(n) => n.0.to_u128().ok_or(Error::IntegrityFailed),
@@ -45,12 +48,15 @@ fn amount(v: &Value) -> Result<u128> {
         _ => Err(Error::IntegrityFailed),
     }
 }
+
 fn uint(v: &Value) -> Result<u64> {
     amount(v)?.try_into().map_err(|_| Error::IntegrityFailed)
 }
+
 fn text_is(v: Option<&Value>, s: &str) -> bool {
     matches!(v,Some(Value::Text(t)) if t==s)
 }
+
 fn blob(v: &Value) -> Result<Vec<u8>> {
     if let Value::Blob(b) = v {
         Ok(b.to_vec())
@@ -58,6 +64,7 @@ fn blob(v: &Value) -> Result<Vec<u8>> {
         Err(Error::IntegrityFailed)
     }
 }
+
 fn account(v: &Value) -> Result<Account> {
     let Value::Array(a) = v else {
         return Err(Error::IntegrityFailed);
@@ -77,6 +84,7 @@ fn account(v: &Value) -> Result<Account> {
     };
     Ok(Account { owner, subaccount })
 }
+
 pub fn parse_transfer(block: u64, value: &Value) -> Result<VerifiedTransfer> {
     let b = map(value)?;
     let tx = map(field(b, "tx")?)?;
@@ -138,9 +146,11 @@ pub async fn read_transfer(ledger: Principal, index: u64) -> Result<VerifiedTran
     }
     Err(Error::Unavailable("archive redirect limit".into()))
 }
+
 pub fn block_index(n: Nat) -> Result<u64> {
     n.0.to_u64().ok_or(Error::IntegrityFailed)
 }
+
 pub fn token_amount(n: Nat) -> Result<u128> {
     n.0.to_u128().ok_or(Error::IntegrityFailed)
 }

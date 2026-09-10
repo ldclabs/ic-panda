@@ -5,8 +5,10 @@ use ic_certification::AsHashTree;
 use ic_certification::RbTree;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
+
 #[derive(Default)]
 pub struct Certification(pub RbTree<Vec<u8>, Vec<u8>>);
+
 impl Certification {
     pub fn remove(&mut self, key: &[u8]) {
         self.0.delete(key);

@@ -11,6 +11,7 @@ pub struct Execution {
     pub digest: Hash,
     pub result: ExecutionResult,
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Home {
     pub home_user: Principal,
@@ -19,6 +20,7 @@ pub struct Home {
     pub executions: BTreeMap<u64, Execution>,
     pub budget: Budget,
 }
+
 impl Home {
     pub fn new(home_user: Principal) -> Self {
         Self {
@@ -28,6 +30,7 @@ impl Home {
             budget: Budget::default(),
         }
     }
+
     pub fn prepare(
         &mut self,
         caller: Principal,
@@ -98,6 +101,7 @@ impl Home {
         *self = next;
         Ok(None)
     }
+
     pub fn finish(&mut self, sequence: u64, result: ExecutionResult) {
         self.executions
             .get_mut(&sequence)
@@ -125,6 +129,7 @@ pub fn key_id(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Ha
         ),
     )
 }
+
 pub fn path(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
     vec![
         b"dmsg/formal/v2".to_vec(),
@@ -134,6 +139,7 @@ pub fn path(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Vec<
         key.generation.to_be_bytes().to_vec(),
     ]
 }
+
 pub fn context(config: &CoseInit) -> Vec<u8> {
     canonical(&(
         "dmsg/content-root/v2",
@@ -141,6 +147,7 @@ pub fn context(config: &CoseInit) -> Vec<u8> {
         config.derivation_version,
     ))
 }
+
 pub fn root_input(account_id: &AccountId, generation: u64) -> Vec<u8> {
     canonical(&(account_id, generation))
 }

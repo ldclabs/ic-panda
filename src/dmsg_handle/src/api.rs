@@ -12,12 +12,15 @@ use icrc_ledger_types::{
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
+
 fn me() -> Principal {
     ic_cdk::api::canister_self()
 }
+
 fn caller() -> Principal {
     ic_cdk::api::msg_caller()
 }
+
 fn controller() -> Result<()> {
     ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)
 }
@@ -30,6 +33,7 @@ fn check_intent(i: &HandleIntent, action: HandleAction) -> Result<()> {
     nonzero(i.op_id.as_slice())?;
     nonzero(i.account_id.as_slice())
 }
+
 async fn consume(i: &HandleIntent) -> Result<()> {
     let r: Result<()> = stable::call(
         cfg().init.home_user,
@@ -39,6 +43,7 @@ async fn consume(i: &HandleIntent) -> Result<()> {
     .await?;
     r
 }
+
 #[ic_cdk::init]
 fn init(args: HandleInit) {
     authenticated(args.home_user).expect("home user");
@@ -60,6 +65,7 @@ fn init(args: HandleInit) {
     });
     certify_snapshot();
 }
+
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     assert_eq!(
@@ -70,9 +76,11 @@ fn post_upgrade() {
     NAMES.with_borrow(|t| t.for_each(|k, r| CERT.with_borrow_mut(|c| c.put(k, &r))));
     certify_snapshot();
 }
+
 fn certify_snapshot() {
     CERT.with_borrow_mut(|c| c.put(b"_legacy_snapshot".to_vec(), &cfg().progress));
 }
+
 #[ic_cdk::update]
 fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
     controller()?;
@@ -91,6 +99,7 @@ fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
     certify_snapshot();
     Ok(())
 }
+
 #[ic_cdk::update]
 fn import_legacy_handles(
     snapshot_id: Hash,
@@ -141,6 +150,7 @@ fn import_legacy_handles(
     certify_snapshot();
     Ok(c.progress)
 }
+
 #[ic_cdk::update]
 fn seal_legacy_snapshot() -> Result<SnapshotProgress> {
     controller()?;
@@ -188,6 +198,7 @@ fn commit_name(name: &str, from: Option<AccountId>, to: AccountId, version: u64)
     CERT.with_borrow_mut(|c| c.put(name.as_bytes().to_vec(), &r));
     r
 }
+
 #[ic_cdk::update]
 async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<HandleRecord> {
     check_intent(&intent, HandleAction::ClaimLegacy)?;
@@ -308,6 +319,7 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
     save_cfg(&c);
     Ok(o)
 }
+
 fn release(o: &HandleOperation) {
     LOCKS.with_borrow_mut(|t| t.delete(o.registration.intent.handle.as_bytes()));
     SUBJECT_OPS.with_borrow_mut(|t| t.delete(o.registration.intent.account_id.as_slice()));
@@ -315,6 +327,7 @@ fn release(o: &HandleOperation) {
     c.pending = c.pending.checked_sub(1).expect("pending accounting");
     save_cfg(&c);
 }
+
 fn finish_paid(key: &Hash, block: u64) -> Result<HandleOperation> {
     let mut o = op(key)?;
     if o.phase == HandlePhase::Committed {
@@ -342,6 +355,7 @@ fn finish_paid(key: &Hash, block: u64) -> Result<HandleOperation> {
     release(&o);
     Ok(o)
 }
+
 #[ic_cdk::update]
 async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
     let key = op_key(&account_id, op_id);
@@ -411,6 +425,7 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         }
     }
 }
+
 #[ic_cdk::update]
 async fn reconcile_handle_charge(
     account_id: AccountId,
@@ -446,6 +461,7 @@ async fn reconcile_handle_charge(
     )?;
     finish_paid(&key, block)
 }
+
 #[ic_cdk::update]
 fn expire_handle_reservation(account_id: AccountId, op_id: Hash) -> Result<()> {
     let key = op_key(&account_id, op_id);
@@ -459,6 +475,7 @@ fn expire_handle_reservation(account_id: AccountId, op_id: Hash) -> Result<()> {
     release(&o);
     Ok(())
 }
+
 #[ic_cdk::update]
 async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<HandleRecord> {
     check_intent(&from, HandleAction::Transfer)?;
@@ -526,6 +543,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     });
     Ok(result)
 }
+
 #[ic_cdk::query]
 fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
     let keys: Result<Vec<_>> = handles
@@ -534,23 +552,28 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
         .collect();
     CERT.with_borrow(|c| c.batch(me(), keys?))
 }
+
 #[ic_cdk::query]
 fn get_handle_operation(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
     op(&op_key(&account_id, op_id))
 }
+
 #[ic_cdk::query]
 fn get_legacy_reservation(handle: String) -> Result<Option<LegacyReservation>> {
     let name = normalize_handle(&handle)?;
     Ok(LEGACY.with_borrow(|t| t.load(name.as_bytes())))
 }
+
 #[ic_cdk::query]
 fn snapshot_progress() -> SnapshotProgress {
     cfg().progress
 }
+
 #[ic_cdk::query]
 fn snapshot_certified() -> Result<CertifiedBatch> {
     CERT.with_borrow(|c| c.batch(me(), vec![b"_legacy_snapshot".to_vec()]))
 }
+
 #[ic_cdk::query]
 fn list_legacy_reservations(after: Option<String>) -> Result<Vec<LegacyReservation>> {
     let key = match after {
@@ -563,6 +586,7 @@ fn list_legacy_reservations(after: Option<String>) -> Result<Vec<LegacyReservati
         .map(|(_, v)| v)
         .collect())
 }
+
 #[ic_cdk::query]
 fn get_handle_event(sequence: u64) -> Option<HandleEvent> {
     EVENTS.with_borrow(|t| t.load(&sequence.to_be_bytes()))

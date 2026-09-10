@@ -10,15 +10,19 @@ dmsg_types = { path = "../dmsg_types" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
-cbor2 = "=1.1.5"
-cose2 = { version = "=0.5.0", features = ["crypto-ed25519-dalek"] }
+cbor2.workspace = true
+cose2 = { workspace = true, features = ["crypto-ed25519-dalek"] }
 sha2.workspace = true
 ed25519-dalek.workspace = true
-ic_bls12_381 = "=0.10.1"
+ic_bls12_381.workspace = true
 icrc-ledger-types.workspace = true
 url.workspace = true
-mime = "0.3"
+mime.workspace = true
 k256 = { workspace = true, features = ["ecdsa"] }
 
 [dev-dependencies]
 hex.workspace = true
+
+[[bench]]
+name = "validation"
+harness = false

@@ -9,12 +9,15 @@ use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation, PublicK
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
+
 fn me() -> Principal {
     ic_cdk::api::canister_self()
 }
+
 fn caller() -> Principal {
     ic_cdk::api::msg_caller()
 }
+
 fn ready() -> Result<Config> {
     let c = cfg();
     ensure(
@@ -23,6 +26,7 @@ fn ready() -> Result<Config> {
     )?;
     Ok(c)
 }
+
 #[ic_cdk::init]
 fn init(args: CoseInit) {
     args.validate(me())
@@ -39,6 +43,7 @@ fn init(args: CoseInit) {
         budget: Budget::default(),
     });
 }
+
 #[ic_cdk::post_upgrade]
 fn post_upgrade(args: Option<CoseInit>) {
     let mut c = cfg();
@@ -78,6 +83,7 @@ fn post_upgrade(args: Option<CoseInit>) {
     }
     save_cfg(&c);
 }
+
 fn master(config: &CoseInit, alg: &Algorithm) -> Result<MasterKey> {
     config
         .masters
@@ -86,10 +92,12 @@ fn master(config: &CoseInit, alg: &Algorithm) -> Result<MasterKey> {
         .cloned()
         .ok_or(Error::UnsupportedProtocol)
 }
+
 fn schnorr(alg: &Algorithm) -> mgmt::SchnorrAlgorithm {
     assert_eq!(*alg, Algorithm::Ed25519);
     mgmt::SchnorrAlgorithm::Ed25519
 }
+
 async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
     match key.algorithm {
         Algorithm::Ed25519 => {
@@ -110,6 +118,7 @@ async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
     }
     .map_err(Error::Unavailable)
 }
+
 #[ic_cdk::update]
 async fn initialize_keys() -> Result<KeyState> {
     ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)?;
@@ -150,6 +159,7 @@ async fn initialize_keys() -> Result<KeyState> {
     save_cfg(&c);
     Ok(c.state)
 }
+
 #[ic_cdk::query]
 fn key_state() -> KeyState {
     cfg().state
@@ -161,6 +171,7 @@ fn key_state() -> KeyState {
 fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> {
     describe(&ready()?, &account_id, key.into())
 }
+
 fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDescriptor> {
     nonzero(account_id.as_slice())?;
     key.validate()?;
@@ -211,6 +222,7 @@ fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDe
         public_key: public_key.into(),
     })
 }
+
 fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
     let config = &c.state.config;
     let operation = match &g.kind {
@@ -277,6 +289,7 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost)> {
     )?;
     Ok((operation, cost))
 }
+
 #[ic_cdk::update]
 async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let c = ready()?;
@@ -394,6 +407,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     save_home(&grant.account_id, &current);
     Ok(result)
 }
+
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
     ensure(

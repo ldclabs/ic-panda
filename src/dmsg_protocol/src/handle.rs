@@ -2,6 +2,7 @@ use crate::*;
 use candid::Principal;
 use dmsg_types::*;
 use icrc_ledger_types::icrc1::account::Account;
+
 pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee: u128) -> Hash {
     digest(
         "dmsg/handle-charge/v1",
@@ -15,18 +16,20 @@ pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee
 }
 
 pub fn normalize_handle(handle: &str) -> Result<String> {
-    ensure(
+    ensure_valid(
         !handle.is_empty() && handle.len() <= 20 && !handle.starts_with('_'),
-        invalid("handle length/prefix"),
+        "handle length/prefix",
     )?;
-    ensure(
+    ensure_valid(
         handle
             .bytes()
             .all(|c| c.is_ascii_alphanumeric() || c == b'_'),
-        invalid("handle characters"),
+        "handle characters",
     )?;
     Ok(handle.to_ascii_lowercase())
 }
+
+/// Price in the token's smallest units; the caller must validate the handle first.
 pub fn price(handle: &str) -> u128 {
     let tokens = match handle.len() {
         1 => 1_000_000,
@@ -37,3 +40,6 @@ pub fn price(handle: &str) -> u128 {
     };
     tokens * 100_000_000
 }
+
+#[cfg(test)]
+mod tests;

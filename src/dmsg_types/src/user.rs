@@ -12,6 +12,7 @@ pub enum ControllerRole {
     Administrator,
     Member,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Capability {
     ContentSign,
@@ -20,6 +21,7 @@ pub enum Capability {
     FormalApprove,
     PaymentOffer,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInput {
     pub device_id: Hash,
@@ -37,6 +39,7 @@ pub struct Device {
     pub revoked_at: Option<u64>,
     pub next_sequence: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryPolicy {
     pub generation: u64,
@@ -44,17 +47,20 @@ pub struct RecoveryPolicy {
     pub hpke_pub: Hash,
     pub delay_ms: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum VaultWriteState {
     Uninitialized,
     Ready,
     RekeyRequired,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum AccountStatus {
     Active,
     RecoveryDisputed,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentRootRef {
     pub generation: u64,
@@ -65,6 +71,7 @@ pub struct ContentRootRef {
     pub bundle_digest: Hash,
     pub recovery_generation: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RootReservation {
     pub op_id: OpId,
@@ -73,6 +80,7 @@ pub struct RootReservation {
     pub security_epoch: u64,
     pub expires_at: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SensitivePolicy {
     pub frozen: bool,
@@ -80,6 +88,7 @@ pub struct SensitivePolicy {
     pub daily_executions: u32,
     pub daily_cycles: u128,
 }
+
 impl Default for SensitivePolicy {
     fn default() -> Self {
         Self {
@@ -106,6 +115,7 @@ pub struct RecoveryRequest {
     pub generation: u64,
     pub expires_at: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PendingRecovery {
     pub request: RecoveryRequest,
@@ -115,12 +125,14 @@ pub struct PendingRecovery {
     #[serde(default)]
     pub confirmation: Option<RecoveryConfirmation>,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryConfirmation {
     pub request_id: OpId,
     pub dispute: Hash,
     pub expires_at: u64,
 }
+
 impl PendingRecovery {
     pub fn expires_at(&self) -> u64 {
         self.confirmation
@@ -161,6 +173,7 @@ pub struct UserInit {
     pub max_accounts: u64,
     pub daily_new_accounts: u32,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateAccount {
     pub device: DeviceInput,
@@ -168,6 +181,7 @@ pub struct CreateAccount {
     pub expires_at: u64,
     pub proof: ByteBuf,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum AccountCommand {
     AddDevice {
@@ -211,6 +225,7 @@ pub enum AccountCommand {
         dispute: Hash,
     },
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountMutation {
     pub account_id: AccountId,
@@ -218,12 +233,14 @@ pub struct AccountMutation {
     pub command: AccountCommand,
     pub approval: Approval,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct DeviceEvidence {
     pub snapshot: SecuritySnapshot,
     pub device: Device,
     pub observed_at: u64,
 }
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountInfo {
     pub issuer: String,

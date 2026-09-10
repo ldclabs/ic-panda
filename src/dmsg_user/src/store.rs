@@ -15,9 +15,11 @@ use std::cell::RefCell;
 // pending bindings=3, retired memory=4, execution records=5.
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+
 fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
@@ -27,6 +29,7 @@ thread_local! {
     pub(crate) static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct Config {
     pub(crate) schema: u16,
@@ -36,9 +39,11 @@ pub(crate) struct Config {
     pub(crate) day: u64,
     pub(crate) created_today: u32,
 }
+
 pub(crate) fn config() -> Config {
     CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
 }
+
 pub(crate) fn load(id: &AccountId) -> Result<AccountState> {
     ACCOUNTS.with_borrow(|t| t.load(id.as_slice()).ok_or(Error::NotFound))
 }

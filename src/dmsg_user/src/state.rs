@@ -10,6 +10,7 @@ pub struct HandleAuthorization {
     pub intent: HandleIntent,
     pub expires_at: u64,
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
     pub account_id: AccountId,
@@ -37,6 +38,7 @@ pub struct AccountState {
     // evicted. Payloads and results live only in the execution table.
     pub execution_expirations: BTreeMap<OpId, Option<u64>>,
 }
+
 impl AccountState {
     pub fn snapshot(&self, namespace: &str) -> SecuritySnapshot {
         SecuritySnapshot {
@@ -64,12 +66,14 @@ impl AccountState {
         }
     }
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AuthorizedExecution {
     pub grant: ExecutionGrant,
     pub command_digest: Hash,
     pub result: ExecutionResult,
 }
+
 impl AccountState {
     pub fn info(&self, namespace: &str) -> AccountInfo {
         AccountInfo {

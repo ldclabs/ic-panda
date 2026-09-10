@@ -16,7 +16,7 @@ fn verify(download: &SignedArtifact) -> Result<Statement> {
 
 ## 远程签名
 
-`prepare_cose(statement, algorithm, kid)` 返回 `Sign1Message` 和 RFC 9052 `Sig_structure` 字节。调用实际签名器后用 `finish_cose(to_be_signed, public_key, signature)` 返回 `SignedArtifact { cose_sign1, cose_key }`。内部使用固定版本的 `cose2`，新消息为 tagged COSE_Sign1，公钥为 public-only COSE_Key。
+`prepare_cose(statement, algorithm, kid)` 返回 `Sign1Message` 和 RFC 9052 `Sig_structure` 字节。调用实际签名器后用 `finish_cose(to_be_signed, public_key, signature)` 组装 `SignedArtifact { cose_sign1, cose_key }`；组装不代替 `verify_artifact` 的数学验签。依赖版本由 workspace 与 `Cargo.lock` 管理，新消息为 tagged COSE_Sign1，公钥为 public-only COSE_Key。
 
 基础算法为 Ed25519（COSE -19）；可选 ES256K（-47）。已移除 BIP340 私有 profile。vetKD 不属于这套签名验证接口。
 
@@ -31,6 +31,10 @@ fn verify(download: &SignedArtifact) -> Result<Statement> {
 ## 身份、指纹与认证回执
 
 `account_issuer` / `principal_issuer` 按明确命名空间构造身份 URI，不根据字节长度猜类型。`parse_account_issuer` 严格检查命名空间与 Xid 规范文本。`key_thumbprint` 使用 RFC 9679 SHA-256，EC2 压缩坐标先展开，kid/alg/key_ops 不进入指纹。
+
+身份适配函数每次仅解析一次命名空间；规范 Xid/Principal 后缀只包含非保留 ASCII 字符，拼接后无需再次解析 URL。回执匹配和验证报告在单次调用内复用已解码、验签的 COSE 消息与公钥，保留外部消息的原始 protected-header 字节。
+
+设备输入与 `public_cose_key` 均拒绝不能解码或弱小阶的 Ed25519 公钥。`public_cose_key` 的 kid 最多 256 字节，允许用空 kid 先计算指纹；正式声明的 kid 必须非空。`decode_canonical` 对解码或重新编码失败返回错误；`canonical` / `digest` 面向可序列化的可信协议值，序列化实现失败会 panic。
 
 `verification_report(artifact, original_content)` 区分 signature/content/issuer_binding/authorization/timestamp/current_status。`match_execution_receipt` 只匹配签名产物与回执；调用者必须先验证 IC certificate、canister、路径与 witness。不能直接信任随包提供的回执。
 
@@ -49,7 +53,11 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 ```sh
 cargo test -p dmsg_protocol
+cargo clippy -p dmsg_protocol --all-targets -- -D warnings
+cargo bench -p dmsg_protocol --bench validation --locked
 ```
+
+测试覆盖身份和 origin 规范、设备权限和密钥、初始化配置、批准域绑定、时间/序号边界、非规范与畸形 CBOR、两种签名算法、回执绑定及 TSA 大小和信任边界。基准使用固定输入，预热后报告 7 轮每次操作耗时的中位数；比较结果时应保持相同机器、工具链和构建配置。基准衡量本地 Rust 执行，不代表 canister 指令数或端到端延迟。
 
 四个真实 Wasm 的调用、恢复、认证查询和资金异常测试：
 
