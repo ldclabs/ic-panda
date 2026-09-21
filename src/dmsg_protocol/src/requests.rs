@@ -154,6 +154,7 @@ pub trait ExecuteRequestExt {
     /// check, and performs no request validation or sequence mutation.
     fn approval_message(&self, home_user: Principal) -> Hash;
 }
+
 impl ExecuteRequestExt for ExecuteRequest {
     /// Shared by typed sign/root requests: changing the public Candid interface
     /// does not change the approved bytes or key derivation domains.

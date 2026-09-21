@@ -7,6 +7,7 @@ fn account(n: u8) -> Account {
         subaccount: None,
     }
 }
+
 fn input() -> OpenEscrow {
     let o = PaymentOffer {
         account_id: AccountId([1; 12]),
@@ -23,6 +24,7 @@ fn input() -> OpenEscrow {
         expires_at: 15 * MINUTE,
     };
     let q = Quote {
+        fee_policy_version: 1,
         quote_id: Hash::new([1; 32]),
         home_payment: o.home_payment,
         payer: account(1),
@@ -46,7 +48,7 @@ fn input() -> OpenEscrow {
     };
     let key = SigningKey::from_bytes(&[7; 32]);
     let quote_signature = key
-        .sign(digest("dmsg/quote/v1", &q).as_slice())
+        .sign(digest("dmsg/quote/v2", &q).as_slice())
         .to_bytes()
         .to_vec()
         .into();
@@ -60,6 +62,7 @@ fn input() -> OpenEscrow {
         },
     }
 }
+
 fn setup() -> (Escrow, Principal) {
     let i = input();
     let me = i.quote.home_payment;
@@ -68,11 +71,12 @@ fn setup() -> (Escrow, Principal) {
             me,
             i.quote.payer.owner,
             &i,
-            digest("dmsg/quote/v1", &i.quote),
+            digest("dmsg/quote/v2", &i.quote),
         ),
         me,
     )
 }
+
 fn transfer(
     e: &Escrow,
     me: Principal,
@@ -96,6 +100,7 @@ fn transfer(
         spender: None,
     }
 }
+
 #[test]
 fn expiry_is_half_open_and_terminal_decisions_are_exclusive() {
     let (mut e, me) = setup();
@@ -113,6 +118,7 @@ fn expiry_is_half_open_and_terminal_decisions_are_exclusive() {
     assert_eq!(refund(&mut e, at), Err(Error::VersionConflict));
     assert!(e.conserved());
 }
+
 #[test]
 fn late_underpaid_extra_and_wrong_source_deposits_keep_their_owner() {
     let (mut e, me) = setup();
@@ -135,6 +141,7 @@ fn late_underpaid_extra_and_wrong_source_deposits_keep_their_owner() {
     assert!(late.funding_ref.is_none());
     assert_eq!(d.refundable, 1130);
 }
+
 #[test]
 fn unknown_funding_can_refund_before_ledger_returns() {
     let (mut e, me) = setup();
@@ -145,6 +152,7 @@ fn unknown_funding_can_refund_before_ledger_returns() {
     assert_eq!(d.refundable, 1130);
     assert!(e.funding_ref.is_none());
 }
+
 #[test]
 fn generated_deposit_and_refund_sequences_conserve_every_atomic_unit() {
     for seed in 1..128u64 {
@@ -172,6 +180,7 @@ fn generated_deposit_and_refund_sequences_conserve_every_atomic_unit() {
         assert_eq!(e.liabilities, 0);
     }
 }
+
 #[test]
 fn overflow_and_invalid_deposit_are_atomic() {
     let (mut e, me) = setup();
@@ -182,6 +191,7 @@ fn overflow_and_invalid_deposit_are_atomic() {
     assert_eq!(accept_deposit(&mut e, me, &tx), Err(Error::QuotaExceeded));
     assert_eq!(e, before);
 }
+
 #[test]
 fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     let i = input();
@@ -197,7 +207,13 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         home_user: account(8).owner,
         ledger: i.quote.ledger,
         platform: i.quote.platform,
-        service_fee: 100,
+        governance: candid::Principal::from_slice(&[90]),
+        fee_policy: dmsg_types::payment::DeliveryFeePolicy {
+            version: 1,
+            effective_at_ms: 0,
+            rate_bps: 500,
+            minimum_atomic: 100,
+        },
         ledger_fee: 10,
         max_fee: 20,
         signer: s.clone(),

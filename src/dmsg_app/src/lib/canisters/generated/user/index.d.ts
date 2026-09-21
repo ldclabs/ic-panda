@@ -23,6 +23,7 @@ export type AccountCommand = {
       'expected_generation' : bigint,
     }
   } |
+  { 'AuthorizeMembership' : { 'intent' : MembershipIntent } } |
   { 'RemoveAuth' : { 'principal' : Principal } } |
   { 'AuthorizeHandle' : { 'intent' : HandleIntent } } |
   {
@@ -51,6 +52,7 @@ export interface AccountInfo {
   'recovery_nonce' : bigint,
   'root_slot' : [] | [RootReservation],
   'security_epoch' : bigint,
+  'created_at_ms' : bigint,
   'pending_recovery' : [] | [PendingRecovery],
   'issuer' : string,
   'home_cose' : Principal,
@@ -80,6 +82,12 @@ export interface Approval {
   'security_epoch' : bigint,
   'expires_at' : bigint,
   'sequence' : bigint,
+}
+export interface Beneficiary {
+  'product_id' : string,
+  'authority_canister' : Principal,
+  'subject_bytes' : Uint8Array | number[],
+  'subject_schema' : string,
 }
 export type Capability = { 'FormalApprove' : null } |
   { 'ContentSign' : null } |
@@ -150,6 +158,7 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
+  { 'MembershipClosing' : null } |
   { 'RecoveryIncomplete' : null } |
   { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
@@ -157,9 +166,11 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
+  { 'MembershipStale' : null } |
   { 'Forbidden' : null } |
   { 'ResultExpired' : null } |
   { 'Expired' : null } |
+  { 'MembershipIneligible' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
@@ -180,6 +191,18 @@ export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
   'charged_cycles' : bigint,
   'outcome' : ExecutionOutcome,
+}
+export interface ExecutionUsage {
+  'account_id' : Uint8Array | number[],
+  'business_revision' : bigint,
+  'valid_until_ms' : bigint,
+  'held_units' : bigint,
+  'lease_revision' : bigint,
+  'allowed_units' : bigint,
+  'charged_units' : bigint,
+  'weight_policy_version' : bigint,
+  'month_revision' : bigint,
+  'month_utc' : number,
 }
 export type HandleAction = { 'AcceptTransfer' : null } |
   { 'Register' : null } |
@@ -211,6 +234,22 @@ export interface KeyDescriptor {
 export type KeyPurpose = { 'ContentRoot' : null } |
   { 'FileAttestation' : null } |
   { 'Statement' : null };
+export interface MembershipAuthorization {
+  'valid_until_ms' : bigint,
+  'security_epoch' : bigint,
+  'verified_at_ms' : bigint,
+  'intent_digest' : Uint8Array | number[],
+}
+export interface MembershipIntent {
+  'actor' : Principal,
+  'beneficiary' : Beneficiary,
+  'valid_until_ms' : bigint,
+  'action_digest' : Uint8Array | number[],
+  'application_id' : Uint8Array | number[],
+  'nonce' : Uint8Array | number[],
+  'service_canister' : Principal,
+  'environment' : Environment,
+}
 export interface OperationReceipt {
   'id' : Uint8Array | number[],
   'account_version' : bigint,
@@ -259,6 +298,10 @@ export type Result = { 'Ok' : null } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
+export type Result_10 = { 'Ok' : MembershipAuthorization } |
+  { 'Err' : Error };
+export type Result_11 = { 'Ok' : bigint } |
+  { 'Err' : Error };
 export type Result_2 = { 'Ok' : ExecutionResult } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : AccountInfo } |
@@ -269,13 +312,13 @@ export type Result_4 = {
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : OperationReceipt } |
+export type Result_6 = { 'Ok' : ExecutionUsage } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : [] | [PendingRecovery] } |
+export type Result_7 = { 'Ok' : OperationReceipt } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : [] | [ContentRootRef] } |
+export type Result_8 = { 'Ok' : [] | [PendingRecovery] } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : bigint } |
+export type Result_9 = { 'Ok' : [] | [ContentRootRef] } |
   { 'Err' : Error };
 export interface RootReservation {
   'op_id' : Uint8Array | number[],
@@ -358,7 +401,9 @@ export interface UserInit {
   'daily_new_accounts' : number,
   'payment_canister' : Principal,
   'environment' : Environment,
+  'commerce_canister' : Principal,
   'max_accounts' : bigint,
+  'membership_canister' : Principal,
 }
 export type VaultWriteState = { 'RekeyRequired' : null } |
   { 'Ready' : null } |
@@ -382,13 +427,21 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[]],
     Result_5
   >,
-  'get_operation' : ActorMethod<
-    [Uint8Array | number[], Uint8Array | number[]],
+  'get_execution_usage' : ActorMethod<
+    [Uint8Array | number[], number],
     Result_6
   >,
-  'get_recovery_request' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'get_root_ref' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'mutate_account' : ActorMethod<[AccountMutation], Result_6>,
+  'get_execution_usage_certified' : ActorMethod<
+    [Uint8Array | number[], number],
+    Result_5
+  >,
+  'get_operation' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result_7
+  >,
+  'get_recovery_request' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_root_ref' : ActorMethod<[Uint8Array | number[]], Result_9>,
+  'mutate_account' : ActorMethod<[AccountMutation], Result_7>,
   'my_account' : ActorMethod<[], [] | [Uint8Array | number[]]>,
   'prune_auth_bindings' : ActorMethod<
     [Uint8Array | number[]],
@@ -401,6 +454,10 @@ export interface _SERVICE {
   'reconfirm_recovery' : ActorMethod<
     [Uint8Array | number[], RecoveryConfirmation, Uint8Array | number[]],
     Result
+  >,
+  'refresh_execution_entitlement' : ActorMethod<
+    [Uint8Array | number[]],
+    Result_6
   >,
   'request_recovery' : ActorMethod<
     [
@@ -416,7 +473,11 @@ export interface _SERVICE {
     Result_5
   >,
   'sign' : ActorMethod<[SignRequest], Result_2>,
-  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_9>,
+  'verify_membership_authorization' : ActorMethod<
+    [MembershipIntent],
+    Result_10
+  >,
+  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_11>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

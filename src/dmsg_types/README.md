@@ -20,7 +20,7 @@ The path is relative to the consuming project's `Cargo.toml`; adjust it for your
 - [Public protocol and byte rules](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md): the starting point for independent implementations in other languages.
 - [Statement CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl): COSE document structure.
 - [Interoperability vectors](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/tests/protocol_vectors.json): fixed encoding and signature examples.
-- [Canister implementation and validation boundaries](https://github.com/ldclabs/ic-panda/blob/main/docs/dmsg_canisters_zh.md): service responsibilities, builds, and deployment status.
+- [Canister implementation and validation boundaries](https://github.com/ldclabs/ic-panda/blob/main/docs/dmsg_canisters.md): service responsibilities, builds, and deployment status.
 
 These links point to the public repository's main branch, which changes during development. Pin types, protocol definitions, Candid interfaces, and vectors to the same commit for an integration. Rust API comments are in English for IDE and rustdoc use. The English README also serves as the crate documentation homepage; maintain both language versions together.
 

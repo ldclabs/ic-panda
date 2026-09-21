@@ -20,6 +20,7 @@ pub enum HandleAction {
     /// Claim a name reserved in a frozen legacy snapshot.
     ClaimLegacy,
 }
+
 /// Exact name operation authorized by the user home for the handle canister.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleIntent {
@@ -40,6 +41,7 @@ pub struct HandleIntent {
     /// Commitment to action-specific terms, including charge terms when applicable.
     pub terms_digest: Hash,
 }
+
 /// Name registry deployment, ledger and pending-operation limits.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleInit {
@@ -52,6 +54,7 @@ pub struct HandleInit {
     /// Maximum pending name operations allowed by this registry.
     pub max_pending: u32,
 }
+
 /// Manifest committing to frozen legacy name ownership for import.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LegacySnapshot {
@@ -68,6 +71,7 @@ pub struct LegacySnapshot {
     /// Commitment to the complete frozen name entries.
     pub entries_digest: Hash,
 }
+
 /// Frozen name claim; ambiguous ownership is quarantined for resolution.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LegacyReservation {
@@ -83,6 +87,7 @@ pub struct LegacyReservation {
     /// Whether ambiguous ownership prevents ordinary claim activation.
     pub quarantined: bool,
 }
+
 /// Current canonical name ownership and event-chain tip.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleRecord {
@@ -95,6 +100,7 @@ pub struct HandleRecord {
     /// Digest of the latest committed ownership event.
     pub event_tip: Hash,
 }
+
 /// Append-only ownership event linked to its predecessor by digest.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleEvent {
@@ -115,6 +121,7 @@ pub struct HandleEvent {
     /// Frozen snapshot commitment associated with the event.
     pub legacy_snapshot: Hash,
 }
+
 /// Authorized name intent and fixed ledger charge terms.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Registration {
@@ -126,6 +133,7 @@ pub struct Registration {
     /// Ledger network fee in integer base units.
     pub fee: u128,
 }
+
 /// Registration charge/commit lifecycle. Unknown charges require reconciliation.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum HandlePhase {
@@ -144,6 +152,7 @@ pub enum HandlePhase {
     /// A registration refund remains to be completed.
     RefundPending,
 }
+
 /// Query view of a name registration and its ledger charge.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleOperation {

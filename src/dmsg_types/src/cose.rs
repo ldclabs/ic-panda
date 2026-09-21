@@ -16,6 +16,7 @@ pub enum SigningAlgorithm {
     /// ECDSA over secp256k1 (COSE ES256K, -47).
     EcdsaSecp256k1,
 }
+
 impl From<SigningAlgorithm> for Algorithm {
     fn from(value: SigningAlgorithm) -> Self {
         match value {
@@ -24,6 +25,7 @@ impl From<SigningAlgorithm> for Algorithm {
         }
     }
 }
+
 /// Domain of a formal document signing key; derived from the content profile.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum SigningPurpose {
@@ -32,6 +34,7 @@ pub enum SigningPurpose {
     /// Key domain for SHA-256 document attestations.
     FileAttestation,
 }
+
 /// Formal signing purpose and algorithm, with generation fixed to 1 on conversion.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SigningKey {
@@ -40,6 +43,7 @@ pub struct SigningKey {
     /// Cryptographic algorithm selected for this key or operation.
     pub algorithm: SigningAlgorithm,
 }
+
 /// Typed selector separating formal signing keys from vetKD content roots.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum KeySelector {
@@ -51,6 +55,7 @@ pub enum KeySelector {
         generation: u64,
     },
 }
+
 impl From<KeySelector> for KeyRequest {
     fn from(value: KeySelector) -> Self {
         match value {
@@ -81,6 +86,7 @@ pub struct SigningKeyRef {
     /// RFC 9679 SHA-256 thumbprint of required public COSE key parameters.
     pub public_key_fingerprint: Hash,
 }
+
 /// Formal signing request submitted to the user canister.
 /// Freeze the statement, authenticated key reference, origin and cycle limit
 /// before computing the approval. The portable statement has no approval deadline.
@@ -116,6 +122,7 @@ pub enum RootTarget {
         op_id: OpId,
     },
 }
+
 /// Request a vetKD root encrypted to a caller-generated transport public key.
 /// The result is encrypted key material, not a plaintext vault key.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -131,6 +138,7 @@ pub struct DeriveRootRequest {
     /// Device approval binding the complete request and replay context.
     pub approval: Approval,
 }
+
 impl DeriveRootRequest {
     /// Convert the typed root target to an execution request without validating or authorizing it.
     pub fn into_execution(self) -> ExecuteRequest {
@@ -161,6 +169,7 @@ pub enum KeyPurpose {
     /// Content-root derivation domain, selected by generation.
     ContentRoot,
 }
+
 /// Supported chain-key operations; vetKD derives keys and cannot sign documents.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Algorithm {
@@ -171,6 +180,7 @@ pub enum Algorithm {
     /// BLS12-381 vetKD encrypted key derivation; not a document-signature algorithm.
     VetKdBls12381,
 }
+
 /// Pinned ICP master-key configuration checked during COSE initialization.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MasterKey {
@@ -182,6 +192,7 @@ pub struct MasterKey {
     /// A zero pin is allowed only outside Production.
     pub expected_fingerprint: Hash,
 }
+
 /// Deployment configuration for the COSE executor.
 /// Production validation requires fixed master names and nonzero fingerprints;
 /// changing derivation inputs changes key identity.
@@ -215,6 +226,7 @@ pub enum Initialization {
     /// Required material is initialized and ready for use.
     Ready,
 }
+
 /// Public key provenance and derivation identity.
 /// Authenticate its source before using it to bind a key to an account.
 /// Key identity depends on the home canister and derivation configuration.
@@ -246,6 +258,7 @@ pub struct KeyDescriptor {
     /// key bytes for vetKD.
     pub public_key_fingerprint: Hash,
 }
+
 /// Low-level key derivation selector. Prefer [`KeySelector`] when constructing requests.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct KeyRequest {
@@ -283,6 +296,7 @@ pub enum ExecutionKind {
         transport_key: ByteBuf,
     },
 }
+
 /// Operation submitted for account policy checks and device authorization.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecuteRequest {
@@ -322,11 +336,14 @@ pub struct ExecutionGrant {
     pub approved_at: u64,
     /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
     pub expires_at: u64,
+    /// Formal-signature units reserved in the user home; absent for protected root operations.
+    pub commerce: Option<crate::billing::CommercialReservation>,
     /// Authorized operation, identical to the approved request.
     pub kind: ExecutionKind,
     /// Maximum ICP cycles approved for this execution; not a token amount.
     pub max_cycles: u128,
 }
+
 /// Execution lifecycle without the result payload.
 /// Unknown outcomes must be reconciled using the original request ID.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -344,6 +361,7 @@ pub enum ExecutionStatus {
     /// Retained output is no longer available; this does not authorize replay.
     ResultExpired,
 }
+
 /// Query/retry view of an execution and its charged cycles.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecutionResult {
@@ -354,6 +372,7 @@ pub struct ExecutionResult {
     /// ICP cycles charged for this execution.
     pub charged_cycles: u128,
 }
+
 /// Execution lifecycle carrying either output or failure information.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ExecutionOutcome {
@@ -370,6 +389,7 @@ pub enum ExecutionOutcome {
     /// Retained output is no longer available; this does not authorize replay.
     ResultExpired,
 }
+
 /// Successful formal signature or encrypted vetKD derivation result.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ExecutionOutput {
@@ -388,6 +408,7 @@ pub enum ExecutionOutput {
         key: KeyDescriptor,
     },
 }
+
 impl ExecutionOutput {
     /// Borrow the COSE_Sign1 bytes or encrypted vetKD bytes, according to the variant.
     pub fn bytes(&self) -> &ByteBuf {
@@ -396,6 +417,7 @@ impl ExecutionOutput {
             Self::EncryptedRootKey { encrypted_key, .. } => encrypted_key,
         }
     }
+
     /// Borrow the public descriptor attached to either output variant.
     pub fn key(&self) -> &KeyDescriptor {
         match self {
@@ -403,6 +425,7 @@ impl ExecutionOutput {
         }
     }
 }
+
 impl ExecutionResult {
     /// Project the outcome to its payload-free lifecycle status.
     pub fn status(&self) -> ExecutionStatus {
@@ -415,6 +438,7 @@ impl ExecutionResult {
             ExecutionOutcome::ResultExpired => ExecutionStatus::ResultExpired,
         }
     }
+
     /// Whether this result is Completed, Failed or ResultExpired.
     /// Unknown is deliberately nonterminal and must be reconciled.
     pub fn is_terminal(&self) -> bool {
@@ -425,6 +449,7 @@ impl ExecutionResult {
                 | ExecutionOutcome::ResultExpired
         )
     }
+
     /// Borrow completed output.
     ///
     /// # Errors

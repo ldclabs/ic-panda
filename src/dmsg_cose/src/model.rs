@@ -19,6 +19,7 @@ pub struct Home {
     pub terminal_sequence: u64,
     pub executions: BTreeMap<u64, Execution>,
     pub budget: Budget,
+    pub formal_budget: Budget,
 }
 
 impl Home {
@@ -28,6 +29,7 @@ impl Home {
             terminal_sequence: 0,
             executions: BTreeMap::new(),
             budget: Budget::default(),
+            formal_budget: Budget::default(),
         }
     }
 
@@ -44,7 +46,7 @@ impl Home {
         )?;
         if let Some(sequence) = self.sequence(&grant.request_id) {
             ensure(
-                self.executions[&sequence].digest == digest("dmsg/cose-execution/v2", grant),
+                self.executions[&sequence].digest == digest("dmsg/cose-execution/v3", grant),
                 Error::IdempotencyConflict,
             )?;
             return Ok(Some(sequence));
@@ -100,7 +102,14 @@ impl Home {
     /// keys to delete; no historical result bodies need to be loaded.
     pub fn prepare(&mut self, grant: &ExecutionGrant, now: u64, cost: u128) -> Result<Vec<u64>> {
         ensure(cost <= grant.max_cycles, Error::QuotaExceeded)?;
-        self.budget.reserve(now, cost, 100, 1_000_000_000_000)?;
+        let mut total = self.budget.clone();
+        let mut formal = self.formal_budget.clone();
+        total.reserve(now, cost, 100, 1_000_000_000_000)?;
+        if matches!(grant.kind, ExecutionKind::Sign { .. }) {
+            formal.reserve(now, cost, 80, 800_000_000_000)?;
+        }
+        self.budget = total;
+        self.formal_budget = formal;
         let mut removed = Vec::new();
         self.executions.retain(|seq, e| {
             let keep = *seq > self.terminal_sequence || e.expires_at.saturating_add(DAY) > now;
@@ -113,7 +122,7 @@ impl Home {
             grant.execution_sequence,
             Execution {
                 request_id: grant.request_id,
-                digest: digest("dmsg/cose-execution/v2", grant),
+                digest: digest("dmsg/cose-execution/v3", grant),
                 expires_at: grant.expires_at,
                 terminal: false,
             },
@@ -176,6 +185,7 @@ pub fn root_input(account_id: &AccountId, generation: u64) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     fn prepare(
         h: &mut Home,
         caller: Principal,
@@ -189,8 +199,10 @@ mod tests {
         h.prepare(grant, now, cost)?;
         Ok(None)
     }
+
     fn g(seq: u64) -> ExecutionGrant {
         ExecutionGrant {
+            commerce: None,
             account_id: AccountId([1; 12]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
@@ -209,6 +221,7 @@ mod tests {
             max_cycles: 100,
         }
     }
+
     fn done(seq: u64) -> ExecutionResult {
         ExecutionResult {
             request_id: g(seq).request_id,
@@ -216,6 +229,7 @@ mod tests {
             charged_cycles: 1,
         }
     }
+
     #[test]
     fn out_of_order_and_replay_never_skip_a_hole() {
         let mut h = Home::new(g(1).home_user);
@@ -240,6 +254,7 @@ mod tests {
             Err(Error::ResultExpired)
         );
     }
+
     #[test]
     fn wrong_home_does_not_consume_sequence() {
         let mut h = Home::new(g(1).home_user);
@@ -249,6 +264,7 @@ mod tests {
         );
         assert!(h.executions.is_empty());
     }
+
     #[test]
     fn cleaned_request_cannot_reuse_id_with_new_device_sequence() {
         let mut h = Home::new(g(1).home_user);
@@ -273,6 +289,7 @@ mod tests {
             Err(Error::ResultExpired)
         );
     }
+
     #[test]
     fn a_rejected_execution_does_not_block_the_next_window() {
         let mut h = Home::new(g(1).home_user);

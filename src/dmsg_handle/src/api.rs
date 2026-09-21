@@ -13,21 +13,18 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn me() -> Principal {
-    ic_cdk::api::canister_self()
-}
-
-fn caller() -> Principal {
-    ic_cdk::api::msg_caller()
-}
-
 fn controller() -> Result<()> {
-    ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)
+    ensure(
+        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
+        Error::Forbidden,
+    )
 }
 
-fn check_intent(i: &HandleIntent, action: HandleAction) -> Result<()> {
+fn check_intent(i: &HandleIntent, action: HandleAction, canister_id: Principal) -> Result<()> {
     ensure(
-        i.handle_canister == me() && i.action == action && normalize_handle(&i.handle)? == i.handle,
+        i.handle_canister == canister_id
+            && i.action == action
+            && normalize_handle(&i.handle)? == i.handle,
         Error::IntegrityFailed,
     )?;
     nonzero(i.op_id.as_slice())?;
@@ -214,7 +211,12 @@ fn commit_name(
 
 #[ic_cdk::update]
 async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<HandleRecord> {
-    check_intent(&intent, HandleAction::ClaimLegacy)?;
+    let caller = ic_cdk::api::msg_caller();
+    check_intent(
+        &intent,
+        HandleAction::ClaimLegacy,
+        ic_cdk::api::canister_self(),
+    )?;
     let c = cfg();
     ensure(
         c.progress.sealed
@@ -231,9 +233,9 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
     let owner_is_name = legacy.legacy_name_principal == Some(legacy.legacy_owner);
     ensure(
         if owner_is_name {
-            legacy.frozen_admins.contains(&caller()) && caller() != legacy.legacy_owner
+            legacy.frozen_admins.contains(&caller) && caller != legacy.legacy_owner
         } else {
-            caller() == legacy.legacy_owner
+            caller == legacy.legacy_owner
         },
         Error::Forbidden,
     )?;
@@ -270,9 +272,13 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
 
 #[ic_cdk::update]
 async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
+    let canister_id = ic_cdk::api::canister_self();
     let i = &registration.intent;
-    check_intent(i, HandleAction::Register)?;
-    ensure(caller() == registration.payer.owner, Error::AuthRequired)?;
+    check_intent(i, HandleAction::Register, canister_id)?;
+    ensure(
+        ic_cdk::api::msg_caller() == registration.payer.owner,
+        Error::AuthRequired,
+    )?;
     let mut c = cfg();
     ensure(c.progress.sealed, Error::LegacyWriteDisabled)?;
     let amount = price(&i.handle)
@@ -326,7 +332,7 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
         amount,
         created_at,
         expires_at: created_at + 15 * MINUTE,
-        memo: digest("dmsg/handle-memo/v1", &(me(), key)),
+        memo: digest("dmsg/handle-memo/v1", &(canister_id, key)),
         ledger_block: None,
     };
     save_op(&key, &o);
@@ -381,7 +387,10 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64) -> Result<HandleO
 async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
     let key = op_key(&account_id, op_id);
     let mut o = op(&key)?;
-    ensure(caller() == o.registration.payer.owner, Error::AuthRequired)?;
+    ensure(
+        ic_cdk::api::msg_caller() == o.registration.payer.owner,
+        Error::AuthRequired,
+    )?;
     if o.phase == HandlePhase::Committed {
         return Ok(o);
     }
@@ -401,7 +410,7 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         spender_subaccount: None,
         from: o.registration.payer,
         to: Account {
-            owner: me(),
+            owner: ic_cdk::api::canister_self(),
             subaccount: None,
         },
         amount: Nat::from(o.amount),
@@ -469,11 +478,12 @@ async fn reconcile_handle_charge(
         Error::VersionConflict,
     )?;
     let tx = dmsg_runtime::ledger::read_transfer(cfg().init.ledger, block).await?;
+    let canister_id = ic_cdk::api::canister_self();
     ensure(
         tx.from == o.registration.payer
             && tx.to
                 == Account {
-                    owner: me(),
+                    owner: canister_id,
                     subaccount: None,
                 }
             && tx.amount == o.amount
@@ -481,7 +491,7 @@ async fn reconcile_handle_charge(
             && tx.created_at_time == Some(millis_to_nanos(o.created_at)?)
             && tx.spender
                 == Some(Account {
-                    owner: me(),
+                    owner: canister_id,
                     subaccount: None,
                 }),
         Error::IntegrityFailed,
@@ -507,8 +517,9 @@ fn expire_handle_reservation(account_id: AccountId, op_id: Hash) -> Result<()> {
 
 #[ic_cdk::update]
 async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<HandleRecord> {
-    check_intent(&from, HandleAction::Transfer)?;
-    check_intent(&accept, HandleAction::AcceptTransfer)?;
+    let canister_id = ic_cdk::api::canister_self();
+    check_intent(&from, HandleAction::Transfer, canister_id)?;
+    check_intent(&accept, HandleAction::AcceptTransfer, canister_id)?;
     ensure(
         from.account_id != accept.account_id
             && from.target_account.as_ref() == Some(&accept.account_id)
@@ -521,7 +532,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     let terms = digest(
         "dmsg/handle-transfer/v1",
         &(
-            me(),
+            canister_id,
             &from.handle,
             &from.account_id,
             &accept.account_id,
@@ -585,7 +596,7 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
         .iter()
         .map(|h| normalize_handle(h).map(|h| h.into_bytes()))
         .collect();
-    CERT.with_borrow(|c| c.batch(me(), keys?))
+    CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), keys?))
 }
 
 #[ic_cdk::query]
@@ -606,7 +617,12 @@ fn snapshot_progress() -> SnapshotProgress {
 
 #[ic_cdk::query]
 fn snapshot_certified() -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(me(), vec![b"_legacy_snapshot".to_vec()]))
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![b"_legacy_snapshot".to_vec()],
+        )
+    })
 }
 
 #[ic_cdk::query]

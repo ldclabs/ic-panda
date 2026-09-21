@@ -122,18 +122,24 @@ pub(crate) fn authorize(
         retained < WINDOW && s.next_execution_sequence < u64::MAX,
         Error::QuotaExceeded,
     )?;
-    s.budget.reserve(
-        now,
-        input.max_cycles,
-        s.sensitive_policy.daily_executions,
-        s.sensitive_policy.daily_cycles,
-    )?;
+    if matches!(input.kind, ExecutionKind::Derive { .. }) {
+        s.safety_budget
+            .reserve(now, input.max_cycles, 20, 200_000_000_000)?;
+    } else {
+        s.budget.reserve(
+            now,
+            input.max_cycles,
+            s.sensitive_policy.daily_executions,
+            s.sensitive_policy.daily_cycles.min(800_000_000_000),
+        )?;
+    }
     // All fallible checks have passed, including the atomic budget reservation.
     // Unknown executions stay pinned; device sequences still reject old requests
     // after terminal results and operation receipts have been evicted.
     s.execution_expirations
         .retain(|_, expires_at| expires_at.is_none_or(|at| at > now));
     let grant = ExecutionGrant {
+        commerce: None,
         account_id: s.account_id.clone(),
         home_user: s.home_user,
         home_cose: s.home_cose,

@@ -1,17 +1,27 @@
 # dMsg canisters：公开接口与参考实现
 
-本目录记录实际实现。公开协议及语言无关的字节规则见 [protocol/README.md](protocol/README.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。
+[English](dmsg_canisters.md) | 简体中文
+
+本目录记录实际实现。公开协议及语言无关的字节规则见 [protocol/README_zh.md](protocol/README_zh.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。
+
+## 商业化接口增量
+
+新增共享 `membership`（PANDA 资格、独占、持久产品决定）及 `dmsg_commerce`（现金订单、合同、退款、资源租约）。实际协议、权限、生命周期和验证边界见 [commerce_zh.md](protocol/commerce_zh.md)。user 新增精确商业批准、真实账户创建时间及独立 UTC 月执行账；COSE 隔离正式签名与安全操作预算；delivery 使用版本化费率和 v2 报价/收据域。旧名称价格不受影响。
+
+当前实现采用共享会员与 dMsg 产品商业服务分离的结构；私有商业实施 v1.0 中单个 `dmsg_membership` 的拓扑尚未同步更新。私有 Worker、扩展商业 UI、TokenList adapter 及生产钱包/SNS 验收不属于这次 canister 交付，不将本地测试视为上线证明。
 
 ## 子库
 
 | 包 | 职责 | 文档 |
 | --- | --- | --- |
-| dmsg_types | 公开数据合同，包含基础签名、ICP 接口和可选应用协议 | [README](../src/dmsg_types/README.md) |
-| dmsg_protocol | 确定性编码、批准构造、标准 COSE 验签、CTT 摘要 | [README](../src/dmsg_protocol/README.md) |
+| dmsg_types | 公开数据合同，包含基础签名、ICP 接口和可选应用协议 | [README](../src/dmsg_types/README_zh.md) |
+| dmsg_protocol | 确定性编码、批准构造、标准 COSE 验签、CTT 摘要 | [README](../src/dmsg_protocol/README_zh.md) |
 | dmsg_runtime | 参考实现共用的稳定记录、认证树、账本和调用工具 | [README](../src/dmsg_runtime/README.md) |
 | dmsg_user | 主体、认证、设备、恢复、根承诺与执行批准 | [README](../src/dmsg_user/README.md) / [Candid](../src/dmsg_user/dmsg_user.did) |
 | dmsg_cose | 标准签名产物、受限 vetKD、密钥来源和执行状态 | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
 | dmsg_handle | 名称权属、导入、收费和转移 | [README](../src/dmsg_handle/README.md) / [Candid](../src/dmsg_handle/dmsg_handle.did) |
+| membership | PANDA SNS 资格、跨产品占用与授益决定 | [README](../src/membership/README.md) / [Candid](../src/membership/membership.did) |
+| dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 
 配套私有设计与服务中关于早期接口和编码的描述尚需同步；这里记录公开端这轮重构后的实际合同，不把两者视作已经一致。
@@ -24,7 +34,7 @@
 - `get_execution_receipt` 提供认证执行叶，绑定请求 ID、待签字节、公钥和签名；请求元数据不再进入可移植 Statement。
 - `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
 - `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。
-- 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 4 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
+- 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 5 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
 - 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 可变长，BIP340 入口已删除。浏览器消息合同为 `dmsg-extension/3`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
 - payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。固定大小配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。

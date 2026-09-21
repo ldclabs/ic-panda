@@ -16,17 +16,25 @@ use std::cell::RefCell;
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-fn memory(id: u8) -> Memory {
+pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
 thread_local! {
-    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
-    pub(crate) static ACCOUNTS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<AccountState>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
-    pub(crate) static AUTH: RefCell<StableBTreeMap<Vec<u8>, Stored<AccountId>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static BINDINGS: RefCell<StableBTreeMap<Vec<u8>, Stored<PendingBinding>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
+    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
+        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    pub(crate) static ACCOUNTS: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<AccountState>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(1)));
+    pub(crate) static AUTH: RefCell<StableBTreeMap<Vec<u8>, Stored<AccountId>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(2)));
+    pub(crate) static BINDINGS: RefCell<StableBTreeMap<Vec<u8>, Stored<PendingBinding>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(3)));
+    pub(crate) static EXECUTIONS: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(5)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
@@ -96,7 +104,7 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 4;
+pub(crate) const STABLE_SCHEMA: u16 = 5;
 
 pub(crate) fn rebuild_certification() {
     let namespace = config().init.issuer_namespace;
@@ -116,6 +124,7 @@ pub(crate) fn rebuild_certification() {
                 }
             });
         });
+        crate::commerce::rebuild(c);
         // Upgrades are atomic; publish once after rebuilding both views.
         c.publish();
     });

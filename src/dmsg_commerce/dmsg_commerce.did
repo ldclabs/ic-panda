@@ -1,0 +1,440 @@
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
+type Account = record { owner : principal; subaccount : opt blob };
+type Beneficiary = record {
+  product_id : text;
+  authority_canister : principal;
+  subject_bytes : blob;
+  subject_schema : text;
+};
+type BillingOrder = record {
+  status : OrderStatus;
+  fee_reserve : nat;
+  service_reserve : nat;
+  generation : nat64;
+  network_fees : nat;
+  activated_contract_id : opt blob;
+  transferred : nat;
+  refundable : nat;
+  earned : nat;
+  next_transfer : nat64;
+  receive_subaccount : blob;
+  input : OpenOrder;
+  order_id : blob;
+  outgoing : nat;
+  funding_block : opt nat64;
+  close_effective_at_ms : opt nat64;
+  refunded_principal : nat;
+  busy_until_ms : nat64;
+  confirmed_in : nat;
+};
+type Catalog = record {
+  decimals : nat8;
+  storage_products : vec StorageProduct;
+  schema : nat16;
+  effective_at_ms : nat64;
+  version : nat64;
+  ledger : principal;
+  ledger_fee : nat;
+  plans : vec PlanVersion;
+  terms_digest : blob;
+};
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
+type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
+  certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
+  schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
+  entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
+  canister : principal;
+};
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
+type ClaimChange = variant {
+  Start;
+  Upgrade : record { previous_claim : blob };
+  Replace : record { previous_claim : blob };
+  Renew : record { previous_claim : blob };
+};
+type ClaimRequest = record {
+  term : TermRule;
+  benefit_id : blob;
+  change : ClaimChange;
+  policy_version : nat64;
+  expected_business_revision : nat64;
+  authorization : MembershipIntent;
+  neuron_id : blob;
+};
+type ClaimStatus = variant {
+  CoolingDown;
+  Closing;
+  Active;
+  Released;
+  Rejected;
+  Checking;
+  Applying;
+};
+// Public qualification leaf deliberately excludes economic identities and raw neurons.
+type ClaimView = record {
+  status : ClaimStatus;
+  home_membership : principal;
+  decision_id : opt blob;
+  release_after_ms : nat64;
+  claim_id : blob;
+  beneficiary : Beneficiary;
+  schema : nat16;
+  valid_until_ms : nat64;
+  observed_at_ms : nat64;
+  benefit_id : blob;
+  lease_revision : nat64;
+  starts_at_ms : nat64;
+  eligibility : Eligibility;
+  policy_version : nat64;
+  expires_at_ms : nat64;
+};
+type CommerceInit = record {
+  daily_orders : nat32;
+  max_subjects : nat64;
+  environment : Environment;
+  governance : principal;
+  membership_canister : principal;
+  user_homes : vec principal;
+  catalog : Catalog;
+  treasury : Account;
+};
+type DecisionKind = variant { Apply; Close };
+type DecisionOutcome = variant { Applied; Rejected };
+type Eligibility = variant { Unverifiable; Ineligible; Eligible };
+type EntitlementView = record {
+  lease_source_contract_ids : vec blob;
+  plan_snapshot : PlanVersion;
+  business_revision : nat64;
+  service_terminated_at_ms : opt nat64;
+  beneficiary : Beneficiary;
+  schema : nat16;
+  valid_until_ms : nat64;
+  observed_at_ms : nat64;
+  repair_deadline_ms : opt nat64;
+  lease_revision : nat64;
+  issued_at_ms : nat64;
+  home_commerce : principal;
+  addons : vec StorageAddon;
+  effective_stop_at_ms : opt nat64;
+  effective_limits : ResourceLimits;
+  next_limit_change_at_ms : opt nat64;
+  source_status : SourceStatus;
+  eligibility_status : Eligibility;
+  active_contract_id : opt blob;
+};
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
+type Error = variant {
+  // Required legacy key material is unavailable.
+  MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
+  LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
+  InvalidInput : text;
+  // A new content root must be committed before writes can resume.
+  RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
+  VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
+  ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
+  IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
+  IdTimestampOutOfRange;
+  // The requested record does not exist.
+  NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
+  FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
+  DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
+  Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
+  // Required recovery setup/confirmation has not completed.
+  RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
+  IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
+  PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
+  IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
+  IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
+  UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
+  Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
+  // Caller, role or capability does not authorize this operation.
+  Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
+  ResultExpired;
+  // The applicable deadline has passed.
+  Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
+  // An execution, cycle, storage or admission limit was exceeded.
+  QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
+  AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
+  Pending;
+};
+type ExecutionEntitlement = record {
+  month : MonthEntitlement;
+  view : EntitlementView;
+};
+type ExecutionWeights = record {
+  ecdsa_secp256k1 : nat64;
+  ed25519 : nat64;
+  version : nat64;
+};
+type MembershipAuthorization = record {
+  valid_until_ms : nat64;
+  security_epoch : nat64;
+  verified_at_ms : nat64;
+  intent_digest : blob;
+};
+// Immutable action delivered at least once to the registered product adapter.
+type MembershipDecision = record {
+  qualification_until_ms : nat64;
+  decision_id : blob;
+  claim_id : blob;
+  request : ClaimRequest;
+  kind : DecisionKind;
+  observed_at_ms : nat64;
+  required_atomic : nat;
+  starts_at_ms : nat64;
+  apply_by_ms : nat64;
+  expires_at_ms : nat64;
+  policy : MembershipPolicy;
+};
+type MembershipDecisionReceipt = record {
+  decision_id : blob;
+  business_revision : nat64;
+  // Product confirms it cannot grant any benefit from this claim beyond this time.
+  commitment_until_ms : nat64;
+  contract_id : opt blob;
+  starts_at_ms : nat64;
+  outcome : DecisionOutcome;
+  decision_digest : blob;
+  expires_at_ms : nat64;
+};
+// A device-approved, purpose-separated intent. Actor authentication is also required.
+type MembershipIntent = record {
+  actor : principal;
+  beneficiary : Beneficiary;
+  valid_until_ms : nat64;
+  action_digest : blob;
+  application_id : blob;
+  nonce : blob;
+  service_canister : principal;
+  environment : Environment;
+};
+type MembershipPolicy = record {
+  product_id : text;
+  threshold : Threshold;
+  // Governance-approved service cost reservation, not cash revenue.
+  subsidy_units : nat64;
+  benefit_id : blob;
+  effective_at_ms : nat64;
+  version : nat64;
+};
+type MerchantDeposit = record {
+  from : Account;
+  refundable : nat;
+  block : nat64;
+  order_id : blob;
+  amount : nat;
+};
+type MerchantTransfer = record {
+  to : Account;
+  fee : nat;
+  status : MerchantTransferStatus;
+  replaces : opt nat64;
+  created_at_time_ns : nat64;
+  memo : blob;
+  replaced_by : opt nat64;
+  transfer_id : nat64;
+  block : opt nat64;
+  order_id : blob;
+  amount : nat;
+};
+type MerchantTransferStatus = variant {
+  Superseded;
+  Rejected;
+  Succeeded;
+  InFlight;
+  Unknown;
+  Pending;
+};
+type MonthEntitlement = record {
+  business_revision : nat64;
+  calculation_version : nat16;
+  beneficiary : Beneficiary;
+  segments : vec MonthSegment;
+  allowed_units : nat64;
+  weights : ExecutionWeights;
+  month_revision : nat64;
+  // YYYYMM in UTC.
+  month_utc : nat32;
+};
+type MonthSegment = record {
+  start_ms : nat64;
+  monthly_units : nat64;
+  end_ms : nat64;
+  source_contract_id : opt blob;
+};
+type OpenOrder = record {
+  quote : OrderQuote;
+  authorization : MembershipIntent;
+};
+type OrderAction = variant {
+  Buyout : record { contract_id : blob };
+  Storage : record { product_id : blob };
+  Upgrade : record { plan : PlanId };
+  Renew : record { plan : PlanId };
+  Subscribe : record { plan : PlanId };
+};
+type OrderQuote = record {
+  amount_atomic : nat;
+  fee_reserve : nat;
+  request : QuoteOrder;
+  term : TermRule;
+  created_at_ms : nat64;
+  fund_by_ms : nat64;
+  home_commerce : principal;
+  catalog : Catalog;
+  activate_by_ms : nat64;
+};
+type OrderStatus = variant {
+  Closing;
+  Active;
+  AwaitingFunding;
+  Cancelled;
+  Authorizing;
+  RefundCommitted;
+};
+type PlanId = variant { Max; Pro; Free; Plus };
+type PlanVersion = record {
+  catalog_version : nat64;
+  terms_version : nat64;
+  price_cents : nat64;
+  membership_policy_version : opt nat64;
+  weights : ExecutionWeights;
+  plan_id : PlanId;
+  limits : ResourceLimits;
+};
+type QuoteOrder = record {
+  action : OrderAction;
+  op_id : blob;
+  beneficiary : Beneficiary;
+  payer : Account;
+  expected_business_revision : nat64;
+};
+type ResourceLimits = record {
+  active_channels : nat64;
+  monthly_execution_units : nat64;
+  storage_bytes : nat64;
+};
+type Result = variant { Ok : MembershipDecisionReceipt; Err : Error };
+type Result_1 = variant { Ok : MembershipAuthorization; Err : Error };
+type Result_10 = variant { Ok : ClaimView; Err : Error };
+type Result_11 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : BillingOrder; Err : Error };
+type Result_3 = variant { Ok : MerchantTransfer; Err : Error };
+type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_5 = variant { Ok : MerchantDeposit; Err : Error };
+type Result_6 = variant { Ok : ExecutionEntitlement; Err : Error };
+type Result_7 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
+type Result_8 = variant { Ok : OrderQuote; Err : Error };
+type Result_9 = variant { Ok : EntitlementView; Err : Error };
+type SourceStatus = variant {
+  Unverifiable;
+  Free;
+  Closing;
+  Active;
+  Suspended;
+  RepairRequired;
+  Expired;
+};
+type StorageAddon = record {
+  contract_id : blob;
+  starts_at_ms : nat64;
+  storage_bytes : nat64;
+  order_id : blob;
+  expires_at_ms : nat64;
+  last_issued_until_ms : nat64;
+};
+type StorageProduct = record {
+  product_id : blob;
+  price_cents : nat64;
+  storage_bytes : nat64;
+  duration_ms : nat64;
+};
+type TermRule = variant {
+  Fixed : record { starts_at_ms : nat64; expires_at_ms : nat64 };
+  CalendarYear;
+};
+type Threshold = variant {
+  AnnualPrice : record { price_cents : nat64; r_den : nat; r_num : nat };
+  FixedPanda : record { atomic : nat };
+};
+service : (CommerceInit) -> {
+  apply_membership_decision : (MembershipDecision) -> (Result);
+  authorize_membership_close : (blob, MembershipIntent) -> (Result_1);
+  authorize_membership_intent : (ClaimRequest) -> (Result_1);
+  check_order_funding : (blob, nat64) -> (Result_2);
+  claim_deposit_refund : (blob, nat64) -> (Result_3);
+  claim_fee_reserve : (blob) -> (Result_3);
+  collect_revenue : (blob) -> (Result_3);
+  get_catalog : () -> (Result_4) query;
+  get_deposit : (nat64) -> (Result_5) query;
+  get_entitlement_batch : (vec Beneficiary) -> (Result_4) query;
+  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_6);
+  get_membership_decision : (blob) -> (Result_7);
+  get_operation : (blob) -> (Result_2) query;
+  get_order_certified : (blob) -> (Result_4) query;
+  get_transfer : (blob, nat64) -> (Result_3) query;
+  list_catalogs : () -> (vec Catalog) query;
+  open_order : (OpenOrder) -> (Result_2);
+  process_transfer : (blob, nat64) -> (Result_3);
+  quote_order : (QuoteOrder) -> (Result_8) query;
+  reconcile_order : (blob) -> (Result_2);
+  reconcile_transfer : (blob, nat64, nat64) -> (Result_3);
+  refresh_catalog : () -> (Catalog);
+  refresh_entitlement : (Beneficiary) -> (Result_9);
+  release_replaced_claim : (Beneficiary, blob) -> (Result_10);
+  request_refund : (blob, MembershipIntent) -> (Result_2);
+  revise_rejected_transfer : (blob, nat64, nat) -> (Result_3);
+  schedule_policy : (Catalog) -> (Result_11);
+  set_admission_pause : (bool) -> (Result_11);
+  verify_ledger_configuration : () -> (Result_11);
+}

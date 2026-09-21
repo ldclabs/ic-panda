@@ -1,6 +1,7 @@
 use candid::Principal;
 use dmsg_types::{payment::*, profiles::delivery::*, *};
 use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Escrow {
     pub escrow_id: Hash,

@@ -9,7 +9,9 @@
 use crate::{storage::StableCodec, Budget};
 use candid::Principal;
 use cbor2::Cbor;
-use dmsg_types::{cose::*, handle::*, payment::*, profiles::delivery::Quote, user::*, *};
+use dmsg_types::{
+    cose::*, handle::*, membership::*, payment::*, profiles::delivery::Quote, user::*, *,
+};
 use icrc_ledger_types::icrc1::account::Account;
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
@@ -431,6 +433,8 @@ stable_struct!(ReceiptSignerRepr => ReceiptSigner {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct QuoteRepr {
+    #[cbor(key = 21)]
+    pub fee_policy_version: u64,
     #[cbor(key = 1)]
     pub quote_id: Hash,
     #[cbor(key = 2)]
@@ -478,6 +482,7 @@ impl StableCodec for Quote {
 
     fn to_repr(&self) -> Self::Repr {
         QuoteRepr {
+            fee_policy_version: self.fee_policy_version,
             quote_id: self.quote_id,
             home_payment: self.home_payment,
             payer: account_to_repr(&self.payer),
@@ -503,6 +508,7 @@ impl StableCodec for Quote {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
+            fee_policy_version: repr.fee_policy_version,
             quote_id: repr.quote_id,
             home_payment: repr.home_payment,
             payer: account_from_repr(repr.payer),
@@ -536,7 +542,9 @@ pub struct PaymentInitRepr {
     #[cbor(key = 3)]
     pub platform: AccountRepr,
     #[cbor(key = 4)]
-    pub service_fee: u128,
+    pub fee_policy: DeliveryFeePolicy,
+    #[cbor(key = 11)]
+    pub governance: Principal,
     #[cbor(key = 5)]
     pub ledger_fee: u128,
     #[cbor(key = 6)]
@@ -559,7 +567,8 @@ impl StableCodec for PaymentInit {
             home_user: self.home_user,
             ledger: self.ledger,
             platform: account_to_repr(&self.platform),
-            service_fee: self.service_fee,
+            fee_policy: self.fee_policy.clone(),
+            governance: self.governance,
             ledger_fee: self.ledger_fee,
             max_fee: self.max_fee,
             signer: self.signer.to_repr(),
@@ -574,7 +583,8 @@ impl StableCodec for PaymentInit {
             home_user: repr.home_user,
             ledger: repr.ledger,
             platform: account_from_repr(repr.platform),
-            service_fee: repr.service_fee,
+            fee_policy: repr.fee_policy,
+            governance: repr.governance,
             ledger_fee: repr.ledger_fee,
             max_fee: repr.max_fee,
             signer: ReceiptSigner::from_repr(repr.signer),
@@ -820,6 +830,8 @@ impl From<ExecutionKindRepr> for ExecutionKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct ExecutionGrantRepr {
+    #[cbor(key = 13)]
+    pub commerce: Option<dmsg_types::billing::CommercialReservation>,
     #[cbor(key = 1)]
     pub account_id: AccountId,
     #[cbor(key = 2)]
@@ -851,6 +863,7 @@ impl StableCodec for ExecutionGrant {
 
     fn to_repr(&self) -> Self::Repr {
         ExecutionGrantRepr {
+            commerce: self.commerce.clone(),
             account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
@@ -868,6 +881,7 @@ impl StableCodec for ExecutionGrant {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
+            commerce: repr.commerce,
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
@@ -1111,6 +1125,10 @@ impl StableCodec for KeyState {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct UserInitRepr {
+    #[cbor(key = 8)]
+    pub commerce_canister: Principal,
+    #[cbor(key = 9)]
+    pub membership_canister: Principal,
     #[cbor(key = 1)]
     pub environment: Environment,
     #[cbor(key = 2)]
@@ -1132,6 +1150,8 @@ impl StableCodec for UserInit {
 
     fn to_repr(&self) -> Self::Repr {
         UserInitRepr {
+            commerce_canister: self.commerce_canister,
+            membership_canister: self.membership_canister,
             environment: self.environment.clone(),
             issuer_namespace: self.issuer_namespace.clone(),
             home_cose: self.home_cose,
@@ -1144,6 +1164,8 @@ impl StableCodec for UserInit {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
+            commerce_canister: repr.commerce_canister,
+            membership_canister: repr.membership_canister,
             environment: repr.environment,
             issuer_namespace: repr.issuer_namespace,
             home_cose: repr.home_cose,
@@ -1154,6 +1176,440 @@ impl StableCodec for UserInit {
         }
     }
 }
+
+stable_struct!(BeneficiaryRepr => Beneficiary {
+    1 => product_id: String,
+    2 => authority_canister: Principal,
+    3 => subject_schema: String,
+    4 => subject_bytes: ByteBuf,
+});
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct MembershipIntentRepr {
+    #[cbor(key = 1)]
+    pub application_id: Hash,
+    #[cbor(key = 2)]
+    pub environment: Environment,
+    #[cbor(key = 3)]
+    pub service_canister: Principal,
+    #[cbor(key = 4)]
+    pub beneficiary: BeneficiaryRepr,
+    #[cbor(key = 5)]
+    pub actor: Principal,
+    #[cbor(key = 6)]
+    pub action_digest: Hash,
+    #[cbor(key = 7)]
+    pub nonce: Hash,
+    #[cbor(key = 8)]
+    pub valid_until_ms: u64,
+}
+
+impl StableCodec for MembershipIntent {
+    type Repr = MembershipIntentRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        MembershipIntentRepr {
+            application_id: self.application_id,
+            environment: self.environment.clone(),
+            service_canister: self.service_canister,
+            beneficiary: self.beneficiary.to_repr(),
+            actor: self.actor,
+            action_digest: self.action_digest,
+            nonce: self.nonce,
+            valid_until_ms: self.valid_until_ms,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            application_id: repr.application_id,
+            environment: repr.environment,
+            service_canister: repr.service_canister,
+            beneficiary: Beneficiary::from_repr(repr.beneficiary),
+            actor: repr.actor,
+            action_digest: repr.action_digest,
+            nonce: repr.nonce,
+            valid_until_ms: repr.valid_until_ms,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub enum ThresholdRepr {
+    FixedPanda {
+        #[cbor(key = 1)]
+        atomic: u128,
+    },
+    AnnualPrice {
+        #[cbor(key = 2)]
+        price_cents: u64,
+        #[cbor(key = 3)]
+        r_num: u128,
+        #[cbor(key = 4)]
+        r_den: u128,
+    },
+}
+
+impl From<&Threshold> for ThresholdRepr {
+    fn from(value: &Threshold) -> Self {
+        match value {
+            Threshold::FixedPanda { atomic } => Self::FixedPanda { atomic: *atomic },
+            Threshold::AnnualPrice {
+                price_cents,
+                r_num,
+                r_den,
+            } => Self::AnnualPrice {
+                price_cents: *price_cents,
+                r_num: *r_num,
+                r_den: *r_den,
+            },
+        }
+    }
+}
+
+impl From<ThresholdRepr> for Threshold {
+    fn from(value: ThresholdRepr) -> Self {
+        match value {
+            ThresholdRepr::FixedPanda { atomic } => Self::FixedPanda { atomic },
+            ThresholdRepr::AnnualPrice {
+                price_cents,
+                r_num,
+                r_den,
+            } => Self::AnnualPrice {
+                price_cents,
+                r_num,
+                r_den,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct MembershipPolicyRepr {
+    #[cbor(key = 1)]
+    pub version: u64,
+    #[cbor(key = 2)]
+    pub product_id: String,
+    #[cbor(key = 3)]
+    pub benefit_id: Hash,
+    #[cbor(key = 4)]
+    pub threshold: ThresholdRepr,
+    #[cbor(key = 5)]
+    pub effective_at_ms: u64,
+    #[cbor(key = 6)]
+    pub subsidy_units: u64,
+}
+
+impl StableCodec for MembershipPolicy {
+    type Repr = MembershipPolicyRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        MembershipPolicyRepr {
+            version: self.version,
+            product_id: self.product_id.clone(),
+            benefit_id: self.benefit_id,
+            threshold: (&self.threshold).into(),
+            effective_at_ms: self.effective_at_ms,
+            subsidy_units: self.subsidy_units,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            version: repr.version,
+            product_id: repr.product_id,
+            benefit_id: repr.benefit_id,
+            threshold: repr.threshold.into(),
+            effective_at_ms: repr.effective_at_ms,
+            subsidy_units: repr.subsidy_units,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub enum TermRuleRepr {
+    CalendarYear,
+    Fixed {
+        #[cbor(key = 1)]
+        starts_at_ms: u64,
+        #[cbor(key = 2)]
+        expires_at_ms: u64,
+    },
+}
+
+impl From<&TermRule> for TermRuleRepr {
+    fn from(value: &TermRule) -> Self {
+        match value {
+            TermRule::CalendarYear => Self::CalendarYear,
+            TermRule::Fixed {
+                starts_at_ms,
+                expires_at_ms,
+            } => Self::Fixed {
+                starts_at_ms: *starts_at_ms,
+                expires_at_ms: *expires_at_ms,
+            },
+        }
+    }
+}
+
+impl From<TermRuleRepr> for TermRule {
+    fn from(value: TermRuleRepr) -> Self {
+        match value {
+            TermRuleRepr::CalendarYear => Self::CalendarYear,
+            TermRuleRepr::Fixed {
+                starts_at_ms,
+                expires_at_ms,
+            } => Self::Fixed {
+                starts_at_ms,
+                expires_at_ms,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub enum ClaimChangeRepr {
+    Start,
+    Renew {
+        #[cbor(key = 1)]
+        previous_claim: Hash,
+    },
+    Upgrade {
+        #[cbor(key = 1)]
+        previous_claim: Hash,
+    },
+    Replace {
+        #[cbor(key = 1)]
+        previous_claim: Hash,
+    },
+}
+
+impl From<&ClaimChange> for ClaimChangeRepr {
+    fn from(value: &ClaimChange) -> Self {
+        match value {
+            ClaimChange::Start => Self::Start,
+            ClaimChange::Renew { previous_claim } => Self::Renew {
+                previous_claim: *previous_claim,
+            },
+            ClaimChange::Upgrade { previous_claim } => Self::Upgrade {
+                previous_claim: *previous_claim,
+            },
+            ClaimChange::Replace { previous_claim } => Self::Replace {
+                previous_claim: *previous_claim,
+            },
+        }
+    }
+}
+
+impl From<ClaimChangeRepr> for ClaimChange {
+    fn from(value: ClaimChangeRepr) -> Self {
+        match value {
+            ClaimChangeRepr::Start => Self::Start,
+            ClaimChangeRepr::Renew { previous_claim } => Self::Renew { previous_claim },
+            ClaimChangeRepr::Upgrade { previous_claim } => Self::Upgrade { previous_claim },
+            ClaimChangeRepr::Replace { previous_claim } => Self::Replace { previous_claim },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct ClaimRequestRepr {
+    #[cbor(key = 1)]
+    pub authorization: MembershipIntentRepr,
+    #[cbor(key = 2)]
+    pub neuron_id: Hash,
+    #[cbor(key = 3)]
+    pub policy_version: u64,
+    #[cbor(key = 4)]
+    pub benefit_id: Hash,
+    #[cbor(key = 5)]
+    pub expected_business_revision: u64,
+    #[cbor(key = 6)]
+    pub term: TermRuleRepr,
+    #[cbor(key = 7)]
+    pub change: ClaimChangeRepr,
+}
+
+impl StableCodec for ClaimRequest {
+    type Repr = ClaimRequestRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        ClaimRequestRepr {
+            authorization: self.authorization.to_repr(),
+            neuron_id: self.neuron_id,
+            policy_version: self.policy_version,
+            benefit_id: self.benefit_id,
+            expected_business_revision: self.expected_business_revision,
+            term: (&self.term).into(),
+            change: (&self.change).into(),
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            authorization: MembershipIntent::from_repr(repr.authorization),
+            neuron_id: repr.neuron_id,
+            policy_version: repr.policy_version,
+            benefit_id: repr.benefit_id,
+            expected_business_revision: repr.expected_business_revision,
+            term: repr.term.into(),
+            change: repr.change.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct ClaimViewRepr {
+    #[cbor(key = 1)]
+    pub schema: u16,
+    #[cbor(key = 2)]
+    pub home_membership: Principal,
+    #[cbor(key = 3)]
+    pub claim_id: Hash,
+    #[cbor(key = 4)]
+    pub beneficiary: BeneficiaryRepr,
+    #[cbor(key = 5)]
+    pub benefit_id: Hash,
+    #[cbor(key = 6)]
+    pub policy_version: u64,
+    #[cbor(key = 7)]
+    pub status: ClaimStatus,
+    #[cbor(key = 8)]
+    pub eligibility: Eligibility,
+    #[cbor(key = 9)]
+    pub starts_at_ms: u64,
+    #[cbor(key = 10)]
+    pub expires_at_ms: u64,
+    #[cbor(key = 11)]
+    pub observed_at_ms: u64,
+    #[cbor(key = 12)]
+    pub valid_until_ms: u64,
+    #[cbor(key = 13)]
+    pub lease_revision: u64,
+    #[cbor(key = 14)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_id: Option<Hash>,
+    #[cbor(key = 15)]
+    pub release_after_ms: u64,
+}
+
+impl StableCodec for ClaimView {
+    type Repr = ClaimViewRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        ClaimViewRepr {
+            schema: self.schema,
+            home_membership: self.home_membership,
+            claim_id: self.claim_id,
+            beneficiary: self.beneficiary.to_repr(),
+            benefit_id: self.benefit_id,
+            policy_version: self.policy_version,
+            status: self.status.clone(),
+            eligibility: self.eligibility.clone(),
+            starts_at_ms: self.starts_at_ms,
+            expires_at_ms: self.expires_at_ms,
+            observed_at_ms: self.observed_at_ms,
+            valid_until_ms: self.valid_until_ms,
+            lease_revision: self.lease_revision,
+            decision_id: self.decision_id,
+            release_after_ms: self.release_after_ms,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            schema: repr.schema,
+            home_membership: repr.home_membership,
+            claim_id: repr.claim_id,
+            beneficiary: Beneficiary::from_repr(repr.beneficiary),
+            benefit_id: repr.benefit_id,
+            policy_version: repr.policy_version,
+            status: repr.status,
+            eligibility: repr.eligibility,
+            starts_at_ms: repr.starts_at_ms,
+            expires_at_ms: repr.expires_at_ms,
+            observed_at_ms: repr.observed_at_ms,
+            valid_until_ms: repr.valid_until_ms,
+            lease_revision: repr.lease_revision,
+            decision_id: repr.decision_id,
+            release_after_ms: repr.release_after_ms,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct MembershipDecisionRepr {
+    #[cbor(key = 1)]
+    pub decision_id: Hash,
+    #[cbor(key = 2)]
+    pub claim_id: Hash,
+    #[cbor(key = 3)]
+    pub kind: DecisionKind,
+    #[cbor(key = 4)]
+    pub request: ClaimRequestRepr,
+    #[cbor(key = 5)]
+    pub policy: MembershipPolicyRepr,
+    #[cbor(key = 6)]
+    pub required_atomic: u128,
+    #[cbor(key = 7)]
+    pub starts_at_ms: u64,
+    #[cbor(key = 8)]
+    pub expires_at_ms: u64,
+    #[cbor(key = 9)]
+    pub apply_by_ms: u64,
+    #[cbor(key = 10)]
+    pub observed_at_ms: u64,
+    #[cbor(key = 11)]
+    pub qualification_until_ms: u64,
+}
+
+impl StableCodec for MembershipDecision {
+    type Repr = MembershipDecisionRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        MembershipDecisionRepr {
+            decision_id: self.decision_id,
+            claim_id: self.claim_id,
+            kind: self.kind.clone(),
+            request: self.request.to_repr(),
+            policy: self.policy.to_repr(),
+            required_atomic: self.required_atomic,
+            starts_at_ms: self.starts_at_ms,
+            expires_at_ms: self.expires_at_ms,
+            apply_by_ms: self.apply_by_ms,
+            observed_at_ms: self.observed_at_ms,
+            qualification_until_ms: self.qualification_until_ms,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            decision_id: repr.decision_id,
+            claim_id: repr.claim_id,
+            kind: repr.kind,
+            request: ClaimRequest::from_repr(repr.request),
+            policy: MembershipPolicy::from_repr(repr.policy),
+            required_atomic: repr.required_atomic,
+            starts_at_ms: repr.starts_at_ms,
+            expires_at_ms: repr.expires_at_ms,
+            apply_by_ms: repr.apply_by_ms,
+            observed_at_ms: repr.observed_at_ms,
+            qualification_until_ms: repr.qualification_until_ms,
+        }
+    }
+}
+
+stable_struct!(MembershipDecisionReceiptRepr => MembershipDecisionReceipt {
+    1 => decision_id: Hash,
+    2 => decision_digest: Hash,
+    3 => outcome: DecisionOutcome,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    4 => contract_id: Option<Hash>,
+    5 => starts_at_ms: u64,
+    6 => expires_at_ms: u64,
+    7 => business_revision: u64,
+    8 => commitment_until_ms: u64,
+});
 
 pub fn map_to_repr<K, V>(values: &BTreeMap<K, V>) -> BTreeMap<K, V::Repr>
 where

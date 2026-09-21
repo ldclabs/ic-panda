@@ -1,0 +1,30 @@
+; Public commerce CBOR framing. Complete method records are defined by Candid/types.
+hash32 = bytes .size 32
+account-id = bytes .size 12
+principal = bytes .size (1..29)
+uint128 = uint / #6.2(bytes .size (9..16))
+beneficiary = {
+  "product_id": tstr,
+  "authority_canister": principal,
+  "subject_schema": tstr,
+  "subject_bytes": bytes .size (1..64)
+}
+membership-intent = {
+  "application_id": hash32,
+  "environment": "Local" / "Staging" / "Production",
+  "service_canister": principal,
+  "beneficiary": beneficiary,
+  "actor": principal,
+  "action_digest": hash32,
+  "nonce": hash32,
+  "valid_until_ms": uint
+}
+intent-preimage = [1, "dmsg/commerce/intent/v1", membership-intent]
+entitlement-key-preimage = [1, "dmsg/commerce/entitlement-key/v1", beneficiary]
+catalog-key-preimage = [1, "dmsg/commerce/catalog-key/v1", "dmsg"]
+order-key-preimage = [1, "dmsg/commerce/order-key/v1", hash32]
+claim-key-preimage = [1, "membership/claim-key/v1", hash32]
+usage-key-preimage = [1, "dmsg/commerce/usage-key/v1", [account-id, uint]]
+resource-limits = { "storage_bytes": uint, "active_channels": uint, "monthly_execution_units": uint }
+month-segment = { "start_ms": uint, "end_ms": uint, "monthly_units": uint, "source_contract_id": hash32 / null }
+delivery-fee-policy = { "version": uint, "effective_at_ms": uint, "rate_bps": uint .le 10000, "minimum_atomic": uint128 }

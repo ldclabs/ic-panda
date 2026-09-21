@@ -239,6 +239,26 @@
       "optimize": "cycles",
       "gzip": true,
       "type": "rust"
+    },
+    "membership": {
+      "candid": "src/membership/membership.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "membership",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
+    "dmsg_commerce": {
+      "candid": "src/dmsg_commerce/dmsg_commerce.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "dmsg_commerce",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
     }
   },
   "defaults": {

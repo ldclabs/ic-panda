@@ -30,6 +30,7 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
+  { 'MembershipClosing' : null } |
   { 'RecoveryIncomplete' : null } |
   { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
@@ -37,9 +38,11 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
+  { 'MembershipStale' : null } |
   { 'Forbidden' : null } |
   { 'ResultExpired' : null } |
   { 'Expired' : null } |
+  { 'MembershipIneligible' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };

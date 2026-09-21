@@ -158,6 +158,7 @@ mod tests {
 
     fn quote() -> Quote {
         Quote {
+            fee_policy_version: 1,
             quote_id: Hash::new([1; 32]),
             home_payment: p(5),
             payer: account(1),
@@ -229,10 +230,10 @@ mod tests {
         let escrow = escrow();
         assert_public_text_keys(&escrow.quote);
         let escrow_bytes = compact_bytes(&escrow);
-        assert_eq!(escrow_bytes.len(), 567);
+        assert_eq!(escrow_bytes.len(), 569);
         assert_eq!(
             hex(&escrow_bytes),
-            "9a9f7bb9bf59608337c26f18a8ac93e13a36cc8de9afbe1d5f04af1298f0388c"
+            "f24eb07940dadd5edf99d4949388b79b992277a615e5533b185c514fb40911e6"
         );
         assert_integer_top_keys(&escrow_bytes, 18);
         let decoded = compact_from_bytes::<Escrow>(&escrow_bytes);
@@ -331,7 +332,13 @@ mod tests {
                 home_user: p(1),
                 ledger: p(2),
                 platform: account(3),
-                service_fee: 100,
+                governance: candid::Principal::from_slice(&[90]),
+                fee_policy: dmsg_types::payment::DeliveryFeePolicy {
+                    version: 1,
+                    effective_at_ms: 0,
+                    rate_bps: 500,
+                    minimum_atomic: 100,
+                },
                 ledger_fee: 10,
                 max_fee: 20,
                 signer,

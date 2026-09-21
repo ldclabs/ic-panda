@@ -33,6 +33,7 @@ pub fn millis_to_nanos(millis: u64) -> Result<u64> {
         .checked_mul(NANOS_PER_MILLISECOND)
         .ok_or_else(|| invalid("timestamp overflow"))
 }
+
 /// Maximum generic protocol decode / prepared signing size in bytes (65,536).
 /// Document profiles impose additional limits.
 pub const MAX_PAYLOAD: usize = 65_536;
@@ -43,6 +44,12 @@ pub const MAX_BATCH: usize = 64;
 /// Transport failures and Candid decoding failures are separate from this enum.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Error {
+    /// Commercial qualification is temporarily unverifiable or its lease expired.
+    MembershipStale,
+    /// The subject is known to be ineligible for the requested benefit.
+    MembershipIneligible,
+    /// The source benefit is closing and cannot issue new leases.
+    MembershipClosing,
     /// Account-ID timestamp cannot fit the generator format.
     IdTimestampOutOfRange,
     /// Account-ID counter space is exhausted for this timestamp.
@@ -99,6 +106,7 @@ pub enum Error {
 pub fn invalid(message: &str) -> Error {
     Error::InvalidInput(message.into())
 }
+
 /// Return Ok(()) when condition holds, otherwise return the supplied error.
 pub fn ensure(condition: bool, error: Error) -> Result<()> {
     if condition {
@@ -149,6 +157,7 @@ pub struct CertifiedEntry {
     /// CBOR-encoded IC hash-tree witness for this requested leaf.
     pub witness: ByteBuf,
 }
+
 /// IC-certified query response. Merely decoding this value authenticates nothing.
 /// Verify the IC certificate against a trusted root, the expected canister and
 /// certificate time, then each witness, requested path and exact leaf bytes.

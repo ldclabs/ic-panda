@@ -223,3 +223,12 @@ fn icrc3_get_blocks(args: Vec<GetBlocksRequest>) -> GetBlocksResult {
     }
 }
 ic_cdk::export_candid!();
+
+#[ic_cdk::query]
+fn icrc1_decimals() -> u8 {
+    6
+}
+#[ic_cdk::query]
+fn icrc1_fee() -> Nat {
+    fee().into()
+}

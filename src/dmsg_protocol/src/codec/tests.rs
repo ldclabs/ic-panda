@@ -145,6 +145,7 @@ fn execution_ids_bind_every_component() {
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     );
 }
+
 #[test]
 fn signature_domains_and_canonical_encoding_are_bound() {
     let sk = SigningKey::from_bytes(&[7; 32]);

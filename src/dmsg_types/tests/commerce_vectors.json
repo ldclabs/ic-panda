@@ -1,0 +1,2793 @@
+[
+  {
+    "name": "beneficiary",
+    "value": {
+      "map": [
+        [
+          {
+            "text": "product_id"
+          },
+          {
+            "text": "dmsg"
+          }
+        ],
+        [
+          {
+            "text": "subject_bytes"
+          },
+          {
+            "bytes": "010101010101010101010101"
+          }
+        ],
+        [
+          {
+            "text": "subject_schema"
+          },
+          {
+            "text": "dmsg-account-v1"
+          }
+        ],
+        [
+          {
+            "text": "authority_canister"
+          },
+          {
+            "bytes": "01"
+          }
+        ]
+      ]
+    },
+    "cbor_hex": "a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e69737465724101",
+    "sha256_hex": "b66578373168bb89dc5018b6921f995889bf41be946d321877239f83023c2cce",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "00b12066a7f7845db4c53a9c0137b2a4a645ab4d3a0643e46e30e96f61c76846fa47d132244d5042b2286744dbd3fb8d34f41b39830180f379833c00e9f35306"
+  },
+  {
+    "name": "entitlement_key",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/commerce/entitlement-key/v1"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "product_id"
+              },
+              {
+                "text": "dmsg"
+              }
+            ],
+            [
+              {
+                "text": "subject_bytes"
+              },
+              {
+                "bytes": "010101010101010101010101"
+              }
+            ],
+            [
+              {
+                "text": "subject_schema"
+              },
+              {
+                "text": "dmsg-account-v1"
+              }
+            ],
+            [
+              {
+                "text": "authority_canister"
+              },
+              {
+                "bytes": "01"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83017820646d73672f636f6d6d657263652f656e7469746c656d656e742d6b65792f7631a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e69737465724101",
+    "sha256_hex": "7054dbe84b2e190553d415fde4f0380a54dc29c0d0789cfe3229d070797303da",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "cc6bffeb0c4a287e08706e3e08439f926fd3d4e16c6a4a92004e137378f71b704731aab5e800461d2537de1437242aa1c55ce8f563c726702b20635649dbab08"
+  },
+  {
+    "name": "catalog_key",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/commerce/catalog-key/v1"
+        },
+        {
+          "text": "dmsg"
+        }
+      ]
+    },
+    "cbor_hex": "8301781c646d73672f636f6d6d657263652f636174616c6f672d6b65792f763164646d7367",
+    "sha256_hex": "eaba41a7969a000aeb8334272ff2bd9a6734d40e6e3ab484497a136492414463",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "6c217c4ff3e4051424ee3c3d9d6414e8f82cfc853d4b6e616eae07c6fa95c0e1a813a2430a5e00e135db1ef219eae871551753f72514cd89a4ae34048917b00d"
+  },
+  {
+    "name": "membership_intent",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/commerce/intent/v1"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "actor"
+              },
+              {
+                "bytes": "4b28a66e03e865bce8a53f9a17d0cb399345e935e3976ab01f83e31502"
+              }
+            ],
+            [
+              {
+                "text": "nonce"
+              },
+              {
+                "bytes": "0606060606060606060606060606060606060606060606060606060606060606"
+              }
+            ],
+            [
+              {
+                "text": "beneficiary"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "product_id"
+                    },
+                    {
+                      "text": "dmsg"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subject_bytes"
+                    },
+                    {
+                      "bytes": "010101010101010101010101"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subject_schema"
+                    },
+                    {
+                      "text": "dmsg-account-v1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "authority_canister"
+                    },
+                    {
+                      "bytes": "01"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "environment"
+              },
+              {
+                "text": "Local"
+              }
+            ],
+            [
+              {
+                "text": "action_digest"
+              },
+              {
+                "bytes": "0505050505050505050505050505050505050505050505050505050505050505"
+              }
+            ],
+            [
+              {
+                "text": "application_id"
+              },
+              {
+                "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+              }
+            ],
+            [
+              {
+                "text": "valid_until_ms"
+              },
+              {
+                "uint": "1800000000000"
+              }
+            ],
+            [
+              {
+                "text": "service_canister"
+              },
+              {
+                "bytes": "03"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "830177646d73672f636f6d6d657263652f696e74656e742f7631a8656163746f72581d4b28a66e03e865bce8a53f9a17d0cb399345e935e3976ab01f83e31502656e6f6e6365582006060606060606060606060606060606060606060606060606060606060606066b62656e6566696369617279a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e697374657241016b656e7669726f6e6d656e74654c6f63616c6d616374696f6e5f646967657374582005050505050505050505050505050505050505050505050505050505050505056e6170706c69636174696f6e5f6964582002020202020202020202020202020202020202020202020202020202020202026e76616c69645f756e74696c5f6d731b000001a3185c500070736572766963655f63616e69737465724103",
+    "sha256_hex": "f4c093a7a3cc4507740cbe11e48234a266408278318b48736cff8ea161f76ad5",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "2fec2d3879151168522f643e4bfca3f459fbc39019ed1f93942ed14aabcc5828dd8c8e2df6c5f5bf1c2c2141f30ea76eec9808e27d6423419b716b0259a67b01"
+  },
+  {
+    "name": "plans",
+    "value": {
+      "array": [
+        {
+          "map": [
+            [
+              {
+                "text": "limits"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "storage_bytes"
+                    },
+                    {
+                      "uint": "104857600"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "active_channels"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "monthly_execution_units"
+                    },
+                    {
+                      "uint": "3"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "plan_id"
+              },
+              {
+                "text": "Free"
+              }
+            ],
+            [
+              {
+                "text": "weights"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "ed25519"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ecdsa_secp256k1"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "price_cents"
+              },
+              {
+                "uint": "0"
+              }
+            ],
+            [
+              {
+                "text": "terms_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "catalog_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "membership_policy_version"
+              },
+              null
+            ]
+          ]
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "limits"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "storage_bytes"
+                    },
+                    {
+                      "uint": "1073741824"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "active_channels"
+                    },
+                    {
+                      "uint": "10"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "monthly_execution_units"
+                    },
+                    {
+                      "uint": "10"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "plan_id"
+              },
+              {
+                "text": "Plus"
+              }
+            ],
+            [
+              {
+                "text": "weights"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "ed25519"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ecdsa_secp256k1"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "price_cents"
+              },
+              {
+                "uint": "1000"
+              }
+            ],
+            [
+              {
+                "text": "terms_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "catalog_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "membership_policy_version"
+              },
+              null
+            ]
+          ]
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "limits"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "storage_bytes"
+                    },
+                    {
+                      "uint": "10737418240"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "active_channels"
+                    },
+                    {
+                      "uint": "50"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "monthly_execution_units"
+                    },
+                    {
+                      "uint": "50"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "plan_id"
+              },
+              {
+                "text": "Pro"
+              }
+            ],
+            [
+              {
+                "text": "weights"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "ed25519"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ecdsa_secp256k1"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "price_cents"
+              },
+              {
+                "uint": "5000"
+              }
+            ],
+            [
+              {
+                "text": "terms_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "catalog_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "membership_policy_version"
+              },
+              null
+            ]
+          ]
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "limits"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "storage_bytes"
+                    },
+                    {
+                      "uint": "107374182400"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "active_channels"
+                    },
+                    {
+                      "uint": "200"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "monthly_execution_units"
+                    },
+                    {
+                      "uint": "200"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "plan_id"
+              },
+              {
+                "text": "Max"
+              }
+            ],
+            [
+              {
+                "text": "weights"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "ed25519"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ecdsa_secp256k1"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "price_cents"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "terms_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "catalog_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "membership_policy_version"
+              },
+              null
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "84a7666c696d697473a36d73746f726167655f62797465731a064000006f6163746976655f6368616e6e656c7302776d6f6e74686c795f657865637574696f6e5f756e6974730367706c616e5f696464467265656777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473006d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731a400000006f6163746976655f6368616e6e656c730a776d6f6e74686c795f657865637574696f6e5f756e6974730a67706c616e5f696464506c75736777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731903e86d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000002800000006f6163746976655f6368616e6e656c731832776d6f6e74686c795f657865637574696f6e5f756e697473183267706c616e5f69646350726f6777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731913886d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000019000000006f6163746976655f6368616e6e656c7318c8776d6f6e74686c795f657865637574696f6e5f756e69747318c867706c616e5f6964634d61786777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473194e206d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6",
+    "sha256_hex": "5198871b0920ae4e72c43cac6c7d71cd72ba435209253fcb44e7fb9197fa17e6",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "d4b9d3d88c4594e356d0fb56e9328d779736e7700d637c5b711915b2e1ecb2125668912f2767d79790d85952738b56e95f267b8237adf2533a2afd36cfc56402"
+  },
+  {
+    "name": "panda_1000_5000_1",
+    "value": {
+      "array": [
+        {
+          "uint": "1000"
+        },
+        {
+          "uint": "5000"
+        },
+        {
+          "uint": "1"
+        },
+        {
+          "uint": "8"
+        },
+        {
+          "uint": "5000000000000"
+        }
+      ]
+    },
+    "cbor_hex": "851903e819138801081b0000048c27395000",
+    "sha256_hex": "151d587eb01e44755cc3141965d6c4ea6fa3af81b6ffb94995c2f5dcf190169a",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "09fe852d6f73d47e6325526aad1df2ae16b1f95a3446840fc0604bd1b508615bb785ca4bbfefa07649a2f8504d5eba5cdacff5f4f34c5d93d8fe25a2f019b50c"
+  },
+  {
+    "name": "panda_1_1_3",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "uint": "1"
+        },
+        {
+          "uint": "3"
+        },
+        {
+          "uint": "8"
+        },
+        {
+          "uint": "333334"
+        }
+      ]
+    },
+    "cbor_hex": "85010103081a00051616",
+    "sha256_hex": "4d882f4ba2817a850b456a12c51cab54aacc1ce19637b65029d55683cc8150af",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "6782db3df48e5dce4901eba3b54f97431d2ee3f75c05dbf9dc0114de3e317e3d4c9f2a6fda62d487d59dbdd5bada29639c0e267522b2ff7c7cf061a29f015b0f"
+  },
+  {
+    "name": "panda_20000_18446744073709551615_18446744073709551615",
+    "value": {
+      "array": [
+        {
+          "uint": "20000"
+        },
+        {
+          "uint": "18446744073709551615"
+        },
+        {
+          "uint": "18446744073709551615"
+        },
+        {
+          "uint": "8"
+        },
+        {
+          "uint": "20000000000"
+        }
+      ]
+    },
+    "cbor_hex": "85194e201bffffffffffffffff1bffffffffffffffff081b00000004a817c800",
+    "sha256_hex": "1785507b8aa4577d958f74613aa04682750b7594eadec230e99d3a977f9d7945",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "e9946da39c9d1db6cedbcc22c85c0105a60f0f2fd1b1cbb230381969dacb98484cdc23d54e7fefb90583a03fa0da2e35a71629911a691bdb292a250c53391601"
+  },
+  {
+    "name": "delivery_fee_0",
+    "value": {
+      "array": [
+        {
+          "uint": "0"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "20000"
+        }
+      ]
+    },
+    "cbor_hex": "8300a46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300194e20",
+    "sha256_hex": "821068a6f765a68ab50a2834aa9a9407fbb6cb0588885939ffcbd0f412c760a0",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "f4808f391c55bfbd0c18a617ef23a87b538ddae14101466dd321ebdd3c75da10e0696088ea4e650663aa4eeeb2786ac29fd09e4e9a9d9f3a9c97b64921829d0f"
+  },
+  {
+    "name": "delivery_fee_1",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "20000"
+        }
+      ]
+    },
+    "cbor_hex": "8301a46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300194e20",
+    "sha256_hex": "63d295897266d4c3b2f8a5488184645b6900a36faf0829fc292bf30c2e4f3038",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "769ee1734a185eb8975b920d05316120256c01d87f7d8e0c0469b00f932433bc8bba129a939bdf73011e99bb5106e5b086ba2fca458b26e3904082a3461f520b"
+  },
+  {
+    "name": "delivery_fee_399999",
+    "value": {
+      "array": [
+        {
+          "uint": "399999"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "20000"
+        }
+      ]
+    },
+    "cbor_hex": "831a00061a7fa46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300194e20",
+    "sha256_hex": "1f8959b744ef59de2d20675d4a32564d0469214fc38dd4bf1f3234ebedc7fb6c",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "84934b8d425646bbfe0e3705036ff0853108384492190d28100bfea270fd5681536f0c51c27a8088e74b47fa918484f3dd34d66a2e051d81e874834a08b47b06"
+  },
+  {
+    "name": "delivery_fee_400000",
+    "value": {
+      "array": [
+        {
+          "uint": "400000"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "20000"
+        }
+      ]
+    },
+    "cbor_hex": "831a00061a80a46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300194e20",
+    "sha256_hex": "e63004d40877d696342c25465a5270d6e580319f0ee30ce90f224613670062c8",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "0f1977b7b6b4c05b431e2b9c217cac6c21907071df29f0d475b64d3a20ae3a39c338aa49f0e5ec6ad54ed522e40334fa16f74d8415fc71fb43cc249d7a8dec0a"
+  },
+  {
+    "name": "delivery_fee_400001",
+    "value": {
+      "array": [
+        {
+          "uint": "400001"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "20001"
+        }
+      ]
+    },
+    "cbor_hex": "831a00061a81a46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300194e21",
+    "sha256_hex": "084c483605094c5e96244daddc3e82bc5df1710385adc4087f56458ed442e64e",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "9ee088fe01ee8a2f01f0445b95bfb7cf30665561f7ac65fb958d9e697ae6a50ca9ee9934c339930b89182415b579e26d6b0643f03e9fe8f643922aa27be1d202"
+  },
+  {
+    "name": "delivery_fee_1000000",
+    "value": {
+      "array": [
+        {
+          "uint": "1000000"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "uint": "50000"
+        }
+      ]
+    },
+    "cbor_hex": "831a000f4240a46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d730019c350",
+    "sha256_hex": "5e92dd92b763d6dce8cc4d49904a9dd4b2da1f9b89ca6d86497d35231473ff6e",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "6999fcd74167994c81c75cdd20d64160c513a1a3c29e494277d16d7575ee2a60152bf51e0761accf0b208e11419e87b49b83830c8587527f32f823cc94008403"
+  },
+  {
+    "name": "delivery_fee_340282366920938463463374607431768211455",
+    "value": {
+      "array": [
+        {
+          "tag": 2,
+          "value": {
+            "bytes": "ffffffffffffffffffffffffffffffff"
+          }
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "rate_bps"
+              },
+              {
+                "uint": "500"
+              }
+            ],
+            [
+              {
+                "text": "minimum_atomic"
+              },
+              {
+                "uint": "20000"
+              }
+            ],
+            [
+              {
+                "text": "effective_at_ms"
+              },
+              {
+                "uint": "0"
+              }
+            ]
+          ]
+        },
+        {
+          "tag": 2,
+          "value": {
+            "bytes": "0ccccccccccccccccccccccccccccccd"
+          }
+        }
+      ]
+    },
+    "cbor_hex": "83c250ffffffffffffffffffffffffffffffffa46776657273696f6e0168726174655f6270731901f46e6d696e696d756d5f61746f6d6963194e206f6566666563746976655f61745f6d7300c2500ccccccccccccccccccccccccccccccd",
+    "sha256_hex": "dd967dbad09501c0a83ef46e6110977e90995bd6e5c595714d48e1fc48b7498b",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "d320fd3c9144cc2756521304feb68b7e000589d31f6a9b5ecd97dd4a8c92c501b37e533119a18b7d6e689a798c60ef9551f7a3443d4fdc96f98df203f8b5ad0a"
+  },
+  {
+    "name": "month_202402",
+    "value": {
+      "array": [
+        {
+          "uint": "202402"
+        },
+        {
+          "uint": "1706745600000"
+        },
+        {
+          "uint": "1709251200000"
+        },
+        {
+          "array": [
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1707998400000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1706745600000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "3"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  null
+                ]
+              ]
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1709251200000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1707998400000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "50"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  {
+                    "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "uint": "26"
+        }
+      ]
+    },
+    "cbor_hex": "851a000316a21b0000018d61f718001b0000018df74f840082a466656e645f6d731b0000018daca34e006873746172745f6d731b0000018d61f718006d6d6f6e74686c795f756e6974730372736f757263655f636f6e74726163745f6964f6a466656e645f6d731b0000018df74f84006873746172745f6d731b0000018daca34e006d6d6f6e74686c795f756e697473183272736f757263655f636f6e74726163745f696458200909090909090909090909090909090909090909090909090909090909090909181a",
+    "sha256_hex": "874a6447c24793bd9a0bfe8163860d57354f3925b76cc81b7dd92d37a4084324",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "398027930e3c9feb592a9a4a44e562f18a761944aeafd4ab33c0a6e98dfa8808fab1200486001c5cebcdf27d85b2f885a3443dab7fac266a14982feac38c3102"
+  },
+  {
+    "name": "month_202609",
+    "value": {
+      "array": [
+        {
+          "uint": "202609"
+        },
+        {
+          "uint": "1788220800000"
+        },
+        {
+          "uint": "1790812800000"
+        },
+        {
+          "array": [
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1789516800000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1788220800000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "3"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  null
+                ]
+              ]
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1790812800000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1789516800000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "50"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  {
+                    "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "uint": "26"
+        }
+      ]
+    },
+    "cbor_hex": "851a000317711b000001a05a43fc001b000001a0f4c2c40082a466656e645f6d731b000001a0a78360006873746172745f6d731b000001a05a43fc006d6d6f6e74686c795f756e6974730372736f757263655f636f6e74726163745f6964f6a466656e645f6d731b000001a0f4c2c4006873746172745f6d731b000001a0a78360006d6d6f6e74686c795f756e697473183272736f757263655f636f6e74726163745f696458200909090909090909090909090909090909090909090909090909090909090909181a",
+    "sha256_hex": "155d466adda8b3db24d06993fff0d3094d33e46f653658fee3d6ba0195739ec5",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "7bf7b480fc144efeaa36e6e669a6167f4817273715435f389f5fbb7d30d4dfa5c1117adb0b732e6a7a307452863262714faa10a74476eb8bbfc52b9aec6d0908"
+  },
+  {
+    "name": "month_202612",
+    "value": {
+      "array": [
+        {
+          "uint": "202612"
+        },
+        {
+          "uint": "1796083200000"
+        },
+        {
+          "uint": "1798761600000"
+        },
+        {
+          "array": [
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1797422400000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1796083200000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "3"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  null
+                ]
+              ]
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "end_ms"
+                  },
+                  {
+                    "uint": "1798761600000"
+                  }
+                ],
+                [
+                  {
+                    "text": "start_ms"
+                  },
+                  {
+                    "uint": "1797422400000"
+                  }
+                ],
+                [
+                  {
+                    "text": "monthly_units"
+                  },
+                  {
+                    "uint": "50"
+                  }
+                ],
+                [
+                  {
+                    "text": "source_contract_id"
+                  },
+                  {
+                    "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "uint": "26"
+        }
+      ]
+    },
+    "cbor_hex": "851a000317741b000001a22ee6b0001b000001a2ce8bd40082a466656e645f6d731b000001a27eb942006873746172745f6d731b000001a22ee6b0006d6d6f6e74686c795f756e6974730372736f757263655f636f6e74726163745f6964f6a466656e645f6d731b000001a2ce8bd4006873746172745f6d731b000001a27eb942006d6d6f6e74686c795f756e697473183272736f757263655f636f6e74726163745f696458200909090909090909090909090909090909090909090909090909090909090909181a",
+    "sha256_hex": "0e44b40fd4aa4bd6cfb3421092e5dd8be77834ddc56651e33416b5852cdc7c82",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "1aa21d0b978ee329c0b188f9c6e1ef2feaba08316f58b6c110432bed619b9789d1a333d61ad7a518fb36500ebf54d29810f6714f2566f3160f92a729aa42a70c"
+  },
+  {
+    "name": "year_1709208000123",
+    "value": {
+      "array": [
+        {
+          "uint": "1709208000123"
+        },
+        {
+          "uint": "1740744000123"
+        }
+      ]
+    },
+    "cbor_hex": "821b0000018df4bc567b1b000001954c6d827b",
+    "sha256_hex": "bbc6d6d91b8f49748deccb865e3af89cf3d69bed8d96dd09b4cc1abecea53786",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "c57768de6d2c0558835d760520dcbcbcf374f11284c90974e4819ff5cec3257ade075a96ba0a648fb35212b6baff7abcd662db2fb3fe0cbf3b1f4afca6c3c900"
+  },
+  {
+    "name": "year_1800000000000",
+    "value": {
+      "array": [
+        {
+          "uint": "1800000000000"
+        },
+        {
+          "uint": "1831536000000"
+        }
+      ]
+    },
+    "cbor_hex": "821b000001a3185c50001b000001aa700d7c00",
+    "sha256_hex": "df7b6efcbaa1322617f7ab96b9dfab7a9b13e27e3543722020b2bb820653012b",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "bfdadae986a2251b3b9f40e2f32edd2576940605000051b2a0321bf36bfcccedc265eba20ecf47d238fbc522c6b4792ecba83cbf546c948908f96a54391d860a"
+  },
+  {
+    "name": "order_terms",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/commerce/order/v1"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "term"
+              },
+              {
+                "text": "CalendarYear"
+              }
+            ],
+            [
+              {
+                "text": "catalog"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "plans"
+                    },
+                    {
+                      "array": [
+                        {
+                          "map": [
+                            [
+                              {
+                                "text": "limits"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "storage_bytes"
+                                    },
+                                    {
+                                      "uint": "104857600"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "active_channels"
+                                    },
+                                    {
+                                      "uint": "2"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "monthly_execution_units"
+                                    },
+                                    {
+                                      "uint": "3"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "plan_id"
+                              },
+                              {
+                                "text": "Free"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "weights"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "ed25519"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "version"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "ecdsa_secp256k1"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "price_cents"
+                              },
+                              {
+                                "uint": "0"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "terms_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "catalog_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "membership_policy_version"
+                              },
+                              null
+                            ]
+                          ]
+                        },
+                        {
+                          "map": [
+                            [
+                              {
+                                "text": "limits"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "storage_bytes"
+                                    },
+                                    {
+                                      "uint": "1073741824"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "active_channels"
+                                    },
+                                    {
+                                      "uint": "10"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "monthly_execution_units"
+                                    },
+                                    {
+                                      "uint": "10"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "plan_id"
+                              },
+                              {
+                                "text": "Plus"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "weights"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "ed25519"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "version"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "ecdsa_secp256k1"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "price_cents"
+                              },
+                              {
+                                "uint": "1000"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "terms_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "catalog_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "membership_policy_version"
+                              },
+                              null
+                            ]
+                          ]
+                        },
+                        {
+                          "map": [
+                            [
+                              {
+                                "text": "limits"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "storage_bytes"
+                                    },
+                                    {
+                                      "uint": "10737418240"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "active_channels"
+                                    },
+                                    {
+                                      "uint": "50"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "monthly_execution_units"
+                                    },
+                                    {
+                                      "uint": "50"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "plan_id"
+                              },
+                              {
+                                "text": "Pro"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "weights"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "ed25519"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "version"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "ecdsa_secp256k1"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "price_cents"
+                              },
+                              {
+                                "uint": "5000"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "terms_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "catalog_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "membership_policy_version"
+                              },
+                              null
+                            ]
+                          ]
+                        },
+                        {
+                          "map": [
+                            [
+                              {
+                                "text": "limits"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "storage_bytes"
+                                    },
+                                    {
+                                      "uint": "107374182400"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "active_channels"
+                                    },
+                                    {
+                                      "uint": "200"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "monthly_execution_units"
+                                    },
+                                    {
+                                      "uint": "200"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "plan_id"
+                              },
+                              {
+                                "text": "Max"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "weights"
+                              },
+                              {
+                                "map": [
+                                  [
+                                    {
+                                      "text": "ed25519"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "version"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "text": "ecdsa_secp256k1"
+                                    },
+                                    {
+                                      "uint": "1"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ],
+                            [
+                              {
+                                "text": "price_cents"
+                              },
+                              {
+                                "uint": "20000"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "terms_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "catalog_version"
+                              },
+                              {
+                                "uint": "1"
+                              }
+                            ],
+                            [
+                              {
+                                "text": "membership_policy_version"
+                              },
+                              null
+                            ]
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ledger"
+                    },
+                    {
+                      "bytes": "0a"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "schema"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "decimals"
+                    },
+                    {
+                      "uint": "6"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ledger_fee"
+                    },
+                    {
+                      "uint": "10"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "terms_digest"
+                    },
+                    {
+                      "bytes": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "effective_at_ms"
+                    },
+                    {
+                      "uint": "0"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "storage_products"
+                    },
+                    {
+                      "array": []
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "request"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "op_id"
+                    },
+                    {
+                      "bytes": "0707070707070707070707070707070707070707070707070707070707070707"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "payer"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "owner"
+                          },
+                          {
+                            "bytes": "08"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subaccount"
+                          },
+                          {
+                            "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                          }
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "action"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "Subscribe"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "plan"
+                                },
+                                {
+                                  "text": "Plus"
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "beneficiary"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "product_id"
+                          },
+                          {
+                            "text": "dmsg"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subject_bytes"
+                          },
+                          {
+                            "bytes": "010101010101010101010101"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subject_schema"
+                          },
+                          {
+                            "text": "dmsg-account-v1"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "authority_canister"
+                          },
+                          {
+                            "bytes": "01"
+                          }
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "expected_business_revision"
+                    },
+                    {
+                      "uint": "0"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "fund_by_ms"
+              },
+              {
+                "uint": "1800000900000"
+              }
+            ],
+            [
+              {
+                "text": "fee_reserve"
+              },
+              {
+                "uint": "30"
+              }
+            ],
+            [
+              {
+                "text": "amount_atomic"
+              },
+              {
+                "uint": "10000000"
+              }
+            ],
+            [
+              {
+                "text": "created_at_ms"
+              },
+              {
+                "uint": "1800000000000"
+              }
+            ],
+            [
+              {
+                "text": "home_commerce"
+              },
+              {
+                "bytes": "03"
+              }
+            ],
+            [
+              {
+                "text": "activate_by_ms"
+              },
+              {
+                "uint": "1800002700000"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "830176646d73672f636f6d6d657263652f6f726465722f7631a9647465726d6c43616c656e6461725965617267636174616c6f67a965706c616e7384a7666c696d697473a36d73746f726167655f62797465731a064000006f6163746976655f6368616e6e656c7302776d6f6e74686c795f657865637574696f6e5f756e6974730367706c616e5f696464467265656777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473006d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731a400000006f6163746976655f6368616e6e656c730a776d6f6e74686c795f657865637574696f6e5f756e6974730a67706c616e5f696464506c75736777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731903e86d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000002800000006f6163746976655f6368616e6e656c731832776d6f6e74686c795f657865637574696f6e5f756e697473183267706c616e5f69646350726f6777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731913886d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000019000000006f6163746976655f6368616e6e656c7318c8776d6f6e74686c795f657865637574696f6e5f756e69747318c867706c616e5f6964634d61786777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473194e206d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6666c6564676572410a66736368656d61016776657273696f6e0168646563696d616c73066a6c65646765725f6665650a6c7465726d735f64696765737458200b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b6f6566666563746976655f61745f6d73007073746f726167655f70726f6475637473806772657175657374a5656f705f696458200707070707070707070707070707070707070707070707070707070707070707657061796572a2656f776e657241086a7375626163636f756e745820090909090909090909090909090909090909090909090909090909090909090966616374696f6ea169537562736372696265a164706c616e64506c75736b62656e6566696369617279a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e69737465724101781a65787065637465645f627573696e6573735f7265766973696f6e006a66756e645f62795f6d731b000001a3186a0ba06b6665655f72657365727665181e6d616d6f756e745f61746f6d69631a009896806d637265617465645f61745f6d731b000001a3185c50006d686f6d655f636f6d6d6572636541036e61637469766174655f62795f6d731b000001a3188582e0",
+    "sha256_hex": "7c640ad35751284c5ed0000acf287dafb4ae35512a10fdf43a6375478d8b3d7c",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "5afa1af6a1b3eceefbae0fdbb41b8ad1dacf149a5cabe454a65e0da20e6850519bc434cf538b16143a2bc7426a7ce946a75b7141ca127118c6a619e84d639b0e"
+  },
+  {
+    "name": "delivery_quote_v2",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/quote/v2"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "payer"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "owner"
+                    },
+                    {
+                      "bytes": "08"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subaccount"
+                    },
+                    {
+                      "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "amount"
+              },
+              {
+                "uint": "1050030"
+              }
+            ],
+            [
+              {
+                "text": "ledger"
+              },
+              {
+                "bytes": "0a"
+              }
+            ],
+            [
+              {
+                "text": "fund_by"
+              },
+              {
+                "uint": "1800000900000"
+              }
+            ],
+            [
+              {
+                "text": "platform"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "owner"
+                    },
+                    {
+                      "bytes": "11"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subaccount"
+                    },
+                    null
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "quote_id"
+              },
+              {
+                "bytes": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+              }
+            ],
+            [
+              {
+                "text": "accept_by"
+              },
+              {
+                "uint": "1800002700000"
+              }
+            ],
+            [
+              {
+                "text": "max_bytes"
+              },
+              {
+                "uint": "8192"
+              }
+            ],
+            [
+              {
+                "text": "recipient"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "owner"
+                    },
+                    {
+                      "bytes": "10"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subaccount"
+                    },
+                    null
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "retain_ms"
+              },
+              {
+                "uint": "86400000"
+              }
+            ],
+            [
+              {
+                "text": "created_at"
+              },
+              {
+                "uint": "1800000000000"
+              }
+            ],
+            [
+              {
+                "text": "fee_reserve"
+              },
+              {
+                "uint": "30"
+              }
+            ],
+            [
+              {
+                "text": "quote_scope"
+              },
+              {
+                "bytes": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+              }
+            ],
+            [
+              {
+                "text": "service_fee"
+              },
+              {
+                "uint": "50000"
+              }
+            ],
+            [
+              {
+                "text": "home_payment"
+              },
+              {
+                "bytes": "0d"
+              }
+            ],
+            [
+              {
+                "text": "offer_digest"
+              },
+              {
+                "bytes": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+              }
+            ],
+            [
+              {
+                "text": "signer_epoch"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "recipient_net"
+              },
+              {
+                "uint": "1000000"
+              }
+            ],
+            [
+              {
+                "text": "envelope_digest"
+              },
+              {
+                "bytes": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            [
+              {
+                "text": "max_network_fee"
+              },
+              {
+                "uint": "20"
+              }
+            ],
+            [
+              {
+                "text": "fee_policy_version"
+              },
+              {
+                "uint": "1"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83016d646d73672f71756f74652f7632b5657061796572a2656f776e657241086a7375626163636f756e745820090909090909090909090909090909090909090909090909090909090909090966616d6f756e741a001005ae666c6564676572410a6766756e645f62791b000001a3186a0ba068706c6174666f726da2656f776e657241116a7375626163636f756e74f66871756f74655f696458200c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c696163636570745f62791b000001a3188582e0696d61785f627974657319200069726563697069656e74a2656f776e657241106a7375626163636f756e74f66972657461696e5f6d731a05265c006a637265617465645f61741b000001a3185c50006b6665655f72657365727665181e6b71756f74655f73636f706558200f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f6b736572766963655f66656519c3506c686f6d655f7061796d656e74410d6c6f666665725f64696765737458200e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e6c7369676e65725f65706f6368016d726563697069656e745f6e65741a000f42406f656e76656c6f70655f646967657374582012121212121212121212121212121212121212121212121212121212121212126f6d61785f6e6574776f726b5f66656514726665655f706f6c6963795f76657273696f6e01",
+    "sha256_hex": "9cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db452716360",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "7d77e42c55ca7e8c4b462df21ceb01eb1cdb1baf4def36efa809ec047a57cfd2d62ecbae8bdb7056bfd76b92da50e0204f186c79fea46b2ad0722d495bd1ab02"
+  },
+  {
+    "name": "delivery_receipt_v2",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/admission-receipt/v2"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "size"
+              },
+              {
+                "uint": "128"
+              }
+            ],
+            [
+              {
+                "text": "fund_by"
+              },
+              {
+                "uint": "1800000900000"
+              }
+            ],
+            [
+              {
+                "text": "protocol"
+              },
+              {
+                "uint": "2"
+              }
+            ],
+            [
+              {
+                "text": "relay_id"
+              },
+              {
+                "bytes": "1313131313131313131313131313131313131313131313131313131313131313"
+              }
+            ],
+            [
+              {
+                "text": "accept_by"
+              },
+              {
+                "uint": "1800002700000"
+              }
+            ],
+            [
+              {
+                "text": "escrow_id"
+              },
+              {
+                "bytes": "1414141414141414141414141414141414141414141414141414141414141414"
+              }
+            ],
+            [
+              {
+                "text": "stored_at"
+              },
+              {
+                "uint": "1800000001000"
+              }
+            ],
+            [
+              {
+                "text": "home_payment"
+              },
+              {
+                "bytes": "0d"
+              }
+            ],
+            [
+              {
+                "text": "quote_digest"
+              },
+              {
+                "bytes": "9cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db452716360"
+              }
+            ],
+            [
+              {
+                "text": "retain_until"
+              },
+              {
+                "uint": "1800086401000"
+              }
+            ],
+            [
+              {
+                "text": "signer_epoch"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "admission_seq"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "policy_version"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "envelope_digest"
+              },
+              {
+                "bytes": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            [
+              {
+                "text": "inbox_key_version"
+              },
+              {
+                "uint": "1"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83017819646d73672f61646d697373696f6e2d726563656970742f7632af6473697a6518806766756e645f62791b000001a3186a0ba06870726f746f636f6c026872656c61795f696458201313131313131313131313131313131313131313131313131313131313131313696163636570745f62791b000001a3188582e069657363726f775f6964582014141414141414141414141414141414141414141414141414141414141414146973746f7265645f61741b000001a3185c53e86c686f6d655f7061796d656e74410d6c71756f74655f64696765737458209cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db4527163606c72657461696e5f756e74696c1b000001a31d82afe86c7369676e65725f65706f6368016d61646d697373696f6e5f736571016e706f6c6963795f76657273696f6e016f656e76656c6f70655f6469676573745820121212121212121212121212121212121212121212121212121212121212121271696e626f785f6b65795f76657273696f6e01",
+    "sha256_hex": "aad464c8a2b2909d91aeec59eb9882d771e20940a1f7ad11ca7bf55826033835",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "08defba4d499383d798f1f528202651d111ee0e83bed9595482440748b385b7428ee086de99b9711932cc416efaa0c0edd35806f6ee1e29ecb130a3040d5db06"
+  },
+  {
+    "name": "execution_grant_v3",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/cose-execution/v3"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "kind"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "Sign"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "key"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "purpose"
+                                },
+                                {
+                                  "text": "Statement"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "algorithm"
+                                },
+                                {
+                                  "text": "Ed25519"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "generation"
+                                },
+                                {
+                                  "uint": "1"
+                                }
+                              ]
+                            ]
+                          }
+                        ],
+                        [
+                          {
+                            "text": "origin"
+                          },
+                          {
+                            "text": "https://example.com"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "to_be_signed"
+                          },
+                          {
+                            "bytes": "846a5369676e61747572653158a1a6013202820f10037818746578742f706c61696e3b636861727365743d7574662d38045820cbf65c8afcb5f69056927170cfe6acc226f1e3182e0aac3b83245e746beb0e6a0fa101782868747470733a2f2f646d73672e746573742f752f303430673230383130343067323038313034306710782c6170706c69636174696f6e2f766e642e646d73672e746578742d73746174656d656e742b636f73653b763d314055436f6d6d65726365206772616e7420766563746f72"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "public_key_fingerprint"
+                          },
+                          {
+                            "bytes": "cbf65c8afcb5f69056927170cfe6acc226f1e3182e0aac3b83245e746beb0e6a"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "commerce"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "units"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "month_utc"
+                    },
+                    {
+                      "uint": "202701"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "lease_revision"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "reservation_id"
+                    },
+                    {
+                      "bytes": "14016a7746ff248b66fb168a62a6698a276f4117e24e10d4a9f7194ad09ec90d"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "valid_until_ms"
+                    },
+                    {
+                      "uint": "1800000060000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "business_revision"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "weight_policy_version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "device_id"
+              },
+              {
+                "bytes": "1515151515151515151515151515151515151515151515151515151515151515"
+              }
+            ],
+            [
+              {
+                "text": "home_cose"
+              },
+              {
+                "bytes": "16"
+              }
+            ],
+            [
+              {
+                "text": "home_user"
+              },
+              {
+                "bytes": "01"
+              }
+            ],
+            [
+              {
+                "text": "account_id"
+              },
+              {
+                "bytes": "010101010101010101010101"
+              }
+            ],
+            [
+              {
+                "text": "expires_at"
+              },
+              {
+                "uint": "1800000060000"
+              }
+            ],
+            [
+              {
+                "text": "max_cycles"
+              },
+              {
+                "uint": "100000000000"
+              }
+            ],
+            [
+              {
+                "text": "request_id"
+              },
+              {
+                "bytes": "14016a7746ff248b66fb168a62a6698a276f4117e24e10d4a9f7194ad09ec90d"
+              }
+            ],
+            [
+              {
+                "text": "approved_at"
+              },
+              {
+                "uint": "1800000000000"
+              }
+            ],
+            [
+              {
+                "text": "security_epoch"
+              },
+              {
+                "uint": "1"
+              }
+            ],
+            [
+              {
+                "text": "device_sequence"
+              },
+              {
+                "uint": "0"
+              }
+            ],
+            [
+              {
+                "text": "execution_sequence"
+              },
+              {
+                "uint": "1"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "830176646d73672f636f73652d657865637574696f6e2f7633ad646b696e64a1645369676ea4636b6579a367707572706f73656953746174656d656e7469616c676f726974686d67456432353531396a67656e65726174696f6e01666f726967696e7368747470733a2f2f6578616d706c652e636f6d6c746f5f62655f7369676e656458c6846a5369676e61747572653158a1a6013202820f10037818746578742f706c61696e3b636861727365743d7574662d38045820cbf65c8afcb5f69056927170cfe6acc226f1e3182e0aac3b83245e746beb0e6a0fa101782868747470733a2f2f646d73672e746573742f752f303430673230383130343067323038313034306710782c6170706c69636174696f6e2f766e642e646d73672e746578742d73746174656d656e742b636f73653b763d314055436f6d6d65726365206772616e7420766563746f72767075626c69635f6b65795f66696e6765727072696e745820cbf65c8afcb5f69056927170cfe6acc226f1e3182e0aac3b83245e746beb0e6a68636f6d6d65726365a765756e69747301696d6f6e74685f7574631a000317cd6e6c656173655f7265766973696f6e026e7265736572766174696f6e5f6964582014016a7746ff248b66fb168a62a6698a276f4117e24e10d4a9f7194ad09ec90d6e76616c69645f756e74696c5f6d731b000001a3185d3a6071627573696e6573735f7265766973696f6e01757765696768745f706f6c6963795f76657273696f6e01696465766963655f69645820151515151515151515151515151515151515151515151515151515151515151569686f6d655f636f7365411669686f6d655f7573657241016a6163636f756e745f69644c0101010101010101010101016a657870697265735f61741b000001a3185d3a606a6d61785f6379636c65731b000000174876e8006a726571756573745f6964582014016a7746ff248b66fb168a62a6698a276f4117e24e10d4a9f7194ad09ec90d6b617070726f7665645f61741b000001a3185c50006e73656375726974795f65706f6368016f6465766963655f73657175656e63650072657865637574696f6e5f73657175656e636501",
+    "sha256_hex": "78348eb07bafca4e91fb658216864c35a121e29c0548acc9af3f78211f58617f",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "ba61bde4fdc9ec5d431498cf8d709f87da61d5b9f8c20ea8a1af5d8a75781b4a2cb3ff4cdaa9c38d0fb627452c1a7370607f6b91c59bc98b27a8451b54ce510a"
+  }
+]

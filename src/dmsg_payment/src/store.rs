@@ -27,21 +27,37 @@ pub(crate) fn memory(id: u8) -> Memory {
 }
 
 thread_local! {
-    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+    static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
+        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
     // Heap survives ordinary messages and await commit points. Persist this
     // bounded record at upgrade, not on every budget reservation.
-    static CONFIG: RefCell<Option<Config>> = RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().0.clone()));
-    pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
-    pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static FUNDING: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Deposit>, Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
-    pub(crate) static LEGS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferLeg>, Memory>> = RefCell::new(StableBTreeMap::init(memory(5)));
-    pub(crate) static SIGNERS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<ReceiptSigner>, Memory>> = RefCell::new(StableBTreeMap::init(memory(6)));
-    pub(crate) static PAYER_OPEN: RefCell<StableBTreeMap<Vec<u8>, Stored<u32>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
-    pub(crate) static OUTGOING: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<u8>>, Memory>> = RefCell::new(StableBTreeMap::init(memory(8)));
-    pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(9)));
-    pub(crate) static CERT:RefCell<Certification>=RefCell::new(Certification::default());
+    static CONFIG: RefCell<Option<Config>> =
+        RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().0.clone()));
+    pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(1)));
+    pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(2)));
+    pub(crate) static FUNDING: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(3)));
+    pub(crate) static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Deposit>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(4)));
+    pub(crate) static LEGS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferLeg>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(5)));
+    pub(crate) static SIGNERS: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<ReceiptSigner>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(6)));
+    pub(crate) static PAYER_OPEN: RefCell<StableBTreeMap<Vec<u8>, Stored<u32>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(7)));
+    pub(crate) static OUTGOING: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<u8>>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(8)));
+    pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(9)));
+    pub(crate) static FEE_POLICIES: RefCell<
+        StableBTreeMap<Vec<u8>, Stored<DeliveryFeePolicy>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(10)));
+    pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
 pub(crate) fn cfg() -> Config {
@@ -109,4 +125,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 3;
+pub(crate) const STABLE_SCHEMA: u16 = 4;

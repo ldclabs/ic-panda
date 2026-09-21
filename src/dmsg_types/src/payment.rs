@@ -24,6 +24,21 @@ pub struct ReceiptSigner {
     /// Whether this signer has been revoked.
     pub revoked: bool,
 }
+
+/// Versioned delivery fee: max(ceil(net * rate_bps / 10000), minimum_atomic).
+/// The minimum is fixed in ledger atomic units by the governing asset policy.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DeliveryFeePolicy {
+    /// Monotonic immutable policy identity.
+    pub version: u64,
+    /// Inclusive effective time in Unix milliseconds.
+    pub effective_at_ms: u64,
+    /// Platform rate in basis points (500 means 5%).
+    pub rate_bps: u16,
+    /// Minimum platform fee in the configured ledger's atomic units.
+    pub minimum_atomic: u128,
+}
+
 /// Escrow service deployment, ledger fees, signer and admission limits.
 /// All monetary values are integer ledger base units, not display tokens or cycles.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -35,8 +50,10 @@ pub struct PaymentInit {
     /// ICRC account receiving the service fee.
     #[serde(with = "crate::account::account_cbor")]
     pub platform: Account,
-    /// Platform service fee in integer ledger base units.
-    pub service_fee: u128,
+    /// Fixed SNS governance caller allowed to schedule new fee policies.
+    pub governance: Principal,
+    /// Initial versioned platform fee policy.
+    pub fee_policy: DeliveryFeePolicy,
     /// Configured network fee in ledger base units.
     pub ledger_fee: u128,
     /// Maximum permitted network fee in ledger base units.
@@ -50,6 +67,7 @@ pub struct PaymentInit {
     /// Whether new payment orders are enabled.
     pub enabled: bool,
 }
+
 /// Recipient device authorization of fixed payment terms.
 /// Signed under `dmsg/payment-offer/v1`; does not itself open or fund an escrow.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -80,6 +98,7 @@ pub struct PaymentOffer {
     /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
     pub expires_at: u64,
 }
+
 /// Payment offer and its device Ed25519 signature over the offer digest.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SignedOffer {
@@ -115,6 +134,7 @@ pub struct Deposit {
     /// Deposit allocation available for refund before the refund network fee.
     pub refundable: u128,
 }
+
 /// One outgoing ledger transfer status, independent of the escrow decision.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum LegStatus {
@@ -133,6 +153,7 @@ pub enum LegStatus {
     /// A fee revision replaced this leg; do not execute it again.
     Superseded,
 }
+
 /// Destination/purpose of an escrow transfer.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum LegKind {
@@ -148,6 +169,7 @@ pub enum LegKind {
     /// Return unused primary funding fee reserve to the payer.
     ReserveRefund,
 }
+
 /// One outgoing ICRC transfer with stable deduplication parameters.
 /// Reconcile unknown outcomes before retrying; preserve memo and created_at_time.
 /// Amounts and fees are integer ledger base units.
@@ -187,6 +209,7 @@ pub struct TransferLeg {
     #[serde(default)]
     pub history_digest: Hash,
 }
+
 /// Maximum retained chain of transfer fee revisions (8); superseded ancestors may be pruned.
 pub const TRANSFER_HISTORY_LIMIT: usize = 8;
 /// Public escrow accounting view and certified leaf payload.
@@ -203,7 +226,7 @@ pub struct EscrowInfo {
     pub op_id: OpId,
     /// Fixed relay quote accepted when the escrow was opened.
     pub quote: Quote,
-    /// `dmsg/quote/v1` commitment to the exact accepted quote.
+    /// `dmsg/quote/v2` commitment to the exact accepted quote.
     pub quote_digest: Hash,
     /// 32-byte escrow deposit subaccount owned by the payment canister.
     pub subaccount: Hash,

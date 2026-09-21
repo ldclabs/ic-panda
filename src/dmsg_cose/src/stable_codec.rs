@@ -96,6 +96,8 @@ impl StableCodec for model::Execution {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct HomeRepr {
+    #[cbor(key = 5)]
+    pub formal_budget: BudgetRepr,
     #[cbor(key = 1)]
     pub home_user: candid::Principal,
     #[cbor(key = 2)]
@@ -111,6 +113,7 @@ impl StableCodec for model::Home {
 
     fn to_repr(&self) -> Self::Repr {
         HomeRepr {
+            formal_budget: self.formal_budget.to_repr(),
             home_user: self.home_user,
             terminal_sequence: self.terminal_sequence,
             budget: self.budget.to_repr(),
@@ -124,6 +127,7 @@ impl StableCodec for model::Home {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
+            formal_budget: Budget::from_repr(repr.formal_budget),
             home_user: repr.home_user,
             terminal_sequence: repr.terminal_sequence,
             executions: repr
@@ -168,6 +172,7 @@ mod tests {
 
     fn grant(kind: ExecutionKind) -> ExecutionGrant {
         ExecutionGrant {
+            commerce: None,
             account_id: AccountId([1; 12]),
             home_user: p(3),
             home_cose: p(4),
@@ -220,7 +225,7 @@ mod tests {
         }
         let home_bytes = compact_bytes(&home);
         assert!(home_bytes.len() < 6 * 1024);
-        assert_integer_top_keys(&home_bytes, 4);
+        assert_integer_top_keys(&home_bytes, 5);
         assert_eq!(compact_from_bytes::<model::Home>(&home_bytes), home);
 
         let derive_grant = grant(ExecutionKind::Derive {

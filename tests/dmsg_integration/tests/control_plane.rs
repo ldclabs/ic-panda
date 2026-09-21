@@ -24,6 +24,9 @@ mod handle_tests;
 #[path = "control_plane/payment_optimization.rs"]
 mod payment_optimization;
 
+#[path = "control_plane/commerce.rs"]
+mod commerce;
+
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let target = std::env::var_os("DMSG_WASM_DIR")
@@ -170,6 +173,9 @@ struct Fixture {
     handle: Principal,
     payment: Principal,
     ledger: Principal,
+    commerce: Principal,
+    membership: Principal,
+    sns: Principal,
     cose_config: CoseInit,
 }
 impl Fixture {
@@ -177,6 +183,12 @@ impl Fixture {
         Self::with_algorithms(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381])
     }
     fn with_algorithms(algorithms: Vec<Algorithm>) -> Self {
+        Self::with_policy(algorithms, true)
+    }
+    fn commercial() -> Self {
+        Self::with_policy(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381], false)
+    }
+    fn with_policy(algorithms: Vec<Algorithm>, generous: bool) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -187,7 +199,12 @@ impl Fixture {
         let handle = ic.create_canister();
         let payment = ic.create_canister();
         let ledger = ic.create_canister();
-        for id in [user, cose, handle, payment, ledger] {
+        let commerce = ic.create_canister();
+        let membership = ic.create_canister();
+        let sns = ic.create_canister();
+        for id in [
+            user, cose, handle, payment, ledger, commerce, membership, sns,
+        ] {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
         let cose_config = CoseInit {
@@ -218,6 +235,8 @@ impl Fixture {
             user,
             wasm("dmsg_user"),
             candid::encode_args((UserInit {
+                commerce_canister: commerce,
+                membership_canister: membership,
                 issuer_namespace: NAMESPACE.into(),
                 environment: Environment::Local,
                 home_cose: cose,
@@ -254,7 +273,13 @@ impl Fixture {
                 ledger,
                 home_user: user,
                 platform: account(person(60)),
-                service_fee: 100,
+                governance: candid::Principal::from_slice(&[90]),
+                fee_policy: dmsg_types::payment::DeliveryFeePolicy {
+                    version: 1,
+                    effective_at_ms: 0,
+                    rate_bps: 500,
+                    minimum_atomic: 100,
+                },
                 ledger_fee: 10,
                 max_fee: 20,
                 signer: signer.clone(),
@@ -271,7 +296,101 @@ impl Fixture {
             candid::encode_args(()).unwrap(),
             None,
         );
+        ic.install_canister(
+            sns,
+            wasm("dmsg_test_sns"),
+            candid::encode_args(()).unwrap(),
+            None,
+        );
+        let mut plans = dmsg_protocol::billing::default_plans(1);
+        // Existing execution regressions deliberately use a generous fixture policy.
+        // Commerce-specific tests install and assert the production default separately.
+        if generous {
+            plans[0].limits.monthly_execution_units = 1000;
+        }
+        for (i, plan) in plans.iter_mut().enumerate().skip(1) {
+            plan.membership_policy_version = Some(i as u64);
+        }
+        let catalog = dmsg_types::billing::Catalog {
+            schema: 1,
+            version: 1,
+            effective_at_ms: 0,
+            plans: plans.clone(),
+            storage_products: vec![dmsg_types::billing::StorageProduct {
+                product_id: Hash::new([120; 32]),
+                storage_bytes: 1_073_741_824,
+                duration_ms: 30 * DAY,
+                price_cents: 100,
+            }],
+            ledger,
+            decimals: 6,
+            ledger_fee: 10,
+            terms_digest: Hash::new([99; 32]),
+        };
+        ic.install_canister(
+            commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args((dmsg_types::billing::CommerceInit {
+                environment: Environment::Local,
+                governance: sns,
+                membership_canister: membership,
+                user_homes: vec![user],
+                catalog,
+                treasury: account(person(60)),
+                max_subjects: 1000,
+                daily_orders: 100,
+            },))
+            .unwrap(),
+            None,
+        );
+        let verified: Result<()> = update(&ic, commerce, sns, "verify_ledger_configuration", ());
+        verified.unwrap();
+        let policies = plans
+            .iter()
+            .skip(1)
+            .map(|p| dmsg_types::membership::MembershipPolicy {
+                version: p.membership_policy_version.unwrap(),
+                product_id: "dmsg".into(),
+                benefit_id: dmsg_protocol::billing::plan_digest(p),
+                threshold: dmsg_types::membership::Threshold::AnnualPrice {
+                    price_cents: p.price_cents,
+                    r_num: 5000,
+                    r_den: 1,
+                },
+                effective_at_ms: 0,
+                subsidy_units: 1,
+            })
+            .collect();
+        ic.install_canister(
+            membership,
+            wasm("membership"),
+            candid::encode_args((dmsg_types::membership::MembershipInit {
+                environment: Environment::Local,
+                governance: sns,
+                sns_root: sns,
+                panda_ledger: sns,
+                products: vec![dmsg_types::membership::ProductConfig {
+                    product_id: "dmsg".into(),
+                    adapter: commerce,
+                    authorities: vec![user],
+                    subject_schema: "dmsg-account-v1".into(),
+                    subject_size: 12,
+                }],
+                policies,
+                subsidy_budget: 100,
+                max_claims: 1000,
+                hourly_applications: 100,
+                cooling_ms: dmsg_protocol::membership::MIN_COOLING_MS,
+            },))
+            .unwrap(),
+            None,
+        );
+        let verified: Result<()> = update(&ic, membership, sns, "verify_sns_configuration", ());
+        verified.unwrap();
         Self {
+            commerce,
+            membership,
+            sns,
             ledger,
             ic,
             user,
@@ -459,6 +578,7 @@ impl Fixture {
             .to_vec()
             .into();
         let quote = Quote {
+            fee_policy_version: 1,
             quote_id: Hash::new([nonce; 32]),
             home_payment: self.payment,
             payer: account(person(40)),
@@ -481,7 +601,7 @@ impl Fixture {
             accept_by: now + 45 * MINUTE,
         };
         let quote_signature = key(50)
-            .sign(digest("dmsg/quote/v1", &quote).as_slice())
+            .sign(digest("dmsg/quote/v2", &quote).as_slice())
             .to_bytes()
             .to_vec()
             .into();
@@ -495,7 +615,7 @@ impl Fixture {
     fn receipt(&self, e: &EscrowInfo) -> SignedReceipt {
         let now = time(&self.ic);
         let receipt = AdmissionReceipt {
-            protocol: 1,
+            protocol: 2,
             relay_id: Hash::new([9; 32]),
             signer_epoch: 1,
             home_payment: self.payment,
@@ -512,7 +632,7 @@ impl Fixture {
             accept_by: e.quote.accept_by,
         };
         let signature = key(50)
-            .sign(digest("dmsg/admission-receipt/v1", &receipt).as_slice())
+            .sign(digest("dmsg/admission-receipt/v2", &receipt).as_slice())
             .to_bytes()
             .to_vec()
             .into();

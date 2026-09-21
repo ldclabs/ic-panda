@@ -7,6 +7,15 @@ type Algorithm = variant {
   // ECDSA over secp256k1 (COSE ES256K, -47).
   EcdsaSecp256k1;
 };
+type CommercialReservation = record {
+  reservation_id : blob;
+  business_revision : nat64;
+  valid_until_ms : nat64;
+  lease_revision : nat64;
+  weight_policy_version : nat64;
+  units : nat64;
+  month_utc : nat32;
+};
 // Deployment configuration for the COSE executor.
 // Production validation requires fixed master names and nonzero fingerprints;
 // changing derivation inputs changes key identity.
@@ -64,6 +73,8 @@ type Error = variant {
   DeviceNotApproved;
   // Sensitive operations are locked by account state or policy.
   Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
   // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
   // Account-ID counter space is exhausted for this timestamp.
@@ -78,12 +89,16 @@ type Error = variant {
   UnsupportedProtocol;
   // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
   // Caller, role or capability does not authorize this operation.
   Forbidden;
   // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
   // The applicable deadline has passed.
   Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
   // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
   // An authenticated and appropriately bound caller is required.
@@ -117,6 +132,8 @@ type ExecutionGrant = record {
   max_cycles : nat;
   // User canister authoritative for this account or deployment.
   home_user : principal;
+  // Formal-signature units reserved in the user home; absent for protected root operations.
+  commerce : opt CommercialReservation;
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };

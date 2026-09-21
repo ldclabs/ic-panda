@@ -182,7 +182,7 @@ token 上限为 131,072 字节，编码后的 COSE_Key 上限为 2,048 字节，
 
 函数返回 `dmsg_types::Result<T>`。常见错误包括：语义输入错误为 InvalidInput；字节、签名或绑定不匹配为 IntegrityFailed；不支持的算法或 profile 语义为 UnsupportedProtocol；大小越界为 QuotaExceeded。准确映射见各 API 的 rustdoc。诊断字符串不是稳定的机器错误码。网络错误由应用的传输层处理，不由这个本地库处理。
 
-对接时使用同一提交的[公开协议](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md)、[CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl)、[类型指南](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/README.md)和[测试向量](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/tests/protocol_vectors.json)。链接指向 main，可能变化。文档 profile 媒体类型是项目实验名称，不是已注册的标准。
+对接时使用同一提交的[公开协议](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README_zh.md)、[CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl)、[类型指南](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/README_zh.md)和[测试向量](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/tests/protocol_vectors.json)。链接指向 main，可能变化。文档 profile 媒体类型是项目实验名称，不是已注册的标准。
 
 从 workspace 根目录执行：
 

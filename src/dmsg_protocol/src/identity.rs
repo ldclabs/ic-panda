@@ -3,9 +3,6 @@ use crate::ensure_valid;
 use candid::Principal;
 use dmsg_types::*;
 
-#[cfg(test)]
-mod tests;
-
 /// Maximum canonical identity URI or statement subject size in bytes (8,192).
 pub const MAX_URI_BYTES: usize = 8192;
 const MAX_NAMESPACE_BYTES: usize = MAX_URI_BYTES - 64;
@@ -135,3 +132,6 @@ pub fn validate_origin(origin: &str) -> Result<()> {
         "origin",
     )
 }
+
+#[cfg(test)]
+mod tests;

@@ -4,8 +4,9 @@ use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+
 /// Relay quote binding payment, encrypted envelope and delivery limits.
-/// Signed under `dmsg/quote/v1`. All amounts are integer ledger base units;
+/// Signed under `dmsg/quote/v2`. All amounts are integer ledger base units;
 /// all timestamps are Unix milliseconds. `amount` is recipient_net plus
 /// service_fee plus fee_reserve.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -33,6 +34,8 @@ pub struct Quote {
     pub platform: Account,
     /// Platform service fee in integer ledger base units.
     pub service_fee: u128,
+    /// Version of the immutable fee policy accepted at order creation.
+    pub fee_policy_version: u64,
     /// Ledger base units reserved for outgoing network fees and reserve refund.
     pub fee_reserve: u128,
     /// Total required funding: recipient_net + service_fee + fee_reserve,
@@ -55,6 +58,7 @@ pub struct Quote {
     /// Fixed admission/settlement deadline in Unix milliseconds.
     pub accept_by: u64,
 }
+
 /// Request to open an escrow with a signed quote and recipient authorization.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OpenEscrow {
@@ -67,12 +71,13 @@ pub struct OpenEscrow {
     /// Recipient authorization signed by a permitted device.
     pub offer: SignedOffer,
 }
+
 /// Relay attestation that the quoted encrypted envelope was accepted for storage.
-/// Signed under `dmsg/admission-receipt/v1`; does not prove reading, a reply,
+/// Signed under `dmsg/admission-receipt/v2`; does not prove reading, a reply,
 /// or completion of the on-chain settlement transfers.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AdmissionReceipt {
-    /// Admission receipt protocol version; current version is 1.
+    /// Admission receipt protocol version; current version is 2.
     pub protocol: u16,
     /// Identifier of the relay attesting admission.
     pub relay_id: Hash,
@@ -82,7 +87,7 @@ pub struct AdmissionReceipt {
     pub home_payment: Principal,
     /// 32-byte identifier of the escrow holding funds.
     pub escrow_id: Hash,
-    /// `dmsg/quote/v1` commitment to the exact accepted quote.
+    /// `dmsg/quote/v2` commitment to the exact accepted quote.
     pub quote_digest: Hash,
     /// Commitment to the exact encrypted delivery envelope.
     pub envelope_digest: Hash,
@@ -103,11 +108,12 @@ pub struct AdmissionReceipt {
     /// Fixed admission/settlement deadline in Unix milliseconds.
     pub accept_by: u64,
 }
+
 /// Admission receipt and the authorized relay Ed25519 signature.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SignedReceipt {
     /// Admission attestation bound to the escrow and quote.
     pub receipt: AdmissionReceipt,
-    /// Relay Ed25519 signature over the `dmsg/admission-receipt/v1` digest.
+    /// Relay Ed25519 signature over the `dmsg/admission-receipt/v2` digest.
     pub signature: ByteBuf,
 }

@@ -9,14 +9,6 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn me() -> Principal {
-    ic_cdk::api::canister_self()
-}
-
-fn caller() -> Principal {
-    ic_cdk::api::msg_caller()
-}
-
 fn ready() -> Result<Config> {
     let c = cfg();
     ensure(
@@ -28,7 +20,7 @@ fn ready() -> Result<Config> {
 
 #[ic_cdk::init]
 fn init(args: CoseInit) {
-    args.validate(me())
+    args.validate(ic_cdk::api::canister_self())
         .expect("invalid chain-key configuration");
     save_cfg(&Config {
         schema: STABLE_SCHEMA,
@@ -51,7 +43,7 @@ fn post_upgrade(args: Option<CoseInit>) {
     }
     c.state
         .config
-        .validate(me())
+        .validate(ic_cdk::api::canister_self())
         .expect("invalid chain-key configuration");
     if c.state.initialization == Initialization::Initializing {
         c.state.initialization = Initialization::Uninitialized;
@@ -109,7 +101,10 @@ async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
 
 #[ic_cdk::update]
 async fn initialize_keys() -> Result<KeyState> {
-    ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)?;
+    ensure(
+        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
+        Error::Forbidden,
+    )?;
     let mut c = cfg();
     if c.state.initialization == Initialization::Ready {
         return Ok(c.state);
@@ -157,10 +152,20 @@ fn key_state() -> KeyState {
 /// No management call, registration or stable write is needed for this query.
 #[ic_cdk::query]
 fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> {
-    describe(&ready()?, &account_id, key.into())
+    describe(
+        &ready()?,
+        &account_id,
+        key.into(),
+        ic_cdk::api::canister_self(),
+    )
 }
 
-fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDescriptor> {
+fn describe(
+    c: &Config,
+    account_id: &AccountId,
+    key: KeyRequest,
+    canister_id: Principal,
+) -> Result<KeyDescriptor> {
     nonzero(account_id.as_slice())?;
     key.validate()?;
     let config = &c.state.config;
@@ -200,7 +205,7 @@ fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDe
         account_id: account_id.clone(),
         purpose: key.purpose,
         algorithm: key.algorithm,
-        home_cose: me(),
+        home_cose: canister_id,
         master_key_name: config.masters[index].key_name.clone(),
         environment: config.environment.clone(),
         derivation_version: config.derivation_version,
@@ -211,8 +216,25 @@ fn describe(c: &Config, account_id: &AccountId, key: KeyRequest) -> Result<KeyDe
     })
 }
 
-fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost, KeyDescriptor)> {
+fn prepare(
+    c: &Config,
+    g: &ExecutionGrant,
+    canister_id: Principal,
+    at: u64,
+) -> Result<(Operation, Cost, KeyDescriptor)> {
     let config = &c.state.config;
+    match (&g.kind, &g.commerce) {
+        (ExecutionKind::Sign { .. }, Some(r)) => ensure(
+            r.reservation_id == g.request_id
+                && r.units > 0
+                && r.weight_policy_version > 0
+                && r.valid_until_ms >= g.expires_at
+                && at < r.valid_until_ms,
+            Error::MembershipStale,
+        )?,
+        (ExecutionKind::Derive { .. }, None) => {}
+        _ => return Err(Error::IntegrityFailed),
+    }
     let (operation, descriptor) = match &g.kind {
         ExecutionKind::Sign {
             key,
@@ -233,7 +255,7 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost, KeyDescri
                     == account_issuer(&config.issuer_namespace, &g.account_id)?,
                 Error::IntegrityFailed,
             )?;
-            let descriptor = describe(c, &g.account_id, key.clone())?;
+            let descriptor = describe(c, &g.account_id, key.clone(), canister_id)?;
             ensure(
                 descriptor.key_id.as_slice() == prepared.kid
                     && descriptor.public_key_fingerprint == *public_key_fingerprint,
@@ -270,6 +292,7 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost, KeyDescri
                     generation: *generation,
                 }
                 .into(),
+                canister_id,
             )?;
             let operation = Operation::vetkd(
                 descriptor.master_key_name.clone(),
@@ -290,13 +313,15 @@ fn prepare(c: &Config, g: &ExecutionGrant) -> Result<(Operation, Cost, KeyDescri
 
 #[ic_cdk::update]
 async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
+    let canister_id = ic_cdk::api::canister_self();
+    let caller = ic_cdk::api::msg_caller();
     let c = ready()?;
     let config = &c.state.config;
     nonzero(grant.account_id.as_slice())?;
     ensure(
-        grant.home_cose == me()
-            && caller() == config.initial_home_user
-            && caller() == grant.home_user,
+        grant.home_cose == canister_id
+            && caller == config.initial_home_user
+            && caller == grant.home_user,
         Error::Forbidden,
     )?;
     let mut h = match home(&grant.account_id) {
@@ -306,26 +331,31 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
                 HOMES.with_borrow(|t| t.len()) < 1_000_000,
                 Error::QuotaExceeded,
             )?;
-            model::Home::new(caller())
+            model::Home::new(caller)
         }
         Err(e) => return Err(e),
     };
     let at = now();
-    if let Some(sequence) = h.check(caller(), &grant, at)? {
+    if let Some(sequence) = h.check(caller, &grant, at)? {
         return execution(&grant.account_id, sequence);
     }
     // Expired requests still close their sequence, without parsing or deriving keys.
     let prepared = if at >= grant.expires_at {
         Err(Error::ResultExpired)
     } else {
-        prepare(&c, &grant)
+        prepare(&c, &grant, canister_id, at)
     };
     let reserved = prepared
         .as_ref()
         .map_or(0, |(_, cost, _)| cost.total().expect("validated cost"));
     let removed = h.prepare(&grant, at, reserved)?;
     // Last fallible check before committing. An Err must not consume a sequence.
-    reserve_budget(at, reserved, config)?;
+    reserve_budget(
+        at,
+        reserved,
+        config,
+        matches!(grant.kind, ExecutionKind::Sign { .. }),
+    )?;
     let mut result = ExecutionResult {
         request_id: grant.request_id,
         charged_cycles: 0,
@@ -335,7 +365,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         Ok(prepared) => prepared,
         Err(error) => {
             result.outcome = if error == Error::ResultExpired {
-                ExecutionOutcome::ResultExpired
+                ExecutionOutcome::Failed(Error::Expired)
             } else {
                 ExecutionOutcome::Failed(error)
             };
@@ -411,7 +441,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
     ensure(
-        caller() == cfg().state.config.initial_home_user,
+        ic_cdk::api::msg_caller() == cfg().state.config.initial_home_user,
         Error::Forbidden,
     )?;
     let h = home(&account_id)?;

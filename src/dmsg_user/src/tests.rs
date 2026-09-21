@@ -2,18 +2,22 @@ use super::*;
 use dmsg_runtime::Budget;
 use ed25519_dalek::{Signer, SigningKey};
 use std::collections::BTreeMap;
+
 const NAMESPACE: &str = "https://dmsg.test/u/";
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct TestAccount {
     account: AccountState,
     executions: BTreeMap<OpId, AuthorizedExecution>,
 }
+
 impl std::ops::Deref for TestAccount {
     type Target = AccountState;
+
     fn deref(&self) -> &AccountState {
         &self.account
     }
 }
+
 impl std::ops::DerefMut for TestAccount {
     fn deref_mut(&mut self) -> &mut AccountState {
         &mut self.account
@@ -39,6 +43,7 @@ fn authorize(
     s.executions.insert(e.grant.request_id, e.clone());
     Ok(e)
 }
+
 fn record_execution_response(
     s: &mut TestAccount,
     request_id: OpId,
@@ -53,6 +58,7 @@ fn record_execution_response(
     }
     Ok(result)
 }
+
 fn signing_key() -> SigningKeyRef {
     let public = sk(7).verifying_key().to_bytes();
     let fp = key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
@@ -62,6 +68,7 @@ fn signing_key() -> SigningKeyRef {
         public_key_fingerprint: fp,
     }
 }
+
 fn alter_statement(request: &mut ExecuteRequest) {
     if let ExecutionKind::Sign { to_be_signed, .. } = &mut request.kind {
         let mut prepared = parse_signing_input(to_be_signed).unwrap();
@@ -72,6 +79,7 @@ fn alter_statement(request: &mut ExecuteRequest) {
             .into();
     }
 }
+
 fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
     let ExecutionKind::Sign {
         to_be_signed,
@@ -112,9 +120,11 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
 fn p(n: u8) -> Principal {
     Principal::from_slice(&[n, 1])
 }
+
 fn sk(n: u8) -> SigningKey {
     SigningKey::from_bytes(&[n; 32])
 }
+
 fn device(n: u8, admin: bool) -> DeviceInput {
     DeviceInput {
         device_id: Hash::new([n; 32]),
@@ -137,6 +147,7 @@ fn device(n: u8, admin: bool) -> DeviceInput {
         },
     }
 }
+
 fn fixture() -> TestAccount {
     let input = CreateAccount {
         device: device(1, true),
@@ -159,6 +170,7 @@ fn fixture() -> TestAccount {
         executions: BTreeMap::new(),
     }
 }
+
 fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
     let mut m = AccountMutation {
         account_id: s.account_id.clone(),
@@ -189,10 +201,12 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
         .into();
     m
 }
+
 fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<OperationReceipt> {
     let m = mutation(s, command, 1, time);
     account::apply(s, p(1), &m, time, p(7))
 }
+
 fn initialized() -> TestAccount {
     let mut s = fixture();
     s.recovery = Some(RecoveryPolicy {
@@ -254,6 +268,7 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
     assert_eq!(s.current_root, Some(root));
     assert_eq!(s.vault_write_state, VaultWriteState::Ready);
 }
+
 #[test]
 fn abandoned_root_generation_is_never_reused() {
     let mut s = initialized();
@@ -287,6 +302,7 @@ fn abandoned_root_generation_is_never_reused() {
     .unwrap();
     assert_eq!(s.root_slot.as_ref().unwrap().generation, 2);
 }
+
 #[test]
 fn content_device_cannot_administer_or_approve_formal_execution() {
     let mut s = fixture();
@@ -318,6 +334,7 @@ fn content_device_cannot_administer_or_approve_formal_execution() {
     s.recovery_checked = true;
     assert_eq!(authorize(&mut s, p(1), &req, 1), Err(Error::Forbidden));
 }
+
 fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
     let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
     let id = execution_request_id(
@@ -355,6 +372,7 @@ fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
         .into();
     r
 }
+
 #[test]
 fn authorize_revoke_order_and_payload_tampering() {
     let mut s = initialized();
@@ -381,6 +399,7 @@ fn authorize_revoke_order_and_payload_tampering() {
     assert_eq!(authorize(&mut s, p(1), &r, 1), Err(Error::IntegrityFailed));
     assert_eq!(s.budget, Budget::default());
 }
+
 #[test]
 fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     let mut s = initialized();
@@ -457,6 +476,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     assert_eq!(s.devices.len(), 1);
     assert_eq!(s.status, AccountStatus::Active);
 }
+
 #[test]
 fn budget_failure_is_atomic() {
     let mut budget = Budget::default();
@@ -465,6 +485,7 @@ fn budget_failure_is_atomic() {
     assert_eq!(budget.reserve(1, 1, 1, 10), Err(Error::QuotaExceeded));
     assert_eq!(budget, before);
 }
+
 #[test]
 fn snapshot_contains_no_auth_routes() {
     let s = fixture();
@@ -685,6 +706,8 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         t.set(CompactStored(Some(Config {
             schema: STABLE_SCHEMA,
             init: UserInit {
+                commerce_canister: candid::Principal::from_slice(&[88]),
+                membership_canister: candid::Principal::from_slice(&[89]),
                 environment: Environment::Local,
                 issuer_namespace: NAMESPACE.into(),
                 home_cose: s.home_cose,

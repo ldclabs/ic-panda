@@ -22,16 +22,31 @@ type CellMemory = RestrictedMemory<Memory>;
 // Share one default 128-page bucket: keep the small budget in its last page.
 // This avoids allocating another 8 MiB just to persist three counters.
 const BUDGET_PAGE: u64 = 127;
+
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
 thread_local! {
-    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, CellMemory>> = RefCell::new(StableCell::init(RestrictedMemory::new(memory(0), 0..BUDGET_PAGE), CompactStored(None)));
-    static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<ExecutionResult>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
-    static BUDGET: RefCell<StableCell<CompactStored<Budget>, CellMemory>> = RefCell::new(StableCell::init(RestrictedMemory::new(memory(0), BUDGET_PAGE..BUDGET_PAGE + 1), CompactStored(Budget::default())));
+    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, CellMemory>> =
+        RefCell::new(StableCell::init(
+            RestrictedMemory::new(memory(0), 0..BUDGET_PAGE),
+            CompactStored(None),
+        ));
+    static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<ExecutionResult>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(2)));
+    pub(crate) static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(1)));
+    static FORMAL_BUDGET: RefCell<StableCell<CompactStored<Budget>, Memory>> = RefCell::new(
+        StableCell::init(memory(3), CompactStored(Budget::default())),
+    );
+    static BUDGET: RefCell<StableCell<CompactStored<Budget>, CellMemory>> =
+        RefCell::new(StableCell::init(
+            RestrictedMemory::new(memory(0), BUDGET_PAGE..BUDGET_PAGE + 1),
+            CompactStored(Budget::default()),
+        ));
 }
 
 pub(crate) fn cfg() -> Config {
@@ -70,16 +85,36 @@ pub(crate) fn execution(account_id: &AccountId, sequence: u64) -> Result<Executi
     })
 }
 
-pub(crate) fn reserve_budget(now: u64, cycles: u128, config: &CoseInit) -> Result<()> {
+pub(crate) fn reserve_budget(
+    now: u64,
+    cycles: u128,
+    config: &CoseInit,
+    formal: bool,
+) -> Result<()> {
     BUDGET.with_borrow_mut(|t| {
         let mut budget = t.get().0.clone();
         budget.reserve(now, cycles, config.daily_executions, config.daily_cycles)?;
+        if formal {
+            FORMAL_BUDGET.with_borrow_mut(|f| {
+                let mut value = f.get().0.clone();
+                value.reserve(
+                    now,
+                    cycles,
+                    config
+                        .daily_executions
+                        .saturating_sub(config.daily_executions / 5),
+                    config.daily_cycles - config.daily_cycles / 5,
+                )?;
+                f.set(CompactStored(value));
+                Ok(())
+            })?;
+        }
         t.set(CompactStored(budget));
         Ok(())
     })
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 4;
+pub(crate) const STABLE_SCHEMA: u16 = 5;
 
 fn execution_key(account_id: &AccountId, sequence: u64) -> Vec<u8> {
     [account_id.as_slice(), &sequence.to_be_bytes()].concat()

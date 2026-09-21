@@ -13,6 +13,10 @@ pub struct HandleAuthorization {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
+    pub created_at_ms: u64,
+    pub safety_budget: Budget,
+    pub membership_authorizations:
+        BTreeMap<OpId, (dmsg_types::membership::MembershipIntent, u64, Hash, u64)>,
     pub account_id: AccountId,
     pub home_user: Principal,
     pub home_cose: Principal,
@@ -77,6 +81,7 @@ pub struct AuthorizedExecution {
 impl AccountState {
     pub fn info(&self, namespace: &str) -> AccountInfo {
         AccountInfo {
+            created_at_ms: self.created_at_ms,
             issuer: format!("{namespace}{}", self.account_id),
             account_id: self.account_id.clone(),
             home_user: self.home_user,

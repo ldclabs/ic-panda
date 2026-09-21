@@ -359,6 +359,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         );
         assert_eq!(status.unwrap(), signed);
         let grant = ExecutionGrant {
+            commerce: None,
             account_id: account_id.clone(),
             home_user: f.user,
             home_cose: f.cose,
@@ -945,7 +946,7 @@ fn valid_presigned_offer_survives_a_minute_but_current_revocation_still_applies(
         .into();
     old.quote.offer_digest = digest("dmsg/payment-offer/v1", &old.offer.offer);
     old.quote_signature = key(50)
-        .sign(digest("dmsg/quote/v1", &old.quote).as_slice())
+        .sign(digest("dmsg/quote/v2", &old.quote).as_slice())
         .to_bytes()
         .to_vec()
         .into();

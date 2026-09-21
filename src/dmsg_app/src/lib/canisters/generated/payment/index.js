@@ -11,8 +11,13 @@ export const idlFactory = ({ IDL }) => {
     'valid_until' : IDL.Nat64,
     'valid_from' : IDL.Nat64,
   });
+  const DeliveryFeePolicy = IDL.Record({
+    'rate_bps' : IDL.Nat16,
+    'effective_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat64,
+    'minimum_atomic' : IDL.Nat,
+  });
   const PaymentInit = IDL.Record({
-    'service_fee' : IDL.Nat,
     'daily_orders' : IDL.Nat32,
     'platform' : Account,
     'enabled' : IDL.Bool,
@@ -20,7 +25,9 @@ export const idlFactory = ({ IDL }) => {
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,
     'signer' : ReceiptSigner,
+    'governance' : IDL.Principal,
     'max_open_per_payer' : IDL.Nat32,
+    'fee_policy' : DeliveryFeePolicy,
     'max_fee' : IDL.Nat,
   });
   const FundsDecision = IDL.Variant({
@@ -40,6 +47,7 @@ export const idlFactory = ({ IDL }) => {
     'platform' : Account,
     'created_at' : IDL.Nat64,
     'ledger' : IDL.Principal,
+    'fee_policy_version' : IDL.Nat64,
     'quote_id' : IDL.Vec(IDL.Nat8),
     'max_bytes' : IDL.Nat32,
     'payer' : Account,
@@ -80,6 +88,7 @@ export const idlFactory = ({ IDL }) => {
     'FeeBlocked' : IDL.Null,
     'DeviceNotApproved' : IDL.Null,
     'Locked' : IDL.Null,
+    'MembershipClosing' : IDL.Null,
     'RecoveryIncomplete' : IDL.Null,
     'IdCapacityExceeded' : IDL.Null,
     'PolicyStale' : IDL.Null,
@@ -87,9 +96,11 @@ export const idlFactory = ({ IDL }) => {
     'IdempotencyConflict' : IDL.Null,
     'UnsupportedProtocol' : IDL.Null,
     'Unavailable' : IDL.Text,
+    'MembershipStale' : IDL.Null,
     'Forbidden' : IDL.Null,
     'ResultExpired' : IDL.Null,
     'Expired' : IDL.Null,
+    'MembershipIneligible' : IDL.Null,
     'QuotaExceeded' : IDL.Null,
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
@@ -221,6 +232,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_2],
         ['query'],
       ),
+    'get_fee_policy' : IDL.Func([], [DeliveryFeePolicy], ['query']),
     'get_receipt_signer' : IDL.Func([IDL.Nat64], [Result_3], ['query']),
     'get_transfer' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat64],
@@ -255,6 +267,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'revoke_receipt_signer' : IDL.Func([IDL.Nat64], [Result_6], []),
     'rotate_receipt_signer' : IDL.Func([ReceiptSigner], [Result_6], []),
+    'schedule_fee_policy' : IDL.Func([DeliveryFeePolicy], [Result_6], []),
     'set_orders_enabled' : IDL.Func([IDL.Bool], [Result_6], []),
   });
 };
@@ -270,8 +283,13 @@ export const init = ({ IDL }) => {
     'valid_until' : IDL.Nat64,
     'valid_from' : IDL.Nat64,
   });
+  const DeliveryFeePolicy = IDL.Record({
+    'rate_bps' : IDL.Nat16,
+    'effective_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat64,
+    'minimum_atomic' : IDL.Nat,
+  });
   const PaymentInit = IDL.Record({
-    'service_fee' : IDL.Nat,
     'daily_orders' : IDL.Nat32,
     'platform' : Account,
     'enabled' : IDL.Bool,
@@ -279,7 +297,9 @@ export const init = ({ IDL }) => {
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,
     'signer' : ReceiptSigner,
+    'governance' : IDL.Principal,
     'max_open_per_payer' : IDL.Nat32,
+    'fee_policy' : DeliveryFeePolicy,
     'max_fee' : IDL.Nat,
   });
   return [PaymentInit];

@@ -29,7 +29,13 @@ pub fn validate_quote(
             && q.payer.owner == payer
             && q.ledger == config.ledger
             && q.platform == config.platform
-            && q.service_fee == config.service_fee,
+            && q.fee_policy_version == config.fee_policy.version
+            && q.created_at >= config.fee_policy.effective_at_ms
+            && q.service_fee
+                == dmsg_protocol::billing::delivery_service_fee(
+                    q.recipient_net,
+                    &config.fee_policy,
+                )?,
         Error::IntegrityFailed,
     )?;
     ensure(
@@ -77,7 +83,7 @@ pub fn validate_quote(
     )?;
     nonzero(q.quote_id.as_slice())?;
     nonzero(q.envelope_digest.as_slice())?;
-    let hash = digest("dmsg/quote/v1", q);
+    let hash = digest("dmsg/quote/v2", q);
     verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
     Ok(hash)
 }
@@ -188,7 +194,7 @@ pub fn receipt_valid(
 ) -> Result<Hash> {
     let a = &r.receipt;
     ensure(
-        a.protocol == 1
+        a.protocol == 2
             && a.escrow_id == e.escrow_id
             && a.home_payment == id
             && a.quote_digest == e.quote_digest
@@ -210,7 +216,7 @@ pub fn receipt_valid(
         Error::IntegrityFailed,
     )?;
     signer_valid(s, a.signer_epoch, a.stored_at, now)?;
-    let hash = digest("dmsg/admission-receipt/v1", a);
+    let hash = digest("dmsg/admission-receipt/v2", a);
     verify(&s.public_key, hash.as_slice(), &r.signature)?;
     Ok(hash)
 }

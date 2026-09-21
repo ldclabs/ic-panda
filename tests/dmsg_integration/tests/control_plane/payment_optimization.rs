@@ -471,7 +471,7 @@ fn reserve_claim_survives_upgrade_without_changing_the_certified_balance() {
     input.quote.fee_reserve = 60;
     input.quote.amount = 1160;
     input.quote_signature = key(50)
-        .sign(digest("dmsg/quote/v1", &input.quote).as_slice())
+        .sign(digest("dmsg/quote/v2", &input.quote).as_slice())
         .to_bytes()
         .to_vec()
         .into();

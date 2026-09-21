@@ -1,0 +1,26 @@
+[package]
+name = "dmsg_commerce"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dmsg_protocol = { path = "../dmsg_protocol" }
+dmsg_runtime = { path = "../dmsg_runtime" }
+ic-stable-structures.workspace = true
+cbor2.workspace = true
+dmsg_types = { path = "../dmsg_types" }
+candid.workspace = true
+serde = { workspace = true, features = ["derive"] }
+ic-cdk.workspace = true
+icrc-ledger-types.workspace = true
+lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
+
+serde_bytes.workspace = true
+
+[dev-dependencies]
+ed25519-dalek.workspace = true

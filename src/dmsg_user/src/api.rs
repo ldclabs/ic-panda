@@ -3,7 +3,7 @@ use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
-use dmsg_types::{cose::*, handle::*, payment::SignedOffer, user::*, *};
+use dmsg_types::{billing::*, cose::*, handle::*, membership::*, payment::SignedOffer, user::*, *};
 use ic_auth_types::XidGenerator;
 use serde_bytes::ByteBuf;
 
@@ -11,31 +11,32 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn caller() -> Principal {
-    ic_cdk::api::msg_caller()
-}
-
-fn me() -> Principal {
-    ic_cdk::api::canister_self()
-}
-
-fn own(id: &AccountId) -> Result<AccountState> {
+fn own(id: &AccountId, caller: Principal) -> Result<AccountState> {
     let s = load(id)?;
-    ensure(s.auth_bindings.contains(&caller()), Error::AuthRequired)?;
+    ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
     Ok(s)
 }
 
 #[ic_cdk::init]
 fn init(args: UserInit) {
     validate_namespace(&args.issuer_namespace).expect("identity namespace");
-    let allocator_namespace_digest =
-        xid::namespace_digest(&args.environment, &args.issuer_namespace, me());
+    let allocator_namespace_digest = xid::namespace_digest(
+        &args.environment,
+        &args.issuer_namespace,
+        ic_cdk::api::canister_self(),
+    );
     let allocator = XidGenerator::new(
         allocator_namespace_digest[..5]
             .try_into()
             .expect("five bytes"),
     );
-    for p in [args.home_cose, args.handle_canister, args.payment_canister] {
+    for p in [
+        args.home_cose,
+        args.handle_canister,
+        args.payment_canister,
+        args.commerce_canister,
+        args.membership_canister,
+    ] {
         authenticated(p).expect("configured canister");
     }
     assert!(
@@ -70,7 +71,7 @@ fn post_upgrade() {
         cfg.allocator_namespace_digest,
         &cfg.init.environment,
         &cfg.init.issuer_namespace,
-        me(),
+        ic_cdk::api::canister_self(),
     )
     .expect("immutable allocator");
     rebuild_certification();
@@ -78,7 +79,8 @@ fn post_upgrade() {
 
 #[ic_cdk::update]
 fn create_account(input: CreateAccount) -> Result<AccountId> {
-    let who = caller();
+    let canister_id = ic_cdk::api::canister_self();
+    let who = ic_cdk::api::msg_caller();
     authenticated(who)?;
     let mut cfg = config();
     if let Some(id) = AUTH.with_borrow(|t| t.load(who.as_slice())) {
@@ -107,7 +109,7 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         cfg.allocator_namespace_digest,
         &cfg.init.environment,
         &cfg.init.issuer_namespace,
-        me(),
+        canister_id,
     )?;
     let (id, allocator) = cfg
         .allocator
@@ -117,7 +119,14 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         !ACCOUNTS.with_borrow(|t| t.contains(id.as_slice())),
         Error::IdGeneratorStateConflict,
     )?;
-    let account = account::create(me(), cfg.init.home_cose, id.clone(), who, &input, now)?;
+    let account = account::create(
+        canister_id,
+        cfg.init.home_cose,
+        id.clone(),
+        who,
+        &input,
+        now,
+    )?;
     cfg.created_today = cfg
         .created_today
         .checked_add(1)
@@ -134,23 +143,25 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
 /// existing account_id's administrator must separately approve the exact nonce.
 #[ic_cdk::update]
 fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Result<()> {
-    authenticated(caller())?;
+    let caller = ic_cdk::api::msg_caller();
+    authenticated(caller)?;
     nonzero(nonce.as_slice())?;
     expiry(now(), expires_at, 5 * MINUTE)?;
     ensure(
         ACCOUNTS.with_borrow(|t| t.contains(account_id.as_slice())),
         Error::NotFound,
     )?;
-    if let Some(id) = AUTH.with_borrow(|t| t.load(caller().as_slice())) {
+    if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
     ensure(
-        BINDINGS.with_borrow(|t| t.contains(caller().as_slice()) || t.len() < 1024),
+        BINDINGS.with_borrow(|t| t.contains(caller.as_slice()) || t.len() < 1024),
         Error::QuotaExceeded,
     )?;
-    BINDINGS.with_borrow_mut(|t| t.put(caller().as_slice(), &(account_id, nonce, expires_at)));
+    BINDINGS.with_borrow_mut(|t| t.put(caller.as_slice(), &(account_id, nonce, expires_at)));
     Ok(())
 }
+
 #[ic_cdk::update]
 fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
     let now = now();
@@ -166,6 +177,7 @@ fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
 
 #[ic_cdk::update]
 fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
+    let at = now();
     let mut s = load(&input.account_id)?;
     let replay = s
         .operations
@@ -177,7 +189,7 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
                 .with_borrow(|t| t.load(principal.as_slice()))
                 .ok_or(Error::AuthRequired)?;
             ensure(
-                account_id == s.account_id && n == *nonce && now() < e,
+                account_id == s.account_id && n == *nonce && at < e,
                 Error::AuthRequired,
             )?;
             if let Some(id) = AUTH.with_borrow(|t| t.load(principal.as_slice())) {
@@ -185,11 +197,19 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
             }
         }
     }
+    if let AccountCommand::AuthorizeMembership { intent } = &input.command {
+        let c = config().init;
+        ensure(
+            intent.environment == c.environment
+                && [c.commerce_canister, c.membership_canister].contains(&intent.service_canister),
+            Error::Forbidden,
+        )?;
+    }
     let r = account::apply(
         &mut s,
-        caller(),
+        ic_cdk::api::msg_caller(),
         &input,
-        now(),
+        at,
         config().init.handle_canister,
     )?;
     if replay {
@@ -205,8 +225,9 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
 
 #[ic_cdk::update]
 fn consume_handle_authorization(intent: HandleIntent) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
     ensure(
-        caller() == config().init.handle_canister && intent.handle_canister == caller(),
+        caller == config().init.handle_canister && intent.handle_canister == caller,
         Error::Forbidden,
     )?;
     let s = load(&intent.account_id)?;
@@ -232,23 +253,40 @@ async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
 }
 
 async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult> {
-    let mut s = own(&input.account_id)?;
-    let now = now();
+    let caller = ic_cdk::api::msg_caller();
+    let mut at = now();
+    let mut s = own(&input.account_id, caller)?;
+    if matches!(input.kind, ExecutionKind::Sign { .. })
+        && load_execution(&input.account_id, &input.approval.request_id).is_none()
+    {
+        // Reject invalid caller/device/payload before doing commercial cross-canister work.
+        execution::authorize(
+            &mut s,
+            caller,
+            &input,
+            at,
+            &config().init.issuer_namespace,
+            None,
+        )?;
+        at = crate::commerce::sync(&input.account_id, at).await?;
+        s = own(&input.account_id, caller)?;
+    }
     let previous = load_execution(&input.account_id, &input.approval.request_id);
     let expired: Vec<_> = s
         .execution_expirations
         .iter()
-        .filter_map(|(id, expires_at)| expires_at.filter(|at| *at <= now).map(|_| *id))
+        .filter_map(|(id, expires_at)| expires_at.filter(|deadline| *deadline <= at).map(|_| *id))
         .collect();
-    let e = execution::authorize(
+    let mut e = execution::authorize(
         &mut s,
-        caller(),
+        caller,
         &input,
-        now,
+        at,
         &config().init.issuer_namespace,
         previous.as_ref(),
     )?;
     if previous.is_none() {
+        crate::commerce::reserve(&mut e, at)?;
         // All validation precedes these writes, with no await until the account,
         // budget, sequence, execution and certification have committed together.
         for id in expired {
@@ -266,11 +304,26 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
 async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let account_id = grant.account_id.clone();
     let request_id = grant.request_id;
-    let response: Result<ExecutionResult> =
-        match stable::call(grant.home_cose, "execute", (grant,)).await {
-            Ok(response) => response,
-            Err(e) => Err(e),
-        };
+    let response: Result<ExecutionResult> = match stable::call::<_, Result<ExecutionResult>>(
+        grant.home_cose,
+        "execute",
+        (grant,),
+    )
+    .await
+    {
+        Ok(Ok(response)) => Ok(response),
+        // A canister-level rejection is an authoritative statement that execute
+        // returned before starting a management call. Record it as a terminal
+        // failure so the commercial reservation can be released.
+        Ok(Err(error)) => Ok(ExecutionResult {
+            request_id,
+            outcome: ExecutionOutcome::Failed(error),
+            charged_cycles: 0,
+        }),
+        // A transport rejection is ambiguous and must retain the reservation
+        // until the original request is reconciled.
+        Err(error) => Err(error),
+    };
     record_response(&account_id, request_id, response)
 }
 
@@ -289,6 +342,7 @@ fn record_response(
     let result = execution::record_execution_response(&mut e, response);
     if result != previous {
         if result.is_terminal() {
+            crate::commerce::settle(&e)?;
             let mut s = load(account_id)?;
             s.execution_expirations
                 .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
@@ -302,7 +356,7 @@ fn record_response(
 
 #[ic_cdk::update]
 async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
-    let home_cose = own(&account_id)?.home_cose;
+    let home_cose = own(&account_id, ic_cdk::api::msg_caller())?.home_cose;
     let e = load_execution(&account_id, &request_id).ok_or(Error::NotFound)?;
     if e.result.is_terminal() {
         return Ok(e.result);
@@ -330,8 +384,9 @@ fn request_recovery(
     signature: ByteBuf,
     device_proof: ByteBuf,
 ) -> Result<()> {
-    ensure(caller() == request.new_auth, Error::AuthRequired)?;
-    if let Some(id) = AUTH.with_borrow(|t| t.load(caller().as_slice())) {
+    let caller = ic_cdk::api::msg_caller();
+    ensure(caller == request.new_auth, Error::AuthRequired)?;
+    if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
     let mut s = load(&account_id)?;
@@ -354,21 +409,24 @@ fn reconfirm_recovery(
 
 #[ic_cdk::update]
 fn complete_recovery(account_id: AccountId) -> Result<()> {
-    if let Some(id) = AUTH.with_borrow(|t| t.load(caller().as_slice())) {
+    let caller = ic_cdk::api::msg_caller();
+    if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
     let mut s = load(&account_id)?;
-    recovery::complete_recovery(&mut s, caller(), now())?;
-    AUTH.with_borrow_mut(|t| t.put(caller().as_slice(), &account_id));
+    recovery::complete_recovery(&mut s, caller, now())?;
+    AUTH.with_borrow_mut(|t| t.put(caller.as_slice(), &account_id));
     save(&s);
     Ok(())
 }
 
 #[ic_cdk::update]
 fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
+    let at = now();
+    let caller = ic_cdk::api::msg_caller();
     let o = &signed.offer;
     ensure(
-        caller() == config().init.payment_canister && o.home_payment == caller(),
+        caller == config().init.payment_canister && o.home_payment == caller,
         Error::Forbidden,
     )?;
     let s = load(&o.account_id)?;
@@ -385,38 +443,38 @@ fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
         Error::Forbidden,
     )?;
     ensure(o.security_epoch == s.security_epoch, Error::PolicyStale)?;
-    ensure(o.issued_at <= now() && now() < o.expires_at, Error::Expired)?;
+    ensure(o.issued_at <= at && at < o.expires_at, Error::Expired)?;
     verify(
         &d.input.signing_pub,
         digest("dmsg/payment-offer/v1", o).as_slice(),
         &signed.signature,
     )?;
-    Ok(now())
+    Ok(at)
 }
 
 #[ic_cdk::query]
 fn get_account(account_id: AccountId) -> Result<AccountInfo> {
-    Ok(own(&account_id)?.info(&config().init.issuer_namespace))
+    Ok(own(&account_id, ic_cdk::api::msg_caller())?.info(&config().init.issuer_namespace))
 }
 
 #[ic_cdk::query]
 fn get_recovery_request(account_id: AccountId) -> Result<Option<PendingRecovery>> {
-    recovery::recovery_request(&load(&account_id)?, caller())
+    recovery::recovery_request(&load(&account_id)?, ic_cdk::api::msg_caller())
 }
 
 #[ic_cdk::query]
 fn my_account() -> Option<AccountId> {
-    AUTH.with_borrow(|t| t.load(caller().as_slice()))
+    AUTH.with_borrow(|t| t.load(ic_cdk::api::msg_caller().as_slice()))
 }
 
 #[ic_cdk::query]
 fn get_root_ref(account_id: AccountId) -> Result<Option<ContentRootRef>> {
-    Ok(own(&account_id)?.current_root)
+    Ok(own(&account_id, ic_cdk::api::msg_caller())?.current_root)
 }
 
 #[ic_cdk::query]
 fn get_operation(account_id: AccountId, op_id: Hash) -> Result<OperationReceipt> {
-    own(&account_id)?
+    own(&account_id, ic_cdk::api::msg_caller())?
         .operations
         .into_iter()
         .find(|r| r.id == op_id)
@@ -425,7 +483,12 @@ fn get_operation(account_id: AccountId, op_id: Hash) -> Result<OperationReceipt>
 
 #[ic_cdk::query]
 fn security_snapshot_batch(accounts: Vec<AccountId>) -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(me(), accounts.into_iter().map(|s| s.to_vec()).collect()))
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            accounts.into_iter().map(|s| s.to_vec()).collect(),
+        )
+    })
 }
 
 #[ic_cdk::query]
@@ -438,7 +501,7 @@ fn get_device_bundle(
 
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
-    own(&account_id)?;
+    own(&account_id, ic_cdk::api::msg_caller())?;
     load_execution(&account_id, &request_id)
         .map(|e| e.result)
         .ok_or(Error::ResultExpired)
@@ -446,13 +509,77 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
 
 #[ic_cdk::query]
 fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<CertifiedBatch> {
-    own(&account_id)?;
+    own(&account_id, ic_cdk::api::msg_caller())?;
     let execution = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
     ensure(
         matches!(execution.grant.kind, ExecutionKind::Sign { .. }),
         Error::UnsupportedProtocol,
     )?;
-    CERT.with_borrow(|c| c.batch(me(), vec![execution_receipt_key(&account_id, request_id)]))
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![execution_receipt_key(&account_id, request_id)],
+        )
+    })
+}
+
+#[ic_cdk::update]
+fn verify_membership_authorization(intent: MembershipIntent) -> Result<MembershipAuthorization> {
+    let at = now();
+    let cfg = config().init;
+    ensure(
+        [cfg.commerce_canister, cfg.membership_canister].contains(&ic_cdk::api::msg_caller())
+            && [cfg.commerce_canister, cfg.membership_canister].contains(&intent.service_canister)
+            && intent.environment == cfg.environment,
+        Error::Forbidden,
+    )?;
+    let id = dmsg_protocol::billing::beneficiary_account(&intent.beneficiary)?;
+    let s = load(&id)?;
+    ensure(
+        intent.beneficiary.authority_canister == ic_cdk::api::canister_self()
+            && s.status == AccountStatus::Active,
+        Error::Forbidden,
+    )?;
+    let a = s
+        .membership_authorizations
+        .get(&intent.application_id)
+        .ok_or(Error::NotFound)?;
+    ensure(a.0 == intent && a.1 == s.security_epoch, Error::PolicyStale)?;
+    ensure(
+        s.devices.get(&a.2).is_some_and(|d| d.revoked_at.is_none()),
+        Error::DeviceNotApproved,
+    )?;
+    ensure(at < a.3 && at < intent.valid_until_ms, Error::Expired)?;
+    Ok(MembershipAuthorization {
+        intent_digest: dmsg_protocol::membership::membership_intent_digest(&intent),
+        security_epoch: s.security_epoch,
+        verified_at_ms: at,
+        valid_until_ms: a.3.min(intent.valid_until_ms),
+    })
+}
+
+#[ic_cdk::query]
+fn get_execution_usage(account_id: AccountId, month_utc: u32) -> Result<ExecutionUsage> {
+    own(&account_id, ic_cdk::api::msg_caller())?;
+    crate::commerce::usage(&account_id, month_utc)
+}
+
+#[ic_cdk::query]
+fn get_execution_usage_certified(account_id: AccountId, month_utc: u32) -> Result<CertifiedBatch> {
+    own(&account_id, ic_cdk::api::msg_caller())?;
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![dmsg_protocol::billing::usage_key(&account_id, month_utc).to_vec()],
+        )
+    })
+}
+
+#[ic_cdk::update]
+async fn refresh_execution_entitlement(account_id: AccountId) -> Result<ExecutionUsage> {
+    own(&account_id, ic_cdk::api::msg_caller())?;
+    let at = crate::commerce::sync(&account_id, now()).await?;
+    crate::commerce::usage(&account_id, dmsg_protocol::billing::month_utc(at)?)
 }
 
 #[cfg(test)]

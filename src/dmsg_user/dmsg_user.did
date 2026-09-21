@@ -30,6 +30,11 @@ type AccountCommand = variant {
     // Committed root generation expected for compare-and-swap.
     expected_generation : nat64;
   };
+  // Approve an exact commercial action without adding a login binding.
+  AuthorizeMembership : record {
+    // Immutable application terms; device approval retains its own short expiry.
+    intent : MembershipIntent;
+  };
   // Remove a login Principal binding.
   RemoveAuth : record {
     // Login Principal to bind or remove.
@@ -90,6 +95,8 @@ type AccountInfo = record {
   root_slot : opt RootReservation;
   // Account security revision used to invalidate stale approvals.
   security_epoch : nat64;
+  // Immutable creation time recorded by the user home, in Unix milliseconds.
+  created_at_ms : nat64;
   // Active delayed recovery procedure, if any.
   pending_recovery : opt PendingRecovery;
   // Canonical absolute issuer URI identifying the signer.
@@ -155,6 +162,12 @@ type Approval = record {
   expires_at : nat64;
   // Next sequence expected for this device; contributes to replay protection.
   sequence : nat64;
+};
+type Beneficiary = record {
+  product_id : text;
+  authority_canister : principal;
+  subject_bytes : blob;
+  subject_schema : text;
 };
 // Explicit device permission; authentication alone grants none of these rights.
 type Capability = variant {
@@ -306,6 +319,8 @@ type Error = variant {
   DeviceNotApproved;
   // Sensitive operations are locked by account state or policy.
   Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
   // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
   // Account-ID counter space is exhausted for this timestamp.
@@ -320,12 +335,16 @@ type Error = variant {
   UnsupportedProtocol;
   // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
   // Caller, role or capability does not authorize this operation.
   Forbidden;
   // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
   // The applicable deadline has passed.
   Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
   // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
   // An authenticated and appropriately bound caller is required.
@@ -373,6 +392,18 @@ type ExecutionResult = record {
   charged_cycles : nat;
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
+};
+type ExecutionUsage = record {
+  account_id : blob;
+  business_revision : nat64;
+  valid_until_ms : nat64;
+  held_units : nat64;
+  lease_revision : nat64;
+  allowed_units : nat64;
+  charged_units : nat64;
+  weight_policy_version : nat64;
+  month_revision : nat64;
+  month_utc : nat32;
 };
 // Name ownership operation authorized by an account.
 type HandleAction = variant {
@@ -442,6 +473,23 @@ type KeyPurpose = variant {
   FileAttestation;
   // Key domain for text statements.
   Statement;
+};
+type MembershipAuthorization = record {
+  valid_until_ms : nat64;
+  security_epoch : nat64;
+  verified_at_ms : nat64;
+  intent_digest : blob;
+};
+// A device-approved, purpose-separated intent. Actor authentication is also required.
+type MembershipIntent = record {
+  actor : principal;
+  beneficiary : Beneficiary;
+  valid_until_ms : nat64;
+  action_digest : blob;
+  application_id : blob;
+  nonce : blob;
+  service_canister : principal;
+  environment : Environment;
 };
 // Idempotent account mutation result, distinct from a certified execution receipt.
 type OperationReceipt = record {
@@ -529,6 +577,8 @@ type RecoveryRequest = record {
 };
 type Result = variant { Ok; Err : Error };
 type Result_1 = variant { Ok : blob; Err : Error };
+type Result_10 = variant { Ok : MembershipAuthorization; Err : Error };
+type Result_11 = variant { Ok : nat64; Err : Error };
 type Result_2 = variant { Ok : ExecutionResult; Err : Error };
 type Result_3 = variant { Ok : AccountInfo; Err : Error };
 type Result_4 = variant {
@@ -536,10 +586,10 @@ type Result_4 = variant {
   Err : Error;
 };
 type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_6 = variant { Ok : OperationReceipt; Err : Error };
-type Result_7 = variant { Ok : opt PendingRecovery; Err : Error };
-type Result_8 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_9 = variant { Ok : nat64; Err : Error };
+type Result_6 = variant { Ok : ExecutionUsage; Err : Error };
+type Result_7 = variant { Ok : OperationReceipt; Err : Error };
+type Result_8 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_9 = variant { Ok : opt ContentRootRef; Err : Error };
 // Temporary compare-and-swap slot for a candidate content root.
 type RootReservation = record {
   // Idempotency identifier; reuse only with identical operation parameters.
@@ -713,8 +763,12 @@ type UserInit = record {
   payment_canister : principal;
   // Deployment domain used in validation and derivation.
   environment : Environment;
+  // Fixed product commerce service, authoritative for resource leases.
+  commerce_canister : principal;
   // Maximum accounts admitted by this deployment.
   max_accounts : nat64;
+  // Shared PANDA qualification service.
+  membership_canister : principal;
 };
 // Whether new vault writes may use the committed root.
 type VaultWriteState = variant {
@@ -737,16 +791,20 @@ service : (UserInit) -> {
   get_device_bundle : (blob) -> (Result_4) query;
   get_execution : (blob, blob) -> (Result_2) query;
   get_execution_receipt : (blob, blob) -> (Result_5) query;
-  get_operation : (blob, blob) -> (Result_6) query;
-  get_recovery_request : (blob) -> (Result_7) query;
-  get_root_ref : (blob) -> (Result_8) query;
-  mutate_account : (AccountMutation) -> (Result_6);
+  get_execution_usage : (blob, nat32) -> (Result_6) query;
+  get_execution_usage_certified : (blob, nat32) -> (Result_5) query;
+  get_operation : (blob, blob) -> (Result_7) query;
+  get_recovery_request : (blob) -> (Result_8) query;
+  get_root_ref : (blob) -> (Result_9) query;
+  mutate_account : (AccountMutation) -> (Result_7);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
   reconcile_execution : (blob, blob) -> (Result_2);
   reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result);
+  refresh_execution_entitlement : (blob) -> (Result_6);
   request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result);
   security_snapshot_batch : (vec blob) -> (Result_5) query;
   sign : (SignRequest) -> (Result_2);
-  verify_payment_offer : (SignedOffer) -> (Result_9);
+  verify_membership_authorization : (MembershipIntent) -> (Result_10);
+  verify_payment_offer : (SignedOffer) -> (Result_11);
 }

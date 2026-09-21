@@ -48,6 +48,15 @@ export const idlFactory = ({ IDL }) => {
       'root_op_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     }),
   });
+  const CommercialReservation = IDL.Record({
+    'reservation_id' : IDL.Vec(IDL.Nat8),
+    'business_revision' : IDL.Nat64,
+    'valid_until_ms' : IDL.Nat64,
+    'lease_revision' : IDL.Nat64,
+    'weight_policy_version' : IDL.Nat64,
+    'units' : IDL.Nat64,
+    'month_utc' : IDL.Nat32,
+  });
   const ExecutionGrant = IDL.Record({
     'account_id' : IDL.Vec(IDL.Nat8),
     'request_id' : IDL.Vec(IDL.Nat8),
@@ -60,6 +69,7 @@ export const idlFactory = ({ IDL }) => {
     'home_cose' : IDL.Principal,
     'max_cycles' : IDL.Nat,
     'home_user' : IDL.Principal,
+    'commerce' : IDL.Opt(CommercialReservation),
     'expires_at' : IDL.Nat64,
   });
   const Error = IDL.Variant({
@@ -75,6 +85,7 @@ export const idlFactory = ({ IDL }) => {
     'FeeBlocked' : IDL.Null,
     'DeviceNotApproved' : IDL.Null,
     'Locked' : IDL.Null,
+    'MembershipClosing' : IDL.Null,
     'RecoveryIncomplete' : IDL.Null,
     'IdCapacityExceeded' : IDL.Null,
     'PolicyStale' : IDL.Null,
@@ -82,9 +93,11 @@ export const idlFactory = ({ IDL }) => {
     'IdempotencyConflict' : IDL.Null,
     'UnsupportedProtocol' : IDL.Null,
     'Unavailable' : IDL.Text,
+    'MembershipStale' : IDL.Null,
     'Forbidden' : IDL.Null,
     'ResultExpired' : IDL.Null,
     'Expired' : IDL.Null,
+    'MembershipIneligible' : IDL.Null,
     'QuotaExceeded' : IDL.Null,
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,

@@ -283,6 +283,10 @@ pub struct UserInit {
     pub handle_canister: Principal,
     /// Configured escrow service.
     pub payment_canister: Principal,
+    /// Fixed product commerce service, authoritative for resource leases.
+    pub commerce_canister: Principal,
+    /// Shared PANDA qualification service.
+    pub membership_canister: Principal,
     /// Maximum accounts admitted by this deployment.
     pub max_accounts: u64,
     /// Account creation limit per daily budget window.
@@ -369,6 +373,11 @@ pub enum AccountCommand {
         /// Account-authorized name operation.
         intent: HandleIntent,
     },
+    /// Approve an exact commercial action without adding a login binding.
+    AuthorizeMembership {
+        /// Immutable application terms; device approval retains its own short expiry.
+        intent: crate::membership::MembershipIntent,
+    },
     /// Record a dispute against a pending recovery operation.
     DisputeRecovery {
         /// Idempotency identifier; reuse only with identical operation parameters.
@@ -407,6 +416,8 @@ pub struct DeviceEvidence {
 /// Account query view, not a stable-storage record or a certified proof by itself.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountInfo {
+    /// Immutable creation time recorded by the user home, in Unix milliseconds.
+    pub created_at_ms: u64,
     /// Canonical absolute issuer URI identifying the signer.
     pub issuer: String,
     /// Stable 12-byte dMsg account identity; not a Principal or ledger account.

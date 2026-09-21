@@ -510,9 +510,11 @@ impl Verifier for ProfileVerifier {
             Self::Ec(_) => iana::AlgorithmES256K.into(),
         })
     }
+
     fn understood_critical_headers(&self) -> &[Label] {
         &CRITICAL
     }
+
     fn verify(&self, bytes: &[u8], signature: &[u8]) -> std::result::Result<(), cose2::Error> {
         match self {
             Self::Ed(key) => key.verify(bytes, signature),

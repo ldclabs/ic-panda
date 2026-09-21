@@ -30,7 +30,7 @@
 
 ## 代码
 
-`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 4 的私有 `stable_codec.rs` 使用 CBOR 整数 map key；公开执行授权、结果和密码协议编码不变。
+`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 5 的私有 `stable_codec.rs` 使用 CBOR 整数 map key；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
 
 每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间和终态标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不再扫描、解码或比较整个历史窗口的正文，也不重复持久化完整 grant。64 条元数据的编码小于 6 KiB；连续终结高水位和未完成空洞仍共同约束清理及防重放。
 

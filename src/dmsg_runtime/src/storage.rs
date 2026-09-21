@@ -6,12 +6,15 @@ use std::borrow::Cow;
 pub struct Stored<T>(pub T);
 impl<T: Serialize + DeserializeOwned> Storable for Stored<T> {
     const BOUND: Bound = Bound::Unbounded;
+
     fn to_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(cbor2::to_vec(&self.0).expect("stable encoding"))
     }
+
     fn into_bytes(self) -> Vec<u8> {
         cbor2::to_vec(&self.0).expect("stable encoding")
     }
+
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
         Self(cbor2::from_slice(&bytes).expect("stable record schema"))
     }
@@ -25,6 +28,7 @@ pub trait StableCodec: Sized {
     type Repr: Serialize + DeserializeOwned;
 
     fn to_repr(&self) -> Self::Repr;
+
     fn from_repr(repr: Self::Repr) -> Self;
 }
 
@@ -71,6 +75,7 @@ pub fn compact_from_bytes<T: StableCodec>(bytes: &[u8]) -> T {
 
 trait StableRecord<V>: Storable {
     fn new(value: &V) -> Self;
+
     fn into_value(self) -> V;
 }
 
@@ -97,10 +102,15 @@ impl<V: StableCodec + Clone> StableRecord<V> for CompactStored<V> {
 /// Convenience operations for typed values. V is fixed by the map, not by each read.
 pub trait MapExt<V> {
     fn load(&self, key: &[u8]) -> Option<V>;
+
     fn put(&mut self, key: &[u8], value: &V);
+
     fn delete(&mut self, key: &[u8]);
+
     fn contains(&self, key: &[u8]) -> bool;
+
     fn page(&self, after: Vec<u8>, limit: usize) -> Vec<(Vec<u8>, V)>;
+
     fn for_each(&self, f: impl FnMut(Vec<u8>, V));
 }
 

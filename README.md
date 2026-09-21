@@ -107,7 +107,7 @@ The publication model makes the client, protocols, canisters, and recovery tools
 
 * [Chrome extension: capabilities, build instructions, and limitations](./src/dmsg_app/README.md)
 * [Public protocol and verification rules](./docs/protocol/README.md)
-* [Canister implementation and validation boundaries](./docs/dmsg_canisters_zh.md)
+* [Canister implementation and validation boundaries](./docs/dmsg_canisters.md)
 
 **[Explore dMsg →](https://dmsg.net/)**
 

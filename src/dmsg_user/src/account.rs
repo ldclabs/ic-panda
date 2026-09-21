@@ -32,6 +32,9 @@ pub(crate) fn create(
         &input.proof,
     )?;
     Ok(AccountState {
+        created_at_ms: now,
+        safety_budget: Budget::default(),
+        membership_authorizations: BTreeMap::new(),
         account_id,
         home_user: id,
         home_cose: cose,
@@ -180,6 +183,14 @@ pub(crate) fn apply(
     match &m.command {
         AccountCommand::AddDevice { device, proof } => {
             device.validate()?;
+            ensure(
+                next.devices
+                    .values()
+                    .filter(|d| d.revoked_at.is_none())
+                    .count()
+                    < 5,
+                Error::QuotaExceeded,
+            )?;
             // Bound the current device set without making sixteen lifetime
             // enrollments a permanent account limit. Old approvals are still
             // rejected by the monotonically increasing security epoch.
@@ -372,6 +383,37 @@ pub(crate) fn apply(
             next.current_root = Some(root.clone());
             next.root_slot = None;
             next.vault_write_state = VaultWriteState::Ready;
+        }
+        AccountCommand::AuthorizeMembership { intent } => {
+            ensure(
+                dmsg_protocol::billing::beneficiary(s.home_user, &s.account_id)
+                    == intent.beneficiary,
+                Error::IntegrityFailed,
+            )?;
+            authenticated(intent.actor)?;
+            nonzero(intent.application_id.as_slice())?;
+            nonzero(intent.nonce.as_slice())?;
+            expiry(now, intent.valid_until_ms, DAY)?;
+            next.membership_authorizations.retain(|_, a| a.3 > now);
+            if let Some(a) = next.membership_authorizations.get(&intent.application_id) {
+                ensure(a.0 == *intent, Error::IdempotencyConflict)?;
+            }
+            ensure(
+                next.membership_authorizations.len() < 32
+                    || next
+                        .membership_authorizations
+                        .contains_key(&intent.application_id),
+                Error::QuotaExceeded,
+            )?;
+            next.membership_authorizations.insert(
+                intent.application_id,
+                (
+                    intent.clone(),
+                    s.security_epoch,
+                    m.approval.device_id,
+                    m.approval.expires_at,
+                ),
+            );
         }
         AccountCommand::AuthorizeHandle { intent } => {
             ensure(

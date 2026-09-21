@@ -35,6 +35,12 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
+export interface DeliveryFeePolicy {
+  'rate_bps' : number,
+  'effective_at_ms' : bigint,
+  'version' : bigint,
+  'minimum_atomic' : bigint,
+}
 export interface Deposit {
   'committed_at' : bigint,
   'from' : Account,
@@ -54,6 +60,7 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
+  { 'MembershipClosing' : null } |
   { 'RecoveryIncomplete' : null } |
   { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
@@ -61,9 +68,11 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
+  { 'MembershipStale' : null } |
   { 'Forbidden' : null } |
   { 'ResultExpired' : null } |
   { 'Expired' : null } |
+  { 'MembershipIneligible' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
@@ -105,7 +114,6 @@ export interface OpenEscrow {
   'quote' : Quote,
 }
 export interface PaymentInit {
-  'service_fee' : bigint,
   'daily_orders' : number,
   'platform' : Account,
   'enabled' : boolean,
@@ -113,7 +121,9 @@ export interface PaymentInit {
   'ledger' : Principal,
   'ledger_fee' : bigint,
   'signer' : ReceiptSigner,
+  'governance' : Principal,
   'max_open_per_payer' : number,
+  'fee_policy' : DeliveryFeePolicy,
   'max_fee' : bigint,
 }
 export interface PaymentOffer {
@@ -142,6 +152,7 @@ export interface Quote {
   'platform' : Account,
   'created_at' : bigint,
   'ledger' : Principal,
+  'fee_policy_version' : bigint,
   'quote_id' : Uint8Array | number[],
   'max_bytes' : number,
   'payer' : Account,
@@ -216,6 +227,7 @@ export interface _SERVICE {
     [Array<Uint8Array | number[]>],
     Result_2
   >,
+  'get_fee_policy' : ActorMethod<[], DeliveryFeePolicy>,
   'get_receipt_signer' : ActorMethod<[bigint], Result_3>,
   'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_1>,
   'list_my_escrows' : ActorMethod<[[] | [Uint8Array | number[]]], Result_4>,
@@ -235,6 +247,7 @@ export interface _SERVICE {
   >,
   'revoke_receipt_signer' : ActorMethod<[bigint], Result_6>,
   'rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result_6>,
+  'schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result_6>,
   'set_orders_enabled' : ActorMethod<[boolean], Result_6>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

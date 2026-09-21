@@ -158,12 +158,15 @@ pub fn token_amount(n: Nat) -> Result<u128> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     fn n(v: u64) -> Value {
         Value::Nat(v.into())
     }
+
     fn a(p: u8) -> Value {
         Value::Array(vec![Value::Blob(vec![p].into())])
     }
+
     #[test]
     fn committed_time_is_not_sender_time() {
         let mut tx = BTreeMap::from([
@@ -190,6 +193,7 @@ mod tests {
         b.insert("tx".into(), Value::Map(tx));
         assert!(parse_transfer(7, &Value::Map(b)).is_err());
     }
+
     #[test]
     fn transfer_from_and_legacy_blocks_use_the_authoritative_type() {
         let tx = Value::Map(BTreeMap::from([

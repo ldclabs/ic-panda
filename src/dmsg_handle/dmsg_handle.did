@@ -51,6 +51,8 @@ type Error = variant {
   DeviceNotApproved;
   // Sensitive operations are locked by account state or policy.
   Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
   // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
   // Account-ID counter space is exhausted for this timestamp.
@@ -65,12 +67,16 @@ type Error = variant {
   UnsupportedProtocol;
   // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
   // Caller, role or capability does not authorize this operation.
   Forbidden;
   // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
   // The applicable deadline has passed.
   Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
   // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
   // An authenticated and appropriately bound caller is required.

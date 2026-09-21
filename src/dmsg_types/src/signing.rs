@@ -19,6 +19,7 @@ pub struct Statement {
     /// Document content and profile selection.
     pub content: StatementContent,
 }
+
 /// Document payload selection. Text is signed verbatim; digest signs 32 raw bytes.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +36,7 @@ pub enum StatementContent {
         location: Option<String>,
     },
 }
+
 /// Portable signed document plus a public-only COSE_Key.
 /// The attached key supports mathematical verification but does not establish
 /// who owns the key or whether the signer had authority.
@@ -45,6 +47,7 @@ pub struct SignedArtifact {
     /// Public-only COSE_Key CBOR bytes; never include private key parameters.
     pub cose_key: ByteBuf,
 }
+
 /// Evidence status for one verification dimension; not a catch-all success flag.
 /// Invalid signatures/content are reported as errors by protocol verification.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -56,6 +59,7 @@ pub enum VerificationStatus {
     /// This dimension was not verified; no trust claim is made.
     NotChecked,
 }
+
 /// This report never promotes caller-supplied keys/tokens into trusted credentials.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct VerificationReport {

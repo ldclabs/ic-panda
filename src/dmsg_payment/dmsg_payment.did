@@ -2,10 +2,10 @@
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
 // Relay attestation that the quoted encrypted envelope was accepted for storage.
-// Signed under `dmsg/admission-receipt/v1`; does not prove reading, a reply,
+// Signed under `dmsg/admission-receipt/v2`; does not prove reading, a reply,
 // or completion of the on-chain settlement transfers.
 type AdmissionReceipt = record {
-  // Admission receipt protocol version; current version is 1.
+  // Admission receipt protocol version; current version is 2.
   protocol : nat16;
   // Promised storage retention end in Unix milliseconds.
   retain_until : nat64;
@@ -19,7 +19,7 @@ type AdmissionReceipt = record {
   accept_by : nat64;
   // Relay admission sequence number.
   admission_seq : nat64;
-  // `dmsg/quote/v1` commitment to the exact accepted quote.
+  // `dmsg/quote/v2` commitment to the exact accepted quote.
   quote_digest : blob;
   // Time the relay stored the envelope, in Unix milliseconds.
   stored_at : nat64;
@@ -58,6 +58,18 @@ type CertifiedEntry = record {
   value : opt blob;
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
+};
+// Versioned delivery fee: max(ceil(net * rate_bps / 10000), minimum_atomic).
+// The minimum is fixed in ledger atomic units by the governing asset policy.
+type DeliveryFeePolicy = record {
+  // Platform rate in basis points (500 means 5%).
+  rate_bps : nat16;
+  // Inclusive effective time in Unix milliseconds.
+  effective_at_ms : nat64;
+  // Monotonic immutable policy identity.
+  version : nat64;
+  // Minimum platform fee in the configured ledger's atomic units.
+  minimum_atomic : nat;
 };
 // Verified ledger deposit and its remaining refundable allocation.
 type Deposit = record {
@@ -99,6 +111,8 @@ type Error = variant {
   DeviceNotApproved;
   // Sensitive operations are locked by account state or policy.
   Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
   // Required recovery setup/confirmation has not completed.
   RecoveryIncomplete;
   // Account-ID counter space is exhausted for this timestamp.
@@ -113,12 +127,16 @@ type Error = variant {
   UnsupportedProtocol;
   // A required service or resource is unavailable; carries a diagnostic.
   Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
   // Caller, role or capability does not authorize this operation.
   Forbidden;
   // Retained output is no longer available; this does not authorize replay.
   ResultExpired;
   // The applicable deadline has passed.
   Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
   // An execution, cycle, storage or admission limit was exceeded.
   QuotaExceeded;
   // An authenticated and appropriately bound caller is required.
@@ -149,7 +167,7 @@ type EscrowInfo = record {
   funded_at : opt nat64;
   // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
-  // `dmsg/quote/v1` commitment to the exact accepted quote.
+  // `dmsg/quote/v2` commitment to the exact accepted quote.
   quote_digest : blob;
   // Authenticated Principal that opened the escrow.
   payer_principal : principal;
@@ -216,8 +234,6 @@ type OpenEscrow = record {
 // Escrow service deployment, ledger fees, signer and admission limits.
 // All monetary values are integer ledger base units, not display tokens or cycles.
 type PaymentInit = record {
-  // Platform service fee in integer ledger base units.
-  service_fee : nat;
   // Maximum new escrow orders per daily budget window.
   daily_orders : nat32;
   // ICRC account receiving the service fee.
@@ -232,8 +248,12 @@ type PaymentInit = record {
   ledger_fee : nat;
   // Authorized quote/admission receipt signer.
   signer : ReceiptSigner;
+  // Fixed SNS governance caller allowed to schedule new fee policies.
+  governance : principal;
   // Maximum simultaneously open escrows per payer.
   max_open_per_payer : nat32;
+  // Initial versioned platform fee policy.
+  fee_policy : DeliveryFeePolicy;
   // Maximum permitted network fee in ledger base units.
   max_fee : nat;
 };
@@ -266,7 +286,7 @@ type PaymentOffer = record {
   recipient_net : nat;
 };
 // Relay quote binding payment, encrypted envelope and delivery limits.
-// Signed under `dmsg/quote/v1`. All amounts are integer ledger base units;
+// Signed under `dmsg/quote/v2`. All amounts are integer ledger base units;
 // all timestamps are Unix milliseconds. `amount` is recipient_net plus
 // service_fee plus fee_reserve.
 type Quote = record {
@@ -292,6 +312,8 @@ type Quote = record {
   created_at : nat64;
   // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Version of the immutable fee policy accepted at order creation.
+  fee_policy_version : nat64;
   // Relay-generated identifier of these fixed quote terms.
   quote_id : blob;
   // Maximum accepted encrypted envelope size in bytes.
@@ -341,7 +363,7 @@ type SignedOffer = record {
 };
 // Admission receipt and the authorized relay Ed25519 signature.
 type SignedReceipt = record {
-  // Relay Ed25519 signature over the `dmsg/admission-receipt/v1` digest.
+  // Relay Ed25519 signature over the `dmsg/admission-receipt/v2` digest.
   signature : blob;
   // Admission attestation bound to the escrow and quote.
   receipt : AdmissionReceipt;
@@ -389,6 +411,7 @@ service : (PaymentInit) -> {
   get_escrow : (blob) -> (Result) query;
   get_escrow_by_operation : (principal, blob) -> (Result) query;
   get_escrow_certified : (vec blob) -> (Result_2) query;
+  get_fee_policy : () -> (DeliveryFeePolicy) query;
   get_receipt_signer : (nat64) -> (Result_3) query;
   get_transfer : (blob, nat64) -> (Result_1) query;
   list_my_escrows : (opt blob) -> (Result_4) query;
@@ -402,5 +425,6 @@ service : (PaymentInit) -> {
   revise_rejected_transfer : (blob, nat64, nat) -> (Result_1);
   revoke_receipt_signer : (nat64) -> (Result_6);
   rotate_receipt_signer : (ReceiptSigner) -> (Result_6);
+  schedule_fee_policy : (DeliveryFeePolicy) -> (Result_6);
   set_orders_enabled : (bool) -> (Result_6);
 }

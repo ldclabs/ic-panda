@@ -33,16 +33,29 @@ pub(crate) fn memory(id: u8) -> Memory {
 thread_local! {
     // Allocate in 1 MiB buckets instead of the default 8 MiB per active memory.
     // The manager's 32,768 buckets then address up to 32 GiB of stable data.
-    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
-    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> = RefCell::new(StableCell::init(memory(0), CompactStored(None)));
-    pub(crate) static NAMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleRecord>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
-    pub(crate) static LEGACY: RefCell<StableBTreeMap<Vec<u8>, CompactStored<LegacyReservation>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static OPS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleOperation>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static LOCKS: RefCell<StableBTreeMap<Vec<u8>, [u8; 32], Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
-    pub(crate) static EVENTS: StableLog<CompactStored<HandleEvent>, Memory, Memory> = StableLog::init(memory(5), memory(8));
-    pub(crate) static SUBJECT_OPS: RefCell<StableBTreeSet<[u8; 12], Memory>> = RefCell::new(StableBTreeSet::init(memory(6)));
-    pub(crate) static TRANSFERS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferReceipt>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
-    pub(crate) static CERT:RefCell<Certification>=RefCell::new(Certification::default());
+    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(
+        MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16),
+    );
+    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
+        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+    pub(crate) static NAMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleRecord>, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(1)));
+    pub(crate) static LEGACY: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<LegacyReservation>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(2)));
+    pub(crate) static OPS: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<HandleOperation>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(3)));
+    pub(crate) static LOCKS: RefCell<StableBTreeMap<Vec<u8>, [u8; 32], Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(4)));
+    pub(crate) static EVENTS: StableLog<CompactStored<HandleEvent>, Memory, Memory> =
+        StableLog::init(memory(5), memory(8));
+    pub(crate) static SUBJECT_OPS: RefCell<StableBTreeSet<[u8; 12], Memory>> =
+        RefCell::new(StableBTreeSet::init(memory(6)));
+    pub(crate) static TRANSFERS: RefCell<
+        StableBTreeMap<Vec<u8>, CompactStored<TransferReceipt>, Memory>,
+    > = RefCell::new(StableBTreeMap::init(memory(7)));
+    pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
 pub(crate) fn cfg() -> Config {

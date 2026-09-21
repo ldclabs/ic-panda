@@ -6,6 +6,15 @@ import type { IDL } from '@icp-sdk/core/candid';
 export type Algorithm = { 'VetKdBls12381' : null } |
   { 'Ed25519' : null } |
   { 'EcdsaSecp256k1' : null };
+export interface CommercialReservation {
+  'reservation_id' : Uint8Array | number[],
+  'business_revision' : bigint,
+  'valid_until_ms' : bigint,
+  'lease_revision' : bigint,
+  'weight_policy_version' : bigint,
+  'units' : bigint,
+  'month_utc' : number,
+}
 export interface CoseInit {
   'masters' : Array<MasterKey>,
   'executing_canister' : Principal,
@@ -31,6 +40,7 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'FeeBlocked' : null } |
   { 'DeviceNotApproved' : null } |
   { 'Locked' : null } |
+  { 'MembershipClosing' : null } |
   { 'RecoveryIncomplete' : null } |
   { 'IdCapacityExceeded' : null } |
   { 'PolicyStale' : null } |
@@ -38,9 +48,11 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'IdempotencyConflict' : null } |
   { 'UnsupportedProtocol' : null } |
   { 'Unavailable' : string } |
+  { 'MembershipStale' : null } |
   { 'Forbidden' : null } |
   { 'ResultExpired' : null } |
   { 'Expired' : null } |
+  { 'MembershipIneligible' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
@@ -56,6 +68,7 @@ export interface ExecutionGrant {
   'home_cose' : Principal,
   'max_cycles' : bigint,
   'home_user' : Principal,
+  'commerce' : [] | [CommercialReservation],
   'expires_at' : bigint,
 }
 export type ExecutionKind = {

@@ -71,6 +71,15 @@ impl CoseFixture {
         let (_, to_be_signed) =
             prepare_cose(&statement, &key.algorithm, &descriptor.key_id).unwrap();
         ExecutionGrant {
+            commerce: Some(dmsg_types::billing::CommercialReservation {
+                reservation_id: execution_request_id(&account_id, 0, Hash::new([1; 32]), sequence),
+                month_utc: dmsg_protocol::billing::month_utc(time(&self.ic)).unwrap(),
+                units: 1,
+                weight_policy_version: 1,
+                business_revision: 0,
+                lease_revision: 1,
+                valid_until_ms: time(&self.ic) + MINUTE,
+            }),
             request_id: execution_request_id(&account_id, 0, Hash::new([1; 32]), sequence),
             account_id,
             home_user: self.home,
@@ -222,7 +231,7 @@ fn cose_retention_cleanup_and_upgrade_preserve_replay_protection() {
         expired.approved_at -= MINUTE;
         expired.expires_at = time(&f.ic);
         let result = f.execute(&expired).unwrap();
-        assert_eq!(result.outcome, ExecutionOutcome::ResultExpired);
+        assert_eq!(result.outcome, ExecutionOutcome::Failed(Error::Expired));
         assert_eq!(result.charged_cycles, 0);
     }
     let refused = f.grant(1, 65, 1);

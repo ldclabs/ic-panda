@@ -25,6 +25,10 @@ url.workspace = true
 mime.workspace = true
 k256 = { workspace = true, features = ["ecdsa"] }
 
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+num-bigint = "0.4"
+num-traits.workspace = true
+
 [dev-dependencies]
 hex.workspace = true
 

@@ -17,7 +17,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 
 路径相对于调用方的 `Cargo.toml`，按实际 checkout 位置调整。版本正式发布后可使用 `dmsg_types = "0.1"`；如需协议编码与验签，还要引入配套协议库。
 
-- [公开协议与字节规则](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md)：独立语言实现的入口。
+- [公开协议与字节规则](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README_zh.md)：独立语言实现的入口。
 - [声明 CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl)：COSE 文档结构。
 - [互操作测试向量](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/tests/protocol_vectors.json)：固定编码与签名样本。
 - [canisters 实际实现与验证边界](https://github.com/ldclabs/ic-panda/blob/main/docs/dmsg_canisters_zh.md)：服务职责、构建与部署状态。

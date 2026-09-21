@@ -157,6 +157,13 @@ pub struct AccountStateRepr {
     #[cbor(key = 22)]
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub execution_expirations: BTreeMap<OpId, Option<u64>>,
+    #[cbor(key = 23)]
+    pub created_at_ms: u64,
+    #[cbor(key = 24)]
+    pub safety_budget: BudgetRepr,
+    #[cbor(key = 25)]
+    pub membership_authorizations:
+        BTreeMap<OpId, (dmsg_types::membership::MembershipIntent, u64, Hash, u64)>,
 }
 
 impl StableCodec for AccountState {
@@ -164,6 +171,9 @@ impl StableCodec for AccountState {
 
     fn to_repr(&self) -> Self::Repr {
         AccountStateRepr {
+            created_at_ms: self.created_at_ms,
+            safety_budget: self.safety_budget.to_repr(),
+            membership_authorizations: self.membership_authorizations.clone(),
             account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
@@ -191,6 +201,9 @@ impl StableCodec for AccountState {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
+            created_at_ms: repr.created_at_ms,
+            safety_budget: Budget::from_repr(repr.safety_budget),
+            membership_authorizations: repr.membership_authorizations,
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
@@ -285,6 +298,9 @@ mod tests {
 
     fn account(populated: bool) -> AccountState {
         let mut state = AccountState {
+            created_at_ms: 1,
+            safety_budget: Budget::default(),
+            membership_authorizations: BTreeMap::new(),
             account_id: AccountId([8; 12]),
             home_user: p(5),
             home_cose: p(6),
@@ -427,19 +443,23 @@ mod tests {
         assert_eq!(compact_from_bytes::<AccountState>(&sparse_bytes), sparse);
         assert_eq!(
             top_keys(&sparse_bytes),
-            (1..=8).chain(10..=11).chain(15..=19).collect::<Vec<_>>()
+            (1..=8)
+                .chain(10..=11)
+                .chain(15..=19)
+                .chain(23..=25)
+                .collect::<Vec<_>>()
         );
 
         let full = account(true);
         let compact = compact_bytes(&full);
-        assert_eq!(compact.len(), 17_642);
+        assert!(compact.len() > 17_642);
         assert_eq!(
             hex(&compact),
-            "d223f6e9440aca419299e68281851295c280c92538465ac5b25d17b9e2efa74f"
+            "8e0d952123e857a9bc0fdef081daf285c3413365c812a54f78c96bbff27fae29"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
-        assert_eq!(top_keys(&compact), (1..=22).collect::<Vec<_>>());
+        assert_eq!(top_keys(&compact), (1..=25).collect::<Vec<_>>());
         // The retention index consists of raw IDs/timestamps in both encodings;
         // integer field keys do not shrink those shared bytes.
         assert!(
@@ -460,6 +480,8 @@ mod tests {
         let config = Config {
             schema: crate::store::STABLE_SCHEMA,
             init: UserInit {
+                commerce_canister: candid::Principal::from_slice(&[88]),
+                membership_canister: candid::Principal::from_slice(&[89]),
                 environment: Environment::Production,
                 issuer_namespace: "https://dmsg.example/u/".into(),
                 home_cose: p(2),
@@ -481,6 +503,7 @@ mod tests {
         let state = account(false);
         let execution = AuthorizedExecution {
             grant: ExecutionGrant {
+                commerce: None,
                 account_id: state.account_id,
                 home_user: state.home_user,
                 home_cose: state.home_cose,

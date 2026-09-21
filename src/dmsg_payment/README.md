@@ -84,3 +84,5 @@ POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
+
+Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 4。

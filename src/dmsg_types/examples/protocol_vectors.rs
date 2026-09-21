@@ -25,11 +25,13 @@ fn tree(v: cbor2::Value) -> Json {
         _ => panic!("protocol forbids floats, negative and simple values"),
     }
 }
+
 fn vector(name: &str, bytes: Vec<u8>) -> Json {
     let hash = sha256(&bytes);
     let key = SigningKey::from_bytes(&[7; 32]);
     json!({"name":name,"value":tree(cbor2::from_slice(&bytes).unwrap()),"cbor_hex":hex::encode(bytes),"sha256_hex":hex::encode(hash.as_slice()),"ed25519_public_hex":hex::encode(key.verifying_key().to_bytes()),"signature_over_sha256_hex":hex::encode(key.sign(hash.as_slice()).to_bytes())})
 }
+
 fn main() {
     let account = AccountId([1; 12]);
     let namespace = "https://dmsg.test/u/";

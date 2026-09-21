@@ -1,5 +1,6 @@
 use dmsg_protocol::*;
 use dmsg_types::*;
+
 #[cfg(target_arch = "wasm32")]
 use ic_certification::AsHashTree;
 use ic_certification::RbTree;
@@ -14,14 +15,17 @@ impl Certification {
         self.0.delete(key);
         self.publish();
     }
+
     pub fn put<T: Serialize>(&mut self, key: Vec<u8>, value: &T) {
         self.0.insert(key, canonical(value));
         self.publish();
     }
+
     pub fn publish(&self) {
         #[cfg(target_arch = "wasm32")]
         ic_cdk::api::certified_data_set(self.0.root_hash());
     }
+
     pub fn batch(&self, canister: candid::Principal, keys: Vec<Vec<u8>>) -> Result<CertifiedBatch> {
         ensure(
             !keys.is_empty() && keys.len() <= MAX_BATCH,

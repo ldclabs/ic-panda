@@ -13,21 +13,21 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn me() -> Principal {
-    ic_cdk::api::canister_self()
-}
-
-fn caller() -> Principal {
-    ic_cdk::api::msg_caller()
-}
-
 fn controller() -> Result<()> {
-    ensure(ic_cdk::api::is_controller(&caller()), Error::Forbidden)
+    ensure(
+        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
+        Error::Forbidden,
+    )
 }
 
 #[ic_cdk::init]
 fn init(args: PaymentInit) {
-    for p in [args.home_user, args.ledger, args.platform.owner] {
+    for p in [
+        args.home_user,
+        args.ledger,
+        args.platform.owner,
+        args.governance,
+    ] {
         authenticated(p).expect("canister/account");
     }
     assert!(
@@ -42,6 +42,9 @@ fn init(args: PaymentInit) {
     assert!(args.signer.valid_from < args.signer.valid_until);
     nonzero(args.signer.public_key.as_slice()).expect("receipt key");
     SIGNERS.with_borrow_mut(|t| t.put(&args.signer.epoch.to_be_bytes(), &args.signer));
+    dmsg_protocol::billing::delivery_service_fee(1, &args.fee_policy).expect("fee policy");
+    FEE_POLICIES
+        .with_borrow_mut(|t| t.put(&args.fee_policy.version.to_be_bytes(), &args.fee_policy));
     save_cfg(&Config {
         schema: STABLE_SCHEMA,
         init: args,
@@ -107,12 +110,15 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
 
 #[ic_cdk::update]
 async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
-    let who = caller();
+    let at = now();
+    let canister_id = ic_cdk::api::canister_self();
+    let who = ic_cdk::api::msg_caller();
     let mut c = cfg();
-    let id = digest("dmsg/escrow-id/v1", &(me(), who, input.op_id));
+    c.init.fee_policy = current_fee_policy(at);
+    let id = digest("dmsg/escrow-id/v1", &(canister_id, who, input.op_id));
     if let Ok(e) = load(&id) {
         ensure(
-            e.quote_digest == digest("dmsg/quote/v1", &input.quote),
+            e.quote_digest == digest("dmsg/quote/v2", &input.quote),
             Error::IdempotencyConflict,
         )?;
         return Ok(e.info());
@@ -126,34 +132,35 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         open_count(who) < c.init.max_open_per_payer,
         Error::QuotaExceeded,
     )?;
-    if now() / DAY > c.day {
-        c.day = now() / DAY;
+    if at / DAY > c.day {
+        c.day = at / DAY;
         c.orders_today = 0;
     }
     ensure(c.orders_today < c.init.daily_orders, Error::QuotaExceeded)?;
     let quote_digest = model::validate_quote(
         &c.init,
-        me(),
+        canister_id,
         who,
         &input,
         &signer(input.quote.signer_epoch)?,
-        now(),
+        at,
     )?;
     c.orders_today += 1;
     save_cfg(&c);
     let verified: Result<u64> =
         stable::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
     let observed_at = verified?;
+    let at = now();
     ensure(
-        observed_at <= now() && now() - observed_at <= MINUTE,
+        observed_at <= at && at - observed_at <= MINUTE,
         Error::PolicyStale,
     )?;
     // The guard holds this payer and quote exclusively until commit. Other
     // messages can release the payer's slots, but cannot open another order.
     // Recheck enablement, deadlines and revocation after offer verification.
     c = cfg();
-    model::quote_current(&c.init, &input, &signer(input.quote.signer_epoch)?, now())?;
-    let e = model::escrow(me(), who, &input, quote_digest);
+    model::quote_current(&c.init, &input, &signer(input.quote.signer_epoch)?, at)?;
+    let e = model::escrow(canister_id, who, &input, quote_digest);
     let count = open_count(who) + 1;
     QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
     PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
@@ -198,14 +205,14 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
     // The guard excludes another claim of this block. A concurrent settlement
     // or refund can still change the order's direction, so reload the escrow.
     let mut current = load(&escrow_id)?;
-    let d = model::accept_deposit(&mut current, me(), &tx)?;
+    let d = model::accept_deposit(&mut current, ic_cdk::api::canister_self(), &tx)?;
     FUNDING.with_borrow_mut(|t| t.put(&block.to_be_bytes(), &escrow_id));
     DEPOSITS.with_borrow_mut(|t| t.put(&key(escrow_id, block), &d));
     save(&current);
     Ok(current.info())
 }
 
-fn prepare_settlement(e: &mut Escrow, fee: u128) -> Result<()> {
+fn prepare_settlement(e: &mut Escrow, fee: u128, at: u64) -> Result<()> {
     let count = if e.quote.service_fee > 0 { 2 } else { 1 };
     let fees = fee.checked_mul(count).ok_or(Error::FeeBlocked)?;
     ensure(e.quote.fee_reserve >= fees, Error::FeeBlocked)?;
@@ -215,7 +222,7 @@ fn prepare_settlement(e: &mut Escrow, fee: u128) -> Result<()> {
         e.quote.recipient,
         e.quote.recipient_net,
         fee,
-        now(),
+        at,
     );
     put_leg(&recipient);
     if e.quote.service_fee > 0 {
@@ -225,7 +232,7 @@ fn prepare_settlement(e: &mut Escrow, fee: u128) -> Result<()> {
             e.quote.platform,
             e.quote.service_fee,
             fee,
-            now(),
+            at,
         );
         put_leg(&platform);
     }
@@ -236,29 +243,30 @@ fn prepare_settlement(e: &mut Escrow, fee: u128) -> Result<()> {
 
 #[ic_cdk::update]
 fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
+    let at = now();
     let mut e = load(&signed.receipt.escrow_id)?;
     if e.decision == FundsDecision::SettlementCommitted {
         ensure(
-            e.receipt_digest == Some(digest("dmsg/admission-receipt/v1", &signed.receipt)),
+            e.receipt_digest == Some(digest("dmsg/admission-receipt/v2", &signed.receipt)),
             Error::IdempotencyConflict,
         )?;
         return Ok(e.info());
     }
     ensure(e.decision == FundsDecision::Pending, Error::VersionConflict)?;
     // Reject impossible settlements before doing public-key verification.
-    ensure(now() < e.quote.accept_by, Error::Expired)?;
+    ensure(at < e.quote.accept_by, Error::Expired)?;
     ensure(e.funding_ref.is_some(), Error::Pending)?;
     let hash = model::receipt_valid(
         &e,
         &signed,
         &signer(signed.receipt.signer_epoch)?,
-        me(),
-        now(),
+        ic_cdk::api::canister_self(),
+        at,
     )?;
-    if model::settle(&mut e, hash, now())? {
+    if model::settle(&mut e, hash, at)? {
         // No external calls are required here: funding has already been
         // verified and durably claimed by check_funding.
-        prepare_settlement(&mut e, cfg().init.ledger_fee)?;
+        prepare_settlement(&mut e, cfg().init.ledger_fee, at)?;
         release_payer(&e);
         save(&e);
     }
@@ -433,7 +441,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
 fn revise_rejected_transfer(escrow_id: Hash, leg_id: u64, fee: u128) -> Result<TransferLeg> {
     let mut e = load(&escrow_id)?;
     let mut old = get_leg(escrow_id, leg_id)?;
-    let new = model::revise_leg(&mut e, &mut old, caller(), fee, now())?;
+    let new = model::revise_leg(&mut e, &mut old, ic_cdk::api::msg_caller(), fee, now())?;
     put_leg(&old);
     put_leg(&new);
     // Keep only a bounded chain of known-unsent versions. Pending, ambiguous
@@ -472,7 +480,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
     ensure(
         tx.from
             == Account {
-                owner: me(),
+                owner: ic_cdk::api::canister_self(),
                 subaccount: Some(e.subaccount.into_array()),
             }
             && tx.to == l.to
@@ -492,12 +500,21 @@ fn get_escrow(escrow_id: Hash) -> Result<EscrowInfo> {
 
 #[ic_cdk::query]
 fn get_escrow_by_operation(payer: Principal, op_id: Hash) -> Result<EscrowInfo> {
-    Ok(load(&digest("dmsg/escrow-id/v1", &(me(), payer, op_id)))?.info())
+    Ok(load(&digest(
+        "dmsg/escrow-id/v1",
+        &(ic_cdk::api::canister_self(), payer, op_id),
+    ))?
+    .info())
 }
 
 #[ic_cdk::query]
 fn get_escrow_certified(ids: Vec<Hash>) -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(me(), ids.into_iter().map(|v| v.to_vec()).collect()))
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            ids.into_iter().map(|v| v.to_vec()).collect(),
+        )
+    })
 }
 
 #[ic_cdk::query]
@@ -517,8 +534,9 @@ fn get_receipt_signer(epoch: u64) -> Result<ReceiptSigner> {
 
 #[ic_cdk::query]
 fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
-    authenticated(caller())?;
-    let prefix = digest("dmsg/payer-index/v1", &caller());
+    let caller = ic_cdk::api::msg_caller();
+    authenticated(caller)?;
+    let prefix = digest("dmsg/payer-index/v1", &caller);
     let cursor = after.map_or_else(
         || prefix.to_vec(),
         |id| [prefix.as_slice(), id.as_slice()].concat(),
@@ -541,4 +559,51 @@ fn list_transfers(escrow_id: Hash, after: Option<u64>) -> Result<Vec<TransferLeg
         .take_while(|(key, _)| key.starts_with(escrow_id.as_slice()))
         .map(|(_, leg)| leg)
         .collect())
+}
+
+fn current_fee_policy(at: u64) -> DeliveryFeePolicy {
+    let mut p = cfg().init.fee_policy;
+    FEE_POLICIES.with_borrow(|t| {
+        t.for_each(|_, v| {
+            if v.effective_at_ms <= at && v.effective_at_ms > p.effective_at_ms {
+                p = v;
+            }
+        })
+    });
+    p
+}
+
+#[ic_cdk::query]
+fn get_fee_policy() -> DeliveryFeePolicy {
+    current_fee_policy(now())
+}
+
+#[ic_cdk::update]
+fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
+    ensure(
+        ic_cdk::api::msg_caller() == cfg().init.governance,
+        Error::Forbidden,
+    )?;
+    dmsg_protocol::billing::delivery_service_fee(1, &p)?;
+    let mut latest_version = 0;
+    let mut latest_effective_at = 0;
+    FEE_POLICIES.with_borrow(|t| {
+        t.for_each(|_, scheduled| {
+            latest_version = latest_version.max(scheduled.version);
+            latest_effective_at = latest_effective_at.max(scheduled.effective_at_ms);
+        })
+    });
+    ensure(
+        p.version > latest_version
+            && p.effective_at_ms > latest_effective_at
+            && p.effective_at_ms >= now().saturating_add(30 * DAY),
+        Error::PolicyStale,
+    )?;
+    ensure(
+        !FEE_POLICIES.with_borrow(|t| t.contains(&p.version.to_be_bytes()))
+            && FEE_POLICIES.with_borrow(|t| t.len()) < 256,
+        Error::IdempotencyConflict,
+    )?;
+    FEE_POLICIES.with_borrow_mut(|t| t.put(&p.version.to_be_bytes(), &p));
+    Ok(())
 }
