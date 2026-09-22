@@ -449,3 +449,32 @@ pub mod profile {
         })
     }
 }
+
+// Reserved independently of historical stores 0..4.
+pub(crate) fn migration_memory() -> VirtualMemory<DefaultMemoryImpl> {
+    MEMORY_MANAGER.with_borrow(|manager| manager.get(MemoryId::new(200)))
+}
+
+pub(crate) fn migration_seal() -> Result<(), String> {
+    Ok(())
+}
+
+pub(crate) fn migration_context(
+    _scope: &ic_message_types::migration::SnapshotScope,
+) -> Result<Vec<u8>, String> {
+    Ok(vec![])
+}
+
+pub(crate) fn migration_rows(
+    scope: &ic_message_types::migration::SnapshotScope,
+    caller: Principal,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    if !matches!(scope, ic_message_types::migration::SnapshotScope::Profile) {
+        return Err("UnsupportedLegacyScope".into());
+    }
+    let profile = ic_message_types::migration::FrozenProfile::from(profile::get(caller, true)?);
+    Ok(vec![(
+        caller.to_text(),
+        candid::encode_one(profile).map_err(|e| e.to_string())?,
+    )])
+}

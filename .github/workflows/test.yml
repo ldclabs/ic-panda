@@ -5,6 +5,28 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10.24.0
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+    - run: pnpm --dir src/dmsg_app check
+    - run: pnpm --dir src/dmsg_app test
+    - run: pnpm --dir src/dmsg_app test:inventory
+    - run: pnpm --dir src/dmsg_legacy check
+    - run: pnpm --dir src/dmsg_legacy test
+    - run: pnpm --dir src/dmsg_app build
+    - run: pnpm --dir src/dmsg_app exec playwright install --with-deps chromium
+    # The cross-repository cloud probe is a separate local command; no private
+    # Worker code or repository credentials are needed by this public job.
+    - run: pnpm --dir src/dmsg_app exec playwright test e2e/extension.spec.ts e2e/legacy.spec.ts
   test:
     runs-on: ubuntu-latest
     steps:

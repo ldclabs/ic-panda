@@ -66,6 +66,21 @@ pub(crate) fn cfg() -> Config {
 
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|value| *value = Some(c.clone()));
+    CERT.with_borrow_mut(|tree| {
+        tree.put(
+            b"configuration".to_vec(),
+            &PaymentConfiguration {
+                schema: 1,
+                home_user: c.init.home_user,
+                ledger: c.init.ledger,
+                platform: c.init.platform,
+                ledger_fee: c.init.ledger_fee,
+                max_fee: c.init.max_fee,
+                signer_epoch: c.init.signer.epoch,
+                enabled: c.init.enabled,
+            },
+        )
+    });
 }
 
 pub(crate) fn persist_config() {
@@ -88,7 +103,25 @@ pub(crate) fn save(e: &Escrow) {
 }
 
 pub(crate) fn rebuild_certification() {
+    let configuration = cfg();
+    save_cfg(&configuration);
     CERT.with_borrow_mut(|c| {
+        SIGNERS.with_borrow(|table| {
+            table.for_each(|key, value| {
+                c.0.insert(
+                    [b"signer/".as_slice(), key.as_slice()].concat(),
+                    dmsg_protocol::canonical(&value),
+                );
+            })
+        });
+        FEE_POLICIES.with_borrow(|table| {
+            table.for_each(|key, value| {
+                c.0.insert(
+                    [b"fee/".as_slice(), key.as_slice()].concat(),
+                    dmsg_protocol::canonical(&value),
+                );
+            })
+        });
         ESCROWS.with_borrow(|t| {
             t.for_each(|k, e| {
                 c.0.insert(k, dmsg_protocol::canonical(&e.info()));

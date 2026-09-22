@@ -39,6 +39,29 @@ pub struct DeliveryFeePolicy {
     pub minimum_atomic: u128,
 }
 
+/// Public, certified payment routing and admission configuration. Historical
+/// signer keys and fee policies use separate certified leaves.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PaymentConfiguration {
+    /// Certified configuration format version.
+    pub schema: u16,
+    /// Account authority for recipient offers.
+    pub home_user: Principal,
+    /// Accepted ICRC ledger.
+    pub ledger: Principal,
+    /// Platform fee destination, independent of the recipient's net amount.
+    #[serde(with = "crate::account::account_cbor")]
+    pub platform: Account,
+    /// Current expected ledger network fee.
+    pub ledger_fee: u128,
+    /// Maximum network fee accepted by an escrow quote.
+    pub max_fee: u128,
+    /// Current receipt signing-key epoch.
+    pub signer_epoch: u64,
+    /// Whether new escrows are currently admitted.
+    pub enabled: bool,
+}
+
 /// Escrow service deployment, ledger fees, signer and admission limits.
 /// All monetary values are integer ledger base units, not display tokens or cycles.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

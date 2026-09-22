@@ -407,6 +407,7 @@ service : (PaymentInit) -> {
   claim_fee_reserve : (blob) -> (Result_1);
   expiry_refund : (blob) -> (Result);
   finalize_receipt : (SignedReceipt) -> (Result);
+  get_configuration_certified : (opt nat64, opt nat64) -> (Result_2) query;
   get_deposit : (blob, nat64) -> (opt Deposit) query;
   get_escrow : (blob) -> (Result) query;
   get_escrow_by_operation : (principal, blob) -> (Result) query;

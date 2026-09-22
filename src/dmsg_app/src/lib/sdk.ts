@@ -10,10 +10,21 @@ export function connectDmsg(extensionId: string) {
     { resolve: (value: unknown) => void; reject: (reason: Error) => void }
   >()
   port.onMessage.addListener((reply) => {
+    if (reply.method === 'source.challenge' && /^[0-9a-f]{64}$/.test(reply.nonce)) {
+      port.postMessage({ method: 'source.reply', nonce: reply.nonce })
+      return
+    }
     const waiter = pending.get(reply.requestId)
     if (waiter) {
       pending.delete(reply.requestId)
       reply.ok ? waiter.resolve(reply) : waiter.reject(new Error(reply.error))
+      if (reply.ok && reply.result && reply.resultDigest)
+        port.postMessage({
+          protocol: 'dmsg-extension/3',
+          method: 'signature.ack',
+          requestId: reply.requestId,
+          resultDigest: reply.resultDigest
+        })
     } else if (!reply.ok) {
       for (const waiter of pending.values()) waiter.reject(new Error(reply.error))
       pending.clear()

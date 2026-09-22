@@ -54,7 +54,7 @@ fn init(args: PaymentInit) {
         ledger_reads: 0,
     });
     persist_config();
-    CERT.with_borrow(|c| c.publish());
+    rebuild_certification();
 }
 
 #[ic_cdk::pre_upgrade]
@@ -91,6 +91,12 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     )?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
     let mut c = cfg();
+    CERT.with_borrow_mut(|c| {
+        c.put(
+            [b"signer/".as_slice(), new.epoch.to_be_bytes().as_slice()].concat(),
+            &new,
+        )
+    });
     c.init.signer = new;
     save_cfg(&c);
     Ok(())
@@ -101,6 +107,12 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
     controller()?;
     let mut s = signer(epoch)?;
     s.revoked = true;
+    CERT.with_borrow_mut(|c| {
+        c.put(
+            [b"signer/".as_slice(), epoch.to_be_bytes().as_slice()].concat(),
+            &s,
+        )
+    });
     SIGNERS.with_borrow_mut(|t| t.put(&epoch.to_be_bytes(), &s));
     let mut c = cfg();
     c.init.enabled = false;
@@ -605,5 +617,31 @@ fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
         Error::IdempotencyConflict,
     )?;
     FEE_POLICIES.with_borrow_mut(|t| t.put(&p.version.to_be_bytes(), &p));
+    CERT.with_borrow_mut(|c| {
+        c.put(
+            [b"fee/".as_slice(), p.version.to_be_bytes().as_slice()].concat(),
+            &p,
+        )
+    });
     Ok(())
+}
+
+#[ic_cdk::query]
+fn get_configuration_certified(
+    signer_epoch: Option<u64>,
+    fee_version: Option<u64>,
+) -> Result<CertifiedBatch> {
+    let configuration = cfg();
+    let signer_epoch = signer_epoch.unwrap_or(configuration.init.signer.epoch);
+    let fee_version = fee_version.unwrap_or(configuration.init.fee_policy.version);
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![
+                b"configuration".to_vec(),
+                [b"signer/".as_slice(), signer_epoch.to_be_bytes().as_slice()].concat(),
+                [b"fee/".as_slice(), fee_version.to_be_bytes().as_slice()].concat(),
+            ],
+        )
+    })
 }

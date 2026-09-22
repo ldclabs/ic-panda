@@ -66,9 +66,13 @@ export interface PendingRequest {
     | 'execution_unknown'
     | 'signed'
     | 'returned'
+    | 'failed'
+    | 'result_expired'
   expiresAt: number
   createdAt: number
   payload: { enc: string; ciphertext: string }
+  executionId?: string
+  errorCode?: string
 }
 export function trustedSource(
   sender: chrome.runtime.MessageSender,

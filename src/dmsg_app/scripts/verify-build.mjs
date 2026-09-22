@@ -2,6 +2,12 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 const dir = resolve(import.meta.dirname, '../dist')
 const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8'))
+if (
+  ['cloud-probe', 'account-probe', 'legacy-probe'].some((name) =>
+    existsSync(`${dir}/e2e/${name}.html`)
+  )
+)
+  throw new Error('The local cloud probe must never ship with the extension')
 for (const page of [
   'index.html',
   'popup.html',

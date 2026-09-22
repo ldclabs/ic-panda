@@ -21,9 +21,16 @@ fn validate_delegators(delegators: &BTreeSet<Principal>) -> Result<(), String> {
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_reset_name(name: String, delegators: BTreeSet<Principal>) -> Result<(), String> {
-    let name = normalize_name(name)?;
-    validate_delegators(&delegators)?;
-    store::state::reset_delegators(&name, delegators)
+    let legacy_input = candid::encode_args((&name, &delegators)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "admin_reset_name",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            let name = normalize_name(name)?;
+            validate_delegators(&delegators)?;
+            store::state::reset_delegators(&name, delegators)
+        },
+    )
 }
 
 #[ic_cdk::update]

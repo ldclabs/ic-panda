@@ -27,6 +27,12 @@ impl Certification {
     }
 
     pub fn batch(&self, canister: candid::Principal, keys: Vec<Vec<u8>>) -> Result<CertifiedBatch> {
+        // The replica query cache keys on caller/method/arguments, not transport
+        // nonce. Depending on batch time prevents a cached data_certificate from
+        // outliving our 60-second client freshness window without any state write.
+        // See dfinity/ic query_handler/query_cache.rs, EntryValue::new/is_valid.
+        #[cfg(target_arch = "wasm32")]
+        let _certificate_batch_time = ic_cdk::api::time();
         ensure(
             !keys.is_empty() && keys.len() <= MAX_BATCH,
             Error::QuotaExceeded,

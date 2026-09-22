@@ -217,6 +217,10 @@ export interface _SERVICE {
   'claim_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_1>,
   'expiry_refund' : ActorMethod<[Uint8Array | number[]], Result>,
   'finalize_receipt' : ActorMethod<[SignedReceipt], Result>,
+  'get_configuration_certified' : ActorMethod<
+    [[] | [bigint], [] | [bigint]],
+    Result_2
+  >,
   'get_deposit' : ActorMethod<[Uint8Array | number[], bigint], [] | [Deposit]>,
   'get_escrow' : ActorMethod<[Uint8Array | number[]], Result>,
   'get_escrow_by_operation' : ActorMethod<

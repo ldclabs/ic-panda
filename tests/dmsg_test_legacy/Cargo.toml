@@ -1,0 +1,18 @@
+[package]
+name = "dmsg_test_legacy"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+test = false
+
+[dependencies]
+candid.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+ic-cdk.workspace = true
+ic-oss-types.workspace = true
+ic-dummy-getrandom-for-wasm.workspace = true
+lib_dummy_getrandom = { path = "../../src/lib_dummy_getrandom" }

@@ -75,3 +75,5 @@ POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
 
 商业账户批准与正式执行月账见 [commerce contract](../../docs/protocol/commerce.md)。初始化必须固定 commerce 和 membership canister；月账独立持久化，恢复/根派生不消费商业单位。`get_execution_usage` 和认证用量查询只允许账户本人。
+
+内容根安全派生独立限制为每天 20 次 / 300,000,000,000 cycles，按每次批准的 max_cycles 预留且未知结果不退回；单次硬上限为 100,000,000,000。此开发调整支持约 68.3B cycles 的实测 vetKD 派生完成初始化、设备读取和必要换根；实际部署费用仍需核对。四次 70B、第五次拒绝、重放不重复扣额及跨日恢复已有回归测试。

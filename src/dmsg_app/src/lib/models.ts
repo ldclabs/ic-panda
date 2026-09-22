@@ -1,6 +1,20 @@
 export type ItemKind = 'note' | 'login' | 'api' | 'key' | 'file'
 export type ObjectKind =
-  'vault' | 'channel' | 'message' | 'profile' | 'draft' | 'request' | 'migration'
+  | 'vault'
+  | 'channel'
+  | 'message'
+  | 'profile'
+  | 'draft'
+  | 'request'
+  | 'migration'
+  | 'migration_part'
+  | 'formal_channel'
+  | 'formal_control'
+  | 'formal_operation'
+  | 'formal_message'
+  | 'formal_file'
+  | 'commerce'
+  | 'inbox'
 export interface Item {
   type: ItemKind
   title: string
@@ -68,6 +82,7 @@ export interface Message {
   signature?: string
 }
 export interface Profile {
+  avatarFile?: string
   name: string
   bio: string
   link: string
@@ -75,9 +90,25 @@ export interface Profile {
   publicFields: string[]
 }
 export interface WorkspaceMeta {
-  // Local vault identity used in encryption AAD; never an on-chain AccountId.
+  restoredFrom?: { manifestDigest: string; device: string; at: number }
+  cloudSnapshot?: {
+    through: number
+    evidence: string
+    uploads: { plan: Record<string, unknown>; manifest: string; chunkIds: string[] }[]
+    heads: [string, string][]
+  }
+  // R0 uses random32; formal workspaces use the canister-allocated Xid.
   subjectId: string
-  account?: { id: string; issuer: string; homeUser: string }
+  account?: {
+    id: string
+    issuer: string
+    homeUser: string
+    rootDigest?: string
+    rootUploadId?: string
+    sourceDigest?: string
+  }
+  rootHistory?: string
+  rootBundles?: string[]
   deviceId: string
   environment: string
   createdAt: number

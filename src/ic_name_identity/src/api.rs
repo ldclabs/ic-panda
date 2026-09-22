@@ -76,11 +76,16 @@ fn verify_challenge(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), String>
 async fn get_name_owner(name: &str) -> Result<Principal, String> {
     let response = Call::bounded_wait(NAMECHAIN_CANISTER, "get_by_username")
         .with_arg(name)
-        .await
-        .map_err(|err| format!("failed to query name owner: {err}"))?;
-    let result: Result<NameOwner, String> = response
-        .candid()
-        .map_err(|err| format!("failed to decode name owner: {err}"))?;
+        .await;
+    crate::legacy::after_await()?;
+    let response = response.map_err(|err| {
+        crate::legacy::outbound_failed();
+        format!("failed to query name owner: {err}")
+    })?;
+    let result: Result<NameOwner, String> = response.candid().map_err(|err| {
+        crate::legacy::outbound_failed();
+        format!("failed to decode name owner: {err}")
+    })?;
     result.map(|owner| owner.id)
 }
 
@@ -126,33 +131,49 @@ fn get_my_accounts() -> Result<Vec<NameAccount>, String> {
 
 #[ic_cdk::update]
 async fn activate_name(name: String) -> Result<Vec<Delegator>, String> {
-    let caller = authenticated_caller()?;
+    let legacy_input = candid::encode_args((&name,)).map_err(|e| e.to_string())?;
+    crate::legacy::business_async(
+        "activate_name",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| async move {
+            let caller = authenticated_caller()?;
 
-    let name = normalize_name(name)?;
-    if store::state::name_exists(&name) {
-        return Err("name is already activated".to_string());
-    }
+            let name = normalize_name(name)?;
+            if store::state::name_exists(&name) {
+                return Err("name is already activated".to_string());
+            }
 
-    if get_name_owner(&name).await? != caller {
-        return Err("caller is not the owner of the name".to_string());
-    }
-    // The store rechecks existence because the outbound call yielded execution.
-    store::state::activate_name(&name, &caller)
+            if get_name_owner(&name).await? != caller {
+                return Err("caller is not the owner of the name".to_string());
+            }
+            // The store rechecks existence because the outbound call yielded execution.
+            store::state::activate_name(&name, &caller)
+        },
+    )
+    .await
 }
 
 #[ic_cdk::update]
 fn add_delegator(name: String, delegator: Principal, role: i8) -> Result<Vec<Delegator>, String> {
-    if !(-1..=1).contains(&role) {
-        return Err(format!("invalid role: {role}"));
-    }
+    let legacy_input =
+        candid::encode_args((&name, &delegator, &role)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "add_delegator",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            if !(-1..=1).contains(&role) {
+                return Err(format!("invalid role: {role}"));
+            }
 
-    let caller = authenticated_caller()?;
+            let caller = authenticated_caller()?;
 
-    if delegator == Principal::anonymous() {
-        return Err("anonymous delegator is not allowed".to_string());
-    }
-    let name = normalize_name(name)?;
-    store::state::add_delegator(&name, &caller, &delegator, role)
+            if delegator == Principal::anonymous() {
+                return Err("anonymous delegator is not allowed".to_string());
+            }
+            let name = normalize_name(name)?;
+            store::state::add_delegator(&name, &caller, &delegator, role)
+        },
+    )
 }
 
 #[ic_cdk::update]

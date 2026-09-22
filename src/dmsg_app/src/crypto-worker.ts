@@ -28,7 +28,61 @@ const allowed = new Set([
   'exportBackup',
   'restore',
   'readRequest',
-  'authSign'
+  'authSign',
+  'deviceSign',
+  'contentSign',
+  'controlGet',
+  'controlPut',
+  'prepareAccountRoot',
+  'wrapAccountRoot',
+  'openAccountRoot',
+  'activateAccountRoot',
+  'accountRecovery',
+  'legacyPair',
+  'legacyImport',
+  'legacyList',
+  'legacyPairs',
+  'legacyCompareFrozen',
+  'legacyPrepareGrant',
+  'legacyOpenGrant',
+  'legacyGrantManifest',
+  'legacyGrantPart',
+  'legacyReceiveScoped',
+  'channelFilePrepare',
+  'channelFileChunk',
+  'channelFileManifest',
+  'channelFileDownload',
+  'channelRemember',
+  'channelList',
+  'channelAdvance',
+  'channelJob',
+  'channelRotation',
+  'channelInstall',
+  'channelMessage',
+  'channelReceive',
+  'channelMessages',
+  'channelControls',
+  'channelHistory',
+  'channelHistoryInstall',
+  'channelPending',
+  'legacyReport',
+  'legacyFile',
+  'legacyPause',
+  'legacyJobs',
+  'legacyCancel',
+  'contentPrepare',
+  'contentJobs',
+  'contentSave',
+  'contentChunk',
+  'contentAcknowledge',
+  'contentReceive',
+  'inboxKey',
+  'inboxSeal',
+  'inboxOpen',
+  'commerceJournal',
+  'commerceJournals',
+  'formalAuthorize',
+  'formalHistory'
 ])
 scope.onmessage = (event) => {
   const request = event.data
@@ -47,6 +101,11 @@ scope.onmessage = (event) => {
     )
   }
   if (generation !== request.generation) return
+  if (request.method === 'legacyPause') {
+    engine.legacyPause()
+    scope.postMessage({ id: request.id, generation, ok: true })
+    return
+  }
   // Serial execution prevents an asynchronous unlock/import from completing
   // over a newer operation. Locking terminates this worker at the page boundary.
   queue = queue.then(async () => {

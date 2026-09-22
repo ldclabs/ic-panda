@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["node", "vitest/globals", "chrome", "vite/client"] },
-  "include": ["vite.config.ts", "vitest.config.ts", "tests/**/*.ts", "src/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "tests/**/*.ts",
+    "e2e/**/*.ts",
+    "src/**/*.ts"
+  ]
 }

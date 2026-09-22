@@ -19,6 +19,10 @@ import { PostMessageTransport } from '@icp-sdk/signer/web'
 import { idlFactory as userIDL } from '../canisters/generated/user/index.js'
 import { idlFactory as handleIDL } from '../canisters/generated/handle/index.js'
 import { idlFactory as coseIDL } from '../canisters/generated/cose/index.js'
+import { idlFactory as commerceIDL } from '../canisters/generated/commerce/index.js'
+import { idlFactory as membershipIDL } from '../canisters/generated/membership/index.js'
+import type { _SERVICE as CommerceService } from '../canisters/generated/commerce'
+import type { _SERVICE as MembershipService } from '../canisters/generated/membership'
 import { idlFactory as paymentIDL } from '../canisters/generated/payment/index.js'
 import type { _SERVICE as UserService, CertifiedBatch } from '../canisters/generated/user'
 import type { _SERVICE as HandleService } from '../canisters/generated/handle'
@@ -48,7 +52,8 @@ class WorkerIdentity extends SignIdentity {
 export async function login(
   client: CryptoClient,
   publicKey: string,
-  derivationOrigin: string
+  derivationOrigin: string,
+  explicitTargets?: string[]
 ): Promise<Identity> {
   ensure(
     config.derivationOrigins.includes(derivationOrigin) && config.canisters.user,
@@ -68,7 +73,7 @@ export async function login(
     const chain = await signer.requestDelegation({
       publicKey: identity.getPublicKey(),
       maxTimeToLive: 15n * 60n * 1000000000n,
-      targets: Object.values(config.canisters)
+      targets: (explicitTargets ?? Object.values(config.canisters))
         .filter(Boolean)
         .map((p) => Principal.fromText(p))
     })
@@ -98,6 +103,8 @@ export async function services(identity?: Identity) {
     user: create<UserService>(userIDL, config.canisters.user),
     handle: create<HandleService>(handleIDL, config.canisters.handle),
     cose: create<CoseService>(coseIDL, config.canisters.cose),
+    commerce: create<CommerceService>(commerceIDL, config.canisters.commerce),
+    membership: create<MembershipService>(membershipIDL, config.canisters.membership),
     payment: create<PaymentService>(paymentIDL, config.canisters.payment)
   }
 }

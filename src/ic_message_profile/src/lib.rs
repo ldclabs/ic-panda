@@ -1,6 +1,7 @@
 use candid::{utils::ArgumentEncoder, Principal};
 use ic_cdk_management_canister::CanisterStatusResult;
 use ic_cose_types::ANONYMOUS;
+use ic_message_types::migration::{FreezeStatus, PendingWrite, SnapshotPage, SnapshotScope};
 use serde_bytes::ByteArray;
 use std::collections::BTreeSet;
 
@@ -8,6 +9,8 @@ mod api_admin;
 mod api_init;
 mod api_query;
 mod api_update;
+#[path = "../../ic_message_types/src/migration_canister.rs"]
+mod legacy;
 mod store;
 mod types;
 
@@ -42,9 +45,14 @@ where
     let res = ic_cdk::call::Call::bounded_wait(id, method)
         .with_args(&args)
         .with_cycles(cycles)
-        .await
-        .map_err(|err| format!("failed to call {} on {:?}, error: {:?}", method, id, err))?;
+        .await;
+    crate::legacy::after_await()?;
+    let res = res.map_err(|err| {
+        crate::legacy::outbound_failed();
+        format!("failed to call {} on {:?}, error: {:?}", method, id, err)
+    })?;
     res.candid().map_err(|err| {
+        crate::legacy::outbound_failed();
         format!(
             "failed to decode response from {} on {:?}, error: {:?}",
             method, id, err

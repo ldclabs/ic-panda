@@ -26,6 +26,7 @@ pub struct UpgradeArgs {
 
 #[ic_cdk::init]
 fn init(args: Option<ChainArgs>) {
+    crate::legacy::installed();
     store::state::with_mut(|s| {
         s.price = types::Price {
             channel: 1000 * types::TOKEN_1,
@@ -65,9 +66,13 @@ fn pre_upgrade() {
 #[ic_cdk::post_upgrade]
 fn post_upgrade(args: Option<ChainArgs>) {
     store::state::load();
+    crate::legacy::upgraded();
 
     match args {
         Some(ChainArgs::Upgrade(args)) => {
+            if args.name.is_some() || args.managers.is_some() || args.schnorr_key_name.is_some() {
+                crate::legacy::configuration_writable().expect("frozen legacy configuration");
+            }
             store::state::with_mut(|s| {
                 if let Some(name) = args.name {
                     s.name = name;

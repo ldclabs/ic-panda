@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { session, dateLabel, downloadBlob, formatBytes, shortId } from '../session.svelte'
+  import { session, dateLabel, downloadBlob, formatBytes } from '../session.svelte'
   import { config, isExtension } from '../config'
   import { inspectRelay } from '../services/relay'
-  import { login, services } from '../services/ic'
-  import { xidText } from '../protocol/identity'
+  import AccountSettings from './AccountSettings.svelte'
+  import LegacySettings from './LegacySettings.svelte'
+  import InboxSettings from './InboxSettings.svelte'
+  import CommerceSettings from './CommerceSettings.svelte'
+  import SharedSettings from './SharedSettings.svelte'
+  import HandleSettings from './HandleSettings.svelte'
+  import SyncSettings from './SyncSettings.svelte'
   import Modal from './Modal.svelte'
   import Icon from './Icon.svelte'
   let tab = $state('recovery'),
@@ -12,11 +17,7 @@
     next = $state(''),
     confirm = $state('')
   let usage = $state<StorageEstimate | null>(null),
-    principal = $state(''),
-    linkedAccount = $state(''),
-    serviceReport = $state(''),
-    derivation = $state(config.derivationOrigins[0])
-  let legacyInput = $state<HTMLInputElement>()
+    serviceReport = $state('')
   function close() {
     modal = null
     password = ''
@@ -41,15 +42,6 @@
       close()
     }, '本机口令已更新，内容密钥保持不变。')
   }
-  async function signIn() {
-    await session.run(async () => {
-      const identity = await login(session.crypto, session.meta!.transportPublic, derivation),
-        api = await services(identity)
-      principal = identity.getPrincipal().toText()
-      const account = await api.user!.my_account()
-      linkedAccount = account.length ? xidText(Uint8Array.from(account[0]!)) : ''
-    }, '认证完成。登录不会自动批准设备或解锁其他主体的内容。')
-  }
 </script>
 
 <div class="page-heading">
@@ -60,7 +52,7 @@
   </div>
 </div>
 <div class="filter-bar" aria-label="设置分类">
-  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['storage', '存储'], ['migration', '旧版迁移'], ['services', '服务连接']] as [value, label]}<button
+  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '旧名认领'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['services', '服务连接']] as [value, label]}<button
       class:active={tab === value}
       aria-pressed={tab === value}
       onclick={() => {
@@ -129,66 +121,9 @@
       </div>
     </section>
   {:else if tab === 'devices'}
-    <section class="settings-section">
-      <div class="section-heading">
-        <span class="item-icon"><Icon name="device" /></span>
-        <div>
-          <h2>这台设备</h2>
-          <p>独立的签名密钥与接收密钥</p>
-        </div>
-        <span class="pill">仅本机 · 未登记</span>
-      </div>
-      <dl class="evidence-list">
-        <div>
-          <dt>设备 ID</dt>
-          <dd><code>{shortId(session.meta!.deviceId)}</code></dd>
-        </div>
-        <div>
-          <dt>创建时间</dt>
-          <dd>{dateLabel(session.meta!.createdAt)}</dd>
-        </div>
-        <div>
-          <dt>签名公钥</dt>
-          <dd><code class="hash">{session.meta?.signingPublic}</code></dd>
-        </div>
-        <div>
-          <dt>本机权限</dt>
-          <dd>解锁本机内容、编辑加密草稿</dd>
-        </div>
-        <div>
-          <dt>链上设备权限</dt>
-          <dd>尚未批准</dd>
-        </div>
-      </dl>
-    </section>
-    <section class="settings-section">
-      <h2>Internet Identity</h2>
-      <p>选择原应用的派生来源，以保留该来源下的 Principal。不同来源不会自动合并。</p>
-      <label
-        >派生来源<select bind:value={derivation}
-          >{#each config.derivationOrigins as origin}<option value={origin}
-              >{origin}{origin === 'https://panda.fans' ? ' · 旧版来源' : ''}</option
-            >{/each}</select
-        ></label
-      ><button
-        class="secondary"
-        onclick={signIn}
-        disabled={session.busy || !config.canisters.user}
-        >连接 Internet Identity<Icon name="arrow-up-right" /></button
-      >{#if !config.canisters.user}<p class="caption">
-          需先配置新版 dmsg_user canister；正式扩展 origin 还须由原派生站点列入 II 白名单。
-        </p>{/if}{#if principal}<div class="notice">
-          <Icon name="user" />
-          <div>
-            <strong>本次认证 Principal</strong><code class="hash">{principal}</code>
-            <p>
-              {linkedAccount
-                ? `该认证绑定的主体：${linkedAccount}`
-                : '此身份尚未建立新版主体。'} 本地主体和链上主体不会因名称相同而合并。
-            </p>
-          </div>
-        </div>{/if}
-    </section>
+    <AccountSettings />
+  {:else if tab === 'sync'}
+    <SyncSettings />
   {:else if tab === 'storage'}
     <section class="settings-section">
       <h2>本机存储</h2>
@@ -221,67 +156,27 @@
     </section>
     <section class="settings-section">
       <h2>待同步内容</h2>
-      <p>当前服务未启用，以下数据均只保存在本机。</p>
+      <p>云端状态以已验证的提交回执为准，可在“云端同步”连接账户并读取完整快照。</p>
       {#if session.data.outbox.length}<div class="outbox-list">
           {#each session.data.outbox.slice(-10).reverse() as job}<div>
               <code>{job.id.slice(0, 16)}</code><span
-                >{job.error === 'VERSION_CONFLICT' ? '有编辑冲突' : '本地加密保存'}</span
+                >{job.error === 'VERSION_CONFLICT'
+                  ? '有编辑冲突'
+                  : job.state === 'stored'
+                    ? '云端已提交'
+                    : job.state === 'unknown'
+                      ? '提交结果待确认'
+                      : '本地加密保存'}</span
               >
             </div>{/each}
         </div>{:else}<p class="caption">没有待同步条目。</p>{/if}
     </section>
+  {:else if tab === 'inbox'}<InboxSettings />
+  {:else if tab === 'commerce'}<CommerceSettings />
+  {:else if tab === 'shared'}<SharedSettings />
+  {:else if tab === 'handles'}<HandleSettings />
   {:else if tab === 'migration'}
-    <section class="settings-section">
-      <span class="eyebrow">BRING YOUR HISTORY</span>
-      <h2>先保留，再迁移。</h2>
-      <p>
-        旧网站与扩展使用不同的存储空间。请在原浏览器打开旧版只读入口，核对身份、旧密钥模式和可读取的附件。
-      </p>
-      <a
-        class="secondary button-link"
-        href="https://dmsg.net/legacy"
-        target="_blank"
-        rel="noreferrer">打开旧版只读入口<Icon name="arrow-up-right" /></a
-      >
-      <ol class="migration-steps">
-        <li>
-          <strong>核对旧身份与数据清单</strong>
-          <p>区分旧 Principal、名称委托角色、频道与个人档案。</p>
-        </li>
-        <li>
-          <strong>保留原密文和密钥恢复材料</strong>
-          <p>Local 模式依赖原浏览器材料；读取失败不会生成新钥来替代。</p>
-        </li>
-        <li>
-          <strong>在本机保存授权取得的档案</strong>
-          <p>
-            可先将旧版导出的文件作为私密文件加密保存。当前不自动解码旧 MK /
-            KEK，也不认定共享频道所有权。
-          </p>
-        </li>
-        <li>
-          <strong>验证内容与空白设备恢复</strong>
-          <p>密文复制、内容解密与独立恢复是不同阶段。未验证的项目保持未完成。</p>
-        </li>
-      </ol>
-      <input
-        class="sr-only"
-        bind:this={legacyInput!}
-        aria-label="选择旧版档案文件"
-        type="file"
-        onchange={(event) => {
-          const file = event.currentTarget.files?.[0]
-          event.currentTarget.value = ''
-          if (file)
-            void session.run(async () => {
-              await session.crypto.call('importFile', file)
-              await session.refresh()
-            }, '旧档案文件已在秘密库加密保存；旧格式内容尚未解密验证。')
-        }}
-      /><button class="secondary" onclick={() => legacyInput?.click()} disabled={session.busy}
-        ><Icon name="download" />保管旧版导出文件</button
-      >
-    </section>
+    <LegacySettings />
   {:else}
     <section class="settings-section">
       <h2>服务与发布状态</h2>
@@ -321,7 +216,7 @@
       <div class="notice">
         <Icon name="info" />
         <p>
-          联网参数固定在构建配置中。当前候选云端协议与链上安全证据尚未互通，不会通过远端开关自动开放生产写入、支付或正式签名。
+          联网参数固定在构建配置中。本地集成已验证账户证据与云端协议；生产发布门禁尚未完成，不会通过远端开关自动开放生产写入、支付或正式签名。
         </p>
       </div>
     </section>

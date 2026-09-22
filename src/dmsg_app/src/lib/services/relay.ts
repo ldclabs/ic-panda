@@ -1,6 +1,22 @@
-import { config } from '../config'
-import { ensure } from '../errors'
-import { canonical, hash, unb64 } from '../protocol/codec'
+import { config, MAX_CIPHER_CHUNK } from '../config'
+import { DmsgError, ensure } from '../errors'
+import { bytes, canonical, equal, hash, unb64, unhex } from '../protocol/codec'
+import {
+  CLOUD_PROTOCOL,
+  assertCloudDeadline,
+  canonicalTarget,
+  profileSchema,
+  readCloudCommand,
+  signCloudCommand,
+  signCloudHttp,
+  verifyCloudCommand,
+  type CloudContext,
+  type CloudProfile,
+  type CloudSigned,
+  type CloudSigner
+} from '../protocol/cloud'
+import type { CloudSecurityEvidence } from './cloud-security'
+export { canonicalTarget } from '../protocol/cloud'
 
 export interface RelayReadiness {
   ready: boolean
@@ -8,83 +24,268 @@ export interface RelayReadiness {
   gates: string[]
   paid_contacts_enabled: boolean
 }
-export async function inspectRelay(): Promise<RelayReadiness> {
-  ensure(config.relayOrigin, 'UNAVAILABLE', '尚未配置中继 API 地址。')
-  const response = await fetch(new URL('/ready', config.relayOrigin), {
-    credentials: 'omit',
-    cache: 'no-store',
-    redirect: 'error',
-    signal: AbortSignal.timeout(10000)
-  })
-  ensure(response.ok, 'UNAVAILABLE', '无法取得中继就绪状态。')
-  const text = await response.text()
-  ensure(text.length <= 16384, 'QUOTA_EXCEEDED')
-  const result = JSON.parse(text)
-  ensure(
-    result.ok === true &&
-      result.data?.protocol === config.cloudProtocol &&
-      typeof result.data.ready === 'boolean' &&
-      Array.isArray(result.data.gates) &&
-      result.data.gates.every((v: unknown) => typeof v === 'string'),
-    'UNSUPPORTED_PROTOCOL'
-  )
-  return result.data
-}
-export function canonicalTarget(url: URL) {
-  ensure(!/%2f|%5c/i.test(url.pathname) && !url.pathname.includes('\\'), 'INVALID_INPUT')
-  const keys = new Set<string>(),
-    entries = [...url.searchParams.entries()]
-  for (const [key] of entries) {
-    ensure(!keys.has(key), 'INVALID_INPUT')
-    keys.add(key)
+export class RelayError extends DmsgError {
+  constructor(
+    code: string,
+    message: string,
+    readonly retryable: boolean,
+    readonly requestId?: string
+  ) {
+    super(code, message)
   }
-  entries.sort(([a, av], [b, bv]) => (a < b ? -1 : a > b ? 1 : av < bv ? -1 : av > bv ? 1 : 0))
-  const query = new URLSearchParams(entries).toString()
-  return url.pathname + (query ? `?${query}` : '')
 }
-/** Candidate transport only. The caller must supply device PoP and a verified
- * security proof; service readiness is never sufficient to grant authority. */
-export async function relayRequest(
-  path: string,
-  body: unknown,
-  pop: string,
-  freshUntil: number
+interface RelayOptions {
+  origin: string
+  environment: string
+  protocol?: string
+}
+
+/** Explicit transport for the public cloud protocol. It never retries mutations. */
+export class CloudClient {
+  readonly origin: string
+  constructor(private readonly options: RelayOptions) {
+    ensure(['local', 'staging', 'production'].includes(options.environment), 'INVALID_INPUT')
+    this.options = Object.freeze({ ...options })
+    const url = new URL(options.origin)
+    ensure(
+      url.origin === options.origin &&
+        !url.username &&
+        !url.password &&
+        (url.protocol === 'https:' ||
+          (options.environment === 'local' &&
+            url.protocol === 'http:' &&
+            ['localhost', '127.0.0.1'].includes(url.hostname))),
+      'INVALID_INPUT'
+    )
+    ensure((options.protocol ?? CLOUD_PROTOCOL) === CLOUD_PROTOCOL, 'UNSUPPORTED_PROTOCOL')
+    this.origin = url.origin
+  }
+  private url(path: string) {
+    ensure(
+      path.startsWith('/') && !path.startsWith('//') && !path.includes('\\'),
+      'INVALID_INPUT'
+    )
+    const url = new URL(path, this.origin)
+    ensure(url.origin === this.origin, 'FORBIDDEN')
+    canonicalTarget(url)
+    return url
+  }
+  private async exchange(
+    path: string,
+    method: 'GET' | 'POST' | 'PUT',
+    body?: Uint8Array,
+    pop?: string,
+    binary = false
+  ): Promise<unknown> {
+    if (path.startsWith('/v1/'))
+      ensure(
+        this.options.environment !== 'production',
+        'UNAVAILABLE',
+        '生产发布门禁尚未完成。'
+      )
+    const response = await fetch(this.url(path), {
+      method,
+      credentials: 'omit',
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        ...(body
+          ? { 'content-type': binary ? 'application/octet-stream' : 'application/cbor' }
+          : {}),
+        ...(pop ? { 'x-dmsg-pop': pop } : {})
+      },
+      ...(body ? { body: bytes(body) } : {})
+    })
+    const maximum = binary ? MAX_CIPHER_CHUNK : 2 * 1024 * 1024
+    const reader = response.body?.getReader()
+    ensure(reader, 'INTEGRITY_FAILED')
+    const chunks: Uint8Array[] = []
+    let length = 0
+    try {
+      while (true) {
+        const part = await reader.read()
+        if (part.done) break
+        length += part.value.length
+        if (length > maximum) {
+          await reader.cancel()
+          throw new DmsgError('QUOTA_EXCEEDED')
+        }
+        chunks.push(part.value)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    const data = new Uint8Array(length)
+    let offset = 0
+    for (const chunk of chunks) {
+      data.set(chunk, offset)
+      offset += chunk.length
+    }
+    if (
+      binary &&
+      response.ok &&
+      response.headers.get('content-type')?.startsWith('application/octet-stream')
+    )
+      return data
+    const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(data))
+    if (!response.ok || envelope.ok !== true) {
+      ensure(
+        envelope.ok === false &&
+          typeof envelope.error?.code === 'string' &&
+          typeof envelope.error?.message === 'string' &&
+          typeof envelope.error?.retryable === 'boolean',
+        'INTEGRITY_FAILED'
+      )
+      throw new RelayError(
+        envelope.error.code,
+        envelope.error.message,
+        envelope.error.retryable,
+        envelope.request_id
+      )
+    }
+    ensure(Object.hasOwn(envelope, 'data'), 'INTEGRITY_FAILED')
+    return envelope.data
+  }
+  async readiness(): Promise<RelayReadiness> {
+    const result = (await this.exchange('/ready', 'GET')) as RelayReadiness
+    ensure(
+      result.protocol === CLOUD_PROTOCOL &&
+        typeof result.ready === 'boolean' &&
+        Array.isArray(result.gates) &&
+        result.gates.every((gate) => typeof gate === 'string') &&
+        typeof result.paid_contacts_enabled === 'boolean',
+      'UNSUPPORTED_PROTOCOL'
+    )
+    return result
+  }
+  async publishSecurity(evidence: CloudSecurityEvidence) {
+    const body = canonical(evidence)
+    ensure(body.length <= 262144, 'QUOTA_EXCEEDED')
+    return this.exchange('/v1/security/evidence', 'POST', body)
+  }
+  async get(path: string, context: CloudContext, sign: CloudSigner) {
+    context = { ...context }
+    ensure(
+      path.startsWith('/v1/') || /^\/public\/inboxes\/[0-9a-v]{20}\/policy$/.test(path),
+      'INVALID_INPUT'
+    )
+    const pop = await signCloudHttp(context, this.url(path), 'GET', new Uint8Array(), sign)
+    assertCloudDeadline(context.deadline)
+    return this.exchange(path, 'GET', undefined, pop)
+  }
+  async post(path: string, signed: CloudSigned, context: CloudContext, sign: CloudSigner) {
+    context = { ...context }
+    ensure(path.startsWith('/v1/'), 'INVALID_INPUT')
+    const command = readCloudCommand(signed)
+    ensure(
+      command.issuer === context.issuer &&
+        equal(command.kid, unhex(context.deviceId)) &&
+        command.body.request_id === context.requestId &&
+        command.body.security_epoch === context.securityEpoch,
+      'AUTH_REQUIRED'
+    )
+    assertCloudDeadline(command.body.deadline)
+    const body = canonical({ cose_sign1: signed.cose_sign1 })
+    ensure(body.length <= 262144, 'QUOTA_EXCEEDED')
+    const pop = await signCloudHttp(context, this.url(path), 'POST', body, sign)
+    assertCloudDeadline(Math.min(context.deadline, command.body.deadline))
+    return this.exchange(path, 'POST', body, pop)
+  }
+  async postRaw(path: string, value: unknown, context: CloudContext, sign: CloudSigner) {
+    ensure(
+      /^\/v1\/(accounts\/[^/]+\/membership\/refresh|inboxes\/[^/]+\/orders\/[^/]+\/reconcile)$/.test(
+        path
+      ),
+      'FORBIDDEN'
+    )
+    const body = canonical(value)
+    ensure(body.length <= 262144, 'QUOTA_EXCEEDED')
+    return this.exchange(
+      path,
+      'POST',
+      body,
+      await signCloudHttp(context, this.url(path), 'POST', body, sign)
+    )
+  }
+  async putChunk(
+    path: string,
+    ciphertext: Uint8Array,
+    context: CloudContext,
+    sign: CloudSigner
+  ) {
+    context = { ...context }
+    ensure(
+      /^\/v1\/(accounts|channels)\/[^/]+\/uploads\/[^/]+\/chunks\/(manifest|[0-9]+)$/.test(
+        path
+      ),
+      'INVALID_INPUT'
+    )
+    const body = bytes(ciphertext)
+    ensure(body.length > 0 && body.length <= MAX_CIPHER_CHUNK, 'QUOTA_EXCEEDED')
+    const pop = await signCloudHttp(context, this.url(path), 'PUT', body, sign)
+    assertCloudDeadline(context.deadline)
+    return this.exchange(path, 'PUT', body, pop, true)
+  }
+  async getChunk(
+    path: string,
+    expectedDigest: string,
+    context: CloudContext,
+    sign: CloudSigner
+  ) {
+    context = { ...context }
+    ensure(
+      /^\/v1\/(accounts|channels)\/[^/]+\/objects\/[^/]+\/chunks\/(manifest|[0-9]+)$/.test(
+        path
+      ),
+      'INVALID_INPUT'
+    )
+    const pop = await signCloudHttp(context, this.url(path), 'GET', new Uint8Array(), sign)
+    assertCloudDeadline(context.deadline)
+    const body = await this.exchange(path, 'GET', undefined, pop, true)
+    ensure(body instanceof Uint8Array && hash(body) === expectedDigest, 'INTEGRITY_FAILED')
+    return body
+  }
+  async updateProfile(profile: CloudProfile, context: CloudContext, sign: CloudSigner) {
+    const signed = await signCloudCommand(
+      context,
+      'dmsg/profile/v1',
+      profileSchema.parse(profile),
+      sign
+    )
+    return this.post(`/v1/accounts/${context.accountId}/profile`, signed, context, sign)
+  }
+}
+
+/** The caller supplies an authenticated device key; relay JSON alone grants no trust. */
+export function verifyCloudProfile(
+  value: unknown,
+  context: CloudContext,
+  publicKey: Uint8Array
 ) {
+  ensure(value && typeof value === 'object', 'INTEGRITY_FAILED')
+  const record = value as {
+    signed: CloudSigned
+    payload: unknown
+    hash: string
+    version: number
+  }
+  const body = verifyCloudCommand(record.signed, context, publicKey, 'dmsg/profile/v1')
+  const profile = profileSchema.parse(body.payload)
   ensure(
-    config.environment !== 'production',
-    'UNSUPPORTED_PROTOCOL',
-    '候选云端合同禁止用于生产。'
+    equal(canonical(profile), canonical(record.payload)) &&
+      record.version === profile.version &&
+      record.hash === hash(unb64(record.signed.cose_sign1)),
+    'INTEGRITY_FAILED'
   )
-  ensure(
-    config.relayOrigin &&
-      path.startsWith('/v1/') &&
-      !path.includes('://') &&
-      freshUntil > Date.now() &&
-      freshUntil <= Date.now() + 60000,
-    'POLICY_STALE'
-  )
-  const url = new URL(path, config.relayOrigin)
-  ensure(url.origin === config.relayOrigin, 'FORBIDDEN')
-  canonicalTarget(url)
-  unb64(pop, 16384)
-  const payload = canonical(body)
-  ensure(payload.length <= 262144, 'QUOTA_EXCEEDED')
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/cbor', 'x-dmsg-pop': pop },
-    body: payload,
-    credentials: 'omit',
-    redirect: 'error',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15000)
-  })
-  const text = await response.text()
-  ensure(text.length <= 524288, 'QUOTA_EXCEEDED')
-  const result = JSON.parse(text)
-  ensure(
-    response.ok && result.ok === true,
-    result.error?.code ?? 'UNAVAILABLE',
-    result.error?.message ?? '中继请求未完成。'
-  )
-  return { data: result.data as unknown, bodyDigest: hash(payload) }
+  return profile
+}
+
+export function inspectRelay() {
+  ensure(config.relayOrigin, 'UNAVAILABLE', '尚未配置中继 API 地址。')
+  return new CloudClient({
+    origin: config.relayOrigin,
+    environment: config.environment,
+    protocol: config.cloudProtocol
+  }).readiness()
 }

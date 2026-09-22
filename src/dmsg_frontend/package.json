@@ -15,7 +15,8 @@
     "idb": "^8.0.3",
     "markdown-it": "^15.0.0",
     "qr": "^0.6.0",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "@dmsg/legacy": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",

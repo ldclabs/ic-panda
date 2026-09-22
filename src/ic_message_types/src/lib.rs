@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
 
 pub mod channel;
+pub mod migration;
 pub mod profile;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

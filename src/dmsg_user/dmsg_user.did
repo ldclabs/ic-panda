@@ -4,6 +4,13 @@ type Account = record { owner : principal; subaccount : opt blob };
 // Sensitive account mutation covered by an [`Approval`].
 // Apply through [`AccountMutation`] with the expected account version.
 type AccountCommand = variant {
+  // Change only an existing device's capabilities under administrator approval.
+  SetDeviceCapabilities : record {
+    // Complete replacement capability set, subject to normal device validation.
+    capabilities : vec Capability;
+    // Existing device identity; keys and device role remain unchanged.
+    device_id : blob;
+  };
   // Record a dispute against a pending recovery operation.
   DisputeRecovery : record {
     // Idempotency identifier; reuse only with identical operation parameters.

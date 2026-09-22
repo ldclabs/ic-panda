@@ -148,6 +148,17 @@ type EnvironmentVariable = record {
   // Name of the environment variable.
   name : text;
 };
+type FreezeStatus = record {
+  readonly_at : opt nat64;
+  pending : nat64;
+  mode : LegacyMode;
+  baseline_needed : bool;
+  cutover_id : opt blob;
+  epoch : nat64;
+  unresolved_after_upgrade : nat64;
+  baseline_evidence : opt blob;
+  draining_at : opt nat64;
+};
 // The argument for the
 // [`icrc3_get_archives`](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md)
 // endpoint.
@@ -190,6 +201,7 @@ type InitArgs = record {
   name : text;
   schnorr_key_name : text;
 };
+type LegacyMode = variant { Draining; Active; ReadOnly };
 // # Log Visibility.
 type LogVisibility = variant {
   // Controllers.
@@ -224,6 +236,16 @@ type MemoryMetrics = record {
   // Represents the memory used by custom sections defined by the canister.
   custom_sections_size : nat;
 };
+type PendingWrite = record {
+  id : nat64;
+  method : text;
+  boot : nat64;
+  live : bool;
+  uncertain : bool;
+  caller : principal;
+  input : blob;
+  started_at : nat64;
+};
 type Price = record {
   name_l1 : nat64;
   name_l2 : nat64;
@@ -248,14 +270,41 @@ type QueryStats = record {
   request_payload_bytes_total : nat;
 };
 type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : vec UserInfo; Err : text };
-type Result_2 = variant { Ok : ChannelInfo; Err : text };
-type Result_3 = variant { Ok : UserInfo; Err : text };
-type Result_4 = variant { Ok : CanisterStatusResult; Err : text };
-type Result_5 = variant { Ok : StateInfo; Err : text };
-type Result_6 = variant { Ok : blob; Err : text };
-type Result_7 = variant { Ok : vec text; Err : text };
-type Result_8 = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok : FreezeStatus; Err : text };
+type Result_10 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : vec UserInfo; Err : text };
+type Result_3 = variant { Ok : ChannelInfo; Err : text };
+type Result_4 = variant { Ok : UserInfo; Err : text };
+type Result_5 = variant { Ok : CanisterStatusResult; Err : text };
+type Result_6 = variant { Ok : StateInfo; Err : text };
+type Result_7 = variant { Ok : SnapshotPage; Err : text };
+type Result_8 = variant { Ok : blob; Err : text };
+type Result_9 = variant { Ok : vec text; Err : text };
+type SnapshotPage = record {
+  source_context : blob;
+  inventory_digest : blob;
+  subject : principal;
+  source : principal;
+  initial_digest : blob;
+  schema : nat8;
+  next : opt text;
+  count : nat64;
+  scope : SnapshotScope;
+  entries : vec record { text; blob };
+  complete : bool;
+  freeze : FreezeStatus;
+};
+type SnapshotScope = variant {
+  Messages : nat32;
+  Names;
+  // Explicit caller approval of a domain-separated migration intent.
+  Attestation : record { digest : blob; expires_at : nat64 };
+  Channels;
+  Channel : nat32;
+  Profile;
+  Authorities;
+  ChannelAuthority : nat32;
+};
 type StateInfo = record {
   latest_usernames : vec text;
   managers : vec principal;
@@ -305,34 +354,44 @@ service : (opt ChainArgs) -> {
   admin_add_canister : (CanisterKind, principal) -> (Result);
   admin_add_managers : (vec principal) -> (Result);
   admin_collect_token : (Account, nat) -> (Result);
+  admin_legacy_acknowledge_baseline : (blob) -> (Result);
+  admin_legacy_drain : (blob) -> (Result_1);
+  admin_legacy_pending : () -> (vec PendingWrite) query;
+  admin_legacy_resolve : (nat64, blob) -> (Result);
+  admin_legacy_seal : (blob) -> (Result_1);
   admin_remove_managers : (vec principal) -> (Result);
   admin_update_price : (UpdatePriceInput) -> (Result);
-  batch_get_users : (vec principal) -> (Result_1) query;
-  create_channel : (CreateChannelInput) -> (Result_2);
-  get_by_username : (text) -> (Result_3) query;
-  get_canister_status : () -> (Result_4) query;
-  get_state : () -> (Result_5) query;
-  get_user : (opt principal) -> (Result_3) query;
+  batch_get_users : (vec principal) -> (Result_2) query;
+  create_channel : (CreateChannelInput) -> (Result_3);
+  get_by_username : (text) -> (Result_4) query;
+  get_canister_status : () -> (Result_5) query;
+  get_state : () -> (Result_6) query;
+  get_user : (opt principal) -> (Result_4) query;
   icrc3_get_archives : (GetArchivesArgs) -> (vec ICRC3ArchiveInfo) query;
   icrc3_get_blocks : (vec GetBlocksRequest) -> (GetBlocksResult) query;
   icrc3_get_tip_certificate : () -> (opt ICRC3DataCertificate) query;
   icrc3_supported_block_types : () -> (vec SupportedBlockType) query;
-  my_iv : () -> (Result_6) query;
-  register_username : (text, opt text) -> (Result_3);
+  // This bounded update preserves the existing certified-data tree (including
+  // legacy sign-in and name-log proofs). Its ingress reply can be independently
+  // retained with a request_status certificate by the migration reader.
+  legacy_snapshot : (SnapshotScope, opt text) -> (Result_7);
+  legacy_status : () -> (FreezeStatus) query;
+  my_iv : () -> (Result_8) query;
+  register_username : (text, opt text) -> (Result_4);
   save_channel_kek : (ChannelKEKInput) -> (Result);
-  search_username : (text) -> (Result_7) query;
-  topup_channel : (ChannelTopupInput) -> (Result_2);
+  search_username : (text) -> (Result_9) query;
+  topup_channel : (ChannelTopupInput) -> (Result_3);
   transfer_username : (principal) -> (Result);
   update_my_ecdh : (blob, blob) -> (Result);
   update_my_image : (text) -> (Result);
   update_my_kv : (UpdateKVInput) -> (Result);
-  update_my_name : (text) -> (Result_3);
-  update_my_username : (text) -> (Result_3);
-  validate2_admin_add_canister : (CanisterKind, principal) -> (Result_8);
-  validate2_admin_add_managers : (vec principal) -> (Result_8);
-  validate2_admin_collect_token : (Account, nat) -> (Result_8);
-  validate2_admin_remove_managers : (vec principal) -> (Result_8);
-  validate2_admin_update_price : (UpdatePriceInput) -> (Result_8);
+  update_my_name : (text) -> (Result_4);
+  update_my_username : (text) -> (Result_4);
+  validate2_admin_add_canister : (CanisterKind, principal) -> (Result_10);
+  validate2_admin_add_managers : (vec principal) -> (Result_10);
+  validate2_admin_collect_token : (Account, nat) -> (Result_10);
+  validate2_admin_remove_managers : (vec principal) -> (Result_10);
+  validate2_admin_update_price : (UpdatePriceInput) -> (Result_10);
   validate_admin_add_canister : (CanisterKind, principal) -> (Result);
   validate_admin_add_managers : (vec principal) -> (Result);
   validate_admin_collect_token : (Account, nat) -> (Result);

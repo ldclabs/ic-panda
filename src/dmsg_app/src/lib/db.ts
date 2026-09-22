@@ -36,16 +36,25 @@ export async function currentWorkspace(): Promise<string | null> {
     db.close()
   }
 }
-export async function registerWorkspace(name: string) {
+export async function registerWorkspace(name: string, expectedActive?: string) {
   const db = await registry(),
     tx = db.transaction('workspaces', 'readwrite')
   try {
     const records = await tx.store.getAll()
     ensure(
-      !records.some((record) => record.active && record.name !== name),
+      !records.some(
+        (record) => record.active && record.name !== name && record.name !== expectedActive
+      ),
       'VERSION_CONFLICT',
       '此浏览器配置已经有工作台。请在空白浏览器配置中恢复。'
     )
+    if (expectedActive) {
+      ensure(
+        records.some((record) => record.name === expectedActive && record.active),
+        'VERSION_CONFLICT'
+      )
+      await tx.store.put({ name: expectedActive, active: false, retained: true })
+    }
     await tx.store.put({ name, active: true })
     await tx.done
   } finally {
@@ -62,7 +71,9 @@ export class WorkspaceDB {
   ) {}
   static async open(name: string) {
     ensure(
-      /^dmsg:(local|staging|production):[0-9a-f]{64}:[0-9a-f]{64}$/.test(name),
+      /^dmsg:(local|staging|production):(?:[0-9a-f]{64}|[0-9a-v]{19}[0g]):[0-9a-f]{64}$/.test(
+        name
+      ),
       'INVALID_INPUT'
     )
     const db = await openDB(name, 1, {
@@ -158,6 +169,31 @@ export class WorkspaceDB {
     await tx.objectStore(store).put(value)
     await tx.done
   }
+  async cacheChunks(chunks: Chunk[], lease: Lease) {
+    ensure(
+      chunks.length <= 128 && new Set(chunks.map((c) => c.id)).size === chunks.length,
+      'INVALID_INPUT'
+    )
+    const tx = this.db.transaction(['meta', 'chunks'], 'readwrite')
+    try {
+      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+      for (const chunk of chunks) {
+        const old = await tx.objectStore('chunks').get(chunk.id)
+        ensure(
+          !old || (old.digest === chunk.digest && old.ciphertext === chunk.ciphertext),
+          'IDEMPOTENCY_CONFLICT'
+        )
+        await tx.objectStore('chunks').put(chunk)
+      }
+      await tx.done
+    } catch (error) {
+      try {
+        tx.abort()
+      } catch {}
+      await tx.done.catch(() => {})
+      throw error
+    }
+  }
   async completeRecovery(value: WorkspaceMeta, lease: Lease) {
     const tx = this.db.transaction(['meta', 'local_private'], 'readwrite')
     this.assertLease(
@@ -166,6 +202,50 @@ export class WorkspaceDB {
     )
     await tx.objectStore('meta').put({ id: 'workspace', value })
     await tx.objectStore('local_private').delete('pending-recovery')
+    await tx.done
+  }
+
+  async replaceKeys(meta: WorkspaceMeta, envelope: LocalEnvelope, lease: Lease) {
+    const tx = this.db.transaction(['meta', 'key_envelopes'], 'readwrite')
+    this.assertLease(
+      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
+      lease
+    )
+    await tx.objectStore('meta').put({ id: 'workspace', value: meta })
+    await tx.objectStore('key_envelopes').put(envelope)
+    await tx.done
+  }
+  async legacyCheckpoint(
+    header: Record<string, unknown>,
+    privateRecord: { id: string; ciphertext: string },
+    lease: Lease
+  ) {
+    const tx = this.db.transaction(['meta', 'local_private', 'migration_jobs'], 'readwrite')
+    this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+    await tx.objectStore('local_private').put(privateRecord)
+    await tx.objectStore('migration_jobs').put(header)
+    await tx.done
+  }
+  async authorizeFormal(
+    requestId: string,
+    digest: string,
+    executionId: string,
+    ciphertext: string,
+    lease: Lease
+  ) {
+    const tx = this.db.transaction(['meta', 'requests', 'local_private'], 'readwrite')
+    this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+    const request = await tx.objectStore('requests').get(requestId)
+    ensure(
+      request?.state === 'awaiting_user' &&
+        request.digest === digest &&
+        request.expiresAt > Date.now(),
+      'EXPIRED'
+    )
+    await tx
+      .objectStore('local_private')
+      .put({ id: `control:formal:${requestId}`, ciphertext })
+    await tx.objectStore('requests').put({ ...request, state: 'authorized', executionId })
     await tx.done
   }
   async checkpointFile(
@@ -233,5 +313,128 @@ export class WorkspaceDB {
     await tx.done
     ensure(values.every(Boolean), 'RECOVERY_INCOMPLETE', '本地历史有缺口，请恢复备份。')
     return values
+  }
+
+  async contentAcknowledge(
+    key: string,
+    result: { revision_id: string; head: string; conflict: boolean; tombstone: boolean },
+    lease: Lease
+  ) {
+    const tx = this.db.transaction(['meta', 'objects', 'outbox'], 'readwrite')
+    try {
+      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+      const record = (await tx.objectStore('objects').get(key)) as EncryptedObject
+      ensure(
+        record &&
+          record.revision === result.revision_id &&
+          record.tombstone === result.tombstone &&
+          /^[0-9a-f]{64}$/.test(result.head),
+        'INTEGRITY_FAILED'
+      )
+      const job = await tx.objectStore('outbox').get(record.revision)
+      ensure(job, 'NOT_FOUND')
+      await tx.objectStore('outbox').put({ ...job, state: 'stored', cloudReceipt: result })
+      await tx.objectStore('objects').put({ ...record, conflict: result.conflict })
+      if (!result.conflict) {
+        ensure(result.head === record.revision, 'INTEGRITY_FAILED')
+        await tx
+          .objectStore('meta')
+          .put({ id: `cloud-head:${record.id}`, revision: record.revision })
+      } else if (
+        (await tx.objectStore('meta').get(`head:${record.id}`))?.revision === record.revision
+      ) {
+        if (await tx.objectStore('objects').get(`${record.id}:${result.head}`))
+          await tx.objectStore('meta').put({ id: `head:${record.id}`, revision: result.head })
+        else await tx.objectStore('meta').delete(`head:${record.id}`)
+      }
+      await tx.done
+    } catch (error) {
+      tx.abort()
+      await tx.done.catch(() => {})
+      throw error
+    }
+  }
+
+  async contentReceive(
+    records: EncryptedObject[],
+    chunks: Chunk[],
+    heads: [string, string][],
+    through: number,
+    evidence: string,
+    lease: Lease,
+    snapshot?: WorkspaceMeta['cloudSnapshot']
+  ) {
+    const tx = this.db.transaction(['meta', 'objects', 'chunks', 'outbox'], 'readwrite')
+    try {
+      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+      const meta = await tx.objectStore('meta').getAll()
+      ensure(
+        Number.isSafeInteger(through) &&
+          through >= (meta.find((m) => m.id === 'cloud-snapshot')?.through ?? 0) &&
+          evidence.length <= 8 * 1024 * 1024,
+        'INTEGRITY_FAILED',
+        '云端清单回退或证据超过限制。'
+      )
+      const incoming = new Set(records.map((r) => r.key))
+      for (const head of meta.filter((m) => m.id.startsWith('cloud-head:')))
+        ensure(
+          incoming.has(`${head.id.slice(11)}:${head.revision}`),
+          'INTEGRITY_FAILED',
+          '云端清单遗漏本机已确认的版本。'
+        )
+      for (const chunk of chunks) {
+        const prior = await tx.objectStore('chunks').get(chunk.id)
+        ensure(!prior || prior.digest === chunk.digest, 'IDEMPOTENCY_CONFLICT')
+        await tx.objectStore('chunks').put(chunk)
+      }
+      for (const record of records) {
+        const prior = await tx.objectStore('objects').get(record.key)
+        ensure(!prior || prior.digest === record.digest, 'IDEMPOTENCY_CONFLICT')
+        await tx.objectStore('objects').put(record)
+        const job = await tx.objectStore('outbox').get(record.revision)
+        if (job) await tx.objectStore('outbox').put({ ...job, state: 'stored' })
+      }
+      for (const [id, revision] of heads) {
+        const local = await tx.objectStore('meta').get(`head:${id}`)
+        let keepLocal = false
+        if (local && local.revision !== revision && !incoming.has(`${id}:${local.revision}`)) {
+          const branch = await tx.objectStore('objects').get(`${id}:${local.revision}`)
+          if (branch) {
+            let ancestor: EncryptedObject | undefined = branch
+            const seen = new Set<string>()
+            while (ancestor?.parent && !seen.has(ancestor.revision)) {
+              seen.add(ancestor.revision)
+              if (ancestor.parent === revision) {
+                keepLocal = true
+                break
+              }
+              ancestor = await tx.objectStore('objects').get(`${id}:${ancestor.parent}`)
+            }
+            if (!keepLocal) {
+              await tx.objectStore('objects').put({ ...branch, conflict: true })
+              const job = await tx.objectStore('outbox').get(branch.revision)
+              if (job)
+                await tx
+                  .objectStore('outbox')
+                  .put({ ...job, state: 'blocked', error: 'VERSION_CONFLICT' })
+            }
+          }
+        }
+        if (!keepLocal) await tx.objectStore('meta').put({ id: `head:${id}`, revision })
+        await tx.objectStore('meta').put({ id: `cloud-head:${id}`, revision })
+      }
+      await tx.objectStore('meta').put({ id: 'cloud-snapshot', through, evidence })
+      if (snapshot) {
+        const row = await tx.objectStore('meta').get('workspace')
+        await tx
+          .objectStore('meta')
+          .put({ ...row, value: { ...row.value, cloudSnapshot: snapshot } })
+      }
+      await tx.done
+    } catch (error) {
+      tx.abort()
+      await tx.done.catch(() => {})
+      throw error
+    }
   }
 }

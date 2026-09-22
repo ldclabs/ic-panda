@@ -594,3 +594,71 @@ mod tests {
         assert_eq!(decoded.0[1].role, 0);
     }
 }
+
+// Reserved independently of historical stores 0..4.
+pub(crate) fn migration_memory() -> VirtualMemory<DefaultMemoryImpl> {
+    MEMORY_MANAGER.with_borrow(|manager| manager.get(MemoryId::new(200)))
+}
+
+thread_local! {
+    static FROZEN_AUTHORITIES: RefCell<StableCell<Vec<u8>, Memory>> = RefCell::new(StableCell::init(
+        MEMORY_MANAGER.with_borrow(|manager| manager.get(MemoryId::new(201))), vec![]
+    ));
+}
+
+pub(crate) fn migration_seal() -> Result<(), String> {
+    let canister = ic_cdk::api::canister_self();
+    let rows: Result<Vec<(String, Vec<u8>)>, String> =
+        NAME_DELEGATIONS_STORE.with_borrow(|store| {
+            store
+                .iter()
+                .map(|entry| {
+                    let (name, delegations) = entry.into_pair();
+                    let principal = Principal::self_authenticating(
+                        ic_canister_sig_creation::CanisterSigPublicKey::new(
+                            canister,
+                            name.as_bytes().to_vec(),
+                        )
+                        .to_der(),
+                    );
+                    let mut roles: Vec<(Principal, i8)> = delegations
+                        .0
+                        .into_iter()
+                        .map(|d| (d.owner, d.role))
+                        .collect();
+                    roles.sort();
+                    candid::encode_args((&name, principal, roles))
+                        .map(|bytes| (name, bytes))
+                        .map_err(|e| e.to_string())
+                })
+                .collect()
+        });
+    let bytes = cbor2::to_vec(&rows?).map_err(|e| e.to_string())?;
+    if bytes.len() > 16 * 1024 * 1024 {
+        return Err("LegacySnapshotTooLarge".into());
+    }
+    FROZEN_AUTHORITIES.with_borrow_mut(|store| {
+        store.set(bytes);
+    });
+    Ok(())
+}
+
+pub(crate) fn migration_context(
+    _scope: &ic_message_types::migration::SnapshotScope,
+) -> Result<Vec<u8>, String> {
+    Ok(vec![])
+}
+
+pub(crate) fn migration_rows(
+    scope: &ic_message_types::migration::SnapshotScope,
+    _caller: Principal,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    if !matches!(
+        scope,
+        ic_message_types::migration::SnapshotScope::Authorities
+    ) {
+        return Err("UnsupportedLegacyScope".into());
+    }
+    FROZEN_AUTHORITIES
+        .with_borrow(|store| cbor2::from_slice(store.get()).map_err(|e| e.to_string()))
+}

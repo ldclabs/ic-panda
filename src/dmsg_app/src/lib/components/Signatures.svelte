@@ -15,7 +15,9 @@
     authorized: '已授权执行',
     execution_unknown: '执行结果待对账',
     signed: '已生成签名',
-    returned: '应用已取得结果'
+    returned: '应用已取得结果',
+    failed: '执行失败',
+    result_expired: '结果已过期'
   }
   onMount(() => {
     void listRequests().then((r) => (requests = r))
@@ -44,8 +46,7 @@
   <div class="notice">
     <Icon name="info" />
     <p>
-      正式签名需要已授权设备及已验证的 dmsg_cose
-      服务。当前版本可审核与拒绝请求，正式执行尚未开放。
+      正式签名需要已授权设备，并在独立窗口逐次批准。未知结果按原请求对账；签名与执行回执不等于可信时间戳。
     </p>
   </div>
   {#if requests.length}<div class="request-list">
@@ -70,6 +71,14 @@
                   await session.lock()
                   await openApproval(request.id)
                 })}>查看请求<Icon name="arrow-up-right" /></button
+            >{/if}
+          {#if ['authorized', 'execution_unknown', 'signed', 'returned', 'failed', 'result_expired'].includes(request.state)}<button
+              class="secondary"
+              onclick={() =>
+                session.run(async () => {
+                  await session.lock()
+                  await openApproval(request.id)
+                })}>查看或对账</button
             >{/if}
         </article>{/each}
     </div>

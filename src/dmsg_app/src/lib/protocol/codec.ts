@@ -64,15 +64,18 @@ function validate(value: unknown, depth = 0, budget = { left: 50000 }): void {
       validate(k, depth + 1, budget)
       validate(v, depth + 1, budget)
     })
-  else if (
-    value instanceof Uint8Array ||
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'boolean'
-  )
+  else if (typeof value === 'string') {
+    for (const character of value) {
+      const point = character.codePointAt(0)!
+      ensure(point < 0xd800 || point > 0xdfff, 'INVALID_INPUT', '无效的 Unicode。')
+    }
+  } else if (value instanceof Uint8Array || value === null || typeof value === 'boolean')
     return
   else if (typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype)
-    Object.values(value).forEach((v) => validate(v, depth + 1, budget))
+    Object.entries(value).forEach(([key, v]) => {
+      validate(key, depth + 1, budget)
+      validate(v, depth + 1, budget)
+    })
   else throw new Error('INVALID_INPUT')
 }
 export function canonical(value: unknown): Uint8Array<ArrayBuffer> {

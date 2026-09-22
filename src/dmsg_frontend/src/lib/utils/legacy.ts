@@ -11,7 +11,9 @@ const recoveryCalls = new Set([
   'ecdh_cose_encrypted_key',
   'vetkd_public_key',
   'vetkd_encrypted_key',
-  'download_files_token'
+  'download_files_token',
+  'legacy_snapshot',
+  'legacy_folder_manifest'
 ])
 
 export function assertLegacyCallAllowed(method: string): void {

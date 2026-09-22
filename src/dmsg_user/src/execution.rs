@@ -123,8 +123,10 @@ pub(crate) fn authorize(
         Error::QuotaExceeded,
     )?;
     if matches!(input.kind, ExecutionKind::Derive { .. }) {
+        // Accommodate bootstrap, approved-device unlock and revocation rekeys
+        // at the measured ~68.3B vetKD cost while retaining a separate hard cap.
         s.safety_budget
-            .reserve(now, input.max_cycles, 20, 200_000_000_000)?;
+            .reserve(now, input.max_cycles, 20, 300_000_000_000)?;
     } else {
         s.budget.reserve(
             now,

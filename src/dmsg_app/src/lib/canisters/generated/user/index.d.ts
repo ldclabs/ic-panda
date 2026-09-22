@@ -8,6 +8,12 @@ export interface Account {
   'subaccount' : [] | [Uint8Array | number[]],
 }
 export type AccountCommand = {
+    'SetDeviceCapabilities' : {
+      'capabilities' : Array<Capability>,
+      'device_id' : Uint8Array | number[],
+    }
+  } |
+  {
     'DisputeRecovery' : {
       'op_id' : Uint8Array | number[],
       'dispute' : Uint8Array | number[],

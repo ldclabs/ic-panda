@@ -233,25 +233,32 @@ pub mod state {
             return;
         }
 
-        let ed25519_public_key =
-            schnorr_public_key(schnorr_key_name.clone(), SchnorrAlgorithm::Ed25519, vec![])
-                .await
-                .map_err(|err| {
-                    ic_cdk::api::debug_print(format!(
-                        "failed to retrieve Schnorr Ed25519 public key: {err}"
-                    ))
-                })
-                .ok();
-
-        let mut data = ic_cdk_management_canister::raw_rand()
-            .await
-            .expect("failed to generate IV");
-        data.truncate(32);
-        let iv: [u8; 32] = data.try_into().expect("failed to generate IV");
-        STATE.with_borrow_mut(|r| {
-            r.ed25519_public_key = ed25519_public_key;
-            r.init_vector = iv.into();
-        });
+        let result =
+            crate::legacy::business_async("initialize_legacy_key", vec![], |_, _| async move {
+                let public_key =
+                    schnorr_public_key(schnorr_key_name, SchnorrAlgorithm::Ed25519, vec![]).await;
+                crate::legacy::after_await()?;
+                let public_key =
+                    public_key.map_err(|e| format!("legacy public key unavailable: {e}"))?;
+                let random = ic_cdk_management_canister::raw_rand().await;
+                crate::legacy::after_await()?;
+                let mut random = random.map_err(|e| format!("legacy entropy unavailable: {e}"))?;
+                random.truncate(32);
+                let iv: [u8; 32] = random
+                    .try_into()
+                    .map_err(|_| "invalid legacy entropy".to_string())?;
+                STATE.with_borrow_mut(|state| {
+                    if state.ed25519_public_key.is_none() {
+                        state.ed25519_public_key = Some(public_key);
+                        state.init_vector = iv.into();
+                    }
+                });
+                Ok(())
+            })
+            .await;
+        if result.is_err() {
+            ic_cdk::api::debug_print("legacy key initialization did not complete");
+        }
     }
 }
 
@@ -1001,4 +1008,43 @@ pub mod channel {
 
         res.map(|_| ())
     }
+}
+
+// Reserved independently of historical stores 0..4.
+pub(crate) fn migration_memory() -> VirtualMemory<DefaultMemoryImpl> {
+    MEMORY_MANAGER.with_borrow(|manager| manager.get(MemoryId::new(200)))
+}
+
+pub(crate) fn migration_seal() -> Result<(), String> {
+    Ok(())
+}
+
+pub(crate) fn migration_context(
+    scope: &ic_message_types::migration::SnapshotScope,
+) -> Result<Vec<u8>, String> {
+    if !matches!(scope, ic_message_types::migration::SnapshotScope::Names) {
+        return Err("UnsupportedLegacyScope".into());
+    }
+    state::with(|s| candid::encode_args((s.next_block_height, s.next_block_phash)))
+        .map_err(|e| e.to_string())
+}
+
+pub(crate) fn migration_rows(
+    scope: &ic_message_types::migration::SnapshotScope,
+    _caller: Principal,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    if !matches!(scope, ic_message_types::migration::SnapshotScope::Names) {
+        return Err("UnsupportedLegacyScope".into());
+    }
+    NAME_STORE.with_borrow(|names| {
+        names
+            .iter()
+            .map(|entry| {
+                let (name, owner) = entry.into_pair();
+                candid::encode_args((&name, owner, get_name_principal(&name)))
+                    .map(|bytes| (name, bytes))
+                    .map_err(|e| e.to_string())
+            })
+            .collect()
+    })
 }

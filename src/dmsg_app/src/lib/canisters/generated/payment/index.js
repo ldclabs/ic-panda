@@ -159,13 +159,6 @@ export const idlFactory = ({ IDL }) => {
     'signature' : IDL.Vec(IDL.Nat8),
     'receipt' : AdmissionReceipt,
   });
-  const Deposit = IDL.Record({
-    'committed_at' : IDL.Nat64,
-    'from' : Account,
-    'refundable' : IDL.Nat,
-    'block' : IDL.Nat64,
-    'amount' : IDL.Nat,
-  });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -178,6 +171,13 @@ export const idlFactory = ({ IDL }) => {
     'canister' : IDL.Principal,
   });
   const Result_2 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Deposit = IDL.Record({
+    'committed_at' : IDL.Nat64,
+    'from' : Account,
+    'refundable' : IDL.Nat,
+    'block' : IDL.Nat64,
+    'amount' : IDL.Nat,
+  });
   const Result_3 = IDL.Variant({ 'Ok' : ReceiptSigner, 'Err' : Error });
   const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(EscrowInfo), 'Err' : Error });
   const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(TransferLeg), 'Err' : Error });
@@ -216,6 +216,11 @@ export const idlFactory = ({ IDL }) => {
     'claim_fee_reserve' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_1], []),
     'expiry_refund' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'finalize_receipt' : IDL.Func([SignedReceipt], [Result], []),
+    'get_configuration_certified' : IDL.Func(
+        [IDL.Opt(IDL.Nat64), IDL.Opt(IDL.Nat64)],
+        [Result_2],
+        ['query'],
+      ),
     'get_deposit' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat64],
         [IDL.Opt(Deposit)],

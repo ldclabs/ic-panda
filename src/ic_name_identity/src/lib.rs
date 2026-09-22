@@ -1,11 +1,15 @@
 use candid::Principal;
 use ic_auth_types::{SignInResponse, SignedDelegation};
+use ic_message_types::migration::{FreezeStatus, PendingWrite, SnapshotPage, SnapshotScope};
+use serde_bytes::ByteArray;
 use serde_bytes::ByteBuf;
 use std::collections::BTreeSet;
 
 mod api;
 mod api_admin;
 mod api_init;
+#[path = "../../ic_message_types/src/migration_canister.rs"]
+mod legacy;
 mod store;
 mod types;
 

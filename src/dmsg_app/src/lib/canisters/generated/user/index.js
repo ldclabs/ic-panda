@@ -328,6 +328,10 @@ export const idlFactory = ({ IDL }) => {
     'environment' : Environment,
   });
   const AccountCommand = IDL.Variant({
+    'SetDeviceCapabilities' : IDL.Record({
+      'capabilities' : IDL.Vec(Capability),
+      'device_id' : IDL.Vec(IDL.Nat8),
+    }),
     'DisputeRecovery' : IDL.Record({
       'op_id' : IDL.Vec(IDL.Nat8),
       'dispute' : IDL.Vec(IDL.Nat8),

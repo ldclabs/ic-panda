@@ -323,6 +323,13 @@ pub enum AccountCommand {
         /// 32-byte device identifier, distinct from its signing public key.
         device_id: Hash,
     },
+    /// Change only an existing device's capabilities under administrator approval.
+    SetDeviceCapabilities {
+        /// Existing device identity; keys and device role remain unchanged.
+        device_id: Hash,
+        /// Complete replacement capability set, subject to normal device validation.
+        capabilities: Vec<Capability>,
+    },
     /// Bind another proven login Principal.
     BindAuth {
         /// Login Principal to bind or remove.

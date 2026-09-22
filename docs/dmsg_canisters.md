@@ -8,7 +8,7 @@ This directory documents the actual implementation. For public protocol specific
 
 Added the shared `membership` canister (PANDA qualification, exclusivity, durable product decisions) and `dmsg_commerce` (cash orders, contracts, refunds, resource leases). For the concrete protocol, permissions, lifecycle, and validation boundaries, see [commerce.md](protocol/commerce.md). `dmsg_user` adds explicit commercial approvals, immutable account creation timestamps, and an independent monthly UTC execution ledger; `dmsg_cose` isolates formal signatures from safety operation budgets; `delivery` adopts versioned rate policies and v2 quote/receipt domains. Legacy handle pricing is unaffected.
 
-The current implementation separates shared membership from dMsg product commerce services; the single `dmsg_membership` topology in private commercial implementation v1.0 has not yet been synchronized. Private workers, extended commerce UI, TokenList adapters, and production wallet/SNS acceptance are outside this canister delivery; local tests do not constitute proof of production readiness.
+The implementation separates shared membership from product commerce, for six canister roles in total. Commerce UI is wired and locally tested; TokenList adapters and production wallet/SNS acceptance remain separate deliveries; local tests do not constitute production readiness.
 
 ## Sub-crates
 
@@ -24,7 +24,7 @@ The current implementation separates shared membership from dMsg product commerc
 | dmsg_commerce | Tier plans, cash orders, refunds, and certified resource entitlements | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | Fixed-term escrow, deposit verification, mutually exclusive fund decisions, and disbursements | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 
-Companion private designs and services still require synchronization regarding earlier interfaces and encodings; this document records the actual contracts following this round of public refactoring and does not assume both are already identical.
+The extension's cloud wire contract is documented in [cloud_zh.md](protocol/cloud_zh.md). P0 adds device commands, HTTP PoP, complete device evidence, and a real MV3/PocketIC/workerd profile interoperability probe. A1 connects account/device/recovery and root initialization; see [the account/root contract](protocol/account_root_zh.md). A2 now covers content synchronization, conflicts/tombstones and complete ciphertext export. Earlier companion descriptions must be checked against their explicit version amendments.
 
 ## Current Contracts
 
@@ -63,3 +63,9 @@ Stable layout versions are maintained by each canister's `store.rs`, tested usin
 Production deployment requires creating canister IDs first, then configuring references using their respective Init arguments. `issuer_namespace` in `user` and `cose` must match and remain fixed; only a single fixed user home is currently supported. Future multi-home issuance requires registration and collision prevention for allocator fingerprints. `dmsg_cose` is initialized by its controller and verifies production keys and fingerprints; it rejects execution if public keys are not ready and cannot fall back to a test root. Production ledger/archiving, extended full approval flows, private service protocols, capacity limits, and audits require independent acceptance.
 
 The current TSA touchpoints are RFC 9921 CTT message imprint computation and an explicit unverified token assembly helper. There is no TSA network client, CMS/X.509 trust validation, full evidence package archiving, or `anchor_snapshot` endpoint; successful regular signing does not imply an authoritative timestamp has been obtained. Channels, profiles, general grants, messages, and file bodies are not stored in these canisters, nor are periodic checkpoints written.
+
+## Client integration increment (2026-09-22)
+
+`SetDeviceCapabilities` uses an explicit administrator approval, preserves device keys/roles, protects the last root administrator and requires the corresponding security/root transition. The payment service now certifies public routing, signer and fee-policy records. Certification queries depend on IC batch time to avoid stale replica-cache certificates without weakening freshness checks.
+
+Local MV3/PocketIC/workerd probes cover signing, commercial/SNS clients, paid delivery, channels, historical grants, device revocation and legacy/shared migration. They use synthetic identities, ledger funds and historical material; production origins, real legacy accounts and real-money acceptance remain separate.

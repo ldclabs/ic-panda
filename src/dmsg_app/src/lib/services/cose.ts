@@ -20,6 +20,8 @@ import {
 } from '../protocol/statements'
 export type { Algorithm } from '../protocol/statements'
 
+export class ExecutionRejected extends DmsgError {}
+
 export type PublicKeySelection =
   | { kind: 'signing'; purpose: 'statement' | 'file_attestation'; algorithm?: Algorithm }
   | { kind: 'content_root'; generation: bigint }
@@ -114,7 +116,7 @@ function toStatement(input: DocumentStatement): Statement {
           }
   }
 }
-function signBytes(request: SignRequest) {
+export function signBytes(request: SignRequest) {
   const s = request.statement
   const statement: DocumentStatement = {
     issuer: s.issuer,
@@ -237,6 +239,14 @@ export class PreparedExecution {
         'EXECUTION_UNKNOWN',
         `执行结果尚未确认，请按请求 ${this.requestId} 对账。`
       )
+    }
+    if ('Err' in response) {
+      try {
+        unwrap(response)
+      } catch (error) {
+        if (error instanceof DmsgError) throw new ExecutionRejected(error.code, error.message)
+        throw error
+      }
     }
     const result = unwrap(response)
     ensure(

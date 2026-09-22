@@ -126,3 +126,28 @@ export function openApproval(id: string) {
   window.open(`approve.html?id=${id}`, 'dmsg-approval', 'width=480,height=760')
 }
 export const externalEnabled = () => config.externalOrigins.length > 0
+
+export async function setRequestState(
+  id: string,
+  state: PendingRequest['state'],
+  errorCode?: string
+) {
+  const db = await requestDatabase()
+  try {
+    const tx = db.db.transaction('requests', 'readwrite'),
+      request = (await tx.store.get(id)) as PendingRequest | undefined
+    ensure(request, 'NOT_FOUND')
+    await tx.store.put({ ...request, state, ...(errorCode ? { errorCode } : {}) })
+    await tx.done
+  } finally {
+    db.db.close()
+  }
+}
+export async function assertLiveSource(request: PendingRequest) {
+  ensure(isExtension(), 'FORBIDDEN')
+  const result = await chrome.runtime.sendMessage({
+    type: 'dmsg-source-check',
+    requestId: request.id
+  })
+  ensure(result?.ok === true, 'FORBIDDEN', '原请求页面已关闭、导航或断开，请重新发起。')
+}

@@ -21,16 +21,40 @@ type DelegationPermissions = variant {
   queries;
 };
 type Delegator = record { owner : principal; role : int8; sign_in_at : nat64 };
+type FreezeStatus = record {
+  readonly_at : opt nat64;
+  pending : nat64;
+  mode : LegacyMode;
+  baseline_needed : bool;
+  cutover_id : opt blob;
+  epoch : nat64;
+  unresolved_after_upgrade : nat64;
+  baseline_evidence : opt blob;
+  draining_at : opt nat64;
+};
 type InitArgs = record { session_expires_in_ms : nat64; name : text };
+type LegacyMode = variant { Draining; Active; ReadOnly };
 type NameAccount = record { name : text; account : principal };
+type PendingWrite = record {
+  id : nat64;
+  method : text;
+  boot : nat64;
+  live : bool;
+  uncertain : bool;
+  caller : principal;
+  input : blob;
+  started_at : nat64;
+};
 type Result = variant { Ok : vec Delegator; Err : text };
 type Result_1 = variant { Ok; Err : text };
-type Result_2 = variant { Ok : SignedDelegation; Err : text };
-type Result_3 = variant { Ok : vec NameAccount; Err : text };
-type Result_4 = variant { Ok : principal; Err : text };
-type Result_5 = variant { Ok : State; Err : text };
-type Result_6 = variant { Ok : SignInResponse; Err : text };
-type Result_7 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : FreezeStatus; Err : text };
+type Result_3 = variant { Ok : SignedDelegation; Err : text };
+type Result_4 = variant { Ok : vec NameAccount; Err : text };
+type Result_5 = variant { Ok : principal; Err : text };
+type Result_6 = variant { Ok : State; Err : text };
+type Result_7 = variant { Ok : SnapshotPage; Err : text };
+type Result_8 = variant { Ok : SignInResponse; Err : text };
+type Result_9 = variant { Ok : text; Err : text };
 type SignInResponse = record {
   // The user canister public key. This key is used to derive the user principal.
   user_key : blob;
@@ -47,6 +71,31 @@ type SignedDelegation = record {
   // The signed delegation.
   delegation : Delegation;
 };
+type SnapshotPage = record {
+  source_context : blob;
+  inventory_digest : blob;
+  subject : principal;
+  source : principal;
+  initial_digest : blob;
+  schema : nat8;
+  next : opt text;
+  count : nat64;
+  scope : SnapshotScope;
+  entries : vec record { text; blob };
+  complete : bool;
+  freeze : FreezeStatus;
+};
+type SnapshotScope = variant {
+  Messages : nat32;
+  Names;
+  // Explicit caller approval of a domain-separated migration intent.
+  Attestation : record { digest : blob; expires_at : nat64 };
+  Channels;
+  Channel : nat32;
+  Profile;
+  Authorities;
+  ChannelAuthority : nat32;
+};
 type State = record {
   session_expires_in_ms : nat64;
   name : text;
@@ -59,15 +108,25 @@ type UpgradeArgs = record {
 service : (opt ChainArgs) -> {
   activate_name : (text) -> (Result);
   add_delegator : (text, principal, int8) -> (Result);
+  admin_legacy_acknowledge_baseline : (blob) -> (Result_1);
+  admin_legacy_drain : (blob) -> (Result_2);
+  admin_legacy_pending : () -> (vec PendingWrite) query;
+  admin_legacy_resolve : (nat64, blob) -> (Result_1);
+  admin_legacy_seal : (blob) -> (Result_2);
   admin_reset_name : (text, vec principal) -> (Result_1);
-  get_delegation : (blob, blob, nat64) -> (Result_2) query;
+  get_delegation : (blob, blob, nat64) -> (Result_3) query;
   get_delegators : (text) -> (Result) query;
-  get_my_accounts : () -> (Result_3) query;
-  get_principal : (text) -> (Result_4) query;
-  get_state : () -> (Result_5) query;
+  get_my_accounts : () -> (Result_4) query;
+  get_principal : (text) -> (Result_5) query;
+  get_state : () -> (Result_6) query;
   leave_delegation : (text) -> (Result_1);
+  // This bounded update preserves the existing certified-data tree (including
+  // legacy sign-in and name-log proofs). Its ingress reply can be independently
+  // retained with a request_status certificate by the migration reader.
+  legacy_snapshot : (SnapshotScope, opt text) -> (Result_7);
+  legacy_status : () -> (FreezeStatus) query;
   remove_delegator : (text, principal) -> (Result_1);
-  sign_in : (text, blob, blob) -> (Result_6);
-  validate_admin_reset_name : (text, vec principal) -> (Result_7);
-  whoami : () -> (Result_4) query;
+  sign_in : (text, blob, blob) -> (Result_8);
+  validate_admin_reset_name : (text, vec principal) -> (Result_9);
+  whoami : () -> (Result_5) query;
 }

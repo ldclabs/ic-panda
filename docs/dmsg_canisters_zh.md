@@ -8,7 +8,7 @@
 
 新增共享 `membership`（PANDA 资格、独占、持久产品决定）及 `dmsg_commerce`（现金订单、合同、退款、资源租约）。实际协议、权限、生命周期和验证边界见 [commerce_zh.md](protocol/commerce_zh.md)。user 新增精确商业批准、真实账户创建时间及独立 UTC 月执行账；COSE 隔离正式签名与安全操作预算；delivery 使用版本化费率和 v2 报价/收据域。旧名称价格不受影响。
 
-当前实现采用共享会员与 dMsg 产品商业服务分离的结构；私有商业实施 v1.0 中单个 `dmsg_membership` 的拓扑尚未同步更新。私有 Worker、扩展商业 UI、TokenList adapter 及生产钱包/SNS 验收不属于这次 canister 交付，不将本地测试视为上线证明。
+当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。扩展商业 UI 已完成本地接线，TokenList adapter 及生产钱包/SNS 验收仍待交付，不将本地测试视为上线证明。
 
 ## 子库
 
@@ -24,7 +24,7 @@
 | dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 
-配套私有设计与服务中关于早期接口和编码的描述尚需同步；这里记录公开端这轮重构后的实际合同，不把两者视作已经一致。
+扩展与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。P0 已加入设备命令、HTTP PoP、完整设备证据桥与真实扩展/PocketIC/workerd 的 profile 互操作探针；A1 已接入账户/设备/恢复和根提交 UI，见 [账户与根合同](protocol/account_root_zh.md)；A2 已接通内容同步、冲突/墓碑及完整密文导出。其它配套文档保留的早期描述应按明确的版本修订核对。
 
 ## 当前合同
 
@@ -56,10 +56,16 @@ pnpm --dir src/dmsg_app test
 
 ## 状态与保证
 
-四类 canister 保持各自权威：账户批准、名称权属、固定密钥执行、资金终态。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
+六类 canister 分别维护账户批准、名称权属、固定密钥执行、投递资金终态、共享会员资格和产品商业权益。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
 
 稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 4 使用 StableLog 保存事件、固定字节名称锁和主体活跃操作集合，并缩小稳定内存分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
 
-生产部署须先创建四个 canister ID，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
+生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
 当前 TSA 接点为 RFC 9921 CTT message imprint 和明确不验证信任的 token 组装函数。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
+
+## 2026-09-22 客户端接线增量
+
+账户新增 `SetDeviceCapabilities`，由现有管理员的精确批准更新能力，保留设备公钥/角色，防止移除最后的根管理员，并推进安全版本及必要换根。支付新增配置、报价签署钥和费用政策的认证读取；旧托管的条款与原资金决策保持固定。
+
+共享认证模块在生成查询证明时读取一次 batch time，避免 replica 缓存返回长期不变的旧证书；新鲜度与防回退窗口未放宽。新增真实扩展集成验证覆盖正式签名、现金/SNS 客户端、付费来信、频道换代/历史/文件/设备撤销、旧快照与共享继承。使用合成账户、账本和旧密文样本，仍不替代正式 origin、真实旧用户或真实资金验收。

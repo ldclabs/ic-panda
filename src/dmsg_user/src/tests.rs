@@ -862,3 +862,117 @@ fn existing_handle_intent_can_be_reapproved_at_capacity() {
     );
     assert_eq!(s, before);
 }
+
+#[test]
+fn root_recovery_budget_supports_setup_rekeys_but_remains_bounded_and_atomic() {
+    let mut s = initialized();
+    s.current_root = Some(ContentRootRef {
+        generation: 1,
+        suite: "dmsg-root-v1".into(),
+        home_cose: s.home_cose,
+        derivation_version: 2,
+        key_generation: 1,
+        bundle_digest: Hash::new([1; 32]),
+        recovery_generation: 1,
+    });
+    // Standard compressed BLS12-381 G1 generator; no production transport key.
+    let generator = "97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb";
+    let transport: Vec<u8> = (0..generator.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&generator[i..i + 2], 16).unwrap())
+        .collect();
+    let request = |s: &AccountState, at| {
+        let mut r = execute_request(s, 1, at);
+        r.kind = ExecutionKind::Derive {
+            generation: 1,
+            root_op_id: None,
+            transport_key: transport.clone().into(),
+        };
+        r.max_cycles = 70_000_000_000;
+        r.approval.signature = sk(1)
+            .sign(r.approval_message(s.home_user).as_slice())
+            .to_bytes()
+            .to_vec()
+            .into();
+        r
+    };
+    let first = request(&s, 1);
+    for _ in 0..4 {
+        let r = request(&s, 1);
+        authorize(&mut s, p(1), &r, 1).unwrap();
+    }
+    let before = s.clone();
+    authorize(&mut s, p(1), &first, 1).unwrap();
+    assert_eq!(s, before, "an exact retry consumes no extra budget");
+    let rejected = request(&s, 1);
+    assert_eq!(
+        authorize(&mut s, p(1), &rejected, 1),
+        Err(Error::QuotaExceeded)
+    );
+    assert_eq!(
+        s, before,
+        "budget rejection cannot consume device sequence or state"
+    );
+    let tomorrow = request(&s, DAY + 1);
+    authorize(&mut s, p(1), &tomorrow, DAY + 1).unwrap();
+}
+
+#[test]
+fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
+    let mut s = initialized();
+    s.current_root = Some(ContentRootRef {
+        generation: 1,
+        suite: "dmsg-root-v1".into(),
+        home_cose: s.home_cose,
+        derivation_version: 2,
+        key_generation: 1,
+        bundle_digest: Hash::new([1; 32]),
+        recovery_generation: 1,
+    });
+    s.vault_write_state = VaultWriteState::Ready;
+    let device_id = Hash::new([1; 32]);
+    let original = s.devices[&device_id].input.clone();
+    let command = AccountCommand::SetDeviceCapabilities {
+        device_id,
+        capabilities: vec![Capability::RootManage, Capability::ContentSign],
+    };
+    let request = mutation(&s, command, 1, 1);
+    let epoch = s.security_epoch;
+    let receipt = account::apply(&mut s, p(1), &request, 1, p(7)).unwrap();
+    assert_eq!(s.security_epoch, epoch + 1);
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+    assert_eq!(
+        s.devices[&device_id].input.signing_pub,
+        original.signing_pub
+    );
+    assert_eq!(s.devices[&device_id].input.hpke_pub, original.hpke_pub);
+    assert_eq!(
+        account::apply(&mut s, p(1), &request, 1, p(7)).unwrap(),
+        receipt
+    );
+    let before = s.clone();
+    assert!(apply(
+        &mut s,
+        AccountCommand::SetDeviceCapabilities {
+            device_id,
+            capabilities: vec![Capability::FormalApprove],
+        },
+        2
+    )
+    .is_err());
+    assert_eq!(s, before, "last administrator cannot lose RootManage");
+    let mut denied = mutation(
+        &s,
+        AccountCommand::SetDeviceCapabilities {
+            device_id,
+            capabilities: original.capabilities,
+        },
+        1,
+        2,
+    );
+    s.devices.get_mut(&device_id).unwrap().input.role = ControllerRole::Member;
+    denied.expected_version = s.account_version;
+    let before = s.clone();
+    assert!(account::apply(&mut s, p(1), &denied, 2, p(7)).is_err());
+    assert_eq!(s, before);
+}

@@ -10,6 +10,12 @@ importers:
 
   src/dmsg_app:
     dependencies:
+      '@dmsg/legacy':
+        specifier: workspace:*
+        version: link:../dmsg_legacy
+      '@dfinity/vetkeys':
+        specifier: 0.4.0
+        version: 0.4.0(@noble/hashes@2.3.0)
       '@hpke/core':
         specifier: ^1.7.5
         version: 1.9.0
@@ -71,6 +77,9 @@ importers:
 
   src/dmsg_frontend:
     dependencies:
+      '@dmsg/legacy':
+        specifier: workspace:*
+        version: link:../dmsg_legacy
       '@dfinity/oisy-wallet-signer':
         specifier: ^6.0.0
         version: 6.0.0(@dfinity/utils@4.0.3(@icp-sdk/core@6.1.0))(@dfinity/zod-schemas@3.2.0(@icp-sdk/core@6.1.0)(zod@4.5.4))(@icp-sdk/canisters@3.1.0(@dfinity/utils@4.0.3(@icp-sdk/core@6.1.0))(@icp-sdk/core@6.1.0))(@icp-sdk/core@6.1.0)(zod@4.5.4)
@@ -433,6 +442,46 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@26.2.0)(jsdom@30.0.1(@noble/hashes@1.8.0))(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))
+
+  src/dmsg_legacy:
+    dependencies:
+      '@dfinity/vetkeys':
+        specifier: 0.4.0
+        version: 0.4.0(@noble/hashes@2.3.0)
+      '@hpke/core':
+        specifier: ^1.7.5
+        version: 1.9.0
+      '@hpke/dhkem-x25519':
+        specifier: ^1.6.0
+        version: 1.8.0
+      '@icp-sdk/core':
+        specifier: ^6.1.0
+        version: 6.1.0
+      '@ldclabs/cose-ts':
+        specifier: ^1.7.0
+        version: 1.7.0
+      '@noble/hashes':
+        specifier: ^2.3.0
+        version: 2.3.0
+      'cborg':
+        specifier: ^6.1.1
+        version: 6.1.1
+      'idb':
+        specifier: ^8.0.3
+        version: 8.0.3
+      'zod':
+        specifier: ^4.5.4
+        version: 4.5.4
+    devDependencies:
+      'fake-indexeddb':
+        specifier: ^6.2.4
+        version: 6.2.5
+      'typescript':
+        specifier: ~6.0.3
+        version: 6.0.3
+      'vitest':
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@26.2.0)(jsdom@30.0.1(@noble/hashes@2.3.0))(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))
 
 packages:
 

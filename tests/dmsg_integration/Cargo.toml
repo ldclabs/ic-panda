@@ -11,7 +11,26 @@ pocketic-tests = []
 name = "control_plane"
 required-features = ["pocketic-tests"]
 
+[[test]]
+name = "cloud_fixture"
+required-features = ["pocketic-tests"]
+
+[[test]]
+name = "account_fixture"
+required-features = ["pocketic-tests"]
+
+[[test]]
+name = "legacy_fixture"
+required-features = ["pocketic-tests"]
+
+[[test]]
+name = "legacy_dependencies"
+required-features = ["pocketic-tests"]
+
 [dev-dependencies]
+ic_cose_types.workspace = true
+ic-oss-types.workspace = true
+ic_message_types = { path = "../../src/ic_message_types" }
 dmsg_protocol = { path = "../../src/dmsg_protocol" }
 dmsg_runtime = { path = "../../src/dmsg_runtime" }
 dmsg_types = { path = "../../src/dmsg_types" }

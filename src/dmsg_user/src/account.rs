@@ -249,6 +249,26 @@ pub(crate) fn apply(
             )?;
             changed(&mut next);
         }
+        AccountCommand::SetDeviceCapabilities {
+            device_id,
+            capabilities,
+        } => {
+            let device = next.devices.get_mut(device_id).ok_or(Error::NotFound)?;
+            ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+            let mut input = device.input.clone();
+            input.capabilities = capabilities.clone();
+            input.validate()?;
+            device.input = input;
+            ensure(
+                next.devices.values().any(|d| {
+                    d.revoked_at.is_none()
+                        && d.input.role == ControllerRole::Administrator
+                        && d.input.capabilities.contains(&Capability::RootManage)
+                }),
+                invalid("last administrator"),
+            )?;
+            changed(&mut next);
+        }
         AccountCommand::BindAuth { principal, .. } => {
             authenticated(*principal)?;
             ensure(

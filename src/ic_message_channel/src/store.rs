@@ -1244,3 +1244,87 @@ pub mod channel {
         })
     }
 }
+
+// Reserved independently of historical stores 0..4.
+pub(crate) fn migration_memory() -> VirtualMemory<DefaultMemoryImpl> {
+    MEMORY_MANAGER.with_borrow(|manager| manager.get(MemoryId::new(200)))
+}
+
+pub(crate) fn migration_seal() -> Result<(), String> {
+    Ok(())
+}
+
+pub(crate) fn migration_context(
+    _scope: &ic_message_types::migration::SnapshotScope,
+) -> Result<Vec<u8>, String> {
+    Ok(vec![])
+}
+
+pub(crate) fn migration_rows(
+    scope: &ic_message_types::migration::SnapshotScope,
+    caller: Principal,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    use ic_message_types::migration::SnapshotScope;
+    let info = |id| -> Result<types::ChannelInfo, String> {
+        let channel = CHANNEL_STORE
+            .with_borrow(|store| store.get(&id))
+            .ok_or("channel not found")?;
+        if !channel.members.contains_key(&caller) && !channel.managers.contains_key(&caller) {
+            return Err("caller is not a manager or member".into());
+        }
+        Ok(channel.into_info(caller, ic_cdk::api::canister_self(), id))
+    };
+    match scope {
+        SnapshotScope::ChannelAuthority(id) => {
+            use sha2::{Digest, Sha256};
+            let channel = info(*id)?;
+            let control = ic_message_types::migration::ChannelAuthority {
+                id: *id,
+                managers: channel.managers,
+                members: channel.members,
+                message_start: channel.message_start,
+                latest_message_id: channel.latest_message_id,
+                dek_digest: ByteArray::new(Sha256::digest(channel.dek.as_ref()).into()),
+                storage: channel.files_state.map(|s| s.file_storage),
+            };
+            Ok(vec![(
+                format!("{id:010}"),
+                candid::encode_one(control).map_err(|e| e.to_string())?,
+            )])
+        }
+        SnapshotScope::Channels => {
+            let ids: Vec<u32> = state::with(|s| {
+                s.user_channels
+                    .get(&caller)
+                    .map(|m| m.keys().copied().collect())
+                    .unwrap_or_default()
+            });
+            ids.into_iter()
+                .map(|id| {
+                    Ok((
+                        format!("{id:010}"),
+                        candid::encode_one(info(id)?).map_err(|e| e.to_string())?,
+                    ))
+                })
+                .collect()
+        }
+        SnapshotScope::Channel(id) => Ok(vec![(
+            format!("{id:010}"),
+            candid::encode_one(info(*id)?).map_err(|e| e.to_string())?,
+        )]),
+        SnapshotScope::Messages(id) => {
+            let channel = info(*id)?;
+            MESSAGE_STORE.with_borrow(|store| {
+                (channel.message_start..=channel.latest_message_id)
+                    .map(|n| {
+                        let message = store.get(&MessageId(*id, n)).map(|m| m.into_info(n));
+                        candid::encode_args((n, message))
+                            .map(|bytes| (format!("{n:010}"), bytes))
+                            .map_err(|e| e.to_string())
+                    })
+                    .collect()
+            })
+        }
+        _ => Err("UnsupportedLegacyScope".into()),
+    }
+}

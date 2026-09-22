@@ -79,7 +79,19 @@ type EnvironmentVariable = record {
   // Name of the environment variable.
   name : text;
 };
+type FreezeStatus = record {
+  readonly_at : opt nat64;
+  pending : nat64;
+  mode : LegacyMode;
+  baseline_needed : bool;
+  cutover_id : opt blob;
+  epoch : nat64;
+  unresolved_after_upgrade : nat64;
+  baseline_evidence : opt blob;
+  draining_at : opt nat64;
+};
 type InitArgs = record { managers : vec principal; name : text };
+type LegacyMode = variant { Draining; Active; ReadOnly };
 type Link = record { uri : text; title : text; image : opt text };
 // # Log Visibility.
 type LogVisibility = variant {
@@ -115,6 +127,16 @@ type MemoryMetrics = record {
   // Represents the memory used by custom sections defined by the canister.
   custom_sections_size : nat;
 };
+type PendingWrite = record {
+  id : nat64;
+  method : text;
+  boot : nat64;
+  live : bool;
+  uncertain : bool;
+  caller : principal;
+  input : blob;
+  started_at : nat64;
+};
 type ProfileInfo = record {
   id : principal;
   bio : text;
@@ -144,11 +166,38 @@ type QueryStats = record {
   request_payload_bytes_total : nat;
 };
 type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : CanisterStatusResult; Err : text };
-type Result_2 = variant { Ok : ProfileInfo; Err : text };
-type Result_3 = variant { Ok : StateInfo; Err : text };
-type Result_4 = variant { Ok : UploadImageOutput; Err : text };
-type Result_5 = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok : FreezeStatus; Err : text };
+type Result_2 = variant { Ok : CanisterStatusResult; Err : text };
+type Result_3 = variant { Ok : ProfileInfo; Err : text };
+type Result_4 = variant { Ok : StateInfo; Err : text };
+type Result_5 = variant { Ok : SnapshotPage; Err : text };
+type Result_6 = variant { Ok : UploadImageOutput; Err : text };
+type Result_7 = variant { Ok : text; Err : text };
+type SnapshotPage = record {
+  source_context : blob;
+  inventory_digest : blob;
+  subject : principal;
+  source : principal;
+  initial_digest : blob;
+  schema : nat8;
+  next : opt text;
+  count : nat64;
+  scope : SnapshotScope;
+  entries : vec record { text; blob };
+  complete : bool;
+  freeze : FreezeStatus;
+};
+type SnapshotScope = variant {
+  Messages : nat32;
+  Names;
+  // Explicit caller approval of a domain-separated migration intent.
+  Attestation : record { digest : blob; expires_at : nat64 };
+  Channels;
+  Channel : nat32;
+  Profile;
+  Authorities;
+  ChannelAuthority : nat32;
+};
 type StateInfo = record {
   managers : vec principal;
   profiles_total : nat64;
@@ -173,22 +222,32 @@ type UploadImageOutput = record {
 service : (opt ChainArgs) -> {
   admin_add_canister : (CanisterKind, principal) -> (Result);
   admin_add_managers : (vec principal) -> (Result);
+  admin_legacy_acknowledge_baseline : (blob) -> (Result);
+  admin_legacy_drain : (blob) -> (Result_1);
+  admin_legacy_pending : () -> (vec PendingWrite) query;
+  admin_legacy_resolve : (nat64, blob) -> (Result);
+  admin_legacy_seal : (blob) -> (Result_1);
   admin_remove_managers : (vec principal) -> (Result);
   admin_update_profile_ecdh_pub : (principal, blob) -> (Result);
   admin_upsert_profile : (principal, opt record { principal; nat64 }) -> (
       Result,
     );
-  get_canister_status : () -> (Result_1) query;
-  get_profile : (opt principal) -> (Result_2) query;
-  get_state : () -> (Result_3) query;
+  get_canister_status : () -> (Result_2) query;
+  get_profile : (opt principal) -> (Result_3) query;
+  get_state : () -> (Result_4) query;
+  // This bounded update preserves the existing certified-data tree (including
+  // legacy sign-in and name-log proofs). Its ingress reply can be independently
+  // retained with a request_status certificate by the migration reader.
+  legacy_snapshot : (SnapshotScope, opt text) -> (Result_5);
+  legacy_status : () -> (FreezeStatus) query;
   update_links : (vec Link) -> (Result);
-  update_profile : (UpdateProfileInput) -> (Result_2);
+  update_profile : (UpdateProfileInput) -> (Result_3);
   update_profile_ecdh_pub : (blob) -> (Result);
   update_tokens : (vec principal) -> (Result);
-  upload_image_token : (UploadImageInput) -> (Result_4);
-  validate2_admin_add_managers : (vec principal) -> (Result_5);
-  validate2_admin_remove_managers : (vec principal) -> (Result_5);
-  validate_admin_add_canister : (CanisterKind, principal) -> (Result_5);
+  upload_image_token : (UploadImageInput) -> (Result_6);
+  validate2_admin_add_managers : (vec principal) -> (Result_7);
+  validate2_admin_remove_managers : (vec principal) -> (Result_7);
+  validate_admin_add_canister : (CanisterKind, principal) -> (Result_7);
   validate_admin_add_managers : (vec principal) -> (Result);
   validate_admin_remove_managers : (vec principal) -> (Result);
 }

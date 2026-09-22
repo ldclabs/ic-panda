@@ -1,6 +1,23 @@
 <script lang="ts">
   import { session, shortId } from '../session.svelte'
+  import { onMount } from 'svelte'
   import Icon from './Icon.svelte'
+  let avatarUrl = $state('')
+  onMount(() => {
+    let active = true
+    const key = session.data.profile?.avatarFile
+    if (key)
+      void session.crypto
+        .call('downloadFile', key)
+        .then((value) => {
+          if (active) avatarUrl = URL.createObjectURL(value.blob)
+        })
+        .catch(() => {})
+    return () => {
+      active = false
+      if (avatarUrl) URL.revokeObjectURL(avatarUrl)
+    }
+  })
   let name = $state(session.data.profile?.name ?? ''),
     bio = $state(session.data.profile?.bio ?? ''),
     link = $state(session.data.profile?.link ?? ''),
@@ -20,6 +37,8 @@
 </div>
 <div class="identity-layout">
   <section class="identity-form">
+    {#if avatarUrl}<img src={avatarUrl} alt="本机私密头像，尚未发布" width="80" height="80" />
+      <p class="caption">此头像保存在加密资料中，尚未公开。</p>{/if}
     <h2>公开资料</h2>
     <p>选中的字段将在你明确发布后公开。当前只保存到本机。</p>
     <form
@@ -27,6 +46,9 @@
         event.preventDefault()
         void session.run(async () => {
           await session.crypto.call('saveProfile', {
+            ...(session.data.profile?.avatarFile
+              ? { avatarFile: session.data.profile.avatarFile }
+              : {}),
             name,
             bio,
             link,

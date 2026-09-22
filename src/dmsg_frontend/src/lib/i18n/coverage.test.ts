@@ -11,6 +11,10 @@ const invariantText = new Set([
   'ICPanda DAO',
   'ICPanda DAO —',
   'PANDA',
+  // Historical key-mode protocol identifiers, kept identical in every locale.
+  'Local',
+  'ECDH',
+  'VetKey',
   '@PANDA',
   'Internet Identity',
   'Internet Identity v2',

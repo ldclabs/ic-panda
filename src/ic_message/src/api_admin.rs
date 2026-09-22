@@ -8,79 +8,115 @@ use crate::{is_controller, store, token_transfer_to, types};
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_add_managers(args: BTreeSet<Principal>) -> Result<(), String> {
-    validate_principals(&args)?;
-    let mut args = args;
-    store::state::with_mut(|s| {
-        s.managers.append(&mut args);
-        Ok(())
-    })
+    let legacy_input = candid::encode_args((&args,)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "admin_add_managers",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            validate_principals(&args)?;
+            let mut args = args;
+            store::state::with_mut(|s| {
+                s.managers.append(&mut args);
+                Ok(())
+            })
+        },
+    )
 }
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_remove_managers(args: BTreeSet<Principal>) -> Result<(), String> {
-    validate_principals(&args)?;
-    store::state::with_mut(|s| {
-        s.managers.retain(|p| !args.contains(p));
-        Ok(())
-    })
+    let legacy_input = candid::encode_args((&args,)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "admin_remove_managers",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            validate_principals(&args)?;
+            store::state::with_mut(|s| {
+                s.managers.retain(|p| !args.contains(p));
+                Ok(())
+            })
+        },
+    )
 }
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_add_canister(kind: types::CanisterKind, id: Principal) -> Result<(), String> {
-    validate_admin_add_canister(kind, id)?;
-    store::state::with_mut(|s| {
-        match kind {
-            types::CanisterKind::Cose => {
-                s.cose_canisters.push(id);
-            }
-            types::CanisterKind::Profile => {
-                s.profile_canisters.push(id);
-            }
-            types::CanisterKind::Channel => {
-                s.channel_canisters.push(id);
-            }
-        }
-        Ok(())
-    })
+    let legacy_input = candid::encode_args((&kind, &id)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "admin_add_canister",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            validate_admin_add_canister(kind, id)?;
+            store::state::with_mut(|s| {
+                match kind {
+                    types::CanisterKind::Cose => {
+                        s.cose_canisters.push(id);
+                    }
+                    types::CanisterKind::Profile => {
+                        s.profile_canisters.push(id);
+                    }
+                    types::CanisterKind::Channel => {
+                        s.channel_canisters.push(id);
+                    }
+                }
+                Ok(())
+            })
+        },
+    )
 }
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_update_price(args: types::UpdatePriceInput) -> Result<(), String> {
-    validate_admin_update_price(args.clone())?;
-    store::state::with_mut(|s| {
-        if let Some(price) = args.channel {
-            s.price.channel = price;
-        }
-        if let Some(price) = args.name_l7 {
-            s.price.name_l7 = price;
-        }
-        if let Some(price) = args.name_l5 {
-            s.price.name_l5 = price;
-        }
-        if let Some(price) = args.name_l3 {
-            s.price.name_l3 = price;
-        }
-        if let Some(price) = args.name_l2 {
-            s.price.name_l2 = price;
-        }
-        if let Some(price) = args.name_l1 {
-            s.price.name_l1 = price;
-        }
-        Ok(())
-    })
+    let legacy_input = candid::encode_args((&args,)).map_err(|e| e.to_string())?;
+    crate::legacy::business(
+        "admin_update_price",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| {
+            validate_admin_update_price(args.clone())?;
+            store::state::with_mut(|s| {
+                if let Some(price) = args.channel {
+                    s.price.channel = price;
+                }
+                if let Some(price) = args.name_l7 {
+                    s.price.name_l7 = price;
+                }
+                if let Some(price) = args.name_l5 {
+                    s.price.name_l5 = price;
+                }
+                if let Some(price) = args.name_l3 {
+                    s.price.name_l3 = price;
+                }
+                if let Some(price) = args.name_l2 {
+                    s.price.name_l2 = price;
+                }
+                if let Some(price) = args.name_l1 {
+                    s.price.name_l1 = price;
+                }
+                Ok(())
+            })
+        },
+    )
 }
 
 #[ic_cdk::update(guard = "is_controller")]
 async fn admin_collect_token(user: Account, amount: Nat) -> Result<(), String> {
-    let amount64 = amount.0.to_u64().unwrap_or_default();
-    token_transfer_to(user, amount, "COLLECT".to_string())
-        .await
-        .map_err(|err| format!("failed to collect token, {}", err))?;
+    let legacy_input = candid::encode_args((&user, &amount)).map_err(|e| e.to_string())?;
+    crate::legacy::business_async(
+        "admin_collect_token",
+        legacy_input,
+        |_legacy_caller, _legacy_now_ms| async move {
+            let amount64 = amount.0.to_u64().unwrap_or_default();
+            token_transfer_to(user, amount, "COLLECT".to_string())
+                .await
+                .map_err(|err| format!("failed to collect token, {}", err))?;
 
-    store::state::with_mut(|s| {
-        s.transfer_out_total += amount64 as u128;
-    });
-    Ok(())
+            store::state::with_mut(|s| {
+                s.transfer_out_total += amount64 as u128;
+            });
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[ic_cdk::update]

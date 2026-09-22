@@ -210,9 +210,16 @@ describe('real encrypted workspace lifecycle', () => {
     const db = await WorkspaceDB.open((await currentWorkspace())!),
       firstChunk = (await db.db.getAll('chunks'))[0]
     db.db.close()
+    const backup = await engine.exportBackup(password)
+    expect(backup.scope).toBe('partial')
     await engine.lock()
+    globalThis.indexedDB = new IDBFactory()
     const resumed = new CryptoEngine()
-    await resumed.unlock(password)
+    await resumed.restore({
+      file: new File([backup.blob], 'partial.dmsg'),
+      code: setup.recoveryCode,
+      password
+    })
     const changed = new Uint8Array(content)
     changed[0] ^= 1
     await expect(
