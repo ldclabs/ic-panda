@@ -6,8 +6,9 @@
   import { CommerceClient } from '../services/commerce'
   import { WalletClient } from '../services/wallet'
   import { decodeCommerce } from '../protocol/commerce'
-  import { digest } from '../protocol/codec'
+  import { digest, hex } from '../protocol/codec'
   import type { BillingOrder, OrderQuote, OrderAction } from '../canisters/generated/commerce'
+  import type { ClaimRequest } from '../canisters/generated/membership'
   let account = $state.raw<AccountClient | null>(null),
     client = $state.raw<CommerceClient | null>(null),
     wallet = $state.raw<WalletClient | null>(null)
@@ -31,6 +32,7 @@
   let neuron = $state(''),
     snsPlan = $state('Plus'),
     snsJob = $state(''),
+    snsRequest = $state<ClaimRequest | null>(null),
     snsStatus = $state<any>(null),
     policy = $state<any>(null),
     snsAction = $state<'Start' | 'Renew' | 'Upgrade' | 'Replace'>('Start'),
@@ -100,6 +102,9 @@
       payer = identity.getPrincipal().toText()
       orders = await client.orders()
       claims = await client.claims()
+      snsJob = ''
+      snsRequest = null
+      policy = null
       status =
         '已连接此 Internet Identity 付款路径。SNS 资格仍由会员服务核验神经元经济控制权。'
     })
@@ -161,9 +166,24 @@
         change as any
       )
       snsJob = result.job.id
-      policy = result.policy
+      const reviewed = await client.reviewSns(snsJob)
+      policy = reviewed.policy
+      snsRequest = reviewed.request
       snsStatus = null
       claims = await client.claims()
+    })
+  }
+  async function showSns(id: string) {
+    await session.run(async () => {
+      if (!client) throw new Error('先连接付款身份。')
+      snsJob = id
+      snsRequest = null
+      policy = null
+      snsStatus = null
+      if (!id) return
+      const reviewed = await client.reviewSns(id)
+      policy = reviewed.policy
+      snsRequest = reviewed.request
     })
   }
 </script>
@@ -355,47 +375,56 @@
     >核对政策并准备 claim</button
   >
   {#if claims.length}<label
-      >原 claim<select bind:value={snsJob}
+      >原 claim<select
+        bind:value={snsJob}
+        onchange={(event) => void showSns(event.currentTarget.value)}
         ><option value="">请选择</option>{#each claims as job}<option value={job.id}
             >{job.id} · {job.stage}</option
           >{/each}</select
       ></label
     >{/if}
-  {#if policy}<details open>
+  {#if policy && snsRequest}<details open>
       <summary>批准前核对政策、R 与期限</summary>
+      <pre>{json({
+          actor: snsRequest.authorization.actor.toText(),
+          neuron_id: hex(Uint8Array.from(snsRequest.neuron_id)),
+          policy_version: snsRequest.policy_version,
+          change: snsRequest.change,
+          valid_until_ms: snsRequest.authorization.valid_until_ms
+        })}</pre>
       <pre>{json(policy)}</pre>
     </details>{/if}
   <button
     class="primary"
-    disabled={!client || session.busy || !snsJob}
+    disabled={!client || session.busy || !snsJob || !snsRequest || !policy}
     onclick={() =>
       session.run(async () => {
         snsStatus = await client!.submitSns(snsJob)
       })}>批准并提交此精确 claim</button
   ><button
     class="secondary"
-    disabled={!client || session.busy || !snsJob}
+    disabled={!client || session.busy || !snsJob || !snsRequest || !policy}
     onclick={() =>
       session.run(async () => {
         snsStatus = await client!.advanceSns(snsJob)
       })}>继续原申请</button
   ><button
     class="secondary"
-    disabled={!client || session.busy || !snsJob}
+    disabled={!client || session.busy || !snsJob || !snsRequest || !policy}
     onclick={() =>
       session.run(async () => {
         snsStatus = await client!.refreshSns(snsJob)
       })}>刷新资格 / 冷却 / 修复状态</button
   ><button
     class="secondary"
-    disabled={!client || session.busy || !snsJob}
+    disabled={!client || session.busy || !snsJob || !snsRequest || !policy}
     onclick={() =>
       session.run(async () => {
         snsStatus = await client!.reconcileSns(snsJob)
       })}>对账原 claim</button
   ><button
     class="secondary"
-    disabled={!client || session.busy || !snsJob}
+    disabled={!client || session.busy || !snsJob || !snsRequest || !policy}
     onclick={() =>
       session.run(async () => {
         snsStatus = await client!.closeSns(snsJob)

@@ -14,6 +14,7 @@ import {
   digest as legacyDigest,
   encodeArchive,
   sealTransfer,
+  sharedSourceKey,
   type LegacyArchive
 } from '@dmsg/legacy'
 import { SharedMigrationClient, encodeLegacyProof } from '../src/lib/services/shared-migration'
@@ -348,6 +349,14 @@ async function reconnect() {
         }
       }
       if (payload.action === 'advance-sns') return await product.advanceSns(payload.id)
+      if (payload.action === 'review-sns') {
+        const reviewed = await product.reviewSns(payload.id)
+        return {
+          actor: reviewed.request.authorization.actor.toText(),
+          version: reviewed.policy.version,
+          neuron: hex(Uint8Array.from(reviewed.request.neuron_id))
+        }
+      }
       if (payload.action === 'sns') {
         const catalog = await product.catalog(),
           plan = catalog.value.plans.find((p: any) => p.plan_id === 'Plus')
@@ -438,13 +447,49 @@ async function reconnect() {
           payload.version ?? 1
         )
       }
-      if (payload.action === 'propose' || payload.action === 'consent') {
-        const manager = oldIdentity.getPrincipal().toText(),
-          request = await shared.managerChallenge(payload.draft, manager),
-          consent = await approval(request)
-        return payload.action === 'propose'
-          ? await shared.propose(payload.draft, manager, consent)
-          : await shared.consent(payload.draft, manager, consent)
+      if (
+        payload.action === 'propose' ||
+        payload.action === 'propose-lost' ||
+        payload.action === 'consent'
+      ) {
+        const manager = oldIdentity.getPrincipal().toText()
+        let stage = 'manager challenge'
+        try {
+          const request = await shared.managerChallenge(payload.draft, manager)
+          stage = 'old identity approval'
+          const consent = await approval(request)
+          if (payload.action === 'propose-lost') {
+            stage = 'proposal submission'
+            const post = shared.cloud.post.bind(shared.cloud)
+            let lost = false
+            shared.cloud.post = async (...args) => {
+              const result = await post(...args)
+              if (!lost && args[0].endsWith('/proposals')) {
+                lost = true
+                throw new Error('Legacy proposal response lost')
+              }
+              return result
+            }
+            await shared.propose(payload.draft, manager, consent).catch((error) => {
+              if (error.message !== 'Legacy proposal response lost') throw error
+            })
+            if (!lost) throw new Error('Legacy proposal fault was not exercised')
+            stage = 'worker restart'
+            await data.crypto.lock()
+            await data.crypto.call('unlock', data.password)
+            stage = 'directory reconciliation'
+            return await shared.view(
+              sharedSourceKey(payload.draft.proposal.source, payload.draft.proposal.channel)
+            )
+          }
+          return payload.action === 'propose'
+            ? await shared.propose(payload.draft, manager, consent)
+            : await shared.consent(payload.draft, manager, consent)
+        } catch (error) {
+          throw new Error(
+            `${stage}: ${error instanceof Error ? error.message : String(error)}`
+          )
+        }
       }
       if (payload.action === 'directory') return await shared.view(payload.key)
       if (payload.action === 'commit') return await shared.commit(payload.view)
@@ -881,6 +926,17 @@ async function reconnect() {
           item: { ...entry.item, body: payload.edit, updatedAt: Date.now() }
         })
       }
+      if (payload?.prepare || payload?.expirePlan) {
+        const title = payload?.expirePlan ? 'cloud-one-mib.bin' : 'Account conversion note'
+        const entry = (await data.crypto.call('view')).entries.find(
+          (e) => e.item.title === title
+        )!
+        const job = await data.crypto.call('contentPrepare', entry.record.key)
+        if (payload?.expirePlan) {
+          for (const upload of job.uploads) upload.plan.expires_at = Date.now() - 1
+          await data.crypto.call('contentSave', job)
+        }
+      }
       const fetcher = globalThis.fetch,
         lost = new Set<string>()
       if (payload?.lose)
@@ -934,7 +990,8 @@ async function reconnect() {
           lost: lost.size,
           entries: view.entries.length,
           conflicts: view.conflicts.length,
-          file: !!entry
+          file: !!entry,
+          note: view.entries.find((e) => e.item.title === 'Account conversion note')?.item.body
         }
       } finally {
         globalThis.fetch = fetcher

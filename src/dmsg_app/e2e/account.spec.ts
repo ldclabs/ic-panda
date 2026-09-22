@@ -245,6 +245,12 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       const sns = await snsDevice.tab.evaluate(() =>
         (window as any).accountFollowup('commerce', { action: 'sns' })
       )
+      const reviewedSns = await snsDevice.tab.evaluate(
+        (id) => (window as any).accountFollowup('commerce', { action: 'review-sns', id }),
+        sns.id
+      )
+      expect(reviewedSns.actor).toBe(sns.actor)
+      expect(reviewedSns.neuron).toBe('4d'.repeat(32))
       expect(sns.eligibility).toBe('Eligible')
       expect(sns.status).toBe('CoolingDown')
       await writeFile(join(dir, 'advance-commerce-clock'), '')
@@ -277,7 +283,11 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       )
       const pending = await page.evaluate(
         (draft) =>
-          (window as any).accountFollowup('shared', { action: 'propose', draft, seed: 52 }),
+          (window as any).accountFollowup('shared', {
+            action: 'propose-lost',
+            draft,
+            seed: 52
+          }),
         draft
       )
       expect(Object.keys(pending.votes)).toHaveLength(1)
@@ -320,6 +330,8 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         )
       ])
       expect(raced.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+      if (raced[0].status === 'rejected')
+        expect(String(raced[0].reason)).not.toContain('IDEMPOTENCY_CONFLICT')
       // Continue the same winning owner; use per-page aliases for the rest.
       const winner = raced.findIndex((r) => r.status === 'fulfilled')
       const ownerPage = winner === 0 ? page : second.tab,
@@ -694,7 +706,12 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
     }
     if (process.env.DMSG_CONTENT_PROBE === '1') {
       const uploaded = await page.evaluate(() =>
-        (window as any).accountFollowup('content', { file: true, push: true, lose: true })
+        (window as any).accountFollowup('content', {
+          file: true,
+          push: true,
+          lose: true,
+          expirePlan: true
+        })
       )
       expect(uploaded.lost).toBe(3)
       expect(uploaded.file).toBe(true)
@@ -704,6 +721,12 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         fixtureBackup
       )
       expect(restored.authorized).toBe(false)
+      await page.evaluate(() =>
+        (window as any).accountFollowup('content', {
+          edit: 'prepared before root rotation',
+          prepare: true
+        })
+      )
       const pair = await second.tab.evaluate(() =>
         (window as any).accountFollowup('pair', 'Member')
       )
@@ -713,10 +736,12 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       // a new root. Content sync must not bypass that canister policy.
       await page.evaluate(() => (window as any).accountFollowup('rotate'))
       await second.tab.evaluate(() => (window as any).accountFollowup('open'))
+      await page.evaluate(() => (window as any).accountFollowup('content', { push: true }))
       const downloaded = await second.tab.evaluate(() =>
         (window as any).accountFollowup('content', {})
       )
       expect(downloaded.file).toBe(true)
+      expect(downloaded.note).toBe('prepared before root rotation')
       await page.evaluate(() =>
         (window as any).accountFollowup('content', { backgroundRestore: true })
       )

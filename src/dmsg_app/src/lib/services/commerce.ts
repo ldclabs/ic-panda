@@ -350,17 +350,7 @@ export class CommerceClient {
     change: ClaimRequest['change'] = { Start: null }
   ) {
     ensure(/^[0-9a-f]{64}$/.test(neuron), 'INVALID_INPUT')
-    const proof = await certifiedValue(
-      controlResult(await this.membership.get_policy_certified([policy])),
-      this.account.agent,
-      this.membershipId,
-      digest('membership/policy-key/v1', policy)
-    )
-    const policyValue = decodeCanonical<any>(proof.value)
-    ensure(
-      policyValue.product_id === 'dmsg' && equal(policyValue.benefit_id, benefit),
-      'INTEGRITY_FAILED'
-    )
+    const policyValue = await this.policy(policy, benefit)
     const ent = await this.entitlement(true),
       op = unhex(id())
     const request: ClaimRequest = {
@@ -383,6 +373,48 @@ export class CommerceClient {
     }
     await this.save(`sns:${job.id}`, job)
     return { job, policy: policyValue }
+  }
+  private async policy(version: bigint, benefit: Uint8Array) {
+    const proof = await certifiedValue(
+      controlResult(await this.membership.get_policy_certified([version])),
+      this.account.agent,
+      this.membershipId,
+      digest('membership/policy-key/v1', version)
+    )
+    const value = decodeCanonical<any>(proof.value)
+    ensure(
+      value.product_id === 'dmsg' &&
+        BigInt(value.version) === version &&
+        equal(value.benefit_id, benefit),
+      'INTEGRITY_FAILED'
+    )
+    return value
+  }
+  async reviewSns(id: string) {
+    const job = await this.read<ClaimJob>(`sns:${id}`)
+    ensure(
+      job && job.actor === this.wallet.toText() && job.account === this.accountId(),
+      'AUTH_REQUIRED'
+    )
+    const request = decodeCommerce(
+      'membership',
+      'request_claim',
+      job.input
+    )[0] as unknown as ClaimRequest
+    ensure(
+      hex(claimId(this.membershipId, request.authorization)) === id &&
+        request.authorization.actor.toText() === job.actor &&
+        equal(Uint8Array.from(request.authorization.action_digest), claimDigest(request)) &&
+        equal(
+          canonical(beneficiaryValue(request.authorization.beneficiary)),
+          canonical(beneficiaryValue(this.subject()))
+        ),
+      'INTEGRITY_FAILED'
+    )
+    return {
+      request,
+      policy: await this.policy(request.policy_version, Uint8Array.from(request.benefit_id))
+    }
   }
   async submitSns(id: string) {
     const job = await this.read<ClaimJob>(`sns:${id}`)

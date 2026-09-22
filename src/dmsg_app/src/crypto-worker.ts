@@ -71,6 +71,7 @@ const allowed = new Set([
   'legacyJobs',
   'legacyCancel',
   'contentPrepare',
+  'contentReplan',
   'contentJobs',
   'contentSave',
   'contentChunk',

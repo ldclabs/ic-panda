@@ -257,14 +257,40 @@ export class SharedMigrationClient {
   ) {
     const journalKey = `legacy-http:${key}:${route}`,
       prior = await this.account.crypto.call('channelJob', channel, journalKey)
-    if (prior && !prior.complete)
-      ensure(equal(canonical(prior.payload), canonical(payload)), 'IDEMPOTENCY_CONFLICT')
-    const requestId = prior && !prior.complete ? prior.requestId : id(),
+    let resume = prior && !prior.complete ? prior : null
+    if (resume) {
+      const status = (await this.cloud.get(
+        `/v1/legacy/${key}/operations/${resume.requestId}`,
+        await this.context(),
+        this.sign
+      )) as { found: boolean; result: unknown }
+      ensure(typeof status.found === 'boolean', 'INTEGRITY_FAILED')
+      if (!equal(canonical(resume.payload), canonical(payload))) {
+        // Read the canonical directory before replacing a lost-reply journal.
+        // The old signed request may still be processing until its deadline.
+        if (status.found) await this.view(key)
+        else
+          ensure(
+            !resume.deadline || Date.now() > resume.deadline + 60000,
+            'EXECUTION_UNKNOWN',
+            '原共享操作仍可能完成，请稍后对账。'
+          )
+        await this.account.crypto.call(
+          'channelJob',
+          channel,
+          `${journalKey}:${resume.requestId}`,
+          resume
+        )
+        resume = null
+      }
+    }
+    const requestId = resume ? resume.requestId : id(),
       context = await this.context(requestId)
     const signed = await signCloudCommand(context, action, payload, this.sign)
     await this.account.crypto.call('channelJob', channel, journalKey, {
       requestId,
       payload,
+      deadline: context.deadline,
       complete: false
     })
     const result = await this.cloud.post(
@@ -276,6 +302,7 @@ export class SharedMigrationClient {
     await this.account.crypto.call('channelJob', channel, journalKey, {
       requestId,
       payload,
+      deadline: context.deadline,
       complete: true
     })
     return this.validateView(result as SharedView)

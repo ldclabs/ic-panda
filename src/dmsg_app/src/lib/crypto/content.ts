@@ -189,6 +189,82 @@ export class ContentEngine {
       root.fill(0)
     }
   }
+  /** Rewrap only uploads which can no longer be committed. The encrypted
+   * object, revision ID, file chunks and operation request ID remain fixed. */
+  async replan(recordKey: string, generation: number, uploadIds: string[]) {
+    const { db, meta, bundle } = await this.port.ready()
+    ensure(
+      meta.account?.id && meta.rootGeneration === generation && uploadIds.length > 0,
+      'REKEY_REQUIRED'
+    )
+    const job = (await this.jobs()).find((j) => j.recordKey === recordKey)
+    const record = (await db.db.get('objects', recordKey)) as EncryptedObject | undefined
+    ensure(
+      job && record && job.recordDigest === record.digest && !job.revision.result,
+      'INTEGRITY_FAILED'
+    )
+    const replacement = new Set(uploadIds)
+    ensure(
+      replacement.size === uploadIds.length &&
+        uploadIds.every((uploadId) => job.uploads.some((u) => u.plan.upload_id === uploadId)),
+      'INVALID_INPUT'
+    )
+    const file = job.uploads.some((u) => u.plan.kind === 'file')
+      ? (await this.port.decode<Item>(record)).file
+      : null
+    const root = unb64(bundle.root)
+    try {
+      const replaced: ContentUpload[] = []
+      let vaultChanged = false
+      for (const upload of job.uploads) {
+        if (!replacement.has(upload.plan.upload_id)) {
+          replaced.push(upload)
+          continue
+        }
+        if (upload.plan.kind === 'file')
+          ensure(
+            file &&
+              file.id === upload.plan.object_id &&
+              file.version === upload.plan.version_id,
+            'INTEGRITY_FAILED'
+          )
+        else {
+          ensure(
+            upload.plan.kind === 'vault' &&
+              upload.object &&
+              readObject(unb64(upload.object)).digest === record.digest,
+            'INTEGRITY_FAILED'
+          )
+          vaultChanged = true
+        }
+        const { manifest_digest: _digest, manifest_size: _size, ...plan } = upload.plan
+        replaced.push({
+          ...(await sealContentManifest(
+            root,
+            meta.account.id,
+            {
+              ...plan,
+              upload_id: id(),
+              root_generation: generation,
+              expires_at: Date.now() + 86400000
+            },
+            upload.plan.kind === 'file' ? file! : null
+          )),
+          chunkIds: upload.chunkIds,
+          ...(upload.object ? { object: upload.object } : {})
+        })
+      }
+      job.uploads = replaced
+      if (vaultChanged) {
+        delete job.revision.signed
+        delete job.revision.deadline
+      }
+      await this.save(job)
+      return job
+    } finally {
+      root.fill(0)
+    }
+  }
   async chunk(upload: ContentUpload, index: number) {
     const { db } = await this.port.ready()
     const plan = uploadPlanSchema.parse(upload.plan)

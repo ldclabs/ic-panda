@@ -15,6 +15,9 @@
   let name = $state(''),
     bio = $state(''),
     link = $state(''),
+    publishedLinks = $state<string[]>([]),
+    originalLink = $state(''),
+    observedProfileHash = $state<string | null>(null),
     publishName = $state(false),
     publishBio = $state(false),
     publishLink = $state(false)
@@ -47,9 +50,16 @@
       usage = { committed: quota.committed, reserved: quota.reserved }
       lifecycle = quota.lifecycle
       notices = quota.lifecycle?.notice ? [quota.lifecycle.notice] : []
-      name = session.data.profile?.name ?? ''
-      bio = session.data.profile?.bio ?? ''
-      link = session.data.profile?.link ?? ''
+      const published = await connected.profile()
+      observedProfileHash = published?.value.hash ?? null
+      publishedLinks = published?.profile.links ?? []
+      originalLink = publishedLinks[0] ?? ''
+      publishName = Boolean(published?.profile.display_name)
+      publishBio = Boolean(published?.profile.bio)
+      publishLink = publishedLinks.length > 0
+      name = published?.profile.display_name || session.data.profile?.name || ''
+      bio = published?.profile.bio || session.data.profile?.bio || ''
+      link = originalLink || session.data.profile?.link || ''
       status = '账户与设备证据已核对。'
     })
   }
@@ -71,14 +81,24 @@
     await session.run(async () => {
       if (!client) throw new Error('请先连接账户。')
       const previous = await client.profile()
-      await client.publishProfile({
+      if ((previous?.value.hash ?? null) !== observedProfileHash)
+        throw new Error('公开资料已由其他设备修改，请重新连接并核对后发布。')
+      const result = await client.publishProfile({
         version: (previous?.profile.version ?? 0) + 1,
         prev_hash: previous?.value.hash ?? null,
         display_name: publishName ? name : '',
         bio: publishBio ? bio : '',
-        links: publishLink && link ? [link] : [],
+        links:
+          publishLink && link
+            ? link === originalLink
+              ? publishedLinks
+              : [link, ...publishedLinks.slice(1)]
+            : [],
         avatar_upload: previous?.profile.avatar_upload ?? null
       })
+      observedProfileHash = result.value.hash
+      publishedLinks = result.profile.links
+      originalLink = publishedLinks[0] ?? ''
       status = '已发布明确选择的公开字段。'
     })
   }

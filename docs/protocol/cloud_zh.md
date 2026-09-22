@@ -78,6 +78,8 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 
 这里的“本地文件”指新版 `src/dmsg_app` 的 R0 格式：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
 
+2026-09-23：若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
+
 旧 dMsg 则先在 `ChannelMessages.svelte` 对完整文件执行一次 COSE_Encrypt0，再调用 IC OSS 的 `toFixedChunkSizeReadable` / `upload_chunks`，按 **256 KiB 密文传输片**上传；下载后由 `ChannelFileCard.svelte` 对完整 bytes 解密。IC OSS 的 Rust `file.rs` 与 TS `stream.ts` 均定义 `CHUNK_SIZE=256*1024`。这不是每个 256 KiB 分片独立 AEAD 的文件格式。旧文件迁移保留分片索引/长度与原始 bytes，按原顺序恢复完整 COSE 后验证；不能套用新版 R0 的 1 MiB 明文规则，或将 OSS 分片当作独立认证的新版加密块。此判断基于本地旧客户端与 IC OSS 源码，线上版本仍需 I0 核对。
 
 本表约定了字段、AAD、权限和大小口径。对象块容器固定为规范 CBOR `{format:"dmsg-cloud-object/1", record:EncryptedObject}`；`record` 使用上表正式工作区的字段与既有内容加密规则，保留必要的原始加密字段，不包含明文 Item 或 FileKey。

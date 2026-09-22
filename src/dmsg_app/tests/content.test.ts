@@ -106,3 +106,41 @@ it('aborts the whole import transaction when a later chunk conflicts', async () 
   db.db.close()
   await engine.lock()
 })
+it('replans expired uploads and a pending vault revision after root rotation without changing content IDs', async () => {
+  const engine = await localFixture()
+  const record = await engine.importFile(new File([new Uint8Array(32).fill(17)], 'replan.bin'))
+  const original = await engine.contentPrepare(record.key)
+  const oldChunks = await Promise.all(
+    original.uploads[0].plan.chunks.map((_, index) =>
+      engine.contentChunk(original.uploads[0], index)
+    )
+  )
+  const expired = await engine.contentReplan(
+    record.key,
+    1,
+    original.uploads.map((upload) => upload.plan.upload_id)
+  )
+  expect(expired.recordKey).toBe(original.recordKey)
+  expect(expired.recordDigest).toBe(original.recordDigest)
+  expect(expired.revision.requestId).toBe(original.revision.requestId)
+  expect(expired.uploads.map((upload) => upload.plan.upload_id)).not.toEqual(
+    original.uploads.map((upload) => upload.plan.upload_id)
+  )
+  expect(await engine.contentChunk(expired.uploads[0], 0)).toEqual(oldChunks[0])
+  const internals = engine as any
+  const priorRoot = internals.bundle.root
+  internals.bundle.roots = { '1': priorRoot }
+  internals.bundle.root = b64(new Uint8Array(32).fill(18))
+  internals.meta.rootGeneration = 2
+  const rotated = await engine.contentReplan(record.key, 2, [
+    expired.uploads[1].plan.upload_id
+  ])
+  expect(rotated.uploads[0].plan.upload_id).toBe(expired.uploads[0].plan.upload_id)
+  expect(rotated.uploads[1].plan.root_generation).toBe(2)
+  expect(rotated.uploads[1].plan.version_id).toBe(record.revision)
+  expect(rotated.revision.requestId).toBe(original.revision.requestId)
+  expect(await engine.contentChunk(rotated.uploads[1], 0)).toEqual(
+    await engine.contentChunk(original.uploads[1], 0)
+  )
+  await engine.lock()
+})

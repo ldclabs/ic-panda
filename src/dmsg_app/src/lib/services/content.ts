@@ -226,6 +226,46 @@ export class ContentClient {
       'INTEGRITY_FAILED'
     )
   }
+  private async usableJob(job: ContentJob, generation: number) {
+    const replace: string[] = []
+    const now = Date.now()
+    for (const upload of job.uploads) {
+      const plan = upload.plan
+      const previous = (await this.get(`${this.base()}/uploads/${plan.upload_id}`).catch(
+        (cause) => {
+          if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return null
+          throw cause
+        }
+      )) as any
+      if (previous)
+        ensure(equal(canonical(previous.plan), canonical(plan)), 'IDEMPOTENCY_CONFLICT')
+      // A committed historical file remains readable under its retained old
+      // root; only the vault revision must use the newly approved root.
+      const oldRoot =
+        plan.root_generation !== generation &&
+        (plan.kind === 'vault' || previous?.status !== 'committed')
+      const unavailable =
+        previous?.status === 'aborted' ||
+        previous?.quota_state === 'released' ||
+        (previous?.status !== 'committed' &&
+          (plan.expires_at <= now + 300000 ||
+            (previous?.lease_expires_at ?? Number.MAX_SAFE_INTEGER) <= now + 300000))
+      if (!oldRoot && !unavailable) continue
+      if (previous?.status === 'staging')
+        await this.post(`${this.base()}/uploads/cancel`, 'dmsg/upload/cancel/v1', {
+          upload_id: plan.upload_id
+        })
+      replace.push(plan.upload_id)
+    }
+    return replace.length
+      ? (this.account.crypto.call(
+          'contentReplan',
+          job.recordKey,
+          generation,
+          replace
+        ) as Promise<ContentJob>)
+      : job
+  }
   async push(key: string) {
     const state = await this.refresh()
     ensure(
@@ -233,7 +273,7 @@ export class ContentClient {
       'REKEY_REQUIRED',
       '账户需要完成换根，请先前往设备与认证处理。'
     )
-    const job = await this.account.crypto.call('contentPrepare', key)
+    let job = (await this.account.crypto.call('contentPrepare', key)) as ContentJob
     if (job.revision.result) {
       await this.account.crypto.call('contentAcknowledge', job)
       return job.revision.result
@@ -245,6 +285,8 @@ export class ContentClient {
       }
     )
     if (stored.found) return this.ack(job, stored.result)
+    ensure(state.info.current_root[0], 'REKEY_REQUIRED')
+    job = await this.usableJob(job, Number(state.info.current_root[0].generation))
     for (const upload of job.uploads) await this.upload(upload)
     const vault = job.uploads.find((u) => u.plan.kind === 'vault')!,
       record = readObject(unb64(vault.object!))
@@ -343,8 +385,25 @@ export class ContentClient {
           ].includes(r.kind) && !pending.some((p) => p.revision === r.parent)
       )
       .slice(0, 25)
+    ensure(state.info.current_root[0], 'REKEY_REQUIRED')
+    let queued = 0
     for (const record of eligible) {
-      const job = await this.account.crypto.call('contentPrepare', record.key)
+      let job = (await this.account.crypto.call('contentPrepare', record.key)) as ContentJob
+      if (job.revision.result) {
+        await this.account.crypto.call('contentAcknowledge', job)
+        continue
+      }
+      const stored = await this.get(
+        `${this.base()}/operations/${job.revision.requestId}`
+      ).catch((cause) => {
+        if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return { found: false }
+        throw cause
+      })
+      if (stored.found) {
+        await this.ack(job, stored.result)
+        continue
+      }
+      job = await this.usableJob(job, Number(state.info.current_root[0].generation))
       for (const upload of job.uploads) await this.upload(upload)
       const context = await this.context(job.revision.requestId)
       const payload = await this.revisionPayload(job, record)
@@ -395,10 +454,11 @@ export class ContentClient {
       } finally {
         db.db.close()
       }
+      queued++
     }
     if (typeof chrome !== 'undefined' && chrome.runtime?.id)
       await chrome.runtime.sendMessage({ type: 'dmsg-flush-ciphertext' })
-    return eligible.length
+    return queued
   }
   async pushPending() {
     const view = await this.account.crypto.call('view')

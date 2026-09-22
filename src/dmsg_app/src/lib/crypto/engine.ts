@@ -368,6 +368,9 @@ export class CryptoEngine {
   async contentPrepare(key: string) {
     return this.contentEngine().prepare(key)
   }
+  async contentReplan(key: string, generation: number, uploadIds: string[]) {
+    return this.contentEngine().replan(key, generation, uploadIds)
+  }
   async contentJobs() {
     return this.contentEngine().jobs()
   }
