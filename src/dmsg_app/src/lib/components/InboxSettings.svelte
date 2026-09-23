@@ -280,21 +280,27 @@
       })}>补拉、验签并解密</button
   >{#each messages as message}<article class="history-message">
       <p>{message.sender} · {message.state}</p>
-      <p>{message.text}</p>
+      {#if message.state === 'aborted'}<p>
+          此来信未投递，内容不可读取。{message.resolved
+            ? '已允许重新联系。'
+            : '由你决定是否允许重新联系。'}
+        </p>{:else}<p>{message.text}</p>{/if}
       <button
         class="secondary"
-        disabled={session.busy}
+        disabled={session.busy || message.state === 'aborted'}
         onclick={() =>
           session.run(async () => {
             await client!.mark(message.order_id, true, false)
+            messages = await client!.list()
           })}>标记已读</button
       ><button
         class="secondary"
-        disabled={session.busy}
+        disabled={session.busy || message.resolved}
         onclick={() =>
           session.run(async () => {
             await client!.mark(message.order_id, true, true)
-          })}>归档并允许新的联系</button
+            messages = await client!.list()
+          })}>{message.state === 'aborted' ? '允许重新联系' : '归档并允许新的联系'}</button
       >
     </article>{/each}
 </section>

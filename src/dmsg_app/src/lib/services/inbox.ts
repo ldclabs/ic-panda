@@ -574,7 +574,7 @@ export class InboxClient {
     }
   }
   async list() {
-    const entries: any[] = []
+    const entries = new Map<string, any>()
     let after = 0
     for (let pageNumber = 0; pageNumber < 10000; pageNumber++) {
       const page = await this.get(`/v1/inboxes/${this.accountId}?after=${after}&limit=20`)
@@ -587,7 +587,27 @@ export class InboxClient {
       for (const row of page.entries) {
         ensure(row.cursor > after && row.cursor <= page.next_cursor, 'INTEGRITY_FAILED')
         const value = row.value
-        ensure(value.state === 'visible' && value.recipient === this.accountId, 'FORBIDDEN')
+        ensure(
+          ['visible', 'aborted'].includes(value.state) && value.recipient === this.accountId,
+          'FORBIDDEN'
+        )
+        if (value.state === 'aborted') {
+          ensure(
+            /^[0-9a-f]{64}$/.test(value.order_id) &&
+              typeof value.sender === 'string' &&
+              typeof value.resolved === 'boolean' &&
+              typeof value.archived === 'boolean' &&
+              !('ciphertext' in value) &&
+              !('signed' in value) &&
+              !('evidence' in value),
+            'INTEGRITY_FAILED'
+          )
+          // This is relay management metadata, never an authenticated message.
+          const terminal = { ...value, text: '' }
+          entries.set(value.order_id, terminal)
+          await this.save(`received:${value.order_id}`, terminal)
+          continue
+        }
         const verified = await verifyChannelEvent(
           { signed: value.signed, evidence: value.evidence, stored_at: value.created_at },
           {
@@ -605,10 +625,10 @@ export class InboxClient {
           'INTEGRITY_FAILED'
         )
         const text = await this.account.crypto.call('inboxOpen', value)
-        entries.push({ ...value, text })
+        entries.set(value.order_id, { ...value, text })
         await this.save(`received:${value.order_id}`, { ...value, text })
       }
-      if (page.next_cursor === after) return entries
+      if (page.next_cursor === after) return [...entries.values()]
       after = page.next_cursor
     }
     throw new Error('QUOTA_EXCEEDED')

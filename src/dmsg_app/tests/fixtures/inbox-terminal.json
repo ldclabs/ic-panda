@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "cursor": 3,
+      "value": {
+        "order_id": "0101010101010101010101010101010101010101010101010101010101010101",
+        "sender": "00000000000000000020",
+        "recipient": "00000000000000000010",
+        "state": "aborted",
+        "created_at": 1790100000000,
+        "read": false,
+        "archived": false,
+        "resolved": false,
+        "abort_reason": null
+      }
+    }
+  ],
+  "next_cursor": 3
+}

@@ -105,3 +105,10 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 公开 `Certification::batch` 读取一次 IC 时间，使认证查询依赖当前 batch time；仅加 transport nonce 无法绕过 replica 按 caller/method/args 建立的缓存。该行为与 [IC query cache 实现](https://github.com/dfinity/ic/blob/master/rs/execution_environment/src/query_handler/query_cache.rs) 一致，并有不写账户状态时证书更新的 PocketIC 回归。客户端和 Worker 的 60 秒新鲜度及防回退规则保持不变。
 
 支付配置新增 `get_configuration_certified`：`configuration`、`signer/<u64be>` 和 `fee/<u64be>` 认证叶用于核对收款路由、报价/回执签署钥和费用政策。它不改变已有托管的固定条款或资金状态机。
+
+
+## 2026-09-23 收件终态管理
+
+收件分页的 `entries[].value` 按 `state` 区分。`visible` 保留原签名、证据和密文；`aborted` 仅返回 `order_id/sender/recipient/state/created_at/read/archived/resolved/abort_reason` 管理字段，不含密文、签名包或证据。两类条目共用原 `next_cursor`，客户端按 order_id 投影最新值。未受理/在途条目仍不作为收件内容返回。
+
+收件人的 status、reconcile 和 mark 返回同样的隐藏字段投影。发送人的原订单查询仍可用于本人对账。受理后退款不自动允许再次联系；收件人使用既有 `dmsg/inbox/mark/v1` 的 `reopen_contact=true` 显式重开。界面把 aborted 显示为未投递的管理状态，不尝试解密或显示为已认证消息。重复重开不会再次减少名额。
