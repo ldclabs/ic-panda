@@ -18,6 +18,75 @@ pub struct Claim {
 }
 
 impl Claim {
+    pub fn pending(&self) -> bool {
+        matches!(
+            self.view.status,
+            ClaimStatus::Checking | ClaimStatus::CoolingDown | ClaimStatus::Applying
+        )
+    }
+
+    pub fn terminal(&self) -> bool {
+        matches!(
+            self.view.status,
+            ClaimStatus::Released | ClaimStatus::Rejected
+        )
+    }
+
+    /// Only known commitments have a time-based release. Unknown decisions stay occupied.
+    pub fn release_deadline(&self) -> Option<u64> {
+        match self.view.status {
+            ClaimStatus::Checking | ClaimStatus::CoolingDown => {
+                Some(self.request.authorization.valid_until_ms)
+            }
+            ClaimStatus::Active => Some(self.view.expires_at_ms.max(self.view.release_after_ms)),
+            ClaimStatus::Closing
+                if self
+                    .receipt
+                    .as_ref()
+                    .is_some_and(|r| r.outcome == DecisionOutcome::Applied) =>
+            {
+                Some(self.view.release_after_ms)
+            }
+            _ => None,
+        }
+    }
+
+    pub fn release(&mut self) -> Result<()> {
+        self.generation = self.generation.checked_add(1).ok_or(Error::QuotaExceeded)?;
+        self.busy_until_ms = 0;
+        self.view.status = ClaimStatus::Released;
+        Ok(())
+    }
+
+    pub fn prepare_close(&mut self, at: u64, apply_by: u64) -> Result<bool> {
+        if matches!(
+            self.view.status,
+            ClaimStatus::Closing | ClaimStatus::Released
+        ) {
+            return Ok(false);
+        }
+        ensure(
+            self.view.status == ClaimStatus::Active,
+            Error::VersionConflict,
+        )?;
+        self.generation = self.generation.checked_add(1).ok_or(Error::QuotaExceeded)?;
+        let id = digest(
+            "membership/decision-id/v1",
+            &(self.view.claim_id, "close", self.generation),
+        );
+        let mut d = self.decision.clone().ok_or(Error::IntegrityFailed)?;
+        d.decision_id = id;
+        d.kind = DecisionKind::Close;
+        d.apply_by_ms = apply_by;
+        self.decision = Some(d);
+        self.receipt = None;
+        self.busy_until_ms = 0;
+        self.view.status = ClaimStatus::Closing;
+        self.view.decision_id = Some(id);
+        self.view.valid_until_ms = at;
+        Ok(true)
+    }
+
     pub fn term(&self, now: u64) -> Result<(u64, u64)> {
         match self.request.term {
             TermRule::CalendarYear => Ok((now, next_year(now)?)),
@@ -47,11 +116,6 @@ impl Claim {
     }
 
     pub fn observe(&mut self, status: Eligibility, observed: u64, now: u64) -> Result<()> {
-        self.view.lease_revision = self
-            .view
-            .lease_revision
-            .checked_add(1)
-            .ok_or(Error::QuotaExceeded)?;
         self.view.eligibility = status;
         self.view.observed_at_ms = observed;
         self.view.valid_until_ms = if self.view.eligibility == Eligibility::Eligible {
@@ -98,6 +162,15 @@ impl Claim {
     pub fn accept_receipt(&mut self, receipt: MembershipDecisionReceipt) -> Result<()> {
         let d = self.decision.as_ref().ok_or(Error::IntegrityFailed)?;
         ensure(
+            self.receipt.is_none()
+                && matches!(
+                    (&self.view.status, &d.kind),
+                    (ClaimStatus::Applying, DecisionKind::Apply)
+                        | (ClaimStatus::Closing, DecisionKind::Close)
+                ),
+            Error::VersionConflict,
+        )?;
+        ensure(
             receipt.decision_id == d.decision_id && receipt.decision_digest == decision_digest(d),
             Error::IntegrityFailed,
         )?;
@@ -122,5 +195,43 @@ impl Claim {
         }
         self.receipt = Some(receipt);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stable_codec::tests::claim;
+
+    #[test]
+    fn unknown_decisions_never_expire_and_released_claims_reject_receipts() {
+        let mut c = claim(true);
+        let at = c.view.observed_at_ms;
+        assert_eq!(c.release_deadline(), Some(c.view.expires_at_ms));
+        assert!(c.prepare_close(at, at + MINUTE).unwrap());
+        assert_eq!(c.release_deadline(), None);
+        let decision = c.decision.clone().unwrap();
+        let receipt = MembershipDecisionReceipt {
+            decision_id: decision.decision_id,
+            decision_digest: decision_digest(&decision),
+            outcome: DecisionOutcome::Applied,
+            contract_id: Some(c.view.claim_id),
+            starts_at_ms: decision.starts_at_ms,
+            expires_at_ms: decision.expires_at_ms,
+            business_revision: 1,
+            commitment_until_ms: at,
+        };
+        c.accept_receipt(receipt.clone()).unwrap();
+        assert_eq!(c.release_deadline(), Some(c.last_issued_until_ms));
+        let generation = c.generation;
+        c.release().unwrap();
+        assert!(c.generation > generation);
+        assert_eq!(c.release_deadline(), None);
+        assert!(!c.prepare_close(at, at + MINUTE).unwrap());
+        assert_eq!(c.accept_receipt(receipt), Err(Error::VersionConflict));
+        assert_eq!(c.view.status, ClaimStatus::Released);
+        c = claim(false);
+        c.applying(at, at).unwrap();
+        assert_eq!(c.release_deadline(), None);
     }
 }

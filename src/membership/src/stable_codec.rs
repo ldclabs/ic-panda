@@ -88,13 +88,13 @@ macro_rules! codec {
 
             fn to_repr(&self) -> Self::Repr {
                 Record {
-                    schema: 1,
+                    schema: 2,
                     value: self.clone(),
                 }
             }
 
             fn from_repr(r: Self::Repr) -> Self {
-                assert_eq!(r.schema, 1, "incompatible development state");
+                assert_eq!(r.schema, 2, "incompatible development state");
                 r.value
             }
         }
@@ -103,7 +103,7 @@ macro_rules! codec {
 codec!(Config);
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use candid::Principal;
     use cbor2::Value;
@@ -112,7 +112,7 @@ mod tests {
     use dmsg_types::{Environment, Hash};
     use ic_stable_structures::{StableBTreeMap, VectorMemory};
 
-    fn claim(populated: bool) -> Claim {
+    pub(crate) fn claim(populated: bool) -> Claim {
         let now = 1_700_000_000_000;
         let beneficiary = Beneficiary {
             product_id: "dmsg".into(),

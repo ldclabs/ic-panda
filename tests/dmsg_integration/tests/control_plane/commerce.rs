@@ -6,6 +6,9 @@ use serde::Serialize;
 #[path = "commerce_regressions.rs"]
 mod regressions;
 
+#[path = "membership.rs"]
+mod membership_tests;
+
 fn intent(
     f: &Fixture,
     id: &AccountId,

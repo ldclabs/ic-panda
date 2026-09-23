@@ -197,7 +197,28 @@ impl Fixture {
     fn with_policy(algorithms: Vec<Algorithm>, generous: bool) -> Self {
         Self::with_order_limit(algorithms, generous, 100)
     }
+
     fn with_order_limit(algorithms: Vec<Algorithm>, generous: bool, daily_orders: u32) -> Self {
+        Self::configured(algorithms, generous, daily_orders, |_| {})
+    }
+
+    fn with_membership_config(
+        configure: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
+    ) -> Self {
+        Self::configured(
+            vec![Algorithm::Ed25519, Algorithm::VetKdBls12381],
+            true,
+            100,
+            configure,
+        )
+    }
+
+    fn configured(
+        algorithms: Vec<Algorithm>,
+        generous: bool,
+        daily_orders: u32,
+        configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
+    ) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -369,28 +390,29 @@ impl Fixture {
                 subsidy_units: 1,
             })
             .collect();
+        let mut membership_init = dmsg_types::membership::MembershipInit {
+            environment: Environment::Local,
+            governance: sns,
+            sns_root: sns,
+            panda_ledger: sns,
+            products: vec![dmsg_types::membership::ProductConfig {
+                product_id: "dmsg".into(),
+                adapter: commerce,
+                authorities: vec![user],
+                subject_schema: "dmsg-account-v1".into(),
+                subject_size: 12,
+            }],
+            policies,
+            subsidy_budget: 100,
+            max_claims: 1000,
+            hourly_applications: 100,
+            cooling_ms: dmsg_protocol::membership::MIN_COOLING_MS,
+        };
+        configure_membership(&mut membership_init);
         ic.install_canister(
             membership,
             wasm("membership"),
-            candid::encode_args((dmsg_types::membership::MembershipInit {
-                environment: Environment::Local,
-                governance: sns,
-                sns_root: sns,
-                panda_ledger: sns,
-                products: vec![dmsg_types::membership::ProductConfig {
-                    product_id: "dmsg".into(),
-                    adapter: commerce,
-                    authorities: vec![user],
-                    subject_schema: "dmsg-account-v1".into(),
-                    subject_size: 12,
-                }],
-                policies,
-                subsidy_budget: 100,
-                max_claims: 1000,
-                hourly_applications: 100,
-                cooling_ms: dmsg_protocol::membership::MIN_COOLING_MS,
-            },))
-            .unwrap(),
+            candid::encode_args((membership_init,)).unwrap(),
             None,
         );
         let verified: Result<()> = update(&ic, membership, sns, "verify_sns_configuration", ());
@@ -408,6 +430,7 @@ impl Fixture {
             cose_config,
         }
     }
+
     fn key_ref(
         &self,
         id: &AccountId,

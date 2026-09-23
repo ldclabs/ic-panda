@@ -154,6 +154,7 @@ export const idlFactory = ({ IDL }) => {
     'authorization' : MembershipIntent,
     'neuron_id' : IDL.Vec(IDL.Nat8),
   });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
   return IDL.Service({
     'advance_application' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'cancel_application' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
@@ -183,6 +184,7 @@ export const idlFactory = ({ IDL }) => {
     'request_claim' : IDL.Func([ClaimRequest], [Result], []),
     'schedule_policy' : IDL.Func([MembershipPolicy], [Result_3], []),
     'set_admission_pause' : IDL.Func([IDL.Bool], [Result_3], []),
+    'sweep_expired_claims' : IDL.Func([], [Result_4], []),
     'verify_sns_configuration' : IDL.Func([], [Result_3], []),
   });
 };

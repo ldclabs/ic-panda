@@ -271,6 +271,7 @@ type Result = variant { Ok : ClaimView; Err : Error };
 type Result_1 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_2 = variant { Ok : MembershipPolicy; Err : Error };
 type Result_3 = variant { Ok; Err : Error };
+type Result_4 = variant { Ok : nat32; Err : Error };
 // Calendar-year term or an explicit half-open UTC millisecond interval.
 type TermRule = variant {
   // Explicit half-open interval.
@@ -317,5 +318,7 @@ service : (MembershipInit) -> {
   request_claim : (ClaimRequest) -> (Result);
   schedule_policy : (MembershipPolicy) -> (Result_3);
   set_admission_pause : (bool) -> (Result_3);
+  // Bounded local cleanup; unknown Apply/Close results are never swept by time.
+  sweep_expired_claims : () -> (Result_4);
   verify_sns_configuration : () -> (Result_3);
 }

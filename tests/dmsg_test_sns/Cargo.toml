@@ -11,4 +11,6 @@ serde = { workspace = true, features = ["derive"] }
 ic-cdk.workspace = true
 ic-stable-structures.workspace = true
 dmsg_runtime = { path = "../../src/dmsg_runtime" }
+dmsg_types = { path = "../../src/dmsg_types" }
+dmsg_protocol = { path = "../../src/dmsg_protocol" }
 lib_dummy_getrandom = { path = "../../src/lib_dummy_getrandom" }

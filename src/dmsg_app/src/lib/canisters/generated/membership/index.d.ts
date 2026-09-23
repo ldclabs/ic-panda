@@ -136,6 +136,8 @@ export type Result_2 = { 'Ok' : MembershipPolicy } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : null } |
   { 'Err' : Error };
+export type Result_4 = { 'Ok' : number } |
+  { 'Err' : Error };
 export type TermRule = {
     'Fixed' : { 'starts_at_ms' : bigint, 'expires_at_ms' : bigint }
   } |
@@ -168,6 +170,7 @@ export interface _SERVICE {
   'request_claim' : ActorMethod<[ClaimRequest], Result>,
   'schedule_policy' : ActorMethod<[MembershipPolicy], Result_3>,
   'set_admission_pause' : ActorMethod<[boolean], Result_3>,
+  'sweep_expired_claims' : ActorMethod<[], Result_4>,
   'verify_sns_configuration' : ActorMethod<[], Result_3>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
