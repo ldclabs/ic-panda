@@ -398,17 +398,59 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
 
 /// Validated local signing-input view returned by [`parse_signing_input`].
 ///
-/// Contains an unsigned COSE message and decoded fields, not a verified artifact,
-/// wire DTO or persistence record. Mutating these fields does not revalidate them.
+/// Immutable validated input, not a verified artifact, wire DTO or persistence record.
 pub struct PreparedStatement {
-    /// Unsigned COSE message reconstructed from the validated canonical input.
-    pub message: Sign1Message,
-    /// Decoded issuer, subject, issued-at and content view.
-    pub statement: Statement,
-    /// Supported formal signing algorithm selected by the protected header.
-    pub algorithm: Algorithm,
-    /// Opaque key identifier from the protected header.
-    pub kid: Vec<u8>,
+    message: Sign1Message,
+    statement: Statement,
+    algorithm: Algorithm,
+    kid: Vec<u8>,
+}
+
+impl PreparedStatement {
+    /// Decoded issuer, subject, issued-at and content.
+    pub fn statement(&self) -> &Statement {
+        &self.statement
+    }
+
+    /// Supported algorithm selected by the protected header.
+    pub fn algorithm(&self) -> &Algorithm {
+        &self.algorithm
+    }
+
+    /// Key identifier from the protected header.
+    pub fn kid(&self) -> &[u8] {
+        &self.kid
+    }
+
+    /// Validate and encode the public key before dispatching an external signer.
+    /// The returned value only retains data needed to assemble the final artifact.
+    pub fn into_signature(self, public: &[u8]) -> Result<PreparedSignature> {
+        let cose_key = public_cose_key(&self.algorithm, &self.kid, public)?;
+        Ok(PreparedSignature {
+            message: self.message,
+            cose_key,
+        })
+    }
+}
+
+/// Validated COSE framing and public key, ready for a 64-byte external signature.
+/// Construction is restricted to parsed canonical input and a validated public key.
+pub struct PreparedSignature {
+    message: Sign1Message,
+    cose_key: Vec<u8>,
+}
+
+impl PreparedSignature {
+    /// Attach a signature without reparsing the payload or public key.
+    /// This checks signature length, not mathematical validity; verify before use.
+    pub fn finish(mut self, signature: Vec<u8>) -> Result<SignedArtifact> {
+        ensure(signature.len() == 64, Error::IntegrityFailed)?;
+        self.message.set_signature(signature).map_err(malformed)?;
+        Ok(SignedArtifact {
+            cose_sign1: self.message.to_vec().map_err(malformed)?.into(),
+            cose_key: self.cose_key.into(),
+        })
+    }
 }
 
 /// Parse and validate canonical local signing input, not a signed artifact.
@@ -565,16 +607,9 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
 pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
     // Both currently enabled algorithms encode r||s / Ed25519 signatures in 64 bytes.
     ensure(signature.len() == 64, Error::IntegrityFailed)?;
-    let mut prepared = parse_signing_input(tbs)?;
-    let key = public_cose_key(&prepared.algorithm, &prepared.kid, public)?;
-    prepared
-        .message
-        .set_signature(signature)
-        .map_err(malformed)?;
-    Ok(SignedArtifact {
-        cose_sign1: prepared.message.to_vec().map_err(malformed)?.into(),
-        cose_key: key.into(),
-    })
+    parse_signing_input(tbs)?
+        .into_signature(public)?
+        .finish(signature)
 }
 
 enum ProfileVerifier {

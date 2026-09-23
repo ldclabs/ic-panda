@@ -96,6 +96,8 @@ assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 
 When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `finish_cose` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
 
+`parse_signing_input` returns an immutable `PreparedStatement` with `statement()`, `algorithm()` and `kid()` accessors. An executor can call `into_signature(public)` before dispatch and `PreparedSignature::finish(signature)` after the response to reuse validated framing and the encoded public key. Signature verification is still required before accepting the artifact.
+
 ## Construct an ICP device approval
 
 The following constructs a local request and device signature; it does not contact a canister or grant permission. Real account IDs, device IDs, epochs, sequences and signing-key references must come from the configured, authenticated services. The fixture IDs and keys are for demonstration only.

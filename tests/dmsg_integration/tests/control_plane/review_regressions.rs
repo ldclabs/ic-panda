@@ -265,7 +265,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         r
     };
     let first = request();
-    for n in 0..64 {
+    for n in 0..dmsg_runtime::FORMAL_EXECUTION_WINDOW {
         let r = if n == 0 { first.clone() } else { request() };
         let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
         assert_eq!(
@@ -277,6 +277,53 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
     let refused: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request(),));
     assert_eq!(refused, Err(Error::QuotaExceeded));
     assert_eq!(f.account_id(1, &id), before);
+
+    // A full formal-signature history must still permit an approved root derive.
+    let op_id = Hash::new([88; 32]);
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::ReserveRoot {
+            expected_generation: 0,
+            op_id,
+        },
+    )
+    .unwrap();
+    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
+    let mut root_request = DeriveRootRequest {
+        account_id: id.clone(),
+        target: RootTarget::Candidate {
+            generation: 1,
+            op_id,
+        },
+        transport_public_key: serde_bytes::ByteArray::new(
+            transport.public_key().as_slice().try_into().unwrap(),
+        ),
+        max_cycles: 100_000_000_000,
+        approval: typed_statement(&f, &id, SigningAlgorithm::Ed25519).approval,
+    };
+    root_request.approval.signature = key(1)
+        .sign(
+            root_request
+                .clone()
+                .into_execution()
+                .approval_message(f.user)
+                .as_slice(),
+        )
+        .to_bytes()
+        .to_vec()
+        .into();
+    let root: Result<ExecutionResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "derive_root",
+        (root_request.clone(),),
+    );
+    assert_eq!(root.as_ref().unwrap().status(), ExecutionStatus::Completed);
+    let replay: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (root_request,));
+    assert_eq!(root, replay);
 
     f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
     let next = request();
@@ -334,7 +381,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
     .unwrap();
     assert_eq!(leaf.status, ExecutionStatus::Failed);
     let replayed: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (first,));
-    assert_eq!(replayed, Err(Error::ResultExpired));
+    assert_eq!(replayed, Err(Error::IdempotencyConflict));
     assert_eq!(f.account_id(1, &id), account_before);
 }
 
@@ -394,7 +441,10 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         let output = signed.output().unwrap();
         assert!(matches!(output, ExecutionOutput::Signature { .. }));
         assert_eq!(output.key(), &described);
-        assert!(signed.charged_cycles > 0 && signed.charged_cycles <= request.max_cycles);
+        assert!(
+            signed.cycles_cost_upper_bound > 0
+                && signed.cycles_cost_upper_bound <= request.max_cycles
+        );
         let ExecutionOutput::Signature { artifact, .. } = output else {
             panic!("signature output")
         };

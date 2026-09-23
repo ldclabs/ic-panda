@@ -56,6 +56,11 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
+export interface ExecutionCleanup {
+  'next_after' : [] | [Uint8Array | number[]],
+  'homes_scanned' : number,
+  'results_removed' : number,
+}
 export interface ExecutionGrant {
   'account_id' : Uint8Array | number[],
   'request_id' : Uint8Array | number[],
@@ -101,7 +106,7 @@ export type ExecutionOutput = {
   { 'Signature' : { 'key' : KeyDescriptor, 'artifact' : SignedArtifact } };
 export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
-  'charged_cycles' : bigint,
+  'cycles_cost_upper_bound' : bigint,
   'outcome' : ExecutionOutcome,
 }
 export type Initialization = { 'Ready' : null } |
@@ -145,7 +150,9 @@ export type Result = { 'Ok' : ExecutionResult } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : KeyState } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : KeyDescriptor } |
+export type Result_2 = { 'Ok' : ExecutionCleanup } |
+  { 'Err' : Error };
+export type Result_3 = { 'Ok' : KeyDescriptor } |
   { 'Err' : Error };
 export interface SignedArtifact {
   'cose_sign1' : Uint8Array | number[],
@@ -167,7 +174,8 @@ export interface _SERVICE {
   >,
   'initialize_keys' : ActorMethod<[], Result_1>,
   'key_state' : ActorMethod<[], KeyState>,
-  'public_key' : ActorMethod<[Uint8Array | number[], KeySelector], Result_2>,
+  'prune_executions' : ActorMethod<[[] | [Uint8Array | number[]]], Result_2>,
+  'public_key' : ActorMethod<[Uint8Array | number[], KeySelector], Result_3>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

@@ -71,9 +71,10 @@ fn signing_key() -> SigningKeyRef {
 
 fn alter_statement(request: &mut ExecuteRequest) {
     if let ExecutionKind::Sign { to_be_signed, .. } = &mut request.kind {
-        let mut prepared = parse_signing_input(to_be_signed).unwrap();
-        prepared.statement.content = StatementContent::Text("different payload".into());
-        *to_be_signed = prepare_cose(&prepared.statement, &prepared.algorithm, &prepared.kid)
+        let prepared = parse_signing_input(to_be_signed).unwrap();
+        let mut statement = prepared.statement().clone();
+        statement.content = StatementContent::Text("different payload".into());
+        *to_be_signed = prepare_cose(&statement, prepared.algorithm(), prepared.kid())
             .unwrap()
             .1
             .into();
@@ -97,7 +98,7 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
     .unwrap();
     ExecutionResult {
         request_id: request.approval.request_id,
-        charged_cycles: 1,
+        cycles_cost_upper_bound: 1,
         outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
             key: KeyDescriptor {
                 account_id: s.account_id.clone(),
@@ -594,7 +595,7 @@ fn expired_remote_results_release_all_unknown_slots() {
     let mut s = initialized();
     s.sensitive_policy.daily_executions = 100;
     let mut requests = vec![];
-    for _ in 0..64 {
+    for _ in 0..dmsg_runtime::FORMAL_EXECUTION_WINDOW {
         let request = execute_request(&s, 1, 1);
         authorize(&mut s, p(1), &request, 1).unwrap();
         record_execution_response(
@@ -625,7 +626,7 @@ fn expired_remote_results_release_all_unknown_slots() {
     assert_eq!(s.executions.len(), 1);
     assert_eq!(
         authorize(&mut s, p(1), &requests[0], 2 * DAY),
-        Err(Error::ResultExpired)
+        Err(Error::IdempotencyConflict)
     );
     let completed = completed(&s, &next);
     record_execution_response(&mut s, next.approval.request_id, Ok(completed.clone())).unwrap();

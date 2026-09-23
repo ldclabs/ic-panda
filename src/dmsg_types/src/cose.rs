@@ -210,9 +210,9 @@ pub struct CoseInit {
     pub derivation_version: u16,
     /// Configured algorithm/master-key pins.
     pub masters: Vec<MasterKey>,
-    /// Maximum executions in a daily budget window.
+    /// Maximum executions in a daily budget window; adjustable during upgrade.
     pub daily_executions: u32,
-    /// Maximum ICP cycles in a daily budget window.
+    /// Maximum reserved ICP cycles in a daily budget window; adjustable during upgrade.
     pub daily_cycles: u128,
 }
 
@@ -362,15 +362,29 @@ pub enum ExecutionStatus {
     ResultExpired,
 }
 
-/// Query/retry view of an execution and its charged cycles.
+/// Query/retry view of an execution and its conservative management-call cost bound.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecutionResult {
     /// Operation identity used to bind approval and reconcile retries.
     pub request_id: OpId,
     /// Execution state with any available output or error.
     pub outcome: ExecutionOutcome,
-    /// ICP cycles charged for this execution.
-    pub charged_cycles: u128,
+    /// Conservative ICP cost upper bound, including maximum response/callback
+    /// reservations, less refunded attached cycles. Not an actual charge or bill.
+    /// Zero before dispatch or when the management call was not sent.
+    pub cycles_cost_upper_bound: u128,
+}
+
+/// Controller-maintained page of expired COSE execution results.
+/// The caller supplies next_after to continue, including across upgrades.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ExecutionCleanup {
+    /// Exclusive account cursor for the next page; None ends this pass.
+    pub next_after: Option<AccountId>,
+    /// Number of homes inspected (at most eight).
+    pub homes_scanned: u32,
+    /// Expired terminal results deleted; replay high-water marks are preserved.
+    pub results_removed: u32,
 }
 
 /// Execution lifecycle carrying either output or failure information.

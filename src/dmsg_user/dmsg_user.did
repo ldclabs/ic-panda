@@ -396,12 +396,14 @@ type ExecutionOutput = variant {
     artifact : SignedArtifact;
   };
 };
-// Query/retry view of an execution and its charged cycles.
+// Query/retry view of an execution and its conservative management-call cost bound.
 type ExecutionResult = record {
   // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
-  // ICP cycles charged for this execution.
-  charged_cycles : nat;
+  // Conservative ICP cost upper bound, including maximum response/callback
+  // reservations, less refunded attached cycles. Not an actual charge or bill.
+  // Zero before dispatch or when the management call was not sent.
+  cycles_cost_upper_bound : nat;
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };

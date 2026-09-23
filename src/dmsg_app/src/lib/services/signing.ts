@@ -325,7 +325,7 @@ export class SigningClient {
         value.device_id instanceof Uint8Array &&
         equal(value.device_id, Uint8Array.from(request.approval.device_id)) &&
         BigInt(value.max_cycles as number | bigint) === request.max_cycles &&
-        result.charged_cycles <= request.max_cycles,
+        result.cycles_cost_upper_bound <= request.max_cycles,
       'INTEGRITY_FAILED'
     )
     ensure(

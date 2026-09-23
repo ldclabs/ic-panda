@@ -5,12 +5,53 @@ use dmsg_types::{cose::*, *};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+const HOME_DAILY_EXECUTIONS: u32 = 100;
+const HOME_DAILY_CYCLES: u128 = 1_000_000_000_000;
+const RESULT_RETENTION: u64 = DAY;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Budgets {
+    pub total: Budget,
+    pub formal: Budget,
+}
+
+impl Budgets {
+    pub fn reserve(
+        &mut self,
+        now: u64,
+        cycles: u128,
+        count_limit: u32,
+        cycle_limit: u128,
+        formal: bool,
+    ) -> Result<()> {
+        let mut next = self.clone();
+        next.total.reserve(now, cycles, count_limit, cycle_limit)?;
+        if formal {
+            next.formal.reserve(
+                now,
+                cycles,
+                count_limit - count_limit.div_ceil(5),
+                cycle_limit - cycle_limit.div_ceil(5),
+            )?;
+        }
+        *self = next;
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Execution {
     pub request_id: Hash,
     pub digest: Hash,
     pub expires_at: u64,
     pub terminal: bool,
+    pub formal: bool,
+}
+
+impl Execution {
+    fn retained(&self, sequence: u64, terminal_sequence: u64, now: u64) -> bool {
+        sequence > terminal_sequence || self.expires_at.saturating_add(RESULT_RETENTION) > now
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -79,16 +120,18 @@ impl Home {
             Error::Expired,
         )?;
         nonzero(grant.request_id.as_slice())?;
-        ensure(
-            self.executions
-                .iter()
-                .filter(|(seq, e)| {
-                    **seq > self.terminal_sequence || e.expires_at.saturating_add(DAY) > now
-                })
-                .count()
-                < WINDOW,
-            Error::QuotaExceeded,
-        )?;
+        let mut retained = 0;
+        let mut formal = 0;
+        for (seq, e) in &self.executions {
+            if e.retained(*seq, self.terminal_sequence, now) {
+                retained += 1;
+                formal += usize::from(e.formal);
+            }
+        }
+        ensure(retained < WINDOW, Error::QuotaExceeded)?;
+        if matches!(grant.kind, ExecutionKind::Sign { .. }) {
+            ensure(formal < FORMAL_EXECUTION_WINDOW, Error::QuotaExceeded)?;
+        }
         Ok(None)
     }
 
@@ -102,22 +145,15 @@ impl Home {
     /// keys to delete; no historical result bodies need to be loaded.
     pub fn prepare(&mut self, grant: &ExecutionGrant, now: u64, cost: u128) -> Result<Vec<u64>> {
         ensure(cost <= grant.max_cycles, Error::QuotaExceeded)?;
-        let mut total = self.budget.clone();
-        let mut formal = self.formal_budget.clone();
-        total.reserve(now, cost, 100, 1_000_000_000_000)?;
-        if matches!(grant.kind, ExecutionKind::Sign { .. }) {
-            formal.reserve(now, cost, 80, 800_000_000_000)?;
-        }
-        self.budget = total;
-        self.formal_budget = formal;
-        let mut removed = Vec::new();
-        self.executions.retain(|seq, e| {
-            let keep = *seq > self.terminal_sequence || e.expires_at.saturating_add(DAY) > now;
-            if !keep {
-                removed.push(*seq);
-            }
-            keep
-        });
+        let formal = matches!(grant.kind, ExecutionKind::Sign { .. });
+        let mut budgets = Budgets {
+            total: self.budget.clone(),
+            formal: self.formal_budget.clone(),
+        };
+        budgets.reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)?;
+        self.budget = budgets.total;
+        self.formal_budget = budgets.formal;
+        let removed = self.prune(now);
         self.executions.insert(
             grant.execution_sequence,
             Execution {
@@ -125,9 +161,22 @@ impl Home {
                 digest: digest("dmsg/cose-execution/v3", grant),
                 expires_at: grant.expires_at,
                 terminal: false,
+                formal,
             },
         );
         Ok(removed)
+    }
+
+    pub fn prune(&mut self, now: u64) -> Vec<u64> {
+        let mut removed = Vec::new();
+        self.executions.retain(|seq, e| {
+            let keep = e.retained(*seq, self.terminal_sequence, now);
+            if !keep {
+                removed.push(*seq);
+            }
+            keep
+        });
+        removed
     }
 
     pub fn finish(&mut self, sequence: u64, result: &ExecutionResult) {
@@ -226,8 +275,100 @@ mod tests {
         ExecutionResult {
             request_id: g(seq).request_id,
             outcome: ExecutionOutcome::ResultExpired,
-            charged_cycles: 1,
+            cycles_cost_upper_bound: 1,
         }
+    }
+
+    fn signing(seq: u64) -> ExecutionGrant {
+        let mut grant = g(seq);
+        grant.kind = ExecutionKind::Sign {
+            key: KeySelector::Signing(SigningKey {
+                purpose: SigningPurpose::Statement,
+                algorithm: SigningAlgorithm::Ed25519,
+            })
+            .into(),
+            to_be_signed: vec![1].into(),
+            public_key_fingerprint: Hash::new([1; 32]),
+            origin: "https://example.com".into(),
+        };
+        grant
+    }
+
+    #[test]
+    fn signing_history_leaves_root_slots_even_when_roots_arrive_first() {
+        let mut h = Home::new(g(1).home_user);
+        // The user may dispatch roots after authorizing signatures, but their
+        // messages can reach COSE first. Count formal records, not all records.
+        for sequence in 57..=64 {
+            prepare(&mut h, g(1).home_user, &g(sequence), 2, 1).unwrap();
+            h.finish(sequence, &done(sequence));
+        }
+        for sequence in 1..=56 {
+            prepare(&mut h, g(1).home_user, &signing(sequence), 2, 1).unwrap();
+            h.finish(sequence, &done(sequence));
+        }
+        assert_eq!(h.terminal_sequence, 64);
+        assert_eq!(h.check(h.home_user, &g(65), 2), Err(Error::QuotaExceeded));
+
+        let mut h = Home::new(g(1).home_user);
+        for sequence in 1..=56 {
+            prepare(&mut h, g(1).home_user, &signing(sequence), 2, 1).unwrap();
+            h.finish(sequence, &done(sequence));
+        }
+        assert_eq!(
+            h.check(h.home_user, &signing(57), 2),
+            Err(Error::QuotaExceeded)
+        );
+        assert_eq!(h.check(h.home_user, &signing(1), 2), Ok(Some(1)));
+        prepare(&mut h, g(1).home_user, &g(57), 2, 1).unwrap();
+    }
+
+    #[test]
+    fn small_budgets_reserve_safety_capacity_atomically() {
+        for limit in [1u32, 4, 5, 6] {
+            let mut budgets = Budgets::default();
+            let formal_limit = limit - limit.div_ceil(5);
+            for _ in 0..formal_limit {
+                budgets.reserve(1, 1, limit, 100, true).unwrap();
+            }
+            let before = budgets.clone();
+            assert_eq!(
+                budgets.reserve(1, 1, limit, 100, true),
+                Err(Error::QuotaExceeded)
+            );
+            assert_eq!(budgets, before);
+            for _ in formal_limit..limit {
+                budgets.reserve(1, 1, limit, 100, false).unwrap();
+            }
+            assert_eq!(
+                budgets.reserve(1, 1, limit, 100, false),
+                Err(Error::QuotaExceeded)
+            );
+            budgets.reserve(DAY, 1, limit, 100, false).unwrap();
+            assert_eq!(budgets.total.executions, 1);
+        }
+    }
+
+    #[test]
+    fn pruning_keeps_holes_and_budgets_but_reclaims_idle_terminal_results() {
+        let mut h = Home::new(g(1).home_user);
+        for sequence in 1..=3 {
+            prepare(&mut h, g(1).home_user, &g(sequence), 2, 1).unwrap();
+        }
+        h.finish(1, &done(1));
+        h.finish(3, &done(3));
+        let budget = h.budget.clone();
+        assert!(h.prune(DAY).is_empty());
+        assert_eq!(h.prune(DAY + MINUTE), vec![1]);
+        assert_eq!(h.budget, budget);
+        assert_eq!(h.terminal_sequence, 1);
+        assert_eq!(
+            h.check(h.home_user, &g(1), 2 * DAY),
+            Err(Error::ResultExpired)
+        );
+        h.finish(2, &done(2));
+        assert_eq!(h.prune(2 * DAY), vec![2, 3]);
+        assert_eq!(h.terminal_sequence, 3);
     }
 
     #[test]

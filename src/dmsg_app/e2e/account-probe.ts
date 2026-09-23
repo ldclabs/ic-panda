@@ -1354,7 +1354,7 @@ async function reconnect() {
     }
     return {
       deriveCost: String(
-        (decodeControlResult('derive_root', job.result!) as any).Ok.charged_cycles
+        (decodeControlResult('derive_root', job.result!) as any).Ok.cycles_cost_upper_bound
       ),
       account,
       device: meta.deviceId,

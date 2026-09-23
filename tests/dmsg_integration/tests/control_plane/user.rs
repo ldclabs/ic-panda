@@ -106,7 +106,7 @@ fn early_cose_rejection_keeps_its_sequence_until_reconciled() {
         signed.unwrap().outcome,
         ExecutionOutcome::Completed(_)
     ));
-    for _ in 3..=64 {
+    for _ in 3..=dmsg_runtime::FORMAL_EXECUTION_WINDOW {
         let r = statement_request(&f, &id, real_key.clone(), 1);
         let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
         assert_eq!(

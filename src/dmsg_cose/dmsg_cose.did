@@ -34,13 +34,13 @@ type CoseInit = record {
   executing_canister : principal;
   // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
-  // Maximum ICP cycles in a daily budget window.
+  // Maximum reserved ICP cycles in a daily budget window; adjustable during upgrade.
   daily_cycles : nat;
   // User canister authorized to supply execution grants.
   initial_home_user : principal;
   // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
-  // Maximum executions in a daily budget window.
+  // Maximum executions in a daily budget window; adjustable during upgrade.
   daily_executions : nat32;
   // Deployment domain used in validation and derivation.
   environment : Environment;
@@ -113,6 +113,16 @@ type Error = variant {
   AuthRequired;
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
+};
+// Controller-maintained page of expired COSE execution results.
+// The caller supplies next_after to continue, including across upgrades.
+type ExecutionCleanup = record {
+  // Exclusive account cursor for the next page; None ends this pass.
+  next_after : opt blob;
+  // Number of homes inspected (at most eight).
+  homes_scanned : nat32;
+  // Expired terminal results deleted; replay high-water marks are preserved.
+  results_removed : nat32;
 };
 // User-home authorization passed to the configured COSE home.
 // This is a restricted cross-canister contract, not a bearer token that any
@@ -201,12 +211,14 @@ type ExecutionOutput = variant {
     artifact : SignedArtifact;
   };
 };
-// Query/retry view of an execution and its charged cycles.
+// Query/retry view of an execution and its conservative management-call cost bound.
 type ExecutionResult = record {
   // Operation identity used to bind approval and reconcile retries.
   request_id : blob;
-  // ICP cycles charged for this execution.
-  charged_cycles : nat;
+  // Conservative ICP cost upper bound, including maximum response/callback
+  // reservations, less refunded attached cycles. Not an actual charge or bill.
+  // Zero before dispatch or when the management call was not sent.
+  cycles_cost_upper_bound : nat;
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
@@ -301,7 +313,8 @@ type MasterKey = record {
 };
 type Result = variant { Ok : ExecutionResult; Err : Error };
 type Result_1 = variant { Ok : KeyState; Err : Error };
-type Result_2 = variant { Ok : KeyDescriptor; Err : Error };
+type Result_2 = variant { Ok : ExecutionCleanup; Err : Error };
+type Result_3 = variant { Ok : KeyDescriptor; Err : Error };
 // Portable signed document plus a public-only COSE_Key.
 // The attached key supports mathematical verification but does not establish
 // who owns the key or whether the signer had authority.
@@ -337,7 +350,9 @@ service : (CoseInit) -> {
   get_execution : (blob, blob) -> (Result) query;
   initialize_keys : () -> (Result_1);
   key_state : () -> (KeyState) query;
+  // Prune one bounded page of expired terminal results, retaining replay guards.
+  prune_executions : (opt blob) -> (Result_2);
   // Public-key math is independent of account existence or execution permission.
   // No management call, registration or stable write is needed for this query.
-  public_key : (blob, KeySelector) -> (Result_2) query;
+  public_key : (blob, KeySelector) -> (Result_3) query;
 }

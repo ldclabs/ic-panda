@@ -195,7 +195,7 @@ export type ExecutionOutput = {
   { 'Signature' : { 'key' : KeyDescriptor, 'artifact' : SignedArtifact } };
 export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
-  'charged_cycles' : bigint,
+  'cycles_cost_upper_bound' : bigint,
   'outcome' : ExecutionOutcome,
 }
 export interface ExecutionUsage {

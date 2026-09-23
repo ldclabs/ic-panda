@@ -11,3 +11,5 @@ mod calls;
 pub use calls::{call, call_classified, CallFailure};
 
 pub const WINDOW: usize = 64;
+/// Leave eight retained-execution slots available for content-root operations.
+pub const FORMAL_EXECUTION_WINDOW: usize = WINDOW - 8;

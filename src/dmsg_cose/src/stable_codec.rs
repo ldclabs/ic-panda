@@ -70,6 +70,8 @@ pub struct ExecutionRepr {
     pub expires_at: u64,
     #[cbor(key = 4)]
     pub terminal: bool,
+    #[cbor(key = 5)]
+    pub formal: bool,
 }
 
 impl StableCodec for model::Execution {
@@ -81,6 +83,7 @@ impl StableCodec for model::Execution {
             digest: self.digest,
             expires_at: self.expires_at,
             terminal: self.terminal,
+            formal: self.formal,
         }
     }
 
@@ -90,6 +93,33 @@ impl StableCodec for model::Execution {
             digest: repr.digest,
             expires_at: repr.expires_at,
             terminal: repr.terminal,
+            formal: repr.formal,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct BudgetsRepr {
+    #[cbor(key = 1)]
+    total: BudgetRepr,
+    #[cbor(key = 2)]
+    formal: BudgetRepr,
+}
+
+impl StableCodec for model::Budgets {
+    type Repr = BudgetsRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        BudgetsRepr {
+            total: self.total.to_repr(),
+            formal: self.formal.to_repr(),
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            total: Budget::from_repr(repr.total),
+            formal: Budget::from_repr(repr.formal),
         }
     }
 }
@@ -220,6 +250,7 @@ mod tests {
                     digest: Hash::new([7; 32]),
                     expires_at: 1_700_000_300_000,
                     terminal: sequence % 2 == 0,
+                    formal: sequence % 3 == 0,
                 },
             );
         }
@@ -240,7 +271,7 @@ mod tests {
                 encrypted_key: vec![12; 128].into(),
                 key: descriptor(derive_grant.account_id.clone(), Algorithm::VetKdBls12381),
             })),
-            charged_cycles: 100_000_000_000,
+            cycles_cost_upper_bound: 100_000_000_000,
         };
         let derive_bytes = compact_bytes(&derive);
         assert_integer_top_keys(&derive_bytes, 3);
@@ -266,7 +297,7 @@ mod tests {
                 },
                 key: descriptor(sign_grant.account_id.clone(), Algorithm::Ed25519),
             })),
-            charged_cycles: 100_000_000_000,
+            cycles_cost_upper_bound: 100_000_000_000,
         };
         assert_eq!(
             compact_from_bytes::<ExecutionResult>(&compact_bytes(&signed)),
@@ -283,7 +314,7 @@ mod tests {
             let execution = ExecutionResult {
                 request_id: sign_grant.request_id,
                 outcome,
-                charged_cycles: 1,
+                cycles_cost_upper_bound: 1,
             };
             assert_eq!(
                 compact_from_bytes::<ExecutionResult>(&compact_bytes(&execution)),
@@ -338,5 +369,15 @@ mod tests {
         assert_eq!(sparse_decoded.state.fingerprints, sparse.state.fingerprints);
         assert_eq!(sparse_decoded.state.error, sparse.state.error);
         assert_eq!(sparse_decoded.keys, sparse.keys);
+    }
+
+    #[test]
+    fn both_global_budgets_fit_the_existing_page_and_round_trip() {
+        let mut budgets = model::Budgets::default();
+        budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
+        budgets.reserve(2 * DAY, 30, 10, 100, false).unwrap();
+        let encoded = compact_bytes(&budgets);
+        assert!(encoded.len() < 128);
+        assert_eq!(compact_from_bytes::<model::Budgets>(&encoded), budgets);
     }
 }

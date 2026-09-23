@@ -57,12 +57,12 @@ pub(crate) fn authorize(
             nonzero(public_key_fingerprint.as_slice())?;
             let prepared = parse_signing_input(to_be_signed)?;
             ensure(
-                prepared.algorithm == key.algorithm
-                    && statement_purpose(&prepared.statement) == key.purpose,
+                *prepared.algorithm() == key.algorithm
+                    && statement_purpose(prepared.statement()) == key.purpose,
                 Error::UnsupportedProtocol,
             )?;
             ensure(
-                prepared.statement.issuer == account_issuer(namespace, &s.account_id)?,
+                prepared.statement().issuer == account_issuer(namespace, &s.account_id)?,
                 Error::IntegrityFailed,
             )?;
             (Capability::FormalApprove, false)
@@ -118,8 +118,13 @@ pub(crate) fn authorize(
         .values()
         .filter(|expires_at| expires_at.is_none_or(|at| at > now))
         .count();
+    let window = if matches!(input.kind, ExecutionKind::Sign { .. }) {
+        FORMAL_EXECUTION_WINDOW
+    } else {
+        WINDOW
+    };
     ensure(
-        retained < WINDOW && s.next_execution_sequence < u64::MAX,
+        retained < window && s.next_execution_sequence < u64::MAX,
         Error::QuotaExceeded,
     )?;
     if matches!(input.kind, ExecutionKind::Derive { .. }) {
@@ -162,7 +167,7 @@ pub(crate) fn authorize(
         result: ExecutionResult {
             request_id: input.approval.request_id,
             outcome: ExecutionOutcome::Authorized,
-            charged_cycles: 0,
+            cycles_cost_upper_bound: 0,
         },
     };
     s.execution_expirations

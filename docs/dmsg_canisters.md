@@ -10,6 +10,8 @@ Added the shared `membership` canister (PANDA qualification, exclusivity, durabl
 
 The implementation separates shared membership from product commerce, for six canister roles in total. Commerce UI is wired and locally tested; TokenList adapters and production wallet/SNS acceptance remain separate deliveries; local tests do not constitute production readiness.
 
+COSE schema 6 reserves execution slots for root derivation, combines global budgets, and adds controller-only paginated cleanup. Upgrades may adjust daily budgets while keeping key identity fixed. Execution results expose `cycles_cost_upper_bound`, a conservative management-call bound, not an actual bill. See the [COSE implementation and measurements](../src/dmsg_cose/README.md).
+
 ## Sub-crates
 
 | Package | Responsibilities | Documentation |

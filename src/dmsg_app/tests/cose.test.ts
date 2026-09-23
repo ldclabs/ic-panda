@@ -173,7 +173,7 @@ describe('typed COSE client and independent Rust approval vectors', () => {
         Ok: {
           request_id: request.approval.request_id,
           outcome: { Executing: null },
-          charged_cycles: 0n
+          cycles_cost_upper_bound: 0n
         }
       }
     })
@@ -198,7 +198,7 @@ describe('typed COSE client and independent Rust approval vectors', () => {
     const result: ExecutionResult = {
       request_id: unhex(prepared.requestId),
       outcome: { Unknown: { ExecutionUnknown: null } },
-      charged_cycles: 0n
+      cycles_cost_upper_bound: 0n
     }
     const user = {
       sign: vi.fn().mockRejectedValue(new Error('connection lost')),

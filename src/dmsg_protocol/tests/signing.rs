@@ -46,6 +46,53 @@ fn file_statement() -> Statement {
 }
 
 #[test]
+fn prepared_signatures_match_raw_framing_for_every_profile_and_algorithm() {
+    for statement in [
+        statement(),
+        file_statement(),
+        Statement {
+            content: StatementContent::Text("x".repeat(4096)),
+            ..statement()
+        },
+    ] {
+        for algorithm in [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1] {
+            let (_, tbs) = prepare_cose(&statement, &algorithm, b"kid").unwrap();
+            let (public, signature) = if algorithm == Algorithm::Ed25519 {
+                (
+                    key().verifying_key().to_bytes().to_vec(),
+                    key().sign(&tbs).to_bytes().to_vec(),
+                )
+            } else {
+                let key = k256::ecdsa::SigningKey::from_bytes((&[7; 32]).into()).unwrap();
+                let signature: k256::ecdsa::Signature = key.sign(&tbs);
+                (
+                    key.verifying_key().to_sec1_point(true).as_bytes().to_vec(),
+                    signature.to_bytes().to_vec(),
+                )
+            };
+            let prepared = parse_signing_input(&tbs)
+                .unwrap()
+                .into_signature(&public)
+                .unwrap();
+            let optimized = prepared.finish(signature.clone()).unwrap();
+            assert_eq!(optimized, finish_cose(&tbs, &public, signature).unwrap());
+            assert_eq!(
+                verification_report(&optimized, None).unwrap().signature,
+                VerificationStatus::Verified
+            );
+            assert_eq!(
+                parse_signing_input(&tbs)
+                    .unwrap()
+                    .into_signature(&public)
+                    .unwrap()
+                    .finish(vec![0; 63]),
+                Err(Error::IntegrityFailed)
+            );
+        }
+    }
+}
+
+#[test]
 fn file_statements_jointly_bind_text_and_file_with_separate_content_verification() {
     let value = file_statement();
     assert_eq!(
@@ -54,7 +101,7 @@ fn file_statements_jointly_bind_text_and_file_with_separate_content_verification
     );
     for algorithm in [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1] {
         let (message, tbs) = prepare_cose(&value, &algorithm, b"kid").unwrap();
-        assert_eq!(parse_signing_input(&tbs).unwrap().statement, value);
+        assert_eq!(parse_signing_input(&tbs).unwrap().statement(), &value);
         assert_eq!(
             message.protected.get(16),
             Some(&Value::from(FILE_STATEMENT_PROFILE))
@@ -661,7 +708,10 @@ fn preparation_rejects_unsupported_algorithms_bad_keys_and_signature_lengths() {
     }
     let (_, tbs) =
         prepare_cose(&statement(), &Algorithm::Ed25519, &vec![1; MAX_KID_BYTES]).unwrap();
-    assert_eq!(parse_signing_input(&tbs).unwrap().kid.len(), MAX_KID_BYTES);
+    assert_eq!(
+        parse_signing_input(&tbs).unwrap().kid().len(),
+        MAX_KID_BYTES
+    );
     for size in [0, 63, 65] {
         assert!(finish_cose(&tbs, &key().verifying_key().to_bytes(), vec![0; size]).is_err());
     }

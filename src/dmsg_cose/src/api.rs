@@ -39,7 +39,11 @@ fn post_upgrade(args: Option<CoseInit>) {
     let mut c = cfg();
     assert_eq!(c.schema, STABLE_SCHEMA, "incompatible development state");
     if let Some(args) = args {
-        assert_eq!(args, c.state.config, "key descriptions are immutable");
+        let mut allowed = c.state.config.clone();
+        allowed.daily_executions = args.daily_executions;
+        allowed.daily_cycles = args.daily_cycles;
+        assert_eq!(args, allowed, "key descriptions are immutable");
+        c.state.config = args;
     }
     c.state
         .config
@@ -216,12 +220,19 @@ fn describe(
     })
 }
 
+struct PreparedExecution {
+    operation: Operation,
+    cost: Cost,
+    key: KeyDescriptor,
+    signature: Option<PreparedSignature>,
+}
+
 fn prepare(
     c: &Config,
     g: &ExecutionGrant,
     canister_id: Principal,
     at: u64,
-) -> Result<(Operation, Cost, KeyDescriptor)> {
+) -> Result<PreparedExecution> {
     let config = &c.state.config;
     match (&g.kind, &g.commerce) {
         (ExecutionKind::Sign { .. }, Some(r)) => ensure(
@@ -235,7 +246,7 @@ fn prepare(
         (ExecutionKind::Derive { .. }, None) => {}
         _ => return Err(Error::IntegrityFailed),
     }
-    let (operation, descriptor) = match &g.kind {
+    let (operation, key, signature) = match &g.kind {
         ExecutionKind::Sign {
             key,
             to_be_signed,
@@ -246,18 +257,18 @@ fn prepare(
             validate_origin(origin)?;
             let prepared = parse_signing_input(to_be_signed)?;
             ensure(
-                prepared.algorithm == key.algorithm
-                    && statement_purpose(&prepared.statement) == key.purpose,
+                *prepared.algorithm() == key.algorithm
+                    && statement_purpose(prepared.statement()) == key.purpose,
                 Error::UnsupportedProtocol,
             )?;
             ensure(
-                prepared.statement.issuer
+                prepared.statement().issuer
                     == account_issuer(&config.issuer_namespace, &g.account_id)?,
                 Error::IntegrityFailed,
             )?;
             let descriptor = describe(c, &g.account_id, key.clone(), canister_id)?;
             ensure(
-                descriptor.key_id.as_slice() == prepared.kid
+                descriptor.key_id.as_slice() == prepared.kid()
                     && descriptor.public_key_fingerprint == *public_key_fingerprint,
                 Error::IntegrityFailed,
             )?;
@@ -276,7 +287,7 @@ fn prepare(
                 ),
                 _ => return Err(Error::UnsupportedProtocol),
             };
-            (operation, descriptor)
+            (operation, descriptor, Some(prepared))
         }
         ExecutionKind::Derive {
             generation,
@@ -300,7 +311,7 @@ fn prepare(
                 model::root_input(&g.account_id, *generation),
                 transport_key.to_vec(),
             );
-            (operation, descriptor)
+            (operation, descriptor, None)
         }
     };
     let cost = operation.cost().map_err(Error::Unavailable)?;
@@ -308,7 +319,15 @@ fn prepare(
         cost.total().map_err(Error::Unavailable)? <= g.max_cycles,
         Error::QuotaExceeded,
     )?;
-    Ok((operation, cost, descriptor))
+    let signature = signature
+        .map(|prepared| prepared.into_signature(&key.public_key))
+        .transpose()?;
+    Ok(PreparedExecution {
+        operation,
+        cost,
+        key,
+        signature,
+    })
 }
 
 #[ic_cdk::update]
@@ -347,7 +366,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     };
     let reserved = prepared
         .as_ref()
-        .map_or(0, |(_, cost, _)| cost.total().expect("validated cost"));
+        .map_or(0, |p| p.cost.total().expect("validated cost"));
     let removed = h.prepare(&grant, at, reserved)?;
     // Last fallible check before committing. An Err must not consume a sequence.
     reserve_budget(
@@ -358,10 +377,15 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     )?;
     let mut result = ExecutionResult {
         request_id: grant.request_id,
-        charged_cycles: 0,
+        cycles_cost_upper_bound: 0,
         outcome: ExecutionOutcome::Executing,
     };
-    let (operation, cost, key) = match prepared {
+    let PreparedExecution {
+        operation,
+        cost,
+        key,
+        signature,
+    } = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
             result.outcome = if error == Error::ResultExpired {
@@ -380,7 +404,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
             return Ok(result);
         }
     };
-    result.charged_cycles = reserved;
+    result.cycles_cost_upper_bound = reserved;
     save_execution(
         &grant.account_id,
         &h,
@@ -388,16 +412,21 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         &result,
         &removed,
     );
+    let account_id = grant.account_id.clone();
+    let sequence = grant.execution_sequence;
+    drop(grant);
+    drop(h);
+    drop(c);
     let response = operation.execute().await;
-    result.charged_cycles = chain_key::charged_cycles(
+    result.cycles_cost_upper_bound = chain_key::cost_upper_bound(
         cost,
         response.as_ref().err(),
         ic_cdk::api::msg_cycles_refunded(),
     );
     result.outcome = match response {
-        Ok(bytes) => match &grant.kind {
-            ExecutionKind::Sign { to_be_signed, .. } => {
-                match finish_cose(to_be_signed, &key.public_key, bytes) {
+        Ok(bytes) => match signature {
+            Some(signature) => {
+                match signature.finish(bytes) {
                     Ok(artifact) => {
                         ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
                             artifact,
@@ -409,12 +438,10 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
                     Err(error) => ExecutionOutcome::Unknown(error),
                 }
             }
-            ExecutionKind::Derive { .. } => {
-                ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
-                    encrypted_key: bytes.into(),
-                    key,
-                }))
-            }
+            None => ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
+                encrypted_key: bytes.into(),
+                key,
+            })),
         },
         Err(e) => {
             let detail = Error::Unavailable(format!("{e:?}"));
@@ -426,15 +453,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         }
     };
     // Other executions can finish while this management call is in flight.
-    let mut current = home(&grant.account_id)?;
-    current.finish(grant.execution_sequence, &result);
-    save_execution(
-        &grant.account_id,
-        &current,
-        grant.execution_sequence,
-        &result,
-        &[],
-    );
+    let mut current = home(&account_id)?;
+    current.finish(sequence, &result);
+    save_execution(&account_id, &current, sequence, &result, &[]);
     Ok(result)
 }
 
@@ -447,4 +468,12 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
     let h = home(&account_id)?;
     let sequence = h.sequence(&request_id).ok_or(Error::NotFound)?;
     execution(&account_id, sequence)
+}
+
+/// Prune one bounded page of expired terminal results, retaining replay guards.
+#[ic_cdk::update]
+fn prune_executions(after: Option<AccountId>) -> Result<ExecutionCleanup> {
+    let caller = ic_cdk::api::msg_caller();
+    ensure(ic_cdk::api::is_controller(&caller), Error::Forbidden)?;
+    Ok(crate::store::prune_executions(after, now()))
 }

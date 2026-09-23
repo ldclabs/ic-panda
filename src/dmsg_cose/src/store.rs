@@ -1,6 +1,5 @@
 use crate::model;
 use dmsg_runtime::storage::{CompactStored, MapExt};
-use dmsg_runtime::Budget;
 use dmsg_types::{cose::*, *};
 use ic_cose_chain_key::PublicKey;
 use ic_stable_structures::{
@@ -20,8 +19,9 @@ pub(crate) struct Config {
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type CellMemory = RestrictedMemory<Memory>;
 // Share one default 128-page bucket: keep the small budget in its last page.
-// This avoids allocating another 8 MiB just to persist three counters.
+// Store both budgets in this page, without allocating another 8 MiB bucket.
 const BUDGET_PAGE: u64 = 127;
+pub(crate) const CLEANUP_BATCH: usize = 8;
 
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
@@ -39,13 +39,10 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
-    static FORMAL_BUDGET: RefCell<StableCell<CompactStored<Budget>, Memory>> = RefCell::new(
-        StableCell::init(memory(3), CompactStored::new(&Budget::default())),
-    );
-    static BUDGET: RefCell<StableCell<CompactStored<Budget>, CellMemory>> =
+    static BUDGET: RefCell<StableCell<CompactStored<model::Budgets>, CellMemory>> =
         RefCell::new(StableCell::init(
             RestrictedMemory::new(memory(0), BUDGET_PAGE..BUDGET_PAGE + 1),
-            CompactStored::new(&Budget::default()),
+            CompactStored::new(&model::Budgets::default()),
         ));
 }
 
@@ -93,28 +90,55 @@ pub(crate) fn reserve_budget(
 ) -> Result<()> {
     BUDGET.with_borrow_mut(|t| {
         let mut budget = t.get().value();
-        budget.reserve(now, cycles, config.daily_executions, config.daily_cycles)?;
-        if formal {
-            FORMAL_BUDGET.with_borrow_mut(|f| {
-                let mut value = f.get().value();
-                value.reserve(
-                    now,
-                    cycles,
-                    config
-                        .daily_executions
-                        .saturating_sub(config.daily_executions / 5),
-                    config.daily_cycles - config.daily_cycles / 5,
-                )?;
-                f.set(CompactStored::new(&value));
-                Ok::<(), Error>(())
-            })?;
-        }
+        budget.reserve(
+            now,
+            cycles,
+            config.daily_executions,
+            config.daily_cycles,
+            formal,
+        )?;
         t.set(CompactStored::new(&budget));
         Ok(())
     })
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 5;
+/// Each page visits at most eight homes and removes at most 8 * WINDOW results.
+/// Empty homes keep their sequence high-water mark and budget counters.
+pub(crate) fn prune_executions(after: Option<AccountId>, now: u64) -> ExecutionCleanup {
+    let mut homes = HOMES.with_borrow(|t| {
+        t.page(
+            after.map_or_else(Vec::new, |id| id.to_vec()),
+            CLEANUP_BATCH + 1,
+        )
+    });
+    let more = homes.len() > CLEANUP_BATCH;
+    homes.truncate(CLEANUP_BATCH);
+    let next_after = more.then(|| {
+        AccountId::try_from(homes.last().expect("full page").0.as_slice()).expect("account key")
+    });
+    let mut results_removed = 0;
+    for (id, h) in &mut homes {
+        let removed = h.prune(now);
+        if removed.is_empty() {
+            continue;
+        }
+        let account_id = AccountId::try_from(id.as_slice()).expect("account key");
+        EXECUTIONS.with_borrow_mut(|t| {
+            for seq in &removed {
+                t.delete(&execution_key(&account_id, *seq));
+            }
+        });
+        results_removed += removed.len() as u32;
+        HOMES.with_borrow_mut(|t| t.put(id, h));
+    }
+    ExecutionCleanup {
+        next_after,
+        homes_scanned: homes.len() as u32,
+        results_removed,
+    }
+}
+
+pub(crate) const STABLE_SCHEMA: u16 = 6;
 
 fn execution_key(account_id: &AccountId, sequence: u64) -> Vec<u8> {
     [account_id.as_slice(), &sequence.to_be_bytes()].concat()

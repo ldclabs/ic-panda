@@ -139,7 +139,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const ExecutionResult = IDL.Record({
     'request_id' : IDL.Vec(IDL.Nat8),
-    'charged_cycles' : IDL.Nat,
+    'cycles_cost_upper_bound' : IDL.Nat,
     'outcome' : ExecutionOutcome,
   });
   const Result = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
@@ -155,6 +155,12 @@ export const idlFactory = ({ IDL }) => {
     'config' : CoseInit,
   });
   const Result_1 = IDL.Variant({ 'Ok' : KeyState, 'Err' : Error });
+  const ExecutionCleanup = IDL.Record({
+    'next_after' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'homes_scanned' : IDL.Nat32,
+    'results_removed' : IDL.Nat32,
+  });
+  const Result_2 = IDL.Variant({ 'Ok' : ExecutionCleanup, 'Err' : Error });
   const SigningAlgorithm = IDL.Variant({
     'Ed25519' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
@@ -171,7 +177,7 @@ export const idlFactory = ({ IDL }) => {
     'ContentRoot' : IDL.Record({ 'generation' : IDL.Nat64 }),
     'Signing' : SigningKey,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
+  const Result_3 = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
   return IDL.Service({
     'execute' : IDL.Func([ExecutionGrant], [Result], []),
     'get_execution' : IDL.Func(
@@ -181,9 +187,10 @@ export const idlFactory = ({ IDL }) => {
       ),
     'initialize_keys' : IDL.Func([], [Result_1], []),
     'key_state' : IDL.Func([], [KeyState], ['query']),
+    'prune_executions' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [Result_2], []),
     'public_key' : IDL.Func(
         [IDL.Vec(IDL.Nat8), KeySelector],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
   });

@@ -157,7 +157,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const ExecutionResult = IDL.Record({
     'request_id' : IDL.Vec(IDL.Nat8),
-    'charged_cycles' : IDL.Nat,
+    'cycles_cost_upper_bound' : IDL.Nat,
     'outcome' : ExecutionOutcome,
   });
   const Result_2 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });

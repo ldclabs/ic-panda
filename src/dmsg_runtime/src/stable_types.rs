@@ -1027,7 +1027,7 @@ pub struct ExecutionResultRepr {
     #[cbor(key = 2)]
     pub outcome: ExecutionOutcomeRepr,
     #[cbor(key = 3)]
-    pub charged_cycles: u128,
+    pub cycles_cost_upper_bound: u128,
 }
 
 impl StableCodec for ExecutionResult {
@@ -1037,7 +1037,7 @@ impl StableCodec for ExecutionResult {
         ExecutionResultRepr {
             request_id: self.request_id,
             outcome: (&self.outcome).into(),
-            charged_cycles: self.charged_cycles,
+            cycles_cost_upper_bound: self.cycles_cost_upper_bound,
         }
     }
 
@@ -1045,7 +1045,7 @@ impl StableCodec for ExecutionResult {
         Self {
             request_id: repr.request_id,
             outcome: repr.outcome.into(),
-            charged_cycles: repr.charged_cycles,
+            cycles_cost_upper_bound: repr.cycles_cost_upper_bound,
         }
     }
 }

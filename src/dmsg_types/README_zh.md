@@ -119,7 +119,7 @@ use dmsg_types::{cose::{ExecutionOutcome, ExecutionResult}, Error, Hash};
 let result = ExecutionResult {
     request_id: Hash::new([7; 32]),
     outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
-    charged_cycles: 0,
+    cycles_cost_upper_bound: 0,
 };
 assert!(!result.is_terminal());
 assert_eq!(result.output(), Err(Error::ExecutionUnknown));

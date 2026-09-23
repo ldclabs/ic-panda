@@ -96,6 +96,8 @@ assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 
 使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`finish_cose` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops，并展开压缩 EC y 坐标；它不是原始公钥 SHA-256，也不是完整公钥验证器。
 
+`parse_signing_input` 返回不可变 `PreparedStatement`，通过 `statement()`、`algorithm()` 和 `kid()` 读取已验证内容。执行器可以在调用签名器前运行 `into_signature(public)`，回调时使用 `PreparedSignature::finish(signature)`，复用已验证的封装和公钥编码；接收产物时仍需数学验签。
+
 ## 构造 ICP 设备批准
 
 以下示例构造本地请求和设备签名，不联系 canister，也不授予权限。真实账户 ID、设备 ID、epoch、序号和签名公钥引用必须从已配置、已认证的服务取得。示例 ID 和密钥仅用于演示。

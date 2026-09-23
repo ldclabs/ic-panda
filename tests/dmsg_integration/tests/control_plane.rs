@@ -80,10 +80,10 @@ fn submit_execution(
                     account_id: request.account_id,
                     key: SigningKeyRef {
                         algorithm,
-                        kid: prepared.kid.into(),
+                        kid: prepared.kid().to_vec().into(),
                         public_key_fingerprint,
                     },
-                    statement: prepared.statement,
+                    statement: prepared.statement().clone(),
                     origin,
                     max_cycles: request.max_cycles,
                     approval: request.approval,

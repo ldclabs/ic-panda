@@ -18,8 +18,9 @@ pub struct PublicKey {
     pub chain_code: Vec<u8>,
 }
 
-/// Management request fee plus the outgoing inter-canister call fee. This is
-/// not total canister operating cost (instructions/storage/query are separate).
+/// Conservative management-call budget: request payment plus the system
+/// cost_call reservation, including the maximum response and callback costs.
+/// This is an upper bound, not the actual canister balance deduction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Cost {
     pub request_cycles: u128,
@@ -51,6 +52,7 @@ impl Operation {
             },
         })
     }
+
     pub fn schnorr(
         key_name: String,
         algorithm: mgmt::SchnorrAlgorithm,
@@ -67,6 +69,7 @@ impl Operation {
             aux: None,
         })
     }
+
     /// `context` and `input` are exact caller-defined bytes, never re-encoded.
     pub fn vetkd(
         key_name: String,
@@ -84,6 +87,7 @@ impl Operation {
             },
         })
     }
+
     pub fn cost(&self) -> Result<Cost, String> {
         let (request_cycles, method, payload) = match self {
             Self::Ecdsa(a) => (
@@ -109,6 +113,7 @@ impl Operation {
         cost.total()?;
         Ok(cost)
     }
+
     pub async fn execute(self) -> Result<Vec<u8>, mgmt::SignCallError> {
         match self {
             Self::Ecdsa(a) => mgmt::sign_with_ecdsa(&a).await.map(|r| r.signature),
@@ -124,6 +129,7 @@ pub enum FailureKind {
     Rejected,
     Unknown,
 }
+
 pub fn classify_failure(error: &mgmt::SignCallError) -> FailureKind {
     match error {
         mgmt::SignCallError::SignCostError(_) => FailureKind::NotSent,
@@ -140,8 +146,11 @@ pub fn classify_failure(error: &mgmt::SignCallError) -> FailureKind {
         _ => FailureKind::Unknown,
     }
 }
-/// Call immediately after `execute().await`, supplying that callback's refund.
-pub fn charged_cycles(cost: Cost, error: Option<&mgmt::SignCallError>, refunded: u128) -> u128 {
+
+/// Remaining cost upper bound after subtracting refunded attached cycles.
+/// The call reservation still includes maximum response/callback costs; it is
+/// not an actual bill. Call immediately after `execute().await` with its refund.
+pub fn cost_upper_bound(cost: Cost, error: Option<&mgmt::SignCallError>, refunded: u128) -> u128 {
     if error.is_some_and(|e| classify_failure(e) == FailureKind::NotSent) {
         return 0;
     }
@@ -166,6 +175,7 @@ pub async fn ecdsa_public_key(key_name: String, path: Vec<Vec<u8>>) -> Result<Pu
         chain_code: r.chain_code,
     })
 }
+
 pub async fn schnorr_public_key(
     key_name: String,
     algorithm: mgmt::SchnorrAlgorithm,
@@ -186,6 +196,7 @@ pub async fn schnorr_public_key(
         chain_code: r.chain_code,
     })
 }
+
 pub fn vetkd_public_key_cost(key_name: &str, context: &[u8]) -> Result<u128, String> {
     let a = mgmt::VetKDPublicKeyArgs {
         canister_id: None,
@@ -201,6 +212,7 @@ pub fn vetkd_public_key_cost(key_name: &str, context: &[u8]) -> Result<u128, Str
         payload.len() as u64,
     ))
 }
+
 pub async fn vetkd_public_key(key_name: String, context: Vec<u8>) -> Result<Vec<u8>, String> {
     mgmt::vetkd_public_key(&mgmt::VetKDPublicKeyArgs {
         canister_id: None,
@@ -214,6 +226,7 @@ pub async fn vetkd_public_key(key_name: String, context: Vec<u8>) -> Result<Vec<
     .map(|r| r.public_key)
     .map_err(format_error)
 }
+
 fn format_error(e: impl std::fmt::Debug) -> String {
     format!("{e:?}")
 }
@@ -324,14 +337,23 @@ mod tests {
             assert_eq!(classify_failure(&e), FailureKind::Unknown);
         }
     }
+
     #[test]
-    fn refunds_do_not_refund_call_fees_and_unsent_calls_cost_nothing() {
+    fn cost_bounds_keep_call_reservations_and_zero_unsent_calls() {
         let cost = Cost {
             request_cycles: 100,
             call_cycles: 7,
         };
-        assert_eq!(charged_cycles(cost, None, 30), 77);
-        assert_eq!(charged_cycles(cost, None, 100), 7);
+        assert_eq!(cost_upper_bound(cost, None, 30), 77);
+        assert_eq!(cost_upper_bound(cost, None, 100), 7);
+        assert_eq!(cost_upper_bound(cost, None, 0), 107);
+        let rejected = mgmt::SignCallError::CallFailed(CallFailed::CallRejected(
+            ic_cdk::call::CallRejected::with_rejection(
+                RejectCode::CanisterReject as u32,
+                "rejected".into(),
+            ),
+        ));
+        assert_eq!(cost_upper_bound(cost, Some(&rejected), 100), 7);
         let e = mgmt::SignCallError::CallFailed(CallFailed::InsufficientLiquidCycleBalance(
             ic_cdk::call::InsufficientLiquidCycleBalance {
                 available: 0,
@@ -339,7 +361,7 @@ mod tests {
             },
         ));
         assert_eq!(classify_failure(&e), FailureKind::NotSent);
-        assert_eq!(charged_cycles(cost, Some(&e), 0), 0);
+        assert_eq!(cost_upper_bound(cost, Some(&e), 0), 0);
         assert!(Cost {
             request_cycles: u128::MAX,
             call_cycles: 1

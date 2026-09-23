@@ -234,8 +234,8 @@ fn sign_conversion_preserves_context_and_derives_the_correct_key_purpose() {
             assert_eq!(public_key_fingerprint, request.key.public_key_fingerprint);
             assert_eq!(origin, request.origin);
             let parsed = parse_signing_input(&to_be_signed).unwrap();
-            assert_eq!(parsed.statement, request.statement);
-            assert_eq!(parsed.kid, request.key.kid.into_vec());
+            assert_eq!(parsed.statement(), &request.statement);
+            assert_eq!(parsed.kid(), request.key.kid.as_slice());
         }
     }
     let changes: &[fn(&mut SignRequest)] = &[
