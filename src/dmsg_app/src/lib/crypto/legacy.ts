@@ -273,7 +273,7 @@ export class LegacyVault {
         updatedAt: Date.now()
       }
       await this.checkpoint(progress)
-      for (const record of (await db.heads()).filter((r) => r.kind === 'migration')) {
+      for (const record of await db.heads('migration')) {
         const previous = await this.port.decode<ArchiveRecord>(record)
         if (
           previous.format === 'dmsg-legacy-storage/1' &&
@@ -393,7 +393,7 @@ export class LegacyVault {
       const data = encoded.subarray(offset, offset + partSize),
         name = `legacy-${archiveDigest}-${offset / partSize}.cbor`
       let found: EncryptedObject | undefined
-      for (const record of (await db.heads()).filter((r) => r.kind === 'migration_part')) {
+      for (const record of await db.heads('migration_part')) {
         const item = await this.port.decode<Item>(record)
         if (item.file?.name === name) {
           ensure(item.file.sha256 === hash(data), 'INTEGRITY_FAILED')
@@ -504,7 +504,7 @@ export class LegacyVault {
       }
       const contentId = archiveContentId(archive),
         { db } = await this.port.ready()
-      for (const record of (await db.heads()).filter((r) => r.kind === 'migration')) {
+      for (const record of await db.heads('migration')) {
         const value = await this.port.decode<ArchiveRecord>(record)
         if (value.contentId === contentId) return this.report(record.key)
       }

@@ -196,6 +196,13 @@ test('loads the actual MV3 package, saves encrypted data, locks and recovers on 
     await popup.setViewportSize({ width: 360, height: 640 })
     await popup.goto(`${fresh.origin}/popup.html`)
     await expect(popup.getByRole('button', { name: '打开工作台', exact: true })).toBeVisible()
+    expect(
+      await popup.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .some((entry) => /\/assets\/(App-|[^/]*Settings-)/.test(entry.name))
+      )
+    ).toBe(false)
     await noOverflow(popup)
     await popup.screenshot({ path: testInfo.outputPath('popup.png'), fullPage: true })
     await recovery.getByRole('button', { name: '立即锁定工作台', exact: true }).click()

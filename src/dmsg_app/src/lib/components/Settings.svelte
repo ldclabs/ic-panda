@@ -2,13 +2,6 @@
   import { session, dateLabel, downloadBlob, formatBytes } from '../session.svelte'
   import { config, isExtension } from '../config'
   import { inspectRelay } from '../services/relay'
-  import AccountSettings from './AccountSettings.svelte'
-  import LegacySettings from './LegacySettings.svelte'
-  import InboxSettings from './InboxSettings.svelte'
-  import CommerceSettings from './CommerceSettings.svelte'
-  import SharedSettings from './SharedSettings.svelte'
-  import HandleSettings from './HandleSettings.svelte'
-  import SyncSettings from './SyncSettings.svelte'
   import Modal from './Modal.svelte'
   import Icon from './Icon.svelte'
   let tab = $state('recovery'),
@@ -121,9 +114,21 @@
       </div>
     </section>
   {:else if tab === 'devices'}
-    <AccountSettings />
+    {#await import('./AccountSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
   {:else if tab === 'sync'}
-    <SyncSettings />
+    {#await import('./SyncSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
   {:else if tab === 'storage'}
     <section class="settings-section">
       <h2>本机存储</h2>
@@ -171,12 +176,42 @@
             </div>{/each}
         </div>{:else}<p class="caption">没有待同步条目。</p>{/if}
     </section>
-  {:else if tab === 'inbox'}<InboxSettings />
-  {:else if tab === 'commerce'}<CommerceSettings />
-  {:else if tab === 'shared'}<SharedSettings />
-  {:else if tab === 'handles'}<HandleSettings />
+  {:else if tab === 'inbox'}{#await import('./InboxSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
+  {:else if tab === 'commerce'}{#await import('./CommerceSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
+  {:else if tab === 'shared'}{#await import('./SharedSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
+  {:else if tab === 'handles'}{#await import('./HandleSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
   {:else if tab === 'migration'}
-    <LegacySettings />
+    {#await import('./LegacySettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
   {:else}
     <section class="settings-section">
       <h2>服务与发布状态</h2>

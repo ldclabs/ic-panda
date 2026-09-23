@@ -5,7 +5,7 @@ import { xidText } from '../src/lib/protocol/identity'
 import { b64, canonical, hash, unb64 } from '../src/lib/protocol/codec'
 import { MAX_CIPHER_CHUNK } from '../src/lib/config'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
-import type { DownloadedContent } from '../src/lib/crypto/content'
+import type { StoredUploadPlan } from '../src/lib/protocol/content'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
@@ -42,7 +42,7 @@ it('uses real encrypted byte sizes, persists immutable manifests and imports the
   expect(file.plan.chunks[0].size).toBeGreaterThan(1024 * 1024)
   expect(file.plan.chunks[0].size).toBeLessThanOrEqual(MAX_CIPHER_CHUNK)
   expect(await source.contentPrepare(record.key)).toEqual(job)
-  const downloads: DownloadedContent[] = []
+  const downloads: { plan: StoredUploadPlan; manifest: string; chunks: string[] }[] = []
   for (const upload of job.uploads) {
     const chunks = []
     for (let i = 0; i < upload.plan.chunks.length; i++)
@@ -61,10 +61,23 @@ it('uses real encrypted byte sizes, persists immutable manifests and imports the
     tombstone: false,
     conflict: false
   }
-  const input = { objects: downloads, revisions: [revision], through: 9, evidence: '{}' }
-  const tampered = structuredClone(input)
-  tampered.objects[0].chunks[0] = b64(new Uint8Array([1, 2]))
-  await expect(target.contentReceive(tampered)).rejects.toThrow('INTEGRITY_FAILED')
+  const input = {
+    objects: downloads.map((object) => object.plan),
+    revisions: [revision],
+    through: 9,
+    evidence: '{}'
+  }
+  await target.contentCache(downloads[0].plan, 'manifest', unb64(downloads[0].manifest))
+  await expect(
+    target.contentCache(downloads[0].plan, 0, new Uint8Array([1, 2]))
+  ).rejects.toThrow('INTEGRITY_FAILED')
+  await expect(target.contentReceive(input)).rejects.toThrow('RECOVERY_INCOMPLETE')
+  for (const object of downloads) {
+    await target.contentCache(object.plan, 'manifest', unb64(object.manifest))
+    for (const [index, bytes] of object.chunks.entries())
+      await target.contentCache(object.plan, index, unb64(bytes))
+    expect(await target.contentMissing(object.plan)).toEqual({ manifest: true, chunks: [] })
+  }
   expect((await target.view()).entries).toHaveLength(0)
   expect(await target.contentReceive(input)).toMatchObject({
     records: 1,

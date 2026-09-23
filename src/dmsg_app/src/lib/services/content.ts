@@ -2,7 +2,17 @@ import { WorkspaceDB, currentWorkspace } from '../db'
 import type { CipherDispatch } from './background'
 import { AccountClient } from './account'
 import { CloudClient, RelayError, verifyCloudProfile } from './relay'
-import { canonical, decodeCanonical, equal, hash, hex, id, unb64 } from '../protocol/codec'
+import {
+  canonical,
+  decodeCanonical,
+  equal,
+  hash,
+  hex,
+  id,
+  unb64,
+  utf8
+} from '../protocol/codec'
+import { MAX_CIPHER_CHUNK } from '../config'
 import {
   readCloudCommand,
   signCloudHttp,
@@ -18,10 +28,11 @@ import {
   uploadPlanSchema,
   storedUploadPlanSchema,
   type ContentJob,
-  type ContentUpload
+  type ContentUpload,
+  type StoredUploadPlan
 } from '../protocol/content'
 import type { EncryptedObject } from '../models'
-import type { CloudRevision, DownloadedContent } from '../crypto/content'
+import type { CloudRevision } from '../crypto/content'
 import { ensure } from '../errors'
 
 type State = Awaited<ReturnType<AccountClient['refresh']>>
@@ -267,7 +278,8 @@ export class ContentClient {
       : job
   }
   async push(key: string) {
-    const state = await this.refresh()
+    await this.context()
+    const state = this.state!
     ensure(
       'Ready' in state.info.vault_write_state,
       'REKEY_REQUIRED',
@@ -362,10 +374,10 @@ export class ContentClient {
   async prepareBackground() {
     const state = await this.refresh()
     ensure('Ready' in state.info.vault_write_state, 'REKEY_REQUIRED')
-    const view = await this.account.crypto.call('view')
-    const pending = view.outbox
-      .filter((j) => !['stored', 'blocked'].includes(j.state))
-      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame)))
+    const pending = (await this.account.crypto.call('contentPending')).map((j) =>
+      decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK)
+    )
+    const pendingIds = new Set(pending.map((record) => record.revision))
     const eligible = pending
       .filter(
         (r) =>
@@ -382,7 +394,7 @@ export class ContentClient {
             'formal_file',
             'commerce',
             'inbox'
-          ].includes(r.kind) && !pending.some((p) => p.revision === r.parent)
+          ].includes(r.kind) && !pendingIds.has(r.parent ?? '')
       )
       .slice(0, 25)
     ensure(state.info.current_root[0], 'REKEY_REQUIRED')
@@ -461,10 +473,8 @@ export class ContentClient {
     return queued
   }
   async pushPending() {
-    const view = await this.account.crypto.call('view')
-    const pending = view.outbox
-      .filter((j) => !['stored', 'blocked'].includes(j.state))
-      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame)))
+    const pending = (await this.account.crypto.call('contentPending'))
+      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK))
       .filter((r) =>
         [
           'vault',
@@ -481,17 +491,21 @@ export class ContentClient {
           'inbox'
         ].includes(r.kind)
       )
-    let completed = 0
-    while (pending.length) {
-      const index = pending.findIndex(
-        (r) => !r.parent || !pending.some((p) => p.revision === r.parent)
-      )
-      ensure(index >= 0, 'INTEGRITY_FAILED', '本地版本存在循环依赖。')
-      const [record] = pending.splice(index, 1)
-      await this.push(record.key)
-      completed++
+    const ids = new Set(pending.map((record) => record.revision)),
+      children = new Map<string, EncryptedObject[]>(),
+      ordered = pending.filter((record) => !record.parent || !ids.has(record.parent))
+    for (const record of pending) {
+      if (record.parent && ids.has(record.parent)) {
+        const list = children.get(record.parent) ?? []
+        list.push(record)
+        children.set(record.parent, list)
+      }
     }
-    return completed
+    for (let index = 0; index < ordered.length; index++)
+      ordered.push(...(children.get(ordered[index].revision) ?? []))
+    ensure(ordered.length === pending.length, 'INTEGRITY_FAILED', '本地版本存在循环依赖。')
+    for (const record of ordered) await this.push(record.key)
+    return ordered.length
   }
   async pull() {
     await this.refresh()
@@ -504,12 +518,12 @@ export class ContentClient {
         start.scope === 'cloud_snapshot',
       'INTEGRITY_FAILED'
     )
-    const objects: DownloadedContent[] = [],
+    const objects: StoredUploadPlan[] = [],
       revisions: CloudRevision[] = [],
       evidence: unknown[] = [start]
     const counts = new Map<string, number>()
     let cursor = 0,
-      bytes = 0
+      evidenceBytes = utf8(JSON.stringify(start)).length
     for (;;) {
       const page = await this.get(
         `${this.base()}/exports/${start.export_id}?after=${cursor}&limit=100`
@@ -529,6 +543,8 @@ export class ContentClient {
         )
         cursor = entry.cursor
         counts.set(entry.kind, (counts.get(entry.kind) ?? 0) + 1)
+        evidenceBytes += utf8(JSON.stringify(entry)).length + 1
+        ensure(evidenceBytes <= 8 * 1024 * 1024, 'QUOTA_EXCEEDED')
         evidence.push(entry)
         if (entry.kind === 'object') {
           ensure(!entry.missing_chunks?.length, 'RECOVERY_INCOMPLETE', '云端快照有缺块。')
@@ -540,26 +556,28 @@ export class ContentClient {
               entry.value.digest === plan.manifest_digest,
             'INTEGRITY_FAILED'
           )
-          const manifest = await this.cloud.getChunk(
-            `${this.base()}/objects/${plan.upload_id}/chunks/manifest`,
-            plan.manifest_digest,
-            await this.context(),
-            this.sign
-          )
-          const chunks: string[] = []
-          const { b64 } = await import('../protocol/codec')
-          for (let index = 0; index < plan.chunks.length; index++) {
+          let missing = await this.account.crypto.call('contentMissing', plan)
+          if (!missing.manifest) {
+            const manifest = await this.cloud.getChunk(
+              `${this.base()}/objects/${plan.upload_id}/chunks/manifest`,
+              plan.manifest_digest,
+              await this.context(),
+              this.sign
+            )
+            await this.account.crypto.call('contentCache', plan, 'manifest', manifest)
+            missing = await this.account.crypto.call('contentMissing', plan)
+          }
+          for (const index of missing.chunks) {
             const data = await this.cloud.getChunk(
               `${this.base()}/objects/${plan.upload_id}/chunks/${index}`,
               plan.chunks[index].digest,
               await this.context(),
               this.sign
             )
-            bytes += data.length
-            ensure(bytes <= 256 * 1024 * 1024, 'QUOTA_EXCEEDED')
-            chunks.push(b64(data))
+            await this.account.crypto.call('contentCache', plan, index, data)
           }
-          objects.push({ plan, manifest: b64(manifest), chunks })
+          objects.push(plan)
+          ensure(objects.length <= 10000, 'QUOTA_EXCEEDED')
         } else if (entry.kind === 'revision') {
           const signed = this.verify(entry.value.signed, 'dmsg/vault/revision/v1')
           const payload = signed.payload as unknown as CloudRevision
@@ -577,6 +595,7 @@ export class ContentClient {
             )
           ensure(typeof entry.value.conflict === 'boolean', 'INTEGRITY_FAILED')
           revisions.push({ ...payload, conflict: entry.value.conflict })
+          ensure(revisions.length <= 100000, 'QUOTA_EXCEEDED')
         }
       }
       ensure(

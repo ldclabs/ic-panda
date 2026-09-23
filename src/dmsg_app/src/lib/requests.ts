@@ -143,6 +143,33 @@ export async function setRequestState(
     db.db.close()
   }
 }
+
+export async function acknowledgeRequest(
+  id: string,
+  source: SourceBinding,
+  digest: unknown,
+  deliveredDigest: string | undefined
+) {
+  ensure(
+    typeof digest === 'string' && /^[0-9a-f]{64}$/.test(digest) && deliveredDigest === digest,
+    'FORBIDDEN'
+  )
+  const db = await requestDatabase()
+  try {
+    const tx = db.db.transaction('requests', 'readwrite')
+    const request = (await tx.store.get(id)) as PendingRequest | undefined
+    ensure(
+      request &&
+        sameSource(request.source, source) &&
+        ['signed', 'returned'].includes(request.state),
+      'FORBIDDEN'
+    )
+    await tx.store.put({ ...request, state: 'returned' })
+    await tx.done
+  } finally {
+    db.db.close()
+  }
+}
 export async function assertLiveSource(request: PendingRequest) {
   ensure(isExtension(), 'FORBIDDEN')
   const result = await chrome.runtime.sendMessage({

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { canonical, decodeCanonical, equal, hash, unb64 } from './codec'
+import { b64, canonical, decodeCanonical, equal, hash, unb64 } from './codec'
 import { MAX_CIPHER_CHUNK, MAX_CIPHER_UPLOAD } from '../config'
 import { ensure } from '../errors'
 import type { EncryptedObject, FileManifest } from '../models'
@@ -72,6 +72,17 @@ export interface ContentJob {
 export const emptyFile = () => canonical({ format: 'dmsg-cloud-empty-file/1' })
 export const objectBytes = (record: EncryptedObject) =>
   canonical({ format: 'dmsg-cloud-object/1', record })
+// Build local routing indexes only from authenticated plaintext. Index hints
+// are not part of the uploaded record or its wire metadata.
+export function objectChannel(record: Pick<EncryptedObject, 'id' | 'kind'>, payload: unknown) {
+  const value =
+    record.kind === 'formal_channel' ? record.id : (payload as { channel?: unknown })?.channel
+  return record.kind.startsWith('formal_') &&
+    typeof value === 'string' &&
+    /^[0-9a-f]{64}$/.test(value)
+    ? value
+    : ''
+}
 export function readObject(bytes: Uint8Array): EncryptedObject {
   const value = decodeCanonical<{ format: string; record: EncryptedObject }>(
     bytes,
@@ -135,7 +146,6 @@ export async function openContentManifest(
     encrypted.length === plan.manifest_size && hash(encrypted) === plan.manifest_digest,
     'INTEGRITY_FAILED'
   )
-  const { b64 } = await import('./codec')
   const value = decodeCanonical<{
     format: string
     account_id: string

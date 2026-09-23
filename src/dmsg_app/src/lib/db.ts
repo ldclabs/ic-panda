@@ -5,6 +5,7 @@ import type {
   Lease,
   LocalEnvelope,
   OutboxJob,
+  ObjectKind,
   WorkspaceMeta
 } from './models'
 import { ensure } from './errors'
@@ -64,6 +65,12 @@ export async function registerWorkspace(name: string, expectedActive?: string) {
 export async function removeWorkspaceDatabase(name: string) {
   await deleteDB(name)
 }
+export const objectHead = (record: EncryptedObject, channelId = '') => ({
+  id: `head:${record.id}`,
+  revision: record.revision,
+  kind: record.kind,
+  channelId
+})
 export class WorkspaceDB {
   constructor(
     readonly db: IDBPDatabase,
@@ -76,10 +83,23 @@ export class WorkspaceDB {
       ),
       'INVALID_INPUT'
     )
-    const db = await openDB(name, 1, {
-      upgrade(db) {
-        for (const store of STORES)
-          db.createObjectStore(store, { keyPath: store === 'objects' ? 'key' : 'id' })
+    const db = await openDB(name, 2, {
+      async upgrade(db, oldVersion, _newVersion, tx) {
+        if (!oldVersion)
+          for (const store of STORES)
+            db.createObjectStore(store, { keyPath: store === 'objects' ? 'key' : 'id' })
+        const meta = tx.objectStore('meta')
+        meta.createIndex('head-kind', 'kind')
+        meta.createIndex('head-channel', ['kind', 'channelId'])
+        tx.objectStore('objects').createIndex('kind', 'kind')
+        tx.objectStore('outbox').createIndex('state', 'state')
+        // Index construction only; ciphertext and object formats stay untouched.
+        for (const row of await meta.getAll(IDBKeyRange.bound('head:', 'head:\uffff'))) {
+          const record = await tx
+            .objectStore('objects')
+            .get(`${row.id.slice(5)}:${row.revision}`)
+          if (record) await meta.put(objectHead(record))
+        }
       },
       blocking() {
         db.close()
@@ -278,7 +298,13 @@ export class WorkspaceDB {
     await tx.objectStore('local_private').delete(`file-job:${version}`)
     await tx.done
   }
-  async commit(record: EncryptedObject, base: string | null, lease: Lease, job: OutboxJob) {
+  async commit(
+    record: EncryptedObject,
+    base: string | null,
+    lease: Lease,
+    job: OutboxJob,
+    channelId = ''
+  ) {
     const tx = this.db.transaction(['meta', 'objects', 'outbox'], 'readwrite')
     const current = (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined
     this.assertLease(current, lease)
@@ -295,16 +321,41 @@ export class WorkspaceDB {
     await tx
       .objectStore('outbox')
       .put({ ...job, ...(conflict ? { state: 'blocked', error: 'VERSION_CONFLICT' } : {}) })
-    if (!conflict)
-      await tx.objectStore('meta').put({ id: `head:${record.id}`, revision: record.revision })
+    if (!conflict) await tx.objectStore('meta').put(objectHead(record, channelId))
     await tx.done
     return saved
   }
-  async heads(): Promise<EncryptedObject[]> {
+  async getHead(id: string, kind?: ObjectKind): Promise<EncryptedObject | undefined> {
     const tx = this.db.transaction(['meta', 'objects'])
-    const heads = (await tx.objectStore('meta').getAll()).filter((m) =>
-      m.id.startsWith('head:')
-    )
+    const head = await tx.objectStore('meta').get(`head:${id}`)
+    const record = head
+      ? await tx.objectStore('objects').get(`${id}:${head.revision}`)
+      : undefined
+    await tx.done
+    ensure(!head || record, 'RECOVERY_INCOMPLETE')
+    return record && (!kind || record.kind === kind) ? record : undefined
+  }
+  async outboxSummary(): Promise<Pick<OutboxJob, 'id' | 'state' | 'error'>[]> {
+    const rows: Pick<OutboxJob, 'id' | 'state' | 'error'>[] = []
+    const tx = this.db.transaction('outbox')
+    for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
+      const { id, state, error } = cursor.value as OutboxJob
+      rows.push({ id, state, ...(error ? { error } : {}) })
+    }
+    await tx.done
+    return rows
+  }
+  async heads(kind?: ObjectKind, channelId?: string): Promise<EncryptedObject[]> {
+    const tx = this.db.transaction(['meta', 'objects'])
+    const store = tx.objectStore('meta')
+    const heads = kind
+      ? channelId
+        ? [
+            ...(await store.index('head-channel').getAll([kind, channelId])),
+            ...(await store.index('head-channel').getAll([kind, '']))
+          ]
+        : await store.index('head-kind').getAll(kind)
+      : await store.getAll(IDBKeyRange.bound('head:', 'head:\uffff'))
     const values = await Promise.all(
       heads.map((head) =>
         tx.objectStore('objects').get(`${head.id.slice(5)}:${head.revision}`)
@@ -343,8 +394,8 @@ export class WorkspaceDB {
       } else if (
         (await tx.objectStore('meta').get(`head:${record.id}`))?.revision === record.revision
       ) {
-        if (await tx.objectStore('objects').get(`${record.id}:${result.head}`))
-          await tx.objectStore('meta').put({ id: `head:${record.id}`, revision: result.head })
+        const head = await tx.objectStore('objects').get(`${record.id}:${result.head}`)
+        if (head) await tx.objectStore('meta').put(objectHead(head))
         else await tx.objectStore('meta').delete(`head:${record.id}`)
       }
       await tx.done
@@ -362,7 +413,8 @@ export class WorkspaceDB {
     through: number,
     evidence: string,
     lease: Lease,
-    snapshot?: WorkspaceMeta['cloudSnapshot']
+    snapshot?: WorkspaceMeta['cloudSnapshot'],
+    channels = new Map<string, string>()
   ) {
     const tx = this.db.transaction(['meta', 'objects', 'chunks', 'outbox'], 'readwrite')
     try {
@@ -420,7 +472,11 @@ export class WorkspaceDB {
             }
           }
         }
-        if (!keepLocal) await tx.objectStore('meta').put({ id: `head:${id}`, revision })
+        if (!keepLocal) {
+          const head = await tx.objectStore('objects').get(`${id}:${revision}`)
+          ensure(head, 'RECOVERY_INCOMPLETE')
+          await tx.objectStore('meta').put(objectHead(head, channels.get(head.key)))
+        }
         await tx.objectStore('meta').put({ id: `cloud-head:${id}`, revision })
       }
       await tx.objectStore('meta').put({ id: 'cloud-snapshot', through, evidence })

@@ -1,16 +1,11 @@
+import { certifiedValue } from './certified'
 import {
   Actor,
-  Certificate,
-  Cbor,
   HttpAgent,
   SignIdentity,
-  lookup_path,
-  lookupResultToBuffer,
-  reconstruct,
   type Identity,
   type PublicKey,
-  type Signature,
-  type HashTree
+  type Signature
 } from '@icp-sdk/core/agent'
 import { DelegationIdentity, Ed25519PublicKey } from '@icp-sdk/core/identity'
 import { Principal } from '@icp-sdk/core/principal'
@@ -114,51 +109,6 @@ export function unwrap<T>(result: { Ok: T } | { Err: unknown }): T {
     `ICP 操作未完成：${JSON.stringify(result.Err, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`
   )
 }
-function leb128(data: Uint8Array): bigint {
-  let value = 0n,
-    shift = 0n
-  ensure(data.length <= 10, 'INTEGRITY_FAILED')
-  for (const byte of data) {
-    value |= BigInt(byte & 127) << shift
-    if (!(byte & 128)) return value
-    shift += 7n
-  }
-  throw new Error('INTEGRITY_FAILED')
-}
-/** Authenticates a value against the configured user canister, IC root key,
- * certificate and certified-data witness before interpreting the value. */
-async function certifiedEntry(batch: CertifiedBatch, agent: HttpAgent, key: Uint8Array) {
-  const expected = Principal.fromText(config.canisters.user)
-  ensure(
-    batch.canister.toText() === expected.toText() &&
-      batch.schema === 1 &&
-      batch.entries.length <= 64 &&
-      agent.rootKey,
-    'INTEGRITY_FAILED'
-  )
-  const certificate = await Certificate.create({
-    certificate: bytes(Uint8Array.from(batch.certificate)),
-    rootKey: agent.rootKey,
-    principal: { canisterId: expected },
-    disableTimeVerification: true
-  })
-  const time = lookupResultToBuffer(certificate.lookup_path(['time']))
-  ensure(time, 'INTEGRITY_FAILED')
-  const certifiedAt = Number(leb128(time) / 1000000n)
-  ensure(Number.isSafeInteger(certifiedAt), 'INTEGRITY_FAILED')
-  const certifiedData = lookupResultToBuffer(
-    certificate.lookup_path(['canister', expected.toUint8Array(), 'certified_data'])
-  )
-  const entries = batch.entries.filter((e) => equal(Uint8Array.from(e.key), key))
-  ensure(entries.length === 1, 'INTEGRITY_FAILED')
-  const entry = entries[0]
-  ensure(entry.value.length === 1 && entry.witness.length <= 262144, 'INTEGRITY_FAILED')
-  const tree = Cbor.decode<HashTree>(Uint8Array.from(entry.witness))
-  ensure(certifiedData && equal(await reconstruct(tree), certifiedData), 'INTEGRITY_FAILED')
-  const value = lookupResultToBuffer(lookup_path([key], tree))
-  ensure(value && equal(value, Uint8Array.from(entry.value[0]!)), 'INTEGRITY_FAILED')
-  return { value, certifiedAt, expiresAt: certifiedAt + 60000 }
-}
 export async function verifySecurityBatch(
   batch: CertifiedBatch,
   agent: HttpAgent,
@@ -166,7 +116,12 @@ export async function verifySecurityBatch(
   issuer: string
 ) {
   const account = xidBytes(accountId)
-  const { value, certifiedAt, expiresAt } = await certifiedEntry(batch, agent, account)
+  const { value, certifiedAt, expiresAt } = await certifiedValue(
+    batch,
+    agent,
+    config.canisters.user,
+    account
+  )
   const current = Date.now()
   ensure(certifiedAt <= current && current < expiresAt, 'POLICY_STALE')
   const snapshot = decodeCanonical<Record<string, unknown>>(value)
@@ -194,7 +149,13 @@ export async function verifyExecutionReceipt(
     request = unhex(requestId)
   ensure(request.length === 32, 'INVALID_INPUT')
   const key = Uint8Array.from([...utf8('execution/'), ...account, ...request])
-  const { value, certifiedAt, expiresAt } = await certifiedEntry(batch, agent, key)
+  const { value, certifiedAt, expiresAt } = await certifiedValue(
+    batch,
+    agent,
+    config.canisters.user,
+    key,
+    null
+  )
   const receipt = decodeCanonical<Record<string, unknown>>(value)
   const checked = verifyDocumentArtifact(artifact)
   const matches = (actual: unknown, expected: Uint8Array) =>

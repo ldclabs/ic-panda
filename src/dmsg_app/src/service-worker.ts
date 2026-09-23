@@ -1,7 +1,12 @@
 import { flushCipherDispatches } from './lib/services/background'
 import { config } from './lib/config'
 import { currentWorkspace, WorkspaceDB } from './lib/db'
-import { enqueueRequest, listRequests, rejectRequest, setRequestState } from './lib/requests'
+import {
+  acknowledgeRequest,
+  enqueueRequest,
+  listRequests,
+  rejectRequest
+} from './lib/requests'
 import { sameSource, trustedSource } from './lib/protocol/requests'
 import { ensure, errorText } from './lib/errors'
 import { canonical, hash } from './lib/protocol/codec'
@@ -187,16 +192,17 @@ chrome.runtime.onConnectExternal.addListener((port) => {
               })
           } else port.postMessage({ ok: true, requestId: record.id, state: record.state })
         } else if (input.method === 'signature.ack') {
-          const record = (await listRequests()).find((r) => r.id === input.requestId)
           ensure(
-            input.protocol === 'dmsg-extension/3' &&
-              record &&
-              sameSource(record.source, source) &&
-              deliveries.get(record.id) === input.resultDigest,
+            input.protocol === 'dmsg-extension/3' && typeof input.requestId === 'string',
             'FORBIDDEN'
           )
-          await setRequestState(record.id, 'returned')
-          deliveries.delete(record.id)
+          await acknowledgeRequest(
+            input.requestId,
+            source,
+            input.resultDigest,
+            deliveries.get(input.requestId)
+          )
+          deliveries.delete(input.requestId)
         } else if (input.method === 'signature.cancel') {
           ensure(owned.has(String(input.requestId)), 'FORBIDDEN')
           await rejectRequest(String(input.requestId), 'cancelled')

@@ -3,6 +3,7 @@ import {
   emptyFile,
   objectBytes,
   openContentManifest,
+  objectChannel,
   readObject,
   sealContentManifest,
   uploadPlanSchema,
@@ -12,6 +13,7 @@ import {
   type ContentUpload
 } from '../protocol/content'
 import { ensure } from '../errors'
+import { MAX_CIPHER_CHUNK } from '../config'
 import { open, seal } from './primitives'
 import type { WorkspaceDB } from '../db'
 import type {
@@ -32,13 +34,8 @@ interface Port {
     bundle: { root: string; roots?: Record<string, string> }
   }>
   decode<T>(record: EncryptedObject): Promise<T>
-  verifyFile(record: EncryptedObject, chunks?: Map<string, Chunk>): Promise<unknown>
+  verifyFile(record: EncryptedObject): Promise<unknown>
   tick(): Promise<unknown>
-}
-export interface DownloadedContent {
-  plan: StoredUploadPlan
-  manifest: string
-  chunks: string[]
 }
 export interface CloudRevision {
   item_id: string
@@ -51,30 +48,38 @@ export interface CloudRevision {
 /** Handles keys and plaintext manifests exclusively in the unlocked worker. */
 export class ContentEngine {
   constructor(private readonly port: Port) {}
-  async jobs() {
-    const { db, localKey } = await this.port.ready(),
-      jobs: ContentJob[] = []
-    for (const row of await db.db.getAll('local_private'))
-      if (row.id.startsWith('content-job:'))
-        jobs.push(
-          decodeCanonical(
-            await open(localKey, row.ciphertext, ['dmsg/content-job/1', db.name, row.id])
-          )
+  private async read<T>(key: string): Promise<T | null> {
+    const { db, localKey } = await this.port.ready()
+    const row = await db.db.get('local_private', key)
+    return row
+      ? decodeCanonical<T>(
+          await open(localKey, row.ciphertext, ['dmsg/content-job/1', db.name, key]),
+          MAX_CIPHER_CHUNK
         )
-    return jobs
+      : null
   }
-  async save(job: ContentJob) {
-    const { db, localKey, lease, meta } = await this.port.ready()
-    ensure(meta.account?.id === job.account, 'AUTH_REQUIRED')
-    const key = `content-job:${job.recordKey}`
+  private async put(key: string, value: unknown) {
+    const { db, localKey, lease } = await this.port.ready()
+    const encoded = canonical(value)
+    ensure(encoded.length <= MAX_CIPHER_CHUNK, 'QUOTA_EXCEEDED')
     await db.guardedPut(
       'local_private',
       {
         id: key,
-        ciphertext: await seal(localKey, canonical(job), ['dmsg/content-job/1', db.name, key])
+        ciphertext: await seal(localKey, encoded, ['dmsg/content-job/1', db.name, key])
       },
       lease
     )
+  }
+  private fileKey(file: { object_id: string; version_id: string; root_generation: number }) {
+    return `content-file:${file.object_id}:${file.version_id}:${file.root_generation}`
+  }
+  async save(job: ContentJob) {
+    const { meta } = await this.port.ready()
+    ensure(meta.account?.id === job.account, 'AUTH_REQUIRED')
+    await this.put(`content-job:${job.recordKey}`, job)
+    for (const upload of job.uploads)
+      if (upload.plan.kind === 'file') await this.put(this.fileKey(upload.plan), upload)
   }
   async prepare(recordKey: string): Promise<ContentJob> {
     const { db, meta, bundle } = await this.port.ready()
@@ -102,7 +107,7 @@ export class ContentEngine {
         ].includes(record.kind),
       'INVALID_INPUT'
     )
-    const existing = (await this.jobs()).find((j) => j.recordKey === recordKey)
+    const existing = await this.read<ContentJob>(`content-job:${recordKey}`)
     if (existing) {
       ensure(existing.recordDigest === record.digest, 'IDEMPOTENCY_CONFLICT')
       return existing
@@ -131,15 +136,13 @@ export class ContentEngine {
         }
         if (!chunks.length)
           chunks.push({ digest: hash(emptyFile()), size: emptyFile().length })
-        const previous = (await this.jobs())
-          .flatMap((j) => j.uploads)
-          .find(
-            (u) =>
-              u.plan.kind === 'file' &&
-              u.plan.object_id === file.id &&
-              u.plan.version_id === file.version &&
-              u.plan.root_generation === meta.rootGeneration
-          )
+        const previous = await this.read<ContentUpload>(
+          this.fileKey({
+            object_id: file.id,
+            version_id: file.version,
+            root_generation: meta.rootGeneration
+          })
+        )
         job.uploads.push(
           previous ?? {
             ...(await sealContentManifest(
@@ -197,7 +200,7 @@ export class ContentEngine {
       meta.account?.id && meta.rootGeneration === generation && uploadIds.length > 0,
       'REKEY_REQUIRED'
     )
-    const job = (await this.jobs()).find((j) => j.recordKey === recordKey)
+    const job = await this.read<ContentJob>(`content-job:${recordKey}`)
     const record = (await db.db.get('objects', recordKey)) as EncryptedObject | undefined
     ensure(
       job && record && job.recordDigest === record.digest && !job.revision.result,
@@ -290,121 +293,170 @@ export class ContentEngine {
     await this.save(job)
     await db.contentAcknowledge(job.recordKey, result, lease)
   }
-  async receive(input: {
-    objects: DownloadedContent[]
-    revisions: CloudRevision[]
-    through: number
-    evidence: string
-  }) {
-    const { db, lease, meta, bundle } = await this.port.ready()
+  private async download(plan: StoredUploadPlan) {
+    plan = storedUploadPlanSchema.parse(plan)
+    const { db, meta, bundle } = await this.port.ready()
+    ensure(meta.account?.id, 'AUTH_REQUIRED')
+    const manifest = (await db.db.get('chunks', `cloud-manifest:${plan.upload_id}`)) as
+      Chunk | undefined
+    if (!manifest) return null
+    const bytes = unb64(manifest.ciphertext)
     ensure(
-      meta.account?.id && input.objects.length <= 10000 && input.revisions.length <= 100000,
-      'AUTH_REQUIRED'
+      bytes.length === plan.manifest_size && hash(bytes) === plan.manifest_digest,
+      'INTEGRITY_FAILED'
     )
-    const files = new Map<string, { file: FileManifest; chunks: Chunk[] }>(),
-      records = new Map<string, EncryptedObject>()
-    const preservedChunks = new Map<string, Chunk>(),
-      uploads: NonNullable<WorkspaceMeta['cloudSnapshot']>['uploads'] = []
-    let total = 0
-    for (const object of input.objects) {
-      await this.port.tick()
-      const plan = storedUploadPlanSchema.parse(object.plan)
+    let content: FileManifest | null = null
+    if (plan.kind === 'vault' || plan.kind === 'file') {
       const root =
         plan.root_generation === meta.rootGeneration
           ? bundle.root
           : bundle.roots?.[String(plan.root_generation)]
-      if (plan.kind === 'vault' || plan.kind === 'file')
-        ensure(root, 'RECOVERY_INCOMPLETE', '云端内容需要尚未取得的历史根。')
-      ensure(object.chunks.length === plan.chunks.length, 'RECOVERY_INCOMPLETE')
-      const bytes = object.chunks.map((c, i) => {
-        const data = unb64(c)
-        total += data.length
-        ensure(
-          total <= 256 * 1024 * 1024 &&
-            data.length === plan.chunks[i].size &&
-            hash(data) === plan.chunks[i].digest,
-          'INTEGRITY_FAILED'
-        )
-        return data
-      })
-      const manifest = unb64(object.manifest)
+      ensure(root, 'RECOVERY_INCOMPLETE', '云端内容需要尚未取得的历史根。')
+      content = await openContentManifest(
+        unb64(root),
+        meta.account.id,
+        uploadPlanSchema.parse(plan),
+        bytes
+      )
+    }
+    if (plan.kind === 'file') {
       ensure(
-        manifest.length === plan.manifest_size && hash(manifest) === plan.manifest_digest,
+        content && plan.chunks.length === Math.max(1, content.chunks.length),
         'INTEGRITY_FAILED'
       )
-      const content =
-        plan.kind === 'vault' || plan.kind === 'file'
-          ? await openContentManifest(
-              unb64(root!),
-              meta.account.id,
-              uploadPlanSchema.parse(plan),
-              manifest
-            )
-          : null
-      const chunkIds = bytes.map((data, index) => {
-        const key = content?.chunks[index]?.id ?? `cloud:${plan.upload_id}:${index}`
-        const chunk = { id: key, ciphertext: b64(data), digest: hash(data) },
-          old = preservedChunks.get(key)
-        ensure(!old || old.digest === chunk.digest, 'IDEMPOTENCY_CONFLICT')
-        preservedChunks.set(key, chunk)
-        return key
-      })
-      uploads.push({ plan, manifest: object.manifest, chunkIds })
-      if (plan.kind === 'vault') {
-        ensure(bytes.length === 1, 'INTEGRITY_FAILED')
-        const record = readObject(bytes[0])
+      content.chunks.forEach((ref, index) =>
         ensure(
-          record.subjectId === meta.account.id &&
-            record.id === plan.object_id &&
-            record.revision === plan.version_id &&
-            record.key === `${record.id}:${record.revision}` &&
-            [
-              'vault',
-              'migration',
-              'migration_part',
-              'profile',
-              'request',
-              'formal_channel',
-              'formal_control',
-              'formal_operation',
-              'formal_message',
-              'formal_file',
-              'commerce',
-              'inbox'
-            ].includes(record.kind),
+          ref.id === `${content!.id}:${content!.version}:${index}` &&
+            ref.digest === plan.chunks[index].digest,
           'INTEGRITY_FAILED'
         )
-        await this.port.decode(record)
+      )
+    }
+    return {
+      plan,
+      manifest: manifest.ciphertext,
+      content,
+      chunkIds: plan.chunks.map(
+        (_, index) => content?.chunks[index]?.id ?? `cloud:${plan.upload_id}:${index}`
+      )
+    }
+  }
+  async missing(plan: StoredUploadPlan) {
+    const download = await this.download(plan)
+    if (!download) return { manifest: false, chunks: [] as number[] }
+    const { db } = await this.port.ready(),
+      chunks: number[] = []
+    for (const [index, key] of download.chunkIds.entries()) {
+      const chunk = (await db.db.get('chunks', key)) as Chunk | undefined
+      if (!chunk) chunks.push(index)
+      else {
+        const bytes = unb64(chunk.ciphertext)
         ensure(
-          !records.has(record.key) || records.get(record.key)!.digest === record.digest,
-          'IDEMPOTENCY_CONFLICT'
+          bytes.length === plan.chunks[index].size &&
+            hash(bytes) === plan.chunks[index].digest,
+          'INTEGRITY_FAILED'
         )
-        records.set(record.key, record)
-      } else if (plan.kind === 'file') {
+      }
+      await this.port.tick()
+    }
+    return { manifest: true, chunks }
+  }
+  async cache(plan: StoredUploadPlan, index: number | 'manifest', bytes: Uint8Array) {
+    plan = storedUploadPlanSchema.parse(plan)
+    const expected =
+      index === 'manifest'
+        ? { digest: plan.manifest_digest, size: plan.manifest_size }
+        : Number.isInteger(index) && index >= 0
+          ? plan.chunks[index]
+          : undefined
+    ensure(
+      expected && bytes.length === expected.size && hash(bytes) === expected.digest,
+      'INTEGRITY_FAILED'
+    )
+    const download = index === 'manifest' ? null : await this.download(plan)
+    ensure(index === 'manifest' || download, 'RECOVERY_INCOMPLETE')
+    const key =
+      index === 'manifest' ? `cloud-manifest:${plan.upload_id}` : download!.chunkIds[index]
+    const { db, lease } = await this.port.ready()
+    await db.cacheChunks([{ id: key, ciphertext: b64(bytes), digest: expected.digest }], lease)
+  }
+  async receive(input: {
+    objects: StoredUploadPlan[]
+    revisions: CloudRevision[]
+    through: number
+    evidence: string
+  }) {
+    const { db, lease, meta } = await this.port.ready()
+    ensure(
+      meta.account?.id &&
+        input.objects.length <= 10000 &&
+        input.revisions.length <= 100000 &&
+        input.evidence.length <= 8 * 1024 * 1024,
+      'QUOTA_EXCEEDED'
+    )
+    const files = new Map<string, FileManifest>(),
+      records = new Map<string, EncryptedObject>(),
+      channels = new Map<string, string>()
+    const uploads: NonNullable<WorkspaceMeta['cloudSnapshot']>['uploads'] = []
+    // Ciphertext is already staged in bounded writes. Only authenticated object
+    // records and inventory metadata are held until the atomic head commit.
+    for (const plan of input.objects) {
+      const download = await this.download(plan)
+      ensure(download, 'RECOVERY_INCOMPLETE')
+      const { content, chunkIds } = download
+      for (const [index, key] of chunkIds.entries()) {
+        await this.port.tick()
+        const chunk = (await db.db.get('chunks', key)) as Chunk | undefined
+        ensure(chunk, 'RECOVERY_INCOMPLETE')
+        const bytes = unb64(chunk.ciphertext)
+        ensure(
+          bytes.length === plan.chunks[index].size &&
+            hash(bytes) === plan.chunks[index].digest,
+          'INTEGRITY_FAILED'
+        )
+        if (plan.kind === 'vault') {
+          ensure(chunkIds.length === 1, 'INTEGRITY_FAILED')
+          const record = readObject(bytes)
+          ensure(
+            record.subjectId === meta.account.id &&
+              record.id === plan.object_id &&
+              record.revision === plan.version_id &&
+              record.key === `${record.id}:${record.revision}` &&
+              [
+                'vault',
+                'migration',
+                'migration_part',
+                'profile',
+                'request',
+                'formal_channel',
+                'formal_control',
+                'formal_operation',
+                'formal_message',
+                'formal_file',
+                'commerce',
+                'inbox'
+              ].includes(record.kind),
+            'INTEGRITY_FAILED'
+          )
+          channels.set(record.key, objectChannel(record, await this.port.decode(record)))
+          ensure(
+            !records.has(record.key) || records.get(record.key)!.digest === record.digest,
+            'IDEMPOTENCY_CONFLICT'
+          )
+          records.set(record.key, record)
+        } else if (plan.kind === 'file' && content?.size === 0) {
+          ensure(content.chunks.length === 0 && equal(bytes, emptyFile()), 'INTEGRITY_FAILED')
+        }
+      }
+      uploads.push({ plan, manifest: download.manifest, chunkIds })
+      if (plan.kind === 'file') {
         ensure(content, 'INTEGRITY_FAILED')
-        if (!content.size)
-          ensure(
-            content.chunks.length === 0 && bytes.length === 1 && equal(bytes[0], emptyFile()),
-            'INTEGRITY_FAILED'
-          )
-        else ensure(content.chunks.length === bytes.length, 'INTEGRITY_FAILED')
-        const chunks = content.chunks.map((ref, i) => {
-          ensure(
-            ref.digest === plan.chunks[i].digest &&
-              ref.id === `${content.id}:${content.version}:${i}`,
-            'INTEGRITY_FAILED'
-          )
-          return { id: ref.id, ciphertext: b64(bytes[i]), digest: ref.digest }
-        })
         const key = `${content.id}:${content.version}`,
           old = files.get(key)
-        ensure(!old || equal(canonical(old.file), canonical(content)), 'IDEMPOTENCY_CONFLICT')
-        files.set(key, { file: content, chunks })
+        ensure(!old || equal(canonical(old), canonical(content)), 'IDEMPOTENCY_CONFLICT')
+        files.set(key, content)
       }
     }
-    const chunks = new Map<string, Chunk>(preservedChunks)
-    for (const file of files.values())
-      for (const chunk of file.chunks) chunks.set(chunk.id, chunk)
     const incoming: EncryptedObject[] = [],
       heads = new Map<string, string>()
     for (const revision of input.revisions) {
@@ -420,11 +472,8 @@ export class ContentEngine {
       const payload = await this.port.decode<Item>(record)
       if ((record.kind === 'vault' || record.kind === 'migration_part') && payload.file) {
         const file = files.get(`${payload.file.id}:${payload.file.version}`)
-        ensure(
-          file && equal(canonical(file.file), canonical(payload.file)),
-          'RECOVERY_INCOMPLETE'
-        )
-        await this.port.verifyFile(record, chunks)
+        ensure(file && equal(canonical(file), canonical(payload.file)), 'RECOVERY_INCOMPLETE')
+        await this.port.verifyFile(record)
       }
       incoming.push({ ...record, conflict: revision.conflict })
       if (!revision.conflict) heads.set(record.id, record.revision)
@@ -438,12 +487,13 @@ export class ContentEngine {
     }
     await db.contentReceive(
       incoming,
-      [...chunks.values()],
+      [],
       [...heads],
       input.through,
       input.evidence,
       lease,
-      snapshot
+      snapshot,
+      channels
     )
     meta.cloudSnapshot = snapshot
     return { records: incoming.length, files: files.size, through: input.through }

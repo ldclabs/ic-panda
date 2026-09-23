@@ -153,6 +153,23 @@ fn legacy_extension_gateway() {
             1_000_000_000_000_000_000u128,
         ),
     );
+    let _: () = update(
+        &ic,
+        ledger,
+        gov,
+        "approve_test",
+        (
+            icrc_ledger_types::icrc1::account::Account {
+                owner: user,
+                subaccount: None,
+            },
+            icrc_ledger_types::icrc1::account::Account {
+                owner: message,
+                subaccount: None,
+            },
+            1_000_000_000_000_000_000u128,
+        ),
+    );
     for (kind, id) in [(Kind::Cose, gate), (Kind::Profile, profile)] {
         update::<Result<(), String>>(&ic, message, gov, "admin_add_canister", (kind, id)).unwrap();
     }

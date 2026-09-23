@@ -17,7 +17,7 @@ export async function certifiedLeaf(
   agent: HttpAgent,
   source: string,
   key: Uint8Array,
-  now = Date.now()
+  now: number | null = Date.now()
 ) {
   const canister = Principal.fromText(source)
   ensure(
@@ -45,7 +45,11 @@ export async function certifiedLeaf(
     nanos |= BigInt(time[i] & 127) << BigInt(i * 7)
   }
   const at = Number(nanos / 1000000n)
-  ensure(Number.isSafeInteger(at) && at <= now && now < at + 60000, 'POLICY_STALE')
+  ensure(
+    Number.isSafeInteger(at) &&
+      (now === null ? at <= Date.now() : at <= now && now < at + 60000),
+    'POLICY_STALE'
+  )
   const entries = batch.entries.filter((e) => equal(Uint8Array.from(e.key), key))
   ensure(
     entries.length === 1 &&
@@ -63,7 +67,7 @@ export async function certifiedLeaf(
   if (entries[0].value.length)
     ensure(value && equal(value, Uint8Array.from(entries[0].value[0]!)), 'INTEGRITY_FAILED')
   else ensure(lookup.status === 'Absent', 'INTEGRITY_FAILED')
-  return { value, certifiedAt: at }
+  return { value, certifiedAt: at, expiresAt: at + 60000 }
 }
 
 export async function certifiedValue(...args: Parameters<typeof certifiedLeaf>) {

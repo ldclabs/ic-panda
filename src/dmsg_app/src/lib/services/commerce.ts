@@ -304,7 +304,28 @@ export class CommerceClient {
       order.input.quote.request.payer.owner.toText() === this.wallet.toText(),
       'AUTH_REQUIRED'
     )
+    if (
+      'Closing' in order.status ||
+      'RefundCommitted' in order.status ||
+      'Cancelled' in order.status
+    )
+      return order
+    if (await this.account.pending()) await this.account.resume()
     let stored = await this.read<{ args: string }>(`refund:${id}`)
+    if (stored) {
+      const intent = decodeCommerce(
+        'commerce',
+        'request_refund',
+        stored.args
+      )[1] as unknown as MembershipIntent
+      if (intent.valid_until_ms <= BigInt(Date.now())) {
+        await this.save(
+          `refund-history:${id}:${hex(Uint8Array.from(intent.application_id))}`,
+          stored
+        )
+        stored = null
+      }
+    }
     if (!stored) {
       const intent = this.intent(
         this.commerceId,
@@ -318,7 +339,6 @@ export class CommerceClient {
       Uint8Array,
       MembershipIntent
     ]
-    if (await this.account.pending()) await this.account.resume()
     await this.account.mutate(this.accountId(), { AuthorizeMembership: { intent: args[1] } })
     controlResult(await this.commerce.request_refund(...args))
     return this.order(id)
@@ -484,7 +504,25 @@ export class CommerceClient {
     return this.claimStatus(id)
   }
   async closeSns(id: string) {
+    const status = await this.claimStatus(id)
+    if (status.status === 'Released') return status
+    if (status.status === 'Closing') return this.reconcileSns(id)
+    if (await this.account.pending()) await this.account.resume()
     let saved = await this.read<{ args: string }>(`sns-close:${id}`)
+    if (saved) {
+      const intent = decodeCommerce(
+        'membership',
+        'request_change',
+        saved.args
+      )[1] as unknown as MembershipIntent
+      if (intent.valid_until_ms <= BigInt(Date.now())) {
+        await this.save(
+          `close-history:${id}:${hex(Uint8Array.from(intent.application_id))}`,
+          saved
+        )
+        saved = null
+      }
+    }
     if (!saved) {
       const intent = this.intent(
         this.membershipId,

@@ -172,10 +172,15 @@ export class AccountRootClient {
     }
     const journalKey = `open-root:${accountId}:${expected}`
     const previous = await crypto.call('controlGet', journalKey)
-    let encoded = previous ? (JSON.parse(previous) as string) : null
-    if (!encoded) {
+    const encoded = previous ? (JSON.parse(previous) as string) : null
+    const approve = async () => {
       state = await account.refresh(accountId)
-      ensure(state.device, 'DeviceNotApproved')
+      ensure(state.device && !state.device.revoked_at.length, 'DeviceNotApproved')
+      ensure(
+        state.info.current_root[0] &&
+          hex(Uint8Array.from(state.info.current_root[0].bundle_digest)) === expected,
+        'POLICY_STALE'
+      )
       const transport = await crypto.call('prepareAccountRoot', current.payload.context)
       const prepared = prepareRootDerivation(
         {
@@ -193,10 +198,16 @@ export class AccountRootClient {
       )
       const request = prepared.review.request as DeriveRootRequest
       request.approval.signature = await crypto.call('deviceSign', prepared.approvalMessage)
-      encoded = encodeControl('derive_root', [request])
-      await crypto.call('controlPut', journalKey, JSON.stringify(encoded))
+      await crypto.call(
+        'controlPut',
+        journalKey,
+        JSON.stringify(encodeControl('derive_root', [request]))
+      )
+      return request
     }
-    const request = decodeControl('derive_root', encoded)[0] as DeriveRootRequest
+    let request = encoded
+      ? (decodeControl('derive_root', encoded)[0] as DeriveRootRequest)
+      : await approve()
     const queried = await account.user.get_execution(
       xidBytes(accountId),
       request.approval.request_id
@@ -217,6 +228,24 @@ export class AccountRootClient {
         )
     } else {
       ensure('ResultExpired' in queried.Err, 'UNAVAILABLE')
+      if (request.approval.expires_at <= BigInt(Date.now())) {
+        const fresh = await account.refresh(accountId)
+        // An unconsumed sequence plus a certified time past the deadline proves
+        // the original approval can no longer start. Unknown consumed results
+        // must stay in reconciliation instead of silently spending again.
+        ensure(
+          BigInt(fresh.verified.certifiedAt) >= request.approval.expires_at &&
+            fresh.device?.next_sequence === request.approval.sequence,
+          'RESULT_EXPIRED',
+          '原派生请求的执行结果尚不能确认，请先对账。'
+        )
+        await crypto.call(
+          'controlPut',
+          `open-root-history:${hex(Uint8Array.from(request.approval.request_id))}`,
+          JSON.stringify(encodeControl('derive_root', [request]))
+        )
+        request = await approve()
+      }
       result = controlResult(await account.user.derive_root(request))
     }
     if ('Failed' in result.outcome) controlResult({ Err: result.outcome.Failed })

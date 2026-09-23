@@ -99,6 +99,7 @@ function ownerUnsigned(packet: Pick<OwnerTransferPacket, 'context' | 'payload'>)
 export class ChannelClient {
   private state: AccountState | null = null
   private ledgers = new Map<string, ChannelLedger>()
+  private verifiedEvents = new Map<string, string>()
   constructor(
     readonly account: AccountClient,
     readonly cloud: CloudClient,
@@ -378,6 +379,21 @@ export class ChannelClient {
     genesis: string
   ) {
     ensure(hash(unb64(event.signed.cose_sign1)) === event.head, 'INTEGRITY_FAILED')
+    const cached = this.ledgers.get(event.head),
+      proof = JSON.stringify(event)
+    if (cached && this.verifiedEvents.get(event.head) === proof) {
+      ensure(event.control_seq === cached.control_seq, 'UNVERIFIED_HEAD')
+      const body = readCloudCommand(event.signed).body
+      ensure(
+        previous
+          ? cached.channel_id === previous.channel_id &&
+              cached.control_seq === previous.control_seq + 1 &&
+              body.payload.expected_head === previous.head
+          : cached.control_seq === 0 && event.head === genesis,
+        'UNVERIFIED_HEAD'
+      )
+      return structuredClone(cached)
+    }
     const verified = await verifyChannelEvent(event, this.trust()),
       body = verified.body
     let state: ChannelLedger
@@ -461,6 +477,7 @@ export class ChannelClient {
       }
     }
     this.ledgers.set(state.head, structuredClone(state))
+    this.verifiedEvents.set(state.head, proof)
     return state
   }
   async pullControl(channel: string, invitation?: string, pinnedHead?: string) {

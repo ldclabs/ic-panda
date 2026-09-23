@@ -73,12 +73,16 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 | 空文件 | 加密 manifest + 满足非空块计划的格式容器 | 当前云端要求至少一个非空块；A2 显式表示零长度文件，不能伪造一个明文数据块 |
 | 本地 `Profile` | `{version,prev_hash,display_name,bio,avatar_upload,links}` | 仅发布明确选中的公开字段；name→display_name，link→links；contact 另走 inbox policy；头像必须是明确公开的 avatar 对象 |
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 先创建正式频道、接受成员并取得新 epoch；不把本地 `active`、签名或序号直接当在线授权 |
-| 本地 outbox receipt | 资源操作查询和实际服务回执 | `sequence/digest` 通用占位不覆盖全部资源；按 request ID 对账并验证资源级返回值 |
-| `.dmsg` 备份 | 仍为 `dmsg-backup/1`，单包 256 MiB | 同时保存需要的格式/AAD/源映射、历史封装与缺口；离线恢复不授予链上设备权利 |
+| 本地 outbox receipt | 资源操作查询和实际服务回执 | 使用资源级回执，按原 request ID 对账；没有单独的通用发送队列实现 |
+| `.dmsg` 备份 | `dmsg-backup/1`，单包 256 MiB，各至多 10,000 个对象和文件块 | 导出、恢复共用限制；认证清单中的 `synced` 保存已同步对象 key，恢复时为其余历史版本重建待同步队列；离线恢复不授予链上设备权利 |
 
 这里的“本地文件”指新版 `src/dmsg_app` 的 R0 格式：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
 
 2026-09-23：若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
+
+同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到 IndexedDB，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。
+
+本地普通对象载荷上限为 200,000 bytes，`formal_*` 载荷上限为 512 KiB；读写共用边界。频道索引从认证后的解密内容建立，仅保存在本地 head 元数据中，不改变内容 AAD 或上传记录字段。冲突解决关系放在加密 Item 的 `resolvedConflicts` 中，随后编辑保留该关系，备份与同步一起传递。
 
 旧 dMsg 则先在 `ChannelMessages.svelte` 对完整文件执行一次 COSE_Encrypt0，再调用 IC OSS 的 `toFixedChunkSizeReadable` / `upload_chunks`，按 **256 KiB 密文传输片**上传；下载后由 `ChannelFileCard.svelte` 对完整 bytes 解密。IC OSS 的 Rust `file.rs` 与 TS `stream.ts` 均定义 `CHUNK_SIZE=256*1024`。这不是每个 256 KiB 分片独立 AEAD 的文件格式。旧文件迁移保留分片索引/长度与原始 bytes，按原顺序恢复完整 COSE 后验证；不能套用新版 R0 的 1 MiB 明文规则，或将 OSS 分片当作独立认证的新版加密块。此判断基于本地旧客户端与 IC OSS 源码，线上版本仍需 I0 核对。
 

@@ -126,7 +126,7 @@ export class ChannelVault {
   private async load(channel: string) {
     ensure(/^[0-9a-f]{64}$/.test(channel), 'INVALID_INPUT')
     const { db } = await this.port.ready(),
-      record = (await db.heads()).find((r) => r.kind === 'formal_channel' && r.id === channel)
+      record = await db.getHead(channel, 'formal_channel')
     ensure(record, 'NOT_FOUND')
     const state = await this.port.decode<PrivateChannel>(record)
     ensure(
@@ -135,7 +135,8 @@ export class ChannelVault {
     )
     return { record, state }
   }
-  private store(record: EncryptedObject, state: PrivateChannel) {
+  private async store(record: EncryptedObject, state: PrivateChannel) {
+    if (equal(canonical(await this.port.decode(record)), canonical(state))) return record
     return this.port.write('formal_channel', state, record.id, record.revision)
   }
   async remember(input: {
@@ -151,9 +152,7 @@ export class ChannelVault {
       'INVALID_INPUT'
     )
     const { db } = await this.port.ready(),
-      old = (await db.heads()).find(
-        (r) => r.kind === 'formal_channel' && r.id === input.channel
-      )
+      old = await db.getHead(input.channel, 'formal_channel')
     if (old) {
       const state = await this.port.decode<PrivateChannel>(old)
       if (state.genesis !== input.genesis) {
@@ -181,7 +180,7 @@ export class ChannelVault {
   async list() {
     const { db } = await this.port.ready(),
       result = []
-    for (const record of (await db.heads()).filter((r) => r.kind === 'formal_channel')) {
+    for (const record of await db.heads('formal_channel')) {
       const state = await this.port.decode<PrivateChannel>(record)
       result.push({
         id: state.id,
@@ -215,7 +214,7 @@ export class ChannelVault {
   }
   private async immutable(kind: ObjectKind, objectId: string, value: unknown) {
     const { db } = await this.port.ready(),
-      existing = (await db.heads()).find((r) => r.kind === kind && r.id === objectId)
+      existing = await db.getHead(objectId, kind)
     if (existing) {
       ensure(
         equal(canonical(await this.port.decode(existing)), canonical(value)),
@@ -228,9 +227,7 @@ export class ChannelVault {
   async job(channel: string, key: string, value?: unknown) {
     const objectId = hash(canonical(['dmsg/channel-job/1', channel, key])),
       { db } = await this.port.ready()
-    const record = (await db.heads()).find(
-      (r) => r.id === objectId && r.kind === 'formal_operation'
-    )
+    const record = await db.getHead(objectId, 'formal_operation')
     if (value === undefined) {
       if (!record) return null
       const stored = await this.port.decode<any>(record)
@@ -604,9 +601,7 @@ export class ChannelVault {
   private async attachment(channel: string, messageId: string) {
     const { db } = await this.port.ready(),
       objectId = hash(canonical(['dmsg/channel-file-source/1', channel, messageId]))
-    const record = (await db.heads()).find(
-      (r) => r.kind === 'formal_file' && r.id === objectId
-    )
+    const record = await db.getHead(objectId, 'formal_file')
     return record
       ? { record, value: await this.port.decode<PrivateChannelFile>(record) }
       : null
@@ -714,9 +709,7 @@ export class ChannelVault {
         canonical(['dmsg/received-legacy-grant/1', scope.directory_key, scope.grant_id])
       )
       const { db } = await this.port.ready()
-      const existing = (await db.heads()).find(
-        (r) => r.kind === 'formal_file' && r.id === objectId
-      )
+      const existing = await db.getHead(objectId, 'formal_file')
       if (existing) {
         const saved = await this.port.decode<any>(existing)
         // Download progress adds manifests to this record. Reopening the same
@@ -739,7 +732,7 @@ export class ChannelVault {
   }
   async legacyGrantManifest(recordId: string, index: number, ciphertext: Uint8Array) {
     const { db } = await this.port.ready(),
-      record = (await db.heads()).find((r) => r.kind === 'formal_file' && r.id === recordId)
+      record = await db.getHead(recordId, 'formal_file')
     ensure(record, 'NOT_FOUND')
     const { legacyGrant } = await this.port.decode<any>(record),
       ref = legacyGrant.files[index] as ChannelFileRef | undefined
@@ -785,7 +778,7 @@ export class ChannelVault {
   }
   async legacyGrantPart(recordId: string, index: number, ciphertext: Uint8Array[]) {
     const { db } = await this.port.ready(),
-      record = (await db.heads()).find((r) => r.kind === 'formal_file' && r.id === recordId)
+      record = await db.getHead(recordId, 'formal_file')
     ensure(record, 'NOT_FOUND')
     const { legacyGrant } = await this.port.decode<any>(record),
       manifest = legacyGrant.manifests?.[index] as FileManifest | undefined
@@ -888,7 +881,7 @@ export class ChannelVault {
   }
   private async receivedFile(channel: string, seq: number) {
     const { db } = await this.port.ready()
-    for (const record of (await db.heads()).filter((r) => r.kind === 'formal_message')) {
+    for (const record of await db.heads('formal_message', channel)) {
       const value = await this.port.decode<any>(record)
       if (value.channel === channel && value.seq === seq) {
         ensure(value.file, 'NOT_FOUND')
@@ -943,9 +936,7 @@ export class ChannelVault {
   async fileDownload(channel: string, seq: number, ciphertext: Uint8Array[]) {
     const { db } = await this.port.ready(),
       objectId = hash(canonical(['dmsg/channel-received-file/1', channel, seq]))
-    const record = (await db.heads()).find(
-      (r) => r.kind === 'formal_file' && r.id === objectId
-    )
+    const record = await db.getHead(objectId, 'formal_file')
     ensure(record, 'NOT_FOUND')
     const stored = await this.port.decode<PrivateChannelFile>(record)
     if (!stored.manifest.chunks.length) {
@@ -1102,7 +1093,7 @@ export class ChannelVault {
   async pending(channel: string) {
     const { db } = await this.port.ready(),
       rows = []
-    for (const record of (await db.heads()).filter((r) => r.kind === 'formal_operation')) {
+    for (const record of await db.heads('formal_operation', channel)) {
       const saved = await this.port.decode<any>(record)
       if (saved.channel === channel && saved.value?.action && saved.value.result === undefined)
         rows.push({
@@ -1116,7 +1107,7 @@ export class ChannelVault {
   async controls(channel: string) {
     const { db } = await this.port.ready(),
       rows: any[] = []
-    for (const record of (await db.heads()).filter((r) => r.kind === 'formal_control')) {
+    for (const record of await db.heads('formal_control', channel)) {
       const value = await this.port.decode<any>(record)
       if (value.channel === channel) rows.push(value)
     }
@@ -1125,7 +1116,7 @@ export class ChannelVault {
   async messages(channel: string) {
     const { db } = await this.port.ready(),
       rows: any[] = []
-    for (const record of (await db.heads()).filter((r) => r.kind === 'formal_message')) {
+    for (const record of await db.heads('formal_message', channel)) {
       const value = await this.port.decode<any>(record)
       if (value.channel === channel)
         rows.push({ ...value, ...(value.file ? { file: { ...value.file, key: '' } } : {}) })

@@ -27,6 +27,7 @@ export interface Item {
   createdAt: number
   updatedAt: number
   file?: FileManifest
+  resolvedConflicts?: string[]
 }
 export interface FileManifest {
   id: string
@@ -145,10 +146,8 @@ export interface OutboxJob {
   frame: string
   digest: string
   state: 'local' | 'queued' | 'sending' | 'stored' | 'blocked' | 'unknown'
-  attempt: number
-  nextAttempt: number
   error?: string
-  receipt?: { sequence: number; digest: string }
+  cloudReceipt?: { revision_id: string; head: string; conflict: boolean; tombstone: boolean }
 }
 export interface Chunk {
   id: string
@@ -168,6 +167,7 @@ export interface RecoveryArchive {
   createdAt: number
   scope: 'local-inclusive' | 'partial'
   objects: EncryptedObject[]
+  synced: string[]
   chunks: Chunk[]
   missing: string[]
   manifestDigest: string
@@ -179,7 +179,7 @@ export interface ViewData {
   channels: { record: EncryptedObject; channel: Channel }[]
   messages: { record: EncryptedObject; message: Message }[]
   profile: Profile | null
-  outbox: OutboxJob[]
+  outbox: Pick<OutboxJob, 'id' | 'state' | 'error'>[]
   conflicts: VaultEntry[]
   imports: { id: string; name: string; size: number; completed: number; total: number }[]
 }

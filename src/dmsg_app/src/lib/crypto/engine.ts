@@ -1,21 +1,31 @@
 import { ChannelVault } from './channel'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { LegacyVault } from './legacy'
-import { ContentEngine, type DownloadedContent, type CloudRevision } from './content'
-import type { ContentJob, ContentUpload } from '../protocol/content'
+import { ContentEngine, type CloudRevision } from './content'
+import type { ContentJob, ContentUpload, StoredUploadPlan } from '../protocol/content'
 import {
   openContentManifest,
+  objectChannel,
   storedUploadPlanSchema,
   uploadPlanSchema
 } from '../protocol/content'
 import { hmac } from '@noble/hashes/hmac.js'
 import { z } from 'zod'
-import { config, CHUNK_SIZE, MAX_FILE } from '../config'
+import {
+  config,
+  CHUNK_SIZE,
+  MAX_FILE,
+  MAX_OBJECT_BYTES,
+  MAX_FORMAL_OBJECT_BYTES,
+  MAX_BACKUP_BYTES,
+  MAX_BACKUP_RECORDS
+} from '../config'
 import {
   currentWorkspace,
   registerWorkspace,
   removeWorkspaceDatabase,
-  WorkspaceDB
+  WorkspaceDB,
+  objectHead
 } from '../db'
 import { ensure } from '../errors'
 import { xidBytes } from '../protocol/identity'
@@ -215,7 +225,7 @@ export class CryptoEngine {
       { db, lease } = await this.ready()
     await db.cacheChunks([...chunks.values()], lease)
     const kind = hidden ? 'migration_part' : 'vault'
-    const old = (await db.heads()).find((r) => r.id === manifest.id && r.kind === kind)
+    const old = await db.getHead(manifest.id, kind)
     let savedKey = old?.key
     if (old)
       ensure(
@@ -361,7 +371,7 @@ export class CryptoEngine {
     return new ContentEngine({
       ready: () => this.ready(),
       decode: <T>(record: EncryptedObject) => this.decode<T>(record),
-      verifyFile: (record, chunks) => this.verifyFile(record, undefined, chunks, false),
+      verifyFile: (record) => this.verifyFile(record, undefined, undefined, false),
       tick: () => this.tick()
     })
   }
@@ -371,8 +381,15 @@ export class CryptoEngine {
   async contentReplan(key: string, generation: number, uploadIds: string[]) {
     return this.contentEngine().replan(key, generation, uploadIds)
   }
-  async contentJobs() {
-    return this.contentEngine().jobs()
+  async contentPending() {
+    const { db } = await this.ready()
+    return (
+      await Promise.all(
+        ['local', 'queued', 'sending', 'unknown'].map((state) =>
+          db.db.getAllFromIndex('outbox', 'state', state)
+        )
+      )
+    ).flat() as import('../models').OutboxJob[]
   }
   async contentSave(job: ContentJob) {
     return this.contentEngine().save(job)
@@ -383,8 +400,14 @@ export class CryptoEngine {
   async contentAcknowledge(job: ContentJob) {
     return this.contentEngine().acknowledge(job)
   }
+  async contentMissing(plan: StoredUploadPlan) {
+    return this.contentEngine().missing(plan)
+  }
+  async contentCache(plan: StoredUploadPlan, index: number | 'manifest', bytes: Uint8Array) {
+    return this.contentEngine().cache(plan, index, bytes)
+  }
   async contentReceive(input: {
-    objects: DownloadedContent[]
+    objects: StoredUploadPlan[]
     revisions: CloudRevision[]
     through: number
     evidence: string
@@ -395,7 +418,7 @@ export class CryptoEngine {
     const { db, meta } = await this.ready()
     ensure(meta.account && version > 0 && Number.isSafeInteger(version), 'AUTH_REQUIRED')
     const objectId = hash(canonical(['dmsg/inbox-key/1', meta.subjectId, version]))
-    let record = (await db.heads()).find((r) => r.kind === 'inbox' && r.id === objectId)
+    let record = await db.getHead(objectId, 'inbox')
     if (!record)
       record = await this.write(
         'inbox',
@@ -448,7 +471,7 @@ export class CryptoEngine {
     const objectId = hash(
         canonical(['dmsg/inbox-key/1', meta.subjectId, input.inbox_key_version])
       ),
-      record = (await db.heads()).find((r) => r.id === objectId && r.kind === 'inbox')
+      record = await db.getHead(objectId, 'inbox')
     ensure(record, 'RECOVERY_INCOMPLETE')
     const key = await this.decode<{ seed: string }>(record)
     const plaintext = await hpkeOpen(
@@ -477,7 +500,7 @@ export class CryptoEngine {
     )
     const { db, meta } = await this.ready(),
       objectId = hash(canonical(['dmsg/commerce-journal/1', meta.subjectId, key]))
-    const record = (await db.heads()).find((r) => r.id === objectId && r.kind === 'commerce')
+    const record = await db.getHead(objectId, 'commerce')
     if (value === undefined)
       return record ? (await this.decode<{ key: string; value: string }>(record)).value : null
     await this.write('commerce', { key, value }, objectId, record?.revision ?? null)
@@ -486,8 +509,7 @@ export class CryptoEngine {
   async commerceJournals() {
     const { db } = await this.ready(),
       result: { key: string; value: string }[] = []
-    for (const record of (await db.heads()).filter((r) => r.kind === 'commerce'))
-      result.push(await this.decode(record))
+    for (const record of await db.heads('commerce')) result.push(await this.decode(record))
     return result
   }
   async formalAuthorize(input: {
@@ -523,7 +545,7 @@ export class CryptoEngine {
     )
     const { db, meta } = await this.ready(),
       objectId = hash(canonical(['dmsg/formal-history/1', meta.subjectId, input.requestId]))
-    const previous = (await db.heads()).find((r) => r.id === objectId)
+    const previous = await db.getHead(objectId)
     if (previous) {
       const stored = await this.decode<{ format: string; value: string }>(previous)
       ensure(
@@ -614,7 +636,8 @@ export class CryptoEngine {
     bundle: Bundle,
     archive?: RecoveryArchive,
     pendingRecoveryCode?: Uint8Array,
-    expectedActive?: string
+    expectedActive?: string,
+    channels = new Map<string, string>()
   ) {
     const name = `dmsg:${meta.environment}:${meta.subjectId}:${meta.deviceId}`
     const db = await WorkspaceDB.open(name),
@@ -667,7 +690,18 @@ export class CryptoEngine {
         }
         // Restore immutable history first, deriving heads from authenticated
         // parent links. Never choose a head from attacker-controlled timestamps.
-        for (const record of archive.objects) await tx.objectStore('objects').put(record)
+        const synced = new Set(archive.synced)
+        for (const record of archive.objects) {
+          await tx.objectStore('objects').put(record)
+          if (record.kind !== 'draft')
+            await tx.objectStore('outbox').put({
+              id: record.revision,
+              objectKey: record.key,
+              frame: b64(canonical(record)),
+              digest: record.digest,
+              state: synced.has(record.key) ? 'stored' : record.conflict ? 'blocked' : 'local'
+            })
+        }
         const parents = new Set(
           archive.objects
             .filter((x) => !x.conflict && x.parent)
@@ -681,18 +715,7 @@ export class CryptoEngine {
             'INTEGRITY_FAILED',
             '备份包含未解决的历史分叉。'
           )
-          await tx
-            .objectStore('meta')
-            .put({ id: `head:${record.id}`, revision: record.revision })
-          await tx.objectStore('outbox').put({
-            id: record.revision,
-            objectKey: record.key,
-            frame: b64(canonical(record)),
-            digest: record.digest,
-            state: 'local',
-            attempt: 0,
-            nextAttempt: 0
-          })
+          await tx.objectStore('meta').put(objectHead(record, channels.get(record.key)))
         }
         for (const chunk of archive.chunks) await tx.objectStore('chunks').put(chunk)
       }
@@ -891,7 +914,10 @@ export class CryptoEngine {
     ensure(selectedRoot, 'RECOVERY_INCOMPLETE', '缺少历史根封装。')
     const key = await open(selectedRoot, record.keyEnvelope, this.wrapContext(record))
     try {
-      return decodeCanonical<T>(await open(key, record.ciphertext, this.aad(record)))
+      return decodeCanonical<T>(
+        await open(key, record.ciphertext, this.aad(record)),
+        record.kind.startsWith('formal_') ? MAX_FORMAL_OBJECT_BYTES : MAX_OBJECT_BYTES
+      )
     } finally {
       key.fill(0)
     }
@@ -906,7 +932,8 @@ export class CryptoEngine {
     const { db, lease, meta, bundle } = await this.ready()
     ensure(meta.recoveryChecked, 'RECOVERY_INCOMPLETE', '请先验证恢复码并保存恢复包。')
     ensure(
-      canonical(payload).length <= (kind.startsWith('formal_') ? 512 * 1024 : 200000),
+      canonical(payload).length <=
+        (kind.startsWith('formal_') ? MAX_FORMAL_OBJECT_BYTES : MAX_OBJECT_BYTES),
       'QUOTA_EXCEEDED',
       '条目超过大小限制。'
     )
@@ -934,27 +961,47 @@ export class CryptoEngine {
       record.digest = hash(
         canonical([this.aad(record), record.ciphertext, record.keyEnvelope])
       )
-      return await db.commit(record, base, lease, {
-        id: revision,
-        objectKey: record.key,
-        frame: b64(canonical(record)),
-        digest: record.digest,
-        state: 'local',
-        attempt: 0,
-        nextAttempt: 0
-      })
+      return await db.commit(
+        record,
+        base,
+        lease,
+        {
+          id: revision,
+          objectKey: record.key,
+          frame: b64(canonical(record)),
+          digest: record.digest,
+          state: 'local'
+        },
+        objectChannel(record, payload)
+      )
     } finally {
       key.fill(0)
     }
   }
   async saveItem(input: { item: Item; id?: string; base?: string | null }) {
     ensure(input.item.type !== 'file', 'INVALID_INPUT')
-    const item = itemSchema.parse(input.item)
+    const { resolvedConflicts: _resolutions, ...editable } = input.item
+    const item = itemSchema.parse(editable)
     ensure(
       utf8(item.body).length + utf8(item.secret).length <= 32768,
       'QUOTA_EXCEEDED',
       '条目正文应小于 32 KiB。'
     )
+    if (input.id && input.base) {
+      const { db } = await this.ready()
+      const previous = await db.db.get('objects', `${input.id}:${input.base}`)
+      ensure(previous?.kind === 'vault', 'NOT_FOUND')
+      const old = await this.decode<Item>(previous)
+      return this.write(
+        'vault',
+        {
+          ...item,
+          ...(old.resolvedConflicts ? { resolvedConflicts: old.resolvedConflicts } : {})
+        },
+        input.id,
+        input.base
+      )
+    }
     return this.write('vault', item, input.id, input.base)
   }
   async deleteItem(input: { id: string; base: string; restore?: boolean }) {
@@ -965,31 +1012,44 @@ export class CryptoEngine {
     return this.write('vault', await this.decode(record), input.id, input.base, !input.restore)
   }
   async resolveConflict(input: { key: string; base: string }) {
-    const { db, lease } = await this.ready(),
+    const { db } = await this.ready(),
       record = (await db.db.get('objects', input.key)) as EncryptedObject | undefined
     ensure(record?.conflict && record.kind === 'vault', 'NOT_FOUND')
-    const saved = await this.write(
+    const head = await db.db.get('objects', `${record.id}:${input.base}`)
+    ensure(head?.kind === 'vault', 'NOT_FOUND')
+    const item = await this.decode<Item>(record),
+      current = await this.decode<Item>(head)
+    return this.write(
       'vault',
-      await this.decode(record),
+      {
+        ...item,
+        resolvedConflicts: [
+          ...new Set([
+            ...(current.resolvedConflicts ?? []),
+            ...(item.resolvedConflicts ?? []),
+            record.key
+          ])
+        ]
+      },
       record.id,
       input.base,
       record.tombstone
     )
-    // Retain the immutable branch as evidence. Resolution is a new revision.
-    if (!saved.conflict)
-      await db.guardedPut('meta', { id: `resolved:${record.key}`, value: saved.key }, lease)
-    return saved
   }
   async view(): Promise<ViewData> {
     const { db, meta, localKey } = await this.ready(),
-      records = await db.heads()
+      records = (
+        await Promise.all(
+          (['vault', 'channel', 'message', 'profile'] as const).map((kind) => db.heads(kind))
+        )
+      ).flat()
     const data: ViewData = {
       meta,
       entries: [],
       channels: [],
       messages: [],
       profile: null,
-      outbox: await db.db.getAll('outbox'),
+      outbox: await db.outboxSummary(),
       conflicts: [],
       imports: []
     }
@@ -1010,13 +1070,15 @@ export class CryptoEngine {
       else if (record.kind === 'profile') data.profile = await this.decode<Profile>(record)
       if ((index + 1) % 32 === 0) await this.tick()
     }
-    const conflicts = ((await db.db.getAll('objects')) as EncryptedObject[]).filter(
-      (x) => x.kind === 'vault' && x.conflict
+    const conflicts = (
+      (await db.db.getAllFromIndex('objects', 'kind', 'vault')) as EncryptedObject[]
+    ).filter((x) => x.kind === 'vault' && x.conflict)
+    const resolved = new Set(
+      data.entries.flatMap((entry) => entry.item.resolvedConflicts ?? [])
     )
     for (let index = 0; index < conflicts.length; index++) {
       const record = conflicts[index]
-      if (!(await db.db.get('meta', `resolved:${record.key}`)))
-        data.conflicts.push(await decodeItem(record))
+      if (!resolved.has(record.key)) data.conflicts.push(await decodeItem(record))
       if ((index + 1) % 32 === 0) await this.tick()
     }
     for (const job of (await db.db.getAll('migration_jobs')).filter(
@@ -1075,9 +1137,7 @@ export class CryptoEngine {
       'QUOTA_EXCEEDED',
       '消息应小于 24 KiB。'
     )
-    const record = (await db.heads()).find(
-      (x) => x.id === input.channelId && x.kind === 'channel'
-    )
+    const record = await db.getHead(input.channelId, 'channel')
     ensure(record, 'NOT_FOUND')
     const channel = await this.decode<Channel>(record)
     ensure(channel.state === 'draft', 'POLICY_STALE', '需要刷新频道授权与 epoch 后才能发布。')
@@ -1154,7 +1214,7 @@ export class CryptoEngine {
         'INVALID_INPUT'
       )
     }
-    const existing = (await db.heads()).find((x) => x.kind === 'profile')
+    const existing = (await db.heads('profile'))[0]
     return this.write('profile', clean, existing?.id, existing?.revision)
   }
   async importFile(file: File, resumeId?: string) {
@@ -1286,7 +1346,7 @@ export class CryptoEngine {
         updatedAt: Date.now(),
         file: manifest
       }
-      const prior = (await db.heads()).find((x) => x.id === fileId)
+      const prior = await db.getHead(fileId)
       if (prior)
         ensure(
           (await this.decode<Item>(prior)).file?.sha256 === manifest.sha256,
@@ -1639,10 +1699,13 @@ export class CryptoEngine {
     await this.reauthenticate(password)
     const { db, meta, bundle, localKey, lease } = await this.ready()
     await this.tick()
-    const tx = db.db.transaction(['objects', 'local_private', 'migration_jobs'])
+    const tx = db.db.transaction(['objects', 'local_private', 'migration_jobs', 'outbox'])
     const objects = (await tx.objectStore('objects').getAll()) as EncryptedObject[],
       drafts = await tx.objectStore('local_private').getAll(),
-      jobs = await tx.objectStore('migration_jobs').getAll()
+      jobs = await tx.objectStore('migration_jobs').getAll(),
+      outbox = new Map(
+        (await tx.objectStore('outbox').getAll()).map((job) => [job.objectKey, job])
+      )
     await tx.done
     await this.tick()
     const missing = jobs.filter((j) => j.stage !== 'complete').map((j) => `unfinished:${j.id}`)
@@ -1750,10 +1813,25 @@ export class CryptoEngine {
       if ((index + 1) % 16 === 0) await this.tick()
     }
     const chunks: Chunk[] = []
+    ensure(
+      objects.length <= MAX_BACKUP_RECORDS && required.size <= MAX_BACKUP_RECORDS,
+      'QUOTA_EXCEEDED',
+      '恢复包的对象或文件块数量超过限制；未生成文件。'
+    )
+    let encodedBytes = objects.reduce(
+      (total, record) => total + record.ciphertext.length + record.keyEnvelope.length,
+      0
+    )
     let chunkIndex = 0
     for (const ref of required) {
       const chunk = (await db.db.get('chunks', ref)) as Chunk | undefined
       ensure(chunk, 'RECOVERY_INCOMPLETE', `备份所需文件块缺失：${ref}`)
+      encodedBytes += chunk.ciphertext.length
+      ensure(
+        encodedBytes <= MAX_BACKUP_BYTES,
+        'QUOTA_EXCEEDED',
+        '恢复包超过大小限制；未生成文件。'
+      )
       chunks.push(chunk)
       if (++chunkIndex % 16 === 0) await this.tick()
     }
@@ -1768,6 +1846,13 @@ export class CryptoEngine {
       createdAt: Date.now(),
       scope: missing.length ? ('partial' as const) : ('local-inclusive' as const),
       objects,
+      synced: objects
+        .filter(
+          (record) =>
+            record.kind !== 'draft' &&
+            (!outbox.has(record.key) || outbox.get(record.key).state === 'stored')
+        )
+        .map((record) => record.key),
       chunks,
       missing
     }
@@ -1779,7 +1864,7 @@ export class CryptoEngine {
     const archive: RecoveryArchive = { ...content, manifestDigest, authentication }
     const json = JSON.stringify(archive)
     ensure(
-      utf8(json).length <= 256 * 1024 * 1024,
+      utf8(json).length <= MAX_BACKUP_BYTES,
       'QUOTA_EXCEEDED',
       '恢复包超过 256 MiB，上限包含全部编码与封装开销；未生成文件。'
     )
@@ -1807,7 +1892,7 @@ export class CryptoEngine {
       '此浏览器配置已经有工作台。请在空白浏览器配置中恢复，以免隐藏原有数据。'
     )
     ensure(
-      input.file.size <= 256 * 1024 * 1024 && input.password.length >= 12,
+      input.file.size <= MAX_BACKUP_BYTES && input.password.length >= 12,
       'INVALID_INPUT',
       '请选择有效备份，并设置至少 12 个字符的新口令。'
     )
@@ -1817,8 +1902,10 @@ export class CryptoEngine {
         Array.isArray(archive.objects) &&
         Array.isArray(archive.chunks) &&
         Array.isArray(archive.missing) &&
-        archive.objects.length <= 10000 &&
-        archive.chunks.length <= 10000,
+        Array.isArray(archive.synced) &&
+        archive.objects.length <= MAX_BACKUP_RECORDS &&
+        archive.chunks.length <= MAX_BACKUP_RECORDS &&
+        archive.synced.length <= MAX_BACKUP_RECORDS,
       'UNSUPPORTED_PROTOCOL'
     )
     const { manifestDigest, authentication, ...content } = archive
@@ -1859,11 +1946,14 @@ export class CryptoEngine {
         chunkMap = new Map(archive.chunks.map((c) => [c.id, c]))
       ensure(
         uniqueObjects.size === archive.objects.length &&
-          chunkMap.size === archive.chunks.length,
+          chunkMap.size === archive.chunks.length &&
+          new Set(archive.synced).size === archive.synced.length &&
+          archive.synced.every((key) => uniqueObjects.has(key)),
         'INTEGRITY_FAILED'
       )
       this.meta = meta
       await this.verifyCloudSnapshot(meta, root, chunkMap)
+      const channels = new Map<string, string>()
       for (let index = 0; index < archive.objects.length; index++) {
         const record = archive.objects[index]
         ensure(
@@ -1874,6 +1964,7 @@ export class CryptoEngine {
           'INTEGRITY_FAILED'
         )
         const payload = await this.decode<Item>(record, root)
+        channels.set(record.key, objectChannel(record, payload))
         if (
           record.kind === 'draft' &&
           (payload as unknown as { format?: string }).format === 'dmsg-file-import/1'
@@ -1916,7 +2007,15 @@ export class CryptoEngine {
         transportPublic: b64(ed25519.getPublicKey(unb64(bundle.transport))),
         recoveryChecked: true
       }
-      await this.install(input.password, restored, bundle, archive)
+      await this.install(
+        input.password,
+        restored,
+        bundle,
+        archive,
+        undefined,
+        undefined,
+        channels
+      )
       await this.restoreAuxiliary()
       return { meta: restored, count: archive.objects.length, missing: archive.missing }
     } finally {
@@ -2185,6 +2284,7 @@ export class CryptoEngine {
         ])
       )
     const records: EncryptedObject[] = []
+    const channels = new Map<string, string>()
     for (const record of archive.objects) {
       await this.tick()
       const payload = await this.decode<Record<string, unknown>>(record)
@@ -2195,6 +2295,11 @@ export class CryptoEngine {
         : record.revision
       if (record.kind === 'message')
         payload.channelId = remap('object', payload.channelId as string)
+      if (record.kind === 'vault' && Array.isArray(payload.resolvedConflicts))
+        payload.resolvedConflicts = (payload.resolvedConflicts as string[]).map((key) => {
+          const [objectId, revision] = key.split(':')
+          return `${remap('object', objectId)}:${remap('revision', revision)}`
+        })
       if (record.kind === 'profile' && typeof payload.avatarFile === 'string') {
         const [objectId, revision] = payload.avatarFile.split(':')
         payload.avatarFile = `${remap('object', objectId)}:${remap('revision', revision)}`
@@ -2252,6 +2357,7 @@ export class CryptoEngine {
         key.fill(0)
       }
       records.push(target)
+      channels.set(target.key, objectChannel(target, payload))
       this.progress({
         stage: '正在验证正式工作区副本',
         completed: records.length,
@@ -2335,9 +2441,10 @@ export class CryptoEngine {
       input.password,
       meta,
       next,
-      { ...archive, meta, objects: records },
+      { ...archive, meta, objects: records, synced: [] },
       undefined,
-      source.db.name
+      source.db.name,
+      channels
     )
     await source.db.release(source.lease)
     source.db.db.close()

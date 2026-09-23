@@ -87,9 +87,11 @@ export class InboxClient {
     key: string,
     path: string,
     action: CloudAction,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    repeat = false
   ) {
     let job = await this.journal(key)
+    if (repeat && job?.result) job = null
     if (job) ensure(equal(canonical(job.payload), canonical(payload)), 'IDEMPOTENCY_CONFLICT')
     if (job?.result) return job.result
     const context = await this.context(job && job.deadline > Date.now() ? job.requestId : id())
@@ -638,7 +640,8 @@ export class InboxClient {
       `mark:${order}:${read}:${archived}`,
       `/v1/inboxes/${this.accountId}/mark`,
       'dmsg/inbox/mark/v1',
-      { order_id: order, read, archived, reopen_contact: archived }
+      { order_id: order, read, archived, reopen_contact: archived },
+      true
     )
   }
   async refund(escrow: string) {
