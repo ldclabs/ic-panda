@@ -15,7 +15,10 @@ use icrc_ledger_types::{
         account::Account,
         transfer::{TransferArg, TransferError},
     },
-    icrc2::transfer_from::{TransferFromArgs, TransferFromError},
+    icrc2::{
+        allowance::{Allowance, AllowanceArgs},
+        transfer_from::{TransferFromArgs, TransferFromError},
+    },
     icrc3::blocks::{BlockWithId, GetBlocksRequest, GetBlocksResult},
 };
 use num_traits::ToPrimitive;
@@ -29,6 +32,7 @@ struct Config {
     lose: bool,
     rejects: u32,
 }
+
 fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
@@ -37,11 +41,14 @@ thread_local! {
     static CONFIG: RefCell<StableCell<Stored<Config>, Memory>> = RefCell::new(StableCell::init(memory(0), Stored(Config { fee:10, next:0, lose:false, rejects:0 })));
     static BALANCES: RefCell<StableBTreeMap<Vec<u8>, Stored<u128>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
     static DUPLICATES: RefCell<StableBTreeMap<Vec<u8>, Stored<u64>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
+    static ALLOWANCES: RefCell<StableBTreeMap<Vec<u8>, Stored<u128>, Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
     static BLOCKS: RefCell<StableBTreeMap<Vec<u8>, Stored<Value>, Memory>> = RefCell::new(StableBTreeMap::init(memory(3)));
 }
+
 fn config() -> Config {
     CONFIG.with_borrow(|c| c.get().0.clone())
 }
+
 fn configure(f: impl FnOnce(&mut Config)) {
     CONFIG.with_borrow_mut(|c| {
         let mut v = c.get().0.clone();
@@ -49,18 +56,23 @@ fn configure(f: impl FnOnce(&mut Config)) {
         c.set(Stored(v));
     });
 }
+
 fn balance(a: Account) -> u128 {
     BALANCES.with_borrow(|t| t.load(digest("balance", &a).as_slice()).unwrap_or(0))
 }
+
 fn write_balance(a: Account, n: u128) {
     BALANCES.with_borrow_mut(|t| t.put(digest("balance", &a).as_slice(), &n));
 }
+
 fn fee() -> u128 {
     config().fee
 }
+
 fn n(n: u128) -> Value {
     Value::Nat(n.into())
 }
+
 fn account(a: Account) -> Value {
     let mut v = vec![Value::Blob(a.owner.as_slice().to_vec().into())];
     if let Some(s) = a.subaccount {
@@ -68,32 +80,62 @@ fn account(a: Account) -> Value {
     }
     Value::Array(v)
 }
+
 #[ic_cdk::update]
 fn mint_test(a: Account, n: u128) {
     write_balance(a, balance(a) + n);
 }
+
+// Fixture setup only: approval fees/history are outside this test double.
+#[ic_cdk::update]
+fn approve_test(from: Account, spender: Account, amount: u128) {
+    ALLOWANCES
+        .with_borrow_mut(|t| t.put(digest("allowance", &(from, spender)).as_slice(), &amount));
+}
+
+#[ic_cdk::query]
+fn icrc2_allowance(args: AllowanceArgs) -> Allowance {
+    Allowance {
+        allowance: allowance(args.account, args.spender).into(),
+        expires_at: None,
+    }
+}
+
+fn allowance(from: Account, spender: Account) -> u128 {
+    ALLOWANCES.with_borrow(|t| {
+        t.load(digest("allowance", &(from, spender)).as_slice())
+            .unwrap_or(0)
+    })
+}
+
 #[ic_cdk::update]
 fn set_fee(n: u128) {
     configure(|c| c.fee = n);
 }
+
 #[ic_cdk::update]
 fn lose_next_response() {
     configure(|c| c.lose = true);
 }
+
 #[ic_cdk::update]
 fn reject_next_transfers(count: u32) {
     configure(|c| c.rejects = count);
 }
+
 #[ic_cdk::update]
 fn barrier() {}
+
 #[ic_cdk::query]
 fn icrc1_balance_of(a: Account) -> Nat {
     balance(a).into()
 }
+
 fn transfer(
     from: Account,
     a: &TransferArg,
     spender: Option<Account>,
+    at: u64,
 ) -> std::result::Result<Nat, TransferError> {
     let key = digest("transfer", &(from, a, spender));
     if let Some(block) = DUPLICATES.with_borrow(|t| t.load(key.as_slice())) {
@@ -138,7 +180,7 @@ fn transfer(
         tx.insert("spender".into(), account(s));
     }
     let block = Value::Map(BTreeMap::from([
-        ("ts".into(), n(ic_cdk::api::time().into())),
+        ("ts".into(), n(at.into())),
         ("tx".into(), Value::Map(tx)),
         (
             "btype".into(),
@@ -150,8 +192,10 @@ fn transfer(
     DUPLICATES.with_borrow_mut(|t| t.put(key.as_slice(), &index));
     Ok(index.into())
 }
+
 #[ic_cdk::update]
 async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferError> {
+    let at = ic_cdk::api::time();
     let result = transfer(
         Account {
             owner: ic_cdk::api::msg_caller(),
@@ -159,6 +203,7 @@ async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferErro
         },
         &a,
         None,
+        at,
     );
     let lose = config().lose;
     if lose && result.is_ok() {
@@ -171,6 +216,7 @@ async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferErro
     }
     result
 }
+
 #[ic_cdk::update]
 async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, TransferFromError> {
     let spender = Account {
@@ -185,7 +231,31 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
         memo: a.memo,
         amount: a.amount,
     };
-    let result = transfer(a.from, &args, Some(spender)).map_err(|e| match e {
+    let at = ic_cdk::api::time();
+    if let Some(created) = args.created_at_time {
+        if created.saturating_add(24 * 60 * 60 * 1_000_000_000) < at {
+            return Err(TransferFromError::TooOld);
+        }
+        if created > at.saturating_add(60 * 1_000_000_000) {
+            return Err(TransferFromError::CreatedInFuture { ledger_time: at });
+        }
+    }
+    // A retry must still return Duplicate after the original debit consumed
+    // the allowance. Approval is needed only for a new transfer.
+    let key = digest("transfer", &(a.from, &args, Some(spender)));
+    if let Some(block) = DUPLICATES.with_borrow(|t| t.load(key.as_slice())) {
+        return Err(TransferFromError::Duplicate {
+            duplicate_of: block.into(),
+        });
+    }
+    let approved = allowance(a.from, spender);
+    let debit = args.amount.0.to_u128().unwrap().checked_add(fee()).unwrap();
+    if a.from != spender && approved < debit {
+        return Err(TransferFromError::InsufficientAllowance {
+            allowance: approved.into(),
+        });
+    }
+    let result = transfer(a.from, &args, Some(spender), at).map_err(|e| match e {
         TransferError::Duplicate { duplicate_of } => TransferFromError::Duplicate { duplicate_of },
         TransferError::BadFee { expected_fee } => TransferFromError::BadFee { expected_fee },
         TransferError::InsufficientFunds { balance } => {
@@ -193,6 +263,9 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
         }
         _ => TransferFromError::TemporarilyUnavailable,
     });
+    if result.is_ok() && a.from != spender {
+        approve_test(a.from, spender, approved - debit);
+    }
     if result.is_ok() && config().lose {
         configure(|c| c.lose = false);
         let _: () = stable::call(ic_cdk::api::canister_self(), "barrier", ())
@@ -202,6 +275,7 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
     }
     result
 }
+
 #[ic_cdk::query]
 fn icrc3_get_blocks(args: Vec<GetBlocksRequest>) -> GetBlocksResult {
     let mut blocks = vec![];
@@ -228,6 +302,7 @@ ic_cdk::export_candid!();
 fn icrc1_decimals() -> u8 {
     6
 }
+
 #[ic_cdk::query]
 fn icrc1_fee() -> Nat {
     fee().into()

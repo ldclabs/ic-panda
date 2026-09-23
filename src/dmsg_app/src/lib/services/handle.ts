@@ -1,12 +1,12 @@
 import { Principal } from '@icp-sdk/core/principal'
-import type { _SERVICE, LegacyReservation } from '../canisters/generated/handle'
+import type { _SERVICE } from '../canisters/generated/handle'
 import { AccountClient, controlResult } from './account'
 import {
   canonicalHandle,
   encodeClaim,
   decodeClaim,
   legacyClaimDigest,
-  legacyEntryDigest,
+  legacyReservationDigest,
   progressValue
 } from '../protocol/handle'
 import { id, unhex, equal, canonical, decodeCanonical, utf8 } from '../protocol/codec'
@@ -32,45 +32,39 @@ export class HandleClient {
   ) {}
   async legacy(name: string) {
     name = canonicalHandle(name)
-    const progress = await this.registry.snapshot_progress()
-    const proof = await certifiedValue(
-      controlResult(await this.registry.snapshot_certified()),
+    const {
+      progress,
+      reservation: records,
+      proof
+    } = controlResult(await this.registry.get_legacy_reservation_certified(name))
+    const snapshot = await certifiedValue(
+      proof,
       this.account.agent,
       this.registryId,
       utf8('_legacy_snapshot')
     )
     ensure(
-      equal(canonical(decodeCanonical(proof.value)), canonical(progressValue(progress))),
+      equal(canonical(decodeCanonical(snapshot.value)), canonical(progressValue(progress))),
       'INTEGRITY_FAILED'
     )
     ensure(progress.sealed && progress.snapshot.length, 'Pending', '旧名称快照尚未完整封存。')
-    let cursor: [] | [string] = [],
-      reservation: LegacyReservation | undefined,
-      rolling = new Uint8Array(32),
-      count = 0
-    for (let page = 0; page < 20000; page++) {
-      const rows: LegacyReservation[] = controlResult(
-        await this.registry.list_legacy_reservations(cursor)
-      )
-      for (const row of rows) {
-        ensure(
-          canonicalHandle(row.handle) === row.handle &&
-            (!cursor.length || row.handle > cursor[0]),
-          'INTEGRITY_FAILED'
-        )
-        rolling = Uint8Array.from(legacyEntryDigest(rolling, row))
-        count++
-        cursor = [row.handle]
-        if (row.handle === name) reservation = row
-      }
-      if (rows.length < 64) break
+    const entry = await certifiedLeaf(
+      proof,
+      this.account.agent,
+      this.registryId,
+      utf8(`_legacy/${name}`)
+    )
+    const reservation = records[0]
+    if (!reservation) {
+      ensure(entry.value === null, 'INTEGRITY_FAILED')
+      ensure(false, 'NOT_FOUND', '冻结快照中没有此名称。')
     }
     ensure(
-      BigInt(count) === progress.imported &&
-        equal(rolling, Uint8Array.from(progress.rolling_digest)),
+      reservation.handle === name &&
+        entry.value &&
+        equal(entry.value, canonical(legacyReservationDigest(reservation))),
       'INTEGRITY_FAILED'
     )
-    ensure(reservation, 'NOT_FOUND', '冻结快照中没有此名称。')
     ensure(!reservation.quarantined, 'Locked', '此名称已隔离，需先解决原权属。')
     const ownerIsName =
       reservation.legacy_name_principal[0]?.toText() === reservation.legacy_owner.toText()

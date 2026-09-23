@@ -719,6 +719,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     )
     .unwrap();
     f.mint(person(1), amount + 10);
+    f.approve_handle(person(1), amount + 10);
     let reserved: Result<HandleOperation> = update(
         &f.ic,
         f.handle,

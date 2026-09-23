@@ -41,7 +41,9 @@ async fn consume(i: &HandleIntent) -> Result<()> {
 fn init(args: HandleInit) {
     authenticated(args.home_user).expect("home user");
     authenticated(args.ledger).expect("ledger");
-    assert!(args.ledger_fee < price("x") && args.max_pending > 0 && args.max_pending <= 10_000);
+    assert!(
+        args.ledger_fee < price("minimum") && args.max_pending > 0 && args.max_pending <= 10_000
+    );
     save_cfg(&Config {
         schema: STABLE_SCHEMA,
         init: args,
@@ -67,9 +69,39 @@ fn post_upgrade() {
     );
     CERT.with_borrow_mut(|c| {
         NAMES.with_borrow(|t| t.for_each(|k, r| c.0.insert(k, canonical(&r))));
+        LEGACY.with_borrow(|t| {
+            t.for_each(|_, r| {
+                c.0.insert(legacy_key(&r.handle), canonical(&legacy_digest(&r)))
+            })
+        });
     });
     // Publish once, after all name leaves and the snapshot leaf are restored.
     certify_snapshot();
+}
+
+fn legacy_key(name: &str) -> Vec<u8> {
+    format!("_legacy/{name}").into_bytes()
+}
+
+fn legacy_digest(record: &LegacyReservation) -> Hash {
+    digest("dmsg/legacy-reservation/v1", record)
+}
+
+#[ic_cdk::query]
+fn get_handle_config() -> HandleInit {
+    cfg().init
+}
+
+#[ic_cdk::update]
+fn update_ledger_fee(fee: u128) -> Result<()> {
+    controller()?;
+    ensure(fee < price("minimum"), Error::FeeBlocked)?;
+    let mut c = cfg();
+    if c.init.ledger_fee != fee {
+        c.init.ledger_fee = fee;
+        save_cfg(&c);
+    }
+    Ok(())
 }
 
 fn certify_snapshot() {
@@ -142,6 +174,9 @@ fn import_legacy_handles(
         LEGACY.with_borrow_mut(|t| {
             for e in inserts {
                 t.put(e.handle.as_bytes(), e);
+                CERT.with_borrow_mut(|c| {
+                    c.0.insert(legacy_key(&e.handle), canonical(&legacy_digest(e)))
+                });
             }
         });
         save_cfg(&c);
@@ -176,6 +211,7 @@ fn commit_name(
     from: Option<AccountId>,
     to: AccountId,
     version: u64,
+    at: u64,
 ) -> HandleRecord {
     let event = HandleEvent {
         sequence: EVENTS.with(|t| t.len()),
@@ -184,7 +220,7 @@ fn commit_name(
         from,
         to: to.clone(),
         version,
-        at: now(),
+        at,
         legacy_snapshot: c
             .progress
             .snapshot
@@ -265,7 +301,8 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
         return Ok(r);
     }
     let mut c = cfg();
-    let result = commit_name(&mut c, &intent.handle, None, intent.account_id, 1);
+    let at = now();
+    let result = commit_name(&mut c, &intent.handle, None, intent.account_id, 1, at);
     save_cfg(&c);
     Ok(result)
 }
@@ -279,52 +316,30 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
         ic_cdk::api::msg_caller() == registration.payer.owner,
         Error::AuthRequired,
     )?;
-    let mut c = cfg();
-    ensure(c.progress.sealed, Error::LegacyWriteDisabled)?;
-    let amount = price(&i.handle)
-        .checked_sub(c.init.ledger_fee)
-        .ok_or(Error::FeeBlocked)?;
-    ensure(
-        registration.fee == c.init.ledger_fee
-            && i.target_account.is_none()
-            && i.expected_version == 0
-            && i.terms_digest
-                == charge_terms_digest(
-                    c.init.ledger,
-                    &registration.payer,
-                    amount,
-                    registration.fee,
-                ),
-        Error::IntegrityFailed,
-    )?;
     let key = op_key(&i.account_id, i.op_id);
     let fp = digest("dmsg/handle-registration/v1", &registration);
-    if let Ok(o) = op(&key) {
-        ensure(o.digest == fp, Error::IdempotencyConflict)?;
+    let at = now();
+    if let Some(o) = registration_replay(&key, &fp, at)? {
         return Ok(o);
     }
-    ensure(
-        !NAMES.with_borrow(|t| t.contains(i.handle.as_bytes()))
-            && !LEGACY.with_borrow(|t| t.contains(i.handle.as_bytes()))
-            && !LOCKS.with_borrow(|t| t.contains_key(&i.handle.as_bytes().to_vec())),
-        Error::VersionConflict,
-    )?;
+    cleanup_reservations(&i.account_id, &i.handle, at);
+    let c = cfg();
+    check_registration(&c, &registration)?;
+    check_available(&i.handle)?;
     check_pending(&c, &i.account_id)?;
     consume(i).await?;
-    if let Ok(o) = op(&key) {
-        ensure(o.digest == fp, Error::IdempotencyConflict)?;
+    // Configuration, locks and deadlines can all change during authorization.
+    let created_at = now();
+    if let Some(o) = registration_replay(&key, &fp, created_at)? {
         return Ok(o);
     }
-    c = cfg();
+    cleanup_reservations(&i.account_id, &i.handle, created_at);
+    let mut c = cfg();
+    let amount = check_registration(&c, &registration)?;
     check_pending(&c, &i.account_id)?;
-    ensure(
-        !NAMES.with_borrow(|t| t.contains(i.handle.as_bytes()))
-            && !LOCKS.with_borrow(|t| t.contains_key(&i.handle.as_bytes().to_vec())),
-        Error::VersionConflict,
-    )?;
-    let created_at = now();
+    check_available(&i.handle)?;
     LOCKS.with_borrow_mut(|t| t.insert(i.handle.as_bytes().to_vec(), key.into_array()));
-    SUBJECT_OPS.with_borrow_mut(|t| t.insert(i.account_id.0));
+    SUBJECT_OPS.with_borrow_mut(|t| t.insert(i.account_id.0, key.into_array()));
     let o = HandleOperation {
         registration,
         digest: fp,
@@ -341,9 +356,102 @@ async fn reserve_handle(registration: Registration) -> Result<HandleOperation> {
     Ok(o)
 }
 
+// Terminal replays stay cheap and independent of current quote configuration.
+fn registration_replay(key: &Hash, fingerprint: &Hash, at: u64) -> Result<Option<HandleOperation>> {
+    let Ok(mut o) = op(key) else { return Ok(None) };
+    ensure(o.digest == *fingerprint, Error::IdempotencyConflict)?;
+    if o.phase == HandlePhase::Reserved && at >= o.expires_at {
+        let mut c = cfg();
+        close_operation(&mut c, key, &mut o, HandlePhase::Expired);
+        save_cfg(&c);
+    }
+    Ok(Some(o))
+}
+
+fn check_registration(c: &Config, registration: &Registration) -> Result<u128> {
+    ensure(c.progress.sealed, Error::LegacyWriteDisabled)?;
+    let i = &registration.intent;
+    let amount = price(&i.handle)
+        .checked_sub(c.init.ledger_fee)
+        .ok_or(Error::FeeBlocked)?;
+    ensure(registration.fee == c.init.ledger_fee, Error::FeeBlocked)?;
+    ensure(
+        i.target_account.is_none()
+            && i.expected_version == 0
+            && i.terms_digest
+                == charge_terms_digest(
+                    c.init.ledger,
+                    &registration.payer,
+                    amount,
+                    registration.fee,
+                ),
+        Error::IntegrityFailed,
+    )?;
+    Ok(amount)
+}
+
+fn check_available(name: &str) -> Result<()> {
+    ensure(
+        !NAMES.with_borrow(|t| t.contains(name.as_bytes()))
+            && !LEGACY.with_borrow(|t| t.contains(name.as_bytes()))
+            && !LOCKS.with_borrow(|t| t.contains_key(&name.as_bytes().to_vec())),
+        Error::VersionConflict,
+    )
+}
+
+// Bound global maintenance to 64 entries, plus the two resources requested by
+// this caller. No scan of terminal history and no client-supplied operation ID.
+fn cleanup_reservations(account_id: &AccountId, name: &str, at: u64) {
+    let mut keys: Vec<_> = EXPIRATIONS.with_borrow(|t| {
+        t.iter()
+            .take_while(|(deadline, _)| *deadline <= at)
+            .take(64)
+            .map(|(_, key)| key)
+            .collect()
+    });
+    keys.extend(SUBJECT_OPS.with_borrow(|t| t.get(&account_id.0)));
+    keys.extend(LOCKS.with_borrow(|t| t.get(&name.as_bytes().to_vec())));
+    keys.sort_unstable();
+    keys.dedup();
+    if keys.is_empty() {
+        return;
+    }
+    let mut c = cfg();
+    let before = c.pending;
+    for key in keys {
+        let key = Hash::new(key);
+        let mut o = op(&key).expect("pending operation");
+        if o.phase == HandlePhase::Reserved && at >= o.expires_at {
+            close_operation(&mut c, &key, &mut o, HandlePhase::Expired);
+        }
+    }
+    if c.pending != before {
+        save_cfg(&c);
+    }
+}
+
+fn close_operation(c: &mut Config, key: &Hash, o: &mut HandleOperation, phase: HandlePhase) {
+    o.phase = phase;
+    save_op(key, o);
+    release(c, o);
+}
+
+// A known nonexecution may retry only inside the original reservation window.
+fn restore_reservation(key: &Hash, mut o: HandleOperation, at: u64) {
+    if at < o.expires_at {
+        o.phase = HandlePhase::Reserved;
+        save_op(key, &o);
+    } else {
+        let mut c = cfg();
+        close_operation(&mut c, key, &mut o, HandlePhase::Expired);
+        save_cfg(&c);
+    }
+}
+
 fn check_pending(c: &Config, account_id: &AccountId) -> Result<()> {
     ensure(
-        c.pending < c.init.max_pending && !SUBJECT_OPS.with_borrow(|t| t.contains(&account_id.0)),
+        c.pending < c.init.max_pending
+            && !SUBJECT_OPS.with_borrow(|t| t.contains_key(&account_id.0)),
         Error::QuotaExceeded,
     )
 }
@@ -354,15 +462,12 @@ fn release(c: &mut Config, o: &HandleOperation) {
     c.pending = c.pending.checked_sub(1).expect("pending accounting");
 }
 
-fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64) -> Result<HandleOperation> {
+fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Result<HandleOperation> {
     if o.phase == HandlePhase::Committed {
         return Ok(o);
     }
     ensure(
-        matches!(
-            o.phase,
-            HandlePhase::Charging | HandlePhase::ChargeUnknown | HandlePhase::Paid
-        ),
+        matches!(o.phase, HandlePhase::Charging | HandlePhase::ChargeUnknown),
         Error::VersionConflict,
     )?;
     let i = &o.registration.intent;
@@ -373,9 +478,8 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64) -> Result<HandleO
     )?;
     o.ledger_block = Some(block);
     let mut c = cfg();
-    // Paid and Committed share one atomic callback; persisting Paid adds a
-    // redundant serialization/write and cannot help recovery from a trap.
-    commit_name(&mut c, &i.handle, None, i.account_id.clone(), 1);
+    // Ownership, receipt and lock release commit in the same callback.
+    commit_name(&mut c, &i.handle, None, i.account_id.clone(), 1, at);
     o.phase = HandlePhase::Committed;
     save_op(key, &o);
     release(&mut c, &o);
@@ -403,8 +507,12 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         },
     )?;
     let was_unknown = o.phase == HandlePhase::ChargeUnknown;
-    if !was_unknown {
-        ensure(now() < o.expires_at, Error::Expired)?;
+    let at = now();
+    if !was_unknown && at >= o.expires_at {
+        let mut c = cfg();
+        close_operation(&mut c, &key, &mut o, HandlePhase::Expired);
+        save_cfg(&c);
+        return Err(Error::Expired);
     }
     let args = TransferFromArgs {
         spender_subaccount: None,
@@ -424,6 +532,7 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         std::result::Result<Nat, TransferFromError>,
         stable::CallFailure,
     > = stable::call_classified(cfg().init.ledger, "icrc2_transfer_from", (args,)).await;
+    let at = now();
     // Reload once: reconciliation can commit while the ledger call is in flight.
     o = op(&key)?;
     if o.phase == HandlePhase::Committed {
@@ -438,25 +547,34 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
                 Ok(block) => block,
                 Err(_) => return charge_unknown(&key, o),
             };
-            finish_paid(&key, o, block)
+            finish_paid(&key, o, block, at)
         }
-        Ok(Err(_)) => {
-            if was_unknown {
-                charge_unknown(&key, o)
-            } else {
-                let mut c = cfg();
-                o.phase = HandlePhase::Expired;
-                save_op(&key, &o);
-                release(&mut c, &o);
-                save_cfg(&c);
-                Err(Error::Unavailable(
-                    "ledger rejected charge; a new approved operation is required".into(),
-                ))
-            }
+        Ok(Err(_)) if was_unknown => {
+            // This rejection cannot resolve the previous ambiguous attempt.
+            charge_unknown(&key, o)
+        }
+        Ok(Err(TransferFromError::TemporarilyUnavailable)) => {
+            restore_reservation(&key, o, at);
+            Err(Error::Unavailable(
+                "ledger temporarily unavailable; retry the same operation".into(),
+            ))
+        }
+        Ok(Err(error)) => {
+            let reason = error.to_string();
+            let mut c = cfg();
+            close_operation(
+                &mut c,
+                &key,
+                &mut o,
+                HandlePhase::Rejected {
+                    reason: reason.clone(),
+                },
+            );
+            save_cfg(&c);
+            Err(Error::Unavailable(reason))
         }
         Err(failure) if !failure.preserves_unknown(was_unknown) => {
-            o.phase = HandlePhase::Reserved;
-            save_op(&key, &o);
+            restore_reservation(&key, o, at);
             Err(failure.into())
         }
         Err(_) => charge_unknown(&key, o),
@@ -503,7 +621,8 @@ async fn reconcile_handle_charge(
                 }),
         Error::IntegrityFailed,
     )?;
-    finish_paid(&key, op(&key)?, block)
+    let at = now();
+    finish_paid(&key, op(&key)?, block, at)
 }
 
 #[ic_cdk::update]
@@ -514,10 +633,8 @@ fn expire_handle_reservation(account_id: AccountId, op_id: Hash) -> Result<()> {
         o.phase == HandlePhase::Reserved && now() >= o.expires_at,
         Error::VersionConflict,
     )?;
-    o.phase = HandlePhase::Expired;
-    save_op(&key, &o);
     let mut c = cfg();
-    release(&mut c, &o);
+    close_operation(&mut c, &key, &mut o, HandlePhase::Expired);
     save_cfg(&c);
     Ok(())
 }
@@ -564,8 +681,14 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
             && r.version < u64::MAX,
         Error::VersionConflict,
     )?;
-    consume(&from).await?;
-    consume(&accept).await?;
+    let authorized: Result<()> = stable::call(
+        cfg().init.home_user,
+        "consume_handle_transfer_authorizations",
+        (&from, &accept),
+    )
+    .await?;
+    authorized?;
+    let at = now();
     if let Some(receipt) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
         ensure(receipt.digest == fingerprint, Error::IdempotencyConflict)?;
         return Ok(receipt.record);
@@ -579,6 +702,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         Some(from.account_id.clone()),
         accept.account_id.clone(),
         r.version + 1,
+        at,
     );
     TRANSFERS.with_borrow_mut(|t| {
         t.put(
@@ -609,6 +733,24 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
 #[ic_cdk::query]
 fn get_handle_operation(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
     op(&op_key(&account_id, op_id))
+}
+
+#[ic_cdk::query]
+fn get_legacy_reservation_certified(handle: String) -> Result<CertifiedLegacyReservation> {
+    let name = normalize_handle(&handle)?;
+    let reservation = LEGACY.with_borrow(|t| t.load(name.as_bytes()));
+    let progress = cfg().progress;
+    let proof = CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![b"_legacy_snapshot".to_vec(), legacy_key(&name)],
+        )
+    })?;
+    Ok(CertifiedLegacyReservation {
+        reservation,
+        progress,
+        proof,
+    })
 }
 
 #[ic_cdk::query]

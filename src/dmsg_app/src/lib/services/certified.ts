@@ -1,7 +1,7 @@
 import {
   Certificate,
   Cbor,
-  lookup_path,
+  flatten_forks,
   lookupResultToBuffer,
   reconstruct,
   type HashTree,
@@ -57,8 +57,8 @@ export async function certifiedLeaf(
     certificate.lookup_path(['canister', canister.toUint8Array(), 'certified_data'])
   )
   const tree = Cbor.decode<HashTree>(Uint8Array.from(entries[0].witness)),
-    lookup = lookup_path([key], tree),
-    value = lookupResultToBuffer(lookup) ?? null
+    lookup = lookupCertifiedMap(tree, key),
+    value = lookup.status === 'Found' ? lookup.value : null
   ensure(root && equal(root, await reconstruct(tree)), 'INTEGRITY_FAILED')
   if (entries[0].value.length)
     ensure(value && equal(value, Uint8Array.from(entries[0].value[0]!)), 'INTEGRITY_FAILED')
@@ -70,4 +70,40 @@ export async function certifiedValue(...args: Parameters<typeof certifiedLeaf>) 
   const result = await certifiedLeaf(...args)
   ensure(result.value, 'INTEGRITY_FAILED')
   return { ...result, value: result.value }
+}
+
+// The application's certified maps have one byte-label level. SDK 6.1.0's
+// find_label compares later bytes even after an earlier byte already differs;
+// that is not the lexicographic order used by the Rust RbTree. Keep BLS/root
+// verification in the SDK and perform this bounded map lookup explicitly.
+export function lookupCertifiedMap(
+  tree: HashTree,
+  key: Uint8Array
+): { status: 'Found'; value: Uint8Array } | { status: 'Absent' | 'Unknown' } {
+  let uncertain = false
+  for (const node of flatten_forks(tree)) {
+    if (node[0] === 4) {
+      uncertain = true
+      continue
+    }
+    ensure(node[0] === 2, 'INTEGRITY_FAILED')
+    const label = node[1]
+    let order = key.length - label.length
+    for (let i = 0; i < Math.min(key.length, label.length); i++) {
+      if (key[i] !== label[i]) {
+        order = key[i] - label[i]
+        break
+      }
+    }
+    if (order < 0) return { status: uncertain ? 'Unknown' : 'Absent' }
+    if (order === 0) {
+      const child = node[2]
+      if (child[0] === 4) return { status: 'Unknown' }
+      ensure(child[0] === 3, 'INTEGRITY_FAILED')
+      return { status: 'Found', value: child[1] }
+    }
+    // A disclosed smaller label bounds all earlier pruned siblings.
+    uncertain = false
+  }
+  return { status: uncertain ? 'Unknown' : 'Absent' }
 }

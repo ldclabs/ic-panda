@@ -537,6 +537,15 @@ impl Fixture {
             (account(who), n),
         );
     }
+    fn approve_handle(&self, who: Principal, amount: u128) {
+        void(
+            &self.ic,
+            self.ledger,
+            Principal::anonymous(),
+            "approve_test",
+            (account(who), account(self.handle), amount),
+        );
+    }
     fn fund(&self, e: &EscrowInfo, amount: u128) -> u64 {
         self.mint(e.payer_principal, amount + 10);
         let r: std::result::Result<Nat, TransferError> = update(
@@ -1213,6 +1222,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     )
     .unwrap();
     f.mint(person(1), amount + 10);
+    f.approve_handle(person(1), amount + 10);
     let reserved: Result<HandleOperation> = update(
         &f.ic,
         f.handle,

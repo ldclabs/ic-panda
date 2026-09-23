@@ -80,8 +80,7 @@ export const idlFactory = ({ IDL }) => {
   const HandlePhase = IDL.Variant({
     'Committed' : IDL.Null,
     'Reserved' : IDL.Null,
-    'Paid' : IDL.Null,
-    'RefundPending' : IDL.Null,
+    'Rejected' : IDL.Record({ 'reason' : IDL.Text }),
     'ChargeUnknown' : IDL.Null,
     'Charging' : IDL.Null,
     'Expired' : IDL.Null,
@@ -125,11 +124,6 @@ export const idlFactory = ({ IDL }) => {
     'sealed' : IDL.Bool,
     'rolling_digest' : IDL.Vec(IDL.Nat8),
   });
-  const Result_4 = IDL.Variant({ 'Ok' : SnapshotProgress, 'Err' : Error });
-  const Result_5 = IDL.Variant({
-    'Ok' : IDL.Vec(LegacyReservation),
-    'Err' : Error,
-  });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -141,7 +135,21 @@ export const idlFactory = ({ IDL }) => {
     'entries' : IDL.Vec(CertifiedEntry),
     'canister' : IDL.Principal,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const CertifiedLegacyReservation = IDL.Record({
+    'reservation' : IDL.Opt(LegacyReservation),
+    'progress' : SnapshotProgress,
+    'proof' : CertifiedBatch,
+  });
+  const Result_4 = IDL.Variant({
+    'Ok' : CertifiedLegacyReservation,
+    'Err' : Error,
+  });
+  const Result_5 = IDL.Variant({ 'Ok' : SnapshotProgress, 'Err' : Error });
+  const Result_6 = IDL.Variant({
+    'Ok' : IDL.Vec(LegacyReservation),
+    'Err' : Error,
+  });
+  const Result_7 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   return IDL.Service({
     'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result], []),
     'claim_legacy_handle' : IDL.Func(
@@ -159,6 +167,7 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
+    'get_handle_config' : IDL.Func([], [HandleInit], ['query']),
     'get_handle_event' : IDL.Func(
         [IDL.Nat64],
         [IDL.Opt(HandleEvent)],
@@ -170,14 +179,19 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_legacy_reservation' : IDL.Func([IDL.Text], [Result_3], ['query']),
+    'get_legacy_reservation_certified' : IDL.Func(
+        [IDL.Text],
+        [Result_4],
+        ['query'],
+      ),
     'import_legacy_handles' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(LegacyReservation)],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'list_legacy_reservations' : IDL.Func(
         [IDL.Opt(IDL.Text)],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
     'reconcile_handle_charge' : IDL.Func(
@@ -188,13 +202,14 @@ export const idlFactory = ({ IDL }) => {
     'reserve_handle' : IDL.Func([Registration], [Result_2], []),
     'resolve_handle_certified' : IDL.Func(
         [IDL.Vec(IDL.Text)],
-        [Result_6],
+        [Result_7],
         ['query'],
       ),
-    'seal_legacy_snapshot' : IDL.Func([], [Result_4], []),
-    'snapshot_certified' : IDL.Func([], [Result_6], ['query']),
+    'seal_legacy_snapshot' : IDL.Func([], [Result_5], []),
+    'snapshot_certified' : IDL.Func([], [Result_7], ['query']),
     'snapshot_progress' : IDL.Func([], [SnapshotProgress], ['query']),
     'transfer_handle' : IDL.Func([HandleIntent, HandleIntent], [Result_1], []),
+    'update_ledger_fee' : IDL.Func([IDL.Nat], [Result], []),
   });
 };
 export const init = ({ IDL }) => {

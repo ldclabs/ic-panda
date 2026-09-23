@@ -226,17 +226,28 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
 #[ic_cdk::update]
 fn consume_handle_authorization(intent: HandleIntent) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
-    ensure(
-        caller == config().init.handle_canister && intent.handle_canister == caller,
-        Error::Forbidden,
-    )?;
+    ensure(caller == config().init.handle_canister, Error::Forbidden)?;
+    check_handle_authorization(&intent, caller, now())
+}
+
+#[ic_cdk::update]
+fn consume_handle_transfer_authorizations(from: HandleIntent, accept: HandleIntent) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    ensure(caller == config().init.handle_canister, Error::Forbidden)?;
+    let at = now();
+    check_handle_authorization(&from, caller, at)?;
+    check_handle_authorization(&accept, caller, at)
+}
+
+fn check_handle_authorization(intent: &HandleIntent, caller: Principal, at: u64) -> Result<()> {
+    ensure(intent.handle_canister == caller, Error::Forbidden)?;
     let s = load(&intent.account_id)?;
     let a = s
         .handle_authorizations
         .get(&intent.op_id)
         .ok_or(Error::NotFound)?;
-    ensure(a.intent == intent, Error::IdempotencyConflict)?;
-    ensure(now() < a.expires_at, Error::Expired)?;
+    ensure(&a.intent == intent, Error::IdempotencyConflict)?;
+    ensure(at < a.expires_at, Error::Expired)?;
     // Permission was linearized when the device authorized this exact intent.
     // The handle canister deduplicates the operation; revalidation is read-only.
     Ok(())

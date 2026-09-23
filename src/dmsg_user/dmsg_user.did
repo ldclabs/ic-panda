@@ -833,6 +833,9 @@ service : (UserInit) -> {
   begin_auth_binding : (blob, blob, nat64) -> (Result);
   complete_recovery : (blob) -> (Result);
   consume_handle_authorization : (HandleIntent) -> (Result);
+  consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
+      Result,
+    );
   create_account : (CreateAccount) -> (Result_1);
   derive_root : (DeriveRootRequest) -> (Result_2);
   get_account : (blob) -> (Result_3) query;

@@ -143,14 +143,15 @@ pub enum HandlePhase {
     Charging,
     /// Ledger charge may have succeeded; reconcile before another charge.
     ChargeUnknown,
-    /// Ledger charge succeeded; ownership commit remains.
-    Paid,
     /// Name ownership change is committed.
     Committed,
     /// The applicable deadline has passed.
     Expired,
-    /// A registration refund remains to be completed.
-    RefundPending,
+    /// Ledger definitively rejected the charge; a new operation is required.
+    Rejected {
+        /// Ledger rejection diagnostic, retained for operation recovery.
+        reason: String,
+    },
 }
 
 /// Query view of a name registration and its ledger charge.
@@ -187,4 +188,16 @@ pub struct SnapshotProgress {
     pub last_handle: Option<String>,
     /// Whether the imported snapshot has been finalized.
     pub sealed: bool,
+}
+
+/// One frozen reservation and proofs for its digest and the import progress.
+/// Verify both leaves under the same certified root before using the record.
+#[derive(CandidType, Serialize, Deserialize, Clone)]
+pub struct CertifiedLegacyReservation {
+    /// Frozen record, or None with an authenticated absence proof.
+    pub reservation: Option<LegacyReservation>,
+    /// Import progress authenticated by the `_legacy_snapshot` leaf.
+    pub progress: SnapshotProgress,
+    /// Proofs for `_legacy_snapshot` and `_legacy/<canonical handle>`.
+    pub proof: CertifiedBatch,
 }

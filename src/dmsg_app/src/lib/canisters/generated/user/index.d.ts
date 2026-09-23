@@ -429,6 +429,10 @@ export interface _SERVICE {
   >,
   'complete_recovery' : ActorMethod<[Uint8Array | number[]], Result>,
   'consume_handle_authorization' : ActorMethod<[HandleIntent], Result>,
+  'consume_handle_transfer_authorizations' : ActorMethod<
+    [HandleIntent, HandleIntent],
+    Result
+  >,
   'create_account' : ActorMethod<[CreateAccount], Result_1>,
   'derive_root' : ActorMethod<[DeriveRootRequest], Result_2>,
   'get_account' : ActorMethod<[Uint8Array | number[]], Result_3>,

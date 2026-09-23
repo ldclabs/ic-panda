@@ -19,15 +19,15 @@ fn seal_snapshot(f: &Fixture, entries: &[LegacyReservation]) -> LegacySnapshot {
         (snapshot.clone(),),
     );
     started.unwrap();
-    if !entries.is_empty() {
+    for chunk in entries.chunks(256) {
         let imported: Result<SnapshotProgress> = update(
             &f.ic,
             f.handle,
             Principal::anonymous(),
             "import_legacy_handles",
-            (snapshot.snapshot_id, entries),
+            (snapshot.snapshot_id, chunk),
         );
-        assert_eq!(imported.unwrap().imported, snapshot.count);
+        assert!(imported.unwrap().imported <= snapshot.count);
     }
     let sealed: Result<SnapshotProgress> = update(
         &f.ic,
@@ -283,6 +283,7 @@ fn handle_locks_survive_upgrade_and_unknown_charges_never_expire() {
     authorize(&f, 1, &unknown.intent);
     reserve(&f, &unknown).unwrap();
     f.mint(person(1), price("first"));
+    f.approve_handle(person(1), price("first"));
     void(
         &f.ic,
         f.ledger,
@@ -317,10 +318,10 @@ fn handle_locks_survive_upgrade_and_unknown_charges_never_expire() {
     authorize(&f, 1, &rejected.intent);
     reserve(&f, &rejected).unwrap();
     assert!(matches!(commit(&f, &rejected), Err(Error::Unavailable(_))));
-    assert_eq!(
+    assert!(matches!(
         operation(&f, &rejected).unwrap().phase,
-        HandlePhase::Expired
-    );
+        HandlePhase::Rejected { .. }
+    ));
     assert_eq!(commit(&f, &rejected), Err(Error::VersionConflict));
     let next = registration(&f, &other, "rejected", 6);
     authorize(&f, 2, &next.intent);
@@ -368,6 +369,7 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
     );
     let winner = results.iter().position(|r| r.is_ok()).unwrap();
     f.mint(person(1), price("alpha") + price("beta"));
+    f.approve_handle(person(1), price("alpha") + price("beta"));
     let calls: Vec<_> = (0..2)
         .map(|_| {
             f.ic.submit_call(
@@ -426,6 +428,7 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
     let next = registration(&f, &owner, "gamma", 3);
     authorize(&f, 1, &next.intent);
     f.mint(person(1), price("gamma"));
+    f.approve_handle(person(1), price("gamma"));
     reserve(&f, &next).unwrap();
     commit(&f, &next).unwrap();
     let event: Option<HandleEvent> = query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
@@ -473,6 +476,7 @@ fn handle_cycles_profile() {
         assert_eq!(r.unwrap().rolling_digest, snapshot.entries_digest);
     });
     f.mint(person(1), 40 * price("newname"));
+    f.approve_handle(person(1), 40 * price("newname"));
     for history in 0..17 {
         let input = registration(&f, &owner, &format!("name{history:04}"), history as u8 + 1);
         authorize(&f, 1, &input.intent);
@@ -506,4 +510,558 @@ fn handle_cycles_profile() {
         )
         .unwrap();
     });
+}
+
+fn claim_intent(
+    f: &Fixture,
+    owner: &AccountId,
+    snapshot: &LegacySnapshot,
+    legacy: &LegacyReservation,
+    nonce: u8,
+) -> HandleIntent {
+    HandleIntent {
+        handle_canister: f.handle,
+        action: HandleAction::ClaimLegacy,
+        account_id: owner.clone(),
+        target_account: None,
+        handle: legacy.handle.clone(),
+        expected_version: 0,
+        op_id: Hash::new([nonce; 32]),
+        terms_digest: digest(
+            "dmsg/legacy-claim/v1",
+            &(snapshot.snapshot_id, legacy, owner),
+        ),
+    }
+}
+
+fn transfer_intents(
+    f: &Fixture,
+    owner: &AccountId,
+    target: &AccountId,
+    name: &str,
+    version: u64,
+    nonce: u8,
+) -> (HandleIntent, HandleIntent) {
+    let op_id = Hash::new([nonce; 32]);
+    let from = HandleIntent {
+        handle_canister: f.handle,
+        action: HandleAction::Transfer,
+        account_id: owner.clone(),
+        target_account: Some(target.clone()),
+        handle: name.into(),
+        expected_version: version,
+        op_id,
+        terms_digest: digest(
+            "dmsg/handle-transfer/v1",
+            &(f.handle, name, owner, target, version, op_id),
+        ),
+    };
+    let accept = HandleIntent {
+        action: HandleAction::AcceptTransfer,
+        account_id: target.clone(),
+        target_account: Some(owner.clone()),
+        ..from.clone()
+    };
+    (from, accept)
+}
+
+#[test]
+fn handle_expired_reservations_reclaim_names_accounts_and_global_capacity() {
+    let f = Fixture::new();
+    f.ic.reinstall_canister(
+        f.handle,
+        wasm("dmsg_handle"),
+        candid::encode_args((HandleInit {
+            home_user: f.user,
+            ledger: f.ledger,
+            ledger_fee: 10,
+            max_pending: 1,
+        },))
+        .unwrap(),
+        None,
+    )
+    .unwrap();
+    let owner = f.create(1);
+    let other = f.create(2);
+    seal_snapshot(&f, &[]);
+    let first = registration(&f, &owner, "abandoned", 1);
+    authorize(&f, 1, &first.intent);
+    reserve(&f, &first).unwrap();
+    upgrade(&f);
+    f.ic.advance_time(Duration::from_secs(16 * 60));
+    let next = registration(&f, &other, "abandoned", 2);
+    authorize(&f, 2, &next.intent);
+    reserve(&f, &next).unwrap();
+    assert_eq!(operation(&f, &first).unwrap().phase, HandlePhase::Expired);
+    assert_eq!(expire(&f, &first), Err(Error::VersionConflict));
+    // An expired commit also releases its resources without a separate call.
+    f.ic.advance_time(Duration::from_secs(16 * 60));
+    assert_eq!(commit(&f, &next), Err(Error::Expired));
+    let last = registration(&f, &other, "freshname", 3);
+    authorize(&f, 2, &last.intent);
+    reserve(&f, &last).unwrap();
+    assert_eq!(operation(&f, &next).unwrap().phase, HandlePhase::Expired);
+}
+
+#[test]
+fn handle_cleanup_is_bounded_and_always_checks_the_requesting_account() {
+    let f = Fixture::new();
+    seal_snapshot(&f, &[]);
+    let mut inputs = vec![];
+    for n in 1..=66u8 {
+        let owner = f.create(n);
+        let input = registration(&f, &owner, &format!("held{n:02}"), n);
+        authorize(&f, n, &input.intent);
+        reserve(&f, &input).unwrap();
+        inputs.push(input);
+        // Distinct deadlines make the expiry-index order deterministic.
+        f.ic.advance_time(Duration::from_secs(1));
+    }
+    f.ic.advance_time(Duration::from_secs(16 * 60));
+    upgrade(&f);
+    let next = registration(&f, &inputs[65].intent.account_id, "anothername", 100);
+    // Stop at authorization to inspect one bounded synchronous cleanup batch.
+    assert_eq!(reserve(&f, &next), Err(Error::NotFound));
+    assert_eq!(
+        operation(&f, &inputs[0]).unwrap().phase,
+        HandlePhase::Expired
+    );
+    assert_eq!(
+        operation(&f, &inputs[64]).unwrap().phase,
+        HandlePhase::Reserved
+    );
+    assert_eq!(
+        operation(&f, &inputs[65]).unwrap().phase,
+        HandlePhase::Expired
+    );
+    assert_eq!(expire(&f, &inputs[65]), Err(Error::VersionConflict));
+    authorize(&f, 66, &next.intent);
+    reserve(&f, &next).unwrap();
+}
+
+#[test]
+fn handle_allowance_failures_are_diagnostic_and_temporary_rejections_retry() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    seal_snapshot(&f, &[]);
+    f.mint(person(1), 3 * price("allowance"));
+    for (nonce, approved) in [(1, 0), (2, price("allowance") - 1)] {
+        f.approve_handle(person(1), approved);
+        let input = registration(&f, &owner, "allowance", nonce);
+        authorize(&f, 1, &input.intent);
+        reserve(&f, &input).unwrap();
+        let result = commit(&f, &input);
+        assert!(
+            matches!(result, Err(Error::Unavailable(ref reason)) if reason.contains("allowance"))
+        );
+        let HandlePhase::Rejected { reason } = operation(&f, &input).unwrap().phase else {
+            panic!("rejected")
+        };
+        assert!(reason.contains("allowance"));
+    }
+    let input = registration(&f, &owner, "allowance", 3);
+    authorize(&f, 1, &input.intent);
+    let reserved = reserve(&f, &input).unwrap();
+    f.approve_handle(person(1), price("allowance"));
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "reject_next_transfers",
+        (1u32,),
+    );
+    assert!(
+        matches!(commit(&f, &input), Err(Error::Unavailable(ref reason)) if reason.contains("temporarily"))
+    );
+    assert_eq!(operation(&f, &input).unwrap(), reserved);
+    upgrade(&f);
+    let paid = commit(&f, &input).unwrap();
+    assert_eq!(paid.phase, HandlePhase::Committed);
+    assert_eq!(commit(&f, &input).unwrap(), paid);
+    let allowance: icrc_ledger_types::icrc2::allowance::Allowance = query(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "icrc2_allowance",
+        (icrc_ledger_types::icrc2::allowance::AllowanceArgs {
+            account: input.payer,
+            spender: account(f.handle),
+        },),
+    );
+    assert_eq!(allowance.allowance, 0u64);
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "icrc1_balance_of",
+        (input.payer,),
+    );
+    assert_eq!(balance, Nat::from(2 * price("allowance")));
+}
+
+#[test]
+fn handle_fee_updates_only_affect_new_operations() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    seal_snapshot(&f, &[]);
+    f.mint(person(1), 3 * price("feechange"));
+    f.approve_handle(person(1), 3 * price("feechange"));
+    let old = registration(&f, &owner, "feechange", 1);
+    authorize(&f, 1, &old.intent);
+    let reserved = reserve(&f, &old).unwrap();
+    let denied: Result<()> = update(&f.ic, f.handle, person(99), "update_ledger_fee", (11u128,));
+    assert_eq!(denied, Err(Error::Forbidden));
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "set_fee",
+        (11u128,),
+    );
+    let changed: Result<()> = update(
+        &f.ic,
+        f.handle,
+        Principal::anonymous(),
+        "update_ledger_fee",
+        (11u128,),
+    );
+    changed.unwrap();
+    let config: HandleInit = query(&f.ic, f.handle, person(1), "get_handle_config", ());
+    assert_eq!(config.ledger_fee, 11);
+    assert_eq!(reserve(&f, &old).unwrap(), reserved);
+    assert!(
+        matches!(commit(&f, &old), Err(Error::Unavailable(ref reason)) if reason.contains("fee"))
+    );
+    let mut new = registration(&f, &owner, "feechange", 2);
+    assert_eq!(reserve(&f, &new), Err(Error::FeeBlocked));
+    new.fee = 11;
+    new.intent.terms_digest =
+        charge_terms_digest(f.ledger, &new.payer, price("feechange") - 11, 11);
+    authorize(&f, 1, &new.intent);
+    reserve(&f, &new).unwrap();
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "lose_next_response",
+        (),
+    );
+    assert_eq!(commit(&f, &new), Err(Error::ExecutionUnknown));
+    let unknown = operation(&f, &new).unwrap();
+    let changed: Result<()> = update(
+        &f.ic,
+        f.handle,
+        Principal::anonymous(),
+        "update_ledger_fee",
+        (12u128,),
+    );
+    changed.unwrap();
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "set_fee",
+        (12u128,),
+    );
+    upgrade(&f);
+    assert_eq!(reserve(&f, &new).unwrap(), unknown);
+    let result = commit(&f, &new).unwrap();
+    assert_eq!(result.phase, HandlePhase::Committed);
+    assert_eq!(result.registration.fee, 11);
+    assert_eq!(result.memo, unknown.memo);
+    assert_eq!(result.created_at, unknown.created_at);
+}
+
+#[test]
+fn handle_legacy_certificates_and_frozen_admin_claims_survive_upgrade() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    let entries = vec![
+        LegacyReservation {
+            handle: "namedowner".into(),
+            legacy_owner: person(80),
+            legacy_name_principal: Some(person(80)),
+            frozen_admins: vec![person(1)],
+            quarantined: false,
+        },
+        LegacyReservation {
+            handle: "quarantined".into(),
+            legacy_owner: person(1),
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: true,
+        },
+    ];
+    let snapshot = seal_snapshot(&f, &entries);
+    for upgraded in [false, true] {
+        if upgraded {
+            upgrade(&f);
+        }
+        let mut replies = vec![];
+        for name in ["namedowner", "missing"] {
+            let result: Result<CertifiedLegacyReservation> = query(
+                &f.ic,
+                f.handle,
+                person(1),
+                "get_legacy_reservation_certified",
+                (name.to_uppercase(),),
+            );
+            let result = result.unwrap();
+            replies.push(ByteBuf::from(
+                candid::encode_one(Ok::<_, Error>(&result)).unwrap(),
+            ));
+            assert!(result.progress.sealed);
+            assert_eq!(result.proof.entries.len(), 2);
+            let cert: ic_certification::Certificate =
+                cbor2::from_slice(&result.proof.certificate).unwrap();
+            for entry in &result.proof.entries {
+                let witness: ic_certification::HashTree =
+                    cbor2::from_slice(&entry.witness).unwrap();
+                assert_eq!(
+                    cert.tree.lookup_path([
+                        b"canister".as_slice(),
+                        f.handle.as_slice(),
+                        b"certified_data".as_slice()
+                    ]),
+                    ic_certification::LookupResult::Found(&witness.digest())
+                );
+                match &entry.value {
+                    Some(value) => assert_eq!(
+                        witness.lookup_path([entry.key.as_ref()]),
+                        ic_certification::LookupResult::Found(value.as_ref())
+                    ),
+                    None => assert_eq!(
+                        witness.lookup_path([entry.key.as_ref()]),
+                        ic_certification::LookupResult::Absent
+                    ),
+                }
+            }
+            assert_eq!(
+                result.proof.entries[0].value.as_ref().unwrap().as_ref(),
+                canonical(&result.progress)
+            );
+            assert_eq!(
+                result.proof.entries[1].key.as_ref(),
+                format!("_legacy/{name}").as_bytes()
+            );
+            assert_eq!(
+                result.proof.entries[1].value.as_ref().map(|v| v.to_vec()),
+                result
+                    .reservation
+                    .as_ref()
+                    .map(|r| canonical(&digest("dmsg/legacy-reservation/v1", r)))
+            );
+            assert_eq!(result.reservation.is_some(), name == "namedowner");
+        }
+        if !upgraded {
+            if let Some(path) = std::env::var_os("DMSG_EXPORT_HANDLE_CERTIFICATE") {
+                std::fs::write(
+                    path,
+                    canonical(&(
+                        ByteBuf::from(f.ic.root_key().unwrap()),
+                        time(&f.ic),
+                        f.handle.to_text(),
+                        person(1).to_text(),
+                        &replies,
+                    )),
+                )
+                .unwrap();
+            }
+        }
+    }
+    for (n, entry) in entries.iter().enumerate() {
+        let intent = claim_intent(&f, &owner, &snapshot, entry, n as u8 + 1);
+        authorize(&f, 1, &intent);
+        for caller in [person(2), person(80)] {
+            let result: Result<HandleRecord> = update(
+                &f.ic,
+                f.handle,
+                caller,
+                "claim_legacy_handle",
+                (&intent, snapshot.snapshot_id),
+            );
+            assert_eq!(
+                result,
+                Err(if entry.quarantined {
+                    Error::Locked
+                } else {
+                    Error::Forbidden
+                })
+            );
+        }
+        let result: Result<HandleRecord> = update(
+            &f.ic,
+            f.handle,
+            person(1),
+            "claim_legacy_handle",
+            (&intent, snapshot.snapshot_id),
+        );
+        if entry.quarantined {
+            assert_eq!(result, Err(Error::Locked));
+        } else {
+            assert_eq!(result.unwrap().owner_account, owner);
+        }
+    }
+}
+
+#[test]
+fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    let target = f.create(2);
+    let legacy = LegacyReservation {
+        handle: "transfername".into(),
+        legacy_owner: person(1),
+        legacy_name_principal: None,
+        frozen_admins: vec![],
+        quarantined: false,
+    };
+    let snapshot = seal_snapshot(&f, std::slice::from_ref(&legacy));
+    let claim = claim_intent(&f, &owner, &snapshot, &legacy, 1);
+    authorize(&f, 1, &claim);
+    let result: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "claim_legacy_handle",
+        (claim, snapshot.snapshot_id),
+    );
+    result.unwrap();
+    let (from, accept) = transfer_intents(&f, &owner, &target, "transfername", 1, 2);
+    authorize(&f, 1, &from);
+    let denied: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    assert_eq!(denied, Err(Error::NotFound));
+    // Renew only the receiver. The expired sender still rejects the whole pair.
+    f.ic.advance_time(Duration::from_secs(61));
+    authorize(&f, 2, &accept);
+    let expired: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    assert_eq!(expired, Err(Error::Expired));
+    authorize(&f, 1, &from);
+    let forbidden: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "consume_handle_transfer_authorizations",
+        (&from, &accept),
+    );
+    assert_eq!(forbidden, Err(Error::Forbidden));
+    let calls: Vec<_> = (0..2)
+        .map(|_| {
+            f.ic.submit_call(
+                f.handle,
+                person(1),
+                "transfer_handle",
+                candid::encode_args((&from, &accept)).unwrap(),
+            )
+            .unwrap()
+        })
+        .collect();
+    for call in calls {
+        let result: Result<HandleRecord> =
+            candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
+        assert_eq!(result.unwrap().version, 2);
+    }
+    let absent: Option<HandleEvent> =
+        query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
+    assert!(absent.is_none());
+    upgrade(&f);
+    let replay: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    assert_eq!(replay.unwrap().owner_account, target);
+}
+
+// Measures deployed public endpoints, without a privileged seeding API. Legacy
+// leaves exercise the same heap certification tree as active ownership leaves.
+#[test]
+#[ignore = "1k/10k legacy certification and operation capacity profile"]
+fn handle_scale_profile() {
+    for size in [1_000usize, 10_000] {
+        let f = Fixture::new();
+        let owner = f.create(1);
+        let target = f.create(2);
+        let entries: Vec<_> = (0..size)
+            .map(|n| LegacyReservation {
+                handle: format!("legacy{n:05}"),
+                legacy_owner: person(1),
+                legacy_name_principal: None,
+                frozen_admins: vec![],
+                quarantined: false,
+            })
+            .collect();
+        seal_snapshot(&f, &entries);
+        f.mint(person(1), 20 * price("scale000"));
+        f.approve_handle(person(1), 20 * price("scale000"));
+        for n in 0..17u8 {
+            let input = registration(&f, &owner, &format!("scale{n:03}"), n + 1);
+            authorize(&f, 1, &input.intent);
+            if n == 16 {
+                measure(&f, size, "scale_reserve", || reserve(&f, &input)).unwrap();
+                measure(&f, size, "scale_commit", || commit(&f, &input)).unwrap();
+            } else {
+                reserve(&f, &input).unwrap();
+                commit(&f, &input).unwrap();
+            }
+        }
+        let (from, accept) = transfer_intents(&f, &owner, &target, "scale000", 1, 100);
+        authorize(&f, 1, &from);
+        authorize(&f, 2, &accept);
+        let result: Result<HandleRecord> = measure(&f, size, "scale_transfer", || {
+            update(
+                &f.ic,
+                f.handle,
+                person(1),
+                "transfer_handle",
+                (&from, &accept),
+            )
+        });
+        assert_eq!(result.unwrap().version, 2);
+        let start = std::time::Instant::now();
+        let result: Result<CertifiedLegacyReservation> = query(
+            &f.ic,
+            f.handle,
+            person(1),
+            "get_legacy_reservation_certified",
+            ("legacy00000",),
+        );
+        let elapsed = start.elapsed();
+        let bytes = candid::encode_one(&result).unwrap().len();
+        assert!(result.unwrap().reservation.is_some());
+        let names: Result<CertifiedBatch> = query(
+            &f.ic,
+            f.handle,
+            person(1),
+            "resolve_handle_certified",
+            (vec!["scale000", "missing"],),
+        );
+        assert_eq!(names.unwrap().entries.len(), 2);
+        let status = f.ic.canister_status(f.handle, None).unwrap();
+        println!("handle_scale legacy={size} active=17 heap_bytes={} stable_bytes={} legacy_response_bytes={bytes} local_query_us={}",
+            status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_micros());
+        measure(&f, size, "scale_upgrade", || upgrade(&f));
+        let restored: Result<CertifiedLegacyReservation> = query(
+            &f.ic,
+            f.handle,
+            person(1),
+            "get_legacy_reservation_certified",
+            ("legacy00000",),
+        );
+        assert!(restored.unwrap().reservation.is_some());
+    }
 }

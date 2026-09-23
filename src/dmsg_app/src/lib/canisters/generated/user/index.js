@@ -448,6 +448,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'complete_recovery' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'consume_handle_authorization' : IDL.Func([HandleIntent], [Result], []),
+    'consume_handle_transfer_authorizations' : IDL.Func(
+        [HandleIntent, HandleIntent],
+        [Result],
+        [],
+      ),
     'create_account' : IDL.Func([CreateAccount], [Result_1], []),
     'derive_root' : IDL.Func([DeriveRootRequest], [Result_2], []),
     'get_account' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], ['query']),

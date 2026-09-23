@@ -50,11 +50,15 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(4)));
     pub(crate) static EVENTS: StableLog<CompactStored<HandleEvent>, Memory, Memory> =
         StableLog::init(memory(5), memory(8));
-    pub(crate) static SUBJECT_OPS: RefCell<StableBTreeSet<[u8; 12], Memory>> =
-        RefCell::new(StableBTreeSet::init(memory(6)));
+    pub(crate) static SUBJECT_OPS: RefCell<StableBTreeMap<[u8; 12], [u8; 32], Memory>> =
+        RefCell::new(StableBTreeMap::init(memory(6)));
     pub(crate) static TRANSFERS: RefCell<
         StableBTreeMap<Vec<u8>, CompactStored<TransferReceipt>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(7)));
+    // Only Reserved operations are reclaimable. Charging/unknown charges never
+    // enter this index, even after their original reservation deadline.
+    pub(crate) static EXPIRATIONS: RefCell<StableBTreeSet<(u64, [u8; 32]), Memory>> =
+        RefCell::new(StableBTreeSet::init(memory(9)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
@@ -76,10 +80,18 @@ pub(crate) fn op(key: &Hash) -> Result<HandleOperation> {
 
 pub(crate) fn save_op(key: &Hash, o: &HandleOperation) {
     OPS.with_borrow_mut(|t| t.put(key.as_slice(), o));
+    EXPIRATIONS.with_borrow_mut(|t| {
+        let entry = (o.expires_at, key.into_array());
+        if o.phase == HandlePhase::Reserved {
+            t.insert(entry);
+        } else {
+            t.remove(&entry);
+        }
+    });
 }
 
 pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 4;
+pub(crate) const STABLE_SCHEMA: u16 = 5;
