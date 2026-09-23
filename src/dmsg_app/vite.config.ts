@@ -12,7 +12,16 @@ if (config.release !== 'R0' || !['local', 'staging'].includes(config.environment
 // Permissions are fixed at build time. A relay cannot widen them remotely.
 const origins = config.externalOrigins.map((origin) => {
   const url = new URL(origin)
-  if (url.protocol !== 'https:' || url.origin !== origin || url.hostname.includes('*')) {
+  if (
+    (url.protocol !== 'https:' &&
+      !(
+        config.environment === 'local' &&
+        url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(url.hostname)
+      )) ||
+    url.origin !== origin ||
+    url.hostname.includes('*')
+  ) {
     throw new Error('externalOrigins must contain exact HTTPS origins')
   }
   return `${origin}/*`

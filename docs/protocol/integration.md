@@ -2,8 +2,7 @@
 
 Status: implementation in progress. Public contracts, governance registration, exact account approval, the dedicated
 authentication issuer, and independent Rust/TypeScript certificate verification
-are implemented and tested with local Wasm. The extension transport, generic
-checkout and product delivery adapters have not yet been connected or deployed. Legacy commerce v1 service endpoints remain until their
+are implemented and tested with local Wasm. The v4 browser authentication/document transport and TokenList login consumer are now connected in development. Generic checkout, application actions and membership adapters remain unfinished; no production release is asserted. Legacy commerce v1 service endpoints remain until their
 replacement work packages are implemented; there is no v2-to-v1 conversion.
 
 ## Versions and ownership
@@ -14,7 +13,7 @@ replacement work packages are implemented; there is no v2-to-v1 conversion.
 | Authentication certified leaf | `application/vnd.dmsg.authentication+cbor;v=1` |
 | Typed application action profile (execution pending) | `application/vnd.dmsg.app-action+cose;v=1` |
 | Generic checkout and irrevocable membership | `dmsg-commerce/2`, `membership/2` |
-| Browser bridge (implementation pending) | `dmsg-extension/4` |
+| Browser bridge | `dmsg-extension/4` |
 
 The three existing document profiles keep their v1 bytes. Authentication is a
 dedicated approved IC-certified leaf, not a signed statement, current security
@@ -173,3 +172,5 @@ The vectors include project and account subjects, two distinct fixture ledgers,
 authentication, exact approval, cash/PANDA quotes, a durable decision, and u128
 overflow boundaries. There are no real external identities, real transfers or
 production rate defaults in these tests.
+
+The browser transport and recovery contract is specified in [browser-v4](browser-v4.md).

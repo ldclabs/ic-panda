@@ -3,8 +3,16 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"],
-    "types": ["vite/client", "chrome"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "types": [
+      "vite/client",
+      "chrome"
+    ],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -12,7 +20,12 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": false,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "src/**/*.js"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "src/**/*.js"
+  ]
 }

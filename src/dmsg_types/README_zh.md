@@ -174,7 +174,7 @@ assert_eq!(result.output(), Err(Error::ExecutionUnknown));
 
 Serde 只定义数据表示，确定性编码仍须使用协议库或独立遵循公开规范：RFC 8949 core deterministic CBOR；大于 u64 的 u128 用 tag 2 最短大端字节串。不要通过 JavaScript Number 中转金额。验签须保留原 COSE protected-header 字节，不能重排后再验签。
 
-浏览器桥是独立的 `dmsg-extension/3` JSON 合同：accountId 为 Xid 文本、摘要/requestId/nonce 为小写 hex、大整数为十进制字符串。普通 Rust Serde JSON 不等同于桥协议，也不要把 Rust 枚举的内存布局当成 wire 格式。
+浏览器桥是独立的 `dmsg-extension/4` JSON 合同：accountId 为 Xid 文本、摘要/requestId/nonce 为小写 hex、大整数为十进制字符串。普通 Rust Serde JSON 不等同于桥协议，也不要把 Rust 枚举的内存布局当成 wire 格式。
 
 认证查询返回 `CertifiedBatch`，必须核对可信 IC 根、预期 canister、certificate 时间、witness 路径和原始 leaf 值。账户安全叶路径为单段原始 AccountId，escrow 叶为单段原始 escrow_id；执行回执为 `b"execution/" || account_id || request_id`。`SecuritySnapshot.devices_root` 提交完整设备 map，包括撤销/序号字段，不是删减后的设备列表。当前账户安全快照使用证书时间 +60 秒的新鲜度边界；历史执行回执不能机械套用这一窗口。`AccountInfo` 或 `DeviceEvidence` 单独出现不构成认证证明。
 

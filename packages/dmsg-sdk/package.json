@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./contracts": "./src/contracts.ts",
-    "./ic": "./src/ic.ts"
+    "./ic": "./src/ic.ts",
+    "./browser": "./src/browser.ts"
   },
   "files": [
     "src",

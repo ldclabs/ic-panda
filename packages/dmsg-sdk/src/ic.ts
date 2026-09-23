@@ -1,6 +1,16 @@
-import { Certificate, Cbor, flatten_forks, lookupResultToBuffer, reconstruct, type HashTree } from '@icp-sdk/core/agent'
+import {
+  Certificate,
+  Cbor,
+  flatten_forks,
+  lookupResultToBuffer,
+  reconstruct,
+  type HashTree
+} from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
-import type { AuthenticationRequest, AuthenticationResult } from './contracts.ts'
+import type {
+  AuthenticationRequest,
+  AuthenticationResult
+} from './contracts.ts'
 import { canonical, concat, decodeCanonical, equalBytes } from './encoding.ts'
 import { AUTH_TTL_MS, requireValid, validateShape } from './validation.ts'
 
@@ -12,18 +22,31 @@ export interface CertifiedBatch {
   entries: { key: Uint8Array; value: Uint8Array | null; witness: Uint8Array }[]
 }
 
-export function authenticationKey(account: Uint8Array, operation: Uint8Array): Uint8Array {
-  validateShape('AccountId', account); validateShape('Hash', operation)
-  return concat(new TextEncoder().encode('authentication/v1/'), account, operation)
+export function authenticationKey(
+  account: Uint8Array,
+  operation: Uint8Array
+): Uint8Array {
+  validateShape('AccountId', account)
+  validateShape('Hash', operation)
+  return concat(
+    new TextEncoder().encode('authentication/v1/'),
+    account,
+    operation
+  )
 }
 
 function certificateTime(time: Uint8Array): bigint {
   requireValid(time.length > 0 && time.length <= 10, 'certificate time')
   let n = 0n
   for (let i = 0; i < time.length; i++) {
-    const byte = time[i]
+    const byte = time[i]!
     requireValid(i !== 9 || byte <= 1, 'certificate time overflow')
-    requireValid(i === time.length - 1 ? (byte & 128) === 0 && (i === 0 || byte !== 0) : (byte & 128) !== 0, 'certificate time encoding')
+    requireValid(
+      i === time.length - 1
+        ? (byte & 128) === 0 && (i === 0 || byte !== 0)
+        : (byte & 128) !== 0,
+      'certificate time encoding'
+    )
     n |= BigInt(byte & 127) << BigInt(7 * i)
   }
   return n / 1_000_000n
@@ -34,12 +57,23 @@ function certificateTime(time: Uint8Array): bigint {
  * The product still checks session-key possession and consumes its challenge once.
  */
 export async function verifyAuthenticationCertificate(
-  batch: CertifiedBatch, expected: AuthenticationRequest, trustedHome: Uint8Array,
-  trustedIcRootDer: Uint8Array, nowMs: bigint
+  batch: CertifiedBatch,
+  expected: AuthenticationRequest,
+  trustedHome: Uint8Array,
+  trustedIcRootDer: Uint8Array,
+  nowMs: bigint
 ): Promise<AuthenticationResult> {
   validateShape('AuthenticationRequest', expected)
-  requireValid(expected.version === 1n && batch.schema === 1n && equalBytes(batch.canister, trustedHome) && batch.entries.length === 1 && batch.certificate.length <= 65_536 && trustedIcRootDer.length <= 256, 'proof shape')
-  const entry = batch.entries[0]
+  requireValid(
+    expected.version === 1n &&
+      batch.schema === 1n &&
+      equalBytes(batch.canister, trustedHome) &&
+      batch.entries.length === 1 &&
+      batch.certificate.length <= 65_536 &&
+      trustedIcRootDer.length <= 256,
+    'proof shape'
+  )
+  const entry = batch.entries[0]!
   requireValid(entry.value && entry.witness.length <= 65_536, 'proof bounds')
   const result = decodeCanonical(entry.value) as unknown as AuthenticationResult
   validateShape('AuthenticationResult', result)
@@ -55,18 +89,38 @@ export async function verifyAuthenticationCertificate(
   requireValid(time, 'missing time')
   const at = certificateTime(time)
   requireValid(at <= nowMs && nowMs - at <= 60_000n, 'certificate freshness')
-  const root = lookupResultToBuffer(certificate.lookup_path(['canister', trustedHome, 'certified_data']))
+  const root = lookupResultToBuffer(
+    certificate.lookup_path(['canister', trustedHome, 'certified_data'])
+  )
   const witness = Cbor.decode<HashTree>(entry.witness)
-  requireValid(root && equalBytes(root, await reconstruct(witness)), 'witness root')
+  requireValid(
+    root && equalBytes(root, await reconstruct(witness)),
+    'witness root'
+  )
   // Disclosed labels in this service have one raw segment. Avoid SDK find_label's
   // byte-order issue; no absence proof is accepted for authentication.
-  const matches = flatten_forks(witness).filter(node => node[0] === 2 && equalBytes(node[1], path))
+  const matches = flatten_forks(witness).filter(
+    (node) => node[0] === 2 && equalBytes(node[1], path)
+  )
   requireValid(matches.length === 1, 'exact witness path')
-  const node = matches[0]
-  requireValid(node[0] === 2 && node[2][0] === 3 && equalBytes(node[2][1], entry.value), 'witness value')
-  requireValid(result.version === 1n && equalBytes(canonical(result.request), canonical(expected)) && equalBytes(result.home_user, trustedHome), 'request binding')
-  requireValid(expected.issued_at_ms <= result.approved_at_ms && result.approved_at_ms <= at
-    && nowMs < result.expires_at_ms && result.expires_at_ms <= expected.expires_at_ms
-    && expected.expires_at_ms - expected.issued_at_ms <= AUTH_TTL_MS, 'proof lifetime')
+  const node = matches[0]!
+  requireValid(
+    node[0] === 2 && node[2][0] === 3 && equalBytes(node[2][1], entry.value),
+    'witness value'
+  )
+  requireValid(
+    result.version === 1n &&
+      equalBytes(canonical(result.request), canonical(expected)) &&
+      equalBytes(result.home_user, trustedHome),
+    'request binding'
+  )
+  requireValid(
+    expected.issued_at_ms <= result.approved_at_ms &&
+      result.approved_at_ms <= at &&
+      nowMs < result.expires_at_ms &&
+      result.expires_at_ms <= expected.expires_at_ms &&
+      expected.expires_at_ms - expected.issued_at_ms <= AUTH_TTL_MS,
+    'proof lifetime'
+  )
   return result
 }

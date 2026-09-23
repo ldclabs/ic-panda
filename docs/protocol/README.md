@@ -41,7 +41,7 @@ New messages use RFC 8949 §4.2.1 core deterministic CBOR: shortest encoding, ke
 
 ICP business time and approval durations are u64 Unix **milliseconds**, evaluated using `now < expires_at`. Certificates and ICRC `created_at_time` are in nanoseconds; ledger retries retain original values. CBOR u128 values exceeding u64 use tag 2 shortest big-endian bstr; they must not be converted via JS Number. ICRC Account is `{owner: bstr, subaccount: bstr .size 32 / null}`.
 
-The browser JSON protocol is `dmsg-extension/3`: `accountId` is Xid text, SHA-256/requestId/nonce are lowercase hex, and large integers are decimal strings; statement `issuedAt` is in seconds, while outer `expiresAt` is in milliseconds. Standard Rust serde JSON output is not equivalent to this bridge protocol.
+The browser JSON protocol is `dmsg-extension/4`: `accountId` is Xid text, SHA-256/requestId/nonce are lowercase hex, and large integers are decimal strings; statement `issuedAt` is in seconds, while outer `expiresAt` is in milliseconds. Standard Rust serde JSON output is not equivalent to this bridge protocol.
 
 ## Signatures and Keys
 

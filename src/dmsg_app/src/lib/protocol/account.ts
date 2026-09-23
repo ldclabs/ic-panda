@@ -91,6 +91,7 @@ export type ControlMethod =
   | 'complete_recovery'
   | 'derive_root'
   | 'sign'
+  | 'approve_authentication'
 export function encodeControl(method: ControlMethod, args: unknown[]) {
   const fn = service._fields.find(([name]) => name === method)?.[1]
   ensure(fn, 'UNSUPPORTED_PROTOCOL')

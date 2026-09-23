@@ -51,10 +51,17 @@
   </div>
   {#if requests.length}<div class="request-list">
       {#each requests as request}<article class="request-row">
-          <span class="item-icon"><Icon name="signature" /></span>
+          <span class="item-icon"
+            ><Icon name={request.kind === 'authentication' ? 'key' : 'signature'} /></span
+          >
           <div>
             <strong>{request.source.origin}</strong>
-            <p>{dateLabel(request.createdAt)} · {labels[request.state]}</p>
+            <p>
+              {dateLabel(request.createdAt)} · {request.kind === 'authentication' &&
+              request.state === 'signed'
+                ? '认证已完成'
+                : labels[request.state]}
+            </p>
             <code class="caption">{request.id.slice(0, 16)}</code>
           </div>
           {#if request.state === 'awaiting_user'}<button

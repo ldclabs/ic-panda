@@ -36,7 +36,7 @@ const contentSchema = z.discriminatedUnion('kind', [
 ])
 export const requestSchema = z
   .object({
-    protocol: z.literal('dmsg-extension/3'),
+    protocol: z.literal('dmsg-extension/4'),
     method: z.literal('signature.request'),
     requestId: identifier,
     accountId: z.string().regex(/^[0-9a-v]{19}[0g]$/),
@@ -62,7 +62,16 @@ export interface SourceBinding {
   frameId: number
   documentId: string
 }
+export interface BrowserBinding {
+  appId: string
+  publicKey: string
+  operationDigest: string
+  accountId: string
+  appVersion: string
+}
 export interface PendingRequest {
+  kind: 'document' | 'authentication'
+  bridge?: BrowserBinding
   id: string
   source: SourceBinding
   digest: string
@@ -85,7 +94,8 @@ export interface PendingRequest {
 }
 export function trustedSource(
   sender: chrome.runtime.MessageSender,
-  allowlist: readonly string[]
+  allowlist: readonly string[],
+  local = false
 ): SourceBinding {
   ensure(
     typeof sender.origin === 'string' &&
@@ -105,7 +115,10 @@ export function trustedSource(
   ensure(
     typeof sender.url === 'string' &&
       new URL(sender.url).origin === sender.origin &&
-      new URL(sender.url).protocol === 'https:',
+      (new URL(sender.url).protocol === 'https:' ||
+        (local &&
+          new URL(sender.url).protocol === 'http:' &&
+          ['localhost', '127.0.0.1'].includes(new URL(sender.url).hostname))),
     'FORBIDDEN'
   )
   return {
@@ -125,7 +138,7 @@ export function parseRequest(input: unknown, source: SourceBinding, now = Date.n
     '请求期限必须在未来 5 分钟内。'
   )
   assertStatement(requestStatement(request))
-  const digest = hash(canonical(['dmsg/request/3', source.origin, source.documentId, request]))
+  const digest = hash(canonical(['dmsg/request/4', source.origin, request]))
   return { request, digest, expiresAt }
 }
 export const sameSource = (a: SourceBinding, b: SourceBinding) =>

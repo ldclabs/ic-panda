@@ -68,7 +68,7 @@ pnpm --dir src/dmsg_app build
 
 ## COSE 执行 SDK
 
-采用两个文档 profile v1，浏览器桥为 `dmsg-extension/3`。文本直接签署 UTF-8，摘要为 RFC 9995 SHA-256；issuer 使用 URI，subject 表示声明对象，issuedAt 是可选的 Unix 秒。账户为 12 字节 Xid，设备/请求编号仍为 32 字节。具体格式见 [公开协议](../../docs/protocol/README.md)。
+采用三个文档 profile v1，浏览器桥为 `dmsg-extension/4`。文本直接签署 UTF-8，摘要为 RFC 9995 SHA-256；issuer 使用 URI，subject 表示声明对象，issuedAt 是可选的 Unix 秒。账户为 12 字节 Xid，设备/请求编号仍为 32 字节。具体格式见 [公开协议](../../docs/protocol/README.md)。
 
 ```ts
 const prepared = prepareSign(accountContext, {
@@ -80,7 +80,7 @@ const prepared = prepareSign(accountContext, {
 })
 // accountContext 来自已认证账户，含 accountId、issuer、设备、epoch、序号、
 // homeUser、毫秒期限与费用上限；descriptor 来自选定用途的密钥查询。
-// 明确批准后才调用；正式签名批准 UI 仍待接线。
+// 明确批准后才调用；正式签名需要独立窗口逐次批准。
 const result = await prepared.approveAndExecute(userCanister, deviceSigner,
   async signedOperation => encryptedOutbox.save(signedOperation))
 ```
@@ -93,7 +93,7 @@ const result = await prepared.approveAndExecute(userCanister, deviceSigner,
 
 文件声明使用 `Statement` 密钥用途，文本与文件摘要共同受签名保护。确认界面同时展示原文、摘要和可选文件元数据；网页请求不携带原文件，界面明确显示尚未核对文件。SDK 验证器可接收原文件 bytes，匹配 SHA-256 后将 content 标为 verified；未传原文件时保持 not_provided。
 
-R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不是链上账户 ID**。可选 `account: {id, issuer, homeUser}` 记录明确绑定；外部请求须匹配已注册账户，不能把本地标识截短成 Xid。链上创建/设备批准及完整签署 UI 尚未开放，填写配置不会绕过这些条件。
+R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不是链上账户 ID**。可选 `account: {id, issuer, homeUser}` 记录明确绑定；外部请求须匹配已注册账户，不能把本地标识截短成 Xid。链上创建、设备批准和文档签署已接通本地流程；填写配置不会绕过独立批准，也不代表生产验收完成。
 
 ## 锁定与恢复
 
@@ -178,3 +178,12 @@ DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
 公开接口与边界见 [云端](../../docs/protocol/cloud_zh.md)、[历史档案](../../docs/protocol/legacy_archive_zh.md)、[冻结](../../docs/protocol/legacy_freeze_zh.md)、[频道与共享迁移](../../docs/protocol/channel_migration_zh.md)。
 
 未打开的旧历史 grant 同时保留指定设备与当时恢复代的 HPKE 封装；原设备丢失时，可在已恢复/重新批准的目标账户中显式提供相应代恢复码接收。恢复私钥不会常驻日常内容根。已接收的档案直接进入普通离线恢复范围。
+
+
+## 第三方认证与 v4 恢复
+
+浏览器 v4 支持认证、三种文档签署、状态读取、原操作重新打开、取消和 ACK。实际 Chrome 顶层来源同时受构建 allowlist 与链上 app registration 约束；认证 payload 的 origin 必须与实际页面完全相同。新页面需用原产品 P-256 密钥签署新 nonce，不能仅凭 ID 取得结果。
+
+认证窗口与文档窗口分开显示用途。账号和设备重新验证后，先持久化原批准再提交；断连/重启保留操作，结果未知按原参数核对。取消只在 awaiting_user 有效，已取消记录不能因迟到回调复活。TokenList 使用专用认证叶完成自身登录，不取得 dMsg 会话或钱包 delegation。
+
+`SignAction` 与 checkout 仍未开放；查询 capabilities 后再使用相应能力。精确帧、编码、错误和恢复规则见 [browser-v4](../../docs/protocol/browser-v4.md)。

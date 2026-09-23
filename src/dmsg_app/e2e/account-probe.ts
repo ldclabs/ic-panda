@@ -767,7 +767,7 @@ async function reconnect() {
         documentId: 'signing-fixture'
       }
       const payload: SignatureRequest = {
-        protocol: 'dmsg-extension/3',
+        protocol: 'dmsg-extension/4',
         method: 'signature.request',
         requestId: id(),
         accountId: data.account,
@@ -780,6 +780,7 @@ async function reconnect() {
       }
       const parsed = parseRequest(payload, source)
       const request: PendingRequest = {
+        kind: 'document',
         id: payload.requestId,
         source,
         digest: parsed.digest,

@@ -7,6 +7,7 @@ import {
   parseRequest,
   sameSource,
   type PendingRequest,
+  type BrowserBinding,
   type SourceBinding
 } from './protocol/requests'
 
@@ -15,7 +16,11 @@ export async function requestDatabase() {
   ensure(name, 'LOCKED', '请先在扩展中建立工作台。')
   return WorkspaceDB.open(name)
 }
-export async function enqueueRequest(input: unknown, source: SourceBinding) {
+export async function enqueueRequest(
+  input: unknown,
+  source: SourceBinding,
+  bridge: BrowserBinding
+) {
   const { request, digest, expiresAt } = parseRequest(input, source),
     db = await requestDatabase()
   try {
@@ -37,6 +42,8 @@ export async function enqueueRequest(input: unknown, source: SourceBinding) {
     ])
     const record: PendingRequest = {
       id: request.requestId,
+      kind: 'document',
+      bridge,
       source,
       digest,
       expiresAt,
@@ -47,9 +54,16 @@ export async function enqueueRequest(input: unknown, source: SourceBinding) {
     const tx = db.db.transaction('requests', 'readwrite'),
       old = (await tx.store.get(record.id)) as PendingRequest | undefined
     if (old) {
-      ensure(old.digest === digest && sameSource(old.source, source), 'IDEMPOTENCY_CONFLICT')
+      ensure(
+        old.digest === digest &&
+          old.bridge?.operationDigest === bridge.operationDigest &&
+          old.bridge.accountId === bridge.accountId &&
+          old.source.origin === source.origin,
+        'IDEMPOTENCY_CONFLICT'
+      )
+      await tx.store.put({ ...old, source })
       await tx.done
-      return old
+      return { ...old, source }
     }
     const now = Date.now(),
       records = (await tx.store.getAll()) as PendingRequest[]
@@ -60,7 +74,7 @@ export async function enqueueRequest(input: unknown, source: SourceBinding) {
       }
     }
     const terminal = records
-      .filter((r) => r.state !== 'awaiting_user')
+      .filter((r) => !['awaiting_user', 'authorized', 'execution_unknown'].includes(r.state))
       .sort((a, b) => b.createdAt - a.createdAt)
     for (const previous of terminal.slice(5000)) await tx.store.delete(previous.id)
     const pending = records.filter(
@@ -137,6 +151,18 @@ export async function setRequestState(
     const tx = db.db.transaction('requests', 'readwrite'),
       request = (await tx.store.get(id)) as PendingRequest | undefined
     ensure(request, 'NOT_FOUND')
+    if (request.state === 'returned' && state === 'signed') state = 'returned'
+    if (
+      ['cancelled', 'rejected', 'expired', 'failed', 'result_expired'].includes(request.state)
+    )
+      ensure(state === request.state, 'FORBIDDEN')
+    if (['signed', 'returned'].includes(request.state))
+      ensure(['signed', 'returned', 'result_expired'].includes(state), 'FORBIDDEN')
+    if (state === 'authorized')
+      ensure(
+        ['awaiting_user', 'authorized', 'execution_unknown'].includes(request.state),
+        'FORBIDDEN'
+      )
     await tx.store.put({ ...request, state, ...(errorCode ? { errorCode } : {}) })
     await tx.done
   } finally {

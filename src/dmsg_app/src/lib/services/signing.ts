@@ -1,3 +1,5 @@
+import { registeredApplication } from './registration'
+import { services } from './ic'
 import type { _SERVICE as CoseService } from '../canisters/generated/cose'
 import type { SignRequest, ExecutionResult } from '../canisters/generated/user'
 import { AccountClient, controlResult } from './account'
@@ -95,12 +97,43 @@ export class SigningClient {
       month: usage.month_utc
     }
   }
+  private async registered(request: PendingRequest, payload?: SignatureRequest) {
+    if (!request.bridge) {
+      ensure(
+        typeof chrome !== 'undefined' &&
+          request.source.origin === `chrome-extension://${chrome.runtime.id}`,
+        'FORBIDDEN'
+      )
+      return
+    }
+    const app = await registeredApplication(
+      await services(),
+      request.bridge.appId,
+      request.source.origin,
+      'SignDocument'
+    )
+    ensure(
+      app.config_version.toString() === request.bridge.appVersion &&
+        request.bridge.accountId === this.account.meta.account?.id,
+      'POLICY_STALE'
+    )
+    if (payload) {
+      const profile =
+        payload.statement.content.kind === 'text'
+          ? 'TextStatementV1'
+          : payload.statement.content.kind === 'digest'
+            ? 'DigestStatementV1'
+            : 'FileStatementV1'
+      ensure(app.profiles.includes(profile), 'FORBIDDEN')
+    }
+  }
   async prepare(
     request: PendingRequest,
     payload: SignatureRequest,
     maxCycles = 100000000000n
   ) {
     assertRequestUnchanged(payload, request)
+    await this.registered(request, payload)
     ensure(!(await this.journal(request.id)), 'Pending', '此请求已有执行记录，请对账原操作。')
     await this.sourceLive(request)
     const state = await this.account.refresh(payload.accountId)
@@ -169,6 +202,7 @@ export class SigningClient {
     const prepared = this.prepared,
       request = this.external
     ensure(prepared && request, 'INVALID_INPUT')
+    await this.registered(request)
     await this.sourceLive(request)
     const stored = (await listRequests()).find((r) => r.id === request.id)
     ensure(stored?.state === 'awaiting_user' && stored.digest === request.digest, 'EXPIRED')
@@ -225,6 +259,8 @@ export class SigningClient {
     }
   }
   async resume(id: string) {
+    const record = (await listRequests()).find((r) => r.id === id)
+    ensure(record && !['cancelled', 'rejected', 'expired'].includes(record.state), 'FORBIDDEN')
     const job = await this.journal(id)
     ensure(job && job.account === this.account.meta.account?.id, 'AUTH_REQUIRED')
     if (job.stage === 'complete') {

@@ -28,7 +28,8 @@
     "idb": "^8.0.3",
     "svelte": "^5.56.10",
     "zod": "^4.5.4",
-    "@dmsg/legacy": "workspace:*"
+    "@dmsg/legacy": "workspace:*",
+    "@dmsg/sdk": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

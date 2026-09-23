@@ -41,7 +41,7 @@
 
 ICP 业务时间、批准期限为 u64 Unix **毫秒**，使用 `now < expires_at`。certificate 和 ICRC `created_at_time` 为纳秒；账本重试保留原值。CBOR u128 超过 u64 时用 tag 2 最短大端 bstr；不能经 JS Number 转换。ICRC Account 是 `{owner: bstr, subaccount: bstr .size 32 / null}`。
 
-浏览器 JSON 协议为 `dmsg-extension/3`：accountId 为 Xid 文本，SHA-256/requestId/nonce 为小写 hex，大整数为十进制字符串；statement 的 issuedAt 为秒，外层 expiresAt 为毫秒。普通 Rust serde JSON 输出不等同于此桥协议。
+浏览器 JSON 协议为 `dmsg-extension/4`：accountId 为 Xid 文本，SHA-256/requestId/nonce 为小写 hex，大整数为十进制字符串；statement 的 issuedAt 为秒，外层 expiresAt 为毫秒。普通 Rust serde JSON 输出不等同于此桥协议。
 
 ## 签名与密钥
 

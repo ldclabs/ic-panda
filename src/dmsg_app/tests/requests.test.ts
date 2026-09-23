@@ -21,7 +21,7 @@ const source: SourceBinding = {
   tabId: 4
 }
 const request = {
-  protocol: 'dmsg-extension/3',
+  protocol: 'dmsg-extension/4',
   method: 'signature.request',
   accountId: '040g2081040g2081040g',
   requestId: '22'.repeat(32),
@@ -105,7 +105,7 @@ describe('external request boundary', () => {
     ).toThrow()
     expect(() => parseRequest({ ...request, method: 'wallet_sign' }, source, now)).toThrow()
   })
-  it('binds every payload byte and document to the review digest', () => {
+  it('binds payload and origin while document access is checked separately', () => {
     const parsed = parseRequest(request, source, now)
     expect(
       parseRequest(
@@ -120,9 +120,9 @@ describe('external request boundary', () => {
         now
       ).digest
     ).not.toBe(parsed.digest)
-    expect(
-      parseRequest(request, { ...source, documentId: 'document-B' }, now).digest
-    ).not.toBe(parsed.digest)
+    expect(parseRequest(request, { ...source, documentId: 'document-B' }, now).digest).toBe(
+      parsed.digest
+    )
     const spaced = parseRequest(
       {
         ...request,

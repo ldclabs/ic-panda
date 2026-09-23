@@ -335,6 +335,7 @@ it('rejects an external signature ACK without a delivered digest', async () => {
     const requestId = id()
     await db.db.put('requests', {
       id: requestId,
+      kind: 'document',
       source,
       state: 'awaiting_user',
       expiresAt: Date.now() + 300000,
@@ -343,7 +344,7 @@ it('rejects an external signature ACK without a delivered digest', async () => {
       payload: { enc: '', ciphertext: '' }
     })
     connect({
-      name: 'dmsg-extension/3',
+      name: 'dmsg-extension/4',
       sender: {
         origin: source.origin,
         url: source.origin + '/',
@@ -361,7 +362,7 @@ it('rejects an external signature ACK without a delivered digest', async () => {
       postMessage: respond,
       disconnect: () => {}
     })
-    message({ protocol: 'dmsg-extension/3', method: 'signature.ack', requestId })
+    message({ protocol: 'dmsg-extension/4', method: 'signature.ack', requestId })
     await vi.waitFor(() =>
       expect(respond).toHaveBeenCalledWith(expect.objectContaining({ ok: false }))
     )
