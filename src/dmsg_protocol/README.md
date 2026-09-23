@@ -87,7 +87,7 @@ assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
 assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 ```
 
-`prepare_cose` returns an unsigned message and `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`. Text uses raw UTF-8 (1..4096 bytes); digest documents use the original bytes' 32-byte SHA-256. The Rust Statement enum is not an extra wire payload. Issuer, optional subject and claimed issued_at are protected CWT claims; request ID, browser origin and execution deadline are separate execution metadata.
+`prepare_cose` returns an unsigned message and `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`. Text uses raw UTF-8 (1..4096 bytes); digest documents use the original bytes' 32-byte SHA-256. `FileStatement` uses a deterministic CBOR payload combining verbatim text, a file SHA-256 and optional media type/location, under `FILE_STATEMENT_PROFILE` with the `Statement` key purpose. Its closed schema and limits are specified in [the public protocol](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md). The Rust Statement enum is not an extra wire payload. Issuer, optional subject and claimed issued_at are protected CWT claims; request ID, browser origin and execution deadline are separate execution metadata.
 
 | Algorithm | COSE label | Signer input | Signature/public key supplied to `finish_cose` |
 | --- | --- | --- | --- |
@@ -168,7 +168,7 @@ Business timestamps and durations use milliseconds, while Statement.issued_at us
 
 ## Evidence and timestamp boundaries
 
-`verification_report` returns Verified for a valid signature. Embedded text is Verified; provided original content must match exactly or by SHA-256. A digest without original content is NotProvided. Issuer binding, authorization and current status remain NotChecked. Timestamp is NotProvided if absent, or NotChecked if an opaque token is attached. Verification failure returns an error rather than a report with a successful signature flag.
+`verification_report` returns Verified for a valid signature. Embedded text is Verified; provided original content must match exactly or by SHA-256. A digest or file statement without the original file is NotProvided; embedded opinion text does not verify the referenced file. Issuer binding, authorization and current status remain NotChecked. Timestamp is NotProvided if absent, or NotChecked if an opaque token is attached. Verification failure returns an error rather than a report with a successful signature flag.
 
 Before calling `match_execution_receipt`, independently verify the IC certificate against a trusted root, the expected user canister, witness, requested path and leaf bytes. `execution_receipt_key` constructs the single raw path segment `b"execution/" || account_id[12] || request_id[32]`. The matcher requires schema 1 and Completed, then matches issuer, signing-bytes digest, public-key thumbprint and raw-signature digest. It does not independently check the receipt's account/request IDs, origin, deadline or external project permissions. Authenticate the expected path and separately apply any additional policy.
 

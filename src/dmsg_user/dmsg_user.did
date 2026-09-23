@@ -494,7 +494,7 @@ type KeyPurpose = variant {
   ContentRoot;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
-  // Key domain for text statements.
+  // Key domain for text and structured file statements.
   Statement;
 };
 // Authority response for an exact intent, with a short validity deadline.
@@ -760,7 +760,7 @@ type SigningKeyRef = record {
 };
 // Portable document preparation/parsed view, not the COSE wire payload.
 // The issuer and optional claims become protected headers; content determines
-// the text or digest profile. Use `dmsg_protocol` to validate and encode it.
+// the text, digest or file-statement profile. Use `dmsg_protocol` to validate and encode it.
 type Statement = record {
   // Claimed Unix seconds, never a TSA assertion or execution deadline.
   issued_at : opt int64;
@@ -771,8 +771,20 @@ type Statement = record {
   // Canonical absolute issuer URI identifying the signer.
   issuer : text;
 };
-// Document payload selection. Text is signed verbatim; digest signs 32 raw bytes.
+// Document payload selection. File statements jointly sign text and a file digest.
 type StatementContent = variant {
+  // A statement about one exact file, encoded as deterministic CBOR.
+  // The text conveys no automatic approval, authority or proof of file review.
+  FileStatement : record {
+    // SHA-256 of the exact original file bytes.
+    sha256 : blob;
+    // Raw UTF-8 text, 1..4096 bytes; preserved without normalization.
+    "text" : text;
+    // Optional file media type, included in the signed payload.
+    content_type : opt text;
+    // Optional file URI; verification never fetches it automatically.
+    location : opt text;
+  };
   // Raw UTF-8 text, 1..4096 bytes; no whitespace trimming or Unicode normalization.
   Text : text;
   // SHA-256 document profile with optional original-content metadata.

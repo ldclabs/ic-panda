@@ -1,4 +1,4 @@
-//! COSE document profiles. Wire payloads are UTF-8 text or RFC 9995 digests;
+//! COSE document profiles. Payloads are UTF-8 text, RFC 9995 digests or file statements;
 //! account routing, browser origins and execution IDs never enter that payload.
 use crate::*;
 use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
@@ -13,6 +13,12 @@ use serde_bytes::Bytes;
 pub const TEXT_PROFILE: &str = "application/vnd.dmsg.text-statement+cose;v=1";
 /// Experimental dMsg SHA-256 document profile media type (v1), used in protected header 16.
 pub const DIGEST_PROFILE: &str = "application/vnd.dmsg.digest-statement+cose;v=1";
+/// Experimental dMsg statement about one file (v1), used in protected header 16.
+pub const FILE_STATEMENT_PROFILE: &str = "application/vnd.dmsg.file-statement+cose;v=1";
+/// Content type of the deterministic CBOR file-statement payload.
+pub const FILE_STATEMENT_CONTENT_TYPE: &str = "application/cbor";
+/// Maximum encoded file-statement payload size (16,384 bytes).
+pub const MAX_FILE_STATEMENT_BYTES: usize = 16_384;
 /// Required content type of the text profile; not used in the digest profile.
 pub const TEXT_CONTENT_TYPE: &str = "text/plain;charset=utf-8";
 /// COSE header 15: protected CWT claims (issuer, optional subject and issued-at).
@@ -41,6 +47,22 @@ const CRITICAL: [Label; 3] = [
     Label::Int(HASH_ALGORITHM),
 ];
 
+/// Closed wire schema, separate from the public preparation enum. Canonical
+/// decoding also rejects unknown/duplicate keys, explicit nulls and CBOR aliases.
+#[derive(cbor2::Cbor)]
+struct FileStatementPayload {
+    #[cbor(key = 1)]
+    text: String,
+    #[cbor(key = 2)]
+    sha256: Hash,
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    content_type: Option<String>,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    location: Option<String>,
+}
+
 fn malformed(_: cose2::Error) -> Error {
     Error::IntegrityFailed
 }
@@ -65,12 +87,12 @@ fn from_algorithm(label: &Label) -> Result<Algorithm> {
     }
 }
 
-/// Select Statement for text and FileAttestation for a digest document.
+/// Select Statement for text/file statements and FileAttestation for a digest.
 ///
 /// This selects a derivation domain without validating the statement.
 pub fn statement_purpose(statement: &Statement) -> KeyPurpose {
     match statement.content {
-        StatementContent::Text(_) => KeyPurpose::Statement,
+        StatementContent::Text(_) | StatementContent::FileStatement { .. } => KeyPurpose::Statement,
         StatementContent::Digest { .. } => KeyPurpose::FileAttestation,
     }
 }
@@ -86,7 +108,7 @@ fn media_type(value: &str) -> Result<()> {
 ///
 /// Issuer must be a canonical URI. Optional subject is nonempty, at most 8192
 /// UTF-8 bytes, has no control characters, and must be a URI when it contains
-/// `:`, following the StringOrURI rule. Text is 1..4096 bytes. Digest media types
+/// `:`, following the StringOrURI rule. Text is 1..4096 bytes. File media types
 /// are at most 256 bytes; optional locations are canonical URIs. Claimed issued_at
 /// is not checked against a clock, and original content is not fetched or hashed.
 ///
@@ -106,24 +128,49 @@ pub fn validate_statement(statement: &Statement) -> Result<()> {
             validate_uri(subject)?;
         }
     }
-    match &statement.content {
-        StatementContent::Text(text) => {
-            ensure(!text.is_empty() && text.len() <= 4096, Error::QuotaExceeded)?
+    if let StatementContent::Text(text) | StatementContent::FileStatement { text, .. } =
+        &statement.content
+    {
+        ensure(!text.is_empty() && text.len() <= 4096, Error::QuotaExceeded)?;
+    }
+    if let StatementContent::Digest {
+        content_type,
+        location,
+        ..
+    }
+    | StatementContent::FileStatement {
+        content_type,
+        location,
+        ..
+    } = &statement.content
+    {
+        if let Some(value) = content_type {
+            media_type(value)?;
         }
-        StatementContent::Digest {
-            content_type,
-            location,
-            ..
-        } => {
-            if let Some(value) = content_type {
-                media_type(value)?;
-            }
-            if let Some(value) = location {
-                validate_uri(value)?;
-            }
+        if let Some(value) = location {
+            validate_uri(value)?;
         }
     }
     Ok(())
+}
+
+fn parse_file_statement(payload: &[u8]) -> Result<StatementContent> {
+    ensure(
+        payload.len() <= MAX_FILE_STATEMENT_BYTES,
+        Error::QuotaExceeded,
+    )?;
+    let FileStatementPayload {
+        text,
+        sha256,
+        content_type,
+        location,
+    } = decode_canonical(payload)?;
+    Ok(StatementContent::FileStatement {
+        text,
+        sha256,
+        content_type,
+        location,
+    })
 }
 
 fn claims(statement: &Statement) -> Value {
@@ -140,7 +187,7 @@ fn claims(statement: &Statement) -> Value {
 /// Prepare a document's COSE_Sign1 message and exact bytes to sign.
 ///
 /// Returns `(unsigned_message, Sig_structure)`. Claims and profile headers are
-/// protected, text/digest bytes are the payload, and external AAD is empty.
+/// protected, content is encoded by its profile, and external AAD is empty.
 /// Ed25519 signs the returned bytes directly; ES256K signs their SHA-256 digest
 /// when using a prehash signing API. The kid must contain 1..256 bytes.
 /// No key access, signing, approval or network call occurs here.
@@ -160,6 +207,17 @@ pub fn prepare_cose(
     let payload = match &statement.content {
         StatementContent::Text(text) => text.as_bytes().to_vec(),
         StatementContent::Digest { sha256, .. } => sha256.to_vec(),
+        StatementContent::FileStatement {
+            text,
+            sha256,
+            content_type,
+            location,
+        } => canonical(&FileStatementPayload {
+            text: text.clone(),
+            sha256: *sha256,
+            content_type: content_type.clone(),
+            location: location.clone(),
+        }),
     };
     let mut message = Sign1Message::new(Some(payload));
     message.protected.set_kid(kid.to_vec());
@@ -169,6 +227,15 @@ pub fn prepare_cose(
             message.protected.set_crit([CWT_CLAIMS, TYPE_HEADER]);
             message.protected.insert(TYPE_HEADER, TEXT_PROFILE);
             message.protected.set_content_type(TEXT_CONTENT_TYPE);
+        }
+        StatementContent::FileStatement { .. } => {
+            message.protected.set_crit([CWT_CLAIMS, TYPE_HEADER]);
+            message
+                .protected
+                .insert(TYPE_HEADER, FILE_STATEMENT_PROFILE);
+            message
+                .protected
+                .set_content_type(FILE_STATEMENT_CONTENT_TYPE);
         }
         StatementContent::Digest {
             content_type,
@@ -270,6 +337,18 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
                         .map_err(|_| Error::IntegrityFailed)?
                         .into(),
                 ),
+            )
+        }
+        FILE_STATEMENT_PROFILE => {
+            ensure(
+                text(headers, iana::HeaderParameterContentType)?
+                    == Some(FILE_STATEMENT_CONTENT_TYPE),
+                Error::UnsupportedProtocol,
+            )?;
+            (
+                &[1, 2, 3, 4, 15, 16],
+                &CRITICAL[..2],
+                parse_file_statement(payload)?,
             )
         }
         DIGEST_PROFILE => {
@@ -648,8 +727,9 @@ pub(crate) fn verify_and_parse_artifact(artifact: &SignedArtifact) -> Result<Ver
 /// Verify a document and report separate content and evidence statuses.
 ///
 /// If `content` is supplied, text must match exactly or its SHA-256 must match
-/// the digest profile. Without it, embedded text is Verified and digest content
-/// is NotProvided. Signature is Verified on success; issuer binding,
+/// the digest or file-statement profile. Without it, standalone text is Verified
+/// and referenced file content is NotProvided, even when statement text is embedded.
+/// Signature is Verified on success; issuer binding,
 /// authorization and current status remain NotChecked. Timestamp is NotProvided
 /// when absent and NotChecked when a token is attached: no TSA verification occurs.
 ///
@@ -672,13 +752,18 @@ pub fn verification_report(
         (
             StatementContent::Digest {
                 sha256: expected, ..
+            }
+            | StatementContent::FileStatement {
+                sha256: expected, ..
             },
             Some(bytes),
         ) => {
             ensure(sha256(bytes) == *expected, Error::IntegrityFailed)?;
             VerificationStatus::Verified
         }
-        (StatementContent::Digest { .. }, None) => VerificationStatus::NotProvided,
+        (StatementContent::Digest { .. } | StatementContent::FileStatement { .. }, None) => {
+            VerificationStatus::NotProvided
+        }
     };
     Ok(VerificationReport {
         statement,

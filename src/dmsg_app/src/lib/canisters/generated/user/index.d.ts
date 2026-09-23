@@ -392,7 +392,15 @@ export interface Statement {
   'subject' : [] | [string],
   'issuer' : string,
 }
-export type StatementContent = { 'Text' : string } |
+export type StatementContent = {
+    'FileStatement' : {
+      'sha256' : Uint8Array | number[],
+      'text' : string,
+      'content_type' : [] | [string],
+      'location' : [] | [string],
+    }
+  } |
+  { 'Text' : string } |
   {
     'Digest' : {
       'sha256' : Uint8Array | number[],

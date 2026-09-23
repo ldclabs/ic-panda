@@ -28,7 +28,7 @@
 
 ## 当前合同
 
-- Statement v3 设计已实现两个文档 profile v1，执行批准域为 `dmsg/execute/v3`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
+- Statement v3 设计已实现三个文档 profile v1（纯文本、纯摘要、针对文件的文本声明），执行批准域为 `dmsg/execute/v3`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
 - `sign` 输出 `SignedArtifact { cose_sign1, cose_key }`：RFC 9052 COSE_Sign1 和 public-only COSE_Key。ICP 密钥来源另存于结果的 `key` 描述，不能把公钥查询本身当作身份/授权证明。
 - 内部账户的 `AccountId` 直接复用 `ic_auth_types::Xid`（12 字节），用户服务使用共享 `XidGenerator` 同步原子发号；初始化增加固定 issuer_namespace，密码派生版本为 2，使用新开发实例。
 - `get_execution_receipt` 提供认证执行叶，绑定请求 ID、待签字节、公钥和签名；请求元数据不再进入可移植 Statement。

@@ -64,6 +64,37 @@ describe('typed COSE client and independent Rust approval vectors', () => {
     expect(hex(prepared.toBeSigned!)).toBe(vector('digest_tbs_v3').cbor_hex)
     expect(hex(prepared.approvalMessage)).toBe(vector('sign_approval_v3').sha256_hex)
   })
+  it('binds a file statement to the Statement key, Rust approval bytes and Candid variant', () => {
+    const input = {
+      ...content(),
+      statement: {
+        ...content().statement,
+        content: {
+          kind: 'file_statement' as const,
+          text: '  第三章需要补充实验数据。\n',
+          sha256: unhex(hash(utf8('document'))),
+          contentType: 'application/pdf',
+          location: 'urn:example:report'
+        }
+      }
+    }
+    const prepared = prepareSign(context(), input, now)
+    expect(hex(prepared.toBeSigned!)).toBe(vector('file_statement_tbs_v1').cbor_hex)
+    expect(hex(prepared.approvalMessage)).toBe(vector('file_statement_approval_v1').sha256_hex)
+    const method = idlFactory({ IDL })._fields.find(([name]) => name === 'sign')![1]
+    const [decoded] = IDL.decode(
+      method.argTypes,
+      IDL.encode(method.argTypes, [prepared.review.request])
+    ) as any[]
+    expect(decoded.statement.content.FileStatement.text).toBe(input.statement.content.text)
+    expect(Uint8Array.from(decoded.statement.content.FileStatement.sha256)).toEqual(
+      input.statement.content.sha256
+    )
+    const original = prepared.approvalMessage
+    input.statement.content.text = 'I approve this file.'
+    expect(prepareSign(context(), input, now).approvalMessage).not.toEqual(original)
+    expect(prepared.approvalMessage).toEqual(original)
+  })
   it('binds origin, deadline and sequence to approval without changing the portable statement', () => {
     const first = prepareSign(context(), content(), now)
     const next = prepareSign(

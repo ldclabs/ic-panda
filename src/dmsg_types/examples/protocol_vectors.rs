@@ -31,15 +31,31 @@ fn main() {
         ..text.clone()
     };
     let (_, text_tbs) = prepare_cose(&text, &Algorithm::Ed25519, &kid).unwrap();
+    let file_statement = Statement {
+        content: StatementContent::FileStatement {
+            text: "  第三章需要补充实验数据。\n".into(),
+            sha256: sha256(b"document"),
+            content_type: Some("application/pdf".into()),
+            location: Some("urn:example:report".into()),
+        },
+        ..text.clone()
+    };
+    let (_, file_statement_tbs) = prepare_cose(&file_statement, &Algorithm::Ed25519, &kid).unwrap();
     let (_, digest_tbs) = prepare_cose(&digest_statement, &Algorithm::Ed25519, &kid).unwrap();
     let artifact =
         |tbs: &[u8]| finish_cose(tbs, &public, signer.sign(tbs).to_bytes().to_vec()).unwrap();
     let signed_text = artifact(&text_tbs);
     let signed_digest = artifact(&digest_tbs);
+    let signed_file_statement = artifact(&file_statement_tbs);
     let timestamped = attach_unverified_timestamp_token(&signed_digest, &[0x30, 0]).unwrap();
     let mut values = vec![
         vector("cose_text_v3", signed_text.cose_sign1.to_vec()),
         vector("cose_digest_v3", signed_digest.cose_sign1.to_vec()),
+        vector(
+            "cose_file_statement_v1",
+            signed_file_statement.cose_sign1.to_vec(),
+        ),
+        vector("file_statement_tbs_v1", file_statement_tbs.clone()),
         vector("timestamped_digest_v3", timestamped.cose_sign1.to_vec()),
         vector("text_tbs_v3", text_tbs),
         vector("digest_tbs_v3", digest_tbs.clone()),
@@ -154,6 +170,19 @@ fn main() {
     }
     .into_execution()
     .unwrap();
+    let file_sign = ExecuteRequest {
+        kind: ExecutionKind::Sign {
+            key: KeyRequest {
+                purpose: KeyPurpose::Statement,
+                algorithm: Algorithm::Ed25519,
+                generation: 1,
+            },
+            to_be_signed: file_statement_tbs.into(),
+            public_key_fingerprint: fingerprint,
+            origin: "https://example.com".into(),
+        },
+        ..sign.clone()
+    };
     let derive = DeriveRootRequest {
         account_id: account,
         target: RootTarget::Candidate {
@@ -167,6 +196,7 @@ fn main() {
     .into_execution();
     for (name, input) in [
         ("sign_approval_v3", sign),
+        ("file_statement_approval_v1", file_sign),
         ("derive_root_approval_v3", derive),
     ] {
         let a = &input.approval;

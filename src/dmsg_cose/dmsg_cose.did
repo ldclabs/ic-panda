@@ -255,7 +255,7 @@ type KeyPurpose = variant {
   ContentRoot;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
-  // Key domain for text statements.
+  // Key domain for text and structured file statements.
   Statement;
 };
 // Low-level key derivation selector. Prefer [`KeySelector`] when constructing requests.
@@ -329,7 +329,7 @@ type SigningKey = record {
 type SigningPurpose = variant {
   // Key domain for SHA-256 document attestations.
   FileAttestation;
-  // Key domain for text statements.
+  // Key domain for text and structured file statements.
   Statement;
 };
 service : (CoseInit) -> {

@@ -140,6 +140,94 @@ fn typed_statement(
 }
 
 #[test]
+fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file() {
+    let f = Fixture::with_algorithms(vec![
+        Algorithm::Ed25519,
+        Algorithm::EcdsaSecp256k1,
+        Algorithm::VetKdBls12381,
+    ]);
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::SetPolicy {
+            policy: SensitivePolicy {
+                allowed_purposes: vec![KeyPurpose::Statement],
+                ..SensitivePolicy::default()
+            },
+        },
+    )
+    .unwrap();
+    let initialized: Result<candid::Reserved> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    initialized.unwrap();
+    for algorithm in [SigningAlgorithm::Ed25519, SigningAlgorithm::EcdsaSecp256k1] {
+        let mut request = typed_statement(&f, &id, algorithm);
+        request.statement.content = StatementContent::FileStatement {
+            text: "  第三章需要补充实验数据。\n".into(),
+            sha256: sha256(b"document"),
+            content_type: Some("application/pdf".into()),
+            location: Some("urn:example:report".into()),
+        };
+        request.approval.signature = key(1)
+            .sign(
+                request
+                    .clone()
+                    .into_execution()
+                    .unwrap()
+                    .approval_message(f.user)
+                    .as_slice(),
+            )
+            .to_bytes()
+            .to_vec()
+            .into();
+        // A website cannot swap either the opinion or the file after approval.
+        for change_text in [true, false] {
+            let mut changed = request.clone();
+            if let StatementContent::FileStatement {
+                text,
+                sha256: digest,
+                ..
+            } = &mut changed.statement.content
+            {
+                if change_text {
+                    *text = "Approved.".into();
+                } else {
+                    *digest = sha256(b"different");
+                }
+            }
+            let before = f.account_id(1, &id);
+            let rejected: Result<ExecutionResult> =
+                update(&f.ic, f.user, person(1), "sign", (changed,));
+            assert!(rejected.is_err());
+            assert_eq!(f.account_id(1, &id), before);
+        }
+        let result: Result<ExecutionResult> =
+            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
+        let result = result.unwrap();
+        let ExecutionOutput::Signature { artifact, key, .. } = result.output().unwrap() else {
+            panic!("signature output")
+        };
+        assert_eq!(key.purpose, KeyPurpose::Statement);
+        assert_eq!(verify_artifact(artifact).unwrap(), request.statement);
+        assert_eq!(
+            verification_report(artifact, None).unwrap().content,
+            VerificationStatus::NotProvided
+        );
+        assert_eq!(
+            verification_report(artifact, Some(b"document"))
+                .unwrap()
+                .content,
+            VerificationStatus::Verified
+        );
+        assert!(verification_report(artifact, Some(b"different")).is_err());
+        let retried: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
+        assert_eq!(retried.unwrap(), result);
+    }
+}
+
+#[test]
 fn user_execution_retention_survives_a_full_window_and_upgrade() {
     let f = Fixture::new();
     let id = f.create(1);

@@ -87,7 +87,7 @@ assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
 assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 ```
 
-`prepare_cose` 返回未签名消息和 `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`。文本使用原始 UTF-8（1..4096 字节），摘要文档使用原文字节的 32 字节 SHA-256。Rust Statement 枚举不是额外的 wire payload。issuer、可选 subject 和声明的 issued_at 是受保护 CWT claims；请求 ID、浏览器 origin 和执行截止时间是单独的执行元数据。
+`prepare_cose` 返回未签名消息和 `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`。文本使用原始 UTF-8（1..4096 字节），摘要文档使用原文字节的 32 字节 SHA-256。`FileStatement` 采用确定性 CBOR payload，联合包含原样文本、文件 SHA-256 和可选媒体类型/位置，使用 `FILE_STATEMENT_PROFILE` 与 `Statement` 密钥用途；封闭 schema 和边界见[公开协议](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README_zh.md)。Rust Statement 枚举不是额外的 wire payload。issuer、可选 subject 和声明的 issued_at 是受保护 CWT claims；请求 ID、浏览器 origin 和执行截止时间是单独的执行元数据。
 
 | 算法 | COSE 标签 | 签名器输入 | 传给 `finish_cose` 的签名/公钥 |
 | --- | --- | --- | --- |
@@ -168,7 +168,7 @@ AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 3
 
 ## 证据与时间戳边界
 
-`verification_report` 对有效签名返回 Verified。内嵌文本为 Verified；传入的原文必须逐字节匹配或 SHA-256 匹配。没有原文的摘要为 NotProvided。issuer 绑定、授权和当前状态保持 NotChecked。时间戳不存在时为 NotProvided，附加不透明 token 后为 NotChecked。验证失败返回错误，而不是返回一个带成功签名标记的报告。
+`verification_report` 对有效签名返回 Verified。内嵌文本为 Verified；传入的原文必须逐字节匹配或 SHA-256 匹配。摘要或文件声明未提供原文件时为 NotProvided；内嵌意见文本不代表已核对文件。issuer 绑定、授权和当前状态保持 NotChecked。时间戳不存在时为 NotProvided，附加不透明 token 后为 NotChecked。验证失败返回错误，而不是返回一个带成功签名标记的报告。
 
 调用 `match_execution_receipt` 前，先独立验证可信 IC 根、预期 user canister、certificate、witness、请求路径和叶值。`execution_receipt_key` 构造单段原始路径 `b"execution/" || account_id[12] || request_id[32]`。匹配器要求 schema 1 和 Completed，然后匹配 issuer、待签字节摘要、公钥指纹和原始签名摘要。它不独立检查回执的账户/请求 ID、origin、截止时间或外部项目权限；应认证预期路径，并单独执行其他政策检查。
 

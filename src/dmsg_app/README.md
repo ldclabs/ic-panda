@@ -89,7 +89,9 @@ const result = await prepared.approveAndExecute(userCanister, deviceSigner,
 
 [protocol/statements.ts](src/lib/protocol/statements.ts) 提供独立的 Ed25519/ES256K 验证，不访问 issuer URI。结果区分数学签名、内容、身份、授权、时间戳和当前状态。`verifyExecutionReceipt` 先认证 ICP 证书/路径/witness，再把回执与签名匹配，才能确认服务记录的身份和执行授权。它不验证外部 TSA 或当前项目权限。
 
-网页请求使用 `accountId`（规范 Xid）、`statement: {issuer, subject?, issuedAt?, content}`；content 为 `{kind:'text', text}` 或 `{kind:'digest', sha256, contentType?, location?}`，摘要为小写 hex，时间为十进制字符串。requestId/nonce/expiresAt 仅用于浏览器及执行流程，不进入签署正文。
+网页请求使用 `accountId`（规范 Xid）、`statement: {issuer, subject?, issuedAt?, content}`；content 为 `{kind:'text', text}`、`{kind:'digest', sha256, contentType?, location?}` 或 `{kind:'file_statement', text, sha256, contentType?, location?}`，摘要为小写 hex，时间为十进制字符串。requestId/nonce/expiresAt 仅用于浏览器及执行流程，不进入签署正文。
+
+文件声明使用 `Statement` 密钥用途，文本与文件摘要共同受签名保护。确认界面同时展示原文、摘要和可选文件元数据；网页请求不携带原文件，界面明确显示尚未核对文件。SDK 验证器可接收原文件 bytes，匹配 SHA-256 后将 content 标为 verified；未传原文件时保持 not_provided。
 
 R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不是链上账户 ID**。可选 `account: {id, issuer, homeUser}` 记录明确绑定；外部请求须匹配已注册账户，不能把本地标识截短成 Xid。链上创建/设备批准及完整签署 UI 尚未开放，填写配置不会绕过这些条件。
 

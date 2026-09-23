@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-当前实现采用 [Statement v3 设计](statement-v3-design_zh.md)：两个文档 profile v1、12 字节 Xid 账户、执行批准域 v3。具体字节格式见 [statements.cddl](statements.cddl)，ICP 接口以各 canister 的 `.did` 为准。profile 媒体类型为本项目实验名称，尚未注册或被标准组织采纳。
+当前实现采用 [Statement v3 设计](statement-v3-design_zh.md)：三个文档 profile v1、12 字节 Xid 账户、执行批准域 v3。具体字节格式见 [statements.cddl](statements.cddl)，ICP 接口以各 canister 的 `.did` 为准。profile 媒体类型为本项目实验名称，尚未注册或被标准组织采纳。
 
 `dmsg_types` 只定义公开数据；`dmsg_protocol` 实现标准编码、profile 验证和身份适配；`dmsg_runtime` 与各 canister 保存内部状态。第三方独立验签无需实现账户数据库、名称或付费投递业务。
 
@@ -14,8 +14,13 @@
 | --- | --- | --- | --- |
 | 文本 | `application/vnd.dmsg.text-statement+cose;v=1` | 原始 UTF-8，1..4096 字节 | 3=`text/plain;charset=utf-8`，crit=[15,16] |
 | 摘要 | `application/vnd.dmsg.digest-statement+cose;v=1` | 原文 SHA-256，32 字节 | 258=-16，可选 259=原文媒体类型、260=原文 URI，crit=[15,16,258] |
+| 文件声明 | `application/vnd.dmsg.file-statement+cose;v=1` | 确定性 CBOR：文本与一个文件的 SHA-256，可选文件元数据 | 3=`application/cbor`，crit=[15,16]；禁止 258/259/260 |
 
-二者均要求保护头 alg（1）、kid（4）、CWT claims（15）和 typ（16）。claims 包含必需 `iss`（1）、可选 `sub`（2）和可选 `iat`（6）。摘要 profile 按 RFC 9995 禁止头 3，文件长度不是必填字段。两种 profile 均没有 request_id、origin、audience 或执行截止时间。
+`StatementContent::FileStatement { text, sha256, content_type, location }` 表示针对一个确定文件的声明。payload 为封闭整数键 map `{1: text, 2: sha256, ?3: content_type, ?4: location}`。文本保留原始 1..4096 UTF-8 字节；摘要为原文件精确字节的 SHA-256，编码为 32 字节 bstr。可选媒体类型与 URI 沿用摘要 profile 的校验边界，但位于此 payload 内。缺失可选键必须省略，不能编码为 null。payload 必须采用 RFC 8949 core deterministic CBOR（确定长度、最短编码、键排序），拒绝重复/未知键、tag 和尾随字节，编码上限为 16,384 字节。验签保留 COSE 的原始 protected 字节，同时要求此 payload 采用规范编码。
+
+文本与文件摘要共同受签名保护。文本可表达赞成、反对或观察；此 profile 本身不授予发布/验收权限，也不证明签名人已审阅文件。`subject` 可关联项目或事项，SHA-256 字段确定精确文件版本。验证不会自动获取 `location`。需要机器可判定动作、角色或项目权限的业务应另设明确 profile。扩展桥接格式为 `{kind: "file_statement", text, sha256, contentType?, location?}`，SHA-256 使用小写十六进制；确认界面并列显示文本、摘要与原文件核对状态。
+
+三者均要求保护头 alg（1）、kid（4）、CWT claims（15）和 typ（16）。claims 包含必需 `iss`（1）、可选 `sub`（2）和可选 `iat`（6）。摘要 profile 按 RFC 9995 禁止头 3，文件长度不是必填字段。三种 profile 均没有 request_id、origin、audience 或执行截止时间。
 
 `iss` 表示签署者；`sub` 表示被声明对象，允许省略。`iat` 是 i64 Unix **秒**，是签署者的时间声明，不是可信时间戳。普通文档签名不因执行批准到期而失效。含受众、授权期限或新业务语义的声明需要单独定义 profile，当前入口拒绝未知 typ、claims、保护头或关键语义。
 
@@ -75,7 +80,7 @@ digest("dmsg/device-approval/v2", [
 ])
 ```
 
-设备严格 Ed25519 签署此摘要。purpose 根据内容选 `Statement` 或 `FileAttestation`，algorithm 为 `Ed25519` 或 `EcdsaSecp256k1`。根派生 kind 为 `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。CBOR 无负载枚举为名称字符串，有负载枚举为单项 map，Option 为值或 null。
+设备严格 Ed25519 签署此摘要。文本/文件声明的 purpose 为 `Statement`，纯摘要为 `FileAttestation`，algorithm 为 `Ed25519` 或 `EcdsaSecp256k1`。根派生 kind 为 `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。CBOR 无负载枚举为名称字符串，有负载枚举为单项 map，Option 为值或 null。
 
 签署前冻结完整保护头、payload、密钥指纹与批准上下文。user home 检查 issuer 是否属于当前账户；cose home 核对实际派生密钥的 kid 和指纹。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin；由扩展核实，设备签名不独立证明浏览器来源。
 
@@ -95,7 +100,7 @@ digest("dmsg/device-approval/v2", [
 
 RFC 9921 CTT 的 SHA-256 MessageImprint 为 `SHA256(CBOR(signature_bstr))`，包括 bstr 头，区别于执行回执中的原始签名摘要。`timestamp_imprint` 要求规范外层编码；`attach_unverified_timestamp_token` 只组装头 270，不申请或信任 TSA。CMS 签名、imprint、证书链、用途、政策与状态需要独立验证。
 
-`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；`verification_report` 分别报告 signature、content、issuer_binding、authorization、timestamp、current_status。摘要原文未提供时 content 为 NotProvided，未认证身份或 TSA 时为 NotChecked。不能把随包公钥或单个成功布尔值当作完整证明。
+`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；`verification_report` 分别报告 signature、content、issuer_binding、authorization、timestamp、current_status。纯文本的内嵌内容为 Verified；摘要或文件声明未提供原文件时 content 为 NotProvided，未认证身份或 TSA 时为 NotChecked。不能把随包公钥或单个成功布尔值当作完整证明。
 
 当前不提供 TSA 网络/CMS 验证、SCITT 透明服务、长期归档或链上 anchor 入口。可选付费投递、名称与 ICP 控制合同分别维护。
 

@@ -29,7 +29,7 @@ impl From<SigningAlgorithm> for Algorithm {
 /// Domain of a formal document signing key; derived from the content profile.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum SigningPurpose {
-    /// Key domain for text statements.
+    /// Key domain for text and structured file statements.
     Statement,
     /// Key domain for SHA-256 document attestations.
     FileAttestation,
@@ -164,7 +164,7 @@ impl DeriveRootRequest {
 pub enum KeyPurpose {
     /// Key domain for SHA-256 document attestations.
     FileAttestation,
-    /// Key domain for text statements.
+    /// Key domain for text and structured file statements.
     Statement,
     /// Content-root derivation domain, selected by generation.
     ContentRoot,

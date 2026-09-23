@@ -2,7 +2,7 @@
 
 English | [简体中文](statement-v3-design_zh.md)
 
-Status: As of 2026-09-09, public types, two document profiles, Xid accounts, certified execution receipts, and SDK bindings have been implemented according to this design; the actual contracts are governed by the [protocol specification](README.md) and [CDDL](statements.cddl). Initial evaluation was based on `4fc3ca2`. Full production UI, TSA trust verification, and multi-allocator registry are out of scope for this round. "v3" is the design iteration name; wire protocol versions are explicitly defined by specific profiles.
+Status: As of 2026-09-23, public types, three document profiles, Xid accounts, certified execution receipts, and SDK bindings have been implemented according to this design; the actual contracts are governed by the [protocol specification](README.md) and [CDDL](statements.cddl). Initial evaluation was based on `4fc3ca2`. Full production UI, TSA trust verification, and multi-allocator registry are out of scope for this round. "v3" is the design iteration name; wire protocol versions are explicitly defined by specific profiles.
 
 ## 1. Design Decisions
 
@@ -124,7 +124,7 @@ Removing `request_id` from statements does not remove deduplication: the same ex
 
 Identical issuers, keys, protected headers, and payloads may produce identical signature artifacts. When distinguishing between "two signing events of identical content", event IDs or timestamps belong in explicit business statements or execution evidence. File digests and signature digests cannot substitute for idempotent operation IDs across all business logic.
 
-## 5. Two Fundamental Document Profiles
+## 5. Document Profiles
 
 ### 5.1 Inline Content
 
@@ -139,6 +139,12 @@ Adopts RFC 9995: payload is a digest; protected header 258 identifies the hash a
 Version 1 enables SHA-256 (header 258 value -16), with a 32-byte payload. This length derives from the digest algorithm and is independent of issuer/sub/kid lengths. No generic `size` field is needed; post-retrieval digest verification binds the exact byte sequence. Signing file length, release version, licensing, or acceptance semantics requires signing full manifests or business statements.
 
 "Certifying a digest of these bytes", "publishing a file as project maintainer", and "accepting delivery of an asset" represent distinct business semantics. TokenList file release statements may include project, file version, and authorization provenance, with TokenList validating roles directly, rather than imposing these fields onto generic file attestations.
+
+### 5.3 Statements About Files
+
+`StatementContent::FileStatement` combines nonempty verbatim text and the SHA-256 of one exact file, with optional file media type and location. This is an inline structured statement, using the independent `application/vnd.dmsg.file-statement+cose;v=1` profile and content type `application/cbor`. Its closed payload schema uses integer keys 1=text, 2=SHA-256, optional 3=media type and 4=location, encoded as deterministic CBOR; the exact limits and byte rules are frozen in [the protocol](README.md) and [CDDL](statements.cddl). Hash Envelope headers 258/259/260 do not apply because this payload is a statement containing a digest, not a digest of the entire preimage.
+
+Text and digest are inseparable under the signature. The key purpose is `Statement`; pure digests retain `FileAttestation`. Existing execution approvals bind the entire prepared object without another signing operation. With no original file, verification reports a valid signature but `content=NotProvided`; matching file bytes yield `Verified`, and a mismatch is an error. Confirmation displays both text and digest without claiming file review when no original bytes were checked. The profile expresses the signer's statement, not automatic publishing/acceptance authority; executable business semantics still require their own explicit schema and policy.
 
 ## 6. Candidate CDDL Structure
 
@@ -219,12 +225,12 @@ ICP certificates/witnesses, TSA tokens, and SCITT receipts follow distinct verif
 
 ## 9. Implementation Scope and Acceptance
 
-1. Freeze both document profiles, URI generation rules, and supported algorithms; provide explicit adapters for Xids, Principals, and dMsg IDs.
+1. Freeze all three document profiles, URI generation rules, and supported algorithms; provide explicit adapters for Xids, Principals, and dMsg IDs.
 2. Separate generic signature data from ICP execution requests, standardize internal accounts on `AccountId`/`Xid`, and implement persistent allocation and atomic commit rules from Section 3.4. Generic statements use identity URIs and do not import account storage types.
 3. Remove dMsg BIP340 endpoints and private algorithm tags while maintaining independent verification for Ed25519 and ES256K; retain shared library support for other consumers.
 4. Reuse `cose2` message and asynchronous signing interfaces, handling new protected headers, CWT semantics, and `crit` at the protocol layer. The generic Header map accommodates these tags without reinventing COSE decoders.
 5. Verify approval bindings, idempotency, unknown outcome handling, upgrade recovery, and cross-language byte consistency after moving request metadata out of statements.
-6. Positive test vectors cover lossless mapping of Xids/Principals, inline text, file digests, and TSA token attachment; negative vectors cover invalid identity namespaces, algorithms, `typ`, critical fields, time units, and identity/key bindings.
+6. Positive test vectors cover lossless mapping of Xids/Principals, inline text, file digests, structured file statements, and TSA token attachment; negative vectors cover invalid identity namespaces, algorithms, `typ`, critical fields, time units, and identity/key bindings.
 7. Xid issuance tests cover same-second concurrency, clock skew, upgrade recovery, counter and timestamp range exhaustion, configuration mismatches, duplicate registration retries, state immutability on rejection, and commit consistency across accounts, indices, and allocators; multi-allocator fingerprint collision handling is verified prior to enabling sharding.
 
 Acceptance centers on third parties being able to understand messages using existing COSE/CWT tools while writing minimal custom code for business profiles and trust policies. Adopting standard formats does not automatically accomplish identity verification, project authorization, transparency logging, or timestamp service operations.

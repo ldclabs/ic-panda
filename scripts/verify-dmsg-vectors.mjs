@@ -63,19 +63,20 @@ const kid = hash(encode(thumbprint)).toString('hex')
 assert.deepEqual(keyField(2),B(kid))
 const publicKey = createPublicKey({key:Buffer.from(`302a300506032b6570032100${keyField(-2).bytes}`,'hex'),format:'der',type:'spki'})
 const claims = M([[1,fixture('account_issuer')],[2,T('release/spec')],[6,U(1800000000)]])
-for (const [name,digest,timestamped] of [['cose_text_v3',false,false],['cose_digest_v3',true,false],['timestamped_digest_v3',true,true]]) {
+for (const [name,digest,timestamped,fileStatement] of [['cose_text_v3',false,false,false],['cose_digest_v3',true,false,false],['timestamped_digest_v3',true,true,false],['cose_file_statement_v1',false,false,true]]) {
   const cose = fixture(name)
   assert.equal(cose.tag,18)
   const [protectedHeaders,unprotected,payload,signature] = cose.value.array
   const headers = [[1,U(-19)],[2,A(...(digest?[15,16,258]:[15,16]).map(U))],[4,B(kid)],[15,claims],
-    [16,T(`application/vnd.dmsg.${digest?'digest':'text'}-statement+cose;v=1`)]]
+    [16,T(`application/vnd.dmsg.${digest?'digest':fileStatement?'file':'text'}-statement+cose;v=1`)]]
   if (digest) headers.push([258,U(-16)],[259,T('application/pdf')])
-  else headers.push([3,T('text/plain;charset=utf-8')])
+  else headers.push([3,T(fileStatement?'application/cbor':'text/plain;charset=utf-8')])
   assert.deepEqual(protectedHeaders,B(encode(M(headers)).toString('hex')),`${name}: protected profile`)
-  assert.deepEqual(payload,B(digest?hash(Buffer.from('document')).toString('hex'):Buffer.from('Approved release v1').toString('hex')))
+  const filePayload = M([[1,T('  第三章需要补充实验数据。\n')],[2,B(hash(Buffer.from('document')).toString('hex'))],[3,T('application/pdf')],[4,T('urn:example:report')]])
+  assert.deepEqual(payload,B(fileStatement?encode(filePayload).toString('hex'):digest?hash(Buffer.from('document')).toString('hex'):Buffer.from('Approved release v1').toString('hex')))
   assert.deepEqual(unprotected,timestamped?M([[270,B('3000')]]):M([]))
   const tbs = encode(A(T('Signature1'),protectedHeaders,B(''),payload))
-  assert.deepEqual(tbs,encode(fixture(digest?'digest_tbs_v3':'text_tbs_v3')))
+  assert.deepEqual(tbs,encode(fixture(fileStatement?'file_statement_tbs_v1':digest?'digest_tbs_v3':'text_tbs_v3')))
   assert(verify(null,tbs,publicKey,Buffer.from(signature.bytes,'hex')),`${name}: standard Ed25519 signature`)
   if (digest) assert.deepEqual(encode(fixture('ctt_imprint_input')),encode(signature),'RFC 9921 hashes the bstr header too')
 }
@@ -96,4 +97,4 @@ assert.equal(preimage.array[2].array[0].bytes,account.toString('hex'))
 assert.equal(preimage.array[2].array[2].bytes.length,64)
 assert.deepEqual(approval.array[2].array[6],B(hash(encode(preimage)).toString('hex')))
 assert.equal(approval.array[2].array[7].uint,'1800000000000') // approval milliseconds; CWT seconds above
-console.log('Verified independent COSE text/digest profiles, key thumbprint, timestamp imprint and Xid allocation.')
+console.log('Verified independent COSE text/digest/file-statement profiles, key thumbprint, timestamp imprint and Xid allocation.')

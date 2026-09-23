@@ -2,7 +2,7 @@
 
 English | [简体中文](README_zh.md)
 
-The current implementation adopts the [Statement v3 design](statement-v3-design.md): two document profiles v1, 12-byte Xid accounts, and execution approval domain v3. Specific byte formats are defined in [statements.cddl](statements.cddl); ICP interfaces are governed by each canister's `.did` declaration. Profile media types are experimental project names and have not yet been registered or adopted by standards bodies.
+The current implementation adopts the [Statement v3 design](statement-v3-design.md): three document profiles v1, 12-byte Xid accounts, and execution approval domain v3. Specific byte formats are defined in [statements.cddl](statements.cddl); ICP interfaces are governed by each canister's `.did` declaration. Profile media types are experimental project names and have not yet been registered or adopted by standards bodies.
 
 `dmsg_types` defines public data contracts only; `dmsg_protocol` implements canonical encoding, profile verification, and identity adaptation; `dmsg_runtime` and each canister persist internal state. Independent third-party signature verification does not require implementing account databases, handle management, or paid delivery services.
 
@@ -14,8 +14,13 @@ The exchange object is an RFC 9052 tagged COSE_Sign1 structure: `18([protected_b
 | --- | --- | --- | --- |
 | Text | `application/vnd.dmsg.text-statement+cose;v=1` | Raw UTF-8, 1..4096 bytes | 3=`text/plain;charset=utf-8`, crit=[15,16] |
 | Digest | `application/vnd.dmsg.digest-statement+cose;v=1` | Original SHA-256, 32 bytes | 258=-16, optional 259=original media type, 260=original URI, crit=[15,16,258] |
+| File statement | `application/vnd.dmsg.file-statement+cose;v=1` | Deterministic CBOR: text and one file's SHA-256, optional file metadata | 3=`application/cbor`, crit=[15,16]; no 258/259/260 |
 
-Both profiles require protected headers `alg` (1), `kid` (4), CWT claims (15), and `typ` (16). Claims include mandatory `iss` (1), optional `sub` (2), and optional `iat` (6). The digest profile forbids header 3 per RFC 9995; file size is not a mandatory field. Neither profile includes `request_id`, `origin`, `audience`, or execution deadlines.
+`StatementContent::FileStatement { text, sha256, content_type, location }` signs a statement about one exact file. Its payload is the closed integer-key map `{1: text, 2: sha256, ?3: content_type, ?4: location}`. Text is preserved verbatim as 1..4096 UTF-8 bytes; SHA-256 is a 32-byte bstr over the original file bytes. Optional media type and URI follow the digest profile's validation bounds, but live inside this payload. Missing optional keys are omitted, never null. The payload must use RFC 8949 core deterministic CBOR (definite lengths, shortest encodings, sorted keys), with no duplicate/unknown keys, tags or trailing bytes, and is capped at 16,384 bytes. Verification preserves original COSE protected bytes while requiring this payload's canonical encoding.
+
+The text and file digest are jointly signed. The text can express agreement, objections or observations; the profile itself grants no publishing/acceptance authority and does not prove that the signer reviewed the file. `subject` may identify the wider project or matter; the SHA-256 field identifies the exact file version. Verification never automatically fetches `location`. Business actions requiring machine-readable roles, actions or project permissions need their own explicit profiles. The extension bridge represents this content as `{kind: "file_statement", text, sha256, contentType?, location?}`, with lowercase hex SHA-256, and reviews the text alongside the digest and original-file verification status.
+
+All three profiles require protected headers `alg` (1), `kid` (4), CWT claims (15), and `typ` (16). Claims include mandatory `iss` (1), optional `sub` (2), and optional `iat` (6). The digest profile forbids header 3 per RFC 9995; file size is not a mandatory field. None of these profiles includes `request_id`, `origin`, `audience`, or execution deadlines.
 
 `iss` identifies the signer; `sub` identifies the declared subject and may be omitted. `iat` is an i64 Unix **second** timestamp asserting the signer's claimed time, not a trusted timestamp. Regular document signatures do not expire when execution approvals expire. Statements containing audiences, authorization periods, or new business semantics require distinct profile definitions; current endpoints reject unrecognized `typ`, claims, protected headers, or critical semantics.
 
@@ -75,7 +80,7 @@ digest("dmsg/device-approval/v2", [
 ])
 ```
 
-Devices sign this digest strictly using Ed25519. `purpose` is chosen as `Statement` or `FileAttestation` according to content; `algorithm` is `Ed25519` or `EcdsaSecp256k1`. Root derivation kind is `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`. Account mutations use the independent `dmsg/account/v2` domain with command `[expected_version, AccountCommand]`. CBOR unit enums are encoded as string names, payload enums as single-entry maps, and `Option` as values or null.
+Devices sign this digest strictly using Ed25519. `purpose` is `Statement` for text/file statements and `FileAttestation` for digest documents; `algorithm` is `Ed25519` or `EcdsaSecp256k1`. Root derivation kind is `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`. Account mutations use the independent `dmsg/account/v2` domain with command `[expected_version, AccountCommand]`. CBOR unit enums are encoded as string names, payload enums as single-entry maps, and `Option` as values or null.
 
 Protected headers, payload, key thumbprints, and approval context are frozen prior to signing. User home verifies that `issuer` belongs to the current account; COSE home verifies the `kid` and thumbprint of the actual derived key. Browser origin is limited to 256 bytes and represents an exact HTTPS origin or Chrome extension origin; verified by the extension, device signatures do not independently authenticate browser origin.
 
@@ -95,7 +100,7 @@ Once authentication, device PoP, quota, and unique binding checks succeed, a sin
 
 The RFC 9921 CTT SHA-256 MessageImprint is `SHA256(CBOR(signature_bstr))`, including the CBOR bstr header, distinguishing it from the raw signature digest in execution receipts. `timestamp_imprint` requires canonical outer framing; `attach_unverified_timestamp_token` only populates header 270 and does not request or validate TSA trust. CMS signatures, imprints, certificate chains, key purposes, policies, and revocation status require independent verification.
 
-`verify_artifact` and SDK `verifyDocumentArtifact` check profile compliance and cryptographic signatures; `verification_report` individually reports `signature`, `content`, `issuer_binding`, `authorization`, `timestamp`, and `current_status`. When original content is omitted, `content` is reported as `NotProvided`; when identities or TSAs are unverified, they are reported as `NotChecked`. An embedded public key or a single boolean success result cannot serve as complete proof.
+`verify_artifact` and SDK `verifyDocumentArtifact` check profile compliance and cryptographic signatures; `verification_report` individually reports `signature`, `content`, `issuer_binding`, `authorization`, `timestamp`, and `current_status`. Standalone embedded text is `Verified`; when the original file of a digest or file statement is omitted, `content` is `NotProvided`; when identities or TSAs are unverified, they are reported as `NotChecked`. An embedded public key or a single boolean success result cannot serve as complete proof.
 
 Current implementations do not provide TSA network/CMS validation, SCITT transparency services, long-term archiving, or on-chain state anchoring endpoints. Optional paid delivery, handle management, and ICP control contracts are maintained separately.
 

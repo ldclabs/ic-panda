@@ -33,6 +33,190 @@ fn sign(statement: &Statement, kid: &[u8]) -> SignedArtifact {
     .unwrap()
 }
 
+fn file_statement() -> Statement {
+    Statement {
+        content: StatementContent::FileStatement {
+            text: "  第三章需要补充实验数据。\n".into(),
+            sha256: sha256(b"document"),
+            content_type: Some("application/pdf".into()),
+            location: Some("urn:example:report".into()),
+        },
+        ..statement()
+    }
+}
+
+#[test]
+fn file_statements_jointly_bind_text_and_file_with_separate_content_verification() {
+    let value = file_statement();
+    assert_eq!(
+        statement_purpose(&value),
+        dmsg_types::cose::KeyPurpose::Statement
+    );
+    for algorithm in [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1] {
+        let (message, tbs) = prepare_cose(&value, &algorithm, b"kid").unwrap();
+        assert_eq!(parse_signing_input(&tbs).unwrap().statement, value);
+        assert_eq!(
+            message.protected.get(16),
+            Some(&Value::from(FILE_STATEMENT_PROFILE))
+        );
+        assert_eq!(
+            message.protected.get(3),
+            Some(&Value::from(FILE_STATEMENT_CONTENT_TYPE))
+        );
+        for header in [258, 259, 260] {
+            assert!(!message.protected.contains_key(header));
+        }
+        let artifact = if algorithm == Algorithm::Ed25519 {
+            sign(&value, b"kid")
+        } else {
+            let signer = k256::ecdsa::SigningKey::from_bytes((&[7; 32]).into()).unwrap();
+            let signature: k256::ecdsa::Signature = signer.sign(&tbs);
+            finish_cose(
+                &tbs,
+                signer.verifying_key().to_sec1_point(false).as_bytes(),
+                signature.to_bytes().to_vec(),
+            )
+            .unwrap()
+        };
+        let report = verification_report(&artifact, None).unwrap();
+        assert_eq!(report.statement, value);
+        assert_eq!(report.signature, VerificationStatus::Verified);
+        assert_eq!(report.content, VerificationStatus::NotProvided);
+        assert_eq!(report.authorization, VerificationStatus::NotChecked);
+        assert_eq!(
+            verification_report(&artifact, Some(b"document"))
+                .unwrap()
+                .content,
+            VerificationStatus::Verified
+        );
+        assert_eq!(
+            verification_report(&artifact, Some(b"different")),
+            Err(Error::IntegrityFailed)
+        );
+        // Mutate each signed field without signing again, including optional metadata.
+        for field in 1..=4 {
+            let mut changed = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
+            let Value::Map(mut fields) =
+                cbor2::from_slice(changed.payload.as_ref().unwrap()).unwrap()
+            else {
+                panic!()
+            };
+            let entry = fields
+                .iter_mut()
+                .find(|(k, _)| *k == Value::from(field))
+                .unwrap();
+            entry.1 = match field {
+                1 => Value::from("I approve this report."),
+                2 => Value::Bytes(sha256(b"other").to_vec()),
+                3 => Value::from("text/plain"),
+                _ => Value::from("urn:example:other"),
+            };
+            changed.payload = Some(canonical(&Value::Map(fields)));
+            let changed = SignedArtifact {
+                cose_sign1: changed.to_vec().unwrap().into(),
+                ..artifact.clone()
+            };
+            assert!(verify_artifact(&changed).is_err());
+        }
+    }
+}
+
+#[test]
+fn file_statement_schema_is_closed_bounded_and_canonical_even_when_signed() {
+    let artifact = sign(&file_statement(), b"kid");
+    let fields = vec![
+        (Value::from(1), Value::from("opinion")),
+        (Value::from(2), Value::Bytes(sha256(b"document").to_vec())),
+    ];
+    let minimal = canonical(&Value::Map(fields.clone()));
+    let valid = resigned(&artifact, |_, payload| *payload = minimal.clone());
+    assert!(verify_artifact(&valid).is_ok());
+    for bad in [
+        Value::Map(vec![fields[0].clone()]),
+        Value::Map(vec![fields[1].clone()]),
+        Value::Map(vec![
+            fields[0].clone(),
+            fields[0].clone(),
+            fields[1].clone(),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            fields[1].clone(),
+            (3.into(), Value::Null),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            fields[1].clone(),
+            (5.into(), Value::Bool(true)),
+        ]),
+        Value::Map(vec![(1.into(), Value::from("")), fields[1].clone()]),
+        Value::Map(vec![
+            (1.into(), Value::from("中".repeat(1366))),
+            fields[1].clone(),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            (2.into(), Value::Bytes(vec![0; 31])),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            (2.into(), Value::from("00".repeat(32))),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            fields[1].clone(),
+            (3.into(), Value::from("invalid")),
+        ]),
+        Value::Map(vec![
+            fields[0].clone(),
+            fields[1].clone(),
+            (4.into(), Value::from("relative")),
+        ]),
+    ] {
+        let changed = resigned(&artifact, |_, payload| {
+            *payload = cbor2::to_vec(&bad).unwrap()
+        });
+        assert!(verify_artifact(&changed).is_err(), "{bad:?}");
+    }
+    let mut reversed = fields.clone();
+    reversed.reverse();
+    let mut nonminimal = minimal.clone();
+    nonminimal.splice(1..2, [0x18, 0x01]);
+    for bad in [
+        cbor2::to_vec(&Value::Map(reversed)).unwrap(),
+        nonminimal,
+        [minimal.clone(), vec![0]].concat(),
+        vec![0; MAX_FILE_STATEMENT_BYTES + 1],
+    ] {
+        assert!(verify_artifact(&resigned(&artifact, |_, payload| *payload = bad)).is_err());
+    }
+    for header in [258, 259, 260] {
+        assert!(verify_artifact(&resigned(&artifact, |headers, _| {
+            headers.insert(header, -16);
+        }))
+        .is_err());
+    }
+    for profile in [TEXT_PROFILE, DIGEST_PROFILE, "application/unknown+cose"] {
+        assert!(verify_artifact(&resigned(&artifact, |headers, _| {
+            headers.insert(16, profile);
+        }))
+        .is_err());
+    }
+    let mut boundary = file_statement();
+    if let StatementContent::FileStatement {
+        text,
+        content_type,
+        location,
+        ..
+    } = &mut boundary.content
+    {
+        *text = "a".repeat(4096);
+        *content_type = Some(format!("text/{}", "a".repeat(251)));
+        *location = Some(format!("urn:{}", "a".repeat(MAX_URI_BYTES - 4)));
+    }
+    assert_eq!(verify_artifact(&sign(&boundary, b"kid")).unwrap(), boundary);
+}
+
 struct Aware(cose2::ed25519::Ed25519Verifier);
 impl Verifier for Aware {
     fn alg(&self) -> Option<Label> {

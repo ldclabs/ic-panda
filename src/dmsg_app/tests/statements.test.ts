@@ -14,7 +14,10 @@ import {
 } from '../src/lib/protocol/identity'
 import {
   DIGEST_PROFILE,
+  FILE_STATEMENT_PROFILE,
+  MAX_FILE_STATEMENT_BYTES,
   statementBytes,
+  statementPurpose,
   verifyDocumentArtifact,
   type DocumentStatement
 } from '../src/lib/protocol/statements'
@@ -53,6 +56,127 @@ function resigned(change: (headers: Map<number, unknown>) => void) {
   }
 }
 describe('portable document profiles', () => {
+  it('matches the Rust file-statement bytes and verifies the file separately from the opinion', () => {
+    const signed = artifact('cose_file_statement_v1')
+    const checked = verifyDocumentArtifact(signed)
+    expect(checked.statement.content).toEqual({
+      kind: 'file_statement',
+      text: '  第三章需要补充实验数据。\n',
+      sha256: unhex(hash(utf8('document'))),
+      contentType: 'application/pdf',
+      location: 'urn:example:report'
+    })
+    expect(statementPurpose(checked.statement.content)).toBe('Statement')
+    expect(checked.checks.signature).toBe('verified')
+    expect(checked.checks.content).toBe('not_provided')
+    expect(checked.checks.authorization).toBe('not_checked')
+    expect(verifyDocumentArtifact(signed, utf8('document')).checks.content).toBe('verified')
+    expect(() => verifyDocumentArtifact(signed, utf8('other'))).toThrow()
+    const [, , , signature] = decodeBounded(signed.cose_sign1.subarray(1)) as Uint8Array[]
+    const parsedKey = decodeBounded(signed.cose_key) as Map<number, unknown>
+    const prepared = statementBytes(
+      checked.statement,
+      'Ed25519',
+      parsedKey.get(2) as Uint8Array
+    )
+    expect(prepared.toBeSigned).toEqual(vector('file_statement_tbs_v1'))
+    expect(ed25519.sign(prepared.toBeSigned, seed)).toEqual(signature)
+  })
+
+  it('rejects malformed or ambiguous file-statement payloads even when correctly signed', () => {
+    const signed = artifact('cose_file_statement_v1')
+    const [raw, unsigned, original] = decodeBounded(signed.cose_sign1.subarray(1)) as [
+      Uint8Array,
+      Map<number, unknown>,
+      Uint8Array
+    ]
+    const fields = () => decodeBounded(original) as Map<number, unknown>
+    const signPayload = (payload: Uint8Array, headers = raw) => ({
+      ...signed,
+      cose_sign1: Uint8Array.from([
+        0xd2,
+        ...canonical([
+          headers,
+          unsigned,
+          payload,
+          ed25519.sign(canonical(['Signature1', headers, new Uint8Array(), payload]), seed)
+        ])
+      ])
+    })
+    const minimal = fields()
+    minimal.delete(3)
+    minimal.delete(4)
+    expect(verifyDocumentArtifact(signPayload(canonical(minimal))).checks.content).toBe(
+      'not_provided'
+    )
+    for (const [label, value] of [
+      [1, ''],
+      [1, '中'.repeat(1366)],
+      [2, new Uint8Array(31)],
+      [2, '00'.repeat(32)],
+      [3, null],
+      [3, 'invalid'],
+      [4, null],
+      [4, 'relative'],
+      [5, true]
+    ] as [number, unknown][]) {
+      const changed = fields()
+      changed.set(label, value)
+      expect(() => verifyDocumentArtifact(signPayload(canonical(changed)))).toThrow()
+    }
+    for (const label of [1, 2]) {
+      const changed = fields()
+      changed.delete(label)
+      expect(() => verifyDocumentArtifact(signPayload(canonical(changed)))).toThrow()
+    }
+    const duplicate = Uint8Array.from([
+      0xa3,
+      ...canonical(1),
+      ...canonical('opinion'),
+      ...canonical(1),
+      ...canonical('opinion'),
+      ...canonical(2),
+      ...canonical(new Uint8Array(32))
+    ])
+    for (const payload of [
+      duplicate,
+      encode(new Map([...fields()].reverse()), { mapSorter: () => 0 }),
+      Uint8Array.from([original[0], 0x18, 0x01, ...original.subarray(2)]),
+      Uint8Array.from([...original, 0]),
+      new Uint8Array(MAX_FILE_STATEMENT_BYTES + 1)
+    ])
+      expect(() => verifyDocumentArtifact(signPayload(payload))).toThrow()
+    for (const [label, value] of [
+      [258, -16],
+      [259, 'application/pdf'],
+      [260, 'urn:file:1'],
+      [3, 'text/plain;charset=utf-8'],
+      [16, DIGEST_PROFILE],
+      [16, 'application/unknown+cose']
+    ] as [number, unknown][]) {
+      const headers = decodeBounded(raw) as Map<number, unknown>
+      headers.set(label, value)
+      expect(() => verifyDocumentArtifact(signPayload(original, canonical(headers)))).toThrow()
+    }
+    expect((decodeBounded(raw) as Map<number, unknown>).get(16)).toBe(FILE_STATEMENT_PROFILE)
+    for (const [label, value] of [
+      [1, 'approved'],
+      [2, new Uint8Array(32)],
+      [3, 'text/plain'],
+      [4, 'urn:example:other']
+    ] as [number, unknown][]) {
+      const changed = fields()
+      changed.set(label, value)
+      const wire = decodeBounded(signed.cose_sign1.subarray(1)) as unknown[]
+      wire[2] = canonical(changed)
+      expect(() =>
+        verifyDocumentArtifact({
+          ...signed,
+          cose_sign1: Uint8Array.from([0xd2, ...canonical(wire)])
+        })
+      ).toThrow()
+    }
+  })
   it('verifies Rust text, hash and appended TSA vectors without inventing trust', () => {
     const text = verifyDocumentArtifact(artifact('cose_text_v3'))
     expect(text.statement.content).toEqual({ kind: 'text', text: 'Approved release v1' })
@@ -177,11 +301,21 @@ describe('portable document profiles', () => {
     })
     expect(result.toBeSigned).toEqual(tbs)
   })
-  it('verifies ES256K with identical fingerprints for compressed and full coordinates', () => {
+  it.each([
+    signingInput,
+    {
+      issuer: signingInput.issuer,
+      content: {
+        kind: 'file_statement',
+        text: 'Review 🐼\n',
+        sha256: unhex(hash(new Uint8Array()))
+      }
+    } satisfies DocumentStatement
+  ])('verifies ES256K text/file statements with compressed and full coordinates', (input) => {
     const kid = utf8('ec-key'),
       publicKey = secp256k1.getPublicKey(seed, false)
     const { protectedBytes, payload, toBeSigned } = statementBytes(
-      signingInput,
+      input,
       'EcdsaSecp256k1',
       kid
     )
@@ -198,6 +332,13 @@ describe('portable document profiles', () => {
       ...canonical([protectedBytes, new Map(), payload, signature])
     ])
     const full = verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) })
+    if (input.content.kind === 'file_statement') {
+      expect(full.checks.content).toBe('not_provided')
+      expect(
+        verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) }, new Uint8Array())
+          .checks.content
+      ).toBe('verified')
+    }
     const required = new Map([
       [1, key.get(1)],
       [-1, key.get(-1)],

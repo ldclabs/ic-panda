@@ -380,6 +380,12 @@ export const idlFactory = ({ IDL }) => {
     'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
   });
   const StatementContent = IDL.Variant({
+    'FileStatement' : IDL.Record({
+      'sha256' : IDL.Vec(IDL.Nat8),
+      'text' : IDL.Text,
+      'content_type' : IDL.Opt(IDL.Text),
+      'location' : IDL.Opt(IDL.Text),
+    }),
     'Text' : IDL.Text,
     'Digest' : IDL.Record({
       'sha256' : IDL.Vec(IDL.Nat8),

@@ -82,9 +82,17 @@ let digest_content = StatementContent::Digest {
     location: None,
 };
 assert!(matches!(digest_content, StatementContent::Digest { .. }));
+
+let file_content = StatementContent::FileStatement {
+    text: "Chapter 3 needs more experimental data.".into(),
+    sha256: Hash::new([0x42; 32]),
+    content_type: Some("application/pdf".into()),
+    location: None,
+};
+assert!(matches!(file_content, StatementContent::FileStatement { .. }));
 ```
 
-`Statement` is a preparation/parsed view. Do not serialize its Rust enum and use that encoding directly as the signing payload. The wire object is tagged COSE_Sign1: a text payload contains raw UTF-8 (1..4096 bytes), and a digest payload contains the original content's 32-byte SHA-256. The issuer, subject, and issued_at become protected CWT claims. Text is neither trimmed nor Unicode-normalized. URIs are identifiers and do not trigger automatic network discovery.
+`Statement` is a preparation/parsed view. Do not serialize its Rust enum and use that encoding directly as the signing payload. The wire object is tagged COSE_Sign1: a text payload contains raw UTF-8 (1..4096 bytes), a digest payload contains the original content's 32-byte SHA-256, and a `FileStatement` payload is deterministic CBOR jointly carrying text and one file's SHA-256 with optional file metadata. The issuer, subject, and issued_at become protected CWT claims. Text is neither trimmed nor Unicode-normalized. URIs are identifiers and do not trigger automatic network discovery.
 
 ### Account text and time conversion
 

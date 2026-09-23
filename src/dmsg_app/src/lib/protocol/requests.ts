@@ -23,6 +23,15 @@ const contentSchema = z.discriminatedUnion('kind', [
       contentType: z.string().max(256).optional(),
       location: z.string().max(8192).optional()
     })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('file_statement'),
+      text: z.string().min(1).max(4096),
+      sha256: z.string().regex(/^[0-9a-f]{64}$/),
+      contentType: z.string().max(256).optional(),
+      location: z.string().max(8192).optional()
+    })
     .strict()
 ])
 export const requestSchema = z

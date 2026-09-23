@@ -82,9 +82,17 @@ let digest_content = StatementContent::Digest {
     location: None,
 };
 assert!(matches!(digest_content, StatementContent::Digest { .. }));
+
+let file_content = StatementContent::FileStatement {
+    text: "Chapter 3 needs more experimental data.".into(),
+    sha256: Hash::new([0x42; 32]),
+    content_type: Some("application/pdf".into()),
+    location: None,
+};
+assert!(matches!(file_content, StatementContent::FileStatement { .. }));
 ```
 
-`Statement` 是准备/解析视图，不能将其 Rust 枚举序列化后直接当签署正文。线上对象是 tagged COSE_Sign1：文本 payload 为原始 UTF-8（1..4096 字节），摘要 payload 为原文的 32 字节 SHA-256。issuer、subject 和 issued_at 进入受保护的 CWT claims。文本不裁剪空白、不自动做 Unicode 归一化；URI 是标识，不会触发自动网络发现。
+`Statement` 是准备/解析视图，不能将其 Rust 枚举序列化后直接当签署正文。线上对象是 tagged COSE_Sign1：文本 payload 为原始 UTF-8（1..4096 字节），摘要 payload 为原文的 32 字节 SHA-256；`FileStatement` payload 为确定性 CBOR，联合包含文本、一个文件的 SHA-256 和可选文件元数据。issuer、subject 和 issued_at 进入受保护的 CWT claims。文本不裁剪空白、不自动做 Unicode 归一化；URI 是标识，不会触发自动网络发现。
 
 ### 账户文本与时间转换
 

@@ -14,6 +14,7 @@ import { digest, equal, hex } from '../protocol/codec'
 import { DmsgError, ensure } from '../errors'
 import {
   statementBytes,
+  statementPurpose,
   verifyDocumentArtifact,
   type Algorithm,
   type DocumentStatement
@@ -99,41 +100,67 @@ function approval(context: ExecutionContext, now: number): Approval {
   }
 }
 function toStatement(input: DocumentStatement): Statement {
+  let content: Statement['content']
+  switch (input.content.kind) {
+    case 'text':
+      content = { Text: input.content.text }
+      break
+    case 'digest':
+      content = {
+        Digest: {
+          sha256: input.content.sha256,
+          content_type:
+            input.content.contentType === undefined ? [] : [input.content.contentType],
+          location: input.content.location === undefined ? [] : [input.content.location]
+        }
+      }
+      break
+    case 'file_statement':
+      content = {
+        FileStatement: {
+          text: input.content.text,
+          sha256: input.content.sha256,
+          content_type:
+            input.content.contentType === undefined ? [] : [input.content.contentType],
+          location: input.content.location === undefined ? [] : [input.content.location]
+        }
+      }
+      break
+  }
   return {
     issuer: input.issuer,
     subject: input.subject === undefined ? [] : [input.subject],
     issued_at: input.issuedAt === undefined ? [] : [input.issuedAt],
-    content:
-      input.content.kind === 'text'
-        ? { Text: input.content.text }
-        : {
-            Digest: {
-              sha256: input.content.sha256,
-              content_type:
-                input.content.contentType === undefined ? [] : [input.content.contentType],
-              location: input.content.location === undefined ? [] : [input.content.location]
-            }
-          }
+    content
   }
 }
-export function signBytes(request: SignRequest) {
-  const s = request.statement
-  const statement: DocumentStatement = {
+function fromStatement(s: Statement): DocumentStatement {
+  return {
     issuer: s.issuer,
     subject: s.subject[0],
     issuedAt: s.issued_at[0],
     content:
       'Text' in s.content
         ? { kind: 'text', text: s.content.Text }
-        : {
-            kind: 'digest',
-            sha256: Uint8Array.from(s.content.Digest.sha256),
-            contentType: s.content.Digest.content_type[0],
-            location: s.content.Digest.location[0]
-          }
+        : 'FileStatement' in s.content
+          ? {
+              kind: 'file_statement',
+              text: s.content.FileStatement.text,
+              sha256: Uint8Array.from(s.content.FileStatement.sha256),
+              contentType: s.content.FileStatement.content_type[0],
+              location: s.content.FileStatement.location[0]
+            }
+          : {
+              kind: 'digest',
+              sha256: Uint8Array.from(s.content.Digest.sha256),
+              contentType: s.content.Digest.content_type[0],
+              location: s.content.Digest.location[0]
+            }
   }
+}
+export function signBytes(request: SignRequest) {
   return statementBytes(
-    statement,
+    fromStatement(request.statement),
     Object.keys(request.key.algorithm)[0] as Algorithm,
     Uint8Array.from(request.key.kid)
   ).toBeSigned
@@ -144,7 +171,7 @@ function executionKind(operation: Operation): unknown {
     return {
       Sign: {
         key: {
-          purpose: 'Text' in sign.statement.content ? 'Statement' : 'FileAttestation',
+          purpose: statementPurpose(fromStatement(sign.statement).content),
           algorithm: Object.keys(sign.key.algorithm)[0],
           generation: 1n
         },

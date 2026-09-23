@@ -28,7 +28,7 @@ import {
   utf8
 } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
-import { verifyDocumentArtifact } from '../protocol/statements'
+import { statementPurpose, verifyDocumentArtifact } from '../protocol/statements'
 import { certifiedValue } from './certified'
 import { listRequests, setRequestState } from '../requests'
 import { ensure } from '../errors'
@@ -117,7 +117,10 @@ export class SigningClient {
       xidBytes(payload.accountId),
       {
         kind: 'signing',
-        purpose: payload.statement.content.kind === 'text' ? 'statement' : 'file_attestation'
+        purpose:
+          statementPurpose(requestStatement(payload).content) === 'Statement'
+            ? 'statement'
+            : 'file_attestation'
       }
     )
     ensure(
@@ -325,7 +328,6 @@ export class SigningClient {
         result.charged_cycles <= request.max_cycles,
       'INTEGRITY_FAILED'
     )
-    const statement = request.statement
     ensure(
       artifact.statement.issuer === this.account.meta.account!.issuer &&
         equal(artifact.keyFingerprint, Uint8Array.from(request.key.public_key_fingerprint)) &&
@@ -341,17 +343,6 @@ export class SigningClient {
         equal(value.signature_digest, unhex(hash(artifact.signature))) &&
         value.to_be_signed_digest instanceof Uint8Array &&
         equal(value.to_be_signed_digest, unhex(hash(artifact.toBeSigned))),
-      'INTEGRITY_FAILED'
-    )
-    ensure(
-      'Text' in statement.content
-        ? artifact.statement.content.kind === 'text' &&
-            artifact.statement.content.text === statement.content.Text
-        : artifact.statement.content.kind === 'digest' &&
-            equal(
-              artifact.statement.content.sha256,
-              Uint8Array.from(statement.content.Digest.sha256)
-            ),
       'INTEGRITY_FAILED'
     )
     job.artifact = {

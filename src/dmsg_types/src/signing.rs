@@ -6,7 +6,7 @@ use serde_bytes::ByteBuf;
 
 /// Portable document preparation/parsed view, not the COSE wire payload.
 /// The issuer and optional claims become protected headers; content determines
-/// the text or digest profile. Use `dmsg_protocol` to validate and encode it.
+/// the text, digest or file-statement profile. Use `dmsg_protocol` to validate and encode it.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Statement {
@@ -20,7 +20,7 @@ pub struct Statement {
     pub content: StatementContent,
 }
 
-/// Document payload selection. Text is signed verbatim; digest signs 32 raw bytes.
+/// Document payload selection. File statements jointly sign text and a file digest.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum StatementContent {
@@ -33,6 +33,18 @@ pub enum StatementContent {
         /// Optional original media type; metadata does not verify the original bytes.
         content_type: Option<String>,
         /// Optional original-content URI; verification does not fetch it automatically.
+        location: Option<String>,
+    },
+    /// A statement about one exact file, encoded as deterministic CBOR.
+    /// The text conveys no automatic approval, authority or proof of file review.
+    FileStatement {
+        /// Raw UTF-8 text, 1..4096 bytes; preserved without normalization.
+        text: String,
+        /// SHA-256 of the exact original file bytes.
+        sha256: Hash,
+        /// Optional file media type, included in the signed payload.
+        content_type: Option<String>,
+        /// Optional file URI; verification never fetches it automatically.
         location: Option<String>,
     },
 }
@@ -67,7 +79,8 @@ pub struct VerificationReport {
     pub statement: Statement,
     /// Whether the COSE profile and mathematical signature were verified.
     pub signature: VerificationStatus,
-    /// Whether original content was verified; digest documents need the original bytes.
+    /// Whether original content was verified; Digest and FileStatement need the
+    /// original file bytes. An embedded file statement's text alone does not verify its file.
     pub content: VerificationStatus,
     /// Whether trusted evidence binds the signing key to the issuer.
     pub issuer_binding: VerificationStatus,

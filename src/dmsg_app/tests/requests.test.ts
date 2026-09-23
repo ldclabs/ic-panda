@@ -33,6 +33,44 @@ const request = {
   }
 }
 describe('external request boundary', () => {
+  it('accepts file statements and binds every field while rejecting extras and invalid text/hash', () => {
+    const content = {
+      kind: 'file_statement',
+      text: 'Review this file.',
+      sha256: '11'.repeat(32),
+      contentType: 'application/pdf',
+      location: 'urn:file:1'
+    }
+    const input = { ...request, statement: { ...request.statement, content } }
+    const original = parseRequest(input, source, now)
+    for (const change of [
+      { text: 'Approved.' },
+      { sha256: '22'.repeat(32) },
+      { contentType: 'text/plain' },
+      { location: 'urn:file:2' }
+    ])
+      expect(
+        parseRequest(
+          { ...input, statement: { ...input.statement, content: { ...content, ...change } } },
+          source,
+          now
+        ).digest
+      ).not.toBe(original.digest)
+    for (const change of [
+      { text: '' },
+      { text: '中'.repeat(1366) },
+      { sha256: '11' },
+      { size: 100 },
+      { kind: 'other' }
+    ])
+      expect(() =>
+        parseRequest(
+          { ...input, statement: { ...input.statement, content: { ...content, ...change } } },
+          source,
+          now
+        )
+      ).toThrow()
+  })
   it('accepts only browser-bound allowlisted top-level documents', () => {
     expect(trustedSource(sender, [source.origin])).toEqual(source)
     expect(

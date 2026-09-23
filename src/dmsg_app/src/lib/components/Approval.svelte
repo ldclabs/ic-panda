@@ -137,7 +137,13 @@
     <dl class="evidence-list">
       <div>
         <dt>请求类型</dt>
-        <dd>{payload.statement.content.kind === 'text' ? '文本声明' : '内容摘要声明'}</dd>
+        <dd>
+          {payload.statement.content.kind === 'text'
+            ? '文本声明'
+            : payload.statement.content.kind === 'file_statement'
+              ? '针对文件的声明'
+              : '内容摘要声明'}
+        </dd>
       </div>
       <div>
         <dt>账户 Xid</dt>
@@ -162,9 +168,11 @@
     </dl>
     <section class="review-content">
       <span class="field-label">实际待签内容</span
-      >{#if payload.statement.content.kind === 'text'}<p class="preserve-lines">
+      >{#if payload.statement.content.kind === 'text' || payload.statement.content.kind === 'file_statement'}<p
+          class="preserve-lines"
+        >
           {payload.statement.content.text}
-        </p>{:else}<p>
+        </p>{/if}{#if payload.statement.content.kind !== 'text'}<p>
           <strong>内容类型：</strong>{payload.statement.content.contentType ?? '未提供'}
         </p>
         <p><strong>内容位置：</strong>{payload.statement.content.location ?? '未提供'}</p>
@@ -172,7 +180,12 @@
         <code class="hash">{payload.statement.content.sha256}</code>
         <div class="notice warning">
           <Icon name="info" />
-          <p>仅提供摘要，未核对原文件。不能据此确认文件内容或项目权限。</p>
+          <p>
+            未提供原文件，未核对文件内容。签署将绑定{payload.statement.content.kind ===
+            'file_statement'
+              ? '上述声明与'
+              : ''}此摘要，不能据此确认已审阅原文件或拥有项目权限。
+          </p>
         </div>{/if}
     </section>
     <details>

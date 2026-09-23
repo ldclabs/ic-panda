@@ -200,6 +200,12 @@ fn sign_conversion_preserves_context_and_derives_the_correct_key_purpose() {
     for algorithm in [SigningAlgorithm::Ed25519, SigningAlgorithm::EcdsaSecp256k1] {
         for content in [
             StatementContent::Text("hello".into()),
+            StatementContent::FileStatement {
+                text: "review the file".into(),
+                sha256: sha256(b"file"),
+                content_type: None,
+                location: None,
+            },
             StatementContent::Digest {
                 sha256: sha256(b"file"),
                 content_type: None,

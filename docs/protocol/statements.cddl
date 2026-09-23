@@ -1,6 +1,6 @@
 ; Document profiles v1 (Statement v3 design), not a general COSE grammar.
 ; The media types are experimental, not registered standards.
-signed-statement = text-statement / digest-statement
+signed-statement = text-statement / digest-statement / file-statement
 text-statement = #6.18([
   protected: bstr .cbor text-headers,
   unprotected: evidence-headers,
@@ -13,6 +13,21 @@ digest-statement = #6.18([
   payload: sha256, ; RFC 9995 hash of the original content
   signature: signature-bytes
 ])
+file-statement = #6.18([
+  protected: bstr .cbor file-statement-headers,
+  unprotected: evidence-headers,
+  payload: bstr .cbor file-statement-content, ; at most 16384 encoded bytes
+  signature: signature-bytes
+])
+; RFC 8949 core deterministic CBOR: definite lengths, shortest encodings,
+; sorted integer keys, no duplicate/unknown keys, no tags or trailing bytes.
+; Optional members MUST be omitted when absent, never encoded as null.
+file-statement-content = {
+  1: tstr .size (1..4096), ; exact UTF-8 opinion/statement, no normalization
+  2: sha256, ; SHA-256 of the exact original file, not of this CBOR payload
+  ? 3: tstr .size (1..256), ; original file media type
+  ? 4: uri ; original file location; never automatically fetched
+}
 common-headers = (
   1: -19 / -47, ; fully specified Ed25519 / ES256K
   4: bstr .size (1..256), ; opaque kid, not an account or a trust anchor
@@ -23,6 +38,13 @@ text-headers = {
   2: [15, 16], ; crit: consumers must understand these headers
   3: "text/plain;charset=utf-8",
   16: "application/vnd.dmsg.text-statement+cose;v=1"
+}
+file-statement-headers = {
+  common-headers,
+  2: [15, 16],
+  3: "application/cbor",
+  16: "application/vnd.dmsg.file-statement+cose;v=1"
+  ; Hash Envelope headers 258/259/260 are forbidden in this inline profile.
 }
 digest-headers = {
   common-headers,

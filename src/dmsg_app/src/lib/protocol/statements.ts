@@ -1,11 +1,14 @@
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { canonical, decodeBounded, equal, unutf8, utf8 } from './codec'
+import { canonical, decodeBounded, decodeCanonical, equal, unutf8, utf8 } from './codec'
 import { assertUri } from './identity'
 import { ensure } from '../errors'
 export const TEXT_PROFILE = 'application/vnd.dmsg.text-statement+cose;v=1'
 export const DIGEST_PROFILE = 'application/vnd.dmsg.digest-statement+cose;v=1'
+export const FILE_STATEMENT_PROFILE = 'application/vnd.dmsg.file-statement+cose;v=1'
+export const FILE_STATEMENT_CONTENT_TYPE = 'application/cbor'
+export const MAX_FILE_STATEMENT_BYTES = 16384
 export const TEXT_CONTENT_TYPE = 'text/plain;charset=utf-8'
 export type Algorithm = 'Ed25519' | 'EcdsaSecp256k1'
 export interface DocumentStatement {
@@ -15,6 +18,22 @@ export interface DocumentStatement {
   content:
     | { kind: 'text'; text: string }
     | { kind: 'digest'; sha256: Uint8Array; contentType?: string; location?: string }
+    | {
+        kind: 'file_statement'
+        text: string
+        sha256: Uint8Array
+        contentType?: string
+        location?: string
+      }
+}
+export function statementPurpose(content: DocumentStatement['content']) {
+  switch (content.kind) {
+    case 'text':
+    case 'file_statement':
+      return 'Statement'
+    case 'digest':
+      return 'FileAttestation'
+  }
 }
 export function assertStatement(statement: DocumentStatement) {
   assertUri(statement.issuer)
@@ -34,16 +53,16 @@ export function assertStatement(statement: DocumentStatement) {
         statement.issuedAt <= 0x7fffffffffffffffn,
       'INVALID_INPUT'
     )
-  if (statement.content.kind === 'text')
+  if (statement.content.kind === 'text' || statement.content.kind === 'file_statement')
     ensure(
       statement.content.text.length > 0 &&
         utf8(statement.content.text).length <= 4096 &&
         !/[\uD800-\uDFFF]/u.test(statement.content.text),
       'QUOTA_EXCEEDED'
     )
-  else {
+  if (statement.content.kind !== 'text') {
     ensure(
-      statement.content.kind === 'digest' &&
+      (statement.content.kind === 'digest' || statement.content.kind === 'file_statement') &&
         statement.content.sha256 instanceof Uint8Array &&
         statement.content.sha256.length === 32,
       'INVALID_INPUT'
@@ -85,6 +104,18 @@ export function statementBytes(
     headers.set(16, TEXT_PROFILE)
     headers.set(3, TEXT_CONTENT_TYPE)
     payload = utf8(statement.content.text)
+  } else if (statement.content.kind === 'file_statement') {
+    headers.set(2, [15, 16])
+    headers.set(16, FILE_STATEMENT_PROFILE)
+    headers.set(3, FILE_STATEMENT_CONTENT_TYPE)
+    const fields = new Map<number, unknown>([
+      [1, statement.content.text],
+      [2, statement.content.sha256]
+    ])
+    if (statement.content.contentType !== undefined)
+      fields.set(3, statement.content.contentType)
+    if (statement.content.location !== undefined) fields.set(4, statement.content.location)
+    payload = canonical(fields)
   } else {
     headers.set(2, [15, 16, 258])
     headers.set(16, DIGEST_PROFILE)
@@ -112,6 +143,22 @@ function optionalText(value: unknown): string | undefined {
   ensure(value === undefined || typeof value === 'string', 'INTEGRITY_FAILED')
   return value as string | undefined
 }
+function parseFileStatement(payload: Uint8Array): DocumentStatement['content'] {
+  const fields = map(decodeCanonical(payload, MAX_FILE_STATEMENT_BYTES))
+  ensure(
+    [...fields.keys()].every((k) => [1, 2, 3, 4].includes(k)) &&
+      typeof fields.get(1) === 'string' &&
+      isBytes(fields.get(2)),
+    'UNSUPPORTED_PROTOCOL'
+  )
+  return {
+    kind: 'file_statement',
+    text: fields.get(1) as string,
+    sha256: fields.get(2) as Uint8Array,
+    contentType: optionalText(fields.get(3)),
+    location: optionalText(fields.get(4))
+  }
+}
 /** Crypto/profile validation only. URI, key and timestamp presence are not identity or TSA trust. */
 export function verifyDocumentArtifact(artifact: Artifact, content?: Uint8Array) {
   const encoded = Uint8Array.from(artifact.cose_sign1),
@@ -134,8 +181,9 @@ export function verifyDocumentArtifact(artifact: Artifact, content?: Uint8Array)
     (alg === -19 || alg === -47) && isBytes(kid) && kid.length > 0 && kid.length <= 256,
     'UNSUPPORTED_PROTOCOL'
   )
-  const hash = profile === DIGEST_PROFILE
-  ensure(hash || profile === TEXT_PROFILE, 'UNSUPPORTED_PROTOCOL')
+  const hash = profile === DIGEST_PROFILE,
+    fileStatement = profile === FILE_STATEMENT_PROFILE
+  ensure(hash || fileStatement || profile === TEXT_PROFILE, 'UNSUPPORTED_PROTOCOL')
   const allowed = hash ? [1, 2, 4, 15, 16, 258, 259, 260] : [1, 2, 3, 4, 15, 16]
   ensure(
     [...headers.keys()].every((k) => allowed.includes(k)),
@@ -179,12 +227,14 @@ export function verifyDocumentArtifact(artifact: Artifact, content?: Uint8Array)
           contentType: optionalText(headers.get(259)),
           location: optionalText(headers.get(260))
         }
-      : { kind: 'text', text: unutf8(payload) }
+      : fileStatement
+        ? parseFileStatement(payload)
+        : { kind: 'text', text: unutf8(payload) }
   }
   ensure(
     hash
       ? headers.get(258) === -16 && payload.length === 32
-      : headers.get(3) === TEXT_CONTENT_TYPE,
+      : headers.get(3) === (fileStatement ? FILE_STATEMENT_CONTENT_TYPE : TEXT_CONTENT_TYPE),
     'UNSUPPORTED_PROTOCOL'
   )
   assertStatement(statement)
@@ -230,7 +280,13 @@ export function verifyDocumentArtifact(artifact: Artifact, content?: Uint8Array)
     // RFC 9679 requires uncompressed coordinates even for a compressed COSE_Key.
     required.set(-3, secp256k1.Point.fromBytes(publicKey).toBytes(false).subarray(33))
   }
-  if (content) ensure(equal(hash ? sha256(content) : content, payload), 'INTEGRITY_FAILED')
+  if (content !== undefined)
+    ensure(
+      statement.content.kind === 'text'
+        ? equal(content, payload)
+        : equal(sha256(content), statement.content.sha256),
+      'INTEGRITY_FAILED'
+    )
   return {
     statement,
     toBeSigned,
@@ -238,7 +294,10 @@ export function verifyDocumentArtifact(artifact: Artifact, content?: Uint8Array)
     keyFingerprint: sha256(canonical(required)),
     checks: {
       signature: 'verified',
-      content: !hash || content ? 'verified' : 'not_provided',
+      content:
+        statement.content.kind === 'text' || content !== undefined
+          ? 'verified'
+          : 'not_provided',
       issuerBinding: 'not_checked',
       authorization: 'not_checked',
       timestamp: unprotected.has(270) ? 'not_checked' : 'not_provided',
