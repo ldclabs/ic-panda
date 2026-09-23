@@ -1109,3 +1109,6 @@ fn cancellation_of_future_renewal_keeps_current_contract_and_refunds_at_most_pri
     );
     assert_eq!(v.unwrap().plan_snapshot.plan_id, PlanId::Plus);
 }
+
+#[path = "external_integration.rs"]
+mod external_integration;

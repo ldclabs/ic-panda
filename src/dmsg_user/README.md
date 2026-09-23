@@ -88,3 +88,23 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 ```
 
 同环境对比中，64 个账户、64 条月账的升级总 cycles 从 7,405,017,311 降至 7,032,438,568；768 条历史月账时从 18,206,890,495 降至 17,536,817,436。总数包含模块安装和认证树重建开销。上述样本的稳定内存均为 42,008,576 字节，受 MemoryManager 分桶分配粒度影响，不能据此推算生产存储节省比例或最大可升级账户数。
+
+
+## 第三方应用批准与认证
+
+`approve_authentication` 签发独立认证叶，`authentication_certificate` 只允许当前账户本人读取。
+认证绑定完整产品 challenge、临时 session key、目的、origin、receiver、app 配置版本及账户 epoch，
+最长五分钟，依赖证书另需六十秒新鲜度。已交付证明的撤销传播以此有界窗口为准，不宣称即时撤销。
+`approve_application` 将批准账号与产品 beneficiary 分离；固定服务通过
+`verify_application_authorization` 重新检查精确批准。设备需要 FormalApprove，不要求读取秘密库，
+不消费正式文档签署月额度。冻结、争议、撤销、陈旧序号和配置不匹配会拒绝新的批准。
+
+应用/产品配置由固定 commerce canister 的治理登记提供。批准前后均检查设备，外部 await 后重读
+时间、账户和操作记录；成功提交序号、批准记录及认证叶。申请限额是每账号 32 条未过期操作、
+每 UTC 小时 60 次成功批准；拒绝和相同批准重取不消耗成功额度。`prune_external_approvals`
+每批最多处理 64 个账号，只清除过期批准，不解除商业承诺。
+
+这部分已通过原生测试和真实 PocketIC Wasm 的升级、重放、暂停、跨主体批准与证书验证。
+扩展桥、TokenList provider 启用和 v2 checkout/membership 消费者仍由后续工作包接通；
+原 `AuthorizeMembership` v1 入口尚未替换，不能把它当作新的第三方批准协议。
+精确字节和验证边界见 [integration](../../docs/protocol/integration.md)。

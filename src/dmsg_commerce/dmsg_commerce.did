@@ -1,6 +1,44 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// Explicit external capability; never grants access to secrets or wallet keys.
+type AppCapability = variant {
+  // A registered, typed product action.
+  SignAction;
+  // Exact business offer approval.
+  Checkout;
+  // One of the three existing closed document profiles.
+  SignDocument;
+  // Account authentication only.
+  Authenticate;
+};
+// Governance-pinned application identity and browser boundary.
+type AppRegistration = record {
+  // Pinned execution canisters allowed to sign artifacts.
+  cose_homes : vec principal;
+  // Explicit capability allowlist.
+  capabilities : vec AppCapability;
+  // Canonical exact browser origins, never URL prefixes.
+  origins : vec text;
+  // Product IDs allowed for this application.
+  product_ids : vec text;
+  // Receiver of external account authentication proofs.
+  authentication_receiver : principal;
+  // Wire version, currently one.
+  version : nat16;
+  // Stable application identifier.
+  app_id : text;
+  // Monotonically increasing configuration version.
+  config_version : nat64;
+  // Deployment separation.
+  environment : Environment;
+  // Pinned user canisters allowed to authenticate accounts.
+  user_homes : vec principal;
+  // Closed signing profile allowlist, empty for an authentication-only app.
+  profiles : vec SigningProfile;
+  // Stops new approvals; does not erase accepted commitments.
+  paused : bool;
+};
 // Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
   // Product identifier within this protocol.
@@ -630,6 +668,37 @@ type PlanVersion = record {
   // Base resource limits.
   limits : ResourceLimits;
 };
+// Product identity, subject schema and settlement boundary.
+type ProductRegistration = record {
+  // Stable product identifier.
+  product_id : text;
+  // Exact subject byte length.
+  subject_size : nat16;
+  // Current product terms commitment.
+  terms_hash : blob;
+  // Commerce version, currently two.
+  version : nat16;
+  // Monotonically increasing configuration version.
+  config_version : nat64;
+  // Merchant settlement identity, separate from the beneficiary.
+  merchant : Account;
+  // Canister supplying authoritative offers.
+  quote_authority : principal;
+  // Deployment separation.
+  environment : Environment;
+  // Governance budget namespace, not a cash balance.
+  subsidy_budget_id : blob;
+  // Enabled ledgers, explicitly configured even in local fixtures.
+  ledgers : vec principal;
+  // Canister supplying beneficiary permissions.
+  beneficiary_authority : principal;
+  // Canister applying product decisions.
+  adapter : principal;
+  // Fixed interpretation of subject bytes.
+  subject_schema : text;
+  // Stops new commitments only.
+  paused : bool;
+};
 // Request for a fixed quote; creating this value neither charges nor authorizes payment.
 type QuoteOrder = record {
   // Requested commercial change.
@@ -655,9 +724,13 @@ type ResourceLimits = record {
 type Result = variant { Ok : MembershipDecisionReceipt; Err : Error };
 type Result_1 = variant { Ok : MembershipAuthorization; Err : Error };
 type Result_10 = variant { Ok : OrderQuote; Err : Error };
-type Result_11 = variant { Ok : EntitlementView; Err : Error };
-type Result_12 = variant { Ok : ClaimView; Err : Error };
+type Result_11 = variant {
+  Ok : record { AppRegistration; opt ProductRegistration };
+  Err : Error;
+};
+type Result_12 = variant { Ok : EntitlementView; Err : Error };
 type Result_13 = variant { Ok; Err : Error };
+type Result_14 = variant { Ok : ClaimView; Err : Error };
 type Result_2 = variant { Ok : OrderProgress; Err : Error };
 type Result_3 = variant { Ok : TransferProgress; Err : Error };
 type Result_4 = variant { Ok : MerchantTransfer; Err : Error };
@@ -666,6 +739,17 @@ type Result_6 = variant { Ok : MerchantDeposit; Err : Error };
 type Result_7 = variant { Ok : ExecutionEntitlement; Err : Error };
 type Result_8 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
 type Result_9 = variant { Ok : BillingOrder; Err : Error };
+// Closed signing profiles that an application may request.
+type SigningProfile = variant {
+  // Existing text-plus-file statement profile.
+  FileStatementV1;
+  // Existing raw UTF-8 text statement profile.
+  TextStatementV1;
+  // Existing SHA-256 digest statement profile.
+  DigestStatementV1;
+  // Typed application action profile.
+  AppActionV1;
+};
 // Current resource-source state, distinct from account security state.
 type SourceStatus = variant {
   // Current supporting facts cannot be verified.
@@ -776,15 +860,21 @@ service : (CommerceInit) -> {
   get_operation : (blob) -> (Result_9) query;
   get_order_certified : (blob) -> (Result_5) query;
   get_transfer : (blob, nat64) -> (Result_4) query;
+  // Public, authenticated discovery. A paused configuration remains discoverable.
+  integration_configuration_certificate : (text, opt text) -> (Result_5) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
   open_order : (OpenOrder) -> (Result_9);
   process_transfer : (blob, nat64) -> (Result_3);
   quote_order : (QuoteOrder) -> (Result_10) query;
+  // Replicated response used by the pinned user home during exact approval.
+  read_integration_configuration : (text, opt text) -> (Result_11);
   reconcile_order : (blob) -> (Result_2);
   reconcile_transfer : (blob, nat64, nat64) -> (Result_3);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_11);
-  release_replaced_claim : (Beneficiary, blob) -> (Result_12);
+  refresh_entitlement : (Beneficiary) -> (Result_12);
+  register_integration_app : (AppRegistration) -> (Result_13);
+  register_integration_product : (ProductRegistration) -> (Result_13);
+  release_replaced_claim : (Beneficiary, blob) -> (Result_14);
   request_refund : (blob, MembershipIntent) -> (Result_9);
   revise_rejected_transfer : (blob, nat64, nat) -> (Result_4);
   schedule_policy : (Catalog) -> (Result_13);

@@ -1,5 +1,7 @@
 # dmsg_protocol
 
+> 第三方集成的新公共契约与实现边界见 [integration](../../docs/protocol/integration.md)。公共契约、登记和专用认证已实现；通用 v2 checkout/membership 消费者仍待后续工作包，不自动回退或混用。
+
 [English](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_protocol/README.md) | 简体中文
 
 dMsg 的确定性编码、文档签名验证和请求辅助库。本库在 [dmsg_types](https://github.com/ldclabs/ic-panda/tree/main/src/dmsg_types) 上实现公开协议，只执行本地计算：不调用 ICP、不查询账本、不操作 canister 存储、不进行网络发现，也不执行账户授权。

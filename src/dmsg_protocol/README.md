@@ -1,5 +1,7 @@
 # dmsg_protocol
 
+> Third-party v2 contracts and current implementation boundaries are documented in [integration](../../docs/protocol/integration.md). Registration and dedicated authentication are implemented; generic v2 checkout/membership consumers remain subsequent work, without protocol fallback.
+
 English | [简体中文](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_protocol/README_zh.md)
 
 Deterministic encoding, document signature verification, and request helpers for dMsg. This crate implements the public protocol on top of [dmsg_types](https://github.com/ldclabs/ic-panda/tree/main/src/dmsg_types). It performs local computation only: no ICP calls, ledger queries, canister storage, network discovery, or account authorization.

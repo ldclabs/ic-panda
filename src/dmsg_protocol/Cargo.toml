@@ -11,6 +11,8 @@ categories = ["cryptography", "encoding"]
 publish = true
 
 [dependencies]
+ic_auth_verifier = { workspace = true, features = ["envelope"] }
+ic-certification.workspace = true
 dmsg_types = { path = "../dmsg_types", version = "0.1.0" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -30,6 +32,9 @@ num-bigint = "0.4"
 num-traits.workspace = true
 
 [dev-dependencies]
+serde_json.workspace = true
+ic-verify-bls-signature = "0.6"
+ic-canister-sig-creation.workspace = true
 hex.workspace = true
 
 [[bench]]

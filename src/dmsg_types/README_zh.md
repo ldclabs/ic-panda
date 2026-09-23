@@ -1,5 +1,7 @@
 # dmsg_types
 
+> 第三方集成的新公共契约与实现边界见 [integration](../../docs/protocol/integration.md)。公共契约、登记和专用认证已实现；通用 v2 checkout/membership 消费者仍待后续工作包，不自动回退或混用。
+
 [English](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_types/README.md) | 简体中文
 
 `dmsg_types` 定义 dMsg 的公开 Rust 数据合同，用于文档签名、账户与设备控制、名称权属和可选的付费投递对接。dMsg 将可独立验证的 COSE 文档与 ICP 上的账户授权、密钥执行和资金状态分开；集成文档验签不需要实现完整账户、收件箱或支付系统。

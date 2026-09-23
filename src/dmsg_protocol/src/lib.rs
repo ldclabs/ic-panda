@@ -16,3 +16,9 @@ pub use receipt::*;
 
 pub mod billing;
 pub mod membership;
+
+/// Third-party authentication, signing and subscription contracts.
+pub mod integration;
+
+/// Independent verification of dedicated third-party IC authentication proofs.
+pub mod authentication;

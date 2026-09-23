@@ -1,4 +1,5 @@
 packages:
+  - 'packages/dmsg-sdk'
   - 'src/dmsg_legacy'
   - 'src/dmsg_app'
   - 'src/dmsg_frontend'

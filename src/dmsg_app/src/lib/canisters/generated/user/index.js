@@ -16,6 +16,41 @@ export const idlFactory = ({ IDL }) => {
     'max_accounts' : IDL.Nat64,
     'membership_canister' : IDL.Principal,
   });
+  const Beneficiary = IDL.Record({
+    'product_id' : IDL.Text,
+    'authority_canister' : IDL.Principal,
+    'subject_bytes' : IDL.Vec(IDL.Nat8),
+    'subject_schema' : IDL.Text,
+  });
+  const ApprovalPurpose = IDL.Variant({
+    'AppAction' : IDL.Null,
+    'CashCheckout' : IDL.Null,
+    'PandaSubscription' : IDL.Null,
+  });
+  const ApplicationApproval = IDL.Record({
+    'service' : IDL.Principal,
+    'actor' : IDL.Principal,
+    'beneficiary' : Beneficiary,
+    'app_config_version' : IDL.Nat64,
+    'origin' : IDL.Text,
+    'action_digest' : IDL.Vec(IDL.Nat8),
+    'operation_id' : IDL.Vec(IDL.Nat8),
+    'approving_account' : IDL.Vec(IDL.Nat8),
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'nonce' : IDL.Vec(IDL.Nat8),
+    'environment' : Environment,
+    'purpose' : ApprovalPurpose,
+    'expires_at_ms' : IDL.Nat64,
+  });
+  const Approval = IDL.Record({
+    'request_id' : IDL.Vec(IDL.Nat8),
+    'signature' : IDL.Vec(IDL.Nat8),
+    'device_id' : IDL.Vec(IDL.Nat8),
+    'security_epoch' : IDL.Nat64,
+    'expires_at' : IDL.Nat64,
+    'sequence' : IDL.Nat64,
+  });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
     'LegacyWriteDisabled' : IDL.Null,
@@ -46,7 +81,51 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Result = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
+  const AuthenticationPurpose = IDL.Variant({
+    'Reauthenticate' : IDL.Null,
+    'Login' : IDL.Null,
+    'Link' : IDL.Null,
+  });
+  const AuthenticationRequest = IDL.Record({
+    'app_config_version' : IDL.Nat64,
+    'origin' : IDL.Text,
+    'operation_id' : IDL.Vec(IDL.Nat8),
+    'session_key_hash' : IDL.Vec(IDL.Nat8),
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'issued_at_ms' : IDL.Nat64,
+    'nonce' : IDL.Vec(IDL.Nat8),
+    'environment' : Environment,
+    'receiver' : IDL.Principal,
+    'purpose' : AuthenticationPurpose,
+    'expires_at_ms' : IDL.Nat64,
+    'challenge_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const AuthenticationResult = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'request' : AuthenticationRequest,
+    'device_id' : IDL.Vec(IDL.Nat8),
+    'security_epoch' : IDL.Nat64,
+    'version' : IDL.Nat16,
+    'home_user' : IDL.Principal,
+    'expires_at_ms' : IDL.Nat64,
+    'approved_at_ms' : IDL.Nat64,
+  });
+  const Result_1 = IDL.Variant({ 'Ok' : AuthenticationResult, 'Err' : Error });
+  const CertifiedEntry = IDL.Record({
+    'key' : IDL.Vec(IDL.Nat8),
+    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'witness' : IDL.Vec(IDL.Nat8),
+  });
+  const CertifiedBatch = IDL.Record({
+    'certificate' : IDL.Vec(IDL.Nat8),
+    'schema' : IDL.Nat16,
+    'entries' : IDL.Vec(CertifiedEntry),
+    'canister' : IDL.Principal,
+  });
+  const Result_2 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Result_3 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const HandleAction = IDL.Variant({
     'AcceptTransfer' : IDL.Null,
     'Register' : IDL.Null,
@@ -87,21 +166,13 @@ export const idlFactory = ({ IDL }) => {
     'proof' : IDL.Vec(IDL.Nat8),
     'expires_at' : IDL.Nat64,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
   const RootTarget = IDL.Variant({
     'Candidate' : IDL.Record({
       'op_id' : IDL.Vec(IDL.Nat8),
       'generation' : IDL.Nat64,
     }),
     'Current' : IDL.Record({ 'generation' : IDL.Nat64 }),
-  });
-  const Approval = IDL.Record({
-    'request_id' : IDL.Vec(IDL.Nat8),
-    'signature' : IDL.Vec(IDL.Nat8),
-    'device_id' : IDL.Vec(IDL.Nat8),
-    'security_epoch' : IDL.Nat64,
-    'expires_at' : IDL.Nat64,
-    'sequence' : IDL.Nat64,
   });
   const DeriveRootRequest = IDL.Record({
     'account_id' : IDL.Vec(IDL.Nat8),
@@ -160,7 +231,7 @@ export const idlFactory = ({ IDL }) => {
     'cycles_cost_upper_bound' : IDL.Nat,
     'outcome' : ExecutionOutcome,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
+  const Result_5 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
   const AccountStatus = IDL.Variant({
     'Active' : IDL.Null,
     'RecoveryDisputed' : IDL.Null,
@@ -244,7 +315,7 @@ export const idlFactory = ({ IDL }) => {
     'devices' : IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
     'vault_write_state' : VaultWriteState,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : AccountInfo, 'Err' : Error });
+  const Result_6 = IDL.Variant({ 'Ok' : AccountInfo, 'Err' : Error });
   const SecuritySnapshot = IDL.Record({
     'content_root_generation' : IDL.Nat64,
     'account_id' : IDL.Vec(IDL.Nat8),
@@ -265,25 +336,13 @@ export const idlFactory = ({ IDL }) => {
     'account_status' : AccountStatus,
     'pending_recovery_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_4 = IDL.Variant({
+  const Result_7 = IDL.Variant({
     'Ok' : IDL.Tuple(
       SecuritySnapshot,
       IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
     ),
     'Err' : Error,
   });
-  const CertifiedEntry = IDL.Record({
-    'key' : IDL.Vec(IDL.Nat8),
-    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'witness' : IDL.Vec(IDL.Nat8),
-  });
-  const CertifiedBatch = IDL.Record({
-    'certificate' : IDL.Vec(IDL.Nat8),
-    'schema' : IDL.Nat16,
-    'entries' : IDL.Vec(CertifiedEntry),
-    'canister' : IDL.Principal,
-  });
-  const Result_5 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const ExecutionUsage = IDL.Record({
     'account_id' : IDL.Vec(IDL.Nat8),
     'business_revision' : IDL.Nat64,
@@ -296,26 +355,20 @@ export const idlFactory = ({ IDL }) => {
     'month_revision' : IDL.Nat64,
     'month_utc' : IDL.Nat32,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : ExecutionUsage, 'Err' : Error });
+  const Result_8 = IDL.Variant({ 'Ok' : ExecutionUsage, 'Err' : Error });
   const OperationReceipt = IDL.Record({
     'id' : IDL.Vec(IDL.Nat8),
     'account_version' : IDL.Nat64,
     'digest' : IDL.Vec(IDL.Nat8),
   });
-  const Result_7 = IDL.Variant({ 'Ok' : OperationReceipt, 'Err' : Error });
-  const Result_8 = IDL.Variant({
+  const Result_9 = IDL.Variant({ 'Ok' : OperationReceipt, 'Err' : Error });
+  const Result_10 = IDL.Variant({
     'Ok' : IDL.Opt(PendingRecovery),
     'Err' : Error,
   });
-  const Result_9 = IDL.Variant({
+  const Result_11 = IDL.Variant({
     'Ok' : IDL.Opt(ContentRootRef),
     'Err' : Error,
-  });
-  const Beneficiary = IDL.Record({
-    'product_id' : IDL.Text,
-    'authority_canister' : IDL.Principal,
-    'subject_bytes' : IDL.Vec(IDL.Nat8),
-    'subject_schema' : IDL.Text,
   });
   const MembershipIntent = IDL.Record({
     'actor' : IDL.Principal,
@@ -407,13 +460,24 @@ export const idlFactory = ({ IDL }) => {
     'max_cycles' : IDL.Nat,
     'approval' : Approval,
   });
+  const ApplicationAuthorization = IDL.Record({
+    'approval_id' : IDL.Vec(IDL.Nat8),
+    'valid_until_ms' : IDL.Nat64,
+    'security_epoch' : IDL.Nat64,
+    'verified_at_ms' : IDL.Nat64,
+    'approval_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const Result_12 = IDL.Variant({
+    'Ok' : ApplicationAuthorization,
+    'Err' : Error,
+  });
   const MembershipAuthorization = IDL.Record({
     'valid_until_ms' : IDL.Nat64,
     'security_epoch' : IDL.Nat64,
     'verified_at_ms' : IDL.Nat64,
     'intent_digest' : IDL.Vec(IDL.Nat8),
   });
-  const Result_10 = IDL.Variant({
+  const Result_13 = IDL.Variant({
     'Ok' : MembershipAuthorization,
     'Err' : Error,
   });
@@ -439,75 +503,95 @@ export const idlFactory = ({ IDL }) => {
     'signature' : IDL.Vec(IDL.Nat8),
     'offer' : PaymentOffer,
   });
-  const Result_11 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   return IDL.Service({
-    'begin_auth_binding' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Nat64],
+    'approve_application' : IDL.Func(
+        [ApplicationApproval, Approval],
         [Result],
         [],
       ),
-    'complete_recovery' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
-    'consume_handle_authorization' : IDL.Func([HandleIntent], [Result], []),
-    'consume_handle_transfer_authorizations' : IDL.Func(
-        [HandleIntent, HandleIntent],
-        [Result],
+    'approve_authentication' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), AuthenticationRequest, Approval],
+        [Result_1],
         [],
       ),
-    'create_account' : IDL.Func([CreateAccount], [Result_1], []),
-    'derive_root' : IDL.Func([DeriveRootRequest], [Result_2], []),
-    'get_account' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], ['query']),
-    'get_device_bundle' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_4], ['query']),
-    'get_execution' : IDL.Func(
+    'authentication_certificate' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_2],
         ['query'],
       ),
-    'get_execution_receipt' : IDL.Func(
+    'begin_auth_binding' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Nat64],
+        [Result_3],
+        [],
+      ),
+    'complete_recovery' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], []),
+    'consume_handle_authorization' : IDL.Func([HandleIntent], [Result_3], []),
+    'consume_handle_transfer_authorizations' : IDL.Func(
+        [HandleIntent, HandleIntent],
+        [Result_3],
+        [],
+      ),
+    'create_account' : IDL.Func([CreateAccount], [Result_4], []),
+    'derive_root' : IDL.Func([DeriveRootRequest], [Result_5], []),
+    'get_account' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_6], ['query']),
+    'get_device_bundle' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_7], ['query']),
+    'get_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_5],
+        ['query'],
+      ),
+    'get_execution_receipt' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result_2],
         ['query'],
       ),
     'get_execution_usage' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_6],
+        [Result_8],
         ['query'],
       ),
     'get_execution_usage_certified' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_5],
+        [Result_2],
         ['query'],
       ),
     'get_operation' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_7],
+        [Result_9],
         ['query'],
       ),
     'get_recovery_request' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_8],
+        [Result_10],
         ['query'],
       ),
-    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], ['query']),
-    'mutate_account' : IDL.Func([AccountMutation], [Result_7], []),
+    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_11], ['query']),
+    'mutate_account' : IDL.Func([AccountMutation], [Result_9], []),
     'my_account' : IDL.Func([], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
     'prune_auth_bindings' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
+    'prune_external_approvals' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Opt(IDL.Vec(IDL.Nat8))],
+        [],
+      ),
     'reconcile_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_2],
+        [Result_5],
         [],
       ),
     'reconfirm_recovery' : IDL.Func(
         [IDL.Vec(IDL.Nat8), RecoveryConfirmation, IDL.Vec(IDL.Nat8)],
-        [Result],
+        [Result_3],
         [],
       ),
     'refresh_execution_entitlement' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_6],
+        [Result_8],
         [],
       ),
     'request_recovery' : IDL.Func(
@@ -517,21 +601,26 @@ export const idlFactory = ({ IDL }) => {
           IDL.Vec(IDL.Nat8),
           IDL.Vec(IDL.Nat8),
         ],
-        [Result],
+        [Result_3],
         [],
       ),
     'security_snapshot_batch' : IDL.Func(
         [IDL.Vec(IDL.Vec(IDL.Nat8))],
-        [Result_5],
+        [Result_2],
         ['query'],
       ),
-    'sign' : IDL.Func([SignRequest], [Result_2], []),
-    'verify_membership_authorization' : IDL.Func(
-        [MembershipIntent],
-        [Result_10],
+    'sign' : IDL.Func([SignRequest], [Result_5], []),
+    'verify_application_authorization' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), ApplicationApproval],
+        [Result_12],
         [],
       ),
-    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_11], []),
+    'verify_membership_authorization' : IDL.Func(
+        [MembershipIntent],
+        [Result_13],
+        [],
+      ),
+    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_14], []),
   });
 };
 export const init = ({ IDL }) => {

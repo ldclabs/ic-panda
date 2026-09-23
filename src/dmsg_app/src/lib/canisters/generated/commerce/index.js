@@ -381,7 +381,54 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_9 = IDL.Variant({ 'Ok' : BillingOrder, 'Err' : Error });
   const Result_10 = IDL.Variant({ 'Ok' : OrderQuote, 'Err' : Error });
-  const Result_11 = IDL.Variant({ 'Ok' : EntitlementView, 'Err' : Error });
+  const AppCapability = IDL.Variant({
+    'SignAction' : IDL.Null,
+    'Checkout' : IDL.Null,
+    'SignDocument' : IDL.Null,
+    'Authenticate' : IDL.Null,
+  });
+  const SigningProfile = IDL.Variant({
+    'FileStatementV1' : IDL.Null,
+    'TextStatementV1' : IDL.Null,
+    'DigestStatementV1' : IDL.Null,
+    'AppActionV1' : IDL.Null,
+  });
+  const AppRegistration = IDL.Record({
+    'cose_homes' : IDL.Vec(IDL.Principal),
+    'capabilities' : IDL.Vec(AppCapability),
+    'origins' : IDL.Vec(IDL.Text),
+    'product_ids' : IDL.Vec(IDL.Text),
+    'authentication_receiver' : IDL.Principal,
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'config_version' : IDL.Nat64,
+    'environment' : Environment,
+    'user_homes' : IDL.Vec(IDL.Principal),
+    'profiles' : IDL.Vec(SigningProfile),
+    'paused' : IDL.Bool,
+  });
+  const ProductRegistration = IDL.Record({
+    'product_id' : IDL.Text,
+    'subject_size' : IDL.Nat16,
+    'terms_hash' : IDL.Vec(IDL.Nat8),
+    'version' : IDL.Nat16,
+    'config_version' : IDL.Nat64,
+    'merchant' : Account,
+    'quote_authority' : IDL.Principal,
+    'environment' : Environment,
+    'subsidy_budget_id' : IDL.Vec(IDL.Nat8),
+    'ledgers' : IDL.Vec(IDL.Principal),
+    'beneficiary_authority' : IDL.Principal,
+    'adapter' : IDL.Principal,
+    'subject_schema' : IDL.Text,
+    'paused' : IDL.Bool,
+  });
+  const Result_11 = IDL.Variant({
+    'Ok' : IDL.Tuple(AppRegistration, IDL.Opt(ProductRegistration)),
+    'Err' : Error,
+  });
+  const Result_12 = IDL.Variant({ 'Ok' : EntitlementView, 'Err' : Error });
+  const Result_13 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const ClaimStatus = IDL.Variant({
     'CoolingDown' : IDL.Null,
     'Closing' : IDL.Null,
@@ -408,8 +455,7 @@ export const idlFactory = ({ IDL }) => {
     'policy_version' : IDL.Nat64,
     'expires_at_ms' : IDL.Nat64,
   });
-  const Result_12 = IDL.Variant({ 'Ok' : ClaimView, 'Err' : Error });
-  const Result_13 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Result_14 = IDL.Variant({ 'Ok' : ClaimView, 'Err' : Error });
   return IDL.Service({
     'apply_membership_decision' : IDL.Func([MembershipDecision], [Result], []),
     'authorize_membership_close' : IDL.Func(
@@ -454,6 +500,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         ['query'],
       ),
+    'integration_configuration_certificate' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text)],
+        [Result_5],
+        ['query'],
+      ),
     'list_catalogs' : IDL.Func(
         [IDL.Opt(IDL.Nat64)],
         [IDL.Vec(Catalog)],
@@ -466,6 +517,11 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'quote_order' : IDL.Func([QuoteOrder], [Result_10], ['query']),
+    'read_integration_configuration' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text)],
+        [Result_11],
+        [],
+      ),
     'reconcile_order' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_2], []),
     'reconcile_transfer' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Nat64],
@@ -473,10 +529,16 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'refresh_catalog' : IDL.Func([], [Catalog], []),
-    'refresh_entitlement' : IDL.Func([Beneficiary], [Result_11], []),
+    'refresh_entitlement' : IDL.Func([Beneficiary], [Result_12], []),
+    'register_integration_app' : IDL.Func([AppRegistration], [Result_13], []),
+    'register_integration_product' : IDL.Func(
+        [ProductRegistration],
+        [Result_13],
+        [],
+      ),
     'release_replaced_claim' : IDL.Func(
         [Beneficiary, IDL.Vec(IDL.Nat8)],
-        [Result_12],
+        [Result_14],
         [],
       ),
     'request_refund' : IDL.Func(

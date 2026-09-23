@@ -1,5 +1,7 @@
 # Membership and commerce contracts
 
+> Third-party v2 contracts and current implementation boundaries are documented in [integration](integration.md). Registration and dedicated authentication are implemented; generic v2 checkout/membership consumers remain subsequent work, without protocol fallback.
+
 English | [简体中文](commerce_zh.md)
 
 This document describes the public implementation, not a deployment or pricing announcement. `membership/1` is product neutral; `dmsg-commerce/1` supplies dMsg resource contracts. The executable Candid in `src/membership`, `src/dmsg_commerce`, `src/dmsg_user`, and `src/dmsg_payment` is the method/type reference. Canonical CBOR is defined by `dmsg_protocol`; [commerce_vectors.json](../../src/dmsg_types/tests/commerce_vectors.json) freezes representative bytes and arithmetic.

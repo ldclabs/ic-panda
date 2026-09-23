@@ -39,3 +39,18 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 ```
 
 Historical orders, deposits, transfer proofs and decisions remain retained for replay protection. Upgrade still scans transfer history and rebuilds all certified order/subject leaves. The tested 1,000-row sample did not require a cleanup or indexing redesign; larger operating targets must repeat the growth measurement before rollout, including richer subject histories. Do not delete financial deduplication proofs to make an upgrade fit.
+
+
+## Third-party registration
+
+`register_integration_product` and `register_integration_app` require the configured governance
+caller. Products must be registered before referencing apps. Registrations are bounded to 256
+products and 64 applications, versioned, and certified. Product subject identity, authorities and
+adapter cannot be replaced under an existing ID. App origins, homes, profiles and capabilities
+are explicit allowlists; pause updates retain the registration and existing operations.
+
+The pinned user home obtains replicated configuration through `read_integration_configuration`;
+public clients use `integration_configuration_certificate`. Both registration maps and certified
+leaves survive upgrade. This implements registration and approval infrastructure, not generic v2
+cash settlement. Existing merchant v1 runtime behavior is replaced in subsequent work packages.
+See [the public integration contract](../../docs/protocol/integration.md).

@@ -7,6 +7,24 @@ export interface Account {
   'owner' : Principal,
   'subaccount' : [] | [Uint8Array | number[]],
 }
+export type AppCapability = { 'SignAction' : null } |
+  { 'Checkout' : null } |
+  { 'SignDocument' : null } |
+  { 'Authenticate' : null };
+export interface AppRegistration {
+  'cose_homes' : Array<Principal>,
+  'capabilities' : Array<AppCapability>,
+  'origins' : Array<string>,
+  'product_ids' : Array<string>,
+  'authentication_receiver' : Principal,
+  'version' : number,
+  'app_id' : string,
+  'config_version' : bigint,
+  'environment' : Environment,
+  'user_homes' : Array<Principal>,
+  'profiles' : Array<SigningProfile>,
+  'paused' : boolean,
+}
 export interface Beneficiary {
   'product_id' : string,
   'authority_canister' : Principal,
@@ -305,6 +323,22 @@ export interface PlanVersion {
   'plan_id' : PlanId,
   'limits' : ResourceLimits,
 }
+export interface ProductRegistration {
+  'product_id' : string,
+  'subject_size' : number,
+  'terms_hash' : Uint8Array | number[],
+  'version' : number,
+  'config_version' : bigint,
+  'merchant' : Account,
+  'quote_authority' : Principal,
+  'environment' : Environment,
+  'subsidy_budget_id' : Uint8Array | number[],
+  'ledgers' : Array<Principal>,
+  'beneficiary_authority' : Principal,
+  'adapter' : Principal,
+  'subject_schema' : string,
+  'paused' : boolean,
+}
 export interface QuoteOrder {
   'action' : OrderAction,
   'op_id' : Uint8Array | number[],
@@ -323,11 +357,15 @@ export type Result_1 = { 'Ok' : MembershipAuthorization } |
   { 'Err' : Error };
 export type Result_10 = { 'Ok' : OrderQuote } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : EntitlementView } |
+export type Result_11 = {
+    'Ok' : [AppRegistration, [] | [ProductRegistration]]
+  } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : ClaimView } |
+export type Result_12 = { 'Ok' : EntitlementView } |
   { 'Err' : Error };
 export type Result_13 = { 'Ok' : null } |
+  { 'Err' : Error };
+export type Result_14 = { 'Ok' : ClaimView } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : OrderProgress } |
   { 'Err' : Error };
@@ -345,6 +383,10 @@ export type Result_8 = { 'Ok' : [] | [MembershipDecisionReceipt] } |
   { 'Err' : Error };
 export type Result_9 = { 'Ok' : BillingOrder } |
   { 'Err' : Error };
+export type SigningProfile = { 'FileStatementV1' : null } |
+  { 'TextStatementV1' : null } |
+  { 'DigestStatementV1' : null } |
+  { 'AppActionV1' : null };
 export type SourceStatus = { 'Unverifiable' : null } |
   { 'Free' : null } |
   { 'Closing' : null } |
@@ -421,20 +463,33 @@ export interface _SERVICE {
   'get_operation' : ActorMethod<[Uint8Array | number[]], Result_9>,
   'get_order_certified' : ActorMethod<[Uint8Array | number[]], Result_5>,
   'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_4>,
+  'integration_configuration_certificate' : ActorMethod<
+    [string, [] | [string]],
+    Result_5
+  >,
   'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
   'open_order' : ActorMethod<[OpenOrder], Result_9>,
   'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_3>,
   'quote_order' : ActorMethod<[QuoteOrder], Result_10>,
+  'read_integration_configuration' : ActorMethod<
+    [string, [] | [string]],
+    Result_11
+  >,
   'reconcile_order' : ActorMethod<[Uint8Array | number[]], Result_2>,
   'reconcile_transfer' : ActorMethod<
     [Uint8Array | number[], bigint, bigint],
     Result_3
   >,
   'refresh_catalog' : ActorMethod<[], Catalog>,
-  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_11>,
+  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_12>,
+  'register_integration_app' : ActorMethod<[AppRegistration], Result_13>,
+  'register_integration_product' : ActorMethod<
+    [ProductRegistration],
+    Result_13
+  >,
   'release_replaced_claim' : ActorMethod<
     [Beneficiary, Uint8Array | number[]],
-    Result_12
+    Result_14
   >,
   'request_refund' : ActorMethod<
     [Uint8Array | number[], MembershipIntent],

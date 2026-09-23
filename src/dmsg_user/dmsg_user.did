@@ -153,6 +153,50 @@ type Algorithm = variant {
   // ECDSA over secp256k1 (COSE ES256K, -47).
   EcdsaSecp256k1;
 };
+// Approved dMsg account and product beneficiary are deliberately separate.
+type ApplicationApproval = record {
+  // Exact service allowed to consume this approval.
+  "service" : principal;
+  // Economic actor, distinct from both account IDs and payer accounts.
+  actor : principal;
+  // Product-defined rights recipient; no inferred AccountId conversion.
+  beneficiary : Beneficiary;
+  // Exact application configuration revision.
+  app_config_version : nat64;
+  // Extension-verified browser origin.
+  origin : text;
+  // Complete cash/PANDA quotation or application action digest.
+  action_digest : blob;
+  // Idempotency identifier.
+  operation_id : blob;
+  // dMsg account whose device approves this action.
+  approving_account : blob;
+  // Integration version.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Fresh challenge.
+  nonce : blob;
+  // Deployment separation.
+  environment : Environment;
+  // Purpose-separated authorization.
+  purpose : ApprovalPurpose;
+  // Exclusive validity deadline in Unix milliseconds.
+  expires_at_ms : nat64;
+};
+// Fresh read-only revalidation of an exact stored application approval.
+type ApplicationAuthorization = record {
+  // Device approval request ID, distinct from the product operation ID.
+  approval_id : blob;
+  // Exclusive deadline bounded by both application and device approval.
+  valid_until_ms : nat64;
+  // Current account security epoch.
+  security_epoch : nat64;
+  // Verification time in Unix milliseconds.
+  verified_at_ms : nat64;
+  // Exact ApplicationApproval commitment.
+  approval_hash : blob;
+};
 // Device Ed25519 approval over a domain-separated operation digest.
 // Construct the digest with the matching `dmsg_protocol` helper; signing the
 // Serde encoding of this struct is not a valid approval.
@@ -169,6 +213,72 @@ type Approval = record {
   expires_at : nat64;
   // Next sequence expected for this device; contributes to replay protection.
   sequence : nat64;
+};
+// Exact purpose for account approval, distinct from product authorization.
+type ApprovalPurpose = variant {
+  // Typed application action approval.
+  AppAction;
+  // Cash order approval.
+  CashCheckout;
+  // Full subscription waiver approval.
+  PandaSubscription;
+};
+// Authentication purpose prevents login/link/reauthentication replay.
+type AuthenticationPurpose = variant {
+  // Confirm recent control for a sensitive product action.
+  Reauthenticate;
+  // Sign in or register a local product account.
+  Login;
+  // Link to an already authenticated product account.
+  Link;
+};
+// Exact browser authentication request approved by a dMsg device.
+type AuthenticationRequest = record {
+  // Exact registration version used at approval time.
+  app_config_version : nat64;
+  // Actual extension-verified origin.
+  origin : text;
+  // Stable operation identity used during recovery.
+  operation_id : blob;
+  // SHA-256 of the product's temporary session public-key DER.
+  session_key_hash : blob;
+  // Authentication profile version.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Inclusive request time in Unix milliseconds.
+  issued_at_ms : nat64;
+  // Fresh product-generated nonce.
+  nonce : blob;
+  // Deployment separation.
+  environment : Environment;
+  // Pinned product authentication receiver.
+  receiver : principal;
+  // Purpose checked against the local pending challenge.
+  purpose : AuthenticationPurpose;
+  // Exclusive authentication deadline in Unix milliseconds.
+  expires_at_ms : nat64;
+  // Product challenge commitment, including any local account identity.
+  challenge_hash : blob;
+};
+// Dedicated certified authentication leaf; never substitute SecuritySnapshot.
+type AuthenticationResult = record {
+  // Stable dMsg subject, distinct from the product's local account.
+  account_id : blob;
+  // Exact approved request.
+  request : AuthenticationRequest;
+  // Approved device identity; not its secret key.
+  device_id : blob;
+  // Account epoch consumed at approval.
+  security_epoch : nat64;
+  // Authentication profile version.
+  version : nat16;
+  // Expected IC certificate authority.
+  home_user : principal;
+  // Exclusive validity deadline, never later than the request deadline.
+  expires_at_ms : nat64;
+  // Approval time in Unix milliseconds.
+  approved_at_ms : nat64;
 };
 // Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
@@ -613,21 +723,24 @@ type RecoveryRequest = record {
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
-type Result = variant { Ok; Err : Error };
-type Result_1 = variant { Ok : blob; Err : Error };
-type Result_10 = variant { Ok : MembershipAuthorization; Err : Error };
-type Result_11 = variant { Ok : nat64; Err : Error };
-type Result_2 = variant { Ok : ExecutionResult; Err : Error };
-type Result_3 = variant { Ok : AccountInfo; Err : Error };
-type Result_4 = variant {
+type Result = variant { Ok : blob; Err : Error };
+type Result_1 = variant { Ok : AuthenticationResult; Err : Error };
+type Result_10 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_11 = variant { Ok : opt ContentRootRef; Err : Error };
+type Result_12 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_13 = variant { Ok : MembershipAuthorization; Err : Error };
+type Result_14 = variant { Ok : nat64; Err : Error };
+type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_3 = variant { Ok; Err : Error };
+type Result_4 = variant { Ok : blob; Err : Error };
+type Result_5 = variant { Ok : ExecutionResult; Err : Error };
+type Result_6 = variant { Ok : AccountInfo; Err : Error };
+type Result_7 = variant {
   Ok : record { SecuritySnapshot; vec record { blob; Device } };
   Err : Error;
 };
-type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_6 = variant { Ok : ExecutionUsage; Err : Error };
-type Result_7 = variant { Ok : OperationReceipt; Err : Error };
-type Result_8 = variant { Ok : opt PendingRecovery; Err : Error };
-type Result_9 = variant { Ok : opt ContentRootRef; Err : Error };
+type Result_8 = variant { Ok : ExecutionUsage; Err : Error };
+type Result_9 = variant { Ok : OperationReceipt; Err : Error };
 // Temporary compare-and-swap slot for a candidate content root.
 type RootReservation = record {
   // Idempotency identifier; reuse only with identical operation parameters.
@@ -830,34 +943,43 @@ type VaultWriteState = variant {
   Uninitialized;
 };
 service : (UserInit) -> {
+  approve_application : (ApplicationApproval, Approval) -> (Result);
+  approve_authentication : (blob, AuthenticationRequest, Approval) -> (
+      Result_1,
+    );
+  authentication_certificate : (blob, blob) -> (Result_2) query;
   // Only the new authentication principal may reserve its own binding. The
   // existing account_id's administrator must separately approve the exact nonce.
-  begin_auth_binding : (blob, blob, nat64) -> (Result);
-  complete_recovery : (blob) -> (Result);
-  consume_handle_authorization : (HandleIntent) -> (Result);
+  begin_auth_binding : (blob, blob, nat64) -> (Result_3);
+  complete_recovery : (blob) -> (Result_3);
+  consume_handle_authorization : (HandleIntent) -> (Result_3);
   consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
-      Result,
+      Result_3,
     );
-  create_account : (CreateAccount) -> (Result_1);
-  derive_root : (DeriveRootRequest) -> (Result_2);
-  get_account : (blob) -> (Result_3) query;
-  get_device_bundle : (blob) -> (Result_4) query;
-  get_execution : (blob, blob) -> (Result_2) query;
-  get_execution_receipt : (blob, blob) -> (Result_5) query;
-  get_execution_usage : (blob, nat32) -> (Result_6) query;
-  get_execution_usage_certified : (blob, nat32) -> (Result_5) query;
-  get_operation : (blob, blob) -> (Result_7) query;
-  get_recovery_request : (blob) -> (Result_8) query;
-  get_root_ref : (blob) -> (Result_9) query;
-  mutate_account : (AccountMutation) -> (Result_7);
+  create_account : (CreateAccount) -> (Result_4);
+  derive_root : (DeriveRootRequest) -> (Result_5);
+  get_account : (blob) -> (Result_6) query;
+  get_device_bundle : (blob) -> (Result_7) query;
+  get_execution : (blob, blob) -> (Result_5) query;
+  get_execution_receipt : (blob, blob) -> (Result_2) query;
+  get_execution_usage : (blob, nat32) -> (Result_8) query;
+  get_execution_usage_certified : (blob, nat32) -> (Result_2) query;
+  get_operation : (blob, blob) -> (Result_9) query;
+  get_recovery_request : (blob) -> (Result_10) query;
+  get_root_ref : (blob) -> (Result_11) query;
+  mutate_account : (AccountMutation) -> (Result_9);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
-  reconcile_execution : (blob, blob) -> (Result_2);
-  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result);
-  refresh_execution_entitlement : (blob) -> (Result_6);
-  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result);
-  security_snapshot_batch : (vec blob) -> (Result_5) query;
-  sign : (SignRequest) -> (Result_2);
-  verify_membership_authorization : (MembershipIntent) -> (Result_10);
-  verify_payment_offer : (SignedOffer) -> (Result_11);
+  // Bounded public cleanup removes only expired authentication/approval records.
+  prune_external_approvals : (blob) -> (opt blob);
+  reconcile_execution : (blob, blob) -> (Result_5);
+  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_3);
+  refresh_execution_entitlement : (blob) -> (Result_8);
+  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_3);
+  security_snapshot_batch : (vec blob) -> (Result_2) query;
+  sign : (SignRequest) -> (Result_5);
+  // Read-only revalidation by the fixed consumer. It creates no product order or claim.
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_12);
+  verify_membership_authorization : (MembershipIntent) -> (Result_13);
+  verify_payment_offer : (SignedOffer) -> (Result_14);
 }

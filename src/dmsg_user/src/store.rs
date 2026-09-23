@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
 // Stable layout: config=0, accounts=1, permanent auth routes=2,
-// pending bindings=3, retired memory=4, execution records=5, monthly usage=6.
+// pending bindings=3, retired memory=4, execution records=5, monthly usage=6, external approvals=7.
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -130,6 +130,7 @@ pub(crate) fn rebuild_certification() {
             });
         });
         crate::commerce::rebuild(c);
+        crate::external::rebuild(c);
         // Upgrades are atomic; publish once after rebuilding both views.
         c.publish();
     });

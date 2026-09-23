@@ -14,7 +14,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-fn memory(id: u8) -> Memory {
+pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
@@ -195,6 +195,7 @@ fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
 
 pub fn rebuild(at: u64) {
     CERT.with_borrow_mut(|c| {
+        crate::registrations::rebuild(c);
         SUBJECTS.with_borrow(|t| {
             t.for_each(|key, s| {
                 if let Some(v) = s.view {

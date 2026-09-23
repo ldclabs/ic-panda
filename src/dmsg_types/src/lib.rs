@@ -15,3 +15,6 @@ pub mod profiles;
 
 pub mod account_id;
 pub use account_id::AccountId;
+
+/// Third-party authentication, signing and subscription contracts.
+pub mod integration;

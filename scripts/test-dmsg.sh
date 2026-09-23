@@ -25,4 +25,15 @@ node scripts/verify-commerce-vectors.mjs "$task_tmp/commerce.json"
 # PocketIC 16.0.0, matching the pinned host crate. Set POCKET_IC_BIN to use an
 # installed server; otherwise the host crate downloads that fixed release.
 export DMSG_WASM_DIR="$wasm_dir"
+export DMSG_EXTERNAL_FIXTURE="$task_tmp/authentication-pocketic.cbor"
 cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- --test-threads=1
+
+
+# Third-party contracts and independent browser verifier. Use the real Wasm
+# authentication proof exported by the normal PocketIC run above.
+python3 scripts/generate-integration-sdk.py --check
+cargo run --locked --quiet -p dmsg_types --example integration_vectors > "$task_tmp/integration.json"
+diff -u src/dmsg_types/tests/integration_vectors.json "$task_tmp/integration.json"
+cargo run --locked --quiet -p dmsg_protocol --example authentication_vector > "$task_tmp/authentication.json"
+diff -u src/dmsg_types/tests/authentication_vector.json "$task_tmp/authentication.json"
+node --test packages/dmsg-sdk/tests/*.test.ts
