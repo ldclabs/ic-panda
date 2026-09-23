@@ -12,11 +12,18 @@ pub struct HandleAuthorization {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ApprovedMembership {
+    pub intent: dmsg_types::membership::MembershipIntent,
+    pub security_epoch: u64,
+    pub device_id: Hash,
+    pub expires_at: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
     pub created_at_ms: u64,
     pub safety_budget: Budget,
-    pub membership_authorizations:
-        BTreeMap<OpId, (dmsg_types::membership::MembershipIntent, u64, Hash, u64)>,
+    pub membership_authorizations: BTreeMap<OpId, ApprovedMembership>,
     pub account_id: AccountId,
     pub home_user: Principal,
     pub home_cose: Principal,

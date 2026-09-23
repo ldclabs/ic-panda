@@ -51,7 +51,9 @@ fn user_cycles_profile() {
             );
         }
         let mut request = typed_statement(&f, &id, SigningAlgorithm::Ed25519);
-        request.max_cycles = 100_000_000_000;
+        // Nine approvals must fit within the 800B daily budget while covering
+        // the fiduciary subnet's measured signing cost.
+        request.max_cycles = 80_000_000_000;
         request.statement.content = StatementContent::Text("x".repeat(4096));
         request.approval.signature = key(1)
             .sign(

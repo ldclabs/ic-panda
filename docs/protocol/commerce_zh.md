@@ -52,7 +52,7 @@ PANDA 认领通过注册的适配器对经济 Principal 进行身份认证并验
 
 资源投影区分业务修订版本与租约修订版本。刷新租约不会使已支付订单的业务 CAS 失效。资源叶不包含 neuron ID 或付款人身份。未知的 SNS 资格不会发放可复用的兜底租约。已知无效资格仅授予 Free 资源并保留修复信息。独立存储附加包在基础会员终止后依然有效。
 
-`get_execution_entitlement` 是仅限对应配置 user home 访问的副本响应；它不需要查询证书，也绝不会回调 user canister。user 提供其不可变账户创建时间，重新计算完整月份的额度，拒绝版本回退，并将额度单位与执行序号一同预留。`ExecutionGrant.commerce` 绑定预留 ID、月份、单位数、策略版本和过期时间；COSE 授权摘要为 `dmsg/cose-execution/v3`。正式 Statement 和批准字节保持不变。已完成和已过期的历史输出消耗其原始单位；已知的未执行释放单位；Unknown 保留预留。根派生使用受保护的预算而非商业单位。COSE 从正式签名中为安全操作预留 20% 的部署执行/cycles 上限，同时保留硬性总上限。
+`get_execution_entitlement` 是仅限对应配置 user home 访问的副本响应；它不需要查询证书，也绝不会回调 user canister。user 提供其不可变账户创建时间，重新计算完整月份的额度，拒绝版本回退，并将额度单位与执行序号一同预留。`ExecutionGrant.commerce` 绑定预留 ID、月份、单位数、策略版本和过期时间；COSE 授权摘要为 `dmsg/cose-execution/v3`。正式 Statement 和批准字节保持不变。显式 `refresh_execution_entitlement` 即使本地旧租约仍有效也会获取当前商业权益，同时保留已用和预留计数。已完成和已过期的历史输出消耗其原始单位；COSE 已记录的失败释放单位；Unknown 保留预留。传输未发出、或 COSE 尚未记录终态的业务拒绝会保留 grant、序号与预留，使用同一请求对账，过期后也须补齐终态序号。根派生使用受保护的预算而非商业单位。COSE 从正式签名中为安全操作预留 20% 的部署执行/cycles 上限，同时保留硬性总上限。
 
 公开错误新增 `MembershipStale`、`MembershipIneligible` 和 `MembershipClosing`。继续根据记录的操作使用 `VersionConflict`、`IdempotencyConflict`、`QuotaExceeded`、`Pending`、`Expired`、`FeeBlocked` 和 `ExecutionUnknown`。绝不要为了解决未知结果而创建另一笔付款。
 

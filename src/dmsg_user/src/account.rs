@@ -108,12 +108,16 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
     Ok(device)
 }
 
-pub(crate) fn changed(s: &mut AccountState) {
+fn invalidate_approvals(s: &mut AccountState) {
     s.security_epoch = s
         .security_epoch
         .checked_add(1)
         .expect("security epoch exhausted");
     s.root_slot = None;
+}
+
+pub(crate) fn changed(s: &mut AccountState) {
+    invalidate_approvals(s);
     if s.current_root.is_some() {
         s.vault_write_state = VaultWriteState::RekeyRequired;
     }
@@ -348,7 +352,7 @@ pub(crate) fn apply(
                 Error::QuotaExceeded,
             )?;
             next.sensitive_policy = policy.clone();
-            changed(&mut next);
+            invalidate_approvals(&mut next);
         }
         AccountCommand::ReserveRoot {
             expected_generation,
@@ -414,9 +418,10 @@ pub(crate) fn apply(
             nonzero(intent.application_id.as_slice())?;
             nonzero(intent.nonce.as_slice())?;
             expiry(now, intent.valid_until_ms, DAY)?;
-            next.membership_authorizations.retain(|_, a| a.3 > now);
+            next.membership_authorizations
+                .retain(|_, a| a.expires_at > now);
             if let Some(a) = next.membership_authorizations.get(&intent.application_id) {
-                ensure(a.0 == *intent, Error::IdempotencyConflict)?;
+                ensure(a.intent == *intent, Error::IdempotencyConflict)?;
             }
             ensure(
                 next.membership_authorizations.len() < 32
@@ -427,12 +432,12 @@ pub(crate) fn apply(
             )?;
             next.membership_authorizations.insert(
                 intent.application_id,
-                (
-                    intent.clone(),
-                    s.security_epoch,
-                    m.approval.device_id,
-                    m.approval.expires_at,
-                ),
+                ApprovedMembership {
+                    intent: intent.clone(),
+                    security_epoch: s.security_epoch,
+                    device_id: m.approval.device_id,
+                    expires_at: m.approval.expires_at,
+                },
             );
         }
         AccountCommand::AuthorizeHandle { intent } => {
@@ -445,8 +450,9 @@ pub(crate) fn apply(
             expiry(now, m.approval.expires_at, MINUTE)?;
             nonzero(intent.op_id.as_slice())?;
             next.handle_authorizations.retain(|_, a| a.expires_at > now);
-            if let Some(a) = next.handle_authorizations.get(&intent.op_id) {
+            if let Some(a) = next.handle_authorizations.get_mut(&intent.op_id) {
                 ensure(a.intent == *intent, Error::IdempotencyConflict)?;
+                a.expires_at = m.approval.expires_at;
             } else {
                 ensure(next.handle_authorizations.len() < 32, Error::QuotaExceeded)?;
                 next.handle_authorizations.insert(

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
 // Stable layout: config=0, accounts=1, permanent auth routes=2,
-// pending bindings=3, retired memory=4, execution records=5.
+// pending bindings=3, retired memory=4, execution records=5, monthly usage=6.
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -71,6 +71,10 @@ pub(crate) fn save(s: &AccountState) {
     });
 }
 
+pub(crate) fn publish() {
+    CERT.with_borrow(|c| c.publish());
+}
+
 fn execution_key(account_id: &AccountId, request_id: &OpId) -> Vec<u8> {
     [account_id.as_slice(), request_id.as_slice()].concat()
 }
@@ -82,6 +86,7 @@ pub(crate) fn load_execution(
     EXECUTIONS.with_borrow(|t| t.load(&execution_key(account_id, request_id)))
 }
 
+/// Update the execution leaf; publish once after all writes in the message.
 pub(crate) fn save_execution(execution: &AuthorizedExecution) {
     EXECUTIONS.with_borrow_mut(|t| {
         t.put(
@@ -91,9 +96,9 @@ pub(crate) fn save_execution(execution: &AuthorizedExecution) {
     });
     if let Ok(receipt) = crate::execution::receipt(execution, &config().init.issuer_namespace) {
         CERT.with_borrow_mut(|c| {
-            c.put(
+            c.0.insert(
                 execution_receipt_key(&receipt.account_id, receipt.request_id),
-                &receipt,
+                canonical(&receipt),
             )
         });
     }
@@ -101,10 +106,10 @@ pub(crate) fn save_execution(execution: &AuthorizedExecution) {
 
 pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     EXECUTIONS.with_borrow_mut(|t| t.delete(&execution_key(account_id, request_id)));
-    CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
+    CERT.with_borrow_mut(|c| c.0.delete(&execution_receipt_key(account_id, *request_id)));
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 6;
+pub(crate) const STABLE_SCHEMA: u16 = 7;
 
 pub(crate) fn rebuild_certification() {
     let namespace = config().init.issuer_namespace;

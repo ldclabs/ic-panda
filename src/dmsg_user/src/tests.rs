@@ -983,7 +983,10 @@ fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
     let request = execute_request(&s, 1, 1);
     let execution = authorize(&mut s, p(1), &request, 1).unwrap();
     assert!(matches!(
-        execution::unsent_dispatch_result(execution.result.clone()),
+        execution::rejected_dispatch_result(
+            execution.result.clone(),
+            stable::CallFailure::NotExecuted.into()
+        ),
         Err(Error::Unavailable(_))
     ));
     // Retrying uses the same grant and consumes no additional device/execution sequence.
@@ -1002,13 +1005,13 @@ fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
             ..execution.result.clone()
         };
         assert_eq!(
-            execution::unsent_dispatch_result(current.clone()),
+            execution::rejected_dispatch_result(current.clone(), Error::QuotaExceeded),
             Ok(current)
         );
     }
     let current = completed(&s, &request);
     assert_eq!(
-        execution::unsent_dispatch_result(current.clone()),
+        execution::rejected_dispatch_result(current.clone(), Error::QuotaExceeded),
         Ok(current)
     );
 }

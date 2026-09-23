@@ -1,7 +1,7 @@
 use crate::{state::AuthorizedExecution, store};
-use dmsg_protocol::{billing::*, canonical};
+use dmsg_protocol::{billing::*, canonical, digest};
 use dmsg_runtime::{
-    storage::{MapExt, Stored},
+    storage::{CompactStored, MapExt},
     Certification,
 };
 use dmsg_types::{billing::*, cose::*, *};
@@ -9,15 +9,16 @@ use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, Sta
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
-#[derive(Clone, Serialize, Deserialize)]
-struct Month {
-    usage: ExecutionUsage,
-    entitlement: ExecutionEntitlement,
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Month {
+    pub(crate) usage: ExecutionUsage,
+    pub(crate) weights: ExecutionWeights,
+    pub(crate) entitlement_digest: Hash,
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 thread_local! {
-    static MONTHS: RefCell<StableBTreeMap<Vec<u8>, Stored<Month>, Memory>> =
+    static MONTHS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Month>, Memory>> =
         RefCell::new(StableBTreeMap::init(store::memory(6)));
 }
 
@@ -28,7 +29,7 @@ fn load(id: &AccountId, month: u32) -> Option<Month> {
 fn save(m: &Month) {
     let key = usage_key(&m.usage.account_id, m.usage.month_utc);
     MONTHS.with_borrow_mut(|t| t.put(key.as_slice(), m));
-    store::CERT.with_borrow_mut(|c| c.put(key.to_vec(), &m.usage));
+    store::CERT.with_borrow_mut(|c| c.0.insert(key.to_vec(), canonical(&m.usage)));
 }
 
 pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {
@@ -43,13 +44,15 @@ pub fn rebuild(c: &mut Certification) {
     });
 }
 
-/// Returns the timestamp of the current execution, refreshed after any remote call.
-pub async fn sync(id: &AccountId, at: u64) -> Result<u64> {
+pub fn is_current(id: &AccountId, at: u64) -> Result<bool> {
+    Ok(load(id, month_utc(at)?).is_some_and(|m| at < m.usage.valid_until_ms))
+}
+
+/// Fetch current business terms even if a previous lease is still valid.
+/// Returns the refreshed time for authorization after the remote call.
+pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
     let month = month_utc(at)?;
     let s = store::load(id)?;
-    if load(id, month).is_some_and(|m| at < m.usage.valid_until_ms) {
-        return Ok(at);
-    }
     let home = store::config().init.commerce_canister;
     let b = beneficiary(s.home_user, id);
     let result: Result<ExecutionEntitlement> = dmsg_runtime::call(
@@ -78,6 +81,7 @@ pub async fn sync(id: &AccountId, at: u64) -> Result<u64> {
         Error::IntegrityFailed,
     )?;
     let old = load(id, month);
+    let entitlement_digest = digest("dmsg/stored-execution-entitlement/v1", &e);
     if let Some(m) = &old {
         ensure(
             e.view.business_revision >= m.usage.business_revision
@@ -86,7 +90,10 @@ pub async fn sync(id: &AccountId, at: u64) -> Result<u64> {
             Error::PolicyStale,
         )?;
         if e.view.lease_revision == m.usage.lease_revision {
-            ensure(e == m.entitlement, Error::IntegrityFailed)?;
+            ensure(
+                entitlement_digest == m.entitlement_digest,
+                Error::IntegrityFailed,
+            )?;
         }
     }
     let usage = ExecutionUsage {
@@ -103,8 +110,10 @@ pub async fn sync(id: &AccountId, at: u64) -> Result<u64> {
     };
     save(&Month {
         usage,
-        entitlement: e,
+        weights: e.month.weights,
+        entitlement_digest,
     });
+    store::publish();
     Ok(now)
 }
 
@@ -116,8 +125,6 @@ pub fn reserve(e: &mut AuthorizedExecution, now: u64) -> Result<()> {
     let mut m = load(&e.grant.account_id, month).ok_or(Error::MembershipStale)?;
     ensure(now < m.usage.valid_until_ms, Error::MembershipStale)?;
     let units = m
-        .entitlement
-        .month
         .weights
         .units(&key.algorithm)
         .ok_or(Error::UnsupportedProtocol)?;

@@ -173,9 +173,12 @@ pub(crate) fn authorize(
 
 /// A clean failure describes only this attempt; never overwrite a concurrent
 /// completion or turn an earlier unknown result into an unsent operation.
-pub(crate) fn unsent_dispatch_result(current: ExecutionResult) -> Result<ExecutionResult> {
+pub(crate) fn rejected_dispatch_result(
+    current: ExecutionResult,
+    error: Error,
+) -> Result<ExecutionResult> {
     if current.status() == ExecutionStatus::Authorized {
-        Err(CallFailure::NotExecuted.into())
+        Err(error)
     } else {
         Ok(current)
     }

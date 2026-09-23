@@ -24,6 +24,9 @@ mod handle_tests;
 #[path = "control_plane/payment_optimization.rs"]
 mod payment_optimization;
 
+#[path = "control_plane/user.rs"]
+mod user_tests;
+
 #[path = "control_plane/commerce.rs"]
 mod commerce;
 

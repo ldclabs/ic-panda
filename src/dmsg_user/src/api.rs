@@ -256,8 +256,10 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
     let caller = ic_cdk::api::msg_caller();
     let mut at = now();
     let mut s = own(&input.account_id, caller)?;
+    let mut previous = load_execution(&input.account_id, &input.approval.request_id);
     if matches!(input.kind, ExecutionKind::Sign { .. })
-        && load_execution(&input.account_id, &input.approval.request_id).is_none()
+        && previous.is_none()
+        && !crate::commerce::is_current(&input.account_id, at)?
     {
         // Reject invalid caller/device/payload before doing commercial cross-canister work.
         execution::authorize(
@@ -268,10 +270,10 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
             &config().init.issuer_namespace,
             None,
         )?;
-        at = crate::commerce::sync(&input.account_id, at).await?;
+        at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
+        previous = load_execution(&input.account_id, &input.approval.request_id);
     }
-    let previous = load_execution(&input.account_id, &input.approval.request_id);
     let expired: Vec<_> = s
         .execution_expirations
         .iter()
@@ -311,24 +313,35 @@ async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
     .await
     {
         Ok(Ok(response)) => Ok(response),
-        // A canister-level rejection is an authoritative statement that execute
-        // returned before starting a management call. Record it as a terminal
-        // failure so the commercial reservation can be released.
-        Ok(Err(error)) => Ok(ExecutionResult {
-            request_id,
-            outcome: ExecutionOutcome::Failed(error),
-            charged_cycles: 0,
-        }),
+        // A pruned result is historical execution evidence, not nonexecution.
+        Ok(Err(Error::ResultExpired)) => Err(Error::ResultExpired),
+        // An application error need not have consumed the COSE sequence. Keep
+        // the original grant and hold until that service records a terminal result.
+        Ok(Err(error)) => {
+            return rejected_dispatch(&account_id, &request_id, error);
+        }
         Err(stable::CallFailure::NotExecuted) => {
             // Preserve the current state: another dispatch may have completed
             // while this attempt was in flight. An unsent Authorized grant keeps
             // its original sequence/reservation so retry can close the COSE slot.
-            let current = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
-            return execution::unsent_dispatch_result(current.result);
+            return rejected_dispatch(
+                &account_id,
+                &request_id,
+                stable::CallFailure::NotExecuted.into(),
+            );
         }
         Err(stable::CallFailure::Unknown) => Err(Error::ExecutionUnknown),
     };
     record_response(&account_id, request_id, response)
+}
+
+fn rejected_dispatch(
+    account_id: &AccountId,
+    request_id: &OpId,
+    error: Error,
+) -> Result<ExecutionResult> {
+    let current = load_execution(account_id, request_id).ok_or(Error::ResultExpired)?;
+    execution::rejected_dispatch_result(current.result, error)
 }
 
 fn record_response(
@@ -346,14 +359,15 @@ fn record_response(
     let result = execution::record_execution_response(&mut e, response);
     if result != previous {
         if result.is_terminal() {
-            crate::commerce::settle(&e)?;
             let mut s = load(account_id)?;
+            crate::commerce::settle(&e)?;
             s.execution_expirations
                 .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
             // Only the internal retention index changed, not the security leaf.
             save_account(&s);
         }
         save_execution(&e);
+        publish();
     }
     Ok(result)
 }
@@ -548,17 +562,25 @@ fn verify_membership_authorization(intent: MembershipIntent) -> Result<Membershi
         .membership_authorizations
         .get(&intent.application_id)
         .ok_or(Error::NotFound)?;
-    ensure(a.0 == intent && a.1 == s.security_epoch, Error::PolicyStale)?;
     ensure(
-        s.devices.get(&a.2).is_some_and(|d| d.revoked_at.is_none()),
+        a.intent == intent && a.security_epoch == s.security_epoch,
+        Error::PolicyStale,
+    )?;
+    ensure(
+        s.devices
+            .get(&a.device_id)
+            .is_some_and(|d| d.revoked_at.is_none()),
         Error::DeviceNotApproved,
     )?;
-    ensure(at < a.3 && at < intent.valid_until_ms, Error::Expired)?;
+    ensure(
+        at < a.expires_at && at < intent.valid_until_ms,
+        Error::Expired,
+    )?;
     Ok(MembershipAuthorization {
         intent_digest: dmsg_protocol::membership::membership_intent_digest(&intent),
         security_epoch: s.security_epoch,
         verified_at_ms: at,
-        valid_until_ms: a.3.min(intent.valid_until_ms),
+        valid_until_ms: a.expires_at.min(intent.valid_until_ms),
     })
 }
 
@@ -581,8 +603,10 @@ fn get_execution_usage_certified(account_id: AccountId, month_utc: u32) -> Resul
 
 #[ic_cdk::update]
 async fn refresh_execution_entitlement(account_id: AccountId) -> Result<ExecutionUsage> {
-    own(&account_id, ic_cdk::api::msg_caller())?;
-    let at = crate::commerce::sync(&account_id, now()).await?;
+    let caller = ic_cdk::api::msg_caller();
+    own(&account_id, caller)?;
+    let at = crate::commerce::refresh(&account_id, now()).await?;
+    own(&account_id, caller)?;
     crate::commerce::usage(&account_id, dmsg_protocol::billing::month_utc(at)?)
 }
 

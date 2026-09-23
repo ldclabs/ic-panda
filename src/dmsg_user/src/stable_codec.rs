@@ -1,7 +1,7 @@
-use crate::{state::*, store::Config};
+use crate::{commerce::Month, state::*, store::Config};
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
-use dmsg_types::{cose::*, handle::*, user::*, *};
+use dmsg_types::{billing::*, cose::*, handle::*, user::*, *};
 use ic_auth_types::XidGenerator;
 use std::collections::BTreeMap;
 
@@ -105,6 +105,117 @@ impl StableCodec for HandleAuthorization {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct ApprovedMembershipRepr {
+    #[cbor(key = 1)]
+    pub intent: MembershipIntentRepr,
+    #[cbor(key = 2)]
+    pub security_epoch: u64,
+    #[cbor(key = 3)]
+    pub device_id: Hash,
+    #[cbor(key = 4)]
+    pub expires_at: u64,
+}
+
+impl StableCodec for ApprovedMembership {
+    type Repr = ApprovedMembershipRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        ApprovedMembershipRepr {
+            intent: self.intent.to_repr(),
+            security_epoch: self.security_epoch,
+            device_id: self.device_id,
+            expires_at: self.expires_at,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            intent: dmsg_types::membership::MembershipIntent::from_repr(repr.intent),
+            security_epoch: repr.security_epoch,
+            device_id: repr.device_id,
+            expires_at: repr.expires_at,
+        }
+    }
+}
+
+// Flatten the small monthly ledger. Full resource projections and timeline
+// segments are validated on refresh, not rewritten on every reservation.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct MonthRepr {
+    #[cbor(key = 1)]
+    pub account_id: AccountId,
+    #[cbor(key = 2)]
+    pub month_utc: u32,
+    #[cbor(key = 3)]
+    pub month_revision: u64,
+    #[cbor(key = 4)]
+    pub business_revision: u64,
+    #[cbor(key = 5)]
+    pub lease_revision: u64,
+    #[cbor(key = 6)]
+    pub weight_policy_version: u64,
+    #[cbor(key = 7)]
+    pub allowed_units: u64,
+    #[cbor(key = 8)]
+    pub held_units: u64,
+    #[cbor(key = 9)]
+    pub charged_units: u64,
+    #[cbor(key = 10)]
+    pub valid_until_ms: u64,
+    #[cbor(key = 11)]
+    pub ed25519_units: u64,
+    #[cbor(key = 12)]
+    pub ecdsa_secp256k1_units: u64,
+    #[cbor(key = 13)]
+    pub entitlement_digest: Hash,
+}
+
+impl StableCodec for Month {
+    type Repr = MonthRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        MonthRepr {
+            account_id: self.usage.account_id.clone(),
+            month_utc: self.usage.month_utc,
+            month_revision: self.usage.month_revision,
+            business_revision: self.usage.business_revision,
+            lease_revision: self.usage.lease_revision,
+            weight_policy_version: self.usage.weight_policy_version,
+            allowed_units: self.usage.allowed_units,
+            held_units: self.usage.held_units,
+            charged_units: self.usage.charged_units,
+            valid_until_ms: self.usage.valid_until_ms,
+            ed25519_units: self.weights.ed25519,
+            ecdsa_secp256k1_units: self.weights.ecdsa_secp256k1,
+            entitlement_digest: self.entitlement_digest,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            usage: ExecutionUsage {
+                account_id: repr.account_id,
+                month_utc: repr.month_utc,
+                month_revision: repr.month_revision,
+                business_revision: repr.business_revision,
+                lease_revision: repr.lease_revision,
+                weight_policy_version: repr.weight_policy_version,
+                allowed_units: repr.allowed_units,
+                held_units: repr.held_units,
+                charged_units: repr.charged_units,
+                valid_until_ms: repr.valid_until_ms,
+            },
+            weights: ExecutionWeights {
+                version: repr.weight_policy_version,
+                ed25519: repr.ed25519_units,
+                ecdsa_secp256k1: repr.ecdsa_secp256k1_units,
+            },
+            entitlement_digest: repr.entitlement_digest,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct AccountStateRepr {
     #[cbor(key = 1)]
     pub account_id: AccountId,
@@ -162,8 +273,8 @@ pub struct AccountStateRepr {
     #[cbor(key = 24)]
     pub safety_budget: BudgetRepr,
     #[cbor(key = 25)]
-    pub membership_authorizations:
-        BTreeMap<OpId, (dmsg_types::membership::MembershipIntent, u64, Hash, u64)>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub membership_authorizations: BTreeMap<OpId, ApprovedMembershipRepr>,
 }
 
 impl StableCodec for AccountState {
@@ -173,7 +284,7 @@ impl StableCodec for AccountState {
         AccountStateRepr {
             created_at_ms: self.created_at_ms,
             safety_budget: self.safety_budget.to_repr(),
-            membership_authorizations: self.membership_authorizations.clone(),
+            membership_authorizations: map_to_repr(&self.membership_authorizations),
             account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
@@ -203,7 +314,7 @@ impl StableCodec for AccountState {
         Self {
             created_at_ms: repr.created_at_ms,
             safety_budget: Budget::from_repr(repr.safety_budget),
-            membership_authorizations: repr.membership_authorizations,
+            membership_authorizations: map_from_repr(repr.membership_authorizations),
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
@@ -409,6 +520,32 @@ mod tests {
                 )
             })
             .collect();
+        state.membership_authorizations = (0..32)
+            .map(|n| {
+                let application_id = Hash::new([n; 32]);
+                (
+                    application_id,
+                    ApprovedMembership {
+                        intent: dmsg_types::membership::MembershipIntent {
+                            application_id,
+                            environment: Environment::Local,
+                            service_canister: p(88),
+                            beneficiary: dmsg_protocol::billing::beneficiary(
+                                state.home_user,
+                                &state.account_id,
+                            ),
+                            actor: p(1),
+                            action_digest: Hash::new([n + 1; 32]),
+                            nonce: Hash::new([n + 2; 32]),
+                            valid_until_ms: 1_700_086_400_000,
+                        },
+                        security_epoch: state.security_epoch,
+                        device_id: Hash::new([1; 32]),
+                        expires_at: 1_700_000_060_000,
+                    },
+                )
+            })
+            .collect();
         state
     }
 
@@ -446,7 +583,7 @@ mod tests {
             (1..=8)
                 .chain(10..=11)
                 .chain(15..=19)
-                .chain(23..=25)
+                .chain(23..=24)
                 .collect::<Vec<_>>()
         );
 
@@ -455,7 +592,7 @@ mod tests {
         assert!(compact.len() > 17_642);
         assert_eq!(
             hex(&compact),
-            "8e0d952123e857a9bc0fdef081daf285c3413365c812a54f78c96bbff27fae29"
+            "ed7c2b2cbbc5b68bca233260d903ea0b3b83fffdaf1af0730302680dc2e40a75"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
@@ -473,6 +610,33 @@ mod tests {
     fn hex(bytes: &[u8]) -> String {
         let digest = dmsg_protocol::sha256(bytes);
         digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+
+    #[test]
+    fn monthly_ledger_preserves_counters_and_weights_in_compact_storage() {
+        let month = Month {
+            usage: ExecutionUsage {
+                account_id: AccountId([8; 12]),
+                month_utc: 202609,
+                month_revision: 11,
+                business_revision: 12,
+                lease_revision: 13,
+                weight_policy_version: 14,
+                allowed_units: 200,
+                held_units: 7,
+                charged_units: 21,
+                valid_until_ms: 1_790_000_000_000,
+            },
+            weights: ExecutionWeights {
+                version: 14,
+                ed25519: 1,
+                ecdsa_secp256k1: 2,
+            },
+            entitlement_digest: Hash::new([1; 32]),
+        };
+        let bytes = compact_bytes(&month);
+        assert_eq!(compact_from_bytes::<Month>(&bytes), month);
+        assert!(bytes.len() < 128, "monthly ledger: {} bytes", bytes.len());
     }
 
     #[test]

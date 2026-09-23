@@ -685,7 +685,7 @@ fn transfer_fee_cannot_consume_principal_beyond_the_frozen_reserve() {
 }
 
 #[test]
-fn known_cose_rejection_releases_the_commercial_reservation() {
+fn recorded_cose_failure_releases_the_commercial_reservation() {
     let f = Fixture::commercial();
     let id = f.create(1);
     f.recoverable(1, &id);
@@ -697,6 +697,10 @@ fn known_cose_rejection_releases_the_commercial_reservation() {
         (&id,),
     );
     let initial = initial.unwrap();
+
+    let initialized: Result<KeyState> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    initialized.unwrap();
 
     let public = key(7).verifying_key().to_bytes();
     let fingerprint =
@@ -747,7 +751,7 @@ fn known_cose_rejection_releases_the_commercial_reservation() {
     let rejected: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
     assert!(matches!(
         rejected.unwrap().outcome,
-        ExecutionOutcome::Failed(Error::Unavailable(_))
+        ExecutionOutcome::Failed(Error::IntegrityFailed)
     ));
     let usage: Result<ExecutionUsage> = query(
         &f.ic,
@@ -778,6 +782,18 @@ fn execution_monthly_units_cannot_be_reset_by_refund_or_upgrade() {
     );
     let initial = initial.unwrap();
     assert!(initial.allowed_units <= 3);
+    let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
+    for _ in 0..initial.allowed_units {
+        let request = user_tests::statement_request(&f, &id, signing_key.clone(), 100_000_000_000);
+        let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
+        assert!(matches!(
+            result.unwrap().outcome,
+            ExecutionOutcome::Completed(_)
+        ));
+    }
+    let exhausted = user_tests::statement_request(&f, &id, signing_key.clone(), 100_000_000_000);
+    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (exhausted,));
+    assert_eq!(result, Err(Error::QuotaExceeded));
     let o = open(&f, &id, 97, OrderAction::Subscribe { plan: PlanId::Plus });
     let block = deposit(
         &f,
@@ -786,8 +802,7 @@ fn execution_monthly_units_cannot_be_reset_by_refund_or_upgrade() {
         o.input.quote.amount_atomic + o.input.quote.fee_reserve,
     );
     check(&f, &o, block);
-    // Existing Free lease remains bounded. It cannot reset spent units when refreshed.
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
+    // Explicit refresh observes the purchase immediately, despite the cached Free lease.
     let u: Result<ExecutionUsage> = update(
         &f.ic,
         f.user,
@@ -796,10 +811,11 @@ fn execution_monthly_units_cannot_be_reset_by_refund_or_upgrade() {
         (&id,),
     );
     let u = u.unwrap();
-    assert!(u.allowed_units > 0 && u.allowed_units <= 10);
+    assert!(u.allowed_units > initial.allowed_units && u.allowed_units <= 10);
     let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
+    assert_eq!(u.charged_units, initial.allowed_units);
     let mut last = None;
-    for index in 0..=u.allowed_units {
+    for index in u.charged_units..=u.allowed_units {
         if index == 8 {
             f.ic.advance_time(Duration::from_millis(DAY));
         }
