@@ -192,6 +192,16 @@ export interface SignedReceipt {
   'signature' : Uint8Array | number[],
   'receipt' : AdmissionReceipt,
 }
+export type TransferFailure = { 'GenericError' : null } |
+  { 'TemporarilyUnavailable' : null } |
+  { 'BadBurn' : null } |
+  { 'InvalidResponse' : null } |
+  { 'CallUnknown' : null } |
+  { 'BadFee' : null } |
+  { 'CreatedInFuture' : null } |
+  { 'CallNotExecuted' : null } |
+  { 'TooOld' : null } |
+  { 'InsufficientFunds' : null };
 export interface TransferLeg {
   'to' : Account,
   'fee' : bigint,
@@ -206,6 +216,7 @@ export interface TransferLeg {
   'escrow_id' : Uint8Array | number[],
   'revision' : bigint,
   'amount' : bigint,
+  'last_failure' : [] | [TransferFailure],
   'expected_fee' : [] | [bigint],
 }
 export interface _SERVICE {
@@ -252,6 +263,7 @@ export interface _SERVICE {
   'revoke_receipt_signer' : ActorMethod<[bigint], Result_6>,
   'rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result_6>,
   'schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result_6>,
+  'set_ledger_fee' : ActorMethod<[bigint], Result_6>,
   'set_orders_enabled' : ActorMethod<[boolean], Result_6>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

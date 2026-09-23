@@ -719,6 +719,9 @@ pub struct TransferLegRepr {
     pub replaces: Option<u64>,
     #[cbor(key = 14)]
     pub history_digest: Hash,
+    #[cbor(key = 15)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_failure: Option<TransferFailure>,
 }
 
 impl StableCodec for TransferLeg {
@@ -737,6 +740,7 @@ impl StableCodec for TransferLeg {
             status: self.status.clone(),
             block: self.block,
             expected_fee: self.expected_fee,
+            last_failure: self.last_failure.clone(),
             revision: self.revision,
             replaces: self.replaces,
             history_digest: self.history_digest,
@@ -756,6 +760,7 @@ impl StableCodec for TransferLeg {
             status: repr.status,
             block: repr.block,
             expected_fee: repr.expected_fee,
+            last_failure: repr.last_failure,
             revision: repr.revision,
             replaces: repr.replaces,
             history_digest: repr.history_digest,

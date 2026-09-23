@@ -322,9 +322,9 @@ fn heap_configuration_and_failed_call_budgets_survive_upgrade() {
         (true,),
     );
     enabled.unwrap();
-    // Even rejected offer checks consume the global attempt budget. Failed
-    // calls must release their in-flight guard, and upgrades cannot reset it.
-    for _ in 1..100 {
+    // Authorization attempts have a per-caller minute budget independent of
+    // successful daily admissions, and upgrades cannot reset it.
+    for _ in 1..10 {
         let rejected: Result<EscrowInfo> = update(
             &f.ic,
             f.payment,

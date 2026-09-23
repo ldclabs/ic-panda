@@ -372,3 +372,204 @@ fn a_refund_source_can_fix_fees_but_unknown_transfers_cannot_be_repriced() {
     assert_eq!(next.amount + next.fee, 100);
     assert!(e.conserved());
 }
+
+#[test]
+fn receipt_checks_signed_bindings_storage_terms_and_signer_window() {
+    let (e, id) = setup();
+    let key = SigningKey::from_bytes(&[7; 32]);
+    let signer = ReceiptSigner {
+        epoch: 1,
+        public_key: key.verifying_key().to_bytes().into(),
+        valid_from: 1,
+        valid_until: DAY,
+        revoked: false,
+    };
+    let receipt = AdmissionReceipt {
+        protocol: 2,
+        relay_id: Hash::new([9; 32]),
+        signer_epoch: 1,
+        home_payment: id,
+        escrow_id: e.escrow_id,
+        quote_digest: e.quote_digest,
+        envelope_digest: e.quote.envelope_digest,
+        size: 128,
+        policy_version: 1,
+        inbox_key_version: 1,
+        admission_seq: 1,
+        stored_at: 2,
+        retain_until: 2 + DAY,
+        fund_by: e.quote.fund_by,
+        accept_by: e.quote.accept_by,
+    };
+    let sign = |receipt: AdmissionReceipt| SignedReceipt {
+        signature: key
+            .sign(digest("dmsg/admission-receipt/v2", &receipt).as_slice())
+            .to_bytes()
+            .to_vec()
+            .into(),
+        receipt,
+    };
+    assert!(receipt_valid(&e, &sign(receipt.clone()), &signer, id, 3).is_ok());
+    let invalid: &[fn(&mut AdmissionReceipt)] = &[
+        |r| r.protocol = 1,
+        |r| r.home_payment = account(9).owner,
+        |r| r.escrow_id = Hash::new([99; 32]),
+        |r| r.quote_digest = Hash::new([99; 32]),
+        |r| r.envelope_digest = Hash::new([99; 32]),
+        |r| r.signer_epoch += 1,
+        |r| r.fund_by += 1,
+        |r| r.accept_by += 1,
+        |r| r.size = 0,
+        |r| r.size = 8193,
+        |r| r.stored_at = 0,
+        |r| r.stored_at = 4,
+        |r| r.retain_until -= 1,
+    ];
+    for mutate in invalid {
+        let mut bad = receipt.clone();
+        mutate(&mut bad);
+        assert_eq!(
+            receipt_valid(&e, &sign(bad), &signer, id, 3),
+            Err(Error::IntegrityFailed)
+        );
+    }
+    let mut signed = sign(receipt);
+    for signature in [vec![0; 64], vec![0; 65]] {
+        signed.signature = signature.into();
+        assert_eq!(
+            receipt_valid(&e, &signed, &signer, id, 3),
+            Err(Error::IntegrityFailed)
+        );
+    }
+    let signed = sign(signed.receipt);
+    for (from, until, revoked) in [(3, DAY, false), (1, 2, false), (1, DAY, true)] {
+        let mut invalid = signer.clone();
+        invalid.valid_from = from;
+        invalid.valid_until = until;
+        invalid.revoked = revoked;
+        assert_eq!(
+            receipt_valid(&e, &signed, &invalid, id, 3),
+            Err(Error::Forbidden)
+        );
+    }
+}
+
+#[test]
+fn ledger_diagnostics_preserve_unknown_and_frozen_parameters() {
+    use candid::Nat;
+    use dmsg_runtime::CallFailure;
+    use icrc_ledger_types::icrc1::transfer::TransferError;
+    let (mut e, _) = setup();
+    let to = e.quote.recipient;
+    let original = leg(&mut e, LegKind::Recipient, to, 1000, 10, 3);
+    let errors = [
+        (
+            TransferError::BadFee {
+                expected_fee: 20u64.into(),
+            },
+            TransferFailure::BadFee,
+        ),
+        (
+            TransferError::BadBurn {
+                min_burn_amount: 100u64.into(),
+            },
+            TransferFailure::BadBurn,
+        ),
+        (
+            TransferError::InsufficientFunds {
+                balance: 0u64.into(),
+            },
+            TransferFailure::InsufficientFunds,
+        ),
+        (TransferError::TooOld, TransferFailure::TooOld),
+        (
+            TransferError::CreatedInFuture { ledger_time: 1 },
+            TransferFailure::CreatedInFuture,
+        ),
+        (
+            TransferError::TemporarilyUnavailable,
+            TransferFailure::TemporarilyUnavailable,
+        ),
+        (
+            TransferError::GenericError {
+                error_code: 42u64.into(),
+                message: "not persisted".into(),
+            },
+            TransferFailure::GenericError,
+        ),
+    ];
+    for was_unknown in [false, true] {
+        for (error, reason) in &errors {
+            let mut current = original.clone();
+            assert_eq!(
+                transfer_result(&mut current, was_unknown, Ok(Err(error.clone()))),
+                Ok(None)
+            );
+            assert_eq!(current.last_failure.as_ref(), Some(reason));
+            let bad_fee = *reason == TransferFailure::BadFee;
+            assert_eq!(
+                current.status,
+                if was_unknown {
+                    LegStatus::Unknown
+                } else if bad_fee {
+                    LegStatus::FeeBlocked
+                } else {
+                    LegStatus::Rejected
+                }
+            );
+            assert_eq!(
+                current.expected_fee,
+                if bad_fee && !was_unknown {
+                    Some(20)
+                } else {
+                    None
+                }
+            );
+            assert_eq!(
+                (
+                    current.to,
+                    current.amount,
+                    current.fee,
+                    current.memo,
+                    current.created_at_time
+                ),
+                (
+                    original.to,
+                    original.amount,
+                    original.fee,
+                    original.memo,
+                    original.created_at_time
+                )
+            );
+        }
+        for failure in [CallFailure::NotExecuted, CallFailure::Unknown] {
+            let mut current = original.clone();
+            let expected = if failure.preserves_unknown(was_unknown) {
+                LegStatus::Unknown
+            } else {
+                LegStatus::Rejected
+            };
+            assert!(transfer_result(&mut current, was_unknown, Err(failure)).is_err());
+            assert_eq!(current.status, expected);
+        }
+        for reply in [
+            Ok(Nat::from(9u64)),
+            Err(TransferError::Duplicate {
+                duplicate_of: 9u64.into(),
+            }),
+        ] {
+            let mut current = original.clone();
+            assert_eq!(
+                transfer_result(&mut current, was_unknown, Ok(reply)),
+                Ok(Some(9))
+            );
+        }
+    }
+    let mut current = original;
+    assert_eq!(
+        transfer_result(&mut current, false, Ok(Ok(u128::MAX.into()))),
+        Err(Error::ExecutionUnknown)
+    );
+    assert_eq!(current.status, LegStatus::Unknown);
+    assert_eq!(current.last_failure, Some(TransferFailure::InvalidResponse));
+}

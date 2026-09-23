@@ -40,6 +40,10 @@ fn init(args: PaymentInit) {
         "hard limits"
     );
     assert!(args.signer.valid_from < args.signer.valid_until);
+    assert!(
+        args.fee_policy.effective_at_ms <= now(),
+        "initial fee policy must be effective"
+    );
     nonzero(args.signer.public_key.as_slice()).expect("receipt key");
     SIGNERS.with_borrow_mut(|t| t.put(&args.signer.epoch.to_be_bytes(), &args.signer));
     dmsg_protocol::billing::delivery_service_fee(1, &args.fee_policy).expect("fee policy");
@@ -52,6 +56,7 @@ fn init(args: PaymentInit) {
         orders_today: 0,
         ledger_minute: 0,
         ledger_reads: 0,
+        authorizations: Default::default(),
     });
     persist_config();
     rebuild_certification();
@@ -78,6 +83,22 @@ fn set_orders_enabled(enabled: bool) -> Result<()> {
     let mut c = cfg();
     c.init.enabled = enabled;
     save_cfg(&c);
+    certify_config(&c);
+    Ok(())
+}
+
+/// Update the expected ledger fee within the deployment's approved ceiling.
+/// Existing quotes and prepared transfers retain their approved terms.
+#[ic_cdk::update]
+fn set_ledger_fee(fee: u128) -> Result<()> {
+    controller()?;
+    let mut c = cfg();
+    ensure(fee <= c.init.max_fee, Error::FeeBlocked)?;
+    if c.init.ledger_fee != fee {
+        c.init.ledger_fee = fee;
+        save_cfg(&c);
+        certify_config(&c);
+    }
     Ok(())
 }
 
@@ -99,6 +120,7 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     });
     c.init.signer = new;
     save_cfg(&c);
+    certify_config(&c);
     Ok(())
 }
 
@@ -117,6 +139,7 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
     let mut c = cfg();
     c.init.enabled = false;
     save_cfg(&c);
+    certify_config(&c);
     Ok(())
 }
 
@@ -125,8 +148,6 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     let at = now();
     let canister_id = ic_cdk::api::canister_self();
     let who = ic_cdk::api::msg_caller();
-    let mut c = cfg();
-    c.init.fee_policy = current_fee_policy(at);
     let id = digest("dmsg/escrow-id/v1", &(canister_id, who, input.op_id));
     if let Ok(e) = load(&id) {
         ensure(
@@ -135,6 +156,8 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         )?;
         return Ok(e.info());
     }
+    let mut c = cfg();
+    c.init.fee_policy = current_fee_policy(at);
     let _call = CallGuard::open(who, input.quote.quote_id)?;
     ensure(
         !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice())),
@@ -144,11 +167,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         open_count(who) < c.init.max_open_per_payer,
         Error::QuotaExceeded,
     )?;
-    if at / DAY > c.day {
-        c.day = at / DAY;
-        c.orders_today = 0;
-    }
-    ensure(c.orders_today < c.init.daily_orders, Error::QuotaExceeded)?;
+    check_order_capacity(at)?;
     let quote_digest = model::validate_quote(
         &c.init,
         canister_id,
@@ -157,8 +176,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         &signer(input.quote.signer_epoch)?,
         at,
     )?;
-    c.orders_today += 1;
-    save_cfg(&c);
+    reserve_call(at, CallBudget::Authorization(who))?;
     let verified: Result<u64> =
         stable::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
     let observed_at = verified?;
@@ -169,11 +187,14 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     )?;
     // The guard holds this payer and quote exclusively until commit. Other
     // messages can release the payer's slots, but cannot open another order.
-    // Recheck enablement, deadlines and revocation after offer verification.
+    // Recheck mutable fees, enablement, deadlines and revocation. Other payers
+    // can consume the daily admission budget while verification is pending.
     c = cfg();
+    c.init.fee_policy = current_fee_policy(at);
     model::quote_current(&c.init, &input, &signer(input.quote.signer_epoch)?, at)?;
     let e = model::escrow(canister_id, who, &input, quote_digest);
     let count = open_count(who) + 1;
+    reserve_order(at)?;
     QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
     PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
     PAYER_INDEX.with_borrow_mut(|t| {
@@ -190,19 +211,6 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     Ok(e.info())
 }
 
-fn reserve_ledger_call() -> Result<()> {
-    let mut c = cfg();
-    let minute = now() / MINUTE;
-    if c.ledger_minute < minute {
-        c.ledger_minute = minute;
-        c.ledger_reads = 0;
-    }
-    ensure(c.ledger_reads < 400, Error::QuotaExceeded)?;
-    c.ledger_reads += 1;
-    save_cfg(&c);
-    Ok(())
-}
-
 #[ic_cdk::update]
 async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
     let e = load(&escrow_id)?;
@@ -211,7 +219,7 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
         return Ok(e.info());
     }
     let _call = CallGuard::funding(block)?;
-    reserve_ledger_call()?;
+    reserve_call(now(), CallBudget::Ledger)?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     ensure(tx.committed_at <= now(), Error::IntegrityFailed)?;
     // The guard excludes another claim of this block. A concurrent settlement
@@ -355,8 +363,9 @@ fn claim_fee_reserve(escrow_id: Hash) -> Result<TransferLeg> {
     Ok(leg)
 }
 
-fn complete(id: Hash, n: u64, block: u64) -> Result<TransferLeg> {
-    let mut leg = get_leg(id, n)?;
+fn complete(mut leg: TransferLeg, block: u64) -> Result<TransferLeg> {
+    let id = leg.escrow_id;
+    let n = leg.leg_id;
     if leg.status == LegStatus::Succeeded {
         ensure(leg.block == Some(block), Error::IntegrityFailed)?;
         return Ok(leg);
@@ -391,7 +400,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     )?;
     let e = load(&escrow_id)?;
     let was_unknown = leg.status == LegStatus::Unknown;
-    reserve_ledger_call()?;
+    reserve_call(now(), CallBudget::Ledger)?;
     // The outbox parameters are frozen before await; public retries never
     // replace timestamps or recreate a transfer after an ambiguous response.
     leg.status = LegStatus::InFlight;
@@ -408,53 +417,16 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
         std::result::Result<Nat, TransferError>,
         stable::CallFailure,
     > = stable::call_classified(e.quote.ledger, "icrc1_transfer", (args,)).await;
-    let current = get_leg(escrow_id, leg_id)?;
+    let mut current = get_leg(escrow_id, leg_id)?;
     if current.status == LegStatus::Succeeded {
         return Ok(current);
     }
-    match response {
-        Ok(Ok(block)) => complete(escrow_id, leg_id, dmsg_runtime::ledger::block_index(block)?),
-        Ok(Err(TransferError::Duplicate { duplicate_of })) => complete(
-            escrow_id,
-            leg_id,
-            dmsg_runtime::ledger::block_index(duplicate_of)?,
-        ),
-        Ok(Err(TransferError::BadFee { expected_fee })) => {
-            leg.status = if was_unknown {
-                LegStatus::Unknown
-            } else {
-                LegStatus::FeeBlocked
-            };
-            if !was_unknown {
-                leg.expected_fee = dmsg_runtime::ledger::token_amount(expected_fee).ok();
-            }
-            put_leg(&leg);
-            Ok(leg)
-        }
-        Ok(Err(_)) => {
-            leg.status = if was_unknown {
-                LegStatus::Unknown
-            } else {
-                LegStatus::Rejected
-            };
-            put_leg(&leg);
-            Ok(leg)
-        }
-        Err(failure) => {
-            let unknown = failure.preserves_unknown(was_unknown);
-            leg.status = if unknown {
-                LegStatus::Unknown
-            } else {
-                LegStatus::Rejected
-            };
-            put_leg(&leg);
-            Err(if unknown {
-                Error::ExecutionUnknown
-            } else {
-                failure.into()
-            })
-        }
+    let outcome = model::transfer_result(&mut current, was_unknown, response);
+    if let Ok(Some(block)) = outcome {
+        return complete(current, block);
     }
+    put_leg(&current);
+    outcome.map(|_| current)
 }
 
 /// Only an unambiguously rejected transfer may receive new parameters. Keep
@@ -498,7 +470,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
     )?;
     let _call = CallGuard::reconcile(escrow_id, leg_id)?;
     let e = load(&escrow_id)?;
-    reserve_ledger_call()?;
+    reserve_call(now(), CallBudget::Ledger)?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     ensure(
         tx.from
@@ -513,7 +485,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
             && tx.created_at_time == Some(l.created_at_time),
         Error::IntegrityFailed,
     )?;
-    complete(escrow_id, leg_id, block)
+    complete(get_leg(escrow_id, leg_id)?, block)
 }
 
 #[ic_cdk::query]
@@ -585,15 +557,14 @@ fn list_transfers(escrow_id: Hash, after: Option<u64>) -> Result<Vec<TransferLeg
 }
 
 fn current_fee_policy(at: u64) -> DeliveryFeePolicy {
-    let mut p = cfg().init.fee_policy;
+    // Versions and effective times increase together; future schedules are skipped.
     FEE_POLICIES.with_borrow(|t| {
-        t.for_each(|_, v| {
-            if v.effective_at_ms <= at && v.effective_at_ms > p.effective_at_ms {
-                p = v;
-            }
-        })
-    });
-    p
+        t.iter()
+            .rev()
+            .map(|entry| entry.value().into_inner())
+            .find(|policy| policy.effective_at_ms <= at)
+            .expect("initial fee policy is effective at installation")
+    })
 }
 
 #[ic_cdk::query]
@@ -608,17 +579,11 @@ fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
         Error::Forbidden,
     )?;
     dmsg_protocol::billing::delivery_service_fee(1, &p)?;
-    let mut latest_version = 0;
-    let mut latest_effective_at = 0;
-    FEE_POLICIES.with_borrow(|t| {
-        t.for_each(|_, scheduled| {
-            latest_version = latest_version.max(scheduled.version);
-            latest_effective_at = latest_effective_at.max(scheduled.effective_at_ms);
-        })
-    });
+    let latest =
+        FEE_POLICIES.with_borrow(|t| t.last_key_value().expect("initial policy").1.into_inner());
     ensure(
-        p.version > latest_version
-            && p.effective_at_ms > latest_effective_at
+        p.version > latest.version
+            && p.effective_at_ms > latest.effective_at_ms
             && p.effective_at_ms >= now().saturating_add(30 * DAY),
         Error::PolicyStale,
     )?;
@@ -644,7 +609,7 @@ fn get_configuration_certified(
 ) -> Result<CertifiedBatch> {
     let configuration = cfg();
     let signer_epoch = signer_epoch.unwrap_or(configuration.init.signer.epoch);
-    let fee_version = fee_version.unwrap_or(configuration.init.fee_policy.version);
+    let fee_version = fee_version.unwrap_or_else(|| current_fee_policy(now()).version);
     CERT.with_borrow(|c| {
         c.batch(
             ic_cdk::api::canister_self(),

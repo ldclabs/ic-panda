@@ -39,7 +39,7 @@ COSE schema 6 为根派生保留执行窗口，合并全局预算，并提供 co
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
 - 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 可变长，BIP340 入口已删除。浏览器消息合同为 `dmsg-extension/3`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
-- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。固定大小配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。
+- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。
 
 ## 构建与验证
 
@@ -72,4 +72,6 @@ pnpm --dir src/dmsg_app test
 
 共享认证模块在生成查询证明时读取一次 batch time，避免 replica 缓存返回长期不变的旧证书；新鲜度与防回退窗口未放宽。新增真实扩展集成验证覆盖正式签名、现金/SNS 客户端、付费来信、频道换代/历史/文件/设备撤销、旧快照与共享继承。使用合成账户、账本和旧密文样本，仍不替代正式 origin、真实旧用户或真实资金验收。
 
-共享 runtime 的紧凑适配器直接保存 representation，避免表写入前的领域对象克隆；商业预留与费用政策也使用整数键。此次开发布局为 user schema 6、payment schema 5，其余布局版本不变。认证批量响应检查完整 Candid 成功响应的 256 KiB 上限，包含证书与封装。
+共享 runtime 的紧凑适配器直接保存 representation，避免表写入前的领域对象克隆；商业预留与费用政策也使用整数键。该次开发布局为 user schema 6、payment schema 5；后续版本见各服务实现及下文增量。认证批量响应检查完整 Candid 成功响应的 256 KiB 上限，包含证书与封装。
+
+2026-09-23 payment 使用 schema 6：授权尝试与成功开单额度分开；默认认证查询按时间选择当前费率；controller 在固定上限内维护预期网络费，旧报价和已准备出金保持冻结。预算更新不重算配置认证叶，历史费率表使用紧凑表示，稳定内存改为 1 MiB 分配桶。转账增加有界 `last_failure` 诊断；容量和 cycles 结果见 payment README。

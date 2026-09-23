@@ -62,6 +62,8 @@ PANDA 认领通过注册的适配器对经济 Principal 进行身份认证并验
 
 `Quote` 增加 `fee_policy_version`。在生效策略下，其服务费必须等于 `max(ceil(recipient_net * rate_bps / 10000), minimum_atomic)`。净额保持不变。Quote 和 AdmissionReceipt 域变为 `dmsg/quote/v2` 和 `dmsg/admission-receipt/v2`；回执 `protocol` 为 2。现有已开立订单保留其固定的费用和结算/退款决定。私有客户端在使用这些开发 canister 之前必须显式采用此版本。
 
+投递 payment 另提供仅 controller 可调用的 `set_ledger_fee`，在部署时批准的上限内维护预期网络费；它不修改治理发布的平台服务费政策，也不重写已接受报价或已准备转账。默认配置认证查询选择查询时已生效的政策，历史版本仍可单独查询。转账记录增加有界 `last_failure` 诊断，不改变 Unknown 的恢复规则。
+
 ## 验证与部署限制
 
 `make test-dmsg` 涵盖原生测试、Clippy、所有六个生产 Wasm 模块、Candid 提取比对、独立 Rust/JavaScript 向量以及带故障注入的 ledger/SNS fixture PocketIC 测试。这些 fixture 不是生产 SNS 或钱包的验收证明。未硬编码任何生产汇率 R；5000 PANDA/USD 仅在测试中出现。产品策略与生产经济 principal 入口连接需要部署验证。本仓库未实现 TokenList 的适配器、私有资源记账、跨链支付适配器或自动借记授权。

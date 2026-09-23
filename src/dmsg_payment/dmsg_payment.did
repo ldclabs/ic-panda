@@ -368,6 +368,30 @@ type SignedReceipt = record {
   // Admission attestation bound to the escrow and quote.
   receipt : AdmissionReceipt;
 };
+// Bounded diagnostic for the last unsuccessful transfer attempt.
+// This does not resolve an earlier Unknown result or authorize new parameters.
+type TransferFailure = variant {
+  // Another ledger-defined error; unbounded text is omitted.
+  GenericError;
+  // The ledger temporarily refused this attempt.
+  TemporarilyUnavailable;
+  // The amount is below the ledger burn minimum.
+  BadBurn;
+  // The success reply contains an unsupported block index.
+  InvalidResponse;
+  // Transport or reply decoding left this attempt uncertain.
+  CallUnknown;
+  // The supplied fee differs from the ledger fee.
+  BadFee;
+  // The timestamp is ahead of the ledger clock.
+  CreatedInFuture;
+  // Transport proved that this attempt did not execute.
+  CallNotExecuted;
+  // The original timestamp is outside the ledger acceptance window.
+  TooOld;
+  // The escrow ledger balance cannot cover the transfer.
+  InsufficientFunds;
+};
 // One outgoing ICRC transfer with stable deduplication parameters.
 // Reconcile unknown outcomes before retrying; preserve memo and created_at_time.
 // Amounts and fees are integer ledger base units.
@@ -398,6 +422,8 @@ type TransferLeg = record {
   revision : nat64;
   // Outgoing amount excluding the network fee, in ledger base units.
   amount : nat;
+  // Bounded reason from the last failed attempt; cleared on success.
+  last_failure : opt TransferFailure;
   // Network fee reported by the ledger after a BadFee response, if available.
   expected_fee : opt nat;
 };
@@ -427,5 +453,8 @@ service : (PaymentInit) -> {
   revoke_receipt_signer : (nat64) -> (Result_6);
   rotate_receipt_signer : (ReceiptSigner) -> (Result_6);
   schedule_fee_policy : (DeliveryFeePolicy) -> (Result_6);
+  // Update the expected ledger fee within the deployment's approved ceiling.
+  // Existing quotes and prepared transfers retain their approved terms.
+  set_ledger_fee : (nat) -> (Result_6);
   set_orders_enabled : (bool) -> (Result_6);
 }

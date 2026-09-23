@@ -85,9 +85,20 @@ export class WalletClient {
     ensure(
       job.ledger === quote.ledger.toText() &&
         job.payer === this.owner.toText() &&
+        ledgerFee <= quote.max_network_fee &&
         (await this.actor(job.ledger).icrc1_fee()) === ledgerFee,
       'FEE_BLOCKED'
     )
+    // A prepared job has never reached the ledger. A fee check may have stopped
+    // it before the controller updated payment's configuration. Only this state
+    // can adopt the newly approved fee; unknown/rejected attempts stay frozen.
+    if (job.state === 'prepared') {
+      const args = IDL.decode([transfer], unb64(job.args))[0] as { fee: bigint[] }
+      if (args.fee[0] !== ledgerFee) {
+        args.fee = [ledgerFee]
+        job.args = b64(new Uint8Array(IDL.encode([transfer], [args])))
+      }
+    }
     job.state = 'unknown'
     await this.crypto.call('commerceJournal', key, JSON.stringify(job))
     const reply = await this.actor(job.ledger).icrc1_transfer(

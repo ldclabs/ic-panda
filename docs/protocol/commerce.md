@@ -62,6 +62,8 @@ Public errors add `MembershipStale`, `MembershipIneligible`, and `MembershipClos
 
 `Quote` adds `fee_policy_version`. Its service fee must equal `max(ceil(recipient_net * rate_bps / 10000), minimum_atomic)` under the effective policy. The net amount is unchanged. Quote and AdmissionReceipt domains become `dmsg/quote/v2` and `dmsg/admission-receipt/v2`; receipt `protocol` is 2. Existing opened orders keep their fixed fee and settlement/refund decision. Private clients must explicitly adopt this version before using these development canisters.
 
+Delivery payment separately exposes controller-only `set_ledger_fee` for the expected network fee within the deployment ceiling. It does not change the governance service-fee policy or rewrite accepted quotes/prepared transfers. Default configuration certificates select the policy effective at query time; historical versions remain queryable. Transfer records include a bounded `last_failure` diagnostic without weakening Unknown handling.
+
 ## Verification and deployment limits
 
 `make test-dmsg` covers native tests, Clippy, all six production Wasm modules, Candid extraction comparisons, independent Rust/JavaScript vectors and PocketIC tests with fault-injecting ledger/SNS fixtures. The fixtures are not production SNS or wallet acceptance evidence. No production R is hardcoded; 5000 PANDA/USD appears only in tests. Product policies and production economic-principal ingress connections require deployment verification. This repository does not implement TokenList's adapter, private resource accounting, a cross-chain payment adapter, or an automatic debit mandate.

@@ -8,7 +8,7 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, StableCell,
 };
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeMap};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct Config {
@@ -18,6 +18,7 @@ pub(crate) struct Config {
     pub(crate) orders_today: u32,
     pub(crate) ledger_minute: u64,
     pub(crate) ledger_reads: u32,
+    pub(crate) authorizations: BTreeMap<Principal, u32>,
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -28,7 +29,8 @@ pub(crate) fn memory(id: u8) -> Memory {
 
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        // 1 MiB buckets; 32,768 buckets address up to 32 GiB of stable data.
+        RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     // Heap survives ordinary messages and await commit points. Persist this
@@ -55,7 +57,7 @@ thread_local! {
     pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(9)));
     pub(crate) static FEE_POLICIES: RefCell<
-        StableBTreeMap<Vec<u8>, Stored<DeliveryFeePolicy>, Memory>,
+        StableBTreeMap<Vec<u8>, CompactStored<DeliveryFeePolicy>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(10)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
@@ -66,21 +68,78 @@ pub(crate) fn cfg() -> Config {
 
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|value| *value = Some(c.clone()));
-    CERT.with_borrow_mut(|tree| {
-        tree.put(
-            b"configuration".to_vec(),
-            &PaymentConfiguration {
-                schema: 1,
-                home_user: c.init.home_user,
-                ledger: c.init.ledger,
-                platform: c.init.platform,
-                ledger_fee: c.init.ledger_fee,
-                max_fee: c.init.max_fee,
-                signer_epoch: c.init.signer.epoch,
-                enabled: c.init.enabled,
-            },
+}
+
+fn public_config(c: &Config) -> PaymentConfiguration {
+    PaymentConfiguration {
+        schema: 1,
+        home_user: c.init.home_user,
+        ledger: c.init.ledger,
+        platform: c.init.platform,
+        ledger_fee: c.init.ledger_fee,
+        max_fee: c.init.max_fee,
+        signer_epoch: c.init.signer.epoch,
+        enabled: c.init.enabled,
+    }
+}
+
+pub(crate) fn certify_config(c: &Config) {
+    CERT.with_borrow_mut(|tree| tree.put(b"configuration".to_vec(), &public_config(c)));
+}
+
+pub(crate) enum CallBudget {
+    Ledger,
+    Authorization(Principal),
+}
+
+pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
+    CONFIG.with_borrow_mut(|value| {
+        let c = value.as_mut().expect("initialized");
+        if c.ledger_minute != at / MINUTE {
+            c.ledger_minute = at / MINUTE;
+            c.ledger_reads = 0;
+            c.authorizations.clear();
+        }
+        match kind {
+            CallBudget::Ledger => {
+                ensure(c.ledger_reads < 400, Error::QuotaExceeded)?;
+                c.ledger_reads += 1;
+            }
+            CallBudget::Authorization(caller) => {
+                ensure(
+                    c.authorizations.values().sum::<u32>() < 200,
+                    Error::QuotaExceeded,
+                )?;
+                let count = c.authorizations.entry(caller).or_default();
+                ensure(*count < 10, Error::QuotaExceeded)?;
+                *count += 1;
+            }
+        }
+        Ok(())
+    })
+}
+
+pub(crate) fn check_order_capacity(at: u64) -> Result<()> {
+    CONFIG.with_borrow(|value| {
+        let c = value.as_ref().expect("initialized");
+        ensure(
+            c.day != at / DAY || c.orders_today < c.init.daily_orders,
+            Error::QuotaExceeded,
         )
+    })
+}
+
+pub(crate) fn reserve_order(at: u64) -> Result<()> {
+    check_order_capacity(at)?;
+    CONFIG.with_borrow_mut(|value| {
+        let c = value.as_mut().expect("initialized");
+        if c.day != at / DAY {
+            c.day = at / DAY;
+            c.orders_today = 0;
+        }
+        c.orders_today += 1;
     });
+    Ok(())
 }
 
 pub(crate) fn persist_config() {
@@ -103,9 +162,13 @@ pub(crate) fn save(e: &Escrow) {
 }
 
 pub(crate) fn rebuild_certification() {
-    let configuration = cfg();
-    save_cfg(&configuration);
     CERT.with_borrow_mut(|c| {
+        // Build all leaves before publishing the completed root.
+        let configuration = cfg();
+        c.0.insert(
+            b"configuration".to_vec(),
+            dmsg_protocol::canonical(&public_config(&configuration)),
+        );
         SIGNERS.with_borrow(|table| {
             table.for_each(|key, value| {
                 c.0.insert(
@@ -158,4 +221,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 5;
+pub(crate) const STABLE_SCHEMA: u16 = 6;

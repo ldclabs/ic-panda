@@ -21,6 +21,9 @@ mod cose_optimization;
 #[path = "control_plane/handle.rs"]
 mod handle_tests;
 
+#[path = "control_plane/payment_regressions.rs"]
+mod payment_regressions;
+
 #[path = "control_plane/payment_optimization.rs"]
 mod payment_optimization;
 

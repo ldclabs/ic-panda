@@ -177,6 +177,32 @@ pub enum LegStatus {
     Superseded,
 }
 
+/// Bounded diagnostic for the last unsuccessful transfer attempt.
+/// This does not resolve an earlier Unknown result or authorize new parameters.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum TransferFailure {
+    /// The supplied fee differs from the ledger fee.
+    BadFee,
+    /// The amount is below the ledger burn minimum.
+    BadBurn,
+    /// The escrow ledger balance cannot cover the transfer.
+    InsufficientFunds,
+    /// The original timestamp is outside the ledger acceptance window.
+    TooOld,
+    /// The timestamp is ahead of the ledger clock.
+    CreatedInFuture,
+    /// The ledger temporarily refused this attempt.
+    TemporarilyUnavailable,
+    /// Another ledger-defined error; unbounded text is omitted.
+    GenericError,
+    /// Transport proved that this attempt did not execute.
+    CallNotExecuted,
+    /// Transport or reply decoding left this attempt uncertain.
+    CallUnknown,
+    /// The success reply contains an unsupported block index.
+    InvalidResponse,
+}
+
 /// Destination/purpose of an escrow transfer.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum LegKind {
@@ -222,6 +248,9 @@ pub struct TransferLeg {
     /// Network fee reported by the ledger after a BadFee response, if available.
     #[serde(default)]
     pub expected_fee: Option<u128>,
+    /// Bounded reason from the last failed attempt; cleared on success.
+    #[serde(default)]
+    pub last_failure: Option<TransferFailure>,
     /// Fee-repricing revision of this transfer.
     #[serde(default)]
     pub revision: u64,

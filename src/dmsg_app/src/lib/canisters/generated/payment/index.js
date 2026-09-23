@@ -121,6 +121,18 @@ export const idlFactory = ({ IDL }) => {
     'ReserveRefund' : IDL.Null,
     'Recipient' : IDL.Null,
   });
+  const TransferFailure = IDL.Variant({
+    'GenericError' : IDL.Null,
+    'TemporarilyUnavailable' : IDL.Null,
+    'BadBurn' : IDL.Null,
+    'InvalidResponse' : IDL.Null,
+    'CallUnknown' : IDL.Null,
+    'BadFee' : IDL.Null,
+    'CreatedInFuture' : IDL.Null,
+    'CallNotExecuted' : IDL.Null,
+    'TooOld' : IDL.Null,
+    'InsufficientFunds' : IDL.Null,
+  });
   const TransferLeg = IDL.Record({
     'to' : Account,
     'fee' : IDL.Nat,
@@ -135,6 +147,7 @@ export const idlFactory = ({ IDL }) => {
     'escrow_id' : IDL.Vec(IDL.Nat8),
     'revision' : IDL.Nat64,
     'amount' : IDL.Nat,
+    'last_failure' : IDL.Opt(TransferFailure),
     'expected_fee' : IDL.Opt(IDL.Nat),
   });
   const Result_1 = IDL.Variant({ 'Ok' : TransferLeg, 'Err' : Error });
@@ -273,6 +286,7 @@ export const idlFactory = ({ IDL }) => {
     'revoke_receipt_signer' : IDL.Func([IDL.Nat64], [Result_6], []),
     'rotate_receipt_signer' : IDL.Func([ReceiptSigner], [Result_6], []),
     'schedule_fee_policy' : IDL.Func([DeliveryFeePolicy], [Result_6], []),
+    'set_ledger_fee' : IDL.Func([IDL.Nat], [Result_6], []),
     'set_orders_enabled' : IDL.Func([IDL.Bool], [Result_6], []),
   });
 };

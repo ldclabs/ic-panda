@@ -52,16 +52,7 @@ pub fn validate_quote(
         q.recipient.owner != id && q.platform.owner != id && q.payer.owner != id,
         invalid("escrow cannot pay itself"),
     )?;
-    ensure(
-        q.recipient_net > 0
-            && q.fee_reserve
-                >= config
-                    .ledger_fee
-                    .checked_mul(3)
-                    .ok_or(Error::QuotaExceeded)?
-            && q.fee_reserve <= config.max_fee.checked_mul(3).ok_or(Error::QuotaExceeded)?,
-        Error::FeeBlocked,
-    )?;
+    ensure(q.recipient_net > 0, Error::FeeBlocked)?;
     ensure(
         q.recipient_net
             .checked_add(q.service_fee)
@@ -88,8 +79,8 @@ pub fn validate_quote(
     Ok(hash)
 }
 
-/// The input and payment terms are immutable across await. Only enablement,
-/// deadlines and signer revocation need rechecking after offer verification.
+/// Recheck admission, fee requirements, active policy and signer revocation
+/// after offer verification. Previously accepted escrow terms remain frozen.
 /// Signer keys/intervals are immutable within an epoch (rotation adds an epoch).
 pub fn quote_current(
     config: &PaymentInit,
@@ -102,6 +93,15 @@ pub fn quote_current(
     let o = &input.offer.offer;
     ensure(q.created_at <= now && now < q.fund_by, Error::Expired)?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
+    ensure(
+        q.fee_policy_version == config.fee_policy.version,
+        Error::PolicyStale,
+    )?;
+    ensure(
+        q.fee_reserve >= config.ledger_fee.checked_mul(3).ok_or(Error::FeeBlocked)?
+            && q.fee_reserve <= config.max_fee.checked_mul(3).ok_or(Error::FeeBlocked)?,
+        Error::FeeBlocked,
+    )?;
     signer_valid(signer, q.signer_epoch, q.created_at, now)
 }
 
@@ -271,9 +271,86 @@ pub fn leg(
         status: LegStatus::Pending,
         block: None,
         expected_fee: None,
+        last_failure: None,
         revision: 0,
         replaces: None,
         history_digest: Hash::new([0; 32]),
+    }
+}
+
+/// Interpret a ledger reply without weakening uncertainty from an earlier attempt.
+/// Keep diagnostics bounded: ledger-supplied messages are never persisted.
+pub fn transfer_result(
+    leg: &mut TransferLeg,
+    was_unknown: bool,
+    response: std::result::Result<
+        std::result::Result<candid::Nat, icrc_ledger_types::icrc1::transfer::TransferError>,
+        dmsg_runtime::CallFailure,
+    >,
+) -> Result<Option<u64>> {
+    use dmsg_runtime::{
+        ledger::{block_index, token_amount},
+        CallFailure,
+    };
+    use icrc_ledger_types::icrc1::transfer::TransferError;
+
+    let (failure, expected_fee, transport) = match response {
+        Ok(Ok(block))
+        | Ok(Err(TransferError::Duplicate {
+            duplicate_of: block,
+        })) => match block_index(block) {
+            Ok(block) => return Ok(Some(block)),
+            Err(_) => (
+                TransferFailure::InvalidResponse,
+                None,
+                Some(CallFailure::Unknown),
+            ),
+        },
+        Ok(Err(error)) => {
+            let (failure, fee) = match error {
+                TransferError::BadFee { expected_fee } => {
+                    (TransferFailure::BadFee, token_amount(expected_fee).ok())
+                }
+                TransferError::BadBurn { .. } => (TransferFailure::BadBurn, None),
+                TransferError::InsufficientFunds { .. } => {
+                    (TransferFailure::InsufficientFunds, None)
+                }
+                TransferError::TooOld => (TransferFailure::TooOld, None),
+                TransferError::CreatedInFuture { .. } => (TransferFailure::CreatedInFuture, None),
+                TransferError::TemporarilyUnavailable => {
+                    (TransferFailure::TemporarilyUnavailable, None)
+                }
+                TransferError::GenericError { .. } => (TransferFailure::GenericError, None),
+                TransferError::Duplicate { .. } => unreachable!(),
+            };
+            (failure, fee, None)
+        }
+        Err(error) => (
+            match error {
+                CallFailure::NotExecuted => TransferFailure::CallNotExecuted,
+                CallFailure::Unknown => TransferFailure::CallUnknown,
+            },
+            None,
+            Some(error),
+        ),
+    };
+    let unknown = was_unknown || transport == Some(CallFailure::Unknown);
+    leg.status = if unknown {
+        LegStatus::Unknown
+    } else if failure == TransferFailure::BadFee {
+        LegStatus::FeeBlocked
+    } else {
+        LegStatus::Rejected
+    };
+    leg.expected_fee = if unknown { None } else { expected_fee };
+    leg.last_failure = Some(failure);
+    match transport {
+        Some(error) => Err(if unknown {
+            Error::ExecutionUnknown
+        } else {
+            error.into()
+        }),
+        None => Ok(None),
     }
 }
 
@@ -351,6 +428,8 @@ pub fn complete_leg(e: &mut Escrow, leg: &mut TransferLeg, block: u64) -> Result
         .ok_or(Error::IntegrityFailed)?;
     leg.status = LegStatus::Succeeded;
     leg.block = Some(block);
+    leg.last_failure = None;
+    leg.expected_fee = None;
     e.version += 1;
     if matches!(leg.kind, LegKind::Recipient | LegKind::Platform) {
         e.pending_payouts = e

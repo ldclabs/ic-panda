@@ -17,6 +17,8 @@ pub struct ConfigRepr {
     pub ledger_minute: u64,
     #[cbor(key = 6)]
     pub ledger_reads: u32,
+    #[cbor(key = 7)]
+    pub authorizations: std::collections::BTreeMap<candid::Principal, u32>,
 }
 
 impl StableCodec for Config {
@@ -30,6 +32,7 @@ impl StableCodec for Config {
             orders_today: self.orders_today,
             ledger_minute: self.ledger_minute,
             ledger_reads: self.ledger_reads,
+            authorizations: self.authorizations.clone(),
         }
     }
 
@@ -41,6 +44,7 @@ impl StableCodec for Config {
             orders_today: repr.orders_today,
             ledger_minute: repr.ledger_minute,
             ledger_reads: repr.ledger_reads,
+            authorizations: repr.authorizations,
         }
     }
 }
@@ -264,6 +268,7 @@ mod tests {
             status: LegStatus::FeeBlocked,
             block: None,
             expected_fee: Some(11),
+            last_failure: None,
             revision: 1,
             replaces: Some(0),
             history_digest: Hash::new([12; 32]),
@@ -350,6 +355,7 @@ mod tests {
             orders_today: 7,
             ledger_minute: 123,
             ledger_reads: 4,
+            authorizations: [(p(4), 3)].into(),
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, config.schema);
@@ -358,5 +364,6 @@ mod tests {
         assert_eq!(decoded.orders_today, config.orders_today);
         assert_eq!(decoded.ledger_minute, config.ledger_minute);
         assert_eq!(decoded.ledger_reads, config.ledger_reads);
+        assert_eq!(decoded.authorizations, config.authorizations);
     }
 }
