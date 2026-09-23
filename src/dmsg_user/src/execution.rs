@@ -53,9 +53,13 @@ pub(crate) fn authorize(
                 Error::Forbidden,
             )?;
             key.validate()?;
-            validate_origin(origin)?;
             nonzero(public_key_fingerprint.as_slice())?;
             let prepared = parse_signing_input(to_be_signed)?;
+            if let StatementContent::AppAction(action) = &prepared.statement().content {
+                dmsg_protocol::integration::validate_origin(origin, &action.environment)?;
+            } else {
+                validate_origin(origin)?;
+            }
             ensure(
                 *prepared.algorithm() == key.algorithm
                     && statement_purpose(prepared.statement()) == key.purpose,
@@ -65,6 +69,15 @@ pub(crate) fn authorize(
                 prepared.statement().issuer == account_issuer(namespace, &s.account_id)?,
                 Error::IntegrityFailed,
             )?;
+            if let StatementContent::AppAction(action) = &prepared.statement().content {
+                ensure(
+                    action.origin == *origin
+                        && action.issued_at_ms <= now
+                        && now < action.expires_at_ms
+                        && input.approval.expires_at <= action.expires_at_ms,
+                    Error::Expired,
+                )?;
+            }
             (Capability::FormalApprove, false)
         }
         ExecutionKind::Derive {

@@ -3,7 +3,6 @@
 //! Constructing or decoding these records performs no validation or authorization.
 use crate::{cose::Algorithm, membership::*, Environment, Hash};
 use candid::{CandidType, Principal};
-use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
 /// Base resource tier; it grants no account or cryptographic permissions.
@@ -67,8 +66,6 @@ pub struct PlanVersion {
     pub weights: ExecutionWeights,
     /// Version of the accepted service terms.
     pub terms_version: u64,
-    /// Qualification policy for SNS funding, when configured.
-    pub membership_policy_version: Option<u64>,
 }
 
 /// Additional storage product with fixed size and annual price.
@@ -95,12 +92,6 @@ pub struct Catalog {
     pub plans: Vec<PlanVersion>,
     /// Additional storage products in this catalog.
     pub storage_products: Vec<StorageProduct>,
-    /// Accepted ICRC ledger canister; token symbols are not asset identities.
-    pub ledger: Principal,
-    /// Verified ledger decimal precision.
-    pub decimals: u8,
-    /// Configured network fee in ledger atomic units.
-    pub ledger_fee: u128,
     /// Commitment to the accepted service terms.
     pub terms_digest: Hash,
 }
@@ -118,149 +109,10 @@ pub struct CommerceInit {
     pub user_homes: Vec<Principal>,
     /// Fixed catalog snapshot.
     pub catalog: Catalog,
-    /// ICRC account receiving earned service revenue.
-    #[serde(with = "crate::account::account_cbor")]
-    pub treasury: Account,
     /// Maximum retained beneficiary subjects.
     pub max_subjects: u64,
     /// New merchant-order limit per UTC day.
     pub daily_orders: u32,
-}
-
-/// Commercial change requested under a beneficiary-approved order.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum OrderAction {
-    /// Start a base subscription.
-    Subscribe {
-        /// Requested tier or fixed plan snapshot.
-        plan: PlanId,
-    },
-    /// Renew an existing benefit for a subsequent term.
-    Renew {
-        /// Requested tier or fixed plan snapshot.
-        plan: PlanId,
-    },
-    /// Upgrade an existing base benefit.
-    Upgrade {
-        /// Requested tier or fixed plan snapshot.
-        plan: PlanId,
-    },
-    /// Purchase the specified additional storage product.
-    Storage {
-        /// Product identifier within this protocol.
-        product_id: Hash,
-    },
-    /// Replace the remaining SNS-funded term with cash.
-    Buyout {
-        /// Product contract identity.
-        contract_id: Hash,
-    },
-}
-
-/// Request for a fixed quote; creating this value neither charges nor authorizes payment.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct QuoteOrder {
-    /// Operation identifier reused only with identical terms.
-    pub op_id: Hash,
-    /// Product subject receiving the benefit.
-    pub beneficiary: Beneficiary,
-    /// Requested commercial change.
-    pub action: OrderAction,
-    /// Product business revision required for compare-and-swap.
-    pub expected_business_revision: u64,
-    /// ICRC source account required for primary funding.
-    #[serde(with = "crate::account::account_cbor")]
-    pub payer: Account,
-}
-
-/// Frozen merchant terms; funding and activation have separate exclusive deadlines.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct OrderQuote {
-    /// Commerce canister authoritative for this order or lease.
-    pub home_commerce: Principal,
-    /// Original fixed request.
-    pub request: QuoteOrder,
-    /// Fixed catalog snapshot.
-    pub catalog: Catalog,
-    /// Service principal in ledger atomic units, excluding fee reserve.
-    pub amount_atomic: u128,
-    /// Ledger atomic units reserved for network fees.
-    pub fee_reserve: u128,
-    /// Record creation time in Unix milliseconds.
-    pub created_at_ms: u64,
-    /// Exclusive ledger-commit deadline for primary funding, in Unix milliseconds.
-    pub fund_by_ms: u64,
-    /// Exclusive service activation deadline in Unix milliseconds.
-    pub activate_by_ms: u64,
-    /// Requested or frozen benefit interval.
-    pub term: TermRule,
-}
-
-/// Fixed quote and the exact authorization to open it.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct OpenOrder {
-    /// Frozen price, asset, interval and deadline terms.
-    pub quote: OrderQuote,
-    /// Exact beneficiary intent approved for this operation.
-    pub authorization: MembershipIntent,
-}
-
-/// Merchant order lifecycle; a refund decision is separate from ledger payout.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum OrderStatus {
-    /// Order is authorized and awaiting qualifying ledger funding.
-    AwaitingFunding,
-    /// Benefit is active under its recorded terms.
-    Active,
-    /// Benefit closure is in progress.
-    Closing,
-    /// Refund direction is fixed; payout may still be pending.
-    RefundCommitted,
-    /// Order was cancelled without activation.
-    Cancelled,
-}
-
-/// Merchant accounting view in ledger atomic units, including pending allocations.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct BillingOrder {
-    /// Stable merchant order identity.
-    pub order_id: Hash,
-    /// Original quote and authorization.
-    pub input: OpenOrder,
-    /// Order deposit subaccount owned by home_commerce.
-    pub receive_subaccount: Hash,
-    /// Current lifecycle state of this record.
-    pub status: OrderStatus,
-    /// Contract activated from this order, if any.
-    pub activated_contract_id: Option<Hash>,
-    /// Ledger block selected as primary funding.
-    pub funding_block: Option<u64>,
-    /// Effective benefit stop time in Unix milliseconds, after issued leases.
-    pub close_effective_at_ms: Option<u64>,
-    /// Total verified deposits in ledger atomic units.
-    pub confirmed_in: u128,
-    /// Unperformed service principal retained in atomic units.
-    pub service_reserve: u128,
-    /// Earned service principal still held, in atomic units.
-    pub earned: u128,
-    /// Unallocated refundable balance in atomic units.
-    pub refundable: u128,
-    /// Ledger atomic units reserved for network fees.
-    pub fee_reserve: u128,
-    /// Amount plus network fee allocated to outstanding transfers, in atomic units.
-    pub outgoing: u128,
-    /// Total successful transfer amounts, excluding network fees, in atomic units.
-    pub transferred: u128,
-    /// Total successful outgoing ledger fees in atomic units.
-    pub network_fees: u128,
-    /// Service principal already allocated to refunds, in atomic units.
-    pub refunded_principal: u128,
-    /// Next per-order outgoing transfer identifier.
-    pub next_transfer: u64,
-    /// Exclusive in-flight operation deadline in Unix milliseconds.
-    pub busy_until_ms: u64,
-    /// Operation revision used to reject obsolete callbacks.
-    pub generation: u64,
 }
 
 /// Source of the base benefit; SNS qualification is not cash revenue.
@@ -479,109 +331,4 @@ pub struct ExecutionUsage {
     pub charged_units: u64,
     /// Exclusive validity deadline in Unix milliseconds.
     pub valid_until_ms: u64,
-}
-
-/// Verified order deposit and its remaining refund allocation.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MerchantDeposit {
-    /// Stable merchant order identity.
-    pub order_id: Hash,
-    /// Verified ledger transaction index, when available.
-    pub block: u64,
-    /// Verified source ICRC account.
-    #[serde(with = "crate::account::account_cbor")]
-    pub from: Account,
-    /// Ledger transfer amount in atomic units, excluding the network fee.
-    pub amount: u128,
-    /// Unallocated refundable balance in atomic units.
-    pub refundable: u128,
-}
-
-/// Ledger transfer lifecycle with explicit ambiguous and superseded states.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum MerchantTransferStatus {
-    /// A new transfer replaces this known-unsent transfer.
-    Superseded,
-    /// Transfer is prepared but has not started.
-    Pending,
-    /// Ledger call is in progress.
-    InFlight,
-    /// An earlier ledger attempt may have committed; reconcile the same transfer.
-    Unknown,
-    /// The request or transfer was definitively rejected.
-    Rejected,
-    /// Ledger execution has been confirmed.
-    Succeeded,
-}
-
-/// Fixed ledger outbox parameters; preserve memo and timestamp when retrying.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MerchantTransfer {
-    /// Earlier transfer replaced by this known-unsent fee revision.
-    pub replaces: Option<u64>,
-    /// Replacement transfer identifier, when superseded.
-    pub replaced_by: Option<u64>,
-    /// Stable merchant order identity.
-    pub order_id: Hash,
-    /// Transfer identifier within the order.
-    pub transfer_id: u64,
-    /// Fixed outgoing ICRC destination.
-    #[serde(with = "crate::account::account_cbor")]
-    pub to: Account,
-    /// Ledger transfer amount in atomic units, excluding the network fee.
-    pub amount: u128,
-    /// Fixed outgoing network fee in ledger atomic units.
-    pub fee: u128,
-    /// Fixed ledger memo preserved on retries.
-    pub memo: Hash,
-    /// Sender timestamp in Unix nanoseconds, preserved on retries.
-    pub created_at_time_ns: u64,
-    /// Current lifecycle state of this record.
-    pub status: MerchantTransferStatus,
-    /// Verified ledger transaction index, when available.
-    pub block: Option<u64>,
-    /// Most recent typed ledger rejection, retained for diagnosis and fee repair.
-    pub last_error: Option<icrc_ledger_types::icrc1::transfer::TransferError>,
-}
-
-/// Public order advancement result. Financial and authorization details require a private query.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct OrderProgress {
-    /// Original order identity.
-    pub order_id: Hash,
-    /// Committed lifecycle status.
-    pub status: OrderStatus,
-}
-
-impl From<BillingOrder> for OrderProgress {
-    fn from(order: BillingOrder) -> Self {
-        Self {
-            order_id: order.order_id,
-            status: order.status,
-        }
-    }
-}
-
-/// Public outgoing-transfer advancement result, without account or amount details.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct TransferProgress {
-    /// Original order identity.
-    pub order_id: Hash,
-    /// Per-order transfer identifier.
-    pub transfer_id: u64,
-    /// Current transfer lifecycle status.
-    pub status: MerchantTransferStatus,
-    /// Replacement leg, when this leg is superseded.
-    pub replaced_by: Option<u64>,
-}
-
-impl From<MerchantTransfer> for TransferProgress {
-    fn from(transfer: MerchantTransfer) -> Self {
-        Self {
-            order_id: transfer.order_id,
-            transfer_id: transfer.transfer_id,
-            status: transfer.status,
-            replaced_by: transfer.replaced_by,
-        }
-    }
 }

@@ -44,6 +44,10 @@ pub const MAX_BATCH: usize = 64;
 /// Transport failures and Candid decoding failures are separate from this enum.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Error {
+    /// Another accepted operation owns the same product interval.
+    IntervalReserved,
+    /// A neuron still supports a committed or pending product application.
+    NeuronOccupied,
     /// Commercial qualification is temporarily unverifiable or its lease expired.
     MembershipStale,
     /// The subject is known to be ineligible for the requested benefit.

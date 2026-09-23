@@ -179,6 +179,7 @@ struct Fixture {
     handle: Principal,
     payment: Principal,
     ledger: Principal,
+    ledger2: Principal,
     commerce: Principal,
     membership: Principal,
     sns: Principal,
@@ -202,17 +203,6 @@ impl Fixture {
         Self::configured(algorithms, generous, daily_orders, |_| {})
     }
 
-    fn with_membership_config(
-        configure: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
-    ) -> Self {
-        Self::configured(
-            vec![Algorithm::Ed25519, Algorithm::VetKdBls12381],
-            true,
-            100,
-            configure,
-        )
-    }
-
     fn configured(
         algorithms: Vec<Algorithm>,
         generous: bool,
@@ -229,11 +219,12 @@ impl Fixture {
         let handle = ic.create_canister();
         let payment = ic.create_canister();
         let ledger = ic.create_canister();
+        let ledger2 = ic.create_canister();
         let commerce = ic.create_canister();
         let membership = ic.create_canister();
         let sns = ic.create_canister();
         for id in [
-            user, cose, handle, payment, ledger, commerce, membership, sns,
+            user, cose, handle, payment, ledger, ledger2, commerce, membership, sns,
         ] {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
@@ -338,9 +329,6 @@ impl Fixture {
         if generous {
             plans[0].limits.monthly_execution_units = 1000;
         }
-        for (i, plan) in plans.iter_mut().enumerate().skip(1) {
-            plan.membership_policy_version = Some(i as u64);
-        }
         let catalog = dmsg_types::billing::Catalog {
             schema: 1,
             version: 1,
@@ -351,9 +339,6 @@ impl Fixture {
                 storage_bytes: 1_073_741_824,
                 price_cents: 100,
             }],
-            ledger,
-            decimals: 6,
-            ledger_fee: 10,
             terms_digest: Hash::new([99; 32]),
         };
         ic.install_canister(
@@ -365,48 +350,24 @@ impl Fixture {
                 membership_canister: membership,
                 user_homes: vec![user],
                 catalog,
-                treasury: account(person(60)),
                 max_subjects: 1000,
                 daily_orders,
             },))
             .unwrap(),
             None,
         );
-        let verified: Result<()> = update(&ic, commerce, sns, "verify_ledger_configuration", ());
-        verified.unwrap();
-        let policies = plans
-            .iter()
-            .skip(1)
-            .map(|p| dmsg_types::membership::MembershipPolicy {
-                version: p.membership_policy_version.unwrap(),
-                product_id: "dmsg".into(),
-                benefit_id: dmsg_protocol::billing::plan_digest(p),
-                threshold: dmsg_types::membership::Threshold::AnnualPrice {
-                    price_cents: p.price_cents,
-                    r_num: 5000,
-                    r_den: 1,
-                },
-                effective_at_ms: 0,
-                subsidy_units: 1,
-            })
-            .collect();
+        ic.install_canister(
+            ledger2,
+            wasm("dmsg_test_ledger"),
+            candid::encode_args(()).unwrap(),
+            None,
+        );
         let mut membership_init = dmsg_types::membership::MembershipInit {
             environment: Environment::Local,
             governance: sns,
             sns_root: sns,
             panda_ledger: sns,
-            products: vec![dmsg_types::membership::ProductConfig {
-                product_id: "dmsg".into(),
-                adapter: commerce,
-                authorities: vec![user],
-                subject_schema: "dmsg-account-v1".into(),
-                subject_size: 12,
-            }],
-            policies,
-            subsidy_budget: 100,
-            max_claims: 1000,
-            hourly_applications: 100,
-            cooling_ms: dmsg_protocol::membership::MIN_COOLING_MS,
+            expected_governance_module_hash: None,
         };
         configure_membership(&mut membership_init);
         ic.install_canister(
@@ -417,11 +378,130 @@ impl Fixture {
         );
         let verified: Result<()> = update(&ic, membership, sns, "verify_sns_configuration", ());
         verified.unwrap();
+        use dmsg_types::{integration::*, integration_billing::*, integration_membership::*};
+        let configured: Result<()> = update(
+            &ic,
+            membership,
+            sns,
+            "configure_panda_service",
+            (PandaServiceConfig {
+                commerce_canister: commerce,
+                max_claims: 1000,
+                hourly_applications: 100,
+                cooling_ms: PANDA_COOLING_MS,
+            },),
+        );
+        configured.unwrap();
+        let budget: Result<PandaSubsidyBudget> = update(
+            &ic,
+            membership,
+            sns,
+            "set_panda_subsidy_budget",
+            (Hash::new([100; 32]), 1_000_000_000_000_000u128),
+        );
+        budget.unwrap();
+        let policy: Result<PandaRatePolicy> = update(
+            &ic,
+            membership,
+            sns,
+            "schedule_panda_rate",
+            (PandaRatePolicy {
+                version: 2,
+                policy_version: 1,
+                environment: Environment::Local,
+                product_ids: vec!["dmsg".into(), "sample".into()],
+                r_num: 5000,
+                r_den: 1,
+                published_at_ms: 0,
+                effective_at_ms: POLICY_NOTICE_MS,
+                subsidy_budget_id: Hash::new([100; 32]),
+            },),
+        );
+        policy.unwrap();
+        let product = ProductRegistration {
+            version: 2,
+            environment: Environment::Local,
+            product_id: "dmsg".into(),
+            config_version: 1,
+            quote_authority: commerce,
+            beneficiary_authority: user,
+            adapter: commerce,
+            subject_schema: "dmsg-account-v1".into(),
+            subject_size: 12,
+            merchant: account(person(60)),
+            ledgers: vec![ledger, ledger2],
+            terms_hash: Hash::new([99; 32]),
+            subsidy_budget_id: Hash::new([100; 32]),
+            paused: false,
+        };
+        let result: Result<()> = update(
+            &ic,
+            commerce,
+            sns,
+            "register_integration_product",
+            (product,),
+        );
+        result.unwrap();
+        let app = AppRegistration {
+            version: 1,
+            environment: Environment::Local,
+            app_id: "dmsg".into(),
+            config_version: 1,
+            origins: vec![
+                "https://dmsg.test".into(),
+                format!("chrome-extension://{}", "a".repeat(32)),
+            ],
+            user_homes: vec![user],
+            cose_homes: vec![cose],
+            product_ids: vec!["dmsg".into()],
+            capabilities: vec![AppCapability::Checkout],
+            profiles: vec![],
+            authentication_receiver: user,
+            action_authority: user,
+            paused: false,
+        };
+        let result: Result<()> = update(&ic, commerce, sns, "register_integration_app", (app,));
+        result.unwrap();
+        for (ledger, kind) in [
+            (ledger, SettlementAssetKind::CkUsdc),
+            (ledger2, SettlementAssetKind::CkUsdt),
+        ] {
+            let result: Result<()> = update(
+                &ic,
+                commerce,
+                sns,
+                "register_settlement_asset",
+                (SettlementAsset {
+                    version: 2,
+                    policy_version: 1,
+                    environment: Environment::Local,
+                    ledger,
+                    asset: kind,
+                    decimals: 6,
+                    price_usd_micros: 1_000_000,
+                    price_observed_at_ms: time(&ic),
+                    price_valid_until_ms: time(&ic) + 30 * MINUTE,
+                    network_fee_atomic: 10,
+                    max_network_fee_atomic: 20,
+                    enabled: true,
+                },),
+            );
+            result.unwrap();
+            let verified: Result<()> = update(
+                &ic,
+                commerce,
+                sns,
+                "verify_settlement_asset",
+                (ledger, None::<u128>),
+            );
+            verified.unwrap();
+        }
         Self {
             commerce,
             membership,
             sns,
             ledger,
+            ledger2,
             ic,
             user,
             cose,

@@ -124,21 +124,6 @@ pub fn assess(
     }
 }
 
-pub async fn read(governance: Principal, id: Hash) -> Result<Neuron> {
-    let reply: GetNeuronResponse = dmsg_runtime::call(
-        governance,
-        "get_neuron",
-        (GetNeuronRequest {
-            neuron_id: Some(NeuronId { id: id.to_vec() }),
-        },),
-    )
-    .await?;
-    match reply.result {
-        Some(NeuronResult::Neuron(n)) => Ok(n),
-        _ => Err(Error::MembershipStale),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

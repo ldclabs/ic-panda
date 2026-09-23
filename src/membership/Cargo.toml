@@ -18,3 +18,6 @@ candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 ic-cdk.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
+
+[dev-dependencies]
+icrc-ledger-types.workspace = true

@@ -116,124 +116,6 @@
     "signature_over_sha256_hex": "6c217c4ff3e4051424ee3c3d9d6414e8f82cfc853d4b6e616eae07c6fa95c0e1a813a2430a5e00e135db1ef219eae871551753f72514cd89a4ae34048917b00d"
   },
   {
-    "name": "membership_intent",
-    "value": {
-      "array": [
-        {
-          "uint": "1"
-        },
-        {
-          "text": "dmsg/commerce/intent/v1"
-        },
-        {
-          "map": [
-            [
-              {
-                "text": "actor"
-              },
-              {
-                "bytes": "4b28a66e03e865bce8a53f9a17d0cb399345e935e3976ab01f83e31502"
-              }
-            ],
-            [
-              {
-                "text": "nonce"
-              },
-              {
-                "bytes": "0606060606060606060606060606060606060606060606060606060606060606"
-              }
-            ],
-            [
-              {
-                "text": "beneficiary"
-              },
-              {
-                "map": [
-                  [
-                    {
-                      "text": "product_id"
-                    },
-                    {
-                      "text": "dmsg"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "subject_bytes"
-                    },
-                    {
-                      "bytes": "010101010101010101010101"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "subject_schema"
-                    },
-                    {
-                      "text": "dmsg-account-v1"
-                    }
-                  ],
-                  [
-                    {
-                      "text": "authority_canister"
-                    },
-                    {
-                      "bytes": "01"
-                    }
-                  ]
-                ]
-              }
-            ],
-            [
-              {
-                "text": "environment"
-              },
-              {
-                "text": "Local"
-              }
-            ],
-            [
-              {
-                "text": "action_digest"
-              },
-              {
-                "bytes": "0505050505050505050505050505050505050505050505050505050505050505"
-              }
-            ],
-            [
-              {
-                "text": "application_id"
-              },
-              {
-                "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
-              }
-            ],
-            [
-              {
-                "text": "valid_until_ms"
-              },
-              {
-                "uint": "1800000000000"
-              }
-            ],
-            [
-              {
-                "text": "service_canister"
-              },
-              {
-                "bytes": "03"
-              }
-            ]
-          ]
-        }
-      ]
-    },
-    "cbor_hex": "830177646d73672f636f6d6d657263652f696e74656e742f7631a8656163746f72581d4b28a66e03e865bce8a53f9a17d0cb399345e935e3976ab01f83e31502656e6f6e6365582006060606060606060606060606060606060606060606060606060606060606066b62656e6566696369617279a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e697374657241016b656e7669726f6e6d656e74654c6f63616c6d616374696f6e5f646967657374582005050505050505050505050505050505050505050505050505050505050505056e6170706c69636174696f6e5f6964582002020202020202020202020202020202020202020202020202020202020202026e76616c69645f756e74696c5f6d731b000001a3185c500070736572766963655f63616e69737465724103",
-    "sha256_hex": "f4c093a7a3cc4507740cbe11e48234a266408278318b48736cff8ea161f76ad5",
-    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
-    "signature_over_sha256_hex": "2fec2d3879151168522f643e4bfca3f459fbc39019ed1f93942ed14aabcc5828dd8c8e2df6c5f5bf1c2c2141f30ea76eec9808e27d6423419b716b0259a67b01"
-  },
-  {
     "name": "plans",
     "value": {
       "array": [
@@ -336,12 +218,6 @@
               {
                 "uint": "1"
               }
-            ],
-            [
-              {
-                "text": "membership_policy_version"
-              },
-              null
             ]
           ]
         },
@@ -444,12 +320,6 @@
               {
                 "uint": "1"
               }
-            ],
-            [
-              {
-                "text": "membership_policy_version"
-              },
-              null
             ]
           ]
         },
@@ -552,12 +422,6 @@
               {
                 "uint": "1"
               }
-            ],
-            [
-              {
-                "text": "membership_policy_version"
-              },
-              null
             ]
           ]
         },
@@ -660,21 +524,15 @@
               {
                 "uint": "1"
               }
-            ],
-            [
-              {
-                "text": "membership_policy_version"
-              },
-              null
             ]
           ]
         }
       ]
     },
-    "cbor_hex": "84a7666c696d697473a36d73746f726167655f62797465731a064000006f6163746976655f6368616e6e656c7302776d6f6e74686c795f657865637574696f6e5f756e6974730367706c616e5f696464467265656777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473006d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731a400000006f6163746976655f6368616e6e656c730a776d6f6e74686c795f657865637574696f6e5f756e6974730a67706c616e5f696464506c75736777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731903e86d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000002800000006f6163746976655f6368616e6e656c731832776d6f6e74686c795f657865637574696f6e5f756e697473183267706c616e5f69646350726f6777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731913886d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000019000000006f6163746976655f6368616e6e656c7318c8776d6f6e74686c795f657865637574696f6e5f756e69747318c867706c616e5f6964634d61786777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473194e206d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6",
-    "sha256_hex": "5198871b0920ae4e72c43cac6c7d71cd72ba435209253fcb44e7fb9197fa17e6",
+    "cbor_hex": "84a6666c696d697473a36d73746f726167655f62797465731a064000006f6163746976655f6368616e6e656c7302776d6f6e74686c795f657865637574696f6e5f756e6974730367706c616e5f696464467265656777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473006d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e01a6666c696d697473a36d73746f726167655f62797465731a400000006f6163746976655f6368616e6e656c730a776d6f6e74686c795f657865637574696f6e5f756e6974730a67706c616e5f696464506c75736777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731903e86d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e01a6666c696d697473a36d73746f726167655f62797465731b00000002800000006f6163746976655f6368616e6e656c731832776d6f6e74686c795f657865637574696f6e5f756e697473183267706c616e5f69646350726f6777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731913886d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e01a6666c696d697473a36d73746f726167655f62797465731b00000019000000006f6163746976655f6368616e6e656c7318c8776d6f6e74686c795f657865637574696f6e5f756e69747318c867706c616e5f6964634d61786777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473194e206d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e01",
+    "sha256_hex": "765d58c1e26db42fd2c0c3fcfb04c07e9227fd0e481602398e766b222f95e2dd",
     "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
-    "signature_over_sha256_hex": "d4b9d3d88c4594e356d0fb56e9328d779736e7700d637c5b711915b2e1ecb2125668912f2767d79790d85952738b56e95f267b8237adf2533a2afd36cfc56402"
+    "signature_over_sha256_hex": "544d64a39fd1c8724e889a78df4df979b2fc2029ea8cff01a2abd8faa6a20d34521c198981b4e8424e376b422b0498ddc52bf3736b7290bc2772f600b9195702"
   },
   {
     "name": "panda_1000_5000_1",
@@ -1457,469 +1315,43 @@
     "signature_over_sha256_hex": "bfdadae986a2251b3b9f40e2f32edd2576940605000051b2a0321bf36bfcccedc265eba20ecf47d238fbc522c6b4792ecba83cbf546c948908f96a54391d860a"
   },
   {
-    "name": "order_terms",
+    "name": "checkout_terms_v2",
     "value": {
       "array": [
         {
           "uint": "1"
         },
         {
-          "text": "dmsg/commerce/order/v1"
+          "text": "dmsg/checkout/quote/v2"
         },
         {
           "map": [
             [
               {
-                "text": "term"
-              },
-              {
-                "text": "CalendarYear"
-              }
-            ],
-            [
-              {
-                "text": "catalog"
+                "text": "cash"
               },
               {
                 "map": [
                   [
                     {
-                      "text": "plans"
+                      "text": "payer"
                     },
                     {
-                      "array": [
-                        {
-                          "map": [
-                            [
-                              {
-                                "text": "limits"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "storage_bytes"
-                                    },
-                                    {
-                                      "uint": "104857600"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "active_channels"
-                                    },
-                                    {
-                                      "uint": "2"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "monthly_execution_units"
-                                    },
-                                    {
-                                      "uint": "3"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "plan_id"
-                              },
-                              {
-                                "text": "Free"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "weights"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "ed25519"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "version"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "ecdsa_secp256k1"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "price_cents"
-                              },
-                              {
-                                "uint": "0"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "terms_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "catalog_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "membership_policy_version"
-                              },
-                              null
-                            ]
-                          ]
-                        },
-                        {
-                          "map": [
-                            [
-                              {
-                                "text": "limits"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "storage_bytes"
-                                    },
-                                    {
-                                      "uint": "1073741824"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "active_channels"
-                                    },
-                                    {
-                                      "uint": "10"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "monthly_execution_units"
-                                    },
-                                    {
-                                      "uint": "10"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "plan_id"
-                              },
-                              {
-                                "text": "Plus"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "weights"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "ed25519"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "version"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "ecdsa_secp256k1"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "price_cents"
-                              },
-                              {
-                                "uint": "1000"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "terms_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "catalog_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "membership_policy_version"
-                              },
-                              null
-                            ]
-                          ]
-                        },
-                        {
-                          "map": [
-                            [
-                              {
-                                "text": "limits"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "storage_bytes"
-                                    },
-                                    {
-                                      "uint": "10737418240"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "active_channels"
-                                    },
-                                    {
-                                      "uint": "50"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "monthly_execution_units"
-                                    },
-                                    {
-                                      "uint": "50"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "plan_id"
-                              },
-                              {
-                                "text": "Pro"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "weights"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "ed25519"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "version"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "ecdsa_secp256k1"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "price_cents"
-                              },
-                              {
-                                "uint": "5000"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "terms_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "catalog_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "membership_policy_version"
-                              },
-                              null
-                            ]
-                          ]
-                        },
-                        {
-                          "map": [
-                            [
-                              {
-                                "text": "limits"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "storage_bytes"
-                                    },
-                                    {
-                                      "uint": "107374182400"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "active_channels"
-                                    },
-                                    {
-                                      "uint": "200"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "monthly_execution_units"
-                                    },
-                                    {
-                                      "uint": "200"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "plan_id"
-                              },
-                              {
-                                "text": "Max"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "weights"
-                              },
-                              {
-                                "map": [
-                                  [
-                                    {
-                                      "text": "ed25519"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "version"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "text": "ecdsa_secp256k1"
-                                    },
-                                    {
-                                      "uint": "1"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ],
-                            [
-                              {
-                                "text": "price_cents"
-                              },
-                              {
-                                "uint": "20000"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "terms_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "catalog_version"
-                              },
-                              {
-                                "uint": "1"
-                              }
-                            ],
-                            [
-                              {
-                                "text": "membership_policy_version"
-                              },
-                              null
-                            ]
-                          ]
-                        }
+                      "map": [
+                        [
+                          {
+                            "text": "owner"
+                          },
+                          {
+                            "bytes": "0901"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subaccount"
+                          },
+                          null
+                        ]
                       ]
                     }
                   ],
@@ -1928,15 +1360,32 @@
                       "text": "ledger"
                     },
                     {
-                      "bytes": "0a"
+                      "bytes": "0601"
                     }
                   ],
                   [
                     {
-                      "text": "schema"
+                      "text": "deposit"
                     },
                     {
-                      "uint": "1"
+                      "map": [
+                        [
+                          {
+                            "text": "owner"
+                          },
+                          {
+                            "bytes": "0801"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subaccount"
+                          },
+                          {
+                            "bytes": "16b461c0f66ee9ec0536c55312fc16c708203cac3f97fc913c64c052f4da1212"
+                          }
+                        ]
+                      ]
                     }
                   ],
                   [
@@ -1944,7 +1393,102 @@
                       "text": "version"
                     },
                     {
-                      "uint": "1"
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "offer_hash"
+                    },
+                    {
+                      "bytes": "236ca821028a1ba318ae49aa484484da8e8c496a077eb6109a26420773db4607"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "amount_atomic"
+                    },
+                    {
+                      "uint": "1000001"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "conversion_hash"
+                    },
+                    {
+                      "bytes": "89b5cb94fcc99a10723040e7c4fd67c80097475f73777f46d4781d1001ee3893"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "fee_reserve_atomic"
+                    },
+                    {
+                      "uint": "40"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "funding_deadline_ms"
+                    },
+                    {
+                      "uint": "1800001800000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "activation_deadline_ms"
+                    },
+                    {
+                      "uint": "1800086400000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "max_network_fee_atomic"
+                    },
+                    {
+                      "uint": "20"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "asset"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "asset"
+                    },
+                    {
+                      "text": "CkUsdc"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ledger"
+                    },
+                    {
+                      "bytes": "0601"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "enabled"
+                    },
+                    true
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "2"
                     }
                   ],
                   [
@@ -1957,7 +1501,31 @@
                   ],
                   [
                     {
-                      "text": "ledger_fee"
+                      "text": "environment"
+                    },
+                    {
+                      "text": "Local"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "policy_version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "price_usd_micros"
+                    },
+                    {
+                      "uint": "1000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "network_fee_atomic"
                     },
                     {
                       "uint": "10"
@@ -1965,26 +1533,26 @@
                   ],
                   [
                     {
-                      "text": "terms_digest"
+                      "text": "price_observed_at_ms"
                     },
                     {
-                      "bytes": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                      "uint": "1800000000000"
                     }
                   ],
                   [
                     {
-                      "text": "effective_at_ms"
+                      "text": "price_valid_until_ms"
                     },
                     {
-                      "uint": "0"
+                      "uint": "1800001800000"
                     }
                   ],
                   [
                     {
-                      "text": "storage_products"
+                      "text": "max_network_fee_atomic"
                     },
                     {
-                      "array": []
+                      "uint": "20"
                     }
                   ]
                 ]
@@ -1992,67 +1560,56 @@
             ],
             [
               {
-                "text": "request"
+                "text": "offer"
               },
               {
                 "map": [
                   [
                     {
-                      "text": "op_id"
+                      "text": "sku"
                     },
                     {
-                      "bytes": "0707070707070707070707070707070707070707070707070707070707070707"
+                      "text": "annual-standard"
                     }
                   ],
                   [
                     {
-                      "text": "payer"
+                      "text": "app_id"
                     },
                     {
-                      "map": [
-                        [
-                          {
-                            "text": "owner"
-                          },
-                          {
-                            "bytes": "08"
-                          }
-                        ],
-                        [
-                          {
-                            "text": "subaccount"
-                          },
-                          {
-                            "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
-                          }
-                        ]
-                      ]
+                      "text": "tokenlist"
                     }
                   ],
                   [
                     {
-                      "text": "action"
+                      "text": "adapter"
                     },
                     {
-                      "map": [
-                        [
-                          {
-                            "text": "Subscribe"
-                          },
-                          {
-                            "map": [
-                              [
-                                {
-                                  "text": "plan"
-                                },
-                                {
-                                  "text": "Plus"
-                                }
-                              ]
-                            ]
-                          }
-                        ]
-                      ]
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "offer_id"
+                    },
+                    {
+                      "bytes": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "product_id"
+                    },
+                    {
+                      "text": "tokenlist"
                     }
                   ],
                   [
@@ -2066,7 +1623,7 @@
                             "text": "product_id"
                           },
                           {
-                            "text": "dmsg"
+                            "text": "tokenlist"
                           }
                         ],
                         [
@@ -2074,7 +1631,7 @@
                             "text": "subject_bytes"
                           },
                           {
-                            "bytes": "010101010101010101010101"
+                            "bytes": "000000000000002a"
                           }
                         ],
                         [
@@ -2082,7 +1639,7 @@
                             "text": "subject_schema"
                           },
                           {
-                            "text": "dmsg-account-v1"
+                            "text": "tokenlist-project-v1"
                           }
                         ],
                         [
@@ -2090,9 +1647,96 @@
                             "text": "authority_canister"
                           },
                           {
-                            "bytes": "01"
+                            "bytes": "0401"
                           }
                         ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "environment"
+                    },
+                    {
+                      "text": "Local"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "accept_by_ms"
+                    },
+                    {
+                      "uint": "1800000900000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "issued_at_ms"
+                    },
+                    {
+                      "uint": "1800000000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "operation_id"
+                    },
+                    {
+                      "bytes": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "starts_at_ms"
+                    },
+                    {
+                      "uint": "1800003900000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "expires_at_ms"
+                    },
+                    {
+                      "uint": "1831536000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "quote_authority"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "amount_usd_micros"
+                    },
+                    {
+                      "uint": "1000001"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "product_terms_hash"
+                    },
+                    {
+                      "bytes": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "allowed_settlement_methods"
+                    },
+                    {
+                      "array": [
+                        {
+                          "text": "Cash"
+                        },
+                        {
+                          "text": "Panda"
+                        }
                       ]
                     }
                   ],
@@ -2101,7 +1745,7 @@
                       "text": "expected_business_revision"
                     },
                     {
-                      "uint": "0"
+                      "uint": "9"
                     }
                   ]
                 ]
@@ -2109,60 +1753,576 @@
             ],
             [
               {
-                "text": "fund_by_ms"
+                "text": "product"
               },
               {
-                "uint": "1800000900000"
+                "map": [
+                  [
+                    {
+                      "text": "paused"
+                    },
+                    false
+                  ],
+                  [
+                    {
+                      "text": "adapter"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "ledgers"
+                    },
+                    {
+                      "array": [
+                        {
+                          "bytes": "0601"
+                        },
+                        {
+                          "bytes": "0701"
+                        }
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "merchant"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "owner"
+                          },
+                          {
+                            "bytes": "0501"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subaccount"
+                          },
+                          null
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "product_id"
+                    },
+                    {
+                      "text": "tokenlist"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "terms_hash"
+                    },
+                    {
+                      "bytes": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "environment"
+                    },
+                    {
+                      "text": "Local"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subject_size"
+                    },
+                    {
+                      "uint": "8"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "config_version"
+                    },
+                    {
+                      "uint": "1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subject_schema"
+                    },
+                    {
+                      "text": "tokenlist-project-v1"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "quote_authority"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subsidy_budget_id"
+                    },
+                    {
+                      "bytes": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "beneficiary_authority"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ]
+                ]
               }
             ],
             [
               {
-                "text": "fee_reserve"
-              },
-              {
-                "uint": "30"
-              }
-            ],
-            [
-              {
-                "text": "amount_atomic"
-              },
-              {
-                "uint": "10000000"
-              }
-            ],
-            [
-              {
-                "text": "created_at_ms"
+                "text": "quoted_at_ms"
               },
               {
                 "uint": "1800000000000"
-              }
-            ],
-            [
-              {
-                "text": "home_commerce"
-              },
-              {
-                "bytes": "03"
-              }
-            ],
-            [
-              {
-                "text": "activate_by_ms"
-              },
-              {
-                "uint": "1800002700000"
               }
             ]
           ]
         }
       ]
     },
-    "cbor_hex": "830176646d73672f636f6d6d657263652f6f726465722f7631a9647465726d6c43616c656e6461725965617267636174616c6f67a965706c616e7384a7666c696d697473a36d73746f726167655f62797465731a064000006f6163746976655f6368616e6e656c7302776d6f6e74686c795f657865637574696f6e5f756e6974730367706c616e5f696464467265656777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473006d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731a400000006f6163746976655f6368616e6e656c730a776d6f6e74686c795f657865637574696f6e5f756e6974730a67706c616e5f696464506c75736777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731903e86d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000002800000006f6163746976655f6368616e6e656c731832776d6f6e74686c795f657865637574696f6e5f756e697473183267706c616e5f69646350726f6777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e74731913886d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6a7666c696d697473a36d73746f726167655f62797465731b00000019000000006f6163746976655f6368616e6e656c7318c8776d6f6e74686c795f657865637574696f6e5f756e69747318c867706c616e5f6964634d61786777656967687473a36765643235353139016776657273696f6e016f65636473615f736563703235366b31016b70726963655f63656e7473194e206d7465726d735f76657273696f6e016f636174616c6f675f76657273696f6e0178196d656d626572736869705f706f6c6963795f76657273696f6ef6666c6564676572410a66736368656d61016776657273696f6e0168646563696d616c73066a6c65646765725f6665650a6c7465726d735f64696765737458200b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b6f6566666563746976655f61745f6d73007073746f726167655f70726f6475637473806772657175657374a5656f705f696458200707070707070707070707070707070707070707070707070707070707070707657061796572a2656f776e657241086a7375626163636f756e745820090909090909090909090909090909090909090909090909090909090909090966616374696f6ea169537562736372696265a164706c616e64506c75736b62656e6566696369617279a46a70726f647563745f696464646d73676d7375626a6563745f62797465734c0101010101010101010101016e7375626a6563745f736368656d616f646d73672d6163636f756e742d763172617574686f726974795f63616e69737465724101781a65787065637465645f627573696e6573735f7265766973696f6e006a66756e645f62795f6d731b000001a3186a0ba06b6665655f72657365727665181e6d616d6f756e745f61746f6d69631a009896806d637265617465645f61745f6d731b000001a3185c50006d686f6d655f636f6d6d6572636541036e61637469766174655f62795f6d731b000001a3188582e0",
-    "sha256_hex": "7c640ad35751284c5ed0000acf287dafb4ae35512a10fdf43a6375478d8b3d7c",
+    "cbor_hex": "830176646d73672f636865636b6f75742f71756f74652f7632a56463617368ab657061796572a2656f776e65724209016a7375626163636f756e74f6666c6564676572420601676465706f736974a2656f776e65724208016a7375626163636f756e74582016b461c0f66ee9ec0536c55312fc16c708203cac3f97fc913c64c052f4da12126776657273696f6e026a6f666665725f686173685820236ca821028a1ba318ae49aa484484da8e8c496a077eb6109a26420773db46076d616d6f756e745f61746f6d69631a000f42416f636f6e76657273696f6e5f68617368582089b5cb94fcc99a10723040e7c4fd67c80097475f73777f46d4781d1001ee3893726665655f726573657276655f61746f6d696318287366756e64696e675f646561646c696e655f6d731b000001a31877c7407661637469766174696f6e5f646561646c696e655f6d731b000001a31d82ac00766d61785f6e6574776f726b5f6665655f61746f6d696314656173736574ac65617373657466436b55736463666c656467657242060167656e61626c6564f56776657273696f6e0268646563696d616c73066b656e7669726f6e6d656e74654c6f63616c6e706f6c6963795f76657273696f6e017070726963655f7573645f6d6963726f731a000f4240726e6574776f726b5f6665655f61746f6d69630a7470726963655f6f627365727665645f61745f6d731b000001a3185c50007470726963655f76616c69645f756e74696c5f6d731b000001a31877c740766d61785f6e6574776f726b5f6665655f61746f6d696314656f66666572b263736b756f616e6e75616c2d7374616e64617264666170705f696469746f6b656e6c69737467616461707465724204016776657273696f6e02686f666665725f696458200d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d6a70726f647563745f696469746f6b656e6c6973746b62656e6566696369617279a46a70726f647563745f696469746f6b656e6c6973746d7375626a6563745f627974657348000000000000002a6e7375626a6563745f736368656d6174746f6b656e6c6973742d70726f6a6563742d763172617574686f726974795f63616e69737465724204016b656e7669726f6e6d656e74654c6f63616c6c6163636570745f62795f6d731b000001a3186a0ba06c6973737565645f61745f6d731b000001a3185c50006c6f7065726174696f6e5f696458200e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e6c7374617274735f61745f6d731b000001a31897d2606d657870697265735f61745f6d731b000001aa700d7c006f71756f74655f617574686f7269747942040171616d6f756e745f7573645f6d6963726f731a000f42417270726f647563745f7465726d735f6861736858200b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b781a616c6c6f7765645f736574746c656d656e745f6d6574686f64738264436173686550616e6461781a65787065637465645f627573696e6573735f7265766973696f6e096770726f64756374ae66706175736564f46761646170746572420401676c656467657273824206014207016776657273696f6e02686d65726368616e74a2656f776e65724205016a7375626163636f756e74f66a70726f647563745f696469746f6b656e6c6973746a7465726d735f6861736858200b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b6b656e7669726f6e6d656e74654c6f63616c6c7375626a6563745f73697a65086e636f6e6669675f76657273696f6e016e7375626a6563745f736368656d6174746f6b656e6c6973742d70726f6a6563742d76316f71756f74655f617574686f7269747942040171737562736964795f6275646765745f696458200c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c7562656e65666963696172795f617574686f726974794204016c71756f7465645f61745f6d731b000001a3185c5000",
+    "sha256_hex": "51c66fbec6ca8127b51efc6df40fc5a25f089faac23a59722a4b0d5aa980e1eb",
     "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
-    "signature_over_sha256_hex": "5afa1af6a1b3eceefbae0fdbb41b8ad1dacf149a5cabe454a65e0da20e6850519bc434cf538b16143a2bc7426a7ce946a75b7141ca127118c6a619e84d639b0e"
+    "signature_over_sha256_hex": "b4c88ee1147be6fb2c4dbfb7d8f9a9480255c41b1c1407cac377b8f7b5ced3329a74f9c1a5696a6c43d8e47bf8aa784689874cf770b00790da4136770dd52404"
+  },
+  {
+    "name": "panda_application_v2",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/panda/application/v2"
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "actor"
+              },
+              {
+                "bytes": "0901"
+              }
+            ],
+            [
+              {
+                "text": "offer"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "sku"
+                    },
+                    {
+                      "text": "annual-standard"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "app_id"
+                    },
+                    {
+                      "text": "tokenlist"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "adapter"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "offer_id"
+                    },
+                    {
+                      "bytes": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "product_id"
+                    },
+                    {
+                      "text": "tokenlist"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "beneficiary"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "product_id"
+                          },
+                          {
+                            "text": "tokenlist"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subject_bytes"
+                          },
+                          {
+                            "bytes": "000000000000002a"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subject_schema"
+                          },
+                          {
+                            "text": "tokenlist-project-v1"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "authority_canister"
+                          },
+                          {
+                            "bytes": "0401"
+                          }
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "environment"
+                    },
+                    {
+                      "text": "Local"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "accept_by_ms"
+                    },
+                    {
+                      "uint": "1800000900000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "issued_at_ms"
+                    },
+                    {
+                      "uint": "1800000000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "operation_id"
+                    },
+                    {
+                      "bytes": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "starts_at_ms"
+                    },
+                    {
+                      "uint": "1800003900000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "expires_at_ms"
+                    },
+                    {
+                      "uint": "1831536000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "quote_authority"
+                    },
+                    {
+                      "bytes": "0401"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "amount_usd_micros"
+                    },
+                    {
+                      "uint": "1000001"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "product_terms_hash"
+                    },
+                    {
+                      "bytes": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "allowed_settlement_methods"
+                    },
+                    {
+                      "array": [
+                        {
+                          "text": "Cash"
+                        },
+                        {
+                          "text": "Panda"
+                        }
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "expected_business_revision"
+                    },
+                    {
+                      "uint": "9"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "quote"
+              },
+              {
+                "map": [
+                  [
+                    {
+                      "text": "policy"
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "r_den"
+                          },
+                          {
+                            "uint": "3"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "r_num"
+                          },
+                          {
+                            "uint": "7"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "version"
+                          },
+                          {
+                            "uint": "2"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "environment"
+                          },
+                          {
+                            "text": "Local"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "product_ids"
+                          },
+                          {
+                            "array": [
+                              {
+                                "text": "tokenlist"
+                              },
+                              {
+                                "text": "sample"
+                              }
+                            ]
+                          }
+                        ],
+                        [
+                          {
+                            "text": "policy_version"
+                          },
+                          {
+                            "uint": "1"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "effective_at_ms"
+                          },
+                          {
+                            "uint": "1800000000000"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "published_at_ms"
+                          },
+                          {
+                            "uint": "1797408000000"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "subsidy_budget_id"
+                          },
+                          {
+                            "bytes": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+                          }
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "text": "version"
+                    },
+                    {
+                      "uint": "2"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "offer_hash"
+                    },
+                    {
+                      "bytes": "236ca821028a1ba318ae49aa484484da8e8c496a077eb6109a26420773db4607"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "quoted_at_ms"
+                    },
+                    {
+                      "uint": "1800000000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "committed_until_ms"
+                    },
+                    {
+                      "uint": "1831536000000"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "required_stake_e8s"
+                    },
+                    {
+                      "uint": "233333567"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "subsidy_usd_micros"
+                    },
+                    {
+                      "uint": "1000001"
+                    }
+                  ],
+                  [
+                    {
+                      "text": "application_deadline_ms"
+                    },
+                    {
+                      "uint": "1800086400000"
+                    }
+                  ]
+                ]
+              }
+            ],
+            [
+              {
+                "text": "neuron_id"
+              },
+              {
+                "bytes": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e"
+              }
+            ],
+            [
+              {
+                "text": "user_home"
+              },
+              {
+                "bytes": "0101"
+              }
+            ],
+            [
+              {
+                "text": "sns_governance"
+              },
+              {
+                "bytes": "0b01"
+              }
+            ],
+            [
+              {
+                "text": "home_membership"
+              },
+              {
+                "bytes": "0a01"
+              }
+            ],
+            [
+              {
+                "text": "approving_account"
+              },
+              {
+                "bytes": "010101010101010101010101"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83017819646d73672f70616e64612f6170706c69636174696f6e2f7632a8656163746f72420901656f66666572b263736b756f616e6e75616c2d7374616e64617264666170705f696469746f6b656e6c69737467616461707465724204016776657273696f6e02686f666665725f696458200d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d6a70726f647563745f696469746f6b656e6c6973746b62656e6566696369617279a46a70726f647563745f696469746f6b656e6c6973746d7375626a6563745f627974657348000000000000002a6e7375626a6563745f736368656d6174746f6b656e6c6973742d70726f6a6563742d763172617574686f726974795f63616e69737465724204016b656e7669726f6e6d656e74654c6f63616c6c6163636570745f62795f6d731b000001a3186a0ba06c6973737565645f61745f6d731b000001a3185c50006c6f7065726174696f6e5f696458200e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e6c7374617274735f61745f6d731b000001a31897d2606d657870697265735f61745f6d731b000001aa700d7c006f71756f74655f617574686f7269747942040171616d6f756e745f7573645f6d6963726f731a000f42417270726f647563745f7465726d735f6861736858200b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b781a616c6c6f7765645f736574746c656d656e745f6d6574686f64738264436173686550616e6461781a65787065637465645f627573696e6573735f7265766973696f6e096571756f7465a866706f6c696379a965725f64656e0365725f6e756d076776657273696f6e026b656e7669726f6e6d656e74654c6f63616c6b70726f647563745f6964738269746f6b656e6c6973746673616d706c656e706f6c6963795f76657273696f6e016f6566666563746976655f61745f6d731b000001a3185c50006f7075626c69736865645f61745f6d731b000001a27ddd880071737562736964795f6275646765745f696458200c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c6776657273696f6e026a6f666665725f686173685820236ca821028a1ba318ae49aa484484da8e8c496a077eb6109a26420773db46076c71756f7465645f61745f6d731b000001a3185c500072636f6d6d69747465645f756e74696c5f6d731b000001aa700d7c007272657175697265645f7374616b655f6538731a0de8633f72737562736964795f7573645f6d6963726f731a000f4241776170706c69636174696f6e5f646561646c696e655f6d731b000001a31d82ac00696e6575726f6e5f696458201e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e69757365725f686f6d654201016e736e735f676f7665726e616e6365420b016f686f6d655f6d656d62657273686970420a0171617070726f76696e675f6163636f756e744c010101010101010101010101",
+    "sha256_hex": "0302fd9c83db24beeb27d65710c9d00b11449ae05ad4301a0cbe4dbae1e7b78f",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "33641e819b586108846b1106c2e3efe49b7bb85da9310bbf305fcfbf5f80add255d6fc8aa53db5e1ec9e12aa9d24092c1c19a7596a18da04982944089e24ec02"
   },
   {
     "name": "delivery_quote_v2",
@@ -2187,16 +2347,14 @@
                       "text": "owner"
                     },
                     {
-                      "bytes": "08"
+                      "bytes": "0901"
                     }
                   ],
                   [
                     {
                       "text": "subaccount"
                     },
-                    {
-                      "bytes": "0909090909090909090909090909090909090909090909090909090909090909"
-                    }
+                    null
                   ]
                 ]
               }
@@ -2214,7 +2372,7 @@
                 "text": "ledger"
               },
               {
-                "bytes": "0a"
+                "bytes": "0601"
               }
             ],
             [
@@ -2222,7 +2380,7 @@
                 "text": "fund_by"
               },
               {
-                "uint": "1800000900000"
+                "uint": "1800001800000"
               }
             ],
             [
@@ -2261,7 +2419,7 @@
                 "text": "accept_by"
               },
               {
-                "uint": "1800002700000"
+                "uint": "1800086400000"
               }
             ],
             [
@@ -2395,10 +2553,10 @@
         }
       ]
     },
-    "cbor_hex": "83016d646d73672f71756f74652f7632b5657061796572a2656f776e657241086a7375626163636f756e745820090909090909090909090909090909090909090909090909090909090909090966616d6f756e741a001005ae666c6564676572410a6766756e645f62791b000001a3186a0ba068706c6174666f726da2656f776e657241116a7375626163636f756e74f66871756f74655f696458200c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c696163636570745f62791b000001a3188582e0696d61785f627974657319200069726563697069656e74a2656f776e657241106a7375626163636f756e74f66972657461696e5f6d731a05265c006a637265617465645f61741b000001a3185c50006b6665655f72657365727665181e6b71756f74655f73636f706558200f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f6b736572766963655f66656519c3506c686f6d655f7061796d656e74410d6c6f666665725f64696765737458200e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e6c7369676e65725f65706f6368016d726563697069656e745f6e65741a000f42406f656e76656c6f70655f646967657374582012121212121212121212121212121212121212121212121212121212121212126f6d61785f6e6574776f726b5f66656514726665655f706f6c6963795f76657273696f6e01",
-    "sha256_hex": "9cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db452716360",
+    "cbor_hex": "83016d646d73672f71756f74652f7632b5657061796572a2656f776e65724209016a7375626163636f756e74f666616d6f756e741a001005ae666c65646765724206016766756e645f62791b000001a31877c74068706c6174666f726da2656f776e657241116a7375626163636f756e74f66871756f74655f696458200c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c696163636570745f62791b000001a31d82ac00696d61785f627974657319200069726563697069656e74a2656f776e657241106a7375626163636f756e74f66972657461696e5f6d731a05265c006a637265617465645f61741b000001a3185c50006b6665655f72657365727665181e6b71756f74655f73636f706558200f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f6b736572766963655f66656519c3506c686f6d655f7061796d656e74410d6c6f666665725f64696765737458200e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e6c7369676e65725f65706f6368016d726563697069656e745f6e65741a000f42406f656e76656c6f70655f646967657374582012121212121212121212121212121212121212121212121212121212121212126f6d61785f6e6574776f726b5f66656514726665655f706f6c6963795f76657273696f6e01",
+    "sha256_hex": "f3adb015f8aa76120190bb0c86a46e919e58ef2017c9d213f161c7336a686ea2",
     "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
-    "signature_over_sha256_hex": "7d77e42c55ca7e8c4b462df21ceb01eb1cdb1baf4def36efa809ec047a57cfd2d62ecbae8bdb7056bfd76b92da50e0204f186c79fea46b2ad0722d495bd1ab02"
+    "signature_over_sha256_hex": "7e5ca88cc1c0c6a63b05d28b949a879de4b66ccc16adf8641d1e9ddfc20b0ce5e594f3aefd554829e26c575a990dbd9da41aee8761903296e2729a0e24f36105"
   },
   {
     "name": "delivery_receipt_v2",
@@ -2425,7 +2583,7 @@
                 "text": "fund_by"
               },
               {
-                "uint": "1800000900000"
+                "uint": "1800001800000"
               }
             ],
             [
@@ -2449,7 +2607,7 @@
                 "text": "accept_by"
               },
               {
-                "uint": "1800002700000"
+                "uint": "1800086400000"
               }
             ],
             [
@@ -2481,7 +2639,7 @@
                 "text": "quote_digest"
               },
               {
-                "bytes": "9cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db452716360"
+                "bytes": "f3adb015f8aa76120190bb0c86a46e919e58ef2017c9d213f161c7336a686ea2"
               }
             ],
             [
@@ -2536,10 +2694,10 @@
         }
       ]
     },
-    "cbor_hex": "83017819646d73672f61646d697373696f6e2d726563656970742f7632af6473697a6518806766756e645f62791b000001a3186a0ba06870726f746f636f6c026872656c61795f696458201313131313131313131313131313131313131313131313131313131313131313696163636570745f62791b000001a3188582e069657363726f775f6964582014141414141414141414141414141414141414141414141414141414141414146973746f7265645f61741b000001a3185c53e86c686f6d655f7061796d656e74410d6c71756f74655f64696765737458209cf21d9770bd641c6da7ab71db6ae8a4e16ba5e0535c91e6be173db4527163606c72657461696e5f756e74696c1b000001a31d82afe86c7369676e65725f65706f6368016d61646d697373696f6e5f736571016e706f6c6963795f76657273696f6e016f656e76656c6f70655f6469676573745820121212121212121212121212121212121212121212121212121212121212121271696e626f785f6b65795f76657273696f6e01",
-    "sha256_hex": "aad464c8a2b2909d91aeec59eb9882d771e20940a1f7ad11ca7bf55826033835",
+    "cbor_hex": "83017819646d73672f61646d697373696f6e2d726563656970742f7632af6473697a6518806766756e645f62791b000001a31877c7406870726f746f636f6c026872656c61795f696458201313131313131313131313131313131313131313131313131313131313131313696163636570745f62791b000001a31d82ac0069657363726f775f6964582014141414141414141414141414141414141414141414141414141414141414146973746f7265645f61741b000001a3185c53e86c686f6d655f7061796d656e74410d6c71756f74655f6469676573745820f3adb015f8aa76120190bb0c86a46e919e58ef2017c9d213f161c7336a686ea26c72657461696e5f756e74696c1b000001a31d82afe86c7369676e65725f65706f6368016d61646d697373696f6e5f736571016e706f6c6963795f76657273696f6e016f656e76656c6f70655f6469676573745820121212121212121212121212121212121212121212121212121212121212121271696e626f785f6b65795f76657273696f6e01",
+    "sha256_hex": "5849ac6f6c39eb06a75cb47ddb9d95d94d81c57034de873d7f9d038e018308dc",
     "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
-    "signature_over_sha256_hex": "08defba4d499383d798f1f528202651d111ee0e83bed9595482440748b385b7428ee086de99b9711932cc416efaa0c0edd35806f6ee1e29ecb130a3040d5db06"
+    "signature_over_sha256_hex": "8c91f547ea078bab83eb22ae066a9feac4c5784ce463dbc46f42e9af0e740bcc7d9addd8a42b903d91961365e7b93fc72111b917235d998dbca9c228eaf27a0c"
   },
   {
     "name": "execution_grant_v3",

@@ -38,26 +38,6 @@ pub fn catalog_key() -> Hash {
     digest("dmsg/commerce/catalog-key/v1", &"dmsg")
 }
 
-/// Single-segment certified path for a merchant order.
-pub fn order_key(id: Hash) -> Hash {
-    digest("dmsg/commerce/order-key/v1", &id)
-}
-
-/// Commit to frozen order terms under dmsg/commerce/order/v1; no validation.
-pub fn order_digest(q: &OrderQuote) -> Hash {
-    digest("dmsg/commerce/order/v1", q)
-}
-
-/// Commit to a refund action for the specified order; no authorization.
-pub fn refund_digest(order_id: Hash) -> Hash {
-    digest("dmsg/commerce/refund/v1", &order_id)
-}
-
-/// Commit to a membership close action; does not release the exclusive binding.
-pub fn close_claim_digest(claim_id: Hash) -> Hash {
-    digest("membership/close/v1", &claim_id)
-}
-
 /// Commit to an immutable plan snapshot, including prices, limits and weights.
 pub fn plan_digest(plan: &PlanVersion) -> Hash {
     digest("dmsg/commerce/plan/v1", plan)
@@ -173,7 +153,6 @@ pub fn default_plans(version: u64) -> Vec<PlanVersion> {
                     ecdsa_secp256k1: 1,
                 },
                 terms_version: 1,
-                membership_policy_version: None,
             }
         },
     )
@@ -226,15 +205,7 @@ mod tests {
         );
         assert_eq!(cents_atomic(2, 6).unwrap(), 20_000);
         assert_eq!(
-            crate::membership::required_panda(
-                &Threshold::AnnualPrice {
-                    price_cents: 1000,
-                    r_num: 5000,
-                    r_den: 1
-                },
-                8
-            )
-            .unwrap(),
+            crate::integration::required_panda_stake(10_000_000, 5000, 1).unwrap(),
             5_000_000_000_000
         );
         assert_eq!(

@@ -1,320 +1,343 @@
-import { canonical, digest, equalBytes, sha256 } from './encoding.ts'
+import { canonical, digest, equalBytes, sha256 } from "./encoding.ts";
 import {
   EXTENSION_PROTOCOL,
   requireValid,
   validateIdentifier,
-  validateShape
-} from './validation.ts'
-import type { AuthenticationRequest } from './contracts.ts'
+  validateShape,
+} from "./validation.ts";
+import { validateAppAction } from "./action.ts";
+import type {
+  AppAction,
+  AuthenticationRequest,
+  CheckoutRequest,
+} from "./contracts.ts";
 
 export interface BrowserSession {
-  publicKeyDer: Uint8Array
-  sign(message: Uint8Array): Promise<Uint8Array>
+  publicKeyDer: Uint8Array;
+  sign(message: Uint8Array): Promise<Uint8Array>;
 }
 export interface BrowserCommand {
   method:
-    | 'authenticate'
-    | 'signDocument'
-    | 'getOperation'
-    | 'openOperation'
-    | 'cancelOperation'
-    | 'acknowledge'
-  appId: string
-  operationId: string
-  publicKey: string
-  payload: string | null
-  resultDigest: string | null
+    | "authenticate"
+    | "signDocument"
+    | "signAction"
+    | "checkout"
+    | "getOperation"
+    | "openOperation"
+    | "cancelOperation"
+    | "acknowledge";
+  appId: string;
+  operationId: string;
+  publicKey: string;
+  payload: string | null;
+  resultDigest: string | null;
 }
 export interface BrowserSource {
-  origin: string
-  documentId: string
-  tabId: number
-  frameId: number
+  origin: string;
+  documentId: string;
+  tabId: number;
+  frameId: number;
 }
 export type OperationState =
-  | 'awaiting_user'
-  | 'authorized'
-  | 'execution_unknown'
-  | 'signed'
-  | 'returned'
-  | 'rejected'
-  | 'cancelled'
-  | 'expired'
-  | 'failed'
-  | 'result_expired'
+  | "awaiting_user"
+  | "authorized"
+  | "execution_unknown"
+  | "signed"
+  | "returned"
+  | "rejected"
+  | "cancelled"
+  | "expired"
+  | "failed"
+  | "result_expired";
 export interface BrowserOperation {
-  operationId: string
-  kind: 'authentication' | 'document'
-  state: OperationState
-  requiresUnlock?: boolean
+  operationId: string;
+  kind: "authentication" | "document" | "action" | "checkout";
+  state: OperationState;
+  requiresUnlock?: boolean;
   result?: {
-    proof?: string
-    artifact?: unknown
-    receipt?: unknown
-    [key: string]: unknown
-  }
-  resultDigest?: string
+    proof?: string;
+    artifact?: unknown;
+    receipt?: unknown;
+    keyDescriptorCbor?: string;
+    executionCertificateCbor?: string;
+    executionId?: string;
+    [key: string]: unknown;
+  };
+  resultDigest?: string;
 }
 export class DmsgBrowserError extends Error {
-  readonly code: string
+  readonly code: string;
   constructor(code: string) {
-    super(code)
-    this.code = code
-    this.name = 'DmsgBrowserError'
+    super(code);
+    this.code = code;
+    this.name = "DmsgBrowserError";
   }
 }
 export const hex = (value: Uint8Array) =>
-  Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('')
+  Array.from(value, (b) => b.toString(16).padStart(2, "0")).join("");
 export function unhex(value: string): Uint8Array {
-  requireValid(/^(?:[0-9a-f]{2})+$/.test(value), 'INVALID_INPUT')
-  return Uint8Array.from(value.match(/../g)!, (b) => parseInt(b, 16))
+  requireValid(/^(?:[0-9a-f]{2})+$/.test(value), "INVALID_INPUT");
+  return Uint8Array.from(value.match(/../g)!, (b) => parseInt(b, 16));
 }
 export function base64(value: Uint8Array): string {
-  let s = ''
-  for (const b of value) s += String.fromCharCode(b)
-  return btoa(s)
+  let s = "";
+  for (const b of value) s += String.fromCharCode(b);
+  return btoa(s);
 }
 export function unbase64(value: string, maximum = 65_536): Uint8Array {
   requireValid(
-    typeof value === 'string' && value.length <= Math.ceil(maximum / 3) * 4,
-    'QUOTA_EXCEEDED'
-  )
-  const bytes = Uint8Array.from(atob(value), (c) => c.charCodeAt(0))
+    typeof value === "string" && value.length <= Math.ceil(maximum / 3) * 4,
+    "QUOTA_EXCEEDED",
+  );
+  const bytes = Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
   requireValid(
     bytes.length <= maximum && base64(bytes) === value,
-    'INVALID_INPUT'
-  )
-  return bytes
+    "INVALID_INPUT",
+  );
+  return bytes;
 }
 export function parseBrowserCommand(value: unknown): BrowserCommand {
   requireValid(
-    value && typeof value === 'object' && !Array.isArray(value),
-    'INVALID_INPUT'
-  )
-  const c = value as BrowserCommand
+    value && typeof value === "object" && !Array.isArray(value),
+    "INVALID_INPUT",
+  );
+  const c = value as BrowserCommand;
   requireValid(
-    Object.keys(c).sort().join(',') ===
-      'appId,method,operationId,payload,publicKey,resultDigest',
-    'INVALID_INPUT'
-  )
+    Object.keys(c).sort().join(",") ===
+      "appId,method,operationId,payload,publicKey,resultDigest",
+    "INVALID_INPUT",
+  );
   requireValid(
     [
-      'authenticate',
-      'signDocument',
-      'getOperation',
-      'openOperation',
-      'cancelOperation',
-      'acknowledge'
+      "authenticate",
+      "signDocument",
+      "signAction",
+      "checkout",
+      "getOperation",
+      "openOperation",
+      "cancelOperation",
+      "acknowledge",
     ].includes(c.method),
-    'UNSUPPORTED_PROTOCOL'
-  )
-  validateIdentifier(c.appId)
+    "UNSUPPORTED_PROTOCOL",
+  );
+  validateIdentifier(c.appId);
   requireValid(
     /^[0-9a-f]{64}$/.test(c.operationId) && !/^0+$/.test(c.operationId),
-    'INVALID_INPUT'
-  )
-  requireValid(unbase64(c.publicKey, 128).length === 91, 'INVALID_INPUT')
-  const create = c.method === 'authenticate' || c.method === 'signDocument'
+    "INVALID_INPUT",
+  );
+  requireValid(unbase64(c.publicKey, 128).length === 91, "INVALID_INPUT");
+  const create = [
+    "authenticate",
+    "signDocument",
+    "signAction",
+    "checkout",
+  ].includes(c.method);
   requireValid(
-    create ? typeof c.payload === 'string' : c.payload === null,
-    'INVALID_INPUT'
-  )
-  if (create) unbase64(c.payload!)
+    create ? typeof c.payload === "string" : c.payload === null,
+    "INVALID_INPUT",
+  );
+  if (create) unbase64(c.payload!);
   requireValid(
-    c.method === 'acknowledge'
-      ? typeof c.resultDigest === 'string' &&
+    c.method === "acknowledge"
+      ? typeof c.resultDigest === "string" &&
           /^[0-9a-f]{64}$/.test(c.resultDigest)
       : c.resultDigest === null,
-    'INVALID_INPUT'
-  )
-  return structuredClone(c)
+    "INVALID_INPUT",
+  );
+  return structuredClone(c);
 }
 
 /** Nonce is generated by the extension for this connection and consumed once. */
 export function browserProofMessage(
   command: BrowserCommand,
   nonce: string,
-  source: Pick<BrowserSource, 'origin' | 'documentId'>
+  source: Pick<BrowserSource, "origin" | "documentId">,
 ): Promise<Uint8Array> {
   requireValid(
     /^[0-9a-f]{64}$/.test(nonce) &&
       source.documentId.length > 0 &&
       source.documentId.length <= 256,
-    'INVALID_INPUT'
-  )
-  return digest('dmsg/browser-proof/v1', [
+    "INVALID_INPUT",
+  );
+  return digest("dmsg/browser-proof/v1", [
     EXTENSION_PROTOCOL,
     unhex(nonce),
     source.origin,
     source.documentId,
-    command
-  ])
+    command,
+  ]);
 }
 
 export async function verifyBrowserProof(
   command: BrowserCommand,
   nonce: string,
   source: BrowserSource,
-  signature: string
+  signature: string,
 ): Promise<void> {
-  const sig = unbase64(signature, 64)
-  requireValid(sig.length === 64, 'INVALID_INPUT')
+  const sig = unbase64(signature, 64);
+  requireValid(sig.length === 64, "INVALID_INPUT");
   const key = await crypto.subtle.importKey(
-    'spki',
+    "spki",
     Uint8Array.from(unbase64(command.publicKey, 128)).buffer,
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: "ECDSA", namedCurve: "P-256" },
     false,
-    ['verify']
-  )
+    ["verify"],
+  );
   requireValid(
     await crypto.subtle.verify(
-      { name: 'ECDSA', hash: 'SHA-256' },
+      { name: "ECDSA", hash: "SHA-256" },
       key,
       Uint8Array.from(sig).buffer,
-      Uint8Array.from(await browserProofMessage(command, nonce, source)).buffer
+      Uint8Array.from(await browserProofMessage(command, nonce, source)).buffer,
     ),
-    'FORBIDDEN'
-  )
+    "FORBIDDEN",
+  );
 }
 
 /** Source document is mutable only after a fresh proof from this immutable key. */
 export function browserOperationDigest(
   command: BrowserCommand,
-  origin: string
+  origin: string,
 ): Promise<Uint8Array> {
   requireValid(
-    command.method === 'authenticate' || command.method === 'signDocument',
-    'INVALID_INPUT'
-  )
-  return digest('dmsg/browser-operation/v1', [
+    ["authenticate", "signDocument", "signAction", "checkout"].includes(
+      command.method,
+    ),
+    "INVALID_INPUT",
+  );
+  return digest("dmsg/browser-operation/v1", [
     origin,
     command.appId,
     command.operationId,
     command.method,
     unbase64(command.publicKey),
-    unbase64(command.payload!)
-  ])
+    unbase64(command.payload!),
+  ]);
 }
 
 export interface BrowserPort {
-  postMessage(value: unknown): void
-  disconnect(): void
-  onMessage: { addListener(fn: (value: any) => void): void }
-  onDisconnect: { addListener(fn: () => void): void }
+  postMessage(value: unknown): void;
+  disconnect(): void;
+  onMessage: { addListener(fn: (value: any) => void): void };
+  onDisconnect: { addListener(fn: () => void): void };
 }
 
 /** The session key stays with the product. No dMsg identity or wallet delegation is exported. */
 export function connectDmsg(options: {
-  extensionId: string
-  appId: string
-  session: BrowserSession
-  origin?: string
-  connect?: (id: string, options: { name: string }) => BrowserPort
+  extensionId: string;
+  appId: string;
+  session: BrowserSession;
+  origin?: string;
+  connect?: (id: string, options: { name: string }) => BrowserPort;
 }) {
-  requireValid(/^[a-p]{32}$/.test(options.extensionId), 'INVALID_EXTENSION')
-  validateIdentifier(options.appId)
-  const origin = options.origin ?? globalThis.location?.origin
-  requireValid(origin && origin !== 'null', 'INVALID_ORIGIN')
+  requireValid(/^[a-p]{32}$/.test(options.extensionId), "INVALID_EXTENSION");
+  validateIdentifier(options.appId);
+  const origin = options.origin ?? globalThis.location?.origin;
+  requireValid(origin && origin !== "null", "INVALID_ORIGIN");
   const connect =
     options.connect ??
     (globalThis as any).chrome?.runtime?.connect?.bind(
-      (globalThis as any).chrome.runtime
-    )
-  if (!connect) throw new DmsgBrowserError('EXTENSION_UNAVAILABLE')
+      (globalThis as any).chrome.runtime,
+    );
+  if (!connect) throw new DmsgBrowserError("EXTENSION_UNAVAILABLE");
   const port: BrowserPort = connect(options.extensionId, {
-    name: EXTENSION_PROTOCOL
-  })
+    name: EXTENSION_PROTOCOL,
+  });
   const pending = new Map<
     string,
     {
-      command: BrowserCommand | undefined
-      resolve: (v: any) => void
-      reject: (e: Error) => void
-      timer: ReturnType<typeof setTimeout>
+      command: BrowserCommand | undefined;
+      resolve: (v: any) => void;
+      reject: (e: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
     }
-  >()
-  let closed = false
+  >();
+  let closed = false;
   const finish = (id: string, value: unknown, error?: Error) => {
-    const p = pending.get(id)
-    if (!p) return
-    clearTimeout(p.timer)
-    pending.delete(id)
-    error ? p.reject(error) : p.resolve(value)
-  }
+    const p = pending.get(id);
+    if (!p) return;
+    clearTimeout(p.timer);
+    pending.delete(id);
+    error ? p.reject(error) : p.resolve(value);
+  };
   port.onMessage.addListener((message) => {
     if (
-      message?.method === 'source.challenge' &&
+      message?.method === "source.challenge" &&
       /^[0-9a-f]{64}$/.test(message.nonce)
     ) {
-      port.postMessage({ method: 'source.reply', nonce: message.nonce })
-      return
+      port.postMessage({ method: "source.reply", nonce: message.nonce });
+      return;
     }
-    const p = pending.get(message?.requestId)
-    if (!p || message.protocol !== EXTENSION_PROTOCOL) return
-    if (message.type === 'challenge') {
+    const p = pending.get(message?.requestId);
+    if (!p || message.protocol !== EXTENSION_PROTOCOL) return;
+    if (message.type === "challenge") {
       if (
         !p.command ||
         message.origin !== origin ||
-        typeof message.documentId !== 'string'
+        typeof message.documentId !== "string"
       ) {
-        finish(message.requestId, null, new DmsgBrowserError('SOURCE_MISMATCH'))
-        return
+        finish(
+          message.requestId,
+          null,
+          new DmsgBrowserError("SOURCE_MISMATCH"),
+        );
+        return;
       }
       void (async () => {
         const proof = await options.session.sign(
-          await browserProofMessage(p.command!, message.nonce, message)
-        )
+          await browserProofMessage(p.command!, message.nonce, message),
+        );
         if (!closed && pending.get(message.requestId) === p)
           port.postMessage({
             protocol: EXTENSION_PROTOCOL,
             requestId: message.requestId,
-            type: 'proof',
-            signature: base64(proof)
-          })
-      })().catch((e) => finish(message.requestId, null, e))
-    } else if (message.type === 'result') {
+            type: "proof",
+            signature: base64(proof),
+          });
+      })().catch((e) => finish(message.requestId, null, e));
+    } else if (message.type === "result") {
       finish(
         message.requestId,
         message.value,
         message.ok
           ? undefined
-          : new DmsgBrowserError(message.error || 'UNAVAILABLE')
-      )
+          : new DmsgBrowserError(message.error || "UNAVAILABLE"),
+      );
     }
-  })
+  });
   port.onDisconnect.addListener(() => {
-    closed = true
+    closed = true;
     for (const id of pending.keys())
-      finish(id, null, new DmsgBrowserError('DISCONNECTED'))
-  })
+      finish(id, null, new DmsgBrowserError("DISCONNECTED"));
+  });
   function send(command?: BrowserCommand): Promise<any> {
-    if (closed) return Promise.reject(new DmsgBrowserError('DISCONNECTED'))
+    if (closed) return Promise.reject(new DmsgBrowserError("DISCONNECTED"));
     if (pending.size >= 16)
-      return Promise.reject(new DmsgBrowserError('QUOTA_EXCEEDED'))
-    const id = hex(crypto.getRandomValues(new Uint8Array(32)))
+      return Promise.reject(new DmsgBrowserError("QUOTA_EXCEEDED"));
+    const id = hex(crypto.getRandomValues(new Uint8Array(32)));
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
-        () => finish(id, null, new DmsgBrowserError('TRANSPORT_TIMEOUT')),
-        30_000
-      )
-      pending.set(id, { command, resolve, reject, timer })
+        () => finish(id, null, new DmsgBrowserError("TRANSPORT_TIMEOUT")),
+        30_000,
+      );
+      pending.set(id, { command, resolve, reject, timer });
       try {
         port.postMessage({
           protocol: EXTENSION_PROTOCOL,
           requestId: id,
-          type: command ? 'request' : 'capabilities',
-          ...(command ? { command } : {})
-        })
+          type: command ? "request" : "capabilities",
+          ...(command ? { command } : {}),
+        });
       } catch (e) {
-        finish(id, null, e as Error)
+        finish(id, null, e as Error);
       }
-    })
+    });
   }
   function command(
-    method: BrowserCommand['method'],
+    method: BrowserCommand["method"],
     operationId: string,
     payload: string | null = null,
-    resultDigest: string | null = null
+    resultDigest: string | null = null,
   ): Promise<BrowserOperation> {
     return send(
       parseBrowserCommand({
@@ -323,52 +346,67 @@ export function connectDmsg(options: {
         operationId,
         publicKey: base64(options.session.publicKeyDer),
         payload,
-        resultDigest
-      })
-    )
+        resultDigest,
+      }),
+    );
   }
   return {
     capabilities: (): Promise<{ protocol: string; methods: string[] }> =>
       send(),
     authenticate: async (
-      request: AuthenticationRequest
+      request: AuthenticationRequest,
     ): Promise<BrowserOperation> => {
-      validateShape('AuthenticationRequest', request)
+      validateShape("AuthenticationRequest", request);
       requireValid(
         request.app_id === options.appId &&
           request.origin === origin &&
           equalBytes(
             request.session_key_hash,
-            await sha256(options.session.publicKeyDer)
+            await sha256(options.session.publicKeyDer),
           ),
-        'REQUEST_BINDING'
-      )
+        "REQUEST_BINDING",
+      );
       return command(
-        'authenticate',
+        "authenticate",
         hex(request.operation_id),
-        base64(canonical(request))
-      )
+        base64(canonical(request)),
+      );
     },
     signDocument: (
       operationId: string,
-      documentRequest: unknown
+      documentRequest: unknown,
     ): Promise<BrowserOperation> =>
       command(
-        'signDocument',
+        "signDocument",
         operationId,
-        base64(new TextEncoder().encode(JSON.stringify(documentRequest)))
+        base64(new TextEncoder().encode(JSON.stringify(documentRequest))),
       ),
-    signAction: async (): Promise<never> => {
-      throw new DmsgBrowserError('UNSUPPORTED_PROTOCOL')
+    signAction: (action: AppAction): Promise<BrowserOperation> => {
+      validateAppAction(action);
+      requireValid(
+        action.app_id === options.appId && action.origin === origin,
+        "REQUEST_BINDING",
+      );
+      return command(
+        "signAction",
+        hex(action.operation_id),
+        base64(canonical(action)),
+      );
     },
-    checkout: async (): Promise<never> => {
-      throw new DmsgBrowserError('UNSUPPORTED_PROTOCOL')
+    checkout: (request: CheckoutRequest): Promise<BrowserOperation> => {
+      validateShape("CheckoutRequest", request);
+      requireValid(request.offer.app_id === options.appId, "REQUEST_BINDING");
+      return command(
+        "checkout",
+        hex(request.offer.operation_id),
+        base64(canonical(request)),
+      );
     },
-    getOperation: (id: string) => command('getOperation', id),
-    openOperation: (id: string) => command('openOperation', id),
-    cancelOperation: (id: string) => command('cancelOperation', id),
+    getOperation: (id: string) => command("getOperation", id),
+    openOperation: (id: string) => command("openOperation", id),
+    cancelOperation: (id: string) => command("cancelOperation", id),
     acknowledge: (id: string, resultDigest: string) =>
-      command('acknowledge', id, null, resultDigest),
-    disconnect: () => port.disconnect()
-  }
+      command("acknowledge", id, null, resultDigest),
+    disconnect: () => port.disconnect(),
+  };
 }

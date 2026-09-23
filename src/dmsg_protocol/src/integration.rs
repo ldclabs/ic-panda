@@ -20,6 +20,12 @@ pub fn validate_identifier(value: &str) -> Result<()> {
 
 /// Canonical HTTPS origin, or an explicit loopback HTTP origin in Local only.
 pub fn validate_origin(value: &str, environment: &Environment) -> Result<()> {
+    if let Some(id) = value.strip_prefix("chrome-extension://") {
+        return ensure_valid(
+            id.len() == 32 && id.bytes().all(|b| (b'a'..=b'p').contains(&b)),
+            "extension origin",
+        );
+    }
     let url = url::Url::parse(value).map_err(|_| invalid("origin"))?;
     let local = *environment == Environment::Local
         && url.scheme() == "http"
@@ -82,6 +88,7 @@ pub fn validate_app(app: &AppRegistration) -> Result<()> {
     for product in &app.product_ids {
         validate_identifier(product)?;
     }
+    authenticated(app.action_authority)?;
     authenticated(app.authentication_receiver)
 }
 
@@ -277,6 +284,7 @@ pub fn quote_panda(
         Error::Expired,
     )?;
     Ok(PandaQuote {
+        quoted_at_ms: now,
         version: COMMERCE_VERSION,
         offer_hash: billing_offer_hash(offer),
         policy: policy.clone(),
@@ -423,7 +431,8 @@ pub fn match_product_receipt(receipt: &ProductReceipt, decision: &ProductDecisio
     } = receipt.outcome
     {
         ensure(
-            committed_until_ms == decision.offer.expires_at_ms,
+            committed_until_ms == decision.offer.expires_at_ms
+                && receipt.applied_at_ms < decision.apply_by_ms,
             Error::IntegrityFailed,
         )?;
     }

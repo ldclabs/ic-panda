@@ -93,6 +93,10 @@ type Error = variant {
   LegacyWriteDisabled;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
   // A new content root must be committed before writes can resume.
   RekeyRequired;
   // Expected version/generation differs from current state; reread before preparing a new approval.

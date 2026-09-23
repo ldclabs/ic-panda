@@ -50,6 +50,10 @@ pub trait SignRequestExt {
 
 impl SignRequestExt for SignRequest {
     fn into_execution(self) -> Result<ExecuteRequest> {
+        ensure(
+            !matches!(self.statement.content, StatementContent::AppAction(_)),
+            Error::UnsupportedProtocol,
+        )?;
         validate_origin(&self.origin)?;
         let algorithm: Algorithm = self.key.algorithm.into();
         let purpose = statement_purpose(&self.statement);
@@ -137,7 +141,7 @@ impl KeyRequestExt for KeyRequest {
                 self.algorithm == Algorithm::VetKdBls12381,
                 Error::UnsupportedProtocol,
             ),
-            KeyPurpose::Statement | KeyPurpose::FileAttestation => ensure(
+            KeyPurpose::Statement | KeyPurpose::FileAttestation | KeyPurpose::AppAction => ensure(
                 self.generation == 1 && self.algorithm != Algorithm::VetKdBls12381,
                 Error::UnsupportedProtocol,
             ),
@@ -189,3 +193,42 @@ pub fn recovery_confirmation_message(
 
 #[cfg(test)]
 mod tests;
+
+/// Prepare exact application execution bytes, without performing authorization.
+impl SignRequestExt for AppActionSignRequest {
+    fn into_execution(self) -> Result<ExecuteRequest> {
+        crate::app_action::validate_app_action(&self.action)?;
+        ensure(
+            self.account_id == self.action.signing_account,
+            Error::Forbidden,
+        )?;
+        ensure(
+            self.approval.expires_at <= self.action.expires_at_ms,
+            Error::Expired,
+        )?;
+        let origin = self.action.origin.clone();
+        let statement = Statement {
+            issuer: self.issuer,
+            subject: None,
+            issued_at: None,
+            content: StatementContent::AppAction(Box::new(self.action)),
+        };
+        let algorithm: Algorithm = self.key.algorithm.into();
+        let (_, bytes) = prepare_cose(&statement, &algorithm, &self.key.kid)?;
+        Ok(ExecuteRequest {
+            account_id: self.account_id,
+            max_cycles: self.max_cycles,
+            approval: self.approval,
+            kind: ExecutionKind::Sign {
+                key: KeyRequest {
+                    purpose: KeyPurpose::AppAction,
+                    algorithm,
+                    generation: 1,
+                },
+                to_be_signed: bytes.into(),
+                public_key_fingerprint: self.key.public_key_fingerprint,
+                origin,
+            },
+        })
+    }
+}

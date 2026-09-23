@@ -2,6 +2,7 @@
 
 English | [简体中文](README_zh.md)
 
+> Application actions: [app-action v1](app-action.md) defines the closed profile and current implementation boundary. It has a dedicated authorized signer, browser confirmation and independently verified execution receipt; the generic document signer rejects it.
 The current implementation adopts the [Statement v3 design](statement-v3-design.md): three document profiles v1, 12-byte Xid accounts, and execution approval domain v3. Specific byte formats are defined in [statements.cddl](statements.cddl); ICP interfaces are governed by each canister's `.did` declaration. Profile media types are experimental project names and have not yet been registered or adopted by standards bodies.
 
 `dmsg_types` defines public data contracts only; `dmsg_protocol` implements canonical encoding, profile verification, and identity adaptation; `dmsg_runtime` and each canister persist internal state. Independent third-party signature verification does not require implementing account databases, handle management, or paid delivery services.

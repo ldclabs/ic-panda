@@ -37,11 +37,6 @@ type AccountCommand = variant {
     // Committed root generation expected for compare-and-swap.
     expected_generation : nat64;
   };
-  // Approve an exact commercial action without adding a login binding.
-  AuthorizeMembership : record {
-    // Immutable application terms; device approval retains its own short expiry.
-    intent : MembershipIntent;
-  };
   // Remove a login Principal binding.
   RemoveAuth : record {
     // Login Principal to bind or remove.
@@ -144,6 +139,59 @@ type AccountStatus = variant {
   // Recovery has been disputed; sensitive operations are restricted.
   RecoveryDisputed;
 };
+// Exact external artifact reference; no automatic URI fetching.
+type ActionArtifact = record {
+  // HTTPS or IPFS reference.
+  uri : text;
+  // Digest of exact bytes, not encoded digest text.
+  sha256 : blob;
+  // Exact size in bytes.
+  size : nat64;
+  // Declared content type.
+  content_type : text;
+};
+// Exact product file version presented for this action.
+type ActionFile = record {
+  // Exact SHA-256 bytes.
+  sha256 : blob;
+  // Media type, not inferred from the file name.
+  media_type : text;
+  // Exact byte length.
+  byte_length : nat64;
+  // Optional display name committed alongside the digest.
+  display_name : opt text;
+  // Immutable revision; positive.
+  revision : nat64;
+  // Whether bytes are plaintext originals or ciphertext.
+  representation : ActionFileRepresentation;
+  // Stable, product-scoped file locator.
+  file_id : text;
+};
+// File digest interpretation. Neither value proves the original was read.
+type ActionFileRepresentation = variant {
+  // Hash names encrypted bytes.
+  Encrypted;
+  // Hash names the original bytes.
+  Original;
+};
+// One full change request shown to the signer.
+type ActionRequestedChange = record {
+  // Whether the change blocks approval.
+  blocking : bool;
+  // Product field locator.
+  locator : text;
+  // Verbatim requested change.
+  detail : text;
+};
+// Only terminal review decisions are signable; workflow states are not decisions.
+type ActionReviewOutcome = variant {
+  // Approve this round.
+  Approved;
+  // Refuse this round.
+  Rejected;
+  // Return specific changes.
+  ChangesRequested;
+};
 // Supported chain-key operations; vetKD derives keys and cannot sign documents.
 type Algorithm = variant {
   // BLS12-381 vetKD encrypted key derivation; not a document-signature algorithm.
@@ -152,6 +200,120 @@ type Algorithm = variant {
   Ed25519;
   // ECDSA over secp256k1 (COSE ES256K, -47).
   EcdsaSecp256k1;
+};
+// Full application decision, separate from portable document statements.
+// All timestamps are Unix milliseconds. No field is a caller-supplied display summary.
+type AppAction = record {
+  // Immutable file/version references, ordered by file_id.
+  files : vec ActionFile;
+  // Product's rule set at preparation.
+  rule_set_hash : blob;
+  // Exact registration revision used for preparation.
+  app_config_version : nat64;
+  // Exact browser origin; unlike document profiles, this is in signed content.
+  origin : text;
+  // Exact dMsg account selected by the product preparation, distinct from actor_id.
+  signing_account : blob;
+  // Product's stable actor Xid, not the dMsg signing account.
+  actor_id : blob;
+  // Product request identity; not the dMsg execution identity.
+  operation_id : blob;
+  // Product object content commitment.
+  subject_hash : blob;
+  // Profile version, exactly one.
+  version : nat16;
+  // Typed product command; unknown commands must be rejected.
+  command : AppActionCommand;
+  // Governance registered application.
+  app_id : text;
+  // First valid time.
+  issued_at_ms : nat64;
+  // Deployment domain.
+  environment : Environment;
+  // Product's object/version precondition.
+  precondition_hash : blob;
+  // Commitment to the complete product intent, including its session signer.
+  intent_hash : blob;
+  // Canister that commits the product action.
+  receiver : principal;
+  // Exact complete command commitment in the product's canonical encoding.
+  input_hash : blob;
+  // Exclusive end of the intent's validity window, at most five minutes.
+  expires_at_ms : nat64;
+  // Roles accepted at preparation.
+  role_snapshot_hash : blob;
+  // Explicit signer trust policy.
+  signing_policy_hash : blob;
+};
+// Initial closed schema. Additional products require an explicitly versioned variant.
+// These are complete TokenList command projections, not commands for dMsg to execute.
+type AppActionCommand = variant {
+  // Certify a transition. Optional analysis is a file reference, not proof of review.
+  TokenListCertifyTransition : record {
+    // Transition ID.
+    transition_id : nat64;
+    // Verbatim rationale.
+    rationale : text;
+    // Registry project ID.
+    project_id : nat64;
+    // Exact optional analysis reference from the command.
+    analysis : opt ActionArtifact;
+    // Commitment to the officer's certification.
+    statement_hash : blob;
+  };
+  // Certify one disclosure draft revision.
+  TokenListCertifyDisclosure : record {
+    // Investment contract ID.
+    contract_id : nat64;
+    // Registry project ID.
+    project_id : nat64;
+    // Expected draft revision.
+    revision : nat64;
+  };
+  // Counsel approval or refusal of one transition.
+  TokenListApproveTransition : record {
+    // True approves, false refuses.
+    approve : bool;
+    // Transition ID.
+    transition_id : nat64;
+    // Verbatim rationale.
+    rationale : text;
+    // Registry project ID.
+    project_id : nat64;
+    // Commitment to the counsel statement.
+    statement_hash : blob;
+  };
+  // Decide one review round with the complete requested changes.
+  TokenListDecideReview : record {
+    // Review case ID.
+    case_id : nat64;
+    // Verbatim decision rationale.
+    rationale : text;
+    // Registry project ID.
+    project_id : nat64;
+    // Complete requested changes, preserving order.
+    changes : vec ActionRequestedChange;
+    // Explicit decision.
+    outcome : ActionReviewOutcome;
+    // Round being decided.
+    round : nat64;
+  };
+};
+// Explicit application signing request. The user home confirms the exact body
+// and account linkage with the registered product authority before authorization.
+type AppActionSignRequest = record {
+  // Descriptor-selected purpose key; no automatic algorithm substitution.
+  key : SigningKeyRef;
+  // Account approving this action, separate from its product actor.
+  account_id : blob;
+  // Closed typed content obtained from the product preparation.
+  action : AppAction;
+  // Issuer must match the user's fixed account namespace.
+  issuer : text;
+  // Approved maximum execution cycles.
+  max_cycles : nat;
+  // Exact device approval and original execution identity.
+  approval : Approval;
 };
 // Approved dMsg account and product beneficiary are deliberately separate.
 type ApplicationApproval = record {
@@ -291,6 +453,45 @@ type Beneficiary = record {
   // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
+// Product-authoritative offer for one exact half-open subscription interval.
+type BillingOffer = record {
+  // Opaque product SKU, never interpreted by checkout.
+  sku : text;
+  // Registered product.
+  product_id : text;
+  // Typed recipient of product rights.
+  beneficiary : Beneficiary;
+  // Entire interval price in USD micro units, not an annualized price.
+  amount_usd_micros : nat;
+  // Operation identity fixed across retries.
+  operation_id : blob;
+  // Inclusive subscription start in Unix milliseconds.
+  starts_at_ms : nat64;
+  // Commerce version, currently two.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Quote issuance in Unix milliseconds.
+  issued_at_ms : nat64;
+  // Product-issued quote identifier.
+  offer_id : blob;
+  // Registered authoritative quote canister.
+  quote_authority : principal;
+  // Deployment separation.
+  environment : Environment;
+  // Product CAS revision, separate from qualification lease revision.
+  expected_business_revision : nat64;
+  // Registered product delivery canister.
+  adapter : principal;
+  // Explicit enabled settlement sources, without duplicates.
+  allowed_settlement_methods : vec SettlementMethod;
+  // Exclusive immutable end in Unix milliseconds.
+  expires_at_ms : nat64;
+  // Exclusive initial acceptance deadline; not an activation deadline.
+  accept_by_ms : nat64;
+  // Exact product terms accepted by the user.
+  product_terms_hash : blob;
+};
 // Explicit device permission; authentication alone grants none of these rights.
 type Capability = variant {
   // Approve formal document signing.
@@ -423,6 +624,10 @@ type Error = variant {
   LegacyWriteDisabled;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
   // A new content root must be committed before writes can resume.
   RekeyRequired;
   // Expected version/generation differs from current state; reread before preparing a new approval.
@@ -604,40 +809,12 @@ type KeyDescriptor = record {
 type KeyPurpose = variant {
   // Content-root derivation domain, selected by generation.
   ContentRoot;
+  // Typed product actions; not a generic document or root key.
+  AppAction;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
   // Key domain for text and structured file statements.
   Statement;
-};
-// Authority response for an exact intent, with a short validity deadline.
-type MembershipAuthorization = record {
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Account security revision checked by the authority.
-  security_epoch : nat64;
-  // Authority verification time in Unix milliseconds.
-  verified_at_ms : nat64;
-  // Commitment to the complete approved intent.
-  intent_digest : blob;
-};
-// A device-approved, purpose-separated intent. Actor authentication is also required.
-type MembershipIntent = record {
-  // Authenticated economic actor approving the action.
-  actor : principal;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Domain-separated commitment to the exact requested action.
-  action_digest : blob;
-  // Stable idempotency identifier for this application.
-  application_id : blob;
-  // Challenge preventing reuse as a different authorization.
-  nonce : blob;
-  // Exact service authorized to consume this intent.
-  service_canister : principal;
-  // Deployment domain of the request or service.
-  environment : Environment;
 };
 // Idempotent account mutation result, distinct from a certified execution receipt.
 type OperationReceipt = record {
@@ -689,6 +866,47 @@ type PendingRecovery = record {
   // Digest identifying the dispute, if one exists.
   dispute : opt blob;
 };
+// Explicit product permission; not a claim that the payer has a project role.
+type ProductApproval = record {
+  // Accepted settlement method.
+  method : SettlementMethod;
+  // Product-owned approval identity.
+  approval_id : blob;
+  // Exact bill accepted by the product operator.
+  offer_hash : blob;
+  // Operator whose product permissions must remain valid at delivery.
+  operator : principal;
+  // Protocol version two.
+  version : nat16;
+  // Exclusive application deadline, never extended on retry.
+  expires_at_ms : nat64;
+  // Approval time.
+  approved_at_ms : nat64;
+};
+// Fresh replicated product authorization; no interval is reserved by this read.
+type ProductAuthorization = record {
+  // Digest of all authorization inputs.
+  request_hash : blob;
+  // Authenticated product operator, separate from the economic actor.
+  operator : principal;
+  // Exclusive freshness boundary.
+  valid_until_ms : nat64;
+  // Check time.
+  verified_at_ms : nat64;
+};
+// Inputs authenticated by checkout/membership before asking the product authority.
+type ProductAuthorizationRequest = record {
+  // Explicit product approval; a personal-account adapter may derive owner consent from account_approval.
+  product_approval : opt ProductApproval;
+  // dMsg device-approved account and economic actor.
+  account_approval : ApplicationApproval;
+  // Exact device approval record.
+  approval_id : blob;
+  // Registered dMsg user home that verified the approval.
+  user_home : principal;
+  // Exact authoritative bill.
+  offer : BillingOffer;
+};
 // Recovery-key reconfirmation binding a disputed recovery request.
 type RecoveryConfirmation = record {
   // Operation identity used to bind approval and reconcile retries.
@@ -725,22 +943,22 @@ type RecoveryRequest = record {
 };
 type Result = variant { Ok : blob; Err : Error };
 type Result_1 = variant { Ok : AuthenticationResult; Err : Error };
-type Result_10 = variant { Ok : opt PendingRecovery; Err : Error };
-type Result_11 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_12 = variant { Ok : ApplicationAuthorization; Err : Error };
-type Result_13 = variant { Ok : MembershipAuthorization; Err : Error };
+type Result_10 = variant { Ok : OperationReceipt; Err : Error };
+type Result_11 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_12 = variant { Ok : opt ContentRootRef; Err : Error };
+type Result_13 = variant { Ok : ApplicationAuthorization; Err : Error };
 type Result_14 = variant { Ok : nat64; Err : Error };
 type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_3 = variant { Ok; Err : Error };
-type Result_4 = variant { Ok : blob; Err : Error };
-type Result_5 = variant { Ok : ExecutionResult; Err : Error };
-type Result_6 = variant { Ok : AccountInfo; Err : Error };
-type Result_7 = variant {
+type Result_3 = variant { Ok : ProductAuthorization; Err : Error };
+type Result_4 = variant { Ok; Err : Error };
+type Result_5 = variant { Ok : blob; Err : Error };
+type Result_6 = variant { Ok : ExecutionResult; Err : Error };
+type Result_7 = variant { Ok : AccountInfo; Err : Error };
+type Result_8 = variant {
   Ok : record { SecuritySnapshot; vec record { blob; Device } };
   Err : Error;
 };
-type Result_8 = variant { Ok : ExecutionUsage; Err : Error };
-type Result_9 = variant { Ok : OperationReceipt; Err : Error };
+type Result_9 = variant { Ok : ExecutionUsage; Err : Error };
 // Temporary compare-and-swap slot for a candidate content root.
 type RootReservation = record {
   // Idempotency identifier; reuse only with identical operation parameters.
@@ -824,6 +1042,13 @@ type SensitivePolicy = record {
   // Key purposes allowed by this policy.
   allowed_purposes : vec KeyPurpose;
 };
+// Mutually exclusive settlement sources. PANDA always covers the entire offer.
+type SettlementMethod = variant {
+  // One explicitly enabled ledger.
+  Cash;
+  // Full subscription waiver without any cash transfer.
+  Panda;
+};
 // Formal signing request submitted to the user canister.
 // Freeze the statement, authenticated key reference, origin and cycle limit
 // before computing the approval. The portable statement has no approval deadline.
@@ -873,9 +1098,9 @@ type SigningKeyRef = record {
   // RFC 9679 SHA-256 thumbprint of required public COSE key parameters.
   public_key_fingerprint : blob;
 };
-// Portable document preparation/parsed view, not the COSE wire payload.
+// Portable statement preparation/parsed view, not the COSE wire payload.
 // The issuer and optional claims become protected headers; content determines
-// the text, digest or file-statement profile. Use `dmsg_protocol` to validate and encode it.
+// the document or explicit application-action profile. Use `dmsg_protocol` to validate and encode it.
 type Statement = record {
   // Claimed Unix seconds, never a TSA assertion or execution deadline.
   issued_at : opt int64;
@@ -886,8 +1111,10 @@ type Statement = record {
   // Canonical absolute issuer URI identifying the signer.
   issuer : text;
 };
-// Document payload selection. File statements jointly sign text and a file digest.
+// Closed payload selection. Application actions cannot use the document-only endpoint.
 type StatementContent = variant {
+  // Explicit application action profile; never accepted by the generic document signer.
+  AppAction : AppAction;
   // A statement about one exact file, encoded as deterministic CBOR.
   // The text conveys no automatic approval, authority or proof of file review.
   FileStatement : record {
@@ -948,38 +1175,43 @@ service : (UserInit) -> {
       Result_1,
     );
   authentication_certificate : (blob, blob) -> (Result_2) query;
+  // Personal-account product consent. Project products use their own registered authority.
+  authorize_product_billing : (ProductAuthorizationRequest) -> (Result_3);
   // Only the new authentication principal may reserve its own binding. The
   // existing account_id's administrator must separately approve the exact nonce.
-  begin_auth_binding : (blob, blob, nat64) -> (Result_3);
-  complete_recovery : (blob) -> (Result_3);
-  consume_handle_authorization : (HandleIntent) -> (Result_3);
+  begin_auth_binding : (blob, blob, nat64) -> (Result_4);
+  complete_recovery : (blob) -> (Result_4);
+  consume_handle_authorization : (HandleIntent) -> (Result_4);
   consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
-      Result_3,
+      Result_4,
     );
-  create_account : (CreateAccount) -> (Result_4);
-  derive_root : (DeriveRootRequest) -> (Result_5);
-  get_account : (blob) -> (Result_6) query;
-  get_device_bundle : (blob) -> (Result_7) query;
-  get_execution : (blob, blob) -> (Result_5) query;
+  create_account : (CreateAccount) -> (Result_5);
+  derive_root : (DeriveRootRequest) -> (Result_6);
+  get_account : (blob) -> (Result_7) query;
+  get_device_bundle : (blob) -> (Result_8) query;
+  get_execution : (blob, blob) -> (Result_6) query;
   get_execution_receipt : (blob, blob) -> (Result_2) query;
-  get_execution_usage : (blob, nat32) -> (Result_8) query;
+  get_execution_usage : (blob, nat32) -> (Result_9) query;
   get_execution_usage_certified : (blob, nat32) -> (Result_2) query;
-  get_operation : (blob, blob) -> (Result_9) query;
-  get_recovery_request : (blob) -> (Result_10) query;
-  get_root_ref : (blob) -> (Result_11) query;
-  mutate_account : (AccountMutation) -> (Result_9);
+  get_operation : (blob, blob) -> (Result_10) query;
+  get_recovery_request : (blob) -> (Result_11) query;
+  get_root_ref : (blob) -> (Result_12) query;
+  inspect_app_action : (blob, AppAction) -> (Result_4);
+  mutate_account : (AccountMutation) -> (Result_10);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
   // Bounded public cleanup removes only expired authentication/approval records.
   prune_external_approvals : (blob) -> (opt blob);
-  reconcile_execution : (blob, blob) -> (Result_5);
-  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_3);
-  refresh_execution_entitlement : (blob) -> (Result_8);
-  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_3);
+  reconcile_execution : (blob, blob) -> (Result_6);
+  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_4);
+  refresh_execution_entitlement : (blob) -> (Result_9);
+  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_4);
   security_snapshot_batch : (vec blob) -> (Result_2) query;
-  sign : (SignRequest) -> (Result_5);
+  sign : (SignRequest) -> (Result_6);
+  sign_app_action : (AppActionSignRequest) -> (Result_6);
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_12);
-  verify_membership_authorization : (MembershipIntent) -> (Result_13);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_13);
   verify_payment_offer : (SignedOffer) -> (Result_14);
+  // A registered product may check whether its own account beneficiary still exists.
+  verify_product_account : (text, Beneficiary) -> (Result_4);
 }

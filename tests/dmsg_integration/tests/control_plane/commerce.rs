@@ -1,335 +1,339 @@
 use super::*;
-use dmsg_protocol::{billing::*, membership::*};
-use dmsg_types::{billing::*, membership::*};
+use dmsg_protocol::{billing::*, commerce_v2::*, integration::*};
+use dmsg_types::{
+    billing::*, integration::*, integration_billing::*, integration_membership::*, membership::*,
+};
 use serde::Serialize;
-
-#[path = "commerce_regressions.rs"]
-mod regressions;
-
-#[path = "membership.rs"]
-mod membership_tests;
-
-fn intent(
+#[path = "external_integration.rs"]
+mod external_integration;
+fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {
+    let r: Result<ExecutionUsage> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "refresh_execution_entitlement",
+        (id,),
+    );
+    r.unwrap();
+    let r: Result<BillingOffer> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "prepare_account_subscription",
+        (
+            "dmsg".to_string(),
+            beneficiary(f.user, id),
+            "plus".to_string(),
+            Hash::new([op; 32]),
+        ),
+    );
+    r.unwrap()
+}
+fn approve(
     f: &Fixture,
     id: &AccountId,
-    actor: u8,
-    op: u8,
+    offer: &BillingOffer,
     service: Principal,
-    action: Hash,
-) -> MembershipIntent {
-    MembershipIntent {
-        application_id: Hash::new([op; 32]),
+    purpose: ApprovalPurpose,
+    action_digest: Hash,
+    op: u8,
+) -> ProductAuthorizationRequest {
+    let a = ApplicationApproval {
+        version: 1,
         environment: Environment::Local,
-        service_canister: service,
-        beneficiary: beneficiary(f.user, id),
-        actor: person(actor),
-        action_digest: action,
-        nonce: Hash::new([op.wrapping_add(1); 32]),
-        valid_until_ms: time(&f.ic) + DAY - 1,
+        app_id: offer.app_id.clone(),
+        app_config_version: 1,
+        origin: "https://dmsg.test".into(),
+        approving_account: id.clone(),
+        service,
+        beneficiary: offer.beneficiary.clone(),
+        actor: person(1),
+        purpose,
+        action_digest,
+        operation_id: offer.operation_id,
+        nonce: Hash::new([op; 32]),
+        expires_at_ms: time(&f.ic) + AUTH_TTL_MS,
+    };
+    let state = f.account_id(1, id);
+    let mut proof = Approval {
+        device_id: Hash::new([1; 32]),
+        security_epoch: state.security_epoch,
+        sequence: state.devices[&Hash::new([1; 32])].next_sequence,
+        request_id: Hash::new([op; 32]),
+        expires_at: a.expires_at_ms,
+        signature: ByteBuf::new(),
+    };
+    proof.signature = key(1)
+        .sign(approval_message(f.user, id, "dmsg/application/approve/v1", &a, &proof).as_slice())
+        .to_bytes()
+        .to_vec()
+        .into();
+    let r: Result<Hash> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "approve_application",
+        (a.clone(), proof),
+    );
+    let approval_id = r.unwrap();
+    ProductAuthorizationRequest {
+        offer: offer.clone(),
+        account_approval: a,
+        user_home: f.user,
+        approval_id,
+        product_approval: None,
     }
 }
-fn approve(f: &Fixture, id: &AccountId, n: u8, i: &MembershipIntent) {
-    f.mutate(
-        n,
+fn open(f: &Fixture, id: &AccountId, ledger: Principal, op: u8) -> CheckoutView {
+    let bill = offer(f, id, op);
+    let r: Result<CheckoutQuote> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "quote_checkout",
+        (bill.clone(), ledger, account(person(1))),
+    );
+    let q = r.unwrap();
+    let a = approve(
+        f,
         id,
-        AccountCommand::AuthorizeMembership { intent: i.clone() },
-    )
-    .unwrap();
-}
-fn open(f: &Fixture, id: &AccountId, op: u8, action: OrderAction) -> BillingOrder {
-    let v: Result<EntitlementView> = update(
-        &f.ic,
+        &bill,
         f.commerce,
-        person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, id),),
+        ApprovalPurpose::CashCheckout,
+        checkout_quote_hash(&q),
+        op + 1,
     );
-    let revision = v.map_or(0, |v| v.business_revision);
-    let q: Result<OrderQuote> = query(
+    let r: Result<CheckoutView> = update(
         &f.ic,
         f.commerce,
         person(1),
-        "quote_order",
-        (QuoteOrder {
-            op_id: Hash::new([op; 32]),
-            beneficiary: beneficiary(f.user, id),
-            action,
-            expected_business_revision: revision,
-            payer: account(person(1)),
-        },),
-    );
-    let q = q.unwrap();
-    let i = intent(f, id, 1, op, f.commerce, order_digest(&q));
-    approve(f, id, 1, &i);
-    let o: Result<BillingOrder> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "open_order",
-        (dmsg_types::billing::OpenOrder {
+        "open_checkout",
+        (OpenCheckout {
             quote: q,
-            authorization: i,
+            authorization: a,
         },),
     );
-    o.unwrap()
+    let o = r.unwrap();
+    assert_eq!(o.progress.status, CheckoutStatus::AwaitingFunding);
+    o
 }
-fn deposit(f: &Fixture, o: &BillingOrder, who: u8, amount: u128) -> u64 {
-    f.mint(person(who), amount + 10);
+fn deposit(f: &Fixture, o: &CheckoutView, ledger: Principal, who: u8, amount: u128) -> CashBlock {
+    void(
+        &f.ic,
+        ledger,
+        person(who),
+        "mint_test",
+        (account(person(who)), amount + 10),
+    );
     let r: std::result::Result<Nat, TransferError> = update(
         &f.ic,
-        f.ledger,
+        ledger,
         person(who),
         "icrc1_transfer",
         (TransferArg {
             from_subaccount: None,
-            to: Account {
-                owner: f.commerce,
-                subaccount: Some(o.receive_subaccount.into_array()),
-            },
+            to: o.quote.cash.deposit,
             amount: amount.into(),
             fee: Some(10u64.into()),
             memo: None,
             created_at_time: Some(millis_to_nanos(time(&f.ic)).unwrap()),
         },),
     );
-    r.unwrap().0.to_string().parse().unwrap()
+    CashBlock {
+        ledger,
+        block_index: u128::try_from(r.unwrap().0).unwrap(),
+    }
 }
-fn check(f: &Fixture, o: &BillingOrder, block: u64) -> BillingOrder {
-    let r: Result<OrderProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "check_order_funding",
-        (o.order_id, block),
-    );
-    r.unwrap();
-    order_details(f, o.order_id)
-}
-
-fn order_details(f: &Fixture, id: Hash) -> BillingOrder {
-    let r: Result<BillingOrder> = query(&f.ic, f.commerce, person(1), "get_operation", (id,));
+fn status(f: &Fixture, id: Hash) -> CheckoutView {
+    let r: Result<CheckoutView> = query(&f.ic, f.commerce, person(1), "get_checkout", (id,));
     r.unwrap()
 }
-
-fn assert_money(o: &BillingOrder) {
-    assert_eq!(
-        o.confirmed_in,
-        o.service_reserve
-            + o.earned
-            + o.refundable
-            + o.fee_reserve
-            + o.outgoing
-            + o.transferred
-            + o.network_fees
-    );
-}
-
-#[test]
-fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
-    let f = Fixture::new();
-    let id = f.create(1);
-    let o = open(&f, &id, 91, OrderAction::Subscribe { plan: PlanId::Plus });
-    let wrong = deposit(&f, &o, 2, 200);
-    let awaiting = check(&f, &o, wrong);
-    assert_eq!(awaiting.status, OrderStatus::AwaitingFunding);
-    assert_money(&awaiting);
-    let under = deposit(&f, &o, 1, 100);
-    check(&f, &o, under);
-    let block = deposit(
-        &f,
-        &o,
-        1,
-        o.input.quote.amount_atomic + o.input.quote.fee_reserve + 100,
-    );
-    let active = check(&f, &o, block);
-    assert_eq!(active.status, OrderStatus::Active);
-    assert_money(&active);
-    assert_eq!(check(&f, &o, block), active);
-    if let Some(dir) = std::env::var_os("DMSG_COMMERCE_FIXTURE_DIR") {
-        let dir = std::path::PathBuf::from(dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let order_proof: Result<CertifiedBatch> = query(
-            &f.ic,
-            f.commerce,
-            person(1),
-            "get_order_certified",
-            (o.order_id,),
-        );
-        let entitlement: Result<CertifiedBatch> = query(
-            &f.ic,
-            f.commerce,
-            person(1),
-            "get_entitlement_batch",
-            (vec![beneficiary(f.user, &id)],),
-        );
-        let catalog: Result<CertifiedBatch> =
-            query(&f.ic, f.commerce, person(1), "get_catalog", ());
-        let bytes = canonical(&(
-            1u16,
-            "dmsg-commerce/1",
-            time(&f.ic),
-            ByteBuf::from(f.ic.root_key().unwrap()),
-            f.user,
-            f.commerce,
-            id.clone(),
-            order_proof.unwrap(),
-            entitlement.unwrap(),
-            catalog.unwrap(),
-        ));
-        std::fs::write(dir.join("cash-active.cbor"), bytes).unwrap();
-    }
-    let repeated = deposit(&f, &o, 1, 500);
-    let after = check(&f, &o, repeated);
-    assert_eq!(after.activated_contract_id, active.activated_contract_id);
-    assert_money(&after);
-    let e: Result<ExecutionEntitlement> = update(
+fn funding(f: &Fixture, id: Hash, b: CashBlock) -> CheckoutProgress {
+    let r: Result<CheckoutProgress> = update(
         &f.ic,
         f.commerce,
-        f.user,
-        "get_execution_entitlement",
+        person(1),
+        "check_checkout_funding",
+        (id, b),
+    );
+    r.unwrap()
+}
+#[test]
+fn checkout_two_ledgers_same_block_isolation_delivery_replay_and_revenue() {
+    for second in [false, true] {
+        let f = Fixture::commercial();
+        let id = f.create(1);
+        let ledger = if second { f.ledger2 } else { f.ledger };
+        let other = if second { f.ledger } else { f.ledger2 };
+        let o = open(&f, &id, ledger, 60);
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
+        let wrong = deposit(&f, &o, other, 1, total);
+        assert_eq!(
+            funding(&f, o.progress.order_id, wrong.clone()).status,
+            CheckoutStatus::AwaitingFunding
+        );
+        let good = deposit(&f, &o, ledger, 1, total + 50);
+        assert_eq!(good.block_index, wrong.block_index);
+        assert_eq!(
+            funding(&f, o.progress.order_id, good.clone()).status,
+            CheckoutStatus::Applied
+        );
+        assert_eq!(
+            funding(&f, o.progress.order_id, good).status,
+            CheckoutStatus::Applied
+        );
+        let audit: Result<CheckoutOperationsPage> = query(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "checkout_operations",
+            (None::<Hash>, 16u16),
+        );
+        let audit = audit.unwrap();
+        assert_eq!(audit.orders.len(), 1);
+        for b in &audit.orders[0].balances {
+            assert_eq!(
+                b.incoming_atomic,
+                b.refundable_atomic
+                    + b.service_reserve_atomic
+                    + b.fee_reserve_atomic
+                    + b.outgoing_atomic
+            );
+        }
+        let outsider: Result<CheckoutOperationsPage> = query(
+            &f.ic,
+            f.commerce,
+            person(99),
+            "checkout_operations",
+            (None::<Hash>, 16u16),
+        );
+        assert!(outsider.unwrap().orders.is_empty());
+        let details = status(&f, o.progress.order_id);
+        assert!(details.receipt.is_some());
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(f.user, &id),),
+        );
+        assert_eq!(r.unwrap().plan_snapshot.plan_id, PlanId::Plus);
+        let refund: Result<CashTransfer> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "claim_checkout_refund",
+            (
+                o.progress.order_id,
+                other,
+                vec![wrong.block_index],
+                Hash::new([75; 32]),
+            ),
+        );
+        let refund = refund.unwrap();
+        assert_eq!(refund.ledger, other);
+        assert_eq!(refund.to, account(person(1)));
+        assert_eq!(refund.amount_atomic + refund.fee_atomic, total);
+        let moved: Result<CashTransferProgress> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "process_checkout_transfer",
+            (refund.transfer_id,),
+        );
+        assert_eq!(moved.unwrap().status, CashTransferStatus::Succeeded);
+        let denied: Result<CashTransfer> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "collect_checkout_revenue",
+            (o.progress.order_id,),
+        );
+        assert_eq!(denied, Err(Error::Forbidden));
+        f.ic.advance_time(Duration::from_millis(200 * DAY));
+        let earned: Result<CashTransfer> = update(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "collect_checkout_revenue",
+            (o.progress.order_id,),
+        );
+        let earned = earned.unwrap();
+        assert_eq!(earned.ledger, ledger);
+        assert!(earned.amount_atomic < o.quote.cash.amount_atomic);
+        f.ic.upgrade_canister(
+            f.commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(status(&f, o.progress.order_id).receipt, details.receipt);
+    }
+}
+#[test]
+fn checkout_unknown_transfer_preserves_arguments_and_reconciles_actual_block() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let o = open(&f, &id, f.ledger, 80);
+    let wrong = deposit(&f, &o, f.ledger, 2, 1000);
+    funding(&f, o.progress.order_id, wrong.clone());
+    let r: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "claim_checkout_refund",
         (
-            beneficiary(f.user, &id),
-            month_utc(time(&f.ic)).unwrap(),
-            f.account_id(1, &id).created_at_ms,
+            o.progress.order_id,
+            f.ledger,
+            vec![wrong.block_index],
+            Hash::new([82; 32]),
         ),
     );
-    assert!(e.is_ok());
-    let i = intent(&f, &id, 1, 92, f.commerce, refund_digest(o.order_id));
-    approve(&f, &id, 1, &i);
-    let closing: Result<BillingOrder> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "request_refund",
-        (o.order_id, i),
-    );
-    let closing = closing.unwrap();
-    assert_eq!(closing.status, OrderStatus::Closing);
-    assert!(closing.close_effective_at_ms.unwrap() > time(&f.ic));
-    let early: Result<OrderProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "reconcile_order",
-        (o.order_id,),
-    );
-    assert_eq!(early, Err(Error::Pending));
-    f.ic.upgrade_canister(
-        f.commerce,
-        wasm("dmsg_commerce"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let refunded: Result<OrderProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "reconcile_order",
-        (o.order_id,),
-    );
-    refunded.unwrap();
-    let refunded = order_details(&f, o.order_id);
-    assert_eq!(refunded.status, OrderStatus::RefundCommitted);
-    assert_money(&refunded);
-    assert!(refunded.refunded_principal < o.input.quote.amount_atomic);
-    let leg: Result<TransferProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "claim_deposit_refund",
-        (o.order_id, block),
-    );
-    let leg = leg.unwrap();
-    let detail: Result<MerchantTransfer> = query(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "get_transfer",
-        (o.order_id, leg.transfer_id),
-    );
-    assert_eq!(detail.unwrap().to, account(person(1)));
+    let t = r.unwrap();
     void(&f.ic, f.ledger, person(1), "lose_next_response", ());
-    let unknown: Result<TransferProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "process_transfer",
-        (o.order_id, leg.transfer_id),
-    );
-    assert_eq!(unknown, Err(Error::ExecutionUnknown));
-    let paid: Result<TransferProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "process_transfer",
-        (o.order_id, leg.transfer_id),
-    );
-    assert_eq!(paid.unwrap().status, MerchantTransferStatus::Succeeded);
-
-    let rejected_leg: Result<TransferProgress> = update(
+    let r: Result<CashTransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
-        "claim_deposit_refund",
-        (o.order_id, wrong),
+        "process_checkout_transfer",
+        (t.transfer_id,),
     );
-    let rejected_leg = rejected_leg.unwrap();
-    void(&f.ic, f.ledger, person(2), "reject_next_transfers", (1u32,));
-    let rejected: Result<TransferProgress> = update(
+    assert!(r.is_err() || r.unwrap().status == CashTransferStatus::Unknown);
+    let changed: Result<CashTransfer> = update(
         &f.ic,
         f.commerce,
         person(2),
-        "process_transfer",
-        (o.order_id, rejected_leg.transfer_id),
+        "revise_checkout_transfer_fee",
+        (t.transfer_id, 11u128),
     );
-    assert_eq!(rejected.unwrap().status, MerchantTransferStatus::Rejected);
-    let replacement: Result<MerchantTransfer> = update(
+    assert!(changed.is_err());
+    let r: Result<CashTransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
-        "revise_rejected_transfer",
-        (o.order_id, rejected_leg.transfer_id, 10u128),
+        "reconcile_checkout_transfer",
+        (
+            t.transfer_id,
+            CashBlock {
+                ledger: f.ledger,
+                block_index: wrong.block_index + 1,
+            },
+        ),
     );
-    let replacement = replacement.unwrap();
-    let superseded: Result<TransferProgress> = update(
+    assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
+    let r: Result<CashTransfer> = query(
         &f.ic,
         f.commerce,
         person(2),
-        "process_transfer",
-        (o.order_id, rejected_leg.transfer_id),
+        "get_checkout_transfer",
+        (t.transfer_id,),
     );
-    assert_eq!(superseded, Err(Error::VersionConflict));
-    let replacement_paid: Result<TransferProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "process_transfer",
-        (o.order_id, replacement.transfer_id),
-    );
-    assert_eq!(
-        replacement_paid.unwrap().status,
-        MerchantTransferStatus::Succeeded
-    );
-    let view: Result<EntitlementView> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
-    );
-    assert_eq!(view.unwrap().plan_snapshot.plan_id, PlanId::Free);
-    let cert: Result<CertifiedBatch> = query(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "get_order_certified",
-        (o.order_id,),
-    );
-    assert!(!cert.unwrap().certificate.is_empty());
+    let current = r.unwrap();
+    assert_eq!(current.memo, t.memo);
+    assert_eq!(current.created_at_time_ns, t.created_at_time_ns);
+    assert_eq!(current.fee_atomic, t.fee_atomic);
 }
-
 #[derive(CandidType, Serialize, Deserialize, Clone)]
 struct TestNeuronId {
     id: Vec<u8>,
@@ -377,108 +381,133 @@ fn neuron(f: &Fixture, stake: u64, other: bool) {
         }),),
     );
 }
-fn claim_request(f: &Fixture, id: &AccountId, op: u8) -> ClaimRequest {
-    let mut plans = default_plans(1);
-    plans[1].membership_policy_version = Some(1);
-    let mut r = ClaimRequest {
-        authorization: intent(f, id, 1, op, f.membership, Hash::new([0; 32])),
-        neuron_id: Hash::new([44; 32]),
-        policy_version: 1,
-        benefit_id: plan_digest(&plans[1]),
-        expected_business_revision: 0,
-        term: TermRule::CalendarYear,
-        change: ClaimChange::Start,
-    };
-    r.authorization.action_digest = claim_action_digest(&r);
-    r
-}
 #[test]
-fn membership_cooling_renewed_device_approval_exclusivity_and_close() {
-    let f = Fixture::new();
+fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early() {
+    let f = Fixture::commercial();
     let id = f.create(1);
-    let other = f.create(2);
-    neuron(&f, 5_000_000_000_100, false);
-    let r = claim_request(&f, &id, 93);
-    approve(&f, &id, 1, &r.authorization);
-    let first: Result<ClaimView> = update(
+    neuron(&f, 100_000_000_000_100, false);
+    let bill = offer(&f, &id, 90);
+    let r: Result<PandaApplicationTerms> = update(
         &f.ic,
         f.membership,
         person(1),
-        "request_claim",
-        (r.clone(),),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, id.clone(), Hash::new([44; 32])),
     );
-    let first = first.unwrap();
-    assert_eq!(first.status, ClaimStatus::CoolingDown);
-    let mut r2 = claim_request(&f, &other, 94);
-    r2.authorization.actor = person(2);
-    approve(&f, &other, 2, &r2.authorization);
-    let collision: Result<ClaimView> =
-        update(&f.ic, f.membership, person(2), "request_claim", (r2,));
-    assert_eq!(collision, Err(Error::VersionConflict));
-    f.ic.advance_time(Duration::from_millis(MIN_COOLING_MS + 1));
-    let expired: Result<ClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "advance_application",
-        (first.claim_id,),
-    );
-    assert_eq!(expired, Err(Error::Expired));
-    approve(&f, &id, 1, &r.authorization);
-    let active: Result<ClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "advance_application",
-        (first.claim_id,),
-    );
-    let active = active.unwrap();
-    assert_eq!(active.status, ClaimStatus::Active);
-    assert!(active.lease_revision > first.lease_revision);
+    let terms = r.unwrap();
     assert_eq!(
-        active.expires_at_ms,
-        next_year(active.starts_at_ms).unwrap()
+        terms.quote.required_stake_e8s,
+        required_panda_stake(bill.amount_usd_micros, 5000, 1).unwrap()
     );
-    if let Some(dir) = std::env::var_os("DMSG_COMMERCE_FIXTURE_DIR") {
-        let dir = std::path::PathBuf::from(dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let proof: Result<CertifiedBatch> = query(
-            &f.ic,
-            f.membership,
-            person(1),
-            "get_claim_certified",
-            (vec![active.claim_id],),
-        );
-        let policy: Result<CertifiedBatch> = query(
-            &f.ic,
-            f.membership,
-            person(1),
-            "get_policy_certified",
-            (vec![1u64],),
-        );
-        std::fs::write(
-            dir.join("sns-active.cbor"),
-            canonical(&(
-                1u16,
-                "membership/1",
-                time(&f.ic),
-                ByteBuf::from(f.ic.root_key().unwrap()),
-                f.membership,
-                id.clone(),
-                proof.unwrap(),
-                policy.unwrap(),
-            )),
-        )
-        .unwrap();
-    }
-    let v: Result<EntitlementView> = update(
+    let a = approve(
+        &f,
+        &id,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        91,
+    );
+    let r: Result<PandaClaimView> = update(
         &f.ic,
-        f.commerce,
+        f.membership,
         person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: terms.clone(),
+            authorization: a.clone(),
+        },),
     );
-    assert_eq!(v.unwrap().plan_snapshot.plan_id, PlanId::Plus);
+    let cooling = r.unwrap();
+    assert_eq!(cooling.status, PandaClaimStatus::CoolingDown, "{cooling:?}");
+    let early: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (cooling.claim_id, a.clone()),
+    );
+    assert!(early.is_err());
+    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let stale: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (cooling.claim_id, a),
+    );
+    assert!(stale.is_err());
+    let fresh = approve(
+        &f,
+        &id,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        92,
+    );
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (cooling.claim_id, fresh),
+    );
+    let active = r.unwrap();
+    assert_eq!(active.status, PandaClaimStatus::Active);
+    let audit: Result<PandaOperationsPage> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "panda_operations",
+        (None::<Hash>, 16u16),
+    );
+    assert_eq!(audit.unwrap().claims.len(), 1);
+    let outsider: Result<PandaOperationsPage> = query(
+        &f.ic,
+        f.membership,
+        person(99),
+        "panda_operations",
+        (None::<Hash>, 16u16),
+    );
+    assert!(outsider.unwrap().claims.is_empty());
+
+    assert_eq!(active.committed_until_ms, bill.expires_at_ms);
+    let exit: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "cancel_panda_application",
+        (active.claim_id,),
+    );
+    assert_eq!(exit, Err(Error::Forbidden));
+    let budget: Vec<PandaSubsidyBudget> =
+        query(&f.ic, f.membership, person(1), "panda_budgets", ());
+    assert_eq!(budget[0].reserved_usd_micros, bill.amount_usd_micros);
+    neuron(&f, 100, false);
+    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "refresh_panda_claim",
+        (active.claim_id,),
+    );
+    assert_eq!(r.unwrap().eligibility, Eligibility::Ineligible);
+    f.ic.advance_time(Duration::from_millis(8 * DAY));
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "refresh_panda_claim",
+        (active.claim_id,),
+    );
+    let ended = r.unwrap();
+    assert_eq!(ended.status, PandaClaimStatus::Terminated);
+    assert_eq!(ended.committed_until_ms, bill.expires_at_ms);
+    let budget: Vec<PandaSubsidyBudget> =
+        query(&f.ic, f.membership, person(1), "panda_budgets", ());
+    assert_eq!(budget[0].reserved_usd_micros, bill.amount_usd_micros);
     f.ic.upgrade_canister(
         f.membership,
         wasm("membership"),
@@ -486,629 +515,591 @@ fn membership_cooling_renewed_device_approval_exclusivity_and_close() {
         None,
     )
     .unwrap();
-    f.ic.upgrade_canister(
-        f.commerce,
-        wasm("dmsg_commerce"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    neuron(&f, 5_000_000_000_100, true);
-    let v: Result<EntitlementView> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
-    );
-    let repair = v.unwrap();
-    assert_eq!(repair.source_status, SourceStatus::RepairRequired);
-    assert!(repair.repair_deadline_ms.is_some());
-    // Rechecking known loss of control must not reset the repair clock.
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let v: Result<EntitlementView> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
-    );
-    assert_eq!(v.unwrap().repair_deadline_ms, repair.repair_deadline_ms);
-    let i = intent(
-        &f,
-        &id,
-        1,
-        95,
-        f.membership,
-        close_claim_digest(active.claim_id),
-    );
-    approve(&f, &id, 1, &i);
-    let closing: Result<ClaimView> = update(
+    f.ic.advance_time(Duration::from_millis(bill.expires_at_ms - time(&f.ic) + 1));
+    let r: Result<u32> = update(
         &f.ic,
         f.membership,
         person(1),
-        "request_change",
-        (active.claim_id, i),
+        "sweep_panda_commitments",
+        (),
     );
-    let closing = closing.unwrap();
-    assert_eq!(closing.status, ClaimStatus::Closing);
-    assert!(closing.lease_revision > active.lease_revision);
-    assert!(closing.release_after_ms < active.expires_at_ms);
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let closed: Result<ClaimView> = update(
+    r.unwrap();
+    let r: Result<u32> = update(
         &f.ic,
         f.membership,
         person(1),
-        "refresh_claim",
-        (active.claim_id,),
+        "sweep_panda_commitments",
+        (),
     );
-    assert_eq!(closed.unwrap().status, ClaimStatus::Released);
+    assert_eq!(r.unwrap(), 0);
+    let budget: Vec<PandaSubsidyBudget> =
+        query(&f.ic, f.membership, person(1), "panda_budgets", ());
+    assert_eq!(budget[0].reserved_usd_micros, 0);
 }
-
-#[test]
-fn commercial_authorization_does_not_add_auth_and_governance_is_fixed() {
-    let f = Fixture::new();
-    let id = f.create(1);
-    let q: Result<OrderQuote> = query(
+fn sample(f: &Fixture) -> (Principal, AccountId) {
+    let canister = f.ic.create_canister();
+    f.ic.add_cycles(canister, 10_000_000_000_000_000);
+    f.ic.install_canister(
+        canister,
+        wasm("dmsg_account_product"),
+        candid::encode_args((dmsg_account_product::Config {
+            admin: person(1),
+            commerce: f.commerce,
+            membership: f.membership,
+            environment: Environment::Local,
+            app_id: "sample".into(),
+            product_id: "sample".into(),
+            terms_hash: Hash::new([101; 32]),
+            annual_usd_micros: 10_000_000,
+        },))
+        .unwrap(),
+        None,
+    );
+    let id = AccountId([55; 12]);
+    let r: Result<()> = update(
         &f.ic,
-        f.commerce,
+        canister,
         person(1),
-        "quote_order",
-        (QuoteOrder {
-            op_id: Hash::new([96; 32]),
-            beneficiary: beneficiary(f.user, &id),
-            action: OrderAction::Subscribe { plan: PlanId::Plus },
-            expected_business_revision: 0,
-            payer: account(person(2)),
-        },),
+        "assign_account",
+        (id.clone(), person(1)),
     );
-    let q = q.unwrap();
-    let i = intent(&f, &id, 2, 96, f.commerce, order_digest(&q));
-    let unapproved: Result<BillingOrder> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "open_order",
-        (dmsg_types::billing::OpenOrder {
-            quote: q.clone(),
-            authorization: i.clone(),
-        },),
-    );
-    assert_eq!(unapproved, Err(Error::NotFound));
-    approve(&f, &id, 1, &i);
-    assert_eq!(f.account_id(1, &id).auth_bindings, vec![person(1)]);
-    let approved: Result<BillingOrder> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "open_order",
-        (dmsg_types::billing::OpenOrder {
-            quote: q,
-            authorization: i,
-        },),
-    );
-    assert!(approved.is_ok());
-    let denied: Result<()> = update(
-        &f.ic,
-        f.commerce,
-        Principal::anonymous(),
-        "set_admission_pause",
-        (true,),
-    );
-    assert_eq!(denied, Err(Error::Forbidden));
-    let denied: Result<()> = update(
-        &f.ic,
-        f.membership,
-        Principal::anonymous(),
-        "set_admission_pause",
-        (true,),
-    );
-    assert_eq!(denied, Err(Error::Forbidden));
-
-    let catalogs: Vec<Catalog> = query(
-        &f.ic,
-        f.commerce,
-        Principal::anonymous(),
-        "list_catalogs",
-        (None::<u64>,),
-    );
-    let mut version_three = catalogs[0].clone();
-    version_three.version = 3;
-    version_three.effective_at_ms = time(&f.ic) + 31 * DAY;
-    for plan in &mut version_three.plans {
-        plan.catalog_version = 3;
-    }
-    let scheduled: Result<()> = update(
+    r.unwrap();
+    let p = ProductRegistration {
+        version: 2,
+        environment: Environment::Local,
+        product_id: "sample".into(),
+        config_version: 1,
+        quote_authority: canister,
+        beneficiary_authority: canister,
+        adapter: canister,
+        subject_schema: "sample-account-v1".into(),
+        subject_size: 12,
+        merchant: account(person(60)),
+        ledgers: vec![f.ledger, f.ledger2],
+        terms_hash: Hash::new([101; 32]),
+        subsidy_budget_id: Hash::new([100; 32]),
+        paused: false,
+    };
+    let r: Result<()> = update(
         &f.ic,
         f.commerce,
         f.sns,
-        "schedule_policy",
-        (version_three.clone(),),
+        "register_integration_product",
+        (p,),
     );
-    scheduled.unwrap();
-    let mut version_two = version_three;
-    version_two.version = 2;
-    version_two.effective_at_ms = time(&f.ic) + 61 * DAY;
-    for plan in &mut version_two.plans {
-        plan.catalog_version = 2;
-    }
-    let out_of_order: Result<()> =
-        update(&f.ic, f.commerce, f.sns, "schedule_policy", (version_two,));
-    assert!(matches!(out_of_order, Err(Error::InvalidInput(_))));
-
-    let fee_governance = Principal::from_slice(&[90]);
-    let current_fee: DeliveryFeePolicy = query(
-        &f.ic,
-        f.payment,
-        Principal::anonymous(),
-        "get_fee_policy",
-        (),
-    );
-    let mut fee_three = current_fee.clone();
-    fee_three.version = 3;
-    fee_three.effective_at_ms = time(&f.ic) + 31 * DAY;
-    let scheduled: Result<()> = update(
-        &f.ic,
-        f.payment,
-        fee_governance,
-        "schedule_fee_policy",
-        (fee_three.clone(),),
-    );
-    scheduled.unwrap();
-    let mut fee_two = fee_three;
-    fee_two.version = 2;
-    fee_two.effective_at_ms = time(&f.ic) + 61 * DAY;
-    let out_of_order: Result<()> = update(
-        &f.ic,
-        f.payment,
-        fee_governance,
-        "schedule_fee_policy",
-        (fee_two,),
-    );
-    assert_eq!(out_of_order, Err(Error::PolicyStale));
-}
-
-#[test]
-fn transfer_fee_cannot_consume_principal_beyond_the_frozen_reserve() {
-    let f = Fixture::new();
-    let id = f.create(1);
-    let o = open(&f, &id, 107, OrderAction::Subscribe { plan: PlanId::Plus });
-    let refundable = deposit(&f, &o, 2, 200);
-    check(&f, &o, refundable);
-
-    let catalogs: Vec<Catalog> = query(
-        &f.ic,
-        f.commerce,
-        Principal::anonymous(),
-        "list_catalogs",
-        (None::<u64>,),
-    );
-    let mut next = catalogs[0].clone();
-    next.version = 2;
-    next.effective_at_ms = time(&f.ic) + 31 * DAY;
-    next.ledger_fee = o.input.quote.fee_reserve + 1;
-    for plan in &mut next.plans {
-        plan.catalog_version = 2;
-    }
-    let scheduled: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (next,));
-    scheduled.unwrap();
-    f.ic.advance_time(Duration::from_millis(31 * DAY));
-    void(
-        &f.ic,
-        f.ledger,
-        person(1),
-        "set_fee",
-        (o.input.quote.fee_reserve + 1,),
-    );
-    let verified: Result<()> = update(&f.ic, f.commerce, f.sns, "verify_ledger_configuration", ());
-    verified.unwrap();
-
-    let blocked: Result<TransferProgress> = update(
-        &f.ic,
-        f.commerce,
-        person(2),
-        "claim_deposit_refund",
-        (o.order_id, refundable),
-    );
-    assert_eq!(blocked, Err(Error::FeeBlocked));
-}
-
-#[test]
-fn recorded_cose_failure_releases_the_commercial_reservation() {
-    let f = Fixture::commercial();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    let initial: Result<ExecutionUsage> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "refresh_execution_entitlement",
-        (&id,),
-    );
-    let initial = initial.unwrap();
-
-    let initialized: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-
-    let public = key(7).verifying_key().to_bytes();
-    let fingerprint =
-        key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
-    let state = f.account_id(1, &id);
-    let device = &state.devices[&Hash::new([1; 32])];
-    let mut request = SignRequest {
-        account_id: id.clone(),
-        key: SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: fingerprint.to_vec().into(),
-            public_key_fingerprint: fingerprint,
-        },
-        statement: Statement {
-            issuer: account_issuer(NAMESPACE, &id).unwrap(),
-            subject: None,
-            issued_at: None,
-            content: StatementContent::Text("known rejection".into()),
-        },
-        origin: "https://example.com".into(),
-        max_cycles: 100_000_000_000,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: state.security_epoch,
-            sequence: device.next_sequence,
-            request_id: execution_request_id(
-                &id,
-                state.security_epoch,
-                Hash::new([1; 32]),
-                device.next_sequence,
-            ),
-            expires_at: time(&f.ic) + MINUTE,
-            signature: ByteBuf::new(),
-        },
+    r.unwrap();
+    let a = AppRegistration {
+        version: 1,
+        environment: Environment::Local,
+        app_id: "sample".into(),
+        config_version: 1,
+        origins: vec!["https://dmsg.test".into()],
+        user_homes: vec![f.user],
+        cose_homes: vec![f.cose],
+        product_ids: vec!["sample".into()],
+        capabilities: vec![AppCapability::Checkout],
+        profiles: vec![],
+        authentication_receiver: canister,
+        action_authority: canister,
+        paused: false,
     };
-    request.approval.signature = key(1)
-        .sign(
-            request
-                .clone()
-                .into_execution()
-                .unwrap()
-                .approval_message(f.user)
-                .as_slice(),
-        )
-        .to_bytes()
-        .to_vec()
-        .into();
-    let rejected: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
-    assert!(matches!(
-        rejected.unwrap().outcome,
-        ExecutionOutcome::Failed(Error::IntegrityFailed)
-    ));
-    let usage: Result<ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, initial.month_utc),
-    );
-    let usage = usage.unwrap();
-    assert_eq!(usage.held_units, 0);
-    assert_eq!(usage.charged_units, 0);
+    let r: Result<()> = update(&f.ic, f.commerce, f.sns, "register_integration_app", (a,));
+    r.unwrap();
+    (canister, id)
 }
-
-#[test]
-fn execution_monthly_units_cannot_be_reset_by_refund_or_upgrade() {
-    let f = Fixture::commercial();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    let keys: Result<dmsg_types::cose::KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    keys.unwrap();
-    let initial: Result<ExecutionUsage> = update(
+fn sample_offer(
+    f: &Fixture,
+    home: Principal,
+    id: &AccountId,
+    op: u8,
+    method: SettlementMethod,
+) -> dmsg_account_product::Prepared {
+    let r: Result<dmsg_account_product::Prepared> = update(
         &f.ic,
-        f.user,
+        home,
         person(1),
-        "refresh_execution_entitlement",
-        (&id,),
+        "prepare_billing_offer",
+        (id.clone(), Hash::new([op; 32]), method),
     );
-    let initial = initial.unwrap();
-    assert!(initial.allowed_units <= 3);
-    let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    for _ in 0..initial.allowed_units {
-        let request = user_tests::statement_request(&f, &id, signing_key.clone(), 100_000_000_000);
-        let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
-        assert!(matches!(
-            result.unwrap().outcome,
-            ExecutionOutcome::Completed(_)
-        ));
-    }
-    let exhausted = user_tests::statement_request(&f, &id, signing_key.clone(), 100_000_000_000);
-    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (exhausted,));
-    assert_eq!(result, Err(Error::QuotaExceeded));
-    let o = open(&f, &id, 97, OrderAction::Subscribe { plan: PlanId::Plus });
+    r.unwrap()
+}
+#[test]
+fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_contract_book() {
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    let (home, id) = sample(&f);
+    let cash = sample_offer(&f, home, &id, 110, SettlementMethod::Cash);
+    let panda = sample_offer(&f, home, &id, 111, SettlementMethod::Panda);
+    let q: Result<CheckoutQuote> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "quote_checkout",
+        (cash.offer.clone(), f.ledger, super::account(person(1))),
+    );
+    let q = q.unwrap();
+    let mut a = approve(
+        &f,
+        &account,
+        &cash.offer,
+        f.commerce,
+        ApprovalPurpose::CashCheckout,
+        checkout_quote_hash(&q),
+        112,
+    );
+    a.product_approval = Some(cash.approval);
+    let opened: Result<CheckoutView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "open_checkout",
+        (OpenCheckout {
+            quote: q,
+            authorization: a,
+        },),
+    );
+    let opened = opened.unwrap();
+    assert_eq!(opened.progress.status, CheckoutStatus::AwaitingFunding);
+    neuron(&f, 100_000_000_000_100, false);
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (
+            panda.offer.clone(),
+            f.user,
+            account.clone(),
+            Hash::new([44; 32]),
+        ),
+    );
+    let terms = terms.unwrap();
+    let mut a = approve(
+        &f,
+        &account,
+        &panda.offer,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        113,
+    );
+    a.product_approval = Some(panda.approval);
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms,
+            authorization: a,
+        },),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Rejected);
+    let r: Result<()> = update(&f.ic, home, person(1), "lose_next_apply_ack", ());
+    r.unwrap();
     let block = deposit(
         &f,
-        &o,
+        &opened,
+        f.ledger,
         1,
-        o.input.quote.amount_atomic + o.input.quote.fee_reserve,
+        opened.quote.cash.amount_atomic + opened.quote.cash.fee_reserve_atomic,
     );
-    check(&f, &o, block);
-    // Explicit refresh observes the purchase immediately, despite the cached Free lease.
-    let u: Result<ExecutionUsage> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "refresh_execution_entitlement",
-        (&id,),
-    );
-    let u = u.unwrap();
-    assert!(u.allowed_units > initial.allowed_units && u.allowed_units <= 10);
-    let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    assert_eq!(u.charged_units, initial.allowed_units);
-    let mut last = None;
-    for index in u.charged_units..=u.allowed_units {
-        if index == 8 {
-            f.ic.advance_time(Duration::from_millis(DAY));
-        }
-        let s = f.account_id(1, &id);
-        let device = &s.devices[&Hash::new([1; 32])];
-        let mut request = SignRequest {
-            account_id: id.clone(),
-            key: signing_key.clone(),
-            statement: Statement {
-                issuer: account_issuer(NAMESPACE, &id).unwrap(),
-                subject: None,
-                issued_at: None,
-                content: StatementContent::Text(format!("commercial signature {index}")),
-            },
-            origin: "https://example.com".into(),
-            max_cycles: 100_000_000_000,
-            approval: Approval {
-                device_id: Hash::new([1; 32]),
-                security_epoch: s.security_epoch,
-                sequence: device.next_sequence,
-                request_id: execution_request_id(
-                    &id,
-                    s.security_epoch,
-                    Hash::new([1; 32]),
-                    device.next_sequence,
-                ),
-                expires_at: time(&f.ic) + MINUTE,
-                signature: ByteBuf::new(),
-            },
-        };
-        request.approval.signature = key(1)
-            .sign(
-                request
-                    .clone()
-                    .into_execution()
-                    .unwrap()
-                    .approval_message(f.user)
-                    .as_slice(),
-            )
-            .to_bytes()
-            .to_vec()
-            .into();
-        let result: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
-        if index == u.allowed_units {
-            assert_eq!(result, Err(Error::QuotaExceeded));
-        } else {
-            let result = result.unwrap();
-            assert!(
-                matches!(result.outcome, ExecutionOutcome::Completed(_)),
-                "{result:?}"
-            );
-            last = Some(request);
-        }
-    }
-    let repeated: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign", (last.unwrap(),));
-    assert!(repeated.is_ok());
-    let used: Result<ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, u.month_utc),
-    );
-    let used = used.unwrap();
-    assert_eq!(used.charged_units, u.allowed_units);
-    assert_eq!(used.held_units, 0);
-    let refund = intent(&f, &id, 1, 98, f.commerce, refund_digest(o.order_id));
-    approve(&f, &id, 1, &refund);
-    let r: Result<BillingOrder> = update(
+    let r: Result<CheckoutProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
-        "request_refund",
-        (o.order_id, refund),
+        "check_checkout_funding",
+        (opened.progress.order_id, block),
     );
-    r.unwrap();
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let r: Result<OrderProgress> = update(
+    assert!(r.is_err() || r.unwrap().status == CheckoutStatus::Applying);
+    let history: Result<Vec<SubscriptionContract>> =
+        query(&f.ic, home, person(1), "contracts", (id.clone(),));
+    assert_eq!(history.unwrap().len(), 1);
+    let r: Result<CheckoutProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
-        "reconcile_order",
-        (o.order_id,),
+        "reconcile_checkout",
+        (opened.progress.order_id,),
     );
-    r.unwrap();
+    assert_eq!(r.unwrap().status, CheckoutStatus::Applied);
     f.ic.upgrade_canister(
-        f.user,
-        wasm("dmsg_user"),
+        home,
+        wasm("dmsg_account_product"),
         candid::encode_args(()).unwrap(),
         None,
     )
     .unwrap();
-    let after: Result<ExecutionUsage> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "refresh_execution_entitlement",
-        (&id,),
-    );
-    let after = after.unwrap();
-    assert_eq!(after.charged_units, used.charged_units);
-    assert!(after.allowed_units <= used.allowed_units);
-    // Root administration remains available when paid signing is exhausted.
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id: Hash::new([100; 32]),
-        },
-    )
-    .unwrap();
-    let cert: Result<CertifiedBatch> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage_certified",
-        (&id, u.month_utc),
-    );
-    certified_value(&f, cert.unwrap(), usage_key(&id, u.month_utc).as_slice());
+    let history: Result<Vec<SubscriptionContract>> =
+        query(&f.ic, home, person(1), "contracts", (id,));
+    assert_eq!(history.unwrap().len(), 1);
 }
-
 #[test]
-fn upgrades_refund_the_same_period_and_independent_storage_survives() {
+fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first_expiry() {
     let f = Fixture::commercial();
-    let id = f.create(1);
-    let base = open(&f, &id, 101, OrderAction::Subscribe { plan: PlanId::Plus });
-    let block = deposit(
-        &f,
-        &base,
-        1,
-        base.input.quote.amount_atomic + base.input.quote.fee_reserve,
-    );
-    check(&f, &base, block);
-    let extra = open(
-        &f,
-        &id,
-        102,
-        OrderAction::Storage {
-            product_id: Hash::new([120; 32]),
-        },
-    );
-    let block = deposit(
-        &f,
-        &extra,
-        1,
-        extra.input.quote.amount_atomic + extra.input.quote.fee_reserve,
-    );
-    check(&f, &extra, block);
-    f.ic.advance_time(Duration::from_millis(DAY));
-    let upgraded = open(&f, &id, 103, OrderAction::Upgrade { plan: PlanId::Pro });
-    assert!(upgraded.input.quote.amount_atomic < 40_000_000);
-    let block = deposit(
-        &f,
-        &upgraded,
-        1,
-        upgraded.input.quote.amount_atomic + upgraded.input.quote.fee_reserve,
-    );
-    check(&f, &upgraded, block);
-    let v: Result<EntitlementView> = update(
+    let account = f.create(1);
+    let (home, id) = sample(&f);
+    neuron(&f, 100_000_000_000_100, false);
+    let prepared = sample_offer(&f, home, &id, 120, SettlementMethod::Panda);
+    let terms: Result<PandaApplicationTerms> = update(
         &f.ic,
-        f.commerce,
+        f.membership,
         person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
+        "quote_panda_subscription",
+        (
+            prepared.offer.clone(),
+            f.user,
+            account.clone(),
+            Hash::new([44; 32]),
+        ),
     );
-    assert_eq!(v.unwrap().plan_snapshot.plan_id, PlanId::Pro);
-    let i = intent(&f, &id, 1, 104, f.commerce, refund_digest(base.order_id));
-    approve(&f, &id, 1, &i);
-    let closing: Result<BillingOrder> = update(
+    let terms = terms.unwrap();
+    let mut a = approve(
+        &f,
+        &account,
+        &prepared.offer,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        121,
+    );
+    a.product_approval = Some(prepared.approval.clone());
+    let r: Result<PandaClaimView> = update(
         &f.ic,
-        f.commerce,
+        f.membership,
         person(1),
-        "request_refund",
-        (base.order_id, i),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: terms.clone(),
+            authorization: a,
+        },),
     );
-    closing.unwrap();
-    f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    for id in [base.order_id, upgraded.order_id] {
-        let r: Result<OrderProgress> =
-            update(&f.ic, f.commerce, person(1), "reconcile_order", (id,));
-        r.unwrap();
-        let r = order_details(&f, id);
-        assert_eq!(r.status, OrderStatus::RefundCommitted);
-        assert_money(&r);
-    }
-    let v: Result<EntitlementView> = update(
+    let pending = r.unwrap();
+    assert_eq!(pending.status, PandaClaimStatus::CoolingDown);
+    let bill = offer(&f, &account, 122);
+    let other: Result<PandaApplicationTerms> = update(
         &f.ic,
-        f.commerce,
+        f.membership,
         person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, account.clone(), Hash::new([44; 32])),
     );
-    let v = v.unwrap();
-    assert_eq!(v.plan_snapshot.plan_id, PlanId::Free);
-    assert_eq!(v.addons.len(), 1);
+    let other = other.unwrap();
+    let a = approve(
+        &f,
+        &account,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&other),
+        123,
+    );
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: other,
+            authorization: a,
+        },),
+    );
+    assert_eq!(r, Err(Error::NeuronOccupied));
+    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let mut a = approve(
+        &f,
+        &account,
+        &prepared.offer,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        124,
+    );
+    a.product_approval = Some(prepared.approval);
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (pending.claim_id, a),
+    );
+    let first = r.unwrap();
+    assert_eq!(first.status, PandaClaimStatus::Active);
+    // The reference product deliberately permits early next-period commitments.
+    let prepared = sample_offer(&f, home, &id, 125, SettlementMethod::Panda);
+    assert_eq!(prepared.offer.starts_at_ms, first.committed_until_ms);
+    // Keep the physical lock sufficient for both complete terms.
+    void(
+        &f.ic,
+        f.sns,
+        person(1),
+        "set_neuron",
+        (Some(TestNeuron {
+            id: Some(TestNeuronId { id: vec![44; 32] }),
+            permissions: vec![TestPermission {
+                principal: Some(person(1)),
+                permission_type: vec![1, 2, 4, 5, 6],
+            }],
+            cached_neuron_stake_e8s: 100_000_000_000_100,
+            neuron_fees_e8s: 100,
+            dissolve_state: Some(TestDissolve::DissolveDelaySeconds(800 * 86400)),
+        }),),
+    );
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (
+            prepared.offer.clone(),
+            f.user,
+            account.clone(),
+            Hash::new([44; 32]),
+        ),
+    );
+    let terms = terms.unwrap();
+    let mut a = approve(
+        &f,
+        &account,
+        &prepared.offer,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        126,
+    );
+    a.product_approval = Some(prepared.approval.clone());
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: terms.clone(),
+            authorization: a,
+        },),
+    );
+    let next = r.unwrap();
+    assert_eq!(next.status, PandaClaimStatus::CoolingDown);
+    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let mut a = approve(
+        &f,
+        &account,
+        &prepared.offer,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        127,
+    );
+    a.product_approval = Some(prepared.approval);
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (next.claim_id, a),
+    );
+    let next = r.unwrap();
+    assert_eq!(next.status, PandaClaimStatus::Active);
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "cancel_panda_application",
+        (next.claim_id,),
+    );
+    assert_eq!(r, Err(Error::Forbidden));
+    f.ic.advance_time(Duration::from_millis(
+        first.committed_until_ms - time(&f.ic) + 1,
+    ));
+    let r: Result<u32> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "sweep_panda_commitments",
+        (),
+    );
+    assert_eq!(r.unwrap(), 1);
+    let budgets: Vec<PandaSubsidyBudget> =
+        query(&f.ic, f.membership, person(1), "panda_budgets", ());
     assert_eq!(
-        v.effective_limits.storage_bytes,
-        104_857_600 + 1_073_741_824
+        budgets[0].reserved_usd_micros,
+        terms.offer.amount_usd_micros
     );
+    let r: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (next.claim_id,),
+    );
+    assert_eq!(r.unwrap().committed_until_ms, next.committed_until_ms);
 }
 
 #[test]
-fn cancellation_of_future_renewal_keeps_current_contract_and_refunds_at_most_principal() {
+fn known_fee_rejection_can_revise_only_within_original_cap_and_pause_keeps_refunds_open() {
     let f = Fixture::commercial();
     let id = f.create(1);
-    let base = open(&f, &id, 105, OrderAction::Subscribe { plan: PlanId::Plus });
-    let block = deposit(
-        &f,
-        &base,
-        1,
-        base.input.quote.amount_atomic + base.input.quote.fee_reserve,
+    let opened = open(&f, &id, f.ledger, 140);
+    let incoming = deposit(&f, &opened, f.ledger, 2, 1000);
+    funding(&f, opened.progress.order_id, incoming.clone());
+    let assets: Vec<SettlementAssetView> =
+        query(&f.ic, f.commerce, person(1), "settlement_assets", ());
+    let mut policy = assets
+        .into_iter()
+        .find(|a| a.policy.ledger == f.ledger)
+        .unwrap()
+        .policy;
+    policy.policy_version += 1;
+    policy.enabled = false;
+    let paused: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "register_settlement_asset",
+        (policy,),
     );
-    check(&f, &base, block);
-    let v: Result<EntitlementView> = update(
+    paused.unwrap();
+    let transfer: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "claim_checkout_refund",
+        (
+            opened.progress.order_id,
+            f.ledger,
+            vec![incoming.block_index],
+            Hash::new([142; 32]),
+        ),
+    );
+    let transfer = transfer.unwrap();
+    let audit: Result<CashTransfersPage> = query(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "checkout_transfers",
+        (None::<Hash>, 16u16),
+    );
+    assert_eq!(audit.unwrap().transfers.len(), 1);
+    let outsider: Result<CashTransfersPage> = query(
+        &f.ic,
+        f.commerce,
+        person(99),
+        "checkout_transfers",
+        (None::<Hash>, 16u16),
+    );
+    assert!(outsider.unwrap().transfers.is_empty());
+
+    void(&f.ic, f.ledger, person(1), "set_fee", (21u128,));
+    let reply: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "process_checkout_transfer",
+        (transfer.transfer_id,),
+    );
+    assert_eq!(reply.unwrap().status, CashTransferStatus::Rejected);
+    let denied: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "revise_checkout_transfer_fee",
+        (transfer.transfer_id, 21u128),
+    );
+    assert_eq!(denied, Err(Error::FeeBlocked));
+    // Retrying the same definitely rejected args records the current ledger fee, without changing them.
+    void(&f.ic, f.ledger, person(1), "set_fee", (15u128,));
+    let reply: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "process_checkout_transfer",
+        (transfer.transfer_id,),
+    );
+    assert_eq!(reply.unwrap().status, CashTransferStatus::Rejected);
+    let denied: Result<CashTransfer> = update(
         &f.ic,
         f.commerce,
         person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
+        "revise_checkout_transfer_fee",
+        (transfer.transfer_id, 15u128),
     );
-    let expiry = v.unwrap().next_limit_change_at_ms.unwrap();
-    f.ic.advance_time(Duration::from_millis(expiry - 29 * DAY - time(&f.ic)));
-    let future = open(&f, &id, 106, OrderAction::Renew { plan: PlanId::Pro });
-    let block = deposit(
-        &f,
-        &future,
-        1,
-        future.input.quote.amount_atomic + future.input.quote.fee_reserve,
-    );
-    check(&f, &future, block);
-    let i = intent(&f, &id, 1, 107, f.commerce, refund_digest(future.order_id));
-    approve(&f, &id, 1, &i);
-    let r: Result<BillingOrder> = update(
+    assert_eq!(denied, Err(Error::Forbidden));
+    let revised: Result<CashTransfer> = update(
         &f.ic,
         f.commerce,
-        person(1),
-        "request_refund",
-        (future.order_id, i),
+        person(2),
+        "revise_checkout_transfer_fee",
+        (transfer.transfer_id, 15u128),
     );
-    r.unwrap();
-    let r: Result<OrderProgress> = update(
+    let revised = revised.unwrap();
+    assert_eq!(revised.to, transfer.to);
+    assert_eq!(revised.ledger, transfer.ledger);
+    assert_eq!(revised.max_fee_atomic, transfer.max_fee_atomic);
+    assert_eq!(
+        revised.amount_atomic + revised.fee_atomic,
+        transfer.amount_atomic + transfer.fee_atomic
+    );
+    let reply: Result<CashTransferProgress> = update(
         &f.ic,
         f.commerce,
-        person(1),
-        "reconcile_order",
-        (future.order_id,),
+        person(2),
+        "process_checkout_transfer",
+        (revised.transfer_id,),
     );
-    r.unwrap();
-    let r = order_details(&f, future.order_id);
-    assert_eq!(r.refunded_principal, future.input.quote.amount_atomic);
-    assert_money(&r);
-    let v: Result<EntitlementView> = update(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "refresh_entitlement",
-        (beneficiary(f.user, &id),),
-    );
-    assert_eq!(v.unwrap().plan_snapshot.plan_id, PlanId::Plus);
+    assert_eq!(reply.unwrap().status, CashTransferStatus::Succeeded);
 }
 
-#[path = "external_integration.rs"]
-mod external_integration;
+#[test]
+fn a_governance_module_pin_changed_during_neuron_read_never_issues_a_lease() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    neuron(&f, 100_000_000_000_100, false);
+    let bill = offer(&f, &id, 160);
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, id.clone(), Hash::new([44; 32])),
+    );
+    let terms = terms.unwrap();
+    let authorization = approve(
+        &f,
+        &id,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        161,
+    );
+    void(
+        &f.ic,
+        f.sns,
+        person(1),
+        "change_pin_on_neuron_read",
+        (f.membership, Hash::new([162; 32])),
+    );
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms,
+            authorization,
+        },),
+    );
+    let claim = r.unwrap();
+    assert_eq!(claim.status, PandaClaimStatus::Checking);
+    assert_eq!(claim.eligibility, Eligibility::Unverifiable);
+    assert!(claim.cooling_until_ms.is_none());
+    assert!(claim.valid_until_ms <= time(&f.ic));
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "cancel_panda_application",
+        (claim.claim_id,),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
+}

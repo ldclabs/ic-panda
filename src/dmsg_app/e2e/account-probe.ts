@@ -1,3 +1,4 @@
+import { Principal } from '@icp-sdk/core/principal'
 import { InboxClient } from '../src/lib/services/inbox'
 import { idlFactory as paymentIdl } from '../src/lib/canisters/generated/payment/index.js'
 import type { _SERVICE as PaymentService } from '../src/lib/canisters/generated/payment'
@@ -57,6 +58,7 @@ type ProbeInput = {
   commerce: string
   membership: string
   ledger: string
+  ledger_usdt: string
   payment: string
   identitySeed?: number
   legacy?: {
@@ -242,6 +244,14 @@ async function reconnect() {
         }))
     }
     if (action === 'commerce') {
+      const approved = await client.refresh(data.account)
+      if (!approved.device!.input.capabilities.some((c) => 'FormalApprove' in c))
+        await client.mutate(data.account, {
+          SetDeviceCapabilities: {
+            device_id: unhex(client.meta.deviceId),
+            capabilities: [...approved.device!.input.capabilities, { FormalApprove: null }]
+          }
+        })
       const walletIdentity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(42))
       const walletAgent = await HttpAgent.create({
         host: data.input.gateway,
@@ -268,22 +278,30 @@ async function reconnect() {
       )
       const wallet = new WalletClient(walletAgent, walletIdentity.getPrincipal(), data.crypto)
       if (payload.action === 'quote') {
-        const result = await product.quote({ Subscribe: { plan: { Plus: null } } })
+        await product.entitlement(true)
+        const request = await product.personal('plus', 'Cash')
+        const job = await product.quote(
+          request,
+          location.origin,
+          payload.asset === 'CkUsdt' ? data.input.ledger_usdt : data.input.ledger
+        )
+        const quote = product.terms(job) as import('@dmsg/sdk').CheckoutQuote
         return {
-          id: result.job.id,
-          amount: result.quote.amount_atomic.toString(),
-          feeReserve: result.quote.fee_reserve.toString()
+          id: job.id,
+          asset: quote.asset.asset,
+          amount: quote.cash.amount_atomic.toString(),
+          feeReserve: quote.cash.fee_reserve_atomic.toString()
         }
       }
       if (payload.action === 'open') {
         let calls = 0
         const proxy = new Proxy(commerce, {
           get(target, key) {
-            if (key === 'open_order')
-              return async (...args: Parameters<CommerceService['open_order']>) => {
-                const result = await target.open_order(...args)
+            if (key === 'open_checkout')
+              return async (...args: Parameters<CommerceService['open_checkout']>) => {
+                const reply = await target.open_checkout(...args)
                 calls++
-                if ('Err' in result) throw new Error(JSON.stringify(result.Err))
+                if ('Err' in reply) throw new Error(JSON.stringify(reply.Err))
                 throw new Error('Injected lost merchant reply')
               }
             return target[key as keyof CommerceService]
@@ -297,80 +315,82 @@ async function reconnect() {
             data.input.commerce,
             data.input.membership,
             walletIdentity.getPrincipal()
-          ).open(payload.id)
-        } catch (error) {
-          if (!String(error).includes('Injected lost merchant reply')) throw error
+          ).approve(payload.id)
+        } catch (e) {
+          if (!String(e).includes('Injected lost merchant reply')) throw e
         }
         await data.crypto.lock()
         await data.crypto.call('unlock', data.password)
-        const result = await product.open(payload.id)
-        return { state: Object.keys(result.status)[0], calls }
+        const result = (await product.approve(payload.id)) as import('@dmsg/sdk').CheckoutView
+        return { state: result.progress.status, calls }
       }
       if (payload.action === 'fund') {
-        const order = await product.order(payload.id),
-          before = await wallet.balance(data.input.ledger)
+        const order = (await product.status(payload.id)) as import('@dmsg/sdk').CheckoutView,
+          ledger = Principal.fromUint8Array(order.quote.cash.ledger).toText(),
+          before = await wallet.balance(ledger)
         const fault = Actor.createActor<{ lose_next_response(): Promise<void> }>(
           () => IDL.Service({ lose_next_response: IDL.Func([], [], []) }),
-          { agent: walletAgent, canisterId: data.input.ledger }
+          { agent: walletAgent, canisterId: ledger }
         )
         await fault.lose_next_response()
         let lost = false
         try {
-          await wallet.transferOrder(order)
-        } catch (error) {
-          lost = String(error).includes('injected lost response')
+          await wallet.transferCheckout(order)
+        } catch (e) {
+          lost = String(e).includes('injected lost response')
         }
-        if (!lost) throw new Error('Ledger did not lose its committed response')
+        if (!lost) throw new Error('Ledger did not lose committed response')
         await data.crypto.lock()
         await data.crypto.call('unlock', data.password)
-        const block = await wallet.transferOrder(order),
-          after = await wallet.balance(data.input.ledger)
-        const funded = await product.funding(payload.id, block.toString())
+        const block = await wallet.transferCheckout(order),
+          after = await wallet.balance(ledger),
+          funded = (await product.funding(
+            payload.id,
+            block.toString()
+          )) as import('@dmsg/sdk').CheckoutView
         if (
           before - after !==
-          order.input.quote.amount_atomic +
-            order.input.quote.fee_reserve +
-            order.input.quote.catalog.ledger_fee
+          order.quote.cash.amount_atomic +
+            order.quote.cash.fee_reserve_atomic +
+            order.quote.asset.network_fee_atomic
         )
           throw new Error('Wallet was charged more than once')
         return {
-          state: Object.keys(funded.status)[0],
+          state: funded.progress.status,
           block: block.toString(),
           lost,
           charged: (before - after).toString()
         }
       }
       if (payload.action === 'refund') {
-        const result = await product.refund(payload.id)
-        return {
-          state: Object.keys(result.status)[0],
-          refundable: result.refundable.toString(),
-          transfers: result.next_transfer.toString()
+        let refused = false
+        try {
+          await product.cancel(payload.id)
+        } catch (error) {
+          if (!String(error).includes('Forbidden')) throw error
+          refused = true
         }
+        const value = (await product.status(payload.id)) as import('@dmsg/sdk').CheckoutView
+        return { state: value.progress.status, refused }
       }
-      if (payload.action === 'advance-sns') return await product.advanceSns(payload.id)
+      if (payload.action === 'advance-sns') return await product.approve(payload.id, true)
       if (payload.action === 'review-sns') {
-        const reviewed = await product.reviewSns(payload.id)
+        const terms = product.terms(
+          await product.job(payload.id)
+        ) as import('@dmsg/sdk').PandaApplicationTerms
         return {
-          actor: reviewed.request.authorization.actor.toText(),
-          version: reviewed.policy.version,
-          neuron: hex(Uint8Array.from(reviewed.request.neuron_id))
+          actor: Principal.fromUint8Array(terms.actor).toText(),
+          version: terms.quote.policy.policy_version,
+          neuron: hex(terms.neuron_id)
         }
       }
       if (payload.action === 'sns') {
-        const catalog = await product.catalog(),
-          plan = catalog.value.plans.find((p: any) => p.plan_id === 'Plus')
-        const { candidValue } = await import('../src/lib/protocol/account')
-        const { quoteValue } = await import('../src/lib/protocol/commerce')
-        const { digest } = await import('../src/lib/protocol/codec')
-        const prepared = await product.sns(
-          BigInt(plan.membership_policy_version),
-          '4d'.repeat(32),
-          digest('dmsg/commerce/plan/v1', plan)
-        )
-        const result = await product.submitSns(prepared.job.id)
+        await product.entitlement(true)
+        const request = await product.personal('plus', 'Panda'),
+          job = await product.quote(request, location.origin, '4d'.repeat(32)),
+          result = (await product.approve(job.id)) as import('@dmsg/sdk').PandaClaimView
         return {
-          id: prepared.job.id,
+          id: job.id,
           status: result.status,
           eligibility: result.eligibility,
           actor: walletIdentity.getPrincipal().toText(),

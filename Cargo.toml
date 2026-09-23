@@ -13,6 +13,7 @@ members = [
   "tests/dmsg_integration",
   "tests/dmsg_test_ledger",
   "tests/dmsg_test_sns",
+  "examples/dmsg-account-product",
   "tests/dmsg_test_legacy",
   "src/cli_airdrop",
   "src/cli_dmsg",

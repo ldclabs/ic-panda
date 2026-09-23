@@ -32,12 +32,54 @@ type AppRegistration = record {
   config_version : nat64;
   // Deployment separation.
   environment : Environment;
+  // Product authority that confirms prepared actions and signer-account linkage.
+  action_authority : principal;
   // Pinned user canisters allowed to authenticate accounts.
   user_homes : vec principal;
   // Closed signing profile allowlist, empty for an authentication-only app.
   profiles : vec SigningProfile;
   // Stops new approvals; does not erase accepted commitments.
   paused : bool;
+};
+// Approved dMsg account and product beneficiary are deliberately separate.
+type ApplicationApproval = record {
+  // Exact service allowed to consume this approval.
+  "service" : principal;
+  // Economic actor, distinct from both account IDs and payer accounts.
+  actor : principal;
+  // Product-defined rights recipient; no inferred AccountId conversion.
+  beneficiary : Beneficiary;
+  // Exact application configuration revision.
+  app_config_version : nat64;
+  // Extension-verified browser origin.
+  origin : text;
+  // Complete cash/PANDA quotation or application action digest.
+  action_digest : blob;
+  // Idempotency identifier.
+  operation_id : blob;
+  // dMsg account whose device approves this action.
+  approving_account : blob;
+  // Integration version.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Fresh challenge.
+  nonce : blob;
+  // Deployment separation.
+  environment : Environment;
+  // Purpose-separated authorization.
+  purpose : ApprovalPurpose;
+  // Exclusive validity deadline in Unix milliseconds.
+  expires_at_ms : nat64;
+};
+// Exact purpose for account approval, distinct from product authorization.
+type ApprovalPurpose = variant {
+  // Typed application action approval.
+  AppAction;
+  // Cash order approval.
+  CashCheckout;
+  // Full subscription waiver approval.
+  PandaSubscription;
 };
 // Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
@@ -50,51 +92,160 @@ type Beneficiary = record {
   // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
-// Merchant accounting view in ledger atomic units, including pending allocations.
-type BillingOrder = record {
-  // Current lifecycle state of this record.
-  status : OrderStatus;
-  // Ledger atomic units reserved for network fees.
-  fee_reserve : nat;
-  // Unperformed service principal retained in atomic units.
-  service_reserve : nat;
-  // Operation revision used to reject obsolete callbacks.
-  generation : nat64;
-  // Total successful outgoing ledger fees in atomic units.
-  network_fees : nat;
-  // Contract activated from this order, if any.
-  activated_contract_id : opt blob;
-  // Total successful transfer amounts, excluding network fees, in atomic units.
-  transferred : nat;
-  // Unallocated refundable balance in atomic units.
-  refundable : nat;
-  // Earned service principal still held, in atomic units.
-  earned : nat;
-  // Next per-order outgoing transfer identifier.
-  next_transfer : nat64;
-  // Order deposit subaccount owned by home_commerce.
-  receive_subaccount : blob;
-  // Original quote and authorization.
-  input : OpenOrder;
-  // Stable merchant order identity.
+// Product-authoritative offer for one exact half-open subscription interval.
+type BillingOffer = record {
+  // Opaque product SKU, never interpreted by checkout.
+  sku : text;
+  // Registered product.
+  product_id : text;
+  // Typed recipient of product rights.
+  beneficiary : Beneficiary;
+  // Entire interval price in USD micro units, not an annualized price.
+  amount_usd_micros : nat;
+  // Operation identity fixed across retries.
+  operation_id : blob;
+  // Inclusive subscription start in Unix milliseconds.
+  starts_at_ms : nat64;
+  // Commerce version, currently two.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Quote issuance in Unix milliseconds.
+  issued_at_ms : nat64;
+  // Product-issued quote identifier.
+  offer_id : blob;
+  // Registered authoritative quote canister.
+  quote_authority : principal;
+  // Deployment separation.
+  environment : Environment;
+  // Product CAS revision, separate from qualification lease revision.
+  expected_business_revision : nat64;
+  // Registered product delivery canister.
+  adapter : principal;
+  // Explicit enabled settlement sources, without duplicates.
+  allowed_settlement_methods : vec SettlementMethod;
+  // Exclusive immutable end in Unix milliseconds.
+  expires_at_ms : nat64;
+  // Exclusive initial acceptance deadline; not an activation deadline.
+  accept_by_ms : nat64;
+  // Exact product terms accepted by the user.
+  product_terms_hash : blob;
+};
+// A ledger-scoped block reference.
+type CashBlock = record {
+  // Native ledger block index; checked before narrowing in an adapter.
+  block_index : nat;
+  // Authenticated ledger source.
+  ledger : principal;
+};
+// Durable permission to cancel exactly one unstarted cash term.
+type CashCancellationReceipt = record {
+  // Full original decision commitment.
+  decision_hash : blob;
+  // False is a durable refusal, not an unknown cancellation.
+  cancelled : bool;
+  // Product's new business revision.
+  business_revision : nat64;
+  // Product contract cancelled atomically.
+  contract_id : blob;
+  // Time of the cancellation.
+  cancelled_at_ms : nat64;
+  // Checkout order to refund.
   order_id : blob;
-  // Amount plus network fee allocated to outstanding transfers, in atomic units.
-  outgoing : nat;
-  // Ledger block selected as primary funding.
-  funding_block : opt nat64;
-  // Effective benefit stop time in Unix milliseconds, after issued leases.
-  close_effective_at_ms : opt nat64;
-  // Service principal already allocated to refunds, in atomic units.
-  refunded_principal : nat;
-  // Exclusive in-flight operation deadline in Unix milliseconds.
-  busy_until_ms : nat64;
-  // Total verified deposits in ledger atomic units.
-  confirmed_in : nat;
+};
+// Fixed single-asset cash terms; no floating point or implicit peg.
+type CashQuote = record {
+  // Product price converted using the accepted asset policy.
+  amount_atomic : nat;
+  // Complete authoritative offer commitment.
+  offer_hash : blob;
+  // Separately identified fee reserve.
+  fee_reserve_atomic : nat;
+  // Exclusive funding deadline.
+  funding_deadline_ms : nat64;
+  // Approved per-transfer fee ceiling.
+  max_network_fee_atomic : nat;
+  // Exclusive initial activation deadline, not a release rule for Unknown.
+  activation_deadline_ms : nat64;
+  // Exact per-order receiving account.
+  deposit : Account;
+  // Commerce version.
+  version : nat16;
+  // Immutable selected ledger.
+  ledger : principal;
+  // Approved funding account.
+  payer : Account;
+  // Commitment to the actual conversion rate / depeg checks.
+  conversion_hash : blob;
+};
+// Each outgoing leg owns its ledger, source, destination, fee, memo and timestamp.
+type CashTransfer = record {
+  // Approved immutable destination.
+  to : Account;
+  // Actual transfer state.
+  status : CashTransferStatus;
+  // Source order subaccount.
+  source_subaccount : blob;
+  // Net amount to deliver.
+  amount_atomic : nat;
+  // Ledger-reported replacement fee, not permission to use it.
+  expected_fee_atomic : opt nat;
+  // A known-rejected predecessor, if any.
+  replaces : opt blob;
+  // Confirmed block when succeeded.
+  block_index : opt nat;
+  // Stable sender time in nanoseconds, not the funding proof's ledger timestamp.
+  created_at_time_ns : nat64;
+  // Stable ledger deduplication memo.
+  memo : blob;
+  // A replacement leg prevents replay of this one.
+  replaced_by : opt blob;
+  // Globally unique immutable transfer identity.
+  transfer_id : blob;
+  // Immutable ledger.
+  ledger : principal;
+  // Limit accepted by the responsible payer/merchant.
+  max_fee_atomic : nat;
+  // Frozen fee for this exact attempt.
+  fee_atomic : nat;
+  // Source order, never another merchant's pool.
+  order_id : blob;
+  // Stable diagnostic code without private payloads.
+  error_code : opt text;
+};
+// Public transfer advancement does not disclose payer or merchant account details.
+type CashTransferProgress = record {
+  // Authoritative progress.
+  status : CashTransferStatus;
+  // Ledger block when known.
+  block_index : opt nat;
+  // Original immutable leg.
+  transfer_id : blob;
+};
+// Network transfer lifecycle. Unknown is never replaced with another memo/time.
+type CashTransferStatus = variant {
+  // Replaced only after a known rejection; never dispatch this leg again.
+  Superseded;
+  // Known ledger rejection; no prior unknown attempt exists.
+  Rejected;
+  // Actual block confirmed or ledger Duplicate returned.
+  Succeeded;
+  // Call may still execute.
+  InFlight;
+  // Original transfer must be retried or matched to a trusted block.
+  Unknown;
+  // Durable frozen transfer before dispatch.
+  Pending;
+};
+// Outgoing legs visible to their recipient or the corresponding order reader.
+type CashTransfersPage = record {
+  // Exact immutable transfer arguments and state.
+  transfers : vec CashTransfer;
+  // Last scanned key, including inaccessible rows.
+  next : opt blob;
 };
 // Certified commercial catalog; asset identity and governance approval require trusted evidence.
 type Catalog = record {
-  // Verified ledger decimal precision.
-  decimals : nat8;
   // Additional storage products in this catalog.
   storage_products : vec StorageProduct;
   // Public record format version, independent of stable storage.
@@ -103,10 +254,6 @@ type Catalog = record {
   effective_at_ms : nat64;
   // Immutable version identifier within this policy or catalog.
   version : nat64;
-  // Accepted ICRC ledger canister; token symbols are not asset identities.
-  ledger : principal;
-  // Configured network fee in ledger atomic units.
-  ledger_fee : nat;
   // Available base-plan snapshots.
   plans : vec PlanVersion;
   // Commitment to the accepted service terms.
@@ -135,92 +282,99 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
-// Relationship between a new claim and an existing benefit commitment.
-type ClaimChange = variant {
-  // Start a new independent benefit.
-  Start;
-  // Upgrade an existing base benefit.
-  Upgrade : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
-  // Replace the qualifying claim supporting an existing benefit.
-  Replace : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
-  // Renew an existing benefit for a subsequent term.
-  Renew : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
+// Result of registering a real deposit, including wrong-source/late/excess deposits.
+type CheckoutDeposit = record {
+  // Actual amount received.
+  amount_atomic : nat;
+  // Still-unallocated refund obligation to the original source.
+  refundable_atomic : nat;
+  // Original source account; refunds cannot substitute another destination.
+  from : Account;
+  // Ledger-scoped identity, never a global bare block number.
+  block : CashBlock;
+  // Original order receiving these funds.
+  order_id : blob;
 };
-// Frozen qualification request and beneficiary authorization.
-type ClaimRequest = record {
-  // Requested or frozen benefit interval.
-  term : TermRule;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Requested relationship to an earlier claim.
-  change : ClaimChange;
-  // Immutable qualification policy version.
-  policy_version : nat64;
-  // Product business revision required for compare-and-swap.
-  expected_business_revision : nat64;
-  // Exact beneficiary intent approved for this operation.
-  authorization : MembershipIntent;
-  // Fixed PANDA SNS neuron identifier.
-  neuron_id : blob;
+// Exact per-order accounting in one ledger; amounts in distinct ledgers are never added.
+type CheckoutLedgerBalance = record {
+  // Customer-funded network fee reserve.
+  fee_reserve_atomic : nat;
+  // Obligations to original deposit sources.
+  refundable_atomic : nat;
+  // All allocated outgoing obligations, including their exact fees.
+  outgoing_atomic : nat;
+  // Product price not yet allocated to a merchant transfer.
+  service_reserve_atomic : nat;
+  // Asset identity.
+  ledger : principal;
+  // Confirmed incoming amount.
+  incoming_atomic : nat;
 };
-// Durable qualification and product-decision lifecycle.
-type ClaimStatus = variant {
-  // Qualified observation is waiting out the admission cooling period.
-  CoolingDown;
-  // Benefit closure is in progress.
-  Closing;
-  // Benefit is active under its recorded terms.
-  Active;
-  // Exclusive binding has been released.
-  Released;
-  // The request or transfer was definitively rejected.
+// Private operational observation; delivery continues to require the service's durable receipt.
+type CheckoutOperationAudit = record {
+  // Original order and receipt.
+  order : CheckoutView;
+  // Independently conserved balances.
+  balances : vec CheckoutLedgerBalance;
+};
+// Bounded owner/merchant/governance scan. Cursor is the last scanned key, not the last match.
+type CheckoutOperationsPage = record {
+  // Accessible orders.
+  orders : vec CheckoutOperationAudit;
+  // Continue after this key; null means the scan reached the end.
+  next : opt blob;
+};
+// Safe public progress without disclosing private product bill/account data.
+type CheckoutProgress = record {
+  // Current state, not inferred from a wallet reply.
+  status : CheckoutStatus;
+  // Immutable delivery identity when prepared.
+  decision_id : opt blob;
+  // Original order identity.
+  order_id : blob;
+};
+// Fixed cash terms, including independently verified asset policy.
+type CheckoutQuote = record {
+  // Accepted conversion and network-fee policy.
+  asset : SettlementAsset;
+  // Product-authoritative USD bill.
+  offer : BillingOffer;
+  // Immutable one-ledger payment and refund terms.
+  cash : CashQuote;
+  // Time used to compute the fixed funding/activation deadlines.
+  quoted_at_ms : nat64;
+  // Frozen registered merchant, subject schema and adapter configuration.
+  product : ProductRegistration;
+};
+// Same operation identity is retained through every uncertain result.
+type CheckoutStatus = variant {
+  // Product applied rights and a durable receipt.
+  Applied;
+  // Product interval reservation is being reconciled; do not fund yet.
+  Reserving;
+  // Order and its interval are accepted; the payer may transfer once.
+  AwaitingFunding;
+  // No order permission was granted.
   Rejected;
-  // Initial qualification checks are pending.
-  Checking;
-  // A durable product decision awaits acknowledgment.
+  // Definitive nondelivery or unstarted cancellation; original deposits are refundable.
+  RefundCommitted;
+  // Funds and delivery decision committed; adapter acknowledgement is pending.
   Applying;
 };
-// Public qualification leaf deliberately excludes economic identities and raw neurons.
-type ClaimView = record {
-  // Current lifecycle state of this record.
-  status : ClaimStatus;
-  // Membership canister authoritative for this claim.
-  home_membership : principal;
-  // Idempotency identifier of the product decision.
-  decision_id : opt blob;
-  // Earliest exclusive-binding release time in Unix milliseconds.
-  release_after_ms : nat64;
-  // Stable qualification claim identity.
-  claim_id : blob;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // Public record format version, independent of stable storage.
-  schema : nat16;
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Time the supporting qualification observation began, in Unix milliseconds.
-  observed_at_ms : nat64;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Monotonic projection/lease revision, including refreshes.
-  lease_revision : nat64;
-  // Inclusive interval start in Unix milliseconds.
-  starts_at_ms : nat64;
-  // Most recent qualification assessment.
-  eligibility : Eligibility;
-  // Immutable qualification policy version.
-  policy_version : nat64;
-  // Exclusive interval end in Unix milliseconds.
-  expires_at_ms : nat64;
+// Owner/adapter view, used for recovery and the billing centre.
+type CheckoutView = record {
+  // Product receipt if obtained.
+  receipt : opt ProductReceipt;
+  // Remaining customer-funded network reserve.
+  fee_reserve_atomic : nat;
+  // Cumulative allocated transfers for the selected asset, including their fees.
+  outgoing_atomic : nat;
+  // Original fixed terms.
+  quote : CheckoutQuote;
+  // Identity and public state.
+  progress : CheckoutProgress;
+  // Amount of price still reserved, never withdrawable before earned.
+  service_reserve_atomic : nat;
 };
 // Product commerce deployment, accepted asset and admission configuration.
 type CommerceInit = record {
@@ -238,22 +392,6 @@ type CommerceInit = record {
   user_homes : vec principal;
   // Fixed catalog snapshot.
   catalog : Catalog;
-  // ICRC account receiving earned service revenue.
-  treasury : Account;
-};
-// Product action delivered by the configured membership authority.
-type DecisionKind = variant {
-  // Apply the frozen benefit terms.
-  Apply;
-  // Close the specified benefit commitment.
-  Close;
-};
-// Product result for a specific immutable membership decision.
-type DecisionOutcome = variant {
-  // The product durably applied the decision.
-  Applied;
-  // The request or transfer was definitively rejected.
-  Rejected;
 };
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
@@ -323,6 +461,10 @@ type Error = variant {
   LegacyWriteDisabled;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
   // A new content root must be committed before writes can resume.
   RekeyRequired;
   // Expected version/generation differs from current state; reread before preparing a new approval.
@@ -390,150 +532,6 @@ type ExecutionWeights = record {
   // Immutable version identifier within this policy or catalog.
   version : nat64;
 };
-// Authority response for an exact intent, with a short validity deadline.
-type MembershipAuthorization = record {
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Account security revision checked by the authority.
-  security_epoch : nat64;
-  // Authority verification time in Unix milliseconds.
-  verified_at_ms : nat64;
-  // Commitment to the complete approved intent.
-  intent_digest : blob;
-};
-// Immutable action delivered at least once to the registered product adapter.
-type MembershipDecision = record {
-  // Exclusive supporting qualification deadline in Unix milliseconds.
-  qualification_until_ms : nat64;
-  // Idempotency identifier of the product decision.
-  decision_id : blob;
-  // Stable qualification claim identity.
-  claim_id : blob;
-  // Original fixed request.
-  request : ClaimRequest;
-  // Product action to apply.
-  kind : DecisionKind;
-  // Time the supporting qualification observation began, in Unix milliseconds.
-  observed_at_ms : nat64;
-  // Required PANDA stake in atomic units, rounded up.
-  required_atomic : nat;
-  // Inclusive interval start in Unix milliseconds.
-  starts_at_ms : nat64;
-  // Exclusive product application deadline in Unix milliseconds.
-  apply_by_ms : nat64;
-  // Exclusive interval end in Unix milliseconds.
-  expires_at_ms : nat64;
-  // Immutable policy snapshot used for this decision.
-  policy : MembershipPolicy;
-};
-// Idempotent product acknowledgment, including its remaining benefit commitment.
-type MembershipDecisionReceipt = record {
-  // Idempotency identifier of the product decision.
-  decision_id : blob;
-  // Revision of business terms or qualification, independent of lease refreshes.
-  business_revision : nat64;
-  // Product confirms it cannot grant any benefit from this claim beyond this time.
-  commitment_until_ms : nat64;
-  // Product contract identity.
-  contract_id : opt blob;
-  // Inclusive interval start in Unix milliseconds.
-  starts_at_ms : nat64;
-  // Recorded result of applying the decision.
-  outcome : DecisionOutcome;
-  // Commitment to the exact decision being acknowledged.
-  decision_digest : blob;
-  // Exclusive interval end in Unix milliseconds.
-  expires_at_ms : nat64;
-};
-// A device-approved, purpose-separated intent. Actor authentication is also required.
-type MembershipIntent = record {
-  // Authenticated economic actor approving the action.
-  actor : principal;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Domain-separated commitment to the exact requested action.
-  action_digest : blob;
-  // Stable idempotency identifier for this application.
-  application_id : blob;
-  // Challenge preventing reuse as a different authorization.
-  nonce : blob;
-  // Exact service authorized to consume this intent.
-  service_canister : principal;
-  // Deployment domain of the request or service.
-  environment : Environment;
-};
-// Immutable product benefit and qualification policy snapshot.
-type MembershipPolicy = record {
-  // Product identifier within this protocol.
-  product_id : text;
-  // Required PANDA stake calculation under this policy.
-  threshold : Threshold;
-  // Governance-approved service cost reservation, not cash revenue.
-  subsidy_units : nat64;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Inclusive activation time in Unix milliseconds.
-  effective_at_ms : nat64;
-  // Immutable version identifier within this policy or catalog.
-  version : nat64;
-};
-// Verified order deposit and its remaining refund allocation.
-type MerchantDeposit = record {
-  // Verified source ICRC account.
-  from : Account;
-  // Unallocated refundable balance in atomic units.
-  refundable : nat;
-  // Verified ledger transaction index, when available.
-  block : nat64;
-  // Stable merchant order identity.
-  order_id : blob;
-  // Ledger transfer amount in atomic units, excluding the network fee.
-  amount : nat;
-};
-// Fixed ledger outbox parameters; preserve memo and timestamp when retrying.
-type MerchantTransfer = record {
-  // Fixed outgoing ICRC destination.
-  to : Account;
-  // Fixed outgoing network fee in ledger atomic units.
-  fee : nat;
-  // Most recent typed ledger rejection, retained for diagnosis and fee repair.
-  last_error : opt TransferError;
-  // Current lifecycle state of this record.
-  status : MerchantTransferStatus;
-  // Earlier transfer replaced by this known-unsent fee revision.
-  replaces : opt nat64;
-  // Sender timestamp in Unix nanoseconds, preserved on retries.
-  created_at_time_ns : nat64;
-  // Fixed ledger memo preserved on retries.
-  memo : blob;
-  // Replacement transfer identifier, when superseded.
-  replaced_by : opt nat64;
-  // Transfer identifier within the order.
-  transfer_id : nat64;
-  // Verified ledger transaction index, when available.
-  block : opt nat64;
-  // Stable merchant order identity.
-  order_id : blob;
-  // Ledger transfer amount in atomic units, excluding the network fee.
-  amount : nat;
-};
-// Ledger transfer lifecycle with explicit ambiguous and superseded states.
-type MerchantTransferStatus = variant {
-  // A new transfer replaces this known-unsent transfer.
-  Superseded;
-  // The request or transfer was definitively rejected.
-  Rejected;
-  // Ledger execution has been confirmed.
-  Succeeded;
-  // Ledger call is in progress.
-  InFlight;
-  // An earlier ledger attempt may have committed; reconcile the same transfer.
-  Unknown;
-  // Transfer is prepared but has not started.
-  Pending;
-};
 // Versioned monthly quota calculation; retain prior segments when terms change.
 type MonthEntitlement = record {
   // Revision of business terms or qualification, independent of lease refreshes.
@@ -564,81 +562,12 @@ type MonthSegment = record {
   // Contract supporting the segment, or None for Free.
   source_contract_id : opt blob;
 };
-// Fixed quote and the exact authorization to open it.
-type OpenOrder = record {
-  // Frozen price, asset, interval and deadline terms.
-  quote : OrderQuote;
-  // Exact beneficiary intent approved for this operation.
-  authorization : MembershipIntent;
-};
-// Commercial change requested under a beneficiary-approved order.
-type OrderAction = variant {
-  // Replace the remaining SNS-funded term with cash.
-  Buyout : record {
-    // Product contract identity.
-    contract_id : blob;
-  };
-  // Purchase the specified additional storage product.
-  Storage : record {
-    // Product identifier within this protocol.
-    product_id : blob;
-  };
-  // Upgrade an existing base benefit.
-  Upgrade : record {
-    // Requested tier or fixed plan snapshot.
-    plan : PlanId;
-  };
-  // Renew an existing benefit for a subsequent term.
-  Renew : record {
-    // Requested tier or fixed plan snapshot.
-    plan : PlanId;
-  };
-  // Start a base subscription.
-  Subscribe : record {
-    // Requested tier or fixed plan snapshot.
-    plan : PlanId;
-  };
-};
-// Public order advancement result. Financial and authorization details require a private query.
-type OrderProgress = record {
-  // Committed lifecycle status.
-  status : OrderStatus;
-  // Original order identity.
-  order_id : blob;
-};
-// Frozen merchant terms; funding and activation have separate exclusive deadlines.
-type OrderQuote = record {
-  // Service principal in ledger atomic units, excluding fee reserve.
-  amount_atomic : nat;
-  // Ledger atomic units reserved for network fees.
-  fee_reserve : nat;
-  // Original fixed request.
-  request : QuoteOrder;
-  // Requested or frozen benefit interval.
-  term : TermRule;
-  // Record creation time in Unix milliseconds.
-  created_at_ms : nat64;
-  // Exclusive ledger-commit deadline for primary funding, in Unix milliseconds.
-  fund_by_ms : nat64;
-  // Commerce canister authoritative for this order or lease.
-  home_commerce : principal;
-  // Fixed catalog snapshot.
-  catalog : Catalog;
-  // Exclusive service activation deadline in Unix milliseconds.
-  activate_by_ms : nat64;
-};
-// Merchant order lifecycle; a refund decision is separate from ledger payout.
-type OrderStatus = variant {
-  // Benefit closure is in progress.
-  Closing;
-  // Benefit is active under its recorded terms.
-  Active;
-  // Order is authorized and awaiting qualifying ledger funding.
-  AwaitingFunding;
-  // Order was cancelled without activation.
-  Cancelled;
-  // Refund direction is fixed; payout may still be pending.
-  RefundCommitted;
+// Opening never transfers funds. Transfer only after an accepted order exists.
+type OpenCheckout = record {
+  // Accepted immutable quote.
+  quote : CheckoutQuote;
+  // Account and product permission input.
+  authorization : ProductAuthorizationRequest;
 };
 // Base resource tier; it grants no account or cryptographic permissions.
 type PlanId = variant {
@@ -659,14 +588,89 @@ type PlanVersion = record {
   terms_version : nat64;
   // Integer annual or product price in USD cents.
   price_cents : nat64;
-  // Qualification policy for SNS funding, when configured.
-  membership_policy_version : opt nat64;
   // Versioned execution-cost weights.
   weights : ExecutionWeights;
   // Base resource tier.
   plan_id : PlanId;
   // Base resource limits.
   limits : ResourceLimits;
+};
+// Explicit product permission; not a claim that the payer has a project role.
+type ProductApproval = record {
+  // Accepted settlement method.
+  method : SettlementMethod;
+  // Product-owned approval identity.
+  approval_id : blob;
+  // Exact bill accepted by the product operator.
+  offer_hash : blob;
+  // Operator whose product permissions must remain valid at delivery.
+  operator : principal;
+  // Protocol version two.
+  version : nat16;
+  // Exclusive application deadline, never extended on retry.
+  expires_at_ms : nat64;
+  // Approval time.
+  approved_at_ms : nat64;
+};
+// Inputs authenticated by checkout/membership before asking the product authority.
+type ProductAuthorizationRequest = record {
+  // Explicit product approval; a personal-account adapter may derive owner consent from account_approval.
+  product_approval : opt ProductApproval;
+  // dMsg device-approved account and economic actor.
+  account_approval : ApplicationApproval;
+  // Exact device approval record.
+  approval_id : blob;
+  // Registered dMsg user home that verified the approval.
+  user_home : principal;
+  // Exact authoritative bill.
+  offer : BillingOffer;
+};
+// Durable product delivery decision, persisted before the external Apply call.
+type ProductDecision = record {
+  // Permanent decision identity; never replaced after an unknown response.
+  decision_id : blob;
+  // Complete accepted business offer.
+  offer : BillingOffer;
+  // Typed source verified against the fixed service caller.
+  source : SettlementSource;
+  // Decision preparation time in Unix milliseconds.
+  decided_at_ms : nat64;
+  // Commerce version.
+  version : nat16;
+  // Exclusive delivery deadline; unknown delivery never implies a refund.
+  apply_by_ms : nat64;
+};
+// Terminal Apply result. Unknown is the absence of an authenticated receipt.
+type ProductOutcome = variant {
+  // Rights and the receipt were committed atomically.
+  Applied : record {
+    // Product business revision after Apply.
+    business_revision : nat64;
+    // Immutable contract identity.
+    contract_id : blob;
+    // Earliest permissible commitment release time.
+    committed_until_ms : nat64;
+  };
+  // Known rejection, persisted and idempotently retrievable.
+  Rejected : record {
+    // Stable typed reason without sensitive free-form diagnostics.
+    reason : ProductRejection;
+  };
+};
+// Authenticated product receipt, not an untrusted browser success flag.
+type ProductReceipt = record {
+  // Complete decision commitment; catches same-ID/different-bytes retries.
+  decision_hash : blob;
+  // Original immutable decision identity.
+  decision_id : blob;
+  // Atomic receipt creation time in Unix milliseconds.
+  applied_at_ms : nat64;
+  // Commerce version.
+  version : nat16;
+  // Terminal delivery result.
+  outcome : ProductOutcome;
+  // Fixed registered delivery authority.
+  adapter : principal;
 };
 // Product identity, subject schema and settlement boundary.
 type ProductRegistration = record {
@@ -699,18 +703,18 @@ type ProductRegistration = record {
   // Stops new commitments only.
   paused : bool;
 };
-// Request for a fixed quote; creating this value neither charges nor authorizes payment.
-type QuoteOrder = record {
-  // Requested commercial change.
-  action : OrderAction;
-  // Operation identifier reused only with identical terms.
-  op_id : blob;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // ICRC source account required for primary funding.
-  payer : Account;
-  // Product business revision required for compare-and-swap.
-  expected_business_revision : nat64;
+// Expected terminal product rejections.
+type ProductRejection = variant {
+  // Authoritative quote or product terms no longer match.
+  OfferMismatch;
+  // Another operation already owns the same interval.
+  IntervalReserved;
+  // Business revision changed.
+  RevisionConflict;
+  // Product permission is no longer valid.
+  Unauthorized;
+  // Delivery deadline or permitted interval has passed.
+  Expired;
 };
 // Logical storage, active-channel and formal-execution resource limits.
 type ResourceLimits = record {
@@ -721,24 +725,101 @@ type ResourceLimits = record {
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
-type Result = variant { Ok : MembershipDecisionReceipt; Err : Error };
-type Result_1 = variant { Ok : MembershipAuthorization; Err : Error };
-type Result_10 = variant { Ok : OrderQuote; Err : Error };
-type Result_11 = variant {
+type Result = variant { Ok : ProductReceipt; Err : Error };
+type Result_1 = variant { Ok : CashCancellationReceipt; Err : Error };
+type Result_10 = variant { Ok : ExecutionEntitlement; Err : Error };
+type Result_11 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_12 = variant { Ok : BillingOffer; Err : Error };
+type Result_13 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_14 = variant { Ok : SettlementAsset; Err : Error };
+type Result_15 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_16 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_12 = variant { Ok : EntitlementView; Err : Error };
-type Result_13 = variant { Ok; Err : Error };
-type Result_14 = variant { Ok : ClaimView; Err : Error };
-type Result_2 = variant { Ok : OrderProgress; Err : Error };
-type Result_3 = variant { Ok : TransferProgress; Err : Error };
-type Result_4 = variant { Ok : MerchantTransfer; Err : Error };
-type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_6 = variant { Ok : MerchantDeposit; Err : Error };
-type Result_7 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_8 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
-type Result_9 = variant { Ok : BillingOrder; Err : Error };
+type Result_17 = variant { Ok : EntitlementView; Err : Error };
+type Result_18 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : CheckoutProgress; Err : Error };
+type Result_3 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_4 = variant { Ok : vec CheckoutDeposit; Err : Error };
+type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
+type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
+type Result_7 = variant { Ok : CashTransfer; Err : Error };
+type Result_8 = variant { Ok : opt CashCancellationReceipt; Err : Error };
+type Result_9 = variant { Ok : CheckoutView; Err : Error };
+// Governance-approved asset/price snapshot. Pausing admission never removes refund routing.
+type SettlementAsset = record {
+  // Verified atomic precision; initial assets require six decimals.
+  decimals : nat16;
+  // Declared kind, checked against the configured ledger identity.
+  asset : SettlementAssetKind;
+  // Per-transfer cap accepted for new orders.
+  max_network_fee_atomic : nat;
+  // Exclusive validity end of that price observation.
+  price_valid_until_ms : nat64;
+  // Time of the trusted price observation.
+  price_observed_at_ms : nat64;
+  // Protocol version two.
+  version : nat16;
+  // New-quote admission only.
+  enabled : bool;
+  // Latest verified ledger network fee.
+  network_fee_atomic : nat;
+  // Ledger identity, not a symbol.
+  ledger : principal;
+  // Deployment domain.
+  environment : Environment;
+  // Explicit reference USD micro price for one full token.
+  price_usd_micros : nat;
+  // Immutable revision for this ledger.
+  policy_version : nat64;
+};
+// Initially supported stable assets, bound to fixed ledger IDs outside Local.
+type SettlementAssetKind = variant {
+  // ckUSDC on ICP.
+  CkUsdc;
+  // ckUSDT on ICP.
+  CkUsdt;
+};
+// Asset discovery remains available while quotes are paused.
+type SettlementAssetView = record {
+  // Metadata/block format has been verified for this policy.
+  ledger_verified : bool;
+  // Exact current asset policy.
+  policy : SettlementAsset;
+};
+// Mutually exclusive settlement sources. PANDA always covers the entire offer.
+type SettlementMethod = variant {
+  // One explicitly enabled ledger.
+  Cash;
+  // Full subscription waiver without any cash transfer.
+  Panda;
+};
+// Paid/waived provenance. PANDA never fabricates a ledger payment reference.
+type SettlementSource = variant {
+  // Confirmed receipt of a single selected asset.
+  Cash : record {
+    // Actual product price, excluding the separately tracked fee reserve.
+    amount_atomic : nat;
+    // Authentic ICRC block index.
+    block_index : nat;
+    // Selected ledger, also scopes block deduplication.
+    ledger : principal;
+    // Checkout order identity.
+    order_id : blob;
+  };
+  // Full waiver requiring a live qualification lease.
+  Panda : record {
+    // Shared membership claim identity.
+    claim_id : blob;
+    // Exact accepted quotation.
+    quote_hash : blob;
+    // Current exclusive lease end, bounded by contract end.
+    lease_until_ms : nat64;
+    // Immutable commitment, even if benefit later terminates.
+    committed_until_ms : nat64;
+  };
+};
 // Closed signing profiles that an application may request.
 type SigningProfile = variant {
   // Existing text-plus-file statement profile.
@@ -791,93 +872,56 @@ type StorageProduct = record {
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
-// Calendar-year term or an explicit half-open UTC millisecond interval.
-type TermRule = variant {
-  // Explicit half-open interval.
-  Fixed : record {
-    // Inclusive interval start in Unix milliseconds.
-    starts_at_ms : nat64;
-    // Exclusive interval end in Unix milliseconds.
-    expires_at_ms : nat64;
-  };
-  // One calendar year; February 29 is clamped to February 28.
-  CalendarYear;
-};
-// Integer PANDA stake requirement; AnnualPrice is rounded up by the protocol helper.
-type Threshold = variant {
-  // Annual USD-cent price converted at a rational PANDA/USD ratio.
-  AnnualPrice : record {
-    // Integer annual or product price in USD cents.
-    price_cents : nat64;
-    // Positive denominator of the PANDA-per-USD conversion ratio.
-    r_den : nat;
-    // Positive numerator of the PANDA-per-USD conversion ratio.
-    r_num : nat;
-  };
-  // Fixed positive PANDA atomic stake.
-  FixedPanda : record {
-    // Positive PANDA amount in ledger atomic units.
-    atomic : nat;
-  };
-};
-// Errors defined for the
-// [ICRC-1 `transfer`](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-1/README.md#icrc1_transfer-)
-// endpoint.
-type TransferError = variant {
-  GenericError : record { message : text; error_code : nat };
-  TemporarilyUnavailable;
-  BadBurn : record { min_burn_amount : nat };
-  Duplicate : record { duplicate_of : nat };
-  BadFee : record { expected_fee : nat };
-  CreatedInFuture : record { ledger_time : nat64 };
-  TooOld;
-  InsufficientFunds : record { balance : nat };
-};
-// Public outgoing-transfer advancement result, without account or amount details.
-type TransferProgress = record {
-  // Current transfer lifecycle status.
-  status : MerchantTransferStatus;
-  // Replacement leg, when this leg is superseded.
-  replaced_by : opt nat64;
-  // Per-order transfer identifier.
-  transfer_id : nat64;
-  // Original order identity.
-  order_id : blob;
-};
 service : (CommerceInit) -> {
-  apply_membership_decision : (MembershipDecision) -> (Result);
-  authorize_membership_close : (blob, MembershipIntent) -> (Result_1);
-  authorize_membership_intent : (ClaimRequest) -> (Result_1);
-  check_order_funding : (blob, nat64) -> (Result_2);
-  claim_deposit_refund : (blob, nat64) -> (Result_3);
-  claim_fee_reserve : (blob) -> (Result_3);
-  collect_revenue : (blob) -> (Result_4);
-  get_catalog : () -> (Result_5) query;
-  get_deposit : (nat64) -> (Result_6) query;
-  get_entitlement_batch : (vec Beneficiary) -> (Result_5) query;
-  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_7);
-  get_membership_decision : (blob) -> (Result_8);
-  get_operation : (blob) -> (Result_9) query;
-  get_order_certified : (blob) -> (Result_5) query;
-  get_transfer : (blob, nat64) -> (Result_4) query;
+  apply_product_decision : (ProductDecision) -> (Result);
+  cancel_cash_contract : (blob, blob, blob) -> (Result_1);
+  cancel_checkout : (blob) -> (Result_2);
+  check_checkout_funding : (blob, CashBlock) -> (Result_2);
+  checkout_certificate : (blob) -> (Result_3) query;
+  checkout_deposits : (blob) -> (Result_4) query;
+  // Private operations centre; quoting and monitoring never reserve an interval.
+  checkout_operations : (opt blob, nat16) -> (Result_5) query;
+  checkout_progress : (blob) -> (Result_2) query;
+  checkout_transfer_certificate : (blob) -> (Result_3) query;
+  checkout_transfers : (opt blob, nat16) -> (Result_6) query;
+  claim_checkout_fee_reserve : (blob) -> (Result_7);
+  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_7);
+  collect_checkout_revenue : (blob) -> (Result_7);
+  get_cash_cancellation : (blob) -> (Result_8);
+  get_catalog : () -> (Result_3) query;
+  get_checkout : (blob) -> (Result_9) query;
+  // Consensus read for the pinned product adapter during Apply. Query replies are not delivery authority.
+  get_checkout_for_product : (blob) -> (Result_9);
+  get_checkout_transfer : (blob) -> (Result_7) query;
+  get_entitlement_batch : (vec Beneficiary) -> (Result_3) query;
+  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_10);
+  get_product_decision : (blob) -> (Result_11);
   // Public, authenticated discovery. A paused configuration remains discoverable.
-  integration_configuration_certificate : (text, opt text) -> (Result_5) query;
+  integration_configuration_certificate : (text, opt text) -> (Result_3) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
-  open_order : (OpenOrder) -> (Result_9);
-  process_transfer : (blob, nat64) -> (Result_3);
-  quote_order : (QuoteOrder) -> (Result_10) query;
+  open_checkout : (OpenCheckout) -> (Result_9);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_12);
+  process_checkout_transfer : (blob) -> (Result_13);
+  publish_settlement_price : (principal, nat, nat64) -> (Result_14);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_15);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_11);
-  reconcile_order : (blob) -> (Result_2);
-  reconcile_transfer : (blob, nat64, nat64) -> (Result_3);
+  read_integration_configuration : (text, opt text) -> (Result_16);
+  // Safe progress can be advanced without revealing the payer or private bill.
+  reconcile_checkout : (blob) -> (Result_2);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_13);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_12);
-  register_integration_app : (AppRegistration) -> (Result_13);
-  register_integration_product : (ProductRegistration) -> (Result_13);
-  release_replaced_claim : (Beneficiary, blob) -> (Result_14);
-  request_refund : (blob, MembershipIntent) -> (Result_9);
-  revise_rejected_transfer : (blob, nat64, nat) -> (Result_4);
-  schedule_policy : (Catalog) -> (Result_13);
-  set_admission_pause : (bool) -> (Result_13);
-  verify_ledger_configuration : () -> (Result_13);
+  refresh_entitlement : (Beneficiary) -> (Result_17);
+  register_integration_app : (AppRegistration) -> (Result_18);
+  register_integration_product : (ProductRegistration) -> (Result_18);
+  register_settlement_asset : (SettlementAsset) -> (Result_18);
+  release_product_billing : (ProductAuthorizationRequest) -> (Result_18);
+  reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result_18);
+  revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
+  schedule_policy : (Catalog) -> (Result_18);
+  set_admission_pause : (bool) -> (Result_18);
+  set_settlement_price_authority : (principal) -> (Result_18);
+  settlement_assets : () -> (vec SettlementAssetView) query;
+  settlement_assets_certificate : () -> (Result_3) query;
+  verify_billing_offer : (BillingOffer) -> (Result_18);
+  verify_settlement_asset : (principal, opt nat) -> (Result_18);
 }

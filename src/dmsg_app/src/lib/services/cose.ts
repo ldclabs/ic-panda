@@ -1,3 +1,5 @@
+import { encodeControl, decodeControl } from '../protocol/account'
+import { actionToCandid, actionFromCandid } from '../protocol/app-action'
 import { Principal } from '@icp-sdk/core/principal'
 import type {
   _SERVICE as UserService,
@@ -7,6 +9,7 @@ import type {
   Statement,
   RootTarget,
   SignRequest,
+  AppActionSignRequest,
   SigningAlgorithm
 } from '../canisters/generated/user'
 import type { _SERVICE as CoseService, KeySelector } from '../canisters/generated/cose'
@@ -24,7 +27,11 @@ export type { Algorithm } from '../protocol/statements'
 export class ExecutionRejected extends DmsgError {}
 
 export type PublicKeySelection =
-  | { kind: 'signing'; purpose: 'statement' | 'file_attestation'; algorithm?: Algorithm }
+  | {
+      kind: 'signing'
+      purpose: 'statement' | 'file_attestation' | 'app_action'
+      algorithm?: Algorithm
+    }
   | { kind: 'content_root'; generation: bigint }
 export interface SigningKeyReference {
   algorithm: Algorithm
@@ -47,10 +54,28 @@ export interface ExecutionContext {
   maxCycles: bigint
 }
 type Operation =
-  { kind: 'sign'; request: SignRequest } | { kind: 'derive_root'; request: DeriveRootRequest }
+  | { kind: 'sign'; request: SignRequest }
+  | { kind: 'sign_app_action'; request: AppActionSignRequest }
+  | { kind: 'derive_root'; request: DeriveRootRequest }
+function cloneOperation(operation: Operation): Operation {
+  // structuredClone strips Principal's prototype. Clone through the exact public
+  // Candid schema so receiver identity survives approval, journaling and retry.
+  return {
+    kind: operation.kind,
+    request: decodeControl(
+      operation.kind,
+      encodeControl(operation.kind, [operation.request])
+    )[0]
+  } as Operation
+}
 type UserExecution = Pick<
   UserService,
-  'sign' | 'derive_root' | 'get_execution' | 'reconcile_execution' | 'get_execution_receipt'
+  | 'sign'
+  | 'sign_app_action'
+  | 'derive_root'
+  | 'get_execution'
+  | 'reconcile_execution'
+  | 'get_execution_receipt'
 >
 export type DeviceSigner = (approvalDigest: Uint8Array) => Promise<Uint8Array>
 
@@ -102,6 +127,9 @@ function approval(context: ExecutionContext, now: number): Approval {
 function toStatement(input: DocumentStatement): Statement {
   let content: Statement['content']
   switch (input.content.kind) {
+    case 'app_action':
+      content = { AppAction: actionToCandid(input.content.action) }
+      break
     case 'text':
       content = { Text: input.content.text }
       break
@@ -140,25 +168,42 @@ function fromStatement(s: Statement): DocumentStatement {
     subject: s.subject[0],
     issuedAt: s.issued_at[0],
     content:
-      'Text' in s.content
-        ? { kind: 'text', text: s.content.Text }
-        : 'FileStatement' in s.content
-          ? {
-              kind: 'file_statement',
-              text: s.content.FileStatement.text,
-              sha256: Uint8Array.from(s.content.FileStatement.sha256),
-              contentType: s.content.FileStatement.content_type[0],
-              location: s.content.FileStatement.location[0]
-            }
-          : {
-              kind: 'digest',
-              sha256: Uint8Array.from(s.content.Digest.sha256),
-              contentType: s.content.Digest.content_type[0],
-              location: s.content.Digest.location[0]
-            }
+      'AppAction' in s.content
+        ? { kind: 'app_action', action: actionFromCandid(s.content.AppAction) }
+        : 'Text' in s.content
+          ? { kind: 'text', text: s.content.Text }
+          : 'FileStatement' in s.content
+            ? {
+                kind: 'file_statement',
+                text: s.content.FileStatement.text,
+                sha256: Uint8Array.from(s.content.FileStatement.sha256),
+                contentType: s.content.FileStatement.content_type[0],
+                location: s.content.FileStatement.location[0]
+              }
+            : {
+                kind: 'digest',
+                sha256: Uint8Array.from(s.content.Digest.sha256),
+                contentType: s.content.Digest.content_type[0],
+                location: s.content.Digest.location[0]
+              }
   }
 }
-export function signBytes(request: SignRequest) {
+export function signingRequest(request: SignRequest | AppActionSignRequest): SignRequest {
+  return 'action' in request
+    ? {
+        ...request,
+        origin: request.action.origin,
+        statement: {
+          issuer: request.issuer,
+          subject: [],
+          issued_at: [],
+          content: { AppAction: request.action }
+        }
+      }
+    : request
+}
+export function signBytes(input: SignRequest | AppActionSignRequest) {
+  const request = signingRequest(input)
   return statementBytes(
     fromStatement(request.statement),
     Object.keys(request.key.algorithm)[0] as Algorithm,
@@ -166,8 +211,8 @@ export function signBytes(request: SignRequest) {
   ).toBeSigned
 }
 function executionKind(operation: Operation): unknown {
-  if (operation.kind === 'sign') {
-    const sign = operation.request
+  if (operation.kind !== 'derive_root') {
+    const sign = signingRequest(operation.request)
     return {
       Sign: {
         key: {
@@ -212,7 +257,7 @@ export class PreparedExecution {
   private submission?: Promise<ExecutionResult>
 
   constructor(operation: Operation, homeUser: Principal) {
-    this.operation = structuredClone(operation)
+    this.operation = cloneOperation(operation)
     const request = this.operation.request,
       a = request.approval
     this.message = digest('dmsg/device-approval/v2', [
@@ -234,13 +279,13 @@ export class PreparedExecution {
     return Uint8Array.from(this.message)
   }
   get review() {
-    return structuredClone(this.operation)
+    return cloneOperation(this.operation)
   }
   get toBeSigned() {
-    return this.operation.kind === 'sign' ? signBytes(this.operation.request) : null
+    return this.operation.kind !== 'derive_root' ? signBytes(this.operation.request) : null
   }
   approveAndExecute(
-    user: Pick<UserExecution, 'sign' | 'derive_root'>,
+    user: Pick<UserExecution, 'sign' | 'sign_app_action' | 'derive_root'>,
     signer: DeviceSigner,
     onApproved: (operation: Operation) => Promise<void> = async () => {}
   ): Promise<ExecutionResult> {
@@ -248,19 +293,21 @@ export class PreparedExecution {
     return this.submission
   }
   private async submit(
-    user: Pick<UserExecution, 'sign' | 'derive_root'>,
+    user: Pick<UserExecution, 'sign' | 'sign_app_action' | 'derive_root'>,
     signer: DeviceSigner,
     onApproved: (operation: Operation) => Promise<void>
   ) {
-    const signed = structuredClone(this.operation)
+    const signed = cloneOperation(this.operation)
     signed.request.approval.signature = fixed(await signer(this.approvalMessage), 64)
-    await onApproved(structuredClone(signed))
+    await onApproved(cloneOperation(signed))
     let response: Awaited<ReturnType<UserService['sign']>>
     try {
       response =
         signed.kind === 'sign'
           ? await user.sign(signed.request)
-          : await user.derive_root(signed.request)
+          : signed.kind === 'sign_app_action'
+            ? await user.sign_app_action(signed.request)
+            : await user.derive_root(signed.request)
     } catch {
       throw new DmsgError(
         'EXECUTION_UNKNOWN',
@@ -284,7 +331,7 @@ export class PreparedExecution {
       'INTEGRITY_FAILED',
       '响应与原请求不一致。'
     )
-    if (signed.kind === 'sign' && 'Completed' in result.outcome) {
+    if (signed.kind !== 'derive_root' && 'Completed' in result.outcome) {
       const output = result.outcome.Completed
       ensure('Signature' in output, 'INTEGRITY_FAILED')
       const checked = verifyDocumentArtifact(output.Signature.artifact)
@@ -313,11 +360,32 @@ export function prepareSign(
   const origin = new URL(content.origin)
   ensure(
     content.origin.length <= 256 &&
-      ((origin.protocol === 'https:' && origin.origin === content.origin) ||
+      ((statement.content.kind === 'app_action' &&
+        statement.content.action.origin === content.origin) ||
+        (origin.protocol === 'https:' && origin.origin === content.origin) ||
         /^chrome-extension:\/\/[a-p]{32}$/.test(content.origin)),
     'INVALID_INPUT',
     '需要规范的应用 origin。'
   )
+  if (statement.content.kind === 'app_action')
+    return new PreparedExecution(
+      {
+        kind: 'sign_app_action',
+        request: {
+          account_id: fixed(context.accountId, 12),
+          issuer: context.issuer,
+          action: actionToCandid(statement.content.action),
+          key: {
+            algorithm: { [key.algorithm]: null } as SigningAlgorithm,
+            kid: Uint8Array.from(key.kid),
+            public_key_fingerprint: fixed(key.publicKeyFingerprint, 32)
+          },
+          max_cycles: context.maxCycles,
+          approval: approval(context, now)
+        }
+      },
+      context.homeUser
+    )
   return new PreparedExecution(
     {
       kind: 'sign',
@@ -375,15 +443,17 @@ export function coseClient(user: UserExecution, cose: Pick<CoseService, 'public_
         const algorithm = selection.algorithm ?? 'Ed25519'
         ensure(['Ed25519', 'EcdsaSecp256k1'].includes(algorithm), 'UNSUPPORTED_PROTOCOL')
         ensure(
-          ['statement', 'file_attestation'].includes(selection.purpose),
+          ['statement', 'file_attestation', 'app_action'].includes(selection.purpose),
           'UNSUPPORTED_PROTOCOL'
         )
         key = {
           Signing: {
             purpose:
-              selection.purpose === 'statement'
-                ? { Statement: null }
-                : { FileAttestation: null },
+              selection.purpose === 'app_action'
+                ? { AppAction: null }
+                : selection.purpose === 'statement'
+                  ? { Statement: null }
+                  : { FileAttestation: null },
             algorithm: { [algorithm]: null } as SigningAlgorithm
           }
         }

@@ -1,6 +1,6 @@
 ; Document profiles v1 (Statement v3 design), not a general COSE grammar.
 ; The media types are experimental, not registered standards.
-signed-statement = text-statement / digest-statement / file-statement
+signed-statement = text-statement / digest-statement / file-statement / app-action-statement
 text-statement = #6.18([
   protected: bstr .cbor text-headers,
   unprotected: evidence-headers,
@@ -82,3 +82,20 @@ key-label = int / tstr
 ; Header/claim maps are closed; duplicate keys and unknown critical semantics
 ; are errors. crit ordering is emitted as above; validators compare its set.
 ; external_aad is empty. The Sig_structure is ["Signature1", protected, h'', payload].
+
+; Load together with integration.cddl for AppAction. This profile is implemented
+; by the protocol library; the document signing endpoint rejects it.
+app-action-statement = #6.18([
+  protected: bstr .cbor app-action-headers,
+  unprotected: evidence-headers,
+  payload: bstr .cbor AppAction, ; at most 49152 bytes, deterministic closed map
+  signature: signature-bytes
+])
+app-action-headers = {
+  1: -19 / -47,
+  2: [15, 16],
+  3: "application/cbor",
+  4: bstr .size (1..256),
+  15: {1: uri},
+  16: "application/vnd.dmsg.app-action+cose;v=1"
+}

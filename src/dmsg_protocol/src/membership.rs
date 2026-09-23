@@ -1,5 +1,5 @@
 //! Deterministic product-neutral membership identifiers and threshold arithmetic.
-use crate::{authenticated, digest, ensure_valid};
+use crate::{authenticated, ensure_valid};
 use dmsg_types::{membership::*, *};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
@@ -25,29 +25,6 @@ pub fn mul_div(a: u128, b: u128, denominator: u128, round_up: bool) -> Result<u1
     value.to_u128().ok_or(Error::QuotaExceeded)
 }
 
-/// Required PANDA atomic stake, rounded up. Only the fixed 8-decimal asset is
-/// supported; threshold/price/R must be positive. Does not verify SNS ownership.
-pub fn required_panda(threshold: &Threshold, decimals: u8) -> Result<u128> {
-    ensure(decimals == 8, Error::UnsupportedProtocol)?;
-    match threshold {
-        Threshold::FixedPanda { atomic } => {
-            ensure_valid(*atomic > 0, "zero threshold")?;
-            Ok(*atomic)
-        }
-        Threshold::AnnualPrice {
-            price_cents,
-            r_num,
-            r_den,
-        } => {
-            ensure_valid(*price_cents > 0 && *r_num > 0 && *r_den > 0, "price / R")?;
-            let n =
-                BigUint::from(*price_cents) * BigUint::from(*r_num) * BigUint::from(100_000_000u64);
-            let d = BigUint::from(*r_den) * BigUint::from(100u8);
-            ((n + &d - 1u8) / d).to_u128().ok_or(Error::QuotaExceeded)
-        }
-    }
-}
-
 /// Check authority shape and nonempty bounded product/schema/subject fields.
 /// Does not authenticate that authority or interpret the product's subject schema.
 pub fn validate_beneficiary(b: &Beneficiary) -> Result<()> {
@@ -61,55 +38,6 @@ pub fn validate_beneficiary(b: &Beneficiary) -> Result<()> {
             && b.subject_bytes.len() <= 64,
         "beneficiary",
     )
-}
-
-/// Commit to the complete commercial intent under dmsg/commerce/intent/v1.
-pub fn membership_intent_digest(intent: &MembershipIntent) -> Hash {
-    digest("dmsg/commerce/intent/v1", intent)
-}
-
-/// Commit to claim terms and change action, excluding the enclosing authorization.
-pub fn claim_action_digest(request: &ClaimRequest) -> Hash {
-    digest(
-        "membership/claim-action/v1",
-        &(
-            request.neuron_id,
-            request.policy_version,
-            request.benefit_id,
-            request.expected_business_revision,
-            &request.term,
-            &request.change,
-        ),
-    )
-}
-
-/// Derive an idempotent claim ID from service, actor and application ID.
-/// Different terms under this ID must be rejected by the stateful consumer.
-pub fn claim_id(service: candid::Principal, intent: &MembershipIntent) -> Hash {
-    digest(
-        "membership/claim-id/v1",
-        &(service, intent.actor, intent.application_id),
-    )
-}
-
-/// Single-segment certified path for a qualification claim.
-pub fn claim_key(id: Hash) -> Hash {
-    digest("membership/claim-key/v1", &id)
-}
-
-/// Product-independent neuron identity for the global exclusive-use index.
-pub fn neuron_key(governance: candid::Principal, neuron: Hash) -> Hash {
-    digest("membership/neuron-key/v1", &(governance, neuron))
-}
-
-/// Commit to a complete immutable membership decision; does not authorize it.
-pub fn decision_digest(decision: &MembershipDecision) -> Hash {
-    digest("membership/decision/v1", decision)
-}
-
-/// Single-segment path for an immutable governance policy.
-pub fn policy_key(version: u64) -> Hash {
-    digest("membership/policy-key/v1", &version)
 }
 
 #[cfg(test)]
@@ -144,54 +72,6 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn thresholds_require_positive_terms_and_the_pinned_asset() {
-        assert_eq!(
-            required_panda(&Threshold::FixedPanda { atomic: 1 }, 8),
-            Ok(1)
-        );
-        assert_eq!(
-            required_panda(&Threshold::FixedPanda { atomic: 1 }, 6),
-            Err(Error::UnsupportedProtocol)
-        );
-        assert!(required_panda(&Threshold::FixedPanda { atomic: 0 }, 8).is_err());
-        for (price_cents, r_num, r_den) in [(0, 1, 1), (1, 0, 1), (1, 1, 0)] {
-            assert!(matches!(
-                required_panda(
-                    &Threshold::AnnualPrice {
-                        price_cents,
-                        r_num,
-                        r_den
-                    },
-                    8
-                ),
-                Err(Error::InvalidInput(_))
-            ));
-        }
-        assert_eq!(
-            required_panda(
-                &Threshold::AnnualPrice {
-                    price_cents: 1,
-                    r_num: 1,
-                    r_den: 3
-                },
-                8
-            ),
-            Ok(333_334)
-        );
-        assert_eq!(
-            required_panda(
-                &Threshold::AnnualPrice {
-                    price_cents: u64::MAX,
-                    r_num: u128::MAX,
-                    r_den: 1
-                },
-                8
-            ),
-            Err(Error::QuotaExceeded)
-        );
     }
 
     #[test]

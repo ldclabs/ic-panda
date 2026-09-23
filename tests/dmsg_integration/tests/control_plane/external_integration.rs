@@ -1,6 +1,5 @@
 use super::*;
-use dmsg_protocol::{authentication::verify_authentication, integration::*};
-use dmsg_types::integration::*;
+use dmsg_protocol::authentication::verify_authentication;
 
 fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
     let product = ProductRegistration {
@@ -31,6 +30,7 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
         capabilities: vec![AppCapability::Authenticate, AppCapability::Checkout],
         profiles: vec![],
         authentication_receiver: f.commerce,
+        action_authority: f.commerce,
         paused: false,
     };
     let unauthorized: Result<()> = update(
@@ -307,4 +307,270 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
         (id, other),
     );
     assert_eq!(substituted, Err(Error::IdempotencyConflict));
+}
+
+#[test]
+fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
+    use dmsg_types::app_action::*;
+    let f = Fixture::new();
+    let account = f.create(1);
+    let state = f.account_id(1, &account);
+    let at = time(&f.ic);
+    let hash = Hash::new([1; 32]);
+    let mut action = AppAction {
+        version: 1,
+        environment: Environment::Local,
+        app_id: "tokenlisting".into(),
+        app_config_version: 1,
+        origin: "https://sample.test".into(),
+        receiver: f.commerce,
+        actor_id: AccountId([8; 12]),
+        signing_account: account.clone(),
+        operation_id: hash,
+        intent_hash: hash,
+        input_hash: hash,
+        subject_hash: hash,
+        precondition_hash: hash,
+        role_snapshot_hash: hash,
+        signing_policy_hash: hash,
+        rule_set_hash: hash,
+        issued_at_ms: at,
+        expires_at_ms: at + AUTH_TTL_MS,
+        command: AppActionCommand::TokenListCertifyDisclosure {
+            project_id: 1,
+            contract_id: 1,
+            revision: 1,
+        },
+        files: vec![],
+    };
+    action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
+    let statement = Statement {
+        issuer: state.issuer.clone(),
+        subject: None,
+        issued_at: None,
+        content: StatementContent::AppAction(Box::new(action)),
+    };
+    let (_, tbs) = prepare_cose(&statement, &Algorithm::Ed25519, hash.as_slice()).unwrap();
+    let kind = ExecutionKind::Sign {
+        key: KeyRequest {
+            purpose: KeyPurpose::AppAction,
+            algorithm: Algorithm::Ed25519,
+            generation: 1,
+        },
+        to_be_signed: tbs.into(),
+        public_key_fingerprint: hash,
+        origin: "https://sample.test".into(),
+    };
+    let max_cycles = 100_000_000_000u128;
+    let request_id = execution_request_id(
+        &account,
+        state.security_epoch,
+        hash,
+        state.devices[&hash].next_sequence,
+    );
+    let approval = approve(
+        &f,
+        &account,
+        "dmsg/execute/v3",
+        &(&kind, max_cycles),
+        request_id,
+    );
+    let request = SignRequest {
+        account_id: account.clone(),
+        key: SigningKeyRef {
+            algorithm: SigningAlgorithm::Ed25519,
+            kid: hash.to_vec().into(),
+            public_key_fingerprint: hash,
+        },
+        statement,
+        origin: "https://sample.test".into(),
+        max_cycles,
+        approval,
+    };
+    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
+    assert_eq!(result, Err(Error::UnsupportedProtocol));
+    assert_eq!(
+        f.account_id(1, &account).devices[&hash].next_sequence,
+        state.devices[&hash].next_sequence
+    );
+}
+
+#[test]
+fn external_action_authority_signature_receipt_replay_and_callback_pause() {
+    use dmsg_types::app_action::*;
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    f.recoverable(1, &account);
+    let ready: Result<KeyState> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    ready.unwrap();
+    let (mut app, _) = registrations(&f);
+    app.app_id = "sample-actions".into();
+    app.action_authority = f.sns;
+    app.capabilities.push(AppCapability::SignAction);
+    app.profiles.push(SigningProfile::AppActionV1);
+    let registered: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "register_integration_app",
+        (app.clone(),),
+    );
+    registered.unwrap();
+    let at = time(&f.ic);
+    let hash = Hash::new([1; 32]);
+    let mut action = AppAction {
+        version: 1,
+        environment: Environment::Local,
+        app_id: app.app_id.clone(),
+        app_config_version: 1,
+        origin: app.origins[0].clone(),
+        receiver: f.commerce,
+        actor_id: AccountId([8; 12]),
+        signing_account: account.clone(),
+        operation_id: Hash::new([79; 32]),
+        intent_hash: hash,
+        input_hash: hash,
+        subject_hash: hash,
+        precondition_hash: hash,
+        role_snapshot_hash: hash,
+        signing_policy_hash: hash,
+        rule_set_hash: hash,
+        issued_at_ms: at,
+        expires_at_ms: at + AUTH_TTL_MS,
+        command: AppActionCommand::TokenListCertifyDisclosure {
+            project_id: 1,
+            contract_id: 1,
+            revision: 1,
+        },
+        files: vec![],
+    };
+    action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
+    let signing_key = f.key_ref(
+        &account,
+        SigningPurpose::AppAction,
+        SigningAlgorithm::Ed25519,
+    );
+    let request = |body: AppAction| {
+        let state = f.account_id(1, &account);
+        let device = &state.devices[&hash];
+        let mut request = AppActionSignRequest {
+            account_id: account.clone(),
+            key: signing_key.clone(),
+            issuer: state.issuer,
+            action: body,
+            max_cycles: 100_000_000_000,
+            approval: Approval {
+                device_id: hash,
+                security_epoch: state.security_epoch,
+                sequence: device.next_sequence,
+                request_id: execution_request_id(
+                    &account,
+                    state.security_epoch,
+                    hash,
+                    device.next_sequence,
+                ),
+                expires_at: at + AUTH_TTL_MS,
+                signature: vec![].into(),
+            },
+        };
+        request.approval.signature = key(1)
+            .sign(
+                request
+                    .clone()
+                    .into_execution()
+                    .unwrap()
+                    .approval_message(f.user)
+                    .as_slice(),
+            )
+            .to_bytes()
+            .to_vec()
+            .into();
+        request
+    };
+    let req = request(action.clone());
+    let before = f.account_id(1, &account).devices[&hash].next_sequence;
+    let refused: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "sign_app_action", (req.clone(),));
+    assert_eq!(refused, Err(Error::Forbidden));
+    assert_eq!(
+        f.account_id(1, &account).devices[&hash].next_sequence,
+        before
+    );
+    update::<_, ()>(
+        &f.ic,
+        f.sns,
+        person(1),
+        "set_action_approval",
+        (
+            f.user,
+            account.clone(),
+            dmsg_protocol::app_action::app_action_digest(&action),
+            None::<(Principal, AppRegistration)>,
+        ),
+    );
+    let preview: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "inspect_app_action",
+        (account.clone(), action.clone()),
+    );
+    preview.unwrap();
+    let signed: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "sign_app_action", (req.clone(),));
+    let signed = signed.unwrap();
+    let ExecutionOutput::Signature {
+        artifact,
+        key: descriptor,
+    } = signed.output().unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(descriptor.purpose, KeyPurpose::AppAction);
+    let proof: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution_receipt",
+        (account.clone(), req.approval.request_id),
+    );
+    let (value, _) = dmsg_protocol::authentication::verify_certified_leaf(
+        &proof.unwrap(),
+        &execution_receipt_key(&account, req.approval.request_id),
+        f.user,
+        &f.ic.root_key().unwrap(),
+        time(&f.ic),
+    )
+    .unwrap();
+    let receipt: ExecutionReceipt = decode_canonical(&value).unwrap();
+    match_execution_receipt(artifact, &receipt).unwrap();
+    for (home, name) in [(f.user, "dmsg_user"), (f.cose, "dmsg_cose")] {
+        f.ic.upgrade_canister(home, wasm(name), candid::encode_args(()).unwrap(), None)
+            .unwrap();
+    }
+    let repeated: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "sign_app_action", (req,));
+    assert_eq!(repeated, Ok(signed));
+    let seq = f.account_id(1, &account).devices[&hash].next_sequence;
+    action.operation_id = Hash::new([80; 32]);
+    let next = request(action.clone());
+    app.config_version = 2;
+    app.paused = true;
+    update::<_, ()>(
+        &f.ic,
+        f.sns,
+        person(1),
+        "set_action_approval",
+        (
+            f.user,
+            account.clone(),
+            dmsg_protocol::app_action::app_action_digest(&action),
+            Some((f.commerce, app)),
+        ),
+    );
+    let paused: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "sign_app_action", (next,));
+    assert_eq!(paused, Err(Error::PolicyStale));
+    assert_eq!(f.account_id(1, &account).devices[&hash].next_sequence, seq);
 }

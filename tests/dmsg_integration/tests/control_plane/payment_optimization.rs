@@ -257,14 +257,13 @@ fn controller_disable_and_revocation_racing_an_open_are_enforced() {
         });
         let result: Result<EscrowInfo> =
             candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
-        assert_eq!(
-            result,
-            Err(if revoke {
-                Error::Forbidden
-            } else {
-                Error::Locked
-            })
-        );
+        if revoke {
+            // Revocation itself disables orders. The concurrent re-enable may
+            // run before or after admission; both refusals must leave no escrow.
+            assert!(matches!(result, Err(Error::Forbidden | Error::Locked)));
+        } else {
+            assert_eq!(result, Err(Error::Locked));
+        }
         let changed: Result<()> = candid::decode_one(&f.ic.await_call(changed).unwrap()).unwrap();
         changed.unwrap();
         if let Some(enabled) = enabled {

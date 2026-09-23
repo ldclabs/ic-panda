@@ -1,3 +1,43 @@
+// Approved dMsg account and product beneficiary are deliberately separate.
+type ApplicationApproval = record {
+  // Exact service allowed to consume this approval.
+  "service" : principal;
+  // Economic actor, distinct from both account IDs and payer accounts.
+  actor : principal;
+  // Product-defined rights recipient; no inferred AccountId conversion.
+  beneficiary : Beneficiary;
+  // Exact application configuration revision.
+  app_config_version : nat64;
+  // Extension-verified browser origin.
+  origin : text;
+  // Complete cash/PANDA quotation or application action digest.
+  action_digest : blob;
+  // Idempotency identifier.
+  operation_id : blob;
+  // dMsg account whose device approves this action.
+  approving_account : blob;
+  // Integration version.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Fresh challenge.
+  nonce : blob;
+  // Deployment separation.
+  environment : Environment;
+  // Purpose-separated authorization.
+  purpose : ApprovalPurpose;
+  // Exclusive validity deadline in Unix milliseconds.
+  expires_at_ms : nat64;
+};
+// Exact purpose for account approval, distinct from product authorization.
+type ApprovalPurpose = variant {
+  // Typed application action approval.
+  AppAction;
+  // Cash order approval.
+  CashCheckout;
+  // Full subscription waiver approval.
+  PandaSubscription;
+};
 // Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
   // Product identifier within this protocol.
@@ -8,6 +48,45 @@ type Beneficiary = record {
   subject_bytes : blob;
   // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
+};
+// Product-authoritative offer for one exact half-open subscription interval.
+type BillingOffer = record {
+  // Opaque product SKU, never interpreted by checkout.
+  sku : text;
+  // Registered product.
+  product_id : text;
+  // Typed recipient of product rights.
+  beneficiary : Beneficiary;
+  // Entire interval price in USD micro units, not an annualized price.
+  amount_usd_micros : nat;
+  // Operation identity fixed across retries.
+  operation_id : blob;
+  // Inclusive subscription start in Unix milliseconds.
+  starts_at_ms : nat64;
+  // Commerce version, currently two.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Quote issuance in Unix milliseconds.
+  issued_at_ms : nat64;
+  // Product-issued quote identifier.
+  offer_id : blob;
+  // Registered authoritative quote canister.
+  quote_authority : principal;
+  // Deployment separation.
+  environment : Environment;
+  // Product CAS revision, separate from qualification lease revision.
+  expected_business_revision : nat64;
+  // Registered product delivery canister.
+  adapter : principal;
+  // Explicit enabled settlement sources, without duplicates.
+  allowed_settlement_methods : vec SettlementMethod;
+  // Exclusive immutable end in Unix milliseconds.
+  expires_at_ms : nat64;
+  // Exclusive initial acceptance deadline; not an activation deadline.
+  accept_by_ms : nat64;
+  // Exact product terms accepted by the user.
+  product_terms_hash : blob;
 };
 // IC-certified query response. Merely decoding this value authenticates nothing.
 // Verify the IC certificate against a trusted root, the expected canister and
@@ -31,93 +110,6 @@ type CertifiedEntry = record {
   value : opt blob;
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
-};
-// Relationship between a new claim and an existing benefit commitment.
-type ClaimChange = variant {
-  // Start a new independent benefit.
-  Start;
-  // Upgrade an existing base benefit.
-  Upgrade : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
-  // Replace the qualifying claim supporting an existing benefit.
-  Replace : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
-  // Renew an existing benefit for a subsequent term.
-  Renew : record {
-    // Existing claim whose benefit is being changed.
-    previous_claim : blob;
-  };
-};
-// Frozen qualification request and beneficiary authorization.
-type ClaimRequest = record {
-  // Requested or frozen benefit interval.
-  term : TermRule;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Requested relationship to an earlier claim.
-  change : ClaimChange;
-  // Immutable qualification policy version.
-  policy_version : nat64;
-  // Product business revision required for compare-and-swap.
-  expected_business_revision : nat64;
-  // Exact beneficiary intent approved for this operation.
-  authorization : MembershipIntent;
-  // Fixed PANDA SNS neuron identifier.
-  neuron_id : blob;
-};
-// Durable qualification and product-decision lifecycle.
-type ClaimStatus = variant {
-  // Qualified observation is waiting out the admission cooling period.
-  CoolingDown;
-  // Benefit closure is in progress.
-  Closing;
-  // Benefit is active under its recorded terms.
-  Active;
-  // Exclusive binding has been released.
-  Released;
-  // The request or transfer was definitively rejected.
-  Rejected;
-  // Initial qualification checks are pending.
-  Checking;
-  // A durable product decision awaits acknowledgment.
-  Applying;
-};
-// Public qualification leaf deliberately excludes economic identities and raw neurons.
-type ClaimView = record {
-  // Current lifecycle state of this record.
-  status : ClaimStatus;
-  // Membership canister authoritative for this claim.
-  home_membership : principal;
-  // Idempotency identifier of the product decision.
-  decision_id : opt blob;
-  // Earliest exclusive-binding release time in Unix milliseconds.
-  release_after_ms : nat64;
-  // Stable qualification claim identity.
-  claim_id : blob;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // Public record format version, independent of stable storage.
-  schema : nat16;
-  // Exclusive validity deadline in Unix milliseconds.
-  valid_until_ms : nat64;
-  // Time the supporting qualification observation began, in Unix milliseconds.
-  observed_at_ms : nat64;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Monotonic projection/lease revision, including refreshes.
-  lease_revision : nat64;
-  // Inclusive interval start in Unix milliseconds.
-  starts_at_ms : nat64;
-  // Most recent qualification assessment.
-  eligibility : Eligibility;
-  // Immutable qualification policy version.
-  policy_version : nat64;
-  // Exclusive interval end in Unix milliseconds.
-  expires_at_ms : nat64;
 };
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
@@ -146,6 +138,10 @@ type Error = variant {
   LegacyWriteDisabled;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
   // A new content root must be committed before writes can resume.
   RekeyRequired;
   // Expected version/generation differs from current state; reread before preparing a new approval.
@@ -199,126 +195,265 @@ type Error = variant {
 };
 // Shared qualification service deployment and admission limits.
 type MembershipInit = record {
-  // Maximum retained qualification claims.
-  max_claims : nat64;
-  // New application limit per UTC hour.
-  hourly_applications : nat32;
-  // Pinned PANDA ledger canister.
+  // Reviewed SNS governance module hash. Required outside Local fixtures.
+  expected_governance_module_hash : opt blob;
+  // Pinned eight-decimal PANDA ledger.
   panda_ledger : principal;
-  // Pinned PANDA SNS root canister.
+  // Pinned SNS root.
   sns_root : principal;
-  // Deployment domain of the request or service.
+  // Deployment separation.
   environment : Environment;
-  // Cooling duration in milliseconds before qualification can activate.
-  cooling_ms : nat64;
-  // Governance Principal controlling this service configuration.
+  // PANDA SNS governance and this service's governance authority.
   governance : principal;
-  // Registered product adapters and subject schemas.
-  products : vec ProductConfig;
-  // Total allowed service subsidy units, not ledger funds.
-  subsidy_budget : nat64;
-  // Initial immutable qualification policies.
-  policies : vec MembershipPolicy;
 };
-// A device-approved, purpose-separated intent. Actor authentication is also required.
-type MembershipIntent = record {
-  // Authenticated economic actor approving the action.
+// Complete neuron, economic owner, dMsg account and bill selected before device approval.
+type PandaApplicationTerms = record {
+  // Registered account home.
+  user_home : principal;
+  // Exact service whose global occupancy table will be used.
+  home_membership : principal;
+  // Actual ICP caller controlling the SNS economic permissions.
   actor : principal;
-  // Product subject receiving the benefit.
-  beneficiary : Beneficiary;
-  // Exclusive validity deadline in Unix milliseconds.
+  // Authoritative product bill.
+  offer : BillingOffer;
+  // Exact amount/rate/threshold/deadline accepted for this application.
+  quote : PandaQuote;
+  // dMsg account approving this use, separate from the product beneficiary.
+  approving_account : blob;
+  // Fixed SNS governance identity.
+  sns_governance : principal;
+  // Exact 32-byte SNS neuron ID.
+  neuron_id : blob;
+};
+// Initial or post-cooling fresh approval of the same immutable terms.
+type PandaClaimRequest = record {
+  // Immutable terms; retries cannot replace them.
+  terms : PandaApplicationTerms;
+  // Fresh account proof and product operator approval.
+  authorization : ProductAuthorizationRequest;
+};
+// Termination stops rights, while Released is reserved for the original commitment end.
+type PandaClaimStatus = variant {
+  // Product rights ended permanently; neuron/budget remain occupied until E.
+  Terminated;
+  // First eligible observation recorded; cooling and fresh approval are required.
+  CoolingDown;
+  // Product applied the full waiver. Commitment is immutable.
+  Active;
+  // Original commitment end reached and occupancy released exactly once.
+  Released;
+  // A definite rejection proves that no rights were delivered.
+  Rejected;
+  // Accepted application; qualification has not been established.
+  Checking;
+  // Cancelled before any Apply was prepared.
+  Cancelled;
+  // Durable Apply exists; cancellation and timeout release are forbidden.
+  Applying;
+};
+// Owner/consumer recovery view. It proves no physical custody of an SNS neuron.
+type PandaClaimView = record {
+  // Current lifecycle.
+  status : PandaClaimStatus;
+  // Complete frozen application.
+  terms : PandaApplicationTerms;
+  // Durable terminal product receipt, if available.
+  receipt : opt ProductReceipt;
+  // Stable identity retained after release.
+  claim_id : blob;
+  // Exclusive short lease end; never later than the contract's E.
   valid_until_ms : nat64;
-  // Domain-separated commitment to the exact requested action.
-  action_digest : blob;
-  // Stable idempotency identifier for this application.
-  application_id : blob;
-  // Challenge preventing reuse as a different authorization.
-  nonce : blob;
-  // Exact service authorized to consume this intent.
-  service_canister : principal;
-  // Deployment domain of the request or service.
-  environment : Environment;
+  // Observation start time, not the delayed callback time.
+  observed_at_ms : nat64;
+  // Monotone qualification/view revision.
+  lease_revision : nat64;
+  // Last qualification result.
+  eligibility : Eligibility;
+  // Protocol version two.
+  version : nat16;
+  // Earliest time a fresh post-cooling approval can apply.
+  cooling_until_ms : opt nat64;
+  // Accumulated verified repair time; Unverifiable pauses it.
+  repair_elapsed_ms : nat64;
+  // Zero before successful Apply; fixed to the original E afterwards.
+  committed_until_ms : nat64;
 };
-// Immutable product benefit and qualification policy snapshot.
-type MembershipPolicy = record {
-  // Product identifier within this protocol.
-  product_id : text;
-  // Required PANDA stake calculation under this policy.
-  threshold : Threshold;
-  // Governance-approved service cost reservation, not cash revenue.
-  subsidy_units : nat64;
-  // Opaque product benefit identity.
-  benefit_id : blob;
-  // Inclusive activation time in Unix milliseconds.
+// Owner/adapter/governance operations, including terminated commitments still occupying capacity.
+type PandaOperationsPage = record {
+  // Accessible claims; stale eligibility is never a current lease.
+  claims : vec PandaClaimView;
+  // Last scanned key, including inaccessible rows.
+  next : opt blob;
+};
+// Full waiver quotation with an immutable commitment end.
+type PandaQuote = record {
+  // Computed stake in eight-decimal PANDA atomic units.
+  required_stake_e8s : nat;
+  // Complete authoritative offer commitment.
+  offer_hash : blob;
+  // Commerce version.
+  version : nat16;
+  // Original offer expiry, cannot be reduced after successful Apply.
+  committed_until_ms : nat64;
+  // Time used to freeze the application deadline.
+  quoted_at_ms : nat64;
+  // Latest activation time, bounded by offer end and application lifetime.
+  application_deadline_ms : nat64;
+  // Immutable rate policy.
+  policy : PandaRatePolicy;
+  // Service subsidy obligation in USD micro units, not cash revenue.
+  subsidy_usd_micros : nat;
+};
+// Immutable governance conversion policy; not a market-price oracle.
+type PandaRatePolicy = record {
+  // Products eligible for this policy.
+  product_ids : vec text;
+  // Inclusive policy activation time, after the notice interval.
   effective_at_ms : nat64;
-  // Immutable version identifier within this policy or catalog.
-  version : nat64;
+  // Policy publication time in Unix milliseconds.
+  published_at_ms : nat64;
+  // Commerce version.
+  version : nat16;
+  // Deployment separation.
+  environment : Environment;
+  // Governance budget namespace, never a ledger balance.
+  subsidy_budget_id : blob;
+  // Immutable policy revision.
+  policy_version : nat64;
+  // Positive PANDA/USD denominator.
+  r_den : nat;
+  // Positive PANDA/USD numerator.
+  r_num : nat;
 };
-// Governance-registered product adapter and permitted beneficiary authorities.
-type ProductConfig = record {
-  // Product identifier within this protocol.
-  product_id : text;
-  // Expected subject byte length.
-  subject_size : nat16;
-  // Product canister applying membership decisions.
+// Deployment-wide service/budget limits, independent of product plan names.
+type PandaServiceConfig = record {
+  // Maximum retained operation identities.
+  max_claims : nat64;
+  // Successful new applications per UTC hour.
+  hourly_applications : nat64;
+  // Authority for app/product registrations.
+  commerce_canister : principal;
+  // At least 65 minutes; changing it cannot shorten an accepted application's cooling.
+  cooling_ms : nat64;
+};
+// USD-denominated capacity, not an asset balance or withdrawable credit.
+type PandaSubsidyBudget = record {
+  // Accepted pending/applied obligations. Released only after rejection/cancellation or E.
+  reserved_usd_micros : nat;
+  // Governance ceiling for simultaneous commitments.
+  total_usd_micros : nat;
+  // Namespace selected by both registered product and rate policy.
+  budget_id : blob;
+};
+// Explicit product permission; not a claim that the payer has a project role.
+type ProductApproval = record {
+  // Accepted settlement method.
+  method : SettlementMethod;
+  // Product-owned approval identity.
+  approval_id : blob;
+  // Exact bill accepted by the product operator.
+  offer_hash : blob;
+  // Operator whose product permissions must remain valid at delivery.
+  operator : principal;
+  // Protocol version two.
+  version : nat16;
+  // Exclusive application deadline, never extended on retry.
+  expires_at_ms : nat64;
+  // Approval time.
+  approved_at_ms : nat64;
+};
+// Inputs authenticated by checkout/membership before asking the product authority.
+type ProductAuthorizationRequest = record {
+  // Explicit product approval; a personal-account adapter may derive owner consent from account_approval.
+  product_approval : opt ProductApproval;
+  // dMsg device-approved account and economic actor.
+  account_approval : ApplicationApproval;
+  // Exact device approval record.
+  approval_id : blob;
+  // Registered dMsg user home that verified the approval.
+  user_home : principal;
+  // Exact authoritative bill.
+  offer : BillingOffer;
+};
+// Terminal Apply result. Unknown is the absence of an authenticated receipt.
+type ProductOutcome = variant {
+  // Rights and the receipt were committed atomically.
+  Applied : record {
+    // Product business revision after Apply.
+    business_revision : nat64;
+    // Immutable contract identity.
+    contract_id : blob;
+    // Earliest permissible commitment release time.
+    committed_until_ms : nat64;
+  };
+  // Known rejection, persisted and idempotently retrievable.
+  Rejected : record {
+    // Stable typed reason without sensitive free-form diagnostics.
+    reason : ProductRejection;
+  };
+};
+// Authenticated product receipt, not an untrusted browser success flag.
+type ProductReceipt = record {
+  // Complete decision commitment; catches same-ID/different-bytes retries.
+  decision_hash : blob;
+  // Original immutable decision identity.
+  decision_id : blob;
+  // Atomic receipt creation time in Unix milliseconds.
+  applied_at_ms : nat64;
+  // Commerce version.
+  version : nat16;
+  // Terminal delivery result.
+  outcome : ProductOutcome;
+  // Fixed registered delivery authority.
   adapter : principal;
-  // Canisters permitted to authorize product subjects.
-  authorities : vec principal;
-  // Registered schema identifying how to interpret subject_bytes.
-  subject_schema : text;
 };
-type Result = variant { Ok : ClaimView; Err : Error };
-type Result_1 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_2 = variant { Ok : MembershipPolicy; Err : Error };
-type Result_3 = variant { Ok; Err : Error };
-type Result_4 = variant { Ok : nat32; Err : Error };
-// Calendar-year term or an explicit half-open UTC millisecond interval.
-type TermRule = variant {
-  // Explicit half-open interval.
-  Fixed : record {
-    // Inclusive interval start in Unix milliseconds.
-    starts_at_ms : nat64;
-    // Exclusive interval end in Unix milliseconds.
-    expires_at_ms : nat64;
-  };
-  // One calendar year; February 29 is clamped to February 28.
-  CalendarYear;
+// Expected terminal product rejections.
+type ProductRejection = variant {
+  // Authoritative quote or product terms no longer match.
+  OfferMismatch;
+  // Another operation already owns the same interval.
+  IntervalReserved;
+  // Business revision changed.
+  RevisionConflict;
+  // Product permission is no longer valid.
+  Unauthorized;
+  // Delivery deadline or permitted interval has passed.
+  Expired;
 };
-// Integer PANDA stake requirement; AnnualPrice is rounded up by the protocol helper.
-type Threshold = variant {
-  // Annual USD-cent price converted at a rational PANDA/USD ratio.
-  AnnualPrice : record {
-    // Integer annual or product price in USD cents.
-    price_cents : nat64;
-    // Positive denominator of the PANDA-per-USD conversion ratio.
-    r_den : nat;
-    // Positive numerator of the PANDA-per-USD conversion ratio.
-    r_num : nat;
-  };
-  // Fixed positive PANDA atomic stake.
-  FixedPanda : record {
-    // Positive PANDA amount in ledger atomic units.
-    atomic : nat;
-  };
+type Result = variant { Ok : PandaClaimView; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_3 = variant { Ok : PandaOperationsPage; Err : Error };
+type Result_4 = variant { Ok : PandaApplicationTerms; Err : Error };
+type Result_5 = variant { Ok : PandaRatePolicy; Err : Error };
+type Result_6 = variant { Ok : PandaSubsidyBudget; Err : Error };
+type Result_7 = variant { Ok : nat32; Err : Error };
+// Mutually exclusive settlement sources. PANDA always covers the entire offer.
+type SettlementMethod = variant {
+  // One explicitly enabled ledger.
+  Cash;
+  // Full subscription waiver without any cash transfer.
+  Panda;
 };
 service : (MembershipInit) -> {
-  advance_application : (blob) -> (Result);
-  cancel_application : (blob) -> (Result);
-  close_for_consumer : (blob) -> (Result);
-  get_claim_certified : (vec blob) -> (Result_1) query;
-  get_claim_for_consumer : (blob) -> (Result);
-  get_operation : (blob) -> (Result) query;
-  get_policy : (nat64) -> (Result_2) query;
-  get_policy_certified : (vec nat64) -> (Result_1) query;
-  increase_subsidy_budget : (nat64) -> (Result_3);
-  reconcile_claim : (blob) -> (Result);
-  refresh_claim : (blob) -> (Result);
-  register_product : (ProductConfig) -> (Result_3);
-  request_change : (blob, MembershipIntent) -> (Result);
-  request_claim : (ClaimRequest) -> (Result);
-  schedule_policy : (MembershipPolicy) -> (Result_3);
-  set_admission_pause : (bool) -> (Result_3);
-  // Bounded local cleanup; unknown Apply/Close results are never swept by time.
-  sweep_expired_claims : () -> (Result_4);
-  verify_sns_configuration : () -> (Result_3);
+  advance_panda_claim : (blob, ProductAuthorizationRequest) -> (Result);
+  cancel_panda_application : (blob) -> (Result);
+  configure_panda_service : (PandaServiceConfig) -> (Result_1);
+  get_panda_claim : (blob) -> (Result) query;
+  get_panda_claim_for_product : (blob) -> (Result);
+  panda_budgets : () -> (vec PandaSubsidyBudget) query;
+  panda_claim_certificate : (blob) -> (Result_2) query;
+  panda_operations : (opt blob, nat16) -> (Result_3) query;
+  quote_panda_subscription : (BillingOffer, principal, blob, blob) -> (
+      Result_4,
+    );
+  reconcile_panda_claim : (blob) -> (Result);
+  refresh_panda_claim : (blob) -> (Result);
+  request_panda_claim : (PandaClaimRequest) -> (Result);
+  schedule_panda_rate : (PandaRatePolicy) -> (Result_5);
+  set_admission_pause : (bool) -> (Result_1);
+  set_panda_subsidy_budget : (blob, nat) -> (Result_6);
+  set_sns_governance_module_hash : (blob) -> (Result_1);
+  sweep_panda_commitments : () -> (Result_7);
+  verify_sns_configuration : () -> (Result_1);
 }

@@ -3,15 +3,11 @@ import { Principal } from '@icp-sdk/core/principal'
 import { idlFactory as commerceIDL } from '../canisters/generated/commerce/index.js'
 import { idlFactory as membershipIDL } from '../canisters/generated/membership/index.js'
 import { candidValue } from './account'
+import { fromCandid } from '@dmsg/sdk'
 import { b64, unb64, digest } from './codec'
 import { xidBytes } from './identity'
 import { ensure } from '../errors'
-import type {
-  Beneficiary,
-  OrderQuote,
-  MembershipIntent,
-  ClaimRequest
-} from '../canisters/generated/commerce'
+import type { Beneficiary } from '../canisters/generated/commerce'
 const services = {
   commerce: commerceIDL({ IDL }) as IDL.ServiceClass,
   membership: membershipIDL({ IDL }) as IDL.ServiceClass
@@ -42,44 +38,11 @@ export const beneficiaryValue = (value: Beneficiary) => ({
   subject_schema: value.subject_schema,
   subject_bytes: Uint8Array.from(value.subject_bytes)
 })
-export function quoteValue(quote: OrderQuote) {
-  return (commerceInput('open_order', { quote, authorization: emptyIntent(quote) }) as any)
-    .quote
+
+export { toCandid } from './app-action'
+export function wireResult(plane: CommercePlane, method: string, value: unknown) {
+  const result = apiMethod(plane, method).retTypes[0] as IDL.VariantClass
+  const type = result._fields.find(([name]) => name === 'Ok')?.[1]
+  ensure(type, 'UNSUPPORTED_PROTOCOL')
+  return fromCandid(type, value)
 }
-function emptyIntent(quote: OrderQuote): MembershipIntent {
-  return {
-    actor: quote.request.payer.owner,
-    beneficiary: quote.request.beneficiary,
-    application_id: quote.request.op_id,
-    environment: { Local: null },
-    service_canister: quote.home_commerce,
-    action_digest: new Uint8Array(32),
-    nonce: new Uint8Array(32),
-    valid_until_ms: 0n
-  }
-}
-export const quoteDigest = (quote: OrderQuote) =>
-  digest('dmsg/commerce/order/v1', quoteValue(quote))
-export const orderId = (quote: OrderQuote) =>
-  digest('dmsg/commerce/order-id/v1', [
-    quote.home_commerce.toUint8Array(),
-    quote.request.payer.owner.toUint8Array(),
-    Uint8Array.from(quote.request.op_id)
-  ])
-export const claimDigest = (request: ClaimRequest) => {
-  const value = membershipInput('request_claim', request) as any
-  return digest('membership/claim-action/v1', [
-    value.neuron_id,
-    value.policy_version,
-    value.benefit_id,
-    value.expected_business_revision,
-    value.term,
-    value.change
-  ])
-}
-export const claimId = (service: string, intent: MembershipIntent) =>
-  digest('membership/claim-id/v1', [
-    Principal.fromText(service).toUint8Array(),
-    intent.actor.toUint8Array(),
-    Uint8Array.from(intent.application_id)
-  ])

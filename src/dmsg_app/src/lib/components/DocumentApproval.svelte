@@ -12,6 +12,8 @@
   import { AccountClient } from '../services/account'
   import { SigningClient } from '../services/signing'
   import Icon from './Icon.svelte'
+  import ActionDetails from './ActionDetails.svelte'
+  import { actionBody } from '../protocol/requests'
   let request = $state<PendingRequest | null>(null),
     payload = $state<SignatureRequest | null>(null),
     finished = $state(false)
@@ -59,10 +61,15 @@
       )
         return
       void session.crypto.call('controlGet', `formal:${id}`).then(
-        (value) => {
-          const job = value ? JSON.parse(value) : null
-          if (job?.stage !== 'complete' || job.digest !== message.digest)
+        async (value) => {
+          let job = value ? JSON.parse(value) : null
+          if (!client || job?.stage !== 'complete' || job.digest !== message.digest)
             return respond({ ok: false })
+          try {
+            job = await client.freshResult(id!)
+          } catch {
+            return respond({ ok: false })
+          }
           respond({
             ok: true,
             digest: job.digest,
@@ -71,6 +78,8 @@
               artifact: job.artifact,
               receipt: job.receipt,
               executionId: job.executionId,
+              keyDescriptorCbor: job.keyDescriptorCbor,
+              executionCertificateCbor: job.executionCertificateCbor,
               authorization: 'verified',
               timestamp: 'unsupported'
             }
@@ -138,11 +147,13 @@
       <div>
         <dt>请求类型</dt>
         <dd>
-          {payload.statement.content.kind === 'text'
-            ? '文本声明'
-            : payload.statement.content.kind === 'file_statement'
-              ? '针对文件的声明'
-              : '内容摘要声明'}
+          {payload.statement.content.kind === 'app_action'
+            ? '项目动作签署'
+            : payload.statement.content.kind === 'text'
+              ? '文本声明'
+              : payload.statement.content.kind === 'file_statement'
+                ? '针对文件的声明'
+                : '内容摘要声明'}
         </dd>
       </div>
       <div>
@@ -167,12 +178,16 @@
       </div>
     </dl>
     <section class="review-content">
+      {#if payload.statement.content.kind === 'app_action'}<ActionDetails
+          action={actionBody(payload.statement.content.actionCbor)}
+        />{/if}
       <span class="field-label">实际待签内容</span
       >{#if payload.statement.content.kind === 'text' || payload.statement.content.kind === 'file_statement'}<p
           class="preserve-lines"
         >
           {payload.statement.content.text}
-        </p>{/if}{#if payload.statement.content.kind !== 'text'}<p>
+        </p>{/if}{#if payload.statement.content.kind !== 'text' && payload.statement.content.kind !== 'app_action'}<p
+        >
           <strong>内容类型：</strong>{payload.statement.content.contentType ?? '未提供'}
         </p>
         <p><strong>内容位置：</strong>{payload.statement.content.location ?? '未提供'}</p>
@@ -238,6 +253,8 @@
                       format: 'dmsg-signature-evidence/1',
                       artifact: result!.artifact,
                       receipt: result!.receipt,
+                      keyDescriptorCbor: result!.keyDescriptorCbor,
+                      executionCertificateCbor: result!.executionCertificateCbor,
                       executionId: result!.executionId
                     },
                     null,

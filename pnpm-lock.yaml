@@ -13,6 +13,19 @@ importers:
       '@icp-sdk/core':
         specifier: ^6.1.0
         version: 6.1.0
+      '@noble/curves':
+        specifier: ^2.0.1
+        version: 2.3.0
+      '@noble/hashes':
+        specifier: ^2.3.0
+        version: 2.3.0
+      cborg:
+        specifier: ^6.1.1
+        version: 6.1.1
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
   src/dmsg_app:
     dependencies:

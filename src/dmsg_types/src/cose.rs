@@ -29,6 +29,8 @@ impl From<SigningAlgorithm> for Algorithm {
 /// Domain of a formal document signing key; derived from the content profile.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum SigningPurpose {
+    /// Typed product actions, distinct from documents.
+    AppAction,
     /// Key domain for text and structured file statements.
     Statement,
     /// Key domain for SHA-256 document attestations.
@@ -62,6 +64,7 @@ impl From<KeySelector> for KeyRequest {
             KeySelector::Signing(key) => Self {
                 purpose: match key.purpose {
                     SigningPurpose::Statement => KeyPurpose::Statement,
+                    SigningPurpose::AppAction => KeyPurpose::AppAction,
                     SigningPurpose::FileAttestation => KeyPurpose::FileAttestation,
                 },
                 algorithm: key.algorithm.into(),
@@ -162,6 +165,8 @@ impl DeriveRootRequest {
 /// Domain separation for formal signatures and content-root derivation.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum KeyPurpose {
+    /// Typed product actions; not a generic document or root key.
+    AppAction,
     /// Key domain for SHA-256 document attestations.
     FileAttestation,
     /// Key domain for text and structured file statements.
@@ -526,4 +531,23 @@ pub struct ExecutionReceipt {
     pub status: ExecutionStatus,
     /// SHA-256 of raw signature bytes, if available; differs from the CTT imprint.
     pub signature_digest: Option<Hash>,
+}
+
+/// Explicit application signing request. The user home confirms the exact body
+/// and account linkage with the registered product authority before authorization.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct AppActionSignRequest {
+    /// Account approving this action, separate from its product actor.
+    pub account_id: AccountId,
+    /// Descriptor-selected purpose key; no automatic algorithm substitution.
+    pub key: SigningKeyRef,
+    /// Issuer must match the user's fixed account namespace.
+    pub issuer: String,
+    /// Closed typed content obtained from the product preparation.
+    pub action: crate::app_action::AppAction,
+    /// Approved maximum execution cycles.
+    pub max_cycles: u128,
+    /// Exact device approval and original execution identity.
+    pub approval: Approval,
 }

@@ -21,45 +21,116 @@ export interface AppRegistration {
   'app_id' : string,
   'config_version' : bigint,
   'environment' : Environment,
+  'action_authority' : Principal,
   'user_homes' : Array<Principal>,
   'profiles' : Array<SigningProfile>,
   'paused' : boolean,
 }
+export interface ApplicationApproval {
+  'service' : Principal,
+  'actor' : Principal,
+  'beneficiary' : Beneficiary,
+  'app_config_version' : bigint,
+  'origin' : string,
+  'action_digest' : Uint8Array | number[],
+  'operation_id' : Uint8Array | number[],
+  'approving_account' : Uint8Array | number[],
+  'version' : number,
+  'app_id' : string,
+  'nonce' : Uint8Array | number[],
+  'environment' : Environment,
+  'purpose' : ApprovalPurpose,
+  'expires_at_ms' : bigint,
+}
+export type ApprovalPurpose = { 'AppAction' : null } |
+  { 'CashCheckout' : null } |
+  { 'PandaSubscription' : null };
 export interface Beneficiary {
   'product_id' : string,
   'authority_canister' : Principal,
   'subject_bytes' : Uint8Array | number[],
   'subject_schema' : string,
 }
-export interface BillingOrder {
-  'status' : OrderStatus,
-  'fee_reserve' : bigint,
-  'service_reserve' : bigint,
-  'generation' : bigint,
-  'network_fees' : bigint,
-  'activated_contract_id' : [] | [Uint8Array | number[]],
-  'transferred' : bigint,
-  'refundable' : bigint,
-  'earned' : bigint,
-  'next_transfer' : bigint,
-  'receive_subaccount' : Uint8Array | number[],
-  'input' : OpenOrder,
+export interface BillingOffer {
+  'sku' : string,
+  'product_id' : string,
+  'beneficiary' : Beneficiary,
+  'amount_usd_micros' : bigint,
+  'operation_id' : Uint8Array | number[],
+  'starts_at_ms' : bigint,
+  'version' : number,
+  'app_id' : string,
+  'issued_at_ms' : bigint,
+  'offer_id' : Uint8Array | number[],
+  'quote_authority' : Principal,
+  'environment' : Environment,
+  'expected_business_revision' : bigint,
+  'adapter' : Principal,
+  'allowed_settlement_methods' : Array<SettlementMethod>,
+  'expires_at_ms' : bigint,
+  'accept_by_ms' : bigint,
+  'product_terms_hash' : Uint8Array | number[],
+}
+export interface CashBlock { 'block_index' : bigint, 'ledger' : Principal }
+export interface CashCancellationReceipt {
+  'decision_hash' : Uint8Array | number[],
+  'cancelled' : boolean,
+  'business_revision' : bigint,
+  'contract_id' : Uint8Array | number[],
+  'cancelled_at_ms' : bigint,
   'order_id' : Uint8Array | number[],
-  'outgoing' : bigint,
-  'funding_block' : [] | [bigint],
-  'close_effective_at_ms' : [] | [bigint],
-  'refunded_principal' : bigint,
-  'busy_until_ms' : bigint,
-  'confirmed_in' : bigint,
+}
+export interface CashQuote {
+  'amount_atomic' : bigint,
+  'offer_hash' : Uint8Array | number[],
+  'fee_reserve_atomic' : bigint,
+  'funding_deadline_ms' : bigint,
+  'max_network_fee_atomic' : bigint,
+  'activation_deadline_ms' : bigint,
+  'deposit' : Account,
+  'version' : number,
+  'ledger' : Principal,
+  'payer' : Account,
+  'conversion_hash' : Uint8Array | number[],
+}
+export interface CashTransfer {
+  'to' : Account,
+  'status' : CashTransferStatus,
+  'source_subaccount' : Uint8Array | number[],
+  'amount_atomic' : bigint,
+  'expected_fee_atomic' : [] | [bigint],
+  'replaces' : [] | [Uint8Array | number[]],
+  'block_index' : [] | [bigint],
+  'created_at_time_ns' : bigint,
+  'memo' : Uint8Array | number[],
+  'replaced_by' : [] | [Uint8Array | number[]],
+  'transfer_id' : Uint8Array | number[],
+  'ledger' : Principal,
+  'max_fee_atomic' : bigint,
+  'fee_atomic' : bigint,
+  'order_id' : Uint8Array | number[],
+  'error_code' : [] | [string],
+}
+export interface CashTransferProgress {
+  'status' : CashTransferStatus,
+  'block_index' : [] | [bigint],
+  'transfer_id' : Uint8Array | number[],
+}
+export type CashTransferStatus = { 'Superseded' : null } |
+  { 'Rejected' : null } |
+  { 'Succeeded' : null } |
+  { 'InFlight' : null } |
+  { 'Unknown' : null } |
+  { 'Pending' : null };
+export interface CashTransfersPage {
+  'transfers' : Array<CashTransfer>,
+  'next' : [] | [Uint8Array | number[]],
 }
 export interface Catalog {
-  'decimals' : number,
   'storage_products' : Array<StorageProduct>,
   'schema' : number,
   'effective_at_ms' : bigint,
   'version' : bigint,
-  'ledger' : Principal,
-  'ledger_fee' : bigint,
   'plans' : Array<PlanVersion>,
   'terms_digest' : Uint8Array | number[],
 }
@@ -74,42 +145,54 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
-export type ClaimChange = { 'Start' : null } |
-  { 'Upgrade' : { 'previous_claim' : Uint8Array | number[] } } |
-  { 'Replace' : { 'previous_claim' : Uint8Array | number[] } } |
-  { 'Renew' : { 'previous_claim' : Uint8Array | number[] } };
-export interface ClaimRequest {
-  'term' : TermRule,
-  'benefit_id' : Uint8Array | number[],
-  'change' : ClaimChange,
-  'policy_version' : bigint,
-  'expected_business_revision' : bigint,
-  'authorization' : MembershipIntent,
-  'neuron_id' : Uint8Array | number[],
+export interface CheckoutDeposit {
+  'amount_atomic' : bigint,
+  'refundable_atomic' : bigint,
+  'from' : Account,
+  'block' : CashBlock,
+  'order_id' : Uint8Array | number[],
 }
-export type ClaimStatus = { 'CoolingDown' : null } |
-  { 'Closing' : null } |
-  { 'Active' : null } |
-  { 'Released' : null } |
-  { 'Rejected' : null } |
-  { 'Checking' : null } |
-  { 'Applying' : null };
-export interface ClaimView {
-  'status' : ClaimStatus,
-  'home_membership' : Principal,
+export interface CheckoutLedgerBalance {
+  'fee_reserve_atomic' : bigint,
+  'refundable_atomic' : bigint,
+  'outgoing_atomic' : bigint,
+  'service_reserve_atomic' : bigint,
+  'ledger' : Principal,
+  'incoming_atomic' : bigint,
+}
+export interface CheckoutOperationAudit {
+  'order' : CheckoutView,
+  'balances' : Array<CheckoutLedgerBalance>,
+}
+export interface CheckoutOperationsPage {
+  'orders' : Array<CheckoutOperationAudit>,
+  'next' : [] | [Uint8Array | number[]],
+}
+export interface CheckoutProgress {
+  'status' : CheckoutStatus,
   'decision_id' : [] | [Uint8Array | number[]],
-  'release_after_ms' : bigint,
-  'claim_id' : Uint8Array | number[],
-  'beneficiary' : Beneficiary,
-  'schema' : number,
-  'valid_until_ms' : bigint,
-  'observed_at_ms' : bigint,
-  'benefit_id' : Uint8Array | number[],
-  'lease_revision' : bigint,
-  'starts_at_ms' : bigint,
-  'eligibility' : Eligibility,
-  'policy_version' : bigint,
-  'expires_at_ms' : bigint,
+  'order_id' : Uint8Array | number[],
+}
+export interface CheckoutQuote {
+  'asset' : SettlementAsset,
+  'offer' : BillingOffer,
+  'cash' : CashQuote,
+  'quoted_at_ms' : bigint,
+  'product' : ProductRegistration,
+}
+export type CheckoutStatus = { 'Applied' : null } |
+  { 'Reserving' : null } |
+  { 'AwaitingFunding' : null } |
+  { 'Rejected' : null } |
+  { 'RefundCommitted' : null } |
+  { 'Applying' : null };
+export interface CheckoutView {
+  'receipt' : [] | [ProductReceipt],
+  'fee_reserve_atomic' : bigint,
+  'outgoing_atomic' : bigint,
+  'quote' : CheckoutQuote,
+  'progress' : CheckoutProgress,
+  'service_reserve_atomic' : bigint,
 }
 export interface CommerceInit {
   'daily_orders' : number,
@@ -119,12 +202,7 @@ export interface CommerceInit {
   'membership_canister' : Principal,
   'user_homes' : Array<Principal>,
   'catalog' : Catalog,
-  'treasury' : Account,
 }
-export type DecisionKind = { 'Apply' : null } |
-  { 'Close' : null };
-export type DecisionOutcome = { 'Applied' : null } |
-  { 'Rejected' : null };
 export type Eligibility = { 'Unverifiable' : null } |
   { 'Ineligible' : null } |
   { 'Eligible' : null };
@@ -155,6 +233,8 @@ export type Environment = { 'Local' : null } |
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
+  { 'IntervalReserved' : null } |
+  { 'NeuronOccupied' : null } |
   { 'RekeyRequired' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
@@ -189,80 +269,6 @@ export interface ExecutionWeights {
   'ed25519' : bigint,
   'version' : bigint,
 }
-export interface MembershipAuthorization {
-  'valid_until_ms' : bigint,
-  'security_epoch' : bigint,
-  'verified_at_ms' : bigint,
-  'intent_digest' : Uint8Array | number[],
-}
-export interface MembershipDecision {
-  'qualification_until_ms' : bigint,
-  'decision_id' : Uint8Array | number[],
-  'claim_id' : Uint8Array | number[],
-  'request' : ClaimRequest,
-  'kind' : DecisionKind,
-  'observed_at_ms' : bigint,
-  'required_atomic' : bigint,
-  'starts_at_ms' : bigint,
-  'apply_by_ms' : bigint,
-  'expires_at_ms' : bigint,
-  'policy' : MembershipPolicy,
-}
-export interface MembershipDecisionReceipt {
-  'decision_id' : Uint8Array | number[],
-  'business_revision' : bigint,
-  'commitment_until_ms' : bigint,
-  'contract_id' : [] | [Uint8Array | number[]],
-  'starts_at_ms' : bigint,
-  'outcome' : DecisionOutcome,
-  'decision_digest' : Uint8Array | number[],
-  'expires_at_ms' : bigint,
-}
-export interface MembershipIntent {
-  'actor' : Principal,
-  'beneficiary' : Beneficiary,
-  'valid_until_ms' : bigint,
-  'action_digest' : Uint8Array | number[],
-  'application_id' : Uint8Array | number[],
-  'nonce' : Uint8Array | number[],
-  'service_canister' : Principal,
-  'environment' : Environment,
-}
-export interface MembershipPolicy {
-  'product_id' : string,
-  'threshold' : Threshold,
-  'subsidy_units' : bigint,
-  'benefit_id' : Uint8Array | number[],
-  'effective_at_ms' : bigint,
-  'version' : bigint,
-}
-export interface MerchantDeposit {
-  'from' : Account,
-  'refundable' : bigint,
-  'block' : bigint,
-  'order_id' : Uint8Array | number[],
-  'amount' : bigint,
-}
-export interface MerchantTransfer {
-  'to' : Account,
-  'fee' : bigint,
-  'last_error' : [] | [TransferError],
-  'status' : MerchantTransferStatus,
-  'replaces' : [] | [bigint],
-  'created_at_time_ns' : bigint,
-  'memo' : Uint8Array | number[],
-  'replaced_by' : [] | [bigint],
-  'transfer_id' : bigint,
-  'block' : [] | [bigint],
-  'order_id' : Uint8Array | number[],
-  'amount' : bigint,
-}
-export type MerchantTransferStatus = { 'Superseded' : null } |
-  { 'Rejected' : null } |
-  { 'Succeeded' : null } |
-  { 'InFlight' : null } |
-  { 'Unknown' : null } |
-  { 'Pending' : null };
 export interface MonthEntitlement {
   'business_revision' : bigint,
   'calculation_version' : number,
@@ -279,37 +285,10 @@ export interface MonthSegment {
   'end_ms' : bigint,
   'source_contract_id' : [] | [Uint8Array | number[]],
 }
-export interface OpenOrder {
-  'quote' : OrderQuote,
-  'authorization' : MembershipIntent,
+export interface OpenCheckout {
+  'quote' : CheckoutQuote,
+  'authorization' : ProductAuthorizationRequest,
 }
-export type OrderAction = {
-    'Buyout' : { 'contract_id' : Uint8Array | number[] }
-  } |
-  { 'Storage' : { 'product_id' : Uint8Array | number[] } } |
-  { 'Upgrade' : { 'plan' : PlanId } } |
-  { 'Renew' : { 'plan' : PlanId } } |
-  { 'Subscribe' : { 'plan' : PlanId } };
-export interface OrderProgress {
-  'status' : OrderStatus,
-  'order_id' : Uint8Array | number[],
-}
-export interface OrderQuote {
-  'amount_atomic' : bigint,
-  'fee_reserve' : bigint,
-  'request' : QuoteOrder,
-  'term' : TermRule,
-  'created_at_ms' : bigint,
-  'fund_by_ms' : bigint,
-  'home_commerce' : Principal,
-  'catalog' : Catalog,
-  'activate_by_ms' : bigint,
-}
-export type OrderStatus = { 'Closing' : null } |
-  { 'Active' : null } |
-  { 'AwaitingFunding' : null } |
-  { 'Cancelled' : null } |
-  { 'RefundCommitted' : null };
 export type PlanId = { 'Max' : null } |
   { 'Pro' : null } |
   { 'Free' : null } |
@@ -318,10 +297,49 @@ export interface PlanVersion {
   'catalog_version' : bigint,
   'terms_version' : bigint,
   'price_cents' : bigint,
-  'membership_policy_version' : [] | [bigint],
   'weights' : ExecutionWeights,
   'plan_id' : PlanId,
   'limits' : ResourceLimits,
+}
+export interface ProductApproval {
+  'method' : SettlementMethod,
+  'approval_id' : Uint8Array | number[],
+  'offer_hash' : Uint8Array | number[],
+  'operator' : Principal,
+  'version' : number,
+  'expires_at_ms' : bigint,
+  'approved_at_ms' : bigint,
+}
+export interface ProductAuthorizationRequest {
+  'product_approval' : [] | [ProductApproval],
+  'account_approval' : ApplicationApproval,
+  'approval_id' : Uint8Array | number[],
+  'user_home' : Principal,
+  'offer' : BillingOffer,
+}
+export interface ProductDecision {
+  'decision_id' : Uint8Array | number[],
+  'offer' : BillingOffer,
+  'source' : SettlementSource,
+  'decided_at_ms' : bigint,
+  'version' : number,
+  'apply_by_ms' : bigint,
+}
+export type ProductOutcome = {
+    'Applied' : {
+      'business_revision' : bigint,
+      'contract_id' : Uint8Array | number[],
+      'committed_until_ms' : bigint,
+    }
+  } |
+  { 'Rejected' : { 'reason' : ProductRejection } };
+export interface ProductReceipt {
+  'decision_hash' : Uint8Array | number[],
+  'decision_id' : Uint8Array | number[],
+  'applied_at_ms' : bigint,
+  'version' : number,
+  'outcome' : ProductOutcome,
+  'adapter' : Principal,
 }
 export interface ProductRegistration {
   'product_id' : string,
@@ -339,50 +357,94 @@ export interface ProductRegistration {
   'subject_schema' : string,
   'paused' : boolean,
 }
-export interface QuoteOrder {
-  'action' : OrderAction,
-  'op_id' : Uint8Array | number[],
-  'beneficiary' : Beneficiary,
-  'payer' : Account,
-  'expected_business_revision' : bigint,
-}
+export type ProductRejection = { 'OfferMismatch' : null } |
+  { 'IntervalReserved' : null } |
+  { 'RevisionConflict' : null } |
+  { 'Unauthorized' : null } |
+  { 'Expired' : null };
 export interface ResourceLimits {
   'active_channels' : bigint,
   'monthly_execution_units' : bigint,
   'storage_bytes' : bigint,
 }
-export type Result = { 'Ok' : MembershipDecisionReceipt } |
+export type Result = { 'Ok' : ProductReceipt } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : MembershipAuthorization } |
+export type Result_1 = { 'Ok' : CashCancellationReceipt } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : OrderQuote } |
+export type Result_10 = { 'Ok' : ExecutionEntitlement } |
   { 'Err' : Error };
-export type Result_11 = {
+export type Result_11 = { 'Ok' : [] | [ProductReceipt] } |
+  { 'Err' : Error };
+export type Result_12 = { 'Ok' : BillingOffer } |
+  { 'Err' : Error };
+export type Result_13 = { 'Ok' : CashTransferProgress } |
+  { 'Err' : Error };
+export type Result_14 = { 'Ok' : SettlementAsset } |
+  { 'Err' : Error };
+export type Result_15 = { 'Ok' : CheckoutQuote } |
+  { 'Err' : Error };
+export type Result_16 = {
     'Ok' : [AppRegistration, [] | [ProductRegistration]]
   } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : EntitlementView } |
+export type Result_17 = { 'Ok' : EntitlementView } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : null } |
+export type Result_18 = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : ClaimView } |
+export type Result_2 = { 'Ok' : CheckoutProgress } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : OrderProgress } |
+export type Result_3 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : TransferProgress } |
+export type Result_4 = { 'Ok' : Array<CheckoutDeposit> } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : MerchantTransfer } |
+export type Result_5 = { 'Ok' : CheckoutOperationsPage } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : CertifiedBatch } |
+export type Result_6 = { 'Ok' : CashTransfersPage } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : MerchantDeposit } |
+export type Result_7 = { 'Ok' : CashTransfer } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : ExecutionEntitlement } |
+export type Result_8 = { 'Ok' : [] | [CashCancellationReceipt] } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : [] | [MembershipDecisionReceipt] } |
+export type Result_9 = { 'Ok' : CheckoutView } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : BillingOrder } |
-  { 'Err' : Error };
+export interface SettlementAsset {
+  'decimals' : number,
+  'asset' : SettlementAssetKind,
+  'max_network_fee_atomic' : bigint,
+  'price_valid_until_ms' : bigint,
+  'price_observed_at_ms' : bigint,
+  'version' : number,
+  'enabled' : boolean,
+  'network_fee_atomic' : bigint,
+  'ledger' : Principal,
+  'environment' : Environment,
+  'price_usd_micros' : bigint,
+  'policy_version' : bigint,
+}
+export type SettlementAssetKind = { 'CkUsdc' : null } |
+  { 'CkUsdt' : null };
+export interface SettlementAssetView {
+  'ledger_verified' : boolean,
+  'policy' : SettlementAsset,
+}
+export type SettlementMethod = { 'Cash' : null } |
+  { 'Panda' : null };
+export type SettlementSource = {
+    'Cash' : {
+      'amount_atomic' : bigint,
+      'block_index' : bigint,
+      'ledger' : Principal,
+      'order_id' : Uint8Array | number[],
+    }
+  } |
+  {
+    'Panda' : {
+      'claim_id' : Uint8Array | number[],
+      'quote_hash' : Uint8Array | number[],
+      'lease_until_ms' : bigint,
+      'committed_until_ms' : bigint,
+    }
+  };
 export type SigningProfile = { 'FileStatementV1' : null } |
   { 'TextStatementV1' : null } |
   { 'DigestStatementV1' : null } |
@@ -407,101 +469,104 @@ export interface StorageProduct {
   'price_cents' : bigint,
   'storage_bytes' : bigint,
 }
-export type TermRule = {
-    'Fixed' : { 'starts_at_ms' : bigint, 'expires_at_ms' : bigint }
-  } |
-  { 'CalendarYear' : null };
-export type Threshold = {
-    'AnnualPrice' : {
-      'price_cents' : bigint,
-      'r_den' : bigint,
-      'r_num' : bigint,
-    }
-  } |
-  { 'FixedPanda' : { 'atomic' : bigint } };
-export type TransferError = {
-    'GenericError' : { 'message' : string, 'error_code' : bigint }
-  } |
-  { 'TemporarilyUnavailable' : null } |
-  { 'BadBurn' : { 'min_burn_amount' : bigint } } |
-  { 'Duplicate' : { 'duplicate_of' : bigint } } |
-  { 'BadFee' : { 'expected_fee' : bigint } } |
-  { 'CreatedInFuture' : { 'ledger_time' : bigint } } |
-  { 'TooOld' : null } |
-  { 'InsufficientFunds' : { 'balance' : bigint } };
-export interface TransferProgress {
-  'status' : MerchantTransferStatus,
-  'replaced_by' : [] | [bigint],
-  'transfer_id' : bigint,
-  'order_id' : Uint8Array | number[],
-}
 export interface _SERVICE {
-  'apply_membership_decision' : ActorMethod<[MembershipDecision], Result>,
-  'authorize_membership_close' : ActorMethod<
-    [Uint8Array | number[], MembershipIntent],
+  'apply_product_decision' : ActorMethod<[ProductDecision], Result>,
+  'cancel_cash_contract' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[], Uint8Array | number[]],
     Result_1
   >,
-  'authorize_membership_intent' : ActorMethod<[ClaimRequest], Result_1>,
-  'check_order_funding' : ActorMethod<
-    [Uint8Array | number[], bigint],
+  'cancel_checkout' : ActorMethod<[Uint8Array | number[]], Result_2>,
+  'check_checkout_funding' : ActorMethod<
+    [Uint8Array | number[], CashBlock],
     Result_2
   >,
-  'claim_deposit_refund' : ActorMethod<
-    [Uint8Array | number[], bigint],
-    Result_3
-  >,
-  'claim_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_3>,
-  'collect_revenue' : ActorMethod<[Uint8Array | number[]], Result_4>,
-  'get_catalog' : ActorMethod<[], Result_5>,
-  'get_deposit' : ActorMethod<[bigint], Result_6>,
-  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_5>,
-  'get_execution_entitlement' : ActorMethod<
-    [Beneficiary, number, bigint],
-    Result_7
-  >,
-  'get_membership_decision' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_operation' : ActorMethod<[Uint8Array | number[]], Result_9>,
-  'get_order_certified' : ActorMethod<[Uint8Array | number[]], Result_5>,
-  'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_4>,
-  'integration_configuration_certificate' : ActorMethod<
-    [string, [] | [string]],
+  'checkout_certificate' : ActorMethod<[Uint8Array | number[]], Result_3>,
+  'checkout_deposits' : ActorMethod<[Uint8Array | number[]], Result_4>,
+  'checkout_operations' : ActorMethod<
+    [[] | [Uint8Array | number[]], number],
     Result_5
   >,
-  'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
-  'open_order' : ActorMethod<[OpenOrder], Result_9>,
-  'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_3>,
-  'quote_order' : ActorMethod<[QuoteOrder], Result_10>,
-  'read_integration_configuration' : ActorMethod<
-    [string, [] | [string]],
-    Result_11
-  >,
-  'reconcile_order' : ActorMethod<[Uint8Array | number[]], Result_2>,
-  'reconcile_transfer' : ActorMethod<
-    [Uint8Array | number[], bigint, bigint],
+  'checkout_progress' : ActorMethod<[Uint8Array | number[]], Result_2>,
+  'checkout_transfer_certificate' : ActorMethod<
+    [Uint8Array | number[]],
     Result_3
   >,
-  'refresh_catalog' : ActorMethod<[], Catalog>,
-  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_12>,
-  'register_integration_app' : ActorMethod<[AppRegistration], Result_13>,
-  'register_integration_product' : ActorMethod<
-    [ProductRegistration],
-    Result_13
+  'checkout_transfers' : ActorMethod<
+    [[] | [Uint8Array | number[]], number],
+    Result_6
   >,
-  'release_replaced_claim' : ActorMethod<
-    [Beneficiary, Uint8Array | number[]],
+  'claim_checkout_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'claim_checkout_refund' : ActorMethod<
+    [Uint8Array | number[], Principal, Array<bigint>, Uint8Array | number[]],
+    Result_7
+  >,
+  'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_catalog' : ActorMethod<[], Result_3>,
+  'get_checkout' : ActorMethod<[Uint8Array | number[]], Result_9>,
+  'get_checkout_for_product' : ActorMethod<[Uint8Array | number[]], Result_9>,
+  'get_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_3>,
+  'get_execution_entitlement' : ActorMethod<
+    [Beneficiary, number, bigint],
+    Result_10
+  >,
+  'get_product_decision' : ActorMethod<[Uint8Array | number[]], Result_11>,
+  'integration_configuration_certificate' : ActorMethod<
+    [string, [] | [string]],
+    Result_3
+  >,
+  'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
+  'open_checkout' : ActorMethod<[OpenCheckout], Result_9>,
+  'prepare_account_subscription' : ActorMethod<
+    [string, Beneficiary, string, Uint8Array | number[]],
+    Result_12
+  >,
+  'process_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_13>,
+  'publish_settlement_price' : ActorMethod<
+    [Principal, bigint, bigint],
     Result_14
   >,
-  'request_refund' : ActorMethod<
-    [Uint8Array | number[], MembershipIntent],
-    Result_9
+  'quote_checkout' : ActorMethod<[BillingOffer, Principal, Account], Result_15>,
+  'read_integration_configuration' : ActorMethod<
+    [string, [] | [string]],
+    Result_16
   >,
-  'revise_rejected_transfer' : ActorMethod<
-    [Uint8Array | number[], bigint, bigint],
-    Result_4
+  'reconcile_checkout' : ActorMethod<[Uint8Array | number[]], Result_2>,
+  'reconcile_checkout_transfer' : ActorMethod<
+    [Uint8Array | number[], CashBlock],
+    Result_13
   >,
-  'schedule_policy' : ActorMethod<[Catalog], Result_13>,
-  'set_admission_pause' : ActorMethod<[boolean], Result_13>,
-  'verify_ledger_configuration' : ActorMethod<[], Result_13>,
+  'refresh_catalog' : ActorMethod<[], Catalog>,
+  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_17>,
+  'register_integration_app' : ActorMethod<[AppRegistration], Result_18>,
+  'register_integration_product' : ActorMethod<
+    [ProductRegistration],
+    Result_18
+  >,
+  'register_settlement_asset' : ActorMethod<[SettlementAsset], Result_18>,
+  'release_product_billing' : ActorMethod<
+    [ProductAuthorizationRequest],
+    Result_18
+  >,
+  'reserve_product_billing' : ActorMethod<
+    [ProductAuthorizationRequest, bigint],
+    Result_18
+  >,
+  'revise_checkout_transfer_fee' : ActorMethod<
+    [Uint8Array | number[], bigint],
+    Result_7
+  >,
+  'schedule_policy' : ActorMethod<[Catalog], Result_18>,
+  'set_admission_pause' : ActorMethod<[boolean], Result_18>,
+  'set_settlement_price_authority' : ActorMethod<[Principal], Result_18>,
+  'settlement_assets' : ActorMethod<[], Array<SettlementAssetView>>,
+  'settlement_assets_certificate' : ActorMethod<[], Result_3>,
+  'verify_billing_offer' : ActorMethod<[BillingOffer], Result_18>,
+  'verify_settlement_asset' : ActorMethod<
+    [Principal, [] | [bigint]],
+    Result_18
+  >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

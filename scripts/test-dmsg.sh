@@ -2,10 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-packages=(-p dmsg_protocol -p dmsg_runtime -p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p membership -p dmsg_commerce -p ic_cose_chain_key)
+packages=(-p dmsg_protocol -p dmsg_runtime -p dmsg_types -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p membership -p dmsg_commerce -p ic_cose_chain_key -p dmsg_account_product)
 cargo test --locked "${packages[@]}"
 cargo clippy --locked "${packages[@]}" -p dmsg_integration -p dmsg_test_ledger -p dmsg_test_sns --all-targets --features dmsg_integration/pocketic-tests -- -D warnings
-cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_test_ledger -p dmsg_test_sns
+cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_test_ledger -p dmsg_test_sns -p dmsg_account_product
 
 task_tmp=$(mktemp -d)
 trap 'rm -rf "$task_tmp"' EXIT

@@ -53,7 +53,7 @@ console.log(`Verified ${vectors.length} Rust/JavaScript CBOR, SHA-256 and Ed2551
 const uint = v => v.tag === 2 ? BigInt('0x' + v.value.bytes) : BigInt(v.uint)
 const field = (v, name) => v.map.find(([k]) => k.text === name)[1]
 for (const v of vectors) {
-  if (v.name.startsWith('panda_')) {
+  if (/^panda_[0-9]/.test(v.name)) {
     const [price, num, den, decimals, result] = v.value.array.map(uint)
     const n = price * num * 10n ** decimals, d = 100n * den
     assert.equal((n + d - 1n) / d, result)

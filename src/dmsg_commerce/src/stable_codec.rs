@@ -3,10 +3,10 @@ use crate::{model::Subject, store::Config};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_runtime::storage::StableCodec;
-use dmsg_types::{billing::*, membership::*, *};
+use dmsg_types::{billing::*, membership::*};
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 2;
+const SCHEMA: u16 = 3;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {
@@ -39,8 +39,6 @@ record!(SubjectRepr => Subject {
     4 => lease_revision: u64,
     5 => contracts: Vec<MembershipContract>,
     6 => addons: Vec<StorageAddon>,
-    7 => first_cash_order: Option<Hash>,
-    8 => self_refund_used: bool,
     9 => view: Option<EntitlementView>,
     10 => busy_until_ms: u64,
     11 => generation: u64,
@@ -50,14 +48,12 @@ record!(SubjectRepr => Subject {
 record!(ConfigRepr => Config {
     1 => init: CommerceInit,
     2 => paused: bool,
-    3 => ledger_verified: bool,
     4 => day: u64,
     5 => orders: u32,
     6 => minute: u64,
     7 => reads: u32,
     8 => refreshes: u32,
     9 => authorizations: BTreeMap<Principal, u32>,
-    10 => ledger_fee: u128,
 });
 
 #[cfg(test)]
@@ -65,6 +61,7 @@ mod tests {
     use super::*;
     use dmsg_protocol::billing::beneficiary;
     use dmsg_runtime::storage::{compact_bytes, compact_from_bytes};
+    use dmsg_types::AccountId;
 
     #[test]
     fn local_subject_uses_integer_keys_without_changing_public_projection() {

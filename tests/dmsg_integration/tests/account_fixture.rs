@@ -24,11 +24,20 @@ fn account_extension_gateway() {
     let commerce = ic.create_canister_on_subnet(None, None, subnet);
     let handle = ic.create_canister_on_subnet(None, None, subnet);
     let ledger = ic.create_canister_on_subnet(None, None, subnet);
+    let ledger_usdt = ic.create_canister_on_subnet(None, None, subnet);
     let membership = ic.create_canister_on_subnet(None, None, subnet);
     let sns = ic.create_canister_on_subnet(None, None, subnet);
     let payment = ic.create_canister_on_subnet(None, None, subnet);
     for id in [
-        user, cose, commerce, handle, ledger, membership, sns, payment,
+        user,
+        cose,
+        commerce,
+        handle,
+        ledger,
+        ledger_usdt,
+        membership,
+        sns,
+        payment,
     ] {
         ic.add_cycles(id, 10_000_000_000_000_000);
     }
@@ -89,6 +98,12 @@ fn account_extension_gateway() {
         None,
     );
     ic.install_canister(
+        ledger_usdt,
+        std::fs::read(dir.join("dmsg_test_ledger.wasm")).unwrap(),
+        candid::encode_args(()).unwrap(),
+        None,
+    );
+    ic.install_canister(
         sns,
         std::fs::read(dir.join("dmsg_test_sns.wasm")).unwrap(),
         candid::encode_args(()).unwrap(),
@@ -135,9 +150,6 @@ fn account_extension_gateway() {
     // Synthetic local catalog: a just-created account must have a nonzero
     // prorated allowance at any point in the calendar month.
     plans[0].limits.monthly_execution_units = 1000;
-    for (index, plan) in plans.iter_mut().enumerate().skip(1) {
-        plan.membership_policy_version = Some(index as u64);
-    }
     ic.install_canister(
         commerce,
         std::fs::read(dir.join("dmsg_commerce.wasm")).unwrap(),
@@ -152,14 +164,7 @@ fn account_extension_gateway() {
                 effective_at_ms: 0,
                 plans: plans.clone(),
                 storage_products: vec![],
-                ledger,
-                decimals: 6,
-                ledger_fee: 10,
                 terms_digest: Hash::new([99; 32]),
-            },
-            treasury: icrc_ledger_types::icrc1::account::Account {
-                owner: peer,
-                subaccount: None,
             },
             max_subjects: 20,
             daily_orders: 20,
@@ -167,33 +172,6 @@ fn account_extension_gateway() {
         .unwrap(),
         None,
     );
-    let configured = ic
-        .update_call(
-            commerce,
-            peer,
-            "verify_ledger_configuration",
-            candid::encode_args(()).unwrap(),
-        )
-        .unwrap();
-    candid::decode_one::<Result<()>>(&configured)
-        .unwrap()
-        .unwrap();
-    let policies = plans
-        .iter()
-        .skip(1)
-        .map(|plan| dmsg_types::membership::MembershipPolicy {
-            version: plan.membership_policy_version.unwrap(),
-            product_id: "dmsg".into(),
-            benefit_id: dmsg_protocol::billing::plan_digest(plan),
-            threshold: dmsg_types::membership::Threshold::AnnualPrice {
-                price_cents: plan.price_cents,
-                r_num: 5000,
-                r_den: 1,
-            },
-            effective_at_ms: 0,
-            subsidy_units: 1,
-        })
-        .collect();
     ic.install_canister(
         membership,
         std::fs::read(dir.join("membership.wasm")).unwrap(),
@@ -202,18 +180,7 @@ fn account_extension_gateway() {
             governance: sns,
             sns_root: sns,
             panda_ledger: sns,
-            products: vec![dmsg_types::membership::ProductConfig {
-                product_id: "dmsg".into(),
-                adapter: commerce,
-                authorities: vec![user],
-                subject_schema: "dmsg-account-v1".into(),
-                subject_size: 12,
-            }],
-            policies,
-            subsidy_budget: 100,
-            max_claims: 100,
-            hourly_applications: 100,
-            cooling_ms: dmsg_protocol::membership::MIN_COOLING_MS,
+            expected_governance_module_hash: None,
         })
         .unwrap(),
         None,
@@ -229,6 +196,110 @@ fn account_extension_gateway() {
     candid::decode_one::<Result<()>>(&configured)
         .unwrap()
         .unwrap();
+    use dmsg_types::{integration::*, integration_billing::*, integration_membership::*};
+    let call = |canister, caller, method: &str, args: Vec<u8>| {
+        let reply = ic.update_call(canister, caller, method, args).unwrap();
+        candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
+    };
+    call(
+        membership,
+        sns,
+        "configure_panda_service",
+        candid::encode_args((PandaServiceConfig {
+            commerce_canister: commerce,
+            max_claims: 100,
+            hourly_applications: 100,
+            cooling_ms: PANDA_COOLING_MS,
+        },))
+        .unwrap(),
+    );
+    let reply = ic
+        .update_call(
+            membership,
+            sns,
+            "set_panda_subsidy_budget",
+            candid::encode_args((Hash::new([100; 32]), 1_000_000_000_000_000u128)).unwrap(),
+        )
+        .unwrap();
+    candid::decode_one::<Result<PandaSubsidyBudget>>(&reply)
+        .unwrap()
+        .unwrap();
+    let reply = ic
+        .update_call(
+            membership,
+            sns,
+            "schedule_panda_rate",
+            candid::encode_args((PandaRatePolicy {
+                version: 2,
+                policy_version: 1,
+                environment: Environment::Local,
+                product_ids: vec!["dmsg".into()],
+                r_num: 5000,
+                r_den: 1,
+                published_at_ms: 0,
+                effective_at_ms: POLICY_NOTICE_MS,
+                subsidy_budget_id: Hash::new([100; 32]),
+            },))
+            .unwrap(),
+        )
+        .unwrap();
+    candid::decode_one::<Result<PandaRatePolicy>>(&reply)
+        .unwrap()
+        .unwrap();
+    call(
+        commerce,
+        peer,
+        "register_integration_product",
+        candid::encode_args((ProductRegistration {
+            version: 2,
+            environment: Environment::Local,
+            product_id: "dmsg".into(),
+            config_version: 1,
+            quote_authority: commerce,
+            beneficiary_authority: user,
+            adapter: commerce,
+            subject_schema: "dmsg-account-v1".into(),
+            subject_size: 12,
+            merchant: peer.into(),
+            ledgers: vec![ledger, ledger_usdt],
+            terms_hash: Hash::new([99; 32]),
+            subsidy_budget_id: Hash::new([100; 32]),
+            paused: false,
+        },))
+        .unwrap(),
+    );
+    let at = nanos_to_millis(ic.get_time().as_nanos_since_unix_epoch());
+    for (ledger, asset) in [
+        (ledger, SettlementAssetKind::CkUsdc),
+        (ledger_usdt, SettlementAssetKind::CkUsdt),
+    ] {
+        call(
+            commerce,
+            peer,
+            "register_settlement_asset",
+            candid::encode_args((SettlementAsset {
+                version: 2,
+                policy_version: 1,
+                environment: Environment::Local,
+                ledger,
+                asset,
+                decimals: 6,
+                price_usd_micros: 1_000_000,
+                price_observed_at_ms: at,
+                price_valid_until_ms: at + 30 * MINUTE,
+                network_fee_atomic: 10,
+                max_network_fee_atomic: 20,
+                enabled: true,
+            },))
+            .unwrap(),
+        );
+        call(
+            commerce,
+            peer,
+            "verify_settlement_asset",
+            candid::encode_args((ledger, None::<u128>)).unwrap(),
+        );
+    }
     ic.install_canister(
         handle,
         std::fs::read(dir.join("dmsg_handle.wasm")).unwrap(),
@@ -251,20 +322,22 @@ fn account_extension_gateway() {
             .to_bytes(),
     );
     let owner = Principal::self_authenticating(&owner_der);
-    ic.update_call(
-        ledger,
-        peer,
-        "mint_test",
-        candid::encode_args((
-            icrc_ledger_types::icrc1::account::Account {
-                owner,
-                subaccount: None,
-            },
-            10_000_000_000u128,
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+    for ledger in [ledger, ledger_usdt] {
+        ic.update_call(
+            ledger,
+            peer,
+            "mint_test",
+            candid::encode_args((
+                icrc_ledger_types::icrc1::account::Account {
+                    owner,
+                    subaccount: None,
+                },
+                10_000_000_000u128,
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+    }
     #[derive(candid::CandidType, serde::Serialize)]
     struct NeuronId {
         id: Vec<u8>,
@@ -360,14 +433,60 @@ fn account_extension_gateway() {
         .map(|b| format!("{b:02x}"))
         .collect();
     let config = format!(
-        r#"{{"test_only":true,"user":"{user}","cose":"{cose}","commerce":"{commerce}","handle":"{handle}","ledger":"{ledger}","membership":"{membership}","sns":"{sns}","payment":"{payment}","platform":"{peer}","namespace":"https://dmsg.test/u/","gateway":"{gateway}","root_key_hex":"{root}"}}"#
+        r#"{{"test_only":true,"user":"{user}","cose":"{cose}","commerce":"{commerce}","handle":"{handle}","ledger":"{ledger}","ledger_usdt":"{ledger_usdt}","membership":"{membership}","sns":"{sns}","payment":"{payment}","platform":"{peer}","namespace":"https://dmsg.test/u/","gateway":"{gateway}","root_key_hex":"{root}"}}"#
     );
     std::fs::write(output.join("fixture.json.tmp"), config).unwrap();
     std::fs::rename(output.join("fixture.json.tmp"), output.join("fixture.json")).unwrap();
     let started = Instant::now();
     let mut manual = false;
     let mut commerce_clock = false;
+    let mut application_registered = false;
     while !output.join("stop").exists() && started.elapsed() < Duration::from_secs(300) {
+        if !application_registered && output.join("cloud-launch.json").exists() {
+            let launch: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(output.join("cloud-launch.json")).unwrap())
+                    .unwrap();
+            let origin = launch["extensionOrigin"].as_str().unwrap().to_string();
+            let app = AppRegistration {
+                version: 1,
+                environment: Environment::Local,
+                app_id: "dmsg".into(),
+                config_version: 1,
+                origins: vec![origin],
+                user_homes: vec![user],
+                cose_homes: vec![cose],
+                product_ids: vec!["dmsg".into()],
+                capabilities: vec![AppCapability::Checkout],
+                profiles: vec![],
+                authentication_receiver: user,
+                action_authority: user,
+                paused: false,
+            };
+            let reply = ic
+                .update_call(
+                    commerce,
+                    peer,
+                    "register_integration_app",
+                    candid::encode_args((app,)).unwrap(),
+                )
+                .unwrap();
+            candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
+            for ledger in [ledger, ledger_usdt] {
+                let reply = ic
+                    .update_call(
+                        commerce,
+                        peer,
+                        "publish_settlement_price",
+                        candid::encode_args((ledger, 1_000_000u128, 30 * MINUTE)).unwrap(),
+                    )
+                    .unwrap();
+                candid::decode_one::<Result<SettlementAsset>>(&reply)
+                    .unwrap()
+                    .unwrap();
+            }
+            application_registered = true;
+            std::fs::write(output.join("commerce-ready.json"), "{}").unwrap();
+        }
         if !commerce_clock && output.join("advance-commerce-clock").exists() {
             ic.stop_progress();
             ic.advance_time(Duration::from_millis(

@@ -95,6 +95,8 @@ pub struct AppRegistration {
     pub profiles: Vec<SigningProfile>,
     /// Receiver of external account authentication proofs.
     pub authentication_receiver: Principal,
+    /// Product authority that confirms prepared actions and signer-account linkage.
+    pub action_authority: Principal,
     /// Stops new approvals; does not erase accepted commitments.
     pub paused: bool,
 }
@@ -278,6 +280,8 @@ pub struct PandaRatePolicy {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct PandaQuote {
+    /// Time used to freeze the application deadline.
+    pub quoted_at_ms: u64,
     /// Commerce version.
     pub version: u16,
     /// Complete authoritative offer commitment.
@@ -410,6 +414,8 @@ pub struct ProductDecision {
     pub source: SettlementSource,
     /// Decision preparation time in Unix milliseconds.
     pub decided_at_ms: u64,
+    /// Exclusive delivery deadline; unknown delivery never implies a refund.
+    pub apply_by_ms: u64,
 }
 
 /// Terminal Apply result. Unknown is the absence of an authenticated receipt.

@@ -1,5 +1,6 @@
-//! COSE document profiles. Payloads are UTF-8 text, RFC 9995 digests or file statements;
-//! account routing, browser origins and execution IDs never enter that payload.
+//! COSE profiles: three portable document profiles and a distinct typed app-action profile.
+//! Document payloads exclude execution context; app actions explicitly bind their receiver and origin.
+use crate::app_action::{validate_app_action, APP_ACTION_PROFILE};
 use crate::*;
 use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
 use dmsg_types::{
@@ -87,11 +88,12 @@ fn from_algorithm(label: &Label) -> Result<Algorithm> {
     }
 }
 
-/// Select Statement for text/file statements and FileAttestation for a digest.
+/// Select Statement for text/files, FileAttestation for digests and AppAction for typed actions.
 ///
 /// This selects a derivation domain without validating the statement.
 pub fn statement_purpose(statement: &Statement) -> KeyPurpose {
     match statement.content {
+        StatementContent::AppAction(_) => KeyPurpose::AppAction,
         StatementContent::Text(_) | StatementContent::FileStatement { .. } => KeyPurpose::Statement,
         StatementContent::Digest { .. } => KeyPurpose::FileAttestation,
     }
@@ -117,6 +119,14 @@ fn media_type(value: &str) -> Result<()> {
 /// or locations return `Error::InvalidInput`.
 pub fn validate_statement(statement: &Statement) -> Result<()> {
     validate_uri(&statement.issuer)?;
+    if let StatementContent::AppAction(action) = &statement.content {
+        validate_app_action(action)?;
+        // No independently supplied prose/subject/time may contradict the action.
+        ensure(
+            statement.subject.is_none() && statement.issued_at.is_none(),
+            Error::UnsupportedProtocol,
+        )?;
+    }
     if let Some(subject) = &statement.subject {
         ensure_valid(
             !subject.is_empty()
@@ -205,6 +215,7 @@ pub fn prepare_cose(
     validate_statement(statement)?;
     ensure_valid(!kid.is_empty() && kid.len() <= MAX_KID_BYTES, "kid")?;
     let payload = match &statement.content {
+        StatementContent::AppAction(action) => canonical(action),
         StatementContent::Text(text) => text.as_bytes().to_vec(),
         StatementContent::Digest { sha256, .. } => sha256.to_vec(),
         StatementContent::FileStatement {
@@ -223,6 +234,11 @@ pub fn prepare_cose(
     message.protected.set_kid(kid.to_vec());
     message.protected.insert(CWT_CLAIMS, claims(statement));
     match &statement.content {
+        StatementContent::AppAction(_) => {
+            message.protected.set_crit([CWT_CLAIMS, TYPE_HEADER]);
+            message.protected.insert(TYPE_HEADER, APP_ACTION_PROFILE);
+            message.protected.set_content_type("application/cbor");
+        }
         StatementContent::Text(_) => {
             message.protected.set_crit([CWT_CLAIMS, TYPE_HEADER]);
             message.protected.insert(TYPE_HEADER, TEXT_PROFILE);
@@ -324,6 +340,17 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
     let payload = message.payload.as_deref().ok_or(Error::IntegrityFailed)?;
     let profile = text(headers, TYPE_HEADER)?.ok_or(Error::IntegrityFailed)?;
     let (allowed, critical, content): (&[i64], &[Label], StatementContent) = match profile {
+        APP_ACTION_PROFILE => {
+            ensure(
+                text(headers, iana::HeaderParameterContentType)? == Some("application/cbor"),
+                Error::UnsupportedProtocol,
+            )?;
+            (
+                &[1, 2, 3, 4, 15, 16],
+                &CRITICAL[..2],
+                StatementContent::AppAction(Box::new(decode_canonical(payload)?)),
+            )
+        }
         TEXT_PROFILE => {
             ensure(
                 text(headers, iana::HeaderParameterContentType)? == Some(TEXT_CONTENT_TYPE),
@@ -779,6 +806,7 @@ pub fn verification_report(
         statement, message, ..
     } = verify_and_parse_artifact(artifact)?;
     let checked = match (&statement.content, content) {
+        (StatementContent::AppAction(_), _) => VerificationStatus::NotChecked,
         (StatementContent::Text(text), Some(bytes)) => {
             ensure(text.as_bytes() == bytes, Error::IntegrityFailed)?;
             VerificationStatus::Verified

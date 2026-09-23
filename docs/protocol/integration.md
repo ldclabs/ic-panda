@@ -1,9 +1,12 @@
 # Third-party integration contract
 
-Status: implementation in progress. Public contracts, governance registration, exact account approval, the dedicated
-authentication issuer, and independent Rust/TypeScript certificate verification
-are implemented and tested with local Wasm. The v4 browser authentication/document transport and TokenList login consumer are now connected in development. Generic checkout, application actions and membership adapters remain unfinished; no production release is asserted. Legacy commerce v1 service endpoints remain until their
-replacement work packages are implemented; there is no v2-to-v1 conversion.
+Status (2026-09-24): operational development implementation. Dedicated authentication,
+closed application signing, browser v4 checkout, two-asset settlement, irreversible
+PANDA commitments and both account/project adapters are connected. TokenList and
+an independent account product exercise the public contract. Production identities,
+R/budgets, deployment and real-fund acceptance remain explicit release steps.
+The old commercial endpoints and membership change/buyout paths have been removed;
+there is no v2-to-v1 conversion. See [commerce 2](commerce.md) for runtime methods.
 
 ## Versions and ownership
 
@@ -11,7 +14,7 @@ replacement work packages are implemented; there is no v2-to-v1 conversion.
 | --- | --- |
 | External registration and application approval | `dmsg-integration/1` |
 | Authentication certified leaf | `application/vnd.dmsg.authentication+cbor;v=1` |
-| Typed application action profile (execution pending) | `application/vnd.dmsg.app-action+cose;v=1` |
+| Typed application action profile | `application/vnd.dmsg.app-action+cose;v=1` |
 | Generic checkout and irrevocable membership | `dmsg-commerce/2`, `membership/2` |
 | Browser bridge | `dmsg-extension/4` |
 
@@ -30,7 +33,7 @@ types; independent encoder tests prevent sharing the same serialization bug.
 ## Identity and admission
 
 An application pins exact canonical origins, authentication receiver, user and
-COSE homes, capabilities, closed signing profiles and product IDs. A product pins its quote authority,
+COSE homes, the fixed action authority, capabilities, closed signing profiles and product IDs. A product pins its quote authority,
 beneficiary authority, adapter, subject schema/size, merchant account, ledgers,
 terms and subsidy budget namespace. A paused registration stops **new** approvals
 and commitments; it must not stop reconciliation, refunds or expiry processing.

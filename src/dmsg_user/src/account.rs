@@ -34,7 +34,6 @@ pub(crate) fn create(
     Ok(AccountState {
         created_at_ms: now,
         safety_budget: Budget::default(),
-        membership_authorizations: BTreeMap::new(),
         account_id,
         home_user: id,
         home_cose: cose,
@@ -344,11 +343,15 @@ pub(crate) fn apply(
             ensure(
                 policy.daily_executions <= 100
                     && policy.daily_cycles <= 1_000_000_000_000
-                    && policy.allowed_purposes.len() <= 2
-                    && policy
-                        .allowed_purposes
-                        .iter()
-                        .all(|p| matches!(p, KeyPurpose::FileAttestation | KeyPurpose::Statement)),
+                    && policy.allowed_purposes.len() <= 3
+                    && policy.allowed_purposes.iter().all(|p| {
+                        matches!(
+                            p,
+                            KeyPurpose::FileAttestation
+                                | KeyPurpose::Statement
+                                | KeyPurpose::AppAction
+                        )
+                    }),
                 Error::QuotaExceeded,
             )?;
             next.sensitive_policy = policy.clone();
@@ -407,38 +410,6 @@ pub(crate) fn apply(
             next.current_root = Some(root.clone());
             next.root_slot = None;
             next.vault_write_state = VaultWriteState::Ready;
-        }
-        AccountCommand::AuthorizeMembership { intent } => {
-            ensure(
-                dmsg_protocol::billing::beneficiary(s.home_user, &s.account_id)
-                    == intent.beneficiary,
-                Error::IntegrityFailed,
-            )?;
-            authenticated(intent.actor)?;
-            nonzero(intent.application_id.as_slice())?;
-            nonzero(intent.nonce.as_slice())?;
-            expiry(now, intent.valid_until_ms, DAY)?;
-            next.membership_authorizations
-                .retain(|_, a| a.expires_at > now);
-            if let Some(a) = next.membership_authorizations.get(&intent.application_id) {
-                ensure(a.intent == *intent, Error::IdempotencyConflict)?;
-            }
-            ensure(
-                next.membership_authorizations.len() < 32
-                    || next
-                        .membership_authorizations
-                        .contains_key(&intent.application_id),
-                Error::QuotaExceeded,
-            )?;
-            next.membership_authorizations.insert(
-                intent.application_id,
-                ApprovedMembership {
-                    intent: intent.clone(),
-                    security_epoch: s.security_epoch,
-                    device_id: m.approval.device_id,
-                    expires_at: m.approval.expires_at,
-                },
-            );
         }
         AccountCommand::AuthorizeHandle { intent } => {
             ensure(

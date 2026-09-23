@@ -7,10 +7,18 @@ a new operation. The browser JSON envelope is not Rust Serde JSON or a COSE file
 
 ## Implemented capabilities
 
-`capabilities` returns `authenticate`, `signDocument`, `getOperation`,
-`openOperation`, `cancelOperation` and `acknowledge`. Application-action signing
-and checkout remain unavailable; their SDK methods reject `UNSUPPORTED_PROTOCOL`.
+`capabilities` returns `authenticate`, `signDocument`, `signAction`, `checkout`,
+`getOperation`, `openOperation`, `cancelOperation` and `acknowledge`. Capability
+admission still requires the registered app and its exact origin/profile.
 The three document profile v1 byte formats are unchanged.
+
+Actions and checkout explicitly bind the expected signing/approving account.
+A different open workspace is refused before enqueueing. `checkout` carries a
+canonical `CheckoutRequest`; the extension independently verifies product and
+asset configurations and obtains an authoritative cash or PANDA quote before
+showing the full terms. Wallet identity is connected separately from the dMsg
+account. A new device approval needs FormalApprove; formal signatures also need
+confirmed recovery material. No private signing key is exported.
 
 Authentication chooses the current registered dMsg workspace account. The page
 does not obtain that identity until the user approves the exact request and the
@@ -141,3 +149,27 @@ Real browser tests use an isolated extension build, a temporary product origin
 and a temporary Chrome profile. Real-Wasm authentication handoff is tested
 separately in TokenList's `tests/dmsg-authentication`. Production identity origins,
 and the combined browser/product/canister matrix, remain explicit release work.
+
+## Action and checkout recovery
+
+`signAction` uses a separate purpose and `sign_app_action` operation. It retains
+the original Candid approval/journal and exports the original COSE, full key
+descriptor, execution ID and IC certificate. A fresh certificate can be read for
+an existing completed execution without signing again. Signed-but-unsubmitted
+results remain exportable; signing alone does not prove product delivery.
+
+Checkout persists its complete quote and original device approval before dispatch,
+and the wallet persists its exact ledger transfer before payment. Read the service
+operation before replaying an old approval: its short approval may have expired
+while the accepted order remains recoverable. The post-cooling PANDA approval
+uses the same original application and retains earlier approval history. An
+Applying/Active result is reconciled rather than silently starting another claim.
+The locally constructed approval deadline leaves a minute of margin within the
+service's five-minute maximum to accommodate its bounded certificate-time skew.
+
+Private result retrieval still requires the same product P-256 key, app, actual
+origin and dMsg workspace account. `checkoutCbor` is a progress notification;
+products query their own authoritative contract after it, rather than trusting
+browser state as settlement evidence. Cancellation of a browser request works
+only before authorization. Accepted cash/PANDA operations use their service state
+machines; an applied PANDA commitment has no early-exit control.

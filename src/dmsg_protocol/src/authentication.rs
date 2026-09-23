@@ -33,6 +33,24 @@ pub fn verify_authentication(
     trusted_ic_root_der: &[u8],
     now_ms: u64,
 ) -> Result<AuthenticationResult> {
+    let entry = batch.entries.first().ok_or(Error::IntegrityFailed)?;
+    let result: AuthenticationResult =
+        decode_canonical(entry.value.as_ref().ok_or(Error::IntegrityFailed)?)?;
+    let key = authentication_key(&result.account_id, &expected.operation_id);
+    let (_, at_ms) = verify_certified_leaf(batch, &key, trusted_home, trusted_ic_root_der, now_ms)?;
+    match_authentication_result(&result, expected, trusted_home, at_ms, now_ms)?;
+    Ok(result)
+}
+
+/// Verify one exact IC-certified leaf with a pinned home/root and sixty-second freshness.
+/// A valid leaf is not a product authorization; its typed content must be checked separately.
+pub fn verify_certified_leaf(
+    batch: &CertifiedBatch,
+    key: &[u8],
+    trusted_home: Principal,
+    trusted_ic_root_der: &[u8],
+    now_ms: u64,
+) -> Result<(Vec<u8>, u64)> {
     ensure(
         batch.schema == 1
             && batch.canister == trusted_home
@@ -44,9 +62,7 @@ pub fn verify_authentication(
     let entry = &batch.entries[0];
     ensure(entry.witness.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
     let value = entry.value.as_ref().ok_or(Error::IntegrityFailed)?;
-    let result: AuthenticationResult = decode_canonical(value)?;
-    let key = authentication_key(&result.account_id, &expected.operation_id);
-    ensure(entry.key.as_ref() == key.as_slice(), Error::IntegrityFailed)?;
+    ensure(entry.key.as_ref() == key, Error::IntegrityFailed)?;
     let certificate = ic_auth_verifier::parse_certificate_cbor(&batch.certificate)
         .map_err(|_| Error::IntegrityFailed)?;
     ic_auth_verifier::verify_certificate(
@@ -72,11 +88,10 @@ pub fn verify_authentication(
     };
     ensure(root == witness.digest(), Error::IntegrityFailed)?;
     ensure(
-        matches!(witness.lookup_path([key.as_slice()]), LookupResult::Found(bytes) if bytes == value.as_ref()),
+        matches!(witness.lookup_path([key]), LookupResult::Found(bytes) if bytes == value.as_ref()),
         Error::IntegrityFailed,
     )?;
-    match_authentication_result(&result, expected, trusted_home, at_ms, now_ms)?;
-    Ok(result)
+    Ok((value.to_vec(), at_ms))
 }
 
 #[cfg(test)]

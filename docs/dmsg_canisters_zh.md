@@ -8,7 +8,7 @@
 
 新增共享 `membership`（PANDA 资格、独占、持久产品决定）及 `dmsg_commerce`（现金订单、合同、退款、资源租约）。实际协议、权限、生命周期和验证边界见 [commerce_zh.md](protocol/commerce_zh.md)。user 新增精确商业批准、真实账户创建时间及独立 UTC 月执行账；COSE 隔离正式签名与安全操作预算；delivery 使用版本化费率和 v2 报价/收据域。旧名称价格不受影响。
 
-当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。扩展商业 UI 已完成本地接线，TokenList adapter 及生产钱包/SNS 验收仍待交付，不将本地测试视为上线证明。
+当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。扩展商业 UI 已完成本地接线，TokenList 项目与独立账号 adapter 已实现；生产钱包/SNS 验收单独执行，不将本地测试视为上线证明。
 
 COSE schema 6 为根派生保留执行窗口，合并全局预算，并提供 controller 分页清理；升级可调整日预算但不能更改密钥身份。执行结果的 `cycles_cost_upper_bound` 是管理调用的保守成本上界，不是实际账单。详见 [COSE 实现与实测](../src/dmsg_cose/README.md)。
 
@@ -37,7 +37,7 @@ COSE schema 6 为根派生保留执行窗口，合并全局预算，并提供 co
 - `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
 - `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
-- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 可变长，BIP340 入口已删除。浏览器消息合同为 `dmsg-extension/3`。
+- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 可变长，BIP340 入口已删除。浏览器消息合同为 `dmsg-extension/4`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
 - payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。
 

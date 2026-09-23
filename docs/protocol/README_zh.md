@@ -2,6 +2,7 @@
 
 [English](README.md) | 简体中文
 
+> 应用动作：[app-action v1](app-action.md) 定义闭合载荷、专用授权签署、浏览器确认及独立执行回执。通用文档接口拒绝该类型。
 当前实现采用 [Statement v3 设计](statement-v3-design_zh.md)：三个文档 profile v1、12 字节 Xid 账户、执行批准域 v3。具体字节格式见 [statements.cddl](statements.cddl)，ICP 接口以各 canister 的 `.did` 为准。profile 媒体类型为本项目实验名称，尚未注册或被标准组织采纳。
 
 `dmsg_types` 只定义公开数据；`dmsg_protocol` 实现标准编码、profile 验证和身份适配；`dmsg_runtime` 与各 canister 保存内部状态。第三方独立验签无需实现账户数据库、名称或付费投递业务。

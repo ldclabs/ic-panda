@@ -1,6 +1,6 @@
 {
   "name": "@dmsg/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Explicit dMsg third-party contracts and browser integration",
   "type": "module",
   "license": "Apache-2.0",
@@ -8,19 +8,42 @@
     "node": ">=22.18.0"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./contracts": "./src/contracts.ts",
-    "./ic": "./src/ic.ts",
-    "./browser": "./src/browser.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "default": "./dist/contracts.js"
+    },
+    "./ic": {
+      "types": "./dist/ic.d.ts",
+      "default": "./dist/ic.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./statements": {
+      "types": "./dist/statements.d.ts",
+      "default": "./dist/statements.js"
+    }
   },
   "files": [
-    "src",
+    "dist",
     "README.md"
   ],
   "scripts": {
-    "test": "node --test tests/*.test.ts"
+    "test": "node --test tests/*.test.ts",
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@icp-sdk/core": "^6.1.0"
+    "@icp-sdk/core": "^6.1.0",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.3.0",
+    "cborg": "^6.1.1"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
   }
 }

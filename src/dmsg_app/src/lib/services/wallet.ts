@@ -4,7 +4,7 @@ import { Principal } from '@icp-sdk/core/principal'
 import { b64, unb64, digest, hex } from '../protocol/codec'
 import type { CryptoClient } from '../crypto/client'
 import type { EscrowInfo } from '../canisters/generated/payment'
-import type { BillingOrder } from '../canisters/generated/commerce'
+import type { CheckoutView } from '@dmsg/sdk'
 import { ensure } from '../errors'
 const blob = IDL.Vec(IDL.Nat8),
   account = IDL.Record({ owner: IDL.Principal, subaccount: IDL.Opt(blob) })
@@ -116,31 +116,36 @@ export class WalletClient {
     await this.crypto.call('commerceJournal', key, JSON.stringify(job))
     return BigInt(job.block)
   }
-  async transferOrder(order: BillingOrder) {
-    const quote = order.input.quote,
-      id = hex(Uint8Array.from(order.order_id)),
-      key = `funding:${id}`
+  async transferCheckout(order: CheckoutView) {
+    const quote = order.quote,
+      cash = quote.cash,
+      key = `checkout-funding:${hex(order.progress.order_id)}`
     ensure(
-      quote.request.payer.owner.toText() === this.owner.toText() &&
-        'AwaitingFunding' in order.status,
+      Principal.fromUint8Array(cash.payer.owner).toText() === this.owner.toText(),
       'FORBIDDEN'
     )
     const saved = await this.crypto.call('commerceJournal', key)
     let job = saved ? JSON.parse(saved) : null
     if (job?.block) return BigInt(job.block)
     if (!job) {
-      ensure(quote.fund_by_ms > BigInt(Date.now()), 'EXPIRED')
+      ensure(
+        order.progress.status === 'AwaitingFunding' &&
+          cash.funding_deadline_ms > BigInt(Date.now()),
+        'EXPIRED'
+      )
       const args = {
-        to: { owner: quote.home_commerce, subaccount: [order.receive_subaccount] },
-        amount: quote.amount_atomic + quote.fee_reserve,
-        fee: [quote.catalog.ledger_fee],
-        from_subaccount: quote.request.payer.subaccount,
-        memo: [digest('dmsg/commerce/funding/v1', Uint8Array.from(order.order_id))],
-        created_at_time: [BigInt(Date.now()) * 1000000n]
+        to: {
+          owner: Principal.fromUint8Array(cash.deposit.owner),
+          subaccount: cash.deposit.subaccount ? [cash.deposit.subaccount] : []
+        },
+        amount: cash.amount_atomic + cash.fee_reserve_atomic,
+        fee: [quote.asset.network_fee_atomic],
+        from_subaccount: cash.payer.subaccount ? [cash.payer.subaccount] : [],
+        memo: [digest('dmsg/checkout/funding/v2', order.progress.order_id)],
+        created_at_time: [BigInt(Date.now()) * 1_000_000n]
       }
       job = {
-        format: 'dmsg-wallet-transfer/1',
-        ledger: quote.catalog.ledger.toText(),
+        ledger: Principal.fromUint8Array(cash.ledger).toText(),
         payer: this.owner.toText(),
         args: b64(new Uint8Array(IDL.encode([transfer], [args]))),
         state: 'prepared'
@@ -148,15 +153,17 @@ export class WalletClient {
       await this.crypto.call('commerceJournal', key, JSON.stringify(job))
     }
     ensure(
-      job.payer === this.owner.toText() && job.ledger === quote.catalog.ledger.toText(),
-      'AUTH_REQUIRED'
+      job.ledger === Principal.fromUint8Array(cash.ledger).toText() &&
+        job.payer === this.owner.toText(),
+      'FORBIDDEN'
     )
-    // A changed ledger fee never changes the user's saved transfer or quote.
-    ensure(
-      (await this.actor(job.ledger).icrc1_fee()) === quote.catalog.ledger_fee,
-      'FEE_BLOCKED',
-      '账本费用已变化，需要先对账原订单。'
-    )
+    if (job.state === 'prepared')
+      ensure(
+        (await this.actor(job.ledger).icrc1_fee()) === quote.asset.network_fee_atomic,
+        'FEE_BLOCKED'
+      )
+    // Unknown attempts preserve original memo/time/fee, even when the live fee changed.
+    const uncertain = job.state === 'unknown'
     job.state = 'unknown'
     await this.crypto.call('commerceJournal', key, JSON.stringify(job))
     const reply = await this.actor(job.ledger).icrc1_transfer(
@@ -165,10 +172,10 @@ export class WalletClient {
     if ('Ok' in reply) job.block = reply.Ok.toString()
     else if ('Duplicate' in reply.Err) job.block = reply.Err.Duplicate.duplicate_of.toString()
     else {
-      job.state = 'rejected'
+      job.state = uncertain ? 'unknown' : 'rejected'
       job.error = Object.keys(reply.Err)[0]
       await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-      throw new Error(`账本拒绝原转账：${job.error}。没有重建付款。`)
+      throw new Error(`账本返回 ${job.error}；保留原转账，请按原区块对账。`)
     }
     job.state = 'confirmed'
     await this.crypto.call('commerceJournal', key, JSON.stringify(job))

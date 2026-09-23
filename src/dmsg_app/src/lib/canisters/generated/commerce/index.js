@@ -30,25 +30,17 @@ export const idlFactory = ({ IDL }) => {
     'catalog_version' : IDL.Nat64,
     'terms_version' : IDL.Nat64,
     'price_cents' : IDL.Nat64,
-    'membership_policy_version' : IDL.Opt(IDL.Nat64),
     'weights' : ExecutionWeights,
     'plan_id' : PlanId,
     'limits' : ResourceLimits,
   });
   const Catalog = IDL.Record({
-    'decimals' : IDL.Nat8,
     'storage_products' : IDL.Vec(StorageProduct),
     'schema' : IDL.Nat16,
     'effective_at_ms' : IDL.Nat64,
     'version' : IDL.Nat64,
-    'ledger' : IDL.Principal,
-    'ledger_fee' : IDL.Nat,
     'plans' : IDL.Vec(PlanVersion),
     'terms_digest' : IDL.Vec(IDL.Nat8),
-  });
-  const Account = IDL.Record({
-    'owner' : IDL.Principal,
-    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const CommerceInit = IDL.Record({
     'daily_orders' : IDL.Nat32,
@@ -58,20 +50,6 @@ export const idlFactory = ({ IDL }) => {
     'membership_canister' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
     'catalog' : Catalog,
-    'treasury' : Account,
-  });
-  const TermRule = IDL.Variant({
-    'Fixed' : IDL.Record({
-      'starts_at_ms' : IDL.Nat64,
-      'expires_at_ms' : IDL.Nat64,
-    }),
-    'CalendarYear' : IDL.Null,
-  });
-  const ClaimChange = IDL.Variant({
-    'Start' : IDL.Null,
-    'Upgrade' : IDL.Record({ 'previous_claim' : IDL.Vec(IDL.Nat8) }),
-    'Replace' : IDL.Record({ 'previous_claim' : IDL.Vec(IDL.Nat8) }),
-    'Renew' : IDL.Record({ 'previous_claim' : IDL.Vec(IDL.Nat8) }),
   });
   const Beneficiary = IDL.Record({
     'product_id' : IDL.Text,
@@ -79,73 +57,81 @@ export const idlFactory = ({ IDL }) => {
     'subject_bytes' : IDL.Vec(IDL.Nat8),
     'subject_schema' : IDL.Text,
   });
-  const MembershipIntent = IDL.Record({
-    'actor' : IDL.Principal,
-    'beneficiary' : Beneficiary,
-    'valid_until_ms' : IDL.Nat64,
-    'action_digest' : IDL.Vec(IDL.Nat8),
-    'application_id' : IDL.Vec(IDL.Nat8),
-    'nonce' : IDL.Vec(IDL.Nat8),
-    'service_canister' : IDL.Principal,
-    'environment' : Environment,
+  const SettlementMethod = IDL.Variant({
+    'Cash' : IDL.Null,
+    'Panda' : IDL.Null,
   });
-  const ClaimRequest = IDL.Record({
-    'term' : TermRule,
-    'benefit_id' : IDL.Vec(IDL.Nat8),
-    'change' : ClaimChange,
-    'policy_version' : IDL.Nat64,
-    'expected_business_revision' : IDL.Nat64,
-    'authorization' : MembershipIntent,
-    'neuron_id' : IDL.Vec(IDL.Nat8),
-  });
-  const DecisionKind = IDL.Variant({ 'Apply' : IDL.Null, 'Close' : IDL.Null });
-  const Threshold = IDL.Variant({
-    'AnnualPrice' : IDL.Record({
-      'price_cents' : IDL.Nat64,
-      'r_den' : IDL.Nat,
-      'r_num' : IDL.Nat,
-    }),
-    'FixedPanda' : IDL.Record({ 'atomic' : IDL.Nat }),
-  });
-  const MembershipPolicy = IDL.Record({
+  const BillingOffer = IDL.Record({
+    'sku' : IDL.Text,
     'product_id' : IDL.Text,
-    'threshold' : Threshold,
-    'subsidy_units' : IDL.Nat64,
-    'benefit_id' : IDL.Vec(IDL.Nat8),
-    'effective_at_ms' : IDL.Nat64,
-    'version' : IDL.Nat64,
-  });
-  const MembershipDecision = IDL.Record({
-    'qualification_until_ms' : IDL.Nat64,
-    'decision_id' : IDL.Vec(IDL.Nat8),
-    'claim_id' : IDL.Vec(IDL.Nat8),
-    'request' : ClaimRequest,
-    'kind' : DecisionKind,
-    'observed_at_ms' : IDL.Nat64,
-    'required_atomic' : IDL.Nat,
+    'beneficiary' : Beneficiary,
+    'amount_usd_micros' : IDL.Nat,
+    'operation_id' : IDL.Vec(IDL.Nat8),
     'starts_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'issued_at_ms' : IDL.Nat64,
+    'offer_id' : IDL.Vec(IDL.Nat8),
+    'quote_authority' : IDL.Principal,
+    'environment' : Environment,
+    'expected_business_revision' : IDL.Nat64,
+    'adapter' : IDL.Principal,
+    'allowed_settlement_methods' : IDL.Vec(SettlementMethod),
+    'expires_at_ms' : IDL.Nat64,
+    'accept_by_ms' : IDL.Nat64,
+    'product_terms_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const SettlementSource = IDL.Variant({
+    'Cash' : IDL.Record({
+      'amount_atomic' : IDL.Nat,
+      'block_index' : IDL.Nat,
+      'ledger' : IDL.Principal,
+      'order_id' : IDL.Vec(IDL.Nat8),
+    }),
+    'Panda' : IDL.Record({
+      'claim_id' : IDL.Vec(IDL.Nat8),
+      'quote_hash' : IDL.Vec(IDL.Nat8),
+      'lease_until_ms' : IDL.Nat64,
+      'committed_until_ms' : IDL.Nat64,
+    }),
+  });
+  const ProductDecision = IDL.Record({
+    'decision_id' : IDL.Vec(IDL.Nat8),
+    'offer' : BillingOffer,
+    'source' : SettlementSource,
+    'decided_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat16,
     'apply_by_ms' : IDL.Nat64,
-    'expires_at_ms' : IDL.Nat64,
-    'policy' : MembershipPolicy,
   });
-  const DecisionOutcome = IDL.Variant({
-    'Applied' : IDL.Null,
-    'Rejected' : IDL.Null,
+  const ProductRejection = IDL.Variant({
+    'OfferMismatch' : IDL.Null,
+    'IntervalReserved' : IDL.Null,
+    'RevisionConflict' : IDL.Null,
+    'Unauthorized' : IDL.Null,
+    'Expired' : IDL.Null,
   });
-  const MembershipDecisionReceipt = IDL.Record({
+  const ProductOutcome = IDL.Variant({
+    'Applied' : IDL.Record({
+      'business_revision' : IDL.Nat64,
+      'contract_id' : IDL.Vec(IDL.Nat8),
+      'committed_until_ms' : IDL.Nat64,
+    }),
+    'Rejected' : IDL.Record({ 'reason' : ProductRejection }),
+  });
+  const ProductReceipt = IDL.Record({
+    'decision_hash' : IDL.Vec(IDL.Nat8),
     'decision_id' : IDL.Vec(IDL.Nat8),
-    'business_revision' : IDL.Nat64,
-    'commitment_until_ms' : IDL.Nat64,
-    'contract_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'starts_at_ms' : IDL.Nat64,
-    'outcome' : DecisionOutcome,
-    'decision_digest' : IDL.Vec(IDL.Nat8),
-    'expires_at_ms' : IDL.Nat64,
+    'applied_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat16,
+    'outcome' : ProductOutcome,
+    'adapter' : IDL.Principal,
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
     'LegacyWriteDisabled' : IDL.Null,
     'InvalidInput' : IDL.Text,
+    'IntervalReserved' : IDL.Null,
+    'NeuronOccupied' : IDL.Null,
     'RekeyRequired' : IDL.Null,
     'VersionConflict' : IDL.Null,
     'ExecutionUnknown' : IDL.Null,
@@ -172,75 +158,37 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({
-    'Ok' : MembershipDecisionReceipt,
-    'Err' : Error,
-  });
-  const MembershipAuthorization = IDL.Record({
-    'valid_until_ms' : IDL.Nat64,
-    'security_epoch' : IDL.Nat64,
-    'verified_at_ms' : IDL.Nat64,
-    'intent_digest' : IDL.Vec(IDL.Nat8),
+  const Result = IDL.Variant({ 'Ok' : ProductReceipt, 'Err' : Error });
+  const CashCancellationReceipt = IDL.Record({
+    'decision_hash' : IDL.Vec(IDL.Nat8),
+    'cancelled' : IDL.Bool,
+    'business_revision' : IDL.Nat64,
+    'contract_id' : IDL.Vec(IDL.Nat8),
+    'cancelled_at_ms' : IDL.Nat64,
+    'order_id' : IDL.Vec(IDL.Nat8),
   });
   const Result_1 = IDL.Variant({
-    'Ok' : MembershipAuthorization,
+    'Ok' : CashCancellationReceipt,
     'Err' : Error,
   });
-  const OrderStatus = IDL.Variant({
-    'Closing' : IDL.Null,
-    'Active' : IDL.Null,
+  const CheckoutStatus = IDL.Variant({
+    'Applied' : IDL.Null,
+    'Reserving' : IDL.Null,
     'AwaitingFunding' : IDL.Null,
-    'Cancelled' : IDL.Null,
-    'RefundCommitted' : IDL.Null,
-  });
-  const OrderProgress = IDL.Record({
-    'status' : OrderStatus,
-    'order_id' : IDL.Vec(IDL.Nat8),
-  });
-  const Result_2 = IDL.Variant({ 'Ok' : OrderProgress, 'Err' : Error });
-  const MerchantTransferStatus = IDL.Variant({
-    'Superseded' : IDL.Null,
     'Rejected' : IDL.Null,
-    'Succeeded' : IDL.Null,
-    'InFlight' : IDL.Null,
-    'Unknown' : IDL.Null,
-    'Pending' : IDL.Null,
+    'RefundCommitted' : IDL.Null,
+    'Applying' : IDL.Null,
   });
-  const TransferProgress = IDL.Record({
-    'status' : MerchantTransferStatus,
-    'replaced_by' : IDL.Opt(IDL.Nat64),
-    'transfer_id' : IDL.Nat64,
+  const CheckoutProgress = IDL.Record({
+    'status' : CheckoutStatus,
+    'decision_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'order_id' : IDL.Vec(IDL.Nat8),
   });
-  const Result_3 = IDL.Variant({ 'Ok' : TransferProgress, 'Err' : Error });
-  const TransferError = IDL.Variant({
-    'GenericError' : IDL.Record({
-      'message' : IDL.Text,
-      'error_code' : IDL.Nat,
-    }),
-    'TemporarilyUnavailable' : IDL.Null,
-    'BadBurn' : IDL.Record({ 'min_burn_amount' : IDL.Nat }),
-    'Duplicate' : IDL.Record({ 'duplicate_of' : IDL.Nat }),
-    'BadFee' : IDL.Record({ 'expected_fee' : IDL.Nat }),
-    'CreatedInFuture' : IDL.Record({ 'ledger_time' : IDL.Nat64 }),
-    'TooOld' : IDL.Null,
-    'InsufficientFunds' : IDL.Record({ 'balance' : IDL.Nat }),
+  const Result_2 = IDL.Variant({ 'Ok' : CheckoutProgress, 'Err' : Error });
+  const CashBlock = IDL.Record({
+    'block_index' : IDL.Nat,
+    'ledger' : IDL.Principal,
   });
-  const MerchantTransfer = IDL.Record({
-    'to' : Account,
-    'fee' : IDL.Nat,
-    'last_error' : IDL.Opt(TransferError),
-    'status' : MerchantTransferStatus,
-    'replaces' : IDL.Opt(IDL.Nat64),
-    'created_at_time_ns' : IDL.Nat64,
-    'memo' : IDL.Vec(IDL.Nat8),
-    'replaced_by' : IDL.Opt(IDL.Nat64),
-    'transfer_id' : IDL.Nat64,
-    'block' : IDL.Opt(IDL.Nat64),
-    'order_id' : IDL.Vec(IDL.Nat8),
-    'amount' : IDL.Nat,
-  });
-  const Result_4 = IDL.Variant({ 'Ok' : MerchantTransfer, 'Err' : Error });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -252,15 +200,141 @@ export const idlFactory = ({ IDL }) => {
     'entries' : IDL.Vec(CertifiedEntry),
     'canister' : IDL.Principal,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
-  const MerchantDeposit = IDL.Record({
-    'from' : Account,
-    'refundable' : IDL.Nat,
-    'block' : IDL.Nat64,
-    'order_id' : IDL.Vec(IDL.Nat8),
-    'amount' : IDL.Nat,
+  const Result_3 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Account = IDL.Record({
+    'owner' : IDL.Principal,
+    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_6 = IDL.Variant({ 'Ok' : MerchantDeposit, 'Err' : Error });
+  const CheckoutDeposit = IDL.Record({
+    'amount_atomic' : IDL.Nat,
+    'refundable_atomic' : IDL.Nat,
+    'from' : Account,
+    'block' : CashBlock,
+    'order_id' : IDL.Vec(IDL.Nat8),
+  });
+  const Result_4 = IDL.Variant({
+    'Ok' : IDL.Vec(CheckoutDeposit),
+    'Err' : Error,
+  });
+  const SettlementAssetKind = IDL.Variant({
+    'CkUsdc' : IDL.Null,
+    'CkUsdt' : IDL.Null,
+  });
+  const SettlementAsset = IDL.Record({
+    'decimals' : IDL.Nat16,
+    'asset' : SettlementAssetKind,
+    'max_network_fee_atomic' : IDL.Nat,
+    'price_valid_until_ms' : IDL.Nat64,
+    'price_observed_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat16,
+    'enabled' : IDL.Bool,
+    'network_fee_atomic' : IDL.Nat,
+    'ledger' : IDL.Principal,
+    'environment' : Environment,
+    'price_usd_micros' : IDL.Nat,
+    'policy_version' : IDL.Nat64,
+  });
+  const CashQuote = IDL.Record({
+    'amount_atomic' : IDL.Nat,
+    'offer_hash' : IDL.Vec(IDL.Nat8),
+    'fee_reserve_atomic' : IDL.Nat,
+    'funding_deadline_ms' : IDL.Nat64,
+    'max_network_fee_atomic' : IDL.Nat,
+    'activation_deadline_ms' : IDL.Nat64,
+    'deposit' : Account,
+    'version' : IDL.Nat16,
+    'ledger' : IDL.Principal,
+    'payer' : Account,
+    'conversion_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const ProductRegistration = IDL.Record({
+    'product_id' : IDL.Text,
+    'subject_size' : IDL.Nat16,
+    'terms_hash' : IDL.Vec(IDL.Nat8),
+    'version' : IDL.Nat16,
+    'config_version' : IDL.Nat64,
+    'merchant' : Account,
+    'quote_authority' : IDL.Principal,
+    'environment' : Environment,
+    'subsidy_budget_id' : IDL.Vec(IDL.Nat8),
+    'ledgers' : IDL.Vec(IDL.Principal),
+    'beneficiary_authority' : IDL.Principal,
+    'adapter' : IDL.Principal,
+    'subject_schema' : IDL.Text,
+    'paused' : IDL.Bool,
+  });
+  const CheckoutQuote = IDL.Record({
+    'asset' : SettlementAsset,
+    'offer' : BillingOffer,
+    'cash' : CashQuote,
+    'quoted_at_ms' : IDL.Nat64,
+    'product' : ProductRegistration,
+  });
+  const CheckoutView = IDL.Record({
+    'receipt' : IDL.Opt(ProductReceipt),
+    'fee_reserve_atomic' : IDL.Nat,
+    'outgoing_atomic' : IDL.Nat,
+    'quote' : CheckoutQuote,
+    'progress' : CheckoutProgress,
+    'service_reserve_atomic' : IDL.Nat,
+  });
+  const CheckoutLedgerBalance = IDL.Record({
+    'fee_reserve_atomic' : IDL.Nat,
+    'refundable_atomic' : IDL.Nat,
+    'outgoing_atomic' : IDL.Nat,
+    'service_reserve_atomic' : IDL.Nat,
+    'ledger' : IDL.Principal,
+    'incoming_atomic' : IDL.Nat,
+  });
+  const CheckoutOperationAudit = IDL.Record({
+    'order' : CheckoutView,
+    'balances' : IDL.Vec(CheckoutLedgerBalance),
+  });
+  const CheckoutOperationsPage = IDL.Record({
+    'orders' : IDL.Vec(CheckoutOperationAudit),
+    'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const Result_5 = IDL.Variant({
+    'Ok' : CheckoutOperationsPage,
+    'Err' : Error,
+  });
+  const CashTransferStatus = IDL.Variant({
+    'Superseded' : IDL.Null,
+    'Rejected' : IDL.Null,
+    'Succeeded' : IDL.Null,
+    'InFlight' : IDL.Null,
+    'Unknown' : IDL.Null,
+    'Pending' : IDL.Null,
+  });
+  const CashTransfer = IDL.Record({
+    'to' : Account,
+    'status' : CashTransferStatus,
+    'source_subaccount' : IDL.Vec(IDL.Nat8),
+    'amount_atomic' : IDL.Nat,
+    'expected_fee_atomic' : IDL.Opt(IDL.Nat),
+    'replaces' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'block_index' : IDL.Opt(IDL.Nat),
+    'created_at_time_ns' : IDL.Nat64,
+    'memo' : IDL.Vec(IDL.Nat8),
+    'replaced_by' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'transfer_id' : IDL.Vec(IDL.Nat8),
+    'ledger' : IDL.Principal,
+    'max_fee_atomic' : IDL.Nat,
+    'fee_atomic' : IDL.Nat,
+    'order_id' : IDL.Vec(IDL.Nat8),
+    'error_code' : IDL.Opt(IDL.Text),
+  });
+  const CashTransfersPage = IDL.Record({
+    'transfers' : IDL.Vec(CashTransfer),
+    'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const Result_6 = IDL.Variant({ 'Ok' : CashTransfersPage, 'Err' : Error });
+  const Result_7 = IDL.Variant({ 'Ok' : CashTransfer, 'Err' : Error });
+  const Result_8 = IDL.Variant({
+    'Ok' : IDL.Opt(CashCancellationReceipt),
+    'Err' : Error,
+  });
+  const Result_9 = IDL.Variant({ 'Ok' : CheckoutView, 'Err' : Error });
   const MonthSegment = IDL.Record({
     'start_ms' : IDL.Nat64,
     'monthly_units' : IDL.Nat64,
@@ -324,63 +398,61 @@ export const idlFactory = ({ IDL }) => {
     'month' : MonthEntitlement,
     'view' : EntitlementView,
   });
-  const Result_7 = IDL.Variant({ 'Ok' : ExecutionEntitlement, 'Err' : Error });
-  const Result_8 = IDL.Variant({
-    'Ok' : IDL.Opt(MembershipDecisionReceipt),
+  const Result_10 = IDL.Variant({ 'Ok' : ExecutionEntitlement, 'Err' : Error });
+  const Result_11 = IDL.Variant({
+    'Ok' : IDL.Opt(ProductReceipt),
     'Err' : Error,
   });
-  const OrderAction = IDL.Variant({
-    'Buyout' : IDL.Record({ 'contract_id' : IDL.Vec(IDL.Nat8) }),
-    'Storage' : IDL.Record({ 'product_id' : IDL.Vec(IDL.Nat8) }),
-    'Upgrade' : IDL.Record({ 'plan' : PlanId }),
-    'Renew' : IDL.Record({ 'plan' : PlanId }),
-    'Subscribe' : IDL.Record({ 'plan' : PlanId }),
+  const ProductApproval = IDL.Record({
+    'method' : SettlementMethod,
+    'approval_id' : IDL.Vec(IDL.Nat8),
+    'offer_hash' : IDL.Vec(IDL.Nat8),
+    'operator' : IDL.Principal,
+    'version' : IDL.Nat16,
+    'expires_at_ms' : IDL.Nat64,
+    'approved_at_ms' : IDL.Nat64,
   });
-  const QuoteOrder = IDL.Record({
-    'action' : OrderAction,
-    'op_id' : IDL.Vec(IDL.Nat8),
+  const ApprovalPurpose = IDL.Variant({
+    'AppAction' : IDL.Null,
+    'CashCheckout' : IDL.Null,
+    'PandaSubscription' : IDL.Null,
+  });
+  const ApplicationApproval = IDL.Record({
+    'service' : IDL.Principal,
+    'actor' : IDL.Principal,
     'beneficiary' : Beneficiary,
-    'payer' : Account,
-    'expected_business_revision' : IDL.Nat64,
+    'app_config_version' : IDL.Nat64,
+    'origin' : IDL.Text,
+    'action_digest' : IDL.Vec(IDL.Nat8),
+    'operation_id' : IDL.Vec(IDL.Nat8),
+    'approving_account' : IDL.Vec(IDL.Nat8),
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'nonce' : IDL.Vec(IDL.Nat8),
+    'environment' : Environment,
+    'purpose' : ApprovalPurpose,
+    'expires_at_ms' : IDL.Nat64,
   });
-  const OrderQuote = IDL.Record({
-    'amount_atomic' : IDL.Nat,
-    'fee_reserve' : IDL.Nat,
-    'request' : QuoteOrder,
-    'term' : TermRule,
-    'created_at_ms' : IDL.Nat64,
-    'fund_by_ms' : IDL.Nat64,
-    'home_commerce' : IDL.Principal,
-    'catalog' : Catalog,
-    'activate_by_ms' : IDL.Nat64,
+  const ProductAuthorizationRequest = IDL.Record({
+    'product_approval' : IDL.Opt(ProductApproval),
+    'account_approval' : ApplicationApproval,
+    'approval_id' : IDL.Vec(IDL.Nat8),
+    'user_home' : IDL.Principal,
+    'offer' : BillingOffer,
   });
-  const OpenOrder = IDL.Record({
-    'quote' : OrderQuote,
-    'authorization' : MembershipIntent,
+  const OpenCheckout = IDL.Record({
+    'quote' : CheckoutQuote,
+    'authorization' : ProductAuthorizationRequest,
   });
-  const BillingOrder = IDL.Record({
-    'status' : OrderStatus,
-    'fee_reserve' : IDL.Nat,
-    'service_reserve' : IDL.Nat,
-    'generation' : IDL.Nat64,
-    'network_fees' : IDL.Nat,
-    'activated_contract_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'transferred' : IDL.Nat,
-    'refundable' : IDL.Nat,
-    'earned' : IDL.Nat,
-    'next_transfer' : IDL.Nat64,
-    'receive_subaccount' : IDL.Vec(IDL.Nat8),
-    'input' : OpenOrder,
-    'order_id' : IDL.Vec(IDL.Nat8),
-    'outgoing' : IDL.Nat,
-    'funding_block' : IDL.Opt(IDL.Nat64),
-    'close_effective_at_ms' : IDL.Opt(IDL.Nat64),
-    'refunded_principal' : IDL.Nat,
-    'busy_until_ms' : IDL.Nat64,
-    'confirmed_in' : IDL.Nat,
+  const Result_12 = IDL.Variant({ 'Ok' : BillingOffer, 'Err' : Error });
+  const CashTransferProgress = IDL.Record({
+    'status' : CashTransferStatus,
+    'block_index' : IDL.Opt(IDL.Nat),
+    'transfer_id' : IDL.Vec(IDL.Nat8),
   });
-  const Result_9 = IDL.Variant({ 'Ok' : BillingOrder, 'Err' : Error });
-  const Result_10 = IDL.Variant({ 'Ok' : OrderQuote, 'Err' : Error });
+  const Result_13 = IDL.Variant({ 'Ok' : CashTransferProgress, 'Err' : Error });
+  const Result_14 = IDL.Variant({ 'Ok' : SettlementAsset, 'Err' : Error });
+  const Result_15 = IDL.Variant({ 'Ok' : CheckoutQuote, 'Err' : Error });
   const AppCapability = IDL.Variant({
     'SignAction' : IDL.Null,
     'Checkout' : IDL.Null,
@@ -403,106 +475,90 @@ export const idlFactory = ({ IDL }) => {
     'app_id' : IDL.Text,
     'config_version' : IDL.Nat64,
     'environment' : Environment,
+    'action_authority' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
     'profiles' : IDL.Vec(SigningProfile),
     'paused' : IDL.Bool,
   });
-  const ProductRegistration = IDL.Record({
-    'product_id' : IDL.Text,
-    'subject_size' : IDL.Nat16,
-    'terms_hash' : IDL.Vec(IDL.Nat8),
-    'version' : IDL.Nat16,
-    'config_version' : IDL.Nat64,
-    'merchant' : Account,
-    'quote_authority' : IDL.Principal,
-    'environment' : Environment,
-    'subsidy_budget_id' : IDL.Vec(IDL.Nat8),
-    'ledgers' : IDL.Vec(IDL.Principal),
-    'beneficiary_authority' : IDL.Principal,
-    'adapter' : IDL.Principal,
-    'subject_schema' : IDL.Text,
-    'paused' : IDL.Bool,
-  });
-  const Result_11 = IDL.Variant({
+  const Result_16 = IDL.Variant({
     'Ok' : IDL.Tuple(AppRegistration, IDL.Opt(ProductRegistration)),
     'Err' : Error,
   });
-  const Result_12 = IDL.Variant({ 'Ok' : EntitlementView, 'Err' : Error });
-  const Result_13 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
-  const ClaimStatus = IDL.Variant({
-    'CoolingDown' : IDL.Null,
-    'Closing' : IDL.Null,
-    'Active' : IDL.Null,
-    'Released' : IDL.Null,
-    'Rejected' : IDL.Null,
-    'Checking' : IDL.Null,
-    'Applying' : IDL.Null,
+  const Result_17 = IDL.Variant({ 'Ok' : EntitlementView, 'Err' : Error });
+  const Result_18 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const SettlementAssetView = IDL.Record({
+    'ledger_verified' : IDL.Bool,
+    'policy' : SettlementAsset,
   });
-  const ClaimView = IDL.Record({
-    'status' : ClaimStatus,
-    'home_membership' : IDL.Principal,
-    'decision_id' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'release_after_ms' : IDL.Nat64,
-    'claim_id' : IDL.Vec(IDL.Nat8),
-    'beneficiary' : Beneficiary,
-    'schema' : IDL.Nat16,
-    'valid_until_ms' : IDL.Nat64,
-    'observed_at_ms' : IDL.Nat64,
-    'benefit_id' : IDL.Vec(IDL.Nat8),
-    'lease_revision' : IDL.Nat64,
-    'starts_at_ms' : IDL.Nat64,
-    'eligibility' : Eligibility,
-    'policy_version' : IDL.Nat64,
-    'expires_at_ms' : IDL.Nat64,
-  });
-  const Result_14 = IDL.Variant({ 'Ok' : ClaimView, 'Err' : Error });
   return IDL.Service({
-    'apply_membership_decision' : IDL.Func([MembershipDecision], [Result], []),
-    'authorize_membership_close' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), MembershipIntent],
+    'apply_product_decision' : IDL.Func([ProductDecision], [Result], []),
+    'cancel_cash_contract' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_1],
         [],
       ),
-    'authorize_membership_intent' : IDL.Func([ClaimRequest], [Result_1], []),
-    'check_order_funding' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64],
+    'cancel_checkout' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_2], []),
+    'check_checkout_funding' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), CashBlock],
         [Result_2],
         [],
       ),
-    'claim_deposit_refund' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64],
+    'checkout_certificate' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
         [Result_3],
+        ['query'],
+      ),
+    'checkout_deposits' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_4], ['query']),
+    'checkout_operations' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
+        [Result_5],
+        ['query'],
+      ),
+    'checkout_progress' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_2], ['query']),
+    'checkout_transfer_certificate' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_3],
+        ['query'],
+      ),
+    'checkout_transfers' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
+        [Result_6],
+        ['query'],
+      ),
+    'claim_checkout_fee_reserve' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_7],
         [],
       ),
-    'claim_fee_reserve' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], []),
-    'collect_revenue' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_4], []),
-    'get_catalog' : IDL.Func([], [Result_5], ['query']),
-    'get_deposit' : IDL.Func([IDL.Nat64], [Result_6], ['query']),
+    'claim_checkout_refund' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Principal, IDL.Vec(IDL.Nat), IDL.Vec(IDL.Nat8)],
+        [Result_7],
+        [],
+      ),
+    'collect_checkout_revenue' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_7], []),
+    'get_cash_cancellation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], []),
+    'get_catalog' : IDL.Func([], [Result_3], ['query']),
+    'get_checkout' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], ['query']),
+    'get_checkout_for_product' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], []),
+    'get_checkout_transfer' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_7],
+        ['query'],
+      ),
     'get_entitlement_batch' : IDL.Func(
         [IDL.Vec(Beneficiary)],
-        [Result_5],
+        [Result_3],
         ['query'],
       ),
     'get_execution_entitlement' : IDL.Func(
         [Beneficiary, IDL.Nat32, IDL.Nat64],
-        [Result_7],
+        [Result_10],
         [],
       ),
-    'get_membership_decision' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], []),
-    'get_operation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], ['query']),
-    'get_order_certified' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [Result_5],
-        ['query'],
-      ),
-    'get_transfer' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_4],
-        ['query'],
-      ),
+    'get_product_decision' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_11], []),
     'integration_configuration_certificate' : IDL.Func(
         [IDL.Text, IDL.Opt(IDL.Text)],
-        [Result_5],
+        [Result_3],
         ['query'],
       ),
     'list_catalogs' : IDL.Func(
@@ -510,50 +566,81 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Catalog)],
         ['query'],
       ),
-    'open_order' : IDL.Func([OpenOrder], [Result_9], []),
-    'process_transfer' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_3],
+    'open_checkout' : IDL.Func([OpenCheckout], [Result_9], []),
+    'prepare_account_subscription' : IDL.Func(
+        [IDL.Text, Beneficiary, IDL.Text, IDL.Vec(IDL.Nat8)],
+        [Result_12],
         [],
       ),
-    'quote_order' : IDL.Func([QuoteOrder], [Result_10], ['query']),
-    'read_integration_configuration' : IDL.Func(
-        [IDL.Text, IDL.Opt(IDL.Text)],
-        [Result_11],
-        [],
-      ),
-    'reconcile_order' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_2], []),
-    'reconcile_transfer' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Nat64],
-        [Result_3],
-        [],
-      ),
-    'refresh_catalog' : IDL.Func([], [Catalog], []),
-    'refresh_entitlement' : IDL.Func([Beneficiary], [Result_12], []),
-    'register_integration_app' : IDL.Func([AppRegistration], [Result_13], []),
-    'register_integration_product' : IDL.Func(
-        [ProductRegistration],
+    'process_checkout_transfer' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
         [Result_13],
         [],
       ),
-    'release_replaced_claim' : IDL.Func(
-        [Beneficiary, IDL.Vec(IDL.Nat8)],
+    'publish_settlement_price' : IDL.Func(
+        [IDL.Principal, IDL.Nat, IDL.Nat64],
         [Result_14],
         [],
       ),
-    'request_refund' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), MembershipIntent],
-        [Result_9],
+    'quote_checkout' : IDL.Func(
+        [BillingOffer, IDL.Principal, Account],
+        [Result_15],
         [],
       ),
-    'revise_rejected_transfer' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Nat],
-        [Result_4],
+    'read_integration_configuration' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text)],
+        [Result_16],
         [],
       ),
-    'schedule_policy' : IDL.Func([Catalog], [Result_13], []),
-    'set_admission_pause' : IDL.Func([IDL.Bool], [Result_13], []),
-    'verify_ledger_configuration' : IDL.Func([], [Result_13], []),
+    'reconcile_checkout' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_2], []),
+    'reconcile_checkout_transfer' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), CashBlock],
+        [Result_13],
+        [],
+      ),
+    'refresh_catalog' : IDL.Func([], [Catalog], []),
+    'refresh_entitlement' : IDL.Func([Beneficiary], [Result_17], []),
+    'register_integration_app' : IDL.Func([AppRegistration], [Result_18], []),
+    'register_integration_product' : IDL.Func(
+        [ProductRegistration],
+        [Result_18],
+        [],
+      ),
+    'register_settlement_asset' : IDL.Func([SettlementAsset], [Result_18], []),
+    'release_product_billing' : IDL.Func(
+        [ProductAuthorizationRequest],
+        [Result_18],
+        [],
+      ),
+    'reserve_product_billing' : IDL.Func(
+        [ProductAuthorizationRequest, IDL.Nat64],
+        [Result_18],
+        [],
+      ),
+    'revise_checkout_transfer_fee' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Nat],
+        [Result_7],
+        [],
+      ),
+    'schedule_policy' : IDL.Func([Catalog], [Result_18], []),
+    'set_admission_pause' : IDL.Func([IDL.Bool], [Result_18], []),
+    'set_settlement_price_authority' : IDL.Func(
+        [IDL.Principal],
+        [Result_18],
+        [],
+      ),
+    'settlement_assets' : IDL.Func(
+        [],
+        [IDL.Vec(SettlementAssetView)],
+        ['query'],
+      ),
+    'settlement_assets_certificate' : IDL.Func([], [Result_3], ['query']),
+    'verify_billing_offer' : IDL.Func([BillingOffer], [Result_18], []),
+    'verify_settlement_asset' : IDL.Func(
+        [IDL.Principal, IDL.Opt(IDL.Nat)],
+        [Result_18],
+        [],
+      ),
   });
 };
 export const init = ({ IDL }) => {
@@ -587,25 +674,17 @@ export const init = ({ IDL }) => {
     'catalog_version' : IDL.Nat64,
     'terms_version' : IDL.Nat64,
     'price_cents' : IDL.Nat64,
-    'membership_policy_version' : IDL.Opt(IDL.Nat64),
     'weights' : ExecutionWeights,
     'plan_id' : PlanId,
     'limits' : ResourceLimits,
   });
   const Catalog = IDL.Record({
-    'decimals' : IDL.Nat8,
     'storage_products' : IDL.Vec(StorageProduct),
     'schema' : IDL.Nat16,
     'effective_at_ms' : IDL.Nat64,
     'version' : IDL.Nat64,
-    'ledger' : IDL.Principal,
-    'ledger_fee' : IDL.Nat,
     'plans' : IDL.Vec(PlanVersion),
     'terms_digest' : IDL.Vec(IDL.Nat8),
-  });
-  const Account = IDL.Record({
-    'owner' : IDL.Principal,
-    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const CommerceInit = IDL.Record({
     'daily_orders' : IDL.Nat32,
@@ -615,7 +694,6 @@ export const init = ({ IDL }) => {
     'membership_canister' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
     'catalog' : Catalog,
-    'treasury' : Account,
   });
   return [CommerceInit];
 };

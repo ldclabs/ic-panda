@@ -4,9 +4,9 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
-/// Portable document preparation/parsed view, not the COSE wire payload.
+/// Portable statement preparation/parsed view, not the COSE wire payload.
 /// The issuer and optional claims become protected headers; content determines
-/// the text, digest or file-statement profile. Use `dmsg_protocol` to validate and encode it.
+/// the document or explicit application-action profile. Use `dmsg_protocol` to validate and encode it.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Statement {
@@ -20,10 +20,12 @@ pub struct Statement {
     pub content: StatementContent,
 }
 
-/// Document payload selection. File statements jointly sign text and a file digest.
+/// Closed payload selection. Application actions cannot use the document-only endpoint.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum StatementContent {
+    /// Explicit application action profile; never accepted by the generic document signer.
+    AppAction(Box<crate::app_action::AppAction>),
     /// Raw UTF-8 text, 1..4096 bytes; no whitespace trimming or Unicode normalization.
     Text(String),
     /// SHA-256 document profile with optional original-content metadata.

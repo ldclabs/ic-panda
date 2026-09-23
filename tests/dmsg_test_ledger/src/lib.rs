@@ -307,3 +307,22 @@ fn icrc1_decimals() -> u8 {
 fn icrc1_fee() -> Nat {
     fee().into()
 }
+
+#[derive(candid::CandidType, serde::Serialize)]
+struct SupportedStandard {
+    name: String,
+    url: String,
+}
+#[ic_cdk::query]
+fn icrc1_supported_standards() -> Vec<SupportedStandard> {
+    vec![
+        SupportedStandard {
+            name: "ICRC-1".into(),
+            url: "https://github.com/dfinity/ICRC-1".into(),
+        },
+        SupportedStandard {
+            name: "ICRC-3".into(),
+            url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".into(),
+        },
+    ]
+}

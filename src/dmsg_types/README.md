@@ -213,3 +213,9 @@ Rust code blocks in the English README run as doctests. Keep example code identi
 Rust type documentation is also included in generated Candid interfaces. After changing public type comments, run `make build-dmsg` and `pnpm --dir src/dmsg_app bindings`, then commit the updated `.did` files and generated bindings together. `make test-dmsg` checks that the committed Candid files exactly match the Wasm exports, including comments.
 
 Before publishing, review publication settings in `Cargo.toml`, how the repository-only local `dmsg_protocol` dev-dependency is handled in the release package, and run package/publish dry-runs against the actual package. Complete documentation does not establish production deployment, capacity, external-service readiness, or audit acceptance. These are development interfaces with no compatibility promise for earlier experimental encodings or stable-storage layouts.
+
+
+Application-action v1 is a separate closed profile with an `AppAction` key purpose.
+See [the profile and implementation boundary](../../docs/protocol/app-action.md).
+Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
+browser flow explicitly reject it pending the authorized action integration.

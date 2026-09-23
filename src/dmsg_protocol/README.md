@@ -211,3 +211,9 @@ Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies 
 Cargo omits the path-only dmsg_protocol development dependency from the normalized dmsg_types package manifest. That avoids a publication dependency cycle, but its repository contract tests and vector example still require the checkout's development dependency. Run these from the workspace; a packaged dmsg_types test suite is not equivalent.
 
 Validate the dmsg_types package first. Once its version is available in the registry, validate dmsg_protocol with `cargo package -p dmsg_protocol --locked` and `cargo publish -p dmsg_protocol --dry-run --locked` before publishing. A local checkout containing dmsg_types is not a substitute for its registry availability during normal package resolution. Development interfaces do not promise compatibility with earlier experimental encodings. Production deployment, external services, capacity and audit acceptance require separate validation.
+
+
+Application-action v1 is a separate closed profile with an `AppAction` key purpose.
+See [the profile and implementation boundary](../../docs/protocol/app-action.md).
+Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
+browser flow explicitly reject it pending the authorized action integration.

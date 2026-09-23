@@ -26,6 +26,8 @@ export interface CertifiedLegacyReservation {
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
+  { 'IntervalReserved' : null } |
+  { 'NeuronOccupied' : null } |
   { 'RekeyRequired' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |

@@ -63,6 +63,10 @@ type Error = variant {
   LegacyWriteDisabled;
   // A supplied field or combination is invalid; carries a diagnostic.
   InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
   // A new content root must be committed before writes can resume.
   RekeyRequired;
   // Expected version/generation differs from current state; reread before preparing a new approval.
@@ -265,6 +269,8 @@ type KeyDescriptor = record {
 type KeyPurpose = variant {
   // Content-root derivation domain, selected by generation.
   ContentRoot;
+  // Typed product actions; not a generic document or root key.
+  AppAction;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
   // Key domain for text and structured file statements.
@@ -340,6 +346,8 @@ type SigningKey = record {
 };
 // Domain of a formal document signing key; derived from the content profile.
 type SigningPurpose = variant {
+  // Typed product actions, distinct from documents.
+  AppAction;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
   // Key domain for text and structured file statements.

@@ -25,6 +25,7 @@ pub fn app() -> AppRegistration {
         ],
         profiles: vec![SigningProfile::AppActionV1],
         authentication_receiver: principal(3),
+        action_authority: principal(3),
         paused: false,
     }
 }
@@ -168,5 +169,6 @@ pub fn decision() -> ProductDecision {
             lease_until_ms: NOW + PANDA_LEASE_MS,
         },
         decided_at_ms: NOW,
+        apply_by_ms: NOW + APPLICATION_TTL_MS,
     }
 }

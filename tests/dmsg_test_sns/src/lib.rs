@@ -1,11 +1,10 @@
 //! Controllable SNS Candid fixture. Never deploy with production privileges.
 use candid::{CandidType, Principal};
-use dmsg_protocol::membership::{decision_digest, membership_intent_digest};
 use dmsg_runtime::storage::Stored;
-use dmsg_types::{membership::*, *};
+use dmsg_types::*;
 use ic_stable_structures::{DefaultMemoryImpl, StableCell};
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, collections::BTreeMap};
+use std::cell::RefCell;
 #[derive(Clone, CandidType, Serialize, Deserialize)]
 struct NeuronId {
     id: Vec<u8>,
@@ -48,19 +47,9 @@ struct Response {
 enum NeuronResult {
     Neuron(Neuron),
 }
-#[derive(Default)]
-struct Adapter {
-    receipts: BTreeMap<Hash, MembershipDecisionReceipt>,
-    applies: u64,
-    reads: u64,
-    lose_reply: bool,
-    unavailable: bool,
-    reject_close: bool,
-}
-
 thread_local! {
     static STATE: RefCell<StableCell<Stored<Option<Neuron>>, DefaultMemoryImpl>> = RefCell::new(StableCell::init(DefaultMemoryImpl::default(), Stored(None)));
-    static ADAPTER: RefCell<Adapter> = RefCell::new(Adapter::default());
+    static PIN_ON_READ: RefCell<Option<(Principal,Hash)>> = const { RefCell::new(None) };
     static PAUSE_ON_READ: RefCell<Option<Principal>> = const { RefCell::new(None) };
 }
 
@@ -71,6 +60,13 @@ fn set_neuron(neuron: Option<Neuron>) {
 
 #[ic_cdk::update]
 async fn get_neuron(request: Request) -> Response {
+    if let Some((membership, hash)) = PIN_ON_READ.with_borrow_mut(Option::take) {
+        let result: Result<()> =
+            dmsg_runtime::call(membership, "set_sns_governance_module_hash", (hash,))
+                .await
+                .unwrap();
+        result.unwrap();
+    }
     let pause = PAUSE_ON_READ.with_borrow_mut(Option::take);
     if let Some(membership) = pause {
         let result: Result<()> = dmsg_runtime::call(membership, "set_admission_pause", (true,))
@@ -106,103 +102,57 @@ fn pause_on_neuron_read(membership: Principal) {
     PAUSE_ON_READ.with_borrow_mut(|value| *value = Some(membership));
 }
 
-#[ic_cdk::update]
-fn set_adapter_faults(lose_reply: bool, unavailable: bool, reject_close: bool) {
-    ADAPTER.with_borrow_mut(|a| {
-        a.lose_reply = lose_reply;
-        a.unavailable = unavailable;
-        a.reject_close = reject_close;
-    });
-}
-
-fn authorize(intent: MembershipIntent) -> Result<MembershipAuthorization> {
-    let at = nanos_to_millis(ic_cdk::api::time());
-    ensure(at < intent.valid_until_ms, Error::Expired)?;
-    Ok(MembershipAuthorization {
-        intent_digest: membership_intent_digest(&intent),
-        security_epoch: 1,
-        verified_at_ms: at,
-        valid_until_ms: intent.valid_until_ms.min(at + 5 * MINUTE),
-    })
-}
-
-// Deliberately bypasses product account authorization for adapter fault tests only.
-#[ic_cdk::update]
-fn authorize_membership_intent(request: ClaimRequest) -> Result<MembershipAuthorization> {
-    authorize(request.authorization)
-}
-
-#[ic_cdk::update]
-fn authorize_membership_close(
-    _: Hash,
-    intent: MembershipIntent,
-) -> Result<MembershipAuthorization> {
-    authorize(intent)
-}
-
-#[ic_cdk::update]
-fn barrier() {}
-
-#[ic_cdk::update]
-async fn apply_membership_decision(d: MembershipDecision) -> Result<MembershipDecisionReceipt> {
-    let at = nanos_to_millis(ic_cdk::api::time());
-    let (receipt, lose) = ADAPTER.with_borrow_mut(|a| {
-        a.applies += 1;
-        if let Some(r) = a.receipts.get(&d.decision_id) {
-            return (r.clone(), false);
-        }
-        let applied = if d.kind == DecisionKind::Close {
-            !a.reject_close
-        } else {
-            at < d.apply_by_ms && at < d.qualification_until_ms
-        };
-        let receipt = MembershipDecisionReceipt {
-            decision_id: d.decision_id,
-            decision_digest: decision_digest(&d),
-            outcome: if applied {
-                DecisionOutcome::Applied
-            } else {
-                DecisionOutcome::Rejected
-            },
-            contract_id: applied.then_some(d.claim_id),
-            starts_at_ms: d.starts_at_ms,
-            expires_at_ms: d.expires_at_ms,
-            business_revision: a.receipts.len() as u64 + 1,
-            commitment_until_ms: if !applied {
-                0
-            } else if d.kind == DecisionKind::Close {
-                at
-            } else {
-                d.expires_at_ms
-            },
-        };
-        a.receipts.insert(d.decision_id, receipt.clone());
-        (receipt, std::mem::take(&mut a.lose_reply))
-    });
-    if lose {
-        let _: () = dmsg_runtime::call(ic_cdk::api::canister_self(), "barrier", ())
-            .await
-            .unwrap();
-        ic_cdk::trap("injected lost adapter ACK after commit");
-    }
-    Ok(receipt)
-}
-
-#[ic_cdk::update]
-fn get_membership_decision(id: Hash) -> Result<Option<MembershipDecisionReceipt>> {
-    ADAPTER.with_borrow_mut(|a| {
-        a.reads += 1;
-        ensure(
-            !a.unavailable,
-            Error::Unavailable("injected adapter outage".into()),
-        )?;
-        Ok(a.receipts.get(&id).cloned())
-    })
-}
-
-#[ic_cdk::query]
-fn adapter_calls() -> (u64, u64) {
-    ADAPTER.with_borrow(|a| (a.applies, a.reads))
-}
-
 ic_cdk::export_candid!();
+
+// Explicit test-only product authority; exact caller, account and prepared digest.
+// This is a fault-injection fixture, never a production permission service.
+#[derive(Clone)]
+struct ActionApprovalFixture {
+    home: Principal,
+    account: AccountId,
+    digest: Hash,
+    change: Option<(Principal, dmsg_types::integration::AppRegistration)>,
+}
+thread_local! { static ACTION_APPROVAL: RefCell<Option<ActionApprovalFixture>> = const { RefCell::new(None) }; }
+#[ic_cdk::update]
+fn set_action_approval(
+    home: Principal,
+    account: AccountId,
+    digest: Hash,
+    change: Option<(Principal, dmsg_types::integration::AppRegistration)>,
+) {
+    ACTION_APPROVAL.with_borrow_mut(|s| {
+        *s = Some(ActionApprovalFixture {
+            home,
+            account,
+            digest,
+            change,
+        })
+    });
+}
+#[ic_cdk::update]
+async fn verify_dmsg_action(
+    account: AccountId,
+    action: dmsg_types::app_action::AppAction,
+) -> Result<()> {
+    let approval = ACTION_APPROVAL
+        .with_borrow(Clone::clone)
+        .ok_or(Error::Forbidden)?;
+    ensure(
+        ic_cdk::api::msg_caller() == approval.home
+            && account == approval.account
+            && dmsg_protocol::app_action::app_action_digest(&action) == approval.digest,
+        Error::Forbidden,
+    )?;
+    if let Some((commerce, app)) = approval.change {
+        let result: Result<()> =
+            dmsg_runtime::call(commerce, "register_integration_app", (app,)).await?;
+        result?;
+    }
+    Ok(())
+}
+
+#[ic_cdk::update]
+fn change_pin_on_neuron_read(membership: Principal, hash: Hash) {
+    PIN_ON_READ.with_borrow_mut(|v| *v = Some((membership, hash)));
+}

@@ -157,7 +157,11 @@ impl Default for SensitivePolicy {
     fn default() -> Self {
         Self {
             frozen: false,
-            allowed_purposes: vec![KeyPurpose::FileAttestation, KeyPurpose::Statement],
+            allowed_purposes: vec![
+                KeyPurpose::FileAttestation,
+                KeyPurpose::Statement,
+                KeyPurpose::AppAction,
+            ],
             daily_executions: 20,
             daily_cycles: 1_000_000_000_000,
         }
@@ -379,11 +383,6 @@ pub enum AccountCommand {
     AuthorizeHandle {
         /// Account-authorized name operation.
         intent: HandleIntent,
-    },
-    /// Approve an exact commercial action without adding a login binding.
-    AuthorizeMembership {
-        /// Immutable application terms; device approval retains its own short expiry.
-        intent: crate::membership::MembershipIntent,
     },
     /// Record a dispute against a pending recovery operation.
     DisputeRecovery {

@@ -3,7 +3,7 @@ use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
-use dmsg_types::{billing::*, cose::*, handle::*, membership::*, payment::SignedOffer, user::*, *};
+use dmsg_types::{billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};
 use ic_auth_types::XidGenerator;
 use serde_bytes::ByteBuf;
 
@@ -197,14 +197,6 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
             }
         }
     }
-    if let AccountCommand::AuthorizeMembership { intent } = &input.command {
-        let c = config().init;
-        ensure(
-            intent.environment == c.environment
-                && [c.commerce_canister, c.membership_canister].contains(&intent.service_canister),
-            Error::Forbidden,
-        )?;
-    }
     let r = account::apply(
         &mut s,
         ic_cdk::api::msg_caller(),
@@ -259,6 +251,30 @@ async fn sign(input: SignRequest) -> Result<ExecutionResult> {
 }
 
 #[ic_cdk::update]
+async fn inspect_app_action(
+    account_id: AccountId,
+    action: dmsg_types::app_action::AppAction,
+) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    let account = own(&account_id, caller)?;
+    ensure(
+        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
+        Error::Locked,
+    )?;
+    crate::external::authorize_action(&account_id, &action).await?;
+    let account = own(&account_id, caller)?;
+    ensure(
+        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
+        Error::Locked,
+    )
+}
+
+#[ic_cdk::update]
+async fn sign_app_action(input: AppActionSignRequest) -> Result<ExecutionResult> {
+    authorize_and_execute(input.into_execution()?).await
+}
+
+#[ic_cdk::update]
 async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     authorize_and_execute(input.into_execution()).await
 }
@@ -284,6 +300,26 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
         previous = load_execution(&input.account_id, &input.approval.request_id);
+    }
+    if previous.is_none() {
+        if let ExecutionKind::Sign { to_be_signed, .. } = &input.kind {
+            let prepared = parse_signing_input(to_be_signed)?;
+            if let StatementContent::AppAction(action) = &prepared.statement().content {
+                // Validate device/payload before either external lookup. No state is saved yet.
+                execution::authorize(
+                    &mut s,
+                    caller,
+                    &input,
+                    at,
+                    &config().init.issuer_namespace,
+                    None,
+                )?;
+                crate::external::authorize_action(&input.account_id, action).await?;
+                at = now();
+                s = own(&input.account_id, caller)?;
+                previous = load_execution(&input.account_id, &input.approval.request_id);
+            }
+        }
     }
     let expired: Vec<_> = s
         .execution_expirations
@@ -549,49 +585,6 @@ fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<Cert
             ic_cdk::api::canister_self(),
             vec![execution_receipt_key(&account_id, request_id)],
         )
-    })
-}
-
-#[ic_cdk::update]
-fn verify_membership_authorization(intent: MembershipIntent) -> Result<MembershipAuthorization> {
-    let at = now();
-    let cfg = config().init;
-    ensure(
-        [cfg.commerce_canister, cfg.membership_canister].contains(&ic_cdk::api::msg_caller())
-            && [cfg.commerce_canister, cfg.membership_canister].contains(&intent.service_canister)
-            && intent.environment == cfg.environment,
-        Error::Forbidden,
-    )?;
-    let id = dmsg_protocol::billing::beneficiary_account(&intent.beneficiary)?;
-    let s = load(&id)?;
-    ensure(
-        intent.beneficiary.authority_canister == ic_cdk::api::canister_self()
-            && s.status == AccountStatus::Active,
-        Error::Forbidden,
-    )?;
-    let a = s
-        .membership_authorizations
-        .get(&intent.application_id)
-        .ok_or(Error::NotFound)?;
-    ensure(
-        a.intent == intent && a.security_epoch == s.security_epoch,
-        Error::PolicyStale,
-    )?;
-    ensure(
-        s.devices
-            .get(&a.device_id)
-            .is_some_and(|d| d.revoked_at.is_none()),
-        Error::DeviceNotApproved,
-    )?;
-    ensure(
-        at < a.expires_at && at < intent.valid_until_ms,
-        Error::Expired,
-    )?;
-    Ok(MembershipAuthorization {
-        intent_digest: dmsg_protocol::membership::membership_intent_digest(&intent),
-        security_epoch: s.security_epoch,
-        verified_at_ms: at,
-        valid_until_ms: a.expires_at.min(intent.valid_until_ms),
     })
 }
 

@@ -44,3 +44,6 @@ ic-certification.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys = "=0.9.0"
 k256 = { workspace = true, features = ["ecdsa"] }
+
+serde_json.workspace = true
+dmsg_account_product = { path = "../../examples/dmsg-account-product" }

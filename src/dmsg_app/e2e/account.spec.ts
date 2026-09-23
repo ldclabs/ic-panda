@@ -215,6 +215,7 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       return
     }
     if (process.env.DMSG_COMMERCE_PROBE === '1') {
+      await readWhenReady('commerce-ready.json', gateway)
       const quote = await page.evaluate(() =>
         (window as any).accountFollowup('commerce', { action: 'quote' })
       )
@@ -227,7 +228,7 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         (id) => (window as any).accountFollowup('commerce', { action: 'fund', id }),
         quote.id
       )
-      expect(funded).toMatchObject({ state: 'Active', lost: true })
+      expect(funded).toMatchObject({ state: 'Applied', lost: true })
       const entitlement = await page.evaluate(() =>
         (window as any).accountFollowup('commerce', { action: 'entitlement' })
       )
@@ -236,6 +237,29 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         (id) => (window as any).accountFollowup('commerce', { action: 'refund', id }),
         quote.id
       )
+      expect(refunded).toEqual({ state: 'Applied', refused: true })
+      // A separate product beneficiary pays through the other registered ledger.
+      const usdtDevice = await freshPage('usdt-subject')
+      await usdtDevice.tab.evaluate((input) => (window as any).accountProbe(input), {
+        ...fixture,
+        relay: origin,
+        identitySeed: 62
+      })
+      const usdtQuote = await usdtDevice.tab.evaluate(() =>
+        (window as any).accountFollowup('commerce', { action: 'quote', asset: 'CkUsdt' })
+      )
+      expect(usdtQuote.asset).toBe('CkUsdt')
+      const usdtOpen = await usdtDevice.tab.evaluate(
+        (id) => (window as any).accountFollowup('commerce', { action: 'open', id }),
+        usdtQuote.id
+      )
+      expect(usdtOpen).toMatchObject({ state: 'AwaitingFunding', calls: 1 })
+      const usdtFunded = await usdtDevice.tab.evaluate(
+        (id) => (window as any).accountFollowup('commerce', { action: 'fund', id }),
+        usdtQuote.id
+      )
+      expect(usdtFunded).toMatchObject({ state: 'Applied', lost: true })
+      expect(quote.asset).toBe('CkUsdc')
       const snsDevice = await freshPage('membership-subject')
       await snsDevice.tab.evaluate((input) => (window as any).accountProbe(input), {
         ...fixture,
@@ -264,7 +288,18 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       await writeFile(
         testInfo.outputPath('commerce-result.json'),
         JSON.stringify(
-          { quote, opened, funded, entitlement, refunded, sns, active: activated.status },
+          {
+            quote,
+            opened,
+            funded,
+            usdtQuote,
+            usdtOpen,
+            usdtFunded,
+            entitlement,
+            refunded,
+            sns,
+            active: activated.status
+          },
           null,
           2
         )

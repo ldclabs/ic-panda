@@ -45,7 +45,7 @@ export function externalPort(
   }
   async function run(command: BrowserCommand): Promise<BrowserOperation> {
     let record: PendingRequest
-    if (command.method === 'authenticate' || command.method === 'signDocument') {
+    if (['authenticate', 'signDocument', 'signAction', 'checkout'].includes(command.method)) {
       record = await createBrowserOperation(command, source)
       // Resume never issues a second approval. Opening this page only presents the original request.
       if (
@@ -87,7 +87,9 @@ export function externalPort(
           type:
             record.kind === 'authentication'
               ? 'dmsg-read-authentication-result'
-              : 'dmsg-read-formal-result',
+              : record.kind === 'checkout'
+                ? 'dmsg-read-checkout-result'
+                : 'dmsg-read-formal-result',
           requestId: record.id,
           digest: record.digest
         })
@@ -123,6 +125,8 @@ export function externalPort(
           methods: [
             'authenticate',
             'signDocument',
+            'signAction',
+            'checkout',
             'getOperation',
             'openOperation',
             'cancelOperation',

@@ -104,40 +104,6 @@ impl StableCodec for HandleAuthorization {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub struct ApprovedMembershipRepr {
-    #[cbor(key = 1)]
-    pub intent: MembershipIntentRepr,
-    #[cbor(key = 2)]
-    pub security_epoch: u64,
-    #[cbor(key = 3)]
-    pub device_id: Hash,
-    #[cbor(key = 4)]
-    pub expires_at: u64,
-}
-
-impl StableCodec for ApprovedMembership {
-    type Repr = ApprovedMembershipRepr;
-
-    fn to_repr(&self) -> Self::Repr {
-        ApprovedMembershipRepr {
-            intent: self.intent.to_repr(),
-            security_epoch: self.security_epoch,
-            device_id: self.device_id,
-            expires_at: self.expires_at,
-        }
-    }
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        Self {
-            intent: dmsg_types::membership::MembershipIntent::from_repr(repr.intent),
-            security_epoch: repr.security_epoch,
-            device_id: repr.device_id,
-            expires_at: repr.expires_at,
-        }
-    }
-}
-
 // Flatten the small monthly ledger. Full resource projections and timeline
 // segments are validated on refresh, not rewritten on every reservation.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -272,9 +238,6 @@ pub struct AccountStateRepr {
     pub created_at_ms: u64,
     #[cbor(key = 24)]
     pub safety_budget: BudgetRepr,
-    #[cbor(key = 25)]
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub membership_authorizations: BTreeMap<OpId, ApprovedMembershipRepr>,
 }
 
 impl StableCodec for AccountState {
@@ -284,7 +247,6 @@ impl StableCodec for AccountState {
         AccountStateRepr {
             created_at_ms: self.created_at_ms,
             safety_budget: self.safety_budget.to_repr(),
-            membership_authorizations: map_to_repr(&self.membership_authorizations),
             account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
@@ -314,7 +276,6 @@ impl StableCodec for AccountState {
         Self {
             created_at_ms: repr.created_at_ms,
             safety_budget: Budget::from_repr(repr.safety_budget),
-            membership_authorizations: map_from_repr(repr.membership_authorizations),
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
@@ -411,7 +372,6 @@ mod tests {
         let mut state = AccountState {
             created_at_ms: 1,
             safety_budget: Budget::default(),
-            membership_authorizations: BTreeMap::new(),
             account_id: AccountId([8; 12]),
             home_user: p(5),
             home_cose: p(6),
@@ -520,32 +480,6 @@ mod tests {
                 )
             })
             .collect();
-        state.membership_authorizations = (0..32)
-            .map(|n| {
-                let application_id = Hash::new([n; 32]);
-                (
-                    application_id,
-                    ApprovedMembership {
-                        intent: dmsg_types::membership::MembershipIntent {
-                            application_id,
-                            environment: Environment::Local,
-                            service_canister: p(88),
-                            beneficiary: dmsg_protocol::billing::beneficiary(
-                                state.home_user,
-                                &state.account_id,
-                            ),
-                            actor: p(1),
-                            action_digest: Hash::new([n + 1; 32]),
-                            nonce: Hash::new([n + 2; 32]),
-                            valid_until_ms: 1_700_086_400_000,
-                        },
-                        security_epoch: state.security_epoch,
-                        device_id: Hash::new([1; 32]),
-                        expires_at: 1_700_000_060_000,
-                    },
-                )
-            })
-            .collect();
         state
     }
 
@@ -592,11 +526,11 @@ mod tests {
         assert!(compact.len() > 17_642);
         assert_eq!(
             hex(&compact),
-            "ed7c2b2cbbc5b68bca233260d903ea0b3b83fffdaf1af0730302680dc2e40a75"
+            "c5ddfd9ec8b2360a94e7a43a325861cbe07b3a91cd9b396ef77a79ba7de022ca"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
-        assert_eq!(top_keys(&compact), (1..=25).collect::<Vec<_>>());
+        assert_eq!(top_keys(&compact), (1..=24).collect::<Vec<_>>());
         // The retention index consists of raw IDs/timestamps in both encodings;
         // integer field keys do not shrink those shared bytes.
         assert!(

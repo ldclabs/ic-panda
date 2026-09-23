@@ -1,3 +1,5 @@
+import { decodeCanonical as decodeWire, validateAppAction, type AppAction } from '@dmsg/sdk'
+import { unbase64 } from '@dmsg/sdk/browser'
 import { z } from 'zod'
 import { ensure } from '../errors'
 import { canonical, hash, unhex } from './codec'
@@ -15,6 +17,7 @@ const timestamp = z
     (v) => BigInt(v) >= -0x8000000000000000n && BigInt(v) <= 0x7fffffffffffffffn && v !== '-0'
   )
 const contentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('app_action'), actionCbor: z.string().max(65536) }).strict(),
   z.object({ kind: z.literal('text'), text: z.string().min(1).max(4096) }).strict(),
   z
     .object({
@@ -70,7 +73,7 @@ export interface BrowserBinding {
   appVersion: string
 }
 export interface PendingRequest {
-  kind: 'document' | 'authentication'
+  kind: 'document' | 'authentication' | 'action' | 'checkout'
   bridge?: BrowserBinding
   id: string
   source: SourceBinding
@@ -128,7 +131,12 @@ export function trustedSource(
     documentId: sender.documentId
   }
 }
-export function parseRequest(input: unknown, source: SourceBinding, now = Date.now()) {
+export function parseRequest(
+  input: unknown,
+  source: SourceBinding,
+  now = Date.now(),
+  allowAction = false
+) {
   ensure(JSON.stringify(input).length <= 131072, 'QUOTA_EXCEEDED')
   const request = requestSchema.parse(input),
     expiresAt = Number(request.expiresAt)
@@ -136,6 +144,10 @@ export function parseRequest(input: unknown, source: SourceBinding, now = Date.n
     Number.isSafeInteger(expiresAt) && expiresAt > now && expiresAt <= now + 5 * 60 * 1000,
     'EXPIRED',
     '请求期限必须在未来 5 分钟内。'
+  )
+  ensure(
+    allowAction || request.statement.content.kind !== 'app_action',
+    'UNSUPPORTED_PROTOCOL'
   )
   assertStatement(requestStatement(request))
   const digest = hash(canonical(['dmsg/request/4', source.origin, request]))
@@ -147,7 +159,7 @@ export const sameSource = (a: SourceBinding, b: SourceBinding) =>
   a.frameId === b.frameId &&
   a.documentId === b.documentId
 export function assertRequestUnchanged(request: SignatureRequest, stored: PendingRequest) {
-  const value = parseRequest(request, stored.source)
+  const value = parseRequest(request, stored.source, Date.now(), stored.kind === 'action')
   ensure(
     value.digest === stored.digest &&
       request.requestId === stored.id &&
@@ -164,6 +176,16 @@ export function requestStatement(request: SignatureRequest): DocumentStatement {
     subject: s.subject,
     issuedAt: s.issuedAt === undefined ? undefined : BigInt(s.issuedAt),
     content:
-      s.content.kind === 'text' ? s.content : { ...s.content, sha256: unhex(s.content.sha256) }
+      s.content.kind === 'app_action'
+        ? { kind: 'app_action', action: actionBody(s.content.actionCbor) }
+        : s.content.kind === 'text'
+          ? s.content
+          : { ...s.content, sha256: unhex(s.content.sha256) }
   }
+}
+
+export function actionBody(encoded: string): AppAction {
+  const action = decodeWire(unbase64(encoded)) as unknown as AppAction
+  validateAppAction(action)
+  return action
 }

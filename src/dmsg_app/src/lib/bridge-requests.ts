@@ -1,15 +1,19 @@
+import { xidBytes } from './protocol/identity'
 import { browserOperationDigest, hex, unbase64, type BrowserCommand } from '@dmsg/sdk/browser'
 import {
   decodeCanonical,
   equalBytes,
   sha256,
   validateAuthentication,
+  validateActionAdmission,
+  validateShape,
+  type AppAction,
   type AuthenticationRequest
 } from '@dmsg/sdk'
 import { services } from './services/ic'
 import { registeredApplication } from './services/registration'
 import { enqueueRequest, requestDatabase } from './requests'
-import type { PendingRequest, SourceBinding } from './protocol/requests'
+import { parseRequest, type PendingRequest, type SourceBinding } from './protocol/requests'
 import { config } from './config'
 import { hpkeSeal } from './crypto/primitives'
 import { canonical } from './protocol/codec'
@@ -42,12 +46,21 @@ export async function validateAuthenticationPayload(
 /** Called only after verifying the fresh P-256 connection proof. */
 export async function createBrowserOperation(command: BrowserCommand, source: SourceBinding) {
   const authentication = command.method === 'authenticate'
-  ensure(authentication || command.method === 'signDocument', 'INVALID_INPUT')
+  ensure(
+    authentication || ['signDocument', 'signAction', 'checkout'].includes(command.method),
+    'INVALID_INPUT'
+  )
   const app = await registeredApplication(
     await services(),
     command.appId,
     source.origin,
-    authentication ? 'Authenticate' : 'SignDocument'
+    authentication
+      ? 'Authenticate'
+      : command.method === 'checkout'
+        ? 'Checkout'
+        : command.method === 'signAction'
+          ? 'SignAction'
+          : 'SignDocument'
   )
   const db = await requestDatabase()
   try {
@@ -60,7 +73,7 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
       accountId: meta.account.id,
       appVersion: app.config_version.toString()
     }
-    if (!authentication) {
+    if (command.method === 'signDocument') {
       const payload = JSON.parse(
         new TextDecoder('utf-8', { fatal: true }).decode(unbase64(command.payload!))
       )
@@ -74,8 +87,60 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
       ensure(app.profiles.includes(profile), 'FORBIDDEN')
       return enqueueRequest(payload, source, binding)
     }
-    const request = await validateAuthenticationPayload(command, source, app)
-    const payload: AuthenticationPayload = { requestCbor: command.payload! }
+    const action =
+      command.method === 'signAction'
+        ? (decodeCanonical(unbase64(command.payload!)) as unknown as AppAction)
+        : null
+    if (action) {
+      validateActionAdmission(action, app, BigInt(Date.now()))
+      ensure(equalBytes(action.signing_account, xidBytes(meta.account.id)), 'ACCOUNT_MISMATCH')
+      ensure(
+        action.origin === source.origin &&
+          action.app_id === command.appId &&
+          hex(action.operation_id) === command.operationId,
+        'INTEGRITY_FAILED'
+      )
+    }
+    const checkout =
+      command.method === 'checkout'
+        ? (decodeCanonical(
+            unbase64(command.payload!)
+          ) as unknown as import('@dmsg/sdk').CheckoutRequest)
+        : null
+    if (checkout) {
+      validateShape('CheckoutRequest', checkout)
+      ensure(
+        equalBytes(checkout.approving_account, xidBytes(meta.account.id)),
+        'ACCOUNT_MISMATCH'
+      )
+      ensure(
+        checkout.offer.app_id === command.appId &&
+          hex(checkout.offer.operation_id) === command.operationId &&
+          checkout.offer.accept_by_ms > BigInt(Date.now()) &&
+          app.product_ids.includes(checkout.offer.product_id),
+        'INTEGRITY_FAILED'
+      )
+      ensure(checkout.offer.allowed_settlement_methods.includes(checkout.method), 'FORBIDDEN')
+    }
+    const auth =
+      action || checkout ? null : await validateAuthenticationPayload(command, source, app)
+    const payload = checkout
+      ? { checkoutCbor: command.payload! }
+      : action
+        ? {
+            protocol: 'dmsg-extension/4',
+            method: 'signature.request',
+            requestId: command.operationId,
+            accountId: meta.account.id,
+            nonce: command.operationId,
+            expiresAt: action.expires_at_ms.toString(),
+            statement: {
+              issuer: meta.account.issuer,
+              content: { kind: 'app_action', actionCbor: command.payload! }
+            }
+          }
+        : { requestCbor: command.payload! }
+    const actionDigest = action ? parseRequest(payload, source, Date.now(), true).digest : null
     const encrypted = await hpkeSeal(meta.hpkePublic, canonical(payload), [
       'dmsg/external-request/1',
       meta.subjectId,
@@ -84,12 +149,14 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
     ])
     const record: PendingRequest = {
       id: command.operationId,
-      kind: 'authentication',
+      kind: checkout ? 'checkout' : action ? 'action' : 'authentication',
       source,
       bridge: binding,
-      digest: binding.operationDigest,
+      digest: actionDigest ?? binding.operationDigest,
       payload: encrypted,
-      expiresAt: Number(request.expires_at_ms),
+      expiresAt: Number(
+        action?.expires_at_ms ?? checkout?.offer.accept_by_ms ?? auth!.expires_at_ms
+      ),
       createdAt: Date.now(),
       state: 'awaiting_user'
     }

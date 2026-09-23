@@ -11,7 +11,7 @@ mod store;
 mod xid;
 
 use dmsg_types::{
-    billing::*, cose::*, handle::*, integration::*, membership::*, payment::SignedOffer, user::*, *,
+    billing::*, cose::*, handle::*, integration::*, payment::SignedOffer, user::*, *,
 };
 use serde_bytes::ByteBuf;
 

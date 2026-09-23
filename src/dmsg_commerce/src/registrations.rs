@@ -35,7 +35,8 @@ fn check_app_update(old: Option<&AppRegistration>, next: &AppRegistration) -> Re
         ensure(
             old.app_id == next.app_id
                 && old.environment == next.environment
-                && old.authentication_receiver == next.authentication_receiver,
+                && old.authentication_receiver == next.authentication_receiver
+                && old.action_authority == next.action_authority,
             Error::IntegrityFailed,
         )?;
         ensure(
@@ -122,7 +123,7 @@ fn read_integration_configuration(
     configuration(&app_id, product_id.as_deref())
 }
 
-fn configuration(
+pub(crate) fn configuration(
     app_id: &str,
     product_id: Option<&str>,
 ) -> Result<(AppRegistration, Option<ProductRegistration>)> {
@@ -173,8 +174,8 @@ pub(crate) fn rebuild(c: &mut dmsg_runtime::Certification) {
 
 #[cfg(test)]
 mod tests {
-    use super::fixtures;
     use super::*;
+    use crate::checkout_model::fixture::base as fixtures;
 
     #[test]
     fn registrations_reject_identity_replacement_and_support_idempotent_pause() {
@@ -206,7 +207,3 @@ mod tests {
         );
     }
 }
-
-#[cfg(test)]
-#[path = "../../dmsg_types/tests/support/integration.rs"]
-mod fixtures;

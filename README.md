@@ -113,6 +113,8 @@ The publication model makes the client, protocols, canisters, and recovery tools
 
 ---
 
+Public dMsg integration includes dedicated login proofs, typed action signing, two-asset checkout and PANDA full subscription waivers. Start with the [integration protocol](docs/protocol/integration.md), [SDK](packages/dmsg-sdk/README.md) and [independent account adapter](examples/dmsg-account-product/README.md). Local acceptance is distinct from production deployment.
+
 ## PANDA
 
 **PANDA is the governance and coordination asset of ICPanda DAO.**

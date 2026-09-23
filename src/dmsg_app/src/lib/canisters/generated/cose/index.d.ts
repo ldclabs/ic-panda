@@ -31,6 +31,8 @@ export type Environment = { 'Local' : null } |
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
+  { 'IntervalReserved' : null } |
+  { 'NeuronOccupied' : null } |
   { 'RekeyRequired' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
@@ -126,6 +128,7 @@ export interface KeyDescriptor {
   'purpose' : KeyPurpose,
 }
 export type KeyPurpose = { 'ContentRoot' : null } |
+  { 'AppAction' : null } |
   { 'FileAttestation' : null } |
   { 'Statement' : null };
 export interface KeyRequest {
@@ -164,7 +167,8 @@ export interface SigningKey {
   'algorithm' : SigningAlgorithm,
   'purpose' : SigningPurpose,
 }
-export type SigningPurpose = { 'FileAttestation' : null } |
+export type SigningPurpose = { 'AppAction' : null } |
+  { 'FileAttestation' : null } |
   { 'Statement' : null };
 export interface _SERVICE {
   'execute' : ActorMethod<[ExecutionGrant], Result>,

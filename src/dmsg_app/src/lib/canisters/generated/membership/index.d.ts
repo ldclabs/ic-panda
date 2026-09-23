@@ -3,11 +3,50 @@ import type { Principal } from '@icp-sdk/core/principal';
 import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 
+export interface ApplicationApproval {
+  'service' : Principal,
+  'actor' : Principal,
+  'beneficiary' : Beneficiary,
+  'app_config_version' : bigint,
+  'origin' : string,
+  'action_digest' : Uint8Array | number[],
+  'operation_id' : Uint8Array | number[],
+  'approving_account' : Uint8Array | number[],
+  'version' : number,
+  'app_id' : string,
+  'nonce' : Uint8Array | number[],
+  'environment' : Environment,
+  'purpose' : ApprovalPurpose,
+  'expires_at_ms' : bigint,
+}
+export type ApprovalPurpose = { 'AppAction' : null } |
+  { 'CashCheckout' : null } |
+  { 'PandaSubscription' : null };
 export interface Beneficiary {
   'product_id' : string,
   'authority_canister' : Principal,
   'subject_bytes' : Uint8Array | number[],
   'subject_schema' : string,
+}
+export interface BillingOffer {
+  'sku' : string,
+  'product_id' : string,
+  'beneficiary' : Beneficiary,
+  'amount_usd_micros' : bigint,
+  'operation_id' : Uint8Array | number[],
+  'starts_at_ms' : bigint,
+  'version' : number,
+  'app_id' : string,
+  'issued_at_ms' : bigint,
+  'offer_id' : Uint8Array | number[],
+  'quote_authority' : Principal,
+  'environment' : Environment,
+  'expected_business_revision' : bigint,
+  'adapter' : Principal,
+  'allowed_settlement_methods' : Array<SettlementMethod>,
+  'expires_at_ms' : bigint,
+  'accept_by_ms' : bigint,
+  'product_terms_hash' : Uint8Array | number[],
 }
 export interface CertifiedBatch {
   'certificate' : Uint8Array | number[],
@@ -20,43 +59,6 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
-export type ClaimChange = { 'Start' : null } |
-  { 'Upgrade' : { 'previous_claim' : Uint8Array | number[] } } |
-  { 'Replace' : { 'previous_claim' : Uint8Array | number[] } } |
-  { 'Renew' : { 'previous_claim' : Uint8Array | number[] } };
-export interface ClaimRequest {
-  'term' : TermRule,
-  'benefit_id' : Uint8Array | number[],
-  'change' : ClaimChange,
-  'policy_version' : bigint,
-  'expected_business_revision' : bigint,
-  'authorization' : MembershipIntent,
-  'neuron_id' : Uint8Array | number[],
-}
-export type ClaimStatus = { 'CoolingDown' : null } |
-  { 'Closing' : null } |
-  { 'Active' : null } |
-  { 'Released' : null } |
-  { 'Rejected' : null } |
-  { 'Checking' : null } |
-  { 'Applying' : null };
-export interface ClaimView {
-  'status' : ClaimStatus,
-  'home_membership' : Principal,
-  'decision_id' : [] | [Uint8Array | number[]],
-  'release_after_ms' : bigint,
-  'claim_id' : Uint8Array | number[],
-  'beneficiary' : Beneficiary,
-  'schema' : number,
-  'valid_until_ms' : bigint,
-  'observed_at_ms' : bigint,
-  'benefit_id' : Uint8Array | number[],
-  'lease_revision' : bigint,
-  'starts_at_ms' : bigint,
-  'eligibility' : Eligibility,
-  'policy_version' : bigint,
-  'expires_at_ms' : bigint,
-}
 export type Eligibility = { 'Unverifiable' : null } |
   { 'Ineligible' : null } |
   { 'Eligible' : null };
@@ -66,6 +68,8 @@ export type Environment = { 'Local' : null } |
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
+  { 'IntervalReserved' : null } |
+  { 'NeuronOccupied' : null } |
   { 'RekeyRequired' : null } |
   { 'VersionConflict' : null } |
   { 'ExecutionUnknown' : null } |
@@ -92,86 +96,173 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
 export interface MembershipInit {
-  'max_claims' : bigint,
-  'hourly_applications' : number,
+  'expected_governance_module_hash' : [] | [Uint8Array | number[]],
   'panda_ledger' : Principal,
   'sns_root' : Principal,
   'environment' : Environment,
-  'cooling_ms' : bigint,
   'governance' : Principal,
-  'products' : Array<ProductConfig>,
-  'subsidy_budget' : bigint,
-  'policies' : Array<MembershipPolicy>,
 }
-export interface MembershipIntent {
+export interface PandaApplicationTerms {
+  'user_home' : Principal,
+  'home_membership' : Principal,
   'actor' : Principal,
-  'beneficiary' : Beneficiary,
+  'offer' : BillingOffer,
+  'quote' : PandaQuote,
+  'approving_account' : Uint8Array | number[],
+  'sns_governance' : Principal,
+  'neuron_id' : Uint8Array | number[],
+}
+export interface PandaClaimRequest {
+  'terms' : PandaApplicationTerms,
+  'authorization' : ProductAuthorizationRequest,
+}
+export type PandaClaimStatus = { 'Terminated' : null } |
+  { 'CoolingDown' : null } |
+  { 'Active' : null } |
+  { 'Released' : null } |
+  { 'Rejected' : null } |
+  { 'Checking' : null } |
+  { 'Cancelled' : null } |
+  { 'Applying' : null };
+export interface PandaClaimView {
+  'status' : PandaClaimStatus,
+  'terms' : PandaApplicationTerms,
+  'receipt' : [] | [ProductReceipt],
+  'claim_id' : Uint8Array | number[],
   'valid_until_ms' : bigint,
-  'action_digest' : Uint8Array | number[],
-  'application_id' : Uint8Array | number[],
-  'nonce' : Uint8Array | number[],
-  'service_canister' : Principal,
-  'environment' : Environment,
+  'observed_at_ms' : bigint,
+  'lease_revision' : bigint,
+  'eligibility' : Eligibility,
+  'version' : number,
+  'cooling_until_ms' : [] | [bigint],
+  'repair_elapsed_ms' : bigint,
+  'committed_until_ms' : bigint,
 }
-export interface MembershipPolicy {
-  'product_id' : string,
-  'threshold' : Threshold,
-  'subsidy_units' : bigint,
-  'benefit_id' : Uint8Array | number[],
+export interface PandaOperationsPage {
+  'claims' : Array<PandaClaimView>,
+  'next' : [] | [Uint8Array | number[]],
+}
+export interface PandaQuote {
+  'required_stake_e8s' : bigint,
+  'offer_hash' : Uint8Array | number[],
+  'version' : number,
+  'committed_until_ms' : bigint,
+  'quoted_at_ms' : bigint,
+  'application_deadline_ms' : bigint,
+  'policy' : PandaRatePolicy,
+  'subsidy_usd_micros' : bigint,
+}
+export interface PandaRatePolicy {
+  'product_ids' : Array<string>,
   'effective_at_ms' : bigint,
-  'version' : bigint,
+  'published_at_ms' : bigint,
+  'version' : number,
+  'environment' : Environment,
+  'subsidy_budget_id' : Uint8Array | number[],
+  'policy_version' : bigint,
+  'r_den' : bigint,
+  'r_num' : bigint,
 }
-export interface ProductConfig {
-  'product_id' : string,
-  'subject_size' : number,
-  'adapter' : Principal,
-  'authorities' : Array<Principal>,
-  'subject_schema' : string,
+export interface PandaServiceConfig {
+  'max_claims' : bigint,
+  'hourly_applications' : bigint,
+  'commerce_canister' : Principal,
+  'cooling_ms' : bigint,
 }
-export type Result = { 'Ok' : ClaimView } |
-  { 'Err' : Error };
-export type Result_1 = { 'Ok' : CertifiedBatch } |
-  { 'Err' : Error };
-export type Result_2 = { 'Ok' : MembershipPolicy } |
-  { 'Err' : Error };
-export type Result_3 = { 'Ok' : null } |
-  { 'Err' : Error };
-export type Result_4 = { 'Ok' : number } |
-  { 'Err' : Error };
-export type TermRule = {
-    'Fixed' : { 'starts_at_ms' : bigint, 'expires_at_ms' : bigint }
-  } |
-  { 'CalendarYear' : null };
-export type Threshold = {
-    'AnnualPrice' : {
-      'price_cents' : bigint,
-      'r_den' : bigint,
-      'r_num' : bigint,
+export interface PandaSubsidyBudget {
+  'reserved_usd_micros' : bigint,
+  'total_usd_micros' : bigint,
+  'budget_id' : Uint8Array | number[],
+}
+export interface ProductApproval {
+  'method' : SettlementMethod,
+  'approval_id' : Uint8Array | number[],
+  'offer_hash' : Uint8Array | number[],
+  'operator' : Principal,
+  'version' : number,
+  'expires_at_ms' : bigint,
+  'approved_at_ms' : bigint,
+}
+export interface ProductAuthorizationRequest {
+  'product_approval' : [] | [ProductApproval],
+  'account_approval' : ApplicationApproval,
+  'approval_id' : Uint8Array | number[],
+  'user_home' : Principal,
+  'offer' : BillingOffer,
+}
+export type ProductOutcome = {
+    'Applied' : {
+      'business_revision' : bigint,
+      'contract_id' : Uint8Array | number[],
+      'committed_until_ms' : bigint,
     }
   } |
-  { 'FixedPanda' : { 'atomic' : bigint } };
+  { 'Rejected' : { 'reason' : ProductRejection } };
+export interface ProductReceipt {
+  'decision_hash' : Uint8Array | number[],
+  'decision_id' : Uint8Array | number[],
+  'applied_at_ms' : bigint,
+  'version' : number,
+  'outcome' : ProductOutcome,
+  'adapter' : Principal,
+}
+export type ProductRejection = { 'OfferMismatch' : null } |
+  { 'IntervalReserved' : null } |
+  { 'RevisionConflict' : null } |
+  { 'Unauthorized' : null } |
+  { 'Expired' : null };
+export type Result = { 'Ok' : PandaClaimView } |
+  { 'Err' : Error };
+export type Result_1 = { 'Ok' : null } |
+  { 'Err' : Error };
+export type Result_2 = { 'Ok' : CertifiedBatch } |
+  { 'Err' : Error };
+export type Result_3 = { 'Ok' : PandaOperationsPage } |
+  { 'Err' : Error };
+export type Result_4 = { 'Ok' : PandaApplicationTerms } |
+  { 'Err' : Error };
+export type Result_5 = { 'Ok' : PandaRatePolicy } |
+  { 'Err' : Error };
+export type Result_6 = { 'Ok' : PandaSubsidyBudget } |
+  { 'Err' : Error };
+export type Result_7 = { 'Ok' : number } |
+  { 'Err' : Error };
+export type SettlementMethod = { 'Cash' : null } |
+  { 'Panda' : null };
 export interface _SERVICE {
-  'advance_application' : ActorMethod<[Uint8Array | number[]], Result>,
-  'cancel_application' : ActorMethod<[Uint8Array | number[]], Result>,
-  'close_for_consumer' : ActorMethod<[Uint8Array | number[]], Result>,
-  'get_claim_certified' : ActorMethod<[Array<Uint8Array | number[]>], Result_1>,
-  'get_claim_for_consumer' : ActorMethod<[Uint8Array | number[]], Result>,
-  'get_operation' : ActorMethod<[Uint8Array | number[]], Result>,
-  'get_policy' : ActorMethod<[bigint], Result_2>,
-  'get_policy_certified' : ActorMethod<[BigUint64Array | bigint[]], Result_1>,
-  'increase_subsidy_budget' : ActorMethod<[bigint], Result_3>,
-  'reconcile_claim' : ActorMethod<[Uint8Array | number[]], Result>,
-  'refresh_claim' : ActorMethod<[Uint8Array | number[]], Result>,
-  'register_product' : ActorMethod<[ProductConfig], Result_3>,
-  'request_change' : ActorMethod<
-    [Uint8Array | number[], MembershipIntent],
+  'advance_panda_claim' : ActorMethod<
+    [Uint8Array | number[], ProductAuthorizationRequest],
     Result
   >,
-  'request_claim' : ActorMethod<[ClaimRequest], Result>,
-  'schedule_policy' : ActorMethod<[MembershipPolicy], Result_3>,
-  'set_admission_pause' : ActorMethod<[boolean], Result_3>,
-  'sweep_expired_claims' : ActorMethod<[], Result_4>,
-  'verify_sns_configuration' : ActorMethod<[], Result_3>,
+  'cancel_panda_application' : ActorMethod<[Uint8Array | number[]], Result>,
+  'configure_panda_service' : ActorMethod<[PandaServiceConfig], Result_1>,
+  'get_panda_claim' : ActorMethod<[Uint8Array | number[]], Result>,
+  'get_panda_claim_for_product' : ActorMethod<[Uint8Array | number[]], Result>,
+  'panda_budgets' : ActorMethod<[], Array<PandaSubsidyBudget>>,
+  'panda_claim_certificate' : ActorMethod<[Uint8Array | number[]], Result_2>,
+  'panda_operations' : ActorMethod<
+    [[] | [Uint8Array | number[]], number],
+    Result_3
+  >,
+  'quote_panda_subscription' : ActorMethod<
+    [BillingOffer, Principal, Uint8Array | number[], Uint8Array | number[]],
+    Result_4
+  >,
+  'reconcile_panda_claim' : ActorMethod<[Uint8Array | number[]], Result>,
+  'refresh_panda_claim' : ActorMethod<[Uint8Array | number[]], Result>,
+  'request_panda_claim' : ActorMethod<[PandaClaimRequest], Result>,
+  'schedule_panda_rate' : ActorMethod<[PandaRatePolicy], Result_5>,
+  'set_admission_pause' : ActorMethod<[boolean], Result_1>,
+  'set_panda_subsidy_budget' : ActorMethod<
+    [Uint8Array | number[], bigint],
+    Result_6
+  >,
+  'set_sns_governance_module_hash' : ActorMethod<
+    [Uint8Array | number[]],
+    Result_1
+  >,
+  'sweep_panda_commitments' : ActorMethod<[], Result_7>,
+  'verify_sns_configuration' : ActorMethod<[], Result_1>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

@@ -1,26 +1,18 @@
 //! Deterministic public interoperability fixtures; every private key is a
 //! fixed test seed. Run through scripts/verify-dmsg-vectors.mjs independently.
 use candid::Principal;
+use dmsg_protocol::billing::*;
 use dmsg_protocol::*;
-use dmsg_protocol::{billing::*, membership::*};
-use dmsg_types::{billing::*, membership::*, payment::DeliveryFeePolicy, *};
+use dmsg_types::{billing::*, payment::DeliveryFeePolicy, *};
 use ed25519_dalek::SigningKey;
 
+#[path = "../tests/support/commerce.rs"]
+mod commerce;
 mod support;
 use support::vector;
 
 fn main() {
     let b = beneficiary(Principal::from_slice(&[1]), &AccountId([1; 12]));
-    let intent = MembershipIntent {
-        application_id: Hash::new([2; 32]),
-        environment: Environment::Local,
-        service_canister: Principal::from_slice(&[3]),
-        beneficiary: b.clone(),
-        actor: Principal::self_authenticating([4]),
-        action_digest: Hash::new([5; 32]),
-        nonce: Hash::new([6; 32]),
-        valid_until_ms: 1_800_000_000_000,
-    };
     let mut values = vec![
         vector("beneficiary", canonical(&b)),
         vector(
@@ -30,10 +22,6 @@ fn main() {
         vector(
             "catalog_key",
             canonical(&(1u8, "dmsg/commerce/catalog-key/v1", "dmsg")),
-        ),
-        vector(
-            "membership_intent",
-            canonical(&(1u8, "dmsg/commerce/intent/v1", &intent)),
         ),
         vector("plans", canonical(&default_plans(1))),
     ];
@@ -46,14 +34,20 @@ fn main() {
         (1, 1, 3),
         (20000, u64::MAX as u128, u64::MAX as u128),
     ] {
-        let threshold = Threshold::AnnualPrice {
-            price_cents: cents,
-            r_num: num,
-            r_den: den,
-        };
         values.push(vector(
             &format!("panda_{cents}_{num}_{den}"),
-            canonical(&(cents, num, den, 8u8, required_panda(&threshold, 8).unwrap())),
+            canonical(&(
+                cents,
+                num,
+                den,
+                8u8,
+                dmsg_protocol::integration::required_panda_stake(
+                    u128::from(cents) * 10_000,
+                    num,
+                    den,
+                )
+                .unwrap(),
+            )),
         ));
     }
     for net in [0u128, 1, 399_999, 400_000, 400_001, 1_000_000, u128::MAX] {
@@ -101,47 +95,22 @@ fn main() {
             canonical(&(start, next_year(start).unwrap())),
         ));
     }
-    let q = OrderQuote {
-        home_commerce: Principal::from_slice(&[3]),
-        request: QuoteOrder {
-            op_id: Hash::new([7; 32]),
-            beneficiary: b,
-            action: OrderAction::Subscribe { plan: PlanId::Plus },
-            expected_business_revision: 0,
-            payer: icrc_ledger_types::icrc1::account::Account {
-                owner: Principal::from_slice(&[8]),
-                subaccount: Some([9; 32]),
-            },
-        },
-        catalog: Catalog {
-            schema: 1,
-            version: 1,
-            effective_at_ms: 0,
-            plans: default_plans(1),
-            storage_products: vec![],
-            ledger: Principal::from_slice(&[10]),
-            decimals: 6,
-            ledger_fee: 10,
-            terms_digest: Hash::new([11; 32]),
-        },
-        amount_atomic: 10_000_000,
-        fee_reserve: 30,
-        created_at_ms: 1_800_000_000_000,
-        fund_by_ms: 1_800_000_900_000,
-        activate_by_ms: 1_800_002_700_000,
-        term: TermRule::CalendarYear,
-    };
+    let q = commerce::checkout();
     values.push(vector(
-        "order_terms",
-        canonical(&(1u8, "dmsg/commerce/order/v1", &q)),
+        "checkout_terms_v2",
+        canonical(&(1u8, "dmsg/checkout/quote/v2", &q)),
+    ));
+    values.push(vector(
+        "panda_application_v2",
+        canonical(&(1u8, "dmsg/panda/application/v2", commerce::terms())),
     ));
     let quote = dmsg_types::profiles::delivery::Quote {
         quote_id: Hash::new([12; 32]),
         home_payment: Principal::from_slice(&[13]),
-        payer: q.request.payer,
+        payer: q.cash.payer,
         offer_digest: Hash::new([14; 32]),
         quote_scope: Hash::new([15; 32]),
-        ledger: q.catalog.ledger,
+        ledger: q.cash.ledger,
         recipient: icrc_ledger_types::icrc1::account::Account {
             owner: Principal::from_slice(&[16]),
             subaccount: None,
@@ -160,9 +129,9 @@ fn main() {
         retain_ms: DAY,
         envelope_digest: Hash::new([18; 32]),
         signer_epoch: 1,
-        created_at: q.created_at_ms,
-        fund_by: q.fund_by_ms,
-        accept_by: q.activate_by_ms,
+        created_at: q.quoted_at_ms,
+        fund_by: q.cash.funding_deadline_ms,
+        accept_by: q.cash.activation_deadline_ms,
     };
     let receipt = dmsg_types::profiles::delivery::AdmissionReceipt {
         protocol: 2,

@@ -213,3 +213,9 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 Rust 类型注释也会进入生成的 Candid 接口。修改公开类型注释后，运行 `make build-dmsg` 和 `pnpm --dir src/dmsg_app bindings`，将更新的 `.did` 文件与生成的绑定一起提交。`make test-dmsg` 会检查仓库 Candid 文件与 Wasm 导出完全一致，包括注释。
 
 发布前核对 `Cargo.toml` 的发布配置、仅用于仓库测试的本地 `dmsg_protocol` dev-dependency 在发布包中的处理方式，并对实际发布包执行 package/publish dry-run。本库的文档完整性不代表生产部署、容量、外部服务或审计已经验收。当前为开发接口，不承诺兼容早期实验编码或稳定存储布局。
+
+
+Application-action v1 is a separate closed profile with an `AppAction` key purpose.
+See [the profile and implementation boundary](../../docs/protocol/app-action.md).
+Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
+browser flow explicitly reject it pending the authorized action integration.

@@ -1,52 +1,64 @@
 import { IDL } from '@icp-sdk/core/candid'
 import { Principal } from '@icp-sdk/core/principal'
-import type {
-  _SERVICE as Commerce,
-  Account,
-  Catalog,
-  BillingOrder,
-  OrderAction,
-  OrderQuote,
-  MembershipIntent,
-  ClaimRequest
-} from '../canisters/generated/commerce'
+import {
+  canonical,
+  decodeCanonical,
+  equalBytes,
+  validateShape,
+  validateCheckoutQuote,
+  validateCheckoutRequest,
+  validatePandaTerms,
+  checkoutQuoteHash,
+  checkoutId,
+  pandaApplicationHash,
+  pandaClaimId,
+  type CheckoutRequest,
+  type CheckoutQuote,
+  type PandaApplicationTerms,
+  type CheckoutView,
+  type PandaClaimView,
+  type ProductRegistration,
+  type ApplicationApproval,
+  type ProductAuthorizationRequest,
+  type SettlementAssetView
+} from '@dmsg/sdk'
+import type { _SERVICE as Commerce } from '../canisters/generated/commerce'
 import type { _SERVICE as Membership } from '../canisters/generated/membership'
+import { idlFactory as userIDL } from '../canisters/generated/user/index.js'
 import { AccountClient, controlResult } from './account'
 import { certifiedValue } from './certified'
+import { registeredApplication } from './registration'
 import {
   apiMethod,
   beneficiary,
   beneficiaryValue,
-  claimDigest,
-  claimId,
-  commerceInput,
-  decodeCommerce,
-  encodeCommerce,
-  orderId,
-  quoteDigest,
-  quoteValue
+  toCandid,
+  wireResult
 } from '../protocol/commerce'
-import { candidValue } from '../protocol/account'
-import { canonical, decodeCanonical, digest, equal, hex, id, unhex } from '../protocol/codec'
-import { ensure } from '../errors'
+import { decodeControl, encodeControl } from '../protocol/account'
+import { b64, unb64, digest, hex, id, unhex } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
-interface OrderJob {
-  format: 'dmsg-order-job/1'
-  id: string
-  account: string
-  payer: string
-  input: string
-  stage: 'review' | 'authorized' | 'unknown' | 'opened'
-  blocks: string[]
-}
-interface ClaimJob {
-  format: 'dmsg-membership-job/1'
+import { ensure, DmsgError } from '../errors'
+export interface CheckoutJob {
+  format: 'dmsg-checkout/2'
   id: string
   account: string
   actor: string
-  input: string
-  stage: 'review' | 'authorized' | 'unknown' | 'submitted'
+  origin: string
+  request: string
+  quote: string
+  operation: string | null
+  authorization: string | null
+  stage: 'review' | 'authorized' | 'unknown' | 'accepted'
 }
+const wire = <T>(plane: 'commerce' | 'membership', method: string, result: unknown) =>
+  decodeCanonical(canonical(wireResult(plane, method, result))) as unknown as T
+const userService = userIDL({ IDL }) as IDL.ServiceClass
+const approveTypes = userService._fields.find(([name]) => name === 'approve_application')![1]
+  .argTypes
+const pack = (v: unknown) => b64(canonical(v))
+const unpack = <T>(v: string): T => decodeCanonical(unb64(v)) as unknown as T
+/** One journal owns original terms, device proof and service operation through every retry. */
 export class CommerceClient {
   constructor(
     readonly account: AccountClient,
@@ -61,484 +73,447 @@ export class CommerceClient {
     ensure(value, 'AUTH_REQUIRED')
     return value
   }
-  private subject() {
-    return beneficiary(this.account.home.toText(), this.accountId())
-  }
   private async read<T>(key: string): Promise<T | null> {
-    const value = await this.account.crypto.call('commerceJournal', key)
-    return value ? JSON.parse(value) : null
+    const v = await this.account.crypto.call('commerceJournal', key)
+    return v ? JSON.parse(v) : null
   }
-  private save(key: string, value: unknown) {
-    return this.account.crypto.call('commerceJournal', key, JSON.stringify(value))
+  private save(job: CheckoutJob) {
+    return this.account.crypto.call(
+      'commerceJournal',
+      `checkout:${job.id}`,
+      JSON.stringify(job)
+    )
   }
-  async orders() {
+  async jobs() {
     return (await this.account.crypto.call('commerceJournals'))
-      .filter((v) => v.key.startsWith('order:'))
-      .map((v) => JSON.parse(v.value) as OrderJob)
+      .filter((v) => v.key.startsWith('checkout:'))
+      .map((v) => JSON.parse(v.value) as CheckoutJob)
+      .filter((v) => v.account === this.accountId() && v.actor === this.wallet.toText())
   }
-  async claims() {
-    return (await this.account.crypto.call('commerceJournals'))
-      .filter((v) => v.key.startsWith('sns:'))
-      .map((v) => JSON.parse(v.value) as ClaimJob)
+  async job(id: string) {
+    const j = await this.read<CheckoutJob>(`checkout:${id}`)
+    ensure(
+      j && j.account === this.accountId() && j.actor === this.wallet.toText(),
+      'FORBIDDEN'
+    )
+    return j
+  }
+  request(job: CheckoutJob) {
+    return unpack<CheckoutRequest>(job.request)
+  }
+  terms(job: CheckoutJob) {
+    return unpack<CheckoutQuote | PandaApplicationTerms>(job.quote)
+  }
+  private input(plane: 'commerce' | 'membership', method: string, values: unknown[]) {
+    return apiMethod(plane, method).argTypes.map((t, i) => toCandid(t, values[i]))
+  }
+  private async call<T>(
+    plane: 'commerce' | 'membership',
+    method: string,
+    values: unknown[] = []
+  ): Promise<T> {
+    const api = (plane === 'commerce' ? this.commerce : this.membership) as unknown as Record<
+      string,
+      (...v: any[]) => Promise<any>
+    >
+    return wire<T>(
+      plane,
+      method,
+      controlResult(await api[method](...this.input(plane, method, values)))
+    )
+  }
+  private async certified<T>(
+    plane: 'commerce' | 'membership',
+    method: string,
+    values: unknown[],
+    key: Uint8Array
+  ): Promise<T> {
+    const api = (plane === 'commerce' ? this.commerce : this.membership) as unknown as Record<
+      string,
+      (...v: any[]) => Promise<any>
+    >
+    const p = await certifiedValue(
+      controlResult(await api[method](...this.input(plane, method, values))),
+      this.account.agent,
+      plane === 'commerce' ? this.commerceId : this.membershipId,
+      key
+    )
+    return decodeCanonical(p.value) as unknown as T
+  }
+  async assets() {
+    return this.certified<SettlementAssetView[]>(
+      'commerce',
+      'settlement_assets_certificate',
+      [],
+      digest('dmsg/settlement-assets/v2', 'supported')
+    )
   }
   async catalog() {
-    const proof = await certifiedValue(
-      controlResult(await this.commerce.get_catalog()),
-      this.account.agent,
-      this.commerceId,
+    return this.certified<any>(
+      'commerce',
+      'get_catalog',
+      [],
       digest('dmsg/commerce/catalog-key/v1', 'dmsg')
     )
-    const catalog = decodeCanonical<Record<string, any>>(proof.value)
-    ensure(
-      catalog.schema === 1 &&
-        catalog.ledger instanceof Uint8Array &&
-        catalog.terms_digest instanceof Uint8Array &&
-        catalog.terms_digest.length === 32 &&
-        Array.isArray(catalog.plans) &&
-        catalog.plans.length === 4 &&
-        new Set(catalog.plans.map((p) => p.plan_id)).size === 4 &&
-        Number(catalog.decimals) <= 18,
-      'INTEGRITY_FAILED'
-    )
-    const known = await this.read<{ version: string }>('catalog-high-water')
-    ensure(!known || BigInt(catalog.version) >= BigInt(known.version), 'POLICY_STALE')
-    await this.save('catalog-high-water', { version: String(catalog.version) })
-    return {
-      value: catalog,
-      encoded: proof.value,
-      ledger: Principal.fromUint8Array(catalog.ledger).toText()
-    }
   }
   async entitlement(refresh = false) {
+    const b = beneficiary(this.account.home.toText(), this.accountId())
     if (refresh) {
-      const refreshed = await this.commerce.refresh_entitlement(this.subject())
-      if ('Err' in refreshed && 'NotFound' in refreshed.Err)
+      const value = await this.commerce.refresh_entitlement(b)
+      if ('Err' in value && 'NotFound' in value.Err)
         controlResult(
           await this.account.user.refresh_execution_entitlement(xidBytes(this.accountId()))
         )
-      else controlResult(refreshed)
+      else controlResult(value)
     }
-    const proof = await certifiedValue(
-      controlResult(await this.commerce.get_entitlement_batch([this.subject()])),
-      this.account.agent,
-      this.commerceId,
-      digest('dmsg/commerce/entitlement-key/v1', beneficiaryValue(this.subject()))
+    return this.certified<any>(
+      'commerce',
+      'get_entitlement_batch',
+      [[beneficiaryValue(b)]],
+      digest('dmsg/commerce/entitlement-key/v1', beneficiaryValue(b))
     )
-    const value = decodeCanonical<Record<string, any>>(proof.value)
-    ensure(
-      value.schema === 1 &&
-        equal(value.home_commerce, Principal.fromText(this.commerceId).toUint8Array()) &&
-        equal(canonical(value.beneficiary), canonical(beneficiaryValue(this.subject()))) &&
-        BigInt(value.valid_until_ms) > BigInt(Date.now()),
-      'POLICY_STALE'
-    )
-    const known = await this.read<{ business: string; lease: string }>('commerce-high-water')
-    ensure(
-      !known ||
-        (BigInt(value.business_revision) >= BigInt(known.business) &&
-          BigInt(value.lease_revision) >= BigInt(known.lease)),
-      'POLICY_STALE'
-    )
-    await this.save('commerce-high-water', {
-      business: String(value.business_revision),
-      lease: String(value.lease_revision)
-    })
-    return value
   }
-  private intent(
-    service: string,
-    operation: Uint8Array | number[],
-    action: Uint8Array
-  ): MembershipIntent {
-    const environment =
-      this.account.meta.environment === 'production'
-        ? { Production: null }
-        : this.account.meta.environment === 'staging'
-          ? { Staging: null }
-          : { Local: null }
+  async personal(sku: string, method: 'Cash' | 'Panda') {
+    const offer = await this.call<CheckoutRequest['offer']>(
+      'commerce',
+      'prepare_account_subscription',
+      [
+        'dmsg',
+        beneficiaryValue(beneficiary(this.account.home.toText(), this.accountId())),
+        sku,
+        unhex(id())
+      ]
+    )
     return {
-      actor: this.wallet,
-      beneficiary: this.subject(),
-      application_id: operation,
-      environment,
-      service_canister: Principal.fromText(service),
-      action_digest: action,
-      nonce: unhex(id()),
-      valid_until_ms: BigInt(Date.now() + 86400000 - 1000)
-    }
+      offer,
+      method,
+      approving_account: xidBytes(this.accountId()),
+      product_approval: null
+    } satisfies CheckoutRequest
   }
-  async quote(action: OrderAction, payer: Account = { owner: this.wallet, subaccount: [] }) {
-    ensure(payer.owner.toText() === this.wallet.toText(), 'AUTH_REQUIRED')
-    const entitlement = await this.entitlement(true),
-      catalog = await this.catalog()
-    const quote = controlResult(
-      await this.commerce.quote_order({
-        op_id: unhex(id()),
-        beneficiary: this.subject(),
-        action,
-        expected_business_revision: BigInt(entitlement.business_revision),
-        payer
-      })
-    )
-    const encodedCatalog = canonical((quoteValue(quote) as any).catalog)
+  private async application(appId: string, origin: string) {
+    const { info, device } = await this.account.refresh(this.accountId())
     ensure(
-      equal(encodedCatalog, catalog.encoded) &&
-        quote.home_commerce.toText() === this.commerceId &&
-        quote.created_at_ms <= BigInt(Date.now()) &&
-        quote.fund_by_ms > BigInt(Date.now()) &&
-        quote.amount_atomic > 0n &&
-        quote.fee_reserve >= 0n,
-      'INTEGRITY_FAILED'
+      device?.input.capabilities.some((c) => 'FormalApprove' in c),
+      'DEVICE_NOT_APPROVED',
+      '请先在设备设置中启用正式批准权限。'
     )
-    const input = {
-      quote,
-      authorization: this.intent(this.commerceId, quote.request.op_id, quoteDigest(quote))
-    }
-    const job: OrderJob = {
-      format: 'dmsg-order-job/1',
-      id: hex(orderId(quote)),
+    return registeredApplication(
+      { commerce: this.commerce, agent: this.account.agent },
+      appId,
+      origin,
+      'Checkout',
+      {
+        commerce: this.commerceId,
+        user: this.account.home.toText(),
+        cose: info.home_cose.toText(),
+        environment: this.account.meta.environment
+      }
+    )
+  }
+  private async registration(request: CheckoutRequest, origin: string) {
+    ensure(
+      equalBytes(request.approving_account, xidBytes(this.accountId())),
+      'ACCOUNT_MISMATCH'
+    )
+    const app = await this.application(request.offer.app_id, origin)
+    const product = await this.certified<ProductRegistration>(
+      'commerce',
+      'integration_configuration_certificate',
+      [app.app_id, request.offer.product_id],
+      digest('dmsg/registration/product/v2', request.offer.product_id)
+    )
+    validateCheckoutRequest(request, app, product, BigInt(Date.now()))
+    return { app, product }
+  }
+  async quote(request: CheckoutRequest, origin: string, selection: string) {
+    const { app, product } = await this.registration(request, origin)
+    const terms =
+      request.method === 'Cash'
+        ? await this.call<CheckoutQuote>('commerce', 'quote_checkout', [
+            request.offer,
+            Principal.fromText(selection).toUint8Array(),
+            { owner: this.wallet.toUint8Array(), subaccount: null }
+          ])
+        : await this.call<PandaApplicationTerms>('membership', 'quote_panda_subscription', [
+            request.offer,
+            this.account.home.toUint8Array(),
+            request.approving_account,
+            unhex(selection)
+          ])
+    if ('cash' in terms) {
+      await validateCheckoutQuote(
+        terms,
+        request,
+        app,
+        product,
+        Principal.fromText(this.commerceId).toUint8Array(),
+        this.wallet.toUint8Array(),
+        BigInt(Date.now())
+      )
+      ensure(
+        (await this.assets()).some(
+          (v) => v.ledger_verified && equalBytes(canonical(v.policy), canonical(terms.asset))
+        ),
+        'POLICY_STALE'
+      )
+    } else
+      await validatePandaTerms(
+        terms,
+        request,
+        product,
+        Principal.fromText(this.membershipId).toUint8Array(),
+        this.account.home.toUint8Array(),
+        this.wallet.toUint8Array(),
+        unhex(selection),
+        BigInt(Date.now())
+      )
+    const operation =
+      'cash' in terms
+        ? await checkoutId(Principal.fromText(this.commerceId).toUint8Array(), request)
+        : await pandaClaimId(terms)
+    const job: CheckoutJob = {
+      format: 'dmsg-checkout/2',
+      id: hex(operation),
       account: this.accountId(),
-      payer: this.wallet.toText(),
-      input: encodeCommerce('commerce', 'open_order', [input]),
-      stage: 'review',
-      blocks: []
+      actor: this.wallet.toText(),
+      origin,
+      request: pack(request),
+      quote: pack(terms),
+      operation: null,
+      authorization: null,
+      stage: 'review'
     }
-    await this.save(`order:${job.id}`, job)
-    return { job, quote }
+    const old = await this.read<CheckoutJob>(`checkout:${job.id}`)
+    if (old) {
+      ensure(
+        old.request === job.request && old.actor === job.actor && old.origin === origin,
+        'IDEMPOTENCY_CONFLICT'
+      )
+      return old
+    }
+    await this.save(job)
+    return job
   }
-  async order(id: string) {
-    const value = controlResult(await this.commerce.get_operation(unhex(id)))
-    const proof = await certifiedValue(
-      controlResult(await this.commerce.get_order_certified(unhex(id))),
-      this.account.agent,
-      this.commerceId,
-      digest('dmsg/commerce/order-key/v1', unhex(id))
-    )
-    const result = apiMethod('commerce', 'open_order').retTypes[0] as IDL.VariantClass
-    const type = result._fields.find(([name]) => name === 'Ok')![1]
-    ensure(
-      equal(canonical(candidValue(type, value)), proof.value) &&
-        hex(Uint8Array.from(value.order_id)) === id,
-      'INTEGRITY_FAILED'
+  async status(id: string): Promise<CheckoutView | PandaClaimView> {
+    const job = await this.job(id)
+    const cash = this.request(job).method === 'Cash'
+    const value = await this.certified<CheckoutView | PandaClaimView>(
+      cash ? 'commerce' : 'membership',
+      cash ? 'checkout_certificate' : 'panda_claim_certificate',
+      [unhex(id)],
+      digest(
+        cash ? 'dmsg/checkout/certificate/v2' : 'dmsg/panda/claim-certificate/v2',
+        unhex(id)
+      )
     )
     ensure(
-      value.confirmed_in ===
-        value.service_reserve +
-          value.earned +
-          value.refundable +
-          value.fee_reserve +
-          value.outgoing +
-          value.transferred +
-          value.network_fees,
-      'INTEGRITY_FAILED',
-      '订单资产记录不守恒。'
-    )
-    return value
-  }
-  async open(id: string) {
-    const job = await this.read<OrderJob>(`order:${id}`)
-    ensure(
-      job && job.account === this.accountId() && job.payer === this.wallet.toText(),
-      'AUTH_REQUIRED'
-    )
-    const input = decodeCommerce('commerce', 'open_order', job.input)[0] as unknown as {
-      quote: OrderQuote
-      authorization: MembershipIntent
-    }
-    const existing = await this.commerce.get_operation(unhex(id))
-    if ('Ok' in existing && !('Authorizing' in existing.Ok.status)) {
-      job.stage = 'opened'
-      await this.save(`order:${id}`, job)
-      return this.order(id)
-    }
-    if ('Err' in existing) ensure('NotFound' in existing.Err, 'EXECUTION_UNKNOWN')
-    if (await this.account.pending()) await this.account.resume()
-    if (input.authorization.valid_until_ms > BigInt(Date.now())) {
-      await this.account.mutate(job.account, {
-        AuthorizeMembership: { intent: input.authorization }
-      })
-      job.stage = 'authorized'
-      await this.save(`order:${id}`, job)
-    }
-    ensure(
-      input.authorization.valid_until_ms > BigInt(Date.now()),
-      'EXPIRED',
-      '原商业意图已过期；先确认原订单结果，再重新报价。'
-    )
-    job.stage = 'unknown'
-    await this.save(`order:${id}`, job)
-    controlResult(await this.commerce.open_order(input))
-    const order = await this.order(id)
-    ensure(
-      equal(
-        canonical(commerceInput('open_order', order.input)),
-        canonical(commerceInput('open_order', input))
+      equalBytes(
+        canonical('progress' in value ? value.quote : value.terms),
+        canonical(this.terms(job))
       ),
       'INTEGRITY_FAILED'
     )
-    job.stage = 'opened'
-    await this.save(`order:${id}`, job)
-    return order
+    return value
   }
-  async funding(id: string, block: string) {
-    ensure(
-      /^(0|[1-9][0-9]*)$/.test(block) && BigInt(block) <= 0xffffffffffffffffn,
-      'INVALID_INPUT'
-    )
-    const job = await this.read<OrderJob>(`order:${id}`)
-    ensure(job, 'NOT_FOUND')
-    if (!job.blocks.includes(block)) {
-      job.blocks.push(block)
-      await this.save(`order:${id}`, job)
+  async approve(id: string, fresh = false) {
+    let job = await this.job(id)
+    const request = this.request(job),
+      terms = this.terms(job),
+      cash = 'cash' in terms
+    if (job.stage !== 'review') {
+      try {
+        const existing = await this.status(id)
+        if (!fresh) return existing
+        ensure(!('progress' in existing), 'FORBIDDEN')
+        if (existing.status === 'Applying') return this.reconcile(id)
+        if (existing.status !== 'CoolingDown') return existing
+      } catch (error) {
+        if (
+          fresh ||
+          !(error instanceof DmsgError) ||
+          !['NotFound', 'NOT_FOUND'].includes(error.code)
+        )
+          throw error
+      }
     }
-    controlResult(await this.commerce.check_order_funding(unhex(id), BigInt(block)))
-    return this.order(id)
+    if (fresh) {
+      ensure(!cash, 'FORBIDDEN')
+      if (job.operation)
+        await this.account.crypto.call(
+          'commerceJournal',
+          `checkout-approval-history:${id}:${hex(digest('dmsg/approval-journal/v2', job.operation))}`,
+          JSON.stringify(job)
+        )
+      job.operation = null
+      job.authorization = null
+    }
+    if (!job.operation) {
+      // Initial quote remains fixed. Post-cooling approval may outlive the offer admission window.
+      const app = await this.application(request.offer.app_id, job.origin)
+      const now = BigInt(Date.now()),
+        deadline = cash ? terms.cash.funding_deadline_ms : terms.quote.application_deadline_ms
+      ensure(now < deadline && (fresh || now < request.offer.accept_by_ms), 'EXPIRED')
+      const state = await this.account.refresh(job.account)
+      ensure(state.device, 'DEVICE_NOT_APPROVED')
+      const application: ApplicationApproval = {
+        version: 1n,
+        environment: app.environment,
+        app_id: app.app_id,
+        app_config_version: app.config_version,
+        origin: job.origin,
+        approving_account: request.approving_account,
+        service: Principal.fromText(cash ? this.commerceId : this.membershipId).toUint8Array(),
+        beneficiary: request.offer.beneficiary,
+        actor: this.wallet.toUint8Array(),
+        purpose: cash ? 'CashCheckout' : 'PandaSubscription',
+        action_digest: cash
+          ? await checkoutQuoteHash(terms)
+          : await pandaApplicationHash(terms),
+        operation_id: request.offer.operation_id,
+        nonce: unhex(globalId()),
+        expires_at_ms: now + 240_000n < deadline ? now + 240_000n : deadline
+      }
+      validateShape('ApplicationApproval', application)
+      const proof = {
+        device_id: unhex(this.account.meta.deviceId),
+        security_epoch: state.info.security_epoch,
+        sequence: state.device.next_sequence,
+        request_id: unhex(globalId()),
+        expires_at: application.expires_at_ms,
+        signature: new Uint8Array()
+      }
+      proof.signature = Uint8Array.from(
+        await this.account.crypto.call(
+          'deviceSign',
+          digest('dmsg/device-approval/v2', [
+            this.account.home.toUint8Array(),
+            request.approving_account,
+            'dmsg/application/approve/v1',
+            proof.device_id,
+            proof.security_epoch,
+            proof.sequence,
+            proof.request_id,
+            proof.expires_at,
+            digest('dmsg/application/approve/v1', application)
+          ])
+        )
+      )
+      job.operation = encodeControl('approve_application', [
+        toCandid(approveTypes[0]!, application),
+        proof
+      ])
+      job.authorization = pack({
+        offer: request.offer,
+        account_approval: application,
+        user_home: this.account.home.toUint8Array(),
+        approval_id: proof.request_id,
+        product_approval: request.product_approval
+      } satisfies ProductAuthorizationRequest)
+      job.stage = 'authorized'
+      await this.save(job)
+    }
+    const args = decodeControl('approve_application', job.operation) as Parameters<
+      CommerceClient['account']['user']['approve_application']
+    >
+    // Retrying the saved proof cannot consume another sequence or change an economic instruction.
+    controlResult(await this.account.user.approve_application(...args))
+    job.stage = 'unknown'
+    await this.save(job)
+    const authorization = unpack<ProductAuthorizationRequest>(job.authorization!)
+    if (fresh) await this.call('membership', 'advance_panda_claim', [unhex(id), authorization])
+    else if (cash)
+      await this.call('commerce', 'open_checkout', [{ quote: terms, authorization }])
+    else await this.call('membership', 'request_panda_claim', [{ terms, authorization }])
+    job.stage = 'accepted'
+    await this.save(job)
+    return this.status(id)
   }
   async reconcile(id: string) {
-    controlResult(await this.commerce.reconcile_order(unhex(id)))
-    return this.order(id)
+    const cash = this.request(await this.job(id)).method === 'Cash'
+    await this.call(
+      cash ? 'commerce' : 'membership',
+      cash ? 'reconcile_checkout' : 'reconcile_panda_claim',
+      [unhex(id)]
+    )
+    return this.status(id)
   }
-  async refund(id: string) {
-    const order = await this.order(id)
+  async refresh(id: string) {
+    await this.call('membership', 'refresh_panda_claim', [unhex(id)])
+    return this.status(id)
+  }
+  async cancel(id: string) {
+    const cash = this.request(await this.job(id)).method === 'Cash'
+    await this.call(
+      cash ? 'commerce' : 'membership',
+      cash ? 'cancel_checkout' : 'cancel_panda_application',
+      [unhex(id)]
+    )
+    return this.status(id)
+  }
+  async funding(id: string, block: string) {
+    ensure(/^(0|[1-9][0-9]*)$/.test(block), 'INVALID_INPUT')
+    const terms = this.terms(await this.job(id))
+    ensure('cash' in terms, 'FORBIDDEN')
+    await this.call('commerce', 'check_checkout_funding', [
+      unhex(id),
+      { ledger: terms.cash.ledger, block_index: BigInt(block) }
+    ])
+    return this.status(id)
+  }
+  async refund(id: string, blocks: string[], ledger?: string) {
+    const terms = this.terms(await this.job(id))
     ensure(
-      order.input.quote.request.payer.owner.toText() === this.wallet.toText(),
-      'AUTH_REQUIRED'
+      'cash' in terms && blocks.every((b) => /^(0|[1-9][0-9]*)$/.test(b)),
+      'INVALID_INPUT'
     )
-    if (
-      'Closing' in order.status ||
-      'RefundCommitted' in order.status ||
-      'Cancelled' in order.status
-    )
-      return order
-    if (await this.account.pending()) await this.account.resume()
-    let stored = await this.read<{ args: string }>(`refund:${id}`)
-    if (stored) {
-      const intent = decodeCommerce(
-        'commerce',
-        'request_refund',
-        stored.args
-      )[1] as unknown as MembershipIntent
-      if (intent.valid_until_ms <= BigInt(Date.now())) {
-        await this.save(
-          `refund-history:${id}:${hex(Uint8Array.from(intent.application_id))}`,
-          stored
-        )
-        stored = null
-      }
-    }
-    if (!stored) {
-      const intent = this.intent(
-        this.commerceId,
-        unhex(globalId()),
-        digest('dmsg/commerce/refund/v1', unhex(id))
-      )
-      stored = { args: encodeCommerce('commerce', 'request_refund', [unhex(id), intent]) }
-      await this.save(`refund:${id}`, stored)
-    }
-    const args = decodeCommerce('commerce', 'request_refund', stored.args) as unknown as [
-      Uint8Array,
-      MembershipIntent
-    ]
-    await this.account.mutate(this.accountId(), { AuthorizeMembership: { intent: args[1] } })
-    controlResult(await this.commerce.request_refund(...args))
-    return this.order(id)
-  }
-  async refundDeposit(id: string, block: string) {
-    return controlResult(await this.commerce.claim_deposit_refund(unhex(id), BigInt(block)))
+    // Same selected deposits use the same operation even after a lost reply.
+    const refundLedger = ledger ? Principal.fromText(ledger).toUint8Array() : terms.cash.ledger
+    const operation = digest('dmsg/refund-selection/v2', [
+      unhex(id),
+      refundLedger,
+      blocks.map(BigInt).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    ])
+    return this.call<import('@dmsg/sdk').CashTransfer>('commerce', 'claim_checkout_refund', [
+      unhex(id),
+      refundLedger,
+      blocks.map(BigInt),
+      operation
+    ])
   }
   async refundFees(id: string) {
-    return controlResult(await this.commerce.claim_fee_reserve(unhex(id)))
-  }
-  async processTransfer(id: string, transfer: string, block?: string) {
-    const record = controlResult(await this.commerce.get_transfer(unhex(id), BigInt(transfer)))
-    if ('Unknown' in record.status || 'InFlight' in record.status) {
-      ensure(
-        block !== undefined,
-        'EXECUTION_UNKNOWN',
-        '转账结果未知；提供原账本区块对账，不创建新转账。'
-      )
-      return controlResult(
-        await this.commerce.reconcile_transfer(unhex(id), BigInt(transfer), BigInt(block))
-      )
-    }
-    return controlResult(await this.commerce.process_transfer(unhex(id), BigInt(transfer)))
-  }
-  async sns(
-    policy: bigint,
-    neuron: string,
-    benefit: Uint8Array,
-    change: ClaimRequest['change'] = { Start: null }
-  ) {
-    ensure(/^[0-9a-f]{64}$/.test(neuron), 'INVALID_INPUT')
-    const policyValue = await this.policy(policy, benefit)
-    const ent = await this.entitlement(true),
-      op = unhex(id())
-    const request: ClaimRequest = {
-      authorization: this.intent(this.membershipId, op, new Uint8Array(32)),
-      neuron_id: unhex(neuron),
-      policy_version: policy,
-      benefit_id: benefit,
-      expected_business_revision: BigInt(ent.business_revision),
-      term: { CalendarYear: null },
-      change
-    }
-    request.authorization.action_digest = claimDigest(request)
-    const job: ClaimJob = {
-      format: 'dmsg-membership-job/1',
-      id: hex(claimId(this.membershipId, request.authorization)),
-      account: this.accountId(),
-      actor: this.wallet.toText(),
-      input: encodeCommerce('membership', 'request_claim', [request]),
-      stage: 'review'
-    }
-    await this.save(`sns:${job.id}`, job)
-    return { job, policy: policyValue }
-  }
-  private async policy(version: bigint, benefit: Uint8Array) {
-    const proof = await certifiedValue(
-      controlResult(await this.membership.get_policy_certified([version])),
-      this.account.agent,
-      this.membershipId,
-      digest('membership/policy-key/v1', version)
+    return this.call<import('@dmsg/sdk').CashTransfer>(
+      'commerce',
+      'claim_checkout_fee_reserve',
+      [unhex(id)]
     )
-    const value = decodeCanonical<any>(proof.value)
-    ensure(
-      value.product_id === 'dmsg' &&
-        BigInt(value.version) === version &&
-        equal(value.benefit_id, benefit),
-      'INTEGRITY_FAILED'
-    )
-    return value
   }
-  async reviewSns(id: string) {
-    const job = await this.read<ClaimJob>(`sns:${id}`)
-    ensure(
-      job && job.actor === this.wallet.toText() && job.account === this.accountId(),
-      'AUTH_REQUIRED'
+  async collect(id: string) {
+    return this.call<import('@dmsg/sdk').CashTransfer>(
+      'commerce',
+      'collect_checkout_revenue',
+      [unhex(id)]
     )
-    const request = decodeCommerce(
-      'membership',
-      'request_claim',
-      job.input
-    )[0] as unknown as ClaimRequest
-    ensure(
-      hex(claimId(this.membershipId, request.authorization)) === id &&
-        request.authorization.actor.toText() === job.actor &&
-        equal(Uint8Array.from(request.authorization.action_digest), claimDigest(request)) &&
-        equal(
-          canonical(beneficiaryValue(request.authorization.beneficiary)),
-          canonical(beneficiaryValue(this.subject()))
-        ),
-      'INTEGRITY_FAILED'
+  }
+  async processTransfer(id: string, block?: string) {
+    const t = await this.call<import('@dmsg/sdk').CashTransfer>(
+      'commerce',
+      'get_checkout_transfer',
+      [unhex(id)]
     )
-    return {
-      request,
-      policy: await this.policy(request.policy_version, Uint8Array.from(request.benefit_id))
-    }
+    return block
+      ? this.call('commerce', 'reconcile_checkout_transfer', [
+          unhex(id),
+          { ledger: t.ledger, block_index: BigInt(block) }
+        ])
+      : this.call('commerce', 'process_checkout_transfer', [unhex(id)])
   }
-  async submitSns(id: string) {
-    const job = await this.read<ClaimJob>(`sns:${id}`)
-    ensure(
-      job && job.actor === this.wallet.toText() && job.account === this.accountId(),
-      'AUTH_REQUIRED'
+  async reviseFee(id: string, fee: string) {
+    return this.call<import('@dmsg/sdk').CashTransfer>(
+      'commerce',
+      'revise_checkout_transfer_fee',
+      [unhex(id), BigInt(fee)]
     )
-    const request = decodeCommerce(
-      'membership',
-      'request_claim',
-      job.input
-    )[0] as unknown as ClaimRequest
-    const prior = await this.membership.get_operation(unhex(id))
-    if ('Ok' in prior) return this.claimStatus(id)
-    ensure('NotFound' in prior.Err, 'EXECUTION_UNKNOWN')
-    if (await this.account.pending()) await this.account.resume()
-    await this.account.mutate(this.accountId(), {
-      AuthorizeMembership: { intent: request.authorization }
-    })
-    job.stage = 'unknown'
-    await this.save(`sns:${id}`, job)
-    controlResult(await this.membership.request_claim(request))
-    job.stage = 'submitted'
-    await this.save(`sns:${id}`, job)
-    return this.claimStatus(id)
-  }
-  async claimStatus(id: string) {
-    const proof = await certifiedValue(
-      controlResult(await this.membership.get_claim_certified([unhex(id)])),
-      this.account.agent,
-      this.membershipId,
-      digest('membership/claim-key/v1', unhex(id))
-    )
-    const value = decodeCanonical<any>(proof.value)
-    ensure(
-      equal(value.claim_id, unhex(id)) &&
-        equal(canonical(value.beneficiary), canonical(beneficiaryValue(this.subject()))),
-      'INTEGRITY_FAILED'
-    )
-    return value
-  }
-  async advanceSns(id: string) {
-    const job = await this.read<ClaimJob>(`sns:${id}`)
-    ensure(
-      job && job.actor === this.wallet.toText() && job.account === this.accountId(),
-      'AUTH_REQUIRED'
-    )
-    const request = decodeCommerce(
-      'membership',
-      'request_claim',
-      job.input
-    )[0] as unknown as ClaimRequest
-    ensure(request.authorization.valid_until_ms > BigInt(Date.now()), 'EXPIRED')
-    if (await this.account.pending()) await this.account.resume()
-    await this.account.mutate(this.accountId(), {
-      AuthorizeMembership: { intent: request.authorization }
-    })
-    controlResult(await this.membership.advance_application(unhex(id)))
-    return this.claimStatus(id)
-  }
-  async refreshSns(id: string) {
-    controlResult(await this.membership.refresh_claim(unhex(id)))
-    return this.claimStatus(id)
-  }
-  async reconcileSns(id: string) {
-    controlResult(await this.membership.reconcile_claim(unhex(id)))
-    return this.claimStatus(id)
-  }
-  async closeSns(id: string) {
-    const status = await this.claimStatus(id)
-    if (status.status === 'Released') return status
-    if (status.status === 'Closing') return this.reconcileSns(id)
-    if (await this.account.pending()) await this.account.resume()
-    let saved = await this.read<{ args: string }>(`sns-close:${id}`)
-    if (saved) {
-      const intent = decodeCommerce(
-        'membership',
-        'request_change',
-        saved.args
-      )[1] as unknown as MembershipIntent
-      if (intent.valid_until_ms <= BigInt(Date.now())) {
-        await this.save(
-          `close-history:${id}:${hex(Uint8Array.from(intent.application_id))}`,
-          saved
-        )
-        saved = null
-      }
-    }
-    if (!saved) {
-      const intent = this.intent(
-        this.membershipId,
-        unhex(globalId()),
-        digest('membership/close/v1', unhex(id))
-      )
-      saved = { args: encodeCommerce('membership', 'request_change', [unhex(id), intent]) }
-      await this.save(`sns-close:${id}`, saved)
-    }
-    const intent = decodeCommerce(
-      'membership',
-      'request_change',
-      saved.args
-    )[1] as unknown as MembershipIntent
-    await this.account.mutate(this.accountId(), { AuthorizeMembership: { intent } })
-    return controlResult(await this.membership.request_change(unhex(id), intent))
   }
 }
 const globalId = id

@@ -211,3 +211,9 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path 的 dmsg_protocol 开发依赖，从而避免发布依赖循环；但仓库合同测试和向量示例仍需要 checkout 的开发依赖。应在 workspace 执行它们，发布包中的 dmsg_types 测试集不等同于仓库测试环境。
 
 先验证 dmsg_types 发布包。其版本在 registry 可用后，用 `cargo package -p dmsg_protocol --locked` 和 `cargo publish -p dmsg_protocol --dry-run --locked` 检查实际协议包，再发布。正常打包依赖解析中，本地存在 dmsg_types 不能代替其 registry 可用性。开发接口不承诺兼容早期实验编码；生产部署、外部服务、容量和审计仍需单独验收。
+
+
+Application-action v1 is a separate closed profile with an `AppAction` key purpose.
+See [the profile and implementation boundary](../../docs/protocol/app-action.md).
+Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
+browser flow explicitly reject it pending the authorized action integration.

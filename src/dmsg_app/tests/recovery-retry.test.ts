@@ -5,7 +5,6 @@ import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { startChannel } from '../src/lib/protocol/channel'
 import { xidText } from '../src/lib/protocol/identity'
 import { InboxClient } from '../src/lib/services/inbox'
-import { CommerceClient } from '../src/lib/services/commerce'
 import { Principal } from '@icp-sdk/core/principal'
 import { readCloudCommand } from '../src/lib/protocol/cloud'
 import { ed25519 } from '../src/lib/crypto/primitives'
@@ -153,52 +152,6 @@ it('submits a fresh action when inbox archive state toggles back', async () => {
   expect(posts).toBe(3)
   expect(result.archived).toBe(false)
   expect(archived).toBe(false)
-})
-it('reauthorizes an expired refund intent after checking the current order', async () => {
-  const saved = new Map<string, string>(),
-    owner = Principal.fromText('aaaaa-aa')
-  const mutate = vi.fn(async (_account: string, command: any) => {
-    if (command.AuthorizeMembership.intent.valid_until_ms <= BigInt(Date.now()))
-      throw Error('Expired')
-  })
-  const account = {
-    meta: { account: { id: accountId }, environment: 'local' },
-    home: owner,
-    pending: async () => null,
-    mutate,
-    crypto: {
-      call: async (_m: string, key: string, value?: string) => {
-        if (value !== undefined) saved.set(key, value)
-        return saved.get(key) ?? null
-      }
-    }
-  }
-  const refund = vi.fn().mockRejectedValue(new Error('network unavailable'))
-  const client = new CommerceClient(
-    account as any,
-    { request_refund: refund } as any,
-    {} as any,
-    'aaaaa-aa',
-    'aaaaa-aa',
-    owner
-  )
-  ;(client as any).order = async () => ({
-    input: { quote: { request: { payer: { owner } } } },
-    status: { Active: null }
-  })
-  const now = Date.now(),
-    clock = vi.spyOn(Date, 'now').mockReturnValue(now),
-    order = id()
-  await expect(client.refund(order)).rejects.toThrow('network unavailable')
-  const original = saved.get(`refund:${order}`)
-  clock.mockReturnValue(now + 86400000)
-  await expect(client.refund(order)).rejects.toThrow('network unavailable')
-  expect(saved.get(`refund:${order}`)).not.toBe(original)
-  expect(refund).toHaveBeenCalledTimes(2)
-  expect(refund.mock.calls[1][0]).toEqual(refund.mock.calls[0][0])
-  expect(mutate.mock.calls[1][1].AuthorizeMembership.intent.valid_until_ms).toBeGreaterThan(
-    BigInt(Date.now())
-  )
 })
 it('reauthorizes a root request only when certified state proves its sequence was not consumed', async () => {
   const { AccountRootClient } = await import('../src/lib/services/account-root')
@@ -463,52 +416,4 @@ it('ACKs only the matching source and an already signed request', async () => {
   expect((await db.db.get('requests', requestId)).state).toBe('returned')
   db.db.close()
   await engine.lock()
-})
-it('renews expired SNS close approval and only reconciles a committed close', async () => {
-  const saved = new Map<string, string>(),
-    owner = Principal.fromText('aaaaa-aa'),
-    now = Date.now()
-  const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
-  const mutate = vi.fn(async (_id: string, command: any) => {
-    expect(command.AuthorizeMembership.intent.valid_until_ms).toBeGreaterThan(
-      BigInt(Date.now())
-    )
-  })
-  const account = {
-    meta: { account: { id: accountId }, environment: 'local' },
-    home: owner,
-    pending: async () => null,
-    mutate,
-    crypto: {
-      call: async (_m: string, key: string, value?: string) => {
-        if (value !== undefined) saved.set(key, value)
-        return saved.get(key) ?? null
-      }
-    }
-  }
-  const close = vi.fn().mockRejectedValue(new Error('lost close reply'))
-  const client = new CommerceClient(
-    account as any,
-    {} as any,
-    { request_change: close } as any,
-    'aaaaa-aa',
-    'aaaaa-aa',
-    owner
-  )
-  const status = vi.spyOn(client, 'claimStatus').mockResolvedValue({ status: 'Active' })
-  const reconcile = vi.spyOn(client, 'reconcileSns').mockResolvedValue({ status: 'Closing' })
-  const claim = id()
-  await expect(client.closeSns(claim)).rejects.toThrow('lost close reply')
-  const first = saved.get(`sns-close:${claim}`)
-  clock.mockReturnValue(now + 86400000)
-  await expect(client.closeSns(claim)).rejects.toThrow('lost close reply')
-  expect(saved.get(`sns-close:${claim}`)).not.toBe(first)
-  expect(close).toHaveBeenCalledTimes(2)
-  status.mockResolvedValue({ status: 'Closing' })
-  await client.closeSns(claim)
-  expect(reconcile).toHaveBeenCalledWith(claim)
-  expect(mutate).toHaveBeenCalledTimes(2)
-  status.mockResolvedValue({ status: 'Released' })
-  await expect(client.closeSns(claim)).resolves.toEqual({ status: 'Released' })
-  expect(close).toHaveBeenCalledTimes(2)
 })

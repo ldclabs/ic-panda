@@ -27,6 +27,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const KeyPurpose = IDL.Variant({
     'ContentRoot' : IDL.Null,
+    'AppAction' : IDL.Null,
     'FileAttestation' : IDL.Null,
     'Statement' : IDL.Null,
   });
@@ -76,6 +77,8 @@ export const idlFactory = ({ IDL }) => {
     'MigrationKeyUnavailable' : IDL.Null,
     'LegacyWriteDisabled' : IDL.Null,
     'InvalidInput' : IDL.Text,
+    'IntervalReserved' : IDL.Null,
+    'NeuronOccupied' : IDL.Null,
     'RekeyRequired' : IDL.Null,
     'VersionConflict' : IDL.Null,
     'ExecutionUnknown' : IDL.Null,
@@ -166,6 +169,7 @@ export const idlFactory = ({ IDL }) => {
     'EcdsaSecp256k1' : IDL.Null,
   });
   const SigningPurpose = IDL.Variant({
+    'AppAction' : IDL.Null,
     'FileAttestation' : IDL.Null,
     'Statement' : IDL.Null,
   });

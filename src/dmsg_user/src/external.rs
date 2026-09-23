@@ -444,3 +444,100 @@ pub(crate) fn rebuild(c: &mut Certification) {
 #[cfg(test)]
 #[path = "external_tests.rs"]
 mod tests;
+
+/// Confirm an exact product preparation before the local execution commit.
+/// Remote permission changes after this check are also enforced by product commit.
+pub(crate) async fn authorize_action(
+    id: &AccountId,
+    action: &dmsg_types::app_action::AppAction,
+) -> Result<()> {
+    dmsg_protocol::app_action::validate_app_action(action)?;
+    ensure(action.signing_account == *id, Error::Forbidden)?;
+    let (app, _) = configuration(action.app_id.clone(), None).await?;
+    let at = nanos_to_millis(ic_cdk::api::time());
+    dmsg_protocol::app_action::validate_action_admission(action, &app, at)?;
+    home_binding(&app, &store::load(id)?)?;
+    let approved: Result<()> = dmsg_runtime::call(
+        app.action_authority,
+        "verify_dmsg_action",
+        (id.clone(), action.clone()),
+    )
+    .await?;
+    approved?;
+    // A governance change during the authority call invalidates the admission.
+    let (current, _) = configuration(action.app_id.clone(), None).await?;
+    let at = nanos_to_millis(ic_cdk::api::time());
+    ensure(current == app, Error::PolicyStale)?;
+    dmsg_protocol::app_action::validate_action_admission(action, &current, at)?;
+    home_binding(&current, &store::load(id)?)
+}
+
+/// Personal-account product consent. Project products use their own registered authority.
+#[ic_cdk::update]
+async fn authorize_product_billing(
+    request: dmsg_types::integration_billing::ProductAuthorizationRequest,
+) -> Result<dmsg_types::integration_billing::ProductAuthorization> {
+    use dmsg_protocol::commerce_v2::*;
+    use dmsg_types::integration_billing::ProductAuthorization;
+    let caller = ic_cdk::api::msg_caller();
+    let method = match request.account_approval.purpose {
+        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
+        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
+        _ => return Err(Error::Forbidden),
+    };
+    let checked =
+        verify_application_authorization(request.approval_id, request.account_approval.clone())
+            .await?;
+    let at = nanos_to_millis(ic_cdk::api::time());
+    validate_product_request(&request, caller, method, at)?;
+    let b = &request.offer.beneficiary;
+    ensure(
+        request.user_home == ic_cdk::api::canister_self()
+            && b.authority_canister == ic_cdk::api::canister_self()
+            && b.subject_schema == "dmsg-account-v1"
+            && b.subject_bytes.as_ref() == request.account_approval.approving_account.as_slice(),
+        Error::Forbidden,
+    )?;
+    let account = store::load(&request.account_approval.approving_account)?;
+    ensure(
+        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
+        Error::Locked,
+    )?;
+    Ok(ProductAuthorization {
+        request_hash: product_authorization_hash(&request),
+        operator: request.account_approval.actor,
+        verified_at_ms: at,
+        valid_until_ms: checked.valid_until_ms.min(at.saturating_add(MINUTE)),
+    })
+}
+
+/// A registered product may check whether its own account beneficiary still exists.
+#[ic_cdk::update]
+async fn verify_product_account(
+    app_id: String,
+    beneficiary: dmsg_types::membership::Beneficiary,
+) -> Result<()> {
+    let caller = ic_cdk::api::msg_caller();
+    let (app, product) = configuration(app_id, Some(beneficiary.product_id.clone())).await?;
+    let product = product.ok_or(Error::NotFound)?;
+    validate_subject(&beneficiary, &product)?;
+    ensure(
+        caller == product.adapter
+            && beneficiary.authority_canister == ic_cdk::api::canister_self()
+            && beneficiary.subject_schema == "dmsg-account-v1"
+            && app.user_homes.contains(&ic_cdk::api::canister_self()),
+        Error::Forbidden,
+    )?;
+    let id = AccountId(
+        beneficiary
+            .subject_bytes
+            .as_ref()
+            .try_into()
+            .map_err(|_| Error::IntegrityFailed)?,
+    );
+    let account = store::load(&id)?;
+    ensure(
+        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
+        Error::Locked,
+    )
+}

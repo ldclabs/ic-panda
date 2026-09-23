@@ -9,6 +9,8 @@ pub mod payment;
 pub mod protocol;
 pub mod user;
 pub use protocol::*;
+/// Closed application-action signing contract.
+pub mod app_action;
 pub mod signing;
 pub use signing::*;
 pub mod profiles;
@@ -18,3 +20,9 @@ pub use account_id::AccountId;
 
 /// Third-party authentication, signing and subscription contracts.
 pub mod integration;
+
+/// Operational v2 checkout and shared product subscription state.
+pub mod integration_billing;
+
+/// Operational full-waiver PANDA application and immutable commitment types.
+pub mod integration_membership;
