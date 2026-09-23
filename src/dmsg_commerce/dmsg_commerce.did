@@ -1,42 +1,77 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Canister authoritative for the beneficiary subject.
   authority_canister : principal;
+  // Opaque subject bytes in the registered schema.
   subject_bytes : blob;
+  // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
+// Merchant accounting view in ledger atomic units, including pending allocations.
 type BillingOrder = record {
+  // Current lifecycle state of this record.
   status : OrderStatus;
+  // Ledger atomic units reserved for network fees.
   fee_reserve : nat;
+  // Unperformed service principal retained in atomic units.
   service_reserve : nat;
+  // Operation revision used to reject obsolete callbacks.
   generation : nat64;
+  // Total successful outgoing ledger fees in atomic units.
   network_fees : nat;
+  // Contract activated from this order, if any.
   activated_contract_id : opt blob;
+  // Total successful transfer amounts, excluding network fees, in atomic units.
   transferred : nat;
+  // Unallocated refundable balance in atomic units.
   refundable : nat;
+  // Earned service principal still held, in atomic units.
   earned : nat;
+  // Next per-order outgoing transfer identifier.
   next_transfer : nat64;
+  // Order deposit subaccount owned by home_commerce.
   receive_subaccount : blob;
+  // Original quote and authorization.
   input : OpenOrder;
+  // Stable merchant order identity.
   order_id : blob;
+  // Amount plus network fee allocated to outstanding transfers, in atomic units.
   outgoing : nat;
+  // Ledger block selected as primary funding.
   funding_block : opt nat64;
+  // Effective benefit stop time in Unix milliseconds, after issued leases.
   close_effective_at_ms : opt nat64;
+  // Service principal already allocated to refunds, in atomic units.
   refunded_principal : nat;
+  // Exclusive in-flight operation deadline in Unix milliseconds.
   busy_until_ms : nat64;
+  // Total verified deposits in ledger atomic units.
   confirmed_in : nat;
 };
+// Certified commercial catalog; asset identity and governance approval require trusted evidence.
 type Catalog = record {
+  // Verified ledger decimal precision.
   decimals : nat8;
+  // Additional storage products in this catalog.
   storage_products : vec StorageProduct;
+  // Public record format version, independent of stable storage.
   schema : nat16;
+  // Inclusive activation time in Unix milliseconds.
   effective_at_ms : nat64;
+  // Immutable version identifier within this policy or catalog.
   version : nat64;
+  // Accepted ICRC ledger canister; token symbols are not asset identities.
   ledger : principal;
+  // Configured network fee in ledger atomic units.
   ledger_fee : nat;
+  // Available base-plan snapshots.
   plans : vec PlanVersion;
+  // Commitment to the accepted service terms.
   terms_digest : blob;
 };
 // IC-certified query response. Merely decoding this value authenticates nothing.
@@ -62,80 +97,174 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
+// Relationship between a new claim and an existing benefit commitment.
 type ClaimChange = variant {
+  // Start a new independent benefit.
   Start;
-  Upgrade : record { previous_claim : blob };
-  Replace : record { previous_claim : blob };
-  Renew : record { previous_claim : blob };
+  // Upgrade an existing base benefit.
+  Upgrade : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
+  // Replace the qualifying claim supporting an existing benefit.
+  Replace : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
+  // Renew an existing benefit for a subsequent term.
+  Renew : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
 };
+// Frozen qualification request and beneficiary authorization.
 type ClaimRequest = record {
+  // Requested or frozen benefit interval.
   term : TermRule;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Requested relationship to an earlier claim.
   change : ClaimChange;
+  // Immutable qualification policy version.
   policy_version : nat64;
+  // Product business revision required for compare-and-swap.
   expected_business_revision : nat64;
+  // Exact beneficiary intent approved for this operation.
   authorization : MembershipIntent;
+  // Fixed PANDA SNS neuron identifier.
   neuron_id : blob;
 };
+// Durable qualification and product-decision lifecycle.
 type ClaimStatus = variant {
+  // Qualified observation is waiting out the admission cooling period.
   CoolingDown;
+  // Benefit closure is in progress.
   Closing;
+  // Benefit is active under its recorded terms.
   Active;
+  // Exclusive binding has been released.
   Released;
+  // The request or transfer was definitively rejected.
   Rejected;
+  // Initial qualification checks are pending.
   Checking;
+  // A durable product decision awaits acknowledgment.
   Applying;
 };
 // Public qualification leaf deliberately excludes economic identities and raw neurons.
 type ClaimView = record {
+  // Current lifecycle state of this record.
   status : ClaimStatus;
+  // Membership canister authoritative for this claim.
   home_membership : principal;
+  // Idempotency identifier of the product decision.
   decision_id : opt blob;
+  // Earliest exclusive-binding release time in Unix milliseconds.
   release_after_ms : nat64;
+  // Stable qualification claim identity.
   claim_id : blob;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Public record format version, independent of stable storage.
   schema : nat16;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
+  // Inclusive interval start in Unix milliseconds.
   starts_at_ms : nat64;
+  // Most recent qualification assessment.
   eligibility : Eligibility;
+  // Immutable qualification policy version.
   policy_version : nat64;
+  // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
 };
+// Product commerce deployment, accepted asset and admission configuration.
 type CommerceInit = record {
+  // New merchant-order limit per UTC day.
   daily_orders : nat32;
+  // Maximum retained beneficiary subjects.
   max_subjects : nat64;
+  // Deployment domain of the request or service.
   environment : Environment;
+  // Governance Principal controlling this service configuration.
   governance : principal;
+  // Shared PANDA qualification authority.
   membership_canister : principal;
+  // Permitted dMsg account-authority canisters.
   user_homes : vec principal;
+  // Fixed catalog snapshot.
   catalog : Catalog;
+  // ICRC account receiving earned service revenue.
   treasury : Account;
 };
-type DecisionKind = variant { Apply; Close };
-type DecisionOutcome = variant { Applied; Rejected };
-type Eligibility = variant { Unverifiable; Ineligible; Eligible };
+// Product action delivered by the configured membership authority.
+type DecisionKind = variant {
+  // Apply the frozen benefit terms.
+  Apply;
+  // Close the specified benefit commitment.
+  Close;
+};
+// Product result for a specific immutable membership decision.
+type DecisionOutcome = variant {
+  // The product durably applied the decision.
+  Applied;
+  // The request or transfer was definitively rejected.
+  Rejected;
+};
+// Qualification observation; unverifiable is distinct from known ineligibility.
+type Eligibility = variant {
+  // Current supporting facts cannot be verified.
+  Unverifiable;
+  // Known not to satisfy the policy.
+  Ineligible;
+  // Known to satisfy the fixed qualification policy.
+  Eligible;
+};
+// Certified resource lease projection; validate beneficiary, revisions and expiry before use.
 type EntitlementView = record {
+  // Contracts supporting this issued lease.
   lease_source_contract_ids : vec blob;
+  // Base-plan terms used for this projection.
   plan_snapshot : PlanVersion;
+  // Revision of business terms or qualification, independent of lease refreshes.
   business_revision : nat64;
+  // Known service termination time in Unix milliseconds.
   service_terminated_at_ms : opt nat64;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Public record format version, independent of stable storage.
   schema : nat16;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
+  // Qualification repair deadline in Unix milliseconds, when applicable.
   repair_deadline_ms : opt nat64;
+  // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
+  // Projection issuance time in Unix milliseconds.
   issued_at_ms : nat64;
+  // Commerce canister authoritative for this order or lease.
   home_commerce : principal;
+  // Separately valid paid storage entitlements.
   addons : vec StorageAddon;
+  // Known resource stop time in Unix milliseconds.
   effective_stop_at_ms : opt nat64;
+  // Combined currently applicable resource limits.
   effective_limits : ResourceLimits;
+  // Next known resource-limit transition in Unix milliseconds.
   next_limit_change_at_ms : opt nat64;
+  // Current resource-source lifecycle.
   source_status : SourceStatus;
+  // Qualification assessment supporting this projection.
   eligibility_status : Eligibility;
+  // Currently selected base contract, absent for Free.
   active_contract_id : opt blob;
 };
 // Deployment domain used to separate identities and key derivation.
@@ -207,161 +336,313 @@ type Error = variant {
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// Consistent resource lease and monthly formal-execution allocation.
 type ExecutionEntitlement = record {
+  // Monthly quota calculation matching this beneficiary.
   month : MonthEntitlement;
+  // Resource qualification and lease projection.
   view : EntitlementView;
 };
+// Versioned integer cost per formal-signing algorithm.
 type ExecutionWeights = record {
+  // Units charged for one ES256K formal execution.
   ecdsa_secp256k1 : nat64;
+  // Units charged for one Ed25519 formal execution.
   ed25519 : nat64;
+  // Immutable version identifier within this policy or catalog.
   version : nat64;
 };
+// Authority response for an exact intent, with a short validity deadline.
 type MembershipAuthorization = record {
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Account security revision checked by the authority.
   security_epoch : nat64;
+  // Authority verification time in Unix milliseconds.
   verified_at_ms : nat64;
+  // Commitment to the complete approved intent.
   intent_digest : blob;
 };
 // Immutable action delivered at least once to the registered product adapter.
 type MembershipDecision = record {
+  // Exclusive supporting qualification deadline in Unix milliseconds.
   qualification_until_ms : nat64;
+  // Idempotency identifier of the product decision.
   decision_id : blob;
+  // Stable qualification claim identity.
   claim_id : blob;
+  // Original fixed request.
   request : ClaimRequest;
+  // Product action to apply.
   kind : DecisionKind;
+  // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
+  // Required PANDA stake in atomic units, rounded up.
   required_atomic : nat;
+  // Inclusive interval start in Unix milliseconds.
   starts_at_ms : nat64;
+  // Exclusive product application deadline in Unix milliseconds.
   apply_by_ms : nat64;
+  // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
+  // Immutable policy snapshot used for this decision.
   policy : MembershipPolicy;
 };
+// Idempotent product acknowledgment, including its remaining benefit commitment.
 type MembershipDecisionReceipt = record {
+  // Idempotency identifier of the product decision.
   decision_id : blob;
+  // Revision of business terms or qualification, independent of lease refreshes.
   business_revision : nat64;
   // Product confirms it cannot grant any benefit from this claim beyond this time.
   commitment_until_ms : nat64;
+  // Product contract identity.
   contract_id : opt blob;
+  // Inclusive interval start in Unix milliseconds.
   starts_at_ms : nat64;
+  // Recorded result of applying the decision.
   outcome : DecisionOutcome;
+  // Commitment to the exact decision being acknowledged.
   decision_digest : blob;
+  // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
 };
 // A device-approved, purpose-separated intent. Actor authentication is also required.
 type MembershipIntent = record {
+  // Authenticated economic actor approving the action.
   actor : principal;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Domain-separated commitment to the exact requested action.
   action_digest : blob;
+  // Stable idempotency identifier for this application.
   application_id : blob;
+  // Challenge preventing reuse as a different authorization.
   nonce : blob;
+  // Exact service authorized to consume this intent.
   service_canister : principal;
+  // Deployment domain of the request or service.
   environment : Environment;
 };
+// Immutable product benefit and qualification policy snapshot.
 type MembershipPolicy = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Required PANDA stake calculation under this policy.
   threshold : Threshold;
   // Governance-approved service cost reservation, not cash revenue.
   subsidy_units : nat64;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Inclusive activation time in Unix milliseconds.
   effective_at_ms : nat64;
+  // Immutable version identifier within this policy or catalog.
   version : nat64;
 };
+// Verified order deposit and its remaining refund allocation.
 type MerchantDeposit = record {
+  // Verified source ICRC account.
   from : Account;
+  // Unallocated refundable balance in atomic units.
   refundable : nat;
+  // Verified ledger transaction index, when available.
   block : nat64;
+  // Stable merchant order identity.
   order_id : blob;
+  // Ledger transfer amount in atomic units, excluding the network fee.
   amount : nat;
 };
+// Fixed ledger outbox parameters; preserve memo and timestamp when retrying.
 type MerchantTransfer = record {
+  // Fixed outgoing ICRC destination.
   to : Account;
+  // Fixed outgoing network fee in ledger atomic units.
   fee : nat;
+  // Current lifecycle state of this record.
   status : MerchantTransferStatus;
+  // Earlier transfer replaced by this known-unsent fee revision.
   replaces : opt nat64;
+  // Sender timestamp in Unix nanoseconds, preserved on retries.
   created_at_time_ns : nat64;
+  // Fixed ledger memo preserved on retries.
   memo : blob;
+  // Replacement transfer identifier, when superseded.
   replaced_by : opt nat64;
+  // Transfer identifier within the order.
   transfer_id : nat64;
+  // Verified ledger transaction index, when available.
   block : opt nat64;
+  // Stable merchant order identity.
   order_id : blob;
+  // Ledger transfer amount in atomic units, excluding the network fee.
   amount : nat;
 };
+// Ledger transfer lifecycle with explicit ambiguous and superseded states.
 type MerchantTransferStatus = variant {
+  // A new transfer replaces this known-unsent transfer.
   Superseded;
+  // The request or transfer was definitively rejected.
   Rejected;
+  // Ledger execution has been confirmed.
   Succeeded;
+  // Ledger call is in progress.
   InFlight;
+  // An earlier ledger attempt may have committed; reconcile the same transfer.
   Unknown;
+  // Transfer is prepared but has not started.
   Pending;
 };
+// Versioned monthly quota calculation; retain prior segments when terms change.
 type MonthEntitlement = record {
+  // Revision of business terms or qualification, independent of lease refreshes.
   business_revision : nat64;
+  // Version of the monthly allowance algorithm.
   calculation_version : nat16;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Contiguous quota segments, limited to 64 by protocol validation.
   segments : vec MonthSegment;
+  // Total monthly units, rounding down once after summing weighted durations.
   allowed_units : nat64;
+  // Versioned execution-cost weights.
   weights : ExecutionWeights;
+  // Revision of the retained monthly calculation.
   month_revision : nat64;
   // YYYYMM in UTC.
   month_utc : nat32;
 };
+// Contiguous half-open UTC millisecond interval weighted by a full-month quota.
 type MonthSegment = record {
+  // Inclusive segment start in Unix milliseconds.
   start_ms : nat64;
+  // Full-month units applicable during this segment.
   monthly_units : nat64;
+  // Exclusive segment end in Unix milliseconds.
   end_ms : nat64;
+  // Contract supporting the segment, or None for Free.
   source_contract_id : opt blob;
 };
+// Fixed quote and the exact authorization to open it.
 type OpenOrder = record {
+  // Frozen price, asset, interval and deadline terms.
   quote : OrderQuote;
+  // Exact beneficiary intent approved for this operation.
   authorization : MembershipIntent;
 };
+// Commercial change requested under a beneficiary-approved order.
 type OrderAction = variant {
-  Buyout : record { contract_id : blob };
-  Storage : record { product_id : blob };
-  Upgrade : record { plan : PlanId };
-  Renew : record { plan : PlanId };
-  Subscribe : record { plan : PlanId };
+  // Replace the remaining SNS-funded term with cash.
+  Buyout : record {
+    // Product contract identity.
+    contract_id : blob;
+  };
+  // Purchase the specified additional storage product.
+  Storage : record {
+    // Product identifier within this protocol.
+    product_id : blob;
+  };
+  // Upgrade an existing base benefit.
+  Upgrade : record {
+    // Requested tier or fixed plan snapshot.
+    plan : PlanId;
+  };
+  // Renew an existing benefit for a subsequent term.
+  Renew : record {
+    // Requested tier or fixed plan snapshot.
+    plan : PlanId;
+  };
+  // Start a base subscription.
+  Subscribe : record {
+    // Requested tier or fixed plan snapshot.
+    plan : PlanId;
+  };
 };
+// Frozen merchant terms; funding and activation have separate exclusive deadlines.
 type OrderQuote = record {
+  // Service principal in ledger atomic units, excluding fee reserve.
   amount_atomic : nat;
+  // Ledger atomic units reserved for network fees.
   fee_reserve : nat;
+  // Original fixed request.
   request : QuoteOrder;
+  // Requested or frozen benefit interval.
   term : TermRule;
+  // Record creation time in Unix milliseconds.
   created_at_ms : nat64;
+  // Exclusive ledger-commit deadline for primary funding, in Unix milliseconds.
   fund_by_ms : nat64;
+  // Commerce canister authoritative for this order or lease.
   home_commerce : principal;
+  // Fixed catalog snapshot.
   catalog : Catalog;
+  // Exclusive service activation deadline in Unix milliseconds.
   activate_by_ms : nat64;
 };
+// Merchant order lifecycle; a refund decision is separate from ledger payout.
 type OrderStatus = variant {
+  // Benefit closure is in progress.
   Closing;
+  // Benefit is active under its recorded terms.
   Active;
+  // Order is authorized and awaiting qualifying ledger funding.
   AwaitingFunding;
+  // Order was cancelled without activation.
   Cancelled;
+  // Exact beneficiary authorization is pending.
   Authorizing;
+  // Refund direction is fixed; payout may still be pending.
   RefundCommitted;
 };
-type PlanId = variant { Max; Pro; Free; Plus };
+// Base resource tier; it grants no account or cryptographic permissions.
+type PlanId = variant {
+  // Max base tier.
+  Max;
+  // Pro base tier.
+  Pro;
+  // Free base tier.
+  Free;
+  // Plus base tier.
+  Plus;
+};
+// Immutable base-plan price, limits, weights and policy snapshot.
 type PlanVersion = record {
+  // Immutable catalog version containing this plan.
   catalog_version : nat64;
+  // Version of the accepted service terms.
   terms_version : nat64;
+  // Integer annual or product price in USD cents.
   price_cents : nat64;
+  // Qualification policy for SNS funding, when configured.
   membership_policy_version : opt nat64;
+  // Versioned execution-cost weights.
   weights : ExecutionWeights;
+  // Base resource tier.
   plan_id : PlanId;
+  // Base resource limits.
   limits : ResourceLimits;
 };
+// Request for a fixed quote; creating this value neither charges nor authorizes payment.
 type QuoteOrder = record {
+  // Requested commercial change.
   action : OrderAction;
+  // Operation identifier reused only with identical terms.
   op_id : blob;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // ICRC source account required for primary funding.
   payer : Account;
+  // Product business revision required for compare-and-swap.
   expected_business_revision : nat64;
 };
+// Logical storage, active-channel and formal-execution resource limits.
 type ResourceLimits = record {
+  // Number of active sponsored channel slots.
   active_channels : nat64;
+  // Full UTC-month allowance of weighted formal-execution units.
   monthly_execution_units : nat64;
+  // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
 type Result = variant { Ok : MembershipDecisionReceipt; Err : Error };
@@ -376,36 +657,77 @@ type Result_6 = variant { Ok : ExecutionEntitlement; Err : Error };
 type Result_7 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
 type Result_8 = variant { Ok : OrderQuote; Err : Error };
 type Result_9 = variant { Ok : EntitlementView; Err : Error };
+// Current resource-source state, distinct from account security state.
 type SourceStatus = variant {
+  // Current supporting facts cannot be verified.
   Unverifiable;
+  // Free base tier.
   Free;
+  // Benefit closure is in progress.
   Closing;
+  // Benefit is active under its recorded terms.
   Active;
+  // New paid resource admission is suspended.
   Suspended;
+  // Known qualification loss is within the repair period.
   RepairRequired;
+  // The source interval has expired.
   Expired;
 };
+// Paid storage entitlement with its own interval and issued-lease deadline.
 type StorageAddon = record {
+  // Product contract identity.
   contract_id : blob;
+  // Inclusive interval start in Unix milliseconds.
   starts_at_ms : nat64;
+  // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
+  // Stable merchant order identity.
   order_id : blob;
+  // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
+  // Latest resource-lease deadline already issued, in Unix milliseconds.
   last_issued_until_ms : nat64;
 };
+// Additional storage product with fixed size, duration and price.
 type StorageProduct = record {
+  // Product identifier within this protocol.
   product_id : blob;
+  // Integer annual or product price in USD cents.
   price_cents : nat64;
+  // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
+  // Product duration in milliseconds.
   duration_ms : nat64;
 };
+// Calendar-year term or an explicit half-open UTC millisecond interval.
 type TermRule = variant {
-  Fixed : record { starts_at_ms : nat64; expires_at_ms : nat64 };
+  // Explicit half-open interval.
+  Fixed : record {
+    // Inclusive interval start in Unix milliseconds.
+    starts_at_ms : nat64;
+    // Exclusive interval end in Unix milliseconds.
+    expires_at_ms : nat64;
+  };
+  // One calendar year; February 29 is clamped to February 28.
   CalendarYear;
 };
+// Integer PANDA stake requirement; AnnualPrice is rounded up by the protocol helper.
 type Threshold = variant {
-  AnnualPrice : record { price_cents : nat64; r_den : nat; r_num : nat };
-  FixedPanda : record { atomic : nat };
+  // Annual USD-cent price converted at a rational PANDA/USD ratio.
+  AnnualPrice : record {
+    // Integer annual or product price in USD cents.
+    price_cents : nat64;
+    // Positive denominator of the PANDA-per-USD conversion ratio.
+    r_den : nat;
+    // Positive numerator of the PANDA-per-USD conversion ratio.
+    r_num : nat;
+  };
+  // Fixed positive PANDA atomic stake.
+  FixedPanda : record {
+    // Positive PANDA amount in ledger atomic units.
+    atomic : nat;
+  };
 };
 service : (CommerceInit) -> {
   apply_membership_decision : (MembershipDecision) -> (Result);

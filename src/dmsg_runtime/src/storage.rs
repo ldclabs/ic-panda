@@ -44,23 +44,47 @@ impl<T: StableCodec> StableCodec for Option<T> {
     }
 }
 
-/// Stable-memory adapter for [`StableCodec`] values.
-#[derive(Clone, Debug)]
-pub struct CompactStored<T>(pub T);
+/// Stable-memory adapter holding the representation directly. Map writes build
+/// it once from a borrowed domain value, without first cloning that entire value.
+pub struct CompactStored<T: StableCodec> {
+    repr: T::Repr,
+}
+
+impl<T: StableCodec> CompactStored<T> {
+    pub fn new(value: &T) -> Self {
+        Self {
+            repr: value.to_repr(),
+        }
+    }
+
+    pub fn into_inner(self) -> T {
+        T::from_repr(self.repr)
+    }
+
+    /// Read the heap-resident value of a StableCell without serializing it again.
+    pub fn value(&self) -> T
+    where
+        T::Repr: Clone,
+    {
+        T::from_repr(self.repr.clone())
+    }
+}
 
 impl<T: StableCodec> Storable for CompactStored<T> {
     const BOUND: Bound = Bound::Unbounded;
 
     fn to_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(compact_bytes(&self.0))
+        Cow::Owned(cbor2::to_vec(&self.repr).expect("compact stable encoding"))
     }
 
     fn into_bytes(self) -> Vec<u8> {
-        compact_bytes(&self.0)
+        cbor2::to_vec(&self.repr).expect("compact stable encoding")
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        Self(compact_from_bytes(&bytes))
+        Self {
+            repr: cbor2::from_slice(&bytes).expect("compact stable record schema"),
+        }
     }
 }
 
@@ -89,13 +113,13 @@ impl<V: Serialize + DeserializeOwned + Clone> StableRecord<V> for Stored<V> {
     }
 }
 
-impl<V: StableCodec + Clone> StableRecord<V> for CompactStored<V> {
+impl<V: StableCodec> StableRecord<V> for CompactStored<V> {
     fn new(value: &V) -> Self {
-        Self(value.clone())
+        Self::new(value)
     }
 
     fn into_value(self) -> V {
-        self.0
+        self.into_inner()
     }
 }
 
@@ -245,5 +269,46 @@ mod tests {
 
         let bytes = cbor2::to_vec(&encoded).unwrap();
         assert_eq!(compact_from_bytes::<Domain>(&bytes), value);
+    }
+
+    #[test]
+    fn compact_maps_accept_nonclone_domains_and_preserve_cell_and_map_bytes() {
+        struct NonClone(Vec<u8>);
+
+        impl StableCodec for NonClone {
+            type Repr = serde_bytes::ByteBuf;
+
+            fn to_repr(&self) -> Self::Repr {
+                self.0.clone().into()
+            }
+
+            fn from_repr(repr: Self::Repr) -> Self {
+                Self(repr.into_vec())
+            }
+        }
+
+        let value = NonClone(vec![42; 4096]);
+        assert_eq!(
+            CompactStored::new(&value).into_bytes(),
+            compact_bytes(&value)
+        );
+        let memory = VectorMemory::default();
+        let mut map = StableBTreeMap::<Vec<u8>, CompactStored<NonClone>, _>::init(memory.clone());
+        map.put(b"key", &value);
+        map.put(b"key", &value);
+        drop(map);
+        let mut map = StableBTreeMap::<Vec<u8>, CompactStored<NonClone>, _>::init(memory);
+        assert_eq!(map.load(b"key").unwrap().0, value.0);
+        map.delete(b"key");
+        assert!(!map.contains(b"key"));
+
+        let memory = VectorMemory::default();
+        let cell =
+            ic_stable_structures::StableCell::init(memory.clone(), CompactStored::new(&value));
+        assert_eq!(cell.get().value().0, value.0);
+        drop(cell);
+        let cell =
+            ic_stable_structures::StableCell::init(memory, CompactStored::new(&NonClone(vec![])));
+        assert_eq!(cell.get().value().0, value.0);
     }
 }

@@ -1,7 +1,12 @@
+// Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Canister authoritative for the beneficiary subject.
   authority_canister : principal;
+  // Opaque subject bytes in the registered schema.
   subject_bytes : blob;
+  // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
 // IC-certified query response. Merely decoding this value authenticates nothing.
@@ -27,49 +32,102 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
+// Relationship between a new claim and an existing benefit commitment.
 type ClaimChange = variant {
+  // Start a new independent benefit.
   Start;
-  Upgrade : record { previous_claim : blob };
-  Replace : record { previous_claim : blob };
-  Renew : record { previous_claim : blob };
+  // Upgrade an existing base benefit.
+  Upgrade : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
+  // Replace the qualifying claim supporting an existing benefit.
+  Replace : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
+  // Renew an existing benefit for a subsequent term.
+  Renew : record {
+    // Existing claim whose benefit is being changed.
+    previous_claim : blob;
+  };
 };
+// Frozen qualification request and beneficiary authorization.
 type ClaimRequest = record {
+  // Requested or frozen benefit interval.
   term : TermRule;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Requested relationship to an earlier claim.
   change : ClaimChange;
+  // Immutable qualification policy version.
   policy_version : nat64;
+  // Product business revision required for compare-and-swap.
   expected_business_revision : nat64;
+  // Exact beneficiary intent approved for this operation.
   authorization : MembershipIntent;
+  // Fixed PANDA SNS neuron identifier.
   neuron_id : blob;
 };
+// Durable qualification and product-decision lifecycle.
 type ClaimStatus = variant {
+  // Qualified observation is waiting out the admission cooling period.
   CoolingDown;
+  // Benefit closure is in progress.
   Closing;
+  // Benefit is active under its recorded terms.
   Active;
+  // Exclusive binding has been released.
   Released;
+  // The request or transfer was definitively rejected.
   Rejected;
+  // Initial qualification checks are pending.
   Checking;
+  // A durable product decision awaits acknowledgment.
   Applying;
 };
 // Public qualification leaf deliberately excludes economic identities and raw neurons.
 type ClaimView = record {
+  // Current lifecycle state of this record.
   status : ClaimStatus;
+  // Membership canister authoritative for this claim.
   home_membership : principal;
+  // Idempotency identifier of the product decision.
   decision_id : opt blob;
+  // Earliest exclusive-binding release time in Unix milliseconds.
   release_after_ms : nat64;
+  // Stable qualification claim identity.
   claim_id : blob;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Public record format version, independent of stable storage.
   schema : nat16;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
+  // Inclusive interval start in Unix milliseconds.
   starts_at_ms : nat64;
+  // Most recent qualification assessment.
   eligibility : Eligibility;
+  // Immutable qualification policy version.
   policy_version : nat64;
+  // Exclusive interval end in Unix milliseconds.
   expires_at_ms : nat64;
 };
-type Eligibility = variant { Unverifiable; Ineligible; Eligible };
+// Qualification observation; unverifiable is distinct from known ineligibility.
+type Eligibility = variant {
+  // Current supporting facts cannot be verified.
+  Unverifiable;
+  // Known not to satisfy the policy.
+  Ineligible;
+  // Known to satisfy the fixed qualification policy.
+  Eligible;
+};
 // Deployment domain used to separate identities and key derivation.
 type Environment = variant {
   // Local development deployment.
@@ -139,56 +197,108 @@ type Error = variant {
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// Shared qualification service deployment and admission limits.
 type MembershipInit = record {
+  // Maximum retained qualification claims.
   max_claims : nat64;
+  // New application limit per UTC hour.
   hourly_applications : nat32;
+  // Pinned PANDA ledger canister.
   panda_ledger : principal;
+  // Pinned PANDA SNS root canister.
   sns_root : principal;
+  // Deployment domain of the request or service.
   environment : Environment;
+  // Cooling duration in milliseconds before qualification can activate.
   cooling_ms : nat64;
+  // Governance Principal controlling this service configuration.
   governance : principal;
+  // Registered product adapters and subject schemas.
   products : vec ProductConfig;
+  // Total allowed service subsidy units, not ledger funds.
   subsidy_budget : nat64;
+  // Initial immutable qualification policies.
   policies : vec MembershipPolicy;
 };
 // A device-approved, purpose-separated intent. Actor authentication is also required.
 type MembershipIntent = record {
+  // Authenticated economic actor approving the action.
   actor : principal;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Domain-separated commitment to the exact requested action.
   action_digest : blob;
+  // Stable idempotency identifier for this application.
   application_id : blob;
+  // Challenge preventing reuse as a different authorization.
   nonce : blob;
+  // Exact service authorized to consume this intent.
   service_canister : principal;
+  // Deployment domain of the request or service.
   environment : Environment;
 };
+// Immutable product benefit and qualification policy snapshot.
 type MembershipPolicy = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Required PANDA stake calculation under this policy.
   threshold : Threshold;
   // Governance-approved service cost reservation, not cash revenue.
   subsidy_units : nat64;
+  // Opaque product benefit identity.
   benefit_id : blob;
+  // Inclusive activation time in Unix milliseconds.
   effective_at_ms : nat64;
+  // Immutable version identifier within this policy or catalog.
   version : nat64;
 };
+// Governance-registered product adapter and permitted beneficiary authorities.
 type ProductConfig = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Expected subject byte length.
   subject_size : nat16;
+  // Product canister applying membership decisions.
   adapter : principal;
+  // Canisters permitted to authorize product subjects.
   authorities : vec principal;
+  // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
 type Result = variant { Ok : ClaimView; Err : Error };
 type Result_1 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_2 = variant { Ok : MembershipPolicy; Err : Error };
 type Result_3 = variant { Ok; Err : Error };
+// Calendar-year term or an explicit half-open UTC millisecond interval.
 type TermRule = variant {
-  Fixed : record { starts_at_ms : nat64; expires_at_ms : nat64 };
+  // Explicit half-open interval.
+  Fixed : record {
+    // Inclusive interval start in Unix milliseconds.
+    starts_at_ms : nat64;
+    // Exclusive interval end in Unix milliseconds.
+    expires_at_ms : nat64;
+  };
+  // One calendar year; February 29 is clamped to February 28.
   CalendarYear;
 };
+// Integer PANDA stake requirement; AnnualPrice is rounded up by the protocol helper.
 type Threshold = variant {
-  AnnualPrice : record { price_cents : nat64; r_den : nat; r_num : nat };
-  FixedPanda : record { atomic : nat };
+  // Annual USD-cent price converted at a rational PANDA/USD ratio.
+  AnnualPrice : record {
+    // Integer annual or product price in USD cents.
+    price_cents : nat64;
+    // Positive denominator of the PANDA-per-USD conversion ratio.
+    r_den : nat;
+    // Positive numerator of the PANDA-per-USD conversion ratio.
+    r_num : nat;
+  };
+  // Fixed positive PANDA atomic stake.
+  FixedPanda : record {
+    // Positive PANDA amount in ledger atomic units.
+    atomic : nat;
+  };
 };
 service : (MembershipInit) -> {
   advance_application : (blob) -> (Result);

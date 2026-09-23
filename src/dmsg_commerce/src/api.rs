@@ -755,7 +755,10 @@ async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
     let o = order(id)?;
     t.status = MerchantTransferStatus::InFlight;
     save_transfer(&t);
-    let result: Result<std::result::Result<Nat, TransferError>> = dmsg_runtime::call(
+    let result: std::result::Result<
+        std::result::Result<Nat, TransferError>,
+        dmsg_runtime::CallFailure,
+    > = dmsg_runtime::call_classified(
         o.input.quote.catalog.ledger,
         "icrc1_transfer",
         (TransferArg {
@@ -785,10 +788,19 @@ async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
             save_transfer(&t);
             Ok(t)
         }
-        Err(_) => {
-            t.status = MerchantTransferStatus::Unknown;
+        Err(failure) => {
+            let unknown = failure.preserves_unknown(unknown);
+            t.status = if unknown {
+                MerchantTransferStatus::Unknown
+            } else {
+                MerchantTransferStatus::Rejected
+            };
             save_transfer(&t);
-            Err(Error::ExecutionUnknown)
+            Err(if unknown {
+                Error::ExecutionUnknown
+            } else {
+                failure.into()
+            })
         }
     }
 }

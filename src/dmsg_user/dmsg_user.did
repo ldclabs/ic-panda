@@ -170,10 +170,15 @@ type Approval = record {
   // Next sequence expected for this device; contributes to replay protection.
   sequence : nat64;
 };
+// Product, authority and opaque subject binding; decoding does not establish control.
 type Beneficiary = record {
+  // Product identifier within this protocol.
   product_id : text;
+  // Canister authoritative for the beneficiary subject.
   authority_canister : principal;
+  // Opaque subject bytes in the registered schema.
   subject_bytes : blob;
+  // Registered schema identifying how to interpret subject_bytes.
   subject_schema : text;
 };
 // Explicit device permission; authentication alone grants none of these rights.
@@ -400,16 +405,27 @@ type ExecutionResult = record {
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
+// Monthly execution counters; retrying an existing operation must not reserve again.
 type ExecutionUsage = record {
+  // Stable 12-byte dMsg account identity.
   account_id : blob;
+  // Revision of business terms or qualification, independent of lease refreshes.
   business_revision : nat64;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Units reserved by nonterminal executions.
   held_units : nat64;
+  // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
+  // Total monthly units, rounding down once after summing weighted durations.
   allowed_units : nat64;
+  // Units charged to completed executions.
   charged_units : nat64;
+  // Execution weight version used for this accounting.
   weight_policy_version : nat64;
+  // Revision of the retained monthly calculation.
   month_revision : nat64;
+  // UTC year and month encoded as YYYYMM.
   month_utc : nat32;
 };
 // Name ownership operation authorized by an account.
@@ -481,21 +497,34 @@ type KeyPurpose = variant {
   // Key domain for text statements.
   Statement;
 };
+// Authority response for an exact intent, with a short validity deadline.
 type MembershipAuthorization = record {
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Account security revision checked by the authority.
   security_epoch : nat64;
+  // Authority verification time in Unix milliseconds.
   verified_at_ms : nat64;
+  // Commitment to the complete approved intent.
   intent_digest : blob;
 };
 // A device-approved, purpose-separated intent. Actor authentication is also required.
 type MembershipIntent = record {
+  // Authenticated economic actor approving the action.
   actor : principal;
+  // Product subject receiving the benefit.
   beneficiary : Beneficiary;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Domain-separated commitment to the exact requested action.
   action_digest : blob;
+  // Stable idempotency identifier for this application.
   application_id : blob;
+  // Challenge preventing reuse as a different authorization.
   nonce : blob;
+  // Exact service authorized to consume this intent.
   service_canister : principal;
+  // Deployment domain of the request or service.
   environment : Environment;
 };
 // Idempotent account mutation result, distinct from a certified execution receipt.

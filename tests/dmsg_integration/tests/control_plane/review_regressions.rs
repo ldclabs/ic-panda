@@ -1098,3 +1098,76 @@ fn bounded_failed_history_keeps_the_latest_transfer_recoverable() {
     assert_eq!(current.decision, FundsDecision::SettlementCommitted);
     assert_eq!(current.transferred, 1100);
 }
+
+#[test]
+fn clean_transport_rejection_preserves_earlier_unknown_payouts() {
+    let f = Fixture::new();
+    let escrow = settle_order(&f, &open_order(&f));
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "lose_next_response",
+        (),
+    );
+    let unknown: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(99),
+        "process_transfer",
+        (escrow.escrow_id, 0u64),
+    );
+    assert_eq!(unknown, Err(Error::ExecutionUnknown));
+    let before: Result<EscrowInfo> = query(
+        &f.ic,
+        f.payment,
+        person(99),
+        "get_escrow",
+        (escrow.escrow_id,),
+    );
+
+    // Removing this disposable test ledger causes a clean DestinationInvalid
+    // rejection. It says nothing about the first transfer's lost reply.
+    f.ic.stop_canister(f.ledger, None).unwrap();
+    f.ic.delete_canister(f.ledger, None).unwrap();
+    let unsent: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(99),
+        "process_transfer",
+        (escrow.escrow_id, 1u64),
+    );
+    assert!(matches!(unsent, Err(Error::Unavailable(_))), "{unsent:?}");
+    let still_unknown: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(99),
+        "process_transfer",
+        (escrow.escrow_id, 0u64),
+    );
+    assert_eq!(still_unknown, Err(Error::ExecutionUnknown));
+    let legs: Result<Vec<TransferLeg>> = query(
+        &f.ic,
+        f.payment,
+        person(99),
+        "list_transfers",
+        (escrow.escrow_id, None::<u64>),
+    );
+    let legs = legs.unwrap();
+    assert_eq!(
+        legs.iter().find(|leg| leg.leg_id == 0).unwrap().status,
+        LegStatus::Unknown
+    );
+    assert_eq!(
+        legs.iter().find(|leg| leg.leg_id == 1).unwrap().status,
+        LegStatus::Rejected
+    );
+    let after: Result<EscrowInfo> = query(
+        &f.ic,
+        f.payment,
+        person(99),
+        "get_escrow",
+        (escrow.escrow_id,),
+    );
+    assert_eq!(before, after);
+}

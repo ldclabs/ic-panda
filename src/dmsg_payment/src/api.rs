@@ -404,8 +404,10 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
         memo: Some(leg.memo.to_vec().into()),
         amount: Nat::from(leg.amount),
     };
-    let response: Result<std::result::Result<Nat, TransferError>> =
-        stable::call(e.quote.ledger, "icrc1_transfer", (args,)).await;
+    let response: std::result::Result<
+        std::result::Result<Nat, TransferError>,
+        stable::CallFailure,
+    > = stable::call_classified(e.quote.ledger, "icrc1_transfer", (args,)).await;
     let current = get_leg(escrow_id, leg_id)?;
     if current.status == LegStatus::Succeeded {
         return Ok(current);
@@ -438,10 +440,19 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
             put_leg(&leg);
             Ok(leg)
         }
-        Err(_) => {
-            leg.status = LegStatus::Unknown;
+        Err(failure) => {
+            let unknown = failure.preserves_unknown(was_unknown);
+            leg.status = if unknown {
+                LegStatus::Unknown
+            } else {
+                LegStatus::Rejected
+            };
             put_leg(&leg);
-            Err(Error::ExecutionUnknown)
+            Err(if unknown {
+                Error::ExecutionUnknown
+            } else {
+                failure.into()
+            })
         }
     }
 }

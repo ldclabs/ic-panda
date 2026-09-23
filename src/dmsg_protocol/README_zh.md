@@ -4,7 +4,7 @@
 
 dMsg 的确定性编码、文档签名验证和请求辅助库。本库在 [dmsg_types](https://github.com/ldclabs/ic-panda/tree/main/src/dmsg_types) 上实现公开协议，只执行本地计算：不调用 ICP、不查询账本、不操作 canister 存储、不进行网络发现，也不执行账户授权。
 
-可用于准备可移植 COSE 文档、验证返回的签名产物、构造设备批准摘要，以及将文档与已经独立认证的执行回执进行绑定检查。所有公开 API 都在 crate 根重导出；源码模块仅用于组织实现，不是公开导入路径。
+可用于准备可移植 COSE 文档、验证返回的签名产物、构造设备批准摘要，以及将文档与已经独立认证的执行回执进行绑定检查。通用辅助函数在 crate 根重导出；商业与共享会员辅助函数分别从公开的 `billing`、`membership` 模块导入。
 
 ## 安装与依赖方向
 
@@ -45,6 +45,8 @@ dmsg_protocol = "0.1"
 | 检查基础约束 | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | 提供可信 caller、时间和状态；辅助函数不读取或修改它们 |
 
 Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原始严格 Ed25519 验签；`verify_artifact` 还验证 COSE 文档 profile。`authenticated` 仅排除匿名和管理 canister Principal，不证明账户成员身份。
+
+商业辅助函数使用 `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` 和 `dmsg_protocol::membership::{mul_div, required_panda}` 等路径。金额使用整数原子单位，商业时间使用 UTC Unix 毫秒；报价和本金门槛向上取整，月度额度累计加权时长后统一向下取整。摘要构造不执行授权，具体字段校验范围见 rustdoc。
 
 ## 本地签署并验证文档
 

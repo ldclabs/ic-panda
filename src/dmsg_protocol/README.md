@@ -4,7 +4,7 @@ English | [简体中文](https://github.com/ldclabs/ic-panda/blob/main/src/dmsg_
 
 Deterministic encoding, document signature verification, and request helpers for dMsg. This crate implements the public protocol on top of [dmsg_types](https://github.com/ldclabs/ic-panda/tree/main/src/dmsg_types). It performs local computation only: no ICP calls, ledger queries, canister storage, network discovery, or account authorization.
 
-Use it to prepare portable COSE documents, verify returned artifacts, construct device approval digests, and check bindings between documents and independently authenticated execution receipts. All public APIs are re-exported at the crate root; the source modules are implementation organization, not public import paths.
+Use it to prepare portable COSE documents, verify returned artifacts, construct device approval digests, and check bindings between documents and independently authenticated execution receipts. Common helpers are re-exported at the crate root. Commercial and shared-membership helpers are imported from the public `billing` and `membership` modules.
 
 ## Installation and dependency direction
 
@@ -45,6 +45,8 @@ Publication settings do not prove a version is already on crates.io. Both packag
 | Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
 
 Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
+
+Import commercial helpers from `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` and `dmsg_protocol::membership::{mul_div, required_panda}`. Amounts use integer atomic units and business times use UTC Unix milliseconds. Quotes and stake thresholds round up; monthly allowances sum weighted durations before rounding down once. Digest construction performs no authorization; rustdoc describes each validation boundary.
 
 ## Sign and verify a document locally
 

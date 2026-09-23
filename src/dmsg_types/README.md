@@ -55,6 +55,8 @@ These links point to the public repository's main branch, which changes during d
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | Recipient authorization, escrow accounting, and ledger transfers |
 | `profiles::delivery` | `Quote`, `OpenEscrow`, `SignedReceipt` | Optional paid-delivery application protocol |
 | `account` | `account_cbor` | Explicit Serde/CBOR representation of ICRC Account |
+| `membership` | `Beneficiary`, `ClaimRequest`, `MembershipDecision` | Shared qualification, exclusive claims and durable benefit decisions |
+| `billing` | `Catalog`, `BillingOrder`, `EntitlementView`, `MonthEntitlement` | Merchant orders, resource leases and monthly execution accounting |
 
 Types in `protocol` and `signing`, plus `AccountId`, are re-exported at the crate root. Import other types through their modules. An “optional” profile is a business protocol an integrator may choose not to use, not a Cargo feature.
 

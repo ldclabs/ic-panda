@@ -33,28 +33,28 @@ thread_local! {
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, CellMemory>> =
         RefCell::new(StableCell::init(
             RestrictedMemory::new(memory(0), 0..BUDGET_PAGE),
-            CompactStored(None),
+            CompactStored::new(&None),
         ));
     static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<ExecutionResult>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     static FORMAL_BUDGET: RefCell<StableCell<CompactStored<Budget>, Memory>> = RefCell::new(
-        StableCell::init(memory(3), CompactStored(Budget::default())),
+        StableCell::init(memory(3), CompactStored::new(&Budget::default())),
     );
     static BUDGET: RefCell<StableCell<CompactStored<Budget>, CellMemory>> =
         RefCell::new(StableCell::init(
             RestrictedMemory::new(memory(0), BUDGET_PAGE..BUDGET_PAGE + 1),
-            CompactStored(Budget::default()),
+            CompactStored::new(&Budget::default()),
         ));
 }
 
 pub(crate) fn cfg() -> Config {
-    CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
+    CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
 }
 
 pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(c.clone()))));
 }
 
 pub(crate) fn home(account_id: &AccountId) -> Result<model::Home> {
@@ -92,11 +92,11 @@ pub(crate) fn reserve_budget(
     formal: bool,
 ) -> Result<()> {
     BUDGET.with_borrow_mut(|t| {
-        let mut budget = t.get().0.clone();
+        let mut budget = t.get().value();
         budget.reserve(now, cycles, config.daily_executions, config.daily_cycles)?;
         if formal {
             FORMAL_BUDGET.with_borrow_mut(|f| {
-                let mut value = f.get().0.clone();
+                let mut value = f.get().value();
                 value.reserve(
                     now,
                     cycles,
@@ -105,11 +105,11 @@ pub(crate) fn reserve_budget(
                         .saturating_sub(config.daily_executions / 5),
                     config.daily_cycles - config.daily_cycles / 5,
                 )?;
-                f.set(CompactStored(value));
-                Ok(())
+                f.set(CompactStored::new(&value));
+                Ok::<(), Error>(())
             })?;
         }
-        t.set(CompactStored(budget));
+        t.set(CompactStored::new(&budget));
         Ok(())
     })
 }

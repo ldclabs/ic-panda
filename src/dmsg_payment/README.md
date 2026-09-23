@@ -23,7 +23,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 3 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；公开支付摘要和认证叶编码不变。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 5 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；公开支付摘要和认证叶编码不变。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 执行成本与恢复边界
 
@@ -86,3 +86,5 @@ POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
 
 Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 4。
+
+费用政策使用独立紧凑表示。转账本次调用确定未执行且没有历史未知结果时进入 Rejected；已有 Unknown 始终保留原参数并继续对账。

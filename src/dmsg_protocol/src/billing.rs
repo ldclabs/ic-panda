@@ -1,9 +1,9 @@
 //! dmsg-commerce/1 arithmetic, calendar boundaries and authenticated leaf keys.
-#![allow(missing_docs)]
-use crate::{digest, membership::mul_div};
+use crate::{digest, ensure_valid, membership::mul_div};
 use chrono::{Datelike, TimeZone, Utc};
 use dmsg_types::{billing::*, membership::*, *};
 
+/// Construct the dMsg product/schema binding without authenticating its home.
 pub fn beneficiary(home: candid::Principal, account: &AccountId) -> Beneficiary {
     Beneficiary {
         product_id: "dmsg".into(),
@@ -13,6 +13,8 @@ pub fn beneficiary(home: candid::Principal, account: &AccountId) -> Beneficiary 
     }
 }
 
+/// Decode a dMsg beneficiary's 12-byte account ID. Does not check authority trust.
+/// Other product/schema names return UnsupportedProtocol; wrong size is InvalidInput.
 pub fn beneficiary_account(b: &Beneficiary) -> Result<AccountId> {
     ensure(
         b.product_id == "dmsg" && b.subject_schema == "dmsg-account-v1",
@@ -26,34 +28,42 @@ pub fn beneficiary_account(b: &Beneficiary) -> Result<AccountId> {
     ))
 }
 
+/// Single-segment certified resource-entitlement path for the complete beneficiary.
 pub fn entitlement_key(b: &Beneficiary) -> Hash {
     digest("dmsg/commerce/entitlement-key/v1", b)
 }
 
+/// Single-segment certified path for the current dMsg catalog.
 pub fn catalog_key() -> Hash {
     digest("dmsg/commerce/catalog-key/v1", &"dmsg")
 }
 
+/// Single-segment certified path for a merchant order.
 pub fn order_key(id: Hash) -> Hash {
     digest("dmsg/commerce/order-key/v1", &id)
 }
 
+/// Commit to frozen order terms under dmsg/commerce/order/v1; no validation.
 pub fn order_digest(q: &OrderQuote) -> Hash {
     digest("dmsg/commerce/order/v1", q)
 }
 
+/// Commit to a refund action for the specified order; no authorization.
 pub fn refund_digest(order_id: Hash) -> Hash {
     digest("dmsg/commerce/refund/v1", &order_id)
 }
 
+/// Commit to a membership close action; does not release the exclusive binding.
 pub fn close_claim_digest(claim_id: Hash) -> Hash {
     digest("membership/close/v1", &claim_id)
 }
 
+/// Commit to an immutable plan snapshot, including prices, limits and weights.
 pub fn plan_digest(plan: &PlanVersion) -> Hash {
     digest("dmsg/commerce/plan/v1", plan)
 }
 
+/// Single-segment certified execution-usage path; month is UTC YYYYMM.
 pub fn usage_key(account: &AccountId, month: u32) -> Hash {
     digest("dmsg/commerce/usage-key/v1", &(account, month))
 }
@@ -63,6 +73,8 @@ fn datetime(ms: u64) -> Result<chrono::DateTime<Utc>> {
     chrono::DateTime::from_timestamp_millis(n).ok_or_else(|| invalid("timestamp"))
 }
 
+/// Same UTC instant one calendar year later, clamping February 29 to February 28.
+/// Input/output are Unix milliseconds; invalid timestamps return InvalidInput.
 pub fn next_year(ms: u64) -> Result<u64> {
     let t = datetime(ms)?;
     let year = t.year().checked_add(1).ok_or(Error::QuotaExceeded)?;
@@ -73,6 +85,7 @@ pub fn next_year(ms: u64) -> Result<u64> {
     u64::try_from(next.timestamp_millis()).map_err(|_| invalid("timestamp"))
 }
 
+/// Convert Unix milliseconds to UTC YYYYMM; rejects unsupported timestamps.
 pub fn month_utc(ms: u64) -> Result<u32> {
     let t = datetime(ms)?;
     u32::try_from(t.year())
@@ -82,6 +95,8 @@ pub fn month_utc(ms: u64) -> Result<u32> {
         .ok_or_else(|| invalid("UTC month"))
 }
 
+/// Half-open UTC month interval in Unix milliseconds for YYYYMM.
+/// Invalid months or dates before the Unix epoch return InvalidInput.
 pub fn month_bounds(month: u32) -> Result<(u64, u64)> {
     let year = i32::try_from(month / 100).map_err(|_| invalid("year"))?;
     let m = month % 100;
@@ -103,6 +118,8 @@ pub fn month_bounds(month: u32) -> Result<(u64, u64)> {
 }
 
 /// Sum exact weighted milliseconds, then round once for the entire month.
+/// At most 64 contiguous segments must cover the month from account creation
+/// (or month start for older accounts). Gaps/overlaps return IntegrityFailed.
 pub fn monthly_allowance(month: u32, created_at_ms: u64, segments: &[MonthSegment]) -> Result<u64> {
     let (start, end) = month_bounds(month)?;
     ensure(segments.len() <= 64, Error::QuotaExceeded)?;
@@ -122,11 +139,15 @@ pub fn monthly_allowance(month: u32, created_at_ms: u64, segments: &[MonthSegmen
     u64::try_from(total / u128::from(end - start)).map_err(|_| Error::QuotaExceeded)
 }
 
+/// Convert integer USD cents to ledger atomic units, rounding up once.
+/// The caller selects a trusted asset; decimals above 18 return InvalidInput.
 pub fn cents_atomic(cents: u64, decimals: u8) -> Result<u128> {
-    ensure(decimals <= 18, invalid("ledger decimals"))?;
+    ensure_valid(decimals <= 18, "ledger decimals")?;
     mul_div(cents.into(), 10u128.pow(decimals.into()), 100, true)
 }
 
+/// Build the four initial plan snapshots at the supplied catalog version.
+/// This neither approves deployment prices nor validates a governance version.
 pub fn default_plans(version: u64) -> Vec<PlanVersion> {
     [
         (PlanId::Free, 0, 104_857_600, 2, 3),
@@ -160,13 +181,15 @@ pub fn default_plans(version: u64) -> Vec<PlanVersion> {
 }
 
 /// Platform fee is added to, never subtracted from, the recipient's net amount.
+/// Returns max(ceil(net*rate_bps/10000), minimum_atomic). Version must be positive
+/// and rate <= 10000; policy timing and governance approval belong to the caller.
 pub fn delivery_service_fee(
     net: u128,
     policy: &dmsg_types::payment::DeliveryFeePolicy,
 ) -> Result<u128> {
-    ensure(
+    ensure_valid(
         policy.version > 0 && policy.rate_bps <= 10_000,
-        invalid("fee policy"),
+        "fee policy",
     )?;
     Ok(mul_div(net, u128::from(policy.rate_bps), 10_000, true)?.max(policy.minimum_atomic))
 }
@@ -218,5 +241,86 @@ mod tests {
             mul_div(u128::MAX, u128::MAX, u128::MAX, true).unwrap(),
             u128::MAX
         );
+    }
+}
+
+#[cfg(test)]
+mod boundary_tests {
+    use super::*;
+
+    #[test]
+    fn month_segments_cover_only_the_accounts_lifetime_without_gaps_or_overlap() {
+        let (a, b) = month_bounds(202609).unwrap();
+        let segment = |start_ms, end_ms| MonthSegment {
+            start_ms,
+            end_ms,
+            monthly_units: 10,
+            source_contract_id: None,
+        };
+        let mid = a + (b - a) / 2;
+        assert_eq!(monthly_allowance(202609, mid, &[segment(mid, b)]), Ok(5));
+        assert_eq!(monthly_allowance(202609, b, &[]), Ok(0));
+        for segments in [
+            vec![],
+            vec![segment(a, b - 1)],
+            vec![segment(a, mid), segment(mid + 1, b)],
+            vec![segment(a, mid), segment(mid - 1, b)],
+            vec![segment(a, a)],
+            vec![segment(a, b + 1)],
+        ] {
+            assert_eq!(
+                monthly_allowance(202609, a, &segments),
+                Err(Error::IntegrityFailed)
+            );
+        }
+        assert_eq!(
+            monthly_allowance(202609, mid, &[segment(a, b)]),
+            Err(Error::IntegrityFailed)
+        );
+        let many = (0..64)
+            .map(|i| segment(a + (b - a) * i / 64, a + (b - a) * (i + 1) / 64))
+            .collect::<Vec<_>>();
+        assert_eq!(monthly_allowance(202609, a, &many), Ok(10));
+        assert_eq!(
+            monthly_allowance(202609, a, &vec![segment(a, b); 65]),
+            Err(Error::QuotaExceeded)
+        );
+    }
+
+    #[test]
+    fn calendars_fees_and_beneficiary_decoding_reject_invalid_inputs() {
+        for month in [0, 202600, 202613, 196912, u32::MAX] {
+            assert!(month_bounds(month).is_err());
+        }
+        assert!(next_year(u64::MAX).is_err());
+        assert!(month_utc(u64::MAX).is_err());
+        let (_, jan) = month_bounds(202612).unwrap();
+        assert_eq!(month_utc(jan), Ok(202701));
+        assert_eq!(cents_atomic(1, 0), Ok(1));
+        assert!(cents_atomic(1, 19).is_err());
+        let mut fee = dmsg_types::payment::DeliveryFeePolicy {
+            version: 1,
+            effective_at_ms: 0,
+            rate_bps: 500,
+            minimum_atomic: 20_000,
+        };
+        for (net, expected) in [(1, 20_000), (400_000, 20_000), (400_001, 20_001)] {
+            assert_eq!(delivery_service_fee(net, &fee), Ok(expected));
+        }
+        fee.version = 0;
+        assert!(delivery_service_fee(1, &fee).is_err());
+        fee.version = 1;
+        fee.rate_bps = 10_001;
+        assert!(delivery_service_fee(1, &fee).is_err());
+        let id = AccountId([1; 12]);
+        let mut b = beneficiary(candid::Principal::from_slice(&[1]), &id);
+        assert_eq!(beneficiary_account(&b), Ok(id));
+        b.subject_bytes = vec![1; 11].into();
+        assert!(matches!(
+            beneficiary_account(&b),
+            Err(Error::InvalidInput(_))
+        ));
+        b.product_id = "other".into();
+        assert_eq!(beneficiary_account(&b), Err(Error::UnsupportedProtocol));
     }
 }

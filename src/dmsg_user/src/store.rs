@@ -24,7 +24,7 @@ thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
-        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+        RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     pub(crate) static ACCOUNTS: RefCell<
         StableBTreeMap<Vec<u8>, CompactStored<AccountState>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(1)));
@@ -49,7 +49,7 @@ pub(crate) struct Config {
 }
 
 pub(crate) fn config() -> Config {
-    CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
+    CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
 }
 
 pub(crate) fn load(id: &AccountId) -> Result<AccountState> {
@@ -104,7 +104,7 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 5;
+pub(crate) const STABLE_SCHEMA: u16 = 6;
 
 pub(crate) fn rebuild_certification() {
     let namespace = config().init.issuer_namespace;

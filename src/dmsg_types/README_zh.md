@@ -55,6 +55,8 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | 收款授权、托管会计与账本转账 |
 | `profiles::delivery` | `Quote`, `OpenEscrow`, `SignedReceipt` | 可选付费投递应用协议 |
 | `account` | `account_cbor` | ICRC Account 的明确 Serde/CBOR 表示 |
+| `membership` | `Beneficiary`, `ClaimRequest`, `MembershipDecision` | 共享资格、跨产品占用与持久授益决定 |
+| `billing` | `Catalog`, `BillingOrder`, `EntitlementView`, `MonthEntitlement` | 现金订单、资源租约与月度执行账 |
 
 `protocol`、`signing` 中的类型以及 `AccountId` 在 crate 根重导出；其他类型按模块导入。`profiles` 的“可选”指集成方可以不使用该业务，不是 Cargo feature。
 

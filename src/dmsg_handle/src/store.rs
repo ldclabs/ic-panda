@@ -37,7 +37,7 @@ thread_local! {
         MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16),
     );
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
-        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+        RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     pub(crate) static NAMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleRecord>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static LEGACY: RefCell<
@@ -59,11 +59,11 @@ thread_local! {
 }
 
 pub(crate) fn cfg() -> Config {
-    CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
+    CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
 }
 
 pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(c.clone()))));
 }
 
 pub(crate) fn record(name: &str) -> Option<HandleRecord> {

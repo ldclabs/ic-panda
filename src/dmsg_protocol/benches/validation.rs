@@ -58,6 +58,20 @@ fn main() {
         role: ControllerRole::Administrator,
         capabilities: vec![Capability::ContentSign, Capability::FormalApprove],
     };
+    measure("mul_div_fee", 100_000, || {
+        black_box(
+            dmsg_protocol::billing::delivery_service_fee(
+                black_box(1_000_001),
+                black_box(&dmsg_types::payment::DeliveryFeePolicy {
+                    version: 1,
+                    effective_at_ms: 0,
+                    rate_bps: 500,
+                    minimum_atomic: 20_000,
+                }),
+            )
+            .unwrap(),
+        );
+    });
     measure("account_issuer", 10_000, || {
         black_box(account_issuer(black_box(namespace), black_box(&account)).unwrap());
     });

@@ -7,13 +7,21 @@ type Algorithm = variant {
   // ECDSA over secp256k1 (COSE ES256K, -47).
   EcdsaSecp256k1;
 };
+// User-home reservation for one approved formal execution, not a bearer authorization.
 type CommercialReservation = record {
+  // Execution request identity reserved exactly once.
   reservation_id : blob;
+  // Revision of business terms or qualification, independent of lease refreshes.
   business_revision : nat64;
+  // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
+  // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
+  // Execution weight version used for this accounting.
   weight_policy_version : nat64;
+  // Weighted formal-execution units reserved for this request.
   units : nat64;
+  // UTC year and month encoded as YYYYMM.
   month_utc : nat32;
 };
 // Deployment configuration for the COSE executor.

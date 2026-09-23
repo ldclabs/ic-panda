@@ -552,7 +552,7 @@ mod tests {
             state.account_id = AccountId(raw_id);
             let key = state.account_id.to_vec();
             plain.insert(key.clone(), Stored(state.clone()));
-            compact.insert(key, CompactStored(state));
+            compact.insert(key, CompactStored::new(&state));
         }
 
         let last_key = {
@@ -562,7 +562,7 @@ mod tests {
         };
         assert_eq!(
             plain.get(&last_key).unwrap().0.account_id,
-            compact.get(&last_key).unwrap().0.account_id
+            compact.get(&last_key).unwrap().into_inner().account_id
         );
 
         drop(plain);

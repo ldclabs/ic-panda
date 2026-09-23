@@ -30,11 +30,11 @@ thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
-        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+        RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     // Heap survives ordinary messages and await commit points. Persist this
     // bounded record at upgrade, not on every budget reservation.
     static CONFIG: RefCell<Option<Config>> =
-        RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().0.clone()));
+        RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
     pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
@@ -84,7 +84,7 @@ pub(crate) fn save_cfg(c: &Config) {
 }
 
 pub(crate) fn persist_config() {
-    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(cfg()))));
+    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg()))));
 }
 
 pub(crate) fn load(id: &Hash) -> Result<Escrow> {
@@ -158,4 +158,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 4;
+pub(crate) const STABLE_SCHEMA: u16 = 5;

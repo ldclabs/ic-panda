@@ -73,7 +73,7 @@ impl StableCodec for Claim {
     }
 }
 
-#[derive(Cbor)]
+#[derive(Clone, Cbor)]
 pub struct Record<T> {
     #[cbor(key = 0)]
     pub schema: u16,

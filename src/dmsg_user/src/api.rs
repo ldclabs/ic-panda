@@ -47,7 +47,7 @@ fn init(args: UserInit) {
         "hard limits"
     );
     CONFIG.with_borrow_mut(|t| {
-        t.set(CompactStored(Some(Config {
+        t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
             init: args,
             allocator,
@@ -135,7 +135,7 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
     // All fallible validation precedes these writes; one IC message commits all three.
     save(&account);
     AUTH.with_borrow_mut(|t| t.put(who.as_slice(), &id));
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(cfg))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg))));
     Ok(id)
 }
 
@@ -304,11 +304,10 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
 async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let account_id = grant.account_id.clone();
     let request_id = grant.request_id;
-    let response: Result<ExecutionResult> = match stable::call::<_, Result<ExecutionResult>>(
-        grant.home_cose,
-        "execute",
-        (grant,),
-    )
+    let response: Result<ExecutionResult> = match stable::call_classified::<
+        _,
+        Result<ExecutionResult>,
+    >(grant.home_cose, "execute", (grant,))
     .await
     {
         Ok(Ok(response)) => Ok(response),
@@ -320,9 +319,14 @@ async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
             outcome: ExecutionOutcome::Failed(error),
             charged_cycles: 0,
         }),
-        // A transport rejection is ambiguous and must retain the reservation
-        // until the original request is reconciled.
-        Err(error) => Err(error),
+        Err(stable::CallFailure::NotExecuted) => {
+            // Preserve the current state: another dispatch may have completed
+            // while this attempt was in flight. An unsent Authorized grant keeps
+            // its original sequence/reservation so retry can close the COSE slot.
+            let current = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
+            return execution::unsent_dispatch_result(current.result);
+        }
+        Err(stable::CallFailure::Unknown) => Err(Error::ExecutionUnknown),
     };
     record_response(&account_id, request_id, response)
 }

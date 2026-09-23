@@ -10,7 +10,8 @@ use crate::{storage::StableCodec, Budget};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_types::{
-    cose::*, handle::*, membership::*, payment::*, profiles::delivery::Quote, user::*, *,
+    billing::CommercialReservation, cose::*, handle::*, membership::*, payment::*,
+    profiles::delivery::Quote, user::*, *,
 };
 use icrc_ledger_types::icrc1::account::Account;
 use serde_bytes::ByteBuf;
@@ -533,6 +534,23 @@ impl StableCodec for Quote {
     }
 }
 
+stable_struct!(DeliveryFeePolicyRepr => DeliveryFeePolicy {
+    1 => version: u64,
+    2 => effective_at_ms: u64,
+    3 => rate_bps: u16,
+    4 => minimum_atomic: u128,
+});
+
+stable_struct!(CommercialReservationRepr => CommercialReservation {
+    1 => reservation_id: Hash,
+    2 => month_utc: u32,
+    3 => units: u64,
+    4 => weight_policy_version: u64,
+    5 => business_revision: u64,
+    6 => lease_revision: u64,
+    7 => valid_until_ms: u64,
+});
+
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct PaymentInitRepr {
     #[cbor(key = 1)]
@@ -542,7 +560,7 @@ pub struct PaymentInitRepr {
     #[cbor(key = 3)]
     pub platform: AccountRepr,
     #[cbor(key = 4)]
-    pub fee_policy: DeliveryFeePolicy,
+    pub fee_policy: DeliveryFeePolicyRepr,
     #[cbor(key = 11)]
     pub governance: Principal,
     #[cbor(key = 5)]
@@ -567,7 +585,7 @@ impl StableCodec for PaymentInit {
             home_user: self.home_user,
             ledger: self.ledger,
             platform: account_to_repr(&self.platform),
-            fee_policy: self.fee_policy.clone(),
+            fee_policy: self.fee_policy.to_repr(),
             governance: self.governance,
             ledger_fee: self.ledger_fee,
             max_fee: self.max_fee,
@@ -583,7 +601,7 @@ impl StableCodec for PaymentInit {
             home_user: repr.home_user,
             ledger: repr.ledger,
             platform: account_from_repr(repr.platform),
-            fee_policy: repr.fee_policy,
+            fee_policy: DeliveryFeePolicy::from_repr(repr.fee_policy),
             governance: repr.governance,
             ledger_fee: repr.ledger_fee,
             max_fee: repr.max_fee,
@@ -831,7 +849,8 @@ impl From<ExecutionKindRepr> for ExecutionKind {
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct ExecutionGrantRepr {
     #[cbor(key = 13)]
-    pub commerce: Option<dmsg_types::billing::CommercialReservation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commerce: Option<CommercialReservationRepr>,
     #[cbor(key = 1)]
     pub account_id: AccountId,
     #[cbor(key = 2)]
@@ -863,7 +882,7 @@ impl StableCodec for ExecutionGrant {
 
     fn to_repr(&self) -> Self::Repr {
         ExecutionGrantRepr {
-            commerce: self.commerce.clone(),
+            commerce: self.commerce.to_repr(),
             account_id: self.account_id.clone(),
             home_user: self.home_user,
             home_cose: self.home_cose,
@@ -881,7 +900,7 @@ impl StableCodec for ExecutionGrant {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            commerce: repr.commerce,
+            commerce: Option::<CommercialReservation>::from_repr(repr.commerce),
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
@@ -1631,4 +1650,118 @@ where
         .into_iter()
         .map(|(key, value)| (key, V::from_repr(value)))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::{compact_bytes, compact_from_bytes};
+
+    fn integer_fields(value: &cbor2::Value) {
+        let cbor2::Value::Map(fields) = value else {
+            panic!("expected a compact record")
+        };
+        assert!(fields
+            .iter()
+            .all(|(key, _)| matches!(key, cbor2::Value::Integer(_))));
+    }
+
+    fn field(value: &cbor2::Value, key: u64) -> Option<&cbor2::Value> {
+        let cbor2::Value::Map(fields) = value else {
+            panic!("expected a compact record")
+        };
+        fields
+            .iter()
+            .find(|(k, _)| *k == key.into())
+            .map(|(_, v)| v)
+    }
+
+    #[test]
+    fn commercial_reservation_is_recursive_compact_and_optional() {
+        let reservation = CommercialReservation {
+            reservation_id: Hash::new([1; 32]),
+            month_utc: 202609,
+            units: 1,
+            weight_policy_version: 1,
+            business_revision: 1,
+            lease_revision: 2,
+            valid_until_ms: 1_800_000_060_000,
+        };
+        assert_eq!(compact_bytes(&reservation).len(), 60);
+        assert_eq!(
+            compact_from_bytes::<CommercialReservation>(&compact_bytes(&reservation)),
+            reservation
+        );
+        let mut grant = ExecutionGrant {
+            account_id: AccountId([1; 12]),
+            home_user: Principal::from_slice(&[1]),
+            home_cose: Principal::from_slice(&[2]),
+            request_id: Hash::new([2; 32]),
+            execution_sequence: 1,
+            security_epoch: 1,
+            device_id: Hash::new([3; 32]),
+            device_sequence: 1,
+            approved_at: 1,
+            expires_at: 2,
+            commerce: Some(reservation),
+            max_cycles: 100,
+            kind: ExecutionKind::Derive {
+                generation: 1,
+                root_op_id: None,
+                transport_key: vec![1; 48].into(),
+            },
+        };
+        let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&grant)).unwrap();
+        integer_fields(field(&value, 13).unwrap());
+        assert_eq!(
+            compact_from_bytes::<ExecutionGrant>(&compact_bytes(&grant)),
+            grant
+        );
+        grant.commerce = None;
+        let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&grant)).unwrap();
+        assert!(field(&value, 13).is_none());
+        assert_eq!(
+            compact_from_bytes::<ExecutionGrant>(&compact_bytes(&grant)),
+            grant
+        );
+    }
+
+    #[test]
+    fn payment_configuration_uses_compact_fee_policy() {
+        let fee_policy = DeliveryFeePolicy {
+            version: 1,
+            effective_at_ms: 1_800_000_000_000,
+            rate_bps: 500,
+            minimum_atomic: 20_000,
+        };
+        assert_eq!(compact_bytes(&fee_policy).len(), 21);
+        let init = PaymentInit {
+            home_user: Principal::from_slice(&[1]),
+            ledger: Principal::from_slice(&[2]),
+            platform: Account {
+                owner: Principal::from_slice(&[3]),
+                subaccount: None,
+            },
+            governance: Principal::from_slice(&[4]),
+            fee_policy,
+            ledger_fee: 10,
+            max_fee: 20,
+            signer: ReceiptSigner {
+                epoch: 1,
+                public_key: Hash::new([1; 32]),
+                valid_from: 1,
+                valid_until: 2,
+                revoked: false,
+            },
+            max_open_per_payer: 10,
+            daily_orders: 100,
+            enabled: true,
+        };
+        let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&init)).unwrap();
+        integer_fields(field(&value, 4).unwrap());
+        assert_eq!(
+            compact_from_bytes::<PaymentInit>(&compact_bytes(&init)),
+            init
+        );
+    }
 }

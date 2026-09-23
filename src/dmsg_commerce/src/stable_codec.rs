@@ -3,7 +3,7 @@ use crate::{model::Subject, store::Config};
 use cbor2::Cbor;
 use dmsg_runtime::storage::StableCodec;
 
-#[derive(Cbor)]
+#[derive(Clone, Cbor)]
 pub struct Record<T> {
     #[cbor(key = 0)]
     pub schema: u16,

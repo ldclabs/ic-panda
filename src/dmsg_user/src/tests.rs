@@ -703,7 +703,7 @@ fn failed_budget_does_not_prune_expired_results_or_advance_sequences() {
 fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
     let mut s = initialized();
     CONFIG.with_borrow_mut(|t| {
-        t.set(CompactStored(Some(Config {
+        t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
             init: UserInit {
                 commerce_canister: candid::Principal::from_slice(&[88]),
@@ -975,4 +975,40 @@ fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
     let before = s.clone();
     assert!(account::apply(&mut s, p(1), &denied, 2, p(7)).is_err());
     assert_eq!(s, before);
+}
+
+#[test]
+fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
+    let mut s = initialized();
+    let request = execute_request(&s, 1, 1);
+    let execution = authorize(&mut s, p(1), &request, 1).unwrap();
+    assert!(matches!(
+        execution::unsent_dispatch_result(execution.result.clone()),
+        Err(Error::Unavailable(_))
+    ));
+    // Retrying uses the same grant and consumes no additional device/execution sequence.
+    let before = s.clone();
+    let retry = authorize(&mut s, p(1), &request, 2).unwrap();
+    assert_eq!(retry.grant, execution.grant);
+    assert_eq!(s, before);
+    for outcome in [
+        ExecutionOutcome::Executing,
+        ExecutionOutcome::Unknown(Error::ExecutionUnknown),
+        ExecutionOutcome::Failed(Error::Forbidden),
+        ExecutionOutcome::ResultExpired,
+    ] {
+        let current = ExecutionResult {
+            outcome,
+            ..execution.result.clone()
+        };
+        assert_eq!(
+            execution::unsent_dispatch_result(current.clone()),
+            Ok(current)
+        );
+    }
+    let current = completed(&s, &request);
+    assert_eq!(
+        execution::unsent_dispatch_result(current.clone()),
+        Ok(current)
+    );
 }

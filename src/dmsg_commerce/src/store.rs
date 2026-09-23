@@ -33,7 +33,7 @@ thread_local! {
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     pub static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
-        RefCell::new(StableCell::init(memory(0), CompactStored(None)));
+        RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     pub static SUBJECTS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Subject>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub static ORDERS: RefCell<StableBTreeMap<Vec<u8>, Stored<BillingOrder>, Memory>> =
@@ -53,11 +53,11 @@ thread_local! {
 }
 
 pub fn config() -> Config {
-    CONFIG.with_borrow(|t| t.get().0.clone().expect("initialized"))
+    CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
 }
 
 pub fn save_config(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored(Some(c.clone()))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(c.clone()))));
 }
 
 pub fn load(b: &Beneficiary) -> Result<Subject> {

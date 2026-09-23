@@ -194,7 +194,7 @@ fn commit_name(
     };
     let tip = digest("dmsg/handle-event/v1", &event);
     EVENTS.with(|t| {
-        t.append(&CompactStored(event))
+        t.append(&CompactStored::new(&event))
             .expect("append handle event")
     });
     c.event_tip = tip;
@@ -420,8 +420,10 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
     };
     o.phase = HandlePhase::Charging;
     save_op(&key, &o);
-    let response: Result<std::result::Result<Nat, TransferFromError>> =
-        stable::call(cfg().init.ledger, "icrc2_transfer_from", (args,)).await;
+    let response: std::result::Result<
+        std::result::Result<Nat, TransferFromError>,
+        stable::CallFailure,
+    > = stable::call_classified(cfg().init.ledger, "icrc2_transfer_from", (args,)).await;
     // Reload once: reconciliation can commit while the ledger call is in flight.
     o = op(&key)?;
     if o.phase == HandlePhase::Committed {
@@ -451,6 +453,11 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
                     "ledger rejected charge; a new approved operation is required".into(),
                 ))
             }
+        }
+        Err(failure) if !failure.preserves_unknown(was_unknown) => {
+            o.phase = HandlePhase::Reserved;
+            save_op(&key, &o);
+            Err(failure.into())
         }
         Err(_) => charge_unknown(&key, o),
     }
@@ -640,5 +647,5 @@ fn list_legacy_reservations(after: Option<String>) -> Result<Vec<LegacyReservati
 
 #[ic_cdk::query]
 fn get_handle_event(sequence: u64) -> Option<HandleEvent> {
-    EVENTS.with(|t| t.get(sequence).map(|event| event.0))
+    EVENTS.with(|t| t.get(sequence).map(CompactStored::into_inner))
 }
