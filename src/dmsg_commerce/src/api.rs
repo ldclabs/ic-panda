@@ -51,19 +51,6 @@ fn publish(canister_id: Principal, s: &mut Subject, at: u64) -> Result<Entitleme
     Ok(v)
 }
 
-fn reserve_call(at: u64) -> Result<()> {
-    let mut c = config();
-    let m = at / MINUTE;
-    if c.minute != m {
-        c.minute = m;
-        c.reads = 0;
-    }
-    ensure(c.reads < 400, Error::QuotaExceeded)?;
-    c.reads += 1;
-    save_config(&c);
-    Ok(())
-}
-
 /// Returns the verified authorization and the local callback timestamp.
 async fn authorization(
     i: &MembershipIntent,
@@ -113,7 +100,8 @@ fn init(args: CommerceInit) {
     );
     model::validate_catalog(&args.catalog).expect("catalog");
     assert!(args.catalog.effective_at_ms <= at);
-    CATALOGS.with_borrow_mut(|t| t.put(&args.catalog.version.to_be_bytes(), &args.catalog));
+    save_catalog(&args.catalog);
+    let ledger_fee = args.catalog.ledger_fee;
     save_config(&Config {
         init: args,
         paused: false,
@@ -122,12 +110,22 @@ fn init(args: CommerceInit) {
         orders: 0,
         minute: 0,
         reads: 0,
+        refreshes: 0,
+        authorizations: Default::default(),
+        ledger_fee,
     });
+    persist_config();
     rebuild(at);
+}
+
+#[ic_cdk::pre_upgrade]
+fn pre_upgrade() {
+    persist_config();
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    load_catalogs();
     let mut pending = Vec::new();
     TRANSFERS.with_borrow(|t| {
         t.for_each(|_, v| {
@@ -149,12 +147,11 @@ async fn verify_ledger_configuration() -> Result<()> {
     let c = catalog(now());
     let decimals: u8 = dmsg_runtime::call(c.ledger, "icrc1_decimals", ()).await?;
     let fee: Nat = dmsg_runtime::call(c.ledger, "icrc1_fee", ()).await?;
-    ensure(
-        decimals == c.decimals && dmsg_runtime::ledger::token_amount(fee)? == c.ledger_fee,
-        Error::IntegrityFailed,
-    )?;
+    let fee = dmsg_runtime::ledger::token_amount(fee)?;
+    ensure(decimals == c.decimals && fee > 0, Error::IntegrityFailed)?;
     let mut cfg = config();
     cfg.ledger_verified = true;
+    cfg.ledger_fee = fee;
     save_config(&cfg);
     Ok(())
 }
@@ -164,19 +161,11 @@ fn schedule_policy(c: Catalog) -> Result<()> {
     let at = now();
     governance()?;
     model::validate_catalog(&c)?;
-    let old = catalog(at);
-    let mut latest_version = 0;
-    let mut latest_effective_at = 0;
-    CATALOGS.with_borrow(|t| {
-        t.for_each(|_, scheduled| {
-            latest_version = latest_version.max(scheduled.version);
-            latest_effective_at = latest_effective_at.max(scheduled.effective_at_ms);
-        })
-    });
+    let old = latest_catalog();
     ensure(
         c.effective_at_ms >= at.saturating_add(30 * DAY)
-            && c.effective_at_ms > latest_effective_at
-            && c.version > latest_version
+            && c.effective_at_ms > old.effective_at_ms
+            && c.version > old.version
             && c.ledger == old.ledger
             && c.decimals == old.decimals,
         invalid("catalog notice / asset"),
@@ -193,7 +182,7 @@ fn schedule_policy(c: Catalog) -> Result<()> {
                 || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms),
         invalid("weight change at UTC month boundary"),
     )?;
-    CATALOGS.with_borrow_mut(|t| t.put(&c.version.to_be_bytes(), &c));
+    save_catalog(&c);
     Ok(())
 }
 
@@ -210,9 +199,14 @@ fn get_catalog() -> Result<CertifiedBatch> {
 }
 
 #[ic_cdk::query]
-fn list_catalogs() -> Vec<Catalog> {
+fn list_catalogs(after_version: Option<u64>) -> Vec<Catalog> {
     CATALOGS
-        .with_borrow(|t| t.page(vec![], 64))
+        .with_borrow(|t| {
+            t.page(
+                after_version.map_or_else(Vec::new, |v| v.to_be_bytes().to_vec()),
+                64,
+            )
+        })
         .into_iter()
         .map(|(_, c)| c)
         .collect()
@@ -249,19 +243,15 @@ async fn open_order(input: OpenOrder) -> Result<BillingOrder> {
             && input.authorization.action_digest == order_digest(&input.quote),
         Error::Forbidden,
     )?;
-    let mut o = model::new_order(canister_id, input.clone());
+    let o = model::new_order(canister_id, input.clone());
     if let Ok(old) = order(o.order_id) {
         ensure(old.input == input, Error::IdempotencyConflict)?;
-        if old.status != OrderStatus::Authorizing {
-            return Ok(old);
-        }
-        o = old;
+        return Ok(old);
     }
     ensure(
         at < o.input.quote.fund_by_ms && o.input.quote.created_at_ms <= at,
         Error::Expired,
     )?;
-    ensure(at >= o.busy_until_ms, Error::Pending)?;
     let s = get_subject(&input.quote.request.beneficiary)?;
     ensure(
         model::quote(
@@ -277,55 +267,46 @@ async fn open_order(input: OpenOrder) -> Result<BillingOrder> {
         catalog(at).version == input.quote.catalog.version,
         Error::PolicyStale,
     )?;
-    let mut cfg = config();
+    let cfg = config();
     ensure(
         !cfg.paused && cfg.ledger_verified,
         Error::Unavailable("cash admission paused or ledger unverified".into()),
     )?;
-    if cfg.day != at / DAY {
-        cfg.day = at / DAY;
-        cfg.orders = 0;
+    ensure(cfg.ledger_fee <= input.quote.fee_reserve, Error::FeeBlocked)?;
+    reserve_call(at, CallBudget::Authorization(caller))?;
+    let (_, at) = authorization(&input.authorization, canister_id).await?;
+    // Concurrent retries may both authorize; only the first callback opens an order.
+    if let Ok(old) = order(o.order_id) {
+        ensure(old.input == input, Error::IdempotencyConflict)?;
+        return Ok(old);
     }
-    ensure(cfg.orders < cfg.init.daily_orders, Error::QuotaExceeded)?;
-    cfg.orders += 1;
-    save_config(&cfg);
-    o.generation += 1;
-    o.busy_until_ms = at + MINUTE;
-    let generation = o.generation;
-    save_order(&o);
-    let result = authorization(&input.authorization, canister_id).await;
-    let mut o = order(o.order_id)?;
-    ensure(
-        o.generation == generation && o.status == OrderStatus::Authorizing,
-        Error::VersionConflict,
-    )?;
-    o.busy_until_ms = 0;
-    let (_, at) = match result {
-        Ok(authorized) => authorized,
-        Err(e) => {
-            save_order(&o);
-            return Err(e);
-        }
-    };
     let mut s = get_subject(&input.quote.request.beneficiary)?;
+    let cfg = config();
+    ensure(cfg.ledger_fee <= input.quote.fee_reserve, Error::FeeBlocked)?;
     ensure(
         s.business_revision == input.quote.request.expected_business_revision
             && at < input.quote.fund_by_ms
-            && !config().paused,
+            && !cfg.paused,
         Error::VersionConflict,
     )?;
     ensure(
         catalog(at).version == input.quote.catalog.version,
         Error::PolicyStale,
     )?;
-    o.status = OrderStatus::AwaitingFunding;
+    // Prepare all fallible local work before committing admission and the order.
+    model::project(canister_id, &mut s, &catalog(at), at)?;
+    reserve_order(at)?;
     save_order(&o);
-    publish(canister_id, &mut s, at)?;
+    save(&s);
     Ok(o)
 }
 
 #[ic_cdk::update]
-async fn check_order_funding(id: Hash, block: u64) -> Result<BillingOrder> {
+async fn check_order_funding(id: Hash, block: u64) -> Result<OrderProgress> {
+    check_funding(id, block).await.map(Into::into)
+}
+
+async fn check_funding(id: Hash, block: u64) -> Result<BillingOrder> {
     let canister_id = ic_cdk::api::canister_self();
     let at = now();
     let o = order(id)?;
@@ -333,11 +314,8 @@ async fn check_order_funding(id: Hash, block: u64) -> Result<BillingOrder> {
         ensure(d.order_id == id, Error::IdempotencyConflict)?;
         return Ok(o);
     }
-    ensure(
-        o.status != OrderStatus::Authorizing && at >= o.busy_until_ms,
-        Error::Pending,
-    )?;
-    reserve_call(at)?;
+    ensure(at >= o.busy_until_ms, Error::Pending)?;
+    reserve_call(at, CallBudget::Funds)?;
     let mut o = o;
     o.generation += 1;
     o.busy_until_ms = at + MINUTE;
@@ -348,12 +326,10 @@ async fn check_order_funding(id: Hash, block: u64) -> Result<BillingOrder> {
     let mut o = order(id)?;
     ensure(o.generation == generation, Error::VersionConflict)?;
     o.busy_until_ms = 0;
+    save_order(&o);
     let tx = match result {
         Ok(v) => v,
-        Err(e) => {
-            save_order(&o);
-            return Err(e);
-        }
+        Err(e) => return Err(e),
     };
     ensure(
         tx.to
@@ -508,58 +484,20 @@ async fn request_refund(id: Hash, intent: MembershipIntent) -> Result<BillingOrd
     }
 
     s.bump();
-    save_order(&o);
     publish(canister_id, &mut s, at)?;
     Ok(o)
 }
 
-fn accrue(o: &mut BillingOrder, s: &Subject, at: u64) -> Result<()> {
-    if let Some(id) = o.activated_contract_id {
-        let interval = s
-            .contracts
-            .iter()
-            .find(|c| c.contract_id == id)
-            .map(|c| (c.starts_at_ms, c.expires_at_ms))
-            .or_else(|| {
-                s.addons
-                    .iter()
-                    .find(|c| c.contract_id == id)
-                    .map(|c| (c.starts_at_ms, c.expires_at_ms))
-            });
-        if let Some((start, end)) = interval {
-            let total = mul_div(
-                o.input.quote.amount_atomic,
-                u128::from(at.min(end).saturating_sub(start)),
-                u128::from(end - start),
-                false,
-            )?;
-            let available = o
-                .input
-                .quote
-                .amount_atomic
-                .saturating_sub(o.refunded_principal)
-                .saturating_sub(o.service_reserve);
-            let delta = total.saturating_sub(available).min(o.service_reserve);
-            o.service_reserve -= delta;
-            o.earned = o.earned.checked_add(delta).ok_or(Error::QuotaExceeded)?;
-        }
-    }
-    Ok(())
-}
-
 #[ic_cdk::update]
-fn reconcile_order(id: Hash) -> Result<BillingOrder> {
-    reconcile(id, ic_cdk::api::canister_self(), now())
+fn reconcile_order(id: Hash) -> Result<OrderProgress> {
+    reconcile(id, ic_cdk::api::canister_self(), now()).map(Into::into)
 }
 
 fn reconcile(id: Hash, canister_id: Principal, at: u64) -> Result<BillingOrder> {
     let mut o = order(id)?;
+    let original = o.clone();
     let mut s = load(&o.input.quote.request.beneficiary)?;
-    if matches!(
-        o.status,
-        OrderStatus::AwaitingFunding | OrderStatus::Authorizing
-    ) && at >= o.input.quote.activate_by_ms
-    {
+    if o.status == OrderStatus::AwaitingFunding && at >= o.input.quote.activate_by_ms {
         o.status = OrderStatus::Cancelled;
     }
     if o.status == OrderStatus::Closing {
@@ -570,14 +508,7 @@ fn reconcile(id: Hash, canister_id: Principal, at: u64) -> Result<BillingOrder> 
             .iter_mut()
             .find(|c| Some(c.contract_id) == o.activated_contract_id)
             .ok_or(Error::NotFound)?;
-        let unserved = c.expires_at_ms.saturating_sub(stop.max(c.starts_at_ms));
-        let refund = mul_div(
-            o.input.quote.amount_atomic,
-            unserved.into(),
-            (c.expires_at_ms - c.starts_at_ms).into(),
-            false,
-        )?
-        .min(o.service_reserve);
+        let refund = model::refund_principal(&o, c, stop)?;
         c.terminated_at_ms = Some(c.terminated_at_ms.unwrap_or(stop).min(stop));
         o.service_reserve -= refund;
         o.refunded_principal += refund;
@@ -601,9 +532,17 @@ fn reconcile(id: Hash, canister_id: Principal, at: u64) -> Result<BillingOrder> 
         o.status = OrderStatus::RefundCommitted;
         s.bump();
     }
-    accrue(&mut o, &s, at)?;
-    save_order(&o);
-    publish(canister_id, &mut s, at)?;
+    model::accrue(&mut o, &s, at)?;
+    if o != original {
+        save_order(&o);
+    }
+    if !s
+        .view
+        .as_ref()
+        .is_some_and(|v| v.business_revision == s.business_revision && at < v.valid_until_ms)
+    {
+        publish(canister_id, &mut s, at)?;
+    }
     Ok(o)
 }
 
@@ -611,9 +550,9 @@ fn new_transfer(
     o: &mut BillingOrder,
     to: Account,
     total: u128,
+    fee: u128,
     at: u64,
 ) -> Result<MerchantTransfer> {
-    let fee = catalog(at).ledger_fee;
     ensure(
         fee <= o.input.quote.fee_reserve && total > fee,
         Error::FeeBlocked,
@@ -633,17 +572,22 @@ fn new_transfer(
         created_at_time_ns: millis_to_nanos(at)?,
         status: MerchantTransferStatus::Pending,
         block: None,
+        last_error: None,
     })
 }
 
 #[ic_cdk::update]
-fn claim_deposit_refund(id: Hash, block: u64) -> Result<MerchantTransfer> {
+fn claim_deposit_refund(id: Hash, block: u64) -> Result<TransferProgress> {
+    claim_refund(id, block).map(Into::into)
+}
+
+fn claim_refund(id: Hash, block: u64) -> Result<MerchantTransfer> {
     let mut o = order(id)?;
     let mut d = DEPOSITS
         .with_borrow(|t| t.load(&block.to_be_bytes()))
         .ok_or(Error::NotFound)?;
     ensure(d.order_id == id, Error::IntegrityFailed)?;
-    let leg = new_transfer(&mut o, d.from, d.refundable, now())?;
+    let leg = new_transfer(&mut o, d.from, d.refundable, config().ledger_fee, now())?;
     o.refundable = o
         .refundable
         .checked_sub(d.refundable)
@@ -662,7 +606,13 @@ fn collect_revenue(id: Hash) -> Result<MerchantTransfer> {
     reconcile(id, ic_cdk::api::canister_self(), at)?;
     let mut o = order(id)?;
     let total = o.earned;
-    let leg = new_transfer(&mut o, config().init.treasury, total, at)?;
+    let leg = new_transfer(
+        &mut o,
+        config().init.treasury,
+        total,
+        config().ledger_fee,
+        at,
+    )?;
     o.earned = 0;
     save_transfer(&leg);
     save_order(&o);
@@ -670,7 +620,11 @@ fn collect_revenue(id: Hash) -> Result<MerchantTransfer> {
 }
 
 #[ic_cdk::update]
-fn claim_fee_reserve(id: Hash) -> Result<MerchantTransfer> {
+fn claim_fee_reserve(id: Hash) -> Result<TransferProgress> {
+    claim_fees(id).map(Into::into)
+}
+
+fn claim_fees(id: Hash) -> Result<MerchantTransfer> {
     let at = now();
     let mut o = reconcile(id, ic_cdk::api::canister_self(), at)?;
     let s = load(&o.input.quote.request.beneficiary)?;
@@ -686,7 +640,7 @@ fn claim_fee_reserve(id: Hash) -> Result<MerchantTransfer> {
     )?;
     let fee_reserve = o.fee_reserve;
     let to = o.input.quote.request.payer;
-    let leg = new_transfer(&mut o, to, fee_reserve, at)?;
+    let leg = new_transfer(&mut o, to, fee_reserve, config().ledger_fee, at)?;
     o.fee_reserve = 0;
     save_transfer(&leg);
     save_order(&o);
@@ -732,7 +686,11 @@ fn complete(id: Hash, n: u64, block: u64) -> Result<MerchantTransfer> {
 }
 
 #[ic_cdk::update]
-async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
+async fn process_transfer(id: Hash, n: u64) -> Result<TransferProgress> {
+    dispatch_transfer(id, n).await.map(Into::into)
+}
+
+async fn dispatch_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
     let mut t = transfer(id, n)?;
     if t.status == MerchantTransferStatus::Succeeded {
         return Ok(t);
@@ -750,7 +708,7 @@ async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
             Error::VersionConflict
         },
     )?;
-    reserve_call(now())?;
+    reserve_call(now(), CallBudget::Funds)?;
     let unknown = t.status == MerchantTransferStatus::Unknown;
     let o = order(id)?;
     t.status = MerchantTransferStatus::InFlight;
@@ -779,7 +737,15 @@ async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
         Ok(Err(TransferError::Duplicate { duplicate_of })) => {
             complete(id, n, dmsg_runtime::ledger::block_index(duplicate_of)?)
         }
-        Ok(Err(_)) => {
+        Ok(Err(error)) => {
+            if let TransferError::BadFee { expected_fee } = &error {
+                let fee = dmsg_runtime::ledger::token_amount(expected_fee.clone())?;
+                ensure(fee > 0, Error::IntegrityFailed)?;
+                let mut cfg = config();
+                cfg.ledger_fee = fee;
+                save_config(&cfg);
+            }
+            t.last_error = Some(error);
             t.status = if unknown {
                 MerchantTransferStatus::Unknown
             } else {
@@ -806,7 +772,11 @@ async fn process_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
 }
 
 #[ic_cdk::update]
-async fn reconcile_transfer(id: Hash, n: u64, block: u64) -> Result<MerchantTransfer> {
+async fn reconcile_transfer(id: Hash, n: u64, block: u64) -> Result<TransferProgress> {
+    verify_transfer(id, n, block).await.map(Into::into)
+}
+
+async fn verify_transfer(id: Hash, n: u64, block: u64) -> Result<MerchantTransfer> {
     let t = transfer(id, n)?;
     if t.status == MerchantTransferStatus::Succeeded {
         return Ok(t);
@@ -819,7 +789,7 @@ async fn reconcile_transfer(id: Hash, n: u64, block: u64) -> Result<MerchantTran
         Error::VersionConflict,
     )?;
     let o = order(id)?;
-    reserve_call(now())?;
+    reserve_call(now(), CallBudget::Funds)?;
     let tx = dmsg_runtime::ledger::read_transfer(o.input.quote.catalog.ledger, block).await?;
     ensure(
         tx.from
@@ -856,7 +826,16 @@ fn revise_rejected_transfer(id: Hash, n: u64, fee: u128) -> Result<MerchantTrans
     }
     ensure(
         t.status == MerchantTransferStatus::Rejected
-            && fee == catalog(at).ledger_fee
+            && fee
+                == t.last_error
+                    .as_ref()
+                    .and_then(|e| match e {
+                        TransferError::BadFee { expected_fee } => {
+                            dmsg_runtime::ledger::token_amount(expected_fee.clone()).ok()
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or(config().ledger_fee)
             && fee <= o.input.quote.fee_reserve,
         Error::VersionConflict,
     )?;
@@ -867,7 +846,7 @@ fn revise_rejected_transfer(id: Hash, n: u64, fee: u128) -> Result<MerchantTrans
         .outgoing
         .checked_sub(total)
         .ok_or(Error::IntegrityFailed)?;
-    let mut replacement = new_transfer(&mut o, t.to, total, at)?;
+    let mut replacement = new_transfer(&mut o, t.to, total, fee, at)?;
     replacement.replaces = Some(n);
     t.status = MerchantTransferStatus::Superseded;
     t.replaced_by = Some(replacement.transfer_id);
@@ -901,11 +880,18 @@ async fn refresh(
     });
     if let Some((contract, id)) = source {
         ensure(at >= s.busy_until_ms, Error::Pending)?;
-        reserve_call(at)?;
+        if at < s.retry_after_ms {
+            return s
+                .view
+                .clone()
+                .map(|v| (v, at))
+                .ok_or(Error::MembershipStale);
+        }
+        reserve_call(at, CallBudget::Refresh)?;
         s.generation += 1;
         let generation = s.generation;
         s.busy_until_ms = at + MINUTE;
-        save(&s);
+        save_subject(&s);
         let response: Result<Result<ClaimView>> = dmsg_runtime::call(
             config().init.membership_canister,
             "get_claim_for_consumer",
@@ -975,6 +961,11 @@ async fn refresh(
             }
         }
         c.eligibility = eligibility.clone();
+        s.retry_after_ms = if eligibility == Eligibility::Unverifiable {
+            at.saturating_add(MINUTE)
+        } else {
+            0
+        };
         if previous != eligibility {
             s.bump();
         }
@@ -1227,35 +1218,18 @@ fn apply_membership_decision(d: MembershipDecision) -> Result<MembershipDecision
                 && d.required_atomic >= required_panda(&d.policy.threshold, 8)?,
             Error::IntegrityFailed,
         )?;
-        if matches!(
-            d.request.change,
-            ClaimChange::Upgrade { .. } | ClaimChange::Replace { .. }
-        ) {
-            let old = s
-                .contracts
-                .iter_mut()
-                .find(|c| c.starts_at_ms <= at && at < model::end(c))
-                .ok_or(Error::NotFound)?;
-            old.terminated_at_ms = Some(d.starts_at_ms.max(at));
-        }
+        let term_starts_at_ms = match d.request.change {
+            ClaimChange::Upgrade { previous_claim } | ClaimChange::Replace { previous_claim } => {
+                model::replace_claim(&mut s, previous_claim, d.starts_at_ms)?
+            }
+            _ => d.starts_at_ms,
+        };
         ensure(
             !s.contracts
                 .iter()
                 .any(|c| c.starts_at_ms < d.expires_at_ms && d.starts_at_ms < model::end(c)),
             Error::VersionConflict,
         )?;
-        let term_starts_at_ms = if matches!(
-            d.request.change,
-            ClaimChange::Upgrade { .. } | ClaimChange::Replace { .. }
-        ) {
-            s.contracts
-                .iter()
-                .rev()
-                .find(|c| c.expires_at_ms == d.expires_at_ms)
-                .map_or(d.starts_at_ms, |c| c.term_starts_at_ms)
-        } else {
-            d.starts_at_ms
-        };
         s.contracts.push(MembershipContract {
             term_starts_at_ms,
             resource_pauses: vec![],
@@ -1333,8 +1307,13 @@ fn get_order_certified(id: Hash) -> Result<CertifiedBatch> {
 
 #[ic_cdk::query]
 fn get_transfer(id: Hash, n: u64) -> Result<MerchantTransfer> {
-    can_read(&order(id)?, ic_cdk::api::msg_caller())?;
-    transfer(id, n)
+    let caller = ic_cdk::api::msg_caller();
+    let t = transfer(id, n)?;
+    ensure(
+        caller == t.to.owner || can_read(&order(id)?, caller).is_ok(),
+        Error::Forbidden,
+    )?;
+    Ok(t)
 }
 
 #[ic_cdk::query]

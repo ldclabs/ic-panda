@@ -16,6 +16,7 @@ pub struct Subject {
     pub view: Option<EntitlementView>,
     pub busy_until_ms: u64,
     pub generation: u64,
+    pub retry_after_ms: u64,
 }
 
 impl Subject {
@@ -32,6 +33,7 @@ impl Subject {
             view: None,
             busy_until_ms: 0,
             generation: 0,
+            retry_after_ms: 0,
         }
     }
 
@@ -90,15 +92,16 @@ pub fn validate_catalog(c: &Catalog) -> Result<()> {
         )?;
     }
     ensure(
+        c.plans.iter().all(|p| p.weights == c.plans[0].weights),
+        invalid("uniform execution weights"),
+    )?;
+    ensure(
         plan(c, &PlanId::Free)?.price_cents == 0,
         invalid("Free price"),
     )?;
     for p in &c.storage_products {
         ensure(
-            p.price_cents > 0
-                && p.storage_bytes > 0
-                && p.duration_ms > 0
-                && p.duration_ms <= 366 * DAY,
+            p.price_cents > 0 && p.storage_bytes > 0 && p.storage_bytes <= 1_099_511_627_776,
             invalid("storage product"),
         )?;
     }
@@ -184,12 +187,29 @@ pub fn quote(
             )?
         }
         OrderAction::Storage { product_id } => {
+            let old = current.ok_or(Error::MembershipIneligible)?;
+            ensure(
+                old.plan.plan_id != PlanId::Free
+                    && old.closing_at_ms.is_none()
+                    && old.eligibility == Eligibility::Eligible
+                    && at < old.qualified_until_ms,
+                Error::MembershipIneligible,
+            )?;
+            term = TermRule::Fixed {
+                starts_at_ms: at,
+                expires_at_ms: old.expires_at_ms,
+            };
             let p = catalog
                 .storage_products
                 .iter()
                 .find(|p| p.product_id == *product_id)
                 .ok_or(Error::NotFound)?;
-            cents_atomic(p.price_cents, catalog.decimals)?
+            mul_div(
+                cents_atomic(p.price_cents, catalog.decimals)?,
+                (old.expires_at_ms - at).into(),
+                (old.expires_at_ms - old.term_starts_at_ms).into(),
+                true,
+            )?
         }
         OrderAction::Buyout { contract_id } => {
             let old = current.ok_or(Error::NotFound)?;
@@ -242,7 +262,7 @@ pub fn new_order(home: Principal, input: OpenOrder) -> BillingOrder {
         order_id: id,
         receive_subaccount: digest("dmsg/commerce/subaccount/v1", &(home, id)),
         input,
-        status: OrderStatus::Authorizing,
+        status: OrderStatus::AwaitingFunding,
         activated_contract_id: None,
         funding_block: None,
         close_effective_at_ms: None,
@@ -298,6 +318,15 @@ pub fn activate(s: &mut Subject, o: &mut BillingOrder, at: u64) -> Result<()> {
         } => (starts_at_ms, expires_at_ms),
     };
     if let OrderAction::Storage { product_id } = &q.request.action {
+        let base = s.active(at).ok_or(Error::MembershipIneligible)?;
+        ensure(
+            at < end_at
+                && base.expires_at_ms == end_at
+                && base.closing_at_ms.is_none()
+                && base.eligibility == Eligibility::Eligible
+                && at < base.qualified_until_ms,
+            Error::MembershipIneligible,
+        )?;
         let p = q
             .catalog
             .storage_products
@@ -309,7 +338,7 @@ pub fn activate(s: &mut Subject, o: &mut BillingOrder, at: u64) -> Result<()> {
             order_id: o.order_id,
             storage_bytes: p.storage_bytes,
             starts_at_ms: at,
-            expires_at_ms: at.checked_add(p.duration_ms).ok_or(Error::QuotaExceeded)?,
+            expires_at_ms: end_at,
             last_issued_until_ms: 0,
         });
     } else {
@@ -569,6 +598,67 @@ pub fn month(s: &Subject, catalog: &Catalog, month: u32) -> Result<MonthEntitlem
         allowed_units: allowed,
         calculation_version: 1,
     })
+}
+
+pub fn accrue(o: &mut BillingOrder, s: &Subject, at: u64) -> Result<()> {
+    if let Some(id) = o.activated_contract_id {
+        let interval = s
+            .contracts
+            .iter()
+            .find(|c| c.contract_id == id)
+            .map(|c| (c.starts_at_ms, c.expires_at_ms))
+            .or_else(|| {
+                s.addons
+                    .iter()
+                    .find(|c| c.contract_id == id)
+                    .map(|c| (c.starts_at_ms, c.expires_at_ms))
+            });
+        if let Some((start, end)) = interval {
+            let total = mul_div(
+                o.input.quote.amount_atomic,
+                u128::from(at.min(end).saturating_sub(start)),
+                u128::from(end - start),
+                false,
+            )?;
+            let available = o
+                .input
+                .quote
+                .amount_atomic
+                .saturating_sub(o.refunded_principal)
+                .saturating_sub(o.service_reserve);
+            let delta = total.saturating_sub(available).min(o.service_reserve);
+            o.service_reserve -= delta;
+            o.earned = o.earned.checked_add(delta).ok_or(Error::QuotaExceeded)?;
+        }
+    }
+    Ok(())
+}
+
+/// Amount still refundable at the fixed lease fence, never exceeding held principal.
+pub fn refund_principal(o: &BillingOrder, c: &MembershipContract, stop: u64) -> Result<u128> {
+    let unserved = c.expires_at_ms.saturating_sub(stop.max(c.starts_at_ms));
+    Ok(mul_div(
+        o.input.quote.amount_atomic,
+        unserved.into(),
+        (c.expires_at_ms - c.starts_at_ms).into(),
+        false,
+    )?
+    .min(o.service_reserve))
+}
+
+/// Replace exactly the named SNS source at the immutable decision boundary.
+pub fn replace_claim(s: &mut Subject, previous: Hash, starts_at_ms: u64) -> Result<u64> {
+    let old = s
+        .contracts
+        .iter_mut()
+        .find(|c| matches!(c.source, ContractSource::Sns { claim_id } if claim_id == previous))
+        .ok_or(Error::NotFound)?;
+    ensure(
+        old.starts_at_ms <= starts_at_ms && starts_at_ms < end(old),
+        Error::VersionConflict,
+    )?;
+    old.terminated_at_ms = Some(starts_at_ms);
+    Ok(old.term_starts_at_ms)
 }
 
 #[cfg(test)]

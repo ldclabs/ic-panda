@@ -192,6 +192,9 @@ impl Fixture {
         Self::with_policy(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381], false)
     }
     fn with_policy(algorithms: Vec<Algorithm>, generous: bool) -> Self {
+        Self::with_order_limit(algorithms, generous, 100)
+    }
+    fn with_order_limit(algorithms: Vec<Algorithm>, generous: bool, daily_orders: u32) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -287,7 +290,7 @@ impl Fixture {
                 max_fee: 20,
                 signer: signer.clone(),
                 max_open_per_payer: 4,
-                daily_orders: 100,
+                daily_orders,
                 enabled: true,
             },))
             .unwrap(),
@@ -322,7 +325,6 @@ impl Fixture {
             storage_products: vec![dmsg_types::billing::StorageProduct {
                 product_id: Hash::new([120; 32]),
                 storage_bytes: 1_073_741_824,
-                duration_ms: 30 * DAY,
                 price_cents: 100,
             }],
             ledger,
@@ -341,7 +343,7 @@ impl Fixture {
                 catalog,
                 treasury: account(person(60)),
                 max_subjects: 1000,
-                daily_orders: 100,
+                daily_orders,
             },))
             .unwrap(),
             None,

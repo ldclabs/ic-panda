@@ -71,16 +71,14 @@ pub struct PlanVersion {
     pub membership_policy_version: Option<u64>,
 }
 
-/// Additional storage product with fixed size, duration and price.
+/// Additional storage product with fixed size and annual price.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StorageProduct {
     /// Product identifier within this protocol.
     pub product_id: Hash,
     /// Logical retained ciphertext capacity in bytes.
     pub storage_bytes: u64,
-    /// Product duration in milliseconds.
-    pub duration_ms: u64,
-    /// Integer annual or product price in USD cents.
+    /// Integer annual price in USD cents, prorated to the base term endpoint.
     pub price_cents: u64,
 }
 
@@ -210,8 +208,6 @@ pub struct OpenOrder {
 /// Merchant order lifecycle; a refund decision is separate from ledger payout.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum OrderStatus {
-    /// Exact beneficiary authorization is pending.
-    Authorizing,
     /// Order is authorized and awaiting qualifying ledger funding.
     AwaitingFunding,
     /// Benefit is active under its recorded terms.
@@ -544,4 +540,48 @@ pub struct MerchantTransfer {
     pub status: MerchantTransferStatus,
     /// Verified ledger transaction index, when available.
     pub block: Option<u64>,
+    /// Most recent typed ledger rejection, retained for diagnosis and fee repair.
+    pub last_error: Option<icrc_ledger_types::icrc1::transfer::TransferError>,
+}
+
+/// Public order advancement result. Financial and authorization details require a private query.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct OrderProgress {
+    /// Original order identity.
+    pub order_id: Hash,
+    /// Committed lifecycle status.
+    pub status: OrderStatus,
+}
+
+impl From<BillingOrder> for OrderProgress {
+    fn from(order: BillingOrder) -> Self {
+        Self {
+            order_id: order.order_id,
+            status: order.status,
+        }
+    }
+}
+
+/// Public outgoing-transfer advancement result, without account or amount details.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct TransferProgress {
+    /// Original order identity.
+    pub order_id: Hash,
+    /// Per-order transfer identifier.
+    pub transfer_id: u64,
+    /// Current transfer lifecycle status.
+    pub status: MerchantTransferStatus,
+    /// Replacement leg, when this leg is superseded.
+    pub replaced_by: Option<u64>,
+}
+
+impl From<MerchantTransfer> for TransferProgress {
+    fn from(transfer: MerchantTransfer) -> Self {
+        Self {
+            order_id: transfer.order_id,
+            transfer_id: transfer.transfer_id,
+            status: transfer.status,
+            replaced_by: transfer.replaced_by,
+        }
+    }
 }

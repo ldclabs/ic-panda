@@ -460,6 +460,8 @@ type MerchantTransfer = record {
   to : Account;
   // Fixed outgoing network fee in ledger atomic units.
   fee : nat;
+  // Most recent typed ledger rejection, retained for diagnosis and fee repair.
+  last_error : opt TransferError;
   // Current lifecycle state of this record.
   status : MerchantTransferStatus;
   // Earlier transfer replaced by this known-unsent fee revision.
@@ -559,6 +561,13 @@ type OrderAction = variant {
     plan : PlanId;
   };
 };
+// Public order advancement result. Financial and authorization details require a private query.
+type OrderProgress = record {
+  // Committed lifecycle status.
+  status : OrderStatus;
+  // Original order identity.
+  order_id : blob;
+};
 // Frozen merchant terms; funding and activation have separate exclusive deadlines.
 type OrderQuote = record {
   // Service principal in ledger atomic units, excluding fee reserve.
@@ -590,8 +599,6 @@ type OrderStatus = variant {
   AwaitingFunding;
   // Order was cancelled without activation.
   Cancelled;
-  // Exact beneficiary authorization is pending.
-  Authorizing;
   // Refund direction is fixed; payout may still be pending.
   RefundCommitted;
 };
@@ -647,16 +654,18 @@ type ResourceLimits = record {
 };
 type Result = variant { Ok : MembershipDecisionReceipt; Err : Error };
 type Result_1 = variant { Ok : MembershipAuthorization; Err : Error };
-type Result_10 = variant { Ok : ClaimView; Err : Error };
-type Result_11 = variant { Ok; Err : Error };
-type Result_2 = variant { Ok : BillingOrder; Err : Error };
-type Result_3 = variant { Ok : MerchantTransfer; Err : Error };
-type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_5 = variant { Ok : MerchantDeposit; Err : Error };
-type Result_6 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_7 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
-type Result_8 = variant { Ok : OrderQuote; Err : Error };
-type Result_9 = variant { Ok : EntitlementView; Err : Error };
+type Result_10 = variant { Ok : OrderQuote; Err : Error };
+type Result_11 = variant { Ok : EntitlementView; Err : Error };
+type Result_12 = variant { Ok : ClaimView; Err : Error };
+type Result_13 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : OrderProgress; Err : Error };
+type Result_3 = variant { Ok : TransferProgress; Err : Error };
+type Result_4 = variant { Ok : MerchantTransfer; Err : Error };
+type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_6 = variant { Ok : MerchantDeposit; Err : Error };
+type Result_7 = variant { Ok : ExecutionEntitlement; Err : Error };
+type Result_8 = variant { Ok : opt MembershipDecisionReceipt; Err : Error };
+type Result_9 = variant { Ok : BillingOrder; Err : Error };
 // Current resource-source state, distinct from account security state.
 type SourceStatus = variant {
   // Current supporting facts cannot be verified.
@@ -689,16 +698,14 @@ type StorageAddon = record {
   // Latest resource-lease deadline already issued, in Unix milliseconds.
   last_issued_until_ms : nat64;
 };
-// Additional storage product with fixed size, duration and price.
+// Additional storage product with fixed size and annual price.
 type StorageProduct = record {
   // Product identifier within this protocol.
   product_id : blob;
-  // Integer annual or product price in USD cents.
+  // Integer annual price in USD cents, prorated to the base term endpoint.
   price_cents : nat64;
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
-  // Product duration in milliseconds.
-  duration_ms : nat64;
 };
 // Calendar-year term or an explicit half-open UTC millisecond interval.
 type TermRule = variant {
@@ -729,6 +736,30 @@ type Threshold = variant {
     atomic : nat;
   };
 };
+// Errors defined for the
+// [ICRC-1 `transfer`](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-1/README.md#icrc1_transfer-)
+// endpoint.
+type TransferError = variant {
+  GenericError : record { message : text; error_code : nat };
+  TemporarilyUnavailable;
+  BadBurn : record { min_burn_amount : nat };
+  Duplicate : record { duplicate_of : nat };
+  BadFee : record { expected_fee : nat };
+  CreatedInFuture : record { ledger_time : nat64 };
+  TooOld;
+  InsufficientFunds : record { balance : nat };
+};
+// Public outgoing-transfer advancement result, without account or amount details.
+type TransferProgress = record {
+  // Current transfer lifecycle status.
+  status : MerchantTransferStatus;
+  // Replacement leg, when this leg is superseded.
+  replaced_by : opt nat64;
+  // Per-order transfer identifier.
+  transfer_id : nat64;
+  // Original order identity.
+  order_id : blob;
+};
 service : (CommerceInit) -> {
   apply_membership_decision : (MembershipDecision) -> (Result);
   authorize_membership_close : (blob, MembershipIntent) -> (Result_1);
@@ -736,27 +767,27 @@ service : (CommerceInit) -> {
   check_order_funding : (blob, nat64) -> (Result_2);
   claim_deposit_refund : (blob, nat64) -> (Result_3);
   claim_fee_reserve : (blob) -> (Result_3);
-  collect_revenue : (blob) -> (Result_3);
-  get_catalog : () -> (Result_4) query;
-  get_deposit : (nat64) -> (Result_5) query;
-  get_entitlement_batch : (vec Beneficiary) -> (Result_4) query;
-  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_6);
-  get_membership_decision : (blob) -> (Result_7);
-  get_operation : (blob) -> (Result_2) query;
-  get_order_certified : (blob) -> (Result_4) query;
-  get_transfer : (blob, nat64) -> (Result_3) query;
-  list_catalogs : () -> (vec Catalog) query;
-  open_order : (OpenOrder) -> (Result_2);
+  collect_revenue : (blob) -> (Result_4);
+  get_catalog : () -> (Result_5) query;
+  get_deposit : (nat64) -> (Result_6) query;
+  get_entitlement_batch : (vec Beneficiary) -> (Result_5) query;
+  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_7);
+  get_membership_decision : (blob) -> (Result_8);
+  get_operation : (blob) -> (Result_9) query;
+  get_order_certified : (blob) -> (Result_5) query;
+  get_transfer : (blob, nat64) -> (Result_4) query;
+  list_catalogs : (opt nat64) -> (vec Catalog) query;
+  open_order : (OpenOrder) -> (Result_9);
   process_transfer : (blob, nat64) -> (Result_3);
-  quote_order : (QuoteOrder) -> (Result_8) query;
+  quote_order : (QuoteOrder) -> (Result_10) query;
   reconcile_order : (blob) -> (Result_2);
   reconcile_transfer : (blob, nat64, nat64) -> (Result_3);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_9);
-  release_replaced_claim : (Beneficiary, blob) -> (Result_10);
-  request_refund : (blob, MembershipIntent) -> (Result_2);
-  revise_rejected_transfer : (blob, nat64, nat) -> (Result_3);
-  schedule_policy : (Catalog) -> (Result_11);
-  set_admission_pause : (bool) -> (Result_11);
-  verify_ledger_configuration : () -> (Result_11);
+  refresh_entitlement : (Beneficiary) -> (Result_11);
+  release_replaced_claim : (Beneficiary, blob) -> (Result_12);
+  request_refund : (blob, MembershipIntent) -> (Result_9);
+  revise_rejected_transfer : (blob, nat64, nat) -> (Result_4);
+  schedule_policy : (Catalog) -> (Result_13);
+  set_admission_pause : (bool) -> (Result_13);
+  verify_ledger_configuration : () -> (Result_13);
 }

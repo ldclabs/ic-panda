@@ -228,6 +228,7 @@ export interface MerchantDeposit {
 export interface MerchantTransfer {
   'to' : Account,
   'fee' : bigint,
+  'last_error' : [] | [TransferError],
   'status' : MerchantTransferStatus,
   'replaces' : [] | [bigint],
   'created_at_time_ns' : bigint,
@@ -271,6 +272,10 @@ export type OrderAction = {
   { 'Upgrade' : { 'plan' : PlanId } } |
   { 'Renew' : { 'plan' : PlanId } } |
   { 'Subscribe' : { 'plan' : PlanId } };
+export interface OrderProgress {
+  'status' : OrderStatus,
+  'order_id' : Uint8Array | number[],
+}
 export interface OrderQuote {
   'amount_atomic' : bigint,
   'fee_reserve' : bigint,
@@ -286,7 +291,6 @@ export type OrderStatus = { 'Closing' : null } |
   { 'Active' : null } |
   { 'AwaitingFunding' : null } |
   { 'Cancelled' : null } |
-  { 'Authorizing' : null } |
   { 'RefundCommitted' : null };
 export type PlanId = { 'Max' : null } |
   { 'Pro' : null } |
@@ -317,25 +321,29 @@ export type Result = { 'Ok' : MembershipDecisionReceipt } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : MembershipAuthorization } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : ClaimView } |
+export type Result_10 = { 'Ok' : OrderQuote } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : null } |
+export type Result_11 = { 'Ok' : EntitlementView } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : BillingOrder } |
+export type Result_12 = { 'Ok' : ClaimView } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : MerchantTransfer } |
+export type Result_13 = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : CertifiedBatch } |
+export type Result_2 = { 'Ok' : OrderProgress } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : MerchantDeposit } |
+export type Result_3 = { 'Ok' : TransferProgress } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : ExecutionEntitlement } |
+export type Result_4 = { 'Ok' : MerchantTransfer } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : [] | [MembershipDecisionReceipt] } |
+export type Result_5 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : OrderQuote } |
+export type Result_6 = { 'Ok' : MerchantDeposit } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : EntitlementView } |
+export type Result_7 = { 'Ok' : ExecutionEntitlement } |
+  { 'Err' : Error };
+export type Result_8 = { 'Ok' : [] | [MembershipDecisionReceipt] } |
+  { 'Err' : Error };
+export type Result_9 = { 'Ok' : BillingOrder } |
   { 'Err' : Error };
 export type SourceStatus = { 'Unverifiable' : null } |
   { 'Free' : null } |
@@ -356,7 +364,6 @@ export interface StorageProduct {
   'product_id' : Uint8Array | number[],
   'price_cents' : bigint,
   'storage_bytes' : bigint,
-  'duration_ms' : bigint,
 }
 export type TermRule = {
     'Fixed' : { 'starts_at_ms' : bigint, 'expires_at_ms' : bigint }
@@ -370,6 +377,22 @@ export type Threshold = {
     }
   } |
   { 'FixedPanda' : { 'atomic' : bigint } };
+export type TransferError = {
+    'GenericError' : { 'message' : string, 'error_code' : bigint }
+  } |
+  { 'TemporarilyUnavailable' : null } |
+  { 'BadBurn' : { 'min_burn_amount' : bigint } } |
+  { 'Duplicate' : { 'duplicate_of' : bigint } } |
+  { 'BadFee' : { 'expected_fee' : bigint } } |
+  { 'CreatedInFuture' : { 'ledger_time' : bigint } } |
+  { 'TooOld' : null } |
+  { 'InsufficientFunds' : { 'balance' : bigint } };
+export interface TransferProgress {
+  'status' : MerchantTransferStatus,
+  'replaced_by' : [] | [bigint],
+  'transfer_id' : bigint,
+  'order_id' : Uint8Array | number[],
+}
 export interface _SERVICE {
   'apply_membership_decision' : ActorMethod<[MembershipDecision], Result>,
   'authorize_membership_close' : ActorMethod<
@@ -386,44 +409,44 @@ export interface _SERVICE {
     Result_3
   >,
   'claim_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_3>,
-  'collect_revenue' : ActorMethod<[Uint8Array | number[]], Result_3>,
-  'get_catalog' : ActorMethod<[], Result_4>,
-  'get_deposit' : ActorMethod<[bigint], Result_5>,
-  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_4>,
+  'collect_revenue' : ActorMethod<[Uint8Array | number[]], Result_4>,
+  'get_catalog' : ActorMethod<[], Result_5>,
+  'get_deposit' : ActorMethod<[bigint], Result_6>,
+  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_5>,
   'get_execution_entitlement' : ActorMethod<
     [Beneficiary, number, bigint],
-    Result_6
+    Result_7
   >,
-  'get_membership_decision' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'get_operation' : ActorMethod<[Uint8Array | number[]], Result_2>,
-  'get_order_certified' : ActorMethod<[Uint8Array | number[]], Result_4>,
-  'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_3>,
-  'list_catalogs' : ActorMethod<[], Array<Catalog>>,
-  'open_order' : ActorMethod<[OpenOrder], Result_2>,
+  'get_membership_decision' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_operation' : ActorMethod<[Uint8Array | number[]], Result_9>,
+  'get_order_certified' : ActorMethod<[Uint8Array | number[]], Result_5>,
+  'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_4>,
+  'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
+  'open_order' : ActorMethod<[OpenOrder], Result_9>,
   'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_3>,
-  'quote_order' : ActorMethod<[QuoteOrder], Result_8>,
+  'quote_order' : ActorMethod<[QuoteOrder], Result_10>,
   'reconcile_order' : ActorMethod<[Uint8Array | number[]], Result_2>,
   'reconcile_transfer' : ActorMethod<
     [Uint8Array | number[], bigint, bigint],
     Result_3
   >,
   'refresh_catalog' : ActorMethod<[], Catalog>,
-  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_9>,
+  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_11>,
   'release_replaced_claim' : ActorMethod<
     [Beneficiary, Uint8Array | number[]],
-    Result_10
+    Result_12
   >,
   'request_refund' : ActorMethod<
     [Uint8Array | number[], MembershipIntent],
-    Result_2
+    Result_9
   >,
   'revise_rejected_transfer' : ActorMethod<
     [Uint8Array | number[], bigint, bigint],
-    Result_3
+    Result_4
   >,
-  'schedule_policy' : ActorMethod<[Catalog], Result_11>,
-  'set_admission_pause' : ActorMethod<[boolean], Result_11>,
-  'verify_ledger_configuration' : ActorMethod<[], Result_11>,
+  'schedule_policy' : ActorMethod<[Catalog], Result_13>,
+  'set_admission_pause' : ActorMethod<[boolean], Result_13>,
+  'verify_ledger_configuration' : ActorMethod<[], Result_13>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

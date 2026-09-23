@@ -3,6 +3,9 @@ use dmsg_protocol::{billing::*, membership::*};
 use dmsg_types::{billing::*, membership::*};
 use serde::Serialize;
 
+#[path = "commerce_regressions.rs"]
+mod regressions;
+
 fn intent(
     f: &Fixture,
     id: &AccountId,
@@ -89,15 +92,22 @@ fn deposit(f: &Fixture, o: &BillingOrder, who: u8, amount: u128) -> u64 {
     r.unwrap().0.to_string().parse().unwrap()
 }
 fn check(f: &Fixture, o: &BillingOrder, block: u64) -> BillingOrder {
-    let r: Result<BillingOrder> = update(
+    let r: Result<OrderProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
         "check_order_funding",
         (o.order_id, block),
     );
+    r.unwrap();
+    order_details(f, o.order_id)
+}
+
+fn order_details(f: &Fixture, id: Hash) -> BillingOrder {
+    let r: Result<BillingOrder> = query(&f.ic, f.commerce, person(1), "get_operation", (id,));
     r.unwrap()
 }
+
 fn assert_money(o: &BillingOrder) {
     assert_eq!(
         o.confirmed_in,
@@ -193,7 +203,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
     let closing = closing.unwrap();
     assert_eq!(closing.status, OrderStatus::Closing);
     assert!(closing.close_effective_at_ms.unwrap() > time(&f.ic));
-    let early: Result<BillingOrder> = update(
+    let early: Result<OrderProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
@@ -209,18 +219,19 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
     )
     .unwrap();
     f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let refunded: Result<BillingOrder> = update(
+    let refunded: Result<OrderProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
         "reconcile_order",
         (o.order_id,),
     );
-    let refunded = refunded.unwrap();
+    refunded.unwrap();
+    let refunded = order_details(&f, o.order_id);
     assert_eq!(refunded.status, OrderStatus::RefundCommitted);
     assert_money(&refunded);
     assert!(refunded.refunded_principal < o.input.quote.amount_atomic);
-    let leg: Result<MerchantTransfer> = update(
+    let leg: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -228,9 +239,16 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
         (o.order_id, block),
     );
     let leg = leg.unwrap();
-    assert_eq!(leg.to, account(person(1)));
+    let detail: Result<MerchantTransfer> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "get_transfer",
+        (o.order_id, leg.transfer_id),
+    );
+    assert_eq!(detail.unwrap().to, account(person(1)));
     void(&f.ic, f.ledger, person(1), "lose_next_response", ());
-    let unknown: Result<MerchantTransfer> = update(
+    let unknown: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
@@ -238,7 +256,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
         (o.order_id, leg.transfer_id),
     );
     assert_eq!(unknown, Err(Error::ExecutionUnknown));
-    let paid: Result<MerchantTransfer> = update(
+    let paid: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
@@ -247,7 +265,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
     );
     assert_eq!(paid.unwrap().status, MerchantTransferStatus::Succeeded);
 
-    let rejected_leg: Result<MerchantTransfer> = update(
+    let rejected_leg: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -256,7 +274,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
     );
     let rejected_leg = rejected_leg.unwrap();
     void(&f.ic, f.ledger, person(2), "reject_next_transfers", (1u32,));
-    let rejected: Result<MerchantTransfer> = update(
+    let rejected: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -272,7 +290,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
         (o.order_id, rejected_leg.transfer_id, 10u128),
     );
     let replacement = replacement.unwrap();
-    let superseded: Result<MerchantTransfer> = update(
+    let superseded: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -280,7 +298,7 @@ fn commerce_cash_deposits_close_fence_and_upgrade_survive_restart() {
         (o.order_id, rejected_leg.transfer_id),
     );
     assert_eq!(superseded, Err(Error::VersionConflict));
-    let replacement_paid: Result<MerchantTransfer> = update(
+    let replacement_paid: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -590,7 +608,7 @@ fn commercial_authorization_does_not_add_auth_and_governance_is_fixed() {
         f.commerce,
         Principal::anonymous(),
         "list_catalogs",
-        (),
+        (None::<u64>,),
     );
     let mut version_three = catalogs[0].clone();
     version_three.version = 3;
@@ -661,7 +679,7 @@ fn transfer_fee_cannot_consume_principal_beyond_the_frozen_reserve() {
         f.commerce,
         Principal::anonymous(),
         "list_catalogs",
-        (),
+        (None::<u64>,),
     );
     let mut next = catalogs[0].clone();
     next.version = 2;
@@ -673,8 +691,17 @@ fn transfer_fee_cannot_consume_principal_beyond_the_frozen_reserve() {
     let scheduled: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (next,));
     scheduled.unwrap();
     f.ic.advance_time(Duration::from_millis(31 * DAY));
+    void(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "set_fee",
+        (o.input.quote.fee_reserve + 1,),
+    );
+    let verified: Result<()> = update(&f.ic, f.commerce, f.sns, "verify_ledger_configuration", ());
+    verified.unwrap();
 
-    let blocked: Result<MerchantTransfer> = update(
+    let blocked: Result<TransferProgress> = update(
         &f.ic,
         f.commerce,
         person(2),
@@ -895,7 +922,7 @@ fn execution_monthly_units_cannot_be_reset_by_refund_or_upgrade() {
     );
     r.unwrap();
     f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
-    let r: Result<BillingOrder> = update(
+    let r: Result<OrderProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
@@ -997,9 +1024,10 @@ fn upgrades_refund_the_same_period_and_independent_storage_survives() {
     closing.unwrap();
     f.ic.advance_time(Duration::from_millis(MAX_LEASE_MS + 1));
     for id in [base.order_id, upgraded.order_id] {
-        let r: Result<BillingOrder> =
+        let r: Result<OrderProgress> =
             update(&f.ic, f.commerce, person(1), "reconcile_order", (id,));
-        let r = r.unwrap();
+        r.unwrap();
+        let r = order_details(&f, id);
         assert_eq!(r.status, OrderStatus::RefundCommitted);
         assert_money(&r);
     }
@@ -1058,14 +1086,15 @@ fn cancellation_of_future_renewal_keeps_current_contract_and_refunds_at_most_pri
         (future.order_id, i),
     );
     r.unwrap();
-    let r: Result<BillingOrder> = update(
+    let r: Result<OrderProgress> = update(
         &f.ic,
         f.commerce,
         person(1),
         "reconcile_order",
         (future.order_id,),
     );
-    let r = r.unwrap();
+    r.unwrap();
+    let r = order_details(&f, future.order_id);
     assert_eq!(r.refunded_principal, future.input.quote.amount_atomic);
     assert_money(&r);
     let v: Result<EntitlementView> = update(
