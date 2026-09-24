@@ -24,16 +24,6 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
-// One frozen reservation and proofs for its digest and the import progress.
-// Verify both leaves under the same certified root before using the record.
-type CertifiedLegacyReservation = record {
-  // Frozen record, or None with an authenticated absence proof.
-  reservation : opt LegacyReservation;
-  // Import progress authenticated by the `_legacy_snapshot` leaf.
-  progress : SnapshotProgress;
-  // Proofs for `_legacy_snapshot` and `_legacy/<canonical handle>`.
-  proof : CertifiedBatch;
-};
 // Application errors returned by dMsg canisters and protocol helpers.
 // Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
@@ -166,7 +156,7 @@ type HandleOperation = record {
   memo : blob;
   // Confirmed ledger transaction index, if known.
   ledger_block : opt nat64;
-  // Creation time in Unix milliseconds.
+  // Creation time in Unix milliseconds, also the ledger `created_at_time`.
   created_at : nat64;
   // Domain-separated commitment to this operation and its parameters.
   digest : blob;
@@ -174,26 +164,20 @@ type HandleOperation = record {
   phase : HandlePhase;
   // Ledger transfer amount in base units, excluding registration.fee.
   amount : nat;
-  // Exclusive deadline in Unix milliseconds (`now < expires_at`).
-  expires_at : nat64;
 };
 // Registration charge/commit lifecycle. Unknown charges require reconciliation.
 type HandlePhase = variant {
   // Name ownership change is committed.
   Committed;
-  // Name operation reserved before ledger charging.
-  Reserved;
-  // Ledger definitively rejected the charge; a new operation is required.
+  // The charge definitively did not execute; a new operation is required.
   Rejected : record {
-    // Ledger rejection diagnostic, retained for operation recovery.
+    // Ledger rejection or nonexecution diagnostic, retained for recovery.
     reason : text;
   };
   // Ledger charge may have succeeded; reconcile before another charge.
   ChargeUnknown;
-  // Ledger charge is in flight.
+  // Name and account are locked while the ledger charge is in flight.
   Charging;
-  // The applicable deadline has passed.
-  Expired;
 };
 // Current canonical name ownership and event-chain tip.
 type HandleRecord = record {
@@ -248,10 +232,8 @@ type Result = variant { Ok; Err : Error };
 type Result_1 = variant { Ok : HandleRecord; Err : Error };
 type Result_2 = variant { Ok : HandleOperation; Err : Error };
 type Result_3 = variant { Ok : opt LegacyReservation; Err : Error };
-type Result_4 = variant { Ok : CertifiedLegacyReservation; Err : Error };
-type Result_5 = variant { Ok : SnapshotProgress; Err : Error };
-type Result_6 = variant { Ok : vec LegacyReservation; Err : Error };
-type Result_7 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_4 = variant { Ok : SnapshotProgress; Err : Error };
+type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
 // Progress of the restricted legacy name import process.
 type SnapshotProgress = record {
   // Last imported canonical name, for ordered continuation.
@@ -269,19 +251,16 @@ service : (HandleInit) -> {
   begin_legacy_snapshot : (LegacySnapshot) -> (Result);
   claim_legacy_handle : (HandleIntent, blob) -> (Result_1);
   commit_handle : (blob, blob) -> (Result_2);
-  expire_handle_reservation : (blob, blob) -> (Result);
   get_handle_config : () -> (HandleInit) query;
   get_handle_event : (nat64) -> (opt HandleEvent) query;
   get_handle_operation : (blob, blob) -> (Result_2) query;
   get_legacy_reservation : (text) -> (Result_3) query;
-  get_legacy_reservation_certified : (text) -> (Result_4) query;
-  import_legacy_handles : (blob, vec LegacyReservation) -> (Result_5);
-  list_legacy_reservations : (opt text) -> (Result_6) query;
+  import_legacy_handles : (blob, vec LegacyReservation) -> (Result_4);
   reconcile_handle_charge : (blob, blob, nat64) -> (Result_2);
-  reserve_handle : (Registration) -> (Result_2);
-  resolve_handle_certified : (vec text) -> (Result_7) query;
-  seal_legacy_snapshot : () -> (Result_5);
-  snapshot_certified : () -> (Result_7) query;
+  register_handle : (Registration) -> (Result_2);
+  resolve_handle_certified : (vec text) -> (Result_5) query;
+  seal_legacy_snapshot : () -> (Result_4);
+  snapshot_certified : () -> (Result_5) query;
   snapshot_progress : () -> (SnapshotProgress) query;
   transfer_handle : (HandleIntent, HandleIntent) -> (Result_1);
   update_ledger_fee : (nat) -> (Result);

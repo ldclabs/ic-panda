@@ -26,8 +26,6 @@ export const progressValue = (value: unknown) =>
   )
 export const legacyEntryDigest = (previous: Uint8Array, value: LegacyReservation) =>
   digest('dmsg/legacy-entry/v1', [previous, reservationValue(value)])
-export const legacyReservationDigest = (value: LegacyReservation) =>
-  digest('dmsg/legacy-reservation/v1', reservationValue(value))
 export const legacyClaimDigest = (
   snapshot: Uint8Array,
   value: LegacyReservation,

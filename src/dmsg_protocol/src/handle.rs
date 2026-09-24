@@ -41,6 +41,11 @@ pub fn normalize_handle(handle: &str) -> Result<String> {
     Ok(handle.to_ascii_lowercase())
 }
 
+const PANDA: u128 = 100_000_000;
+
+/// Lowest registration price in PANDA base units, charged for 7..20-byte names.
+pub const MIN_HANDLE_PRICE: u128 = 5_000 * PANDA;
+
 /// Return the fixed PANDA registration price in base units (8 decimal places).
 ///
 /// Call [`normalize_handle`] first: this function only examines byte length and
@@ -48,14 +53,13 @@ pub fn normalize_handle(handle: &str) -> Result<String> {
 /// 1 byte, 200,000 for 2, 50,000 for 3..4, 20,000 for 5..6, and 5,000 otherwise.
 /// It does not query a ledger, convert currencies, or quote a network fee.
 pub fn price(handle: &str) -> u128 {
-    let tokens = match handle.len() {
-        1 => 1_000_000,
-        2 => 200_000,
-        3 | 4 => 50_000,
-        5 | 6 => 20_000,
-        _ => 5_000,
-    };
-    tokens * 100_000_000
+    match handle.len() {
+        1 => 1_000_000 * PANDA,
+        2 => 200_000 * PANDA,
+        3 | 4 => 50_000 * PANDA,
+        5 | 6 => 20_000 * PANDA,
+        _ => MIN_HANDLE_PRICE,
+    }
 }
 
 #[cfg(test)]

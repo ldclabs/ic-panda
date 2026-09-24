@@ -1,90 +1,101 @@
-import { readFileSync } from 'node:fs'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { HttpAgent, HashTree } from '@icp-sdk/core/agent'
-import { IDL } from '@icp-sdk/core/candid'
+import { expect, it, vi } from 'vitest'
+import type { HashTree } from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
 import { HandleClient } from '../src/lib/services/handle'
 import type { AccountClient } from '../src/lib/services/account'
 import type {
   _SERVICE,
-  CertifiedLegacyReservation
+  LegacyReservation,
+  SnapshotProgress
 } from '../src/lib/canisters/generated/handle'
-import { idlFactory } from '../src/lib/canisters/generated/handle/index.js'
 import { lookupCertifiedMap } from '../src/lib/services/certified'
-import { decodeCanonical, utf8 } from '../src/lib/protocol/codec'
+import { utf8 } from '../src/lib/protocol/codec'
 
-const [root, at, registryId, owner, replies] = decodeCanonical<
-  [Uint8Array, number, string, string, Uint8Array[]]
->(new Uint8Array(readFileSync(new URL('./fixtures/handle-reservation.cbor', import.meta.url))))
-const service = idlFactory({ IDL }) as IDL.ServiceClass
-const method = service._fields.find(
-  ([name]) => name === 'get_legacy_reservation_certified'
-)![1]
+const principal = (n: number) => Principal.fromUint8Array(new Uint8Array([n, 1]))
+const [nameAccount, admin, stranger] = [principal(80), principal(1), principal(2)]
 
-beforeEach(() => {
-  vi.useFakeTimers()
-  vi.setSystemTime(at)
-})
-afterEach(() => vi.useRealTimers())
-
-function fixture(index = 0) {
-  const [response] = IDL.decode(method.retTypes, replies[index]) as unknown as [
-    { Ok: CertifiedLegacyReservation }
-  ]
-  const registry = { get_legacy_reservation_certified: vi.fn(async () => response) }
-  // No network or mocked proof verification: the real BLS verifier uses this
-  // local PocketIC root and the Candid reply emitted by the Rust canister.
-  const agent = { rootKey: root } as HttpAgent
+function fixture(
+  caller = admin,
+  change: (reservation: LegacyReservation, progress: SnapshotProgress) => void = () => {}
+) {
+  const reservation: LegacyReservation = {
+    handle: 'namedowner',
+    legacy_owner: nameAccount,
+    legacy_name_principal: [nameAccount],
+    frozen_admins: [admin],
+    quarantined: false
+  }
+  const progress: SnapshotProgress = {
+    snapshot: [
+      {
+        source_canister: principal(81),
+        snapshot_id: new Uint8Array(32).fill(5),
+        freeze_version: 1n,
+        event_tip: new Uint8Array(32).fill(7),
+        count: 1n,
+        entries_digest: new Uint8Array(32).fill(9)
+      }
+    ],
+    imported: 1n,
+    rolling_digest: new Uint8Array(32).fill(9),
+    last_handle: ['namedowner'],
+    sealed: true
+  }
+  change(reservation, progress)
+  const registry = {
+    get_legacy_reservation: vi.fn(async (name: string) => ({
+      Ok: name === 'namedowner' ? ([reservation] as [LegacyReservation]) : ([] as [])
+    })),
+    snapshot_progress: vi.fn(async () => progress)
+  }
   const client = new HandleClient(
-    { agent } as AccountClient,
+    {} as AccountClient,
     registry as unknown as _SERVICE,
-    registryId,
-    Principal.fromText(owner)
+    'aaaaa-aa',
+    caller
   )
-  return { data: response.Ok, registry, client }
+  return { client, registry, progress }
 }
 
-it('authenticates a single old name and frozen administrator in one query', async () => {
-  const { client, registry } = fixture()
-  expect((await client.legacy('NAMEDOWNER')).reservation.handle).toBe('namedowner')
-  expect(registry.get_legacy_reservation_certified).toHaveBeenCalledExactlyOnceWith(
-    'namedowner'
-  )
+it('reads one frozen name and the sealed snapshot with plain queries', async () => {
+  const { client, registry, progress } = fixture()
+  const result = await client.legacy('NAMEDOWNER')
+  expect(result.reservation.handle).toBe('namedowner')
+  expect(result.snapshot).toBe(progress.snapshot[0])
+  expect(registry.get_legacy_reservation).toHaveBeenCalledExactlyOnceWith('namedowner')
+  expect(registry.snapshot_progress).toHaveBeenCalledOnce()
 })
 
-it('rejects a changed owner and changed import progress', async () => {
-  let f = fixture()
-  f.data.reservation[0]!.legacy_owner = Principal.anonymous()
-  await expect(f.client.legacy('namedowner')).rejects.toThrow('INTEGRITY_FAILED')
-  f = fixture()
-  f.data.progress.imported += 1n
-  await expect(f.client.legacy('namedowner')).rejects.toThrow('INTEGRITY_FAILED')
-})
-
-it('requires an authenticated absence proof before accepting a missing reservation', async () => {
-  const { client, data } = fixture()
-  data.reservation = []
-  await expect(client.legacy('namedowner')).rejects.toThrow('INTEGRITY_FAILED')
-  await expect(fixture(1).client.legacy('missing')).rejects.toMatchObject({
+it('requires a sealed snapshot and a record for the exact name', async () => {
+  await expect(
+    fixture(admin, (_, progress) => (progress.sealed = false)).client.legacy('namedowner')
+  ).rejects.toMatchObject({ code: 'Pending' })
+  await expect(fixture().client.legacy('missing')).rejects.toMatchObject({
     code: 'NOT_FOUND'
   })
+  await expect(
+    fixture(admin, (reservation) => (reservation.handle = 'othername')).client.legacy(
+      'namedowner'
+    )
+  ).rejects.toThrow('INTEGRITY_FAILED')
 })
 
-it('rejects a record or proof requested under another name', async () => {
-  const { client, data } = fixture()
-  data.reservation[0]!.handle = 'othername'
-  await expect(client.legacy('namedowner')).rejects.toThrow('INTEGRITY_FAILED')
-  await expect(fixture().client.legacy('othername')).rejects.toThrow('INTEGRITY_FAILED')
-})
-
-it('rejects a forged certificate and stale certified progress', async () => {
-  const { client, data } = fixture()
-  const certificate = Uint8Array.from(data.proof.certificate)
-  certificate[certificate.length - 1] ^= 1
-  data.proof.certificate = certificate
-  await expect(client.legacy('namedowner')).rejects.toThrow()
-  vi.setSystemTime(at + 60001)
-  await expect(fixture().client.legacy('namedowner')).rejects.toThrow('POLICY_STALE')
+it('keeps quarantined names, the name account and ordinary delegators out of claims', async () => {
+  await expect(
+    fixture(admin, (reservation) => (reservation.quarantined = true)).client.legacy(
+      'namedowner'
+    )
+  ).rejects.toMatchObject({ code: 'Locked' })
+  for (const caller of [nameAccount, stranger]) {
+    await expect(fixture(caller).client.legacy('namedowner')).rejects.toMatchObject({
+      code: 'Forbidden'
+    })
+  }
+  const direct = fixture(stranger, (reservation) => {
+    reservation.legacy_owner = stranger
+    reservation.legacy_name_principal = []
+  })
+  expect((await direct.client.legacy('namedowner')).reservation.legacy_owner).toBe(stranger)
 })
 
 it('uses lexicographic bounds and never treats a pruned map range as absent', () => {

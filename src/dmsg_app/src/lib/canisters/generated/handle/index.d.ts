@@ -18,11 +18,6 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
-export interface CertifiedLegacyReservation {
-  'reservation' : [] | [LegacyReservation],
-  'progress' : SnapshotProgress,
-  'proof' : CertifiedBatch,
-}
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
@@ -91,14 +86,11 @@ export interface HandleOperation {
   'digest' : Uint8Array | number[],
   'phase' : HandlePhase,
   'amount' : bigint,
-  'expires_at' : bigint,
 }
 export type HandlePhase = { 'Committed' : null } |
-  { 'Reserved' : null } |
   { 'Rejected' : { 'reason' : string } } |
   { 'ChargeUnknown' : null } |
-  { 'Charging' : null } |
-  { 'Expired' : null };
+  { 'Charging' : null };
 export interface HandleRecord {
   'event_tip' : Uint8Array | number[],
   'version' : bigint,
@@ -133,13 +125,9 @@ export type Result_2 = { 'Ok' : HandleOperation } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : [] | [LegacyReservation] } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : CertifiedLegacyReservation } |
+export type Result_4 = { 'Ok' : SnapshotProgress } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : SnapshotProgress } |
-  { 'Err' : Error };
-export type Result_6 = { 'Ok' : Array<LegacyReservation> } |
-  { 'Err' : Error };
-export type Result_7 = { 'Ok' : CertifiedBatch } |
+export type Result_5 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
 export interface SnapshotProgress {
   'last_handle' : [] | [string],
@@ -158,10 +146,6 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[]],
     Result_2
   >,
-  'expire_handle_reservation' : ActorMethod<
-    [Uint8Array | number[], Uint8Array | number[]],
-    Result
-  >,
   'get_handle_config' : ActorMethod<[], HandleInit>,
   'get_handle_event' : ActorMethod<[bigint], [] | [HandleEvent]>,
   'get_handle_operation' : ActorMethod<
@@ -169,20 +153,18 @@ export interface _SERVICE {
     Result_2
   >,
   'get_legacy_reservation' : ActorMethod<[string], Result_3>,
-  'get_legacy_reservation_certified' : ActorMethod<[string], Result_4>,
   'import_legacy_handles' : ActorMethod<
     [Uint8Array | number[], Array<LegacyReservation>],
-    Result_5
+    Result_4
   >,
-  'list_legacy_reservations' : ActorMethod<[[] | [string]], Result_6>,
   'reconcile_handle_charge' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], bigint],
     Result_2
   >,
-  'reserve_handle' : ActorMethod<[Registration], Result_2>,
-  'resolve_handle_certified' : ActorMethod<[Array<string>], Result_7>,
-  'seal_legacy_snapshot' : ActorMethod<[], Result_5>,
-  'snapshot_certified' : ActorMethod<[], Result_7>,
+  'register_handle' : ActorMethod<[Registration], Result_2>,
+  'resolve_handle_certified' : ActorMethod<[Array<string>], Result_5>,
+  'seal_legacy_snapshot' : ActorMethod<[], Result_4>,
+  'snapshot_certified' : ActorMethod<[], Result_5>,
   'snapshot_progress' : ActorMethod<[], SnapshotProgress>,
   'transfer_handle' : ActorMethod<[HandleIntent, HandleIntent], Result_1>,
   'update_ledger_fee' : ActorMethod<[bigint], Result>,

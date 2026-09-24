@@ -253,7 +253,6 @@ stable_struct!(HandleOperationRepr => HandleOperation {
     3 => phase: HandlePhase,
     4 => amount: u128,
     5 => created_at: u64,
-    6 => expires_at: u64,
     7 => memo: Hash,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     8 => ledger_block: Option<u64>,

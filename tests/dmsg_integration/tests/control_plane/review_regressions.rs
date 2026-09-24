@@ -762,18 +762,6 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     .unwrap();
     f.mint(person(1), amount + 10);
     f.approve_handle(person(1), amount + 10);
-    let reserved: Result<HandleOperation> = update(
-        &f.ic,
-        f.handle,
-        person(1),
-        "reserve_handle",
-        (Registration {
-            intent,
-            payer,
-            fee: 10,
-        },),
-    );
-    reserved.unwrap();
     void(
         &f.ic,
         f.ledger,
@@ -781,8 +769,17 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
         "lose_next_response",
         (),
     );
-    let lost: Result<HandleOperation> =
-        update(&f.ic, f.handle, person(1), "commit_handle", (&owner, op_id));
+    let lost: Result<HandleOperation> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "register_handle",
+        (Registration {
+            intent,
+            payer,
+            fee: 10,
+        },),
+    );
     assert_eq!(lost, Err(Error::ExecutionUnknown));
     let block: icrc_ledger_types::icrc3::blocks::GetBlocksResult = query(
         &f.ic,

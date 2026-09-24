@@ -123,7 +123,6 @@ mod tests {
             phase: HandlePhase::Charging,
             amount: 1_000_000,
             created_at: 1_700_000_000_000,
-            expires_at: 1_700_000_900_000,
             memo: Hash::new([7; 32]),
             ledger_block: Some(99),
         };
@@ -165,12 +164,12 @@ mod tests {
         );
 
         let operation_bytes = compact_bytes(&operation);
-        assert_eq!(operation_bytes.len(), 290);
+        assert_eq!(operation_bytes.len(), 280);
         assert_eq!(
             hex(&operation_bytes),
-            "3e445e35c8a5d0ffbc876bbfe42cd48abff47dd02ab06dedf9d9483a1b9c2a29"
+            "fc277fc2168439b4cb64e93b21c36cb42a1c9a8d606cc79c99080e212b80baa9"
         );
-        assert_integer_top_keys(&operation_bytes, 8);
+        assert_integer_top_keys(&operation_bytes, 7);
         assert_eq!(
             compact_from_bytes::<HandleOperation>(&operation_bytes),
             operation
@@ -241,18 +240,9 @@ mod tests {
             event_tip: Hash::new([5; 32]),
             pending: 2,
         };
-        let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
-        assert_eq!(decoded.schema, config.schema);
-        assert_eq!(decoded.init, config.init);
-        assert_eq!(decoded.progress.snapshot, config.progress.snapshot);
-        assert_eq!(decoded.progress.imported, config.progress.imported);
         assert_eq!(
-            decoded.progress.rolling_digest,
-            config.progress.rolling_digest
+            compact_from_bytes::<Config>(&compact_bytes(&config)),
+            config
         );
-        assert_eq!(decoded.progress.last_handle, config.progress.last_handle);
-        assert_eq!(decoded.progress.sealed, config.progress.sealed);
-        assert_eq!(decoded.event_tip, config.event_tip);
-        assert_eq!(decoded.pending, config.pending);
     }
 }

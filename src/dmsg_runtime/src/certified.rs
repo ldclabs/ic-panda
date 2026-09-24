@@ -52,9 +52,21 @@ impl Certification {
 
     /// Certify already encoded leaf bytes.
     pub fn insert(&mut self, key: Vec<u8>, bytes: Vec<u8>) {
+        self.set(key, bytes);
+        self.publish();
+    }
+
+    /// Certify many encoded leaves, publishing the root once after the last one.
+    pub fn extend(&mut self, leaves: impl IntoIterator<Item = (Vec<u8>, Vec<u8>)>) {
+        for (key, bytes) in leaves {
+            self.set(key, bytes);
+        }
+        self.publish();
+    }
+
+    fn set(&mut self, key: Vec<u8>, bytes: Vec<u8>) {
         let hash = leaf_hash(&bytes);
         self.0.insert(key, Leaf { bytes, hash });
-        self.publish();
     }
 
     pub fn remove(&mut self, key: &[u8]) {
@@ -185,6 +197,18 @@ mod tests {
                 cbor2::to_vec(&plain.witness(&key)).unwrap()
             );
         }
+        // Tree shape depends on insertion order; compare the same order.
+        let mut inserted = Certification::default();
+        for (key, value) in plain.iter() {
+            inserted.insert(key.clone(), value.clone());
+        }
+        let mut extended = Certification::default();
+        extended.extend(
+            plain
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone())),
+        );
+        assert_eq!(extended.root_hash(), inserted.root_hash());
     }
 
     #[test]

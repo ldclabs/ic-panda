@@ -137,19 +137,15 @@ pub struct Registration {
 /// Registration charge/commit lifecycle. Unknown charges require reconciliation.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum HandlePhase {
-    /// Name operation reserved before ledger charging.
-    Reserved,
-    /// Ledger charge is in flight.
+    /// Name and account are locked while the ledger charge is in flight.
     Charging,
     /// Ledger charge may have succeeded; reconcile before another charge.
     ChargeUnknown,
     /// Name ownership change is committed.
     Committed,
-    /// The applicable deadline has passed.
-    Expired,
-    /// Ledger definitively rejected the charge; a new operation is required.
+    /// The charge definitively did not execute; a new operation is required.
     Rejected {
-        /// Ledger rejection diagnostic, retained for operation recovery.
+        /// Ledger rejection or nonexecution diagnostic, retained for recovery.
         reason: String,
     },
 }
@@ -165,10 +161,8 @@ pub struct HandleOperation {
     pub phase: HandlePhase,
     /// Ledger transfer amount in base units, excluding registration.fee.
     pub amount: u128,
-    /// Creation time in Unix milliseconds.
+    /// Creation time in Unix milliseconds, also the ledger `created_at_time`.
     pub created_at: u64,
-    /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
-    pub expires_at: u64,
     /// Fixed 32-byte ledger memo used for transfer correlation/deduplication.
     pub memo: Hash,
     /// Confirmed ledger transaction index, if known.
@@ -188,16 +182,4 @@ pub struct SnapshotProgress {
     pub last_handle: Option<String>,
     /// Whether the imported snapshot has been finalized.
     pub sealed: bool,
-}
-
-/// One frozen reservation and proofs for its digest and the import progress.
-/// Verify both leaves under the same certified root before using the record.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CertifiedLegacyReservation {
-    /// Frozen record, or None with an authenticated absence proof.
-    pub reservation: Option<LegacyReservation>,
-    /// Import progress authenticated by the `_legacy_snapshot` leaf.
-    pub progress: SnapshotProgress,
-    /// Proofs for `_legacy_snapshot` and `_legacy/<canonical handle>`.
-    pub proof: CertifiedBatch,
 }

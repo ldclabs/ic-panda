@@ -69,10 +69,11 @@ fn authorize(f: &Fixture, n: u8, intent: &HandleIntent) {
     .unwrap();
 }
 
-fn reserve(f: &Fixture, input: &Registration) -> Result<HandleOperation> {
-    update(&f.ic, f.handle, person(1), "reserve_handle", (input,))
+fn register(f: &Fixture, input: &Registration) -> Result<HandleOperation> {
+    update(&f.ic, f.handle, person(1), "register_handle", (input,))
 }
 
+// Retries an unknown charge with the original ledger arguments.
 fn commit(f: &Fixture, input: &Registration) -> Result<HandleOperation> {
     update(
         &f.ic,
@@ -103,14 +104,34 @@ fn operation(f: &Fixture, input: &Registration) -> Result<HandleOperation> {
     )
 }
 
-fn expire(f: &Fixture, input: &Registration) -> Result<()> {
-    update(
+fn legacy(f: &Fixture, name: &str) -> Result<Option<LegacyReservation>> {
+    query(
         &f.ic,
         f.handle,
-        person(99),
-        "expire_handle_reservation",
-        (&input.intent.account_id, input.intent.op_id),
+        person(1),
+        "get_legacy_reservation",
+        (name,),
     )
+}
+
+fn progress(f: &Fixture) -> SnapshotProgress {
+    query(&f.ic, f.handle, person(1), "snapshot_progress", ())
+}
+
+fn with_max_pending(f: &Fixture, max_pending: u32) {
+    f.ic.reinstall_canister(
+        f.handle,
+        wasm("dmsg_handle"),
+        candid::encode_args((HandleInit {
+            home_user: f.user,
+            ledger: f.ledger,
+            ledger_fee: 10,
+            max_pending,
+        },))
+        .unwrap(),
+        None,
+    )
+    .unwrap();
 }
 
 fn upgrade(f: &Fixture) {
@@ -205,14 +226,12 @@ fn handle_snapshot_import_validates_the_whole_batch_before_writing() {
         )
     };
     assert!(import(vec![entries[1].clone(), entries[0].clone()]).is_err());
-    let empty: Result<Vec<LegacyReservation>> = query(
-        &f.ic,
-        f.handle,
-        person(1),
-        "list_legacy_reservations",
-        (None::<String>,),
-    );
-    assert!(empty.unwrap().is_empty());
+    // A frozen administrator claims as a caller, so it must be authenticated.
+    let mut anonymous_admin = entries[0].clone();
+    anonymous_admin.frozen_admins = vec![Principal::anonymous()];
+    assert_eq!(import(vec![anonymous_admin]), Err(Error::AuthRequired));
+    assert_eq!(legacy(&f, "alpha"), Ok(None));
+    assert_eq!(progress(&f).imported, 0);
     assert_eq!(import(vec![entries[0].clone()]).unwrap().imported, 1);
     let replay = import(vec![entries[0].clone()]).unwrap();
     assert_eq!(replay.imported, 1);
@@ -240,50 +259,17 @@ fn handle_snapshot_import_validates_the_whole_batch_before_writing() {
 }
 
 #[test]
-fn handle_locks_survive_upgrade_and_unknown_charges_never_expire() {
+fn handle_unknown_charges_keep_locks_across_time_and_upgrade() {
     let f = Fixture::new();
     // Exercise the global counter as well as the per-account set at capacity.
-    f.ic.reinstall_canister(
-        f.handle,
-        wasm("dmsg_handle"),
-        candid::encode_args((HandleInit {
-            home_user: f.user,
-            ledger: f.ledger,
-            ledger_fee: 10,
-            max_pending: 1,
-        },))
-        .unwrap(),
-        None,
-    )
-    .unwrap();
+    with_max_pending(&f, 1);
     let owner = f.create(1);
     let other = f.create(2);
     seal_snapshot(&f, &[]);
-    let first = registration(&f, &owner, "first", 1);
-    authorize(&f, 1, &first.intent);
-    let reserved = reserve(&f, &first).unwrap();
-    let same_owner = registration(&f, &owner, "second", 2);
-    let other_owner = registration(&f, &other, "other", 3);
-    // No authorization exists for these requests: the quota must reject them
-    // locally, before user calls that would instead return NotFound.
-    for input in [&same_owner, &other_owner] {
-        assert_eq!(reserve(&f, input), Err(Error::QuotaExceeded));
-        assert_eq!(operation(&f, input), Err(Error::NotFound));
-    }
-    assert_eq!(reserve(&f, &first).unwrap(), reserved);
-    assert_eq!(expire(&f, &first), Err(Error::VersionConflict));
-    upgrade(&f);
-    assert_eq!(reserve(&f, &other_owner), Err(Error::QuotaExceeded));
-    assert_eq!(operation(&f, &first).unwrap(), reserved);
-    f.ic.advance_time(Duration::from_secs(16 * 60));
-    expire(&f, &first).unwrap();
-    assert_eq!(expire(&f, &first), Err(Error::VersionConflict));
-
-    let unknown = registration(&f, &owner, "first", 4);
-    authorize(&f, 1, &unknown.intent);
-    reserve(&f, &unknown).unwrap();
-    f.mint(person(1), price("first"));
+    f.mint(person(1), price("first") + price("rejected"));
     f.approve_handle(person(1), price("first"));
+    let unknown = registration(&f, &owner, "first", 1);
+    authorize(&f, 1, &unknown.intent);
     void(
         &f.ic,
         f.ledger,
@@ -291,19 +277,26 @@ fn handle_locks_survive_upgrade_and_unknown_charges_never_expire() {
         "lose_next_response",
         (),
     );
-    assert_eq!(commit(&f, &unknown), Err(Error::ExecutionUnknown));
-    assert_eq!(
-        operation(&f, &unknown).unwrap().phase,
-        HandlePhase::ChargeUnknown
-    );
+    assert_eq!(register(&f, &unknown), Err(Error::ExecutionUnknown));
+    let pending = operation(&f, &unknown).unwrap();
+    assert_eq!(pending.phase, HandlePhase::ChargeUnknown);
+    let same_owner = registration(&f, &owner, "second", 2);
+    let other_owner = registration(&f, &other, "other", 3);
+    // No authorization exists for these requests: the quota must reject them
+    // locally, before user calls that would instead return NotFound.
+    for input in [&same_owner, &other_owner] {
+        assert_eq!(register(&f, input), Err(Error::QuotaExceeded));
+        assert_eq!(operation(&f, input), Err(Error::NotFound));
+    }
+    assert_eq!(register(&f, &unknown).unwrap(), pending);
     f.ic.advance_time(Duration::from_secs(16 * 60));
     upgrade(&f);
-    assert_eq!(expire(&f, &unknown), Err(Error::VersionConflict));
-    assert_eq!(reserve(&f, &other_owner), Err(Error::QuotaExceeded));
+    assert_eq!(register(&f, &other_owner), Err(Error::QuotaExceeded));
     let paid = commit(&f, &unknown).unwrap(); // ledger Duplicate, original timestamp
     assert_eq!(paid.phase, HandlePhase::Committed);
     assert_eq!(paid.ledger_block, Some(0));
     assert_eq!(commit(&f, &unknown).unwrap(), paid);
+    assert_eq!(register(&f, &unknown).unwrap(), paid);
     let balance: Nat = query(
         &f.ic,
         f.ledger,
@@ -311,31 +304,35 @@ fn handle_locks_survive_upgrade_and_unknown_charges_never_expire() {
         "icrc1_balance_of",
         (unknown.payer,),
     );
-    assert_eq!(balance, Nat::from(0u8));
+    assert_eq!(balance, Nat::from(price("rejected")));
 
     // A definitive failure releases both locks exactly once and appends no event.
-    let rejected = registration(&f, &owner, "rejected", 5);
+    let rejected = registration(&f, &owner, "rejected", 4);
     authorize(&f, 1, &rejected.intent);
-    reserve(&f, &rejected).unwrap();
-    assert!(matches!(commit(&f, &rejected), Err(Error::Unavailable(_))));
-    assert!(matches!(
-        operation(&f, &rejected).unwrap().phase,
-        HandlePhase::Rejected { .. }
-    ));
+    assert!(
+        matches!(register(&f, &rejected), Err(Error::Unavailable(ref reason)) if reason.contains("allowance"))
+    );
+    let failed = operation(&f, &rejected).unwrap();
+    assert!(matches!(failed.phase, HandlePhase::Rejected { .. }));
+    assert_eq!(register(&f, &rejected).unwrap(), failed);
     assert_eq!(commit(&f, &rejected), Err(Error::VersionConflict));
-    let next = registration(&f, &other, "rejected", 6);
-    authorize(&f, 2, &next.intent);
-    assert_eq!(reserve(&f, &next).unwrap().phase, HandlePhase::Reserved);
     let absent: Option<HandleEvent> =
         query(&f.ic, f.handle, person(1), "get_handle_event", (1u64,));
     assert_eq!(absent, None);
+    f.approve_handle(person(1), price("rejected"));
+    let next = registration(&f, &other, "rejected", 5);
+    authorize(&f, 2, &next.intent);
+    assert_eq!(register(&f, &next).unwrap().phase, HandlePhase::Committed);
 }
 
 #[test]
-fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
+fn handle_concurrent_registrations_charge_once_and_rebuild_certificates() {
     let f = Fixture::new();
     let owner = f.create(1);
     let snapshot = seal_snapshot(&f, &[]);
+    let total = price("alpha") + price("beta") + price("gamma");
+    f.mint(person(1), total);
+    f.approve_handle(person(1), total);
     let inputs = [
         registration(&f, &owner, "alpha", 1),
         registration(&f, &owner, "beta", 2),
@@ -343,23 +340,28 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
     for input in &inputs {
         authorize(&f, 1, &input.intent);
     }
-    let calls: Vec<_> = inputs
-        .iter()
-        .map(|input| {
-            f.ic.submit_call(
-                f.handle,
-                person(1),
-                "reserve_handle",
-                candid::encode_args((input,)).unwrap(),
-            )
-            .unwrap()
-        })
-        .collect();
+    let submit = |input: &Registration| {
+        f.ic.submit_call(
+            f.handle,
+            person(1),
+            "register_handle",
+            candid::encode_args((input,)).unwrap(),
+        )
+        .unwrap()
+    };
+    let calls: Vec<_> = inputs.iter().map(submit).collect();
     let results: Vec<Result<HandleOperation>> = calls
         .into_iter()
         .map(|call| candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap())
         .collect();
-    assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
+    // An account holds at most one unresolved charge.
+    assert_eq!(
+        results
+            .iter()
+            .filter(|r| r.as_ref().is_ok_and(|o| o.phase == HandlePhase::Committed))
+            .count(),
+        1
+    );
     assert_eq!(
         results
             .iter()
@@ -368,35 +370,14 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
         1
     );
     let winner = results.iter().position(|r| r.is_ok()).unwrap();
-    f.mint(person(1), price("alpha") + price("beta"));
-    f.approve_handle(person(1), price("alpha") + price("beta"));
-    let calls: Vec<_> = (0..2)
-        .map(|_| {
-            f.ic.submit_call(
-                f.handle,
-                person(1),
-                "commit_handle",
-                candid::encode_args((&owner, inputs[winner].intent.op_id)).unwrap(),
-            )
-            .unwrap()
-        })
-        .collect();
-    for call in calls {
-        let result: Result<HandleOperation> =
-            candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
-        assert!(
-            result
-                .as_ref()
-                .is_ok_and(|o| o.phase == HandlePhase::Committed)
-                || result == Err(Error::Pending)
-        );
-    }
     assert_eq!(
-        commit(&f, &inputs[winner]).unwrap().phase,
+        register(&f, &inputs[winner]).unwrap().phase,
         HandlePhase::Committed
     );
-    reserve(&f, &inputs[1 - winner]).unwrap();
-    commit(&f, &inputs[1 - winner]).unwrap();
+    assert_eq!(
+        register(&f, &inputs[1 - winner]).unwrap().phase,
+        HandlePhase::Committed
+    );
     let mut records = vec![];
     let mut previous = Hash::new([0; 32]);
     for sequence in 0..2u64 {
@@ -424,18 +405,36 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
     let absent: Option<HandleEvent> =
         query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
     assert_eq!(absent, None);
-    // The log's own persisted length supplies the next sequence after upgrade.
+    // The same request submitted twice charges once, and the log's own
+    // persisted length supplies the next sequence after upgrade.
     let next = registration(&f, &owner, "gamma", 3);
     authorize(&f, 1, &next.intent);
-    f.mint(person(1), price("gamma"));
-    f.approve_handle(person(1), price("gamma"));
-    reserve(&f, &next).unwrap();
-    commit(&f, &next).unwrap();
+    let calls = [submit(&next), submit(&next)];
+    for call in calls {
+        let result: Result<HandleOperation> =
+            candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
+        assert!(matches!(
+            result.unwrap().phase,
+            HandlePhase::Committed | HandlePhase::Charging
+        ));
+    }
+    assert_eq!(register(&f, &next).unwrap().phase, HandlePhase::Committed);
     let event: Option<HandleEvent> = query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
     let event = event.unwrap();
     assert_eq!(event.sequence, 2);
     assert_eq!(event.previous, previous);
     assert_eq!(event.handle, "gamma");
+    let absent: Option<HandleEvent> =
+        query(&f.ic, f.handle, person(1), "get_handle_event", (3u64,));
+    assert_eq!(absent, None);
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "icrc1_balance_of",
+        (next.payer,),
+    );
+    assert_eq!(balance, Nat::from(0u8));
     let oversized: Result<CertifiedBatch> = query(
         &f.ic,
         f.handle,
@@ -481,19 +480,15 @@ fn handle_cycles_profile() {
         let input = registration(&f, &owner, &format!("name{history:04}"), history as u8 + 1);
         authorize(&f, 1, &input.intent);
         if [0, 8, 16].contains(&history) {
-            measure(&f, history, "reserve", || reserve(&f, &input)).unwrap();
-            measure(&f, history, "reserve_retry", || reserve(&f, &input)).unwrap();
-            let blocked = registration(&f, &owner, "blocked", history as u8 + 80);
-            authorize(&f, 1, &blocked.intent);
+            measure(&f, history, "register", || register(&f, &input)).unwrap();
+            measure(&f, history, "register_retry", || register(&f, &input)).unwrap();
+            let taken = registration(&f, &owner, &input.intent.handle, history as u8 + 80);
             assert_eq!(
-                measure(&f, history, "reserve_quota", || reserve(&f, &blocked)),
-                Err(Error::QuotaExceeded)
+                measure(&f, history, "register_taken", || register(&f, &taken)),
+                Err(Error::VersionConflict)
             );
-            measure(&f, history, "commit", || commit(&f, &input)).unwrap();
-            measure(&f, history, "commit_retry", || commit(&f, &input)).unwrap();
         } else {
-            reserve(&f, &input).unwrap();
-            commit(&f, &input).unwrap();
+            register(&f, &input).unwrap();
         }
     }
     println!(
@@ -501,15 +496,7 @@ fn handle_cycles_profile() {
         f.ic.get_stable_memory(f.handle).len(),
         wasm("dmsg_handle").len()
     );
-    measure(&f, 17, "upgrade", || {
-        f.ic.upgrade_canister(
-            f.handle,
-            wasm("dmsg_handle"),
-            candid::encode_args(()).unwrap(),
-            None,
-        )
-        .unwrap();
-    });
+    measure(&f, 17, "upgrade", || upgrade(&f));
 }
 
 fn claim_intent(
@@ -566,91 +553,18 @@ fn transfer_intents(
 }
 
 #[test]
-fn handle_expired_reservations_reclaim_names_accounts_and_global_capacity() {
+fn handle_failed_charges_are_diagnostic_and_release_names_accounts_and_capacity() {
     let f = Fixture::new();
-    f.ic.reinstall_canister(
-        f.handle,
-        wasm("dmsg_handle"),
-        candid::encode_args((HandleInit {
-            home_user: f.user,
-            ledger: f.ledger,
-            ledger_fee: 10,
-            max_pending: 1,
-        },))
-        .unwrap(),
-        None,
-    )
-    .unwrap();
+    with_max_pending(&f, 1);
     let owner = f.create(1);
     let other = f.create(2);
-    seal_snapshot(&f, &[]);
-    let first = registration(&f, &owner, "abandoned", 1);
-    authorize(&f, 1, &first.intent);
-    reserve(&f, &first).unwrap();
-    upgrade(&f);
-    f.ic.advance_time(Duration::from_secs(16 * 60));
-    let next = registration(&f, &other, "abandoned", 2);
-    authorize(&f, 2, &next.intent);
-    reserve(&f, &next).unwrap();
-    assert_eq!(operation(&f, &first).unwrap().phase, HandlePhase::Expired);
-    assert_eq!(expire(&f, &first), Err(Error::VersionConflict));
-    // An expired commit also releases its resources without a separate call.
-    f.ic.advance_time(Duration::from_secs(16 * 60));
-    assert_eq!(commit(&f, &next), Err(Error::Expired));
-    let last = registration(&f, &other, "freshname", 3);
-    authorize(&f, 2, &last.intent);
-    reserve(&f, &last).unwrap();
-    assert_eq!(operation(&f, &next).unwrap().phase, HandlePhase::Expired);
-}
-
-#[test]
-fn handle_cleanup_is_bounded_and_always_checks_the_requesting_account() {
-    let f = Fixture::new();
-    seal_snapshot(&f, &[]);
-    let mut inputs = vec![];
-    for n in 1..=66u8 {
-        let owner = f.create(n);
-        let input = registration(&f, &owner, &format!("held{n:02}"), n);
-        authorize(&f, n, &input.intent);
-        reserve(&f, &input).unwrap();
-        inputs.push(input);
-        // Distinct deadlines make the expiry-index order deterministic.
-        f.ic.advance_time(Duration::from_secs(1));
-    }
-    f.ic.advance_time(Duration::from_secs(16 * 60));
-    upgrade(&f);
-    let next = registration(&f, &inputs[65].intent.account_id, "anothername", 100);
-    // Stop at authorization to inspect one bounded synchronous cleanup batch.
-    assert_eq!(reserve(&f, &next), Err(Error::NotFound));
-    assert_eq!(
-        operation(&f, &inputs[0]).unwrap().phase,
-        HandlePhase::Expired
-    );
-    assert_eq!(
-        operation(&f, &inputs[64]).unwrap().phase,
-        HandlePhase::Reserved
-    );
-    assert_eq!(
-        operation(&f, &inputs[65]).unwrap().phase,
-        HandlePhase::Expired
-    );
-    assert_eq!(expire(&f, &inputs[65]), Err(Error::VersionConflict));
-    authorize(&f, 66, &next.intent);
-    reserve(&f, &next).unwrap();
-}
-
-#[test]
-fn handle_allowance_failures_are_diagnostic_and_temporary_rejections_retry() {
-    let f = Fixture::new();
-    let owner = f.create(1);
     seal_snapshot(&f, &[]);
     f.mint(person(1), 3 * price("allowance"));
     for (nonce, approved) in [(1, 0), (2, price("allowance") - 1)] {
         f.approve_handle(person(1), approved);
         let input = registration(&f, &owner, "allowance", nonce);
         authorize(&f, 1, &input.intent);
-        reserve(&f, &input).unwrap();
-        let result = commit(&f, &input);
+        let result = register(&f, &input);
         assert!(
             matches!(result, Err(Error::Unavailable(ref reason)) if reason.contains("allowance"))
         );
@@ -659,9 +573,6 @@ fn handle_allowance_failures_are_diagnostic_and_temporary_rejections_retry() {
         };
         assert!(reason.contains("allowance"));
     }
-    let input = registration(&f, &owner, "allowance", 3);
-    authorize(&f, 1, &input.intent);
-    let reserved = reserve(&f, &input).unwrap();
     f.approve_handle(person(1), price("allowance"));
     void(
         &f.ic,
@@ -670,21 +581,30 @@ fn handle_allowance_failures_are_diagnostic_and_temporary_rejections_retry() {
         "reject_next_transfers",
         (1u32,),
     );
+    let input = registration(&f, &owner, "allowance", 3);
+    authorize(&f, 1, &input.intent);
     assert!(
-        matches!(commit(&f, &input), Err(Error::Unavailable(ref reason)) if reason.contains("temporarily"))
+        matches!(register(&f, &input), Err(Error::Unavailable(ref reason)) if reason.contains("temporarily"))
     );
-    assert_eq!(operation(&f, &input).unwrap(), reserved);
+    let rejected = operation(&f, &input).unwrap();
+    assert!(matches!(rejected.phase, HandlePhase::Rejected { .. }));
+    // The spent operation ID never charges again, even after upgrade.
     upgrade(&f);
-    let paid = commit(&f, &input).unwrap();
+    assert_eq!(register(&f, &input).unwrap(), rejected);
+    assert_eq!(commit(&f, &input), Err(Error::VersionConflict));
+    // Another account can buy the name at once: no unpaid lock or capacity remains.
+    let next = registration(&f, &other, "allowance", 4);
+    authorize(&f, 2, &next.intent);
+    let paid = register(&f, &next).unwrap();
     assert_eq!(paid.phase, HandlePhase::Committed);
-    assert_eq!(commit(&f, &input).unwrap(), paid);
+    assert_eq!(register(&f, &next).unwrap(), paid);
     let allowance: icrc_ledger_types::icrc2::allowance::Allowance = query(
         &f.ic,
         f.ledger,
         person(1),
         "icrc2_allowance",
         (icrc_ledger_types::icrc2::allowance::AllowanceArgs {
-            account: input.payer,
+            account: next.payer,
             spender: account(f.handle),
         },),
     );
@@ -694,7 +614,7 @@ fn handle_allowance_failures_are_diagnostic_and_temporary_rejections_retry() {
         f.ledger,
         person(1),
         "icrc1_balance_of",
-        (input.payer,),
+        (next.payer,),
     );
     assert_eq!(balance, Nat::from(2 * price("allowance")));
 }
@@ -706,9 +626,6 @@ fn handle_fee_updates_only_affect_new_operations() {
     seal_snapshot(&f, &[]);
     f.mint(person(1), 3 * price("feechange"));
     f.approve_handle(person(1), 3 * price("feechange"));
-    let old = registration(&f, &owner, "feechange", 1);
-    authorize(&f, 1, &old.intent);
-    let reserved = reserve(&f, &old).unwrap();
     let denied: Result<()> = update(&f.ic, f.handle, person(99), "update_ledger_fee", (11u128,));
     assert_eq!(denied, Err(Error::Forbidden));
     void(
@@ -728,17 +645,16 @@ fn handle_fee_updates_only_affect_new_operations() {
     changed.unwrap();
     let config: HandleInit = query(&f.ic, f.handle, person(1), "get_handle_config", ());
     assert_eq!(config.ledger_fee, 11);
-    assert_eq!(reserve(&f, &old).unwrap(), reserved);
-    assert!(
-        matches!(commit(&f, &old), Err(Error::Unavailable(ref reason)) if reason.contains("fee"))
-    );
+    // An approval prepared under the old quote must be prepared again.
+    let old = registration(&f, &owner, "feechange", 1);
+    authorize(&f, 1, &old.intent);
+    assert_eq!(register(&f, &old), Err(Error::FeeBlocked));
+    assert_eq!(operation(&f, &old), Err(Error::NotFound));
     let mut new = registration(&f, &owner, "feechange", 2);
-    assert_eq!(reserve(&f, &new), Err(Error::FeeBlocked));
     new.fee = 11;
     new.intent.terms_digest =
         charge_terms_digest(f.ledger, &new.payer, price("feechange") - 11, 11);
     authorize(&f, 1, &new.intent);
-    reserve(&f, &new).unwrap();
     void(
         &f.ic,
         f.ledger,
@@ -746,7 +662,7 @@ fn handle_fee_updates_only_affect_new_operations() {
         "lose_next_response",
         (),
     );
-    assert_eq!(commit(&f, &new), Err(Error::ExecutionUnknown));
+    assert_eq!(register(&f, &new), Err(Error::ExecutionUnknown));
     let unknown = operation(&f, &new).unwrap();
     let changed: Result<()> = update(
         &f.ic,
@@ -764,7 +680,8 @@ fn handle_fee_updates_only_affect_new_operations() {
         (12u128,),
     );
     upgrade(&f);
-    assert_eq!(reserve(&f, &new).unwrap(), unknown);
+    // Replays keep the original terms instead of requoting the current fee.
+    assert_eq!(register(&f, &new).unwrap(), unknown);
     let result = commit(&f, &new).unwrap();
     assert_eq!(result.phase, HandlePhase::Committed);
     assert_eq!(result.registration.fee, 11);
@@ -773,7 +690,7 @@ fn handle_fee_updates_only_affect_new_operations() {
 }
 
 #[test]
-fn handle_legacy_certificates_and_frozen_admin_claims_survive_upgrade() {
+fn handle_legacy_lookups_and_frozen_admin_claims_survive_upgrade() {
     let f = Fixture::new();
     let owner = f.create(1);
     let entries = vec![
@@ -797,77 +714,36 @@ fn handle_legacy_certificates_and_frozen_admin_claims_survive_upgrade() {
         if upgraded {
             upgrade(&f);
         }
-        let mut replies = vec![];
-        for name in ["namedowner", "missing"] {
-            let result: Result<CertifiedLegacyReservation> = query(
-                &f.ic,
-                f.handle,
-                person(1),
-                "get_legacy_reservation_certified",
-                (name.to_uppercase(),),
-            );
-            let result = result.unwrap();
-            replies.push(ByteBuf::from(
-                candid::encode_one(Ok::<_, Error>(&result)).unwrap(),
-            ));
-            assert!(result.progress.sealed);
-            assert_eq!(result.proof.entries.len(), 2);
-            let cert: ic_certification::Certificate =
-                cbor2::from_slice(&result.proof.certificate).unwrap();
-            for entry in &result.proof.entries {
-                let witness: ic_certification::HashTree =
-                    cbor2::from_slice(&entry.witness).unwrap();
-                assert_eq!(
-                    cert.tree.lookup_path([
-                        b"canister".as_slice(),
-                        f.handle.as_slice(),
-                        b"certified_data".as_slice()
-                    ]),
-                    ic_certification::LookupResult::Found(&witness.digest())
-                );
-                match &entry.value {
-                    Some(value) => assert_eq!(
-                        witness.lookup_path([entry.key.as_ref()]),
-                        ic_certification::LookupResult::Found(value.as_ref())
-                    ),
-                    None => assert_eq!(
-                        witness.lookup_path([entry.key.as_ref()]),
-                        ic_certification::LookupResult::Absent
-                    ),
-                }
-            }
-            assert_eq!(
-                result.proof.entries[0].value.as_ref().unwrap().as_ref(),
-                canonical(&result.progress)
-            );
-            assert_eq!(
-                result.proof.entries[1].key.as_ref(),
-                format!("_legacy/{name}").as_bytes()
-            );
-            assert_eq!(
-                result.proof.entries[1].value.as_ref().map(|v| v.to_vec()),
-                result
-                    .reservation
-                    .as_ref()
-                    .map(|r| canonical(&digest("dmsg/legacy-reservation/v1", r)))
-            );
-            assert_eq!(result.reservation.is_some(), name == "namedowner");
-        }
-        if !upgraded {
-            if let Some(path) = std::env::var_os("DMSG_EXPORT_HANDLE_CERTIFICATE") {
-                std::fs::write(
-                    path,
-                    canonical(&(
-                        ByteBuf::from(f.ic.root_key().unwrap()),
-                        time(&f.ic),
-                        f.handle.to_text(),
-                        person(1).to_text(),
-                        &replies,
-                    )),
-                )
-                .unwrap();
-            }
-        }
+        assert_eq!(legacy(&f, "NAMEDOWNER"), Ok(Some(entries[0].clone())));
+        assert_eq!(legacy(&f, "missing"), Ok(None));
+        // Only the snapshot commitment is certified. Frozen records stay out of
+        // the heap tree because every claim rechecks the exact record on chain.
+        let progress = progress(&f);
+        assert!(progress.sealed);
+        let proof: Result<CertifiedBatch> =
+            query(&f.ic, f.handle, person(1), "snapshot_certified", ());
+        let proof = proof.unwrap();
+        let cert: ic_certification::Certificate = cbor2::from_slice(&proof.certificate).unwrap();
+        let entry = &proof.entries[0];
+        let witness: ic_certification::HashTree = cbor2::from_slice(&entry.witness).unwrap();
+        assert_eq!(
+            cert.tree.lookup_path([
+                b"canister".as_slice(),
+                f.handle.as_slice(),
+                b"certified_data".as_slice()
+            ]),
+            ic_certification::LookupResult::Found(&witness.digest())
+        );
+        assert_eq!(entry.key.as_ref(), b"_legacy_snapshot");
+        assert_eq!(entry.value.as_ref().unwrap().as_ref(), canonical(&progress));
+        assert_eq!(
+            witness.lookup_path([entry.key.as_ref()]),
+            ic_certification::LookupResult::Found(entry.value.as_ref().unwrap())
+        );
+        assert_eq!(
+            witness.lookup_path([b"_legacy/namedowner".as_slice()]),
+            ic_certification::LookupResult::Absent
+        );
     }
     for (n, entry) in entries.iter().enumerate() {
         let intent = claim_intent(&f, &owner, &snapshot, entry, n as u8 + 1);
@@ -987,16 +863,16 @@ fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
     assert_eq!(replay.unwrap().owner_account, target);
 }
 
-// Measures deployed public endpoints, without a privileged seeding API. Legacy
-// leaves exercise the same heap certification tree as active ownership leaves.
+// Measures deployed public endpoints, without a privileged seeding API. Frozen
+// legacy names stay out of the heap certification tree; active names rebuild it.
 #[test]
-#[ignore = "1k/10k legacy certification and operation capacity profile"]
+#[ignore = "legacy and active-name capacity profile"]
 fn handle_scale_profile() {
-    for size in [1_000usize, 10_000] {
+    for (legacy_names, active) in [(1_000usize, 17usize), (10_000, 17), (1_000, 1_017)] {
         let f = Fixture::new();
         let owner = f.create(1);
         let target = f.create(2);
-        let entries: Vec<_> = (0..size)
+        let entries: Vec<_> = (0..legacy_names)
             .map(|n| LegacyReservation {
                 handle: format!("legacy{n:05}"),
                 legacy_owner: person(1),
@@ -1006,62 +882,86 @@ fn handle_scale_profile() {
             })
             .collect();
         seal_snapshot(&f, &entries);
-        f.mint(person(1), 20 * price("scale000"));
-        f.approve_handle(person(1), 20 * price("scale000"));
-        for n in 0..17u8 {
-            let input = registration(&f, &owner, &format!("scale{n:03}"), n + 1);
+        let total = active as u128 * price("scale0000");
+        f.mint(person(1), total);
+        f.approve_handle(person(1), total);
+        let label = format!("legacy={legacy_names} active={active}");
+        for n in 0..active {
+            let mut input = registration(&f, &owner, &format!("scale{n:04}"), 0);
+            let mut op_id = [1; 32];
+            op_id[..8].copy_from_slice(&(n as u64).to_be_bytes());
+            input.intent.op_id = Hash::new(op_id);
+            // An account keeps at most 32 live one-minute handle authorizations.
+            if n % 30 == 29 {
+                f.ic.advance_time(Duration::from_secs(61));
+            }
             authorize(&f, 1, &input.intent);
-            if n == 16 {
-                measure(&f, size, "scale_reserve", || reserve(&f, &input)).unwrap();
-                measure(&f, size, "scale_commit", || commit(&f, &input)).unwrap();
+            if n + 1 == active {
+                measure(&f, active, &format!("scale_register {label}"), || {
+                    register(&f, &input)
+                })
+                .unwrap();
             } else {
-                reserve(&f, &input).unwrap();
-                commit(&f, &input).unwrap();
+                register(&f, &input).unwrap();
             }
         }
-        let (from, accept) = transfer_intents(&f, &owner, &target, "scale000", 1, 100);
+        let (from, accept) = transfer_intents(&f, &owner, &target, "scale0000", 1, 100);
         authorize(&f, 1, &from);
         authorize(&f, 2, &accept);
-        let result: Result<HandleRecord> = measure(&f, size, "scale_transfer", || {
-            update(
-                &f.ic,
-                f.handle,
-                person(1),
-                "transfer_handle",
-                (&from, &accept),
-            )
-        });
+        let result: Result<HandleRecord> =
+            measure(&f, active, &format!("scale_transfer {label}"), || {
+                update(
+                    &f.ic,
+                    f.handle,
+                    person(1),
+                    "transfer_handle",
+                    (&from, &accept),
+                )
+            });
         assert_eq!(result.unwrap().version, 2);
-        let start = std::time::Instant::now();
-        let result: Result<CertifiedLegacyReservation> = query(
-            &f.ic,
-            f.handle,
-            person(1),
-            "get_legacy_reservation_certified",
-            ("legacy00000",),
-        );
-        let elapsed = start.elapsed();
-        let bytes = candid::encode_one(&result).unwrap().len();
-        assert!(result.unwrap().reservation.is_some());
+        let found = legacy(&f, "legacy00000");
+        let bytes = candid::encode_one(&found).unwrap().len();
+        assert!(found.unwrap().is_some());
         let names: Result<CertifiedBatch> = query(
             &f.ic,
             f.handle,
             person(1),
             "resolve_handle_certified",
-            (vec!["scale000", "missing"],),
+            (vec!["scale0000", "missing"],),
         );
         assert_eq!(names.unwrap().entries.len(), 2);
         let status = f.ic.canister_status(f.handle, None).unwrap();
-        println!("handle_scale legacy={size} active=17 heap_bytes={} stable_bytes={} legacy_response_bytes={bytes} local_query_us={}",
-            status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_micros());
-        measure(&f, size, "scale_upgrade", || upgrade(&f));
-        let restored: Result<CertifiedLegacyReservation> = query(
-            &f.ic,
-            f.handle,
-            person(1),
-            "get_legacy_reservation_certified",
-            ("legacy00000",),
+        println!(
+            "handle_scale {label} heap_bytes={} stable_bytes={} legacy_response_bytes={bytes}",
+            status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size
         );
-        assert!(restored.unwrap().reservation.is_some());
+        measure(&f, active, &format!("scale_upgrade {label}"), || {
+            upgrade(&f)
+        });
+        // The first upgrade after a long run can include a one-off charge that
+        // does not recur; an install-code rate limit also applies right after it.
+        f.ic.advance_time(Duration::from_secs(600));
+        for _ in 0..20 {
+            f.ic.tick();
+        }
+        measure(&f, active, &format!("scale_upgrade_repeat {label}"), || {
+            upgrade(&f)
+        });
+        assert!(legacy(&f, "legacy00000").unwrap().is_some());
+        verify_names(
+            &f,
+            &[record_of(&f, "scale0001"), record_of(&f, "scale0000")],
+        );
     }
+}
+
+fn record_of(f: &Fixture, name: &str) -> HandleRecord {
+    let batch: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.handle,
+        person(1),
+        "resolve_handle_certified",
+        (vec![name],),
+    );
+    decode_canonical(batch.unwrap().entries[0].value.as_ref().unwrap()).unwrap()
 }

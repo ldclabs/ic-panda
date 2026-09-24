@@ -1322,34 +1322,28 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     .unwrap();
     f.mint(person(1), amount + 10);
     f.approve_handle(person(1), amount + 10);
-    let reserved: Result<HandleOperation> = update(
-        &f.ic,
-        f.handle,
-        person(1),
-        "reserve_handle",
-        (Registration {
-            intent,
-            payer,
-            fee: 10,
-        },),
-    );
-    assert_eq!(reserved.unwrap().phase, HandlePhase::Reserved);
+    let registration = Registration {
+        intent,
+        payer,
+        fee: 10,
+    };
     let committed: Result<HandleOperation> = update(
         &f.ic,
         f.handle,
         person(1),
-        "commit_handle",
-        (&owner, Hash::new([11u8; 32])),
+        "register_handle",
+        (&registration,),
     );
-    assert_eq!(committed.unwrap().phase, HandlePhase::Committed);
+    let committed = committed.unwrap();
+    assert_eq!(committed.phase, HandlePhase::Committed);
     let replay: Result<HandleOperation> = update(
         &f.ic,
         f.handle,
         person(1),
-        "commit_handle",
-        (&owner, Hash::new([11u8; 32])),
+        "register_handle",
+        (&registration,),
     );
-    assert_eq!(replay.unwrap().phase, HandlePhase::Committed);
+    assert_eq!(replay.unwrap(), committed);
     let balance: Nat = query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (payer,));
     assert_eq!(balance, Nat::from(0u8));
     f.ic.upgrade_canister(

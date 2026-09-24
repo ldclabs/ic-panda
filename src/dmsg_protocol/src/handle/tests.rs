@@ -37,6 +37,7 @@ fn valid_handle_price_boundaries_use_smallest_token_units() {
     ] {
         assert_eq!(price(&"a".repeat(len)), tokens * 100_000_000);
     }
+    assert_eq!(price(&"a".repeat(20)), MIN_HANDLE_PRICE);
 }
 
 #[test]

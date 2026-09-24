@@ -5,14 +5,12 @@ import {
   canonicalHandle,
   encodeClaim,
   decodeClaim,
-  legacyClaimDigest,
-  legacyReservationDigest,
-  progressValue
+  legacyClaimDigest
 } from '../protocol/handle'
-import { id, unhex, equal, canonical, decodeCanonical, utf8 } from '../protocol/codec'
+import { id, unhex, equal, decodeCanonical, utf8 } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
 import { ensure } from '../errors'
-import { certifiedValue, certifiedLeaf } from './certified'
+import { certifiedLeaf } from './certified'
 
 interface ClaimJob {
   version: 1
@@ -32,39 +30,16 @@ export class HandleClient {
   ) {}
   async legacy(name: string) {
     name = canonicalHandle(name)
-    const {
-      progress,
-      reservation: records,
-      proof
-    } = controlResult(await this.registry.get_legacy_reservation_certified(name))
-    const snapshot = await certifiedValue(
-      proof,
-      this.account.agent,
-      this.registryId,
-      utf8('_legacy_snapshot')
-    )
-    ensure(
-      equal(canonical(decodeCanonical(snapshot.value)), canonical(progressValue(progress))),
-      'INTEGRITY_FAILED'
-    )
+    // Plain queries suffice: the claim rechecks the exact frozen record on
+    // chain, so a forged reply can only make that claim fail.
+    const [records, progress] = await Promise.all([
+      this.registry.get_legacy_reservation(name),
+      this.registry.snapshot_progress()
+    ])
     ensure(progress.sealed && progress.snapshot.length, 'Pending', '旧名称快照尚未完整封存。')
-    const entry = await certifiedLeaf(
-      proof,
-      this.account.agent,
-      this.registryId,
-      utf8(`_legacy/${name}`)
-    )
-    const reservation = records[0]
-    if (!reservation) {
-      ensure(entry.value === null, 'INTEGRITY_FAILED')
-      ensure(false, 'NOT_FOUND', '冻结快照中没有此名称。')
-    }
-    ensure(
-      reservation.handle === name &&
-        entry.value &&
-        equal(entry.value, canonical(legacyReservationDigest(reservation))),
-      'INTEGRITY_FAILED'
-    )
+    const reservation = controlResult(records)[0]
+    ensure(reservation, 'NOT_FOUND', '冻结快照中没有此名称。')
+    ensure(reservation.handle === name, 'INTEGRITY_FAILED')
     ensure(!reservation.quarantined, 'Locked', '此名称已隔离，需先解决原权属。')
     const ownerIsName =
       reservation.legacy_name_principal[0]?.toText() === reservation.legacy_owner.toText()
