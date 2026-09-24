@@ -336,16 +336,19 @@ fn cose_retention_cleanup_and_upgrade_preserve_replay_protection() {
 #[test]
 fn cose_global_budget_survives_upgrade_without_consuming_rejected_sequences() {
     let f = CoseFixture::new(2);
-    let mut first = f.grant(1, 1, 1);
-    first.max_cycles = 1;
+    let first = f.grant(1, 1, 1);
     let result = f.execute(&first).unwrap();
-    assert_eq!(
-        result.outcome,
-        ExecutionOutcome::Failed(Error::QuotaExceeded)
-    );
+    assert_eq!(result.status(), ExecutionStatus::Completed);
     let second = f.grant(2, 1, 1);
     assert_eq!(f.execute(&second), Err(Error::QuotaExceeded));
     assert_eq!(f.result(&second), Err(Error::NotFound));
+    // A request that sends no management call closes without the exhausted budget.
+    let mut rejected = f.grant(3, 1, 1);
+    rejected.max_cycles = 1;
+    assert_eq!(
+        f.execute(&rejected).unwrap().outcome,
+        ExecutionOutcome::Failed(Error::QuotaExceeded)
+    );
     f.ic.upgrade_canister(
         f.cose,
         wasm("dmsg_cose"),
@@ -369,11 +372,9 @@ fn cose_small_deployment_budgets_leave_a_real_root_operation() {
         let f = CoseFixture::configured(limit, true);
         let formal_limit = limit - limit.div_ceil(5);
         for n in 1..=formal_limit {
-            let mut grant = f.grant(n as u8, 1, 1);
-            grant.max_cycles = 1;
             assert_eq!(
-                f.execute(&grant).unwrap().outcome,
-                ExecutionOutcome::Failed(Error::QuotaExceeded)
+                f.execute(&f.grant(n as u8, 1, 1)).unwrap().status(),
+                ExecutionStatus::Completed
             );
         }
         let denied = f.grant(20, 1, 1);

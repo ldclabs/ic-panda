@@ -10,7 +10,7 @@
 
 当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。扩展商业 UI 已完成本地接线，TokenList 项目与独立账号 adapter 已实现；生产钱包/SNS 验收单独执行，不将本地测试视为上线证明。
 
-COSE schema 6 为根派生保留执行窗口，合并全局预算，并提供 controller 分页清理；升级可调整日预算但不能更改密钥身份。执行结果的 `cycles_cost_upper_bound` 是管理调用的保守成本上界，不是实际账单。详见 [COSE 实现与实测](../src/dmsg_cose/README.md)。
+COSE schema 7 为根派生保留执行窗口，合并全局预算，并提供 controller 分页清理；单账户预算覆盖 user 可授权的上限，只有实际管理调用占用预算；升级可调整日预算但不能更改密钥身份。执行结果的 `cycles_cost_upper_bound` 是管理调用的保守成本上界，不是实际账单。详见 [COSE 实现与实测](../src/dmsg_cose/README.md)。
 
 ## 子库
 

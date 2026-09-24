@@ -31,17 +31,17 @@
 
 ## 代码
 
-`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 6 的私有 `stable_codec.rs` 使用 CBOR 整数 map key；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
+`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 7 的私有 `stable_codec.rs` 使用 CBOR 整数 map key，内部执行元数据直接以自身整数 key 形式保存；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
 
 每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间、终态及签名标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不再扫描、解码或比较整个历史窗口的正文，也不重复持久化完整 grant。64 条元数据的编码小于 6 KiB；连续终结高水位和未完成空洞仍共同约束清理及防重放。
 
 总预算和正式签名预算合并为一个独立 StableCell，和配置共享 memory 0 的既有 128 页区块：配置占页 `[0,127)`，预算占页 `[127,128)`，不额外分配 8 MiB。home 和结果分别使用 memory 1、2。预算更新不重写根公钥配置；升级恢复不扫描账户或结果表。
 
-执行先检查 caller、重放、序号窗口和期限；首次送达的过期请求记录 `Failed(Expired)`，已清理的旧序号返回 `ResultExpired`。签名校验得到的不可变 `PreparedSignature` 和公钥描述复用于结果封装，回调不重复解析载荷或编码公钥。等待管理调用时释放 grant 和旧账户快照，回调仍重新读取最新账户。只有实际管理调用需要先提交 `Executing`；同步失败在同一消息中直接提交终态。管理调用之后重新读取 home，避免覆盖并发执行的元数据；unknown 和 in-flight 记录不会因到期清理而重新执行。
+执行先检查 caller、重放、序号窗口和期限；首次送达的过期请求记录 `Failed(Expired)`，已清理的旧序号返回 `ResultExpired`。签名校验得到的不可变 `PreparedSignature` 和公钥描述复用于结果封装，回调不重复解析载荷或编码公钥。等待管理调用时释放 grant 和旧账户快照，回调仍重新读取最新账户。只有实际管理调用需要先提交 `Executing`，也只有它占用单账户和全局预算；过期或前置校验失败在同一消息中直接提交终态，不受当日额度影响。签名响应无法封装时记为 `Failed`，管理调用不会重试。管理调用之后重新读取 home，避免覆盖并发执行的元数据；unknown 和 in-flight 记录不会因到期清理而重新执行。
 
-user 在保留记录达到 56 条时暂停新的正式签名批准，根派生仍可使用 64 条总窗口。COSE 分别限制正式签名记录为 56 条、总记录为 64 条，以接收乱序到达的已授权请求；重试先查原记录，不再次占位。正式签名预算为总上限扣除向上取整的 20%，小部署也保留安全操作名额。预算是保守预留，不因执行失败自动释放 cycles 额度。
+user 在保留记录达到 56 条时暂停新的正式签名批准，根派生仍可使用 64 条总窗口。COSE 分别限制正式签名记录为 56 条、总记录为 64 条，以接收乱序到达的已授权请求；重试先查原记录，不再次占位。正式签名预算为总上限扣除向上取整的 20%，小部署也保留安全操作名额。单账户上限为每天 125 次、1.1T cycles，按同一规则覆盖 user 可授权的正式签名（100 次、800B）与根派生（20 次、300B）；两侧共用 `dmsg_runtime` 常量，单测核对覆盖关系。已发出管理调用的预留是保守值，不因执行失败自动释放。
 
-结果默认在同账户的新执行中惰性清理。controller 可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续终结高水位且超过 `expires_at + DAY` 的记录；未完成空洞、账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
+结果默认在同账户的新执行中惰性清理。controller 可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；满页即返回游标，恰好整页结束时多一次空调用；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续终结高水位且超过 `expires_at + DAY` 的记录；未完成空洞、账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
 
 这些选择依据 ICP 的 [stable structures](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[重试与幂等](https://docs.internetcomputer.org/guides/canister-calls/idempotency/)及[性能优化](https://docs.internetcomputer.org/guides/canister-management/optimization/)实践。
 

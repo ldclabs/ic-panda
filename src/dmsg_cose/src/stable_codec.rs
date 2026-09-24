@@ -1,7 +1,7 @@
 use crate::{model, store::Config};
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
-use dmsg_types::{cose::*, *};
+use dmsg_types::cose::*;
 use ic_cose_chain_key::PublicKey;
 use std::collections::BTreeMap;
 
@@ -61,44 +61,6 @@ impl StableCodec for Config {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub struct ExecutionRepr {
-    #[cbor(key = 1)]
-    pub request_id: Hash,
-    #[cbor(key = 2)]
-    pub digest: Hash,
-    #[cbor(key = 3)]
-    pub expires_at: u64,
-    #[cbor(key = 4)]
-    pub terminal: bool,
-    #[cbor(key = 5)]
-    pub formal: bool,
-}
-
-impl StableCodec for model::Execution {
-    type Repr = ExecutionRepr;
-
-    fn to_repr(&self) -> Self::Repr {
-        ExecutionRepr {
-            request_id: self.request_id,
-            digest: self.digest,
-            expires_at: self.expires_at,
-            terminal: self.terminal,
-            formal: self.formal,
-        }
-    }
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        Self {
-            request_id: repr.request_id,
-            digest: repr.digest,
-            expires_at: repr.expires_at,
-            terminal: repr.terminal,
-            formal: repr.formal,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct BudgetsRepr {
     #[cbor(key = 1)]
     total: BudgetRepr,
@@ -126,16 +88,15 @@ impl StableCodec for model::Budgets {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct HomeRepr {
-    #[cbor(key = 5)]
-    pub formal_budget: BudgetRepr,
     #[cbor(key = 1)]
     pub home_user: candid::Principal,
     #[cbor(key = 2)]
     pub terminal_sequence: u64,
     #[cbor(key = 3)]
-    pub budget: BudgetRepr,
+    pub budgets: BudgetsRepr,
+    /// Execution metadata is private and already uses integer keys.
     #[cbor(key = 4)]
-    pub executions: BTreeMap<u64, ExecutionRepr>,
+    pub executions: BTreeMap<u64, model::Execution>,
 }
 
 impl StableCodec for model::Home {
@@ -143,29 +104,19 @@ impl StableCodec for model::Home {
 
     fn to_repr(&self) -> Self::Repr {
         HomeRepr {
-            formal_budget: self.formal_budget.to_repr(),
             home_user: self.home_user,
             terminal_sequence: self.terminal_sequence,
-            budget: self.budget.to_repr(),
-            executions: self
-                .executions
-                .iter()
-                .map(|(seq, e)| (*seq, e.to_repr()))
-                .collect(),
+            budgets: self.budgets.to_repr(),
+            executions: self.executions.clone(),
         }
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            formal_budget: Budget::from_repr(repr.formal_budget),
             home_user: repr.home_user,
             terminal_sequence: repr.terminal_sequence,
-            executions: repr
-                .executions
-                .into_iter()
-                .map(|(seq, e)| (seq, model::Execution::from_repr(e)))
-                .collect(),
-            budget: Budget::from_repr(repr.budget),
+            budgets: model::Budgets::from_repr(repr.budgets),
+            executions: repr.executions,
         }
     }
 }
@@ -175,6 +126,7 @@ mod tests {
     use super::*;
     use candid::Principal;
     use dmsg_runtime::storage::{compact_bytes, compact_from_bytes};
+    use dmsg_types::*;
 
     fn p(n: u8) -> Principal {
         Principal::from_slice(&[n, 1])
@@ -254,9 +206,11 @@ mod tests {
                 },
             );
         }
+        home.budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
         let home_bytes = compact_bytes(&home);
         assert!(home_bytes.len() < 6 * 1024);
-        assert_integer_top_keys(&home_bytes, 5);
+        assert_integer_top_keys(&home_bytes, 4);
+        assert_integer_top_keys(&cbor2::to_vec(&home.executions[&1]).unwrap(), 5);
         assert_eq!(compact_from_bytes::<model::Home>(&home_bytes), home);
 
         let derive_grant = grant(ExecutionKind::Derive {

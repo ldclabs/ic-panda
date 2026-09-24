@@ -1208,7 +1208,6 @@ dependencies = [
  "dmsg_protocol",
  "dmsg_runtime",
  "dmsg_types",
- "ed25519-dalek 3.0.0",
  "ic-cdk",
  "ic-cdk-management-canister 0.2.0",
  "ic-stable-structures 0.7.2",

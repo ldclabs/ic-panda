@@ -1,12 +1,14 @@
 use candid::Principal;
+use cbor2::Cbor;
 use dmsg_protocol::*;
 use dmsg_runtime::*;
 use dmsg_types::{cose::*, *};
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-const HOME_DAILY_EXECUTIONS: u32 = 100;
-const HOME_DAILY_CYCLES: u128 = 1_000_000_000_000;
+// Cover everything a user home may authorize for one account in a day: the
+// formal share (total less a fifth) holds the formal ceiling, the rest roots.
+const HOME_DAILY_EXECUTIONS: u32 = 125;
+const HOME_DAILY_CYCLES: u128 = 1_100_000_000_000;
 const RESULT_RETENTION: u64 = DAY;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -39,12 +41,18 @@ impl Budgets {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+/// Private retained-execution metadata; this CBOR form is its stable representation.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct Execution {
+    #[cbor(key = 1)]
     pub request_id: Hash,
+    #[cbor(key = 2)]
     pub digest: Hash,
+    #[cbor(key = 3)]
     pub expires_at: u64,
+    #[cbor(key = 4)]
     pub terminal: bool,
+    #[cbor(key = 5)]
     pub formal: bool,
 }
 
@@ -54,13 +62,12 @@ impl Execution {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Home {
     pub home_user: Principal,
     pub terminal_sequence: u64,
     pub executions: BTreeMap<u64, Execution>,
-    pub budget: Budget,
-    pub formal_budget: Budget,
+    pub budgets: Budgets,
 }
 
 impl Home {
@@ -69,8 +76,7 @@ impl Home {
             home_user,
             terminal_sequence: 0,
             executions: BTreeMap::new(),
-            budget: Budget::default(),
-            formal_budget: Budget::default(),
+            budgets: Budgets::default(),
         }
     }
 
@@ -119,7 +125,6 @@ impl Home {
                 && grant.expires_at - grant.approved_at <= 5 * MINUTE,
             Error::Expired,
         )?;
-        nonzero(grant.request_id.as_slice())?;
         let mut retained = 0;
         let mut formal = 0;
         for (seq, e) in &self.executions {
@@ -141,18 +146,20 @@ impl Home {
             .find_map(|(seq, e)| (e.request_id == *request_id).then_some(*seq))
     }
 
-    /// Called after check, without an intervening await. Return only the result
-    /// keys to delete; no historical result bodies need to be loaded.
-    pub fn prepare(&mut self, grant: &ExecutionGrant, now: u64, cost: u128) -> Result<Vec<u64>> {
-        ensure(cost <= grant.max_cycles, Error::QuotaExceeded)?;
+    /// Called after check, without an intervening await. Only a management call
+    /// (`cost`) consumes budget; expired or rejected requests close regardless.
+    /// Return only the result keys to delete; no result bodies are loaded.
+    pub fn prepare(
+        &mut self,
+        grant: &ExecutionGrant,
+        now: u64,
+        cost: Option<u128>,
+    ) -> Result<Vec<u64>> {
         let formal = matches!(grant.kind, ExecutionKind::Sign { .. });
-        let mut budgets = Budgets {
-            total: self.budget.clone(),
-            formal: self.formal_budget.clone(),
-        };
-        budgets.reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)?;
-        self.budget = budgets.total;
-        self.formal_budget = budgets.formal;
+        if let Some(cost) = cost {
+            self.budgets
+                .reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)?;
+        }
         let removed = self.prune(now);
         self.executions.insert(
             grant.execution_sequence,
@@ -245,7 +252,7 @@ mod tests {
         if let Some(sequence) = h.check(caller, grant, now)? {
             return Ok(Some(sequence));
         }
-        h.prepare(grant, now, cost)?;
+        h.prepare(grant, now, Some(cost))?;
         Ok(None)
     }
 
@@ -350,6 +357,45 @@ mod tests {
     }
 
     #[test]
+    fn home_budget_covers_every_user_authorized_execution() {
+        let formal = FORMAL_DAILY_CYCLES / u128::from(FORMAL_DAILY_EXECUTIONS);
+        let root = ROOT_DAILY_CYCLES / u128::from(ROOT_DAILY_EXECUTIONS);
+        for formal_first in [true, false] {
+            let mut budgets = Budgets::default();
+            let mut reserve = |count: u32, cycles: u128, formal: bool| {
+                for _ in 0..count {
+                    budgets
+                        .reserve(1, cycles, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)
+                        .unwrap();
+                }
+            };
+            if formal_first {
+                reserve(FORMAL_DAILY_EXECUTIONS, formal, true);
+                reserve(ROOT_DAILY_EXECUTIONS, root, false);
+            } else {
+                reserve(ROOT_DAILY_EXECUTIONS, root, false);
+                reserve(FORMAL_DAILY_EXECUTIONS, formal, true);
+            }
+        }
+    }
+
+    #[test]
+    fn rejected_and_expired_requests_close_without_budget() {
+        let mut h = Home::new(g(1).home_user);
+        h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
+        let budgets = h.budgets.clone();
+        h.check(h.home_user, &g(1), 2).unwrap();
+        assert!(h.prepare(&g(1), 2, None).unwrap().is_empty());
+        assert_eq!(h.budgets, budgets);
+        let mut failed = done(1);
+        failed.outcome = ExecutionOutcome::Failed(Error::Expired);
+        h.finish(1, &failed);
+        assert_eq!(h.terminal_sequence, 1);
+        h.check(h.home_user, &g(2), 2).unwrap();
+        assert_eq!(h.prepare(&g(2), 2, Some(1)), Err(Error::QuotaExceeded));
+    }
+
+    #[test]
     fn pruning_keeps_holes_and_budgets_but_reclaims_idle_terminal_results() {
         let mut h = Home::new(g(1).home_user);
         for sequence in 1..=3 {
@@ -357,10 +403,10 @@ mod tests {
         }
         h.finish(1, &done(1));
         h.finish(3, &done(3));
-        let budget = h.budget.clone();
+        let budgets = h.budgets.clone();
         assert!(h.prune(DAY).is_empty());
         assert_eq!(h.prune(DAY + MINUTE), vec![1]);
-        assert_eq!(h.budget, budget);
+        assert_eq!(h.budgets, budgets);
         assert_eq!(h.terminal_sequence, 1);
         assert_eq!(
             h.check(h.home_user, &g(1), 2 * DAY),
@@ -463,7 +509,10 @@ mod tests {
         next.approved_at = 2 * DAY;
         next.expires_at = next.approved_at + MINUTE;
         h.check(h.home_user, &next, next.approved_at).unwrap();
-        assert!(h.prepare(&next, next.approved_at, 1).unwrap().is_empty());
+        assert!(h
+            .prepare(&next, next.approved_at, Some(1))
+            .unwrap()
+            .is_empty());
         assert_eq!(h.terminal_sequence, 0);
         assert_eq!(h.executions.len(), 4);
         h.finish(1, &done(1));
@@ -477,8 +526,8 @@ mod tests {
         let mut h = Home::new(g(1).home_user);
         prepare(&mut h, g(1).home_user, &g(1), 2, 1).unwrap();
         h.finish(1, &done(1));
-        h.budget.day = 2;
-        h.budget.executions = 100;
+        h.budgets.total.day = 2;
+        h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
         let before = h.clone();
         let mut next = g(2);
         next.approved_at = 2 * DAY;

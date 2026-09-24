@@ -138,16 +138,19 @@ pub(crate) fn authorize(
         Error::QuotaExceeded,
     )?;
     if matches!(input.kind, ExecutionKind::Derive { .. }) {
-        // Accommodate bootstrap, approved-device unlock and revocation rekeys
-        // at the measured ~68.3B vetKD cost while retaining a separate hard cap.
-        s.safety_budget
-            .reserve(now, input.max_cycles, 20, 300_000_000_000)?;
+        // Root derivations keep a separate hard cap from formal signatures.
+        s.safety_budget.reserve(
+            now,
+            input.max_cycles,
+            ROOT_DAILY_EXECUTIONS,
+            ROOT_DAILY_CYCLES,
+        )?;
     } else {
         s.budget.reserve(
             now,
             input.max_cycles,
             s.sensitive_policy.daily_executions,
-            s.sensitive_policy.daily_cycles.min(800_000_000_000),
+            s.sensitive_policy.daily_cycles.min(FORMAL_DAILY_CYCLES),
         )?;
     }
     // All fallible checks have passed, including the atomic budget reservation.

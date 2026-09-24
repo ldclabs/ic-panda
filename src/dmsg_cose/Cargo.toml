@@ -21,6 +21,3 @@ ic-cdk.workspace = true
 ic-cdk-management-canister.workspace = true
 ic_cose_chain_key.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
-
-[dev-dependencies]
-ed25519-dalek.workspace = true

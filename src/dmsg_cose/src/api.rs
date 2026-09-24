@@ -18,6 +18,11 @@ fn ready() -> Result<Config> {
     Ok(c)
 }
 
+/// A zero pin is accepted only where validation allows it, outside Production.
+fn pinned(master: &MasterKey, fingerprint: &Hash) -> bool {
+    master.expected_fingerprint == Hash::new([0; 32]) || master.expected_fingerprint == *fingerprint
+}
+
 #[ic_cdk::init]
 fn init(args: CoseInit) {
     args.validate(ic_cdk::api::canister_self())
@@ -68,11 +73,7 @@ fn post_upgrade(args: Option<CoseInit>) {
                 *fp,
                 "cached key fingerprint mismatch"
             );
-            assert!(
-                master.expected_fingerprint == Hash::new([0; 32])
-                    || master.expected_fingerprint == *fp,
-                "configured key fingerprint mismatch"
-            );
+            assert!(pinned(master, fp), "configured key fingerprint mismatch");
         }
     }
     save_cfg(&c);
@@ -103,6 +104,20 @@ async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
     .map_err(Error::Unavailable)
 }
 
+/// Fetch every configured master key in order and check it against its pin.
+async fn fetch_masters(config: &CoseInit) -> Result<Vec<PublicKey>> {
+    let mut keys = Vec::with_capacity(config.masters.len());
+    for master in &config.masters {
+        let key = fetch_master(config, master).await?;
+        ensure(
+            pinned(master, &sha256(&key.public_key)),
+            Error::IntegrityFailed,
+        )?;
+        keys.push(key);
+    }
+    Ok(keys)
+}
+
 #[ic_cdk::update]
 async fn initialize_keys() -> Result<KeyState> {
     ensure(
@@ -120,31 +135,24 @@ async fn initialize_keys() -> Result<KeyState> {
     c.state.initialization = Initialization::Initializing;
     c.state.error = None;
     save_cfg(&c);
-    let mut keys = vec![];
-    for master in &c.state.config.masters {
-        let result = fetch_master(&c.state.config, master).await.and_then(|key| {
-            ensure(
-                master.expected_fingerprint == Hash::new([0; 32])
-                    || master.expected_fingerprint == sha256(&key.public_key),
-                Error::IntegrityFailed,
-            )?;
-            Ok(key)
-        });
-        match result {
-            Ok(key) => keys.push(key),
-            Err(e) => {
-                c.state.initialization = Initialization::Uninitialized;
-                c.state.error = Some(format!("{e:?}"));
-                save_cfg(&c);
-                return Err(e);
-            }
+    let fetched = fetch_masters(&c.state.config).await;
+    // Commit onto the current record, not the snapshot taken before the calls.
+    let mut c = cfg();
+    let result = match fetched {
+        Ok(keys) => {
+            c.state.fingerprints = keys.iter().map(|k| sha256(&k.public_key)).collect();
+            c.keys = keys;
+            c.state.initialization = Initialization::Ready;
+            Ok(())
         }
-    }
-    c.state.fingerprints = keys.iter().map(|k| sha256(&k.public_key)).collect();
-    c.keys = keys;
-    c.state.initialization = Initialization::Ready;
+        Err(e) => {
+            c.state.initialization = Initialization::Uninitialized;
+            c.state.error = Some(format!("{e:?}"));
+            Err(e)
+        }
+    };
     save_cfg(&c);
-    Ok(c.state)
+    result.map(|()| c.state)
 }
 
 #[ic_cdk::query]
@@ -159,7 +167,7 @@ fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> 
     describe(
         &ready()?,
         &account_id,
-        key.into(),
+        &key.into(),
         ic_cdk::api::canister_self(),
     )
 }
@@ -167,7 +175,7 @@ fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> 
 fn describe(
     c: &Config,
     account_id: &AccountId,
-    key: KeyRequest,
+    key: &KeyRequest,
     canister_id: Principal,
 ) -> Result<KeyDescriptor> {
     nonzero(account_id.as_slice())?;
@@ -182,7 +190,7 @@ fn describe(
         .keys
         .get(index)
         .ok_or_else(|| Error::Unavailable("missing initialized key".into()))?;
-    let path = model::path(config, account_id, &key);
+    let path = model::path(config, account_id, key);
     let public_key = match key.algorithm {
         Algorithm::Ed25519 => {
             chain_key::derive_schnorr_public_key(mgmt::SchnorrAlgorithm::Ed25519, root, path)
@@ -200,15 +208,15 @@ fn describe(
         key_thumbprint(&public_cose_key(&key.algorithm, &[], &public_key)?)?
     };
     let key_id = if key.algorithm == Algorithm::VetKdBls12381 {
-        model::key_id(config, account_id, &key).to_vec().into()
+        model::key_id(config, account_id, key).to_vec().into()
     } else {
         public_key_fingerprint.to_vec().into()
     };
     Ok(KeyDescriptor {
         key_id,
         account_id: *account_id,
-        purpose: key.purpose,
-        algorithm: key.algorithm,
+        purpose: key.purpose.clone(),
+        algorithm: key.algorithm.clone(),
         home_cose: canister_id,
         master_key_name: config.masters[index].key_name.clone(),
         environment: config.environment.clone(),
@@ -223,24 +231,23 @@ fn describe(
 struct PreparedExecution {
     operation: Operation,
     cost: Cost,
+    /// Complete cost bound reserved from the per-account and global budgets.
+    reserved: u128,
     key: KeyDescriptor,
     signature: Option<PreparedSignature>,
 }
 
-fn prepare(
-    c: &Config,
-    g: &ExecutionGrant,
-    canister_id: Principal,
-    at: u64,
-) -> Result<PreparedExecution> {
+/// Validate a grant and build its management call. Called only before
+/// `g.expires_at`; `describe` is the one place that validates the key request.
+fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<PreparedExecution> {
     let config = &c.state.config;
     match (&g.kind, &g.commerce) {
+        // Callers are before the grant deadline, so outlasting it means valid now.
         (ExecutionKind::Sign { .. }, Some(r)) => ensure(
             r.reservation_id == g.request_id
                 && r.units > 0
                 && r.weight_policy_version > 0
-                && r.valid_until_ms >= g.expires_at
-                && at < r.valid_until_ms,
+                && r.valid_until_ms >= g.expires_at,
             Error::MembershipStale,
         )?,
         (ExecutionKind::Derive { .. }, None) => {}
@@ -253,7 +260,6 @@ fn prepare(
             public_key_fingerprint,
             origin,
         } => {
-            key.validate()?;
             validate_origin(origin, &config.environment)?;
             let prepared = parse_signing_input(to_be_signed)?;
             ensure(
@@ -266,7 +272,7 @@ fn prepare(
                     == account_issuer(&config.issuer_namespace, &g.account_id),
                 Error::IntegrityFailed,
             )?;
-            let descriptor = describe(c, &g.account_id, key.clone(), canister_id)?;
+            let descriptor = describe(c, &g.account_id, key, canister_id)?;
             ensure(
                 descriptor.key_id.as_slice() == prepared.kid()
                     && descriptor.public_key_fingerprint == *public_key_fingerprint,
@@ -294,12 +300,11 @@ fn prepare(
             transport_key,
             ..
         } => {
-            ensure_valid(*generation > 0, "vetKD generation")?;
             validate_transport_key(transport_key)?;
             let descriptor = describe(
                 c,
                 &g.account_id,
-                KeySelector::ContentRoot {
+                &KeySelector::ContentRoot {
                     generation: *generation,
                 }
                 .into(),
@@ -315,16 +320,15 @@ fn prepare(
         }
     };
     let cost = operation.cost().map_err(Error::Unavailable)?;
-    ensure(
-        cost.total().map_err(Error::Unavailable)? <= g.max_cycles,
-        Error::QuotaExceeded,
-    )?;
+    let reserved = cost.total().map_err(Error::Unavailable)?;
+    ensure(reserved <= g.max_cycles, Error::QuotaExceeded)?;
     let signature = signature
         .map(|prepared| prepared.into_signature(&key.public_key))
         .transpose()?;
     Ok(PreparedExecution {
         operation,
         cost,
+        reserved,
         key,
         signature,
     })
@@ -343,38 +347,29 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
             && caller == grant.home_user,
         Error::Forbidden,
     )?;
-    let mut h = match home(&grant.account_id) {
-        Ok(h) => h,
-        Err(Error::NotFound) => {
-            ensure(
-                HOMES.with_borrow(|t| t.len()) < 1_000_000,
-                Error::QuotaExceeded,
-            )?;
-            model::Home::new(caller)
-        }
-        Err(e) => return Err(e),
-    };
+    let mut h = home_or_new(&grant.account_id, caller)?;
     let at = now();
     if let Some(sequence) = h.check(caller, &grant, at)? {
         return execution(&grant.account_id, sequence);
     }
     // Expired requests still close their sequence, without parsing or deriving keys.
     let prepared = if at >= grant.expires_at {
-        Err(Error::ResultExpired)
+        Err(Error::Expired)
     } else {
-        prepare(&c, &grant, canister_id, at)
+        prepare(&c, &grant, canister_id)
     };
-    let reserved = prepared
-        .as_ref()
-        .map_or(0, |p| p.cost.total().expect("validated cost"));
-    let removed = h.prepare(&grant, at, reserved)?;
-    // Last fallible check before committing. An Err must not consume a sequence.
-    reserve_budget(
-        at,
-        reserved,
-        config,
-        matches!(grant.kind, ExecutionKind::Sign { .. }),
-    )?;
+    // Only a management call consumes budget; failures close their sequence.
+    let cycles = prepared.as_ref().ok().map(|p| p.reserved);
+    let removed = h.prepare(&grant, at, cycles)?;
+    if let Some(cycles) = cycles {
+        // Last fallible check before committing. An Err must not consume a sequence.
+        reserve_budget(
+            at,
+            cycles,
+            config,
+            matches!(grant.kind, ExecutionKind::Sign { .. }),
+        )?;
+    }
     let mut result = ExecutionResult {
         request_id: grant.request_id,
         cycles_cost_upper_bound: 0,
@@ -383,16 +378,13 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let PreparedExecution {
         operation,
         cost,
+        reserved,
         key,
         signature,
     } = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
-            result.outcome = if error == Error::ResultExpired {
-                ExecutionOutcome::Failed(Error::Expired)
-            } else {
-                ExecutionOutcome::Failed(error)
-            };
+            result.outcome = ExecutionOutcome::Failed(error);
             h.finish(grant.execution_sequence, &result);
             save_execution(
                 &grant.account_id,
@@ -433,9 +425,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
                             key,
                         }))
                     }
-                    // The management call has already run. Never retry it
-                    // because its response could not be packaged.
-                    Err(error) => ExecutionOutcome::Unknown(error),
+                    // The management call has already run and is never retried;
+                    // an unpackageable response is a known failure, not unknown.
+                    Err(error) => ExecutionOutcome::Failed(error),
                 }
             }
             None => ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
@@ -453,7 +445,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         }
     };
     // Other executions can finish while this management call is in flight.
-    let mut current = home(&account_id)?;
+    let mut current = home(&account_id).expect("prepared home");
     current.finish(sequence, &result);
     save_execution(&account_id, &current, sequence, &result, &[]);
     Ok(result)
@@ -465,7 +457,7 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
         ic_cdk::api::msg_caller() == cfg().state.config.initial_home_user,
         Error::Forbidden,
     )?;
-    let h = home(&account_id)?;
+    let h = home(&account_id).ok_or(Error::NotFound)?;
     let sequence = h.sequence(&request_id).ok_or(Error::NotFound)?;
     execution(&account_id, sequence)
 }
