@@ -1098,4 +1098,12 @@ fn es256k_artifacts_are_low_s_and_reject_high_s_malleations() {
         ..artifact
     };
     assert!(verify_artifact(&malleated).is_err());
+
+    // The SDK verifies these same bytes, generated with the fixed test seed above.
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/es256k.json")).unwrap();
+    let low_artifact = finish_cose(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap();
+    assert_eq!(fixture["cose_key"], hex::encode(&low_artifact.cose_key));
+    assert_eq!(fixture["low_s"], hex::encode(&low_artifact.cose_sign1));
+    assert_eq!(fixture["high_s"], hex::encode(&malleated.cose_sign1));
 }

@@ -360,7 +360,7 @@ export function verifyDocumentArtifact(
     ensure(
       secp256k1.verify(signature, toBeSigned, publicKey, {
         prehash: true,
-        lowS: false,
+        lowS: true,
       }),
       "INTEGRITY_FAILED",
     );
