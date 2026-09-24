@@ -176,7 +176,7 @@ pub struct HandleOperation {
 }
 
 /// Progress of the restricted legacy name import process.
-#[derive(CandidType, Serialize, Deserialize, Clone)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SnapshotProgress {
     /// Frozen import manifest, or None before an import begins.
     pub snapshot: Option<LegacySnapshot>,
@@ -192,7 +192,7 @@ pub struct SnapshotProgress {
 
 /// One frozen reservation and proofs for its digest and the import progress.
 /// Verify both leaves under the same certified root before using the record.
-#[derive(CandidType, Serialize, Deserialize, Clone)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CertifiedLegacyReservation {
     /// Frozen record, or None with an authenticated absence proof.
     pub reservation: Option<LegacyReservation>,

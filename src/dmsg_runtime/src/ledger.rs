@@ -11,9 +11,7 @@ use icrc_ledger_types::{
 use num_traits::ToPrimitive;
 use std::collections::BTreeMap;
 
-/// Serde adapter for protocol accounts. ICRC's external Account type uses an
-/// unannotated array for subaccounts; the dMsg CBOR contract uses fixed bytes.
-
+/// Transfer fields read from an authenticated ledger or archive reply.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifiedTransfer {
     pub block: u64,
@@ -116,9 +114,9 @@ pub async fn read_transfer(ledger: Principal, index: u64) -> Result<VerifiedTran
         length: Nat::from(1u8),
     }];
     let mut target = ledger;
-    let mut method = "icrc3_get_blocks".to_string();
     for _ in 0..4 {
-        let response: GetBlocksResult = call(target, &method, (requests.clone(),)).await?;
+        let response: GetBlocksResult =
+            call(target, "icrc3_get_blocks", (requests.clone(),)).await?;
         ensure(
             response.blocks.len() <= 1 && response.archived_blocks.len() <= 4,
             Error::IntegrityFailed,
@@ -142,7 +140,6 @@ pub async fn read_transfer(ledger: Principal, index: u64) -> Result<VerifiedTran
             Error::UnsupportedProtocol,
         )?;
         target = archive.callback.canister_id;
-        method = archive.callback.method.clone();
     }
     Err(Error::Unavailable("archive redirect limit".into()))
 }

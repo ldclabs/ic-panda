@@ -151,9 +151,8 @@ pub fn catalog(at: u64) -> Catalog {
 fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
     let bytes = dmsg_protocol::canonical(value);
     CERT.with_borrow_mut(|c| {
-        if c.0.get(&key) != Some(&bytes) {
-            c.0.insert(key, bytes);
-            c.publish();
+        if c.get(&key) != Some(bytes.as_slice()) {
+            c.insert(key, bytes);
         }
     });
 }
@@ -165,11 +164,11 @@ pub fn rebuild(at: u64) {
         SUBJECTS.with_borrow(|t| {
             t.for_each(|key, s| {
                 if let Some(v) = s.view {
-                    c.0.insert(key, dmsg_protocol::canonical(&v));
+                    c.insert(key, dmsg_protocol::canonical(&v));
                 }
             })
         });
-        c.0.insert(
+        c.insert(
             catalog_key().to_vec(),
             dmsg_protocol::canonical(&catalog(at)),
         );

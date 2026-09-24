@@ -1,5 +1,5 @@
 //! Shared product-side interval CAS. Product roles/pricing are checked by its adapter before entry.
-use crate::{commerce_v2::*, integration::*, *};
+use crate::{commerce_v2::*, integration::*};
 use dmsg_types::{integration::*, integration_billing::*, membership::Beneficiary, *};
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,18 @@ pub struct ProductBook {
     pub reservation: Option<Reservation>,
 }
 
+/// Account approval purpose must match the decision's settlement source.
+fn check_purpose(r: &Reservation, decision: &ProductDecision) -> Result<()> {
+    let method = match decision.source {
+        SettlementSource::Cash { .. } => SettlementMethod::Cash,
+        SettlementSource::Panda { .. } => SettlementMethod::Panda,
+    };
+    ensure(
+        r.request.account_approval.purpose == approval_purpose(&method),
+        Error::Forbidden,
+    )
+}
+
 impl ProductBook {
     /// New product subject with a defined CAS revision.
     pub fn new(beneficiary: Beneficiary, revision: u64) -> Self {
@@ -45,6 +57,15 @@ impl ProductBook {
             .checked_add(1)
             .ok_or(Error::QuotaExceeded)?;
         Ok(())
+    }
+
+    /// Whether a live contract overlaps the half-open offer interval.
+    fn overlaps(&self, offer: &BillingOffer) -> bool {
+        self.contracts.iter().any(|c| {
+            c.status != SubscriptionStatus::Cancelled
+                && c.offer.starts_at_ms < offer.expires_at_ms
+                && offer.starts_at_ms < c.offer.expires_at_ms
+        })
     }
 
     /// Never evicts an unknown Apply. Historical records must already exist in the adapter archive.
@@ -103,14 +124,7 @@ impl ProductBook {
                         .saturating_add(APPLICATION_TTL_MS),
             Error::Expired,
         )?;
-        ensure(
-            !self.contracts.iter().any(|c| {
-                c.status != SubscriptionStatus::Cancelled
-                    && c.offer.starts_at_ms < request.offer.expires_at_ms
-                    && request.offer.starts_at_ms < c.offer.expires_at_ms
-            }),
-            Error::IntervalReserved,
-        )?;
+        ensure(!self.overlaps(&request.offer), Error::IntervalReserved)?;
         ensure(
             self.contracts
                 .iter()
@@ -132,15 +146,7 @@ impl ProductBook {
     pub fn begin_apply(&mut self, decision: &ProductDecision, at: u64) -> Result<()> {
         validate_decision(decision, at)?;
         let r = self.reservation.as_ref().ok_or(Error::NotFound)?;
-        ensure(
-            r.request.account_approval.purpose
-                == if matches!(decision.source, SettlementSource::Cash { .. }) {
-                    ApprovalPurpose::CashCheckout
-                } else {
-                    ApprovalPurpose::PandaSubscription
-                },
-            Error::Forbidden,
-        )?;
+        check_purpose(r, decision)?;
         ensure(
             r.request.offer == decision.offer && at < r.until_ms,
             Error::VersionConflict,
@@ -174,29 +180,14 @@ impl ProductBook {
     ) -> Result<(SubscriptionContract, ProductReceipt)> {
         validate_decision(decision, at)?;
         let r = self.reservation.as_ref().ok_or(Error::NotFound)?;
-        ensure(
-            r.request.account_approval.purpose
-                == if matches!(decision.source, SettlementSource::Cash { .. }) {
-                    ApprovalPurpose::CashCheckout
-                } else {
-                    ApprovalPurpose::PandaSubscription
-                },
-            Error::Forbidden,
-        )?;
+        check_purpose(r, decision)?;
         ensure(
             r.request.offer == decision.offer
                 && r.decision_id == Some(decision.decision_id)
                 && decision.offer.expected_business_revision == self.business_revision,
             Error::VersionConflict,
         )?;
-        ensure(
-            !self.contracts.iter().any(|c| {
-                c.status != SubscriptionStatus::Cancelled
-                    && c.offer.starts_at_ms < decision.offer.expires_at_ms
-                    && decision.offer.starts_at_ms < c.offer.expires_at_ms
-            }),
-            Error::IntervalReserved,
-        )?;
+        ensure(!self.overlaps(&decision.offer), Error::IntervalReserved)?;
         let revision = self
             .business_revision
             .checked_add(1)
@@ -234,14 +225,7 @@ impl ProductBook {
         }) {
             self.reservation = None;
         }
-        ProductReceipt {
-            version: 2,
-            decision_id: decision.decision_id,
-            decision_hash: product_decision_hash(decision),
-            adapter: decision.offer.adapter,
-            outcome: ProductOutcome::Rejected { reason },
-            applied_at_ms: at,
-        }
+        rejected(decision, reason, at)
     }
 
     /// PANDA is never cancellable. Unstarted cash terms have not issued any rights.
@@ -302,22 +286,4 @@ pub fn rejected(decision: &ProductDecision, reason: ProductRejection, at: u64) -
         outcome: ProductOutcome::Rejected { reason },
         applied_at_ms: at,
     }
-}
-
-/// Match an explicit operator approval to a fixed product and service, before role checks.
-pub fn check_operator_approval(
-    approval: &ProductApproval,
-    offer: &BillingOffer,
-    method: SettlementMethod,
-    at: u64,
-) -> Result<()> {
-    ensure(
-        approval.version == 2
-            && approval.offer_hash == billing_offer_hash(offer)
-            && approval.method == method
-            && approval.approved_at_ms <= at
-            && at < approval.expires_at_ms,
-        Error::Forbidden,
-    )?;
-    authenticated(approval.operator)
 }

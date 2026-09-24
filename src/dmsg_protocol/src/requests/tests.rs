@@ -20,7 +20,7 @@ fn approval() -> Approval {
         sequence: 3,
         request_id: Hash::new([4; 32]),
         expires_at: 100,
-        signature: vec![5; 64].into(),
+        signature: [5; 64].into(),
     }
 }
 
@@ -239,7 +239,6 @@ fn sign_conversion_preserves_context_and_derives_the_correct_key_purpose() {
         }
     }
     let changes: &[fn(&mut SignRequest)] = &[
-        |r| r.origin = "http://app.test".into(),
         |r| r.statement.issuer = "relative".into(),
         |r| r.statement.content = StatementContent::Text(String::new()),
         |r| r.key.kid = Vec::new().into(),
@@ -300,7 +299,7 @@ fn execution_approvals_bind_all_context_but_not_the_signature_itself() {
         assert_ne!(changed.approval_message(home), expected);
     }
     let mut changed = request;
-    changed.approval.signature = Vec::new().into();
+    changed.approval.signature = Default::default();
     assert_eq!(changed.approval_message(home), expected);
 }
 

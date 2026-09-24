@@ -8,7 +8,6 @@ use crate::*;
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 
 /// Relay Ed25519 key authorized to sign quotes and admission receipts.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -128,7 +127,7 @@ pub struct SignedOffer {
     /// Recipient authorization signed by a permitted device.
     pub offer: PaymentOffer,
     /// Device Ed25519 signature over the `dmsg/payment-offer/v1` digest.
-    pub signature: ByteBuf,
+    pub signature: Ed25519Signature,
 }
 
 /// Mutually exclusive escrow disposition; does not mean transfers have finished.
@@ -246,19 +245,14 @@ pub struct TransferLeg {
     /// Confirmed ledger transaction index, if available.
     pub block: Option<u64>,
     /// Network fee reported by the ledger after a BadFee response, if available.
-    #[serde(default)]
     pub expected_fee: Option<u128>,
     /// Bounded reason from the last failed attempt; cleared on success.
-    #[serde(default)]
     pub last_failure: Option<TransferFailure>,
     /// Fee-repricing revision of this transfer.
-    #[serde(default)]
     pub revision: u64,
     /// Previous transfer leg superseded by this revision, if any.
-    #[serde(default)]
     pub replaces: Option<u64>,
     /// Commitment to the preceding transfer revision; zero for an initial leg.
-    #[serde(default)]
     pub history_digest: Hash,
 }
 

@@ -6,7 +6,6 @@
 use crate::{cose::*, handle::HandleIntent, *};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 
 /// Maximum device records allowed by account protocol validation (16).
@@ -206,7 +205,6 @@ pub struct PendingRecovery {
     /// Whether the recovery key has reconfirmed after a dispute.
     pub reconfirmed: bool,
     /// Reconfirmation with its own deadline; None retains the original deadline.
-    #[serde(default)]
     pub confirmation: Option<RecoveryConfirmation>,
 }
 
@@ -308,7 +306,7 @@ pub struct CreateAccount {
     /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
     pub expires_at: u64,
     /// Initial device Ed25519 proof over the account-creation digest.
-    pub proof: ByteBuf,
+    pub proof: Ed25519Signature,
 }
 
 /// Sensitive account mutation covered by an [`Approval`].
@@ -319,8 +317,8 @@ pub enum AccountCommand {
     AddDevice {
         /// New device identity, keys and permissions to enroll.
         device: DeviceInput,
-        /// Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
-        proof: ByteBuf,
+        /// New device Ed25519 proof of possession; use the matching protocol digest helper.
+        proof: Ed25519Signature,
     },
     /// Revoke a device and invalidate affected security state.
     RevokeDevice {
@@ -350,13 +348,13 @@ pub enum AccountCommand {
     SetRecovery {
         /// New recovery or sensitive-execution policy, as selected by the command.
         policy: RecoveryPolicy,
-        /// Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
-        proof: ByteBuf,
+        /// Recovery-key Ed25519 proof of possession; use the matching protocol digest helper.
+        proof: Ed25519Signature,
     },
     /// Confirm configured recovery material.
     ConfirmRecovery {
-        /// Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
-        proof: ByteBuf,
+        /// Recovery-key Ed25519 confirmation; use the matching protocol digest helper.
+        proof: Ed25519Signature,
     },
     /// Replace sensitive execution policy.
     SetPolicy {

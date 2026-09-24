@@ -39,12 +39,14 @@ impl DeviceInputExt for DeviceInput {
 pub trait SignRequestExt {
     /// Consume the request and prepare its canonical signing bytes and derived purpose.
     ///
-    /// Validates origin, statement and kid, fixing signing generation to 1. Preserves
-    /// the supplied approval and fingerprint without verifying either. Compute the
-    /// execution approval via [`ExecuteRequestExt`] after freezing the request.
+    /// Validates the statement and kid, fixing signing generation to 1. Preserves
+    /// the supplied approval and fingerprint without verifying either. The executing
+    /// services check the origin against their deployment environment with
+    /// [`validate_origin`]. Compute the execution approval via [`ExecuteRequestExt`]
+    /// after freezing the request.
     ///
     /// # Errors
-    /// Propagates origin and [`prepare_cose`] validation errors.
+    /// Propagates [`prepare_cose`] validation errors.
     fn into_execution(self) -> Result<ExecuteRequest>;
 }
 
@@ -54,7 +56,6 @@ impl SignRequestExt for SignRequest {
             !matches!(self.statement.content, StatementContent::AppAction(_)),
             Error::UnsupportedProtocol,
         )?;
-        validate_origin(&self.origin)?;
         let algorithm: Algorithm = self.key.algorithm.into();
         let purpose = statement_purpose(&self.statement);
         let (_, bytes) = prepare_cose(&self.statement, &algorithm, &self.key.kid)?;
@@ -197,7 +198,7 @@ mod tests;
 /// Prepare exact application execution bytes, without performing authorization.
 impl SignRequestExt for AppActionSignRequest {
     fn into_execution(self) -> Result<ExecuteRequest> {
-        crate::app_action::validate_app_action(&self.action)?;
+        // prepare_cose validates the complete action, including its origin.
         ensure(
             self.account_id == self.action.signing_account,
             Error::Forbidden,

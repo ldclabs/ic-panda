@@ -29,7 +29,7 @@ fn load(id: &AccountId, month: u32) -> Option<Month> {
 fn save(m: &Month) {
     let key = usage_key(&m.usage.account_id, m.usage.month_utc);
     MONTHS.with_borrow_mut(|t| t.put(key.as_slice(), m));
-    store::CERT.with_borrow_mut(|c| c.0.insert(key.to_vec(), canonical(&m.usage)));
+    store::CERT.with_borrow_mut(|c| c.insert(key.to_vec(), canonical(&m.usage)));
 }
 
 pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {
@@ -39,7 +39,7 @@ pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {
 pub fn rebuild(c: &mut Certification) {
     MONTHS.with_borrow(|t| {
         t.for_each(|key, m| {
-            c.0.insert(key, canonical(&m.usage));
+            c.insert(key, canonical(&m.usage));
         })
     });
 }
@@ -97,7 +97,7 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
         }
     }
     let usage = ExecutionUsage {
-        account_id: id.clone(),
+        account_id: *id,
         month_utc: month,
         month_revision: e.month.month_revision,
         business_revision: e.view.business_revision,
@@ -113,7 +113,6 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
         weights: e.month.weights,
         entitlement_digest,
     });
-    store::publish();
     Ok(now)
 }
 

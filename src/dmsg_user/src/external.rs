@@ -160,12 +160,12 @@ fn save(id: &AccountId, old: &ExternalState, next: &ExternalState) {
             if matches!(record.body, ExternalBody::Authentication(_))
                 && !next.operations.contains_key(op)
             {
-                c.0.delete(&authentication_key(id, op));
+                c.remove(&authentication_key(id, op));
             }
         }
         for (op, record) in &next.operations {
             if let ExternalBody::Authentication(result) = &record.body {
-                c.0.insert(authentication_key(id, op), canonical(result));
+                c.insert(authentication_key(id, op), canonical(result));
             }
         }
     });
@@ -243,7 +243,7 @@ async fn approve_authentication(
         version: INTEGRATION_VERSION,
         expires_at_ms: request.expires_at_ms.min(approval.expires_at),
         request,
-        account_id: account_id.clone(),
+        account_id,
         home_user: account.home_user,
         security_epoch: account.security_epoch,
         device_id: approval.device_id,
@@ -297,7 +297,7 @@ fn service_for(purpose: &ApprovalPurpose) -> Principal {
 async fn approve_application(application: ApplicationApproval, approval: Approval) -> Result<Hash> {
     let caller = ic_cdk::api::msg_caller();
     let at = nanos_to_millis(ic_cdk::api::time());
-    let id = application.approving_account.clone();
+    let id = application.approving_account;
     ensure(
         canonical(&(&application, &approval)).len() <= MAX_PAYLOAD,
         Error::QuotaExceeded,
@@ -428,7 +428,6 @@ fn prune_external_approvals(after: serde_bytes::ByteBuf) -> Option<serde_bytes::
             save(&AccountId(raw), &old, &next);
         }
     }
-    store::publish();
     cursor
 }
 
@@ -437,7 +436,7 @@ pub(crate) fn rebuild(c: &mut Certification) {
         t.for_each(|_, state| {
             for (operation, record) in state.operations {
                 if let ExternalBody::Authentication(result) = record.body {
-                    c.0.insert(
+                    c.insert(
                         authentication_key(&result.account_id, &operation),
                         canonical(&result),
                     );
@@ -466,7 +465,7 @@ pub(crate) async fn authorize_action(
     let approved: Result<()> = dmsg_runtime::call(
         app.action_authority,
         "verify_dmsg_action",
-        (id.clone(), action.clone()),
+        (*id, action.clone()),
     )
     .await?;
     approved?;

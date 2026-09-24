@@ -262,14 +262,14 @@ mod tests {
         let derive_grant = grant(ExecutionKind::Derive {
             generation: 3,
             root_op_id: Some(Hash::new([6; 32])),
-            transport_key: vec![7; 48].into(),
+            transport_key: [7; 48].into(),
         });
         assert_public_text_keys(&derive_grant);
         let derive = ExecutionResult {
             request_id: derive_grant.request_id,
             outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
                 encrypted_key: vec![12; 128].into(),
-                key: descriptor(derive_grant.account_id.clone(), Algorithm::VetKdBls12381),
+                key: descriptor(derive_grant.account_id, Algorithm::VetKdBls12381),
             })),
             cycles_cost_upper_bound: 100_000_000_000,
         };
@@ -295,7 +295,7 @@ mod tests {
                     cose_sign1: vec![16; 256].into(),
                     cose_key: vec![17; 96].into(),
                 },
-                key: descriptor(sign_grant.account_id.clone(), Algorithm::Ed25519),
+                key: descriptor(sign_grant.account_id, Algorithm::Ed25519),
             })),
             cycles_cost_upper_bound: 100_000_000_000,
         };

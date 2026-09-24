@@ -20,7 +20,7 @@ type AccountCommand = variant {
   };
   // Confirm configured recovery material.
   ConfirmRecovery : record {
-    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    // Recovery-key Ed25519 confirmation; use the matching protocol digest helper.
     proof : blob;
   };
   // Bind another proven login Principal.
@@ -49,7 +49,7 @@ type AccountCommand = variant {
   };
   // Install recovery public keys with proof of possession.
   SetRecovery : record {
-    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    // Recovery-key Ed25519 proof of possession; use the matching protocol digest helper.
     proof : blob;
     // New recovery or sensitive-execution policy, as selected by the command.
     policy : RecoveryPolicy;
@@ -58,7 +58,7 @@ type AccountCommand = variant {
   AddDevice : record {
     // New device identity, keys and permissions to enroll.
     device : DeviceInput;
-    // Profile-specific proof of possession/confirmation; use the matching protocol digest helper.
+    // New device Ed25519 proof of possession; use the matching protocol digest helper.
     proof : blob;
   };
   // Commit the bundle reference for an active root reservation.

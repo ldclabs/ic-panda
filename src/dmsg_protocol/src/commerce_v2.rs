@@ -1,10 +1,8 @@
 //! Pure v2 money/contract rules. Ledger, product and SNS replies must be authenticated separately.
-use crate::{digest, ensure_valid, integration::*, *};
+use crate::{digest, integration::*, membership::mul_div, *};
 use candid::Principal;
 use dmsg_types::{integration::*, integration_billing::*, membership::Eligibility, *};
 use icrc_ledger_types::icrc1::account::Account;
-use num_bigint::BigUint;
-use num_traits::ToPrimitive;
 
 /// Maximum accepted age/window of a governance-authenticated price observation.
 pub const PRICE_WINDOW_MS: u64 = 30 * MINUTE;
@@ -74,12 +72,13 @@ pub fn check_quoted_asset(
 }
 
 /// Convert the full bill with one final upward rounding and arbitrary-width intermediates.
+/// `asset` must already pass [`validate_asset`].
 pub fn cash_amount(amount_usd_micros: u128, asset: &SettlementAsset) -> Result<u128> {
-    validate_asset(asset)?;
-    ensure(amount_usd_micros > 0, invalid("positive amount"))?;
-    let n = BigUint::from(amount_usd_micros) * BigUint::from(10u128.pow(u32::from(asset.decimals)));
-    let d = BigUint::from(asset.price_usd_micros);
-    ((n + &d - 1u8) / d).to_u128().ok_or(Error::QuotaExceeded)
+    ensure_valid(amount_usd_micros > 0, "positive amount")?;
+    let unit = 10u128
+        .checked_pow(u32::from(asset.decimals))
+        .ok_or(Error::QuotaExceeded)?;
+    mul_div(amount_usd_micros, unit, asset.price_usd_micros, true)
 }
 
 /// Per-operation receiving account; a different ledger cannot become a second order.
@@ -170,6 +169,32 @@ pub fn check_product_authorization(
     authenticated(value.operator)
 }
 
+/// Account approvals are purpose-separated by settlement method.
+pub fn approval_purpose(method: &SettlementMethod) -> ApprovalPurpose {
+    match method {
+        SettlementMethod::Cash => ApprovalPurpose::CashCheckout,
+        SettlementMethod::Panda => ApprovalPurpose::PandaSubscription,
+    }
+}
+
+/// Match an explicit operator approval to a fixed product and service, before role checks.
+pub fn check_operator_approval(
+    approval: &ProductApproval,
+    offer: &BillingOffer,
+    method: SettlementMethod,
+    at: u64,
+) -> Result<()> {
+    ensure(
+        approval.version == 2
+            && approval.offer_hash == billing_offer_hash(offer)
+            && approval.method == method
+            && approval.approved_at_ms <= at
+            && at < approval.expires_at_ms,
+        Error::Forbidden,
+    )?;
+    authenticated(approval.operator)
+}
+
 /// Check the two independent approvals against the selected economic service and bill.
 pub fn validate_product_request(
     request: &ProductAuthorizationRequest,
@@ -184,24 +209,11 @@ pub fn validate_product_request(
             && a.app_id == request.offer.app_id
             && a.environment == request.offer.environment
             && a.operation_id == request.offer.operation_id
-            && a.purpose
-                == if method == SettlementMethod::Cash {
-                    ApprovalPurpose::CashCheckout
-                } else {
-                    ApprovalPurpose::PandaSubscription
-                },
+            && a.purpose == approval_purpose(&method),
         Error::Forbidden,
     )?;
     if let Some(product) = &request.product_approval {
-        ensure(
-            product.version == 2
-                && product.offer_hash == billing_offer_hash(&request.offer)
-                && product.method == method
-                && product.approved_at_ms <= at
-                && at < product.expires_at_ms,
-            Error::Forbidden,
-        )?;
-        authenticated(product.operator)?;
+        check_operator_approval(product, &request.offer, method, at)?;
     }
     authenticated(request.user_home)
 }
@@ -405,11 +417,7 @@ pub fn observe_contract(
         }
         Eligibility::Ineligible => {
             contract.lease_until_ms = at;
-            contract.status = if contract.repair_elapsed_ms >= REPAIR_WINDOW_MS {
-                SubscriptionStatus::Terminated
-            } else {
-                SubscriptionStatus::Repairing
-            };
+            contract.status = SubscriptionStatus::Repairing;
         }
         Eligibility::Unverifiable => {
             contract.lease_until_ms = contract.lease_until_ms.min(at);
@@ -434,9 +442,12 @@ pub fn earned_atomic(
     if at >= offer.expires_at_ms {
         return Ok(amount);
     }
-    (BigUint::from(amount) * BigUint::from(at - start) / BigUint::from(offer.expires_at_ms - start))
-        .to_u128()
-        .ok_or(Error::QuotaExceeded)
+    mul_div(
+        amount,
+        u128::from(at - start),
+        u128::from(offer.expires_at_ms - start),
+        false,
+    )
 }
 
 /// Full neuron selection, actor, dMsg account and quote are all in the device-approved digest.

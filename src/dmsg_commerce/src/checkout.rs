@@ -157,9 +157,9 @@ struct Standard {
 async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128>) -> Result<()> {
     let previous = asset(ledger)?;
     if previous.policy.environment != Environment::Local {
-        ensure(
+        ensure_valid(
             sample_transfer.is_some(),
-            invalid("a verified transfer block is required"),
+            "a verified transfer block is required",
         )?;
     }
     let decimals: u8 = call(ledger, "icrc1_decimals", ()).await?;
@@ -667,9 +667,9 @@ fn claim_checkout_refund(
     blocks: Vec<u128>,
     operation_id: Hash,
 ) -> Result<CashTransfer> {
-    ensure(
+    ensure_valid(
         !blocks.is_empty() && blocks.len() <= 32 && blocks.windows(2).all(|w| w[0] < w[1]),
-        invalid("ordered refund blocks"),
+        "ordered refund blocks",
     )?;
     nonzero(operation_id.as_slice())?;
     let refund_id = digest(
@@ -1079,16 +1079,15 @@ fn checkout_transfer_certificate(id: Hash) -> Result<CertifiedBatch> {
 pub(crate) fn rebuild(cert: &mut dmsg_runtime::Certification) {
     ORDERS.with_borrow(|t| {
         t.for_each(|_, o| {
-            cert.0.insert(order_key(o.id), canonical(&o.view()));
+            cert.insert(order_key(o.id), canonical(&o.view()));
         })
     });
     TRANSFERS.with_borrow(|t| {
         t.for_each(|_, v| {
-            cert.0
-                .insert(transfer_key(v.view.transfer_id), canonical(&v.view));
+            cert.insert(transfer_key(v.view.transfer_id), canonical(&v.view));
         })
     });
-    cert.0.insert(assets_key(), canonical(&settlement_assets()));
+    cert.insert(assets_key(), canonical(&settlement_assets()));
 }
 
 #[ic_cdk::update]
@@ -1114,9 +1113,9 @@ fn publish_settlement_price(
             || PRICE_AUTHORITY.with_borrow(|c| c.get().0 == Some(caller)),
         Error::Forbidden,
     )?;
-    ensure(
+    ensure_valid(
         price_usd_micros > 0 && valid_for_ms > 0 && valid_for_ms <= PRICE_WINDOW_MS,
-        invalid("price observation"),
+        "price observation",
     )?;
     let at = nanos_to_millis(ic_cdk::api::time());
     let mut a = asset(ledger)?;
@@ -1150,7 +1149,7 @@ fn checkout_operations(after: Option<Hash>, take: u16) -> Result<CheckoutOperati
     use std::ops::Bound::{Excluded, Unbounded};
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
-    ensure((1..=32).contains(&take), invalid("page size"))?;
+    ensure_valid((1..=32).contains(&take), "page size")?;
     let mut orders = vec![];
     let mut next = None;
     ORDERS.with_borrow(|t| {
@@ -1193,7 +1192,7 @@ fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPag
     use std::ops::Bound::{Excluded, Unbounded};
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
-    ensure((1..=32).contains(&take), invalid("page size"))?;
+    ensure_valid((1..=32).contains(&take), "page size")?;
     let mut transfers = vec![];
     let mut next = None;
     TRANSFERS.with_borrow(|t| {

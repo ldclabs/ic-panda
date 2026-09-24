@@ -371,7 +371,7 @@ pub struct CheckoutRequest {
 }
 
 /// Asset discovery remains available while quotes are paused.
-#[derive(Clone, CandidType, Serialize, Deserialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SettlementAssetView {
     /// Exact current asset policy.
     pub policy: SettlementAsset,

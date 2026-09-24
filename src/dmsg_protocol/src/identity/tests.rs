@@ -56,7 +56,7 @@ fn namespaces_and_issuer_roundtrips_cover_uri_forms() {
     ] {
         validate_namespace(namespace).unwrap();
         for account in [AccountId([0; 12]), AccountId([1; 12]), AccountId([255; 12])] {
-            let issuer = account_issuer(namespace, &account).unwrap();
+            let issuer = account_issuer(namespace, &account);
             assert_eq!(issuer, format!("{namespace}{account}"));
             validate_uri(&issuer).unwrap();
             assert_eq!(parse_account_issuer(namespace, &issuer), Ok(account));
@@ -66,7 +66,7 @@ fn namespaces_and_issuer_roundtrips_cover_uri_forms() {
             Principal::anonymous(),
             Principal::from_slice(&[255; 29]),
         ] {
-            let issuer = principal_issuer(namespace, principal).unwrap();
+            let issuer = principal_issuer(namespace, principal);
             assert_eq!(issuer, format!("{namespace}{}", principal.to_text()));
             validate_uri(&issuer).unwrap();
         }
@@ -84,8 +84,6 @@ fn namespaces_reject_ambiguous_suffixes() {
         "https://user@dmsg.test/u/",
     ] {
         assert!(validate_namespace(namespace).is_err(), "{namespace}");
-        assert!(account_issuer(namespace, &AccountId([1; 12])).is_err());
-        assert!(principal_issuer(namespace, Principal::anonymous()).is_err());
         assert!(parse_account_issuer(namespace, "urn:dmsg:00000000000000000000").is_err());
     }
 }
@@ -94,7 +92,7 @@ fn namespaces_reject_ambiguous_suffixes() {
 fn account_parsing_requires_exact_namespace_and_canonical_xid() {
     let namespace = "https://dmsg.test/u/";
     let account = AccountId([255; 12]);
-    let issuer = account_issuer(namespace, &account).unwrap();
+    let issuer = account_issuer(namespace, &account);
     for value in [
         issuer.replace("dmsg.test", "other.test"),
         format!("{issuer}/"),
@@ -120,10 +118,13 @@ fn uri_and_namespace_byte_limits_allow_the_boundary() {
     let namespace = format!("urn:{}:", "a".repeat(MAX_URI_BYTES - 64 - 5));
     assert_eq!(validate_namespace(&namespace), Ok(()));
     let account = AccountId([255; 12]);
-    let issuer = account_issuer(&namespace, &account).unwrap();
+    let issuer = account_issuer(&namespace, &account);
     assert_eq!(parse_account_issuer(&namespace, &issuer), Ok(account));
-    validate_uri(&principal_issuer(&namespace, Principal::from_slice(&[255; 29])).unwrap())
-        .unwrap();
+    validate_uri(&principal_issuer(
+        &namespace,
+        Principal::from_slice(&[255; 29]),
+    ))
+    .unwrap();
     assert!(validate_namespace(&format!("{namespace}:")).is_err());
 }
 
@@ -136,7 +137,11 @@ fn browser_origins_require_exact_https_or_extension_origins() {
         "https://xn--bcher-kva.example",
         "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
     ] {
-        assert_eq!(validate_origin(origin), Ok(()), "{origin}");
+        assert_eq!(
+            validate_origin(origin, &Environment::Production),
+            Ok(()),
+            "{origin}"
+        );
     }
     for origin in [
         "",
@@ -158,9 +163,21 @@ fn browser_origins_require_exact_https_or_extension_origins() {
         "chrome-extension://abcdefghijklmnopabcdefghijklmnopa",
         "chrome-extension://ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
     ] {
-        assert!(validate_origin(origin).is_err(), "{origin:?}");
+        assert!(
+            validate_origin(origin, &Environment::Local).is_err(),
+            "{origin:?}"
+        );
+    }
+    for origin in [
+        "http://localhost:5188",
+        "http://127.0.0.1:5188",
+        "http://[::1]:5188",
+    ] {
+        assert_eq!(validate_origin(origin, &Environment::Local), Ok(()));
+        assert!(validate_origin(origin, &Environment::Staging).is_err());
+        assert!(validate_origin(&format!("{origin}/"), &Environment::Local).is_err());
     }
     let origin = format!("https://{}", "a".repeat(256 - 8));
-    assert_eq!(validate_origin(&origin), Ok(()));
-    assert!(validate_origin(&format!("{origin}a")).is_err());
+    assert_eq!(validate_origin(&origin, &Environment::Production), Ok(()));
+    assert!(validate_origin(&format!("{origin}a"), &Environment::Production).is_err());
 }

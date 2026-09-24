@@ -48,7 +48,7 @@ Publication settings do not prove a version is already on crates.io. Both packag
 
 Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
 
-Import commercial helpers from `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` and `dmsg_protocol::membership::{mul_div, required_panda}`. Amounts use integer atomic units and business times use UTC Unix milliseconds. Quotes and stake thresholds round up; monthly allowances sum weighted durations before rounding down once. Digest construction performs no authorization; rustdoc describes each validation boundary.
+Import commercial helpers from `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` and `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}`. Amounts use integer atomic units and business times use UTC Unix milliseconds. Quotes and stake thresholds round up; monthly allowances sum weighted durations before rounding down once. Digest construction performs no authorization; rustdoc describes each validation boundary.
 
 ## Sign and verify a document locally
 
@@ -69,7 +69,7 @@ let algorithm = Algorithm::Ed25519;
 let fingerprint = key_thumbprint(&public_cose_key(&algorithm, &[], &public).unwrap()).unwrap();
 let original = b"Release 1.0 specification";
 let statement = Statement {
-    issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])).unwrap(),
+    issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])),
     subject: Some("release/specification".into()),
     issued_at: Some(1_800_000_000), // Claimed Unix seconds, not trusted time.
     content: StatementContent::Digest {
@@ -94,7 +94,7 @@ assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 | Algorithm | COSE label | Signer input | Signature/public key supplied to `finish_cose` |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | Exact tbs bytes | 64-byte signature; raw 32-byte public key |
-| ES256K | -47 | SHA-256(tbs) for a prehash API | 64-byte r\|\|s, not DER; SEC1 secp256k1 public key |
+| ES256K | -47 | SHA-256(tbs) for a prehash API | 64-byte r\|\|s, not DER, normalized to low-S; SEC1 secp256k1 public key |
 
 When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `finish_cose` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
 
@@ -136,14 +136,14 @@ let request = SignRequest {
     approval: Approval {
         device_id, security_epoch, sequence, request_id,
         expires_at: 1_800_000_060_000, // Unix milliseconds; use a valid live deadline.
-        signature: Vec::new().into(), // Excluded from the approval digest.
+        signature: Default::default(), // Excluded from the approval digest.
     },
 };
 let mut execution = request.into_execution().unwrap();
 let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
 let digest = execution.approval_message(home_user);
 let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
-execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().to_vec().into();
+execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
@@ -166,7 +166,7 @@ assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
 
 `canonical` uses RFC 8949 core deterministic CBOR. `digest(domain, value)` is `SHA256(CBOR([1, domain, value]))`. Both operate on trusted serializable values and panic if their Serialize implementation fails; neither enforces business semantics. `decode_canonical` caps input at 65,536 bytes and requires exact re-encoding, returning errors for malformed or noncanonical records. It is not the artifact decoder: external COSE verification must preserve the original protected bytes.
 
-AccountId is 12 binary bytes and 20 characters of canonical Xid text. Hash/OpId are 32-byte strings. Identity adapters require an explicit canonical URI namespace ending in `/` or `:`, without query/fragment; they neither discover services nor establish account existence. `validate_origin` accepts an exact HTTPS origin or a 32-letter a..p Chrome extension ID, without a trailing path. Syntax checks do not prove the browser's actual origin.
+AccountId is 12 binary bytes and 20 characters of canonical Xid text. Hash/OpId are 32-byte strings. Identity adapters require an explicit canonical URI namespace ending in `/` or `:`, without query/fragment; they neither discover services nor establish account existence. `validate_origin` accepts an exact HTTPS origin or a 32-letter a..p Chrome extension ID, without a trailing path; Local deployments also accept exact loopback HTTP origins. The user and COSE homes check it against their own deployment environment. Syntax checks do not prove the browser's actual origin.
 
 Business timestamps and durations use milliseconds, while Statement.issued_at uses seconds and ICRC created_at_time uses nanoseconds. `expiry` requires a strictly future deadline within the supplied maximum lifetime. `check_sequence` returns ResultExpired for old sequences and VersionConflict for future/exhausted sequences; it does not update the counter. `price` uses a fixed PANDA schedule with 8 decimal places and requires an already validated handle; it is not a generic token price oracle.
 

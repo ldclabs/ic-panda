@@ -1,5 +1,5 @@
 //! dmsg-commerce/1 arithmetic, calendar boundaries and authenticated leaf keys.
-use crate::{digest, ensure_valid, membership::mul_div};
+use crate::{digest, membership::mul_div};
 use chrono::{Datelike, TimeZone, Utc};
 use dmsg_types::{billing::*, membership::*, *};
 

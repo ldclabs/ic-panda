@@ -57,8 +57,12 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | 收款授权、托管会计与账本转账 |
 | `profiles::delivery` | `Quote`, `OpenEscrow`, `SignedReceipt` | 可选付费投递应用协议 |
 | `account` | `account_cbor` | ICRC Account 的明确 Serde/CBOR 表示 |
-| `membership` | `Beneficiary`, `ClaimRequest`, `MembershipDecision` | 共享资格、跨产品占用与持久授益决定 |
-| `billing` | `Catalog`, `BillingOrder`, `EntitlementView`, `MonthEntitlement` | 现金订单、资源租约与月度执行账 |
+| `membership` | `Beneficiary`, `MembershipInit`, `Eligibility` | 与产品无关的受益主体绑定与 PANDA 资格观测 |
+| `billing` | `Catalog`, `PlanVersion`, `EntitlementView`, `MonthEntitlement` | dMsg 套餐、资源租约与月度执行账 |
+| `app_action` | `AppAction`, `AppActionCommand`, `ActionFile` | 封闭的类型化应用操作签名 profile |
+| `integration` | `AppRegistration`, `AuthenticationRequest`, `BillingOffer`, `ProductDecision` | 第三方认证、签名与订阅合同 |
+| `integration_billing` | `CheckoutQuote`, `CheckoutView`, `SubscriptionContract` | 通用现金结账与共享产品订阅 |
+| `integration_membership` | `PandaApplicationTerms`, `PandaClaimView` | 全额豁免 PANDA 申请与不可变承诺 |
 
 `protocol`、`signing` 中的类型以及 `AccountId` 在 crate 根重导出；其他类型按模块导入。`profiles` 的“可选”指集成方可以不使用该业务，不是 Cargo feature。
 

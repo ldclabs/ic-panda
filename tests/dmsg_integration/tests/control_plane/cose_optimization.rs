@@ -65,10 +65,13 @@ impl CoseFixture {
         grant.kind = ExecutionKind::Derive {
             generation: 1,
             root_op_id: None,
-            transport_key: ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32])
-                .unwrap()
-                .public_key()
-                .into(),
+            transport_key: serde_bytes::ByteArray::new(
+                ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32])
+                    .unwrap()
+                    .public_key()
+                    .try_into()
+                    .unwrap(),
+            ),
         };
         grant
     }
@@ -106,7 +109,7 @@ impl CoseFixture {
         );
         let descriptor = descriptor.unwrap();
         let statement = Statement {
-            issuer: account_issuer(NAMESPACE, &account_id).unwrap(),
+            issuer: account_issuer(NAMESPACE, &account_id),
             subject: None,
             issued_at: None,
             content: StatementContent::Text("x".repeat(body_bytes)),

@@ -550,7 +550,6 @@ impl Fixture {
                 .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         CreateAccount {
             device: dev,
@@ -576,7 +575,7 @@ impl Fixture {
     fn mutate(&self, n: u8, id: &AccountId, command: AccountCommand) -> Result<OperationReceipt> {
         let s = self.account_id(n, id);
         let mut m = AccountMutation {
-            account_id: id.clone(),
+            account_id: *id,
             expected_version: s.account_version,
             command,
             approval: Approval {
@@ -585,7 +584,7 @@ impl Fixture {
                 sequence: s.devices[&Hash::new([n; 32])].next_sequence,
                 request_id: digest("test-operation", &(id, s.account_version)),
                 expires_at: time(&self.ic) + MINUTE,
-                signature: ByteBuf::new(),
+                signature: Default::default(),
             },
         };
         m.approval.signature = key(n)
@@ -600,7 +599,6 @@ impl Fixture {
                 .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         update(&self.ic, self.user, person(n), "mutate_account", (m,))
     }
@@ -616,7 +614,6 @@ impl Fixture {
         let proof = key(70)
             .sign(digest("dmsg/recovery-enroll/v1", &(self.user, id, &policy, op)).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         self.mutate(n, id, AccountCommand::SetRecovery { policy, proof })
             .unwrap();
@@ -631,7 +628,6 @@ impl Fixture {
                 .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         self.mutate(n, id, AccountCommand::ConfirmRecovery { proof })
             .unwrap();
@@ -679,7 +675,7 @@ impl Fixture {
         let s = self.account_id(n, recipient);
         let now = time(&self.ic);
         let offer = PaymentOffer {
-            account_id: recipient.clone(),
+            account_id: *recipient,
             device_id: Hash::new([n; 32]),
             security_epoch: s.security_epoch,
             home_payment: self.payment,
@@ -695,7 +691,6 @@ impl Fixture {
         let signature = key(n)
             .sign(digest("dmsg/payment-offer/v1", &offer).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         let quote = Quote {
             fee_policy_version: 1,
@@ -723,7 +718,6 @@ impl Fixture {
         let quote_signature = key(50)
             .sign(digest("dmsg/quote/v2", &quote).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         OpenEscrow {
             op_id: Hash::new([nonce; 32]),
@@ -754,7 +748,6 @@ impl Fixture {
         let signature = key(50)
             .sign(digest("dmsg/admission-receipt/v2", &receipt).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         SignedReceipt { receipt, signature }
     }
@@ -763,7 +756,7 @@ impl Fixture {
         let kind = ExecutionKind::Derive {
             generation: 1,
             root_op_id: None,
-            transport_key: transport_key.into(),
+            transport_key: serde_bytes::ByteArray::new(transport_key.try_into().unwrap()),
         };
         let cost = 100_000_000_000u128;
         let request_id = execution_request_id(
@@ -778,7 +771,7 @@ impl Fixture {
             sequence: s.devices[&Hash::new([n; 32])].next_sequence,
             request_id,
             expires_at: time(&self.ic) + MINUTE,
-            signature: ByteBuf::new(),
+            signature: Default::default(),
         };
         approval.signature = key(n)
             .sign(
@@ -792,14 +785,13 @@ impl Fixture {
                 .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         let r = submit_execution(
             &self.ic,
             self.user,
             person(n),
             ExecuteRequest {
-                account_id: account_id.clone(),
+                account_id: *account_id,
                 kind,
                 max_cycles: cost,
                 approval,
@@ -840,7 +832,7 @@ fn xid_allocation_is_atomic_idempotent_and_persistent() {
     assert_eq!(a.as_slice().len(), 12);
     assert_eq!(a.to_string().len(), 20);
     let mut bad = f.create_input(2);
-    bad.proof = vec![0; 64].into();
+    bad.proof = [0; 64].into();
     let failed: Result<AccountId> = update(&f.ic, f.user, person(2), "create_account", (bad,));
     assert!(failed.is_err());
     let unbound: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
@@ -867,7 +859,7 @@ fn xid_allocation_is_atomic_idempotent_and_persistent() {
     assert!(b < c);
     assert_eq!(count(&c), if b[..4] == c[..4] { count(&b) + 1 } else { 0 });
     let account = f.account_id(3, &c);
-    assert_eq!(account.issuer, account_issuer(NAMESPACE, &c).unwrap());
+    assert_eq!(account.issuer, account_issuer(NAMESPACE, &c));
 }
 
 #[test]
@@ -944,7 +936,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         s.devices[&Hash::new([1; 32])].next_sequence,
     );
     let payload = Statement {
-        issuer: account_issuer(NAMESPACE, &account_id).unwrap(),
+        issuer: account_issuer(NAMESPACE, &account_id),
         subject: Some("release/spec".into()),
         issued_at: None,
         content: StatementContent::Digest {
@@ -975,7 +967,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         sequence: s.devices[&Hash::new([1; 32])].next_sequence,
         request_id,
         expires_at: expires,
-        signature: ByteBuf::new(),
+        signature: Default::default(),
     };
     let cost = 100_000_000_000u128;
     approval.signature = key(1)
@@ -990,10 +982,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let request = ExecuteRequest {
-        account_id: account_id.clone(),
+        account_id,
         kind,
         max_cycles: cost,
         approval,
@@ -1212,7 +1203,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::ClaimLegacy,
-        account_id: owner.clone(),
+        account_id: owner,
         target_account: None,
         handle: "alice".into(),
         expected_version: 0,
@@ -1254,8 +1245,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let from = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Transfer,
-        account_id: owner.clone(),
-        target_account: Some(target.clone()),
+        account_id: owner,
+        target_account: Some(target),
         handle: "alice".into(),
         expected_version: 1,
         op_id,
@@ -1263,8 +1254,8 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     };
     let accept = HandleIntent {
         action: HandleAction::AcceptTransfer,
-        account_id: target.clone(),
-        target_account: Some(owner.clone()),
+        account_id: target,
+        target_account: Some(owner),
         ..from.clone()
     };
     f.mutate(
@@ -1314,7 +1305,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
-        account_id: owner.clone(),
+        account_id: owner,
         target_account: None,
         handle: "newname".into(),
         expected_version: 0,

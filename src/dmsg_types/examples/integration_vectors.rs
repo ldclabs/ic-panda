@@ -63,7 +63,7 @@ fn main() {
         use dmsg_types::{cose::*, *};
         use ed25519_dalek::{Signer, SigningKey};
         let action = action_fixtures::action();
-        let account = action.signing_account.clone();
+        let account = action.signing_account;
         let key = SigningKey::from_bytes(&[7; 32]);
         let public = key.verifying_key().to_bytes();
         let fingerprint =
@@ -74,16 +74,16 @@ fn main() {
             sequence: 0,
             request_id: execution_request_id(&account, 1, Hash::new([1; 32]), 0),
             expires_at: action.expires_at_ms,
-            signature: vec![].into(),
+            signature: Default::default(),
         };
         let request = AppActionSignRequest {
-            account_id: account.clone(),
+            account_id: account,
             key: SigningKeyRef {
                 algorithm: SigningAlgorithm::Ed25519,
                 kid: fingerprint.to_vec().into(),
                 public_key_fingerprint: fingerprint,
             },
-            issuer: account_issuer("https://example.test/u/", &account).unwrap(),
+            issuer: account_issuer("https://example.test/u/", &account),
             action,
             max_cycles: 100_000_000_000,
             approval,

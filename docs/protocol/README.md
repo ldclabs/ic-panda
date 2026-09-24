@@ -51,7 +51,7 @@ To-be-signed bytes are strictly `CBOR(["Signature1", protected_bstr, h'', payloa
 | Algorithm | COSE alg | Signature | Public Key |
 | --- | --- | --- | --- |
 | Ed25519 (base) | -19 | Direct signature over Sig_structure | OKP, crv=6, x=32 bytes |
-| ES256K (optional) | -47 | SHA-256(Sig_structure), ECDSA r\|\|s | EC2, crv=8, x/y each 32 bytes; verification also accepts compressed y |
+| ES256K (optional) | -47 | SHA-256(Sig_structure), ECDSA r\|\|s with low-S only | EC2, crv=8, x/y each 32 bytes; verification also accepts compressed y |
 
 dMsg no longer provides BIP340 endpoints or private algorithm tags. Failures do not trigger automatic algorithm switching. Public-only COSE_Key forbids private key `d` (-4); `alg` must match, `key_ops` if present must permit `verify`, and `kid` if present must match the protected header.
 
@@ -83,7 +83,7 @@ digest("dmsg/device-approval/v2", [
 
 Devices sign this digest strictly using Ed25519. `purpose` is `Statement` for text/file statements and `FileAttestation` for digest documents; `algorithm` is `Ed25519` or `EcdsaSecp256k1`. Root derivation kind is `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`. Account mutations use the independent `dmsg/account/v2` domain with command `[expected_version, AccountCommand]`. CBOR unit enums are encoded as string names, payload enums as single-entry maps, and `Option` as values or null.
 
-Protected headers, payload, key thumbprints, and approval context are frozen prior to signing. User home verifies that `issuer` belongs to the current account; COSE home verifies the `kid` and thumbprint of the actual derived key. Browser origin is limited to 256 bytes and represents an exact HTTPS origin or Chrome extension origin; verified by the extension, device signatures do not independently authenticate browser origin.
+Protected headers, payload, key thumbprints, and approval context are frozen prior to signing. User home verifies that `issuer` belongs to the current account; COSE home verifies the `kid` and thumbprint of the actual derived key. Browser origin is limited to 256 bytes and represents an exact HTTPS origin or Chrome extension origin (Local deployments also accept exact loopback HTTP origins); verified by the extension, device signatures do not independently authenticate browser origin.
 
 Idempotency is scoped to `account_id/request_id`; requests with the same ID but differing parameters are rejected. Unknown outcomes reconcile against the original request. Strict device sequence numbers and execution watermarks continue to prevent replay attacks after completed results are cleaned up. Identical content can produce identical signatures; signature digests cannot serve as unique identifiers for all business operations.
 

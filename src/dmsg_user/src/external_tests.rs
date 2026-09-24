@@ -34,7 +34,7 @@ fn account() -> AccountState {
             device: input,
             op_id: op,
             expires_at: expiry,
-            proof: proof.to_bytes().to_vec().into(),
+            proof: proof.to_bytes().into(),
         },
         fixtures::NOW,
     )
@@ -48,7 +48,7 @@ fn signed(account: &AccountState, request: &AuthenticationRequest) -> Approval {
         sequence: account.devices[&Hash::new([7; 32])].next_sequence,
         request_id: request.operation_id,
         expires_at: request.expires_at_ms,
-        signature: vec![].into(),
+        signature: Default::default(),
     };
     approval.signature = SigningKey::from_bytes(&[7; 32])
         .sign(
@@ -62,7 +62,6 @@ fn signed(account: &AccountState, request: &AuthenticationRequest) -> Approval {
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     approval
 }
@@ -72,7 +71,7 @@ fn result(account: &AccountState, request: AuthenticationRequest) -> ExternalBod
         version: 1,
         expires_at_ms: request.expires_at_ms,
         request,
-        account_id: account.account_id.clone(),
+        account_id: account.account_id,
         home_user: account.home_user,
         security_epoch: account.security_epoch,
         device_id: Hash::new([7; 32]),

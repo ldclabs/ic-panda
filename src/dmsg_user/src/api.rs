@@ -119,14 +119,7 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         !ACCOUNTS.with_borrow(|t| t.contains(id.as_slice())),
         Error::IdGeneratorStateConflict,
     )?;
-    let account = account::create(
-        canister_id,
-        cfg.init.home_cose,
-        id.clone(),
-        who,
-        &input,
-        now,
-    )?;
+    let account = account::create(canister_id, cfg.init.home_cose, id, who, &input, now)?;
     cfg.created_today = cfg
         .created_today
         .checked_add(1)
@@ -289,14 +282,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         && !crate::commerce::is_current(&input.account_id, at)?
     {
         // Reject invalid caller/device/payload before doing commercial cross-canister work.
-        execution::authorize(
-            &mut s,
-            caller,
-            &input,
-            at,
-            &config().init.issuer_namespace,
-            None,
-        )?;
+        execution::authorize(&mut s, caller, &input, at, &config().init, None)?;
         at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
         previous = load_execution(&input.account_id, &input.approval.request_id);
@@ -306,14 +292,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
             let prepared = parse_signing_input(to_be_signed)?;
             if let StatementContent::AppAction(action) = &prepared.statement().content {
                 // Validate device/payload before either external lookup. No state is saved yet.
-                execution::authorize(
-                    &mut s,
-                    caller,
-                    &input,
-                    at,
-                    &config().init.issuer_namespace,
-                    None,
-                )?;
+                execution::authorize(&mut s, caller, &input, at, &config().init, None)?;
                 crate::external::authorize_action(&input.account_id, action).await?;
                 at = now();
                 s = own(&input.account_id, caller)?;
@@ -331,7 +310,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         caller,
         &input,
         at,
-        &config().init.issuer_namespace,
+        &config().init,
         previous.as_ref(),
     )?;
     if previous.is_none() {
@@ -351,7 +330,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
 }
 
 async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
-    let account_id = grant.account_id.clone();
+    let account_id = grant.account_id;
     let request_id = grant.request_id;
     let response: Result<ExecutionResult> = match stable::call_classified::<
         _,
@@ -414,7 +393,6 @@ fn record_response(
             save_account(&s);
         }
         save_execution(&e);
-        publish();
     }
     Ok(result)
 }
@@ -512,7 +490,7 @@ fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
     verify(
         &d.input.signing_pub,
         digest("dmsg/payment-offer/v1", o).as_slice(),
-        &signed.signature,
+        signed.signature.as_slice(),
     )?;
     Ok(at)
 }

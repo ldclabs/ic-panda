@@ -3,7 +3,6 @@ use crate::{payment::SignedOffer, *};
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 
 /// Relay quote binding payment, encrypted envelope and delivery limits.
 /// Signed under `dmsg/quote/v2`. All amounts are integer ledger base units;
@@ -67,7 +66,7 @@ pub struct OpenEscrow {
     /// Fixed relay quote accepted when the escrow was opened.
     pub quote: Quote,
     /// Relay Ed25519 signature over the quote digest.
-    pub quote_signature: ByteBuf,
+    pub quote_signature: Ed25519Signature,
     /// Recipient authorization signed by a permitted device.
     pub offer: SignedOffer,
 }
@@ -115,5 +114,5 @@ pub struct SignedReceipt {
     /// Admission attestation bound to the escrow and quote.
     pub receipt: AdmissionReceipt,
     /// Relay Ed25519 signature over the `dmsg/admission-receipt/v2` digest.
-    pub signature: ByteBuf,
+    pub signature: Ed25519Signature,
 }

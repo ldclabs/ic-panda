@@ -1,5 +1,5 @@
 //! Deterministic product-neutral membership identifiers and threshold arithmetic.
-use crate::{authenticated, ensure_valid};
+use crate::authenticated;
 use dmsg_types::{membership::*, *};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;

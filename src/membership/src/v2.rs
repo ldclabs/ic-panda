@@ -124,13 +124,13 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
         Error::Forbidden,
     )?;
     authenticated(next.commerce_canister)?;
-    ensure(
+    ensure_valid(
         next.max_claims > 0
             && next.hourly_applications > 0
             && next.hourly_applications <= 10_000
             && next.cooling_ms >= PANDA_COOLING_MS
             && next.cooling_ms < APPLICATION_TTL_MS,
-        invalid("PANDA limits"),
+        "PANDA limits",
     )?;
     if let Ok(old) = config() {
         ensure(
@@ -752,7 +752,7 @@ fn sweep_panda_commitments() -> Result<u32> {
 pub(crate) fn rebuild(cert: &mut dmsg_runtime::Certification) {
     CLAIMS.with_borrow(|t| {
         t.for_each(|_, c| {
-            cert.0.insert(key(c.view.claim_id), canonical(&c.view));
+            cert.insert(key(c.view.claim_id), canonical(&c.view));
         })
     });
 }
@@ -762,7 +762,7 @@ fn panda_operations(after: Option<Hash>, take: u16) -> Result<PandaOperationsPag
     use std::ops::Bound::{Excluded, Unbounded};
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
-    ensure((1..=32).contains(&take), invalid("page size"))?;
+    ensure_valid((1..=32).contains(&take), "page size")?;
     let mut claims = vec![];
     let mut next = None;
     CLAIMS.with_borrow(|t| {

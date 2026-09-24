@@ -46,7 +46,7 @@ fn registration(f: &Fixture, owner: &AccountId, name: &str, nonce: u8) -> Regist
         intent: HandleIntent {
             handle_canister: f.handle,
             action: HandleAction::Register,
-            account_id: owner.clone(),
+            account_id: *owner,
             target_account: None,
             handle: name.into(),
             expected_version: 0,
@@ -411,7 +411,7 @@ fn handle_concurrent_reservations_commit_once_and_rebuild_certificates() {
         previous = digest("dmsg/handle-event/v1", &event);
         records.push(HandleRecord {
             handle: event.handle,
-            owner_account: owner.clone(),
+            owner_account: owner,
             version: 1,
             event_tip: previous,
         });
@@ -522,7 +522,7 @@ fn claim_intent(
     HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::ClaimLegacy,
-        account_id: owner.clone(),
+        account_id: *owner,
         target_account: None,
         handle: legacy.handle.clone(),
         expected_version: 0,
@@ -546,8 +546,8 @@ fn transfer_intents(
     let from = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Transfer,
-        account_id: owner.clone(),
-        target_account: Some(target.clone()),
+        account_id: *owner,
+        target_account: Some(*target),
         handle: name.into(),
         expected_version: version,
         op_id,
@@ -558,8 +558,8 @@ fn transfer_intents(
     };
     let accept = HandleIntent {
         action: HandleAction::AcceptTransfer,
-        account_id: target.clone(),
-        target_account: Some(owner.clone()),
+        account_id: *target,
+        target_account: Some(*owner),
         ..from.clone()
     };
     (from, accept)

@@ -1,9 +1,7 @@
 //! External integration validation and exact commitments. No network or storage.
-use crate::{authenticated, canonical, digest, ensure_valid, nonzero};
+use crate::{authenticated, canonical, digest, membership::mul_div, nonzero, validate_origin};
 use candid::Principal;
 use dmsg_types::{integration::*, membership::Beneficiary, *};
-use num_bigint::BigUint;
-use num_traits::ToPrimitive;
 use serde::Serialize;
 
 /// A bounded identifier with one ASCII spelling (no case folding).
@@ -15,29 +13,6 @@ pub fn validate_identifier(value: &str) -> Result<()> {
                 .bytes()
                 .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'),
         "identifier",
-    )
-}
-
-/// Canonical HTTPS origin, or an explicit loopback HTTP origin in Local only.
-pub fn validate_origin(value: &str, environment: &Environment) -> Result<()> {
-    if let Some(id) = value.strip_prefix("chrome-extension://") {
-        return ensure_valid(
-            id.len() == 32 && id.bytes().all(|b| (b'a'..=b'p').contains(&b)),
-            "extension origin",
-        );
-    }
-    let url = url::Url::parse(value).map_err(|_| invalid("origin"))?;
-    let local = *environment == Environment::Local
-        && url.scheme() == "http"
-        && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
-    ensure_valid(
-        (url.scheme() == "https" || local)
-            && url.username().is_empty()
-            && url.password().is_none()
-            && url.query().is_none()
-            && url.fragment().is_none()
-            && url.origin().ascii_serialization() == value,
-        "exact origin",
     )
 }
 
@@ -56,6 +31,7 @@ fn unique<T: PartialEq>(items: &[T], max: usize, nonempty: bool) -> Result<()> {
 }
 
 /// Validate an application configuration, without establishing its governance origin.
+/// Run it when a registration is accepted; request checks rely on accepted registrations.
 pub fn validate_app(app: &AppRegistration) -> Result<()> {
     ensure(
         app.version == INTEGRATION_VERSION,
@@ -93,6 +69,7 @@ pub fn validate_app(app: &AppRegistration) -> Result<()> {
 }
 
 /// Validate a product configuration. Local/staging ledgers must be explicitly supplied.
+/// Run it when a registration is accepted; request checks rely on accepted registrations.
 pub fn validate_product(product: &ProductRegistration) -> Result<()> {
     ensure(
         product.version == COMMERCE_VERSION,
@@ -140,12 +117,12 @@ pub fn validate_subject(subject: &Beneficiary, product: &ProductRegistration) ->
 }
 
 /// Validate request shape, exact app binding and time; does not prove device approval.
+/// `app` must be a registration already accepted by [`validate_app`].
 pub fn validate_authentication(
     request: &AuthenticationRequest,
     app: &AppRegistration,
     now: u64,
 ) -> Result<()> {
-    validate_app(app)?;
     ensure(
         request.version == INTEGRATION_VERSION,
         Error::UnsupportedProtocol,
@@ -178,14 +155,14 @@ pub fn validate_authentication(
 }
 
 /// Validate a fresh authoritative offer before acceptance, not during Unknown recovery.
+/// `app` and `product` must be registrations already accepted by [`validate_app`] and
+/// [`validate_product`].
 pub fn validate_billing_offer(
     offer: &BillingOffer,
     app: &AppRegistration,
     product: &ProductRegistration,
     now: u64,
 ) -> Result<()> {
-    validate_app(app)?;
-    validate_product(product)?;
     ensure(
         offer.version == COMMERCE_VERSION,
         Error::UnsupportedProtocol,
@@ -246,14 +223,15 @@ pub fn validate_rate_policy(policy: &PandaRatePolicy) -> Result<()> {
 }
 
 /// Exact ceil(USD micro * PANDA/USD * 10^8 / 10^6); never annualizes the amount.
+/// A rate numerator above `u128::MAX / 100` returns QuotaExceeded.
 pub fn required_panda_stake(amount_usd_micros: u128, r_num: u128, r_den: u128) -> Result<u128> {
     ensure_valid(
         amount_usd_micros > 0 && r_num > 0 && r_den > 0,
         "amount / rate",
     )?;
-    let n = BigUint::from(amount_usd_micros) * BigUint::from(r_num) * BigUint::from(100_000_000u64);
-    let d = BigUint::from(1_000_000u64) * BigUint::from(r_den);
-    ((n + &d - 1u8) / d).to_u128().ok_or(Error::QuotaExceeded)
+    // 10^8 PANDA atomic units per 10^6 USD micro units is exactly 100.
+    let r_num = r_num.checked_mul(100).ok_or(Error::QuotaExceeded)?;
+    mul_div(amount_usd_micros, r_num, r_den, true)
 }
 
 /// Quote after verifying the offer's authoritative source; no claim is created here.
@@ -341,6 +319,8 @@ pub fn validate_cash_quote(
 }
 
 /// Application approval shape and binding. The caller must additionally check the device and product permission.
+/// `app` and `product` must be registrations already accepted by [`validate_app`] and
+/// [`validate_product`].
 pub fn validate_application_approval(
     approval: &ApplicationApproval,
     app: &AppRegistration,
@@ -348,8 +328,6 @@ pub fn validate_application_approval(
     expected_service: Principal,
     now: u64,
 ) -> Result<()> {
-    validate_app(app)?;
-    validate_product(product)?;
     ensure(
         approval.version == INTEGRATION_VERSION,
         Error::UnsupportedProtocol,

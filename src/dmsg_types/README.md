@@ -57,8 +57,12 @@ These links point to the public repository's main branch, which changes during d
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | Recipient authorization, escrow accounting, and ledger transfers |
 | `profiles::delivery` | `Quote`, `OpenEscrow`, `SignedReceipt` | Optional paid-delivery application protocol |
 | `account` | `account_cbor` | Explicit Serde/CBOR representation of ICRC Account |
-| `membership` | `Beneficiary`, `ClaimRequest`, `MembershipDecision` | Shared qualification, exclusive claims and durable benefit decisions |
-| `billing` | `Catalog`, `BillingOrder`, `EntitlementView`, `MonthEntitlement` | Merchant orders, resource leases and monthly execution accounting |
+| `membership` | `Beneficiary`, `MembershipInit`, `Eligibility` | Product-neutral beneficiary binding and PANDA qualification observations |
+| `billing` | `Catalog`, `PlanVersion`, `EntitlementView`, `MonthEntitlement` | dMsg plans, resource leases and monthly execution accounting |
+| `app_action` | `AppAction`, `AppActionCommand`, `ActionFile` | Closed typed application-action signing profile |
+| `integration` | `AppRegistration`, `AuthenticationRequest`, `BillingOffer`, `ProductDecision` | Third-party authentication, signing and subscription contracts |
+| `integration_billing` | `CheckoutQuote`, `CheckoutView`, `SubscriptionContract` | Generic cash checkout and shared product subscriptions |
+| `integration_membership` | `PandaApplicationTerms`, `PandaClaimView` | Full-waiver PANDA applications and immutable commitments |
 
 Types in `protocol` and `signing`, plus `AccountId`, are re-exported at the crate root. Import other types through their modules. An “optional” profile is a business protocol an integrator may choose not to use, not a Cargo feature.
 

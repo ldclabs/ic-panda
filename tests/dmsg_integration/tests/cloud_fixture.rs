@@ -69,7 +69,6 @@ fn cloud_extension_gateway() {
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let response = ic
         .update_call(

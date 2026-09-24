@@ -65,7 +65,6 @@ fn user_cycles_profile() {
                     .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         let before = f.ic.cycle_balance(f.user);
         let result: Result<ExecutionResult> =
@@ -100,7 +99,7 @@ fn typed_statement(
     let s = f.account_id(1, account_id);
     let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
     let mut request = SignRequest {
-        account_id: account_id.clone(),
+        account_id: *account_id,
         key: f.key_ref(account_id, SigningPurpose::Statement, algorithm),
         statement: Statement {
             issuer: s.issuer,
@@ -121,7 +120,7 @@ fn typed_statement(
                 sequence,
             ),
             expires_at: time(&f.ic) + MINUTE,
-            signature: vec![].into(),
+            signature: Default::default(),
         },
     };
     request.approval.signature = key(1)
@@ -134,7 +133,6 @@ fn typed_statement(
                 .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     request
 }
@@ -180,7 +178,6 @@ fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file()
                     .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         // A website cannot swap either the opinion or the file after approval.
         for change_text in [true, false] {
@@ -260,7 +257,6 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
                     .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         r
     };
@@ -291,7 +287,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
     .unwrap();
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     let mut root_request = DeriveRootRequest {
-        account_id: id.clone(),
+        account_id: id,
         target: RootTarget::Candidate {
             generation: 1,
             op_id,
@@ -311,7 +307,6 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
                 .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let root: Result<ExecutionResult> = update(
         &f.ic,
@@ -481,8 +476,8 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
             SigningAlgorithm::EcdsaSecp256k1 => {
                 let key =
                     k256::ecdsa::VerifyingKey::from_sec1_bytes(&described.public_key).unwrap();
+                // Artifacts carry only low-S signatures, accepted by strict verifiers.
                 let signature = k256::ecdsa::Signature::from_slice(signature).unwrap();
-                let signature = signature.normalize_s();
                 key.verify_prehash(sha256(&payload).as_slice(), &signature)
                     .unwrap();
             }
@@ -500,7 +495,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         assert_eq!(status.unwrap(), signed);
         let grant = ExecutionGrant {
             commerce: None,
-            account_id: account_id.clone(),
+            account_id,
             home_user: f.user,
             home_cose: f.cose,
             request_id: request.approval.request_id,
@@ -553,7 +548,6 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
                 .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let failure: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (disabled,));
     assert!(matches!(
@@ -574,7 +568,7 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
     let generation = s.root_slot.as_ref().unwrap().generation;
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     let mut request = DeriveRootRequest {
-        account_id: account_id.clone(),
+        account_id,
         target: RootTarget::Candidate { generation, op_id },
         transport_public_key: transport
             .public_key()
@@ -594,7 +588,6 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
                 .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let result: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "derive_root", (request,));
@@ -645,7 +638,7 @@ fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -
     let kind = ExecutionKind::Derive {
         generation: 1,
         root_op_id: None,
-        transport_key: transport.into(),
+        transport_key: serde_bytes::ByteArray::new(transport.try_into().unwrap()),
     };
     let max_cycles = 100_000_000_000u128;
     let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
@@ -660,7 +653,7 @@ fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -
             sequence,
         ),
         expires_at: time(&f.ic) + MINUTE,
-        signature: ByteBuf::new(),
+        signature: Default::default(),
     };
     approval.signature = key(1)
         .sign(
@@ -674,10 +667,9 @@ fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     ExecuteRequest {
-        account_id: account_id.clone(),
+        account_id: *account_id,
         kind,
         max_cycles,
         approval,
@@ -753,7 +745,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
-        account_id: owner.clone(),
+        account_id: owner,
         target_account: None,
         handle: "newname".into(),
         expected_version: 0,
@@ -1068,7 +1060,6 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     let refused: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), reused);
     assert_eq!(refused, Err(Error::IdempotencyConflict));
@@ -1083,13 +1074,11 @@ fn valid_presigned_offer_survives_a_minute_but_current_revocation_still_applies(
     old.offer.signature = key(2)
         .sign(digest("dmsg/payment-offer/v1", &old.offer.offer).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     old.quote.offer_digest = digest("dmsg/payment-offer/v1", &old.offer.offer);
     old.quote_signature = key(50)
         .sign(digest("dmsg/quote/v2", &old.quote).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     f.ic.advance_time(Duration::from_secs(61));
     let accepted: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (old,));

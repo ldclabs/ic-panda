@@ -50,7 +50,6 @@ fn input() -> OpenEscrow {
     let quote_signature = key
         .sign(digest("dmsg/quote/v2", &q).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     OpenEscrow {
         op_id: Hash::new([1; 32]),
@@ -58,7 +57,7 @@ fn input() -> OpenEscrow {
         quote_signature,
         offer: SignedOffer {
             offer: o,
-            signature: vec![0; 64].into(),
+            signature: Default::default(),
         },
     }
 }
@@ -237,18 +236,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         Err(Error::Expired)
     );
     let mut malformed = i.clone();
-    malformed.offer.signature = vec![0; 65].into();
-    assert!(validate_quote(
-        &c,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &malformed,
-        &s,
-        2
-    )
-    .is_err());
-    malformed = i.clone();
-    malformed.quote_signature = vec![0; 64].into();
+    malformed.quote_signature = Default::default();
     assert!(validate_quote(
         &c,
         i.quote.home_payment,
@@ -405,7 +393,6 @@ fn receipt_checks_signed_bindings_storage_terms_and_signer_window() {
         signature: key
             .sign(digest("dmsg/admission-receipt/v2", &receipt).as_slice())
             .to_bytes()
-            .to_vec()
             .into(),
         receipt,
     };
@@ -434,7 +421,7 @@ fn receipt_checks_signed_bindings_storage_terms_and_signer_window() {
         );
     }
     let mut signed = sign(receipt);
-    for signature in [vec![0; 64], vec![0; 65]] {
+    for signature in [[0; 64], [1; 64]] {
         signed.signature = signature.into();
         assert_eq!(
             receipt_valid(&e, &signed, &signer, id, 3),

@@ -1,5 +1,4 @@
 //! Identity identifiers are data, never automatic network discovery instructions.
-use crate::ensure_valid;
 use candid::Principal;
 use dmsg_types::*;
 
@@ -64,42 +63,34 @@ pub fn validate_namespace(value: &str) -> Result<()> {
     )
 }
 
-/// Append canonical Xid text to a validated identity namespace.
+/// Append canonical Xid text to a namespace accepted by [`validate_namespace`].
 ///
-/// Does not allocate an ID, check account existence, or prove ownership.
-///
-/// # Errors
-/// Returns namespace validation errors from [`validate_namespace`].
-pub fn account_issuer(namespace: &str, id: &AccountId) -> Result<String> {
-    validate_namespace(namespace)?;
-    // Canonical Xid text contains only unreserved ASCII. Appending it to the
-    // validated prefix cannot introduce escaping, credentials or dot segments.
-    Ok(format!("{namespace}{id}"))
+/// Validate the namespace once when it is configured. Canonical Xid text contains
+/// only unreserved ASCII, so appending it to a validated prefix cannot introduce
+/// escaping, credentials or dot segments. This does not allocate an ID, check
+/// account existence, or prove ownership.
+pub fn account_issuer(namespace: &str, id: &AccountId) -> String {
+    format!("{namespace}{id}")
 }
 
-/// Append canonical Principal text to a validated identity namespace.
+/// Append canonical Principal text to a namespace accepted by [`validate_namespace`].
 ///
+/// Principal text is also unreserved ASCII and fits the 64-byte namespace reservation.
 /// This formats an identifier; it does not authenticate the Principal or reject
 /// anonymous/management Principals as [`crate::authenticated`] does.
-///
-/// # Errors
-/// Returns namespace validation errors from [`validate_namespace`].
-pub fn principal_issuer(namespace: &str, principal: Principal) -> Result<String> {
-    validate_namespace(namespace)?;
-    // Principal text is also unreserved ASCII and fits the 64-byte reservation.
-    Ok(format!("{namespace}{}", principal.to_text()))
+pub fn principal_issuer(namespace: &str, principal: Principal) -> String {
+    format!("{namespace}{}", principal.to_text())
 }
 
 /// Extract a canonical Xid from an issuer in the exact expected namespace.
 ///
-/// The namespace is explicit: no identity type is inferred from byte length.
-/// Parsing does not authenticate an account or its signing key.
+/// The namespace must already be accepted by [`validate_namespace`]; no identity
+/// type is inferred from byte length. Parsing does not authenticate an account or
+/// its signing key.
 ///
 /// # Errors
-/// Invalid namespaces return `Error::InvalidInput`; a mismatched prefix or
-/// noncanonical Xid suffix returns `Error::IntegrityFailed`.
+/// A mismatched prefix or noncanonical Xid suffix returns `Error::IntegrityFailed`.
 pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> {
-    validate_namespace(namespace)?;
     // Xid::from_str enforces exact length, lowercase alphabet and zero padding
     // bits. A validated prefix plus that suffix is already a canonical URI.
     issuer
@@ -109,16 +100,18 @@ pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> 
         .map_err(|_| Error::IntegrityFailed)
 }
 
-/// Validate an exact HTTPS origin or Chrome extension origin, at most 256 bytes.
+/// Validate an exact browser origin of at most 256 bytes.
 ///
-/// HTTPS values must equal the URL parser's origin serialization (no path,
-/// trailing slash, credentials, query or fragment). Extension IDs must contain
-/// 32 lowercase letters in a..p. This validates syntax only; the extension must
-/// independently obtain and check the actual browser origin.
+/// Accepts a Chrome extension origin whose ID contains 32 lowercase letters in
+/// a..p, or an HTTPS origin equal to the URL parser's origin serialization (no
+/// path, trailing slash, credentials, query or fragment). Local deployments also
+/// accept exact loopback HTTP origins (`localhost`, `127.0.0.1`, `[::1]`). This
+/// validates syntax only; the extension must independently obtain and check the
+/// actual browser origin.
 ///
 /// # Errors
 /// Invalid origins return `Error::InvalidInput`.
-pub fn validate_origin(origin: &str) -> Result<()> {
+pub fn validate_origin(origin: &str, environment: &Environment) -> Result<()> {
     ensure_valid(origin.len() <= 256, "origin")?;
     if let Some(id) = origin.strip_prefix("chrome-extension://") {
         return ensure_valid(
@@ -126,9 +119,12 @@ pub fn validate_origin(origin: &str) -> Result<()> {
             "origin",
         );
     }
-    let parsed = url::Url::parse(origin).map_err(|_| invalid("origin"))?;
+    let url = url::Url::parse(origin).map_err(|_| invalid("origin"))?;
+    let loopback = *environment == Environment::Local
+        && url.scheme() == "http"
+        && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
     ensure_valid(
-        parsed.scheme() == "https" && parsed.origin().ascii_serialization() == origin,
+        (url.scheme() == "https" || loopback) && url.origin().ascii_serialization() == origin,
         "origin",
     )
 }

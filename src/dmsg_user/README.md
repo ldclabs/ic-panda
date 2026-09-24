@@ -57,7 +57,7 @@ schema 7 的私有 `stable_codec.rs` 递归使用 CBOR 整数 map key，并省�
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane user_cycles_profile -- --ignored --nocapture
 ```
 
-实现遵循 ICP 的[稳定结构](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[性能测量](https://docs.internetcomputer.org/guides/canister-management/optimization/)与[跨 canister 回调](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)开发指引。仍需单独验证的容量边界：认证树驻留 heap，升级按账户、执行记录和历史月账总量重建，根发布合并为一次；未实施稳定内存认证树或分批重建。终态结果仍在后续有效授权时惰性清理，闲置账户不会主动释放结果。
+实现遵循 ICP 的[稳定结构](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[性能测量](https://docs.internetcomputer.org/guides/canister-management/optimization/)与[跨 canister 回调](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)开发指引。仍需单独验证的容量边界：认证树驻留 heap，升级按账户、执行记录和历史月账总量重建；未实施稳定内存认证树或分批重建。终态结果仍在后续有效授权时惰性清理，闲置账户不会主动释放结果。
 
 ## 验证
 

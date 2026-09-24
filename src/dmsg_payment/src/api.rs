@@ -106,9 +106,9 @@ fn set_ledger_fee(fee: u128) -> Result<()> {
 fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     controller()?;
     nonzero(new.public_key.as_slice())?;
-    ensure(
+    ensure_valid(
         new.epoch > cfg().init.signer.epoch && new.valid_from < new.valid_until && !new.revoked,
-        invalid("signer epoch/interval"),
+        "signer epoch/interval",
     )?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
     let mut c = cfg();

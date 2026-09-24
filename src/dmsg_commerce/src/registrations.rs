@@ -162,12 +162,12 @@ fn integration_configuration_certificate(
 pub(crate) fn rebuild(c: &mut dmsg_runtime::Certification) {
     APPS.with_borrow(|t| {
         t.for_each(|_, app| {
-            c.0.insert(app_key(&app.app_id), canonical(&app));
+            c.insert(app_key(&app.app_id), canonical(&app));
         })
     });
     PRODUCTS.with_borrow(|t| {
         t.for_each(|_, product| {
-            c.0.insert(product_key(&product.product_id), canonical(&product));
+            c.insert(product_key(&product.product_id), canonical(&product));
         })
     });
 }

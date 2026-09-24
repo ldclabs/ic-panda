@@ -44,7 +44,7 @@ fn approve(
         app_id: offer.app_id.clone(),
         app_config_version: 1,
         origin: "https://dmsg.test".into(),
-        approving_account: id.clone(),
+        approving_account: *id,
         service,
         beneficiary: offer.beneficiary.clone(),
         actor: person(1),
@@ -61,12 +61,11 @@ fn approve(
         sequence: state.devices[&Hash::new([1; 32])].next_sequence,
         request_id: Hash::new([op; 32]),
         expires_at: a.expires_at_ms,
-        signature: ByteBuf::new(),
+        signature: Default::default(),
     };
     proof.signature = key(1)
         .sign(approval_message(f.user, id, "dmsg/application/approve/v1", &a, &proof).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     let r: Result<Hash> = update(
         &f.ic,
@@ -392,7 +391,7 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (bill.clone(), f.user, id.clone(), Hash::new([44; 32])),
+        (bill.clone(), f.user, id, Hash::new([44; 32])),
     );
     let terms = r.unwrap();
     assert_eq!(
@@ -561,7 +560,7 @@ fn sample(f: &Fixture) -> (Principal, AccountId) {
         canister,
         person(1),
         "assign_account",
-        (id.clone(), person(1)),
+        (id, person(1)),
     );
     r.unwrap();
     let p = ProductRegistration {
@@ -619,7 +618,7 @@ fn sample_offer(
         home,
         person(1),
         "prepare_billing_offer",
-        (id.clone(), Hash::new([op; 32]), method),
+        (*id, Hash::new([op; 32]), method),
     );
     r.unwrap()
 }
@@ -666,12 +665,7 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (
-            panda.offer.clone(),
-            f.user,
-            account.clone(),
-            Hash::new([44; 32]),
-        ),
+        (panda.offer.clone(), f.user, account, Hash::new([44; 32])),
     );
     let terms = terms.unwrap();
     let mut a = approve(
@@ -713,7 +707,7 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
     );
     assert!(r.is_err() || r.unwrap().status == CheckoutStatus::Applying);
     let history: Result<Vec<SubscriptionContract>> =
-        query(&f.ic, home, person(1), "contracts", (id.clone(),));
+        query(&f.ic, home, person(1), "contracts", (id,));
     assert_eq!(history.unwrap().len(), 1);
     let r: Result<CheckoutProgress> = update(
         &f.ic,
@@ -746,12 +740,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (
-            prepared.offer.clone(),
-            f.user,
-            account.clone(),
-            Hash::new([44; 32]),
-        ),
+        (prepared.offer.clone(), f.user, account, Hash::new([44; 32])),
     );
     let terms = terms.unwrap();
     let mut a = approve(
@@ -782,7 +771,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (bill.clone(), f.user, account.clone(), Hash::new([44; 32])),
+        (bill.clone(), f.user, account, Hash::new([44; 32])),
     );
     let other = other.unwrap();
     let a = approve(
@@ -850,12 +839,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (
-            prepared.offer.clone(),
-            f.user,
-            account.clone(),
-            Hash::new([44; 32]),
-        ),
+        (prepared.offer.clone(), f.user, account, Hash::new([44; 32])),
     );
     let terms = terms.unwrap();
     let mut a = approve(
@@ -1060,7 +1044,7 @@ fn a_governance_module_pin_changed_during_neuron_read_never_issues_a_lease() {
         f.membership,
         person(1),
         "quote_panda_subscription",
-        (bill.clone(), f.user, id.clone(), Hash::new([44; 32])),
+        (bill.clone(), f.user, id, Hash::new([44; 32])),
     );
     let terms = terms.unwrap();
     let authorization = approve(

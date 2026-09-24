@@ -24,7 +24,7 @@ fn measure(name: &str, iterations: u32, mut run: impl FnMut()) {
 fn main() {
     let namespace = "https://dmsg.test/u/";
     let account = AccountId([1; 12]);
-    let issuer = account_issuer(namespace, &account).unwrap();
+    let issuer = account_issuer(namespace, &account);
     let signer = SigningKey::from_bytes(&[7; 32]);
     let statement = Statement {
         issuer: issuer.clone(),
@@ -37,7 +37,7 @@ fn main() {
     let artifact = finish_cose(&tbs, &signer.verifying_key().to_bytes(), signature).unwrap();
     let receipt = ExecutionReceipt {
         schema: 1,
-        account_id: account.clone(),
+        account_id: account,
         issuer: issuer.clone(),
         request_id: Hash::new([2; 32]),
         device_id: Hash::new([3; 32]),
@@ -73,7 +73,7 @@ fn main() {
         );
     });
     measure("account_issuer", 10_000, || {
-        black_box(account_issuer(black_box(namespace), black_box(&account)).unwrap());
+        black_box(account_issuer(black_box(namespace), black_box(&account)));
     });
     measure("parse_account_issuer", 10_000, || {
         black_box(parse_account_issuer(black_box(namespace), black_box(&issuer)).unwrap());

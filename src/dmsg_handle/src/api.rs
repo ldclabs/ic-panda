@@ -68,11 +68,9 @@ fn post_upgrade() {
         "explicit stable-state migration required"
     );
     CERT.with_borrow_mut(|c| {
-        NAMES.with_borrow(|t| t.for_each(|k, r| c.0.insert(k, canonical(&r))));
+        NAMES.with_borrow(|t| t.for_each(|k, r| c.insert(k, canonical(&r))));
         LEGACY.with_borrow(|t| {
-            t.for_each(|_, r| {
-                c.0.insert(legacy_key(&r.handle), canonical(&legacy_digest(&r)))
-            })
+            t.for_each(|_, r| c.insert(legacy_key(&r.handle), canonical(&legacy_digest(&r))))
         });
     });
     // Publish once, after all name leaves and the snapshot leaf are restored.
@@ -145,21 +143,21 @@ fn import_legacy_handles(
     )?;
     let mut inserts = Vec::with_capacity(entries.len());
     for e in &entries {
-        ensure(
+        ensure_valid(
             normalize_handle(&e.handle)? == e.handle && e.frozen_admins.len() <= 16,
-            invalid("legacy record"),
+            "legacy record",
         )?;
         authenticated(e.legacy_owner)?;
         if let Some(old) = LEGACY.with_borrow(|t| t.load(e.handle.as_bytes())) {
             ensure(old == *e, Error::IdempotencyConflict)?;
             continue;
         }
-        ensure(
+        ensure_valid(
             c.progress
                 .last_handle
                 .as_ref()
                 .is_none_or(|last| last < &e.handle),
-            invalid("snapshot entries must be sorted and unique"),
+            "snapshot entries must be sorted and unique",
         )?;
         c.progress.rolling_digest = digest("dmsg/legacy-entry/v1", &(c.progress.rolling_digest, e));
         c.progress.imported += 1;
@@ -175,7 +173,7 @@ fn import_legacy_handles(
             for e in inserts {
                 t.put(e.handle.as_bytes(), e);
                 CERT.with_borrow_mut(|c| {
-                    c.0.insert(legacy_key(&e.handle), canonical(&legacy_digest(e)))
+                    c.insert(legacy_key(&e.handle), canonical(&legacy_digest(e)))
                 });
             }
         });
@@ -218,7 +216,7 @@ fn commit_name(
         previous: c.event_tip,
         handle: name.into(),
         from,
-        to: to.clone(),
+        to,
         version,
         at,
         legacy_snapshot: c
@@ -479,7 +477,7 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Resul
     o.ledger_block = Some(block);
     let mut c = cfg();
     // Ownership, receipt and lock release commit in the same callback.
-    commit_name(&mut c, &i.handle, None, i.account_id.clone(), 1, at);
+    commit_name(&mut c, &i.handle, None, i.account_id, 1, at);
     o.phase = HandlePhase::Committed;
     save_op(key, &o);
     release(&mut c, &o);
@@ -699,8 +697,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     let result = commit_name(
         &mut c,
         &from.handle,
-        Some(from.account_id.clone()),
-        accept.account_id.clone(),
+        Some(from.account_id),
+        accept.account_id,
         r.version + 1,
         at,
     );

@@ -14,7 +14,6 @@ fn signed(mut input: OpenEscrow) -> OpenEscrow {
     input.quote_signature = key(50)
         .sign(digest("dmsg/quote/v2", &input.quote).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     input
 }
@@ -279,7 +278,7 @@ fn failed_authorizations_have_separate_budgets_and_daily_admission_is_atomic() {
     let recipient = f.create(2);
     let input = f.order(&recipient, 2, 1);
     let mut invalid = input.clone();
-    invalid.offer.signature = vec![0; 64].into();
+    invalid.offer.signature = [0; 64].into();
     let before = configuration(&f, None);
     for _ in 0..10 {
         let denied: Result<EscrowInfo> = update(
@@ -423,7 +422,7 @@ fn global_authorization_limit_survives_upgrade_and_leaves_ledger_budget_availabl
         bad.op_id = digest("test/auth-budget", &n);
         bad.quote.quote_id = bad.op_id;
         bad.quote.payer = account(payer);
-        bad.offer.signature = vec![0; 64].into();
+        bad.offer.signature = [0; 64].into();
         let denied: Result<EscrowInfo> =
             update(&f.ic, f.payment, payer, "open_escrow", (signed(bad),));
         assert_eq!(denied, Err(Error::IntegrityFailed));
@@ -469,7 +468,6 @@ fn payment_scale_profile() {
         offer.signature = key(2)
             .sign(digest("dmsg/payment-offer/v1", &offer.offer).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         let mut pending = Vec::new();
         for j in 0..20u64 {
@@ -608,7 +606,6 @@ fn fee_policy_switch_rejects_old_quotes_but_preserves_accepted_settlement_terms(
     receipt.signature = key(50)
         .sign(digest("dmsg/admission-receipt/v2", &receipt.receipt).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     let r: Result<EscrowInfo> =
         update(&f.ic, f.payment, person(99), "finalize_receipt", (receipt,));

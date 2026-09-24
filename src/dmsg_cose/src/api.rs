@@ -206,7 +206,7 @@ fn describe(
     };
     Ok(KeyDescriptor {
         key_id,
-        account_id: account_id.clone(),
+        account_id: *account_id,
         purpose: key.purpose,
         algorithm: key.algorithm,
         home_cose: canister_id,
@@ -254,7 +254,7 @@ fn prepare(
             origin,
         } => {
             key.validate()?;
-            validate_origin(origin)?;
+            validate_origin(origin, &config.environment)?;
             let prepared = parse_signing_input(to_be_signed)?;
             ensure(
                 *prepared.algorithm() == key.algorithm
@@ -263,7 +263,7 @@ fn prepare(
             )?;
             ensure(
                 prepared.statement().issuer
-                    == account_issuer(&config.issuer_namespace, &g.account_id)?,
+                    == account_issuer(&config.issuer_namespace, &g.account_id),
                 Error::IntegrityFailed,
             )?;
             let descriptor = describe(c, &g.account_id, key.clone(), canister_id)?;
@@ -294,7 +294,7 @@ fn prepare(
             transport_key,
             ..
         } => {
-            ensure(*generation > 0, invalid("vetKD generation"))?;
+            ensure_valid(*generation > 0, "vetKD generation")?;
             validate_transport_key(transport_key)?;
             let descriptor = describe(
                 c,
@@ -412,7 +412,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         &result,
         &removed,
     );
-    let account_id = grant.account_id.clone();
+    let account_id = grant.account_id;
     let sequence = grant.execution_sequence;
     drop(grant);
     drop(h);

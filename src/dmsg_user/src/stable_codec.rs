@@ -141,7 +141,7 @@ impl StableCodec for Month {
 
     fn to_repr(&self) -> Self::Repr {
         MonthRepr {
-            account_id: self.usage.account_id.clone(),
+            account_id: self.usage.account_id,
             month_utc: self.usage.month_utc,
             month_revision: self.usage.month_revision,
             business_revision: self.usage.business_revision,
@@ -247,7 +247,7 @@ impl StableCodec for AccountState {
         AccountStateRepr {
             created_at_ms: self.created_at_ms,
             safety_budget: self.safety_budget.to_repr(),
-            account_id: self.account_id.clone(),
+            account_id: self.account_id,
             home_user: self.home_user,
             home_cose: self.home_cose,
             auth_bindings: self.auth_bindings.clone(),
@@ -460,7 +460,7 @@ mod tests {
                         intent: HandleIntent {
                             handle_canister: p(7),
                             action: HandleAction::Register,
-                            account_id: state.account_id.clone(),
+                            account_id: state.account_id,
                             target_account: Some(AccountId([2; 12])),
                             handle: format!("user-{n:02}"),
                             expected_version: u64::from(n),
@@ -615,7 +615,7 @@ mod tests {
                 kind: ExecutionKind::Derive {
                     generation: 3,
                     root_op_id: Some(Hash::new([9; 32])),
-                    transport_key: vec![10; 48].into(),
+                    transport_key: [10; 48].into(),
                 },
                 max_cycles: 1_000,
             },

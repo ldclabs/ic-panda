@@ -89,12 +89,9 @@ fn nonzero_and_transport_keys_reject_invalid_points() {
         Ok(())
     );
     for bytes in [
-        vec![],
-        vec![0; 47],
-        vec![0; 49],
-        vec![0; 48],
-        vec![255; 48],
-        ic_bls12_381::G1Affine::identity().to_compressed().to_vec(),
+        [0; 48],
+        [255; 48],
+        ic_bls12_381::G1Affine::identity().to_compressed(),
     ] {
         assert!(validate_transport_key(&bytes).is_err());
     }
@@ -156,20 +153,20 @@ fn signature_domains_and_canonical_encoding_are_bound() {
         sequence: 0,
         request_id: Hash::new([3; 32]),
         expires_at: 100,
-        signature: ByteBuf::new(),
+        signature: Default::default(),
     };
     let msg = approval_message(p, &AccountId([4; 12]), "root", &42u64, &a);
-    a.signature = sk.sign(msg.as_slice()).to_bytes().to_vec().into();
+    a.signature = sk.sign(msg.as_slice()).to_bytes().into();
     assert!(verify(
         &sk.verifying_key().to_bytes().into(),
         msg.as_slice(),
-        &a.signature
+        a.signature.as_slice()
     )
     .is_ok());
     assert!(verify(
         &sk.verifying_key().to_bytes().into(),
         approval_message(p, &AccountId([4; 12]), "sign", &42u64, &a).as_slice(),
-        &a.signature
+        a.signature.as_slice()
     )
     .is_err());
     assert_eq!(

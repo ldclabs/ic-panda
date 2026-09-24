@@ -57,13 +57,13 @@ pub fn plan(catalog: &Catalog, id: &PlanId) -> Result<PlanVersion> {
 }
 
 pub fn validate_catalog(c: &Catalog) -> Result<()> {
-    ensure(
+    ensure_valid(
         c.schema == 1 && c.version > 0 && c.plans.len() == 4 && c.storage_products.len() <= 16,
-        invalid("resource catalog"),
+        "resource catalog",
     )?;
     for id in [PlanId::Free, PlanId::Plus, PlanId::Pro, PlanId::Max] {
         let p = plan(c, &id)?;
-        ensure(
+        ensure_valid(
             p.catalog_version == c.version
                 && p.weights.ed25519 > 0
                 && p.weights.ecdsa_secp256k1 > 0
@@ -71,21 +71,18 @@ pub fn validate_catalog(c: &Catalog) -> Result<()> {
                 && p.limits.storage_bytes <= 1_099_511_627_776
                 && p.limits.active_channels <= 10_000
                 && p.limits.monthly_execution_units <= 100_000,
-            invalid("plan"),
+            "plan",
         )?;
     }
-    ensure(
+    ensure_valid(
         c.plans.iter().all(|p| p.weights == c.plans[0].weights),
-        invalid("uniform execution weights"),
+        "uniform execution weights",
     )?;
-    ensure(
-        plan(c, &PlanId::Free)?.price_cents == 0,
-        invalid("Free price"),
-    )?;
+    ensure_valid(plan(c, &PlanId::Free)?.price_cents == 0, "Free price")?;
     for p in &c.storage_products {
-        ensure(
+        ensure_valid(
             p.price_cents > 0 && p.storage_bytes > 0 && p.storage_bytes <= 1_099_511_627_776,
-            invalid("storage product"),
+            "storage product",
         )?;
     }
     Ok(())

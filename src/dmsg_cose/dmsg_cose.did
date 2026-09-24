@@ -177,7 +177,7 @@ type ExecutionKind = variant {
   Derive : record {
     // Generation of the selected root or recovery material.
     generation : nat64;
-    // 48-byte compressed vetKD transport public key after request conversion.
+    // 48-byte compressed vetKD transport public key; protocol validation checks the point.
     transport_key : blob;
     // Reservation operation ID for a candidate root; None for the committed root.
     root_op_id : opt blob;

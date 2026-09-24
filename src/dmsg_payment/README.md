@@ -37,7 +37,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 - 领取退款、领取剩余手续费及修订拒绝转账只修改内部预留/出金记录，不重算未变化的 `EscrowInfo` 认证叶。资金方向、入金和实际支付发生变化时才更新认证树；重复成功回调直接返回已有结果。
 - 无心跳、轮询 timer 或后台账本扫描。结算提交不额外查账；出金保留原始去重参数，未知响应仍须原参数重试或账本对账。
 
-认证树仍保存在 heap，升级时扫描全部 escrow 重建，只在完成后发布一次根。该路径仍随订单数增长，订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
+认证树仍保存在 heap，升级时扫描全部 escrow 重建；认证叶缓存自身哈希，写入时不再重复哈希祖先节点的叶值。该路径仍随订单数增长，订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
 
 实践依据：[ICP 跨 canister 调用与回调恢复](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)、[Rust 稳定存储](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[CDK 取消任务与 Drop 清理](https://docs.rs/ic-cdk/0.20.2/ic_cdk/futures/index.html)。本实现仅对有界配置采用升级 hook，不将此方式扩展到订单集合。
 

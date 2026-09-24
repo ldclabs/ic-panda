@@ -163,15 +163,14 @@ pub(crate) fn save(e: &Escrow) {
 
 pub(crate) fn rebuild_certification() {
     CERT.with_borrow_mut(|c| {
-        // Build all leaves before publishing the completed root.
         let configuration = cfg();
-        c.0.insert(
+        c.insert(
             b"configuration".to_vec(),
             dmsg_protocol::canonical(&public_config(&configuration)),
         );
         SIGNERS.with_borrow(|table| {
             table.for_each(|key, value| {
-                c.0.insert(
+                c.insert(
                     [b"signer/".as_slice(), key.as_slice()].concat(),
                     dmsg_protocol::canonical(&value),
                 );
@@ -179,7 +178,7 @@ pub(crate) fn rebuild_certification() {
         });
         FEE_POLICIES.with_borrow(|table| {
             table.for_each(|key, value| {
-                c.0.insert(
+                c.insert(
                     [b"fee/".as_slice(), key.as_slice()].concat(),
                     dmsg_protocol::canonical(&value),
                 );
@@ -187,7 +186,7 @@ pub(crate) fn rebuild_certification() {
         });
         ESCROWS.with_borrow(|t| {
             t.for_each(|k, e| {
-                c.0.insert(k, dmsg_protocol::canonical(&e.info()));
+                c.insert(k, dmsg_protocol::canonical(&e.info()));
             })
         });
         c.publish();

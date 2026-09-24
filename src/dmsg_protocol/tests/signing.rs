@@ -12,7 +12,7 @@ fn key() -> SigningKey {
 
 fn statement() -> Statement {
     Statement {
-        issuer: account_issuer("https://dmsg.test/u/", &AccountId([1; 12])).unwrap(),
+        issuer: account_issuer("https://dmsg.test/u/", &AccountId([1; 12])),
         subject: Some("release/spec".into()),
         issued_at: Some(1_800_000_000),
         content: StatementContent::Digest {
@@ -305,15 +305,14 @@ fn standard_cose_verification_and_variable_identifiers() {
         principal_issuer(
             "https://id.test/ic/mainnet/",
             candid::Principal::management_canister()
-        )
-        .unwrap(),
+        ),
         "https://id.test/ic/mainnet/aaaaa-aa"
     );
     let account = AccountId([1; 12]);
     assert_eq!(
         parse_account_issuer(
             "https://dmsg.test/u/",
-            &account_issuer("https://dmsg.test/u/", &account).unwrap()
+            &account_issuer("https://dmsg.test/u/", &account)
         )
         .unwrap(),
         account
@@ -1074,4 +1073,29 @@ fn secp256k1_verification_checks_coordinates_curve_and_signature() {
         };
         assert!(verify_artifact(&changed).is_err());
     }
+}
+
+#[test]
+fn es256k_artifacts_are_low_s_and_reject_high_s_malleations() {
+    use k256::ecdsa::{Signature as EcSignature, SigningKey as EcKey};
+    let signer = EcKey::from_bytes((&[7; 32]).into()).unwrap();
+    let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"kid").unwrap();
+    let signature: EcSignature = signer.sign(&tbs);
+    let low = signature.normalize_s();
+    let high = EcSignature::from_scalars(low.r(), -*low.s()).unwrap();
+    let public = signer.verifying_key().to_sec1_point(false);
+    // Managed signers may return either S; assembly keeps only the low-S form.
+    let artifact = finish_cose(&tbs, public.as_bytes(), high.to_bytes().to_vec()).unwrap();
+    verify_artifact(&artifact).unwrap();
+    assert_eq!(
+        artifact,
+        finish_cose(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap()
+    );
+    let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
+    message.set_signature(high.to_bytes().to_vec()).unwrap();
+    let malleated = SignedArtifact {
+        cose_sign1: message.to_vec().unwrap().into(),
+        ..artifact
+    };
+    assert!(verify_artifact(&malleated).is_err());
 }

@@ -32,7 +32,7 @@ ASCII 规范化、PANDA 定价及旧名称导入属于此注册表的业务规�
 - 名称锁和主体活跃操作映射保存 32 字节操作 key，使丢失操作 ID 的客户端也能在新预留时回收对应过期锁。`StableBTreeSet<(expires_at, operation_key)>` 仅索引 Reserved 操作，清理成本不随终态历史增长。
 - `MemoryManager` 使用 16 页（1 MiB）分配桶，减少默认每个活跃区域 8 MiB 的预分配。当前库最多 32,768 桶，对应约 32 GiB 可分配空间；这是布局上限，不是容量验收结果。桶不会因为删除记录自动缩回。
 - 注册在跨 user 调用前检查全局和主体额度，回调后再次检查，幂等重试先返回已有操作。扣款回调只重读一次操作，将事件、权属、最终操作状态和锁释放作为同一个消息中的提交，合并配置写入。成功扣款和权属提交处于同一回调；账本调用前的 `Charging` 仍需持久化，未知扣款继续保留锁。
-- 已完成的快照导入重试与封存重试不重复写配置和认证根。升级重建名称权属、旧名摘要和导入进度的认证叶后只发布一次认证根。
+- 已完成的快照导入重试与封存重试不重复写配置和认证根。升级时重建名称权属、旧名摘要和导入进度的认证叶。
 
 选择依据包括 ICP 官方的 [Stable structures](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[消息执行原子性](https://docs.internetcomputer.org/references/message-execution-properties/)和[性能测量建议](https://docs.internetcomputer.org/guides/canister-management/optimization/)。认证树仍驻留 heap，升级仍需遍历所有已激活名称和旧名；大规模升级的指令和内存上限尚未验证。操作去重回执和事件历史也持续增长，本次未引入可能破坏重试语义的历史删除策略。
 

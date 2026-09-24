@@ -17,10 +17,10 @@ pub(crate) fn create(
     input.device.validate()?;
     nonzero(input.op_id.as_slice())?;
     expiry(now, input.expires_at, 5 * MINUTE)?;
-    ensure(
+    ensure_valid(
         input.device.role == ControllerRole::Administrator
             && input.device.capabilities.contains(&Capability::RootManage),
-        invalid("initial root administrator"),
+        "initial root administrator",
     )?;
     verify(
         &input.device.signing_pub,
@@ -29,7 +29,7 @@ pub(crate) fn create(
             &(id, caller, &input.device, input.op_id, input.expires_at),
         )
         .as_slice(),
-        &input.proof,
+        input.proof.as_slice(),
     )?;
     Ok(AccountState {
         created_at_ms: now,
@@ -102,7 +102,7 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
     verify(
         &device.input.signing_pub,
         approval_message(s.home_user, &s.account_id, domain, payload, approval).as_slice(),
-        &approval.signature,
+        approval.signature.as_slice(),
     )?;
     Ok(device)
 }
@@ -224,7 +224,7 @@ pub(crate) fn apply(
                     ),
                 )
                 .as_slice(),
-                proof,
+                proof.as_slice(),
             )?;
             next.devices.insert(
                 device.device_id,
@@ -242,13 +242,13 @@ pub(crate) fn apply(
             let d = next.devices.get_mut(device_id).ok_or(Error::NotFound)?;
             ensure(d.revoked_at.is_none(), Error::DeviceNotApproved)?;
             d.revoked_at = Some(now);
-            ensure(
+            ensure_valid(
                 next.devices.values().any(|d| {
                     d.revoked_at.is_none()
                         && d.input.role == ControllerRole::Administrator
                         && d.input.capabilities.contains(&Capability::RootManage)
                 }),
-                invalid("last administrator"),
+                "last administrator",
             )?;
             changed(&mut next);
         }
@@ -262,13 +262,13 @@ pub(crate) fn apply(
             input.capabilities = capabilities.clone();
             input.validate()?;
             device.input = input;
-            ensure(
+            ensure_valid(
                 next.devices.values().any(|d| {
                     d.revoked_at.is_none()
                         && d.input.role == ControllerRole::Administrator
                         && d.input.capabilities.contains(&Capability::RootManage)
                 }),
-                invalid("last administrator"),
+                "last administrator",
             )?;
             changed(&mut next);
         }
@@ -283,9 +283,9 @@ pub(crate) fn apply(
             changed(&mut next);
         }
         AccountCommand::RemoveAuth { principal } => {
-            ensure(
+            ensure_valid(
                 next.auth_bindings.contains(principal) && next.auth_bindings.len() > 1,
-                invalid("last/missing authentication binding"),
+                "last/missing authentication binding",
             )?;
             next.auth_bindings.retain(|p| p != principal);
             changed(&mut next);
@@ -300,10 +300,10 @@ pub(crate) fn apply(
                 Error::Pending,
             )?;
             let generation = s.recovery.as_ref().map_or(0, |r| r.generation);
-            ensure(
+            ensure_valid(
                 policy.generation == generation.checked_add(1).ok_or(Error::QuotaExceeded)?
                     && (DAY..=7 * DAY).contains(&policy.delay_ms),
-                invalid("recovery generation/delay"),
+                "recovery generation/delay",
             )?;
             nonzero(policy.hpke_pub.as_slice())?;
             verify(
@@ -313,7 +313,7 @@ pub(crate) fn apply(
                     &(s.home_user, &s.account_id, policy, m.approval.request_id),
                 )
                 .as_slice(),
-                proof,
+                proof.as_slice(),
             )?;
             next.recovery = Some(policy.clone());
             next.recovery_checked = false;
@@ -335,7 +335,7 @@ pub(crate) fn apply(
                     ),
                 )
                 .as_slice(),
-                proof,
+                proof.as_slice(),
             )?;
             next.recovery_checked = true;
         }

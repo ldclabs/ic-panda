@@ -19,10 +19,6 @@ pub fn validate_quote(
     let q = &input.quote;
     let o = &input.offer.offer;
     quote_current(config, input, signer, now)?;
-    ensure(
-        input.offer.signature.len() == 64,
-        invalid("offer signature"),
-    )?;
     ensure(q.max_network_fee == config.max_fee, Error::IntegrityFailed)?;
     ensure(
         q.home_payment == id
@@ -48,9 +44,9 @@ pub fn validate_quote(
         Error::IntegrityFailed,
     )?;
     authenticated(q.recipient.owner)?;
-    ensure(
+    ensure_valid(
         q.recipient.owner != id && q.platform.owner != id && q.payer.owner != id,
-        invalid("escrow cannot pay itself"),
+        "escrow cannot pay itself",
     )?;
     ensure(q.recipient_net > 0, Error::FeeBlocked)?;
     ensure(
@@ -68,14 +64,18 @@ pub fn validate_quote(
             && q.accept_by == q.fund_by.checked_add(30 * MINUTE).ok_or(Error::Expired)?,
         Error::Expired,
     )?;
-    ensure(
+    ensure_valid(
         q.max_bytes > 0 && q.max_bytes <= 8192 && q.retain_ms >= DAY && q.retain_ms <= 365 * DAY,
-        invalid("storage terms"),
+        "storage terms",
     )?;
     nonzero(q.quote_id.as_slice())?;
     nonzero(q.envelope_digest.as_slice())?;
     let hash = digest("dmsg/quote/v2", q);
-    verify(&signer.public_key, hash.as_slice(), &input.quote_signature)?;
+    verify(
+        &signer.public_key,
+        hash.as_slice(),
+        input.quote_signature.as_slice(),
+    )?;
     Ok(hash)
 }
 
@@ -217,7 +217,7 @@ pub fn receipt_valid(
     )?;
     signer_valid(s, a.signer_epoch, a.stored_at, now)?;
     let hash = digest("dmsg/admission-receipt/v2", a);
-    verify(&s.public_key, hash.as_slice(), &r.signature)?;
+    verify(&s.public_key, hash.as_slice(), r.signature.as_slice())?;
     Ok(hash)
 }
 

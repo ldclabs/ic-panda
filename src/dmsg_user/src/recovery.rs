@@ -16,13 +16,13 @@ pub(crate) fn begin_recovery(
     request.device.validate()?;
     authenticated(request.new_auth)?;
     nonzero(request.op_id.as_slice())?;
-    ensure(
+    ensure_valid(
         request.device.role == ControllerRole::Administrator
             && request
                 .device
                 .capabilities
                 .contains(&Capability::RootManage),
-        invalid("recovery administrator"),
+        "recovery administrator",
     )?;
     ensure(
         request.generation == policy.generation

@@ -9,7 +9,7 @@ pub(super) fn statement_request(
     let s = f.account_id(1, id);
     let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
     let mut request = SignRequest {
-        account_id: id.clone(),
+        account_id: *id,
         key: signing_key,
         statement: Statement {
             issuer: s.issuer,
@@ -25,7 +25,7 @@ pub(super) fn statement_request(
             sequence,
             request_id: execution_request_id(id, s.security_epoch, Hash::new([1; 32]), sequence),
             expires_at: time(&f.ic) + MINUTE,
-            signature: ByteBuf::new(),
+            signature: Default::default(),
         },
     };
     request.approval.signature = key(1)
@@ -38,7 +38,6 @@ pub(super) fn statement_request(
                 .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     request
 }
@@ -158,7 +157,7 @@ fn fresh_handle_approval_renews_the_deadline() {
     let intent = HandleIntent {
         handle_canister: f.handle,
         action: HandleAction::Register,
-        account_id: id.clone(),
+        account_id: id,
         target_account: None,
         handle: "probehandle".into(),
         expected_version: 0,

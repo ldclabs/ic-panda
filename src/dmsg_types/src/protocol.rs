@@ -8,6 +8,8 @@ use serde_bytes::ByteBuf;
 pub type Hash = serde_bytes::ByteArray<32>;
 /// 32-byte operation identifier. An alias of Hash, so callers must preserve its semantic role.
 pub type OpId = Hash;
+/// Raw 64-byte Ed25519 signature; Candid `blob`, CBOR byte string of fixed length.
+pub type Ed25519Signature = serde_bytes::ByteArray<64>;
 /// Result with a dMsg application error; does not represent transport errors.
 pub type Result<T> = std::result::Result<T, Error>;
 /// One second expressed in milliseconds; business timestamps use Unix milliseconds.
@@ -120,6 +122,15 @@ pub fn ensure(condition: bool, error: Error) -> Result<()> {
     }
 }
 
+/// Like [`ensure`] with [`invalid`], allocating the diagnostic only on failure.
+pub fn ensure_valid(condition: bool, message: &str) -> Result<()> {
+    if condition {
+        Ok(())
+    } else {
+        Err(invalid(message))
+    }
+}
+
 /// Deployment domain used to separate identities and key derivation.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum Environment {
@@ -147,7 +158,7 @@ pub struct Approval {
     /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
     pub expires_at: u64,
     /// Device Ed25519 signature over the operation-specific approval digest.
-    pub signature: ByteBuf,
+    pub signature: Ed25519Signature,
 }
 
 /// One requested leaf and its IC hash-tree witness.

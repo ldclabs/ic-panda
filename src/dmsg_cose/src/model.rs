@@ -265,7 +265,7 @@ mod tests {
             kind: ExecutionKind::Derive {
                 generation: 1,
                 root_op_id: Some(Hash::new([3; 32])),
-                transport_key: vec![1; 48].into(),
+                transport_key: [1; 48].into(),
             },
             max_cycles: 100,
         }

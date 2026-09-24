@@ -183,7 +183,6 @@ fn transport_keys_must_be_nonidentity_subgroup_points() {
     assert!(validate_transport_key(&identity).is_err());
     let valid = ic_bls12_381::G1Affine::generator().to_compressed();
     assert!(validate_transport_key(&valid).is_ok());
-    assert!(validate_transport_key(&valid[..47]).is_err());
 }
 
 #[test]
@@ -200,7 +199,7 @@ fn xid_binary_and_canonical_text_have_distinct_wire_representations() {
     assert_eq!(canonical(&id), [vec![0x4c], vec![1; 12]].concat());
     assert_eq!(decode_canonical::<AccountId>(&canonical(&id)).unwrap(), id);
     assert_eq!(
-        candid::decode_one::<AccountId>(&candid::encode_one(&id).unwrap()).unwrap(),
+        candid::decode_one::<AccountId>(&candid::encode_one(id).unwrap()).unwrap(),
         id
     );
     for len in [0, 11, 13, 29, 32] {

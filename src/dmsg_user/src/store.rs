@@ -71,10 +71,6 @@ pub(crate) fn save(s: &AccountState) {
     });
 }
 
-pub(crate) fn publish() {
-    CERT.with_borrow(|c| c.publish());
-}
-
 fn execution_key(account_id: &AccountId, request_id: &OpId) -> Vec<u8> {
     [account_id.as_slice(), request_id.as_slice()].concat()
 }
@@ -86,7 +82,7 @@ pub(crate) fn load_execution(
     EXECUTIONS.with_borrow(|t| t.load(&execution_key(account_id, request_id)))
 }
 
-/// Update the execution leaf; publish once after all writes in the message.
+/// Persist an execution and update its certified receipt leaf.
 pub(crate) fn save_execution(execution: &AuthorizedExecution) {
     EXECUTIONS.with_borrow_mut(|t| {
         t.put(
@@ -96,7 +92,7 @@ pub(crate) fn save_execution(execution: &AuthorizedExecution) {
     });
     if let Ok(receipt) = crate::execution::receipt(execution, &config().init.issuer_namespace) {
         CERT.with_borrow_mut(|c| {
-            c.0.insert(
+            c.insert(
                 execution_receipt_key(&receipt.account_id, receipt.request_id),
                 canonical(&receipt),
             )
@@ -106,7 +102,7 @@ pub(crate) fn save_execution(execution: &AuthorizedExecution) {
 
 pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     EXECUTIONS.with_borrow_mut(|t| t.delete(&execution_key(account_id, request_id)));
-    CERT.with_borrow_mut(|c| c.0.delete(&execution_receipt_key(account_id, *request_id)));
+    CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
 pub(crate) const STABLE_SCHEMA: u16 = 7;
@@ -116,13 +112,13 @@ pub(crate) fn rebuild_certification() {
     CERT.with_borrow_mut(|c| {
         ACCOUNTS.with_borrow(|t| {
             t.for_each(|key, s| {
-                c.0.insert(key, canonical(&s.snapshot(&namespace)));
+                c.insert(key, canonical(&s.snapshot(&namespace)));
             });
         });
         EXECUTIONS.with_borrow(|t| {
             t.for_each(|_, execution| {
                 if let Ok(receipt) = crate::execution::receipt(&execution, &namespace) {
-                    c.0.insert(
+                    c.insert(
                         execution_receipt_key(&receipt.account_id, receipt.request_id),
                         canonical(&receipt),
                     );
@@ -131,7 +127,7 @@ pub(crate) fn rebuild_certification() {
         });
         crate::commerce::rebuild(c);
         crate::external::rebuild(c);
-        // Upgrades are atomic; publish once after rebuilding both views.
+        // Every insert republishes; this also covers an empty rebuild.
         c.publish();
     });
 }

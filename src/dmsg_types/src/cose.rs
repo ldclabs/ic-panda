@@ -156,7 +156,7 @@ impl DeriveRootRequest {
             kind: ExecutionKind::Derive {
                 generation,
                 root_op_id,
-                transport_key: self.transport_public_key.to_vec().into(),
+                transport_key: self.transport_public_key,
             },
         }
     }
@@ -297,8 +297,8 @@ pub enum ExecutionKind {
         generation: u64,
         /// Reservation operation ID for a candidate root; None for the committed root.
         root_op_id: Option<OpId>,
-        /// 48-byte compressed vetKD transport public key after request conversion.
-        transport_key: ByteBuf,
+        /// 48-byte compressed vetKD transport public key; protocol validation checks the point.
+        transport_key: ByteArray<48>,
     },
 }
 
@@ -335,7 +335,6 @@ pub struct ExecutionGrant {
     /// 32-byte device identifier, distinct from its signing public key.
     pub device_id: Hash,
     /// Device approval sequence consumed by this authorization.
-    #[serde(default)]
     pub device_sequence: u64,
     /// Time authorization was accepted, in Unix milliseconds.
     pub approved_at: u64,
@@ -485,7 +484,7 @@ impl ExecutionResult {
 }
 
 /// COSE deployment configuration and master-key initialization diagnostics.
-#[derive(CandidType, Serialize, Deserialize, Clone)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct KeyState {
     /// Deployment configuration used by the executor.
     pub config: CoseInit,

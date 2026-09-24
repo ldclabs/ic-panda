@@ -51,7 +51,7 @@ ICP 业务时间、批准期限为 u64 Unix **毫秒**，使用 `now < expires_a
 | 算法 | COSE alg | 签名 | 公钥 |
 | --- | --- | --- | --- |
 | Ed25519（基础） | -19 | 直接签 Sig_structure | OKP，crv=6，x=32 字节 |
-| ES256K（可选） | -47 | SHA-256(Sig_structure)，ECDSA r\|\|s | EC2，crv=8，x/y 各 32 字节；验证也接受压缩 y |
+| ES256K（可选） | -47 | SHA-256(Sig_structure)，仅 low-S 的 ECDSA r\|\|s | EC2，crv=8，x/y 各 32 字节；验证也接受压缩 y |
 
 dMsg 不再提供 BIP340 入口或私有算法标签。失败不会自动切换算法。public-only COSE_Key 禁止私钥 d（-4）；alg 必须匹配，key_ops 存在时须允许 verify，kid 存在时须与保护头匹配。
 
@@ -83,7 +83,7 @@ digest("dmsg/device-approval/v2", [
 
 设备严格 Ed25519 签署此摘要。文本/文件声明的 purpose 为 `Statement`，纯摘要为 `FileAttestation`，algorithm 为 `Ed25519` 或 `EcdsaSecp256k1`。根派生 kind 为 `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。CBOR 无负载枚举为名称字符串，有负载枚举为单项 map，Option 为值或 null。
 
-签署前冻结完整保护头、payload、密钥指纹与批准上下文。user home 检查 issuer 是否属于当前账户；cose home 核对实际派生密钥的 kid 和指纹。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin；由扩展核实，设备签名不独立证明浏览器来源。
+签署前冻结完整保护头、payload、密钥指纹与批准上下文。user home 检查 issuer 是否属于当前账户；cose home 核对实际派生密钥的 kid 和指纹。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin（Local 部署还接受精确的环回 HTTP origin）；由扩展核实，设备签名不独立证明浏览器来源。
 
 幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。未知结果对账原请求。严格设备序号和执行水位在结果清理后继续阻止重放。相同内容可以产生相同签名，不能把签名摘要当作所有业务操作的唯一 ID。
 

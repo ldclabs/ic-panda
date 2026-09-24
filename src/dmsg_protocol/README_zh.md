@@ -48,7 +48,7 @@ dmsg_protocol = "0.1"
 
 Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原始严格 Ed25519 验签；`verify_artifact` 还验证 COSE 文档 profile。`authenticated` 仅排除匿名和管理 canister Principal，不证明账户成员身份。
 
-商业辅助函数使用 `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` 和 `dmsg_protocol::membership::{mul_div, required_panda}` 等路径。金额使用整数原子单位，商业时间使用 UTC Unix 毫秒；报价和本金门槛向上取整，月度额度累计加权时长后统一向下取整。摘要构造不执行授权，具体字段校验范围见 rustdoc。
+商业辅助函数使用 `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` 和 `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}` 等路径。金额使用整数原子单位，商业时间使用 UTC Unix 毫秒；报价和本金门槛向上取整，月度额度累计加权时长后统一向下取整。摘要构造不执行授权，具体字段校验范围见 rustdoc。
 
 ## 本地签署并验证文档
 
@@ -69,7 +69,7 @@ let algorithm = Algorithm::Ed25519;
 let fingerprint = key_thumbprint(&public_cose_key(&algorithm, &[], &public).unwrap()).unwrap();
 let original = b"Release 1.0 specification";
 let statement = Statement {
-    issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])).unwrap(),
+    issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])),
     subject: Some("release/specification".into()),
     issued_at: Some(1_800_000_000), // 声明的 Unix 秒，不是可信时间。
     content: StatementContent::Digest {
@@ -94,7 +94,7 @@ assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 | 算法 | COSE 标签 | 签名器输入 | 传给 `finish_cose` 的签名/公钥 |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | 完整 tbs 字节 | 64 字节签名；原始 32 字节公钥 |
-| ES256K | -47 | 使用 prehash API 时传 SHA-256(tbs) | 64 字节 r\|\|s，不是 DER；SEC1 secp256k1 公钥 |
+| ES256K | -47 | 使用 prehash API 时传 SHA-256(tbs) | 64 字节 r\|\|s，不是 DER，归一为 low-S；SEC1 secp256k1 公钥 |
 
 使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`finish_cose` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops，并展开压缩 EC y 坐标；它不是原始公钥 SHA-256，也不是完整公钥验证器。
 
@@ -136,14 +136,14 @@ let request = SignRequest {
     approval: Approval {
         device_id, security_epoch, sequence, request_id,
         expires_at: 1_800_000_060_000, // Unix 毫秒；实际请求应使用有效期限。
-        signature: Vec::new().into(), // 不进入批准摘要。
+        signature: Default::default(), // 不进入批准摘要。
     },
 };
 let mut execution = request.into_execution().unwrap();
 let home_user = Principal::from_slice(&[1, 1]); // 部署演示值。
 let digest = execution.approval_message(home_user);
 let device_key = SigningKey::from_bytes(&[9; 32]); // 仅用于测试。
-execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().to_vec().into();
+execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
@@ -166,7 +166,7 @@ assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
 
 `canonical` 使用 RFC 8949 core deterministic CBOR。`digest(domain, value)` 为 `SHA256(CBOR([1, domain, value]))`。两者面向可信、可序列化的值；Serialize 实现失败时 panic，不检查业务语义。`decode_canonical` 限制输入为 65,536 字节并要求重新编码完全一致，对畸形或非规范记录返回错误。它不是签名产物解码器：外部 COSE 验签必须保留原始 protected 字节。
 
-AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 32 字节串。身份适配器要求明确的规范 URI 命名空间，以 `/` 或 `:` 结尾且无 query/fragment；不会发现服务或确认账户存在。`validate_origin` 接受精确 HTTPS origin 或 32 个 a..p 字母的 Chrome extension ID，不允许尾随路径。语法检查不能证明真实浏览器来源。
+AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 32 字节串。身份适配器要求明确的规范 URI 命名空间，以 `/` 或 `:` 结尾且无 query/fragment；不会发现服务或确认账户存在。`validate_origin` 接受精确 HTTPS origin 或 32 个 a..p 字母的 Chrome extension ID，不允许尾随路径；Local 部署还接受精确的环回 HTTP origin。user 与 COSE home 按各自部署环境检查。语法检查不能证明真实浏览器来源。
 
 业务时间戳和时长使用毫秒，Statement.issued_at 使用秒，ICRC created_at_time 使用纳秒。`expiry` 要求截止时间严格晚于当前时间且不超过给定的最大剩余时长。`check_sequence` 对旧序号返回 ResultExpired，对未来或耗尽序号返回 VersionConflict，不更新计数器。`price` 使用固定 PANDA 价格表和 8 位小数，要求名称已经验证；它不是通用代币价格预言机。
 

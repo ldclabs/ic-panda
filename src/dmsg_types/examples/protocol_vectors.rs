@@ -17,7 +17,7 @@ fn main() {
     let fingerprint = key_thumbprint(&temp_key).unwrap();
     let kid = fingerprint.to_vec();
     let text = Statement {
-        issuer: account_issuer(namespace, &account).unwrap(),
+        issuer: account_issuer(namespace, &account),
         subject: Some("release/spec".into()),
         issued_at: Some(1_800_000_000),
         content: StatementContent::Text("Approved release v1".into()),
@@ -65,23 +65,17 @@ fn main() {
         vector("account_issuer", canonical(&text.issuer)),
         vector(
             "principal_issuer",
-            canonical(
-                &principal_issuer(
-                    "https://id.test/ic/mainnet/principals/",
-                    Principal::from_slice(&[0, 1, 1]),
-                )
-                .unwrap(),
-            ),
+            canonical(&principal_issuer(
+                "https://id.test/ic/mainnet/principals/",
+                Principal::from_slice(&[0, 1, 1]),
+            )),
         ),
         vector(
             "management_principal_issuer",
-            canonical(
-                &principal_issuer(
-                    "https://id.test/ic/mainnet/principals/",
-                    Principal::management_canister(),
-                )
-                .unwrap(),
-            ),
+            canonical(&principal_issuer(
+                "https://id.test/ic/mainnet/principals/",
+                Principal::management_canister(),
+            )),
         ),
         vector(
             "ctt_imprint_input",
@@ -154,10 +148,10 @@ fn main() {
         sequence: 0,
         request_id,
         expires_at: 1_800_000_000_000,
-        signature: vec![].into(),
+        signature: Default::default(),
     };
     let sign = SignRequest {
-        account_id: account.clone(),
+        account_id: account,
         key: SigningKeyRef {
             algorithm: SigningAlgorithm::Ed25519,
             kid: kid.into(),

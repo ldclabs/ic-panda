@@ -44,6 +44,18 @@ impl<T: StableCodec> StableCodec for Option<T> {
     }
 }
 
+impl<T: StableCodec> StableCodec for Vec<T> {
+    type Repr = Vec<T::Repr>;
+
+    fn to_repr(&self) -> Self::Repr {
+        self.iter().map(StableCodec::to_repr).collect()
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.into_iter().map(T::from_repr).collect()
+    }
+}
+
 /// Stable-memory adapter holding the representation directly. Map writes build
 /// it once from a borrowed domain value, without first cloning that entire value.
 pub struct CompactStored<T: StableCodec> {

@@ -1,5 +1,5 @@
 //! Closed application-action encoding and validation, without product authority claims.
-use crate::{authenticated, canonical, digest, ensure_valid, integration, nonzero};
+use crate::{authenticated, canonical, digest, integration, nonzero};
 use dmsg_types::{app_action::*, integration::*, *};
 
 /// Experimental COSE profile, distinct from each existing document profile.
@@ -129,7 +129,7 @@ pub fn validate_action_command(command: &AppActionCommand) -> Result<()> {
 pub fn validate_app_action(action: &AppAction) -> Result<()> {
     ensure(action.version == 1, Error::UnsupportedProtocol)?;
     integration::validate_identifier(&action.app_id)?;
-    integration::validate_origin(&action.origin, &action.environment)?;
+    crate::validate_origin(&action.origin, &action.environment)?;
     authenticated(action.receiver)?;
     nonzero(action.actor_id.as_slice())?;
     nonzero(action.signing_account.as_slice())?;
@@ -163,14 +163,14 @@ pub fn validate_app_action(action: &AppAction) -> Result<()> {
     )
 }
 
-/// Admission against trusted app registration. Receiver/actor/intent authority is separate.
+/// Admission against an app registration already accepted by `validate_app`.
+/// Receiver/actor/intent authority is separate.
 pub fn validate_action_admission(
     action: &AppAction,
     app: &AppRegistration,
     now_ms: u64,
 ) -> Result<()> {
     validate_app_action(action)?;
-    integration::validate_app(app)?;
     ensure(!app.paused, Error::Locked)?;
     ensure(
         action.environment == app.environment

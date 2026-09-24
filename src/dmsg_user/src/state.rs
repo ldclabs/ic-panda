@@ -44,10 +44,10 @@ pub struct AccountState {
 impl AccountState {
     pub fn snapshot(&self, namespace: &str) -> SecuritySnapshot {
         SecuritySnapshot {
-            issuer: format!("{namespace}{}", self.account_id),
+            issuer: account_issuer(namespace, &self.account_id),
             home_cose: self.home_cose,
             schema: 2,
-            account_id: self.account_id.clone(),
+            account_id: self.account_id,
             home_user: self.home_user,
             account_status: self.status.clone(),
             account_version: self.account_version,
@@ -80,8 +80,8 @@ impl AccountState {
     pub fn info(&self, namespace: &str) -> AccountInfo {
         AccountInfo {
             created_at_ms: self.created_at_ms,
-            issuer: format!("{namespace}{}", self.account_id),
-            account_id: self.account_id.clone(),
+            issuer: account_issuer(namespace, &self.account_id),
+            account_id: self.account_id,
             home_user: self.home_user,
             home_cose: self.home_cose,
             auth_bindings: self.auth_bindings.clone(),

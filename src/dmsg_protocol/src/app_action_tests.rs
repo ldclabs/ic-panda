@@ -136,7 +136,7 @@ fn admission_and_document_endpoint_fail_closed() {
             sequence: 1,
             request_id: Hash::new([2; 32]),
             expires_at: 1,
-            signature: vec![0; 64].into(),
+            signature: Default::default(),
         },
     };
     assert_eq!(request.into_execution(), Err(Error::UnsupportedProtocol));

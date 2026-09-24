@@ -96,11 +96,11 @@ fn schedule_policy(c: Catalog) -> Result<()> {
     governance()?;
     model::validate_catalog(&c)?;
     let old = latest_catalog();
-    ensure(
+    ensure_valid(
         c.effective_at_ms >= at.saturating_add(30 * DAY)
             && c.effective_at_ms > old.effective_at_ms
             && c.version > old.version,
-        invalid("catalog notice"),
+        "catalog notice",
     )?;
     ensure(
         !CATALOGS.with_borrow(|t| t.contains(&c.version.to_be_bytes()))
@@ -108,11 +108,11 @@ fn schedule_policy(c: Catalog) -> Result<()> {
         Error::VersionConflict,
     )?;
     // A single month must never mix algorithm weight denominations.
-    ensure(
+    ensure_valid(
         c.plans.iter().all(|p| p.weights == c.plans[0].weights)
             && (c.plans[0].weights == old.plans[0].weights
                 || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms),
-        invalid("weight change at UTC month boundary"),
+        "weight change at UTC month boundary",
     )?;
     save_catalog(&c);
     Ok(())

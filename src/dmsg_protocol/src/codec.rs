@@ -4,15 +4,6 @@ use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{de::DeserializeOwned, Serialize};
 use sha2::{Digest, Sha256};
 
-/// Construct string errors only on failure, not on every successful check.
-pub(crate) fn ensure_valid(condition: bool, message: &str) -> Result<()> {
-    if condition {
-        Ok(())
-    } else {
-        Err(invalid(message))
-    }
-}
-
 /// Reject anonymous and management-canister Principals.
 ///
 /// This is only a caller-shape check: it does not establish an account binding,
@@ -123,11 +114,8 @@ pub fn nonzero(id: &[u8]) -> Result<()> {
 /// This does not derive a root or prove possession of the transport secret key.
 ///
 /// # Errors
-/// Wrong length returns `Error::InvalidInput`; invalid points return `Error::IntegrityFailed`.
-pub fn validate_transport_key(bytes: &[u8]) -> Result<()> {
-    let compressed: &[u8; 48] = bytes
-        .try_into()
-        .map_err(|_| invalid("vetKD transport key length"))?;
+/// Invalid points return `Error::IntegrityFailed`.
+pub fn validate_transport_key(compressed: &[u8; 48]) -> Result<()> {
     let point =
         Option::<ic_bls12_381::G1Affine>::from(ic_bls12_381::G1Affine::from_compressed(compressed))
             .ok_or(Error::IntegrityFailed)?;

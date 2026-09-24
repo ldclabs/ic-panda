@@ -456,6 +456,7 @@ impl PreparedStatement {
         Ok(PreparedSignature {
             message: self.message,
             cose_key,
+            algorithm: self.algorithm,
         })
     }
 }
@@ -465,13 +466,27 @@ impl PreparedStatement {
 pub struct PreparedSignature {
     message: Sign1Message,
     cose_key: Vec<u8>,
+    algorithm: Algorithm,
 }
 
 impl PreparedSignature {
     /// Attach a signature without reparsing the payload or public key.
-    /// This checks signature length, not mathematical validity; verify before use.
+    ///
+    /// ES256K signatures are normalized to low-S, so each artifact has exactly one
+    /// accepted signature encoding. This checks encoding, not mathematical validity;
+    /// verify before use.
     pub fn finish(mut self, signature: Vec<u8>) -> Result<SignedArtifact> {
-        ensure(signature.len() == 64, Error::IntegrityFailed)?;
+        let signature = match self.algorithm {
+            Algorithm::EcdsaSecp256k1 => k256::ecdsa::Signature::from_slice(&signature)
+                .map_err(|_| Error::IntegrityFailed)?
+                .normalize_s()
+                .to_bytes()
+                .to_vec(),
+            _ => {
+                ensure(signature.len() == 64, Error::IntegrityFailed)?;
+                signature
+            }
+        };
         self.message.set_signature(signature).map_err(malformed)?;
         Ok(SignedArtifact {
             cose_sign1: self.message.to_vec().map_err(malformed)?.into(),
@@ -624,16 +639,15 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
 ///
 /// `tbs` must be the exact canonical bytes returned by [`prepare_cose`]; `public`
 /// is raw Ed25519 or SEC1 secp256k1 bytes. `signature` is 64 bytes: an Ed25519
-/// signature or ES256K r||s, not DER. This validates structure and key encoding,
-/// but does not mathematically verify the signature. Use [`match_signing_result`]
-/// or [`verify_artifact`] before accepting a returned artifact.
+/// signature or ES256K r||s, not DER; ES256K is normalized to low-S. This validates
+/// structure and key encoding, but does not mathematically verify the signature.
+/// Use [`match_signing_result`] or [`verify_artifact`] before accepting a returned
+/// artifact.
 ///
 /// # Errors
-/// Returns `Error::IntegrityFailed` for wrong signature length, and propagates
+/// Returns `Error::IntegrityFailed` for a malformed signature, and propagates
 /// signing-input/public-key validation errors.
 pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
-    // Both currently enabled algorithms encode r||s / Ed25519 signatures in 64 bytes.
-    ensure(signature.len() == 64, Error::IntegrityFailed)?;
     parse_signing_input(tbs)?
         .into_signature(public)?
         .finish(signature)
@@ -661,9 +675,9 @@ impl Verifier for ProfileVerifier {
             Self::Ed(key) => key.verify(bytes, signature),
             Self::Ec(key) => {
                 use k256::ecdsa::signature::hazmat::PrehashVerifier;
+                // k256 rejects high-S, keeping ES256K artifacts non-malleable.
                 let signature = k256::ecdsa::Signature::from_slice(signature)
-                    .map_err(|_| cose2::Error::verify("signature encoding"))?
-                    .normalize_s();
+                    .map_err(|_| cose2::Error::verify("signature encoding"))?;
                 key.verify_prehash(sha256(bytes).as_slice(), &signature)
                     .map_err(|_| cose2::Error::verify("invalid signature"))
             }

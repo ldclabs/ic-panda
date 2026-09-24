@@ -1,4 +1,4 @@
-use dmsg_protocol::{canonical, decode_canonical, integration::*};
+use dmsg_protocol::{canonical, decode_canonical, integration::*, validate_origin};
 use dmsg_types::{integration::*, *};
 #[path = "support/integration.rs"]
 mod fixtures;

@@ -295,7 +295,7 @@ fn heap_configuration_and_failed_call_budgets_survive_upgrade() {
     );
     let e = opened.unwrap();
     let mut invalid = f.order(&recipient, 2, 2);
-    invalid.offer.signature = vec![0; 64].into();
+    invalid.offer.signature = [0; 64].into();
     let disabled: Result<()> = update(
         &f.ic,
         f.payment,
@@ -472,7 +472,6 @@ fn reserve_claim_survives_upgrade_without_changing_the_certified_balance() {
     input.quote_signature = key(50)
         .sign(digest("dmsg/quote/v2", &input.quote).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     let opened: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
     let e = opened.unwrap();

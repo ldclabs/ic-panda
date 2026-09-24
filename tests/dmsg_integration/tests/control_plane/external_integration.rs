@@ -93,12 +93,11 @@ fn approve<T: Serialize>(
         sequence: state.devices[&Hash::new([1; 32])].next_sequence,
         request_id: id,
         expires_at: time(&f.ic) + AUTH_TTL_MS,
-        signature: ByteBuf::new(),
+        signature: Default::default(),
     };
     approval.signature = key(1)
         .sign(approval_message(f.user, account, domain, command, &approval).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     approval
 }
@@ -121,7 +120,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(1),
         "approve_authentication",
-        (account.clone(), request.clone(), approval.clone()),
+        (account, request.clone(), approval.clone()),
     );
     let first = first.unwrap();
     let duplicate: Result<AuthenticationResult> = update(
@@ -129,7 +128,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(1),
         "approve_authentication",
-        (account.clone(), request.clone(), approval),
+        (account, request.clone(), approval),
     );
     assert_eq!(duplicate, Ok(first));
     assert_eq!(
@@ -150,7 +149,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(1),
         "authentication_certificate",
-        (account.clone(), request.operation_id),
+        (account, request.operation_id),
     );
     let proof = proof.unwrap();
     let verified = verify_authentication(
@@ -182,7 +181,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(2),
         "authentication_certificate",
-        (account.clone(), request.operation_id),
+        (account, request.operation_id),
     );
     assert_eq!(hidden, Err(Error::AuthRequired));
     app.paused = true;
@@ -208,7 +207,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(1),
         "approve_authentication",
-        (account.clone(), next, approval),
+        (account, next, approval),
     );
     assert_eq!(denied, Err(Error::Locked));
     assert_eq!(
@@ -229,7 +228,7 @@ fn external_authentication_certificate_retry_pause_and_upgrade() {
         f.user,
         person(1),
         "authentication_certificate",
-        (account.clone(), request.operation_id),
+        (account, request.operation_id),
     );
     assert!(matches!(
         revoked,
@@ -248,7 +247,7 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
         app_id: app.app_id,
         app_config_version: 1,
         origin: app.origins[0].clone(),
-        approving_account: account.clone(),
+        approving_account: account,
         service: f.commerce,
         beneficiary: Beneficiary {
             authority_canister: product.beneficiary_authority,
@@ -325,7 +324,7 @@ fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
         origin: "https://sample.test".into(),
         receiver: f.commerce,
         actor_id: AccountId([8; 12]),
-        signing_account: account.clone(),
+        signing_account: account,
         operation_id: hash,
         intent_hash: hash,
         input_hash: hash,
@@ -376,7 +375,7 @@ fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
         request_id,
     );
     let request = SignRequest {
-        account_id: account.clone(),
+        account_id: account,
         key: SigningKeyRef {
             algorithm: SigningAlgorithm::Ed25519,
             kid: hash.to_vec().into(),
@@ -427,7 +426,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         origin: app.origins[0].clone(),
         receiver: f.commerce,
         actor_id: AccountId([8; 12]),
-        signing_account: account.clone(),
+        signing_account: account,
         operation_id: Hash::new([79; 32]),
         intent_hash: hash,
         input_hash: hash,
@@ -455,7 +454,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         let state = f.account_id(1, &account);
         let device = &state.devices[&hash];
         let mut request = AppActionSignRequest {
-            account_id: account.clone(),
+            account_id: account,
             key: signing_key.clone(),
             issuer: state.issuer,
             action: body,
@@ -471,7 +470,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
                     device.next_sequence,
                 ),
                 expires_at: at + AUTH_TTL_MS,
-                signature: vec![].into(),
+                signature: Default::default(),
             },
         };
         request.approval.signature = key(1)
@@ -484,7 +483,6 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
                     .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into();
         request
     };
@@ -504,7 +502,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         "set_action_approval",
         (
             f.user,
-            account.clone(),
+            account,
             dmsg_protocol::app_action::app_action_digest(&action),
             None::<(Principal, AppRegistration)>,
         ),
@@ -514,7 +512,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         f.user,
         person(1),
         "inspect_app_action",
-        (account.clone(), action.clone()),
+        (account, action.clone()),
     );
     preview.unwrap();
     let signed: Result<ExecutionResult> =
@@ -533,7 +531,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         f.user,
         person(1),
         "get_execution_receipt",
-        (account.clone(), req.approval.request_id),
+        (account, req.approval.request_id),
     );
     let (value, _) = dmsg_protocol::authentication::verify_certified_leaf(
         &proof.unwrap(),
@@ -564,7 +562,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         "set_action_approval",
         (
             f.user,
-            account.clone(),
+            account,
             dmsg_protocol::app_action::app_action_digest(&action),
             Some((f.commerce, app)),
         ),

@@ -11,7 +11,7 @@ pub(crate) fn authorize(
     caller: Principal,
     input: &ExecuteRequest,
     now: u64,
-    namespace: &str,
+    init: &UserInit,
     previous: Option<&AuthorizedExecution>,
 ) -> Result<AuthorizedExecution> {
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
@@ -54,19 +54,16 @@ pub(crate) fn authorize(
             )?;
             key.validate()?;
             nonzero(public_key_fingerprint.as_slice())?;
+            validate_origin(origin, &init.environment)?;
             let prepared = parse_signing_input(to_be_signed)?;
-            if let StatementContent::AppAction(action) = &prepared.statement().content {
-                dmsg_protocol::integration::validate_origin(origin, &action.environment)?;
-            } else {
-                validate_origin(origin)?;
-            }
             ensure(
                 *prepared.algorithm() == key.algorithm
                     && statement_purpose(prepared.statement()) == key.purpose,
                 Error::UnsupportedProtocol,
             )?;
             ensure(
-                prepared.statement().issuer == account_issuer(namespace, &s.account_id)?,
+                prepared.statement().issuer
+                    == account_issuer(&init.issuer_namespace, &s.account_id),
                 Error::IntegrityFailed,
             )?;
             if let StatementContent::AppAction(action) = &prepared.statement().content {
@@ -160,7 +157,7 @@ pub(crate) fn authorize(
         .retain(|_, expires_at| expires_at.is_none_or(|at| at > now));
     let grant = ExecutionGrant {
         commerce: None,
-        account_id: s.account_id.clone(),
+        account_id: s.account_id,
         home_user: s.home_user,
         home_cose: s.home_cose,
         request_id: input.approval.request_id,
@@ -289,8 +286,8 @@ pub(crate) fn receipt(
     };
     Ok(ExecutionReceipt {
         schema: 1,
-        account_id: grant.account_id.clone(),
-        issuer: account_issuer(namespace, &grant.account_id)?,
+        account_id: grant.account_id,
+        issuer: account_issuer(namespace, &grant.account_id),
         request_id: grant.request_id,
         device_id: grant.device_id,
         security_epoch: grant.security_epoch,

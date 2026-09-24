@@ -24,6 +24,20 @@ impl std::ops::DerefMut for TestAccount {
     }
 }
 
+fn test_init() -> UserInit {
+    UserInit {
+        commerce_canister: Principal::from_slice(&[88]),
+        membership_canister: Principal::from_slice(&[89]),
+        environment: Environment::Local,
+        issuer_namespace: NAMESPACE.into(),
+        home_cose: p(2),
+        handle_canister: p(7),
+        payment_canister: p(8),
+        max_accounts: 100,
+        daily_new_accounts: 10,
+    }
+}
+
 fn authorize(
     s: &mut TestAccount,
     caller: Principal,
@@ -35,7 +49,7 @@ fn authorize(
         caller,
         request,
         now,
-        NAMESPACE,
+        &test_init(),
         s.executions.get(&request.approval.request_id),
     )?;
     s.executions
@@ -101,7 +115,7 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
         cycles_cost_upper_bound: 1,
         outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
             key: KeyDescriptor {
-                account_id: s.account_id.clone(),
+                account_id: s.account_id,
                 key_id: signing_key().kid,
                 purpose: KeyPurpose::Statement,
                 algorithm: Algorithm::Ed25519,
@@ -163,7 +177,6 @@ fn fixture() -> TestAccount {
                 .as_slice(),
             )
             .to_bytes()
-            .to_vec()
             .into(),
     };
     TestAccount {
@@ -174,7 +187,7 @@ fn fixture() -> TestAccount {
 
 fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> AccountMutation {
     let mut m = AccountMutation {
-        account_id: s.account_id.clone(),
+        account_id: s.account_id,
         expected_version: s.account_version,
         command,
         approval: Approval {
@@ -183,7 +196,7 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
             sequence: s.devices[&Hash::new([n; 32])].next_sequence,
             request_id: digest("test", &(s.account_version, n)),
             expires_at: time + MINUTE,
-            signature: ByteBuf::new(),
+            signature: Default::default(),
         },
     };
     m.approval.signature = sk(n)
@@ -198,7 +211,6 @@ fn mutation(s: &AccountState, command: AccountCommand, n: u8, time: u64) -> Acco
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     m
 }
@@ -345,11 +357,11 @@ fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
         sequence,
     );
     let mut r = SignRequest {
-        account_id: s.account_id.clone(),
+        account_id: s.account_id,
         key: signing_key(),
         origin: "https://example.com".into(),
         statement: Statement {
-            issuer: account_issuer(NAMESPACE, &s.account_id).unwrap(),
+            issuer: account_issuer(NAMESPACE, &s.account_id),
             subject: Some("release".into()),
             issued_at: None,
             content: StatementContent::Text("Approved release v1".into()),
@@ -361,7 +373,7 @@ fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
             sequence,
             request_id: id,
             expires_at: time + MINUTE,
-            signature: ByteBuf::new(),
+            signature: Default::default(),
         },
     }
     .into_execution()
@@ -369,7 +381,6 @@ fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
     r.approval.signature = sk(n)
         .sign(r.approval_message(s.home_user).as_slice())
         .to_bytes()
-        .to_vec()
         .into();
     r
 }
@@ -675,7 +686,6 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
             .as_slice(),
         )
         .to_bytes()
-        .to_vec()
         .into();
     assert_eq!(
         authorize(&mut s, p(1), &reused, 2 * DAY + 1),
@@ -707,15 +717,8 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
             init: UserInit {
-                commerce_canister: candid::Principal::from_slice(&[88]),
-                membership_canister: candid::Principal::from_slice(&[89]),
-                environment: Environment::Local,
-                issuer_namespace: NAMESPACE.into(),
                 home_cose: s.home_cose,
-                handle_canister: p(7),
-                payment_canister: p(8),
-                max_accounts: 100,
-                daily_new_accounts: 10,
+                ..test_init()
             },
             allocator: XidGenerator::new([1; 5]),
             allocator_namespace_digest: Hash::new([1; 32]),
@@ -744,7 +747,7 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
     .unwrap();
     save(&s.account);
     let before = load(&s.account_id).unwrap();
-    let snapshot = CERT.with_borrow(|c| c.0.get(s.account_id.as_slice()).cloned());
+    let snapshot = CERT.with_borrow(|c| c.get(s.account_id.as_slice()).map(<[u8]>::to_vec));
     let completed = completed(&s, &request);
     let mut mismatched = completed.clone();
     mismatched.request_id = next.approval.request_id;
@@ -775,13 +778,13 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         Some(second)
     );
     assert_eq!(
-        CERT.with_borrow(|c| c.0.get(s.account_id.as_slice()).cloned()),
+        CERT.with_borrow(|c| c.get(s.account_id.as_slice()).map(<[u8]>::to_vec)),
         snapshot
     );
     let receipt_key = execution_receipt_key(&s.account_id, request.approval.request_id);
     let stored = load_execution(&s.account_id, &request.approval.request_id).unwrap();
     assert_eq!(
-        CERT.with_borrow(|c| c.0.get(&receipt_key).cloned()),
+        CERT.with_borrow(|c| c.get(&receipt_key).map(<[u8]>::to_vec)),
         Some(canonical(&execution::receipt(&stored, NAMESPACE).unwrap()))
     );
     assert_eq!(
@@ -793,20 +796,20 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         Ok(completed)
     );
 
-    let root = CERT.with_borrow(|c| c.0.witness(&receipt_key).digest());
+    let root = CERT.with_borrow(|c| c.root_hash());
     CERT.with_borrow_mut(|c| *c = dmsg_runtime::Certification::default());
     rebuild_certification();
-    assert_eq!(
-        CERT.with_borrow(|c| c.0.witness(&receipt_key).digest()),
-        root
-    );
+    assert_eq!(CERT.with_borrow(|c| c.root_hash()), root);
 
     remove_execution(&s.account_id, &request.approval.request_id);
     expected
         .execution_expirations
         .remove(&request.approval.request_id);
     save_account(&expected);
-    assert_eq!(CERT.with_borrow(|c| c.0.get(&receipt_key).cloned()), None);
+    assert_eq!(
+        CERT.with_borrow(|c| c.get(&receipt_key).map(<[u8]>::to_vec)),
+        None
+    );
     assert_eq!(
         record_response(
             &s.account_id,
@@ -825,7 +828,7 @@ fn existing_handle_intent_can_be_reapproved_at_capacity() {
         let intent = dmsg_types::handle::HandleIntent {
             handle_canister: p(7),
             action: dmsg_types::handle::HandleAction::Register,
-            account_id: s.account_id.clone(),
+            account_id: s.account_id,
             target_account: None,
             handle: format!("user{n}"),
             expected_version: 0,
@@ -878,22 +881,23 @@ fn root_recovery_budget_supports_setup_rekeys_but_remains_bounded_and_atomic() {
     });
     // Standard compressed BLS12-381 G1 generator; no production transport key.
     let generator = "97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb";
-    let transport: Vec<u8> = (0..generator.len())
+    let transport: [u8; 48] = (0..generator.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&generator[i..i + 2], 16).unwrap())
-        .collect();
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
     let request = |s: &AccountState, at| {
         let mut r = execute_request(s, 1, at);
         r.kind = ExecutionKind::Derive {
             generation: 1,
             root_op_id: None,
-            transport_key: transport.clone().into(),
+            transport_key: transport.into(),
         };
         r.max_cycles = 70_000_000_000;
         r.approval.signature = sk(1)
             .sign(r.approval_message(s.home_user).as_slice())
             .to_bytes()
-            .to_vec()
             .into();
         r
     };
