@@ -19,7 +19,7 @@ interface ClaimJob {
   sourceOwner: string
   registry: string
   args: string
-  phase: 'prepared' | 'authorized' | 'unknown' | 'claimed'
+  phase: 'prepared' | 'authorized' | 'unknown' | 'claimed' | 'rejected'
 }
 export class HandleClient {
   constructor(
@@ -90,7 +90,11 @@ export class HandleClient {
   }
   async prepare(name: string) {
     const existing = await this.job()
-    ensure(!existing || existing.phase === 'claimed', 'Pending', '请先继续原认领请求。')
+    ensure(
+      !existing || existing.phase === 'claimed' || existing.phase === 'rejected',
+      'Pending',
+      '请先继续原认领请求。'
+    )
     const account = this.account.meta.account?.id
     ensure(account, 'AUTH_REQUIRED')
     const { snapshot, reservation } = await this.legacy(name)
@@ -131,6 +135,11 @@ export class HandleClient {
     )
     const [intent, snapshot] = decodeClaim(job.args)
     if (job.phase === 'claimed') return job
+    ensure(
+      job.phase !== 'rejected',
+      'VersionConflict',
+      '此认领请求已被拒绝，请重新核对权属与认领预览。'
+    )
     if (await this.account.pending()) await this.account.resume()
     ensure(!(await this.account.pending()), 'Pending')
     const ownership = await this.ownership(job.name)
@@ -145,15 +154,22 @@ export class HandleClient {
       await this.save(job)
       return job
     }
-    await this.legacy(job.name)
     // Reauthorize the same immutable business intent only after certified
-    // absence. Expiry never creates another claim or changes its target.
+    // absence. The canister checks the frozen record; advisory queries must not
+    // prevent a prepared claim from reaching that authoritative result.
     await this.account.mutate(job.account, { AuthorizeHandle: { intent } })
     job.phase = 'authorized'
     await this.save(job)
     job.phase = 'unknown'
     await this.save(job)
-    const record = controlResult(await this.registry.claim_legacy_handle(intent, snapshot))
+    const response = await this.registry.claim_legacy_handle(intent, snapshot)
+    // Only a definite canister rejection permits fresh arguments. A transport
+    // failure or unknown execution keeps the original claim available for retry.
+    if ('Err' in response && !('ExecutionUnknown' in response.Err)) {
+      job.phase = 'rejected'
+      await this.save(job)
+    }
+    const record = controlResult(response)
     ensure(
       record.handle === job.name &&
         record.version === 1n &&

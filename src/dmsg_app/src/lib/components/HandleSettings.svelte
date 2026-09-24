@@ -66,8 +66,16 @@
   async function claim() {
     await session.run(async () => {
       if (!client || !job) throw new Error('请先核对认领预览。')
-      job = await client.run()
-      status = '免费认领已完成。名称映射已变更，原内容及权限分别保留。'
+      try {
+        await client.run()
+        status = '免费认领已完成。名称映射已变更，原内容及权限分别保留。'
+      } finally {
+        job = await client.job()
+        if (job?.phase === 'rejected') {
+          preview = null
+          status = ''
+        }
+      }
     })
   }
 </script>
@@ -114,7 +122,10 @@
         <dd><code>{preview.snapshot.source_canister.toText()}</code></dd>
       </div>
     </dl>{/if}
-  {#if job && job.phase !== 'claimed'}<p>
+  {#if job?.phase === 'rejected'}<p role="status">
+      上次认领未通过链上核验，请重新核对权属与认领预览。
+    </p>
+  {:else if job && job.phase !== 'claimed'}<p>
       待认领 {job.name} → {job.account}；旧身份 {job.sourceOwner}。此批准只用于这一精确意图。
     </p>
     <button class="primary" disabled={!client || session.busy} onclick={claim}
