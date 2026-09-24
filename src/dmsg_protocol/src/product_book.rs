@@ -26,6 +26,7 @@ pub struct ProductBook {
     /// At most one accepted uncommitted billing interval per subject.
     pub reservation: Option<Reservation>,
 }
+
 impl ProductBook {
     /// New product subject with a defined CAS revision.
     pub fn new(beneficiary: Beneficiary, revision: u64) -> Self {
@@ -36,6 +37,7 @@ impl ProductBook {
             reservation: None,
         }
     }
+
     /// Product-initiated configuration changes invalidate uncommitted offers.
     pub fn bump(&mut self) -> Result<()> {
         self.business_revision = self
@@ -44,6 +46,7 @@ impl ProductBook {
             .ok_or(Error::QuotaExceeded)?;
         Ok(())
     }
+
     /// Never evicts an unknown Apply. Historical records must already exist in the adapter archive.
     pub fn prune(&mut self, at: u64) {
         self.contracts
@@ -56,6 +59,7 @@ impl ProductBook {
             self.reservation = None;
         }
     }
+
     /// Reserve only after both independent authorities approve; quoting does not call this method.
     pub fn reserve(
         &mut self,
@@ -123,6 +127,7 @@ impl ProductBook {
         });
         Ok(())
     }
+
     /// Mark before any delivery-time role/qualification await; a sweep cannot erase it.
     pub fn begin_apply(&mut self, decision: &ProductDecision, at: u64) -> Result<()> {
         validate_decision(decision, at)?;
@@ -147,6 +152,7 @@ impl ProductBook {
         self.reservation.as_mut().expect("checked").decision_id = Some(decision.decision_id);
         Ok(())
     }
+
     /// Release only an unused reservation; it cannot end an applied contract or unknown Apply.
     pub fn release(&mut self, offer: &BillingOffer) -> Result<()> {
         if let Some(r) = &self.reservation {
@@ -158,6 +164,7 @@ impl ProductBook {
         }
         Ok(())
     }
+
     /// All fallible contract construction precedes mutation; the adapter saves this with its receipt.
     pub fn apply(
         &mut self,
@@ -213,6 +220,7 @@ impl ProductBook {
         self.reservation = None;
         Ok((c, receipt))
     }
+
     /// A definite rejection retires only that decision's reservation.
     pub fn reject(
         &mut self,
@@ -235,6 +243,7 @@ impl ProductBook {
             applied_at_ms: at,
         }
     }
+
     /// PANDA is never cancellable. Unstarted cash terms have not issued any rights.
     pub fn cancel_cash(
         &mut self,

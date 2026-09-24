@@ -285,12 +285,11 @@ fn authentication_certificate(account_id: AccountId, operation_id: Hash) -> Resu
     })
 }
 
-fn service_for(purpose: &ApprovalPurpose, account: &AccountState) -> Principal {
+fn service_for(purpose: &ApprovalPurpose) -> Principal {
     let config = store::config().init;
     match purpose {
         ApprovalPurpose::CashCheckout => config.commerce_canister,
         ApprovalPurpose::PandaSubscription => config.membership_canister,
-        ApprovalPurpose::AppAction => account.home_cose,
     }
 }
 
@@ -348,7 +347,7 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &application,
         &app,
         &product.ok_or(Error::NotFound)?,
-        service_for(&application.purpose, &account),
+        service_for(&application.purpose),
         at,
     )?;
     home_binding(&app, &account)?;
@@ -372,7 +371,14 @@ async fn verify_application_authorization(
     approval_id: Hash,
     expected: ApplicationApproval,
 ) -> Result<ApplicationAuthorization> {
-    let caller = ic_cdk::api::msg_caller();
+    verify_application(ic_cdk::api::msg_caller(), approval_id, expected).await
+}
+
+async fn verify_application(
+    caller: Principal,
+    approval_id: Hash,
+    expected: ApplicationApproval,
+) -> Result<ApplicationAuthorization> {
     ensure(caller == expected.service, Error::Forbidden)?;
     let (app, product) = configuration(
         expected.app_id.clone(),
@@ -386,7 +392,7 @@ async fn verify_application_authorization(
         &expected,
         &app,
         &product.ok_or(Error::NotFound)?,
-        service_for(&expected.purpose, &account),
+        service_for(&expected.purpose),
         at,
     )?;
     let state = load(&account.account_id);
@@ -483,17 +489,20 @@ async fn authorize_product_billing(
     let method = match request.account_approval.purpose {
         ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
         ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
-        _ => return Err(Error::Forbidden),
     };
-    let checked =
-        verify_application_authorization(request.approval_id, request.account_approval.clone())
-            .await?;
+    let checked = verify_application(
+        caller,
+        request.approval_id,
+        request.account_approval.clone(),
+    )
+    .await?;
     let at = nanos_to_millis(ic_cdk::api::time());
     validate_product_request(&request, caller, method, at)?;
+    let home = ic_cdk::api::canister_self();
     let b = &request.offer.beneficiary;
     ensure(
-        request.user_home == ic_cdk::api::canister_self()
-            && b.authority_canister == ic_cdk::api::canister_self()
+        request.user_home == home
+            && b.authority_canister == home
             && b.subject_schema == "dmsg-account-v1"
             && b.subject_bytes.as_ref() == request.account_approval.approving_account.as_slice(),
         Error::Forbidden,
@@ -518,14 +527,15 @@ async fn verify_product_account(
     beneficiary: dmsg_types::membership::Beneficiary,
 ) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
+    let home = ic_cdk::api::canister_self();
     let (app, product) = configuration(app_id, Some(beneficiary.product_id.clone())).await?;
     let product = product.ok_or(Error::NotFound)?;
     validate_subject(&beneficiary, &product)?;
     ensure(
         caller == product.adapter
-            && beneficiary.authority_canister == ic_cdk::api::canister_self()
+            && beneficiary.authority_canister == home
             && beneficiary.subject_schema == "dmsg-account-v1"
-            && app.user_homes.contains(&ic_cdk::api::canister_self()),
+            && app.user_homes.contains(&home),
         Error::Forbidden,
     )?;
     let id = AccountId(

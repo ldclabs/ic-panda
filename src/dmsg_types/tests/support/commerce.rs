@@ -31,6 +31,7 @@ pub fn asset() -> SettlementAsset {
         enabled: true,
     }
 }
+
 pub fn checkout() -> CheckoutQuote {
     checkout_quote(
         principal(8),
@@ -43,6 +44,7 @@ pub fn checkout() -> CheckoutQuote {
     )
     .unwrap()
 }
+
 pub fn terms() -> PandaApplicationTerms {
     PandaApplicationTerms {
         home_membership: principal(10),
@@ -55,6 +57,7 @@ pub fn terms() -> PandaApplicationTerms {
         quote: quote_panda(&offer(), &app(), &product(), &rate(), NOW).unwrap(),
     }
 }
+
 pub fn authorization(cash: bool) -> ProductAuthorizationRequest {
     let mut a = approval();
     a.purpose = if cash {
@@ -76,18 +79,21 @@ pub fn authorization(cash: bool) -> ProductAuthorizationRequest {
         product_approval: None,
     }
 }
+
 pub fn open() -> OpenCheckout {
     OpenCheckout {
         quote: checkout(),
         authorization: authorization(true),
     }
 }
+
 pub fn claim() -> PandaClaimRequest {
     PandaClaimRequest {
         terms: terms(),
         authorization: authorization(false),
     }
 }
+
 pub fn cash_decision() -> ProductDecision {
     let q = checkout();
     ProductDecision {
@@ -104,6 +110,7 @@ pub fn cash_decision() -> ProductDecision {
         apply_by_ms: NOW + CASH_ACTIVATION_MS,
     }
 }
+
 pub fn cash_source(d: &ProductDecision) -> SubscriptionSource {
     if let SettlementSource::Cash {
         order_id,

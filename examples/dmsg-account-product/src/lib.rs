@@ -30,17 +30,20 @@ pub struct Config {
     pub terms_hash: Hash,
     pub annual_usd_micros: u128,
 }
+
 #[derive(Clone, CandidType, Serialize, Deserialize)]
 pub struct Prepared {
     pub offer: BillingOffer,
     pub approval: ProductApproval,
 }
+
 #[derive(Clone, Serialize, Deserialize)]
 struct Subject {
     owner: Principal,
     book: ProductBook,
     offers: BTreeMap<Hash, Prepared>,
 }
+
 thread_local! {
  static MEM:RefCell<MemoryManager<DefaultMemoryImpl>>=RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
  static CONFIG:RefCell<StableCell<Stored<Option<Config>>,Memory>>=RefCell::new(StableCell::init(memory(0),Stored(None)));
@@ -50,15 +53,19 @@ thread_local! {
  static RELEASED:RefCell<StableBTreeMap<Vec<u8>,Stored<Hash>,Memory>>=RefCell::new(StableBTreeMap::init(memory(4)));
  static LOSE_ACK:RefCell<bool>=const {RefCell::new(false)};
 }
+
 fn memory(id: u8) -> Memory {
     MEM.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 fn config() -> Config {
     CONFIG.with_borrow(|c| c.get().0.clone().expect("initialized"))
 }
+
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
+
 fn subject(b: &Beneficiary) -> Result<Subject> {
     let c = config();
     ensure(
@@ -72,9 +79,11 @@ fn subject(b: &Beneficiary) -> Result<Subject> {
         .with_borrow(|t| t.load(&b.subject_bytes))
         .ok_or(Error::NotFound)
 }
+
 fn save(s: &Subject) {
     SUBJECTS.with_borrow_mut(|t| t.put(&s.book.beneficiary.subject_bytes, s));
 }
+
 fn service(m: &SettlementMethod) -> Principal {
     if *m == SettlementMethod::Cash {
         config().commerce
@@ -82,16 +91,18 @@ fn service(m: &SettlementMethod) -> Principal {
         config().membership
     }
 }
-fn method(a: &ApplicationApproval) -> Result<SettlementMethod> {
+
+fn method(a: &ApplicationApproval) -> SettlementMethod {
     match a.purpose {
-        ApprovalPurpose::CashCheckout => Ok(SettlementMethod::Cash),
-        ApprovalPurpose::PandaSubscription => Ok(SettlementMethod::Panda),
-        _ => Err(Error::Forbidden),
+        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
+        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
     }
 }
+
 fn receipt(id: Hash) -> Option<ProductReceipt> {
     RECEIPTS.with_borrow(|t| t.load(id.as_slice()))
 }
+
 #[ic_cdk::init]
 fn init(c: Config) {
     for p in [c.admin, c.commerce, c.membership] {
@@ -102,6 +113,7 @@ fn init(c: Config) {
     assert!(c.annual_usd_micros > 0);
     CONFIG.with_borrow_mut(|v| v.set(Stored(Some(c))));
 }
+
 #[ic_cdk::update]
 fn assign_account(id: AccountId, owner: Principal) -> Result<()> {
     let c = config();
@@ -130,6 +142,7 @@ fn assign_account(id: AccountId, owner: Principal) -> Result<()> {
     }
     Ok(())
 }
+
 #[ic_cdk::update]
 fn prepare_billing_offer(
     id: AccountId,
@@ -196,8 +209,9 @@ fn prepare_billing_offer(
     save(&s);
     Ok(result)
 }
+
 fn check(request: &ProductAuthorizationRequest, at: u64) -> Result<Subject> {
-    let m = method(&request.account_approval)?;
+    let m = method(&request.account_approval);
     ensure(ic_cdk::api::msg_caller() == service(&m), Error::Forbidden)?;
     validate_product_request(request, service(&m), m.clone(), at)?;
     let s = subject(&request.offer.beneficiary)?;
@@ -215,6 +229,7 @@ fn check(request: &ProductAuthorizationRequest, at: u64) -> Result<Subject> {
     check_operator_approval(&expected.approval, &request.offer, m, at)?;
     Ok(s)
 }
+
 #[ic_cdk::update]
 fn verify_billing_offer(offer: BillingOffer) -> Result<()> {
     ensure(
@@ -231,6 +246,7 @@ fn verify_billing_offer(offer: BillingOffer) -> Result<()> {
         Error::PolicyStale,
     )
 }
+
 #[ic_cdk::update]
 fn authorize_product_billing(request: ProductAuthorizationRequest) -> Result<ProductAuthorization> {
     let at = now();
@@ -242,6 +258,7 @@ fn authorize_product_billing(request: ProductAuthorizationRequest) -> Result<Pro
         valid_until_ms: (at + MINUTE).min(request.account_approval.expires_at_ms),
     })
 }
+
 #[ic_cdk::update]
 fn reserve_product_billing(request: ProductAuthorizationRequest, until: u64) -> Result<()> {
     let at = now();
@@ -256,10 +273,11 @@ fn reserve_product_billing(request: ProductAuthorizationRequest, until: u64) -> 
     save(&s);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == service(&method(&request.account_approval)?),
+        ic_cdk::api::msg_caller() == service(&method(&request.account_approval)),
         Error::Forbidden,
     )?;
     let mut s = subject(&request.offer.beneficiary)?;
@@ -272,6 +290,7 @@ fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     save(&s);
     Ok(())
 }
+
 #[ic_cdk::update]
 async fn apply_product_decision(d: ProductDecision) -> Result<ProductReceipt> {
     let c = config();
@@ -380,6 +399,7 @@ async fn apply_product_decision(d: ProductDecision) -> Result<ProductReceipt> {
     }
     Ok(r)
 }
+
 #[ic_cdk::update]
 fn get_product_decision(id: Hash) -> Result<Option<ProductReceipt>> {
     ensure(
@@ -388,6 +408,7 @@ fn get_product_decision(id: Hash) -> Result<Option<ProductReceipt>> {
     )?;
     Ok(receipt(id))
 }
+
 #[ic_cdk::update]
 fn cancel_cash_contract(
     order: Hash,
@@ -434,6 +455,7 @@ fn cancel_cash_contract(
     CANCELLED.with_borrow_mut(|t| t.put(order.as_slice(), &r));
     Ok(r)
 }
+
 #[ic_cdk::update]
 fn get_cash_cancellation(id: Hash) -> Result<Option<CashCancellationReceipt>> {
     ensure(
@@ -442,6 +464,7 @@ fn get_cash_cancellation(id: Hash) -> Result<Option<CashCancellationReceipt>> {
     )?;
     Ok(CANCELLED.with_borrow(|t| t.load(id.as_slice())))
 }
+
 #[ic_cdk::query]
 fn contracts(id: AccountId) -> Result<Vec<SubscriptionContract>> {
     let s = SUBJECTS
@@ -450,6 +473,7 @@ fn contracts(id: AccountId) -> Result<Vec<SubscriptionContract>> {
     ensure(ic_cdk::api::msg_caller() == s.owner, Error::Forbidden)?;
     Ok(s.book.contracts)
 }
+
 /// Fault injection exists only in Local; it changes delivery transport, never authorization.
 #[ic_cdk::update]
 fn lose_next_apply_ack() -> Result<()> {
@@ -460,6 +484,7 @@ fn lose_next_apply_ack() -> Result<()> {
     LOSE_ACK.with_borrow_mut(|v| *v = true);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn barrier() {}
 ic_cdk::export_candid!();

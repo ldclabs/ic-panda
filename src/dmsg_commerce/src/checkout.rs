@@ -28,6 +28,7 @@ struct Asset {
     verified: bool,
     fee: u128,
 }
+
 thread_local! {
     static PRICE_AUTHORITY:RefCell<StableCell<Stored<Option<Principal>>,Memory>>=RefCell::new(StableCell::init(store::memory(15),Stored(None)));
     static ASSETS:RefCell<StableBTreeMap<Vec<u8>,Stored<Asset>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(10)));
@@ -36,41 +37,50 @@ thread_local! {
     static TRANSFERS:RefCell<StableBTreeMap<Vec<u8>,Stored<Transfer>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(13)));
     static BLOCKS:RefCell<StableBTreeMap<Vec<u8>,Stored<Hash>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(14)));
 }
+
 fn asset(ledger: Principal) -> Result<Asset> {
     ASSETS
         .with_borrow(|t| t.load(ledger.as_slice()))
         .ok_or(Error::NotFound)
 }
+
 fn order(id: Hash) -> Result<Order> {
     ORDERS
         .with_borrow(|t| t.load(id.as_slice()))
         .ok_or(Error::NotFound)
 }
+
 fn transfer(id: Hash) -> Result<Transfer> {
     TRANSFERS
         .with_borrow(|t| t.load(id.as_slice()))
         .ok_or(Error::NotFound)
 }
+
 fn block_key(block: &CashBlock) -> Hash {
     digest("dmsg/checkout/block/v2", block)
 }
+
 fn deposit_key(id: Hash, block: &CashBlock) -> Vec<u8> {
     [id.as_slice(), block_key(block).as_slice()].concat()
 }
+
 fn deposit(id: Hash, block: &CashBlock) -> Result<CheckoutDeposit> {
     DEPOSITS
         .with_borrow(|t| t.load(&deposit_key(id, block)))
         .ok_or(Error::NotFound)
 }
+
 fn save(o: &Order) {
     assert!(o.conserved(), "per-ledger money conservation");
     ORDERS.with_borrow_mut(|t| t.put(o.id.as_slice(), o));
     store::CERT.with_borrow_mut(|c| c.put(order_key(o.id), &o.view()));
 }
+
 fn save_transfer(t: &Transfer) {
     TRANSFERS.with_borrow_mut(|m| m.put(t.view.transfer_id.as_slice(), t));
     store::CERT.with_borrow_mut(|c| c.put(transfer_key(t.view.transfer_id), &t.view));
 }
+
 fn read_access(o: &Order, caller: Principal) -> Result<()> {
     ensure(
         caller == o.input.quote.cash.payer.owner
@@ -79,6 +89,7 @@ fn read_access(o: &Order, caller: Principal) -> Result<()> {
         Error::Forbidden,
     )
 }
+
 fn configuration(offer: &BillingOffer) -> Result<(AppRegistration, ProductRegistration)> {
     let (a, p) = registrations::configuration(&offer.app_id, Some(&offer.product_id))?;
     Ok((a, p.ok_or(Error::NotFound)?))
@@ -141,6 +152,7 @@ struct Standard {
     name: String,
     url: String,
 }
+
 #[ic_cdk::update]
 async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128>) -> Result<()> {
     let previous = asset(ledger)?;
@@ -244,7 +256,12 @@ async fn quote_checkout(
     )
 }
 
-async fn authorize(input: &OpenCheckout, caller: Principal, at: u64) -> Result<()> {
+async fn authorize(
+    input: &OpenCheckout,
+    caller: Principal,
+    home: Principal,
+    at: u64,
+) -> Result<()> {
     let quote = &input.quote;
     let auth = &input.authorization;
     let (app, product) = configuration(&quote.offer)?;
@@ -256,21 +273,10 @@ async fn authorize(input: &OpenCheckout, caller: Principal, at: u64) -> Result<(
             && app.user_homes.contains(&auth.user_home),
         Error::Forbidden,
     )?;
-    validate_product_request(
-        auth,
-        ic_cdk::api::canister_self(),
-        SettlementMethod::Cash,
-        at,
-    )?;
-    validate_application_approval(
-        &auth.account_approval,
-        &app,
-        &product,
-        ic_cdk::api::canister_self(),
-        at,
-    )?;
+    validate_product_request(auth, home, SettlementMethod::Cash, at)?;
+    validate_application_approval(&auth.account_approval, &app, &product, home, at)?;
     let reconstructed = checkout_quote(
-        ic_cdk::api::canister_self(),
+        home,
         quote.offer.clone(),
         &app,
         &product,
@@ -286,12 +292,9 @@ async fn authorize(input: &OpenCheckout, caller: Principal, at: u64) -> Result<(
         Error::IntegrityFailed,
     )?;
     let a = asset(quote.cash.ledger)?;
-    asset_available(&a.policy, at)?;
+    check_quoted_asset(&a.policy, &quote.asset, at)?;
     ensure(
-        a.verified
-            && a.fee == a.policy.network_fee_atomic
-            && a.policy == quote.asset
-            && !store::config().paused,
+        a.verified && a.fee == a.policy.network_fee_atomic && !store::config().paused,
         Error::PolicyStale,
     )?;
     let product_auth: Result<ProductAuthorization> = call(
@@ -328,9 +331,9 @@ async fn authorize(input: &OpenCheckout, caller: Principal, at: u64) -> Result<(
         Error::PolicyStale,
     )?;
     let a = asset(quote.cash.ledger)?;
-    asset_available(&a.policy, at)?;
+    check_quoted_asset(&a.policy, &quote.asset, at)?;
     ensure(
-        a.verified && a.fee == a.policy.network_fee_atomic && a.policy == quote.asset,
+        a.verified && a.fee == a.policy.network_fee_atomic,
         Error::PolicyStale,
     )
 }
@@ -338,8 +341,9 @@ async fn authorize(input: &OpenCheckout, caller: Principal, at: u64) -> Result<(
 #[ic_cdk::update]
 async fn open_checkout(input: OpenCheckout) -> Result<CheckoutView> {
     let caller = ic_cdk::api::msg_caller();
+    let home = ic_cdk::api::canister_self();
     authenticated(caller)?;
-    let id = checkout_id(ic_cdk::api::canister_self(), &input.quote.offer);
+    let id = checkout_id(home, &input.quote.offer);
     if let Ok(old) = order(id) {
         read_access(&old, caller)?;
         ensure(old.input == input, Error::IdempotencyConflict)?;
@@ -351,14 +355,14 @@ async fn open_checkout(input: OpenCheckout) -> Result<CheckoutView> {
         Error::QuotaExceeded,
     )?;
     store::reserve_call(at, store::CallBudget::Authorization(caller))?;
-    authorize(&input, caller, at).await?;
+    authorize(&input, caller, home, at).await?;
     let at = nanos_to_millis(ic_cdk::api::time());
     if let Ok(old) = order(id) {
         ensure(old.input == input, Error::IdempotencyConflict)?;
         return Ok(old.view());
     }
     store::reserve_order(at)?;
-    let o = Order::new(ic_cdk::api::canister_self(), input);
+    let o = Order::new(home, input);
     save(&o);
     reserve(id).await?;
     Ok(order(id)?.view())
@@ -531,10 +535,12 @@ fn get_checkout(id: Hash) -> Result<CheckoutView> {
     read_access(&o, ic_cdk::api::msg_caller())?;
     Ok(o.view())
 }
+
 #[ic_cdk::query]
 fn checkout_progress(id: Hash) -> Result<CheckoutProgress> {
     Ok(order(id)?.progress())
 }
+
 #[ic_cdk::query]
 fn checkout_deposits(id: Hash) -> Result<Vec<CheckoutDeposit>> {
     let o = order(id)?;
@@ -695,9 +701,9 @@ fn claim_checkout_refund(
             .ok_or(Error::QuotaExceeded)?;
         deposits.push(d);
     }
+    let caller = ic_cdk::api::msg_caller();
     ensure(
-        destination.is_some_and(|a| a.owner == ic_cdk::api::msg_caller())
-            || ic_cdk::api::msg_caller() == o.input.quote.cash.payer.owner,
+        destination.is_some_and(|a| a.owner == caller) || caller == o.input.quote.cash.payer.owner,
         Error::Forbidden,
     )?;
     let a = asset(ledger)?;
@@ -806,11 +812,11 @@ fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
 
 #[ic_cdk::query]
 fn get_checkout_transfer(id: Hash) -> Result<CashTransfer> {
+    let caller = ic_cdk::api::msg_caller();
     let t = transfer(id)?;
     let o = order(t.view.order_id)?;
     ensure(
-        t.view.to.owner == ic_cdk::api::msg_caller()
-            || read_access(&o, ic_cdk::api::msg_caller()).is_ok(),
+        t.view.to.owner == caller || read_access(&o, caller).is_ok(),
         Error::Forbidden,
     )?;
     Ok(t.view)
@@ -836,6 +842,7 @@ fn complete_transfer(id: Hash, block: u128) -> Result<CashTransfer> {
 async fn process_checkout_transfer(id: Hash) -> Result<CashTransferProgress> {
     dispatch_transfer(id).await.map(Into::into)
 }
+
 async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
     let at = nanos_to_millis(ic_cdk::api::time());
     store::reserve_call(at, store::CallBudget::Funds)?;
@@ -948,6 +955,7 @@ async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
 async fn reconcile_checkout_transfer(id: Hash, block: CashBlock) -> Result<CashTransferProgress> {
     verify_transfer(id, block).await.map(Into::into)
 }
+
 async fn verify_transfer(id: Hash, block: CashBlock) -> Result<CashTransfer> {
     let t = transfer(id)?;
     ensure(block.ledger == t.view.ledger, Error::Forbidden)?;
@@ -1036,31 +1044,38 @@ fn revise_checkout_transfer_fee(id: Hash, new_fee: u128) -> Result<CashTransfer>
 fn order_key(id: Hash) -> Vec<u8> {
     digest("dmsg/checkout/certificate/v2", &id).to_vec()
 }
+
 fn transfer_key(id: Hash) -> Vec<u8> {
     digest("dmsg/checkout/transfer-certificate/v2", &id).to_vec()
 }
+
 fn assets_key() -> Vec<u8> {
     digest("dmsg/settlement-assets/v2", &"supported").to_vec()
 }
+
 fn publish_assets() {
     let views = settlement_assets();
     store::CERT.with_borrow_mut(|c| c.put(assets_key(), &views));
 }
+
 #[ic_cdk::query]
 fn settlement_assets_certificate() -> Result<CertifiedBatch> {
     store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![assets_key()]))
 }
+
 #[ic_cdk::query]
 fn checkout_certificate(id: Hash) -> Result<CertifiedBatch> {
     let o = order(id)?;
     read_access(&o, ic_cdk::api::msg_caller())?;
     store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![order_key(id)]))
 }
+
 #[ic_cdk::query]
 fn checkout_transfer_certificate(id: Hash) -> Result<CertifiedBatch> {
     get_checkout_transfer(id)?;
     store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![transfer_key(id)]))
 }
+
 pub(crate) fn rebuild(cert: &mut dmsg_runtime::Certification) {
     ORDERS.with_borrow(|t| {
         t.for_each(|_, o| {
@@ -1086,6 +1101,7 @@ fn set_settlement_price_authority(authority: Principal) -> Result<()> {
     PRICE_AUTHORITY.with_borrow_mut(|c| c.set(Stored(Some(authority))));
     Ok(())
 }
+
 #[ic_cdk::update]
 fn publish_settlement_price(
     ledger: Principal,
@@ -1171,6 +1187,7 @@ fn checkout_operations(after: Option<Hash>, take: u16) -> Result<CheckoutOperati
     });
     Ok(CheckoutOperationsPage { orders, next })
 }
+
 #[ic_cdk::query]
 fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPage> {
     use std::ops::Bound::{Excluded, Unbounded};

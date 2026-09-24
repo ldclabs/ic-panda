@@ -15,6 +15,7 @@ pub struct Config {
     pub sns_verified_at_ms: u64,
     pub paused: bool,
 }
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 struct Limits {
     minute: u64,
@@ -22,6 +23,7 @@ struct Limits {
     refreshes: u32,
     authorizations: BTreeMap<candid::Principal, u32>,
 }
+
 thread_local! {
  static MEMORY:RefCell<MemoryManager<DefaultMemoryImpl>>=RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(),16));
  static CONFIG:RefCell<StableCell<Stored<Option<Config>>,Memory>>=RefCell::new(StableCell::init(memory(0),Stored(None)));
@@ -29,25 +31,31 @@ thread_local! {
  static LIMITS:RefCell<Limits>=RefCell::new(STABLE_LIMITS.with_borrow(|c|c.get().0.clone()));
  pub static CERT:RefCell<Certification>=RefCell::new(Certification::default());
 }
+
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
+
 pub fn config() -> Config {
     CONFIG
         .with_borrow(|c| c.get().0.clone())
         .expect("membership initialized")
 }
+
 pub fn save_config(c: &Config) {
     CONFIG.with_borrow_mut(|m| m.set(Stored(Some(c.clone()))));
 }
+
 pub fn persist_limits() {
     LIMITS.with_borrow(|v| STABLE_LIMITS.with_borrow_mut(|m| m.set(Stored(v.clone()))));
 }
+
 pub enum CallBudget {
     Authorization(candid::Principal),
     Qualification,
     Refresh,
 }
+
 pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
     LIMITS.with_borrow_mut(|c| {
         if c.minute != at / MINUTE {
@@ -74,6 +82,7 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
         Ok(())
     })
 }
+
 pub fn rebuild() {
     CERT.with_borrow_mut(|c| {
         *c = Certification::default();

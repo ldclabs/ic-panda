@@ -13,6 +13,7 @@ pub struct Balance {
     pub fees: u128,
     pub outgoing: u128,
 }
+
 impl Balance {
     pub fn conserved(&self) -> bool {
         self.refundable
@@ -40,6 +41,7 @@ pub struct Order {
     pub generation: u64,
     pub busy_until_ms: u64,
 }
+
 impl Order {
     pub fn new(home: Principal, input: OpenCheckout) -> Self {
         Self {
@@ -59,6 +61,7 @@ impl Order {
             busy_until_ms: 0,
         }
     }
+
     pub fn progress(&self) -> CheckoutProgress {
         CheckoutProgress {
             order_id: self.id,
@@ -66,6 +69,7 @@ impl Order {
             decision_id: self.decision.as_ref().map(|d| d.decision_id),
         }
     }
+
     pub fn view(&self) -> CheckoutView {
         let balance = self
             .balances
@@ -81,9 +85,11 @@ impl Order {
             fee_reserve_atomic: balance.fees,
         }
     }
+
     pub fn conserved(&self) -> bool {
         self.balances.values().all(Balance::conserved)
     }
+
     /// Record actual money first. A valid one-shot payment freezes the decision before any await.
     pub fn deposit(
         &mut self,
@@ -157,6 +163,7 @@ impl Order {
         self.balances.insert(ledger, balance);
         Ok(deposit)
     }
+
     pub fn accept(&mut self, receipt: ProductReceipt) -> Result<()> {
         if let Some(old) = &self.receipt {
             return ensure(*old == receipt, Error::IdempotencyConflict);
@@ -175,6 +182,7 @@ impl Order {
         self.receipt = Some(receipt);
         Ok(())
     }
+
     /// Returns the amount added back to the original funding deposit's refundable obligation.
     pub fn refund_price(&mut self) -> Result<u128> {
         ensure(
@@ -197,6 +205,7 @@ impl Order {
         balance.refundable = refundable;
         Ok(total)
     }
+
     pub fn earned(&self, at: u64) -> Result<u128> {
         ensure(
             self.status == CheckoutStatus::Applied && !self.cancellation_pending,
@@ -276,6 +285,7 @@ pub fn transfer(
         dispatched_at_ms: 0,
     })
 }
+
 #[cfg(test)]
 #[path = "../../dmsg_types/tests/support/commerce.rs"]
 pub(crate) mod fixture;
@@ -301,11 +311,13 @@ mod tests {
             spender: None,
         }
     }
+
     fn order() -> Order {
         let mut o = Order::new(principal(8), fixture::open());
         o.status = CheckoutStatus::AwaitingFunding;
         o
     }
+
     #[test]
     fn wrong_ledger_source_partial_and_excess_remain_isolated_refund_obligations() {
         let mut o = order();
@@ -332,6 +344,7 @@ mod tests {
         assert_eq!(d.refundable_atomic, total);
         assert!(o.conserved());
     }
+
     #[test]
     fn late_funding_and_definite_nondelivery_refund_without_allocating_revenue() {
         let mut o = order();
@@ -352,6 +365,7 @@ mod tests {
         assert_eq!(o.refund_price().unwrap(), 0);
         assert!(o.conserved());
     }
+
     #[test]
     fn applied_receipt_is_idempotent_and_revenue_starts_only_at_delivery_and_term_start() {
         let mut o = order();

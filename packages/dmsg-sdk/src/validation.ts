@@ -436,12 +436,7 @@ export function validateApplicationApproval(
       equalBytes(value.service, expectedService),
     "approval binding",
   );
-  requireValid(
-    app.capabilities.includes(
-      value.purpose === "AppAction" ? "SignAction" : "Checkout",
-    ),
-    "capability",
-  );
+  requireValid(app.capabilities.includes("Checkout"), "capability");
   principal(value.actor);
   principal(value.service);
   requireValid(

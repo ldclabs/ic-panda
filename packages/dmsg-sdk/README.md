@@ -59,6 +59,8 @@ It must not grant rights from a redirect, screenshot, wallet response, browser
 - `@dmsg/sdk/ic`: verify IC root, fixed home, certificate time, witness and exact
   authentication challenge or certified leaf.
 - `@dmsg/sdk/statements`: verify the original COSE signature and content profile.
+- `@dmsg/sdk/codec` / `@dmsg/sdk/errors`: the bounded canonical CBOR, base64url
+  and hex codec used by those statements, and its coded `DmsgError`.
 - Main export: verify closed action/checkout shapes, file/input commitments,
   exact conversion and one-rounding PANDA arithmetic; convert against **generated
   Candid types** with `fromCandid` / `toCandid`.

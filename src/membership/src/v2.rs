@@ -20,6 +20,7 @@ struct Counters {
     hour: u64,
     applications: u64,
 }
+
 thread_local! {
     static CONFIG:RefCell<StableCell<Stored<Option<PandaServiceConfig>>,Memory>>=RefCell::new(StableCell::init(store::memory(7),Stored(None)));
     static CLAIMS:RefCell<StableBTreeMap<Vec<u8>,Stored<Claim>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(8)));
@@ -29,39 +30,47 @@ thread_local! {
     static EXPIRATIONS:RefCell<StableBTreeMap<Vec<u8>,Stored<Hash>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(12)));
     static COUNTERS:RefCell<StableCell<Stored<Counters>,Memory>>=RefCell::new(StableCell::init(store::memory(13),Stored(Counters::default())));
 }
+
 fn config() -> Result<PandaServiceConfig> {
     CONFIG
         .with_borrow(|c| c.get().0.clone())
         .ok_or(Error::Unavailable("PANDA service unconfigured".into()))
 }
+
 fn load(id: Hash) -> Result<Claim> {
     CLAIMS
         .with_borrow(|t| t.load(id.as_slice()))
         .ok_or(Error::NotFound)
 }
+
 fn key(id: Hash) -> Vec<u8> {
     digest("dmsg/panda/claim-certificate/v2", &id).to_vec()
 }
+
 fn neuron(terms: &PandaApplicationTerms) -> Hash {
     digest(
         "dmsg/panda/occupancy/v2",
         &(terms.sns_governance, terms.neuron_id),
     )
 }
+
 fn expiry_key(at: u64, id: Hash) -> Vec<u8> {
     [&at.to_be_bytes(), id.as_slice()].concat()
 }
+
 fn actor(c: &Claim, caller: Principal) -> Result<()> {
     ensure(
         caller == c.view.terms.actor || caller == c.view.terms.offer.adapter,
         Error::Forbidden,
     )
 }
+
 fn budget(id: Hash) -> Result<PandaSubsidyBudget> {
     BUDGETS
         .with_borrow(|t| t.load(id.as_slice()))
         .ok_or(Error::QuotaExceeded)
 }
+
 fn save(c: &mut Claim) {
     let old = load(c.view.claim_id).ok();
     c.view.lease_revision = old.as_ref().map_or(c.view.lease_revision, |v| {
@@ -94,6 +103,7 @@ fn save(c: &mut Claim) {
     CLAIMS.with_borrow_mut(|t| t.put(c.view.claim_id.as_slice(), c));
     store::CERT.with_borrow_mut(|t| t.put(key(c.view.claim_id), &c.view));
 }
+
 fn release_budget(c: &mut Claim) -> Result<()> {
     if c.budget_reserved && !c.holds() {
         let mut b = budget(c.view.terms.quote.policy.subsidy_budget_id)?;
@@ -132,6 +142,7 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
     CONFIG.with_borrow_mut(|c| c.set(Stored(Some(next))));
     Ok(())
 }
+
 #[ic_cdk::update]
 fn set_panda_subsidy_budget(id: Hash, total_usd_micros: u128) -> Result<PandaSubsidyBudget> {
     ensure(
@@ -157,6 +168,7 @@ fn set_panda_subsidy_budget(id: Hash, total_usd_micros: u128) -> Result<PandaSub
     BUDGETS.with_borrow_mut(|t| t.put(id.as_slice(), &b));
     Ok(b)
 }
+
 #[ic_cdk::update]
 fn schedule_panda_rate(policy: PandaRatePolicy) -> Result<PandaRatePolicy> {
     ensure(
@@ -195,6 +207,7 @@ fn schedule_panda_rate(policy: PandaRatePolicy) -> Result<PandaRatePolicy> {
     POLICIES.with_borrow_mut(|t| t.put(&policy.policy_version.to_be_bytes(), &policy));
     Ok(policy)
 }
+
 fn policy(product: &str, at: u64) -> Result<PandaRatePolicy> {
     POLICIES
         .with_borrow(|t| {
@@ -205,6 +218,7 @@ fn policy(product: &str, at: u64) -> Result<PandaRatePolicy> {
         })
         .ok_or(Error::NotFound)
 }
+
 async fn registration(offer: &BillingOffer) -> Result<(AppRegistration, ProductRegistration)> {
     let result: Result<(AppRegistration, Option<ProductRegistration>)> = call(
         config()?.commerce_canister,
@@ -215,6 +229,7 @@ async fn registration(offer: &BillingOffer) -> Result<(AppRegistration, ProductR
     let (a, p) = result?;
     Ok((a, p.ok_or(Error::NotFound)?))
 }
+
 fn admission() -> Result<()> {
     let c = store::config();
     ensure(!c.paused && c.sns_verified, Error::Locked)
@@ -228,6 +243,7 @@ async fn quote_panda_subscription(
     neuron_id: Hash,
 ) -> Result<PandaApplicationTerms> {
     let caller = ic_cdk::api::msg_caller();
+    let home = ic_cdk::api::canister_self();
     authenticated(caller)?;
     admission()?;
     let at = nanos_to_millis(ic_cdk::api::time());
@@ -245,7 +261,7 @@ async fn quote_panda_subscription(
     let rate = policy(&offer.product_id, at)?;
     let quote = quote_panda(&offer, &app, &product, &rate, at)?;
     let terms = PandaApplicationTerms {
-        home_membership: ic_cdk::api::canister_self(),
+        home_membership: home,
         user_home,
         approving_account,
         actor: caller,
@@ -258,7 +274,7 @@ async fn quote_panda_subscription(
         &terms,
         &app,
         &product,
-        ic_cdk::api::canister_self(),
+        home,
         store::config().init.governance,
         at,
         true,
@@ -267,6 +283,7 @@ async fn quote_panda_subscription(
 }
 
 async fn authorize(request: &PandaClaimRequest, initial: bool) -> Result<()> {
+    let home = ic_cdk::api::canister_self();
     let t = &request.terms;
     let a = &request.authorization;
     let (app, product) = registration(&t.offer).await?;
@@ -276,7 +293,7 @@ async fn authorize(request: &PandaClaimRequest, initial: bool) -> Result<()> {
         t,
         &app,
         &product,
-        ic_cdk::api::canister_self(),
+        home,
         store::config().init.governance,
         at,
         initial,
@@ -295,14 +312,8 @@ async fn authorize(request: &PandaClaimRequest, initial: bool) -> Result<()> {
             && a.account_approval.action_digest == panda_application_hash(t),
         Error::Forbidden,
     )?;
-    validate_product_request(a, ic_cdk::api::canister_self(), SettlementMethod::Panda, at)?;
-    validate_application_approval(
-        &a.account_approval,
-        &app,
-        &product,
-        ic_cdk::api::canister_self(),
-        at,
-    )?;
+    validate_product_request(a, home, SettlementMethod::Panda, at)?;
+    validate_application_approval(&a.account_approval, &app, &product, home, at)?;
     let product_auth: Result<ProductAuthorization> = call(
         product.beneficiary_authority,
         "authorize_product_billing",
@@ -365,6 +376,7 @@ fn check_occupancy(terms: &PandaApplicationTerms, at: u64) -> Result<()> {
     }
     Ok(())
 }
+
 #[ic_cdk::update]
 async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimView> {
     let caller = ic_cdk::api::msg_caller();
@@ -451,6 +463,7 @@ async fn reserve_product(id: Hash) -> Result<()> {
     save(&mut current);
     Ok(())
 }
+
 async fn qualify(id: Hash) -> Result<()> {
     let at = nanos_to_millis(ic_cdk::api::time());
     let mut c = load(id)?;
@@ -572,6 +585,7 @@ async fn advance_panda_claim(
     deliver(id, false).await?;
     Ok(load(id)?.view)
 }
+
 async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
     let c = load(id)?;
     if c.view.receipt.is_some() {
@@ -613,6 +627,7 @@ async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
     save(&mut current);
     Ok(())
 }
+
 async fn release_product(id: Hash) -> Result<()> {
     let c = load(id)?;
     if c.reservation_released || c.view.committed_until_ms > 0 || c.decision.is_some() {
@@ -642,6 +657,7 @@ async fn cancel_panda_application(id: Hash) -> Result<PandaClaimView> {
     release_product(id).await?;
     Ok(load(id)?.view)
 }
+
 #[ic_cdk::update]
 async fn reconcile_panda_claim(id: Hash) -> Result<PandaClaimView> {
     let c = load(id)?;
@@ -659,6 +675,7 @@ async fn reconcile_panda_claim(id: Hash) -> Result<PandaClaimView> {
     }
     Ok(load(id)?.view)
 }
+
 #[ic_cdk::update]
 async fn refresh_panda_claim(id: Hash) -> Result<PandaClaimView> {
     let c = load(id)?;
@@ -679,6 +696,7 @@ async fn refresh_panda_claim(id: Hash) -> Result<PandaClaimView> {
     }
     Ok(load(id)?.view)
 }
+
 #[ic_cdk::update]
 fn get_panda_claim_for_product(id: Hash) -> Result<PandaClaimView> {
     let c = load(id)?;
@@ -688,22 +706,26 @@ fn get_panda_claim_for_product(id: Hash) -> Result<PandaClaimView> {
     )?;
     Ok(c.view)
 }
+
 #[ic_cdk::query]
 fn get_panda_claim(id: Hash) -> Result<PandaClaimView> {
     let c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
     Ok(c.view)
 }
+
 #[ic_cdk::query]
 fn panda_claim_certificate(id: Hash) -> Result<CertifiedBatch> {
     let c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
     store::CERT.with_borrow(|t| t.batch(ic_cdk::api::canister_self(), vec![key(id)]))
 }
+
 #[ic_cdk::query]
 fn panda_budgets() -> Vec<PandaSubsidyBudget> {
     BUDGETS.with_borrow(|t| t.iter().map(|v| v.value().0).collect())
 }
+
 fn sweep(at: u64) -> Result<u32> {
     let ids: Vec<Hash> = EXPIRATIONS.with_borrow(|t| {
         t.range(..=expiry_key(at, Hash::new([255; 32])))
@@ -721,10 +743,12 @@ fn sweep(at: u64) -> Result<u32> {
     }
     Ok(released)
 }
+
 #[ic_cdk::update]
 fn sweep_panda_commitments() -> Result<u32> {
     sweep(nanos_to_millis(ic_cdk::api::time()))
 }
+
 pub(crate) fn rebuild(cert: &mut dmsg_runtime::Certification) {
     CLAIMS.with_borrow(|t| {
         t.for_each(|_, c| {

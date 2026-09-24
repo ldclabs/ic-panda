@@ -153,8 +153,7 @@ export const schemas = {
   },
   "ApprovalPurpose": [
     "CashCheckout",
-    "PandaSubscription",
-    "AppAction"
+    "PandaSubscription"
   ],
   "ApplicationApproval": {
     "version": "u16",

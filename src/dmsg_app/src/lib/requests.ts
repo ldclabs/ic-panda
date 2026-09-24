@@ -65,38 +65,45 @@ export async function enqueueRequest(
       await tx.done
       return { ...old, source }
     }
-    const now = Date.now(),
-      records = (await tx.store.getAll()) as PendingRequest[]
-    for (const previous of records) {
-      if (previous.state === 'awaiting_user' && previous.expiresAt <= now) {
-        previous.state = 'expired'
-        await tx.store.put(previous)
-      }
-    }
-    const terminal = records
-      .filter((r) => !['awaiting_user', 'authorized', 'execution_unknown'].includes(r.state))
-      .sort((a, b) => b.createdAt - a.createdAt)
-    for (const previous of terminal.slice(5000)) await tx.store.delete(previous.id)
-    const pending = records.filter(
-      (r) => r.state === 'awaiting_user' && r.expiresAt > Date.now()
-    )
-    ensure(
-      pending.length < 20 &&
-        pending.filter((r) => r.source.origin === source.origin).length < 5,
-      'QUOTA_EXCEEDED',
-      '待确认请求过多。'
-    )
-    ensure(
-      records.length - Math.max(0, terminal.length - 5000) < 10000,
-      'QUOTA_EXCEEDED',
-      '请求历史容量已满。'
-    )
+    await admitRequest(tx.store, (await tx.store.getAll()) as PendingRequest[], source)
     await tx.store.add(record)
     await tx.done
     return record
   } finally {
     db.db.close()
   }
+}
+/** Shared admission: expire stale prompts, bound terminal history and unanswered prompts. */
+export async function admitRequest(
+  store: {
+    put(value: PendingRequest): Promise<unknown>
+    delete(id: string): Promise<void>
+  },
+  records: PendingRequest[],
+  source: SourceBinding
+) {
+  const now = Date.now()
+  for (const previous of records) {
+    if (previous.state === 'awaiting_user' && previous.expiresAt <= now) {
+      previous.state = 'expired'
+      await store.put(previous)
+    }
+  }
+  const terminal = records
+    .filter((r) => !['awaiting_user', 'authorized', 'execution_unknown'].includes(r.state))
+    .sort((a, b) => b.createdAt - a.createdAt)
+  for (const previous of terminal.slice(5000)) await store.delete(previous.id)
+  const pending = records.filter((r) => r.state === 'awaiting_user' && r.expiresAt > now)
+  ensure(
+    pending.length < 20 && pending.filter((r) => r.source.origin === source.origin).length < 5,
+    'QUOTA_EXCEEDED',
+    '待确认请求过多。'
+  )
+  ensure(
+    records.length - Math.max(0, terminal.length - 5000) < 10000,
+    'QUOTA_EXCEEDED',
+    '请求历史容量已满。'
+  )
 }
 export async function listRequests(): Promise<PendingRequest[]> {
   if (!(await currentWorkspace())) return []

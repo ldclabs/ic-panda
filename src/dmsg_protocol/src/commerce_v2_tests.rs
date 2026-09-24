@@ -1,5 +1,6 @@
 use crate::commerce_v2::{
-    asset_available, cash_amount, contract, entitlement_until, observe_contract, validate_asset,
+    asset_available, cash_amount, check_quoted_asset, contract, entitlement_until,
+    observe_contract, validate_asset,
 };
 use crate::integration::{panda_quote_hash, product_decision_hash};
 use crate::product_book::ProductBook;
@@ -29,6 +30,33 @@ fn cash_price_is_exact_and_admission_never_infers_a_dollar_peg() {
     a.price_usd_micros = 1;
     assert_eq!(cash_amount(u128::MAX, &a), Err(Error::QuotaExceeded));
 }
+
+#[test]
+fn a_new_price_observation_keeps_live_quotes_but_other_term_changes_do_not() {
+    let quoted = f::asset();
+    let mut current = quoted.clone();
+    current.policy_version += 1;
+    current.price_usd_micros = 999_000;
+    current.price_observed_at_ms = NOW + MINUTE;
+    current.price_valid_until_ms = NOW + 31 * MINUTE;
+    check_quoted_asset(&current, &quoted, NOW + MINUTE).unwrap();
+    assert_eq!(
+        check_quoted_asset(&current, &quoted, quoted.price_valid_until_ms),
+        Err(Error::PolicyStale)
+    );
+    let mut fee = current.clone();
+    fee.network_fee_atomic += 1;
+    assert_eq!(
+        check_quoted_asset(&fee, &quoted, NOW + MINUTE),
+        Err(Error::PolicyStale)
+    );
+    current.enabled = false;
+    assert_eq!(
+        check_quoted_asset(&current, &quoted, NOW + MINUTE),
+        Err(Error::PolicyStale)
+    );
+}
+
 #[test]
 fn one_product_interval_excludes_competing_cash_and_panda_and_retains_unknown_apply() {
     let mut book = ProductBook::new(offer().beneficiary, 9);
@@ -48,6 +76,7 @@ fn one_product_interval_excludes_competing_cash_and_panda_and_retains_unknown_ap
     book.reject(&d, ProductRejection::Expired, NOW + 2 * DAY);
     assert!(book.reservation.is_none());
 }
+
 #[test]
 fn cash_delivery_and_unstarted_cancellation_advance_only_business_revision() {
     let mut b = ProductBook::new(offer().beneficiary, 9);
@@ -78,6 +107,7 @@ fn cash_delivery_and_unstarted_cancellation_advance_only_business_revision() {
             .cancelled
     );
 }
+
 #[test]
 fn qualification_leases_do_not_bump_business_revision_or_revive_terminated_rights() {
     let terms = f::terms();

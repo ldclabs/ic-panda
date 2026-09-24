@@ -158,10 +158,7 @@
     })
   }
   async function approve(fresh = false) {
-    await update(async (c, id) => {
-      await beforeAuthorize()
-      return c.approve(id, fresh)
-    })
+    await update((c, id) => c.approve(id, fresh, beforeAuthorize))
   }
   async function transfer(action: (c: CommerceClient, id: string) => Promise<CashTransfer>) {
     await session.run(async () => {
@@ -251,7 +248,10 @@
       分钟，随后需要重新批准。成功开通后，包括尚未开始的续费，承诺均持续到原到期日，不能提前退出、替换或现金买断。SNS
       原生控制权仍属于你。
     </p>{/if}
-  <button class="secondary" disabled={!client || session.busy || !!job} onclick={quote}
+  <button
+    class="secondary"
+    disabled={!client || session.busy || (!!job && job.stage !== 'review')}
+    onclick={quote}
     >获取并保存精确报价</button
   >
   {#if jobs.length}<label

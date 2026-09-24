@@ -365,12 +365,10 @@ pub fn validate_application_approval(
             && approval.service == expected_service,
         Error::Forbidden,
     )?;
-    let capability = if approval.purpose == ApprovalPurpose::AppAction {
-        AppCapability::SignAction
-    } else {
-        AppCapability::Checkout
-    };
-    ensure(app.capabilities.contains(&capability), Error::Forbidden)?;
+    ensure(
+        app.capabilities.contains(&AppCapability::Checkout),
+        Error::Forbidden,
+    )?;
     authenticated(approval.actor)?;
     authenticated(approval.service)?;
     validate_subject(&approval.beneficiary, product)?;
@@ -448,26 +446,32 @@ pub fn commitment_bytes<T: Serialize>(domain: &str, value: &T) -> Vec<u8> {
 pub fn billing_offer_hash(value: &BillingOffer) -> Hash {
     digest("dmsg/commerce/offer/v2", value)
 }
+
 /// Commit to the exact approved authentication request.
 pub fn authentication_request_hash(value: &AuthenticationRequest) -> Hash {
     digest("dmsg/authentication/request/v1", value)
 }
+
 /// Commit to the exact application approval, separate from a device signature.
 pub fn application_approval_hash(value: &ApplicationApproval) -> Hash {
     digest("dmsg/application/approval/v1", value)
 }
+
 /// Commit to the complete PANDA quotation.
 pub fn panda_quote_hash(value: &PandaQuote) -> Hash {
     digest("dmsg/commerce/panda-quote/v2", value)
 }
+
 /// Commit to the complete cash quotation.
 pub fn cash_quote_hash(value: &CashQuote) -> Hash {
     digest("dmsg/commerce/cash-quote/v2", value)
 }
+
 /// Commit to the complete immutable product delivery decision.
 pub fn product_decision_hash(value: &ProductDecision) -> Hash {
     digest("dmsg/commerce/decision/v2", value)
 }
+
 /// Single raw path segment for a dedicated authentication leaf.
 pub fn authentication_key(account: &AccountId, operation: &Hash) -> Vec<u8> {
     [

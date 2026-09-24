@@ -345,6 +345,7 @@ pub struct CashTransferProgress {
     /// Ledger block when known.
     pub block_index: Option<u128>,
 }
+
 impl From<CashTransfer> for CashTransferProgress {
     fn from(t: CashTransfer) -> Self {
         Self {
@@ -394,6 +395,7 @@ pub struct CheckoutLedgerBalance {
     /// All allocated outgoing obligations, including their exact fees.
     pub outgoing_atomic: u128,
 }
+
 /// Private operational observation; delivery continues to require the service's durable receipt.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CheckoutOperationAudit {
@@ -402,6 +404,7 @@ pub struct CheckoutOperationAudit {
     /// Independently conserved balances.
     pub balances: Vec<CheckoutLedgerBalance>,
 }
+
 /// Bounded owner/merchant/governance scan. Cursor is the last scanned key, not the last match.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CheckoutOperationsPage {
@@ -410,6 +413,7 @@ pub struct CheckoutOperationsPage {
     /// Continue after this key; null means the scan reached the end.
     pub next: Option<Hash>,
 }
+
 /// Outgoing legs visible to their recipient or the corresponding order reader.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CashTransfersPage {

@@ -14,7 +14,7 @@
 
 生产只支持 ckUSDT `cngnf-vqaaa-aaaar-qag4q-cai` 与 ckUSDC `xevnm-gaaaa-aaaar-qafnq-cai`。资产身份由 ledger 确定，不由 symbol 推断。两者要求验证 decimals=6、ICRC-1/3、费用和真实 transfer 块格式。价格观察有明确 authority、最多 30 分钟有效期及 1% 脱锚守卫，没有隐式一美元价格。
 
-`amount_atomic = ceil(amount_usd_micros × 10^decimals / price_usd_micros)`，中间乘积使用大整数，只在最后向上取整。报价冻结商户、账本、payer、收款子账户、价格、网络费上限/储备及资金期限。
+`amount_atomic = ceil(amount_usd_micros × 10^decimals / price_usd_micros)`，中间乘积使用大整数，只在最后向上取整。报价冻结商户、账本、payer、收款子账户、价格、网络费上限/储备及资金期限。之后发布的新价格不会使已接受报价失效：只要报价自带的价格观察仍在有效期内、当前观察同样可用，且账本、资产类型、精度、费用和启用状态等非价格条款未变，`open_checkout` 仍按原报价开单。
 
 `quote_checkout → approve_application + 产品批准 → open_checkout → AwaitingFunding → 钱包原转账 → check_checkout_funding → Apply/原回执`。
 

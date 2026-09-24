@@ -290,7 +290,8 @@ export class CommerceClient {
         old.request === job.request && old.actor === job.actor && old.origin === origin,
         'IDEMPOTENCY_CONFLICT'
       )
-      return old
+      // An unapproved quote may be refreshed; approved terms stay fixed.
+      if (old.stage !== 'review') return old
     }
     await this.save(job)
     return job
@@ -316,7 +317,7 @@ export class CommerceClient {
     )
     return value
   }
-  async approve(id: string, fresh = false) {
+  async approve(id: string, fresh = false, beforeSubmit = async () => {}) {
     let job = await this.job(id)
     const request = this.request(job),
       terms = this.terms(job),
@@ -417,6 +418,7 @@ export class CommerceClient {
       CommerceClient['account']['user']['approve_application']
     >
     // Retrying the saved proof cannot consume another sequence or change an economic instruction.
+    await beforeSubmit()
     controlResult(await this.account.user.approve_application(...args))
     job.stage = 'unknown'
     await this.save(job)
@@ -469,15 +471,15 @@ export class CommerceClient {
     )
     // Same selected deposits use the same operation even after a lost reply.
     const refundLedger = ledger ? Principal.fromText(ledger).toUint8Array() : terms.cash.ledger
-    const operation = digest('dmsg/refund-selection/v2', [
-      unhex(id),
-      refundLedger,
-      blocks.map(BigInt).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-    ])
+    // The service accepts strictly ascending blocks; the operation uses the same selection.
+    const selected = [...new Set(blocks.map(BigInt))].sort((a, b) =>
+      a < b ? -1 : a > b ? 1 : 0
+    )
+    const operation = digest('dmsg/refund-selection/v2', [unhex(id), refundLedger, selected])
     return this.call<import('@dmsg/sdk').CashTransfer>('commerce', 'claim_checkout_refund', [
       unhex(id),
       refundLedger,
-      blocks.map(BigInt),
+      selected,
       operation
     ])
   }

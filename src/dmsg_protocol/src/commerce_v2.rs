@@ -52,6 +52,27 @@ pub fn asset_available(asset: &SettlementAsset, at: u64) -> Result<()> {
     )
 }
 
+/// An accepted quote keeps its own live price observation across later price publications.
+/// Both observations must be available and every non-price term must be unchanged.
+pub fn check_quoted_asset(
+    current: &SettlementAsset,
+    quoted: &SettlementAsset,
+    at: u64,
+) -> Result<()> {
+    asset_available(current, at)?;
+    asset_available(quoted, at)?;
+    ensure(
+        SettlementAsset {
+            policy_version: quoted.policy_version,
+            price_usd_micros: quoted.price_usd_micros,
+            price_observed_at_ms: quoted.price_observed_at_ms,
+            price_valid_until_ms: quoted.price_valid_until_ms,
+            ..current.clone()
+        } == *quoted,
+        Error::PolicyStale,
+    )
+}
+
 /// Convert the full bill with one final upward rounding and arbitrary-width intermediates.
 pub fn cash_amount(amount_usd_micros: u128, asset: &SettlementAsset) -> Result<u128> {
     validate_asset(asset)?;
@@ -424,6 +445,7 @@ pub fn panda_application_hash(
 ) -> Hash {
     digest("dmsg/panda/application/v2", terms)
 }
+
 /// A reused product operation cannot silently select a different neuron or economic actor.
 pub fn panda_claim_id(terms: &dmsg_types::integration_membership::PandaApplicationTerms) -> Hash {
     digest(
@@ -435,6 +457,7 @@ pub fn panda_claim_id(terms: &dmsg_types::integration_membership::PandaApplicati
         ),
     )
 }
+
 /// Independent reconstruction of the accepted amount, threshold and immutable deadline.
 pub fn validate_panda_terms(
     terms: &dmsg_types::integration_membership::PandaApplicationTerms,
@@ -472,6 +495,7 @@ pub fn validate_panda_terms(
     }
     Ok(())
 }
+
 #[cfg(test)]
 #[path = "commerce_v2_tests.rs"]
 mod tests;

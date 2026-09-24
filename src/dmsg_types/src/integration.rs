@@ -335,8 +335,6 @@ pub enum ApprovalPurpose {
     CashCheckout,
     /// Full subscription waiver approval.
     PandaSubscription,
-    /// Typed application action approval.
-    AppAction,
 }
 
 /// Approved dMsg account and product beneficiary are deliberately separate.

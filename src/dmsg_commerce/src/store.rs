@@ -41,8 +41,6 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub static CATALOGS: RefCell<StableBTreeMap<Vec<u8>, Stored<Catalog>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(6)));
-    pub static OUTGOING: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<u8>>, Memory>> =
-        RefCell::new(StableBTreeMap::init(memory(7)));
     pub static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 

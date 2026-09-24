@@ -15,6 +15,7 @@ pub struct Claim {
     pub generation: u64,
     pub busy_until_ms: u64,
 }
+
 impl Claim {
     pub fn new(request: PandaClaimRequest, cooling_ms: u64) -> Self {
         let id = panda_claim_id(&request.terms);
@@ -43,12 +44,14 @@ impl Claim {
             busy_until_ms: 0,
         }
     }
+
     pub fn holds(&self) -> bool {
         !matches!(
             self.view.status,
             PandaClaimStatus::Cancelled | PandaClaimStatus::Rejected | PandaClaimStatus::Released
         )
     }
+
     pub fn release_at(&self) -> Option<u64> {
         match self.view.status {
             PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown => {
@@ -60,6 +63,7 @@ impl Claim {
             _ => None,
         }
     }
+
     pub fn observe(&mut self, eligibility: Eligibility, observed: u64, at: u64) -> Result<()> {
         ensure(
             observed <= at && observed >= self.view.observed_at_ms,
@@ -122,6 +126,7 @@ impl Claim {
         }
         Ok(())
     }
+
     pub fn preparing_apply(&mut self, at: u64) -> Result<()> {
         ensure(
             self.view.status == PandaClaimStatus::CoolingDown
@@ -153,6 +158,7 @@ impl Claim {
         self.view.status = PandaClaimStatus::Applying;
         Ok(())
     }
+
     pub fn accept(&mut self, receipt: ProductReceipt) -> Result<()> {
         if let Some(old) = &self.view.receipt {
             return ensure(*old == receipt, Error::IdempotencyConflict);
@@ -173,6 +179,7 @@ impl Claim {
         self.view.receipt = Some(receipt);
         Ok(())
     }
+
     pub fn cancel(&mut self) -> Result<()> {
         if self.view.status == PandaClaimStatus::Cancelled {
             return Ok(());
@@ -191,6 +198,7 @@ impl Claim {
         self.view.valid_until_ms = 0;
         Ok(())
     }
+
     pub fn expire(&mut self, at: u64) -> Result<()> {
         if !self.holds() {
             return Ok(());
@@ -208,6 +216,7 @@ impl Claim {
         Ok(())
     }
 }
+
 #[cfg(test)]
 #[path = "../../dmsg_types/tests/support/commerce.rs"]
 mod fixture;
@@ -258,6 +267,7 @@ mod tests {
         assert_eq!(c.view.status, PandaClaimStatus::Released);
         assert!(!c.holds());
     }
+
     #[test]
     fn unverified_observations_pause_repair_without_extending_old_lease() {
         let mut c = Claim::new(fixture::claim(), PANDA_COOLING_MS);

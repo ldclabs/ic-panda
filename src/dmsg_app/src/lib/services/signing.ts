@@ -339,12 +339,15 @@ export class SigningClient {
         )
     } else {
       ensure('ResultExpired' in response.Err, 'EXECUTION_UNKNOWN')
+      // Without a stored execution, an expired approval can never run; record a terminal state.
+      if (Date.now() >= Number(request.approval.expires_at)) {
+        job.stage = 'result_expired'
+        await this.save(job)
+        await setRequestState(job.externalId, 'result_expired')
+        return job
+      }
       const external = (await listRequests()).find((r) => r.id === id)
-      ensure(
-        external && Date.now() < Number(request.approval.expires_at),
-        'RESULT_EXPIRED',
-        '原请求已过期，不能自动重新签署。'
-      )
+      ensure(external, 'NOT_FOUND')
       await this.sourceLive(external)
       result = controlResult(
         await (job.method === 'sign_app_action'

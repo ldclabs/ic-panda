@@ -27,6 +27,14 @@
     "./statements": {
       "types": "./dist/statements.d.ts",
       "default": "./dist/statements.js"
+    },
+    "./codec": {
+      "types": "./dist/cose-codec.d.ts",
+      "default": "./dist/cose-codec.js"
+    },
+    "./errors": {
+      "types": "./dist/cose-errors.d.ts",
+      "default": "./dist/cose-errors.js"
     }
   },
   "files": [

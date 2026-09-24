@@ -413,7 +413,6 @@ export const idlFactory = ({ IDL }) => {
     'approved_at_ms' : IDL.Nat64,
   });
   const ApprovalPurpose = IDL.Variant({
-    'AppAction' : IDL.Null,
     'CashCheckout' : IDL.Null,
     'PandaSubscription' : IDL.Null,
   });

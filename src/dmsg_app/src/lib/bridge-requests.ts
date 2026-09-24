@@ -12,7 +12,7 @@ import {
 } from '@dmsg/sdk'
 import { services } from './services/ic'
 import { registeredApplication } from './services/registration'
-import { enqueueRequest, requestDatabase } from './requests'
+import { admitRequest, enqueueRequest, requestDatabase } from './requests'
 import { parseRequest, type PendingRequest, type SourceBinding } from './protocol/requests'
 import { config } from './config'
 import { hpkeSeal } from './crypto/primitives'
@@ -171,18 +171,7 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
       await tx.done
       return { ...old, source }
     }
-    const all = (await tx.store.getAll()) as PendingRequest[]
-    const pending = all.filter(
-      (r) =>
-        ['awaiting_user', 'authorized', 'execution_unknown'].includes(r.state) &&
-        (r.expiresAt > Date.now() || r.state !== 'awaiting_user')
-    )
-    ensure(
-      all.length < 10000 &&
-        pending.length < 20 &&
-        pending.filter((r) => r.source.origin === source.origin).length < 5,
-      'QUOTA_EXCEEDED'
-    )
+    await admitRequest(tx.store, (await tx.store.getAll()) as PendingRequest[], source)
     await tx.store.add(record)
     await tx.done
     return record

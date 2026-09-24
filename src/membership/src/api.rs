@@ -26,27 +26,33 @@ fn init(args: MembershipInit) {
     store::persist_limits();
     store::rebuild();
 }
+
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     store::persist_limits();
 }
+
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     store::rebuild();
 }
+
 #[derive(CandidType, Serialize)]
 struct SummaryRequest {
     update_canister_list: Option<bool>,
 }
+
 #[derive(CandidType, Deserialize)]
 struct SummaryStatus {
     module_hash: Option<Vec<u8>>,
 }
+
 #[derive(CandidType, Deserialize)]
 struct CanisterSummary {
     canister_id: Option<Principal>,
     status: Option<SummaryStatus>,
 }
+
 #[derive(CandidType, Deserialize)]
 struct Summary {
     governance: Option<CanisterSummary>,
@@ -97,12 +103,14 @@ pub(crate) async fn verify_sns() -> Result<()> {
     }
     Ok(())
 }
+
 #[ic_cdk::update]
 async fn verify_sns_configuration() -> Result<()> {
     let at = nanos_to_millis(ic_cdk::api::time());
     store::reserve_call(at, store::CallBudget::Refresh)?;
     verify_sns().await
 }
+
 pub(crate) async fn fresh_sns(at: u64) -> bool {
     let c = store::config();
     if c.sns_verified && at < c.sns_verified_at_ms.saturating_add(60 * MINUTE) {
@@ -118,6 +126,7 @@ pub(crate) async fn fresh_sns(at: u64) -> bool {
     }
     valid
 }
+
 #[ic_cdk::update]
 fn set_admission_pause(paused: bool) -> Result<()> {
     ensure(
@@ -129,6 +138,7 @@ fn set_admission_pause(paused: bool) -> Result<()> {
     store::save_config(&c);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn set_sns_governance_module_hash(hash: Hash) -> Result<()> {
     ensure(

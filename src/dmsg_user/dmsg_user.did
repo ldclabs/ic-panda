@@ -378,8 +378,6 @@ type Approval = record {
 };
 // Exact purpose for account approval, distinct from product authorization.
 type ApprovalPurpose = variant {
-  // Typed application action approval.
-  AppAction;
   // Cash order approval.
   CashCheckout;
   // Full subscription waiver approval.

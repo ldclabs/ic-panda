@@ -23,7 +23,6 @@ export const idlFactory = ({ IDL }) => {
     'subject_schema' : IDL.Text,
   });
   const ApprovalPurpose = IDL.Variant({
-    'AppAction' : IDL.Null,
     'CashCheckout' : IDL.Null,
     'PandaSubscription' : IDL.Null,
   });

@@ -26,6 +26,7 @@ struct Delivered {
     contract: SubscriptionContract,
     topic: Hash,
 }
+
 thread_local! {
     static BOOKS:RefCell<StableBTreeMap<Vec<u8>,Stored<ProductBook>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(16)));
     static DELIVERED:RefCell<StableBTreeMap<Vec<u8>,Stored<Delivered>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(17)));
@@ -33,9 +34,11 @@ thread_local! {
     static CANCELLATIONS:RefCell<StableBTreeMap<Vec<u8>,Stored<CashCancellationReceipt>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(19)));
     static RELEASED:RefCell<StableBTreeMap<Vec<u8>,Stored<Hash>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(20)));
 }
+
 fn base_key(b: &Beneficiary) -> Hash {
     digest("dmsg/product/base/v2", b)
 }
+
 fn topic(offer: &BillingOffer) -> Hash {
     if offer.sku.len() == 64 {
         digest(
@@ -46,21 +49,26 @@ fn topic(offer: &BillingOffer) -> Hash {
         base_key(&offer.beneficiary)
     }
 }
+
 fn book(offer: &BillingOffer) -> Result<ProductBook> {
     let s = api::get_subject(&offer.beneficiary)?;
     Ok(BOOKS
         .with_borrow(|t| t.load(topic(offer).as_slice()))
         .unwrap_or_else(|| ProductBook::new(offer.beneficiary.clone(), s.business_revision)))
 }
+
 fn save(offer: &BillingOffer, b: &ProductBook) {
     BOOKS.with_borrow_mut(|t| t.put(topic(offer).as_slice(), b));
 }
+
 fn receipt(id: Hash) -> Option<ProductReceipt> {
     RECEIPTS.with_borrow(|t| t.load(id.as_slice()))
 }
+
 fn put_receipt(r: &ProductReceipt) {
     RECEIPTS.with_borrow_mut(|t| t.put(r.decision_id.as_slice(), r));
 }
+
 fn source_service(source: &SettlementSource) -> Principal {
     if matches!(source, SettlementSource::Cash { .. }) {
         ic_cdk::api::canister_self()
@@ -68,32 +76,33 @@ fn source_service(source: &SettlementSource) -> Principal {
         store::config().init.membership_canister
     }
 }
-fn settlement(a: &ApplicationApproval) -> Result<SettlementMethod> {
+
+fn settlement(a: &ApplicationApproval) -> SettlementMethod {
     match a.purpose {
-        ApprovalPurpose::CashCheckout => Ok(SettlementMethod::Cash),
-        ApprovalPurpose::PandaSubscription => Ok(SettlementMethod::Panda),
-        _ => Err(Error::Forbidden),
+        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
+        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
     }
 }
-fn request_service(r: &ProductAuthorizationRequest) -> Result<Principal> {
-    Ok(
-        if settlement(&r.account_approval)? == SettlementMethod::Cash {
-            ic_cdk::api::canister_self()
-        } else {
-            store::config().init.membership_canister
-        },
-    )
+
+fn request_service(r: &ProductAuthorizationRequest) -> Principal {
+    if settlement(&r.account_approval) == SettlementMethod::Cash {
+        ic_cdk::api::canister_self()
+    } else {
+        store::config().init.membership_canister
+    }
 }
+
 fn registration(app: &str, product: &str) -> Result<(AppRegistration, ProductRegistration)> {
     let (a, p) = crate::registrations::configuration(app, Some(product))?;
     let p = p.ok_or(Error::NotFound)?;
+    let home = ic_cdk::api::canister_self();
     ensure(
-        p.quote_authority == ic_cdk::api::canister_self()
-            && p.adapter == ic_cdk::api::canister_self(),
+        p.quote_authority == home && p.adapter == home,
         Error::Forbidden,
     )?;
     Ok((a, p))
 }
+
 fn plan_id(sku: &str) -> Result<PlanId> {
     match sku {
         "plus" => Ok(PlanId::Plus),
@@ -102,6 +111,7 @@ fn plan_id(sku: &str) -> Result<PlanId> {
         _ => Err(Error::UnsupportedProtocol),
     }
 }
+
 fn hex(id: Hash) -> String {
     id.as_slice().iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -195,6 +205,7 @@ fn offer(
             vec![SettlementMethod::Cash, SettlementMethod::Panda],
         )
     };
+    let home = ic_cdk::api::canister_self();
     let value = BillingOffer {
         version: 2,
         environment: store::config().init.environment,
@@ -205,8 +216,8 @@ fn offer(
             &(&b, &sku, operation_id, s.business_revision, at),
         ),
         beneficiary: b,
-        quote_authority: ic_cdk::api::canister_self(),
-        adapter: ic_cdk::api::canister_self(),
+        quote_authority: home,
+        adapter: home,
         sku,
         product_terms_hash: catalog.terms_digest,
         expected_business_revision: s.business_revision,
@@ -221,6 +232,7 @@ fn offer(
     validate_billing_offer(&value, &app, &product, at)?;
     Ok(value)
 }
+
 #[ic_cdk::update]
 fn prepare_account_subscription(
     app_id: String,
@@ -236,6 +248,7 @@ fn prepare_account_subscription(
         nanos_to_millis(ic_cdk::api::time()),
     )
 }
+
 #[ic_cdk::update]
 fn verify_billing_offer(value: BillingOffer) -> Result<()> {
     ensure(
@@ -259,11 +272,13 @@ fn verify_billing_offer(value: BillingOffer) -> Result<()> {
         Error::VersionConflict,
     )
 }
-async fn validate_request(request: &ProductAuthorizationRequest, at: u64) -> Result<()> {
-    ensure(
-        ic_cdk::api::msg_caller() == request_service(request)?,
-        Error::Forbidden,
-    )?;
+
+/// The entry has already matched its caller to `service`.
+async fn validate_request(
+    request: &ProductAuthorizationRequest,
+    service: Principal,
+    at: u64,
+) -> Result<()> {
     let expected = offer(
         request.offer.app_id.clone(),
         request.offer.beneficiary.clone(),
@@ -279,12 +294,7 @@ async fn validate_request(request: &ProductAuthorizationRequest, at: u64) -> Res
     )?;
     // The pinned settlement service has already verified the exact device proof.
     // The product adapter cannot consume it: it only rechecks its own beneficiary.
-    validate_product_request(
-        request,
-        request_service(request)?,
-        settlement(&request.account_approval)?,
-        at,
-    )?;
+    validate_product_request(request, service, settlement(&request.account_approval), at)?;
     ensure(
         request.user_home == request.offer.beneficiary.authority_canister
             && request.offer.beneficiary.subject_bytes.as_ref()
@@ -302,29 +312,29 @@ async fn validate_request(request: &ProductAuthorizationRequest, at: u64) -> Res
     .await?;
     answer
 }
+
 #[ic_cdk::update]
 async fn reserve_product_billing(
     request: ProductAuthorizationRequest,
     until_ms: u64,
 ) -> Result<()> {
-    ensure(
-        ic_cdk::api::msg_caller() == request_service(&request)?,
-        Error::Forbidden,
-    )?;
+    let service = request_service(&request);
+    ensure(ic_cdk::api::msg_caller() == service, Error::Forbidden)?;
     ensure(
         RELEASED
             .with_borrow(|t| t.load(request.offer.operation_id.as_slice()))
             .is_none(),
         Error::Forbidden,
     )?;
+    let at = nanos_to_millis(ic_cdk::api::time());
     let mut b = book(&request.offer)?;
     if b.reservation
         .as_ref()
         .is_some_and(|r| r.request.offer == request.offer)
     {
-        return b.reserve(request, until_ms, nanos_to_millis(ic_cdk::api::time()));
+        return b.reserve(request, until_ms, at);
     }
-    validate_request(&request, nanos_to_millis(ic_cdk::api::time())).await?;
+    validate_request(&request, service, at).await?;
     ensure(
         RELEASED
             .with_borrow(|t| t.load(request.offer.operation_id.as_slice()))
@@ -352,10 +362,11 @@ async fn reserve_product_billing(
     save(&request.offer, &b);
     Ok(())
 }
+
 #[ic_cdk::update]
 fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == request_service(&request)?,
+        ic_cdk::api::msg_caller() == request_service(&request),
         Error::Forbidden,
     )?;
     let mut b = book(&request.offer)?;
@@ -569,6 +580,7 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
     put_receipt(&value);
     Ok(value)
 }
+
 #[ic_cdk::update]
 fn get_product_decision(id: Hash) -> Result<Option<ProductReceipt>> {
     ensure(
@@ -581,6 +593,7 @@ fn get_product_decision(id: Hash) -> Result<Option<ProductReceipt>> {
     )?;
     Ok(receipt(id))
 }
+
 #[ic_cdk::update]
 fn cancel_cash_contract(
     order_id: Hash,
@@ -626,6 +639,7 @@ fn cancel_cash_contract(
     CANCELLATIONS.with_borrow_mut(|t| t.put(order_id.as_slice(), &result));
     Ok(result)
 }
+
 #[ic_cdk::update]
 fn get_cash_cancellation(id: Hash) -> Result<Option<CashCancellationReceipt>> {
     ensure(

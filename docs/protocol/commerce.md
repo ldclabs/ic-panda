@@ -69,6 +69,10 @@ arbitrary-width intermediates and one final rounding. `CheckoutQuote` freezes
 merchant/product registration, payer, ledger, price, deposit subaccount, maximum
 network fee, fee reserve, funding and activation deadlines. Incoming transfer
 fees are separate. The client shows the exact price/reserve/fee before payment.
+A later price publication does not invalidate an accepted quote: `open_checkout`
+keeps the quoted observation while it is still valid, provided the current
+observation is also available and every non-price asset term (ledger, kind,
+decimals, fees and enablement) is unchanged.
 
 1. `quote_checkout` verifies the authoritative offer and selected asset.
 2. The user's device signs a purpose-separated `ApplicationApproval`; the product

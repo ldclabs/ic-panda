@@ -151,7 +151,6 @@ export interface CashQuote {
 export type ApprovalPurpose =
   | 'CashCheckout'
   | 'PandaSubscription'
-  | 'AppAction'
 
 export interface ApplicationApproval {
   version: bigint

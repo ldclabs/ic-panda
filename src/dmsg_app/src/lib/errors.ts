@@ -1,12 +1,7 @@
-export class DmsgError extends Error {
-  constructor(
-    public readonly code: string,
-    message = code
-  ) {
-    super(message)
-    this.name = 'DmsgError'
-  }
-}
+import { DmsgError } from '@dmsg/sdk/errors'
+
+// SDK codec/statement failures and application checks share one coded error type.
+export { DmsgError }
 export function ensure(condition: unknown, code: string, message?: string): asserts condition {
   if (!condition) throw new DmsgError(code, message)
 }

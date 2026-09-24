@@ -201,8 +201,7 @@ export interface Approval {
   'expires_at' : bigint,
   'sequence' : bigint,
 }
-export type ApprovalPurpose = { 'AppAction' : null } |
-  { 'CashCheckout' : null } |
+export type ApprovalPurpose = { 'CashCheckout' : null } |
   { 'PandaSubscription' : null };
 export type AuthenticationPurpose = { 'Reauthenticate' : null } |
   { 'Login' : null } |

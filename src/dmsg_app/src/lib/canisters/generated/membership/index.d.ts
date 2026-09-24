@@ -19,8 +19,7 @@ export interface ApplicationApproval {
   'purpose' : ApprovalPurpose,
   'expires_at_ms' : bigint,
 }
-export type ApprovalPurpose = { 'AppAction' : null } |
-  { 'CashCheckout' : null } |
+export type ApprovalPurpose = { 'CashCheckout' : null } |
   { 'PandaSubscription' : null };
 export interface Beneficiary {
   'product_id' : string,
