@@ -101,8 +101,7 @@ pub fn validate_product(product: &ProductRegistration) -> Result<()> {
             )?;
         }
     }
-    nonzero(&product.terms_hash[..])?;
-    nonzero(&product.subsidy_budget_id[..])
+    nonzero(&product.terms_hash[..])
 }
 
 /// Check subject identity against a trusted product registration, without granting roles.
@@ -219,7 +218,7 @@ pub fn validate_rate_policy(policy: &PandaRatePolicy) -> Result<()> {
     for id in &policy.product_ids {
         validate_identifier(id)?;
     }
-    nonzero(&policy.subsidy_budget_id[..])
+    Ok(())
 }
 
 /// Exact ceil(USD micro * PANDA/USD * 10^8 / 10^6); never annualizes the amount.
@@ -249,8 +248,7 @@ pub fn quote_panda(
             .allowed_settlement_methods
             .contains(&SettlementMethod::Panda)
             && policy.environment == offer.environment
-            && policy.product_ids.contains(&offer.product_id)
-            && policy.subsidy_budget_id == product.subsidy_budget_id,
+            && policy.product_ids.contains(&offer.product_id),
         Error::Forbidden,
     )?;
     ensure(policy.effective_at_ms <= now, Error::PolicyStale)?;
@@ -271,7 +269,6 @@ pub fn quote_panda(
             policy.r_num,
             policy.r_den,
         )?,
-        subsidy_usd_micros: offer.amount_usd_micros,
         application_deadline_ms: deadline,
         committed_until_ms: offer.expires_at_ms,
     })

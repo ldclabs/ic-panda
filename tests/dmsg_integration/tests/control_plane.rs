@@ -392,14 +392,6 @@ impl Fixture {
             },),
         );
         configured.unwrap();
-        let budget: Result<PandaSubsidyBudget> = update(
-            &ic,
-            membership,
-            sns,
-            "set_panda_subsidy_budget",
-            (Hash::new([100; 32]), 1_000_000_000_000_000u128),
-        );
-        budget.unwrap();
         let policy: Result<PandaRatePolicy> = update(
             &ic,
             membership,
@@ -414,7 +406,6 @@ impl Fixture {
                 r_den: 1,
                 published_at_ms: 0,
                 effective_at_ms: POLICY_NOTICE_MS,
-                subsidy_budget_id: Hash::new([100; 32]),
             },),
         );
         policy.unwrap();
@@ -431,7 +422,6 @@ impl Fixture {
             merchant: account(person(60)),
             ledgers: vec![ledger, ledger2],
             terms_hash: Hash::new([99; 32]),
-            subsidy_budget_id: Hash::new([100; 32]),
             paused: false,
         };
         let result: Result<()> = update(

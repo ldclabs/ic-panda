@@ -232,7 +232,7 @@ type PandaClaimRequest = record {
 };
 // Termination stops rights, while Released is reserved for the original commitment end.
 type PandaClaimStatus = variant {
-  // Product rights ended permanently; neuron/budget remain occupied until E.
+  // Product rights ended permanently; the neuron remains occupied until E.
   Terminated;
   // First eligible observation recorded; cooling and fresh approval are required.
   CoolingDown;
@@ -299,8 +299,6 @@ type PandaQuote = record {
   application_deadline_ms : nat64;
   // Immutable rate policy.
   policy : PandaRatePolicy;
-  // Service subsidy obligation in USD micro units, not cash revenue.
-  subsidy_usd_micros : nat;
 };
 // Immutable governance conversion policy; not a market-price oracle.
 type PandaRatePolicy = record {
@@ -314,8 +312,6 @@ type PandaRatePolicy = record {
   version : nat16;
   // Deployment separation.
   environment : Environment;
-  // Governance budget namespace, never a ledger balance.
-  subsidy_budget_id : blob;
   // Immutable policy revision.
   policy_version : nat64;
   // Positive PANDA/USD denominator.
@@ -323,9 +319,9 @@ type PandaRatePolicy = record {
   // Positive PANDA/USD numerator.
   r_num : nat;
 };
-// Deployment-wide service/budget limits, independent of product plan names.
+// Deployment-wide service limits, independent of product plan names.
 type PandaServiceConfig = record {
-  // Maximum retained operation identities.
+  // Maximum claims simultaneously occupying a neuron, excluding short Apply windows.
   max_claims : nat64;
   // Successful new applications per UTC hour.
   hourly_applications : nat64;
@@ -333,15 +329,6 @@ type PandaServiceConfig = record {
   commerce_canister : principal;
   // At least 65 minutes; changing it cannot shorten an accepted application's cooling.
   cooling_ms : nat64;
-};
-// USD-denominated capacity, not an asset balance or withdrawable credit.
-type PandaSubsidyBudget = record {
-  // Accepted pending/applied obligations. Released only after rejection/cancellation or E.
-  reserved_usd_micros : nat;
-  // Governance ceiling for simultaneous commitments.
-  total_usd_micros : nat;
-  // Namespace selected by both registered product and rate policy.
-  budget_id : blob;
 };
 // Explicit product permission; not a claim that the payer has a project role.
 type ProductApproval = record {
@@ -424,8 +411,7 @@ type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_3 = variant { Ok : PandaOperationsPage; Err : Error };
 type Result_4 = variant { Ok : PandaApplicationTerms; Err : Error };
 type Result_5 = variant { Ok : PandaRatePolicy; Err : Error };
-type Result_6 = variant { Ok : PandaSubsidyBudget; Err : Error };
-type Result_7 = variant { Ok : nat32; Err : Error };
+type Result_6 = variant { Ok : nat32; Err : Error };
 // Mutually exclusive settlement sources. PANDA always covers the entire offer.
 type SettlementMethod = variant {
   // One explicitly enabled ledger.
@@ -439,7 +425,6 @@ service : (MembershipInit) -> {
   configure_panda_service : (PandaServiceConfig) -> (Result_1);
   get_panda_claim : (blob) -> (Result) query;
   get_panda_claim_for_product : (blob) -> (Result);
-  panda_budgets : () -> (vec PandaSubsidyBudget) query;
   panda_claim_certificate : (blob) -> (Result_2) query;
   panda_operations : (opt blob, nat16) -> (Result_3) query;
   quote_panda_subscription : (BillingOffer, principal, blob, blob) -> (
@@ -450,8 +435,7 @@ service : (MembershipInit) -> {
   request_panda_claim : (PandaClaimRequest) -> (Result);
   schedule_panda_rate : (PandaRatePolicy) -> (Result_5);
   set_admission_pause : (bool) -> (Result_1);
-  set_panda_subsidy_budget : (blob, nat) -> (Result_6);
   set_sns_governance_module_hash : (blob) -> (Result_1);
-  sweep_panda_commitments : () -> (Result_7);
+  sweep_panda_commitments : () -> (Result_6);
   verify_sns_configuration : () -> (Result_1);
 }

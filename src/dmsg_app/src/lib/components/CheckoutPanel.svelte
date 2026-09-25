@@ -418,7 +418,7 @@
           onclick={() => update((c, id) => c.cancel(id))}>取消尚未 Apply 的申请</button
         >{/if}
       {#if view.committed_until_ms > 0n}<p>
-          神经元与补贴预算占用持续至 {dateLabel(
+          神经元占用持续至 {dateLabel(
             Number(view.committed_until_ms)
           )}。资格失效或权益终止不会提前释放。
         </p>{/if}

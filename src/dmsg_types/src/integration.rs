@@ -130,8 +130,6 @@ pub struct ProductRegistration {
     pub ledgers: Vec<Principal>,
     /// Current product terms commitment.
     pub terms_hash: Hash,
-    /// Governance budget namespace, not a cash balance.
-    pub subsidy_budget_id: Hash,
     /// Stops new commitments only.
     pub paused: bool,
 }
@@ -272,8 +270,6 @@ pub struct PandaRatePolicy {
     pub published_at_ms: u64,
     /// Inclusive policy activation time, after the notice interval.
     pub effective_at_ms: u64,
-    /// Governance budget namespace, never a ledger balance.
-    pub subsidy_budget_id: Hash,
 }
 
 /// Full waiver quotation with an immutable commitment end.
@@ -290,8 +286,6 @@ pub struct PandaQuote {
     pub policy: PandaRatePolicy,
     /// Computed stake in eight-decimal PANDA atomic units.
     pub required_stake_e8s: u128,
-    /// Service subsidy obligation in USD micro units, not cash revenue.
-    pub subsidy_usd_micros: u128,
     /// Latest activation time, bounded by offer end and application lifetime.
     pub application_deadline_ms: u64,
     /// Original offer expiry, cannot be reduced after successful Apply.

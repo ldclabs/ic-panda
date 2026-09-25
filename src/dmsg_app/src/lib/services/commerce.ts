@@ -261,7 +261,6 @@ export class CommerceClient {
       await validatePandaTerms(
         terms,
         request,
-        product,
         Principal.fromText(this.membershipId).toUint8Array(),
         this.account.home.toUint8Array(),
         this.wallet.toUint8Array(),

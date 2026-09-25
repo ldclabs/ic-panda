@@ -15,7 +15,6 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
         merchant: account(person(60)),
         ledgers: vec![f.ledger],
         terms_hash: Hash::new([11; 32]),
-        subsidy_budget_id: Hash::new([12; 32]),
         paused: false,
     };
     let app = AppRegistration {

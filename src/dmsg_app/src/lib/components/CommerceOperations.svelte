@@ -196,10 +196,10 @@
         <p>
           承诺到期：{dateLabel(
             Number(row.committed_until_ms || row.terms.quote.committed_until_ms)
-          )} · 预留全额费用 {units(row.terms.quote.subsidy_usd_micros)} USD
+          )} · 抵扣全额费用 {units(row.terms.offer.amount_usd_micros)} USD
         </p>
         {#if row.status === 'Terminated'}<p>
-            权益已经终止，神经元与预算仍占用至原到期日。
+            权益已经终止，神经元仍占用至原到期日。
           </p>{/if}<button
           class="secondary"
           disabled={session.busy}

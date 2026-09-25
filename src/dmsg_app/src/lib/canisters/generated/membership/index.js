@@ -94,7 +94,6 @@ export const idlFactory = ({ IDL }) => {
     'published_at_ms' : IDL.Nat64,
     'version' : IDL.Nat16,
     'environment' : Environment,
-    'subsidy_budget_id' : IDL.Vec(IDL.Nat8),
     'policy_version' : IDL.Nat64,
     'r_den' : IDL.Nat,
     'r_num' : IDL.Nat,
@@ -107,7 +106,6 @@ export const idlFactory = ({ IDL }) => {
     'quoted_at_ms' : IDL.Nat64,
     'application_deadline_ms' : IDL.Nat64,
     'policy' : PandaRatePolicy,
-    'subsidy_usd_micros' : IDL.Nat,
   });
   const PandaApplicationTerms = IDL.Record({
     'user_home' : IDL.Principal,
@@ -201,11 +199,6 @@ export const idlFactory = ({ IDL }) => {
     'cooling_ms' : IDL.Nat64,
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
-  const PandaSubsidyBudget = IDL.Record({
-    'reserved_usd_micros' : IDL.Nat,
-    'total_usd_micros' : IDL.Nat,
-    'budget_id' : IDL.Vec(IDL.Nat8),
-  });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -229,8 +222,7 @@ export const idlFactory = ({ IDL }) => {
     'authorization' : ProductAuthorizationRequest,
   });
   const Result_5 = IDL.Variant({ 'Ok' : PandaRatePolicy, 'Err' : Error });
-  const Result_6 = IDL.Variant({ 'Ok' : PandaSubsidyBudget, 'Err' : Error });
-  const Result_7 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
   return IDL.Service({
     'advance_panda_claim' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ProductAuthorizationRequest],
@@ -241,7 +233,6 @@ export const idlFactory = ({ IDL }) => {
     'configure_panda_service' : IDL.Func([PandaServiceConfig], [Result_1], []),
     'get_panda_claim' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], ['query']),
     'get_panda_claim_for_product' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
-    'panda_budgets' : IDL.Func([], [IDL.Vec(PandaSubsidyBudget)], ['query']),
     'panda_claim_certificate' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [Result_2],
@@ -262,17 +253,12 @@ export const idlFactory = ({ IDL }) => {
     'request_panda_claim' : IDL.Func([PandaClaimRequest], [Result], []),
     'schedule_panda_rate' : IDL.Func([PandaRatePolicy], [Result_5], []),
     'set_admission_pause' : IDL.Func([IDL.Bool], [Result_1], []),
-    'set_panda_subsidy_budget' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat],
-        [Result_6],
-        [],
-      ),
     'set_sns_governance_module_hash' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [Result_1],
         [],
       ),
-    'sweep_panda_commitments' : IDL.Func([], [Result_7], []),
+    'sweep_panda_commitments' : IDL.Func([], [Result_6], []),
     'verify_sns_configuration' : IDL.Func([], [Result_1], []),
   });
 };

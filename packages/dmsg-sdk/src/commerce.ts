@@ -128,7 +128,6 @@ export async function validateCheckoutQuote(
 export async function validatePandaTerms(
   terms: PandaApplicationTerms,
   request: CheckoutRequest,
-  product: ProductRegistration,
   membership: Uint8Array,
   home: Uint8Array,
   actor: Uint8Array,
@@ -142,8 +141,6 @@ export async function validatePandaTerms(
     q.version === 2n &&
       q.policy.effective_at_ms <= q.quoted_at_ms &&
       q.policy.product_ids.includes(request.offer.product_id) &&
-      equalBytes(q.policy.subsidy_budget_id, product.subsidy_budget_id) &&
-      q.subsidy_usd_micros === request.offer.amount_usd_micros &&
       q.application_deadline_ms ===
         min(q.quoted_at_ms + 86_400_000n, request.offer.expires_at_ms),
     "INTEGRITY_FAILED",

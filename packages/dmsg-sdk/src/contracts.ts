@@ -50,7 +50,6 @@ export interface ProductRegistration {
   merchant: Account
   ledgers: Uint8Array[]
   terms_hash: Uint8Array
-  subsidy_budget_id: Uint8Array
   paused: boolean
 }
 
@@ -120,7 +119,6 @@ export interface PandaRatePolicy {
   r_den: bigint
   published_at_ms: bigint
   effective_at_ms: bigint
-  subsidy_budget_id: Uint8Array
 }
 
 export interface PandaQuote {
@@ -129,7 +127,6 @@ export interface PandaQuote {
   offer_hash: Uint8Array
   policy: PandaRatePolicy
   required_stake_e8s: bigint
-  subsidy_usd_micros: bigint
   application_deadline_ms: bigint
   committed_until_ms: bigint
 }
@@ -476,12 +473,6 @@ export interface PandaServiceConfig {
   max_claims: bigint
   hourly_applications: bigint
   cooling_ms: bigint
-}
-
-export interface PandaSubsidyBudget {
-  budget_id: Uint8Array
-  total_usd_micros: bigint
-  reserved_usd_micros: bigint
 }
 
 export interface PandaApplicationTerms {

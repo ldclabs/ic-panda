@@ -44,7 +44,6 @@ pub fn product() -> ProductRegistration {
         merchant: principal(5).into(),
         ledgers: vec![principal(6), principal(7)],
         terms_hash: Hash::new([11; 32]),
-        subsidy_budget_id: Hash::new([12; 32]),
         paused: false,
     }
 }
@@ -97,7 +96,6 @@ pub fn rate() -> PandaRatePolicy {
         r_den: 3,
         published_at_ms: NOW - POLICY_NOTICE_MS,
         effective_at_ms: NOW,
-        subsidy_budget_id: product().subsidy_budget_id,
     }
 }
 

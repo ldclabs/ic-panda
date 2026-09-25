@@ -149,7 +149,6 @@ export interface PandaQuote {
   'quoted_at_ms' : bigint,
   'application_deadline_ms' : bigint,
   'policy' : PandaRatePolicy,
-  'subsidy_usd_micros' : bigint,
 }
 export interface PandaRatePolicy {
   'product_ids' : Array<string>,
@@ -157,7 +156,6 @@ export interface PandaRatePolicy {
   'published_at_ms' : bigint,
   'version' : number,
   'environment' : Environment,
-  'subsidy_budget_id' : Uint8Array | number[],
   'policy_version' : bigint,
   'r_den' : bigint,
   'r_num' : bigint,
@@ -167,11 +165,6 @@ export interface PandaServiceConfig {
   'hourly_applications' : bigint,
   'commerce_canister' : Principal,
   'cooling_ms' : bigint,
-}
-export interface PandaSubsidyBudget {
-  'reserved_usd_micros' : bigint,
-  'total_usd_micros' : bigint,
-  'budget_id' : Uint8Array | number[],
 }
 export interface ProductApproval {
   'method' : SettlementMethod,
@@ -222,9 +215,7 @@ export type Result_4 = { 'Ok' : PandaApplicationTerms } |
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : PandaRatePolicy } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : PandaSubsidyBudget } |
-  { 'Err' : Error };
-export type Result_7 = { 'Ok' : number } |
+export type Result_6 = { 'Ok' : number } |
   { 'Err' : Error };
 export type SettlementMethod = { 'Cash' : null } |
   { 'Panda' : null };
@@ -237,7 +228,6 @@ export interface _SERVICE {
   'configure_panda_service' : ActorMethod<[PandaServiceConfig], Result_1>,
   'get_panda_claim' : ActorMethod<[Uint8Array | number[]], Result>,
   'get_panda_claim_for_product' : ActorMethod<[Uint8Array | number[]], Result>,
-  'panda_budgets' : ActorMethod<[], Array<PandaSubsidyBudget>>,
   'panda_claim_certificate' : ActorMethod<[Uint8Array | number[]], Result_2>,
   'panda_operations' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
@@ -252,15 +242,11 @@ export interface _SERVICE {
   'request_panda_claim' : ActorMethod<[PandaClaimRequest], Result>,
   'schedule_panda_rate' : ActorMethod<[PandaRatePolicy], Result_5>,
   'set_admission_pause' : ActorMethod<[boolean], Result_1>,
-  'set_panda_subsidy_budget' : ActorMethod<
-    [Uint8Array | number[], bigint],
-    Result_6
-  >,
   'set_sns_governance_module_hash' : ActorMethod<
     [Uint8Array | number[]],
     Result_1
   >,
-  'sweep_panda_commitments' : ActorMethod<[], Result_7>,
+  'sweep_panda_commitments' : ActorMethod<[], Result_6>,
   'verify_sns_configuration' : ActorMethod<[], Result_1>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

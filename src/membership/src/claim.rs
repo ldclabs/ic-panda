@@ -9,7 +9,6 @@ pub struct Claim {
     pub authorization: dmsg_types::integration_billing::ProductAuthorizationRequest,
     pub cooling_ms: u64,
     pub decision: Option<ProductDecision>,
-    pub budget_reserved: bool,
     pub product_reserved: bool,
     pub reservation_released: bool,
     pub generation: u64,
@@ -17,11 +16,10 @@ pub struct Claim {
 }
 
 impl Claim {
-    pub fn new(request: PandaClaimRequest, cooling_ms: u64) -> Self {
-        let id = panda_claim_id(&request.terms);
+    pub fn new(id: Hash, request: PandaClaimRequest, cooling_ms: u64) -> Self {
         Self {
             view: PandaClaimView {
-                version: 2,
+                version: COMMERCE_VERSION,
                 claim_id: id,
                 terms: request.terms,
                 status: PandaClaimStatus::Checking,
@@ -37,7 +35,6 @@ impl Claim {
             authorization: request.authorization,
             cooling_ms,
             decision: None,
-            budget_reserved: true,
             product_reserved: false,
             reservation_released: false,
             generation: 0,
@@ -81,11 +78,6 @@ impl Claim {
         if eligibility == Eligibility::Eligible {
             ensure(at < lease, Error::MembershipStale)?;
         }
-        let revision = self
-            .view
-            .lease_revision
-            .checked_add(1)
-            .ok_or(Error::QuotaExceeded)?;
         let pending = matches!(
             self.view.status,
             PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown
@@ -100,7 +92,6 @@ impl Claim {
         } else {
             self.view.repair_elapsed_ms
         };
-        self.view.lease_revision = revision;
         self.view.eligibility = eligibility.clone();
         self.view.observed_at_ms = observed;
         self.view.valid_until_ms = lease;
@@ -139,7 +130,7 @@ impl Claim {
         )?;
         let terms = &self.view.terms;
         let decision = ProductDecision {
-            version: 2,
+            version: COMMERCE_VERSION,
             offer: terms.offer.clone(),
             decision_id: digest("dmsg/panda/apply/v2", &self.view.claim_id),
             source: SettlementSource::Panda {
@@ -173,23 +164,28 @@ impl Claim {
             self.view.status = PandaClaimStatus::Active;
             self.view.committed_until_ms = self.view.terms.offer.expires_at_ms;
         } else {
-            self.view.status = PandaClaimStatus::Rejected;
-            self.view.valid_until_ms = 0;
+            self.reject();
         }
         self.view.receipt = Some(receipt);
         Ok(())
+    }
+
+    /// A definite product refusal proves that no rights were delivered.
+    pub fn reject(&mut self) {
+        self.view.status = PandaClaimStatus::Rejected;
+        self.view.valid_until_ms = 0;
     }
 
     pub fn cancel(&mut self) -> Result<()> {
         if self.view.status == PandaClaimStatus::Cancelled {
             return Ok(());
         }
+        // A decision exists from Applying onwards, so pending status alone proves none was prepared.
         ensure(
-            self.decision.is_none()
-                && matches!(
-                    self.view.status,
-                    PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown
-                ),
+            matches!(
+                self.view.status,
+                PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown
+            ),
             Error::Forbidden,
         )?;
         self.generation = self.generation.checked_add(1).ok_or(Error::QuotaExceeded)?;
@@ -218,15 +214,12 @@ impl Claim {
 }
 
 #[cfg(test)]
-#[path = "../../dmsg_types/tests/support/commerce.rs"]
-mod fixture;
-#[cfg(test)]
 mod tests {
     use super::*;
-    use fixture::base::*;
+    use crate::fixture::{self, base::*};
     #[test]
     fn cooling_and_unknown_apply_never_release_an_accepted_commitment() {
-        let mut c = Claim::new(fixture::claim(), PANDA_COOLING_MS);
+        let mut c = Claim::new(Hash::new([7; 32]), fixture::claim(), PANDA_COOLING_MS);
         c.product_reserved = true;
         c.observe(Eligibility::Eligible, NOW, NOW).unwrap();
         assert!(c.preparing_apply(NOW + PANDA_COOLING_MS - 1).is_err());
@@ -270,7 +263,7 @@ mod tests {
 
     #[test]
     fn unverified_observations_pause_repair_without_extending_old_lease() {
-        let mut c = Claim::new(fixture::claim(), PANDA_COOLING_MS);
+        let mut c = Claim::new(Hash::new([7; 32]), fixture::claim(), PANDA_COOLING_MS);
         c.view.status = PandaClaimStatus::Active;
         c.view.committed_until_ms = c.view.terms.offer.expires_at_ms;
         c.observe(Eligibility::Ineligible, NOW, NOW).unwrap();

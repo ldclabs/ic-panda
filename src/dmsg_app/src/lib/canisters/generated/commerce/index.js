@@ -256,7 +256,6 @@ export const idlFactory = ({ IDL }) => {
     'merchant' : Account,
     'quote_authority' : IDL.Principal,
     'environment' : Environment,
-    'subsidy_budget_id' : IDL.Vec(IDL.Nat8),
     'ledgers' : IDL.Vec(IDL.Principal),
     'beneficiary_authority' : IDL.Principal,
     'adapter' : IDL.Principal,

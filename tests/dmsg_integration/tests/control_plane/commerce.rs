@@ -480,9 +480,6 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         (active.claim_id,),
     );
     assert_eq!(exit, Err(Error::Forbidden));
-    let budget: Vec<PandaSubsidyBudget> =
-        query(&f.ic, f.membership, person(1), "panda_budgets", ());
-    assert_eq!(budget[0].reserved_usd_micros, bill.amount_usd_micros);
     neuron(&f, 100, false);
     f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
     let r: Result<PandaClaimView> = update(
@@ -492,7 +489,17 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         "refresh_panda_claim",
         (active.claim_id,),
     );
-    assert_eq!(r.unwrap().eligibility, Eligibility::Ineligible);
+    let repairing = r.unwrap();
+    assert_eq!(repairing.eligibility, Eligibility::Ineligible);
+    // A repeated refresh within a minute reuses the observation and leaves the view unchanged.
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "refresh_panda_claim",
+        (active.claim_id,),
+    );
+    assert_eq!(r.unwrap(), repairing);
     f.ic.advance_time(Duration::from_millis(8 * DAY));
     let r: Result<PandaClaimView> = update(
         &f.ic,
@@ -504,9 +511,6 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
     let ended = r.unwrap();
     assert_eq!(ended.status, PandaClaimStatus::Terminated);
     assert_eq!(ended.committed_until_ms, bill.expires_at_ms);
-    let budget: Vec<PandaSubsidyBudget> =
-        query(&f.ic, f.membership, person(1), "panda_budgets", ());
-    assert_eq!(budget[0].reserved_usd_micros, bill.amount_usd_micros);
     f.ic.upgrade_canister(
         f.membership,
         wasm("membership"),
@@ -531,9 +535,14 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         (),
     );
     assert_eq!(r.unwrap(), 0);
-    let budget: Vec<PandaSubsidyBudget> =
-        query(&f.ic, f.membership, person(1), "panda_budgets", ());
-    assert_eq!(budget[0].reserved_usd_micros, 0);
+    let r: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (active.claim_id,),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Released);
 }
 fn sample(f: &Fixture) -> (Principal, AccountId) {
     let canister = f.ic.create_canister();
@@ -576,7 +585,6 @@ fn sample(f: &Fixture) -> (Principal, AccountId) {
         merchant: account(person(60)),
         ledgers: vec![f.ledger, f.ledger2],
         terms_hash: Hash::new([101; 32]),
-        subsidy_budget_id: Hash::new([100; 32]),
         paused: false,
     };
     let r: Result<()> = update(
@@ -903,12 +911,14 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         (),
     );
     assert_eq!(r.unwrap(), 1);
-    let budgets: Vec<PandaSubsidyBudget> =
-        query(&f.ic, f.membership, person(1), "panda_budgets", ());
-    assert_eq!(
-        budgets[0].reserved_usd_micros,
-        terms.offer.amount_usd_micros
+    let r: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (first.claim_id,),
     );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Released);
     let r: Result<PandaClaimView> = query(
         &f.ic,
         f.membership,
@@ -1086,4 +1096,102 @@ fn a_governance_module_pin_changed_during_neuron_read_never_issues_a_lease() {
         (claim.claim_id,),
     );
     assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
+    // A pinned module is checked through canister_info, including its sole root controller.
+    let verified: Result<()> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "verify_sns_configuration",
+        (),
+    );
+    assert_eq!(verified, Err(Error::UnsupportedProtocol));
+    let module = f.ic.canister_status(f.sns, None).unwrap().module_hash.unwrap();
+    let module = Hash::new(module.as_slice().try_into().unwrap());
+    let r: Result<()> = update(
+        &f.ic,
+        f.membership,
+        f.sns,
+        "set_sns_governance_module_hash",
+        (module,),
+    );
+    r.unwrap();
+    let verified: Result<()> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "verify_sns_configuration",
+        (),
+    );
+    assert_eq!(verified, Err(Error::UnsupportedProtocol));
+    f.ic.set_controllers(f.sns, None, vec![f.sns]).unwrap();
+    let verified: Result<()> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "verify_sns_configuration",
+        (),
+    );
+    verified.unwrap();
+}
+
+#[test]
+fn cancelled_applications_do_not_consume_claim_capacity() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    neuron(&f, 100_000_000_000_100, false);
+    let r: Result<()> = update(
+        &f.ic,
+        f.membership,
+        f.sns,
+        "configure_panda_service",
+        (PandaServiceConfig {
+            commerce_canister: f.commerce,
+            max_claims: 1,
+            hourly_applications: 100,
+            cooling_ms: PANDA_COOLING_MS,
+        },),
+    );
+    r.unwrap();
+    let apply = |op: u8, neuron_id: u8| -> Result<PandaClaimView> {
+        let bill = offer(&f, &id, op);
+        let terms: Result<PandaApplicationTerms> = update(
+            &f.ic,
+            f.membership,
+            person(1),
+            "quote_panda_subscription",
+            (bill.clone(), f.user, id, Hash::new([neuron_id; 32])),
+        );
+        let terms = terms.unwrap();
+        let authorization = approve(
+            &f,
+            &id,
+            &bill,
+            f.membership,
+            ApprovalPurpose::PandaSubscription,
+            panda_application_hash(&terms),
+            op + 1,
+        );
+        update(
+            &f.ic,
+            f.membership,
+            person(1),
+            "request_panda_claim",
+            (PandaClaimRequest {
+                terms,
+                authorization,
+            },),
+        )
+    };
+    let first = apply(170, 44).unwrap();
+    assert_eq!(first.status, PandaClaimStatus::CoolingDown);
+    assert_eq!(apply(172, 45), Err(Error::QuotaExceeded));
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "cancel_panda_application",
+        (first.claim_id,),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
+    assert_eq!(apply(174, 44).unwrap().status, PandaClaimStatus::CoolingDown);
 }

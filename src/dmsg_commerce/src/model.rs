@@ -1,6 +1,6 @@
 use candid::Principal;
-use dmsg_protocol::{billing::*, membership::*};
-use dmsg_types::{billing::*, membership::*, *};
+use dmsg_protocol::billing::*;
+use dmsg_types::{billing::*, integration::PANDA_LEASE_MS, membership::*, *};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -104,7 +104,7 @@ pub fn project(
     };
     let mut eligibility = Eligibility::Eligible;
     let mut sources = vec![];
-    let mut until = at.saturating_add(MAX_LEASE_MS);
+    let mut until = at.saturating_add(PANDA_LEASE_MS);
     let mut observed = at;
     let mut stop = None;
     let mut repair = None;

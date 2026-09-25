@@ -10,7 +10,7 @@ See [integration](integration.md), [app actions](app-action.md) and
 The product owns its account/project, prices, role checks, subscription contracts
 and delivery receipts. dMsg user verifies the exact approving account/device;
 commerce owns cash settlement; membership owns neuron qualification, global
-occupancy and subsidy commitments. A Worker or browser is never a payment or
+occupancy and full-waiver commitments. A Worker or browser is never a payment or
 product-delivery authority.
 
 `Beneficiary = (product_id, authority_canister, subject_schema, subject_bytes)`.
@@ -120,19 +120,22 @@ is not divided into an annual rate or prorated stake. Zero/overflow fails;
 PANDA never becomes a discount basis-point value, partial payment, cash balance
 or withdrawable rebate. Customer cash principal is zero.
 
-The immutable quote records rate policy/version, quoted time, USD subsidy,
-required stake, application deadline and original E. Ordinary R publication has
-at least 30 days' notice. The registered product and policy must select the same
-subsidy budget. New admission reserves USD capacity and the global
-`(SNS governance, neuron_id)` occupancy before qualification.
+The immutable quote records rate policy/version, quoted time, required stake,
+application deadline and original E. Ordinary R publication has at least 30
+days' notice. There is no USD subsidy budget: admission is bounded by the
+service's concurrent claim capacity and hourly application limit. New admission
+reserves the global `(SNS governance, neuron_id)` occupancy before qualification.
 
 The service verifies the pinned SNS root/governance/ledger, eight decimals and,
-outside Local, the approved governance Wasm hash. Unknown permission semantics
+when pinned (required outside Local), the approved governance Wasm hash and SNS
+root as its sole controller via `canister_info`. Unknown permission semantics
 or unverifiable module/response data is `Unverifiable`. The economic actor must
 hold the relevant native economic permissions, with no other economic
 controller; voting permission alone is insufficient. Net principal stake must
-meet the quote, and earliest possible unlock must be at or after E. This is
-qualification, not physical SNS custody.
+meet the quote, and the earliest possible unlock must not precede E, so the
+neuron stays locked for the whole paid interval `[start, E)`. This is
+qualification, not physical SNS custody. A claim reuses an observation for one
+minute before querying SNS again.
 
 The first **actual eligible observation** starts at least 65 minutes of cooling.
 A fresh account/device and product approval is required after cooling; it covers
@@ -146,7 +149,7 @@ cannot cancel or release on a timer. After successful Apply, including a future
 renewal, `committed_until_ms = original E` is irreversible. No Upgrade, Replace,
 Buyout, early Close or governance edit shortens it. Product closure, unlinking,
 loss of qualification and termination of rights do not release occupancy or
-subsidy capacity early. Expiry releases each reference and budget exactly once;
+claim capacity early. Expiry releases each reference exactly once;
 releasing the current term does not remove an already committed next term.
 
 Qualification leases last at most one hour and never pass E. Known ineligibility

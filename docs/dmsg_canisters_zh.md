@@ -77,3 +77,5 @@ pnpm --dir src/dmsg_app test
 2026-09-23 payment 使用 schema 6：授权尝试与成功开单额度分开；默认认证查询按时间选择当前费率；controller 在固定上限内维护预期网络费，旧报价和已准备出金保持冻结。预算更新不重算配置认证叶，历史费率表使用紧凑表示，稳定内存改为 1 MiB 分配桶。转账增加有界 `last_failure` 诊断；容量和 cycles 结果见 payment README。
 
 2026-09-25 payment 使用 schema 7：出金腿的并发锁改为内存占用键，升级或回调 trap 丢失账本回复后仍为 `InFlight` 的腿可用冻结参数重发，由账本去重；`Superseded` 腿返回 `VersionConflict`。开单只约束 user 观察时间与本地时间的差值，入金块时间不再与本地时间比较。付款方索引只保存键，出金块索引保存 `(escrow_id, leg_id)`，升级重建认证树只发布一次根哈希。
+
+2026-09-25 membership 使用新的开发布局（配置单元合并服务配置与每小时申请计数，申请表改为 memory 1–4），不读取旧实例。移除 USD 补贴预算：`PandaRatePolicy`、`ProductRegistration` 与 `PandaQuote` 不再含补贴字段，`set_panda_subsidy_budget`/`panda_budgets` 删除；`max_claims` 只计仍占用神经元的申请。会员到期 E 取报价固定的 offer 终点，神经元最早解锁不得早于 E。同一申请一分钟内复用资格观察；固定 governance 模块时经 `canister_info` 同时核对模块 hash 与唯一 controller 为 SNS root。每分钟调用计数只在 heap 中，不再有 `pre_upgrade`；申请只在索引、占用或公开视图变化时更新对应表和认证叶。

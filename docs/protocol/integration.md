@@ -4,7 +4,7 @@ Status (2026-09-24): operational development implementation. Dedicated authentic
 closed application signing, browser v4 checkout, two-asset settlement, irreversible
 PANDA commitments and both account/project adapters are connected. TokenList and
 an independent account product exercise the public contract. Production identities,
-R/budgets, deployment and real-fund acceptance remain explicit release steps.
+R, deployment and real-fund acceptance remain explicit release steps.
 The old commercial endpoints and membership change/buyout paths have been removed;
 there is no v2-to-v1 conversion. See [commerce 2](commerce.md) for runtime methods.
 
@@ -34,8 +34,8 @@ types; independent encoder tests prevent sharing the same serialization bug.
 
 An application pins exact canonical origins, authentication receiver, user and
 COSE homes, the fixed action authority, capabilities, closed signing profiles and product IDs. A product pins its quote authority,
-beneficiary authority, adapter, subject schema/size, merchant account, ledgers,
-terms and subsidy budget namespace. A paused registration stops **new** approvals
+beneficiary authority, adapter, subject schema/size, merchant account, ledgers
+and terms. A paused registration stops **new** approvals
 and commitments; it must not stop reconciliation, refunds or expiry processing.
 
 Applications and products are governance registered. Configuration updates
@@ -129,7 +129,7 @@ PANDA stake is exactly
 Intermediate values are arbitrary precision; only the final result must fit
 u128. The service computes it using an immutable effective rate policy. The
 expiry is a lock coverage and commitment boundary, not another proration factor.
-The subsidy obligation is USD service value, never cash revenue or merchant cash.
+A waived bill is never cash revenue or merchant cash.
 Only full waiver is supported: no discount, partial payment or buyout.
 
 After product Apply succeeds, the original contract expiry is immutable. Benefit

@@ -6,28 +6,17 @@ use crate::{
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
-/// Deployment-wide service/budget limits, independent of product plan names.
+/// Deployment-wide service limits, independent of product plan names.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PandaServiceConfig {
     /// Authority for app/product registrations.
     pub commerce_canister: Principal,
-    /// Maximum retained operation identities.
+    /// Maximum claims simultaneously occupying a neuron, excluding short Apply windows.
     pub max_claims: u64,
     /// Successful new applications per UTC hour.
     pub hourly_applications: u64,
     /// At least 65 minutes; changing it cannot shorten an accepted application's cooling.
     pub cooling_ms: u64,
-}
-
-/// USD-denominated capacity, not an asset balance or withdrawable credit.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct PandaSubsidyBudget {
-    /// Namespace selected by both registered product and rate policy.
-    pub budget_id: Hash,
-    /// Governance ceiling for simultaneous commitments.
-    pub total_usd_micros: u128,
-    /// Accepted pending/applied obligations. Released only after rejection/cancellation or E.
-    pub reserved_usd_micros: u128,
 }
 
 /// Complete neuron, economic owner, dMsg account and bill selected before device approval.
@@ -73,7 +62,7 @@ pub enum PandaClaimStatus {
     Applying,
     /// Product applied the full waiver. Commitment is immutable.
     Active,
-    /// Product rights ended permanently; neuron/budget remain occupied until E.
+    /// Product rights ended permanently; the neuron remains occupied until E.
     Terminated,
     /// Cancelled before any Apply was prepared.
     Cancelled,

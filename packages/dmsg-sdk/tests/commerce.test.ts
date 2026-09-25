@@ -87,7 +87,7 @@ test("Rust checkout terms independently match fixed asset, full amount and all d
     validateSettlementAsset(quote.asset, quote.asset.price_valid_until_ms),
   );
 });
-test("PANDA full waiver binds neuron, independent account, exact USD bill, budget and original end", async () => {
+test("PANDA full waiver binds neuron, independent account, exact USD bill and original end", async () => {
   const request: CheckoutRequest = {
     offer: terms.offer,
     approving_account: terms.approving_account,
@@ -98,7 +98,6 @@ test("PANDA full waiver binds neuron, independent account, exact USD bill, budge
     validatePandaTerms(
       v,
       request,
-      quote.product,
       terms.home_membership,
       terms.user_home,
       terms.actor,
@@ -111,8 +110,7 @@ test("PANDA full waiver binds neuron, independent account, exact USD bill, budge
     (t: PandaApplicationTerms) => (t.approving_account[0] ^= 1),
     (t: PandaApplicationTerms) => t.quote.required_stake_e8s--,
     (t: PandaApplicationTerms) => t.quote.committed_until_ms--,
-    (t: PandaApplicationTerms) => t.quote.subsidy_usd_micros--,
-    (t: PandaApplicationTerms) => (t.quote.policy.subsidy_budget_id[0] ^= 1),
+    (t: PandaApplicationTerms) => (t.quote.policy.r_num += 1n),
   ]) {
     const v = structuredClone(terms);
     alter(v);

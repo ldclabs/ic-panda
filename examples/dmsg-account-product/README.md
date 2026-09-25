@@ -13,9 +13,9 @@ membership occupancy engine for this example.
    amount, terms hash and administrator. The deployment has no production defaults.
 2. Register `ProductRegistration` with this canister as quote authority,
    beneficiary authority and adapter, `subject_schema = sample-account-v1`,
-   `subject_size = 12`, explicit merchant/ledgers and subsidy budget.
+   `subject_size = 12` and explicit merchant/ledgers.
 3. Register its exact app origins, dMsg homes and `Checkout` capability. Add its
-   product ID to a published PANDA policy using the same budget namespace.
+   product ID to a published PANDA rate policy.
 4. `assign_account` binds at most 100 sample subjects to product owners.
    `prepare_billing_offer` requires that owner and freezes USD terms plus a
    `ProductApproval`. A new product should connect these checks to its real

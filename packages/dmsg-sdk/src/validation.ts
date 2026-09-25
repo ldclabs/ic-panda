@@ -233,7 +233,6 @@ export function validateProduct(product: ProductRegistration): void {
         "unsupported ledger",
       );
   nonzero(product.terms_hash);
-  nonzero(product.subsidy_budget_id);
 }
 
 export function validateBillingOffer(
@@ -349,7 +348,6 @@ export function validateRatePolicy(policy: PandaRatePolicy): void {
   );
   unique(policy.product_ids, 16);
   policy.product_ids.forEach(validateIdentifier);
-  nonzero(policy.subsidy_budget_id);
 }
 
 export async function billingOfferHash(
@@ -386,8 +384,7 @@ export async function quotePanda(
   requireValid(
     offer.allowed_settlement_methods.includes("Panda") &&
       policy.environment === offer.environment &&
-      policy.product_ids.includes(offer.product_id) &&
-      equalBytes(policy.subsidy_budget_id, product.subsidy_budget_id),
+      policy.product_ids.includes(offer.product_id),
     "PANDA policy binding",
   );
   requireValid(policy.effective_at_ms <= now, "policy not effective");
@@ -406,7 +403,6 @@ export async function quotePanda(
       policy.r_num,
       policy.r_den,
     ),
-    subsidy_usd_micros: offer.amount_usd_micros,
     application_deadline_ms: deadline,
     committed_until_ms: offer.expires_at_ms,
   };

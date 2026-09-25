@@ -4,7 +4,7 @@
 
 ## 权威与身份
 
-产品负责本身的账号/项目、USD 账单、角色、共同合同和交付回执；dMsg user 核验精确账号/设备批准；commerce 核验真实资金；membership 维护神经元资格、全局占用与预算。浏览器和 Worker 不是这些事实的权威。
+产品负责本身的账号/项目、USD 账单、角色、共同合同和交付回执；dMsg user 核验精确账号/设备批准；commerce 核验真实资金；membership 维护神经元资格、全局占用与全额抵扣承诺。浏览器和 Worker 不是这些事实的权威。
 
 受益主体是 `(product_id, authority_canister, subject_schema, subject_bytes)`。dMsg 账户、产品操作人、受益主体与实际经济钱包是不同字段。TokenList 使用八字节大端 ProjectId，dMsg 自用账号和参考账号产品分别使用自己的十二字节 schema。长度不能决定账号归属。
 
@@ -32,15 +32,15 @@
 
 `required_stake_e8s = ceil(amount_usd_micros × R_num × 10^8 / (10^6 × R_den))`。
 
-金额是完整订阅区间价格；不按天数年化或按剩余期限降低门槛。R、预算、门槛、申请期限和原 E 固定到接受的条款。只抵扣全额订阅费，客户现金本金为零；没有折扣 bps、部分抵扣、买断或可提现余额。
+金额是完整订阅区间价格；不按天数年化或按剩余期限降低门槛。R、门槛、申请期限和原 E 固定到接受的条款。没有 USD 补贴预算；新增申请受同时在用申请上限与每小时申请上限约束。只抵扣全额订阅费，客户现金本金为零；没有折扣 bps、部分抵扣、买断或可提现余额。
 
-服务验证固定 SNS root/governance/ledger、八位 PANDA 精度和已审核 governance 模块 hash。未知语义或无法核验的响应为 Unverifiable。实际 actor 必须拥有需要的经济控制权限，其他经济控制者会使申请不合格；仅投票权限不够。净本金足额且最早解锁时间不得早于 E。dMsg 不取得 SNS 原生托管权。
+服务验证固定 SNS root/governance/ledger、八位 PANDA 精度，并在固定模块时（Local 以外必需）通过 `canister_info` 核对已审核 governance 模块 hash 及其唯一 controller 为 SNS root。未知语义或无法核验的响应为 Unverifiable。实际 actor 必须拥有需要的经济控制权限，其他经济控制者会使申请不合格；仅投票权限不够。净本金足额且最早解锁时间不得早于 E，使神经元在整个付费区间 `[开始, E)` 内保持锁定。dMsg 不取得 SNS 原生托管权。同一申请一分钟内复用上次观察，不重复查询 SNS。
 
 首次实际合格观察后至少冷却 65 分钟，再用新鲜账号/产品批准和神经元观察确认原条款。一个全局占用表阻止同一神经元跨产品/主体复用；同一主体只可同时持有当前与连续下一期引用。
 
 Apply 准备之前可取消；Apply Unknown 不按超时释放。Apply 成功后，即使未来续费尚未开始，也不可提前退出、Replace、Buyout 或 Close。解绑、产品结束、失格和权益终止不缩短 `committed_until=原 E`。每个到期引用只释放一次，不误清连续下一期。
 
-资格租约最多一小时且不越过 E。已知失格停止新权益并进入七天修复；Unverifiable 暂停修复时钟、不延长旧租约。终止权益永不复活，占用和预算仍到原 E。SNS pin 在外部查询期间变化时不发放新租约；审核升级后由治理更新 pin 并重新验证，不清空承诺。
+资格租约最多一小时且不越过 E。已知失格停止新权益并进入七天修复；Unverifiable 暂停修复时钟、不延长旧租约。终止权益永不复活，占用仍到原 E。SNS pin 在外部查询期间变化时不发放新租约；审核升级后由治理更新 pin 并重新验证，不清空承诺。
 
 ## 产品适配与资源
 
@@ -56,4 +56,4 @@ dMsg 自用产品也通过同一服务获得合同。现金升级和存储增购
 
 运营界面通过有界分页列出当前身份可读的原订单、转账、每账本义务、过期资格和原到期承诺。没有清空 Unknown 的按钮。暂停只阻止新申请，旧对账、原路退款、资格刷新与到期释放继续可用。
 
-Rust、SDK、真实 PocketIC、两个产品类型与临时 Chrome profile 有独立验收。真实 II/钱包 origin、经济权限、治理 R/预算及真实资产付款/退款需生产证据，不能用本地 fixture 代替。历史 Statement 三个 profile 的字节不变；消息投递仍使用独立 delivery profile 2，不构成订阅旧接口或 PANDA 退出通道。
+Rust、SDK、真实 PocketIC、两个产品类型与临时 Chrome profile 有独立验收。真实 II/钱包 origin、经济权限、治理 R 及真实资产付款/退款需生产证据，不能用本地 fixture 代替。历史 Statement 三个 profile 的字节不变；消息投递仍使用独立 delivery profile 2，不构成订阅旧接口或 PANDA 退出通道。

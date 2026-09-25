@@ -349,7 +349,6 @@ export interface ProductRegistration {
   'merchant' : Account,
   'quote_authority' : Principal,
   'environment' : Environment,
-  'subsidy_budget_id' : Uint8Array | number[],
   'ledgers' : Array<Principal>,
   'beneficiary_authority' : Principal,
   'adapter' : Principal,

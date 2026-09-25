@@ -217,17 +217,6 @@ fn account_extension_gateway() {
         .update_call(
             membership,
             sns,
-            "set_panda_subsidy_budget",
-            candid::encode_args((Hash::new([100; 32]), 1_000_000_000_000_000u128)).unwrap(),
-        )
-        .unwrap();
-    candid::decode_one::<Result<PandaSubsidyBudget>>(&reply)
-        .unwrap()
-        .unwrap();
-    let reply = ic
-        .update_call(
-            membership,
-            sns,
             "schedule_panda_rate",
             candid::encode_args((PandaRatePolicy {
                 version: 2,
@@ -238,7 +227,6 @@ fn account_extension_gateway() {
                 r_den: 1,
                 published_at_ms: 0,
                 effective_at_ms: POLICY_NOTICE_MS,
-                subsidy_budget_id: Hash::new([100; 32]),
             },))
             .unwrap(),
         )
@@ -263,7 +251,6 @@ fn account_extension_gateway() {
             merchant: peer.into(),
             ledgers: vec![ledger, ledger_usdt],
             terms_hash: Hash::new([99; 32]),
-            subsidy_budget_id: Hash::new([100; 32]),
             paused: false,
         },))
         .unwrap(),
@@ -490,7 +477,7 @@ fn account_extension_gateway() {
         if !commerce_clock && output.join("advance-commerce-clock").exists() {
             ic.stop_progress();
             ic.advance_time(Duration::from_millis(
-                dmsg_protocol::membership::MIN_COOLING_MS + 10_000,
+                dmsg_types::integration::PANDA_COOLING_MS + 10_000,
             ));
             ic.tick();
             let at = nanos_to_millis(ic.get_time().as_nanos_since_unix_epoch());

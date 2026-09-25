@@ -688,8 +688,6 @@ type ProductRegistration = record {
   quote_authority : principal;
   // Deployment separation.
   environment : Environment;
-  // Governance budget namespace, not a cash balance.
-  subsidy_budget_id : blob;
   // Enabled ledgers, explicitly configured even in local fixtures.
   ledgers : vec principal;
   // Canister supplying beneficiary permissions.

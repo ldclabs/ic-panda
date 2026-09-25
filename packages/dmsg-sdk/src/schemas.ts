@@ -60,7 +60,6 @@ export const schemas = {
     "merchant": "Account",
     "ledgers": "Vec<Principal>",
     "terms_hash": "Hash",
-    "subsidy_budget_id": "Hash",
     "paused": "bool"
   },
   "AuthenticationPurpose": [
@@ -125,8 +124,7 @@ export const schemas = {
     "r_num": "u128",
     "r_den": "u128",
     "published_at_ms": "u64",
-    "effective_at_ms": "u64",
-    "subsidy_budget_id": "Hash"
+    "effective_at_ms": "u64"
   },
   "PandaQuote": {
     "quoted_at_ms": "u64",
@@ -134,7 +132,6 @@ export const schemas = {
     "offer_hash": "Hash",
     "policy": "PandaRatePolicy",
     "required_stake_e8s": "u128",
-    "subsidy_usd_micros": "u128",
     "application_deadline_ms": "u64",
     "committed_until_ms": "u64"
   },
@@ -518,11 +515,6 @@ export const schemas = {
     "max_claims": "u64",
     "hourly_applications": "u64",
     "cooling_ms": "u64"
-  },
-  "PandaSubsidyBudget": {
-    "budget_id": "Hash",
-    "total_usd_micros": "u128",
-    "reserved_usd_micros": "u128"
   },
   "PandaApplicationTerms": {
     "home_membership": "Principal",

@@ -67,7 +67,12 @@ const MANAGE_PRINCIPALS: i32 = 2;
 const VOTE: i32 = 4;
 const DISBURSE: i32 = 5;
 const SPLIT: i32 = 6;
+/// Personal economic control required from the claimant.
+const CONTROL: u16 =
+    (1 << CONFIGURE_DISSOLVE_STATE) | (1 << MANAGE_PRINCIPALS) | (1 << DISBURSE) | (1 << SPLIT);
 
+/// The earliest unlock must not precede the membership end `end` (exclusive), so the
+/// neuron stays locked for the entire paid interval.
 pub fn assess(
     n: &Neuron,
     id: Hash,
@@ -81,7 +86,7 @@ pub fn assess(
             n.id.as_ref().is_some_and(|v| v.id == id.as_slice()) && n.permissions.len() <= 64,
             Error::IntegrityFailed,
         )?;
-        let mut claimant = std::collections::BTreeSet::new();
+        let mut claimant = 0u16;
         let mut other_economic = false;
         for p in &n.permissions {
             let principal = p.principal.ok_or(Error::IntegrityFailed)?;
@@ -91,7 +96,7 @@ pub fn assess(
                 Error::UnsupportedProtocol,
             )?;
             if principal == actor {
-                claimant.extend(p.permission_type.iter().copied());
+                claimant |= p.permission_type.iter().fold(0, |m, v| m | (1 << v));
             } else if p.permission_type.iter().any(|v| *v != VOTE) {
                 other_economic = true;
             }
@@ -108,14 +113,10 @@ pub fn assess(
                 s.checked_mul(1000).ok_or(Error::IntegrityFailed)?
             }
         };
-        let controls = [CONFIGURE_DISSOLVE_STATE, MANAGE_PRINCIPALS, DISBURSE, SPLIT]
-            .iter()
-            .all(|p| claimant.contains(p));
-        Ok(controls
+        Ok(claimant & CONTROL == CONTROL
             && !other_economic
             && u128::from(n.cached_neuron_stake_e8s.saturating_sub(n.neuron_fees_e8s)) >= required
-            && unlock >= end
-            && unlock > observed)
+            && unlock >= end)
     })();
     match result {
         Ok(true) => Eligibility::Eligible,
