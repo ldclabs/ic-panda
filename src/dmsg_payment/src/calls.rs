@@ -1,4 +1,4 @@
-//! Bound and coalesce read-only cross-canister work. No money state lives here.
+//! Bound and coalesce cross-canister work. No money state lives here.
 use candid::Principal;
 use dmsg_types::{ensure, Error, Hash, Result};
 use std::{cell::RefCell, collections::BTreeSet};
@@ -10,7 +10,7 @@ enum Request {
     Payer(Principal),
     Quote(Hash),
     Funding(u64),
-    Reconcile(Hash, u64),
+    Leg(Hash, u64),
 }
 
 thread_local! {
@@ -18,8 +18,8 @@ thread_local! {
 }
 
 // CDK cancellation drops the guard on callback traps as well as normal errors.
-// Upgrades discard these read-only tasks and guards; durable outbox state is
-// independent and must never be unlocked or retried merely by dropping a guard.
+// Upgrades discard these tasks and guards; durable outbox state is independent
+// and a leg is never completed or rejected merely because a guard was dropped.
 pub(crate) struct CallGuard(Vec<Request>);
 
 impl CallGuard {
@@ -43,8 +43,9 @@ impl CallGuard {
         Self::acquire(vec![Request::Funding(block)])
     }
 
-    pub(crate) fn reconcile(id: Hash, leg: u64) -> Result<Self> {
-        Self::acquire(vec![Request::Reconcile(id, leg)])
+    /// One transfer or reconciliation per leg at a time.
+    pub(crate) fn leg(id: Hash, leg: u64) -> Result<Self> {
+        Self::acquire(vec![Request::Leg(id, leg)])
     }
 }
 

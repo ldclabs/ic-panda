@@ -2,7 +2,6 @@ use crate::{calls::CallGuard, model, state::Escrow, store::*};
 use candid::{Nat, Principal};
 use dmsg_protocol::*;
 use dmsg_runtime::storage::MapExt;
-use dmsg_runtime::{self as stable};
 use dmsg_types::{payment::*, profiles::delivery::*, *};
 use icrc_ledger_types::icrc1::{
     account::Account,
@@ -70,7 +69,7 @@ fn pre_upgrade() {
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     assert_eq!(
-        cfg().schema,
+        with_cfg(|c| c.schema),
         STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
@@ -106,12 +105,12 @@ fn set_ledger_fee(fee: u128) -> Result<()> {
 fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     controller()?;
     nonzero(new.public_key.as_slice())?;
+    let mut c = cfg();
     ensure_valid(
-        new.epoch > cfg().init.signer.epoch && new.valid_from < new.valid_until && !new.revoked,
+        new.epoch > c.init.signer.epoch && new.valid_from < new.valid_until && !new.revoked,
         "signer epoch/interval",
     )?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
-    let mut c = cfg();
     CERT.with_borrow_mut(|c| {
         c.put(
             [b"signer/".as_slice(), new.epoch.to_be_bytes().as_slice()].concat(),
@@ -157,7 +156,6 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         return Ok(e.info());
     }
     let mut c = cfg();
-    c.init.fee_policy = current_fee_policy(at);
     let _call = CallGuard::open(who, input.quote.quote_id)?;
     ensure(
         !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice())),
@@ -170,6 +168,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     check_order_capacity(at)?;
     let quote_digest = model::validate_quote(
         &c.init,
+        &current_fee_policy(at),
         canister_id,
         who,
         &input,
@@ -178,37 +177,39 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     )?;
     reserve_call(at, CallBudget::Authorization(who))?;
     let verified: Result<u64> =
-        stable::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
+        dmsg_runtime::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
     let observed_at = verified?;
     let at = now();
-    ensure(
-        observed_at <= at && at - observed_at <= MINUTE,
-        Error::PolicyStale,
-    )?;
+    // The user home may sit on another subnet; only bound the freshness gap.
+    ensure(at.abs_diff(observed_at) <= MINUTE, Error::PolicyStale)?;
     // The guard holds this payer and quote exclusively until commit. Other
     // messages can release the payer's slots, but cannot open another order.
     // Recheck mutable fees, enablement, deadlines and revocation. Other payers
     // can consume the daily admission budget while verification is pending.
     c = cfg();
-    c.init.fee_policy = current_fee_policy(at);
-    model::quote_current(&c.init, &input, &signer(input.quote.signer_epoch)?, at)?;
-    let e = model::escrow(canister_id, who, &input, quote_digest);
+    model::quote_current(
+        &c.init,
+        &current_fee_policy(at),
+        &input,
+        &signer(input.quote.signer_epoch)?,
+        at,
+    )?;
+    let e = model::escrow(canister_id, id, who, &input, quote_digest);
     let count = open_count(who) + 1;
     reserve_order(at)?;
     QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
     PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
-    PAYER_INDEX.with_borrow_mut(|t| {
-        t.put(
-            &[
-                digest("dmsg/payer-index/v1", &who).as_slice(),
-                id.as_slice(),
-            ]
-            .concat(),
-            &id,
-        )
-    });
+    PAYER_INDEX.with_borrow_mut(|t| t.put(&payer_index_key(who, &id), &()));
     save(&e);
     Ok(e.info())
+}
+
+fn payer_index_key(payer: Principal, id: &Hash) -> Vec<u8> {
+    [
+        digest("dmsg/payer-index/v1", &payer).as_slice(),
+        id.as_slice(),
+    ]
+    .concat()
 }
 
 #[ic_cdk::update]
@@ -221,7 +222,6 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
     let _call = CallGuard::funding(block)?;
     reserve_call(now(), CallBudget::Ledger)?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
-    ensure(tx.committed_at <= now(), Error::IntegrityFailed)?;
     // The guard excludes another claim of this block. A concurrent settlement
     // or refund can still change the order's direction, so reload the escrow.
     let mut current = load(&escrow_id)?;
@@ -272,10 +272,8 @@ fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
         )?;
         return Ok(e.info());
     }
-    ensure(e.decision == FundsDecision::Pending, Error::VersionConflict)?;
     // Reject impossible settlements before doing public-key verification.
-    ensure(at < e.quote.accept_by, Error::Expired)?;
-    ensure(e.funding_ref.is_some(), Error::Pending)?;
+    model::settlement_open(&e, at)?;
     let hash = model::receipt_valid(
         &e,
         &signed,
@@ -283,13 +281,12 @@ fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
         ic_cdk::api::canister_self(),
         at,
     )?;
-    if model::settle(&mut e, hash, at)? {
-        // No external calls are required here: funding has already been
-        // verified and durably claimed by check_funding.
-        prepare_settlement(&mut e, cfg().init.ledger_fee, at)?;
-        release_payer(&e);
-        save(&e);
-    }
+    // No external calls are required here: funding has already been
+    // verified and durably claimed by check_funding.
+    model::settle(&mut e, hash);
+    prepare_settlement(&mut e, with_cfg(|c| c.init.ledger_fee), at)?;
+    release_payer(&e);
+    save(&e);
     Ok(e.info())
 }
 
@@ -320,7 +317,7 @@ fn claim_deposit_refund(escrow_id: Hash, block: u64) -> Result<TransferLeg> {
         .refundable
         .checked_add(primary)
         .ok_or(Error::IntegrityFailed)?;
-    let fee = cfg().init.ledger_fee;
+    let fee = with_cfg(|c| c.init.ledger_fee);
     ensure(refundable > fee, Error::FeeBlocked)?;
     let leg = model::leg(
         &mut e,
@@ -352,7 +349,7 @@ fn claim_fee_reserve(escrow_id: Hash) -> Result<TransferLeg> {
     // The original fee allocation of each payout is fixed. Additional fees
     // can use only this unallocated reserve, never recipient_net.
     ensure(e.pending_payouts == 0, Error::Pending)?;
-    let fee = cfg().init.ledger_fee;
+    let fee = with_cfg(|c| c.init.ledger_fee);
     ensure(e.primary_remaining > fee, Error::FeeBlocked)?;
     let amount = e.primary_remaining - fee;
     let to = e.quote.payer;
@@ -372,10 +369,10 @@ fn complete(mut leg: TransferLeg, block: u64) -> Result<TransferLeg> {
     }
     let mut e = load(&id)?;
     if let Some(old) = OUTGOING.with_borrow(|t| t.load(&block.to_be_bytes())) {
-        ensure(old == key(id, n), Error::IdempotencyConflict)?;
+        ensure(old == (id, n), Error::IdempotencyConflict)?;
     }
     model::complete_leg(&mut e, &mut leg, block)?;
-    OUTGOING.with_borrow_mut(|t| t.put(&block.to_be_bytes(), &key(id, n)));
+    OUTGOING.with_borrow_mut(|t| t.put(&block.to_be_bytes(), &(id, n)));
     put_leg(&leg);
     save(&e);
     Ok(leg)
@@ -387,19 +384,13 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     if leg.status == LegStatus::Succeeded {
         return Ok(leg);
     }
-    ensure(
-        matches!(
-            leg.status,
-            LegStatus::Pending | LegStatus::Unknown | LegStatus::FeeBlocked | LegStatus::Rejected
-        ),
-        if leg.status == LegStatus::InFlight {
-            Error::Pending
-        } else {
-            Error::FeeBlocked
-        },
-    )?;
+    ensure(leg.status != LegStatus::Superseded, Error::VersionConflict)?;
+    // The guard excludes a concurrent transfer or reconciliation of this leg.
+    // A leg left InFlight by a lost callback is resent with its frozen
+    // parameters; the ledger deduplicates by memo and created_at_time.
+    let _call = CallGuard::leg(escrow_id, leg_id)?;
     let e = load(&escrow_id)?;
-    let was_unknown = leg.status == LegStatus::Unknown;
+    let was_unknown = matches!(leg.status, LegStatus::Unknown | LegStatus::InFlight);
     reserve_call(now(), CallBudget::Ledger)?;
     // The outbox parameters are frozen before await; public retries never
     // replace timestamps or recreate a transfer after an ambiguous response.
@@ -415,8 +406,8 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     };
     let response: std::result::Result<
         std::result::Result<Nat, TransferError>,
-        stable::CallFailure,
-    > = stable::call_classified(e.quote.ledger, "icrc1_transfer", (args,)).await;
+        dmsg_runtime::CallFailure,
+    > = dmsg_runtime::call_classified(e.quote.ledger, "icrc1_transfer", (args,)).await;
     let mut current = get_leg(escrow_id, leg_id)?;
     if current.status == LegStatus::Succeeded {
         return Ok(current);
@@ -468,7 +459,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
         matches!(l.status, LegStatus::InFlight | LegStatus::Unknown),
         Error::VersionConflict,
     )?;
-    let _call = CallGuard::reconcile(escrow_id, leg_id)?;
+    let _call = CallGuard::leg(escrow_id, leg_id)?;
     let e = load(&escrow_id)?;
     reserve_call(now(), CallBudget::Ledger)?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
@@ -532,15 +523,15 @@ fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
     let prefix = digest("dmsg/payer-index/v1", &caller);
-    let cursor = after.map_or_else(
-        || prefix.to_vec(),
-        |id| [prefix.as_slice(), id.as_slice()].concat(),
-    );
+    let cursor = after.map_or_else(|| prefix.to_vec(), |id| payer_index_key(caller, &id));
     let entries = PAYER_INDEX.with_borrow(|t| t.page(cursor, 32));
     entries
         .into_iter()
         .take_while(|(key, _)| key.starts_with(prefix.as_slice()))
-        .map(|(_, id)| load(&id).map(|e| e.info()))
+        .map(|(key, _)| {
+            let id = Hash::new(key[prefix.len()..].try_into().expect("payer index key"));
+            load(&id).map(|e| e.info())
+        })
         .collect()
 }
 
@@ -575,12 +566,13 @@ fn get_fee_policy() -> DeliveryFeePolicy {
 #[ic_cdk::update]
 fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == cfg().init.governance,
+        ic_cdk::api::msg_caller() == with_cfg(|c| c.init.governance),
         Error::Forbidden,
     )?;
     dmsg_protocol::billing::delivery_service_fee(1, &p)?;
     let latest =
         FEE_POLICIES.with_borrow(|t| t.last_key_value().expect("initial policy").1.into_inner());
+    // A newer version than the last key cannot already be present.
     ensure(
         p.version > latest.version
             && p.effective_at_ms > latest.effective_at_ms
@@ -588,9 +580,8 @@ fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
         Error::PolicyStale,
     )?;
     ensure(
-        !FEE_POLICIES.with_borrow(|t| t.contains(&p.version.to_be_bytes()))
-            && FEE_POLICIES.with_borrow(|t| t.len()) < 256,
-        Error::IdempotencyConflict,
+        FEE_POLICIES.with_borrow(|t| t.len()) < 256,
+        Error::QuotaExceeded,
     )?;
     FEE_POLICIES.with_borrow_mut(|t| t.put(&p.version.to_be_bytes(), &p));
     CERT.with_borrow_mut(|c| {
@@ -607,8 +598,7 @@ fn get_configuration_certified(
     signer_epoch: Option<u64>,
     fee_version: Option<u64>,
 ) -> Result<CertifiedBatch> {
-    let configuration = cfg();
-    let signer_epoch = signer_epoch.unwrap_or(configuration.init.signer.epoch);
+    let signer_epoch = signer_epoch.unwrap_or_else(|| with_cfg(|c| c.init.signer.epoch));
     let fee_version = fee_version.unwrap_or_else(|| current_fee_policy(now()).version);
     CERT.with_borrow(|c| {
         c.batch(

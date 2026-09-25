@@ -65,13 +65,10 @@ fn input() -> OpenEscrow {
 fn setup() -> (Escrow, Principal) {
     let i = input();
     let me = i.quote.home_payment;
+    let payer = i.quote.payer.owner;
+    let escrow_id = digest("dmsg/escrow-id/v1", &(me, payer, i.op_id));
     (
-        escrow(
-            me,
-            i.quote.payer.owner,
-            &i,
-            digest("dmsg/quote/v2", &i.quote),
-        ),
+        escrow(me, escrow_id, payer, &i, digest("dmsg/quote/v2", &i.quote)),
         me,
     )
 }
@@ -107,15 +104,15 @@ fn expiry_is_half_open_and_terminal_decisions_are_exclusive() {
     accept_deposit(&mut e, me, &tx).unwrap();
     let at = e.quote.accept_by;
     let mut a = e.clone();
-    assert_eq!(settle(&mut a, Hash::new([1; 32]), at), Err(Error::Expired));
+    assert_eq!(settlement_open(&a, at), Err(Error::Expired));
     refund(&mut a, at).unwrap();
-    assert_eq!(
-        settle(&mut a, Hash::new([1; 32]), at - 1),
-        Err(Error::VersionConflict)
-    );
-    settle(&mut e, Hash::new([1; 32]), at - 1).unwrap();
+    assert_eq!(settlement_open(&a, at - 1), Err(Error::VersionConflict));
+    settlement_open(&e, at - 1).unwrap();
+    settle(&mut e, Hash::new([1; 32]));
     assert_eq!(refund(&mut e, at), Err(Error::VersionConflict));
     assert!(e.conserved());
+    let (unfunded, _) = setup();
+    assert_eq!(settlement_open(&unfunded, at - 1), Err(Error::Pending));
 }
 
 #[test]
@@ -220,25 +217,41 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         daily_orders: 100,
         enabled: true,
     };
-    assert!(validate_quote(&c, i.quote.home_payment, i.quote.payer.owner, &i, &s, 2).is_ok());
+    assert!(validate_quote(
+        &c,
+        &c.fee_policy,
+        i.quote.home_payment,
+        i.quote.payer.owner,
+        &i,
+        &s,
+        2
+    )
+    .is_ok());
     let mut disabled = c.clone();
     disabled.enabled = false;
-    assert_eq!(quote_current(&disabled, &i, &s, 2), Err(Error::Locked));
+    assert_eq!(
+        quote_current(&disabled, &c.fee_policy, &i, &s, 2),
+        Err(Error::Locked)
+    );
     let mut revoked = s.clone();
     revoked.revoked = true;
-    assert_eq!(quote_current(&c, &i, &revoked, 2), Err(Error::Forbidden));
     assert_eq!(
-        quote_current(&c, &i, &s, i.quote.fund_by),
+        quote_current(&c, &c.fee_policy, &i, &revoked, 2),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        quote_current(&c, &c.fee_policy, &i, &s, i.quote.fund_by),
         Err(Error::Expired)
     );
     assert_eq!(
-        quote_current(&c, &i, &s, i.offer.offer.expires_at),
+        quote_current(&c, &c.fee_policy, &i, &s, i.offer.offer.expires_at),
         Err(Error::Expired)
     );
     let mut malformed = i.clone();
     malformed.quote_signature = Default::default();
     assert!(validate_quote(
         &c,
+        &c.fee_policy,
         i.quote.home_payment,
         i.quote.payer.owner,
         &malformed,
@@ -248,6 +261,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     .is_err());
     assert!(validate_quote(
         &c,
+        &c.fee_policy,
         i.quote.home_payment,
         i.quote.payer.owner,
         &i,
@@ -258,6 +272,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     assert_eq!(
         validate_quote(
             &c,
+            &c.fee_policy,
             i.quote.home_payment,
             i.quote.payer.owner,
             &i,
@@ -270,6 +285,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     modified.quote.recipient = account(9);
     assert!(validate_quote(
         &c,
+        &c.fee_policy,
         i.quote.home_payment,
         i.quote.payer.owner,
         &modified,
@@ -281,6 +297,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     modified.quote.fee_reserve += 1;
     assert!(validate_quote(
         &c,
+        &c.fee_policy,
         i.quote.home_payment,
         i.quote.payer.owner,
         &modified,
@@ -295,7 +312,7 @@ fn repricing_requires_an_owner_and_the_ledgers_expected_fee() {
     let (mut e, me) = setup();
     let tx = transfer(&e, me, 1, 1130, 2, e.quote.payer);
     accept_deposit(&mut e, me, &tx).unwrap();
-    settle(&mut e, Hash::new([1; 32]), 3).unwrap();
+    settle(&mut e, Hash::new([1; 32]));
     e.primary_remaining = 10;
     e.pending_payouts = 2;
     let to = e.quote.recipient;

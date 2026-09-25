@@ -243,7 +243,6 @@ mod tests {
         let decoded = compact_from_bytes::<Escrow>(&escrow_bytes);
         assert_eq!(decoded, escrow);
         assert!(decoded.conserved());
-        assert!(escrow_bytes.len() * 100 <= cbor2::to_vec(&escrow).unwrap().len() * 60);
 
         let deposit = Deposit {
             block: 42,
@@ -332,7 +331,7 @@ mod tests {
         );
 
         let config = Config {
-            schema: 3,
+            schema: crate::store::STABLE_SCHEMA,
             init: PaymentInit {
                 home_user: p(1),
                 ledger: p(2),

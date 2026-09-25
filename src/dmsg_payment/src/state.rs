@@ -1,8 +1,7 @@
 use candid::Principal;
 use dmsg_types::{payment::*, profiles::delivery::*, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Escrow {
     pub escrow_id: Hash,
     pub payer_principal: Principal,
@@ -31,9 +30,7 @@ impl Escrow {
             .and_then(|v| v.checked_add(self.network_fees))
             == Some(self.confirmed_in)
     }
-}
 
-impl Escrow {
     pub fn info(&self) -> EscrowInfo {
         EscrowInfo {
             escrow_id: self.escrow_id,

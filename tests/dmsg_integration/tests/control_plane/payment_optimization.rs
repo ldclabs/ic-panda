@@ -537,6 +537,95 @@ fn reserve_claim_survives_upgrade_without_changing_the_certified_balance() {
 
 // Run the identical host test against each build via DMSG_WASM_DIR. Measure
 // only payment's balance delta, excluding user/ledger execution and token fees.
+#[test]
+fn in_flight_transfer_recovers_after_an_upgrade_without_paying_twice() {
+    let f = Fixture::new();
+    let recipient = f.create(2);
+    let opened: Result<EscrowInfo> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "open_escrow",
+        (f.order(&recipient, 2, 1),),
+    );
+    let e = opened.unwrap();
+    let block = f.fund(&e, e.quote.amount);
+    let funded: Result<EscrowInfo> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "check_funding",
+        (e.escrow_id, block),
+    );
+    let settled: Result<EscrowInfo> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "finalize_receipt",
+        (f.receipt(&funded.unwrap()),),
+    );
+    settled.unwrap();
+    // The ledger commits the transfer but holds its reply for two rounds.
+    // Upgrading payment meanwhile drops the pending task, so the reply is
+    // discarded and the leg stays durably InFlight.
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "delay_next_response",
+        (2u8,),
+    );
+    f.ic.submit_call(
+        f.payment,
+        person(40),
+        "process_transfer",
+        candid::encode_args((e.escrow_id, 0u64)).unwrap(),
+    )
+    .unwrap();
+    f.ic.tick();
+    upgrade(&f);
+    for _ in 0..4 {
+        f.ic.tick();
+    }
+    let stuck: Result<TransferLeg> = query(
+        &f.ic,
+        f.payment,
+        person(40),
+        "get_transfer",
+        (e.escrow_id, 0u64),
+    );
+    assert_eq!(stuck.unwrap().status, LegStatus::InFlight);
+    let retried: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "process_transfer",
+        (e.escrow_id, 0u64),
+    );
+    assert_eq!(retried.unwrap().status, LegStatus::Succeeded);
+    let recipient_balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(40),
+        "icrc1_balance_of",
+        (account(person(2)),),
+    );
+    assert_eq!(recipient_balance, Nat::from(1000u64));
+    let paid = certified_escrow(&f, e.escrow_id);
+    assert_eq!(paid.transferred, 1000);
+    assert_eq!(paid.network_fees, 10);
+    assert!(funds_conserved(&paid));
+    let again: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "process_transfer",
+        (e.escrow_id, 0u64),
+    );
+    assert_eq!(again.unwrap().status, LegStatus::Succeeded);
+    assert_eq!(certified_escrow(&f, e.escrow_id), paid);
+}
+
 fn measured<R>(f: &Fixture, label: &str, run: impl FnOnce() -> R) -> R {
     let before = f.ic.cycle_balance(f.payment);
     let result = run();

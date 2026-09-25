@@ -31,6 +31,7 @@ struct Config {
     next: u64,
     lose: bool,
     rejects: u32,
+    delay: u8,
 }
 
 fn memory(id: u8) -> Memory {
@@ -38,7 +39,7 @@ fn memory(id: u8) -> Memory {
 }
 thread_local! {
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static CONFIG: RefCell<StableCell<Stored<Config>, Memory>> = RefCell::new(StableCell::init(memory(0), Stored(Config { fee:10, next:0, lose:false, rejects:0 })));
+    static CONFIG: RefCell<StableCell<Stored<Config>, Memory>> = RefCell::new(StableCell::init(memory(0), Stored(Config { fee:10, next:0, lose:false, rejects:0, delay:0 })));
     static BALANCES: RefCell<StableBTreeMap<Vec<u8>, Stored<u128>, Memory>> = RefCell::new(StableBTreeMap::init(memory(1)));
     static DUPLICATES: RefCell<StableBTreeMap<Vec<u8>, Stored<u64>, Memory>> = RefCell::new(StableBTreeMap::init(memory(2)));
     static ALLOWANCES: RefCell<StableBTreeMap<Vec<u8>, Stored<u128>, Memory>> = RefCell::new(StableBTreeMap::init(memory(4)));
@@ -121,6 +122,13 @@ fn lose_next_response() {
 #[ic_cdk::update]
 fn reject_next_transfers(count: u32) {
     configure(|c| c.rejects = count);
+}
+
+/// Hold the next transfer reply for `rounds` consensus rounds after committing
+/// it, so a test can upgrade the caller before its callback runs.
+#[ic_cdk::update]
+fn delay_next_response(rounds: u8) {
+    configure(|c| c.delay = rounds);
 }
 
 #[ic_cdk::update]
@@ -213,6 +221,16 @@ async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferErro
             .await
             .unwrap();
         ic_cdk::trap("injected lost response after committing the transfer");
+    }
+    let delay = config().delay;
+    if delay > 0 {
+        configure(|c| c.delay = 0);
+        // Each raw_rand reply arrives in a later round.
+        for _ in 0..delay {
+            let _: Vec<u8> = stable::call(candid::Principal::management_canister(), "raw_rand", ())
+                .await
+                .unwrap();
+        }
     }
     result
 }

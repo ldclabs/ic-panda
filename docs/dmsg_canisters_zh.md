@@ -75,3 +75,5 @@ pnpm --dir src/dmsg_app test
 共享 runtime 的紧凑适配器直接保存 representation，避免表写入前的领域对象克隆；商业预留与费用政策也使用整数键。该次开发布局为 user schema 6、payment schema 5；后续版本见各服务实现及下文增量。认证批量响应检查完整 Candid 成功响应的 256 KiB 上限，包含证书与封装。
 
 2026-09-23 payment 使用 schema 6：授权尝试与成功开单额度分开；默认认证查询按时间选择当前费率；controller 在固定上限内维护预期网络费，旧报价和已准备出金保持冻结。预算更新不重算配置认证叶，历史费率表使用紧凑表示，稳定内存改为 1 MiB 分配桶。转账增加有界 `last_failure` 诊断；容量和 cycles 结果见 payment README。
+
+2026-09-25 payment 使用 schema 7：出金腿的并发锁改为内存占用键，升级或回调 trap 丢失账本回复后仍为 `InFlight` 的腿可用冻结参数重发，由账本去重；`Superseded` 腿返回 `VersionConflict`。开单只约束 user 观察时间与本地时间的差值，入金块时间不再与本地时间比较。付款方索引只保存键，出金块索引保存 `(escrow_id, leg_id)`，升级重建认证树只发布一次根哈希。

@@ -6,8 +6,11 @@ use dmsg_types::profiles::delivery::*;
 use dmsg_types::{payment::*, *};
 use icrc_ledger_types::icrc1::account::Account;
 
+/// `policy` is the fee policy in effect at `now`; the initial policy stored in
+/// `config` only seeds the policy table.
 pub fn validate_quote(
     config: &PaymentInit,
+    policy: &DeliveryFeePolicy,
     id: Principal,
     payer: Principal,
     input: &OpenEscrow,
@@ -18,20 +21,16 @@ pub fn validate_quote(
     nonzero(input.op_id.as_slice())?;
     let q = &input.quote;
     let o = &input.offer.offer;
-    quote_current(config, input, signer, now)?;
+    quote_current(config, policy, input, signer, now)?;
     ensure(q.max_network_fee == config.max_fee, Error::IntegrityFailed)?;
     ensure(
         q.home_payment == id
             && q.payer.owner == payer
             && q.ledger == config.ledger
             && q.platform == config.platform
-            && q.fee_policy_version == config.fee_policy.version
-            && q.created_at >= config.fee_policy.effective_at_ms
+            && q.created_at >= policy.effective_at_ms
             && q.service_fee
-                == dmsg_protocol::billing::delivery_service_fee(
-                    q.recipient_net,
-                    &config.fee_policy,
-                )?,
+                == dmsg_protocol::billing::delivery_service_fee(q.recipient_net, policy)?,
         Error::IntegrityFailed,
     )?;
     ensure(
@@ -84,6 +83,7 @@ pub fn validate_quote(
 /// Signer keys/intervals are immutable within an epoch (rotation adds an epoch).
 pub fn quote_current(
     config: &PaymentInit,
+    policy: &DeliveryFeePolicy,
     input: &OpenEscrow,
     signer: &ReceiptSigner,
     now: u64,
@@ -93,10 +93,7 @@ pub fn quote_current(
     let o = &input.offer.offer;
     ensure(q.created_at <= now && now < q.fund_by, Error::Expired)?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
-    ensure(
-        q.fee_policy_version == config.fee_policy.version,
-        Error::PolicyStale,
-    )?;
+    ensure(q.fee_policy_version == policy.version, Error::PolicyStale)?;
     ensure(
         q.fee_reserve >= config.ledger_fee.checked_mul(3).ok_or(Error::FeeBlocked)?
             && q.fee_reserve <= config.max_fee.checked_mul(3).ok_or(Error::FeeBlocked)?,
@@ -116,8 +113,13 @@ pub fn signer_valid(s: &ReceiptSigner, epoch: u64, signed_at: u64, now: u64) -> 
     )
 }
 
-pub fn escrow(id: Principal, payer: Principal, input: &OpenEscrow, quote_digest: Hash) -> Escrow {
-    let escrow_id = digest("dmsg/escrow-id/v1", &(id, payer, input.op_id));
+pub fn escrow(
+    id: Principal,
+    escrow_id: Hash,
+    payer: Principal,
+    input: &OpenEscrow,
+    quote_digest: Hash,
+) -> Escrow {
     Escrow {
         escrow_id,
         payer_principal: payer,
@@ -221,21 +223,18 @@ pub fn receipt_valid(
     Ok(hash)
 }
 
-pub fn settle(e: &mut Escrow, receipt_digest: Hash, now: u64) -> Result<bool> {
-    if e.decision == FundsDecision::SettlementCommitted {
-        ensure(
-            e.receipt_digest == Some(receipt_digest),
-            Error::IdempotencyConflict,
-        )?;
-        return Ok(false);
-    }
+/// Cheap state checks that run before receipt signature verification.
+pub fn settlement_open(e: &Escrow, now: u64) -> Result<()> {
     ensure(e.decision == FundsDecision::Pending, Error::VersionConflict)?;
     ensure(now < e.quote.accept_by, Error::Expired)?;
-    ensure(e.funding_ref.is_some(), Error::Pending)?;
+    ensure(e.funding_ref.is_some(), Error::Pending)
+}
+
+/// Commit settlement after [`settlement_open`] and receipt verification.
+pub fn settle(e: &mut Escrow, receipt_digest: Hash) {
     e.decision = FundsDecision::SettlementCommitted;
     e.receipt_digest = Some(receipt_digest);
     e.version += 1;
-    Ok(true)
 }
 
 pub fn refund(e: &mut Escrow, now: u64) -> Result<bool> {
@@ -380,15 +379,15 @@ pub fn revise_leg(
     };
     ensure(fee == expected, Error::FeeBlocked)?;
     let revision = old.revision.checked_add(1).ok_or(Error::QuotaExceeded)?;
-    let mut next = e.clone();
+    // Every failure above and below happens before the first mutation.
     let amount = match old.kind {
         LegKind::Recipient | LegKind::Platform => {
-            let available = next
+            let available = e
                 .primary_remaining
                 .checked_add(old.fee)
                 .ok_or(Error::FeeBlocked)?;
             ensure(available >= fee, Error::FeeBlocked)?;
-            next.primary_remaining = available - fee;
+            e.primary_remaining = available - fee;
             old.amount
         }
         _ => old
@@ -398,12 +397,11 @@ pub fn revise_leg(
             .filter(|amount| *amount > 0)
             .ok_or(Error::FeeBlocked)?,
     };
-    let mut new = leg(&mut next, old.kind.clone(), old.to, amount, fee, now);
+    let mut new = leg(e, old.kind.clone(), old.to, amount, fee, now);
     old.status = LegStatus::Superseded;
     new.revision = revision;
     new.replaces = Some(old.leg_id);
     new.history_digest = digest("dmsg/transfer-history/v1", old);
-    *e = next;
     Ok(new)
 }
 

@@ -7,10 +7,9 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
 };
-use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::BTreeMap};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub(crate) struct Config {
     pub(crate) schema: u16,
     pub(crate) init: PaymentInit,
@@ -22,6 +21,7 @@ pub(crate) struct Config {
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+type Table<V> = StableBTreeMap<Vec<u8>, V, Memory>;
 
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
@@ -37,33 +37,39 @@ thread_local! {
     // bounded record at upgrade, not on every budget reservation.
     static CONFIG: RefCell<Option<Config>> =
         RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
-    pub(crate) static ESCROWS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Escrow>, Memory>> =
+    pub(crate) static ESCROWS: RefCell<Table<CompactStored<Escrow>>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
-    pub(crate) static QUOTES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+    pub(crate) static QUOTES: RefCell<Table<Stored<Hash>>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static FUNDING: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+    pub(crate) static FUNDING: RefCell<Table<Stored<Hash>>> =
         RefCell::new(StableBTreeMap::init(memory(3)));
-    pub(crate) static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<Deposit>, Memory>> =
+    pub(crate) static DEPOSITS: RefCell<Table<CompactStored<Deposit>>> =
         RefCell::new(StableBTreeMap::init(memory(4)));
-    pub(crate) static LEGS: RefCell<StableBTreeMap<Vec<u8>, CompactStored<TransferLeg>, Memory>> =
+    pub(crate) static LEGS: RefCell<Table<CompactStored<TransferLeg>>> =
         RefCell::new(StableBTreeMap::init(memory(5)));
-    pub(crate) static SIGNERS: RefCell<
-        StableBTreeMap<Vec<u8>, CompactStored<ReceiptSigner>, Memory>,
-    > = RefCell::new(StableBTreeMap::init(memory(6)));
-    pub(crate) static PAYER_OPEN: RefCell<StableBTreeMap<Vec<u8>, Stored<u32>, Memory>> =
+    pub(crate) static SIGNERS: RefCell<Table<CompactStored<ReceiptSigner>>> =
+        RefCell::new(StableBTreeMap::init(memory(6)));
+    pub(crate) static PAYER_OPEN: RefCell<Table<Stored<u32>>> =
         RefCell::new(StableBTreeMap::init(memory(7)));
-    pub(crate) static OUTGOING: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<u8>>, Memory>> =
+    // Outgoing ledger block -> (escrow, leg) that produced it.
+    pub(crate) static OUTGOING: RefCell<Table<Stored<(Hash, u64)>>> =
         RefCell::new(StableBTreeMap::init(memory(8)));
-    pub(crate) static PAYER_INDEX: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+    // Key is payer prefix || escrow ID; the escrow ID is read back from the key.
+    pub(crate) static PAYER_INDEX: RefCell<Table<Stored<()>>> =
         RefCell::new(StableBTreeMap::init(memory(9)));
-    pub(crate) static FEE_POLICIES: RefCell<
-        StableBTreeMap<Vec<u8>, CompactStored<DeliveryFeePolicy>, Memory>,
-    > = RefCell::new(StableBTreeMap::init(memory(10)));
+    pub(crate) static FEE_POLICIES: RefCell<Table<CompactStored<DeliveryFeePolicy>>> =
+        RefCell::new(StableBTreeMap::init(memory(10)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
+/// Clone the configuration for paths that update it.
 pub(crate) fn cfg() -> Config {
-    CONFIG.with_borrow(|c| c.clone().expect("initialized"))
+    with_cfg(Clone::clone)
+}
+
+/// Borrow the configuration for reads; do not touch CONFIG inside `f`.
+pub(crate) fn with_cfg<R>(f: impl FnOnce(&Config) -> R) -> R {
+    CONFIG.with_borrow(|c| f(c.as_ref().expect("initialized")))
 }
 
 pub(crate) fn save_cfg(c: &Config) {
@@ -120,8 +126,7 @@ pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
 }
 
 pub(crate) fn check_order_capacity(at: u64) -> Result<()> {
-    CONFIG.with_borrow(|value| {
-        let c = value.as_ref().expect("initialized");
+    with_cfg(|c| {
         ensure(
             c.day != at / DAY || c.orders_today < c.init.daily_orders,
             Error::QuotaExceeded,
@@ -161,16 +166,18 @@ pub(crate) fn save(e: &Escrow) {
     CERT.with_borrow_mut(|c| c.put(e.escrow_id.to_vec(), &e.info()));
 }
 
+/// Rebuild the heap tree from stable records, publishing the root once.
 pub(crate) fn rebuild_certification() {
     CERT.with_borrow_mut(|c| {
-        let configuration = cfg();
-        c.insert(
-            b"configuration".to_vec(),
-            dmsg_protocol::canonical(&public_config(&configuration)),
-        );
+        with_cfg(|configuration| {
+            c.set(
+                b"configuration".to_vec(),
+                dmsg_protocol::canonical(&public_config(configuration)),
+            )
+        });
         SIGNERS.with_borrow(|table| {
             table.for_each(|key, value| {
-                c.insert(
+                c.set(
                     [b"signer/".as_slice(), key.as_slice()].concat(),
                     dmsg_protocol::canonical(&value),
                 );
@@ -178,7 +185,7 @@ pub(crate) fn rebuild_certification() {
         });
         FEE_POLICIES.with_borrow(|table| {
             table.for_each(|key, value| {
-                c.insert(
+                c.set(
                     [b"fee/".as_slice(), key.as_slice()].concat(),
                     dmsg_protocol::canonical(&value),
                 );
@@ -186,7 +193,7 @@ pub(crate) fn rebuild_certification() {
         });
         ESCROWS.with_borrow(|t| {
             t.for_each(|k, e| {
-                c.insert(k, dmsg_protocol::canonical(&e.info()));
+                c.set(k, dmsg_protocol::canonical(&e.info()));
             })
         });
         c.publish();
@@ -220,4 +227,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 6;
+pub(crate) const STABLE_SCHEMA: u16 = 7;

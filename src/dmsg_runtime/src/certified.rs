@@ -64,7 +64,9 @@ impl Certification {
         self.publish();
     }
 
-    fn set(&mut self, key: Vec<u8>, bytes: Vec<u8>) {
+    /// Store encoded leaf bytes without publishing. Callers that rebuild many
+    /// leaves call [`Certification::publish`] once after the last one.
+    pub fn set(&mut self, key: Vec<u8>, bytes: Vec<u8>) {
         let hash = leaf_hash(&bytes);
         self.0.insert(key, Leaf { bytes, hash });
     }

@@ -23,12 +23,13 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 6 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；公开支付摘要和认证叶编码不变。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 7 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方索引只保存键，出金块索引保存 `(escrow_id, leg_id)`；公开支付摘要和认证叶编码不变。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 执行成本与恢复边界
 
-- 开单先检查去重与配额，只计算一次报价摘要并验证一次报价签名。`verify_payment_offer` 返回后重新检查启用状态、报价/offer 期限、signer 撤销、当前费率版本、网络费预留和每日成功开单额度。报价内容及同一 epoch 的 signer 公钥不可变，无需再次验签。已接受订单保留原绝对金额。
-- `calls.rs` 对正在执行的只读跨 canister 工作去重：同一付款方或报价开单、同一入金 block 查账、同一转账腿对账只允许一个请求进行，其余返回 `Pending`，完成后可重试。全局最多保存 128 个占用键，每次开单占两个键；失败、正常结束及 CDK 取消任务时释放。它不代替稳定 outbox，也不清除未知出金状态。
+- 开单先检查去重与配额，只计算一次报价摘要并验证一次报价签名。`verify_payment_offer` 返回后重新检查启用状态、报价/offer 期限、signer 撤销、当前费率版本、网络费预留和每日成功开单额度。报价内容及同一 epoch 的 signer 公钥不可变，无需再次验签。已接受订单保留原绝对金额。user 观察时间只要求与本地时间相差不超过 60 秒，不假设两个子网时钟同向；入金块时间也不与本地时间比较，只用于 `fund_by` 判定。
+- `calls.rs` 对正在执行的跨 canister 工作去重：同一付款方或报价开单、同一入金 block 查账、同一转账腿的出金或对账只允许一个请求进行，其余返回 `Pending`，完成后可重试。全局最多保存 128 个占用键，每次开单占两个键；失败、正常结束及 CDK 取消任务时释放。它不代替稳定 outbox，也不清除未知出金状态。
+- 出金腿在 await 前持久化为 `InFlight`，但并发锁是上述内存占用键，不是该状态。升级或回调 trap 丢失账本回复后，`process_transfer` 可用冻结的 memo 与 `created_at_time` 重发同一腿，账本按去重窗口返回 `Duplicate` 或新块；`reconcile_transfer` 仍可用真实块完成它。`Superseded` 腿返回 `VersionConflict`。
 - 有界配置和预算计数保存在 heap，随普通消息和 `await` 提交；初始化与 `pre_upgrade` 才编码到原有 StableCell。正常升级保留开关、每日成功开单数及每分钟授权/账本操作预算，**升级不可跳过 `pre_upgrade`**。资金记录、入金认领和出金 outbox 仍直接写稳定表，不在升级时整体序列化。
 - 授权尝试按每调用方 10 次/分钟、全局 200 次/分钟限流，计数映射最多 200 项；账本操作使用独立的 400 次/分钟预算。失败授权不消耗每日成功开单额度；所有预算在同 schema 升级后保留。预算变化仅更新 heap，不重算公开配置认证叶。
 - `get_configuration_certified` 默认按当前时间选择有效费率，与 `get_fee_policy` 一致；显式版本可查询历史政策。初始政策必须在安装时已生效，后续政策的版本和生效时间严格递增；查询反向查找，调度读取最后一项，政策表最多 256 项并使用紧凑编码。
@@ -37,7 +38,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 - 领取退款、领取剩余手续费及修订拒绝转账只修改内部预留/出金记录，不重算未变化的 `EscrowInfo` 认证叶。资金方向、入金和实际支付发生变化时才更新认证树；重复成功回调直接返回已有结果。
 - 无心跳、轮询 timer 或后台账本扫描。结算提交不额外查账；出金保留原始去重参数，未知响应仍须原参数重试或账本对账。
 
-认证树仍保存在 heap，升级时扫描全部 escrow 重建；认证叶缓存自身哈希，写入时不再重复哈希祖先节点的叶值。该路径仍随订单数增长，订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
+认证树仍保存在 heap，升级时扫描全部 escrow 重建并只发布一次根哈希；认证叶缓存自身哈希，写入时不再重复哈希祖先节点的叶值。该路径仍随订单数增长，订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
 
 实践依据：[ICP 跨 canister 调用与回调恢复](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)、[Rust 稳定存储](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[CDK 取消任务与 Drop 清理](https://docs.rs/ic-cdk/0.20.2/ic_cdk/futures/index.html)。本实现仅对有界配置采用升级 hook，不将此方式扩展到订单集合。
 
@@ -119,7 +120,7 @@ cargo test -p dmsg_payment
 
 `payment_regressions.rs` 覆盖 256 条费率政策的生效边界和认证查询、手续费维护/并发变更、独立授权预算、最后一个每日名额的并发竞争、拒绝原因及升级保留。模型测试逐项拒绝错误收据绑定、大小、保留期限、签名和 signer 区间；出金结果表覆盖全部 ICRC 拒绝类别与历史 Unknown。
 
-`payment_optimization.rs` 另覆盖并发开单/入金/对账去重、失败后的重试、启用与 signer 撤销竞争、退款/费用修订的认证视图、升级后配额保留及费用余额的单次领取。既有集成测试继续覆盖未知支付结果、重复回调、手续费修订与直接到期退款。
+`payment_optimization.rs` 另覆盖并发开单/入金/对账去重、失败后的重试、启用与 signer 撤销竞争、退款/费用修订的认证视图、升级后配额保留、费用余额的单次领取，以及升级丢失账本回调后 `InFlight` 腿的单次重发。既有集成测试继续覆盖未知支付结果、重复回调、手续费修订与直接到期退款。
 
 真实 Wasm 的调用、恢复、认证查询和资金异常测试：
 
@@ -129,6 +130,6 @@ POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
 
-Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 6。
+Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 7。
 
 配置中的费用政策与历史政策表均使用独立紧凑表示。`TransferLeg.last_failure` 保存有界拒绝原因，包括过期、余额不足、临时不可用及传输不确定性；不保存账本提供的任意长度文本，成功后清空。该诊断不改变资金方向，也不把历史 Unknown 变成明确拒绝。
