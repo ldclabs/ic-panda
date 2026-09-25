@@ -869,6 +869,8 @@ type StorageProduct = record {
   storage_bytes : nat64;
 };
 service : (CommerceInit) -> {
+  // Only a failed call to an authority leaves the decision unknown. Every other failure
+  // is a durable rejection, so the settlement service can refund without waiting.
   apply_product_decision : (ProductDecision) -> (Result);
   cancel_cash_contract : (blob, blob, blob) -> (Result_1);
   cancel_checkout : (blob) -> (Result_2);
@@ -912,6 +914,8 @@ service : (CommerceInit) -> {
   register_settlement_asset : (SettlementAsset) -> (Result_18);
   release_product_billing : (ProductAuthorizationRequest) -> (Result_18);
   reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result_18);
+  // The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
+  // keeping its fee or adopting the ledger's expected fee within the original cap.
   revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
   schedule_policy : (Catalog) -> (Result_18);
   set_admission_pause : (bool) -> (Result_18);

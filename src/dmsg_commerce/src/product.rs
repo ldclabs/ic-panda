@@ -1,8 +1,18 @@
 //! dMsg account-product adapter for the same v2 checkout/membership services used by other products.
-use crate::{api, model, store};
+use crate::{
+    api::{self, now},
+    model::{self, Subject},
+    store,
+};
 use candid::Principal;
 use dmsg_protocol::membership::mul_div;
-use dmsg_protocol::{billing::*, commerce_v2::*, integration::*, product_book::ProductBook, *};
+use dmsg_protocol::{
+    billing::*,
+    commerce_v2::*,
+    integration::*,
+    product_book::{rejected, ProductBook},
+    *,
+};
 use dmsg_runtime::{
     call,
     storage::{MapExt, Stored},
@@ -16,91 +26,41 @@ use dmsg_types::{
     *,
 };
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
-use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
+
 type Memory = VirtualMemory<DefaultMemoryImpl>;
-#[derive(Clone, Serialize, Deserialize)]
-struct Delivered {
-    decision: ProductDecision,
-    receipt: ProductReceipt,
-    contract: SubscriptionContract,
-    topic: Hash,
-}
 
 thread_local! {
-    static BOOKS:RefCell<StableBTreeMap<Vec<u8>,Stored<ProductBook>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(16)));
-    static DELIVERED:RefCell<StableBTreeMap<Vec<u8>,Stored<Delivered>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(17)));
-    static RECEIPTS:RefCell<StableBTreeMap<Vec<u8>,Stored<ProductReceipt>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(18)));
-    static CANCELLATIONS:RefCell<StableBTreeMap<Vec<u8>,Stored<CashCancellationReceipt>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(19)));
-    static RELEASED:RefCell<StableBTreeMap<Vec<u8>,Stored<Hash>,Memory>>=RefCell::new(StableBTreeMap::init(store::memory(20)));
+    static BOOKS: RefCell<StableBTreeMap<Vec<u8>, Stored<ProductBook>, Memory>> =
+        RefCell::new(StableBTreeMap::init(store::memory(16)));
+    // Delivered decisions by contract ID; cancellation finds the book from the offer.
+    static DELIVERED: RefCell<StableBTreeMap<Vec<u8>, Stored<ProductDecision>, Memory>> =
+        RefCell::new(StableBTreeMap::init(store::memory(17)));
+    static RECEIPTS: RefCell<StableBTreeMap<Vec<u8>, Stored<ProductReceipt>, Memory>> =
+        RefCell::new(StableBTreeMap::init(store::memory(18)));
+    static CANCELLATIONS: RefCell<StableBTreeMap<Vec<u8>, Stored<CashCancellationReceipt>, Memory>> =
+        RefCell::new(StableBTreeMap::init(store::memory(19)));
+    static RELEASED: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
+        RefCell::new(StableBTreeMap::init(store::memory(20)));
 }
 
-fn base_key(b: &Beneficiary) -> Hash {
-    digest("dmsg/product/base/v2", b)
+/// An annual plan, a cash upgrade of the current plan, or a storage add-on by product ID hex.
+enum Sku<'a> {
+    Plan(PlanId),
+    Upgrade(PlanId),
+    Storage(&'a str),
 }
 
-fn topic(offer: &BillingOffer) -> Hash {
-    if offer.sku.len() == 64 {
-        digest(
-            "dmsg/product/addon/v2",
-            &(&offer.beneficiary, offer.operation_id),
-        )
-    } else {
-        base_key(&offer.beneficiary)
+impl<'a> Sku<'a> {
+    fn parse(sku: &'a str) -> Result<Self> {
+        if let Some(target) = sku.strip_prefix("upgrade-") {
+            Ok(Self::Upgrade(plan_id(target)?))
+        } else if sku.len() == 64 {
+            Ok(Self::Storage(sku))
+        } else {
+            Ok(Self::Plan(plan_id(sku)?))
+        }
     }
-}
-
-fn book(offer: &BillingOffer) -> Result<ProductBook> {
-    let s = api::get_subject(&offer.beneficiary)?;
-    Ok(BOOKS
-        .with_borrow(|t| t.load(topic(offer).as_slice()))
-        .unwrap_or_else(|| ProductBook::new(offer.beneficiary.clone(), s.business_revision)))
-}
-
-fn save(offer: &BillingOffer, b: &ProductBook) {
-    BOOKS.with_borrow_mut(|t| t.put(topic(offer).as_slice(), b));
-}
-
-fn receipt(id: Hash) -> Option<ProductReceipt> {
-    RECEIPTS.with_borrow(|t| t.load(id.as_slice()))
-}
-
-fn put_receipt(r: &ProductReceipt) {
-    RECEIPTS.with_borrow_mut(|t| t.put(r.decision_id.as_slice(), r));
-}
-
-fn source_service(source: &SettlementSource) -> Principal {
-    if matches!(source, SettlementSource::Cash { .. }) {
-        ic_cdk::api::canister_self()
-    } else {
-        store::config().init.membership_canister
-    }
-}
-
-fn settlement(a: &ApplicationApproval) -> SettlementMethod {
-    match a.purpose {
-        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
-        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
-    }
-}
-
-fn request_service(r: &ProductAuthorizationRequest) -> Principal {
-    if settlement(&r.account_approval) == SettlementMethod::Cash {
-        ic_cdk::api::canister_self()
-    } else {
-        store::config().init.membership_canister
-    }
-}
-
-fn registration(app: &str, product: &str) -> Result<(AppRegistration, ProductRegistration)> {
-    let (a, p) = crate::registrations::configuration(app, Some(product))?;
-    let p = p.ok_or(Error::NotFound)?;
-    let home = ic_cdk::api::canister_self();
-    ensure(
-        p.quote_authority == home && p.adapter == home,
-        Error::Forbidden,
-    )?;
-    Ok((a, p))
 }
 
 fn plan_id(sku: &str) -> Result<PlanId> {
@@ -116,6 +76,122 @@ fn hex(id: Hash) -> String {
     id.as_slice().iter().map(|b| format!("{b:02x}")).collect()
 }
 
+fn storage_product<'c>(catalog: &'c Catalog, sku: &str) -> Result<&'c StorageProduct> {
+    catalog
+        .storage_products
+        .iter()
+        .find(|p| hex(p.product_id) == sku)
+        .ok_or(Error::NotFound)
+}
+
+/// Annual USD cents for the rest of a term `[term_start, end)`, in USD micros rounded up.
+fn prorate(annual_cents: u64, term_start: u64, end: u64, at: u64) -> Result<u128> {
+    mul_div(
+        u128::from(annual_cents) * 10_000,
+        u128::from(end - at),
+        u128::from(end - term_start),
+        true,
+    )
+}
+
+fn base_key(b: &Beneficiary) -> Hash {
+    digest("dmsg/product/base/v2", b)
+}
+
+fn topic(offer: &BillingOffer) -> Hash {
+    if matches!(Sku::parse(&offer.sku), Ok(Sku::Storage(_))) {
+        digest(
+            "dmsg/product/addon/v2",
+            &(&offer.beneficiary, offer.operation_id),
+        )
+    } else {
+        base_key(&offer.beneficiary)
+    }
+}
+
+/// The offer's product book. Every book of a subject follows the subject's business revision.
+fn book(offer: &BillingOffer, s: &Subject) -> ProductBook {
+    let mut b = BOOKS
+        .with_borrow(|t| t.load(topic(offer).as_slice()))
+        .unwrap_or_else(|| ProductBook::new(offer.beneficiary.clone(), 0));
+    b.business_revision = s.business_revision;
+    b
+}
+
+fn save(offer: &BillingOffer, b: &ProductBook) {
+    BOOKS.with_borrow_mut(|t| t.put(topic(offer).as_slice(), b));
+}
+
+/// A cash upgrade replaces the cash term it overlaps; a PANDA commitment is never retired.
+fn retire_upgraded(b: &mut ProductBook, offer: &BillingOffer) {
+    if matches!(Sku::parse(&offer.sku), Ok(Sku::Upgrade(_))) {
+        b.contracts.retain(|c| {
+            !matches!(c.source, SubscriptionSource::Cash { .. })
+                || c.offer.starts_at_ms >= offer.starts_at_ms
+                || c.offer.expires_at_ms <= offer.starts_at_ms
+        });
+    }
+}
+
+fn receipt(id: Hash) -> Option<ProductReceipt> {
+    RECEIPTS.with_borrow(|t| t.load(id.as_slice()))
+}
+
+fn put_receipt(r: &ProductReceipt) {
+    RECEIPTS.with_borrow_mut(|t| t.put(r.decision_id.as_slice(), r));
+}
+
+fn released(offer: &BillingOffer) -> bool {
+    RELEASED.with_borrow(|t| t.contains(offer.operation_id.as_slice()))
+}
+
+/// A definite rejection frees only this decision's reservation.
+fn reject(decision: &ProductDecision, reason: ProductRejection, at: u64) -> ProductReceipt {
+    let r = match BOOKS.with_borrow(|t| t.load(topic(&decision.offer).as_slice())) {
+        Some(mut b) => {
+            let r = b.reject(decision, reason, at);
+            save(&decision.offer, &b);
+            r
+        }
+        None => rejected(decision, reason, at),
+    };
+    put_receipt(&r);
+    r
+}
+
+fn rejection(e: &Error) -> ProductRejection {
+    match e {
+        Error::Forbidden => ProductRejection::Unauthorized,
+        Error::Expired => ProductRejection::Expired,
+        Error::IntervalReserved => ProductRejection::IntervalReserved,
+        _ => ProductRejection::RevisionConflict,
+    }
+}
+
+fn service(method: SettlementMethod) -> Principal {
+    match method {
+        SettlementMethod::Cash => ic_cdk::api::canister_self(),
+        SettlementMethod::Panda => store::config(|c| c.membership_canister),
+    }
+}
+
+fn settlement(a: &ApplicationApproval) -> SettlementMethod {
+    match a.purpose {
+        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
+        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
+    }
+}
+
+fn registration(app: &str, product: &str) -> Result<(AppRegistration, ProductRegistration)> {
+    let (a, p) = crate::registrations::product_configuration(app, product)?;
+    let home = ic_cdk::api::canister_self();
+    ensure(
+        p.quote_authority == home && p.adapter == home,
+        Error::Forbidden,
+    )?;
+    Ok((a, p))
+}
+
 fn offer(
     app_id: String,
     b: Beneficiary,
@@ -123,11 +199,10 @@ fn offer(
     operation_id: Hash,
     at: u64,
 ) -> Result<BillingOffer> {
-    api::valid_subject(&b)?;
+    let s = api::get_subject(&b)?;
     validate_identifier(&sku)?;
     nonzero(operation_id.as_slice())?;
     let (app, product) = registration(&app_id, &b.product_id)?;
-    let s = api::get_subject(&b)?;
     let catalog = store::catalog(at);
     ensure(
         product.terms_hash == catalog.terms_digest,
@@ -141,74 +216,79 @@ fn offer(
                 && c.status != SubscriptionStatus::Cancelled
         })
     });
-    let (start, end, amount, methods) = if let Some(target) = sku.strip_prefix("upgrade-") {
-        let current = current.ok_or(Error::NotFound)?;
-        ensure(
-            matches!(current.source, SubscriptionSource::Cash { .. }),
-            Error::Forbidden,
-        )?;
-        let old = s
-            .contracts
-            .iter()
-            .find(|c| c.contract_id == current.contract_id)
-            .ok_or(Error::IntegrityFailed)?;
-        let next = model::plan(&catalog, &plan_id(target)?)?;
-        ensure(next.price_cents > old.plan.price_cents, Error::Forbidden)?;
-        (
-            at,
-            current.offer.expires_at_ms,
-            mul_div(
-                u128::from(next.price_cents - old.plan.price_cents) * 10_000,
-                u128::from(current.offer.expires_at_ms - at),
-                u128::from(current.offer.expires_at_ms - current.offer.starts_at_ms),
-                true,
-            )?,
-            vec![SettlementMethod::Cash],
-        )
-    } else if sku.len() == 64 {
-        let current = s.active(at).ok_or(Error::MembershipIneligible)?;
-        ensure(
-            current.eligibility == Eligibility::Eligible && at < current.qualified_until_ms,
-            Error::MembershipStale,
-        )?;
-        let item = catalog
-            .storage_products
-            .iter()
-            .find(|p| hex(p.product_id) == sku)
-            .ok_or(Error::NotFound)?;
-        (
-            at,
-            current.expires_at_ms,
-            mul_div(
-                u128::from(item.price_cents) * 10_000,
-                u128::from(current.expires_at_ms - at),
-                u128::from(current.expires_at_ms - current.term_starts_at_ms),
-                true,
-            )?,
-            vec![SettlementMethod::Cash],
-        )
-    } else {
-        let plan = model::plan(&catalog, &plan_id(&sku)?)?;
-        let start = if let Some(current) = current {
+    let (start, end, amount, methods) = match Sku::parse(&sku)? {
+        Sku::Upgrade(target) => {
+            let current = current.ok_or(Error::NotFound)?;
             ensure(
-                at.saturating_add(30 * DAY) >= current.offer.expires_at_ms,
-                Error::Expired,
+                matches!(current.source, SubscriptionSource::Cash { .. }),
+                Error::Forbidden,
             )?;
-            current.offer.expires_at_ms
-        } else {
-            at
-        };
-        (
-            start,
-            next_year(start)?,
-            u128::from(plan.price_cents) * 10_000,
-            vec![SettlementMethod::Cash, SettlementMethod::Panda],
-        )
+            let old = s
+                .contracts
+                .iter()
+                .find(|c| c.contract_id == current.contract_id)
+                .ok_or(Error::IntegrityFailed)?;
+            let next = model::plan(&catalog, &target)?;
+            ensure(next.price_cents > old.plan.price_cents, Error::Forbidden)?;
+            let end = current.offer.expires_at_ms;
+            (
+                at,
+                end,
+                prorate(
+                    next.price_cents - old.plan.price_cents,
+                    old.term_starts_at_ms,
+                    end,
+                    at,
+                )?,
+                vec![SettlementMethod::Cash],
+            )
+        }
+        Sku::Storage(id) => {
+            ensure(
+                s.addons.iter().filter(|a| a.expires_at_ms > at).count() < model::MAX_ADDONS,
+                Error::QuotaExceeded,
+            )?;
+            let current = s.active(at).ok_or(Error::MembershipIneligible)?;
+            ensure(
+                current.eligibility == Eligibility::Eligible && at < current.qualified_until_ms,
+                Error::MembershipStale,
+            )?;
+            let item = storage_product(&catalog, id)?;
+            (
+                at,
+                current.expires_at_ms,
+                prorate(
+                    item.price_cents,
+                    current.term_starts_at_ms,
+                    current.expires_at_ms,
+                    at,
+                )?,
+                vec![SettlementMethod::Cash],
+            )
+        }
+        Sku::Plan(id) => {
+            let plan = model::plan(&catalog, &id)?;
+            let start = if let Some(current) = current {
+                ensure(
+                    at.saturating_add(30 * DAY) >= current.offer.expires_at_ms,
+                    Error::Expired,
+                )?;
+                current.offer.expires_at_ms
+            } else {
+                at
+            };
+            (
+                start,
+                next_year(start)?,
+                u128::from(plan.price_cents) * 10_000,
+                vec![SettlementMethod::Cash, SettlementMethod::Panda],
+            )
+        }
     };
     let home = ic_cdk::api::canister_self();
     let value = BillingOffer {
         version: 2,
-        environment: store::config().init.environment,
+        environment: store::config(|c| c.environment.clone()),
         app_id,
         product_id: b.product_id.clone(),
         offer_id: digest(
@@ -240,13 +320,7 @@ fn prepare_account_subscription(
     sku: String,
     operation_id: Hash,
 ) -> Result<BillingOffer> {
-    offer(
-        app_id,
-        beneficiary,
-        sku,
-        operation_id,
-        nanos_to_millis(ic_cdk::api::time()),
-    )
+    offer(app_id, beneficiary, sku, operation_id, now())
 }
 
 #[ic_cdk::update]
@@ -254,12 +328,12 @@ fn verify_billing_offer(value: BillingOffer) -> Result<()> {
     ensure(
         [
             ic_cdk::api::canister_self(),
-            store::config().init.membership_canister,
+            store::config(|c| c.membership_canister),
         ]
         .contains(&ic_cdk::api::msg_caller()),
         Error::Forbidden,
     )?;
-    let at = nanos_to_millis(ic_cdk::api::time());
+    let at = now();
     ensure(
         at < value.accept_by_ms
             && offer(
@@ -318,16 +392,14 @@ async fn reserve_product_billing(
     request: ProductAuthorizationRequest,
     until_ms: u64,
 ) -> Result<()> {
-    let service = request_service(&request);
+    let service = service(settlement(&request.account_approval));
     ensure(ic_cdk::api::msg_caller() == service, Error::Forbidden)?;
-    ensure(
-        RELEASED
-            .with_borrow(|t| t.load(request.offer.operation_id.as_slice()))
-            .is_none(),
-        Error::Forbidden,
-    )?;
-    let at = nanos_to_millis(ic_cdk::api::time());
-    let mut b = book(&request.offer)?;
+    ensure(!released(&request.offer), Error::Forbidden)?;
+    let at = now();
+    let mut b = book(
+        &request.offer,
+        &api::get_subject(&request.offer.beneficiary)?,
+    );
     if b.reservation
         .as_ref()
         .is_some_and(|r| r.request.offer == request.offer)
@@ -335,30 +407,17 @@ async fn reserve_product_billing(
         return b.reserve(request, until_ms, at);
     }
     validate_request(&request, service, at).await?;
-    ensure(
-        RELEASED
-            .with_borrow(|t| t.load(request.offer.operation_id.as_slice()))
-            .is_none(),
-        Error::Forbidden,
-    )?;
-    b = book(&request.offer)?;
-    let s = api::get_subject(&request.offer.beneficiary)?;
-    b.business_revision = s.business_revision;
-    // Cash-only upgrades retire the old cash resource view at delivery, never a PANDA commitment.
-    let original_contracts = b.contracts.clone();
-    if request.offer.sku.starts_with("upgrade-") {
-        b.contracts.retain(|c| {
-            !matches!(c.source, SubscriptionSource::Cash { .. })
-                || c.offer.starts_at_ms >= request.offer.starts_at_ms
-                || c.offer.expires_at_ms <= request.offer.starts_at_ms
-        });
-    }
-    b.reserve(
-        request.clone(),
-        until_ms,
-        nanos_to_millis(ic_cdk::api::time()),
-    )?;
-    b.contracts = original_contracts;
+    let at = now();
+    ensure(!released(&request.offer), Error::Forbidden)?;
+    let mut b = book(
+        &request.offer,
+        &api::get_subject(&request.offer.beneficiary)?,
+    );
+    // Check the interval as it will be after delivery, but keep the live contracts until then.
+    let contracts = b.contracts.clone();
+    retire_upgraded(&mut b, &request.offer);
+    b.reserve(request.clone(), until_ms, at)?;
+    b.contracts = contracts;
     save(&request.offer, &b);
     Ok(())
 }
@@ -366,10 +425,13 @@ async fn reserve_product_billing(
 #[ic_cdk::update]
 fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == request_service(&request),
+        ic_cdk::api::msg_caller() == service(settlement(&request.account_approval)),
         Error::Forbidden,
     )?;
-    let mut b = book(&request.offer)?;
+    let mut b = book(
+        &request.offer,
+        &api::get_subject(&request.offer.beneficiary)?,
+    );
     b.release(&request.offer)?;
     let hash = billing_offer_hash(&request.offer);
     if let Some(old) = RELEASED.with_borrow(|t| t.load(request.offer.operation_id.as_slice())) {
@@ -380,10 +442,16 @@ fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     Ok(())
 }
 
+/// Only a failed call to an authority leaves the decision unknown. Every other failure
+/// is a durable rejection, so the settlement service can refund without waiting.
 #[ic_cdk::update]
 async fn apply_product_decision(decision: ProductDecision) -> Result<ProductReceipt> {
+    let method = match decision.source {
+        SettlementSource::Cash { .. } => SettlementMethod::Cash,
+        SettlementSource::Panda { .. } => SettlementMethod::Panda,
+    };
     ensure(
-        ic_cdk::api::msg_caller() == source_service(&decision.source),
+        ic_cdk::api::msg_caller() == service(method),
         Error::Forbidden,
     )?;
     if let Some(old) = receipt(decision.decision_id) {
@@ -393,18 +461,17 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
         )?;
         return Ok(old);
     }
-    let at = nanos_to_millis(ic_cdk::api::time());
-    let mut b = book(&decision.offer)?;
-    let mut s = api::get_subject(&decision.offer.beneficiary)?;
-    b.business_revision = s.business_revision;
-    if b.begin_apply(&decision, at).is_err() {
-        let r = b.reject(&decision, ProductRejection::Expired, at);
+    let at = now();
+    let begun = api::get_subject(&decision.offer.beneficiary).and_then(|s| {
+        let mut b = book(&decision.offer, &s);
+        b.begin_apply(&decision, at)?;
         save(&decision.offer, &b);
-        put_receipt(&r);
-        return Ok(r);
-    }
-    let request = b.reservation.as_ref().expect("reserved").request.clone();
-    save(&decision.offer, &b);
+        Ok(b.reservation.expect("reserved").request)
+    });
+    let request = match begun {
+        Ok(request) => request,
+        Err(_) => return Ok(reject(&decision, ProductRejection::Expired, at)),
+    };
     let source = match &decision.source {
         SettlementSource::Cash {
             order_id,
@@ -424,7 +491,7 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
             lease_until_ms,
         } => {
             let view: Result<PandaClaimView> = call(
-                store::config().init.membership_canister,
+                store::config(|c| c.membership_canister),
                 "get_panda_claim_for_product",
                 (*claim_id,),
             )
@@ -433,15 +500,15 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
             ensure(
                 v.claim_id == *claim_id
                     && v.terms.offer == decision.offer
-                    && v.terms.home_membership == store::config().init.membership_canister
+                    && v.terms.home_membership == store::config(|c| c.membership_canister)
                     && panda_quote_hash(&v.terms.quote) == *quote_hash
                     && v.terms.quote.committed_until_ms == *committed_until_ms
                     && v.valid_until_ms >= *lease_until_ms
                     && v.eligibility == Eligibility::Eligible
                     && panda_application_hash(&v.terms) == request.account_approval.action_digest,
                 Error::IntegrityFailed,
-            )?;
-            Ok(SubscriptionSource::PandaClaim {
+            )
+            .map(|()| SubscriptionSource::PandaClaim {
                 claim_id: *claim_id,
                 quote: v.terms.quote,
             })
@@ -456,129 +523,106 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
         ),
     )
     .await?;
-    let at = nanos_to_millis(ic_cdk::api::time());
+    let at = now();
     if let Some(old) = receipt(decision.decision_id) {
         return Ok(old);
     }
-    b = book(&decision.offer)?;
-    s = api::get_subject(&decision.offer.beneficiary)?;
-    b.business_revision = s.business_revision;
-    if decision.offer.sku.starts_with("upgrade-") {
-        b.contracts.retain(|c| {
-            !matches!(c.source, SubscriptionSource::Cash { .. })
-                || c.offer.starts_at_ms >= decision.offer.starts_at_ms
-                || c.offer.expires_at_ms <= decision.offer.starts_at_ms
-        });
-    }
-    let result = if active.is_err() {
-        Err(Error::Forbidden)
-    } else {
-        source.and_then(|source| b.apply(&decision, source, at))
-    };
-    let value = match result {
-        Ok((contract, r)) => {
-            let catalog = store::catalog(decision.offer.issued_at_ms);
-            if decision.offer.sku.len() == 64 {
-                let item = catalog
-                    .storage_products
-                    .iter()
-                    .find(|p| hex(p.product_id) == decision.offer.sku)
-                    .ok_or(Error::NotFound)?;
-                let SubscriptionSource::Cash { order_id, .. } = contract.source else {
-                    return Err(Error::Forbidden);
-                };
-                ensure(s.addons.len() < 64, Error::QuotaExceeded)?;
-                s.addons.push(StorageAddon {
+    let result = active
+        .map_err(|_| Error::Forbidden)
+        .and(source)
+        .and_then(|source| deliver(&decision, source, at));
+    Ok(match result {
+        Ok(r) => r,
+        Err(e) => reject(&decision, rejection(&e), at),
+    })
+}
+
+/// Build the contract, resources and receipt, then commit them together.
+fn deliver(
+    decision: &ProductDecision,
+    source: SubscriptionSource,
+    at: u64,
+) -> Result<ProductReceipt> {
+    let offer = &decision.offer;
+    let mut s = api::get_subject(&offer.beneficiary)?;
+    let mut b = book(offer, &s);
+    retire_upgraded(&mut b, offer);
+    let (contract, r) = b.apply(decision, source, at)?;
+    let catalog = store::catalog(offer.issued_at_ms);
+    let plan = match Sku::parse(&offer.sku)? {
+        Sku::Storage(id) => {
+            let item = storage_product(&catalog, id)?;
+            let SubscriptionSource::Cash { order_id, .. } = contract.source else {
+                return Err(Error::Forbidden);
+            };
+            model::add_storage(
+                &mut s,
+                StorageAddon {
                     contract_id: contract.contract_id,
                     order_id,
                     storage_bytes: item.storage_bytes,
                     starts_at_ms: contract.offer.starts_at_ms.max(at),
                     expires_at_ms: contract.offer.expires_at_ms,
                     last_issued_until_ms: 0,
-                });
-            } else {
-                let upgrade = decision.offer.sku.strip_prefix("upgrade-");
-                let plan =
-                    model::plan(&catalog, &plan_id(upgrade.unwrap_or(&decision.offer.sku))?)?;
-                if upgrade.is_some() {
-                    let old = s
-                        .contracts
-                        .iter_mut()
-                        .rev()
-                        .find(|c| c.starts_at_ms <= at && at < model::end(c))
-                        .ok_or(Error::NotFound)?;
-                    ensure(
-                        matches!(old.source, ContractSource::Cash { .. }),
-                        Error::Forbidden,
-                    )?;
-                    old.terminated_at_ms = Some(at);
-                }
-                s.contracts.push(MembershipContract {
-                    term_starts_at_ms: contract.offer.starts_at_ms,
-                    resource_pauses: vec![],
-                    contract_id: contract.contract_id,
-                    plan,
-                    source: match contract.source {
-                        SubscriptionSource::Cash { order_id, .. } => {
-                            ContractSource::Cash { order_id }
-                        }
-                        SubscriptionSource::PandaClaim { claim_id, .. } => {
-                            ContractSource::Sns { claim_id }
-                        }
-                        _ => return Err(Error::UnsupportedProtocol),
-                    },
-                    starts_at_ms: contract.offer.starts_at_ms.max(at),
-                    expires_at_ms: contract.offer.expires_at_ms,
-                    terminated_at_ms: None,
-                    closing_at_ms: None,
-                    last_issued_until_ms: 0,
-                    eligibility: Eligibility::Eligible,
-                    observed_at_ms: at,
-                    qualified_until_ms: contract.lease_until_ms,
-                    repair_deadline_ms: None,
-                    unverifiable_since_ms: None,
-                });
-            }
-            s.business_revision = b.business_revision;
-            // Complete the fallible projection before writing the contract and receipt.
-            model::project(
-                ic_cdk::api::canister_self(),
-                &mut s,
-                &store::catalog(at),
-                at,
-            )?;
-            DELIVERED.with_borrow_mut(|t| {
-                t.put(
-                    contract.contract_id.as_slice(),
-                    &Delivered {
-                        topic: topic(&decision.offer),
-                        decision: decision.clone(),
-                        receipt: r.clone(),
-                        contract: contract.clone(),
-                    },
-                )
-            });
-            store::save(&s);
-            r
-        }
-        Err(e) => {
-            b = book(&decision.offer)?;
-            b.reject(
-                &decision,
-                if e == Error::Forbidden {
-                    ProductRejection::Unauthorized
-                } else if e == Error::Expired {
-                    ProductRejection::Expired
-                } else {
-                    ProductRejection::RevisionConflict
                 },
                 at,
-            )
+            )?;
+            None
         }
+        Sku::Upgrade(id) => {
+            let old = s
+                .contracts
+                .iter_mut()
+                .rev()
+                .find(|c| c.starts_at_ms <= at && at < model::end(c))
+                .ok_or(Error::NotFound)?;
+            ensure(
+                matches!(old.source, ContractSource::Cash { .. }),
+                Error::Forbidden,
+            )?;
+            old.terminated_at_ms = Some(at);
+            // The upgrade keeps the annual anchor, so later prorations use the full term.
+            Some((id, old.term_starts_at_ms))
+        }
+        Sku::Plan(id) => Some((id, contract.offer.starts_at_ms)),
     };
-    save(&decision.offer, &b);
-    put_receipt(&value);
-    Ok(value)
+    if let Some((id, term_starts_at_ms)) = plan {
+        s.contracts.push(MembershipContract {
+            term_starts_at_ms,
+            resource_pauses: vec![],
+            contract_id: contract.contract_id,
+            plan: model::plan(&catalog, &id)?,
+            source: match &contract.source {
+                SubscriptionSource::Cash { order_id, .. } => ContractSource::Cash {
+                    order_id: *order_id,
+                },
+                SubscriptionSource::PandaClaim { claim_id, .. } => ContractSource::Sns {
+                    claim_id: *claim_id,
+                },
+                _ => return Err(Error::UnsupportedProtocol),
+            },
+            starts_at_ms: contract.offer.starts_at_ms.max(at),
+            expires_at_ms: contract.offer.expires_at_ms,
+            terminated_at_ms: None,
+            eligibility: Eligibility::Eligible,
+            observed_at_ms: at,
+            qualified_until_ms: contract.lease_until_ms,
+            repair_deadline_ms: None,
+        });
+    }
+    s.business_revision = b.business_revision;
+    // Complete the fallible projection before writing the contract and receipt.
+    model::project(
+        ic_cdk::api::canister_self(),
+        &mut s,
+        &store::catalog(at),
+        at,
+    )?;
+    DELIVERED.with_borrow_mut(|t| t.put(contract.contract_id.as_slice(), decision));
+    store::save(&s);
+    save(offer, &b);
+    put_receipt(&r);
+    Ok(r)
 }
 
 #[ic_cdk::update]
@@ -586,7 +630,7 @@ fn get_product_decision(id: Hash) -> Result<Option<ProductReceipt>> {
     ensure(
         [
             ic_cdk::api::canister_self(),
-            store::config().init.membership_canister,
+            store::config(|c| c.membership_canister),
         ]
         .contains(&ic_cdk::api::msg_caller()),
         Error::Forbidden,
@@ -611,17 +655,16 @@ fn cancel_cash_contract(
         )?;
         return Ok(old);
     }
-    let record = DELIVERED
+    let decision = DELIVERED
         .with_borrow(|t| t.load(contract_id.as_slice()))
         .ok_or(Error::NotFound)?;
     ensure(
-        product_decision_hash(&record.decision) == decision_hash,
+        product_decision_hash(&decision) == decision_hash,
         Error::IntegrityFailed,
     )?;
-    let mut b = book(&record.decision.offer)?;
-    let mut s = store::load(&b.beneficiary)?;
-    b.business_revision = s.business_revision;
-    let at = nanos_to_millis(ic_cdk::api::time());
+    let mut s = store::load(&decision.offer.beneficiary)?;
+    let mut b = book(&decision.offer, &s);
+    let at = now();
     let result = b.cancel_cash(order_id, contract_id, decision_hash, at)?;
     if result.cancelled {
         s.contracts.retain(|c| c.contract_id != contract_id);
@@ -635,7 +678,7 @@ fn cancel_cash_contract(
         )?;
         store::save(&s);
     }
-    save(&record.decision.offer, &b);
+    save(&decision.offer, &b);
     CANCELLATIONS.with_borrow_mut(|t| t.put(order_id.as_slice(), &result));
     Ok(result)
 }
@@ -656,7 +699,13 @@ pub(crate) fn observe(view: &PandaClaimView, at: u64) -> Result<()> {
     let mut b = BOOKS
         .with_borrow(|t| t.load(key.as_slice()))
         .ok_or(Error::NotFound)?;
-    let generic=b.contracts.iter_mut().find(|c|matches!(c.source,SubscriptionSource::PandaClaim {claim_id,..} if claim_id==view.claim_id)).ok_or(Error::NotFound)?;
+    let generic = b
+        .contracts
+        .iter_mut()
+        .find(|c| {
+            matches!(c.source, SubscriptionSource::PandaClaim { claim_id, .. } if claim_id == view.claim_id)
+        })
+        .ok_or(Error::NotFound)?;
     if matches!(view.status, PandaClaimStatus::Terminated) {
         generic.status = SubscriptionStatus::Terminated;
         generic.lease_until_ms = at;
@@ -683,28 +732,47 @@ pub(crate) fn observe(view: &PandaClaimView, at: u64) -> Result<()> {
     ) {
         native.terminated_at_ms.get_or_insert(at);
     }
-    native.eligibility = view.eligibility.clone();
+    model::set_eligibility(native, view.eligibility.clone(), at)?;
+    if view.eligibility == Eligibility::Ineligible {
+        // Membership accumulates verified repair time up to this observation.
+        native.repair_deadline_ms = Some(
+            view.observed_at_ms
+                .saturating_add(REPAIR_WINDOW_MS.saturating_sub(view.repair_elapsed_ms)),
+        );
+    }
     native.observed_at_ms = view.observed_at_ms;
     native.qualified_until_ms = generic.lease_until_ms;
-    if native.eligibility != Eligibility::Eligible
-        && !native
-            .resource_pauses
-            .last()
-            .is_some_and(|(_, end)| end.is_none())
-    {
-        ensure(native.resource_pauses.len() < 128, Error::QuotaExceeded)?;
-        native.resource_pauses.push((at, None));
-    }
-    if native.eligibility == Eligibility::Eligible {
-        if let Some((_, end)) = native
-            .resource_pauses
-            .last_mut()
-            .filter(|(_, end)| end.is_none())
-        {
-            *end = Some(at);
-        }
-    }
     store::save_subject(&s);
     BOOKS.with_borrow_mut(|t| t.put(key.as_slice(), &b));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn skus_select_one_product_kind() {
+        assert!(matches!(Sku::parse("plus"), Ok(Sku::Plan(PlanId::Plus))));
+        assert!(matches!(
+            Sku::parse("upgrade-max"),
+            Ok(Sku::Upgrade(PlanId::Max))
+        ));
+        let id = hex(Hash::new([120; 32]));
+        assert!(matches!(Sku::parse(&id), Ok(Sku::Storage(s)) if s == id));
+        assert!(Sku::parse("free").is_err());
+        assert!(Sku::parse("upgrade-free").is_err());
+    }
+
+    #[test]
+    fn prorations_use_the_full_annual_term() {
+        let start = 1_000;
+        let end = start + 365 * DAY;
+        assert_eq!(prorate(4000, start, end, start).unwrap(), 40_000_000);
+        // One month before the end of the original term, the whole-year anchor keeps
+        // a second upgrade to about one twelfth of the annual difference.
+        let late = end - 365 * DAY / 12;
+        assert_eq!(prorate(15_000, start, end, late).unwrap(), 12_500_000);
+        assert_eq!(prorate(100, start, end, end - 1).unwrap(), 1);
+    }
 }

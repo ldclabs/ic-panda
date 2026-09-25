@@ -107,9 +107,11 @@ promise in this protocol.
 
 Outgoing legs freeze their own source, ledger, recipient, net amount, fee, memo
 and timestamp. `Unknown`/`InFlight` is resolved by the same transfer or an exact
-trusted ledger block. Only a known rejection may be superseded by an explicitly
-approved fee revision from the recipient, within the **original** maximum fee.
-The gross obligation stays fixed. An over-cap fee remains blocked; it is not
+trusted ledger block. Only a known rejection may be superseded: the recipient
+explicitly reissues it with a fresh ledger timestamp, keeping its fee or adopting
+the ledger's expected fee within the **original** maximum fee. This also recovers
+a leg first dispatched after the ledger's 24-hour deduplication window. The gross
+obligation stays fixed. An over-cap fee remains blocked; it is not
 silently taken from someone else's principal or reserve.
 
 ## PANDA full-fee commitments
@@ -186,7 +188,11 @@ paid drafting; browser/session claims cannot authorize the charge themselves.
 
 The dMsg account product uses the same services. Its base plan and storage
 resources are projections of accepted contracts. Cash-only upgrades retire the
-old cash resource view at delivery; they cannot exit a PANDA commitment. Monthly
+old cash resource view at delivery; they cannot exit a PANDA commitment. An
+upgrade keeps the original annual term, and upgrade differences and storage
+add-ons are priced for the rest of that full term. Expired add-ons do not count
+toward the 64 retained add-ons. Unverifiable and known-ineligible periods both
+pause paid execution time; a known-ineligible view carries its repair deadline. Monthly
 execution allowance integrates the complete nonoverlapping UTC-month timeline,
 clips time before account creation and rounds down once. Qualification refresh,
 refund or downgrade does not reset held/charged units. Root recovery/derivation

@@ -8,21 +8,14 @@ use dmsg_protocol::{billing::*, *};
 use dmsg_runtime::storage::MapExt;
 use dmsg_types::{billing::*, membership::*, *};
 
-fn now() -> u64 {
+pub(crate) fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
-}
-
-fn governance() -> Result<()> {
-    ensure(
-        ic_cdk::api::msg_caller() == config().init.governance,
-        Error::Forbidden,
-    )
 }
 
 pub(crate) fn valid_subject(b: &Beneficiary) -> Result<()> {
     beneficiary_account(b)?;
     ensure(
-        config().init.user_homes.contains(&b.authority_canister),
+        config(|c| c.user_homes.contains(&b.authority_canister)),
         Error::Forbidden,
     )
 }
@@ -33,7 +26,7 @@ pub(crate) fn get_subject(b: &Beneficiary) -> Result<Subject> {
         Ok(s) => Ok(s),
         Err(Error::NotFound) => {
             ensure(
-                SUBJECTS.with_borrow(|t| t.len()) < config().init.max_subjects,
+                SUBJECTS.with_borrow(|t| t.len()) < config(|c| c.max_subjects),
                 Error::QuotaExceeded,
             )?;
             Ok(Subject::new(b.clone()))
@@ -42,7 +35,7 @@ pub(crate) fn get_subject(b: &Beneficiary) -> Result<Subject> {
     }
 }
 
-pub(crate) fn publish(canister_id: Principal, s: &mut Subject, at: u64) -> Result<EntitlementView> {
+fn publish(canister_id: Principal, s: &mut Subject, at: u64) -> Result<EntitlementView> {
     let v = model::project(canister_id, s, &catalog(at), at)?;
     save(s);
     Ok(v)
@@ -65,16 +58,7 @@ fn init(args: CommerceInit) {
     model::validate_catalog(&args.catalog).expect("catalog");
     assert!(args.catalog.effective_at_ms <= at);
     save_catalog(&args.catalog);
-    save_config(&Config {
-        init: args,
-        paused: false,
-        day: 0,
-        orders: 0,
-        minute: 0,
-        reads: 0,
-        refreshes: 0,
-        authorizations: Default::default(),
-    });
+    set_config(Config::new(args));
     persist_config();
     rebuild(at);
 }
@@ -93,7 +77,7 @@ fn post_upgrade() {
 #[ic_cdk::update]
 fn schedule_policy(c: Catalog) -> Result<()> {
     let at = now();
-    governance()?;
+    check_governance(ic_cdk::api::msg_caller())?;
     model::validate_catalog(&c)?;
     let old = latest_catalog();
     ensure_valid(
@@ -103,15 +87,13 @@ fn schedule_policy(c: Catalog) -> Result<()> {
         "catalog notice",
     )?;
     ensure(
-        !CATALOGS.with_borrow(|t| t.contains(&c.version.to_be_bytes()))
-            && CATALOGS.with_borrow(|t| t.len()) < 256,
-        Error::VersionConflict,
+        CATALOGS.with_borrow(|t| t.len()) < 256,
+        Error::QuotaExceeded,
     )?;
     // A single month must never mix algorithm weight denominations.
     ensure_valid(
-        c.plans.iter().all(|p| p.weights == c.plans[0].weights)
-            && (c.plans[0].weights == old.plans[0].weights
-                || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms),
+        c.plans[0].weights == old.plans[0].weights
+            || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms,
         "weight change at UTC month boundary",
     )?;
     save_catalog(&c);
@@ -121,7 +103,7 @@ fn schedule_policy(c: Catalog) -> Result<()> {
 #[ic_cdk::update]
 fn refresh_catalog() -> Catalog {
     let c = catalog(now());
-    CERT.with_borrow_mut(|t| t.put(catalog_key().to_vec(), &c));
+    certify(catalog_key().to_vec(), &c);
     c
 }
 
@@ -146,10 +128,8 @@ fn list_catalogs(after_version: Option<u64>) -> Vec<Catalog> {
 
 #[ic_cdk::update]
 fn set_admission_pause(paused: bool) -> Result<()> {
-    governance()?;
-    let mut c = config();
-    c.paused = paused;
-    save_config(&c);
+    check_governance(ic_cdk::api::msg_caller())?;
+    set_paused(paused);
     Ok(())
 }
 
@@ -161,17 +141,14 @@ async fn refresh(
     valid_subject(&b)?;
     let mut s = load(&b)?;
     if let Some(v) = &s.view {
-        if at < v.valid_until_ms
-            && at.saturating_add(MINUTE) < v.valid_until_ms
+        if at.saturating_add(MINUTE) < v.valid_until_ms
             && v.business_revision == s.business_revision
         {
             return Ok((v.clone(), at));
         }
     }
     let source = s.active(at).and_then(|c| match c.source {
-        ContractSource::Sns { claim_id } if c.closing_at_ms.is_none() => {
-            Some((c.contract_id, claim_id))
-        }
+        ContractSource::Sns { claim_id } => Some((c.contract_id, claim_id)),
         _ => None,
     });
     if let Some((contract, id)) = source {
@@ -190,7 +167,7 @@ async fn refresh(
         save_subject(&s);
         let response: Result<Result<dmsg_types::integration_membership::PandaClaimView>> =
             dmsg_runtime::call(
-                config().init.membership_canister,
+                config(|c| c.membership_canister),
                 "refresh_panda_claim",
                 (id,),
             )
@@ -204,17 +181,21 @@ async fn refresh(
             Ok(Ok(view))
                 if view.claim_id == id
                     && view.terms.offer.beneficiary == b
-                    && view.terms.home_membership == config().init.membership_canister =>
+                    && view.terms.home_membership == config(|c| c.membership_canister) =>
             {
                 crate::product::observe(&view, at)?;
             }
             _ => {
-                if let Some(c) = s.contracts.iter_mut().find(|c| c.contract_id == contract) {
-                    c.eligibility = Eligibility::Unverifiable;
-                    c.unverifiable_since_ms.get_or_insert(at);
-                }
                 s.retry_after_ms = at.saturating_add(MINUTE);
+                let marked = s
+                    .contracts
+                    .iter_mut()
+                    .find(|c| c.contract_id == contract)
+                    .map_or(Ok(()), |c| {
+                        model::set_eligibility(c, Eligibility::Unverifiable, at)
+                    });
                 save_subject(&s);
+                marked?;
             }
         }
         s = load(&b)?;
@@ -252,7 +233,6 @@ async fn get_execution_entitlement(
     account_created_at_ms: u64,
 ) -> Result<ExecutionEntitlement> {
     let at = now();
-    valid_subject(&b)?;
     ensure(
         ic_cdk::api::msg_caller() == b.authority_canister
             && account_created_at_ms <= at

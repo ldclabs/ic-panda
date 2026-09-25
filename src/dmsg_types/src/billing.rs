@@ -137,7 +137,7 @@ pub enum ContractSource {
 pub struct MembershipContract {
     /// Original annual interval anchor, retained across upgrades and buyouts.
     pub term_starts_at_ms: u64,
-    /// Known loss of qualification; closed intervals preserve monthly history.
+    /// Known or unverifiable qualification loss; closed intervals preserve monthly history.
     pub resource_pauses: Vec<(u64, Option<u64>)>,
     /// Product contract identity.
     pub contract_id: Hash,
@@ -151,20 +151,14 @@ pub struct MembershipContract {
     pub expires_at_ms: u64,
     /// Service termination time in Unix milliseconds, when present.
     pub terminated_at_ms: Option<u64>,
-    /// Scheduled benefit close time in Unix milliseconds, when present.
-    pub closing_at_ms: Option<u64>,
-    /// Latest resource-lease deadline already issued, in Unix milliseconds.
-    pub last_issued_until_ms: u64,
     /// Most recent qualification assessment.
     pub eligibility: Eligibility,
     /// Time the supporting qualification observation began, in Unix milliseconds.
     pub observed_at_ms: u64,
     /// Exclusive known qualification deadline in Unix milliseconds.
     pub qualified_until_ms: u64,
-    /// Qualification repair deadline in Unix milliseconds, when applicable.
+    /// Known-ineligibility repair deadline in Unix milliseconds, when applicable.
     pub repair_deadline_ms: Option<u64>,
-    /// Start of an unresolved qualification observation, in Unix milliseconds.
-    pub unverifiable_since_ms: Option<u64>,
 }
 
 /// Paid storage entitlement with its own interval and issued-lease deadline.

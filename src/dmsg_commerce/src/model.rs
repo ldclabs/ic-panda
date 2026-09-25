@@ -42,9 +42,43 @@ impl Subject {
 }
 
 pub fn end(c: &MembershipContract) -> u64 {
-    c.expires_at_ms
-        .min(c.terminated_at_ms.unwrap_or(u64::MAX))
-        .min(c.closing_at_ms.unwrap_or(u64::MAX))
+    c.expires_at_ms.min(c.terminated_at_ms.unwrap_or(u64::MAX))
+}
+
+/// Retained storage add-ons per subject; expired add-ons do not count.
+pub const MAX_ADDONS: usize = 64;
+const MAX_PAUSES: usize = 128;
+
+/// Record a qualification result. Known and unverifiable losses both pause paid execution time.
+pub fn set_eligibility(
+    c: &mut MembershipContract,
+    eligibility: Eligibility,
+    at: u64,
+) -> Result<()> {
+    let open = c
+        .resource_pauses
+        .last()
+        .is_some_and(|(_, end)| end.is_none());
+    if eligibility == Eligibility::Eligible {
+        if open {
+            c.resource_pauses.last_mut().expect("open pause").1 = Some(at);
+        }
+    } else if !open {
+        ensure(c.resource_pauses.len() < MAX_PAUSES, Error::QuotaExceeded)?;
+        c.resource_pauses.push((at, None));
+    }
+    if eligibility != Eligibility::Ineligible {
+        c.repair_deadline_ms = None;
+    }
+    c.eligibility = eligibility;
+    Ok(())
+}
+
+pub fn add_storage(s: &mut Subject, addon: StorageAddon, at: u64) -> Result<()> {
+    s.addons.retain(|a| a.expires_at_ms > at);
+    ensure(s.addons.len() < MAX_ADDONS, Error::QuotaExceeded)?;
+    s.addons.push(addon);
+    Ok(())
 }
 
 pub fn plan(catalog: &Catalog, id: &PlanId) -> Result<PlanVersion> {
@@ -106,7 +140,6 @@ pub fn project(
     let mut sources = vec![];
     let mut until = at.saturating_add(PANDA_LEASE_MS);
     let mut observed = at;
-    let mut stop = None;
     let mut repair = None;
     let mut terminated = s
         .contracts
@@ -121,10 +154,7 @@ pub fn project(
         eligibility = c.eligibility.clone();
         observed = c.observed_at_ms;
         repair = c.repair_deadline_ms;
-        if let Some(t) = c.closing_at_ms {
-            status = SourceStatus::Closing;
-            stop = Some(t);
-        } else if c.eligibility == Eligibility::Unverifiable
+        if c.eligibility == Eligibility::Unverifiable
             || (c.eligibility == Eligibility::Eligible
                 && matches!(c.source, ContractSource::Sns { .. })
                 && at >= c.qualified_until_ms)
@@ -132,13 +162,15 @@ pub fn project(
             status = SourceStatus::Unverifiable;
             eligibility = Eligibility::Unverifiable;
         } else if c.eligibility == Eligibility::Ineligible {
-            status = if c.repair_deadline_ms.is_some_and(|d| at >= d) {
-                SourceStatus::Suspended
-            } else {
-                SourceStatus::RepairRequired
-            };
-            if status == SourceStatus::Suspended {
-                terminated = c.repair_deadline_ms;
+            match repair {
+                Some(d) if at >= d => {
+                    status = SourceStatus::Suspended;
+                    terminated = repair;
+                }
+                _ => {
+                    status = SourceStatus::RepairRequired;
+                    until = until.min(repair.unwrap_or(u64::MAX));
+                }
             }
         } else {
             p = c.plan.clone();
@@ -185,11 +217,6 @@ pub fn project(
         .lease_revision
         .checked_add(1)
         .ok_or(Error::QuotaExceeded)?;
-    for c in &mut s.contracts {
-        if sources.contains(&c.contract_id) {
-            c.last_issued_until_ms = c.last_issued_until_ms.max(until);
-        }
-    }
     for a in &mut s.addons {
         if sources.contains(&a.contract_id) {
             a.last_issued_until_ms = a.last_issued_until_ms.max(until);
@@ -212,7 +239,7 @@ pub fn project(
         observed_at_ms: observed,
         issued_at_ms: at,
         valid_until_ms: until,
-        effective_stop_at_ms: stop,
+        effective_stop_at_ms: None,
         repair_deadline_ms: repair,
         service_terminated_at_ms: terminated,
     };
@@ -275,4 +302,101 @@ pub fn month(s: &Subject, catalog: &Catalog, month: u32) -> Result<MonthEntitlem
         allowed_units: allowed,
         calculation_version: 1,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dmsg_protocol::commerce_v2::REPAIR_WINDOW_MS;
+
+    const HOME: Principal = Principal::from_slice(&[1]);
+
+    fn catalog() -> Catalog {
+        Catalog {
+            schema: 1,
+            version: 1,
+            effective_at_ms: 0,
+            plans: default_plans(1),
+            storage_products: vec![],
+            terms_digest: Hash::new([9; 32]),
+        }
+    }
+
+    fn subject(start: u64, end: u64) -> Subject {
+        let mut s = Subject::new(beneficiary(HOME, &AccountId([2; 12])));
+        s.created_at_ms = Some(0);
+        s.contracts.push(MembershipContract {
+            term_starts_at_ms: start,
+            resource_pauses: vec![],
+            contract_id: Hash::new([3; 32]),
+            plan: plan(&catalog(), &PlanId::Max).unwrap(),
+            source: ContractSource::Sns {
+                claim_id: Hash::new([4; 32]),
+            },
+            starts_at_ms: start,
+            expires_at_ms: end,
+            terminated_at_ms: None,
+            eligibility: Eligibility::Eligible,
+            observed_at_ms: start,
+            qualified_until_ms: end,
+            repair_deadline_ms: None,
+        });
+        s
+    }
+
+    #[test]
+    fn unverifiable_time_is_paused_like_known_ineligibility() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let mid = start + (end - start) / 2;
+        let mut s = subject(start, end + DAY);
+        set_eligibility(&mut s.contracts[0], Eligibility::Unverifiable, mid).unwrap();
+        set_eligibility(&mut s.contracts[0], Eligibility::Ineligible, mid + 1).unwrap();
+        assert_eq!(s.contracts[0].resource_pauses, vec![(mid, None)]);
+        set_eligibility(&mut s.contracts[0], Eligibility::Eligible, end - 1).unwrap();
+        assert_eq!(s.contracts[0].resource_pauses, vec![(mid, Some(end - 1))]);
+        let m = month(&s, &catalog(), 202609).unwrap();
+        assert_eq!(m.segments.len(), 3);
+        assert_eq!(m.segments[1].source_contract_id, None);
+        assert_eq!(m.segments[1].monthly_units, 3);
+        assert!(m.allowed_units < 200);
+    }
+
+    #[test]
+    fn repair_deadline_moves_the_view_to_suspended() {
+        let mut s = subject(1_000, 1_000 + 365 * DAY);
+        let at = 2_000;
+        set_eligibility(&mut s.contracts[0], Eligibility::Ineligible, at).unwrap();
+        s.contracts[0].repair_deadline_ms = Some(at + REPAIR_WINDOW_MS);
+        let v = project(HOME, &mut s, &catalog(), at).unwrap();
+        assert_eq!(v.source_status, SourceStatus::RepairRequired);
+        assert_eq!(v.repair_deadline_ms, Some(at + REPAIR_WINDOW_MS));
+        assert!(v.valid_until_ms <= at + REPAIR_WINDOW_MS);
+        let v = project(HOME, &mut s, &catalog(), at + REPAIR_WINDOW_MS).unwrap();
+        assert_eq!(v.source_status, SourceStatus::Suspended);
+        assert_eq!(v.service_terminated_at_ms, Some(at + REPAIR_WINDOW_MS));
+        set_eligibility(&mut s.contracts[0], Eligibility::Eligible, at + 1).unwrap();
+        assert_eq!(s.contracts[0].repair_deadline_ms, None);
+    }
+
+    #[test]
+    fn expired_storage_does_not_hold_add_on_capacity() {
+        let mut s = subject(0, 365 * DAY);
+        let addon = |i: u8, expires_at_ms| StorageAddon {
+            contract_id: Hash::new([i; 32]),
+            order_id: Hash::new([i; 32]),
+            storage_bytes: 1,
+            starts_at_ms: 0,
+            expires_at_ms,
+            last_issued_until_ms: 0,
+        };
+        for i in 0..MAX_ADDONS as u8 {
+            add_storage(&mut s, addon(i, 10), 0).unwrap();
+        }
+        assert_eq!(
+            add_storage(&mut s, addon(100, 20), 5),
+            Err(Error::QuotaExceeded)
+        );
+        add_storage(&mut s, addon(100, 20), 10).unwrap();
+        assert_eq!(s.addons.len(), 1);
+    }
 }

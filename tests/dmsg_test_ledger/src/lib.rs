@@ -145,6 +145,13 @@ fn transfer(
     spender: Option<Account>,
     at: u64,
 ) -> std::result::Result<Nat, TransferError> {
+    // Like the ICRC-1 ledger, deduplication spans 24 hours plus the permitted drift.
+    const WINDOW_NS: u64 = (24 * 3600 + 60) * 1_000_000_000;
+    if a.created_at_time
+        .is_some_and(|t| t.saturating_add(WINDOW_NS) < at)
+    {
+        return Err(TransferError::TooOld);
+    }
     let key = digest("transfer", &(from, a, spender));
     if let Some(block) = DUPLICATES.with_borrow(|t| t.load(key.as_slice())) {
         return Err(TransferError::Duplicate {

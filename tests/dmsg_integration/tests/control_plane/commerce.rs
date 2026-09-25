@@ -1,5 +1,5 @@
 use super::*;
-use dmsg_protocol::{billing::*, commerce_v2::*, integration::*};
+use dmsg_protocol::{billing::*, commerce_v2::*, integration::*, membership::mul_div};
 use dmsg_types::{
     billing::*, integration::*, integration_billing::*, integration_membership::*, membership::*,
 };
@@ -7,6 +7,9 @@ use serde::Serialize;
 #[path = "external_integration.rs"]
 mod external_integration;
 fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {
+    offer_sku(f, id, "plus", op)
+}
+fn offer_sku(f: &Fixture, id: &AccountId, sku: &str, op: u8) -> BillingOffer {
     let r: Result<ExecutionUsage> = update(
         &f.ic,
         f.user,
@@ -23,7 +26,7 @@ fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {
         (
             "dmsg".to_string(),
             beneficiary(f.user, id),
-            "plus".to_string(),
+            sku.to_string(),
             Hash::new([op; 32]),
         ),
     );
@@ -84,7 +87,10 @@ fn approve(
     }
 }
 fn open(f: &Fixture, id: &AccountId, ledger: Principal, op: u8) -> CheckoutView {
-    let bill = offer(f, id, op);
+    open_sku(f, id, ledger, "plus", op)
+}
+fn open_sku(f: &Fixture, id: &AccountId, ledger: Principal, sku: &str, op: u8) -> CheckoutView {
+    let bill = offer_sku(f, id, sku, op);
     let r: Result<CheckoutQuote> = update(
         &f.ic,
         f.commerce,
@@ -142,6 +148,28 @@ fn deposit(f: &Fixture, o: &CheckoutView, ledger: Principal, who: u8, amount: u1
         ledger,
         block_index: u128::try_from(r.unwrap().0).unwrap(),
     }
+}
+/// Open and exactly fund one order on the first ledger; uses operations `op` and `op + 1`.
+fn pay(f: &Fixture, id: &AccountId, sku: &str, op: u8) -> (CheckoutView, CashBlock) {
+    let o = open_sku(f, id, f.ledger, sku, op);
+    let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
+    let block = deposit(f, &o, f.ledger, 1, total);
+    assert_eq!(
+        funding(f, o.progress.order_id, block.clone()).status,
+        CheckoutStatus::Applied
+    );
+    (o, block)
+}
+/// A long time jump needs a fresh reference price before the next quote.
+fn reprice(f: &Fixture) {
+    let r: Result<SettlementAsset> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "publish_settlement_price",
+        (f.ledger, 1_000_000u128, 30 * MINUTE),
+    );
+    r.unwrap();
 }
 fn status(f: &Fixture, id: Hash) -> CheckoutView {
     let r: Result<CheckoutView> = query(&f.ic, f.commerce, person(1), "get_checkout", (id,));
@@ -500,6 +528,19 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         (active.claim_id,),
     );
     assert_eq!(r.unwrap(), repairing);
+    let r: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(f.user, &id),),
+    );
+    let view = r.unwrap();
+    assert_eq!(view.source_status, SourceStatus::RepairRequired);
+    assert_eq!(
+        view.repair_deadline_ms,
+        Some(repairing.observed_at_ms + REPAIR_WINDOW_MS - repairing.repair_elapsed_ms)
+    );
     f.ic.advance_time(Duration::from_millis(8 * DAY));
     let r: Result<PandaClaimView> = update(
         &f.ic,
@@ -1105,7 +1146,11 @@ fn a_governance_module_pin_changed_during_neuron_read_never_issues_a_lease() {
         (),
     );
     assert_eq!(verified, Err(Error::UnsupportedProtocol));
-    let module = f.ic.canister_status(f.sns, None).unwrap().module_hash.unwrap();
+    let module =
+        f.ic.canister_status(f.sns, None)
+            .unwrap()
+            .module_hash
+            .unwrap();
     let module = Hash::new(module.as_slice().try_into().unwrap());
     let r: Result<()> = update(
         &f.ic,
@@ -1193,7 +1238,10 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
         (first.claim_id,),
     );
     assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
-    assert_eq!(apply(174, 44).unwrap().status, PandaClaimStatus::CoolingDown);
+    assert_eq!(
+        apply(174, 44).unwrap().status,
+        PandaClaimStatus::CoolingDown
+    );
 }
 
 #[test]
@@ -1326,4 +1374,204 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
     ));
     // Admission sweeps the ended commitment and can reserve the freed slot.
     assert_eq!(apply_other(189).unwrap().status, PandaClaimStatus::Checking);
+}
+
+#[test]
+fn upgrades_and_storage_prorate_over_the_original_annual_term() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let (base, _) = pay(&f, &id, "plus", 150);
+    let start = base.quote.offer.starts_at_ms;
+    let end = base.quote.offer.expires_at_ms;
+    let price = |annual_cents: u128, at: u64| {
+        mul_div(
+            annual_cents * 10_000,
+            u128::from(end - at),
+            u128::from(end - start),
+            true,
+        )
+        .unwrap()
+    };
+    f.ic.advance_time(Duration::from_millis(100 * DAY));
+    reprice(&f);
+    let (pro, _) = pay(&f, &id, "upgrade-pro", 152);
+    let o = &pro.quote.offer;
+    assert_eq!(o.expires_at_ms, end);
+    assert_eq!(o.amount_usd_micros, price(4_000, o.issued_at_ms));
+    let r: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(f.user, &id),),
+    );
+    assert_eq!(r.unwrap().plan_snapshot.plan_id, PlanId::Pro);
+    f.ic.advance_time(Duration::from_millis(200 * DAY));
+    // A second upgrade and later storage keep the original term as their denominator.
+    let max = offer_sku(&f, &id, "upgrade-max", 154);
+    assert_eq!(max.amount_usd_micros, price(15_000, max.issued_at_ms));
+    let storage = offer_sku(&f, &id, &"78".repeat(32), 155);
+    assert_eq!(storage.expires_at_ms, end);
+    assert_eq!(storage.amount_usd_micros, price(100, storage.issued_at_ms));
+}
+
+#[test]
+fn an_unstarted_renewal_cancels_once_and_refunds_the_original_payment() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let (base, _) = pay(&f, &id, "plus", 160);
+    let end = base.quote.offer.expires_at_ms;
+    f.ic.advance_time(Duration::from_millis(end - time(&f.ic) - 10 * DAY));
+    reprice(&f);
+    let (renewal, block) = pay(&f, &id, "plus", 162);
+    assert_eq!(renewal.quote.offer.starts_at_ms, end);
+    let order_id = renewal.progress.order_id;
+    for _ in 0..2 {
+        let r: Result<CheckoutProgress> =
+            update(&f.ic, f.commerce, person(1), "cancel_checkout", (order_id,));
+        assert_eq!(r.unwrap().status, CheckoutStatus::RefundCommitted);
+    }
+    let denied: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(60),
+        "collect_checkout_revenue",
+        (order_id,),
+    );
+    assert_eq!(denied, Err(Error::Pending));
+    let refund: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "claim_checkout_refund",
+        (
+            order_id,
+            f.ledger,
+            vec![block.block_index],
+            Hash::new([164; 32]),
+        ),
+    );
+    let refund = refund.unwrap();
+    assert_eq!(
+        refund.amount_atomic + refund.fee_atomic,
+        renewal.quote.cash.amount_atomic + renewal.quote.cash.fee_reserve_atomic
+    );
+    let moved: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "process_checkout_transfer",
+        (refund.transfer_id,),
+    );
+    assert_eq!(moved.unwrap().status, CashTransferStatus::Succeeded);
+    let r: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(f.user, &id),),
+    );
+    let view = r.unwrap();
+    assert_eq!(view.plan_snapshot.plan_id, PlanId::Plus);
+    assert_eq!(view.next_limit_change_at_ms, Some(end));
+}
+
+#[test]
+fn a_leg_rejected_after_the_ledger_window_is_reissued_by_its_recipient() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let o = open(&f, &id, f.ledger, 170);
+    let wrong = deposit(&f, &o, f.ledger, 2, 1000);
+    funding(&f, o.progress.order_id, wrong.clone());
+    let r: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "claim_checkout_refund",
+        (
+            o.progress.order_id,
+            f.ledger,
+            vec![wrong.block_index],
+            Hash::new([172; 32]),
+        ),
+    );
+    let t = r.unwrap();
+    f.ic.advance_time(Duration::from_millis(2 * DAY));
+    let r: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "process_checkout_transfer",
+        (t.transfer_id,),
+    );
+    assert_eq!(r.unwrap().status, CashTransferStatus::Rejected);
+    let denied: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "revise_checkout_transfer_fee",
+        (t.transfer_id, t.fee_atomic),
+    );
+    assert_eq!(denied, Err(Error::Forbidden));
+    let r: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "revise_checkout_transfer_fee",
+        (t.transfer_id, t.fee_atomic),
+    );
+    let reissued = r.unwrap();
+    assert!(reissued.created_at_time_ns > t.created_at_time_ns);
+    assert_eq!(reissued.amount_atomic, t.amount_atomic);
+    assert_eq!(reissued.to, t.to);
+    let r: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "process_checkout_transfer",
+        (reissued.transfer_id,),
+    );
+    assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
+    let r: Result<CashTransfer> = query(
+        &f.ic,
+        f.commerce,
+        person(2),
+        "get_checkout_transfer",
+        (t.transfer_id,),
+    );
+    assert_eq!(r.unwrap().status, CashTransferStatus::Superseded);
+}
+
+#[test]
+fn unknown_ids_do_not_consume_the_shared_call_budget() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let missing = Hash::new([201; 32]);
+    for _ in 0..401 {
+        let r: Result<CheckoutProgress> = update(
+            &f.ic,
+            f.commerce,
+            person(3),
+            "reconcile_checkout",
+            (missing,),
+        );
+        assert_eq!(r, Err(Error::NotFound));
+    }
+    let r: Result<CashTransferProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(3),
+        "process_checkout_transfer",
+        (missing,),
+    );
+    assert_eq!(r, Err(Error::NotFound));
+    let r: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        person(3),
+        "verify_settlement_asset",
+        (f.ledger, None::<u128>),
+    );
+    assert_eq!(r, Err(Error::Forbidden));
+    pay(&f, &id, "plus", 180);
 }

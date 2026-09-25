@@ -1,6 +1,5 @@
 //! Governance-owned public registrations; product delivery remains a separate authority.
 use crate::store;
-use candid::Principal;
 use dmsg_protocol::{canonical, digest, integration::*};
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, *};
@@ -23,10 +22,6 @@ fn app_key(id: &str) -> Vec<u8> {
 
 fn product_key(id: &str) -> Vec<u8> {
     digest("dmsg/registration/product/v2", &id).to_vec()
-}
-
-fn governance(caller: Principal) -> Result<()> {
-    ensure(caller == store::config().init.governance, Error::Forbidden)
 }
 
 fn check_app_update(old: Option<&AppRegistration>, next: &AppRegistration) -> Result<()> {
@@ -75,9 +70,9 @@ fn check_product_update(
 
 #[ic_cdk::update]
 fn register_integration_app(app: AppRegistration) -> Result<()> {
-    governance(ic_cdk::api::msg_caller())?;
+    store::check_governance(ic_cdk::api::msg_caller())?;
     ensure(
-        app.environment == store::config().init.environment,
+        store::config(|c| c.environment == app.environment),
         Error::Forbidden,
     )?;
     let old = APPS.with_borrow(|t| t.load(app.app_id.as_bytes()));
@@ -98,9 +93,9 @@ fn register_integration_app(app: AppRegistration) -> Result<()> {
 
 #[ic_cdk::update]
 fn register_integration_product(product: ProductRegistration) -> Result<()> {
-    governance(ic_cdk::api::msg_caller())?;
+    store::check_governance(ic_cdk::api::msg_caller())?;
     ensure(
-        product.environment == store::config().init.environment,
+        store::config(|c| c.environment == product.environment),
         Error::Forbidden,
     )?;
     let old = PRODUCTS.with_borrow(|t| t.load(product.product_id.as_bytes()));
@@ -145,6 +140,15 @@ pub(crate) fn configuration(
     Ok((app, product))
 }
 
+/// The registered app and one of its products, as a checkout or adapter requires.
+pub(crate) fn product_configuration(
+    app_id: &str,
+    product_id: &str,
+) -> Result<(AppRegistration, ProductRegistration)> {
+    let (app, product) = configuration(app_id, Some(product_id))?;
+    Ok((app, product.ok_or(Error::NotFound)?))
+}
+
 /// Public, authenticated discovery. A paused configuration remains discoverable.
 #[ic_cdk::query]
 fn integration_configuration_certificate(
@@ -162,12 +166,12 @@ fn integration_configuration_certificate(
 pub(crate) fn rebuild(c: &mut dmsg_runtime::Certification) {
     APPS.with_borrow(|t| {
         t.for_each(|_, app| {
-            c.insert(app_key(&app.app_id), canonical(&app));
+            c.set(app_key(&app.app_id), canonical(&app));
         })
     });
     PRODUCTS.with_borrow(|t| {
         t.for_each(|_, product| {
-            c.insert(product_key(&product.product_id), canonical(&product));
+            c.set(product_key(&product.product_id), canonical(&product));
         })
     });
 }

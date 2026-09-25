@@ -206,6 +206,27 @@ impl Order {
         Ok(total)
     }
 
+    /// A payer may cancel a delivered term only before it starts. An existing adapter
+    /// answer is final, so a repeated request never re-arms the pending marker.
+    pub fn begin_cancellation(&mut self, at: u64) -> Result<bool> {
+        if self.cancellation.is_some() {
+            return Ok(false);
+        }
+        ensure(at < self.input.quote.offer.starts_at_ms, Error::Forbidden)?;
+        self.cancellation_pending = true;
+        Ok(true)
+    }
+
+    /// Allocate the next sequential outgoing-leg identity.
+    pub fn next_transfer_id(&mut self) -> Result<Hash> {
+        let id = digest("dmsg/checkout/transfer/v2", &(self.id, self.next_transfer));
+        self.next_transfer = self
+            .next_transfer
+            .checked_add(1)
+            .ok_or(Error::QuotaExceeded)?;
+        Ok(id)
+    }
+
     pub fn earned(&self, at: u64) -> Result<u128> {
         ensure(
             self.status == CheckoutStatus::Applied && !self.cancellation_pending,
@@ -238,14 +259,7 @@ pub fn transfer(
     at: u64,
 ) -> Result<Transfer> {
     ensure(fee > 0 && fee <= max_fee && debit > fee, Error::FeeBlocked)?;
-    let next = order
-        .next_transfer
-        .checked_add(1)
-        .ok_or(Error::QuotaExceeded)?;
-    let id = digest(
-        "dmsg/checkout/transfer/v2",
-        &(order.id, order.next_transfer),
-    );
+    let id = order.next_transfer_id()?;
     let source_subaccount = Hash::new(
         order
             .input
@@ -262,7 +276,6 @@ pub fn transfer(
         .ok_or(Error::QuotaExceeded)?;
     let created_at_time_ns = millis_to_nanos(at)?;
     balance.outgoing = outgoing;
-    order.next_transfer = next;
     Ok(Transfer {
         view: CashTransfer {
             transfer_id: id,
@@ -393,5 +406,53 @@ mod tests {
             o.input.quote.cash.amount_atomic
         );
         assert!(o.refund_price().is_err());
+    }
+
+    #[test]
+    fn a_final_non_cancellation_never_blocks_revenue_again() {
+        let mut o = order();
+        let total = o.input.quote.cash.amount_atomic + o.input.quote.cash.fee_reserve_atomic;
+        o.deposit(principal(6), &tx(&o, 9, total, NOW), NOW)
+            .unwrap();
+        let d = o.decision.clone().unwrap();
+        let contract_id = Hash::new([88; 32]);
+        o.accept(ProductReceipt {
+            version: 2,
+            decision_id: d.decision_id,
+            decision_hash: product_decision_hash(&d),
+            adapter: d.offer.adapter,
+            outcome: ProductOutcome::Applied {
+                business_revision: 10,
+                contract_id,
+                committed_until_ms: d.offer.expires_at_ms,
+            },
+            applied_at_ms: NOW,
+        })
+        .unwrap();
+        let start = o.input.quote.offer.starts_at_ms;
+        assert_eq!(o.begin_cancellation(start), Err(Error::Forbidden));
+        assert!(o.begin_cancellation(start - 1).unwrap());
+        assert_eq!(o.earned(start), Err(Error::Pending));
+        o.cancellation_pending = false;
+        o.cancellation = Some(CashCancellationReceipt {
+            order_id: o.id,
+            contract_id,
+            decision_hash: product_decision_hash(&d),
+            cancelled_at_ms: start - 1,
+            cancelled: false,
+            business_revision: 10,
+        });
+        assert!(!o.begin_cancellation(start - 1).unwrap());
+        assert!(!o.cancellation_pending);
+        assert_eq!(o.earned(start).unwrap(), 0);
+    }
+
+    #[test]
+    fn sequential_transfer_ids_never_repeat() {
+        let mut o = order();
+        let a = o.next_transfer_id().unwrap();
+        let b = o.next_transfer_id().unwrap();
+        assert_ne!(a, b);
+        assert_eq!(o.next_transfer, 2);
     }
 }

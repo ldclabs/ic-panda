@@ -3,10 +3,10 @@ use crate::{model::Subject, store::Config};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_runtime::storage::StableCodec;
-use dmsg_types::{billing::*, membership::*};
+use dmsg_types::{billing::*, membership::*, Environment};
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 3;
+const SCHEMA: u16 = 4;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {
@@ -46,14 +46,19 @@ record!(SubjectRepr => Subject {
 });
 
 record!(ConfigRepr => Config {
-    1 => init: CommerceInit,
-    2 => paused: bool,
-    4 => day: u64,
-    5 => orders: u32,
-    6 => minute: u64,
-    7 => reads: u32,
-    8 => refreshes: u32,
-    9 => authorizations: BTreeMap<Principal, u32>,
+    1 => environment: Environment,
+    2 => governance: Principal,
+    3 => membership_canister: Principal,
+    4 => user_homes: Vec<Principal>,
+    5 => max_subjects: u64,
+    6 => daily_orders: u32,
+    7 => paused: bool,
+    8 => day: u64,
+    9 => orders: u32,
+    10 => minute: u64,
+    11 => reads: u32,
+    12 => refreshes: u32,
+    13 => authorizations: BTreeMap<Principal, u32>,
 });
 
 #[cfg(test)]

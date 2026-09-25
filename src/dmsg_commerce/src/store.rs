@@ -1,4 +1,5 @@
 use crate::model::Subject;
+use candid::Principal;
 use dmsg_protocol::billing::*;
 use dmsg_runtime::{
     storage::{CompactStored, MapExt, Stored},
@@ -18,16 +19,42 @@ pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
+/// Service configuration and per-period call budgets. The initial catalog lives in CATALOGS.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
-    pub init: CommerceInit,
+    pub environment: Environment,
+    pub governance: Principal,
+    pub membership_canister: Principal,
+    pub user_homes: Vec<Principal>,
+    pub max_subjects: u64,
+    pub daily_orders: u32,
     pub paused: bool,
     pub day: u64,
     pub orders: u32,
     pub minute: u64,
     pub reads: u32,
     pub refreshes: u32,
-    pub authorizations: BTreeMap<candid::Principal, u32>,
+    pub authorizations: BTreeMap<Principal, u32>,
+}
+
+impl Config {
+    pub fn new(init: CommerceInit) -> Self {
+        Self {
+            environment: init.environment,
+            governance: init.governance,
+            membership_canister: init.membership_canister,
+            user_homes: init.user_homes,
+            max_subjects: init.max_subjects,
+            daily_orders: init.daily_orders,
+            paused: false,
+            day: 0,
+            orders: 0,
+            minute: 0,
+            reads: 0,
+            refreshes: 0,
+            authorizations: BTreeMap::new(),
+        }
+    }
 }
 
 thread_local! {
@@ -44,29 +71,44 @@ thread_local! {
     pub static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
-pub fn config() -> Config {
-    CONFIG.with_borrow(|c| c.clone().expect("initialized"))
+/// Read configuration fields without cloning the whole record.
+pub fn config<R>(f: impl FnOnce(&Config) -> R) -> R {
+    CONFIG.with_borrow(|c| f(c.as_ref().expect("initialized")))
 }
 
-pub fn save_config(c: &Config) {
-    CONFIG.with_borrow_mut(|value| *value = Some(c.clone()));
+fn config_mut<R>(f: impl FnOnce(&mut Config) -> R) -> R {
+    CONFIG.with_borrow_mut(|c| f(c.as_mut().expect("initialized")))
 }
 
-/// Heap configuration/budgets commit at ordinary message boundaries; persist before upgrades.
+pub fn set_config(c: Config) {
+    CONFIG.with_borrow_mut(|value| *value = Some(c));
+}
+
+/// Budgets commit at ordinary message boundaries; governance changes and upgrades persist.
 pub fn persist_config() {
-    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(config()))));
+    CONFIG.with_borrow(|c| {
+        STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(c)));
+    });
+}
+
+pub fn set_paused(paused: bool) {
+    config_mut(|c| c.paused = paused);
+    persist_config();
+}
+
+pub fn check_governance(caller: Principal) -> Result<()> {
+    ensure(caller == config(|c| c.governance), Error::Forbidden)
 }
 
 pub enum CallBudget {
     Funds,
     Refresh,
-    Authorization(candid::Principal),
+    Authorization(Principal),
 }
 
 pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
-    CONFIG.with_borrow_mut(|value| {
-        let c = value.as_mut().expect("initialized");
-        let minute = at / dmsg_types::MINUTE;
+    config_mut(|c| {
+        let minute = at / MINUTE;
         if c.minute != minute {
             c.minute = minute;
             c.reads = 0;
@@ -97,13 +139,12 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
 }
 
 pub fn reserve_order(at: u64) -> Result<()> {
-    CONFIG.with_borrow_mut(|value| {
-        let c = value.as_mut().expect("initialized");
-        if c.day != at / dmsg_types::DAY {
-            c.day = at / dmsg_types::DAY;
+    config_mut(|c| {
+        if c.day != at / DAY {
+            c.day = at / DAY;
             c.orders = 0;
         }
-        ensure(c.orders < c.init.daily_orders, Error::QuotaExceeded)?;
+        ensure(c.orders < c.daily_orders, Error::QuotaExceeded)?;
         c.orders += 1;
         Ok(())
     })
@@ -148,7 +189,7 @@ pub fn catalog(at: u64) -> Catalog {
 }
 
 /// Internal bookkeeping must not republish an unchanged resource leaf.
-fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
+pub fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
     let bytes = dmsg_protocol::canonical(value);
     CERT.with_borrow_mut(|c| {
         if c.get(&key) != Some(bytes.as_slice()) {
@@ -164,11 +205,11 @@ pub fn rebuild(at: u64) {
         SUBJECTS.with_borrow(|t| {
             t.for_each(|key, s| {
                 if let Some(v) = s.view {
-                    c.insert(key, dmsg_protocol::canonical(&v));
+                    c.set(key, dmsg_protocol::canonical(&v));
                 }
             })
         });
-        c.insert(
+        c.set(
             catalog_key().to_vec(),
             dmsg_protocol::canonical(&catalog(at)),
         );
