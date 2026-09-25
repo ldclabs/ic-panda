@@ -67,16 +67,7 @@ impl AccountState {
             vault_write_state: self.vault_write_state.clone(),
         }
     }
-}
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct AuthorizedExecution {
-    pub grant: ExecutionGrant,
-    pub command_digest: Hash,
-    pub result: ExecutionResult,
-}
-
-impl AccountState {
     pub fn info(&self, namespace: &str) -> AccountInfo {
         AccountInfo {
             created_at_ms: self.created_at_ms,
@@ -99,4 +90,11 @@ impl AccountState {
             sensitive_policy: self.sensitive_policy.clone(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AuthorizedExecution {
+    pub grant: ExecutionGrant,
+    pub command_digest: Hash,
+    pub result: ExecutionResult,
 }

@@ -108,7 +108,13 @@ pub(crate) fn reconfirm_recovery(
     Ok(())
 }
 
-pub(crate) fn complete_recovery(s: &mut AccountState, caller: Principal, now: u64) -> Result<()> {
+/// Returns the login bindings replaced by the recovered principal so the caller
+/// can drop their authentication routes.
+pub(crate) fn complete_recovery(
+    s: &mut AccountState,
+    caller: Principal,
+    now: u64,
+) -> Result<Vec<Principal>> {
     let r = s.pending_recovery.clone().ok_or(Error::NotFound)?;
     ensure(caller == r.request.new_auth, Error::AuthRequired)?;
     ensure(
@@ -127,7 +133,7 @@ pub(crate) fn complete_recovery(s: &mut AccountState, caller: Principal, now: u6
             next_sequence: 0,
         },
     );
-    s.auth_bindings = vec![r.request.new_auth];
+    let removed = std::mem::replace(&mut s.auth_bindings, vec![r.request.new_auth]);
     s.pending_recovery = None;
     s.status = AccountStatus::Active;
     s.recovery_nonce += 1;
@@ -135,7 +141,7 @@ pub(crate) fn complete_recovery(s: &mut AccountState, caller: Principal, now: u6
     s.recovery_checked = true;
     s.sensitive_policy.frozen = false;
     changed(s);
-    Ok(())
+    Ok(removed)
 }
 
 pub(crate) fn recovery_request(

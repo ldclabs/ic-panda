@@ -273,3 +273,54 @@ fn stored_approval_preserves_exact_bytes_through_stable_encoding() {
     let decoded: ExternalState = decode_canonical(&bytes).unwrap();
     assert_eq!(state, decoded);
 }
+
+#[test]
+fn saved_authentication_leaves_match_a_rebuilt_tree() {
+    let mut account = account();
+    let id = account.account_id;
+    let mut state = ExternalState::default();
+    let mut request = fixtures::authentication();
+    for n in 1..=3u8 {
+        request.operation_id = Hash::new([n; 32]);
+        let approval = signed(&account, &request);
+        let fingerprint = digest(AUTH_DOMAIN, &(&request, &approval));
+        let body = result(&account, request.clone());
+        commit(
+            &mut state,
+            &mut account,
+            &approval,
+            fingerprint,
+            body,
+            fixtures::NOW,
+        )
+        .unwrap();
+    }
+    let leaves = |c: &dmsg_runtime::Certification| {
+        (1..=3u8)
+            .map(|n| {
+                c.get(&authentication_key(&id, &Hash::new([n; 32])))
+                    .map(<[u8]>::to_vec)
+            })
+            .collect::<Vec<_>>()
+    };
+    let rebuilt = || {
+        let mut leaves = Vec::new();
+        rebuild(&mut leaves);
+        let mut c = dmsg_runtime::Certification::default();
+        c.extend(leaves);
+        c
+    };
+    save(&id, &ExternalState::default(), &state);
+    let incremental = store::CERT.with_borrow(|c| (c.root_hash(), leaves(c)));
+    let fresh = rebuilt();
+    assert_eq!((fresh.root_hash(), leaves(&fresh)), incremental);
+    assert!(incremental.1.iter().all(Option::is_some));
+    let mut pruned = state.clone();
+    pruned.operations.remove(&Hash::new([2; 32]));
+    save(&id, &state, &pruned);
+    let after = store::CERT.with_borrow(leaves);
+    assert_eq!(after, leaves(&rebuilt()));
+    assert_eq!(after[0], incremental.1[0]);
+    assert_eq!(after[1], None);
+    assert_eq!(after[2], incremental.1[2]);
+}

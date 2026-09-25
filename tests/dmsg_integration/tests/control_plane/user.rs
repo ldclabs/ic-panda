@@ -402,6 +402,9 @@ fn entitlement_callback_rechecks_a_concurrent_policy_change() {
             candid::encode_one(request.clone()).unwrap(),
         )
         .unwrap();
+    // Ingress with equal expiry is inducted in message-hash order; a later
+    // expiry keeps the policy change behind the pending signing request.
+    f.ic.advance_time(Duration::from_millis(1));
     // Queue a policy change before the first commercial lease callback can authorize the request.
     let missing: Result<ExecutionResult> = query(
         &f.ic,
@@ -515,5 +518,163 @@ fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], months: usize
         "user_upgrade accounts={} month_rows={} cycles={cycles} stable_bytes={stable_bytes}",
         accounts.len(),
         accounts.len() * months
+    );
+}
+
+#[test]
+fn removed_and_recovered_logins_lose_their_routes() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    let nonce = Hash::new([21; 32]);
+    let begun: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(2),
+        "begin_auth_binding",
+        (&id, nonce, time(&f.ic) + MINUTE),
+    );
+    begun.unwrap();
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::BindAuth {
+            principal: person(2),
+            nonce,
+        },
+    )
+    .unwrap();
+    let routed: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
+    assert_eq!(routed, Some(id));
+    let same: Result<AccountId> = update(
+        &f.ic,
+        f.user,
+        person(2),
+        "create_account",
+        (f.create_input(2),),
+    );
+    assert_eq!(same, Ok(id));
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::RemoveAuth {
+            principal: person(2),
+        },
+    )
+    .unwrap();
+    let unrouted: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
+    assert_eq!(unrouted, None);
+    let denied: Result<AccountInfo> = query(&f.ic, f.user, person(2), "get_account", (&id,));
+    assert_eq!(denied, Err(Error::AuthRequired));
+    assert_ne!(f.create(2), id);
+
+    // Recovery replaces every binding and drops their routes as well.
+    let public: Result<(SecuritySnapshot, std::collections::BTreeMap<Hash, Device>)> =
+        query(&f.ic, f.user, person(9), "get_device_bundle", (&id,));
+    let snapshot = public.unwrap().0;
+    let request = RecoveryRequest {
+        op_id: Hash::new([41; 32]),
+        new_auth: person(9),
+        device: device(9),
+        generation: snapshot.recovery_root_version,
+        expires_at: time(&f.ic) + DAY + MINUTE,
+    };
+    let signature = key(70)
+        .sign(
+            digest(
+                "dmsg/recovery-request/v1",
+                &(f.user, &id, snapshot.recovery_nonce, &request),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .to_vec();
+    let pop = key(9)
+        .sign(digest("dmsg/recovery-device/v1", &(f.user, &id, &request)).as_slice())
+        .to_bytes()
+        .to_vec();
+    let submitted: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(9),
+        "request_recovery",
+        (&id, request, ByteBuf::from(signature), ByteBuf::from(pop)),
+    );
+    submitted.unwrap();
+    f.ic.advance_time(Duration::from_millis(DAY));
+    let completed: Result<()> = update(&f.ic, f.user, person(9), "complete_recovery", (&id,));
+    completed.unwrap();
+    assert_eq!(f.account_id(9, &id).auth_bindings, vec![person(9)]);
+    let recovered: Option<AccountId> = query(&f.ic, f.user, person(9), "my_account", ());
+    assert_eq!(recovered, Some(id));
+    let cut: Option<AccountId> = query(&f.ic, f.user, person(1), "my_account", ());
+    assert_eq!(cut, None);
+    assert_ne!(f.create(1), id);
+}
+
+#[test]
+fn reconcile_transport_failures_do_not_rewrite_the_execution() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    let public = key(7).verifying_key().to_bytes();
+    let fingerprint =
+        key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
+    let request = statement_request(
+        &f,
+        &id,
+        SigningKeyRef {
+            algorithm: SigningAlgorithm::Ed25519,
+            kid: fingerprint.to_vec().into(),
+            public_key_fingerprint: fingerprint,
+        },
+        100_000_000_000,
+    );
+    // Uninitialized COSE keys reject the grant before recording anything.
+    let rejected: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "sign", (request.clone(),));
+    assert!(
+        matches!(rejected, Err(Error::Unavailable(_))),
+        "{rejected:?}"
+    );
+    let authorized: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&id, request.approval.request_id),
+    );
+    assert_eq!(
+        authorized.as_ref().unwrap().outcome,
+        ExecutionOutcome::Authorized
+    );
+    f.ic.stop_canister(f.cose, None).unwrap();
+    let failed: Result<ExecutionResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "reconcile_execution",
+        (&id, request.approval.request_id),
+    );
+    assert!(failed.is_err(), "{failed:?}");
+    let unchanged: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&id, request.approval.request_id),
+    );
+    assert_eq!(unchanged, authorized);
+    f.ic.start_canister(f.cose, None).unwrap();
+    let redispatched: Result<ExecutionResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "reconcile_execution",
+        (&id, request.approval.request_id),
+    );
+    assert!(
+        matches!(redispatched, Err(Error::Unavailable(_))),
+        "{redispatched:?}"
     );
 }

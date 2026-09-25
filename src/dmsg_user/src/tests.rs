@@ -796,6 +796,26 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         Ok(completed)
     );
 
+    crate::commerce::save(&crate::commerce::Month {
+        usage: ExecutionUsage {
+            account_id: s.account_id,
+            month_utc: 202609,
+            month_revision: 1,
+            business_revision: 1,
+            lease_revision: 1,
+            weight_policy_version: 1,
+            allowed_units: 10,
+            held_units: 1,
+            charged_units: 2,
+            valid_until_ms: 3,
+        },
+        weights: ExecutionWeights {
+            version: 1,
+            ed25519: 1,
+            ecdsa_secp256k1: 1,
+        },
+        entitlement_digest: Hash::new([9; 32]),
+    });
     let root = CERT.with_borrow(|c| c.root_hash());
     CERT.with_borrow_mut(|c| *c = dmsg_runtime::Certification::default());
     rebuild_certification();

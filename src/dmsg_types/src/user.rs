@@ -139,7 +139,7 @@ pub struct RootReservation {
 
 /// Account limits on sensitive chain-key execution.
 /// The default permits statement/file signing, 20 executions and
-/// 1,000,000,000,000 cycles per day; deployment limits also apply.
+/// 800,000,000,000 cycles per day, which is also the user home's ceiling.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SensitivePolicy {
     /// Whether sensitive execution is frozen by account policy.
@@ -162,7 +162,7 @@ impl Default for SensitivePolicy {
                 KeyPurpose::AppAction,
             ],
             daily_executions: 20,
-            daily_cycles: 1_000_000_000_000,
+            daily_cycles: 800_000_000_000,
         }
     }
 }

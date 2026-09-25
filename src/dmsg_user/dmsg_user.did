@@ -1029,7 +1029,7 @@ type SecuritySnapshot = record {
 };
 // Account limits on sensitive chain-key execution.
 // The default permits statement/file signing, 20 executions and
-// 1,000,000,000,000 cycles per day; deployment limits also apply.
+// 800,000,000,000 cycles per day, which is also the user home's ceiling.
 type SensitivePolicy = record {
   // Maximum ICP cycles in a daily budget window.
   daily_cycles : nat;

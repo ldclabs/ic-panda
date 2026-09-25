@@ -83,12 +83,9 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
     let who = ic_cdk::api::msg_caller();
     authenticated(who)?;
     let mut cfg = config();
+    // RemoveAuth and completed recovery delete their routes, so an existing
+    // route is a current binding.
     if let Some(id) = AUTH.with_borrow(|t| t.load(who.as_slice())) {
-        let account = load(&id)?;
-        ensure(
-            account.auth_bindings.contains(&who),
-            Error::DeviceNotApproved,
-        )?;
         return Ok(id);
     }
     let now = now();
@@ -200,9 +197,15 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
     if replay {
         return Ok(r);
     }
-    if let AccountCommand::BindAuth { principal, .. } = input.command {
-        AUTH.with_borrow_mut(|t| t.put(principal.as_slice(), &s.account_id));
-        BINDINGS.with_borrow_mut(|t| t.delete(principal.as_slice()));
+    match input.command {
+        AccountCommand::BindAuth { principal, .. } => {
+            AUTH.with_borrow_mut(|t| t.put(principal.as_slice(), &s.account_id));
+            BINDINGS.with_borrow_mut(|t| t.delete(principal.as_slice()));
+        }
+        AccountCommand::RemoveAuth { principal } => {
+            AUTH.with_borrow_mut(|t| t.delete(principal.as_slice()));
+        }
+        _ => {}
     }
     save(&s);
     Ok(r)
@@ -275,6 +278,7 @@ async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
 async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult> {
     let caller = ic_cdk::api::msg_caller();
     let mut at = now();
+    let init = config().init;
     let mut s = own(&input.account_id, caller)?;
     let mut previous = load_execution(&input.account_id, &input.approval.request_id);
     if matches!(input.kind, ExecutionKind::Sign { .. })
@@ -282,7 +286,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         && !crate::commerce::is_current(&input.account_id, at)?
     {
         // Reject invalid caller/device/payload before doing commercial cross-canister work.
-        execution::authorize(&mut s, caller, &input, at, &config().init, None)?;
+        execution::authorize(&mut s, caller, &input, at, &init, None)?;
         at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
         previous = load_execution(&input.account_id, &input.approval.request_id);
@@ -292,7 +296,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
             let prepared = parse_signing_input(to_be_signed)?;
             if let StatementContent::AppAction(action) = &prepared.statement().content {
                 // Validate device/payload before either external lookup. No state is saved yet.
-                execution::authorize(&mut s, caller, &input, at, &config().init, None)?;
+                execution::authorize(&mut s, caller, &input, at, &init, None)?;
                 crate::external::authorize_action(&input.account_id, action).await?;
                 at = now();
                 s = own(&input.account_id, caller)?;
@@ -305,14 +309,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         .iter()
         .filter_map(|(id, expires_at)| expires_at.filter(|deadline| *deadline <= at).map(|_| *id))
         .collect();
-    let mut e = execution::authorize(
-        &mut s,
-        caller,
-        &input,
-        at,
-        &config().init,
-        previous.as_ref(),
-    )?;
+    let mut e = execution::authorize(&mut s, caller, &input, at, &init, previous.as_ref())?;
     if previous.is_none() {
         crate::commerce::reserve(&mut e, at)?;
         // All validation precedes these writes, with no await until the account,
@@ -405,11 +402,9 @@ async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<
         return Ok(e.result);
     }
     drop(e);
+    // A failed query proves nothing about the execution; only COSE's answer is recorded.
     let response: Result<ExecutionResult> =
-        match stable::call(home_cose, "get_execution", (&account_id, request_id)).await {
-            Ok(response) => response,
-            Err(error) => Err(error),
-        };
+        stable::call(home_cose, "get_execution", (&account_id, request_id)).await?;
     if response == Err(Error::NotFound) {
         let e = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
         if e.result.is_terminal() {
@@ -457,8 +452,13 @@ fn complete_recovery(account_id: AccountId) -> Result<()> {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
     let mut s = load(&account_id)?;
-    recovery::complete_recovery(&mut s, caller, now())?;
-    AUTH.with_borrow_mut(|t| t.put(caller.as_slice(), &account_id));
+    let removed = recovery::complete_recovery(&mut s, caller, now())?;
+    AUTH.with_borrow_mut(|t| {
+        for principal in removed.iter().filter(|p| **p != caller) {
+            t.delete(principal.as_slice());
+        }
+        t.put(caller.as_slice(), &account_id);
+    });
     save(&s);
     Ok(())
 }

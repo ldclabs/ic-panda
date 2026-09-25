@@ -107,27 +107,25 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
 
 pub(crate) const STABLE_SCHEMA: u16 = 7;
 
+/// Rebuild every certified leaf from stable records, publishing the root once.
 pub(crate) fn rebuild_certification() {
     let namespace = config().init.issuer_namespace;
-    CERT.with_borrow_mut(|c| {
-        ACCOUNTS.with_borrow(|t| {
-            t.for_each(|key, s| {
-                c.insert(key, canonical(&s.snapshot(&namespace)));
-            });
-        });
-        EXECUTIONS.with_borrow(|t| {
-            t.for_each(|_, execution| {
-                if let Ok(receipt) = crate::execution::receipt(&execution, &namespace) {
-                    c.insert(
-                        execution_receipt_key(&receipt.account_id, receipt.request_id),
-                        canonical(&receipt),
-                    );
-                }
-            });
-        });
-        crate::commerce::rebuild(c);
-        crate::external::rebuild(c);
-        // Every insert republishes; this also covers an empty rebuild.
-        c.publish();
+    let mut leaves = Vec::new();
+    ACCOUNTS.with_borrow(|t| {
+        t.for_each(|key, s| leaves.push((key, canonical(&s.snapshot(&namespace)))));
     });
+    EXECUTIONS.with_borrow(|t| {
+        t.for_each(|_, execution| {
+            if let Ok(receipt) = crate::execution::receipt(&execution, &namespace) {
+                leaves.push((
+                    execution_receipt_key(&receipt.account_id, receipt.request_id),
+                    canonical(&receipt),
+                ));
+            }
+        });
+    });
+    crate::commerce::rebuild(&mut leaves);
+    crate::external::rebuild(&mut leaves);
+    // extend publishes once, which also covers an empty rebuild.
+    CERT.with_borrow_mut(|c| c.extend(leaves));
 }

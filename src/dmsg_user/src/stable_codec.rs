@@ -526,7 +526,7 @@ mod tests {
         assert!(compact.len() > 17_642);
         assert_eq!(
             hex(&compact),
-            "c5ddfd9ec8b2360a94e7a43a325861cbe07b3a91cd9b396ef77a79ba7de022ca"
+            "3882d3789ec34790574bf87cc010ffd2c1f5a5c2c645f2fddbdcbdc4587237f3"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);

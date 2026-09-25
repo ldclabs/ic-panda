@@ -2,10 +2,7 @@
 use crate::{account, state::AccountState, store};
 use candid::Principal;
 use dmsg_protocol::{canonical, digest, integration::*};
-use dmsg_runtime::{
-    storage::{MapExt, Stored},
-    Certification,
-};
+use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, user::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
 use serde::{Deserialize, Serialize};
@@ -134,8 +131,6 @@ fn commit(
             application.expires_at_ms.min(approval.expires_at)
         }
     };
-    // Guard finish()'s checked increments before modifying the candidate state.
-    ensure(account.account_version < u64::MAX, Error::QuotaExceeded)?;
     state.operations.retain(|_, r| at < r.expires_at_ms);
     state.hour = hour;
     state.used = used + 1;
@@ -153,6 +148,7 @@ fn commit(
     Ok(())
 }
 
+/// Records never change after commit, so only added and pruned leaves touch the tree.
 fn save(id: &AccountId, old: &ExternalState, next: &ExternalState) {
     EXTERNAL.with_borrow_mut(|t| t.put(id.as_slice(), next));
     store::CERT.with_borrow_mut(|c| {
@@ -165,7 +161,9 @@ fn save(id: &AccountId, old: &ExternalState, next: &ExternalState) {
         }
         for (op, record) in &next.operations {
             if let ExternalBody::Authentication(result) = &record.body {
-                c.insert(authentication_key(id, op), canonical(result));
+                if !old.operations.contains_key(op) {
+                    c.insert(authentication_key(id, op), canonical(result));
+                }
             }
         }
     });
@@ -398,7 +396,7 @@ async fn verify_application(
     let state = load(&account.account_id);
     let record = state.operations.get(&approval_id).ok_or(Error::NotFound)?;
     ensure(
-        record.body == ExternalBody::Application(expected.clone()),
+        matches!(&record.body, ExternalBody::Application(approved) if *approved == expected),
         Error::IdempotencyConflict,
     )?;
     current_device(&account, record.device_id, record.security_epoch)?;
@@ -431,24 +429,20 @@ fn prune_external_approvals(after: serde_bytes::ByteBuf) -> Option<serde_bytes::
     cursor
 }
 
-pub(crate) fn rebuild(c: &mut Certification) {
+pub(crate) fn rebuild(leaves: &mut Vec<(Vec<u8>, Vec<u8>)>) {
     EXTERNAL.with_borrow(|t| {
         t.for_each(|_, state| {
             for (operation, record) in state.operations {
                 if let ExternalBody::Authentication(result) = record.body {
-                    c.insert(
+                    leaves.push((
                         authentication_key(&result.account_id, &operation),
                         canonical(&result),
-                    );
+                    ));
                 }
             }
         })
     });
 }
-
-#[cfg(test)]
-#[path = "external_tests.rs"]
-mod tests;
 
 /// Confirm an exact product preparation before the local execution commit.
 /// Remote permission changes after this check are also enforced by product commit.
@@ -461,6 +455,7 @@ pub(crate) async fn authorize_action(
     let (app, _) = configuration(action.app_id.clone(), None).await?;
     let at = nanos_to_millis(ic_cdk::api::time());
     dmsg_protocol::app_action::validate_action_admission(action, &app, at)?;
+    // Account homes are immutable, so this binding check needs no reread.
     home_binding(&app, &store::load(id)?)?;
     let approved: Result<()> = dmsg_runtime::call(
         app.action_authority,
@@ -473,8 +468,7 @@ pub(crate) async fn authorize_action(
     let (current, _) = configuration(action.app_id.clone(), None).await?;
     let at = nanos_to_millis(ic_cdk::api::time());
     ensure(current == app, Error::PolicyStale)?;
-    dmsg_protocol::app_action::validate_action_admission(action, &current, at)?;
-    home_binding(&current, &store::load(id)?)
+    dmsg_protocol::app_action::validate_action_admission(action, &current, at)
 }
 
 /// Personal-account product consent. Project products use their own registered authority.
@@ -550,3 +544,7 @@ async fn verify_product_account(
         Error::Locked,
     )
 }
+
+#[cfg(test)]
+#[path = "external_tests.rs"]
+mod tests;

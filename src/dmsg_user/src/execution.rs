@@ -150,7 +150,7 @@ pub(crate) fn authorize(
             now,
             input.max_cycles,
             s.sensitive_policy.daily_executions,
-            s.sensitive_policy.daily_cycles.min(FORMAL_DAILY_CYCLES),
+            s.sensitive_policy.daily_cycles,
         )?;
     }
     // All fallible checks have passed, including the atomic budget reservation.

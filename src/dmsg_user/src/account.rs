@@ -342,7 +342,7 @@ pub(crate) fn apply(
         AccountCommand::SetPolicy { policy } => {
             ensure(
                 policy.daily_executions <= FORMAL_DAILY_EXECUTIONS
-                    && policy.daily_cycles <= 1_000_000_000_000
+                    && policy.daily_cycles <= FORMAL_DAILY_CYCLES
                     && policy.allowed_purposes.len() <= 3
                     && policy.allowed_purposes.iter().all(|p| {
                         matches!(
