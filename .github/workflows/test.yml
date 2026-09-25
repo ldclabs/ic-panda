@@ -16,6 +16,8 @@ jobs:
         node-version: '22'
         cache: pnpm
     - run: pnpm install --frozen-lockfile
+    # @dmsg/sdk exports its built dist, which the app resolves as a workspace package.
+    - run: pnpm --dir packages/dmsg-sdk build
     - run: pnpm --dir src/dmsg_app check
     - run: pnpm --dir src/dmsg_app test
     - run: pnpm --dir src/dmsg_app test:inventory
@@ -34,9 +36,14 @@ jobs:
       with:
         targets: wasm32-unknown-unknown
         components: clippy, rustfmt
+    - uses: pnpm/action-setup@v4
     - uses: actions/setup-node@v4
       with:
         node-version: '22'
+        cache: pnpm
+    # make test-dmsg runs the SDK tests against the PocketIC proof with node --test.
+    - name: Install dMsg SDK dependencies
+      run: pnpm install --frozen-lockfile --filter @dmsg/sdk
     - name: Run clippy
       run: cargo clippy --verbose --all-targets --all-features
     - name: Run tests
