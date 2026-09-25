@@ -127,7 +127,7 @@ it('rejects an authentication payload claiming another registered origin or sess
     origin: source.origin,
     receiver: app.authentication_receiver,
     challenge_hash: new Uint8Array(32).fill(5),
-    session_key_hash: await sha256(publicKey),
+    session_key_hash: sha256(publicKey),
     purpose: 'Login' as const,
     nonce: new Uint8Array(32).fill(6),
     operation_id: new Uint8Array(32).fill(7),

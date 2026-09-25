@@ -242,7 +242,7 @@ export class CommerceClient {
             unhex(selection)
           ])
     if ('cash' in terms) {
-      await validateCheckoutQuote(
+      validateCheckoutQuote(
         terms,
         request,
         app,
@@ -258,9 +258,11 @@ export class CommerceClient {
         'POLICY_STALE'
       )
     } else
-      await validatePandaTerms(
+      validatePandaTerms(
         terms,
         request,
+        app,
+        product,
         Principal.fromText(this.membershipId).toUint8Array(),
         this.account.home.toUint8Array(),
         this.wallet.toUint8Array(),
@@ -269,8 +271,8 @@ export class CommerceClient {
       )
     const operation =
       'cash' in terms
-        ? await checkoutId(Principal.fromText(this.commerceId).toUint8Array(), request)
-        : await pandaClaimId(terms)
+        ? checkoutId(Principal.fromText(this.commerceId).toUint8Array(), request)
+        : pandaClaimId(terms)
     const job: CheckoutJob = {
       format: 'dmsg-checkout/2',
       id: hex(operation),
@@ -367,9 +369,7 @@ export class CommerceClient {
         beneficiary: request.offer.beneficiary,
         actor: this.wallet.toUint8Array(),
         purpose: cash ? 'CashCheckout' : 'PandaSubscription',
-        action_digest: cash
-          ? await checkoutQuoteHash(terms)
-          : await pandaApplicationHash(terms),
+        action_digest: cash ? checkoutQuoteHash(terms) : pandaApplicationHash(terms),
         operation_id: request.offer.operation_id,
         nonce: unhex(globalId()),
         expires_at_ms: now + 240_000n < deadline ? now + 240_000n : deadline

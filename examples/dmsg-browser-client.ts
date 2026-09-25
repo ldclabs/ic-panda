@@ -3,7 +3,7 @@ import { canonical, decodeCanonical, type CheckoutRequest } from "@dmsg/sdk";
 import {
   connectDmsg,
   hex,
-  DmsgBrowserError,
+  DmsgError,
   type BrowserOperation,
 } from "@dmsg/sdk/browser";
 interface Saved {
@@ -102,7 +102,7 @@ export async function checkout(
       return await client.openOperation(id);
     } catch (error) {
       if (
-        !(error instanceof DmsgBrowserError) ||
+        !(error instanceof DmsgError) ||
         !["NOT_FOUND", "FORBIDDEN"].includes(error.code)
       )
         throw error;
@@ -117,7 +117,7 @@ export async function checkout(
       return await client.checkout(original);
     } catch (error) {
       if (
-        error instanceof DmsgBrowserError &&
+        error instanceof DmsgError &&
         ["LOCKED", "ACCOUNT_MISMATCH"].includes(error.code)
       ) {
         stored.state = "prepared";

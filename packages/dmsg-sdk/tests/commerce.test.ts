@@ -44,9 +44,9 @@ const request: CheckoutRequest = {
 };
 const now = quote.quoted_at_ms;
 
-test("Rust checkout terms independently match fixed asset, full amount and all deadlines", async () => {
+test("Rust checkout terms independently match fixed asset, full amount and all deadlines", () => {
   validateShape("CheckoutRequest", request);
-  await validateCheckoutQuote(
+  validateCheckoutQuote(
     quote,
     request,
     app,
@@ -62,10 +62,11 @@ test("Rust checkout terms independently match fixed asset, full amount and all d
     (v: CheckoutQuote) => (v.cash.ledger = new Uint8Array([99, 1])),
     (v: CheckoutQuote) => v.cash.funding_deadline_ms++,
     (v: CheckoutQuote) => (v.product.merchant.owner = new Uint8Array([99, 1])),
+    (v: CheckoutQuote) => (v.cash.version = 1n),
   ]) {
     const changed = structuredClone(quote);
     alter(changed);
-    await assert.rejects(
+    assert.throws(() =>
       validateCheckoutQuote(
         changed,
         request,
@@ -87,7 +88,7 @@ test("Rust checkout terms independently match fixed asset, full amount and all d
     validateSettlementAsset(quote.asset, quote.asset.price_valid_until_ms),
   );
 });
-test("PANDA full waiver binds neuron, independent account, exact USD bill and original end", async () => {
+test("PANDA full waiver binds neuron, independent account, exact USD bill and original end", () => {
   const request: CheckoutRequest = {
     offer: terms.offer,
     approving_account: terms.approving_account,
@@ -98,23 +99,27 @@ test("PANDA full waiver binds neuron, independent account, exact USD bill and or
     validatePandaTerms(
       v,
       request,
+      app,
+      quote.product,
       terms.home_membership,
       terms.user_home,
       terms.actor,
       terms.neuron_id,
       now,
     );
-  await verify(terms);
+  verify(terms);
   for (const alter of [
     (t: PandaApplicationTerms) => (t.neuron_id[0] ^= 1),
     (t: PandaApplicationTerms) => (t.approving_account[0] ^= 1),
     (t: PandaApplicationTerms) => t.quote.required_stake_e8s--,
     (t: PandaApplicationTerms) => t.quote.committed_until_ms--,
+    (t: PandaApplicationTerms) => t.quote.application_deadline_ms++,
     (t: PandaApplicationTerms) => (t.quote.policy.r_num += 1n),
+    (t: PandaApplicationTerms) => (t.quote.policy.environment = "Production"),
   ]) {
     const v = structuredClone(terms);
     alter(v);
-    await assert.rejects(verify(v));
+    assert.throws(() => verify(v));
   }
   assert.throws(() =>
     validateShape("CheckoutRequest", { ...request, discount_bps: 100n }),

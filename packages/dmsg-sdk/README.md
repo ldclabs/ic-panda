@@ -17,7 +17,10 @@ private relay or wallet store. It ships JavaScript and TypeScript declarations.
 All wire integers, including versions, are `bigint`. Principals, hashes and
 account IDs are `Uint8Array`. `canonical` rejects Number, floats, undefined,
 invalid Unicode and unsupported objects. `validateShape` rejects extra fields,
-unknown variants, unbounded arrays and out-of-range integers. Generated CDDL and
+unknown variants, unbounded arrays and out-of-range integers. Every check throws
+`DmsgError` with the Rust protocol code (`INVALID_INPUT`, `FORBIDDEN`,
+`EXPIRED`, `INTEGRITY_FAILED`, ...); digests and commitments are synchronous,
+and browser client methods report failures as rejected promises. Generated CDDL and
 TypeScript shapes come from the Rust contracts; regenerate with
 `python3 scripts/generate-integration-sdk.py`.
 
@@ -59,8 +62,9 @@ It must not grant rights from a redirect, screenshot, wallet response, browser
 - `@dmsg/sdk/ic`: verify IC root, fixed home, certificate time, witness and exact
   authentication challenge or certified leaf.
 - `@dmsg/sdk/statements`: verify the original COSE signature and content profile.
-- `@dmsg/sdk/codec` / `@dmsg/sdk/errors`: the bounded canonical CBOR, base64url
-  and hex codec used by those statements, and its coded `DmsgError`.
+- `@dmsg/sdk/codec`: the bounded canonical CBOR, base64url and hex codec used by
+  those statements. `@dmsg/sdk/errors` (also re-exported by `@dmsg/sdk/browser`)
+  provides the coded `DmsgError`.
 - Main export: verify closed action/checkout shapes, file/input commitments,
   exact conversion and one-rounding PANDA arithmetic; convert against **generated
   Candid types** with `fromCandid` / `toCandid`.
@@ -73,7 +77,8 @@ execution certificate, product intent and historical account-binding evidence.
 ## Build and verify
 
 Node >=22.18 and TypeScript 6.0.3 are supported. The browser path needs Chrome MV3
-external ports, WebCrypto P-256 and structured cloning of nonexportable keys.
+external ports, WebCrypto P-256, structured cloning of nonexportable keys and
+`URL.canParse`.
 
 ```sh
 pnpm install --frozen-lockfile

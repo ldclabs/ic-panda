@@ -51,7 +51,7 @@ test('real external ports bind top-level documents and require a fresh session p
     )
     const page = await context.newPage()
     await page.exposeFunction('proofMessage', async (command: any, challenge: any) =>
-      Array.from(await browserProofMessage(command, challenge.nonce, challenge))
+      Array.from(browserProofMessage(command, challenge.nonce, challenge))
     )
     await page.goto('https://product.test/')
     const run = (bad = false) =>

@@ -1,11 +1,12 @@
 /** Convert only against a generated Candid type, never guess opt/vec or variant shapes. */
 import { IDL } from "@icp-sdk/core/candid";
 import { Principal } from "@icp-sdk/core/principal";
-import { requireValid } from "./validation.ts";
+import { ensure } from "./cose-errors.ts";
+
 export function fromCandid(type: IDL.Type, value: any): any {
   if (type instanceof IDL.RecClass) return fromCandid(type.getType()!, value);
   if (type instanceof IDL.OptClass) {
-    requireValid(Array.isArray(value) && value.length <= 1, "INVALID_INPUT");
+    ensure(Array.isArray(value) && value.length <= 1, "INVALID_INPUT");
     return value.length ? fromCandid(type._type, value[0]) : null;
   }
   if (type instanceof IDL.VecClass)
@@ -20,10 +21,10 @@ export function fromCandid(type: IDL.Type, value: any): any {
     );
   if (type instanceof IDL.VariantClass) {
     const keys = Object.keys(value);
-    requireValid(keys.length === 1, "INVALID_INPUT");
+    ensure(keys.length === 1, "INVALID_INPUT");
     const tag = keys[0]!;
     const child = type._fields.find(([k]) => k === tag)?.[1];
-    requireValid(child, "UNSUPPORTED_PROTOCOL");
+    ensure(child, "UNSUPPORTED_PROTOCOL");
     return child.name === "null"
       ? tag
       : { [tag]: fromCandid(child, value[tag]) };
@@ -49,7 +50,7 @@ export function toCandid(type: IDL.Type, value: any): any {
   if (type instanceof IDL.VariantClass) {
     const tag = typeof value === "string" ? value : Object.keys(value)[0]!;
     const child = type._fields.find(([k]) => k === tag)?.[1];
-    requireValid(child, "UNSUPPORTED_PROTOCOL");
+    ensure(child, "UNSUPPORTED_PROTOCOL");
     return {
       [tag]: child.name === "null" ? null : toCandid(child, value[tag]),
     };

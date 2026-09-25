@@ -54,7 +54,7 @@ test("fresh connection proofs bind the exact command, source document, nonce and
   };
   const nonce = "02".repeat(32),
     signature = base64(
-      await key.sign(await browserProofMessage(command, nonce, source)),
+      await key.sign(browserProofMessage(command, nonce, source)),
     );
   await verifyBrowserProof(command, nonce, source, signature);
   for (const altered of [
@@ -84,6 +84,13 @@ test("fresh connection proofs bind the exact command, source document, nonce and
   );
   assert.throws(() => parseBrowserCommand({ ...command, extra: true }));
   assert.throws(() => parseBrowserCommand({ ...command, payload: "AA==" }));
+  // Untrusted page input is never coerced into an identifier.
+  for (const altered of [
+    { ...command, operationId: [command.operationId] },
+    { ...command, appId: 123 },
+    { ...command, appId: ["product"] },
+  ])
+    assert.throws(() => parseBrowserCommand(altered), { code: "INVALID_INPUT" });
 });
 
 test("public SDK completes the proof handshake, correlates calls and preserves operation IDs after reconnect", async () => {
@@ -96,7 +103,7 @@ test("public SDK completes the proof handshake, correlates calls and preserves o
     origin: source.origin,
     receiver: new Uint8Array([3, 1]),
     challenge_hash: new Uint8Array(32).fill(5),
-    session_key_hash: await sha256(key.publicKeyDer),
+    session_key_hash: sha256(key.publicKeyDer),
     purpose: "Login" as const,
     nonce: new Uint8Array(32).fill(6),
     operation_id: new Uint8Array(32).fill(7),
@@ -106,7 +113,7 @@ test("public SDK completes the proof handshake, correlates calls and preserves o
   const seen: string[] = [];
   function connect(_extension: string, options: { name: string }): BrowserPort {
     assert.equal(options.name, EXTENSION_PROTOCOL);
-    let receive: (value: any) => void, disconnected: () => void;
+    let receive: (value: any) => void;
     const pending = new Map<string, BrowserCommand>();
     return {
       onMessage: {
@@ -114,14 +121,9 @@ test("public SDK completes the proof handshake, correlates calls and preserves o
           receive = fn;
         },
       },
-      onDisconnect: {
-        addListener(fn) {
-          disconnected = fn;
-        },
-      },
-      disconnect() {
-        disconnected();
-      },
+      onDisconnect: { addListener() {} },
+      // Like Chrome, a local disconnect is reported only to the other end.
+      disconnect() {},
       postMessage(value: any) {
         queueMicrotask(() => {
           void (async () => {
@@ -202,7 +204,12 @@ test("public SDK completes the proof handshake, correlates calls and preserves o
     hex(request.operation_id),
     hex(request.operation_id),
   ]);
-  assert.throws(() => client.checkout(undefined as never), /record/);
+  await assert.rejects(client.checkout(undefined as never), {
+    code: "INVALID_INPUT",
+  });
+  await assert.rejects(client.getOperation("00".repeat(32)), {
+    code: "INVALID_INPUT",
+  });
   const { readFileSync } = await import("node:fs");
   const { decodeCanonical } = await import("../src/encoding.ts");
   const vectors = JSON.parse(
@@ -238,6 +245,26 @@ test("public SDK completes the proof handshake, correlates calls and preserves o
   client.disconnect();
 });
 
+test("local disconnect settles pending calls and rejects later calls", async () => {
+  const key = await session();
+  const client = connectDmsg({
+    extensionId: "a".repeat(32),
+    appId: "product",
+    origin: source.origin,
+    session: key,
+    connect: () => ({
+      postMessage() {},
+      disconnect() {},
+      onMessage: { addListener() {} },
+      onDisconnect: { addListener() {} },
+    }),
+  });
+  const pending = client.getOperation("01".repeat(32));
+  client.disconnect();
+  await assert.rejects(pending, { code: "DISCONNECTED" });
+  await assert.rejects(client.capabilities(), { code: "DISCONNECTED" });
+});
+
 test("operation commitment is stable across documents but changes with content or key", async () => {
   const key = await session();
   const command: BrowserCommand = {
@@ -248,10 +275,10 @@ test("operation commitment is stable across documents but changes with content o
     payload: base64(canonical({ amount: 1n })),
     resultDigest: null,
   };
-  const hash = hex(await browserOperationDigest(command, source.origin));
+  const hash = hex(browserOperationDigest(command, source.origin));
   assert.notEqual(
     hex(
-      await browserOperationDigest(
+      browserOperationDigest(
         { ...command, payload: base64(canonical({ amount: 2n })) },
         source.origin,
       ),
@@ -259,7 +286,7 @@ test("operation commitment is stable across documents but changes with content o
     hash,
   );
   assert.notEqual(
-    hex(await browserOperationDigest(command, "https://elsewhere.test")),
+    hex(browserOperationDigest(command, "https://elsewhere.test")),
     hash,
   );
 });

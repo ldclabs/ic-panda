@@ -8,11 +8,7 @@ export class DmsgError extends Error {
   }
 }
 
-/** SDK checks report language-neutral codes, without any UI, account store or wallet dependency. */
-export function ensure(
-  value: unknown,
-  code: string,
-  _detail?: string,
-): asserts value {
+/** SDK checks report the Rust protocol's language-neutral codes, without any UI dependency. */
+export function ensure(value: unknown, code: string): asserts value {
   if (!value) throw new DmsgError(code);
 }

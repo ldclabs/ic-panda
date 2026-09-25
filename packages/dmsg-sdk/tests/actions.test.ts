@@ -27,20 +27,20 @@ const value = (name: string): any =>
   );
 const fixture = (): AppAction => value("app_action_0")[2];
 
-test("four closed action variants validate independently and match Rust commitments", async () => {
+test("four closed action variants validate independently and match Rust commitments", () => {
   for (let i = 0; i < 4; i++) {
     const action = value(`app_action_${i}`)[2] as AppAction;
     validateAppAction(action);
     assert.deepEqual(
-      await appActionDigest(action),
-      await digest("dmsg/app-action/v1", action),
+      appActionDigest(action),
+      digest("dmsg/app-action/v1", action),
     );
   }
 });
 
-test("action receiver, origin, manifest, display data and intent are inseparable", async () => {
+test("action receiver, origin, manifest, display data and intent are inseparable", () => {
   const action = fixture(),
-    original = await appActionDigest(action);
+    original = appActionDigest(action);
   const changes: ((a: AppAction) => void)[] = [
     (a) => {
       a.origin = "https://other.test";
@@ -75,7 +75,7 @@ test("action receiver, origin, manifest, display data and intent are inseparable
     change(other);
     other.input_hash = actionInputHash(other.command);
     validateAppAction(other);
-    assert.notDeepEqual(await appActionDigest(other), original);
+    assert.notDeepEqual(appActionDigest(other), original);
   }
 });
 

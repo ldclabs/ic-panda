@@ -37,7 +37,7 @@ export async function validateAuthenticationPayload(
     request.origin === source.origin &&
       request.app_id === command.appId &&
       hex(request.operation_id) === command.operationId &&
-      equalBytes(request.session_key_hash, await sha256(unbase64(command.publicKey))),
+      equalBytes(request.session_key_hash, sha256(unbase64(command.publicKey))),
     'INTEGRITY_FAILED'
   )
   return request
@@ -69,7 +69,7 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
     const binding = {
       appId: command.appId,
       publicKey: command.publicKey,
-      operationDigest: hex(await browserOperationDigest(command, source.origin)),
+      operationDigest: hex(browserOperationDigest(command, source.origin)),
       accountId: meta.account.id,
       appVersion: app.config_version.toString()
     }

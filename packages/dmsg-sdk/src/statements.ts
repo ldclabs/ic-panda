@@ -1,23 +1,23 @@
-import {
-  APP_ACTION_PROFILE,
-  validateAppAction,
-  decodeCanonical as decodeActionWire,
-  canonical as actionBytes,
-  type AppAction,
-} from "./index.ts";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { sha256 } from "@noble/hashes/sha2.js";
 import {
-  canonical,
-  decodeBounded,
-  decodeCanonical,
-  equal,
+  APP_ACTION_PROFILE,
+  MEDIA_TYPE_PATTERN,
+  validateAppAction,
+} from "./action.ts";
+import type { AppAction } from "./contracts.ts";
+import { canonical, decodeBounded, decodeCanonical } from "./cose-codec.ts";
+import { ensure } from "./cose-errors.ts";
+import {
+  canonical as actionBytes,
+  decodeCanonical as decodeActionWire,
+  equalBytes,
+  isWellFormed,
+  sha256,
   unutf8,
   utf8,
-} from "./cose-codec.ts";
+} from "./encoding.ts";
 
-import { ensure } from "./cose-errors.ts";
 export const TEXT_PROFILE = "application/vnd.dmsg.text-statement+cose;v=1";
 export const DIGEST_PROFILE = "application/vnd.dmsg.digest-statement+cose;v=1";
 export const FILE_STATEMENT_PROFILE =
@@ -90,8 +90,8 @@ export function assertStatement(statement: DocumentStatement) {
   )
     ensure(
       statement.content.text.length > 0 &&
-        utf8(statement.content.text).length <= 4096 &&
-        !/[\uD800-\uDFFF]/u.test(statement.content.text),
+        isWellFormed(statement.content.text) &&
+        utf8(statement.content.text).length <= 4096,
       "QUOTA_EXCEEDED",
     );
   if (statement.content.kind !== "text") {
@@ -104,9 +104,8 @@ export function assertStatement(statement: DocumentStatement) {
     );
     if (statement.content.contentType !== undefined)
       ensure(
-        /^[!#$%&'*+.^_`|~0-9a-z-]+\/[!#$%&'*+.^_`|~0-9a-z-]+(?:; *[!#$%&'*+.^_`|~0-9a-z-]+=(?:[!#$%&'*+.^_`|~0-9a-z-]+|"[^"\r\n]+"))*$/i.test(
-          statement.content.contentType,
-        ) && utf8(statement.content.contentType).length <= 256,
+        MEDIA_TYPE_PATTERN.test(statement.content.contentType) &&
+          utf8(statement.content.contentType).length <= 256,
         "INVALID_INPUT",
       );
     if (statement.content.location !== undefined)
@@ -314,7 +313,7 @@ export function verifyDocumentArtifact(
     !key.has(-4) &&
       key.get(3) === alg &&
       (!key.has(2) ||
-        (isBytes(key.get(2)) && equal(key.get(2) as Uint8Array, kid))),
+        (isBytes(key.get(2)) && equalBytes(key.get(2) as Uint8Array, kid))),
     "INTEGRITY_FAILED",
   );
   const ops = key.get(4);
@@ -373,8 +372,8 @@ export function verifyDocumentArtifact(
   if (content !== undefined && statement.content.kind !== "app_action")
     ensure(
       statement.content.kind === "text"
-        ? equal(content, payload)
-        : equal(sha256(content), statement.content.sha256),
+        ? equalBytes(content, payload)
+        : equalBytes(sha256(content), statement.content.sha256),
       "INTEGRITY_FAILED",
     );
   return {
@@ -403,16 +402,15 @@ function assertUri(value: string) {
     typeof value === "string" &&
       value.length > 0 &&
       value.length <= 8192 &&
-      /^[\x21-\x7e]+$/.test(value),
+      /^[\x21-\x7e]+$/.test(value) &&
+      !/%(?![0-9a-fA-F]{2})/.test(value) &&
+      URL.canParse(value),
     "INVALID_INPUT",
-    "需要规范的绝对 URI。",
   );
-  ensure(!/%(?![0-9a-fA-F]{2})/.test(value), "INVALID_INPUT");
+  // The signed URI must already be in the exact form a parser would print.
   const parsed = new URL(value);
   ensure(
     parsed.href === value && !parsed.username && !parsed.password,
     "INVALID_INPUT",
-    "URI 不能在签名时被改写。",
   );
-  return value;
 }

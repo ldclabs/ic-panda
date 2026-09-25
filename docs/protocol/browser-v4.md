@@ -71,7 +71,9 @@ This 32-byte message is signed using ECDSA P-256/SHA-256. The signature is the
 64-byte IEEE P1363 form, sent as canonical base64 in a `type = proof` response.
 The nonce is per connection, consumed once, expires after 15 seconds and is
 discarded on disconnect. The SDK RPC deadline is 30 seconds; at most 16 pending
-challenges are allowed per connection. Payload bytes are bounded to 65,536.
+challenges are allowed per connection. Chrome reports a port disconnect only to
+the other end, so the SDK's own `disconnect()` also rejects its pending calls
+with `DISCONNECTED`. Payload bytes are bounded to 65,536.
 
 Capabilities have no private data and need no session proof. All operation
 reads, reopenings, cancellations and ACKs require a fresh proof. The actual

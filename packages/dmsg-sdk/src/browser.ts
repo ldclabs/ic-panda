@@ -1,16 +1,29 @@
-import { canonical, digest, equalBytes, sha256 } from "./encoding.ts";
-import {
-  EXTENSION_PROTOCOL,
-  requireValid,
-  validateIdentifier,
-  validateShape,
-} from "./validation.ts";
 import { validateAppAction } from "./action.ts";
 import type {
   AppAction,
   AuthenticationRequest,
   CheckoutRequest,
 } from "./contracts.ts";
+import { DmsgError, ensure } from "./cose-errors.ts";
+import {
+  base64,
+  canonical,
+  digest,
+  equalBytes,
+  hex,
+  sha256,
+  unbase64,
+  unhex,
+  utf8,
+} from "./encoding.ts";
+import {
+  EXTENSION_PROTOCOL,
+  validateIdentifier,
+  validateShape,
+} from "./validation.ts";
+
+export { DmsgError } from "./cose-errors.ts";
+export { base64, hex, unbase64, unhex } from "./encoding.ts";
 
 export interface BrowserSession {
   publicKeyDer: Uint8Array;
@@ -65,82 +78,52 @@ export interface BrowserOperation {
   };
   resultDigest?: string;
 }
-export class DmsgBrowserError extends Error {
-  readonly code: string;
-  constructor(code: string) {
-    super(code);
-    this.code = code;
-    this.name = "DmsgBrowserError";
-  }
-}
-export const hex = (value: Uint8Array) =>
-  Array.from(value, (b) => b.toString(16).padStart(2, "0")).join("");
-export function unhex(value: string): Uint8Array {
-  requireValid(/^(?:[0-9a-f]{2})+$/.test(value), "INVALID_INPUT");
-  return Uint8Array.from(value.match(/../g)!, (b) => parseInt(b, 16));
-}
-export function base64(value: Uint8Array): string {
-  let s = "";
-  for (const b of value) s += String.fromCharCode(b);
-  return btoa(s);
-}
-export function unbase64(value: string, maximum = 65_536): Uint8Array {
-  requireValid(
-    typeof value === "string" && value.length <= Math.ceil(maximum / 3) * 4,
-    "QUOTA_EXCEEDED",
-  );
-  const bytes = Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
-  requireValid(
-    bytes.length <= maximum && base64(bytes) === value,
-    "INVALID_INPUT",
-  );
-  return bytes;
-}
+
+// Methods that create an operation carry its payload.
+const CREATE_METHODS: string[] = [
+  "authenticate",
+  "signDocument",
+  "signAction",
+  "checkout",
+];
+const METHODS = [
+  ...CREATE_METHODS,
+  "getOperation",
+  "openOperation",
+  "cancelOperation",
+  "acknowledge",
+];
+const DIGEST = /^[0-9a-f]{64}$/;
+
 export function parseBrowserCommand(value: unknown): BrowserCommand {
-  requireValid(
+  ensure(
     value && typeof value === "object" && !Array.isArray(value),
     "INVALID_INPUT",
   );
   const c = value as BrowserCommand;
-  requireValid(
+  ensure(
     Object.keys(c).sort().join(",") ===
       "appId,method,operationId,payload,publicKey,resultDigest",
     "INVALID_INPUT",
   );
-  requireValid(
-    [
-      "authenticate",
-      "signDocument",
-      "signAction",
-      "checkout",
-      "getOperation",
-      "openOperation",
-      "cancelOperation",
-      "acknowledge",
-    ].includes(c.method),
-    "UNSUPPORTED_PROTOCOL",
-  );
+  ensure(METHODS.includes(c.method), "UNSUPPORTED_PROTOCOL");
   validateIdentifier(c.appId);
-  requireValid(
-    /^[0-9a-f]{64}$/.test(c.operationId) && !/^0+$/.test(c.operationId),
+  ensure(
+    typeof c.operationId === "string" &&
+      DIGEST.test(c.operationId) &&
+      !/^0+$/.test(c.operationId),
     "INVALID_INPUT",
   );
-  requireValid(unbase64(c.publicKey, 128).length === 91, "INVALID_INPUT");
-  const create = [
-    "authenticate",
-    "signDocument",
-    "signAction",
-    "checkout",
-  ].includes(c.method);
-  requireValid(
+  ensure(unbase64(c.publicKey, 128).length === 91, "INVALID_INPUT");
+  const create = CREATE_METHODS.includes(c.method);
+  ensure(
     create ? typeof c.payload === "string" : c.payload === null,
     "INVALID_INPUT",
   );
   if (create) unbase64(c.payload!);
-  requireValid(
+  ensure(
     c.method === "acknowledge"
-      ? typeof c.resultDigest === "string" &&
-          /^[0-9a-f]{64}$/.test(c.resultDigest)
+      ? typeof c.resultDigest === "string" && DIGEST.test(c.resultDigest)
       : c.resultDigest === null,
     "INVALID_INPUT",
   );
@@ -152,9 +135,11 @@ export function browserProofMessage(
   command: BrowserCommand,
   nonce: string,
   source: Pick<BrowserSource, "origin" | "documentId">,
-): Promise<Uint8Array> {
-  requireValid(
-    /^[0-9a-f]{64}$/.test(nonce) &&
+): Uint8Array {
+  ensure(
+    typeof nonce === "string" &&
+      DIGEST.test(nonce) &&
+      typeof source.documentId === "string" &&
       source.documentId.length > 0 &&
       source.documentId.length <= 256,
     "INVALID_INPUT",
@@ -175,20 +160,20 @@ export async function verifyBrowserProof(
   signature: string,
 ): Promise<void> {
   const sig = unbase64(signature, 64);
-  requireValid(sig.length === 64, "INVALID_INPUT");
+  ensure(sig.length === 64, "INVALID_INPUT");
   const key = await crypto.subtle.importKey(
     "spki",
-    Uint8Array.from(unbase64(command.publicKey, 128)).buffer,
+    unbase64(command.publicKey, 128),
     { name: "ECDSA", namedCurve: "P-256" },
     false,
     ["verify"],
   );
-  requireValid(
+  ensure(
     await crypto.subtle.verify(
       { name: "ECDSA", hash: "SHA-256" },
       key,
-      Uint8Array.from(sig).buffer,
-      Uint8Array.from(await browserProofMessage(command, nonce, source)).buffer,
+      sig,
+      Uint8Array.from(browserProofMessage(command, nonce, source)),
     ),
     "FORBIDDEN",
   );
@@ -198,13 +183,8 @@ export async function verifyBrowserProof(
 export function browserOperationDigest(
   command: BrowserCommand,
   origin: string,
-): Promise<Uint8Array> {
-  requireValid(
-    ["authenticate", "signDocument", "signAction", "checkout"].includes(
-      command.method,
-    ),
-    "INVALID_INPUT",
-  );
+): Uint8Array {
+  ensure(CREATE_METHODS.includes(command.method), "INVALID_INPUT");
   return digest("dmsg/browser-operation/v1", [
     origin,
     command.appId,
@@ -230,16 +210,16 @@ export function connectDmsg(options: {
   origin?: string;
   connect?: (id: string, options: { name: string }) => BrowserPort;
 }) {
-  requireValid(/^[a-p]{32}$/.test(options.extensionId), "INVALID_EXTENSION");
+  ensure(/^[a-p]{32}$/.test(options.extensionId), "INVALID_EXTENSION");
   validateIdentifier(options.appId);
   const origin = options.origin ?? globalThis.location?.origin;
-  requireValid(origin && origin !== "null", "INVALID_ORIGIN");
+  ensure(origin && origin !== "null", "INVALID_ORIGIN");
   const connect =
     options.connect ??
     (globalThis as any).chrome?.runtime?.connect?.bind(
       (globalThis as any).chrome.runtime,
     );
-  if (!connect) throw new DmsgBrowserError("EXTENSION_UNAVAILABLE");
+  ensure(connect, "EXTENSION_UNAVAILABLE");
   const port: BrowserPort = connect(options.extensionId, {
     name: EXTENSION_PROTOCOL,
   });
@@ -260,10 +240,17 @@ export function connectDmsg(options: {
     pending.delete(id);
     error ? p.reject(error) : p.resolve(value);
   };
+  // Chrome reports onDisconnect only to the other end; a local disconnect closes here.
+  const close = () => {
+    closed = true;
+    for (const id of pending.keys())
+      finish(id, null, new DmsgError("DISCONNECTED"));
+  };
   port.onMessage.addListener((message) => {
     if (
       message?.method === "source.challenge" &&
-      /^[0-9a-f]{64}$/.test(message.nonce)
+      typeof message.nonce === "string" &&
+      DIGEST.test(message.nonce)
     ) {
       port.postMessage({ method: "source.reply", nonce: message.nonce });
       return;
@@ -276,16 +263,12 @@ export function connectDmsg(options: {
         message.origin !== origin ||
         typeof message.documentId !== "string"
       ) {
-        finish(
-          message.requestId,
-          null,
-          new DmsgBrowserError("SOURCE_MISMATCH"),
-        );
+        finish(message.requestId, null, new DmsgError("SOURCE_MISMATCH"));
         return;
       }
       void (async () => {
         const proof = await options.session.sign(
-          await browserProofMessage(p.command!, message.nonce, message),
+          browserProofMessage(p.command!, message.nonce, message),
         );
         if (!closed && pending.get(message.requestId) === p)
           port.postMessage({
@@ -299,25 +282,19 @@ export function connectDmsg(options: {
       finish(
         message.requestId,
         message.value,
-        message.ok
-          ? undefined
-          : new DmsgBrowserError(message.error || "UNAVAILABLE"),
+        message.ok ? undefined : new DmsgError(message.error || "UNAVAILABLE"),
       );
     }
   });
-  port.onDisconnect.addListener(() => {
-    closed = true;
-    for (const id of pending.keys())
-      finish(id, null, new DmsgBrowserError("DISCONNECTED"));
-  });
+  port.onDisconnect.addListener(close);
   function send(command?: BrowserCommand): Promise<any> {
-    if (closed) return Promise.reject(new DmsgBrowserError("DISCONNECTED"));
+    if (closed) return Promise.reject(new DmsgError("DISCONNECTED"));
     if (pending.size >= 16)
-      return Promise.reject(new DmsgBrowserError("QUOTA_EXCEEDED"));
+      return Promise.reject(new DmsgError("QUOTA_EXCEEDED"));
     const id = hex(crypto.getRandomValues(new Uint8Array(32)));
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
-        () => finish(id, null, new DmsgBrowserError("TRANSPORT_TIMEOUT")),
+        () => finish(id, null, new DmsgError("TRANSPORT_TIMEOUT")),
         30_000,
       );
       pending.set(id, { command, resolve, reject, timer });
@@ -333,7 +310,7 @@ export function connectDmsg(options: {
       }
     });
   }
-  function command(
+  async function command(
     method: BrowserCommand["method"],
     operationId: string,
     payload: string | null = null,
@@ -350,6 +327,7 @@ export function connectDmsg(options: {
       }),
     );
   }
+  // Every method reports failures as a rejected promise.
   return {
     capabilities: (): Promise<{ protocol: string; methods: string[] }> =>
       send(),
@@ -357,12 +335,12 @@ export function connectDmsg(options: {
       request: AuthenticationRequest,
     ): Promise<BrowserOperation> => {
       validateShape("AuthenticationRequest", request);
-      requireValid(
+      ensure(
         request.app_id === options.appId &&
           request.origin === origin &&
           equalBytes(
             request.session_key_hash,
-            await sha256(options.session.publicKeyDer),
+            sha256(options.session.publicKeyDer),
           ),
         "REQUEST_BINDING",
       );
@@ -372,18 +350,18 @@ export function connectDmsg(options: {
         base64(canonical(request)),
       );
     },
-    signDocument: (
+    signDocument: async (
       operationId: string,
       documentRequest: unknown,
     ): Promise<BrowserOperation> =>
       command(
         "signDocument",
         operationId,
-        base64(new TextEncoder().encode(JSON.stringify(documentRequest))),
+        base64(utf8(JSON.stringify(documentRequest))),
       ),
-    signAction: (action: AppAction): Promise<BrowserOperation> => {
+    signAction: async (action: AppAction): Promise<BrowserOperation> => {
       validateAppAction(action);
-      requireValid(
+      ensure(
         action.app_id === options.appId && action.origin === origin,
         "REQUEST_BINDING",
       );
@@ -393,9 +371,9 @@ export function connectDmsg(options: {
         base64(canonical(action)),
       );
     },
-    checkout: (request: CheckoutRequest): Promise<BrowserOperation> => {
+    checkout: async (request: CheckoutRequest): Promise<BrowserOperation> => {
       validateShape("CheckoutRequest", request);
-      requireValid(request.offer.app_id === options.appId, "REQUEST_BINDING");
+      ensure(request.offer.app_id === options.appId, "REQUEST_BINDING");
       return command(
         "checkout",
         hex(request.offer.operation_id),
@@ -407,6 +385,9 @@ export function connectDmsg(options: {
     cancelOperation: (id: string) => command("cancelOperation", id),
     acknowledge: (id: string, resultDigest: string) =>
       command("acknowledge", id, null, resultDigest),
-    disconnect: () => port.disconnect(),
+    disconnect: () => {
+      port.disconnect();
+      close();
+    },
   };
 }

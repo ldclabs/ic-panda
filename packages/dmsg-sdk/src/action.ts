@@ -1,5 +1,3 @@
-import { sha256 as rawHash } from "@noble/hashes/sha2.js";
-import { concat, equalBytes } from "./encoding.ts";
 /** Closed typed action validation. Successful validation is not product authorization. */
 import type {
   AppAction,
@@ -7,37 +5,44 @@ import type {
   ActionFile,
   AppRegistration,
 } from "./contracts.ts";
-import { canonical, digest } from "./encoding.ts";
+import { ensure } from "./cose-errors.ts";
 import {
+  canonical,
+  concat,
+  digest,
+  equalBytes,
+  sha256,
+  utf8,
+} from "./encoding.ts";
+import {
+  AUTH_TTL_MS,
   validateShape,
   validateIdentifier,
   validateOrigin,
   validateApp,
-  requireValid,
+  validatePrincipal,
+  validateNonzero,
 } from "./validation.ts";
 
 export const APP_ACTION_PROFILE = "application/vnd.dmsg.app-action+cose;v=1";
 export const MAX_APP_ACTION_BYTES = 48 * 1024;
+/** RFC 9110 media type with optional parameters. */
+export const MEDIA_TYPE_PATTERN =
+  /^[!#$%&'*+.^_`|~0-9a-z-]+\/[!#$%&'*+.^_`|~0-9a-z-]+(?:; *[!#$%&'*+.^_`|~0-9a-z-]+=(?:[!#$%&'*+.^_`|~0-9a-z-]+|"[^"\r\n]+"))*$/i;
+const ACTION_DOMAIN = utf8("tokenlisting:signable-action:v1");
 const text = (value: string, max: number) =>
-  requireValid(
+  ensure(
     /[^\p{White_Space}]/u.test(value) &&
-      new TextEncoder().encode(value).length <= max &&
+      utf8(value).length <= max &&
       !/[\p{Cc}]/u.test(value.replace(/[\n\t]/g, "")),
-    "action text",
-  );
-const nonzero = (value: Uint8Array) =>
-  requireValid(
-    value.some((v) => v !== 0),
-    "zero commitment",
+    "INVALID_INPUT",
   );
 const media = (value: string) =>
-  requireValid(
+  ensure(
     value.length <= 128 &&
       /^[\x20-\x7e]+$/.test(value) &&
-      /^[!#$%&'*+.^_`|~0-9a-z-]+\/[!#$%&'*+.^_`|~0-9a-z-]+(?:; *[!#$%&'*+.^_`|~0-9a-z-]+=(?:[!#$%&'*+.^_`|~0-9a-z-]+|"[^"\r\n]+"))*$/i.test(
-        value,
-      ),
-    "action media type",
+      MEDIA_TYPE_PATTERN.test(value),
+    "INVALID_INPUT",
   );
 
 export function validateActionFiles(files: ActionFile[]): void {
@@ -45,17 +50,17 @@ export function validateActionFiles(files: ActionFile[]): void {
   let last: string | null = null;
   for (const file of files) {
     text(file.file_id, 128);
-    requireValid(
+    ensure(
       /^[A-Za-z0-9/_:.-]+$/.test(file.file_id) &&
         (last === null || last < file.file_id),
-      "file order/duplicate",
+      "INVALID_INPUT",
     );
     last = file.file_id;
-    requireValid(
+    ensure(
       file.revision > 0n && file.byte_length <= 256n * 1024n * 1024n,
-      "file revision/size",
+      "INVALID_INPUT",
     );
-    nonzero(file.sha256);
+    validateNonzero(file.sha256);
     media(file.media_type);
     if (file.display_name !== null) text(file.display_name, 512);
   }
@@ -64,15 +69,15 @@ export function validateActionFiles(files: ActionFile[]): void {
 export function validateActionCommand(command: AppActionCommand): void {
   validateShape("AppActionCommand", command);
   const value = Object.values(command)[0]!;
-  requireValid(value.project_id > 0n, "project id");
+  ensure(value.project_id > 0n, "INVALID_INPUT");
   if ("TokenListCertifyDisclosure" in command) {
     const c = command.TokenListCertifyDisclosure;
-    requireValid(c.contract_id > 0n && c.revision > 0n, "disclosure version");
+    ensure(c.contract_id > 0n && c.revision > 0n, "INVALID_INPUT");
   } else if ("TokenListDecideReview" in command) {
     const c = command.TokenListDecideReview;
-    requireValid(
+    ensure(
       c.case_id > 0n && c.round > 0n && c.round <= 0xffffffffn,
-      "review round",
+      "INVALID_INPUT",
     );
     text(c.rationale, 4096);
     for (const change of c.changes) {
@@ -84,13 +89,14 @@ export function validateActionCommand(command: AppActionCommand): void {
       "TokenListCertifyTransition" in command
         ? command.TokenListCertifyTransition
         : command.TokenListApproveTransition;
-    requireValid(c.transition_id > 0n, "transition id");
+    ensure(c.transition_id > 0n, "INVALID_INPUT");
     text(c.rationale, 4096);
-    nonzero(c.statement_hash);
+    validateNonzero(c.statement_hash);
     if ("analysis" in c && c.analysis !== null) {
       const a = c.analysis;
+      ensure(URL.canParse(a.uri), "INVALID_INPUT");
       const url = new URL(a.uri);
-      requireValid(
+      ensure(
         ["https:", "ipfs:"].includes(url.protocol) &&
           url.href === a.uri &&
           a.uri.length <= 4096 &&
@@ -98,31 +104,24 @@ export function validateActionCommand(command: AppActionCommand): void {
           !/%(?![0-9a-fA-F]{2})/.test(a.uri) &&
           !url.username &&
           !url.password,
-        "artifact URI",
+        "INVALID_INPUT",
       );
-      nonzero(a.sha256);
+      validateNonzero(a.sha256);
       media(a.content_type);
-      requireValid(
-        a.size > 0n && a.size <= 256n * 1024n * 1024n,
-        "artifact size",
-      );
+      ensure(a.size > 0n && a.size <= 256n * 1024n * 1024n, "INVALID_INPUT");
     }
   }
 }
 
 export function validateAppAction(action: AppAction): void {
   validateShape("AppAction", action);
-  requireValid(action.version === 1n, "unsupported action version");
+  ensure(action.version === 1n, "UNSUPPORTED_PROTOCOL");
   validateIdentifier(action.app_id);
   validateOrigin(action.origin, action.environment);
-  requireValid(
-    action.receiver.length > 0 &&
-      !(action.receiver.length === 1 && action.receiver[0] === 4),
-    "receiver",
-  );
-  nonzero(action.actor_id);
-  nonzero(action.signing_account);
-  requireValid(action.app_config_version > 0n, "app revision");
+  validatePrincipal(action.receiver);
+  validateNonzero(action.actor_id);
+  validateNonzero(action.signing_account);
+  ensure(action.app_config_version > 0n, "INVALID_INPUT");
   for (const hash of [
     action.operation_id,
     action.intent_hash,
@@ -133,19 +132,22 @@ export function validateAppAction(action: AppAction): void {
     action.signing_policy_hash,
     action.rule_set_hash,
   ])
-    nonzero(hash);
-  requireValid(
+    validateNonzero(hash);
+  ensure(
     action.issued_at_ms < action.expires_at_ms &&
-      action.expires_at_ms - action.issued_at_ms <= 300000n,
-    "action window",
+      action.expires_at_ms - action.issued_at_ms <= AUTH_TTL_MS,
+    "INVALID_INPUT",
   );
   validateActionCommand(action.command);
-  requireValid(
+  ensure(
     equalBytes(action.input_hash, actionInputHash(action.command)),
-    "action input commitment",
+    "INTEGRITY_FAILED",
   );
   validateActionFiles(action.files);
-  requireValid(canonical(action).length <= MAX_APP_ACTION_BYTES, "action size");
+  ensure(
+    canonical(action).length <= MAX_APP_ACTION_BYTES,
+    "QUOTA_EXCEEDED",
+  );
 }
 
 export function validateActionAdmission(
@@ -155,19 +157,19 @@ export function validateActionAdmission(
 ): void {
   validateAppAction(action);
   validateApp(app);
-  requireValid(
-    !app.paused &&
-      action.environment === app.environment &&
+  ensure(!app.paused, "LOCKED");
+  ensure(
+    action.environment === app.environment &&
       action.app_id === app.app_id &&
       action.app_config_version === app.config_version &&
       app.origins.includes(action.origin) &&
       app.capabilities.includes("SignAction") &&
       app.profiles.includes("AppActionV1"),
-    "action admission",
+    "FORBIDDEN",
   );
-  requireValid(
+  ensure(
     action.issued_at_ms <= nowMs && nowMs < action.expires_at_ms,
-    "action expired",
+    "EXPIRED",
   );
 }
 
@@ -217,8 +219,11 @@ export function actionInputHash(command: AppActionCommand): Uint8Array {
       },
     };
   }
-  const domain = new TextEncoder().encode("tokenlisting:signable-action:v1");
-  return rawHash(
-    concat(Uint8Array.of(domain.length), domain, canonical(input)),
+  return sha256(
+    concat(
+      Uint8Array.of(ACTION_DOMAIN.length),
+      ACTION_DOMAIN,
+      canonical(input),
+    ),
   );
 }

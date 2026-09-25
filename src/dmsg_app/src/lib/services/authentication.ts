@@ -99,7 +99,7 @@ export class AuthenticationClient {
     const request = await validateAuthenticationPayload(command, record.source, app)
     ensure(
       record.digest === record.bridge!.operationDigest &&
-        record.digest === hex(await browserOperationDigest(command, record.source.origin)),
+        record.digest === hex(browserOperationDigest(command, record.source.origin)),
       'INTEGRITY_FAILED'
     )
     ensure(app.config_version.toString() === record.bridge!.appVersion, 'POLICY_STALE')
