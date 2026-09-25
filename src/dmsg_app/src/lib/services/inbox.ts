@@ -598,11 +598,13 @@ export class InboxClient {
         const saved = await this.journal(`received:${value.order_id}`)
         let text: string
         if (
-          saved?.signed?.cose_sign1 === value.signed?.cose_sign1 &&
+          saved?.signed?.cose_sign1 &&
+          saved.signed.cose_sign1 === value.signed?.cose_sign1 &&
           saved.ciphertext === value.ciphertext
-        )
+        ) {
+          ensure(saved.sender === value.sender, 'INTEGRITY_FAILED')
           text = saved.text
-        else {
+        } else {
           const verified = await verifyChannelEvent(
             { signed: value.signed, evidence: value.evidence, stored_at: value.created_at },
             {

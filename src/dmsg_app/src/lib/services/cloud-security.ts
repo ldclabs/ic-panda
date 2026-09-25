@@ -7,6 +7,7 @@ import type {
   SecuritySnapshot
 } from '../canisters/generated/user'
 import { ensure } from '../errors'
+import { MAX_SECURITY_EVIDENCE_BYTES } from '../config'
 import { b64, canonical, decodeCanonical, digest, equal, hex } from '../protocol/codec'
 import { certifiedValue } from './certified'
 import { xidBytes } from '../protocol/identity'
@@ -187,7 +188,7 @@ export async function readCloudSecurityBatch(
   }
   return result
 }
-/** Combines verified evidence sharing a certificate into uploads of at most 64 leaves. */
+/** Combines verified evidence within both the relay byte limit and 64-leaf limit. */
 export function mergeCloudEvidence(evidence: CloudSecurityEvidence[]) {
   const groups = new Map<string, CloudSecurityEvidence>()
   for (const item of evidence) {
@@ -196,10 +197,19 @@ export function mergeCloudEvidence(evidence: CloudSecurityEvidence[]) {
     group.entries.push(...item.entries)
     groups.set(key, group)
   }
-  return [...groups.values()].flatMap((group) =>
-    Array.from({ length: Math.ceil(group.entries.length / 64) }, (_, i) => ({
-      ...group,
-      entries: group.entries.slice(i * 64, (i + 1) * 64)
-    }))
-  )
+  const batches: CloudSecurityEvidence[] = []
+  for (const group of groups.values()) {
+    let batch: CloudSecurityEvidence = { ...group, entries: [] }
+    for (const entry of group.entries) {
+      let next = { ...group, entries: [...batch.entries, entry] }
+      if (next.entries.length > 64 || canonical(next).length > MAX_SECURITY_EVIDENCE_BYTES) {
+        if (batch.entries.length) batches.push(batch)
+        next = { ...group, entries: [entry] }
+        ensure(canonical(next).length <= MAX_SECURITY_EVIDENCE_BYTES, 'QUOTA_EXCEEDED')
+      }
+      batch = next
+    }
+    if (batch.entries.length) batches.push(batch)
+  }
+  return batches
 }

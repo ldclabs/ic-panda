@@ -8,7 +8,7 @@ import { InboxClient } from '../src/lib/services/inbox'
 import { Principal } from '@icp-sdk/core/principal'
 import { readCloudCommand } from '../src/lib/protocol/cloud'
 import { ed25519 } from '../src/lib/crypto/primitives'
-import { id } from '../src/lib/protocol/codec'
+import { canonical, hash, id } from '../src/lib/protocol/codec'
 const password = 'review-only-local-fixture'
 const accountId = xidText(new Uint8Array(12).fill(1))
 const note = (body = 'a') => ({
@@ -375,6 +375,59 @@ it('indexes channel tasks locally without exposing channel routing in uploaded r
   expect(JSON.stringify(await db.db.getAll('local_private'))).not.toContain(requestId)
   db.db.close()
   await engine.lock()
+})
+it('reports local channel sends as backup gaps until their messages are saved', async () => {
+  const { engine, setup } = await fresh(),
+    channel = id(),
+    messageId = id(),
+    requestId = id(),
+    messageKey = `message:${messageId}`,
+    operationKey = `send:${messageId}`
+  const message = {
+      format: 'dmsg-channel-message-job/1',
+      text: 'Unsent content',
+      payload: { message_id: messageId },
+      state: 'queued'
+    },
+    operation = { action: 'dmsg/channel/message/v1', context: { requestId } }
+  try {
+    await engine.channelJob(channel, messageKey, message)
+    await engine.channelJob(channel, operationKey, operation)
+    const backup = await engine.exportBackup(password)
+    expect(backup.scope).toBe('partial')
+    expect(backup.missing).toEqual([
+      `channel-job:${channel}:${messageKey}`,
+      `channel-job:${channel}:${operationKey}`
+    ])
+    // A relay ACK alone does not put the plaintext message in the backup.
+    await engine.channelJob(channel, operationKey, { ...operation, result: { seq: 1 } })
+    await engine.channelJob(channel, messageKey, { ...message, state: 'stored' })
+    expect((await engine.exportBackup(password)).missing).toEqual([
+      `channel-job:${channel}:${messageKey}`
+    ])
+    const objectId = hash(
+      canonical(['dmsg/channel-message-record/1', channel, setup.meta.deviceId, messageId])
+    )
+    await (engine as any).write('formal_message', { channel, text: message.text }, objectId)
+    const complete = await engine.exportBackup(password)
+    expect(complete.scope).toBe('local-inclusive')
+    expect(complete.missing).toEqual([])
+    await engine.lock()
+    globalThis.indexedDB = new IDBFactory()
+    const restored = new CryptoEngine()
+    try {
+      const result = await restored.restore({
+        file: new File([backup.blob], 'partial.dmsg'),
+        code: setup.recoveryCode,
+        password
+      })
+      expect(result.missing).toEqual(backup.missing)
+    } finally {
+      await restored.lock()
+    }
+  } finally {
+    await engine.lock()
+  }
 })
 it('ACKs only the matching source and an already signed request', async () => {
   const { acknowledgeRequest } = await import('../src/lib/requests')

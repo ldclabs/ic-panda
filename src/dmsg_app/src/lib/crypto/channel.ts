@@ -1138,6 +1138,29 @@ export class ChannelVault {
     }
     return rows
   }
+  /** Local operations and outgoing text missing from the content-only backup. */
+  async backupMissing() {
+    const { db, meta } = await this.port.ready(),
+      prefix = 'channel-job:',
+      missing: string[] = []
+    let index = 0
+    for (const key of await db.db.getAllKeys('local_private', prefixRange(prefix))) {
+      const id = String(key),
+        channel = id.slice(prefix.length, prefix.length + 64),
+        name = id.slice(prefix.length + 65)
+      if (name.startsWith('message:')) {
+        const objectId = hash(
+          canonical(['dmsg/channel-message-record/1', channel, meta.deviceId, name.slice(8)])
+        )
+        if (!(await db.getHead(objectId, 'formal_message'))) missing.push(id)
+      } else {
+        const job = await this.job(channel, name)
+        if (job?.action && job.result === undefined) missing.push(id)
+      }
+      if (++index % 16 === 0) await this.port.tick()
+    }
+    return missing
+  }
   async controls(channel: string) {
     const { db } = await this.port.ready(),
       rows: any[] = []

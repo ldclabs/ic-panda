@@ -1612,6 +1612,7 @@ export class CryptoEngine {
     await tx.done
     await this.tick()
     const missing = jobs.filter((j) => j.stage !== 'complete').map((j) => `unfinished:${j.id}`)
+    missing.push(...(await this.channelVault().backupMissing()))
     const required = new Set<string>()
     // Restored import drafts are superseded once their job resumes or completes.
     for (let index = objects.length - 1; index >= 0; index--)

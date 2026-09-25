@@ -1,4 +1,4 @@
-import { config, MAX_CIPHER_CHUNK } from '../config'
+import { config, MAX_CIPHER_CHUNK, MAX_SECURITY_EVIDENCE_BYTES } from '../config'
 import { DmsgError, ensure } from '../errors'
 import { bytes, canonical, equal, hash, unb64, unhex } from '../protocol/codec'
 import {
@@ -159,7 +159,7 @@ export class CloudClient {
   }
   async publishSecurity(evidence: CloudSecurityEvidence) {
     const body = canonical(evidence)
-    ensure(body.length <= 262144, 'QUOTA_EXCEEDED')
+    ensure(body.length <= MAX_SECURITY_EVIDENCE_BYTES, 'QUOTA_EXCEEDED')
     return this.exchange('/v1/security/evidence', 'POST', body)
   }
   async get(path: string, context: CloudContext, sign: CloudSigner) {
