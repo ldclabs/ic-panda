@@ -5,7 +5,7 @@
   import Icon from './lib/components/Icon.svelte'
   import Onboarding from './lib/components/Onboarding.svelte'
   import Vault from './lib/components/Vault.svelte'
-  import Messages from './lib/components/Messages.svelte'
+  import FormalChannels from './lib/components/FormalChannels.svelte'
   import Signatures from './lib/components/Signatures.svelte'
   import Identity from './lib/components/Identity.svelte'
   import Settings from './lib/components/Settings.svelte'
@@ -71,7 +71,10 @@
       <div class="sidebar-bottom">
         <div class="sidebar-note">
           <Icon name="device" /><strong>内容留在你的掌握中。</strong>
-          <p>本地版本<br />尚未连接云端服务</p>
+          <p>
+            {#if session.meta?.account}正式工作区<br />云端同步在设置中连接{:else}本地版本<br
+              />尚未绑定链上账户{/if}
+          </p>
         </div>
         <button
           class="settings-nav"
@@ -104,7 +107,10 @@
           >
         </div>{/if}
       <div class="topbar-right">
-        <span class="connection-state"><span class="status-dot"></span>本机模式</span
+        <span class="connection-state"
+          ><span class="status-dot"></span>{session.meta?.account
+            ? '正式工作区'
+            : '本机模式'}</span
         >{#if session.unlocked}<button
             class="icon-button"
             aria-label="立即锁定工作台"
@@ -151,7 +157,7 @@
               onclick={() => (session.message = '')}><Icon name="close" /></button
             >
           </div>{/if}
-        {#if page === 'vault'}<Vault />{:else if page === 'messages'}<Messages
+        {#if page === 'vault'}<Vault />{:else if page === 'messages'}<FormalChannels
           />{:else if page === 'signatures'}<Signatures
           />{:else if page === 'identity'}<Identity />{:else}<Settings />{/if}
       </main>

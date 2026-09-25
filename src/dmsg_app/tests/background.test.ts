@@ -40,7 +40,7 @@ it('dispatches exact authorized ciphertext while locked, reconciles a lost respo
       tombstone: false,
       restore: false
     }
-  const sign = (bytes: Uint8Array) => engine.contentSign(bytes)
+  const sign = (bytes: Uint8Array) => engine.deviceSign(bytes)
   const signed = await signCloudCommand(context, 'dmsg/vault/revision/v1', payload, sign)
   const task: CipherDispatch = {
     id: context.requestId,

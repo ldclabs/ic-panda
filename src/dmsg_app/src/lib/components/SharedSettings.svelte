@@ -1,8 +1,7 @@
 <script lang="ts">
   import { session, downloadBlob } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
   import { CloudClient } from '../services/relay'
   import {
     SharedMigrationClient,
@@ -38,18 +37,7 @@
         throw new Error(
           '先配置已审核的冻结 cutover，并连接正式工作区。个人档案迁移可独立继续。'
         )
-      const identity = await login(session.crypto, session.meta.transportPublic, origin),
-        api = await services(identity)
-      const account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
-      if ((await account.connectedAccount()) !== session.meta.account.id)
-        throw new Error('登录账户与当前工作区不一致。')
+      const { account } = await connectAccount(origin)
       client = new SharedMigrationClient(
         account,
         new CloudClient({ origin: config.relayOrigin, environment: config.environment }),

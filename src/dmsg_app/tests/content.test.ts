@@ -2,7 +2,7 @@ import { beforeEach, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { xidText } from '../src/lib/protocol/identity'
-import { b64, canonical, hash, unb64 } from '../src/lib/protocol/codec'
+import { b64, hash, unb64 } from '../src/lib/protocol/codec'
 import { MAX_CIPHER_CHUNK } from '../src/lib/config'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import type { StoredUploadPlan } from '../src/lib/protocol/content'
@@ -105,14 +105,7 @@ it('aborts the whole import transaction when a later chunk conflicts', async () 
     digest: hash(new Uint8Array([2]))
   }
   await expect(
-    db.contentReceive(
-      [],
-      [fresh, { ...fresh, id: 'already' }],
-      [],
-      1,
-      '{}',
-      (engine as any).lease
-    )
+    db.cacheChunks([fresh, { ...fresh, id: 'already' }], (engine as any).lease)
   ).rejects.toThrow('IDEMPOTENCY_CONFLICT')
   expect(await db.db.get('chunks', fresh.id)).toBeUndefined()
   expect(await db.db.get('chunks', original.id)).toEqual(original)

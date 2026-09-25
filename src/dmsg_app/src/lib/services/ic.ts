@@ -103,37 +103,6 @@ export async function services(identity?: Identity) {
     payment: create<PaymentService>(paymentIDL, config.canisters.payment)
   }
 }
-export function unwrap<T>(result: { Ok: T } | { Err: unknown }): T {
-  if ('Ok' in result) return result.Ok
-  throw new Error(
-    `ICP 操作未完成：${JSON.stringify(result.Err, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`
-  )
-}
-export async function verifySecurityBatch(
-  batch: CertifiedBatch,
-  agent: HttpAgent,
-  accountId: string,
-  issuer: string
-) {
-  const account = xidBytes(accountId)
-  const { value, certifiedAt, expiresAt } = await certifiedValue(
-    batch,
-    agent,
-    config.canisters.user,
-    account
-  )
-  const current = Date.now()
-  ensure(certifiedAt <= current && current < expiresAt, 'POLICY_STALE')
-  const snapshot = decodeCanonical<Record<string, unknown>>(value)
-  ensure(
-    snapshot.schema === 2 &&
-      snapshot.account_id instanceof Uint8Array &&
-      equal(snapshot.account_id, account) &&
-      snapshot.issuer === issuer,
-    'INTEGRITY_FAILED'
-  )
-  return { snapshot, certifiedAt, expiresAt }
-}
 /** Identity/authorization evidence is promoted only after certificate and
  * artifact binding checks. This says nothing about external TSA trust or the
  * signer's present permissions. Retain the certificate for later auditing. */

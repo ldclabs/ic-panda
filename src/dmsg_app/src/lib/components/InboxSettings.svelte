@@ -1,8 +1,8 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount, connectIdentity } from '../connection'
+  import type { AccountClient } from '../services/account'
   import { CloudClient } from '../services/relay'
   import { InboxClient } from '../services/inbox'
   import { WalletClient } from '../services/wallet'
@@ -33,20 +33,12 @@
     await session.run(async () => {
       if (!session.meta?.account || !config.relayOrigin || !config.canisters.payment)
         throw new Error('请先配置来信与支付服务，并绑定正式账户。')
-      const identity = await login(session.crypto, session.meta.transportPublic, origin),
-        api = await services(identity)
-      account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
+      const connection = await connectAccount(origin)
+      account = connection.account
       client = new InboxClient(
         account,
         new CloudClient({ origin: config.relayOrigin, environment: config.environment }),
-        api.payment!,
+        connection.api.payment!,
         config.canisters.payment,
         session.meta.account.id
       )
@@ -60,13 +52,10 @@
   async function connectWallet() {
     await session.run(async () => {
       if (!account || !session.meta || !ledger) throw new Error('先核对支付服务。')
-      const identity = await login(
-          session.crypto,
-          session.meta.transportPublic,
-          walletOrigin,
-          [config.canisters.payment, ledger]
-        ),
-        api = await services(identity)
+      const { identity, api } = await connectIdentity(walletOrigin, [
+        config.canisters.payment,
+        ledger
+      ])
       wallet = new WalletClient(api.agent, identity.getPrincipal(), session.crypto)
       client = new InboxClient(
         account,

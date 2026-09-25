@@ -1,8 +1,6 @@
 export type ItemKind = 'note' | 'login' | 'api' | 'key' | 'file'
 export type ObjectKind =
   | 'vault'
-  | 'channel'
-  | 'message'
   | 'profile'
   | 'draft'
   | 'request'
@@ -10,7 +8,6 @@ export type ObjectKind =
   | 'migration_part'
   | 'formal_channel'
   | 'formal_control'
-  | 'formal_operation'
   | 'formal_message'
   | 'formal_file'
   | 'commerce'
@@ -58,29 +55,6 @@ export interface EncryptedObject {
 export interface VaultEntry {
   record: EncryptedObject
   item: Item
-}
-export interface Channel {
-  name: string
-  type: 'direct' | 'collaboration' | 'distribution'
-  members: {
-    subject: string
-    role: 'owner' | 'admin' | 'publisher' | 'member'
-    accepted: boolean
-  }[]
-  epoch: number
-  state: 'draft' | 'active' | 'rotation_required' | 'archived'
-  controlHead: string | null
-  key: string
-  createdAt: number
-}
-export interface Message {
-  channelId: string
-  text: string
-  createdAt: number
-  replyTo?: string
-  epoch: number
-  state: 'draft' | 'queued' | 'stored' | 'received' | 'read'
-  signature?: string
 }
 export interface Profile {
   avatarFile?: string
@@ -176,8 +150,6 @@ export interface RecoveryArchive {
 export interface ViewData {
   meta: WorkspaceMeta | null
   entries: VaultEntry[]
-  channels: { record: EncryptedObject; channel: Channel }[]
-  messages: { record: EncryptedObject; message: Message }[]
   profile: Profile | null
   outbox: Pick<OutboxJob, 'id' | 'state' | 'error'>[]
   conflicts: VaultEntry[]

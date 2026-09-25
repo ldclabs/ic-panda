@@ -1,7 +1,7 @@
 import { canonical, hash, unb64, unhex, equal } from '../protocol/codec'
-import { readCloudCommand, verifyCloudCommand, verifyCloudHttp } from '../protocol/cloud'
+import { verifyCloudCommand, verifyCloudHttp } from '../protocol/cloud'
 import { ensure } from '../errors'
-import type { WorkspaceDB } from '../db'
+import { prefixRange, type WorkspaceDB } from '../db'
 export interface CipherDispatch {
   id: string
   format: 'dmsg-cipher-dispatch/1'
@@ -20,19 +20,24 @@ export interface CipherDispatch {
   result?: any
   error?: string
 }
+const active = (job: CipherDispatch) => ['queued', 'sending', 'unknown'].includes(job.state)
+async function cipherDispatches(db: WorkspaceDB): Promise<CipherDispatch[]> {
+  return (await db.db.getAll('meta', prefixRange('dispatch:'))).map((row) => row.value)
+}
+/** Finished dispatches are reconciled by the unlocked page, which then removes them. */
+export async function settledDispatches(db: WorkspaceDB) {
+  return (await cipherDispatches(db)).filter((job) => !active(job))
+}
 export async function flushCipherDispatches(
   db: WorkspaceDB,
   origin: string,
   now = Date.now()
 ) {
+  const pending = (await cipherDispatches(db)).filter(active).slice(0, 25)
+  if (!pending.length) return
   const meta = await db.meta()
   ensure(meta?.account && origin, 'AUTH_REQUIRED')
-  const pending = (await db.db.getAll('meta'))
-    .filter((row) => row.id.startsWith('dispatch:'))
-    .map((row) => row.value as CipherDispatch)
-  for (const job of pending
-    .filter((v) => ['queued', 'sending', 'unknown'].includes(v.state))
-    .slice(0, 25)) {
+  for (const job of pending) {
     const save = () => db.db.put('meta', { id: `dispatch:${job.id}`, value: job })
     if (job.deadline <= now) {
       job.state = 'paused'
@@ -49,8 +54,7 @@ export async function flushCipherDispatches(
         'FORBIDDEN'
       )
       const publicKey = unb64(meta.signingPublic),
-        signed = { cose_sign1: job.command },
-        parsed = readCloudCommand(signed)
+        signed = { cose_sign1: job.command }
       const body = verifyCloudCommand(
         signed,
         { issuer: meta.account.issuer, deviceId: meta.deviceId },

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount, connectIdentity } from '../connection'
+  import type { AccountClient } from '../services/account'
   import { HandleClient } from '../services/handle'
   import { xidText } from '../protocol/identity'
   let origin = $state(config.derivationOrigins[0]),
@@ -16,27 +16,14 @@
   async function connect(old: boolean) {
     await session.run(async () => {
       if (!session.meta?.account) throw new Error('请先建立正式工作区。')
-      const identity = await login(
-          session.crypto,
-          session.meta.transportPublic,
-          old ? oldOrigin : origin
-        ),
-        api = await services(identity)
       if (!old) {
-        account = new AccountClient(
-          api.user!,
-          api.agent,
-          identity.getPrincipal(),
-          session.crypto,
-          session.meta,
-          config.canisters.user
-        )
-        if ((await account.connectedAccount()) !== session.meta.account.id)
-          throw new Error('登录账户与目标工作区不一致。')
+        account = (await connectAccount(origin)).account
         client = null
         preview = null
         status = '已核对目标新账户，请另行登录旧名称权利人。'
       } else {
+        // The legacy owner is a different person or II account; always prompt.
+        const { identity, api } = await connectIdentity(oldOrigin)
         if (!account || !api.handle) throw new Error('先连接目标新账户与名称注册表。')
         client = new HandleClient(
           account,

@@ -8,7 +8,7 @@ import {
   type CloudSigned,
   type CloudAction
 } from '../protocol/cloud'
-import { canonical, decodeCanonical, digest, equal, hex, unb64, utf8 } from '../protocol/codec'
+import { decodeCanonical, digest, equal, hex, unb64 } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
 import { ensure } from '../errors'
 

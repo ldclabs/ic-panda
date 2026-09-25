@@ -15,6 +15,7 @@ import type {
 import type { _SERVICE as CoseService, KeySelector } from '../canisters/generated/cose'
 import { digest, equal, hex } from '../protocol/codec'
 import { DmsgError, ensure } from '../errors'
+import { controlResult } from './account'
 import {
   statementBytes,
   statementPurpose,
@@ -26,13 +27,6 @@ export type { Algorithm } from '../protocol/statements'
 
 export class ExecutionRejected extends DmsgError {}
 
-export type PublicKeySelection =
-  | {
-      kind: 'signing'
-      purpose: 'statement' | 'file_attestation' | 'app_action'
-      algorithm?: Algorithm
-    }
-  | { kind: 'content_root'; generation: bigint }
 export interface SigningKeyReference {
   algorithm: Algorithm
   kid: Uint8Array
@@ -70,12 +64,7 @@ function cloneOperation(operation: Operation): Operation {
 }
 type UserExecution = Pick<
   UserService,
-  | 'sign'
-  | 'sign_app_action'
-  | 'derive_root'
-  | 'get_execution'
-  | 'reconcile_execution'
-  | 'get_execution_receipt'
+  'sign' | 'sign_app_action' | 'derive_root' | 'get_execution' | 'reconcile_execution'
 >
 export type DeviceSigner = (approvalDigest: Uint8Array) => Promise<Uint8Array>
 
@@ -237,16 +226,6 @@ function executionKind(operation: Operation): unknown {
     }
   }
 }
-function unwrap<T>(result: { Ok: T } | { Err: unknown }): T {
-  if ('Ok' in result) return result.Ok
-  const error = result.Err
-  const [code, detail] =
-    typeof error === 'object' && error !== null
-      ? (Object.entries(error)[0] ?? ['UNAVAILABLE', null])
-      : ['UNAVAILABLE', error]
-  throw new DmsgError(code, typeof detail === 'string' ? `${code}: ${detail}` : code)
-}
-
 /** A snapshot of exactly what will be approved. Returned views are copies.
  * Persist the signed operation (and the root transport-secret reference) with
  * `onApproved` before dispatch when integrating an encrypted outbox.
@@ -316,13 +295,13 @@ export class PreparedExecution {
     }
     if ('Err' in response) {
       try {
-        unwrap(response)
+        controlResult(response)
       } catch (error) {
         if (error instanceof DmsgError) throw new ExecutionRejected(error.code, error.message)
         throw error
       }
     }
-    const result = unwrap(response)
+    const result = controlResult(response)
     ensure(
       equal(
         Uint8Array.from(result.request_id),
@@ -435,43 +414,42 @@ export function prepareRootDerivation(
   )
 }
 
-export function coseClient(user: UserExecution, cose: Pick<CoseService, 'public_key'>) {
-  return {
-    publicKey: async (accountId: Uint8Array, selection: PublicKeySelection) => {
-      let key: KeySelector
-      if (selection.kind === 'signing') {
-        const algorithm = selection.algorithm ?? 'Ed25519'
-        ensure(['Ed25519', 'EcdsaSecp256k1'].includes(algorithm), 'UNSUPPORTED_PROTOCOL')
-        ensure(
-          ['statement', 'file_attestation', 'app_action'].includes(selection.purpose),
-          'UNSUPPORTED_PROTOCOL'
-        )
-        key = {
-          Signing: {
-            purpose:
-              selection.purpose === 'app_action'
-                ? { AppAction: null }
-                : selection.purpose === 'statement'
-                  ? { Statement: null }
-                  : { FileAttestation: null },
-            algorithm: { [algorithm]: null } as SigningAlgorithm
-          }
-        }
-      } else {
-        ensure(
-          selection.kind === 'content_root' && uint64(selection.generation) > 0n,
-          'INVALID_INPUT'
-        )
-        key = { ContentRoot: { generation: selection.generation } }
-      }
-      return unwrap(await cose.public_key(fixed(accountId, 12), key))
-    },
-    getExecution: async (accountId: Uint8Array, requestId: Uint8Array) =>
-      unwrap(await user.get_execution(fixed(accountId, 12), fixed(requestId, 32))),
-    getExecutionReceipt: async (accountId: Uint8Array, requestId: Uint8Array) =>
-      unwrap(await user.get_execution_receipt(fixed(accountId, 12), fixed(requestId, 32))),
-    // Explicit recovery of the same ID; never generates another approval.
-    reconcileExecution: async (accountId: Uint8Array, requestId: Uint8Array) =>
-      unwrap(await user.reconcile_execution(fixed(accountId, 12), fixed(requestId, 32)))
+export async function signingKey(
+  cose: Pick<CoseService, 'public_key'>,
+  accountId: Uint8Array,
+  purpose: 'statement' | 'file_attestation' | 'app_action',
+  algorithm: Algorithm = 'Ed25519'
+) {
+  ensure(['Ed25519', 'EcdsaSecp256k1'].includes(algorithm), 'UNSUPPORTED_PROTOCOL')
+  const key: KeySelector = {
+    Signing: {
+      purpose:
+        purpose === 'app_action'
+          ? { AppAction: null }
+          : purpose === 'statement'
+            ? { Statement: null }
+            : { FileAttestation: null },
+      algorithm: { [algorithm]: null } as SigningAlgorithm
+    }
   }
+  return controlResult(await cose.public_key(fixed(accountId, 12), key))
+}
+/** Reads the stored result of an approved execution, reconciling one still in
+ * flight. Null means no execution is stored under this request ID. */
+export async function recordedExecution(
+  user: Pick<UserExecution, 'get_execution' | 'reconcile_execution'>,
+  accountId: Uint8Array,
+  requestId: Uint8Array
+): Promise<ExecutionResult | null> {
+  const account = fixed(accountId, 12),
+    request = fixed(requestId, 32),
+    response = await user.get_execution(account, request)
+  if ('Err' in response) {
+    ensure('ResultExpired' in response.Err, 'EXECUTION_UNKNOWN')
+    return null
+  }
+  const outcome = response.Ok.outcome
+  return 'Completed' in outcome || 'Failed' in outcome || 'ResultExpired' in outcome
+    ? response.Ok
+    : controlResult(await user.reconcile_execution(account, request))
 }

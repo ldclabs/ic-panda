@@ -1,12 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { session, dateLabel } from '../session.svelte'
-  import { listRequests, rejectRequest } from '../requests'
+  import { getRequest, rejectRequest } from '../requests'
   import type { PendingRequest } from '../protocol/requests'
   import type { AuthenticationPayload } from '../bridge-requests'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
   import { AuthenticationClient } from '../services/authentication'
   let record = $state<PendingRequest | null>(null)
   let payload = $state<AuthenticationPayload | null>(null)
@@ -19,7 +18,7 @@
   const id = new URLSearchParams(location.search).get('id') ?? ''
   onMount(() => {
     void session.run(async () => {
-      record = (await listRequests()).find((r) => r.id === id) ?? null
+      record = id ? await getRequest(id) : null
       if (!record) throw new Error('请求不存在。')
       payload = (await session.crypto.call(
         'readRequest',
@@ -58,18 +57,7 @@
     await session.run(async () => {
       if (!record || !payload || !session.meta?.account)
         throw new Error('请先解锁已注册的 dMsg 账号。')
-      const identity = await login(session.crypto, session.meta.transportPublic, derivation)
-      const api = await services(identity)
-      client = new AuthenticationClient(
-        new AccountClient(
-          api.user!,
-          api.agent,
-          identity.getPrincipal(),
-          session.crypto,
-          session.meta,
-          config.canisters.user
-        )
-      )
+      client = new AuthenticationClient((await connectAccount(derivation)).account)
       journal = await client.journal(id)
       if (!journal) review = await client.prepare(record, payload)
       connected = true

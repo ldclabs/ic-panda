@@ -1,8 +1,7 @@
 <script lang="ts">
   import { session, downloadBlob, formatBytes } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
   import { ContentClient } from '../services/content'
   import { CloudClient } from '../services/relay'
   import Modal from './Modal.svelte'
@@ -27,18 +26,7 @@
     await session.run(async () => {
       if (!session.meta?.account || !config.relayOrigin)
         throw new Error('先在设备与认证完成正式工作区绑定，并配置云端服务。')
-      const identity = await login(session.crypto, session.meta.transportPublic, derivation)
-      const api = await services(identity)
-      const account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
-      if ((await account.connectedAccount()) !== session.meta.account.id)
-        throw new Error('登录账户与当前工作区不一致。')
+      const { account } = await connectAccount(derivation)
       const connected = new ContentClient(
         account,
         new CloudClient({ origin: config.relayOrigin, environment: config.environment }),
@@ -66,9 +54,9 @@
   async function sync(write: boolean) {
     await session.run(async () => {
       if (!client) throw new Error('请先连接账户。')
-      const pulled = await client.pull()
+      let pulled = await client.pull()
       const sent = write ? await client.pushPending() : 0
-      if (write) await client.pull()
+      if (sent) pulled = await client.pull()
       await session.refresh()
       const quota = await client.quota()
       usage = { committed: quota.committed, reserved: quota.reserved }

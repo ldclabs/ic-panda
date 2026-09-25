@@ -9,8 +9,8 @@
   } from '@dmsg/sdk'
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount as accountConnection, connectIdentity } from '../connection'
+  import type { AccountClient } from '../services/account'
   import { CommerceClient, type CheckoutJob } from '../services/commerce'
   import { WalletClient } from '../services/wallet'
   import { b64, hex } from '../protocol/codec'
@@ -62,22 +62,8 @@
   async function connectAccount() {
     await session.run(async () => {
       if (!session.meta?.account) throw new Error('请先解锁已注册的 dMsg 账户。')
-      const identity = await login(
-          session.crypto,
-          session.meta.transportPublic,
-          accountOrigin
-        ),
-        api = await services(identity)
-      account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
-      if ((await account.connectedAccount()) !== session.meta.account.id)
-        throw new Error('账户不一致。')
+      const { identity, api, account: connected } = await accountConnection(accountOrigin)
+      account = connected
       const preview = new CommerceClient(
         account,
         api.commerce!,
@@ -97,17 +83,11 @@
   async function connectWallet() {
     await session.run(async () => {
       if (!account || !session.meta) throw new Error('请先连接 dMsg 账户。')
-      const identity = await login(
-          session.crypto,
-          session.meta.transportPublic,
-          walletOrigin,
-          [
-            config.canisters.commerce,
-            config.canisters.membership,
-            ...assets.map((v) => Principal.fromUint8Array(v.policy.ledger).toText())
-          ]
-        ),
-        api = await services(identity)
+      const { identity, api } = await connectIdentity(walletOrigin, [
+        config.canisters.commerce,
+        config.canisters.membership,
+        ...assets.map((v) => Principal.fromUint8Array(v.policy.ledger).toText())
+      ])
       client = new CommerceClient(
         account,
         api.commerce!,
@@ -251,8 +231,7 @@
   <button
     class="secondary"
     disabled={!client || session.busy || (!!job && job.stage !== 'review')}
-    onclick={quote}
-    >获取并保存精确报价</button
+    onclick={quote}>获取并保存精确报价</button
   >
   {#if jobs.length}<label
       >原操作<select

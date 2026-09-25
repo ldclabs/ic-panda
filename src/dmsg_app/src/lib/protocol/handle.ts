@@ -18,12 +18,7 @@ export function canonicalHandle(value: string) {
   )
   return name
 }
-export const reservationValue = (value: LegacyReservation) => candidValue(entries._type, value)
-export const progressValue = (value: unknown) =>
-  candidValue(
-    service._fields.find(([name]) => name === 'snapshot_progress')![1].retTypes[0]!,
-    value
-  )
+const reservationValue = (value: LegacyReservation) => candidValue(entries._type, value)
 export const legacyEntryDigest = (previous: Uint8Array, value: LegacyReservation) =>
   digest('dmsg/legacy-entry/v1', [previous, reservationValue(value)])
 export const legacyClaimDigest = (

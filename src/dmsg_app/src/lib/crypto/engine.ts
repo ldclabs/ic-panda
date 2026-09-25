@@ -25,7 +25,9 @@ import {
   registerWorkspace,
   removeWorkspaceDatabase,
   WorkspaceDB,
-  objectHead
+  objectHead,
+  prefixRange,
+  putObject
 } from '../db'
 import { ensure } from '../errors'
 import { xidBytes } from '../protocol/identity'
@@ -39,14 +41,12 @@ import {
   type RootMaterial
 } from './root'
 import type {
-  Channel,
   Chunk,
   EncryptedObject,
   FileManifest,
   Item,
   Lease,
   LocalEnvelope,
-  Message,
   ObjectKind,
   Profile,
   RecoveryArchive,
@@ -106,6 +106,7 @@ interface FilePlan {
   manifest: FileManifest
   plainDigests: string[]
 }
+type ArchiveContent = Omit<RecoveryArchive, 'manifestDigest' | 'authentication'>
 export type Progress = { stage: string; completed: number; total: number }
 export class CryptoEngine {
   private db: WorkspaceDB | null = null
@@ -115,6 +116,7 @@ export class CryptoEngine {
   private meta: WorkspaceMeta | null = null
   private documentId: string | undefined
   private legacyPaused = false
+  private content: ContentEngine | null = null
   constructor(
     private progress: (value: Progress) => void = () => {},
     private owner = id()
@@ -194,6 +196,9 @@ export class CryptoEngine {
   }
   async channelList() {
     return this.channelVault().list()
+  }
+  async channelGet(channel: string) {
+    return this.channelVault().get(channel)
   }
   async channelAdvance(...args: Parameters<ChannelVault['advance']>) {
     return this.channelVault().advance(...args)
@@ -278,7 +283,7 @@ export class CryptoEngine {
     return this.legacyVault().compareFrozen(key, new Uint8Array(await file.arrayBuffer()), {
       rootKey: unhex(IC_ROOT_KEY),
       channels: config.legacy.channels,
-      buckets: ['532er-faaaa-aaaaj-qncpa-cai', 'sb6zj-3aaaa-aaaaj-qndla-cai'],
+      buckets: config.legacy.buckets,
       cutover: unhex(config.legacy.cutover)
     })
   }
@@ -368,12 +373,12 @@ export class CryptoEngine {
     return this.channelVault().messages(channel)
   }
   private contentEngine() {
-    return new ContentEngine({
+    return (this.content ??= new ContentEngine({
       ready: () => this.ready(),
       decode: <T>(record: EncryptedObject) => this.decode<T>(record),
       verifyFile: (record) => this.verifyFile(record, undefined, undefined, false),
       tick: () => this.tick()
-    })
+    }))
   }
   async contentPrepare(key: string) {
     return this.contentEngine().prepare(key)
@@ -500,10 +505,12 @@ export class CryptoEngine {
     )
     const { db, meta } = await this.ready(),
       objectId = hash(canonical(['dmsg/commerce-journal/1', meta.subjectId, key]))
-    const record = await db.getHead(objectId, 'commerce')
-    if (value === undefined)
-      return record ? (await this.decode<{ key: string; value: string }>(record)).value : null
-    await this.write('commerce', { key, value }, objectId, record?.revision ?? null)
+    const record = await db.getHead(objectId, 'commerce'),
+      saved = record ? (await this.decode<{ key: string; value: string }>(record)).value : null
+    if (value === undefined) return saved
+    // Every revision is synchronized; an unchanged journal is not a new version.
+    if (saved !== value)
+      await this.write('commerce', { key, value }, objectId, record?.revision ?? null)
     return value
   }
   async commerceJournals() {
@@ -634,7 +641,7 @@ export class CryptoEngine {
     password: string,
     meta: WorkspaceMeta,
     bundle: Bundle,
-    archive?: RecoveryArchive,
+    archive?: Pick<RecoveryArchive, 'meta' | 'objects' | 'synced' | 'chunks'>,
     pendingRecoveryCode?: Uint8Array,
     expectedActive?: string,
     channels = new Map<string, string>()
@@ -692,7 +699,7 @@ export class CryptoEngine {
         // parent links. Never choose a head from attacker-controlled timestamps.
         const synced = new Set(archive.synced)
         for (const record of archive.objects) {
-          await tx.objectStore('objects').put(record)
+          await putObject(tx, record)
           if (record.kind !== 'draft')
             await tx.objectStore('outbox').put({
               id: record.revision,
@@ -794,6 +801,7 @@ export class CryptoEngine {
     this.localKey = null
     this.bundle = null
     this.meta = null
+    this.content = null
     const db = this.db,
       lease = this.lease
     this.db = null
@@ -1038,16 +1046,10 @@ export class CryptoEngine {
   }
   async view(): Promise<ViewData> {
     const { db, meta, localKey } = await this.ready(),
-      records = (
-        await Promise.all(
-          (['vault', 'channel', 'message', 'profile'] as const).map((kind) => db.heads(kind))
-        )
-      ).flat()
+      records = [...(await db.heads('vault')), ...(await db.heads('profile'))]
     const data: ViewData = {
       meta,
       entries: [],
-      channels: [],
-      messages: [],
       profile: null,
       outbox: await db.outboxSummary(),
       conflicts: [],
@@ -1061,18 +1063,10 @@ export class CryptoEngine {
     for (let index = 0; index < records.length; index++) {
       const record = records[index]
       if (record.kind === 'vault') data.entries.push(await decodeItem(record))
-      else if (record.kind === 'channel' && !record.tombstone) {
-        const channel = await this.decode<Channel>(record)
-        channel.key = ''
-        data.channels.push({ record, channel })
-      } else if (record.kind === 'message' && !record.tombstone)
-        data.messages.push({ record, message: await this.decode<Message>(record) })
-      else if (record.kind === 'profile') data.profile = await this.decode<Profile>(record)
+      else data.profile = await this.decode<Profile>(record)
       if ((index + 1) % 32 === 0) await this.tick()
     }
-    const conflicts = (
-      (await db.db.getAllFromIndex('objects', 'kind', 'vault')) as EncryptedObject[]
-    ).filter((x) => x.kind === 'vault' && x.conflict)
+    const conflicts = (await db.conflicts()).filter((x) => x.kind === 'vault')
     const resolved = new Set(
       data.entries.flatMap((entry) => entry.item.resolvedConflicts ?? [])
     )
@@ -1099,89 +1093,6 @@ export class CryptoEngine {
     }
     await this.ready()
     return data
-  }
-  async createChannel(input: { name: string; type: Channel['type']; recipient: string }) {
-    const { meta } = await this.ready()
-    ensure(
-      ['direct', 'collaboration', 'distribution'].includes(input.type) &&
-        input.name.trim().length > 0 &&
-        input.name.length <= 100,
-      'INVALID_INPUT'
-    )
-    ensure(
-      !input.recipient || /^[0-9a-f]{64}$/.test(input.recipient),
-      'INVALID_INPUT',
-      '请输入 64 位稳定主体 ID。'
-    )
-    const channel: Channel = {
-      name: input.name.trim(),
-      type: input.type,
-      members: [
-        { subject: meta.subjectId, role: 'owner', accepted: true },
-        ...(input.recipient && input.recipient !== meta.subjectId
-          ? [{ subject: input.recipient, role: 'member' as const, accepted: false }]
-          : [])
-      ],
-      epoch: 0,
-      state: 'draft',
-      controlHead: null,
-      key: b64(random()),
-      createdAt: Date.now()
-    }
-    return this.write('channel', channel)
-  }
-  async saveMessage(input: { channelId: string; text: string }) {
-    const { db, bundle } = await this.ready()
-    ensure(
-      input.text.trim().length > 0 && utf8(input.text).length <= 24000,
-      'QUOTA_EXCEEDED',
-      '消息应小于 24 KiB。'
-    )
-    const record = await db.getHead(input.channelId, 'channel')
-    ensure(record, 'NOT_FOUND')
-    const channel = await this.decode<Channel>(record)
-    ensure(channel.state === 'draft', 'POLICY_STALE', '需要刷新频道授权与 epoch 后才能发布。')
-    const message: Message = {
-      channelId: input.channelId,
-      text: input.text,
-      createdAt: Date.now(),
-      epoch: channel.epoch,
-      state: 'draft'
-    }
-    message.signature = b64(
-      ed25519.sign(digest('dmsg/local-message/1', message), unb64(bundle.signing))
-    )
-    return this.write('message', message)
-  }
-  async saveDraft(input: { channelId: string; text: string }) {
-    const { db, localKey, lease } = await this.ready()
-    ensure(
-      /^[0-9a-f]{64}$/.test(input.channelId) && utf8(input.text).length <= 24000,
-      'INVALID_INPUT'
-    )
-    const key = `composer:${input.channelId}`
-    const ciphertext = await seal(
-      derive(localKey, ['dmsg/local-private/1']),
-      utf8(input.text),
-      ['dmsg/draft/1', key, db.name]
-    )
-    await this.ready()
-    await db.guardedPut('local_private', { id: key, ciphertext }, lease)
-  }
-  async getDraft(channelId: string) {
-    const { db, localKey } = await this.ready(),
-      key = `composer:${channelId}`,
-      record = await db.db.get('local_private', key)
-    if (!record) return ''
-    const text = new TextDecoder().decode(
-      await open(derive(localKey, ['dmsg/local-private/1']), record.ciphertext, [
-        'dmsg/draft/1',
-        key,
-        db.name
-      ])
-    )
-    await this.ready()
-    return text
   }
   async saveProfile(profile: Profile) {
     const clean = z
@@ -1643,36 +1554,28 @@ export class CryptoEngine {
   private async restoreAuxiliary() {
     const { db, localKey, lease } = await this.ready(),
       files = new Map<string, FilePlan>()
-    for (const record of (await db.db.getAll('objects')) as EncryptedObject[])
-      if (record.kind === 'draft') {
-        const draft = await this.decode<{
-          format?: string
-          source: string
-          text: string
-          plan?: FilePlan
-        }>(record)
-        if (
-          draft.source?.startsWith('composer:') &&
-          !(await db.db.get('local_private', draft.source))
+    for (const record of (await db.db.getAllFromIndex(
+      'objects',
+      'kind',
+      'draft'
+    )) as EncryptedObject[]) {
+      const draft = await this.decode<{ format?: string; plan?: FilePlan }>(record)
+      if (draft.format !== 'dmsg-file-import/1' || !draft.plan) continue
+      const plan = draft.plan,
+        previous = files.get(plan.manifest.version)
+      if (previous)
+        ensure(
+          previous.manifest.key === plan.manifest.key &&
+            previous.manifest.id === plan.manifest.id &&
+            previous.manifest.size === plan.manifest.size &&
+            previous.plainDigests
+              .slice(0, Math.min(previous.plainDigests.length, plan.plainDigests.length))
+              .every((d, i) => d === plan.plainDigests[i]),
+          'INTEGRITY_FAILED'
         )
-          await this.saveDraft({ channelId: draft.source.slice(9), text: draft.text })
-        if (draft.format === 'dmsg-file-import/1' && draft.plan) {
-          const plan = draft.plan,
-            previous = files.get(plan.manifest.version)
-          if (previous)
-            ensure(
-              previous.manifest.key === plan.manifest.key &&
-                previous.manifest.id === plan.manifest.id &&
-                previous.manifest.size === plan.manifest.size &&
-                previous.plainDigests
-                  .slice(0, Math.min(previous.plainDigests.length, plan.plainDigests.length))
-                  .every((d, i) => d === plan.plainDigests[i]),
-              'INTEGRITY_FAILED'
-            )
-          if (!previous || previous.manifest.chunks.length < plan.manifest.chunks.length)
-            files.set(plan.manifest.version, plan)
-        }
-      }
+      if (!previous || previous.manifest.chunks.length < plan.manifest.chunks.length)
+        files.set(plan.manifest.version, plan)
+    }
     for (const [version, plan] of files) {
       if (
         (await db.db.get('local_private', `file-job:${version}`)) ||
@@ -1695,13 +1598,13 @@ export class CryptoEngine {
       )
     }
   }
-  async exportBackup(password: string) {
-    await this.reauthenticate(password)
-    const { db, meta, bundle, localKey, lease } = await this.ready()
+  /** Verifies every local object and file needed by a backup. Records nothing. */
+  private async buildArchive(): Promise<ArchiveContent> {
+    const { db, meta, bundle, localKey } = await this.ready()
     await this.tick()
     const tx = db.db.transaction(['objects', 'local_private', 'migration_jobs', 'outbox'])
     const objects = (await tx.objectStore('objects').getAll()) as EncryptedObject[],
-      drafts = await tx.objectStore('local_private').getAll(),
+      fileJobs = await tx.objectStore('local_private').getAll(prefixRange('file-job:')),
       jobs = await tx.objectStore('migration_jobs').getAll(),
       outbox = new Map(
         (await tx.objectStore('outbox').getAll()).map((job) => [job.objectKey, job])
@@ -1709,63 +1612,8 @@ export class CryptoEngine {
     await tx.done
     await this.tick()
     const missing = jobs.filter((j) => j.stage !== 'complete').map((j) => `unfinished:${j.id}`)
-    const vaultFiles = new Set<string>()
-    for (const record of objects.filter((o) => o.kind === 'vault')) {
-      const item = await this.decode<Item>(record)
-      if (item.file) vaultFiles.add(`${item.file.id}:${item.file.version}`)
-    }
-    for (const record of objects.filter((o) => o.kind === 'formal_message')) {
-      const message = await this.decode<any>(record)
-      if (message.file && !vaultFiles.has(`${message.file.file_id}:${message.file.version}`))
-        missing.push(`channel-file:${message.channel}:${message.file.upload_id}`)
-    }
-    // Composer drafts use LocalDataKey on disk. Rewrap their plaintext into an
-    // archive-only content object so the backup never contains device secrets.
-    const composerDrafts = drafts.filter((x) => x.id.startsWith('composer:'))
-    for (let index = 0; index < composerDrafts.length; index++) {
-      const draft = composerDrafts[index]
-      const text = await open(derive(localKey, ['dmsg/local-private/1']), draft.ciphertext, [
-        'dmsg/draft/1',
-        draft.id,
-        db.name
-      ])
-      if (!text.length) {
-        text.fill(0)
-        continue
-      }
-      const record: EncryptedObject = {
-        key: '',
-        id: id(),
-        revision: id(),
-        parent: null,
-        subjectId: meta.subjectId,
-        deviceId: meta.deviceId,
-        generation: meta.rootGeneration,
-        kind: 'draft',
-        ciphertext: '',
-        keyEnvelope: '',
-        digest: '',
-        tombstone: false,
-        conflict: false,
-        createdAt: Date.now()
-      }
-      record.key = `${record.id}:${record.revision}`
-      const key = random()
-      record.ciphertext = await seal(
-        key,
-        canonical({ source: draft.id, text: new TextDecoder().decode(text) }),
-        this.aad(record)
-      )
-      record.keyEnvelope = await seal(unb64(bundle.root), key, this.wrapContext(record))
-      record.digest = hash(
-        canonical([this.aad(record), record.ciphertext, record.keyEnvelope])
-      )
-      objects.push(record)
-      text.fill(0)
-      key.fill(0)
-      if ((index + 1) % 16 === 0) await this.tick()
-    }
     const required = new Set<string>()
+    // Restored import drafts are superseded once their job resumes or completes.
     for (let index = objects.length - 1; index >= 0; index--)
       if (objects[index].kind === 'draft') {
         const draft = await this.decode<{ format?: string; plan?: FilePlan }>(objects[index])
@@ -1778,7 +1626,7 @@ export class CryptoEngine {
         )
           objects.splice(index, 1)
       }
-    for (const row of drafts.filter((d) => d.id.startsWith('file-job:'))) {
+    for (const row of fileJobs) {
       const version = row.id.slice('file-job:'.length),
         plan = decodeCanonical<FilePlan>(
           await open(localKey, row.ciphertext, ['dmsg/file-job/1', db.name, version])
@@ -1798,11 +1646,13 @@ export class CryptoEngine {
     for (const upload of meta.cloudSnapshot?.uploads ?? [])
       for (const ref of upload.chunkIds) required.add(ref)
     const verifiedFiles = new Set<string>(),
+      vaultFiles = new Set<string>(),
       vaultObjects = objects.filter((o) => o.kind === 'vault' || o.kind === 'migration_part')
     for (let index = 0; index < vaultObjects.length; index++) {
       const record = vaultObjects[index]
       const item = await this.decode<Item>(record)
       if (item.file) {
+        if (record.kind === 'vault') vaultFiles.add(`${item.file.id}:${item.file.version}`)
         const fileVersion = hash(canonical(item.file))
         if (!verifiedFiles.has(fileVersion)) {
           await this.verifyFile(record, undefined, undefined, false)
@@ -1811,6 +1661,11 @@ export class CryptoEngine {
         for (const chunk of item.file.chunks) required.add(chunk.id)
       }
       if ((index + 1) % 16 === 0) await this.tick()
+    }
+    for (const record of objects.filter((o) => o.kind === 'formal_message')) {
+      const message = await this.decode<any>(record)
+      if (message.file && !vaultFiles.has(`${message.file.file_id}:${message.file.version}`))
+        missing.push(`channel-file:${message.channel}:${message.file.upload_id}`)
     }
     const chunks: Chunk[] = []
     ensure(
@@ -1840,11 +1695,12 @@ export class CryptoEngine {
       (r) => !['rejected', 'cancelled', 'expired'].includes(r.state)
     ))
       missing.push(`request:${request.id}`)
-    const content = {
-      format: 'dmsg-backup/1' as const,
+    await this.tick()
+    return {
+      format: 'dmsg-backup/1',
       meta: { ...meta },
       createdAt: Date.now(),
-      scope: missing.length ? ('partial' as const) : ('local-inclusive' as const),
+      scope: missing.length ? 'partial' : 'local-inclusive',
       objects,
       synced: objects
         .filter(
@@ -1856,32 +1712,45 @@ export class CryptoEngine {
       chunks,
       missing
     }
-    await this.tick()
-    const manifestDigest = hash(utf8(JSON.stringify(content))),
+  }
+  async exportBackup(password: string) {
+    await this.reauthenticate(password)
+    const content = await this.buildArchive(),
+      { db, meta, bundle, lease } = await this.ready()
+    // Serialize once. The appended fields keep the key order of
+    // {...content, manifestDigest, authentication} that restore re-derives.
+    const body = JSON.stringify(content),
+      manifestDigest = hash(utf8(body)),
       authentication = b64(
         hmac(sha256, derive(unb64(bundle.root), ['dmsg/backup-auth/1']), utf8(manifestDigest))
       )
-    const archive: RecoveryArchive = { ...content, manifestDigest, authentication }
-    const json = JSON.stringify(archive)
+    const blob = new Blob(
+      [
+        body.slice(0, -1),
+        `,"manifestDigest":${JSON.stringify(manifestDigest)}`,
+        `,"authentication":${JSON.stringify(authentication)}}`
+      ],
+      { type: 'application/json' }
+    )
     ensure(
-      utf8(json).length <= MAX_BACKUP_BYTES,
+      blob.size <= MAX_BACKUP_BYTES,
       'QUOTA_EXCEEDED',
       '恢复包超过 256 MiB，上限包含全部编码与封装开销；未生成文件。'
     )
     await this.tick()
     const updated = {
       ...meta,
-      lastBackupAt: archive.createdAt,
-      lastBackupCount: objects.length
+      lastBackupAt: content.createdAt,
+      lastBackupCount: content.objects.length
     }
     await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
     this.meta = updated
     return {
-      blob: new Blob([json], { type: 'application/json' }),
-      name: `dmsg-${new Date(archive.createdAt).toISOString().slice(0, 10)}.dmsg`,
-      count: objects.length,
-      missing,
-      scope: archive.scope
+      blob,
+      name: `dmsg-${new Date(content.createdAt).toISOString().slice(0, 10)}.dmsg`,
+      count: content.objects.length,
+      missing: content.missing,
+      scope: content.scope
     }
   }
   async restore(input: { file: File; code: string; password: string }) {
@@ -2065,18 +1934,8 @@ export class CryptoEngine {
     await db.guardedPut('local_private', { id: `control:${key}`, ciphertext }, lease)
   }
 
+  /** Device signatures over approval digests and domain-separated COSE structures. */
   async deviceSign(message: Uint8Array) {
-    ensure(message instanceof Uint8Array && message.length === 32, 'INVALID_INPUT')
-    const { bundle } = await this.ready()
-    const key = unb64(bundle.signing)
-    try {
-      return ed25519.sign(message, key)
-    } finally {
-      key.fill(0)
-    }
-  }
-
-  async contentSign(message: Uint8Array) {
     ensure(
       message instanceof Uint8Array && message.length > 0 && message.length <= 262144,
       'INVALID_INPUT'
@@ -2254,24 +2113,17 @@ export class CryptoEngine {
         meta.rootGeneration
       ])
     // Verify the entire source, including files, before constructing any target.
-    const backup = await this.exportBackup(input.password)
+    const archive = await this.buildArchive()
     ensure(
-      !backup.missing.length,
+      !archive.missing.length,
       'RECOVERY_INCOMPLETE',
       '请先完成未完成的文件或请求，再转换工作区。'
     )
-    const archive = JSON.parse(await backup.blob.text()) as RecoveryArchive
-    const originalKeys = new Set(
-      ((await source.db.db.getAll('objects')) as EncryptedObject[]).map((o) => o.key)
-    )
-    const composer = (await source.db.db.getAll('local_private')).filter((row) =>
-      row.id.startsWith('composer:')
-    )
+    const originalKeys = new Set(await source.db.db.getAllKeys('objects'))
     meta.account!.sourceDigest = hash(
       canonical([
         archive.objects.filter((o) => originalKeys.has(o.key)).map((o) => [o.key, o.digest]),
-        archive.chunks.map((c) => [c.id, c.digest]),
-        composer.map((row) => [row.id, row.ciphertext])
+        archive.chunks.map((c) => [c.id, c.digest])
       ])
     )
     const remap = (kind: string, value: string) =>
@@ -2293,8 +2145,6 @@ export class CryptoEngine {
       const sourceRevision = syntheticDraft
         ? `${sourceId}:${meta.account!.sourceDigest}`
         : record.revision
-      if (record.kind === 'message')
-        payload.channelId = remap('object', payload.channelId as string)
       if (record.kind === 'vault' && Array.isArray(payload.resolvedConflicts))
         payload.resolvedConflicts = (payload.resolvedConflicts as string[]).map((key) => {
           const [objectId, revision] = key.split(':')
@@ -2318,20 +2168,6 @@ export class CryptoEngine {
           const [objectId, revision] = key.split(':')
           return `${remap('object', objectId)}:${remap('revision', revision)}`
         })
-      if (
-        record.kind === 'draft' &&
-        typeof payload.source === 'string' &&
-        payload.source.startsWith('composer:')
-      )
-        payload.source = `composer:${remap('object', payload.source.slice(9))}`
-      if (record.kind === 'channel') {
-        const channel = payload as unknown as Channel
-        channel.members = channel.members.map((m) => ({
-          ...m,
-          subject: m.subject === source.meta.subjectId ? meta.subjectId : m.subject
-        }))
-        channel.state = 'draft'
-      }
       const target: EncryptedObject = {
         ...record,
         id: remap('object', sourceId),
@@ -2418,13 +2254,12 @@ export class CryptoEngine {
             key.fill(0)
           }
         }
-        const chunks = (await target.db.getAll('chunks')) as Chunk[]
+        const chunks = (await target.db.getAll('chunks')) as Chunk[],
+          expected = new Map(archive.chunks.map((c) => [c.id, c.digest]))
         ensure(
-          chunks.length === archive.chunks.length &&
+          chunks.length === expected.size &&
             chunks.every(
-              (c) =>
-                hash(unb64(c.ciphertext)) === c.digest &&
-                archive.chunks.some((old) => old.id === c.id && old.digest === c.digest)
+              (c) => expected.get(c.id) === c.digest && hash(unb64(c.ciphertext)) === c.digest
             ),
           'INTEGRITY_FAILED'
         )
@@ -2449,11 +2284,6 @@ export class CryptoEngine {
     await source.db.release(source.lease)
     source.db.db.close()
     source.localKey.fill(0)
-    for (const record of records.filter((r) => r.kind === 'draft')) {
-      const draft = await this.decode<{ source: string; text: string }>(record)
-      if (draft.source.startsWith('composer:'))
-        await this.saveDraft({ channelId: draft.source.slice(9), text: draft.text })
-    }
     return meta
   }
 

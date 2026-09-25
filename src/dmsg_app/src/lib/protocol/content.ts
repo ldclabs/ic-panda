@@ -2,8 +2,23 @@ import { z } from 'zod'
 import { b64, canonical, decodeCanonical, equal, hash, unb64 } from './codec'
 import { MAX_CIPHER_CHUNK, MAX_CIPHER_UPLOAD } from '../config'
 import { ensure } from '../errors'
-import type { EncryptedObject, FileManifest } from '../models'
+import type { EncryptedObject, FileManifest, ObjectKind } from '../models'
 import { open, seal } from '../crypto/primitives'
+
+/** Object kinds synchronized as account content revisions. */
+export const CLOUD_KINDS: readonly ObjectKind[] = [
+  'vault',
+  'migration',
+  'migration_part',
+  'profile',
+  'request',
+  'formal_channel',
+  'formal_control',
+  'formal_message',
+  'formal_file',
+  'commerce',
+  'inbox'
+]
 
 const identifier = z.string().regex(/^[0-9a-f]{64}$/)
 const uint = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)

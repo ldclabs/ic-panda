@@ -117,7 +117,7 @@ it('submits a fresh action when inbox archive state toggles back', async () => {
         if (value !== undefined) data.set(key, value)
         return data.get(key) ?? null
       }
-      if (method === 'contentSign') return ed25519.sign(key, seed)
+      if (method === 'deviceSign') return ed25519.sign(key, seed)
       throw Error(method)
     }
   }
@@ -137,7 +137,7 @@ it('submits a fresh action when inbox archive state toggles back', async () => {
     'aaaaa-aa',
     accountId
   )
-  ;(client as any).context = async (requestId = id()) => ({
+  ;(client as any).session.context = async (requestId = id()) => ({
     accountId,
     issuer: `https://dmsg.test/u/${accountId}`,
     deviceId: '01'.repeat(32),
@@ -367,12 +367,12 @@ it('indexes channel tasks locally without exposing channel routing in uploaded r
   expect(await engine.channelPending(first)).toEqual([
     { key: 'send', action: 'dmsg/channel/message/v1', requestId }
   ])
-  expect(decrypt).toHaveBeenCalledTimes(2)
+  expect(decrypt).toHaveBeenCalledTimes(1)
+  // Retry journals stay on this device: no synchronized object or outbox entry.
   const db = await WorkspaceDB.open((await currentWorkspace())!)
-  for (const record of await db.db.getAll('objects')) {
-    expect(record).not.toHaveProperty('channelId')
-    expect(JSON.stringify(record)).not.toContain(first)
-  }
+  expect(await db.db.count('objects')).toBe(0)
+  expect(await db.db.count('outbox')).toBe(0)
+  expect(JSON.stringify(await db.db.getAll('local_private'))).not.toContain(requestId)
   db.db.close()
   await engine.lock()
 })

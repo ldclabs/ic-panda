@@ -1,6 +1,6 @@
 import { IDL } from '@icp-sdk/core/candid'
 import { idlFactory } from '../src/lib/canisters/generated/handle/index.js'
-import { prepareLegacyNames } from '../src/lib/services/legacy-names'
+import { prepareLegacyNames } from './legacy-names'
 import { hex } from '../src/lib/protocol/codec'
 
 /** Offline, unsigned controller call material. Does not connect to any service. */

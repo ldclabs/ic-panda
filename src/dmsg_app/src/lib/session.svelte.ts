@@ -7,8 +7,6 @@ import { errorText } from './errors'
 const empty = (): ViewData => ({
   meta: null,
   entries: [],
-  channels: [],
-  messages: [],
   profile: null,
   outbox: [],
   conflicts: [],
@@ -28,7 +26,6 @@ export class Session {
   private generation = 0
   private touchedAt = Date.now()
   private channel = new BroadcastChannel('dmsg-session')
-  private timer: ReturnType<typeof setInterval> | null = null
   private client = new CryptoClient((progress) => {
     this.progress = progress
   })
@@ -58,7 +55,7 @@ export class Session {
     document.addEventListener('visibilitychange', () => {
       if (this.unlocked && Date.now() - this.touchedAt >= AUTO_LOCK_MS) void this.lock()
     })
-    this.timer = setInterval(() => {
+    setInterval(() => {
       if (!this.unlocked) return
       if (Date.now() - this.touchedAt >= AUTO_LOCK_MS) {
         void this.lock()

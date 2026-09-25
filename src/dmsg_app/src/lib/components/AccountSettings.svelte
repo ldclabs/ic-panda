@@ -1,8 +1,8 @@
 <script lang="ts">
   import { session, shortId, dateLabel, downloadBlob } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
+  import type { AccountClient } from '../services/account'
   import { AccountRootClient, type RootJob } from '../services/account-root'
   import { CloudClient } from '../services/relay'
   import { b64, hex, id, unb64, unhex } from '../protocol/codec'
@@ -60,17 +60,9 @@
       principal = ''
       reviewed = ''
       packet = ''
-      const identity = await login(session.crypto, session.meta!.transportPublic, derivation),
-        api = await services(identity)
-      principal = identity.getPrincipal().toText()
-      client = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta!,
-        config.canisters.user
-      )
+      const connection = await connectAccount(derivation, { fresh: true, bound: false })
+      principal = connection.identity.getPrincipal().toText()
+      client = connection.account
       account = (await client.connectedAccount()) ?? ''
       if (account) await refresh()
     }, '认证已连接。设备权限以已验证的链上状态为准。')

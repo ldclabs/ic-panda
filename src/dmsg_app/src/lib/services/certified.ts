@@ -9,28 +9,23 @@ import {
 } from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
 import type { CertifiedBatch } from '../canisters/generated/user'
-import { bytes, equal } from '../protocol/codec'
+import { bytes, equal, hash } from '../protocol/codec'
 import { ensure } from '../errors'
 
-export async function certifiedLeaf(
-  batch: CertifiedBatch,
-  agent: HttpAgent,
-  source: string,
-  key: Uint8Array,
-  now: number | null = Date.now()
-) {
-  const canister = Principal.fromText(source)
-  ensure(
-    batch.schema === 1 &&
-      batch.canister.toText() === source &&
-      batch.entries.length <= 64 &&
-      agent.rootKey &&
-      batch.certificate.length <= 65536,
-    'INTEGRITY_FAILED'
-  )
+// Certificates are public. One BLS verification serves every leaf certified by
+// the same bytes, such as the evidence repeated across a page of messages.
+const certificates = new Map<string, { at: number; root: Uint8Array }>()
+async function certificateRoot(
+  encoded: Uint8Array,
+  rootKey: Uint8Array,
+  canister: Principal
+): Promise<{ at: number; root: Uint8Array }> {
+  const cacheKey = `${hash(rootKey)}:${canister.toText()}:${hash(encoded)}`,
+    cached = certificates.get(cacheKey)
+  if (cached) return cached
   const certificate = await Certificate.create({
-    certificate: bytes(Uint8Array.from(batch.certificate)),
-    rootKey: agent.rootKey,
+    certificate: bytes(encoded),
+    rootKey,
     principal: { canisterId: canister },
     disableTimeVerification: true
   })
@@ -44,7 +39,36 @@ export async function certifiedLeaf(
     )
     nanos |= BigInt(time[i] & 127) << BigInt(i * 7)
   }
-  const at = Number(nanos / 1000000n)
+  const root = lookupResultToBuffer(
+    certificate.lookup_path(['canister', canister.toUint8Array(), 'certified_data'])
+  )
+  ensure(root, 'INTEGRITY_FAILED')
+  const result = { at: Number(nanos / 1000000n), root }
+  if (certificates.size >= 64) certificates.delete(certificates.keys().next().value!)
+  certificates.set(cacheKey, result)
+  return result
+}
+export async function certifiedLeaf(
+  batch: CertifiedBatch,
+  agent: Pick<HttpAgent, 'rootKey'>,
+  source: string,
+  key: Uint8Array,
+  now: number | null = Date.now()
+) {
+  const canister = Principal.fromText(source)
+  ensure(
+    batch.schema === 1 &&
+      batch.canister.toText() === source &&
+      batch.entries.length <= 64 &&
+      agent.rootKey &&
+      batch.certificate.length <= 65536,
+    'INTEGRITY_FAILED'
+  )
+  const { at, root } = await certificateRoot(
+    Uint8Array.from(batch.certificate),
+    agent.rootKey,
+    canister
+  )
   ensure(
     Number.isSafeInteger(at) &&
       (now === null ? at <= Date.now() : at <= now && now < at + 60000),
@@ -57,13 +81,10 @@ export async function certifiedLeaf(
       entries[0].witness.length <= 262144,
     'INTEGRITY_FAILED'
   )
-  const root = lookupResultToBuffer(
-    certificate.lookup_path(['canister', canister.toUint8Array(), 'certified_data'])
-  )
   const tree = Cbor.decode<HashTree>(Uint8Array.from(entries[0].witness)),
     lookup = lookupCertifiedMap(tree, key),
     value = lookup.status === 'Found' ? lookup.value : null
-  ensure(root && equal(root, await reconstruct(tree)), 'INTEGRITY_FAILED')
+  ensure(equal(root, await reconstruct(tree)), 'INTEGRITY_FAILED')
   if (entries[0].value.length)
     ensure(value && equal(value, Uint8Array.from(entries[0].value[0]!)), 'INTEGRITY_FAILED')
   else ensure(lookup.status === 'Absent', 'INTEGRITY_FAILED')

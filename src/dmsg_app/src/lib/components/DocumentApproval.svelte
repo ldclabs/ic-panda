@@ -1,15 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { session, dateLabel, downloadBlob } from '../session.svelte'
-  import { listRequests, rejectRequest, assertLiveSource } from '../requests'
+  import { getRequest, rejectRequest, assertLiveSource } from '../requests'
   import {
     assertRequestUnchanged,
     type PendingRequest,
     type SignatureRequest
   } from '../protocol/requests'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
   import { SigningClient } from '../services/signing'
   import Icon from './Icon.svelte'
   import ActionDetails from './ActionDetails.svelte'
@@ -24,7 +23,7 @@
   onMount(() => {
     const id = new URLSearchParams(location.search).get('id')
     void session.run(async () => {
-      request = (await listRequests()).find((r) => r.id === id) ?? null
+      request = id ? await getRequest(id) : null
       if (!request) throw new Error('请求不存在，请返回原应用重新发起。')
       const decoded = (await session.crypto.call(
         'readRequest',
@@ -38,13 +37,13 @@
       finished = ['rejected', 'cancelled', 'expired'].includes(request.state)
     })
     const timer = setInterval(() => {
-      void listRequests().then((rows) => {
-        const latest = rows.find((r) => r.id === id)
-        if (latest) {
-          request = latest
-          finished = ['rejected', 'cancelled', 'expired'].includes(latest.state)
-        }
-      })
+      if (id)
+        void getRequest(id).then((latest) => {
+          if (latest) {
+            request = latest
+            finished = ['rejected', 'cancelled', 'expired'].includes(latest.state)
+          }
+        })
     }, 3000)
     const listener = (
       message: any,
@@ -99,16 +98,7 @@
     await session.run(async () => {
       if (!payload || !request || !session.meta?.account)
         throw new Error('请先绑定正式工作区。')
-      const identity = await login(session.crypto, session.meta.transportPublic, derivation),
-        api = await services(identity)
-      const account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
+      const { api, account } = await connectAccount(derivation)
       client = new SigningClient(account, api.cose!, assertLiveSource)
       result = await client.journal(request.id)
       if (!result) review = await client.prepare(request, payload)
@@ -118,7 +108,7 @@
     await session.run(async () => {
       if (!client || !request) throw new Error('请先连接并核对签名服务。')
       result = resume ? await client.resume(request.id) : await client.execute()
-      request = (await listRequests()).find((r) => r.id === request!.id) ?? request
+      request = (await getRequest(request.id)) ?? request
     })
   }
   async function reject() {

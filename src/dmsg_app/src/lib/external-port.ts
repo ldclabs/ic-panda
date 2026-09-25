@@ -7,7 +7,7 @@ import {
   type BrowserOperation
 } from '@dmsg/sdk/browser'
 import { createBrowserOperation, bindBrowserOperation } from './bridge-requests'
-import { acknowledgeRequest, listRequests, openApproval, rejectRequest } from './requests'
+import { acknowledgeRequest, getRequest, openApproval, rejectRequest } from './requests'
 import type { PendingRequest, SourceBinding } from './protocol/requests'
 import { canonical, hash } from './protocol/codec'
 import { ensure, DmsgError } from './errors'
@@ -74,7 +74,7 @@ export function externalPort(
         )
         delivered.delete(record.id)
       }
-      record = (await listRequests()).find((r) => r.id === record.id) ?? record
+      record = (await getRequest(record.id)) ?? record
     }
     const value: BrowserOperation = {
       operationId: record.id,

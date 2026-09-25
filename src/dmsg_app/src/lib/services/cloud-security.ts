@@ -1,12 +1,4 @@
-import {
-  Certificate,
-  Cbor,
-  lookup_path,
-  lookupResultToBuffer,
-  reconstruct,
-  type HashTree,
-  type HttpAgent
-} from '@icp-sdk/core/agent'
+import type { HttpAgent } from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
 import type {
   _SERVICE,
@@ -15,7 +7,8 @@ import type {
   SecuritySnapshot
 } from '../canisters/generated/user'
 import { ensure } from '../errors'
-import { b64, bytes, canonical, decodeCanonical, digest, equal, hex } from '../protocol/codec'
+import { b64, canonical, decodeCanonical, digest, equal, hex } from '../protocol/codec'
+import { certifiedValue } from './certified'
 import { xidBytes } from '../protocol/identity'
 
 export interface CloudSecurityEvidence {
@@ -98,47 +91,18 @@ export async function verifyCloudSecurity(
     batch.schema === 1 &&
       batch.canister.toText() === home.toText() &&
       batch.entries.length === 1 &&
-      agent.rootKey,
+      batch.entries[0].witness.length <= 65536 &&
+      (batch.entries[0].value[0]?.length ?? 0) <= 65536,
     'INTEGRITY_FAILED'
   )
-  ensure(batch.certificate.length <= 65536, 'INTEGRITY_FAILED')
-  const cert = await Certificate.create({
-    certificate: bytes(Uint8Array.from(batch.certificate)),
-    rootKey: agent.rootKey,
-    principal: { canisterId: home },
-    disableTimeVerification: true
-  })
-  const time = lookupResultToBuffer(cert.lookup_path(['time']))
-  ensure(
-    time && time.length <= 10 && time.length > 0 && !(time[time.length - 1] & 128),
-    'INTEGRITY_FAILED'
-  )
-  let ns = 0n
-  for (let i = 0; i < time.length; i++) {
-    ensure(i === time.length - 1 || (time[i] & 128) !== 0, 'INTEGRITY_FAILED')
-    ns |= BigInt(time[i] & 127) << BigInt(7 * i)
-  }
-  const certifiedAt = Number(ns / 1_000_000n),
-    expiresAt = certifiedAt + 60_000
-  ensure(
-    Number.isSafeInteger(certifiedAt) && certifiedAt <= now && now < expiresAt,
-    'POLICY_STALE'
-  )
-  const entry = batch.entries[0]
-  ensure(
-    equal(Uint8Array.from(entry.key), account) &&
-      entry.value.length === 1 &&
-      entry.witness.length <= 65536 &&
-      entry.value[0]!.length <= 65536,
-    'INTEGRITY_FAILED'
-  )
-  const certifiedRoot = lookupResultToBuffer(
-    cert.lookup_path(['canister', home.toUint8Array(), 'certified_data'])
-  )
-  const tree = Cbor.decode<HashTree>(Uint8Array.from(entry.witness))
-  ensure(certifiedRoot && equal(await reconstruct(tree), certifiedRoot), 'INTEGRITY_FAILED')
-  const value = lookupResultToBuffer(lookup_path([account], tree))
-  ensure(value && equal(value, Uint8Array.from(entry.value[0]!)), 'INTEGRITY_FAILED')
+  const entry = batch.entries[0],
+    { value, certifiedAt, expiresAt } = await certifiedValue(
+      batch,
+      agent,
+      trust.homeUser,
+      account,
+      now
+    )
   const snapshot = decodeCanonical<Record<string, unknown>>(value)
   const { root, encoded } = encodeDeviceBundle(bundle)
   ensure(
@@ -195,11 +159,47 @@ export async function readCloudSecurity(
   agent: HttpAgent,
   trust: CloudSecurityTrust
 ) {
-  const id = xidBytes(trust.accountId)
-  const [batch, bundle] = await Promise.all([
-    actor.security_snapshot_batch([id]),
-    actor.get_device_bundle(id)
-  ])
-  ensure('Ok' in batch && 'Ok' in bundle, 'POLICY_STALE')
-  return verifyCloudSecurity(batch.Ok, bundle.Ok, agent, trust)
+  return (await readCloudSecurityBatch(actor, agent, [trust]))[0]
+}
+/** Queries up to 64 accounts per certified batch; all share one certificate check. */
+export async function readCloudSecurityBatch(
+  actor: UserQueries,
+  agent: HttpAgent,
+  trusts: CloudSecurityTrust[]
+) {
+  const result = []
+  for (let offset = 0; offset < trusts.length; offset += 64) {
+    const group = trusts.slice(offset, offset + 64),
+      ids = group.map((trust) => xidBytes(trust.accountId))
+    const [batch, bundles] = await Promise.all([
+      actor.security_snapshot_batch(ids),
+      Promise.all(ids.map((id) => actor.get_device_bundle(id)))
+    ])
+    ensure('Ok' in batch && batch.Ok.entries.length === group.length, 'POLICY_STALE')
+    for (const [index, trust] of group.entries()) {
+      const bundle = bundles[index],
+        entry = batch.Ok.entries.find((e) => equal(Uint8Array.from(e.key), ids[index]))
+      ensure('Ok' in bundle && entry, 'POLICY_STALE')
+      result.push(
+        await verifyCloudSecurity({ ...batch.Ok, entries: [entry] }, bundle.Ok, agent, trust)
+      )
+    }
+  }
+  return result
+}
+/** Combines verified evidence sharing a certificate into uploads of at most 64 leaves. */
+export function mergeCloudEvidence(evidence: CloudSecurityEvidence[]) {
+  const groups = new Map<string, CloudSecurityEvidence>()
+  for (const item of evidence) {
+    const key = `${item.canister}:${item.certificate}`,
+      group = groups.get(key) ?? { ...item, entries: [] }
+    group.entries.push(...item.entries)
+    groups.set(key, group)
+  }
+  return [...groups.values()].flatMap((group) =>
+    Array.from({ length: Math.ceil(group.entries.length / 64) }, (_, i) => ({
+      ...group,
+      entries: group.entries.slice(i * 64, (i + 1) * 64)
+    }))
+  )
 }

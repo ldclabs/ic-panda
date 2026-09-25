@@ -101,12 +101,6 @@ describe('real encrypted workspace lifecycle', () => {
     expect(
       new Uint8Array(await (await engine.downloadFile(file.key)).blob.arrayBuffer())
     ).toEqual(data)
-    const channel = await engine.createChannel({
-      name: 'Private channel',
-      type: 'direct',
-      recipient: 'ab'.repeat(32)
-    })
-    await engine.saveDraft({ channelId: channel.id, text: 'Unsent text survives restore' })
     const name = (await currentWorkspace())!,
       db = await WorkspaceDB.open(name)
     const local = await db.envelope()
@@ -140,7 +134,6 @@ describe('real encrypted workspace lifecycle', () => {
     expect(output.meta.subjectId).toBe(setup.meta.subjectId)
     expect(output.meta.registered).toBe(false)
     expect((await restored.view()).entries).toHaveLength(2)
-    expect(await restored.getDraft(channel.id)).toBe('Unsent text survives restore')
     expect((await restored.downloadFile(file.key)).blob.size).toBe(data.length)
     await restored.lock()
   })

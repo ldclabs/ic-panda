@@ -1189,77 +1189,6 @@ progress::-webkit-progress-value {
 .empty-state .eyebrow {
   font-size: 10px;
 }
-.messages-layout {
-  display: grid;
-  grid-template-columns: 245px 1fr;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-  background: white;
-  min-height: 510px;
-  margin-top: 26px;
-}
-.channel-list {
-  border-right: 1px solid var(--line);
-  background: #f4f6f1;
-  padding: 20px 12px;
-}
-.channel-row {
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 15px 9px;
-  border: 0;
-  border-top: 1px solid var(--line);
-  text-align: left;
-}
-.channel-row.selected {
-  background: var(--pale);
-  border-radius: 7px;
-}
-.channel-row > span:last-child {
-  min-width: 0;
-}
-.channel-row strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-.channel-row small {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.channel-empty {
-  font-size: 12px;
-  padding: 20px 10px;
-  line-height: 2;
-}
-.conversation {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.conversation header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding: 19px 24px;
-}
-.conversation h2 {
-  font-size: 17px;
-}
-.conversation header p {
-  font-size: 11px;
-  margin-top: 4px;
-}
 .pill {
   display: inline-flex;
   align-items: center;
@@ -1271,107 +1200,11 @@ progress::-webkit-progress-value {
   font-size: 10px;
   white-space: nowrap;
 }
-.member-details {
-  padding: 10px 24px;
-  background: #f7f8f4;
-  border-bottom: 1px solid var(--line);
-}
 summary {
   cursor: pointer;
   font-size: 12px;
   min-height: 32px;
   padding: 4px 0;
-}
-.member-details p {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  font-size: 11px;
-  margin: 7px 0;
-}
-.member-details p:last-child {
-  display: block;
-  font-size: 10px;
-  margin-top: 12px;
-}
-.message-timeline {
-  flex: 1;
-  padding: 25px;
-  min-height: 280px;
-  max-height: 460px;
-  overflow: auto;
-}
-.conversation-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 13px;
-  min-height: 230px;
-  text-align: center;
-  color: var(--muted);
-}
-.conversation-empty h3 {
-  font-size: 16px;
-}
-.conversation-empty p {
-  font-size: 12px;
-}
-.message-item {
-  margin-bottom: 23px;
-}
-.message-meta {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-size: 11px;
-  margin-bottom: 8px;
-}
-.message-meta time {
-  color: var(--muted);
-  font-size: 10px;
-}
-.message-item > p {
-  background: #e8f0e9;
-  padding: 13px 16px;
-  border-radius: 0 9px 9px 9px;
-  color: var(--ink);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 13px;
-  width: fit-content;
-  max-width: 90%;
-}
-.message-item > .caption {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 7px;
-  font-size: 10px;
-}
-.composer {
-  border-top: 1px solid var(--line);
-  padding: 20px;
-}
-.composer textarea {
-  border: 0;
-  background: #f7f8f4;
-  resize: vertical;
-  font-size: 13px;
-}
-.composer > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
-}
-.composer .caption {
-  font-size: 10px;
-}
-.composer .primary {
-  min-height: 40px;
-  font-size: 12px;
 }
 .signature-empty {
   min-height: 440px;
@@ -1850,9 +1683,6 @@ summary {
     gap: 18px;
     grid-template-columns: 1fr 1fr;
   }
-  .messages-layout {
-    grid-template-columns: 210px 1fr;
-  }
   .page-heading {
     gap: 16px;
   }
@@ -1945,21 +1775,6 @@ summary {
   }
   .item-date {
     display: inline;
-  }
-  .messages-layout {
-    grid-template-columns: 180px 1fr;
-  }
-  .conversation header {
-    padding: 15px;
-  }
-  .message-timeline {
-    padding: 18px;
-  }
-  .member-details {
-    padding-inline: 15px;
-  }
-  .composer > div {
-    flex-wrap: wrap;
   }
   .identity-form {
     max-width: 600px;
@@ -2190,42 +2005,6 @@ summary {
   .operation-progress {
     font-size: 11px;
     flex-wrap: wrap;
-  }
-  .messages-layout {
-    display: block;
-    min-height: 0;
-  }
-  .channel-list {
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    max-height: 215px;
-    overflow: auto;
-  }
-  .channel-empty {
-    padding: 6px 10px;
-  }
-  .channel-row {
-    padding-block: 10px;
-  }
-  .conversation header h2 {
-    font-size: 17px;
-  }
-  .message-timeline {
-    min-height: 200px;
-    max-height: 370px;
-    padding: 18px;
-  }
-  .conversation-empty {
-    min-height: 180px;
-  }
-  .message-item > p {
-    max-width: 95%;
-  }
-  .composer {
-    padding: 14px;
-  }
-  .composer > div > .primary {
-    margin-left: auto;
   }
   .empty-state {
     padding: 38px 12px;

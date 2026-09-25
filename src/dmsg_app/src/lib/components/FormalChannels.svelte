@@ -3,8 +3,7 @@
   import { session, dateLabel, downloadBlob } from '../session.svelte'
   import { config } from '../config'
   import { id } from '../protocol/codec'
-  import { login, services } from '../services/ic'
-  import { AccountClient } from '../services/account'
+  import { connectAccount } from '../connection'
   import { CloudClient } from '../services/relay'
   import { ChannelClient, type ChannelInvitation } from '../services/channel'
   import type { ChannelLedger } from '../protocol/channel'
@@ -58,18 +57,7 @@
     await session.run(async () => {
       if (!session.meta?.account || !config.relayOrigin)
         throw new Error('请先建立正式工作区并配置云端服务。')
-      const identity = await login(session.crypto, session.meta.transportPublic, origin),
-        api = await services(identity)
-      const account = new AccountClient(
-        api.user!,
-        api.agent,
-        identity.getPrincipal(),
-        session.crypto,
-        session.meta,
-        config.canisters.user
-      )
-      if ((await account.connectedAccount()) !== session.meta.account.id)
-        throw new Error('登录身份与当前工作区不一致。')
+      const { account } = await connectAccount(origin)
       client = new ChannelClient(
         account,
         new CloudClient({ origin: config.relayOrigin, environment: config.environment }),

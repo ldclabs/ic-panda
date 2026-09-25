@@ -293,5 +293,5 @@ it('verifies an inventory above 256 MiB one cached chunk at a time', async () =>
     engine.receive({ objects, revisions: [], through: 3, evidence: '[]' })
   ).resolves.toMatchObject({ records: 0, through: 3 })
   expect(commit).toHaveBeenCalledTimes(1)
-  expect(commit.mock.calls[0][1]).toEqual([])
+  expect(commit.mock.calls[0][0]).toEqual([])
 }, 60000)

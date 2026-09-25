@@ -2,7 +2,7 @@ import { externalPort } from './lib/external-port'
 import { flushCipherDispatches } from './lib/services/background'
 import { config } from './lib/config'
 import { currentWorkspace, WorkspaceDB } from './lib/db'
-import { listRequests, rejectRequest } from './lib/requests'
+import { expireRequests, getRequest } from './lib/requests'
 import { trustedSource } from './lib/protocol/requests'
 import { ensure } from './lib/errors'
 import { hash } from './lib/protocol/codec'
@@ -45,7 +45,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   )
     return
   void (async () => {
-    const request = (await listRequests()).find((r) => r.id === message.requestId)
+    const request = await getRequest(message.requestId)
     if (!request) return { ok: false }
     if (request.source.origin === `chrome-extension://${chrome.runtime.id}`) {
       const contexts = await chrome.runtime.getContexts({})
@@ -71,10 +71,7 @@ async function lockWorkspace() {
   await chrome.action.setBadgeText({ text: '' })
 }
 async function refresh() {
-  const requests = await listRequests()
-  for (const request of requests.filter((r) => r.state === 'expired'))
-    await rejectRequest(request.id, 'expired')
-  const count = requests.filter((r) => r.state === 'awaiting_user').length
+  const count = await expireRequests()
   await chrome.action.setBadgeBackgroundColor({ color: '#145C45' })
   await chrome.action.setBadgeText({ text: count ? String(count) : '' })
 }
@@ -133,8 +130,7 @@ chrome.runtime.onConnectExternal.addListener((port) => {
 
 let dispatching: Promise<void> | null = null
 async function flushCiphertext() {
-  if (dispatching || !config.relayOrigin || config.environment === 'production')
-    return dispatching
+  if (dispatching || !config.relayOrigin) return dispatching
   dispatching = (async () => {
     const name = await currentWorkspace()
     if (!name) return
@@ -162,8 +158,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   )
   return true
 })
+// Failed jobs stay recorded on their rows; the next alarm retries them.
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'dmsg-cipher-dispatch') void flushCiphertext()
+  if (alarm.name === 'dmsg-cipher-dispatch') void flushCiphertext().catch(() => {})
 })
 void chrome.alarms.create('dmsg-cipher-dispatch', { periodInMinutes: 0.5 })
-void flushCiphertext()
+void flushCiphertext().catch(() => {})

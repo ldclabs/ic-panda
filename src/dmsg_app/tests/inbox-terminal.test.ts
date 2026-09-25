@@ -11,12 +11,10 @@ function client() {
     'aaaaa-aa',
     fixture.entries[0].value.recipient
   )
-  const methods = value as unknown as {
-    get(path: string): Promise<any>
-    save(key: string, value: unknown): Promise<void>
-  }
-  const get = vi.spyOn(methods, 'get'),
-    save = vi.spyOn(methods, 'save').mockResolvedValue()
+  const get = vi.spyOn(value.session, 'get'),
+    save = vi
+      .spyOn(value as unknown as { save(key: string, value: unknown): Promise<void> }, 'save')
+      .mockResolvedValue()
   return { value, get, save }
 }
 it('shows a hidden terminal as management metadata and applies the latest cursor', async () => {

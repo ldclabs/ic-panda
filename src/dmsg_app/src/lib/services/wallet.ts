@@ -52,121 +52,90 @@ export class WalletClient {
     return this.actor(ledger).icrc1_balance_of({ owner: this.owner, subaccount: [] })
   }
   async transferEscrow(escrow: EscrowInfo, ledgerFee: bigint) {
-    const quote = escrow.quote,
-      identifier = hex(Uint8Array.from(escrow.escrow_id)),
-      key = `delivery-funding:${identifier}`
+    const quote = escrow.quote
     ensure(quote.payer.owner.toText() === this.owner.toText(), 'FORBIDDEN')
-    const saved = await this.crypto.call('commerceJournal', key)
-    let job = saved ? JSON.parse(saved) : null
-    if (job?.block) return BigInt(job.block)
-    if (!job) {
-      ensure(
-        quote.fund_by > BigInt(Date.now()) &&
-          'Pending' in escrow.decision &&
-          !escrow.funded_at.length,
-        'EXPIRED'
-      )
-      const args = {
-        to: { owner: quote.home_payment, subaccount: [escrow.subaccount] },
-        amount: quote.amount,
-        fee: [ledgerFee],
-        from_subaccount: quote.payer.subaccount,
-        memo: [digest('dmsg/delivery/funding/v1', Uint8Array.from(escrow.escrow_id))],
-        created_at_time: [BigInt(Date.now()) * 1000000n]
+    ensure(ledgerFee <= quote.max_network_fee, 'FEE_BLOCKED')
+    return this.transfer(
+      `delivery-funding:${hex(Uint8Array.from(escrow.escrow_id))}`,
+      quote.ledger.toText(),
+      ledgerFee,
+      () => {
+        ensure(
+          quote.fund_by > BigInt(Date.now()) &&
+            'Pending' in escrow.decision &&
+            !escrow.funded_at.length,
+          'EXPIRED'
+        )
+        return {
+          to: { owner: quote.home_payment, subaccount: [escrow.subaccount] },
+          amount: quote.amount,
+          fee: [ledgerFee],
+          from_subaccount: quote.payer.subaccount,
+          memo: [digest('dmsg/delivery/funding/v1', Uint8Array.from(escrow.escrow_id))],
+          created_at_time: [BigInt(Date.now()) * 1000000n]
+        }
       }
-      job = {
-        ledger: quote.ledger.toText(),
-        payer: this.owner.toText(),
-        args: b64(new Uint8Array(IDL.encode([transfer], [args]))),
-        state: 'prepared'
-      }
-      await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-    }
-    ensure(
-      job.ledger === quote.ledger.toText() &&
-        job.payer === this.owner.toText() &&
-        ledgerFee <= quote.max_network_fee &&
-        (await this.actor(job.ledger).icrc1_fee()) === ledgerFee,
-      'FEE_BLOCKED'
     )
-    // A prepared job has never reached the ledger. A fee check may have stopped
-    // it before the controller updated payment's configuration. Only this state
-    // can adopt the newly approved fee; unknown/rejected attempts stay frozen.
-    if (job.state === 'prepared') {
-      const args = IDL.decode([transfer], unb64(job.args))[0] as { fee: bigint[] }
-      if (args.fee[0] !== ledgerFee) {
-        args.fee = [ledgerFee]
-        job.args = b64(new Uint8Array(IDL.encode([transfer], [args])))
-      }
-    }
-    job.state = 'unknown'
-    await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-    const reply = await this.actor(job.ledger).icrc1_transfer(
-      IDL.decode([transfer], unb64(job.args))[0]
-    )
-    if ('Ok' in reply) job.block = reply.Ok.toString()
-    else if ('Duplicate' in reply.Err) job.block = reply.Err.Duplicate.duplicate_of.toString()
-    else {
-      job.state = 'rejected'
-      job.error = Object.keys(reply.Err)[0]
-      await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-      throw new Error(`账本拒绝原来信付款：${job.error}`)
-    }
-    job.state = 'confirmed'
-    await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-    return BigInt(job.block)
   }
   async transferCheckout(order: CheckoutView) {
     const quote = order.quote,
-      cash = quote.cash,
-      key = `checkout-funding:${hex(order.progress.order_id)}`
+      cash = quote.cash
     ensure(
       Principal.fromUint8Array(cash.payer.owner).toText() === this.owner.toText(),
       'FORBIDDEN'
     )
+    return this.transfer(
+      `checkout-funding:${hex(order.progress.order_id)}`,
+      Principal.fromUint8Array(cash.ledger).toText(),
+      quote.asset.network_fee_atomic,
+      () => {
+        ensure(
+          order.progress.status === 'AwaitingFunding' &&
+            cash.funding_deadline_ms > BigInt(Date.now()),
+          'EXPIRED'
+        )
+        return {
+          to: {
+            owner: Principal.fromUint8Array(cash.deposit.owner),
+            subaccount: cash.deposit.subaccount ? [cash.deposit.subaccount] : []
+          },
+          amount: cash.amount_atomic + cash.fee_reserve_atomic,
+          fee: [quote.asset.network_fee_atomic],
+          from_subaccount: cash.payer.subaccount ? [cash.payer.subaccount] : [],
+          memo: [digest('dmsg/checkout/funding/v2', order.progress.order_id)],
+          created_at_time: [BigInt(Date.now()) * 1_000_000n]
+        }
+      }
+    )
+  }
+  /** One journal per payment. Only a transfer that never reached the ledger may
+   * adopt the approved fee; any later retry resends the original bytes. */
+  private async transfer(key: string, ledger: string, fee: bigint, create: () => unknown) {
     const saved = await this.crypto.call('commerceJournal', key)
     let job = saved ? JSON.parse(saved) : null
     if (job?.block) return BigInt(job.block)
     if (!job) {
-      ensure(
-        order.progress.status === 'AwaitingFunding' &&
-          cash.funding_deadline_ms > BigInt(Date.now()),
-        'EXPIRED'
-      )
-      const args = {
-        to: {
-          owner: Principal.fromUint8Array(cash.deposit.owner),
-          subaccount: cash.deposit.subaccount ? [cash.deposit.subaccount] : []
-        },
-        amount: cash.amount_atomic + cash.fee_reserve_atomic,
-        fee: [quote.asset.network_fee_atomic],
-        from_subaccount: cash.payer.subaccount ? [cash.payer.subaccount] : [],
-        memo: [digest('dmsg/checkout/funding/v2', order.progress.order_id)],
-        created_at_time: [BigInt(Date.now()) * 1_000_000n]
-      }
       job = {
-        ledger: Principal.fromUint8Array(cash.ledger).toText(),
+        ledger,
         payer: this.owner.toText(),
-        args: b64(new Uint8Array(IDL.encode([transfer], [args]))),
+        args: b64(new Uint8Array(IDL.encode([transfer], [create()]))),
         state: 'prepared'
       }
       await this.crypto.call('commerceJournal', key, JSON.stringify(job))
     }
-    ensure(
-      job.ledger === Principal.fromUint8Array(cash.ledger).toText() &&
-        job.payer === this.owner.toText(),
-      'FORBIDDEN'
-    )
-    if (job.state === 'prepared')
-      ensure(
-        (await this.actor(job.ledger).icrc1_fee()) === quote.asset.network_fee_atomic,
-        'FEE_BLOCKED'
-      )
-    // Unknown attempts preserve original memo/time/fee, even when the live fee changed.
+    ensure(job.ledger === ledger && job.payer === this.owner.toText(), 'FORBIDDEN')
+    if (job.state === 'prepared') {
+      ensure((await this.actor(ledger).icrc1_fee()) === fee, 'FEE_BLOCKED')
+      const args = IDL.decode([transfer], unb64(job.args))[0] as { fee: bigint[] }
+      if (args.fee[0] !== fee) {
+        args.fee = [fee]
+        job.args = b64(new Uint8Array(IDL.encode([transfer], [args])))
+      }
+    }
     const uncertain = job.state === 'unknown'
     job.state = 'unknown'
     await this.crypto.call('commerceJournal', key, JSON.stringify(job))
-    const reply = await this.actor(job.ledger).icrc1_transfer(
+    const reply = await this.actor(ledger).icrc1_transfer(
       IDL.decode([transfer], unb64(job.args))[0]
     )
     if ('Ok' in reply) job.block = reply.Ok.toString()

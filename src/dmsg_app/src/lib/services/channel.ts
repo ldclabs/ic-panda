@@ -1,6 +1,11 @@
 import { AccountClient } from './account'
-import { CloudClient, RelayError } from './relay'
-import { readCloudSecurity } from './cloud-security'
+import type { CloudClient } from './relay'
+import { CloudSession } from './cloud-session'
+import {
+  mergeCloudEvidence,
+  readCloudSecurity,
+  readCloudSecurityBatch
+} from './cloud-security'
 import {
   channelAccountEvidence,
   channelDevice,
@@ -16,7 +21,6 @@ import {
   readable,
   recipientDigest,
   startChannel,
-  type Activation,
   type ChannelControl,
   type ChannelLedger,
   type EpochRecipient,
@@ -46,7 +50,6 @@ import { xidBytes } from '../protocol/identity'
 import type { ChannelUpload } from '../crypto/channel'
 import { ensure } from '../errors'
 
-type AccountState = Awaited<ReturnType<AccountClient['refresh']>>
 interface Operation {
   action: CloudAction
   payload: Record<string, unknown>
@@ -97,60 +100,32 @@ function ownerUnsigned(packet: Pick<OwnerTransferPacket, 'context' | 'payload'>)
   }
 }
 export class ChannelClient {
-  private state: AccountState | null = null
+  readonly session: CloudSession
   private ledgers = new Map<string, ChannelLedger>()
   private verifiedEvents = new Map<string, string>()
+  // Controls already replayed by this client: the stored cursor and its ledger.
+  private replayed = new Map<string, { cursor: number; ledger: ChannelLedger }>()
   constructor(
     readonly account: AccountClient,
     readonly cloud: CloudClient,
     readonly accountId: string
-  ) {}
-  private sign = (bytes: Uint8Array) => this.account.crypto.call('contentSign', bytes)
+  ) {
+    this.session = new CloudSession(account, cloud, accountId)
+  }
   private base(channel: string) {
     ensure(/^[0-9a-f]{64}$/.test(channel), 'INVALID_INPUT')
     return `/v1/channels/${channel}`
   }
-  async refresh() {
-    for (let attempt = 0; ; attempt++) {
-      this.state = await this.account.refresh(this.accountId)
-      try {
-        await this.cloud.publishSecurity(this.state.verified.evidence)
-        return this.state
-      } catch (error) {
-        if (!(error instanceof RelayError && error.code === 'POLICY_STALE') || attempt >= 2)
-          throw error
-        // Independent replicas can return a still-valid but older certificate.
-        // Obtain another proof; never relax the relay's high-water mark.
-        await new Promise((done) => setTimeout(done, 200 * (attempt + 1)))
-      }
-    }
+  refresh() {
+    return this.session.refresh()
   }
   private trust(): ChannelTrust {
-    ensure(this.state && this.state.info.issuer.endsWith(this.accountId), 'AUTH_REQUIRED')
+    const state = this.session.state
+    ensure(state && state.info.issuer.endsWith(this.accountId), 'AUTH_REQUIRED')
     return {
       home: this.account.home.toText(),
-      namespace: this.state.info.issuer.slice(0, -this.accountId.length),
+      namespace: state.info.issuer.slice(0, -this.accountId.length),
       agent: this.account.agent
-    }
-  }
-  private async context(requestId = id()): Promise<CloudContext> {
-    if (!this.state || this.state.verified.expiresAt < Date.now() + 10000) await this.refresh()
-    return {
-      accountId: this.accountId,
-      issuer: this.state!.info.issuer,
-      deviceId: this.account.meta.deviceId,
-      securityEpoch: this.state!.verified.securityEpoch,
-      requestId,
-      deadline: Math.min(Date.now() + 45000, this.state!.verified.expiresAt)
-    }
-  }
-  private async get(path: string): Promise<any> {
-    try {
-      return await this.cloud.get(path, await this.context(), this.sign)
-    } catch (error) {
-      if (!(error instanceof RelayError && error.code === 'POLICY_STALE')) throw error
-      await this.refresh()
-      return this.cloud.get(path, await this.context(), this.sign)
     }
   }
   private async post(
@@ -170,19 +145,14 @@ export class ChannelClient {
       )
     if (job?.result !== undefined) return job.result
     const requestId = job?.context.requestId ?? id()
-    const status = await this.get(`${this.base(channel)}/operations/${requestId}`).catch(
-      (error) => {
-        if (error instanceof RelayError && error.code === 'NOT_FOUND') return { found: false }
-        throw error
-      }
-    )
-    if (status.found) {
+    const status = await this.session.find(`${this.base(channel)}/operations/${requestId}`)
+    if (status?.found) {
       ensure(job, 'INTEGRITY_FAILED')
       job.result = status.result
       await this.account.crypto.call('channelJob', channel, key, job)
       return job.result
     }
-    const context = await this.context(requestId)
+    const context = await this.session.context(requestId)
     if (job)
       ensure(
         job.context.deviceId === context.deviceId,
@@ -208,7 +178,7 @@ export class ChannelClient {
         payload,
         path: this.base(channel) + suffix,
         context,
-        signed: await signCloudCommand(context, action, payload, this.sign)
+        signed: await signCloudCommand(context, action, payload, this.session.sign)
       }
       await this.account.crypto.call('channelJob', channel, key, job)
     }
@@ -225,7 +195,7 @@ export class ChannelClient {
       job.path,
       job.signed,
       { ...context, requestId: job.context.requestId },
-      this.sign
+      this.session.sign
     )
     job.result = result
     await this.account.crypto.call('channelJob', channel, key, job)
@@ -265,9 +235,9 @@ export class ChannelClient {
   }
   private contentRootReady() {
     ensure(
-      this.state &&
-        'Ready' in this.state.info.vault_write_state &&
-        this.state.info.current_root[0]?.generation ===
+      this.session.state &&
+        'Ready' in this.session.state.info.vault_write_state &&
+        this.session.state.info.current_root[0]?.generation ===
           BigInt(this.account.meta.rootGeneration),
       'REKEY_REQUIRED',
       '请先完成账户换根并重新连接，再保存新频道密钥或消息。'
@@ -282,8 +252,13 @@ export class ChannelClient {
       )) as Operation | null
     const payload = existing?.payload ?? { channel_id: channel, type, nonce: id() }
     if (!existing) {
-      const context = await this.context(),
-        signed = await signCloudCommand(context, 'dmsg/channel/genesis/v1', payload, this.sign)
+      const context = await this.session.context(),
+        signed = await signCloudCommand(
+          context,
+          'dmsg/channel/genesis/v1',
+          payload,
+          this.session.sign
+        )
       await this.account.crypto.call('channelRemember', {
         channel,
         name,
@@ -301,10 +276,8 @@ export class ChannelClient {
     await this.pullControl(channel)
     return channel
   }
-  async known(channel: string) {
-    const value = (await this.account.crypto.call('channelList')).find((r) => r.id === channel)
-    ensure(value, 'NOT_FOUND')
-    return value
+  known(channel: string) {
+    return this.account.crypto.call('channelGet', channel)
   }
   async join(invitation: ChannelInvitation) {
     ensure(
@@ -481,20 +454,26 @@ export class ChannelClient {
     return state
   }
   async pullControl(channel: string, invitation?: string, pinnedHead?: string) {
-    if (!this.state || this.state.verified.expiresAt < Date.now() + 10000) await this.refresh()
+    await this.session.context()
     const saved = await this.known(channel),
-      existing = await this.account.crypto.call('channelControls', channel)
+      replayed = this.replayed.get(channel)
     let ledger: ChannelLedger | null = null,
       cursor = 0,
       pinSeen = !pinnedHead
-    for (const row of existing) {
-      ledger = await this.consumeEvent(ledger, row.value, saved.genesis)
-      cursor = row.cursor
-      if (ledger.head === pinnedHead) pinSeen = true
-    }
+    if (replayed?.cursor === saved.controlCursor) {
+      // Stored controls are unchanged since this client verified them.
+      ledger = structuredClone(replayed.ledger)
+      cursor = replayed.cursor
+      pinSeen ||= this.ledgers.get(pinnedHead!)?.channel_id === channel
+    } else
+      for (const row of await this.account.crypto.call('channelControls', channel)) {
+        ledger = await this.consumeEvent(ledger, row.value, saved.genesis)
+        cursor = row.cursor
+        if (ledger.head === pinnedHead) pinSeen = true
+      }
     const extra = invitation ? `&invitation=${invitation}` : ''
     for (let page = 0; page < 10000; page++) {
-      const result = await this.get(
+      const result = await this.session.get(
         `${this.base(channel)}/sync?kind=control&after=${cursor}&limit=5${extra}`
       )
       ensure(
@@ -517,7 +496,8 @@ export class ChannelClient {
       await this.account.crypto.call('channelAdvance', channel, ledger, cursor, result.entries)
       if (ledger.head === result.head) {
         ensure(pinSeen, 'UNVERIFIED_HEAD', '邀请中确认的控制头不在已验证历史中。')
-        const remote = await this.get(
+        this.replayed.set(channel, { cursor, ledger: structuredClone(ledger) })
+        const remote = await this.session.get(
           `${this.base(channel)}${invitation ? `?invitation=${invitation}` : ''}`
         )
         ensure(
@@ -547,13 +527,21 @@ export class ChannelClient {
     const recipients: EpochRecipient[] = [],
       versions: Record<string, number> = {},
       expires: number[] = []
-    for (const account of Object.keys(ledger.members)) {
-      const record = await readCloudSecurity(this.account.user, this.account.agent, {
-        accountId: account,
-        issuer: `${this.trust().namespace}${account}`,
-        homeUser: this.trust().home
-      })
-      await this.cloud.publishSecurity(record.evidence)
+    const accounts = Object.keys(ledger.members),
+      trust = this.trust()
+    const records = await readCloudSecurityBatch(
+      this.account.user,
+      this.account.agent,
+      accounts.map((accountId) => ({
+        accountId,
+        issuer: `${trust.namespace}${accountId}`,
+        homeUser: trust.home
+      }))
+    )
+    for (const evidence of mergeCloudEvidence(records.map((record) => record.evidence)))
+      await this.cloud.publishSecurity(evidence)
+    for (const [index, account] of accounts.entries()) {
+      const record = records[index]
       versions[account] = record.securityEpoch
       expires.push(record.expiresAt)
       for (const device of record.devices)
@@ -590,10 +578,7 @@ export class ChannelClient {
   private async upload(channel: string, upload: ChannelUpload) {
     const base = this.base(channel),
       plan = upload.plan
-    let status: any = await this.get(`${base}/uploads/${plan.upload_id}`).catch((error) => {
-      if (error instanceof RelayError && error.code === 'NOT_FOUND') return null
-      throw error
-    })
+    let status = await this.session.find(`${base}/uploads/${plan.upload_id}`)
     if (status) ensure(equal(canonical(status.plan), canonical(plan)), 'IDEMPOTENCY_CONFLICT')
     if (status?.status === 'committed') return
     if (!status || status.quota_state === 'pending')
@@ -605,7 +590,7 @@ export class ChannelClient {
         '/uploads'
       )
     for (let offset = 0; offset < plan.chunks.length; offset += 8) {
-      const context = await this.context()
+      const context = await this.session.context()
       await Promise.all(
         plan.chunks.slice(offset, offset + 8).map(async (_ref, i) => {
           const index = offset + i
@@ -616,7 +601,7 @@ export class ChannelClient {
             `${base}/uploads/${plan.upload_id}/chunks/${index}`,
             bytes,
             { ...context, requestId: id() },
-            this.sign
+            this.session.sign
           )
         })
       )
@@ -624,8 +609,8 @@ export class ChannelClient {
     await this.cloud.putChunk(
       `${base}/uploads/${plan.upload_id}/chunks/manifest`,
       unb64(upload.manifest),
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     const result = await this.post(
       channel,
@@ -696,7 +681,7 @@ export class ChannelClient {
     return this.openEpoch(channel, prepared.activation.epoch)
   }
   private async descriptor(channel: string, upload: string, uploader?: string) {
-    const result = await this.get(`${this.base(channel)}/objects/${upload}`),
+    const result = await this.session.get(`${this.base(channel)}/objects/${upload}`),
       checked = await verifyChannelEvent(result, this.trust())
     ensure(
       checked.body.action === 'dmsg/upload/reserve/v1' &&
@@ -730,7 +715,7 @@ export class ChannelClient {
       accounts = new Set<string>()
     let cursor = 0
     while (accounts.size < Object.keys(before.members).length) {
-      const result = await this.get(
+      const result = await this.session.get(
         `${this.base(channel)}/epochs/${epoch}/security?after=${cursor}`
       )
       ensure(
@@ -805,8 +790,8 @@ export class ChannelClient {
       await this.cloud.getChunk(
         `${this.base(channel)}/objects/${reference.upload_id}/chunks/manifest`,
         plan.manifest_digest,
-        await this.context(),
-        this.sign
+        await this.session.context(),
+        this.session.sign
       )
     )
     ensure(
@@ -820,8 +805,8 @@ export class ChannelClient {
     const envelope = await this.cloud.getChunk(
       `${this.base(channel)}/objects/${reference.upload_id}/chunks/${reference.chunk}`,
       reference.digest,
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     this.contentRootReady()
     await this.account.crypto.call('channelInstall', channel, activation, envelope)
@@ -891,8 +876,8 @@ export class ChannelClient {
     const bytes = await this.cloud.getChunk(
       `${this.base(channel)}/objects/${ref.upload_id}/chunks/manifest`,
       ref.manifest_digest,
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     const manifest = await this.account.crypto.call('channelFileManifest', channel, seq, bytes)
     ensure(
@@ -909,18 +894,21 @@ export class ChannelClient {
         await this.cloud.getChunk(
           `${this.base(channel)}/objects/${ref.upload_id}/chunks/${index}`,
           plan.chunks[index].digest,
-          await this.context(),
-          this.sign
+          await this.session.context(),
+          this.session.sign
         )
       )
     return this.account.crypto.call('channelFileDownload', channel, seq, chunks)
   }
   async sync(channel: string, backfill = false) {
     const ledger = await this.pullControl(channel),
-      saved = await this.known(channel)
+      saved = await this.known(channel),
+      readableEpochs = new Set(saved.readableEpochs)
     let after = backfill ? 0 : saved.messageCursor
     for (let page = 0; page < 10000; page++) {
-      const result = await this.get(`${this.base(channel)}/sync?after=${after}&limit=20`)
+      const result = await this.session.get(
+        `${this.base(channel)}/sync?after=${after}&limit=20`
+      )
       ensure(
         result.head === ledger.head &&
           Number.isSafeInteger(result.next_seq) &&
@@ -984,8 +972,9 @@ export class ChannelClient {
           'FORBIDDEN'
         )
         seen.add(message.seq)
-        if (!(await this.known(channel)).readableEpochs.includes(payload.epoch))
-          await this.openEpoch(channel, payload.epoch)
+        if (!readableEpochs.has(payload.epoch))
+          for (const epoch of (await this.openEpoch(channel, payload.epoch)).readableEpochs)
+            readableEpochs.add(epoch)
         rows.push({
           account: checked.account,
           device: checked.deviceId,
@@ -1041,10 +1030,12 @@ export class ChannelClient {
         to - from < 1000,
       'FORBIDDEN'
     )
+    const readableEpochs = new Set((await this.known(channel)).readableEpochs)
     for (let epoch = from; epoch <= to; epoch++) {
       ensure(readable(ledger, this.accountId, epoch), 'FORBIDDEN')
-      if (!(await this.known(channel)).readableEpochs.includes(epoch))
-        await this.openEpoch(channel, epoch)
+      if (!readableEpochs.has(epoch))
+        for (const opened of (await this.openEpoch(channel, epoch)).readableEpochs)
+          readableEpochs.add(opened)
     }
     const current = await this.currentRecipients({
       ...ledger,
@@ -1107,8 +1098,8 @@ export class ChannelClient {
     const encoded = await this.cloud.getChunk(
       `${this.base(channel)}/objects/${action.envelope_upload}/chunks/manifest`,
       first.manifest_digest,
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     const manifest = decodeCanonical<any>(encoded),
       scope = manifest.scope
@@ -1169,8 +1160,8 @@ export class ChannelClient {
       const bytes = await this.cloud.getChunk(
         `${this.base(channel)}/objects/${ref.upload_id}/chunks/${ref.chunk}`,
         ref.digest,
-        await this.context(),
-        this.sign
+        await this.session.context(),
+        this.session.sign
       )
       downloads.push({ ...ref, bytes })
     }
@@ -1211,7 +1202,7 @@ export class ChannelClient {
         (!targetDevice || hex(Uint8Array.from(d.input.device_id)) === targetDevice)
     )
     ensure(device, 'AUTH_REQUIRED')
-    const context = await this.context(),
+    const context = await this.session.context(),
       saved = await this.known(channel)
     const packet: OwnerTransferPacket = {
       format: 'dmsg-channel-owner-transfer/1',
@@ -1227,12 +1218,12 @@ export class ChannelClient {
           device: hex(Uint8Array.from(device.input.device_id))
         }
       },
-      evidence: this.state!.verified.evidence,
+      evidence: this.session.state!.verified.evidence,
       proposedAt: Date.now(),
       proposalSignature: ''
     }
     packet.proposalSignature = b64(
-      await this.sign(digest('dmsg/channel/owner-proposal/v1', ownerUnsigned(packet)))
+      await this.session.sign(digest('dmsg/channel/owner-proposal/v1', ownerUnsigned(packet)))
     )
     await this.account.crypto.call(
       'channelJob',
@@ -1277,17 +1268,19 @@ export class ChannelClient {
       'AUTH_REQUIRED'
     )
     ensure(
-      this.state?.device &&
-        !this.state.device.revoked_at.length &&
-        this.state.device.input.capabilities.some((c) => 'ContentSign' in c),
+      this.session.state?.device &&
+        !this.session.state.device.revoked_at.length &&
+        this.session.state.device.input.capabilities.some((c) => 'ContentSign' in c),
       'AUTH_REQUIRED'
     )
     const accepted = {
       ...packet,
       acceptance: b64(
-        await this.sign(digest('dmsg/channel/owner-acceptance/v1', ownerUnsigned(packet)))
+        await this.session.sign(
+          digest('dmsg/channel/owner-acceptance/v1', ownerUnsigned(packet))
+        )
       ),
-      targetEvidence: this.state.verified.evidence,
+      targetEvidence: this.session.state.verified.evidence,
       acceptedAt: Date.now()
     }
     await this.account.crypto.call(
@@ -1350,7 +1343,7 @@ export class ChannelClient {
           packet.context,
           'dmsg/channel/control/v1',
           payload,
-          this.sign
+          this.session.sign
         )
       })
     await this.post(packet.channel, key, 'dmsg/channel/control/v1', payload, '/control')
@@ -1358,7 +1351,7 @@ export class ChannelClient {
   }
   async reactivate(channel: string) {
     const ledger = await this.pullControl(channel),
-      current = await this.get(this.base(channel))
+      current = await this.session.get(this.base(channel))
     ensure(
       ledger.status === 'archived' && ledger.owner === this.accountId && current.billing,
       'FORBIDDEN'
@@ -1378,9 +1371,9 @@ export class ChannelClient {
   }
   async prepareSponsor(channel: string, payer: string, transitionId = id()) {
     const ledger = await this.pullControl(channel),
-      current = await this.get(this.base(channel))
+      current = await this.session.get(this.base(channel))
     ensure(ledger.owner === this.accountId && current.billing, 'FORBIDDEN')
-    const context = await this.context()
+    const context = await this.session.context()
     const payload = {
       transition_id: transitionId,
       to_payer: payer,
@@ -1392,7 +1385,7 @@ export class ChannelClient {
       context,
       'dmsg/channel/billing/prepare/v1',
       payload,
-      this.sign
+      this.session.sign
     )
     await this.account.crypto.call(
       'channelJob',
@@ -1404,7 +1397,7 @@ export class ChannelClient {
       `${this.base(channel)}/billing/prepare`,
       signed,
       context,
-      this.sign
+      this.session.sign
     )
     ensure(transition.state === 'prepared', 'EXECUTION_UNKNOWN')
     const target = await readCloudSecurity(this.account.user, this.account.agent, {
@@ -1425,7 +1418,7 @@ export class ChannelClient {
       to_payer: payer,
       device: hex(Uint8Array.from(device.input.device_id))
     }
-    const approval = await this.context(),
+    const approval = await this.session.context(),
       unsigned = {
         protocol: CLOUD_PROTOCOL,
         action: 'dmsg/channel/billing/transfer/v1',
@@ -1443,10 +1436,10 @@ export class ChannelClient {
       genesis: (await this.known(channel)).genesis,
       context: approval,
       unsigned,
-      evidence: this.state!.verified.evidence,
+      evidence: this.session.state!.verified.evidence,
       proposedAt: Date.now(),
       ownerSignature: b64(
-        await this.sign(digest('dmsg/channel/sponsor-proposal/v1', unsigned))
+        await this.session.sign(digest('dmsg/channel/sponsor-proposal/v1', unsigned))
       )
     }
     await this.account.crypto.call(
@@ -1458,7 +1451,7 @@ export class ChannelClient {
     return packet
   }
   async acceptSponsor(packet: any) {
-    await this.context()
+    await this.session.context()
     ensure(
       packet.format === 'dmsg-channel-sponsor/1' &&
         packet.unsigned.payload.to_payer === this.accountId &&
@@ -1491,14 +1484,14 @@ export class ChannelClient {
     return {
       ...packet,
       acceptance: b64(
-        await this.sign(digest('dmsg/channel/billing-acceptance/v1', packet.unsigned))
+        await this.session.sign(digest('dmsg/channel/billing-acceptance/v1', packet.unsigned))
       ),
-      targetEvidence: this.state!.verified.evidence,
+      targetEvidence: this.session.state!.verified.evidence,
       acceptedAt: Date.now()
     }
   }
   async commitSponsor(packet: any) {
-    await this.context()
+    await this.session.context()
     const saved = await this.account.crypto.call(
       'channelJob',
       packet.channel,
@@ -1531,7 +1524,7 @@ export class ChannelClient {
         packet.context,
         'dmsg/channel/billing/transfer/v1',
         payload,
-        this.sign
+        this.session.sign
       )
     const key = `sponsor-commit:${packet.context.requestId}`
     if (!(await this.account.crypto.call('channelJob', packet.channel, key)))

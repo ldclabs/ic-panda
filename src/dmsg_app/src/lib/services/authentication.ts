@@ -18,7 +18,7 @@ import { digest, equal, unhex } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
 import type { PendingRequest } from '../protocol/requests'
 import { validateAuthenticationPayload, type AuthenticationPayload } from '../bridge-requests'
-import { assertLiveSource, listRequests, setRequestState } from '../requests'
+import { assertLiveSource, getRequest, setRequestState } from '../requests'
 import { ensure } from '../errors'
 
 interface Journal {
@@ -68,7 +68,7 @@ export class AuthenticationClient {
     return this.account.crypto.call('controlPut', `auth:${id}`, JSON.stringify(journal))
   }
   private async current(id: string) {
-    const record = (await listRequests()).find((r) => r.id === id)
+    const record = await getRequest(id)
     ensure(
       record?.kind === 'authentication' &&
         record.bridge?.accountId === this.account.meta.account?.id,

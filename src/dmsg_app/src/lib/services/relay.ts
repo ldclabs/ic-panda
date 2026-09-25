@@ -7,11 +7,9 @@ import {
   canonicalTarget,
   profileSchema,
   readCloudCommand,
-  signCloudCommand,
   signCloudHttp,
   verifyCloudCommand,
   type CloudContext,
-  type CloudProfile,
   type CloudSigned,
   type CloudSigner
 } from '../protocol/cloud'
@@ -245,15 +243,6 @@ export class CloudClient {
     const body = await this.exchange(path, 'GET', undefined, pop, true)
     ensure(body instanceof Uint8Array && hash(body) === expectedDigest, 'INTEGRITY_FAILED')
     return body
-  }
-  async updateProfile(profile: CloudProfile, context: CloudContext, sign: CloudSigner) {
-    const signed = await signCloudCommand(
-      context,
-      'dmsg/profile/v1',
-      profileSchema.parse(profile),
-      sign
-    )
-    return this.post(`/v1/accounts/${context.accountId}/profile`, signed, context, sign)
   }
 }
 

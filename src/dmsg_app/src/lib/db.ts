@@ -1,4 +1,4 @@
-import { deleteDB, openDB, type IDBPDatabase } from 'idb'
+import { deleteDB, openDB, type IDBPDatabase, type IDBPTransaction } from 'idb'
 import type {
   Chunk,
   EncryptedObject,
@@ -10,7 +10,7 @@ import type {
 } from './models'
 import { ensure } from './errors'
 
-export const STORES = [
+const STORES = [
   'meta',
   'key_envelopes',
   'objects',
@@ -21,9 +21,10 @@ export const STORES = [
   'requests',
   'migration_jobs'
 ] as const
-export const registryName = 'dmsg:registry:1'
+type Store = (typeof STORES)[number]
+type WriteTransaction = IDBPTransaction<unknown, ArrayLike<string>, 'readwrite'>
 export async function registry() {
-  return openDB(registryName, 1, {
+  return openDB('dmsg:registry:1', 1, {
     upgrade(db) {
       db.createObjectStore('workspaces', { keyPath: 'name' })
     }
@@ -65,12 +66,19 @@ export async function registerWorkspace(name: string, expectedActive?: string) {
 export async function removeWorkspaceDatabase(name: string) {
   await deleteDB(name)
 }
+export const prefixRange = (prefix: string) => IDBKeyRange.bound(prefix, `${prefix}￿`)
 export const objectHead = (record: EncryptedObject, channelId = '') => ({
   id: `head:${record.id}`,
   revision: record.revision,
   kind: record.kind,
   channelId
 })
+/** Conflict markers let views read unresolved branches without scanning history. */
+export async function putObject(tx: WriteTransaction, record: EncryptedObject) {
+  await tx.objectStore('objects').put(record)
+  if (record.conflict) await tx.objectStore('meta').put({ id: `conflict:${record.key}` })
+  else await tx.objectStore('meta').delete(`conflict:${record.key}`)
+}
 export class WorkspaceDB {
   constructor(
     readonly db: IDBPDatabase,
@@ -84,21 +92,16 @@ export class WorkspaceDB {
       'INVALID_INPUT'
     )
     const db = await openDB(name, 2, {
-      async upgrade(db, oldVersion, _newVersion, tx) {
-        if (!oldVersion)
-          for (const store of STORES)
-            db.createObjectStore(store, { keyPath: store === 'objects' ? 'key' : 'id' })
-        const meta = tx.objectStore('meta')
-        meta.createIndex('head-kind', 'kind')
-        meta.createIndex('head-channel', ['kind', 'channelId'])
-        tx.objectStore('objects').createIndex('kind', 'kind')
-        tx.objectStore('outbox').createIndex('state', 'state')
-        // Index construction only; ciphertext and object formats stay untouched.
-        for (const row of await meta.getAll(IDBKeyRange.bound('head:', 'head:\uffff'))) {
-          const record = await tx
-            .objectStore('objects')
-            .get(`${row.id.slice(5)}:${row.revision}`)
-          if (record) await meta.put(objectHead(record))
+      upgrade(db) {
+        const store = (name: Store) =>
+          db.createObjectStore(name, { keyPath: name === 'objects' ? 'key' : 'id' })
+        for (const name of STORES) {
+          const created = store(name)
+          if (name === 'meta') {
+            created.createIndex('head-kind', 'kind')
+            created.createIndex('head-channel', ['kind', 'channelId'])
+          } else if (name === 'objects') created.createIndex('kind', 'kind')
+          else if (name === 'outbox') created.createIndex('state', 'state')
         }
       },
       blocking() {
@@ -134,8 +137,7 @@ export class WorkspaceDB {
     return lease
   }
   async check(lease: Lease) {
-    const current = (await this.db.get('meta', 'crypto-owner')) as Lease | undefined
-    this.assertLease(current, lease)
+    this.assertLease(await this.db.get('meta', 'crypto-owner'), lease)
   }
   private assertLease(current: Lease | undefined, lease: Lease) {
     ensure(
@@ -147,21 +149,35 @@ export class WorkspaceDB {
       '会话已结束，请重新解锁。'
     )
   }
-  async renew(lease: Lease) {
-    const tx = this.db.transaction('meta', 'readwrite'),
-      current = (await tx.store.get('crypto-owner')) as Lease | undefined
-    if (
-      !current ||
-      current.owner !== lease.owner ||
-      current.fence !== lease.fence ||
-      current.expiresAt <= Date.now()
-    ) {
+  /** Runs IDB-only work in one transaction owned by the current lease holder.
+   * The callback must not await network or crypto work. */
+  async guarded<T>(
+    stores: Store[],
+    lease: Lease,
+    run: (tx: WriteTransaction) => Promise<T>
+  ): Promise<T> {
+    const tx = this.db.transaction(
+      ['meta', ...stores.filter((store) => store !== 'meta')],
+      'readwrite'
+    )
+    try {
+      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+      const result = await run(tx)
       await tx.done
-      throw new Error('LOCKED')
+      return result
+    } catch (error) {
+      try {
+        tx.abort()
+      } catch {}
+      await tx.done.catch(() => {})
+      throw error
     }
-    current.expiresAt = Date.now() + 20000
-    await tx.store.put(current)
-    await tx.done
+  }
+  async renew(lease: Lease) {
+    await this.guarded([], lease, async (tx) => {
+      const current = (await tx.objectStore('meta').get('crypto-owner')) as Lease
+      await tx.objectStore('meta').put({ ...current, expiresAt: Date.now() + 20000 })
+    })
   }
   async release(lease: Lease) {
     const tx = this.db.transaction('meta', 'readwrite'),
@@ -177,26 +193,18 @@ export class WorkspaceDB {
     await tx.done
   }
   async guardedPut(
-    store: 'meta' | 'key_envelopes' | 'local_private',
+    store: 'meta' | 'key_envelopes' | 'local_private' | 'inbox_cursors',
     value: unknown,
     lease: Lease
   ) {
-    const tx = this.db.transaction(store === 'meta' ? 'meta' : ['meta', store], 'readwrite')
-    this.assertLease(
-      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
-      lease
-    )
-    await tx.objectStore(store).put(value)
-    await tx.done
+    await this.guarded([store], lease, (tx) => tx.objectStore(store).put(value))
   }
   async cacheChunks(chunks: Chunk[], lease: Lease) {
     ensure(
       chunks.length <= 128 && new Set(chunks.map((c) => c.id)).size === chunks.length,
       'INVALID_INPUT'
     )
-    const tx = this.db.transaction(['meta', 'chunks'], 'readwrite')
-    try {
-      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+    await this.guarded(['chunks'], lease, async (tx) => {
       for (const chunk of chunks) {
         const old = await tx.objectStore('chunks').get(chunk.id)
         ensure(
@@ -205,46 +213,29 @@ export class WorkspaceDB {
         )
         await tx.objectStore('chunks').put(chunk)
       }
-      await tx.done
-    } catch (error) {
-      try {
-        tx.abort()
-      } catch {}
-      await tx.done.catch(() => {})
-      throw error
-    }
+    })
   }
   async completeRecovery(value: WorkspaceMeta, lease: Lease) {
-    const tx = this.db.transaction(['meta', 'local_private'], 'readwrite')
-    this.assertLease(
-      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
-      lease
-    )
-    await tx.objectStore('meta').put({ id: 'workspace', value })
-    await tx.objectStore('local_private').delete('pending-recovery')
-    await tx.done
+    await this.guarded(['local_private'], lease, async (tx) => {
+      await tx.objectStore('meta').put({ id: 'workspace', value })
+      await tx.objectStore('local_private').delete('pending-recovery')
+    })
   }
-
   async replaceKeys(meta: WorkspaceMeta, envelope: LocalEnvelope, lease: Lease) {
-    const tx = this.db.transaction(['meta', 'key_envelopes'], 'readwrite')
-    this.assertLease(
-      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
-      lease
-    )
-    await tx.objectStore('meta').put({ id: 'workspace', value: meta })
-    await tx.objectStore('key_envelopes').put(envelope)
-    await tx.done
+    await this.guarded(['key_envelopes'], lease, async (tx) => {
+      await tx.objectStore('meta').put({ id: 'workspace', value: meta })
+      await tx.objectStore('key_envelopes').put(envelope)
+    })
   }
   async legacyCheckpoint(
     header: Record<string, unknown>,
     privateRecord: { id: string; ciphertext: string },
     lease: Lease
   ) {
-    const tx = this.db.transaction(['meta', 'local_private', 'migration_jobs'], 'readwrite')
-    this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
-    await tx.objectStore('local_private').put(privateRecord)
-    await tx.objectStore('migration_jobs').put(header)
-    await tx.done
+    await this.guarded(['local_private', 'migration_jobs'], lease, async (tx) => {
+      await tx.objectStore('local_private').put(privateRecord)
+      await tx.objectStore('migration_jobs').put(header)
+    })
   }
   async authorizeFormal(
     requestId: string,
@@ -253,20 +244,19 @@ export class WorkspaceDB {
     ciphertext: string,
     lease: Lease
   ) {
-    const tx = this.db.transaction(['meta', 'requests', 'local_private'], 'readwrite')
-    this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
-    const request = await tx.objectStore('requests').get(requestId)
-    ensure(
-      request?.state === 'awaiting_user' &&
-        request.digest === digest &&
-        request.expiresAt > Date.now(),
-      'EXPIRED'
-    )
-    await tx
-      .objectStore('local_private')
-      .put({ id: `control:formal:${requestId}`, ciphertext })
-    await tx.objectStore('requests').put({ ...request, state: 'authorized', executionId })
-    await tx.done
+    await this.guarded(['requests', 'local_private'], lease, async (tx) => {
+      const request = await tx.objectStore('requests').get(requestId)
+      ensure(
+        request?.state === 'awaiting_user' &&
+          request.digest === digest &&
+          request.expiresAt > Date.now(),
+        'EXPIRED'
+      )
+      await tx
+        .objectStore('local_private')
+        .put({ id: `control:formal:${requestId}`, ciphertext })
+      await tx.objectStore('requests').put({ ...request, state: 'authorized', executionId })
+    })
   }
   async checkpointFile(
     version: string,
@@ -275,28 +265,17 @@ export class WorkspaceDB {
     chunk: Chunk | undefined,
     lease: Lease
   ) {
-    const tx = this.db.transaction(
-      ['meta', 'local_private', 'migration_jobs', 'chunks'],
-      'readwrite'
-    )
-    this.assertLease(
-      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
-      lease
-    )
-    if (chunk) await tx.objectStore('chunks').put(chunk)
-    await tx.objectStore('local_private').put({ id: `file-job:${version}`, ciphertext })
-    await tx.objectStore('migration_jobs').put(job)
-    await tx.done
+    await this.guarded(['local_private', 'migration_jobs', 'chunks'], lease, async (tx) => {
+      if (chunk) await tx.objectStore('chunks').put(chunk)
+      await tx.objectStore('local_private').put({ id: `file-job:${version}`, ciphertext })
+      await tx.objectStore('migration_jobs').put(job)
+    })
   }
   async completeFile(version: string, job: Record<string, unknown>, lease: Lease) {
-    const tx = this.db.transaction(['meta', 'local_private', 'migration_jobs'], 'readwrite')
-    this.assertLease(
-      (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined,
-      lease
-    )
-    await tx.objectStore('migration_jobs').put(job)
-    await tx.objectStore('local_private').delete(`file-job:${version}`)
-    await tx.done
+    await this.guarded(['local_private', 'migration_jobs'], lease, async (tx) => {
+      await tx.objectStore('migration_jobs').put(job)
+      await tx.objectStore('local_private').delete(`file-job:${version}`)
+    })
   }
   async commit(
     record: EncryptedObject,
@@ -305,25 +284,22 @@ export class WorkspaceDB {
     job: OutboxJob,
     channelId = ''
   ) {
-    const tx = this.db.transaction(['meta', 'objects', 'outbox'], 'readwrite')
-    const current = (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined
-    this.assertLease(current, lease)
-    const head = await tx.objectStore('meta').get(`head:${record.id}`)
-    const conflict = (head?.revision ?? null) !== base
-    const previous = await tx.objectStore('objects').get(record.key)
-    if (previous) {
-      ensure(previous.digest === record.digest, 'IDEMPOTENCY_CONFLICT')
-      await tx.done
-      return previous as EncryptedObject
-    }
-    const saved = { ...record, conflict }
-    await tx.objectStore('objects').put(saved)
-    await tx
-      .objectStore('outbox')
-      .put({ ...job, ...(conflict ? { state: 'blocked', error: 'VERSION_CONFLICT' } : {}) })
-    if (!conflict) await tx.objectStore('meta').put(objectHead(record, channelId))
-    await tx.done
-    return saved
+    return this.guarded(['objects', 'outbox'], lease, async (tx) => {
+      const head = await tx.objectStore('meta').get(`head:${record.id}`)
+      const conflict = (head?.revision ?? null) !== base
+      const previous = await tx.objectStore('objects').get(record.key)
+      if (previous) {
+        ensure(previous.digest === record.digest, 'IDEMPOTENCY_CONFLICT')
+        return previous as EncryptedObject
+      }
+      const saved = { ...record, conflict }
+      await putObject(tx, saved)
+      await tx
+        .objectStore('outbox')
+        .put({ ...job, ...(conflict ? { state: 'blocked', error: 'VERSION_CONFLICT' } : {}) })
+      if (!conflict) await tx.objectStore('meta').put(objectHead(record, channelId))
+      return saved
+    })
   }
   async getHead(id: string, kind?: ObjectKind): Promise<EncryptedObject | undefined> {
     const tx = this.db.transaction(['meta', 'objects'])
@@ -350,12 +326,9 @@ export class WorkspaceDB {
     const store = tx.objectStore('meta')
     const heads = kind
       ? channelId
-        ? [
-            ...(await store.index('head-channel').getAll([kind, channelId])),
-            ...(await store.index('head-channel').getAll([kind, '']))
-          ]
+        ? await store.index('head-channel').getAll([kind, channelId])
         : await store.index('head-kind').getAll(kind)
-      : await store.getAll(IDBKeyRange.bound('head:', 'head:\uffff'))
+      : await store.getAll(prefixRange('head:'))
     const values = await Promise.all(
       heads.map((head) =>
         tx.objectStore('objects').get(`${head.id.slice(5)}:${head.revision}`)
@@ -365,15 +338,23 @@ export class WorkspaceDB {
     ensure(values.every(Boolean), 'RECOVERY_INCOMPLETE', '本地历史有缺口，请恢复备份。')
     return values
   }
+  /** Conflicting object versions, oldest markers first. */
+  async conflicts(): Promise<EncryptedObject[]> {
+    const tx = this.db.transaction(['meta', 'objects'])
+    const markers = await tx.objectStore('meta').getAll(prefixRange('conflict:'))
+    const values = await Promise.all(
+      markers.map((marker) => tx.objectStore('objects').get(marker.id.slice(9)))
+    )
+    await tx.done
+    return values.filter(Boolean)
+  }
 
   async contentAcknowledge(
     key: string,
     result: { revision_id: string; head: string; conflict: boolean; tombstone: boolean },
     lease: Lease
   ) {
-    const tx = this.db.transaction(['meta', 'objects', 'outbox'], 'readwrite')
-    try {
-      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
+    await this.guarded(['objects', 'outbox'], lease, async (tx) => {
       const record = (await tx.objectStore('objects').get(key)) as EncryptedObject
       ensure(
         record &&
@@ -385,30 +366,24 @@ export class WorkspaceDB {
       const job = await tx.objectStore('outbox').get(record.revision)
       ensure(job, 'NOT_FOUND')
       await tx.objectStore('outbox').put({ ...job, state: 'stored', cloudReceipt: result })
-      await tx.objectStore('objects').put({ ...record, conflict: result.conflict })
+      await putObject(tx, { ...record, conflict: result.conflict })
       if (!result.conflict) {
         ensure(result.head === record.revision, 'INTEGRITY_FAILED')
         await tx
           .objectStore('meta')
           .put({ id: `cloud-head:${record.id}`, revision: record.revision })
-      } else if (
-        (await tx.objectStore('meta').get(`head:${record.id}`))?.revision === record.revision
-      ) {
-        const head = await tx.objectStore('objects').get(`${record.id}:${result.head}`)
-        if (head) await tx.objectStore('meta').put(objectHead(head))
-        else await tx.objectStore('meta').delete(`head:${record.id}`)
+        return
       }
-      await tx.done
-    } catch (error) {
-      tx.abort()
-      await tx.done.catch(() => {})
-      throw error
-    }
+      const local = await tx.objectStore('meta').get(`head:${record.id}`)
+      if (local?.revision !== record.revision) return
+      const head = await tx.objectStore('objects').get(`${record.id}:${result.head}`)
+      if (head) await tx.objectStore('meta').put(objectHead(head, local.channelId))
+      else await tx.objectStore('meta').delete(`head:${record.id}`)
+    })
   }
 
   async contentReceive(
     records: EncryptedObject[],
-    chunks: Chunk[],
     heads: [string, string][],
     through: number,
     evidence: string,
@@ -416,38 +391,31 @@ export class WorkspaceDB {
     snapshot?: WorkspaceMeta['cloudSnapshot'],
     channels = new Map<string, string>()
   ) {
-    const tx = this.db.transaction(['meta', 'objects', 'chunks', 'outbox'], 'readwrite')
-    try {
-      this.assertLease(await tx.objectStore('meta').get('crypto-owner'), lease)
-      const meta = await tx.objectStore('meta').getAll()
+    await this.guarded(['objects', 'outbox'], lease, async (tx) => {
+      const meta = tx.objectStore('meta')
       ensure(
         Number.isSafeInteger(through) &&
-          through >= (meta.find((m) => m.id === 'cloud-snapshot')?.through ?? 0) &&
+          through >= ((await meta.get('cloud-snapshot'))?.through ?? 0) &&
           evidence.length <= 8 * 1024 * 1024,
         'INTEGRITY_FAILED',
         '云端清单回退或证据超过限制。'
       )
       const incoming = new Set(records.map((r) => r.key))
-      for (const head of meta.filter((m) => m.id.startsWith('cloud-head:')))
+      for (const head of await meta.getAll(prefixRange('cloud-head:')))
         ensure(
           incoming.has(`${head.id.slice(11)}:${head.revision}`),
           'INTEGRITY_FAILED',
           '云端清单遗漏本机已确认的版本。'
         )
-      for (const chunk of chunks) {
-        const prior = await tx.objectStore('chunks').get(chunk.id)
-        ensure(!prior || prior.digest === chunk.digest, 'IDEMPOTENCY_CONFLICT')
-        await tx.objectStore('chunks').put(chunk)
-      }
       for (const record of records) {
         const prior = await tx.objectStore('objects').get(record.key)
         ensure(!prior || prior.digest === record.digest, 'IDEMPOTENCY_CONFLICT')
-        await tx.objectStore('objects').put(record)
+        await putObject(tx, record)
         const job = await tx.objectStore('outbox').get(record.revision)
         if (job) await tx.objectStore('outbox').put({ ...job, state: 'stored' })
       }
       for (const [id, revision] of heads) {
-        const local = await tx.objectStore('meta').get(`head:${id}`)
+        const local = await meta.get(`head:${id}`)
         let keepLocal = false
         if (local && local.revision !== revision && !incoming.has(`${id}:${local.revision}`)) {
           const branch = await tx.objectStore('objects').get(`${id}:${local.revision}`)
@@ -463,7 +431,7 @@ export class WorkspaceDB {
               ancestor = await tx.objectStore('objects').get(`${id}:${ancestor.parent}`)
             }
             if (!keepLocal) {
-              await tx.objectStore('objects').put({ ...branch, conflict: true })
+              await putObject(tx, { ...branch, conflict: true })
               const job = await tx.objectStore('outbox').get(branch.revision)
               if (job)
                 await tx
@@ -475,22 +443,15 @@ export class WorkspaceDB {
         if (!keepLocal) {
           const head = await tx.objectStore('objects').get(`${id}:${revision}`)
           ensure(head, 'RECOVERY_INCOMPLETE')
-          await tx.objectStore('meta').put(objectHead(head, channels.get(head.key)))
+          await meta.put(objectHead(head, channels.get(head.key)))
         }
-        await tx.objectStore('meta').put({ id: `cloud-head:${id}`, revision })
+        await meta.put({ id: `cloud-head:${id}`, revision })
       }
-      await tx.objectStore('meta').put({ id: 'cloud-snapshot', through, evidence })
+      await meta.put({ id: 'cloud-snapshot', through, evidence })
       if (snapshot) {
-        const row = await tx.objectStore('meta').get('workspace')
-        await tx
-          .objectStore('meta')
-          .put({ ...row, value: { ...row.value, cloudSnapshot: snapshot } })
+        const row = await meta.get('workspace')
+        await meta.put({ ...row, value: { ...row.value, cloudSnapshot: snapshot } })
       }
-      await tx.done
-    } catch (error) {
-      tx.abort()
-      await tx.done.catch(() => {})
-      throw error
-    }
+    })
   }
 }

@@ -7,7 +7,8 @@
   } from '@dmsg/sdk'
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
-  import { login, services } from '../services/ic'
+  import { connectIdentity } from '../connection'
+  import type { services } from '../services/ic'
   import { controlResult } from '../services/account'
   import { wireResult } from '../protocol/commerce'
   import { hex } from '../protocol/codec'
@@ -41,11 +42,12 @@
   async function connect() {
     await session.run(async () => {
       if (!session.meta) throw new Error('请先解锁工作区。')
-      const identity = await login(session.crypto, session.meta.transportPublic, origin, [
+      const connection = await connectIdentity(origin, [
         config.canisters.commerce,
         config.canisters.membership
       ])
-      api = await services(identity)
+      const identity = connection.identity
+      api = connection.api
       owner = identity.getPrincipal().toText()
       await Promise.all([loadOrders(), loadTransfers(), loadClaims()])
     })

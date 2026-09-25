@@ -1,4 +1,4 @@
-import { prepareLegacyNames } from '../src/lib/services/legacy-names'
+import { prepareLegacyNames } from '../scripts/legacy-names'
 import { CryptoClient } from '../src/lib/crypto/client'
 import { HttpAgent } from '@icp-sdk/core/agent'
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity'

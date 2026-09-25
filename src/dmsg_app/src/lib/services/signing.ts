@@ -11,9 +11,10 @@ import type {
 } from '../canisters/generated/user'
 import { AccountClient, controlResult } from './account'
 import {
-  coseClient,
   prepareSign,
+  recordedExecution,
   signBytes,
+  signingKey,
   signingRequest,
   type PreparedExecution
 } from './cose'
@@ -32,14 +33,13 @@ import {
   equal,
   hash,
   hex,
-  unb64,
   unhex,
   utf8
 } from '../protocol/codec'
-import { xidBytes } from '../protocol/identity'
+import { xidBytes, xidText } from '../protocol/identity'
 import { statementPurpose, verifyDocumentArtifact } from '../protocol/statements'
 import { certifiedValue } from './certified'
-import { listRequests, setRequestState } from '../requests'
+import { getRequest, setRequestState } from '../requests'
 import { ensure } from '../errors'
 
 interface Journal {
@@ -178,17 +178,14 @@ export class SigningClient {
     }
     const usage = await this.usage(payload.accountId)
     ensure(BigInt(usage.remaining) > 0n, 'QuotaExceeded', '本月可用正式执行额度不足。')
-    const key = await coseClient(this.account.user, this.cose).publicKey(
+    const key = await signingKey(
+      this.cose,
       xidBytes(payload.accountId),
-      {
-        kind: 'signing',
-        purpose:
-          statementPurpose(statement.content) === 'AppAction'
-            ? 'app_action'
-            : statementPurpose(statement.content) === 'Statement'
-              ? 'statement'
-              : 'file_attestation'
-      }
+      statementPurpose(statement.content) === 'AppAction'
+        ? 'app_action'
+        : statementPurpose(statement.content) === 'Statement'
+          ? 'statement'
+          : 'file_attestation'
     )
     ensure(
       key.home_cose.toText() === state.info.home_cose.toText() &&
@@ -240,10 +237,10 @@ export class SigningClient {
     ensure(prepared && request, 'INVALID_INPUT')
     await this.registered(request)
     await this.sourceLive(request)
-    const stored = (await listRequests()).find((r) => r.id === request.id)
+    const stored = await getRequest(request.id)
     ensure(stored?.state === 'awaiting_user' && stored.digest === request.digest, 'EXPIRED')
     const operation = prepared.review.request as SignRequest
-    const state = await this.account.refresh(hexAccount(operation.account_id))
+    const state = await this.account.refresh(accountText(operation.account_id))
     ensure(
       state.device?.next_sequence === operation.approval.sequence &&
         state.info.security_epoch === operation.approval.security_epoch,
@@ -262,7 +259,7 @@ export class SigningClient {
             method: approved.kind,
             externalId: request.id,
             digest: request.digest,
-            account: hexAccount(approved.request.account_id),
+            account: accountText(approved.request.account_id),
             origin: request.source.origin,
             executionId: prepared.requestId,
             operation: encodeControl(approved.kind, [approved.request]),
@@ -301,7 +298,7 @@ export class SigningClient {
     }
   }
   async resume(id: string) {
-    const record = (await listRequests()).find((r) => r.id === id)
+    const record = await getRequest(id)
     ensure(record && !['cancelled', 'rejected', 'expired'].includes(record.state), 'FORBIDDEN')
     const job = await this.journal(id)
     ensure(job && job.account === this.account.meta.account?.id, 'AUTH_REQUIRED')
@@ -319,26 +316,12 @@ export class SigningClient {
     }
     const request = decodeControl(job.method, job.operation)[0] as
       SignRequest | AppActionSignRequest
-    const response = await this.account.user.get_execution(
+    let result = await recordedExecution(
+      this.account.user,
       xidBytes(job.account),
       unhex(job.executionId)
     )
-    let result: ExecutionResult
-    if ('Ok' in response) {
-      result = response.Ok
-      if (!(
-        'Completed' in result.outcome ||
-        'Failed' in result.outcome ||
-        'ResultExpired' in result.outcome
-      ))
-        result = controlResult(
-          await this.account.user.reconcile_execution(
-            xidBytes(job.account),
-            unhex(job.executionId)
-          )
-        )
-    } else {
-      ensure('ResultExpired' in response.Err, 'EXECUTION_UNKNOWN')
+    if (!result) {
       // Without a stored execution, an expired approval can never run; record a terminal state.
       if (Date.now() >= Number(request.approval.expires_at)) {
         job.stage = 'result_expired'
@@ -346,7 +329,7 @@ export class SigningClient {
         await setRequestState(job.externalId, 'result_expired')
         return job
       }
-      const external = (await listRequests()).find((r) => r.id === id)
+      const external = await getRequest(id)
       ensure(external, 'NOT_FOUND')
       await this.sourceLive(external)
       result = controlResult(
@@ -516,7 +499,6 @@ export class SigningClient {
     return { ...job, ...(await this.evidence(job, result)) }
   }
 }
-function hexAccount(bytes: Uint8Array | number[]) {
+function accountText(bytes: Uint8Array | number[]) {
   return xidText(Uint8Array.from(bytes))
 }
-import { xidText } from '../protocol/identity'

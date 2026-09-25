@@ -1,4 +1,5 @@
 import { readCloudSecurity } from './cloud-security'
+import type { CloudSession } from './cloud-session'
 import { legacyHistoryScopeSchema, type LegacyHistoryGrant } from '../protocol/shared-history'
 import { IC_ROOT_KEY } from '@icp-sdk/core/agent'
 import {
@@ -20,12 +21,7 @@ import { AccountClient } from './account'
 import { CloudClient } from './relay'
 import { ChannelClient } from './channel'
 import { verifyChannelEvent } from './channel-proof'
-import {
-  signCloudCommand,
-  type CloudAction,
-  type CloudContext,
-  type CloudSigned
-} from '../protocol/cloud'
+import { signCloudCommand, type CloudAction, type CloudSigned } from '../protocol/cloud'
 import { b64, canonical, equal, hash, hex, id, unb64, unhex } from '../protocol/codec'
 import type { CloudSecurityEvidence } from './cloud-security'
 import { ensure } from '../errors'
@@ -97,8 +93,8 @@ export interface SharedView {
   >
 }
 export class SharedMigrationClient {
-  private state: Awaited<ReturnType<AccountClient['refresh']>> | null = null
   readonly channels: ChannelClient
+  readonly session: CloudSession
   constructor(
     readonly account: AccountClient,
     readonly cloud: CloudClient,
@@ -111,22 +107,10 @@ export class SharedMigrationClient {
     }
   ) {
     this.channels = new ChannelClient(account, cloud, accountId)
+    this.session = this.channels.session
   }
   private root() {
     return unhex(this.legacy.rootKey ?? IC_ROOT_KEY)
-  }
-  private sign = (bytes: Uint8Array) => this.account.crypto.call('contentSign', bytes)
-  private async context(requestId = id()): Promise<CloudContext> {
-    this.state = await this.account.refresh(this.accountId)
-    await this.cloud.publishSecurity(this.state.verified.evidence)
-    return {
-      accountId: this.accountId,
-      issuer: this.state.info.issuer,
-      deviceId: this.account.meta.deviceId,
-      securityEpoch: this.state.verified.securityEpoch,
-      requestId,
-      deadline: Math.min(Date.now() + 45000, this.state.verified.expiresAt)
-    }
   }
   async source(file: SharedSourceFile) {
     ensure(
@@ -152,12 +136,12 @@ export class SharedMigrationClient {
   async prepare(file: SharedSourceFile, version = 1): Promise<MigrationDraft> {
     const source = await this.source(file),
       channel = id(),
-      context = await this.context()
+      context = await this.session.context()
     const signed = await signCloudCommand(
       context,
       'dmsg/channel/genesis/v1',
       { channel_id: channel, type: 'collaboration', nonce: id() },
-      this.sign
+      this.session.sign
     )
     const proposal: SharedProposal = {
       format: 'dmsg-legacy-shared-proposal/1',
@@ -174,7 +158,11 @@ export class SharedMigrationClient {
       format: 'dmsg-shared-migration-draft/1',
       proposal,
       source: file.input,
-      genesis: { signed, evidence: this.state!.verified.evidence, approved_at: Date.now() },
+      genesis: {
+        signed,
+        evidence: this.session.state!.verified.evidence,
+        approved_at: Date.now()
+      },
       source_file: file
     }
     await this.account.crypto.call('channelRemember', {
@@ -197,8 +185,8 @@ export class SharedMigrationClient {
         hash(unb64(draft.genesis.signed.cose_sign1)) === proposal.genesis_digest,
       'INTEGRITY_FAILED'
     )
-    await this.context()
-    const prefix = this.state!.info.issuer.slice(0, -this.accountId.length)
+    await this.session.context()
+    const prefix = this.session.state!.info.issuer.slice(0, -this.accountId.length)
     const checked = await verifyChannelEvent(
       {
         signed: draft.genesis.signed,
@@ -259,10 +247,8 @@ export class SharedMigrationClient {
       prior = await this.account.crypto.call('channelJob', channel, journalKey)
     let resume = prior && !prior.complete ? prior : null
     if (resume) {
-      const status = (await this.cloud.get(
-        `/v1/legacy/${key}/operations/${resume.requestId}`,
-        await this.context(),
-        this.sign
+      const status = (await this.session.get(
+        `/v1/legacy/${key}/operations/${resume.requestId}`
       )) as { found: boolean; result: unknown }
       ensure(typeof status.found === 'boolean', 'INTEGRITY_FAILED')
       if (!equal(canonical(resume.payload), canonical(payload))) {
@@ -285,8 +271,8 @@ export class SharedMigrationClient {
       }
     }
     const requestId = resume ? resume.requestId : id(),
-      context = await this.context(requestId)
-    const signed = await signCloudCommand(context, action, payload, this.sign)
+      context = await this.session.context(requestId)
+    const signed = await signCloudCommand(context, action, payload, this.session.sign)
     await this.account.crypto.call('channelJob', channel, journalKey, {
       requestId,
       payload,
@@ -297,7 +283,7 @@ export class SharedMigrationClient {
       `/v1/legacy/${key}/${route}`,
       signed,
       context,
-      this.sign
+      this.session.sign
     )
     await this.account.crypto.call('channelJob', channel, journalKey, {
       requestId,
@@ -415,7 +401,7 @@ export class SharedMigrationClient {
       )
       const accepted = await verifyChannelEvent(value.acceptance, {
         home: this.account.home.toText(),
-        namespace: this.state!.info.issuer.slice(0, -this.accountId.length),
+        namespace: this.session.state!.info.issuer.slice(0, -this.accountId.length),
         agent: this.account.agent
       })
       ensure(
@@ -435,13 +421,7 @@ export class SharedMigrationClient {
     return view
   }
   async view(key: string) {
-    return this.validateView(
-      (await this.cloud.get(
-        `/v1/legacy/${key}`,
-        await this.context(),
-        this.sign
-      )) as SharedView
-    )
+    return this.validateView((await this.session.get(`/v1/legacy/${key}`)) as SharedView)
   }
   async commit(view: SharedView) {
     await this.validateView(view)
@@ -464,13 +444,13 @@ export class SharedMigrationClient {
       ['committed', 'active'].includes(view.stage) && view.proposal.owner === this.accountId,
       'FORBIDDEN'
     )
-    const context = await this.context(),
+    const context = await this.session.context(),
       payload = { source_key: view.key, proposal_digest: view.proposal_digest }
     await this.cloud.post(
       `/v1/channels/${view.proposal.channel_id}/legacy-activate`,
-      await signCloudCommand(context, 'dmsg/legacy/activate/v1', payload, this.sign),
+      await signCloudCommand(context, 'dmsg/legacy/activate/v1', payload, this.session.sign),
       context,
-      this.sign
+      this.session.sign
     )
     await this.channels.pullControl(view.proposal.channel_id)
     await this.channels.rotate(view.proposal.channel_id)
@@ -478,7 +458,7 @@ export class SharedMigrationClient {
   }
   async claimChallenge(view: SharedView, member: string) {
     await this.validateView(view)
-    await this.context()
+    await this.session.context()
     ensure(view.source.members.includes(member), 'FORBIDDEN')
     const claim: MemberClaim = {
       format: 'dmsg-legacy-member-claim/1',
@@ -487,7 +467,7 @@ export class SharedMigrationClient {
       account: this.accountId,
       device: this.account.meta.deviceId,
       hpke_pub: hex(unb64(this.account.meta.hpkePublic)),
-      security_epoch: this.state!.verified.securityEpoch
+      security_epoch: this.session.state!.verified.securityEpoch
     }
     return {
       format: 'dmsg-legacy-approval-request/1',
@@ -518,7 +498,8 @@ export class SharedMigrationClient {
     ensure(['owner', 'admin'].includes(ledger.members[this.accountId]?.role), 'FORBIDDEN')
     const target = await readCloudSecurity(this.account.user, this.account.agent, {
       accountId: claim.claim.account,
-      issuer: this.state!.info.issuer.slice(0, -this.accountId.length) + claim.claim.account,
+      issuer:
+        this.session.state!.info.issuer.slice(0, -this.accountId.length) + claim.claim.account,
       homeUser: this.account.home.toText()
     })
     await this.cloud.publishSecurity(target.evidence)
@@ -575,7 +556,7 @@ export class SharedMigrationClient {
     ensure(stored, 'NOT_FOUND')
     const checked = await verifyChannelEvent(stored, {
         home: this.account.home.toText(),
-        namespace: this.state!.info.issuer.slice(0, -this.accountId.length),
+        namespace: this.session.state!.info.issuer.slice(0, -this.accountId.length),
         agent: this.account.agent
       }),
       grant = stored.grant,
@@ -596,10 +577,10 @@ export class SharedMigrationClient {
       parts: string[] = []
     for (const [index, file] of opened.files.entries()) {
       const base = `/v1/channels/${view.proposal.channel_id}/objects/${file.upload_id}`
-      const descriptor = (await this.cloud.get(base, await this.context(), this.sign)) as any
+      const descriptor = (await this.session.get(base)) as any
       const owner = await verifyChannelEvent(descriptor, {
         home: this.account.home.toText(),
-        namespace: this.state!.info.issuer.slice(0, -this.accountId.length),
+        namespace: this.session.state!.info.issuer.slice(0, -this.accountId.length),
         agent: this.account.agent
       })
       ensure(
@@ -613,8 +594,8 @@ export class SharedMigrationClient {
       const manifestBytes = await this.cloud.getChunk(
         `${base}/chunks/manifest`,
         file.manifest_digest,
-        await this.context(),
-        this.sign
+        await this.session.context(),
+        this.session.sign
       )
       const manifest = await this.account.crypto.call(
         'legacyGrantManifest',
@@ -635,8 +616,8 @@ export class SharedMigrationClient {
           await this.cloud.getChunk(
             `${base}/chunks/${i}`,
             descriptor.plan.chunks[i].digest,
-            await this.context(),
-            this.sign
+            await this.session.context(),
+            this.session.sign
           )
         )
       parts.push(

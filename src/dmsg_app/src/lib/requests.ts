@@ -105,17 +105,46 @@ export async function admitRequest(
     '请求历史容量已满。'
   )
 }
+const observed = (request: PendingRequest, now: number): PendingRequest =>
+  request.state === 'awaiting_user' && request.expiresAt <= now
+    ? { ...request, state: 'expired' }
+    : request
 export async function listRequests(): Promise<PendingRequest[]> {
   if (!(await currentWorkspace())) return []
   const db = await requestDatabase()
   try {
+    const now = Date.now()
     return ((await db.db.getAll('requests')) as PendingRequest[])
-      .map((r) =>
-        r.state === 'awaiting_user' && r.expiresAt <= Date.now()
-          ? { ...r, state: 'expired' as const }
-          : r
-      )
+      .map((r) => observed(r, now))
       .sort((a, b) => b.createdAt - a.createdAt)
+  } finally {
+    db.db.close()
+  }
+}
+export async function getRequest(id: string): Promise<PendingRequest | null> {
+  const db = await requestDatabase()
+  try {
+    const request = (await db.db.get('requests', id)) as PendingRequest | undefined
+    return request ? observed(request, Date.now()) : null
+  } finally {
+    db.db.close()
+  }
+}
+/** Stores expiry for unanswered prompts and returns how many remain open. */
+export async function expireRequests() {
+  if (!(await currentWorkspace())) return 0
+  const db = await requestDatabase()
+  try {
+    const tx = db.db.transaction('requests', 'readwrite'),
+      now = Date.now()
+    let open = 0
+    for (const request of (await tx.store.getAll()) as PendingRequest[]) {
+      if (request.state !== 'awaiting_user') continue
+      if (request.expiresAt > now) open++
+      else await tx.store.put({ ...request, state: 'expired' })
+    }
+    await tx.done
+    return open
   } finally {
     db.db.close()
   }
@@ -146,8 +175,6 @@ export function openApproval(id: string) {
     })
   window.open(`approve.html?id=${id}`, 'dmsg-approval', 'width=480,height=760')
 }
-export const externalEnabled = () => config.externalOrigins.length > 0
-
 export async function setRequestState(
   id: string,
   state: PendingRequest['state'],

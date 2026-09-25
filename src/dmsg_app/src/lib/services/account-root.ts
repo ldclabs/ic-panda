@@ -7,12 +7,12 @@ import {
   encodeControlResult
 } from '../protocol/account'
 import { xidBytes } from '../protocol/identity'
-import { signCloudCommand, type CloudContext } from '../protocol/cloud'
 import { readRootBundle, type RootContext, type RootKey } from '../crypto/root'
 import { ensure } from '../errors'
-import { prepareRootDerivation } from './cose'
+import { prepareRootDerivation, recordedExecution } from './cose'
 import { AccountClient, controlResult } from './account'
-import { CloudClient, RelayError } from './relay'
+import type { CloudClient } from './relay'
+import { CloudSession, type AccountState } from './cloud-session'
 import { config } from '../config'
 
 export interface RootJob {
@@ -28,6 +28,47 @@ export interface RootJob {
   bytes?: string
   plan?: Record<string, unknown>
 }
+/** Accepts only a completed derivation for exactly this request. */
+function completedDerivation(result: ExecutionResult, requestId: Uint8Array | number[]) {
+  ensure(
+    equal(Uint8Array.from(result.request_id), Uint8Array.from(requestId)),
+    'INTEGRITY_FAILED'
+  )
+  if ('Failed' in result.outcome) controlResult({ Err: result.outcome.Failed })
+  if ('ResultExpired' in result.outcome) controlResult({ Err: { ResultExpired: null } })
+  ensure(
+    'Completed' in result.outcome,
+    'EXECUTION_UNKNOWN',
+    '根派生尚未成功完成，请按原请求对账。'
+  )
+  return result
+}
+/** The derived key must be this account's content-root key for the bundle context. */
+function derivedRootKey(result: ExecutionResult, context: RootContext) {
+  ensure(
+    'Completed' in result.outcome && 'EncryptedRootKey' in result.outcome.Completed,
+    'INTEGRITY_FAILED'
+  )
+  const output = result.outcome.Completed.EncryptedRootKey,
+    key = output.key
+  ensure(
+    key.home_cose.toText() === context.homeCose &&
+      key.key_generation === BigInt(context.generation) &&
+      key.derivation_version === 2 &&
+      'VetKdBls12381' in key.algorithm &&
+      'ContentRoot' in key.purpose &&
+      Object.keys(key.environment)[0].toLowerCase() === context.environment &&
+      equal(Uint8Array.from(key.account_id), xidBytes(context.account)),
+    'INTEGRITY_FAILED'
+  )
+  const descriptor: RootKey = {
+    publicKey: b64(Uint8Array.from(key.public_key)),
+    fingerprint: hex(Uint8Array.from(key.public_key_fingerprint)),
+    keyId: hex(Uint8Array.from(key.key_id)),
+    keyName: key.master_key_name
+  }
+  return { descriptor, encryptedKey: Uint8Array.from(output.encrypted_key) }
+}
 /** Every retry preserves the original reservation, transport key, execution
  * request and bundle bytes. A candidate is not a content-writing authority. */
 export class AccountRootClient {
@@ -42,7 +83,11 @@ export class AccountRootClient {
   private save(job: RootJob) {
     return this.account.crypto.call('controlPut', `root:${job.account}`, JSON.stringify(job))
   }
-  private sign = (message: Uint8Array) => this.account.crypto.call('contentSign', message)
+  private async session(accountId: string, state: AccountState) {
+    const session = new CloudSession(this.account, this.cloud, accountId)
+    await session.adopt(state)
+    return session
+  }
   async restartExpired(accountId: string) {
     const job = await this.job(accountId)
     ensure(job && job.stage !== 'committed', 'NOT_FOUND')
@@ -116,18 +161,10 @@ export class AccountRootClient {
       await crypto.call('controlPut', `root:${accountId}`, 'null')
       state = await account.refresh(accountId)
     }
-    await this.cloud.publishSecurity(state.verified.evidence)
-    const ctx = (): CloudContext => ({
-      accountId,
-      issuer: state.info.issuer,
-      deviceId: account.meta.deviceId,
-      securityEpoch: state.verified.securityEpoch,
-      requestId: id(),
-      deadline: Date.now() + 55000
-    })
+    const session = await this.session(accountId, state)
     const base = `/v1/accounts/${accountId}`,
       expected = hex(Uint8Array.from(ref.bundle_digest))
-    const response = (await this.cloud.get(`${base}/root`, ctx(), this.sign)) as {
+    const response = (await session.get(`${base}/root`)) as {
       root: { upload_id: string; digest: string; root_generation: number }
     }
     ensure(
@@ -140,8 +177,8 @@ export class AccountRootClient {
       await this.cloud.getChunk(
         `${base}/objects/${response.root.upload_id}/chunks/manifest`,
         expected,
-        ctx(),
-        this.sign
+        await session.context(),
+        session.sign
       )
     ]
     const current = readRootBundle(bundles[0], expected)
@@ -164,8 +201,8 @@ export class AccountRootClient {
       const data = await this.cloud.getChunk(
         `${base}/objects/${link.uploadId}/chunks/manifest`,
         link.digest,
-        ctx(),
-        this.sign
+        await session.context(),
+        session.sign
       )
       cursor = readRootBundle(data, link.digest)
       bundles.push(data)
@@ -208,26 +245,12 @@ export class AccountRootClient {
     let request = encoded
       ? (decodeControl('derive_root', encoded)[0] as DeriveRootRequest)
       : await approve()
-    const queried = await account.user.get_execution(
+    let result = await recordedExecution(
+      account.user,
       xidBytes(accountId),
-      request.approval.request_id
+      Uint8Array.from(request.approval.request_id)
     )
-    let result: ExecutionResult
-    if ('Ok' in queried) {
-      result = queried.Ok
-      if (!(
-        'Completed' in result.outcome ||
-        'Failed' in result.outcome ||
-        'ResultExpired' in result.outcome
-      ))
-        result = controlResult(
-          await account.user.reconcile_execution(
-            xidBytes(accountId),
-            request.approval.request_id
-          )
-        )
-    } else {
-      ensure('ResultExpired' in queried.Err, 'UNAVAILABLE')
+    if (!result) {
       if (request.approval.expires_at <= BigInt(Date.now())) {
         const fresh = await account.refresh(accountId)
         // An unconsumed sequence plus a certified time past the deadline proves
@@ -248,35 +271,10 @@ export class AccountRootClient {
       }
       result = controlResult(await account.user.derive_root(request))
     }
-    if ('Failed' in result.outcome) controlResult({ Err: result.outcome.Failed })
-    if ('ResultExpired' in result.outcome) controlResult({ Err: { ResultExpired: null } })
-    ensure(
-      equal(
-        Uint8Array.from(result.request_id),
-        Uint8Array.from(request.approval.request_id)
-      ) &&
-        'Completed' in result.outcome &&
-        'EncryptedRootKey' in result.outcome.Completed,
-      'EXECUTION_UNKNOWN'
+    const { descriptor, encryptedKey } = derivedRootKey(
+      completedDerivation(result, request.approval.request_id),
+      current.payload.context
     )
-    const output = result.outcome.Completed.EncryptedRootKey,
-      key = output.key
-    ensure(
-      key.home_cose.toText() === current.payload.context.homeCose &&
-        key.key_generation === ref.generation &&
-        key.derivation_version === 2 &&
-        'VetKdBls12381' in key.algorithm &&
-        'ContentRoot' in key.purpose &&
-        Object.keys(key.environment)[0].toLowerCase() === account.meta.environment &&
-        equal(Uint8Array.from(key.account_id), xidBytes(accountId)),
-      'INTEGRITY_FAILED'
-    )
-    const descriptor: RootKey = {
-      publicKey: b64(Uint8Array.from(key.public_key)),
-      fingerprint: hex(Uint8Array.from(key.public_key_fingerprint)),
-      keyId: hex(Uint8Array.from(key.key_id)),
-      keyName: key.master_key_name
-    }
     state = await account.refresh(accountId)
     ensure(
       state.info.current_root[0] &&
@@ -287,7 +285,7 @@ export class AccountRootClient {
       'openAccountRoot',
       current.payload.context,
       descriptor,
-      Uint8Array.from(output.encrypted_key),
+      encryptedKey,
       bundles,
       expected
     )
@@ -443,41 +441,13 @@ export class AccountRootClient {
         await this.save(job)
       }
       const request = decodeControl('derive_root', job.derive)[0] as DeriveRootRequest
-      const query = await account.user.get_execution(
-        xidBytes(accountId),
-        request.approval.request_id
-      )
-      let result: ExecutionResult
-      if ('Ok' in query) {
-        result = query.Ok
-        if (!(
-          'Completed' in result.outcome ||
-          'Failed' in result.outcome ||
-          'ResultExpired' in result.outcome
-        ))
-          result = controlResult(
-            await account.user.reconcile_execution(
-              xidBytes(accountId),
-              request.approval.request_id
-            )
-          )
-      } else {
-        ensure('ResultExpired' in query.Err, 'UNAVAILABLE')
-        result = controlResult(await account.user.derive_root(request))
-      }
-      ensure(
-        equal(
-          Uint8Array.from(result.request_id),
+      const result = completedDerivation(
+        (await recordedExecution(
+          account.user,
+          xidBytes(accountId),
           Uint8Array.from(request.approval.request_id)
-        ),
-        'INTEGRITY_FAILED'
-      )
-      if ('Failed' in result.outcome) controlResult({ Err: result.outcome.Failed })
-      if ('ResultExpired' in result.outcome) controlResult({ Err: { ResultExpired: null } })
-      ensure(
-        'Completed' in result.outcome,
-        'EXECUTION_UNKNOWN',
-        '根派生尚未成功完成，请按原请求对账。'
+        )) ?? controlResult(await account.user.derive_root(request)),
+        request.approval.request_id
       )
       job.result = encodeControlResult('derive_root', { Ok: result })
       job.stage = 'wrap'
@@ -485,54 +455,20 @@ export class AccountRootClient {
     }
     if (!job.bytes) {
       progress('wrap')
-      const result = controlResult(
-        decodeControlResult('derive_root', job.result) as
-          { Ok: ExecutionResult } | { Err: unknown }
+      const { descriptor, encryptedKey } = derivedRootKey(
+        controlResult(
+          decodeControlResult('derive_root', job.result) as
+            { Ok: ExecutionResult } | { Err: unknown }
+        ),
+        context
       )
-      ensure(
-        'Completed' in result.outcome && 'EncryptedRootKey' in result.outcome.Completed,
-        'INTEGRITY_FAILED'
-      )
-      const output = result.outcome.Completed.EncryptedRootKey,
-        key = output.key
-      ensure(
-        key.home_cose.toText() === context.homeCose &&
-          key.key_generation === BigInt(context.generation) &&
-          key.derivation_version === 2 &&
-          'VetKdBls12381' in key.algorithm &&
-          'ContentRoot' in key.purpose &&
-          Object.keys(key.environment)[0].toLowerCase() === context.environment &&
-          equal(Uint8Array.from(key.account_id), xidBytes(accountId)),
-        'INTEGRITY_FAILED'
-      )
-      const descriptor: RootKey = {
-        publicKey: b64(Uint8Array.from(key.public_key)),
-        fingerprint: hex(Uint8Array.from(key.public_key_fingerprint)),
-        keyId: hex(Uint8Array.from(key.key_id)),
-        keyName: key.master_key_name
-      }
-      job.bytes = b64(
-        await crypto.call(
-          'wrapAccountRoot',
-          context,
-          descriptor,
-          Uint8Array.from(output.encrypted_key)
-        )
-      )
+      job.bytes = b64(await crypto.call('wrapAccountRoot', context, descriptor, encryptedKey))
       job.stage = 'upload'
       await this.save(job)
     }
     progress('upload')
     state = await account.refresh(accountId)
-    await this.cloud.publishSecurity(state.verified.evidence)
-    const cloudContext = (): CloudContext => ({
-      accountId,
-      issuer: state.info.issuer,
-      deviceId: account.meta.deviceId,
-      securityEpoch: state.verified.securityEpoch,
-      requestId: id(),
-      deadline: Date.now() + 55000
-    })
+    const session = await this.session(accountId, state)
     const bytes = unb64(job.bytes),
       placeholder = canonical([]),
       base = `/v1/accounts/${accountId}`
@@ -552,57 +488,41 @@ export class AccountRootClient {
       }
       await this.save(job)
     }
-    let upload: { status: string; plan: Record<string, unknown> } | null = null
-    try {
-      upload = (await this.cloud.get(
-        `${base}/uploads/${job.plan.upload_id}`,
-        cloudContext(),
-        this.sign
-      )) as { status: string; plan: Record<string, unknown> }
-    } catch (error) {
-      if (!(error instanceof RelayError && error.code === 'NOT_FOUND')) throw error
-    }
+    const upload = (await session.find(`${base}/uploads/${job.plan.upload_id}`)) as {
+      status: string
+      plan: Record<string, unknown>
+    } | null
     if (upload)
       ensure(equal(canonical(upload.plan), canonical(job.plan)), 'IDEMPOTENCY_CONFLICT')
-    if (!upload) {
-      // The persisted plan and upload ID are immutable across fresh PoP calls.
-      const ctx = cloudContext(),
-        signed = await signCloudCommand(ctx, 'dmsg/upload/reserve/v1', job.plan, this.sign)
-      await this.cloud.post(`${base}/uploads`, signed, ctx, this.sign)
-    }
+    // The persisted plan and upload ID are immutable across fresh PoP calls.
+    else await session.post(`${base}/uploads`, 'dmsg/upload/reserve/v1', job.plan)
     if (upload?.status !== 'committed') {
       await this.cloud.putChunk(
         `${base}/uploads/${job.plan.upload_id}/chunks/0`,
         placeholder,
-        cloudContext(),
-        this.sign
+        await session.context(),
+        session.sign
       )
       await this.cloud.putChunk(
         `${base}/uploads/${job.plan.upload_id}/chunks/manifest`,
         bytes,
-        cloudContext(),
-        this.sign
+        await session.context(),
+        session.sign
       )
-      const ctx = cloudContext(),
-        signed = await signCloudCommand(
-          ctx,
-          'dmsg/upload/finalize/v1',
-          { upload_id: job.plan.upload_id },
-          this.sign
-        )
-      const result = (await this.cloud.post(
+      const result = await session.post(
         `${base}/uploads/finalize`,
-        signed,
-        ctx,
-        this.sign
-      )) as { digest: string }
+        'dmsg/upload/finalize/v1',
+        {
+          upload_id: job.plan.upload_id
+        }
+      )
       ensure(result.digest === hash(bytes), 'INTEGRITY_FAILED')
     }
     await this.cloud.getChunk(
       `${base}/objects/${job.plan.upload_id}/chunks/manifest`,
       hash(bytes),
-      cloudContext(),
-      this.sign
+      await session.context(),
+      session.sign
     )
     job.stage = 'commit'
     await this.save(job)

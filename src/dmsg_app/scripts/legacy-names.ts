@@ -6,15 +6,10 @@ import {
   type SnapshotProof,
   type SnapshotScope
 } from '@dmsg/legacy'
-import type {
-  _SERVICE,
-  LegacySnapshot,
-  LegacyReservation
-} from '../canisters/generated/handle'
-import { canonicalHandle, legacyEntryDigest, progressValue } from '../protocol/handle'
-import { canonical, digest, equal } from '../protocol/codec'
-import { controlResult } from './account'
-import { ensure } from '../errors'
+import type { LegacySnapshot, LegacyReservation } from '../src/lib/canisters/generated/handle'
+import { canonicalHandle, legacyEntryDigest } from '../src/lib/protocol/handle'
+import { digest, equal } from '../src/lib/protocol/codec'
+import { ensure } from '../src/lib/errors'
 
 async function sourceRows(
   proofs: SnapshotProof[],
@@ -168,55 +163,4 @@ export async function prepareLegacyNames(input: {
     entries,
     quarantined: entries.filter((e) => e.quarantined).map((e) => e.handle)
   }
-}
-/** Caller supplies a controller actor; retries inspect the authoritative prefix. */
-export async function importLegacyNames(
-  registry: _SERVICE,
-  input: { snapshot: LegacySnapshot; entries: LegacyReservation[] },
-  onProgress: (count: number) => void = () => {}
-) {
-  let state = await registry.snapshot_progress()
-  if (!state.snapshot.length) {
-    controlResult(await registry.begin_legacy_snapshot(input.snapshot))
-    state = await registry.snapshot_progress()
-  }
-  ensure(
-    state.snapshot.length &&
-      equal(
-        canonical((progressValue({ ...state, snapshot: [input.snapshot] }) as any).snapshot),
-        canonical((progressValue(state) as any).snapshot)
-      ),
-    'VERSION_CONFLICT'
-  )
-  const count = Number(state.imported)
-  ensure(Number.isSafeInteger(count) && count <= input.entries.length, 'INTEGRITY_FAILED')
-  let rolling = new Uint8Array(32)
-  for (const entry of input.entries.slice(0, count))
-    rolling = Uint8Array.from(legacyEntryDigest(rolling, entry))
-  ensure(
-    equal(rolling, Uint8Array.from(state.rolling_digest)) &&
-      (state.last_handle[0] ?? null) === (input.entries[count - 1]?.handle ?? null),
-    'INTEGRITY_FAILED',
-    '已导入前缀与输入清单不一致。'
-  )
-  for (let index = count; index < input.entries.length; index += 256) {
-    state = controlResult(
-      await registry.import_legacy_handles(
-        input.snapshot.snapshot_id,
-        input.entries.slice(index, index + 256)
-      )
-    )
-    onProgress(Number(state.imported))
-  }
-  state = controlResult(await registry.seal_legacy_snapshot())
-  ensure(
-    state.sealed &&
-      state.imported === input.snapshot.count &&
-      equal(
-        Uint8Array.from(state.rolling_digest),
-        Uint8Array.from(input.snapshot.entries_digest)
-      ),
-    'INTEGRITY_FAILED'
-  )
-  return state
 }

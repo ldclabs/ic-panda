@@ -531,9 +531,7 @@ export class LegacyVault {
   async list() {
     const { db } = await this.port.ready(),
       list = []
-    for (const record of (await db.heads()).filter(
-      (r) => r.kind === 'migration' && !r.tombstone
-    )) {
+    for (const record of (await db.heads('migration')).filter((r) => !r.tombstone)) {
       const value = await this.port.decode<ArchiveRecord>(record)
       if (value.format === 'dmsg-legacy-storage/1') list.push({ key: record.key, ...value })
     }

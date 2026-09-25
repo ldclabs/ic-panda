@@ -6,7 +6,8 @@ import type {
   EscrowInfo
 } from '../canisters/generated/payment'
 import { AccountClient, controlResult } from './account'
-import { CloudClient, RelayError } from './relay'
+import { RelayError, type CloudClient } from './relay'
+import { CloudSession } from './cloud-session'
 import { readCloudSecurity } from './cloud-security'
 import { certifiedValue } from './certified'
 import { verifyChannelEvent } from './channel-proof'
@@ -34,15 +35,13 @@ import {
   hash,
   canonical,
   decodeCanonical,
-  equal,
-  digest
+  equal
 } from '../protocol/codec'
 import {
   readCloudCommand,
   signCloudCommand,
   verifyCloudCommand,
-  type CloudAction,
-  type CloudContext
+  type CloudAction
 } from '../protocol/cloud'
 import { ed25519 } from '../crypto/primitives'
 import { ensure } from '../errors'
@@ -50,28 +49,15 @@ import { xidBytes } from '../protocol/identity'
 import { WalletClient } from './wallet'
 
 export class InboxClient {
-  private state: Awaited<ReturnType<AccountClient['refresh']>> | null = null
+  readonly session: CloudSession
   constructor(
     readonly account: AccountClient,
     readonly cloud: CloudClient,
     readonly payment: Payment,
     readonly paymentId: string,
     readonly accountId: string
-  ) {}
-  private sign = (bytes: Uint8Array) => this.account.crypto.call('contentSign', bytes)
-  private async context(requestId = id()): Promise<CloudContext> {
-    if (!this.state || this.state.verified.expiresAt < Date.now() + 10000) {
-      this.state = await this.account.refresh(this.accountId)
-      await this.cloud.publishSecurity(this.state.verified.evidence)
-    }
-    return {
-      accountId: this.accountId,
-      issuer: this.state.info.issuer,
-      deviceId: this.account.meta.deviceId,
-      securityEpoch: this.state.verified.securityEpoch,
-      requestId,
-      deadline: Math.min(Date.now() + 45000, this.state.verified.expiresAt)
-    }
+  ) {
+    this.session = new CloudSession(account, cloud, accountId)
   }
   private async journal(key: string) {
     const raw = await this.account.crypto.call('commerceJournal', `inbox:${key}`)
@@ -79,9 +65,6 @@ export class InboxClient {
   }
   private save(key: string, value: unknown) {
     return this.account.crypto.call('commerceJournal', `inbox:${key}`, JSON.stringify(value))
-  }
-  private async get(path: string): Promise<any> {
-    return this.cloud.get(path, await this.context(), this.sign)
   }
   private async post(
     key: string,
@@ -94,17 +77,19 @@ export class InboxClient {
     if (repeat && job?.result) job = null
     if (job) ensure(equal(canonical(job.payload), canonical(payload)), 'IDEMPOTENCY_CONFLICT')
     if (job?.result) return job.result
-    const context = await this.context(job && job.deadline > Date.now() ? job.requestId : id())
+    const context = await this.session.context(
+      job && job.deadline > Date.now() ? job.requestId : id()
+    )
     if (!job || job.deadline <= Date.now()) {
       job = {
         payload,
         requestId: context.requestId,
         deadline: context.deadline,
-        signed: await signCloudCommand(context, action, payload, this.sign)
+        signed: await signCloudCommand(context, action, payload, this.session.sign)
       }
       await this.save(key, job)
     }
-    const result = await this.cloud.post(path, job.signed, context, this.sign)
+    const result = await this.cloud.post(path, job.signed, context, this.session.sign)
     job.result = result
     await this.save(key, job)
     return result
@@ -165,10 +150,7 @@ export class InboxClient {
     }
   }
   async ownPolicy() {
-    return this.get(`/v1/inboxes/${this.accountId}/policy`).catch((error) => {
-      if (error instanceof RelayError && error.code === 'NOT_FOUND') return null
-      throw error
-    })
+    return this.session.find(`/v1/inboxes/${this.accountId}/policy`)
   }
   async configure(
     mode: 'closed' | 'contacts' | 'free' | 'paid',
@@ -176,11 +158,11 @@ export class InboxClient {
     net: string,
     allow: string[] = []
   ) {
-    await this.context()
+    await this.session.context()
     ensure(
-      this.state &&
-        'Ready' in this.state.info.vault_write_state &&
-        this.state.info.current_root[0]?.generation ===
+      this.session.state &&
+        'Ready' in this.session.state.info.vault_write_state &&
+        this.session.state.info.current_root[0]?.generation ===
           BigInt(this.account.meta.rootGeneration),
       'REKEY_REQUIRED'
     )
@@ -195,7 +177,7 @@ export class InboxClient {
           policy.offer.offer.expires_at > Date.now()))
     if (
       matches(old) &&
-      old.security_epoch === this.state!.verified.securityEpoch &&
+      old.security_epoch === this.session.state!.verified.securityEpoch &&
       old.root_generation === this.account.meta.rootGeneration
     )
       return old
@@ -213,7 +195,7 @@ export class InboxClient {
       )
     }
     const key = await this.account.crypto.call('inboxKey', version)
-    const context = await this.context(),
+    const context = await this.session.context(),
       keyDescriptor = await signCloudCommand(
         { ...context, requestId: id() },
         'dmsg/inbox/key/v1',
@@ -222,12 +204,12 @@ export class InboxClient {
           inbox_hpke_pub: key.publicKey,
           root_generation: key.rootGeneration
         },
-        this.sign
+        this.session.sign
       )
     let offer: any = null
     if (mode === 'paid') {
       ensure(
-        this.state.device?.input.capabilities.some((c) => 'PaymentOffer' in c),
+        this.session.state.device?.input.capabilities.some((c) => 'PaymentOffer' in c),
         'FORBIDDEN',
         '先在设备与认证中明确启用收款条款批准能力。'
       )
@@ -235,7 +217,7 @@ export class InboxClient {
       const value = {
         account_id: this.accountId,
         device_id: this.account.meta.deviceId,
-        security_epoch: this.state.verified.securityEpoch,
+        security_epoch: this.session.state.verified.securityEpoch,
         home_payment: this.paymentId,
         offer_id: id(),
         ledger: Principal.fromUint8Array(terms.config.ledger).toText(),
@@ -282,14 +264,14 @@ export class InboxClient {
     return result
   }
   async recipientPolicy(recipient: string) {
-    await this.context()
+    await this.session.context()
     const peer = await readCloudSecurity(this.account.user, this.account.agent, {
       accountId: recipient,
-      issuer: this.state!.info.issuer.slice(0, -this.accountId.length) + recipient,
+      issuer: this.session.state!.info.issuer.slice(0, -this.accountId.length) + recipient,
       homeUser: this.account.home.toText()
     })
     await this.cloud.publishSecurity(peer.evidence)
-    const policy = await this.get(`/public/inboxes/${recipient}/policy`)
+    const policy = await this.session.get(`/public/inboxes/${recipient}/policy`)
     const key = readCloudCommand(policy.key_descriptor),
       device = peer.devices.find(
         (d) => hex(Uint8Array.from(d.input.device_id)) === hex(key.kid) && !d.revoked_at.length
@@ -382,7 +364,7 @@ export class InboxClient {
     )
   }
   async status(recipient: string, order: string) {
-    const value = await this.get(`/v1/inboxes/${recipient}/orders/${order}`)
+    const value = await this.session.get(`/v1/inboxes/${recipient}/orders/${order}`)
     const prior = await this.journal(`outgoing:${order}`)
     if (prior)
       ensure(
@@ -567,8 +549,8 @@ export class InboxClient {
         value: b64(Uint8Array.from(leaf.value[0]!)),
         witness: b64(Uint8Array.from(leaf.witness))
       },
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     return {
       order: result,
@@ -579,7 +561,9 @@ export class InboxClient {
     const entries = new Map<string, any>()
     let after = 0
     for (let pageNumber = 0; pageNumber < 10000; pageNumber++) {
-      const page = await this.get(`/v1/inboxes/${this.accountId}?after=${after}&limit=20`)
+      const page = await this.session.get(
+        `/v1/inboxes/${this.accountId}?after=${after}&limit=20`
+      )
       ensure(
         Array.isArray(page.entries) &&
           Number.isSafeInteger(page.next_cursor) &&
@@ -610,23 +594,33 @@ export class InboxClient {
           await this.save(`received:${value.order_id}`, terminal)
           continue
         }
-        const verified = await verifyChannelEvent(
-          { signed: value.signed, evidence: value.evidence, stored_at: value.created_at },
-          {
-            home: this.account.home.toText(),
-            namespace: this.state!.info.issuer.slice(0, -this.accountId.length),
-            agent: this.account.agent
-          }
+        // A letter verified and opened earlier keeps its text; only state fields change.
+        const saved = await this.journal(`received:${value.order_id}`)
+        let text: string
+        if (
+          saved?.signed?.cose_sign1 === value.signed?.cose_sign1 &&
+          saved.ciphertext === value.ciphertext
         )
-        ensure(
-          verified.account === value.sender &&
-            verified.body.action === 'dmsg/inbox/contact/v1' &&
-            verified.body.payload.order_id === value.order_id &&
-            verified.body.payload.recipient === value.recipient &&
-            verified.body.payload.ciphertext === value.ciphertext,
-          'INTEGRITY_FAILED'
-        )
-        const text = await this.account.crypto.call('inboxOpen', value)
+          text = saved.text
+        else {
+          const verified = await verifyChannelEvent(
+            { signed: value.signed, evidence: value.evidence, stored_at: value.created_at },
+            {
+              home: this.account.home.toText(),
+              namespace: this.session.state!.info.issuer.slice(0, -this.accountId.length),
+              agent: this.account.agent
+            }
+          )
+          ensure(
+            verified.account === value.sender &&
+              verified.body.action === 'dmsg/inbox/contact/v1' &&
+              verified.body.payload.order_id === value.order_id &&
+              verified.body.payload.recipient === value.recipient &&
+              verified.body.payload.ciphertext === value.ciphertext,
+            'INTEGRITY_FAILED'
+          )
+          text = await this.account.crypto.call('inboxOpen', value)
+        }
         entries.set(value.order_id, { ...value, text })
         await this.save(`received:${value.order_id}`, { ...value, text })
       }

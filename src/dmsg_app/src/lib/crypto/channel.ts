@@ -28,15 +28,17 @@ import {
   type RotationLease
 } from '../protocol/channel'
 import { derive, hpkeOpen, hpkeSeal, open, seal } from './primitives'
+import { MAX_FORMAL_OBJECT_BYTES } from '../config'
 import type {
   EncryptedObject,
   ObjectKind,
   WorkspaceMeta,
   FileManifest,
   Item,
-  Chunk
+  Chunk,
+  Lease
 } from '../models'
-import type { WorkspaceDB } from '../db'
+import { prefixRange, type WorkspaceDB } from '../db'
 
 export interface ChannelUpload {
   plan: {
@@ -63,10 +65,13 @@ interface PrivateChannel {
   name: string
   genesis: string
   ledger: ChannelLedger | null
-  controlCursor: number
-  messageCursor: number
   keys: Record<string, string>
   candidate?: { lease: RotationLease; key: string; groups: string[] }
+}
+// Relay positions are local routing metadata, not synchronized content.
+interface Cursors {
+  control: number
+  message: number
 }
 interface ChannelFileRef {
   upload_id: string
@@ -87,7 +92,13 @@ interface PrivateChannelFile {
   upload?: ChannelUpload
 }
 interface ChannelPort {
-  ready(): Promise<{ db: WorkspaceDB; meta: WorkspaceMeta; bundle: { hpke: string } }>
+  ready(): Promise<{
+    db: WorkspaceDB
+    meta: WorkspaceMeta
+    bundle: { hpke: string }
+    localKey: Uint8Array
+    lease: Lease
+  }>
   decode<T>(record: EncryptedObject): Promise<T>
   write(
     kind: ObjectKind,
@@ -139,6 +150,27 @@ export class ChannelVault {
     if (equal(canonical(await this.port.decode(record)), canonical(state))) return record
     return this.port.write('formal_channel', state, record.id, record.revision)
   }
+  private async cursors(channel: string): Promise<Cursors> {
+    const { db } = await this.port.ready(),
+      row = await db.db.get('inbox_cursors', channel)
+    return { control: row?.control ?? 0, message: row?.message ?? 0 }
+  }
+  private async saveCursors(channel: string, cursors: Cursors) {
+    const { db, lease } = await this.port.ready()
+    await db.guardedPut('inbox_cursors', { id: channel, ...cursors }, lease)
+  }
+  private async summary(state: PrivateChannel) {
+    const cursors = await this.cursors(state.id)
+    return {
+      id: state.id,
+      name: state.name,
+      genesis: state.genesis,
+      ledger: state.ledger,
+      controlCursor: cursors.control,
+      messageCursor: cursors.message,
+      readableEpochs: Object.keys(state.keys).map(Number)
+    }
+  }
   async remember(input: {
     channel: string
     name: string
@@ -170,8 +202,6 @@ export class ChannelVault {
         name: input.name,
         genesis: input.genesis,
         ledger: null,
-        controlCursor: 0,
-        messageCursor: 0,
         keys: {}
       } satisfies PrivateChannel,
       input.channel
@@ -180,25 +210,19 @@ export class ChannelVault {
   async list() {
     const { db } = await this.port.ready(),
       result = []
-    for (const record of await db.heads('formal_channel')) {
-      const state = await this.port.decode<PrivateChannel>(record)
-      result.push({
-        id: state.id,
-        name: state.name,
-        genesis: state.genesis,
-        ledger: state.ledger,
-        controlCursor: state.controlCursor,
-        messageCursor: state.messageCursor,
-        readableEpochs: Object.keys(state.keys).map(Number)
-      })
-    }
+    for (const record of await db.heads('formal_channel'))
+      result.push(await this.summary(await this.port.decode<PrivateChannel>(record)))
     return result
   }
+  async get(channel: string) {
+    return this.summary((await this.load(channel)).state)
+  }
   async advance(channel: string, ledger: ChannelLedger, cursor: number, events: unknown[]) {
-    const { record, state } = await this.load(channel)
+    const { record, state } = await this.load(channel),
+      cursors = await this.cursors(channel)
     ensure(
       ledger.channel_id === channel &&
-        cursor >= state.controlCursor &&
+        cursor >= cursors.control &&
         (!state.ledger || ledger.control_seq >= state.ledger.control_seq),
       'UNVERIFIED_HEAD'
     )
@@ -209,8 +233,9 @@ export class ChannelVault {
       await this.immutable('formal_control', objectId, { channel, ...event })
     }
     state.ledger = ledger
-    state.controlCursor = cursor
     await this.store(record, state)
+    if (cursor !== cursors.control)
+      await this.saveCursors(channel, { ...cursors, control: cursor })
   }
   private async immutable(kind: ObjectKind, objectId: string, value: unknown) {
     const { db } = await this.port.ready(),
@@ -224,22 +249,27 @@ export class ChannelVault {
     }
     return this.port.write(kind, value, objectId)
   }
+  /** Device-local retry journals, overwritten in place under LocalDataKey. */
   async job(channel: string, key: string, value?: unknown) {
-    const objectId = hash(canonical(['dmsg/channel-job/1', channel, key])),
-      { db } = await this.port.ready()
-    const record = await db.getHead(objectId, 'formal_operation')
+    ensure(/^[0-9a-f]{64}$/.test(channel) && key.length <= 400, 'INVALID_INPUT')
+    const { db, localKey, lease } = await this.port.ready(),
+      id = `channel-job:${channel}:${key}`,
+      aad = ['dmsg/channel-job/1', db.name, id]
     if (value === undefined) {
-      if (!record) return null
-      const stored = await this.port.decode<any>(record)
-      ensure(stored.channel === channel && stored.key === key, 'INTEGRITY_FAILED')
-      return stored.value
+      const row = await db.db.get('local_private', id)
+      return row
+        ? decodeCanonical<any>(
+            await open(localKey, row.ciphertext, aad),
+            MAX_FORMAL_OBJECT_BYTES
+          )
+        : null
     }
-    ensure(canonical(value).length <= 450000, 'QUOTA_EXCEEDED')
-    await this.port.write(
-      'formal_operation',
-      { format: 'dmsg-channel-job/1', channel, key, value },
-      objectId,
-      record?.revision ?? null
+    const encoded = canonical(value)
+    ensure(encoded.length <= 450000, 'QUOTA_EXCEEDED')
+    await db.guardedPut(
+      'local_private',
+      { id, ciphertext: await seal(localKey, encoded, aad) },
+      lease
     )
     return value
   }
@@ -1032,9 +1062,10 @@ export class ChannelVault {
     through: number,
     backfill = false
   ) {
-    const { record, state } = await this.load(channel)
+    const { state } = await this.load(channel),
+      cursors = await this.cursors(channel)
     ensure(
-      Number.isSafeInteger(through) && (backfill || through >= state.messageCursor),
+      Number.isSafeInteger(through) && (backfill || through >= cursors.message),
       'UNVERIFIED_HEAD'
     )
     for (const item of input) {
@@ -1042,7 +1073,7 @@ export class ChannelVault {
         root = state.keys[payload.epoch]
       ensure(
         payload.channel_id === channel &&
-          item.seq > (backfill ? 0 : state.messageCursor) &&
+          item.seq > (backfill ? 0 : cursors.message) &&
           item.seq <= through,
         'INTEGRITY_FAILED'
       )
@@ -1087,19 +1118,22 @@ export class ChannelVault {
         key.fill(0)
       }
     }
-    if (!backfill) state.messageCursor = through
-    await this.store(record, state)
+    if (!backfill && through !== cursors.message)
+      await this.saveCursors(channel, { ...cursors, message: through })
   }
   async pending(channel: string) {
+    ensure(/^[0-9a-f]{64}$/.test(channel), 'INVALID_INPUT')
     const { db } = await this.port.ready(),
+      prefix = `channel-job:${channel}:`,
       rows = []
-    for (const record of await db.heads('formal_operation', channel)) {
-      const saved = await this.port.decode<any>(record)
-      if (saved.channel === channel && saved.value?.action && saved.value.result === undefined)
+    for (const key of await db.db.getAllKeys('local_private', prefixRange(prefix))) {
+      const name = String(key).slice(prefix.length),
+        value = await this.job(channel, name)
+      if (value?.action && value.result === undefined)
         rows.push({
-          key: saved.key as string,
-          action: saved.value.action as string,
-          requestId: saved.value.context.requestId as string
+          key: name,
+          action: value.action as string,
+          requestId: value.context.requestId as string
         })
     }
     return rows

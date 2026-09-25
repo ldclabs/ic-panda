@@ -1,7 +1,8 @@
 import { WorkspaceDB, currentWorkspace } from '../db'
-import type { CipherDispatch } from './background'
-import { AccountClient } from './account'
-import { CloudClient, RelayError, verifyCloudProfile } from './relay'
+import { settledDispatches, type CipherDispatch } from './background'
+import type { AccountClient } from './account'
+import { CloudSession } from './cloud-session'
+import { verifyCloudProfile, type CloudClient } from './relay'
 import {
   canonical,
   decodeCanonical,
@@ -19,11 +20,11 @@ import {
   signCloudCommand,
   verifyCloudCommand,
   type CloudAction,
-  type CloudContext,
   type CloudProfile,
   type CloudSigned
 } from '../protocol/cloud'
 import {
+  CLOUD_KINDS,
   readObject,
   uploadPlanSchema,
   storedUploadPlanSchema,
@@ -35,69 +36,51 @@ import type { EncryptedObject } from '../models'
 import type { CloudRevision } from '../crypto/content'
 import { ensure } from '../errors'
 
-type State = Awaited<ReturnType<AccountClient['refresh']>>
 export class ContentClient {
-  private state: State | null = null
+  readonly session: CloudSession
   constructor(
     readonly account: AccountClient,
-    readonly cloud: CloudClient,
+    cloud: CloudClient,
     readonly accountId: string
-  ) {}
-  private sign = (bytes: Uint8Array) => this.account.crypto.call('contentSign', bytes)
+  ) {
+    this.session = new CloudSession(account, cloud, accountId)
+  }
   private base() {
     return `/v1/accounts/${this.accountId}`
   }
-  async refresh() {
-    this.state = await this.account.refresh(this.accountId)
-    await this.cloud.publishSecurity(this.state.verified.evidence)
-    return this.state
+  refresh() {
+    return this.session.refresh()
   }
-  private async context(requestId = id()): Promise<CloudContext> {
-    if (!this.state || this.state.verified.expiresAt < Date.now() + 10000) await this.refresh()
-    return {
-      accountId: this.accountId,
-      issuer: this.state!.info.issuer,
-      deviceId: this.account.meta.deviceId,
-      securityEpoch: this.state!.verified.securityEpoch,
-      requestId,
-      deadline: Math.min(Date.now() + 45000, this.state!.verified.expiresAt)
-    }
-  }
-  private async get(path: string) {
-    return this.cloud.get(path, await this.context(), this.sign) as Promise<any>
-  }
-  private async post(path: string, action: CloudAction, payload: Record<string, unknown>) {
-    const context = await this.context()
-    return this.cloud.post(
-      path,
-      await signCloudCommand(context, action, payload, this.sign),
-      context,
-      this.sign
-    ) as Promise<any>
+  private post(path: string, action: CloudAction, payload: Record<string, unknown>) {
+    return this.session.post(path, action, payload)
   }
   private verify(signed: CloudSigned, action: CloudAction) {
-    ensure(this.state, 'AUTH_REQUIRED')
+    const state = this.session.state
+    ensure(state, 'AUTH_REQUIRED')
     const parsed = readCloudCommand(signed)
-    const device = this.state.verified.devices.find(
+    const device = state.verified.devices.find(
       (d) => hex(Uint8Array.from(d.input.device_id)) === hex(parsed.kid)
     )
     ensure(device, 'INTEGRITY_FAILED', '缺少签名设备的认证记录。')
     return verifyCloudCommand(
       signed,
-      { issuer: this.state.info.issuer, deviceId: hex(parsed.kid) },
+      { issuer: state.info.issuer, deviceId: hex(parsed.kid) },
       Uint8Array.from(device.input.signing_pub),
       action
     )
   }
+  private operation(requestId: string) {
+    return this.session.find(`${this.base()}/operations/${requestId}`)
+  }
   async membership() {
-    return this.get(`${this.base()}/membership`)
+    return this.session.get(`${this.base()}/membership`)
   }
   async refreshMembership() {
-    return this.cloud.postRaw(
+    return this.session.cloud.postRaw(
       `${this.base()}/membership/refresh`,
       null,
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
   }
   async acknowledgeNotice(noticeId: string) {
@@ -106,10 +89,10 @@ export class ContentClient {
     })
   }
   async quota() {
-    return this.get(`${this.base()}/quota`)
+    return this.session.get(`${this.base()}/quota`)
   }
   async profile() {
-    const value = await this.get(`${this.base()}/profile`)
+    const value = await this.session.get(`${this.base()}/profile`)
     const saved = await this.account.crypto.call(
       'controlGet',
       `profile-head:${this.accountId}`
@@ -121,12 +104,12 @@ export class ContentClient {
     }
     this.verify(value.signed, 'dmsg/profile/v1')
     const parsed = readCloudCommand(value.signed),
-      device = this.state!.verified.devices.find(
+      device = this.session.state!.verified.devices.find(
         (d) => hex(Uint8Array.from(d.input.device_id)) === hex(parsed.kid)
       )!
     const profile = verifyCloudProfile(
       value,
-      { ...(await this.context()), deviceId: hex(parsed.kid) },
+      { ...(await this.session.context()), deviceId: hex(parsed.kid) },
       Uint8Array.from(device.input.signing_pub)
     )
     ensure(
@@ -155,25 +138,30 @@ export class ContentClient {
         '先对账上一次公开资料修改，再提交新内容。'
       )
     else job = { requestId: id(), payload: profile }
-    const status = await this.get(`${this.base()}/operations/${job.requestId}`).catch(
-      (cause) => {
-        if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return { found: false }
-        throw cause
-      }
-    )
-    let receipt = status.result
-    if (!status.found) {
-      const context = await this.context(job.requestId)
+    const status = await this.operation(job.requestId)
+    let receipt = status?.result
+    if (!status?.found) {
+      const context = await this.session.context(job.requestId)
       if (
         !job.signed ||
         job.deadline <= Date.now() ||
         readCloudCommand(job.signed).body.security_epoch !== context.securityEpoch
       ) {
-        job.signed = await signCloudCommand(context, 'dmsg/profile/v1', job.payload, this.sign)
+        job.signed = await signCloudCommand(
+          context,
+          'dmsg/profile/v1',
+          job.payload,
+          this.session.sign
+        )
         job.deadline = context.deadline
       }
       await this.account.crypto.call('controlPut', key, JSON.stringify(job))
-      receipt = await this.cloud.post(`${this.base()}/profile`, job.signed, context, this.sign)
+      receipt = await this.session.cloud.post(
+        `${this.base()}/profile`,
+        job.signed,
+        context,
+        this.session.sign
+      )
     }
     ensure(
       receipt?.version === profile.version &&
@@ -195,12 +183,7 @@ export class ContentClient {
   private async upload(upload: ContentUpload) {
     const plan = uploadPlanSchema.parse(upload.plan),
       base = this.base()
-    let previous: any = null
-    try {
-      previous = await this.get(`${base}/uploads/${plan.upload_id}`)
-    } catch (cause) {
-      if (!(cause instanceof RelayError && cause.code === 'NOT_FOUND')) throw cause
-    }
+    const previous = await this.session.find(`${base}/uploads/${plan.upload_id}`)
     if (previous)
       ensure(equal(canonical(previous.plan), canonical(plan)), 'IDEMPOTENCY_CONFLICT')
     if (previous?.status === 'committed') return
@@ -213,18 +196,18 @@ export class ContentClient {
       await this.post(`${base}/uploads`, 'dmsg/upload/reserve/v1', plan)
     for (let index = 0; index < plan.chunks.length; index++) {
       const bytes = await this.account.crypto.call('contentChunk', upload, index)
-      await this.cloud.putChunk(
+      await this.session.cloud.putChunk(
         `${base}/uploads/${plan.upload_id}/chunks/${index}`,
         bytes,
-        await this.context(),
-        this.sign
+        await this.session.context(),
+        this.session.sign
       )
     }
-    await this.cloud.putChunk(
+    await this.session.cloud.putChunk(
       `${base}/uploads/${plan.upload_id}/chunks/manifest`,
       unb64(upload.manifest),
-      await this.context(),
-      this.sign
+      await this.session.context(),
+      this.session.sign
     )
     const result = await this.post(`${base}/uploads/finalize`, 'dmsg/upload/finalize/v1', {
       upload_id: plan.upload_id
@@ -242,12 +225,7 @@ export class ContentClient {
     const now = Date.now()
     for (const upload of job.uploads) {
       const plan = upload.plan
-      const previous = (await this.get(`${this.base()}/uploads/${plan.upload_id}`).catch(
-        (cause) => {
-          if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return null
-          throw cause
-        }
-      )) as any
+      const previous = await this.session.find(`${this.base()}/uploads/${plan.upload_id}`)
       if (previous)
         ensure(equal(canonical(previous.plan), canonical(plan)), 'IDEMPOTENCY_CONFLICT')
       // A committed historical file remains readable under its retained old
@@ -277,32 +255,35 @@ export class ContentClient {
         ) as Promise<ContentJob>)
       : job
   }
-  async push(key: string) {
-    await this.context()
-    const state = this.state!
+  private async writableRoot() {
+    await this.session.context()
+    const state = this.session.state!
     ensure(
-      'Ready' in state.info.vault_write_state,
+      'Ready' in state.info.vault_write_state && state.info.current_root[0],
       'REKEY_REQUIRED',
       '账户需要完成换根，请先前往设备与认证处理。'
     )
+    return Number(state.info.current_root[0].generation)
+  }
+  /** Uploads an unsent revision's objects, or settles one the relay already stored. */
+  private async stage(key: string, generation: number) {
     let job = (await this.account.crypto.call('contentPrepare', key)) as ContentJob
     if (job.revision.result) {
       await this.account.crypto.call('contentAcknowledge', job)
-      return job.revision.result
+      return { job, result: job.revision.result }
     }
-    const stored = await this.get(`${this.base()}/operations/${job.revision.requestId}`).catch(
-      (cause) => {
-        if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return { found: false }
-        throw cause
-      }
-    )
-    if (stored.found) return this.ack(job, stored.result)
-    ensure(state.info.current_root[0], 'REKEY_REQUIRED')
-    job = await this.usableJob(job, Number(state.info.current_root[0].generation))
+    const stored = await this.operation(job.revision.requestId)
+    if (stored?.found) return { job, result: await this.ack(job, stored.result) }
+    job = await this.usableJob(job, generation)
     for (const upload of job.uploads) await this.upload(upload)
-    const vault = job.uploads.find((u) => u.plan.kind === 'vault')!,
-      record = readObject(unb64(vault.object!))
-    const context = await this.context(job.revision.requestId)
+    return { job, result: null }
+  }
+  async push(key: string) {
+    const staged = await this.stage(key, await this.writableRoot())
+    if (staged.result) return staged.result
+    const job = staged.job,
+      record = this.vaultRecord(job)
+    const context = await this.session.context(job.revision.requestId)
     // Immutable IDs/payload are retained. Only expired proof timestamps may be
     // renewed after checking the original operation and each upload status.
     const previous = job.revision.signed
@@ -313,31 +294,33 @@ export class ContentClient {
       (job.revision.deadline ?? 0) <= Date.now() ||
       previous.body.security_epoch !== context.securityEpoch
     ) {
-      const payload = await this.revisionPayload(job, record)
       const signed = await signCloudCommand(
         context,
         'dmsg/vault/revision/v1',
-        payload,
-        this.sign
+        await this.revisionPayload(job, record),
+        this.session.sign
       )
       job.revision.signed = signed.cose_sign1
       job.revision.deadline = context.deadline
       await this.account.crypto.call('contentSave', job)
     }
-    const result = await this.cloud.post(
+    const result = await this.session.cloud.post(
       `${this.base()}/vault`,
       { cose_sign1: job.revision.signed! },
       context,
-      this.sign
+      this.session.sign
     )
     return this.ack(job, result)
+  }
+  private vaultRecord(job: ContentJob) {
+    return readObject(unb64(job.uploads.find((u) => u.plan.kind === 'vault')!.object!))
   }
   private async revisionPayload(job: ContentJob, record: EncryptedObject) {
     if (job.revision.signed)
       return readCloudCommand({ cose_sign1: job.revision.signed }).body.payload
     let restore = false
     if (record.parent && !record.tombstone) {
-      const current = await this.get(`${this.base()}/vault/${record.id}`)
+      const current = await this.session.get(`${this.base()}/vault/${record.id}`)
       const body = this.verify(current.signed, 'dmsg/vault/revision/v1')
       restore = body.payload.tombstone === true && body.payload.revision_id === record.parent
     }
@@ -353,7 +336,7 @@ export class ContentClient {
     }
   }
   private async ack(job: ContentJob, value: any) {
-    const record = readObject(unb64(job.uploads.find((u) => u.plan.kind === 'vault')!.object!))
+    const record = this.vaultRecord(job)
     ensure(
       value?.revision_id === record.revision &&
         typeof value.conflict === 'boolean' &&
@@ -371,70 +354,62 @@ export class ContentClient {
     await this.account.crypto.call('contentAcknowledge', job)
     return job.revision.result
   }
+  private async pending() {
+    return (await this.account.crypto.call('contentPending'))
+      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK))
+      .filter((r) => CLOUD_KINDS.includes(r.kind))
+  }
+  /** Applies background results; a missing result is reconciled by operation ID. */
+  private async settleDispatches() {
+    const name = await currentWorkspace()
+    if (!name) return
+    const db = await WorkspaceDB.open(name)
+    try {
+      for (const dispatch of await settledDispatches(db)) {
+        if (dispatch.state === 'complete' && dispatch.account === this.accountId) {
+          const job = (await this.account.crypto.call(
+            'contentPrepare',
+            dispatch.recordKey
+          )) as ContentJob
+          if (job.revision.requestId === dispatch.requestId && !job.revision.result)
+            await this.ack(job, dispatch.result)
+        }
+        await db.db.delete('meta', `dispatch:${dispatch.id}`)
+      }
+    } finally {
+      db.db.close()
+    }
+  }
   async prepareBackground() {
+    await this.settleDispatches()
     const state = await this.refresh()
-    ensure('Ready' in state.info.vault_write_state, 'REKEY_REQUIRED')
-    const pending = (await this.account.crypto.call('contentPending')).map((j) =>
-      decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK)
-    )
+    const generation = await this.writableRoot()
+    const pending = await this.pending()
     const pendingIds = new Set(pending.map((record) => record.revision))
-    const eligible = pending
-      .filter(
-        (r) =>
-          [
-            'vault',
-            'migration',
-            'migration_part',
-            'profile',
-            'request',
-            'formal_channel',
-            'formal_control',
-            'formal_operation',
-            'formal_message',
-            'formal_file',
-            'commerce',
-            'inbox'
-          ].includes(r.kind) && !pendingIds.has(r.parent ?? '')
-      )
-      .slice(0, 25)
+    const eligible = pending.filter((r) => !pendingIds.has(r.parent ?? '')).slice(0, 25)
     ensure(state.info.current_root[0], 'REKEY_REQUIRED')
     let queued = 0
     for (const record of eligible) {
-      let job = (await this.account.crypto.call('contentPrepare', record.key)) as ContentJob
-      if (job.revision.result) {
-        await this.account.crypto.call('contentAcknowledge', job)
-        continue
-      }
-      const stored = await this.get(
-        `${this.base()}/operations/${job.revision.requestId}`
-      ).catch((cause) => {
-        if (cause instanceof RelayError && cause.code === 'NOT_FOUND') return { found: false }
-        throw cause
-      })
-      if (stored.found) {
-        await this.ack(job, stored.result)
-        continue
-      }
-      job = await this.usableJob(job, Number(state.info.current_root[0].generation))
-      for (const upload of job.uploads) await this.upload(upload)
-      const context = await this.context(job.revision.requestId)
-      const payload = await this.revisionPayload(job, record)
+      const { job, result } = await this.stage(record.key, generation)
+      if (result) continue
+      const context = await this.session.context(job.revision.requestId)
       const signed = await signCloudCommand(
         context,
         'dmsg/vault/revision/v1',
-        payload,
-        this.sign
+        await this.revisionPayload(job, record),
+        this.session.sign
       )
       job.revision.signed = signed.cose_sign1
       job.revision.deadline = context.deadline
       await this.account.crypto.call('contentSave', job)
       const body = canonical(signed),
-        base = this.base()
+        base = this.base(),
+        origin = this.session.cloud.origin
       const dispatch: CipherDispatch = {
         id: job.revision.requestId,
         format: 'dmsg-cipher-dispatch/1',
         account: this.accountId,
-        origin: this.cloud.origin,
+        origin,
         deadline: context.deadline,
         state: 'queued',
         attempts: 0,
@@ -445,17 +420,17 @@ export class ContentClient {
         command: signed.cose_sign1,
         postProof: await signCloudHttp(
           context,
-          new URL(`${base}/vault`, this.cloud.origin),
+          new URL(`${base}/vault`, origin),
           'POST',
           body,
-          this.sign
+          this.session.sign
         ),
         statusProof: await signCloudHttp(
           context,
-          new URL(`${base}/operations/${context.requestId}`, this.cloud.origin),
+          new URL(`${base}/operations/${context.requestId}`, origin),
           'GET',
           new Uint8Array(),
-          this.sign
+          this.session.sign
         )
       }
       const name = await currentWorkspace()
@@ -473,24 +448,8 @@ export class ContentClient {
     return queued
   }
   async pushPending() {
-    const pending = (await this.account.crypto.call('contentPending'))
-      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK))
-      .filter((r) =>
-        [
-          'vault',
-          'migration',
-          'migration_part',
-          'profile',
-          'request',
-          'formal_channel',
-          'formal_control',
-          'formal_operation',
-          'formal_message',
-          'formal_file',
-          'commerce',
-          'inbox'
-        ].includes(r.kind)
-      )
+    await this.settleDispatches()
+    const pending = await this.pending()
     const ids = new Set(pending.map((record) => record.revision)),
       children = new Map<string, EncryptedObject[]>(),
       ordered = pending.filter((record) => !record.parent || !ids.has(record.parent))
@@ -525,7 +484,7 @@ export class ContentClient {
     let cursor = 0,
       evidenceBytes = utf8(JSON.stringify(start)).length
     for (;;) {
-      const page = await this.get(
+      const page = await this.session.get(
         `${this.base()}/exports/${start.export_id}?after=${cursor}&limit=100`
       )
       ensure(
@@ -558,21 +517,21 @@ export class ContentClient {
           )
           let missing = await this.account.crypto.call('contentMissing', plan)
           if (!missing.manifest) {
-            const manifest = await this.cloud.getChunk(
+            const manifest = await this.session.cloud.getChunk(
               `${this.base()}/objects/${plan.upload_id}/chunks/manifest`,
               plan.manifest_digest,
-              await this.context(),
-              this.sign
+              await this.session.context(),
+              this.session.sign
             )
             await this.account.crypto.call('contentCache', plan, 'manifest', manifest)
             missing = await this.account.crypto.call('contentMissing', plan)
           }
           for (const index of missing.chunks) {
-            const data = await this.cloud.getChunk(
+            const data = await this.session.cloud.getChunk(
               `${this.base()}/objects/${plan.upload_id}/chunks/${index}`,
               plan.chunks[index].digest,
-              await this.context(),
-              this.sign
+              await this.session.context(),
+              this.session.sign
             )
             await this.account.crypto.call('contentCache', plan, index, data)
           }

@@ -7,7 +7,11 @@ import { equal, hex, unhex, hash, utf8 } from '../src/lib/protocol/codec'
 import { accountIssuer } from '../src/lib/protocol/identity'
 import { idlFactory } from '../src/lib/canisters/generated/user/index.js'
 import type { _SERVICE, ExecutionResult } from '../src/lib/canisters/generated/user'
-import { coseClient, prepareRootDerivation, prepareSign } from '../src/lib/services/cose'
+import {
+  prepareRootDerivation,
+  prepareSign,
+  recordedExecution
+} from '../src/lib/services/cose'
 
 const fill = (n: number) => new Uint8Array(32).fill(n)
 const now = 1799999940000
@@ -215,9 +219,8 @@ describe('typed COSE client and independent Rust approval vectors', () => {
     })
     expect(user.sign).toHaveBeenCalledOnce()
     expect(signer).toHaveBeenCalledOnce()
-    const client = coseClient(user, { public_key: vi.fn() } as never)
     expect(
-      await client.reconcileExecution(context().accountId, unhex(prepared.requestId))
+      await recordedExecution(user, context().accountId, unhex(prepared.requestId))
     ).toEqual(result)
     expect(user.reconcile_execution).toHaveBeenCalledWith(
       context().accountId,
