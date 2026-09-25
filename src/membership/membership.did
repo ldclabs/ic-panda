@@ -321,7 +321,7 @@ type PandaRatePolicy = record {
 };
 // Deployment-wide service limits, independent of product plan names.
 type PandaServiceConfig = record {
-  // Maximum claims simultaneously occupying a neuron, excluding short Apply windows.
+  // Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
   max_claims : nat64;
   // Successful new applications per UTC hour.
   hourly_applications : nat64;

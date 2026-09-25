@@ -1195,3 +1195,135 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
     assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
     assert_eq!(apply(174, 44).unwrap().status, PandaClaimStatus::CoolingDown);
 }
+
+#[test]
+fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    let (home, subject) = sample(&f);
+    neuron(&f, 100_000_000_000_100, false);
+    let r: Result<()> = update(
+        &f.ic,
+        f.membership,
+        f.sns,
+        "configure_panda_service",
+        (PandaServiceConfig {
+            commerce_canister: f.commerce,
+            max_claims: 1,
+            hourly_applications: 100,
+            cooling_ms: PANDA_COOLING_MS,
+        },),
+    );
+    r.unwrap();
+    let prepared = sample_offer(&f, home, &subject, 180, SettlementMethod::Panda);
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (prepared.offer.clone(), f.user, account, Hash::new([44; 32])),
+    );
+    let terms = terms.unwrap();
+    let authorize = |op| {
+        let mut a = approve(
+            &f,
+            &account,
+            &prepared.offer,
+            f.membership,
+            ApprovalPurpose::PandaSubscription,
+            panda_application_hash(&terms),
+            op,
+        );
+        a.product_approval = Some(prepared.approval.clone());
+        a
+    };
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: terms.clone(),
+            authorization: authorize(181),
+        },),
+    );
+    let claim = r.unwrap();
+    assert_eq!(claim.status, PandaClaimStatus::CoolingDown);
+    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let r: Result<()> = update(&f.ic, home, person(1), "lose_next_apply_ack", ());
+    r.unwrap();
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (claim.claim_id, authorize(182)),
+    );
+    assert!(r.is_err());
+    let r: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (claim.claim_id,),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Applying);
+    let contracts: Result<Vec<SubscriptionContract>> =
+        query(&f.ic, home, person(1), "contracts", (subject,));
+    assert_eq!(contracts.unwrap().len(), 1);
+
+    // An independent product and neuron must still respect the occupied slot.
+    let apply_other = |op| -> Result<PandaClaimView> {
+        let bill = offer(&f, &account, op);
+        let terms: Result<PandaApplicationTerms> = update(
+            &f.ic,
+            f.membership,
+            person(1),
+            "quote_panda_subscription",
+            (bill.clone(), f.user, account, Hash::new([45; 32])),
+        );
+        let terms = terms.unwrap();
+        let authorization = approve(
+            &f,
+            &account,
+            &bill,
+            f.membership,
+            ApprovalPurpose::PandaSubscription,
+            panda_application_hash(&terms),
+            op + 1,
+        );
+        update(
+            &f.ic,
+            f.membership,
+            person(1),
+            "request_panda_claim",
+            (PandaClaimRequest {
+                terms,
+                authorization,
+            },),
+        )
+    };
+    assert_eq!(apply_other(183), Err(Error::QuotaExceeded));
+    f.ic.upgrade_canister(
+        f.membership,
+        wasm("membership"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(apply_other(185), Err(Error::QuotaExceeded));
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "reconcile_panda_claim",
+        (claim.claim_id,),
+    );
+    assert_eq!(r.unwrap().status, PandaClaimStatus::Active);
+    assert_eq!(apply_other(187), Err(Error::QuotaExceeded));
+    f.ic.advance_time(Duration::from_millis(
+        prepared.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    // Admission sweeps the ended commitment and can reserve the freed slot.
+    assert_eq!(apply_other(189).unwrap().status, PandaClaimStatus::Checking);
+}

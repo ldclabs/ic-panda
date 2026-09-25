@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct PandaServiceConfig {
     /// Authority for app/product registrations.
     pub commerce_canister: Principal,
-    /// Maximum claims simultaneously occupying a neuron, excluding short Apply windows.
+    /// Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
     pub max_claims: u64,
     /// Successful new applications per UTC hour.
     pub hourly_applications: u64,

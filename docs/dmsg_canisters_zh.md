@@ -79,3 +79,5 @@ pnpm --dir src/dmsg_app test
 2026-09-25 payment 使用 schema 7：出金腿的并发锁改为内存占用键，升级或回调 trap 丢失账本回复后仍为 `InFlight` 的腿可用冻结参数重发，由账本去重；`Superseded` 腿返回 `VersionConflict`。开单只约束 user 观察时间与本地时间的差值，入金块时间不再与本地时间比较。付款方索引只保存键，出金块索引保存 `(escrow_id, leg_id)`，升级重建认证树只发布一次根哈希。
 
 2026-09-25 membership 使用新的开发布局（配置单元合并服务配置与每小时申请计数，申请表改为 memory 1–4），不读取旧实例。移除 USD 补贴预算：`PandaRatePolicy`、`ProductRegistration` 与 `PandaQuote` 不再含补贴字段，`set_panda_subsidy_budget`/`panda_budgets` 删除；`max_claims` 只计仍占用神经元的申请。会员到期 E 取报价固定的 offer 终点，神经元最早解锁不得早于 E。同一申请一分钟内复用资格观察；固定 governance 模块时经 `canister_info` 同时核对模块 hash 与唯一 controller 为 SNS root。每分钟调用计数只在 heap 中，不再有 `pre_upgrade`；申请只在索引、占用或公开视图变化时更新对应表和认证叶。
+
+`max_claims` 包含尚未对账完成的 `Applying` 申请，不使用到期索引长度代替占用数量。占用计数随申请状态更新，升级时在重建认证树的同一次遍历中恢复；Apply 回执丢失不会腾出新申请容量。PocketIC 回归覆盖回执丢失后的准入拒绝、升级恢复、成功对账继续占用及承诺到期后的容量释放。

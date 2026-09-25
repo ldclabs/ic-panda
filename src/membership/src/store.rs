@@ -113,7 +113,7 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
 pub fn rebuild() {
     CERT.with_borrow_mut(|c| {
         *c = Certification::default();
-        crate::claims::certify_all(c);
+        crate::claims::rebuild(c);
         c.publish();
     });
 }

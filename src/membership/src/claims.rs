@@ -11,7 +11,7 @@ use dmsg_types::{
     integration::*, integration_billing::*, integration_membership::*, membership::Eligibility, *,
 };
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 /// Current and announced rate policies; superseded ones are pruned when scheduling.
@@ -28,6 +28,8 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(store::memory(3)));
     static EXPIRATIONS: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
         RefCell::new(StableBTreeMap::init(store::memory(4)));
+    // Rebuilt from stable claims alongside the certified views on init and upgrade.
+    static LIVE_CLAIMS: Cell<u64> = const { Cell::new(0) };
 }
 
 fn load(id: Hash) -> Result<Claim> {
@@ -75,6 +77,14 @@ fn save(c: &mut Claim) {
         });
     }
     if old.as_ref().is_some_and(Claim::holds) != c.holds() {
+        LIVE_CLAIMS.with(|count| {
+            let next = if c.holds() {
+                count.get().checked_add(1)
+            } else {
+                count.get().checked_sub(1)
+            };
+            count.set(next.expect("live claim count"));
+        });
         let n = neuron(&c.view.terms);
         NEURONS.with_borrow_mut(|t| {
             let mut refs: Vec<Hash> = t.load(n.as_slice()).unwrap_or_default();
@@ -99,9 +109,9 @@ fn save(c: &mut Claim) {
     CLAIMS.with_borrow_mut(|t| t.put(id.as_slice(), c));
 }
 
-/// Claims occupying a neuron with a release time; short Apply windows are not counted.
+/// All claims occupying a neuron, including unresolved Apply decisions.
 pub(crate) fn live_claims() -> u64 {
-    EXPIRATIONS.with_borrow(|t| t.len())
+    LIVE_CLAIMS.with(Cell::get)
 }
 
 #[ic_cdk::update]
@@ -671,13 +681,16 @@ fn sweep_panda_commitments() -> Result<u32> {
     sweep(nanos_to_millis(ic_cdk::api::time()))
 }
 
-/// Stage every claim view; the caller publishes the root once.
-pub(crate) fn certify_all(cert: &mut Certification) {
+/// Rebuild the live count and stage every claim view; the caller publishes the root once.
+pub(crate) fn rebuild(cert: &mut Certification) {
+    let mut live = 0;
     CLAIMS.with_borrow(|t| {
         t.for_each(|_, c: Claim| {
+            live += u64::from(c.holds());
             cert.set(key(c.view.claim_id), canonical(&c.view));
         })
     });
+    LIVE_CLAIMS.with(|count| count.set(live));
 }
 
 #[ic_cdk::query]
@@ -741,6 +754,60 @@ mod tests {
         assert_ne!(leaf(id), certified);
         assert_eq!(live_claims(), 0);
         assert!(NEURONS.with_borrow(|t| t.load(n.as_slice())).is_none());
+    }
+
+    #[test]
+    fn applying_claims_keep_capacity_until_rejected_or_expired() {
+        for applied in [false, true] {
+            let mut request = fixture::claim();
+            request.terms.offer.operation_id = Hash::new([if applied { 91 } else { 90 }; 32]);
+            let id = panda_claim_id(&request.terms);
+            let mut c = Claim::new(id, request, PANDA_COOLING_MS);
+            c.product_reserved = true;
+            let start = fixture::base::NOW;
+            c.observe(Eligibility::Eligible, start, start).unwrap();
+            save(&mut c);
+            let at = start + PANDA_COOLING_MS;
+            c.observe(Eligibility::Eligible, at, at).unwrap();
+            c.preparing_apply(at).unwrap();
+            save(&mut c);
+            assert_eq!(live_claims(), 1);
+            assert_eq!(c.expire(at + 2 * DAY), Err(Error::ExecutionUnknown));
+            store::rebuild();
+            assert_eq!(live_claims(), 1);
+
+            let decision = c.decision.as_ref().unwrap();
+            let receipt = ProductReceipt {
+                version: COMMERCE_VERSION,
+                decision_id: decision.decision_id,
+                decision_hash: product_decision_hash(decision),
+                adapter: decision.offer.adapter,
+                outcome: if applied {
+                    ProductOutcome::Applied {
+                        business_revision: 1,
+                        contract_id: Hash::new([90; 32]),
+                        committed_until_ms: decision.offer.expires_at_ms,
+                    }
+                } else {
+                    ProductOutcome::Rejected {
+                        reason: ProductRejection::Expired,
+                    }
+                },
+                applied_at_ms: at,
+            };
+            c.accept(receipt).unwrap();
+            save(&mut c);
+            save(&mut c);
+            assert_eq!(live_claims(), u64::from(applied));
+            if applied {
+                c.expire(c.view.committed_until_ms).unwrap();
+                save(&mut c);
+                save(&mut c);
+            }
+            assert_eq!(live_claims(), 0);
+            store::rebuild();
+            assert_eq!(live_claims(), 0);
+        }
     }
 
     #[test]
