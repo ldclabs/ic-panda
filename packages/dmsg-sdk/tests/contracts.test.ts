@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { canonical, digest, sha256, unb64, unbase64, unhex } from '../src/encoding.ts'
+import { canonical, decodeCanonical, digest, sha256, unb64, unbase64, unhex, utf8, unutf8 } from '../src/encoding.ts'
 import { validateShape, validateApp, validateProduct, validateBillingOffer, validateAuthentication, validateRatePolicy, validateOrigin, requiredPandaStake, billingOfferHash, authenticationRequestHash, applicationApprovalHash, quotePanda, validateApplicationApproval, validateCashQuote, matchProductReceipt } from '../src/validation.ts'
 import type { AppRegistration, ProductRegistration, BillingOffer, AuthenticationRequest, ApplicationApproval } from '../src/contracts.ts'
 
@@ -75,6 +75,17 @@ test('malformed text encodings fail with protocol codes instead of runtime error
   assert.throws(() => validateBillingOffer({ ...offer, version: 1n }, app, product, now), { code: 'UNSUPPORTED_PROTOCOL' })
   assert.throws(() => validateBillingOffer(offer, { ...app, paused: true }, product, now), { code: 'LOCKED' })
   assert.throws(() => validateBillingOffer(offer, app, product, offer.accept_by_ms), { code: 'EXPIRED' })
+})
+
+test('canonical text preserves leading U+FEFF and Unicode through round trips', () => {
+  const encoded = Uint8Array.from(Buffer.from('64efbbbf41', 'hex'))
+  assert.equal(decodeCanonical(encoded), '\ufeffA')
+  assert.deepEqual(canonical('\ufeffA'), encoded)
+  for (const text of ['\ufeff', '\ufeff你好🌍', '你好🌍', 'a\ufeffb']) {
+    validateShape('String', text)
+    assert.equal(unutf8(utf8(text)), text)
+    assert.deepEqual(decodeCanonical(canonical({ [text]: text })), { [text]: text })
+  }
 })
 
 test('exact origins and app pause reject unsafe acceptance', () => {

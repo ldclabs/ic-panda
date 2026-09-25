@@ -11,7 +11,8 @@ export type CborValue =
   | CborValue[]
   | { [key: string]: CborValue };
 const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8", { fatal: true });
+// Preserve leading U+FEFF as part of the signed string.
+const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const U64 = (1n << 64n) - 1n;
 const U128 = (1n << 128n) - 1n;
 

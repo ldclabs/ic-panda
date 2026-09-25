@@ -38,6 +38,15 @@ test("four closed action variants validate independently and match Rust commitme
   }
 });
 
+test("action file display names retain leading U+FEFF through the wire", () => {
+  const action = fixture();
+  action.files[0]!.display_name = "\ufeffreport.pdf";
+  validateAppAction(action);
+  const decoded = decodeCanonical(canonical(action)) as unknown as AppAction;
+  validateAppAction(decoded);
+  assert.deepEqual(decoded, action);
+});
+
 test("action receiver, origin, manifest, display data and intent are inseparable", () => {
   const action = fixture(),
     original = appActionDigest(action);
