@@ -6,6 +6,7 @@
   import LinkOut from './LinkOut.svelte'
   import ProjectDmsg from './ProjectDmsg.svelte'
   import SectionShell from './SectionShell.svelte'
+  import StructureSchematic from './StructureSchematic.svelte'
 </script>
 
 <SectionShell id="projects" index="03" label={$t('Projects')}>
@@ -26,6 +27,9 @@
             'Anda advances persistent machine cognition. TokenList builds verifiable capital formation. dMsg puts an encrypted private workspace and identity signing tools in your browser.'
           )}
         </p>
+      </Reveal>
+      <Reveal delay={140} class="mt-10">
+        <StructureSchematic />
       </Reveal>
     </div>
   </div>

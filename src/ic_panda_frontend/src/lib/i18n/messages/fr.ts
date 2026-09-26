@@ -545,5 +545,13 @@ export default {
   'Close dialog': 'Fermer la boîte de dialogue',
   'Enter a name without line breaks': 'Saisissez un nom sans saut de ligne',
   'Share your lucky code with others.': 'Partagez votre code chance.',
-  'Lucky Code (Optional):': 'Code chance (facultatif) :'
+  'Lucky Code (Optional):': 'Code chance (facultatif) :',
+  'fig.00': 'fig.00',
+  'Panda in bamboo — ink on xuan, painted live':
+    'Panda dans les bambous — encre sur papier xuan, peint en direct',
+  'Seed': 'Graine',
+  'Repaint': 'Repeindre',
+  'Music': 'Musique',
+  'Play music': 'Lancer la musique',
+  'Pause music': 'Mettre la musique en pause'
 } satisfies Messages

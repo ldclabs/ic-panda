@@ -542,5 +542,13 @@ export default {
   'Enter a name without line breaks': 'Введите имя без переносов строк',
   'Share your lucky code with others.':
     'Поделитесь своим кодом удачи с другими.',
-  'Lucky Code (Optional):': 'Код удачи (необязательно):'
+  'Lucky Code (Optional):': 'Код удачи (необязательно):',
+  'fig.00': 'рис.00',
+  'Panda in bamboo — ink on xuan, painted live':
+    'Панда в бамбуке — тушь на рисовой бумаге, пишется вживую',
+  'Seed': 'Сид',
+  'Repaint': 'Перерисовать',
+  'Music': 'Музыка',
+  'Play music': 'Включить музыку',
+  'Pause music': 'Приостановить музыку'
 } satisfies Messages

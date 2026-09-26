@@ -544,5 +544,13 @@ export default {
   'Enter a name without line breaks': 'Introduce un nombre sin saltos de línea',
   'Share your lucky code with others.':
     'Comparte tu código de suerte con otros.',
-  'Lucky Code (Optional):': 'Código de suerte (opcional):'
+  'Lucky Code (Optional):': 'Código de suerte (opcional):',
+  'fig.00': 'fig.00',
+  'Panda in bamboo — ink on xuan, painted live':
+    'Panda entre bambúes — tinta sobre papel xuan, pintado en vivo',
+  'Seed': 'Semilla',
+  'Repaint': 'Volver a pintar',
+  'Music': 'Música',
+  'Play music': 'Reproducir música',
+  'Pause music': 'Pausar música'
 } satisfies Messages

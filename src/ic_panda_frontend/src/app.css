@@ -136,6 +136,129 @@ body {
   );
 }
 
+/**
+ * Tracing paper (描图纸): frosted, gridded drafting film laid over the ink
+ * painting on the landing page, pinned with registration marks.
+ */
+:root {
+  --film: rgb(248 249 248 / 80%);
+  --film-bar: rgb(248 249 248 / 88%);
+  --film-edge: rgb(11 11 11 / 13%);
+  --film-grid: rgb(0 170 230 / 7%);
+  --film-grid-major: rgb(0 170 230 / 15%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --film: rgb(248 249 248 / 96%);
+  }
+}
+
+.sheet {
+  position: relative;
+  z-index: 1;
+  background-color: var(--film);
+  background-image:
+    linear-gradient(var(--film-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--film-grid-major) 1px, transparent 1px),
+    linear-gradient(var(--film-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--film-grid) 1px, transparent 1px);
+  background-size:
+    96px 96px,
+    96px 96px,
+    24px 24px,
+    24px 24px;
+  background-position: -1px -1px;
+  border: 1px solid var(--film-edge);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 55%),
+    0 28px 56px -40px rgb(20 24 28 / 45%);
+  backdrop-filter: blur(2.5px) saturate(0.85);
+}
+
+/* The film's own grain, under the drawing. */
+.sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .16 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* A sheet inked over, for the closing call to action. */
+.sheet-ink {
+  --film: rgb(16 17 19 / 92%);
+  --film-edge: rgb(255 255 255 / 8%);
+  --film-grid: rgb(255 255 255 / 2.5%);
+  --film-grid-major: rgb(255 255 255 / 5%);
+
+  box-shadow: 0 28px 56px -36px rgb(0 0 0 / 60%);
+}
+
+.sheet-ink::before {
+  display: none;
+}
+
+/* A sticky strip of film inside a sheet. */
+@media (min-width: 768px) {
+  .sheet-bar {
+    background: var(--film-bar);
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* Registration marks at the corners of a sheet. */
+.reg {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.reg::before,
+.reg::after {
+  content: '';
+  position: absolute;
+  background: rgb(11 11 11 / 45%);
+}
+
+.reg::before {
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.reg::after {
+  top: 7px;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.reg.tl {
+  left: -8px;
+  top: -8px;
+}
+
+.reg.tr {
+  right: -8px;
+  top: -8px;
+}
+
+.reg.bl {
+  left: -8px;
+  bottom: -8px;
+}
+
+.reg.br {
+  right: -8px;
+  bottom: -8px;
+}
+
 @layer components {
   /* Local replacements for the small set of Skeleton utility classes used by
    * the application. They are intentionally styling-only; interaction lives

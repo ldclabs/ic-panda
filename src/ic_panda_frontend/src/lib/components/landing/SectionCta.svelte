@@ -6,6 +6,7 @@
   import IconX from '$lib/components/icons/IconX.svelte'
   import Reveal from '$lib/components/ui/Reveal.svelte'
   import { LINKS } from '$lib/site'
+  import Registration from './Registration.svelte'
 
   $: actions = [
     { label: $t('Explore GitHub'), href: LINKS.github, icon: IconGithub },
@@ -14,11 +15,11 @@
   ]
 </script>
 
-<section
-  id="community"
-  class="border-ink/15 bg-ink text-paper scroll-mt-16 border-t"
->
-  <div class="mx-auto w-full max-w-6xl px-5 py-16 md:px-10 md:py-24">
+<section id="community" class="scroll-mt-16 px-3 py-4 md:px-6 md:py-8">
+  <div
+    class="sheet sheet-ink text-paper mx-auto w-full max-w-6xl px-5 py-16 md:px-10 md:py-24"
+  >
+    <Registration />
     <div class="border-paper/15 flex items-center gap-4 border-b pb-4">
       <span
         class="font-mono text-xs leading-none font-medium tracking-[0.18em] uppercase tabular-nums"

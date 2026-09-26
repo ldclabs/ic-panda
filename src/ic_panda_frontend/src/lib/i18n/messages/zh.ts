@@ -529,5 +529,13 @@ export default {
   'Close dialog': '关闭对话框',
   'Enter a name without line breaks': '请输入不含换行符的名称',
   'Share your lucky code with others.': '与好友分享你的专属幸运码。',
-  'Lucky Code (Optional):': '幸运码（可选）：'
+  'Lucky Code (Optional):': '幸运码（可选）：',
+  'fig.00': '图 00',
+  'Panda in bamboo — ink on xuan, painted live':
+    '竹林熊猫 — 宣纸水墨，实时绘制',
+  'Seed': '种子',
+  'Repaint': '重新绘制',
+  'Music': '音乐',
+  'Play music': '播放音乐',
+  'Pause music': '暂停音乐'
 } satisfies Messages

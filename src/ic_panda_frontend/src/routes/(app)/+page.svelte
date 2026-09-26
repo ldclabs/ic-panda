@@ -1,6 +1,7 @@
 <script lang="ts">
   import { luckyPoolAPI } from '$lib/canisters/luckypool'
   import PageFooter from '$lib/components/core/PageFooter.svelte'
+  import Registration from '$lib/components/landing/Registration.svelte'
   import SectionArchive from '$lib/components/landing/SectionArchive.svelte'
   import SectionCta from '$lib/components/landing/SectionCta.svelte'
   import SectionDao from '$lib/components/landing/SectionDao.svelte'
@@ -46,6 +47,12 @@
 <SectionArchive />
 <SectionCta />
 
-<footer id="page-footer" class="flex-none">
-  <PageFooter />
+<footer
+  id="page-footer"
+  class="flex-none px-3 pt-4 pb-6 md:px-6 md:pt-8 md:pb-10"
+>
+  <div class="sheet mx-auto w-full max-w-6xl [&>div]:border-t-0">
+    <Registration />
+    <PageFooter />
+  </div>
 </footer>

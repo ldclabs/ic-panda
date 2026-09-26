@@ -547,7 +547,15 @@ const en = {
   'Close dialog': 'Close dialog',
   'Enter a name without line breaks': 'Enter a name without line breaks',
   'Share your lucky code with others.': 'Share your lucky code with others.',
-  'Lucky Code (Optional):': 'Lucky Code (Optional):'
+  'Lucky Code (Optional):': 'Lucky Code (Optional):',
+  'fig.00': 'fig.00',
+  'Panda in bamboo — ink on xuan, painted live':
+    'Panda in bamboo — ink on xuan, painted live',
+  'Seed': 'Seed',
+  'Repaint': 'Repaint',
+  'Music': 'Music',
+  'Play music': 'Play music',
+  'Pause music': 'Pause music'
 }
 
 export type MessageKey = keyof typeof en

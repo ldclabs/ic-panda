@@ -533,5 +533,13 @@ export default {
   'Close dialog': 'إغلاق الحوار',
   'Enter a name without line breaks': 'أدخل اسمًا دون فواصل أسطر',
   'Share your lucky code with others.': 'شارك رمز الحظ مع الآخرين.',
-  'Lucky Code (Optional):': 'رمز الحظ (اختياري):'
+  'Lucky Code (Optional):': 'رمز الحظ (اختياري):',
+  'fig.00': 'شكل 00',
+  'Panda in bamboo — ink on xuan, painted live':
+    'باندا بين الخيزران — حبر على ورق شوان، يُرسم مباشرةً',
+  'Seed': 'البذرة',
+  'Repaint': 'أعِد الرسم',
+  'Music': 'موسيقى',
+  'Play music': 'تشغيل الموسيقى',
+  'Pause music': 'إيقاف الموسيقى مؤقتًا'
 } satisfies Messages
