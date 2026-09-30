@@ -45,7 +45,7 @@
   </div>
 </div>
 <div class="filter-bar" aria-label="设置分类">
-  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '旧名认领'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['services', '服务连接']] as [value, label]}<button
+  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '旧名认领'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['agents', 'Agent 授权'], ['services', '服务连接']] as [value, label]}<button
       class:active={tab === value}
       aria-pressed={tab === value}
       onclick={() => {
@@ -176,6 +176,13 @@
             </div>{/each}
         </div>{:else}<p class="caption">没有待同步条目。</p>{/if}
     </section>
+  {:else if tab === 'agents'}{#await import('./AgentSettings.svelte')}
+      <p role="status">正在加载…</p>
+    {:then component}
+      <component.default />
+    {:catch}
+      <p role="alert">无法加载设置，请重新打开工作台。</p>
+    {/await}
   {:else if tab === 'inbox'}{#await import('./InboxSettings.svelte')}
       <p role="status">正在加载…</p>
     {:then component}

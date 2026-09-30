@@ -125,8 +125,10 @@ impl CoseInitExt for CoseInit {
 
 /// Check supported purpose, algorithm and generation combinations.
 pub trait KeyRequestExt {
-    /// Require a positive generation, vetKD for ContentRoot, and generation 1 with
-    /// Ed25519 or ES256K for formal signing. Does not check account/root existence.
+    /// Require a positive generation, vetKD for ContentRoot, generation 1 with
+    /// Ed25519 or ES256K for formal signing, and Ed25519 with a generation of at
+    /// most `agent::MAX_CONTROLLER_RECORDS` for agent controllers. Does not check
+    /// account/root/controller existence.
     ///
     /// # Errors
     /// Zero generation returns `Error::InvalidInput`; incompatible combinations
@@ -144,6 +146,11 @@ impl KeyRequestExt for KeyRequest {
             ),
             KeyPurpose::Statement | KeyPurpose::FileAttestation | KeyPurpose::AppAction => ensure(
                 self.generation == 1 && self.algorithm != Algorithm::VetKdBls12381,
+                Error::UnsupportedProtocol,
+            ),
+            KeyPurpose::AgentController => ensure(
+                self.generation <= dmsg_types::agent::MAX_CONTROLLER_RECORDS as u64
+                    && self.algorithm == Algorithm::Ed25519,
                 Error::UnsupportedProtocol,
             ),
         }

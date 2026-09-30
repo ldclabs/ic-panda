@@ -110,7 +110,8 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
 }
 
 pub fn reserve(e: &mut AuthorizedExecution, now: u64) -> Result<()> {
-    let ExecutionKind::Sign { key, .. } = &e.grant.kind else {
+    let (ExecutionKind::Sign { key, .. } | ExecutionKind::AgentEvent { key, .. }) = &e.grant.kind
+    else {
         return Ok(());
     };
     let month = month_utc(now)?;

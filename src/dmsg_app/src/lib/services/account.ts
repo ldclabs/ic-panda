@@ -234,7 +234,7 @@ export class AccountClient {
         await this.save({ ...journal, stage: 'rejected', error: code })
       return controlResult(response)
     }
-    if (journal.method === 'mutate_account') {
+    if (journal.method === 'mutate_account' || journal.method === 'register_controller') {
       const receipt = response.Ok as { id: Uint8Array; digest: Uint8Array }
       ensure(
         same(receipt.id, unhex(journal.requestId)) &&
@@ -262,13 +262,13 @@ export class AccountClient {
         await this.save({ ...journal, account, stage: 'confirmed' })
         return account
       }
-    } else if (journal.method === 'mutate_account') {
+    } else if (journal.method === 'mutate_account' || journal.method === 'register_controller') {
       const result = await this.user.get_operation(
         xidBytes(journal.account!),
         unhex(journal.requestId)
       )
       if ('Ok' in result) {
-        const request = decodeControl('mutate_account', journal.args)[0] as AccountMutation
+        const request = decodeControl(journal.method, journal.args)[0] as AccountMutation
         ensure(
           same(result.Ok.id, request.approval.request_id) &&
             same(result.Ok.digest, accountOperationDigest(request)),
@@ -279,7 +279,7 @@ export class AccountClient {
         return journal.account
       }
       ensure('ResultExpired' in result.Err, 'UNAVAILABLE')
-      const request = decodeControl('mutate_account', journal.args)[0] as AccountMutation
+      const request = decodeControl(journal.method, journal.args)[0] as AccountMutation
       const { info, device, verified } = await this.refresh(journal.account!)
       if (
         BigInt(verified.certifiedAt) >= request.approval.expires_at &&
@@ -326,11 +326,14 @@ export class AccountClient {
     await this.refresh(account)
     return account
   }
+  /** `register_controller` carries the same mutation; the home also checks the
+   * approved key against its COSE derivation before committing. */
   async mutate(
     account: string,
     command:
       AccountCommand | ((info: AccountInfo, requestId: Uint8Array) => Promise<AccountCommand>),
-    fixed?: { requestId: string; version: bigint }
+    fixed?: { requestId: string; version: bigint },
+    method: 'mutate_account' | 'register_controller' = 'mutate_account'
   ) {
     ensure(!(await this.pending()), 'Pending', '先查询或继续上一个操作。')
     const { info, device } = await this.refresh(account)
@@ -377,8 +380,8 @@ export class AccountClient {
       home: this.home.toText(),
       caller: this.caller.toText(),
       account,
-      method: 'mutate_account',
-      args: encodeControl('mutate_account', [request]),
+      method,
+      args: encodeControl(method, [request]),
       requestId: hex(requestId),
       stage: 'prepared'
     }

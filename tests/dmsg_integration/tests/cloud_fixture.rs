@@ -41,6 +41,8 @@ fn cloud_extension_gateway() {
             membership_canister: peer,
             max_accounts: 10,
             daily_new_accounts: 10,
+            principal_origin: "https://id.dmsg.test".into(),
+            directory_canister: peer,
         },))
         .unwrap(),
         None,

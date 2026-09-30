@@ -11,6 +11,20 @@ type AccountCommand = variant {
     // Existing device identity; keys and device role remain unchanged.
     device_id : blob;
   };
+  // Bind the next hosted controller key. Submit through `register_controller`,
+  // which checks `public_key` against the COSE derivation.
+  RegisterController : record {
+    // `AgentController` public key of that generation, as shown to the owner.
+    public_key : blob;
+    // Explicit delegation ceiling chosen by the owner.
+    delegation : DelegationAuthority;
+    // Earlier generations whose credentials this key may manage.
+    supersedes : vec nat32;
+    // Optional display label.
+    name : opt text;
+    // Next unused hosted-key generation.
+    generation : nat32;
+  };
   // Record a dispute against a pending recovery operation.
   DisputeRecovery : record {
     // Idempotency identifier; reuse only with identical operation parameters.
@@ -18,10 +32,27 @@ type AccountCommand = variant {
     // Dispute digest to bind a later recovery-key reconfirmation.
     dispute : blob;
   };
+  // Publish this account as an Agent Delegation principal with no controllers.
+  EnablePrincipal : record {
+    // Display type of the principal.
+    principal_type : PrincipalType;
+  };
   // Confirm configured recovery material.
   ConfirmRecovery : record {
     // Recovery-key Ed25519 confirmation; use the matching protocol digest helper.
     proof : blob;
+  };
+  // Change only a controller's display label.
+  RenameController : record {
+    // New label, or None to remove it.
+    name : opt text;
+    // Hosted-key generation.
+    generation : nat32;
+  };
+  // Retire a current hosted controller; it can never sign or return.
+  RetireController : record {
+    // Hosted-key generation to retire.
+    generation : nat32;
   };
   // Bind another proven login Principal.
   BindAuth : record {
@@ -69,6 +100,13 @@ type AccountCommand = variant {
     root : ContentRootRef;
     // Committed root generation expected for compare-and-swap.
     expected_generation : nat64;
+  };
+  // Retire a controller if needed and record its earliest untrusted time.
+  MarkControllerCompromised : record {
+    // New cutoff; may only be added or moved earlier, never before `valid_from`.
+    invalid_from : nat64;
+    // Hosted-key generation.
+    generation : nat32;
   };
   // Revoke a device and invalidate affected security state.
   RevokeDevice : record {
@@ -191,6 +229,22 @@ type ActionReviewOutcome = variant {
   Rejected;
   // Return specific changes.
   ChangesRequested;
+};
+// Hosted-signing request for one exact Agent Delegation event.
+// `event` is the exact JCS text whose SHA3-256 is signed.
+type AgentEventSignRequest = record {
+  // Account whose principal and hosted key sign the event.
+  account_id : blob;
+  // Checked browser origin bound by the device approval.
+  origin : text;
+  // Current hosted-key generation; must equal the event actor.
+  generation : nat32;
+  // Exact JCS event text: the six Agent Identity fields only.
+  event : text;
+  // Approved maximum execution cycles.
+  max_cycles : nat;
+  // Device approval over the derived execution kind and cycle limit.
+  approval : Approval;
 };
 // Supported chain-key operations; vetKD derives keys and cannot sign documents.
 type Algorithm = variant {
@@ -563,6 +617,20 @@ type CreateAccount = record {
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
+// Delegation ceiling of a controller, immutable once published.
+type DelegationAuthority = variant {
+  // Only the listed exact scopes and relying-party audiences, and only credentials
+  // owned within this key's lineage. Both lists are nonempty.
+  Restricted : record {
+    // Exact scope strings; no wildcard, prefix or hierarchy.
+    scopes : vec text;
+    // Relying-party origins or Agent IDs, matched exactly.
+    audiences : vec text;
+  };
+  // `"*"`: any explicit scopes and audiences, and management of every credential
+  // of this principal. Always an explicit owner choice.
+  Unrestricted;
+};
 // Request a vetKD root encrypted to a caller-generated transport public key.
 // The result is encrypted key material, not a plaintext vault key.
 type DeriveRootRequest = record {
@@ -701,6 +769,15 @@ type ExecutionOutput = variant {
     // vetKD result encrypted to the supplied transport public key.
     encrypted_key : blob;
   };
+  // Hosted Agent Delegation event signature.
+  AgentSignature : record {
+    // Public descriptor of the hosted controller key.
+    key : KeyDescriptor;
+    // Raw Ed25519 signature over `event_hash`.
+    signature : blob;
+    // SHA3-256 of the exact event bytes; the envelope `hash` is its base64url.
+    event_hash : blob;
+  };
   // Portable signed document and its key provenance.
   Signature : record {
     // Public descriptor of the key used to produce this output.
@@ -773,6 +850,26 @@ type HandleIntent = record {
   // Commitment to action-specific terms, including charge terms when applicable.
   terms_digest : blob;
 };
+// Hosted controller record. Its key is the COSE `AgentController` key of this
+// generation; key, `valid_from`, `delegation` and `supersedes` never change.
+type HostedController = record {
+  // Earliest untrusted signature time after compromise; requires retirement.
+  invalid_from : opt nat64;
+  // Raw Ed25519 public key of this generation; the Agent ID encodes it.
+  public_key : blob;
+  // Delegation ceiling of this key.
+  delegation : DelegationAuthority;
+  // Earlier generations of this principal whose credentials this key may manage.
+  supersedes : vec nat32;
+  // Optional display label; the only field that may change.
+  name : opt text;
+  // Positive hosted-key generation, allocated once and never reused.
+  generation : nat32;
+  // Binding start (inclusive): the user-home commit time.
+  valid_from : nat64;
+  // Binding end (exclusive) once retired; None while current.
+  retired_at : opt nat64;
+};
 // Public key provenance and derivation identity.
 // Authenticate its source before using it to bind a key to an account.
 // Key identity depends on the home canister and derivation configuration.
@@ -811,6 +908,8 @@ type KeyPurpose = variant {
   AppAction;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
+  // Hosted Agent Delegation controller keys, selected by generation.
+  AgentController;
   // Key domain for text and structured file statements.
   Statement;
 };
@@ -863,6 +962,42 @@ type PendingRecovery = record {
   confirmation : opt RecoveryConfirmation;
   // Digest identifying the dispute, if one exists.
   dispute : opt blob;
+};
+// Owner view of a principal, including publication and replay state.
+type PrincipalInfo = record {
+  // Highest signed Agent Identity nonce per hosted generation.
+  last_nonces : vec record { nat32; nat64 };
+  // Current authoritative state in the user home.
+  state : PrincipalState;
+  // Canonical principal URL `principal_origin/<account_id>`.
+  principal_id : text;
+  // Highest version the directory confirmed; the change is live only when it equals `state.version`.
+  published_version : nat64;
+};
+// Account principal state published by the directory.
+// `version` and `updated_at` both increase strictly on every change.
+type PrincipalState = record {
+  // Document `updated_at`: `max(now, previous + 1)` on every change.
+  updated_at : nat64;
+  // Current and retired controllers in generation order.
+  controllers : vec HostedController;
+  // Display type of the principal.
+  principal_type : PrincipalType;
+  // Publication version; the directory rejects rollback.
+  version : nat64;
+};
+// Display type of a principal; it grants no authority.
+type PrincipalType = variant {
+  // A team inside or across organizations.
+  Team;
+  // A natural person.
+  Person;
+  // A company or other legal organization.
+  Organization;
+  // A project.
+  Project;
+  // Any other non-agent subject.
+  Other;
 };
 // Explicit product permission; not a claim that the payer has a project role.
 type ProductApproval = record {
@@ -942,10 +1077,11 @@ type RecoveryRequest = record {
 type Result = variant { Ok : blob; Err : Error };
 type Result_1 = variant { Ok : AuthenticationResult; Err : Error };
 type Result_10 = variant { Ok : OperationReceipt; Err : Error };
-type Result_11 = variant { Ok : opt PendingRecovery; Err : Error };
-type Result_12 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_13 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_11 = variant { Ok : PrincipalInfo; Err : Error };
+type Result_12 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_13 = variant { Ok : opt ContentRootRef; Err : Error };
 type Result_14 = variant { Ok : nat64; Err : Error };
+type Result_15 = variant { Ok : ApplicationAuthorization; Err : Error };
 type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_3 = variant { Ok : ProductAuthorization; Err : Error };
 type Result_4 = variant { Ok; Err : Error };
@@ -985,7 +1121,7 @@ type RootTarget = variant {
     generation : nat64;
   };
 };
-// Certified account security leaf (current schema 2).
+// Certified account security leaf (current schema 3).
 // The leaf path is the single raw 12-byte account ID. `devices_root` commits
 // to the complete device map, including revocation and replay state. Verify
 // certificate, witness and freshness before using it as authority.
@@ -1004,6 +1140,9 @@ type SecuritySnapshot = record {
   devices_root : blob;
   // Recovery encryption public key, or None before configuration.
   recovery_hpke_pub : opt blob;
+  // `updated_at` of the account's current principal state, or None before
+  // the principal is enabled. A published document older than this is stale.
+  principal_updated_at : opt nat64;
   // Version of this public certified-leaf format, not the storage schema.
   schema : nat16;
   // Account security revision used to invalidate stale approvals.
@@ -1028,8 +1167,9 @@ type SecuritySnapshot = record {
   pending_recovery_digest : opt blob;
 };
 // Account limits on sensitive chain-key execution.
-// The default permits statement/file signing, 20 executions and
-// 800,000,000,000 cycles per day, which is also the user home's ceiling.
+// The default permits statement/file/app-action signing and hosted agent
+// controllers, 20 executions and 800,000,000,000 cycles per day, which is
+// also the user home's ceiling.
 type SensitivePolicy = record {
   // Maximum ICP cycles in a daily budget window.
   daily_cycles : nat;
@@ -1141,6 +1281,9 @@ type StatementContent = variant {
 type UserInit = record {
   // Name registry responsible for this operation/deployment.
   handle_canister : principal;
+  // HTTPS origin of Agent Delegation principal IDs, such as `https://id.dmsg.net`.
+  // Permanent: principal IDs never change.
+  principal_origin : text;
   // Fixed COSE canister responsible for key derivation and execution.
   home_cose : principal;
   // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
@@ -1157,6 +1300,8 @@ type UserInit = record {
   max_accounts : nat64;
   // Shared PANDA qualification service.
   membership_canister : principal;
+  // Directory canister that publishes principal documents.
+  directory_canister : principal;
 };
 // Whether new vault writes may use the committed root.
 type VaultWriteState = variant {
@@ -1192,23 +1337,34 @@ service : (UserInit) -> {
   get_execution_usage : (blob, nat32) -> (Result_9) query;
   get_execution_usage_certified : (blob, nat32) -> (Result_2) query;
   get_operation : (blob, blob) -> (Result_10) query;
-  get_recovery_request : (blob) -> (Result_11) query;
-  get_root_ref : (blob) -> (Result_12) query;
+  // Public principal state, publication progress and signed nonces.
+  get_principal : (blob) -> (Result_11) query;
+  get_recovery_request : (blob) -> (Result_12) query;
+  get_root_ref : (blob) -> (Result_13) query;
   inspect_app_action : (blob, AppAction) -> (Result_4);
   mutate_account : (AccountMutation) -> (Result_10);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
   // Bounded public cleanup removes only expired authentication/approval records.
   prune_external_approvals : (blob) -> (opt blob);
+  // Push the account's current principal state to the directory. Anyone may
+  // retry a publication; it is idempotent and never rolls the document back.
+  publish_principal : (blob) -> (Result_14);
   reconcile_execution : (blob, blob) -> (Result_6);
   reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_4);
   refresh_execution_entitlement : (blob) -> (Result_9);
+  // Bind the next hosted controller key. The COSE derivation of the approved
+  // generation must equal the approved public key; no threshold signature runs.
+  register_controller : (AccountMutation) -> (Result_10);
   request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_4);
   security_snapshot_batch : (vec blob) -> (Result_2) query;
   sign : (SignRequest) -> (Result_6);
+  // Sign one exact Agent Delegation event with a hosted controller key after
+  // device approval. Submit the returned signature to the delegation service.
+  sign_agent_event : (AgentEventSignRequest) -> (Result_6);
   sign_app_action : (AppActionSignRequest) -> (Result_6);
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_13);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_15);
   verify_payment_offer : (SignedOffer) -> (Result_14);
   // A registered product may check whether its own account beneficiary still exists.
   verify_product_account : (text, Beneficiary) -> (Result_4);

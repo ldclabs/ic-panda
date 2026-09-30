@@ -4,6 +4,7 @@ mod api;
 mod commerce;
 mod execution;
 mod external;
+mod principal;
 mod recovery;
 mod stable_codec;
 mod state;
@@ -11,7 +12,7 @@ mod store;
 mod xid;
 
 use dmsg_types::{
-    billing::*, cose::*, handle::*, integration::*, payment::SignedOffer, user::*, *,
+    agent::*, billing::*, cose::*, handle::*, integration::*, payment::SignedOffer, user::*, *,
 };
 use serde_bytes::ByteBuf;
 

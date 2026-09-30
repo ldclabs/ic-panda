@@ -60,6 +60,8 @@ fn account_extension_gateway() {
             membership_canister: membership,
             max_accounts: 20,
             daily_new_accounts: 20,
+            principal_origin: "https://id.dmsg.test".into(),
+            directory_canister: sns,
         },))
         .unwrap(),
         None,
@@ -533,6 +535,8 @@ fn certificate_queries_advance_without_account_writes() {
             membership_canister: user,
             max_accounts: 2,
             daily_new_accounts: 2,
+            principal_origin: "https://id.dmsg.test".into(),
+            directory_canister: user,
         })
         .unwrap(),
         None,

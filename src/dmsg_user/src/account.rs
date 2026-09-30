@@ -65,6 +65,7 @@ pub(crate) fn create(
         operations: vec![],
         handle_authorizations: BTreeMap::new(),
         execution_expirations: BTreeMap::new(),
+        principal_updated_at: None,
     })
 }
 
@@ -140,13 +141,22 @@ pub(crate) fn finish(s: &mut AccountState, a: &Approval, fingerprint: Hash) -> O
     receipt
 }
 
-pub(crate) fn apply(
-    s: &mut AccountState,
+/// Outcome of the shared account-mutation checks.
+pub(crate) enum Authorized {
+    /// A committed operation with this request ID and digest; return it unchanged.
+    Replay(OperationReceipt),
+    /// A new operation with its fingerprint, authorized to apply.
+    Fresh(Hash),
+}
+
+/// Caller binding, idempotent replay, device approval, version and status checks
+/// shared by every account mutation. Nothing is written.
+pub(crate) fn authorize_mutation(
+    s: &AccountState,
     caller: Principal,
     m: &AccountMutation,
     now: u64,
-    handle_canister: Principal,
-) -> Result<OperationReceipt> {
+) -> Result<Authorized> {
     ensure(
         s.account_id == m.account_id && s.auth_bindings.contains(&caller),
         Error::AuthRequired,
@@ -154,7 +164,7 @@ pub(crate) fn apply(
     let fp = digest("dmsg/account-operation/v2", m);
     if let Some(r) = s.operations.iter().find(|r| r.id == m.approval.request_id) {
         ensure(r.digest == fp, Error::IdempotencyConflict)?;
-        return Ok(r.clone());
+        return Ok(Authorized::Replay(r.clone()));
     }
     let payload = (&m.expected_version, &m.command);
     check_device(
@@ -180,6 +190,20 @@ pub(crate) fn apply(
             Error::Locked,
         )?;
     }
+    Ok(Authorized::Fresh(fp))
+}
+
+pub(crate) fn apply(
+    s: &mut AccountState,
+    caller: Principal,
+    m: &AccountMutation,
+    now: u64,
+    handle_canister: Principal,
+) -> Result<OperationReceipt> {
+    let fp = match authorize_mutation(s, caller, m, now)? {
+        Authorized::Replay(r) => return Ok(r),
+        Authorized::Fresh(fp) => fp,
+    };
     // Work on a candidate after authorization: errors cannot persist a partial
     // device/root change, and rejected callers do not clone the account.
     let mut next = s.clone();
@@ -343,13 +367,14 @@ pub(crate) fn apply(
             ensure(
                 policy.daily_executions <= FORMAL_DAILY_EXECUTIONS
                     && policy.daily_cycles <= FORMAL_DAILY_CYCLES
-                    && policy.allowed_purposes.len() <= 3
+                    && policy.allowed_purposes.len() <= 4
                     && policy.allowed_purposes.iter().all(|p| {
                         matches!(
                             p,
                             KeyPurpose::FileAttestation
                                 | KeyPurpose::Statement
                                 | KeyPurpose::AppAction
+                                | KeyPurpose::AgentController
                         )
                     }),
                 Error::QuotaExceeded,
@@ -447,6 +472,13 @@ pub(crate) fn apply(
                 next.status = AccountStatus::RecoveryDisputed;
             }
             // Once reconfirmed, repeated disputes cannot restart the delay.
+        }
+        AccountCommand::EnablePrincipal { .. }
+        | AccountCommand::RegisterController { .. }
+        | AccountCommand::RetireController { .. }
+        | AccountCommand::MarkControllerCompromised { .. }
+        | AccountCommand::RenameController { .. } => {
+            return Err(invalid("principal commands use the principal record"))
         }
     }
     let receipt = finish(&mut next, &m.approval, fp);

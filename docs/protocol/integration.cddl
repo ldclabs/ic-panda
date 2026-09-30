@@ -484,7 +484,7 @@ PandaOperationsPage = {
   "next": (Hash / null),
 }
 
-KeyPurpose = "AppAction" / "FileAttestation" / "Statement" / "ContentRoot"
+KeyPurpose = "AppAction" / "FileAttestation" / "Statement" / "ContentRoot" / "AgentController"
 
 Algorithm = "Ed25519" / "EcdsaSecp256k1" / "VetKdBls12381"
 

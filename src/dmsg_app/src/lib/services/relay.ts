@@ -192,7 +192,7 @@ export class CloudClient {
   }
   async postRaw(path: string, value: unknown, context: CloudContext, sign: CloudSigner) {
     ensure(
-      /^\/v1\/(accounts\/[^/]+\/membership\/refresh|inboxes\/[^/]+\/orders\/[^/]+\/reconcile)$/.test(
+      /^\/v1\/(accounts\/[^/]+\/(membership|principal)\/refresh|inboxes\/[^/]+\/orders\/[^/]+\/reconcile)$/.test(
         path
       ),
       'FORBIDDEN'

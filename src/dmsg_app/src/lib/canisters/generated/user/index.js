@@ -7,6 +7,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const UserInit = IDL.Record({
     'handle_canister' : IDL.Principal,
+    'principal_origin' : IDL.Text,
     'home_cose' : IDL.Principal,
     'issuer_namespace' : IDL.Text,
     'daily_new_accounts' : IDL.Nat32,
@@ -15,6 +16,7 @@ export const idlFactory = ({ IDL }) => {
     'commerce_canister' : IDL.Principal,
     'max_accounts' : IDL.Nat64,
     'membership_canister' : IDL.Principal,
+    'directory_canister' : IDL.Principal,
   });
   const Beneficiary = IDL.Record({
     'product_id' : IDL.Text,
@@ -238,6 +240,7 @@ export const idlFactory = ({ IDL }) => {
     'ContentRoot' : IDL.Null,
     'AppAction' : IDL.Null,
     'FileAttestation' : IDL.Null,
+    'AgentController' : IDL.Null,
     'Statement' : IDL.Null,
   });
   const KeyDescriptor = IDL.Record({
@@ -261,6 +264,11 @@ export const idlFactory = ({ IDL }) => {
     'EncryptedRootKey' : IDL.Record({
       'key' : KeyDescriptor,
       'encrypted_key' : IDL.Vec(IDL.Nat8),
+    }),
+    'AgentSignature' : IDL.Record({
+      'key' : KeyDescriptor,
+      'signature' : IDL.Vec(IDL.Nat8),
+      'event_hash' : IDL.Vec(IDL.Nat8),
     }),
     'Signature' : IDL.Record({
       'key' : KeyDescriptor,
@@ -373,6 +381,7 @@ export const idlFactory = ({ IDL }) => {
     'content_root_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'devices_root' : IDL.Vec(IDL.Nat8),
     'recovery_hpke_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'principal_updated_at' : IDL.Opt(IDL.Nat64),
     'schema' : IDL.Nat16,
     'security_epoch' : IDL.Nat64,
     'recovery_root_version' : IDL.Nat64,
@@ -411,11 +420,48 @@ export const idlFactory = ({ IDL }) => {
     'digest' : IDL.Vec(IDL.Nat8),
   });
   const Result_10 = IDL.Variant({ 'Ok' : OperationReceipt, 'Err' : Error });
-  const Result_11 = IDL.Variant({
+  const DelegationAuthority = IDL.Variant({
+    'Restricted' : IDL.Record({
+      'scopes' : IDL.Vec(IDL.Text),
+      'audiences' : IDL.Vec(IDL.Text),
+    }),
+    'Unrestricted' : IDL.Null,
+  });
+  const HostedController = IDL.Record({
+    'invalid_from' : IDL.Opt(IDL.Nat64),
+    'public_key' : IDL.Vec(IDL.Nat8),
+    'delegation' : DelegationAuthority,
+    'supersedes' : IDL.Vec(IDL.Nat32),
+    'name' : IDL.Opt(IDL.Text),
+    'generation' : IDL.Nat32,
+    'valid_from' : IDL.Nat64,
+    'retired_at' : IDL.Opt(IDL.Nat64),
+  });
+  const PrincipalType = IDL.Variant({
+    'Team' : IDL.Null,
+    'Person' : IDL.Null,
+    'Organization' : IDL.Null,
+    'Project' : IDL.Null,
+    'Other' : IDL.Null,
+  });
+  const PrincipalState = IDL.Record({
+    'updated_at' : IDL.Nat64,
+    'controllers' : IDL.Vec(HostedController),
+    'principal_type' : PrincipalType,
+    'version' : IDL.Nat64,
+  });
+  const PrincipalInfo = IDL.Record({
+    'last_nonces' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat64)),
+    'state' : PrincipalState,
+    'principal_id' : IDL.Text,
+    'published_version' : IDL.Nat64,
+  });
+  const Result_11 = IDL.Variant({ 'Ok' : PrincipalInfo, 'Err' : Error });
+  const Result_12 = IDL.Variant({
     'Ok' : IDL.Opt(PendingRecovery),
     'Err' : Error,
   });
-  const Result_12 = IDL.Variant({
+  const Result_13 = IDL.Variant({
     'Ok' : IDL.Opt(ContentRootRef),
     'Err' : Error,
   });
@@ -504,11 +550,24 @@ export const idlFactory = ({ IDL }) => {
       'capabilities' : IDL.Vec(Capability),
       'device_id' : IDL.Vec(IDL.Nat8),
     }),
+    'RegisterController' : IDL.Record({
+      'public_key' : IDL.Vec(IDL.Nat8),
+      'delegation' : DelegationAuthority,
+      'supersedes' : IDL.Vec(IDL.Nat32),
+      'name' : IDL.Opt(IDL.Text),
+      'generation' : IDL.Nat32,
+    }),
     'DisputeRecovery' : IDL.Record({
       'op_id' : IDL.Vec(IDL.Nat8),
       'dispute' : IDL.Vec(IDL.Nat8),
     }),
+    'EnablePrincipal' : IDL.Record({ 'principal_type' : PrincipalType }),
     'ConfirmRecovery' : IDL.Record({ 'proof' : IDL.Vec(IDL.Nat8) }),
+    'RenameController' : IDL.Record({
+      'name' : IDL.Opt(IDL.Text),
+      'generation' : IDL.Nat32,
+    }),
+    'RetireController' : IDL.Record({ 'generation' : IDL.Nat32 }),
     'BindAuth' : IDL.Record({
       'principal' : IDL.Principal,
       'nonce' : IDL.Vec(IDL.Nat8),
@@ -532,6 +591,10 @@ export const idlFactory = ({ IDL }) => {
       'root' : ContentRootRef,
       'expected_generation' : IDL.Nat64,
     }),
+    'MarkControllerCompromised' : IDL.Record({
+      'invalid_from' : IDL.Nat64,
+      'generation' : IDL.Nat32,
+    }),
     'RevokeDevice' : IDL.Record({ 'device_id' : IDL.Vec(IDL.Nat8) }),
     'SetPolicy' : IDL.Record({ 'policy' : SensitivePolicy }),
   });
@@ -541,6 +604,7 @@ export const idlFactory = ({ IDL }) => {
     'approval' : Approval,
     'expected_version' : IDL.Nat64,
   });
+  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   const SigningAlgorithm = IDL.Variant({
     'Ed25519' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
@@ -579,6 +643,14 @@ export const idlFactory = ({ IDL }) => {
     'max_cycles' : IDL.Nat,
     'approval' : Approval,
   });
+  const AgentEventSignRequest = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'origin' : IDL.Text,
+    'generation' : IDL.Nat32,
+    'event' : IDL.Text,
+    'max_cycles' : IDL.Nat,
+    'approval' : Approval,
+  });
   const AppActionSignRequest = IDL.Record({
     'key' : SigningKeyRef,
     'account_id' : IDL.Vec(IDL.Nat8),
@@ -594,7 +666,7 @@ export const idlFactory = ({ IDL }) => {
     'verified_at_ms' : IDL.Nat64,
     'approval_hash' : IDL.Vec(IDL.Nat8),
   });
-  const Result_13 = IDL.Variant({
+  const Result_15 = IDL.Variant({
     'Ok' : ApplicationAuthorization,
     'Err' : Error,
   });
@@ -620,7 +692,6 @@ export const idlFactory = ({ IDL }) => {
     'signature' : IDL.Vec(IDL.Nat8),
     'offer' : PaymentOffer,
   });
-  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   return IDL.Service({
     'approve_application' : IDL.Func(
         [ApplicationApproval, Approval],
@@ -683,12 +754,13 @@ export const idlFactory = ({ IDL }) => {
         [Result_10],
         ['query'],
       ),
+    'get_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_11], ['query']),
     'get_recovery_request' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_11],
+        [Result_12],
         ['query'],
       ),
-    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_12], ['query']),
+    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_13], ['query']),
     'inspect_app_action' : IDL.Func(
         [IDL.Vec(IDL.Nat8), AppAction],
         [Result_4],
@@ -706,6 +778,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
+    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], []),
     'reconcile_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_6],
@@ -721,6 +794,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_9],
         [],
       ),
+    'register_controller' : IDL.Func([AccountMutation], [Result_10], []),
     'request_recovery' : IDL.Func(
         [
           IDL.Vec(IDL.Nat8),
@@ -737,10 +811,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'sign' : IDL.Func([SignRequest], [Result_6], []),
+    'sign_agent_event' : IDL.Func([AgentEventSignRequest], [Result_6], []),
     'sign_app_action' : IDL.Func([AppActionSignRequest], [Result_6], []),
     'verify_application_authorization' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ApplicationApproval],
-        [Result_13],
+        [Result_15],
         [],
       ),
     'verify_payment_offer' : IDL.Func([SignedOffer], [Result_14], []),
@@ -759,6 +834,7 @@ export const init = ({ IDL }) => {
   });
   const UserInit = IDL.Record({
     'handle_canister' : IDL.Principal,
+    'principal_origin' : IDL.Text,
     'home_cose' : IDL.Principal,
     'issuer_namespace' : IDL.Text,
     'daily_new_accounts' : IDL.Nat32,
@@ -767,6 +843,7 @@ export const init = ({ IDL }) => {
     'commerce_canister' : IDL.Principal,
     'max_accounts' : IDL.Nat64,
     'membership_canister' : IDL.Principal,
+    'directory_canister' : IDL.Principal,
   });
   return [UserInit];
 };

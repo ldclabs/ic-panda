@@ -35,6 +35,8 @@ fn test_init() -> UserInit {
         payment_canister: p(8),
         max_accounts: 100,
         daily_new_accounts: 10,
+        principal_origin: "https://id.dmsg.test".into(),
+        directory_canister: p(9),
     }
 }
 
@@ -1038,5 +1040,326 @@ fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
     assert_eq!(
         execution::rejected_dispatch_result(current.clone(), Error::QuotaExceeded),
         Ok(current)
+    );
+}
+
+fn principal_apply(
+    s: &mut AccountState,
+    principal: &mut Option<crate::principal::AgentPrincipal>,
+    command: AccountCommand,
+    time: u64,
+) -> Result<OperationReceipt> {
+    let m = mutation(s, command, 1, time);
+    crate::principal::apply(s, principal, p(1), &m, time)
+}
+
+fn register(generation: u32, key: u8, supersedes: Vec<u32>) -> AccountCommand {
+    AccountCommand::RegisterController {
+        generation,
+        public_key: sk(key).verifying_key().to_bytes().into(),
+        name: Some(format!("dMsg hosted signer #{generation}")),
+        delegation: dmsg_types::agent::DelegationAuthority::Restricted {
+            scopes: vec!["message.draft".into()],
+            audiences: vec!["https://dmsg.net".into()],
+        },
+        supersedes,
+    }
+}
+
+#[test]
+fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
+    use dmsg_types::agent::*;
+    let mut s = fixture();
+    let mut principal = None;
+    let enable = AccountCommand::EnablePrincipal {
+        principal_type: PrincipalType::Person,
+    };
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, enable.clone(), 10),
+        Err(Error::RecoveryIncomplete)
+    );
+    let mut s = initialized();
+    let epoch = s.security_epoch;
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, register(1, 20, vec![]), 10),
+        Err(Error::NotFound)
+    );
+    principal_apply(&mut s, &mut principal, enable.clone(), 10).unwrap();
+    let state = principal.as_ref().unwrap().state.clone();
+    assert_eq!((state.version, state.updated_at), (1, 10));
+    assert_eq!(s.principal_updated_at, Some(10));
+    assert_eq!(s.security_epoch, epoch);
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, enable, 10),
+        Err(Error::VersionConflict)
+    );
+    // Generations are allocated in order; the same millisecond still advances time.
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, register(2, 20, vec![]), 10),
+        Err(Error::VersionConflict)
+    );
+    let m = mutation(&s, register(1, 20, vec![]), 1, 10);
+    let receipt = crate::principal::apply(&mut s, &mut principal, p(1), &m, 10).unwrap();
+    let before = (s.clone(), principal.clone());
+    assert_eq!(
+        crate::principal::apply(&mut s, &mut principal, p(1), &m, 10),
+        Ok(receipt)
+    );
+    assert_eq!((s.clone(), principal.clone()), before);
+    principal_apply(&mut s, &mut principal, register(2, 21, vec![1]), 10).unwrap();
+    let state = &principal.as_ref().unwrap().state;
+    assert_eq!(
+        state
+            .controllers
+            .iter()
+            .map(|c| c.valid_from)
+            .collect::<Vec<_>>(),
+        vec![11, 12]
+    );
+    assert_eq!((state.version, state.updated_at), (3, 12));
+    // A successor must name an earlier generation; a key appears once.
+    assert!(principal_apply(&mut s, &mut principal, register(3, 22, vec![3]), 12).is_err());
+    assert!(principal_apply(&mut s, &mut principal, register(3, 21, vec![]), 12).is_err());
+
+    principal_apply(
+        &mut s,
+        &mut principal,
+        AccountCommand::RetireController { generation: 1 },
+        20,
+    )
+    .unwrap();
+    assert_eq!(
+        principal_apply(
+            &mut s,
+            &mut principal,
+            AccountCommand::RetireController { generation: 1 },
+            21
+        ),
+        Err(Error::VersionConflict)
+    );
+    let compromise = |invalid_from| AccountCommand::MarkControllerCompromised {
+        generation: 1,
+        invalid_from,
+    };
+    for invalid_from in [10, 21] {
+        assert!(principal_apply(&mut s, &mut principal, compromise(invalid_from), 22).is_err());
+    }
+    principal_apply(&mut s, &mut principal, compromise(15), 22).unwrap();
+    assert!(principal_apply(&mut s, &mut principal, compromise(16), 23).is_err());
+    principal_apply(&mut s, &mut principal, compromise(11), 23).unwrap();
+    // Compromising a current key retires it at the commit time.
+    principal_apply(
+        &mut s,
+        &mut principal,
+        AccountCommand::MarkControllerCompromised {
+            generation: 2,
+            invalid_from: 12,
+        },
+        30,
+    )
+    .unwrap();
+    principal_apply(
+        &mut s,
+        &mut principal,
+        AccountCommand::RenameController {
+            generation: 1,
+            name: None,
+        },
+        31,
+    )
+    .unwrap();
+    let state = &principal.as_ref().unwrap().state;
+    assert_eq!(
+        (
+            state.controllers[0].retired_at,
+            state.controllers[0].invalid_from,
+            state.controllers[0].name.clone()
+        ),
+        (Some(20), Some(11), None)
+    );
+    assert_eq!(
+        (
+            state.controllers[1].retired_at,
+            state.controllers[1].invalid_from
+        ),
+        (Some(30), Some(12))
+    );
+    assert_eq!(s.principal_updated_at, Some(state.updated_at));
+    assert_eq!(s.security_epoch, epoch);
+    // The ordinary account path never applies principal commands.
+    let m = mutation(&s, register(3, 22, vec![]), 1, 40);
+    assert!(matches!(
+        account::apply(&mut s, p(1), &m, 40, p(7)),
+        Err(Error::InvalidInput(_))
+    ));
+    // At most eight current controllers.
+    for generation in 3..=10 {
+        principal_apply(
+            &mut s,
+            &mut principal,
+            register(generation, generation as u8 + 30, vec![]),
+            40,
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, register(11, 60, vec![]), 40),
+        Err(Error::QuotaExceeded)
+    );
+}
+
+fn agent_event(controller: u8, nonce: u64, created_at: u64, id: &str, audience: &str) -> String {
+    let actor = dmsg_protocol::agent::agent_id(&sk(controller).verifying_key().to_bytes().into());
+    let subject = dmsg_protocol::agent::agent_id(&sk(99).verifying_key().to_bytes().into());
+    format!(
+        concat!(
+            r#"{{"actor":"{actor}","created_at":{created_at},"nonce":{nonce},"payload":"#,
+            r#"{{"audiences":["{audience}"],"expires_at":{expires_at},"id":"{id}","#,
+            r#""principal_id":"https://id.dmsg.test/{account}","scopes":["message.draft"],"#,
+            r#""subject":"{subject}"}},"protocol":"agent-delegation/1.0","type":"delegation.grant"}}"#
+        ),
+        actor = actor,
+        created_at = created_at,
+        nonce = nonce,
+        audience = audience,
+        expires_at = created_at + DAY,
+        id = id,
+        account = AccountId([8; 12]),
+        subject = subject,
+    )
+}
+
+fn agent_request(s: &AccountState, event: String, generation: u32, time: u64) -> ExecuteRequest {
+    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
+    let mut r = dmsg_types::agent::AgentEventSignRequest {
+        account_id: s.account_id,
+        generation,
+        event,
+        origin: "https://example.com".into(),
+        max_cycles: 100,
+        approval: Approval {
+            device_id: Hash::new([1; 32]),
+            security_epoch: s.security_epoch,
+            sequence,
+            request_id: execution_request_id(
+                &s.account_id,
+                s.security_epoch,
+                Hash::new([1; 32]),
+                sequence,
+            ),
+            expires_at: time + MINUTE,
+            signature: Default::default(),
+        },
+    }
+    .into_execution(format!("https://id.dmsg.test/{}", s.account_id));
+    r.approval.signature = sk(1)
+        .sign(r.approval_message(s.home_user).as_slice())
+        .to_bytes()
+        .into();
+    r
+}
+
+#[test]
+fn hosted_events_need_a_current_bound_key_policy_and_fresh_nonce() {
+    use dmsg_types::agent::*;
+    let t = 1_790_000_000_000;
+    let mut s = initialized();
+    let mut principal = None;
+    principal_apply(
+        &mut s,
+        &mut principal,
+        AccountCommand::EnablePrincipal {
+            principal_type: PrincipalType::Person,
+        },
+        t - DAY,
+    )
+    .unwrap();
+    principal_apply(&mut s, &mut principal, register(1, 20, vec![]), t - DAY).unwrap();
+    let mut principal = principal.unwrap();
+    let id = format!("{}.a1", s.account_id);
+    let authorize_event = |p: &mut crate::principal::AgentPrincipal, r: &ExecuteRequest| {
+        crate::principal::authorize_event(p, &s, &test_init(), &r.kind, t)
+    };
+
+    let r = agent_request(&s, agent_event(20, 5, t, &id, "https://dmsg.net"), 1, t);
+    authorize_event(&mut principal, &r).unwrap();
+    assert_eq!(principal.last_nonces.get(&1), Some(&5));
+    assert_eq!(
+        authorize_event(&mut principal, &r),
+        Err(Error::VersionConflict)
+    );
+    let r = agent_request(&s, agent_event(20, 6, t, &id, "https://dmsg.net"), 1, t);
+    // The device approval and execution authorization run on the same request.
+    let mut account = TestAccount {
+        account: s.account.clone(),
+        executions: BTreeMap::new(),
+    };
+    authorize(&mut account, p(1), &r, t).unwrap();
+    authorize_event(&mut principal, &r).unwrap();
+
+    for (event, generation, error) in [
+        // Outside the restricted ceiling.
+        (
+            agent_event(20, 7, t, &id, "https://tokenlist.ing"),
+            1,
+            Error::Forbidden,
+        ),
+        // The actor is another key than the approved generation.
+        (
+            agent_event(21, 7, t, &id, "https://dmsg.net"),
+            1,
+            Error::IntegrityFailed,
+        ),
+        // No such generation.
+        (
+            agent_event(20, 7, t, &id, "https://dmsg.net"),
+            2,
+            Error::NotFound,
+        ),
+        // Stale signer time.
+        (
+            agent_event(20, 7, t - 2 * MINUTE, &id, "https://dmsg.net"),
+            1,
+            Error::Expired,
+        ),
+    ] {
+        let r = agent_request(&s, event, generation, t);
+        assert_eq!(authorize_event(&mut principal, &r), Err(error));
+    }
+    let r = agent_request(
+        &s,
+        agent_event(20, 7, t, "other.a1", "https://dmsg.net"),
+        1,
+        t,
+    );
+    assert!(matches!(
+        authorize_event(&mut principal, &r),
+        Err(Error::InvalidInput(_))
+    ));
+    assert_eq!(principal.last_nonces.get(&1), Some(&6));
+
+    let mut retired = principal.clone();
+    retired.state.controllers[0].retired_at = Some(t);
+    let r = agent_request(&s, agent_event(20, 8, t, &id, "https://dmsg.net"), 1, t);
+    assert_eq!(authorize_event(&mut retired, &r), Err(Error::Forbidden));
+
+    // The account policy can exclude hosted controllers; the principal must match.
+    let mut account = TestAccount {
+        account: s.account.clone(),
+        executions: BTreeMap::new(),
+    };
+    account.sensitive_policy.allowed_purposes = vec![KeyPurpose::Statement];
+    assert_eq!(authorize(&mut account, p(1), &r, t), Err(Error::Forbidden));
+    let mut foreign = r.clone();
+    if let ExecutionKind::AgentEvent { principal_id, .. } = &mut foreign.kind {
+        *principal_id = "https://id.dmsg.test/other".into();
+    }
+    let mut account = TestAccount {
+        account: s.account.clone(),
+        executions: BTreeMap::new(),
+    };
+    assert_eq!(
+        authorize(&mut account, p(1), &foreign, t),
+        Err(Error::IntegrityFailed)
     );
 }

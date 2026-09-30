@@ -115,6 +115,10 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 Standards references for signatures, identity headers, and profiles: [RFC 9052](https://www.rfc-editor.org/rfc/rfc9052.html), [RFC 9597](https://www.rfc-editor.org/rfc/rfc9597.html), [RFC 8392](https://www.rfc-editor.org/rfc/rfc8392.html), and [RFC 9596](https://www.rfc-editor.org/rfc/rfc9596.html). Digests, public key thumbprints, and timestamps are based on [RFC 9995](https://www.rfc-editor.org/rfc/rfc9995.html), [RFC 9679 §4.2](https://www.rfc-editor.org/rfc/rfc9679.html#section-4.2), and [RFC 9921](https://www.rfc-editor.org/rfc/rfc9921.html). SCITT statement and evidence separation references [RFC 9943](https://www.rfc-editor.org/rfc/rfc9943.html); current document profiles do not claim implementation of its transparency service.
 
+## Agent Delegation
+
+A dMsg account can act as an Agent Delegation 1.0 principal: hosted controllers are COSE threshold Ed25519 keys, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces, signing policy and verification scope: [agent_zh.md](agent_zh.md) (Chinese).
+
 ## Commercial Services
 
 The product-neutral `membership/1` and `dmsg-commerce/1` contracts, delivery profile 2 and execution grant v3 are documented in [commerce.md](commerce.md), with [commerce.cddl](commerce.cddl) framing and independent commerce vectors. They do not change formal Statement or device execution approval bytes.

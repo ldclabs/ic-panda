@@ -1,0 +1,176 @@
+// Delegation ceiling of a controller, immutable once published.
+type DelegationAuthority = variant {
+  // Only the listed exact scopes and relying-party audiences, and only credentials
+  // owned within this key's lineage. Both lists are nonempty.
+  Restricted : record {
+    // Exact scope strings; no wildcard, prefix or hierarchy.
+    scopes : vec text;
+    // Relying-party origins or Agent IDs, matched exactly.
+    audiences : vec text;
+  };
+  // `"*"`: any explicit scopes and audiences, and management of every credential
+  // of this principal. Always an explicit owner choice.
+  Unrestricted;
+};
+// Directory deployment configuration. The principal origin and document
+// fields are permanent; user homes may only be appended by upgrade.
+type DirectoryInit = record {
+  // Custom domains served at `/.well-known/ic-domains`.
+  custom_domains : vec text;
+  // Prefix of the public profile link, such as `https://dmsg.net/u/`.
+  profile_url_prefix : text;
+  // Authoritative delegation query endpoint written into every document.
+  delegation_query_url : text;
+  // HTTPS origin of principal IDs, such as `https://id.dmsg.net`.
+  principal_origin : text;
+  // Account issuer namespace shared by the user homes.
+  issuer_namespace : text;
+  // Controller `source` origin, such as `https://dmsg.net`.
+  controller_source : text;
+  // Deployment domain; also part of each home's account-ID allocator fingerprint.
+  environment : Environment;
+  // User homes allowed to publish accounts whose IDs they allocated.
+  user_homes : vec principal;
+};
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
+type Error = variant {
+  // Required legacy key material is unavailable.
+  MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
+  LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
+  InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
+  // A new content root must be committed before writes can resume.
+  RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
+  VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
+  ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
+  IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
+  IdTimestampOutOfRange;
+  // The requested record does not exist.
+  NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
+  FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
+  DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
+  Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
+  // Required recovery setup/confirmation has not completed.
+  RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
+  IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
+  PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
+  IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
+  IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
+  UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
+  Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
+  // Caller, role or capability does not authorize this operation.
+  Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
+  ResultExpired;
+  // The applicable deadline has passed.
+  Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
+  // An execution, cycle, storage or admission limit was exceeded.
+  QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
+  AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
+  Pending;
+};
+// Hosted controller record. Its key is the COSE `AgentController` key of this
+// generation; key, `valid_from`, `delegation` and `supersedes` never change.
+type HostedController = record {
+  // Earliest untrusted signature time after compromise; requires retirement.
+  invalid_from : opt nat64;
+  // Raw Ed25519 public key of this generation; the Agent ID encodes it.
+  public_key : blob;
+  // Delegation ceiling of this key.
+  delegation : DelegationAuthority;
+  // Earlier generations of this principal whose credentials this key may manage.
+  supersedes : vec nat32;
+  // Optional display label; the only field that may change.
+  name : opt text;
+  // Positive hosted-key generation, allocated once and never reused.
+  generation : nat32;
+  // Binding start (inclusive): the user-home commit time.
+  valid_from : nat64;
+  // Binding end (exclusive) once retired; None while current.
+  retired_at : opt nat64;
+};
+// Account principal state published by the directory.
+// `version` and `updated_at` both increase strictly on every change.
+type PrincipalState = record {
+  // Document `updated_at`: `max(now, previous + 1)` on every change.
+  updated_at : nat64;
+  // Current and retired controllers in generation order.
+  controllers : vec HostedController;
+  // Display type of the principal.
+  principal_type : PrincipalType;
+  // Publication version; the directory rejects rollback.
+  version : nat64;
+};
+// Display type of a principal; it grants no authority.
+type PrincipalType = variant {
+  // A team inside or across organizations.
+  Team;
+  // A natural person.
+  Person;
+  // A company or other legal organization.
+  Organization;
+  // A project.
+  Project;
+  // Any other non-agent subject.
+  Other;
+};
+// Directory publication summary for one account.
+type Publication = record {
+  // SHA-256 of the exact published JSON document bytes.
+  document_digest : blob;
+  // Published document `updated_at`.
+  updated_at : nat64;
+  // Published principal-state version.
+  version : nat64;
+  // User home that published the account.
+  home_user : principal;
+  // Canonical principal URL of the account.
+  principal_id : text;
+};
+type Result = variant { Ok : Publication; Err : Error };
+service : (DirectoryInit) -> {
+  directory_config : () -> (DirectoryInit) query;
+  get_publication : (blob) -> (Result) query;
+  // Publish an account's principal state. Only the account's home may publish:
+  // the first time, the home whose allocator fingerprint the account ID carries;
+  // afterwards, the recorded home. Versions only increase: the same version with
+  // the same state is idempotent, an older version returns the current
+  // publication, and the same version with other content is rejected.
+  publish : (blob, PrincipalState) -> (Result);
+}

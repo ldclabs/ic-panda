@@ -562,7 +562,8 @@ export const schemas = {
     "AppAction",
     "FileAttestation",
     "Statement",
-    "ContentRoot"
+    "ContentRoot",
+    "AgentController"
   ],
   "Algorithm": [
     "Ed25519",

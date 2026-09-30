@@ -11,8 +11,8 @@ use ic_stable_structures::{
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
-// Stable layout: config=0, accounts=1, permanent auth routes=2,
-// pending bindings=3, retired memory=4, execution records=5, monthly usage=6, external approvals=7.
+// Stable layout: config=0, accounts=1, permanent auth routes=2, pending bindings=3,
+// retired memory=4, execution records=5, monthly usage=6, external approvals=7, principals=8.
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -105,7 +105,7 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 7;
+pub(crate) const STABLE_SCHEMA: u16 = 8;
 
 /// Rebuild every certified leaf from stable records, publishing the root once.
 pub(crate) fn rebuild_certification() {

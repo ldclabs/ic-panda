@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 pub mod account;
+pub mod agent;
 pub mod billing;
 pub mod cose;
 pub mod handle;

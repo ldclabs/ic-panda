@@ -77,6 +77,29 @@ pub(crate) fn authorize(
             }
             (Capability::FormalApprove, false)
         }
+        ExecutionKind::AgentEvent {
+            key,
+            principal_id,
+            origin,
+            ..
+        } => {
+            // Controller, event, policy and nonce checks need the principal
+            // record; see principal::authorize_event in the same message.
+            ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
+            ensure(
+                key.purpose == KeyPurpose::AgentController
+                    && s.sensitive_policy.allowed_purposes.contains(&key.purpose),
+                Error::Forbidden,
+            )?;
+            key.validate()?;
+            validate_origin(origin, &init.environment)?;
+            ensure(
+                *principal_id
+                    == dmsg_protocol::agent::principal_id(&init.principal_origin, &s.account_id),
+                Error::IntegrityFailed,
+            )?;
+            (Capability::FormalApprove, false)
+        }
         ExecutionKind::Derive {
             generation,
             root_op_id,
@@ -128,7 +151,7 @@ pub(crate) fn authorize(
         .values()
         .filter(|expires_at| expires_at.is_none_or(|at| at > now))
         .count();
-    let window = if matches!(input.kind, ExecutionKind::Sign { .. }) {
+    let window = if input.kind.is_formal() {
         FORMAL_EXECUTION_WINDOW
     } else {
         WINDOW
@@ -232,6 +255,35 @@ pub(crate) fn record_execution_response(
                             && key.public_key_fingerprint == *public_key_fingerprint,
                         Error::IntegrityFailed,
                     )?;
+                }
+                (
+                    ExecutionKind::AgentEvent {
+                        key: requested,
+                        event,
+                        ..
+                    },
+                    ExecutionOutput::AgentSignature {
+                        event_hash,
+                        signature,
+                        key,
+                    },
+                ) => {
+                    ensure(
+                        key.account_id == execution.grant.account_id
+                            && key.home_cose == execution.grant.home_cose
+                            && key.algorithm == Algorithm::Ed25519
+                            && key.purpose == KeyPurpose::AgentController
+                            && key.key_generation == requested.generation
+                            && *event_hash == dmsg_protocol::agent::event_hash(event),
+                        Error::IntegrityFailed,
+                    )?;
+                    let public_key: Hash = key
+                        .public_key
+                        .as_slice()
+                        .try_into()
+                        .map(Hash::new)
+                        .map_err(|_| Error::IntegrityFailed)?;
+                    verify(&public_key, event_hash.as_slice(), signature.as_slice())?;
                 }
                 (
                     ExecutionKind::Derive { generation, .. },

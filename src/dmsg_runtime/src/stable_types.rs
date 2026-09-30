@@ -10,7 +10,7 @@ use crate::{storage::StableCodec, Budget};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_types::{
-    billing::CommercialReservation, cose::*, handle::*, membership::*, payment::*,
+    agent::*, billing::CommercialReservation, cose::*, handle::*, membership::*, payment::*,
     profiles::delivery::Quote, user::*, *,
 };
 use icrc_ledger_types::icrc1::account::Account;
@@ -413,6 +413,16 @@ pub enum ExecutionKindRepr {
         #[cbor(key = 7)]
         transport_key: ByteArray<48>,
     },
+    AgentEvent {
+        #[cbor(key = 1)]
+        key: KeyRequestRepr,
+        #[cbor(key = 8)]
+        event: ByteBuf,
+        #[cbor(key = 9)]
+        principal_id: String,
+        #[cbor(key = 4)]
+        origin: String,
+    },
 }
 
 impl StableCodec for ExecutionKind {
@@ -440,6 +450,17 @@ impl StableCodec for ExecutionKind {
                 root_op_id: *root_op_id,
                 transport_key: *transport_key,
             },
+            Self::AgentEvent {
+                key,
+                event,
+                principal_id,
+                origin,
+            } => ExecutionKindRepr::AgentEvent {
+                key: key.to_repr(),
+                event: event.clone(),
+                principal_id: principal_id.clone(),
+                origin: origin.clone(),
+            },
         }
     }
 
@@ -464,6 +485,17 @@ impl StableCodec for ExecutionKind {
                 generation,
                 root_op_id,
                 transport_key,
+            },
+            ExecutionKindRepr::AgentEvent {
+                key,
+                event,
+                principal_id,
+                origin,
+            } => Self::AgentEvent {
+                key: KeyRequest::from_repr(key),
+                event,
+                principal_id,
+                origin,
             },
         }
     }
@@ -519,6 +551,14 @@ pub enum ExecutionOutputRepr {
         #[cbor(key = 2)]
         key: KeyDescriptorRepr,
     },
+    AgentSignature {
+        #[cbor(key = 4)]
+        event_hash: Hash,
+        #[cbor(key = 5)]
+        signature: Ed25519Signature,
+        #[cbor(key = 2)]
+        key: KeyDescriptorRepr,
+    },
 }
 
 impl StableCodec for ExecutionOutput {
@@ -536,6 +576,15 @@ impl StableCodec for ExecutionOutput {
                     key: key.to_repr(),
                 }
             }
+            Self::AgentSignature {
+                event_hash,
+                signature,
+                key,
+            } => ExecutionOutputRepr::AgentSignature {
+                event_hash: *event_hash,
+                signature: *signature,
+                key: key.to_repr(),
+            },
         }
     }
 
@@ -551,6 +600,15 @@ impl StableCodec for ExecutionOutput {
                     key: KeyDescriptor::from_repr(key),
                 }
             }
+            ExecutionOutputRepr::AgentSignature {
+                event_hash,
+                signature,
+                key,
+            } => Self::AgentSignature {
+                event_hash,
+                signature,
+                key: KeyDescriptor::from_repr(key),
+            },
         }
     }
 }
@@ -635,6 +693,31 @@ stable_struct!(UserInitRepr => UserInit {
     5 => payment_canister: Principal,
     6 => max_accounts: u64,
     7 => daily_new_accounts: u32,
+    10 => principal_origin: String,
+    11 => directory_canister: Principal,
+});
+
+stable_struct!(HostedControllerRepr => HostedController {
+    1 => generation: u32,
+    2 => public_key: Hash,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    3 => name: Option<String>,
+    4 => valid_from: u64,
+    5 => delegation: DelegationAuthority,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    6 => supersedes: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    7 => retired_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    8 => invalid_from: Option<u64>,
+});
+
+stable_struct!(PrincipalStateRepr => PrincipalState {
+    1 => principal_type: PrincipalType,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    2 => controllers: Vec<HostedControllerRepr> as codec,
+    3 => version: u64,
+    4 => updated_at: u64,
 });
 
 stable_struct!(BeneficiaryRepr => Beneficiary {

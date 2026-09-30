@@ -115,6 +115,10 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 签名、身份头和 profile 依据：[RFC 9052](https://www.rfc-editor.org/rfc/rfc9052.html)、[RFC 9597](https://www.rfc-editor.org/rfc/rfc9597.html)、[RFC 8392](https://www.rfc-editor.org/rfc/rfc8392.html)、[RFC 9596](https://www.rfc-editor.org/rfc/rfc9596.html)。摘要、公钥指纹和时间戳分别依据 [RFC 9995](https://www.rfc-editor.org/rfc/rfc9995.html)、[RFC 9679 §4.2](https://www.rfc-editor.org/rfc/rfc9679.html#section-4.2)、[RFC 9921](https://www.rfc-editor.org/rfc/rfc9921.html)。SCITT 的声明/证据分工参考 [RFC 9943](https://www.rfc-editor.org/rfc/rfc9943.html)，当前普通文档 profile 不宣称实现其透明服务。
 
+## Agent Delegation
+
+dMsg 账户可作为 Agent Delegation 1.0 principal：托管 controller 为 COSE 阈值 Ed25519 key，principal 文档由 `dmsg_directory` 以 ICP 认证 HTTP 发布。接口、签名政策与验证范围见 [agent_zh.md](agent_zh.md)。
+
 ## 商业服务
 
 产品中立的 `membership/1` 与 `dmsg-commerce/1` 合同、投递 profile 2 和执行授权 v3 详见 [commerce_zh.md](commerce_zh.md)，配套有 [commerce.cddl](commerce.cddl) 结构定义和独立的商业测试向量。它们不改变正式 Statement 或设备执行批准字节。

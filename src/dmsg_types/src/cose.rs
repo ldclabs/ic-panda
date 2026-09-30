@@ -56,6 +56,11 @@ pub enum KeySelector {
         /// Content-root generation to derive.
         generation: u64,
     },
+    /// Hosted Agent Delegation controller key (Ed25519) of one generation.
+    AgentController {
+        /// Positive hosted-key generation; see `agent::MAX_CONTROLLER_RECORDS`.
+        generation: u32,
+    },
 }
 
 impl From<KeySelector> for KeyRequest {
@@ -74,6 +79,11 @@ impl From<KeySelector> for KeyRequest {
                 purpose: KeyPurpose::ContentRoot,
                 algorithm: Algorithm::VetKdBls12381,
                 generation,
+            },
+            KeySelector::AgentController { generation } => Self {
+                purpose: KeyPurpose::AgentController,
+                algorithm: Algorithm::Ed25519,
+                generation: generation.into(),
             },
         }
     }
@@ -173,6 +183,8 @@ pub enum KeyPurpose {
     Statement,
     /// Content-root derivation domain, selected by generation.
     ContentRoot,
+    /// Hosted Agent Delegation controller keys, selected by generation.
+    AgentController,
 }
 
 /// Supported chain-key operations; vetKD derives keys and cannot sign documents.
@@ -272,7 +284,7 @@ pub struct KeyRequest {
     /// Cryptographic algorithm selected for this key or operation.
     pub algorithm: Algorithm,
     /// Positive key generation; formal signing requires 1, content roots use
-    /// the requested root generation.
+    /// the requested root generation, agent controllers their hosted generation.
     pub generation: u64,
 }
 
@@ -300,6 +312,26 @@ pub enum ExecutionKind {
         /// 48-byte compressed vetKD transport public key; protocol validation checks the point.
         transport_key: ByteArray<48>,
     },
+    /// Hosted signature over one exact Agent Delegation event.
+    /// The signed message is the 32-byte SHA3-256 of `event`.
+    AgentEvent {
+        /// `AgentController` Ed25519 key of the hosted generation.
+        key: KeyRequest,
+        /// Exact JCS event bytes; the actor must be this key's Agent ID.
+        event: ByteBuf,
+        /// Canonical principal URL that the event payload must name.
+        principal_id: String,
+        /// Checked browser origin bound by the device approval.
+        origin: String,
+    },
+}
+
+impl ExecutionKind {
+    /// Whether this kind is a formal signature: document signing or a hosted
+    /// Agent Delegation event. Formal kinds share the signing quota and budgets.
+    pub fn is_formal(&self) -> bool {
+        matches!(self, Self::Sign { .. } | Self::AgentEvent { .. })
+    }
 }
 
 /// Operation submitted for account policy checks and device authorization.
@@ -425,21 +457,34 @@ pub enum ExecutionOutput {
         /// Public descriptor of the key used to produce this output.
         key: KeyDescriptor,
     },
+    /// Hosted Agent Delegation event signature.
+    AgentSignature {
+        /// SHA3-256 of the exact event bytes; the envelope `hash` is its base64url.
+        event_hash: Hash,
+        /// Raw Ed25519 signature over `event_hash`.
+        signature: Ed25519Signature,
+        /// Public descriptor of the hosted controller key.
+        key: KeyDescriptor,
+    },
 }
 
 impl ExecutionOutput {
-    /// Borrow the COSE_Sign1 bytes or encrypted vetKD bytes, according to the variant.
-    pub fn bytes(&self) -> &ByteBuf {
+    /// Borrow the COSE_Sign1 bytes, encrypted vetKD bytes or raw event signature,
+    /// according to the variant.
+    pub fn bytes(&self) -> &[u8] {
         match self {
             Self::Signature { artifact, .. } => &artifact.cose_sign1,
             Self::EncryptedRootKey { encrypted_key, .. } => encrypted_key,
+            Self::AgentSignature { signature, .. } => signature.as_slice(),
         }
     }
 
-    /// Borrow the public descriptor attached to either output variant.
+    /// Borrow the public descriptor attached to any output variant.
     pub fn key(&self) -> &KeyDescriptor {
         match self {
-            Self::Signature { key, .. } | Self::EncryptedRootKey { key, .. } => key,
+            Self::Signature { key, .. }
+            | Self::EncryptedRootKey { key, .. }
+            | Self::AgentSignature { key, .. } => key,
         }
     }
 }

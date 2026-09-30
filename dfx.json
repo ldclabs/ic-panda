@@ -230,6 +230,16 @@
       "gzip": true,
       "type": "rust"
     },
+    "dmsg_directory": {
+      "candid": "src/dmsg_directory/dmsg_directory.did",
+      "declarations": {
+        "node_compatibility": true
+      },
+      "package": "dmsg_directory",
+      "optimize": "cycles",
+      "gzip": true,
+      "type": "rust"
+    },
     "dmsg_payment": {
       "candid": "src/dmsg_payment/dmsg_payment.did",
       "declarations": {

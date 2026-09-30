@@ -173,6 +173,18 @@ type ExecutionKind = variant {
     // Exact canonical COSE Sig_structure bytes; not a raw document hash.
     to_be_signed : blob;
   };
+  // Hosted signature over one exact Agent Delegation event.
+  // The signed message is the 32-byte SHA3-256 of `event`.
+  AgentEvent : record {
+    // `AgentController` Ed25519 key of the hosted generation.
+    key : KeyRequest;
+    // Checked browser origin bound by the device approval.
+    origin : text;
+    // Exact JCS event bytes; the actor must be this key's Agent ID.
+    event : blob;
+    // Canonical principal URL that the event payload must name.
+    principal_id : text;
+  };
   // Content-root derivation encrypted to a vetKD transport key.
   Derive : record {
     // Generation of the selected root or recovery material.
@@ -206,6 +218,15 @@ type ExecutionOutput = variant {
     key : KeyDescriptor;
     // vetKD result encrypted to the supplied transport public key.
     encrypted_key : blob;
+  };
+  // Hosted Agent Delegation event signature.
+  AgentSignature : record {
+    // Public descriptor of the hosted controller key.
+    key : KeyDescriptor;
+    // Raw Ed25519 signature over `event_hash`.
+    signature : blob;
+    // SHA3-256 of the exact event bytes; the envelope `hash` is its base64url.
+    event_hash : blob;
   };
   // Portable signed document and its key provenance.
   Signature : record {
@@ -273,6 +294,8 @@ type KeyPurpose = variant {
   AppAction;
   // Key domain for SHA-256 document attestations.
   FileAttestation;
+  // Hosted Agent Delegation controller keys, selected by generation.
+  AgentController;
   // Key domain for text and structured file statements.
   Statement;
 };
@@ -281,7 +304,7 @@ type KeyRequest = record {
   // Cryptographic algorithm selected for this key or operation.
   algorithm : Algorithm;
   // Positive key generation; formal signing requires 1, content roots use
-  // the requested root generation.
+  // the requested root generation, agent controllers their hosted generation.
   generation : nat64;
   // Key usage domain; part of key derivation.
   purpose : KeyPurpose;
@@ -295,6 +318,11 @@ type KeySelector = variant {
   };
   // Purpose-specific formal signing key.
   Signing : SigningKey;
+  // Hosted Agent Delegation controller key (Ed25519) of one generation.
+  AgentController : record {
+    // Positive hosted-key generation; see `agent::MAX_CONTROLLER_RECORDS`.
+    generation : nat32;
+  };
 };
 // COSE deployment configuration and master-key initialization diagnostics.
 type KeyState = record {

@@ -46,4 +46,8 @@ ic-vetkeys = "=0.9.0"
 k256 = { workspace = true, features = ["ecdsa"] }
 
 serde_json.workspace = true
+agent-protocols.workspace = true
+base64.workspace = true
+ic-http-certification.workspace = true
+ic-response-verification = "=3.2.0"
 dmsg_account_product = { path = "../../examples/dmsg-account-product" }

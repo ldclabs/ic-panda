@@ -43,6 +43,20 @@ if (config.relayOrigin) {
   }
   hosts.add(`${url.origin}/*`)
 }
+// Agent Protocols: principal documents (ICP directory) and the delegation service.
+for (const value of [config.principalOrigin, config.agentOrigin].filter(Boolean)) {
+  const url = new URL(value)
+  if (
+    url.origin !== value ||
+    (url.protocol !== 'https:' &&
+      !(
+        config.environment === 'local' &&
+        (['localhost', '127.0.0.1'].includes(url.hostname) || url.hostname.endsWith('.localhost'))
+      ))
+  )
+    throw new Error('Invalid Agent Protocols origin')
+  hosts.add(`${url.origin}/*`)
+}
 if (config.icHost !== 'https://icp-api.io') {
   const url = new URL(config.icHost)
   if (config.environment !== 'local' || !['localhost', '127.0.0.1'].includes(url.hostname))

@@ -29,6 +29,7 @@ export const idlFactory = ({ IDL }) => {
     'ContentRoot' : IDL.Null,
     'AppAction' : IDL.Null,
     'FileAttestation' : IDL.Null,
+    'AgentController' : IDL.Null,
     'Statement' : IDL.Null,
   });
   const KeyRequest = IDL.Record({
@@ -42,6 +43,12 @@ export const idlFactory = ({ IDL }) => {
       'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
       'origin' : IDL.Text,
       'to_be_signed' : IDL.Vec(IDL.Nat8),
+    }),
+    'AgentEvent' : IDL.Record({
+      'key' : KeyRequest,
+      'origin' : IDL.Text,
+      'event' : IDL.Vec(IDL.Nat8),
+      'principal_id' : IDL.Text,
     }),
     'Derive' : IDL.Record({
       'generation' : IDL.Nat64,
@@ -127,6 +134,11 @@ export const idlFactory = ({ IDL }) => {
       'key' : KeyDescriptor,
       'encrypted_key' : IDL.Vec(IDL.Nat8),
     }),
+    'AgentSignature' : IDL.Record({
+      'key' : KeyDescriptor,
+      'signature' : IDL.Vec(IDL.Nat8),
+      'event_hash' : IDL.Vec(IDL.Nat8),
+    }),
     'Signature' : IDL.Record({
       'key' : KeyDescriptor,
       'artifact' : SignedArtifact,
@@ -180,6 +192,7 @@ export const idlFactory = ({ IDL }) => {
   const KeySelector = IDL.Variant({
     'ContentRoot' : IDL.Record({ 'generation' : IDL.Nat64 }),
     'Signing' : SigningKey,
+    'AgentController' : IDL.Record({ 'generation' : IDL.Nat32 }),
   });
   const Result_3 = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
   return IDL.Service({

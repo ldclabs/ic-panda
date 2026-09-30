@@ -107,7 +107,7 @@ export async function verifyCloudSecurity(
   const snapshot = decodeCanonical<Record<string, unknown>>(value)
   const { root, encoded } = encodeDeviceBundle(bundle)
   ensure(
-    snapshot.schema === 2 &&
+    snapshot.schema === 3 &&
       snapshot.issuer === trust.issuer &&
       snapshot.account_id instanceof Uint8Array &&
       equal(snapshot.account_id, account) &&

@@ -526,6 +526,7 @@ export type KeyPurpose =
   | 'FileAttestation'
   | 'Statement'
   | 'ContentRoot'
+  | 'AgentController'
 
 export type Algorithm =
   | 'Ed25519'

@@ -89,6 +89,8 @@ export type ControlMethod =
   | 'sign_app_action'
   | 'approve_authentication'
   | 'approve_application'
+  | 'register_controller'
+  | 'sign_agent_event'
 export function encodeControl(method: ControlMethod, args: unknown[]) {
   const fn = service._fields.find(([name]) => name === method)?.[1]
   ensure(fn, 'UNSUPPORTED_PROTOCOL')

@@ -87,6 +87,14 @@ export type ExecutionKind = {
     }
   } |
   {
+    'AgentEvent' : {
+      'key' : KeyRequest,
+      'origin' : string,
+      'event' : Uint8Array | number[],
+      'principal_id' : string,
+    }
+  } |
+  {
     'Derive' : {
       'generation' : bigint,
       'transport_key' : Uint8Array | number[],
@@ -103,6 +111,13 @@ export type ExecutionOutput = {
     'EncryptedRootKey' : {
       'key' : KeyDescriptor,
       'encrypted_key' : Uint8Array | number[],
+    }
+  } |
+  {
+    'AgentSignature' : {
+      'key' : KeyDescriptor,
+      'signature' : Uint8Array | number[],
+      'event_hash' : Uint8Array | number[],
     }
   } |
   { 'Signature' : { 'key' : KeyDescriptor, 'artifact' : SignedArtifact } };
@@ -130,6 +145,7 @@ export interface KeyDescriptor {
 export type KeyPurpose = { 'ContentRoot' : null } |
   { 'AppAction' : null } |
   { 'FileAttestation' : null } |
+  { 'AgentController' : null } |
   { 'Statement' : null };
 export interface KeyRequest {
   'algorithm' : Algorithm,
@@ -137,7 +153,8 @@ export interface KeyRequest {
   'purpose' : KeyPurpose,
 }
 export type KeySelector = { 'ContentRoot' : { 'generation' : bigint } } |
-  { 'Signing' : SigningKey };
+  { 'Signing' : SigningKey } |
+  { 'AgentController' : { 'generation' : number } };
 export interface KeyState {
   'initialization' : Initialization,
   'fingerprints' : Array<Uint8Array | number[]>,

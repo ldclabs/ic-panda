@@ -3,7 +3,7 @@
 //! A login Principal authenticates a caller; a device key authorizes a sensitive
 //! operation. AccountId survives changes to either. Public views are not storage
 //! records. Times are Unix milliseconds unless a field explicitly says otherwise.
-use crate::{cose::*, handle::HandleIntent, *};
+use crate::{agent::*, cose::*, handle::HandleIntent, *};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -138,8 +138,9 @@ pub struct RootReservation {
 }
 
 /// Account limits on sensitive chain-key execution.
-/// The default permits statement/file signing, 20 executions and
-/// 800,000,000,000 cycles per day, which is also the user home's ceiling.
+/// The default permits statement/file/app-action signing and hosted agent
+/// controllers, 20 executions and 800,000,000,000 cycles per day, which is
+/// also the user home's ceiling.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SensitivePolicy {
     /// Whether sensitive execution is frozen by account policy.
@@ -160,6 +161,7 @@ impl Default for SensitivePolicy {
                 KeyPurpose::FileAttestation,
                 KeyPurpose::Statement,
                 KeyPurpose::AppAction,
+                KeyPurpose::AgentController,
             ],
             daily_executions: 20,
             daily_cycles: 800_000_000_000,
@@ -228,7 +230,7 @@ impl PendingRecovery {
     }
 }
 
-/// Certified account security leaf (current schema 2).
+/// Certified account security leaf (current schema 3).
 /// The leaf path is the single raw 12-byte account ID. `devices_root` commits
 /// to the complete device map, including revocation and replay state. Verify
 /// certificate, witness and freshness before using it as authority.
@@ -270,6 +272,9 @@ pub struct SecuritySnapshot {
     pub content_root_digest: Option<Hash>,
     /// Whether vault writes may proceed with the current root.
     pub vault_write_state: VaultWriteState,
+    /// `updated_at` of the account's current principal state, or None before
+    /// the principal is enabled. A published document older than this is stale.
+    pub principal_updated_at: Option<u64>,
 }
 
 /// Deployment configuration and account-creation limits for the user home.
@@ -293,6 +298,11 @@ pub struct UserInit {
     pub max_accounts: u64,
     /// Account creation limit per daily budget window.
     pub daily_new_accounts: u32,
+    /// HTTPS origin of Agent Delegation principal IDs, such as `https://id.dmsg.net`.
+    /// Permanent: principal IDs never change.
+    pub principal_origin: String,
+    /// Directory canister that publishes principal documents.
+    pub directory_canister: Principal,
 }
 
 /// Authenticated account creation with initial-device proof of possession.
@@ -388,6 +398,44 @@ pub enum AccountCommand {
         op_id: OpId,
         /// Dispute digest to bind a later recovery-key reconfirmation.
         dispute: Hash,
+    },
+    /// Publish this account as an Agent Delegation principal with no controllers.
+    EnablePrincipal {
+        /// Display type of the principal.
+        principal_type: PrincipalType,
+    },
+    /// Bind the next hosted controller key. Submit through `register_controller`,
+    /// which checks `public_key` against the COSE derivation.
+    RegisterController {
+        /// Next unused hosted-key generation.
+        generation: u32,
+        /// `AgentController` public key of that generation, as shown to the owner.
+        public_key: Hash,
+        /// Optional display label.
+        name: Option<String>,
+        /// Explicit delegation ceiling chosen by the owner.
+        delegation: DelegationAuthority,
+        /// Earlier generations whose credentials this key may manage.
+        supersedes: Vec<u32>,
+    },
+    /// Retire a current hosted controller; it can never sign or return.
+    RetireController {
+        /// Hosted-key generation to retire.
+        generation: u32,
+    },
+    /// Retire a controller if needed and record its earliest untrusted time.
+    MarkControllerCompromised {
+        /// Hosted-key generation.
+        generation: u32,
+        /// New cutoff; may only be added or moved earlier, never before `valid_from`.
+        invalid_from: u64,
+    },
+    /// Change only a controller's display label.
+    RenameController {
+        /// Hosted-key generation.
+        generation: u32,
+        /// New label, or None to remove it.
+        name: Option<String>,
     },
 }
 

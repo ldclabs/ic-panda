@@ -16,6 +16,8 @@ pub use identity::*;
 mod receipt;
 pub use receipt::*;
 
+/// Agent Delegation hosted-controller policy and principal documents.
+pub mod agent;
 pub mod billing;
 pub mod membership;
 

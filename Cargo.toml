@@ -6,6 +6,7 @@ members = [
   "src/dmsg_handle",
   "src/dmsg_user",
   "src/dmsg_cose",
+  "src/dmsg_directory",
   "src/dmsg_payment",
   "src/membership",
   "src/dmsg_commerce",
@@ -55,6 +56,7 @@ categories = ["web-programming"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
+agent-protocols = { version = "=0.10.0", default-features = false }
 bytes = "1"
 base64 = "0.23"
 bs58 = "0.5"
@@ -66,6 +68,7 @@ log = "0.4"
 serde = "1"
 serde_bytes = "0.11"
 serde_json = { version = "1", features = ["preserve_order"] }
+serde_jcs = "0.2"
 structured-logger = "1"
 tokio = { version = "1", features = ["full"] }
 ed25519-dalek = "3"

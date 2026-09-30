@@ -1,7 +1,7 @@
-use crate::{commerce::Month, state::*, store::Config};
+use crate::{commerce::Month, principal::AgentPrincipal, state::*, store::Config};
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
-use dmsg_types::{billing::*, cose::*, handle::*, user::*, *};
+use dmsg_types::{agent::*, billing::*, cose::*, handle::*, user::*, *};
 use ic_auth_types::XidGenerator;
 use std::collections::BTreeMap;
 
@@ -238,6 +238,9 @@ pub struct AccountStateRepr {
     pub created_at_ms: u64,
     #[cbor(key = 24)]
     pub safety_budget: BudgetRepr,
+    #[cbor(key = 25)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub principal_updated_at: Option<u64>,
 }
 
 impl StableCodec for AccountState {
@@ -269,6 +272,7 @@ impl StableCodec for AccountState {
             operations: self.operations.iter().map(StableCodec::to_repr).collect(),
             handle_authorizations: map_to_repr(&self.handle_authorizations),
             execution_expirations: self.execution_expirations.clone(),
+            principal_updated_at: self.principal_updated_at,
         }
     }
 
@@ -302,6 +306,38 @@ impl StableCodec for AccountState {
                 .collect(),
             handle_authorizations: map_from_repr(repr.handle_authorizations),
             execution_expirations: repr.execution_expirations,
+            principal_updated_at: repr.principal_updated_at,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct AgentPrincipalRepr {
+    #[cbor(key = 1)]
+    pub state: PrincipalStateRepr,
+    #[cbor(key = 2)]
+    pub published_version: u64,
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub last_nonces: BTreeMap<u32, u64>,
+}
+
+impl StableCodec for AgentPrincipal {
+    type Repr = AgentPrincipalRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        AgentPrincipalRepr {
+            state: self.state.to_repr(),
+            published_version: self.published_version,
+            last_nonces: self.last_nonces.clone(),
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            state: PrincipalState::from_repr(repr.state),
+            published_version: repr.published_version,
+            last_nonces: repr.last_nonces,
         }
     }
 }
@@ -394,6 +430,7 @@ mod tests {
             operations: vec![],
             handle_authorizations: BTreeMap::new(),
             execution_expirations: BTreeMap::new(),
+            principal_updated_at: None,
         };
         if !populated {
             return state;
@@ -444,6 +481,7 @@ mod tests {
             expires_at: 1_700_000_900_000,
         });
         state.vault_write_state = VaultWriteState::Ready;
+        state.principal_updated_at = Some(1_700_000_200_000);
         state.operations = (0..64)
             .map(|n| OperationReceipt {
                 id: Hash::new([n; 32]),
@@ -526,11 +564,11 @@ mod tests {
         assert!(compact.len() > 17_642);
         assert_eq!(
             hex(&compact),
-            "3882d3789ec34790574bf87cc010ffd2c1f5a5c2c645f2fddbdcbdc4587237f3"
+            "8dae2f81264947bf3965a23f527ed8745c07c348d6971729fb8e27da397fe6a1"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
-        assert_eq!(top_keys(&compact), (1..=24).collect::<Vec<_>>());
+        assert_eq!(top_keys(&compact), (1..=25).collect::<Vec<_>>());
         // The retention index consists of raw IDs/timestamps in both encodings;
         // integer field keys do not shrink those shared bytes.
         assert!(
@@ -587,6 +625,8 @@ mod tests {
                 payment_canister: p(4),
                 max_accounts: 1_000_000,
                 daily_new_accounts: 10_000,
+                principal_origin: "https://id.dmsg.example".into(),
+                directory_canister: p(5),
             },
             allocator: XidGenerator::new([1, 2, 3, 4, 5]),
             allocator_namespace_digest: Hash::new([6; 32]),

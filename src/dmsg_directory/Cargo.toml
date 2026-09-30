@@ -1,0 +1,23 @@
+[package]
+name = "dmsg_directory"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dmsg_protocol = { path = "../dmsg_protocol" }
+dmsg_runtime = { path = "../dmsg_runtime" }
+dmsg_types = { path = "../dmsg_types" }
+candid.workspace = true
+cbor2.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_bytes.workspace = true
+ic-cdk.workspace = true
+ic-certification.workspace = true
+ic-http-certification.workspace = true
+ic-stable-structures.workspace = true
+lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }

@@ -228,13 +228,20 @@ fn describe(
     })
 }
 
+/// How a successful management response becomes the execution output.
+enum Finish {
+    Document(PreparedSignature),
+    RootKey,
+    AgentEvent(Hash),
+}
+
 struct PreparedExecution {
     operation: Operation,
     cost: Cost,
     /// Complete cost bound reserved from the per-account and global budgets.
     reserved: u128,
     key: KeyDescriptor,
-    signature: Option<PreparedSignature>,
+    finish: Finish,
 }
 
 /// Validate a grant and build its management call. Called only before
@@ -243,7 +250,7 @@ fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<Pre
     let config = &c.state.config;
     match (&g.kind, &g.commerce) {
         // Callers are before the grant deadline, so outlasting it means valid now.
-        (ExecutionKind::Sign { .. }, Some(r)) => ensure(
+        (ExecutionKind::Sign { .. } | ExecutionKind::AgentEvent { .. }, Some(r)) => ensure(
             r.reservation_id == g.request_id
                 && r.units > 0
                 && r.weight_policy_version > 0
@@ -253,7 +260,7 @@ fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<Pre
         (ExecutionKind::Derive { .. }, None) => {}
         _ => return Err(Error::IntegrityFailed),
     }
-    let (operation, key, signature) = match &g.kind {
+    let (operation, key, finish) = match &g.kind {
         ExecutionKind::Sign {
             key,
             to_be_signed,
@@ -293,7 +300,37 @@ fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<Pre
                 ),
                 _ => return Err(Error::UnsupportedProtocol),
             };
-            (operation, descriptor, Some(prepared))
+            let finish = Finish::Document(prepared.into_signature(&descriptor.public_key)?);
+            (operation, descriptor, finish)
+        }
+        ExecutionKind::AgentEvent {
+            key,
+            event,
+            principal_id,
+            origin,
+        } => {
+            validate_origin(origin, &config.environment)?;
+            ensure(
+                key.purpose == KeyPurpose::AgentController,
+                Error::UnsupportedProtocol,
+            )?;
+            // The user home checked the controller binding and policy; COSE
+            // independently refuses to sign anything but this key's own
+            // delegation event for the named principal.
+            let parsed = dmsg_protocol::agent::parse_delegation_event(event)?;
+            let descriptor = describe(c, &g.account_id, key, canister_id)?;
+            ensure(
+                parsed.actor.as_slice() == descriptor.public_key.as_slice()
+                    && parsed.principal_id == *principal_id,
+                Error::IntegrityFailed,
+            )?;
+            let operation = Operation::schnorr(
+                descriptor.master_key_name.clone(),
+                mgmt::SchnorrAlgorithm::Ed25519,
+                model::path(config, &g.account_id, key),
+                parsed.hash.to_vec(),
+            );
+            (operation, descriptor, Finish::AgentEvent(parsed.hash))
         }
         ExecutionKind::Derive {
             generation,
@@ -316,22 +353,51 @@ fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<Pre
                 model::root_input(&g.account_id, *generation),
                 transport_key.to_vec(),
             );
-            (operation, descriptor, None)
+            (operation, descriptor, Finish::RootKey)
         }
     };
     let cost = operation.cost().map_err(Error::Unavailable)?;
     let reserved = cost.total().map_err(Error::Unavailable)?;
     ensure(reserved <= g.max_cycles, Error::QuotaExceeded)?;
-    let signature = signature
-        .map(|prepared| prepared.into_signature(&key.public_key))
-        .transpose()?;
     Ok(PreparedExecution {
         operation,
         cost,
         reserved,
         key,
-        signature,
+        finish,
     })
+}
+
+/// Package a successful management response. The call has already run and is
+/// never retried, so an unpackageable response is a known failure.
+fn finish(finish: Finish, key: KeyDescriptor, bytes: Vec<u8>) -> Result<ExecutionOutput> {
+    match finish {
+        Finish::Document(signature) => Ok(ExecutionOutput::Signature {
+            artifact: signature.finish(bytes)?,
+            key,
+        }),
+        Finish::RootKey => Ok(ExecutionOutput::EncryptedRootKey {
+            encrypted_key: bytes.into(),
+            key,
+        }),
+        Finish::AgentEvent(event_hash) => {
+            let public_key: Hash = key
+                .public_key
+                .as_slice()
+                .try_into()
+                .map(Hash::new)
+                .map_err(|_| Error::IntegrityFailed)?;
+            verify(&public_key, event_hash.as_slice(), &bytes)?;
+            Ok(ExecutionOutput::AgentSignature {
+                event_hash,
+                signature: bytes
+                    .try_into()
+                    .map(Ed25519Signature::new)
+                    .map_err(|_| Error::IntegrityFailed)?,
+                key,
+            })
+        }
+    }
 }
 
 #[ic_cdk::update]
@@ -363,12 +429,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let removed = h.prepare(&grant, at, cycles)?;
     if let Some(cycles) = cycles {
         // Last fallible check before committing. An Err must not consume a sequence.
-        reserve_budget(
-            at,
-            cycles,
-            config,
-            matches!(grant.kind, ExecutionKind::Sign { .. }),
-        )?;
+        reserve_budget(at, cycles, config, grant.kind.is_formal())?;
     }
     let mut result = ExecutionResult {
         request_id: grant.request_id,
@@ -380,7 +441,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         cost,
         reserved,
         key,
-        signature,
+        finish: finishing,
     } = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
@@ -416,24 +477,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         ic_cdk::api::msg_cycles_refunded(),
     );
     result.outcome = match response {
-        Ok(bytes) => match signature {
-            Some(signature) => {
-                match signature.finish(bytes) {
-                    Ok(artifact) => {
-                        ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
-                            artifact,
-                            key,
-                        }))
-                    }
-                    // The management call has already run and is never retried;
-                    // an unpackageable response is a known failure, not unknown.
-                    Err(error) => ExecutionOutcome::Failed(error),
-                }
-            }
-            None => ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
-                encrypted_key: bytes.into(),
-                key,
-            })),
+        Ok(bytes) => match finish(finishing, key, bytes) {
+            Ok(output) => ExecutionOutcome::Completed(Box::new(output)),
+            Err(error) => ExecutionOutcome::Failed(error),
         },
         Err(e) => {
             let detail = Error::Unavailable(format!("{e:?}"));

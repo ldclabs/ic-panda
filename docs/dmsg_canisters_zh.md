@@ -25,6 +25,7 @@ COSE schema 7 为根派生保留执行窗口，合并全局预算，并提供 co
 | membership | PANDA SNS 资格、跨产品占用与授益决定 | [README](../src/membership/README.md) / [Candid](../src/membership/membership.did) |
 | dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
+| dmsg_directory | Agent Delegation principal 文档的认证 HTTP 发布 | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
 
 扩展与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。P0 已加入设备命令、HTTP PoP、完整设备证据桥与真实扩展/PocketIC/workerd 的 profile 互操作探针；A1 已接入账户/设备/恢复和根提交 UI，见 [账户与根合同](protocol/account_root_zh.md)；A2 已接通内容同步、冲突/墓碑及完整密文导出。其它配套文档保留的早期描述应按明确的版本修订核对。
 
@@ -83,3 +84,9 @@ pnpm --dir src/dmsg_app test
 2026-09-25 commerce 使用 schema 4：配置单元只保存服务配置与调用预算，初始目录只在目录表中；暂停状态立即持久化，不读取旧实例。升级沿用原年度起点，升级差价和存储包按完整年度折算；过期存储包不占 64 个上限。适配器在账本或账户调用之外的交付失败都写入确定拒绝回执，结算方无需等到激活截止即可退款；预留时适配器依赖暂不可用则订单保持 `Reserving` 以便对账重试。共享调用预算在确认存在需要外部调用的记录后才扣减，`verify_settlement_asset` 仅限治理调用。已知拒绝的出金腿可由接收者以原 fee 或账本给出的 fee 重发，恢复超过 24 小时才派发的腿。SNS 调用失败与 membership 返回不可核验同样暂停付费执行时间，已知失格视图带修复截止时间。只影响内部状态的订单保存不再重算认证叶，重建认证树只发布一次根哈希。
 
 `max_claims` 包含尚未对账完成的 `Applying` 申请，不使用到期索引长度代替占用数量。占用计数随申请状态更新，升级时在重建认证树的同一次遍历中恢复；Apply 回执丢失不会腾出新申请容量。PocketIC 回归覆盖回执丢失后的准入拒绝、升级恢复、成功对账继续占用及承诺到期后的容量释放。
+
+## 2026-09-29 Agent Delegation 增量
+
+新增 `dmsg_directory`，按 [agent_zh.md](protocol/agent_zh.md) 发布 principal 文档。user schema 8 新增 principal 稳定表（memory 8）与 `principal_updated_at`，`SecuritySnapshot` 升为 schema 3；账户命令新增 principal 启用、托管 controller 登记/退役/泄露/改名，新增 `register_controller`、`sign_agent_event`、`publish_principal`、`get_principal`。默认 `SensitivePolicy` 与 `SetPolicy` 允许 `AgentController`（上限 4 个用途）。COSE 新增 `KeyPurpose::AgentController`、`ExecutionKind::AgentEvent` 与 `ExecutionOutput::AgentSignature`；Agent 事件计入正式签名的商业额度与预算，不产生执行回执认证叶。
+
+`dmsg_protocol` 依赖 crates.io 的 `agent-protocols =0.10.0`（`default-features = false`）做严格 I-JSON、JCS 与 Agent Delegation 校验。本地 release 构建中 user Wasm 由 3,771,117 增至 4,244,709 字节，cose 由 2,165,748 增至 2,412,506 字节，directory 为 1,496,953 字节（未经 ic-wasm shrink）。directory 容量与升级重建开销尚未实测，home 迁移尚未实现。

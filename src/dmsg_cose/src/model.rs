@@ -134,7 +134,7 @@ impl Home {
             }
         }
         ensure(retained < WINDOW, Error::QuotaExceeded)?;
-        if matches!(grant.kind, ExecutionKind::Sign { .. }) {
+        if grant.kind.is_formal() {
             ensure(formal < FORMAL_EXECUTION_WINDOW, Error::QuotaExceeded)?;
         }
         Ok(None)
@@ -155,7 +155,7 @@ impl Home {
         now: u64,
         cost: Option<u128>,
     ) -> Result<Vec<u64>> {
-        let formal = matches!(grant.kind, ExecutionKind::Sign { .. });
+        let formal = grant.kind.is_formal();
         if let Some(cost) = cost {
             self.budgets
                 .reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)?;

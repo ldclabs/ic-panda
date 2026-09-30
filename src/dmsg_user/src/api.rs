@@ -1,9 +1,9 @@
-use crate::{account, execution, recovery, state::*, store::*, xid};
+use crate::{account, execution, principal, recovery, state::*, store::*, xid};
 use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
-use dmsg_types::{billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};
+use dmsg_types::{agent::*, billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};
 use ic_auth_types::XidGenerator;
 use serde_bytes::ByteBuf;
 
@@ -36,9 +36,12 @@ fn init(args: UserInit) {
         args.payment_canister,
         args.commerce_canister,
         args.membership_canister,
+        args.directory_canister,
     ] {
         authenticated(p).expect("configured canister");
     }
+    dmsg_protocol::agent::validate_principal_origin(&args.principal_origin)
+        .expect("principal origin");
     assert!(
         args.max_accounts > 0
             && args.max_accounts <= 1_000_000
@@ -166,7 +169,18 @@ fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
 }
 
 #[ic_cdk::update]
-fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
+async fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
+    if principal::is_command(&input.command) {
+        // Registration must first match its key to the COSE derivation.
+        ensure_valid(
+            !matches!(input.command, AccountCommand::RegisterController { .. }),
+            "use register_controller",
+        )?;
+        let receipt = commit_principal(&input, ic_cdk::api::msg_caller(), now())?;
+        // A failed or unknown publication is retried by publish_principal.
+        let _ = principal::publish(input.account_id).await;
+        return Ok(receipt);
+    }
     let at = now();
     let mut s = load(&input.account_id)?;
     let replay = s
@@ -209,6 +223,107 @@ fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
     }
     save(&s);
     Ok(r)
+}
+
+/// Commit one principal command and its account receipt in this message.
+fn commit_principal(
+    input: &AccountMutation,
+    caller: Principal,
+    at: u64,
+) -> Result<OperationReceipt> {
+    let mut s = load(&input.account_id)?;
+    let mut p = principal::load(&input.account_id);
+    let replay = s
+        .operations
+        .iter()
+        .any(|r| r.id == input.approval.request_id);
+    let receipt = principal::apply(&mut s, &mut p, caller, input, at)?;
+    if !replay {
+        principal::save(&input.account_id, p.as_ref().expect("applied principal"));
+        save(&s);
+    }
+    Ok(receipt)
+}
+
+/// Bind the next hosted controller key. The COSE derivation of the approved
+/// generation must equal the approved public key; no threshold signature runs.
+#[ic_cdk::update]
+async fn register_controller(input: AccountMutation) -> Result<OperationReceipt> {
+    let caller = ic_cdk::api::msg_caller();
+    let AccountCommand::RegisterController {
+        generation,
+        public_key,
+        ..
+    } = &input.command
+    else {
+        return Err(invalid("expected RegisterController"));
+    };
+    // Reject bad callers, approvals, versions and limits before the COSE call.
+    let s = load(&input.account_id)?;
+    let replay = s
+        .operations
+        .iter()
+        .any(|r| r.id == input.approval.request_id);
+    let mut probe = s.clone();
+    let receipt = principal::apply(
+        &mut probe,
+        &mut principal::load(&input.account_id),
+        caller,
+        &input,
+        now(),
+    )?;
+    if replay {
+        let _ = principal::publish(input.account_id).await;
+        return Ok(receipt);
+    }
+    let home_cose = s.home_cose;
+    let key: Result<KeyDescriptor> = stable::call(
+        home_cose,
+        "public_key",
+        (
+            input.account_id,
+            KeySelector::AgentController {
+                generation: *generation,
+            },
+        ),
+    )
+    .await?;
+    let key = key?;
+    ensure(
+        key.account_id == input.account_id
+            && key.home_cose == home_cose
+            && key.purpose == KeyPurpose::AgentController
+            && key.key_generation == u64::from(*generation)
+            && key.public_key.as_slice() == public_key.as_slice(),
+        Error::IntegrityFailed,
+    )?;
+    // Recheck approval, version and limits against the state after the call.
+    let receipt = commit_principal(&input, caller, now())?;
+    let _ = principal::publish(input.account_id).await;
+    Ok(receipt)
+}
+
+/// Push the account's current principal state to the directory. Anyone may
+/// retry a publication; it is idempotent and never rolls the document back.
+#[ic_cdk::update]
+async fn publish_principal(account_id: AccountId) -> Result<u64> {
+    principal::publish(account_id).await
+}
+
+/// Public principal state, publication progress and signed nonces.
+#[ic_cdk::query]
+fn get_principal(account_id: AccountId) -> Result<PrincipalInfo> {
+    let p = principal::load(&account_id).ok_or(Error::NotFound)?;
+    Ok(principal::info(&account_id, p))
+}
+
+/// Sign one exact Agent Delegation event with a hosted controller key after
+/// device approval. Submit the returned signature to the delegation service.
+#[ic_cdk::update]
+async fn sign_agent_event(input: AgentEventSignRequest) -> Result<ExecutionResult> {
+    let principal_id =
+        dmsg_protocol::agent::principal_id(&config().init.principal_origin, &input.account_id);
+    authorize_and_execute(input.into_execution(principal_id)).await
 }
 
 #[ic_cdk::update]
@@ -281,7 +396,7 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
     let init = config().init;
     let mut s = own(&input.account_id, caller)?;
     let mut previous = load_execution(&input.account_id, &input.approval.request_id);
-    if matches!(input.kind, ExecutionKind::Sign { .. })
+    if input.kind.is_formal()
         && previous.is_none()
         && !crate::commerce::is_current(&input.account_id, at)?
     {
@@ -309,16 +424,25 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         .iter()
         .filter_map(|(id, expires_at)| expires_at.filter(|deadline| *deadline <= at).map(|_| *id))
         .collect();
+    let mut agent = None;
+    if previous.is_none() && matches!(input.kind, ExecutionKind::AgentEvent { .. }) {
+        let mut p = principal::load(&input.account_id).ok_or(Error::NotFound)?;
+        principal::authorize_event(&mut p, &s, &init, &input.kind, at)?;
+        agent = Some(p);
+    }
     let mut e = execution::authorize(&mut s, caller, &input, at, &init, previous.as_ref())?;
     if previous.is_none() {
         crate::commerce::reserve(&mut e, at)?;
         // All validation precedes these writes, with no await until the account,
-        // budget, sequence, execution and certification have committed together.
+        // budget, sequence, nonce, execution and certification have committed together.
         for id in expired {
             remove_execution(&s.account_id, &id);
         }
         save_execution(&e);
         save(&s);
+        if let Some(p) = agent {
+            principal::save(&s.account_id, &p);
+        }
     }
     if e.result.is_terminal() {
         return Ok(e.result);

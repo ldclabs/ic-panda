@@ -33,6 +33,9 @@ mod user_tests;
 #[path = "control_plane/commerce.rs"]
 mod commerce;
 
+#[path = "control_plane/agent.rs"]
+mod agent;
+
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let target = std::env::var_os("DMSG_WASM_DIR")
@@ -117,6 +120,7 @@ fn submit_execution(
                 approval: request.approval,
             },),
         ),
+        ExecutionKind::AgentEvent { .. } => panic!("agent events use sign_agent_event"),
     }
 }
 
@@ -172,6 +176,7 @@ fn device(n: u8) -> DeviceInput {
     }
 }
 const NAMESPACE: &str = "https://dmsg.test/u/";
+const PRINCIPAL_ORIGIN: &str = "https://id.dmsg.test";
 struct Fixture {
     ic: PocketIc,
     user: Principal,
@@ -183,6 +188,7 @@ struct Fixture {
     commerce: Principal,
     membership: Principal,
     sns: Principal,
+    directory: Principal,
     cose_config: CoseInit,
 }
 impl Fixture {
@@ -223,8 +229,9 @@ impl Fixture {
         let commerce = ic.create_canister();
         let membership = ic.create_canister();
         let sns = ic.create_canister();
+        let directory = ic.create_canister();
         for id in [
-            user, cose, handle, payment, ledger, ledger2, commerce, membership, sns,
+            user, cose, handle, payment, ledger, ledger2, commerce, membership, sns, directory,
         ] {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
@@ -265,6 +272,24 @@ impl Fixture {
                 payment_canister: payment,
                 max_accounts: 1000,
                 daily_new_accounts: 100,
+                principal_origin: PRINCIPAL_ORIGIN.into(),
+                directory_canister: directory,
+            },))
+            .unwrap(),
+            None,
+        );
+        ic.install_canister(
+            directory,
+            wasm("dmsg_directory"),
+            candid::encode_args((dmsg_types::agent::DirectoryInit {
+                environment: Environment::Local,
+                issuer_namespace: NAMESPACE.into(),
+                user_homes: vec![user],
+                principal_origin: PRINCIPAL_ORIGIN.into(),
+                controller_source: "https://dmsg.net".into(),
+                delegation_query_url: "https://agents.dmsg.test/v1/delegations/query".into(),
+                profile_url_prefix: "https://dmsg.test/u/".into(),
+                custom_domains: vec!["id.dmsg.test".into()],
             },))
             .unwrap(),
             None,
@@ -490,6 +515,7 @@ impl Fixture {
             commerce,
             membership,
             sns,
+            directory,
             ledger,
             ledger2,
             ic,

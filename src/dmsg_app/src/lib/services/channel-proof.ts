@@ -62,7 +62,7 @@ export async function channelAccountEvidence(
   const snapshot = decodeCanonical<Record<string, any>>(proof.value),
     devices = decodeCanonical<Map<Uint8Array, any>>(unb64(entry.devices, 65536))
   ensure(
-    snapshot.schema === 2 &&
+    snapshot.schema === 3 &&
       snapshot.issuer === `${trust.namespace}${account}` &&
       snapshot.account_status === 'Active' &&
       equal(snapshot.account_id, raw) &&

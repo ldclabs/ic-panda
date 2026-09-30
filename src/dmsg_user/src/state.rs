@@ -39,6 +39,8 @@ pub struct AccountState {
     // None pins a nonterminal execution; Some marks when its result may be
     // evicted. Payloads and results live only in the execution table.
     pub execution_expirations: BTreeMap<OpId, Option<u64>>,
+    // Mirror of the principal record's `updated_at`, certified in the snapshot.
+    pub principal_updated_at: Option<u64>,
 }
 
 impl AccountState {
@@ -46,7 +48,7 @@ impl AccountState {
         SecuritySnapshot {
             issuer: account_issuer(namespace, &self.account_id),
             home_cose: self.home_cose,
-            schema: 2,
+            schema: 3,
             account_id: self.account_id,
             home_user: self.home_user,
             account_status: self.status.clone(),
@@ -65,6 +67,7 @@ impl AccountState {
             content_root_generation: self.current_root.as_ref().map_or(0, |r| r.generation),
             content_root_digest: self.current_root.as_ref().map(|r| r.bundle_digest),
             vault_write_state: self.vault_write_state.clone(),
+            principal_updated_at: self.principal_updated_at,
         }
     }
 

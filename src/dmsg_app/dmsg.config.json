@@ -2,6 +2,8 @@
   "environment": "local",
   "icHost": "https://icp-api.io",
   "relayOrigin": "",
+  "principalOrigin": "",
+  "agentOrigin": "",
   "canisters": {
     "user": "",
     "handle": "",
