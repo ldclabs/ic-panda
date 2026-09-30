@@ -29,7 +29,7 @@ import {
   type GrantInput
 } from '../protocol/agent'
 import { ed25519 } from '../crypto/primitives'
-import { DmsgError, ensure } from '../errors'
+import { ensure } from '../errors'
 
 const MAX_CYCLES = 100_000_000_000n
 const WINDOW = 300_000
@@ -287,20 +287,26 @@ export class AgentClient {
       stage: 'unknown'
     }
     await this.save(job)
-    let result: ExecutionResult
+    return this.dispatch(job, request)
+  }
+
+  private async dispatch(job: AgentJob, request: AgentEventSignRequest) {
+    let response: Awaited<ReturnType<AccountClient['user']['sign_agent_event']>>
     try {
-      const response = await this.account.user.sign_agent_event(request)
-      if ('Err' in response) {
-        job.stage = 'failed'
-        job.error = Object.keys(response.Err)[0]
-        await this.save(job)
-      }
-      result = controlResult(response)
-    } catch (error) {
-      if (error instanceof DmsgError) throw error
-      throw new DmsgError('EXECUTION_UNKNOWN', `签名结果尚未确认，请在待处理记录中继续 ${job.executionId}。`)
+      response = await this.account.user.sign_agent_event(request)
+    } catch {
+      job.error = 'EXECUTION_UNKNOWN'
+      await this.save(job)
+      return job
     }
-    return this.finish(job, result)
+    if ('Err' in response) {
+      // The home may already have authorized and reserved this execution before
+      // COSE rejected dispatch. Keep the original request for reconciliation.
+      job.error = Object.keys(response.Err)[0]
+      await this.save(job)
+      return job
+    }
+    return this.finish(job, response.Ok)
   }
 
   /** Reconcile an unknown execution or resubmit a signed envelope. */
@@ -310,7 +316,7 @@ export class AgentClient {
     if (job.stage === 'signed') return this.submit(job)
     if (job.stage !== 'unknown') return job
     const request = decodeControl('sign_agent_event', job.request)[0] as AgentEventSignRequest
-    let result = await recordedExecution(
+    const result = await recordedExecution(
       this.account.user,
       xidBytes(job.account),
       unhex(job.executionId)
@@ -322,7 +328,7 @@ export class AgentClient {
         await this.save(job)
         return job
       }
-      result = controlResult(await this.account.user.sign_agent_event(request))
+      return this.dispatch(job, request)
     }
     return this.finish(job, result)
   }
@@ -330,9 +336,16 @@ export class AgentClient {
   private async finish(job: AgentJob, result: ExecutionResult) {
     ensure(equal(Uint8Array.from(result.request_id), unhex(job.executionId)), 'INTEGRITY_FAILED')
     if (!('Completed' in result.outcome)) {
-      ensure(!('Unknown' in result.outcome), 'EXECUTION_UNKNOWN')
-      job.stage = 'failed'
-      job.error = 'Failed' in result.outcome ? Object.keys(result.outcome.Failed)[0] : 'ResultExpired'
+      if ('Failed' in result.outcome) {
+        job.stage = 'failed'
+        job.error = Object.keys(result.outcome.Failed)[0]
+      } else if ('ResultExpired' in result.outcome) {
+        job.stage = 'failed'
+        job.error = 'ResultExpired'
+      } else {
+        job.stage = 'unknown'
+        job.error = 'Unknown' in result.outcome ? Object.keys(result.outcome.Unknown)[0] : 'Pending'
+      }
       await this.save(job)
       return job
     }
@@ -354,6 +367,7 @@ export class AgentClient {
     ensure(event.actor === agentId(publicKey), 'INTEGRITY_FAILED')
     job.envelope = envelope(event, hash, Uint8Array.from(signed.signature))
     job.stage = 'signed'
+    delete job.error
     await this.save(job)
     return this.submit(job)
   }
@@ -390,8 +404,16 @@ export class AgentClient {
 
   async credentials(account: string): Promise<Credential[]> {
     ensure(this.cloud, 'UNAVAILABLE', '尚未配置云端服务。')
-    const page = await this.cloud.get(`/v1/accounts/${account}/delegations?limit=100`)
-    return page.result as Credential[]
+    const credentials: Credential[] = []
+    let cursor: string | undefined
+    do {
+      const page: { result: Credential[]; next_cursor?: string } = await this.cloud.get(
+        `/v1/accounts/${account}/delegations?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+      )
+      credentials.push(...page.result)
+      cursor = page.next_cursor
+    } while (cursor)
+    return credentials
   }
 
   /** After a controller change is published, drop the service's document cache. */
