@@ -1,6 +1,6 @@
 import { config } from '../config'
 import { actionToCandid } from '../protocol/app-action'
-import { canonical as sdkCanonical } from '@dmsg/sdk'
+import { canonical as sdkCanonical } from 'dmsg-sdk'
 import { registeredApplication } from './registration'
 import { services } from './ic'
 import type { _SERVICE as CoseService } from '../canisters/generated/cose'

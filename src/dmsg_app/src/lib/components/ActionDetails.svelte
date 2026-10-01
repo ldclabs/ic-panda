@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Principal } from '@icp-sdk/core/principal'
-  import type { AppAction } from '@dmsg/sdk'
+  import type { AppAction } from 'dmsg-sdk'
   import { hex } from '../protocol/codec'
   import { dateLabel } from '../session.svelte'
   let { action }: { action: AppAction } = $props()

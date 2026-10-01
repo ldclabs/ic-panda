@@ -1,6 +1,6 @@
 import { Principal } from '@icp-sdk/core/principal'
-import type { AppRegistration } from '@dmsg/sdk'
-import { decodeCanonical, validateApp } from '@dmsg/sdk'
+import type { AppRegistration } from 'dmsg-sdk'
+import { decodeCanonical, validateApp } from 'dmsg-sdk'
 import { certifiedValue } from './certified'
 import { controlResult } from './account'
 import { config } from '../config'

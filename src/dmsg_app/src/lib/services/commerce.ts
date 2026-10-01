@@ -21,7 +21,7 @@ import {
   type ApplicationApproval,
   type ProductAuthorizationRequest,
   type SettlementAssetView
-} from '@dmsg/sdk'
+} from 'dmsg-sdk'
 import type { _SERVICE as Commerce } from '../canisters/generated/commerce'
 import type { _SERVICE as Membership } from '../canisters/generated/membership'
 import { idlFactory as userIDL } from '../canisters/generated/user/index.js'
@@ -475,7 +475,7 @@ export class CommerceClient {
       a < b ? -1 : a > b ? 1 : 0
     )
     const operation = digest('dmsg/refund-selection/v2', [unhex(id), refundLedger, selected])
-    return this.call<import('@dmsg/sdk').CashTransfer>('commerce', 'claim_checkout_refund', [
+    return this.call<import('dmsg-sdk').CashTransfer>('commerce', 'claim_checkout_refund', [
       unhex(id),
       refundLedger,
       selected,
@@ -483,21 +483,21 @@ export class CommerceClient {
     ])
   }
   async refundFees(id: string) {
-    return this.call<import('@dmsg/sdk').CashTransfer>(
+    return this.call<import('dmsg-sdk').CashTransfer>(
       'commerce',
       'claim_checkout_fee_reserve',
       [unhex(id)]
     )
   }
   async collect(id: string) {
-    return this.call<import('@dmsg/sdk').CashTransfer>(
+    return this.call<import('dmsg-sdk').CashTransfer>(
       'commerce',
       'collect_checkout_revenue',
       [unhex(id)]
     )
   }
   async processTransfer(id: string, block?: string) {
-    const t = await this.call<import('@dmsg/sdk').CashTransfer>(
+    const t = await this.call<import('dmsg-sdk').CashTransfer>(
       'commerce',
       'get_checkout_transfer',
       [unhex(id)]
@@ -510,7 +510,7 @@ export class CommerceClient {
       : this.call('commerce', 'process_checkout_transfer', [unhex(id)])
   }
   async reviseFee(id: string, fee: string) {
-    return this.call<import('@dmsg/sdk').CashTransfer>(
+    return this.call<import('dmsg-sdk').CashTransfer>(
       'commerce',
       'revise_checkout_transfer_fee',
       [unhex(id), BigInt(fee)]

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Principal } from '@icp-sdk/core/principal'
-import { decodeCanonical } from '@dmsg/sdk'
+import { decodeCanonical } from 'dmsg-sdk'
 import { actionFromCandid, actionToCandid } from '../src/lib/protocol/app-action'
 import { prepareSign } from '../src/lib/services/cose'
 import { unhex } from '../src/lib/protocol/codec'

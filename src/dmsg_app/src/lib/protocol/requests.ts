@@ -1,5 +1,5 @@
-import { decodeCanonical as decodeWire, validateAppAction, type AppAction } from '@dmsg/sdk'
-import { unbase64 } from '@dmsg/sdk/browser'
+import { decodeCanonical as decodeWire, validateAppAction, type AppAction } from 'dmsg-sdk'
+import { unbase64 } from 'dmsg-sdk/browser'
 import { z } from 'zod'
 import { ensure } from '../errors'
 import { canonical, hash, unhex } from './codec'

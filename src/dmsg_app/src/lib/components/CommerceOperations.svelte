@@ -4,7 +4,7 @@
     CheckoutOperationsPage,
     CashTransfersPage,
     PandaOperationsPage
-  } from '@dmsg/sdk'
+  } from 'dmsg-sdk'
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
   import { connectIdentity } from '../connection'

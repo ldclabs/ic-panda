@@ -1,6 +1,6 @@
 [package]
 name = "dmsg_protocol"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 description = "Deterministic encoding, COSE document verification, and approval helpers for dMsg"

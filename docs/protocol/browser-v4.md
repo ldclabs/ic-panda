@@ -136,8 +136,8 @@ reading the same result again; it never authorizes another signature or payment.
 
 ## Reference integration
 
-Use `connectDmsg` from `@dmsg/sdk/browser` with `extensionId`, `appId` and
-`session: { publicKeyDer, sign }`. Use `@dmsg/sdk/ic` for certificate verification.
+Use `connectDmsg` from `dmsg-sdk/browser` with `extensionId`, `appId` and
+`session: { publicKeyDer, sign }`. Use `dmsg-sdk/ic` for certificate verification.
 The product must persist the key, immutable challenge and stable operation ID.
 On refresh, use `getOperation`/`openOperation` with the original key. A missing
 operation can be created with the same original request; a failed transport must

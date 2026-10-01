@@ -3,9 +3,9 @@ import {
   canonical as sdkCanonical,
   decodeCanonical as sdkDecode,
   type AuthenticationRequest
-} from '@dmsg/sdk'
-import { base64, unbase64, browserOperationDigest, hex } from '@dmsg/sdk/browser'
-import { verifyAuthenticationCertificate, type CertifiedBatch } from '@dmsg/sdk/ic'
+} from 'dmsg-sdk'
+import { base64, unbase64, browserOperationDigest, hex } from 'dmsg-sdk/browser'
+import { verifyAuthenticationCertificate, type CertifiedBatch } from 'dmsg-sdk/ic'
 import type {
   Approval,
   AuthenticationRequest as CandidRequest

@@ -27,7 +27,7 @@ import {
 } from '../src/lib/bridge-requests'
 import { acknowledgeRequest, rejectRequest, setRequestState } from '../src/lib/requests'
 import { config } from '../src/lib/config'
-import type { BrowserCommand } from '@dmsg/sdk/browser'
+import type { BrowserCommand } from 'dmsg-sdk/browser'
 
 const source = { origin: 'https://product.test', tabId: 1, frameId: 0, documentId: 'a' }
 const id = '01'.repeat(32),
@@ -100,8 +100,8 @@ it('unknown operations cannot be cancelled and refreshed results keep their ackn
 })
 
 it('rejects an authentication payload claiming another registered origin or session', async () => {
-  const { canonical, sha256 } = await import('@dmsg/sdk')
-  const { base64, hex } = await import('@dmsg/sdk/browser')
+  const { canonical, sha256 } = await import('dmsg-sdk')
+  const { base64, hex } = await import('dmsg-sdk/browser')
   const publicKey = new Uint8Array(91).fill(4),
     now = BigInt(Date.now())
   const app = {

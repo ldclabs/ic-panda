@@ -285,7 +285,7 @@ async function reconnect() {
           location.origin,
           payload.asset === 'CkUsdt' ? data.input.ledger_usdt : data.input.ledger
         )
-        const quote = product.terms(job) as import('@dmsg/sdk').CheckoutQuote
+        const quote = product.terms(job) as import('dmsg-sdk').CheckoutQuote
         return {
           id: job.id,
           asset: quote.asset.asset,
@@ -321,11 +321,11 @@ async function reconnect() {
         }
         await data.crypto.lock()
         await data.crypto.call('unlock', data.password)
-        const result = (await product.approve(payload.id)) as import('@dmsg/sdk').CheckoutView
+        const result = (await product.approve(payload.id)) as import('dmsg-sdk').CheckoutView
         return { state: result.progress.status, calls }
       }
       if (payload.action === 'fund') {
-        const order = (await product.status(payload.id)) as import('@dmsg/sdk').CheckoutView,
+        const order = (await product.status(payload.id)) as import('dmsg-sdk').CheckoutView,
           ledger = Principal.fromUint8Array(order.quote.cash.ledger).toText(),
           before = await wallet.balance(ledger)
         const fault = Actor.createActor<{ lose_next_response(): Promise<void> }>(
@@ -347,7 +347,7 @@ async function reconnect() {
           funded = (await product.funding(
             payload.id,
             block.toString()
-          )) as import('@dmsg/sdk').CheckoutView
+          )) as import('dmsg-sdk').CheckoutView
         if (
           before - after !==
           order.quote.cash.amount_atomic +
@@ -370,14 +370,14 @@ async function reconnect() {
           if (!String(error).includes('Forbidden')) throw error
           refused = true
         }
-        const value = (await product.status(payload.id)) as import('@dmsg/sdk').CheckoutView
+        const value = (await product.status(payload.id)) as import('dmsg-sdk').CheckoutView
         return { state: value.progress.status, refused }
       }
       if (payload.action === 'advance-sns') return await product.approve(payload.id, true)
       if (payload.action === 'review-sns') {
         const terms = product.terms(
           await product.job(payload.id)
-        ) as import('@dmsg/sdk').PandaApplicationTerms
+        ) as import('dmsg-sdk').PandaApplicationTerms
         return {
           actor: Principal.fromUint8Array(terms.actor).toText(),
           version: terms.quote.policy.policy_version,
@@ -388,7 +388,7 @@ async function reconnect() {
         await product.entitlement(true)
         const request = await product.personal('plus', 'Panda'),
           job = await product.quote(request, location.origin, '4d'.repeat(32)),
-          result = (await product.approve(job.id)) as import('@dmsg/sdk').PandaClaimView
+          result = (await product.approve(job.id)) as import('dmsg-sdk').PandaClaimView
         return {
           id: job.id,
           status: result.status,

@@ -8,8 +8,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "paths": {
-      "@dmsg/sdk": ["../packages/dmsg-sdk/dist/index.d.ts"],
-      "@dmsg/sdk/*": ["../packages/dmsg-sdk/dist/*.d.ts"]
+      "dmsg-sdk": ["../packages/dmsg-sdk/dist/index.d.ts"],
+      "dmsg-sdk/*": ["../packages/dmsg-sdk/dist/*.d.ts"]
     }
   },
   "include": ["dmsg-browser-client.ts"]

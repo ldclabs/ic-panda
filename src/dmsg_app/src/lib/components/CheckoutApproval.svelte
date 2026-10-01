@@ -6,8 +6,8 @@
     type CheckoutRequest,
     type CheckoutView,
     type PandaClaimView
-  } from '@dmsg/sdk'
-  import { unbase64, base64 } from '@dmsg/sdk/browser'
+  } from 'dmsg-sdk'
+  import { unbase64, base64 } from 'dmsg-sdk/browser'
   import { session } from '../session.svelte'
   import { listRequests, assertLiveSource, setRequestState } from '../requests'
   import type { PendingRequest } from '../protocol/requests'

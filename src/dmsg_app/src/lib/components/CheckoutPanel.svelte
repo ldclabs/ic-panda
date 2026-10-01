@@ -6,7 +6,7 @@
     type CheckoutView,
     type PandaClaimView,
     type CashTransfer
-  } from '@dmsg/sdk'
+  } from 'dmsg-sdk'
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
   import { connectAccount as accountConnection, connectIdentity } from '../connection'

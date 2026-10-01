@@ -1,11 +1,11 @@
-import { EXTENSION_PROTOCOL } from '@dmsg/sdk'
+import { EXTENSION_PROTOCOL } from 'dmsg-sdk'
 import {
   hex,
   parseBrowserCommand,
   verifyBrowserProof,
   type BrowserCommand,
   type BrowserOperation
-} from '@dmsg/sdk/browser'
+} from 'dmsg-sdk/browser'
 import { createBrowserOperation, bindBrowserOperation } from './bridge-requests'
 import { acknowledgeRequest, getRequest, openApproval, rejectRequest } from './requests'
 import type { PendingRequest, SourceBinding } from './protocol/requests'

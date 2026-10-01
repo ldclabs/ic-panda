@@ -1,4 +1,4 @@
-import { DmsgError } from '@dmsg/sdk/errors'
+import { DmsgError } from 'dmsg-sdk/errors'
 
 // SDK codec/statement failures and application checks share one coded error type.
 export { DmsgError }

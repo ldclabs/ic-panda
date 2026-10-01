@@ -20,7 +20,7 @@ membership occupancy engine for this example.
    `prepare_billing_offer` requires that owner and freezes USD terms plus a
    `ProductApproval`. A new product should connect these checks to its real
    account and role model.
-5. Send the returned offer/approval to `@dmsg/sdk` checkout with the expected
+5. Send the returned offer/approval to `dmsg-sdk` checkout with the expected
    dMsg approving account. The economic payer/neuron actor can be different
    from the product owner.
 6. Both service callbacks use `ProductBook`: one reserved interval, durable

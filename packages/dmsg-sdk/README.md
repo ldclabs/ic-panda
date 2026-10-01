@@ -1,4 +1,4 @@
-# @dmsg/sdk 0.2.0
+# dmsg-sdk 0.2.0
 
 A standalone ESM client for dMsg authentication, document/action signing and
 subscription checkout. The package imports no Svelte, extension database,
@@ -25,7 +25,7 @@ TypeScript shapes come from the Rust contracts; regenerate with
 `python3 scripts/generate-integration-sdk.py`.
 
 ```ts
-import { connectDmsg } from '@dmsg/sdk/browser'
+import { connectDmsg } from 'dmsg-sdk/browser'
 
 const client = connectDmsg({ extensionId, appId, session })
 await client.authenticate(authenticationRequest)
@@ -59,11 +59,11 @@ It must not grant rights from a redirect, screenshot, wallet response, browser
 
 ## Independent verification
 
-- `@dmsg/sdk/ic`: verify IC root, fixed home, certificate time, witness and exact
+- `dmsg-sdk/ic`: verify IC root, fixed home, certificate time, witness and exact
   authentication challenge or certified leaf.
-- `@dmsg/sdk/statements`: verify the original COSE signature and content profile.
-- `@dmsg/sdk/codec`: the bounded canonical CBOR, base64url and hex codec used by
-  those statements. `@dmsg/sdk/errors` (also re-exported by `@dmsg/sdk/browser`)
+- `dmsg-sdk/statements`: verify the original COSE signature and content profile.
+- `dmsg-sdk/codec`: the bounded canonical CBOR, base64url and hex codec used by
+  those statements. `dmsg-sdk/errors` (also re-exported by `dmsg-sdk/browser`)
   provides the coded `DmsgError`.
 - Main export: verify closed action/checkout shapes, file/input commitments,
   exact conversion and one-rounding PANDA arithmetic; convert against **generated

@@ -4,7 +4,7 @@ import { Principal } from '@icp-sdk/core/principal'
 import { b64, unb64, digest, hex } from '../protocol/codec'
 import type { CryptoClient } from '../crypto/client'
 import type { EscrowInfo } from '../canisters/generated/payment'
-import type { CheckoutView } from '@dmsg/sdk'
+import type { CheckoutView } from 'dmsg-sdk'
 import { ensure } from '../errors'
 const blob = IDL.Vec(IDL.Nat8),
   account = IDL.Record({ owner: IDL.Principal, subaccount: IDL.Opt(blob) })

@@ -1,5 +1,5 @@
 import { xidBytes } from './protocol/identity'
-import { browserOperationDigest, hex, unbase64, type BrowserCommand } from '@dmsg/sdk/browser'
+import { browserOperationDigest, hex, unbase64, type BrowserCommand } from 'dmsg-sdk/browser'
 import {
   decodeCanonical,
   equalBytes,
@@ -9,7 +9,7 @@ import {
   validateShape,
   type AppAction,
   type AuthenticationRequest
-} from '@dmsg/sdk'
+} from 'dmsg-sdk'
 import { services } from './services/ic'
 import { registeredApplication } from './services/registration'
 import { admitRequest, enqueueRequest, requestDatabase } from './requests'
@@ -26,7 +26,7 @@ export interface AuthenticationPayload {
 export async function validateAuthenticationPayload(
   command: BrowserCommand,
   source: SourceBinding,
-  app: import('@dmsg/sdk').AppRegistration,
+  app: import('dmsg-sdk').AppRegistration,
   now = BigInt(Date.now())
 ) {
   const request = decodeCanonical(
@@ -105,7 +105,7 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
       command.method === 'checkout'
         ? (decodeCanonical(
             unbase64(command.payload!)
-          ) as unknown as import('@dmsg/sdk').CheckoutRequest)
+          ) as unknown as import('dmsg-sdk').CheckoutRequest)
         : null
     if (checkout) {
       validateShape('CheckoutRequest', checkout)
