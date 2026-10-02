@@ -1,110 +1,23 @@
 //! Generic v2 merchant checkout. A product adapter owns delivery; only this book owns funds.
 use crate::{
     api::now,
-    checkout_model::{self as model, Order, Transfer},
+    calls::CallGuard,
+    checkout_model::{self as model, Order},
+    checkout_store::*,
     registrations, store,
 };
 use candid::{CandidType, Nat, Principal};
 use dmsg_protocol::{commerce_v2::*, integration::*, *};
 use dmsg_runtime::{
     call, call_classified,
-    ledger::{block_index, read_transfer, token_amount},
-    storage::{MapExt, Stored},
+    ledger::{read_transfer, token_amount},
 };
 use dmsg_types::{integration::*, integration_billing::*, *};
-use ic_stable_structures::{
-    memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap, StableCell,
-};
 use icrc_ledger_types::icrc1::{
     account::Account,
     transfer::{TransferArg, TransferError},
 };
-use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-
-type Memory = VirtualMemory<DefaultMemoryImpl>;
-#[derive(Clone, Serialize, Deserialize)]
-struct Asset {
-    policy: SettlementAsset,
-    verified: bool,
-    fee: u128,
-}
-
-thread_local! {
-    static PRICE_AUTHORITY: RefCell<StableCell<Stored<Option<Principal>>, Memory>> =
-        RefCell::new(StableCell::init(store::memory(15), Stored(None)));
-    static ASSETS: RefCell<StableBTreeMap<Vec<u8>, Stored<Asset>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(10)));
-    static ORDERS: RefCell<StableBTreeMap<Vec<u8>, Stored<Order>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(11)));
-    static DEPOSITS: RefCell<StableBTreeMap<Vec<u8>, Stored<CheckoutDeposit>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(12)));
-    static TRANSFERS: RefCell<StableBTreeMap<Vec<u8>, Stored<Transfer>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(13)));
-    static BLOCKS: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(14)));
-}
-
-fn asset(ledger: Principal) -> Result<Asset> {
-    ASSETS
-        .with_borrow(|t| t.load(ledger.as_slice()))
-        .ok_or(Error::NotFound)
-}
-
-fn order(id: Hash) -> Result<Order> {
-    ORDERS
-        .with_borrow(|t| t.load(id.as_slice()))
-        .ok_or(Error::NotFound)
-}
-
-fn transfer(id: Hash) -> Result<Transfer> {
-    TRANSFERS
-        .with_borrow(|t| t.load(id.as_slice()))
-        .ok_or(Error::NotFound)
-}
-
-fn block_key(block: &CashBlock) -> Hash {
-    digest("dmsg/checkout/block/v2", block)
-}
-
-fn deposit_key(id: Hash, block: &CashBlock) -> Vec<u8> {
-    [id.as_slice(), block_key(block).as_slice()].concat()
-}
-
-fn deposit(id: Hash, block: &CashBlock) -> Result<CheckoutDeposit> {
-    DEPOSITS
-        .with_borrow(|t| t.load(&deposit_key(id, block)))
-        .ok_or(Error::NotFound)
-}
-
-/// Persist bookkeeping that is not part of the certified view.
-fn save_state(o: &Order) {
-    assert!(o.conserved(), "per-ledger money conservation");
-    ORDERS.with_borrow_mut(|t| t.put(o.id.as_slice(), o));
-}
-
-fn save(o: &Order) {
-    save_state(o);
-    store::CERT.with_borrow_mut(|c| c.put(order_key(o.id), &o.view()));
-}
-
-fn save_transfer(t: &Transfer) {
-    TRANSFERS.with_borrow_mut(|m| m.put(t.view.transfer_id.as_slice(), t));
-    store::CERT.with_borrow_mut(|c| c.put(transfer_key(t.view.transfer_id), &t.view));
-}
-
-fn reader(o: &Order, caller: Principal, governance: Principal) -> bool {
-    caller == o.input.quote.cash.payer.owner
-        || caller == o.input.quote.product.adapter
-        || caller == governance
-}
-
-fn read_access(o: &Order, caller: Principal) -> Result<()> {
-    ensure(
-        reader(o, caller, store::config(|c| c.governance)),
-        Error::Forbidden,
-    )
-}
+use serde::Deserialize;
 
 fn configuration(offer: &BillingOffer) -> Result<(AppRegistration, ProductRegistration)> {
     registrations::product_configuration(&offer.app_id, &offer.product_id)
@@ -135,28 +48,24 @@ fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
         )?;
     } else {
         ensure(
-            policy.policy_version == 1 && ASSETS.with_borrow(|t| t.len()) < 2,
+            policy.policy_version == 1 && assets().len() < 2,
             Error::QuotaExceeded,
         )?;
         ensure(
-            ASSETS.with_borrow(|t| t.iter().all(|v| v.value().0.policy.asset != policy.asset)),
+            assets().iter().all(|a| a.policy.asset != policy.asset),
             Error::IdempotencyConflict,
         )?;
     }
     let verified = old.as_ref().is_some_and(|o| o.verified);
     let fee = old.as_ref().map_or(policy.network_fee_atomic, |o| o.fee);
-    ASSETS.with_borrow_mut(|t| {
-        t.put(
-            policy.ledger.as_slice(),
-            &Asset {
-                fee,
-                policy: policy.clone(),
-                verified,
-            },
-        )
-    });
-    publish_assets();
-    Ok(())
+    save_asset(
+        &Asset {
+            fee,
+            policy,
+            verified,
+        },
+        now(),
+    )
 }
 
 #[derive(CandidType, Deserialize)]
@@ -206,24 +115,12 @@ async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128
     )?;
     current.verified = true;
     current.fee = fee;
-    ASSETS.with_borrow_mut(|t| t.put(ledger.as_slice(), &current));
-    publish_assets();
-    Ok(())
+    save_asset(&current, now())
 }
 
 #[ic_cdk::query]
-fn settlement_assets() -> Vec<SettlementAssetView> {
-    ASSETS.with_borrow(|t| {
-        t.iter()
-            .map(|v| {
-                let a = v.value().0;
-                SettlementAssetView {
-                    policy: a.policy,
-                    ledger_verified: a.verified,
-                }
-            })
-            .collect()
-    })
+pub(crate) fn settlement_assets() -> Vec<SettlementAssetView> {
+    asset_views()
 }
 
 fn quotable_asset(ledger: Principal) -> Result<Asset> {
@@ -311,8 +208,7 @@ async fn authorize(
             && at < quote.cash.funding_deadline_ms,
         Error::IntegrityFailed,
     )?;
-    let a = asset(quote.cash.ledger)?;
-    check_quoted_asset(&a.policy, &quote.asset, at)?;
+    let a = check_price(&quote.asset, at)?;
     ensure(
         a.verified && a.fee == a.policy.network_fee_atomic && !store::config(|c| c.paused),
         Error::PolicyStale,
@@ -352,8 +248,7 @@ async fn authorize(
             && !store::config(|c| c.paused),
         Error::PolicyStale,
     )?;
-    let a = asset(quote.cash.ledger)?;
-    check_quoted_asset(&a.policy, &quote.asset, at)?;
+    let a = check_price(&quote.asset, at)?;
     ensure(
         a.verified && a.fee == a.policy.network_fee_atomic,
         Error::PolicyStale,
@@ -369,38 +264,39 @@ async fn open_checkout(input: OpenCheckout) -> Result<CheckoutView> {
     let id = checkout_id(home, &input.quote.offer);
     if let Ok(old) = order(id) {
         read_access(&old, caller)?;
-        ensure(old.input == input, Error::IdempotencyConflict)?;
+        ensure(old.matches_input(&input), Error::IdempotencyConflict)?;
         return Ok(old.view());
     }
     let at = now();
-    ensure(
-        canonical(&input).len() <= MAX_PAYLOAD && ORDERS.with_borrow(|t| t.len()) < 1_000_000,
-        Error::QuotaExceeded,
-    )?;
+    ensure(canonical(&input).len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
+    check_capacity()?;
     store::reserve_call(at, store::CallBudget::Authorization(caller))?;
     let at = authorize(&input, caller, home, at).await?;
     if let Ok(old) = order(id) {
-        ensure(old.input == input, Error::IdempotencyConflict)?;
+        ensure(old.matches_input(&input), Error::IdempotencyConflict)?;
         return Ok(old.view());
     }
+    check_capacity()?;
     store::reserve_order(at)?;
-    let o = Order::new(home, input);
-    save(&o);
-    reserve(id).await?;
+    let mut o = Order::new(home, input);
+    save(&mut o, at);
+    reserve(id, caller, at).await?;
     Ok(order(id)?.view())
 }
 
-async fn reserve(id: Hash) -> Result<()> {
+async fn reserve(id: Hash, caller: Principal, at: u64) -> Result<()> {
     let old = order(id)?;
     if old.status != CheckoutStatus::Reserving {
         return Ok(());
     }
+    let _call = CallGuard::product(id)?;
+    store::reserve_call(at, store::CallBudget::Funds(caller))?;
     let result: Result<Result<()>> = call(
-        old.input.quote.product.adapter,
+        old.quote.product.adapter,
         "reserve_product_billing",
         (
-            old.input.authorization.clone(),
-            old.input.quote.cash.activation_deadline_ms,
+            old.authorization.clone().ok_or(Error::IntegrityFailed)?,
+            old.quote.cash.activation_deadline_ms,
         ),
     )
     .await;
@@ -411,7 +307,7 @@ async fn reserve(id: Hash) -> Result<()> {
     }
     match result {
         Ok(Ok(())) => {
-            current.status = if at < current.input.quote.cash.funding_deadline_ms {
+            current.status = if at < current.quote.cash.funding_deadline_ms {
                 CheckoutStatus::AwaitingFunding
             } else {
                 CheckoutStatus::RefundCommitted
@@ -422,20 +318,21 @@ async fn reserve(id: Hash) -> Result<()> {
         Ok(Err(_)) => current.status = CheckoutStatus::Rejected,
         Err(_) => return Err(Error::ExecutionUnknown),
     }
-    save(&current);
+    save(&mut current, at);
     Ok(())
 }
 
 /// Safe progress can be advanced without revealing the payer or private bill.
 #[ic_cdk::update]
 async fn reconcile_checkout(id: Hash) -> Result<CheckoutProgress> {
+    let caller = ic_cdk::api::msg_caller();
     let at = now();
     let mut current = order(id)?;
     if current.status == CheckoutStatus::AwaitingFunding
-        && at >= current.input.quote.cash.activation_deadline_ms
+        && at >= current.quote.cash.activation_deadline_ms
     {
         current.status = CheckoutStatus::RefundCommitted;
-        save(&current);
+        save(&mut current, at);
     }
     let release = matches!(
         current.status,
@@ -448,15 +345,14 @@ async fn reconcile_checkout(id: Hash) -> Result<CheckoutProgress> {
         || current.cancellation_pending
         || release
     {
-        store::reserve_call(at, store::CallBudget::Funds)?;
         if current.status == CheckoutStatus::Reserving {
-            reserve(id).await?;
+            reserve(id, caller, at).await?;
         } else if current.status == CheckoutStatus::Applying {
-            deliver(id, true).await?;
+            deliver(id, true, caller, at).await?;
         } else if current.cancellation_pending {
-            cancel(id, true).await?;
+            cancel(id, true, caller, at).await?;
         } else {
-            release_reservation(id).await?;
+            release_reservation(id, caller, at).await?;
         }
     }
     Ok(order(id)?.progress())
@@ -464,42 +360,30 @@ async fn reconcile_checkout(id: Hash) -> Result<CheckoutProgress> {
 
 #[ic_cdk::update]
 async fn check_checkout_funding(id: Hash, block: CashBlock) -> Result<CheckoutProgress> {
-    let key = block_key(&block);
-    if let Some(old) = BLOCKS.with_borrow(|t| t.load(key.as_slice())) {
+    let caller = ic_cdk::api::msg_caller();
+    if let Some(old) = block_owner(&block) {
         ensure(old == id, Error::IdempotencyConflict)?;
         return Ok(order(id)?.progress());
     }
-    let mut original = order(id)?;
+    order(id)?;
     ensure(asset(block.ledger)?.verified, Error::UnsupportedProtocol)?;
     let index = u64::try_from(block.block_index).map_err(|_| Error::QuotaExceeded)?;
-    let at = now();
-    ensure(at >= original.busy_until_ms, Error::Pending)?;
-    store::reserve_call(at, store::CallBudget::Funds)?;
-    original.generation = original
-        .generation
-        .checked_add(1)
-        .ok_or(Error::QuotaExceeded)?;
-    original.busy_until_ms = at + MINUTE;
-    let generation = original.generation;
-    save_state(&original);
-    let tx = read_transfer(block.ledger, index).await;
+    let _call = CallGuard::funding(id)?;
+    store::reserve_call(now(), store::CallBudget::Funds(caller))?;
+    let tx = read_transfer(block.ledger, index).await?;
     let at = now();
     let mut current = order(id)?;
-    ensure(current.generation == generation, Error::VersionConflict)?;
-    current.busy_until_ms = 0;
-    save_state(&current);
-    let tx = tx?;
-    if let Some(old) = BLOCKS.with_borrow(|t| t.load(key.as_slice())) {
+    if let Some(old) = block_owner(&block) {
         ensure(old == id, Error::IdempotencyConflict)?;
         return Ok(current.progress());
     }
+
     let deposit = current.deposit(block.ledger, &tx, at)?;
     let applying = current.status == CheckoutStatus::Applying;
-    BLOCKS.with_borrow_mut(|t| t.put(key.as_slice(), &id));
-    DEPOSITS.with_borrow_mut(|t| t.put(&deposit_key(id, &block), &deposit));
-    save(&current);
+    save_deposit(&deposit);
+    save(&mut current, at);
     if applying {
-        deliver(id, false).await?;
+        deliver(id, false, caller, at).await?;
     }
     Ok(order(id)?.progress())
 }
@@ -513,21 +397,24 @@ fn restore_refund(o: &mut Order) -> Result<()> {
             .refundable_atomic
             .checked_add(amount)
             .ok_or(Error::QuotaExceeded)?;
-        DEPOSITS.with_borrow_mut(|t| t.put(&deposit_key(o.id, block), &d));
+        save_deposit(&d);
     }
     Ok(())
 }
 
-async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
+async fn deliver(id: Hash, reconcile: bool, caller: Principal, mut at: u64) -> Result<()> {
     let o = order(id)?;
     if o.receipt.is_some() {
         return Ok(());
     }
+    let _call = CallGuard::product(id)?;
     let decision = o.decision.clone().ok_or(Error::NotFound)?;
-    let adapter = o.input.quote.product.adapter;
+    let adapter = o.quote.product.adapter;
     let receipt = if reconcile {
+        store::reserve_call(at, store::CallBudget::Funds(caller))?;
         let found: Result<Option<ProductReceipt>> =
             call(adapter, "get_product_decision", (decision.decision_id,)).await?;
+        at = now();
         found?
     } else {
         None
@@ -535,8 +422,10 @@ async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
     let receipt = if let Some(value) = receipt {
         value
     } else {
+        store::reserve_call(at, store::CallBudget::Funds(caller))?;
         let result: Result<ProductReceipt> =
             call(adapter, "apply_product_decision", (decision.clone(),)).await?;
+        at = now();
         result?
     };
     let mut current = order(id)?;
@@ -551,7 +440,7 @@ async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
     if current.status == CheckoutStatus::RefundCommitted {
         restore_refund(&mut current)?;
     }
-    save(&current);
+    save(&mut current, at);
     Ok(())
 }
 
@@ -568,37 +457,27 @@ fn checkout_progress(id: Hash) -> Result<CheckoutProgress> {
 }
 
 #[ic_cdk::query]
-fn checkout_deposits(id: Hash) -> Result<Vec<CheckoutDeposit>> {
-    let o = order(id)?;
-    read_access(&o, ic_cdk::api::msg_caller())?;
-    let start = [id.as_slice(), &[0; 32]].concat();
-    let end = [id.as_slice(), &[255; 32]].concat();
-    Ok(DEPOSITS.with_borrow(|t| {
-        t.range(start..=end)
-            .take(128)
-            .map(|v| v.value().0)
-            .collect()
-    }))
+fn checkout_deposits(id: Hash, after: Option<Hash>, take: u16) -> Result<CheckoutDepositsPage> {
+    read_access(&order(id)?, ic_cdk::api::msg_caller())?;
+    deposits(id, after, take)
 }
 
 #[ic_cdk::update]
 async fn cancel_checkout(id: Hash) -> Result<CheckoutProgress> {
+    let caller = ic_cdk::api::msg_caller();
     let mut o = order(id)?;
-    ensure(
-        ic_cdk::api::msg_caller() == o.input.quote.cash.payer.owner,
-        Error::Forbidden,
-    )?;
+    ensure(caller == o.quote.cash.payer.owner, Error::Forbidden)?;
     let at = now();
     match o.status {
         CheckoutStatus::AwaitingFunding | CheckoutStatus::Reserving => {
             o.status = CheckoutStatus::RefundCommitted;
-            save(&o);
-            release_reservation(id).await?;
+            save(&mut o, at);
+            release_reservation(id, caller, at).await?;
         }
         CheckoutStatus::Applied => {
             if o.begin_cancellation(at)? {
                 save_state(&o);
-                cancel(id, false).await?;
+                cancel(id, false, caller, at).await?;
             }
         }
         CheckoutStatus::RefundCommitted | CheckoutStatus::Rejected => {}
@@ -607,11 +486,12 @@ async fn cancel_checkout(id: Hash) -> Result<CheckoutProgress> {
     Ok(order(id)?.progress())
 }
 
-async fn cancel(id: Hash, reconcile: bool) -> Result<()> {
+async fn cancel(id: Hash, reconcile: bool, caller: Principal, mut at: u64) -> Result<()> {
     let o = order(id)?;
     if o.cancellation.is_some() {
         return Ok(());
     }
+    let _call = CallGuard::product(id)?;
     let receipt = o.receipt.as_ref().ok_or(Error::NotFound)?;
     let contract_id = match receipt.outcome {
         ProductOutcome::Applied { contract_id, .. } => contract_id,
@@ -620,12 +500,10 @@ async fn cancel(id: Hash, reconcile: bool) -> Result<()> {
     let decision = o.decision.as_ref().ok_or(Error::NotFound)?;
     let hash = product_decision_hash(decision);
     let found = if reconcile {
-        let result: Result<Option<CashCancellationReceipt>> = call(
-            o.input.quote.product.adapter,
-            "get_cash_cancellation",
-            (id,),
-        )
-        .await?;
+        store::reserve_call(at, store::CallBudget::Funds(caller))?;
+        let result: Result<Option<CashCancellationReceipt>> =
+            call(o.quote.product.adapter, "get_cash_cancellation", (id,)).await?;
+        at = now();
         result?
     } else {
         None
@@ -633,12 +511,14 @@ async fn cancel(id: Hash, reconcile: bool) -> Result<()> {
     let result = if let Some(value) = found {
         value
     } else {
+        store::reserve_call(at, store::CallBudget::Funds(caller))?;
         let value: Result<CashCancellationReceipt> = call(
-            o.input.quote.product.adapter,
+            o.quote.product.adapter,
             "cancel_cash_contract",
             (id, contract_id, hash),
         )
         .await?;
+        at = now();
         value?
     };
     let mut current = order(id)?;
@@ -651,7 +531,7 @@ async fn cancel(id: Hash, reconcile: bool) -> Result<()> {
     )?;
     if result.cancelled {
         ensure(
-            result.cancelled_at_ms < current.input.quote.offer.starts_at_ms
+            result.cancelled_at_ms < current.quote.offer.starts_at_ms
                 && current.earned_allocated == 0,
             Error::IntegrityFailed,
         )?;
@@ -660,11 +540,11 @@ async fn cancel(id: Hash, reconcile: bool) -> Result<()> {
     }
     current.cancellation_pending = false;
     current.cancellation = Some(result);
-    save(&current);
+    save(&mut current, at);
     Ok(())
 }
 
-async fn release_reservation(id: Hash) -> Result<()> {
+async fn release_reservation(id: Hash, caller: Principal, at: u64) -> Result<()> {
     let o = order(id)?;
     ensure(
         matches!(
@@ -673,16 +553,22 @@ async fn release_reservation(id: Hash) -> Result<()> {
         ) && o.decision.is_none(),
         Error::Forbidden,
     )?;
+    if o.reservation_released {
+        return Ok(());
+    }
+    let _call = CallGuard::product(id)?;
+    store::reserve_call(at, store::CallBudget::Funds(caller))?;
     let result: Result<()> = call(
-        o.input.quote.product.adapter,
+        o.quote.product.adapter,
         "release_product_billing",
-        (o.input.authorization.clone(),),
+        (o.authorization.clone().ok_or(Error::IntegrityFailed)?,),
     )
     .await?;
     result?;
+    let at = now();
     let mut current = order(id)?;
     current.reservation_released = true;
-    save_state(&current);
+    save(&mut current, at);
     Ok(())
 }
 
@@ -702,7 +588,12 @@ fn claim_checkout_refund(
         "dmsg/checkout/refund-operation/v2",
         &(id, ledger, &blocks, operation_id),
     );
+    let caller = ic_cdk::api::msg_caller();
     if let Ok(old) = transfer(refund_id) {
+        ensure(
+            old.view.to.owner == caller || read_access(&order(id)?, caller).is_ok(),
+            Error::Forbidden,
+        )?;
         return Ok(old.view);
     }
     let mut o = order(id)?;
@@ -727,21 +618,19 @@ fn claim_checkout_refund(
             .ok_or(Error::QuotaExceeded)?;
         deposits.push(d);
     }
-    let caller = ic_cdk::api::msg_caller();
     ensure(
-        destination.is_some_and(|a| a.owner == caller) || caller == o.input.quote.cash.payer.owner,
+        destination.is_some_and(|a| a.owner == caller) || caller == o.quote.cash.payer.owner,
         Error::Forbidden,
     )?;
     let a = asset(ledger)?;
     let at = now();
-    store::reserve_call(at, store::CallBudget::Funds)?;
     let balance = o.balances.get_mut(&ledger).ok_or(Error::NotFound)?;
     balance.refundable = balance
         .refundable
         .checked_sub(total)
         .ok_or(Error::IntegrityFailed)?;
-    let cap = if ledger == o.input.quote.cash.ledger {
-        o.input.quote.cash.max_network_fee_atomic
+    let cap = if ledger == o.quote.cash.ledger {
+        o.quote.cash.max_network_fee_atomic
     } else {
         a.policy.max_network_fee_atomic
     };
@@ -760,10 +649,10 @@ fn claim_checkout_refund(
     ensure(o.conserved(), Error::IntegrityFailed)?;
     for mut d in deposits {
         d.refundable_atomic = 0;
-        DEPOSITS.with_borrow_mut(|t| t.put(&deposit_key(id, &d.block), &d));
+        save_deposit(&d);
     }
-    save_transfer(&leg);
-    save(&o);
+    save_transfer(&mut leg, at);
+    save(&mut o, at);
     Ok(leg.view)
 }
 
@@ -771,7 +660,7 @@ fn claim_checkout_refund(
 fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
     let mut o = order(id)?;
     ensure(
-        ic_cdk::api::msg_caller() == o.input.quote.product.merchant.owner,
+        ic_cdk::api::msg_caller() == o.quote.product.merchant.owner,
         Error::Forbidden,
     )?;
     let at = now();
@@ -780,7 +669,7 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
         .checked_sub(o.earned_allocated)
         .ok_or(Error::IntegrityFailed)?;
     ensure(available > 0, Error::NotFound)?;
-    let ledger = o.input.quote.cash.ledger;
+    let ledger = o.quote.cash.ledger;
     let a = asset(ledger)?;
     let balance = o.balances.get_mut(&ledger).ok_or(Error::NotFound)?;
     let subsidized = balance.fees.min(a.fee);
@@ -792,39 +681,39 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
         .checked_sub(available)
         .ok_or(Error::IntegrityFailed)?;
     balance.fees -= subsidized;
-    let merchant = o.input.quote.product.merchant;
-    let cap = o.input.quote.cash.max_network_fee_atomic;
-    let leg = model::transfer(&mut o, ledger, merchant, debit, a.fee, cap, at)?;
+    let merchant = o.quote.product.merchant;
+    let cap = o.quote.cash.max_network_fee_atomic;
+    let mut leg = model::transfer(&mut o, ledger, merchant, debit, a.fee, cap, at)?;
     o.earned_allocated = earned;
     ensure(o.conserved(), Error::IntegrityFailed)?;
-    save_transfer(&leg);
-    save(&o);
+    save_transfer(&mut leg, at);
+    save(&mut o, at);
     Ok(leg.view)
 }
 
 #[ic_cdk::update]
 fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
+    let at = now();
     let mut o = order(id)?;
     ensure(
-        ic_cdk::api::msg_caller() == o.input.quote.cash.payer.owner,
+        ic_cdk::api::msg_caller() == o.quote.cash.payer.owner,
         Error::Forbidden,
     )?;
     ensure(
-        o.status == CheckoutStatus::Applied
-            && o.earned_allocated == o.input.quote.cash.amount_atomic,
+        o.status == CheckoutStatus::Applied && o.earned_allocated == o.quote.cash.amount_atomic,
         Error::Pending,
     )?;
-    let ledger = o.input.quote.cash.ledger;
+    let ledger = o.quote.cash.ledger;
     let a = asset(ledger)?;
     let balance = o.balances.get_mut(&ledger).ok_or(Error::NotFound)?;
     let total = balance.fees;
     balance.fees = 0;
-    let payer = o.input.quote.cash.payer;
-    let cap = o.input.quote.cash.max_network_fee_atomic;
-    let leg = model::transfer(&mut o, ledger, payer, total, a.fee, cap, now())?;
+    let payer = o.quote.cash.payer;
+    let cap = o.quote.cash.max_network_fee_atomic;
+    let mut leg = model::transfer(&mut o, ledger, payer, total, a.fee, cap, at)?;
     ensure(o.conserved(), Error::IntegrityFailed)?;
-    save_transfer(&leg);
-    save(&o);
+    save_transfer(&mut leg, at);
+    save(&mut o, at);
     Ok(leg.view)
 }
 
@@ -840,7 +729,7 @@ fn get_checkout_transfer(id: Hash) -> Result<CashTransfer> {
     Ok(t.view)
 }
 
-fn complete_transfer(id: Hash, block: u128) -> Result<CashTransfer> {
+fn complete_transfer(id: Hash, block: u128, at: u64) -> Result<CashTransfer> {
     let mut current = transfer(id)?;
     if current.view.status == CashTransferStatus::Succeeded {
         return Ok(current.view);
@@ -849,10 +738,17 @@ fn complete_transfer(id: Hash, block: u128) -> Result<CashTransfer> {
         current.view.status != CashTransferStatus::Superseded,
         Error::VersionConflict,
     )?;
+    let mut o = order(current.view.order_id)?;
+    o.pending_transfers = o
+        .pending_transfers
+        .checked_sub(1)
+        .ok_or(Error::IntegrityFailed)?;
     current.view.status = CashTransferStatus::Succeeded;
     current.view.block_index = Some(block);
     current.view.error_code = None;
-    save_transfer(&current);
+    current.view.expected_fee_atomic = None;
+    save_transfer(&mut current, at);
+    save(&mut o, at);
     Ok(current.view)
 }
 
@@ -871,20 +767,14 @@ async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
         t.view.status != CashTransferStatus::Superseded,
         Error::VersionConflict,
     )?;
+    let _call = CallGuard::transfer(id)?;
     let was_unknown = matches!(
         t.view.status,
         CashTransferStatus::Unknown | CashTransferStatus::InFlight
     );
-    if t.view.status == CashTransferStatus::InFlight {
-        ensure(
-            at >= t.dispatched_at_ms.saturating_add(MINUTE),
-            Error::Pending,
-        )?;
-    }
-    store::reserve_call(at, store::CallBudget::Funds)?;
+    store::reserve_call(at, store::CallBudget::Funds(ic_cdk::api::msg_caller()))?;
     t.view.status = CashTransferStatus::InFlight;
-    t.dispatched_at_ms = at;
-    save_transfer(&t);
+    save_transfer(&mut t, at);
     let v = &t.view;
     let result: std::result::Result<
         std::result::Result<Nat, TransferError>,
@@ -902,71 +792,17 @@ async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
         },),
     )
     .await;
+    let at = now();
     let mut current = transfer(id)?;
-    if current.view.status == CashTransferStatus::Succeeded {
-        return Ok(current.view);
+    let outcome = model::transfer_result(&mut current, was_unknown, result);
+    if let Ok(Some(block)) = outcome {
+        return complete_transfer(id, block, at);
     }
-    ensure(
-        current.view.status != CashTransferStatus::Superseded,
-        Error::VersionConflict,
-    )?;
-    match result {
-        Ok(Ok(index)) => complete_transfer(id, u128::from(block_index(index)?)),
-        Ok(Err(TransferError::Duplicate { duplicate_of })) => {
-            complete_transfer(id, u128::from(block_index(duplicate_of)?))
-        }
-        Ok(Err(error)) => {
-            if let TransferError::BadFee { expected_fee } = error {
-                let fee = token_amount(expected_fee)?;
-                ensure(fee > 0, Error::IntegrityFailed)?;
-                let mut a = asset(v.ledger)?;
-                a.fee = fee;
-                ASSETS.with_borrow_mut(|m| m.put(v.ledger.as_slice(), &a));
-                publish_assets();
-                current.view.expected_fee_atomic = Some(fee);
-                current.view.error_code = Some("BadFee".into());
-            } else {
-                current.view.error_code = Some(
-                    match error {
-                        TransferError::TooOld => "TooOld",
-                        TransferError::TemporarilyUnavailable => "TemporarilyUnavailable",
-                        TransferError::InsufficientFunds { .. } => "InsufficientFunds",
-                        _ => "LedgerRejected",
-                    }
-                    .into(),
-                );
-            }
-            current.view.status = if was_unknown {
-                CashTransferStatus::Unknown
-            } else {
-                CashTransferStatus::Rejected
-            };
-            save_transfer(&current);
-            Ok(current.view)
-        }
-        Err(failure) => {
-            let unknown = failure.preserves_unknown(was_unknown);
-            current.view.status = if unknown {
-                CashTransferStatus::Unknown
-            } else {
-                CashTransferStatus::Rejected
-            };
-            current.view.error_code = Some(
-                if unknown {
-                    "ExecutionUnknown"
-                } else {
-                    "NotExecuted"
-                }
-                .into(),
-            );
-            save_transfer(&current);
-            Err(if unknown {
-                Error::ExecutionUnknown
-            } else {
-                failure.into()
-            })
-        }
+    if let Some(fee) = current.view.expected_fee_atomic {
+        observe_fee(current.view.ledger, fee)?;
     }
+    save_transfer(&mut current, at);
+    outcome.map(|_| current.view)
 }
 
 #[ic_cdk::update]
@@ -987,7 +823,8 @@ async fn verify_transfer(id: Hash, block: CashBlock) -> Result<CashTransfer> {
         ),
         Error::VersionConflict,
     )?;
-    store::reserve_call(now(), store::CallBudget::Funds)?;
+    let _call = CallGuard::transfer(id)?;
+    store::reserve_call(now(), store::CallBudget::Funds(ic_cdk::api::msg_caller()))?;
     let tx = read_transfer(
         block.ledger,
         u64::try_from(block.block_index).map_err(|_| Error::QuotaExceeded)?,
@@ -1007,13 +844,15 @@ async fn verify_transfer(id: Hash, block: CashBlock) -> Result<CashTransfer> {
             && tx.created_at_time == Some(v.created_at_time_ns),
         Error::IntegrityFailed,
     )?;
-    complete_transfer(id, block.block_index)
+    complete_transfer(id, block.block_index, now())
 }
 
 /// The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
 /// keeping its fee or adopting the ledger's expected fee within the original cap.
 #[ic_cdk::update]
 fn revise_checkout_transfer_fee(id: Hash, new_fee: u128) -> Result<CashTransfer> {
+    let at = now();
+    let _call = CallGuard::transfer(id)?;
     let mut old = transfer(id)?;
     ensure(
         old.view.status == CashTransferStatus::Rejected && old.view.replaced_by.is_none(),
@@ -1042,37 +881,19 @@ fn revise_checkout_transfer_fee(id: Hash, new_fee: u128) -> Result<CashTransfer>
     t.view.memo = new_id;
     t.view.fee_atomic = new_fee;
     t.view.amount_atomic = total - new_fee;
-    t.view.created_at_time_ns = millis_to_nanos(now())?;
+    t.view.created_at_time_ns = millis_to_nanos(at)?;
     t.view.status = CashTransferStatus::Pending;
     t.view.replaces = Some(id);
     t.view.replaced_by = None;
     t.view.error_code = None;
     t.view.expected_fee_atomic = None;
-    t.dispatched_at_ms = 0;
     old.view.replaced_by = Some(new_id);
     old.view.status = CashTransferStatus::Superseded;
     // The original obligation is already allocated; its total debit is unchanged.
-    save_transfer(&t);
-    save_transfer(&old);
-    save(&o);
+    save_transfer(&mut t, at);
+    save_transfer(&mut old, at);
+    save_state(&o);
     Ok(t.view)
-}
-
-fn order_key(id: Hash) -> Vec<u8> {
-    digest("dmsg/checkout/certificate/v2", &id).to_vec()
-}
-
-fn transfer_key(id: Hash) -> Vec<u8> {
-    digest("dmsg/checkout/transfer-certificate/v2", &id).to_vec()
-}
-
-fn assets_key() -> Vec<u8> {
-    digest("dmsg/settlement-assets/v2", &"supported").to_vec()
-}
-
-fn publish_assets() {
-    let views = settlement_assets();
-    store::CERT.with_borrow_mut(|c| c.put(assets_key(), &views));
 }
 
 #[ic_cdk::query]
@@ -1084,34 +905,22 @@ fn settlement_assets_certificate() -> Result<CertifiedBatch> {
 fn checkout_certificate(id: Hash) -> Result<CertifiedBatch> {
     let o = order(id)?;
     read_access(&o, ic_cdk::api::msg_caller())?;
+    order_certificate_available(id)?;
     store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![order_key(id)]))
 }
 
 #[ic_cdk::query]
 fn checkout_transfer_certificate(id: Hash) -> Result<CertifiedBatch> {
     get_checkout_transfer(id)?;
+    transfer_certificate_available(id)?;
     store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![transfer_key(id)]))
-}
-
-pub(crate) fn rebuild(cert: &mut dmsg_runtime::Certification) {
-    ORDERS.with_borrow(|t| {
-        t.for_each(|_, o| {
-            cert.set(order_key(o.id), canonical(&o.view()));
-        })
-    });
-    TRANSFERS.with_borrow(|t| {
-        t.for_each(|_, v| {
-            cert.set(transfer_key(v.view.transfer_id), canonical(&v.view));
-        })
-    });
-    cert.set(assets_key(), canonical(&settlement_assets()));
 }
 
 #[ic_cdk::update]
 fn set_settlement_price_authority(authority: Principal) -> Result<()> {
     store::check_governance(ic_cdk::api::msg_caller())?;
     authenticated(authority)?;
-    PRICE_AUTHORITY.with_borrow_mut(|c| c.set(Stored(Some(authority))));
+    set_price_authority(authority);
     Ok(())
 }
 
@@ -1123,8 +932,7 @@ fn publish_settlement_price(
 ) -> Result<SettlementAsset> {
     let caller = ic_cdk::api::msg_caller();
     ensure(
-        caller == store::config(|c| c.governance)
-            || PRICE_AUTHORITY.with_borrow(|c| c.get().0 == Some(caller)),
+        caller == store::config(|c| c.governance) || price_authority() == Some(caller),
         Error::Forbidden,
     )?;
     ensure_valid(
@@ -1141,8 +949,7 @@ fn publish_settlement_price(
     a.policy.price_usd_micros = price_usd_micros;
     a.policy.price_observed_at_ms = at;
     a.policy.price_valid_until_ms = at.checked_add(valid_for_ms).ok_or(Error::QuotaExceeded)?;
-    ASSETS.with_borrow_mut(|t| t.put(ledger.as_slice(), &a));
-    publish_assets();
+    save_asset(&a, at)?;
     Ok(a.policy)
 }
 
@@ -1151,7 +958,7 @@ fn publish_settlement_price(
 fn get_checkout_for_product(id: Hash) -> Result<CheckoutView> {
     let value = order(id)?;
     ensure(
-        ic_cdk::api::msg_caller() == value.input.quote.product.adapter,
+        ic_cdk::api::msg_caller() == value.quote.product.adapter,
         Error::Forbidden,
     )?;
     Ok(value.view())
@@ -1160,77 +967,16 @@ fn get_checkout_for_product(id: Hash) -> Result<CheckoutView> {
 /// Private operations centre; quoting and monitoring never reserve an interval.
 #[ic_cdk::query]
 fn checkout_operations(after: Option<Hash>, take: u16) -> Result<CheckoutOperationsPage> {
-    use std::ops::Bound::{Excluded, Unbounded};
-    let caller = ic_cdk::api::msg_caller();
-    authenticated(caller)?;
-    ensure_valid((1..=32).contains(&take), "page size")?;
-    let governance = store::config(|c| c.governance);
-    let mut orders = vec![];
-    let mut next = None;
-    ORDERS.with_borrow(|t| {
-        let start = after.map_or(Unbounded, |id| Excluded(id.to_vec()));
-        let mut iter = t.range((start, Unbounded));
-        for _ in 0..512 {
-            let Some(row) = iter.next() else {
-                next = None;
-                break;
-            };
-            let order = row.value().0;
-            next = Some(order.id);
-            if reader(&order, caller, governance) {
-                orders.push(CheckoutOperationAudit {
-                    order: order.view(),
-                    balances: order
-                        .balances
-                        .iter()
-                        .map(|(ledger, b)| CheckoutLedgerBalance {
-                            ledger: *ledger,
-                            incoming_atomic: b.incoming,
-                            refundable_atomic: b.refundable,
-                            service_reserve_atomic: b.service,
-                            fee_reserve_atomic: b.fees,
-                            outgoing_atomic: b.outgoing,
-                        })
-                        .collect(),
-                });
-            }
-            if orders.len() >= usize::from(take) {
-                break;
-            }
-        }
-    });
-    Ok(CheckoutOperationsPage { orders, next })
+    operations(ic_cdk::api::msg_caller(), after, take)
 }
 
 #[ic_cdk::query]
 fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPage> {
-    use std::ops::Bound::{Excluded, Unbounded};
-    let caller = ic_cdk::api::msg_caller();
-    authenticated(caller)?;
-    ensure_valid((1..=32).contains(&take), "page size")?;
-    let governance = store::config(|c| c.governance);
-    let mut transfers = vec![];
-    let mut next = None;
-    TRANSFERS.with_borrow(|t| {
-        let start = after.map_or(Unbounded, |id| Excluded(id.to_vec()));
-        let mut iter = t.range((start, Unbounded));
-        for _ in 0..512 {
-            let Some(row) = iter.next() else {
-                next = None;
-                break;
-            };
-            let v = row.value().0.view;
-            next = Some(v.transfer_id);
-            if caller == governance
-                || v.to.owner == caller
-                || order(v.order_id).is_ok_and(|o| reader(&o, caller, governance))
-            {
-                transfers.push(v);
-            }
-            if transfers.len() >= usize::from(take) {
-                break;
-            }
-        }
-    });
-    Ok(CashTransfersPage { transfers, next })
+    transfers(ic_cdk::api::msg_caller(), after, take)
+}
+
+/// Bounded maintenance; funds, original-source refunds and idempotency survive archival.
+#[ic_cdk::update]
+fn sweep_checkout_history() -> CheckoutHistorySweep {
+    sweep(now())
 }

@@ -72,7 +72,11 @@ fees are separate. The client shows the exact price/reserve/fee before payment.
 A later price publication does not invalidate an accepted quote: `open_checkout`
 keeps the quoted observation while it is still valid, provided the current
 observation is also available and every non-price asset term (ledger, kind,
-decimals, fees and enablement) is unchanged.
+decimals, fees and enablement) is unchanged. The quoted `(ledger, policy_version)`
+must exactly match an authority-published snapshot retained in stable memory;
+client-supplied price/time/version fields are never treated as evidence. Each
+ledger retains at most 256 live snapshots; publication removes expired snapshots
+and rejects a full live history instead of evicting still-valid quotes.
 
 1. `quote_checkout` verifies the authoritative offer and selected asset.
 2. The user's device signs a purpose-separated `ApplicationApproval`; the product
@@ -112,7 +116,10 @@ explicitly reissues it with a fresh ledger timestamp, keeping its fee or adoptin
 the ledger's expected fee within the **original** maximum fee. This also recovers
 a leg first dispatched after the ledger's 24-hour deduplication window. The gross
 obligation stays fixed. An over-cap fee remains blocked; it is not
-silently taken from someone else's principal or reserve.
+silently taken from someone else's principal or reserve. A live per-leg guard
+excludes concurrent dispatch, reconciliation and replacement, regardless of how
+long the first callback takes. Upgrades discard guards but retain `InFlight` and
+its frozen arguments; only the ledger result can resolve that uncertainty.
 
 ## PANDA full-fee commitments
 
@@ -219,7 +226,12 @@ add-ons are priced for the rest of that full term. Expired add-ons do not count
 toward the 64 retained add-ons. Unverifiable and known-ineligible periods both
 pause paid execution time; a known-ineligible view carries its repair deadline. Monthly
 execution allowance integrates the complete nonoverlapping UTC-month timeline,
-clips time before account creation and rounds down once. Qualification refresh,
+clips time before account creation and rounds down once. Free quota segments
+follow the catalogs actually effective during the month, with no retroactive
+replacement of earlier segments. A catalog boundary ends the previous resource
+lease and a refreshed projection advances its lease revision. Only current-month
+and live/future resource intervals stay in the subject's working history; the
+last service-end time is retained for the expired resource projection. Qualification refresh,
 refund or downgrade does not reset held/charged units. Root recovery/derivation
 continues to use protected safety budgets, independent of paid execution units.
 
@@ -227,10 +239,37 @@ continues to use protected safety budgets, independent of paid execution units.
 
 Private paginated `checkout_operations`, `checkout_transfers` and
 `panda_operations` reuse existing reader/owner/merchant/recipient/adapter or
-governance permissions. They scan bounded pages and show per-ledger obligations,
+governance permissions, including the merchant frozen in the order. Stable
+reader indexes yield only accessible records and return a cursor only when more
+accessible records remain. `checkout_deposits(order_id, after, take)` returns up
+to 128 deposits with an opaque hash cursor. These pages show per-ledger obligations,
 Unknown decisions, fee blockage, expired leases and retained commitments. These
 observations are not delivery receipts. The extension's operations centre never
 offers to clear Unknown records or end an applied PANDA commitment.
+
+Funding/product/outgoing work has a global allowance of 400 per UTC minute and
+40 per caller; ledger reads include their bounded archive traversal. Authorization
+is separately limited to 200 global and 10 per caller. Qualification refreshes
+allow 200 global and 20 per public caller; registered user homes share the global
+limit when serving their accounts. Each actual product call consumes an allowance,
+including both receipt lookup and a needed Apply. Local refund allocation,
+unchanged terminal reads and blocked concurrent retries do not consume this RPC
+budget. At most 128 guarded operations may be in flight.
+
+`sweep_checkout_history` archives up to 32 orders and 32 outgoing legs per call.
+An order must have no remaining reserve/refund obligation or unfinished transfer,
+and a definite product outcome/released reservation. Retention lasts 30 days
+after the later of its last money transition and service/activation endpoint.
+Succeeded or superseded transfer legs retain their full arguments for at least
+30 days after their last transition. Unknown/Rejected/Pending transfers remain
+live. Orders in cold storage discard redundant authorization/decision payloads,
+but retain the original input digest, quote, ledger balances, final receipt and
+funding reference. Ledger/block deduplication and reader indexes are never removed.
+Direct reads and indexed history remain available; retired certificate endpoints
+return `ResultExpired`. A newly verified late deposit restores the original
+order's live certificate and its original-source refund route without reapplying
+service. Admission allows 100,000 hot orders and 1,000,000 total order identities;
+these are hard safeguards, not measured production capacities.
 
 Pausing admission preserves original-order reconciliation, original-source
 refunds, known transfer recovery, existing qualification refresh and expiry

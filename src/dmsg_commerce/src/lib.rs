@@ -1,6 +1,8 @@
 mod api;
+mod calls;
 mod checkout;
 mod checkout_model;
+mod checkout_store;
 mod model;
 mod product;
 mod registrations;

@@ -468,6 +468,16 @@ export interface CashTransfersPage {
   next: (Uint8Array | null)
 }
 
+export interface CheckoutDepositsPage {
+  deposits: CheckoutDeposit[]
+  next: (Uint8Array | null)
+}
+
+export interface CheckoutHistorySweep {
+  orders: bigint
+  transfers: bigint
+}
+
 export interface PandaServiceConfig {
   commerce_canister: Uint8Array
   max_claims: bigint

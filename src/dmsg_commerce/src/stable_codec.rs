@@ -1,12 +1,19 @@
 //! Versioned, integer-keyed local records; public certification bytes stay independent.
-use crate::{model::Subject, store::Config};
+use crate::{
+    checkout_model::{Balance, Order, Transfer},
+    checkout_store::Asset,
+    model::Subject,
+    store::Config,
+};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_runtime::storage::StableCodec;
-use dmsg_types::{billing::*, membership::*, Environment};
+use dmsg_types::{
+    billing::*, integration::*, integration_billing::*, membership::*, Environment, Hash,
+};
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 4;
+const SCHEMA: u16 = 5;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {
@@ -40,8 +47,7 @@ record!(SubjectRepr => Subject {
     5 => contracts: Vec<MembershipContract>,
     6 => addons: Vec<StorageAddon>,
     9 => view: Option<EntitlementView>,
-    10 => busy_until_ms: u64,
-    11 => generation: u64,
+    10 => last_service_end_ms: Option<u64>,
     12 => retry_after_ms: u64,
 });
 
@@ -56,9 +62,39 @@ record!(ConfigRepr => Config {
     8 => day: u64,
     9 => orders: u32,
     10 => minute: u64,
-    11 => reads: u32,
-    12 => refreshes: u32,
+    11 => reads: BTreeMap<Principal, u32>,
+    12 => refreshes: BTreeMap<Principal, u32>,
     13 => authorizations: BTreeMap<Principal, u32>,
+});
+
+record!(AssetRepr => Asset {
+    1 => policy: SettlementAsset,
+    2 => verified: bool,
+    3 => fee: u128,
+});
+
+record!(OrderRepr => Order {
+    1 => id: Hash,
+    2 => quote: CheckoutQuote,
+    3 => authorization: Option<ProductAuthorizationRequest>,
+    4 => input_hash: Hash,
+    5 => status: CheckoutStatus,
+    6 => balances: BTreeMap<Principal, Balance>,
+    7 => funding: Option<CashBlock>,
+    8 => decision: Option<ProductDecision>,
+    9 => receipt: Option<ProductReceipt>,
+    10 => cancellation: Option<CashCancellationReceipt>,
+    11 => cancellation_pending: bool,
+    12 => reservation_released: bool,
+    13 => next_transfer: u64,
+    14 => earned_allocated: u128,
+    15 => pending_transfers: u32,
+    16 => updated_at_ms: u64,
+});
+
+record!(TransferRepr => Transfer {
+    1 => view: CashTransfer,
+    2 => updated_at_ms: u64,
 });
 
 #[cfg(test)]

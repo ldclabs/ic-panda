@@ -12,8 +12,7 @@ pub struct Subject {
     pub contracts: Vec<MembershipContract>,
     pub addons: Vec<StorageAddon>,
     pub view: Option<EntitlementView>,
-    pub busy_until_ms: u64,
-    pub generation: u64,
+    pub last_service_end_ms: Option<u64>,
     pub retry_after_ms: u64,
 }
 
@@ -27,8 +26,7 @@ impl Subject {
             contracts: vec![],
             addons: vec![],
             view: None,
-            busy_until_ms: 0,
-            generation: 0,
+            last_service_end_ms: None,
             retry_after_ms: 0,
         }
     }
@@ -81,6 +79,27 @@ pub fn add_storage(s: &mut Subject, addon: StorageAddon, at: u64) -> Result<()> 
     Ok(())
 }
 
+/// User owns historical consumed/held units. Commerce only serves the current
+/// execution month, so old resource intervals need not grow every subject read.
+pub fn prune(s: &mut Subject, at: u64) -> Result<()> {
+    let month_start = month_bounds(month_utc(at)?)?.0;
+    s.contracts.retain(|c| {
+        let end = end(c);
+        if end <= month_start {
+            s.last_service_end_ms = Some(s.last_service_end_ms.unwrap_or(0).max(end));
+            false
+        } else {
+            true
+        }
+    });
+    for c in &mut s.contracts {
+        c.resource_pauses
+            .retain(|(_, end)| end.is_none_or(|end| end > month_start));
+    }
+    s.addons.retain(|a| a.expires_at_ms > at);
+    Ok(())
+}
+
 pub fn plan(catalog: &Catalog, id: &PlanId) -> Result<PlanVersion> {
     catalog
         .plans
@@ -127,11 +146,13 @@ pub fn project(
     s: &mut Subject,
     catalog: &Catalog,
     at: u64,
+    next_catalog_at: Option<u64>,
 ) -> Result<EntitlementView> {
+    prune(s, at)?;
     let free = plan(catalog, &PlanId::Free)?;
     let active = s.active(at).cloned();
     let mut p = free;
-    let mut status = if s.contracts.is_empty() {
+    let mut status = if s.contracts.is_empty() && s.last_service_end_ms.is_none() {
         SourceStatus::Free
     } else {
         SourceStatus::Expired
@@ -149,6 +170,7 @@ pub fn project(
                 .or(Some(c.expires_at_ms))
                 .filter(|t| *t <= at)
         })
+        .chain(s.last_service_end_ms)
         .max();
     if let Some(c) = &active {
         eligibility = c.eligibility.clone();
@@ -201,6 +223,7 @@ pub fn project(
                 .iter()
                 .flat_map(|a| [a.starts_at_ms, a.expires_at_ms]),
         )
+        .chain(next_catalog_at)
         .filter(|t| *t > at)
         .min();
     if let Some(t) = next {
@@ -217,8 +240,10 @@ pub fn project(
         .lease_revision
         .checked_add(1)
         .ok_or(Error::QuotaExceeded)?;
-    for a in &mut s.addons {
-        if sources.contains(&a.contract_id) {
+    // The published resource contract includes this ceiling. Update both the
+    // durable source and the emitted add-on so the view never lags one lease.
+    for a in s.addons.iter_mut().chain(addons.iter_mut()) {
+        if a.starts_at_ms <= at && at < a.expires_at_ms {
             a.last_issued_until_ms = a.last_issued_until_ms.max(until);
         }
     }
@@ -247,11 +272,12 @@ pub fn project(
     Ok(v)
 }
 
-pub fn month(s: &Subject, catalog: &Catalog, month: u32) -> Result<MonthEntitlement> {
+pub fn month(s: &Subject, catalogs: &[Catalog], month: u32) -> Result<MonthEntitlement> {
     let created = s.created_at_ms.ok_or(Error::NotFound)?;
     let (start, end_at) = month_bounds(month)?;
     let start = start.max(created).min(end_at);
-    let free = plan(catalog, &PlanId::Free)?;
+    let current = catalogs.last().ok_or(Error::NotFound)?;
+    let free = plan(current, &PlanId::Free)?;
     let mut points = vec![start, end_at];
     for c in &s.contracts {
         for p in [c.starts_at_ms, end(c)].into_iter().chain(
@@ -264,6 +290,12 @@ pub fn month(s: &Subject, catalog: &Catalog, month: u32) -> Result<MonthEntitlem
             }
         }
     }
+    points.extend(
+        catalogs
+            .iter()
+            .map(|c| c.effective_at_ms)
+            .filter(|t| *t > start && *t < end_at),
+    );
     points.sort_unstable();
     points.dedup();
     let mut segments: Vec<MonthSegment> = vec![];
@@ -273,9 +305,14 @@ pub fn month(s: &Subject, catalog: &Catalog, month: u32) -> Result<MonthEntitlem
                 .iter()
                 .any(|(a, b)| *a <= w[0] && w[0] < b.unwrap_or(u64::MAX))
         });
-        let units = c.map_or(free.limits.monthly_execution_units, |c| {
+        let units = if let Some(c) = c {
             c.plan.limits.monthly_execution_units
-        });
+        } else {
+            let index = catalogs.partition_point(|c| c.effective_at_ms <= w[0]);
+            plan(&catalogs[index.saturating_sub(1)], &PlanId::Free)?
+                .limits
+                .monthly_execution_units
+        };
         let source = c.map(|c| c.contract_id);
         if let Some(last) = segments
             .last_mut()
@@ -354,7 +391,7 @@ mod tests {
         assert_eq!(s.contracts[0].resource_pauses, vec![(mid, None)]);
         set_eligibility(&mut s.contracts[0], Eligibility::Eligible, end - 1).unwrap();
         assert_eq!(s.contracts[0].resource_pauses, vec![(mid, Some(end - 1))]);
-        let m = month(&s, &catalog(), 202609).unwrap();
+        let m = month(&s, &[catalog()], 202609).unwrap();
         assert_eq!(m.segments.len(), 3);
         assert_eq!(m.segments[1].source_contract_id, None);
         assert_eq!(m.segments[1].monthly_units, 3);
@@ -367,11 +404,11 @@ mod tests {
         let at = 2_000;
         set_eligibility(&mut s.contracts[0], Eligibility::Ineligible, at).unwrap();
         s.contracts[0].repair_deadline_ms = Some(at + REPAIR_WINDOW_MS);
-        let v = project(HOME, &mut s, &catalog(), at).unwrap();
+        let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
         assert_eq!(v.source_status, SourceStatus::RepairRequired);
         assert_eq!(v.repair_deadline_ms, Some(at + REPAIR_WINDOW_MS));
         assert!(v.valid_until_ms <= at + REPAIR_WINDOW_MS);
-        let v = project(HOME, &mut s, &catalog(), at + REPAIR_WINDOW_MS).unwrap();
+        let v = project(HOME, &mut s, &catalog(), at + REPAIR_WINDOW_MS, None).unwrap();
         assert_eq!(v.source_status, SourceStatus::Suspended);
         assert_eq!(v.service_terminated_at_ms, Some(at + REPAIR_WINDOW_MS));
         set_eligibility(&mut s.contracts[0], Eligibility::Eligible, at + 1).unwrap();
@@ -398,5 +435,29 @@ mod tests {
         );
         add_storage(&mut s, addon(100, 20), 10).unwrap();
         assert_eq!(s.addons.len(), 1);
+    }
+    #[test]
+    fn pruning_keeps_the_current_month_and_last_service_end() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let mut s = subject(start - 10 * DAY, start - DAY);
+        let mut current = s.contracts[0].clone();
+        current.starts_at_ms = start;
+        current.expires_at_ms = end;
+        current.qualified_until_ms = end;
+        current.resource_pauses = vec![
+            (start - 3 * DAY, Some(start - 2 * DAY)),
+            (start + DAY, Some(start + 2 * DAY)),
+        ];
+        s.contracts.push(current);
+        let before = month(&s, &[catalog()], 202609).unwrap();
+        prune(&mut s, start + 3 * DAY).unwrap();
+        assert_eq!(s.contracts.len(), 1);
+        assert_eq!(s.contracts[0].resource_pauses.len(), 1);
+        assert_eq!(s.last_service_end_ms, Some(start - DAY));
+        assert_eq!(month(&s, &[catalog()], 202609).unwrap(), before);
+        let v = project(HOME, &mut s, &catalog(), end + DAY, None).unwrap();
+        assert!(s.contracts.is_empty());
+        assert_eq!(v.source_status, SourceStatus::Expired);
+        assert_eq!(v.service_terminated_at_ms, Some(end));
     }
 }

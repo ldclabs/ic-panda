@@ -405,12 +405,12 @@ pub struct CheckoutOperationAudit {
     pub balances: Vec<CheckoutLedgerBalance>,
 }
 
-/// Bounded owner/merchant/governance scan. Cursor is the last scanned key, not the last match.
+/// Bounded owner/merchant/adapter/governance page, backed by reader indexes.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CheckoutOperationsPage {
     /// Accessible orders.
     pub orders: Vec<CheckoutOperationAudit>,
-    /// Continue after this key; null means the scan reached the end.
+    /// Last returned identity when another accessible order exists.
     pub next: Option<Hash>,
 }
 
@@ -419,6 +419,24 @@ pub struct CheckoutOperationsPage {
 pub struct CashTransfersPage {
     /// Exact immutable transfer arguments and state.
     pub transfers: Vec<CashTransfer>,
-    /// Last scanned key, including inaccessible rows.
+    /// Last returned identity when another accessible transfer exists.
     pub next: Option<Hash>,
+}
+
+/// Bounded page of independently refundable funding records for one order.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CheckoutDepositsPage {
+    /// Original source and remaining refundable amount of each recorded deposit.
+    pub deposits: Vec<CheckoutDeposit>,
+    /// Opaque cursor after the last returned deposit, only when more remain.
+    pub next: Option<Hash>,
+}
+
+/// Counts archived in one bounded maintenance call; money obligations are never removed.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CheckoutHistorySweep {
+    /// Fully settled orders moved out of the active certification tree.
+    pub orders: u16,
+    /// Succeeded or superseded outgoing legs moved out of the active tree.
+    pub transfers: u16,
 }

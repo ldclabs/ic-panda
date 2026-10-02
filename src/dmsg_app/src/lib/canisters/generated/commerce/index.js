@@ -212,10 +212,11 @@ export const idlFactory = ({ IDL }) => {
     'block' : CashBlock,
     'order_id' : IDL.Vec(IDL.Nat8),
   });
-  const Result_4 = IDL.Variant({
-    'Ok' : IDL.Vec(CheckoutDeposit),
-    'Err' : Error,
+  const CheckoutDepositsPage = IDL.Record({
+    'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'deposits' : IDL.Vec(CheckoutDeposit),
   });
+  const Result_4 = IDL.Variant({ 'Ok' : CheckoutDepositsPage, 'Err' : Error });
   const SettlementAssetKind = IDL.Variant({
     'CkUsdc' : IDL.Null,
     'CkUsdt' : IDL.Null,
@@ -488,6 +489,10 @@ export const idlFactory = ({ IDL }) => {
     'ledger_verified' : IDL.Bool,
     'policy' : SettlementAsset,
   });
+  const CheckoutHistorySweep = IDL.Record({
+    'transfers' : IDL.Nat16,
+    'orders' : IDL.Nat16,
+  });
   return IDL.Service({
     'apply_product_decision' : IDL.Func([ProductDecision], [Result], []),
     'cancel_cash_contract' : IDL.Func(
@@ -506,7 +511,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_3],
         ['query'],
       ),
-    'checkout_deposits' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_4], ['query']),
+    'checkout_deposits' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
+        [Result_4],
+        ['query'],
+      ),
     'checkout_operations' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
         [Result_5],
@@ -633,6 +642,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'settlement_assets_certificate' : IDL.Func([], [Result_3], ['query']),
+    'sweep_checkout_history' : IDL.Func([], [CheckoutHistorySweep], []),
     'verify_billing_offer' : IDL.Func([BillingOffer], [Result_18], []),
     'verify_settlement_asset' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat)],

@@ -439,6 +439,16 @@ CashTransfersPage = {
   "next": (Hash / null),
 }
 
+CheckoutDepositsPage = {
+  "deposits": [* CheckoutDeposit],
+  "next": (Hash / null),
+}
+
+CheckoutHistorySweep = {
+  "orders": u16,
+  "transfers": u16,
+}
+
 PandaServiceConfig = {
   "commerce_canister": Principal,
   "max_claims": u64,

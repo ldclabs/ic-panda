@@ -32,8 +32,8 @@ pub struct Config {
     pub day: u64,
     pub orders: u32,
     pub minute: u64,
-    pub reads: u32,
-    pub refreshes: u32,
+    pub reads: BTreeMap<Principal, u32>,
+    pub refreshes: BTreeMap<Principal, u32>,
     pub authorizations: BTreeMap<Principal, u32>,
 }
 
@@ -50,8 +50,8 @@ impl Config {
             day: 0,
             orders: 0,
             minute: 0,
-            reads: 0,
-            refreshes: 0,
+            reads: BTreeMap::new(),
+            refreshes: BTreeMap::new(),
             authorizations: BTreeMap::new(),
         }
     }
@@ -59,7 +59,7 @@ impl Config {
 
 thread_local! {
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     static CONFIG: RefCell<Option<Config>> = RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
@@ -101,8 +101,8 @@ pub fn check_governance(caller: Principal) -> Result<()> {
 }
 
 pub enum CallBudget {
-    Funds,
-    Refresh,
+    Funds(Principal),
+    Refresh(Principal),
     Authorization(Principal),
 }
 
@@ -111,29 +111,26 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
         let minute = at / MINUTE;
         if c.minute != minute {
             c.minute = minute;
-            c.reads = 0;
-            c.refreshes = 0;
+            c.reads.clear();
+            c.refreshes.clear();
             c.authorizations.clear();
         }
-        match kind {
-            CallBudget::Funds => {
-                ensure(c.reads < 400, Error::QuotaExceeded)?;
-                c.reads += 1;
+        let (counts, caller, global, per_caller) = match kind {
+            CallBudget::Funds(caller) => (&mut c.reads, caller, 400, 40),
+            CallBudget::Refresh(caller) => {
+                let limit = if c.user_homes.contains(&caller) {
+                    200
+                } else {
+                    20
+                };
+                (&mut c.refreshes, caller, 200, limit)
             }
-            CallBudget::Refresh => {
-                ensure(c.refreshes < 200, Error::QuotaExceeded)?;
-                c.refreshes += 1;
-            }
-            CallBudget::Authorization(caller) => {
-                ensure(
-                    c.authorizations.values().sum::<u32>() < 200,
-                    Error::QuotaExceeded,
-                )?;
-                let used = c.authorizations.entry(caller).or_default();
-                ensure(*used < 10, Error::QuotaExceeded)?;
-                *used += 1;
-            }
-        }
+            CallBudget::Authorization(caller) => (&mut c.authorizations, caller, 200, 10),
+        };
+        ensure(counts.values().sum::<u32>() < global, Error::QuotaExceeded)?;
+        let used = counts.entry(caller).or_default();
+        ensure(*used < per_caller, Error::QuotaExceeded)?;
+        *used += 1;
         Ok(())
     })
 }
@@ -188,6 +185,35 @@ pub fn catalog(at: u64) -> Catalog {
     })
 }
 
+pub fn next_catalog_at(at: u64) -> Option<u64> {
+    CATALOG_CACHE.with_borrow(|cache| {
+        cache
+            .iter()
+            .find(|c| c.effective_at_ms > at)
+            .map(|c| c.effective_at_ms)
+    })
+}
+
+pub fn same_catalog(a: u64, b: u64) -> bool {
+    CATALOG_CACHE.with_borrow(|cache| {
+        cache.partition_point(|c| c.effective_at_ms <= a)
+            == cache.partition_point(|c| c.effective_at_ms <= b)
+    })
+}
+
+/// Free quota history through the current observation. A scheduled future policy
+/// does not rewrite an already issued month until that policy actually takes effect.
+pub fn month_catalogs(month: u32, at: u64) -> Result<Vec<Catalog>> {
+    let start = month_bounds(month)?.0;
+    Ok(CATALOG_CACHE.with_borrow(|cache| {
+        let first = cache
+            .partition_point(|c| c.effective_at_ms <= start)
+            .saturating_sub(1);
+        let end = cache.partition_point(|c| c.effective_at_ms <= at);
+        cache[first..end].to_vec()
+    }))
+}
+
 /// Internal bookkeeping must not republish an unchanged resource leaf.
 pub fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
     let bytes = dmsg_protocol::canonical(value);
@@ -201,7 +227,7 @@ pub fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
 pub fn rebuild(at: u64) {
     CERT.with_borrow_mut(|c| {
         crate::registrations::rebuild(c);
-        crate::checkout::rebuild(c);
+        crate::checkout_store::rebuild(c);
         SUBJECTS.with_borrow(|t| {
             t.for_each(|key, s| {
                 if let Some(v) = s.view {

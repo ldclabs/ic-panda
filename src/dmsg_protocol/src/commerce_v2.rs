@@ -52,6 +52,8 @@ pub fn asset_available(asset: &SettlementAsset, at: u64) -> Result<()> {
 
 /// An accepted quote keeps its own live price observation across later price publications.
 /// Both observations must be available and every non-price term must be unchanged.
+/// This comparison does not authenticate `quoted`: the service must first match
+/// it exactly against its retained authority-published price history.
 pub fn check_quoted_asset(
     current: &SettlementAsset,
     quoted: &SettlementAsset,

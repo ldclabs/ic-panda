@@ -239,7 +239,7 @@ type CashTransferStatus = variant {
 type CashTransfersPage = record {
   // Exact immutable transfer arguments and state.
   transfers : vec CashTransfer;
-  // Last scanned key, including inaccessible rows.
+  // Last returned identity when another accessible transfer exists.
   next : opt blob;
 };
 // Certified commercial catalog; asset identity and governance approval require trusted evidence.
@@ -293,6 +293,20 @@ type CheckoutDeposit = record {
   // Original order receiving these funds.
   order_id : blob;
 };
+// Bounded page of independently refundable funding records for one order.
+type CheckoutDepositsPage = record {
+  // Opaque cursor after the last returned deposit, only when more remain.
+  next : opt blob;
+  // Original source and remaining refundable amount of each recorded deposit.
+  deposits : vec CheckoutDeposit;
+};
+// Counts archived in one bounded maintenance call; money obligations are never removed.
+type CheckoutHistorySweep = record {
+  // Succeeded or superseded outgoing legs moved out of the active tree.
+  transfers : nat16;
+  // Fully settled orders moved out of the active certification tree.
+  orders : nat16;
+};
 // Exact per-order accounting in one ledger; amounts in distinct ledgers are never added.
 type CheckoutLedgerBalance = record {
   // Customer-funded network fee reserve.
@@ -315,11 +329,11 @@ type CheckoutOperationAudit = record {
   // Independently conserved balances.
   balances : vec CheckoutLedgerBalance;
 };
-// Bounded owner/merchant/governance scan. Cursor is the last scanned key, not the last match.
+// Bounded owner/merchant/adapter/governance page, backed by reader indexes.
 type CheckoutOperationsPage = record {
   // Accessible orders.
   orders : vec CheckoutOperationAudit;
-  // Continue after this key; null means the scan reached the end.
+  // Last returned identity when another accessible order exists.
   next : opt blob;
 };
 // Safe public progress without disclosing private product bill/account data.
@@ -737,7 +751,7 @@ type Result_17 = variant { Ok : EntitlementView; Err : Error };
 type Result_18 = variant { Ok; Err : Error };
 type Result_2 = variant { Ok : CheckoutProgress; Err : Error };
 type Result_3 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_4 = variant { Ok : vec CheckoutDeposit; Err : Error };
+type Result_4 = variant { Ok : CheckoutDepositsPage; Err : Error };
 type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
 type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
 type Result_7 = variant { Ok : CashTransfer; Err : Error };
@@ -876,7 +890,7 @@ service : (CommerceInit) -> {
   cancel_checkout : (blob) -> (Result_2);
   check_checkout_funding : (blob, CashBlock) -> (Result_2);
   checkout_certificate : (blob) -> (Result_3) query;
-  checkout_deposits : (blob) -> (Result_4) query;
+  checkout_deposits : (blob, opt blob, nat16) -> (Result_4) query;
   // Private operations centre; quoting and monitoring never reserve an interval.
   checkout_operations : (opt blob, nat16) -> (Result_5) query;
   checkout_progress : (blob) -> (Result_2) query;
@@ -922,6 +936,8 @@ service : (CommerceInit) -> {
   set_settlement_price_authority : (principal) -> (Result_18);
   settlement_assets : () -> (vec SettlementAssetView) query;
   settlement_assets_certificate : () -> (Result_3) query;
+  // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
+  sweep_checkout_history : () -> (CheckoutHistorySweep);
   verify_billing_offer : (BillingOffer) -> (Result_18);
   verify_settlement_asset : (principal, opt nat) -> (Result_18);
 }

@@ -135,7 +135,7 @@ pub enum ContractSource {
 /// Fixed base contract and its separately observed resource qualification.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MembershipContract {
-    /// Original annual interval anchor, retained across upgrades and buyouts.
+    /// Original annual interval anchor, retained across cash upgrades.
     pub term_starts_at_ms: u64,
     /// Known or unverifiable qualification loss; closed intervals preserve monthly history.
     pub resource_pauses: Vec<(u64, Option<u64>)>,

@@ -4,6 +4,8 @@ use dmsg_types::{
     billing::*, integration::*, integration_billing::*, integration_membership::*, membership::*,
 };
 use serde::Serialize;
+#[path = "commerce_review.rs"]
+mod commerce_review;
 #[path = "external_integration.rs"]
 mod external_integration;
 #[path = "membership_review.rs"]

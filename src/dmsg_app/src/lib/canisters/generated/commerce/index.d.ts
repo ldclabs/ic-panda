@@ -151,6 +151,14 @@ export interface CheckoutDeposit {
   'block' : CashBlock,
   'order_id' : Uint8Array | number[],
 }
+export interface CheckoutDepositsPage {
+  'next' : [] | [Uint8Array | number[]],
+  'deposits' : Array<CheckoutDeposit>,
+}
+export interface CheckoutHistorySweep {
+  'transfers' : number,
+  'orders' : number,
+}
 export interface CheckoutLedgerBalance {
   'fee_reserve_atomic' : bigint,
   'refundable_atomic' : bigint,
@@ -393,7 +401,7 @@ export type Result_2 = { 'Ok' : CheckoutProgress } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : Array<CheckoutDeposit> } |
+export type Result_4 = { 'Ok' : CheckoutDepositsPage } |
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : CheckoutOperationsPage } |
   { 'Err' : Error };
@@ -479,7 +487,10 @@ export interface _SERVICE {
     Result_2
   >,
   'checkout_certificate' : ActorMethod<[Uint8Array | number[]], Result_3>,
-  'checkout_deposits' : ActorMethod<[Uint8Array | number[]], Result_4>,
+  'checkout_deposits' : ActorMethod<
+    [Uint8Array | number[], [] | [Uint8Array | number[]], number],
+    Result_4
+  >,
   'checkout_operations' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
     Result_5
@@ -560,6 +571,7 @@ export interface _SERVICE {
   'set_settlement_price_authority' : ActorMethod<[Principal], Result_18>,
   'settlement_assets' : ActorMethod<[], Array<SettlementAssetView>>,
   'settlement_assets_certificate' : ActorMethod<[], Result_3>,
+  'sweep_checkout_history' : ActorMethod<[], CheckoutHistorySweep>,
   'verify_billing_offer' : ActorMethod<[BillingOffer], Result_18>,
   'verify_settlement_asset' : ActorMethod<
     [Principal, [] | [bigint]],

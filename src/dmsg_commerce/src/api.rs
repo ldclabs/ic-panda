@@ -36,7 +36,7 @@ pub(crate) fn get_subject(b: &Beneficiary) -> Result<Subject> {
 }
 
 fn publish(canister_id: Principal, s: &mut Subject, at: u64) -> Result<EntitlementView> {
-    let v = model::project(canister_id, s, &catalog(at), at)?;
+    let v = model::project(canister_id, s, &catalog(at), at, next_catalog_at(at))?;
     save(s);
     Ok(v)
 }
@@ -136,6 +136,7 @@ fn set_admission_pause(paused: bool) -> Result<()> {
 async fn refresh(
     b: Beneficiary,
     canister_id: Principal,
+    caller: Principal,
     mut at: u64,
 ) -> Result<(EntitlementView, u64)> {
     valid_subject(&b)?;
@@ -143,6 +144,7 @@ async fn refresh(
     if let Some(v) = &s.view {
         if at.saturating_add(MINUTE) < v.valid_until_ms
             && v.business_revision == s.business_revision
+            && same_catalog(v.issued_at_ms, at)
         {
             return Ok((v.clone(), at));
         }
@@ -152,7 +154,7 @@ async fn refresh(
         _ => None,
     });
     if let Some((contract, id)) = source {
-        ensure(at >= s.busy_until_ms, Error::Pending)?;
+        let _call = crate::calls::CallGuard::entitlement(entitlement_key(&b))?;
         if at < s.retry_after_ms {
             return s
                 .view
@@ -160,11 +162,7 @@ async fn refresh(
                 .map(|v| (v, at))
                 .ok_or(Error::MembershipStale);
         }
-        reserve_call(at, CallBudget::Refresh)?;
-        s.generation += 1;
-        let generation = s.generation;
-        s.busy_until_ms = at + MINUTE;
-        save_subject(&s);
+        reserve_call(at, CallBudget::Refresh(caller))?;
         let response: Result<Result<dmsg_types::integration_membership::PandaClaimView>> =
             dmsg_runtime::call(
                 config(|c| c.membership_canister),
@@ -174,9 +172,6 @@ async fn refresh(
             .await;
         at = now();
         s = load(&b)?;
-        ensure(s.generation == generation, Error::VersionConflict)?;
-        s.busy_until_ms = 0;
-        save_subject(&s);
         match response {
             Ok(Ok(view))
                 if view.claim_id == id
@@ -205,9 +200,14 @@ async fn refresh(
 
 #[ic_cdk::update]
 async fn refresh_entitlement(b: Beneficiary) -> Result<EntitlementView> {
-    refresh(b, ic_cdk::api::canister_self(), now())
-        .await
-        .map(|(view, _)| view)
+    refresh(
+        b,
+        ic_cdk::api::canister_self(),
+        ic_cdk::api::msg_caller(),
+        now(),
+    )
+    .await
+    .map(|(view, _)| view)
 }
 
 #[ic_cdk::query]
@@ -233,10 +233,9 @@ async fn get_execution_entitlement(
     account_created_at_ms: u64,
 ) -> Result<ExecutionEntitlement> {
     let at = now();
+    let caller = ic_cdk::api::msg_caller();
     ensure(
-        ic_cdk::api::msg_caller() == b.authority_canister
-            && account_created_at_ms <= at
-            && month == month_utc(at)?,
+        caller == b.authority_canister && account_created_at_ms <= at && month == month_utc(at)?,
         Error::Forbidden,
     )?;
     let mut s = get_subject(&b)?;
@@ -246,8 +245,9 @@ async fn get_execution_entitlement(
         s.created_at_ms = Some(account_created_at_ms);
         save(&s);
     }
-    let (view, at) = refresh(b.clone(), ic_cdk::api::canister_self(), at).await?;
+    let (view, at) = refresh(b.clone(), ic_cdk::api::canister_self(), caller, at).await?;
     let s = load(&b)?;
-    let month = model::month(&s, &catalog(at), month)?;
+    ensure(month_utc(at)? == month, Error::MembershipStale)?;
+    let month = model::month(&s, &month_catalogs(month, at)?, month)?;
     Ok(ExecutionEntitlement { view, month })
 }

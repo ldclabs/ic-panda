@@ -27,7 +27,9 @@ impl Balance {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Order {
     pub id: Hash,
-    pub input: OpenCheckout,
+    pub quote: CheckoutQuote,
+    pub authorization: Option<ProductAuthorizationRequest>,
+    pub input_hash: Hash,
     pub status: CheckoutStatus,
     pub balances: BTreeMap<Principal, Balance>,
     pub funding: Option<CashBlock>,
@@ -38,15 +40,18 @@ pub struct Order {
     pub reservation_released: bool,
     pub next_transfer: u64,
     pub earned_allocated: u128,
-    pub generation: u64,
-    pub busy_until_ms: u64,
+    pub pending_transfers: u32,
+    pub updated_at_ms: u64,
 }
 
 impl Order {
     pub fn new(home: Principal, input: OpenCheckout) -> Self {
         Self {
             id: checkout_id(home, &input.quote.offer),
-            input,
+            updated_at_ms: input.quote.quoted_at_ms,
+            input_hash: digest("dmsg/checkout/input/v2", &input),
+            quote: input.quote,
+            authorization: Some(input.authorization),
             status: CheckoutStatus::Reserving,
             balances: BTreeMap::new(),
             funding: None,
@@ -57,28 +62,59 @@ impl Order {
             reservation_released: false,
             next_transfer: 0,
             earned_allocated: 0,
-            generation: 0,
-            busy_until_ms: 0,
+            pending_transfers: 0,
         }
+    }
+
+    pub fn matches_input(&self, input: &OpenCheckout) -> bool {
+        self.input_hash == digest("dmsg/checkout/input/v2", input)
+    }
+
+    /// Archive only settled money and a definite product outcome. Late deposits
+    /// can restore this record; the original input hash permanently prevents replay.
+    pub fn archive_after(&self) -> Option<u64> {
+        if self.pending_transfers != 0
+            || self.cancellation_pending
+            || self
+                .balances
+                .values()
+                .any(|b| b.refundable != 0 || b.service != 0 || b.fees != 0)
+        {
+            return None;
+        }
+        let end = match self.status {
+            CheckoutStatus::Applied => self.quote.offer.expires_at_ms,
+            CheckoutStatus::RefundCommitted | CheckoutStatus::Rejected
+                if self.receipt.is_some() || self.reservation_released =>
+            {
+                self.quote.cash.activation_deadline_ms
+            }
+            _ => return None,
+        };
+        Some(self.updated_at_ms.max(end).saturating_add(30 * DAY))
     }
 
     pub fn progress(&self) -> CheckoutProgress {
         CheckoutProgress {
             order_id: self.id,
             status: self.status.clone(),
-            decision_id: self.decision.as_ref().map(|d| d.decision_id),
+            decision_id: self
+                .decision
+                .as_ref()
+                .map(|d| d.decision_id)
+                .or_else(|| self.receipt.as_ref().map(|r| r.decision_id)),
         }
     }
 
     pub fn view(&self) -> CheckoutView {
         let balance = self
             .balances
-            .get(&self.input.quote.cash.ledger)
+            .get(&self.quote.cash.ledger)
             .cloned()
             .unwrap_or_default();
         CheckoutView {
             progress: self.progress(),
-            quote: self.input.quote.clone(),
+            quote: self.quote.clone(),
             receipt: self.receipt.clone(),
             outgoing_atomic: balance.outgoing,
             service_reserve_atomic: balance.service,
@@ -97,7 +133,7 @@ impl Order {
         tx: &dmsg_runtime::ledger::VerifiedTransfer,
         at: u64,
     ) -> Result<CheckoutDeposit> {
-        let quote = &self.input.quote;
+        let quote = &self.quote;
         ensure(
             tx.to == quote.cash.deposit && tx.committed_at <= at,
             Error::IntegrityFailed,
@@ -189,7 +225,7 @@ impl Order {
             self.status == CheckoutStatus::RefundCommitted,
             Error::VersionConflict,
         )?;
-        let Some(balance) = self.balances.get_mut(&self.input.quote.cash.ledger) else {
+        let Some(balance) = self.balances.get_mut(&self.quote.cash.ledger) else {
             return Ok(0);
         };
         let total = balance
@@ -212,7 +248,7 @@ impl Order {
         if self.cancellation.is_some() {
             return Ok(false);
         }
-        ensure(at < self.input.quote.offer.starts_at_ms, Error::Forbidden)?;
+        ensure(at < self.quote.offer.starts_at_ms, Error::Forbidden)?;
         self.cancellation_pending = true;
         Ok(true)
     }
@@ -234,18 +270,18 @@ impl Order {
         )?;
         let receipt = self.receipt.as_ref().ok_or(Error::IntegrityFailed)?;
         earned_atomic(
-            self.input.quote.cash.amount_atomic,
-            &self.input.quote.offer,
+            self.quote.cash.amount_atomic,
+            &self.quote.offer,
             receipt.applied_at_ms,
             at,
         )
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Transfer {
     pub view: CashTransfer,
-    pub dispatched_at_ms: u64,
+    pub updated_at_ms: u64,
 }
 
 /// Freeze one outgoing obligation. Revisions replace an unexecuted leg, never allocate twice.
@@ -259,10 +295,13 @@ pub fn transfer(
     at: u64,
 ) -> Result<Transfer> {
     ensure(fee > 0 && fee <= max_fee && debit > fee, Error::FeeBlocked)?;
+    let pending = order
+        .pending_transfers
+        .checked_add(1)
+        .ok_or(Error::QuotaExceeded)?;
     let id = order.next_transfer_id()?;
     let source_subaccount = Hash::new(
         order
-            .input
             .quote
             .cash
             .deposit
@@ -276,6 +315,7 @@ pub fn transfer(
         .ok_or(Error::QuotaExceeded)?;
     let created_at_time_ns = millis_to_nanos(at)?;
     balance.outgoing = outgoing;
+    order.pending_transfers = pending;
     Ok(Transfer {
         view: CashTransfer {
             transfer_id: id,
@@ -295,8 +335,70 @@ pub fn transfer(
             replaces: None,
             replaced_by: None,
         },
-        dispatched_at_ms: 0,
+        updated_at_ms: at,
     })
+}
+
+/// Classify one ledger reply; a clean rejection cannot resolve an earlier
+/// unknown attempt. A live call guard prevents concurrent callbacks for this leg.
+pub fn transfer_result(
+    t: &mut Transfer,
+    was_unknown: bool,
+    response: std::result::Result<
+        std::result::Result<candid::Nat, icrc_ledger_types::icrc1::transfer::TransferError>,
+        dmsg_runtime::CallFailure,
+    >,
+) -> Result<Option<u128>> {
+    use dmsg_runtime::{
+        ledger::{block_index, token_amount},
+        CallFailure,
+    };
+    use icrc_ledger_types::icrc1::transfer::TransferError;
+    let (code, expected_fee, transport) = match response {
+        Ok(Ok(block))
+        | Ok(Err(TransferError::Duplicate {
+            duplicate_of: block,
+        })) => match block_index(block) {
+            Ok(block) => return Ok(Some(u128::from(block))),
+            Err(_) => ("InvalidResponse", None, Some(CallFailure::Unknown)),
+        },
+        Ok(Err(error)) => match error {
+            TransferError::BadFee { expected_fee } => (
+                "BadFee",
+                token_amount(expected_fee).ok().filter(|f| *f > 0),
+                None,
+            ),
+            TransferError::TooOld => ("TooOld", None, None),
+            TransferError::TemporarilyUnavailable => ("TemporarilyUnavailable", None, None),
+            TransferError::InsufficientFunds { .. } => ("InsufficientFunds", None, None),
+            _ => ("LedgerRejected", None, None),
+        },
+        Err(failure) => (
+            if failure.preserves_unknown(was_unknown) {
+                "ExecutionUnknown"
+            } else {
+                "NotExecuted"
+            },
+            None,
+            Some(failure),
+        ),
+    };
+    let unknown = was_unknown || transport == Some(CallFailure::Unknown);
+    t.view.status = if unknown {
+        CashTransferStatus::Unknown
+    } else {
+        CashTransferStatus::Rejected
+    };
+    t.view.expected_fee_atomic = if unknown { None } else { expected_fee };
+    t.view.error_code = Some(code.into());
+    match transport {
+        Some(failure) => Err(if unknown {
+            Error::ExecutionUnknown
+        } else {
+            failure.into()
+        }),
+        None => Ok(None),
+    }
 }
 
 #[cfg(test)]
@@ -315,7 +417,7 @@ mod tests {
         dmsg_runtime::ledger::VerifiedTransfer {
             block: 7,
             from: principal(from).into(),
-            to: order.input.quote.cash.deposit,
+            to: order.quote.cash.deposit,
             amount,
             fee: Some(10),
             committed_at: at,
@@ -334,7 +436,7 @@ mod tests {
     #[test]
     fn wrong_ledger_source_partial_and_excess_remain_isolated_refund_obligations() {
         let mut o = order();
-        let total = o.input.quote.cash.amount_atomic + o.input.quote.cash.fee_reserve_atomic;
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
         for (ledger, from, amount) in [(7, 9, total), (6, 55, total), (6, 9, 100)] {
             let d = o
                 .deposit(principal(ledger), &tx(&o, from, amount, NOW), NOW)
@@ -361,7 +463,7 @@ mod tests {
     #[test]
     fn late_funding_and_definite_nondelivery_refund_without_allocating_revenue() {
         let mut o = order();
-        let total = o.input.quote.cash.amount_atomic + o.input.quote.cash.fee_reserve_atomic;
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
         let d = o
             .deposit(principal(6), &tx(&o, 9, total, NOW + DAY), NOW + DAY)
             .unwrap();
@@ -382,7 +484,7 @@ mod tests {
     #[test]
     fn applied_receipt_is_idempotent_and_revenue_starts_only_at_delivery_and_term_start() {
         let mut o = order();
-        let total = o.input.quote.cash.amount_atomic + o.input.quote.cash.fee_reserve_atomic;
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
         o.deposit(principal(6), &tx(&o, 9, total, NOW), NOW)
             .unwrap();
         let d = o.decision.as_ref().unwrap();
@@ -402,8 +504,8 @@ mod tests {
         o.accept(r).unwrap();
         assert_eq!(o.earned(NOW).unwrap(), 0);
         assert_eq!(
-            o.earned(o.input.quote.offer.expires_at_ms).unwrap(),
-            o.input.quote.cash.amount_atomic
+            o.earned(o.quote.offer.expires_at_ms).unwrap(),
+            o.quote.cash.amount_atomic
         );
         assert!(o.refund_price().is_err());
     }
@@ -411,7 +513,7 @@ mod tests {
     #[test]
     fn a_final_non_cancellation_never_blocks_revenue_again() {
         let mut o = order();
-        let total = o.input.quote.cash.amount_atomic + o.input.quote.cash.fee_reserve_atomic;
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
         o.deposit(principal(6), &tx(&o, 9, total, NOW), NOW)
             .unwrap();
         let d = o.decision.clone().unwrap();
@@ -429,7 +531,7 @@ mod tests {
             applied_at_ms: NOW,
         })
         .unwrap();
-        let start = o.input.quote.offer.starts_at_ms;
+        let start = o.quote.offer.starts_at_ms;
         assert_eq!(o.begin_cancellation(start), Err(Error::Forbidden));
         assert!(o.begin_cancellation(start - 1).unwrap());
         assert_eq!(o.earned(start), Err(Error::Pending));
@@ -454,5 +556,52 @@ mod tests {
         let b = o.next_transfer_id().unwrap();
         assert_ne!(a, b);
         assert_eq!(o.next_transfer, 2);
+    }
+    #[test]
+    fn ambiguous_ledger_replies_keep_the_original_transfer_unreplaceable() {
+        use dmsg_runtime::CallFailure;
+        use icrc_ledger_types::icrc1::transfer::TransferError;
+        let mut o = order();
+        o.balances.insert(principal(6), Balance::default());
+        let mut t = transfer(&mut o, principal(6), principal(9).into(), 1000, 10, 20, NOW).unwrap();
+        assert_eq!(
+            transfer_result(&mut t, false, Err(CallFailure::NotExecuted)),
+            Err(Error::Unavailable(
+                "cross-canister call not executed".into()
+            ))
+        );
+        assert_eq!(t.view.status, CashTransferStatus::Rejected);
+        assert_eq!(
+            transfer_result(
+                &mut t,
+                true,
+                Ok(Err(TransferError::BadFee {
+                    expected_fee: 15u64.into()
+                }))
+            ),
+            Ok(None)
+        );
+        assert_eq!(t.view.status, CashTransferStatus::Unknown);
+        assert_eq!(t.view.expected_fee_atomic, None);
+        assert_eq!(
+            transfer_result(&mut t, true, Err(CallFailure::NotExecuted)),
+            Err(Error::ExecutionUnknown)
+        );
+        assert_eq!(t.view.status, CashTransferStatus::Unknown);
+        assert_eq!(
+            transfer_result(&mut t, false, Ok(Ok(candid::Nat::from(u128::MAX)))),
+            Err(Error::ExecutionUnknown)
+        );
+        assert_eq!(t.view.status, CashTransferStatus::Unknown);
+        assert_eq!(
+            transfer_result(
+                &mut t,
+                true,
+                Ok(Err(TransferError::Duplicate {
+                    duplicate_of: 7u64.into()
+                }))
+            ),
+            Ok(Some(7))
+        );
     }
 }

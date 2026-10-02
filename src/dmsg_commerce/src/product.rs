@@ -617,6 +617,7 @@ fn deliver(
         &mut s,
         &store::catalog(at),
         at,
+        store::next_catalog_at(at),
     )?;
     DELIVERED.with_borrow_mut(|t| t.put(contract.contract_id.as_slice(), decision));
     store::save(&s);
@@ -675,6 +676,7 @@ fn cancel_cash_contract(
             &mut s,
             &store::catalog(at),
             at,
+            store::next_catalog_at(at),
         )?;
         store::save(&s);
     }

@@ -510,6 +510,14 @@ export const schemas = {
     "transfers": "Vec<CashTransfer>",
     "next": "Option<Hash>"
   },
+  "CheckoutDepositsPage": {
+    "deposits": "Vec<CheckoutDeposit>",
+    "next": "Option<Hash>"
+  },
+  "CheckoutHistorySweep": {
+    "orders": "u16",
+    "transfers": "u16"
+  },
   "PandaServiceConfig": {
     "commerce_canister": "Principal",
     "max_claims": "u64",
