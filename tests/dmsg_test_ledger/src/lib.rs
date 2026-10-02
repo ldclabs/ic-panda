@@ -229,6 +229,11 @@ async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferErro
             .unwrap();
         ic_cdk::trap("injected lost response after committing the transfer");
     }
+    delay_response().await;
+    result
+}
+
+async fn delay_response() {
     let delay = config().delay;
     if delay > 0 {
         configure(|c| c.delay = 0);
@@ -239,7 +244,6 @@ async fn icrc1_transfer(a: TransferArg) -> std::result::Result<Nat, TransferErro
                 .unwrap();
         }
     }
-    result
 }
 
 #[ic_cdk::update]
@@ -248,6 +252,24 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
         owner: ic_cdk::api::msg_caller(),
         subaccount: a.spender_subaccount,
     };
+    let at = ic_cdk::api::time();
+    let result = transfer_from(a, spender, at);
+    if result.is_ok() && config().lose {
+        configure(|c| c.lose = false);
+        let _: () = stable::call(ic_cdk::api::canister_self(), "barrier", ())
+            .await
+            .unwrap();
+        ic_cdk::trap("injected lost transfer_from response after committing funds");
+    }
+    delay_response().await;
+    result
+}
+
+fn transfer_from(
+    a: TransferFromArgs,
+    spender: Account,
+    at: u64,
+) -> std::result::Result<Nat, TransferFromError> {
     let args = TransferArg {
         from_subaccount: a.from.subaccount,
         to: a.to,
@@ -256,7 +278,6 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
         memo: a.memo,
         amount: a.amount,
     };
-    let at = ic_cdk::api::time();
     if let Some(created) = args.created_at_time {
         if created.saturating_add(24 * 60 * 60 * 1_000_000_000) < at {
             return Err(TransferFromError::TooOld);
@@ -290,13 +311,6 @@ async fn icrc2_transfer_from(a: TransferFromArgs) -> std::result::Result<Nat, Tr
     });
     if result.is_ok() && a.from != spender {
         approve_test(a.from, spender, approved - debit);
-    }
-    if result.is_ok() && config().lose {
-        configure(|c| c.lose = false);
-        let _: () = stable::call(ic_cdk::api::canister_self(), "barrier", ())
-            .await
-            .unwrap();
-        ic_cdk::trap("injected lost transfer_from response after committing funds");
     }
     result
 }
@@ -350,4 +364,11 @@ fn icrc1_supported_standards() -> Vec<SupportedStandard> {
             url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".into(),
         },
     ]
+}
+
+// Test-only evidence injection: production dMsg canisters never accept blocks
+// supplied by callers. The fixture still serves them from the configured ledger.
+#[ic_cdk::update]
+fn replace_block(index: u64, block: Value) {
+    BLOCKS.with_borrow_mut(|blocks| blocks.put(&index.to_be_bytes(), &block));
 }

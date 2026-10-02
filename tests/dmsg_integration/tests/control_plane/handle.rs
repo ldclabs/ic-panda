@@ -965,3 +965,422 @@ fn record_of(f: &Fixture, name: &str) -> HandleRecord {
     );
     decode_canonical(batch.unwrap().entries[0].value.as_ref().unwrap()).unwrap()
 }
+
+#[test]
+fn handle_claim_receipts_survive_transfer_and_reject_other_operations() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    let target = f.create(2);
+    let entries: Vec<_> = ["claimone", "claimtwo"]
+        .into_iter()
+        .map(|name| LegacyReservation {
+            handle: name.into(),
+            legacy_owner: person(1),
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: false,
+        })
+        .collect();
+    let snapshot = seal_snapshot(&f, &entries);
+    let claim = claim_intent(&f, &owner, &snapshot, &entries[0], 1);
+    authorize(&f, 1, &claim);
+    let run = |intent: &HandleIntent| -> Result<HandleRecord> {
+        update(
+            &f.ic,
+            f.handle,
+            person(1),
+            "claim_legacy_handle",
+            (intent, snapshot.snapshot_id),
+        )
+    };
+    let calls: Vec<_> = (0..2)
+        .map(|_| {
+            f.ic.submit_call(
+                f.handle,
+                person(1),
+                "claim_legacy_handle",
+                candid::encode_args((&claim, snapshot.snapshot_id)).unwrap(),
+            )
+            .unwrap()
+        })
+        .collect();
+    let results: Vec<Result<HandleRecord>> = calls
+        .into_iter()
+        .map(|call| candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap())
+        .collect();
+    let original = results[0].clone().unwrap();
+    assert_eq!(results[1], Ok(original.clone()));
+    let mut other_op = claim.clone();
+    other_op.op_id = Hash::new([99; 32]);
+    assert_eq!(run(&other_op), Err(Error::IdempotencyConflict));
+    // Reusing the same operation for another reserved name cannot return its receipt.
+    let other_name = claim_intent(&f, &owner, &snapshot, &entries[1], 1);
+    assert_eq!(run(&other_name), Err(Error::IdempotencyConflict));
+    let (from, accept) = transfer_intents(&f, &owner, &target, "claimone", 1, 2);
+    authorize(&f, 1, &from);
+    authorize(&f, 2, &accept);
+    let moved: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    assert_eq!(moved.unwrap().version, 2);
+    upgrade(&f);
+    assert_eq!(run(&claim), Ok(original));
+    assert_eq!(run(&other_op), Err(Error::IdempotencyConflict));
+    let end: Option<HandleEvent> = query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
+    assert_eq!(end, None);
+    assert_eq!(record_of(&f, "claimone").owner_account, target);
+}
+
+#[test]
+fn handle_charging_recovers_after_upgrade_with_or_without_a_committed_debit() {
+    for reject_first in [false, true] {
+        let f = Fixture::new();
+        with_max_pending(&f, 1);
+        let owner = f.create(1);
+        seal_snapshot(&f, &[]);
+        let input = registration(&f, &owner, "upgradename", 1);
+        let total = 2 * price("upgradename");
+        f.mint(person(1), total);
+        f.approve_handle(person(1), total);
+        authorize(&f, 1, &input.intent);
+        if reject_first {
+            void(
+                &f.ic,
+                f.ledger,
+                Principal::anonymous(),
+                "reject_next_transfers",
+                (1u32,),
+            );
+        }
+        void(
+            &f.ic,
+            f.ledger,
+            Principal::anonymous(),
+            "delay_next_response",
+            (2u8,),
+        );
+        f.ic.submit_call(
+            f.handle,
+            person(1),
+            "register_handle",
+            candid::encode_args((&input,)).unwrap(),
+        )
+        .unwrap();
+        let mut charging = None;
+        for _ in 0..10 {
+            f.ic.tick();
+            if let Ok(o) = operation(&f, &input) {
+                if o.phase == HandlePhase::Charging {
+                    charging = Some(o);
+                    break;
+                }
+            }
+        }
+        let before = charging.expect("observe the in-flight charge");
+        upgrade(&f);
+        for _ in 0..10 {
+            f.ic.tick();
+        }
+        assert_eq!(operation(&f, &input).unwrap().phase, HandlePhase::Charging);
+        let paid = commit(&f, &input).unwrap();
+        assert_eq!(paid.phase, HandlePhase::Committed);
+        assert_eq!(paid.memo, before.memo);
+        assert_eq!(paid.created_at, before.created_at);
+        assert_eq!(paid.ledger_block, Some(0));
+        assert_eq!(commit(&f, &input), Ok(paid));
+        let balance: Nat = query(
+            &f.ic,
+            f.ledger,
+            person(1),
+            "icrc1_balance_of",
+            (input.payer,),
+        );
+        assert_eq!(balance, Nat::from(price("upgradename")));
+        let end: Option<HandleEvent> =
+            query(&f.ic, f.handle, person(1), "get_handle_event", (1u64,));
+        assert_eq!(end, None);
+        let next = registration(&f, &owner, "nextupgrade", 2);
+        authorize(&f, 1, &next.intent);
+        assert_eq!(register(&f, &next).unwrap().phase, HandlePhase::Committed);
+    }
+}
+
+fn reconcile(f: &Fixture, input: &Registration, block: u64) -> Result<HandleOperation> {
+    update(
+        &f.ic,
+        f.handle,
+        person(99),
+        "reconcile_handle_charge",
+        (&input.intent.account_id, input.intent.op_id, block),
+    )
+}
+
+#[test]
+fn handle_reconciliation_rejects_mismatched_evidence_without_changing_state() {
+    use icrc_ledger_types::{
+        icrc::generic_value::ICRC3Value as Value,
+        icrc3::blocks::{GetBlocksRequest, GetBlocksResult},
+    };
+    let f = Fixture::new();
+    with_max_pending(&f, 1);
+    let owner = f.create(1);
+    seal_snapshot(&f, &[]);
+    let input = registration(&f, &owner, "evidence", 1);
+    f.mint(person(1), 2 * price("evidence"));
+    f.approve_handle(person(1), 2 * price("evidence"));
+    authorize(&f, 1, &input.intent);
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "lose_next_response",
+        (),
+    );
+    assert_eq!(register(&f, &input), Err(Error::ExecutionUnknown));
+    let original = operation(&f, &input).unwrap();
+    let blocks: GetBlocksResult = query(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "icrc3_get_blocks",
+        (vec![GetBlocksRequest {
+            start: 0u64.into(),
+            length: 1u64.into(),
+        }],),
+    );
+    let correct = blocks.blocks[0].block.clone();
+    for (field, value) in [
+        (
+            "from",
+            Value::Array(vec![Value::Blob(person(2).as_slice().to_vec().into())]),
+        ),
+        (
+            "to",
+            Value::Array(vec![Value::Blob(person(2).as_slice().to_vec().into())]),
+        ),
+        (
+            "spender",
+            Value::Array(vec![Value::Blob(person(2).as_slice().to_vec().into())]),
+        ),
+        ("amt", Value::Nat((original.amount + 1).into())),
+        ("memo", Value::Blob(vec![0; 32].into())),
+        (
+            "ts",
+            Value::Nat((millis_to_nanos(original.created_at).unwrap() + 1).into()),
+        ),
+    ] {
+        let mut wrong = correct.clone();
+        let Value::Map(fields) = &mut wrong else {
+            panic!("block")
+        };
+        let Value::Map(tx) = fields.get_mut("tx").unwrap() else {
+            panic!("tx")
+        };
+        tx.insert(field.into(), value);
+        void(
+            &f.ic,
+            f.ledger,
+            Principal::anonymous(),
+            "replace_block",
+            (0u64, wrong),
+        );
+        assert_eq!(
+            reconcile(&f, &input, 0),
+            Err(Error::IntegrityFailed),
+            "{field}"
+        );
+        assert_eq!(operation(&f, &input), Ok(original.clone()));
+        let end: Option<HandleEvent> =
+            query(&f.ic, f.handle, person(1), "get_handle_event", (0u64,));
+        assert_eq!(end, None);
+    }
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "replace_block",
+        (0u64, correct),
+    );
+    // The original sender timestamp is now outside the ledger replay window.
+    f.ic.advance_time(Duration::from_secs(25 * 60 * 60));
+    assert_eq!(commit(&f, &input), Err(Error::ExecutionUnknown));
+    let calls: Vec<_> = (0..2)
+        .map(|_| {
+            f.ic.submit_call(
+                f.handle,
+                person(99),
+                "reconcile_handle_charge",
+                candid::encode_args((&owner, input.intent.op_id, 0u64)).unwrap(),
+            )
+            .unwrap()
+        })
+        .collect();
+    for call in calls {
+        let result: Result<HandleOperation> =
+            candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
+        assert!(
+            result
+                .as_ref()
+                .is_ok_and(|o| o.phase == HandlePhase::Committed)
+                || result == Err(Error::Pending)
+        );
+    }
+    let paid = reconcile(&f, &input, 0).unwrap();
+    assert_eq!(paid.phase, HandlePhase::Committed);
+    assert_eq!(reconcile(&f, &input, 0), Ok(paid));
+    let next = registration(&f, &owner, "afterevidence", 2);
+    authorize(&f, 1, &next.intent);
+    assert_eq!(register(&f, &next).unwrap().phase, HandlePhase::Committed);
+    let end: Option<HandleEvent> = query(&f.ic, f.handle, person(1), "get_handle_event", (2u64,));
+    assert_eq!(end, None);
+}
+
+#[test]
+fn handle_live_charge_excludes_retry_and_reconciliation() {
+    let f = Fixture::new();
+    let owner = f.create(1);
+    seal_snapshot(&f, &[]);
+    let input = registration(&f, &owner, "concurrentcharge", 1);
+    f.mint(person(1), price("concurrentcharge"));
+    f.approve_handle(person(1), price("concurrentcharge"));
+    authorize(&f, 1, &input.intent);
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "lose_next_response",
+        (),
+    );
+    assert_eq!(register(&f, &input), Err(Error::ExecutionUnknown));
+    // Delay the Duplicate response of a retry, then compete with its live guard.
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "delay_next_response",
+        (4u8,),
+    );
+    let retry =
+        f.ic.submit_call(
+            f.handle,
+            person(1),
+            "commit_handle",
+            candid::encode_args((&owner, input.intent.op_id)).unwrap(),
+        )
+        .unwrap();
+    f.ic.tick();
+    assert_eq!(operation(&f, &input).unwrap().phase, HandlePhase::Charging);
+    assert_eq!(commit(&f, &input), Err(Error::Pending));
+    assert_eq!(reconcile(&f, &input, 0), Err(Error::Pending));
+    let paid: Result<HandleOperation> =
+        candid::decode_one(&f.ic.await_call(retry).unwrap()).unwrap();
+    let paid = paid.unwrap();
+    assert_eq!(paid.phase, HandlePhase::Committed);
+    assert_eq!(reconcile(&f, &input, 0), Ok(paid));
+    let end: Option<HandleEvent> = query(&f.ic, f.handle, person(1), "get_handle_event", (1u64,));
+    assert_eq!(end, None);
+}
+
+// Synthetic stable-name tables isolate the actual Wasm upgrade/query cost.
+// Business writes and event/receipt histories are covered by handle_scale_profile.
+#[test]
+#[ignore = "10k/100k active-name upgrade and certificate capacity"]
+fn handle_active_name_capacity_profile() {
+    use dmsg_runtime::storage::CompactStored;
+    use ic_stable_structures::{
+        memory_manager::{MemoryId, MemoryManager},
+        StableBTreeMap,
+    };
+    use std::{cell::RefCell, rc::Rc};
+    for count in [1_000u64, 10_000, 100_000] {
+        let f = Fixture::new();
+        let owner = f.create(1);
+        let legacy = LegacyReservation {
+            handle: "capacityclaim".into(),
+            legacy_owner: person(1),
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: false,
+        };
+        let snapshot = seal_snapshot(&f, std::slice::from_ref(&legacy));
+        let memory = Rc::new(RefCell::new(f.ic.get_stable_memory(f.handle)));
+        let manager = MemoryManager::init_with_bucket_size(memory.clone(), 16);
+        let mut names = StableBTreeMap::<Vec<u8>, CompactStored<HandleRecord>, _>::init(
+            manager.get(MemoryId::new(1)),
+        );
+        let record = |n: u64| HandleRecord {
+            handle: format!("capacity{n:012}"),
+            owner_account: owner,
+            version: 1,
+            event_tip: digest("capacity-fixture", &n),
+        };
+        for n in 0..count {
+            let r = record(n);
+            names.insert(r.handle.as_bytes().to_vec(), CompactStored::new(&r));
+        }
+        drop((names, manager));
+        f.ic.set_stable_memory(
+            f.handle,
+            memory.borrow().clone(),
+            pocket_ic::common::rest::BlobCompression::NoCompression,
+        );
+        let cycles = f.ic.cycle_balance(f.handle);
+        upgrade(&f);
+        let cycles = cycles - f.ic.cycle_balance(f.handle);
+        verify_names(&f, &[record(0), record(count - 1)]);
+        let handles: Vec<_> = (0..64).map(|n| record(n * (count / 64)).handle).collect();
+        let began = std::time::Instant::now();
+        let batch: Result<CertifiedBatch> = query(
+            &f.ic,
+            f.handle,
+            person(1),
+            "resolve_handle_certified",
+            (handles,),
+        );
+        let elapsed = began.elapsed();
+        let batch = batch.unwrap();
+        assert_eq!(batch.entries.len(), 64);
+        let wire_bytes = candid::encode_one(Ok::<_, Error>(&batch)).unwrap().len();
+        let status = f.ic.canister_status(f.handle, None).unwrap();
+        let logs =
+            f.ic.fetch_canister_logs(f.handle, Principal::anonymous())
+                .unwrap();
+        for log in logs {
+            let line = String::from_utf8_lossy(&log.content);
+            if line.contains("handle_upgrade") {
+                println!("{line}");
+            }
+        }
+        println!("handle_capacity names={count} upgrade_cycles={cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={}", status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_millis());
+        if count == 100_000 {
+            // Full registries reject additions locally but still transfer names.
+            let addition = registration(&f, &owner, "capacityaddition", 1);
+            assert_eq!(register(&f, &addition), Err(Error::QuotaExceeded));
+            let claim = claim_intent(&f, &owner, &snapshot, &legacy, 2);
+            let result: Result<HandleRecord> = update(
+                &f.ic,
+                f.handle,
+                person(1),
+                "claim_legacy_handle",
+                (&claim, snapshot.snapshot_id),
+            );
+            assert_eq!(result, Err(Error::QuotaExceeded));
+            let target = f.create(2);
+            let (from, accept) = transfer_intents(&f, &owner, &target, &record(0).handle, 1, 3);
+            authorize(&f, 1, &from);
+            authorize(&f, 2, &accept);
+            let result: Result<HandleRecord> = update(
+                &f.ic,
+                f.handle,
+                person(1),
+                "transfer_handle",
+                (&from, &accept),
+            );
+            assert_eq!(result.unwrap().owner_account, target);
+        }
+    }
+}

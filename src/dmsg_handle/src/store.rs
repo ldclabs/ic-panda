@@ -18,7 +18,7 @@ pub(crate) struct Config {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct TransferReceipt {
+pub(crate) struct OwnershipReceipt {
     pub(crate) digest: Hash,
     pub(crate) record: HandleRecord,
 }
@@ -35,15 +35,18 @@ thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(
         MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16),
     );
-    pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
+    static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
+    // Read-only paths borrow the decoded value; every change is persisted below.
+    static CONFIG: RefCell<Option<Config>> =
+        RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
     pub(crate) static NAMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleRecord>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static LEGACY: RefCell<
         StableBTreeMap<Vec<u8>, CompactStored<LegacyReservation>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static OPS: RefCell<
-        StableBTreeMap<Vec<u8>, CompactStored<HandleOperation>, Memory>,
+        StableBTreeMap<[u8; 32], CompactStored<HandleOperation>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(3)));
     // Name -> operation key of the Charging/ChargeUnknown registration holding it.
     pub(crate) static LOCKS: RefCell<StableBTreeMap<Vec<u8>, [u8; 32], Memory>> =
@@ -53,18 +56,23 @@ thread_local! {
     // Accounts with one unresolved registration charge.
     pub(crate) static ACTIVE_ACCOUNTS: RefCell<StableBTreeSet<[u8; 12], Memory>> =
         RefCell::new(StableBTreeSet::init(memory(6)));
-    pub(crate) static TRANSFERS: RefCell<
-        StableBTreeMap<Vec<u8>, CompactStored<TransferReceipt>, Memory>,
+    pub(crate) static OWNERSHIP: RefCell<
+        StableBTreeMap<[u8; 32], CompactStored<OwnershipReceipt>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(7)));
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
 pub(crate) fn cfg() -> Config {
-    CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
+    with_cfg(Clone::clone)
 }
 
-pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(c.clone()))));
+pub(crate) fn with_cfg<R>(f: impl FnOnce(&Config) -> R) -> R {
+    CONFIG.with_borrow(|c| f(c.as_ref().expect("initialized")))
+}
+
+pub(crate) fn save_cfg(c: Config) {
+    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(&c)));
+    CONFIG.with_borrow_mut(|value| *value = Some(c));
 }
 
 pub(crate) fn record(name: &str) -> Option<HandleRecord> {
@@ -72,15 +80,44 @@ pub(crate) fn record(name: &str) -> Option<HandleRecord> {
 }
 
 pub(crate) fn op(key: &Hash) -> Result<HandleOperation> {
-    OPS.with_borrow(|t| t.load(key.as_slice()).ok_or(Error::NotFound))
+    OPS.with_borrow(|t| {
+        t.get(&key.into_array())
+            .map(CompactStored::into_inner)
+            .ok_or(Error::NotFound)
+    })
 }
 
 pub(crate) fn save_op(key: &Hash, o: &HandleOperation) {
-    OPS.with_borrow_mut(|t| t.put(key.as_slice(), o));
+    OPS.with_borrow_mut(|t| t.insert(key.into_array(), CompactStored::new(o)));
+}
+
+pub(crate) fn ownership_replay(key: &Hash, fingerprint: &Hash) -> Result<Option<HandleRecord>> {
+    OWNERSHIP.with_borrow(|t| {
+        let Some(receipt) = t.get(&key.into_array()).map(CompactStored::into_inner) else {
+            return Ok(None);
+        };
+        ensure(receipt.digest == *fingerprint, Error::IdempotencyConflict)?;
+        Ok(Some(receipt.record))
+    })
+}
+
+pub(crate) fn save_ownership(key: &Hash, fingerprint: Hash, record: HandleRecord) {
+    OWNERSHIP.with_borrow_mut(|t| {
+        t.insert(
+            key.into_array(),
+            CompactStored::new(&OwnershipReceipt {
+                digest: fingerprint,
+                record,
+            }),
+        )
+    });
 }
 
 pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 6;
+pub(crate) const STABLE_SCHEMA: u16 = 7;
+
+// Largest active-name population verified by the Wasm upgrade capacity profile.
+pub(crate) const MAX_ACTIVE_NAMES: u64 = 100_000;

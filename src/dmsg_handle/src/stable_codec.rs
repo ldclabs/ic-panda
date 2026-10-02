@@ -1,4 +1,4 @@
-use crate::store::{Config, TransferReceipt};
+use crate::store::{Config, OwnershipReceipt};
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec};
 use dmsg_types::{handle::*, *};
@@ -42,18 +42,18 @@ impl StableCodec for Config {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub struct TransferReceiptRepr {
+pub struct OwnershipReceiptRepr {
     #[cbor(key = 1)]
     pub digest: Hash,
     #[cbor(key = 2)]
     pub record: HandleRecordRepr,
 }
 
-impl StableCodec for TransferReceipt {
-    type Repr = TransferReceiptRepr;
+impl StableCodec for OwnershipReceipt {
+    type Repr = OwnershipReceiptRepr;
 
     fn to_repr(&self) -> Self::Repr {
-        TransferReceiptRepr {
+        OwnershipReceiptRepr {
             digest: self.digest,
             record: self.record.to_repr(),
         }
@@ -180,12 +180,12 @@ mod tests {
         assert_integer_top_keys(&event_bytes, 8);
         assert_eq!(compact_from_bytes::<HandleEvent>(&event_bytes), event);
 
-        let receipt = TransferReceipt {
+        let receipt = OwnershipReceipt {
             digest: Hash::new([11; 32]),
             record,
         };
         assert_eq!(
-            compact_from_bytes::<TransferReceipt>(&compact_bytes(&receipt)),
+            compact_from_bytes::<OwnershipReceipt>(&compact_bytes(&receipt)),
             receipt
         );
 

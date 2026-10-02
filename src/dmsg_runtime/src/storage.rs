@@ -82,6 +82,15 @@ impl<T: StableCodec> CompactStored<T> {
     }
 }
 
+impl<T: StableCodec> CompactStored<Option<T>> {
+    /// Encode a present optional record without cloning the domain value.
+    pub fn some(value: &T) -> Self {
+        Self {
+            repr: Some(value.to_repr()),
+        }
+    }
+}
+
 impl<T: StableCodec> Storable for CompactStored<T> {
     const BOUND: Bound = Bound::Unbounded;
 

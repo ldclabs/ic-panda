@@ -61,7 +61,7 @@ pnpm --dir src/dmsg_app test
 
 六类 canister 分别维护账户批准、名称权属、固定密钥执行、投递资金终态、共享会员资格和产品商业权益。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
 
-稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 6 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未付款请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
+稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
 
 生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
@@ -103,3 +103,7 @@ pnpm --dir src/dmsg_app test
 `dmsg_user` 开发布局升级到 schema 9，安全快照保持 schema 3。恢复完成绑定请求 ID 并保留最近完成回执；绑定容量不足时回收过期项；固定服务 caller、外部批准配额与 Agent 本地授权在 await 前检查，回调后复查。新增公开 `prune_executions(account_id)`，按最多 64 项索引清理过期终态并返回数量，保留未终结执行、防重放状态与历史结算；执行回执查询可返回认证的不存在证明，原样重放已清理的执行请求返回 `ResultExpired`。
 
 执行路径拆分只读预检与同步提交，复用不可变解析结果；controller 注册不再预先复制整个账户。认证树保留实测占用更低的整批重建方式，只发布一次根；逐项流式候选未保留。具体边界、回归及同配置 cycles 比较见 [user README](../src/dmsg_user/README.md)。开发接口与扩展绑定一起更新，不读取旧实验布局；生产部署与大规模容量仍未验收。
+
+## 2026-10-02 handle 审查修复
+
+schema 7 用内存调用 guard 区分执行中的扣款和升级遗留的 `Charging`，后者使用原 ledger 参数恢复；对账与重试共用 guard，保留此前扣款的不确定性。认领和转移保存精确请求回执，原认领重放不受后来名称转移影响。配置只读路径借用已解码值，变更仍同步持久化；操作索引改用固定 32 字节键。公开 Candid 和认证叶不变。恢复、对账证据、并发回归及活跃名称容量测量见 [handle README](../src/dmsg_handle/README.md)。

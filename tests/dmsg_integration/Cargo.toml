@@ -41,6 +41,7 @@ serde.workspace = true
 serde_bytes.workspace = true
 ed25519-dalek.workspace = true
 ic-certification.workspace = true
+ic-stable-structures.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys = "=0.9.0"
 k256 = { workspace = true, features = ["ecdsa"] }

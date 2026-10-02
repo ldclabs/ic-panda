@@ -1386,6 +1386,7 @@ dependencies = [
  "ic-http-certification",
  "ic-oss-types",
  "ic-response-verification",
+ "ic-stable-structures 0.7.2",
  "ic-vetkeys",
  "ic_cose_types",
  "ic_message_types",

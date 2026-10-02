@@ -1,4 +1,4 @@
-use crate::store::*;
+use crate::{calls::ChargeGuard, store::*};
 use candid::{Nat, Principal};
 use dmsg_protocol::*;
 use dmsg_runtime::storage::{CompactStored, MapExt};
@@ -34,8 +34,12 @@ fn check_intent(i: &HandleIntent, action: HandleAction, canister_id: Principal) 
 }
 
 async fn consume(i: &HandleIntent) -> Result<()> {
-    let r: Result<()> =
-        stable::call(cfg().init.home_user, "consume_handle_authorization", (i,)).await?;
+    let r: Result<()> = stable::call(
+        with_cfg(|c| c.init.home_user),
+        "consume_handle_authorization",
+        (i,),
+    )
+    .await?;
     r
 }
 
@@ -59,12 +63,13 @@ fn init(args: HandleInit) {
         event_tip: Hash::new([0; 32]),
         pending: 0,
     };
-    save_cfg(&c);
     certify_snapshot(&c.progress);
+    save_cfg(c);
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let started = ic_cdk::api::performance_counter(0);
     let c = cfg();
     assert_eq!(
         c.schema, STABLE_SCHEMA,
@@ -80,11 +85,16 @@ fn post_upgrade() {
             )
         })
     });
+    ic_cdk::println!(
+        "handle_upgrade names={} instructions={}",
+        NAMES.with_borrow(|t| t.len()),
+        ic_cdk::api::performance_counter(0) - started,
+    );
 }
 
 #[ic_cdk::query]
 fn get_handle_config() -> HandleInit {
-    cfg().init
+    with_cfg(|c| c.init.clone())
 }
 
 #[ic_cdk::update]
@@ -94,7 +104,7 @@ fn update_ledger_fee(fee: u128) -> Result<()> {
     let mut c = cfg();
     if c.init.ledger_fee != fee {
         c.init.ledger_fee = fee;
-        save_cfg(&c);
+        save_cfg(c);
     }
     Ok(())
 }
@@ -117,8 +127,8 @@ fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
     authenticated(snapshot.source_canister)?;
     nonzero(snapshot.snapshot_id.as_slice())?;
     c.progress.snapshot = Some(snapshot);
-    save_cfg(&c);
     certify_snapshot(&c.progress);
+    save_cfg(c);
     Ok(())
 }
 
@@ -169,16 +179,17 @@ fn import_legacy_handles(
         c.progress.imported <= snapshot.count,
         Error::IntegrityFailed,
     )?;
+    let progress = c.progress.clone();
     if !inserts.is_empty() {
         LEGACY.with_borrow_mut(|t| {
             for e in inserts {
                 t.put(e.handle.as_bytes(), e);
             }
         });
-        save_cfg(&c);
-        certify_snapshot(&c.progress);
+        certify_snapshot(&progress);
+        save_cfg(c);
     }
-    Ok(c.progress)
+    Ok(progress)
 }
 
 #[ic_cdk::update]
@@ -194,9 +205,10 @@ fn seal_legacy_snapshot() -> Result<SnapshotProgress> {
         Error::IntegrityFailed,
     )?;
     c.progress.sealed = true;
-    save_cfg(&c);
     certify_snapshot(&c.progress);
-    Ok(c.progress)
+    let progress = c.progress.clone();
+    save_cfg(c);
+    Ok(progress)
 }
 
 // The caller persists the updated config together with its other local changes.
@@ -249,15 +261,18 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
         HandleAction::ClaimLegacy,
         ic_cdk::api::canister_self(),
     )?;
-    let c = cfg();
-    ensure(
-        c.progress.sealed
-            && c.progress
-                .snapshot
-                .as_ref()
-                .is_some_and(|s| s.snapshot_id == snapshot_id),
-        Error::VersionConflict,
-    )?;
+    let key = op_key(&intent.account_id, intent.op_id);
+    let fingerprint = digest("dmsg/handle-claim/v1", &(&intent, snapshot_id));
+    with_cfg(|c| {
+        ensure(
+            c.progress.sealed
+                && c.progress
+                    .snapshot
+                    .as_ref()
+                    .is_some_and(|s| s.snapshot_id == snapshot_id),
+            Error::VersionConflict,
+        )
+    })?;
     let legacy = LEGACY
         .with_borrow(|t| t.load(intent.handle.as_bytes()))
         .ok_or(Error::NotFound)?;
@@ -281,30 +296,27 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
                 ),
         Error::IntegrityFailed,
     )?;
-    if let Some(r) = record(&intent.handle) {
-        ensure(
-            r.owner_account == intent.account_id && r.version == 1,
-            Error::IdempotencyConflict,
-        )?;
+    if let Some(r) = ownership_replay(&key, &fingerprint)? {
         return Ok(r);
     }
+    ensure(record(&intent.handle).is_none(), Error::IdempotencyConflict)?;
+    with_cfg(check_name_capacity)?;
     consume(&intent).await?;
-    if let Some(r) = record(&intent.handle) {
-        ensure(
-            r.owner_account == intent.account_id && r.version == 1,
-            Error::IdempotencyConflict,
-        )?;
+    if let Some(r) = ownership_replay(&key, &fingerprint)? {
         return Ok(r);
     }
+    ensure(record(&intent.handle).is_none(), Error::IdempotencyConflict)?;
     let mut c = cfg();
+    check_name_capacity(&c)?;
     let at = now();
     let result = commit_name(&mut c, &intent.handle, None, intent.account_id, 1, at);
-    save_cfg(&c);
+    save_ownership(&key, fingerprint, result.clone());
+    save_cfg(c);
     Ok(result)
 }
 
-// Locks the name and account only while its own ledger charge runs, so an
-// unpaid request can never hold a name between messages.
+// Lock the name and account when dispatching the fixed ledger charge.
+// Authorization-only requests do not reserve a name between messages.
 #[ic_cdk::update]
 async fn register_handle(registration: Registration) -> Result<HandleOperation> {
     let canister_id = ic_cdk::api::canister_self();
@@ -319,10 +331,9 @@ async fn register_handle(registration: Registration) -> Result<HandleOperation> 
     if let Some(o) = registration_replay(&key, &fp)? {
         return Ok(o);
     }
-    let c = cfg();
-    check_registration(&c, &registration)?;
+    with_cfg(|c| check_registration(c, &registration))?;
     check_available(&i.handle)?;
-    check_pending(&c, &i.account_id)?;
+    with_cfg(|c| check_pending(c, &i.account_id))?;
     consume(i).await?;
     // Configuration, locks and capacity can all change during authorization.
     if let Some(o) = registration_replay(&key, &fp)? {
@@ -342,12 +353,13 @@ async fn register_handle(registration: Registration) -> Result<HandleOperation> 
         ledger_block: None,
     };
     let args = transfer_args(&o, canister_id)?;
+    let _call = ChargeGuard::acquire(key)?;
     let i = &o.registration.intent;
     LOCKS.with_borrow_mut(|t| t.insert(i.handle.as_bytes().to_vec(), key.into_array()));
     ACTIVE_ACCOUNTS.with_borrow_mut(|t| t.insert(i.account_id.0));
     save_op(&key, &o);
     c.pending += 1;
-    save_cfg(&c);
+    save_cfg(c);
     charge(&key, args, false).await
 }
 
@@ -390,9 +402,19 @@ fn check_available(name: &str) -> Result<()> {
 }
 
 fn check_pending(c: &Config, account_id: &AccountId) -> Result<()> {
+    check_name_capacity(c)?;
     ensure(
         c.pending < c.init.max_pending
             && !ACTIVE_ACCOUNTS.with_borrow(|t| t.contains(&account_id.0)),
+        Error::QuotaExceeded,
+    )
+}
+
+fn check_name_capacity(c: &Config) -> Result<()> {
+    // Pending charges already own a slot, so a concurrent claim cannot consume
+    // the capacity needed to commit a debit that has left this canister.
+    ensure(
+        NAMES.with_borrow(|t| t.len()) + u64::from(c.pending) < MAX_ACTIVE_NAMES,
         Error::QuotaExceeded,
     )
 }
@@ -424,13 +446,10 @@ async fn charge(key: &Hash, args: TransferFromArgs, was_unknown: bool) -> Result
     let response: std::result::Result<
         std::result::Result<Nat, TransferFromError>,
         stable::CallFailure,
-    > = stable::call_classified(cfg().init.ledger, "icrc2_transfer_from", (args,)).await;
+    > = stable::call_classified(with_cfg(|c| c.init.ledger), "icrc2_transfer_from", (args,)).await;
     let at = now();
-    // Reload once: reconciliation can commit while the ledger call is in flight.
+    // Reload after await; the guard excludes another charge or reconciliation.
     let o = op(key)?;
-    if o.phase == HandlePhase::Committed {
-        return Ok(o);
-    }
     match response {
         Ok(Ok(block))
         | Ok(Err(TransferFromError::Duplicate {
@@ -461,14 +480,11 @@ fn reject(key: &Hash, mut o: HandleOperation, reason: String) -> Result<HandleOp
     save_op(key, &o);
     let mut c = cfg();
     release(&mut c, &o);
-    save_cfg(&c);
+    save_cfg(c);
     Err(Error::Unavailable(reason))
 }
 
 fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Result<HandleOperation> {
-    if o.phase == HandlePhase::Committed {
-        return Ok(o);
-    }
     ensure(
         matches!(o.phase, HandlePhase::Charging | HandlePhase::ChargeUnknown),
         Error::VersionConflict,
@@ -486,11 +502,11 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Resul
     o.phase = HandlePhase::Committed;
     save_op(key, &o);
     release(&mut c, &o);
-    save_cfg(&c);
+    save_cfg(c);
     Ok(o)
 }
 
-// Retry an unknown charge with the original ledger arguments.
+// Retry an uncertain charge, including Charging left behind by a lost callback.
 #[ic_cdk::update]
 async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOperation> {
     let key = op_key(&account_id, op_id);
@@ -500,11 +516,11 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         Error::AuthRequired,
     )?;
     match o.phase {
-        HandlePhase::ChargeUnknown => {}
+        HandlePhase::ChargeUnknown | HandlePhase::Charging => {}
         HandlePhase::Committed => return Ok(o),
-        HandlePhase::Charging => return Err(Error::Pending),
         HandlePhase::Rejected { .. } => return Err(Error::VersionConflict),
     }
+    let _call = ChargeGuard::acquire(key)?;
     let args = transfer_args(&o, ic_cdk::api::canister_self())?;
     o.phase = HandlePhase::Charging;
     save_op(&key, &o);
@@ -526,7 +542,8 @@ async fn reconcile_handle_charge(
         matches!(o.phase, HandlePhase::Charging | HandlePhase::ChargeUnknown),
         Error::VersionConflict,
     )?;
-    let tx = dmsg_runtime::ledger::read_transfer(cfg().init.ledger, block).await?;
+    let _call = ChargeGuard::acquire(key)?;
+    let tx = dmsg_runtime::ledger::read_transfer(with_cfg(|c| c.init.ledger), block).await?;
     let canister_id = ic_cdk::api::canister_self();
     ensure(
         tx.from == o.registration.payer
@@ -580,9 +597,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     )?;
     let key = op_key(&from.account_id, from.op_id);
     let fingerprint = digest("dmsg/transfer/v1", &(&from, &accept));
-    if let Some(receipt) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
-        ensure(receipt.digest == fingerprint, Error::IdempotencyConflict)?;
-        return Ok(receipt.record);
+    if let Some(record) = ownership_replay(&key, &fingerprint)? {
+        return Ok(record);
     }
     let r = record(&from.handle).ok_or(Error::NotFound)?;
     ensure(
@@ -592,16 +608,15 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         Error::VersionConflict,
     )?;
     let authorized: Result<()> = stable::call(
-        cfg().init.home_user,
+        with_cfg(|c| c.init.home_user),
         "consume_handle_transfer_authorizations",
         (&from, &accept),
     )
     .await?;
     authorized?;
     let at = now();
-    if let Some(receipt) = TRANSFERS.with_borrow(|t| t.load(key.as_slice())) {
-        ensure(receipt.digest == fingerprint, Error::IdempotencyConflict)?;
-        return Ok(receipt.record);
+    if let Some(record) = ownership_replay(&key, &fingerprint)? {
+        return Ok(record);
     }
     let current = record(&from.handle).ok_or(Error::NotFound)?;
     ensure(current == r, Error::VersionConflict)?;
@@ -614,16 +629,8 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
         r.version + 1,
         at,
     );
-    TRANSFERS.with_borrow_mut(|t| {
-        t.put(
-            key.as_slice(),
-            &TransferReceipt {
-                digest: fingerprint,
-                record: result.clone(),
-            },
-        )
-    });
-    save_cfg(&c);
+    save_ownership(&key, fingerprint, result.clone());
+    save_cfg(c);
     Ok(result)
 }
 
@@ -655,7 +662,7 @@ fn get_legacy_reservation(handle: String) -> Result<Option<LegacyReservation>> {
 
 #[ic_cdk::query]
 fn snapshot_progress() -> SnapshotProgress {
-    cfg().progress
+    with_cfg(|c| c.progress.clone())
 }
 
 #[ic_cdk::query]
