@@ -31,17 +31,19 @@
 
 ## 代码
 
-`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 7 的私有 `stable_codec.rs` 使用 CBOR 整数 map key，内部执行元数据直接以自身整数 key 形式保存；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
+`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 8 的私有 `stable_codec.rs` 使用 CBOR 整数 map key，内部执行元数据直接以自身整数 key 形式保存；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
 
-每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间、终态及签名标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不再扫描、解码或比较整个历史窗口的正文，也不重复持久化完整 grant。64 条元数据的编码小于 6 KiB；连续终结高水位和未完成空洞仍共同约束清理及防重放。
+每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间、InFlight/Unknown/Terminal 状态及签名标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不扫描或比较整个历史窗口的正文，也不重复持久化完整 grant。结果表保存已编码 CBOR，只有读取目标结果才解码；替换和删除仍读取底层字节，但不再解码被丢弃的旧正文。64 条元数据的当前回归样本编码小于 6 KiB；连续关闭高水位和仍在途的空洞共同约束清理及防重放。固定 user home 只由配置保存，execute 入口统一核对实际 caller、grant.home_user 和 home_cose，不再逐账户重复存储同一 Principal。
 
 总预算和正式签名预算合并为一个独立 StableCell，和配置共享 memory 0 的既有 128 页区块：配置占页 `[0,127)`，预算占页 `[127,128)`，不额外分配 8 MiB。home 和结果分别使用 memory 1、2。预算更新不重写根公钥配置；升级恢复不扫描账户或结果表。
 
-执行先检查 caller、重放、序号窗口和期限；首次送达的过期请求记录 `Failed(Expired)`，已清理的旧序号返回 `ResultExpired`。签名校验得到的不可变 `PreparedSignature` 和公钥描述复用于结果封装，回调不重复解析载荷或编码公钥。等待管理调用时释放 grant 和旧账户快照，回调仍重新读取最新账户。只有实际管理调用需要先提交 `Executing`，也只有它占用单账户和全局预算；过期或前置校验失败在同一消息中直接提交终态，不受当日额度影响。签名响应无法封装时记为 `Failed`，管理调用不会重试。管理调用之后重新读取 home，避免覆盖并发执行的元数据；unknown 和 in-flight 记录不会因到期清理而重新执行。
+执行先检查 caller、重放、序号窗口和期限；首次送达的过期请求记录 `Failed(Expired)`，已清理的旧序号返回 `ResultExpired`。签名校验得到的不可变 `PreparedSignature` 和公钥描述复用于结果封装，回调不重复解析载荷或编码公钥。等待管理调用时释放 grant 和旧账户快照，回调仍重新读取最新账户。派发管理调用前提交 `Executing` 并预留单账户和全局预算；过期或前置校验失败在同一消息中直接提交终态，不受当日额度影响。签名响应无法封装时记为 `Failed`，管理调用不会重试。管理调用之后重新读取 home，避免覆盖并发执行的元数据。明确未发出的调用同步返回，不能读取只允许在回调中调用的退款 API：返回 `Failed`、成本 0，并撤回本次单账户和全局预留；原失败结果保留，充值后重试同一请求也不会重新派发。已发出的管理调用仍按保守成本处理。
 
 user 在保留记录达到 56 条时暂停新的正式签名批准，根派生仍可使用 64 条总窗口。COSE 分别限制正式签名记录为 56 条、总记录为 64 条，以接收乱序到达的已授权请求；重试先查原记录，不再次占位。正式签名预算为总上限扣除向上取整的 20%，小部署也保留安全操作名额。单账户上限为每天 125 次、1.1T cycles，按同一规则覆盖 user 可授权的正式签名（100 次、800B）与根派生（20 次、300B）；两侧共用 `dmsg_runtime` 常量，单测核对覆盖关系。已发出管理调用的预留是保守值，不因执行失败自动释放。
 
-结果默认在同账户的新执行中惰性清理。controller 可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；满页即返回游标，恰好整页结束时多一次空调用；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续终结高水位且超过 `expires_at + DAY` 的记录；未完成空洞、账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
+结果默认在同账户的新执行中惰性清理。controller 可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；满页即返回游标，恰好整页结束时多一次空调用；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续关闭高水位、状态为 Terminal 且超过 `expires_at + DAY` 的记录。管理调用已经返回的 Unknown 可以推进关闭高水位，让后续终态记录正常清理，但自身结果和商业占用继续保留，不重签、不按超时退款。尚未返回的 InFlight 仍阻止高水位跨越；未决记录继续受 64 条总窗口和 56 条正式执行窗口约束。账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
+
+初始化核对原始根公钥 pin 后，在 heap 中缓存各签名算法的固定两级派生前缀（`dmsg/formal/v2`、environment）。公开查询和执行准备只派生账户、用途、generation 三个后缀；管理签名调用仍发送原完整路径。升级从已核对的根公钥重建前缀，缓存不成为新的持久密钥权威。vetKD 直接使用原 context 公钥，不构造未使用的签名路径。
 
 这些选择依据 ICP 的 [stable structures](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[重试与幂等](https://docs.internetcomputer.org/guides/canister-calls/idempotency/)及[性能优化](https://docs.internetcomputer.org/guides/canister-management/optimization/)实践。
 
@@ -92,6 +94,33 @@ Wasm 从 1,937,175 降至 1,883,788 bytes（约 2.76%）；该小样本的 stabl
 
 回归覆盖小预算的根派生预留、满签名窗口后根派生、乱序到达、预算增减升级、公钥与当日计数保持、控制权限、跨页/跨升级清理及旧请求防重放。协议测试对三个文档 profile、两种签名算法比较复用封装与原始字节封装并独立验签。
 
+## 2026-10-02 修复与性能验证
+
+开发稳定布局升级为 schema 8，公开 Candid 和批准字节保持不变。补充低可用 cycles 下的未派发失败、已返回 Unknown 的窗口推进、原请求重放、固定 home 权限、结果清理和前缀派生一致性回归。Unknown 的 PocketIC 用例在稳定记录中注入管理调用返回的未知结果，再验证升级、30 天后清理 63 条后续终态、原请求不重签和新根派生继续执行；它不是对真实网络故障的复现。普通管理调用仍使用原 `ic_cose_chain_key`，不增加生产测试入口。
+
+使用 PocketIC 16.0.0、Rust 1.98.1、相同 release 配置（LTO、`opt-level=s`），对比修改前后 Wasm。公钥样本通过复制查询测量 COSE 余额差，对应 user 的跨 canister 读取路径，不是浏览器 query 延迟。清理样本包含 4 KiB 正式签名正文；满窗恢复另由状态与 Wasm 回归覆盖。
+
+| 操作 | 修改前 cycles | 修改后 cycles | 降幅 |
+| --- | ---: | ---: | ---: |
+| Ed25519 公钥 | 14,519,518 | 12,011,828 | 17.27% |
+| ES256K 公钥 | 21,900,368 | 13,535,583 | 38.19% |
+| AgentController 公钥（generation 7） | 14,515,552 | 12,006,528 | 17.29% |
+| ContentRoot 公钥（generation 7） | 7,744,488 | 7,737,773 | 0.09% |
+| 清理 4 条签名结果 | 8,051,053 | 7,680,919 | 4.60% |
+| 清理 8 条签名结果 | 9,094,299 | 8,369,983 | 7.96% |
+| 新签名，4 KiB 正文、无历史 | 26,192,216,874 | 26,189,680,004 | 0.010% |
+
+公钥字节在两版样本中完全一致，单测还覆盖三种环境、多个账户/用途/generation 的前缀与原完整路径派生等价。正式签名总成本仍主要来自管理服务；历史 0/4/8 条的执行、重试和过期请求样本均未出现成本增加。Wasm 从 2,413,465 增至 2,421,872 字节（约 0.35%），稳定内存分配保持 25,231,360 字节。样本不是生产吞吐、并发峰值或容量承诺。
+
+对比 Wasm SHA-256：
+
+- 前：`802eae29400398a627fb96cf09a316ab5fe636dfe9ebc0ba9f8e82032021ff31`
+- 后：`dadf856fb881f6f2ec5e1eb8ca44e9e7287872d752cc38357a6197424def28f4`
+
+复现时分别设置两个版本的 `DMSG_WASM_DIR`，运行下方两个显式成本测试。每个版本使用新实例，不跨 schema 升级。
+
+本轮基于固定 Wasm 构建通过 161 项 Rust 测试（含文档测试，其中 COSE 单测 18 项）、严格 Clippy、Candid 一致性及完整控制面回归（87 项通过、11 项默认忽略）。两个 COSE 性能测试另行显式通过；其余容量/性能样本、浏览器端到端和生产验证不在本轮执行范围。
+
 ## 验证
 
 从仓库根目录运行：
@@ -100,7 +129,7 @@ Wasm 从 1,937,175 降至 1,883,788 bytes（约 2.76%）；该小样本的 stabl
 cargo test -p dmsg_cose
 ```
 
-四个真实 Wasm 的调用、恢复、认证查询和资金异常测试：
+公开 canisters 的真实 Wasm 集成与协议检查：
 
 ```sh
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
@@ -116,6 +145,7 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 
 ```sh
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_cycles_profile -- --ignored --nocapture
+DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_query_and_cleanup_cycles_profile -- --ignored --nocapture
 ```
 
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。

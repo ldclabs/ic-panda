@@ -88,10 +88,8 @@ impl StableCodec for model::Budgets {
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct HomeRepr {
-    #[cbor(key = 1)]
-    pub home_user: candid::Principal,
     #[cbor(key = 2)]
-    pub terminal_sequence: u64,
+    pub closed_sequence: u64,
     #[cbor(key = 3)]
     pub budgets: BudgetsRepr,
     /// Execution metadata is private and already uses integer keys.
@@ -104,8 +102,7 @@ impl StableCodec for model::Home {
 
     fn to_repr(&self) -> Self::Repr {
         HomeRepr {
-            home_user: self.home_user,
-            terminal_sequence: self.terminal_sequence,
+            closed_sequence: self.closed_sequence,
             budgets: self.budgets.to_repr(),
             executions: self.executions.clone(),
         }
@@ -113,8 +110,7 @@ impl StableCodec for model::Home {
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            home_user: repr.home_user,
-            terminal_sequence: repr.terminal_sequence,
+            closed_sequence: repr.closed_sequence,
             budgets: model::Budgets::from_repr(repr.budgets),
             executions: repr.executions,
         }
@@ -192,7 +188,7 @@ mod tests {
 
     #[test]
     fn cose_home_and_all_execution_shapes_round_trip() {
-        let mut home = model::Home::new(p(3));
+        let mut home = model::Home::default();
         // Both unresolved holes and terminal entries must survive upgrades.
         for sequence in 1..=64 {
             home.executions.insert(
@@ -201,7 +197,11 @@ mod tests {
                     request_id: Hash::new([sequence as u8; 32]),
                     digest: Hash::new([7; 32]),
                     expires_at: 1_700_000_300_000,
-                    terminal: sequence % 2 == 0,
+                    state: match sequence % 3 {
+                        0 => model::ExecutionState::InFlight,
+                        1 => model::ExecutionState::Unknown,
+                        _ => model::ExecutionState::Terminal,
+                    },
                     formal: sequence % 3 == 0,
                 },
             );
@@ -209,7 +209,7 @@ mod tests {
         home.budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
         let home_bytes = compact_bytes(&home);
         assert!(home_bytes.len() < 6 * 1024);
-        assert_integer_top_keys(&home_bytes, 4);
+        assert_integer_top_keys(&home_bytes, 3);
         assert_integer_top_keys(&cbor2::to_vec(&home.executions[&1]).unwrap(), 5);
         assert_eq!(compact_from_bytes::<model::Home>(&home_bytes), home);
 

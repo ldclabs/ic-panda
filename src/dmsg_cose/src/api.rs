@@ -75,6 +75,7 @@ fn post_upgrade(args: Option<CoseInit>) {
             );
             assert!(pinned(master, fp), "configured key fingerprint mismatch");
         }
+        cache_signing_roots(&c.state.config, &c.keys).expect("valid signing prefixes");
     }
     save_cfg(&c);
 }
@@ -138,6 +139,10 @@ async fn initialize_keys() -> Result<KeyState> {
     let fetched = fetch_masters(&c.state.config).await;
     // Commit onto the current record, not the snapshot taken before the calls.
     let mut c = cfg();
+    let fetched = fetched.and_then(|keys| {
+        cache_signing_roots(&c.state.config, &keys)?;
+        Ok(keys)
+    });
     let result = match fetched {
         Ok(keys) => {
             c.state.fingerprints = keys.iter().map(|k| sha256(&k.public_key)).collect();
@@ -186,21 +191,26 @@ fn describe(
         .iter()
         .position(|m| m.algorithm == key.algorithm)
         .ok_or(Error::UnsupportedProtocol)?;
-    let root = c
-        .keys
-        .get(index)
-        .ok_or_else(|| Error::Unavailable("missing initialized key".into()))?;
-    let path = model::path(config, account_id, key);
     let public_key = match key.algorithm {
-        Algorithm::Ed25519 => {
-            chain_key::derive_schnorr_public_key(mgmt::SchnorrAlgorithm::Ed25519, root, path)
-                .map(|p| p.public_key)
-                .map_err(Error::Unavailable)?
-        }
-        Algorithm::EcdsaSecp256k1 => chain_key::derive_ecdsa_public_key(root, path)
-            .map(|p| p.public_key)
-            .map_err(Error::Unavailable)?,
-        Algorithm::VetKdBls12381 => root.public_key.clone(),
+        Algorithm::Ed25519 => chain_key::derive_schnorr_public_key(
+            mgmt::SchnorrAlgorithm::Ed25519,
+            &signing_root(index)?,
+            model::signing_suffix(account_id, key),
+        )
+        .map(|p| p.public_key)
+        .map_err(Error::Unavailable)?,
+        Algorithm::EcdsaSecp256k1 => chain_key::derive_ecdsa_public_key(
+            &signing_root(index)?,
+            model::signing_suffix(account_id, key),
+        )
+        .map(|p| p.public_key)
+        .map_err(Error::Unavailable)?,
+        Algorithm::VetKdBls12381 => c
+            .keys
+            .get(index)
+            .ok_or_else(|| Error::Unavailable("missing initialized key".into()))?
+            .public_key
+            .clone(),
     };
     let public_key_fingerprint = if key.algorithm == Algorithm::VetKdBls12381 {
         sha256(&public_key)
@@ -413,9 +423,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
             && caller == grant.home_user,
         Error::Forbidden,
     )?;
-    let mut h = home_or_new(&grant.account_id, caller)?;
+    let mut h = home_or_new(&grant.account_id)?;
     let at = now();
-    if let Some(sequence) = h.check(caller, &grant, at)? {
+    if let Some(sequence) = h.check(&grant, at)? {
         return execution(&grant.account_id, sequence);
     }
     // Expired requests still close their sequence, without parsing or deriving keys.
@@ -467,15 +477,24 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     );
     let account_id = grant.account_id;
     let sequence = grant.execution_sequence;
+    let formal = grant.kind.is_formal();
     drop(grant);
     drop(h);
     drop(c);
     let response = operation.execute().await;
-    result.cycles_cost_upper_bound = chain_key::cost_upper_bound(
-        cost,
-        response.as_ref().err(),
-        ic_cdk::api::msg_cycles_refunded(),
-    );
+    let failure = response.as_ref().err().map(chain_key::classify_failure);
+    let unsent = failure == Some(FailureKind::NotSent);
+    // An unsent call returns synchronously in update mode, where the refund API
+    // traps. Only an actual reply/reject callback may inspect refunded cycles.
+    result.cycles_cost_upper_bound = if unsent {
+        0
+    } else {
+        chain_key::cost_upper_bound(
+            cost,
+            response.as_ref().err(),
+            ic_cdk::api::msg_cycles_refunded(),
+        )
+    };
     result.outcome = match response {
         Ok(bytes) => match finish(finishing, key, bytes) {
             Ok(output) => ExecutionOutcome::Completed(Box::new(output)),
@@ -483,7 +502,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         },
         Err(e) => {
             let detail = Error::Unavailable(format!("{e:?}"));
-            if chain_key::classify_failure(&e) == FailureKind::Unknown {
+            if failure == Some(FailureKind::Unknown) {
                 ExecutionOutcome::Unknown(detail)
             } else {
                 ExecutionOutcome::Failed(detail)
@@ -492,6 +511,10 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     };
     // Other executions can finish while this management call is in flight.
     let mut current = home(&account_id).expect("prepared home");
+    if unsent {
+        current.budgets.release_unsent(reserved, formal);
+        release_unsent_budget(reserved, formal);
+    }
     current.finish(sequence, &result);
     save_execution(&account_id, &current, sequence, &result, &[]);
     Ok(result)

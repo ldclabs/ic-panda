@@ -1,4 +1,3 @@
-use candid::Principal;
 use cbor2::Cbor;
 use dmsg_protocol::*;
 use dmsg_runtime::*;
@@ -39,6 +38,31 @@ impl Budgets {
         *self = next;
         Ok(())
     }
+
+    /// Undo a reservation only when dispatch failed synchronously, before any
+    /// management call was sent. No other message can have changed these budgets.
+    pub fn release_unsent(&mut self, cycles: u128, formal: bool) {
+        let release = |budget: &mut Budget| {
+            budget.executions = budget
+                .executions
+                .checked_sub(1)
+                .expect("reserved execution");
+            budget.cycles = budget.cycles.checked_sub(cycles).expect("reserved cycles");
+        };
+        release(&mut self.total);
+        if formal {
+            release(&mut self.formal);
+        }
+    }
+}
+
+/// A returned unknown outcome cannot be dispatched again, but must retain its
+/// result and commercial hold. It does not block later closed sequences.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub enum ExecutionState {
+    InFlight,
+    Unknown,
+    Terminal,
 }
 
 /// Private retained-execution metadata; this CBOR form is its stable representation.
@@ -51,46 +75,30 @@ pub struct Execution {
     #[cbor(key = 3)]
     pub expires_at: u64,
     #[cbor(key = 4)]
-    pub terminal: bool,
+    pub state: ExecutionState,
     #[cbor(key = 5)]
     pub formal: bool,
 }
 
 impl Execution {
-    fn retained(&self, sequence: u64, terminal_sequence: u64, now: u64) -> bool {
-        sequence > terminal_sequence || self.expires_at.saturating_add(RESULT_RETENTION) > now
+    fn retained(&self, sequence: u64, closed_sequence: u64, now: u64) -> bool {
+        self.state != ExecutionState::Terminal
+            || sequence > closed_sequence
+            || self.expires_at.saturating_add(RESULT_RETENTION) > now
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Home {
-    pub home_user: Principal,
-    pub terminal_sequence: u64,
+    pub closed_sequence: u64,
     pub executions: BTreeMap<u64, Execution>,
     pub budgets: Budgets,
 }
 
 impl Home {
-    pub fn new(home_user: Principal) -> Self {
-        Self {
-            home_user,
-            terminal_sequence: 0,
-            executions: BTreeMap::new(),
-            budgets: Budgets::default(),
-        }
-    }
-
-    /// Check replay and cheap authorization/window bounds before key derivation.
-    pub fn check(
-        &self,
-        caller: Principal,
-        grant: &ExecutionGrant,
-        now: u64,
-    ) -> Result<Option<u64>> {
-        ensure(
-            caller == self.home_user && caller == grant.home_user,
-            Error::Forbidden,
-        )?;
+    /// Check replay and window bounds after the entry point authenticates the
+    /// configured user home, before parsing or deriving keys.
+    pub fn check(&self, grant: &ExecutionGrant, now: u64) -> Result<Option<u64>> {
         if let Some(sequence) = self.sequence(&grant.request_id) {
             ensure(
                 self.executions[&sequence].digest == digest("dmsg/cose-execution/v3", grant),
@@ -99,11 +107,11 @@ impl Home {
             return Ok(Some(sequence));
         }
         let sequence = grant.execution_sequence;
-        if sequence <= self.terminal_sequence {
+        if sequence <= self.closed_sequence {
             return Err(Error::ResultExpired);
         }
         ensure(
-            sequence - self.terminal_sequence <= WINDOW as u64,
+            sequence - self.closed_sequence <= WINDOW as u64,
             Error::QuotaExceeded,
         )?;
         if self.executions.contains_key(&sequence) {
@@ -128,7 +136,7 @@ impl Home {
         let mut retained = 0;
         let mut formal = 0;
         for (seq, e) in &self.executions {
-            if e.retained(*seq, self.terminal_sequence, now) {
+            if e.retained(*seq, self.closed_sequence, now) {
                 retained += 1;
                 formal += usize::from(e.formal);
             }
@@ -167,7 +175,7 @@ impl Home {
                 request_id: grant.request_id,
                 digest: digest("dmsg/cose-execution/v3", grant),
                 expires_at: grant.expires_at,
-                terminal: false,
+                state: ExecutionState::InFlight,
                 formal,
             },
         );
@@ -177,7 +185,7 @@ impl Home {
     pub fn prune(&mut self, now: u64) -> Vec<u64> {
         let mut removed = Vec::new();
         self.executions.retain(|seq, e| {
-            let keep = e.retained(*seq, self.terminal_sequence, now);
+            let keep = e.retained(*seq, self.closed_sequence, now);
             if !keep {
                 removed.push(*seq);
             }
@@ -192,13 +200,19 @@ impl Home {
             .get_mut(&sequence)
             .expect("prepared execution");
         assert_eq!(execution.request_id, result.request_id);
-        execution.terminal = result.is_terminal();
-        while self
-            .terminal_sequence
-            .checked_add(1)
-            .is_some_and(|next| self.executions.get(&next).is_some_and(|e| e.terminal))
-        {
-            self.terminal_sequence += 1;
+        execution.state = match &result.outcome {
+            ExecutionOutcome::Unknown(_) => ExecutionState::Unknown,
+            ExecutionOutcome::Completed(_)
+            | ExecutionOutcome::Failed(_)
+            | ExecutionOutcome::ResultExpired => ExecutionState::Terminal,
+            _ => panic!("execution has not returned"),
+        };
+        while self.closed_sequence.checked_add(1).is_some_and(|next| {
+            self.executions
+                .get(&next)
+                .is_some_and(|e| e.state != ExecutionState::InFlight)
+        }) {
+            self.closed_sequence += 1;
         }
     }
 }
@@ -217,9 +231,17 @@ pub fn key_id(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Ha
 }
 
 pub fn path(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
+    let mut path = signing_prefix(config);
+    path.extend(signing_suffix(account_id, key));
+    path
+}
+
+pub fn signing_prefix(config: &CoseInit) -> Vec<Vec<u8>> {
+    vec![b"dmsg/formal/v2".to_vec(), canonical(&config.environment)]
+}
+
+pub fn signing_suffix(account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
     vec![
-        b"dmsg/formal/v2".to_vec(),
-        canonical(&config.environment),
         account_id.to_vec(),
         canonical(&key.purpose),
         key.generation.to_be_bytes().to_vec(),
@@ -241,15 +263,10 @@ pub fn root_input(account_id: &AccountId, generation: u64) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candid::Principal;
 
-    fn prepare(
-        h: &mut Home,
-        caller: Principal,
-        grant: &ExecutionGrant,
-        now: u64,
-        cost: u128,
-    ) -> Result<Option<u64>> {
-        if let Some(sequence) = h.check(caller, grant, now)? {
+    fn prepare(h: &mut Home, grant: &ExecutionGrant, now: u64, cost: u128) -> Result<Option<u64>> {
+        if let Some(sequence) = h.check(grant, now)? {
             return Ok(Some(sequence));
         }
         h.prepare(grant, now, Some(cost))?;
@@ -303,31 +320,28 @@ mod tests {
 
     #[test]
     fn signing_history_leaves_root_slots_even_when_roots_arrive_first() {
-        let mut h = Home::new(g(1).home_user);
+        let mut h = Home::default();
         // The user may dispatch roots after authorizing signatures, but their
         // messages can reach COSE first. Count formal records, not all records.
         for sequence in 57..=64 {
-            prepare(&mut h, g(1).home_user, &g(sequence), 2, 1).unwrap();
+            prepare(&mut h, &g(sequence), 2, 1).unwrap();
             h.finish(sequence, &done(sequence));
         }
         for sequence in 1..=56 {
-            prepare(&mut h, g(1).home_user, &signing(sequence), 2, 1).unwrap();
+            prepare(&mut h, &signing(sequence), 2, 1).unwrap();
             h.finish(sequence, &done(sequence));
         }
-        assert_eq!(h.terminal_sequence, 64);
-        assert_eq!(h.check(h.home_user, &g(65), 2), Err(Error::QuotaExceeded));
+        assert_eq!(h.closed_sequence, 64);
+        assert_eq!(h.check(&g(65), 2), Err(Error::QuotaExceeded));
 
-        let mut h = Home::new(g(1).home_user);
+        let mut h = Home::default();
         for sequence in 1..=56 {
-            prepare(&mut h, g(1).home_user, &signing(sequence), 2, 1).unwrap();
+            prepare(&mut h, &signing(sequence), 2, 1).unwrap();
             h.finish(sequence, &done(sequence));
         }
-        assert_eq!(
-            h.check(h.home_user, &signing(57), 2),
-            Err(Error::QuotaExceeded)
-        );
-        assert_eq!(h.check(h.home_user, &signing(1), 2), Ok(Some(1)));
-        prepare(&mut h, g(1).home_user, &g(57), 2, 1).unwrap();
+        assert_eq!(h.check(&signing(57), 2), Err(Error::QuotaExceeded));
+        assert_eq!(h.check(&signing(1), 2), Ok(Some(1)));
+        prepare(&mut h, &g(57), 2, 1).unwrap();
     }
 
     #[test]
@@ -357,6 +371,18 @@ mod tests {
     }
 
     #[test]
+    fn unsent_reservations_restore_both_budget_classes() {
+        let mut budgets = Budgets::default();
+        budgets.reserve(2 * DAY, 10, 10, 100, true).unwrap();
+        let before = budgets.clone();
+        for formal in [false, true] {
+            budgets.reserve(2 * DAY, 20, 10, 100, formal).unwrap();
+            budgets.release_unsent(20, formal);
+            assert_eq!(budgets, before);
+        }
+    }
+
+    #[test]
     fn home_budget_covers_every_user_authorized_execution() {
         let formal = FORMAL_DAILY_CYCLES / u128::from(FORMAL_DAILY_EXECUTIONS);
         let root = ROOT_DAILY_CYCLES / u128::from(ROOT_DAILY_EXECUTIONS);
@@ -381,25 +407,25 @@ mod tests {
 
     #[test]
     fn rejected_and_expired_requests_close_without_budget() {
-        let mut h = Home::new(g(1).home_user);
+        let mut h = Home::default();
         h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
         let budgets = h.budgets.clone();
-        h.check(h.home_user, &g(1), 2).unwrap();
+        h.check(&g(1), 2).unwrap();
         assert!(h.prepare(&g(1), 2, None).unwrap().is_empty());
         assert_eq!(h.budgets, budgets);
         let mut failed = done(1);
         failed.outcome = ExecutionOutcome::Failed(Error::Expired);
         h.finish(1, &failed);
-        assert_eq!(h.terminal_sequence, 1);
-        h.check(h.home_user, &g(2), 2).unwrap();
+        assert_eq!(h.closed_sequence, 1);
+        h.check(&g(2), 2).unwrap();
         assert_eq!(h.prepare(&g(2), 2, Some(1)), Err(Error::QuotaExceeded));
     }
 
     #[test]
     fn pruning_keeps_holes_and_budgets_but_reclaims_idle_terminal_results() {
-        let mut h = Home::new(g(1).home_user);
+        let mut h = Home::default();
         for sequence in 1..=3 {
-            prepare(&mut h, g(1).home_user, &g(sequence), 2, 1).unwrap();
+            prepare(&mut h, &g(sequence), 2, 1).unwrap();
         }
         h.finish(1, &done(1));
         h.finish(3, &done(3));
@@ -407,60 +433,39 @@ mod tests {
         assert!(h.prune(DAY).is_empty());
         assert_eq!(h.prune(DAY + MINUTE), vec![1]);
         assert_eq!(h.budgets, budgets);
-        assert_eq!(h.terminal_sequence, 1);
-        assert_eq!(
-            h.check(h.home_user, &g(1), 2 * DAY),
-            Err(Error::ResultExpired)
-        );
+        assert_eq!(h.closed_sequence, 1);
+        assert_eq!(h.check(&g(1), 2 * DAY), Err(Error::ResultExpired));
         h.finish(2, &done(2));
         assert_eq!(h.prune(2 * DAY), vec![2, 3]);
-        assert_eq!(h.terminal_sequence, 3);
+        assert_eq!(h.closed_sequence, 3);
     }
 
     #[test]
     fn out_of_order_and_replay_never_skip_a_hole() {
-        let mut h = Home::new(g(1).home_user);
-        prepare(&mut h, g(1).home_user, &g(2), 2, 1).unwrap();
+        let mut h = Home::default();
+        prepare(&mut h, &g(2), 2, 1).unwrap();
         h.finish(2, &done(2));
-        assert_eq!(h.terminal_sequence, 0);
-        prepare(&mut h, g(1).home_user, &g(1), 2, 1).unwrap();
+        assert_eq!(h.closed_sequence, 0);
+        prepare(&mut h, &g(1), 2, 1).unwrap();
         h.finish(1, &done(1));
-        assert_eq!(h.terminal_sequence, 2);
-        assert!(prepare(&mut h, g(1).home_user, &g(1), 2, 1)
-            .unwrap()
-            .is_some());
+        assert_eq!(h.closed_sequence, 2);
+        assert!(prepare(&mut h, &g(1), 2, 1).unwrap().is_some());
         let mut bad = g(1);
         bad.max_cycles = 99;
-        assert_eq!(
-            prepare(&mut h, g(1).home_user, &bad, 2, 1),
-            Err(Error::IdempotencyConflict)
-        );
+        assert_eq!(prepare(&mut h, &bad, 2, 1), Err(Error::IdempotencyConflict));
         h.executions.clear();
-        assert_eq!(
-            prepare(&mut h, g(1).home_user, &g(1), 2, 1),
-            Err(Error::ResultExpired)
-        );
-    }
-
-    #[test]
-    fn wrong_home_does_not_consume_sequence() {
-        let mut h = Home::new(g(1).home_user);
-        assert_eq!(
-            prepare(&mut h, Principal::anonymous(), &g(1), 2, 1),
-            Err(Error::Forbidden)
-        );
-        assert!(h.executions.is_empty());
+        assert_eq!(prepare(&mut h, &g(1), 2, 1), Err(Error::ResultExpired));
     }
 
     #[test]
     fn cleaned_request_cannot_reuse_id_with_new_device_sequence() {
-        let mut h = Home::new(g(1).home_user);
-        prepare(&mut h, g(1).home_user, &g(1), 2, 1).unwrap();
+        let mut h = Home::default();
+        prepare(&mut h, &g(1), 2, 1).unwrap();
         h.finish(1, &done(1));
         let mut second = g(2);
         second.approved_at = 2 * DAY;
         second.expires_at = 2 * DAY + MINUTE;
-        prepare(&mut h, g(1).home_user, &second, 2 * DAY, 1).unwrap();
+        prepare(&mut h, &second, 2 * DAY, 1).unwrap();
         h.finish(2, &done(2));
         assert!(!h.executions.contains_key(&1));
         let mut replay = g(3);
@@ -468,38 +473,38 @@ mod tests {
         replay.expires_at = 2 * DAY + MINUTE;
         replay.request_id = g(1).request_id;
         assert_eq!(
-            prepare(&mut h, g(1).home_user, &replay, 2 * DAY, 1),
+            prepare(&mut h, &replay, 2 * DAY, 1),
             Err(Error::IdempotencyConflict)
         );
         assert_eq!(
-            prepare(&mut h, g(1).home_user, &g(1), 2 * DAY, 1),
+            prepare(&mut h, &g(1), 2 * DAY, 1),
             Err(Error::ResultExpired)
         );
     }
 
     #[test]
     fn a_rejected_execution_does_not_block_the_next_window() {
-        let mut h = Home::new(g(1).home_user);
+        let mut h = Home::default();
         for seq in 1..=65 {
             let mut grant = g(seq);
             let at = if seq <= 64 { 2 } else { 2 * DAY };
             grant.approved_at = at;
             grant.expires_at = at + MINUTE;
-            prepare(&mut h, g(1).home_user, &grant, at, 1).unwrap();
+            prepare(&mut h, &grant, at, 1).unwrap();
             let mut result = done(seq);
             if seq == 1 {
                 result.outcome = ExecutionOutcome::Failed(Error::UnsupportedProtocol);
             }
             h.finish(seq, &result);
         }
-        assert_eq!(h.terminal_sequence, 65);
+        assert_eq!(h.closed_sequence, 65);
     }
 
     #[test]
-    fn unknown_and_in_flight_executions_pin_the_window() {
-        let mut h = Home::new(g(1).home_user);
+    fn only_in_flight_executions_pin_the_sequence_window() {
+        let mut h = Home::default();
         for sequence in 1..=3 {
-            prepare(&mut h, g(1).home_user, &g(sequence), 2, 1).unwrap();
+            prepare(&mut h, &g(sequence), 2, 1).unwrap();
         }
         let mut unknown = done(1);
         unknown.outcome = ExecutionOutcome::Unknown(Error::ExecutionUnknown);
@@ -508,23 +513,55 @@ mod tests {
         let mut next = g(4);
         next.approved_at = 2 * DAY;
         next.expires_at = next.approved_at + MINUTE;
-        h.check(h.home_user, &next, next.approved_at).unwrap();
+        h.check(&next, next.approved_at).unwrap();
         assert!(h
             .prepare(&next, next.approved_at, Some(1))
             .unwrap()
             .is_empty());
-        assert_eq!(h.terminal_sequence, 0);
+        assert_eq!(h.closed_sequence, 1);
         assert_eq!(h.executions.len(), 4);
         h.finish(1, &done(1));
-        assert_eq!(h.terminal_sequence, 1);
+        assert_eq!(h.closed_sequence, 1);
         h.finish(2, &done(2));
-        assert_eq!(h.terminal_sequence, 3);
+        assert_eq!(h.closed_sequence, 3);
+    }
+
+    #[test]
+    fn returned_unknown_keeps_its_result_without_pinning_later_windows() {
+        use dmsg_runtime::storage::{compact_bytes, compact_from_bytes};
+
+        let mut h = Home::default();
+        for sequence in 1..=WINDOW as u64 {
+            prepare(&mut h, &g(sequence), 2, 1).unwrap();
+            let mut result = done(sequence);
+            if sequence == 1 {
+                result.outcome = ExecutionOutcome::Unknown(Error::ExecutionUnknown);
+            }
+            h.finish(sequence, &result);
+        }
+        assert_eq!(h.closed_sequence, 64);
+        // The exact state must survive an upgrade before cleanup.
+        let mut h = compact_from_bytes::<Home>(&compact_bytes(&h));
+        assert_eq!(h.prune(30 * DAY), (2..=64).collect::<Vec<_>>());
+        assert_eq!(h.executions.len(), 1);
+        assert_eq!(h.executions[&1].state, ExecutionState::Unknown);
+        assert_eq!(h.check(&g(1), 30 * DAY), Ok(Some(1)));
+        assert_eq!(h.check(&g(2), 30 * DAY), Err(Error::ResultExpired));
+        let mut changed = g(1);
+        changed.max_cycles += 1;
+        assert_eq!(h.check(&changed, 30 * DAY), Err(Error::IdempotencyConflict));
+        let mut next = g(65);
+        next.approved_at = 30 * DAY;
+        next.expires_at = next.approved_at + MINUTE;
+        prepare(&mut h, &next, next.approved_at, 1).unwrap();
+        h.finish(65, &done(65));
+        assert_eq!(h.closed_sequence, 65);
     }
 
     #[test]
     fn failed_budget_reservation_does_not_prune_or_insert() {
-        let mut h = Home::new(g(1).home_user);
-        prepare(&mut h, g(1).home_user, &g(1), 2, 1).unwrap();
+        let mut h = Home::default();
+        prepare(&mut h, &g(1), 2, 1).unwrap();
         h.finish(1, &done(1));
         h.budgets.total.day = 2;
         h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
@@ -533,7 +570,7 @@ mod tests {
         next.approved_at = 2 * DAY;
         next.expires_at = next.approved_at + MINUTE;
         assert_eq!(
-            prepare(&mut h, g(1).home_user, &next, next.approved_at, 1),
+            prepare(&mut h, &next, next.approved_at, 1),
             Err(Error::QuotaExceeded)
         );
         assert_eq!(h, before);
@@ -541,11 +578,13 @@ mod tests {
 
     #[test]
     fn last_sequence_finishes_without_overflow() {
-        let mut h = Home::new(g(1).home_user);
-        h.terminal_sequence = u64::MAX - 1;
+        let mut h = Home {
+            closed_sequence: u64::MAX - 1,
+            ..Default::default()
+        };
         let grant = g(u64::MAX);
-        prepare(&mut h, g(1).home_user, &grant, 2, 1).unwrap();
+        prepare(&mut h, &grant, 2, 1).unwrap();
         h.finish(u64::MAX, &done(u64::MAX));
-        assert_eq!(h.terminal_sequence, u64::MAX);
+        assert_eq!(h.closed_sequence, u64::MAX);
     }
 }
