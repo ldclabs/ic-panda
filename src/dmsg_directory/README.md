@@ -4,7 +4,33 @@ Publishes Agent Delegation 1.0 principal documents for every dMsg user home at o
 
 - `publish(account_id, PrincipalState)`: only the account's home publishes (first by the Xid allocator fingerprint, then the recorded home). Versions only increase; the same version must carry the same state.
 - `get_publication`, `directory_config`: queries.
-- `http_request`: `GET /<account_id>` returns the exact JCS document; other paths return a certified 404; `/.well-known/ic-domains` lists custom domains. Responses are certified response-only with all headers.
-- Stable layout schema 1: config (memory 0), documents (memory 1). The heap certification tree holds hashes only and is rebuilt after upgrade by re-certifying stored documents.
+- `http_request`: `GET /<account_id>` returns the exact JCS document; other paths return a certified 404; `/.well-known/ic-domains` lists custom domains. Responses are certified response-only with all headers. Routing follows the certification library: percent decoding and repeated slashes address the same path; a trailing slash stays distinct. Only the document's exact canonical `id` is authoritative for principal resolution.
+- Documents remain limited to 64 KiB. Home and directory share a conservative byte budget that includes future retirement/compromise fields and maximum names. Oversized registrations fail before the home commits; reaching the byte budget can limit the account before 32 generations. Origins are limited to 512 bytes, query URL/profile prefix to 2 KiB; public configuration URLs must not contain raw JSON escape characters.
+- Stable layout schema 2: config (memory 0), documents (memory 1), including a persisted SHA-256 body digest. Queries reuse the digest and move the loaded body into the response. Upgrades stream records into the heap certification tree, drop each body before reading the next, and publish the root once. Development schema 1 is rejected; no migration is implemented.
 
-Not implemented: home `handoff`, external-key reservation. Capacity (documents per canister, upgrade rebuild instructions) has not been measured. Contract: [docs/protocol/agent_zh.md](../../docs/protocol/agent_zh.md).
+Not implemented: home `handoff`, external-key reservation. Maximum capacity (documents per canister and upgrade instruction ceiling) has not been established. Contract: [docs/protocol/agent_zh.md](../../docs/protocol/agent_zh.md).
+
+## Targeted verification
+
+```sh
+cargo test --locked -p dmsg_directory -p dmsg_protocol -p dmsg_user --lib
+cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_directory
+cargo test --locked -p dmsg_integration --features pocketic-tests --test directory
+cargo test --locked -p dmsg_integration --features pocketic-tests --test directory directory_cost_and_rebuild_profile -- --ignored --exact --nocapture
+```
+
+The standalone PocketIC fixture covers publication authorization/idempotency, atomic rejection, size limits and safety changes, certified paths and body tampering, multiple homes, permanent configuration and upgrade recovery. The explicit profile measures replicated-query cycles (without an HTTP certificate) and a 130-record upgrade. `DMSG_WASM_DIR` can select an independently built baseline.
+
+Local PocketIC 16.0.0 samples on 2026-10-02, using the same inputs and release settings against the pre-review implementation and schema 2:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Publication query, 291-byte document, cycles | 7,113,073 | 7,068,252 |
+| HTTP replicated query, 291-byte document, cycles | 7,629,144 | 7,591,285 |
+| Publication query, 35,360-byte document, cycles | 10,150,473 | 7,216,357 |
+| HTTP replicated query, 35,360-byte document, cycles | 14,171,766 | 9,655,917 |
+| Older-version publish, 16 controllers, cycles | 67,976,834 | 61,786,101 |
+| Upgrade, 130 records, cycles | 3,843,188,472 | 3,261,319,160 |
+| Wasm linear memory after that upgrade, bytes | 6,356,992 | 1,966,080 |
+
+These are bounded local samples, not gateway latency, certified-query throughput or a maximum-capacity result. Both samples had 2,490,368 bytes of Wasm memory before the upgrade. Certification verification is tested separately with real non-replicated query certificates.

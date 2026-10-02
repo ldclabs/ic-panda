@@ -355,6 +355,129 @@ fn directory_config_and_allocator_routing() {
     assert!(!allocated_by(&AccountId(id), &digest));
 }
 
+#[test]
+fn directory_document_urls_are_bounded_and_need_no_json_escaping() {
+    for edit in [
+        |c: &mut DirectoryInit| {
+            c.principal_origin = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES))
+        },
+        |c: &mut DirectoryInit| {
+            c.controller_source = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES))
+        },
+        |c: &mut DirectoryInit| {
+            c.delegation_query_url =
+                format!("https://dmsg.test/{}", "a".repeat(MAX_DIRECTORY_URL_BYTES))
+        },
+        |c: &mut DirectoryInit| {
+            c.profile_url_prefix =
+                format!("https://dmsg.test/{}/", "a".repeat(MAX_DIRECTORY_URL_BYTES))
+        },
+        |c: &mut DirectoryInit| c.profile_url_prefix = "https://dmsg.test/\"/".into(),
+    ] {
+        let mut c = config();
+        edit(&mut c);
+        assert!(validate_directory_init(&c).is_err(), "{c:?}");
+    }
+    let mut c = config();
+    c.profile_url_prefix = "https://dmsg.test/%22/".into();
+    validate_directory_init(&c).unwrap();
+}
+
+#[test]
+fn document_budget_covers_maximum_urls_and_later_safety_changes() {
+    let mut config = config();
+    config.principal_origin = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES - 8));
+    config.controller_source = config.principal_origin.clone();
+    config.profile_url_prefix = format!(
+        "https://dmsg.test/{}/",
+        "p".repeat(MAX_DIRECTORY_URL_BYTES - "https://dmsg.test//".len())
+    );
+    config.delegation_query_url = format!(
+        "https://dmsg.test/{}",
+        "q".repeat(MAX_DIRECTORY_URL_BYTES - "https://dmsg.test/".len())
+    );
+    validate_directory_init(&config).unwrap();
+    let mut state = PrincipalState {
+        principal_type: PrincipalType::Organization,
+        controllers: vec![],
+        version: 1,
+        updated_at: sdk_id::MAX_SAFE_NONCE,
+    };
+    // Exercise six-byte control escapes, two-byte escapes and multi-byte UTF-8.
+    for escaped in ["\u{1}", "\"", "\\", "\n", "界"] {
+        state.controllers.clear();
+        let mut accepted = 0;
+        for g in 1..=MAX_CONTROLLER_RECORDS as u32 {
+            let fill = escaped.repeat((MAX_SCOPE_BYTES - 2) / escaped.len());
+            state.controllers.push(HostedController {
+                generation: g,
+                public_key: public(g as u8),
+                name: None,
+                valid_from: g as u64,
+                delegation: DelegationAuthority::Restricted {
+                    scopes: (0..MAX_CEILING_SCOPES)
+                        .map(|i| format!("{i}:{fill}"))
+                        .collect(),
+                    audiences: (0..MAX_CEILING_AUDIENCES)
+                        .map(|i| format!("https://{i}{}", "a".repeat(MAX_AUDIENCE_BYTES - 9)))
+                        .collect(),
+                },
+                supersedes: (1..g).collect(),
+                retired_at: Some(g as u64 + 1),
+                invalid_from: None,
+            });
+            let budget = principal_document_size_bound(&state);
+            if budget > MAX_PRINCIPAL_DOCUMENT_BYTES {
+                assert_eq!(validate_principal_state(&state), Err(Error::QuotaExceeded));
+                break;
+            }
+            accepted += 1;
+            // Name, retirement and compromise changes do not increase the budget.
+            let mut changed = state.clone();
+            for c in &mut changed.controllers {
+                c.name = Some("\"".repeat(MAX_CONTROLLER_NAME_BYTES));
+                c.retired_at = Some(sdk_id::MAX_SAFE_NONCE);
+                c.invalid_from = Some(sdk_id::MAX_SAFE_NONCE);
+            }
+            assert_eq!(principal_document_size_bound(&changed), budget);
+            let bytes = render_principal_document(&config, &account(), &changed).unwrap();
+            assert!(
+                bytes.len() <= budget,
+                "document={} budget={budget}",
+                bytes.len()
+            );
+        }
+        assert!(accepted > 0 && accepted < MAX_CONTROLLER_RECORDS);
+    }
+    // Ordinary single-predecessor rotations can still use all 32 generations.
+    for c in &mut state.controllers {
+        c.delegation = DelegationAuthority::Unrestricted;
+        c.supersedes = c
+            .generation
+            .checked_sub(1)
+            .filter(|g| *g > 0)
+            .into_iter()
+            .collect();
+    }
+    while state.controllers.len() < MAX_CONTROLLER_RECORDS {
+        let g = state.controllers.len() as u32 + 1;
+        let mut c = controller(DelegationAuthority::Unrestricted);
+        c.generation = g;
+        c.public_key = public(g as u8);
+        c.valid_from = g as u64;
+        c.retired_at = Some(g as u64 + 1);
+        c.supersedes = vec![g - 1];
+        state.controllers.push(c);
+    }
+    validate_principal_state(&state).unwrap();
+    assert!(
+        render_principal_document(&config, &account(), &state)
+            .unwrap()
+            .len()
+            <= MAX_PRINCIPAL_DOCUMENT_BYTES
+    );
+}
+
 /// Fixed approval digest shared with the extension's protocol tests.
 #[test]
 fn agent_event_approval_digest_vector() {

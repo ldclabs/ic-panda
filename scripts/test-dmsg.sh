@@ -26,7 +26,7 @@ node scripts/verify-commerce-vectors.mjs "$task_tmp/commerce.json"
 # installed server; otherwise the host crate downloads that fixed release.
 export DMSG_WASM_DIR="$wasm_dir"
 export DMSG_EXTERNAL_FIXTURE="$task_tmp/authentication-pocketic.cbor"
-cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- --test-threads=1
+cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane --test directory -- --test-threads=1
 
 
 # Third-party contracts and independent browser verifier. Use the real Wasm

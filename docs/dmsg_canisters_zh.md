@@ -107,3 +107,9 @@ pnpm --dir src/dmsg_app test
 ## 2026-10-02 handle 审查修复
 
 schema 7 用内存调用 guard 区分执行中的扣款和升级遗留的 `Charging`，后者使用原 ledger 参数恢复；对账与重试共用 guard，保留此前扣款的不确定性。认领和转移保存精确请求回执，原认领重放不受后来名称转移影响。配置只读路径借用已解码值，变更仍同步持久化；操作索引改用固定 32 字节键。公开 Candid 和认证叶不变。恢复、对账证据、并发回归及活跃名称容量测量见 [handle README](../src/dmsg_handle/README.md)。
+
+## 2026-10-02 directory 审查修复
+
+directory schema 2 持久化文档 SHA-256 摘要，发布摘要与 HTTP 查询复用摘要并转移正文缓冲区；升级逐条读取稳定记录构建认证树。home 与目录共享保守的 64 KiB 文档预算，预留后续退役、泄露标记和最大名称空间，超预算注册在 home 提交前被拒绝。公开配置 URL 增加长度边界；HTTP 路由与认证库采用相同的路径规范化规则，principal 权威解析仍要求精确的规范 URL。公开 Candid 不变；开发期拒绝 schema 1。
+
+定向单测、PocketIC 回归及可复现的 [directory profile](../src/dmsg_directory/README.md) 覆盖这些改动。35,360 字节文档的本地样本中，HTTP 复制查询 cycles 降低 31.87%；130 条记录升级后的 Wasm 内存由 6,356,992 降至 1,966,080 字节，升级 cycles 降低 15.14%。这些样本不代表最大容量或网关吞吐。本次未运行 dMsg 全套验证脚本。

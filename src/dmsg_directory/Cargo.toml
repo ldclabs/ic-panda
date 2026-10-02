@@ -17,7 +17,6 @@ cbor2.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
 ic-cdk.workspace = true
-ic-certification.workspace = true
 ic-http-certification.workspace = true
 ic-stable-structures.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }

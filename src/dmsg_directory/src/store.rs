@@ -12,7 +12,7 @@ use std::cell::RefCell;
 // Stable layout: config=0, published documents=1.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 1;
+pub(crate) const STABLE_SCHEMA: u16 = 2;
 
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -28,6 +28,7 @@ pub(crate) struct Record {
     pub(crate) version: u64,
     pub(crate) updated_at: u64,
     pub(crate) state_digest: Hash,
+    pub(crate) document_digest: Hash,
     pub(crate) document: ByteBuf,
 }
 
@@ -49,7 +50,7 @@ pub(crate) fn config() -> Config {
 }
 
 pub(crate) fn save_config(c: &Config) {
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(c.clone()))));
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(c)));
 }
 
 pub(crate) fn load(id: &AccountId) -> Option<Record> {
@@ -59,17 +60,18 @@ pub(crate) fn load(id: &AccountId) -> Option<Record> {
 /// Persist a publication and certify its response in the same message.
 pub(crate) fn save(id: &AccountId, record: &Record) {
     RECORDS.with_borrow_mut(|t| t.put(id.as_slice(), record));
-    http::certify_document(id, &record.document);
+    http::certify_document(id, record.document_digest);
 }
 
 /// Rebuild the heap certification tree from stable records after an upgrade.
 pub(crate) fn rebuild(custom_domains: &[String]) {
-    let mut documents = Vec::new();
     RECORDS.with_borrow(|t| {
-        t.for_each(|key, record| {
-            let id = AccountId::try_from(key.as_slice()).expect("account key");
-            documents.push((id, record.document));
-        })
+        http::rebuild(
+            custom_domains,
+            t.iter().map(|entry| {
+                let id = AccountId::try_from(entry.key().as_slice()).expect("account key");
+                (id, entry.value().into_inner().document_digest)
+            }),
+        );
     });
-    http::rebuild(custom_domains, documents);
 }

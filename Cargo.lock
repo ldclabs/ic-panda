@@ -1345,7 +1345,6 @@ dependencies = [
  "dmsg_runtime",
  "dmsg_types",
  "ic-cdk",
- "ic-certification",
  "ic-http-certification",
  "ic-stable-structures 0.7.2",
  "lib_dummy_getrandom",

@@ -84,6 +84,8 @@ pub struct RecordRepr {
     pub state_digest: Hash,
     #[cbor(key = 5)]
     pub document: ByteBuf,
+    #[cbor(key = 6)]
+    pub document_digest: Hash,
 }
 
 impl StableCodec for Record {
@@ -95,6 +97,7 @@ impl StableCodec for Record {
             version: self.version,
             updated_at: self.updated_at,
             state_digest: self.state_digest,
+            document_digest: self.document_digest,
             document: self.document.clone(),
         }
     }
@@ -105,7 +108,60 @@ impl StableCodec for Record {
             version: repr.version,
             updated_at: repr.updated_at,
             state_digest: repr.state_digest,
+            document_digest: repr.document_digest,
             document: repr.document,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dmsg_runtime::storage::{compact_bytes, compact_from_bytes};
+
+    #[test]
+    fn config_roundtrip_preserves_all_fields_and_empty_domains() {
+        let mut config = Config {
+            schema: crate::store::STABLE_SCHEMA,
+            init: DirectoryInit {
+                environment: Environment::Staging,
+                issuer_namespace: "https://dmsg.test/u/".into(),
+                user_homes: vec![Principal::from_slice(&[1]), Principal::from_slice(&[2])],
+                principal_origin: "https://id.dmsg.test".into(),
+                controller_source: "https://dmsg.test".into(),
+                delegation_query_url: "https://agents.dmsg.test/query".into(),
+                profile_url_prefix: "https://dmsg.test/u/".into(),
+                custom_domains: vec![],
+            },
+        };
+        for domains in [vec![], vec!["id.dmsg.test".into(), "id2.dmsg.test".into()]] {
+            config.init.custom_domains = domains;
+            let bytes = compact_bytes(&config);
+            let decoded: Config = compact_from_bytes(&bytes);
+            assert_eq!(decoded.schema, config.schema);
+            assert_eq!(decoded.init, config.init);
+            assert_eq!(compact_bytes(&decoded), bytes);
+        }
+    }
+
+    #[test]
+    fn record_roundtrip_preserves_exact_body_and_both_digests() {
+        let document = br#"{"controllers":[],"type":"person"}"#.to_vec();
+        let record = Record {
+            home_user: Principal::from_slice(&[1]),
+            version: 42,
+            updated_at: 1_790_000_000_000,
+            state_digest: Hash::new([7; 32]),
+            document_digest: dmsg_protocol::sha256(&document),
+            document: document.into(),
+        };
+        let bytes = compact_bytes(&record);
+        let decoded: Record = compact_from_bytes(&bytes);
+        assert_eq!(decoded, record);
+        assert_eq!(
+            decoded.document_digest,
+            dmsg_protocol::sha256(&decoded.document)
+        );
+        assert_eq!(compact_bytes(&decoded), bytes);
     }
 }

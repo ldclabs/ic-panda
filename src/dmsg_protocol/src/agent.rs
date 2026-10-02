@@ -19,6 +19,12 @@ pub const MAX_CEILING_AUDIENCES: usize = 4;
 pub const MAX_SCOPE_BYTES: usize = 64;
 /// Maximum bytes of one audience string (256).
 pub const MAX_AUDIENCE_BYTES: usize = 256;
+/// Maximum serialized principal or controller-source origin (512 bytes).
+pub const MAX_PRINCIPAL_ORIGIN_BYTES: usize = 512;
+/// Maximum directory query URL or profile prefix (2 KiB).
+pub const MAX_DIRECTORY_URL_BYTES: usize = 2_048;
+/// Maximum principal document (64 KiB), including future retirement fields.
+pub const MAX_PRINCIPAL_DOCUMENT_BYTES: usize = 65_536;
 /// Hosted signing accepts `created_at` at most this far in the past (60 s).
 pub const EVENT_PAST_SKEW: u64 = 60 * SECOND;
 /// Hosted signing accepts `created_at` at most this far in the future (5 s).
@@ -43,7 +49,20 @@ pub fn agent_id(public_key: &Hash) -> String {
 /// # Errors
 /// Anything else returns `Error::InvalidInput`.
 pub fn validate_principal_origin(origin: &str) -> Result<()> {
+    validate_document_url_bytes(origin, MAX_PRINCIPAL_ORIGIN_BYTES)?;
     sdk_id::validate_origin(origin).map_err(sdk_error)
+}
+
+fn validate_document_url_bytes(url: &str, limit: usize) -> Result<()> {
+    // These public URLs need no JSON escaping, so their byte limits also bound
+    // their contribution to a principal document. Encode special bytes in URLs.
+    ensure_valid(
+        url.len() <= limit
+            && !url
+                .bytes()
+                .any(|b| b.is_ascii_control() || b == b'"' || b == b'\\'),
+        "principal document URL",
+    )
 }
 
 /// Canonical principal URL of an account: `origin/<account_id>`.
@@ -281,9 +300,11 @@ pub fn validate_controller_name(name: &str) -> Result<()> {
 /// appears once, current records carry no retirement fields, retirement and
 /// compromise intervals are ordered, every `supersedes` entry names an earlier
 /// record, and every timestamp is at or before `updated_at`.
+/// The document budget reserves the largest configured URLs, names and all
+/// retirement/compromise fields, so later safety changes always remain publishable.
 ///
 /// # Errors
-/// Violations return `Error::InvalidInput` or, for count limits, `Error::QuotaExceeded`.
+/// Violations return `Error::InvalidInput` or, for count/byte limits, `Error::QuotaExceeded`.
 pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
     ensure(
         state.controllers.len() <= MAX_CONTROLLER_RECORDS
@@ -333,7 +354,37 @@ pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
             )?;
         }
     }
-    Ok(())
+    ensure(
+        principal_document_size_bound(state) <= MAX_PRINCIPAL_DOCUMENT_BYTES,
+        Error::QuotaExceeded,
+    )
+}
+
+/// Conservative JCS byte budget after the count and field checks above.
+/// 1 KiB covers the envelope syntax, account ID and full-width updated_at;
+/// 512 bytes per controller covers syntax, Agent ID, a maximally escaped name
+/// and three full-width timestamps. Variable immutable fields are added below.
+fn principal_document_size_bound(state: &PrincipalState) -> usize {
+    let mut bytes = 1_024 + MAX_PRINCIPAL_ORIGIN_BYTES + 2 * MAX_DIRECTORY_URL_BYTES;
+    for c in &state.controllers {
+        bytes += 512 + MAX_PRINCIPAL_ORIGIN_BYTES;
+        // A did:agent ID is 53 ASCII bytes, plus two quotes and a comma.
+        bytes += c.supersedes.len() * 56;
+        if let DelegationAuthority::Restricted { scopes, audiences } = &c.delegation {
+            for value in scopes.iter().chain(audiences) {
+                // Include the JSON quotes and separating comma without allocating.
+                bytes += 3 + value
+                    .bytes()
+                    .map(|b| match b {
+                        b'"' | b'\\' | b'\x08' | b'\t' | b'\n' | b'\x0c' | b'\r' => 2,
+                        0..=0x1f => 6,
+                        _ => 1,
+                    })
+                    .sum::<usize>();
+            }
+        }
+    }
+    bytes
 }
 
 fn principal_type(value: &PrincipalType) -> &'static str {
@@ -427,7 +478,9 @@ pub fn render_principal_document(
 ///
 /// Requires a valid issuer namespace, 1..16 distinct authenticated user homes,
 /// HTTPS origins for principals and controller source, an HTTPS query URL, an
-/// HTTPS profile prefix ending in `/`, and 0..8 domain names.
+/// HTTPS profile prefix ending in `/`, and 0..8 domain names. Origins are at
+/// most 512 bytes and the query URL/profile prefix at most 2 KiB, without JSON
+/// escape characters, matching the shared principal-document byte budget.
 ///
 /// # Errors
 /// Invalid configuration returns `Error::InvalidInput` or `Error::AuthRequired`.
@@ -450,8 +503,9 @@ pub fn validate_directory_init(config: &DirectoryInit) -> Result<()> {
         ensure_valid(!config.user_homes[..index].contains(home), "duplicate home")?;
     }
     validate_principal_origin(&config.principal_origin)?;
-    sdk_id::validate_origin(&config.controller_source).map_err(sdk_error)?;
+    validate_principal_origin(&config.controller_source)?;
     for url in [&config.delegation_query_url, &config.profile_url_prefix] {
+        validate_document_url_bytes(url, MAX_DIRECTORY_URL_BYTES)?;
         let parsed = url::Url::parse(url).map_err(|_| invalid("directory URL"))?;
         ensure_valid(
             parsed.scheme() == "https"

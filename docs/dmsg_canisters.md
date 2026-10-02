@@ -92,3 +92,9 @@ Execution authorization is split into a read-only precheck and a synchronous com
 ## 2026-10-02 Handle Review Fixes
 
 Schema 7 uses an in-memory call guard to distinguish live charges from `Charging` operations left by an upgrade. Orphaned operations retry the original ledger arguments; reconciliation shares the guard and retries preserve prior uncertainty. Claims and transfers retain exact request receipts, so later ownership changes do not alter a claim replay. Read-only configuration paths borrow decoded state, while mutations still persist synchronously; operation indexes use fixed 32-byte keys. Public Candid and certified leaves are unchanged. Recovery, evidence validation, concurrency regressions and active-name capacity measurements are described in the [handle README](../src/dmsg_handle/README.md).
+
+## 2026-10-02 Directory Review Fixes
+
+Directory schema 2 persists the document SHA-256 digest, reuses it for publication and HTTP queries, moves the loaded response body and streams stable records into the certification tree on upgrade. Home and directory share a conservative 64 KiB document budget with space reserved for later retirement, compromise and maximum names; oversized registrations fail before the home commits. Public configuration URLs are bounded, and HTTP routing follows the certification library's path normalization while canonical principal resolution remains exact. Public Candid is unchanged; development schema 1 is rejected.
+
+Targeted unit/PocketIC regressions and the reproducible [directory profile](../src/dmsg_directory/README.md) cover these changes. In a local 35,360-byte document sample, replicated HTTP-query cycles fall by 31.87%; for 130 records, post-upgrade Wasm memory falls from 6,356,992 to 1,966,080 bytes and upgrade cycles by 15.14%. These samples do not establish maximum capacity or gateway throughput. The complete dMsg validation script was not run for this increment.

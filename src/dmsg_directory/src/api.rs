@@ -3,13 +3,10 @@ use dmsg_protocol::{agent, digest, sha256};
 use dmsg_types::{agent::*, *};
 use ic_http_certification::{HttpRequest, HttpResponse};
 
-/// Largest principal document the directory serves (64 KiB).
-const MAX_DOCUMENT_BYTES: usize = 65_536;
-
 #[ic_cdk::init]
 fn init(args: DirectoryInit) {
     agent::validate_directory_init(&args).expect("directory configuration");
-    http::rebuild(&args.custom_domains, vec![]);
+    http::rebuild(&args.custom_domains, []);
     save_config(&Config {
         schema: STABLE_SCHEMA,
         init: args,
@@ -44,7 +41,7 @@ fn publication(id: &AccountId, init: &DirectoryInit, record: &Record) -> Publica
         home_user: record.home_user,
         version: record.version,
         updated_at: record.updated_at,
-        document_digest: sha256(&record.document),
+        document_digest: record.document_digest,
     }
 }
 
@@ -69,11 +66,16 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
             Error::Forbidden,
         )?,
     }
+    if let Some(record) = &current {
+        if state.version < record.version {
+            return Ok(publication(&account_id, &init, record));
+        }
+    }
     let state_digest = digest("dmsg/principal-state/v1", &state);
     if let Some(record) = &current {
-        if state.version <= record.version {
+        if state.version == record.version {
             ensure(
-                state.version < record.version || state_digest == record.state_digest,
+                state_digest == record.state_digest,
                 Error::IdempotencyConflict,
             )?;
             return Ok(publication(&account_id, &init, record));
@@ -81,12 +83,16 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
         ensure(state.updated_at > record.updated_at, Error::IntegrityFailed)?;
     }
     let document = agent::render_principal_document(&init, &account_id, &state)?;
-    ensure(document.len() <= MAX_DOCUMENT_BYTES, Error::QuotaExceeded)?;
+    ensure(
+        document.len() <= agent::MAX_PRINCIPAL_DOCUMENT_BYTES,
+        Error::QuotaExceeded,
+    )?;
     let record = Record {
         home_user: caller,
         version: state.version,
         updated_at: state.updated_at,
         state_digest,
+        document_digest: sha256(&document),
         document: document.into(),
     };
     save(&account_id, &record);
@@ -107,6 +113,6 @@ fn directory_config() -> DirectoryInit {
 #[ic_cdk::query(hidden = true)]
 fn http_request(request: HttpRequest<'static>) -> HttpResponse<'static> {
     http::serve(&request, &config().init.custom_domains, |id| {
-        load(id).map(|record| record.document)
+        load(id).map(|record| (record.document, record.document_digest))
     })
 }

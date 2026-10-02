@@ -12,6 +12,10 @@ name = "control_plane"
 required-features = ["pocketic-tests"]
 
 [[test]]
+name = "directory"
+required-features = ["pocketic-tests"]
+
+[[test]]
 name = "cloud_fixture"
 required-features = ["pocketic-tests"]
 

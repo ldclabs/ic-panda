@@ -52,12 +52,12 @@ fn document_path(id: &AccountId) -> HttpCertificationPath<'static> {
     HttpCertificationPath::exact(format!("{ACCOUNT_PREFIX}{id}"))
 }
 
-fn document_response(document: &[u8]) -> HttpResponse<'static> {
+fn document_response(document: Vec<u8>) -> HttpResponse<'static> {
     response(
         StatusCode::OK,
         "application/json",
         "public, max-age=30",
-        document.to_vec(),
+        document,
     )
 }
 
@@ -88,9 +88,11 @@ fn domains(custom_domains: &[String]) -> (HttpCertificationPath<'static>, HttpRe
 fn entry(
     path: HttpCertificationPath<'static>,
     response: &HttpResponse<'static>,
+    document_digest: Option<Hash>,
 ) -> HttpCertificationTreeEntry<'static> {
     let certification =
-        HttpCertification::response_only(&CEL, response, None).expect("certifiable response");
+        HttpCertification::response_only(&CEL, response, document_digest.map(Hash::into_array))
+            .expect("certifiable response");
     HttpCertificationTreeEntry::new(path, certification)
 }
 
@@ -102,9 +104,13 @@ fn publish_root(tree: &HttpCertificationTree) {
 }
 
 /// Replace the certified response of one account's document.
-pub(crate) fn certify_document(id: &AccountId, document: &[u8]) {
+pub(crate) fn certify_document(id: &AccountId, document_digest: Hash) {
     let path = document_path(id);
-    let entry = entry(path.clone(), &document_response(document));
+    let entry = entry(
+        path.clone(),
+        &document_response(vec![]),
+        Some(document_digest),
+    );
     TREE.with_borrow_mut(|tree| {
         tree.delete_by_path(&path);
         tree.insert(&entry);
@@ -112,41 +118,71 @@ pub(crate) fn certify_document(id: &AccountId, document: &[u8]) {
     });
 }
 
-/// Certify the fallback 404, the domain list and every stored document once.
+/// Certify the fallback 404, domain list and stored document digests in one pass.
+/// The iterator releases each stable record before reading the next one.
 pub(crate) fn rebuild(
     custom_domains: &[String],
-    documents: Vec<(AccountId, serde_bytes::ByteBuf)>,
+    documents: impl IntoIterator<Item = (AccountId, Hash)>,
 ) {
     TREE.with_borrow_mut(|tree| {
         tree.clear();
         for (path, response) in [not_found(), domains(custom_domains)] {
-            tree.insert(&entry(path, &response));
+            tree.insert(&entry(path, &response, None));
         }
-        for (id, document) in documents {
-            tree.insert(&entry(document_path(&id), &document_response(&document)));
+        for (id, document_digest) in documents {
+            tree.insert(&entry(
+                document_path(&id),
+                &document_response(vec![]),
+                Some(document_digest),
+            ));
         }
         publish_root(tree);
     });
+}
+
+/// Match the certification library's path segments: internal empty segments
+/// are ignored, but a trailing slash remains a distinct path.
+fn routing_path(path: &str) -> String {
+    let mut normalized = String::new();
+    for segment in path.split('/').filter(|s| !s.is_empty()) {
+        normalized.push('/');
+        normalized.push_str(segment);
+    }
+    if path.ends_with('/') {
+        normalized.push('/');
+    }
+    normalized
 }
 
 /// Select the stored response for a request path and attach its certificate.
 pub(crate) fn serve(
     request: &HttpRequest<'static>,
     custom_domains: &[String],
-    load: impl Fn(&AccountId) -> Option<serde_bytes::ByteBuf>,
+    load: impl Fn(&AccountId) -> Option<(serde_bytes::ByteBuf, Hash)>,
 ) -> HttpResponse<'static> {
     let path = request.get_path().unwrap_or_default();
-    let document = path
+    let route = routing_path(&path);
+    let document = route
         .strip_prefix(ACCOUNT_PREFIX)
         .and_then(|text| text.parse::<AccountId>().ok())
-        .filter(|id| path == format!("{ACCOUNT_PREFIX}{id}"))
+        .filter(|id| route == format!("{ACCOUNT_PREFIX}{id}"))
         .and_then(|id| load(&id).map(|document| (id, document)));
-    let (expr_path, mut response) = match document {
-        Some((id, document)) => (document_path(&id), document_response(&document)),
-        None if path == IC_DOMAINS => domains(custom_domains),
-        None => not_found(),
+    let (expr_path, mut response, document_digest) = match document {
+        Some((id, (document, digest))) => (
+            document_path(&id),
+            document_response(document.into_vec()),
+            Some(digest),
+        ),
+        None => {
+            let (path, response) = if route == IC_DOMAINS {
+                domains(custom_domains)
+            } else {
+                not_found()
+            };
+            (path, response, None)
+        }
     };
-    let certified = entry(expr_path.clone(), &response);
+    let certified = entry(expr_path.clone(), &response, document_digest);
     let witness = TREE.with_borrow(|tree| tree.witness(&certified, &path));
     if let (Ok(witness), Some(certificate)) = (witness, ic_cdk::api::data_certificate()) {
         add_v2_certificate_header(
@@ -157,4 +193,49 @@ pub(crate) fn serve(
         );
     }
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn routing_matches_certification_segments_and_keeps_trailing_slash() {
+        for (path, expected) in [
+            ("", ""),
+            ("/", "/"),
+            ("///", "/"),
+            ("/account", "/account"),
+            ("//account", "/account"),
+            ("//account//", "/account/"),
+            ("/.well-known//ic-domains", IC_DOMAINS),
+        ] {
+            assert_eq!(routing_path(path), expected);
+            assert_eq!(
+                HttpCertificationPath::exact(path).to_expr_path(),
+                HttpCertificationPath::exact(expected).to_expr_path(),
+            );
+        }
+    }
+
+    #[test]
+    fn persisted_body_hash_produces_the_same_certification() {
+        let id = AccountId([9; 12]);
+        for body in [
+            vec![],
+            br#"{"controllers":[]}"#.to_vec(),
+            vec![b'a'; 65_536],
+        ] {
+            let digest = dmsg_protocol::sha256(&body);
+            let mut original = HttpCertificationTree::default();
+            original.insert(&entry(document_path(&id), &document_response(body), None));
+            let mut prehashed = HttpCertificationTree::default();
+            prehashed.insert(&entry(
+                document_path(&id),
+                &document_response(vec![]),
+                Some(digest),
+            ));
+            assert_eq!(original.root_hash(), prehashed.root_hash());
+        }
+    }
 }

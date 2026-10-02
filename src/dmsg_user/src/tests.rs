@@ -1277,6 +1277,99 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     );
 }
 
+#[test]
+fn principal_document_budget_rejects_registration_before_commit_and_reserves_safety_changes() {
+    use dmsg_types::agent::*;
+    let mut s = initialized();
+    let mut principal = None;
+    principal_apply(
+        &mut s,
+        &mut principal,
+        AccountCommand::EnablePrincipal {
+            principal_type: PrincipalType::Person,
+        },
+        10,
+    )
+    .unwrap();
+    let mut rejected = false;
+    for generation in 1..=MAX_CONTROLLER_RECORDS as u32 {
+        if generation > 1 {
+            principal_apply(
+                &mut s,
+                &mut principal,
+                AccountCommand::RetireController {
+                    generation: generation - 1,
+                },
+                10,
+            )
+            .unwrap();
+        }
+        let command = AccountCommand::RegisterController {
+            generation,
+            public_key: sk(generation as u8 + 20).verifying_key().to_bytes().into(),
+            name: None,
+            delegation: DelegationAuthority::Restricted {
+                scopes: (0..8).map(|i| format!("{i}{}", "s".repeat(63))).collect(),
+                audiences: (0..4)
+                    .map(|i| format!("https://{i}{}", "a".repeat(247)))
+                    .collect(),
+            },
+            supersedes: (1..generation).collect(),
+        };
+        let before = (s.clone(), principal.clone());
+        if principal_apply(&mut s, &mut principal, command, 10) == Err(Error::QuotaExceeded) {
+            assert_eq!((s.clone(), principal.clone()), before);
+            rejected = true;
+            break;
+        }
+        assert_eq!(
+            principal.as_ref().unwrap().state.controllers.len(),
+            generation as usize
+        );
+    }
+    assert!(rejected);
+    let records = principal.as_ref().unwrap().state.controllers.clone();
+    for c in records {
+        principal_apply(
+            &mut s,
+            &mut principal,
+            AccountCommand::MarkControllerCompromised {
+                generation: c.generation,
+                invalid_from: c.valid_from,
+            },
+            10,
+        )
+        .unwrap();
+        principal_apply(
+            &mut s,
+            &mut principal,
+            AccountCommand::RenameController {
+                generation: c.generation,
+                name: Some("\"".repeat(64)),
+            },
+            10,
+        )
+        .unwrap();
+    }
+    let config = DirectoryInit {
+        environment: Environment::Local,
+        issuer_namespace: NAMESPACE.into(),
+        user_homes: vec![p(1)],
+        principal_origin: "https://id.dmsg.test".into(),
+        controller_source: "https://dmsg.test".into(),
+        delegation_query_url: "https://agents.dmsg.test/query".into(),
+        profile_url_prefix: "https://dmsg.test/u/".into(),
+        custom_domains: vec![],
+    };
+    let document = dmsg_protocol::agent::render_principal_document(
+        &config,
+        &s.account_id,
+        &principal.unwrap().state,
+    )
+    .unwrap();
+    assert!(document.len() <= dmsg_protocol::agent::MAX_PRINCIPAL_DOCUMENT_BYTES);
+}
+
 fn agent_event(controller: u8, nonce: u64, created_at: u64, id: &str, audience: &str) -> String {
     let actor = dmsg_protocol::agent::agent_id(&sk(controller).verifying_key().to_bytes().into());
     let subject = dmsg_protocol::agent::agent_id(&sk(99).verifying_key().to_bytes().into());
