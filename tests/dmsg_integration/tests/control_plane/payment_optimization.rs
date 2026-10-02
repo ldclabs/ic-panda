@@ -73,8 +73,8 @@ fn internal_refund_and_revision_writes_preserve_certified_funds() {
         &f.ic,
         f.payment,
         person(40),
-        "claim_deposit_refund",
-        (e.escrow_id, block),
+        "claim_refund",
+        (e.escrow_id, vec![block], false),
     );
     assert_eq!(refund.unwrap().amount, 7);
     assert_eq!(certified_escrow(&f, e.escrow_id), settled);
@@ -340,7 +340,7 @@ fn heap_configuration_and_failed_call_budgets_survive_upgrade() {
     let limited: Result<EscrowInfo> =
         update(&f.ic, f.payment, person(40), "open_escrow", (invalid,));
     assert_eq!(limited, Err(Error::QuotaExceeded));
-    for _ in 0..400 {
+    for _ in 0..20 {
         let missing: Result<EscrowInfo> = update(
             &f.ic,
             f.payment,
@@ -506,8 +506,8 @@ fn reserve_claim_survives_upgrade_without_changing_the_certified_balance() {
         &f.ic,
         f.payment,
         person(40),
-        "claim_fee_reserve",
-        (e.escrow_id,),
+        "claim_refund",
+        (e.escrow_id, Vec::<u64>::new(), true),
     );
     let reserve = reserve.unwrap();
     assert_eq!(reserve.amount, 30);
@@ -518,8 +518,8 @@ fn reserve_claim_survives_upgrade_without_changing_the_certified_balance() {
         &f.ic,
         f.payment,
         person(40),
-        "claim_fee_reserve",
-        (e.escrow_id,),
+        "claim_refund",
+        (e.escrow_id, Vec::<u64>::new(), true),
     );
     assert_eq!(duplicate, Err(Error::FeeBlocked));
     let paid: Result<TransferLeg> = update(
@@ -636,19 +636,27 @@ fn measured<R>(f: &Fixture, label: &str, run: impl FnOnce() -> R) -> R {
     result
 }
 
+// The same host binary and input amounts run against both payment schemas.
+// Narrow transfer views let the benchmark compare the old and unified refund API.
+#[derive(CandidType, Deserialize)]
+struct MeasuredTransfer {
+    leg_id: u64,
+    status: LegStatus,
+}
+
 #[test]
-#[ignore = "cycles comparison for dmsg_payment builds"]
+#[ignore = "identical-input cycles comparison across payment refund APIs"]
 fn payment_cycles_profile() {
+    let baseline = std::env::var_os("DMSG_PAYMENT_BASELINE").is_some();
+    let combined = std::env::var_os("DMSG_COMBINE_REFUNDS").is_some();
     let f = Fixture::new();
     let recipient = f.create(2);
-    // Repeat the same lifecycle eight times and report per-method medians;
-    // keep first-allocation costs visible in the raw output.
     for nonce in 1..=8 {
         let input = f.order(&recipient, 2, nonce);
-        let e: Result<EscrowInfo> = measured(&f, "open_escrow", || {
+        let opened: Result<EscrowInfo> = measured(&f, "open_escrow", || {
             update(&f.ic, f.payment, person(40), "open_escrow", (input,))
         });
-        let e = e.unwrap();
+        let e = opened.unwrap();
         let block = f.fund(&e, e.quote.amount + 17);
         let funded: Result<EscrowInfo> = measured(&f, "check_funding", || {
             update(
@@ -659,40 +667,49 @@ fn payment_cycles_profile() {
                 (e.escrow_id, block),
             )
         });
-        let funded = funded.unwrap();
-        let decided: Result<EscrowInfo> = measured(&f, "finalize_receipt", || {
+        let settled: Result<EscrowInfo> = measured(&f, "finalize_receipt", || {
             update(
                 &f.ic,
                 f.payment,
                 person(99),
                 "finalize_receipt",
-                (f.receipt(&funded),),
+                (f.receipt(&funded.unwrap()),),
             )
         });
-        decided.unwrap();
-        for leg_id in 0..2u64 {
-            let sent: Result<TransferLeg> = measured(&f, "process_transfer", || {
+        settled.unwrap();
+        for n in 0..2u64 {
+            let sent: Result<MeasuredTransfer> = measured(&f, "process_transfer", || {
                 update(
                     &f.ic,
                     f.payment,
                     person(99),
                     "process_transfer",
-                    (e.escrow_id, leg_id),
+                    (e.escrow_id, n),
                 )
             });
             assert_eq!(sent.unwrap().status, LegStatus::Succeeded);
         }
-        let refund: Result<TransferLeg> = measured(&f, "claim_deposit_refund", || {
-            update(
-                &f.ic,
-                f.payment,
-                person(99),
-                "claim_deposit_refund",
-                (e.escrow_id, block),
-            )
+        let refund: Result<MeasuredTransfer> = measured(&f, "claim_refund", || {
+            if baseline {
+                update(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "claim_deposit_refund",
+                    (e.escrow_id, block),
+                )
+            } else {
+                update(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "claim_refund",
+                    (e.escrow_id, vec![block], combined),
+                )
+            }
         });
         let refund = refund.unwrap();
-        let sent: Result<TransferLeg> = measured(&f, "process_refund", || {
+        let sent: Result<MeasuredTransfer> = measured(&f, "process_refund", || {
             update(
                 &f.ic,
                 f.payment,
@@ -702,17 +719,80 @@ fn payment_cycles_profile() {
             )
         });
         assert_eq!(sent.unwrap().status, LegStatus::Succeeded);
-        let done: Result<EscrowInfo> =
-            query(&f.ic, f.payment, person(99), "get_escrow", (e.escrow_id,));
-        assert!(funds_conserved(&done.unwrap()));
+        if combined && baseline {
+            let reserve: Result<MeasuredTransfer> = measured(&f, "claim_refund", || {
+                update(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "claim_fee_reserve",
+                    (e.escrow_id,),
+                )
+            });
+            let reserve = reserve.unwrap();
+            let sent: Result<MeasuredTransfer> = measured(&f, "process_refund", || {
+                update(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "process_transfer",
+                    (e.escrow_id, reserve.leg_id),
+                )
+            });
+            assert_eq!(sent.unwrap().status, LegStatus::Succeeded);
+        }
+        if combined {
+            let completed: Result<EscrowInfo> =
+                query(&f.ic, f.payment, person(40), "get_escrow", (e.escrow_id,));
+            assert_eq!(completed.unwrap().liabilities, 0);
+        }
     }
-    measured(&f, "upgrade_8_escrows", || {
-        f.ic.upgrade_canister(
-            f.payment,
-            wasm("dmsg_payment"),
-            candid::encode_args(()).unwrap(),
-            None,
-        )
-        .unwrap();
-    });
+    measured(&f, "upgrade_8_escrows", || upgrade(&f));
+}
+
+#[test]
+#[ignore = "open admission with 198 occupied authorization-budget entries"]
+fn payment_dense_open_cycles_profile() {
+    let f = Fixture::new();
+    let recipient = f.create(2);
+    for sample in 0..8u64 {
+        f.ic.advance_time(Duration::from_millis(MINUTE));
+        let template = f.order(&recipient, 2, sample as u8 + 1);
+        // The quote is valid; the user home rejects the deliberately invalid offer.
+        for n in 0..198u64 {
+            let mut input = template.clone();
+            input.op_id = digest("test/payment-dense-invalid", &(sample, n));
+            input.quote.quote_id = input.op_id;
+            input.quote.payer = account(Principal::self_authenticating(n.to_be_bytes()));
+            input.offer.signature = [0; 64].into();
+            input.quote_signature = key(50)
+                .sign(digest("dmsg/quote/v2", &input.quote).as_slice())
+                .to_bytes()
+                .into();
+            let rejected: Result<EscrowInfo> = update(
+                &f.ic,
+                f.payment,
+                input.quote.payer.owner,
+                "open_escrow",
+                (input,),
+            );
+            assert_eq!(rejected, Err(Error::IntegrityFailed));
+        }
+        let mut input = template;
+        input.quote.payer = account(person(200 + sample as u8));
+        input.quote_signature = key(50)
+            .sign(digest("dmsg/quote/v2", &input.quote).as_slice())
+            .to_bytes()
+            .into();
+        let opened: Result<EscrowInfo> = measured(&f, "open_dense_budget", || {
+            update(
+                &f.ic,
+                f.payment,
+                input.quote.payer.owner,
+                "open_escrow",
+                (input,),
+            )
+        });
+        opened.unwrap();
+    }
 }

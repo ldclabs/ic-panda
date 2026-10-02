@@ -14,9 +14,11 @@ pub struct ConfigRepr {
     #[cbor(key = 4)]
     pub orders_today: u32,
     #[cbor(key = 5)]
-    pub ledger_minute: u64,
+    pub minute: u64,
     #[cbor(key = 6)]
-    pub ledger_reads: u32,
+    pub ledger_reads: std::collections::BTreeMap<candid::Principal, u32>,
+    #[cbor(key = 8)]
+    pub ledger_writes: std::collections::BTreeMap<candid::Principal, u32>,
     #[cbor(key = 7)]
     pub authorizations: std::collections::BTreeMap<candid::Principal, u32>,
 }
@@ -30,8 +32,9 @@ impl StableCodec for Config {
             init: self.init.to_repr(),
             day: self.day,
             orders_today: self.orders_today,
-            ledger_minute: self.ledger_minute,
-            ledger_reads: self.ledger_reads,
+            minute: self.minute,
+            ledger_reads: self.ledger_reads.clone(),
+            ledger_writes: self.ledger_writes.clone(),
             authorizations: self.authorizations.clone(),
         }
     }
@@ -42,8 +45,9 @@ impl StableCodec for Config {
             init: PaymentInit::from_repr(repr.init),
             day: repr.day,
             orders_today: repr.orders_today,
-            ledger_minute: repr.ledger_minute,
+            minute: repr.minute,
             ledger_reads: repr.ledger_reads,
+            ledger_writes: repr.ledger_writes,
             authorizations: repr.authorizations,
         }
     }
@@ -258,7 +262,10 @@ mod tests {
         let leg = TransferLeg {
             escrow_id: escrow.escrow_id,
             leg_id: 1,
-            kind: LegKind::Refund { funding_block: 42 },
+            kind: LegKind::Refund {
+                funding_blocks: vec![42],
+                includes_reserve: false,
+            },
             to: account(1),
             amount: 1_100,
             fee: 10,
@@ -280,8 +287,14 @@ mod tests {
         for kind in [
             LegKind::Recipient,
             LegKind::Platform,
-            LegKind::Refund { funding_block: 9 },
-            LegKind::ReserveRefund,
+            LegKind::Refund {
+                funding_blocks: vec![9],
+                includes_reserve: false,
+            },
+            LegKind::Refund {
+                funding_blocks: vec![],
+                includes_reserve: true,
+            },
         ] {
             let mut variant = leg.clone();
             variant.kind = kind;
@@ -347,13 +360,15 @@ mod tests {
                 max_fee: 20,
                 signer,
                 max_open_per_payer: 16,
+                max_escrows: 10_000,
                 daily_orders: 100_000,
                 enabled: true,
             },
             day: 42,
             orders_today: 7,
-            ledger_minute: 123,
-            ledger_reads: 4,
+            minute: 123,
+            ledger_reads: [(p(4), 4)].into(),
+            ledger_writes: [(p(5), 2)].into(),
             authorizations: [(p(4), 3)].into(),
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
@@ -361,8 +376,9 @@ mod tests {
         assert_eq!(decoded.init, config.init);
         assert_eq!(decoded.day, config.day);
         assert_eq!(decoded.orders_today, config.orders_today);
-        assert_eq!(decoded.ledger_minute, config.ledger_minute);
+        assert_eq!(decoded.minute, config.minute);
         assert_eq!(decoded.ledger_reads, config.ledger_reads);
+        assert_eq!(decoded.ledger_writes, config.ledger_writes);
         assert_eq!(decoded.authorizations, config.authorizations);
     }
 }

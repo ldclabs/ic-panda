@@ -35,8 +35,8 @@ fn input() -> OpenEscrow {
         recipient_net: o.recipient_net,
         platform: account(3),
         service_fee: 100,
-        fee_reserve: 30,
-        amount: 1130,
+        fee_reserve: 40,
+        amount: 1140,
         max_network_fee: 20,
         max_bytes: 8192,
         retain_ms: DAY,
@@ -100,7 +100,7 @@ fn transfer(
 #[test]
 fn expiry_is_half_open_and_terminal_decisions_are_exclusive() {
     let (mut e, me) = setup();
-    let tx = transfer(&e, me, 1, 1130, 2, e.quote.payer);
+    let tx = transfer(&e, me, 1, 1140, 2, e.quote.payer);
     accept_deposit(&mut e, me, &tx).unwrap();
     let at = e.quote.accept_by;
     let mut a = e.clone();
@@ -121,8 +121,8 @@ fn late_underpaid_extra_and_wrong_source_deposits_keep_their_owner() {
     for (n, amount, source) in [
         (1, 5, account(1)),
         (2, 5000, account(4)),
-        (3, 1135, account(1)),
-        (4, 1130, account(1)),
+        (3, 1145, account(1)),
+        (4, 1140, account(1)),
     ] {
         let tx = transfer(&e, me, n, amount, 2, source);
         let d = accept_deposit(&mut e, me, &tx).unwrap();
@@ -132,10 +132,10 @@ fn late_underpaid_extra_and_wrong_source_deposits_keep_their_owner() {
     }
     assert_eq!(e.funding_ref, Some(3));
     let (mut late, me) = setup();
-    let tx = transfer(&late, me, 1, 1130, late.quote.fund_by, late.quote.payer);
+    let tx = transfer(&late, me, 1, 1140, late.quote.fund_by, late.quote.payer);
     let d = accept_deposit(&mut late, me, &tx).unwrap();
     assert!(late.funding_ref.is_none());
-    assert_eq!(d.refundable, 1130);
+    assert_eq!(d.refundable, 1140);
 }
 
 #[test]
@@ -143,9 +143,9 @@ fn unknown_funding_can_refund_before_ledger_returns() {
     let (mut e, me) = setup();
     let at = e.quote.accept_by;
     refund(&mut e, at).unwrap();
-    let tx = transfer(&e, me, 1, 1130, 2, e.quote.payer);
+    let tx = transfer(&e, me, 1, 1140, 2, e.quote.payer);
     let d = accept_deposit(&mut e, me, &tx).unwrap();
-    assert_eq!(d.refundable, 1130);
+    assert_eq!(d.refundable, 1140);
     assert!(e.funding_ref.is_none());
 }
 
@@ -161,7 +161,10 @@ fn generated_deposit_and_refund_sequences_conserve_every_atomic_unit() {
             let d = accept_deposit(&mut e, me, &tx).unwrap();
             let mut l = leg(
                 &mut e,
-                LegKind::Refund { funding_block: n },
+                LegKind::Refund {
+                    funding_blocks: vec![n],
+                    includes_reserve: false,
+                },
                 d.from,
                 d.refundable - 10,
                 10,
@@ -214,6 +217,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         max_fee: 20,
         signer: s.clone(),
         max_open_per_payer: 4,
+        max_escrows: 10_000,
         daily_orders: 100,
         enabled: true,
     };
@@ -310,7 +314,7 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
 #[test]
 fn repricing_requires_an_owner_and_the_ledgers_expected_fee() {
     let (mut e, me) = setup();
-    let tx = transfer(&e, me, 1, 1130, 2, e.quote.payer);
+    let tx = transfer(&e, me, 1, 1140, 2, e.quote.payer);
     accept_deposit(&mut e, me, &tx).unwrap();
     settle(&mut e, Hash::new([1; 32]));
     e.primary_remaining = 10;
@@ -359,7 +363,10 @@ fn a_refund_source_can_fix_fees_but_unknown_transfers_cannot_be_repriced() {
     accept_deposit(&mut e, me, &tx).unwrap();
     let mut old = leg(
         &mut e,
-        LegKind::Refund { funding_block: 1 },
+        LegKind::Refund {
+            funding_blocks: vec![1],
+            includes_reserve: false,
+        },
         account(2),
         90,
         10,
@@ -576,4 +583,100 @@ fn ledger_diagnostics_preserve_unknown_and_frozen_parameters() {
     );
     assert_eq!(current.status, LegStatus::Unknown);
     assert_eq!(current.last_failure, Some(TransferFailure::InvalidResponse));
+}
+
+fn allocations(e: &Escrow, deposits: &[Deposit], legs: &[TransferLeg]) {
+    let outstanding: u128 = legs
+        .iter()
+        .filter(|l| !matches!(l.status, LegStatus::Succeeded | LegStatus::Superseded))
+        .map(|l| l.amount + l.fee)
+        .sum();
+    assert!(e.conserved());
+    assert_eq!(
+        e.liabilities,
+        e.primary_remaining + deposits.iter().map(|d| d.refundable).sum::<u128>() + outstanding
+    );
+}
+
+#[test]
+fn ceiling_fees_and_combined_refunds_preserve_every_allocation() {
+    for settlement in [false, true] {
+        let (mut e, id) = setup();
+        let tx = transfer(&e, id, 1, e.quote.amount + 7, 2, e.quote.payer);
+        let mut deposits = vec![accept_deposit(&mut e, id, &tx).unwrap()];
+        let mut legs = vec![];
+        allocations(&e, &deposits, &legs);
+        if settlement {
+            settle(&mut e, Hash::new([3; 32]));
+            legs = prepare_settlement(&mut e, 10, 3).unwrap();
+            assert_eq!(refund_quote(&e, &deposits, true, 10), Err(Error::Pending));
+            // Both payouts may need their approved ceiling, even after commit.
+            for n in 0..2 {
+                legs[n].status = LegStatus::FeeBlocked;
+                legs[n].expected_fee = Some(20);
+                let payer = e.payer_principal;
+                let revised = revise_leg(&mut e, &mut legs[n], payer, 20, 4).unwrap();
+                legs.push(revised);
+                allocations(&e, &deposits, &legs);
+                complete_leg(&mut e, &mut legs[n + 2], 10 + n as u64).unwrap();
+                allocations(&e, &deposits, &legs);
+            }
+            assert_eq!(e.pending_payouts, 0);
+            assert_eq!(e.primary_remaining, 0);
+        } else {
+            let at = e.quote.accept_by;
+            refund(&mut e, at).unwrap();
+        }
+        // Small deposits become refundable together without changing funding.
+        let tx = transfer(&e, id, 2, 8, 5, e.quote.payer);
+        deposits.push(accept_deposit(&mut e, id, &tx).unwrap());
+        allocations(&e, &deposits, &legs);
+        let quote = refund_quote(&e, &deposits, true, 10).unwrap();
+        assert!(quote.amount > 0);
+        legs.push(claim_refund(&mut e, &mut deposits, true, 10, 6).unwrap());
+        allocations(&e, &deposits, &legs);
+        let before = (e.clone(), deposits.clone());
+        assert_eq!(
+            claim_refund(&mut e, &mut deposits, true, 10, 7),
+            Err(Error::FeeBlocked)
+        );
+        assert_eq!((e.clone(), deposits.clone()), before);
+        complete_leg(&mut e, legs.last_mut().unwrap(), 20).unwrap();
+        allocations(&e, &deposits, &legs);
+        assert_eq!(e.liabilities, 0);
+    }
+}
+
+#[test]
+fn refund_selection_rejects_mixed_sources_duplicates_and_unreleased_reserve() {
+    let (mut e, id) = setup();
+    let tx = transfer(&e, id, 1, 7, 2, e.quote.payer);
+    let first = accept_deposit(&mut e, id, &tx).unwrap();
+    assert_eq!(
+        refund_quote(&e, std::slice::from_ref(&first), false, 10)
+            .unwrap()
+            .amount,
+        0
+    );
+    assert_eq!(
+        refund_quote(&e, std::slice::from_ref(&first), true, 10),
+        Err(Error::Pending)
+    );
+    let tx = transfer(&e, id, 2, 100, 2, account(9));
+    let other = accept_deposit(&mut e, id, &tx).unwrap();
+    let mut selected = vec![first.clone(), other];
+    let before = (e.clone(), selected.clone());
+    assert_eq!(
+        claim_refund(&mut e, &mut selected, false, 10, 3),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!((e.clone(), selected), before);
+    assert!(matches!(
+        refund_quote(&e, &[first.clone(), first], false, 10),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        refund_quote(&e, &[], false, 10),
+        Err(Error::InvalidInput(_))
+    ));
 }

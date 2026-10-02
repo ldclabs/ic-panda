@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { canonical, decodeCanonical, hex, hash, unb64, unhex } from '../src/lib/protocol/codec'
+import { Tagged, canonical, decodeCanonical, hex, hash, unb64, unhex } from '../src/lib/protocol/codec'
 import { ed25519 } from '../src/lib/crypto/primitives'
 import { canonicalTarget } from '../src/lib/services/relay'
-import { Tagged } from 'cborg'
 
 type Value = {
   uint?: string

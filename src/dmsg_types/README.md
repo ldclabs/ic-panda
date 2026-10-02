@@ -223,3 +223,5 @@ Application-action v1 is a separate closed profile with an `AppAction` key purpo
 See [the profile and implementation boundary](../../docs/protocol/app-action.md).
 Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
 browser flow explicitly reject it pending the authorized action integration.
+
+Delivery `max_escrows` bounds retained orders. Refunds use `quote_refund/claim_refund(escrow_id, blocks, include_reserve)` for up to 32 deposits from the same original account; `list_deposits` supports recovery pagination. `RefundQuote.amount=0` does not imply zero balance: inspect `available` and `fee`. Quote reserves cover all settlement legs at the approved network-fee ceiling.

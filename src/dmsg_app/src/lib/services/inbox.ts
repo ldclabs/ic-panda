@@ -426,6 +426,9 @@ export class InboxClient {
         BigInt(terms.signer.valid_from) <= quote.created_at &&
         quote.accept_by < BigInt(terms.signer.valid_until) &&
         quote.amount === quote.recipient_net + quote.service_fee + quote.fee_reserve &&
+        quote.max_network_fee === BigInt(terms.config.max_fee) &&
+        quote.fee_reserve >= quote.max_network_fee * (quote.service_fee > 0n ? 2n : 1n) &&
+        quote.fee_reserve <= quote.max_network_fee * 3n &&
         quote.service_fee === serviceFee &&
         equal(quote.ledger.toUint8Array(), terms.config.ledger) &&
         equal(quote.platform.owner.toUint8Array(), terms.config.platform.owner) &&
@@ -643,5 +646,33 @@ export class InboxClient {
   async refund(escrow: string) {
     controlResult(await this.payment.expiry_refund(unhex(escrow)))
     return this.escrow(escrow)
+  }
+
+  async deposits(escrow: string, after?: bigint) {
+    return controlResult(
+      await this.payment.list_deposits(unhex(escrow), after === undefined ? [] : [after])
+    )
+  }
+
+  async transfers(escrow: string, after?: bigint) {
+    return controlResult(
+      await this.payment.list_transfers(unhex(escrow), after === undefined ? [] : [after])
+    )
+  }
+
+  async refundQuote(escrow: string, blocks: bigint[], reserve: boolean) {
+    return controlResult(await this.payment.quote_refund(unhex(escrow), blocks, reserve))
+  }
+
+  async claimRefund(escrow: string, blocks: bigint[], reserve: boolean) {
+    return controlResult(await this.payment.claim_refund(unhex(escrow), blocks, reserve))
+  }
+
+  async processTransfer(escrow: string, leg: bigint) {
+    return controlResult(await this.payment.process_transfer(unhex(escrow), leg))
+  }
+
+  async reviseTransfer(escrow: string, leg: bigint, fee: bigint) {
+    return controlResult(await this.payment.revise_rejected_transfer(unhex(escrow), leg, fee))
   }
 }

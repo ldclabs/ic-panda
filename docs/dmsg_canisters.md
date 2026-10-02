@@ -93,6 +93,10 @@ Execution authorization is split into a read-only precheck and a synchronous com
 
 Schema 7 uses an in-memory call guard to distinguish live charges from `Charging` operations left by an upgrade. Orphaned operations retry the original ledger arguments; reconciliation shares the guard and retries preserve prior uncertainty. Claims and transfers retain exact request receipts, so later ownership changes do not alter a claim replay. Read-only configuration paths borrow decoded state, while mutations still persist synchronously; operation indexes use fixed 32-byte keys. Public Candid and certified leaves are unchanged. Recovery, evidence validation, concurrency regressions and active-name capacity measurements are described in the [handle README](../src/dmsg_handle/README.md).
 
+## 2026-10-02 Payment Review Fixes
+
+Payment uses schema 8: separate bounded caller/global budgets for authorization, ledger reads and payouts; settlement reserves cover approved fee ceilings. Refunds combine up to 32 same-source deposits and released reserve, with deposit pagination and refund previews. Retained-order capacity only stops new admissions; deduplication keys remain and zero open counters are removed. See the [payment README](../src/dmsg_payment/README.md) for measurements and real-asset validation limits.
+
 ## 2026-10-02 Directory Review Fixes
 
 Directory schema 2 persists the document SHA-256 digest, reuses it for publication and HTTP queries, moves the loaded response body and streams stable records into the certification tree on upgrade. Home and directory share a conservative 64 KiB document budget with space reserved for later retirement, compromise and maximum names; oversized registrations fail before the home commits. Public configuration URLs are bounded, and HTTP routing follows the certification library's path normalization while canonical principal resolution remains exact. Public Candid is unchanged; development schema 1 is rejected.

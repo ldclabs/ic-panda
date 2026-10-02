@@ -21,6 +21,7 @@ export const idlFactory = ({ IDL }) => {
     'daily_orders' : IDL.Nat32,
     'platform' : Account,
     'enabled' : IDL.Bool,
+    'max_escrows' : IDL.Nat64,
     'home_user' : IDL.Principal,
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,
@@ -118,9 +119,11 @@ export const idlFactory = ({ IDL }) => {
     'Pending' : IDL.Null,
   });
   const LegKind = IDL.Variant({
-    'Refund' : IDL.Record({ 'funding_block' : IDL.Nat64 }),
+    'Refund' : IDL.Record({
+      'includes_reserve' : IDL.Bool,
+      'funding_blocks' : IDL.Vec(IDL.Nat64),
+    }),
     'Platform' : IDL.Null,
-    'ReserveRefund' : IDL.Null,
     'Recipient' : IDL.Null,
   });
   const TransferFailure = IDL.Variant({
@@ -194,8 +197,9 @@ export const idlFactory = ({ IDL }) => {
     'amount' : IDL.Nat,
   });
   const Result_3 = IDL.Variant({ 'Ok' : ReceiptSigner, 'Err' : Error });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(EscrowInfo), 'Err' : Error });
-  const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(TransferLeg), 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(Deposit), 'Err' : Error });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(EscrowInfo), 'Err' : Error });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Vec(TransferLeg), 'Err' : Error });
   const PaymentOffer = IDL.Record({
     'account_id' : IDL.Vec(IDL.Nat8),
     'quote_scope' : IDL.Vec(IDL.Nat8),
@@ -220,15 +224,21 @@ export const idlFactory = ({ IDL }) => {
     'op_id' : IDL.Vec(IDL.Nat8),
     'quote' : Quote,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const RefundQuote = IDL.Record({
+    'to' : Account,
+    'fee' : IDL.Nat,
+    'available' : IDL.Nat,
+    'amount' : IDL.Nat,
+  });
+  const Result_7 = IDL.Variant({ 'Ok' : RefundQuote, 'Err' : Error });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   return IDL.Service({
     'check_funding' : IDL.Func([IDL.Vec(IDL.Nat8), IDL.Nat64], [Result], []),
-    'claim_deposit_refund' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat64],
+    'claim_refund' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat64), IDL.Bool],
         [Result_1],
         [],
       ),
-    'claim_fee_reserve' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_1], []),
     'expiry_refund' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
     'finalize_receipt' : IDL.Func([SignedReceipt], [Result], []),
     'get_configuration_certified' : IDL.Func(
@@ -259,14 +269,19 @@ export const idlFactory = ({ IDL }) => {
         [Result_1],
         ['query'],
       ),
+    'list_deposits' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Nat64)],
+        [Result_4],
+        ['query'],
+      ),
     'list_my_escrows' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [Result_4],
+        [Result_5],
         ['query'],
       ),
     'list_transfers' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Nat64)],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
     'open_escrow' : IDL.Func([OpenEscrow], [Result], []),
@@ -274,6 +289,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Nat8), IDL.Nat64],
         [Result_1],
         [],
+      ),
+    'quote_refund' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat64), IDL.Bool],
+        [Result_7],
+        ['query'],
       ),
     'reconcile_transfer' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Nat64],
@@ -285,11 +305,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_1],
         [],
       ),
-    'revoke_receipt_signer' : IDL.Func([IDL.Nat64], [Result_6], []),
-    'rotate_receipt_signer' : IDL.Func([ReceiptSigner], [Result_6], []),
-    'schedule_fee_policy' : IDL.Func([DeliveryFeePolicy], [Result_6], []),
-    'set_ledger_fee' : IDL.Func([IDL.Nat], [Result_6], []),
-    'set_orders_enabled' : IDL.Func([IDL.Bool], [Result_6], []),
+    'revoke_receipt_signer' : IDL.Func([IDL.Nat64], [Result_8], []),
+    'rotate_receipt_signer' : IDL.Func([ReceiptSigner], [Result_8], []),
+    'schedule_fee_policy' : IDL.Func([DeliveryFeePolicy], [Result_8], []),
+    'set_ledger_fee' : IDL.Func([IDL.Nat], [Result_8], []),
+    'set_orders_enabled' : IDL.Func([IDL.Bool], [Result_8], []),
   });
 };
 export const init = ({ IDL }) => {
@@ -314,6 +334,7 @@ export const init = ({ IDL }) => {
     'daily_orders' : IDL.Nat32,
     'platform' : Account,
     'enabled' : IDL.Bool,
+    'max_escrows' : IDL.Nat64,
     'home_user' : IDL.Principal,
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,

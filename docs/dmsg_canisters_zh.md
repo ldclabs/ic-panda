@@ -108,6 +108,10 @@ pnpm --dir src/dmsg_app test
 
 schema 7 用内存调用 guard 区分执行中的扣款和升级遗留的 `Charging`，后者使用原 ledger 参数恢复；对账与重试共用 guard，保留此前扣款的不确定性。认领和转移保存精确请求回执，原认领重放不受后来名称转移影响。配置只读路径借用已解码值，变更仍同步持久化；操作索引改用固定 32 字节键。公开 Candid 和认证叶不变。恢复、对账证据、并发回归及活跃名称容量测量见 [handle README](../src/dmsg_handle/README.md)。
 
+## 2026-10-02 payment 审查修复
+
+payment 使用 schema 8：授权、查账、出金预算分别按调用方和全局限流；预留覆盖结算最高网络费，退款支持最多 32 笔同源入金与已释放预留合并，并提供入金分页/退款预览。总订单容量限制只阻止新开单；去重索引保留，归零开放计数删除。实现、测量和真实资产验证边界见 [payment README](../src/dmsg_payment/README.md)。
+
 ## 2026-10-02 directory 审查修复
 
 directory schema 2 持久化文档 SHA-256 摘要，发布摘要与 HTTP 查询复用摘要并转移正文缓冲区；升级逐条读取稳定记录构建认证树。home 与目录共享保守的 64 KiB 文档预算，预留后续退役、泄露标记和最大名称空间，超预算注册在 home 提交前被拒绝。公开配置 URL 增加长度边界；HTTP 路由与认证库采用相同的路径规范化规则，principal 权威解析仍要求精确的规范 URL。公开 Candid 不变；开发期拒绝 schema 1。

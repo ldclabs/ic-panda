@@ -94,8 +94,9 @@ pub fn quote_current(
     ensure(q.created_at <= now && now < q.fund_by, Error::Expired)?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
     ensure(q.fee_policy_version == policy.version, Error::PolicyStale)?;
+    let required = dmsg_protocol::billing::delivery_fee_reserve(q.service_fee, config.max_fee)?;
     ensure(
-        q.fee_reserve >= config.ledger_fee.checked_mul(3).ok_or(Error::FeeBlocked)?
+        q.fee_reserve >= required
             && q.fee_reserve <= config.max_fee.checked_mul(3).ok_or(Error::FeeBlocked)?,
         Error::FeeBlocked,
     )?;
@@ -237,6 +238,35 @@ pub fn settle(e: &mut Escrow, receipt_digest: Hash) {
     e.version += 1;
 }
 
+pub fn prepare_settlement(e: &mut Escrow, fee: u128, at: u64) -> Result<Vec<TransferLeg>> {
+    let count = if e.quote.service_fee > 0 { 2 } else { 1 };
+    let fees = fee.checked_mul(count).ok_or(Error::FeeBlocked)?;
+    ensure(e.quote.fee_reserve >= fees, Error::FeeBlocked)?;
+    let recipient = leg(
+        e,
+        LegKind::Recipient,
+        e.quote.recipient,
+        e.quote.recipient_net,
+        fee,
+        at,
+    );
+    let mut legs = vec![recipient];
+    if e.quote.service_fee > 0 {
+        let platform = leg(
+            e,
+            LegKind::Platform,
+            e.quote.platform,
+            e.quote.service_fee,
+            fee,
+            at,
+        );
+        legs.push(platform);
+    }
+    e.primary_remaining = e.quote.fee_reserve - fees;
+    e.pending_payouts = count as u32;
+    Ok(legs)
+}
+
 pub fn refund(e: &mut Escrow, now: u64) -> Result<bool> {
     if e.decision == FundsDecision::RefundCommitted {
         return Ok(false);
@@ -246,6 +276,80 @@ pub fn refund(e: &mut Escrow, now: u64) -> Result<bool> {
     e.decision = FundsDecision::RefundCommitted;
     e.version += 1;
     Ok(true)
+}
+
+/// Preview a refund without moving any allocation. The API loads only deposits
+/// under this escrow's key and supplies a sorted, unique, bounded selection.
+pub fn refund_quote(
+    e: &Escrow,
+    deposits: &[Deposit],
+    include_reserve: bool,
+    fee: u128,
+) -> Result<RefundQuote> {
+    ensure_valid(
+        !deposits.is_empty() || include_reserve,
+        "empty refund selection",
+    )?;
+    ensure(deposits.len() <= MAX_REFUND_DEPOSITS, Error::QuotaExceeded)?;
+    ensure_valid(
+        deposits
+            .windows(2)
+            .all(|pair| pair[0].block < pair[1].block),
+        "duplicate or unsorted deposits",
+    )?;
+    let to = if include_reserve {
+        e.quote.payer
+    } else {
+        deposits[0].from
+    };
+    let mut available = if include_reserve {
+        ensure(e.decision != FundsDecision::Pending, Error::Pending)?;
+        ensure(e.pending_payouts == 0, Error::Pending)?;
+        e.primary_remaining
+    } else {
+        0
+    };
+    for deposit in deposits {
+        ensure(deposit.from == to, Error::IntegrityFailed)?;
+        available = available
+            .checked_add(deposit.refundable)
+            .ok_or(Error::IntegrityFailed)?;
+    }
+    Ok(RefundQuote {
+        to,
+        available,
+        fee,
+        amount: available.saturating_sub(fee),
+    })
+}
+
+pub fn claim_refund(
+    e: &mut Escrow,
+    deposits: &mut [Deposit],
+    include_reserve: bool,
+    fee: u128,
+    now: u64,
+) -> Result<TransferLeg> {
+    let quote = refund_quote(e, deposits, include_reserve, fee)?;
+    ensure(quote.amount > 0, Error::FeeBlocked)?;
+    let transfer = leg(
+        e,
+        LegKind::Refund {
+            funding_blocks: deposits.iter().map(|d| d.block).collect(),
+            includes_reserve: include_reserve,
+        },
+        quote.to,
+        quote.amount,
+        quote.fee,
+        now,
+    );
+    for deposit in deposits {
+        deposit.refundable = 0;
+    }
+    if include_reserve {
+        e.primary_remaining = 0;
+    }
+    Ok(transfer)
 }
 
 pub fn leg(

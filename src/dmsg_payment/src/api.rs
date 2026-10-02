@@ -1,4 +1,4 @@
-use crate::{calls::CallGuard, model, state::Escrow, store::*};
+use crate::{calls::CallGuard, model, store::*};
 use candid::{Nat, Principal};
 use dmsg_protocol::*;
 use dmsg_runtime::storage::MapExt;
@@ -34,6 +34,8 @@ fn init(args: PaymentInit) {
             && args.max_open_per_payer <= 16
             && args.daily_orders > 0
             && args.daily_orders <= 100_000
+            && args.max_escrows > 0
+            && args.max_escrows <= MAX_PAYMENT_ESCROWS
             && args.ledger_fee <= args.max_fee
             && args.max_fee <= 1_000_000_000,
         "hard limits"
@@ -48,13 +50,14 @@ fn init(args: PaymentInit) {
     dmsg_protocol::billing::delivery_service_fee(1, &args.fee_policy).expect("fee policy");
     FEE_POLICIES
         .with_borrow_mut(|t| t.put(&args.fee_policy.version.to_be_bytes(), &args.fee_policy));
-    save_cfg(&Config {
+    save_cfg(Config {
         schema: STABLE_SCHEMA,
         init: args,
         day: 0,
         orders_today: 0,
-        ledger_minute: 0,
-        ledger_reads: 0,
+        minute: 0,
+        ledger_reads: Default::default(),
+        ledger_writes: Default::default(),
         authorizations: Default::default(),
     });
     persist_config();
@@ -79,10 +82,7 @@ fn post_upgrade() {
 #[ic_cdk::update]
 fn set_orders_enabled(enabled: bool) -> Result<()> {
     controller()?;
-    let mut c = cfg();
-    c.init.enabled = enabled;
-    save_cfg(&c);
-    certify_config(&c);
+    configure(|c| c.enabled = enabled);
     Ok(())
 }
 
@@ -91,12 +91,9 @@ fn set_orders_enabled(enabled: bool) -> Result<()> {
 #[ic_cdk::update]
 fn set_ledger_fee(fee: u128) -> Result<()> {
     controller()?;
-    let mut c = cfg();
-    ensure(fee <= c.init.max_fee, Error::FeeBlocked)?;
-    if c.init.ledger_fee != fee {
-        c.init.ledger_fee = fee;
-        save_cfg(&c);
-        certify_config(&c);
+    ensure(fee <= with_cfg(|c| c.init.max_fee), Error::FeeBlocked)?;
+    if with_cfg(|c| c.init.ledger_fee) != fee {
+        configure(|c| c.ledger_fee = fee);
     }
     Ok(())
 }
@@ -105,9 +102,10 @@ fn set_ledger_fee(fee: u128) -> Result<()> {
 fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     controller()?;
     nonzero(new.public_key.as_slice())?;
-    let mut c = cfg();
     ensure_valid(
-        new.epoch > c.init.signer.epoch && new.valid_from < new.valid_until && !new.revoked,
+        new.epoch > with_cfg(|c| c.init.signer.epoch)
+            && new.valid_from < new.valid_until
+            && !new.revoked,
         "signer epoch/interval",
     )?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
@@ -117,9 +115,7 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
             &new,
         )
     });
-    c.init.signer = new;
-    save_cfg(&c);
-    certify_config(&c);
+    configure(|c| c.signer = new);
     Ok(())
 }
 
@@ -135,10 +131,7 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
         )
     });
     SIGNERS.with_borrow_mut(|t| t.put(&epoch.to_be_bytes(), &s));
-    let mut c = cfg();
-    c.init.enabled = false;
-    save_cfg(&c);
-    certify_config(&c);
+    configure(|c| c.enabled = false);
     Ok(())
 }
 
@@ -155,19 +148,19 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         )?;
         return Ok(e.info());
     }
-    let mut c = cfg();
+    let mut config = with_cfg(|c| c.init.clone());
     let _call = CallGuard::open(who, input.quote.quote_id)?;
     ensure(
         !QUOTES.with_borrow(|t| t.contains(input.quote.quote_id.as_slice())),
         Error::IdempotencyConflict,
     )?;
     ensure(
-        open_count(who) < c.init.max_open_per_payer,
+        open_count(who) < config.max_open_per_payer,
         Error::QuotaExceeded,
     )?;
     check_order_capacity(at)?;
     let quote_digest = model::validate_quote(
-        &c.init,
+        &config,
         &current_fee_policy(at),
         canister_id,
         who,
@@ -177,7 +170,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     )?;
     reserve_call(at, CallBudget::Authorization(who))?;
     let verified: Result<u64> =
-        dmsg_runtime::call(c.init.home_user, "verify_payment_offer", (&input.offer,)).await?;
+        dmsg_runtime::call(config.home_user, "verify_payment_offer", (&input.offer,)).await?;
     let observed_at = verified?;
     let at = now();
     // The user home may sit on another subnet; only bound the freshness gap.
@@ -186,9 +179,9 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     // messages can release the payer's slots, but cannot open another order.
     // Recheck mutable fees, enablement, deadlines and revocation. Other payers
     // can consume the daily admission budget while verification is pending.
-    c = cfg();
+    config = with_cfg(|c| c.init.clone());
     model::quote_current(
-        &c.init,
+        &config,
         &current_fee_policy(at),
         &input,
         &signer(input.quote.signer_epoch)?,
@@ -197,7 +190,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     let e = model::escrow(canister_id, id, who, &input, quote_digest);
     let count = open_count(who) + 1;
     reserve_order(at)?;
-    QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &id));
+    QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &()));
     PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
     PAYER_INDEX.with_borrow_mut(|t| t.put(&payer_index_key(who, &id), &()));
     save(&e);
@@ -220,7 +213,7 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
         return Ok(e.info());
     }
     let _call = CallGuard::funding(block)?;
-    reserve_call(now(), CallBudget::Ledger)?;
+    reserve_call(now(), CallBudget::LedgerRead(ic_cdk::api::msg_caller()))?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     // The guard excludes another claim of this block. A concurrent settlement
     // or refund can still change the order's direction, so reload the escrow.
@@ -230,35 +223,6 @@ async fn check_funding(escrow_id: Hash, block: u64) -> Result<EscrowInfo> {
     DEPOSITS.with_borrow_mut(|t| t.put(&key(escrow_id, block), &d));
     save(&current);
     Ok(current.info())
-}
-
-fn prepare_settlement(e: &mut Escrow, fee: u128, at: u64) -> Result<()> {
-    let count = if e.quote.service_fee > 0 { 2 } else { 1 };
-    let fees = fee.checked_mul(count).ok_or(Error::FeeBlocked)?;
-    ensure(e.quote.fee_reserve >= fees, Error::FeeBlocked)?;
-    let recipient = model::leg(
-        e,
-        LegKind::Recipient,
-        e.quote.recipient,
-        e.quote.recipient_net,
-        fee,
-        at,
-    );
-    put_leg(&recipient);
-    if e.quote.service_fee > 0 {
-        let platform = model::leg(
-            e,
-            LegKind::Platform,
-            e.quote.platform,
-            e.quote.service_fee,
-            fee,
-            at,
-        );
-        put_leg(&platform);
-    }
-    e.primary_remaining = e.quote.fee_reserve - fees;
-    e.pending_payouts = count as u32;
-    Ok(())
 }
 
 #[ic_cdk::update]
@@ -284,7 +248,9 @@ fn finalize_receipt(signed: SignedReceipt) -> Result<EscrowInfo> {
     // No external calls are required here: funding has already been
     // verified and durably claimed by check_funding.
     model::settle(&mut e, hash);
-    prepare_settlement(&mut e, with_cfg(|c| c.init.ledger_fee), at)?;
+    for leg in model::prepare_settlement(&mut e, with_cfg(|c| c.init.ledger_fee), at)? {
+        put_leg(&leg);
+    }
     release_payer(&e);
     save(&e);
     Ok(e.info())
@@ -300,61 +266,53 @@ fn expiry_refund(escrow_id: Hash) -> Result<EscrowInfo> {
     Ok(e.info())
 }
 
-#[ic_cdk::update]
-fn claim_deposit_refund(escrow_id: Hash, block: u64) -> Result<TransferLeg> {
-    let mut e = load(&escrow_id)?;
-    let mut d = DEPOSITS
-        .with_borrow(|t| t.load(&key(escrow_id, block)))
-        .ok_or(Error::NotFound)?;
-    // Original funding remains escrowed until a refund decision. Excess,
-    // underpayments and later transfers belong to their actual source.
-    let primary = if e.funding_ref == Some(block) && e.decision == FundsDecision::RefundCommitted {
-        e.primary_remaining
-    } else {
-        0
-    };
-    let refundable = d
-        .refundable
-        .checked_add(primary)
-        .ok_or(Error::IntegrityFailed)?;
-    let fee = with_cfg(|c| c.init.ledger_fee);
-    ensure(refundable > fee, Error::FeeBlocked)?;
-    let leg = model::leg(
-        &mut e,
-        LegKind::Refund {
-            funding_block: block,
-        },
-        d.from,
-        refundable - fee,
-        fee,
-        now(),
-    );
-    d.refundable = 0;
-    if primary > 0 {
-        e.primary_remaining = 0;
-    }
-    DEPOSITS.with_borrow_mut(|t| t.put(&key(escrow_id, block), &d));
-    put_leg(&leg);
-    save_escrow(&e);
-    Ok(leg)
+fn refund_deposits(escrow_id: Hash, mut blocks: Vec<u64>) -> Result<Vec<Deposit>> {
+    ensure(blocks.len() <= MAX_REFUND_DEPOSITS, Error::QuotaExceeded)?;
+    blocks.sort_unstable();
+    ensure_valid(
+        blocks.windows(2).all(|pair| pair[0] != pair[1]),
+        "duplicate deposits",
+    )?;
+    DEPOSITS.with_borrow(|t| {
+        blocks
+            .into_iter()
+            .map(|block| t.load(&key(escrow_id, block)).ok_or(Error::NotFound))
+            .collect()
+    })
 }
 
+/// Preview the current fee and any balance too small to refund. Reserve is
+/// available after a refund decision or after all settlement payouts succeed.
+#[ic_cdk::query]
+fn quote_refund(escrow_id: Hash, blocks: Vec<u64>, include_reserve: bool) -> Result<RefundQuote> {
+    let e = load(&escrow_id)?;
+    let deposits = refund_deposits(escrow_id, blocks)?;
+    model::refund_quote(
+        &e,
+        &deposits,
+        include_reserve,
+        with_cfg(|c| c.init.ledger_fee),
+    )
+}
+
+/// Combine only allocations belonging to the same exact original account.
 #[ic_cdk::update]
-fn claim_fee_reserve(escrow_id: Hash) -> Result<TransferLeg> {
+fn claim_refund(escrow_id: Hash, blocks: Vec<u64>, include_reserve: bool) -> Result<TransferLeg> {
+    let at = now();
     let mut e = load(&escrow_id)?;
-    ensure(
-        e.decision == FundsDecision::SettlementCommitted,
-        Error::VersionConflict,
+    let mut deposits = refund_deposits(escrow_id, blocks)?;
+    let leg = model::claim_refund(
+        &mut e,
+        &mut deposits,
+        include_reserve,
+        with_cfg(|c| c.init.ledger_fee),
+        at,
     )?;
-    // The original fee allocation of each payout is fixed. Additional fees
-    // can use only this unallocated reserve, never recipient_net.
-    ensure(e.pending_payouts == 0, Error::Pending)?;
-    let fee = with_cfg(|c| c.init.ledger_fee);
-    ensure(e.primary_remaining > fee, Error::FeeBlocked)?;
-    let amount = e.primary_remaining - fee;
-    let to = e.quote.payer;
-    let leg = model::leg(&mut e, LegKind::ReserveRefund, to, amount, fee, now());
-    e.primary_remaining = 0;
+    DEPOSITS.with_borrow_mut(|t| {
+        for deposit in &deposits {
+            t.put(&key(escrow_id, deposit.block), deposit);
+        }
+    });
     put_leg(&leg);
     save_escrow(&e);
     Ok(leg)
@@ -391,7 +349,7 @@ async fn process_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
     let _call = CallGuard::leg(escrow_id, leg_id)?;
     let e = load(&escrow_id)?;
     let was_unknown = matches!(leg.status, LegStatus::Unknown | LegStatus::InFlight);
-    reserve_call(now(), CallBudget::Ledger)?;
+    reserve_call(now(), CallBudget::LedgerWrite(ic_cdk::api::msg_caller()))?;
     // The outbox parameters are frozen before await; public retries never
     // replace timestamps or recreate a transfer after an ambiguous response.
     leg.status = LegStatus::InFlight;
@@ -461,7 +419,7 @@ async fn reconcile_transfer(escrow_id: Hash, leg_id: u64, block: u64) -> Result<
     )?;
     let _call = CallGuard::leg(escrow_id, leg_id)?;
     let e = load(&escrow_id)?;
-    reserve_call(now(), CallBudget::Ledger)?;
+    reserve_call(now(), CallBudget::LedgerRead(ic_cdk::api::msg_caller()))?;
     let tx = dmsg_runtime::ledger::read_transfer(e.quote.ledger, block).await?;
     ensure(
         tx.from
@@ -511,6 +469,19 @@ fn get_transfer(escrow_id: Hash, leg_id: u64) -> Result<TransferLeg> {
 #[ic_cdk::query]
 fn get_deposit(escrow_id: Hash, block: u64) -> Option<Deposit> {
     DEPOSITS.with_borrow(|t| t.load(&key(escrow_id, block)))
+}
+
+/// Enumerate verified incoming records, including non-primary deposits.
+#[ic_cdk::query]
+fn list_deposits(escrow_id: Hash, after: Option<u64>) -> Result<Vec<Deposit>> {
+    load(&escrow_id)?;
+    let cursor = after.map_or_else(|| escrow_id.to_vec(), |block| key(escrow_id, block));
+    Ok(DEPOSITS
+        .with_borrow(|t| t.page(cursor, MAX_REFUND_DEPOSITS))
+        .into_iter()
+        .take_while(|(key, _)| key.starts_with(escrow_id.as_slice()))
+        .map(|(_, deposit)| deposit)
+        .collect())
 }
 
 #[ic_cdk::query]

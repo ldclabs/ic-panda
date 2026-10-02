@@ -173,9 +173,25 @@ pub fn delivery_service_fee(
     Ok(mul_div(net, u128::from(policy.rate_bps), 10_000, true)?.max(policy.minimum_atomic))
 }
 
+/// Reserve every settlement transfer at its approved fee ceiling. Any unused
+/// allocation remains the payer's property and may be combined with refunds.
+pub fn delivery_fee_reserve(service_fee: u128, max_network_fee: u128) -> Result<u128> {
+    max_network_fee
+        .checked_mul(if service_fee == 0 { 1 } else { 2 })
+        .ok_or(Error::FeeBlocked)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn delivery_reserves_cover_all_settlement_legs_at_the_ceiling() {
+        assert_eq!(delivery_fee_reserve(100, 20), Ok(40));
+        assert_eq!(delivery_fee_reserve(0, 20), Ok(20));
+        assert_eq!(delivery_fee_reserve(100, 0), Ok(0));
+        assert_eq!(delivery_fee_reserve(100, u128::MAX), Err(Error::FeeBlocked));
+    }
 
     #[test]
     fn calendar_and_rounding() {

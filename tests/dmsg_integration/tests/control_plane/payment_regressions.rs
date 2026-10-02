@@ -178,7 +178,10 @@ fn network_fee_maintenance_preserves_old_legs_and_admits_funded_new_orders() {
         (old.escrow_id, 0u64),
     );
     assert_eq!(before, after);
-    let stale = f.order(&recipient, 2, 2);
+    let mut stale = f.order(&recipient, 2, 2);
+    stale.quote.fee_reserve = 30;
+    stale.quote.amount = 1130;
+    let stale = signed(stale);
     let denied: Result<EscrowInfo> = update(
         &f.ic,
         f.payment,
@@ -228,7 +231,7 @@ fn network_fee_maintenance_preserves_old_legs_and_admits_funded_new_orders() {
 }
 
 #[test]
-fn network_fee_changes_during_offer_verification_are_rechecked() {
+fn network_fee_changes_within_the_ceiling_preserve_a_fully_reserved_quote() {
     let f = Fixture::new();
     f.ic.update_canister_settings(
         f.payment,
@@ -259,7 +262,7 @@ fn network_fee_changes_during_offer_verification_are_rechecked() {
         .unwrap();
     let opened: Result<EscrowInfo> =
         candid::decode_one(&f.ic.await_call(opening).unwrap()).unwrap();
-    assert_eq!(opened, Err(Error::FeeBlocked));
+    assert_eq!(opened.unwrap().quote.fee_reserve, 40);
     let changed: Result<()> = candid::decode_one(&f.ic.await_call(changed).unwrap()).unwrap();
     changed.unwrap();
     let missing: Result<EscrowInfo> = query(
@@ -269,7 +272,7 @@ fn network_fee_changes_during_offer_verification_are_rechecked() {
         "get_escrow_by_operation",
         (person(40), input.op_id),
     );
-    assert_eq!(missing, Err(Error::NotFound));
+    assert_eq!(missing.unwrap().quote.fee_reserve, 40);
 }
 
 #[test]
@@ -443,8 +446,39 @@ fn global_authorization_limit_survives_upgrade_and_leaves_ledger_budget_availabl
     assert!(fund(&f, &opened, 10).funding_ref.is_some());
 }
 
+fn batch_raw<A: ArgumentEncoder>(
+    f: &Fixture,
+    canister: Principal,
+    method: &str,
+    requests: impl IntoIterator<Item = (Principal, A)>,
+) -> Vec<Vec<u8>> {
+    let calls: Vec<_> = requests
+        .into_iter()
+        .map(|(caller, args)| {
+            f.ic.submit_call(canister, caller, method, candid::encode_args(args).unwrap())
+                .unwrap()
+        })
+        .collect();
+    calls
+        .into_iter()
+        .map(|call| f.ic.await_call(call).unwrap())
+        .collect()
+}
+
+fn batch_updates<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
+    f: &Fixture,
+    canister: Principal,
+    method: &str,
+    requests: impl IntoIterator<Item = (Principal, A)>,
+) -> Vec<R> {
+    batch_raw(f, canister, method, requests)
+        .into_iter()
+        .map(|bytes| candid::decode_one(&bytes).unwrap())
+        .collect()
+}
+
 // Real entry-point admissions, unique payers and a shared recipient. This measures
-// quote/order/index growth; funded transfer history is covered by separate tests.
+// complete paid lifecycles, refunds and five rejected/revised payouts per 20 orders.
 #[test]
 #[ignore = "payment capacity measurement at 1,000 and 10,000 escrows"]
 fn payment_scale_profile() {
@@ -457,10 +491,8 @@ fn payment_scale_profile() {
     let template = f.order(&recipient, 2, 1);
     let mut samples = Vec::new();
     for batch in 0..500u64 {
-        if batch % 5 == 0 {
-            f.ic.advance_time(Duration::from_millis(MINUTE));
-            f.ic.tick();
-        }
+        f.ic.advance_time(Duration::from_millis(MINUTE));
+        f.ic.tick();
         let at = time(&f.ic);
         let mut offer = template.offer.clone();
         offer.offer.issued_at = at;
@@ -492,15 +524,140 @@ fn payment_scale_profile() {
                 .unwrap(),
             );
         }
-        let mut last = None;
-        for call in pending {
-            let opened: Result<EscrowInfo> =
-                candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
-            last = Some(opened.unwrap());
+        let escrows: Vec<EscrowInfo> = pending
+            .into_iter()
+            .map(|call| {
+                let opened: Result<EscrowInfo> =
+                    candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
+                opened.unwrap()
+            })
+            .collect();
+        batch_raw(
+            &f,
+            f.ledger,
+            "mint_test",
+            escrows
+                .iter()
+                .map(|e| (Principal::anonymous(), (e.quote.payer, e.quote.amount + 27))),
+        );
+        let sent: Vec<std::result::Result<Nat, TransferError>> = batch_updates(
+            &f,
+            f.ledger,
+            "icrc1_transfer",
+            escrows.iter().map(|e| {
+                (
+                    e.payer_principal,
+                    (TransferArg {
+                        from_subaccount: e.quote.payer.subaccount,
+                        to: Account {
+                            owner: f.payment,
+                            subaccount: Some(e.subaccount.into_array()),
+                        },
+                        amount: (e.quote.amount + 17).into(),
+                        fee: Some(10u64.into()),
+                        memo: None,
+                        created_at_time: Some(millis_to_nanos(time(&f.ic)).unwrap()),
+                    },),
+                )
+            }),
+        );
+        let blocks: Vec<u64> = sent
+            .into_iter()
+            .map(|r| dmsg_runtime::ledger::block_index(r.unwrap()).unwrap())
+            .collect();
+        let funded: Vec<Result<EscrowInfo>> = batch_updates(
+            &f,
+            f.payment,
+            "check_funding",
+            escrows
+                .iter()
+                .zip(&blocks)
+                .map(|(e, block)| (e.payer_principal, (e.escrow_id, *block))),
+        );
+        let funded: Vec<EscrowInfo> = funded.into_iter().map(Result::unwrap).collect();
+        let settled: Vec<Result<EscrowInfo>> = batch_updates(
+            &f,
+            f.payment,
+            "finalize_receipt",
+            funded.iter().map(|e| (e.payer_principal, (f.receipt(e),))),
+        );
+        for result in settled {
+            result.unwrap();
         }
+        // Every batch retains five clean rejection/revision records as well.
+        void(
+            &f.ic,
+            f.ledger,
+            Principal::anonymous(),
+            "reject_next_transfers",
+            (5u32,),
+        );
+        let payouts: Vec<_> = escrows
+            .iter()
+            .flat_map(|e| [0u64, 1].map(|n| (e.payer_principal, (e.escrow_id, n))))
+            .collect();
+        let paid: Vec<Result<TransferLeg>> =
+            batch_updates(&f, f.payment, "process_transfer", payouts.clone());
+        let mut revisions = vec![];
+        for (result, (payer, (id, n))) in paid.into_iter().zip(payouts) {
+            let result = result.unwrap();
+            if result.status == LegStatus::Rejected {
+                revisions.push((payer, (id, n, 10u128)));
+            } else {
+                assert_eq!(result.status, LegStatus::Succeeded);
+            }
+        }
+        assert_eq!(revisions.len(), 5);
+        let owners: Vec<_> = revisions.iter().map(|(payer, _)| *payer).collect();
+        let revised: Vec<Result<TransferLeg>> =
+            batch_updates(&f, f.payment, "revise_rejected_transfer", revisions);
+        let retried: Vec<Result<TransferLeg>> = batch_updates(
+            &f,
+            f.payment,
+            "process_transfer",
+            revised.into_iter().zip(owners).map(|(result, payer)| {
+                let l = result.unwrap();
+                (payer, (l.escrow_id, l.leg_id))
+            }),
+        );
+        for result in retried {
+            assert_eq!(result.unwrap().status, LegStatus::Succeeded);
+        }
+        let refunds: Vec<Result<TransferLeg>> = batch_updates(
+            &f,
+            f.payment,
+            "claim_refund",
+            escrows
+                .iter()
+                .zip(&blocks)
+                .map(|(e, block)| (e.payer_principal, (e.escrow_id, vec![*block], true))),
+        );
+        let paid: Vec<Result<TransferLeg>> = batch_updates(
+            &f,
+            f.payment,
+            "process_transfer",
+            refunds.into_iter().zip(&escrows).map(|(result, e)| {
+                let l = result.unwrap();
+                assert_eq!(l.amount, 27);
+                (e.payer_principal, (e.escrow_id, l.leg_id))
+            }),
+        );
+        for result in paid {
+            assert_eq!(result.unwrap().status, LegStatus::Succeeded);
+        }
+        let last = escrows.last().unwrap();
         let count = (batch + 1) * 20;
         if [1_000, 10_000].contains(&count) {
-            samples.push(last.unwrap());
+            let completed: Result<EscrowInfo> = query(
+                &f.ic,
+                f.payment,
+                person(99),
+                "get_escrow",
+                (last.escrow_id,),
+            );
+            let completed = completed.unwrap();
+            assert_eq!(completed.liabilities, 0);
+            samples.push(completed);
             let before = f.ic.cycle_balance(f.payment);
             upgrade(&f);
             let cycles = before - f.ic.cycle_balance(f.payment);
@@ -514,6 +671,31 @@ fn payment_scale_profile() {
                     (expected.escrow_id,),
                 );
                 assert_eq!(actual.unwrap(), *expected);
+                let deposits: Result<Vec<Deposit>> = query(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "list_deposits",
+                    (expected.escrow_id, None::<u64>),
+                );
+                let deposits = deposits.unwrap();
+                assert_eq!(deposits.len(), 1);
+                assert_eq!(deposits[0].refundable, 0);
+                let transfers: Result<Vec<TransferLeg>> = query(
+                    &f.ic,
+                    f.payment,
+                    person(99),
+                    "list_transfers",
+                    (expected.escrow_id, None::<u64>),
+                );
+                assert_eq!(
+                    transfers
+                        .unwrap()
+                        .iter()
+                        .filter(|l| l.status == LegStatus::Succeeded)
+                        .count(),
+                    3
+                );
                 let proof: Result<CertifiedBatch> = query(
                     &f.ic,
                     f.payment,
@@ -542,6 +724,14 @@ fn payment_scale_profile() {
             println!("payment_growth orders={count} upgrade_cycles={cycles} stable_bytes={} wasm_bytes={}", status.memory_metrics.stable_memory_size, status.memory_metrics.wasm_memory_size);
         }
     }
+    let exhausted: Result<EscrowInfo> = update(
+        &f.ic,
+        f.payment,
+        person(40),
+        "open_escrow",
+        (f.order(&recipient, 2, 2),),
+    );
+    assert_eq!(exhausted, Err(Error::QuotaExceeded));
 }
 
 #[test]

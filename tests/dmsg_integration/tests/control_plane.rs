@@ -21,6 +21,9 @@ mod cose_optimization;
 #[path = "control_plane/handle.rs"]
 mod handle_tests;
 
+#[path = "control_plane/payment_review.rs"]
+mod payment_review;
+
 #[path = "control_plane/payment_regressions.rs"]
 mod payment_regressions;
 
@@ -218,6 +221,22 @@ impl Fixture {
         daily_orders: u32,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
     ) -> Self {
+        Self::with_payment_capacity(
+            algorithms,
+            generous,
+            daily_orders,
+            MAX_PAYMENT_ESCROWS,
+            configure_membership,
+        )
+    }
+
+    fn with_payment_capacity(
+        algorithms: Vec<Algorithm>,
+        generous: bool,
+        daily_orders: u32,
+        max_escrows: u64,
+        configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
+    ) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -333,6 +352,7 @@ impl Fixture {
                 max_fee: 20,
                 signer: signer.clone(),
                 max_open_per_payer: 4,
+                max_escrows,
                 daily_orders,
                 enabled: true,
             },))
@@ -723,8 +743,8 @@ impl Fixture {
             recipient_net: 1000,
             platform: account(person(60)),
             service_fee: 100,
-            fee_reserve: 30,
-            amount: 1130,
+            fee_reserve: 40,
+            amount: 1140,
             max_network_fee: 20,
             max_bytes: 8192,
             retain_ms: DAY,
@@ -1502,11 +1522,11 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         &f.ic,
         f.payment,
         person(99),
-        "claim_deposit_refund",
-        (e.escrow_id, block),
+        "claim_refund",
+        (e.escrow_id, vec![block], true),
     );
     let excess = excess.unwrap();
-    assert_eq!(excess.amount, 7);
+    assert_eq!(excess.amount, 17);
     let sent: Result<TransferLeg> = update(
         &f.ic,
         f.payment,
@@ -1523,7 +1543,7 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
     let input = f.order(&recipient, 2, 2);
     let second: Result<EscrowInfo> = update(&f.ic, f.payment, person(40), "open_escrow", (input,));
     let second = second.unwrap();
-    let late_block = f.fund(&second, 1130);
+    let late_block = f.fund(&second, second.quote.amount);
     f.ic.advance_time(Duration::from_secs(46 * 60));
     let refund: Result<EscrowInfo> = update(
         &f.ic,
@@ -1546,8 +1566,8 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         &f.ic,
         f.payment,
         person(40),
-        "claim_deposit_refund",
-        (second.escrow_id, late_block),
+        "claim_refund",
+        (second.escrow_id, vec![late_block], true),
     );
     let leg = leg.unwrap();
     assert_eq!(leg.to, account(person(40)));

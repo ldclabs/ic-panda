@@ -318,6 +318,7 @@ stable_struct!(PaymentInitRepr => PaymentInit {
     7 => signer: ReceiptSignerRepr as codec,
     8 => max_open_per_payer: u32,
     9 => daily_orders: u32,
+    12 => max_escrows: u64,
     10 => enabled: bool,
 });
 
@@ -335,9 +336,10 @@ pub enum LegKindRepr {
     Platform,
     Refund {
         #[cbor(key = 1)]
-        funding_block: u64,
+        funding_blocks: Vec<u64>,
+        #[cbor(key = 2)]
+        includes_reserve: bool,
     },
-    ReserveRefund,
 }
 
 impl StableCodec for LegKind {
@@ -347,10 +349,13 @@ impl StableCodec for LegKind {
         match self {
             Self::Recipient => LegKindRepr::Recipient,
             Self::Platform => LegKindRepr::Platform,
-            Self::Refund { funding_block } => LegKindRepr::Refund {
-                funding_block: *funding_block,
+            Self::Refund {
+                funding_blocks,
+                includes_reserve,
+            } => LegKindRepr::Refund {
+                funding_blocks: funding_blocks.clone(),
+                includes_reserve: *includes_reserve,
             },
-            Self::ReserveRefund => LegKindRepr::ReserveRefund,
         }
     }
 
@@ -358,8 +363,13 @@ impl StableCodec for LegKind {
         match repr {
             LegKindRepr::Recipient => Self::Recipient,
             LegKindRepr::Platform => Self::Platform,
-            LegKindRepr::Refund { funding_block } => Self::Refund { funding_block },
-            LegKindRepr::ReserveRefund => Self::ReserveRefund,
+            LegKindRepr::Refund {
+                funding_blocks,
+                includes_reserve,
+            } => Self::Refund {
+                funding_blocks,
+                includes_reserve,
+            },
         }
     }
 }
@@ -851,6 +861,7 @@ mod tests {
                 revoked: false,
             },
             max_open_per_payer: 10,
+            max_escrows: 10_000,
             daily_orders: 100,
             enabled: true,
         };

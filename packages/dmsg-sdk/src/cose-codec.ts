@@ -2,6 +2,9 @@ import { encode, decode, Tagged } from "cborg";
 import { DmsgError, ensure } from "./cose-errors.ts";
 import { equalBytes, hex, isWellFormed, sha256 } from "./encoding.ts";
 
+// Construct tagged integers with the same codec instance that validates them.
+export { Tagged };
+
 export {
   utf8,
   unutf8,

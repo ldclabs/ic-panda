@@ -5,6 +5,7 @@
   import type { AccountClient } from '../services/account'
   import { CloudClient } from '../services/relay'
   import { InboxClient } from '../services/inbox'
+  import PaymentRecovery from './PaymentRecovery.svelte'
   import { WalletClient } from '../services/wallet'
   import { id } from '../protocol/codec'
   import type { EscrowInfo } from '../canisters/generated/payment'
@@ -234,6 +235,7 @@
             status = '已核对超时退款决策，到账仍以转出腿为准。'
           })}>核对超时并申请退款</button
       >
+      {#if client}<PaymentRecovery {client} {escrow} />{/if}
       <details>
         <summary>完整托管记录</summary>
         <pre>{json(escrow)}</pre>

@@ -1,9 +1,8 @@
-import { Tagged } from 'cborg'
 import { IDL } from '@icp-sdk/core/candid'
 import { Principal } from '@icp-sdk/core/principal'
 import { idlFactory } from '../canisters/generated/user/index.js'
 import type { AccountMutation, CreateAccount, DeviceInput } from '../canisters/generated/user'
-import { b64, bytes, digest, unb64 } from './codec'
+import { Tagged, b64, bytes, digest, unb64 } from './codec'
 import { ensure } from '../errors'
 
 // Candid encodes unit variants as { Name: null }; Rust serde encodes them as

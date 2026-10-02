@@ -80,6 +80,7 @@ console.log('Verified commerce thresholds, fee rounding, calendar terms, and mon
 const quote = fixture('delivery_quote_v2').array[2]
 const receipt = fixture('delivery_receipt_v2').array[2]
 assert.equal(uint(field(quote, 'amount')), uint(field(quote, 'recipient_net')) + uint(field(quote, 'service_fee')) + uint(field(quote, 'fee_reserve')))
+assert.ok(uint(field(quote, 'fee_reserve')) >= uint(field(quote, 'max_network_fee')) * (uint(field(quote, 'service_fee')) > 0n ? 2n : 1n))
 assert.equal(uint(field(receipt, 'protocol')), 2n)
 assert.equal(field(receipt, 'quote_digest').bytes, createHash('sha256').update(encode(fixture('delivery_quote_v2'))).digest('hex'))
 const grant = fixture('execution_grant_v3').array[2]

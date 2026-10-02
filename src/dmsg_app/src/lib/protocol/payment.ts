@@ -1,9 +1,8 @@
 import { IDL } from '@icp-sdk/core/candid'
-import { Tagged } from 'cborg'
 import { Principal } from '@icp-sdk/core/principal'
 import { idlFactory } from '../canisters/generated/payment/index.js'
 import { candidValue } from './account'
-import { b64, unb64, unhex, digest, utf8 } from './codec'
+import { Tagged, b64, unb64, unhex, digest, utf8 } from './codec'
 import { xidBytes } from './identity'
 import { ensure } from '../errors'
 export function paymentAmount(value: unknown): bigint {

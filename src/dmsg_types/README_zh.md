@@ -223,3 +223,5 @@ Application-action v1 is a separate closed profile with an `AppAction` key purpo
 See [the profile and implementation boundary](../../docs/protocol/app-action.md).
 Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
 browser flow explicitly reject it pending the authorized action integration.
+
+来信支付配置的 `max_escrows` 限制总历史订单；退款改用 `quote_refund/claim_refund(escrow_id, blocks, include_reserve)`，最多选择 32 条同一原始账户的入金，`list_deposits` 用于分页恢复。`RefundQuote.amount=0` 不代表余额归零，应同时检查 `available` 和 `fee`。报价费用预留至少覆盖全部结算腿的最高网络手续费。

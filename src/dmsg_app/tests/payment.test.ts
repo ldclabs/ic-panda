@@ -1,8 +1,7 @@
 import { expect, it } from 'vitest'
 import { IDL } from '@icp-sdk/core/candid'
-import { Tagged } from 'cborg'
 import { candidValue } from '../src/lib/protocol/account'
-import { canonical, decodeCanonical, hex } from '../src/lib/protocol/codec'
+import { Tagged, canonical, decodeCanonical, hex } from '../src/lib/protocol/codec'
 import { paymentAmount } from '../src/lib/protocol/payment'
 
 it('preserves certified u128 amounts above the CBOR uint64 range without rounding', () => {

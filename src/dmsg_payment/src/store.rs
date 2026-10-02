@@ -9,14 +9,14 @@ use ic_stable_structures::{
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
-#[derive(Clone)]
 pub(crate) struct Config {
     pub(crate) schema: u16,
     pub(crate) init: PaymentInit,
     pub(crate) day: u64,
     pub(crate) orders_today: u32,
-    pub(crate) ledger_minute: u64,
-    pub(crate) ledger_reads: u32,
+    pub(crate) minute: u64,
+    pub(crate) ledger_reads: BTreeMap<Principal, u32>,
+    pub(crate) ledger_writes: BTreeMap<Principal, u32>,
     pub(crate) authorizations: BTreeMap<Principal, u32>,
 }
 
@@ -39,7 +39,7 @@ thread_local! {
         RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
     pub(crate) static ESCROWS: RefCell<Table<CompactStored<Escrow>>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
-    pub(crate) static QUOTES: RefCell<Table<Stored<Hash>>> =
+    pub(crate) static QUOTES: RefCell<Table<Stored<()>>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
     pub(crate) static FUNDING: RefCell<Table<Stored<Hash>>> =
         RefCell::new(StableBTreeMap::init(memory(3)));
@@ -62,18 +62,22 @@ thread_local! {
     pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
 }
 
-/// Clone the configuration for paths that update it.
-pub(crate) fn cfg() -> Config {
-    with_cfg(Clone::clone)
-}
-
 /// Borrow the configuration for reads; do not touch CONFIG inside `f`.
 pub(crate) fn with_cfg<R>(f: impl FnOnce(&Config) -> R) -> R {
     CONFIG.with_borrow(|c| f(c.as_ref().expect("initialized")))
 }
 
-pub(crate) fn save_cfg(c: &Config) {
-    CONFIG.with_borrow_mut(|value| *value = Some(c.clone()));
+pub(crate) fn save_cfg(c: Config) {
+    CONFIG.with_borrow_mut(|value| *value = Some(c));
+}
+
+/// Mutate admission configuration without cloning any minute-budget maps.
+pub(crate) fn configure(f: impl FnOnce(&mut PaymentInit)) {
+    CONFIG.with_borrow_mut(|value| {
+        let c = value.as_mut().expect("initialized");
+        f(&mut c.init);
+        certify_config(c);
+    });
 }
 
 fn public_config(c: &Config) -> PaymentConfiguration {
@@ -86,6 +90,7 @@ fn public_config(c: &Config) -> PaymentConfiguration {
         max_fee: c.init.max_fee,
         signer_epoch: c.init.signer.epoch,
         enabled: c.init.enabled,
+        max_escrows: c.init.max_escrows,
     }
 }
 
@@ -94,39 +99,39 @@ pub(crate) fn certify_config(c: &Config) {
 }
 
 pub(crate) enum CallBudget {
-    Ledger,
+    LedgerRead(Principal),
+    LedgerWrite(Principal),
     Authorization(Principal),
 }
 
 pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
     CONFIG.with_borrow_mut(|value| {
         let c = value.as_mut().expect("initialized");
-        if c.ledger_minute != at / MINUTE {
-            c.ledger_minute = at / MINUTE;
-            c.ledger_reads = 0;
+        if c.minute != at / MINUTE {
+            c.minute = at / MINUTE;
+            c.ledger_reads.clear();
+            c.ledger_writes.clear();
             c.authorizations.clear();
         }
-        match kind {
-            CallBudget::Ledger => {
-                ensure(c.ledger_reads < 400, Error::QuotaExceeded)?;
-                c.ledger_reads += 1;
-            }
-            CallBudget::Authorization(caller) => {
-                ensure(
-                    c.authorizations.values().sum::<u32>() < 200,
-                    Error::QuotaExceeded,
-                )?;
-                let count = c.authorizations.entry(caller).or_default();
-                ensure(*count < 10, Error::QuotaExceeded)?;
-                *count += 1;
-            }
-        }
+        let (counts, caller, per_caller) = match kind {
+            CallBudget::LedgerRead(caller) => (&mut c.ledger_reads, caller, 20),
+            CallBudget::LedgerWrite(caller) => (&mut c.ledger_writes, caller, 40),
+            CallBudget::Authorization(caller) => (&mut c.authorizations, caller, 10),
+        };
+        ensure(counts.values().sum::<u32>() < 200, Error::QuotaExceeded)?;
+        let count = counts.entry(caller).or_default();
+        ensure(*count < per_caller, Error::QuotaExceeded)?;
+        *count += 1;
         Ok(())
     })
 }
 
 pub(crate) fn check_order_capacity(at: u64) -> Result<()> {
     with_cfg(|c| {
+        ensure(
+            ESCROWS.with_borrow(|t| t.len()) < c.init.max_escrows,
+            Error::QuotaExceeded,
+        )?;
         ensure(
             c.day != at / DAY || c.orders_today < c.init.daily_orders,
             Error::QuotaExceeded,
@@ -148,7 +153,7 @@ pub(crate) fn reserve_order(at: u64) -> Result<()> {
 }
 
 pub(crate) fn persist_config() {
-    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg()))));
+    with_cfg(|c| STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(c))));
 }
 
 pub(crate) fn load(id: &Hash) -> Result<Escrow> {
@@ -216,7 +221,13 @@ pub(crate) fn release_payer(e: &Escrow) {
     let n = open_count(e.payer_principal)
         .checked_sub(1)
         .expect("open accounting");
-    PAYER_OPEN.with_borrow_mut(|t| t.put(e.payer_principal.as_slice(), &n));
+    PAYER_OPEN.with_borrow_mut(|t| {
+        if n == 0 {
+            t.delete(e.payer_principal.as_slice());
+        } else {
+            t.put(e.payer_principal.as_slice(), &n);
+        }
+    });
 }
 
 pub(crate) fn put_leg(l: &TransferLeg) {
@@ -227,4 +238,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 7;
+pub(crate) const STABLE_SCHEMA: u16 = 8;

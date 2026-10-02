@@ -195,15 +195,15 @@ type FundsDecision = variant {
 };
 // Destination/purpose of an escrow transfer.
 type LegKind = variant {
-  // Refund of a specific deposit allocation.
+  // Refund of selected deposits and/or the released primary allocation.
   Refund : record {
-    // Ledger block identifying the deposit to refund.
-    funding_block : nat64;
+    // Whether the released primary allocation was included.
+    includes_reserve : bool;
+    // Sorted unique deposit block indexes belonging to the same account.
+    funding_blocks : vec nat64;
   };
   // Platform service-fee payment.
   Platform;
-  // Return unused primary funding fee reserve to the payer.
-  ReserveRefund;
   // Net payment to the recipient.
   Recipient;
 };
@@ -244,6 +244,8 @@ type PaymentInit = record {
   platform : Account;
   // Whether new payment orders are enabled.
   enabled : bool;
+  // Maximum retained escrows, including terminal orders (1..=10,000).
+  max_escrows : nat64;
   // User canister authoritative for this account or deployment.
   home_user : principal;
   // ICRC ledger canister for all amounts in this contract.
@@ -351,13 +353,28 @@ type ReceiptSigner = record {
   // Inclusive beginning of signer validity in Unix milliseconds.
   valid_from : nat64;
 };
+// Preview for a bounded selection of deposits and optional released reserve.
+// All selected funds belong to this exact source account. `amount == 0` with
+// `available > 0` means the balance cannot currently cover a refund fee.
+type RefundQuote = record {
+  // Verified original funding account receiving the refund.
+  to : Account;
+  // Current expected network fee, in ledger base units.
+  fee : nat;
+  // Selected refundable allocation before the outgoing network fee.
+  available : nat;
+  // Amount available to send after the fee; zero means nothing can be sent.
+  amount : nat;
+};
 type Result = variant { Ok : EscrowInfo; Err : Error };
 type Result_1 = variant { Ok : TransferLeg; Err : Error };
 type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_3 = variant { Ok : ReceiptSigner; Err : Error };
-type Result_4 = variant { Ok : vec EscrowInfo; Err : Error };
-type Result_5 = variant { Ok : vec TransferLeg; Err : Error };
-type Result_6 = variant { Ok; Err : Error };
+type Result_4 = variant { Ok : vec Deposit; Err : Error };
+type Result_5 = variant { Ok : vec EscrowInfo; Err : Error };
+type Result_6 = variant { Ok : vec TransferLeg; Err : Error };
+type Result_7 = variant { Ok : RefundQuote; Err : Error };
+type Result_8 = variant { Ok; Err : Error };
 // Payment offer and its device Ed25519 signature over the offer digest.
 type SignedOffer = record {
   // Device Ed25519 signature over the `dmsg/payment-offer/v1` digest.
@@ -433,8 +450,8 @@ type TransferLeg = record {
 };
 service : (PaymentInit) -> {
   check_funding : (blob, nat64) -> (Result);
-  claim_deposit_refund : (blob, nat64) -> (Result_1);
-  claim_fee_reserve : (blob) -> (Result_1);
+  // Combine only allocations belonging to the same exact original account.
+  claim_refund : (blob, vec nat64, bool) -> (Result_1);
   expiry_refund : (blob) -> (Result);
   finalize_receipt : (SignedReceipt) -> (Result);
   get_configuration_certified : (opt nat64, opt nat64) -> (Result_2) query;
@@ -445,20 +462,25 @@ service : (PaymentInit) -> {
   get_fee_policy : () -> (DeliveryFeePolicy) query;
   get_receipt_signer : (nat64) -> (Result_3) query;
   get_transfer : (blob, nat64) -> (Result_1) query;
-  list_my_escrows : (opt blob) -> (Result_4) query;
-  list_transfers : (blob, opt nat64) -> (Result_5) query;
+  // Enumerate verified incoming records, including non-primary deposits.
+  list_deposits : (blob, opt nat64) -> (Result_4) query;
+  list_my_escrows : (opt blob) -> (Result_5) query;
+  list_transfers : (blob, opt nat64) -> (Result_6) query;
   open_escrow : (OpenEscrow) -> (Result);
   process_transfer : (blob, nat64) -> (Result_1);
+  // Preview the current fee and any balance too small to refund. Reserve is
+  // available after a refund decision or after all settlement payouts succeed.
+  quote_refund : (blob, vec nat64, bool) -> (Result_7) query;
   reconcile_transfer : (blob, nat64, nat64) -> (Result_1);
   // Only an unambiguously rejected transfer may receive new parameters. Keep
   // its immutable old leg for audit, consume approved reserve for beneficiary
   // fees, and return all refund remainders to the original source.
   revise_rejected_transfer : (blob, nat64, nat) -> (Result_1);
-  revoke_receipt_signer : (nat64) -> (Result_6);
-  rotate_receipt_signer : (ReceiptSigner) -> (Result_6);
-  schedule_fee_policy : (DeliveryFeePolicy) -> (Result_6);
+  revoke_receipt_signer : (nat64) -> (Result_8);
+  rotate_receipt_signer : (ReceiptSigner) -> (Result_8);
+  schedule_fee_policy : (DeliveryFeePolicy) -> (Result_8);
   // Update the expected ledger fee within the deployment's approved ceiling.
   // Existing quotes and prepared transfers retain their approved terms.
-  set_ledger_fee : (nat) -> (Result_6);
-  set_orders_enabled : (bool) -> (Result_6);
+  set_ledger_fee : (nat) -> (Result_8);
+  set_orders_enabled : (bool) -> (Result_8);
 }

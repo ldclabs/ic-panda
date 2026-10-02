@@ -59,6 +59,8 @@ pub struct PaymentConfiguration {
     pub signer_epoch: u64,
     /// Whether new escrows are currently admitted.
     pub enabled: bool,
+    /// Maximum retained escrows; reaching it only stops new orders.
+    pub max_escrows: u64,
 }
 
 /// Escrow service deployment, ledger fees, signer and admission limits.
@@ -86,6 +88,8 @@ pub struct PaymentInit {
     pub max_open_per_payer: u32,
     /// Maximum new escrow orders per daily budget window.
     pub daily_orders: u32,
+    /// Maximum retained escrows, including terminal orders (1..=10,000).
+    pub max_escrows: u64,
     /// Whether new payment orders are enabled.
     pub enabled: bool,
 }
@@ -157,6 +161,27 @@ pub struct Deposit {
     pub refundable: u128,
 }
 
+/// Preview for a bounded selection of deposits and optional released reserve.
+/// All selected funds belong to this exact source account. `amount == 0` with
+/// `available > 0` means the balance cannot currently cover a refund fee.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RefundQuote {
+    /// Verified original funding account receiving the refund.
+    #[serde(with = "crate::account::account_cbor")]
+    pub to: Account,
+    /// Selected refundable allocation before the outgoing network fee.
+    pub available: u128,
+    /// Current expected network fee, in ledger base units.
+    pub fee: u128,
+    /// Amount available to send after the fee; zero means nothing can be sent.
+    pub amount: u128,
+}
+
+/// Maximum deposits combined in one refund or returned by a deposit page.
+pub const MAX_REFUND_DEPOSITS: usize = 32;
+/// Deployment ceiling for retained escrows; historical deposits remain recoverable.
+pub const MAX_PAYMENT_ESCROWS: u64 = 10_000;
+
 /// One outgoing ledger transfer status, independent of the escrow decision.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum LegStatus {
@@ -209,13 +234,13 @@ pub enum LegKind {
     Recipient,
     /// Platform service-fee payment.
     Platform,
-    /// Refund of a specific deposit allocation.
+    /// Refund of selected deposits and/or the released primary allocation.
     Refund {
-        /// Ledger block identifying the deposit to refund.
-        funding_block: u64,
+        /// Sorted unique deposit block indexes belonging to the same account.
+        funding_blocks: Vec<u64>,
+        /// Whether the released primary allocation was included.
+        includes_reserve: bool,
     },
-    /// Return unused primary funding fee reserve to the payer.
-    ReserveRefund,
 }
 
 /// One outgoing ICRC transfer with stable deduplication parameters.

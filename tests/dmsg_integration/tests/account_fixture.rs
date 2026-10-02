@@ -142,6 +142,7 @@ fn account_extension_gateway() {
                 revoked: false,
             },
             max_open_per_payer: 4,
+            max_escrows: 10_000,
             daily_orders: 100,
             enabled: true,
         })
