@@ -85,6 +85,12 @@ pnpm --dir src/dmsg_app test
 
 `max_claims` 包含尚未对账完成的 `Applying` 申请，不使用到期索引长度代替占用数量。占用计数随申请状态更新，升级时在重建认证树的同一次遍历中恢复；Apply 回执丢失不会腾出新申请容量。PocketIC 回归覆盖回执丢失后的准入拒绝、升级恢复、成功对账继续占用及承诺到期后的容量释放。
 
+2026-10-02 membership 修复产品预留暂时失败被永久拒绝、费率发布重试和旧版本复用问题；激活必须使用冷却结束后的资格观察。恢复调用按全局/actor 限流，并阻止同一申请的并发产品调用；SNS 配置核验合并在途请求。费率逻辑独立到 `rate.rs`，申请表、索引与认证维护集中到 `store.rs`，完整记录未变化时不写稳定表。
+
+新的开发布局在 memory 5 保留最高政策版本，在 memory 6–8 增加终态保留、幂等摘要和读者索引；不迁移旧实验布局。终态在申请截止及终态时间两者较晚值之后保留 30 天，再有界压缩；未知 Apply 和未到 E 的占用不清理。完整记录和历史操作分别设置 10 万/100 万防护上限。实际返回语义、原生 1,000/10,000 条样本、索引的存储开销及未验证的生产容量边界见 [membership README](../src/membership/README.md)。
+
+公开实现仍采用固定 offer E、无提前退出、终止不可恢复的 commerce 2 合同。私有目标设计与此不一致的部分待单独修订设计基线；本次不据旧提案恢复已移除的生命周期分支。私有设计定位继续由 AGENTS.md 维护。
+
 ## 2026-09-29 Agent Delegation 增量
 
 新增 `dmsg_directory`，按 [agent_zh.md](protocol/agent_zh.md) 发布 principal 文档。user schema 8 新增 principal 稳定表（memory 8）与 `principal_updated_at`，`SecuritySnapshot` 升为 schema 3；账户命令新增 principal 启用、托管 controller 登记/退役/泄露/改名，新增 `register_controller`、`sign_agent_event`、`publish_principal`、`get_principal`。默认 `SensitivePolicy` 与 `SetPolicy` 允许 `AgentController`（上限 4 个用途）。COSE 新增 `KeyPurpose::AgentController`、`ExecutionKind::AgentEvent` 与 `ExecutionOutput::AgentSignature`；Agent 事件计入正式签名的商业额度与预算，不产生执行回执认证叶。

@@ -6,6 +6,8 @@ use dmsg_types::{
 use serde::Serialize;
 #[path = "external_integration.rs"]
 mod external_integration;
+#[path = "membership_review.rs"]
+mod membership_review;
 fn offer(f: &Fixture, id: &AccountId, op: u8) -> BillingOffer {
     offer_sku(f, id, "plus", op)
 }
@@ -727,6 +729,7 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
         113,
     );
     a.product_approval = Some(panda.approval);
+    let claim_id = panda_claim_id(&terms);
     let r: Result<PandaClaimView> = update(
         &f.ic,
         f.membership,
@@ -737,7 +740,16 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
             authorization: a,
         },),
     );
-    assert_eq!(r.unwrap().status, PandaClaimStatus::Rejected);
+    // The competing cash reservation is still pending, so PANDA retains its original request.
+    assert_eq!(r, Err(Error::Pending));
+    let pending: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (claim_id,),
+    );
+    assert_eq!(pending.unwrap().status, PandaClaimStatus::Checking);
     let r: Result<()> = update(&f.ic, home, person(1), "lose_next_apply_ack", ());
     r.unwrap();
     let block = deposit(
@@ -766,6 +778,15 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
         (opened.progress.order_id,),
     );
     assert_eq!(r.unwrap().status, CheckoutStatus::Applied);
+    // Once cash commits, the changed business revision definitively rejects that PANDA bill.
+    let rejected: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "reconcile_panda_claim",
+        (claim_id,),
+    );
+    assert_eq!(rejected.unwrap().status, PandaClaimStatus::Rejected);
     f.ic.upgrade_canister(
         home,
         wasm("dmsg_account_product"),

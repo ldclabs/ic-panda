@@ -10,6 +10,37 @@ The membership end E is the offer's fixed `expires_at_ms`, not a term computed a
 
 Qualification leases last at most one hour and never exceed the contract. An observation is reused for one minute per claim before SNS is queried again. Ineligible observations stop new leases; an `Unverifiable` observation ends the current lease immediately and pauses the seven-day repair clock. Terminated rights cannot revive. Cancellation only precedes prepared Apply; unknown Apply is reconciled through its original decision/receipt and is never expired as an unused request.
 
-`sweep_panda_commitments` releases bounded due records once, preserving a committed next-term reference. `panda_operations` is a bounded, permission-filtered operational query. Admission pause still allows original-operation recovery, qualification checks and expiry. Stable state and certified leaves survive same-schema upgrades; per-minute call counters live on the heap and restart after an upgrade. Development schemas are not migrated.
+Activation requires an observation that started at or after `cooling_until_ms`; a recent observation from before cooling ended is queried again. Only one SNS configuration check is dispatched at a time; overlapping callers receive `Pending` and reuse the cache on retry. Only the dispatched check consumes its call budget. Failed checks can be retried, and callbacks still check the current pins and verification freshness.
+
+Temporary product reservation errors (`Unavailable`, `ExecutionUnknown`, `Pending`, `QuotaExceeded`) retain the original application for reconciliation. Product reserve, receipt lookup, Apply and release calls share a separate budget of 200 calls per UTC minute and 10 per economic actor. Only actual calls consume it. An in-flight guard prevents duplicate product calls for the same claim, including reentrant callbacks; local idempotent reads consume no product budget. These limits remain active during admission pause.
+
+New rate versions strictly increase. A retained version can be retried with the same business fields; outside Local, retries keep the original server-assigned publication time, even after the announcement window ends. Pruning superseded policies never resets the highest published version.
+
+`sweep_panda_commitments` releases at most 32 due commitments and compacts at most 32 due terminal records per call; its return value counts only released commitments. A Cancelled/Rejected/Released record is retained until 30 days after the later of its terminal transition and application deadline. Compaction removes its complete record, reader indexes and certified leaf, retaining its claim ID and immutable application digest. Reads and exact retries then return `ResultExpired`; different terms under the same operation return `IdempotencyConflict`. Applying, Active and Terminated commitments are never compacted while they hold the neuron. Unused remote reservations have expired before compaction, including those whose release reply was lost.
+
+Storage admission also caps full records at 100,000 and total operations (full records plus tombstones) at 1,000,000. These are safeguards, not validated production capacities. Tombstones are not automatically evicted to admit new operations. `panda_operations` uses actor/adapter indexes and returns a cursor only when more accessible retained records remain; governance can page all full records. Admission pause still allows original-operation recovery, qualification checks and expiry. Stable state and certified leaves survive same-schema upgrades; call budgets, product guards and in-flight SNS verification are heap-only. The 2026-10-02 development layout adds retention metadata, a persistent rate high-water mark (memory 5), retention/tombstone/reader indexes (memory 6–8); older experimental layouts are not migrated.
 
 Actual Wasm regression cases live in [commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs). They include cooling/reapproval, no early exit, observation reuse, cross-product exclusivity, contiguous terms, lost Apply ACK, module-pin changes during SNS reads, `canister_info` verification, terminated rights, occupancy release and capacity recovered by cancellation. An unresolved Apply continues to consume `max_claims` capacity across upgrades and reconciliation; the live count is rebuilt from stable claims during certification rebuild. The [account adapter](../../examples/dmsg-account-product/README.md) uses the same public product protocol as TokenList. Local SNS, ledger funds and identities do not establish production wallet compatibility.
+
+[membership_review.rs](../../tests/dmsg_integration/tests/control_plane/membership_review.rs) adds temporary failures, bounded retries, reentrant reservation/cancellation, post-cooling observations, shared SNS verification, immutable rate versions and terminal compaction across upgrades. `rate.rs` owns policy publication; `claim.rs` owns synchronous lifecycle rules; `claims.rs` orchestrates calls; `store.rs` owns claim persistence and indexes. Unchanged complete records are not rewritten.
+
+## Native history sample
+
+Run `cargo test --locked -p membership history_profile -- --ignored --nocapture`. The 2026-10-02 debug-build sample below compares the previous implementation at `9338338` with this change using 1,000/10,000 cancelled records. Times are local host measurements, not Wasm instruction/cycles or production capacity results. Stable table pages include claim and relevant index tables; allocator bucket overhead is not included.
+
+| History | Previous table bytes | Current table bytes | Previous rebuild | Current rebuild | Previous empty-reader scan | Indexed empty-reader query |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 2,686,976 | 3,276,800 | 464 ms | 454 ms | 23.5 ms / 512 rows | 0.030 ms |
+| 10,000 | 26,345,472 | 30,736,384 | 5,726 ms | 5,581 ms | 24.5 ms / 512 rows | 0.036 ms |
+
+Indexes cost additional stable storage while records are retained. After bounded compaction of all 10,000 terminal records, the sample retained 10,000 digests, no complete claims or claim certificate leaves, and rebuilt the empty certification tree in 0.002 ms. Compaction makes stable allocations reusable; it does not shrink previously allocated stable pages. Active-record upgrade capacity and production load still require separate measurement.
+
+The ignored PocketIC `membership_verification_profile` compares 16 concurrent configuration requests with the same release settings and SNS fixture. The previous implementation dispatched 16 SNS checks and spent 291,455,572 membership cycles. The current one dispatched one check and spent 123,716,956 cycles for the initial burst; 15 callers received `Pending`. Including their cached retries until all 16 requests succeeded, the total was 229,304,284 cycles (about 21% less). This includes membership only, not SNS execution costs, and does not represent steady-state user traffic. Supply a separately built baseline with `DMSG_MEMBERSHIP_BASELINE_WASM` to run the comparison:
+
+```sh
+cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane membership_verification_profile -- --ignored --nocapture
+```
+
+## Design alignment
+
+This README and the public commerce contract describe current behavior. Private target-design documents are located through [AGENTS.md](../../AGENTS.md) and need a separate baseline revision where they differ. This implementation keeps fixed offer E, no early PANDA exit and irreversible termination; it does not silently restore older proposed lifecycle features. Private design text is not copied into this repository.

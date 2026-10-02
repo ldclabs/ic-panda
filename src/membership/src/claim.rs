@@ -13,6 +13,7 @@ pub struct Claim {
     pub reservation_released: bool,
     pub generation: u64,
     pub busy_until_ms: u64,
+    pub retain_until_ms: Option<u64>,
 }
 
 impl Claim {
@@ -39,6 +40,7 @@ impl Claim {
             reservation_released: false,
             generation: 0,
             busy_until_ms: 0,
+            retain_until_ms: None,
         }
     }
 
@@ -123,6 +125,10 @@ impl Claim {
             self.view.status == PandaClaimStatus::CoolingDown
                 && self.view.eligibility == Eligibility::Eligible
                 && self.view.cooling_until_ms.is_some_and(|ready| ready <= at)
+                && self
+                    .view
+                    .cooling_until_ms
+                    .is_some_and(|ready| self.view.observed_at_ms >= ready)
                 && at < self.view.valid_until_ms
                 && at < self.view.terms.quote.application_deadline_ms
                 && self.product_reserved,
@@ -217,6 +223,20 @@ impl Claim {
 mod tests {
     use super::*;
     use crate::fixture::{self, base::*};
+
+    #[test]
+    fn activation_requires_an_observation_after_cooling() {
+        let mut c = Claim::new(Hash::new([7; 32]), fixture::claim(), PANDA_COOLING_MS);
+        c.product_reserved = true;
+        c.observe(Eligibility::Eligible, NOW, NOW).unwrap();
+        let ready = c.view.cooling_until_ms.unwrap();
+        c.observe(Eligibility::Eligible, ready - 30_000, ready - 30_000)
+            .unwrap();
+        assert_eq!(c.preparing_apply(ready), Err(Error::MembershipIneligible));
+        c.observe(Eligibility::Eligible, ready, ready).unwrap();
+        c.preparing_apply(ready).unwrap();
+    }
+
     #[test]
     fn cooling_and_unknown_apply_never_release_an_accepted_commitment() {
         let mut c = Claim::new(Hash::new([7; 32]), fixture::claim(), PANDA_COOLING_MS);

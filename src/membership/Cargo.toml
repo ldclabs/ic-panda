@@ -12,7 +12,6 @@ crate-type = ["cdylib", "rlib"]
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_runtime = { path = "../dmsg_runtime" }
 ic-stable-structures.workspace = true
-cbor2.workspace = true
 dmsg_types = { path = "../dmsg_types" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }

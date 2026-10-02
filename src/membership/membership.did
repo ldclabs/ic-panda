@@ -280,7 +280,7 @@ type PandaClaimView = record {
 type PandaOperationsPage = record {
   // Accessible claims; stale eligibility is never a current lease.
   claims : vec PandaClaimView;
-  // Last scanned key, including inaccessible rows.
+  // Last returned claim when more accessible retained records remain.
   next : opt blob;
 };
 // Full waiver quotation with an immutable commitment end.
@@ -322,6 +322,7 @@ type PandaRatePolicy = record {
 // Deployment-wide service limits, independent of product plan names.
 type PandaServiceConfig = record {
   // Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
+  // Must not exceed the service's 100,000 full-record limit.
   max_claims : nat64;
   // Successful new applications per UTC hour.
   hourly_applications : nat64;

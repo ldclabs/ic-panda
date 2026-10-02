@@ -1,184 +1,17 @@
-//! Shared full-waiver service. Applied commitments have no early-release endpoint.
-use crate::{claim::Claim, sns, store};
+//! Shared full-waiver application authorization, qualification and product delivery.
+use crate::{
+    claim::Claim,
+    rate, sns, store,
+    store::{actor, check_occupancy, key, live_claims, load, save, sweep},
+};
 use candid::Principal;
 use dmsg_protocol::{commerce_v2::*, integration::*, *};
-use dmsg_runtime::{
-    call,
-    storage::{MapExt, Stored},
-    Certification,
-};
+use dmsg_runtime::call;
 use dmsg_types::{
     integration::*, integration_billing::*, integration_membership::*, membership::Eligibility, *,
 };
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
-use std::cell::{Cell, RefCell};
-type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-/// Current and announced rate policies; superseded ones are pruned when scheduling.
-const MAX_POLICIES: u64 = 64;
-/// A claim reuses its last observation this long; the lease then still covers ~59 minutes.
 const OBSERVATION_REUSE_MS: u64 = MINUTE;
-
-thread_local! {
-    static CLAIMS: RefCell<StableBTreeMap<Vec<u8>, Stored<Claim>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(1)));
-    static POLICIES: RefCell<StableBTreeMap<Vec<u8>, Stored<PandaRatePolicy>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(2)));
-    static NEURONS: RefCell<StableBTreeMap<Vec<u8>, Stored<Vec<Hash>>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(3)));
-    static EXPIRATIONS: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
-        RefCell::new(StableBTreeMap::init(store::memory(4)));
-    // Rebuilt from stable claims alongside the certified views on init and upgrade.
-    static LIVE_CLAIMS: Cell<u64> = const { Cell::new(0) };
-}
-
-fn load(id: Hash) -> Result<Claim> {
-    CLAIMS
-        .with_borrow(|t| t.load(id.as_slice()))
-        .ok_or(Error::NotFound)
-}
-
-fn key(id: Hash) -> Vec<u8> {
-    digest("dmsg/panda/claim-certificate/v2", &id).to_vec()
-}
-
-fn neuron(terms: &PandaApplicationTerms) -> Hash {
-    digest(
-        "dmsg/panda/occupancy/v2",
-        &(terms.sns_governance, terms.neuron_id),
-    )
-}
-
-fn expiry_key(at: u64, id: Hash) -> Vec<u8> {
-    [&at.to_be_bytes(), id.as_slice()].concat()
-}
-
-fn actor(c: &Claim, caller: Principal) -> Result<()> {
-    ensure(
-        caller == c.view.terms.actor || caller == c.view.terms.offer.adapter,
-        Error::Forbidden,
-    )
-}
-
-/// Persist a claim, touching only the indexes and certified view that actually changed.
-fn save(c: &mut Claim) {
-    let id = c.view.claim_id;
-    let old = load(id).ok();
-    let old_release = old.as_ref().and_then(Claim::release_at);
-    let release = c.release_at();
-    if old_release != release {
-        EXPIRATIONS.with_borrow_mut(|t| {
-            if let Some(at) = old_release {
-                t.delete(&expiry_key(at, id));
-            }
-            if let Some(at) = release {
-                t.put(&expiry_key(at, id), &id);
-            }
-        });
-    }
-    if old.as_ref().is_some_and(Claim::holds) != c.holds() {
-        LIVE_CLAIMS.with(|count| {
-            let next = if c.holds() {
-                count.get().checked_add(1)
-            } else {
-                count.get().checked_sub(1)
-            };
-            count.set(next.expect("live claim count"));
-        });
-        let n = neuron(&c.view.terms);
-        NEURONS.with_borrow_mut(|t| {
-            let mut refs: Vec<Hash> = t.load(n.as_slice()).unwrap_or_default();
-            if c.holds() {
-                refs.push(id);
-            } else {
-                refs.retain(|v| *v != id);
-            }
-            if refs.is_empty() {
-                t.delete(n.as_slice());
-            } else {
-                t.put(n.as_slice(), &refs);
-            }
-        });
-    }
-    if old.as_ref().is_none_or(|o| o.view != c.view) {
-        if let Some(o) = &old {
-            c.view.lease_revision = o.view.lease_revision.checked_add(1).expect("view revision");
-        }
-        store::CERT.with_borrow_mut(|t| t.put(key(id), &c.view));
-    }
-    CLAIMS.with_borrow_mut(|t| t.put(id.as_slice(), c));
-}
-
-/// All claims occupying a neuron, including unresolved Apply decisions.
-pub(crate) fn live_claims() -> u64 {
-    LIVE_CLAIMS.with(Cell::get)
-}
-
-#[ic_cdk::update]
-fn schedule_panda_rate(policy: PandaRatePolicy) -> Result<PandaRatePolicy> {
-    let c = store::governance(ic_cdk::api::msg_caller())?;
-    let at = nanos_to_millis(ic_cdk::api::time());
-    let mut policy = policy;
-    // Local fixtures may seed a previously announced policy; production publication is consensus time.
-    if c.init.environment != Environment::Local {
-        policy.published_at_ms = at;
-    }
-    validate_rate_policy(&policy)?;
-    ensure(
-        policy.environment == c.init.environment && policy.published_at_ms <= at,
-        Error::Forbidden,
-    )?;
-    let id = policy.policy_version.to_be_bytes();
-    if let Some(old) = POLICIES.with_borrow(|t| t.load(&id)) {
-        ensure(old == policy, Error::IdempotencyConflict)?;
-        return Ok(old);
-    }
-    POLICIES.with_borrow_mut(|t| -> Result<()> {
-        let current: Vec<PandaRatePolicy> = t.iter().map(|v| v.value().0).collect();
-        for p in &current {
-            if superseded(p, &current, at) {
-                t.delete(&p.policy_version.to_be_bytes());
-            }
-        }
-        ensure(t.len() < MAX_POLICIES, Error::QuotaExceeded)?;
-        ensure(
-            t.iter().all(|v| {
-                let p = v.value().0;
-                p.effective_at_ms != policy.effective_at_ms
-                    || !p
-                        .product_ids
-                        .iter()
-                        .any(|id| policy.product_ids.contains(id))
-            }),
-            Error::VersionConflict,
-        )?;
-        t.put(&id, &policy);
-        Ok(())
-    })?;
-    Ok(policy)
-}
-
-/// A policy is never selected again once each of its products has a later effective one.
-fn superseded(p: &PandaRatePolicy, all: &[PandaRatePolicy], at: u64) -> bool {
-    p.product_ids.iter().all(|product| {
-        all.iter().any(|q| {
-            q.effective_at_ms > p.effective_at_ms
-                && q.effective_at_ms <= at
-                && q.product_ids.contains(product)
-        })
-    })
-}
-
-fn policy(product: &str, at: u64) -> Result<PandaRatePolicy> {
-    POLICIES
-        .with_borrow(|t| {
-            t.iter()
-                .map(|v| v.value().0)
-                .filter(|p| p.effective_at_ms <= at && p.product_ids.iter().any(|id| id == product))
-                .max_by_key(|p| p.effective_at_ms)
-        })
-        .ok_or(Error::NotFound)
-}
 
 async fn registration(
     commerce: Principal,
@@ -228,7 +61,13 @@ async fn quote_panda_subscription(
     let c = admission()?;
     ensure(app.user_homes.contains(&user_home), Error::Forbidden)?;
     // quote_panda validates the offer; the remaining terms are constructed from trusted values.
-    let quote = quote_panda(&offer, &app, &product, &policy(&offer.product_id, at)?, at)?;
+    let quote = quote_panda(
+        &offer,
+        &app,
+        &product,
+        &rate::current(&offer.product_id, at)?,
+        at,
+    )?;
     Ok(PandaApplicationTerms {
         home_membership: home,
         user_home,
@@ -252,7 +91,7 @@ async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) 
     validate_panda_terms(t, &app, &product, home, c.init.governance, at, initial)?;
     if initial {
         ensure(
-            policy(&t.offer.product_id, at)? == t.quote.policy,
+            rate::current(&t.offer.product_id, at)? == t.quote.policy,
             Error::PolicyStale,
         )?;
     }
@@ -299,37 +138,11 @@ async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) 
     )?;
     if initial {
         ensure(
-            at < t.offer.accept_by_ms && policy(&t.offer.product_id, at)? == t.quote.policy,
+            at < t.offer.accept_by_ms && rate::current(&t.offer.product_id, at)? == t.quote.policy,
             Error::PolicyStale,
         )?;
     }
     Ok(at)
-}
-
-/// Expire due references, then allow only the same beneficiary's committed contiguous term.
-fn check_occupancy(terms: &PandaApplicationTerms, at: u64) -> Result<()> {
-    let refs = NEURONS
-        .with_borrow(|t| t.load(neuron(terms).as_slice()))
-        .unwrap_or_default();
-    let mut held = Vec::with_capacity(refs.len());
-    for id in refs {
-        let mut c = load(id)?;
-        if c.release_at().is_some_and(|end| at >= end) {
-            c.expire(at)?;
-            save(&mut c);
-        } else {
-            held.push(c);
-        }
-    }
-    ensure(
-        held.len() < 2
-            && held.iter().all(|old| {
-                old.view.committed_until_ms > 0
-                    && old.view.terms.offer.beneficiary == terms.offer.beneficiary
-                    && old.view.terms.offer.expires_at_ms == terms.offer.starts_at_ms
-            }),
-        Error::NeuronOccupied,
-    )
 }
 
 #[ic_cdk::update]
@@ -338,8 +151,7 @@ async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimVie
     let home = ic_cdk::api::canister_self();
     ensure(caller == request.terms.actor, Error::Forbidden)?;
     let id = panda_claim_id(&request.terms);
-    if let Ok(c) = load(id) {
-        ensure(c.view.terms == request.terms, Error::IdempotencyConflict)?;
+    if let Some(c) = store::replay(id, &request.terms)? {
         return Ok(c.view);
     }
     let at = nanos_to_millis(ic_cdk::api::time());
@@ -349,12 +161,12 @@ async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimVie
         Error::QuotaExceeded,
     )?;
     let at = authorize(&request, home, true).await?;
-    if let Ok(c) = load(id) {
-        ensure(c.view.terms == request.terms, Error::IdempotencyConflict)?;
+    if let Some(c) = store::replay(id, &request.terms)? {
         return Ok(c.view);
     }
     sweep(at)?;
     check_occupancy(&request.terms, at)?;
+    store::check_capacity()?;
     let mut c = store::config();
     let service = c.service()?.clone();
     ensure(live_claims() < service.max_claims, Error::QuotaExceeded)?;
@@ -369,9 +181,9 @@ async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimVie
     )?;
     c.applications += 1;
     store::save_config(&c);
-    save(&mut Claim::new(id, request, service.cooling_ms));
+    save(&mut Claim::new(id, request, service.cooling_ms), at);
     let at = reserve_product(id, at).await?;
-    qualify(id, at).await?;
+    qualify(id, at, false).await?;
     Ok(load(id)?.view)
 }
 
@@ -381,6 +193,7 @@ async fn reserve_product(id: Hash, at: u64) -> Result<u64> {
     if old.product_reserved || !old.holds() {
         return Ok(at);
     }
+    let _guard = store::product_call(id, old.view.terms.actor, at)?;
     let answer: Result<Result<()>> = call(
         old.view.terms.offer.adapter,
         "reserve_product_billing",
@@ -390,20 +203,27 @@ async fn reserve_product(id: Hash, at: u64) -> Result<u64> {
         ),
     )
     .await;
+    let at = nanos_to_millis(ic_cdk::api::time());
     let mut current = load(id)?;
-    if current.holds() {
+    if current.holds() && !current.product_reserved {
         match answer {
             Ok(Ok(())) => current.product_reserved = true,
+            Ok(Err(
+                e @ (Error::Unavailable(_)
+                | Error::ExecutionUnknown
+                | Error::Pending
+                | Error::QuotaExceeded),
+            )) => return Err(e),
             Ok(Err(_)) => current.reject(),
             Err(_) => return Err(Error::ExecutionUnknown),
         }
-        save(&mut current);
+        save(&mut current, at);
     }
-    Ok(nanos_to_millis(ic_cdk::api::time()))
+    Ok(at)
 }
 
 /// Observe the neuron at `at`, reusing an observation younger than one minute.
-async fn qualify(id: Hash, at: u64) -> Result<()> {
+async fn qualify(id: Hash, at: u64, activating: bool) -> Result<()> {
     let mut c = load(id)?;
     if !c.holds()
         || matches!(
@@ -415,10 +235,14 @@ async fn qualify(id: Hash, at: u64) -> Result<()> {
     }
     if c.release_at().is_some_and(|end| at >= end) {
         c.expire(at)?;
-        save(&mut c);
+        save(&mut c, at);
         return Ok(());
     }
-    if at < c.view.observed_at_ms.saturating_add(OBSERVATION_REUSE_MS) {
+    let after_cooling = !activating
+        || c.view
+            .cooling_until_ms
+            .is_some_and(|ready| c.view.observed_at_ms >= ready);
+    if after_cooling && at < c.view.observed_at_ms.saturating_add(OBSERVATION_REUSE_MS) {
         return Ok(());
     }
     ensure(at >= c.busy_until_ms, Error::Pending)?;
@@ -426,10 +250,17 @@ async fn qualify(id: Hash, at: u64) -> Result<()> {
     c.generation = c.generation.checked_add(1).ok_or(Error::QuotaExceeded)?;
     c.busy_until_ms = at + MINUTE;
     let generation = c.generation;
-    save(&mut c);
+    save(&mut c, at);
     let verification_pin = store::config().init;
     let verified = crate::api::fresh_sns(at).await;
     ensure(load(id)?.generation == generation, Error::VersionConflict)?;
+    if let Err(e @ (Error::Pending | Error::QuotaExceeded)) = verified {
+        // A coalesced/rate-limited check observed no SNS failure. Keep the previous lease.
+        let mut current = load(id)?;
+        current.busy_until_ms = 0;
+        save(&mut current, at);
+        return Err(e);
+    }
     let result: Result<sns::GetNeuronResponse> = match verified {
         Ok(()) => {
             call(
@@ -450,10 +281,11 @@ async fn qualify(id: Hash, at: u64) -> Result<()> {
     ensure(current.generation == generation, Error::VersionConflict)?;
     current.busy_until_ms = 0;
     // The observation starts at `at`, never at the delayed callback time.
+    let config = store::config();
     let eligibility = match result {
         Ok(sns::GetNeuronResponse {
             result: Some(sns::NeuronResult::Neuron(n)),
-        }) if store::config().init == verification_pin => sns::assess(
+        }) if config.init == verification_pin && config.sns_fresh(now) => sns::assess(
             &n,
             current.view.terms.neuron_id,
             current.view.terms.actor,
@@ -468,9 +300,9 @@ async fn qualify(id: Hash, at: u64) -> Result<()> {
     } else {
         current.observe(eligibility, at, now)?;
     }
-    save(&mut current);
+    save(&mut current, now);
     if !current.holds() {
-        release_product(id).await?;
+        release_product(id, now).await?;
     }
     Ok(())
 }
@@ -482,10 +314,11 @@ async fn advance_panda_claim(
 ) -> Result<PandaClaimView> {
     let caller = ic_cdk::api::msg_caller();
     let home = ic_cdk::api::canister_self();
+    let at = nanos_to_millis(ic_cdk::api::time());
     let c = load(id)?;
     ensure(caller == c.view.terms.actor, Error::Forbidden)?;
     if c.view.status == PandaClaimStatus::Applying {
-        deliver(id, true).await?;
+        deliver(id, true, at).await?;
         return Ok(load(id)?.view);
     }
     if matches!(
@@ -495,7 +328,6 @@ async fn advance_panda_claim(
         return Ok(c.view);
     }
     ensure(c.holds(), Error::MembershipIneligible)?;
-    let at = nanos_to_millis(ic_cdk::api::time());
     admission()?;
     ensure(
         c.view.cooling_until_ms.is_some_and(|ready| at >= ready)
@@ -504,7 +336,7 @@ async fn advance_panda_claim(
     )?;
     store::reserve_call(at, store::CallBudget::Authorization(caller))?;
     let at = reserve_product(id, at).await?;
-    qualify(id, at).await?;
+    qualify(id, at, true).await?;
     let checked = load(id)?;
     ensure(
         checked.view.status == PandaClaimStatus::CoolingDown,
@@ -522,17 +354,18 @@ async fn advance_panda_claim(
     )?;
     current.preparing_apply(at)?;
     current.authorization = request.authorization;
-    save(&mut current);
-    deliver(id, false).await?;
+    save(&mut current, at);
+    deliver(id, false, at).await?;
     Ok(load(id)?.view)
 }
 
-async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
+async fn deliver(id: Hash, reconcile: bool, at: u64) -> Result<()> {
     let c = load(id)?;
     if c.view.receipt.is_some() {
         return Ok(());
     }
     let decision = c.decision.clone().ok_or(Error::NotFound)?;
+    let _guard = store::product_call(id, c.view.terms.actor, at)?;
     let receipt = if reconcile {
         let r: Result<Option<ProductReceipt>> = call(
             c.view.terms.offer.adapter,
@@ -547,6 +380,10 @@ async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
     let receipt = if let Some(r) = receipt {
         r
     } else {
+        if reconcile {
+            let at = nanos_to_millis(ic_cdk::api::time());
+            store::reserve_call(at, store::CallBudget::Product(c.view.terms.actor))?;
+        }
         let r: Result<ProductReceipt> = call(
             c.view.terms.offer.adapter,
             "apply_product_decision",
@@ -563,17 +400,19 @@ async fn deliver(id: Hash, reconcile: bool) -> Result<()> {
         current.decision.as_ref() == Some(&decision),
         Error::IdempotencyConflict,
     )?;
+    let at = nanos_to_millis(ic_cdk::api::time());
     current.accept(receipt)?;
-    save(&mut current);
+    save(&mut current, at);
     Ok(())
 }
 
-async fn release_product(id: Hash) -> Result<()> {
+async fn release_product(id: Hash, at: u64) -> Result<()> {
     let c = load(id)?;
     if c.reservation_released || c.view.committed_until_ms > 0 || c.decision.is_some() {
         return Ok(());
     }
     ensure(!c.holds(), Error::Forbidden)?;
+    let _guard = store::product_call(id, c.view.terms.actor, at)?;
     let result: Result<()> = call(
         c.view.terms.offer.adapter,
         "release_product_billing",
@@ -582,35 +421,38 @@ async fn release_product(id: Hash) -> Result<()> {
     .await?;
     result?;
     let mut current = load(id)?;
+    let at = nanos_to_millis(ic_cdk::api::time());
     current.reservation_released = true;
-    save(&mut current);
+    save(&mut current, at);
     Ok(())
 }
 
 #[ic_cdk::update]
 async fn cancel_panda_application(id: Hash) -> Result<PandaClaimView> {
+    let at = nanos_to_millis(ic_cdk::api::time());
     let mut c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
     c.cancel()?;
-    save(&mut c);
-    release_product(id).await?;
+    save(&mut c, at);
+    release_product(id, at).await?;
     Ok(load(id)?.view)
 }
 
 #[ic_cdk::update]
 async fn reconcile_panda_claim(id: Hash) -> Result<PandaClaimView> {
+    let at = nanos_to_millis(ic_cdk::api::time());
     let c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
     if c.view.status == PandaClaimStatus::Applying {
-        deliver(id, true).await?;
+        deliver(id, true, at).await?;
     } else if !c.holds() {
-        release_product(id).await?;
+        release_product(id, at).await?;
     } else if matches!(
         c.view.status,
         PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown
     ) {
-        let at = reserve_product(id, nanos_to_millis(ic_cdk::api::time())).await?;
-        qualify(id, at).await?;
+        let at = reserve_product(id, at).await?;
+        qualify(id, at, false).await?;
     }
     Ok(load(id)?.view)
 }
@@ -621,16 +463,16 @@ async fn refresh_panda_claim(id: Hash) -> Result<PandaClaimView> {
     actor(&c, ic_cdk::api::msg_caller())?;
     let at = nanos_to_millis(ic_cdk::api::time());
     if c.view.status == PandaClaimStatus::Applying {
-        deliver(id, true).await?;
+        deliver(id, true, at).await?;
     } else if c.release_at().is_some_and(|end| at >= end) {
         let mut c = c;
         c.expire(at)?;
-        save(&mut c);
+        save(&mut c, at);
     } else if c.view.status == PandaClaimStatus::Active
         && (c.view.eligibility != Eligibility::Eligible
             || c.view.valid_until_ms <= at.saturating_add(MINUTE))
     {
-        qualify(id, at).await?;
+        qualify(id, at, false).await?;
     }
     Ok(load(id)?.view)
 }
@@ -657,178 +499,4 @@ fn panda_claim_certificate(id: Hash) -> Result<CertifiedBatch> {
     let c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
     store::CERT.with_borrow(|t| t.batch(ic_cdk::api::canister_self(), vec![key(id)]))
-}
-
-fn sweep(at: u64) -> Result<u32> {
-    let ids: Vec<Hash> = EXPIRATIONS.with_borrow(|t| {
-        t.range(..=expiry_key(at, Hash::new([255; 32])))
-            .take(32)
-            .map(|v| v.value().0)
-            .collect()
-    });
-    let mut released = 0;
-    for id in ids {
-        let mut c = load(id)?;
-        c.expire(at)?;
-        save(&mut c);
-        released += 1;
-    }
-    Ok(released)
-}
-
-#[ic_cdk::update]
-fn sweep_panda_commitments() -> Result<u32> {
-    sweep(nanos_to_millis(ic_cdk::api::time()))
-}
-
-/// Rebuild the live count and stage every claim view; the caller publishes the root once.
-pub(crate) fn rebuild(cert: &mut Certification) {
-    let mut live = 0;
-    CLAIMS.with_borrow(|t| {
-        t.for_each(|_, c: Claim| {
-            live += u64::from(c.holds());
-            cert.set(key(c.view.claim_id), canonical(&c.view));
-        })
-    });
-    LIVE_CLAIMS.with(|count| count.set(live));
-}
-
-#[ic_cdk::query]
-fn panda_operations(after: Option<Hash>, take: u16) -> Result<PandaOperationsPage> {
-    use std::ops::Bound::{Excluded, Unbounded};
-    let caller = ic_cdk::api::msg_caller();
-    authenticated(caller)?;
-    ensure_valid((1..=32).contains(&take), "page size")?;
-    let governance = caller == store::config().init.governance;
-    let mut claims = vec![];
-    let mut next = None;
-    CLAIMS.with_borrow(|t| {
-        let start = after.map_or(Unbounded, |id| Excluded(id.to_vec()));
-        let mut iter = t.range((start, Unbounded));
-        for _ in 0..512 {
-            let Some(row) = iter.next() else {
-                next = None;
-                break;
-            };
-            let c = row.value().0;
-            next = Some(c.view.claim_id);
-            if governance || actor(&c, caller).is_ok() {
-                claims.push(c.view);
-            }
-            if claims.len() >= usize::from(take) {
-                break;
-            }
-        }
-    });
-    Ok(PandaOperationsPage { claims, next })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::fixture;
-
-    #[test]
-    fn save_touches_indexes_and_certified_view_only_when_they_change() {
-        let request = fixture::claim();
-        let id = panda_claim_id(&request.terms);
-        let n = neuron(&request.terms);
-        let mut c = Claim::new(id, request, PANDA_COOLING_MS);
-        save(&mut c);
-        let leaf = |id| store::CERT.with_borrow(|t| t.get(&key(id)).map(<[u8]>::to_vec));
-        let certified = leaf(id);
-        assert_eq!(live_claims(), 1);
-        assert_eq!(
-            NEURONS.with_borrow(|t| t.load(n.as_slice())),
-            Some(vec![id])
-        );
-        // A private busy marker keeps the public revision and certified leaf.
-        c.busy_until_ms = 99;
-        save(&mut c);
-        assert_eq!(load(id).unwrap().view.lease_revision, 1);
-        assert_eq!(leaf(id), certified);
-        c.cancel().unwrap();
-        save(&mut c);
-        let saved = load(id).unwrap();
-        assert_eq!(saved.view.lease_revision, 2);
-        assert_ne!(leaf(id), certified);
-        assert_eq!(live_claims(), 0);
-        assert!(NEURONS.with_borrow(|t| t.load(n.as_slice())).is_none());
-    }
-
-    #[test]
-    fn applying_claims_keep_capacity_until_rejected_or_expired() {
-        for applied in [false, true] {
-            let mut request = fixture::claim();
-            request.terms.offer.operation_id = Hash::new([if applied { 91 } else { 90 }; 32]);
-            let id = panda_claim_id(&request.terms);
-            let mut c = Claim::new(id, request, PANDA_COOLING_MS);
-            c.product_reserved = true;
-            let start = fixture::base::NOW;
-            c.observe(Eligibility::Eligible, start, start).unwrap();
-            save(&mut c);
-            let at = start + PANDA_COOLING_MS;
-            c.observe(Eligibility::Eligible, at, at).unwrap();
-            c.preparing_apply(at).unwrap();
-            save(&mut c);
-            assert_eq!(live_claims(), 1);
-            assert_eq!(c.expire(at + 2 * DAY), Err(Error::ExecutionUnknown));
-            store::rebuild();
-            assert_eq!(live_claims(), 1);
-
-            let decision = c.decision.as_ref().unwrap();
-            let receipt = ProductReceipt {
-                version: COMMERCE_VERSION,
-                decision_id: decision.decision_id,
-                decision_hash: product_decision_hash(decision),
-                adapter: decision.offer.adapter,
-                outcome: if applied {
-                    ProductOutcome::Applied {
-                        business_revision: 1,
-                        contract_id: Hash::new([90; 32]),
-                        committed_until_ms: decision.offer.expires_at_ms,
-                    }
-                } else {
-                    ProductOutcome::Rejected {
-                        reason: ProductRejection::Expired,
-                    }
-                },
-                applied_at_ms: at,
-            };
-            c.accept(receipt).unwrap();
-            save(&mut c);
-            save(&mut c);
-            assert_eq!(live_claims(), u64::from(applied));
-            if applied {
-                c.expire(c.view.committed_until_ms).unwrap();
-                save(&mut c);
-                save(&mut c);
-            }
-            assert_eq!(live_claims(), 0);
-            store::rebuild();
-            assert_eq!(live_claims(), 0);
-        }
-    }
-
-    #[test]
-    fn only_policies_replaced_for_every_product_are_superseded() {
-        let policy = |version, effective_at_ms, products: &[&str]| PandaRatePolicy {
-            version: COMMERCE_VERSION,
-            policy_version: version,
-            environment: Environment::Local,
-            product_ids: products.iter().map(|p| p.to_string()).collect(),
-            r_num: 1,
-            r_den: 1,
-            published_at_ms: 0,
-            effective_at_ms,
-        };
-        let old = policy(1, 10, &["a", "b"]);
-        let a = policy(2, 20, &["a"]);
-        let b = policy(3, 30, &["b"]);
-        let all = [old.clone(), a.clone(), b.clone()];
-        assert!(!superseded(&old, &all, 29));
-        assert!(superseded(&old, &all, 30));
-        assert!(!superseded(&a, &all, u64::MAX));
-        assert!(!superseded(&b, &all, u64::MAX));
-    }
 }

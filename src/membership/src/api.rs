@@ -1,8 +1,21 @@
 //! Initialization, governance configuration and SNS interface verification.
-use crate::{claims, sns, store};
+use crate::{sns, store};
 use dmsg_protocol::{authenticated, nonzero};
 use dmsg_types::{integration::*, integration_membership::PandaServiceConfig, membership::*, *};
 use ic_cdk_management_canister::{canister_info, CanisterInfoArgs};
+use std::cell::Cell;
+
+thread_local! {
+    static VERIFYING: Cell<bool> = const { Cell::new(false) };
+}
+
+struct Verification;
+
+impl Drop for Verification {
+    fn drop(&mut self) {
+        VERIFYING.set(false);
+    }
+}
 
 #[ic_cdk::init]
 fn init(args: MembershipInit) {
@@ -80,6 +93,10 @@ pub(crate) async fn fresh_sns(at: u64) -> Result<()> {
     if store::config().sns_fresh(at) {
         return Ok(());
     }
+    ensure(!VERIFYING.get(), Error::Pending)?;
+    store::reserve_call(at, store::CallBudget::Refresh)?;
+    VERIFYING.set(true);
+    let _guard = Verification;
     let result = verify_sns(at).await;
     if result.is_err() {
         let mut current = store::config();
@@ -94,9 +111,6 @@ pub(crate) async fn fresh_sns(at: u64) -> Result<()> {
 #[ic_cdk::update]
 async fn verify_sns_configuration() -> Result<()> {
     let at = nanos_to_millis(ic_cdk::api::time());
-    if !store::config().sns_fresh(at) {
-        store::reserve_call(at, store::CallBudget::Refresh)?;
-    }
     fresh_sns(at).await
 }
 
@@ -124,6 +138,7 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
     authenticated(next.commerce_canister)?;
     ensure_valid(
         next.max_claims > 0
+            && next.max_claims <= store::MAX_FULL_CLAIMS
             && next.hourly_applications > 0
             && next.hourly_applications <= 10_000
             && next.cooling_ms >= PANDA_COOLING_MS
@@ -133,7 +148,7 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
     if let Some(old) = &c.service {
         ensure(
             old.commerce_canister == next.commerce_canister
-                && next.max_claims >= claims::live_claims(),
+                && next.max_claims >= store::live_claims(),
             Error::IntegrityFailed,
         )?;
     }

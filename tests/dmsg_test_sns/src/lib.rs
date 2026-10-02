@@ -1,10 +1,15 @@
 //! Controllable SNS Candid fixture. Never deploy with production privileges.
 use candid::{CandidType, Principal};
 use dmsg_runtime::storage::Stored;
-use dmsg_types::*;
+use dmsg_types::{
+    integration::BillingOffer,
+    integration_billing::{ProductAuthorization, ProductAuthorizationRequest},
+    *,
+};
 use ic_stable_structures::{DefaultMemoryImpl, StableCell};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
+mod membership;
 #[derive(Clone, CandidType, Serialize, Deserialize)]
 struct NeuronId {
     id: Vec<u8>,
@@ -51,6 +56,7 @@ thread_local! {
     static STATE: RefCell<StableCell<Stored<Option<Neuron>>, DefaultMemoryImpl>> = RefCell::new(StableCell::init(DefaultMemoryImpl::default(), Stored(None)));
     static PIN_ON_READ: RefCell<Option<(Principal,Hash)>> = const { RefCell::new(None) };
     static PAUSE_ON_READ: RefCell<Option<Principal>> = const { RefCell::new(None) };
+    static CALL_COUNTS: RefCell<(u64, u64)> = const { RefCell::new((0, 0)) };
 }
 
 #[ic_cdk::update]
@@ -60,6 +66,7 @@ fn set_neuron(neuron: Option<Neuron>) {
 
 #[ic_cdk::update]
 async fn get_neuron(request: Request) -> Response {
+    CALL_COUNTS.with_borrow_mut(|c| c.1 += 1);
     if let Some((membership, hash)) = PIN_ON_READ.with_borrow_mut(Option::take) {
         let result: Result<()> =
             dmsg_runtime::call(membership, "set_sns_governance_module_hash", (hash,))
@@ -82,8 +89,9 @@ async fn get_neuron(request: Request) -> Response {
     }
 }
 
-#[ic_cdk::query]
+#[ic_cdk::update]
 fn list_sns_canisters(_: Empty) -> SnsCanisters {
+    CALL_COUNTS.with_borrow_mut(|c| c.0 += 1);
     let id = Some(ic_cdk::api::canister_self());
     SnsCanisters {
         root: id,

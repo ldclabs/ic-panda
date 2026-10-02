@@ -128,6 +128,10 @@ days' notice. There is no USD subsidy budget: admission is bounded by the
 service's concurrent claim capacity and hourly application limit. New admission
 reserves the global `(SNS governance, neuron_id)` occupancy before qualification.
 
+New policy versions strictly increase, including after superseded records are
+pruned. Retrying a retained version with identical business fields returns its
+original publication timestamp; a retry never starts a new notice interval.
+
 The service verifies the pinned SNS root/governance/ledger, eight decimals and,
 when pinned (required outside Local), the approved governance Wasm hash and SNS
 root as its sole controller via `canister_info`. Unknown permission semantics
@@ -141,7 +145,9 @@ minute before querying SNS again.
 
 The first **actual eligible observation** starts at least 65 minutes of cooling.
 A fresh account/device and product approval is required after cooling; it covers
-the original terms and a fresh neuron observation. A timeout does not start or
+the original terms and a neuron observation starting at or after the cooling
+deadline. The one-minute cache cannot reuse a pre-deadline observation for Apply.
+A timeout does not start or
 shorten cooling. At most current and contiguous next-term references can occupy
 a neuron, and both must name the same beneficiary. Different products cannot
 reuse that neuron concurrently. One service-global occupancy table enforces this.
@@ -160,6 +166,25 @@ clock and never extends an old lease. Repair expiry permanently terminates
 rights while retaining the commitment until E. A terminated term never revives.
 `refresh_panda_claim`/`reconcile_panda_claim` preserve the original claim/decision;
 only initial/new post-cooling approval can create a new device approval.
+
+Temporary product reservation failures preserve the accepted application for
+reconciliation. Reserve, receipt lookup, Apply and release each consume the
+product-call budget only when dispatched: 200 per UTC minute globally and 10 per
+economic actor. One in-flight product call sequence is allowed per claim; an
+overlapping retry returns `Pending`. Admission pause does not disable recovery.
+Only one SNS configuration verification is dispatched at a time; concurrent
+callers receive `Pending` and can reuse its cached result on retry.
+
+Full terminal records are retained for 30 days after the later of the terminal
+transition and application deadline. The bounded commitment sweep also compacts
+up to 32 due terminal records, retaining the immutable operation digest. Its
+return value counts released commitments, not compacted history. Compacted
+claims return `ResultExpired`; same-ID/different-terms retries remain conflicts.
+Open commitments and unknown Apply decisions are not compacted. Admission caps
+full records at 100,000 and total retained operation identities at 1,000,000;
+these bounds are not production capacity claims. Operations pagination uses
+reader indexes and includes a cursor only when more accessible full records
+remain. Archived claim certificate leaves are removed.
 
 ## Product adapter and bounded rights
 

@@ -12,6 +12,7 @@ pub struct PandaServiceConfig {
     /// Authority for app/product registrations.
     pub commerce_canister: Principal,
     /// Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
+    /// Must not exceed the service's 100,000 full-record limit.
     pub max_claims: u64,
     /// Successful new applications per UTC hour.
     pub hourly_applications: u64,
@@ -106,6 +107,6 @@ pub struct PandaClaimView {
 pub struct PandaOperationsPage {
     /// Accessible claims; stale eligibility is never a current lease.
     pub claims: Vec<PandaClaimView>,
-    /// Last scanned key, including inaccessible rows.
+    /// Last returned claim when more accessible retained records remain.
     pub next: Option<Hash>,
 }
