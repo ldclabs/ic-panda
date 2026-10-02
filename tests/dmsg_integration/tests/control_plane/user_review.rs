@@ -249,10 +249,7 @@ fn independent_cleanup_preserves_pending_executions_billing_and_replay_guards() 
     assert_eq!(current, pending_result);
     let replay: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "sign", (signed.clone(),));
-    assert!(matches!(
-        replay,
-        Err(Error::IdempotencyConflict | Error::ResultExpired)
-    ));
+    assert_eq!(replay, Err(Error::ResultExpired));
     for _ in 0..2 {
         let receipt: Result<CertifiedBatch> = query(
             &f.ic,

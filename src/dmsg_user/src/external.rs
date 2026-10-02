@@ -108,16 +108,21 @@ fn existing(
 }
 
 /// Check capacity before remote work, and again at the local commit point.
-fn check_quota(state: &ExternalState, at: u64) -> Result<()> {
+/// Returns the approvals already used in the hour of `at`.
+fn check_quota(state: &ExternalState, at: u64) -> Result<u32> {
     let count = state
         .operations
         .values()
         .filter(|r| at < r.expires_at_ms)
         .count();
     ensure(count < MAX_ACCOUNT_OPERATIONS, Error::QuotaExceeded)?;
-    let hour = at / (60 * MINUTE);
-    let used = if state.hour == hour { state.used } else { 0 };
-    ensure(used < MAX_HOURLY_APPROVALS, Error::QuotaExceeded)
+    let used = if state.hour == at / (60 * MINUTE) {
+        state.used
+    } else {
+        0
+    };
+    ensure(used < MAX_HOURLY_APPROVALS, Error::QuotaExceeded)?;
+    Ok(used)
 }
 
 /// All validation precedes mutation; failed approvals consume neither quota nor sequences.
@@ -129,9 +134,7 @@ fn commit(
     body: ExternalBody,
     at: u64,
 ) -> Result<()> {
-    check_quota(state, at)?;
-    let hour = at / (60 * MINUTE);
-    let used = if state.hour == hour { state.used } else { 0 };
+    let used = check_quota(state, at)?;
     let expires_at_ms = match &body {
         ExternalBody::Authentication(result) => result.expires_at_ms,
         ExternalBody::Application(application) => {
@@ -139,7 +142,7 @@ fn commit(
         }
     };
     state.operations.retain(|_, r| at < r.expires_at_ms);
-    state.hour = hour;
+    state.hour = at / (60 * MINUTE);
     state.used = used + 1;
     state.operations.insert(
         approval.request_id,

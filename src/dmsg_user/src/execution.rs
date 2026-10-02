@@ -44,17 +44,25 @@ pub(crate) fn check(
     s: &AccountState,
     caller: Principal,
     input: &ExecuteRequest,
+    fingerprint: Hash,
     now: u64,
     init: &UserInit,
     prepared: &PreparedRequest,
 ) -> Result<Budget> {
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
-    ensure(
-        !s.operations
-            .iter()
-            .any(|r| r.id == input.approval.request_id),
-        Error::IdempotencyConflict,
-    )?;
+    if let Some(r) = s
+        .operations
+        .iter()
+        .find(|r| r.id == input.approval.request_id)
+    {
+        // A cleaned result keeps its receipt: the same request has expired,
+        // while different parameters under that ID conflict.
+        return Err(if r.digest == fingerprint {
+            Error::ResultExpired
+        } else {
+            Error::IdempotencyConflict
+        });
+    }
     ensure(
         input.approval.request_id
             == execution_request_id(

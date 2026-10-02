@@ -408,11 +408,12 @@ fn precheck_execution(
     s: &AccountState,
     caller: Principal,
     input: &ExecuteRequest,
+    fingerprint: Hash,
     prepared: &execution::PreparedRequest,
     at: u64,
     init: &UserInit,
 ) -> Result<(stable::Budget, Option<principal::AgentPrincipal>)> {
-    let budget = execution::check(s, caller, input, at, init, prepared)?;
+    let budget = execution::check(s, caller, input, fingerprint, at, init, prepared)?;
     let agent = if let Some(event) = &prepared.event {
         let mut p = principal::load(&s.account_id).ok_or(Error::NotFound)?;
         principal::authorize_event(&mut p, s, init, &input.kind, event, at)?;
@@ -441,14 +442,16 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         return execute_existing(e, fingerprint).await;
     }
     let prepared = execution::PreparedRequest::new(&input)?;
-    let (mut budget, mut agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
+    let (mut budget, mut agent) =
+        precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
     if input.kind.is_formal() && !crate::commerce::is_current(&input.account_id, at)? {
         at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
         if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
             return execute_existing(e, fingerprint).await;
         }
-        (budget, agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
+        (budget, agent) =
+            precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
     }
     if let Some(action) = prepared.action() {
         crate::external::authorize_action(&input.account_id, action).await?;
@@ -457,7 +460,8 @@ async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult>
         if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
             return execute_existing(e, fingerprint).await;
         }
-        (budget, agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
+        (budget, agent) =
+            precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
     }
     drop(prepared);
     let mut e = execution::commit(&mut s, input, fingerprint, budget, at);

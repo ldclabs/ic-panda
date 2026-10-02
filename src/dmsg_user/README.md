@@ -117,7 +117,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 - `begin_auth_binding` 在全局 1024 条容量已满时回收过期记录，保留尚有效的绑定；无需等待外部维护调用。`prune_auth_bindings` 仍可用于提前清理。
 - 固定服务身份、第三方批准容量与小时限额，以及 Agent 事件/controller/nonce 检查在外部调用之前执行；await 返回后重新检查当前账户、序号、时间和 principal。预检只构造候选预算与 nonce，实际批准与商业预留仍在最后的同步执行段提交。
 - 授权阶段复用不可变签名载荷与 Agent 事件的一次解析结果，保留返回结果校验；重放直接使用载入的执行记录，controller 注册预检不再复制整份账户。
-- `prune_executions(account_id)` 是公开维护入口，每次最多检查 64 项保留索引，返回删除数量。只删除超过保留期限的终态结果及认证叶，保留 Authorized/Executing/Unknown、设备序号、操作回执和历史月账；不重复结算。删除后的 `get_execution_receipt` 返回可核验的不存在证明，`get_execution` 仍返回 `ResultExpired`。删除让空间可复用，不承诺 stable memory 物理缩小。
+- `prune_executions(account_id)` 是公开维护入口，每次最多检查 64 项保留索引，返回删除数量。只删除超过保留期限的终态结果及认证叶，保留 Authorized/Executing/Unknown、设备序号、操作回执和历史月账；不重复结算。删除后的 `get_execution_receipt` 返回可核验的不存在证明，`get_execution` 仍返回 `ResultExpired`；原样重放同一执行请求也返回 `ResultExpired`，同 ID 不同参数仍返回 `IdempotencyConflict`。删除让空间可复用，不承诺 stable memory 物理缩小。
 - 升级继续整批构造认证叶并只发布一次根。对逐项流式插入进行了同配置对比，实测分配高水位反而增加 128 KiB，因此未保留该候选优化。升级日志记录重建完成时的指令数与 Wasm 线性内存页数；后者是分配高水位，不是存活对象的精确 heap 大小。月账及未清理的外部批准仍参与全量重建，生产容量边界需要独立负载验证。
 
 本次开发稳定布局为 schema 9；安全快照仍为 schema 3。使用新开发实例，不兼容旧实验布局。恢复完成的 Candid 参数与扩展生成绑定已同步。

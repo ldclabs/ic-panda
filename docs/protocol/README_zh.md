@@ -85,9 +85,9 @@ digest("dmsg/device-approval/v2", [
 
 签署前冻结完整保护头、payload、密钥指纹与批准上下文。user home 检查 issuer 是否属于当前账户；cose home 核对实际派生密钥的 kid 和指纹。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin（Local 部署还接受精确的环回 HTTP origin）；由扩展核实，设备签名不独立证明浏览器来源。
 
-幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。未知结果对账原请求。严格设备序号和执行水位在结果清理后继续阻止重放。相同内容可以产生相同签名，不能把签名摘要当作所有业务操作的唯一 ID。
+幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。未知结果对账原请求。严格设备序号和执行水位在结果清理后继续阻止重放，原样重放已清理的请求返回 `ResultExpired`。相同内容可以产生相同签名，不能把签名摘要当作所有业务操作的唯一 ID。
 
-`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt` 保存 issuer、设备/epoch、批准时间/期限、origin、费用上限、状态、待签字节 SHA-256、公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。升级从稳定执行记录重建叶，清理结果时删除叶。
+`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt` 保存 issuer、设备/epoch、批准时间/期限、origin、费用上限、状态、待签字节 SHA-256、公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。升级从稳定执行记录重建叶，清理结果时删除叶，之后查询返回认证的不存在证明。
 
 验证回执必须先验证指定 user canister 的 IC certificate、witness、路径和值，再匹配 Completed 状态、issuer、待签摘要、公钥指纹和签名摘要。SDK `verifyExecutionReceipt` 完成这两步；Rust `match_execution_receipt` 仅做绑定检查，调用者负责认证 certificate。历史回执不套用账户安全快照的 60 秒新鲜度；当前授权状态另行查询。回执证明本服务记录的执行授权，不自动证明外部项目权限或当前设备状态。
 

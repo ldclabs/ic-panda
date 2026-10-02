@@ -383,7 +383,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
     .unwrap();
     assert_eq!(leaf.status, ExecutionStatus::Failed);
     let replayed: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (first,));
-    assert_eq!(replayed, Err(Error::IdempotencyConflict));
+    assert_eq!(replayed, Err(Error::ResultExpired));
     assert_eq!(f.account_id(1, &id), account_before);
 }
 

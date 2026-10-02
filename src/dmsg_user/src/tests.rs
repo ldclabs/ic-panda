@@ -53,7 +53,15 @@ fn authorize(
         return Ok(e.clone());
     }
     let prepared = execution::PreparedRequest::new(request)?;
-    let budget = execution::check(&s.account, caller, request, now, &test_init(), &prepared)?;
+    let budget = execution::check(
+        &s.account,
+        caller,
+        request,
+        fingerprint,
+        now,
+        &test_init(),
+        &prepared,
+    )?;
     let e = execution::commit(&mut s.account, request.clone(), fingerprint, budget, now);
     s.account
         .execution_expirations
@@ -489,10 +497,30 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     )
     .unwrap();
     assert_eq!(s.pending_recovery.as_ref().unwrap().execute_after, after);
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(4), Hash::new([5; 32]), after),
+        Err(Error::IdempotencyConflict)
+    );
     recovery::complete_recovery(&mut s, p(4), request.op_id, after).unwrap();
     assert_eq!(s.auth_bindings, vec![p(4)]);
     assert_eq!(s.devices.len(), 1);
     assert_eq!(s.status, AccountStatus::Active);
+    // A fresh recovery-key signature cannot reuse the retained completion ID.
+    let signature = sk(3)
+        .sign(
+            digest(
+                "dmsg/recovery-request/v1",
+                &(s.home_user, &s.account_id, s.recovery_nonce, &request),
+            )
+            .as_slice(),
+        )
+        .to_bytes();
+    let completed = s.clone();
+    assert_eq!(
+        recovery::begin_recovery(&mut s, &request, &signature, &proof, after),
+        Err(Error::IdempotencyConflict)
+    );
+    assert_eq!(s, completed);
 }
 
 #[test]
@@ -650,9 +678,10 @@ fn expired_remote_results_release_all_unknown_slots() {
     }
     authorize(&mut s, p(1), &next, 2 * DAY).unwrap();
     assert_eq!(s.executions.len(), 1);
+    // The cleaned request keeps its receipt, so an exact replay is expired.
     assert_eq!(
         authorize(&mut s, p(1), &requests[0], 2 * DAY),
-        Err(Error::IdempotencyConflict)
+        Err(Error::ResultExpired)
     );
     let completed = completed(&s, &next);
     record_execution_response(&mut s, next.approval.request_id, Ok(completed.clone())).unwrap();
@@ -729,15 +758,25 @@ fn failed_budget_does_not_prune_expired_results_or_advance_sequences() {
 fn execution_precheck_is_read_only_even_when_authorization_succeeds() {
     let s = initialized();
     let request = execute_request(&s, 1, 1);
+    let fingerprint = digest("dmsg/execute-request/v2", &request);
     let prepared = execution::PreparedRequest::new(&request).unwrap();
     let before = s.clone();
-    let budget = execution::check(&s, p(1), &request, 1, &test_init(), &prepared).unwrap();
+    let budget =
+        execution::check(&s, p(1), &request, fingerprint, 1, &test_init(), &prepared).unwrap();
     assert_eq!(s, before);
     assert_eq!(budget.executions, 1);
     let mut changed = s.account.clone();
     changed.sensitive_policy.frozen = true;
     assert_eq!(
-        execution::check(&changed, p(1), &request, 2, &test_init(), &prepared),
+        execution::check(
+            &changed,
+            p(1),
+            &request,
+            fingerprint,
+            2,
+            &test_init(),
+            &prepared
+        ),
         Err(Error::Locked)
     );
 }
