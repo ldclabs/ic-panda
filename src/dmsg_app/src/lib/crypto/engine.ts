@@ -2011,7 +2011,13 @@ export class CryptoEngine {
         utf8(JSON.stringify(manifest))
       )
     )
-    await write('manifest.json', JSON.stringify({ ...manifest, authentication }))
+    const encodedManifest = JSON.stringify({ ...manifest, authentication })
+    ensure(
+      utf8(encodedManifest).length <= 32 * 1024 * 1024,
+      'QUOTA_EXCEEDED',
+      '恢复清单超过读取上限；分卷尚未标记完成。'
+    )
+    await write('manifest.json', encodedManifest)
     const updated = { ...meta, lastBackupAt: manifest.createdAt, lastBackupCount: count }
     await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
     this.meta = updated
