@@ -10,6 +10,7 @@
   let backupGenerated = $state(false),
     savedApart = $state(false),
     restoreFile = $state<File | null>(null)
+  let restoreFiles = $state<File[]>([])
   const needsSetup = $derived(!session.initialized)
   async function setup() {
     await session.run(async () => {
@@ -55,17 +56,24 @@
   }
   async function restore() {
     await session.run(async () => {
-      if (!restoreFile) throw new Error('请选择加密恢复包。')
+      if (!restoreFile && !restoreFiles.length) throw new Error('请选择加密恢复包或分卷目录。')
       if (password !== confirmPassword) throw new Error('两次口令不一致。')
-      const result = await session.crypto.call('restore', {
-        file: restoreFile,
-        code: checkCode,
-        password
-      })
+      const result = restoreFiles.length
+        ? await session.crypto.call('restoreDirectory', {
+            files: restoreFiles,
+            code: checkCode,
+            password
+          })
+        : await session.crypto.call('restore', {
+            file: restoreFile!,
+            code: checkCode,
+            password
+          })
       password = ''
       confirmPassword = ''
       checkCode = ''
       restoreFile = null
+      restoreFiles = []
       session.activate(result.meta)
       await session.refresh()
       session.message = result.missing.length
@@ -105,8 +113,22 @@
           >加密恢复包<input
             type="file"
             accept=".dmsg,application/json"
-            required
-            onchange={(event) => (restoreFile = event.currentTarget.files?.[0] ?? null)}
+            required={!restoreFiles.length}
+            onchange={(event) => {
+              restoreFile = event.currentTarget.files?.[0] ?? null
+              restoreFiles = []
+            }}
+          /></label
+        >
+        <label
+          >或选择完整分卷目录<input
+            type="file"
+            webkitdirectory
+            multiple
+            onchange={(event) => {
+              restoreFiles = Array.from(event.currentTarget.files ?? [])
+              restoreFile = null
+            }}
           /></label
         >
         <label
@@ -278,7 +300,7 @@
       <p>保存笔记、凭据和文件。即使离线，你的内容仍可在本机取用。</p>
       <div class="notice">
         <Icon name="info" />
-        <p>当前为 R0 本地版本。云端同步、正式签名与付费来信尚未启用。</p>
+        <p>当前为本地 / staging 开发版本。联网能力需配置服务并批准设备；生产门禁尚未完成。</p>
       </div>
       <button class="primary wide" onclick={() => (screen = 'setup')}
         >创建我的工作台<Icon name="arrow-right" /></button

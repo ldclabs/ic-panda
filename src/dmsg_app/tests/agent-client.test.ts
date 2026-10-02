@@ -76,21 +76,25 @@ function fixture() {
       principal_type: { Person: null },
       version: 2n,
       updated_at: BigInt(NOW - 1000),
-      controllers: [{
-        generation: 1,
-        public_key: publicKey,
-        name: [],
-        valid_from: BigInt(NOW - 1000),
-        delegation: { Unrestricted: null },
-        supersedes: [],
-        retired_at: [],
-        invalid_from: []
-      }]
+      controllers: [
+        {
+          generation: 1,
+          public_key: publicKey,
+          name: [],
+          valid_from: BigInt(NOW - 1000),
+          delegation: { Unrestricted: null },
+          supersedes: [],
+          retired_at: [],
+          invalid_from: []
+        }
+      ]
     }
   }
   const user = {
     get_principal: vi.fn<_SERVICE['get_principal']>().mockResolvedValue({ Ok: principal }),
-    sign_agent_event: vi.fn<_SERVICE['sign_agent_event']>().mockRejectedValue(new Error('timeout')),
+    sign_agent_event: vi
+      .fn<_SERVICE['sign_agent_event']>()
+      .mockRejectedValue(new Error('timeout')),
     get_execution: vi.fn<_SERVICE['get_execution']>(),
     reconcile_execution: vi.fn<_SERVICE['reconcile_execution']>()
   }
@@ -144,47 +148,58 @@ describe('agent execution recovery', () => {
     { Authorized: null },
     { Executing: null },
     { Unknown: { Unavailable: 'awaiting management response' } }
-  ])('retains a nonterminal result until the original signature completes: %j', async (outcome) => {
-    const f = fixture()
-    f.user.sign_agent_event.mockImplementation(async (request) => ({ Ok: result(request, outcome) }))
-    const job = await f.client.revoke(accountId, 1, delegation)
-    expect(job.stage).toBe('unknown')
-    const request = f.user.sign_agent_event.mock.calls[0][0]
-    f.user.get_execution.mockResolvedValue({ Ok: result(request, outcome) })
-    f.user.reconcile_execution.mockResolvedValue({ Ok: result(request, outcome) })
+  ])(
+    'retains a nonterminal result until the original signature completes: %j',
+    async (outcome) => {
+      const f = fixture()
+      f.user.sign_agent_event.mockImplementation(async (request) => ({
+        Ok: result(request, outcome)
+      }))
+      const job = await f.client.revoke(accountId, 1, delegation)
+      expect(job.stage).toBe('unknown')
+      const request = f.user.sign_agent_event.mock.calls[0][0]
+      f.user.get_execution.mockResolvedValue({ Ok: result(request, outcome) })
+      f.user.reconcile_execution.mockResolvedValue({ Ok: result(request, outcome) })
 
-    const resumed = f.reconnect()
-    expect((await resumed.resume(job.executionId)).stage).toBe('unknown')
-    expect((await resumed.jobs())[0].stage).toBe('unknown')
-    expect(f.submit).not.toHaveBeenCalled()
+      const resumed = f.reconnect()
+      expect((await resumed.resume(job.executionId)).stage).toBe('unknown')
+      expect((await resumed.jobs())[0].stage).toBe('unknown')
+      expect(f.submit).not.toHaveBeenCalled()
 
-    f.user.get_execution.mockResolvedValue({ Ok: completed(request) })
-    expect((await resumed.resume(job.executionId)).stage).toBe('accepted')
-    expect((await resumed.job(job.executionId))?.error).toBeUndefined()
-    expect(f.user.reconcile_execution).toHaveBeenCalledWith(rawAccount, request.approval.request_id)
-    expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
-    expect(f.deviceSign).toHaveBeenCalledTimes(1)
-    const sent = JSON.parse(f.submit.mock.calls[0][1]!.body as string)
-    expect(sent.event).toEqual(JSON.parse(request.event))
-  })
+      f.user.get_execution.mockResolvedValue({ Ok: completed(request) })
+      expect((await resumed.resume(job.executionId)).stage).toBe('accepted')
+      expect((await resumed.job(job.executionId))?.error).toBeUndefined()
+      expect(f.user.reconcile_execution).toHaveBeenCalledWith(
+        rawAccount,
+        request.approval.request_id
+      )
+      expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
+      expect(f.deviceSign).toHaveBeenCalledTimes(1)
+      const sent = JSON.parse(f.submit.mock.calls[0][1]!.body as string)
+      expect(sent.event).toEqual(JSON.parse(request.event))
+    }
+  )
 
-  it.each<CanisterError>([
-    { Unavailable: 'COSE unavailable' },
-    { QuotaExceeded: null }
-  ])('reconciles an authorized request after a dispatch error: %j', async (error) => {
-    const f = fixture()
-    f.user.sign_agent_event.mockResolvedValue({ Err: error })
-    const job = await f.client.revoke(accountId, 1, delegation)
-    expect(job).toMatchObject({ stage: 'unknown', error: Object.keys(error)[0] })
-    const request = f.user.sign_agent_event.mock.calls[0][0]
-    f.user.get_execution.mockResolvedValue({ Ok: result(request, { Authorized: null }) })
-    f.user.reconcile_execution.mockResolvedValue({ Ok: completed(request) })
+  it.each<CanisterError>([{ Unavailable: 'COSE unavailable' }, { QuotaExceeded: null }])(
+    'reconciles an authorized request after a dispatch error: %j',
+    async (error) => {
+      const f = fixture()
+      f.user.sign_agent_event.mockResolvedValue({ Err: error })
+      const job = await f.client.revoke(accountId, 1, delegation)
+      expect(job).toMatchObject({ stage: 'unknown', error: Object.keys(error)[0] })
+      const request = f.user.sign_agent_event.mock.calls[0][0]
+      f.user.get_execution.mockResolvedValue({ Ok: result(request, { Authorized: null }) })
+      f.user.reconcile_execution.mockResolvedValue({ Ok: completed(request) })
 
-    expect((await f.reconnect().resume(job.executionId)).stage).toBe('accepted')
-    expect(f.user.reconcile_execution).toHaveBeenCalledWith(rawAccount, request.approval.request_id)
-    expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
-    expect(f.deviceSign).toHaveBeenCalledTimes(1)
-  })
+      expect((await f.reconnect().resume(job.executionId)).stage).toBe('accepted')
+      expect(f.user.reconcile_execution).toHaveBeenCalledWith(
+        rawAccount,
+        request.approval.request_id
+      )
+      expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
+      expect(f.deviceSign).toHaveBeenCalledTimes(1)
+    }
+  )
 
   it('retries the exact journaled approval after a transport failure and absent result', async () => {
     const f = fixture()
@@ -209,18 +224,20 @@ describe('agent execution recovery', () => {
     expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
   })
 
-  it.each<ExecutionOutcome>([
-    { Failed: { Expired: null } },
-    { ResultExpired: null }
-  ])('finishes a confirmed terminal failure without resubmission: %j', async (outcome) => {
-    const f = fixture()
-    f.user.sign_agent_event.mockImplementation(async (request) => ({ Ok: result(request, outcome) }))
-    const job = await f.client.revoke(accountId, 1, delegation)
-    expect(job.stage).toBe('failed')
-    expect(await f.reconnect().resume(job.executionId)).toEqual(job)
-    expect(f.user.get_execution).not.toHaveBeenCalled()
-    expect(f.submit).not.toHaveBeenCalled()
-  })
+  it.each<ExecutionOutcome>([{ Failed: { Expired: null } }, { ResultExpired: null }])(
+    'finishes a confirmed terminal failure without resubmission: %j',
+    async (outcome) => {
+      const f = fixture()
+      f.user.sign_agent_event.mockImplementation(async (request) => ({
+        Ok: result(request, outcome)
+      }))
+      const job = await f.client.revoke(accountId, 1, delegation)
+      expect(job.stage).toBe('failed')
+      expect(await f.reconnect().resume(job.executionId)).toEqual(job)
+      expect(f.user.get_execution).not.toHaveBeenCalled()
+      expect(f.submit).not.toHaveBeenCalled()
+    }
+  )
 
   it('ends an absent request only after its approval expires', async () => {
     const f = fixture()
@@ -228,7 +245,10 @@ describe('agent execution recovery', () => {
     const job = await f.client.revoke(accountId, 1, delegation)
     f.user.get_execution.mockResolvedValue({ Err: { ResultExpired: null } })
     vi.mocked(Date.now).mockReturnValue(NOW + 240_000)
-    expect(await f.reconnect().resume(job.executionId)).toMatchObject({ stage: 'failed', error: 'Expired' })
+    expect(await f.reconnect().resume(job.executionId)).toMatchObject({
+      stage: 'failed',
+      error: 'Expired'
+    })
     expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
   })
 })
@@ -246,7 +266,10 @@ describe('agent credential listing', () => {
 
   it('includes active credentials beyond the first page', async () => {
     const f = fixture()
-    f.get.mockResolvedValueOnce({ result: credentials.slice(0, 100), next_cursor: credentials[99].id })
+    f.get.mockResolvedValueOnce({
+      result: credentials.slice(0, 100),
+      next_cursor: credentials[99].id
+    })
     f.get.mockResolvedValueOnce({ result: credentials.slice(100) })
     expect(await f.client.credentials(accountId)).toEqual(credentials)
     expect(f.get.mock.calls).toEqual([
@@ -257,8 +280,28 @@ describe('agent credential listing', () => {
 
   it('does not present a partial list when a later page fails', async () => {
     const f = fixture()
-    f.get.mockResolvedValueOnce({ result: credentials.slice(0, 100), next_cursor: credentials[99].id })
+    f.get.mockResolvedValueOnce({
+      result: credentials.slice(0, 100),
+      next_cursor: credentials[99].id
+    })
     f.get.mockRejectedValueOnce(new Error('offline'))
     await expect(f.client.credentials(accountId)).rejects.toThrow('offline')
   })
+})
+
+it('keeps a signed event reconcilable after a transient failure outside the admission window', async () => {
+  const f = fixture()
+  f.user.sign_agent_event.mockImplementation(async (request) => ({ Ok: completed(request) }))
+  f.submit.mockRejectedValueOnce(new Error('lost accepted response'))
+  await expect(f.client.revoke(accountId, 1, delegation)).rejects.toThrow(
+    'lost accepted response'
+  )
+  const [job] = await f.client.jobs()
+  vi.mocked(Date.now).mockReturnValue(NOW + 301000)
+  f.submit.mockResolvedValueOnce(
+    Response.json({ error: { code: 'unavailable' } }, { status: 503 })
+  )
+  expect((await f.client.resume(job.executionId)).stage).toBe('signed')
+  expect((await f.client.resume(job.executionId)).stage).toBe('accepted')
+  expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
 })

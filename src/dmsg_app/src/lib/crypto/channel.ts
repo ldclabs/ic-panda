@@ -822,6 +822,9 @@ export class ChannelVault {
     const cached = await this.port.cacheFile(manifest, chunks, true)
     return { key: cached.key }
   }
+  async attachmentSource(channel: string, messageId: string) {
+    return (await this.attachment(channel, messageId))?.value.sourceRecord ?? null
+  }
   async filePrepare(channel: string, messageId: string, objectKey: string) {
     const existing = await this.attachment(channel, messageId)
     if (existing?.value.upload) {
@@ -1149,6 +1152,7 @@ export class ChannelVault {
         channel = id.slice(prefix.length, prefix.length + 64),
         name = id.slice(prefix.length + 65)
       if (name.startsWith('message:')) {
+        if ((await this.job(channel, name))?.state === 'replaced') continue
         const objectId = hash(
           canonical(['dmsg/channel-message-record/1', channel, meta.deviceId, name.slice(8)])
         )

@@ -110,6 +110,52 @@ async function reconnect() {
   )
 }
 ;(window as any).accountFollowup = async (action: string, payload: any) => {
+  if (action === 'export-directory') {
+    await saved!.crypto.call('unlock', saved!.password)
+    try {
+      await saved!.crypto.call(
+        'importFile',
+        new File([new Uint8Array(4096).fill(61)], 'directory-file.bin')
+      )
+      const directory = await navigator.storage.getDirectory()
+      const result = await saved!.crypto.call(
+        'exportDirectory',
+        saved!.password,
+        directory,
+        1024
+      )
+      const written = await directory.getDirectoryHandle(result.name)
+      const files: { name: string; text: string }[] = []
+      for await (const handle of (written as any).values()) {
+        const file = await handle.getFile()
+        files.push({ name: file.name, text: await file.text() })
+      }
+      return { files, code: saved!.code, count: result.count }
+    } finally {
+      await saved!.crypto.lock()
+    }
+  }
+  if (action === 'restore-directory') {
+    const crypto = new CryptoClient()
+    try {
+      const restored = await crypto.call('restoreDirectory', {
+        files: payload.files.map((f: any) => new File([f.text], f.name)),
+        code: payload.code,
+        password: 'directory-browser-test-password'
+      })
+      const view = await crypto.call('view')
+      const file = view.entries.find((e) => e.item.title === 'directory-file.bin')!
+      const data = await crypto.call('downloadFile', file.record.key)
+      return {
+        count: restored.count,
+        authorized: restored.meta.registered,
+        size: data.blob.size,
+        bytes: Array.from(new Uint8Array(await data.blob.arrayBuffer()))
+      }
+    } finally {
+      await crypto.lock()
+    }
+  }
   if (action === 'fixture')
     return {
       input: saved!.input,
@@ -1103,15 +1149,31 @@ async function reconnect() {
       await client.mutate(data.account, { RevokeDevice: { device_id: unhex(payload) } })
       return true
     }
-    if (action === 'rotate' || action === 'open') {
+    if (action === 'rotate-recovery') {
+      const current = await client.refresh(data.account)
+      const generation = Number(current.info.recovery[0]!.generation) + 1
+      const material = await data.crypto.call('accountRecovery', {
+        account: data.account,
+        generation,
+        action: 'generate'
+      })
+      await client.enrollRecovery(data.account, material.code, {
+        generation: BigInt(generation),
+        signing_pub: unb64(material.signingPublic),
+        hpke_pub: unb64(material.hpkePublic),
+        delay_ms: 86400000n
+      })
+      data.code = material.code
+    }
+    if (action === 'rotate' || action === 'open' || action === 'rotate-recovery') {
       const root = new AccountRootClient(
         client,
         new CloudClient({ origin: data.input.relay, environment: 'local' })
       )
       const job =
-        action === 'rotate'
-          ? await root.rotate(data.account)
-          : await root.openCurrent(data.account)
+        action === 'open'
+          ? await root.openCurrent(data.account)
+          : await root.rotate(data.account)
       const state = await client.refresh(data.account)
       await data.crypto.call('activateAccountRoot', {
         context: job.context!,

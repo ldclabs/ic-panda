@@ -53,17 +53,17 @@ pnpm --dir src/dmsg_app build
 
 **仅填写 ID/地址不会自动开放生产能力。** 尚需完成以下接口和发布验证：
 
-| 能力                                                    | 当前状态 / 依赖                                                                                     |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 链上主体创建、认证绑定、设备批准和根 CAS                | 设置页已接入创建/绑定/设备/延迟恢复/根上传与 CAS，以及 R0 副本转换；正式 II origin 连续性仍待实测                                       |
+| 能力                                                    | 当前状态 / 依赖                                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 链上主体创建、认证绑定、设备批准和根 CAS                | 设置页已接入创建/绑定/设备/延迟恢复/根上传与 CAS，以及 R0 副本转换；正式 II origin 连续性仍待实测                   |
 | 云端同步、正式频道、epoch/HPKE 分发、邀请接受、历史授权 | 账户证据与云端 wire 已对齐，实际扩展 profile 互操作已验证；内容与正式频道已接通并完成真实本地互操作；生产部署仍关闭 |
-| 正式文件/声明阈值签名                                   | 已接通精确批准、正式签名、认证执行回执、原请求对账与结果归档；可信时间戳另行验收 |
-| handle 认领、购买和转移                                 | 旧名称认证快照导入和免费认领已接通；新名称购买/转移 UI 不在此次接线中                                                              |
-| 付费来信、资金和 provider controller                    | 付费来信、现金/SNS 会员在本地合成资金环境已联调；真实资金及 provider controller 不在本轮放行范围                                            |
-| 旧 Local / ECDH / VetKey 内容解码                       | 已按明确模式解锁旧 MK/KEK/DEK 并阅读消息和附件；真实授权样本尚待验收，共享继承需冻结证明与全部 managers 同意      |
-| 锁定后的限定后台同步                                      | 可提交已固定的密文版本并读取对应原操作状态，批准最多 45 秒；自动收取新内容仍需解锁                            |
+| 正式文件/声明阈值签名                                   | 已接通精确批准、正式签名、认证执行回执、原请求对账与结果归档；可信时间戳另行验收                                    |
+| handle 认领、购买和转移                                 | 旧名称认证快照导入和免费认领已接通；新名称固定收费、ICRC-2 授权与原扣款对账、双方转移已接入；生产名称服务仍需验收   |
+| 付费来信、资金和 provider controller                    | 付费来信、现金/SNS 会员在本地合成资金环境已联调；真实资金及 provider controller 不在本轮放行范围                    |
+| 旧 Local / ECDH / VetKey 内容解码                       | 已按明确模式解锁旧 MK/KEK/DEK 并阅读消息和附件；真实授权样本尚待验收，共享继承需冻结证明与全部 managers 同意        |
+| 锁定后的限定后台同步                                    | 可提交已固定的密文版本并读取对应原操作状态，批准最多 45 秒；自动收取新内容仍需解锁                                  |
 
-本地加密格式是 **`dmsg-backup/1` / `dmsg/content/1`**。到云端的字段、AAD、文件大小与导出映射见 [cloud 合同](../../docs/protocol/cloud_zh.md)；A2 已接通普通内容 writer/reader、冲突保留、实际密文合并导出。开发中的本地主体不能通过修改 ID 原地变成另一链上主体；正式迁入必须显式重新封装并验证。单个备份包限制为 256 MiB，且对象和文件块各不超过 10,000 项；导出前检查与恢复端相同的限制。普通云端拉取逐块缓存、复用已有密文，完整校验后提交快照，不受单备份包大小限制。
+本地加密格式是 **`dmsg-backup/1`（单文件）、`dmsg-backup/2`（分卷目录）/ `dmsg/content/1`**。到云端的字段、AAD、文件大小与导出映射见 [cloud 合同](../../docs/protocol/cloud_zh.md)；A2 已接通普通内容 writer/reader、冲突保留、实际密文合并导出。开发中的本地主体不能通过修改 ID 原地变成另一链上主体；正式迁入必须显式重新封装并验证。单个备份包限制为 256 MiB，且对象和文件块各不超过 10,000 项；导出前检查与恢复端相同的限制。普通云端拉取逐块缓存、复用已有密文，完整校验后提交快照，不受单备份包大小限制。
 
 ## COSE 执行 SDK
 
@@ -72,16 +72,24 @@ pnpm --dir src/dmsg_app build
 ```ts
 const prepared = prepareSign(accountContext, {
   origin: browserSource.origin,
-  key: { algorithm: 'Ed25519', kid: descriptor.key_id,
-    publicKeyFingerprint: descriptor.public_key_fingerprint },
-  statement: { issuer: accountContext.issuer,
-    content: { kind: 'text', text: 'Approve this release' } }
+  key: {
+    algorithm: 'Ed25519',
+    kid: descriptor.key_id,
+    publicKeyFingerprint: descriptor.public_key_fingerprint
+  },
+  statement: {
+    issuer: accountContext.issuer,
+    content: { kind: 'text', text: 'Approve this release' }
+  }
 })
 // accountContext 来自已认证账户，含 accountId、issuer、设备、epoch、序号、
 // homeUser、毫秒期限与费用上限；descriptor 来自选定用途的密钥查询。
 // 明确批准后才调用；正式签名需要独立窗口逐次批准。
-const result = await prepared.approveAndExecute(userCanister, deviceSigner,
-  async signedOperation => encryptedOutbox.save(signedOperation))
+const result = await prepared.approveAndExecute(
+  userCanister,
+  deviceSigner,
+  async (signedOperation) => encryptedOutbox.save(signedOperation)
+)
 ```
 
 [services/cose.ts](src/lib/services/cose.ts) 固定请求副本，批准同时绑定最终 COSE 待签字节、公钥指纹、origin 和执行上下文。同一 prepared 对象只提交一次；review、toBeSigned、approvalMessage 返回副本，完成结果还须匹配被批准的签名内容和公钥。未知结果用 `getExecution` / `reconcileExecution` 查询同一 ID。
@@ -104,7 +112,7 @@ R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不�
 
 离线恢复：先保存 `dist` 的副本和 `.dmsg` 文件，把恢复码另存；在空白 Chrome 配置中离线加载同一扩展包，打开工作台选择“从加密备份恢复”。无需主站、ICP 或中继。丢失的密文不能仅凭恢复码重建。
 
-导出当前有 256 MiB 包大小上限，导入/导出及最终 Blob 下载会占用内存。流式文件处理限制加密工作集，但不是任意总库容量的流式归档器。超限会停止并提示，不输出假完整包。
+单文件导出有 256 MiB 包大小上限，导入/导出及最终 Blob 下载会占用内存。更大内容使用分卷目录。流式文件处理限制加密工作集，但不是任意总库容量的流式归档器。超限会停止并提示，不输出假完整包。
 
 ## 验证
 
@@ -143,7 +151,6 @@ pnpm --dir src/dmsg_app test:e2e
 - [Chrome 消息通信](https://developer.chrome.com/docs/extensions/develop/concepts/messaging)、[Service Worker 生命周期](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle)、[扩展存储](https://developer.chrome.com/docs/extensions/develop/concepts/storage-and-cookies)。
 - 字体和现有 Remix SVG 授权保存在 `public/assets/*-LICENSE.txt`。现有 Private Gate raster 素材按原样复用，不宣称为新绘制的官方矢量母版。
 
-
 ## A1 账户与根流程
 
 在设置 → 设备与认证中依次连接 II、创建账户、保存并复验账户恢复码、提交内容根、验证并启用正式工作区。已有本地工作区会保留为独立副本。新设备需要已有管理员批准或延迟恢复；恢复码不会作为日常在线解锁凭据。具体字节与断点语义见 [账户与根合同](../../docs/protocol/account_root_zh.md)。
@@ -163,7 +170,6 @@ DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
 
 设置页现已接入一次性配对、原站加密档案导入、幂等保管和离线历史验证。共享 reader 位于 `../dmsg_legacy`，合同见 `../../docs/protocol/legacy_archive_zh.md`。原站有独立加密分页缓存，支持三种旧根模式、256 KiB 密文分片、未完成上传保全、PANDA/DMSG/PoL 记录、头像选择和冻结增量对照。真实三模式授权样本、未公开的未决权益与生产切换仍待验证。Chrome `e2e/legacy.spec.ts` 使用两个空白浏览器验证密码 Worker 重启和断网恢复；合成记录不能替代真实旧数据验收。
 
-
 ## 本轮集成范围与验证入口
 
 - 云端同步合并固定服务器导出、实际密文块、根对象和本机未同步版本。冲突保留双方；单恢复包仍为 256 MiB，缺块或超限明确失败。
@@ -172,12 +178,11 @@ DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
 - 商业客户端核对认证目录、权益与月度用量，保存原订单/claim/转账参数。SNS actor 与 dMsg 账户分别显示，冷却后继续仍批准同一个意图。来信明确区分报价、入账、存储受理、B 点和实际转出。
 - `legacy.cutover` 必须由已审核的冻结批次填入；为空时官方共享继承和最终来源确认不可用。个人档案导出不依赖共享经理在线。
 
-本地复现可按工作包选择 `DMSG_CONTENT_PROBE=1`、`DMSG_SIGNING_PROBE=1`、`DMSG_CHANNEL_PROBE=1`、`DMSG_MIGRATION_PROBE=1`、`DMSG_COMMERCE_PROBE=1` 或 `DMSG_DELIVERY_PROBE=1`，运行 `test:account`。共享迁移还需设置 `DMSG_LEGACY_RELEASES` 指向盘点匹配的旧发布工件。测试只使用独立临时浏览器和合成账户/资金，不证明生产部署或真实旧用户恢复成功。
+本地复现可按工作包选择 `DMSG_CONTENT_PROBE=1`、`DMSG_SIGNING_PROBE=1`、`DMSG_CHANNEL_PROBE=1`、`DMSG_MIGRATION_PROBE=1`、`DMSG_COMMERCE_PROBE=1` 、`DMSG_DIRECTORY_PROBE=1`、`DMSG_RECOVERY_PROBE=1` 或 `DMSG_DELIVERY_PROBE=1`，运行 `test:account`。共享迁移还需设置 `DMSG_LEGACY_RELEASES` 指向盘点匹配的旧发布工件。测试只使用独立临时浏览器和合成账户/资金，不证明生产部署或真实旧用户恢复成功。
 
 公开接口与边界见 [云端](../../docs/protocol/cloud_zh.md)、[历史档案](../../docs/protocol/legacy_archive_zh.md)、[冻结](../../docs/protocol/legacy_freeze_zh.md)、[频道与共享迁移](../../docs/protocol/channel_migration_zh.md)。
 
 未打开的旧历史 grant 同时保留指定设备与当时恢复代的 HPKE 封装；原设备丢失时，可在已恢复/重新批准的目标账户中显式提供相应代恢复码接收。恢复私钥不会常驻日常内容根。已接收的档案直接进入普通离线恢复范围。
-
 
 ## 第三方认证与 v4 恢复
 
@@ -185,4 +190,16 @@ DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
 
 认证窗口与文档窗口分开显示用途。账号和设备重新验证后，先持久化原批准再提交；断连/重启保留操作，结果未知按原参数核对。取消只在 awaiting_user 有效，已取消记录不能因迟到回调复活。TokenList 使用专用认证叶完成自身登录，不取得 dMsg 会话或钱包 delegation。
 
-`SignAction` 与 checkout 仍未开放；查询 capabilities 后再使用相应能力。精确帧、编码、错误和恢复规则见 [browser-v4](../../docs/protocol/browser-v4.md)。
+`SignAction` 与 checkout 已接入独立批准流程；实际准入同时检查构建来源白名单与链上应用登记，查询 capabilities 后再使用相应能力。精确帧、编码、错误和恢复规则见 [browser-v4](../../docs/protocol/browser-v4.md)。
+
+## 2026-10-03 恢复与重试闭环
+
+- 未确认的旧根内容先查询原操作；仍可提交的批准到期前保持原记录。确认未提交后重建内容版本、密钥、上传与请求，保存替代关系及父版本关系。频道草稿提供显式“按当前成员重新加密发送”，未知结果不会直接另造消息。
+- 设置中的资金恢复直接调用 payment，可按付款身份分页找回托管、核对入金、退款和按原区块对账转出，不依赖 relay 或已恢复的内容根。
+- 已归档的签名从加密内容读取，可在新设备离线展示、数学验签及导出历史证据。已完整归档的完成请求不再误计为备份缺口。
+- 支持更换恢复公钥、移除认证绑定、冻结及调整敏感执行政策、查询和撤销频道/文件内容授权。更换恢复材料后必须提交并启用新根，生成新备份；旧材料仍能解开已交付的旧密文。
+- 来信策略编辑保留未修改字段，并提供屏蔽、定向邀请和容量管理。明确失败的钱包付款可重新批准费用；未知付款仍冻结原参数。Agent 事件在服务暂时不可用时保留原事件对账。
+
+`dmsg-backup/1` 是不超过 256 MiB 的单文件恢复包。更大内容可选择 `dmsg-backup/2` 分卷目录：逐批校验并写出密文，最后写入恢复根认证的 manifest。恢复选择完整目录，逐卷校验后才登记工作区；缺卷、损坏或错误恢复码不会启用部分工作区。分卷解除总包 256 MiB 限制，仍受磁盘、浏览器存储和当前云端清单边界限制；未完成任务明确列为缺口，不能把分卷成功称作任意容量的实测验收。
+
+私有联调工作流按指定公开提交构建 Wasm 后，分别执行内容、签名、频道、会员、来信探针。公共 CI 不携带私有实现或凭据。

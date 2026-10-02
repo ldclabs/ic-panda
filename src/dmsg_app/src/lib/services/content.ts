@@ -91,6 +91,42 @@ export class ContentClient {
   async quota() {
     return this.session.get(`${this.base()}/quota`)
   }
+  async fileGrants() {
+    const grants: any[] = []
+    let after = 0
+    for (;;) {
+      const page = await this.session.get(
+        `${this.base()}/sync?kind=grant&after=${after}&limit=100`
+      )
+      ensure(
+        Array.isArray(page.entries) &&
+          Number.isSafeInteger(page.next_cursor) &&
+          page.next_cursor >= after,
+        'INTEGRITY_FAILED'
+      )
+      for (const row of page.entries) {
+        const payload = this.verify(row.value.signed, 'dmsg/file/grant/v1').payload
+        for (const [key, value] of Object.entries(payload))
+          ensure(equal(canonical(value), canonical(row.value[key])), 'INTEGRITY_FAILED')
+        ensure(row.value.version === Number(payload.expected_version) + 1, 'INTEGRITY_FAILED')
+        grants.push(row.value)
+      }
+      if (page.complete) return grants
+      ensure(page.next_cursor > after, 'INTEGRITY_FAILED')
+      after = page.next_cursor
+    }
+  }
+  async revokeFileGrant(id: string) {
+    const grant = (await this.fileGrants()).find((g) => g.grant_id === id)
+    ensure(grant, 'NOT_FOUND')
+    if (grant.revoked || grant.expires_at <= Date.now()) return grant
+    const payload = this.verify(grant.signed, 'dmsg/file/grant/v1').payload
+    return this.post(`${this.base()}/grants`, 'dmsg/file/grant/v1', {
+      ...payload,
+      expected_version: grant.version,
+      revoked: true
+    })
+  }
   async profile() {
     const value = await this.session.get(`${this.base()}/profile`)
     const saved = await this.account.crypto.call(
@@ -274,6 +310,28 @@ export class ContentClient {
     }
     const stored = await this.operation(job.revision.requestId)
     if (stored?.found) return { job, result: await this.ack(job, stored.result) }
+    if (await this.account.crypto.call('contentNeedsRekey', job.recordKey, generation)) {
+      ensure(
+        !job.revision.signed || (job.revision.deadline ?? 0) <= Date.now(),
+        'EXECUTION_UNKNOWN',
+        '原批准尚可能提交，请到期后对账再重新加密。'
+      )
+      for (const upload of job.uploads) {
+        const prior = await this.session.find(
+          `${this.base()}/uploads/${upload.plan.upload_id}`
+        )
+        if (prior?.status === 'staging')
+          await this.post(`${this.base()}/uploads/cancel`, 'dmsg/upload/cancel/v1', {
+            upload_id: upload.plan.upload_id
+          })
+      }
+      job = await this.account.crypto.call(
+        'contentReplan',
+        job.recordKey,
+        generation,
+        job.uploads.map((u) => u.plan.upload_id)
+      )
+    }
     job = await this.usableJob(job, generation)
     for (const upload of job.uploads) await this.upload(upload)
     return { job, result: null }
@@ -392,11 +450,12 @@ export class ContentClient {
     for (const record of eligible) {
       const { job, result } = await this.stage(record.key, generation)
       if (result) continue
+      const activeRecord = this.vaultRecord(job)
       const context = await this.session.context(job.revision.requestId)
       const signed = await signCloudCommand(
         context,
         'dmsg/vault/revision/v1',
-        await this.revisionPayload(job, record),
+        await this.revisionPayload(job, activeRecord),
         this.session.sign
       )
       job.revision.signed = signed.cose_sign1
@@ -413,10 +472,10 @@ export class ContentClient {
         deadline: context.deadline,
         state: 'queued',
         attempts: 0,
-        recordKey: record.key,
+        recordKey: activeRecord.key,
         requestId: context.requestId,
-        revision: record.revision,
-        tombstone: record.tombstone,
+        revision: activeRecord.revision,
+        tombstone: activeRecord.tombstone,
         command: signed.cose_sign1,
         postProof: await signCloudHttp(
           context,

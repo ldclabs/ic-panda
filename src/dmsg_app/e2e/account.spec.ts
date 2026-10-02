@@ -175,6 +175,46 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       await tab.waitForFunction(() => 'accountFollowup' in window)
       return { context, tab }
     }
+    if (process.env.DMSG_RECOVERY_PROBE === '1') {
+      const rotated = await page.evaluate(() =>
+        (window as any).accountFollowup('rotate-recovery')
+      )
+      expect(rotated.generation).toBe(2)
+      const exported = await page.evaluate(() => (window as any).accountFollowup('fixture'))
+      const target = await freshPage('new-recovery-code')
+      await target.context.setOffline(true)
+      await expect(
+        target.tab.evaluate((value) => (window as any).accountFollowup('restore', value), {
+          ...exported,
+          code: fixtureBackup.code
+        })
+      ).rejects.toThrow()
+      const recovered = await target.tab.evaluate(
+        (value) => (window as any).accountFollowup('restore', value),
+        exported
+      )
+      expect(recovered).toMatchObject({
+        generation: 2,
+        entries: rotated.entries,
+        authorized: false
+      })
+      return
+    }
+    if (process.env.DMSG_DIRECTORY_PROBE === '1') {
+      const exported = await page.evaluate(() =>
+        (window as any).accountFollowup('export-directory')
+      )
+      expect(exported.files.length).toBeGreaterThan(2)
+      const target = await freshPage('directory-offline')
+      await target.context.setOffline(true)
+      const recovered = await target.tab.evaluate(
+        (value) => (window as any).accountFollowup('restore-directory', value),
+        exported
+      )
+      expect(recovered).toMatchObject({ count: exported.count, authorized: false, size: 4096 })
+      expect(recovered.bytes.every((byte: number) => byte === 61)).toBe(true)
+      return
+    }
     if (process.env.DMSG_DELIVERY_PROBE === '1') {
       const recipient = await freshPage('paid-contact-recipient')
       const other = await recipient.tab.evaluate(

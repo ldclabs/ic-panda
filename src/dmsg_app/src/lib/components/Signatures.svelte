@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { session, dateLabel } from '../session.svelte'
+  import { session, dateLabel, downloadBlob } from '../session.svelte'
+  import { verifyDocumentArtifact } from '../protocol/statements'
+  import { unb64 } from '../protocol/codec'
   import { listRequests, openApproval, rejectRequest } from '../requests'
   import type { PendingRequest } from '../protocol/requests'
   import Icon from './Icon.svelte'
   import FileVerify from './FileVerify.svelte'
   let tab = $state('requests'),
     requests = $state<PendingRequest[]>([])
+  let archives = $state<any[]>([])
   const labels: Record<string, string> = {
     awaiting_user: '待确认',
     rejected: '已拒绝',
@@ -20,6 +23,14 @@
     result_expired: '结果已过期'
   }
   onMount(() => {
+    void session.crypto
+      .call('formalHistories')
+      .then((rows) => {
+        archives = rows.map((row) => JSON.parse(row.value))
+      })
+      .catch((error) => {
+        session.error = String(error)
+      })
     void listRequests().then((r) => (requests = r))
     const timer = setInterval(() => {
       void listRequests().then((r) => (requests = r))
@@ -43,6 +54,41 @@
     >{/each}
 </div>
 {#if tab === 'requests'}
+  {#if archives.length}<section class="settings-section">
+      <h2>已归档的签名证据</h2>
+      <p>这些记录随加密备份恢复；查看和导出不需要原请求页面在线。</p>
+      {#each archives as archive}<article class="history-message">
+          <p>{archive.origin} · <code>{archive.executionId}</code></p>
+          <button
+            class="secondary"
+            onclick={() =>
+              session.run(async () => {
+                verifyDocumentArtifact({
+                  cose_sign1: unb64(archive.artifact.cose_sign1),
+                  cose_key: unb64(archive.artifact.cose_key)
+                })
+                session.message = '数学签名与签署内容已核验；历史授权证据保留在导出中。'
+              })}>离线核验签名</button
+          >
+          <button
+            class="secondary"
+            onclick={() =>
+              downloadBlob(
+                new Blob(
+                  [
+                    JSON.stringify(
+                      { format: 'dmsg-signature-evidence/1', ...archive },
+                      null,
+                      2
+                    )
+                  ],
+                  { type: 'application/json' }
+                ),
+                'dmsg-signature-evidence.json'
+              )}>导出签名与历史证据</button
+          >
+        </article>{/each}
+    </section>{/if}
   <div class="notice">
     <Icon name="info" />
     <p>
@@ -104,7 +150,7 @@
 {:else}<section class="empty-state">
     <Icon name="key" size={44} />
     <h2>权限，从明确的范围开始。</h2>
-    <p>当前没有生效的应用授权。内容访问与正式签名权限分别管理。</p>
+    <p>在频道的“应用内容授权”中读取和撤销已签授权。敏感执行政策在账户设置中管理。</p>
     <div class="permission-guide">
       <div>
         <strong>内容授权</strong>

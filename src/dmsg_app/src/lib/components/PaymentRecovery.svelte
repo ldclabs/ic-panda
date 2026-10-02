@@ -1,7 +1,7 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { hex } from '../protocol/codec'
-  import type { InboxClient } from '../services/inbox'
+  import type { PaymentClient } from '../services/payment'
   import type {
     Account,
     Deposit,
@@ -10,7 +10,7 @@
     TransferLeg
   } from '../canisters/generated/payment'
 
-  let { client, escrow }: { client: InboxClient; escrow: EscrowInfo } = $props()
+  let { client, escrow }: { client: PaymentClient; escrow: EscrowInfo } = $props()
   let deposits = $state<Deposit[]>([]),
     transfers = $state<TransferLeg[]>([]),
     selected = $state<bigint[]>([]),
@@ -21,6 +21,7 @@
     moreDeposits = $state(false),
     moreTransfers = $state(false),
     loadedEscrow = $state('')
+  let reconcileBlock = $state('')
   const escrowId = $derived(hex(Uint8Array.from(escrow.escrow_id)))
   const address = (account: Account) =>
     `${account.owner.toText()}${account.subaccount[0] ? ` / ${hex(Uint8Array.from(account.subaccount[0]))}` : ''}`
@@ -163,12 +164,22 @@
       >
     {/if}
   {/if}
+  <label>原转出账本区块<input bind:value={reconcileBlock} inputmode="numeric" /></label>
   {#each transfers as transfer (transfer.leg_id)}
     <p>
       转账 #{String(transfer.leg_id)} · {Object.keys(transfer.status)[0]} · 金额 {String(
         transfer.amount
       )} + 手续费 {String(transfer.fee)} · {address(transfer.to)}
     </p>
+    {#if 'Unknown' in transfer.status || 'InFlight' in transfer.status}<button
+        class="secondary"
+        disabled={session.busy || !/^[0-9]+$/.test(reconcileBlock)}
+        onclick={() =>
+          session.run(async () => {
+            await client.reconcileTransfer(escrowId, transfer.leg_id, BigInt(reconcileBlock))
+            await loadTransfers()
+          })}>按原区块核对转出</button
+      >{/if}
     {#if !('Succeeded' in transfer.status || 'Superseded' in transfer.status)}
       <button
         class="secondary"

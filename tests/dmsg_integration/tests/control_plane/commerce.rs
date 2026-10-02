@@ -249,6 +249,7 @@ fn checkout_two_ledgers_same_block_isolation_delivery_replay_and_revenue() {
             (beneficiary(f.user, &id),),
         );
         assert_eq!(r.unwrap().plan_snapshot.plan_id, PlanId::Plus);
+        export_resource_fixture(&f, &id, "cash-active");
         let refund: Result<CashTransfer> = update(
             &f.ic,
             f.commerce,
@@ -486,6 +487,7 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
     );
     let active = r.unwrap();
     assert_eq!(active.status, PandaClaimStatus::Active);
+    export_resource_fixture(&f, &id, "sns-active");
     let audit: Result<PandaOperationsPage> = query(
         &f.ic,
         f.membership,
@@ -1597,4 +1599,44 @@ fn unknown_ids_do_not_consume_the_shared_call_budget() {
     );
     assert_eq!(r, Err(Error::Forbidden));
     pay(&f, &id, "plus", 180);
+}
+
+/// Optional real certificate fixture for independent resource clients.
+fn export_resource_fixture(f: &Fixture, id: &AccountId, name: &str) {
+    let Some(directory) = std::env::var_os("DMSG_COMMERCE_FIXTURE_DIR") else {
+        return;
+    };
+    let b = beneficiary(f.user, id);
+    let view: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (b.clone(),),
+    );
+    let view = view.unwrap();
+    let entitlement: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "get_entitlement_batch",
+        (vec![b],),
+    );
+    let catalog: Result<CertifiedBatch> = query(&f.ic, f.commerce, person(1), "get_catalog", ());
+    std::fs::write(
+        std::path::Path::new(&directory).join(format!("{name}.cbor")),
+        canonical(&(
+            1u16,
+            "dmsg-resource-fixture/1",
+            time(&f.ic),
+            ByteBuf::from(f.ic.root_key().unwrap()),
+            f.user,
+            f.commerce,
+            id,
+            view,
+            entitlement.unwrap(),
+            catalog.unwrap(),
+        )),
+    )
+    .unwrap();
 }

@@ -412,6 +412,26 @@
           onclick={() => transfer('commit')}>提交双方批准的转移</button
         >{/if}
     </details>
+    {#if ledger}<details>
+        <summary>应用内容授权</summary>
+        <p>先补拉并核验控制记录，再查看当前授权；撤销不能收回已下载的内容。</p>
+        {#each Object.values(ledger.grants) as grant}<article>
+            <p>
+              {grant.origin} · {grant.actions.join('、')} · 第 {grant.epoch_min}–{grant.epoch_max}
+              代 · {dateLabel(grant.expires_at)} · {grant.revoked ? '已撤销' : '按期限有效'}
+            </p>
+            <button
+              class="secondary"
+              disabled={!client ||
+                session.busy ||
+                grant.revoked ||
+                !me ||
+                !['owner', 'admin'].includes(me.role)}
+              onclick={() => change({ type: 'revoke_grant', grant_id: grant.grant_id })}
+              >撤销此授权</button
+            >
+          </article>{/each}
+      </details>{/if}
     {#if pending.length}<details open>
         <summary>待对账的原任务</summary>{#each pending as job}<div class="settings-row">
             <span>{job.action}<br /><code>{job.requestId}</code></span><button
@@ -423,6 +443,15 @@
                   await local()
                 })}>核对并继续原任务</button
             >
+            {#if job.action === 'dmsg/channel/message/v1'}<button
+                class="secondary"
+                disabled={!client || session.busy}
+                onclick={() =>
+                  session.run(async () => {
+                    await client!.reencrypt(selected, job.key)
+                    await local()
+                  })}>核对后按当前成员重新加密发送</button
+              >{/if}
           </div>{/each}
       </details>{/if}
     <div class="message-history">

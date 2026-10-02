@@ -232,3 +232,54 @@ it('uses lexicographic bounds and never treats a pruned map range as absent', ()
     value: utf8('value')
   })
 })
+
+it('purchases once with exact charge terms and resumes the recorded charge without renewing allowance', async () => {
+  const f = fixture(admin, (reservation) => {
+    reservation.legacy_owner = admin
+    reservation.legacy_name_principal = []
+  })
+  Object.assign(f.account, { home: principal(7) })
+  vi.spyOn(f.client, 'ownership').mockResolvedValue(null)
+  const registry = f.registry as any
+  registry.get_handle_config = vi.fn(async () => ({
+    home_user: principal(7),
+    ledger: principal(9),
+    ledger_fee: 10n
+  }))
+  registry.get_handle_operation = vi.fn().mockResolvedValueOnce({ Err: { NotFound: null } })
+  let completed: any
+  registry.register_handle = vi.fn(async (registration: any) => ({
+    Ok: (completed = { registration, phase: { Committed: null } })
+  }))
+  const wallet = { owner: admin, approveHandle: vi.fn(async () => {}) }
+  const job = await f.client.preparePurchase('longname')
+  expect(job.total).toBe('500000000000')
+  await f.client.purchase(wallet as any)
+  registry.get_handle_operation.mockResolvedValue({ Ok: completed })
+  await f.client.purchase(wallet as any)
+  expect(wallet.approveHandle).toHaveBeenCalledOnce()
+  expect(registry.register_handle).toHaveBeenCalledOnce()
+  expect(f.account.mutate).toHaveBeenCalledOnce()
+})
+
+it('transfer packets bind both accounts, one version and one operation', async () => {
+  const f = fixture()
+  vi.spyOn(f.client, 'ownership').mockResolvedValue({
+    handle: 'namedowner',
+    owner_account: accountBytes,
+    version: 1n
+  })
+  const target = xidText(new Uint8Array(12).fill(2))
+  const packet = await f.client.prepareTransfer('namedowner', target)
+  const { from, accept } = f.client.inspectTransfer(packet)
+  expect(from.target_account[0]).toEqual(accept.account_id)
+  expect(accept.target_account[0]).toEqual(from.account_id)
+  const { encodeHandle } = await import('../src/lib/protocol/handle')
+  await expect(
+    f.client.transfer(
+      encodeHandle('transfer_handle', [from, { ...accept, expected_version: 2n }]),
+      false
+    )
+  ).rejects.toThrow('INTEGRITY_FAILED')
+  expect(f.account.mutate).not.toHaveBeenCalled()
+})

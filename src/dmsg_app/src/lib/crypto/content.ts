@@ -37,6 +37,7 @@ interface Port {
   decode<T>(record: EncryptedObject): Promise<T>
   verifyFile(record: EncryptedObject): Promise<unknown>
   tick(): Promise<unknown>
+  rekey?(record: EncryptedObject): Promise<string>
 }
 export interface CloudRevision {
   item_id: string
@@ -92,6 +93,8 @@ export class ContentEngine {
   }
   async prepare(recordKey: string): Promise<ContentJob> {
     const { db, meta, bundle } = await this.port.ready()
+    const replacement = await db.db.get('meta', `content-replacement:${recordKey}`)
+    if (replacement) return this.prepare(replacement.key)
     ensure(
       meta.account?.id && meta.registered && meta.account.rootDigest,
       'AUTH_REQUIRED',
@@ -184,6 +187,18 @@ export class ContentEngine {
       root.fill(0)
     }
   }
+  async needsRekey(recordKey: string, generation: number) {
+    const { db } = await this.port.ready()
+    const record = (await db.db.get('objects', recordKey)) as EncryptedObject
+    ensure(record, 'NOT_FOUND')
+    return (
+      record.generation !== generation ||
+      Boolean(
+        record.parent &&
+        (await db.db.get('meta', `content-replacement:${record.id}:${record.parent}`))
+      )
+    )
+  }
   /** Rewrap only uploads which can no longer be committed. The encrypted
    * object, revision ID, file chunks and operation request ID remain fixed. */
   async replan(recordKey: string, generation: number, uploadIds: string[]) {
@@ -198,6 +213,14 @@ export class ContentEngine {
       job && record && job.recordDigest === record.digest && !job.revision.result,
       'INTEGRITY_FAILED'
     )
+    if (await this.needsRekey(recordKey, generation)) {
+      ensure(
+        this.port.rekey &&
+          (!job.revision.signed || (job.revision.deadline ?? 0) <= Date.now()),
+        'EXECUTION_UNKNOWN'
+      )
+      return this.prepare(await this.port.rekey(record))
+    }
     const replacement = new Set(uploadIds)
     ensure(
       replacement.size === uploadIds.length &&

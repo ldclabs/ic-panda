@@ -264,6 +264,9 @@ export class CryptoEngine {
   async channelFilePrepare(...args: Parameters<ChannelVault['filePrepare']>) {
     return this.channelVault().filePrepare(...args)
   }
+  async channelAttachmentSource(channel: string, messageId: string) {
+    return this.channelVault().attachmentSource(channel, messageId)
+  }
   async channelFileChunk(...args: Parameters<ChannelVault['fileChunk']>) {
     return this.channelVault().fileChunk(...args)
   }
@@ -377,11 +380,110 @@ export class CryptoEngine {
       ready: () => this.ready(),
       decode: <T>(record: EncryptedObject) => this.decode<T>(record),
       verifyFile: (record) => this.verifyFile(record, undefined, undefined, false),
+      rekey: (record) => this.rekeyPending(record),
       tick: () => this.tick()
     }))
   }
   async contentPrepare(key: string) {
     return this.contentEngine().prepare(key)
+  }
+  async contentNeedsRekey(key: string, generation: number) {
+    return this.contentEngine().needsRekey(key, generation)
+  }
+  private async rekeyPending(record: EncryptedObject) {
+    const { db, meta, bundle, lease } = await this.ready()
+    const payload = await this.decode<any>(record)
+    const parent = record.parent
+      ? await db.db.get('meta', `content-replacement:${record.id}:${record.parent}`)
+      : null
+    if ((record.kind === 'vault' || record.kind === 'migration_part') && payload.file) {
+      const old: FileManifest = payload.file
+      await this.verifyFile(record, undefined, undefined, false)
+      const next = {
+        ...old,
+        version: id(),
+        key: b64(random()),
+        chunks: [] as FileManifest['chunks']
+      }
+      for (const [index, ref] of old.chunks.entries()) {
+        await this.tick()
+        const stored = await db.db.get('chunks', ref.id)
+        const plaintext = await open(unb64(old.key), stored.ciphertext, [
+          'dmsg/file-chunk/1',
+          old.id,
+          old.version,
+          index,
+          old.chunks.length,
+          ref.size
+        ])
+        try {
+          const iv = new Uint8Array(12)
+          iv.set([0x64, 0x4d, 0x73, 0x67])
+          new DataView(iv.buffer).setBigUint64(4, BigInt(index))
+          const ciphertext = await seal(
+            unb64(next.key),
+            plaintext,
+            ['dmsg/file-chunk/1', next.id, next.version, index, old.chunks.length, ref.size],
+            iv
+          )
+          const chunk = {
+            id: `${next.id}:${next.version}:${index}`,
+            ciphertext,
+            digest: hash(unb64(ciphertext))
+          }
+          await db.cacheChunks([chunk], lease)
+          next.chunks.push({ id: chunk.id, digest: chunk.digest, size: ref.size })
+        } finally {
+          plaintext.fill(0)
+        }
+      }
+      payload.file = next
+    }
+    if (record.kind === 'vault')
+      payload.resolvedConflicts = [
+        ...new Set([...(payload.resolvedConflicts ?? []), record.key])
+      ]
+    const next = {
+      ...record,
+      revision: id(),
+      parent: parent ? String(parent.key).split(':')[1] : record.parent,
+      generation: meta.rootGeneration,
+      deviceId: meta.deviceId,
+      conflict: false,
+      createdAt: Date.now()
+    }
+    next.key = `${next.id}:${next.revision}`
+    const key = random()
+    try {
+      next.ciphertext = await seal(key, canonical(payload), this.aad(next))
+      next.keyEnvelope = await seal(unb64(bundle.root), key, this.wrapContext(next))
+      next.digest = hash(canonical([this.aad(next), next.ciphertext, next.keyEnvelope]))
+    } finally {
+      key.fill(0)
+    }
+    return db.guarded(['objects', 'outbox'], lease, async (tx) => {
+      const previous = await tx.objectStore('outbox').get(record.revision)
+      ensure(previous && previous.state !== 'stored', 'VERSION_CONFLICT')
+      await putObject(tx, { ...record, conflict: true })
+      await tx
+        .objectStore('outbox')
+        .put({ ...previous, state: 'blocked', error: 'REPLACED_AFTER_REKEY' })
+      await putObject(tx, next)
+      await tx.objectStore('outbox').put({
+        id: next.revision,
+        objectKey: next.key,
+        frame: b64(canonical(next)),
+        digest: next.digest,
+        state: 'local'
+      })
+      await tx
+        .objectStore('meta')
+        .put({ id: `content-replacement:${record.key}`, key: next.key })
+      const head = await tx.objectStore('meta').get(`head:${record.id}`)
+      if (head?.revision === record.revision)
+        await tx.objectStore('meta').put(objectHead(next, objectChannel(next, payload)))
+      return next.key
+    })
   }
   async contentReplan(key: string, generation: number, uploadIds: string[]) {
     return this.contentEngine().replan(key, generation, uploadIds)
@@ -569,6 +671,17 @@ export class CryptoEngine {
       )
     ).key
   }
+  async formalHistories() {
+    const { db } = await this.ready()
+    const result: { key: string; value: string }[] = []
+    for (const record of await db.heads('request')) {
+      const stored = await this.decode<{ format?: string; value?: string }>(record)
+      if (stored.format === 'dmsg-formal-history/1' && typeof stored.value === 'string')
+        result.push({ key: record.key, value: stored.value })
+      await this.tick()
+    }
+    return result
+  }
   private async ready() {
     ensure(
       this.db && this.lease && this.bundle && this.localKey && this.meta,
@@ -644,7 +757,8 @@ export class CryptoEngine {
     archive?: Pick<RecoveryArchive, 'meta' | 'objects' | 'synced' | 'chunks'>,
     pendingRecoveryCode?: Uint8Array,
     expectedActive?: string,
-    channels = new Map<string, string>()
+    channels = new Map<string, string>(),
+    activate = true
   ) {
     const name = `dmsg:${meta.environment}:${meta.subjectId}:${meta.deviceId}`
     const db = await WorkspaceDB.open(name),
@@ -686,6 +800,8 @@ export class CryptoEngine {
           .objectStore('local_private')
           .put({ id: 'pending-recovery', ciphertext: pendingRecovery })
       if (archive) {
+        for (const [from, to] of archive.meta.contentReplacements ?? [])
+          await tx.objectStore('meta').put({ id: `content-replacement:${from}`, key: to })
         if (archive.meta.cloudSnapshot) {
           await tx.objectStore('meta').put({
             id: 'cloud-snapshot',
@@ -727,7 +843,7 @@ export class CryptoEngine {
         for (const chunk of archive.chunks) await tx.objectStore('chunks').put(chunk)
       }
       await tx.done
-      await registerWorkspace(name, expectedActive)
+      if (activate) await registerWorkspace(name, expectedActive)
       registered = true
       this.db = db
       this.lease = lease
@@ -1692,14 +1808,27 @@ export class CryptoEngine {
       if (++chunkIndex % 16 === 0) await this.tick()
     }
     const pendingRequests = await db.db.getAll('requests')
+    const archived = new Set(
+      (await this.formalHistories()).flatMap(({ value }) => {
+        const job = JSON.parse(value)
+        return job.stage === 'complete' && job.artifact && job.receipt ? [job.externalId] : []
+      })
+    )
     for (const request of pendingRequests.filter(
-      (r) => !['rejected', 'cancelled', 'expired'].includes(r.state)
+      (r) =>
+        !['rejected', 'cancelled', 'expired', 'failed', 'result_expired'].includes(r.state) &&
+        !archived.has(r.id)
     ))
       missing.push(`request:${request.id}`)
     await this.tick()
     return {
       format: 'dmsg-backup/1',
-      meta: { ...meta },
+      meta: {
+        ...meta,
+        contentReplacements: (
+          await db.db.getAll('meta', prefixRange('content-replacement:'))
+        ).map((r) => [r.id.slice('content-replacement:'.length), r.key])
+      },
       createdAt: Date.now(),
       scope: missing.length ? 'partial' : 'local-inclusive',
       objects,
@@ -1752,6 +1881,344 @@ export class CryptoEngine {
       count: content.objects.length,
       missing: content.missing,
       scope: content.scope
+    }
+  }
+  async exportDirectory(
+    password: string,
+    directory: FileSystemDirectoryHandle,
+    partLimit = 16 * 1024 * 1024
+  ) {
+    await this.reauthenticate(password)
+    ensure(partLimit >= 1024 && partLimit <= 32 * 1024 * 1024, 'INVALID_INPUT')
+    const { db, meta, bundle, lease } = await this.ready()
+    const archiveId = id(),
+      output = await directory.getDirectoryHandle(`dmsg-${archiveId}`, { create: true })
+    const parts: { name: string; digest: string; size: number }[] = []
+    let items: unknown[] = [],
+      size = 0,
+      count = 0
+    const write = async (name: string, value: string) => {
+      await this.tick()
+      const file = await output.getFileHandle(name, { create: true }),
+        stream = await file.createWritable()
+      try {
+        await stream.write(value)
+        await stream.close()
+      } catch (error) {
+        await stream.abort().catch(() => {})
+        throw error
+      }
+      await this.tick()
+    }
+    const flush = async () => {
+      if (!items.length) return
+      const encoded = JSON.stringify({
+        format: 'dmsg-backup-part/2',
+        archiveId,
+        index: parts.length,
+        items
+      })
+      const name = `part-${parts.length.toString().padStart(6, '0')}.json`
+      await write(name, encoded)
+      parts.push({ name, digest: hash(utf8(encoded)), size: utf8(encoded).length })
+      items = []
+      size = 0
+    }
+    const append = async (value: unknown) => {
+      const bytes = utf8(JSON.stringify(value)).length
+      if (items.length && size + bytes > partLimit) await flush()
+      items.push(value)
+      size += bytes
+    }
+    const missing = (await db.db.getAll('migration_jobs'))
+      .filter((j) => j.stage !== 'complete')
+      .map((j) => `unfinished:${j.id}`)
+    missing.push(...(await this.channelVault().backupMissing()))
+    const archived = new Set(
+      (await this.formalHistories()).flatMap(({ value }) => {
+        const j = JSON.parse(value)
+        return j.stage === 'complete' && j.artifact && j.receipt ? [j.externalId] : []
+      })
+    )
+    for (const r of await db.db.getAll('requests'))
+      if (
+        !['rejected', 'cancelled', 'expired', 'failed', 'result_expired'].includes(r.state) &&
+        !archived.has(r.id)
+      )
+        missing.push(`request:${r.id}`)
+    const files = new Set<string>(),
+      attachments: { key: string; file: string }[] = []
+    for (const store of ['objects', 'chunks'] as const) {
+      let after: string | undefined
+      for (;;) {
+        const page = await db.db.getAll(
+          store,
+          after ? IDBKeyRange.lowerBound(after, true) : undefined,
+          16
+        )
+        if (!page.length) break
+        for (const value of page) {
+          await this.tick()
+          if (store === 'objects') {
+            const payload = await this.decode<any>(value)
+            if ((value.kind === 'vault' || value.kind === 'migration_part') && payload.file) {
+              await this.verifyFile(value, undefined, undefined, false)
+              files.add(`${payload.file.id}:${payload.file.version}`)
+            }
+            if (value.kind === 'formal_message' && payload.file)
+              attachments.push({
+                key: `channel-file:${payload.channel}:${payload.file.upload_id}`,
+                file: `${payload.file.file_id}:${payload.file.version}`
+              })
+            const job = await db.db.get('outbox', value.revision)
+            await append({ store, value, synced: !job || job.state === 'stored' })
+            count++
+          } else {
+            ensure(hash(unb64(value.ciphertext)) === value.digest, 'INTEGRITY_FAILED')
+            await append({ store, value })
+          }
+          after = store === 'objects' ? value.key : value.id
+        }
+        this.progress({
+          stage: '正在分卷导出',
+          completed: parts.length,
+          total: parts.length + 1
+        })
+      }
+    }
+    for (const attachment of attachments)
+      if (!files.has(attachment.file)) missing.push(attachment.key)
+    await this.verifyCloudSnapshot(meta, unb64(bundle.root))
+    await flush()
+    const manifest = {
+      format: 'dmsg-backup/2',
+      archiveId,
+      meta: {
+        ...meta,
+        contentReplacements: (
+          await db.db.getAll('meta', prefixRange('content-replacement:'))
+        ).map((r) => [r.id.slice('content-replacement:'.length), r.key])
+      },
+      createdAt: Date.now(),
+      count,
+      parts,
+      missing
+    }
+    const authentication = b64(
+      hmac(
+        sha256,
+        derive(unb64(bundle.root), ['dmsg/backup-auth/2']),
+        utf8(JSON.stringify(manifest))
+      )
+    )
+    await write('manifest.json', JSON.stringify({ ...manifest, authentication }))
+    const updated = { ...meta, lastBackupAt: manifest.createdAt, lastBackupCount: count }
+    await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
+    this.meta = updated
+    return { name: output.name, count, parts: parts.length, missing }
+  }
+  async restoreDirectory(input: { files: File[]; code: string; password: string }) {
+    ensure(!this.bundle && (await currentWorkspace()) === null, 'VERSION_CONFLICT')
+    ensure(input.password.length >= 12, 'INVALID_INPUT')
+    const manifests = input.files.filter((f) => f.name === 'manifest.json')
+    ensure(
+      manifests.length === 1 && manifests[0].size <= 32 * 1024 * 1024,
+      'INVALID_INPUT',
+      '请选择一个完整的分卷备份目录。'
+    )
+    const { authentication, ...manifest } = JSON.parse(await manifests[0].text())
+    ensure(
+      manifest.format === 'dmsg-backup/2' &&
+        /^[0-9a-f]{64}$/.test(manifest.archiveId) &&
+        Array.isArray(manifest.parts) &&
+        Array.isArray(manifest.missing),
+      'UNSUPPORTED_PROTOCOL'
+    )
+    const meta: WorkspaceMeta = manifest.meta
+    const seeds = recoverySeeds(
+      unhex(input.code.trim().toLowerCase().replaceAll(/[-\s]/g, '')),
+      meta.environment,
+      meta.subjectId,
+      meta.recoveryGeneration
+    )
+    let root: Uint8Array
+    try {
+      root = await hpkeOpen(
+        seeds.hpke,
+        meta.recoveryEnvelope,
+        recoveryContext(meta.environment, meta.subjectId, meta.rootGeneration)
+      )
+    } finally {
+      seeds.signing.fill(0)
+      seeds.hpke.fill(0)
+    }
+    let staged: WorkspaceDB | null = null
+    try {
+      ensure(
+        equal(
+          unb64(authentication),
+          hmac(sha256, derive(root, ['dmsg/backup-auth/2']), utf8(JSON.stringify(manifest)))
+        ),
+        'INTEGRITY_FAILED'
+      )
+      const files = new Map(input.files.map((file) => [file.name, file]))
+      ensure(
+        files.size === input.files.length &&
+          new Set(manifest.parts.map((p: any) => p.name)).size === manifest.parts.length,
+        'INTEGRITY_FAILED'
+      )
+      const bundle: Bundle = {
+        root: b64(root),
+        signing: b64(random()),
+        hpke: b64(random()),
+        transport: b64(random()),
+        roots: meta.rootHistory
+          ? decodeCanonical(
+              await open(root, meta.rootHistory, [
+                'dmsg/root-history/1',
+                meta.subjectId,
+                meta.rootGeneration
+              ])
+            )
+          : {}
+      }
+      const restored = {
+        ...meta,
+        deviceId: id(),
+        registered: false,
+        createdAt: Date.now(),
+        recoveryChecked: true,
+        signingPublic: b64(ed25519.getPublicKey(unb64(bundle.signing))),
+        hpkePublic: await hpkePublic(unb64(bundle.hpke)),
+        transportPublic: b64(ed25519.getPublicKey(unb64(bundle.transport))),
+        restoredFrom: {
+          manifestDigest: hash(utf8(JSON.stringify(manifest))),
+          device: meta.deviceId,
+          at: Date.now()
+        }
+      }
+      await this.install(
+        input.password,
+        restored,
+        bundle,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        false
+      )
+      staged = this.db!
+      for (const [from, to] of restored.contentReplacements ?? [])
+        await staged.guardedPut(
+          'meta',
+          { id: `content-replacement:${from}`, key: to },
+          this.lease!
+        )
+      const parents = new Set<string>()
+      let count = 0
+      for (const [index, ref] of manifest.parts.entries()) {
+        ensure(
+          ref.name === `part-${index.toString().padStart(6, '0')}.json` &&
+            ref.size <= 64 * 1024 * 1024,
+          'INTEGRITY_FAILED'
+        )
+        const file = files.get(ref.name)
+        ensure(file && file.size === ref.size, 'RECOVERY_INCOMPLETE')
+        const text = await file.text()
+        ensure(hash(utf8(text)) === ref.digest, 'INTEGRITY_FAILED')
+        const part = JSON.parse(text)
+        ensure(
+          part.format === 'dmsg-backup-part/2' &&
+            part.archiveId === manifest.archiveId &&
+            part.index === index &&
+            Array.isArray(part.items),
+          'INTEGRITY_FAILED'
+        )
+        await this.tick()
+        await staged.guarded(['objects', 'chunks', 'outbox'], this.lease!, async (tx) => {
+          for (const { store, value, synced } of part.items) {
+            ensure(store === 'objects' || store === 'chunks', 'INTEGRITY_FAILED')
+            if (store === 'objects') {
+              ensure(
+                value.subjectId === meta.subjectId &&
+                  value.key === `${value.id}:${value.revision}` &&
+                  /^[0-9a-f]{64}$/.test(value.id) &&
+                  /^[0-9a-f]{64}$/.test(value.revision) &&
+                  !(await tx.objectStore('objects').get(value.key)),
+                'INTEGRITY_FAILED'
+              )
+              await putObject(tx, value)
+              if (value.kind !== 'draft')
+                await tx.objectStore('outbox').put({
+                  id: value.revision,
+                  objectKey: value.key,
+                  frame: b64(canonical(value)),
+                  digest: value.digest,
+                  state: synced ? 'stored' : value.conflict ? 'blocked' : 'local'
+                })
+              if (!value.conflict && value.parent) parents.add(`${value.id}:${value.parent}`)
+              count++
+            } else {
+              ensure(!(await tx.objectStore('chunks').get(value.id)), 'INTEGRITY_FAILED')
+              await tx.objectStore('chunks').put(value)
+            }
+          }
+        })
+        this.progress({
+          stage: '正在校验恢复分卷',
+          completed: index + 1,
+          total: manifest.parts.length
+        })
+      }
+      ensure(count === manifest.count, 'RECOVERY_INCOMPLETE')
+      let after: string | undefined
+      for (;;) {
+        const page = (await staged.db.getAll(
+          'objects',
+          after ? IDBKeyRange.lowerBound(after, true) : undefined,
+          16
+        )) as EncryptedObject[]
+        if (!page.length) break
+        for (const record of page) {
+          await this.tick()
+          const payload = await this.decode<any>(record)
+          if ((record.kind === 'vault' || record.kind === 'migration_part') && payload.file)
+            await this.verifyFile(record, undefined, undefined, false)
+          if (!record.conflict && !parents.has(record.key)) {
+            ensure(!(await staged.db.get('meta', `head:${record.id}`)), 'INTEGRITY_FAILED')
+            await staged.guardedPut(
+              'meta',
+              objectHead(record, objectChannel(record, payload)),
+              this.lease!
+            )
+          }
+          after = record.key
+        }
+      }
+      await this.verifyCloudSnapshot(restored, root)
+      if (restored.cloudSnapshot) {
+        await staged.guardedPut(
+          'meta',
+          {
+            id: 'cloud-snapshot',
+            through: restored.cloudSnapshot.through,
+            evidence: restored.cloudSnapshot.evidence
+          },
+          this.lease!
+        )
+        for (const [id, revision] of restored.cloudSnapshot.heads)
+          await staged.guardedPut('meta', { id: `cloud-head:${id}`, revision }, this.lease!)
+      }
+      await this.restoreAuxiliary()
+      await registerWorkspace(staged.name)
+      return { meta: restored, count, missing: manifest.missing as string[] }
+    } catch (error) {
+      const name = staged?.name
+      await this.lock()
+      if (name) await removeWorkspaceDatabase(name)
+      throw error
+    } finally {
+      root.fill(0)
     }
   }
   async restore(input: { file: File; code: string; password: string }) {

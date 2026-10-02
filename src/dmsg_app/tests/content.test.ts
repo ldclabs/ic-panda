@@ -112,7 +112,7 @@ it('aborts the whole import transaction when a later chunk conflicts', async () 
   db.db.close()
   await engine.lock()
 })
-it('replans expired uploads and a pending vault revision after root rotation without changing content IDs', async () => {
+it('replans expired uploads and a pending vault revision after root rotation with fresh content keys after rotation', async () => {
   const engine = await localFixture()
   const record = await engine.importFile(new File([new Uint8Array(32).fill(17)], 'replan.bin'))
   const original = await engine.contentPrepare(record.key)
@@ -141,11 +141,11 @@ it('replans expired uploads and a pending vault revision after root rotation wit
   const rotated = await engine.contentReplan(record.key, 2, [
     expired.uploads[1].plan.upload_id
   ])
-  expect(rotated.uploads[0].plan.upload_id).toBe(expired.uploads[0].plan.upload_id)
+  expect(rotated.uploads[0].plan.upload_id).not.toBe(expired.uploads[0].plan.upload_id)
   expect(rotated.uploads[1].plan.root_generation).toBe(2)
-  expect(rotated.uploads[1].plan.version_id).toBe(record.revision)
-  expect(rotated.revision.requestId).toBe(original.revision.requestId)
-  expect(await engine.contentChunk(rotated.uploads[1], 0)).toEqual(
+  expect(rotated.uploads[1].plan.version_id).not.toBe(record.revision)
+  expect(rotated.revision.requestId).not.toBe(original.revision.requestId)
+  expect(await engine.contentChunk(rotated.uploads[1], 0)).not.toEqual(
     await engine.contentChunk(original.uploads[1], 0)
   )
   await engine.lock()

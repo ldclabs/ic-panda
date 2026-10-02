@@ -32,7 +32,6 @@ import { ed25519 } from '../crypto/primitives'
 import { ensure } from '../errors'
 
 const MAX_CYCLES = 100_000_000_000n
-const WINDOW = 300_000
 const JOBS = 'agent:jobs'
 
 /** Durable record of one hosted signature, from approval to service acceptance. */
@@ -50,7 +49,8 @@ export interface AgentJob {
   error?: string
 }
 
-export type Authority = { kind: 'all' } | { kind: 'restricted'; scopes: string[]; audiences: string[] }
+export type Authority =
+  { kind: 'all' } | { kind: 'restricted'; scopes: string[]; audiences: string[] }
 
 export interface Credential {
   id: string
@@ -180,14 +180,22 @@ export class AgentClient {
   }
 
   async jobs(): Promise<AgentJob[]> {
-    const ids = JSON.parse((await this.account.crypto.call('controlGet', JOBS)) ?? '[]') as string[]
+    const ids = JSON.parse(
+      (await this.account.crypto.call('controlGet', JOBS)) ?? '[]'
+    ) as string[]
     const jobs = await Promise.all(ids.map((id) => this.job(id)))
     return jobs.filter((job): job is AgentJob => job !== null)
   }
 
   private async save(job: AgentJob) {
-    await this.account.crypto.call('controlPut', this.key(job.executionId), JSON.stringify(job))
-    const ids = JSON.parse((await this.account.crypto.call('controlGet', JOBS)) ?? '[]') as string[]
+    await this.account.crypto.call(
+      'controlPut',
+      this.key(job.executionId),
+      JSON.stringify(job)
+    )
+    const ids = JSON.parse(
+      (await this.account.crypto.call('controlGet', JOBS)) ?? '[]'
+    ) as string[]
     if (!ids.includes(job.executionId))
       await this.account.crypto.call(
         'controlPut',
@@ -334,7 +342,10 @@ export class AgentClient {
   }
 
   private async finish(job: AgentJob, result: ExecutionResult) {
-    ensure(equal(Uint8Array.from(result.request_id), unhex(job.executionId)), 'INTEGRITY_FAILED')
+    ensure(
+      equal(Uint8Array.from(result.request_id), unhex(job.executionId)),
+      'INTEGRITY_FAILED'
+    )
     if (!('Completed' in result.outcome)) {
       if ('Failed' in result.outcome) {
         job.stage = 'failed'
@@ -344,7 +355,8 @@ export class AgentClient {
         job.error = 'ResultExpired'
       } else {
         job.stage = 'unknown'
-        job.error = 'Unknown' in result.outcome ? Object.keys(result.outcome.Unknown)[0] : 'Pending'
+        job.error =
+          'Unknown' in result.outcome ? Object.keys(result.outcome.Unknown)[0] : 'Pending'
       }
       await this.save(job)
       return job
@@ -394,9 +406,9 @@ export class AgentClient {
     } else {
       const code = body?.error?.code ?? `HTTP ${response.status}`
       job.error = code
-      // Retry only what can still succeed: an unavailable service within the window.
-      if (response.status < 500 || Date.now() > job.envelope.event.created_at + WINDOW)
-        job.stage = 'failed'
+      // A transient failure says nothing about an earlier acceptance. Exact
+      // resubmission remains a lookup even after the new-admission window.
+      if (response.status < 500 && ![408, 429].includes(response.status)) job.stage = 'failed'
     }
     await this.save(job)
     return job

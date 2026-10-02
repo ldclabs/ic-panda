@@ -1,5 +1,5 @@
+import { PaymentClient } from './payment'
 import { Principal } from '@icp-sdk/core/principal'
-import { IDL } from '@icp-sdk/core/candid'
 import type {
   _SERVICE as Payment,
   OpenEscrow,
@@ -19,12 +19,10 @@ import {
   deliveryQuoteDigest,
   admissionDigest,
   paymentLeafKey,
-  paymentMethod,
   paymentAmount,
   encodePayment,
   decodePayment
 } from '../protocol/payment'
-import { candidValue } from '../protocol/account'
 import {
   b64,
   unb64,
@@ -48,15 +46,16 @@ import { ensure } from '../errors'
 import { xidBytes } from '../protocol/identity'
 import { WalletClient } from './wallet'
 
-export class InboxClient {
+export class InboxClient extends PaymentClient {
   readonly session: CloudSession
   constructor(
     readonly account: AccountClient,
     readonly cloud: CloudClient,
-    readonly payment: Payment,
-    readonly paymentId: string,
+    payment: Payment,
+    paymentId: string,
     readonly accountId: string
   ) {
+    super(payment, account.agent, paymentId)
     this.session = new CloudSession(account, cloud, accountId)
   }
   private async journal(key: string) {
@@ -156,7 +155,12 @@ export class InboxClient {
     mode: 'closed' | 'contacts' | 'free' | 'paid',
     payee: string,
     net: string,
-    allow: string[] = []
+    allow: string[] = [],
+    rules?: {
+      block: string[]
+      invitations: { id: string; account: string; expires_at: number }[]
+      capacity: number
+    }
   ) {
     await this.session.context()
     ensure(
@@ -171,6 +175,10 @@ export class InboxClient {
     const matches = (policy: any) =>
       policy?.mode === mode &&
       equal(canonical(policy.allow), canonical(allow)) &&
+      (!rules ||
+        (equal(canonical(policy.block), canonical(rules.block)) &&
+          equal(canonical(policy.invitations), canonical(rules.invitations)) &&
+          policy.capacity === rules.capacity)) &&
       (mode !== 'paid' ||
         (policy.offer?.offer.recipient.owner === payee &&
           policy.offer.offer.recipient_net === net &&
@@ -243,10 +251,10 @@ export class InboxClient {
       expected_version: old?.version ?? 0,
       prev_hash: old?.hash ?? null,
       mode,
-      block: [],
+      block: rules?.block ?? old?.block ?? [],
       allow,
-      invitations: [],
-      capacity: 100,
+      invitations: rules?.invitations ?? old?.invitations ?? [],
+      capacity: rules?.capacity ?? old?.capacity ?? 100,
       inbox_key_version: version,
       inbox_hpke_pub: key.publicKey,
       root_generation: key.rootGeneration,
@@ -311,12 +319,20 @@ export class InboxClient {
     }
     return policy
   }
-  async contact(recipient: string, text: string, payer: string, orderId = id()) {
+  async contact(
+    recipient: string,
+    text: string,
+    payer: string,
+    orderId = id(),
+    invitation: string | null = null
+  ) {
+    ensure(invitation === null || /^[0-9a-f]{64}$/.test(invitation), 'INVALID_INPUT')
     const prior = await this.journal(`outgoing:${orderId}`)
     if (prior) {
       ensure(
         prior.recipient === recipient &&
           prior.textDigest === hash(utf8(text)) &&
+          prior.payload.invitation === invitation &&
           (prior.payload.payer?.owner ?? '') === payer,
         'IDEMPOTENCY_CONFLICT'
       )
@@ -346,7 +362,7 @@ export class InboxClient {
       order_id: orderId,
       inbox_key_version: policy.inbox_key_version,
       ciphertext,
-      invitation: null,
+      invitation,
       ...(payer
         ? { payer: { owner: Principal.fromText(payer).toText(), subaccount: null } }
         : {})
@@ -481,18 +497,9 @@ export class InboxClient {
     await this.save(`escrow:${order.order_id}`, job)
     return this.escrow(job.escrow)
   }
-  async escrow(id: string) {
-    const value = controlResult(await this.payment.get_escrow(unhex(id))),
-      batch = controlResult(await this.payment.get_escrow_certified([unhex(id)]))
-    const proof = await certifiedValue(batch, this.account.agent, this.paymentId, unhex(id))
-    const result = paymentMethod('get_escrow').retTypes[0] as IDL.VariantClass,
-      type = result._fields.find(([name]) => name === 'Ok')![1]
-    ensure(equal(canonical(candidValue(type, value)), proof.value), 'INTEGRITY_FAILED')
-    return value
-  }
-  async fund(escrow: EscrowInfo, wallet: WalletClient) {
+  async fund(escrow: EscrowInfo, wallet: WalletClient, fee?: bigint) {
     const terms = await this.terms(escrow.quote.signer_epoch, escrow.quote.fee_policy_version)
-    const block = await wallet.transferEscrow(escrow, BigInt(terms.config.ledger_fee))
+    const block = await wallet.transferEscrow(escrow, fee ?? BigInt(terms.config.ledger_fee))
     controlResult(await this.payment.check_funding(escrow.escrow_id, block))
     return this.escrow(hex(Uint8Array.from(escrow.escrow_id)))
   }
@@ -642,37 +649,5 @@ export class InboxClient {
       { order_id: order, read, archived, reopen_contact: archived },
       true
     )
-  }
-  async refund(escrow: string) {
-    controlResult(await this.payment.expiry_refund(unhex(escrow)))
-    return this.escrow(escrow)
-  }
-
-  async deposits(escrow: string, after?: bigint) {
-    return controlResult(
-      await this.payment.list_deposits(unhex(escrow), after === undefined ? [] : [after])
-    )
-  }
-
-  async transfers(escrow: string, after?: bigint) {
-    return controlResult(
-      await this.payment.list_transfers(unhex(escrow), after === undefined ? [] : [after])
-    )
-  }
-
-  async refundQuote(escrow: string, blocks: bigint[], reserve: boolean) {
-    return controlResult(await this.payment.quote_refund(unhex(escrow), blocks, reserve))
-  }
-
-  async claimRefund(escrow: string, blocks: bigint[], reserve: boolean) {
-    return controlResult(await this.payment.claim_refund(unhex(escrow), blocks, reserve))
-  }
-
-  async processTransfer(escrow: string, leg: bigint) {
-    return controlResult(await this.payment.process_transfer(unhex(escrow), leg))
-  }
-
-  async reviseTransfer(escrow: string, leg: bigint, fee: bigint) {
-    return controlResult(await this.payment.revise_rejected_transfer(unhex(escrow), leg, fee))
   }
 }

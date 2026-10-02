@@ -1,5 +1,8 @@
 import { Principal } from '@icp-sdk/core/principal'
-import type { _SERVICE } from '../canisters/generated/handle'
+import type { _SERVICE, Registration, HandleIntent } from '../canisters/generated/handle'
+import { handlePrice, encodeHandle, decodeHandle } from '../protocol/handle'
+import { digest, canonical } from '../protocol/codec'
+import type { WalletClient } from './wallet'
 import { AccountClient, controlResult } from './account'
 import {
   canonicalHandle,
@@ -28,6 +31,205 @@ export class HandleClient {
     readonly registryId: string,
     readonly oldCaller: Principal
   ) {}
+  async purchaseJob(): Promise<{
+    args: string
+    ledger: string
+    total: string
+    phase: string
+  } | null> {
+    const value = await this.account.crypto.call(
+      'controlGet',
+      `handle-purchase:${this.account.meta.account?.id}`
+    )
+    return value ? JSON.parse(value) : null
+  }
+  private savePurchase(job: { args: string; ledger: string; total: string; phase: string }) {
+    return this.account.crypto.call(
+      'controlPut',
+      `handle-purchase:${this.account.meta.account?.id}`,
+      JSON.stringify(job)
+    )
+  }
+  async preparePurchase(name: string) {
+    const prior = await this.purchaseJob()
+    ensure(!prior || ['Committed', 'Rejected', 'review'].includes(prior.phase), 'Pending')
+    const account = this.account.meta.account?.id
+    ensure(account, 'AUTH_REQUIRED')
+    name = canonicalHandle(name)
+    ensure(!(await this.ownership(name)), 'IdempotencyConflict')
+    ensure(
+      (await this.registry.snapshot_progress()).sealed,
+      'LegacyWriteDisabled',
+      '名称快照尚未封存，暂不能购买新名称。'
+    )
+    const cfg = await this.registry.get_handle_config()
+    ensure(cfg.home_user.toText() === this.account.home.toText(), 'INTEGRITY_FAILED')
+    const total = handlePrice(name)
+    ensure(total > cfg.ledger_fee, 'FeeBlocked')
+    const registration: Registration = {
+      fee: cfg.ledger_fee,
+      payer: { owner: this.oldCaller, subaccount: [] },
+      intent: {
+        handle_canister: Principal.fromText(this.registryId),
+        action: { Register: null },
+        account_id: xidBytes(account),
+        target_account: [],
+        handle: name,
+        expected_version: 0n,
+        op_id: unhex(id()),
+        terms_digest: digest('dmsg/handle-charge/v1', [
+          cfg.ledger.toUint8Array(),
+          { owner: this.oldCaller.toUint8Array(), subaccount: null },
+          total - cfg.ledger_fee,
+          cfg.ledger_fee
+        ])
+      }
+    }
+    const job = {
+      args: encodeHandle('register_handle', [registration]),
+      ledger: cfg.ledger.toText(),
+      total: total.toString(),
+      phase: 'review'
+    }
+    await this.savePurchase(job)
+    return job
+  }
+  async purchase(wallet: WalletClient, block?: bigint) {
+    const job = await this.purchaseJob()
+    ensure(job && wallet.owner.toText() === this.oldCaller.toText(), 'AUTH_REQUIRED')
+    const [input] = decodeHandle('register_handle', job.args) as [Registration]
+    ensure(
+      input.payer.owner.toText() === wallet.owner.toText() &&
+        equal(
+          Uint8Array.from(input.intent.account_id),
+          xidBytes(this.account.meta.account!.id)
+        ),
+      'FORBIDDEN'
+    )
+    const prior = await this.registry.get_handle_operation(
+      input.intent.account_id,
+      input.intent.op_id
+    )
+    let result
+    if ('Ok' in prior) {
+      result = ['Committed', 'Rejected'].some((k) => k in prior.Ok.phase)
+        ? prior.Ok
+        : controlResult(
+            await (block === undefined
+              ? this.registry.commit_handle(input.intent.account_id, input.intent.op_id)
+              : this.registry.reconcile_handle_charge(
+                  input.intent.account_id,
+                  input.intent.op_id,
+                  block
+                ))
+          )
+    } else {
+      ensure('NotFound' in prior.Err, 'EXECUTION_UNKNOWN')
+      await wallet.approveHandle(
+        job.ledger,
+        this.registryId,
+        BigInt(job.total),
+        input.fee,
+        Array.from(input.intent.op_id, (x) => x.toString(16).padStart(2, '0')).join('')
+      )
+      await this.account.mutate(this.account.meta.account!.id, {
+        AuthorizeHandle: { intent: input.intent }
+      })
+      job.phase = 'unknown'
+      await this.savePurchase(job)
+      result = controlResult(await this.registry.register_handle(input))
+    }
+    ensure(
+      equal(
+        canonical(result.registration.intent.terms_digest),
+        canonical(input.intent.terms_digest)
+      ),
+      'INTEGRITY_FAILED'
+    )
+    job.phase = Object.keys(result.phase)[0]
+    await this.savePurchase(job)
+    return result
+  }
+  async prepareTransfer(name: string, target: string) {
+    const owner = this.account.meta.account!.id,
+      record = await this.ownership(name)
+    ensure(
+      record && equal(record.owner_account, xidBytes(owner)) && target !== owner,
+      'FORBIDDEN'
+    )
+    const op = unhex(id()),
+      terms = digest('dmsg/handle-transfer/v1', [
+        Principal.fromText(this.registryId).toUint8Array(),
+        canonicalHandle(name),
+        xidBytes(owner),
+        xidBytes(target),
+        record.version,
+        op
+      ])
+    const from: HandleIntent = {
+      handle_canister: Principal.fromText(this.registryId),
+      account_id: xidBytes(owner),
+      target_account: [xidBytes(target)],
+      handle: canonicalHandle(name),
+      expected_version: BigInt(record.version),
+      op_id: op,
+      terms_digest: terms,
+      action: { Transfer: null }
+    }
+    const accept: HandleIntent = {
+      ...from,
+      account_id: xidBytes(target),
+      target_account: [xidBytes(owner)],
+      action: { AcceptTransfer: null }
+    }
+    return encodeHandle('transfer_handle', [from, accept])
+  }
+  inspectTransfer(packet: string) {
+    ensure(packet.length < 8000, 'INVALID_INPUT')
+    const [from, accept] = decodeHandle('transfer_handle', packet) as [
+      HandleIntent,
+      HandleIntent
+    ]
+    const terms = digest('dmsg/handle-transfer/v1', [
+      Principal.fromText(this.registryId).toUint8Array(),
+      from.handle,
+      Uint8Array.from(from.account_id),
+      Uint8Array.from(accept.account_id),
+      from.expected_version,
+      Uint8Array.from(from.op_id)
+    ])
+    ensure(
+      'Transfer' in from.action &&
+        'AcceptTransfer' in accept.action &&
+        from.handle_canister.toText() === this.registryId &&
+        accept.handle_canister.toText() === this.registryId &&
+        from.handle === accept.handle &&
+        canonicalHandle(from.handle) === from.handle &&
+        from.expected_version === accept.expected_version &&
+        equal(Uint8Array.from(from.op_id), Uint8Array.from(accept.op_id)) &&
+        from.target_account[0] &&
+        accept.target_account[0] &&
+        equal(Uint8Array.from(from.target_account[0]), Uint8Array.from(accept.account_id)) &&
+        equal(Uint8Array.from(accept.target_account[0]), Uint8Array.from(from.account_id)) &&
+        equal(terms, Uint8Array.from(from.terms_digest)) &&
+        equal(terms, Uint8Array.from(accept.terms_digest)),
+      'INTEGRITY_FAILED'
+    )
+    return { from, accept }
+  }
+  async transfer(packet: string, commit: boolean) {
+    const { from, accept } = this.inspectTransfer(packet),
+      own = xidBytes(this.account.meta.account!.id),
+      intent = commit ? from : accept
+    ensure(equal(own, Uint8Array.from(intent.account_id)), 'FORBIDDEN')
+    await this.account.crypto.call(
+      'controlPut',
+      `handle-transfer:${this.account.meta.account!.id}`,
+      packet
+    )
+    await this.account.mutate(this.account.meta.account!.id, { AuthorizeHandle: { intent } })
+    return commit ? controlResult(await this.registry.transfer_handle(from, accept)) : null
+  }
   async legacy(name: string) {
     name = canonicalHandle(name)
     // Plain queries suffice: the claim rechecks the exact frozen record on

@@ -33,7 +33,11 @@ function fixture() {
       return saved
     }
   } as unknown as CryptoClient
-  return { escrow, wallet: new WalletClient({} as HttpAgent, owner, crypto), job: () => JSON.parse(saved!) }
+  return {
+    escrow,
+    wallet: new WalletClient({} as HttpAgent, owner, crypto),
+    job: () => JSON.parse(saved!)
+  }
 }
 
 it('updates only a never-sent prepared payment after network fee maintenance', async () => {
@@ -62,4 +66,16 @@ it('keeps an unknown payment frozen when configuration changes', async () => {
   expect(ledger.icrc1_transfer.mock.calls[1][0].fee).toEqual([10n])
   await expect(wallet.transferEscrow(escrow, 21n)).rejects.toThrow('FEE_BLOCKED')
   expect(ledger.icrc1_transfer).toHaveBeenCalledTimes(2)
+})
+
+it('revises a definitively rejected payment while preserving the old attempt', async () => {
+  const { escrow, wallet, job } = fixture()
+  ledger.icrc1_fee.mockResolvedValue(10n)
+  ledger.icrc1_transfer.mockResolvedValueOnce({ Err: { BadFee: { expected_fee: 20n } } })
+  await expect(wallet.transferEscrow(escrow, 10n)).rejects.toThrow('BadFee')
+  expect(job().state).toBe('rejected')
+  ledger.icrc1_fee.mockResolvedValue(20n)
+  ledger.icrc1_transfer.mockResolvedValueOnce({ Ok: 9n })
+  await expect(wallet.transferEscrow(escrow, 20n)).resolves.toBe(9n)
+  expect(ledger.icrc1_transfer.mock.calls[1][0].fee).toEqual([20n])
 })

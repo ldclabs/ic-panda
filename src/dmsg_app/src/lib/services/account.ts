@@ -262,7 +262,10 @@ export class AccountClient {
         await this.save({ ...journal, account, stage: 'confirmed' })
         return account
       }
-    } else if (journal.method === 'mutate_account' || journal.method === 'register_controller') {
+    } else if (
+      journal.method === 'mutate_account' ||
+      journal.method === 'register_controller'
+    ) {
       const result = await this.user.get_operation(
         xidBytes(journal.account!),
         unhex(journal.requestId)
@@ -402,7 +405,10 @@ export class AccountClient {
         })
       ).signature
     const current = await this.refresh(account)
-    if (!current.info.recovery.length) {
+    if (
+      !current.info.recovery.length ||
+      policy.generation === current.info.recovery[0]!.generation + 1n
+    ) {
       await this.mutate(account, async (_, request) => ({
         SetRecovery: {
           policy,

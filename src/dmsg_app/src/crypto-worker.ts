@@ -22,6 +22,8 @@ const allowed = new Set([
   'downloadFile',
   'changePassword',
   'exportBackup',
+  'exportDirectory',
+  'restoreDirectory',
   'restore',
   'readRequest',
   'authSign',
@@ -44,6 +46,7 @@ const allowed = new Set([
   'legacyGrantPart',
   'legacyReceiveScoped',
   'channelFilePrepare',
+  'channelAttachmentSource',
   'channelFileChunk',
   'channelFileManifest',
   'channelFileDownload',
@@ -67,6 +70,7 @@ const allowed = new Set([
   'legacyJobs',
   'legacyCancel',
   'contentPrepare',
+  'contentNeedsRekey',
   'contentReplan',
   'contentPending',
   'contentSave',
@@ -81,7 +85,8 @@ const allowed = new Set([
   'commerceJournal',
   'commerceJournals',
   'formalAuthorize',
-  'formalHistory'
+  'formalHistory',
+  'formalHistories'
 ])
 scope.onmessage = (event) => {
   const request = event.data

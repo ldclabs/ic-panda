@@ -8,10 +8,12 @@
   import PaymentRecovery from './PaymentRecovery.svelte'
   import { WalletClient } from '../services/wallet'
   import { id } from '../protocol/codec'
+  import { xidBytes } from '../protocol/identity'
   import type { EscrowInfo } from '../canisters/generated/payment'
   let client = $state.raw<InboxClient | null>(null),
     account = $state.raw<AccountClient | null>(null),
     wallet = $state.raw<WalletClient | null>(null)
+  let fundingFee = $state('')
   let origin = $state(config.derivationOrigins[0]),
     walletOrigin = $state(config.derivationOrigins[0]),
     ledger = $state(''),
@@ -30,6 +32,12 @@
     status = $state('')
   const json = (value: unknown) =>
     JSON.stringify(value, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2)
+  let block = $state(''),
+    capacity = $state(100),
+    invitationAccount = $state(''),
+    invitationDays = $state(1),
+    invitationToken = $state('')
+  let invitations = $state<{ id: string; account: string; expires_at: number }[]>([])
   async function connect() {
     await session.run(async () => {
       if (!session.meta?.account || !config.relayOrigin || !config.canisters.payment)
@@ -47,6 +55,16 @@
       const terms = await client.terms()
       ledger = Principal.fromUint8Array(terms.config.ledger).toText()
       outgoing = await client.outgoing()
+      const policy = await client.ownPolicy()
+      if (policy) {
+        mode = policy.mode
+        allow = policy.allow.join(',')
+        block = policy.block.join(',')
+        invitations = policy.invitations
+        capacity = policy.capacity
+        payee = policy.offer?.offer.recipient.owner ?? ''
+        net = policy.offer?.offer.recipient_net ?? net
+      }
       status = '已认证收款路由、报价签署钥和费用政策。'
     })
   }
@@ -72,7 +90,7 @@
   async function prepare() {
     await session.run(async () => {
       if (!client) throw new Error('先连接账户。')
-      order = await client.contact(recipient, text, payer, orderId)
+      order = await client.contact(recipient, text, payer, orderId, invitationToken || null)
       outgoing = await client.outgoing()
       escrow = null
       status =
@@ -91,7 +109,7 @@
   async function pay() {
     await session.run(async () => {
       if (!client || !wallet || !escrow) throw new Error('先核对已建立的托管。')
-      escrow = await client.fund(escrow, wallet)
+      escrow = await client.fund(escrow, wallet, fundingFee ? BigInt(fundingFee) : undefined)
       status = '入账已确认；接收受理和最终资金决策尚需单独核对。'
     })
   }
@@ -123,8 +141,38 @@
         ><option value="free">开放免费来信</option><option value="paid">付费来信</option
         ></select
       ></label
-    ><label>联系人账户（逗号分隔）<input bind:value={allow} /></label
-    >{#if mode === 'paid'}<label>实际收款 principal<input bind:value={payee} /></label><label
+    ><label>联系人账户（逗号分隔）<input bind:value={allow} /></label><label
+      >屏蔽账户（逗号分隔）<input bind:value={block} /></label
+    ><label>收件容量<input type="number" min="1" max="1000" bind:value={capacity} /></label
+    ><label>邀请账户<input bind:value={invitationAccount} maxlength="20" /></label><label
+      >邀请有效天数<input type="number" min="1" max="7" bind:value={invitationDays} /></label
+    ><button
+      class="secondary"
+      disabled={session.busy || !invitationAccount}
+      onclick={() =>
+        session.run(async () => {
+          xidBytes(invitationAccount)
+          invitations = [
+            ...invitations,
+            {
+              id: id(),
+              account: invitationAccount,
+              expires_at: Date.now() + invitationDays * 86400000
+            }
+          ]
+          invitationAccount = ''
+        })}>添加待发布邀请</button
+    >
+    {#each invitations as invitation}<p>
+        {invitation.account} · {new Date(invitation.expires_at).toLocaleString()} · 邀请码
+        <code>{invitation.id}</code><button
+          class="text-button"
+          onclick={() => (invitations = invitations.filter((i) => i.id !== invitation.id))}
+          >移除待发布邀请</button
+        >
+      </p>{/each}
+    <p class="caption">名单变更在点击“批准并发布”后生效。</p>
+    {#if mode === 'paid'}<label>实际收款 principal<input bind:value={payee} /></label><label
         >接收净额（账本原子单位）<input bind:value={net} inputmode="numeric" /></label
       >
       <p>需先在设备与认证中明确启用 PaymentOffer；平台费另加，不能从净额暗扣。</p>{/if}<button
@@ -139,7 +187,15 @@
             allow
               .split(',')
               .map((v) => v.trim())
-              .filter(Boolean)
+              .filter(Boolean),
+            {
+              block: block
+                .split(',')
+                .map((v) => v.trim())
+                .filter(Boolean),
+              invitations,
+              capacity
+            }
           )
           status = '规则和新的收件公钥已发布。旧收件钥仍保留在加密恢复材料中。'
         })}>批准并发布这些来信条款</button
@@ -170,7 +226,8 @@
   ><button class="secondary" disabled={!account || session.busy} onclick={connectWallet}
     >独立连接付款身份</button
   >{#if payer}<p>实际 payer：{payer} · 账本 {ledger}</p>{/if}
-  <label>接收账户 Xid<input bind:value={recipient} maxlength="20" /></label><label
+  <label>接收账户 Xid<input bind:value={recipient} maxlength="20" /></label>
+  <label>邀请编号（可选）<input bind:value={invitationToken} maxlength="64" /></label><label
     >内容<textarea bind:value={text} maxlength="6000" rows="4"></textarea></label
   ><button
     class="secondary"
@@ -210,7 +267,21 @@
       <button class="primary" disabled={!wallet || session.busy} onclick={open}
         >批准此精确报价并建立 / 对账托管</button
       >{/if}
-    {#if escrow}<p>
+    {#if escrow}<label
+        >明确批准的付款网络费（原子单位，可留空）<input
+          bind:value={fundingFee}
+          inputmode="numeric"
+        /></label
+      >
+      <button
+        class="secondary"
+        disabled={!wallet || session.busy}
+        onclick={() =>
+          session.run(async () => {
+            fundingFee = String(await wallet!.fee(escrow!.quote.ledger.toText()))
+          })}>读取账本当前费用</button
+      >
+      <p>
         托管 {Array.from(escrow.escrow_id)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')} · 资金决策 {Object.keys(escrow.decision)[0]} · 已确认入账 {String(

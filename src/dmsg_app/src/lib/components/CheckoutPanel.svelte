@@ -41,6 +41,7 @@
     job = $state<CheckoutJob | null>(null),
     view = $state<CheckoutView | PandaClaimView | null>(null)
   let refundLedger = $state('')
+  let fundingFee = $state('')
   let block = $state(''),
     refundBlocks = $state(''),
     transferId = $state(''),
@@ -295,11 +296,32 @@
           onclick={() =>
             update(async (c, id) => {
               const current = (await c.status(id)) as CheckoutView
-              const b = await wallet!.transferCheckout(current)
+              const b = await wallet!.transferCheckout(
+                current,
+                fundingFee ? BigInt(fundingFee) : undefined
+              )
               block = b.toString()
               return c.funding(id, block)
             })}>明确付款 / 重试原转账</button
         >{/if}
+      <label
+        >明确批准的付款网络费（原子单位，留空使用原报价）<input
+          bind:value={fundingFee}
+          inputmode="numeric"
+        /></label
+      >
+      <button
+        class="secondary"
+        disabled={!wallet || session.busy}
+        onclick={() =>
+          session.run(async () => {
+            fundingFee = String(
+              await wallet!.fee(
+                Principal.fromUint8Array((view as CheckoutView).quote.cash.ledger).toText()
+              )
+            )
+          })}>读取账本当前费用</button
+      >
       <p class="caption">
         未知转账保留原 memo、时间、收款子账户和费用；不会自动创建第二笔付款。
       </p>

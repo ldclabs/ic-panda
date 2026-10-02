@@ -6,6 +6,28 @@ import { candidValue } from './account'
 import { ensure } from '../errors'
 
 const service = idlFactory({ IDL }) as IDL.ServiceClass
+export const handlePrice = (name: string) =>
+  BigInt(
+    name.length === 1
+      ? 1000000
+      : name.length === 2
+        ? 200000
+        : name.length <= 4
+          ? 50000
+          : name.length <= 6
+            ? 20000
+            : 5000
+  ) * 100000000n
+export function encodeHandle(method: string, args: unknown[]) {
+  const fn = service._fields.find(([name]) => name === method)![1]
+  return b64(new Uint8Array(IDL.encode(fn.argTypes, args)))
+}
+export function decodeHandle(method: string, encoded: string): any[] {
+  return IDL.decode(
+    service._fields.find(([name]) => name === method)![1].argTypes,
+    unb64(encoded)
+  )
+}
 const claim = service._fields.find(([name]) => name === 'claim_legacy_handle')![1]
 const entries = service._fields.find(([name]) => name === 'import_legacy_handles')![1]
   .argTypes[1] as IDL.VecClass<LegacyReservation>

@@ -65,6 +65,7 @@ export interface Profile {
   publicFields: string[]
 }
 export interface WorkspaceMeta {
+  contentReplacements?: [string, string][]
   restoredFrom?: { manifestDigest: string; device: string; at: number }
   cloudSnapshot?: {
     through: number

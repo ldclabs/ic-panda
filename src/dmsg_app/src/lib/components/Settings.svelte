@@ -11,6 +11,29 @@
     confirm = $state('')
   let usage = $state<StorageEstimate | null>(null),
     serviceReport = $state('')
+  async function directoryBackup() {
+    const picker = (
+      window as unknown as {
+        showDirectoryPicker?: (options: { mode: string }) => Promise<FileSystemDirectoryHandle>
+      }
+    ).showDirectoryPicker
+    if (!picker) {
+      session.error = '此浏览器不支持目录写入，请在 Chrome 扩展中使用分卷备份。'
+      return
+    }
+    let directory: FileSystemDirectoryHandle
+    try {
+      directory = await picker({ mode: 'readwrite' })
+    } catch {
+      return
+    }
+    await session.run(async () => {
+      const result = await session.crypto.call('exportDirectory', password, directory)
+      close()
+      await session.refresh()
+      session.message = `已写入 ${result.name}，共 ${result.parts} 卷、${result.count} 个版本；${result.missing.length} 项缺口。请连同 manifest.json 完整保管目录。`
+    })
+  }
   function close() {
     modal = null
     password = ''
@@ -45,7 +68,7 @@
   </div>
 </div>
 <div class="filter-bar" aria-label="设置分类">
-  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '旧名认领'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['agents', 'Agent 授权'], ['services', '服务连接']] as [value, label]}<button
+  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '名称管理'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['funds', '资金恢复'], ['agents', 'Agent 授权'], ['services', '服务连接']] as [value, label]}<button
       class:active={tab === value}
       aria-pressed={tab === value}
       onclick={() => {
@@ -190,6 +213,11 @@
     {:catch}
       <p role="alert">无法加载设置，请重新打开工作台。</p>
     {/await}
+  {:else if tab === 'funds'}{#await import('./PaymentSettings.svelte')}<p>
+        正在加载…
+      </p>{:then component}<component.default />{:catch}<p role="alert">
+        无法加载资金恢复。
+      </p>{/await}
   {:else if tab === 'commerce'}{#await import('./CommerceSettings.svelte')}
       <p role="status">正在加载…</p>
     {:then component}
@@ -305,6 +333,12 @@
         >{/if}
       {#if session.error}<p class="form-error" role="alert">{session.error}</p>{/if}
       <div class="modal-actions">
+        {#if modal === 'backup'}<button
+            type="button"
+            class="secondary"
+            disabled={session.busy || !password}
+            onclick={directoryBackup}>分卷导出到目录（不限总包大小）</button
+          >{/if}
         <button type="button" class="secondary" onclick={close}>取消</button><button
           class="primary"
           disabled={session.busy}

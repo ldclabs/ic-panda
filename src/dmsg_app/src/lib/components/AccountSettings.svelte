@@ -7,6 +7,7 @@
   import { CloudClient } from '../services/relay'
   import { b64, hex, id, unb64, unhex } from '../protocol/codec'
   import type { RecoveryPolicy } from '../canisters/generated/user'
+  import { Principal } from '@icp-sdk/core/principal'
   import Icon from './Icon.svelte'
   let client = $state.raw<AccountClient | null>(null)
   let accountState = $state.raw<Awaited<ReturnType<AccountClient['refresh']>> | null>(null)
@@ -24,6 +25,9 @@
     incoming = $state(''),
     reviewed = $state('')
   let pairingRole = $state<'Member' | 'Administrator'>('Member')
+  let policyExecutions = $state(''),
+    policyCycles = $state('')
+  let purposes = $state<string[]>([])
   const approved = $derived(!!accountState?.device && !accountState.device.revoked_at.length)
   const admin = $derived(
     approved &&
@@ -49,6 +53,9 @@
   async function refresh() {
     if (!client || !account) return
     accountState = await client.refresh(account)
+    purposes = accountState.info.sensitive_policy.allowed_purposes.map(
+      (p) => Object.keys(p)[0]
+    )
     policy = accountState.info.recovery[0] ?? policy
     if (config.relayOrigin) job = await roots().job(account)
     recovery = await client.recoveryStatus(account)
@@ -69,15 +76,16 @@
   }
   async function generateRecovery() {
     await session.run(async () => {
+      const generation = Number(accountState?.info.recovery[0]?.generation ?? 0n) + 1
       const value = await session.crypto.call('accountRecovery', {
         account,
-        generation: 1,
+        generation,
         action: 'generate'
       })
       recoveryCode = value.code
       saved = false
       policy = {
-        generation: 1n,
+        generation: BigInt(generation),
         signing_pub: unb64(value.signingPublic),
         hpke_pub: unb64(value.hpkePublic),
         delay_ms: 86400000n
@@ -92,17 +100,23 @@
       accountState = await client.enrollRecovery(account, code, policy)
       recoveryCode = ''
       await refresh()
-    }, '账户恢复公钥已登记并验证；恢复私钥未常驻保存。')
+    }, '账户恢复公钥已登记并验证；请提交新内容根、启用新代并导出新备份。')
   }
   async function initializeRoot() {
     await session.run(async () => {
-      job = await roots().run(account, (stage) => {
+      const progress = (stage: RootJob['stage']) => {
         session.progress = {
           stage: labels[stage],
           completed: Object.keys(labels).indexOf(stage),
           total: 5
         }
-      })
+      }
+      job =
+        accountState?.info.current_root[0] &&
+        accountState.info.recovery[0]?.generation !==
+          accountState.info.current_root[0].recovery_generation
+          ? await roots().rotate(account, progress)
+          : await roots().run(account, progress)
       await refresh()
     }, '根密文已上传、回读校验，并与链上承诺匹配。')
   }
@@ -260,7 +274,15 @@
         账户恢复码绑定这个 Xid，与原本地工作区恢复码分开。账户接管默认等待 24
         小时；持码者可立即解密已有恢复包。
       </p>
-      {#if !accountState?.info.recovery_checked}
+      {#if accountState?.info.recovery_checked && !recoveryCode}<button
+          class="secondary"
+          disabled={session.busy}
+          onclick={generateRecovery}>生成新的恢复码以替换当前恢复权威</button
+        >
+        <p class="caption">
+          更换后须验证新码、提交新内容根并导出新备份。旧码仍能解开已经交付的旧备份。
+        </p>{/if}
+      {#if !accountState?.info.recovery_checked || recoveryCode}
         {#if !accountState?.info.recovery.length}<button
             class="secondary"
             disabled={session.busy}
@@ -303,6 +325,91 @@
     </section>
   {/if}
   {#if approved}
+    {#if admin && accountState}<section class="settings-section">
+        <h2>认证绑定与敏感执行政策</h2>
+        {#each accountState.info.auth_bindings as identity}<div class="settings-row">
+            <code>{identity.toText()}</code><button
+              class="secondary"
+              disabled={session.busy || identity.toText() === principal}
+              onclick={() =>
+                session.run(async () => {
+                  await client!.mutate(account, {
+                    RemoveAuth: { principal: Principal.fromText(identity.toText()) }
+                  })
+                  await refresh()
+                })}>移除此认证绑定</button
+            >
+          </div>{/each}
+        <p>
+          敏感执行：{accountState.info.sensitive_policy.frozen ? '已冻结' : '可批准'}；每日 {accountState
+            .info.sensitive_policy.daily_executions} 次，{String(
+            accountState.info.sensitive_policy.daily_cycles
+          )} cycles。
+        </p>
+        <button
+          class="secondary"
+          disabled={session.busy}
+          onclick={() =>
+            session.run(async () => {
+              await client!.mutate(account, {
+                SetPolicy: {
+                  policy: {
+                    ...accountState!.info.sensitive_policy,
+                    frozen: !accountState!.info.sensitive_policy.frozen
+                  }
+                }
+              })
+              await refresh()
+            })}
+          >{accountState.info.sensitive_policy.frozen
+            ? '明确解除执行冻结'
+            : '冻结新的敏感执行'}</button
+        >
+        <label>每日执行次数<input bind:value={policyExecutions} inputmode="numeric" /></label
+        ><label>每日 cycles 上限<input bind:value={policyCycles} inputmode="numeric" /></label>
+        <button
+          class="secondary"
+          disabled={session.busy ||
+            !/^[0-9]+$/.test(policyExecutions) ||
+            !/^[0-9]+$/.test(policyCycles)}
+          onclick={() =>
+            session.run(async () => {
+              await client!.mutate(account, {
+                SetPolicy: {
+                  policy: {
+                    ...accountState!.info.sensitive_policy,
+                    daily_executions: Number(policyExecutions),
+                    daily_cycles: BigInt(policyCycles)
+                  }
+                }
+              })
+              await refresh()
+            })}>批准上述执行预算</button
+        >
+        {#each [['FileAttestation', '文件摘要'], ['Statement', '文本与文件声明'], ['AppAction', '应用动作'], ['AgentController', 'Agent 授权']] as [value, label]}<label
+            ><input type="checkbox" {value} bind:group={purposes} />{label}</label
+          >{/each}
+        <button
+          class="secondary"
+          disabled={session.busy}
+          onclick={() =>
+            session.run(async () => {
+              await client!.mutate(account, {
+                SetPolicy: {
+                  policy: {
+                    ...accountState!.info.sensitive_policy,
+                    allowed_purposes: purposes.map((name) => ({
+                      [name]: null
+                    })) as NonNullable<
+                      typeof accountState
+                    >['info']['sensitive_policy']['allowed_purposes']
+                  }
+                }
+              })
+              await refresh()
+            })}>批准上述签名用途</button
+        >
+      </section>{/if}
     <section class="settings-section">
       <h2>本机内容根</h2>
       <button
@@ -327,8 +434,7 @@
         >{/if}
       {#if accountState && job?.stage === 'committed' && session.meta?.account?.rootDigest !== (accountState.info.current_root[0] ? hex(Uint8Array.from(accountState.info.current_root[0].bundle_digest)) : '')}
         <p>
-          把已验证的本地内容写入新副本后启用正式工作区。原加密数据库保留，普通内容的云端同步仍待
-          A2。
+          把已验证的本地内容写入新副本后启用正式工作区。原加密数据库保留，启用后可在云端同步页核对并提交内容。
         </p>
         <label
           >本机口令<input

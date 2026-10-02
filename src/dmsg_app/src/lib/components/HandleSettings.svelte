@@ -5,6 +5,7 @@
   import type { AccountClient } from '../services/account'
   import { HandleClient } from '../services/handle'
   import { xidText } from '../protocol/identity'
+  import HandleTrading from './HandleTrading.svelte'
   let origin = $state(config.derivationOrigins[0]),
     oldOrigin = $state(config.derivationOrigins[0]),
     name = $state(''),
@@ -67,6 +68,7 @@
   }
 </script>
 
+<HandleTrading />
 <section class="settings-section">
   <h2>旧名称认领</h2>
   <p>只有完整封存的名称可认领。普通委托不能代替冻结 owner 或管理员；隔离名称需先处理权属。</p>

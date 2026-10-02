@@ -233,6 +233,50 @@ export class ChannelClient {
     }
     return result
   }
+  async reencrypt(channel: string, key: string) {
+    const job = (await this.account.crypto.call('channelJob', channel, key)) as Operation & {
+      replacement?: string
+    }
+    ensure(job?.action === 'dmsg/channel/message/v1', 'FORBIDDEN')
+    const status = await this.session.find(
+      `${this.base(channel)}/operations/${job.context.requestId}`
+    )
+    if (status?.found) return this.resume(channel, key)
+    ensure(
+      job.context.deadline <= Date.now(),
+      'EXECUTION_UNKNOWN',
+      '原批准尚未到期，请先核对原结果。'
+    )
+    await this.pullControl(channel)
+    this.contentRootReady()
+    const draft = await this.account.crypto.call(
+      'channelJob',
+      channel,
+      `message:${job.payload.message_id}`
+    )
+    ensure(draft && typeof draft.text === 'string', 'RECOVERY_INCOMPLETE')
+    job.replacement ??= id()
+    await this.account.crypto.call('channelJob', channel, key, job)
+    const source = await this.account.crypto.call(
+      'channelAttachmentSource',
+      channel,
+      String(job.payload.message_id)
+    )
+    const result = source
+      ? await this.sendFile(channel, source, job.replacement, draft.text)
+      : await this.send(channel, draft.text, job.replacement)
+    await this.account.crypto.call('channelJob', channel, key, {
+      ...job,
+      result: { replaced_by: job.replacement }
+    })
+    await this.account.crypto.call(
+      'channelJob',
+      channel,
+      `message:${job.payload.message_id}`,
+      { ...draft, state: 'replaced', replacement: job.replacement }
+    )
+    return result
+  }
   private contentRootReady() {
     ensure(
       this.session.state &&
