@@ -105,7 +105,22 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 8;
+/// Only terminal results whose retention deadline passed may be evicted.
+/// Sequences, receipts and monthly settlement counters remain unchanged.
+pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
+    let expired: Vec<_> = s
+        .execution_expirations
+        .iter()
+        .filter_map(|(id, deadline)| deadline.filter(|at| *at <= now).map(|_| *id))
+        .collect();
+    for id in &expired {
+        remove_execution(&s.account_id, id);
+        s.execution_expirations.remove(id);
+    }
+    expired.len() as u32
+}
+
+pub(crate) const STABLE_SCHEMA: u16 = 9;
 
 /// Rebuild every certified leaf from stable records, publishing the root once.
 pub(crate) fn rebuild_certification() {

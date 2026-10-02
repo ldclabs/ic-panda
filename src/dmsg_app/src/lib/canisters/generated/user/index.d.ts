@@ -548,9 +548,11 @@ export type Result_12 = { 'Ok' : [] | [PendingRecovery] } |
   { 'Err' : Error };
 export type Result_13 = { 'Ok' : [] | [ContentRootRef] } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : bigint } |
+export type Result_14 = { 'Ok' : number } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : ApplicationAuthorization } |
+export type Result_15 = { 'Ok' : bigint } |
+  { 'Err' : Error };
+export type Result_16 = { 'Ok' : ApplicationAuthorization } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
@@ -690,7 +692,10 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[], bigint],
     Result_4
   >,
-  'complete_recovery' : ActorMethod<[Uint8Array | number[]], Result_4>,
+  'complete_recovery' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result_4
+  >,
   'consume_handle_authorization' : ActorMethod<[HandleIntent], Result_4>,
   'consume_handle_transfer_authorizations' : ActorMethod<
     [HandleIntent, HandleIntent],
@@ -733,11 +738,12 @@ export interface _SERVICE {
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
+  'prune_executions' : ActorMethod<[Uint8Array | number[]], Result_14>,
   'prune_external_approvals' : ActorMethod<
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
-  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_14>,
+  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_15>,
   'reconcile_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Result_6
@@ -769,9 +775,9 @@ export interface _SERVICE {
   'sign_app_action' : ActorMethod<[AppActionSignRequest], Result_6>,
   'verify_application_authorization' : ActorMethod<
     [Uint8Array | number[], ApplicationApproval],
-    Result_15
+    Result_16
   >,
-  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_14>,
+  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_15>,
   'verify_product_account' : ActorMethod<[string, Beneficiary], Result_4>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

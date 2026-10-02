@@ -71,12 +71,27 @@ pub(crate) fn apply(
         Authorized::Replay(r) => return Ok(r),
         Authorized::Fresh(fp) => fp,
     };
+    let next = prepare(s, principal.clone(), &m.command, now)?;
+    // All fallible checks finished; no account clone is needed for atomicity.
+    s.principal_updated_at = Some(next.state.updated_at);
+    let receipt = account::finish(s, &m.approval, fp);
+    *principal = Some(next);
+    Ok(receipt)
+}
+
+/// Build a validated principal candidate without changing the account.
+pub(crate) fn prepare(
+    s: &AccountState,
+    principal: Option<AgentPrincipal>,
+    command: &AccountCommand,
+    now: u64,
+) -> Result<AgentPrincipal> {
     // Every change advances updated_at, so each new valid_from/retired_at is
     // later than all earlier ones and the document never moves backwards.
     let at = principal
         .as_ref()
         .map_or(now, |p| now.max(p.state.updated_at.saturating_add(1)));
-    let mut next = match (&m.command, principal.as_ref()) {
+    let mut next = match (command, principal) {
         (AccountCommand::EnablePrincipal { principal_type }, None) => {
             ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
             AgentPrincipal {
@@ -92,9 +107,9 @@ pub(crate) fn apply(
         }
         (AccountCommand::EnablePrincipal { .. }, Some(_)) => return Err(Error::VersionConflict),
         (_, None) => return Err(Error::NotFound),
-        (_, Some(p)) => p.clone(),
+        (_, Some(p)) => p,
     };
-    match &m.command {
+    match command {
         AccountCommand::EnablePrincipal { .. } => {}
         AccountCommand::RegisterController {
             generation,
@@ -155,12 +170,7 @@ pub(crate) fn apply(
     agent::validate_principal_state(&next.state)?;
     // A principal change does not bump the security epoch: signing rechecks the
     // controller, so unrelated device approvals stay valid.
-    let mut account = s.clone();
-    account.principal_updated_at = Some(at);
-    let receipt = account::finish(&mut account, &m.approval, fp);
-    *s = account;
-    *principal = Some(next);
-    Ok(receipt)
+    Ok(next)
 }
 
 /// Hosted-signing authorization for an `AgentEvent`, run in the same message
@@ -172,13 +182,11 @@ pub(crate) fn authorize_event(
     s: &AccountState,
     init: &UserInit,
     kind: &ExecutionKind,
+    parsed: &agent::DelegationEvent,
     now: u64,
 ) -> Result<()> {
     let ExecutionKind::AgentEvent {
-        key,
-        event,
-        principal_id,
-        ..
+        key, principal_id, ..
     } = kind
     else {
         return Ok(());
@@ -194,8 +202,7 @@ pub(crate) fn authorize_event(
         .iter()
         .find(|c| c.generation == generation)
         .ok_or(Error::NotFound)?;
-    let parsed = agent::parse_delegation_event(event)?;
-    agent::check_hosted_event(&parsed, &s.account_id, principal_id, c, now)?;
+    agent::check_hosted_event(parsed, &s.account_id, principal_id, c, now)?;
     let last = p.last_nonces.get(&generation).copied().unwrap_or(0);
     ensure(parsed.nonce > last, Error::VersionConflict)?;
     p.last_nonces.insert(generation, parsed.nonce);

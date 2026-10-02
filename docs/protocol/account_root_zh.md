@@ -1,6 +1,6 @@
 # 扩展账户控制与根封装合同
 
-日期：2026-09-22。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
+日期：2026-10-02。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
 此文描述公开客户端实现，不代表正式扩展 origin、生产 key 或生产部署已验收。
 
 ## 账户控制
@@ -12,6 +12,8 @@
 新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
 
 恢复码按 `recoverySeeds(R, environment, Xid, recovery_generation)` 分域产生 Ed25519/X25519 种子。账户恢复码与 R0 本地恢复码独立。首次设置中断时仅在 LocalDataKey 保护下暂存恢复码；登记与验证完成后清除。恢复请求、争议再确认和完成分别调用公开 user 接口，等待期由 canister 执行。离线恢复始终生成新设备私钥且 `registered=false`。
+
+恢复完成使用 `complete_recovery(account_id, request_id)`。扩展日志保存两个参数并原样重试；canister 保留最近一次完成回执，只有原恢复 caller 对相同请求 ID 的重试会返回原成功结果，不重复替换设备或推进安全版本。待恢复请求的相同重试使用已存期限，包括争议再确认后的期限；不会重启等待期。更早且已被替换的完成回执不保证长期保留。
 
 ## 不可变 RootBundle
 

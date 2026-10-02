@@ -241,6 +241,9 @@ pub struct AccountStateRepr {
     #[cbor(key = 25)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub principal_updated_at: Option<u64>,
+    #[cbor(key = 26)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_recovery: Option<(OpId, candid::Principal)>,
 }
 
 impl StableCodec for AccountState {
@@ -273,6 +276,10 @@ impl StableCodec for AccountState {
             handle_authorizations: map_to_repr(&self.handle_authorizations),
             execution_expirations: self.execution_expirations.clone(),
             principal_updated_at: self.principal_updated_at,
+            completed_recovery: self
+                .completed_recovery
+                .as_ref()
+                .map(|r| (r.request_id, r.new_auth)),
         }
     }
 
@@ -307,6 +314,12 @@ impl StableCodec for AccountState {
             handle_authorizations: map_from_repr(repr.handle_authorizations),
             execution_expirations: repr.execution_expirations,
             principal_updated_at: repr.principal_updated_at,
+            completed_recovery: repr.completed_recovery.map(|(request_id, new_auth)| {
+                RecoveryReceipt {
+                    request_id,
+                    new_auth,
+                }
+            }),
         }
     }
 }
@@ -420,6 +433,7 @@ mod tests {
             recovery_checked: false,
             recovery_nonce: 0,
             pending_recovery: None,
+            completed_recovery: None,
             current_root: None,
             root_slot: None,
             next_root_generation: 1,
@@ -609,6 +623,18 @@ mod tests {
         let bytes = compact_bytes(&month);
         assert_eq!(compact_from_bytes::<Month>(&bytes), month);
         assert!(bytes.len() < 128, "monthly ledger: {} bytes", bytes.len());
+    }
+
+    #[test]
+    fn latest_recovery_receipt_survives_compact_storage() {
+        let mut state = account(false);
+        state.completed_recovery = Some(RecoveryReceipt {
+            request_id: Hash::new([44; 32]),
+            new_auth: p(9),
+        });
+        let bytes = compact_bytes(&state);
+        assert!(top_keys(&bytes).contains(&26));
+        assert_eq!(compact_from_bytes::<AccountState>(&bytes), state);
     }
 
     #[test]

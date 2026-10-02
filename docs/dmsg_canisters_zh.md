@@ -90,3 +90,10 @@ pnpm --dir src/dmsg_app test
 新增 `dmsg_directory`，按 [agent_zh.md](protocol/agent_zh.md) 发布 principal 文档。user schema 8 新增 principal 稳定表（memory 8）与 `principal_updated_at`，`SecuritySnapshot` 升为 schema 3；账户命令新增 principal 启用、托管 controller 登记/退役/泄露/改名，新增 `register_controller`、`sign_agent_event`、`publish_principal`、`get_principal`。默认 `SensitivePolicy` 与 `SetPolicy` 允许 `AgentController`（上限 4 个用途）。COSE 新增 `KeyPurpose::AgentController`、`ExecutionKind::AgentEvent` 与 `ExecutionOutput::AgentSignature`；Agent 事件计入正式签名的商业额度与预算，不产生执行回执认证叶。
 
 `dmsg_protocol` 依赖 crates.io 的 `agent-protocols =0.10.0`（`default-features = false`）做严格 I-JSON、JCS 与 Agent Delegation 校验。本地 release 构建中 user Wasm 由 3,771,117 增至 4,244,709 字节，cose 由 2,165,748 增至 2,412,506 字节，directory 为 1,496,953 字节（未经 ic-wasm shrink）。directory 容量与升级重建开销尚未实测，home 迁移尚未实现。
+
+
+## 2026-10-02 user 审查修复
+
+`dmsg_user` 开发布局升级到 schema 9，安全快照保持 schema 3。恢复完成绑定请求 ID 并保留最近完成回执；绑定容量不足时回收过期项；固定服务 caller、外部批准配额与 Agent 本地授权在 await 前检查，回调后复查。新增公开 `prune_executions(account_id)`，按最多 64 项索引清理过期终态并返回数量，保留未终结执行、防重放状态与历史结算；执行回执查询可返回认证的不存在证明。
+
+执行路径拆分只读预检与同步提交，复用不可变解析结果；controller 注册不再预先复制整个账户。认证树保留实测占用更低的整批重建方式，只发布一次根；逐项流式候选未保留。具体边界、回归及同配置 cycles 比较见 [user README](../src/dmsg_user/README.md)。开发接口与扩展绑定一起更新，不读取旧实验布局；生产部署与大规模容量仍未验收。

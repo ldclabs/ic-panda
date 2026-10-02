@@ -6,20 +6,49 @@ use dmsg_types::{cose::*, user::*, *};
 
 use crate::account::{check_device, finish};
 
-pub(crate) fn authorize(
-    s: &mut AccountState,
+/// Immutable parsing is reused across awaits; account authorization is not.
+pub(crate) struct PreparedRequest {
+    statement: Option<PreparedStatement>,
+    pub(crate) event: Option<dmsg_protocol::agent::DelegationEvent>,
+}
+
+impl PreparedRequest {
+    pub(crate) fn new(input: &ExecuteRequest) -> Result<Self> {
+        Ok(Self {
+            statement: match &input.kind {
+                ExecutionKind::Sign { to_be_signed, .. } => {
+                    Some(parse_signing_input(to_be_signed)?)
+                }
+                _ => None,
+            },
+            event: match &input.kind {
+                ExecutionKind::AgentEvent { event, .. } => {
+                    Some(dmsg_protocol::agent::parse_delegation_event(event)?)
+                }
+                _ => None,
+            },
+        })
+    }
+
+    pub(crate) fn action(&self) -> Option<&dmsg_types::app_action::AppAction> {
+        match &self.statement.as_ref()?.statement().content {
+            StatementContent::AppAction(action) => Some(action),
+            _ => None,
+        }
+    }
+}
+
+/// Read-only authorization, including a candidate budget. No sequence or nonce
+/// is consumed until all remote checks have returned and this check is rerun.
+pub(crate) fn check(
+    s: &AccountState,
     caller: Principal,
     input: &ExecuteRequest,
     now: u64,
     init: &UserInit,
-    previous: Option<&AuthorizedExecution>,
-) -> Result<AuthorizedExecution> {
+    prepared: &PreparedRequest,
+) -> Result<Budget> {
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
-    let fp = digest("dmsg/execute-request/v2", input);
-    if let Some(e) = previous {
-        ensure(e.command_digest == fp, Error::IdempotencyConflict)?;
-        return Ok(e.clone());
-    }
     ensure(
         !s.operations
             .iter()
@@ -43,9 +72,9 @@ pub(crate) fn authorize(
     let (cap, admin) = match &input.kind {
         ExecutionKind::Sign {
             key,
-            to_be_signed,
             public_key_fingerprint,
             origin,
+            ..
         } => {
             ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
             ensure(
@@ -55,7 +84,7 @@ pub(crate) fn authorize(
             key.validate()?;
             nonzero(public_key_fingerprint.as_slice())?;
             validate_origin(origin, &init.environment)?;
-            let prepared = parse_signing_input(to_be_signed)?;
+            let prepared = prepared.statement.as_ref().expect("parsed signing request");
             ensure(
                 *prepared.algorithm() == key.algorithm
                     && statement_purpose(prepared.statement()) == key.purpose,
@@ -160,27 +189,44 @@ pub(crate) fn authorize(
         retained < window && s.next_execution_sequence < u64::MAX,
         Error::QuotaExceeded,
     )?;
+    let mut budget = if matches!(input.kind, ExecutionKind::Derive { .. }) {
+        s.safety_budget.clone()
+    } else {
+        s.budget.clone()
+    };
     if matches!(input.kind, ExecutionKind::Derive { .. }) {
         // Root derivations keep a separate hard cap from formal signatures.
-        s.safety_budget.reserve(
+        budget.reserve(
             now,
             input.max_cycles,
             ROOT_DAILY_EXECUTIONS,
             ROOT_DAILY_CYCLES,
         )?;
     } else {
-        s.budget.reserve(
+        budget.reserve(
             now,
             input.max_cycles,
             s.sensitive_policy.daily_executions,
             s.sensitive_policy.daily_cycles,
         )?;
     }
-    // All fallible checks have passed, including the atomic budget reservation.
-    // Unknown executions stay pinned; device sequences still reject old requests
-    // after terminal results and operation receipts have been evicted.
-    s.execution_expirations
-        .retain(|_, expires_at| expires_at.is_none_or(|at| at > now));
+    Ok(budget)
+}
+
+/// Commit the checked request in the same synchronous message as its final
+/// authorization. The caller persists it only after commercial reservation.
+pub(crate) fn commit(
+    s: &mut AccountState,
+    input: ExecuteRequest,
+    fingerprint: Hash,
+    budget: Budget,
+    now: u64,
+) -> AuthorizedExecution {
+    if matches!(input.kind, ExecutionKind::Derive { .. }) {
+        s.safety_budget = budget;
+    } else {
+        s.budget = budget;
+    }
     let grant = ExecutionGrant {
         commerce: None,
         account_id: s.account_id,
@@ -193,13 +239,13 @@ pub(crate) fn authorize(
         device_sequence: input.approval.sequence,
         approved_at: now,
         expires_at: input.approval.expires_at,
-        kind: input.kind.clone(),
+        kind: input.kind,
         max_cycles: input.max_cycles,
     };
     s.next_execution_sequence += 1;
     let e = AuthorizedExecution {
         grant,
-        command_digest: fp,
+        command_digest: fingerprint,
         result: ExecutionResult {
             request_id: input.approval.request_id,
             outcome: ExecutionOutcome::Authorized,
@@ -208,8 +254,8 @@ pub(crate) fn authorize(
     };
     s.execution_expirations
         .insert(input.approval.request_id, None);
-    finish(s, &input.approval, fp);
-    Ok(e)
+    finish(s, &input.approval, fingerprint);
+    e
 }
 
 /// A clean failure describes only this attempt; never overwrite a concurrent

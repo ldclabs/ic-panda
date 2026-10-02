@@ -55,6 +55,7 @@ pub(crate) fn create(
         recovery_checked: false,
         recovery_nonce: 0,
         pending_recovery: None,
+        completed_recovery: None,
         current_root: None,
         root_slot: None,
         next_root_generation: 1,

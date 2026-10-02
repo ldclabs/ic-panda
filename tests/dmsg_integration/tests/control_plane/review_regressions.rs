@@ -342,7 +342,14 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         "get_execution_receipt",
         (&id, first.approval.request_id),
     );
-    assert_eq!(receipt, Err(Error::ResultExpired));
+    let receipt = receipt.unwrap();
+    assert!(receipt.entries[0].value.is_none());
+    let witness: ic_certification::HashTree =
+        cbor2::from_slice(&receipt.entries[0].witness).unwrap();
+    assert_eq!(
+        witness.lookup_path([execution_receipt_key(&id, first.approval.request_id)]),
+        ic_certification::LookupResult::Absent
+    );
 
     let account_before = f.account_id(1, &id);
     f.ic.upgrade_canister(
@@ -992,7 +999,7 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         f.user,
         person(9),
         "complete_recovery",
-        (&account_id,),
+        (&account_id, request.op_id),
     );
     completed.unwrap();
     assert_eq!(f.account_id(9, &account_id).auth_bindings, vec![person(9)]);

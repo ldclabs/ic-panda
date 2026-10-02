@@ -30,6 +30,9 @@ mod payment_optimization;
 #[path = "control_plane/user.rs"]
 mod user_tests;
 
+#[path = "control_plane/user_review.rs"]
+mod user_review;
+
 #[path = "control_plane/commerce.rs"]
 mod commerce;
 

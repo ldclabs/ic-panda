@@ -64,13 +64,13 @@ impl Fixture {
         info.unwrap()
     }
 
-    fn sign_agent_event(
+    fn agent_request(
         &self,
         n: u8,
         id: &AccountId,
         generation: u32,
         event: String,
-    ) -> Result<ExecutionResult> {
+    ) -> AgentEventSignRequest {
         let s = self.account_id(n, id);
         let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
         let mut request = AgentEventSignRequest {
@@ -100,6 +100,17 @@ impl Fixture {
             .sign(execution.approval_message(self.user).as_slice())
             .to_bytes()
             .into();
+        request
+    }
+
+    fn sign_agent_event(
+        &self,
+        n: u8,
+        id: &AccountId,
+        generation: u32,
+        event: String,
+    ) -> Result<ExecutionResult> {
+        let request = self.agent_request(n, id, generation, event);
         update(
             &self.ic,
             self.user,
@@ -258,7 +269,12 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
         f.mutate(1, &id, register.clone()),
         Err(Error::InvalidInput(_))
     ));
+    let before_cycles = f.ic.cycle_balance(f.user);
     f.register_controller(1, &id, register).unwrap();
+    println!(
+        "user_cycles method=register_controller cycles={}",
+        before_cycles - f.ic.cycle_balance(f.user)
+    );
     let info = f.principal(&id);
     assert_eq!((info.state.version, info.published_version), (2, 2));
     let (document, _) = f.document(&id);
@@ -390,4 +406,157 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
     .unwrap();
     assert_eq!(f.document(&id).1, bytes);
     assert_eq!(f.directory_get("/unknown").status_code().as_u16(), 404);
+}
+
+#[test]
+fn invalid_hosted_events_are_rejected_before_entitlement_refresh() {
+    let f = Fixture::new();
+    let (id, public_key) = hosted_account(&f);
+    f.sign_agent_event(
+        1,
+        &id,
+        1,
+        jcs(&grant_event(&f, &id, &public_key, 10, "https://dmsg.net")),
+    )
+    .unwrap();
+    f.ic.advance_time(Duration::from_millis(61 * MINUTE));
+    f.ic.stop_canister(f.commerce, None).unwrap();
+    let before = f.account_id(1, &id);
+    let principal = f.principal(&id);
+    assert!(matches!(
+        f.sign_agent_event(1, &id, 1, "not-json".into()),
+        Err(Error::InvalidInput(_))
+    ));
+    let event = jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net"));
+    assert_eq!(f.sign_agent_event(1, &id, 2, event), Err(Error::NotFound));
+    let event = jcs(&grant_event(&f, &id, &public_key, 10, "https://dmsg.net"));
+    assert_eq!(
+        f.sign_agent_event(1, &id, 1, event),
+        Err(Error::VersionConflict)
+    );
+    assert_eq!(f.account_id(1, &id), before);
+    assert_eq!(f.principal(&id), principal);
+    f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
+        .unwrap();
+    let event = jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net"));
+    assert_eq!(f.sign_agent_event(1, &id, 1, event), Err(Error::Forbidden));
+}
+
+fn hosted_account(f: &Fixture) -> (AccountId, Hash) {
+    let ready: Result<KeyState> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    ready.unwrap();
+    let id = f.create(1);
+    f.recoverable(1, &id);
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::EnablePrincipal {
+            principal_type: PrincipalType::Person,
+        },
+    )
+    .unwrap();
+    let public_key = f
+        .controller_key(&id, 1)
+        .public_key
+        .as_slice()
+        .try_into()
+        .map(Hash::new)
+        .unwrap();
+    f.register_controller(
+        1,
+        &id,
+        AccountCommand::RegisterController {
+            generation: 1,
+            public_key,
+            name: None,
+            delegation: restricted(),
+            supersedes: vec![],
+        },
+    )
+    .unwrap();
+    f.ic.advance_time(Duration::from_millis(10));
+    (id, public_key)
+}
+
+#[test]
+fn entitlement_callback_rechecks_controller_retirement_without_an_epoch_change() {
+    let f = Fixture::new();
+    let (id, public_key) = hosted_account(&f);
+    let state = f.account_id(1, &id);
+    let second = device(2);
+    let op = digest("test-operation", &(&id, state.account_version));
+    let proof = key(2)
+        .sign(
+            digest(
+                "dmsg/add-device/v1",
+                &(f.user, &id, &second, state.account_version, op),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::AddDevice {
+            device: second,
+            proof,
+        },
+    )
+    .unwrap();
+    let nonce = Hash::new([88; 32]);
+    let bind: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(2),
+        "begin_auth_binding",
+        (id, nonce, time(&f.ic) + MINUTE),
+    );
+    bind.unwrap();
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::BindAuth {
+            principal: person(2),
+            nonce,
+        },
+    )
+    .unwrap();
+    let request = f.agent_request(
+        2,
+        &id,
+        1,
+        jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net")),
+    );
+    let call =
+        f.ic.submit_call(
+            f.user,
+            person(2),
+            "sign_agent_event",
+            candid::encode_one(request.clone()).unwrap(),
+        )
+        .unwrap();
+    f.ic.advance_time(Duration::from_millis(1));
+    let before = f.account_id(2, &id);
+    f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
+        .unwrap();
+    let result: Result<ExecutionResult> =
+        candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
+    assert_eq!(result, Err(Error::Forbidden));
+    let after = f.account_id(2, &id);
+    assert_eq!(after.security_epoch, before.security_epoch);
+    assert_eq!(
+        after.devices[&Hash::new([2; 32])].next_sequence,
+        before.devices[&Hash::new([2; 32])].next_sequence
+    );
+    assert!(f.principal(&id).last_nonces.is_empty());
+    let missing: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(2),
+        "get_execution",
+        (id, request.approval.request_id),
+    );
+    assert_eq!(missing, Err(Error::ResultExpired));
 }

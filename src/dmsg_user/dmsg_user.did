@@ -1080,8 +1080,9 @@ type Result_10 = variant { Ok : OperationReceipt; Err : Error };
 type Result_11 = variant { Ok : PrincipalInfo; Err : Error };
 type Result_12 = variant { Ok : opt PendingRecovery; Err : Error };
 type Result_13 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_14 = variant { Ok : nat64; Err : Error };
-type Result_15 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_14 = variant { Ok : nat32; Err : Error };
+type Result_15 = variant { Ok : nat64; Err : Error };
+type Result_16 = variant { Ok : ApplicationAuthorization; Err : Error };
 type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
 type Result_3 = variant { Ok : ProductAuthorization; Err : Error };
 type Result_4 = variant { Ok; Err : Error };
@@ -1323,7 +1324,7 @@ service : (UserInit) -> {
   // Only the new authentication principal may reserve its own binding. The
   // existing account_id's administrator must separately approve the exact nonce.
   begin_auth_binding : (blob, blob, nat64) -> (Result_4);
-  complete_recovery : (blob) -> (Result_4);
+  complete_recovery : (blob, blob) -> (Result_4);
   consume_handle_authorization : (HandleIntent) -> (Result_4);
   consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
       Result_4,
@@ -1345,11 +1346,14 @@ service : (UserInit) -> {
   mutate_account : (AccountMutation) -> (Result_10);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
+  // Release expired terminal results for an account, without starting another execution.
+  // Public maintenance is safe: at most 64 retention entries are examined.
+  prune_executions : (blob) -> (Result_14);
   // Bounded public cleanup removes only expired authentication/approval records.
   prune_external_approvals : (blob) -> (opt blob);
   // Push the account's current principal state to the directory. Anyone may
   // retry a publication; it is idempotent and never rolls the document back.
-  publish_principal : (blob) -> (Result_14);
+  publish_principal : (blob) -> (Result_15);
   reconcile_execution : (blob, blob) -> (Result_6);
   reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_4);
   refresh_execution_entitlement : (blob) -> (Result_9);
@@ -1364,8 +1368,8 @@ service : (UserInit) -> {
   sign_agent_event : (AgentEventSignRequest) -> (Result_6);
   sign_app_action : (AppActionSignRequest) -> (Result_6);
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_15);
-  verify_payment_offer : (SignedOffer) -> (Result_14);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_16);
+  verify_payment_offer : (SignedOffer) -> (Result_15);
   // A registered product may check whether its own account beneficiary still exists.
   verify_product_account : (text, Beneficiary) -> (Result_4);
 }

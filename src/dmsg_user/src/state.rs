@@ -11,6 +11,13 @@ pub struct HandleAuthorization {
     pub expires_at: u64,
 }
 
+/// The latest completed recovery, retained for exact completion retries.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RecoveryReceipt {
+    pub request_id: OpId,
+    pub new_auth: Principal,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
     pub created_at_ms: u64,
@@ -27,6 +34,7 @@ pub struct AccountState {
     pub recovery_checked: bool,
     pub recovery_nonce: u64,
     pub pending_recovery: Option<PendingRecovery>,
+    pub completed_recovery: Option<RecoveryReceipt>,
     pub current_root: Option<ContentRootRef>,
     pub root_slot: Option<RootReservation>,
     pub next_root_generation: u64,

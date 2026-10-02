@@ -78,6 +78,12 @@ fn post_upgrade() {
     )
     .expect("immutable allocator");
     rebuild_certification();
+    #[cfg(target_arch = "wasm32")]
+    ic_cdk::println!(
+        "dmsg_user upgrade: instructions={} wasm_memory_bytes={}",
+        ic_cdk::api::performance_counter(0),
+        core::arch::wasm32::memory_size(0) * 65_536,
+    );
 }
 
 #[ic_cdk::update]
@@ -139,7 +145,8 @@ fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Re
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
     nonzero(nonce.as_slice())?;
-    expiry(now(), expires_at, 5 * MINUTE)?;
+    let at = now();
+    expiry(at, expires_at, 5 * MINUTE)?;
     ensure(
         ACCOUNTS.with_borrow(|t| t.contains(account_id.as_slice())),
         Error::NotFound,
@@ -147,10 +154,23 @@ fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Re
     if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
-    ensure(
-        BINDINGS.with_borrow(|t| t.contains(caller.as_slice()) || t.len() < 1024),
-        Error::QuotaExceeded,
-    )?;
+    BINDINGS.with_borrow_mut(|t| {
+        if !t.contains(caller.as_slice()) && t.len() >= 1024 {
+            // The whole table is bounded at 1024 small entries. Reclaim on
+            // admission instead of depending on an external cleanup schedule.
+            let expired: Vec<_> = t
+                .iter()
+                .filter_map(|e| (at >= e.value().0 .2).then(|| e.key().clone()))
+                .collect();
+            for key in expired {
+                t.delete(&key);
+            }
+        }
+        ensure(
+            t.contains(caller.as_slice()) || t.len() < 1024,
+            Error::QuotaExceeded,
+        )
+    })?;
     BINDINGS.with_borrow_mut(|t| t.put(caller.as_slice(), &(account_id, nonce, expires_at)));
     Ok(())
 }
@@ -260,22 +280,14 @@ async fn register_controller(input: AccountMutation) -> Result<OperationReceipt>
     };
     // Reject bad callers, approvals, versions and limits before the COSE call.
     let s = load(&input.account_id)?;
-    let replay = s
-        .operations
-        .iter()
-        .any(|r| r.id == input.approval.request_id);
-    let mut probe = s.clone();
-    let receipt = principal::apply(
-        &mut probe,
-        &mut principal::load(&input.account_id),
-        caller,
-        &input,
-        now(),
-    )?;
-    if replay {
+    let at = now();
+    if let account::Authorized::Replay(receipt) =
+        account::authorize_mutation(&s, caller, &input, at)?
+    {
         let _ = principal::publish(input.account_id).await;
         return Ok(receipt);
     }
+    principal::prepare(&s, principal::load(&input.account_id), &input.command, at)?;
     let home_cose = s.home_cose;
     let key: Result<KeyDescriptor> = stable::call(
         home_cose,
@@ -390,63 +402,75 @@ async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     authorize_and_execute(input.into_execution()).await
 }
 
+/// Check current local authority without saving a candidate account. The
+/// principal nonce changes only in this disposable candidate until commit.
+fn precheck_execution(
+    s: &AccountState,
+    caller: Principal,
+    input: &ExecuteRequest,
+    prepared: &execution::PreparedRequest,
+    at: u64,
+    init: &UserInit,
+) -> Result<(stable::Budget, Option<principal::AgentPrincipal>)> {
+    let budget = execution::check(s, caller, input, at, init, prepared)?;
+    let agent = if let Some(event) = &prepared.event {
+        let mut p = principal::load(&s.account_id).ok_or(Error::NotFound)?;
+        principal::authorize_event(&mut p, s, init, &input.kind, event, at)?;
+        Some(p)
+    } else {
+        None
+    };
+    Ok((budget, agent))
+}
+
+async fn execute_existing(e: AuthorizedExecution, fingerprint: Hash) -> Result<ExecutionResult> {
+    ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
+    if e.result.is_terminal() {
+        return Ok(e.result);
+    }
+    dispatch(e.grant).await
+}
+
 async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult> {
     let caller = ic_cdk::api::msg_caller();
     let mut at = now();
     let init = config().init;
     let mut s = own(&input.account_id, caller)?;
-    let mut previous = load_execution(&input.account_id, &input.approval.request_id);
-    if input.kind.is_formal()
-        && previous.is_none()
-        && !crate::commerce::is_current(&input.account_id, at)?
-    {
-        // Reject invalid caller/device/payload before doing commercial cross-canister work.
-        execution::authorize(&mut s, caller, &input, at, &init, None)?;
+    let fingerprint = digest("dmsg/execute-request/v2", &input);
+    if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
+        return execute_existing(e, fingerprint).await;
+    }
+    let prepared = execution::PreparedRequest::new(&input)?;
+    let (mut budget, mut agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
+    if input.kind.is_formal() && !crate::commerce::is_current(&input.account_id, at)? {
         at = crate::commerce::refresh(&input.account_id, at).await?;
         s = own(&input.account_id, caller)?;
-        previous = load_execution(&input.account_id, &input.approval.request_id);
-    }
-    if previous.is_none() {
-        if let ExecutionKind::Sign { to_be_signed, .. } = &input.kind {
-            let prepared = parse_signing_input(to_be_signed)?;
-            if let StatementContent::AppAction(action) = &prepared.statement().content {
-                // Validate device/payload before either external lookup. No state is saved yet.
-                execution::authorize(&mut s, caller, &input, at, &init, None)?;
-                crate::external::authorize_action(&input.account_id, action).await?;
-                at = now();
-                s = own(&input.account_id, caller)?;
-                previous = load_execution(&input.account_id, &input.approval.request_id);
-            }
+        if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
+            return execute_existing(e, fingerprint).await;
         }
+        (budget, agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
     }
-    let expired: Vec<_> = s
-        .execution_expirations
-        .iter()
-        .filter_map(|(id, expires_at)| expires_at.filter(|deadline| *deadline <= at).map(|_| *id))
-        .collect();
-    let mut agent = None;
-    if previous.is_none() && matches!(input.kind, ExecutionKind::AgentEvent { .. }) {
-        let mut p = principal::load(&input.account_id).ok_or(Error::NotFound)?;
-        principal::authorize_event(&mut p, &s, &init, &input.kind, at)?;
-        agent = Some(p);
-    }
-    let mut e = execution::authorize(&mut s, caller, &input, at, &init, previous.as_ref())?;
-    if previous.is_none() {
-        crate::commerce::reserve(&mut e, at)?;
-        // All validation precedes these writes, with no await until the account,
-        // budget, sequence, nonce, execution and certification have committed together.
-        for id in expired {
-            remove_execution(&s.account_id, &id);
+    if let Some(action) = prepared.action() {
+        crate::external::authorize_action(&input.account_id, action).await?;
+        at = now();
+        s = own(&input.account_id, caller)?;
+        if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
+            return execute_existing(e, fingerprint).await;
         }
-        save_execution(&e);
-        save(&s);
-        if let Some(p) = agent {
-            principal::save(&s.account_id, &p);
-        }
+        (budget, agent) = precheck_execution(&s, caller, &input, &prepared, at, &init)?;
     }
-    if e.result.is_terminal() {
-        return Ok(e.result);
+    drop(prepared);
+    let mut e = execution::commit(&mut s, input, fingerprint, budget, at);
+    crate::commerce::reserve(&mut e, at)?;
+    // All validation precedes writes, with no await until budget, sequence,
+    // nonce, execution and certification have committed together.
+    prune_account_executions(&mut s, at);
+    save_execution(&e);
+    save(&s);
+    if let Some(p) = agent {
+        principal::save(&s.account_id, &p);
     }
+    drop(s);
     dispatch(e.grant).await
 }
 
@@ -570,13 +594,15 @@ fn reconfirm_recovery(
 }
 
 #[ic_cdk::update]
-fn complete_recovery(account_id: AccountId) -> Result<()> {
+fn complete_recovery(account_id: AccountId, request_id: OpId) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
     if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
         ensure(id == account_id, Error::IdempotencyConflict)?;
     }
     let mut s = load(&account_id)?;
-    let removed = recovery::complete_recovery(&mut s, caller, now())?;
+    let Some(removed) = recovery::complete_recovery(&mut s, caller, request_id, now())? else {
+        return Ok(());
+    };
     AUTH.with_borrow_mut(|t| {
         for principal in removed.iter().filter(|p| **p != caller) {
             t.delete(principal.as_slice());
@@ -674,14 +700,28 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
         .ok_or(Error::ResultExpired)
 }
 
+/// Release expired terminal results for an account, without starting another execution.
+/// Public maintenance is safe: at most 64 retention entries are examined.
+#[ic_cdk::update]
+fn prune_executions(account_id: AccountId) -> Result<u32> {
+    let at = now();
+    let mut s = load(&account_id)?;
+    let removed = prune_account_executions(&mut s, at);
+    if removed > 0 {
+        save_account(&s);
+    }
+    Ok(removed)
+}
+
 #[ic_cdk::query]
 fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<CertifiedBatch> {
     own(&account_id, ic_cdk::api::msg_caller())?;
-    let execution = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
-    ensure(
-        matches!(execution.grant.kind, ExecutionKind::Sign { .. }),
-        Error::UnsupportedProtocol,
-    )?;
+    if let Some(execution) = load_execution(&account_id, &request_id) {
+        ensure(
+            matches!(execution.grant.kind, ExecutionKind::Sign { .. }),
+            Error::UnsupportedProtocol,
+        )?;
+    }
     CERT.with_borrow(|c| {
         c.batch(
             ic_cdk::api::canister_self(),

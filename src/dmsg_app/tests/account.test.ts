@@ -31,6 +31,16 @@ beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
 describe('account authorization and encrypted local recovery state', () => {
+  it('persists the exact recovery request identity for completion retries', () => {
+    const accountId = new Uint8Array(12).fill(1),
+      requestId = new Uint8Array(32).fill(9)
+    const encoded = encodeControl('complete_recovery', [accountId, requestId])
+    const decoded = decodeControl('complete_recovery', encoded)
+    expect(decoded).toEqual([accountId, requestId])
+    expect(encodeControl('complete_recovery', decoded)).toBe(encoded)
+    expect(() => encodeControl('complete_recovery', [accountId])).toThrow()
+  })
+
   it('binds account creation to the actual caller, user home, device and deadline', () => {
     const request = {
       device: deviceInput(publicMeta),

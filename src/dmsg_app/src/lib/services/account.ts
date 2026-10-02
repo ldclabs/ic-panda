@@ -724,7 +724,7 @@ export class AccountClient {
     await this.submit(
       'complete_recovery',
       account,
-      [xidBytes(account)],
+      [xidBytes(account), pending.request.op_id],
       hex(Uint8Array.from(pending.request.op_id))
     )
     return this.refresh(account)

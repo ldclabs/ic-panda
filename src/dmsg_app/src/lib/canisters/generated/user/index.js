@@ -604,7 +604,8 @@ export const idlFactory = ({ IDL }) => {
     'approval' : Approval,
     'expected_version' : IDL.Nat64,
   });
-  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
+  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   const SigningAlgorithm = IDL.Variant({
     'Ed25519' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
@@ -666,7 +667,7 @@ export const idlFactory = ({ IDL }) => {
     'verified_at_ms' : IDL.Nat64,
     'approval_hash' : IDL.Vec(IDL.Nat8),
   });
-  const Result_15 = IDL.Variant({
+  const Result_16 = IDL.Variant({
     'Ok' : ApplicationAuthorization,
     'Err' : Error,
   });
@@ -718,7 +719,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         [],
       ),
-    'complete_recovery' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_4], []),
+    'complete_recovery' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result_4],
+        [],
+      ),
     'consume_handle_authorization' : IDL.Func([HandleIntent], [Result_4], []),
     'consume_handle_transfer_authorizations' : IDL.Func(
         [HandleIntent, HandleIntent],
@@ -773,12 +778,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
+    'prune_executions' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], []),
     'prune_external_approvals' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
-    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], []),
+    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_15], []),
     'reconcile_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_6],
@@ -815,10 +821,10 @@ export const idlFactory = ({ IDL }) => {
     'sign_app_action' : IDL.Func([AppActionSignRequest], [Result_6], []),
     'verify_application_authorization' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ApplicationApproval],
-        [Result_15],
+        [Result_16],
         [],
       ),
-    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_14], []),
+    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_15], []),
     'verify_product_account' : IDL.Func(
         [IDL.Text, Beneficiary],
         [Result_4],

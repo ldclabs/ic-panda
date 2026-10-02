@@ -24,12 +24,7 @@ pub(crate) fn begin_recovery(
                 .contains(&Capability::RootManage),
         "recovery administrator",
     )?;
-    ensure(
-        request.generation == policy.generation
-            && request.expires_at > now + policy.delay_ms
-            && request.expires_at - now <= 14 * DAY,
-        Error::Expired,
-    )?;
+    ensure(request.generation == policy.generation, Error::Expired)?;
     verify(
         &policy.signing_pub,
         digest(
@@ -50,10 +45,23 @@ pub(crate) fn begin_recovery(
     )?;
     if let Some(r) = &s.pending_recovery {
         if r.request == *request {
+            // A retry does not start a new delay. A reconfirmation may have
+            // extended the original request's deadline.
+            ensure(now < r.expires_at(), Error::Expired)?;
             return Ok(());
         }
         ensure(now >= r.expires_at(), Error::Pending)?;
     }
+    ensure(
+        s.completed_recovery
+            .as_ref()
+            .is_none_or(|r| r.request_id != request.op_id),
+        Error::IdempotencyConflict,
+    )?;
+    ensure(
+        request.expires_at > now + policy.delay_ms && request.expires_at - now <= 14 * DAY,
+        Error::Expired,
+    )?;
     s.pending_recovery = Some(PendingRecovery {
         request: request.clone(),
         execute_after: now + policy.delay_ms,
@@ -109,13 +117,21 @@ pub(crate) fn reconfirm_recovery(
 }
 
 /// Returns the login bindings replaced by the recovered principal so the caller
-/// can drop their authentication routes.
+/// can drop their authentication routes; None is an exact completion retry.
 pub(crate) fn complete_recovery(
     s: &mut AccountState,
     caller: Principal,
+    request_id: OpId,
     now: u64,
-) -> Result<Vec<Principal>> {
+) -> Result<Option<Vec<Principal>>> {
+    if let Some(r) = &s.completed_recovery {
+        if r.request_id == request_id {
+            ensure(caller == r.new_auth, Error::AuthRequired)?;
+            return Ok(None);
+        }
+    }
     let r = s.pending_recovery.clone().ok_or(Error::NotFound)?;
+    ensure(r.request.op_id == request_id, Error::IdempotencyConflict)?;
     ensure(caller == r.request.new_auth, Error::AuthRequired)?;
     ensure(
         now >= r.execute_after && now < r.expires_at(),
@@ -135,13 +151,17 @@ pub(crate) fn complete_recovery(
     );
     let removed = std::mem::replace(&mut s.auth_bindings, vec![r.request.new_auth]);
     s.pending_recovery = None;
+    s.completed_recovery = Some(RecoveryReceipt {
+        request_id,
+        new_auth: caller,
+    });
     s.status = AccountStatus::Active;
     s.recovery_nonce += 1;
     s.account_version += 1;
     s.recovery_checked = true;
     s.sensitive_policy.frozen = false;
     changed(s);
-    Ok(removed)
+    Ok(Some(removed))
 }
 
 pub(crate) fn recovery_request(

@@ -107,6 +107,19 @@ fn existing(
     Ok(Some(record.body.clone()))
 }
 
+/// Check capacity before remote work, and again at the local commit point.
+fn check_quota(state: &ExternalState, at: u64) -> Result<()> {
+    let count = state
+        .operations
+        .values()
+        .filter(|r| at < r.expires_at_ms)
+        .count();
+    ensure(count < MAX_ACCOUNT_OPERATIONS, Error::QuotaExceeded)?;
+    let hour = at / (60 * MINUTE);
+    let used = if state.hour == hour { state.used } else { 0 };
+    ensure(used < MAX_HOURLY_APPROVALS, Error::QuotaExceeded)
+}
+
 /// All validation precedes mutation; failed approvals consume neither quota nor sequences.
 fn commit(
     state: &mut ExternalState,
@@ -116,15 +129,9 @@ fn commit(
     body: ExternalBody,
     at: u64,
 ) -> Result<()> {
-    let count = state
-        .operations
-        .values()
-        .filter(|r| at < r.expires_at_ms)
-        .count();
-    ensure(count < MAX_ACCOUNT_OPERATIONS, Error::QuotaExceeded)?;
+    check_quota(state, at)?;
     let hour = at / (60 * MINUTE);
     let used = if state.hour == hour { state.used } else { 0 };
-    ensure(used < MAX_HOURLY_APPROVALS, Error::QuotaExceeded)?;
     let expires_at_ms = match &body {
         ExternalBody::Authentication(result) => result.expires_at_ms,
         ExternalBody::Application(application) => {
@@ -209,8 +216,9 @@ async fn approve_authentication(
         request.operation_id == approval.request_id,
         Error::IntegrityFailed,
     )?;
+    let state = load(&account_id);
     if let Some(body) = existing(
-        &load(&account_id),
+        &state,
         &account,
         caller,
         approval.request_id,
@@ -223,6 +231,8 @@ async fn approve_authentication(
         };
     }
     precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at)?;
+    check_quota(&state, at)?;
+    drop(state);
     let (app, _) = configuration(request.app_id.clone(), None).await?;
     // Time, epoch, sequence and operation state are reread after the external call.
     let at = nanos_to_millis(ic_cdk::api::time());
@@ -302,8 +312,9 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
     )?;
     let fingerprint = digest(APPLICATION_DOMAIN, &(&application, &approval));
     let account = store::load(&id)?;
+    let state = load(&id);
     if existing(
-        &load(&id),
+        &state,
         &account,
         caller,
         approval.request_id,
@@ -322,6 +333,8 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &application,
         at,
     )?;
+    check_quota(&state, at)?;
+    drop(state);
     let (app, product) = configuration(
         application.app_id.clone(),
         Some(application.beneficiary.product_id.clone()),
@@ -377,7 +390,10 @@ async fn verify_application(
     approval_id: Hash,
     expected: ApplicationApproval,
 ) -> Result<ApplicationAuthorization> {
-    ensure(caller == expected.service, Error::Forbidden)?;
+    ensure(
+        caller == service_for(&expected.purpose) && caller == expected.service,
+        Error::Forbidden,
+    )?;
     let (app, product) = configuration(
         expected.app_id.clone(),
         Some(expected.beneficiary.product_id.clone()),

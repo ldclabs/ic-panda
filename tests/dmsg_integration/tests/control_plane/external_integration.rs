@@ -514,8 +514,13 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         (account, action.clone()),
     );
     preview.unwrap();
+    let before_cycles = f.ic.cycle_balance(f.user);
     let signed: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "sign_app_action", (req.clone(),));
+    println!(
+        "user_cycles method=sign_app_action cycles={}",
+        before_cycles - f.ic.cycle_balance(f.user)
+    );
     let signed = signed.unwrap();
     let ExecutionOutput::Signature {
         artifact,
@@ -546,8 +551,13 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         f.ic.upgrade_canister(home, wasm(name), candid::encode_args(()).unwrap(), None)
             .unwrap();
     }
+    let before_cycles = f.ic.cycle_balance(f.user);
     let repeated: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "sign_app_action", (req,));
+    println!(
+        "user_cycles method=sign_app_action_retry cycles={}",
+        before_cycles - f.ic.cycle_balance(f.user)
+    );
     assert_eq!(repeated, Ok(signed));
     let seq = f.account_id(1, &account).devices[&hash].next_sequence;
     action.operation_id = Hash::new([80; 32]);
@@ -570,4 +580,160 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         update(&f.ic, f.user, person(1), "sign_app_action", (next,));
     assert_eq!(paused, Err(Error::PolicyStale));
     assert_eq!(f.account_id(1, &account).devices[&hash].next_sequence, seq);
+}
+
+#[test]
+fn external_quota_rejections_do_not_call_commerce() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    let (app, _) = registrations(&f);
+    let mut last = None;
+    for n in 1..=60u8 {
+        if n == 33 {
+            f.ic.stop_canister(f.commerce, None).unwrap();
+            let (request, approval) = last.clone().unwrap();
+            let replay: Result<AuthenticationResult> = update(
+                &f.ic,
+                f.user,
+                person(1),
+                "approve_authentication",
+                (id, request, approval),
+            );
+            replay.unwrap();
+            let request = auth(&f, &app, n);
+            let approval = approve(
+                &f,
+                &id,
+                "dmsg/authentication/approve/v1",
+                &request,
+                request.operation_id,
+            );
+            let denied: Result<AuthenticationResult> = update(
+                &f.ic,
+                f.user,
+                person(1),
+                "approve_authentication",
+                (id, request, approval),
+            );
+            assert_eq!(denied, Err(Error::QuotaExceeded));
+            f.ic.start_canister(f.commerce, None).unwrap();
+            f.ic.advance_time(Duration::from_millis(6 * MINUTE));
+        }
+        let request = auth(&f, &app, n);
+        let approval = approve(
+            &f,
+            &id,
+            "dmsg/authentication/approve/v1",
+            &request,
+            request.operation_id,
+        );
+        let result: Result<AuthenticationResult> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "approve_authentication",
+            (id, request.clone(), approval.clone()),
+        );
+        result.unwrap();
+        last = Some((request, approval));
+    }
+    f.ic.stop_canister(f.commerce, None).unwrap();
+    let before = f.account_id(1, &id);
+    let request = auth(&f, &app, 61);
+    let approval = approve(
+        &f,
+        &id,
+        "dmsg/authentication/approve/v1",
+        &request,
+        request.operation_id,
+    );
+    let denied: Result<AuthenticationResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "approve_authentication",
+        (id, request, approval),
+    );
+    assert_eq!(denied, Err(Error::QuotaExceeded));
+    assert_eq!(f.account_id(1, &id), before);
+}
+
+#[test]
+#[ignore = "mixed account/month/authentication upgrade capacity sample"]
+fn user_mixed_upgrade_profile() {
+    let f = Fixture::new();
+    let (app, _) = registrations(&f);
+    let accounts: Vec<_> = (1..=64).map(|n| (n, f.create(n))).collect();
+    for month in 0..12 {
+        if month > 0 {
+            f.ic.advance_time(Duration::from_millis(32 * DAY));
+        }
+        for (owner, id) in &accounts {
+            let usage: Result<dmsg_types::billing::ExecutionUsage> = update(
+                &f.ic,
+                f.user,
+                person(*owner),
+                "refresh_execution_entitlement",
+                (id,),
+            );
+            usage.unwrap();
+        }
+    }
+    for count in 1..=32u8 {
+        for (owner, id) in &accounts {
+            let state = f.account_id(*owner, id);
+            let request = auth(&f, &app, count);
+            let mut approval = Approval {
+                device_id: Hash::new([*owner; 32]),
+                security_epoch: state.security_epoch,
+                sequence: state.devices[&Hash::new([*owner; 32])].next_sequence,
+                request_id: request.operation_id,
+                expires_at: request.expires_at_ms,
+                signature: Default::default(),
+            };
+            approval.signature = key(*owner)
+                .sign(
+                    approval_message(
+                        f.user,
+                        id,
+                        "dmsg/authentication/approve/v1",
+                        &request,
+                        &approval,
+                    )
+                    .as_slice(),
+                )
+                .to_bytes()
+                .into();
+            let result: Result<AuthenticationResult> = update(
+                &f.ic,
+                f.user,
+                person(*owner),
+                "approve_authentication",
+                (id, request, approval),
+            );
+            result.unwrap();
+        }
+        if [8, 32].contains(&count) {
+            println!(
+                "user_mixed_upgrade authentication_rows={}",
+                accounts.len() * usize::from(count)
+            );
+            user_tests::measure_user_upgrade(&f, &accounts, 12);
+            let (owner, id) = accounts.last().unwrap();
+            let batch: Result<CertifiedBatch> = query(
+                &f.ic,
+                f.user,
+                person(*owner),
+                "authentication_certificate",
+                (id, Hash::new([count; 32])),
+            );
+            let leaf: AuthenticationResult = decode_canonical(&certified_value(
+                &f,
+                batch.unwrap(),
+                &authentication_key(id, &Hash::new([count; 32])),
+            ))
+            .unwrap();
+            assert_eq!(leaf.account_id, *id);
+        }
+    }
 }

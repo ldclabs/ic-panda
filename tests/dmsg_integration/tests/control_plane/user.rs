@@ -486,7 +486,7 @@ fn user_upgrade_profile() {
     measure_user_upgrade(&f, &accounts, 12);
 }
 
-fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], months: usize) {
+pub(super) fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], months: usize) {
     let before = f.ic.cycle_balance(f.user);
     f.ic.upgrade_canister(
         f.user,
@@ -496,7 +496,9 @@ fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], months: usize
     )
     .unwrap();
     let cycles = before - f.ic.cycle_balance(f.user);
-    let stable_bytes = f.ic.get_stable_memory(f.user).len();
+    let memory = f.ic.canister_status(f.user, None).unwrap().memory_metrics;
+    let stable_bytes = memory.stable_memory_size;
+    let wasm_bytes = memory.wasm_memory_size;
     let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
     let (owner, id) = accounts.last().unwrap();
     let certified: Result<CertifiedBatch> = query(
@@ -515,10 +517,17 @@ fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], months: usize
     assert_eq!(leaf.account_id, *id);
     assert_eq!(leaf.month_utc, month);
     println!(
-        "user_upgrade accounts={} month_rows={} cycles={cycles} stable_bytes={stable_bytes}",
+        "user_upgrade accounts={} month_rows={} cycles={cycles} stable_bytes={stable_bytes} wasm_bytes={wasm_bytes}",
         accounts.len(),
         accounts.len() * months
     );
+    if let Some(log) =
+        f.ic.fetch_canister_logs(f.user, Principal::anonymous())
+            .unwrap()
+            .last()
+    {
+        println!("{}", String::from_utf8_lossy(&log.content));
+    }
 }
 
 #[test]
@@ -598,11 +607,22 @@ fn removed_and_recovered_logins_lose_their_routes() {
         f.user,
         person(9),
         "request_recovery",
-        (&id, request, ByteBuf::from(signature), ByteBuf::from(pop)),
+        (
+            &id,
+            request.clone(),
+            ByteBuf::from(signature),
+            ByteBuf::from(pop),
+        ),
     );
     submitted.unwrap();
     f.ic.advance_time(Duration::from_millis(DAY));
-    let completed: Result<()> = update(&f.ic, f.user, person(9), "complete_recovery", (&id,));
+    let completed: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(9),
+        "complete_recovery",
+        (&id, request.op_id),
+    );
     completed.unwrap();
     assert_eq!(f.account_id(9, &id).auth_bindings, vec![person(9)]);
     let recovered: Option<AccountId> = query(&f.ic, f.user, person(9), "my_account", ());

@@ -46,14 +46,18 @@ fn authorize(
     request: &ExecuteRequest,
     now: u64,
 ) -> Result<crate::state::AuthorizedExecution> {
-    let e = execution::authorize(
-        &mut s.account,
-        caller,
-        request,
-        now,
-        &test_init(),
-        s.executions.get(&request.approval.request_id),
-    )?;
+    let fingerprint = digest("dmsg/execute-request/v2", request);
+    if let Some(e) = s.executions.get(&request.approval.request_id) {
+        ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
+        ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
+        return Ok(e.clone());
+    }
+    let prepared = execution::PreparedRequest::new(request)?;
+    let budget = execution::check(&s.account, caller, request, now, &test_init(), &prepared)?;
+    let e = execution::commit(&mut s.account, request.clone(), fingerprint, budget, now);
+    s.account
+        .execution_expirations
+        .retain(|_, deadline| deadline.is_none_or(|at| at > now));
     s.executions
         .retain(|id, _| s.account.execution_expirations.contains_key(id));
     s.executions.insert(e.grant.request_id, e.clone());
@@ -453,7 +457,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     )
     .unwrap();
     assert_eq!(
-        recovery::complete_recovery(&mut s, p(4), DAY + 2),
+        recovery::complete_recovery(&mut s, p(4), request.op_id, DAY + 2),
         Err(Error::Locked)
     );
     let confirmation = RecoveryConfirmation {
@@ -485,7 +489,7 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
     )
     .unwrap();
     assert_eq!(s.pending_recovery.as_ref().unwrap().execute_after, after);
-    recovery::complete_recovery(&mut s, p(4), after).unwrap();
+    recovery::complete_recovery(&mut s, p(4), request.op_id, after).unwrap();
     assert_eq!(s.auth_bindings, vec![p(4)]);
     assert_eq!(s.devices.len(), 1);
     assert_eq!(s.status, AccountStatus::Active);
@@ -587,6 +591,9 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
     recovery::reconfirm_recovery(&mut s, &confirmation, &sig, 7 * DAY + 2).unwrap();
     let deadline = s.pending_recovery.as_ref().unwrap().execute_after;
     assert!(deadline > request.expires_at);
+    let pending = s.pending_recovery.clone();
+    recovery::begin_recovery(&mut s, &request, &signature, &pop, request.expires_at + 1).unwrap();
+    assert_eq!(s.pending_recovery, pending);
     apply(
         &mut s,
         AccountCommand::DisputeRecovery {
@@ -598,9 +605,15 @@ fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
     .unwrap();
     recovery::reconfirm_recovery(&mut s, &confirmation, &sig, 7 * DAY + 4).unwrap();
     assert_eq!(s.pending_recovery.as_ref().unwrap().execute_after, deadline);
-    recovery::complete_recovery(&mut s, p(4), deadline).unwrap();
+    recovery::complete_recovery(&mut s, p(4), request.op_id, deadline).unwrap();
     assert_eq!(s.auth_bindings, vec![p(4)]);
     assert_eq!(s.snapshot(NAMESPACE).recovery_nonce, 1);
+    let completed = s.clone();
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(4), request.op_id, deadline + 1),
+        Ok(None)
+    );
+    assert_eq!(s, completed);
 }
 
 #[test]
@@ -710,6 +723,23 @@ fn failed_budget_does_not_prune_expired_results_or_advance_sequences() {
         Err(Error::QuotaExceeded)
     );
     assert_eq!(s, before);
+}
+
+#[test]
+fn execution_precheck_is_read_only_even_when_authorization_succeeds() {
+    let s = initialized();
+    let request = execute_request(&s, 1, 1);
+    let prepared = execution::PreparedRequest::new(&request).unwrap();
+    let before = s.clone();
+    let budget = execution::check(&s, p(1), &request, 1, &test_init(), &prepared).unwrap();
+    assert_eq!(s, before);
+    assert_eq!(budget.executions, 1);
+    let mut changed = s.account.clone();
+    changed.sensitive_policy.frozen = true;
+    assert_eq!(
+        execution::check(&changed, p(1), &request, 2, &test_init(), &prepared),
+        Err(Error::Locked)
+    );
 }
 
 #[test]
@@ -1278,7 +1308,15 @@ fn hosted_events_need_a_current_bound_key_policy_and_fresh_nonce() {
     let mut principal = principal.unwrap();
     let id = format!("{}.a1", s.account_id);
     let authorize_event = |p: &mut crate::principal::AgentPrincipal, r: &ExecuteRequest| {
-        crate::principal::authorize_event(p, &s, &test_init(), &r.kind, t)
+        let parsed = execution::PreparedRequest::new(r)?;
+        crate::principal::authorize_event(
+            p,
+            &s,
+            &test_init(),
+            &r.kind,
+            parsed.event.as_ref().unwrap(),
+            t,
+        )
     };
 
     let r = agent_request(&s, agent_event(20, 5, t, &id, "https://dmsg.net"), 1, t);
