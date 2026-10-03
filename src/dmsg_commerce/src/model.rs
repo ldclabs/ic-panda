@@ -436,6 +436,7 @@ mod tests {
         add_storage(&mut s, addon(100, 20), 10).unwrap();
         assert_eq!(s.addons.len(), 1);
     }
+
     #[test]
     fn pruning_keeps_the_current_month_and_last_service_end() {
         let (start, end) = month_bounds(202609).unwrap();

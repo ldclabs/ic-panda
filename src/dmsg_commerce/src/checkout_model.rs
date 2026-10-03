@@ -557,6 +557,7 @@ mod tests {
         assert_ne!(a, b);
         assert_eq!(o.next_transfer, 2);
     }
+
     #[test]
     fn ambiguous_ledger_replies_keep_the_original_transfer_unreplaceable() {
         use dmsg_runtime::CallFailure;

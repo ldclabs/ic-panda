@@ -125,6 +125,11 @@ export class HandleClient {
           )
     } else {
       ensure('NotFound' in prior.Err, 'EXECUTION_UNKNOWN')
+      ensure(
+        job.phase !== 'Rejected',
+        'VersionConflict',
+        '此购买请求已被拒绝，请重新核对名称和固定收费。'
+      )
       await wallet.approveHandle(
         job.ledger,
         this.registryId,
@@ -137,7 +142,14 @@ export class HandleClient {
       })
       job.phase = 'unknown'
       await this.savePurchase(job)
-      result = controlResult(await this.registry.register_handle(input))
+      const response = await this.registry.register_handle(input)
+      // Only a definite canister rejection permits a new purchase. A transport
+      // failure or unknown charge keeps this operation for reconciliation.
+      if ('Err' in response && !('ExecutionUnknown' in response.Err)) {
+        job.phase = 'Rejected'
+        await this.savePurchase(job)
+      }
+      result = controlResult(response)
     }
     ensure(
       equal(

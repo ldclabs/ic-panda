@@ -262,6 +262,41 @@ it('purchases once with exact charge terms and resumes the recorded charge witho
   expect(f.account.mutate).toHaveBeenCalledOnce()
 })
 
+it('lets a definite pre-charge rejection prepare a new purchase without resubmitting it', async () => {
+  const f = fixture()
+  Object.assign(f.account, { home: principal(7) })
+  vi.spyOn(f.client, 'ownership').mockResolvedValue(null)
+  const registry = f.registry as any
+  registry.get_handle_config = vi.fn(async () => ({
+    home_user: principal(7),
+    ledger: principal(9),
+    ledger_fee: 10n
+  }))
+  registry.get_handle_operation = vi.fn(async () => ({ Err: { NotFound: null } }))
+  registry.register_handle = vi.fn(async () => ({ Err: { VersionConflict: null } }))
+  const wallet = { owner: admin, approveHandle: vi.fn(async () => {}) }
+  const first = await f.client.preparePurchase('longname')
+  await expect(f.client.purchase(wallet as any)).rejects.toMatchObject({
+    code: 'VersionConflict'
+  })
+  expect((await f.client.purchaseJob())?.phase).toBe('Rejected')
+  await expect(f.client.purchase(wallet as any)).rejects.toMatchObject({
+    code: 'VersionConflict'
+  })
+  expect(registry.register_handle).toHaveBeenCalledOnce()
+  expect(f.account.mutate).toHaveBeenCalledOnce()
+  const next = await f.client.preparePurchase('othername')
+  expect(next.args).not.toBe(first.args)
+
+  // An unknown charge result keeps the prepared operation for reconciliation.
+  registry.register_handle.mockResolvedValueOnce({ Err: { ExecutionUnknown: null } })
+  await expect(f.client.purchase(wallet as any)).rejects.toMatchObject({
+    code: 'ExecutionUnknown'
+  })
+  expect((await f.client.purchaseJob())?.phase).toBe('unknown')
+  await expect(f.client.preparePurchase('thirdname')).rejects.toMatchObject({ code: 'Pending' })
+})
+
 it('transfer packets bind both accounts, one version and one operation', async () => {
   const f = fixture()
   vi.spyOn(f.client, 'ownership').mockResolvedValue({
