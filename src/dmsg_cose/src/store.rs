@@ -194,7 +194,7 @@ pub(crate) fn prune_executions(after: Option<AccountId>, now: u64) -> ExecutionC
     }
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 8;
+pub(crate) const STABLE_SCHEMA: u16 = 9;
 
 fn execution_key(account: &[u8], sequence: u64) -> Vec<u8> {
     [account, &sequence.to_be_bytes()].concat()
@@ -273,7 +273,8 @@ mod tests {
             let config = CoseInit {
                 environment,
                 executing_canister: Principal::from_slice(&[1]),
-                initial_home_user: Principal::from_slice(&[2]),
+                user_homes: vec![Principal::from_slice(&[2])],
+                governance: Principal::from_slice(&[3]),
                 issuer_namespace: "https://dmsg.test/u/".into(),
                 derivation_version: 2,
                 daily_cycles: 100,

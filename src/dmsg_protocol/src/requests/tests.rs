@@ -126,7 +126,7 @@ fn init() -> CoseInit {
         issuer_namespace: "urn:dmsg:".into(),
         environment: Environment::Production,
         executing_canister: Principal::from_slice(&[1]),
-        initial_home_user: Principal::from_slice(&[2]),
+        user_homes: vec![Principal::from_slice(&[2])],
         derivation_version: 2,
         masters: vec![MasterKey {
             algorithm: Algorithm::Ed25519,
@@ -135,6 +135,7 @@ fn init() -> CoseInit {
         }],
         daily_executions: 1,
         daily_cycles: 1,
+        governance: Principal::from_slice(&[9]),
     }
 }
 
@@ -171,8 +172,11 @@ fn initialization_checks_home_version_masters_and_budgets() {
     assert!(config.validate(Principal::from_slice(&[3])).is_err());
     let changes: &[fn(&mut CoseInit)] = &[
         |c| c.derivation_version = 1,
-        |c| c.initial_home_user = Principal::anonymous(),
-        |c| c.initial_home_user = Principal::management_canister(),
+        |c| c.user_homes = vec![Principal::anonymous()],
+        |c| c.user_homes = vec![Principal::management_canister()],
+        |c| c.user_homes.clear(),
+        |c| c.user_homes.push(c.user_homes[0]),
+        |c| c.governance = Principal::anonymous(),
         |c| c.issuer_namespace = "relative/".into(),
         |c| c.masters.clear(),
         |c| c.masters.push(c.masters[0].clone()),

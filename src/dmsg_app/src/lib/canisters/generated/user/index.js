@@ -14,10 +14,44 @@ export const idlFactory = ({ IDL }) => {
     'payment_canister' : IDL.Principal,
     'environment' : Environment,
     'commerce_canister' : IDL.Principal,
+    'governance' : IDL.Principal,
     'max_accounts' : IDL.Nat64,
     'membership_canister' : IDL.Principal,
     'directory_canister' : IDL.Principal,
   });
+  const Error = IDL.Variant({
+    'MigrationKeyUnavailable' : IDL.Null,
+    'LegacyWriteDisabled' : IDL.Null,
+    'InvalidInput' : IDL.Text,
+    'IntervalReserved' : IDL.Null,
+    'NeuronOccupied' : IDL.Null,
+    'RekeyRequired' : IDL.Null,
+    'VersionConflict' : IDL.Null,
+    'ExecutionUnknown' : IDL.Null,
+    'IntegrityFailed' : IDL.Null,
+    'IdTimestampOutOfRange' : IDL.Null,
+    'NotFound' : IDL.Null,
+    'FeeBlocked' : IDL.Null,
+    'DeviceNotApproved' : IDL.Null,
+    'Locked' : IDL.Null,
+    'MembershipClosing' : IDL.Null,
+    'RecoveryIncomplete' : IDL.Null,
+    'IdCapacityExceeded' : IDL.Null,
+    'PolicyStale' : IDL.Null,
+    'IdGeneratorStateConflict' : IDL.Null,
+    'IdempotencyConflict' : IDL.Null,
+    'UnsupportedProtocol' : IDL.Null,
+    'Unavailable' : IDL.Text,
+    'MembershipStale' : IDL.Null,
+    'Forbidden' : IDL.Null,
+    'ResultExpired' : IDL.Null,
+    'Expired' : IDL.Null,
+    'MembershipIneligible' : IDL.Null,
+    'QuotaExceeded' : IDL.Null,
+    'AuthRequired' : IDL.Null,
+    'Pending' : IDL.Null,
+  });
+  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const Beneficiary = IDL.Record({
     'product_id' : IDL.Text,
     'authority_canister' : IDL.Principal,
@@ -52,39 +86,7 @@ export const idlFactory = ({ IDL }) => {
     'expires_at' : IDL.Nat64,
     'sequence' : IDL.Nat64,
   });
-  const Error = IDL.Variant({
-    'MigrationKeyUnavailable' : IDL.Null,
-    'LegacyWriteDisabled' : IDL.Null,
-    'InvalidInput' : IDL.Text,
-    'IntervalReserved' : IDL.Null,
-    'NeuronOccupied' : IDL.Null,
-    'RekeyRequired' : IDL.Null,
-    'VersionConflict' : IDL.Null,
-    'ExecutionUnknown' : IDL.Null,
-    'IntegrityFailed' : IDL.Null,
-    'IdTimestampOutOfRange' : IDL.Null,
-    'NotFound' : IDL.Null,
-    'FeeBlocked' : IDL.Null,
-    'DeviceNotApproved' : IDL.Null,
-    'Locked' : IDL.Null,
-    'MembershipClosing' : IDL.Null,
-    'RecoveryIncomplete' : IDL.Null,
-    'IdCapacityExceeded' : IDL.Null,
-    'PolicyStale' : IDL.Null,
-    'IdGeneratorStateConflict' : IDL.Null,
-    'IdempotencyConflict' : IDL.Null,
-    'UnsupportedProtocol' : IDL.Null,
-    'Unavailable' : IDL.Text,
-    'MembershipStale' : IDL.Null,
-    'Forbidden' : IDL.Null,
-    'ResultExpired' : IDL.Null,
-    'Expired' : IDL.Null,
-    'MembershipIneligible' : IDL.Null,
-    'QuotaExceeded' : IDL.Null,
-    'AuthRequired' : IDL.Null,
-    'Pending' : IDL.Null,
-  });
-  const Result = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
+  const Result_1 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
   const AuthenticationPurpose = IDL.Variant({
     'Reauthenticate' : IDL.Null,
     'Login' : IDL.Null,
@@ -115,7 +117,7 @@ export const idlFactory = ({ IDL }) => {
     'expires_at_ms' : IDL.Nat64,
     'approved_at_ms' : IDL.Nat64,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : AuthenticationResult, 'Err' : Error });
+  const Result_2 = IDL.Variant({ 'Ok' : AuthenticationResult, 'Err' : Error });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -127,7 +129,7 @@ export const idlFactory = ({ IDL }) => {
     'entries' : IDL.Vec(CertifiedEntry),
     'canister' : IDL.Principal,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Result_3 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const SettlementMethod = IDL.Variant({
     'Cash' : IDL.Null,
     'Panda' : IDL.Null,
@@ -174,8 +176,7 @@ export const idlFactory = ({ IDL }) => {
     'valid_until_ms' : IDL.Nat64,
     'verified_at_ms' : IDL.Nat64,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : ProductAuthorization, 'Err' : Error });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : ProductAuthorization, 'Err' : Error });
   const HandleAction = IDL.Variant({
     'AcceptTransfer' : IDL.Null,
     'Register' : IDL.Null,
@@ -660,6 +661,7 @@ export const idlFactory = ({ IDL }) => {
     'max_cycles' : IDL.Nat,
     'approval' : Approval,
   });
+  const Result_16 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const ApplicationAuthorization = IDL.Record({
     'approval_id' : IDL.Vec(IDL.Nat8),
     'valid_until_ms' : IDL.Nat64,
@@ -667,7 +669,7 @@ export const idlFactory = ({ IDL }) => {
     'verified_at_ms' : IDL.Nat64,
     'approval_hash' : IDL.Vec(IDL.Nat8),
   });
-  const Result_16 = IDL.Variant({
+  const Result_17 = IDL.Variant({
     'Ok' : ApplicationAuthorization,
     'Err' : Error,
   });
@@ -694,40 +696,41 @@ export const idlFactory = ({ IDL }) => {
     'offer' : PaymentOffer,
   });
   return IDL.Service({
+    'admin_set_account_limits' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result], []),
     'approve_application' : IDL.Func(
         [ApplicationApproval, Approval],
-        [Result],
+        [Result_1],
         [],
       ),
     'approve_authentication' : IDL.Func(
         [IDL.Vec(IDL.Nat8), AuthenticationRequest, Approval],
-        [Result_1],
+        [Result_2],
         [],
       ),
     'authentication_certificate' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
     'authorize_product_billing' : IDL.Func(
         [ProductAuthorizationRequest],
-        [Result_3],
+        [Result_4],
         [],
       ),
     'begin_auth_binding' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_4],
+        [Result],
         [],
       ),
     'complete_recovery' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_4],
+        [Result],
         [],
       ),
-    'consume_handle_authorization' : IDL.Func([HandleIntent], [Result_4], []),
+    'consume_handle_authorization' : IDL.Func([HandleIntent], [Result], []),
     'consume_handle_transfer_authorizations' : IDL.Func(
         [HandleIntent, HandleIntent],
-        [Result_4],
+        [Result],
         [],
       ),
     'create_account' : IDL.Func([CreateAccount], [Result_5], []),
@@ -741,7 +744,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_execution_receipt' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
     'get_execution_usage' : IDL.Func(
@@ -751,7 +754,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_execution_usage_certified' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
     'get_operation' : IDL.Func(
@@ -768,7 +771,7 @@ export const idlFactory = ({ IDL }) => {
     'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_13], ['query']),
     'inspect_app_action' : IDL.Func(
         [IDL.Vec(IDL.Nat8), AppAction],
-        [Result_4],
+        [Result],
         [],
       ),
     'mutate_account' : IDL.Func([AccountMutation], [Result_10], []),
@@ -792,7 +795,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'reconfirm_recovery' : IDL.Func(
         [IDL.Vec(IDL.Nat8), RecoveryConfirmation, IDL.Vec(IDL.Nat8)],
-        [Result_4],
+        [Result],
         [],
       ),
     'refresh_execution_entitlement' : IDL.Func(
@@ -808,28 +811,29 @@ export const idlFactory = ({ IDL }) => {
           IDL.Vec(IDL.Nat8),
           IDL.Vec(IDL.Nat8),
         ],
-        [Result_4],
+        [Result],
         [],
       ),
     'security_snapshot_batch' : IDL.Func(
         [IDL.Vec(IDL.Vec(IDL.Nat8))],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
     'sign' : IDL.Func([SignRequest], [Result_6], []),
     'sign_agent_event' : IDL.Func([AgentEventSignRequest], [Result_6], []),
     'sign_app_action' : IDL.Func([AppActionSignRequest], [Result_6], []),
+    'validate_admin_set_account_limits' : IDL.Func(
+        [IDL.Nat64, IDL.Nat32],
+        [Result_16],
+        ['query'],
+      ),
     'verify_application_authorization' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ApplicationApproval],
-        [Result_16],
+        [Result_17],
         [],
       ),
     'verify_payment_offer' : IDL.Func([SignedOffer], [Result_15], []),
-    'verify_product_account' : IDL.Func(
-        [IDL.Text, Beneficiary],
-        [Result_4],
-        [],
-      ),
+    'verify_product_account' : IDL.Func([IDL.Text, Beneficiary], [Result], []),
   });
 };
 export const init = ({ IDL }) => {
@@ -847,6 +851,7 @@ export const init = ({ IDL }) => {
     'payment_canister' : IDL.Principal,
     'environment' : Environment,
     'commerce_canister' : IDL.Principal,
+    'governance' : IDL.Principal,
     'max_accounts' : IDL.Nat64,
     'membership_canister' : IDL.Principal,
     'directory_canister' : IDL.Principal,

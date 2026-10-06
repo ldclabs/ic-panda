@@ -708,31 +708,6 @@ fn handle_fee_updates_only_affect_new_operations() {
 }
 
 // A second dmsg_user sharing the deployment's environment and namespace.
-fn install_user_home(f: &Fixture) -> Principal {
-    let home = f.ic.create_canister();
-    f.ic.add_cycles(home, 10_000_000_000_000_000);
-    f.ic.install_canister(
-        home,
-        wasm("dmsg_user"),
-        candid::encode_args((UserInit {
-            commerce_canister: f.commerce,
-            membership_canister: f.membership,
-            issuer_namespace: NAMESPACE.into(),
-            environment: Environment::Local,
-            home_cose: f.cose,
-            handle_canister: f.handle,
-            payment_canister: f.payment,
-            max_accounts: 1000,
-            daily_new_accounts: 100,
-            principal_origin: PRINCIPAL_ORIGIN.into(),
-            directory_canister: f.directory,
-        },))
-        .unwrap(),
-        None,
-    );
-    home
-}
-
 #[test]
 fn handle_routes_authorizations_to_each_accounts_user_home() {
     let mut f = Fixture::new();

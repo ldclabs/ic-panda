@@ -223,6 +223,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_5 = IDL.Variant({ 'Ok' : PandaRatePolicy, 'Err' : Error });
   const Result_6 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
+  const Result_7 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'advance_panda_claim' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ProductAuthorizationRequest],
@@ -259,6 +260,26 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'sweep_panda_commitments' : IDL.Func([], [Result_6], []),
+    'validate_configure_panda_service' : IDL.Func(
+        [PandaServiceConfig],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_schedule_panda_rate' : IDL.Func(
+        [PandaRatePolicy],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_set_admission_pause' : IDL.Func(
+        [IDL.Bool],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_set_sns_governance_module_hash' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [Result_7],
+        ['query'],
+      ),
     'verify_sns_configuration' : IDL.Func([], [Result_1], []),
   });
 };

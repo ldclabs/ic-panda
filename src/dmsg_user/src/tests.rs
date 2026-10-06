@@ -38,6 +38,7 @@ fn test_init() -> UserInit {
         daily_new_accounts: 10,
         principal_origin: "https://id.dmsg.test".into(),
         directory_canister: p(9),
+        governance: p(10),
     }
 }
 
@@ -1362,6 +1363,7 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
         delegation_query_url: "https://agents.dmsg.test/query".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec![],
+        governance: p(9),
     };
     let document = dmsg_protocol::agent::render_principal_document(
         &config,

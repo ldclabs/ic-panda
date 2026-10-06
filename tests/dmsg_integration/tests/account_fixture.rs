@@ -62,6 +62,7 @@ fn account_extension_gateway() {
             daily_new_accounts: 20,
             principal_origin: "https://id.dmsg.test".into(),
             directory_canister: sns,
+            governance: sns,
         },))
         .unwrap(),
         None,
@@ -73,7 +74,8 @@ fn account_extension_gateway() {
             issuer_namespace: "https://dmsg.test/u/".into(),
             environment: Environment::Local,
             executing_canister: cose,
-            initial_home_user: user,
+            user_homes: vec![user],
+            governance: sns,
             derivation_version: 2,
             masters: vec![
                 MasterKey {
@@ -116,7 +118,9 @@ fn account_extension_gateway() {
         std::fs::read(dir.join("dmsg_payment.wasm")).unwrap(),
         candid::encode_one(dmsg_types::payment::PaymentInit {
             ledger,
-            home_user: user,
+            environment: Environment::Local,
+            issuer_namespace: "https://dmsg.test/u/".into(),
+            user_homes: vec![user],
             platform: icrc_ledger_types::icrc1::account::Account {
                 owner: peer,
                 subaccount: None,
@@ -541,6 +545,7 @@ fn certificate_queries_advance_without_account_writes() {
             daily_new_accounts: 2,
             principal_origin: "https://id.dmsg.test".into(),
             directory_canister: user,
+            governance: user,
         })
         .unwrap(),
         None,

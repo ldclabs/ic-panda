@@ -469,34 +469,44 @@ pub fn render_principal_document(
     serde_jcs::to_vec(&document).map_err(|error| Error::InvalidInput(error.to_string()))
 }
 
-/// Validate a directory configuration without accessing any canister.
-///
-/// Requires a valid issuer namespace, 1..16 distinct authenticated user homes,
-/// HTTPS origins for principals and controller source, an HTTPS query URL, an
-/// HTTPS profile prefix ending in `/`, and 0..8 domain names. Origins are at
-/// most 512 bytes and the query URL/profile prefix at most 2 KiB, without JSON
-/// escape characters, matching the shared principal-document byte budget.
-///
-/// # Errors
-/// Invalid configuration returns `Error::InvalidInput` or `Error::AuthRequired`.
-pub fn validate_directory_init(config: &DirectoryInit) -> Result<()> {
-    validate_namespace(&config.issuer_namespace)?;
+/// Validate the domains served at `/.well-known/ic-domains`: at most eight
+/// lowercase DNS names of 1..253 bytes.
+pub fn validate_custom_domains(domains: &[String]) -> Result<()> {
     ensure_valid(
-        (1..=16).contains(&config.user_homes.len())
-            && config.custom_domains.len() <= 8
-            && config.custom_domains.iter().all(|d| {
+        domains.len() <= 8
+            && domains.iter().all(|d| {
                 !d.is_empty()
                     && d.len() <= 253
                     && d.bytes().all(|b| {
                         b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-'
                     })
             }),
-        "directory homes/domains",
+        "directory domains",
+    )
+}
+
+/// Validate a directory configuration without accessing any canister.
+///
+/// Requires a valid issuer namespace, user homes accepted by
+/// [`validate_user_homes`], an authenticated governance Principal, HTTPS
+/// origins for principals and controller source, an HTTPS query URL, an HTTPS
+/// profile prefix ending in `/`, and domains accepted by
+/// [`validate_custom_domains`]. Origins are at most 512 bytes and the query
+/// URL/profile prefix at most 2 KiB, without JSON escape characters, matching
+/// the shared principal-document byte budget.
+///
+/// # Errors
+/// Invalid configuration returns `Error::InvalidInput`, `Error::AuthRequired`,
+/// `Error::QuotaExceeded` or, for colliding home fingerprints, `Error::IntegrityFailed`.
+pub fn validate_directory_init(config: &DirectoryInit) -> Result<()> {
+    validate_namespace(&config.issuer_namespace)?;
+    validate_user_homes(
+        &config.environment,
+        &config.issuer_namespace,
+        &config.user_homes,
     )?;
-    for (index, home) in config.user_homes.iter().enumerate() {
-        authenticated(*home)?;
-        ensure_valid(!config.user_homes[..index].contains(home), "duplicate home")?;
-    }
+    validate_custom_domains(&config.custom_domains)?;
+    authenticated(config.governance)?;
     validate_principal_origin(&config.principal_origin)?;
     validate_principal_origin(&config.controller_source)?;
     for url in [&config.delegation_query_url, &config.profile_url_prefix] {
@@ -532,6 +542,80 @@ pub fn account_allocator_digest(
 /// Whether an account ID was allocated by the home with this allocator digest.
 pub fn allocated_by(account_id: &AccountId, allocator_digest: &Hash) -> bool {
     account_id.as_slice()[4..9] == allocator_digest[..5]
+}
+
+/// Maximum user homes one service routes accounts to (64).
+pub const MAX_USER_HOMES: usize = 64;
+
+/// Check that `home` may be appended to `homes`; false when it is already listed.
+///
+/// Distinct allocator fingerprints keep every account routed to exactly one
+/// home. The home's `dmsg_user` must share the environment and namespace.
+pub fn check_user_home(
+    environment: &Environment,
+    namespace: &str,
+    homes: &[candid::Principal],
+    home: candid::Principal,
+) -> Result<bool> {
+    if homes.contains(&home) {
+        return Ok(false);
+    }
+    authenticated(home)?;
+    ensure(homes.len() < MAX_USER_HOMES, Error::QuotaExceeded)?;
+    let fingerprint = account_allocator_digest(environment, namespace, home);
+    ensure(
+        homes
+            .iter()
+            .all(|h| account_allocator_digest(environment, namespace, *h)[..5] != fingerprint[..5]),
+        Error::IntegrityFailed,
+    )?;
+    Ok(true)
+}
+
+/// Validate a non-empty initial user-home list, in order, with [`check_user_home`].
+pub fn validate_user_homes(
+    environment: &Environment,
+    namespace: &str,
+    homes: &[candid::Principal],
+) -> Result<()> {
+    ensure_valid(!homes.is_empty(), "user homes")?;
+    for (index, home) in homes.iter().enumerate() {
+        ensure_valid(
+            check_user_home(environment, namespace, &homes[..index], *home)?,
+            "duplicate user home",
+        )?;
+    }
+    Ok(())
+}
+
+/// The listed user home whose allocator fingerprint the account ID carries.
+pub fn account_home(
+    environment: &Environment,
+    namespace: &str,
+    homes: &[candid::Principal],
+    account_id: &AccountId,
+) -> Option<candid::Principal> {
+    homes.iter().copied().find(|home| {
+        allocated_by(
+            account_id,
+            &account_allocator_digest(environment, namespace, *home),
+        )
+    })
+}
+
+/// Whether `home` is listed and allocated the account; one digest, no scan.
+pub fn is_account_home(
+    environment: &Environment,
+    namespace: &str,
+    homes: &[candid::Principal],
+    home: candid::Principal,
+    account_id: &AccountId,
+) -> bool {
+    homes.contains(&home)
+        && allocated_by(
+            account_id,
+            &account_allocator_digest(environment, namespace, home),
+        )
 }
 
 #[cfg(test)]

@@ -96,10 +96,10 @@ pub fn save_config(c: &Config) {
     CONFIG.with_borrow_mut(|m| m.set(Stored(Some(c.clone()))));
 }
 
-/// Configuration for a call made by the pinned governance canister.
-pub fn governance(caller: Principal) -> Result<Config> {
+/// Configuration for a call made by a controller or the pinned governance canister.
+pub fn admin(caller: Principal) -> Result<Config> {
     let c = config();
-    ensure(caller == c.init.governance, Error::Forbidden)?;
+    dmsg_runtime::admin::check_admin(caller, c.init.governance)?;
     Ok(c)
 }
 

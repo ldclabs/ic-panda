@@ -5,6 +5,7 @@ use crate::{
 };
 use candid::Principal;
 use dmsg_protocol::{billing::*, *};
+use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_runtime::storage::MapExt;
 use dmsg_types::{billing::*, membership::*, *};
 
@@ -47,10 +48,15 @@ fn init(args: CommerceInit) {
     for p in [args.governance, args.membership_canister] {
         authenticated(p).expect("configuration");
     }
+    assert!(!args.user_homes.is_empty(), "user homes");
+    for (index, home) in args.user_homes.iter().enumerate() {
+        assert!(
+            check_user_home(&args.user_homes[..index], *home).expect("user home"),
+            "duplicate user home"
+        );
+    }
     assert!(
-        !args.user_homes.is_empty()
-            && args.user_homes.len() <= 16
-            && args.max_subjects > 0
+        args.max_subjects > 0
             && args.max_subjects <= 1_000_000
             && args.daily_orders > 0
             && args.daily_orders <= 100_000
@@ -74,11 +80,31 @@ fn post_upgrade() {
     rebuild(now());
 }
 
+/// Append a user home. Its `dmsg_user` must name this canister as
+/// `commerce_canister`; product registrations list it separately.
 #[ic_cdk::update]
-fn schedule_policy(c: Catalog) -> Result<()> {
-    let at = now();
-    check_governance(ic_cdk::api::msg_caller())?;
-    model::validate_catalog(&c)?;
+fn admin_add_user_home(home: Principal) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    if config(|c| check_user_home(&c.user_homes, home))? {
+        add_user_home(home);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_add_user_home(home: Principal) -> Validation {
+    validation(
+        config(|c| check_user_home(&c.user_homes, home)).map(|fresh| {
+            format!(
+                "Add user home {home} as an account beneficiary authority.{}",
+                admin::unchanged(fresh, "Already listed"),
+            )
+        }),
+    )
+}
+
+fn check_policy(c: &Catalog, at: u64) -> Result<()> {
+    model::validate_catalog(c)?;
     let old = latest_catalog();
     ensure_valid(
         c.effective_at_ms >= at.saturating_add(30 * DAY)
@@ -95,9 +121,35 @@ fn schedule_policy(c: Catalog) -> Result<()> {
         c.plans[0].weights == old.plans[0].weights
             || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms,
         "weight change at UTC month boundary",
-    )?;
+    )
+}
+
+/// Announce a catalog at least 30 days before it takes effect.
+#[ic_cdk::update]
+fn schedule_policy(c: Catalog) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_policy(&c, now())?;
     save_catalog(&c);
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_schedule_policy(c: Catalog) -> Validation {
+    validation(check_policy(&c, now()).map(|()| {
+        let plans: Vec<String> = c
+            .plans
+            .iter()
+            .map(|p| format!("{:?} {} cents", p.plan_id, p.price_cents))
+            .collect();
+        format!(
+            "Schedule catalog version {} effective at {} ms: plans [{}], {} storage products, terms digest {}.",
+            c.version,
+            c.effective_at_ms,
+            plans.join(", "),
+            c.storage_products.len(),
+            hex(c.terms_digest.as_slice()),
+        )
+    }))
 }
 
 #[ic_cdk::update]
@@ -126,11 +178,22 @@ fn list_catalogs(after_version: Option<u64>) -> Vec<Catalog> {
         .collect()
 }
 
+/// Pause or resume new cash checkouts; reconciliation, refunds, lease
+/// refresh and expiry continue.
 #[ic_cdk::update]
 fn set_admission_pause(paused: bool) -> Result<()> {
-    check_governance(ic_cdk::api::msg_caller())?;
+    check_admin(ic_cdk::api::msg_caller())?;
     set_paused(paused);
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_set_admission_pause(paused: bool) -> Validation {
+    let action = if paused { "Pause" } else { "Resume" };
+    Ok(format!(
+        "{action} new cash checkouts.{}",
+        admin::unchanged(config(|c| c.paused != paused), "Already set"),
+    ))
 }
 
 async fn refresh(

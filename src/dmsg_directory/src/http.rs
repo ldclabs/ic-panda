@@ -118,6 +118,16 @@ pub(crate) fn certify_document(id: &AccountId, document_digest: Hash) {
     });
 }
 
+/// Replace the certified domain list.
+pub(crate) fn certify_domains(custom_domains: &[String]) {
+    let (path, response) = domains(custom_domains);
+    TREE.with_borrow_mut(|tree| {
+        tree.delete_by_path(&path);
+        tree.insert(&entry(path, &response, None));
+        publish_root(tree);
+    });
+}
+
 /// Certify the fallback 404, domain list and stored document digests in one pass.
 /// The iterator releases each stable record before reading the next one.
 pub(crate) fn rebuild(

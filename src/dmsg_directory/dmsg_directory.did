@@ -13,7 +13,8 @@ type DelegationAuthority = variant {
   Unrestricted;
 };
 // Directory deployment configuration. The principal origin and document
-// fields are permanent; user homes may only be appended by upgrade.
+// fields are permanent; governance may append user homes and replace the
+// custom domains.
 type DirectoryInit = record {
   // Custom domains served at `/.well-known/ic-domains`.
   custom_domains : vec text;
@@ -29,7 +30,10 @@ type DirectoryInit = record {
   controller_source : text;
   // Deployment domain; also part of each home's account-ID allocator fingerprint.
   environment : Environment;
-  // User homes allowed to publish accounts whose IDs they allocated.
+  // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+  governance : principal;
+  // User homes allowed to publish accounts whose IDs they allocated;
+  // each account ID carries its home's allocator fingerprint. Append-only.
   user_homes : vec principal;
 };
 // Deployment domain used to separate identities and key derivation.
@@ -163,14 +167,24 @@ type Publication = record {
   // Canonical principal URL of the account.
   principal_id : text;
 };
-type Result = variant { Ok : Publication; Err : Error };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : Publication; Err : Error };
+type Result_2 = variant { Ok : text; Err : text };
 service : (DirectoryInit) -> {
+  // Append a user home. Its `dmsg_user` must name this canister as
+  // `directory_canister` and share the environment, namespace and origin.
+  admin_add_user_home : (principal) -> (Result);
+  // Replace the domains served at `/.well-known/ic-domains`. Principal IDs
+  // keep the permanent principal origin.
+  admin_set_custom_domains : (vec text) -> (Result);
   directory_config : () -> (DirectoryInit) query;
-  get_publication : (blob) -> (Result) query;
+  get_publication : (blob) -> (Result_1) query;
   // Publish an account's principal state. Only the account's home may publish:
   // the first time, the home whose allocator fingerprint the account ID carries;
   // afterwards, the recorded home. Versions only increase: the same version with
   // the same state is idempotent, an older version returns the current
   // publication, and the same version with other content is rejected.
-  publish : (blob, PrincipalState) -> (Result);
+  publish : (blob, PrincipalState) -> (Result_1);
+  validate_admin_add_user_home : (principal) -> (Result_2) query;
+  validate_admin_set_custom_domains : (vec text) -> (Result_2) query;
 }

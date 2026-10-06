@@ -48,7 +48,7 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 1. 账户在 `dmsg_user` 调用 `mutate_account`，命令为 `AuthorizeHandle { intent }`。user 要求 caller 是该账户的认证绑定、账户处于 Active，并由具有 `RootManage` 能力的管理员设备签名整条命令；`intent.account_id` 必须是该账户，`intent.handle_canister` 必须是配置的 handle。批准最长有效 60 秒，每个账户最多同时保留 32 条。
 2. handle 处理业务调用时，向账户所在的 user home 调用 `consume_handle_authorization`。转移双方在同一 home 时改用 `consume_handle_transfer_authorizations` 一次核对双方，在不同 home 时分别核对。user 只接受配置的 handle 作为调用者，要求同一 `op_id` 下存有完全相同且未过期的意图。这一步只读，不再检查设备撤销或账户状态；重复执行由 handle 按 `(account_id, op_id)` 去重。
 
-账户所在的 home 由账户 ID 决定：user home 分配的每个 ID 在第 4–9 字节带有它的分配器指纹，即 `account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节（与 `dmsg_directory` 的路由相同）。handle 在 `user_homes` 中按指纹查找，找不到返回 `NotFound`。`user_homes` 只能追加：新增分片时由 controller 或 governance 调用 `admin_add_user_home`，各 home 的指纹必须互不相同，最多 64 个。
+账户所在的 home 由账户 ID 决定：user home 分配的每个 ID 在第 4–9 字节带有它的分配器指纹，即 `account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节（与 `dmsg_directory` 的路由相同）。handle 在 `user_homes` 中按指纹查找，找不到返回 `NotFound`。`user_homes` 只能追加：新增分片时由 controller 或 governance 调用 `admin_add_user_home`，各 home 的指纹必须互不相同，最多 64 个。cose、payment、directory 和 commerce 用同名方法登记同一 home，见 [dmsg_canisters](../../docs/dmsg_canisters_zh.md)。
 
 `HandleIntent` 固定 handle canister、动作、账户、目标账户、预期版本、`op_id` 和 `terms_digest`，`terms_digest` 再固定各动作的具体条款：
 

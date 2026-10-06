@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 //! Implementation support for the reference ICP canisters. Not a wire protocol.
+pub mod admin;
 mod budget;
 mod certified;
 pub mod ledger;

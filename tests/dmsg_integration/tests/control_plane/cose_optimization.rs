@@ -40,7 +40,8 @@ impl CoseFixture {
             issuer_namespace: NAMESPACE.into(),
             environment: Environment::Local,
             executing_canister: cose,
-            initial_home_user: home,
+            user_homes: vec![home],
+            governance: person(71),
             derivation_version: 2,
             masters,
             daily_executions,
@@ -80,19 +81,18 @@ impl CoseFixture {
         grant
     }
 
-    fn upgrade(&self, config: Option<CoseInit>) {
+    fn upgrade(&self) {
         self.ic
-            .upgrade_canister(
-                self.cose,
-                wasm("dmsg_cose"),
-                candid::encode_one(config).unwrap(),
-                None,
-            )
+            .upgrade_canister(self.cose, wasm("dmsg_cose"), vec![], None)
             .unwrap();
     }
 
+    fn account(&self, n: u8) -> AccountId {
+        home_account(self.home, n)
+    }
+
     fn grant(&self, account: u8, sequence: u64, body_bytes: usize) -> ExecutionGrant {
-        let account_id = AccountId([account; 12]);
+        let account_id = self.account(account);
         let key = KeyRequest {
             purpose: KeyPurpose::Statement,
             algorithm: Algorithm::Ed25519,
@@ -328,7 +328,7 @@ fn cose_query_and_cleanup_cycles_profile() {
                 ExecutionStatus::Completed
             );
         }
-        let _: Result<ExecutionCleanup> = update(
+        let _: ExecutionCleanup = update(
             &f.ic,
             f.cose,
             Principal::anonymous(),
@@ -337,14 +337,14 @@ fn cose_query_and_cleanup_cycles_profile() {
         );
         f.ic.advance_time(Duration::from_millis(2 * DAY));
         let before = f.ic.cycle_balance(f.cose);
-        let cleaned: Result<ExecutionCleanup> = update(
+        let cleaned: ExecutionCleanup = update(
             &f.ic,
             f.cose,
             Principal::anonymous(),
             "prune_executions",
             (None::<AccountId>,),
         );
-        assert_eq!(u64::from(cleaned.unwrap().results_removed), count);
+        assert_eq!(u64::from(cleaned.results_removed), count);
         println!(
             "cose_cleanup results={count} cycles={}",
             before - f.ic.cycle_balance(f.cose)
@@ -374,13 +374,7 @@ fn cose_retention_cleanup_and_upgrade_preserve_replay_protection() {
     }
     let refused = f.grant(1, 65, 1);
     assert_eq!(f.execute(&refused), Err(Error::QuotaExceeded));
-    f.ic.upgrade_canister(
-        f.cose,
-        wasm("dmsg_cose"),
-        candid::encode_one(None::<CoseInit>).unwrap(),
-        None,
-    )
-    .unwrap();
+    f.upgrade();
     assert_eq!(f.execute(&first), Ok(result));
     assert_eq!(f.execute(&refused), Err(Error::QuotaExceeded));
     f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
@@ -395,13 +389,7 @@ fn cose_retention_cleanup_and_upgrade_preserve_replay_protection() {
     assert_eq!(f.result(&first), Err(Error::NotFound));
     assert_eq!(f.execute(&first), Err(Error::ResultExpired));
     assert_eq!(f.result(&neighbor), neighbor_result);
-    f.ic.upgrade_canister(
-        f.cose,
-        wasm("dmsg_cose"),
-        candid::encode_one(None::<CoseInit>).unwrap(),
-        None,
-    )
-    .unwrap();
+    f.upgrade();
     assert_eq!(f.result(&next), Ok(result));
     assert_eq!(f.execute(&first), Err(Error::ResultExpired));
 }
@@ -422,13 +410,7 @@ fn cose_global_budget_survives_upgrade_without_consuming_rejected_sequences() {
         f.execute(&rejected).unwrap().outcome,
         ExecutionOutcome::Failed(Error::QuotaExceeded)
     );
-    f.ic.upgrade_canister(
-        f.cose,
-        wasm("dmsg_cose"),
-        candid::encode_one(None::<CoseInit>).unwrap(),
-        None,
-    )
-    .unwrap();
+    f.upgrade();
     assert_eq!(f.execute(&first), Ok(result));
     assert_eq!(f.execute(&second), Err(Error::QuotaExceeded));
     f.ic.advance_time(Duration::from_secs(24 * 60 * 60));
@@ -477,7 +459,7 @@ fn cose_unsent_calls_fail_without_trapping_or_consuming_budgets() {
         assert_eq!(failed.cycles_cost_upper_bound, 0);
         assert_eq!(f.result(&grant), Ok(failed.clone()));
         f.ic.add_cycles(f.cose, 1_000_000_000_000_000);
-        f.upgrade(None);
+        f.upgrade();
         // A known failure is retained, not dispatched again after the top-up.
         assert_eq!(f.execute(&grant), Ok(failed));
         let next = if formal {
@@ -570,7 +552,7 @@ fn cose_returned_unknown_survives_upgrade_without_blocking_later_cleanup() {
         memory.borrow().clone(),
         pocket_ic::common::rest::BlobCompression::NoCompression,
     );
-    f.upgrade(None);
+    f.upgrade();
     assert_eq!(f.execute(&first), Ok(unknown.clone()));
     let mut conflict = first.clone();
     conflict.max_cycles -= 1;
@@ -589,15 +571,15 @@ fn cose_returned_unknown_survives_upgrade_without_blocking_later_cleanup() {
         );
     }
     f.ic.advance_time(Duration::from_millis(30 * DAY));
-    let cleaned: Result<ExecutionCleanup> = update(
+    let cleaned: ExecutionCleanup = update(
         &f.ic,
         f.cose,
         Principal::anonymous(),
         "prune_executions",
         (None::<AccountId>,),
     );
-    assert_eq!(cleaned.unwrap().results_removed, 63);
-    f.upgrade(None);
+    assert_eq!(cleaned.results_removed, 63);
+    f.upgrade();
     assert_eq!(f.result(&first), Ok(unknown.clone()));
     assert_eq!(f.execute(&first), Ok(unknown));
     assert_eq!(
@@ -632,7 +614,7 @@ fn cose_small_deployment_budgets_leave_a_real_root_operation() {
 }
 
 #[test]
-fn cose_budget_upgrade_keeps_key_identity_and_current_usage() {
+fn cose_budget_change_keeps_key_identity_and_current_usage() {
     let f = CoseFixture::new(2);
     let first = f.grant(1, 1, 1);
     let completed = f.execute(&first).unwrap();
@@ -640,10 +622,40 @@ fn cose_budget_upgrade_keeps_key_identity_and_current_usage() {
     assert!(f.ic.get_stable_memory(f.cose).len() <= (1 + 3 * 128) * 65_536);
     let second = f.grant(2, 1, 1);
     assert_eq!(f.execute(&second), Err(Error::QuotaExceeded));
-    let mut raised = f.config.clone();
-    raised.daily_executions = 4;
-    raised.daily_cycles *= 2;
-    f.upgrade(Some(raised));
+    let governance = f.config.governance;
+    let set_budget = |caller: Principal, executions: u32, cycles: u128| -> Result<()> {
+        update(
+            &f.ic,
+            f.cose,
+            caller,
+            "admin_set_daily_budget",
+            (executions, cycles),
+        )
+    };
+    let cycles = f.config.daily_cycles;
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "validate_admin_set_daily_budget",
+        (4u32, cycles * 2),
+    );
+    assert!(rendered.unwrap().contains("4 executions"));
+    let rejected: std::result::Result<String, String> = query(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "validate_admin_set_daily_budget",
+        (0u32, cycles),
+    );
+    assert!(rejected.is_err());
+    assert_eq!(set_budget(f.home, 4, cycles * 2), Err(Error::Forbidden));
+    assert!(matches!(
+        set_budget(governance, 0, cycles),
+        Err(Error::InvalidInput(_))
+    ));
+    set_budget(governance, 4, cycles * 2).unwrap();
+    f.upgrade();
     assert_eq!(f.execute(&first), Ok(completed));
     assert_eq!(
         f.execute(&second).unwrap().status(),
@@ -654,27 +666,17 @@ fn cose_budget_upgrade_keeps_key_identity_and_current_usage() {
         ExecutionStatus::Completed
     );
     assert_eq!(f.execute(&f.grant(4, 1, 1)), Err(Error::QuotaExceeded));
-    // Lowering the limit must neither clear already-used counts nor reject upgrade.
-    f.upgrade(Some(f.config.clone()));
+    // Lowering the limit must not clear already-used counts.
+    set_budget(governance, 2, cycles).unwrap();
     assert_eq!(f.execute(&f.grant(4, 1, 1)), Err(Error::QuotaExceeded));
-    let mut changed = f.config.clone();
-    changed.issuer_namespace = "https://different.test/u/".into();
-    assert!(f
-        .ic
-        .upgrade_canister(
-            f.cose,
-            wasm("dmsg_cose"),
-            candid::encode_one(Some(changed)).unwrap(),
-            None
-        )
-        .is_err());
-    assert_eq!(f.execute(&f.grant(4, 1, 1)), Err(Error::QuotaExceeded));
+    let state: KeyState = query(&f.ic, f.cose, Principal::anonymous(), "key_state", ());
+    assert_eq!(state.config, f.config);
     // The retained successful result keeps its conservative cost upper bound.
     assert!(f.result(&first).unwrap().cycles_cost_upper_bound > 0);
 }
 
 #[test]
-fn cose_idle_cleanup_is_bounded_authorized_and_preserves_replay_guards() {
+fn cose_idle_cleanup_is_bounded_public_and_preserves_replay_guards() {
     let f = CoseFixture::new(1000);
     let mut grants = vec![];
     for account in 1..=10 {
@@ -683,32 +685,18 @@ fn cose_idle_cleanup_is_bounded_authorized_and_preserves_replay_guards() {
         f.execute(&grant).unwrap();
         grants.push(grant);
     }
-    let prune = |after: Option<AccountId>| -> Result<ExecutionCleanup> {
-        update(
-            &f.ic,
-            f.cose,
-            Principal::anonymous(),
-            "prune_executions",
-            (after,),
-        )
+    let prune = |after: Option<AccountId>| -> ExecutionCleanup {
+        update(&f.ic, f.cose, person(72), "prune_executions", (after,))
     };
-    let denied: Result<ExecutionCleanup> = update(
-        &f.ic,
-        f.cose,
-        f.home,
-        "prune_executions",
-        (None::<AccountId>,),
-    );
-    assert_eq!(denied, Err(Error::Forbidden));
-    let early = prune(None).unwrap();
+    let early = prune(None);
     assert_eq!((early.homes_scanned, early.results_removed), (8, 0));
     f.ic.advance_time(Duration::from_millis(2 * DAY));
-    let first = prune(None).unwrap();
+    let first = prune(None);
     assert_eq!((first.homes_scanned, first.results_removed), (8, 8));
-    assert_eq!(first.next_after, Some(AccountId([8; 12])));
+    assert_eq!(first.next_after, Some(f.account(8)));
     assert!(f.result(&grants[8]).is_ok());
-    f.upgrade(None);
-    let last = prune(first.next_after).unwrap();
+    f.upgrade();
+    let last = prune(first.next_after);
     assert_eq!((last.homes_scanned, last.results_removed), (2, 2));
     assert_eq!(last.next_after, None);
     for grant in grants {

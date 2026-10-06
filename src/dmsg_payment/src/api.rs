@@ -1,6 +1,7 @@
 use crate::{calls::CallGuard, model, store::*};
 use candid::{Nat, Principal};
-use dmsg_protocol::*;
+use dmsg_protocol::{agent::*, *};
+use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_runtime::storage::MapExt;
 use dmsg_types::{payment::*, profiles::delivery::*, *};
 use icrc_ledger_types::icrc1::{
@@ -12,21 +13,16 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn controller() -> Result<()> {
-    ensure(
-        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
-        Error::Forbidden,
-    )
+fn check_admin(caller: Principal) -> Result<()> {
+    admin::check_admin(caller, with_cfg(|c| c.init.governance))
 }
 
 #[ic_cdk::init]
 fn init(args: PaymentInit) {
-    for p in [
-        args.home_user,
-        args.ledger,
-        args.platform.owner,
-        args.governance,
-    ] {
+    validate_namespace(&args.issuer_namespace).expect("issuer namespace");
+    validate_user_homes(&args.environment, &args.issuer_namespace, &args.user_homes)
+        .expect("user homes");
+    for p in [args.ledger, args.platform.owner, args.governance] {
         authenticated(p).expect("canister/account");
     }
     assert!(
@@ -79,35 +75,97 @@ fn post_upgrade() {
     rebuild_certification();
 }
 
+fn check_home(init: &PaymentInit, home: Principal) -> Result<bool> {
+    check_user_home(
+        &init.environment,
+        &init.issuer_namespace,
+        &init.user_homes,
+        home,
+    )
+}
+
+/// Append a user home. Its `dmsg_user` must name this canister as
+/// `payment_canister` and share the environment and issuer namespace.
+#[ic_cdk::update]
+fn admin_add_user_home(home: Principal) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    if with_cfg(|c| check_home(&c.init, home))? {
+        configure(|c| c.user_homes.push(home));
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_add_user_home(home: Principal) -> Validation {
+    validation(with_cfg(|c| {
+        Ok(admin::user_home_payload(
+            &c.init.environment,
+            &c.init.issuer_namespace,
+            home,
+            check_home(&c.init, home)?,
+        ))
+    }))
+}
+
 #[ic_cdk::update]
 fn set_orders_enabled(enabled: bool) -> Result<()> {
-    controller()?;
+    check_admin(ic_cdk::api::msg_caller())?;
     configure(|c| c.enabled = enabled);
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_set_orders_enabled(enabled: bool) -> Validation {
+    let fresh = with_cfg(|c| c.init.enabled != enabled);
+    let action = if enabled { "Enable" } else { "Disable" };
+    Ok(format!(
+        "{action} new payment escrows.{}",
+        admin::unchanged(fresh, "Already set"),
+    ))
+}
+
+fn check_ledger_fee(fee: u128) -> Result<()> {
+    ensure(fee <= with_cfg(|c| c.init.max_fee), Error::FeeBlocked)
 }
 
 /// Update the expected ledger fee within the deployment's approved ceiling.
 /// Existing quotes and prepared transfers retain their approved terms.
 #[ic_cdk::update]
 fn set_ledger_fee(fee: u128) -> Result<()> {
-    controller()?;
-    ensure(fee <= with_cfg(|c| c.init.max_fee), Error::FeeBlocked)?;
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_ledger_fee(fee)?;
     if with_cfg(|c| c.init.ledger_fee) != fee {
         configure(|c| c.ledger_fee = fee);
     }
     Ok(())
 }
 
-#[ic_cdk::update]
-fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
-    controller()?;
+#[ic_cdk::query]
+fn validate_set_ledger_fee(fee: u128) -> Validation {
+    validation(check_ledger_fee(fee).map(|()| {
+        format!(
+            "Set the payment ledger fee to {fee} base units for new quotes and transfers (ceiling {}).",
+            with_cfg(|c| c.init.max_fee),
+        )
+    }))
+}
+
+fn check_signer(new: &ReceiptSigner) -> Result<()> {
     nonzero(new.public_key.as_slice())?;
     ensure_valid(
         new.epoch > with_cfg(|c| c.init.signer.epoch)
             && new.valid_from < new.valid_until
             && !new.revoked,
         "signer epoch/interval",
-    )?;
+    )
+}
+
+/// Make a new receipt signer current. Earlier epochs stay valid for their
+/// quotes until they expire or are revoked.
+#[ic_cdk::update]
+fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_signer(&new)?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
     CERT.with_borrow_mut(|c| {
         c.put(
@@ -119,9 +177,23 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     Ok(())
 }
 
+#[ic_cdk::query]
+fn validate_rotate_receipt_signer(new: ReceiptSigner) -> Validation {
+    validation(check_signer(&new).map(|()| {
+        format!(
+            "Rotate the receipt signer to epoch {} with Ed25519 key {}, valid from {} to {} ms.",
+            new.epoch,
+            hex(new.public_key.as_slice()),
+            new.valid_from,
+            new.valid_until,
+        )
+    }))
+}
+
+/// Revoke a signer epoch and stop new escrows until orders are re-enabled.
 #[ic_cdk::update]
 fn revoke_receipt_signer(epoch: u64) -> Result<()> {
-    controller()?;
+    check_admin(ic_cdk::api::msg_caller())?;
     let mut s = signer(epoch)?;
     s.revoked = true;
     CERT.with_borrow_mut(|c| {
@@ -133,6 +205,17 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
     SIGNERS.with_borrow_mut(|t| t.put(&epoch.to_be_bytes(), &s));
     configure(|c| c.enabled = false);
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_revoke_receipt_signer(epoch: u64) -> Validation {
+    validation(signer(epoch).map(|s| {
+        format!(
+            "Revoke receipt signer epoch {epoch} with key {} and disable new payment escrows.{}",
+            hex(s.public_key.as_slice()),
+            admin::unchanged(!s.revoked, "Already revoked"),
+        )
+    }))
 }
 
 #[ic_cdk::update]
@@ -168,9 +251,17 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         &signer(input.quote.signer_epoch)?,
         at,
     )?;
+    // The offer's account ID names the user home that allocated it.
+    let home = account_home(
+        &config.environment,
+        &config.issuer_namespace,
+        &config.user_homes,
+        &input.offer.offer.account_id,
+    )
+    .ok_or(Error::NotFound)?;
     reserve_call(at, CallBudget::Authorization(who))?;
     let verified: Result<u64> =
-        dmsg_runtime::call(config.home_user, "verify_payment_offer", (&input.offer,)).await?;
+        dmsg_runtime::call(home, "verify_payment_offer", (&input.offer,)).await?;
     let observed_at = verified?;
     let at = now();
     // The user home may sit on another subnet; only bound the freshness gap.
@@ -534,26 +625,28 @@ fn get_fee_policy() -> DeliveryFeePolicy {
     current_fee_policy(now())
 }
 
-#[ic_cdk::update]
-fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
-    ensure(
-        ic_cdk::api::msg_caller() == with_cfg(|c| c.init.governance),
-        Error::Forbidden,
-    )?;
-    dmsg_protocol::billing::delivery_service_fee(1, &p)?;
+fn check_fee_policy(p: &DeliveryFeePolicy, at: u64) -> Result<()> {
+    dmsg_protocol::billing::delivery_service_fee(1, p)?;
     let latest =
         FEE_POLICIES.with_borrow(|t| t.last_key_value().expect("initial policy").1.into_inner());
     // A newer version than the last key cannot already be present.
     ensure(
         p.version > latest.version
             && p.effective_at_ms > latest.effective_at_ms
-            && p.effective_at_ms >= now().saturating_add(30 * DAY),
+            && p.effective_at_ms >= at.saturating_add(30 * DAY),
         Error::PolicyStale,
     )?;
     ensure(
         FEE_POLICIES.with_borrow(|t| t.len()) < 256,
         Error::QuotaExceeded,
-    )?;
+    )
+}
+
+/// Announce a delivery fee policy at least 30 days before it takes effect.
+#[ic_cdk::update]
+fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_fee_policy(&p, now())?;
     FEE_POLICIES.with_borrow_mut(|t| t.put(&p.version.to_be_bytes(), &p));
     CERT.with_borrow_mut(|c| {
         c.put(
@@ -562,6 +655,16 @@ fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
         )
     });
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_schedule_fee_policy(p: DeliveryFeePolicy) -> Validation {
+    validation(check_fee_policy(&p, now()).map(|()| {
+        format!(
+            "Schedule delivery fee policy version {} effective at {} ms: {} bps with a minimum of {} base units.",
+            p.version, p.effective_at_ms, p.rate_bps, p.minimum_atomic,
+        )
+    }))
 }
 
 #[ic_cdk::query]

@@ -1,6 +1,7 @@
 use crate::{model, store::*};
 use candid::Principal;
-use dmsg_protocol::*;
+use dmsg_protocol::{agent::*, *};
+use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_types::{cose::*, *};
 use ic_cdk_management_canister as mgmt;
 use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation, PublicKey};
@@ -16,6 +17,24 @@ fn ready() -> Result<Config> {
         Error::Unavailable("chain keys are not ready".into()),
     )?;
     Ok(c)
+}
+
+fn check_admin(caller: Principal) -> Result<()> {
+    admin::check_admin(caller, cfg().state.config.governance)
+}
+
+/// Only the user home that allocated an account may execute or read for it.
+fn check_home(config: &CoseInit, caller: Principal, account_id: &AccountId) -> Result<()> {
+    ensure(
+        is_account_home(
+            &config.environment,
+            &config.issuer_namespace,
+            &config.user_homes,
+            caller,
+            account_id,
+        ),
+        Error::Forbidden,
+    )
 }
 
 /// A zero pin is accepted only where validation allows it, outside Production.
@@ -39,17 +58,11 @@ fn init(args: CoseInit) {
     });
 }
 
+/// Configuration changes go through administrative methods, never upgrades.
 #[ic_cdk::post_upgrade]
-fn post_upgrade(args: Option<CoseInit>) {
+fn post_upgrade() {
     let mut c = cfg();
     assert_eq!(c.schema, STABLE_SCHEMA, "incompatible development state");
-    if let Some(args) = args {
-        let mut allowed = c.state.config.clone();
-        allowed.daily_executions = args.daily_executions;
-        allowed.daily_cycles = args.daily_cycles;
-        assert_eq!(args, allowed, "key descriptions are immutable");
-        c.state.config = args;
-    }
     c.state
         .config
         .validate(ic_cdk::api::canister_self())
@@ -119,20 +132,23 @@ async fn fetch_masters(config: &CoseInit) -> Result<Vec<PublicKey>> {
     Ok(keys)
 }
 
-#[ic_cdk::update]
-async fn initialize_keys() -> Result<KeyState> {
-    ensure(
-        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
-        Error::Forbidden,
-    )?;
-    let mut c = cfg();
-    if c.state.initialization == Initialization::Ready {
-        return Ok(c.state);
-    }
+// Returns false when the keys are already ready.
+fn check_initialize(c: &Config) -> Result<bool> {
     ensure(
         c.state.initialization != Initialization::Initializing,
         Error::Pending,
     )?;
+    Ok(c.state.initialization != Initialization::Ready)
+}
+
+/// Fetch every configured master public key and check it against its pin.
+#[ic_cdk::update]
+async fn initialize_keys() -> Result<KeyState> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let mut c = cfg();
+    if !check_initialize(&c)? {
+        return Ok(c.state);
+    }
     c.state.initialization = Initialization::Initializing;
     c.state.error = None;
     save_cfg(&c);
@@ -158,6 +174,100 @@ async fn initialize_keys() -> Result<KeyState> {
     };
     save_cfg(&c);
     result.map(|()| c.state)
+}
+
+#[ic_cdk::query]
+fn validate_initialize_keys() -> Validation {
+    let c = cfg();
+    validation(check_initialize(&c).map(|fresh| {
+        let masters: Vec<String> = c
+            .state
+            .config
+            .masters
+            .iter()
+            .map(|m| {
+                format!(
+                    "{:?} {} pinned to {}",
+                    m.algorithm,
+                    m.key_name,
+                    hex(m.expected_fingerprint.as_slice()),
+                )
+            })
+            .collect();
+        format!(
+            "Initialize {:?} chain keys: {}.{}",
+            c.state.config.environment,
+            masters.join("; "),
+            admin::unchanged(fresh, "Already ready"),
+        )
+    }))
+}
+
+/// Append a user home. Its `dmsg_user` must name this canister as
+/// `home_cose` and share the environment and issuer namespace.
+#[ic_cdk::update]
+fn admin_add_user_home(home: Principal) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let mut c = cfg();
+    let config = &mut c.state.config;
+    if check_user_home(
+        &config.environment,
+        &config.issuer_namespace,
+        &config.user_homes,
+        home,
+    )? {
+        config.user_homes.push(home);
+        save_cfg(&c);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_add_user_home(home: Principal) -> Validation {
+    let config = cfg().state.config;
+    validation(
+        check_user_home(
+            &config.environment,
+            &config.issuer_namespace,
+            &config.user_homes,
+            home,
+        )
+        .map(|fresh| {
+            admin::user_home_payload(&config.environment, &config.issuer_namespace, home, fresh)
+        }),
+    )
+}
+
+fn check_budget(daily_executions: u32, daily_cycles: u128) -> Result<()> {
+    ensure_valid(daily_executions > 0 && daily_cycles > 0, "hard budgets")
+}
+
+/// Set the global daily limits. Counts already used today are retained.
+#[ic_cdk::update]
+fn admin_set_daily_budget(daily_executions: u32, daily_cycles: u128) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_budget(daily_executions, daily_cycles)?;
+    let mut c = cfg();
+    c.state.config.daily_executions = daily_executions;
+    c.state.config.daily_cycles = daily_cycles;
+    save_cfg(&c);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_daily_budget(daily_executions: u32, daily_cycles: u128) -> Validation {
+    let config = cfg().state.config;
+    validation(check_budget(daily_executions, daily_cycles).map(|()| {
+        format!(
+            "Set the COSE daily budget to {daily_executions} executions and {daily_cycles} cycles (from {} and {}).{}",
+            config.daily_executions,
+            config.daily_cycles,
+            admin::unchanged(
+                (config.daily_executions, config.daily_cycles) != (daily_executions, daily_cycles),
+                "Same budget",
+            ),
+        )
+    }))
 }
 
 #[ic_cdk::query]
@@ -417,10 +527,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let c = ready()?;
     let config = &c.state.config;
     nonzero(grant.account_id.as_slice())?;
+    check_home(config, caller, &grant.account_id)?;
     ensure(
-        grant.home_cose == canister_id
-            && caller == config.initial_home_user
-            && caller == grant.home_user,
+        grant.home_cose == canister_id && caller == grant.home_user,
         Error::Forbidden,
     )?;
     let mut h = home_or_new(&grant.account_id)?;
@@ -522,19 +631,15 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
 
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
-    ensure(
-        ic_cdk::api::msg_caller() == cfg().state.config.initial_home_user,
-        Error::Forbidden,
-    )?;
+    check_home(&cfg().state.config, ic_cdk::api::msg_caller(), &account_id)?;
     let h = home(&account_id).ok_or(Error::NotFound)?;
     let sequence = h.sequence(&request_id).ok_or(Error::NotFound)?;
     execution(&account_id, sequence)
 }
 
 /// Prune one bounded page of expired terminal results, retaining replay guards.
+/// Public maintenance is safe: a page inspects at most eight accounts.
 #[ic_cdk::update]
-fn prune_executions(after: Option<AccountId>) -> Result<ExecutionCleanup> {
-    let caller = ic_cdk::api::msg_caller();
-    ensure(ic_cdk::api::is_controller(&caller), Error::Forbidden)?;
-    Ok(crate::store::prune_executions(after, now()))
+fn prune_executions(after: Option<AccountId>) -> ExecutionCleanup {
+    crate::store::prune_executions(after, now())
 }

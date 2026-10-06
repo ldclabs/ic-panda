@@ -477,7 +477,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
     f.ic.upgrade_canister(
         f.cose,
         wasm("dmsg_cose"),
-        candid::encode_args((None::<CoseInit>,)).unwrap(),
+        candid::encode_args(()).unwrap(),
         None,
     )
     .unwrap();
@@ -615,35 +615,7 @@ fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -
     request
 }
 fn root_user(f: &Fixture) -> AccountId {
-    let account_id = f.create(1);
-    f.recoverable(1, &account_id);
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id: Hash::new([8; 32]),
-        },
-    )
-    .unwrap();
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::CommitRoot {
-            expected_generation: 0,
-            op_id: Hash::new([8; 32]),
-            root: ContentRootRef {
-                generation: 1,
-                suite: "dmsg-root-v1".into(),
-                home_cose: f.cose,
-                derivation_version: 2,
-                key_generation: 1,
-                bundle_digest: Hash::new([12; 32]),
-                recovery_generation: 1,
-            },
-        },
-    )
-    .unwrap();
+    let account_id = f.root_account(1);
     let initialized: Result<candid::Reserved> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     initialized.unwrap();

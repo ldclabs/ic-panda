@@ -24,6 +24,8 @@ pub struct DirectoryInitRepr {
     #[cbor(key = 8)]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub custom_domains: Vec<String>,
+    #[cbor(key = 9)]
+    pub governance: Principal,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -50,6 +52,7 @@ impl StableCodec for Config {
                 delegation_query_url: init.delegation_query_url.clone(),
                 profile_url_prefix: init.profile_url_prefix.clone(),
                 custom_domains: init.custom_domains.clone(),
+                governance: init.governance,
             },
         }
     }
@@ -67,6 +70,7 @@ impl StableCodec for Config {
                 delegation_query_url: init.delegation_query_url,
                 profile_url_prefix: init.profile_url_prefix,
                 custom_domains: init.custom_domains,
+                governance: init.governance,
             },
         }
     }
@@ -132,6 +136,7 @@ mod tests {
                 delegation_query_url: "https://agents.dmsg.test/query".into(),
                 profile_url_prefix: "https://dmsg.test/u/".into(),
                 custom_domains: vec![],
+                governance: Principal::from_slice(&[3]),
             },
         };
         for domains in [vec![], vec!["id.dmsg.test".into(), "id2.dmsg.test".into()]] {

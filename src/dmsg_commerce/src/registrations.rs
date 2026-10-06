@@ -1,6 +1,8 @@
 //! Governance-owned public registrations; product delivery remains a separate authority.
 use crate::store;
+use candid::Principal;
 use dmsg_protocol::{canonical, digest, integration::*};
+use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
@@ -68,15 +70,21 @@ fn check_product_update(
     }
 }
 
-#[ic_cdk::update]
-fn register_integration_app(app: AppRegistration) -> Result<()> {
-    store::check_governance(ic_cdk::api::msg_caller())?;
+fn principals(list: &[Principal]) -> String {
+    list.iter()
+        .map(Principal::to_text)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+// Returns false when the same registration is already recorded.
+fn check_app(app: &AppRegistration) -> Result<bool> {
     ensure(
         store::config(|c| c.environment == app.environment),
         Error::Forbidden,
     )?;
     let old = APPS.with_borrow(|t| t.load(app.app_id.as_bytes()));
-    check_app_update(old.as_ref(), &app)?;
+    check_app_update(old.as_ref(), app)?;
     ensure(
         old.is_some() || APPS.with_borrow(|t| t.len()) < MAX_APPS,
         Error::QuotaExceeded,
@@ -86,27 +94,87 @@ fn register_integration_app(app: AppRegistration) -> Result<()> {
             .with_borrow(|t| t.load(id.as_bytes()))
             .ok_or(Error::NotFound)?;
     }
-    APPS.with_borrow_mut(|t| t.put(app.app_id.as_bytes(), &app));
-    store::CERT.with_borrow_mut(|c| c.put(app_key(&app.app_id), &app));
+    Ok(old.as_ref() != Some(app))
+}
+
+/// Register or replace an app at the next config version. Every listed product
+/// must already be registered.
+#[ic_cdk::update]
+fn register_integration_app(app: AppRegistration) -> Result<()> {
+    store::check_admin(ic_cdk::api::msg_caller())?;
+    if check_app(&app)? {
+        APPS.with_borrow_mut(|t| t.put(app.app_id.as_bytes(), &app));
+        store::CERT.with_borrow_mut(|c| c.put(app_key(&app.app_id), &app));
+    }
     Ok(())
 }
 
-#[ic_cdk::update]
-fn register_integration_product(product: ProductRegistration) -> Result<()> {
-    store::check_governance(ic_cdk::api::msg_caller())?;
+#[ic_cdk::query]
+fn validate_register_integration_app(app: AppRegistration) -> Validation {
+    validation(check_app(&app).map(|fresh| {
+        format!(
+            "Register app {} config version {}: origins [{}], user homes [{}], cose homes [{}], products [{}], capabilities {:?}, profiles {:?}, authentication receiver {}, action authority {}, paused {}.{}",
+            app.app_id,
+            app.config_version,
+            app.origins.join(", "),
+            principals(&app.user_homes),
+            principals(&app.cose_homes),
+            app.product_ids.join(", "),
+            app.capabilities,
+            app.profiles,
+            app.authentication_receiver,
+            app.action_authority,
+            app.paused,
+            admin::unchanged(fresh, "Already registered"),
+        )
+    }))
+}
+
+// Returns false when the same registration is already recorded.
+fn check_product(product: &ProductRegistration) -> Result<bool> {
     ensure(
         store::config(|c| c.environment == product.environment),
         Error::Forbidden,
     )?;
     let old = PRODUCTS.with_borrow(|t| t.load(product.product_id.as_bytes()));
-    check_product_update(old.as_ref(), &product)?;
+    check_product_update(old.as_ref(), product)?;
     ensure(
         old.is_some() || PRODUCTS.with_borrow(|t| t.len()) < MAX_PRODUCTS,
         Error::QuotaExceeded,
     )?;
-    PRODUCTS.with_borrow_mut(|t| t.put(product.product_id.as_bytes(), &product));
-    store::CERT.with_borrow_mut(|c| c.put(product_key(&product.product_id), &product));
+    Ok(old.as_ref() != Some(product))
+}
+
+/// Register or replace a product at the next config version.
+#[ic_cdk::update]
+fn register_integration_product(product: ProductRegistration) -> Result<()> {
+    store::check_admin(ic_cdk::api::msg_caller())?;
+    if check_product(&product)? {
+        PRODUCTS.with_borrow_mut(|t| t.put(product.product_id.as_bytes(), &product));
+        store::CERT.with_borrow_mut(|c| c.put(product_key(&product.product_id), &product));
+    }
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_register_integration_product(product: ProductRegistration) -> Validation {
+    validation(check_product(&product).map(|fresh| {
+        format!(
+            "Register product {} config version {}: quote authority {}, beneficiary authority {}, adapter {}, subject {} ({} bytes), merchant {}, ledgers [{}], terms {}, paused {}.{}",
+            product.product_id,
+            product.config_version,
+            product.quote_authority,
+            product.beneficiary_authority,
+            product.adapter,
+            product.subject_schema,
+            product.subject_size,
+            product.merchant,
+            principals(&product.ledgers),
+            hex(product.terms_hash.as_slice()),
+            product.paused,
+            admin::unchanged(fresh, "Already registered"),
+        )
+    }))
 }
 
 /// Replicated response used by the pinned user home during exact approval.

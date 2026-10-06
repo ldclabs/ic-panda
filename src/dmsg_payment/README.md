@@ -21,9 +21,24 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 收款方 `account_id` 为 12 字节 `AccountId`；账本 Principal、32 字节 subaccount、操作 ID 和 SHA-256 保持各自类型，不随 Xid 缩短。
 
+## 多 user home 与治理
+
+`PaymentInit` 以 `environment`、`issuer_namespace` 和只增不减的 `user_homes` 取代固定的 `home_user`。收款账户 ID 的第 4..9 字节是分配它的 home 的指纹，`open_escrow` 据此把 `verify_payment_offer` 发给账户所在的 home；不在列表中的 home 的账户返回 `NotFound`，且不消耗授权预算。认证配置叶（schema 2）以 `user_homes` 取代 `home_user`，客户端核对自己的 home 在列表中。
+
+管理方法接受 controller 和初始化时固定的 `governance`，每个方法都有同参数的 `validate_*` query，供 SNS 通用提案按当前状态预演并渲染载荷：
+
+| 方法 | 作用 |
+| --- | --- |
+| `admin_add_user_home(home)` | 追加 user home，最多 64 个，指纹不得重复；新 `dmsg_user` 须以本 canister 为 `payment_canister` |
+| `set_orders_enabled(enabled)` | 开关新订单；已有订单的入金、退款和出金不受影响 |
+| `set_ledger_fee(fee)` | 更新预期网络费，不超过 `max_fee` |
+| `rotate_receipt_signer(signer)` | 启用更高 epoch 的收据 signer；旧 epoch 不自动撤销 |
+| `revoke_receipt_signer(epoch)` | 撤销某个 epoch 并关闭新订单 |
+| `schedule_fee_policy(policy)` | 预告至少 30 天后生效的服务费政策 |
+
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 8 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 9 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 执行成本与恢复边界
 
@@ -33,7 +48,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 - 有界配置和预算计数保存在 heap，随普通消息和 `await` 提交；初始化与 `pre_upgrade` 才编码到原有 StableCell。正常升级保留开关、每日成功开单数及每分钟授权/账本操作预算，**升级不可跳过 `pre_upgrade`**。资金记录、入金认领和出金 outbox 仍直接写稳定表，不在升级时整体序列化。
 - 授权、账本读取、账本出金分别使用独立预算，每类全局 200 次/分钟；每调用方分别为 10、20、40 次/分钟，每张计数映射最多 200 项。匿名调用共享匿名主体的限额，无效查账不能占用出金额度。失败授权不消耗每日成功开单额度；所有预算在同 schema 升级后保留。预算变化仅更新 heap，不重算公开配置认证叶。
 - `get_configuration_certified` 默认按当前时间选择有效费率，与 `get_fee_policy` 一致；显式版本可查询历史政策。初始政策必须在安装时已生效，后续政策的版本和生效时间严格递增；查询反向查找，调度读取最后一项，政策表最多 256 项并使用紧凑编码。
-- controller 可通过 `set_ledger_fee` 维护已核对的网络手续费，不能超过初始化的 `max_fee`。它更新认证配置和后续新转账的预期费用，不重写原 Quote 或已准备的出金腿。报价预留至少覆盖实际结算腿数乘以 `max_network_fee`，最多为三倍该上限；两笔结算同时涨到已批准上限仍可完成。未知结果不能因更新手续费而重建，明确拒绝才允许受限修订。
+- controller 或 governance 可通过 `set_ledger_fee` 维护已核对的网络手续费，不能超过初始化的 `max_fee`。它更新认证配置和后续新转账的预期费用，不重写原 Quote 或已准备的出金腿。报价预留至少覆盖实际结算腿数乘以 `max_network_fee`，最多为三倍该上限；两笔结算同时涨到已批准上限仍可完成。未知结果不能因更新手续费而重建，明确拒绝才允许受限修订。
 - `MemoryManager` 使用 16 页（1 MiB）分配桶，库的 32,768 桶上限对应约 32 GiB；该数字是地址容量，不是业务容量承诺。
 - 合并领取退款/剩余手续费及修订拒绝转账只修改内部预留/出金记录，不重算未变化的 `EscrowInfo` 认证叶。资金方向、入金和实际支付发生变化时才更新认证树；重复成功回调直接返回已有结果。
 - 无心跳、轮询 timer 或后台账本扫描。结算提交不额外查账；出金保留原始去重参数，未知响应仍须原参数重试或账本对账。
@@ -180,6 +195,6 @@ POCKET_IC_BIN=/path/to/pocket-ic cargo test --locked -p dmsg_integration \
 
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
 
-Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 8。
+Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 9。
 
 配置中的费用政策与历史政策表均使用独立紧凑表示。`TransferLeg.last_failure` 保存有界拒绝原因，包括过期、余额不足、临时不可用及传输不确定性；不保存账本提供的任意长度文本，成功后清空。该诊断不改变资金方向，也不把历史 Unknown 变成明确拒绝。

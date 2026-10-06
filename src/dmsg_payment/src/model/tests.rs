@@ -203,7 +203,9 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         revoked: false,
     };
     let c = PaymentInit {
-        home_user: account(8).owner,
+        environment: Environment::Local,
+        issuer_namespace: "https://dmsg.test/u/".into(),
+        user_homes: vec![account(8).owner],
         ledger: i.quote.ledger,
         platform: i.quote.platform,
         governance: candid::Principal::from_slice(&[90]),

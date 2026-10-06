@@ -44,8 +44,9 @@ pub struct DeliveryFeePolicy {
 pub struct PaymentConfiguration {
     /// Certified configuration format version.
     pub schema: u16,
-    /// Account authority for recipient offers.
-    pub home_user: Principal,
+    /// User homes authoritative for recipient offers, each for the accounts
+    /// whose IDs carry its allocator fingerprint.
+    pub user_homes: Vec<Principal>,
     /// Accepted ICRC ledger.
     pub ledger: Principal,
     /// Platform fee destination, independent of the recipient's net amount.
@@ -67,14 +68,19 @@ pub struct PaymentConfiguration {
 /// All monetary values are integer ledger base units, not display tokens or cycles.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PaymentInit {
-    /// User canister authoritative for this account or deployment.
-    pub home_user: Principal,
+    /// Deployment domain of the user homes' account-ID allocators.
+    pub environment: Environment,
+    /// Account issuer namespace shared by the user homes.
+    pub issuer_namespace: String,
+    /// User homes that verify recipient offers; each account ID carries its
+    /// home's allocator fingerprint. Append-only.
+    pub user_homes: Vec<Principal>,
     /// ICRC ledger canister for all amounts in this contract.
     pub ledger: Principal,
     /// ICRC account receiving the service fee.
     #[serde(with = "crate::account::account_cbor")]
     pub platform: Account,
-    /// Fixed SNS governance caller allowed to schedule new fee policies.
+    /// Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
     pub governance: Principal,
     /// Initial versioned platform fee policy.
     pub fee_policy: DeliveryFeePolicy,

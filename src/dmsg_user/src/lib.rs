@@ -11,6 +11,7 @@ mod state;
 mod store;
 mod xid;
 
+use dmsg_runtime::admin::Validation;
 use dmsg_types::{
     agent::*, billing::*, cose::*, handle::*, integration::*, payment::SignedOffer, user::*, *,
 };

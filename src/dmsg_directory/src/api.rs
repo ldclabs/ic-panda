@@ -1,7 +1,13 @@
 use crate::{http, store::*};
+use candid::Principal;
 use dmsg_protocol::{agent, digest, sha256};
+use dmsg_runtime::admin::{self, validation, Validation};
 use dmsg_types::{agent::*, *};
 use ic_http_certification::{HttpRequest, HttpResponse};
+
+fn check_admin(caller: Principal) -> Result<()> {
+    admin::check_admin(caller, config().init.governance)
+}
 
 #[ic_cdk::init]
 fn init(args: DirectoryInit) {
@@ -13,26 +19,70 @@ fn init(args: DirectoryInit) {
     });
 }
 
-/// Principal IDs and document fields are permanent; homes may only be appended
-/// and custom domains replaced.
+/// Configuration changes go through administrative methods, never upgrades.
 #[ic_cdk::post_upgrade]
-fn post_upgrade(args: Option<DirectoryInit>) {
-    let mut c = config();
+fn post_upgrade() {
+    let c = config();
     assert_eq!(c.schema, STABLE_SCHEMA, "incompatible development state");
-    if let Some(args) = args {
-        agent::validate_directory_init(&args).expect("directory configuration");
-        let mut allowed = c.init.clone();
-        allowed.user_homes = args.user_homes.clone();
-        allowed.custom_domains = args.custom_domains.clone();
-        assert_eq!(args, allowed, "principal documents are permanent");
-        assert!(
-            args.user_homes.starts_with(&c.init.user_homes),
-            "user homes are append-only"
-        );
-        c.init = args;
+    rebuild(&c.init.custom_domains);
+}
+
+fn check_home(init: &DirectoryInit, home: Principal) -> Result<bool> {
+    agent::check_user_home(
+        &init.environment,
+        &init.issuer_namespace,
+        &init.user_homes,
+        home,
+    )
+}
+
+/// Append a user home. Its `dmsg_user` must name this canister as
+/// `directory_canister` and share the environment, namespace and origin.
+#[ic_cdk::update]
+fn admin_add_user_home(home: Principal) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let mut c = config();
+    if check_home(&c.init, home)? {
+        c.init.user_homes.push(home);
         save_config(&c);
     }
-    rebuild(&c.init.custom_domains);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_add_user_home(home: Principal) -> Validation {
+    let init = config().init;
+    validation(check_home(&init, home).map(|fresh| {
+        admin::user_home_payload(&init.environment, &init.issuer_namespace, home, fresh)
+    }))
+}
+
+/// Replace the domains served at `/.well-known/ic-domains`. Principal IDs
+/// keep the permanent principal origin.
+#[ic_cdk::update]
+fn admin_set_custom_domains(domains: Vec<String>) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    agent::validate_custom_domains(&domains)?;
+    let mut c = config();
+    if c.init.custom_domains != domains {
+        http::certify_domains(&domains);
+        c.init.custom_domains = domains;
+        save_config(&c);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_custom_domains(domains: Vec<String>) -> Validation {
+    let current = config().init.custom_domains;
+    validation(agent::validate_custom_domains(&domains).map(|()| {
+        format!(
+            "Serve custom domains [{}] at /.well-known/ic-domains (currently [{}]).{}",
+            domains.join(", "),
+            current.join(", "),
+            admin::unchanged(domains != current, "Same domains"),
+        )
+    }))
 }
 
 fn publication(id: &AccountId, init: &DirectoryInit, record: &Record) -> Publication {
@@ -59,9 +109,12 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
     match &current {
         Some(record) => ensure(record.home_user == caller, Error::Forbidden)?,
         None => ensure(
-            agent::allocated_by(
+            agent::is_account_home(
+                &init.environment,
+                &init.issuer_namespace,
+                &init.user_homes,
+                caller,
                 &account_id,
-                &agent::account_allocator_digest(&init.environment, &init.issuer_namespace, caller),
             ),
             Error::Forbidden,
         )?,

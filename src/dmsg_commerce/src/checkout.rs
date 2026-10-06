@@ -9,6 +9,7 @@ use crate::{
 use candid::{CandidType, Nat, Principal};
 use dmsg_protocol::{commerce_v2::*, integration::*, *};
 use dmsg_runtime::{
+    admin::{self, validation, Validation},
     call, call_classified,
     ledger::{read_transfer, token_amount},
 };
@@ -23,24 +24,22 @@ fn configuration(offer: &BillingOffer) -> Result<(AppRegistration, ProductRegist
     registrations::product_configuration(&offer.app_id, &offer.product_id)
 }
 
-#[ic_cdk::update]
-fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
-    store::check_governance(ic_cdk::api::msg_caller())?;
-    validate_asset(&policy)?;
+// Returns false when the same policy is already registered.
+fn check_asset(policy: &SettlementAsset) -> Result<bool> {
+    validate_asset(policy)?;
     ensure(
         store::config(|c| c.environment == policy.environment),
         Error::Forbidden,
     )?;
-    let old = asset(policy.ledger).ok();
-    if let Some(old) = &old {
+    if let Ok(old) = asset(policy.ledger) {
         ensure(
             old.policy.asset == policy.asset
                 && old.policy.environment == policy.environment
                 && old.policy.decimals == policy.decimals,
             Error::IntegrityFailed,
         )?;
-        if old.policy == policy {
-            return Ok(());
+        if old.policy == *policy {
+            return Ok(false);
         }
         ensure(
             old.policy.policy_version.checked_add(1) == Some(policy.policy_version),
@@ -56,6 +55,18 @@ fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
             Error::IdempotencyConflict,
         )?;
     }
+    Ok(true)
+}
+
+/// Register a settlement ledger or replace its policy at the next version.
+/// Every price publication also advances the version.
+#[ic_cdk::update]
+fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
+    store::check_admin(ic_cdk::api::msg_caller())?;
+    if !check_asset(&policy)? {
+        return Ok(());
+    }
+    let old = asset(policy.ledger).ok();
     let verified = old.as_ref().is_some_and(|o| o.verified);
     let fee = old.as_ref().map_or(policy.network_fee_atomic, |o| o.fee);
     save_asset(
@@ -68,15 +79,33 @@ fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
     )
 }
 
+#[ic_cdk::query]
+fn validate_register_settlement_asset(policy: SettlementAsset) -> Validation {
+    validation(check_asset(&policy).map(|fresh| {
+        format!(
+            "Register settlement asset {:?} on ledger {} at policy version {}: {} decimals, price {} USD micros observed at {} ms and valid until {} ms, network fee {} (cap {}), enabled {}.{}",
+            policy.asset,
+            policy.ledger,
+            policy.policy_version,
+            policy.decimals,
+            policy.price_usd_micros,
+            policy.price_observed_at_ms,
+            policy.price_valid_until_ms,
+            policy.network_fee_atomic,
+            policy.max_network_fee_atomic,
+            policy.enabled,
+            admin::unchanged(fresh, "Already registered"),
+        )
+    }))
+}
+
 #[derive(CandidType, Deserialize)]
 struct Standard {
     name: String,
     url: String,
 }
 
-#[ic_cdk::update]
-async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128>) -> Result<()> {
-    store::check_governance(ic_cdk::api::msg_caller())?;
+fn check_verify(ledger: Principal, sample_transfer: Option<u128>) -> Result<Asset> {
     let previous = asset(ledger)?;
     if previous.policy.environment != Environment::Local {
         ensure_valid(
@@ -84,6 +113,15 @@ async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128
             "a verified transfer block is required",
         )?;
     }
+    Ok(previous)
+}
+
+/// Check the ledger's live decimals, fee, standards and, outside Local, one
+/// real transfer block before quotes may use it.
+#[ic_cdk::update]
+async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128>) -> Result<()> {
+    store::check_admin(ic_cdk::api::msg_caller())?;
+    let previous = check_verify(ledger, sample_transfer)?;
     let decimals: u8 = call(ledger, "icrc1_decimals", ()).await?;
     let fee: Nat = call(ledger, "icrc1_fee", ()).await?;
     let standards: Vec<Standard> = call(ledger, "icrc1_supported_standards", ()).await?;
@@ -116,6 +154,22 @@ async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128
     current.verified = true;
     current.fee = fee;
     save_asset(&current, now())
+}
+
+#[ic_cdk::query]
+fn validate_verify_settlement_asset(
+    ledger: Principal,
+    sample_transfer: Option<u128>,
+) -> Validation {
+    validation(check_verify(ledger, sample_transfer).map(|a| {
+        let sample = sample_transfer.map_or(String::new(), |index| {
+            format!(" and read transfer block {index}")
+        });
+        format!(
+            "Verify settlement ledger {ledger} ({:?}): require {} decimals, fee {} and ICRC-1/ICRC-3 support{sample}.",
+            a.policy.asset, a.policy.decimals, a.policy.network_fee_atomic,
+        )
+    }))
 }
 
 #[ic_cdk::query]
@@ -918,12 +972,37 @@ fn checkout_transfer_certificate(id: Hash) -> Result<CertifiedBatch> {
 
 #[ic_cdk::update]
 fn set_settlement_price_authority(authority: Principal) -> Result<()> {
-    store::check_governance(ic_cdk::api::msg_caller())?;
+    store::check_admin(ic_cdk::api::msg_caller())?;
     authenticated(authority)?;
     set_price_authority(authority);
     Ok(())
 }
 
+#[ic_cdk::query]
+fn validate_set_settlement_price_authority(authority: Principal) -> Validation {
+    let current = price_authority();
+    validation(authenticated(authority).map(|()| {
+        format!(
+            "Set the settlement price authority to {authority} (currently {}).{}",
+            current.map_or("unset".into(), |p| p.to_text()),
+            admin::unchanged(current != Some(authority), "Already set"),
+        )
+    }))
+}
+
+fn check_observation(
+    ledger: Principal,
+    price_usd_micros: u128,
+    valid_for_ms: u64,
+) -> Result<Asset> {
+    ensure_valid(
+        price_usd_micros > 0 && valid_for_ms > 0 && valid_for_ms <= PRICE_WINDOW_MS,
+        "price observation",
+    )?;
+    asset(ledger)
+}
+
+/// Publish a reference price observed now; the price authority calls this routinely.
 #[ic_cdk::update]
 fn publish_settlement_price(
     ledger: Principal,
@@ -931,16 +1010,11 @@ fn publish_settlement_price(
     valid_for_ms: u64,
 ) -> Result<SettlementAsset> {
     let caller = ic_cdk::api::msg_caller();
-    ensure(
-        caller == store::config(|c| c.governance) || price_authority() == Some(caller),
-        Error::Forbidden,
-    )?;
-    ensure_valid(
-        price_usd_micros > 0 && valid_for_ms > 0 && valid_for_ms <= PRICE_WINDOW_MS,
-        "price observation",
-    )?;
+    if price_authority() != Some(caller) {
+        store::check_admin(caller)?;
+    }
+    let mut a = check_observation(ledger, price_usd_micros, valid_for_ms)?;
     let at = now();
-    let mut a = asset(ledger)?;
     a.policy.policy_version = a
         .policy
         .policy_version
@@ -951,6 +1025,22 @@ fn publish_settlement_price(
     a.policy.price_valid_until_ms = at.checked_add(valid_for_ms).ok_or(Error::QuotaExceeded)?;
     save_asset(&a, at)?;
     Ok(a.policy)
+}
+
+#[ic_cdk::query]
+fn validate_publish_settlement_price(
+    ledger: Principal,
+    price_usd_micros: u128,
+    valid_for_ms: u64,
+) -> Validation {
+    validation(
+        check_observation(ledger, price_usd_micros, valid_for_ms).map(|a| {
+            format!(
+                "Publish a {:?} reference price of {price_usd_micros} USD micros on ledger {ledger}, valid for {valid_for_ms} ms after execution.",
+                a.policy.asset,
+            )
+        }),
+    )
 }
 
 /// Consensus read for the pinned product adapter during Apply. Query replies are not delivery authority.

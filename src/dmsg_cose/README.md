@@ -8,14 +8,25 @@
 
 | 入口 | 调用者及结果 |
 | --- | --- |
-| `initialize_keys` | controller；核对配置与真实公钥后启用 |
+| `initialize_keys` | controller 或 governance；核对配置与真实公钥后启用 |
+| `admin_add_user_home(home)` | controller 或 governance；追加 user home，见“多 user home 与治理” |
+| `admin_set_daily_budget(executions, cycles)` | controller 或 governance；调整全局每日预算，保留当天已用计数 |
+| `validate_*` | 与上面三个管理方法同参数的 query，供 SNS 通用提案预演并渲染载荷 |
 | `key_state` | 查询当前初始化与根描述 |
 | `public_key(account_id, selector)` | 公开查询，离线派生公钥；不证明主体存在或具备执行权 |
-| `execute(grant)` | 仅配置中的 user home；生成签名或 encrypted VetKey |
-| `get_execution` | 仅配置中的 user home；查询原请求 |
-| `prune_executions(after)` | controller；每批清理最多 8 个账户的过期终态结果，返回继续游标 |
+| `execute(grant)` | 仅账户所属的 user home；生成签名或 encrypted VetKey |
+| `get_execution` | 仅账户所属的 user home；查询原请求 |
+| `prune_executions(after)` | 公开维护；每批清理最多 8 个账户的过期终态结果，返回继续游标 |
 
 应用通过 `dmsg_user.sign` / `derive_root` 提交设备批准。`Signature` 结果内的 `artifact` 含标准 COSE_Sign1 和 COSE_Key，`key` 保存 ICP 派生来源。`EncryptedRootKey` 保留独立的 vetKD 结果。
+
+## 多 user home 与治理
+
+`dmsg_user` 按实例分片，多个 user home 可以共用一个 COSE。`CoseInit.user_homes` 列出允许提交执行的 home；每个账户 ID 的第 4..9 字节是分配它的 home 的分配器指纹（`account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节），`execute` 和 `get_execution` 只接受该 home 对自己账户的调用。密钥派生只取决于 environment、derivation_version 和账户，与 home 无关，所以增加 home 不改变任何已有公钥。
+
+新 home 由 `admin_add_user_home` 追加：列表只增不减，最多 64 个，指纹不能与已有 home 重复，重复添加同一 home 不报错。新 `dmsg_user` 必须以本 canister 为 `home_cose`，并使用相同的 environment 和 issuer_namespace。
+
+所有管理方法接受 controller 和初始化时固定的 `governance`。controller 用于本地和 SNS 之前的部署；登记到 SNS 后，提案执行时由 SNS governance 调用。每个管理方法都有同参数的 `validate_*` query：它按当前状态执行与方法相同的检查，通过时返回给投票者看的说明，否则返回方法将给出的错误；与当前状态相同时说明末尾标注 “no change”。升级不读取参数，也不修改配置。
 
 ## 密码实现
 
@@ -23,7 +34,7 @@
 
 `CoseInit` 指定与 user home 相同的固定 issuer_namespace；account_id 为 12 字节 Xid。签署端同时检查 issuer、完整待签结构和实际派生公钥指纹。签名 kid 使用 RFC 9679 SHA-256 指纹，通用文档 profile 的 kid 仍为可变长字节。
 
-所有用途保留固定 key home，正式签名使用 `dmsg/formal/v2` 派生域，derivation_version=2。Production 配置拒绝测试根并核对 fingerprint；升级不能暗中换根；只允许调整 `daily_executions` 和 `daily_cycles`，保留当天已用计数。执行在管理调用前落盘，未知结果保留原请求，重试不再次签名。
+所有用途保留固定 key home，正式签名使用 `dmsg/formal/v2` 派生域，derivation_version=2。Production 配置拒绝测试根并核对 fingerprint；升级不读取参数，不能换根；`daily_executions` 和 `daily_cycles` 只经 `admin_set_daily_budget` 调整，保留当天已用计数。执行在管理调用前落盘，未知结果保留原请求，重试不再次签名。
 
 ## TSA
 
@@ -31,9 +42,9 @@
 
 ## 代码
 
-`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 8 的私有 `stable_codec.rs` 使用 CBOR 整数 map key，内部执行元数据直接以自身整数 key 形式保存；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
+`api.rs` 负责入口和密码调用，`model.rs` 管理有界执行状态，`store.rs` 保存配置、公钥缓存和内部记录。schema 9 的私有 `stable_codec.rs` 使用 CBOR 整数 map key，内部执行元数据直接以自身整数 key 形式保存；执行 grant 增加商业预留，摘要域为 `dmsg/cose-execution/v3`；正式 Statement 和设备执行批准字节不变。
 
-每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间、InFlight/Unknown/Terminal 状态及签名标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不扫描或比较整个历史窗口的正文，也不重复持久化完整 grant。结果表保存已编码 CBOR，只有读取目标结果才解码；替换和删除仍读取底层字节，但不再解码被丢弃的旧正文。64 条元数据的当前回归样本编码小于 6 KiB；连续关闭高水位和仍在途的空洞共同约束清理及防重放。固定 user home 只由配置保存，execute 入口统一核对实际 caller、grant.home_user 和 home_cose，不再逐账户重复存储同一 Principal。
+每个 home 只保存最多 64 条执行元数据（request_id、完整 grant 的摘要、过期时间、InFlight/Unknown/Terminal 状态及签名标志），结果正文按 `(account_id, execution_sequence)` 单独存储。执行、回调和查询只访问目标结果，不扫描或比较整个历史窗口的正文，也不重复持久化完整 grant。结果表保存已编码 CBOR，只有读取目标结果才解码；替换和删除仍读取底层字节，但不再解码被丢弃的旧正文。64 条元数据的当前回归样本编码小于 6 KiB；连续关闭高水位和仍在途的空洞共同约束清理及防重放。user home 列表只由配置保存，execute 入口统一核对实际 caller 是账户所属的 home，并等于 grant.home_user，且 home_cose 是本 canister；不逐账户存储 home。
 
 总预算和正式签名预算合并为一个独立 StableCell，和配置共享 memory 0 的既有 128 页区块：配置占页 `[0,127)`，预算占页 `[127,128)`，不额外分配 8 MiB。home 和结果分别使用 memory 1、2。预算更新不重写根公钥配置；升级恢复不扫描账户或结果表。
 
@@ -41,7 +52,7 @@
 
 user 在保留记录达到 56 条时暂停新的正式签名批准，根派生仍可使用 64 条总窗口。COSE 分别限制正式签名记录为 56 条、总记录为 64 条，以接收乱序到达的已授权请求；重试先查原记录，不再次占位。正式签名预算为总上限扣除向上取整的 20%，小部署也保留安全操作名额。单账户上限为每天 125 次、1.1T cycles，按同一规则覆盖 user 可授权的正式签名（100 次、800B）与根派生（20 次、300B）；两侧共用 `dmsg_runtime` 常量，单测核对覆盖关系。已发出管理调用的预留是保守值，不因执行失败自动释放。
 
-结果默认在同账户的新执行中惰性清理。controller 可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；满页即返回游标，恰好整页结束时多一次空调用；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续关闭高水位、状态为 Terminal 且超过 `expires_at + DAY` 的记录。管理调用已经返回的 Unknown 可以推进关闭高水位，让后续终态记录正常清理，但自身结果和商业占用继续保留，不重签、不按超时退款。尚未返回的 InFlight 仍阻止高水位跨越；未决记录继续受 64 条总窗口和 56 条正式执行窗口约束。账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
+结果默认在同账户的新执行中惰性清理。任何人可用 `prune_executions(None)` 启动维护，将返回的 `next_after` 传给下一次调用，直到其为 None；满页即返回游标，恰好整页结束时多一次空调用；游标可在升级后继续使用。每批最多删除 512 条结果，仅清理已越过连续关闭高水位、状态为 Terminal 且超过 `expires_at + DAY` 的记录。管理调用已经返回的 Unknown 可以推进关闭高水位，让后续终态记录正常清理，但自身结果和商业占用继续保留，不重签、不按超时退款。尚未返回的 InFlight 仍阻止高水位跨越；未决记录继续受 64 条总窗口和 56 条正式执行窗口约束。账户高水位和预算保留。删除使存储空间可复用，不承诺物理 stable memory 缩小。
 
 初始化核对原始根公钥 pin 后，在 heap 中缓存各签名算法的固定两级派生前缀（`dmsg/formal/v2`、environment）。公开查询和执行准备只派生账户、用途、generation 三个后缀；管理签名调用仍发送原完整路径。升级从已核对的根公钥重建前缀，缓存不成为新的持久密钥权威。vetKD 直接使用原 context 公钥，不构造未使用的签名路径。
 

@@ -283,7 +283,7 @@ mod tests {
             issuer_namespace: "https://dmsg.example/u/".into(),
             environment: Environment::Production,
             executing_canister: p(4),
-            initial_home_user: p(3),
+            user_homes: vec![p(3), p(5)],
             derivation_version: 2,
             masters: vec![MasterKey {
                 algorithm: Algorithm::Ed25519,
@@ -292,6 +292,7 @@ mod tests {
             }],
             daily_executions: 100,
             daily_cycles: 1_000_000_000_000,
+            governance: p(6),
         };
         let config = Config {
             schema: crate::store::STABLE_SCHEMA,

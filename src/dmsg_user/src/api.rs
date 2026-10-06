@@ -1,6 +1,7 @@
 use crate::{account, execution, principal, recovery, state::*, store::*, xid};
 use candid::Principal;
 use dmsg_protocol::*;
+use dmsg_runtime::admin::{self, validation, Validation};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{agent::*, billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};
@@ -37,18 +38,13 @@ fn init(args: UserInit) {
         args.commerce_canister,
         args.membership_canister,
         args.directory_canister,
+        args.governance,
     ] {
         authenticated(p).expect("configured canister");
     }
     dmsg_protocol::agent::validate_principal_origin(&args.principal_origin)
         .expect("principal origin");
-    assert!(
-        args.max_accounts > 0
-            && args.max_accounts <= 1_000_000
-            && args.daily_new_accounts > 0
-            && args.daily_new_accounts <= 10_000,
-        "hard limits"
-    );
+    check_limits(args.max_accounts, args.daily_new_accounts).expect("hard limits");
     CONFIG.with_borrow_mut(|t| {
         t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
@@ -84,6 +80,43 @@ fn post_upgrade() {
         ic_cdk::api::performance_counter(0),
         core::arch::wasm32::memory_size(0) * 65_536,
     );
+}
+
+fn check_limits(max_accounts: u64, daily_new_accounts: u32) -> Result<()> {
+    ensure_valid(
+        (1..=1_000_000).contains(&max_accounts) && (1..=10_000).contains(&daily_new_accounts),
+        "account limits",
+    )
+}
+
+/// Set the account capacity and the daily new-account quota. A capacity below
+/// the current count only stops new accounts.
+#[ic_cdk::update]
+fn admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32) -> Result<()> {
+    let mut cfg = config();
+    admin::check_admin(ic_cdk::api::msg_caller(), cfg.init.governance)?;
+    check_limits(max_accounts, daily_new_accounts)?;
+    cfg.init.max_accounts = max_accounts;
+    cfg.init.daily_new_accounts = daily_new_accounts;
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg))));
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32) -> Validation {
+    let init = config().init;
+    validation(check_limits(max_accounts, daily_new_accounts).map(|()| {
+        format!(
+            "Set account limits to {max_accounts} accounts and {daily_new_accounts} new accounts per day (currently {} and {}; existing accounts: {}).{}",
+            init.max_accounts,
+            init.daily_new_accounts,
+            ACCOUNTS.with_borrow(|t| t.len()),
+            admin::unchanged(
+                (init.max_accounts, init.daily_new_accounts) != (max_accounts, daily_new_accounts),
+                "Same limits",
+            ),
+        )
+    }))
 }
 
 #[ic_cdk::update]

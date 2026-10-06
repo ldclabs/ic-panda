@@ -34,16 +34,19 @@ type CoseInit = record {
   executing_canister : principal;
   // Key derivation format version; current public protocol uses 2.
   derivation_version : nat16;
-  // Maximum reserved ICP cycles in a daily budget window; adjustable during upgrade.
+  // Maximum reserved ICP cycles in a daily budget window; adjustable by governance.
   daily_cycles : nat;
-  // User canister authorized to supply execution grants.
-  initial_home_user : principal;
   // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
-  // Maximum executions in a daily budget window; adjustable during upgrade.
+  // Maximum executions in a daily budget window; adjustable by governance.
   daily_executions : nat32;
   // Deployment domain used in validation and derivation.
   environment : Environment;
+  // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+  governance : principal;
+  // User homes authorized to supply execution grants, each only for the
+  // accounts whose IDs carry its allocator fingerprint. Append-only.
+  user_homes : vec principal;
 };
 // Deployment domain used to separate identities and key derivation.
 type Environment = variant {
@@ -118,7 +121,7 @@ type Error = variant {
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
-// Controller-maintained page of expired COSE execution results.
+// Public maintenance page of expired COSE execution results.
 // The caller supplies next_after to continue, including across upgrades.
 type ExecutionCleanup = record {
   // Exclusive account cursor for the next page; None ends this pass.
@@ -345,10 +348,11 @@ type MasterKey = record {
   // ICP management-canister master-key name.
   key_name : text;
 };
-type Result = variant { Ok : ExecutionResult; Err : Error };
-type Result_1 = variant { Ok : KeyState; Err : Error };
-type Result_2 = variant { Ok : ExecutionCleanup; Err : Error };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : ExecutionResult; Err : Error };
+type Result_2 = variant { Ok : KeyState; Err : Error };
 type Result_3 = variant { Ok : KeyDescriptor; Err : Error };
+type Result_4 = variant { Ok : text; Err : text };
 // Portable signed document plus a public-only COSE_Key.
 // The attached key supports mathematical verification but does not establish
 // who owns the key or whether the signer had authority.
@@ -382,13 +386,23 @@ type SigningPurpose = variant {
   Statement;
 };
 service : (CoseInit) -> {
-  execute : (ExecutionGrant) -> (Result);
-  get_execution : (blob, blob) -> (Result) query;
-  initialize_keys : () -> (Result_1);
+  // Append a user home. Its `dmsg_user` must name this canister as
+  // `home_cose` and share the environment and issuer namespace.
+  admin_add_user_home : (principal) -> (Result);
+  // Set the global daily limits. Counts already used today are retained.
+  admin_set_daily_budget : (nat32, nat) -> (Result);
+  execute : (ExecutionGrant) -> (Result_1);
+  get_execution : (blob, blob) -> (Result_1) query;
+  // Fetch every configured master public key and check it against its pin.
+  initialize_keys : () -> (Result_2);
   key_state : () -> (KeyState) query;
   // Prune one bounded page of expired terminal results, retaining replay guards.
-  prune_executions : (opt blob) -> (Result_2);
+  // Public maintenance is safe: a page inspects at most eight accounts.
+  prune_executions : (opt blob) -> (ExecutionCleanup);
   // Public-key math is independent of account existence or execution permission.
   // No management call, registration or stable write is needed for this query.
   public_key : (blob, KeySelector) -> (Result_3) query;
+  validate_admin_add_user_home : (principal) -> (Result_4) query;
+  validate_admin_set_daily_budget : (nat32, nat) -> (Result_4) query;
+  validate_initialize_keys : () -> (Result_4) query;
 }

@@ -8,6 +8,8 @@ mod http;
 mod stable_codec;
 mod store;
 
+use candid::Principal;
+use dmsg_runtime::admin::Validation;
 use dmsg_types::{agent::*, *};
 
 ic_cdk::export_candid!();

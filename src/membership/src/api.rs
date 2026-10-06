@@ -1,6 +1,7 @@
 //! Initialization, governance configuration and SNS interface verification.
 use crate::{sns, store};
 use dmsg_protocol::{authenticated, nonzero};
+use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_types::{integration::*, integration_membership::PandaServiceConfig, membership::*, *};
 use ic_cdk_management_canister::{canister_info, CanisterInfoArgs};
 use std::cell::Cell;
@@ -114,17 +115,28 @@ async fn verify_sns_configuration() -> Result<()> {
     fresh_sns(at).await
 }
 
+/// Pause or resume new PANDA applications; existing claims keep refreshing.
 #[ic_cdk::update]
 fn set_admission_pause(paused: bool) -> Result<()> {
-    let mut c = store::governance(ic_cdk::api::msg_caller())?;
+    let mut c = store::admin(ic_cdk::api::msg_caller())?;
     c.paused = paused;
     store::save_config(&c);
     Ok(())
 }
 
+#[ic_cdk::query]
+fn validate_set_admission_pause(paused: bool) -> Validation {
+    let action = if paused { "Pause" } else { "Resume" };
+    Ok(format!(
+        "{action} new PANDA applications.{}",
+        admin::unchanged(store::config().paused != paused, "Already set"),
+    ))
+}
+
+/// Pin a reviewed SNS governance module; qualification is re-verified before use.
 #[ic_cdk::update]
 fn set_sns_governance_module_hash(hash: Hash) -> Result<()> {
-    let mut c = store::governance(ic_cdk::api::msg_caller())?;
+    let mut c = store::admin(ic_cdk::api::msg_caller())?;
     nonzero(hash.as_slice())?;
     c.init.expected_governance_module_hash = Some(hash);
     c.sns_verified = false;
@@ -132,9 +144,22 @@ fn set_sns_governance_module_hash(hash: Hash) -> Result<()> {
     Ok(())
 }
 
-#[ic_cdk::update]
-fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
-    let mut c = store::governance(ic_cdk::api::msg_caller())?;
+#[ic_cdk::query]
+fn validate_set_sns_governance_module_hash(hash: Hash) -> Validation {
+    let c = store::config();
+    validation(nonzero(hash.as_slice()).map(|()| {
+        format!(
+            "Pin SNS governance {} to module hash {} (currently {}) and re-verify the SNS before new applications.",
+            c.init.governance,
+            hex(hash.as_slice()),
+            c.init
+                .expected_governance_module_hash
+                .map_or("unpinned".into(), |h| hex(h.as_slice())),
+        )
+    }))
+}
+
+fn check_service(c: &store::Config, next: &PandaServiceConfig) -> Result<()> {
     authenticated(next.commerce_canister)?;
     ensure_valid(
         next.max_claims > 0
@@ -152,7 +177,30 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
             Error::IntegrityFailed,
         )?;
     }
+    Ok(())
+}
+
+/// Set the PANDA service limits. The commerce canister is fixed once set.
+#[ic_cdk::update]
+fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
+    let mut c = store::admin(ic_cdk::api::msg_caller())?;
+    check_service(&c, &next)?;
     c.service = Some(next);
     store::save_config(&c);
     Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_configure_panda_service(next: PandaServiceConfig) -> Validation {
+    let c = store::config();
+    validation(check_service(&c, &next).map(|()| {
+        format!(
+            "Configure the PANDA service for commerce {}: at most {} claims, {} applications per hour, {} ms cooling.{}",
+            next.commerce_canister,
+            next.max_claims,
+            next.hourly_applications,
+            next.cooling_ms,
+            admin::unchanged(c.service.as_ref() != Some(&next), "Already set"),
+        )
+    }))
 }

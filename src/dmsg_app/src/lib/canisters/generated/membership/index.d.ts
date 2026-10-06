@@ -217,6 +217,8 @@ export type Result_5 = { 'Ok' : PandaRatePolicy } |
   { 'Err' : Error };
 export type Result_6 = { 'Ok' : number } |
   { 'Err' : Error };
+export type Result_7 = { 'Ok' : string } |
+  { 'Err' : string };
 export type SettlementMethod = { 'Cash' : null } |
   { 'Panda' : null };
 export interface _SERVICE {
@@ -247,6 +249,16 @@ export interface _SERVICE {
     Result_1
   >,
   'sweep_panda_commitments' : ActorMethod<[], Result_6>,
+  'validate_configure_panda_service' : ActorMethod<
+    [PandaServiceConfig],
+    Result_7
+  >,
+  'validate_schedule_panda_rate' : ActorMethod<[PandaRatePolicy], Result_7>,
+  'validate_set_admission_pause' : ActorMethod<[boolean], Result_7>,
+  'validate_set_sns_governance_module_hash' : ActorMethod<
+    [Uint8Array | number[]],
+    Result_7
+  >,
   'verify_sns_configuration' : ActorMethod<[], Result_1>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

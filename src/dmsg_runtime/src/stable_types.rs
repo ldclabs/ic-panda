@@ -311,7 +311,9 @@ stable_struct!(CommercialReservationRepr => CommercialReservation {
 });
 
 stable_struct!(PaymentInitRepr => PaymentInit {
-    1 => home_user: Principal,
+    13 => environment: Environment,
+    14 => issuer_namespace: String,
+    15 => user_homes: Vec<Principal>,
     2 => ledger: Principal,
     3 => platform: AccountRepr as codec,
     4 => fee_policy: DeliveryFeePolicyRepr as codec,
@@ -680,11 +682,12 @@ stable_struct!(CoseInitRepr => CoseInit {
     1 => issuer_namespace: String,
     2 => environment: Environment,
     3 => executing_canister: Principal,
-    4 => initial_home_user: Principal,
+    9 => user_homes: Vec<Principal>,
     5 => derivation_version: u16,
     6 => masters: Vec<MasterKeyRepr> as codec,
     7 => daily_executions: u32,
     8 => daily_cycles: u128,
+    10 => governance: Principal,
 });
 
 stable_struct!(KeyStateRepr => KeyState {
@@ -708,6 +711,7 @@ stable_struct!(UserInitRepr => UserInit {
     7 => daily_new_accounts: u32,
     10 => principal_origin: String,
     11 => directory_canister: Principal,
+    12 => governance: Principal,
 });
 
 stable_struct!(HostedControllerRepr => HostedController {
@@ -846,7 +850,9 @@ mod tests {
         };
         assert_eq!(compact_bytes(&fee_policy).len(), 21);
         let init = PaymentInit {
-            home_user: Principal::from_slice(&[1]),
+            environment: Environment::Local,
+            issuer_namespace: "https://dmsg.test/u/".into(),
+            user_homes: vec![Principal::from_slice(&[1])],
             ledger: Principal::from_slice(&[2]),
             platform: Account {
                 owner: Principal::from_slice(&[3]),

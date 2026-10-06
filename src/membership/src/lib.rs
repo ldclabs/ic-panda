@@ -8,6 +8,7 @@ mod rate;
 mod sns;
 mod store;
 use candid::Principal;
+use dmsg_runtime::admin::Validation;
 use dmsg_types::{
     integration::*, integration_billing::*, integration_membership::*, membership::*, *,
 };

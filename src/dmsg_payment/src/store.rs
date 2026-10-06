@@ -82,8 +82,8 @@ pub(crate) fn configure(f: impl FnOnce(&mut PaymentInit)) {
 
 fn public_config(c: &Config) -> PaymentConfiguration {
     PaymentConfiguration {
-        schema: 1,
-        home_user: c.init.home_user,
+        schema: 2,
+        user_homes: c.init.user_homes.clone(),
         ledger: c.init.ledger,
         platform: c.init.platform,
         ledger_fee: c.init.ledger_fee,
@@ -238,4 +238,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 8;
+pub(crate) const STABLE_SCHEMA: u16 = 9;

@@ -536,9 +536,9 @@ export interface RecoveryRequest {
   'new_auth' : Principal,
   'expires_at' : bigint,
 }
-export type Result = { 'Ok' : Uint8Array | number[] } |
+export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : AuthenticationResult } |
+export type Result_1 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
 export type Result_10 = { 'Ok' : OperationReceipt } |
   { 'Err' : Error };
@@ -552,13 +552,15 @@ export type Result_14 = { 'Ok' : number } |
   { 'Err' : Error };
 export type Result_15 = { 'Ok' : bigint } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : ApplicationAuthorization } |
+export type Result_16 = { 'Ok' : string } |
+  { 'Err' : string };
+export type Result_17 = { 'Ok' : ApplicationAuthorization } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : CertifiedBatch } |
+export type Result_2 = { 'Ok' : AuthenticationResult } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : ProductAuthorization } |
+export type Result_3 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : null } |
+export type Result_4 = { 'Ok' : ProductAuthorization } |
   { 'Err' : Error };
 export type Result_5 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
@@ -667,6 +669,7 @@ export interface UserInit {
   'payment_canister' : Principal,
   'environment' : Environment,
   'commerce_canister' : Principal,
+  'governance' : Principal,
   'max_accounts' : bigint,
   'membership_canister' : Principal,
   'directory_canister' : Principal,
@@ -675,31 +678,35 @@ export type VaultWriteState = { 'RekeyRequired' : null } |
   { 'Ready' : null } |
   { 'Uninitialized' : null };
 export interface _SERVICE {
-  'approve_application' : ActorMethod<[ApplicationApproval, Approval], Result>,
+  'admin_set_account_limits' : ActorMethod<[bigint, number], Result>,
+  'approve_application' : ActorMethod<
+    [ApplicationApproval, Approval],
+    Result_1
+  >,
   'approve_authentication' : ActorMethod<
     [Uint8Array | number[], AuthenticationRequest, Approval],
-    Result_1
+    Result_2
   >,
   'authentication_certificate' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_2
+    Result_3
   >,
   'authorize_product_billing' : ActorMethod<
     [ProductAuthorizationRequest],
-    Result_3
+    Result_4
   >,
   'begin_auth_binding' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], bigint],
-    Result_4
+    Result
   >,
   'complete_recovery' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_4
+    Result
   >,
-  'consume_handle_authorization' : ActorMethod<[HandleIntent], Result_4>,
+  'consume_handle_authorization' : ActorMethod<[HandleIntent], Result>,
   'consume_handle_transfer_authorizations' : ActorMethod<
     [HandleIntent, HandleIntent],
-    Result_4
+    Result
   >,
   'create_account' : ActorMethod<[CreateAccount], Result_5>,
   'derive_root' : ActorMethod<[DeriveRootRequest], Result_6>,
@@ -711,7 +718,7 @@ export interface _SERVICE {
   >,
   'get_execution_receipt' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_2
+    Result_3
   >,
   'get_execution_usage' : ActorMethod<
     [Uint8Array | number[], number],
@@ -719,7 +726,7 @@ export interface _SERVICE {
   >,
   'get_execution_usage_certified' : ActorMethod<
     [Uint8Array | number[], number],
-    Result_2
+    Result_3
   >,
   'get_operation' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
@@ -730,7 +737,7 @@ export interface _SERVICE {
   'get_root_ref' : ActorMethod<[Uint8Array | number[]], Result_13>,
   'inspect_app_action' : ActorMethod<
     [Uint8Array | number[], AppAction],
-    Result_4
+    Result
   >,
   'mutate_account' : ActorMethod<[AccountMutation], Result_10>,
   'my_account' : ActorMethod<[], [] | [Uint8Array | number[]]>,
@@ -750,7 +757,7 @@ export interface _SERVICE {
   >,
   'reconfirm_recovery' : ActorMethod<
     [Uint8Array | number[], RecoveryConfirmation, Uint8Array | number[]],
-    Result_4
+    Result
   >,
   'refresh_execution_entitlement' : ActorMethod<
     [Uint8Array | number[]],
@@ -764,21 +771,25 @@ export interface _SERVICE {
       Uint8Array | number[],
       Uint8Array | number[],
     ],
-    Result_4
+    Result
   >,
   'security_snapshot_batch' : ActorMethod<
     [Array<Uint8Array | number[]>],
-    Result_2
+    Result_3
   >,
   'sign' : ActorMethod<[SignRequest], Result_6>,
   'sign_agent_event' : ActorMethod<[AgentEventSignRequest], Result_6>,
   'sign_app_action' : ActorMethod<[AppActionSignRequest], Result_6>,
-  'verify_application_authorization' : ActorMethod<
-    [Uint8Array | number[], ApplicationApproval],
+  'validate_admin_set_account_limits' : ActorMethod<
+    [bigint, number],
     Result_16
   >,
+  'verify_application_authorization' : ActorMethod<
+    [Uint8Array | number[], ApplicationApproval],
+    Result_17
+  >,
   'verify_payment_offer' : ActorMethod<[SignedOffer], Result_15>,
-  'verify_product_account' : ActorMethod<[string, Beneficiary], Result_4>,
+  'verify_product_account' : ActorMethod<[string, Beneficiary], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

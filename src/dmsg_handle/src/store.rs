@@ -148,6 +148,3 @@ pub(crate) const STABLE_SCHEMA: u16 = 9;
 
 // Largest active-name population verified by the capacity profile.
 pub(crate) const MAX_ACTIVE_NAMES: u64 = 10_000_000;
-
-// Account-ID fingerprints are scanned per call, so the home list stays short.
-pub(crate) const MAX_USER_HOMES: usize = 64;

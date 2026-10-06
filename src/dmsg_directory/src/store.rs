@@ -12,7 +12,7 @@ use std::cell::RefCell;
 // Stable layout: config=0, published documents=1.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 2;
+pub(crate) const STABLE_SCHEMA: u16 = 3;
 
 #[derive(Clone)]
 pub(crate) struct Config {

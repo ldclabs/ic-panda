@@ -42,6 +42,12 @@ mod commerce;
 #[path = "control_plane/agent.rs"]
 mod agent;
 
+#[path = "control_plane/user_homes.rs"]
+mod user_homes;
+
+#[path = "control_plane/governance.rs"]
+mod governance;
+
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let target = std::env::var_os("DMSG_WASM_DIR")
@@ -201,6 +207,15 @@ fn device(n: u8) -> DeviceInput {
 }
 const NAMESPACE: &str = "https://dmsg.test/u/";
 const PRINCIPAL_ORIGIN: &str = "https://id.dmsg.test";
+
+/// An account ID carrying `home`'s allocator fingerprint in the test namespace.
+fn home_account(home: Principal, n: u8) -> AccountId {
+    let digest =
+        dmsg_protocol::agent::account_allocator_digest(&Environment::Local, NAMESPACE, home);
+    let mut id = [n; 12];
+    id[4..9].copy_from_slice(&digest[..5]);
+    AccountId(id)
+}
 struct Fixture {
     ic: PocketIc,
     user: Principal,
@@ -279,7 +294,8 @@ impl Fixture {
             issuer_namespace: NAMESPACE.into(),
             environment: Environment::Local,
             executing_canister: cose,
-            initial_home_user: user,
+            user_homes: vec![user],
+            governance: sns,
             derivation_version: 2,
             masters: algorithms
                 .into_iter()
@@ -314,6 +330,7 @@ impl Fixture {
                 daily_new_accounts: 100,
                 principal_origin: PRINCIPAL_ORIGIN.into(),
                 directory_canister: directory,
+                governance: sns,
             },))
             .unwrap(),
             None,
@@ -330,6 +347,7 @@ impl Fixture {
                 delegation_query_url: "https://agents.dmsg.test/v1/delegations/query".into(),
                 profile_url_prefix: "https://dmsg.test/u/".into(),
                 custom_domains: vec!["id.dmsg.test".into()],
+                governance: sns,
             },))
             .unwrap(),
             None,
@@ -360,7 +378,9 @@ impl Fixture {
             wasm("dmsg_payment"),
             candid::encode_args((PaymentInit {
                 ledger,
-                home_user: user,
+                environment: Environment::Local,
+                issuer_namespace: NAMESPACE.into(),
+                user_homes: vec![user],
                 platform: account(person(60)),
                 governance: candid::Principal::from_slice(&[90]),
                 fee_policy: dmsg_types::payment::DeliveryFeePolicy {
@@ -692,6 +712,39 @@ impl Fixture {
         self.mutate(n, id, AccountCommand::ConfirmRecovery { proof })
             .unwrap();
     }
+    /// A recoverable account with a committed generation-1 content root.
+    fn root_account(&self, n: u8) -> AccountId {
+        let account_id = self.create(n);
+        self.recoverable(n, &account_id);
+        self.mutate(
+            n,
+            &account_id,
+            AccountCommand::ReserveRoot {
+                expected_generation: 0,
+                op_id: Hash::new([8; 32]),
+            },
+        )
+        .unwrap();
+        self.mutate(
+            n,
+            &account_id,
+            AccountCommand::CommitRoot {
+                expected_generation: 0,
+                op_id: Hash::new([8; 32]),
+                root: ContentRootRef {
+                    generation: 1,
+                    suite: "dmsg-root-v1".into(),
+                    home_cose: self.cose,
+                    derivation_version: 2,
+                    key_generation: 1,
+                    bundle_digest: Hash::new([12; 32]),
+                    recovery_generation: 1,
+                },
+            },
+        )
+        .unwrap();
+        account_id
+    }
     fn mint(&self, who: Principal, n: u128) {
         void(
             &self.ic,
@@ -842,6 +895,34 @@ impl Fixture {
             .into();
         submit_execution(&self.ic, self.user, person(n), request).unwrap()
     }
+}
+
+/// Install another `dmsg_user` sharing this deployment's services. The
+/// services route its accounts only after governance lists it.
+fn install_user_home(f: &Fixture) -> Principal {
+    let home = f.ic.create_canister();
+    f.ic.add_cycles(home, 10_000_000_000_000_000);
+    f.ic.install_canister(
+        home,
+        wasm("dmsg_user"),
+        candid::encode_args((UserInit {
+            commerce_canister: f.commerce,
+            membership_canister: f.membership,
+            issuer_namespace: NAMESPACE.into(),
+            environment: Environment::Local,
+            home_cose: f.cose,
+            handle_canister: f.handle,
+            payment_canister: f.payment,
+            max_accounts: 1000,
+            daily_new_accounts: 100,
+            principal_origin: PRINCIPAL_ORIGIN.into(),
+            directory_canister: f.directory,
+            governance: f.sns,
+        },))
+        .unwrap(),
+        None,
+    );
+    home
 }
 
 // PocketIC is the trusted certificate source here. Match the witness against
@@ -1116,7 +1197,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
     f.ic.upgrade_canister(
         f.cose,
         wasm("dmsg_cose"),
-        candid::encode_args((None::<CoseInit>,)).unwrap(),
+        candid::encode_args(()).unwrap(),
         None,
     )
     .unwrap();
@@ -1164,17 +1245,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         assert_eq!(replay.unwrap(), expected);
     }
 
-    let mut changed = f.cose_config.clone();
-    changed.masters[0].key_name = "test_key_1".into();
-    assert!(f
-        .ic
-        .upgrade_canister(
-            f.cose,
-            wasm("dmsg_cose"),
-            candid::encode_args((Some(changed),)).unwrap(),
-            None
-        )
-        .is_err());
+    // Upgrades take no configuration; key descriptions stay as installed.
+    let state: dmsg_types::cose::KeyState = query(&f.ic, f.cose, person(1), "key_state", ());
+    assert_eq!(state.config, f.cose_config);
 }
 
 #[test]

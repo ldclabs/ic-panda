@@ -84,6 +84,15 @@ type Deposit = record {
   // Verified incoming amount in integer ledger base units.
   amount : nat;
 };
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
 // Application errors returned by dMsg canisters and protocol helpers.
 // Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
@@ -246,15 +255,17 @@ type PaymentInit = record {
   enabled : bool;
   // Maximum retained escrows, including terminal orders (1..=10,000).
   max_escrows : nat64;
-  // User canister authoritative for this account or deployment.
-  home_user : principal;
+  // Account issuer namespace shared by the user homes.
+  issuer_namespace : text;
   // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Deployment domain of the user homes' account-ID allocators.
+  environment : Environment;
   // Configured network fee in ledger base units.
   ledger_fee : nat;
   // Authorized quote/admission receipt signer.
   signer : ReceiptSigner;
-  // Fixed SNS governance caller allowed to schedule new fee policies.
+  // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
   governance : principal;
   // Maximum simultaneously open escrows per payer.
   max_open_per_payer : nat32;
@@ -262,6 +273,9 @@ type PaymentInit = record {
   fee_policy : DeliveryFeePolicy;
   // Maximum permitted network fee in ledger base units.
   max_fee : nat;
+  // User homes that verify recipient offers; each account ID carries its
+  // home's allocator fingerprint. Append-only.
+  user_homes : vec principal;
 };
 // Recipient device authorization of fixed payment terms.
 // Signed under `dmsg/payment-offer/v1`; does not itself open or fund an escrow.
@@ -366,15 +380,16 @@ type RefundQuote = record {
   // Amount available to send after the fee; zero means nothing can be sent.
   amount : nat;
 };
-type Result = variant { Ok : EscrowInfo; Err : Error };
-type Result_1 = variant { Ok : TransferLeg; Err : Error };
-type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_3 = variant { Ok : ReceiptSigner; Err : Error };
-type Result_4 = variant { Ok : vec Deposit; Err : Error };
-type Result_5 = variant { Ok : vec EscrowInfo; Err : Error };
-type Result_6 = variant { Ok : vec TransferLeg; Err : Error };
-type Result_7 = variant { Ok : RefundQuote; Err : Error };
-type Result_8 = variant { Ok; Err : Error };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : EscrowInfo; Err : Error };
+type Result_2 = variant { Ok : TransferLeg; Err : Error };
+type Result_3 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_4 = variant { Ok : ReceiptSigner; Err : Error };
+type Result_5 = variant { Ok : vec Deposit; Err : Error };
+type Result_6 = variant { Ok : vec EscrowInfo; Err : Error };
+type Result_7 = variant { Ok : vec TransferLeg; Err : Error };
+type Result_8 = variant { Ok : RefundQuote; Err : Error };
+type Result_9 = variant { Ok : text; Err : text };
 // Payment offer and its device Ed25519 signature over the offer digest.
 type SignedOffer = record {
   // Device Ed25519 signature over the `dmsg/payment-offer/v1` digest.
@@ -449,38 +464,51 @@ type TransferLeg = record {
   expected_fee : opt nat;
 };
 service : (PaymentInit) -> {
-  check_funding : (blob, nat64) -> (Result);
+  // Append a user home. Its `dmsg_user` must name this canister as
+  // `payment_canister` and share the environment and issuer namespace.
+  admin_add_user_home : (principal) -> (Result);
+  check_funding : (blob, nat64) -> (Result_1);
   // Combine only allocations belonging to the same exact original account.
-  claim_refund : (blob, vec nat64, bool) -> (Result_1);
-  expiry_refund : (blob) -> (Result);
-  finalize_receipt : (SignedReceipt) -> (Result);
-  get_configuration_certified : (opt nat64, opt nat64) -> (Result_2) query;
+  claim_refund : (blob, vec nat64, bool) -> (Result_2);
+  expiry_refund : (blob) -> (Result_1);
+  finalize_receipt : (SignedReceipt) -> (Result_1);
+  get_configuration_certified : (opt nat64, opt nat64) -> (Result_3) query;
   get_deposit : (blob, nat64) -> (opt Deposit) query;
-  get_escrow : (blob) -> (Result) query;
-  get_escrow_by_operation : (principal, blob) -> (Result) query;
-  get_escrow_certified : (vec blob) -> (Result_2) query;
+  get_escrow : (blob) -> (Result_1) query;
+  get_escrow_by_operation : (principal, blob) -> (Result_1) query;
+  get_escrow_certified : (vec blob) -> (Result_3) query;
   get_fee_policy : () -> (DeliveryFeePolicy) query;
-  get_receipt_signer : (nat64) -> (Result_3) query;
-  get_transfer : (blob, nat64) -> (Result_1) query;
+  get_receipt_signer : (nat64) -> (Result_4) query;
+  get_transfer : (blob, nat64) -> (Result_2) query;
   // Enumerate verified incoming records, including non-primary deposits.
-  list_deposits : (blob, opt nat64) -> (Result_4) query;
-  list_my_escrows : (opt blob) -> (Result_5) query;
-  list_transfers : (blob, opt nat64) -> (Result_6) query;
-  open_escrow : (OpenEscrow) -> (Result);
-  process_transfer : (blob, nat64) -> (Result_1);
+  list_deposits : (blob, opt nat64) -> (Result_5) query;
+  list_my_escrows : (opt blob) -> (Result_6) query;
+  list_transfers : (blob, opt nat64) -> (Result_7) query;
+  open_escrow : (OpenEscrow) -> (Result_1);
+  process_transfer : (blob, nat64) -> (Result_2);
   // Preview the current fee and any balance too small to refund. Reserve is
   // available after a refund decision or after all settlement payouts succeed.
-  quote_refund : (blob, vec nat64, bool) -> (Result_7) query;
-  reconcile_transfer : (blob, nat64, nat64) -> (Result_1);
+  quote_refund : (blob, vec nat64, bool) -> (Result_8) query;
+  reconcile_transfer : (blob, nat64, nat64) -> (Result_2);
   // Only an unambiguously rejected transfer may receive new parameters. Keep
   // its immutable old leg for audit, consume approved reserve for beneficiary
   // fees, and return all refund remainders to the original source.
-  revise_rejected_transfer : (blob, nat64, nat) -> (Result_1);
-  revoke_receipt_signer : (nat64) -> (Result_8);
-  rotate_receipt_signer : (ReceiptSigner) -> (Result_8);
-  schedule_fee_policy : (DeliveryFeePolicy) -> (Result_8);
+  revise_rejected_transfer : (blob, nat64, nat) -> (Result_2);
+  // Revoke a signer epoch and stop new escrows until orders are re-enabled.
+  revoke_receipt_signer : (nat64) -> (Result);
+  // Make a new receipt signer current. Earlier epochs stay valid for their
+  // quotes until they expire or are revoked.
+  rotate_receipt_signer : (ReceiptSigner) -> (Result);
+  // Announce a delivery fee policy at least 30 days before it takes effect.
+  schedule_fee_policy : (DeliveryFeePolicy) -> (Result);
   // Update the expected ledger fee within the deployment's approved ceiling.
   // Existing quotes and prepared transfers retain their approved terms.
-  set_ledger_fee : (nat) -> (Result_8);
-  set_orders_enabled : (bool) -> (Result_8);
+  set_ledger_fee : (nat) -> (Result);
+  set_orders_enabled : (bool) -> (Result);
+  validate_admin_add_user_home : (principal) -> (Result_9) query;
+  validate_revoke_receipt_signer : (nat64) -> (Result_9) query;
+  validate_rotate_receipt_signer : (ReceiptSigner) -> (Result_9) query;
+  validate_schedule_fee_policy : (DeliveryFeePolicy) -> (Result_9) query;
+  validate_set_ledger_fee : (nat) -> (Result_9) query;
+  validate_set_orders_enabled : (bool) -> (Result_9) query;
 }

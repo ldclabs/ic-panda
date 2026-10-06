@@ -107,7 +107,7 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
         issuer_namespace: "https://dmsg.test/u/".into(),
         environment: Environment::Production,
         executing_canister: id,
-        initial_home_user: Principal::from_slice(&[2, 1]),
+        user_homes: vec![Principal::from_slice(&[2, 1])],
         derivation_version: 2,
         masters: vec![MasterKey {
             algorithm: Algorithm::Ed25519,
@@ -116,6 +116,7 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
         }],
         daily_executions: 10,
         daily_cycles: 100,
+        governance: Principal::from_slice(&[3, 1]),
     };
     assert!(c.validate(id).is_err());
     c.masters[0].key_name = "dfx_test_key".into();
@@ -125,7 +126,7 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
     assert!(c.validate(id).is_err());
     c.masters[0].expected_fingerprint = Hash::new([1; 32]);
     assert!(c.validate(id).is_ok());
-    assert!(c.validate(c.initial_home_user).is_err());
+    assert!(c.validate(c.user_homes[0]).is_err());
     c.environment = Environment::Local;
     c.masters[0].key_name = "dfx_test_key".into();
     c.masters[0].expected_fingerprint = Hash::new([0; 32]);

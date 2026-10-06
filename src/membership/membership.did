@@ -413,6 +413,7 @@ type Result_3 = variant { Ok : PandaOperationsPage; Err : Error };
 type Result_4 = variant { Ok : PandaApplicationTerms; Err : Error };
 type Result_5 = variant { Ok : PandaRatePolicy; Err : Error };
 type Result_6 = variant { Ok : nat32; Err : Error };
+type Result_7 = variant { Ok : text; Err : text };
 // Mutually exclusive settlement sources. PANDA always covers the entire offer.
 type SettlementMethod = variant {
   // One explicitly enabled ledger.
@@ -423,6 +424,7 @@ type SettlementMethod = variant {
 service : (MembershipInit) -> {
   advance_panda_claim : (blob, ProductAuthorizationRequest) -> (Result);
   cancel_panda_application : (blob) -> (Result);
+  // Set the PANDA service limits. The commerce canister is fixed once set.
   configure_panda_service : (PandaServiceConfig) -> (Result_1);
   get_panda_claim : (blob) -> (Result) query;
   get_panda_claim_for_product : (blob) -> (Result);
@@ -434,9 +436,16 @@ service : (MembershipInit) -> {
   reconcile_panda_claim : (blob) -> (Result);
   refresh_panda_claim : (blob) -> (Result);
   request_panda_claim : (PandaClaimRequest) -> (Result);
+  // Announce an immutable PANDA conversion rate for its products.
   schedule_panda_rate : (PandaRatePolicy) -> (Result_5);
+  // Pause or resume new PANDA applications; existing claims keep refreshing.
   set_admission_pause : (bool) -> (Result_1);
+  // Pin a reviewed SNS governance module; qualification is re-verified before use.
   set_sns_governance_module_hash : (blob) -> (Result_1);
   sweep_panda_commitments : () -> (Result_6);
+  validate_configure_panda_service : (PandaServiceConfig) -> (Result_7) query;
+  validate_schedule_panda_rate : (PandaRatePolicy) -> (Result_7) query;
+  validate_set_admission_pause : (bool) -> (Result_7) query;
+  validate_set_sns_governance_module_hash : (blob) -> (Result_7) query;
   verify_sns_configuration : () -> (Result_1);
 }

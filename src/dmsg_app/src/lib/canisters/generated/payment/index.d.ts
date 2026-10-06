@@ -48,6 +48,9 @@ export interface Deposit {
   'block' : bigint,
   'amount' : bigint,
 }
+export type Environment = { 'Local' : null } |
+  { 'Production' : null } |
+  { 'Staging' : null };
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
@@ -124,14 +127,16 @@ export interface PaymentInit {
   'platform' : Account,
   'enabled' : boolean,
   'max_escrows' : bigint,
-  'home_user' : Principal,
+  'issuer_namespace' : string,
   'ledger' : Principal,
+  'environment' : Environment,
   'ledger_fee' : bigint,
   'signer' : ReceiptSigner,
   'governance' : Principal,
   'max_open_per_payer' : number,
   'fee_policy' : DeliveryFeePolicy,
   'max_fee' : bigint,
+  'user_homes' : Array<Principal>,
 }
 export interface PaymentOffer {
   'account_id' : Uint8Array | number[],
@@ -183,24 +188,26 @@ export interface RefundQuote {
   'available' : bigint,
   'amount' : bigint,
 }
-export type Result = { 'Ok' : EscrowInfo } |
+export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : TransferLeg } |
+export type Result_1 = { 'Ok' : EscrowInfo } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : CertifiedBatch } |
+export type Result_2 = { 'Ok' : TransferLeg } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : ReceiptSigner } |
+export type Result_3 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : Array<Deposit> } |
+export type Result_4 = { 'Ok' : ReceiptSigner } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : Array<EscrowInfo> } |
+export type Result_5 = { 'Ok' : Array<Deposit> } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : Array<TransferLeg> } |
+export type Result_6 = { 'Ok' : Array<EscrowInfo> } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : RefundQuote } |
+export type Result_7 = { 'Ok' : Array<TransferLeg> } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : null } |
+export type Result_8 = { 'Ok' : RefundQuote } |
   { 'Err' : Error };
+export type Result_9 = { 'Ok' : string } |
+  { 'Err' : string };
 export interface SignedOffer {
   'signature' : Uint8Array | number[],
   'offer' : PaymentOffer,
@@ -237,58 +244,65 @@ export interface TransferLeg {
   'expected_fee' : [] | [bigint],
 }
 export interface _SERVICE {
-  'check_funding' : ActorMethod<[Uint8Array | number[], bigint], Result>,
+  'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'check_funding' : ActorMethod<[Uint8Array | number[], bigint], Result_1>,
   'claim_refund' : ActorMethod<
     [Uint8Array | number[], BigUint64Array | bigint[], boolean],
-    Result_1
-  >,
-  'expiry_refund' : ActorMethod<[Uint8Array | number[]], Result>,
-  'finalize_receipt' : ActorMethod<[SignedReceipt], Result>,
-  'get_configuration_certified' : ActorMethod<
-    [[] | [bigint], [] | [bigint]],
     Result_2
   >,
+  'expiry_refund' : ActorMethod<[Uint8Array | number[]], Result_1>,
+  'finalize_receipt' : ActorMethod<[SignedReceipt], Result_1>,
+  'get_configuration_certified' : ActorMethod<
+    [[] | [bigint], [] | [bigint]],
+    Result_3
+  >,
   'get_deposit' : ActorMethod<[Uint8Array | number[], bigint], [] | [Deposit]>,
-  'get_escrow' : ActorMethod<[Uint8Array | number[]], Result>,
+  'get_escrow' : ActorMethod<[Uint8Array | number[]], Result_1>,
   'get_escrow_by_operation' : ActorMethod<
     [Principal, Uint8Array | number[]],
-    Result
+    Result_1
   >,
   'get_escrow_certified' : ActorMethod<
     [Array<Uint8Array | number[]>],
-    Result_2
+    Result_3
   >,
   'get_fee_policy' : ActorMethod<[], DeliveryFeePolicy>,
-  'get_receipt_signer' : ActorMethod<[bigint], Result_3>,
-  'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_1>,
+  'get_receipt_signer' : ActorMethod<[bigint], Result_4>,
+  'get_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_2>,
   'list_deposits' : ActorMethod<
     [Uint8Array | number[], [] | [bigint]],
-    Result_4
+    Result_5
   >,
-  'list_my_escrows' : ActorMethod<[[] | [Uint8Array | number[]]], Result_5>,
+  'list_my_escrows' : ActorMethod<[[] | [Uint8Array | number[]]], Result_6>,
   'list_transfers' : ActorMethod<
     [Uint8Array | number[], [] | [bigint]],
-    Result_6
+    Result_7
   >,
-  'open_escrow' : ActorMethod<[OpenEscrow], Result>,
-  'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_1>,
+  'open_escrow' : ActorMethod<[OpenEscrow], Result_1>,
+  'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_2>,
   'quote_refund' : ActorMethod<
     [Uint8Array | number[], BigUint64Array | bigint[], boolean],
-    Result_7
+    Result_8
   >,
   'reconcile_transfer' : ActorMethod<
     [Uint8Array | number[], bigint, bigint],
-    Result_1
+    Result_2
   >,
   'revise_rejected_transfer' : ActorMethod<
     [Uint8Array | number[], bigint, bigint],
-    Result_1
+    Result_2
   >,
-  'revoke_receipt_signer' : ActorMethod<[bigint], Result_8>,
-  'rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result_8>,
-  'schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result_8>,
-  'set_ledger_fee' : ActorMethod<[bigint], Result_8>,
-  'set_orders_enabled' : ActorMethod<[boolean], Result_8>,
+  'revoke_receipt_signer' : ActorMethod<[bigint], Result>,
+  'rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result>,
+  'schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result>,
+  'set_ledger_fee' : ActorMethod<[bigint], Result>,
+  'set_orders_enabled' : ActorMethod<[boolean], Result>,
+  'validate_admin_add_user_home' : ActorMethod<[Principal], Result_9>,
+  'validate_revoke_receipt_signer' : ActorMethod<[bigint], Result_9>,
+  'validate_rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result_9>,
+  'validate_schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result_9>,
+  'validate_set_ledger_fee' : ActorMethod<[bigint], Result_9>,
+  'validate_set_orders_enabled' : ActorMethod<[boolean], Result_9>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

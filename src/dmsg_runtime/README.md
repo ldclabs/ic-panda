@@ -9,6 +9,7 @@
 - `storage::MapExt<V>`：同时覆盖 `Stored<V>` 和 `CompactStored<V>` 的便利操作；`V` 在表声明时固定，读取不能临时指定任意类型。
 - `Certification`：构造 ICP 认证响应；认证值由调用者选择公开视图，支持在执行清理时删除对应叶。叶缓存自身哈希，每次写入或删除都发布 O(1) 取得的新根，调用者不再手动合并发布。
 - `certified_batch` / `query_certificate`：按调用者给出的值与 witness 组装认证响应，`Certification` 和 `name_tree` 共用同一套大小限制。
+- `admin`：管理方法的公共规则。`check_admin` 接受 controller 和固定的 governance；`validation` 把检查结果转换成 SNS 通用函数验证方法的 `Result<String, String>` 回复，`unchanged`、`user_home_payload` 和 `hex` 统一提案说明的写法。
 - `name_tree::NameTree`：handle 的名称认证树。名称按 `handle_bucket` 分桶，桶号位组成二叉标签树，节点哈希存放在 stable memory 的定长数组；写入只重算一个桶和一条路径，升级无需重建。
 - `ledger`：读取受信账本及其归档，解析支持的 ICRC-3 转账格式。
 - `Budget`：内部有界预算。`WINDOW`、`FORMAL_EXECUTION_WINDOW` 和正式签名/根派生日上限由 user 与 COSE 共用，避免两侧口径漂移。

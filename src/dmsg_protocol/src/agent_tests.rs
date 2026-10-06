@@ -72,6 +72,7 @@ fn config() -> DirectoryInit {
         delegation_query_url: "https://agents.dmsg.test/v1/delegations/query".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec!["id.dmsg.test".into()],
+        governance: Principal::from_slice(&[9]),
     }
 }
 
@@ -344,6 +345,8 @@ fn directory_config_and_allocator_routing() {
         |c: &mut DirectoryInit| c.profile_url_prefix = "https://dmsg.test/u".into(),
         |c: &mut DirectoryInit| c.user_homes.push(c.user_homes[0]),
         |c: &mut DirectoryInit| c.custom_domains = vec!["ID.dmsg.test".into()],
+        |c: &mut DirectoryInit| c.user_homes.clear(),
+        |c: &mut DirectoryInit| c.governance = Principal::anonymous(),
     ] {
         let mut c = config();
         edit(&mut c);
@@ -356,6 +359,42 @@ fn directory_config_and_allocator_routing() {
     assert!(allocated_by(&AccountId(id), &digest));
     id[8] ^= 1;
     assert!(!allocated_by(&AccountId(id), &digest));
+}
+
+#[test]
+fn user_homes_route_each_account_to_its_allocator() {
+    let (env, ns) = (Environment::Local, "https://dmsg.test/u/");
+    let homes: Vec<Principal> = (1..=3).map(|n| Principal::from_slice(&[n])).collect();
+    validate_user_homes(&env, ns, &homes).unwrap();
+    for (index, home) in homes.iter().enumerate() {
+        let digest = account_allocator_digest(&env, ns, *home);
+        let mut id = [0; 12];
+        id[4..9].copy_from_slice(&digest[..5]);
+        let id = AccountId(id);
+        assert_eq!(account_home(&env, ns, &homes, &id), Some(*home));
+        assert!(is_account_home(&env, ns, &homes, *home, &id));
+        assert!(!is_account_home(&env, ns, &homes[..index], *home, &id));
+        let other = homes[(index + 1) % homes.len()];
+        assert!(!is_account_home(&env, ns, &homes, other, &id));
+    }
+    assert_eq!(account_home(&env, ns, &homes, &AccountId([0; 12])), None);
+
+    let next = Principal::from_slice(&[5]);
+    assert_eq!(check_user_home(&env, ns, &homes, next), Ok(true));
+    assert_eq!(check_user_home(&env, ns, &homes, homes[1]), Ok(false));
+    assert_eq!(
+        check_user_home(&env, ns, &homes, Principal::anonymous()),
+        Err(Error::AuthRequired)
+    );
+    let full: Vec<Principal> = (0..MAX_USER_HOMES as u16)
+        .map(|n| Principal::from_slice(&n.to_be_bytes()))
+        .collect();
+    assert_eq!(
+        check_user_home(&env, ns, &full, next),
+        Err(Error::QuotaExceeded)
+    );
+    assert!(validate_user_homes(&env, ns, &[]).is_err());
+    assert!(validate_user_homes(&env, ns, &[homes[0], homes[0]]).is_err());
 }
 
 #[test]

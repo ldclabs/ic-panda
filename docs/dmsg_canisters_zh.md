@@ -63,7 +63,7 @@ pnpm --dir src/dmsg_app test
 
 稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
 
-生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
+生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。所有 user home 与 handle/cose/payment/directory 的 environment、issuer_namespace 必须一致且固定；各服务按账户 ID 内嵌的分配器指纹把账户路由到分配它的 home，新 home 须经各服务的 `admin_add_user_home` 登记，指纹不得碰撞。COSE 由 controller 或 governance 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
 签名产物可在非保护头 270 携带不透明的 RFC 9921 CTT token，验证只限制其大小，不检查其可信性。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
 
@@ -132,3 +132,11 @@ handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `govern
 ## 2026-10-06 handle 千万级名称与多 user home
 
 handle 开发布局升级为 schema 9，作为全局唯一的名称注册表承载千万级名称：认证树改存在 stable memory，名称按 `handle_bucket` 分进 2^20 个桶，桶号位组成二叉标签树，写入只重算一个桶和一条路径，升级只重新发布根哈希；名称的证明路径变为 20 个桶号位标签加名称。`HandleInit` 以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代单个 `home_user`，按账户 ID 的分配器指纹把授权核对发给账户所在的 user home，跨 home 转移分别核对；新增 `admin_add_user_home` 及其预演。分配桶改为 8 MiB，stable 可寻址 256 GiB。实测 1,000 至 1,000 万名称的升级约 115 万指令，64 名称证书响应不超过 81 KB，活跃名称上限提高到 1,000 万。数据与步骤见 [handle README](../src/dmsg_handle/README.md)。
+
+## 2026-10-06 多 user home 与 SNS 治理
+
+cose、directory、payment 与 handle 一样按账户 ID 的分配器指纹路由 user home：`CoseInit` 以只增不减的 `user_homes` 取代 `initial_home_user`，`execute`/`get_execution` 只接受账户所属 home 的调用；`PaymentInit` 以 `environment`、`issuer_namespace`、`user_homes` 取代 `home_user`，开单时把 `verify_payment_offer` 发给收款账户的 home，认证配置叶升为 schema 2 并改列 `user_homes`。commerce 的 `user_homes` 上限提高到 64；membership 的 user home 来自 commerce 应用登记，不需改动。新的 dmsg_user 分片只需在各服务登记，并用 `register_integration_app` 提交列有新 home 的应用登记新版本。
+
+user、cose、directory 新增固定的 `governance`。七个 canister（user、handle、cose、directory、payment、commerce、membership）的管理方法统一接受 controller 和 governance，每个都有同参数的 `validate_*` query，按当前状态执行与方法相同的检查并渲染提案说明，可登记为 SNS 通用函数的验证方法。新增管理方法：各服务的 `admin_add_user_home`，user 的 `admin_set_account_limits`（账户上限与每日新建配额），cose 的 `admin_set_daily_budget`，directory 的 `admin_set_custom_domains`；这两个 canister 的升级不再读取参数，配置只经管理方法修改。cose 的 `prune_executions` 改为公开维护，与 user 的同名入口一致。稳定布局：user schema 10、cose schema 9、directory schema 3、payment schema 9。
+
+前端仍只连接一个 `dmsg_user`；按账户指纹选择 home 的客户端路由、跨 home 的认证身份唯一性和已有账户迁移尚未实现。验证范围见各 canister README。

@@ -373,45 +373,47 @@ export interface ResourceLimits {
   'monthly_execution_units' : bigint,
   'storage_bytes' : bigint,
 }
-export type Result = { 'Ok' : ProductReceipt } |
+export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : CashCancellationReceipt } |
+export type Result_1 = { 'Ok' : ProductReceipt } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : ExecutionEntitlement } |
+export type Result_10 = { 'Ok' : CheckoutView } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : [] | [ProductReceipt] } |
+export type Result_11 = { 'Ok' : ExecutionEntitlement } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : BillingOffer } |
+export type Result_12 = { 'Ok' : [] | [ProductReceipt] } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : CashTransferProgress } |
+export type Result_13 = { 'Ok' : BillingOffer } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : SettlementAsset } |
+export type Result_14 = { 'Ok' : CashTransferProgress } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : CheckoutQuote } |
+export type Result_15 = { 'Ok' : SettlementAsset } |
   { 'Err' : Error };
-export type Result_16 = {
+export type Result_16 = { 'Ok' : CheckoutQuote } |
+  { 'Err' : Error };
+export type Result_17 = {
     'Ok' : [AppRegistration, [] | [ProductRegistration]]
   } |
   { 'Err' : Error };
-export type Result_17 = { 'Ok' : EntitlementView } |
+export type Result_18 = { 'Ok' : EntitlementView } |
   { 'Err' : Error };
-export type Result_18 = { 'Ok' : null } |
+export type Result_19 = { 'Ok' : string } |
+  { 'Err' : string };
+export type Result_2 = { 'Ok' : CashCancellationReceipt } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : CheckoutProgress } |
+export type Result_3 = { 'Ok' : CheckoutProgress } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : CertifiedBatch } |
+export type Result_4 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : CheckoutDepositsPage } |
+export type Result_5 = { 'Ok' : CheckoutDepositsPage } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : CheckoutOperationsPage } |
+export type Result_6 = { 'Ok' : CheckoutOperationsPage } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : CashTransfersPage } |
+export type Result_7 = { 'Ok' : CashTransfersPage } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : CashTransfer } |
+export type Result_8 = { 'Ok' : CashTransfer } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : [] | [CashCancellationReceipt] } |
-  { 'Err' : Error };
-export type Result_9 = { 'Ok' : CheckoutView } |
+export type Result_9 = { 'Ok' : [] | [CashCancellationReceipt] } |
   { 'Err' : Error };
 export interface SettlementAsset {
   'decimals' : number,
@@ -476,107 +478,129 @@ export interface StorageProduct {
   'storage_bytes' : bigint,
 }
 export interface _SERVICE {
-  'apply_product_decision' : ActorMethod<[ProductDecision], Result>,
+  'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'apply_product_decision' : ActorMethod<[ProductDecision], Result_1>,
   'cancel_cash_contract' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], Uint8Array | number[]],
-    Result_1
-  >,
-  'cancel_checkout' : ActorMethod<[Uint8Array | number[]], Result_2>,
-  'check_checkout_funding' : ActorMethod<
-    [Uint8Array | number[], CashBlock],
     Result_2
   >,
-  'checkout_certificate' : ActorMethod<[Uint8Array | number[]], Result_3>,
+  'cancel_checkout' : ActorMethod<[Uint8Array | number[]], Result_3>,
+  'check_checkout_funding' : ActorMethod<
+    [Uint8Array | number[], CashBlock],
+    Result_3
+  >,
+  'checkout_certificate' : ActorMethod<[Uint8Array | number[]], Result_4>,
   'checkout_deposits' : ActorMethod<
     [Uint8Array | number[], [] | [Uint8Array | number[]], number],
-    Result_4
+    Result_5
   >,
   'checkout_operations' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
-    Result_5
+    Result_6
   >,
-  'checkout_progress' : ActorMethod<[Uint8Array | number[]], Result_2>,
+  'checkout_progress' : ActorMethod<[Uint8Array | number[]], Result_3>,
   'checkout_transfer_certificate' : ActorMethod<
     [Uint8Array | number[]],
-    Result_3
+    Result_4
   >,
   'checkout_transfers' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
-    Result_6
-  >,
-  'claim_checkout_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'claim_checkout_refund' : ActorMethod<
-    [Uint8Array | number[], Principal, Array<bigint>, Uint8Array | number[]],
     Result_7
   >,
-  'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_catalog' : ActorMethod<[], Result_3>,
-  'get_checkout' : ActorMethod<[Uint8Array | number[]], Result_9>,
-  'get_checkout_for_product' : ActorMethod<[Uint8Array | number[]], Result_9>,
-  'get_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_3>,
+  'claim_checkout_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'claim_checkout_refund' : ActorMethod<
+    [Uint8Array | number[], Principal, Array<bigint>, Uint8Array | number[]],
+    Result_8
+  >,
+  'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_9>,
+  'get_catalog' : ActorMethod<[], Result_4>,
+  'get_checkout' : ActorMethod<[Uint8Array | number[]], Result_10>,
+  'get_checkout_for_product' : ActorMethod<[Uint8Array | number[]], Result_10>,
+  'get_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_4>,
   'get_execution_entitlement' : ActorMethod<
     [Beneficiary, number, bigint],
-    Result_10
+    Result_11
   >,
-  'get_product_decision' : ActorMethod<[Uint8Array | number[]], Result_11>,
+  'get_product_decision' : ActorMethod<[Uint8Array | number[]], Result_12>,
   'integration_configuration_certificate' : ActorMethod<
     [string, [] | [string]],
-    Result_3
+    Result_4
   >,
   'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
-  'open_checkout' : ActorMethod<[OpenCheckout], Result_9>,
+  'open_checkout' : ActorMethod<[OpenCheckout], Result_10>,
   'prepare_account_subscription' : ActorMethod<
     [string, Beneficiary, string, Uint8Array | number[]],
-    Result_12
-  >,
-  'process_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_13>,
-  'publish_settlement_price' : ActorMethod<
-    [Principal, bigint, bigint],
-    Result_14
-  >,
-  'quote_checkout' : ActorMethod<[BillingOffer, Principal, Account], Result_15>,
-  'read_integration_configuration' : ActorMethod<
-    [string, [] | [string]],
-    Result_16
-  >,
-  'reconcile_checkout' : ActorMethod<[Uint8Array | number[]], Result_2>,
-  'reconcile_checkout_transfer' : ActorMethod<
-    [Uint8Array | number[], CashBlock],
     Result_13
   >,
-  'refresh_catalog' : ActorMethod<[], Catalog>,
-  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_17>,
-  'register_integration_app' : ActorMethod<[AppRegistration], Result_18>,
-  'register_integration_product' : ActorMethod<
-    [ProductRegistration],
-    Result_18
+  'process_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_14>,
+  'publish_settlement_price' : ActorMethod<
+    [Principal, bigint, bigint],
+    Result_15
   >,
-  'register_settlement_asset' : ActorMethod<[SettlementAsset], Result_18>,
+  'quote_checkout' : ActorMethod<[BillingOffer, Principal, Account], Result_16>,
+  'read_integration_configuration' : ActorMethod<
+    [string, [] | [string]],
+    Result_17
+  >,
+  'reconcile_checkout' : ActorMethod<[Uint8Array | number[]], Result_3>,
+  'reconcile_checkout_transfer' : ActorMethod<
+    [Uint8Array | number[], CashBlock],
+    Result_14
+  >,
+  'refresh_catalog' : ActorMethod<[], Catalog>,
+  'refresh_entitlement' : ActorMethod<[Beneficiary], Result_18>,
+  'register_integration_app' : ActorMethod<[AppRegistration], Result>,
+  'register_integration_product' : ActorMethod<[ProductRegistration], Result>,
+  'register_settlement_asset' : ActorMethod<[SettlementAsset], Result>,
   'release_product_billing' : ActorMethod<
     [ProductAuthorizationRequest],
-    Result_18
+    Result
   >,
   'reserve_product_billing' : ActorMethod<
     [ProductAuthorizationRequest, bigint],
-    Result_18
+    Result
   >,
   'revise_checkout_transfer_fee' : ActorMethod<
     [Uint8Array | number[], bigint],
-    Result_7
+    Result_8
   >,
-  'schedule_policy' : ActorMethod<[Catalog], Result_18>,
-  'set_admission_pause' : ActorMethod<[boolean], Result_18>,
-  'set_settlement_price_authority' : ActorMethod<[Principal], Result_18>,
+  'schedule_policy' : ActorMethod<[Catalog], Result>,
+  'set_admission_pause' : ActorMethod<[boolean], Result>,
+  'set_settlement_price_authority' : ActorMethod<[Principal], Result>,
   'settlement_assets' : ActorMethod<[], Array<SettlementAssetView>>,
-  'settlement_assets_certificate' : ActorMethod<[], Result_3>,
+  'settlement_assets_certificate' : ActorMethod<[], Result_4>,
   'sweep_checkout_history' : ActorMethod<[], CheckoutHistorySweep>,
-  'verify_billing_offer' : ActorMethod<[BillingOffer], Result_18>,
-  'verify_settlement_asset' : ActorMethod<
-    [Principal, [] | [bigint]],
-    Result_18
+  'validate_admin_add_user_home' : ActorMethod<[Principal], Result_19>,
+  'validate_publish_settlement_price' : ActorMethod<
+    [Principal, bigint, bigint],
+    Result_19
   >,
+  'validate_register_integration_app' : ActorMethod<
+    [AppRegistration],
+    Result_19
+  >,
+  'validate_register_integration_product' : ActorMethod<
+    [ProductRegistration],
+    Result_19
+  >,
+  'validate_register_settlement_asset' : ActorMethod<
+    [SettlementAsset],
+    Result_19
+  >,
+  'validate_schedule_policy' : ActorMethod<[Catalog], Result_19>,
+  'validate_set_admission_pause' : ActorMethod<[boolean], Result_19>,
+  'validate_set_settlement_price_authority' : ActorMethod<
+    [Principal],
+    Result_19
+  >,
+  'validate_verify_settlement_asset' : ActorMethod<
+    [Principal, [] | [bigint]],
+    Result_19
+  >,
+  'verify_billing_offer' : ActorMethod<[BillingOffer], Result>,
+  'verify_settlement_asset' : ActorMethod<[Principal, [] | [bigint]], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

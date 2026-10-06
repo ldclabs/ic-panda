@@ -1,6 +1,7 @@
 //! Immutable announced conversion rates; version identities survive pruning.
 use crate::store;
 use dmsg_protocol::integration::*;
+use dmsg_runtime::admin::{self, validation, Validation};
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, *};
 use ic_stable_structures::{
@@ -14,14 +15,43 @@ thread_local! {
     static LAST_VERSION: RefCell<StableCell<u64, Memory>> = RefCell::new(StableCell::init(store::memory(5), 0));
 }
 
+/// Announce an immutable PANDA conversion rate for its products.
 #[ic_cdk::update]
 fn schedule_panda_rate(policy: PandaRatePolicy) -> Result<PandaRatePolicy> {
-    let c = store::governance(ic_cdk::api::msg_caller())?;
+    let c = store::admin(ic_cdk::api::msg_caller())?;
     let at = nanos_to_millis(ic_cdk::api::time());
     schedule(policy, c.init.environment, at)
 }
 
-fn schedule(policy: PandaRatePolicy, environment: Environment, at: u64) -> Result<PandaRatePolicy> {
+#[ic_cdk::query]
+fn validate_schedule_panda_rate(policy: PandaRatePolicy) -> Validation {
+    let environment = store::config().init.environment;
+    let at = nanos_to_millis(ic_cdk::api::time());
+    validation(check(policy, environment, at).map(|scheduled| {
+        let (p, fresh) = match scheduled {
+            Scheduled::Existing(p) => (p, false),
+            Scheduled::New(p, _) => (p, true),
+        };
+        format!(
+            "Schedule PANDA rate policy {} for products [{}]: {}/{} effective at {} ms.{}",
+            p.policy_version,
+            p.product_ids.join(", "),
+            p.r_num,
+            p.r_den,
+            p.effective_at_ms,
+            admin::unchanged(fresh, "Already announced"),
+        )
+    }))
+}
+
+enum Scheduled {
+    /// The same policy version is already announced.
+    Existing(PandaRatePolicy),
+    /// A new policy, and the stored versions it lets the schedule prune.
+    New(PandaRatePolicy, Vec<u64>),
+}
+
+fn check(policy: PandaRatePolicy, environment: Environment, at: u64) -> Result<Scheduled> {
     let mut policy = policy;
     let id = policy.policy_version.to_be_bytes();
     if let Some(old) = POLICIES.with_borrow(|t| t.load(&id)) {
@@ -32,7 +62,7 @@ fn schedule(policy: PandaRatePolicy, environment: Environment, at: u64) -> Resul
             old == policy && policy.environment == environment,
             Error::IdempotencyConflict,
         )?;
-        return Ok(old);
+        return Ok(Scheduled::Existing(old));
     }
     ensure(
         policy.policy_version > LAST_VERSION.with_borrow(|v| *v.get()),
@@ -47,28 +77,36 @@ fn schedule(policy: PandaRatePolicy, environment: Environment, at: u64) -> Resul
         policy.environment == environment && policy.published_at_ms <= at,
         Error::Forbidden,
     )?;
-    POLICIES.with_borrow_mut(|t| -> Result<()> {
-        let current: Vec<PandaRatePolicy> = t.iter().map(|v| v.value().0).collect();
-        for p in &current {
-            if superseded(p, &current, at) {
-                t.delete(&p.policy_version.to_be_bytes());
-            }
+    let current: Vec<PandaRatePolicy> =
+        POLICIES.with_borrow(|t| t.iter().map(|v| v.value().0).collect());
+    let (pruned, live): (Vec<_>, Vec<_>) =
+        current.iter().partition(|p| superseded(p, &current, at));
+    ensure((live.len() as u64) < MAX_POLICIES, Error::QuotaExceeded)?;
+    ensure(
+        live.iter().all(|p| {
+            p.effective_at_ms != policy.effective_at_ms
+                || !p
+                    .product_ids
+                    .iter()
+                    .any(|id| policy.product_ids.contains(id))
+        }),
+        Error::VersionConflict,
+    )?;
+    let pruned = pruned.iter().map(|p| p.policy_version).collect();
+    Ok(Scheduled::New(policy, pruned))
+}
+
+fn schedule(policy: PandaRatePolicy, environment: Environment, at: u64) -> Result<PandaRatePolicy> {
+    let (policy, pruned) = match check(policy, environment, at)? {
+        Scheduled::Existing(old) => return Ok(old),
+        Scheduled::New(policy, pruned) => (policy, pruned),
+    };
+    POLICIES.with_borrow_mut(|t| {
+        for version in pruned {
+            t.delete(&version.to_be_bytes());
         }
-        ensure(t.len() < MAX_POLICIES, Error::QuotaExceeded)?;
-        ensure(
-            t.iter().all(|v| {
-                let p = v.value().0;
-                p.effective_at_ms != policy.effective_at_ms
-                    || !p
-                        .product_ids
-                        .iter()
-                        .any(|id| policy.product_ids.contains(id))
-            }),
-            Error::VersionConflict,
-        )?;
-        t.put(&id, &policy);
-        Ok(())
-    })?;
+        t.put(&policy.policy_version.to_be_bytes(), &policy);
+    });
     LAST_VERSION.with_borrow_mut(|v| v.set(policy.policy_version));
     Ok(policy)
 }

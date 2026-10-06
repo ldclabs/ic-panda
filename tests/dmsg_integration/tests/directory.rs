@@ -10,6 +10,10 @@ use std::path::PathBuf;
 
 const NOW: u64 = 1_790_000_000_000;
 
+fn governance() -> Principal {
+    Principal::self_authenticating([9; 32])
+}
+
 fn wasm() -> Vec<u8> {
     let directory = std::env::var_os("DMSG_WASM_DIR")
         .map(PathBuf::from)
@@ -74,6 +78,7 @@ impl Fixture {
             delegation_query_url: "https://agents.dmsg.test/query".into(),
             profile_url_prefix: "https://dmsg.test/u/".into(),
             custom_domains: vec!["id.dmsg.test".into()],
+            governance: governance(),
         };
         ic.install_canister(
             directory,
@@ -172,14 +177,9 @@ impl Fixture {
         response
     }
 
-    fn upgrade(&self, config: Option<&DirectoryInit>) -> bool {
+    fn upgrade(&self) -> bool {
         self.ic
-            .upgrade_canister(
-                self.directory,
-                wasm(),
-                candid::encode_args((config,)).unwrap(),
-                None,
-            )
+            .upgrade_canister(self.directory, wasm(), vec![], None)
             .is_ok()
     }
 }
@@ -274,7 +274,7 @@ fn http_routes_and_changed_documents_are_certified() {
         .with_body(original.body().to_vec())
         .build();
     assert!(!f.verify(HttpRequest::get(&path).build(), tampered));
-    assert!(f.upgrade(None));
+    assert!(f.upgrade());
     assert_eq!(f.get(&path).body(), updated.body());
     assert_eq!(f.get("/unknown").status_code().as_u16(), 404);
 }
@@ -317,39 +317,55 @@ fn document_budget_rejection_keeps_publication_and_allows_safety_changes() {
 }
 
 #[test]
-fn upgrades_append_homes_replace_domains_and_preserve_permanent_configuration() {
+fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
     let f = Fixture::new();
     let first = f.id(0, 1);
     let initial = f.publish(0, first, &state(1)).unwrap();
-    let mut config = f.config.clone();
-    config.user_homes.push(f.homes[1]);
-    config.custom_domains = vec!["new.dmsg.test".into()];
-    assert!(f.upgrade(Some(&config)));
     let second = f.id(1, 1);
+    assert_eq!(f.publish(1, second, &state(1)), Err(Error::Forbidden));
+
+    let home = f.homes[1];
+    let rendered: std::result::Result<String, String> =
+        f.query("validate_admin_add_user_home", (home,));
+    assert!(rendered
+        .unwrap()
+        .starts_with(&format!("Add user home {home}")));
+    let rejected: std::result::Result<String, String> =
+        f.query("validate_admin_add_user_home", (Principal::anonymous(),));
+    assert_eq!(rejected, Err("AuthRequired".into()));
+    let denied: Result<()> = f.update(f.homes[0], "admin_add_user_home", (home,));
+    assert_eq!(denied, Err(Error::Forbidden));
+    for _ in 0..2 {
+        let added: Result<()> = f.update(governance(), "admin_add_user_home", (home,));
+        added.unwrap();
+    }
+    let rendered: std::result::Result<String, String> =
+        f.query("validate_admin_add_user_home", (home,));
+    assert!(rendered.unwrap().ends_with("Already listed; no change."));
     let other = f.publish(1, second, &state(1)).unwrap();
     assert_eq!(f.publish(1, first, &state(1)), Err(Error::Forbidden));
     assert_eq!(f.publish(0, second, &state(1)), Err(Error::Forbidden));
+
+    let domains = vec!["new.dmsg.test".to_string()];
+    let invalid = vec!["New.dmsg.test".to_string()];
+    let rejected: std::result::Result<String, String> =
+        f.query("validate_admin_set_custom_domains", (&invalid,));
+    assert!(rejected.is_err());
+    let rejected: Result<()> = f.update(governance(), "admin_set_custom_domains", (&invalid,));
+    assert!(matches!(rejected, Err(Error::InvalidInput(_))));
+    let rendered: std::result::Result<String, String> =
+        f.query("validate_admin_set_custom_domains", (&domains,));
+    assert!(rendered.unwrap().contains("new.dmsg.test"));
+    let set: Result<()> = f.update(governance(), "admin_set_custom_domains", (&domains,));
+    set.unwrap();
     assert_eq!(f.get("/.well-known/ic-domains").body(), b"new.dmsg.test");
-    for field in 0..9 {
-        let mut invalid = config.clone();
-        match field {
-            0 => invalid.environment = Environment::Staging,
-            1 => invalid.issuer_namespace = "https://other.test/".into(),
-            2 => invalid.principal_origin = "https://other.test".into(),
-            3 => invalid.controller_source = "https://other.test".into(),
-            4 => invalid.delegation_query_url = "https://other.test/query".into(),
-            5 => invalid.profile_url_prefix = "https://other.test/u/".into(),
-            6 => invalid.user_homes.reverse(),
-            7 => {
-                invalid.user_homes.pop();
-            }
-            _ => invalid.profile_url_prefix = format!("https://dmsg.test/{}/", "p".repeat(2_048)),
-        }
-        assert!(!f.upgrade(Some(&invalid)), "field {field}");
-        let actual: DirectoryInit = f.query("directory_config", ());
-        assert_eq!(actual, config);
-    }
-    assert!(f.upgrade(None));
+
+    let mut expected = f.config.clone();
+    expected.user_homes.push(home);
+    expected.custom_domains = domains;
+    assert!(f.upgrade());
+    let actual: DirectoryInit = f.query("directory_config", ());
+    assert_eq!(actual, expected);
     for (id, publication) in [(first, initial), (second, other)] {
         assert_eq!(f.publication(id).unwrap(), publication);
         assert_eq!(
@@ -415,7 +431,7 @@ fn directory_cost_and_rebuild_profile() {
             .memory_metrics
             .wasm_memory_size;
     let before = f.ic.cycle_balance(f.directory);
-    assert!(f.upgrade(None));
+    assert!(f.upgrade());
     let cycles = before - f.ic.cycle_balance(f.directory);
     let after_heap =
         f.ic.canister_status(f.directory, None)

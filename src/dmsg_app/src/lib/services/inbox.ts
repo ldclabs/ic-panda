@@ -129,9 +129,12 @@ export class InboxClient extends PaymentClient {
       ).value
     )
     ensure(
-      config.schema === 1 &&
-        config.home_user instanceof Uint8Array &&
-        equal(config.home_user, this.account.home.toUint8Array()) &&
+      config.schema === 2 &&
+        Array.isArray(config.user_homes) &&
+        config.user_homes.some(
+          (home: unknown) =>
+            home instanceof Uint8Array && equal(home, this.account.home.toUint8Array())
+        ) &&
         signer.epoch == selectedEpoch &&
         signer.public_key instanceof Uint8Array &&
         signer.public_key.length === 32 &&

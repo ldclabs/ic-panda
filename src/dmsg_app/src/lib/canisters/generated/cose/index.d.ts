@@ -20,10 +20,11 @@ export interface CoseInit {
   'executing_canister' : Principal,
   'derivation_version' : number,
   'daily_cycles' : bigint,
-  'initial_home_user' : Principal,
   'issuer_namespace' : string,
   'daily_executions' : number,
   'environment' : Environment,
+  'governance' : Principal,
+  'user_homes' : Array<Principal>,
 }
 export type Environment = { 'Local' : null } |
   { 'Production' : null } |
@@ -166,14 +167,16 @@ export interface MasterKey {
   'expected_fingerprint' : Uint8Array | number[],
   'key_name' : string,
 }
-export type Result = { 'Ok' : ExecutionResult } |
+export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : KeyState } |
+export type Result_1 = { 'Ok' : ExecutionResult } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : ExecutionCleanup } |
+export type Result_2 = { 'Ok' : KeyState } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : KeyDescriptor } |
   { 'Err' : Error };
+export type Result_4 = { 'Ok' : string } |
+  { 'Err' : string };
 export interface SignedArtifact {
   'cose_sign1' : Uint8Array | number[],
   'cose_key' : Uint8Array | number[],
@@ -188,15 +191,23 @@ export type SigningPurpose = { 'AppAction' : null } |
   { 'FileAttestation' : null } |
   { 'Statement' : null };
 export interface _SERVICE {
-  'execute' : ActorMethod<[ExecutionGrant], Result>,
+  'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'admin_set_daily_budget' : ActorMethod<[number, bigint], Result>,
+  'execute' : ActorMethod<[ExecutionGrant], Result_1>,
   'get_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result
+    Result_1
   >,
-  'initialize_keys' : ActorMethod<[], Result_1>,
+  'initialize_keys' : ActorMethod<[], Result_2>,
   'key_state' : ActorMethod<[], KeyState>,
-  'prune_executions' : ActorMethod<[[] | [Uint8Array | number[]]], Result_2>,
+  'prune_executions' : ActorMethod<
+    [[] | [Uint8Array | number[]]],
+    ExecutionCleanup
+  >,
   'public_key' : ActorMethod<[Uint8Array | number[], KeySelector], Result_3>,
+  'validate_admin_add_user_home' : ActorMethod<[Principal], Result_4>,
+  'validate_admin_set_daily_budget' : ActorMethod<[number, bigint], Result_4>,
+  'validate_initialize_keys' : ActorMethod<[], Result_4>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

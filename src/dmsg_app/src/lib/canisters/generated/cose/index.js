@@ -20,11 +20,45 @@ export const idlFactory = ({ IDL }) => {
     'executing_canister' : IDL.Principal,
     'derivation_version' : IDL.Nat16,
     'daily_cycles' : IDL.Nat,
-    'initial_home_user' : IDL.Principal,
     'issuer_namespace' : IDL.Text,
     'daily_executions' : IDL.Nat32,
     'environment' : Environment,
+    'governance' : IDL.Principal,
+    'user_homes' : IDL.Vec(IDL.Principal),
   });
+  const Error = IDL.Variant({
+    'MigrationKeyUnavailable' : IDL.Null,
+    'LegacyWriteDisabled' : IDL.Null,
+    'InvalidInput' : IDL.Text,
+    'IntervalReserved' : IDL.Null,
+    'NeuronOccupied' : IDL.Null,
+    'RekeyRequired' : IDL.Null,
+    'VersionConflict' : IDL.Null,
+    'ExecutionUnknown' : IDL.Null,
+    'IntegrityFailed' : IDL.Null,
+    'IdTimestampOutOfRange' : IDL.Null,
+    'NotFound' : IDL.Null,
+    'FeeBlocked' : IDL.Null,
+    'DeviceNotApproved' : IDL.Null,
+    'Locked' : IDL.Null,
+    'MembershipClosing' : IDL.Null,
+    'RecoveryIncomplete' : IDL.Null,
+    'IdCapacityExceeded' : IDL.Null,
+    'PolicyStale' : IDL.Null,
+    'IdGeneratorStateConflict' : IDL.Null,
+    'IdempotencyConflict' : IDL.Null,
+    'UnsupportedProtocol' : IDL.Null,
+    'Unavailable' : IDL.Text,
+    'MembershipStale' : IDL.Null,
+    'Forbidden' : IDL.Null,
+    'ResultExpired' : IDL.Null,
+    'Expired' : IDL.Null,
+    'MembershipIneligible' : IDL.Null,
+    'QuotaExceeded' : IDL.Null,
+    'AuthRequired' : IDL.Null,
+    'Pending' : IDL.Null,
+  });
+  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const KeyPurpose = IDL.Variant({
     'ContentRoot' : IDL.Null,
     'AppAction' : IDL.Null,
@@ -80,38 +114,6 @@ export const idlFactory = ({ IDL }) => {
     'commerce' : IDL.Opt(CommercialReservation),
     'expires_at' : IDL.Nat64,
   });
-  const Error = IDL.Variant({
-    'MigrationKeyUnavailable' : IDL.Null,
-    'LegacyWriteDisabled' : IDL.Null,
-    'InvalidInput' : IDL.Text,
-    'IntervalReserved' : IDL.Null,
-    'NeuronOccupied' : IDL.Null,
-    'RekeyRequired' : IDL.Null,
-    'VersionConflict' : IDL.Null,
-    'ExecutionUnknown' : IDL.Null,
-    'IntegrityFailed' : IDL.Null,
-    'IdTimestampOutOfRange' : IDL.Null,
-    'NotFound' : IDL.Null,
-    'FeeBlocked' : IDL.Null,
-    'DeviceNotApproved' : IDL.Null,
-    'Locked' : IDL.Null,
-    'MembershipClosing' : IDL.Null,
-    'RecoveryIncomplete' : IDL.Null,
-    'IdCapacityExceeded' : IDL.Null,
-    'PolicyStale' : IDL.Null,
-    'IdGeneratorStateConflict' : IDL.Null,
-    'IdempotencyConflict' : IDL.Null,
-    'UnsupportedProtocol' : IDL.Null,
-    'Unavailable' : IDL.Text,
-    'MembershipStale' : IDL.Null,
-    'Forbidden' : IDL.Null,
-    'ResultExpired' : IDL.Null,
-    'Expired' : IDL.Null,
-    'MembershipIneligible' : IDL.Null,
-    'QuotaExceeded' : IDL.Null,
-    'AuthRequired' : IDL.Null,
-    'Pending' : IDL.Null,
-  });
   const KeyDescriptor = IDL.Record({
     'account_id' : IDL.Vec(IDL.Nat8),
     'algorithm' : Algorithm,
@@ -157,7 +159,7 @@ export const idlFactory = ({ IDL }) => {
     'cycles_cost_upper_bound' : IDL.Nat,
     'outcome' : ExecutionOutcome,
   });
-  const Result = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
+  const Result_1 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
   const Initialization = IDL.Variant({
     'Ready' : IDL.Null,
     'Uninitialized' : IDL.Null,
@@ -169,13 +171,12 @@ export const idlFactory = ({ IDL }) => {
     'error' : IDL.Opt(IDL.Text),
     'config' : CoseInit,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : KeyState, 'Err' : Error });
+  const Result_2 = IDL.Variant({ 'Ok' : KeyState, 'Err' : Error });
   const ExecutionCleanup = IDL.Record({
     'next_after' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'homes_scanned' : IDL.Nat32,
     'results_removed' : IDL.Nat32,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : ExecutionCleanup, 'Err' : Error });
   const SigningAlgorithm = IDL.Variant({
     'Ed25519' : IDL.Null,
     'EcdsaSecp256k1' : IDL.Null,
@@ -195,21 +196,39 @@ export const idlFactory = ({ IDL }) => {
     'AgentController' : IDL.Record({ 'generation' : IDL.Nat32 }),
   });
   const Result_3 = IDL.Variant({ 'Ok' : KeyDescriptor, 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
-    'execute' : IDL.Func([ExecutionGrant], [Result], []),
+    'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
+    'admin_set_daily_budget' : IDL.Func([IDL.Nat32, IDL.Nat], [Result], []),
+    'execute' : IDL.Func([ExecutionGrant], [Result_1], []),
     'get_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result],
+        [Result_1],
         ['query'],
       ),
-    'initialize_keys' : IDL.Func([], [Result_1], []),
+    'initialize_keys' : IDL.Func([], [Result_2], []),
     'key_state' : IDL.Func([], [KeyState], ['query']),
-    'prune_executions' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [Result_2], []),
+    'prune_executions' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8))],
+        [ExecutionCleanup],
+        [],
+      ),
     'public_key' : IDL.Func(
         [IDL.Vec(IDL.Nat8), KeySelector],
         [Result_3],
         ['query'],
       ),
+    'validate_admin_add_user_home' : IDL.Func(
+        [IDL.Principal],
+        [Result_4],
+        ['query'],
+      ),
+    'validate_admin_set_daily_budget' : IDL.Func(
+        [IDL.Nat32, IDL.Nat],
+        [Result_4],
+        ['query'],
+      ),
+    'validate_initialize_keys' : IDL.Func([], [Result_4], ['query']),
   });
 };
 export const init = ({ IDL }) => {
@@ -233,10 +252,11 @@ export const init = ({ IDL }) => {
     'executing_canister' : IDL.Principal,
     'derivation_version' : IDL.Nat16,
     'daily_cycles' : IDL.Nat,
-    'initial_home_user' : IDL.Principal,
     'issuer_namespace' : IDL.Text,
     'daily_executions' : IDL.Nat32,
     'environment' : Environment,
+    'governance' : IDL.Principal,
+    'user_homes' : IDL.Vec(IDL.Principal),
   });
   return [CoseInit];
 };

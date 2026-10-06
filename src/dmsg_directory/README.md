@@ -4,9 +4,10 @@ Publishes Agent Delegation 1.0 principal documents for every dMsg user home at o
 
 - `publish(account_id, PrincipalState)`: only the account's home publishes (first by the Xid allocator fingerprint, then the recorded home). Versions only increase; the same version must carry the same state.
 - `get_publication`, `directory_config`: queries.
+- `admin_add_user_home(home)`, `admin_set_custom_domains(domains)`: controllers or the fixed `governance` Principal. Homes are append-only (at most 64, distinct allocator fingerprints, repeating a listed home is a no-op); the new `dmsg_user` must name this canister as `directory_canister` and share the environment, issuer namespace and principal origin. Domains are replaced and recertified at once. Each method has a same-argument `validate_*` query that runs its checks against current state and renders the payload for an SNS generic-function proposal, or returns the error the method would return. Upgrades take no arguments and never change configuration.
 - `http_request`: `GET /<account_id>` returns the exact JCS document; other paths return a certified 404; `/.well-known/ic-domains` lists custom domains. Responses are certified response-only with all headers. Routing follows the certification library: percent decoding and repeated slashes address the same path; a trailing slash stays distinct. Only the document's exact canonical `id` is authoritative for principal resolution.
 - Documents remain limited to 64 KiB. Home and directory share a conservative byte budget that includes future retirement/compromise fields and maximum names. Oversized registrations fail before the home commits; reaching the byte budget can limit the account before 32 generations. Origins are limited to 512 bytes, query URL/profile prefix to 2 KiB; public configuration URLs must not contain raw JSON escape characters.
-- Stable layout schema 2: config (memory 0), documents (memory 1), including a persisted SHA-256 body digest. Queries reuse the digest and move the loaded body into the response. Upgrades stream records into the heap certification tree, drop each body before reading the next, and publish the root once. Development schema 1 is rejected; no migration is implemented.
+- Stable layout schema 3: config (memory 0), documents (memory 1), including a persisted SHA-256 body digest. Queries reuse the digest and move the loaded body into the response. Upgrades stream records into the heap certification tree, drop each body before reading the next, and publish the root once. Earlier development schemas are rejected; no migration is implemented.
 
 Not implemented: home `handoff`, external-key reservation. Maximum capacity (documents per canister and upgrade instruction ceiling) has not been established. Contract: [docs/protocol/agent_zh.md](../../docs/protocol/agent_zh.md).
 
@@ -19,9 +20,9 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test directo
 cargo test --locked -p dmsg_integration --features pocketic-tests --test directory directory_cost_and_rebuild_profile -- --ignored --exact --nocapture
 ```
 
-The standalone PocketIC fixture covers publication authorization/idempotency, atomic rejection, size limits and safety changes, certified paths and body tampering, multiple homes, permanent configuration and upgrade recovery. The explicit profile measures replicated-query cycles (without an HTTP certificate) and a 130-record upgrade. `DMSG_WASM_DIR` can select an independently built baseline.
+The standalone PocketIC fixture covers publication authorization/idempotency, atomic rejection, size limits and safety changes, certified paths and body tampering, governance-added homes and domains with their validators, permanent configuration and upgrade recovery. The explicit profile measures replicated-query cycles (without an HTTP certificate) and a 130-record upgrade. `DMSG_WASM_DIR` can select an independently built baseline.
 
-Local PocketIC 16.0.0 samples on 2026-10-02, using the same inputs and release settings against the pre-review implementation and schema 2:
+Local PocketIC 16.0.0 samples on 2026-10-02, using the same inputs and release settings against the pre-review implementation and schema 2 (schema 3 adds only the governance field):
 
 | Measurement | Before | After |
 | --- | ---: | ---: |

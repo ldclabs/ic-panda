@@ -346,7 +346,9 @@ mod tests {
         let config = Config {
             schema: crate::store::STABLE_SCHEMA,
             init: PaymentInit {
-                home_user: p(1),
+                environment: Environment::Local,
+                issuer_namespace: "https://dmsg.test/u/".into(),
+                user_homes: vec![p(1)],
                 ledger: p(2),
                 platform: account(3),
                 governance: candid::Principal::from_slice(&[90]),

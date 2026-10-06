@@ -653,6 +653,7 @@ mod tests {
                 daily_new_accounts: 10_000,
                 principal_origin: "https://id.dmsg.example".into(),
                 directory_canister: p(5),
+                governance: p(6),
             },
             allocator: XidGenerator::new([1, 2, 3, 4, 5]),
             allocator_namespace_digest: Hash::new([6; 32]),

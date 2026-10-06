@@ -79,13 +79,15 @@ impl SignRequestExt for SignRequest {
 
 /// Validate fixed COSE deployment configuration without accessing ICP master keys.
 pub trait CoseInitExt {
-    /// Check executing canister against id, derivation version 2, user home, namespace,
-    /// 1..3 distinct algorithms, key names and positive budgets. Production requires
-    /// key_1 and nonzero master fingerprints; this does not fetch/check actual keys.
+    /// Check executing canister against id, derivation version 2, namespace, user
+    /// homes, governance, 1..3 distinct algorithms, key names and positive budgets.
+    /// Production requires key_1 and nonzero master fingerprints; this does not
+    /// fetch/check actual keys.
     ///
     /// # Errors
-    /// Invalid configuration returns `Error::InvalidInput`; excluded user-home
-    /// Principals return `Error::AuthRequired`.
+    /// Invalid configuration returns `Error::InvalidInput`; excluded user-home or
+    /// governance Principals return `Error::AuthRequired`; homes are checked by
+    /// [`crate::agent::validate_user_homes`].
     fn validate(&self, id: Principal) -> Result<()>;
 }
 
@@ -95,8 +97,13 @@ impl CoseInitExt for CoseInit {
             self.executing_canister == id && self.derivation_version == 2,
             "immutable key home/version",
         )?;
-        authenticated(self.initial_home_user)?;
         validate_namespace(&self.issuer_namespace)?;
+        crate::agent::validate_user_homes(
+            &self.environment,
+            &self.issuer_namespace,
+            &self.user_homes,
+        )?;
+        authenticated(self.governance)?;
         ensure_valid(
             !self.masters.is_empty() && self.masters.len() <= 3,
             "masters",

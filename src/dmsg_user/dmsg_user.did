@@ -1074,18 +1074,19 @@ type RecoveryRequest = record {
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
   expires_at : nat64;
 };
-type Result = variant { Ok : blob; Err : Error };
-type Result_1 = variant { Ok : AuthenticationResult; Err : Error };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : blob; Err : Error };
 type Result_10 = variant { Ok : OperationReceipt; Err : Error };
 type Result_11 = variant { Ok : PrincipalInfo; Err : Error };
 type Result_12 = variant { Ok : opt PendingRecovery; Err : Error };
 type Result_13 = variant { Ok : opt ContentRootRef; Err : Error };
 type Result_14 = variant { Ok : nat32; Err : Error };
 type Result_15 = variant { Ok : nat64; Err : Error };
-type Result_16 = variant { Ok : ApplicationAuthorization; Err : Error };
-type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_3 = variant { Ok : ProductAuthorization; Err : Error };
-type Result_4 = variant { Ok; Err : Error };
+type Result_16 = variant { Ok : text; Err : text };
+type Result_17 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_2 = variant { Ok : AuthenticationResult; Err : Error };
+type Result_3 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_4 = variant { Ok : ProductAuthorization; Err : Error };
 type Result_5 = variant { Ok : blob; Err : Error };
 type Result_6 = variant { Ok : ExecutionResult; Err : Error };
 type Result_7 = variant { Ok : AccountInfo; Err : Error };
@@ -1289,7 +1290,7 @@ type UserInit = record {
   home_cose : principal;
   // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
-  // Account creation limit per daily budget window.
+  // Account creation limit per daily budget window (1..=10,000); adjustable by governance.
   daily_new_accounts : nat32;
   // Configured escrow service.
   payment_canister : principal;
@@ -1297,7 +1298,9 @@ type UserInit = record {
   environment : Environment;
   // Fixed product commerce service, authoritative for resource leases.
   commerce_canister : principal;
-  // Maximum accounts admitted by this deployment.
+  // Fixed SNS governance caller allowed, besides controllers, to adjust account limits.
+  governance : principal;
+  // Maximum accounts admitted by this deployment (1..=1,000,000); adjustable by governance.
   max_accounts : nat64;
   // Shared PANDA qualification service.
   membership_canister : principal;
@@ -1314,35 +1317,38 @@ type VaultWriteState = variant {
   Uninitialized;
 };
 service : (UserInit) -> {
-  approve_application : (ApplicationApproval, Approval) -> (Result);
+  // Set the account capacity and the daily new-account quota. A capacity below
+  // the current count only stops new accounts.
+  admin_set_account_limits : (nat64, nat32) -> (Result);
+  approve_application : (ApplicationApproval, Approval) -> (Result_1);
   approve_authentication : (blob, AuthenticationRequest, Approval) -> (
-      Result_1,
+      Result_2,
     );
-  authentication_certificate : (blob, blob) -> (Result_2) query;
+  authentication_certificate : (blob, blob) -> (Result_3) query;
   // Personal-account product consent. Project products use their own registered authority.
-  authorize_product_billing : (ProductAuthorizationRequest) -> (Result_3);
+  authorize_product_billing : (ProductAuthorizationRequest) -> (Result_4);
   // Only the new authentication principal may reserve its own binding. The
   // existing account_id's administrator must separately approve the exact nonce.
-  begin_auth_binding : (blob, blob, nat64) -> (Result_4);
-  complete_recovery : (blob, blob) -> (Result_4);
-  consume_handle_authorization : (HandleIntent) -> (Result_4);
+  begin_auth_binding : (blob, blob, nat64) -> (Result);
+  complete_recovery : (blob, blob) -> (Result);
+  consume_handle_authorization : (HandleIntent) -> (Result);
   consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
-      Result_4,
+      Result,
     );
   create_account : (CreateAccount) -> (Result_5);
   derive_root : (DeriveRootRequest) -> (Result_6);
   get_account : (blob) -> (Result_7) query;
   get_device_bundle : (blob) -> (Result_8) query;
   get_execution : (blob, blob) -> (Result_6) query;
-  get_execution_receipt : (blob, blob) -> (Result_2) query;
+  get_execution_receipt : (blob, blob) -> (Result_3) query;
   get_execution_usage : (blob, nat32) -> (Result_9) query;
-  get_execution_usage_certified : (blob, nat32) -> (Result_2) query;
+  get_execution_usage_certified : (blob, nat32) -> (Result_3) query;
   get_operation : (blob, blob) -> (Result_10) query;
   // Public principal state, publication progress and signed nonces.
   get_principal : (blob) -> (Result_11) query;
   get_recovery_request : (blob) -> (Result_12) query;
   get_root_ref : (blob) -> (Result_13) query;
-  inspect_app_action : (blob, AppAction) -> (Result_4);
+  inspect_app_action : (blob, AppAction) -> (Result);
   mutate_account : (AccountMutation) -> (Result_10);
   my_account : () -> (opt blob) query;
   prune_auth_bindings : (blob) -> (opt blob);
@@ -1355,21 +1361,22 @@ service : (UserInit) -> {
   // retry a publication; it is idempotent and never rolls the document back.
   publish_principal : (blob) -> (Result_15);
   reconcile_execution : (blob, blob) -> (Result_6);
-  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result_4);
+  reconfirm_recovery : (blob, RecoveryConfirmation, blob) -> (Result);
   refresh_execution_entitlement : (blob) -> (Result_9);
   // Bind the next hosted controller key. The COSE derivation of the approved
   // generation must equal the approved public key; no threshold signature runs.
   register_controller : (AccountMutation) -> (Result_10);
-  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result_4);
-  security_snapshot_batch : (vec blob) -> (Result_2) query;
+  request_recovery : (blob, RecoveryRequest, blob, blob) -> (Result);
+  security_snapshot_batch : (vec blob) -> (Result_3) query;
   sign : (SignRequest) -> (Result_6);
   // Sign one exact Agent Delegation event with a hosted controller key after
   // device approval. Submit the returned signature to the delegation service.
   sign_agent_event : (AgentEventSignRequest) -> (Result_6);
   sign_app_action : (AppActionSignRequest) -> (Result_6);
+  validate_admin_set_account_limits : (nat64, nat32) -> (Result_16) query;
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_16);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_17);
   verify_payment_offer : (SignedOffer) -> (Result_15);
   // A registered product may check whether its own account beneficiary still exists.
-  verify_product_account : (text, Beneficiary) -> (Result_4);
+  verify_product_account : (text, Beneficiary) -> (Result);
 }

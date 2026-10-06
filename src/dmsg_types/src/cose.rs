@@ -221,16 +221,19 @@ pub struct CoseInit {
     pub environment: Environment,
     /// Expected identity of this COSE executor.
     pub executing_canister: Principal,
-    /// User canister authorized to supply execution grants.
-    pub initial_home_user: Principal,
+    /// User homes authorized to supply execution grants, each only for the
+    /// accounts whose IDs carry its allocator fingerprint. Append-only.
+    pub user_homes: Vec<Principal>,
     /// Key derivation format version; current public protocol uses 2.
     pub derivation_version: u16,
     /// Configured algorithm/master-key pins.
     pub masters: Vec<MasterKey>,
-    /// Maximum executions in a daily budget window; adjustable during upgrade.
+    /// Maximum executions in a daily budget window; adjustable by governance.
     pub daily_executions: u32,
-    /// Maximum reserved ICP cycles in a daily budget window; adjustable during upgrade.
+    /// Maximum reserved ICP cycles in a daily budget window; adjustable by governance.
     pub daily_cycles: u128,
+    /// Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+    pub governance: Principal,
 }
 
 /// Readiness of configured chain-key public keys.
@@ -411,7 +414,7 @@ pub struct ExecutionResult {
     pub cycles_cost_upper_bound: u128,
 }
 
-/// Controller-maintained page of expired COSE execution results.
+/// Public maintenance page of expired COSE execution results.
 /// The caller supplies next_after to continue, including across upgrades.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecutionCleanup {

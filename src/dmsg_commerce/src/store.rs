@@ -96,8 +96,27 @@ pub fn set_paused(paused: bool) {
     persist_config();
 }
 
-pub fn check_governance(caller: Principal) -> Result<()> {
-    ensure(caller == config(|c| c.governance), Error::Forbidden)
+pub fn check_admin(caller: Principal) -> Result<()> {
+    dmsg_runtime::admin::check_admin(caller, config(|c| c.governance))
+}
+
+/// Returns false when the home is already listed. Beneficiary subjects name
+/// their home as authority, so homes need no account-ID routing here.
+pub fn check_user_home(homes: &[Principal], home: Principal) -> Result<bool> {
+    if homes.contains(&home) {
+        return Ok(false);
+    }
+    dmsg_protocol::authenticated(home)?;
+    ensure(
+        homes.len() < dmsg_protocol::agent::MAX_USER_HOMES,
+        Error::QuotaExceeded,
+    )?;
+    Ok(true)
+}
+
+pub fn add_user_home(home: Principal) {
+    config_mut(|c| c.user_homes.push(home));
+    persist_config();
 }
 
 pub enum CallBudget {

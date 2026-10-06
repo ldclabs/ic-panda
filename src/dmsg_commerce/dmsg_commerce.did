@@ -735,28 +735,29 @@ type ResourceLimits = record {
   // Logical retained ciphertext capacity in bytes.
   storage_bytes : nat64;
 };
-type Result = variant { Ok : ProductReceipt; Err : Error };
-type Result_1 = variant { Ok : CashCancellationReceipt; Err : Error };
-type Result_10 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_11 = variant { Ok : opt ProductReceipt; Err : Error };
-type Result_12 = variant { Ok : BillingOffer; Err : Error };
-type Result_13 = variant { Ok : CashTransferProgress; Err : Error };
-type Result_14 = variant { Ok : SettlementAsset; Err : Error };
-type Result_15 = variant { Ok : CheckoutQuote; Err : Error };
-type Result_16 = variant {
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : ProductReceipt; Err : Error };
+type Result_10 = variant { Ok : CheckoutView; Err : Error };
+type Result_11 = variant { Ok : ExecutionEntitlement; Err : Error };
+type Result_12 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_13 = variant { Ok : BillingOffer; Err : Error };
+type Result_14 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_15 = variant { Ok : SettlementAsset; Err : Error };
+type Result_16 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_17 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_17 = variant { Ok : EntitlementView; Err : Error };
-type Result_18 = variant { Ok; Err : Error };
-type Result_2 = variant { Ok : CheckoutProgress; Err : Error };
-type Result_3 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_4 = variant { Ok : CheckoutDepositsPage; Err : Error };
-type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
-type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
-type Result_7 = variant { Ok : CashTransfer; Err : Error };
-type Result_8 = variant { Ok : opt CashCancellationReceipt; Err : Error };
-type Result_9 = variant { Ok : CheckoutView; Err : Error };
+type Result_18 = variant { Ok : EntitlementView; Err : Error };
+type Result_19 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : CashCancellationReceipt; Err : Error };
+type Result_3 = variant { Ok : CheckoutProgress; Err : Error };
+type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_5 = variant { Ok : CheckoutDepositsPage; Err : Error };
+type Result_6 = variant { Ok : CheckoutOperationsPage; Err : Error };
+type Result_7 = variant { Ok : CashTransfersPage; Err : Error };
+type Result_8 = variant { Ok : CashTransfer; Err : Error };
+type Result_9 = variant { Ok : opt CashCancellationReceipt; Err : Error };
 // Governance-approved asset/price snapshot. Pausing admission never removes refund routing.
 type SettlementAsset = record {
   // Verified atomic precision; initial assets require six decimals.
@@ -883,61 +884,88 @@ type StorageProduct = record {
   storage_bytes : nat64;
 };
 service : (CommerceInit) -> {
+  // Append a user home. Its `dmsg_user` must name this canister as
+  // `commerce_canister`; product registrations list it separately.
+  admin_add_user_home : (principal) -> (Result);
   // Only a failed call to an authority leaves the decision unknown. Every other failure
   // is a durable rejection, so the settlement service can refund without waiting.
-  apply_product_decision : (ProductDecision) -> (Result);
-  cancel_cash_contract : (blob, blob, blob) -> (Result_1);
-  cancel_checkout : (blob) -> (Result_2);
-  check_checkout_funding : (blob, CashBlock) -> (Result_2);
-  checkout_certificate : (blob) -> (Result_3) query;
-  checkout_deposits : (blob, opt blob, nat16) -> (Result_4) query;
+  apply_product_decision : (ProductDecision) -> (Result_1);
+  cancel_cash_contract : (blob, blob, blob) -> (Result_2);
+  cancel_checkout : (blob) -> (Result_3);
+  check_checkout_funding : (blob, CashBlock) -> (Result_3);
+  checkout_certificate : (blob) -> (Result_4) query;
+  checkout_deposits : (blob, opt blob, nat16) -> (Result_5) query;
   // Private operations centre; quoting and monitoring never reserve an interval.
-  checkout_operations : (opt blob, nat16) -> (Result_5) query;
-  checkout_progress : (blob) -> (Result_2) query;
-  checkout_transfer_certificate : (blob) -> (Result_3) query;
-  checkout_transfers : (opt blob, nat16) -> (Result_6) query;
-  claim_checkout_fee_reserve : (blob) -> (Result_7);
-  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_7);
-  collect_checkout_revenue : (blob) -> (Result_7);
-  get_cash_cancellation : (blob) -> (Result_8);
-  get_catalog : () -> (Result_3) query;
-  get_checkout : (blob) -> (Result_9) query;
+  checkout_operations : (opt blob, nat16) -> (Result_6) query;
+  checkout_progress : (blob) -> (Result_3) query;
+  checkout_transfer_certificate : (blob) -> (Result_4) query;
+  checkout_transfers : (opt blob, nat16) -> (Result_7) query;
+  claim_checkout_fee_reserve : (blob) -> (Result_8);
+  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_8);
+  collect_checkout_revenue : (blob) -> (Result_8);
+  get_cash_cancellation : (blob) -> (Result_9);
+  get_catalog : () -> (Result_4) query;
+  get_checkout : (blob) -> (Result_10) query;
   // Consensus read for the pinned product adapter during Apply. Query replies are not delivery authority.
-  get_checkout_for_product : (blob) -> (Result_9);
-  get_checkout_transfer : (blob) -> (Result_7) query;
-  get_entitlement_batch : (vec Beneficiary) -> (Result_3) query;
-  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_10);
-  get_product_decision : (blob) -> (Result_11);
+  get_checkout_for_product : (blob) -> (Result_10);
+  get_checkout_transfer : (blob) -> (Result_8) query;
+  get_entitlement_batch : (vec Beneficiary) -> (Result_4) query;
+  get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_11);
+  get_product_decision : (blob) -> (Result_12);
   // Public, authenticated discovery. A paused configuration remains discoverable.
-  integration_configuration_certificate : (text, opt text) -> (Result_3) query;
+  integration_configuration_certificate : (text, opt text) -> (Result_4) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
-  open_checkout : (OpenCheckout) -> (Result_9);
-  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_12);
-  process_checkout_transfer : (blob) -> (Result_13);
-  publish_settlement_price : (principal, nat, nat64) -> (Result_14);
-  quote_checkout : (BillingOffer, principal, Account) -> (Result_15);
+  open_checkout : (OpenCheckout) -> (Result_10);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_13);
+  process_checkout_transfer : (blob) -> (Result_14);
+  // Publish a reference price observed now; the price authority calls this routinely.
+  publish_settlement_price : (principal, nat, nat64) -> (Result_15);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_16);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_16);
+  read_integration_configuration : (text, opt text) -> (Result_17);
   // Safe progress can be advanced without revealing the payer or private bill.
-  reconcile_checkout : (blob) -> (Result_2);
-  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_13);
+  reconcile_checkout : (blob) -> (Result_3);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_14);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_17);
-  register_integration_app : (AppRegistration) -> (Result_18);
-  register_integration_product : (ProductRegistration) -> (Result_18);
-  register_settlement_asset : (SettlementAsset) -> (Result_18);
-  release_product_billing : (ProductAuthorizationRequest) -> (Result_18);
-  reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result_18);
+  refresh_entitlement : (Beneficiary) -> (Result_18);
+  // Register or replace an app at the next config version. Every listed product
+  // must already be registered.
+  register_integration_app : (AppRegistration) -> (Result);
+  // Register or replace a product at the next config version.
+  register_integration_product : (ProductRegistration) -> (Result);
+  // Register a settlement ledger or replace its policy at the next version.
+  // Every price publication also advances the version.
+  register_settlement_asset : (SettlementAsset) -> (Result);
+  release_product_billing : (ProductAuthorizationRequest) -> (Result);
+  reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result);
   // The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
   // keeping its fee or adopting the ledger's expected fee within the original cap.
-  revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
-  schedule_policy : (Catalog) -> (Result_18);
-  set_admission_pause : (bool) -> (Result_18);
-  set_settlement_price_authority : (principal) -> (Result_18);
+  revise_checkout_transfer_fee : (blob, nat) -> (Result_8);
+  // Announce a catalog at least 30 days before it takes effect.
+  schedule_policy : (Catalog) -> (Result);
+  // Pause or resume new cash checkouts; reconciliation, refunds, lease
+  // refresh and expiry continue.
+  set_admission_pause : (bool) -> (Result);
+  set_settlement_price_authority : (principal) -> (Result);
   settlement_assets : () -> (vec SettlementAssetView) query;
-  settlement_assets_certificate : () -> (Result_3) query;
+  settlement_assets_certificate : () -> (Result_4) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
   sweep_checkout_history : () -> (CheckoutHistorySweep);
-  verify_billing_offer : (BillingOffer) -> (Result_18);
-  verify_settlement_asset : (principal, opt nat) -> (Result_18);
+  validate_admin_add_user_home : (principal) -> (Result_19) query;
+  validate_publish_settlement_price : (principal, nat, nat64) -> (
+      Result_19,
+    ) query;
+  validate_register_integration_app : (AppRegistration) -> (Result_19) query;
+  validate_register_integration_product : (ProductRegistration) -> (
+      Result_19,
+    ) query;
+  validate_register_settlement_asset : (SettlementAsset) -> (Result_19) query;
+  validate_schedule_policy : (Catalog) -> (Result_19) query;
+  validate_set_admission_pause : (bool) -> (Result_19) query;
+  validate_set_settlement_price_authority : (principal) -> (Result_19) query;
+  validate_verify_settlement_asset : (principal, opt nat) -> (Result_19) query;
+  verify_billing_offer : (BillingOffer) -> (Result);
+  // Check the ledger's live decimals, fee, standards and, outside Local, one
+  // real transfer block before quotes may use it.
+  verify_settlement_asset : (principal, opt nat) -> (Result);
 }

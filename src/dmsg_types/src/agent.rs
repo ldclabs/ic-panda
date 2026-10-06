@@ -148,14 +148,16 @@ impl AgentEventSignRequest {
 }
 
 /// Directory deployment configuration. The principal origin and document
-/// fields are permanent; user homes may only be appended by upgrade.
+/// fields are permanent; governance may append user homes and replace the
+/// custom domains.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct DirectoryInit {
     /// Deployment domain; also part of each home's account-ID allocator fingerprint.
     pub environment: Environment,
     /// Account issuer namespace shared by the user homes.
     pub issuer_namespace: String,
-    /// User homes allowed to publish accounts whose IDs they allocated.
+    /// User homes allowed to publish accounts whose IDs they allocated;
+    /// each account ID carries its home's allocator fingerprint. Append-only.
     pub user_homes: Vec<Principal>,
     /// HTTPS origin of principal IDs, such as `https://id.dmsg.net`.
     pub principal_origin: String,
@@ -167,6 +169,8 @@ pub struct DirectoryInit {
     pub profile_url_prefix: String,
     /// Custom domains served at `/.well-known/ic-domains`.
     pub custom_domains: Vec<String>,
+    /// Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+    pub governance: Principal,
 }
 
 /// Directory publication summary for one account.

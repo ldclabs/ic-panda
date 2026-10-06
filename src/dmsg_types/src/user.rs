@@ -294,15 +294,17 @@ pub struct UserInit {
     pub commerce_canister: Principal,
     /// Shared PANDA qualification service.
     pub membership_canister: Principal,
-    /// Maximum accounts admitted by this deployment.
+    /// Maximum accounts admitted by this deployment (1..=1,000,000); adjustable by governance.
     pub max_accounts: u64,
-    /// Account creation limit per daily budget window.
+    /// Account creation limit per daily budget window (1..=10,000); adjustable by governance.
     pub daily_new_accounts: u32,
     /// HTTPS origin of Agent Delegation principal IDs, such as `https://id.dmsg.net`.
     /// Permanent: principal IDs never change.
     pub principal_origin: String,
     /// Directory canister that publishes principal documents.
     pub directory_canister: Principal,
+    /// Fixed SNS governance caller allowed, besides controllers, to adjust account limits.
+    pub governance: Principal,
 }
 
 /// Authenticated account creation with initial-device proof of possession.
