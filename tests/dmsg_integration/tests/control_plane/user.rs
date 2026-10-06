@@ -29,14 +29,7 @@ pub(super) fn statement_request(
         },
     };
     request.approval.signature = key(1)
-        .sign(
-            request
-                .clone()
-                .into_execution()
-                .unwrap()
-                .approval_message(f.user)
-                .as_slice(),
-        )
+        .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
         .to_bytes()
         .into();
     request

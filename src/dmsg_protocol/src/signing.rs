@@ -635,24 +635,6 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
     Ok(sha256(&required.to_vec().map_err(malformed)?))
 }
 
-/// Assemble a tagged COSE_Sign1 artifact and public-only key after external signing.
-///
-/// `tbs` must be the exact canonical bytes returned by [`prepare_cose`]; `public`
-/// is raw Ed25519 or SEC1 secp256k1 bytes. `signature` is 64 bytes: an Ed25519
-/// signature or ES256K r||s, not DER; ES256K is normalized to low-S. This validates
-/// structure and key encoding, but does not mathematically verify the signature.
-/// Use [`match_signing_result`] or [`verify_artifact`] before accepting a returned
-/// artifact.
-///
-/// # Errors
-/// Returns `Error::IntegrityFailed` for a malformed signature, and propagates
-/// signing-input/public-key validation errors.
-pub fn finish_cose(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
-    parse_signing_input(tbs)?
-        .into_signature(public)?
-        .finish(signature)
-}
-
 enum ProfileVerifier {
     Ed(cose2::ed25519::Ed25519Verifier),
     Ec(k256::ecdsa::VerifyingKey),
@@ -742,7 +724,7 @@ fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
 /// headers, public-key constraints and signature. Preserves original protected
 /// bytes. An attached public key is not an identity credential; this does not
 /// check original digest content, issuer ownership, authorization, current status,
-/// or TSA trust. Use [`verification_report`] to also compare supplied content.
+/// or TSA trust.
 ///
 /// # Errors
 /// Size bounds yield `Error::QuotaExceeded`, unknown semantics yield
@@ -800,119 +782,10 @@ pub(crate) fn verify_and_parse_artifact(artifact: &SignedArtifact) -> Result<Ver
     })
 }
 
-/// Verify a document and report separate content and evidence statuses.
-///
-/// If `content` is supplied, text must match exactly or its SHA-256 must match
-/// the digest or file-statement profile. Without it, standalone text is Verified
-/// and referenced file content is NotProvided, even when statement text is embedded.
-/// Signature is Verified on success; issuer binding,
-/// authorization and current status remain NotChecked. Timestamp is NotProvided
-/// when absent and NotChecked when a token is attached: no TSA verification occurs.
-///
-/// # Errors
-/// Propagates artifact verification errors; original-content mismatch returns
-/// `Error::IntegrityFailed` rather than a partially successful report.
-pub fn verification_report(
-    artifact: &SignedArtifact,
-    content: Option<&[u8]>,
-) -> Result<VerificationReport> {
-    let VerifiedArtifact {
-        statement, message, ..
-    } = verify_and_parse_artifact(artifact)?;
-    let checked = match (&statement.content, content) {
-        (StatementContent::AppAction(_), _) => VerificationStatus::NotChecked,
-        (StatementContent::Text(text), Some(bytes)) => {
-            ensure(text.as_bytes() == bytes, Error::IntegrityFailed)?;
-            VerificationStatus::Verified
-        }
-        (StatementContent::Text(_), None) => VerificationStatus::Verified,
-        (
-            StatementContent::Digest {
-                sha256: expected, ..
-            }
-            | StatementContent::FileStatement {
-                sha256: expected, ..
-            },
-            Some(bytes),
-        ) => {
-            ensure(sha256(bytes) == *expected, Error::IntegrityFailed)?;
-            VerificationStatus::Verified
-        }
-        (StatementContent::Digest { .. } | StatementContent::FileStatement { .. }, None) => {
-            VerificationStatus::NotProvided
-        }
-    };
-    Ok(VerificationReport {
-        statement,
-        content: checked,
-        signature: VerificationStatus::Verified,
-        issuer_binding: VerificationStatus::NotChecked,
-        authorization: VerificationStatus::NotChecked,
-        timestamp: if message.unprotected.contains_key(CTT_HEADER) {
-            VerificationStatus::NotChecked
-        } else {
-            VerificationStatus::NotProvided
-        },
-        current_status: VerificationStatus::NotChecked,
-    })
-}
-
-/// Compute the RFC 9921 CTT SHA-256 imprint of the encoded signature bstr.
-///
-/// Includes the CBOR byte-string header: `SHA256(CBOR(signature_bstr))`, unlike
-/// [`signature_digest`]. Requires canonical outer framing and a nonempty signature
-/// of at most 16,384 bytes. It does not verify the signature, dMsg profile or TSA.
-///
-/// # Errors
-/// Oversized artifacts return `Error::QuotaExceeded`; decoding, canonical framing
-/// or signature-length failures return `Error::IntegrityFailed`.
-pub fn timestamp_imprint(cose_sign1: &[u8]) -> Result<Hash> {
-    ensure(cose_sign1.len() <= MAX_ARTIFACT_BYTES, Error::QuotaExceeded)?;
-    let message = Sign1Message::from_slice(cose_sign1).map_err(malformed)?;
-    ensure(
-        !message.signature().is_empty()
-            && message.signature().len() <= 16_384
-            && message.to_vec().map_err(malformed)? == cose_sign1,
-        Error::IntegrityFailed,
-    )?;
-    Ok(sha256(&canonical(&serde_bytes::Bytes::new(
-        message.signature(),
-    ))))
-}
-
-/// Attach an unverified timestamp token at unprotected COSE header 270.
-///
-/// First verifies the original artifact, then adds the token while retaining
-/// the key. The token is opaque: CMS signature, certificate chain, imprint,
-/// TSA policy and current status still need an independent TSA verifier.
-///
-/// # Errors
-/// Empty/oversized tokens return `Error::QuotaExceeded`; an existing token returns
-/// `Error::VersionConflict`. Original-artifact verification errors propagate.
-pub fn attach_unverified_timestamp_token(
-    artifact: &SignedArtifact,
-    token: &[u8],
-) -> Result<SignedArtifact> {
-    ensure(
-        !token.is_empty() && token.len() <= MAX_TIMESTAMP_BYTES,
-        Error::QuotaExceeded,
-    )?;
-    let mut message = verify_and_parse_artifact(artifact)?.message;
-    ensure(
-        !message.unprotected.contains_key(CTT_HEADER),
-        Error::VersionConflict,
-    )?;
-    message.unprotected.insert(CTT_HEADER, token.to_vec());
-    Ok(SignedArtifact {
-        cose_sign1: message.to_vec().map_err(malformed)?.into(),
-        cose_key: artifact.cose_key.clone(),
-    })
-}
-
 /// Hash raw signature bytes extracted from a COSE_Sign1 message.
 ///
-/// Used for execution-receipt matching; unlike [`timestamp_imprint`], the hash
-/// excludes CBOR framing. This extraction helper does not verify the signature,
+/// Used for execution-receipt matching; the hash excludes CBOR framing.
+/// This extraction helper does not verify the signature,
 /// dMsg profile, canonical outer encoding or key ownership.
 ///
 /// # Errors

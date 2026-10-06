@@ -62,6 +62,23 @@ fn update<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
         .unwrap_or_else(|e| panic!("{method}: {e:?}"));
     candid::decode_one(&bytes).unwrap_or_else(|e| panic!("decode {method}: {e:?}"))
 }
+fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
+    approval_message(
+        home,
+        &request.account_id,
+        "dmsg/execute/v3",
+        &(&request.kind, request.max_cycles),
+        &request.approval,
+    )
+}
+
+fn completed(result: &ExecutionResult) -> &ExecutionOutput {
+    let ExecutionOutcome::Completed(output) = &result.outcome else {
+        panic!("execution is not completed: {:?}", result.outcome)
+    };
+    output
+}
+
 // Exercise the public typed interfaces while retaining independently assembled
 // approval bytes in the existing interoperability/regression fixtures.
 fn submit_execution(
@@ -1031,7 +1048,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
     let result = submit_execution(&f.ic, f.user, person(1), request.clone());
     let result = result.unwrap();
     assert_eq!(result.status(), ExecutionStatus::Completed);
-    let ExecutionOutput::Signature { artifact, .. } = result.output().unwrap() else {
+    let ExecutionOutput::Signature { artifact, .. } = completed(&result) else {
         panic!("signature output")
     };
     assert_eq!(verify_artifact(artifact).unwrap(), payload);
@@ -1095,11 +1112,9 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     let derived = f.derive(1, &account_id, transport.public_key());
     assert_eq!(derived.status(), ExecutionStatus::Completed);
-    let encrypted =
-        ic_vetkeys::EncryptedVetKey::deserialize(derived.output().unwrap().bytes()).unwrap();
+    let encrypted = ic_vetkeys::EncryptedVetKey::deserialize(completed(&derived).bytes()).unwrap();
     let public =
-        ic_vetkeys::DerivedPublicKey::deserialize(&derived.output().unwrap().key().public_key)
-            .unwrap();
+        ic_vetkeys::DerivedPublicKey::deserialize(&completed(&derived).key().public_key).unwrap();
     let root = encrypted
         .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, 1u64)))
         .unwrap();
@@ -1111,7 +1126,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         .decrypt_and_verify(&other, &public, &canonical(&(&account_id, 1u64)))
         .is_err());
     let derived = f.derive(1, &account_id, other.public_key());
-    let same = ic_vetkeys::EncryptedVetKey::deserialize(derived.output().unwrap().bytes())
+    let same = ic_vetkeys::EncryptedVetKey::deserialize(completed(&derived).bytes())
         .unwrap()
         .decrypt_and_verify(&other, &public, &canonical(&(&account_id, 1u64)))
         .unwrap();

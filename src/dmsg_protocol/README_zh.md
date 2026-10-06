@@ -36,19 +36,18 @@ dmsg_protocol = "0.1"
 | --- | --- | --- |
 | 编码协议记录 | `canonical`, `decode_canonical`, `sha256`, `digest` | 使用准确的公开类型、域和数据结构，并进行业务验证 |
 | 准备文档 | `validate_statement`, `statement_purpose`, `prepare_cose`, `parse_signing_input` | 取得用户同意、选择可信密钥并调用签名器 |
-| 组装与验证 | `finish_cose`, `verify_artifact`, `verification_report` | 确认 issuer 身份、授权与当前状态 |
+| 组装与验证 | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | 确认 issuer 身份、授权与当前状态 |
 | 描述签名公钥 | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | 认证公钥来源，不把指纹当成所有权证明 |
-| 标识签署者 | `account_issuer`, `principal_issuer`, `parse_account_issuer`, `validate_uri`, `validate_namespace` | 配置可信命名空间，并与已认证证据绑定 |
-| 准备 ICP 批准 | `SignRequestExt`, `ExecuteRequestExt`, `approval_message`, `execution_request_id` | 获取当前账户/设备状态、签署摘要并提交到 user home |
+| 标识签署者 | `account_issuer`, `validate_uri`, `validate_namespace` | 配置可信命名空间，并与已认证证据绑定 |
+| 准备 ICP 批准 | `SignRequestExt`, `approval_message`, `execution_request_id` | 获取当前账户/设备状态、签署摘要并提交到 user home |
 | 验证请求输入 | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | 执行服务端授权、私钥持有证明检查与状态转换 |
-| 核对执行证据 | `artifact_signing_bytes`, `match_signing_result`, `execution_receipt_key`, `match_execution_receipt` | 先验证 IC certificate、预期 canister、witness、路径和叶值 |
+| 核对执行证据 | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | 先验证 IC certificate、预期 canister、witness、路径和叶值 |
 | 处理恢复与名称 | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | 在对应服务中执行恢复政策、名称与账本操作 |
-| 附加时间戳证据 | `timestamp_imprint`, `attach_unverified_timestamp_token`, `signature_digest` | 获取并独立验证 TSA token 及其信任链 |
 | 检查基础约束 | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | 提供可信 caller、时间和状态；辅助函数不读取或修改它们 |
 
 Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原始严格 Ed25519 验签；`verify_artifact` 还验证 COSE 文档 profile。`authenticated` 仅排除匿名和管理 canister Principal，不证明账户成员身份。
 
-商业辅助函数使用 `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` 和 `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}` 等路径。金额使用整数原子单位，商业时间使用 UTC Unix 毫秒；报价和本金门槛向上取整，月度额度累计加权时长后统一向下取整。摘要构造不执行授权，具体字段校验范围见 rustdoc。
+商业辅助函数使用 `dmsg_protocol::billing::monthly_allowance` 和 `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}` 等路径。金额使用整数原子单位，商业时间使用 UTC Unix 毫秒；报价和本金门槛向上取整，月度额度累计加权时长后统一向下取整。摘要构造不执行授权，具体字段校验范围见 rustdoc。
 
 ## 本地签署并验证文档
 
@@ -56,10 +55,10 @@ Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原
 
 ```rust
 use dmsg_protocol::{
-    account_issuer, finish_cose, key_thumbprint, match_signing_result,
-    prepare_cose, public_cose_key, sha256, verification_report,
+    account_issuer, key_thumbprint, match_signing_result, parse_signing_input,
+    prepare_cose, public_cose_key, sha256, verify_artifact,
 };
-use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent, VerificationStatus};
+use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let signer = SigningKey::from_bytes(&[7; 32]); // 仅用于测试。
@@ -80,25 +79,27 @@ let statement = Statement {
 };
 let (_, tbs) = prepare_cose(&statement, &algorithm, fingerprint.as_slice()).unwrap();
 let signature = signer.sign(&tbs).to_bytes().to_vec();
-let artifact = finish_cose(&tbs, &public, signature).unwrap();
+let artifact = parse_signing_input(&tbs)
+    .unwrap()
+    .into_signature(&public)
+    .unwrap()
+    .finish(signature)
+    .unwrap();
 match_signing_result(&artifact, &tbs, fingerprint).unwrap();
-let report = verification_report(&artifact, Some(original)).unwrap();
-assert_eq!(report.signature, VerificationStatus::Verified);
-assert_eq!(report.content, VerificationStatus::Verified);
-assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
-assert_eq!(report.timestamp, VerificationStatus::NotProvided);
+// 验证后的声明承诺了原文字节的 SHA-256。
+assert_eq!(verify_artifact(&artifact).unwrap(), statement);
 ```
 
 `prepare_cose` 返回未签名消息和 `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`。文本使用原始 UTF-8（1..4096 字节），摘要文档使用原文字节的 32 字节 SHA-256。`FileStatement` 采用确定性 CBOR payload，联合包含原样文本、文件 SHA-256 和可选媒体类型/位置，使用 `FILE_STATEMENT_PROFILE` 与 `Statement` 密钥用途；封闭 schema 和边界见[公开协议](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README_zh.md)。Rust Statement 枚举不是额外的 wire payload。issuer、可选 subject 和声明的 issued_at 是受保护 CWT claims；请求 ID、浏览器 origin 和执行截止时间是单独的执行元数据。
 
-| 算法 | COSE 标签 | 签名器输入 | 传给 `finish_cose` 的签名/公钥 |
+| 算法 | COSE 标签 | 签名器输入 | 传给 `finish`/`into_signature` 的签名/公钥 |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | 完整 tbs 字节 | 64 字节签名；原始 32 字节公钥 |
 | ES256K | -47 | 使用 prehash API 时传 SHA-256(tbs) | 64 字节 r\|\|s，不是 DER，归一为 low-S；SEC1 secp256k1 公钥 |
 
-使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`finish_cose` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops，并展开压缩 EC y 坐标；它不是原始公钥 SHA-256，也不是完整公钥验证器。
+使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`PreparedSignature::finish` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops，并展开压缩 EC y 坐标；它不是原始公钥 SHA-256，也不是完整公钥验证器。
 
-`parse_signing_input` 返回不可变 `PreparedStatement`，通过 `statement()`、`algorithm()` 和 `kid()` 读取已验证内容。执行器可以在调用签名器前运行 `into_signature(public)`，回调时使用 `PreparedSignature::finish(signature)`，复用已验证的封装和公钥编码；接收产物时仍需数学验签。
+`parse_signing_input` 返回不可变 `PreparedStatement`，通过 `statement()`、`algorithm()` 和 `kid()` 读取已验证内容。在调用签名器前运行 `into_signature(public)`，回调时使用 `PreparedSignature::finish(signature)`，复用已验证的封装和公钥编码；接收产物时仍需数学验签。
 
 ## 构造 ICP 设备批准
 
@@ -106,7 +107,7 @@ assert_eq!(report.timestamp, VerificationStatus::NotProvided);
 
 ```rust
 use candid::Principal;
-use dmsg_protocol::{execution_request_id, ExecuteRequestExt, SignRequestExt};
+use dmsg_protocol::{approval_message, execution_request_id, SignRequestExt};
 use dmsg_types::{
     cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
     AccountId, Approval, Hash, Statement, StatementContent,
@@ -141,13 +142,19 @@ let request = SignRequest {
 };
 let mut execution = request.into_execution().unwrap();
 let home_user = Principal::from_slice(&[1, 1]); // 部署演示值。
-let digest = execution.approval_message(home_user);
+let digest = approval_message(
+    home_user,
+    &execution.account_id,
+    "dmsg/execute/v3",
+    &(&execution.kind, execution.max_cycles),
+    &execution.approval,
+);
 let device_key = SigningKey::from_bytes(&[9; 32]); // 仅用于测试。
 execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
-`SignRequestExt::into_execution` 验证 origin 和声明，以签名 generation 1 准备字节。它保留传入的指纹和批准，不认证它们。`ExecuteRequestExt::approval_message` 在 `dmsg/execute/v3` 下绑定 kind 和 max_cycles，再包装到 `dmsg/device-approval/v2`。任何已批准字段变化都需要新批准。类型化 `sign` 入口接收 SignRequest；低层 ExecuteRequest 还表示根派生，不是无限制的原始字节签名入口。
+`SignRequestExt::into_execution` 验证 origin 和声明，以签名 generation 1 准备字节。它保留传入的指纹和批准，不认证它们。执行批准把 `dmsg/execute/v3` 域和 `(kind, max_cycles)` 传给 `approval_message`，再包装到 `dmsg/device-approval/v2`。任何已批准字段变化都需要新批准。类型化 `sign` 入口接收 SignRequest；低层 ExecuteRequest 还表示根派生，不是无限制的原始字节签名入口。
 
 账户变更使用 `approval_message`、`dmsg/account/v2` 域和 `(expected_version, command)`。恢复再次确认使用 `recovery_confirmation_message` 和恢复密钥，不使用设备密钥。序号消耗、期限检查和权限决定发生在服务中。结果未知时，对账原请求，不自动创建新的签名操作。
 
@@ -172,17 +179,13 @@ AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 3
 
 ## 证据与时间戳边界
 
-`verification_report` 对有效签名返回 Verified。内嵌文本为 Verified；传入的原文必须逐字节匹配或 SHA-256 匹配。摘要或文件声明未提供原文件时为 NotProvided；内嵌意见文本不代表已核对文件。issuer 绑定、授权和当前状态保持 NotChecked。时间戳不存在时为 NotProvided，附加不透明 token 后为 NotChecked。验证失败返回错误，而不是返回一个带成功签名标记的报告。
+`verify_artifact` 只检查 profile 和数学签名。原文需由调用方对照验证后的声明自行核对：内嵌文本必须逐字节匹配，摘要或文件声明必须匹配原文件的 SHA-256；内嵌意见文本不代表已核对文件。issuer 绑定、授权、当前状态和时间戳信任都不在检查范围内。
 
 调用 `match_execution_receipt` 前，先独立验证可信 IC 根、预期 user canister、certificate、witness、请求路径和叶值。`execution_receipt_key` 构造单段原始路径 `b"execution/" || account_id[12] || request_id[32]`。匹配器要求 schema 1 和 Completed，然后匹配 issuer、待签字节摘要、公钥指纹和原始签名摘要。它不独立检查回执的账户/请求 ID、origin、截止时间或外部项目权限；应认证预期路径，并单独执行其他政策检查。
 
-| 辅助函数 | 精确操作 | 不执行的工作 |
-| --- | --- | --- |
-| `signature_digest` | 对原始签名字节计算 SHA-256，用于执行回执 | 验证签名或 dMsg profile |
-| `timestamp_imprint` | SHA-256(CBOR(signature bstr))，包含字节串头，要求外层规范编码 | 验证签名、获取 TSA token 或核对 TSA 信任 |
-| `attach_unverified_timestamp_token` | 验证产物后，将不透明 token 字节附加到非保护头 270 | 验证 CMS、imprint、证书链、TSA 政策或撤销状态 |
+`signature_digest` 对执行回执使用的原始签名字节计算 SHA-256，不验证签名或 dMsg profile。
 
-token 上限为 131,072 字节，编码后的 COSE_Key 上限为 2,048 字节，COSE_Sign1 产物上限为 196,608 字节。已有 token 时，附加函数返回 VersionConflict。可信时间戳验证、TSA 网络调用、SCITT 透明服务、归档和链上锚定不属于本库范围。
+验证接受非保护头 270 中不超过 131,072 字节的不透明 token，但不检查它。编码后的 COSE_Key 上限为 2,048 字节，COSE_Sign1 产物上限为 196,608 字节。可信时间戳验证、TSA 网络调用、SCITT 透明服务、归档和链上锚定不属于本库范围。
 
 ## 错误、协议依据与验证
 

@@ -23,14 +23,41 @@ fn statement() -> Statement {
     }
 }
 
+fn finish(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
+    parse_signing_input(tbs)?
+        .into_signature(public)?
+        .finish(signature)
+}
+
 fn sign(statement: &Statement, kid: &[u8]) -> SignedArtifact {
     let (_, tbs) = prepare_cose(statement, &Algorithm::Ed25519, kid).unwrap();
-    finish_cose(
+    finish(
         &tbs,
         &key().verifying_key().to_bytes(),
         key().sign(&tbs).to_bytes().to_vec(),
     )
     .unwrap()
+}
+
+/// Sig_structure with the original protected bytes and empty external AAD.
+fn signing_bytes(artifact: &SignedArtifact) -> Vec<u8> {
+    let message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
+    Sign1Message::to_be_signed(
+        message.protected_raw(),
+        &[],
+        message.payload.as_deref().unwrap(),
+    )
+    .unwrap()
+}
+
+/// Attach opaque CTT material at unprotected header 270 without signing again.
+fn with_timestamp(artifact: &SignedArtifact, token: &[u8]) -> SignedArtifact {
+    let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
+    message.unprotected.insert(CTT_HEADER, token.to_vec());
+    SignedArtifact {
+        cose_sign1: message.to_vec().unwrap().into(),
+        cose_key: artifact.cose_key.clone(),
+    }
 }
 
 fn file_statement() -> Statement {
@@ -74,12 +101,8 @@ fn prepared_signatures_match_raw_framing_for_every_profile_and_algorithm() {
                 .unwrap()
                 .into_signature(&public)
                 .unwrap();
-            let optimized = prepared.finish(signature.clone()).unwrap();
-            assert_eq!(optimized, finish_cose(&tbs, &public, signature).unwrap());
-            assert_eq!(
-                verification_report(&optimized, None).unwrap().signature,
-                VerificationStatus::Verified
-            );
+            let artifact = prepared.finish(signature).unwrap();
+            assert_eq!(verify_artifact(&artifact).unwrap(), statement);
             assert_eq!(
                 parse_signing_input(&tbs)
                     .unwrap()
@@ -93,7 +116,7 @@ fn prepared_signatures_match_raw_framing_for_every_profile_and_algorithm() {
 }
 
 #[test]
-fn file_statements_jointly_bind_text_and_file_with_separate_content_verification() {
+fn file_statements_jointly_bind_text_and_file() {
     let value = file_statement();
     assert_eq!(
         statement_purpose(&value),
@@ -118,28 +141,14 @@ fn file_statements_jointly_bind_text_and_file_with_separate_content_verification
         } else {
             let signer = k256::ecdsa::SigningKey::from_bytes((&[7; 32]).into()).unwrap();
             let signature: k256::ecdsa::Signature = signer.sign(&tbs);
-            finish_cose(
+            finish(
                 &tbs,
                 signer.verifying_key().to_sec1_point(false).as_bytes(),
                 signature.to_bytes().to_vec(),
             )
             .unwrap()
         };
-        let report = verification_report(&artifact, None).unwrap();
-        assert_eq!(report.statement, value);
-        assert_eq!(report.signature, VerificationStatus::Verified);
-        assert_eq!(report.content, VerificationStatus::NotProvided);
-        assert_eq!(report.authorization, VerificationStatus::NotChecked);
-        assert_eq!(
-            verification_report(&artifact, Some(b"document"))
-                .unwrap()
-                .content,
-            VerificationStatus::Verified
-        );
-        assert_eq!(
-            verification_report(&artifact, Some(b"different")),
-            Err(Error::IntegrityFailed)
-        );
+        assert_eq!(verify_artifact(&artifact).unwrap(), value);
         // Mutate each signed field without signing again, including optional metadata.
         for field in 1..=4 {
             let mut changed = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
@@ -289,35 +298,7 @@ fn standard_cose_verification_and_variable_identifiers() {
             Sign1Message::verify_and_decode(&verifier, &artifact.cose_sign1, None).unwrap();
         assert_eq!(message.payload.unwrap(), sha256(b"document").to_vec());
         assert_eq!(verify_artifact(&artifact).unwrap(), statement());
-        assert_eq!(
-            verification_report(&artifact, Some(b"document"))
-                .unwrap()
-                .content,
-            VerificationStatus::Verified
-        );
-        assert_eq!(
-            verification_report(&artifact, None).unwrap().content,
-            VerificationStatus::NotProvided
-        );
-        assert!(verification_report(&artifact, Some(b"different")).is_err());
     }
-    assert_eq!(
-        principal_issuer(
-            "https://id.test/ic/mainnet/",
-            candid::Principal::management_canister()
-        ),
-        "https://id.test/ic/mainnet/aaaaa-aa"
-    );
-    let account = AccountId([1; 12]);
-    assert_eq!(
-        parse_account_issuer(
-            "https://dmsg.test/u/",
-            &account_issuer("https://dmsg.test/u/", &account)
-        )
-        .unwrap(),
-        account
-    );
-    assert!(parse_account_issuer("https://other.test/u/", &statement().issuer).is_err());
 }
 
 fn resigned(
@@ -420,49 +401,13 @@ fn text_is_original_utf8_and_contains_no_execution_fields() {
 }
 
 #[test]
-fn adding_unverified_tsa_material_never_promotes_trust() {
-    let artifact = sign(&statement(), b"kid");
-    let before = timestamp_imprint(&artifact.cose_sign1).unwrap();
-    let timestamped = attach_unverified_timestamp_token(&artifact, &[0x30, 0]).unwrap();
-    assert_ne!(timestamped, artifact);
-    assert_eq!(timestamp_imprint(&timestamped.cose_sign1).unwrap(), before);
-    assert_eq!(
-        artifact_signing_bytes(&artifact).unwrap(),
-        artifact_signing_bytes(&timestamped).unwrap()
-    );
-    let report = verification_report(&timestamped, Some(b"document")).unwrap();
-    assert_eq!(report.signature, VerificationStatus::Verified);
-    assert_eq!(report.timestamp, VerificationStatus::NotChecked);
-    assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
-    assert_eq!(report.authorization, VerificationStatus::NotChecked);
-    assert!(attach_unverified_timestamp_token(&timestamped, &[0x30, 0]).is_err());
-}
-
-#[test]
-fn rfc9921_imprint_includes_the_cbor_byte_string_header() {
-    // Published RFC 9921 section 3.1.1 example, not generated by this crate.
-    let signature = hex::decode("8eb33e4ca31d1c465ab05aac34cc6b23d58fef5c083106c4d25a91aef0b0117e2af9a291aa32e14ab834dc56ed2a223444547e01f11d3b0916e5a4c345cacb36").unwrap();
-    let mut message = Sign1Message::new(Some(b"This is the content.".to_vec()));
-    message
-        .prepare_signature(Some(iana::AlgorithmES256.into()), None, None)
-        .unwrap();
-    message.set_signature(signature.clone()).unwrap();
-    let imprint = timestamp_imprint(&message.to_vec().unwrap()).unwrap();
-    assert_eq!(
-        hex::encode(imprint.as_slice()),
-        "44c2419d131d53d55584b5dd33b788c24e551c6d44b1afc8b2b85e6954763b4e"
-    );
-    assert_ne!(imprint, sha256(&signature));
-}
-
-#[test]
 fn es256k_compressed_keys_have_the_same_rfc9679_thumbprint() {
     use k256::ecdsa::{Signature as EcSignature, SigningKey as EcKey};
     let signer = EcKey::from_bytes((&[7; 32]).into()).unwrap();
     let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"ec-key").unwrap();
     let signature: EcSignature = signer.sign(&tbs);
     let public = signer.verifying_key().to_sec1_point(false);
-    let mut artifact = finish_cose(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
+    let mut artifact = finish(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
     verify_artifact(&artifact).unwrap();
     let thumb = key_thumbprint(&artifact.cose_key).unwrap();
     let mut key = Key::from_slice(&artifact.cose_key).unwrap();
@@ -524,16 +469,11 @@ fn verification_preserves_original_protected_map_order() {
         cose_key: artifact.cose_key,
     };
     assert_eq!(verify_artifact(&changed).unwrap(), statement());
-    assert_eq!(artifact_signing_bytes(&changed).unwrap(), tbs);
-    assert_eq!(
-        verification_report(&changed, None).unwrap().statement,
-        statement()
-    );
     let receipt = receipt(&changed);
     match_execution_receipt(&changed, &receipt).unwrap();
     match_signing_result(&changed, &tbs, receipt.public_key_fingerprint).unwrap();
-    let timestamped = attach_unverified_timestamp_token(&changed, &[0x30, 0]).unwrap();
-    assert_eq!(artifact_signing_bytes(&timestamped).unwrap(), tbs);
+    let timestamped = with_timestamp(&changed, &[0x30, 0]);
+    match_signing_result(&timestamped, &tbs, receipt.public_key_fingerprint).unwrap();
     match_execution_receipt(&timestamped, &receipt).unwrap();
     // The local signing entry point requires its own canonical preparation.
     assert!(parse_signing_input(&tbs).is_err());
@@ -551,7 +491,7 @@ fn receipt(artifact: &SignedArtifact) -> ExecutionReceipt {
         expires_at: 20,
         origin: "https://app.test".into(),
         max_cycles: 100,
-        to_be_signed_digest: sha256(&artifact_signing_bytes(artifact).unwrap()),
+        to_be_signed_digest: sha256(&signing_bytes(artifact)),
         public_key_fingerprint: key_thumbprint(&artifact.cose_key).unwrap(),
         status: ExecutionStatus::Completed,
         signature_digest: Some(signature_digest(&artifact.cose_sign1).unwrap()),
@@ -574,7 +514,7 @@ fn receipts_and_signing_results_bind_every_artifact_field() {
     let artifact = sign(&statement(), b"kid");
     let receipt = receipt(&artifact);
     match_execution_receipt(&artifact, &receipt).unwrap();
-    let tbs = artifact_signing_bytes(&artifact).unwrap();
+    let tbs = signing_bytes(&artifact);
     match_signing_result(&artifact, &tbs, receipt.public_key_fingerprint).unwrap();
     assert_eq!(
         match_signing_result(&artifact, b"other", receipt.public_key_fingerprint),
@@ -614,7 +554,7 @@ fn receipts_and_signing_results_bind_every_artifact_field() {
             Err(Error::IntegrityFailed)
         );
     }
-    let timestamped = attach_unverified_timestamp_token(&artifact, &[0x30, 0]).unwrap();
+    let timestamped = with_timestamp(&artifact, &[0x30, 0]);
     match_execution_receipt(&timestamped, &receipt).unwrap();
 }
 
@@ -622,18 +562,16 @@ fn receipts_and_signing_results_bind_every_artifact_field() {
 fn reused_artifact_helpers_still_verify_the_signature() {
     let artifact = sign(&statement(), b"kid");
     let receipt = receipt(&artifact);
-    let tbs = artifact_signing_bytes(&artifact).unwrap();
+    let tbs = signing_bytes(&artifact);
     let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
     message.set_signature(vec![0; 64]).unwrap();
     let changed = SignedArtifact {
         cose_sign1: message.to_vec().unwrap().into(),
         ..artifact
     };
-    assert!(artifact_signing_bytes(&changed).is_err());
+    assert!(verify_artifact(&changed).is_err());
     assert!(match_signing_result(&changed, &tbs, receipt.public_key_fingerprint).is_err());
     assert!(match_execution_receipt(&changed, &receipt).is_err());
-    assert!(verification_report(&changed, None).is_err());
-    assert!(attach_unverified_timestamp_token(&changed, &[1]).is_err());
 }
 
 #[test]
@@ -712,7 +650,7 @@ fn preparation_rejects_unsupported_algorithms_bad_keys_and_signature_lengths() {
         MAX_KID_BYTES
     );
     for size in [0, 63, 65] {
-        assert!(finish_cose(&tbs, &key().verifying_key().to_bytes(), vec![0; size]).is_err());
+        assert!(finish(&tbs, &key().verifying_key().to_bytes(), vec![0; size]).is_err());
     }
     for size in [0, 31, 33] {
         assert!(public_cose_key(&Algorithm::Ed25519, b"kid", &vec![0; size]).is_err());
@@ -842,21 +780,12 @@ fn key_algorithm_operations_curve_and_private_parameters_are_checked() {
 #[test]
 fn timestamp_tokens_have_strict_bounds_and_never_change_signed_bytes() {
     let artifact = sign(&statement(), b"kid");
-    assert!(attach_unverified_timestamp_token(&artifact, &[]).is_err());
-    assert!(
-        attach_unverified_timestamp_token(&artifact, &vec![1; MAX_TIMESTAMP_BYTES + 1]).is_err()
-    );
-    let timestamped =
-        attach_unverified_timestamp_token(&artifact, &vec![1; MAX_TIMESTAMP_BYTES]).unwrap();
+    let timestamped = with_timestamp(&artifact, &vec![1; MAX_TIMESTAMP_BYTES]);
     assert!(timestamped.cose_sign1.len() <= MAX_ARTIFACT_BYTES);
     assert_eq!(verify_artifact(&timestamped).unwrap(), statement());
     assert_eq!(
         signature_digest(&timestamped.cose_sign1),
         signature_digest(&artifact.cose_sign1)
-    );
-    assert_eq!(
-        timestamp_imprint(&timestamped.cose_sign1),
-        timestamp_imprint(&artifact.cose_sign1)
     );
     for value in [
         Value::Text("token".into()),
@@ -879,30 +808,9 @@ fn timestamp_tokens_have_strict_bounds_and_never_change_signed_bytes() {
     };
     assert!(verify_artifact(&changed).is_err());
     assert_eq!(
-        timestamp_imprint(&vec![0; MAX_ARTIFACT_BYTES + 1]),
-        Err(Error::QuotaExceeded)
-    );
-    assert_eq!(
         signature_digest(&vec![0; MAX_ARTIFACT_BYTES + 1]),
         Err(Error::QuotaExceeded)
     );
-    assert!(timestamp_imprint(&artifact.cose_sign1[1..]).is_err());
-}
-
-#[test]
-fn text_reports_compare_exact_bytes_and_do_not_infer_identity_trust() {
-    let mut value = statement();
-    value.content = StatementContent::Text("  原文\n".into());
-    let artifact = sign(&value, b"kid");
-    for content in [None, Some("  原文\n".as_bytes())] {
-        let report = verification_report(&artifact, content).unwrap();
-        assert_eq!(report.content, VerificationStatus::Verified);
-        assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
-        assert_eq!(report.authorization, VerificationStatus::NotChecked);
-        assert_eq!(report.current_status, VerificationStatus::NotChecked);
-        assert_eq!(report.timestamp, VerificationStatus::NotProvided);
-    }
-    assert!(verification_report(&artifact, Some("原文".as_bytes())).is_err());
 }
 
 // Construct externally signed bytes without asking the COSE builder to validate
@@ -1031,7 +939,7 @@ fn secp256k1_verification_checks_coordinates_curve_and_signature() {
     let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"kid").unwrap();
     let signature: EcSignature = signer.sign(&tbs);
     let public = signer.verifying_key().to_sec1_point(false);
-    let artifact = finish_cose(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
+    let artifact = finish(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
     let changes: &[fn(&mut Key)] = &[
         |k| {
             k.set_kty(iana::KeyTypeOKP);
@@ -1085,11 +993,11 @@ fn es256k_artifacts_are_low_s_and_reject_high_s_malleations() {
     let high = EcSignature::from_scalars(low.r(), -*low.s()).unwrap();
     let public = signer.verifying_key().to_sec1_point(false);
     // Managed signers may return either S; assembly keeps only the low-S form.
-    let artifact = finish_cose(&tbs, public.as_bytes(), high.to_bytes().to_vec()).unwrap();
+    let artifact = finish(&tbs, public.as_bytes(), high.to_bytes().to_vec()).unwrap();
     verify_artifact(&artifact).unwrap();
     assert_eq!(
         artifact,
-        finish_cose(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap()
+        finish(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap()
     );
     let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
     message.set_signature(high.to_bytes().to_vec()).unwrap();
@@ -1102,7 +1010,7 @@ fn es256k_artifacts_are_low_s_and_reject_high_s_malleations() {
     // The SDK verifies these same bytes, generated with the fixed test seed above.
     let fixture: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/es256k.json")).unwrap();
-    let low_artifact = finish_cose(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap();
+    let low_artifact = finish(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap();
     assert_eq!(fixture["cose_key"], hex::encode(&low_artifact.cose_key));
     assert_eq!(fixture["low_s"], hex::encode(&low_artifact.cose_sign1));
     assert_eq!(fixture["high_s"], hex::encode(&malleated.cose_sign1));

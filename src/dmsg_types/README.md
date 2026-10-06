@@ -48,7 +48,7 @@ These links point to the public repository's main branch, which changes during d
 
 | Module | Main types | Use cases |
 | --- | --- | --- |
-| `signing` | `Statement`, `StatementContent`, `SignedArtifact`, `VerificationReport` | Prepare, exchange, and parse signed documents independently of ICP |
+| `signing` | `Statement`, `StatementContent`, `SignedArtifact` | Prepare, exchange, and parse signed documents independently of ICP |
 | `account_id` | `AccountId` | Stable account identity; re-exports `ic_auth_types::Xid` |
 | `protocol` | `Hash`, `OpId`, `Approval`, `Error`, `CertifiedBatch` | Shared bytes, time units, device approvals, errors, and certified queries |
 | `cose` | `SignRequest`, `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `ExecutionReceipt` | ICP formal signing, vetKD, key provenance, and execution reconciliation |
@@ -128,17 +128,16 @@ let result = ExecutionResult {
     cycles_cost_upper_bound: 0,
 };
 assert!(!result.is_terminal());
-assert_eq!(result.output(), Err(Error::ExecutionUnknown));
 // Query and reconcile the original request_id; do not automatically create another signing request.
 ```
 
-`output()` returns `Error::Pending` while an operation is pending and `Error::ResultExpired` when its retained output has been removed. `is_terminal()` returns true only for Completed, Failed, and ResultExpired. Unknown does not mean the operation did not execute.
+`is_terminal()` returns true only for Completed, Failed, and ResultExpired; a retained output exists only in Completed. Unknown does not mean the operation did not execute.
 
 ## Integration workflows
 
 ### Independent document verification
 
-Obtain a `SignedArtifact` and use the companion `dmsg_protocol::verify_artifact` to check the COSE profile and mathematical signature. To verify a file, provide the original bytes to `verification_report`; without original content, a digest document's content status is `NotProvided`. The attached `cose_key` is only a public key and cannot establish the issuer's identity by itself. Check `issuer_binding`, `authorization`, `timestamp`, and `current_status` against their respective evidence, leaving them `NotChecked` when not verified.
+Obtain a `SignedArtifact` and use the companion `dmsg_protocol::verify_artifact` to check the COSE profile and mathematical signature. To verify a file, compare the original bytes' SHA-256 with the verified statement; signature verification alone does not check the file. The attached `cose_key` is only a public key and cannot establish the issuer's identity by itself. Check issuer binding, authorization, timestamp, and current status against their respective evidence.
 
 Supported signing algorithms are Ed25519 (COSE -19) and ES256K (-47). vetKD derives content roots and is not a document-signature algorithm. An ordinary signature does not include a trusted timestamp: `Statement.issued_at` is the signer's time claim. Expiration of an execution approval does not automatically invalidate a completed document signature.
 
@@ -180,7 +179,7 @@ Serde defines the data representation. Deterministic encoding still requires the
 
 The browser bridge uses the separate `dmsg-extension/4` JSON contract: accountId is Xid text, digests/requestId/nonce are lowercase hex, and large integers are decimal strings. Ordinary Rust Serde JSON is not the bridge protocol. Rust enum memory layout is not a wire format either.
 
-Certified queries return `CertifiedBatch`. Verify the trusted IC root, expected canister, certificate time, witness path, and exact leaf bytes. The account security leaf uses a single raw AccountId path segment, and an escrow leaf uses a single raw escrow_id. Execution receipt paths are `b"execution/" || account_id || request_id`. `SecuritySnapshot.devices_root` commits to the complete device map, including revocation and sequence fields, rather than a reduced device list. Current account security snapshots use a freshness boundary of certificate time +60 seconds; do not mechanically apply that window to historical execution receipts. Neither `AccountInfo` nor `DeviceEvidence` alone is a certified proof.
+Certified queries return `CertifiedBatch`. Verify the trusted IC root, expected canister, certificate time, witness path, and exact leaf bytes. The account security leaf uses a single raw AccountId path segment, and an escrow leaf uses a single raw escrow_id. Execution receipt paths are `b"execution/" || account_id || request_id`. `SecuritySnapshot.devices_root` commits to the complete device map, including revocation and sequence fields, rather than a reduced device list. Current account security snapshots use a freshness boundary of certificate time +60 seconds; do not mechanically apply that window to historical execution receipts. `AccountInfo` alone is not a certified proof.
 
 ## Error handling and interface references
 

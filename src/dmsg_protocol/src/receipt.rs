@@ -15,17 +15,6 @@ pub fn execution_receipt_key(account: &AccountId, request: OpId) -> Vec<u8> {
     .concat()
 }
 
-/// Verify an artifact and reconstruct its exact COSE Sig_structure bytes.
-///
-/// Preserves the original protected-header bytes and uses empty external AAD.
-/// This checks mathematical validity but establishes no issuer/key trust.
-///
-/// # Errors
-/// Propagates profile, key, signature, size and decoding errors from artifact verification.
-pub fn artifact_signing_bytes(artifact: &SignedArtifact) -> Result<Vec<u8>> {
-    verify_and_parse_artifact(artifact)?.signing_bytes()
-}
-
 /// Verify a returned artifact and bind it to expected signing bytes and key thumbprint.
 ///
 /// `expected_tbs` must be the frozen Sig_structure supplied to the signer;

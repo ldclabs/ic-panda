@@ -36,7 +36,7 @@ All three profiles require protected headers `alg` (1), `kid` (4), CWT claims (1
 | Device, Operation, SHA-256 | Distinct semantic types, 32 bytes | Bridge interfaces explicitly specify encoding; identity types are not inferred from length |
 | COSE kid | Opaque bstr, bounded to 1..256 bytes in current profiles | No implicit account semantics |
 
-Identity adapters accept explicit namespaces: `account_issuer("https://dmsg.example/u/", account)` or `principal_issuer("https://id.example/ic/mainnet/", principal)`. Namespaces are fixed URI prefixes ending with `/` or `:`, without query or fragment, at most 8128 bytes. Account migration does not alter identity URIs; no zero-padding, truncation, or hashing is used to fit length constraints.
+Identity adapters accept explicit namespaces: `account_issuer("https://dmsg.example/u/", account)`, or a Principal issuer formed by appending canonical Principal text to its namespace, such as `https://id.example/ic/mainnet/aaaaa-aa`. Namespaces are fixed URI prefixes ending with `/` or `:`, without query or fragment, at most 8128 bytes. Account migration does not alter identity URIs; no zero-padding, truncation, or hashing is used to fit length constraints.
 
 New messages use RFC 8949 §4.2.1 core deterministic CBOR: shortest encoding, keys sorted by encoded byte order, no floating-point numbers, duplicate keys, or trailing bytes. Existing COSE verification preserves original protected bytes and must not re-sort prior to verification. Local signing endpoints accept only inputs prepared according to profile rules. To-be-signed structures are capped at 65536 bytes, COSE_Key at 2048 bytes, signature artifacts at 196608 bytes, and TSA tokens at 131072 bytes. The library decoder enforces recursion limits; the SDK additionally enforces limits of 24 levels and 50000 nodes.
 
@@ -99,9 +99,9 @@ Once authentication, device PoP, quota, and unique binding checks succeed, a sin
 
 ## Timestamps and Verification Reports
 
-The RFC 9921 CTT SHA-256 MessageImprint is `SHA256(CBOR(signature_bstr))`, including the CBOR bstr header, distinguishing it from the raw signature digest in execution receipts. `timestamp_imprint` requires canonical outer framing; `attach_unverified_timestamp_token` only populates header 270 and does not request or validate TSA trust. CMS signatures, imprints, certificate chains, key purposes, policies, and revocation status require independent verification.
+The RFC 9921 CTT SHA-256 MessageImprint is `SHA256(CBOR(signature_bstr))`, including the CBOR bstr header, distinguishing it from the raw signature digest in execution receipts. Header 270 carries an opaque token; verification neither requests nor validates TSA trust. CMS signatures, imprints, certificate chains, key purposes, policies, and revocation status require independent verification.
 
-`verify_artifact` and SDK `verifyDocumentArtifact` check profile compliance and cryptographic signatures; `verification_report` individually reports `signature`, `content`, `issuer_binding`, `authorization`, `timestamp`, and `current_status`. Standalone embedded text is `Verified`; when the original file of a digest or file statement is omitted, `content` is `NotProvided`; when identities or TSAs are unverified, they are reported as `NotChecked`. An embedded public key or a single boolean success result cannot serve as complete proof.
+`verify_artifact` and SDK `verifyDocumentArtifact` check profile compliance and cryptographic signatures; the SDK result individually reports `signature`, `content`, `issuerBinding`, `authorization`, `timestamp`, and `currentStatus`. Standalone embedded text is `verified`; when the original file of a digest or file statement is omitted, `content` is `not_provided`; when identities or TSAs are unverified, they are reported as `not_checked`. An embedded public key or a single boolean success result cannot serve as complete proof.
 
 Current implementations do not provide TSA network/CMS validation, SCITT transparency services, long-term archiving, or on-chain state anchoring endpoints. Optional paid delivery, handle management, and ICP control contracts are maintained separately.
 

@@ -512,20 +512,6 @@ impl ExecutionResult {
                 | ExecutionOutcome::ResultExpired
         )
     }
-
-    /// Borrow completed output.
-    ///
-    /// # Errors
-    /// Returns the stored failure/unknown error, ResultExpired for pruned output,
-    /// or Pending while authorization/execution is in progress.
-    pub fn output(&self) -> Result<&ExecutionOutput> {
-        match &self.outcome {
-            ExecutionOutcome::Completed(output) => Ok(output),
-            ExecutionOutcome::Failed(e) | ExecutionOutcome::Unknown(e) => Err(e.clone()),
-            ExecutionOutcome::ResultExpired => Err(Error::ResultExpired),
-            _ => Err(Error::Pending),
-        }
-    }
 }
 
 /// COSE deployment configuration and master-key initialization diagnostics.

@@ -16,35 +16,35 @@ fn main() {
         vector("product", canonical(&product())),
         vector(
             "project_offer",
-            commitment_bytes("dmsg/commerce/offer/v2", &offer()),
+            canonical(&(1u8, "dmsg/commerce/offer/v2", &offer())),
         ),
         vector(
             "account_offer",
-            commitment_bytes("dmsg/commerce/offer/v2", &account_offer()),
+            canonical(&(1u8, "dmsg/commerce/offer/v2", &account_offer())),
         ),
         vector(
             "authentication",
-            commitment_bytes("dmsg/authentication/request/v1", &authentication()),
+            canonical(&(1u8, "dmsg/authentication/request/v1", &authentication())),
         ),
         vector(
             "approval",
-            commitment_bytes("dmsg/application/approval/v1", &approval()),
+            canonical(&(1u8, "dmsg/application/approval/v1", &approval())),
         ),
         vector(
             "panda_quote",
-            commitment_bytes("dmsg/commerce/panda-quote/v2", &q),
+            canonical(&(1u8, "dmsg/commerce/panda-quote/v2", &q)),
         ),
         vector(
             "cash_a",
-            commitment_bytes("dmsg/commerce/cash-quote/v2", &cash(principal(6))),
+            canonical(&(1u8, "dmsg/commerce/cash-quote/v2", &cash(principal(6)))),
         ),
         vector(
             "cash_b",
-            commitment_bytes("dmsg/commerce/cash-quote/v2", &cash(principal(7))),
+            canonical(&(1u8, "dmsg/commerce/cash-quote/v2", &cash(principal(7)))),
         ),
         vector(
             "decision",
-            commitment_bytes("dmsg/commerce/decision/v2", &decision()),
+            canonical(&(1u8, "dmsg/commerce/decision/v2", &decision())),
         ),
         vector("max_u128", canonical(&u128::MAX)),
         vector("commerce_version", canonical(&COMMERCE_VERSION)),
@@ -55,7 +55,7 @@ fn main() {
         action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
         values.push(vector(
             &format!("app_action_{index}"),
-            commitment_bytes("dmsg/app-action/v1", &action),
+            canonical(&(1u8, "dmsg/app-action/v1", &action)),
         ));
     }
     {
@@ -92,18 +92,24 @@ fn main() {
         let ExecutionKind::Sign { to_be_signed, .. } = &execution.kind else {
             panic!()
         };
-        let artifact = finish_cose(
-            to_be_signed,
-            &public,
-            key.sign(to_be_signed).to_bytes().to_vec(),
-        )
-        .unwrap();
+        let artifact = parse_signing_input(to_be_signed)
+            .unwrap()
+            .into_signature(&public)
+            .unwrap()
+            .finish(key.sign(to_be_signed).to_bytes().to_vec())
+            .unwrap();
         values.push(vector("app_action_request", canonical(&request)));
         values.push(vector("app_action_artifact", canonical(&artifact)));
         values.push(vector("app_action_signing_bytes", to_be_signed.to_vec()));
         values.push(vector(
             "app_action_approval",
-            canonical(&execution.approval_message(principal(1))),
+            canonical(&approval_message(
+                principal(1),
+                &execution.account_id,
+                "dmsg/execute/v3",
+                &(&execution.kind, execution.max_cycles),
+                &execution.approval,
+            )),
         ));
     }
     println!("{}", serde_json::to_string_pretty(&values).unwrap());

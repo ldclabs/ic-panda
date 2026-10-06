@@ -34,7 +34,12 @@ fn main() {
     };
     let (_, tbs) = prepare_cose(&statement, &Algorithm::Ed25519, b"kid").unwrap();
     let signature = signer.sign(&tbs).to_bytes().to_vec();
-    let artifact = finish_cose(&tbs, &signer.verifying_key().to_bytes(), signature).unwrap();
+    let artifact = parse_signing_input(&tbs)
+        .unwrap()
+        .into_signature(&signer.verifying_key().to_bytes())
+        .unwrap()
+        .finish(signature)
+        .unwrap();
     let receipt = ExecutionReceipt {
         schema: 1,
         account_id: account,
@@ -75,17 +80,14 @@ fn main() {
     measure("account_issuer", 10_000, || {
         black_box(account_issuer(black_box(namespace), black_box(&account)));
     });
-    measure("parse_account_issuer", 10_000, || {
-        black_box(parse_account_issuer(black_box(namespace), black_box(&issuer)).unwrap());
-    });
     measure("parse_signing_input", 1_000, || {
         black_box(parse_signing_input(black_box(&tbs)).unwrap());
     });
     measure("match_execution_receipt", 1_000, || {
         match_execution_receipt(black_box(&artifact), black_box(&receipt)).unwrap();
     });
-    measure("verification_report", 1_000, || {
-        black_box(verification_report(black_box(&artifact), None).unwrap());
+    measure("verify_artifact", 1_000, || {
+        black_box(verify_artifact(black_box(&artifact)).unwrap());
     });
     measure("device_validation", 10_000, || {
         black_box(&device).validate().unwrap();

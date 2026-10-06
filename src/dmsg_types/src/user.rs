@@ -453,18 +453,6 @@ pub struct AccountMutation {
     pub approval: Approval,
 }
 
-/// Device and snapshot view for authorization checks.
-/// The struct itself carries no IC certificate or witness; its source must be trusted.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct DeviceEvidence {
-    /// Account security snapshot used to evaluate this device.
-    pub snapshot: SecuritySnapshot,
-    /// Device registration, revocation state and replay sequence.
-    pub device: Device,
-    /// Time this evidence was observed, in Unix milliseconds; not a certificate by itself.
-    pub observed_at: u64,
-}
-
 /// Account query view, not a stable-storage record or a certified proof by itself.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountInfo {

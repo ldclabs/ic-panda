@@ -38,11 +38,6 @@ pub fn catalog_key() -> Hash {
     digest("dmsg/commerce/catalog-key/v1", &"dmsg")
 }
 
-/// Commit to an immutable plan snapshot, including prices, limits and weights.
-pub fn plan_digest(plan: &PlanVersion) -> Hash {
-    digest("dmsg/commerce/plan/v1", plan)
-}
-
 /// Single-segment certified execution-usage path; month is UTC YYYYMM.
 pub fn usage_key(account: &AccountId, month: u32) -> Hash {
     digest("dmsg/commerce/usage-key/v1", &(account, month))
@@ -117,13 +112,6 @@ pub fn monthly_allowance(month: u32, created_at_ms: u64, segments: &[MonthSegmen
     }
     ensure(cursor == end, Error::IntegrityFailed)?;
     u64::try_from(total / u128::from(end - start)).map_err(|_| Error::QuotaExceeded)
-}
-
-/// Convert integer USD cents to ledger atomic units, rounding up once.
-/// The caller selects a trusted asset; decimals above 18 return InvalidInput.
-pub fn cents_atomic(cents: u64, decimals: u8) -> Result<u128> {
-    ensure_valid(decimals <= 18, "ledger decimals")?;
-    mul_div(cents.into(), 10u128.pow(decimals.into()), 100, true)
 }
 
 /// Build the four initial plan snapshots at the supplied catalog version.
@@ -219,7 +207,6 @@ mod tests {
             .unwrap(),
             6
         );
-        assert_eq!(cents_atomic(2, 6).unwrap(), 20_000);
         assert_eq!(
             crate::integration::required_panda_stake(10_000_000, 5000, 1).unwrap(),
             5_000_000_000_000
@@ -283,8 +270,6 @@ mod boundary_tests {
         assert!(month_utc(u64::MAX).is_err());
         let (_, jan) = month_bounds(202612).unwrap();
         assert_eq!(month_utc(jan), Ok(202701));
-        assert_eq!(cents_atomic(1, 0), Ok(1));
-        assert!(cents_atomic(1, 19).is_err());
         let mut fee = dmsg_types::payment::DeliveryFeePolicy {
             version: 1,
             effective_at_ms: 0,

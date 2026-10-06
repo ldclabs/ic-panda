@@ -112,13 +112,13 @@ fn pause_on_neuron_read(membership: Principal) {
 
 ic_cdk::export_candid!();
 
-// Explicit test-only product authority; exact caller, account and prepared digest.
+// Explicit test-only product authority; exact caller, account and prepared action.
 // This is a fault-injection fixture, never a production permission service.
 #[derive(Clone)]
 struct ActionApprovalFixture {
     home: Principal,
     account: AccountId,
-    digest: Hash,
+    action: dmsg_types::app_action::AppAction,
     change: Option<(Principal, dmsg_types::integration::AppRegistration)>,
 }
 thread_local! { static ACTION_APPROVAL: RefCell<Option<ActionApprovalFixture>> = const { RefCell::new(None) }; }
@@ -126,14 +126,14 @@ thread_local! { static ACTION_APPROVAL: RefCell<Option<ActionApprovalFixture>> =
 fn set_action_approval(
     home: Principal,
     account: AccountId,
-    digest: Hash,
+    action: dmsg_types::app_action::AppAction,
     change: Option<(Principal, dmsg_types::integration::AppRegistration)>,
 ) {
     ACTION_APPROVAL.with_borrow_mut(|s| {
         *s = Some(ActionApprovalFixture {
             home,
             account,
-            digest,
+            action,
             change,
         })
     });
@@ -149,7 +149,7 @@ async fn verify_dmsg_action(
     ensure(
         ic_cdk::api::msg_caller() == approval.home
             && account == approval.account
-            && dmsg_protocol::app_action::app_action_digest(&action) == approval.digest,
+            && action == approval.action,
         Error::Forbidden,
     )?;
     if let Some((commerce, app)) = approval.change {

@@ -61,35 +61,3 @@ pub struct SignedArtifact {
     /// Public-only COSE_Key CBOR bytes; never include private key parameters.
     pub cose_key: ByteBuf,
 }
-
-/// Evidence status for one verification dimension; not a catch-all success flag.
-/// Invalid signatures/content are reported as errors by protocol verification.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum VerificationStatus {
-    /// This dimension was checked successfully against the supplied verification policy.
-    Verified,
-    /// Required evidence/input was not supplied, for example the original file.
-    NotProvided,
-    /// This dimension was not verified; no trust claim is made.
-    NotChecked,
-}
-
-/// This report never promotes caller-supplied keys/tokens into trusted credentials.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct VerificationReport {
-    /// Prepared or parsed document claims and content.
-    pub statement: Statement,
-    /// Whether the COSE profile and mathematical signature were verified.
-    pub signature: VerificationStatus,
-    /// Whether original content was verified; Digest and FileStatement need the
-    /// original file bytes. An embedded file statement's text alone does not verify its file.
-    pub content: VerificationStatus,
-    /// Whether trusted evidence binds the signing key to the issuer.
-    pub issuer_binding: VerificationStatus,
-    /// Whether signing authority was independently checked.
-    pub authorization: VerificationStatus,
-    /// Whether trusted timestamp evidence was independently checked.
-    pub timestamp: VerificationStatus,
-    /// Whether current key/account status was independently checked.
-    pub current_status: VerificationStatus,
-}

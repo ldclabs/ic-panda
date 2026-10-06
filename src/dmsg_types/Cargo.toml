@@ -20,6 +20,7 @@ icrc-ledger-types.workspace = true
 [dev-dependencies]
 dmsg_protocol = { path = "../dmsg_protocol" }
 cbor2.workspace = true
+cose2.workspace = true
 hex.workspace = true
 serde_json.workspace = true
 ed25519-dalek.workspace = true

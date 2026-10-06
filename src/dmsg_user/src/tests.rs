@@ -1,4 +1,5 @@
 use super::*;
+use agent_protocols::identity::AgentId;
 use dmsg_runtime::Budget;
 use ed25519_dalek::{Signer, SigningKey};
 use std::collections::BTreeMap;
@@ -118,12 +119,12 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
     else {
         panic!()
     };
-    let artifact = finish_cose(
-        to_be_signed,
-        &sk(7).verifying_key().to_bytes(),
-        sk(7).sign(to_be_signed).to_bytes().to_vec(),
-    )
-    .unwrap();
+    let artifact = parse_signing_input(to_be_signed)
+        .unwrap()
+        .into_signature(&sk(7).verifying_key().to_bytes())
+        .unwrap()
+        .finish(sk(7).sign(to_be_signed).to_bytes().to_vec())
+        .unwrap();
     ExecutionResult {
         request_id: request.approval.request_id,
         cycles_cost_upper_bound: 1,
@@ -144,6 +145,16 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
             artifact,
         })),
     }
+}
+
+fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
+    approval_message(
+        home,
+        &request.account_id,
+        "dmsg/execute/v3",
+        &(&request.kind, request.max_cycles),
+        &request.approval,
+    )
 }
 
 fn p(n: u8) -> Principal {
@@ -393,7 +404,7 @@ fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
     .into_execution()
     .unwrap();
     r.approval.signature = sk(n)
-        .sign(r.approval_message(s.home_user).as_slice())
+        .sign(execute_approval(s.home_user, &r).as_slice())
         .to_bytes()
         .into();
     r
@@ -987,7 +998,7 @@ fn root_recovery_budget_supports_setup_rekeys_but_remains_bounded_and_atomic() {
         };
         r.max_cycles = 70_000_000_000;
         r.approval.signature = sk(1)
-            .sign(r.approval_message(s.home_user).as_slice())
+            .sign(execute_approval(s.home_user, &r).as_slice())
             .to_bytes()
             .into();
         r
@@ -1371,8 +1382,8 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
 }
 
 fn agent_event(controller: u8, nonce: u64, created_at: u64, id: &str, audience: &str) -> String {
-    let actor = dmsg_protocol::agent::agent_id(&sk(controller).verifying_key().to_bytes().into());
-    let subject = dmsg_protocol::agent::agent_id(&sk(99).verifying_key().to_bytes().into());
+    let actor = AgentId::from_public_key(&sk(controller).verifying_key().to_bytes());
+    let subject = AgentId::from_public_key(&sk(99).verifying_key().to_bytes());
     format!(
         concat!(
             r#"{{"actor":"{actor}","created_at":{created_at},"nonce":{nonce},"payload":"#,
@@ -1415,7 +1426,7 @@ fn agent_request(s: &AccountState, event: String, generation: u32, time: u64) ->
     }
     .into_execution(format!("https://id.dmsg.test/{}", s.account_id));
     r.approval.signature = sk(1)
-        .sign(r.approval_message(s.home_user).as_slice())
+        .sign(execute_approval(s.home_user, &r).as_slice())
         .to_bytes()
         .into();
     r

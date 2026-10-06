@@ -42,7 +42,7 @@ pub trait SignRequestExt {
     /// Validates the statement and kid, fixing signing generation to 1. Preserves
     /// the supplied approval and fingerprint without verifying either. The executing
     /// services check the origin against their deployment environment with
-    /// [`validate_origin`]. Compute the execution approval via [`ExecuteRequestExt`]
+    /// [`validate_origin`]. Compute the execution approval with [`approval_message`]
     /// after freezing the request.
     ///
     /// # Errors
@@ -154,30 +154,6 @@ impl KeyRequestExt for KeyRequest {
                 Error::UnsupportedProtocol,
             ),
         }
-    }
-}
-
-/// Build the device approval digest for a frozen signing or root-derivation request.
-pub trait ExecuteRequestExt {
-    /// Bind kind and max_cycles under dmsg/execute/v3, inside dmsg/device-approval/v2.
-    ///
-    /// Includes the target user home and replay context via [`approval_message`].
-    /// The signature field is ignored. This constructs a digest, not an authorization
-    /// check, and performs no request validation or sequence mutation.
-    fn approval_message(&self, home_user: Principal) -> Hash;
-}
-
-impl ExecuteRequestExt for ExecuteRequest {
-    /// Shared by typed sign/root requests: changing the public Candid interface
-    /// does not change the approved bytes or key derivation domains.
-    fn approval_message(&self, home_user: Principal) -> Hash {
-        approval_message(
-            home_user,
-            &self.account_id,
-            "dmsg/execute/v3",
-            &(&self.kind, self.max_cycles),
-            &self.approval,
-        )
     }
 }
 

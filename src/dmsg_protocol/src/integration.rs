@@ -1,8 +1,7 @@
 //! External integration validation and exact commitments. No network or storage.
-use crate::{authenticated, canonical, digest, membership::mul_div, nonzero, validate_origin};
+use crate::{authenticated, digest, membership::mul_div, nonzero, validate_origin};
 use candid::Principal;
 use dmsg_types::{integration::*, membership::Beneficiary, *};
-use serde::Serialize;
 
 /// A bounded identifier with one ASCII spelling (no case folding).
 pub fn validate_identifier(value: &str) -> Result<()> {
@@ -412,19 +411,9 @@ pub fn match_product_receipt(receipt: &ProductReceipt, decision: &ProductDecisio
     Ok(())
 }
 
-/// Canonical bytes of a digest preimage. Explicit framing is shared with independent SDKs.
-pub fn commitment_bytes<T: Serialize>(domain: &str, value: &T) -> Vec<u8> {
-    canonical(&(1u8, domain, value))
-}
-
 /// Commit to the complete authoritative business offer.
 pub fn billing_offer_hash(value: &BillingOffer) -> Hash {
     digest("dmsg/commerce/offer/v2", value)
-}
-
-/// Commit to the exact approved authentication request.
-pub fn authentication_request_hash(value: &AuthenticationRequest) -> Hash {
-    digest("dmsg/authentication/request/v1", value)
 }
 
 /// Commit to the exact application approval, separate from a device signature.
@@ -435,11 +424,6 @@ pub fn application_approval_hash(value: &ApplicationApproval) -> Hash {
 /// Commit to the complete PANDA quotation.
 pub fn panda_quote_hash(value: &PandaQuote) -> Hash {
     digest("dmsg/commerce/panda-quote/v2", value)
-}
-
-/// Commit to the complete cash quotation.
-pub fn cash_quote_hash(value: &CashQuote) -> Hash {
-    digest("dmsg/commerce/cash-quote/v2", value)
 }
 
 /// Commit to the complete immutable product delivery decision.

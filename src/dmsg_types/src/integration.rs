@@ -8,16 +8,8 @@ use serde::{Deserialize, Serialize};
 pub const INTEGRATION_VERSION: u16 = 1;
 /// Generic checkout and irrevocable membership contract version.
 pub const COMMERCE_VERSION: u16 = 2;
-/// Browser transport; no downgrade to the document-only bridge.
-pub const EXTENSION_PROTOCOL: &str = "dmsg-extension/4";
-/// Dedicated authentication media type (a certified leaf, not a COSE document).
-pub const AUTHENTICATION_TYPE: &str = "application/vnd.dmsg.authentication+cbor;v=1";
-/// Dedicated application action COSE profile.
-pub const APP_ACTION_TYPE: &str = "application/vnd.dmsg.app-action+cose;v=1";
 /// Maximum lifetime of an external authentication request and proof.
 pub const AUTH_TTL_MS: u64 = 5 * crate::MINUTE;
-/// Maximum session derived from a dMsg proof without fresh authentication.
-pub const MAX_SESSION_MS: u64 = 24 * 60 * crate::MINUTE;
 /// Maximum acceptance window of an unaccepted business offer.
 pub const OFFER_TTL_MS: u64 = 15 * crate::MINUTE;
 /// Maximum cash funding interval from the accepted quote.

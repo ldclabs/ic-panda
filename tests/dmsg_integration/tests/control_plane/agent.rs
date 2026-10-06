@@ -97,7 +97,7 @@ impl Fixture {
             .clone()
             .into_execution(format!("{PRINCIPAL_ORIGIN}/{id}"));
         request.approval.signature = key(n)
-            .sign(execution.approval_message(self.user).as_slice())
+            .sign(execute_approval(self.user, &execution).as_slice())
             .to_bytes()
             .into();
         request
@@ -311,7 +311,7 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
         event_hash,
         signature,
         key: descriptor,
-    } = result.output().unwrap().clone()
+    } = completed(&result).clone()
     else {
         panic!("agent signature output")
     };

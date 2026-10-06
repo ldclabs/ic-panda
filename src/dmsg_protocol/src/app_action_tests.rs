@@ -5,6 +5,12 @@ use ed25519_dalek::{Signer, SigningKey};
 #[path = "../../dmsg_types/tests/support/app_action.rs"]
 mod fixture;
 
+fn finish(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
+    parse_signing_input(tbs)?
+        .into_signature(public)?
+        .finish(signature)
+}
+
 fn statement(action: AppAction) -> Statement {
     Statement {
         issuer: "https://example.test/u/00000000000000000000".into(),
@@ -27,13 +33,9 @@ fn closed_actions_roundtrip_and_every_signed_field_is_bound() {
         let original = statement(action.clone());
         let (_, tbs) = prepare_cose(&original, &Algorithm::Ed25519, &kid[..]).unwrap();
         let sig = signer.sign(&tbs).to_bytes().to_vec();
-        let artifact = finish_cose(&tbs, &public, sig.clone()).unwrap();
+        let artifact = finish(&tbs, &public, sig.clone()).unwrap();
         assert_eq!(verify_artifact(&artifact).unwrap(), original);
         assert_eq!(statement_purpose(&original), KeyPurpose::AppAction);
-        assert_eq!(
-            verification_report(&artifact, None).unwrap().content,
-            VerificationStatus::NotChecked
-        );
         for mutate in [
             |a: &mut AppAction| a.origin = "https://other.test".into(),
             |a: &mut AppAction| a.receiver = candid::Principal::from_slice(&[99, 1]),
@@ -56,10 +58,9 @@ fn closed_actions_roundtrip_and_every_signed_field_is_bound() {
             let mut changed = action.clone();
             mutate(&mut changed);
             changed.input_hash = action_input_hash(&changed.command);
-            assert_ne!(app_action_digest(&changed), app_action_digest(&action));
             let (_, changed_tbs) =
                 prepare_cose(&statement(changed), &Algorithm::Ed25519, &kid[..]).unwrap();
-            let changed_artifact = finish_cose(&changed_tbs, &public, sig.clone()).unwrap();
+            let changed_artifact = finish(&changed_tbs, &public, sig.clone()).unwrap();
             assert!(verify_artifact(&changed_artifact).is_err());
         }
     }

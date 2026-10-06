@@ -55,8 +55,7 @@ project roles. The product authority must attest to this exact action before an
 execution grant is created, and the receiver must recheck roles, policy, versions
 and deadline when committing the action.
 
-`verify_artifact` checks COSE and mathematical validity. `verification_report`
-returns `content = NotChecked` for application actions: it does not independently
+`verify_artifact` checks COSE and mathematical validity only: it does not independently
 reconstruct the product intent, fetch files, authenticate account linkage or
 verify current authority. The independent SDK exposes shape/commitment, COSE and
 IC certificate verification as separate checks.

@@ -56,14 +56,7 @@ fn user_cycles_profile() {
         request.max_cycles = 80_000_000_000;
         request.statement.content = StatementContent::Text("x".repeat(4096));
         request.approval.signature = key(1)
-            .sign(
-                request
-                    .clone()
-                    .into_execution()
-                    .unwrap()
-                    .approval_message(f.user)
-                    .as_slice(),
-            )
+            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
             .to_bytes()
             .into();
         let before = f.ic.cycle_balance(f.user);
@@ -124,14 +117,7 @@ fn typed_statement(
         },
     };
     request.approval.signature = key(1)
-        .sign(
-            request
-                .clone()
-                .into_execution()
-                .unwrap()
-                .approval_message(f.user)
-                .as_slice(),
-        )
+        .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
         .to_bytes()
         .into();
     request
@@ -169,14 +155,7 @@ fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file()
             location: Some("urn:example:report".into()),
         };
         request.approval.signature = key(1)
-            .sign(
-                request
-                    .clone()
-                    .into_execution()
-                    .unwrap()
-                    .approval_message(f.user)
-                    .as_slice(),
-            )
+            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
             .to_bytes()
             .into();
         // A website cannot swap either the opinion or the file after approval.
@@ -203,22 +182,11 @@ fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file()
         let result: Result<ExecutionResult> =
             update(&f.ic, f.user, person(1), "sign", (request.clone(),));
         let result = result.unwrap();
-        let ExecutionOutput::Signature { artifact, key, .. } = result.output().unwrap() else {
+        let ExecutionOutput::Signature { artifact, key, .. } = completed(&result) else {
             panic!("signature output")
         };
         assert_eq!(key.purpose, KeyPurpose::Statement);
         assert_eq!(verify_artifact(artifact).unwrap(), request.statement);
-        assert_eq!(
-            verification_report(artifact, None).unwrap().content,
-            VerificationStatus::NotProvided
-        );
-        assert_eq!(
-            verification_report(artifact, Some(b"document"))
-                .unwrap()
-                .content,
-            VerificationStatus::Verified
-        );
-        assert!(verification_report(artifact, Some(b"different")).is_err());
         let retried: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
         assert_eq!(retried.unwrap(), result);
     }
@@ -249,13 +217,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         // Authorize cheaply, then get a known cost-limit failure from COSE.
         r.max_cycles = 1;
         r.approval.signature = key(1)
-            .sign(
-                r.clone()
-                    .into_execution()
-                    .unwrap()
-                    .approval_message(f.user)
-                    .as_slice(),
-            )
+            .sign(execute_approval(f.user, &r.clone().into_execution().unwrap()).as_slice())
             .to_bytes()
             .into();
         r
@@ -299,13 +261,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         approval: typed_statement(&f, &id, SigningAlgorithm::Ed25519).approval,
     };
     root_request.approval.signature = key(1)
-        .sign(
-            root_request
-                .clone()
-                .into_execution()
-                .approval_message(f.user)
-                .as_slice(),
-        )
+        .sign(execute_approval(f.user, &root_request.clone().into_execution()).as_slice())
         .to_bytes()
         .into();
     let root: Result<ExecutionResult> = update(
@@ -440,7 +396,7 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         let signed: Result<ExecutionResult> =
             update(&f.ic, f.user, person(1), "sign", (request.clone(),));
         let signed = signed.unwrap();
-        let output = signed.output().unwrap();
+        let output = completed(&signed);
         assert!(matches!(output, ExecutionOutput::Signature { .. }));
         assert_eq!(output.key(), &described);
         assert!(
@@ -546,14 +502,7 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
     let mut disabled = typed_statement(&f, &account_id, SigningAlgorithm::Ed25519);
     disabled.key.public_key_fingerprint = Hash::new([99; 32]);
     disabled.approval.signature = key(1)
-        .sign(
-            disabled
-                .clone()
-                .into_execution()
-                .unwrap()
-                .approval_message(f.user)
-                .as_slice(),
-        )
+        .sign(execute_approval(f.user, &disabled.clone().into_execution().unwrap()).as_slice())
         .to_bytes()
         .into();
     let failure: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (disabled,));
@@ -587,19 +536,13 @@ fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
         approval: typed_statement(&f, &account_id, SigningAlgorithm::Ed25519).approval,
     };
     request.approval.signature = key(1)
-        .sign(
-            request
-                .clone()
-                .into_execution()
-                .approval_message(f.user)
-                .as_slice(),
-        )
+        .sign(execute_approval(f.user, &request.clone().into_execution()).as_slice())
         .to_bytes()
         .into();
     let result: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "derive_root", (request,));
     let result = result.unwrap();
-    let output = result.output().unwrap();
+    let output = completed(&result);
     assert!(matches!(output, ExecutionOutput::EncryptedRootKey { .. }));
     let described: Result<KeyDescriptor> = query(
         &f.ic,

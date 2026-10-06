@@ -1,5 +1,4 @@
 //! Identity identifiers are data, never automatic network discovery instructions.
-use candid::Principal;
 use dmsg_types::*;
 
 /// Maximum canonical identity URI or statement subject size in bytes (8,192).
@@ -71,33 +70,6 @@ pub fn validate_namespace(value: &str) -> Result<()> {
 /// account existence, or prove ownership.
 pub fn account_issuer(namespace: &str, id: &AccountId) -> String {
     format!("{namespace}{id}")
-}
-
-/// Append canonical Principal text to a namespace accepted by [`validate_namespace`].
-///
-/// Principal text is also unreserved ASCII and fits the 64-byte namespace reservation.
-/// This formats an identifier; it does not authenticate the Principal or reject
-/// anonymous/management Principals as [`crate::authenticated`] does.
-pub fn principal_issuer(namespace: &str, principal: Principal) -> String {
-    format!("{namespace}{}", principal.to_text())
-}
-
-/// Extract a canonical Xid from an issuer in the exact expected namespace.
-///
-/// The namespace must already be accepted by [`validate_namespace`]; no identity
-/// type is inferred from byte length. Parsing does not authenticate an account or
-/// its signing key.
-///
-/// # Errors
-/// A mismatched prefix or noncanonical Xid suffix returns `Error::IntegrityFailed`.
-pub fn parse_account_issuer(namespace: &str, issuer: &str) -> Result<AccountId> {
-    // Xid::from_str enforces exact length, lowercase alphabet and zero padding
-    // bits. A validated prefix plus that suffix is already a canonical URI.
-    issuer
-        .strip_prefix(namespace)
-        .ok_or(Error::IntegrityFailed)?
-        .parse::<AccountId>()
-        .map_err(|_| Error::IntegrityFailed)
 }
 
 /// Validate an exact browser origin of at most 256 bytes.

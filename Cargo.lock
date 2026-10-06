@@ -1510,6 +1510,7 @@ version = "0.1.1"
 dependencies = [
  "candid",
  "cbor2",
+ "cose2 0.5.1",
  "dmsg_protocol",
  "ed25519-dalek 3.0.0",
  "hex",
@@ -1525,6 +1526,7 @@ dependencies = [
 name = "dmsg_user"
 version = "0.1.0"
 dependencies = [
+ "agent-protocols",
  "candid",
  "cbor2",
  "dmsg_protocol",

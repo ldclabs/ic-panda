@@ -1,5 +1,5 @@
 //! Closed application-action encoding and validation, without product authority claims.
-use crate::{authenticated, canonical, digest, integration, nonzero};
+use crate::{authenticated, canonical, integration, nonzero};
 use dmsg_types::{app_action::*, integration::*, *};
 
 /// Experimental COSE profile, distinct from each existing document profile.
@@ -185,12 +185,6 @@ pub fn validate_action_admission(
         action.issued_at_ms <= now_ms && now_ms < action.expires_at_ms,
         Error::Expired,
     )
-}
-
-/// Complete commitment, including every display field, file and receiver.
-/// Hashing alone does not authenticate a product preparation.
-pub fn app_action_digest(action: &AppAction) -> Hash {
-    digest("dmsg/app-action/v1", action)
 }
 
 #[cfg(test)]

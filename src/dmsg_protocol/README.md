@@ -36,19 +36,18 @@ Publication settings do not prove a version is already on crates.io. Both packag
 | --- | --- | --- |
 | Encode protocol records | `canonical`, `decode_canonical`, `sha256`, `digest` | Use the exact public types, domain and value shape; apply business validation |
 | Prepare a document | `validate_statement`, `statement_purpose`, `prepare_cose`, `parse_signing_input` | Obtain user consent, choose a trusted key and invoke the signer |
-| Assemble/verify | `finish_cose`, `verify_artifact`, `verification_report` | Establish issuer identity, authorization and current status |
+| Assemble/verify | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | Establish issuer identity, authorization and current status |
 | Describe a signing key | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | Authenticate the key source; do not treat a thumbprint as proof of ownership |
-| Identify a signer | `account_issuer`, `principal_issuer`, `parse_account_issuer`, `validate_uri`, `validate_namespace` | Configure a trusted namespace and bind it to authenticated evidence |
-| Prepare ICP approval | `SignRequestExt`, `ExecuteRequestExt`, `approval_message`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
+| Identify a signer | `account_issuer`, `validate_uri`, `validate_namespace` | Configure a trusted namespace and bind it to authenticated evidence |
+| Prepare ICP approval | `SignRequestExt`, `approval_message`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
 | Validate request inputs | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | Perform server-side authorization, proof-of-possession checks and state transitions |
-| Check execution evidence | `artifact_signing_bytes`, `match_signing_result`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
+| Check execution evidence | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
 | Handle recovery/names | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | Execute recovery policy and name/ledger operations in their services |
-| Attach timestamp evidence | `timestamp_imprint`, `attach_unverified_timestamp_token`, `signature_digest` | Acquire and independently validate the TSA token and its trust chain |
 | Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
 
 Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
 
-Import commercial helpers from `dmsg_protocol::billing::{monthly_allowance, cents_atomic}` and `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}`. Amounts use integer atomic units and business times use UTC Unix milliseconds. Quotes and stake thresholds round up; monthly allowances sum weighted durations before rounding down once. Digest construction performs no authorization; rustdoc describes each validation boundary.
+Import commercial helpers from `dmsg_protocol::billing::monthly_allowance` and `dmsg_protocol::{membership::mul_div, integration::required_panda_stake}`. Amounts use integer atomic units and business times use UTC Unix milliseconds. Quotes and stake thresholds round up; monthly allowances sum weighted durations before rounding down once. Digest construction performs no authorization; rustdoc describes each validation boundary.
 
 ## Sign and verify a document locally
 
@@ -56,10 +55,10 @@ This complete example uses a deterministic **test key**. Production signing must
 
 ```rust
 use dmsg_protocol::{
-    account_issuer, finish_cose, key_thumbprint, match_signing_result,
-    prepare_cose, public_cose_key, sha256, verification_report,
+    account_issuer, key_thumbprint, match_signing_result, parse_signing_input,
+    prepare_cose, public_cose_key, sha256, verify_artifact,
 };
-use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent, VerificationStatus};
+use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let signer = SigningKey::from_bytes(&[7; 32]); // Test fixture only.
@@ -80,25 +79,27 @@ let statement = Statement {
 };
 let (_, tbs) = prepare_cose(&statement, &algorithm, fingerprint.as_slice()).unwrap();
 let signature = signer.sign(&tbs).to_bytes().to_vec();
-let artifact = finish_cose(&tbs, &public, signature).unwrap();
+let artifact = parse_signing_input(&tbs)
+    .unwrap()
+    .into_signature(&public)
+    .unwrap()
+    .finish(signature)
+    .unwrap();
 match_signing_result(&artifact, &tbs, fingerprint).unwrap();
-let report = verification_report(&artifact, Some(original)).unwrap();
-assert_eq!(report.signature, VerificationStatus::Verified);
-assert_eq!(report.content, VerificationStatus::Verified);
-assert_eq!(report.issuer_binding, VerificationStatus::NotChecked);
-assert_eq!(report.timestamp, VerificationStatus::NotProvided);
+// The verified statement commits to the original bytes' SHA-256.
+assert_eq!(verify_artifact(&artifact).unwrap(), statement);
 ```
 
 `prepare_cose` returns an unsigned message and `Sig_structure = CBOR(["Signature1", protected_bstr, h'', payload_bstr])`. Text uses raw UTF-8 (1..4096 bytes); digest documents use the original bytes' 32-byte SHA-256. `FileStatement` uses a deterministic CBOR payload combining verbatim text, a file SHA-256 and optional media type/location, under `FILE_STATEMENT_PROFILE` with the `Statement` key purpose. Its closed schema and limits are specified in [the public protocol](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md). The Rust Statement enum is not an extra wire payload. Issuer, optional subject and claimed issued_at are protected CWT claims; request ID, browser origin and execution deadline are separate execution metadata.
 
-| Algorithm | COSE label | Signer input | Signature/public key supplied to `finish_cose` |
+| Algorithm | COSE label | Signer input | Signature/public key supplied to `finish`/`into_signature` |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | Exact tbs bytes | 64-byte signature; raw 32-byte public key |
 | ES256K | -47 | SHA-256(tbs) for a prehash API | 64-byte r\|\|s, not DER, normalized to low-S; SEC1 secp256k1 public key |
 
-When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `finish_cose` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
+When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `PreparedSignature::finish` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
 
-`parse_signing_input` returns an immutable `PreparedStatement` with `statement()`, `algorithm()` and `kid()` accessors. An executor can call `into_signature(public)` before dispatch and `PreparedSignature::finish(signature)` after the response to reuse validated framing and the encoded public key. Signature verification is still required before accepting the artifact.
+`parse_signing_input` returns an immutable `PreparedStatement` with `statement()`, `algorithm()` and `kid()` accessors. Call `into_signature(public)` before dispatch and `PreparedSignature::finish(signature)` after the response to reuse validated framing and the encoded public key. Signature verification is still required before accepting the artifact.
 
 ## Construct an ICP device approval
 
@@ -106,7 +107,7 @@ The following constructs a local request and device signature; it does not conta
 
 ```rust
 use candid::Principal;
-use dmsg_protocol::{execution_request_id, ExecuteRequestExt, SignRequestExt};
+use dmsg_protocol::{approval_message, execution_request_id, SignRequestExt};
 use dmsg_types::{
     cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
     AccountId, Approval, Hash, Statement, StatementContent,
@@ -141,13 +142,19 @@ let request = SignRequest {
 };
 let mut execution = request.into_execution().unwrap();
 let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
-let digest = execution.approval_message(home_user);
+let digest = approval_message(
+    home_user,
+    &execution.account_id,
+    "dmsg/execute/v3",
+    &(&execution.kind, execution.max_cycles),
+    &execution.approval,
+);
 let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
 execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
-`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. `ExecuteRequestExt::approval_message` binds kind and max_cycles under `dmsg/execute/v3`, wrapped in `dmsg/device-approval/v2`. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
+`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. The execution approval passes domain `dmsg/execute/v3` and `(kind, max_cycles)` to `approval_message`, wrapped in `dmsg/device-approval/v2`. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
 
 For account mutations, use `approval_message` with `dmsg/account/v2` and `(expected_version, command)`. Recovery reconfirmation uses `recovery_confirmation_message` and the recovery key, not a device key. Sequence consumption, deadline checks and permission decisions happen in the service. After an unknown outcome, reconcile the original request instead of generating a new signing operation.
 
@@ -172,17 +179,13 @@ Business timestamps and durations use milliseconds, while Statement.issued_at us
 
 ## Evidence and timestamp boundaries
 
-`verification_report` returns Verified for a valid signature. Embedded text is Verified; provided original content must match exactly or by SHA-256. A digest or file statement without the original file is NotProvided; embedded opinion text does not verify the referenced file. Issuer binding, authorization and current status remain NotChecked. Timestamp is NotProvided if absent, or NotChecked if an opaque token is attached. Verification failure returns an error rather than a report with a successful signature flag.
+`verify_artifact` checks the profile and mathematical signature only. Compare original content with the verified statement yourself: embedded text must match exactly, and a digest or file statement must match the original file's SHA-256; embedded opinion text does not verify the referenced file. Issuer binding, authorization, current status and timestamp trust are not checked.
 
 Before calling `match_execution_receipt`, independently verify the IC certificate against a trusted root, the expected user canister, witness, requested path and leaf bytes. `execution_receipt_key` constructs the single raw path segment `b"execution/" || account_id[12] || request_id[32]`. The matcher requires schema 1 and Completed, then matches issuer, signing-bytes digest, public-key thumbprint and raw-signature digest. It does not independently check the receipt's account/request IDs, origin, deadline or external project permissions. Authenticate the expected path and separately apply any additional policy.
 
-| Helper | Exact operation | Does not do |
-| --- | --- | --- |
-| `signature_digest` | SHA-256(raw signature bytes) for execution receipts | Verify the signature or dMsg profile |
-| `timestamp_imprint` | SHA-256(CBOR(signature bstr)), including its byte-string header; requires canonical outer framing | Verify a signature, acquire a TSA token or check TSA trust |
-| `attach_unverified_timestamp_token` | Verify the artifact, then attach opaque token bytes at unprotected header 270 | Verify CMS, imprint, certificate chain, TSA policy or revocation |
+`signature_digest` is SHA-256 of the raw signature bytes used by execution receipts; it does not verify the signature or dMsg profile.
 
-A token is limited to 131,072 bytes, an encoded COSE_Key to 2,048, and a COSE_Sign1 artifact to 196,608. The timestamp attachment helper refuses an existing token with VersionConflict. Trusted timestamp verification, TSA networking, SCITT transparency, archival and chain anchoring are outside this crate.
+Verification accepts an opaque token of at most 131,072 bytes at unprotected header 270 without checking it. An encoded COSE_Key is limited to 2,048 bytes and a COSE_Sign1 artifact to 196,608. Trusted timestamp verification, TSA networking, SCITT transparency, archival and chain anchoring are outside this crate.
 
 ## Errors, protocol references, and validation
 

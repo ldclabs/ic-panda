@@ -48,7 +48,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 
 | 模块 | 主要类型 | 使用场景 |
 | --- | --- | --- |
-| `signing` | `Statement`, `StatementContent`, `SignedArtifact`, `VerificationReport` | 准备、交换、解析文档签名，可独立于 ICP 使用 |
+| `signing` | `Statement`, `StatementContent`, `SignedArtifact` | 准备、交换、解析文档签名，可独立于 ICP 使用 |
 | `account_id` | `AccountId` | 稳定账户身份；重导出 `ic_auth_types::Xid` |
 | `protocol` | `Hash`, `OpId`, `Approval`, `Error`, `CertifiedBatch` | 共享字节、时间、设备批准、错误和认证查询 |
 | `cose` | `SignRequest`, `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `ExecutionReceipt` | ICP 正式签名、vetKD、密钥来源和执行对账 |
@@ -128,17 +128,16 @@ let result = ExecutionResult {
     cycles_cost_upper_bound: 0,
 };
 assert!(!result.is_terminal());
-assert_eq!(result.output(), Err(Error::ExecutionUnknown));
 // 保留原 request_id 查询和对账，不为未知结果自动新建签名请求。
 ```
 
-`output()` 对等待中的操作返回 `Error::Pending`，对已清理输出返回 `Error::ResultExpired`。`is_terminal()` 只对 Completed、Failed、ResultExpired 返回 true；Unknown 不表示未执行。
+`is_terminal()` 只对 Completed、Failed、ResultExpired 返回 true，只有 Completed 保留输出；Unknown 不表示未执行。
 
 ## 按场景对接
 
 ### 独立文档验签
 
-取得 `SignedArtifact`，用配套 `dmsg_protocol::verify_artifact` 检查 COSE profile 和数学签名。需要核对文件时，将原文件字节交给 `verification_report`；摘要原文未提供时，content 为 `NotProvided`。随包 `cose_key` 只是公钥，不能自行证明 issuer 身份。`issuer_binding`、`authorization`、`timestamp`、`current_status` 应按各自证据检查，未检查时保持 `NotChecked`。
+取得 `SignedArtifact`，用配套 `dmsg_protocol::verify_artifact` 检查 COSE profile 和数学签名。需要核对文件时，将原文件字节的 SHA-256 与验证后的声明对照；仅验签不会核对文件。随包 `cose_key` 只是公钥，不能自行证明 issuer 身份。issuer 绑定、授权、时间戳和当前状态应按各自证据检查。
 
 当前支持 Ed25519（COSE -19）和 ES256K（-47）。vetKD 用于派生内容根，不属于文档签名算法。普通签名不自带可信时间戳；`Statement.issued_at` 是签署者的时间声明，批准期限到期也不会自动使已完成的文档签名失效。
 
@@ -180,7 +179,7 @@ Serde 只定义数据表示，确定性编码仍须使用协议库或独立遵�
 
 浏览器桥是独立的 `dmsg-extension/4` JSON 合同：accountId 为 Xid 文本、摘要/requestId/nonce 为小写 hex、大整数为十进制字符串。普通 Rust Serde JSON 不等同于桥协议，也不要把 Rust 枚举的内存布局当成 wire 格式。
 
-认证查询返回 `CertifiedBatch`，必须核对可信 IC 根、预期 canister、certificate 时间、witness 路径和原始 leaf 值。账户安全叶路径为单段原始 AccountId，escrow 叶为单段原始 escrow_id；执行回执为 `b"execution/" || account_id || request_id`。`SecuritySnapshot.devices_root` 提交完整设备 map，包括撤销/序号字段，不是删减后的设备列表。当前账户安全快照使用证书时间 +60 秒的新鲜度边界；历史执行回执不能机械套用这一窗口。`AccountInfo` 或 `DeviceEvidence` 单独出现不构成认证证明。
+认证查询返回 `CertifiedBatch`，必须核对可信 IC 根、预期 canister、certificate 时间、witness 路径和原始 leaf 值。账户安全叶路径为单段原始 AccountId，escrow 叶为单段原始 escrow_id；执行回执为 `b"execution/" || account_id || request_id`。`SecuritySnapshot.devices_root` 提交完整设备 map，包括撤销/序号字段，不是删减后的设备列表。当前账户安全快照使用证书时间 +60 秒的新鲜度边界；历史执行回执不能机械套用这一窗口。`AccountInfo` 单独出现不构成认证证明。
 
 ## 错误处理与接口依据
 

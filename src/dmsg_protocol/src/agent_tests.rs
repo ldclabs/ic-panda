@@ -247,7 +247,10 @@ fn rendered_document_passes_sdk_validation_and_is_jcs() {
     assert_eq!(document.kind.as_deref(), Some("person"));
     assert_eq!(document.controllers.len(), 1);
     assert_eq!(document.retired_controllers.len(), 1);
-    assert_eq!(document.controllers[0].id.to_string(), agent_id(&public(2)));
+    assert_eq!(
+        document.controllers[0].id.to_string(),
+        sdk_id::AgentId::from_public_key(&public(2)).to_string()
+    );
     assert_eq!(
         document.controllers[0].supersedes.as_deref(),
         Some(&[document.retired_controllers[0].id.clone()][..])
@@ -510,11 +513,16 @@ fn agent_event_approval_digest_vector() {
         "3314ea786e3936efdc446d44c256d3806f9eda70a222abb76597c0a7cd73d5c9"
     );
     assert_eq!(
-        request
-            .approval_message(home)
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect::<String>(),
+        approval_message(
+            home,
+            &request.account_id,
+            "dmsg/execute/v3",
+            &(&request.kind, request.max_cycles),
+            &request.approval,
+        )
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>(),
         "19dbc3fca708066f83258d4eb2c0cedfab5a45f7298c223af2f73840588f32bc"
     );
 }

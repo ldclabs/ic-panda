@@ -27,7 +27,7 @@
 
 ## TSA
 
-`dmsg_protocol::timestamp_imprint` 提供 RFC 9921 CTT 接点。当前没有 TSA 网络客户端、TSA 信任验证或 `anchor_snapshot` 入口；这些能力不能由普通签名成功推断。
+产物可在非保护头 270 携带不透明 RFC 9921 CTT token，验证不检查其可信性。当前没有 TSA 网络客户端、TSA 信任验证或 `anchor_snapshot` 入口；这些能力不能由普通签名成功推断。
 
 ## 代码
 

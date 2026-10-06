@@ -251,13 +251,23 @@ fn sign_conversion_preserves_context_and_derives_the_correct_key_purpose() {
     }
 }
 
+fn execute_approval(home: Principal, r: &ExecuteRequest) -> Hash {
+    approval_message(
+        home,
+        &r.account_id,
+        "dmsg/execute/v3",
+        &(&r.kind, r.max_cycles),
+        &r.approval,
+    )
+}
+
 #[test]
 fn execution_approvals_bind_all_context_but_not_the_signature_itself() {
     let request = sign_request().into_execution().unwrap();
     let home = Principal::from_slice(&[1]);
-    let expected = request.approval_message(home);
+    let expected = execute_approval(home, &request);
     assert_ne!(
-        request.approval_message(Principal::from_slice(&[2])),
+        execute_approval(Principal::from_slice(&[2]), &request),
         expected
     );
     let changes: &[fn(&mut ExecuteRequest)] = &[
@@ -296,11 +306,11 @@ fn execution_approvals_bind_all_context_but_not_the_signature_itself() {
     for change in changes {
         let mut changed = request.clone();
         change(&mut changed);
-        assert_ne!(changed.approval_message(home), expected);
+        assert_ne!(execute_approval(home, &changed), expected);
     }
     let mut changed = request;
     changed.approval.signature = Default::default();
-    assert_eq!(changed.approval_message(home), expected);
+    assert_eq!(execute_approval(home, &changed), expected);
 }
 
 #[test]

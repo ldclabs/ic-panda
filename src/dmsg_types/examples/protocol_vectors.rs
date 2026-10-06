@@ -42,12 +42,20 @@ fn main() {
     };
     let (_, file_statement_tbs) = prepare_cose(&file_statement, &Algorithm::Ed25519, &kid).unwrap();
     let (_, digest_tbs) = prepare_cose(&digest_statement, &Algorithm::Ed25519, &kid).unwrap();
-    let artifact =
-        |tbs: &[u8]| finish_cose(tbs, &public, signer.sign(tbs).to_bytes().to_vec()).unwrap();
+    let artifact = |tbs: &[u8]| {
+        parse_signing_input(tbs)
+            .unwrap()
+            .into_signature(&public)
+            .unwrap()
+            .finish(signer.sign(tbs).to_bytes().to_vec())
+            .unwrap()
+    };
     let signed_text = artifact(&text_tbs);
     let signed_digest = artifact(&digest_tbs);
     let signed_file_statement = artifact(&file_statement_tbs);
-    let timestamped = attach_unverified_timestamp_token(&signed_digest, &[0x30, 0]).unwrap();
+    // Opaque CTT material at unprotected header 270; the signed bytes are unchanged.
+    let mut timestamped = cose2::Sign1Message::from_slice(&signed_digest.cose_sign1).unwrap();
+    timestamped.unprotected.insert(CTT_HEADER, vec![0x30, 0]);
     let mut values = vec![
         vector("cose_text_v3", signed_text.cose_sign1.to_vec()),
         vector("cose_digest_v3", signed_digest.cose_sign1.to_vec()),
@@ -56,7 +64,7 @@ fn main() {
             signed_file_statement.cose_sign1.to_vec(),
         ),
         vector("file_statement_tbs_v1", file_statement_tbs.clone()),
-        vector("timestamped_digest_v3", timestamped.cose_sign1.to_vec()),
+        vector("timestamped_digest_v3", timestamped.to_vec().unwrap()),
         vector("text_tbs_v3", text_tbs),
         vector("digest_tbs_v3", digest_tbs.clone()),
         vector("cose_key_v3", signed_text.cose_key.to_vec()),
@@ -65,16 +73,16 @@ fn main() {
         vector("account_issuer", canonical(&text.issuer)),
         vector(
             "principal_issuer",
-            canonical(&principal_issuer(
-                "https://id.test/ic/mainnet/principals/",
-                Principal::from_slice(&[0, 1, 1]),
+            canonical(&format!(
+                "https://id.test/ic/mainnet/principals/{}",
+                Principal::from_slice(&[0, 1, 1])
             )),
         ),
         vector(
             "management_principal_issuer",
-            canonical(&principal_issuer(
-                "https://id.test/ic/mainnet/principals/",
-                Principal::management_canister(),
+            canonical(&format!(
+                "https://id.test/ic/mainnet/principals/{}",
+                Principal::management_canister()
             )),
         ),
         vector(
@@ -209,7 +217,16 @@ fn main() {
                 digest("dmsg/execute/v3", &(&input.kind, input.max_cycles)),
             ),
         ));
-        assert_eq!(sha256(&preimage), input.approval_message(home_user));
+        assert_eq!(
+            sha256(&preimage),
+            approval_message(
+                home_user,
+                &input.account_id,
+                "dmsg/execute/v3",
+                &(&input.kind, input.max_cycles),
+                a,
+            )
+        );
         values.push(vector(name, preimage));
     }
     println!("{}", serde_json::to_string_pretty(&values).unwrap());

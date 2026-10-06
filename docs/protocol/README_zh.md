@@ -36,7 +36,7 @@
 | 设备、操作、SHA-256 | 各自语义类型，32 字节 | 桥接口明确指定编码，不根据长度推断身份类型 |
 | COSE kid | 不透明 bstr，当前 profile 限 1..256 字节 | 无隐含账户语义 |
 
-身份适配器接收明确命名空间：`account_issuer("https://dmsg.example/u/", account)` 或 `principal_issuer("https://id.example/ic/mainnet/", principal)`。命名空间为固定 URI 前缀，以 `/` 或 `:` 结束，无 query/fragment，最多 8128 字节。账户迁移不改变身份 URI；不补零、截断或哈希身份来适配长度。
+身份适配器接收明确命名空间：`account_issuer("https://dmsg.example/u/", account)`，或在命名空间后追加规范 Principal 文本构成 Principal issuer，例如 `https://id.example/ic/mainnet/aaaaa-aa`。命名空间为固定 URI 前缀，以 `/` 或 `:` 结束，无 query/fragment，最多 8128 字节。账户迁移不改变身份 URI；不补零、截断或哈希身份来适配长度。
 
 新消息使用 RFC 8949 §4.2.1 core deterministic CBOR：最短编码、按键编码字节排序、无浮点、重复键或尾字节。现有 COSE 验签保留原 protected 字节，不能重排后验签。本地签署入口只接受按 profile 规范准备的输入。待签结构最多 65536 字节，COSE_Key 最多 2048 字节，签名产物最多 196608 字节；TSA token 最多 131072 字节。库解码器设有递归限制，SDK 另外限制 24 层和 50000 个节点。
 
@@ -99,9 +99,9 @@ digest("dmsg/device-approval/v2", [
 
 ## 时间戳与验证结果
 
-RFC 9921 CTT 的 SHA-256 MessageImprint 为 `SHA256(CBOR(signature_bstr))`，包括 bstr 头，区别于执行回执中的原始签名摘要。`timestamp_imprint` 要求规范外层编码；`attach_unverified_timestamp_token` 只组装头 270，不申请或信任 TSA。CMS 签名、imprint、证书链、用途、政策与状态需要独立验证。
+RFC 9921 CTT 的 SHA-256 MessageImprint 为 `SHA256(CBOR(signature_bstr))`，包括 bstr 头，区别于执行回执中的原始签名摘要。头 270 携带不透明 token；验证既不申请也不信任 TSA。CMS 签名、imprint、证书链、用途、政策与状态需要独立验证。
 
-`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；`verification_report` 分别报告 signature、content、issuer_binding、authorization、timestamp、current_status。纯文本的内嵌内容为 Verified；摘要或文件声明未提供原文件时 content 为 NotProvided，未认证身份或 TSA 时为 NotChecked。不能把随包公钥或单个成功布尔值当作完整证明。
+`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；SDK 结果分别报告 signature、content、issuerBinding、authorization、timestamp、currentStatus。纯文本的内嵌内容为 verified；摘要或文件声明未提供原文件时 content 为 not_provided，未认证身份或 TSA 时为 not_checked。不能把随包公钥或单个成功布尔值当作完整证明。
 
 当前不提供 TSA 网络/CMS 验证、SCITT 透明服务、长期归档或链上 anchor 入口。可选付费投递、名称与 ICP 控制合同分别维护。
 

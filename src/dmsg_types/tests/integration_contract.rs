@@ -177,12 +177,11 @@ fn policy_and_quote_expiry_are_checked_before_any_reservation() {
 }
 
 #[test]
-fn cash_asset_and_fee_terms_are_immutable_and_domain_separated() {
+fn cash_asset_and_fee_terms_are_immutable() {
     let first = cash(principal(6));
     let second = cash(principal(7));
     validate_cash_quote(&first, &offer(), &product(), NOW).unwrap();
     validate_cash_quote(&second, &offer(), &product(), NOW).unwrap();
-    assert_ne!(cash_quote_hash(&first), cash_quote_hash(&second));
     let mut wrong = first.clone();
     wrong.ledger = principal(99);
     assert!(validate_cash_quote(&wrong, &offer(), &product(), NOW).is_err());
@@ -238,10 +237,6 @@ fn authentication_result_is_bound_to_the_entire_pending_request() {
     assert!(
         authentication_key(&result.account_id, &request.operation_id)
             .starts_with(b"authentication/v1/")
-    );
-    assert_ne!(
-        authentication_request_hash(&request),
-        application_approval_hash(&approval())
     );
 }
 

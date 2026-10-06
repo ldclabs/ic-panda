@@ -473,14 +473,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
             },
         };
         request.approval.signature = key(1)
-            .sign(
-                request
-                    .clone()
-                    .into_execution()
-                    .unwrap()
-                    .approval_message(f.user)
-                    .as_slice(),
-            )
+            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
             .to_bytes()
             .into();
         request
@@ -502,7 +495,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         (
             f.user,
             account,
-            dmsg_protocol::app_action::app_action_digest(&action),
+            action.clone(),
             None::<(Principal, AppRegistration)>,
         ),
     );
@@ -525,7 +518,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     let ExecutionOutput::Signature {
         artifact,
         key: descriptor,
-    } = signed.output().unwrap()
+    } = completed(&signed)
     else {
         panic!()
     };
@@ -569,12 +562,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         f.sns,
         person(1),
         "set_action_approval",
-        (
-            f.user,
-            account,
-            dmsg_protocol::app_action::app_action_digest(&action),
-            Some((f.commerce, app)),
-        ),
+        (f.user, account, action.clone(), Some((f.commerce, app))),
     );
     let paused: Result<ExecutionResult> =
         update(&f.ic, f.user, person(1), "sign_app_action", (next,));

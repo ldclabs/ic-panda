@@ -39,11 +39,6 @@ fn millis(value: u64) -> Result<i64> {
     Ok(value as i64)
 }
 
-/// Agent ID (`did:agent:` + unpadded base64url) of a raw Ed25519 public key.
-pub fn agent_id(public_key: &Hash) -> String {
-    sdk_id::AgentId::from_public_key(public_key).to_string()
-}
-
 /// Validate a principal origin: an exact serialized HTTPS origin without a path.
 ///
 /// # Errors
