@@ -16,7 +16,7 @@ export const handlePrice = (name: string) =>
           ? 50000
           : name.length <= 6
             ? 20000
-            : 1000
+            : 100
   ) * 100000000n
 export function encodeHandle(method: string, args: unknown[]) {
   const fn = service._fields.find(([name]) => name === method)![1]

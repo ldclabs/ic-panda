@@ -252,8 +252,13 @@ it('purchases once with exact charge terms and resumes the recorded charge witho
     Ok: (completed = { registration, phase: { Committed: null } })
   }))
   const wallet = { owner: admin, approveHandle: vi.fn(async () => {}) }
+  // A frozen legacy name is rejected before any allowance or job is created.
+  await expect(f.client.preparePurchase('NamedOwner')).rejects.toMatchObject({
+    code: 'VersionConflict'
+  })
+  expect(await f.client.purchaseJob()).toBeNull()
   const job = await f.client.preparePurchase('longname')
-  expect(job.total).toBe('100000000000')
+  expect(job.total).toBe('10000000000')
   await f.client.purchase(wallet as any)
   registry.get_handle_operation.mockResolvedValue({ Ok: completed })
   await f.client.purchase(wallet as any)

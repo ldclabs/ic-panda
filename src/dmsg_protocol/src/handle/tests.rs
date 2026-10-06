@@ -32,8 +32,8 @@ fn valid_handle_price_boundaries_use_smallest_token_units() {
         (4, 50_000),
         (5, 20_000),
         (6, 20_000),
-        (7, 1_000),
-        (20, 1_000),
+        (7, 100),
+        (20, 100),
     ] {
         assert_eq!(price(&"a".repeat(len)), tokens * 100_000_000);
     }

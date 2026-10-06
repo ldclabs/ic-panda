@@ -50,7 +50,7 @@ jobs:
               --inline-functions-with-loops \
               "$WASM" -o "$WASM.optimized"
             mv "$WASM.optimized" "$WASM"
-            gzip $WASM
+            gzip -n $WASM
             SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
             echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
           done

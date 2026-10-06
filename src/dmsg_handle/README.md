@@ -62,9 +62,11 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 
 名称为 1–20 字节的 ASCII 字母、数字或下划线，不能以下划线开头，统一转为小写。价格只取决于字节长度：
 
-| 长度  |         1 |       2 |    3–4 |    5–6 |  7–20 |
-| ----- | --------: | ------: | -----: | -----: | ----: |
-| PANDA | 1,000,000 | 200,000 | 50,000 | 20,000 | 1,000 |
+| 长度  |         1 |       2 |    3–4 |    5–6 | 7–20 |
+| ----- | --------: | ------: | -----: | -----: | ---: |
+| PANDA | 1,000,000 | 200,000 | 50,000 | 20,000 |  100 |
+
+与旧 `ic_message` 经 SNS 调整后的现行价格一致。
 
 付款人共支付名称价格：其中 `price − ledger_fee` 转入 handle canister 的默认账户，`ledger_fee` 是账本手续费。付款人须预先给 handle canister 不低于价格的 ICRC-2 allowance。
 
@@ -83,7 +85,7 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 | `Committed`           | 权属、事件、操作终态和锁释放在同一回调中提交                                                    |
 | `Rejected { reason }` | 首次扣款被账本明确拒绝或确定未执行。立即释放锁，该 `op_id` 作废，重放返回同一终态               |
 
-- 重试使用完全相同的账本参数，账本去重窗口内返回 `Duplicate` 即视为已付款。窗口过后只能用实际区块对账；不会刷新时间戳，也不会因本地超时释放名称。
+- 重试使用完全相同的账本参数，账本去重窗口内返回 `Duplicate` 即视为已付款。DFINITY ICRC 账本的窗口默认为 24 小时，从 `created_at_time` 起算；结果未知时应在窗口内用 `commit_handle` 重试。窗口过后重试只会被拒绝，操作保持 `ChargeUnknown`，只能用实际区块对账；若扣款从未执行，名称锁和账户锁不会释放。系统不会刷新时间戳，也不会因本地超时释放名称。
 - 出现过未知结果后，后续拒绝不能证明之前没有扣款，操作保持 `ChargeUnknown`。
 - `commit_handle` 只接受付款人。`reconcile_handle_charge` 任何人可调用，但只在区块的付款账户、收款账户、金额、memo、`created_at_time` 和 spender 全部匹配时提交。
 - 内存中的调用 guard 使同一操作的扣款、重试与对账互斥，执行中返回 `Pending`。升级会清空 guard，遗留的 `Charging` 按结果未知处理。
@@ -167,13 +169,13 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 初始化参数
 
-| `HandleInit` 字段 | 要求                                                                                                                                                                                                |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `home_user`       | 本部署的 `dmsg_user` canister ID，初始化后不可修改                                                                                                                                                  |
-| `ledger`          | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产 ID 见 [sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`。初始化后不可修改            |
-| `ledger_fee`      | 账本当前的 `icrc1_fee`，必须小于 1,000 PANDA；之后用 `update_ledger_fee` 维护                                                                                                                       |
-| `max_pending`     | 全局未决扣款上限，1–10,000                                                                                                                                                                          |
-| `governance`      | 除 controller 外可以执行管理方法的 SNS governance canister；生产 ID 见 [sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`，本地可填部署者 principal。初始化后不可修改 |
+| `HandleInit` 字段 | 要求                                                                                                                                                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `home_user`       | 本部署的 `dmsg_user` canister ID，初始化后不可修改                                                                                                                                                                               |
+| `ledger`          | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
+| `ledger_fee`      | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
+| `max_pending`     | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
+| `governance`      | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
 
 `home_user`、`ledger` 和 `governance` 不能是匿名或管理 canister principal，参数不合法时安装失败。`dmsg_user` 的 `UserInit.handle_canister` 必须指向本 canister。两者互相引用，所以先创建 canister ID，再分别安装。
 
@@ -196,23 +198,24 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 3. 以 `handle_canister = $(dfx canister id dmsg_handle --network ic)` 安装 `dmsg_user`，其他字段见 [dmsg_user](../dmsg_user/README.md)。
 
-4. 查询账本手续费，然后安装 handle：
+4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_handle.wasm.gz`，不用本地 `dfx deploy` 构建：两者的优化工具不同，模块哈希不一致，而交给 SNS 后投票者要按 release 产物核验升级。核对产物、查询账本手续费，然后安装：
 
    ```sh
-   dfx canister call --network ic <PANDA 账本 ID> icrc1_fee --query
-   dfx deploy dmsg_handle --network ic --argument "(record {
+   sha256sum dmsg_handle.wasm.gz
+   dfx canister call --network ic druyg-tyaaa-aaaaq-aactq-cai icrc1_fee --query
+   dfx canister install dmsg_handle --network ic --wasm dmsg_handle.wasm.gz --argument "(record {
      home_user = principal \"$(dfx canister id dmsg_user --network ic)\";
-     ledger = principal \"<PANDA 账本 ID>\";
+     ledger = principal \"druyg-tyaaa-aaaaq-aactq-cai\";
      ledger_fee = <icrc1_fee> : nat;
      max_pending = 1000 : nat32;
-     governance = principal \"<SNS governance ID>\";
+     governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
    })"
    dfx canister info dmsg_handle --network ic
    ```
 
-   `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建；用 `dfx canister info` 记录实际模块哈希和 controllers。
+   `sha256sum` 须与同一 release 的 `dmsg_handle.wasm.gz.<sha256>.txt` 一致；安装 gzip 产物后，`dfx canister info` 显示的模块哈希也是这个值。release 用 `gzip -n` 打包，同一 Wasm 重复打包得到相同哈希。记录模块哈希和 controllers。本地开发可继续用 `dfx deploy dmsg_handle --argument …`。
 
-5. 导入并封存旧名快照，步骤见下文“迁移流程”。封存前注册返回 `LegacyWriteDisabled`、认领返回 `VersionConflict`。没有旧名的本地或测试部署也要封存一个空快照：
+5. 由 controller 导入并封存旧名快照，步骤见下文“迁移流程”，在交给 SNS 之前完成。封存前注册返回 `LegacyWriteDisabled`、认领返回 `VersionConflict`。没有旧名的本地或测试部署也要封存一个空快照：
 
    ```sh
    ZERO=$(printf '\\00%.0s' $(seq 32))
@@ -232,45 +235,58 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 6. 在 `src/dmsg_app/dmsg.config.json` 填写 `canisters.user` 与 `canisters.handle`，重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
 
-7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`snapshot_certified` 和 `resolve_handle_certified` 的证书能通过客户端验证。生产部署和真实 PANDA 账本仍需另行验收。
+7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`snapshot_certified` 和 `resolve_handle_certified` 的证书能通过客户端验证。
 
-### SNS 治理
+8. 封存后立即由官方账户注册容易被用来冒充的通用名称，例如 `admin`、`support`、`official`、`system`、`help`、`security`（2026-10-06 查询时旧系统均未注册）。走正常注册流程，费用进入 handle 账户，之后随收入一起提取。
 
-交给 SNS 管理时，先用 `AddGenericNervousSystemFunction` 提案为每个管理方法登记通用函数，目标和验证方法都在 handle canister 上：
+9. 主网验收：用测试账户通过客户端注册一个 7 字节以上的名称，核对账本区块和 `get_handle_operation`，并在客户端验证 `resolve_handle_certified`；完成一次真实的旧名认领和一次测试账户之间的转移；controller 用小额 `admin_collect_token` 转到国库，见“运维与升级”。
 
-| 目标方法                | 验证方法                         |
-| ----------------------- | -------------------------------- |
-| `begin_legacy_snapshot` | `validate_begin_legacy_snapshot` |
-| `import_legacy_handles` | `validate_import_legacy_handles` |
-| `seal_legacy_snapshot`  | `validate_seal_legacy_snapshot`  |
-| `update_ledger_fee`     | `validate_update_ledger_fee`     |
-| `admin_collect_token`   | `validate_admin_collect_token`   |
+### 交给 SNS
 
-之后用 `ExecuteGenericNervousSystemFunction` 提案执行，载荷是目标方法的 Candid 参数，可用 `didc encode -d src/dmsg_handle/dmsg_handle.did -m <method> '<参数>'` 生成；迁移计划中的 `candid_hex` 可直接作为载荷。
+迁移封存和主网验收完成后再交给 SNS。旧名约 200 条，一批即可导入，在交接前由 controller 完成，可以免去必须依次执行的提案。
 
-- 提交提案时 SNS 调用验证方法，按当前状态预演；有先后依赖的提案（导入批次、封存）要等前一个执行后再提交。导入批次带有快照位置，提前提交的后续批次在验证时即返回 `VersionConflict`。
+1. 把 SNS root（`d7wvo-iiaaa-aaaaq-aacsq-cai`，[sns_canister_ids.json](../../sns_canister_ids.json) 的 `root_canister_id`）加为 controller，再提交 `RegisterDappCanisters` 提案登记 handle，模板见 [proposal-467.sh](../../proposals/proposal-467.sh)。通过后用 `dfx canister info` 核对 controllers：SNS root 应是唯一的 controller；团队 controller 若仍在，用 `dfx canister update-settings dmsg_handle --network ic --remove-controller <principal>` 移除。
+2. 提交 `AddGenericNervousSystemFunction` 提案登记通用函数，目标和验证方法都在 handle canister 上。登记时须填写 `topic`；quill 不支持该字段，用 `dfx canister call` 调用 governance 的 `manage_neuron` 提交，模板见 [proposal-452.sh](../../proposals/proposal-452.sh)。建议的主题：
+
+   | 目标方法                | 验证方法                         | 主题                                                   |
+   | ----------------------- | -------------------------------- | ------------------------------------------------------ |
+   | `update_ledger_fee`     | `validate_update_ledger_fee`     | `ApplicationBusinessLogic`                             |
+   | `admin_collect_token`   | `validate_admin_collect_token`   | `TreasuryAssetManagement`（关键主题）                  |
+   | `begin_legacy_snapshot` | `validate_begin_legacy_snapshot` | `CriticalDappOperations`（关键主题，交接后仍需迁移时） |
+   | `import_legacy_handles` | `validate_import_legacy_handles` | 同上                                                   |
+   | `seal_legacy_snapshot`  | `validate_seal_legacy_snapshot`  | 同上                                                   |
+
+3. 之后用 `ExecuteGenericNervousSystemFunction` 提案执行，载荷是目标方法的 Candid 参数，可用 `didc encode -d src/dmsg_handle/dmsg_handle.did -m <method> '<参数>'` 生成；迁移计划中的 `candid_hex` 可直接作为载荷。
+4. 升级改用 `UpgradeSnsControlledCanister` 提案，Wasm 用 release 产物，`canister_upgrade_arg` 留空（`post_upgrade` 不读参数）；SNS 默认先停止 canister 再升级。
+
+- 提交提案时 SNS 调用验证方法，按当前状态预演；有先后依赖的提案（导入批次、封存）要等前一个执行后再提交。导入批次带有快照位置，提前提交的后续批次在验证时即返回 `VersionConflict`。SNS 通用函数的载荷上限为 70,000 字节，导入批次提交前须确认 `candid_hex` 解码后不超过该大小。
 - 执行时 SNS 只判断调用是否得到回复，不解析返回的 `Result`。执行后用 `snapshot_progress`、`get_handle_config` 或账本记录确认结果。
 
 ### 运维与升级
 
-- 账本手续费变化时，由 controller 或 governance 调用 `update_ledger_fee(fee)`，新值仍须小于 1,000 PANDA。它只影响新订单：已有操作保留原金额、fee、memo 和账本时间，客户端按新配置重新准备报价。
+- 账本手续费变化时，由 controller 或 governance 调用 `update_ledger_fee(fee)`，新值仍须小于 100 PANDA。它只影响新订单：已有操作保留原金额、fee、memo 和账本时间，客户端按新配置重新准备报价。
 - 注册收入留在 handle canister 的默认账户，由 controller 或 governance 调用 `admin_collect_token(to, amount)` 提取：转给 `to` 的金额为 `amount`，账本手续费另从 handle 账户扣除，成功时返回账本区块号。该转账不带 `created_at_time`，账本不会去重；返回 `ExecutionUnknown` 时先在账本核对，再决定是否重新提交。
 
+  PANDA 应转入 SNS 国库：owner 为 governance，子账户为 `f6cc24dd368235dbdf2b3c792e399ac10f00a0003373de6d0960ae55ca873ebb`（由 governance principal 与 `token-distribution` 派生，与 luckypool 的 `admin_collect_tokens` 相同）。不要转到 governance 的默认账户（`subaccount = null`），转入那里的 PANDA 可能无法再转出。
+
   ```sh
+  TREASURY='\f6\cc\24\dd\36\82\35\db\df\2b\3c\79\2e\39\9a\c1\0f\00\a0\00\33\73\de\6d\09\60\ae\55\ca\87\3e\bb'
   dfx canister call --network ic dmsg_handle admin_collect_token \
-    '(record { owner = principal "<收款 principal>"; subaccount = null }, <amount> : nat)'
+    "(record { owner = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\"; subaccount = opt blob \"$TREASURY\" }, <amount> : nat)"
   ```
 
-- 升级要求 schema 不变。先停止 canister，让在途的账本回调完成，再升级、启动并查看日志：
+- 交给 SNS 前，由 controller 升级。升级要求 schema 不变。先停止 canister，让在途的账本回调完成，再用 release 产物升级、启动并查看日志：
 
   ```sh
+  dfx canister metadata dmsg_handle candid:service --network ic > deployed.did
+  didc check dmsg_handle.did deployed.did
   dfx canister stop dmsg_handle --network ic
-  dfx deploy dmsg_handle --network ic --argument-type raw --argument 4449444c0000
+  dfx canister install dmsg_handle --network ic --mode upgrade --wasm dmsg_handle.wasm.gz --argument-type raw --argument 4449444c0000 --yes
   dfx canister start dmsg_handle --network ic
   dfx canister logs dmsg_handle --network ic
   ```
 
-  Candid 服务声明了 `HandleInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。不要在升级时重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
+  `dmsg_handle.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口。dfx 自带的兼容检查依赖本地 `dfx build` 生成的文件，直接安装 release 产物时找不到这些文件，会停下来要求确认，所以先用 `didc check` 核对，再加 `--yes` 跳过这一步。Candid 服务声明了 `HandleInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。不要在升级时重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
 
 - 升级所需 cycles 随活跃名称增长（100,000 名称约 110B cycles），升级前确认余额。
 
@@ -314,9 +330,9 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
    输出格式为 `dmsg-legacy-name-plan/1`，包含一次 `begin_legacy_snapshot`、每 256 条一次 `import_legacy_handles(snapshot_id, offset, entries)` 和一次 `seal_legacy_snapshot`，参数均为 Candid hex，`offset` 是该批第一条在快照中的位置。输出文件不覆盖已有文件，权限为 0600。
 
-5. **审核计划**：核对 `count`、`quarantined` 名单、`snapshot`（快照 ID）和调用顺序，与盘点及冻结记录一致后再提交。
+5. **审核计划**：核对 `count`、`quarantined` 名单、`snapshot`（快照 ID）和调用顺序，与盘点及冻结记录一致后再提交。隔离名称会永久保留，须确认团队和品牌名称（如 `panda`、`dmsg`、`icpanda`、`anda`）不在 `quarantined` 名单中。封存前发现问题可以重装 handle 后重新导入，封存后无法补救。
 
-6. **提交**：按计划顺序逐条提交，每步后查询 `snapshot_progress`。controller 可直接调用，提交前可用对应的 `validate_*` 预演；由 SNS 管理时，每条调用作为一个通用函数提案，等前一条执行后再提交下一条（见“SNS 治理”）。
+6. **提交**：按计划顺序逐条提交，每步后查询 `snapshot_progress`。controller 可直接调用，提交前可用对应的 `validate_*` 预演；由 SNS 管理时，每条调用作为一个通用函数提案，等前一条执行后再提交下一条（见“交给 SNS”）。
 
    ```sh
    dfx canister call --network ic --type raw dmsg_handle <method> <candid_hex>
@@ -374,4 +390,4 @@ POCKET_IC_BIN=/path/to/pocket-ic \
 
 测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [legacy-snapshot.spec.ts](../dmsg_app/e2e/legacy-snapshot.spec.ts) 覆盖，需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件。
 
-2026-10-06 在加入治理与收入提取（schema 8）的版本上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、105 项 PocketIC 回归（`control_plane` 101 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 171 项单元测试也通过。默认忽略的 16 项 profile 本轮未运行，三项 handle profile 最近一次运行为 2026-10-02（schema 7）。部署流程中的安装（含 `governance`）、空快照、raw 提交、`validate_*` 预演、手续费更新和“停止 → 升级 → 启动”命令，已用 release Wasm 在隔离的 dfx 0.32.0 本地副本上实测；本地没有账本，`admin_collect_token` 只核对了命令格式，转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
+2026-10-06 在最低价改为 100 PANDA 的版本（schema 8）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、105 项 PocketIC 回归（`control_plane` 101 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 171 项单元测试也通过。默认忽略的 16 项 profile 本轮未运行，三项 handle profile 最近一次运行为 2026-10-02（schema 7）。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后安装（含 `governance`），模块哈希等于 gzip 产物的 SHA-256；空快照封存；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。raw 提交、`validate_*` 预演和手续费更新在同日上一轮实测。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。

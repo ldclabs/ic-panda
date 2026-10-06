@@ -62,6 +62,13 @@ export class HandleClient {
       'LegacyWriteDisabled',
       '名称快照尚未封存，暂不能购买新名称。'
     )
+    // Check before the allowance is approved. A forged reply can only block
+    // this purchase; the registry rejects reserved names on its own.
+    ensure(
+      !controlResult(await this.registry.get_legacy_reservation(name))[0],
+      'VersionConflict',
+      '此名称在旧名快照中预留，只能由原持有人认领。'
+    )
     const cfg = await this.registry.get_handle_config()
     ensure(cfg.home_user.toText() === this.account.home.toText(), 'INTEGRITY_FAILED')
     const total = handlePrice(name)
