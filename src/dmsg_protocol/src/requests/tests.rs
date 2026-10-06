@@ -255,8 +255,8 @@ fn execute_approval(home: Principal, r: &ExecuteRequest) -> Hash {
     approval_message(
         home,
         &r.account_id,
-        "dmsg/execute/v3",
-        &(&r.kind, r.max_cycles),
+        EXECUTE_APPROVAL_DOMAIN,
+        &execute_approval_command(r),
         &r.approval,
     )
 }

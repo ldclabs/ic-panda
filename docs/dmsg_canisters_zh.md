@@ -65,7 +65,7 @@ pnpm --dir src/dmsg_app test
 
 生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。user/cose 的 issuer_namespace 必须一致且固定；当前仅支持固定单 user home，未来多 home 发号须先登记并排除分配器指纹碰撞。COSE 由 controller 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
-当前 TSA 接点为 RFC 9921 CTT message imprint 和明确不验证信任的 token 组装函数。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
+签名产物可在非保护头 270 携带不透明的 RFC 9921 CTT token，验证只限制其大小，不检查其可信性。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
 
 ## 2026-09-22 客户端接线增量
 

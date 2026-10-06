@@ -62,12 +62,13 @@ fn update<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
         .unwrap_or_else(|e| panic!("{method}: {e:?}"));
     candid::decode_one(&bytes).unwrap_or_else(|e| panic!("decode {method}: {e:?}"))
 }
+
 fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
     approval_message(
         home,
         &request.account_id,
-        "dmsg/execute/v3",
-        &(&request.kind, request.max_cycles),
+        EXECUTE_APPROVAL_DOMAIN,
+        &execute_approval_command(request),
         &request.approval,
     )
 }
@@ -809,51 +810,34 @@ impl Fixture {
     }
     fn derive(&self, n: u8, account_id: &AccountId, transport_key: Vec<u8>) -> ExecutionResult {
         let s = self.account_id(n, account_id);
-        let kind = ExecutionKind::Derive {
-            generation: 1,
-            root_op_id: None,
-            transport_key: serde_bytes::ByteArray::new(transport_key.try_into().unwrap()),
-        };
-        let cost = 100_000_000_000u128;
         let request_id = execution_request_id(
             account_id,
             s.security_epoch,
             Hash::new([n; 32]),
             s.devices[&Hash::new([n; 32])].next_sequence,
         );
-        let mut approval = Approval {
-            device_id: Hash::new([n; 32]),
-            security_epoch: s.security_epoch,
-            sequence: s.devices[&Hash::new([n; 32])].next_sequence,
-            request_id,
-            expires_at: time(&self.ic) + MINUTE,
-            signature: Default::default(),
+        let mut request = ExecuteRequest {
+            account_id: *account_id,
+            kind: ExecutionKind::Derive {
+                generation: 1,
+                root_op_id: None,
+                transport_key: serde_bytes::ByteArray::new(transport_key.try_into().unwrap()),
+            },
+            max_cycles: 100_000_000_000,
+            approval: Approval {
+                device_id: Hash::new([n; 32]),
+                security_epoch: s.security_epoch,
+                sequence: s.devices[&Hash::new([n; 32])].next_sequence,
+                request_id,
+                expires_at: time(&self.ic) + MINUTE,
+                signature: Default::default(),
+            },
         };
-        approval.signature = key(n)
-            .sign(
-                approval_message(
-                    self.user,
-                    account_id,
-                    "dmsg/execute/v3",
-                    &(&kind, cost),
-                    &approval,
-                )
-                .as_slice(),
-            )
+        request.approval.signature = key(n)
+            .sign(execute_approval(self.user, &request).as_slice())
             .to_bytes()
             .into();
-        let r = submit_execution(
-            &self.ic,
-            self.user,
-            person(n),
-            ExecuteRequest {
-                account_id: *account_id,
-                kind,
-                max_cycles: cost,
-                approval,
-            },
-        );
-        r.unwrap()
+        submit_execution(&self.ic, self.user, person(n), request).unwrap()
     }
 }
 
@@ -1007,44 +991,32 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         SigningAlgorithm::Ed25519,
     );
     let (_, to_be_signed) = prepare_cose(&payload, &Algorithm::Ed25519, &selected.kid).unwrap();
-    let kind = ExecutionKind::Sign {
-        key: KeyRequest {
-            purpose: KeyPurpose::FileAttestation,
-            algorithm: Algorithm::Ed25519,
-            generation: 1,
+    let mut request = ExecuteRequest {
+        account_id,
+        kind: ExecutionKind::Sign {
+            key: KeyRequest {
+                purpose: KeyPurpose::FileAttestation,
+                algorithm: Algorithm::Ed25519,
+                generation: 1,
+            },
+            to_be_signed: to_be_signed.into(),
+            public_key_fingerprint: selected.public_key_fingerprint,
+            origin: "https://example.com".into(),
         },
-        to_be_signed: to_be_signed.into(),
-        public_key_fingerprint: selected.public_key_fingerprint,
-        origin: "https://example.com".into(),
+        max_cycles: 100_000_000_000,
+        approval: Approval {
+            device_id: Hash::new([1; 32]),
+            security_epoch: s.security_epoch,
+            sequence: s.devices[&Hash::new([1; 32])].next_sequence,
+            request_id,
+            expires_at: expires,
+            signature: Default::default(),
+        },
     };
-    let mut approval = Approval {
-        device_id: Hash::new([1; 32]),
-        security_epoch: s.security_epoch,
-        sequence: s.devices[&Hash::new([1; 32])].next_sequence,
-        request_id,
-        expires_at: expires,
-        signature: Default::default(),
-    };
-    let cost = 100_000_000_000u128;
-    approval.signature = key(1)
-        .sign(
-            approval_message(
-                f.user,
-                &account_id,
-                "dmsg/execute/v3",
-                &(&kind, cost),
-                &approval,
-            )
-            .as_slice(),
-        )
+    request.approval.signature = key(1)
+        .sign(execute_approval(f.user, &request).as_slice())
         .to_bytes()
         .into();
-    let request = ExecuteRequest {
-        account_id,
-        kind,
-        max_cycles: cost,
-        approval,
-    };
     let result = submit_execution(&f.ic, f.user, person(1), request.clone());
     let result = result.unwrap();
     assert_eq!(result.status(), ExecutionStatus::Completed);

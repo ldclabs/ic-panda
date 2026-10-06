@@ -65,7 +65,7 @@ Stable layout versions are maintained by each canister's `store.rs`, tested usin
 
 Production deployment requires creating canister IDs first, then configuring references using their respective Init arguments. `issuer_namespace` in `user` and `cose` must match and remain fixed; only a single fixed user home is currently supported. Future multi-home issuance requires registration and collision prevention for allocator fingerprints. `dmsg_cose` is initialized by its controller and verifies production keys and fingerprints; it rejects execution if public keys are not ready and cannot fall back to a test root. Production ledger/archiving, extended full approval flows, private service protocols, capacity limits, and audits require independent acceptance.
 
-The current TSA touchpoints are RFC 9921 CTT message imprint computation and an explicit unverified token assembly helper. There is no TSA network client, CMS/X.509 trust validation, full evidence package archiving, or `anchor_snapshot` endpoint; successful regular signing does not imply an authoritative timestamp has been obtained. Channels, profiles, general grants, messages, and file bodies are not stored in these canisters, nor are periodic checkpoints written.
+Signed artifacts may carry an opaque RFC 9921 CTT token at unprotected header 270; verification only bounds its size and does not check its trust. There is no TSA network client, CMS/X.509 trust validation, full evidence package archiving, or `anchor_snapshot` endpoint; successful regular signing does not imply an authoritative timestamp has been obtained. Channels, profiles, general grants, messages, and file bodies are not stored in these canisters, nor are periodic checkpoints written.
 
 ## Client integration increment (2026-09-22)
 

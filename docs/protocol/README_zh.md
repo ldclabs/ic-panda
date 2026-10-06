@@ -101,7 +101,7 @@ digest("dmsg/device-approval/v2", [
 
 RFC 9921 CTT 的 SHA-256 MessageImprint 为 `SHA256(CBOR(signature_bstr))`，包括 bstr 头，区别于执行回执中的原始签名摘要。头 270 携带不透明 token；验证既不申请也不信任 TSA。CMS 签名、imprint、证书链、用途、政策与状态需要独立验证。
 
-`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；SDK 结果分别报告 signature、content、issuerBinding、authorization、timestamp、currentStatus。纯文本的内嵌内容为 verified；摘要或文件声明未提供原文件时 content 为 not_provided，未认证身份或 TSA 时为 not_checked。不能把随包公钥或单个成功布尔值当作完整证明。
+`verify_artifact` / SDK `verifyDocumentArtifact` 检查 profile 和数学签名；SDK 结果的 `checks` 字段分别报告 signature、content、issuerBinding、authorization、timestamp、currentStatus；顶层 `signature` 是原始签名字节。纯文本的内嵌内容为 verified；摘要或文件声明未提供原文件时 content 为 not_provided，未认证身份或 TSA 时为 not_checked。不能把随包公钥或单个成功布尔值当作完整证明。
 
 当前不提供 TSA 网络/CMS 验证、SCITT 透明服务、长期归档或链上 anchor 入口。可选付费投递、名称与 ICP 控制合同分别维护。
 

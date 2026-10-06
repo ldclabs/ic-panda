@@ -369,7 +369,7 @@ fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
     let approval = approve(
         &f,
         &account,
-        "dmsg/execute/v3",
+        EXECUTE_APPROVAL_DOMAIN,
         &(&kind, max_cycles),
         request_id,
     );

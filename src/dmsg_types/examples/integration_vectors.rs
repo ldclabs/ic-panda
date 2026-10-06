@@ -106,8 +106,8 @@ fn main() {
             canonical(&approval_message(
                 principal(1),
                 &execution.account_id,
-                "dmsg/execute/v3",
-                &(&execution.kind, execution.max_cycles),
+                EXECUTE_APPROVAL_DOMAIN,
+                &execute_approval_command(&execution),
                 &execution.approval,
             )),
         ));

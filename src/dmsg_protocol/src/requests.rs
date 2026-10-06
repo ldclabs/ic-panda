@@ -42,8 +42,8 @@ pub trait SignRequestExt {
     /// Validates the statement and kid, fixing signing generation to 1. Preserves
     /// the supplied approval and fingerprint without verifying either. The executing
     /// services check the origin against their deployment environment with
-    /// [`validate_origin`]. Compute the execution approval with [`approval_message`]
-    /// after freezing the request.
+    /// [`validate_origin`]. After freezing the request, compute its approval with
+    /// [`approval_message`], [`EXECUTE_APPROVAL_DOMAIN`] and [`execute_approval_command`].
     ///
     /// # Errors
     /// Propagates [`prepare_cose`] validation errors.
@@ -155,6 +155,19 @@ impl KeyRequestExt for KeyRequest {
             ),
         }
     }
+}
+
+/// Device-approval domain of every [`ExecuteRequest`].
+pub const EXECUTE_APPROVAL_DOMAIN: &str = "dmsg/execute/v3";
+
+/// Command an execution approval binds under [`EXECUTE_APPROVAL_DOMAIN`]: the
+/// execution kind and its cycles ceiling.
+///
+/// Devices sign [`approval_message`] over this pair, and the user canister
+/// verifies the same pair; the approval's account and replay context are bound
+/// separately.
+pub fn execute_approval_command(request: &ExecuteRequest) -> (&ExecutionKind, u128) {
+    (&request.kind, request.max_cycles)
 }
 
 /// Build the recovery-key reconfirmation digest under `dmsg/recovery-reconfirm/v2`.

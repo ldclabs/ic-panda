@@ -171,8 +171,8 @@ pub(crate) fn check(
         s,
         caller,
         &input.approval,
-        "dmsg/execute/v3",
-        &(&input.kind, input.max_cycles),
+        EXECUTE_APPROVAL_DOMAIN,
+        &execute_approval_command(input),
         (Some(cap), admin),
         now,
     )?;

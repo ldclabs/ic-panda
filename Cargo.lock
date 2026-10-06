@@ -1416,7 +1416,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_protocol"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "agent-protocols",
  "candid",
@@ -1506,7 +1506,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_types"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "candid",
  "cbor2",

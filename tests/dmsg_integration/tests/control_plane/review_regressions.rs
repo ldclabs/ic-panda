@@ -585,45 +585,34 @@ fn settle_order(f: &Fixture, e: &EscrowInfo) -> EscrowInfo {
 }
 fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -> ExecuteRequest {
     let s = f.account_id(1, account_id);
-    let kind = ExecutionKind::Derive {
-        generation: 1,
-        root_op_id: None,
-        transport_key: serde_bytes::ByteArray::new(transport.try_into().unwrap()),
-    };
-    let max_cycles = 100_000_000_000u128;
     let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
-    let mut approval = Approval {
-        device_id: Hash::new([1; 32]),
-        security_epoch: s.security_epoch,
-        sequence,
-        request_id: execution_request_id(
-            account_id,
-            s.security_epoch,
-            Hash::new([1; 32]),
+    let mut request = ExecuteRequest {
+        account_id: *account_id,
+        kind: ExecutionKind::Derive {
+            generation: 1,
+            root_op_id: None,
+            transport_key: serde_bytes::ByteArray::new(transport.try_into().unwrap()),
+        },
+        max_cycles: 100_000_000_000,
+        approval: Approval {
+            device_id: Hash::new([1; 32]),
+            security_epoch: s.security_epoch,
             sequence,
-        ),
-        expires_at: time(&f.ic) + MINUTE,
-        signature: Default::default(),
-    };
-    approval.signature = key(1)
-        .sign(
-            approval_message(
-                f.user,
+            request_id: execution_request_id(
                 account_id,
-                "dmsg/execute/v3",
-                &(&kind, max_cycles),
-                &approval,
-            )
-            .as_slice(),
-        )
+                s.security_epoch,
+                Hash::new([1; 32]),
+                sequence,
+            ),
+            expires_at: time(&f.ic) + MINUTE,
+            signature: Default::default(),
+        },
+    };
+    request.approval.signature = key(1)
+        .sign(execute_approval(f.user, &request).as_slice())
         .to_bytes()
         .into();
-    ExecuteRequest {
-        account_id: *account_id,
-        kind,
-        max_cycles,
-        approval,
-    }
+    request
 }
 fn root_user(f: &Fixture) -> AccountId {
     let account_id = f.create(1);
@@ -996,16 +985,7 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     let mut reused = derivation_request(&f, &account_id, transport.public_key());
     reused.approval.request_id = first.approval.request_id;
     reused.approval.signature = key(1)
-        .sign(
-            approval_message(
-                f.user,
-                &account_id,
-                "dmsg/execute/v3",
-                &(&reused.kind, reused.max_cycles),
-                &reused.approval,
-            )
-            .as_slice(),
-        )
+        .sign(execute_approval(f.user, &reused).as_slice())
         .to_bytes()
         .into();
     let refused: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), reused);

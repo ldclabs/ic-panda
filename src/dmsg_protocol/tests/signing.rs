@@ -73,7 +73,7 @@ fn file_statement() -> Statement {
 }
 
 #[test]
-fn prepared_signatures_match_raw_framing_for_every_profile_and_algorithm() {
+fn prepared_signatures_verify_for_every_profile_and_algorithm() {
     for statement in [
         statement(),
         file_statement(),

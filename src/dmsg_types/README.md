@@ -10,14 +10,14 @@ This crate provides types, Serde/Candid representations, and a few conversion an
 
 ## Getting started and references
 
-The package version in this repository is `0.1.0`. Consult `Cargo.toml` for publication settings; enabling publication does not mean the version has been uploaded to crates.io. During development, use a path dependency:
+The package version in this repository is `0.2.0`. Consult `Cargo.toml` for publication settings; enabling publication does not mean the version has been uploaded to crates.io. During development, use a path dependency:
 
 ```toml
 [dependencies]
 dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 ```
 
-The path is relative to the consuming project's `Cargo.toml`; adjust it for your checkout. Once the version is published, use `dmsg_types = "0.1"`. Add the companion protocol crate when you also need protocol encoding or signature verification.
+The path is relative to the consuming project's `Cargo.toml`; adjust it for your checkout. Once the version is published, use `dmsg_types = "0.2"`. Add the companion protocol crate when you also need protocol encoding or signature verification.
 
 - [Public protocol and byte rules](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README.md): the starting point for independent implementations in other languages.
 - [Statement CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl): COSE document structure.

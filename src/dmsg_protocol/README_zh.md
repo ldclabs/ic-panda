@@ -22,13 +22,13 @@ dmsg_protocol = { path = "../ic-panda/src/dmsg_protocol" }
 
 ```toml
 [dependencies]
-dmsg_types = "0.1"
-dmsg_protocol = "0.1"
+dmsg_types = "0.2"
+dmsg_protocol = "0.2"
 ```
 
 正式依赖方向是 **dmsg_protocol → dmsg_types**。仓库中反方向的引用只是开发依赖，用于 dmsg_types 的合同测试和向量生成；仅使用类型的应用不会引入本协议库。使用方直接从 dmsg_types 导入公开 DTO 和错误类型。下文示例还使用 `ed25519-dalek = "3"`，批准示例另外使用 `candid = "0.10"`。
 
-发布配置不表示版本已经上架 crates.io。当前 checkout 中两个包的版本均为 0.1.0；首次发布顺序见文末说明。
+发布配置不表示版本已经上架 crates.io。当前 checkout 中两个包的版本均为 0.2.0；发布顺序见文末说明。
 
 ## API 导航
 
@@ -39,7 +39,7 @@ dmsg_protocol = "0.1"
 | 组装与验证 | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | 确认 issuer 身份、授权与当前状态 |
 | 描述签名公钥 | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | 认证公钥来源，不把指纹当成所有权证明 |
 | 标识签署者 | `account_issuer`, `validate_uri`, `validate_namespace` | 配置可信命名空间，并与已认证证据绑定 |
-| 准备 ICP 批准 | `SignRequestExt`, `approval_message`, `execution_request_id` | 获取当前账户/设备状态、签署摘要并提交到 user home |
+| 准备 ICP 批准 | `SignRequestExt`, `approval_message`, `EXECUTE_APPROVAL_DOMAIN`, `execute_approval_command`, `execution_request_id` | 获取当前账户/设备状态、签署摘要并提交到 user home |
 | 验证请求输入 | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | 执行服务端授权、私钥持有证明检查与状态转换 |
 | 核对执行证据 | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | 先验证 IC certificate、预期 canister、witness、路径和叶值 |
 | 处理恢复与名称 | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | 在对应服务中执行恢复政策、名称与账本操作 |
@@ -107,7 +107,10 @@ assert_eq!(verify_artifact(&artifact).unwrap(), statement);
 
 ```rust
 use candid::Principal;
-use dmsg_protocol::{approval_message, execution_request_id, SignRequestExt};
+use dmsg_protocol::{
+    approval_message, execute_approval_command, execution_request_id, SignRequestExt,
+    EXECUTE_APPROVAL_DOMAIN,
+};
 use dmsg_types::{
     cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
     AccountId, Approval, Hash, Statement, StatementContent,
@@ -145,8 +148,8 @@ let home_user = Principal::from_slice(&[1, 1]); // 部署演示值。
 let digest = approval_message(
     home_user,
     &execution.account_id,
-    "dmsg/execute/v3",
-    &(&execution.kind, execution.max_cycles),
+    EXECUTE_APPROVAL_DOMAIN,
+    &execute_approval_command(&execution),
     &execution.approval,
 );
 let device_key = SigningKey::from_bytes(&[9; 32]); // 仅用于测试。
@@ -154,7 +157,7 @@ execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().int
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
-`SignRequestExt::into_execution` 验证 origin 和声明，以签名 generation 1 准备字节。它保留传入的指纹和批准，不认证它们。执行批准把 `dmsg/execute/v3` 域和 `(kind, max_cycles)` 传给 `approval_message`，再包装到 `dmsg/device-approval/v2`。任何已批准字段变化都需要新批准。类型化 `sign` 入口接收 SignRequest；低层 ExecuteRequest 还表示根派生，不是无限制的原始字节签名入口。
+`SignRequestExt::into_execution` 验证 origin 和声明，以签名 generation 1 准备字节。它保留传入的指纹和批准，不认证它们。执行批准把 `EXECUTE_APPROVAL_DOMAIN`（`dmsg/execute/v3`）和 `execute_approval_command`（即 `(kind, max_cycles)`）传给 `approval_message`，再包装到 `dmsg/device-approval/v2`；user canister 校验同一组值。任何已批准字段变化都需要新批准。类型化 `sign` 入口接收 SignRequest；低层 ExecuteRequest 还表示根派生，不是无限制的原始字节签名入口。
 
 账户变更使用 `approval_message`、`dmsg/account/v2` 域和 `(expected_version, command)`。恢复再次确认使用 `recovery_confirmation_message` 和恢复密钥，不使用设备密钥。序号消耗、期限检查和权限决定发生在服务中。结果未知时，对账原请求，不自动创建新的签名操作。
 
@@ -209,7 +212,9 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 ## 维护者发布说明
 
-先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.1.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
+先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.2.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
+
+0.2.0 移除了 0.1.x 中没有生产代码使用的公开项。`finish_cose` 改为 `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`；`ExecuteRequestExt::approval_message` 改为用 `EXECUTE_APPROVAL_DOMAIN` 和 `execute_approval_command` 调用 `approval_message`；`ExecutionResult::output()` 改为匹配 `ExecutionOutcome::Completed`。
 
 Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path 的 dmsg_protocol 开发依赖，从而避免发布依赖循环；但仓库合同测试和向量示例仍需要 checkout 的开发依赖。应在 workspace 执行它们，发布包中的 dmsg_types 测试集不等同于仓库测试环境。
 

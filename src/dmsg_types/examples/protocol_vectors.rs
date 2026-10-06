@@ -222,8 +222,8 @@ fn main() {
             approval_message(
                 home_user,
                 &input.account_id,
-                "dmsg/execute/v3",
-                &(&input.kind, input.max_cycles),
+                EXECUTE_APPROVAL_DOMAIN,
+                &execute_approval_command(&input),
                 a,
             )
         );

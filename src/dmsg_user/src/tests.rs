@@ -151,8 +151,8 @@ fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
     approval_message(
         home,
         &request.account_id,
-        "dmsg/execute/v3",
-        &(&request.kind, request.max_cycles),
+        EXECUTE_APPROVAL_DOMAIN,
+        &execute_approval_command(request),
         &request.approval,
     )
 }
@@ -730,16 +730,7 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
     reused.approval.request_id = first.approval.request_id;
     alter_statement(&mut reused);
     reused.approval.signature = sk(1)
-        .sign(
-            approval_message(
-                s.home_user,
-                &s.account_id,
-                "dmsg/execute/v3",
-                &(&reused.kind, reused.max_cycles),
-                &reused.approval,
-            )
-            .as_slice(),
-        )
+        .sign(execute_approval(s.home_user, &reused).as_slice())
         .to_bytes()
         .into();
     assert_eq!(

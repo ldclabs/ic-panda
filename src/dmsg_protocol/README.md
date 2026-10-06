@@ -22,13 +22,13 @@ Once both versions are published, the corresponding registry dependencies are:
 
 ```toml
 [dependencies]
-dmsg_types = "0.1"
-dmsg_protocol = "0.1"
+dmsg_types = "0.2"
+dmsg_protocol = "0.2"
 ```
 
 The runtime dependency is **dmsg_protocol → dmsg_types**. The reverse reference in the repository is a development dependency used by dmsg_types contract tests and vector generation; applications using only the types do not pull in this protocol crate. Consumers import public DTOs and errors from dmsg_types directly. The examples below also use `ed25519-dalek = "3"` and, for the approval example, `candid = "0.10"`.
 
-Publication settings do not prove a version is already on crates.io. Both packages are currently version 0.1.0 in this checkout; see the release notes below for first-publication order.
+Publication settings do not prove a version is already on crates.io. Both packages are currently version 0.2.0 in this checkout; see the release notes below for publication order.
 
 ## API guide
 
@@ -39,7 +39,7 @@ Publication settings do not prove a version is already on crates.io. Both packag
 | Assemble/verify | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | Establish issuer identity, authorization and current status |
 | Describe a signing key | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | Authenticate the key source; do not treat a thumbprint as proof of ownership |
 | Identify a signer | `account_issuer`, `validate_uri`, `validate_namespace` | Configure a trusted namespace and bind it to authenticated evidence |
-| Prepare ICP approval | `SignRequestExt`, `approval_message`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
+| Prepare ICP approval | `SignRequestExt`, `approval_message`, `EXECUTE_APPROVAL_DOMAIN`, `execute_approval_command`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
 | Validate request inputs | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | Perform server-side authorization, proof-of-possession checks and state transitions |
 | Check execution evidence | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
 | Handle recovery/names | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | Execute recovery policy and name/ledger operations in their services |
@@ -107,7 +107,10 @@ The following constructs a local request and device signature; it does not conta
 
 ```rust
 use candid::Principal;
-use dmsg_protocol::{approval_message, execution_request_id, SignRequestExt};
+use dmsg_protocol::{
+    approval_message, execute_approval_command, execution_request_id, SignRequestExt,
+    EXECUTE_APPROVAL_DOMAIN,
+};
 use dmsg_types::{
     cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
     AccountId, Approval, Hash, Statement, StatementContent,
@@ -145,8 +148,8 @@ let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
 let digest = approval_message(
     home_user,
     &execution.account_id,
-    "dmsg/execute/v3",
-    &(&execution.kind, execution.max_cycles),
+    EXECUTE_APPROVAL_DOMAIN,
+    &execute_approval_command(&execution),
     &execution.approval,
 );
 let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
@@ -154,7 +157,7 @@ execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().int
 assert_eq!(execution.approval.request_id, request_id);
 ```
 
-`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. The execution approval passes domain `dmsg/execute/v3` and `(kind, max_cycles)` to `approval_message`, wrapped in `dmsg/device-approval/v2`. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
+`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. The execution approval passes `EXECUTE_APPROVAL_DOMAIN` (`dmsg/execute/v3`) and `execute_approval_command`, which is `(kind, max_cycles)`, to `approval_message`, wrapped in `dmsg/device-approval/v2`; the user canister verifies the same pair. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
 
 For account mutations, use `approval_message` with `dmsg/account/v2` and `(expected_version, command)`. Recovery reconfirmation uses `recovery_confirmation_message` and the recovery key, not a device key. Sequence consumption, deadline checks and permission decisions happen in the service. After an unknown outcome, reconcile the original request instead of generating a new signing operation.
 
@@ -209,7 +212,9 @@ For offline verification, run `cargo run -p dmsg_protocol --example verify -- ar
 
 ## Release notes for maintainers
 
-Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.1.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
+Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.2.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
+
+0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `EXECUTE_APPROVAL_DOMAIN` and `execute_approval_command`, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`.
 
 Cargo omits the path-only dmsg_protocol development dependency from the normalized dmsg_types package manifest. That avoids a publication dependency cycle, but its repository contract tests and vector example still require the checkout's development dependency. Run these from the workspace; a packaged dmsg_types test suite is not equivalent.
 

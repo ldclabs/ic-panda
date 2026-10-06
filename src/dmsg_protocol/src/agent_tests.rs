@@ -516,8 +516,8 @@ fn agent_event_approval_digest_vector() {
         approval_message(
             home,
             &request.account_id,
-            "dmsg/execute/v3",
-            &(&request.kind, request.max_cycles),
+            EXECUTE_APPROVAL_DOMAIN,
+            &execute_approval_command(&request),
             &request.approval,
         )
         .iter()
