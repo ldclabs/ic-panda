@@ -12,8 +12,6 @@ use icrc_ledger_types::{
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
 
-const SNAPSHOT_KEY: &[u8] = b"_legacy_snapshot";
-
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
@@ -77,25 +75,25 @@ fn init(args: HandleInit) {
         event_tip: Hash::new([0; 32]),
         pending: 0,
     };
-    certify_snapshot(&c.progress);
+    // The empty tree is certified too, so absence proofs verify before any name.
+    CERT.with_borrow(|cert| cert.publish());
     save_cfg(c);
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     let started = ic_cdk::api::performance_counter(0);
-    let c = cfg();
     assert_eq!(
-        c.schema, STABLE_SCHEMA,
+        with_cfg(|c| c.schema),
+        STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
-    // Publish once, after all name leaves and the snapshot leaf are restored.
+    // Publish once, after all name leaves are restored.
     CERT.with_borrow_mut(|cert| {
         NAMES.with_borrow(|t| {
             cert.extend(
                 t.iter()
-                    .map(|e| (e.key().clone(), canonical(&e.value().into_inner())))
-                    .chain([(SNAPSHOT_KEY.to_vec(), canonical(&c.progress))]),
+                    .map(|e| (e.key().clone(), canonical(&e.value().into_inner()))),
             )
         })
     });
@@ -170,10 +168,6 @@ fn validate_admin_collect_token(to: Account, amount: u128) -> std::result::Resul
     ))
 }
 
-fn certify_snapshot(progress: &SnapshotProgress) {
-    CERT.with_borrow_mut(|c| c.put(SNAPSHOT_KEY.to_vec(), progress));
-}
-
 // Returns false when the same snapshot is already recorded.
 fn check_begin(c: &Config, snapshot: &LegacySnapshot) -> Result<bool> {
     if let Some(existing) = &c.progress.snapshot {
@@ -195,7 +189,6 @@ fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
     if with_cfg(|c| check_begin(c, &snapshot))? {
         let mut c = cfg();
         c.progress.snapshot = Some(snapshot);
-        certify_snapshot(&c.progress);
         save_cfg(c);
     }
     Ok(())
@@ -285,7 +278,6 @@ fn import_legacy_handles(
                 t.put(e.handle.as_bytes(), e);
             }
         });
-        certify_snapshot(&progress);
         let mut c = cfg();
         c.progress = progress.clone();
         save_cfg(c);
@@ -334,7 +326,6 @@ fn seal_legacy_snapshot() -> Result<SnapshotProgress> {
         return Ok(c.progress);
     }
     c.progress.sealed = true;
-    certify_snapshot(&c.progress);
     let progress = c.progress.clone();
     save_cfg(c);
     Ok(progress)
@@ -811,11 +802,6 @@ fn get_legacy_reservation(handle: String) -> Result<Option<LegacyReservation>> {
 #[ic_cdk::query]
 fn snapshot_progress() -> SnapshotProgress {
     with_cfg(|c| c.progress.clone())
-}
-
-#[ic_cdk::query]
-fn snapshot_certified() -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![SNAPSHOT_KEY.to_vec()]))
 }
 
 #[ic_cdk::query]

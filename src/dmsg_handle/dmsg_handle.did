@@ -267,7 +267,6 @@ service : (HandleInit) -> {
   register_handle : (Registration) -> (Result_3);
   resolve_handle_certified : (vec text) -> (Result_6) query;
   seal_legacy_snapshot : () -> (Result_5);
-  snapshot_certified : () -> (Result_6) query;
   snapshot_progress : () -> (SnapshotProgress) query;
   transfer_handle : (HandleIntent, HandleIntent) -> (Result_2);
   update_ledger_fee : (nat) -> (Result_1);

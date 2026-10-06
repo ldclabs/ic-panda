@@ -119,5 +119,6 @@ pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
 
 pub(crate) const STABLE_SCHEMA: u16 = 8;
 
-// Largest active-name population verified by the Wasm upgrade capacity profile.
-pub(crate) const MAX_ACTIVE_NAMES: u64 = 100_000;
+// Measured to rebuild the certification tree in 165B upgrade instructions,
+// about 55% of the 300B install_code limit, leaving room for upgrade work.
+pub(crate) const MAX_ACTIVE_NAMES: u64 = 150_000;

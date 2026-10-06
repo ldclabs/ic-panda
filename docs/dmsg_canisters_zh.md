@@ -127,4 +127,4 @@ commerce 开发布局升级为 schema 5：出金、对账与修订共用在途 g
 
 ## 2026-10-06 handle 治理与收入提取
 
-handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `governance`，快照导入/封存、`update_ledger_fee` 和新增的 `admin_collect_token` 接受 controller 或 governance 调用。每个管理方法都有同参数的 `validate_*` query，按当前状态预演并返回提案说明，可登记为 SNS 通用函数的验证方法。`import_legacy_handles` 增加快照位置 `offset`，乱序执行的批次被拒绝，不会留下缺口；注册收入可用 `admin_collect_token` 从 handle 默认账户提取。7–20 字节名称价格改为 100 PANDA，整张价格表与旧 `ic_message` 现行价格一致。部署、治理和迁移流程见 [handle README](../src/dmsg_handle/README.md)。
+handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `governance`，快照导入/封存、`update_ledger_fee` 和新增的 `admin_collect_token` 接受 controller 或 governance 调用。每个管理方法都有同参数的 `validate_*` query，按当前状态预演并返回提案说明，可登记为 SNS 通用函数的验证方法。`import_legacy_handles` 增加快照位置 `offset`，乱序执行的批次被拒绝，不会留下缺口；注册收入可用 `admin_collect_token` 从 handle 默认账户提取。7–20 字节名称价格改为 100 PANDA，整张价格表与旧 `ic_message` 现行价格一致。认证树只保留名称叶，移除没有调用方的 `snapshot_certified`；按升级指令实测，单实例活跃名称上限从 100,000 提高到 150,000（升级约用 300B 上限的 55%）。部署、治理和迁移流程见 [handle README](../src/dmsg_handle/README.md)。

@@ -890,34 +890,19 @@ fn handle_legacy_lookups_and_frozen_admin_claims_survive_upgrade() {
         }
         assert_eq!(legacy(&f, "NAMEDOWNER"), Ok(Some(entries[0].clone())));
         assert_eq!(legacy(&f, "missing"), Ok(None));
-        // Only the snapshot commitment is certified. Frozen records stay out of
-        // the heap tree because every claim rechecks the exact record on chain.
-        let progress = progress(&f);
-        assert!(progress.sealed);
-        let proof: Result<CertifiedBatch> =
-            query(&f.ic, f.handle, person(1), "snapshot_certified", ());
-        let proof = proof.unwrap();
-        let cert: ic_certification::Certificate = cbor2::from_slice(&proof.certificate).unwrap();
-        let entry = &proof.entries[0];
-        let witness: ic_certification::HashTree = cbor2::from_slice(&entry.witness).unwrap();
-        assert_eq!(
-            cert.tree.lookup_path([
-                b"canister".as_slice(),
-                f.handle.as_slice(),
-                b"certified_data".as_slice()
-            ]),
-            ic_certification::LookupResult::Found(&witness.digest())
+        // Frozen records stay out of the certified tree because every claim
+        // rechecks the exact record on chain. With no names yet, the empty
+        // tree still proves absence, before and after an upgrade.
+        assert!(progress(&f).sealed);
+        verify_names(&f, &[]);
+        let batch: Result<CertifiedBatch> = query(
+            &f.ic,
+            f.handle,
+            person(1),
+            "resolve_handle_certified",
+            (vec!["namedowner".to_string()],),
         );
-        assert_eq!(entry.key.as_ref(), b"_legacy_snapshot");
-        assert_eq!(entry.value.as_ref().unwrap().as_ref(), canonical(&progress));
-        assert_eq!(
-            witness.lookup_path([entry.key.as_ref()]),
-            ic_certification::LookupResult::Found(entry.value.as_ref().unwrap())
-        );
-        assert_eq!(
-            witness.lookup_path([b"_legacy/namedowner".as_slice()]),
-            ic_certification::LookupResult::Absent
-        );
+        assert!(batch.unwrap().entries[0].value.is_none());
     }
     for (n, entry) in entries.iter().enumerate() {
         let intent = claim_intent(&f, &owner, &snapshot, entry, n as u8 + 1);
@@ -1459,10 +1444,44 @@ fn handle_live_charge_excludes_retry_and_reconciliation() {
     assert_eq!(end, None);
 }
 
+// Large upgrades outlast PocketIC's 100-round ingress wait, so execute rounds
+// explicitly. Mainnet bounds install_code by instructions, not rounds.
+fn upgrade_in_rounds(f: &Fixture) {
+    #[derive(CandidType)]
+    struct InstallCode {
+        mode: pocket_ic::CanisterInstallMode,
+        canister_id: Principal,
+        wasm_module: Vec<u8>,
+        arg: Vec<u8>,
+    }
+    let message =
+        f.ic.submit_call_with_effective_principal(
+            Principal::management_canister(),
+            pocket_ic::common::rest::RawEffectivePrincipal::CanisterId(
+                f.handle.as_slice().to_vec(),
+            ),
+            Principal::anonymous(),
+            "install_code",
+            candid::encode_one(InstallCode {
+                mode: pocket_ic::CanisterInstallMode::Upgrade(None),
+                canister_id: f.handle,
+                wasm_module: wasm("dmsg_handle"),
+                arg: candid::encode_args(()).unwrap(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    for _ in 0..200 {
+        f.ic.tick();
+    }
+    f.ic.await_call_no_ticks(message).unwrap();
+}
+
 // Synthetic stable-name tables isolate the actual Wasm upgrade/query cost.
 // Business writes and event/receipt histories are covered by handle_scale_profile.
+// Samples above MAX_ACTIVE_NAMES (150,000) measure the remaining upgrade margin.
 #[test]
-#[ignore = "10k/100k active-name upgrade and certificate capacity"]
+#[ignore = "1k–250k active-name upgrade and certificate capacity"]
 fn handle_active_name_capacity_profile() {
     use dmsg_runtime::storage::CompactStored;
     use ic_stable_structures::{
@@ -1470,7 +1489,7 @@ fn handle_active_name_capacity_profile() {
         StableBTreeMap,
     };
     use std::{cell::RefCell, rc::Rc};
-    for count in [1_000u64, 10_000, 100_000] {
+    for count in [1_000u64, 10_000, 100_000, 150_000, 200_000, 250_000] {
         let f = Fixture::new();
         let owner = f.create(1);
         let legacy = LegacyReservation {
@@ -1503,7 +1522,7 @@ fn handle_active_name_capacity_profile() {
             pocket_ic::common::rest::BlobCompression::NoCompression,
         );
         let cycles = f.ic.cycle_balance(f.handle);
-        upgrade(&f);
+        upgrade_in_rounds(&f);
         let cycles = cycles - f.ic.cycle_balance(f.handle);
         verify_names(&f, &[record(0), record(count - 1)]);
         let handles: Vec<_> = (0..64).map(|n| record(n * (count / 64)).handle).collect();
@@ -1530,7 +1549,7 @@ fn handle_active_name_capacity_profile() {
             }
         }
         println!("handle_capacity names={count} upgrade_cycles={cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={}", status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_millis());
-        if count == 100_000 {
+        if count == 150_000 {
             // Full registries reject additions locally but still transfer names.
             let addition = registration(&f, &owner, "capacityaddition", 1);
             assert_eq!(register(&f, &addition), Err(Error::QuotaExceeded));

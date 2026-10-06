@@ -181,7 +181,6 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'seal_legacy_snapshot' : IDL.Func([], [Result_5], []),
-    'snapshot_certified' : IDL.Func([], [Result_6], ['query']),
     'snapshot_progress' : IDL.Func([], [SnapshotProgress], ['query']),
     'transfer_handle' : IDL.Func([HandleIntent, HandleIntent], [Result_2], []),
     'update_ledger_fee' : IDL.Func([IDL.Nat], [Result_1], []),

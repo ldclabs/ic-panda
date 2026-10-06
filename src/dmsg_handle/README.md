@@ -29,15 +29,15 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 
 ### 接口与调用者
 
-| 类别 | 方法                                                                                                                                                             | 调用者                       |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 注册 | `register_handle`、`commit_handle`                                                                                                                               | 付款人                       |
-| 对账 | `reconcile_handle_charge`                                                                                                                                        | 任何人，以账本区块为证据     |
-| 认领 | `claim_legacy_handle`                                                                                                                                            | 冻结 owner 或冻结管理员      |
-| 转移 | `transfer_handle`                                                                                                                                                | 任何人，需携带双方批准       |
-| 查询 | `resolve_handle_certified`、`snapshot_certified`、`get_handle_event`、`get_handle_operation`、`get_legacy_reservation`、`snapshot_progress`、`get_handle_config` | 任何人                       |
-| 管理 | `begin_legacy_snapshot`、`import_legacy_handles`、`seal_legacy_snapshot`、`update_ledger_fee`、`admin_collect_token`                                             | controller 或 SNS governance |
-| 预演 | 与每个管理方法同参数的 `validate_*`，如 `validate_import_legacy_handles`                                                                                         | 任何人，只读 query           |
+| 类别 | 方法                                                                                                                                       | 调用者                       |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 注册 | `register_handle`、`commit_handle`                                                                                                         | 付款人                       |
+| 对账 | `reconcile_handle_charge`                                                                                                                  | 任何人，以账本区块为证据     |
+| 认领 | `claim_legacy_handle`                                                                                                                      | 冻结 owner 或冻结管理员      |
+| 转移 | `transfer_handle`                                                                                                                          | 任何人，需携带双方批准       |
+| 查询 | `resolve_handle_certified`、`get_handle_event`、`get_handle_operation`、`get_legacy_reservation`、`snapshot_progress`、`get_handle_config` | 任何人                       |
+| 管理 | `begin_legacy_snapshot`、`import_legacy_handles`、`seal_legacy_snapshot`、`update_ledger_fee`、`admin_collect_token`                       | controller 或 SNS governance |
+| 预演 | 与每个管理方法同参数的 `validate_*`，如 `validate_import_legacy_handles`                                                                   | 任何人，只读 query           |
 
 管理方法接受本 canister 的 controller 或初始化固定的 `governance`。`validate_*` 按当前状态执行与对应方法相同的校验，通过时返回给提案投票者看的说明文字，失败时返回错误名；它不修改状态，可用于 SNS 通用提案的验证方法，也可供 controller 提交前预演。
 
@@ -108,12 +108,9 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 
 ### 认证查询与事件
 
-认证树驻留 heap，只有两类叶：
+认证树驻留 heap，只保存名称叶：名称 → `HandleRecord` 的规范 CBOR，包含当前 owner、版本和产生该权属的事件摘要 `event_tip`。初始化时即发布空树的根，名称尚不存在时也能给出不存在证明。
 
-- 名称 → `HandleRecord` 的规范 CBOR，包含当前 owner、版本和产生该权属的事件摘要 `event_tip`。
-- `_legacy_snapshot` → `SnapshotProgress`。名称不能以下划线开头，所以该键不会与名称冲突。
-
-`resolve_handle_certified` 每次查询 1–64 个名称，返回包含或不存在证明；验证者须核对信任根、canister ID、证书时间、witness 和叶字节。`snapshot_certified` 证明导入进度。旧名预留不进入认证树，旧名数量不影响升级成本。
+`resolve_handle_certified` 每次查询 1–64 个名称，返回包含或不存在证明；验证者须核对信任根、canister ID、证书时间、witness 和叶字节。旧名预留和快照进度不进入认证树，旧名数量不影响升级成本。
 
 每次权属变化追加一条 `HandleEvent`（`StableLog`，序号即追加时的日志长度），事件以 `previous` 串成全局摘要链，摘要为 `digest("dmsg/handle-event/v1", event)`，并记录所属快照 ID。`get_handle_event(sequence)` 是普通 query，`HandleRecord.event_tip` 可用来核对读到的事件。
 
@@ -134,25 +131,28 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 |      6 | `ACTIVE_ACCOUNTS`：有未决扣款的账户                                                  |
 |      7 | `OWNERSHIP`：op key → 认领或转移回执                                                 |
 
-op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）、认证树和调用 guard。没有 `pre_upgrade`；升级时从 `NAMES` 和快照进度重建认证树，只发布一次根哈希。操作、回执和事件只增不删，以保持幂等语义。
+op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）、认证树和调用 guard。没有 `pre_upgrade`；升级时从 `NAMES` 重建认证树，只发布一次根哈希。操作、回执和事件只增不删，以保持幂等语义。
 
 ### 容量与成本
 
-- 活跃名称与未决扣款合计不超过 100,000（`MAX_ACTIVE_NAMES`）。新注册和认领在授权前后都检查，为已发出的扣款保留提交位置；达到上限返回 `QuotaExceeded`，转移、重放、重试和对账不受影响。
+- 活跃名称与未决扣款合计不超过 150,000（`MAX_ACTIVE_NAMES`）。新注册和认领在授权前后都检查，为已发出的扣款保留提交位置；达到上限返回 `QuotaExceeded`，转移、重放、重试和对账不受影响。
 - 全局未决扣款不超过 `max_pending`（1–10,000），每个账户同时最多一笔。
 - 旧名快照不超过 1,000,000 条，每批导入 1–256 条，每条最多 16 个冻结管理员。
 
-升级成本随活跃名称线性增长，主要花在重建认证树。以下为 2026-10-02 在 schema 7、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史。schema 8 未改变名称表和认证树，未重新测量：
+升级成本主要花在重建认证树，略高于线性增长：每个名称的指令数随 log n 增加，名称数每增加 10 倍约多 20 万。以下为 2026-10-06 在 schema 8、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测，名称均为 20 字节；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史，它们不在升级时遍历：
 
-| 活跃名称数 |      升级指令数 |     升级 cycles |  heap 字节 | stable 字节 | 64 名称响应字节 |
-| ---------: | --------------: | --------------: | ---------: | ----------: | --------------: |
-|      1,000 |     657,682,610 |   4,022,926,949 |  1,572,864 |   3,211,264 |          50,118 |
-|     10,000 |   8,636,811,833 |  12,002,056,319 |  3,997,696 |   4,259,840 |          63,038 |
-|    100,000 | 106,721,845,931 | 110,087,090,634 | 28,114,944 |  23,134,208 |          75,426 |
+| 活跃名称数 |      升级指令数 | 占 300B 上限 |     升级 cycles |  heap 字节 | stable 字节 | 64 名称响应字节 |
+| ---------: | --------------: | -----------: | --------------: | ---------: | ----------: | --------------: |
+|      1,000 |     656,949,927 |         0.2% |   4,213,019,059 |  1,572,864 |   3,211,264 |          50,080 |
+|     10,000 |   8,635,692,271 |         2.9% |  12,191,761,550 |  3,997,696 |   4,259,840 |          63,000 |
+|    100,000 | 106,718,078,810 |        35.6% | 110,274,148,306 | 28,114,944 |  23,134,208 |          75,388 |
+|    150,000 | 165,242,309,528 |        55.1% | 168,798,379,023 | 41,549,824 |  33,619,968 |          76,376 |
+|    200,000 | 225,670,298,664 |        75.2% | 229,226,368,159 | 54,919,168 |  44,105,728 |          77,706 |
+|    250,000 | 286,095,741,964 |        95.4% | 289,651,811,460 | 68,354,048 |  54,591,488 |          80,328 |
 
-指令数取自 `post_upgrade` 的 `performance_counter(0)` 差值。响应字节包含证书和成功 Result 封装；单次 64 名称查询的 host 耗时 6–19 ms，含 PocketIC 开销，不代表主网延迟或吞吐。100,000 名称样本还验证了满容量时注册、认领的本地拒绝和双方授权转移。上限取已实测规模，提高前须重新测量升级预算和内存。
+指令数取自 `post_upgrade` 的 `performance_counter(0)` 差值，上限指 install_code 的 300B 指令。按趋势约 26 万名称会用尽上限，届时无法再升级，名称也不能删除，所以上限取 150,000，为以后升级时增加的逐名称工作保留约 135B 指令。主网按指令而不是轮数限制 install_code；PocketIC 等待调用最多 100 轮，profile 因此逐轮推进升级，cycles 含约 0.19B 的多轮推进开销。响应字节包含证书和成功 Result 封装；单次 64 名称查询的 host 耗时 6–14 ms，含 PocketIC 开销，不代表主网延迟或吞吐。150,000 名称样本还验证了满容量时注册、认领的本地拒绝和双方授权转移。提高上限前须重新测量升级预算和内存。
 
-同日 `handle_cycles_profile` 用同一 host 程序及 user、ledger Wasm，对比 schema 6 与 schema 7 的 handle（256 条旧名，逐步注册到 17 个活跃名称）：
+2026-10-02 `handle_cycles_profile` 用同一 host 程序及 user、ledger Wasm，对比 schema 6 与 schema 7 的 handle（256 条旧名，逐步注册到 17 个活跃名称）：
 
 | 项目                            |            schema 6 |            schema 7 |
 | ------------------------------- | ------------------: | ------------------: |
@@ -235,7 +235,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 6. 在 `src/dmsg_app/dmsg.config.json` 填写 `canisters.user` 与 `canisters.handle`，重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
 
-7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`snapshot_certified` 和 `resolve_handle_certified` 的证书能通过客户端验证。
+7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`resolve_handle_certified` 的证书能通过客户端验证。
 
 8. 封存后立即由官方账户注册容易被用来冒充的通用名称，例如 `admin`、`support`、`official`、`system`、`help`、`security`（2026-10-06 查询时旧系统均未注册）。走正常注册流程，费用进入 handle 账户，之后随收入一起提取。
 
@@ -288,7 +288,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
   `dmsg_handle.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口。dfx 自带的兼容检查依赖本地 `dfx build` 生成的文件，直接安装 release 产物时找不到这些文件，会停下来要求确认，所以先用 `didc check` 核对，再加 `--yes` 跳过这一步。Candid 服务声明了 `HandleInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。不要在升级时重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
 
-- 升级所需 cycles 随活跃名称增长（100,000 名称约 110B cycles），升级前确认余额。
+- 升级所需 cycles 随活跃名称增长（150,000 名称约 169B cycles），升级前确认余额。
 
 ## 迁移流程
 
@@ -340,7 +340,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
    三个入口都可安全重试：同一快照重复 `begin` 返回成功；导入批次中位于已导入位置的条目必须与已存条目完全相同，作为重放跳过，新条目必须从当前位置开始并按名称递增；`offset` 超过当前进度的批次返回 `VersionConflict`，不会留下缺口；一批中任何条目校验失败则整批不写入；重复封存返回当前进度。一个实例只接受一个快照，已开始后提交不同快照返回 `IdempotencyConflict`，封存后不能再导入。
 
-7. **封存后核对**：`snapshot_progress` 显示 `sealed`，`imported` 等于 `count`，`rolling_digest` 等于 `entries_digest`；`snapshot_certified` 可通过验证。此后开放新注册和认领。
+7. **封存后核对**：`snapshot_progress` 显示 `sealed`，`imported` 等于 `count`，`rolling_digest` 等于 `entries_digest`。此后开放新注册和认领。
 
 ### 用户认领
 
@@ -356,7 +356,8 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 - 隔离名称（`quarantined`）没有解除或处置接口。这类名称在旧系统中由名称账户自己持有，冻结角色表里又没有 role 1 的管理员，没有人能证明控制权；认领返回 `Locked`，名称永久保留。
 - 每个实例只能导入一个旧快照；更换快照需要新实例。
-- 生产部署、真实 PANDA 账本，以及超过 100,000 个活跃名称的容量都未验收。
+- 单实例最多 150,000 个活跃名称，更大规模需要按名称分片，尚未实现。
+- 生产部署和真实 PANDA 账本都未验收。
 
 ## 实现
 
@@ -385,9 +386,9 @@ POCKET_IC_BIN=/path/to/pocket-ic \
 - 并发注册只扣一次，额度提前拒绝，锁、事件日志和认证树的升级恢复，未知扣款跨时间和升级不释放名称。
 - 成功或拒绝的扣款回复到达前升级，执行中的重试与对账互斥，账本去重窗口过期后的并发对账，付款账户、收款账户、金额、memo、时间戳或 spender 不符的对账证据被拒绝。
 - 快照批量导入失败不部分写入、重叠导入重试、跳过前一批的导入被拒绝、冻结管理员与隔离名称、匿名管理员拒绝。
-- 认领回执跨转移和升级重放，双方授权过期与并发转移，名称包含与不存在证明、快照认证叶及查询批量上限。
+- 认领回执跨转移和升级重放，双方授权过期与并发转移，名称包含与不存在证明（含尚无名称时的空树证明，旧名预留不进入认证树）及查询批量上限。
 - governance 执行快照导入、封存、手续费更新和收入提取，非管理者被拒绝；`validate_*` 按当前状态预演且不改状态，提前提交的后续导入批次在验证和执行时都被拒绝；提取后账本余额准确变化，超额提取被账本拒绝。
 
 测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [legacy-snapshot.spec.ts](../dmsg_app/e2e/legacy-snapshot.spec.ts) 覆盖，需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件。
 
-2026-10-06 在最低价改为 100 PANDA 的版本（schema 8）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、105 项 PocketIC 回归（`control_plane` 101 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 171 项单元测试也通过。默认忽略的 16 项 profile 本轮未运行，三项 handle profile 最近一次运行为 2026-10-02（schema 7）。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后安装（含 `governance`），模块哈希等于 gzip 产物的 SHA-256；空快照封存；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。raw 提交、`validate_*` 预演和手续费更新在同日上一轮实测。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
+2026-10-06 在最低价改为 100 PANDA 的版本（schema 8）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、105 项 PocketIC 回归（`control_plane` 101 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 171 项单元测试也通过。同日移除 `snapshot_certified`、上限提高到 150,000 后再次完整运行通过，并单独运行 `handle_active_name_capacity_profile`（1,000–250,000 名称）通过；其余默认忽略的 profile 未运行，`handle_scale_profile`、`handle_cycles_profile` 最近一次运行为 2026-10-02（schema 7）。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后安装（含 `governance`），模块哈希等于 gzip 产物的 SHA-256；空快照封存；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。raw 提交、`validate_*` 预演和手续费更新在同日上一轮实测。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。

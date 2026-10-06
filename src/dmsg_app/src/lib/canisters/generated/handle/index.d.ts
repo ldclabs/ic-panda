@@ -170,7 +170,6 @@ export interface _SERVICE {
   'register_handle' : ActorMethod<[Registration], Result_3>,
   'resolve_handle_certified' : ActorMethod<[Array<string>], Result_6>,
   'seal_legacy_snapshot' : ActorMethod<[], Result_5>,
-  'snapshot_certified' : ActorMethod<[], Result_6>,
   'snapshot_progress' : ActorMethod<[], SnapshotProgress>,
   'transfer_handle' : ActorMethod<[HandleIntent, HandleIntent], Result_2>,
   'update_ledger_fee' : ActorMethod<[bigint], Result_1>,
