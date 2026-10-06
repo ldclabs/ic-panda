@@ -1,6 +1,6 @@
 use dmsg_protocol::*;
+use dmsg_runtime::name_tree::NameTree;
 use dmsg_runtime::storage::{CompactStored, MapExt};
-use dmsg_runtime::Certification;
 use dmsg_types::{handle::*, *};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
@@ -30,16 +30,17 @@ pub(crate) fn memory(id: u8) -> Memory {
 }
 
 thread_local! {
-    // Allocate in 1 MiB buckets instead of the default 8 MiB per active memory.
-    // The manager's 32,768 buckets then address up to 32 GiB of stable data.
+    // 8 MiB buckets: the manager's 32,768 buckets address 256 GiB, room for
+    // ten million names with their operations, events and receipts.
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(
-        MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16),
+        MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 128),
     );
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     // Read-only paths borrow the decoded value; every change is persisted below.
     static CONFIG: RefCell<Option<Config>> =
         RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
+    // Keyed by `name_key`, so a bucket's names are one contiguous range.
     pub(crate) static NAMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<HandleRecord>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static LEGACY: RefCell<
@@ -59,7 +60,7 @@ thread_local! {
     pub(crate) static OWNERSHIP: RefCell<
         StableBTreeMap<[u8; 32], CompactStored<OwnershipReceipt>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(7)));
-    pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
+    pub(crate) static TREE: RefCell<NameTree<Memory>> = RefCell::new(NameTree::new(memory(9)));
 }
 
 pub(crate) fn cfg() -> Config {
@@ -75,8 +76,34 @@ pub(crate) fn save_cfg(c: Config) {
     CONFIG.with_borrow_mut(|value| *value = Some(c));
 }
 
+// The name's certification bucket, big-endian, then the name.
+pub(crate) fn name_key(name: &str) -> Vec<u8> {
+    [&handle_bucket(name).to_be_bytes()[..], name.as_bytes()].concat()
+}
+
 pub(crate) fn record(name: &str) -> Option<HandleRecord> {
-    NAMES.with_borrow(|t| t.load(name.as_bytes()))
+    NAMES.with_borrow(|t| t.load(&name_key(name)))
+}
+
+// The bucket's names in byte order with the canonical records they certify.
+pub(crate) fn bucket_names(bucket: u32) -> Vec<(Vec<u8>, Vec<u8>)> {
+    let prefix = bucket.to_be_bytes();
+    NAMES.with_borrow(|t| {
+        t.range(prefix.to_vec()..)
+            .take_while(|e| e.key().starts_with(&prefix))
+            .map(|e| (e.key()[4..].to_vec(), canonical(&e.value().into_inner())))
+            .collect()
+    })
+}
+
+// Rehash the name's bucket and publish the new root.
+pub(crate) fn certify(name: &str) {
+    let bucket = handle_bucket(name);
+    let names = bucket_names(bucket);
+    TREE.with_borrow_mut(|t| {
+        t.update(bucket, &names);
+        ic_cdk::api::certified_data_set(t.root_hash());
+    });
 }
 
 pub(crate) fn op(key: &Hash) -> Result<HandleOperation> {
@@ -117,8 +144,10 @@ pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 8;
+pub(crate) const STABLE_SCHEMA: u16 = 9;
 
-// Measured to rebuild the certification tree in 165B upgrade instructions,
-// about 55% of the 300B install_code limit, leaving room for upgrade work.
-pub(crate) const MAX_ACTIVE_NAMES: u64 = 150_000;
+// Largest active-name population verified by the capacity profile.
+pub(crate) const MAX_ACTIVE_NAMES: u64 = 10_000_000;
+
+// Account-ID fingerprints are scanned per call, so the home list stays short.
+pub(crate) const MAX_USER_HOMES: usize = 64;

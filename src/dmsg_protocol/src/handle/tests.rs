@@ -41,6 +41,19 @@ fn valid_handle_price_boundaries_use_smallest_token_units() {
 }
 
 #[test]
+fn handle_buckets_take_the_leading_digest_bits() {
+    // dmsg_app's handle tests pin the same values.
+    assert_eq!(handle_bucket("alice"), 768_019);
+    assert_eq!(handle_bucket("panda"), 566_360);
+    for name in ["alice", "panda", "a", &"z".repeat(20)] {
+        let d = digest("dmsg/handle-bucket/v1", &name);
+        let bits = u32::from_be_bytes(d.as_slice()[..4].try_into().unwrap()) >> 12;
+        assert_eq!(handle_bucket(name), bits);
+        assert!(handle_bucket(name) < 1 << HANDLE_BUCKET_BITS);
+    }
+}
+
+#[test]
 fn charge_digest_binds_ledger_payer_amount_and_fee() {
     let ledger = Principal::from_slice(&[1]);
     let payer = Account {

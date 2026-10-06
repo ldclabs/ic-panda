@@ -1,6 +1,6 @@
 import { Principal } from '@icp-sdk/core/principal'
 import type { _SERVICE, Registration, HandleIntent } from '../canisters/generated/handle'
-import { handlePrice, encodeHandle, decodeHandle } from '../protocol/handle'
+import { handlePrice, encodeHandle, decodeHandle, handleBucketPath } from '../protocol/handle'
 import { digest, canonical } from '../protocol/codec'
 import type { WalletClient } from './wallet'
 import { AccountClient, controlResult } from './account'
@@ -70,7 +70,10 @@ export class HandleClient {
       '此名称在旧名快照中预留，只能由原持有人认领。'
     )
     const cfg = await this.registry.get_handle_config()
-    ensure(cfg.home_user.toText() === this.account.home.toText(), 'INTEGRITY_FAILED')
+    ensure(
+      cfg.user_homes.some((home) => home.toText() === this.account.home.toText()),
+      'INTEGRITY_FAILED'
+    )
     const total = handlePrice(name)
     ensure(total > cfg.ledger_fee, 'FeeBlocked')
     const registration: Registration = {
@@ -280,7 +283,9 @@ export class HandleClient {
       controlResult(await this.registry.resolve_handle_certified([name])),
       this.account.agent,
       this.registryId,
-      utf8(name)
+      utf8(name),
+      Date.now(),
+      handleBucketPath(name)
     )
     if (!proof.value) return null
     const record = decodeCanonical<{

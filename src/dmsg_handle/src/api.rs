@@ -1,6 +1,6 @@
 use crate::{calls::ChargeGuard, store::*};
 use candid::{Nat, Principal};
-use dmsg_protocol::*;
+use dmsg_protocol::{agent::*, *};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{handle::*, *};
@@ -44,19 +44,59 @@ fn check_intent(i: &HandleIntent, action: HandleAction, canister_id: Principal) 
     nonzero(i.account_id.as_slice())
 }
 
-async fn consume(i: &HandleIntent) -> Result<()> {
-    let r: Result<()> = stable::call(
-        with_cfg(|c| c.init.home_user),
-        "consume_handle_authorization",
-        (i,),
-    )
-    .await?;
+fn allocator(init: &HandleInit, home: Principal) -> Hash {
+    account_allocator_digest(&init.environment, &init.issuer_namespace, home)
+}
+
+// The user home that allocated the account, named by the ID's fingerprint.
+fn user_home(c: &Config, account: &AccountId) -> Result<Principal> {
+    c.init
+        .user_homes
+        .iter()
+        .copied()
+        .find(|home| allocated_by(account, &allocator(&c.init, *home)))
+        .ok_or(Error::NotFound)
+}
+
+// Returns false when the home is already listed.
+fn check_home(init: &HandleInit, home: Principal) -> Result<bool> {
+    if init.user_homes.contains(&home) {
+        return Ok(false);
+    }
+    authenticated(home)?;
+    ensure(init.user_homes.len() < MAX_USER_HOMES, Error::QuotaExceeded)?;
+    // Distinct fingerprints keep every account routed to exactly one home.
+    let fingerprint = allocator(init, home);
+    ensure(
+        init.user_homes
+            .iter()
+            .all(|h| allocator(init, *h).as_slice()[..5] != fingerprint.as_slice()[..5]),
+        Error::IntegrityFailed,
+    )?;
+    Ok(true)
+}
+
+async fn consume(home: Principal, i: &HandleIntent) -> Result<()> {
+    let r: Result<()> = stable::call(home, "consume_handle_authorization", (i,)).await?;
     r
 }
 
 #[ic_cdk::init]
 fn init(args: HandleInit) {
-    authenticated(args.home_user).expect("home user");
+    validate_namespace(&args.issuer_namespace).expect("issuer namespace");
+    assert!(!args.user_homes.is_empty(), "user homes");
+    let mut init = HandleInit {
+        user_homes: vec![],
+        ..args.clone()
+    };
+    for home in args.user_homes {
+        assert!(
+            check_home(&init, home).expect("user home"),
+            "duplicate user home"
+        );
+        init.user_homes.push(home);
+    }
+    let args = init;
     authenticated(args.ledger).expect("ledger");
     authenticated(args.governance).expect("governance");
     assert!(
@@ -76,7 +116,7 @@ fn init(args: HandleInit) {
         pending: 0,
     };
     // The empty tree is certified too, so absence proofs verify before any name.
-    CERT.with_borrow(|cert| cert.publish());
+    ic_cdk::api::certified_data_set(TREE.with_borrow(|t| t.root_hash()));
     save_cfg(c);
 }
 
@@ -88,15 +128,8 @@ fn post_upgrade() {
         STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
-    // Publish once, after all name leaves are restored.
-    CERT.with_borrow_mut(|cert| {
-        NAMES.with_borrow(|t| {
-            cert.extend(
-                t.iter()
-                    .map(|e| (e.key().clone(), canonical(&e.value().into_inner()))),
-            )
-        })
-    });
+    // Node hashes persist in stable memory; only the root is republished.
+    ic_cdk::api::certified_data_set(TREE.with_borrow(|t| t.root_hash()));
     ic_cdk::println!(
         "handle_upgrade names={} instructions={}",
         NAMES.with_borrow(|t| t.len()),
@@ -107,6 +140,35 @@ fn post_upgrade() {
 #[ic_cdk::query]
 fn get_handle_config() -> HandleInit {
     with_cfg(|c| c.init.clone())
+}
+
+/// Append a user home. Its `dmsg_user` must name this canister as
+/// `handle_canister` and share the environment and issuer namespace.
+#[ic_cdk::update]
+fn admin_add_user_home(home: Principal) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    if with_cfg(|c| check_home(&c.init, home))? {
+        let mut c = cfg();
+        c.init.user_homes.push(home);
+        save_cfg(c);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_add_user_home(home: Principal) -> std::result::Result<String, String> {
+    with_cfg(|c| -> Result<String> {
+        let note = if check_home(&c.init, home)? {
+            ""
+        } else {
+            " Already listed; no change."
+        };
+        Ok(format!(
+            "Add user home {home}, routing accounts with allocator fingerprint {}.{note}",
+            &hex(&allocator(&c.init, home))[..10],
+        ))
+    })
+    .map_err(validation_error)
 }
 
 fn check_fee(fee: u128) -> Result<()> {
@@ -387,8 +449,8 @@ fn commit_name(
         version,
         event_tip: tip,
     };
-    NAMES.with_borrow_mut(|t| t.put(name.as_bytes(), &r));
-    CERT.with_borrow_mut(|c| c.put(name.as_bytes().to_vec(), &r));
+    NAMES.with_borrow_mut(|t| t.put(&name_key(name), &r));
+    certify(name);
     r
 }
 
@@ -440,7 +502,8 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
     }
     ensure(record(&intent.handle).is_none(), Error::IdempotencyConflict)?;
     with_cfg(check_name_capacity)?;
-    consume(&intent).await?;
+    let home = with_cfg(|c| user_home(c, &intent.account_id))?;
+    consume(home, &intent).await?;
     if let Some(r) = ownership_replay(&key, &fingerprint)? {
         return Ok(r);
     }
@@ -473,7 +536,8 @@ async fn register_handle(registration: Registration) -> Result<HandleOperation> 
     with_cfg(|c| check_registration(c, &registration))?;
     check_available(&i.handle)?;
     with_cfg(|c| check_pending(c, &i.account_id))?;
-    consume(i).await?;
+    let home = with_cfg(|c| user_home(c, &i.account_id))?;
+    consume(home, i).await?;
     // Configuration, locks and capacity can all change during authorization.
     if let Some(o) = registration_replay(&key, &fp)? {
         return Ok(o);
@@ -533,7 +597,7 @@ fn check_registration(c: &Config, registration: &Registration) -> Result<u128> {
 
 fn check_available(name: &str) -> Result<()> {
     ensure(
-        !NAMES.with_borrow(|t| t.contains(name.as_bytes()))
+        !NAMES.with_borrow(|t| t.contains(&name_key(name)))
             && !LEGACY.with_borrow(|t| t.contains(name.as_bytes()))
             && !LOCKS.with_borrow(|t| t.contains_key(&name.as_bytes().to_vec())),
         Error::VersionConflict,
@@ -631,7 +695,7 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Resul
     let i = &o.registration.intent;
     ensure(
         LOCKS.with_borrow(|t| t.get(&i.handle.as_bytes().to_vec())) == Some(key.into_array())
-            && !NAMES.with_borrow(|t| t.contains(i.handle.as_bytes())),
+            && !NAMES.with_borrow(|t| t.contains(&name_key(&i.handle))),
         Error::VersionConflict,
     )?;
     o.ledger_block = Some(block);
@@ -746,13 +810,25 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
             && r.version < u64::MAX,
         Error::VersionConflict,
     )?;
-    let authorized: Result<()> = stable::call(
-        with_cfg(|c| c.init.home_user),
-        "consume_handle_transfer_authorizations",
-        (&from, &accept),
-    )
-    .await?;
-    authorized?;
+    let (from_home, accept_home) = with_cfg(|c| -> Result<_> {
+        Ok((
+            user_home(c, &from.account_id)?,
+            user_home(c, &accept.account_id)?,
+        ))
+    })?;
+    // One call checks both authorizations when a single home holds both accounts.
+    if from_home == accept_home {
+        let authorized: Result<()> = stable::call(
+            from_home,
+            "consume_handle_transfer_authorizations",
+            (&from, &accept),
+        )
+        .await?;
+        authorized?;
+    } else {
+        consume(from_home, &from).await?;
+        consume(accept_home, &accept).await?;
+    }
     let at = now();
     if let Some(record) = ownership_replay(&key, &fingerprint)? {
         return Ok(record);
@@ -781,9 +857,25 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
     )?;
     let keys: Result<Vec<_>> = handles
         .iter()
-        .map(|h| normalize_handle(h).map(|h| h.into_bytes()))
+        .map(|h| normalize_handle(h).map(String::into_bytes))
         .collect();
-    CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), keys?))
+    let keys = keys?;
+    let certificate = stable::query_certificate()?;
+    // Names that share a bucket read it once.
+    let mut buckets = std::collections::BTreeMap::new();
+    TREE.with_borrow(|t| {
+        stable::certified_batch(ic_cdk::api::canister_self(), keys, certificate, |key| {
+            let bucket = handle_bucket(std::str::from_utf8(key).expect("canonical handle"));
+            let names = buckets
+                .entry(bucket)
+                .or_insert_with(|| bucket_names(bucket));
+            let value = names
+                .binary_search_by(|(name, _)| name.as_slice().cmp(key))
+                .ok()
+                .map(|i| names[i].1.clone());
+            (value, t.witness(bucket, names, key))
+        })
+    })
 }
 
 #[ic_cdk::query]

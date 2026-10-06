@@ -53,7 +53,8 @@ export async function certifiedLeaf(
   agent: Pick<HttpAgent, 'rootKey'>,
   source: string,
   key: Uint8Array,
-  now: number | null = Date.now()
+  now: number | null = Date.now(),
+  prefix: Uint8Array[] = []
 ) {
   const canister = Principal.fromText(source)
   ensure(
@@ -82,7 +83,7 @@ export async function certifiedLeaf(
     'INTEGRITY_FAILED'
   )
   const tree = Cbor.decode<HashTree>(Uint8Array.from(entries[0].witness)),
-    lookup = lookupCertifiedMap(tree, key),
+    lookup = lookupCertifiedMap(tree, key, prefix),
     value = lookup.status === 'Found' ? lookup.value : null
   ensure(equal(root, await reconstruct(tree)), 'INTEGRITY_FAILED')
   if (entries[0].value.length)
@@ -97,14 +98,32 @@ export async function certifiedValue(...args: Parameters<typeof certifiedLeaf>) 
   return { ...result, value: result.value }
 }
 
-// The application's certified maps have one byte-label level. SDK 6.1.0's
-// find_label compares later bytes even after an earlier byte already differs;
-// that is not the lexicographic order used by the Rust RbTree. Keep BLS/root
-// verification in the SDK and perform this bounded map lookup explicitly.
+// The application's certified maps label each level with bytes, under an
+// optional prefix such as a handle's bucket bits. SDK 6.1.0's find_label
+// compares later bytes even after an earlier byte already differs; that is not
+// the lexicographic order used by Rust. Keep BLS/root verification in the SDK
+// and perform this bounded lookup explicitly.
 export function lookupCertifiedMap(
   tree: HashTree,
-  key: Uint8Array
+  key: Uint8Array,
+  prefix: Uint8Array[] = []
 ): { status: 'Found'; value: Uint8Array } | { status: 'Absent' | 'Unknown' } {
+  for (const label of prefix) {
+    const found = findLabel(tree, label)
+    if (found.status !== 'Found') return found
+    tree = found.child
+  }
+  const found = findLabel(tree, key)
+  if (found.status !== 'Found') return found
+  if (found.child[0] === 4) return { status: 'Unknown' }
+  ensure(found.child[0] === 3, 'INTEGRITY_FAILED')
+  return { status: 'Found', value: found.child[1] }
+}
+
+function findLabel(
+  tree: HashTree,
+  key: Uint8Array
+): { status: 'Found'; child: HashTree } | { status: 'Absent' | 'Unknown' } {
   let uncertain = false
   for (const node of flatten_forks(tree)) {
     if (node[0] === 4) {
@@ -121,12 +140,7 @@ export function lookupCertifiedMap(
       }
     }
     if (order < 0) return { status: uncertain ? 'Unknown' : 'Absent' }
-    if (order === 0) {
-      const child = node[2]
-      if (child[0] === 4) return { status: 'Unknown' }
-      ensure(child[0] === 3, 'INTEGRITY_FAILED')
-      return { status: 'Found', value: child[1] }
-    }
+    if (order === 0) return { status: 'Found', child: node[2] }
     // A disclosed smaller label bounds all earlier pruned siblings.
     uncertain = false
   }

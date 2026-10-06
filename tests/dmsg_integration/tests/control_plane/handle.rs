@@ -123,7 +123,9 @@ fn with_max_pending(f: &Fixture, max_pending: u32) {
         f.handle,
         wasm("dmsg_handle"),
         candid::encode_args((HandleInit {
-            home_user: f.user,
+            environment: Environment::Local,
+            issuer_namespace: NAMESPACE.into(),
+            user_homes: vec![f.user],
             ledger: f.ledger,
             ledger_fee: 10,
             max_pending,
@@ -143,6 +145,15 @@ fn upgrade(f: &Fixture) {
         None,
     )
     .unwrap();
+}
+
+// One [0]/[1] label per bucket bit, then the name.
+fn handle_path(name: &str) -> Vec<Vec<u8>> {
+    let bucket = handle_bucket(name);
+    (0..HANDLE_BUCKET_BITS)
+        .map(|i| vec![((bucket >> (HANDLE_BUCKET_BITS - 1 - i)) & 1) as u8])
+        .chain([name.as_bytes().to_vec()])
+        .collect()
 }
 
 fn verify_names(f: &Fixture, expected: &[HandleRecord]) {
@@ -173,13 +184,13 @@ fn verify_names(f: &Fixture, expected: &[HandleRecord]) {
             assert_eq!(entry.key.as_ref(), record.handle.as_bytes());
             assert_eq!(entry.value.as_ref().unwrap().as_ref(), canonical(record));
             assert_eq!(
-                witness.lookup_path([entry.key.as_ref()]),
+                witness.lookup_path(handle_path(&record.handle)),
                 ic_certification::LookupResult::Found(entry.value.as_ref().unwrap())
             );
         } else {
             assert!(entry.value.is_none());
             assert_eq!(
-                witness.lookup_path([b"missing".as_slice()]),
+                witness.lookup_path(handle_path("missing")),
                 ic_certification::LookupResult::Absent
             );
         }
@@ -694,6 +705,96 @@ fn handle_fee_updates_only_affect_new_operations() {
     assert_eq!(result.registration.fee, 11);
     assert_eq!(result.memo, unknown.memo);
     assert_eq!(result.created_at, unknown.created_at);
+}
+
+// A second dmsg_user sharing the deployment's environment and namespace.
+fn install_user_home(f: &Fixture) -> Principal {
+    let home = f.ic.create_canister();
+    f.ic.add_cycles(home, 10_000_000_000_000_000);
+    f.ic.install_canister(
+        home,
+        wasm("dmsg_user"),
+        candid::encode_args((UserInit {
+            commerce_canister: f.commerce,
+            membership_canister: f.membership,
+            issuer_namespace: NAMESPACE.into(),
+            environment: Environment::Local,
+            home_cose: f.cose,
+            handle_canister: f.handle,
+            payment_canister: f.payment,
+            max_accounts: 1000,
+            daily_new_accounts: 100,
+            principal_origin: PRINCIPAL_ORIGIN.into(),
+            directory_canister: f.directory,
+        },))
+        .unwrap(),
+        None,
+    );
+    home
+}
+
+#[test]
+fn handle_routes_authorizations_to_each_accounts_user_home() {
+    let mut f = Fixture::new();
+    seal_snapshot(&f, &[]);
+    let first = f.user;
+    let owner = f.create(1);
+    let second = install_user_home(&f);
+    f.user = second;
+    let remote = f.create(2);
+    // An account from an unlisted home has no route.
+    let input = registration(&f, &remote, "remotename", 1);
+    authorize(&f, 2, &input.intent);
+    f.mint(person(1), 2 * price("remotename"));
+    f.approve_handle(person(1), 2 * price("remotename"));
+    assert_eq!(register(&f, &input), Err(Error::NotFound));
+
+    let add = |caller: Principal, home: Principal| -> Result<()> {
+        update(&f.ic, f.handle, caller, "admin_add_user_home", (home,))
+    };
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        f.handle,
+        person(9),
+        "validate_admin_add_user_home",
+        (second,),
+    );
+    assert!(rendered
+        .unwrap()
+        .starts_with(&format!("Add user home {second}")));
+    assert_eq!(add(person(9), second), Err(Error::Forbidden));
+    assert_eq!(add(f.sns, Principal::anonymous()), Err(Error::AuthRequired));
+    assert_eq!(add(f.sns, second), Ok(()));
+    assert_eq!(add(f.sns, second), Ok(()));
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        f.handle,
+        person(9),
+        "validate_admin_add_user_home",
+        (second,),
+    );
+    assert!(rendered.unwrap().ends_with("Already listed; no change."));
+    let config: HandleInit = query(&f.ic, f.handle, person(1), "get_handle_config", ());
+    assert_eq!(config.user_homes, vec![first, second]);
+
+    // The same operation now reaches the account's own home.
+    let paid = register(&f, &input).unwrap();
+    assert_eq!(paid.phase, HandlePhase::Committed);
+    // Each side of a transfer between homes is checked at its own home.
+    let (from, accept) = transfer_intents(&f, &remote, &owner, "remotename", 1, 3);
+    authorize(&f, 2, &from);
+    f.user = first;
+    authorize(&f, 1, &accept);
+    let moved: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    let moved = moved.unwrap();
+    assert_eq!((moved.owner_account, moved.version), (owner, 2));
+    verify_names(&f, &[moved]);
 }
 
 #[test]
@@ -1444,54 +1545,23 @@ fn handle_live_charge_excludes_retry_and_reconciliation() {
     assert_eq!(end, None);
 }
 
-// Large upgrades outlast PocketIC's 100-round ingress wait, so execute rounds
-// explicitly. Mainnet bounds install_code by instructions, not rounds.
-fn upgrade_in_rounds(f: &Fixture) {
-    #[derive(CandidType)]
-    struct InstallCode {
-        mode: pocket_ic::CanisterInstallMode,
-        canister_id: Principal,
-        wasm_module: Vec<u8>,
-        arg: Vec<u8>,
-    }
-    let message =
-        f.ic.submit_call_with_effective_principal(
-            Principal::management_canister(),
-            pocket_ic::common::rest::RawEffectivePrincipal::CanisterId(
-                f.handle.as_slice().to_vec(),
-            ),
-            Principal::anonymous(),
-            "install_code",
-            candid::encode_one(InstallCode {
-                mode: pocket_ic::CanisterInstallMode::Upgrade(None),
-                canister_id: f.handle,
-                wasm_module: wasm("dmsg_handle"),
-                arg: candid::encode_args(()).unwrap(),
-            })
-            .unwrap(),
-        )
-        .unwrap();
-    for _ in 0..200 {
-        f.ic.tick();
-    }
-    f.ic.await_call_no_ticks(message).unwrap();
-}
-
-// Synthetic stable-name tables isolate the actual Wasm upgrade/query cost.
-// Business writes and event/receipt histories are covered by handle_scale_profile.
-// Samples above MAX_ACTIVE_NAMES (150,000) measure the remaining upgrade margin.
+// Synthetic name tables isolate the Wasm upgrade, query and write cost at
+// scale; business histories are covered by handle_scale_profile. The host lays
+// out stable memory like dmsg_handle's store and hashes the certification tree
+// with the same NameTree code. Run with --release: the host builds 10M names.
 #[test]
-#[ignore = "1k–250k active-name upgrade and certificate capacity"]
+#[ignore = "1k–10M active-name upgrade, certificate and transfer capacity"]
 fn handle_active_name_capacity_profile() {
-    use dmsg_runtime::storage::CompactStored;
+    use dmsg_runtime::{name_tree::NameTree, storage::CompactStored};
     use ic_stable_structures::{
         memory_manager::{MemoryId, MemoryManager},
         StableBTreeMap,
     };
-    use std::{cell::RefCell, rc::Rc};
-    for count in [1_000u64, 10_000, 100_000, 150_000, 200_000, 250_000] {
+    use std::{cell::RefCell, rc::Rc, time::Instant};
+    for count in [1_000u64, 100_000, 1_000_000, 10_000_000] {
         let f = Fixture::new();
         let owner = f.create(1);
+        let target = f.create(2);
         let legacy = LegacyReservation {
             handle: "capacityclaim".into(),
             legacy_owner: person(1),
@@ -1500,33 +1570,65 @@ fn handle_active_name_capacity_profile() {
             quarantined: false,
         };
         let snapshot = seal_snapshot(&f, std::slice::from_ref(&legacy));
-        let memory = Rc::new(RefCell::new(f.ic.get_stable_memory(f.handle)));
-        let manager = MemoryManager::init_with_bucket_size(memory.clone(), 16);
-        let mut names = StableBTreeMap::<Vec<u8>, CompactStored<HandleRecord>, _>::init(
-            manager.get(MemoryId::new(1)),
-        );
         let record = |n: u64| HandleRecord {
             handle: format!("capacity{n:012}"),
             owner_account: owner,
             version: 1,
             event_tip: digest("capacity-fixture", &n),
         };
-        for n in 0..count {
-            let r = record(n);
-            names.insert(r.handle.as_bytes().to_vec(), CompactStored::new(&r));
+        let began = Instant::now();
+        let memory = Rc::new(RefCell::new(f.ic.get_stable_memory(f.handle)));
+        {
+            // 8 MiB buckets; names in memory 1 keyed by bucket and name, tree
+            // nodes in memory 9.
+            let manager = MemoryManager::init_with_bucket_size(memory.clone(), 128);
+            let mut names = StableBTreeMap::<Vec<u8>, CompactStored<HandleRecord>, _>::init(
+                manager.get(MemoryId::new(1)),
+            );
+            // The PocketIC server stops after a minute without requests.
+            let keep_alive = |n: u64| {
+                if n.is_multiple_of(500_000) {
+                    f.ic.get_time();
+                }
+            };
+            for n in 0..count {
+                keep_alive(n);
+                let r = record(n);
+                let bucket = handle_bucket(&r.handle).to_be_bytes();
+                names.insert(
+                    [&bucket[..], r.handle.as_bytes()].concat(),
+                    CompactStored::new(&r),
+                );
+            }
+            let mut tree = NameTree::new(manager.get(MemoryId::new(9)));
+            let mut members: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+            let mut current = None;
+            for (n, e) in (0..).zip(names.iter()) {
+                keep_alive(n);
+                let bucket = u32::from_be_bytes(e.key()[..4].try_into().unwrap());
+                if let Some(previous) = current.filter(|b| *b != bucket) {
+                    tree.update(previous, &members);
+                    members.clear();
+                }
+                current = Some(bucket);
+                members.push((e.key()[4..].to_vec(), canonical(&e.value().into_inner())));
+            }
+            if let Some(bucket) = current {
+                tree.update(bucket, &members);
+            }
         }
-        drop((names, manager));
+        let host_build = began.elapsed();
         f.ic.set_stable_memory(
             f.handle,
-            memory.borrow().clone(),
+            Rc::try_unwrap(memory).unwrap().into_inner(),
             pocket_ic::common::rest::BlobCompression::NoCompression,
         );
         let cycles = f.ic.cycle_balance(f.handle);
-        upgrade_in_rounds(&f);
-        let cycles = cycles - f.ic.cycle_balance(f.handle);
+        upgrade(&f);
+        let upgrade_cycles = cycles - f.ic.cycle_balance(f.handle);
         verify_names(&f, &[record(0), record(count - 1)]);
         let handles: Vec<_> = (0..64).map(|n| record(n * (count / 64)).handle).collect();
-        let began = std::time::Instant::now();
+        let began = Instant::now();
         let batch: Result<CertifiedBatch> = query(
             &f.ic,
             f.handle,
@@ -1538,6 +1640,22 @@ fn handle_active_name_capacity_profile() {
         let batch = batch.unwrap();
         assert_eq!(batch.entries.len(), 64);
         let wire_bytes = candid::encode_one(Ok::<_, Error>(&batch)).unwrap().len();
+        // A write rehashes one bucket and the path above it.
+        let (from, accept) = transfer_intents(&f, &owner, &target, &record(1).handle, 1, 3);
+        authorize(&f, 1, &from);
+        authorize(&f, 2, &accept);
+        let cycles = f.ic.cycle_balance(f.handle);
+        let moved: Result<HandleRecord> = update(
+            &f.ic,
+            f.handle,
+            person(1),
+            "transfer_handle",
+            (&from, &accept),
+        );
+        let transfer_cycles = cycles - f.ic.cycle_balance(f.handle);
+        let moved = moved.unwrap();
+        assert_eq!(moved.owner_account, target);
+        verify_names(&f, &[record(0), moved]);
         let status = f.ic.canister_status(f.handle, None).unwrap();
         let logs =
             f.ic.fetch_canister_logs(f.handle, Principal::anonymous())
@@ -1548,8 +1666,8 @@ fn handle_active_name_capacity_profile() {
                 println!("{line}");
             }
         }
-        println!("handle_capacity names={count} upgrade_cycles={cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={}", status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_millis());
-        if count == 150_000 {
+        println!("handle_capacity names={count} upgrade_cycles={upgrade_cycles} transfer_cycles={transfer_cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={} host_build_s={}", status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_millis(), host_build.as_secs());
+        if count == 10_000_000 {
             // Full registries reject additions locally but still transfer names.
             let addition = registration(&f, &owner, "capacityaddition", 1);
             assert_eq!(register(&f, &addition), Err(Error::QuotaExceeded));
@@ -1562,18 +1680,6 @@ fn handle_active_name_capacity_profile() {
                 (&claim, snapshot.snapshot_id),
             );
             assert_eq!(result, Err(Error::QuotaExceeded));
-            let target = f.create(2);
-            let (from, accept) = transfer_intents(&f, &owner, &target, &record(0).handle, 1, 3);
-            authorize(&f, 1, &from);
-            authorize(&f, 2, &accept);
-            let result: Result<HandleRecord> = update(
-                &f.ic,
-                f.handle,
-                person(1),
-                "transfer_handle",
-                (&from, &accept),
-            );
-            assert_eq!(result.unwrap().owner_account, target);
         }
     }
 }

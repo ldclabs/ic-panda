@@ -128,3 +128,7 @@ commerce 开发布局升级为 schema 5：出金、对账与修订共用在途 g
 ## 2026-10-06 handle 治理与收入提取
 
 handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `governance`，快照导入/封存、`update_ledger_fee` 和新增的 `admin_collect_token` 接受 controller 或 governance 调用。每个管理方法都有同参数的 `validate_*` query，按当前状态预演并返回提案说明，可登记为 SNS 通用函数的验证方法。`import_legacy_handles` 增加快照位置 `offset`，乱序执行的批次被拒绝，不会留下缺口；注册收入可用 `admin_collect_token` 从 handle 默认账户提取。7–20 字节名称价格改为 100 PANDA，整张价格表与旧 `ic_message` 现行价格一致。认证树只保留名称叶，移除没有调用方的 `snapshot_certified`；按升级指令实测，单实例活跃名称上限从 100,000 提高到 150,000（升级约用 300B 上限的 55%）。部署、治理和迁移流程见 [handle README](../src/dmsg_handle/README.md)。
+
+## 2026-10-06 handle 千万级名称与多 user home
+
+handle 开发布局升级为 schema 9，作为全局唯一的名称注册表承载千万级名称：认证树改存在 stable memory，名称按 `handle_bucket` 分进 2^20 个桶，桶号位组成二叉标签树，写入只重算一个桶和一条路径，升级只重新发布根哈希；名称的证明路径变为 20 个桶号位标签加名称。`HandleInit` 以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代单个 `home_user`，按账户 ID 的分配器指纹把授权核对发给账户所在的 user home，跨 home 转移分别核对；新增 `admin_add_user_home` 及其预演。分配桶改为 8 MiB，stable 可寻址 256 GiB。实测 1,000 至 1,000 万名称的升级约 115 万指令，64 名称证书响应不超过 81 KB，活跃名称上限提高到 1,000 万。数据与步骤见 [handle README](../src/dmsg_handle/README.md)。

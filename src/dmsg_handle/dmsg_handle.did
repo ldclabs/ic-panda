@@ -24,6 +24,15 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
 // Application errors returned by dMsg canisters and protocol helpers.
 // Transport failures and Candid decoding failures are separate from this enum.
 type Error = variant {
@@ -122,14 +131,19 @@ type HandleEvent = record {
 type HandleInit = record {
   // Maximum pending name operations allowed by this registry.
   max_pending : nat32;
-  // User canister authoritative for this account or deployment.
-  home_user : principal;
+  // Account issuer namespace shared by the user homes.
+  issuer_namespace : text;
   // ICRC ledger canister for all amounts in this contract.
   ledger : principal;
+  // Deployment domain of the user homes' account-ID allocators.
+  environment : Environment;
   // Configured network fee in ledger base units.
   ledger_fee : nat;
   // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
   governance : principal;
+  // User homes whose allocated accounts authorize name operations; each
+  // account ID carries its home's allocator fingerprint. Append-only.
+  user_homes : vec principal;
 };
 // Exact name operation authorized by the user home for the handle canister.
 type HandleIntent = record {
@@ -230,8 +244,8 @@ type Registration = record {
   // ICRC account whose allowance funds the registration charge.
   payer : Account;
 };
-type Result = variant { Ok : nat64; Err : Error };
-type Result_1 = variant { Ok; Err : Error };
+type Result = variant { Ok; Err : Error };
+type Result_1 = variant { Ok : nat64; Err : Error };
 type Result_2 = variant { Ok : HandleRecord; Err : Error };
 type Result_3 = variant { Ok : HandleOperation; Err : Error };
 type Result_4 = variant { Ok : opt LegacyReservation; Err : Error };
@@ -252,10 +266,13 @@ type SnapshotProgress = record {
   rolling_digest : blob;
 };
 service : (HandleInit) -> {
+  // Append a user home. Its `dmsg_user` must name this canister as
+  // `handle_canister` and share the environment and issuer namespace.
+  admin_add_user_home : (principal) -> (Result);
   // Transfer registration revenue from this canister's default account and
   // return the ledger block. Check the ledger before retrying an unknown result.
-  admin_collect_token : (Account, nat) -> (Result);
-  begin_legacy_snapshot : (LegacySnapshot) -> (Result_1);
+  admin_collect_token : (Account, nat) -> (Result_1);
+  begin_legacy_snapshot : (LegacySnapshot) -> (Result);
   claim_legacy_handle : (HandleIntent, blob) -> (Result_2);
   commit_handle : (blob, blob) -> (Result_3);
   get_handle_config : () -> (HandleInit) query;
@@ -269,7 +286,8 @@ service : (HandleInit) -> {
   seal_legacy_snapshot : () -> (Result_5);
   snapshot_progress : () -> (SnapshotProgress) query;
   transfer_handle : (HandleIntent, HandleIntent) -> (Result_2);
-  update_ledger_fee : (nat) -> (Result_1);
+  update_ledger_fee : (nat) -> (Result);
+  validate_admin_add_user_home : (principal) -> (Result_7) query;
   validate_admin_collect_token : (Account, nat) -> (Result_7) query;
   validate_begin_legacy_snapshot : (LegacySnapshot) -> (Result_7) query;
   validate_import_legacy_handles : (blob, nat64, vec LegacyReservation) -> (

@@ -294,7 +294,9 @@ fn account_extension_gateway() {
         handle,
         std::fs::read(dir.join("dmsg_handle.wasm")).unwrap(),
         candid::encode_one(dmsg_types::handle::HandleInit {
-            home_user: user,
+            environment: Environment::Local,
+            issuer_namespace: "https://dmsg.test/u/".into(),
+            user_homes: vec![user],
             ledger: peer,
             ledger_fee: 10,
             max_pending: 100,

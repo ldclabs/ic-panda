@@ -3,10 +3,13 @@
 mod budget;
 mod certified;
 pub mod ledger;
+pub mod name_tree;
 pub mod stable_types;
 pub mod storage;
 pub use budget::Budget;
-pub use certified::{Certification, MAX_CERTIFIED_RESPONSE_BYTES};
+pub use certified::{
+    certified_batch, query_certificate, Certification, MAX_CERTIFIED_RESPONSE_BYTES,
+};
 mod calls;
 pub use calls::{call, call_classified, CallFailure};
 

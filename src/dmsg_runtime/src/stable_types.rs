@@ -187,11 +187,13 @@ stable_struct!(HandleIntentRepr => HandleIntent {
 });
 
 stable_struct!(HandleInitRepr => HandleInit {
-    1 => home_user: Principal,
     2 => ledger: Principal,
     3 => ledger_fee: u128,
     4 => max_pending: u32,
     5 => governance: Principal,
+    6 => environment: Environment,
+    7 => issuer_namespace: String,
+    8 => user_homes: Vec<Principal>,
 });
 
 stable_struct!(LegacySnapshotRepr => LegacySnapshot {

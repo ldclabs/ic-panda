@@ -45,8 +45,13 @@ pub struct HandleIntent {
 /// Name registry deployment, ledger and pending-operation limits.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleInit {
-    /// User canister authoritative for this account or deployment.
-    pub home_user: Principal,
+    /// Deployment domain of the user homes' account-ID allocators.
+    pub environment: Environment,
+    /// Account issuer namespace shared by the user homes.
+    pub issuer_namespace: String,
+    /// User homes whose allocated accounts authorize name operations; each
+    /// account ID carries its home's allocator fingerprint. Append-only.
+    pub user_homes: Vec<Principal>,
     /// ICRC ledger canister for all amounts in this contract.
     pub ledger: Principal,
     /// Configured network fee in ledger base units.

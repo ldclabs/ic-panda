@@ -82,15 +82,7 @@ impl Certification {
     }
 
     pub fn batch(&self, canister: candid::Principal, keys: Vec<Vec<u8>>) -> Result<CertifiedBatch> {
-        // The replica query cache keys on caller/method/arguments, not transport
-        // nonce. Depending on batch time prevents a cached data_certificate from
-        // outliving our 60-second client freshness window without any state write.
-        // See dfinity/ic query_handler/query_cache.rs, EntryValue::new/is_valid.
-        #[cfg(target_arch = "wasm32")]
-        let _certificate_batch_time = ic_cdk::api::time();
-        let certificate = ic_cdk::api::data_certificate()
-            .ok_or_else(|| Error::Unavailable("replicated call has no query certificate".into()))?;
-        self.batch_with_certificate(canister, keys, certificate)
+        self.batch_with_certificate(canister, keys, query_certificate()?)
     }
 
     fn batch_with_certificate(
@@ -99,46 +91,71 @@ impl Certification {
         keys: Vec<Vec<u8>>,
         certificate: Vec<u8>,
     ) -> Result<CertifiedBatch> {
-        ensure(
-            !keys.is_empty()
-                && keys.len() <= MAX_BATCH
-                && certificate.len() <= MAX_CERTIFIED_RESPONSE_BYTES,
-            Error::QuotaExceeded,
-        )?;
-        let mut bytes = certificate.len();
-        let mut entries = Vec::with_capacity(keys.len());
-        for key in keys {
-            let value = self.get(&key);
-            bytes = bytes
-                .saturating_add(key.len())
-                .saturating_add(value.map_or(0, <[u8]>::len));
-            ensure(bytes <= MAX_CERTIFIED_RESPONSE_BYTES, Error::QuotaExceeded)?;
-            let witness = cbor2::to_vec(&self.0.witness(&key)).expect("witness");
-            bytes = bytes.saturating_add(witness.len());
-            ensure(bytes <= MAX_CERTIFIED_RESPONSE_BYTES, Error::QuotaExceeded)?;
-            entries.push(CertifiedEntry {
-                key: key.into(),
-                value: value.map(|v| ByteBuf::from(v.to_vec())),
-                witness: witness.into(),
-            });
-        }
-        let batch = CertifiedBatch {
-            schema: 1,
-            canister,
-            certificate: certificate.into(),
-            entries,
-        };
-        // Include Candid's type table, Result variant, vector lengths and
-        // certificate. Raw field lengths alone are not a wire-response bound.
-        ensure(
-            candid::encode_one(Ok::<_, Error>(&batch))
-                .expect("certified response")
-                .len()
-                <= MAX_CERTIFIED_RESPONSE_BYTES,
-            Error::QuotaExceeded,
-        )?;
-        Ok(batch)
+        certified_batch(canister, keys, certificate, |key| {
+            (self.get(key).map(<[u8]>::to_vec), self.0.witness(key))
+        })
     }
+}
+
+/// The data certificate of this non-replicated query.
+pub fn query_certificate() -> Result<Vec<u8>> {
+    // The replica query cache keys on caller/method/arguments, not transport
+    // nonce. Depending on batch time prevents a cached data_certificate from
+    // outliving our 60-second client freshness window without any state write.
+    // See dfinity/ic query_handler/query_cache.rs, EntryValue::new/is_valid.
+    #[cfg(target_arch = "wasm32")]
+    let _certificate_batch_time = ic_cdk::api::time();
+    ic_cdk::api::data_certificate()
+        .ok_or_else(|| Error::Unavailable("replicated call has no query certificate".into()))
+}
+
+/// Assemble the certified values and witnesses `prove` returns for each key,
+/// within the 1..=64 key and response size limits.
+pub fn certified_batch(
+    canister: candid::Principal,
+    keys: Vec<Vec<u8>>,
+    certificate: Vec<u8>,
+    mut prove: impl FnMut(&[u8]) -> (Option<Vec<u8>>, HashTree),
+) -> Result<CertifiedBatch> {
+    ensure(
+        !keys.is_empty()
+            && keys.len() <= MAX_BATCH
+            && certificate.len() <= MAX_CERTIFIED_RESPONSE_BYTES,
+        Error::QuotaExceeded,
+    )?;
+    let mut bytes = certificate.len();
+    let mut entries = Vec::with_capacity(keys.len());
+    for key in keys {
+        let (value, witness) = prove(&key);
+        bytes = bytes
+            .saturating_add(key.len())
+            .saturating_add(value.as_ref().map_or(0, Vec::len));
+        ensure(bytes <= MAX_CERTIFIED_RESPONSE_BYTES, Error::QuotaExceeded)?;
+        let witness = cbor2::to_vec(&witness).expect("witness");
+        bytes = bytes.saturating_add(witness.len());
+        ensure(bytes <= MAX_CERTIFIED_RESPONSE_BYTES, Error::QuotaExceeded)?;
+        entries.push(CertifiedEntry {
+            key: key.into(),
+            value: value.map(ByteBuf::from),
+            witness: witness.into(),
+        });
+    }
+    let batch = CertifiedBatch {
+        schema: 1,
+        canister,
+        certificate: certificate.into(),
+        entries,
+    };
+    // Include Candid's type table, Result variant, vector lengths and
+    // certificate. Raw field lengths alone are not a wire-response bound.
+    ensure(
+        candid::encode_one(Ok::<_, Error>(&batch))
+            .expect("certified response")
+            .len()
+            <= MAX_CERTIFIED_RESPONSE_BYTES,
+        Error::QuotaExceeded,
+    )?;
+    Ok(batch)
 }
 
 #[cfg(test)]

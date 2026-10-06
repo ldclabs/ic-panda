@@ -31,6 +31,12 @@ export function decodeHandle(method: string, encoded: string): any[] {
 const claim = service._fields.find(([name]) => name === 'claim_legacy_handle')![1]
 const entries = service._fields.find(([name]) => name === 'import_legacy_handles')![1]
   .argTypes[2] as IDL.VecClass<LegacyReservation>
+// Certified-tree labels above a canonical name: one [0] or [1] per leading bit
+// of digest("dmsg/handle-bucket/v1", name), 20 bits, most significant first.
+export const handleBucketPath = (name: string) => {
+  const d = digest('dmsg/handle-bucket/v1', name)
+  return Array.from({ length: 20 }, (_, i) => Uint8Array.of((d[i >> 3] >> (7 - (i & 7))) & 1))
+}
 export function canonicalHandle(value: string) {
   const name = value.toLowerCase()
   ensure(

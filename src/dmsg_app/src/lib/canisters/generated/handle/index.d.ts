@@ -18,6 +18,9 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
+export type Environment = { 'Local' : null } |
+  { 'Production' : null } |
+  { 'Staging' : null };
 export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'LegacyWriteDisabled' : null } |
   { 'InvalidInput' : string } |
@@ -64,10 +67,12 @@ export interface HandleEvent {
 }
 export interface HandleInit {
   'max_pending' : number,
-  'home_user' : Principal,
+  'issuer_namespace' : string,
   'ledger' : Principal,
+  'environment' : Environment,
   'ledger_fee' : bigint,
   'governance' : Principal,
+  'user_homes' : Array<Principal>,
 }
 export interface HandleIntent {
   'account_id' : Uint8Array | number[],
@@ -118,9 +123,9 @@ export interface Registration {
   'intent' : HandleIntent,
   'payer' : Account,
 }
-export type Result = { 'Ok' : bigint } |
+export type Result = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : null } |
+export type Result_1 = { 'Ok' : bigint } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : HandleRecord } |
   { 'Err' : Error };
@@ -142,8 +147,9 @@ export interface SnapshotProgress {
   'rolling_digest' : Uint8Array | number[],
 }
 export interface _SERVICE {
-  'admin_collect_token' : ActorMethod<[Account, bigint], Result>,
-  'begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result_1>,
+  'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'admin_collect_token' : ActorMethod<[Account, bigint], Result_1>,
+  'begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result>,
   'claim_legacy_handle' : ActorMethod<
     [HandleIntent, Uint8Array | number[]],
     Result_2
@@ -172,7 +178,8 @@ export interface _SERVICE {
   'seal_legacy_snapshot' : ActorMethod<[], Result_5>,
   'snapshot_progress' : ActorMethod<[], SnapshotProgress>,
   'transfer_handle' : ActorMethod<[HandleIntent, HandleIntent], Result_2>,
-  'update_ledger_fee' : ActorMethod<[bigint], Result_1>,
+  'update_ledger_fee' : ActorMethod<[bigint], Result>,
+  'validate_admin_add_user_home' : ActorMethod<[Principal], Result_7>,
   'validate_admin_collect_token' : ActorMethod<[Account, bigint], Result_7>,
   'validate_begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result_7>,
   'validate_import_legacy_handles' : ActorMethod<

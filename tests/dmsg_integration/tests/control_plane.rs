@@ -345,7 +345,9 @@ impl Fixture {
             wasm("dmsg_handle"),
             candid::encode_args((HandleInit {
                 ledger,
-                home_user: user,
+                environment: Environment::Local,
+                issuer_namespace: NAMESPACE.into(),
+                user_homes: vec![user],
                 ledger_fee: 10,
                 max_pending: 100,
                 governance: sns,

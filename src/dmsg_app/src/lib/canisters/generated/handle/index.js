@@ -1,15 +1,18 @@
 // Generated from the public dmsg_handle.did. Run npm run bindings.
 export const idlFactory = ({ IDL }) => {
+  const Environment = IDL.Variant({
+    'Local' : IDL.Null,
+    'Production' : IDL.Null,
+    'Staging' : IDL.Null,
+  });
   const HandleInit = IDL.Record({
     'max_pending' : IDL.Nat32,
-    'home_user' : IDL.Principal,
+    'issuer_namespace' : IDL.Text,
     'ledger' : IDL.Principal,
+    'environment' : Environment,
     'ledger_fee' : IDL.Nat,
     'governance' : IDL.Principal,
-  });
-  const Account = IDL.Record({
-    'owner' : IDL.Principal,
-    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'user_homes' : IDL.Vec(IDL.Principal),
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
@@ -43,7 +46,12 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Account = IDL.Record({
+    'owner' : IDL.Principal,
+    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const Result_1 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   const LegacySnapshot = IDL.Record({
     'event_tip' : IDL.Vec(IDL.Nat8),
     'source_canister' : IDL.Principal,
@@ -52,7 +60,6 @@ export const idlFactory = ({ IDL }) => {
     'snapshot_id' : IDL.Vec(IDL.Nat8),
     'freeze_version' : IDL.Nat64,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const HandleAction = IDL.Variant({
     'AcceptTransfer' : IDL.Null,
     'Register' : IDL.Null,
@@ -140,8 +147,9 @@ export const idlFactory = ({ IDL }) => {
   const Result_6 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const Result_7 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
-    'admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result], []),
-    'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result_1], []),
+    'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
+    'admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result_1], []),
+    'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result], []),
     'claim_legacy_handle' : IDL.Func(
         [HandleIntent, IDL.Vec(IDL.Nat8)],
         [Result_2],
@@ -183,7 +191,12 @@ export const idlFactory = ({ IDL }) => {
     'seal_legacy_snapshot' : IDL.Func([], [Result_5], []),
     'snapshot_progress' : IDL.Func([], [SnapshotProgress], ['query']),
     'transfer_handle' : IDL.Func([HandleIntent, HandleIntent], [Result_2], []),
-    'update_ledger_fee' : IDL.Func([IDL.Nat], [Result_1], []),
+    'update_ledger_fee' : IDL.Func([IDL.Nat], [Result], []),
+    'validate_admin_add_user_home' : IDL.Func(
+        [IDL.Principal],
+        [Result_7],
+        ['query'],
+      ),
     'validate_admin_collect_token' : IDL.Func(
         [Account, IDL.Nat],
         [Result_7],
@@ -204,12 +217,19 @@ export const idlFactory = ({ IDL }) => {
   });
 };
 export const init = ({ IDL }) => {
+  const Environment = IDL.Variant({
+    'Local' : IDL.Null,
+    'Production' : IDL.Null,
+    'Staging' : IDL.Null,
+  });
   const HandleInit = IDL.Record({
     'max_pending' : IDL.Nat32,
-    'home_user' : IDL.Principal,
+    'issuer_namespace' : IDL.Text,
     'ledger' : IDL.Principal,
+    'environment' : Environment,
     'ledger_fee' : IDL.Nat,
     'governance' : IDL.Principal,
+    'user_homes' : IDL.Vec(IDL.Principal),
   });
   return [HandleInit];
 };

@@ -10,7 +10,7 @@ import type {
 } from '../src/lib/canisters/generated/handle'
 import { lookupCertifiedMap } from '../src/lib/services/certified'
 import { utf8 } from '../src/lib/protocol/codec'
-import { decodeClaim, legacyClaimDigest } from '../src/lib/protocol/handle'
+import { decodeClaim, handleBucketPath, legacyClaimDigest } from '../src/lib/protocol/handle'
 import { xidText } from '../src/lib/protocol/identity'
 
 const principal = (n: number) => Principal.fromUint8Array(new Uint8Array([n, 1]))
@@ -233,6 +233,38 @@ it('uses lexicographic bounds and never treats a pruned map range as absent', ()
   })
 })
 
+it('follows bucket labels to the name and proves absence in pruned-free subtrees', () => {
+  const pruned = [4, new Uint8Array(32)]
+  const bucket = [2, utf8('aa'), [3, utf8('value')]]
+  // Labels [1], [0] lead to the bucket; the sibling subtrees are pruned.
+  const tree = [
+    1,
+    [2, Uint8Array.of(0), pruned],
+    [2, Uint8Array.of(1), [1, [2, Uint8Array.of(0), bucket], [2, Uint8Array.of(1), pruned]]]
+  ] as unknown as HashTree
+  const prefix = [Uint8Array.of(1), Uint8Array.of(0)]
+  expect(lookupCertifiedMap(tree, utf8('aa'), prefix)).toEqual({
+    status: 'Found',
+    value: utf8('value')
+  })
+  expect(lookupCertifiedMap(tree, utf8('bb'), prefix)).toEqual({ status: 'Absent' })
+  expect(lookupCertifiedMap(tree, utf8('aa'), [Uint8Array.of(0), Uint8Array.of(0)])).toEqual({
+    status: 'Unknown'
+  })
+  const empty = [
+    1,
+    [2, Uint8Array.of(0), [0]],
+    [2, Uint8Array.of(1), pruned]
+  ] as unknown as HashTree
+  expect(lookupCertifiedMap(empty, utf8('aa'), [Uint8Array.of(0), Uint8Array.of(1)])).toEqual({
+    status: 'Absent'
+  })
+  // dmsg_protocol's handle_bucket tests pin the same buckets.
+  const bucketOf = (name: string) =>
+    handleBucketPath(name).reduce((b, label) => b * 2 + label[0], 0)
+  expect([bucketOf('alice'), bucketOf('panda')]).toEqual([768019, 566360])
+})
+
 it('purchases once with exact charge terms and resumes the recorded charge without renewing allowance', async () => {
   const f = fixture(admin, (reservation) => {
     reservation.legacy_owner = admin
@@ -242,7 +274,7 @@ it('purchases once with exact charge terms and resumes the recorded charge witho
   vi.spyOn(f.client, 'ownership').mockResolvedValue(null)
   const registry = f.registry as any
   registry.get_handle_config = vi.fn(async () => ({
-    home_user: principal(7),
+    user_homes: [principal(7)],
     ledger: principal(9),
     ledger_fee: 10n
   }))
@@ -273,7 +305,7 @@ it('lets a definite pre-charge rejection prepare a new purchase without resubmit
   vi.spyOn(f.client, 'ownership').mockResolvedValue(null)
   const registry = f.registry as any
   registry.get_handle_config = vi.fn(async () => ({
-    home_user: principal(7),
+    user_homes: [principal(7)],
     ledger: principal(9),
     ledger_fee: 10n
   }))

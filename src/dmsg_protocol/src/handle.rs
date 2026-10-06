@@ -41,6 +41,21 @@ pub fn normalize_handle(handle: &str) -> Result<String> {
     Ok(handle.to_ascii_lowercase())
 }
 
+/// Leading digest bits that select a handle's certification bucket.
+pub const HANDLE_BUCKET_BITS: u32 = 20;
+
+/// Certification bucket of a canonical handle: the leading
+/// [`HANDLE_BUCKET_BITS`] bits of `digest("dmsg/handle-bucket/v1", handle)`.
+///
+/// The registry certifies a handle at the path of one `[0]` or `[1]` label per
+/// bucket bit, most significant first, followed by the handle bytes. Call
+/// [`normalize_handle`] first; the bucket of a non-canonical spelling differs.
+pub fn handle_bucket(handle: &str) -> u32 {
+    let d = digest("dmsg/handle-bucket/v1", &handle);
+    u32::from_be_bytes(d.as_slice()[..4].try_into().expect("four bytes"))
+        >> (32 - HANDLE_BUCKET_BITS)
+}
+
 const PANDA: u128 = 100_000_000;
 
 /// Lowest registration price in PANDA base units, charged for 7..20-byte names.

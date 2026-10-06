@@ -8,6 +8,8 @@
 - `storage::StableCodec` / `CompactStored<T>`：通过独立 representation 为结构化记录提供整数 map key；适配器直接持有 representation，表写入从借用值构造一次，避免先克隆完整领域对象；存储字节不会改变领域类型的公开 CBOR、摘要或 Candid。
 - `storage::MapExt<V>`：同时覆盖 `Stored<V>` 和 `CompactStored<V>` 的便利操作；`V` 在表声明时固定，读取不能临时指定任意类型。
 - `Certification`：构造 ICP 认证响应；认证值由调用者选择公开视图，支持在执行清理时删除对应叶。叶缓存自身哈希，每次写入或删除都发布 O(1) 取得的新根，调用者不再手动合并发布。
+- `certified_batch` / `query_certificate`：按调用者给出的值与 witness 组装认证响应，`Certification` 和 `name_tree` 共用同一套大小限制。
+- `name_tree::NameTree`：handle 的名称认证树。名称按 `handle_bucket` 分桶，桶号位组成二叉标签树，节点哈希存放在 stable memory 的定长数组；写入只重算一个桶和一条路径，升级无需重建。
 - `ledger`：读取受信账本及其归档，解析支持的 ICRC-3 转账格式。
 - `Budget`：内部有界预算。`WINDOW`、`FORMAL_EXECUTION_WINDOW` 和正式签名/根派生日上限由 user 与 COSE 共用，避免两侧口径漂移。
 - `call` / `call_classified`：有界跨 canister 调用。后者区分本次确定未执行与结果未知；先前未知的尝试不能由本次确定拒绝消除。签名未发出的批准保留原序号供重试，出金仅在没有历史未知结果时进入已拒绝状态。

@@ -10,34 +10,34 @@ dMsg 的名称注册表，是“规范化名称 → 稳定 `AccountId`”映射�
 
 ```mermaid
 flowchart LR
-  A["账户客户端"] -- "mutate_account<br/>AuthorizeHandle" --> U["dmsg_user<br/>（home_user）"]
+  A["账户客户端"] -- "mutate_account<br/>AuthorizeHandle" --> U["dmsg_user<br/>（账户所在的 user home）"]
   C["付款人 / 旧 owner / 转交方"] -- "register / claim / transfer" --> H["dmsg_handle"]
   H -- "consume_handle_authorization<br/>consume_handle_transfer_authorizations" --> U
   H -- "icrc2_transfer_from<br/>icrc3_get_blocks" --> L["PANDA 账本"]
-  O["controller / SNS governance"] -- "导入旧名快照<br/>维护手续费、提取收入" --> H
+  O["controller / SNS governance"] -- "导入旧名快照、追加 user home<br/>维护手续费、提取收入" --> H
   V["验证者"] -- "resolve_handle_certified" --> H
 ```
 
-| 组件                             | 在名称流程中的职责                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `dmsg_handle`                    | 名称表、旧名预留、注册收费操作与锁、权属事件、认证树                                                    |
-| `dmsg_user`                      | 校验账户的认证 caller 与管理员设备，保存短期的精确名称意图；handle 只消费这些意图，不读取账户的其他状态 |
-| PANDA 账本                       | ICRC-2 扣款；ICRC-3 区块用于对账                                                                        |
-| `ic_message`、`ic_name_identity` | 冻结后提供带证书的名称与角色快照，只在迁移时使用                                                        |
+| 组件                             | 在名称流程中的职责                                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `dmsg_handle`                    | 名称表、旧名预留、注册收费操作与锁、权属事件、认证树                                                                               |
+| `dmsg_user`                      | 可有多个分片（user home）。校验账户的认证 caller 与管理员设备，保存短期的精确名称意图；handle 只消费这些意图，不读取账户的其他状态 |
+| PANDA 账本                       | ICRC-2 扣款；ICRC-3 区块用于对账                                                                                                   |
+| `ic_message`、`ic_name_identity` | 冻结后提供带证书的名称与角色快照，只在迁移时使用                                                                                   |
 
-handle 不保存设备、密钥、资料或旧名称区块，注册也不创建旧 Profile 或 COSE namespace。
+handle 是全局唯一的名称注册表，所有 user home 共用。它不保存设备、密钥、资料或旧名称区块，注册也不创建旧 Profile 或 COSE namespace。
 
 ### 接口与调用者
 
-| 类别 | 方法                                                                                                                                       | 调用者                       |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 注册 | `register_handle`、`commit_handle`                                                                                                         | 付款人                       |
-| 对账 | `reconcile_handle_charge`                                                                                                                  | 任何人，以账本区块为证据     |
-| 认领 | `claim_legacy_handle`                                                                                                                      | 冻结 owner 或冻结管理员      |
-| 转移 | `transfer_handle`                                                                                                                          | 任何人，需携带双方批准       |
-| 查询 | `resolve_handle_certified`、`get_handle_event`、`get_handle_operation`、`get_legacy_reservation`、`snapshot_progress`、`get_handle_config` | 任何人                       |
-| 管理 | `begin_legacy_snapshot`、`import_legacy_handles`、`seal_legacy_snapshot`、`update_ledger_fee`、`admin_collect_token`                       | controller 或 SNS governance |
-| 预演 | 与每个管理方法同参数的 `validate_*`，如 `validate_import_legacy_handles`                                                                   | 任何人，只读 query           |
+| 类别 | 方法                                                                                                                                        | 调用者                       |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 注册 | `register_handle`、`commit_handle`                                                                                                          | 付款人                       |
+| 对账 | `reconcile_handle_charge`                                                                                                                   | 任何人，以账本区块为证据     |
+| 认领 | `claim_legacy_handle`                                                                                                                       | 冻结 owner 或冻结管理员      |
+| 转移 | `transfer_handle`                                                                                                                           | 任何人，需携带双方批准       |
+| 查询 | `resolve_handle_certified`、`get_handle_event`、`get_handle_operation`、`get_legacy_reservation`、`snapshot_progress`、`get_handle_config`  | 任何人                       |
+| 管理 | `begin_legacy_snapshot`、`import_legacy_handles`、`seal_legacy_snapshot`、`update_ledger_fee`、`admin_collect_token`、`admin_add_user_home` | controller 或 SNS governance |
+| 预演 | 与每个管理方法同参数的 `validate_*`，如 `validate_import_legacy_handles`                                                                    | 任何人，只读 query           |
 
 管理方法接受本 canister 的 controller 或初始化固定的 `governance`。`validate_*` 按当前状态执行与对应方法相同的校验，通过时返回给提案投票者看的说明文字，失败时返回错误名；它不修改状态，可用于 SNS 通用提案的验证方法，也可供 controller 提交前预演。
 
@@ -46,7 +46,9 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 账户发起的名称操作分两步授权：
 
 1. 账户在 `dmsg_user` 调用 `mutate_account`，命令为 `AuthorizeHandle { intent }`。user 要求 caller 是该账户的认证绑定、账户处于 Active，并由具有 `RootManage` 能力的管理员设备签名整条命令；`intent.account_id` 必须是该账户，`intent.handle_canister` 必须是配置的 handle。批准最长有效 60 秒，每个账户最多同时保留 32 条。
-2. handle 处理业务调用时，向初始化固定的 `home_user` 调用 `consume_handle_authorization`；转移改用 `consume_handle_transfer_authorizations`，一次核对双方。user 只接受配置的 handle 作为调用者，要求同一 `op_id` 下存有完全相同且未过期的意图。这一步只读，不再检查设备撤销或账户状态；重复执行由 handle 按 `(account_id, op_id)` 去重。
+2. handle 处理业务调用时，向账户所在的 user home 调用 `consume_handle_authorization`。转移双方在同一 home 时改用 `consume_handle_transfer_authorizations` 一次核对双方，在不同 home 时分别核对。user 只接受配置的 handle 作为调用者，要求同一 `op_id` 下存有完全相同且未过期的意图。这一步只读，不再检查设备撤销或账户状态；重复执行由 handle 按 `(account_id, op_id)` 去重。
+
+账户所在的 home 由账户 ID 决定：user home 分配的每个 ID 在第 4–9 字节带有它的分配器指纹，即 `account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节（与 `dmsg_directory` 的路由相同）。handle 在 `user_homes` 中按指纹查找，找不到返回 `NotFound`。`user_homes` 只能追加：新增分片时由 controller 或 governance 调用 `admin_add_user_home`，各 home 的指纹必须互不相同，最多 64 个。
 
 `HandleIntent` 固定 handle canister、动作、账户、目标账户、预期版本、`op_id` 和 `terms_digest`，`terms_digest` 再固定各动作的具体条款：
 
@@ -73,7 +75,7 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 `register_handle(Registration)` 在一次调用内完成授权、加锁和扣款：
 
 1. 校验意图、caller 与付款人、手续费和 `terms_digest`，并检查名称不在活跃名称、旧名预留或扣款锁中，全局 `max_pending` 未满，该账户没有未决扣款。旧快照封存前返回 `LegacyWriteDisabled`。
-2. 向 `home_user` 核对授权。
+2. 向账户所在的 user home 核对授权。
 3. 回调后先查重放，再重读配置、锁和容量并重新校验，不复用等待前的快照。
 4. 在发出扣款前，同一消息内持久化名称锁、账户锁、`Charging` 操作和未决计数。
 5. 以固定的付款账户、金额、手续费、memo（`digest("dmsg/handle-memo/v1", (canister, op key))`）和 `created_at_time` 调用 `icrc2_transfer_from`，在回调中提交结果。
@@ -102,15 +104,20 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 
 ### 转移
 
-`transfer_handle(from, accept)` 需要原 owner 的 `Transfer` 意图和接收方的 `AcceptTransfer` 意图：两者的名称、预期版本、`op_id` 和 `terms_digest` 相同，账户互为对方的目标。handle 先核对当前 owner 和版本，再一次调用 user 核对双方授权，回调后要求记录未变，然后提交版本 +1。
+`transfer_handle(from, accept)` 需要原 owner 的 `Transfer` 意图和接收方的 `AcceptTransfer` 意图：两者的名称、预期版本、`op_id` 和 `terms_digest` 相同，账户互为对方的目标。handle 先核对当前 owner 和版本，再到双方所在的 user home 核对授权（同一 home 时一次调用），回调后要求记录未变，然后提交版本 +1。
 
 认领和转移按 `(account_id, op_id)` 保存请求摘要与原始权属回执：原请求重放返回原结果，即使名称后来又被转移；同一 ID 换了参数返回 `IdempotencyConflict`。
 
 ### 认证查询与事件
 
-认证树驻留 heap，只保存名称叶：名称 → `HandleRecord` 的规范 CBOR，包含当前 owner、版本和产生该权属的事件摘要 `event_tip`。初始化时即发布空树的根，名称尚不存在时也能给出不存在证明。
+认证树只证明名称：叶是 `HandleRecord` 的规范 CBOR，包含当前 owner、版本和产生该权属的事件摘要 `event_tip`。名称按 `handle_bucket(name)`（`digest("dmsg/handle-bucket/v1", name)` 的前 20 位）分进 2^20 个桶，树分两层：
 
-`resolve_handle_certified` 每次查询 1–64 个名称，返回包含或不存在证明；验证者须核对信任根、canister ID、证书时间、witness 和叶字节。旧名预留和快照进度不进入认证树，旧名数量不影响升级成本。
+- 上层是按桶号位组成的二叉标签树：下面没有名称的节点是 `Empty`，否则是 `fork(labeled([0], 左), labeled([1], 右))`。
+- 每个桶是其名称按字节序组成的平衡 `fork` 树，叶为 `labeled(name, leaf(record))`。
+
+名称的证明路径因此是 20 个 `[0]`/`[1]` 标签（桶号从高位到低位）加名称字节。每个节点的哈希存放在 stable memory 的定长数组（64 MiB），写入时只重算所在桶和它上方的 20 个节点；升级不遍历名称，只重新发布根哈希。初始化时即发布空树的根，名称尚不存在时也能给出不存在证明。
+
+`resolve_handle_certified` 每次查询 1–64 个名称，返回包含或不存在证明；同一批中落在同一桶的名称只读一次桶。验证者须核对信任根、canister ID、证书时间、witness，并按上述路径查找叶字节。旧名预留和快照进度不进入认证树。
 
 每次权属变化追加一条 `HandleEvent`（`StableLog`，序号即追加时的日志长度），事件以 `previous` 串成全局摘要链，摘要为 `digest("dmsg/handle-event/v1", event)`，并记录所属快照 ID。`get_handle_event(sequence)` 是普通 query，`HandleRecord.event_tip` 可用来核对读到的事件。
 
@@ -118,39 +125,38 @@ handle 不保存设备、密钥、资料或旧名称区块，注册也不创建�
 
 ### 存储
 
-稳定布局为 schema 8（相对 schema 7 只在配置中增加 `governance`）。`post_upgrade` 遇到其他 schema 直接失败，布局变化须编写显式迁移。`MemoryManager` 使用 16 页（1 MiB）分配桶。
+稳定布局为 schema 9。相对 schema 8：配置用 `environment`、`issuer_namespace`、`user_homes` 取代单个 `home_user`；名称表的键加上桶号前缀；认证树从 heap 移到 memory 9；分配桶从 1 MiB 改为 8 MiB。`post_upgrade` 遇到其他 schema 直接失败，布局变化须编写显式迁移。`MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。
 
-| Memory | 内容                                                                                 |
-| -----: | ------------------------------------------------------------------------------------ |
-|      0 | 配置 `StableCell`：`HandleInit`（含 `governance`）、快照进度、事件链 tip、未决扣款数 |
-|      1 | `NAMES`：名称 → `HandleRecord`                                                       |
-|      2 | `LEGACY`：名称 → `LegacyReservation`                                                 |
-|      3 | `OPS`：op key → 注册收费操作                                                         |
-|      4 | `LOCKS`：名称 → 持锁操作的 op key                                                    |
-|   5、8 | `EVENTS`：`StableLog` 的索引与数据                                                   |
-|      6 | `ACTIVE_ACCOUNTS`：有未决扣款的账户                                                  |
-|      7 | `OWNERSHIP`：op key → 认领或转移回执                                                 |
+| Memory | 内容                                                                                                 |
+| -----: | ---------------------------------------------------------------------------------------------------- |
+|      0 | 配置 `StableCell`：`HandleInit`（含 `governance` 和 `user_homes`）、快照进度、事件链 tip、未决扣款数 |
+|      1 | `NAMES`：桶号（4 字节大端）+ 名称 → `HandleRecord`，同一桶的名称连续存放                             |
+|      2 | `LEGACY`：名称 → `LegacyReservation`                                                                 |
+|      3 | `OPS`：op key → 注册收费操作                                                                         |
+|      4 | `LOCKS`：名称 → 持锁操作的 op key                                                                    |
+|   5、8 | `EVENTS`：`StableLog` 的索引与数据                                                                   |
+|      6 | `ACTIVE_ACCOUNTS`：有未决扣款的账户                                                                  |
+|      7 | `OWNERSHIP`：op key → 认领或转移回执                                                                 |
+|      9 | 认证树：2^21 个节点哈希的定长数组，`Empty` 节点存为全零                                              |
 
-op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）、认证树和调用 guard。没有 `pre_upgrade`；升级时从 `NAMES` 重建认证树，只发布一次根哈希。操作、回执和事件只增不删，以保持幂等语义。
+op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）和调用 guard。没有 `pre_upgrade`；`post_upgrade` 只校验 schema 并重新发布根哈希，成本与名称数无关。操作、回执和事件只增不删，以保持幂等语义。
 
 ### 容量与成本
 
-- 活跃名称与未决扣款合计不超过 150,000（`MAX_ACTIVE_NAMES`）。新注册和认领在授权前后都检查，为已发出的扣款保留提交位置；达到上限返回 `QuotaExceeded`，转移、重放、重试和对账不受影响。
+- 活跃名称与未决扣款合计不超过 10,000,000（`MAX_ACTIVE_NAMES`）。新注册和认领在授权前后都检查，为已发出的扣款保留提交位置；达到上限返回 `QuotaExceeded`，转移、重放、重试和对账不受影响。
 - 全局未决扣款不超过 `max_pending`（1–10,000），每个账户同时最多一笔。
 - 旧名快照不超过 1,000,000 条，每批导入 1–256 条，每条最多 16 个冻结管理员。
 
-升级成本主要花在重建认证树，略高于线性增长：每个名称的指令数随 log n 增加，名称数每增加 10 倍约多 20 万。以下为 2026-10-06 在 schema 8、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测，名称均为 20 字节；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史，它们不在升级时遍历：
+升级不遍历名称：节点哈希留在 stable memory，`post_upgrade` 只重新发布根哈希。名称数影响的是 stable 存储、名称表 B 树的深度和证明大小。以下为 2026-10-06 在 schema 9、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测，名称均为 20 字节；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史：
 
-| 活跃名称数 |      升级指令数 | 占 300B 上限 |     升级 cycles |  heap 字节 | stable 字节 | 64 名称响应字节 |
-| ---------: | --------------: | -----------: | --------------: | ---------: | ----------: | --------------: |
-|      1,000 |     656,949,927 |         0.2% |   4,213,019,059 |  1,572,864 |   3,211,264 |          50,080 |
-|     10,000 |   8,635,692,271 |         2.9% |  12,191,761,550 |  3,997,696 |   4,259,840 |          63,000 |
-|    100,000 | 106,718,078,810 |        35.6% | 110,274,148,306 | 28,114,944 |  23,134,208 |          75,388 |
-|    150,000 | 165,242,309,528 |        55.1% | 168,798,379,023 | 41,549,824 |  33,619,968 |          76,376 |
-|    200,000 | 225,670,298,664 |        75.2% | 229,226,368,159 | 54,919,168 |  44,105,728 |          77,706 |
-|    250,000 | 286,095,741,964 |        95.4% | 289,651,811,460 | 68,354,048 |  54,591,488 |          80,328 |
+| 活跃名称数 | 升级指令数 |   升级 cycles | 一次转移 cycles | heap 字节 |   stable 字节 | 64 名称响应字节 |
+| ---------: | ---------: | ------------: | --------------: | --------: | ------------: | --------------: |
+|      1,000 |  1,151,712 | 4,041,721,588 |      17,229,870 | 1,441,792 |   117,506,048 |          72,604 |
+|    100,000 |  1,151,745 | 4,041,721,767 |      17,738,292 | 1,441,792 |   125,894,656 |          72,718 |
+|  1,000,000 |  1,153,461 | 4,041,723,551 |      17,999,669 | 1,441,792 |   276,889,600 |          74,618 |
+| 10,000,000 |  1,160,622 | 4,041,730,783 |      19,516,817 | 1,441,792 | 1,812,004,864 |          80,622 |
 
-指令数取自 `post_upgrade` 的 `performance_counter(0)` 差值，上限指 install_code 的 300B 指令。按趋势约 26 万名称会用尽上限，届时无法再升级，名称也不能删除，所以上限取 150,000，为以后升级时增加的逐名称工作保留约 135B 指令。主网按指令而不是轮数限制 install_code；PocketIC 等待调用最多 100 轮，profile 因此逐轮推进升级，cycles 含约 0.19B 的多轮推进开销。响应字节包含证书和成功 Result 封装；单次 64 名称查询的 host 耗时 6–14 ms，含 PocketIC 开销，不代表主网延迟或吞吐。150,000 名称样本还验证了满容量时注册、认领的本地拒绝和双方授权转移。提高上限前须重新测量升级预算和内存。
+指令数取自 `post_upgrade` 的 `performance_counter(0)` 差值；升级 cycles 主要是安装 Wasm 的费用。stable 的起点约 112 MiB：认证树 64 MiB 的定长数组，加上各虚拟内存至少占用的一个 8 MiB 分配桶；名称表每个名称约 170 字节。生产环境另有每次注册约 300 字节的收费操作，以及每次权属变化约 150 字节的事件和回执，按每个名称 0.6–0.7 KB 估算，1,000 万名称约 6–7 GB，远低于 256 GiB 的地址空间。一次转移重算一个桶和 20 个路径节点，名称从 1,000 增加到 1,000 万只多约 13% cycles。响应字节包含证书和成功 Result 封装；单次 64 名称查询的 host 耗时 11–25 ms，含 PocketIC 开销，不代表主网延迟或吞吐。1,000 万名称样本还验证了满容量时注册、认领的本地拒绝和双方授权转移。上限取已实测规模，提高前须重新测量存储和写入成本。
 
 2026-10-02 `handle_cycles_profile` 用同一 host 程序及 user、ledger Wasm，对比 schema 6 与 schema 7 的 handle（256 条旧名，逐步注册到 17 个活跃名称）：
 
@@ -169,15 +175,17 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 初始化参数
 
-| `HandleInit` 字段 | 要求                                                                                                                                                                                                                             |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `home_user`       | 本部署的 `dmsg_user` canister ID，初始化后不可修改                                                                                                                                                                               |
-| `ledger`          | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
-| `ledger_fee`      | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
-| `max_pending`     | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
-| `governance`      | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
+| `HandleInit` 字段  | 要求                                                                                                                                                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environment`      | 与各 `dmsg_user` 的 `UserInit.environment` 相同，生产为 `Production`。初始化后不可修改                                                                                                                                           |
+| `issuer_namespace` | 与各 `dmsg_user` 的 `UserInit.issuer_namespace` 相同。初始化后不可修改                                                                                                                                                           |
+| `user_homes`       | 至少一个 `dmsg_user` canister ID；之后只能用 `admin_add_user_home` 追加，最多 64 个，分配器指纹不能相同                                                                                                                          |
+| `ledger`           | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
+| `ledger_fee`       | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
+| `max_pending`      | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
+| `governance`       | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
 
-`home_user`、`ledger` 和 `governance` 不能是匿名或管理 canister principal，参数不合法时安装失败。`dmsg_user` 的 `UserInit.handle_canister` 必须指向本 canister。两者互相引用，所以先创建 canister ID，再分别安装。
+`user_homes`、`ledger` 和 `governance` 不能是匿名或管理 canister principal，`issuer_namespace` 须通过与 `dmsg_user` 相同的格式校验，参数不合法时安装失败。每个 `dmsg_user` 的 `UserInit.handle_canister` 都必须指向本 canister。两者互相引用，所以先创建 canister ID，再分别安装。
 
 ### 步骤
 
@@ -204,7 +212,9 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
    sha256sum dmsg_handle.wasm.gz
    dfx canister call --network ic druyg-tyaaa-aaaaq-aactq-cai icrc1_fee --query
    dfx canister install dmsg_handle --network ic --wasm dmsg_handle.wasm.gz --argument "(record {
-     home_user = principal \"$(dfx canister id dmsg_user --network ic)\";
+     environment = variant { Production };
+     issuer_namespace = \"<与 dmsg_user 相同的 issuer_namespace>\";
+     user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
      ledger = principal \"druyg-tyaaa-aaaaq-aactq-cai\";
      ledger_fee = <icrc1_fee> : nat;
      max_pending = 1000 : nat32;
@@ -252,6 +262,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
    | ----------------------- | -------------------------------- | ------------------------------------------------------ |
    | `update_ledger_fee`     | `validate_update_ledger_fee`     | `ApplicationBusinessLogic`                             |
    | `admin_collect_token`   | `validate_admin_collect_token`   | `TreasuryAssetManagement`（关键主题）                  |
+   | `admin_add_user_home`   | `validate_admin_add_user_home`   | `CriticalDappOperations`（关键主题）                   |
    | `begin_legacy_snapshot` | `validate_begin_legacy_snapshot` | `CriticalDappOperations`（关键主题，交接后仍需迁移时） |
    | `import_legacy_handles` | `validate_import_legacy_handles` | 同上                                                   |
    | `seal_legacy_snapshot`  | `validate_seal_legacy_snapshot`  | 同上                                                   |
@@ -264,6 +275,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 运维与升级
 
+- 新增 `dmsg_user` 分片时，先以相同的 `environment`、`issuer_namespace` 和 `handle_canister` 安装新 home，再由 controller 或 governance 调用 `admin_add_user_home(home)`；`validate_admin_add_user_home` 可预演并显示新 home 的分配器指纹。加入前，该 home 的账户注册、认领或转移名称返回 `NotFound`。已有 home 不能移除，它分配的账户仍要靠它路由。
 - 账本手续费变化时，由 controller 或 governance 调用 `update_ledger_fee(fee)`，新值仍须小于 100 PANDA。它只影响新订单：已有操作保留原金额、fee、memo 和账本时间，客户端按新配置重新准备报价。
 - 注册收入留在 handle canister 的默认账户，由 controller 或 governance 调用 `admin_collect_token(to, amount)` 提取：转给 `to` 的金额为 `amount`，账本手续费另从 handle 账户扣除，成功时返回账本区块号。该转账不带 `created_at_time`，账本不会去重；返回 `ExecutionUnknown` 时先在账本核对，再决定是否重新提交。
 
@@ -288,7 +300,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
   `dmsg_handle.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口。dfx 自带的兼容检查依赖本地 `dfx build` 生成的文件，直接安装 release 产物时找不到这些文件，会停下来要求确认，所以先用 `didc check` 核对，再加 `--yes` 跳过这一步。Candid 服务声明了 `HandleInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。不要在升级时重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
 
-- 升级所需 cycles 随活跃名称增长（150,000 名称约 169B cycles），升级前确认余额。
+- 升级成本与名称数无关，实测约 4B cycles（主要是安装 Wasm），升级前确认余额。
 
 ## 迁移流程
 
@@ -356,7 +368,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 - 隔离名称（`quarantined`）没有解除或处置接口。这类名称在旧系统中由名称账户自己持有，冻结角色表里又没有 role 1 的管理员，没有人能证明控制权；认领返回 `Locked`，名称永久保留。
 - 每个实例只能导入一个旧快照；更换快照需要新实例。
-- 单实例最多 150,000 个活跃名称，更大规模需要按名称分片，尚未实现。
+- 单实例最多 10,000,000 个活跃名称；更大规模须重新实测存储和写入成本，或按名称分片（尚未实现）。
 - 生产部署和真实 PANDA 账本都未验收。
 
 ## 实现
@@ -376,19 +388,20 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 cargo test -p dmsg_handle
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 POCKET_IC_BIN=/path/to/pocket-ic \
-  cargo test --locked -p dmsg_integration --features pocketic-tests \
+  cargo test --locked --release -p dmsg_integration --features pocketic-tests \
   --test control_plane handle_active_name_capacity_profile -- --ignored --nocapture
 ```
 
-`handle_scale_profile`、`handle_cycles_profile` 用同样方式显式运行。[handle.rs](../../tests/dmsg_integration/tests/control_plane/handle.rs) 与相关 PocketIC 回归覆盖：
+容量 profile 须用 release 模式：1,000 万档在宿主机构建名称表和认证树约需 2.5 分钟，并向 PocketIC 上传约 1.7 GiB 的 stable memory。`handle_scale_profile`、`handle_cycles_profile` 用同样方式显式运行。`cargo test -p dmsg_runtime` 覆盖认证树的存在证明、桶内前后与中间的不存在证明、空桶与空子树，以及重算后根哈希不变。[handle.rs](../../tests/dmsg_integration/tests/control_plane/handle.rs) 与相关 PocketIC 回归覆盖：
 
 - allowance 不足、临时失败和明确拒绝后立即释放名称、账户和全局额度，作废操作 ID 的重放，手续费更新只影响新订单。
 - 并发注册只扣一次，额度提前拒绝，锁、事件日志和认证树的升级恢复，未知扣款跨时间和升级不释放名称。
 - 成功或拒绝的扣款回复到达前升级，执行中的重试与对账互斥，账本去重窗口过期后的并发对账，付款账户、收款账户、金额、memo、时间戳或 spender 不符的对账证据被拒绝。
 - 快照批量导入失败不部分写入、重叠导入重试、跳过前一批的导入被拒绝、冻结管理员与隔离名称、匿名管理员拒绝。
 - 认领回执跨转移和升级重放，双方授权过期与并发转移，名称包含与不存在证明（含尚无名称时的空树证明，旧名预留不进入认证树）及查询批量上限。
+- 账户按 ID 指纹路由到所属 user home：未登记 home 的账户返回 `NotFound`，追加 home 后同一操作成功，跨 home 转移在两边分别核对授权；`admin_add_user_home` 的权限、幂等与预演。
 - governance 执行快照导入、封存、手续费更新和收入提取，非管理者被拒绝；`validate_*` 按当前状态预演且不改状态，提前提交的后续导入批次在验证和执行时都被拒绝；提取后账本余额准确变化，超额提取被账本拒绝。
 
 测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [legacy-snapshot.spec.ts](../dmsg_app/e2e/legacy-snapshot.spec.ts) 覆盖，需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件。
 
-2026-10-06 在最低价改为 100 PANDA 的版本（schema 8）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、105 项 PocketIC 回归（`control_plane` 101 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 171 项单元测试也通过。同日移除 `snapshot_certified`、上限提高到 150,000 后再次完整运行通过，并单独运行 `handle_active_name_capacity_profile`（1,000–250,000 名称）通过；其余默认忽略的 profile 未运行，`handle_scale_profile`、`handle_cycles_profile` 最近一次运行为 2026-10-02（schema 7）。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后安装（含 `governance`），模块哈希等于 gzip 产物的 SHA-256；空快照封存；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。raw 提交、`validate_*` 预演和手续费更新在同日上一轮实测。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
+2026-10-06 在 schema 9（stable 认证树与多 user home）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、106 项 PocketIC 回归（`control_plane` 102 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 172 项单元测试也通过，其中名称分桶与 Rust 的固定向量一致。`handle_active_name_capacity_profile` 以 release 模式单独运行通过（1,000–1,000 万名称）；`handle_scale_profile`、`handle_cycles_profile` 未在 schema 9 上运行。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后以新参数安装，模块哈希等于 gzip 产物的 SHA-256；空快照封存；`validate_admin_add_user_home` 预演与 `admin_add_user_home`；证书查询；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
