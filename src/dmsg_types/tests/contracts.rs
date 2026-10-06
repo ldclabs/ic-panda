@@ -133,7 +133,7 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
 }
 
 #[test]
-fn legacy_normalization_and_panda_prices_are_preserved() {
+fn legacy_normalization_is_preserved_and_handle_prices_are_fixed() {
     assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
     for name in [
         "",
@@ -151,7 +151,7 @@ fn legacy_normalization_and_panda_prices_are_preserved() {
     assert_eq!(price("ab"), 20_000_000_000_000);
     assert_eq!(price("abc"), 5_000_000_000_000);
     assert_eq!(price("abcde"), 2_000_000_000_000);
-    assert_eq!(price("abcdefg"), 500_000_000_000);
+    assert_eq!(price("abcdefg"), 100_000_000_000);
 }
 
 #[test]

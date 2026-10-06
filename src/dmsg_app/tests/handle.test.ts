@@ -253,7 +253,7 @@ it('purchases once with exact charge terms and resumes the recorded charge witho
   }))
   const wallet = { owner: admin, approveHandle: vi.fn(async () => {}) }
   const job = await f.client.preparePurchase('longname')
-  expect(job.total).toBe('500000000000')
+  expect(job.total).toBe('100000000000')
   await f.client.purchase(wallet as any)
   registry.get_handle_operation.mockResolvedValue({ Ok: completed })
   await f.client.purchase(wallet as any)
