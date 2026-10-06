@@ -1,7 +1,8 @@
 use crate::state::Escrow;
 use candid::Principal;
+use dmsg_protocol::canonical;
+use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
-use dmsg_runtime::Certification;
 use dmsg_types::{payment::*, *};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
@@ -29,8 +30,8 @@ pub(crate) fn memory(id: u8) -> Memory {
 
 thread_local! {
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        // 1 MiB buckets; 32,768 buckets address up to 32 GiB of stable data.
-        RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
+        // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     // Heap survives ordinary messages and await commit points. Persist this
@@ -59,7 +60,9 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(9)));
     pub(crate) static FEE_POLICIES: RefCell<Table<CompactStored<DeliveryFeePolicy>>> =
         RefCell::new(StableBTreeMap::init(memory(10)));
-    pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
+    // Hashes only: each certified value is rebuilt from its record for a witness.
+    pub(crate) static CERT: RefCell<CertMap<Memory>> =
+        RefCell::new(CertMap::new(memory(11), memory(12)));
 }
 
 /// Borrow the configuration for reads; do not touch CONFIG inside `f`.
@@ -94,8 +97,44 @@ fn public_config(c: &Config) -> PaymentConfiguration {
     }
 }
 
+const CONFIGURATION_KEY: &[u8] = b"configuration";
+
+pub(crate) fn signer_key(epoch: u64) -> Vec<u8> {
+    [b"signer/".as_slice(), epoch.to_be_bytes().as_slice()].concat()
+}
+
+pub(crate) fn fee_key(version: u64) -> Vec<u8> {
+    [b"fee/".as_slice(), version.to_be_bytes().as_slice()].concat()
+}
+
 pub(crate) fn certify_config(c: &Config) {
-    CERT.with_borrow_mut(|tree| tree.put(b"configuration".to_vec(), &public_config(c)));
+    let bytes = canonical(&public_config(c));
+    CERT.with_borrow_mut(|tree| tree.insert(CONFIGURATION_KEY.to_vec(), &bytes));
+}
+
+pub(crate) fn certify_signer(s: &ReceiptSigner) {
+    CERT.with_borrow_mut(|c| c.insert(signer_key(s.epoch), &canonical(s)));
+}
+
+pub(crate) fn certify_fee_policy(p: &DeliveryFeePolicy) {
+    CERT.with_borrow_mut(|c| c.insert(fee_key(p.version), &canonical(p)));
+}
+
+/// Current value of a certified configuration, signer or fee-policy key.
+pub(crate) fn configuration_leaf(key: &[u8]) -> Option<Vec<u8>> {
+    if key == CONFIGURATION_KEY {
+        return Some(with_cfg(|c| canonical(&public_config(c))));
+    }
+    let number = |prefix: &[u8]| -> Option<[u8; 8]> { key.strip_prefix(prefix)?.try_into().ok() };
+    if let Some(epoch) = number(b"signer/") {
+        return SIGNERS
+            .with_borrow(|t| t.load(&epoch))
+            .map(|s| canonical(&s));
+    }
+    let version = number(b"fee/")?;
+    FEE_POLICIES
+        .with_borrow(|t| t.load(&version))
+        .map(|p| canonical(&p))
 }
 
 pub(crate) enum CallBudget {
@@ -168,41 +207,7 @@ pub(crate) fn save_escrow(e: &Escrow) {
 
 pub(crate) fn save(e: &Escrow) {
     save_escrow(e);
-    CERT.with_borrow_mut(|c| c.put(e.escrow_id.to_vec(), &e.info()));
-}
-
-/// Rebuild the heap tree from stable records, publishing the root once.
-pub(crate) fn rebuild_certification() {
-    CERT.with_borrow_mut(|c| {
-        with_cfg(|configuration| {
-            c.set(
-                b"configuration".to_vec(),
-                dmsg_protocol::canonical(&public_config(configuration)),
-            )
-        });
-        SIGNERS.with_borrow(|table| {
-            table.for_each(|key, value| {
-                c.set(
-                    [b"signer/".as_slice(), key.as_slice()].concat(),
-                    dmsg_protocol::canonical(&value),
-                );
-            })
-        });
-        FEE_POLICIES.with_borrow(|table| {
-            table.for_each(|key, value| {
-                c.set(
-                    [b"fee/".as_slice(), key.as_slice()].concat(),
-                    dmsg_protocol::canonical(&value),
-                );
-            })
-        });
-        ESCROWS.with_borrow(|t| {
-            t.for_each(|k, e| {
-                c.set(k, dmsg_protocol::canonical(&e.info()));
-            })
-        });
-        c.publish();
-    });
+    CERT.with_borrow_mut(|c| c.insert(e.escrow_id.to_vec(), &canonical(&e.info())));
 }
 
 pub(crate) fn key(id: Hash, n: u64) -> Vec<u8> {
@@ -238,4 +243,4 @@ pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 9;
+pub(crate) const STABLE_SCHEMA: u16 = 10;

@@ -43,9 +43,11 @@ fn init(args: PaymentInit) {
     );
     nonzero(args.signer.public_key.as_slice()).expect("receipt key");
     SIGNERS.with_borrow_mut(|t| t.put(&args.signer.epoch.to_be_bytes(), &args.signer));
+    certify_signer(&args.signer);
     dmsg_protocol::billing::delivery_service_fee(1, &args.fee_policy).expect("fee policy");
     FEE_POLICIES
         .with_borrow_mut(|t| t.put(&args.fee_policy.version.to_be_bytes(), &args.fee_policy));
+    certify_fee_policy(&args.fee_policy);
     save_cfg(Config {
         schema: STABLE_SCHEMA,
         init: args,
@@ -57,7 +59,7 @@ fn init(args: PaymentInit) {
         authorizations: Default::default(),
     });
     persist_config();
-    rebuild_certification();
+    with_cfg(certify_config);
 }
 
 #[ic_cdk::pre_upgrade]
@@ -72,7 +74,10 @@ fn post_upgrade() {
         STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
-    rebuild_certification();
+    // Certification nodes persist in stable memory. The configuration leaf is
+    // recertified from the restored configuration, then the root republished.
+    with_cfg(certify_config);
+    CERT.with_borrow(|c| c.publish());
 }
 
 fn check_home(init: &PaymentInit, home: Principal) -> Result<bool> {
@@ -167,12 +172,7 @@ fn rotate_receipt_signer(new: ReceiptSigner) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
     check_signer(&new)?;
     SIGNERS.with_borrow_mut(|t| t.put(&new.epoch.to_be_bytes(), &new));
-    CERT.with_borrow_mut(|c| {
-        c.put(
-            [b"signer/".as_slice(), new.epoch.to_be_bytes().as_slice()].concat(),
-            &new,
-        )
-    });
+    certify_signer(&new);
     configure(|c| c.signer = new);
     Ok(())
 }
@@ -196,13 +196,8 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
     let mut s = signer(epoch)?;
     s.revoked = true;
-    CERT.with_borrow_mut(|c| {
-        c.put(
-            [b"signer/".as_slice(), epoch.to_be_bytes().as_slice()].concat(),
-            &s,
-        )
-    });
     SIGNERS.with_borrow_mut(|t| t.put(&epoch.to_be_bytes(), &s));
+    certify_signer(&s);
     configure(|c| c.enabled = false);
     Ok(())
 }
@@ -548,6 +543,10 @@ fn get_escrow_certified(ids: Vec<Hash>) -> Result<CertifiedBatch> {
         c.batch(
             ic_cdk::api::canister_self(),
             ids.into_iter().map(|v| v.to_vec()).collect(),
+            |key| {
+                let id = Hash::new(key.try_into().ok()?);
+                load(&id).ok().map(|e| canonical(&e.info()))
+            },
         )
     })
 }
@@ -648,12 +647,7 @@ fn schedule_fee_policy(p: DeliveryFeePolicy) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
     check_fee_policy(&p, now())?;
     FEE_POLICIES.with_borrow_mut(|t| t.put(&p.version.to_be_bytes(), &p));
-    CERT.with_borrow_mut(|c| {
-        c.put(
-            [b"fee/".as_slice(), p.version.to_be_bytes().as_slice()].concat(),
-            &p,
-        )
-    });
+    certify_fee_policy(&p);
     Ok(())
 }
 
@@ -679,9 +673,10 @@ fn get_configuration_certified(
             ic_cdk::api::canister_self(),
             vec![
                 b"configuration".to_vec(),
-                [b"signer/".as_slice(), signer_epoch.to_be_bytes().as_slice()].concat(),
-                [b"fee/".as_slice(), fee_version.to_be_bytes().as_slice()].concat(),
+                signer_key(signer_epoch),
+                fee_key(fee_version),
             ],
+            configuration_leaf,
         )
     })
 }

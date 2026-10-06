@@ -61,7 +61,7 @@ pnpm --dir src/dmsg_app test
 
 六类 canister 分别维护账户批准、名称权属、固定密钥执行、投递资金终态、共享会员资格和产品商业权益。账户批准先本地提交再跨 canister 执行；管理调用之前保存执行状态。未知结果查询原请求，不能自动新建请求重签或刷新未知转账的时间戳。设备撤销、恢复争议、根 CAS、结果清理后的重放保护、结算/退款互斥和资金守恒继续由本地状态机执行。
 
-稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证树继续使用公共协议编码并由稳定记录重建，因此 compact stable representation 不改变认证响应。
+稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证值继续使用公共协议编码，查询时由稳定记录重新生成，因此 compact stable representation 不改变认证响应。
 
 生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。所有 user home 与 handle/cose/payment/directory 的 environment、issuer_namespace 必须一致且固定；各服务按账户 ID 内嵌的分配器指纹把账户路由到分配它的 home，新 home 须经各服务的 `admin_add_user_home` 登记，指纹不得碰撞。COSE 由 controller 或 governance 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
@@ -140,3 +140,10 @@ cose、directory、payment 与 handle 一样按账户 ID 的分配器指纹路�
 user、cose、directory 新增固定的 `governance`。七个 canister（user、handle、cose、directory、payment、commerce、membership）的管理方法统一接受 controller 和 governance，每个都有同参数的 `validate_*` query，按当前状态执行与方法相同的检查并渲染提案说明，可登记为 SNS 通用函数的验证方法。新增管理方法：各服务的 `admin_add_user_home`，user 的 `admin_set_account_limits`（账户上限与每日新建配额），cose 的 `admin_set_daily_budget`，directory 的 `admin_set_custom_domains`；这两个 canister 的升级不再读取参数，配置只经管理方法修改。cose 的 `prune_executions` 改为公开维护，与 user 的同名入口一致。稳定布局：user schema 10、cose schema 9、directory schema 3、payment schema 9。
 
 前端仍只连接一个 `dmsg_user`；按账户指纹选择 home 的客户端路由、跨 home 的认证身份唯一性和已有账户迁移尚未实现。验证范围见各 canister README。
+
+## 2026-10-06 认证树移入 stable memory
+
+参照 handle 的做法，user、payment、commerce、membership 和 directory 的认证树改存在 stable memory，升级不再整批重建。新的 `dmsg_runtime::cert_map` 是一棵按位分叉的 crit-bit Merkle 前缀树：只存 key、认证值哈希和内部节点，认证值在查询时从各自记录重新生成并与已认证哈希核对。每个 key 仍以 `labeled(key, leaf)` 按字节序认证，客户端、SDK 和私有云端的验证路径不变；树形只由 key 集合决定，写入只重算一条路径，key 分布均匀时 witness 嵌套约 log₂(n)+2 层。directory 以 `http_expr` 下的第一段路径为 key，404 证明同时披露请求路径和各级更具体通配路径的第一段，满足 HTTP 网关的 v2 校验。
+
+移除了没有使用方的认证信息：commerce 的出金腿认证叶及 `checkout_transfer_certificate`；不再使用的堆上 `Certification` 一并删除。membership 的占用计数改存 stable memory，升级不再扫描 claim。payment、commerce、membership 的分配桶从 1 MiB 改为 8 MiB，可寻址 256 GiB。稳定布局：user schema 11、payment schema 10、commerce schema 6、membership schema 1、directory schema 4，开发实例须重装。按要求未做大数据量的成本实测。
+

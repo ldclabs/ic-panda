@@ -2,8 +2,8 @@ use crate::model::Subject;
 use candid::Principal;
 use dmsg_protocol::billing::*;
 use dmsg_runtime::{
+    cert_map::{leaf_hash, CertMap},
     storage::{CompactStored, MapExt, Stored},
-    Certification,
 };
 use dmsg_types::{billing::*, membership::*, *};
 use ic_stable_structures::{
@@ -59,7 +59,8 @@ impl Config {
 
 thread_local! {
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
+        // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     static CONFIG: RefCell<Option<Config>> = RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
@@ -68,7 +69,8 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(1)));
     pub static CATALOGS: RefCell<StableBTreeMap<Vec<u8>, Stored<Catalog>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(6)));
-    pub static CERT: RefCell<Certification> = RefCell::new(Certification::default());
+    // Hashes only: each certified value is rebuilt from its record for a witness.
+    pub static CERT: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(28), memory(29)));
 }
 
 /// Read configuration fields without cloning the whole record.
@@ -233,31 +235,26 @@ pub fn month_catalogs(month: u32, at: u64) -> Result<Vec<Catalog>> {
     }))
 }
 
-/// Internal bookkeeping must not republish an unchanged resource leaf.
+/// Certify a public view; an unchanged leaf leaves the root untouched.
 pub fn certify<T: Serialize>(key: Vec<u8>, value: &T) {
-    let bytes = dmsg_protocol::canonical(value);
-    CERT.with_borrow_mut(|c| {
-        if c.get(&key) != Some(bytes.as_slice()) {
-            c.insert(key, bytes);
-        }
-    });
+    CERT.with_borrow_mut(|c| c.insert(key, &dmsg_protocol::canonical(value)));
 }
 
-pub fn rebuild(at: u64) {
-    CERT.with_borrow_mut(|c| {
-        crate::registrations::rebuild(c);
-        crate::checkout_store::rebuild(c);
-        SUBJECTS.with_borrow(|t| {
-            t.for_each(|key, s| {
-                if let Some(v) = s.view {
-                    c.set(key, dmsg_protocol::canonical(&v));
-                }
-            })
-        });
-        c.set(
-            catalog_key().to_vec(),
-            dmsg_protocol::canonical(&catalog(at)),
-        );
-        c.publish();
-    });
+/// The catalog the certified leaf holds: the one effective at its last refresh.
+pub fn certified_catalog() -> Option<Vec<u8>> {
+    let hash = CERT.with_borrow(|c| c.get(catalog_key().as_slice()))?;
+    CATALOG_CACHE.with_borrow(|cache| {
+        cache
+            .iter()
+            .rev()
+            .map(dmsg_protocol::canonical)
+            .find(|bytes| leaf_hash(bytes) == hash)
+    })
+}
+
+/// Certification nodes persist in stable memory. Only the catalog leaf, which
+/// follows time, is refreshed before the root is republished.
+pub fn publish_certification(at: u64) {
+    certify(catalog_key().to_vec(), &catalog(at));
+    CERT.with_borrow(|c| c.publish());
 }

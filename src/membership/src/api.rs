@@ -33,6 +33,7 @@ fn init(args: MembershipInit) {
         .expect("module pin");
     }
     store::save_config(&store::Config {
+        schema: store::STABLE_SCHEMA,
         init: args,
         service: None,
         sns_verified: false,
@@ -41,12 +42,17 @@ fn init(args: MembershipInit) {
         application_hour: 0,
         applications: 0,
     });
-    store::rebuild();
+    store::publish();
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    store::rebuild();
+    assert_eq!(
+        store::config().schema,
+        store::STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
+    store::publish();
 }
 
 /// Root listing, ledger decimals and, when pinned, the governance module and sole root controller.

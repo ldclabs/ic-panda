@@ -2,6 +2,7 @@
 use crate::{account, state::AccountState, store};
 use candid::Principal;
 use dmsg_protocol::{canonical, digest, integration::*};
+use dmsg_runtime::cert_map::leaf_hash;
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, user::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
@@ -166,16 +167,17 @@ fn save(id: &AccountId, old: &ExternalState, next: &ExternalState) {
             if matches!(record.body, ExternalBody::Authentication(_))
                 && !next.operations.contains_key(op)
             {
-                c.remove(&authentication_key(id, op));
+                c.delete(&authentication_key(id, op));
             }
         }
         for (op, record) in &next.operations {
             if let ExternalBody::Authentication(result) = &record.body {
                 if !old.operations.contains_key(op) {
-                    c.insert(authentication_key(id, op), canonical(result));
+                    c.set(authentication_key(id, op), leaf_hash(&canonical(result)));
                 }
             }
         }
+        c.publish();
     });
 }
 
@@ -282,16 +284,16 @@ fn authentication_certificate(account_id: AccountId, operation_id: Hash) -> Resu
     ensure(account.auth_bindings.contains(&caller), Error::AuthRequired)?;
     let state = load(&account_id);
     let record = state.operations.get(&operation_id).ok_or(Error::NotFound)?;
-    ensure(
-        matches!(record.body, ExternalBody::Authentication(_)),
-        Error::Forbidden,
-    )?;
+    let ExternalBody::Authentication(result) = &record.body else {
+        return Err(Error::Forbidden);
+    };
     current_device(&account, record.device_id, record.security_epoch)?;
     ensure(at < record.expires_at_ms, Error::Expired)?;
     store::CERT.with_borrow(|c| {
         c.batch(
             ic_cdk::api::canister_self(),
             vec![authentication_key(&account_id, &operation_id)],
+            |_| Some(canonical(result)),
         )
     })
 }
@@ -446,21 +448,6 @@ fn prune_external_approvals(after: serde_bytes::ByteBuf) -> Option<serde_bytes::
         }
     }
     cursor
-}
-
-pub(crate) fn rebuild(leaves: &mut Vec<(Vec<u8>, Vec<u8>)>) {
-    EXTERNAL.with_borrow(|t| {
-        t.for_each(|_, state| {
-            for (operation, record) in state.operations {
-                if let ExternalBody::Authentication(result) = record.body {
-                    leaves.push((
-                        authentication_key(&result.account_id, &operation),
-                        canonical(&result),
-                    ));
-                }
-            }
-        })
-    });
 }
 
 /// Confirm an exact product preparation before the local execution commit.

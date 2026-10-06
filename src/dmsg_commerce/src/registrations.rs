@@ -104,7 +104,7 @@ fn register_integration_app(app: AppRegistration) -> Result<()> {
     store::check_admin(ic_cdk::api::msg_caller())?;
     if check_app(&app)? {
         APPS.with_borrow_mut(|t| t.put(app.app_id.as_bytes(), &app));
-        store::CERT.with_borrow_mut(|c| c.put(app_key(&app.app_id), &app));
+        store::certify(app_key(&app.app_id), &app);
     }
     Ok(())
 }
@@ -151,7 +151,7 @@ fn register_integration_product(product: ProductRegistration) -> Result<()> {
     store::check_admin(ic_cdk::api::msg_caller())?;
     if check_product(&product)? {
         PRODUCTS.with_borrow_mut(|t| t.put(product.product_id.as_bytes(), &product));
-        store::CERT.with_borrow_mut(|c| c.put(product_key(&product.product_id), &product));
+        store::certify(product_key(&product.product_id), &product);
     }
     Ok(())
 }
@@ -225,23 +225,22 @@ fn integration_configuration_certificate(
 ) -> Result<CertifiedBatch> {
     configuration(&app_id, product_id.as_deref())?;
     let mut keys = vec![app_key(&app_id)];
-    if let Some(id) = product_id {
-        keys.push(product_key(&id));
+    if let Some(id) = &product_id {
+        keys.push(product_key(id));
     }
-    store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), keys))
-}
-
-pub(crate) fn rebuild(c: &mut dmsg_runtime::Certification) {
-    APPS.with_borrow(|t| {
-        t.for_each(|_, app| {
-            c.set(app_key(&app.app_id), canonical(&app));
+    store::CERT.with_borrow(|c| {
+        c.batch(ic_cdk::api::canister_self(), keys, |key| {
+            if key == app_key(&app_id) {
+                APPS.with_borrow(|t| t.load(app_id.as_bytes()))
+                    .map(|a| canonical(&a))
+            } else {
+                let id = product_id.as_ref()?;
+                PRODUCTS
+                    .with_borrow(|t| t.load(id.as_bytes()))
+                    .map(|p| canonical(&p))
+            }
         })
-    });
-    PRODUCTS.with_borrow(|t| {
-        t.for_each(|_, product| {
-            c.set(product_key(&product.product_id), canonical(&product));
-        })
-    });
+    })
 }
 
 #[cfg(test)]

@@ -2,13 +2,20 @@
 //!
 //! Every response is certified as response-only with all headers, so an HTTP
 //! gateway rejects any document, 404 or domain list this canister did not
-//! commit. The heap tree holds hashes only and is rebuilt after upgrade.
+//! commit. Under `http_expr`, the first segment of each certified expression
+//! path is a key of a stable-memory certified map holding that segment's
+//! subtree hash: one per account document, `.well-known` for the domain list
+//! and `<*>` for the fallback 404. Only hashes are stored, so an upgrade
+//! republishes the root without visiting the documents.
+use crate::store::{memory, Memory};
+use dmsg_runtime::cert_map::CertMap;
 use dmsg_types::*;
+use ic_certification::{labeled, labeled_hash, HashTree, SubtreeLookupResult};
 use ic_http_certification::{
-    utils::add_v2_certificate_header, DefaultCelBuilder, DefaultResponseCertification,
-    DefaultResponseOnlyCelExpression, HttpCertification, HttpCertificationPath,
-    HttpCertificationTree, HttpCertificationTreeEntry, HttpRequest, HttpResponse, StatusCode,
-    CERTIFICATE_EXPRESSION_HEADER_NAME,
+    utils::{add_v2_certificate_header, more_specific_wildcards_for},
+    DefaultCelBuilder, DefaultResponseCertification, DefaultResponseOnlyCelExpression,
+    HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
+    HttpRequest, HttpResponse, StatusCode, CERTIFICATE_EXPRESSION_HEADER_NAME,
 };
 use std::{cell::RefCell, sync::LazyLock};
 
@@ -25,8 +32,10 @@ static CEL: LazyLock<DefaultResponseOnlyCelExpression<'static>> = LazyLock::new(
         .build()
 });
 
+const PATH_PREFIX: &[u8] = b"http_expr";
+
 thread_local! {
-    static TREE: RefCell<HttpCertificationTree> = RefCell::new(HttpCertificationTree::default());
+    static TREE: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(2), memory(3)));
 }
 
 fn response(
@@ -96,58 +105,61 @@ fn entry(
     HttpCertificationTreeEntry::new(path, certification)
 }
 
-fn publish_root(tree: &HttpCertificationTree) {
+// The first segment of a certified expression path: its key under `http_expr`.
+fn segment(path: &HttpCertificationPath) -> Vec<u8> {
+    path.to_expr_path().swap_remove(1).into_bytes()
+}
+
+// The subtree a single entry certifies under its first segment.
+fn subtree(entry: &HttpCertificationTreeEntry, segment: &[u8]) -> HashTree {
+    let mut tree = HttpCertificationTree::default();
+    tree.insert(entry);
+    match tree.as_hash_tree().lookup_subtree([PATH_PREFIX, segment]) {
+        SubtreeLookupResult::Found(child) => child,
+        _ => unreachable!("a single-entry tree holds its segment"),
+    }
+}
+
+fn certify(
+    path: HttpCertificationPath<'static>,
+    response: &HttpResponse<'static>,
+    document_digest: Option<Hash>,
+) {
+    let key = segment(&path);
+    let hash = subtree(&entry(path, response, document_digest), &key).digest();
+    TREE.with_borrow_mut(|tree| tree.set(key, hash));
+    publish();
+}
+
+pub(crate) fn publish() {
+    let root = TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash()));
     #[cfg(target_arch = "wasm32")]
-    ic_cdk::api::certified_data_set(tree.root_hash());
+    ic_cdk::api::certified_data_set(root);
     #[cfg(not(target_arch = "wasm32"))]
-    let _ = tree;
+    let _ = root;
 }
 
 /// Replace the certified response of one account's document.
 pub(crate) fn certify_document(id: &AccountId, document_digest: Hash) {
-    let path = document_path(id);
-    let entry = entry(
-        path.clone(),
+    certify(
+        document_path(id),
         &document_response(vec![]),
         Some(document_digest),
     );
-    TREE.with_borrow_mut(|tree| {
-        tree.delete_by_path(&path);
-        tree.insert(&entry);
-        publish_root(tree);
-    });
 }
 
 /// Replace the certified domain list.
 pub(crate) fn certify_domains(custom_domains: &[String]) {
     let (path, response) = domains(custom_domains);
-    TREE.with_borrow_mut(|tree| {
-        tree.delete_by_path(&path);
-        tree.insert(&entry(path, &response, None));
-        publish_root(tree);
-    });
+    certify(path, &response, None);
 }
 
-/// Certify the fallback 404, domain list and stored document digests in one pass.
-/// The iterator releases each stable record before reading the next one.
-pub(crate) fn rebuild(
-    custom_domains: &[String],
-    documents: impl IntoIterator<Item = (AccountId, Hash)>,
-) {
-    TREE.with_borrow_mut(|tree| {
-        tree.clear();
-        for (path, response) in [not_found(), domains(custom_domains)] {
-            tree.insert(&entry(path, &response, None));
-        }
-        for (id, document_digest) in documents {
-            tree.insert(&entry(
-                document_path(&id),
-                &document_response(vec![]),
-                Some(document_digest),
-            ));
-        }
-        publish_root(tree);
-    });
+/// Certify the fallback 404 and the domain list, which follow this code
+/// rather than stored records; documents keep their certified hashes.
+pub(crate) fn certify_fixed(custom_domains: &[String]) {
+    let (path, response) = not_found();
+    certify(path, &response, None);
+    certify_domains(custom_domains);
 }
 
 /// Match the certification library's path segments: internal empty segments
@@ -192,9 +204,14 @@ pub(crate) fn serve(
             (path, response, None)
         }
     };
-    let certified = entry(expr_path.clone(), &response, document_digest);
-    let witness = TREE.with_borrow(|tree| tree.witness(&certified, &path));
-    if let (Ok(witness), Some(certificate)) = (witness, ic_cdk::api::data_certificate()) {
+    let witness = witness(
+        &path,
+        &expr_path,
+        document_digest.is_none() && route != IC_DOMAINS,
+        custom_domains,
+        &load,
+    );
+    if let Some(certificate) = ic_cdk::api::data_certificate() {
         add_v2_certificate_header(
             &certificate,
             &mut response,
@@ -203,6 +220,52 @@ pub(crate) fn serve(
         );
     }
     response
+}
+
+/// Witness for a response certified at `expr_path`. The fallback must also
+/// prove that neither the exact request path nor a more specific wildcard
+/// exists, so the first segment of each of those paths is revealed too.
+fn witness(
+    path: &str,
+    expr_path: &HttpCertificationPath,
+    fallback_response: bool,
+    custom_domains: &[String],
+    load: &impl Fn(&AccountId) -> Option<(serde_bytes::ByteBuf, Hash)>,
+) -> HashTree {
+    let mut keys = vec![segment(expr_path)];
+    if fallback_response {
+        let bytes =
+            |p: Vec<String>| -> Vec<Vec<u8>> { p.into_iter().map(String::into_bytes).collect() };
+        let request = bytes(HttpCertificationPath::exact(path.to_string()).to_expr_path());
+        keys.push(request[1].clone());
+        for more in more_specific_wildcards_for(&request, &bytes(expr_path.to_expr_path())) {
+            keys.extend(more.into_iter().next());
+        }
+    }
+    let (fallback, fallback_response) = not_found();
+    let (listed, listed_response) = domains(custom_domains);
+    let child = |key: &[u8]| {
+        if key == segment(&fallback).as_slice() {
+            return subtree(&entry(fallback.clone(), &fallback_response, None), key);
+        }
+        if key == segment(&listed).as_slice() {
+            return subtree(&entry(listed.clone(), &listed_response, None), key);
+        }
+        let id = std::str::from_utf8(key)
+            .ok()
+            .and_then(|text| text.parse::<AccountId>().ok())
+            .expect("certified account segment");
+        let (_, digest) = load(&id).expect("certified document");
+        subtree(
+            &entry(document_path(&id), &document_response(vec![]), Some(digest)),
+            key,
+        )
+    };
+    let keys: Vec<&[u8]> = keys.iter().map(Vec::as_slice).collect();
+    labeled(
+        PATH_PREFIX,
+        TREE.with_borrow(|tree| tree.witness(&keys, child)),
+    )
 }
 
 #[cfg(test)]
@@ -224,6 +287,51 @@ mod tests {
             assert_eq!(
                 HttpCertificationPath::exact(path).to_expr_path(),
                 HttpCertificationPath::exact(expected).to_expr_path(),
+            );
+        }
+    }
+
+    #[test]
+    fn fallback_witness_proves_more_specific_paths_absent() {
+        use ic_certification::hash_tree::SubtreeLookupResult::*;
+        let domains = vec!["id.dmsg.test".to_string()];
+        certify_fixed(&domains);
+        let id = AccountId([9; 12]);
+        let digest = dmsg_protocol::sha256(b"{}");
+        certify_document(&id, digest);
+        let load =
+            |found: &AccountId| (*found == id).then(|| (serde_bytes::ByteBuf::new(), digest));
+        let root = TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash()));
+        let (fallback, _) = not_found();
+        for path in [
+            "/unknown",
+            "/",
+            "/a/b",
+            &format!("/{id}/"),
+            "/.well-known/x",
+            "/<*>",
+        ] {
+            let tree = witness(path, &fallback, true, &domains, &load);
+            assert_eq!(tree.digest(), root, "{path}");
+            let request = HttpCertificationPath::exact(path.to_string()).to_expr_path();
+            let lookup =
+                |parts: Vec<String>| tree.lookup_subtree(parts.iter().map(|p| p.as_bytes()));
+            assert!(matches!(lookup(request.clone()), Absent), "{path} exact");
+            let bytes = |p: &[String]| -> Vec<Vec<u8>> {
+                p.iter().map(|s| s.as_bytes().to_vec()).collect()
+            };
+            let wildcards =
+                more_specific_wildcards_for(&bytes(&request), &bytes(&fallback.to_expr_path()));
+            assert!(!wildcards.is_empty());
+            for more in wildcards {
+                let more: Vec<String> = std::iter::once("http_expr".to_string())
+                    .chain(more.into_iter().map(|p| String::from_utf8(p).unwrap()))
+                    .collect();
+                assert!(matches!(lookup(more.clone()), Absent), "{path} {more:?}");
+            }
+            assert!(
+                matches!(lookup(fallback.to_expr_path()), Found(_)),
+                "{path} fallback"
             );
         }
     }

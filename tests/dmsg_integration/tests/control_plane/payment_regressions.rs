@@ -223,10 +223,12 @@ fn network_fee_maintenance_preserves_old_legs_and_admits_funded_new_orders() {
             (LegStatus::Succeeded, 20, None)
         );
     }
+    // Thirteen memories (eleven tables and the certification map's two) each
+    // hold one 8 MiB bucket, after the memory manager's header page.
     let status = f.ic.canister_status(f.payment, None).unwrap();
     assert_eq!(
         status.memory_metrics.stable_memory_size,
-        Nat::from(11 * 1024 * 1024 + 65536u64)
+        Nat::from(13 * 8 * 1024 * 1024 + 65536u64)
     );
 }
 

@@ -498,5 +498,9 @@ fn get_panda_claim(id: Hash) -> Result<PandaClaimView> {
 fn panda_claim_certificate(id: Hash) -> Result<CertifiedBatch> {
     let c = load(id)?;
     actor(&c, ic_cdk::api::msg_caller())?;
-    store::CERT.with_borrow(|t| t.batch(ic_cdk::api::canister_self(), vec![key(id)]))
+    store::CERT.with_borrow(|t| {
+        t.batch(ic_cdk::api::canister_self(), vec![key(id)], |_| {
+            Some(canonical(&c.view))
+        })
+    })
 }

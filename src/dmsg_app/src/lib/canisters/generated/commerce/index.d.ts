@@ -499,10 +499,6 @@ export interface _SERVICE {
     Result_6
   >,
   'checkout_progress' : ActorMethod<[Uint8Array | number[]], Result_3>,
-  'checkout_transfer_certificate' : ActorMethod<
-    [Uint8Array | number[]],
-    Result_4
-  >,
   'checkout_transfers' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
     Result_7

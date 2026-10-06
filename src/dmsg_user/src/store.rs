@@ -1,7 +1,7 @@
 use crate::state::*;
 use dmsg_protocol::{canonical, execution_receipt_key};
+use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
-use dmsg_runtime::Certification;
 use dmsg_types::{user::*, *};
 use ic_auth_types::XidGenerator;
 use ic_stable_structures::{
@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
 // Stable layout: config=0, accounts=1, permanent auth routes=2, pending bindings=3,
-// retired memory=4, execution records=5, monthly usage=6, external approvals=7, principals=8.
+// retired memory=4, execution records=5, monthly usage=6, external approvals=7,
+// principals=8, certified leaf hashes=9, certification nodes=10.
 type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -35,7 +36,9 @@ thread_local! {
     pub(crate) static EXECUTIONS: RefCell<
         StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(5)));
-    pub(crate) static CERT: RefCell<Certification> = RefCell::new(Certification::default());
+    // Hashes only: each certified value is rebuilt from its record for a witness.
+    pub(crate) static CERT: RefCell<CertMap<Memory>> =
+        RefCell::new(CertMap::new(memory(9), memory(10)));
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -63,12 +66,8 @@ pub(crate) fn save_account(s: &AccountState) {
 
 pub(crate) fn save(s: &AccountState) {
     save_account(s);
-    CERT.with_borrow_mut(|c| {
-        c.put(
-            s.account_id.to_vec(),
-            &s.snapshot(&config().init.issuer_namespace),
-        )
-    });
+    let snapshot = canonical(&s.snapshot(&config().init.issuer_namespace));
+    CERT.with_borrow_mut(|c| c.insert(s.account_id.to_vec(), &snapshot));
 }
 
 fn execution_key(account_id: &AccountId, request_id: &OpId) -> Vec<u8> {
@@ -94,7 +93,7 @@ pub(crate) fn save_execution(execution: &AuthorizedExecution) {
         CERT.with_borrow_mut(|c| {
             c.insert(
                 execution_receipt_key(&receipt.account_id, receipt.request_id),
-                canonical(&receipt),
+                &canonical(&receipt),
             )
         });
     }
@@ -120,27 +119,4 @@ pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
     expired.len() as u32
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 10;
-
-/// Rebuild every certified leaf from stable records, publishing the root once.
-pub(crate) fn rebuild_certification() {
-    let namespace = config().init.issuer_namespace;
-    let mut leaves = Vec::new();
-    ACCOUNTS.with_borrow(|t| {
-        t.for_each(|key, s| leaves.push((key, canonical(&s.snapshot(&namespace)))));
-    });
-    EXECUTIONS.with_borrow(|t| {
-        t.for_each(|_, execution| {
-            if let Ok(receipt) = crate::execution::receipt(&execution, &namespace) {
-                leaves.push((
-                    execution_receipt_key(&receipt.account_id, receipt.request_id),
-                    canonical(&receipt),
-                ));
-            }
-        });
-    });
-    crate::commerce::rebuild(&mut leaves);
-    crate::external::rebuild(&mut leaves);
-    // extend publishes once, which also covers an empty rebuild.
-    CERT.with_borrow_mut(|c| c.extend(leaves));
-}
+pub(crate) const STABLE_SCHEMA: u16 = 11;

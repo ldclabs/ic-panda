@@ -12,7 +12,7 @@ fn check_admin(caller: Principal) -> Result<()> {
 #[ic_cdk::init]
 fn init(args: DirectoryInit) {
     agent::validate_directory_init(&args).expect("directory configuration");
-    http::rebuild(&args.custom_domains, []);
+    http::certify_fixed(&args.custom_domains);
     save_config(&Config {
         schema: STABLE_SCHEMA,
         init: args,
@@ -24,7 +24,9 @@ fn init(args: DirectoryInit) {
 fn post_upgrade() {
     let c = config();
     assert_eq!(c.schema, STABLE_SCHEMA, "incompatible development state");
-    rebuild(&c.init.custom_domains);
+    // Document hashes persist in stable memory; only the fallback and domain
+    // responses, which this code renders, are certified again.
+    http::certify_fixed(&c.init.custom_domains);
 }
 
 fn check_home(init: &DirectoryInit, home: Principal) -> Result<bool> {

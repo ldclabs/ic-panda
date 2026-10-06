@@ -821,7 +821,7 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
     .unwrap();
     save(&s.account);
     let before = load(&s.account_id).unwrap();
-    let snapshot = CERT.with_borrow(|c| c.get(s.account_id.as_slice()).map(<[u8]>::to_vec));
+    let snapshot = CERT.with_borrow(|c| c.get(s.account_id.as_slice()));
     let completed = completed(&s, &request);
     let mut mismatched = completed.clone();
     mismatched.request_id = next.approval.request_id;
@@ -852,14 +852,16 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         Some(second)
     );
     assert_eq!(
-        CERT.with_borrow(|c| c.get(s.account_id.as_slice()).map(<[u8]>::to_vec)),
+        CERT.with_borrow(|c| c.get(s.account_id.as_slice())),
         snapshot
     );
     let receipt_key = execution_receipt_key(&s.account_id, request.approval.request_id);
     let stored = load_execution(&s.account_id, &request.approval.request_id).unwrap();
     assert_eq!(
-        CERT.with_borrow(|c| c.get(&receipt_key).map(<[u8]>::to_vec)),
-        Some(canonical(&execution::receipt(&stored, NAMESPACE).unwrap()))
+        CERT.with_borrow(|c| c.get(&receipt_key)),
+        Some(dmsg_runtime::cert_map::leaf_hash(&canonical(
+            &execution::receipt(&stored, NAMESPACE).unwrap()
+        )))
     );
     assert_eq!(
         record_response(
@@ -890,20 +892,15 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         },
         entitlement_digest: Hash::new([9; 32]),
     });
-    let root = CERT.with_borrow(|c| c.root_hash());
-    CERT.with_borrow_mut(|c| *c = dmsg_runtime::Certification::default());
-    rebuild_certification();
-    assert_eq!(CERT.with_borrow(|c| c.root_hash()), root);
+    let usage_key = dmsg_protocol::billing::usage_key(&s.account_id, 202609);
+    assert!(CERT.with_borrow(|c| c.get(usage_key.as_slice())).is_some());
 
     remove_execution(&s.account_id, &request.approval.request_id);
     expected
         .execution_expirations
         .remove(&request.approval.request_id);
     save_account(&expected);
-    assert_eq!(
-        CERT.with_borrow(|c| c.get(&receipt_key).map(<[u8]>::to_vec)),
-        None
-    );
+    assert_eq!(CERT.with_borrow(|c| c.get(&receipt_key)), None);
     assert_eq!(
         record_response(
             &s.account_id,

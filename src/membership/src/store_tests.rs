@@ -12,7 +12,7 @@ fn claim_for(index: u64, actor: Principal) -> Claim {
 }
 
 #[test]
-fn reader_index_pages_only_authorized_claims_and_survives_rebuild() {
+fn reader_index_pages_only_authorized_claims() {
     let at = fixture::base::NOW;
     let reader = fixture::base::principal(40);
     for i in 0..100 {
@@ -22,7 +22,6 @@ fn reader_index_pages_only_authorized_claims_and_survives_rebuild() {
         );
         save(&mut c, at);
     }
-    rebuild();
     let first = operations(reader, false, None, 2).unwrap();
     assert_eq!(first.claims.len(), 2);
     assert!(first.claims.iter().all(|c| c.terms.actor == reader));
@@ -69,7 +68,6 @@ fn terminal_cleanup_is_bounded_and_preserves_live_commitments_and_replay_identit
     assert_eq!(prune_history(until), 32);
     assert_eq!(prune_history(until), 1);
     assert_eq!(prune_history(until), 0);
-    rebuild();
     assert_eq!(live_claims(), 2);
     assert_eq!(load(unknown.view.claim_id).unwrap(), unknown);
     assert_eq!(load(committed.view.claim_id).unwrap(), committed);
@@ -134,9 +132,6 @@ fn history_profile() {
             save(&mut c, at);
         }
         let start = std::time::Instant::now();
-        rebuild();
-        let rebuild_ms = start.elapsed().as_secs_f64() * 1000.;
-        let start = std::time::Instant::now();
         assert!(operations(fixture::base::principal(99), false, None, 32)
             .unwrap()
             .claims
@@ -146,17 +141,18 @@ fn history_profile() {
             .into_iter()
             .map(|id| memory(id).size())
             .sum();
-        println!("MEMBERSHIP count={count} stable_bytes={} rebuild_ms={rebuild_ms:.3} empty_reader_ms={query_ms:.3}", pages*65536);
+        println!(
+            "MEMBERSHIP count={count} stable_bytes={} empty_reader_ms={query_ms:.3}",
+            pages * 65536
+        );
     }
     let after = at + APPLICATION_TTL_MS + HISTORY_RETENTION_MS;
     while prune_history(after) > 0 {}
-    let start = std::time::Instant::now();
-    rebuild();
     println!(
-        "MEMBERSHIP compacted=10000 full={} tombstones={} rebuild_ms={:.3}",
+        "MEMBERSHIP compacted=10000 full={} tombstones={} certified={}",
         CLAIMS.with_borrow(|t| t.len()),
         TOMBSTONES.with_borrow(|t| t.len()),
-        start.elapsed().as_secs_f64() * 1000.
+        CERT.with_borrow(|t| t.len()),
     );
 }
 
@@ -167,7 +163,7 @@ fn save_touches_indexes_and_certified_view_only_when_they_change() {
     let n = neuron(&request.terms);
     let mut c = Claim::new(id, request, PANDA_COOLING_MS);
     save(&mut c, fixture::base::NOW);
-    let leaf = |id| CERT.with_borrow(|t| t.get(&key(id)).map(<[u8]>::to_vec));
+    let leaf = |id| CERT.with_borrow(|t| t.get(&key(id)));
     let certified = leaf(id);
     assert_eq!(live_claims(), 1);
     assert_eq!(
@@ -205,7 +201,6 @@ fn applying_claims_keep_capacity_until_rejected_or_expired() {
         save(&mut c, fixture::base::NOW);
         assert_eq!(live_claims(), 1);
         assert_eq!(c.expire(at + 2 * DAY), Err(Error::ExecutionUnknown));
-        rebuild();
         assert_eq!(live_claims(), 1);
 
         let decision = c.decision.as_ref().unwrap();
@@ -236,8 +231,6 @@ fn applying_claims_keep_capacity_until_rejected_or_expired() {
             save(&mut c, fixture::base::NOW);
             save(&mut c, fixture::base::NOW);
         }
-        assert_eq!(live_claims(), 0);
-        rebuild();
         assert_eq!(live_claims(), 0);
     }
 }

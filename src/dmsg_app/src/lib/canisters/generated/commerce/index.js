@@ -524,11 +524,6 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'checkout_progress' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], ['query']),
-    'checkout_transfer_certificate' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [Result_4],
-        ['query'],
-      ),
     'checkout_transfers' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
         [Result_7],

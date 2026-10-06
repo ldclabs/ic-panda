@@ -898,7 +898,6 @@ service : (CommerceInit) -> {
   // Private operations centre; quoting and monitoring never reserve an interval.
   checkout_operations : (opt blob, nat16) -> (Result_6) query;
   checkout_progress : (blob) -> (Result_3) query;
-  checkout_transfer_certificate : (blob) -> (Result_4) query;
   checkout_transfers : (opt blob, nat16) -> (Result_7) query;
   claim_checkout_fee_reserve : (blob) -> (Result_8);
   claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_8);

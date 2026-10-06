@@ -9,10 +9,11 @@ use ic_stable_structures::{
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
-// Stable layout: config=0, published documents=1.
-type Memory = VirtualMemory<DefaultMemoryImpl>;
+// Stable layout: config=0, published documents=1, certified segment hashes=2,
+// certification nodes=3.
+pub(crate) type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 3;
+pub(crate) const STABLE_SCHEMA: u16 = 4;
 
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -21,7 +22,7 @@ pub(crate) struct Config {
 }
 
 /// One published account. The exact document bytes are served as stored; the
-/// certification tree keeps only their hashes in heap memory.
+/// certification map keeps only hashes in stable memory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Record {
     pub(crate) home_user: Principal,
@@ -32,7 +33,7 @@ pub(crate) struct Record {
     pub(crate) document: ByteBuf,
 }
 
-fn memory(id: u8) -> Memory {
+pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
@@ -61,17 +62,4 @@ pub(crate) fn load(id: &AccountId) -> Option<Record> {
 pub(crate) fn save(id: &AccountId, record: &Record) {
     RECORDS.with_borrow_mut(|t| t.put(id.as_slice(), record));
     http::certify_document(id, record.document_digest);
-}
-
-/// Rebuild the heap certification tree from stable records after an upgrade.
-pub(crate) fn rebuild(custom_domains: &[String]) {
-    RECORDS.with_borrow(|t| {
-        http::rebuild(
-            custom_domains,
-            t.iter().map(|entry| {
-                let id = AccountId::try_from(entry.key().as_slice()).expect("account key");
-                (id, entry.value().into_inner().document_digest)
-            }),
-        );
-    });
 }

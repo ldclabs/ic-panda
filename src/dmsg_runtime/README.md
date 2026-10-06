@@ -7,8 +7,8 @@
 - `storage::Stored<T>`：在稳定内存中保存已经紧凑的标量、tuple 或原始字节记录。
 - `storage::StableCodec` / `CompactStored<T>`：通过独立 representation 为结构化记录提供整数 map key；适配器直接持有 representation，表写入从借用值构造一次，避免先克隆完整领域对象；存储字节不会改变领域类型的公开 CBOR、摘要或 Candid。
 - `storage::MapExt<V>`：同时覆盖 `Stored<V>` 和 `CompactStored<V>` 的便利操作；`V` 在表声明时固定，读取不能临时指定任意类型。
-- `Certification`：构造 ICP 认证响应；认证值由调用者选择公开视图，支持在执行清理时删除对应叶。叶缓存自身哈希，每次写入或删除都发布 O(1) 取得的新根，调用者不再手动合并发布。
-- `certified_batch` / `query_certificate`：按调用者给出的值与 witness 组装认证响应，`Certification` 和 `name_tree` 共用同一套大小限制。
+- `cert_map::CertMap`：user、payment、commerce、membership 和 directory 的认证 map，结构存放在 stable memory。每个 key 仍以 `labeled(key, child)` 按字节序认证，客户端照旧用 `lookup_path([key])` 查找，无需分桶标签。内部是 crit-bit 前缀树：内部节点为 `fork(left, right)`，在其 key 首个不同的位分叉；每个 key 字节先有一个存在位再接八个数据位，所以前缀排在其扩展之前。树形只由 key 集合决定，一次写入只重算一条根到叶的路径，升级只发布根；key 分布均匀时 witness 嵌套约 log₂(n)+2 层。map 只存叶子表（key → child 哈希）和内部节点，认证值由调用者从自己的记录重新生成，构造 witness 时与已认证哈希核对；一个 witness 可同时披露多个 key 的值或不存在证明。
+- `certified_batch` / `query_certificate`：按调用者给出的值与 witness 组装认证响应，`CertMap` 和 `name_tree` 共用同一套大小限制。
 - `admin`：管理方法的公共规则。`check_admin` 接受 controller 和固定的 governance；`validation` 把检查结果转换成 SNS 通用函数验证方法的 `Result<String, String>` 回复，`unchanged`、`user_home_payload` 和 `hex` 统一提案说明的写法。
 - `name_tree::NameTree`：handle 的名称认证树。名称按 `handle_bucket` 分桶，桶号位组成二叉标签树，节点哈希存放在 stable memory 的定长数组；写入只重算一个桶和一条路径，升级无需重建。
 - `ledger`：读取受信账本及其归档，解析支持的 ICRC-3 转账格式。

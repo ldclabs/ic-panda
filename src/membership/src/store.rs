@@ -3,8 +3,8 @@ use crate::claim::Claim;
 use candid::Principal;
 use dmsg_protocol::{commerce_v2::*, *};
 use dmsg_runtime::{
+    cert_map::CertMap,
     storage::{MapExt, Stored},
-    Certification,
 };
 use dmsg_types::{integration_membership::*, membership::MembershipInit, *};
 use ic_stable_structures::{
@@ -13,11 +13,13 @@ use ic_stable_structures::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::{Cell, RefCell},
+    cell::RefCell,
     collections::{BTreeMap, BTreeSet},
 };
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
+/// Stable layout with certification nodes and the live-claim count in stable memory.
+pub const STABLE_SCHEMA: u16 = 1;
 /// A successful SNS verification is reused for one hour.
 const SNS_FRESH_MS: u64 = 60 * MINUTE;
 /// Hard bounds include historical operations, independently of live admission limits.
@@ -27,6 +29,9 @@ const HISTORY_RETENTION_MS: u64 = 30 * DAY;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
+    /// Development stable layout; other layouts are not migrated.
+    #[serde(default)]
+    pub schema: u16,
     pub init: MembershipInit,
     pub service: Option<PandaServiceConfig>,
     pub sns_verified: bool,
@@ -68,18 +73,21 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(3)));
     static EXPIRATIONS: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(4)));
-    // Rebuilt from stable claims alongside the certified views on init and upgrade.
-    static LIVE_CLAIMS: Cell<u64> = const { Cell::new(0) };
+    // Claims occupying a neuron, kept with the claims so upgrades need no scan.
+    static LIVE_CLAIMS: RefCell<StableCell<u64, Memory>> =
+        RefCell::new(StableCell::init(memory(11), 0));
     static RETENTION: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(6)));
     static TOMBSTONES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
     static READERS: RefCell<StableBTreeMap<Vec<u8>, (), Memory>> = RefCell::new(StableBTreeMap::init(memory(8)));
     static PRODUCT_CALLS: RefCell<BTreeSet<Hash>> = const { RefCell::new(BTreeSet::new()) };
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init_with_bucket_size(DefaultMemoryImpl::default(), 16));
+        // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
     static CONFIG: RefCell<StableCell<Stored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), Stored(None)));
     static LIMITS: RefCell<Limits> = RefCell::new(Limits::default());
-    pub static CERT: RefCell<Certification> = RefCell::new(Certification::default());
+    // Hashes only: each certified claim view is rebuilt from its record for a witness.
+    pub static CERT: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(9), memory(10)));
 }
 
 pub(crate) fn memory(id: u8) -> Memory {
@@ -258,7 +266,7 @@ pub fn save(c: &mut Claim, at: u64) {
         });
     }
     if old.as_ref().is_some_and(Claim::holds) != c.holds() {
-        LIVE_CLAIMS.with(|count| {
+        LIVE_CLAIMS.with_borrow_mut(|count| {
             let next = if c.holds() {
                 count.get().checked_add(1)
             } else {
@@ -285,14 +293,14 @@ pub fn save(c: &mut Claim, at: u64) {
         if let Some(o) = &old {
             c.view.lease_revision = o.view.lease_revision.checked_add(1).expect("view revision");
         }
-        CERT.with_borrow_mut(|t| t.put(key(id), &c.view));
+        CERT.with_borrow_mut(|t| t.insert(key(id), &canonical(&c.view)));
     }
     CLAIMS.with_borrow_mut(|t| t.put(id.as_slice(), c));
 }
 
 /// All claims occupying a neuron, including unresolved Apply decisions.
 pub(crate) fn live_claims() -> u64 {
-    LIVE_CLAIMS.with(Cell::get)
+    LIVE_CLAIMS.with_borrow(|count| *count.get())
 }
 
 /// Expire due references, then allow only the same beneficiary's committed contiguous term.
@@ -369,18 +377,6 @@ fn sweep_panda_commitments() -> Result<u32> {
     sweep(nanos_to_millis(ic_cdk::api::time()))
 }
 
-/// Rebuild the live count and stage every claim view; the caller publishes the root once.
-fn rebuild_claims(cert: &mut Certification) {
-    let mut live = 0;
-    CLAIMS.with_borrow(|t| {
-        t.for_each(|_, c: Claim| {
-            live += u64::from(c.holds());
-            cert.set(key(c.view.claim_id), canonical(&c.view));
-        })
-    });
-    LIVE_CLAIMS.with(|count| count.set(live));
-}
-
 #[ic_cdk::query]
 fn panda_operations(after: Option<Hash>, take: u16) -> Result<PandaOperationsPage> {
     let caller = ic_cdk::api::msg_caller();
@@ -442,12 +438,9 @@ fn operations(
     Ok(PandaOperationsPage { claims, next })
 }
 
-pub fn rebuild() {
-    CERT.with_borrow_mut(|c| {
-        *c = Certification::default();
-        rebuild_claims(c);
-        c.publish();
-    });
+/// Certification nodes persist in stable memory; only the root is republished.
+pub fn publish() {
+    CERT.with_borrow(|c| c.publish());
 }
 
 #[cfg(test)]

@@ -4,11 +4,8 @@ use crate::{
     store,
 };
 use candid::Principal;
-use dmsg_protocol::{authenticated, canonical, digest};
-use dmsg_runtime::{
-    storage::{CompactStored, MapExt, Stored},
-    Certification,
-};
+use dmsg_protocol::{authenticated, digest};
+use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{integration_billing::*, *};
 use ic_stable_structures::{
     memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap, StableCell,
@@ -375,7 +372,6 @@ pub(crate) fn save_transfer(t: &mut Transfer, at: u64) {
     if let Some(deadline) = transfer_expiry(t) {
         TRANSFER_EXPIRY.with_borrow_mut(|m| m.put(&expiry_key(deadline, t.view.transfer_id), &()));
     }
-    store::certify(transfer_key(t.view.transfer_id), &t.view);
 }
 
 fn due(t: &Table<Stored<()>>, at: u64) -> Vec<Vec<u8>> {
@@ -413,7 +409,6 @@ pub(crate) fn sweep(at: u64) -> CheckoutHistorySweep {
             if transfer_expiry(&t).is_some_and(|end| end <= at) {
                 ARCHIVED_TRANSFERS.with_borrow_mut(|m| m.put(id.as_slice(), &t));
                 TRANSFERS.with_borrow_mut(|m| m.delete(id.as_slice()));
-                store::CERT.with_borrow_mut(|c| c.remove(&transfer_key(id)));
                 transfers += 1;
             }
         }
@@ -429,19 +424,8 @@ pub(crate) fn order_certificate_available(id: Hash) -> Result<()> {
     )
 }
 
-pub(crate) fn transfer_certificate_available(id: Hash) -> Result<()> {
-    ensure(
-        TRANSFERS.with_borrow(|t| t.contains(id.as_slice())),
-        Error::ResultExpired,
-    )
-}
-
 pub(crate) fn order_key(id: Hash) -> Vec<u8> {
     digest("dmsg/checkout/certificate/v2", &id).to_vec()
-}
-
-pub(crate) fn transfer_key(id: Hash) -> Vec<u8> {
-    digest("dmsg/checkout/transfer-certificate/v2", &id).to_vec()
 }
 
 pub(crate) fn assets_key() -> Vec<u8> {
@@ -460,14 +444,6 @@ pub(crate) fn asset_views() -> Vec<SettlementAssetView> {
             ledger_verified: a.verified,
         })
         .collect()
-}
-
-pub(crate) fn rebuild(cert: &mut Certification) {
-    ORDERS.with_borrow(|t| t.for_each(|_, o| cert.set(order_key(o.id), canonical(&o.view()))));
-    TRANSFERS.with_borrow(|t| {
-        t.for_each(|_, v| cert.set(transfer_key(v.view.transfer_id), canonical(&v.view)))
-    });
-    cert.set(assets_key(), canonical(&asset_views()));
 }
 
 #[cfg(test)]
@@ -508,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    fn history_preserves_input_identity_and_reader_pages_without_rebuilding_cold_leaves() {
+    fn history_preserves_input_identity_and_reader_pages_and_drops_cold_leaves() {
         setup();
         let mut o = closed(1);
         let original = o.clone();
@@ -522,9 +498,9 @@ mod tests {
         assert_eq!(archived.view(), original.view());
         assert!(compact_bytes(&archived).len() < compact_bytes(&original).len());
         assert_eq!(order_certificate_available(o.id), Err(Error::ResultExpired));
-        let mut cert = Certification::default();
-        rebuild(&mut cert);
-        assert!(cert.get(&order_key(o.id)).is_none());
+        assert!(store::CERT
+            .with_borrow(|c| c.get(&order_key(o.id)))
+            .is_none());
         let page = operations(o.quote.cash.payer.owner, None, 32).unwrap();
         assert_eq!(page.orders.len(), 1);
         assert!(page.next.is_none());
@@ -694,10 +670,7 @@ mod tests {
                 });
             }
             let scan_us = started.elapsed().as_micros();
-            let started = std::time::Instant::now();
-            let mut cert = Certification::default();
-            rebuild(&mut cert);
-            println!("orders={count} seed_ms={write_ms} indexed_100_us={indexed_us} legacy_scan_100_us={scan_us} hot_rebuild_ms={}", started.elapsed().as_millis());
+            println!("orders={count} seed_ms={write_ms} indexed_100_us={indexed_us} legacy_scan_100_us={scan_us}");
         }
         let before = compact_bytes(&order(closed(0).id).unwrap()).len();
         let started = std::time::Instant::now();
@@ -705,9 +678,6 @@ mod tests {
         let archived = order(closed(0).id).unwrap();
         let compacted = compact_bytes(&archived).len();
         let sweep_ms = started.elapsed().as_millis();
-        let started = std::time::Instant::now();
-        let mut cert = Certification::default();
-        rebuild(&mut cert);
-        println!("archive_10000_ms={sweep_ms} cold_rebuild_us={} active_record_bytes={before} archived_record_bytes={compacted}", started.elapsed().as_micros());
+        println!("archive_10000_ms={sweep_ms} active_record_bytes={before} archived_record_bytes={compacted}");
     }
 }

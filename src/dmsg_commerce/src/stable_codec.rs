@@ -13,7 +13,7 @@ use dmsg_types::{
 };
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 5;
+const SCHEMA: u16 = 6;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {

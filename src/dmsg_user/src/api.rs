@@ -73,7 +73,8 @@ fn post_upgrade() {
         ic_cdk::api::canister_self(),
     )
     .expect("immutable allocator");
-    rebuild_certification();
+    // Certification nodes persist in stable memory; only the root is republished.
+    CERT.with_borrow(|c| c.publish());
     #[cfg(target_arch = "wasm32")]
     ic_cdk::println!(
         "dmsg_user upgrade: instructions={} wasm_memory_bytes={}",
@@ -713,10 +714,15 @@ fn get_operation(account_id: AccountId, op_id: Hash) -> Result<OperationReceipt>
 
 #[ic_cdk::query]
 fn security_snapshot_batch(accounts: Vec<AccountId>) -> Result<CertifiedBatch> {
+    let namespace = config().init.issuer_namespace;
     CERT.with_borrow(|c| {
         c.batch(
             ic_cdk::api::canister_self(),
             accounts.into_iter().map(|s| s.to_vec()).collect(),
+            |key| {
+                let id = AccountId::try_from(key).ok()?;
+                load(&id).ok().map(|s| canonical(&s.snapshot(&namespace)))
+            },
         )
     })
 }
@@ -759,10 +765,17 @@ fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<Cert
             Error::UnsupportedProtocol,
         )?;
     }
+    let namespace = config().init.issuer_namespace;
     CERT.with_borrow(|c| {
         c.batch(
             ic_cdk::api::canister_self(),
             vec![execution_receipt_key(&account_id, request_id)],
+            |_| {
+                let execution = load_execution(&account_id, &request_id)?;
+                execution::receipt(&execution, &namespace)
+                    .ok()
+                    .map(|r| canonical(&r))
+            },
         )
     })
 }
@@ -780,6 +793,11 @@ fn get_execution_usage_certified(account_id: AccountId, month_utc: u32) -> Resul
         c.batch(
             ic_cdk::api::canister_self(),
             vec![dmsg_protocol::billing::usage_key(&account_id, month_utc).to_vec()],
+            |_| {
+                crate::commerce::usage(&account_id, month_utc)
+                    .ok()
+                    .map(|u| canonical(&u))
+            },
         )
     })
 }

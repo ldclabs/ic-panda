@@ -613,14 +613,15 @@ fn unknown_transfers_and_their_orders_are_not_archived() {
             transfers: 0
         }
     );
-    let cert: Result<CertifiedBatch> = query(
+    // The unknown transfer stays live and readable by its recipient.
+    let live: Result<CashTransfer> = query(
         &f.ic,
         f.commerce,
         person(2),
-        "checkout_transfer_certificate",
+        "get_checkout_transfer",
         (leg.transfer_id,),
     );
-    cert.unwrap();
+    assert_eq!(live.unwrap().transfer_id, leg.transfer_id);
 }
 
 /// Run the same sample against each build using DMSG_WASM_DIR. The baseline

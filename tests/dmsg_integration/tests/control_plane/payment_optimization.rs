@@ -565,15 +565,15 @@ fn in_flight_transfer_recovers_after_an_upgrade_without_paying_twice() {
         (f.receipt(&funded.unwrap()),),
     );
     settled.unwrap();
-    // The ledger commits the transfer but holds its reply for two rounds.
-    // Upgrading payment meanwhile drops the pending task, so the reply is
-    // discarded and the leg stays durably InFlight.
+    // The ledger commits the transfer but holds its reply for 20 rounds, well
+    // beyond the rounds an upgrade takes. Upgrading payment meanwhile drops the
+    // pending task, so the reply is discarded and the leg stays durably InFlight.
     void(
         &f.ic,
         f.ledger,
         Principal::anonymous(),
         "delay_next_response",
-        (2u8,),
+        (20u8,),
     );
     f.ic.submit_call(
         f.payment,
@@ -584,7 +584,7 @@ fn in_flight_transfer_recovers_after_an_upgrade_without_paying_twice() {
     .unwrap();
     f.ic.tick();
     upgrade(&f);
-    for _ in 0..4 {
+    for _ in 0..24 {
         f.ic.tick();
     }
     let stuck: Result<TransferLeg> = query(

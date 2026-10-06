@@ -66,7 +66,8 @@ fn init(args: CommerceInit) {
     save_catalog(&args.catalog);
     set_config(Config::new(args));
     persist_config();
-    rebuild(at);
+    crate::checkout_store::publish_assets();
+    publish_certification(at);
 }
 
 #[ic_cdk::pre_upgrade]
@@ -77,7 +78,7 @@ fn pre_upgrade() {
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     load_catalogs();
-    rebuild(now());
+    publish_certification(now());
 }
 
 /// Append a user home. Its `dmsg_user` must name this canister as
@@ -161,7 +162,13 @@ fn refresh_catalog() -> Catalog {
 
 #[ic_cdk::query]
 fn get_catalog() -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![catalog_key().to_vec()]))
+    CERT.with_borrow(|c| {
+        c.batch(
+            ic_cdk::api::canister_self(),
+            vec![catalog_key().to_vec()],
+            |_| certified_catalog(),
+        )
+    })
 }
 
 #[ic_cdk::query]
@@ -285,6 +292,10 @@ fn get_entitlement_batch(subjects: Vec<Beneficiary>) -> Result<CertifiedBatch> {
                 .iter()
                 .map(|b| entitlement_key(b).to_vec())
                 .collect(),
+            |key| {
+                let view = SUBJECTS.with_borrow(|t| t.load(key))?.view?;
+                Some(dmsg_protocol::canonical(&view))
+            },
         )
     })
 }

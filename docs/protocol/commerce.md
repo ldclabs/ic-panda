@@ -45,7 +45,6 @@ fail closed.
 | App configuration leaf | `dmsg/registration/app/v1` |
 | Product configuration leaf | `dmsg/registration/product/v2` |
 | Cash order leaf | `dmsg/checkout/certificate/v2` |
-| Outgoing transfer leaf | `dmsg/checkout/transfer-certificate/v2` |
 | Asset policies leaf | `dmsg/settlement-assets/v2`, `"supported"` |
 | PANDA claim leaf | `dmsg/panda/claim-certificate/v2` |
 

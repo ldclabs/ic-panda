@@ -2,15 +2,14 @@
 //! Implementation support for the reference ICP canisters. Not a wire protocol.
 pub mod admin;
 mod budget;
+pub mod cert_map;
 mod certified;
 pub mod ledger;
 pub mod name_tree;
 pub mod stable_types;
 pub mod storage;
 pub use budget::Budget;
-pub use certified::{
-    certified_batch, query_certificate, Certification, MAX_CERTIFIED_RESPONSE_BYTES,
-};
+pub use certified::{certified_batch, query_certificate, MAX_CERTIFIED_RESPONSE_BYTES};
 mod calls;
 pub use calls::{call, call_classified, CallFailure};
 

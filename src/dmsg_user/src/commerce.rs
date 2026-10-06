@@ -26,15 +26,11 @@ fn load(id: &AccountId, month: u32) -> Option<Month> {
 pub(crate) fn save(m: &Month) {
     let key = usage_key(&m.usage.account_id, m.usage.month_utc);
     MONTHS.with_borrow_mut(|t| t.put(key.as_slice(), m));
-    store::CERT.with_borrow_mut(|c| c.insert(key.to_vec(), canonical(&m.usage)));
+    store::CERT.with_borrow_mut(|c| c.insert(key.to_vec(), &canonical(&m.usage)));
 }
 
 pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {
     load(id, month).map(|m| m.usage).ok_or(Error::NotFound)
-}
-
-pub fn rebuild(leaves: &mut Vec<(Vec<u8>, Vec<u8>)>) {
-    MONTHS.with_borrow(|t| t.for_each(|key, m| leaves.push((key, canonical(&m.usage)))));
 }
 
 pub fn is_current(id: &AccountId, at: u64) -> Result<bool> {

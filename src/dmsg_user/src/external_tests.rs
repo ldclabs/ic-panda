@@ -275,7 +275,7 @@ fn stored_approval_preserves_exact_bytes_through_stable_encoding() {
 }
 
 #[test]
-fn saved_authentication_leaves_match_a_rebuilt_tree() {
+fn saved_authentication_leaves_follow_committed_and_pruned_records() {
     let mut account = account();
     let id = account.account_id;
     let mut state = ExternalState::default();
@@ -295,32 +295,24 @@ fn saved_authentication_leaves_match_a_rebuilt_tree() {
         )
         .unwrap();
     }
-    let leaves = |c: &dmsg_runtime::Certification| {
-        (1..=3u8)
-            .map(|n| {
-                c.get(&authentication_key(&id, &Hash::new([n; 32])))
-                    .map(<[u8]>::to_vec)
-            })
-            .collect::<Vec<_>>()
+    let leaves = || {
+        store::CERT.with_borrow(|c| {
+            (1..=3u8)
+                .map(|n| c.get(&authentication_key(&id, &Hash::new([n; 32]))))
+                .collect::<Vec<_>>()
+        })
     };
-    let rebuilt = || {
-        let mut leaves = Vec::new();
-        rebuild(&mut leaves);
-        let mut c = dmsg_runtime::Certification::default();
-        c.extend(leaves);
-        c
+    let expected = |n: u8| {
+        let ExternalBody::Authentication(result) = &state.operations[&Hash::new([n; 32])].body
+        else {
+            unreachable!()
+        };
+        Some(dmsg_runtime::cert_map::leaf_hash(&canonical(result)))
     };
     save(&id, &ExternalState::default(), &state);
-    let incremental = store::CERT.with_borrow(|c| (c.root_hash(), leaves(c)));
-    let fresh = rebuilt();
-    assert_eq!((fresh.root_hash(), leaves(&fresh)), incremental);
-    assert!(incremental.1.iter().all(Option::is_some));
+    assert_eq!(leaves(), [expected(1), expected(2), expected(3)]);
     let mut pruned = state.clone();
     pruned.operations.remove(&Hash::new([2; 32]));
     save(&id, &state, &pruned);
-    let after = store::CERT.with_borrow(leaves);
-    assert_eq!(after, leaves(&rebuilt()));
-    assert_eq!(after[0], incremental.1[0]);
-    assert_eq!(after[1], None);
-    assert_eq!(after[2], incremental.1[2]);
+    assert_eq!(leaves(), [expected(1), None, expected(3)]);
 }

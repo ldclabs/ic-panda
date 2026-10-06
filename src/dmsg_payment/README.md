@@ -38,7 +38,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 9 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 10 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 执行成本与恢复边界
 
@@ -49,11 +49,11 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 - 授权、账本读取、账本出金分别使用独立预算，每类全局 200 次/分钟；每调用方分别为 10、20、40 次/分钟，每张计数映射最多 200 项。匿名调用共享匿名主体的限额，无效查账不能占用出金额度。失败授权不消耗每日成功开单额度；所有预算在同 schema 升级后保留。预算变化仅更新 heap，不重算公开配置认证叶。
 - `get_configuration_certified` 默认按当前时间选择有效费率，与 `get_fee_policy` 一致；显式版本可查询历史政策。初始政策必须在安装时已生效，后续政策的版本和生效时间严格递增；查询反向查找，调度读取最后一项，政策表最多 256 项并使用紧凑编码。
 - controller 或 governance 可通过 `set_ledger_fee` 维护已核对的网络手续费，不能超过初始化的 `max_fee`。它更新认证配置和后续新转账的预期费用，不重写原 Quote 或已准备的出金腿。报价预留至少覆盖实际结算腿数乘以 `max_network_fee`，最多为三倍该上限；两笔结算同时涨到已批准上限仍可完成。未知结果不能因更新手续费而重建，明确拒绝才允许受限修订。
-- `MemoryManager` 使用 16 页（1 MiB）分配桶，库的 32,768 桶上限对应约 32 GiB；该数字是地址容量，不是业务容量承诺。
+- `MemoryManager` 使用 128 页（8 MiB）分配桶，库的 32,768 桶上限对应约 256 GiB；该数字是地址容量，不是业务容量承诺。
 - 合并领取退款/剩余手续费及修订拒绝转账只修改内部预留/出金记录，不重算未变化的 `EscrowInfo` 认证叶。资金方向、入金和实际支付发生变化时才更新认证树；重复成功回调直接返回已有结果。
 - 无心跳、轮询 timer 或后台账本扫描。结算提交不额外查账；出金保留原始去重参数，未知响应仍须原参数重试或账本对账。
 
-认证树仍保存在 heap，升级时扫描全部 escrow 重建并只发布一次根哈希；认证叶缓存自身哈希，写入时不再重复哈希祖先节点的叶值。该路径仍随订单数增长；部署必须设置 `max_escrows`（1–10,000），达到上限仅停止新订单，已有订单入金、退款、转账和重试继续可用。终态订单也计入容量，入金历史没有另行硬截断。订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
+认证树用 `dmsg_runtime::cert_map` 存放在 stable memory（memory 11、12），只保存 key 与哈希；配置、signer、费率和 escrow 的认证值在查询时从对应记录重新生成，并与已认证哈希核对。升级不扫描 escrow，只按恢复的配置重新认证配置叶并发布根；客户端仍按原 key 查找，验证方式不变。部署必须设置 `max_escrows`（1–10,000），达到上限仅停止新订单，已有订单入金、退款、转账和重试继续可用。终态订单也计入容量，入金历史没有另行硬截断。订单与入金记录尚未压缩归档。下述容量测试覆盖指定样本；持续入金/出金历史、真实资产和主网负载需独立验收。
 
 实践依据：[ICP 跨 canister 调用与回调恢复](https://docs.internetcomputer.org/guides/security/inter-canister-calls/)、[Rust 稳定存储](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[CDK 取消任务与 Drop 清理](https://docs.rs/ic-cdk/0.20.2/ic_cdk/futures/index.html)。本实现仅对有界配置采用升级 hook，不将此方式扩展到订单集合。
 
@@ -195,6 +195,6 @@ POCKET_IC_BIN=/path/to/pocket-ic cargo test --locked -p dmsg_integration \
 
 开发阶段使用新实例，不兼容之前的实验接口和稳定布局。生产部署、容量和真实外部服务仍需单独验收。
 
-Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 9。
+Quote/AdmissionReceipt 使用 delivery profile 2。平台费由固定 SNS governance 发布的版本化比例/最低费政策计算，订单保留接受时的绝对原子金额。参见 [commerce contract](../../docs/protocol/commerce.md)。开发稳定 schema 为 10。
 
 配置中的费用政策与历史政策表均使用独立紧凑表示。`TransferLeg.last_failure` 保存有界拒绝原因，包括过期、余额不足、临时不可用及传输不确定性；不保存账本提供的任意长度文本，成功后清空。该诊断不改变资金方向，也不把历史 Unknown 变成明确拒绝。

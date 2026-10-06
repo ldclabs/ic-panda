@@ -952,7 +952,11 @@ fn revise_checkout_transfer_fee(id: Hash, new_fee: u128) -> Result<CashTransfer>
 
 #[ic_cdk::query]
 fn settlement_assets_certificate() -> Result<CertifiedBatch> {
-    store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![assets_key()]))
+    store::CERT.with_borrow(|c| {
+        c.batch(ic_cdk::api::canister_self(), vec![assets_key()], |_| {
+            Some(canonical(&asset_views()))
+        })
+    })
 }
 
 #[ic_cdk::query]
@@ -960,14 +964,11 @@ fn checkout_certificate(id: Hash) -> Result<CertifiedBatch> {
     let o = order(id)?;
     read_access(&o, ic_cdk::api::msg_caller())?;
     order_certificate_available(id)?;
-    store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![order_key(id)]))
-}
-
-#[ic_cdk::query]
-fn checkout_transfer_certificate(id: Hash) -> Result<CertifiedBatch> {
-    get_checkout_transfer(id)?;
-    transfer_certificate_available(id)?;
-    store::CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), vec![transfer_key(id)]))
+    store::CERT.with_borrow(|c| {
+        c.batch(ic_cdk::api::canister_self(), vec![order_key(id)], |_| {
+            Some(canonical(&o.view()))
+        })
+    })
 }
 
 #[ic_cdk::update]
