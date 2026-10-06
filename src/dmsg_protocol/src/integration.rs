@@ -39,7 +39,8 @@ pub fn validate_app(app: &AppRegistration) -> Result<()> {
     validate_identifier(&app.app_id)?;
     ensure_valid(app.config_version > 0, "app version")?;
     unique(&app.origins, MAX_APP_BINDINGS, true)?;
-    unique(&app.user_homes, MAX_APP_BINDINGS, true)?;
+    // An app may list every user home the services route accounts to.
+    unique(&app.user_homes, crate::agent::MAX_USER_HOMES, true)?;
     unique(&app.cose_homes, MAX_APP_BINDINGS, true)?;
     unique(&app.product_ids, MAX_APP_BINDINGS, false)?;
     unique(&app.capabilities, 4, true)?;

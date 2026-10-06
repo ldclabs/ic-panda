@@ -204,11 +204,16 @@ fn revoke_receipt_signer(epoch: u64) -> Result<()> {
 
 #[ic_cdk::query]
 fn validate_revoke_receipt_signer(epoch: u64) -> Validation {
+    // Revoking again still disables escrows that were re-enabled since.
+    let enabled = with_cfg(|c| c.init.enabled);
     validation(signer(epoch).map(|s| {
         format!(
             "Revoke receipt signer epoch {epoch} with key {} and disable new payment escrows.{}",
             hex(s.public_key.as_slice()),
-            admin::unchanged(!s.revoked, "Already revoked"),
+            admin::unchanged(
+                !s.revoked || enabled,
+                "Already revoked and escrows disabled"
+            ),
         )
     }))
 }

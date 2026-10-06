@@ -106,7 +106,6 @@ fn publication(id: &AccountId, init: &DirectoryInit, record: &Record) -> Publica
 fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> {
     let caller = ic_cdk::api::msg_caller();
     let init = config().init;
-    ensure(init.user_homes.contains(&caller), Error::Forbidden)?;
     let current = load(&account_id);
     match &current {
         Some(record) => ensure(record.home_user == caller, Error::Forbidden)?,

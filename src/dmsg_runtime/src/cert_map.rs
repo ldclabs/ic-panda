@@ -10,7 +10,10 @@
 //! witness nests about log2(n) + 2 levels for well-spread keys.
 //!
 //! The map stores hashes only. Callers keep the certified values in their own
-//! records and supply them again when building a witness.
+//! records and supply them again when building a witness, which traps when a
+//! value no longer matches its hash. Upgrades do not recertify leaves, so a
+//! change to how a caller encodes a certified value must recertify every
+//! affected leaf or come with a new stable schema.
 use crate::certified::{certified_batch, query_certificate};
 use dmsg_types::*;
 use ic_certification::hash_tree::{fork_hash, labeled_hash};
@@ -156,6 +159,14 @@ enum Show {
     Label,
 }
 
+/// An internal node on a key's path, as read, with the side the key takes.
+struct Step {
+    id: u64,
+    crit: u32,
+    side: usize,
+    children: [Child; 2],
+}
+
 pub struct CertMap<M: Memory> {
     /// Key -> hash of its labeled child, in byte order.
     leaves: StableBTreeMap<Vec<u8>, [u8; 32], M>,
@@ -224,30 +235,37 @@ impl<M: Memory> CertMap<M> {
         }
     }
 
-    // Internal nodes on the path to `key`, each with the side taken, and the
-    // child reached at the bottom.
-    fn path(&self, key: &[u8], stop_at: Option<u32>) -> (Vec<(u64, usize)>, Option<Child>) {
-        let mut stack = vec![];
-        let mut at = self.meta().0;
+    // Internal nodes from `root` along `key`'s bits, read once, and the child
+    // reached at the bottom. Crit bits increase along the path.
+    fn walk(&self, root: Option<Child>, key: &[u8]) -> (Vec<Step>, Option<Child>) {
+        let mut steps = vec![];
+        let mut at = root;
         while let Some(Child {
             at: Ref::Node(id), ..
-        }) = &at
+        }) = at
         {
-            let (crit, children) = self.node(*id);
-            if stop_at.is_some_and(|d| crit > d) {
-                break;
-            }
+            let (crit, children) = self.node(id);
             let side = bit(key, crit);
-            stack.push((*id, side));
             at = Some(children[side].clone());
+            steps.push(Step {
+                id,
+                crit,
+                side,
+                children,
+            });
         }
-        (stack, at)
+        (steps, at)
     }
 
-    // Store `child` at the bottom of `stack` and rehash every node above it.
-    fn rehash(&mut self, stack: &[(u64, usize)], mut child: Option<Child>, next: u64) {
-        for &(id, side) in stack.iter().rev() {
-            let (crit, mut children) = self.node(id);
+    // Store `child` below the last of `steps` and rehash every node above it.
+    fn rehash(&mut self, steps: Vec<Step>, mut child: Option<Child>, next: u64) {
+        for Step {
+            id,
+            crit,
+            side,
+            mut children,
+        } in steps.into_iter().rev()
+        {
             children[side] = child.expect("a node keeps both children");
             let hash = fork_hash(&children[0].hash, &children[1].hash);
             self.nodes.insert(id, Record::Node { crit, children });
@@ -262,52 +280,45 @@ impl<M: Memory> CertMap<M> {
     /// Certify a child with hash `child` under `key`, without publishing.
     /// Returns false when the key already certifies the same hash.
     pub fn set(&mut self, key: Vec<u8>, child: Hash) -> bool {
+        let old = self.leaves.insert(key.clone(), child);
+        if old == Some(child) {
+            return false;
+        }
         let leaf = Child {
             at: Ref::Leaf(key.clone()),
             hash: labeled_hash(&key, &child),
         };
         let (root, next) = self.meta();
-        match self.leaves.insert(key.clone(), child) {
-            Some(old) if old == child => return false,
-            Some(_) => {
-                let (stack, _) = self.path(&key, None);
-                self.rehash(&stack, Some(leaf), next);
+        let (mut steps, bottom) = self.walk(root.clone(), &key);
+        let closest = match (old, bottom) {
+            // A changed key keeps its place; the first key becomes the root.
+            (Some(_), _) | (None, None) => {
+                self.rehash(steps, Some(leaf), next);
                 return true;
             }
-            None => {}
-        }
-        let Some(root) = root else {
-            self.nodes.insert(
-                0,
-                Record::Meta {
-                    root: Some(leaf),
-                    next,
-                },
-            );
-            return true;
+            (None, Some(closest)) => closest,
         };
-        // The closest existing key, found by following the key's bits.
-        let mut at = root;
-        while let Ref::Node(id) = at.at {
-            let (crit, children) = self.node(id);
-            at = children[bit(&key, crit)].clone();
-        }
-        let Ref::Leaf(closest) = &at.at else {
+        // A new key splits off at the first bit where it differs from the
+        // closest key, above the first node on its path that splits later.
+        let Ref::Leaf(closest) = &closest.at else {
             unreachable!()
         };
         let d = first_diff(&key, closest);
-        let (stack, below) = self.path(&key, Some(d));
-        let below = below.expect("a non-empty map");
-        let side = bit(&key, d);
+        let kept = steps.partition_point(|step| step.crit < d);
+        let below = match kept.checked_sub(1) {
+            Some(i) => steps[i].children[steps[i].side].clone(),
+            None => root.expect("a non-empty map"),
+        };
+        steps.truncate(kept);
         let mut children = [below.clone(), below];
-        children[side] = leaf;
+        children[bit(&key, d)] = leaf;
         let hash = fork_hash(&children[0].hash, &children[1].hash);
         self.nodes.insert(next, Record::Node { crit: d, children });
         let node = Child {
             at: Ref::Node(next),
             hash,
         };
-        self.rehash(&stack, Some(node), next + 1);
+        self.rehash(steps, Some(node), next + 1);
         true
     }
 
@@ -316,15 +327,14 @@ impl<M: Memory> CertMap<M> {
         if self.leaves.remove(&key.to_vec()).is_none() {
             return false;
         }
-        let (_, next) = self.meta();
-        let (mut stack, _) = self.path(key, None);
+        let (root, next) = self.meta();
+        let (mut steps, _) = self.walk(root, key);
         // The leaf's parent is replaced by the leaf's sibling.
-        let sibling = stack.pop().map(|(id, side)| {
-            let (_, children) = self.node(id);
-            self.nodes.remove(&id);
-            children[1 - side].clone()
+        let sibling = steps.pop().map(|parent| {
+            self.nodes.remove(&parent.id);
+            parent.children[1 - parent.side].clone()
         });
-        self.rehash(&stack, sibling, next);
+        self.rehash(steps, sibling, next);
         true
     }
 
@@ -390,8 +400,13 @@ impl<M: Memory> CertMap<M> {
         mut value: impl FnMut(&[u8]) -> Option<Vec<u8>>,
     ) -> Result<CertifiedBatch> {
         certified_batch(canister, keys, query_certificate()?, |key| {
-            let bytes = self.get(key).map(|_| value(key).expect("certified record"));
-            let witness = self.witness(&[key], |_| leaf(bytes.clone().expect("certified value")));
+            // The witness asks for the value only when the key is certified.
+            let mut bytes = None;
+            let witness = self.witness(&[key], |key| {
+                let certified = value(key).expect("certified record");
+                bytes = Some(certified.clone());
+                leaf(certified)
+            });
             (bytes, witness)
         })
     }

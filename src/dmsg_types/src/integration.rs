@@ -28,7 +28,8 @@ pub const POLICY_NOTICE_MS: u64 = 30 * crate::DAY;
 pub const MAX_ACCOUNT_OPERATIONS: usize = 32;
 /// Maximum successful external approvals per account per UTC hour.
 pub const MAX_HOURLY_APPROVALS: u32 = 60;
-/// Maximum origins and product bindings per application.
+/// Maximum origins, COSE homes and product bindings per application. User
+/// homes follow the services' limit, `dmsg_protocol::agent::MAX_USER_HOMES`.
 pub const MAX_APP_BINDINGS: usize = 16;
 /// User-selected cash asset identities. Metadata is verified separately at deployment.
 pub const CKUSDT_LEDGER: &str = "cngnf-vqaaa-aaaar-qag4q-cai";

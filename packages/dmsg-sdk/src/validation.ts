@@ -186,7 +186,8 @@ export function validateApp(app: AppRegistration): void {
   validateIdentifier(app.app_id);
   ensure(app.config_version > 0n, "INVALID_INPUT");
   unique(app.origins, 16);
-  unique(app.user_homes, 16);
+  // Every user home the services route accounts to (MAX_USER_HOMES).
+  unique(app.user_homes, 64);
   unique(app.cose_homes, 16);
   unique(app.product_ids, 16, false);
   unique(app.capabilities, 4);

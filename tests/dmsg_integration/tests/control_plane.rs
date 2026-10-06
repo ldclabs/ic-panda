@@ -712,6 +712,7 @@ impl Fixture {
         self.mutate(n, id, AccountCommand::ConfirmRecovery { proof })
             .unwrap();
     }
+
     /// A recoverable account with a committed generation-1 content root.
     fn root_account(&self, n: u8) -> AccountId {
         let account_id = self.create(n);
@@ -745,6 +746,7 @@ impl Fixture {
         .unwrap();
         account_id
     }
+
     fn mint(&self, who: Principal, n: u128) {
         void(
             &self.ic,

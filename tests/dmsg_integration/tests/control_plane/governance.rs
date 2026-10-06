@@ -124,6 +124,14 @@ fn cose_and_payment_governance_run_validated_admin_operations() {
         "revoke_receipt_signer",
         (1u64,)
     )));
+    // Revoking again would disable escrows that were re-enabled since.
+    govern(&f, f.payment, governance, "set_orders_enabled", (true,));
+    assert!(!unchanged(validate(
+        &f,
+        f.payment,
+        "revoke_receipt_signer",
+        (1u64,)
+    )));
 }
 
 #[test]

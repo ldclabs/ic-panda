@@ -107,7 +107,8 @@ half-open intervals: equality with expiry is already expired.
 | Rate policy notice | At least 30 days |
 | Per-account pending operations | 32 |
 | Successful external approvals | 60 per account per UTC hour |
-| App origins / homes / products | At most 16 of each |
+| App origins / COSE homes / products | At most 16 of each |
+| App user homes | At most 64, the services' user-home limit |
 | Generic encoded input | At most 65,536 bytes |
 
 The user issuer enforces the per-account pending and hourly approval limits.

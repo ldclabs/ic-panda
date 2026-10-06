@@ -135,7 +135,7 @@ handle 开发布局升级为 schema 9，作为全局唯一的名称注册表承�
 
 ## 2026-10-06 多 user home 与 SNS 治理
 
-cose、directory、payment 与 handle 一样按账户 ID 的分配器指纹路由 user home：`CoseInit` 以只增不减的 `user_homes` 取代 `initial_home_user`，`execute`/`get_execution` 只接受账户所属 home 的调用；`PaymentInit` 以 `environment`、`issuer_namespace`、`user_homes` 取代 `home_user`，开单时把 `verify_payment_offer` 发给收款账户的 home，认证配置叶升为 schema 2 并改列 `user_homes`。commerce 的 `user_homes` 上限提高到 64；membership 的 user home 来自 commerce 应用登记，不需改动。新的 dmsg_user 分片只需在各服务登记，并用 `register_integration_app` 提交列有新 home 的应用登记新版本。
+cose、directory、payment 与 handle 一样按账户 ID 的分配器指纹路由 user home：`CoseInit` 以只增不减的 `user_homes` 取代 `initial_home_user`，`execute`/`get_execution` 只接受账户所属 home 的调用；`PaymentInit` 以 `environment`、`issuer_namespace`、`user_homes` 取代 `home_user`，开单时把 `verify_payment_offer` 发给收款账户的 home，认证配置叶升为 schema 2 并改列 `user_homes`。commerce 的 `user_homes` 上限提高到 64；membership 的 user home 来自 commerce 应用登记，不需改动。应用登记的 `user_homes` 上限同样为 64（origins、cose homes 和产品仍各 16），新的 dmsg_user 分片只需在各服务登记，并用 `register_integration_app` 提交列有新 home 的应用登记新版本。
 
 user、cose、directory 新增固定的 `governance`。七个 canister（user、handle、cose、directory、payment、commerce、membership）的管理方法统一接受 controller 和 governance，每个都有同参数的 `validate_*` query，按当前状态执行与方法相同的检查并渲染提案说明，可登记为 SNS 通用函数的验证方法。新增管理方法：各服务的 `admin_add_user_home`，user 的 `admin_set_account_limits`（账户上限与每日新建配额），cose 的 `admin_set_daily_budget`，directory 的 `admin_set_custom_domains`；这两个 canister 的升级不再读取参数，配置只经管理方法修改。cose 的 `prune_executions` 改为公开维护，与 user 的同名入口一致。稳定布局：user schema 10、cose schema 9、directory schema 3、payment schema 9。
 
