@@ -21,9 +21,8 @@ function createModalStore(): ModalStore {
   let pending: ModalSettings['response']
 
   /**
-   * Settles the open modal's response exactly once. Callers await it (see
-   * PrizeCard's QR scan), so a modal that goes away without answering has to
-   * resolve with undefined rather than leave them pending forever.
+   * Settles the open modal's response exactly once, including dismissal
+   * without an answer, so callers are never left pending.
    */
   const settle = (value?: unknown) => {
     const response = pending

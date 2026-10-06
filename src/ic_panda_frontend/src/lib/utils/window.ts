@@ -23,13 +23,6 @@ const [onWindowEvent, offWindowEvent] =
       ]
     : [noop, noop]
 
-export const isVisible = () => {
-  const visibilityState = isDocumentDefined && document.visibilityState
-  return visibilityState == null || visibilityState !== 'hidden'
-}
-
-export const isActive = () => isOnline() && isVisible()
-
 export const initFocus = (callback: (ev: Event) => void) => {
   // TODO: callback will be triggered 2 times when the page is focused.
   if (isDocumentDefined) {

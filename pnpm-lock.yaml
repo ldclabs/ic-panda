@@ -374,9 +374,6 @@ importers:
       markdown-it:
         specifier: ^15.0.0
         version: 15.0.0
-      qr:
-        specifier: ^0.6.0
-        version: 0.6.0
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
