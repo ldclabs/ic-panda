@@ -128,6 +128,8 @@ type HandleInit = record {
   ledger : principal;
   // Configured network fee in ledger base units.
   ledger_fee : nat;
+  // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+  governance : principal;
 };
 // Exact name operation authorized by the user home for the handle canister.
 type HandleIntent = record {
@@ -228,12 +230,14 @@ type Registration = record {
   // ICRC account whose allowance funds the registration charge.
   payer : Account;
 };
-type Result = variant { Ok; Err : Error };
-type Result_1 = variant { Ok : HandleRecord; Err : Error };
-type Result_2 = variant { Ok : HandleOperation; Err : Error };
-type Result_3 = variant { Ok : opt LegacyReservation; Err : Error };
-type Result_4 = variant { Ok : SnapshotProgress; Err : Error };
-type Result_5 = variant { Ok : CertifiedBatch; Err : Error };
+type Result = variant { Ok : nat64; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : HandleRecord; Err : Error };
+type Result_3 = variant { Ok : HandleOperation; Err : Error };
+type Result_4 = variant { Ok : opt LegacyReservation; Err : Error };
+type Result_5 = variant { Ok : SnapshotProgress; Err : Error };
+type Result_6 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_7 = variant { Ok : text; Err : text };
 // Progress of the restricted legacy name import process.
 type SnapshotProgress = record {
   // Last imported canonical name, for ordered continuation.
@@ -248,20 +252,30 @@ type SnapshotProgress = record {
   rolling_digest : blob;
 };
 service : (HandleInit) -> {
-  begin_legacy_snapshot : (LegacySnapshot) -> (Result);
-  claim_legacy_handle : (HandleIntent, blob) -> (Result_1);
-  commit_handle : (blob, blob) -> (Result_2);
+  // Transfer registration revenue from this canister's default account and
+  // return the ledger block. Check the ledger before retrying an unknown result.
+  admin_collect_token : (Account, nat) -> (Result);
+  begin_legacy_snapshot : (LegacySnapshot) -> (Result_1);
+  claim_legacy_handle : (HandleIntent, blob) -> (Result_2);
+  commit_handle : (blob, blob) -> (Result_3);
   get_handle_config : () -> (HandleInit) query;
   get_handle_event : (nat64) -> (opt HandleEvent) query;
-  get_handle_operation : (blob, blob) -> (Result_2) query;
-  get_legacy_reservation : (text) -> (Result_3) query;
-  import_legacy_handles : (blob, vec LegacyReservation) -> (Result_4);
-  reconcile_handle_charge : (blob, blob, nat64) -> (Result_2);
-  register_handle : (Registration) -> (Result_2);
-  resolve_handle_certified : (vec text) -> (Result_5) query;
-  seal_legacy_snapshot : () -> (Result_4);
-  snapshot_certified : () -> (Result_5) query;
+  get_handle_operation : (blob, blob) -> (Result_3) query;
+  get_legacy_reservation : (text) -> (Result_4) query;
+  import_legacy_handles : (blob, nat64, vec LegacyReservation) -> (Result_5);
+  reconcile_handle_charge : (blob, blob, nat64) -> (Result_3);
+  register_handle : (Registration) -> (Result_3);
+  resolve_handle_certified : (vec text) -> (Result_6) query;
+  seal_legacy_snapshot : () -> (Result_5);
+  snapshot_certified : () -> (Result_6) query;
   snapshot_progress : () -> (SnapshotProgress) query;
-  transfer_handle : (HandleIntent, HandleIntent) -> (Result_1);
-  update_ledger_fee : (nat) -> (Result);
+  transfer_handle : (HandleIntent, HandleIntent) -> (Result_2);
+  update_ledger_fee : (nat) -> (Result_1);
+  validate_admin_collect_token : (Account, nat) -> (Result_7) query;
+  validate_begin_legacy_snapshot : (LegacySnapshot) -> (Result_7) query;
+  validate_import_legacy_handles : (blob, nat64, vec LegacyReservation) -> (
+      Result_7,
+    ) query;
+  validate_seal_legacy_snapshot : () -> (Result_7) query;
+  validate_update_ledger_fee : (nat) -> (Result_7) query;
 }

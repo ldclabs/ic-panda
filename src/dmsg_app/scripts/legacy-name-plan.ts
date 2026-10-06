@@ -16,10 +16,12 @@ export async function nameImportPlan(input: Parameters<typeof prepareLegacyNames
     )
   })
   const calls = [call('begin_legacy_snapshot', [prepared.snapshot])]
+  // Each batch carries its snapshot position, so one executed out of order is rejected.
   for (let i = 0; i < prepared.entries.length; i += 256)
     calls.push(
       call('import_legacy_handles', [
         prepared.snapshot.snapshot_id,
+        BigInt(i),
         prepared.entries.slice(i, i + 256)
       ])
     )

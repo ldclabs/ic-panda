@@ -124,3 +124,7 @@ directory schema 2 持久化文档 SHA-256 摘要，发布摘要与 HTTP 查询�
 commerce 开发布局升级为 schema 5：出金、对账与修订共用在途 guard，升级遗留的 `InFlight` 仍以冻结参数恢复；开单精确匹配价格权威的历史快照，支持仍有效的旧报价。目录生效边界终止旧资源租约，Free 月额度按实际政策时间线分段；当前资源公开字段保留，账户内部移除重复调用状态并裁剪已结束的历史月份。
 
 新增商户读权限、订单/出金读者索引、完整入金游标分页，以及每 caller 的恢复预算。稳定存储和认证维护集中到 `checkout_store.rs`，账本回复分类在纯模型中，配置采用 1 MiB 分配桶及紧凑订单/出金记录。已结清终态保留后有界归档，保留原输入摘要、报价、账务、回执、读者索引和入金去重；迟到款恢复原订单原路退款，未知结果与未清资金不归档。验证命令、存储和性能样本的实际边界见 [commerce README](../src/dmsg_commerce/README.md)。
+
+## 2026-10-06 handle 治理与收入提取
+
+handle 开发布局升级为 schema 8：`HandleInit` 增加固定的 SNS `governance`，快照导入/封存、`update_ledger_fee` 和新增的 `admin_collect_token` 接受 controller 或 governance 调用。每个管理方法都有同参数的 `validate_*` query，按当前状态预演并返回提案说明，可登记为 SNS 通用函数的验证方法。`import_legacy_handles` 增加快照位置 `offset`，乱序执行的批次被拒绝，不会留下缺口；注册收入可用 `admin_collect_token` 从 handle 默认账户提取。部署、治理和迁移流程见 [handle README](../src/dmsg_handle/README.md)。

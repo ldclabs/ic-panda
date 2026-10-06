@@ -5,5 +5,6 @@ mod stable_codec;
 mod store;
 
 use dmsg_types::{handle::*, *};
+use icrc_ledger_types::icrc1::account::Account;
 
 ic_cdk::export_candid!();

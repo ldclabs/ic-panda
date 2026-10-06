@@ -222,6 +222,7 @@ mod tests {
                 ledger: p(2),
                 ledger_fee: 10_000,
                 max_pending: 1_000,
+                governance: p(6),
             },
             progress: SnapshotProgress {
                 snapshot: Some(LegacySnapshot {

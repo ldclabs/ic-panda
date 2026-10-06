@@ -22,7 +22,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 
 余额差只包含 user canister，不包含 COSE 和管理 canister 的阈值调用费用。两次比较必须使用相同的依赖、构建配置与 PocketIC 版本。
 
-`control_plane/handle.rs` 覆盖名称注册锁、并发扣款、快照导入原子性、事件日志和认证查询的升级恢复。另有显式运行的 `handle_cycles_profile`，比较注册历史为 0/8/16 时的预留、额度拒绝、扣款和重试费用，并记录稳定内存与升级费用：
+`control_plane/handle.rs` 覆盖名称注册锁、并发扣款、快照导入原子性与批次顺序、事件日志和认证查询的升级恢复，以及 governance 管理调用、`validate_*` 预演和收入提取。另有显式运行的 `handle_cycles_profile`，比较注册历史为 0/8/16 时的预留、额度拒绝、扣款和重试费用，并记录稳定内存与升级费用：
 
 ```sh
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane handle_cycles_profile -- --ignored --nocapture

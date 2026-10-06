@@ -67,6 +67,7 @@ export interface HandleInit {
   'home_user' : Principal,
   'ledger' : Principal,
   'ledger_fee' : bigint,
+  'governance' : Principal,
 }
 export interface HandleIntent {
   'account_id' : Uint8Array | number[],
@@ -117,18 +118,22 @@ export interface Registration {
   'intent' : HandleIntent,
   'payer' : Account,
 }
-export type Result = { 'Ok' : null } |
+export type Result = { 'Ok' : bigint } |
   { 'Err' : Error };
-export type Result_1 = { 'Ok' : HandleRecord } |
+export type Result_1 = { 'Ok' : null } |
   { 'Err' : Error };
-export type Result_2 = { 'Ok' : HandleOperation } |
+export type Result_2 = { 'Ok' : HandleRecord } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : [] | [LegacyReservation] } |
+export type Result_3 = { 'Ok' : HandleOperation } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : SnapshotProgress } |
+export type Result_4 = { 'Ok' : [] | [LegacyReservation] } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : CertifiedBatch } |
+export type Result_5 = { 'Ok' : SnapshotProgress } |
   { 'Err' : Error };
+export type Result_6 = { 'Ok' : CertifiedBatch } |
+  { 'Err' : Error };
+export type Result_7 = { 'Ok' : string } |
+  { 'Err' : string };
 export interface SnapshotProgress {
   'last_handle' : [] | [string],
   'snapshot' : [] | [LegacySnapshot],
@@ -137,37 +142,46 @@ export interface SnapshotProgress {
   'rolling_digest' : Uint8Array | number[],
 }
 export interface _SERVICE {
-  'begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result>,
+  'admin_collect_token' : ActorMethod<[Account, bigint], Result>,
+  'begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result_1>,
   'claim_legacy_handle' : ActorMethod<
     [HandleIntent, Uint8Array | number[]],
-    Result_1
+    Result_2
   >,
   'commit_handle' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_2
+    Result_3
   >,
   'get_handle_config' : ActorMethod<[], HandleInit>,
   'get_handle_event' : ActorMethod<[bigint], [] | [HandleEvent]>,
   'get_handle_operation' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_2
+    Result_3
   >,
-  'get_legacy_reservation' : ActorMethod<[string], Result_3>,
+  'get_legacy_reservation' : ActorMethod<[string], Result_4>,
   'import_legacy_handles' : ActorMethod<
-    [Uint8Array | number[], Array<LegacyReservation>],
-    Result_4
+    [Uint8Array | number[], bigint, Array<LegacyReservation>],
+    Result_5
   >,
   'reconcile_handle_charge' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], bigint],
-    Result_2
+    Result_3
   >,
-  'register_handle' : ActorMethod<[Registration], Result_2>,
-  'resolve_handle_certified' : ActorMethod<[Array<string>], Result_5>,
-  'seal_legacy_snapshot' : ActorMethod<[], Result_4>,
-  'snapshot_certified' : ActorMethod<[], Result_5>,
+  'register_handle' : ActorMethod<[Registration], Result_3>,
+  'resolve_handle_certified' : ActorMethod<[Array<string>], Result_6>,
+  'seal_legacy_snapshot' : ActorMethod<[], Result_5>,
+  'snapshot_certified' : ActorMethod<[], Result_6>,
   'snapshot_progress' : ActorMethod<[], SnapshotProgress>,
-  'transfer_handle' : ActorMethod<[HandleIntent, HandleIntent], Result_1>,
-  'update_ledger_fee' : ActorMethod<[bigint], Result>,
+  'transfer_handle' : ActorMethod<[HandleIntent, HandleIntent], Result_2>,
+  'update_ledger_fee' : ActorMethod<[bigint], Result_1>,
+  'validate_admin_collect_token' : ActorMethod<[Account, bigint], Result_7>,
+  'validate_begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result_7>,
+  'validate_import_legacy_handles' : ActorMethod<
+    [Uint8Array | number[], bigint, Array<LegacyReservation>],
+    Result_7
+  >,
+  'validate_seal_legacy_snapshot' : ActorMethod<[], Result_7>,
+  'validate_update_ledger_fee' : ActorMethod<[bigint], Result_7>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

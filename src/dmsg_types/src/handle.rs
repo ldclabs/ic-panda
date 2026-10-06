@@ -53,6 +53,8 @@ pub struct HandleInit {
     pub ledger_fee: u128,
     /// Maximum pending name operations allowed by this registry.
     pub max_pending: u32,
+    /// Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
+    pub governance: Principal,
 }
 
 /// Manifest committing to frozen legacy name ownership for import.

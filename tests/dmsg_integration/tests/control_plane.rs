@@ -348,6 +348,7 @@ impl Fixture {
                 home_user: user,
                 ledger_fee: 10,
                 max_pending: 100,
+                governance: sns,
             },))
             .unwrap(),
             None,
@@ -1215,7 +1216,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
         f.handle,
         Principal::anonymous(),
         "import_legacy_handles",
-        (snapshot.snapshot_id, vec![legacy.clone()]),
+        (snapshot.snapshot_id, 0u64, vec![legacy.clone()]),
     );
     imported.unwrap();
     let sealed: Result<candid::Reserved> = update(

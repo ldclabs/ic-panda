@@ -191,6 +191,7 @@ stable_struct!(HandleInitRepr => HandleInit {
     2 => ledger: Principal,
     3 => ledger_fee: u128,
     4 => max_pending: u32,
+    5 => governance: Principal,
 });
 
 stable_struct!(LegacySnapshotRepr => LegacySnapshot {

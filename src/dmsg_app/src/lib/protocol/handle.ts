@@ -30,7 +30,7 @@ export function decodeHandle(method: string, encoded: string): any[] {
 }
 const claim = service._fields.find(([name]) => name === 'claim_legacy_handle')![1]
 const entries = service._fields.find(([name]) => name === 'import_legacy_handles')![1]
-  .argTypes[1] as IDL.VecClass<LegacyReservation>
+  .argTypes[2] as IDL.VecClass<LegacyReservation>
 export function canonicalHandle(value: string) {
   const name = value.toLowerCase()
   ensure(

@@ -5,14 +5,11 @@ export const idlFactory = ({ IDL }) => {
     'home_user' : IDL.Principal,
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,
+    'governance' : IDL.Principal,
   });
-  const LegacySnapshot = IDL.Record({
-    'event_tip' : IDL.Vec(IDL.Nat8),
-    'source_canister' : IDL.Principal,
-    'count' : IDL.Nat64,
-    'entries_digest' : IDL.Vec(IDL.Nat8),
-    'snapshot_id' : IDL.Vec(IDL.Nat8),
-    'freeze_version' : IDL.Nat64,
+  const Account = IDL.Record({
+    'owner' : IDL.Principal,
+    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
@@ -46,7 +43,16 @@ export const idlFactory = ({ IDL }) => {
     'AuthRequired' : IDL.Null,
     'Pending' : IDL.Null,
   });
-  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const Result = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const LegacySnapshot = IDL.Record({
+    'event_tip' : IDL.Vec(IDL.Nat8),
+    'source_canister' : IDL.Principal,
+    'count' : IDL.Nat64,
+    'entries_digest' : IDL.Vec(IDL.Nat8),
+    'snapshot_id' : IDL.Vec(IDL.Nat8),
+    'freeze_version' : IDL.Nat64,
+  });
+  const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const HandleAction = IDL.Variant({
     'AcceptTransfer' : IDL.Null,
     'Register' : IDL.Null,
@@ -69,11 +75,7 @@ export const idlFactory = ({ IDL }) => {
     'handle' : IDL.Text,
     'owner_account' : IDL.Vec(IDL.Nat8),
   });
-  const Result_1 = IDL.Variant({ 'Ok' : HandleRecord, 'Err' : Error });
-  const Account = IDL.Record({
-    'owner' : IDL.Principal,
-    'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-  });
+  const Result_2 = IDL.Variant({ 'Ok' : HandleRecord, 'Err' : Error });
   const Registration = IDL.Record({
     'fee' : IDL.Nat,
     'intent' : HandleIntent,
@@ -94,7 +96,7 @@ export const idlFactory = ({ IDL }) => {
     'phase' : HandlePhase,
     'amount' : IDL.Nat,
   });
-  const Result_2 = IDL.Variant({ 'Ok' : HandleOperation, 'Err' : Error });
+  const Result_3 = IDL.Variant({ 'Ok' : HandleOperation, 'Err' : Error });
   const HandleEvent = IDL.Record({
     'at' : IDL.Nat64,
     'to' : IDL.Vec(IDL.Nat8),
@@ -112,7 +114,7 @@ export const idlFactory = ({ IDL }) => {
     'legacy_owner' : IDL.Principal,
     'quarantined' : IDL.Bool,
   });
-  const Result_3 = IDL.Variant({
+  const Result_4 = IDL.Variant({
     'Ok' : IDL.Opt(LegacyReservation),
     'Err' : Error,
   });
@@ -123,7 +125,7 @@ export const idlFactory = ({ IDL }) => {
     'sealed' : IDL.Bool,
     'rolling_digest' : IDL.Vec(IDL.Nat8),
   });
-  const Result_4 = IDL.Variant({ 'Ok' : SnapshotProgress, 'Err' : Error });
+  const Result_5 = IDL.Variant({ 'Ok' : SnapshotProgress, 'Err' : Error });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -135,17 +137,19 @@ export const idlFactory = ({ IDL }) => {
     'entries' : IDL.Vec(CertifiedEntry),
     'canister' : IDL.Principal,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Result_6 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const Result_7 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
-    'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result], []),
+    'admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result], []),
+    'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result_1], []),
     'claim_legacy_handle' : IDL.Func(
         [HandleIntent, IDL.Vec(IDL.Nat8)],
-        [Result_1],
+        [Result_2],
         [],
       ),
     'commit_handle' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_2],
+        [Result_3],
         [],
       ),
     'get_handle_config' : IDL.Func([], [HandleInit], ['query']),
@@ -156,31 +160,48 @@ export const idlFactory = ({ IDL }) => {
       ),
     'get_handle_operation' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_2],
+        [Result_3],
         ['query'],
       ),
-    'get_legacy_reservation' : IDL.Func([IDL.Text], [Result_3], ['query']),
+    'get_legacy_reservation' : IDL.Func([IDL.Text], [Result_4], ['query']),
     'import_legacy_handles' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Vec(LegacyReservation)],
-        [Result_4],
+        [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Vec(LegacyReservation)],
+        [Result_5],
         [],
       ),
     'reconcile_handle_charge' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_2],
+        [Result_3],
         [],
       ),
-    'register_handle' : IDL.Func([Registration], [Result_2], []),
+    'register_handle' : IDL.Func([Registration], [Result_3], []),
     'resolve_handle_certified' : IDL.Func(
         [IDL.Vec(IDL.Text)],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
-    'seal_legacy_snapshot' : IDL.Func([], [Result_4], []),
-    'snapshot_certified' : IDL.Func([], [Result_5], ['query']),
+    'seal_legacy_snapshot' : IDL.Func([], [Result_5], []),
+    'snapshot_certified' : IDL.Func([], [Result_6], ['query']),
     'snapshot_progress' : IDL.Func([], [SnapshotProgress], ['query']),
-    'transfer_handle' : IDL.Func([HandleIntent, HandleIntent], [Result_1], []),
-    'update_ledger_fee' : IDL.Func([IDL.Nat], [Result], []),
+    'transfer_handle' : IDL.Func([HandleIntent, HandleIntent], [Result_2], []),
+    'update_ledger_fee' : IDL.Func([IDL.Nat], [Result_1], []),
+    'validate_admin_collect_token' : IDL.Func(
+        [Account, IDL.Nat],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_begin_legacy_snapshot' : IDL.Func(
+        [LegacySnapshot],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_import_legacy_handles' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Nat64, IDL.Vec(LegacyReservation)],
+        [Result_7],
+        ['query'],
+      ),
+    'validate_seal_legacy_snapshot' : IDL.Func([], [Result_7], ['query']),
+    'validate_update_ledger_fee' : IDL.Func([IDL.Nat], [Result_7], ['query']),
   });
 };
 export const init = ({ IDL }) => {
@@ -189,6 +210,7 @@ export const init = ({ IDL }) => {
     'home_user' : IDL.Principal,
     'ledger' : IDL.Principal,
     'ledger_fee' : IDL.Nat,
+    'governance' : IDL.Principal,
   });
   return [HandleInit];
 };

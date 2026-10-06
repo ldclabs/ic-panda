@@ -117,7 +117,7 @@ pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 7;
+pub(crate) const STABLE_SCHEMA: u16 = 8;
 
 // Largest active-name population verified by the Wasm upgrade capacity profile.
 pub(crate) const MAX_ACTIVE_NAMES: u64 = 100_000;

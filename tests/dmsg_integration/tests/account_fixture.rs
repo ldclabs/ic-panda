@@ -298,6 +298,7 @@ fn account_extension_gateway() {
             ledger: peer,
             ledger_fee: 10,
             max_pending: 100,
+            governance: peer,
         })
         .unwrap(),
         None,
@@ -390,7 +391,7 @@ fn account_extension_gateway() {
         ),
         (
             "import_legacy_handles",
-            candid::encode_args((snapshot.snapshot_id, entries)).unwrap(),
+            candid::encode_args((snapshot.snapshot_id, 0u64, entries)).unwrap(),
         ),
         ("seal_legacy_snapshot", candid::encode_args(()).unwrap()),
     ] {

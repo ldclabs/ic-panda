@@ -19,13 +19,13 @@ fn seal_snapshot(f: &Fixture, entries: &[LegacyReservation]) -> LegacySnapshot {
         (snapshot.clone(),),
     );
     started.unwrap();
-    for chunk in entries.chunks(256) {
+    for (offset, chunk) in (0u64..).step_by(256).zip(entries.chunks(256)) {
         let imported: Result<SnapshotProgress> = update(
             &f.ic,
             f.handle,
             Principal::anonymous(),
             "import_legacy_handles",
-            (snapshot.snapshot_id, chunk),
+            (snapshot.snapshot_id, offset, chunk),
         );
         assert!(imported.unwrap().imported <= snapshot.count);
     }
@@ -127,6 +127,7 @@ fn with_max_pending(f: &Fixture, max_pending: u32) {
             ledger: f.ledger,
             ledger_fee: 10,
             max_pending,
+            governance: f.sns,
         },))
         .unwrap(),
         None,
@@ -216,37 +217,43 @@ fn handle_snapshot_import_validates_the_whole_batch_before_writing() {
         (snapshot.clone(),),
     );
     started.unwrap();
-    let import = |entries: Vec<LegacyReservation>| -> Result<SnapshotProgress> {
+    let import = |offset: u64, entries: Vec<LegacyReservation>| -> Result<SnapshotProgress> {
         update(
             &f.ic,
             f.handle,
             Principal::anonymous(),
             "import_legacy_handles",
-            (snapshot.snapshot_id, entries),
+            (snapshot.snapshot_id, offset, entries),
         )
     };
-    assert!(import(vec![entries[1].clone(), entries[0].clone()]).is_err());
+    assert!(import(0, vec![entries[1].clone(), entries[0].clone()]).is_err());
     // A frozen administrator claims as a caller, so it must be authenticated.
     let mut anonymous_admin = entries[0].clone();
     anonymous_admin.frozen_admins = vec![Principal::anonymous()];
-    assert_eq!(import(vec![anonymous_admin]), Err(Error::AuthRequired));
+    assert_eq!(import(0, vec![anonymous_admin]), Err(Error::AuthRequired));
+    // A later batch cannot run before its predecessor and leave a gap.
+    assert_eq!(
+        import(1, vec![entries[1].clone()]),
+        Err(Error::VersionConflict)
+    );
     assert_eq!(legacy(&f, "alpha"), Ok(None));
+    assert_eq!(legacy(&f, "beta"), Ok(None));
     assert_eq!(progress(&f).imported, 0);
-    assert_eq!(import(vec![entries[0].clone()]).unwrap().imported, 1);
-    let replay = import(vec![entries[0].clone()]).unwrap();
+    assert_eq!(import(0, vec![entries[0].clone()]).unwrap().imported, 1);
+    let replay = import(0, vec![entries[0].clone()]).unwrap();
     assert_eq!(replay.imported, 1);
     let mut conflict = entries[0].clone();
     conflict.legacy_owner = person(2);
     assert!(matches!(
-        import(vec![conflict]),
+        import(0, vec![conflict]),
         Err(Error::IdempotencyConflict)
     ));
     // Retry an overlap and append the suffix exactly once.
-    let complete = import(entries.clone()).unwrap();
+    let complete = import(0, entries.clone()).unwrap();
     assert_eq!(complete.imported, 2);
     assert_eq!(complete.rolling_digest, snapshot.entries_digest);
     upgrade(&f);
-    assert_eq!(import(entries.clone()).unwrap().imported, 2);
+    assert_eq!(import(0, entries.clone()).unwrap().imported, 2);
     let sealed: Result<SnapshotProgress> = update(
         &f.ic,
         f.handle,
@@ -255,7 +262,7 @@ fn handle_snapshot_import_validates_the_whole_batch_before_writing() {
         (),
     );
     assert!(sealed.unwrap().sealed);
-    assert!(matches!(import(entries), Err(Error::VersionConflict)));
+    assert!(matches!(import(0, entries), Err(Error::VersionConflict)));
 }
 
 #[test]
@@ -687,6 +694,173 @@ fn handle_fee_updates_only_affect_new_operations() {
     assert_eq!(result.registration.fee, 11);
     assert_eq!(result.memo, unknown.memo);
     assert_eq!(result.created_at, unknown.created_at);
+}
+
+#[test]
+fn handle_governance_runs_validated_admin_operations() {
+    type Rendered = std::result::Result<String, String>;
+    let f = Fixture::new();
+    let owner = f.create(1);
+    let entries: Vec<_> = ["alpha", "beta", "gamma"]
+        .into_iter()
+        .map(|name| LegacyReservation {
+            handle: name.into(),
+            legacy_owner: person(1),
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: false,
+        })
+        .collect();
+    let snapshot = LegacySnapshot {
+        source_canister: person(80),
+        snapshot_id: Hash::new([5; 32]),
+        freeze_version: 1,
+        event_tip: Hash::new([7; 32]),
+        count: 3,
+        entries_digest: entries.iter().fold(Hash::new([0; 32]), |tip, entry| {
+            digest("dmsg/legacy-entry/v1", &(tip, entry))
+        }),
+    };
+    // Anyone may dry-run a payload; only controllers and governance execute it.
+    let rendered: Rendered = query(
+        &f.ic,
+        f.handle,
+        person(99),
+        "validate_begin_legacy_snapshot",
+        (snapshot.clone(),),
+    );
+    assert!(rendered
+        .unwrap()
+        .starts_with(&format!("Begin legacy snapshot {}", "05".repeat(32))));
+    let denied: Result<()> = update(
+        &f.ic,
+        f.handle,
+        person(99),
+        "begin_legacy_snapshot",
+        (snapshot.clone(),),
+    );
+    assert_eq!(denied, Err(Error::Forbidden));
+    let begun: Result<()> = update(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "begin_legacy_snapshot",
+        (snapshot.clone(),),
+    );
+    begun.unwrap();
+    // Proposals run in adoption order, so a later batch is rejected before its
+    // predecessor both when proposed and when executed.
+    let later = (snapshot.snapshot_id, 2u64, vec![entries[2].clone()]);
+    let early: Rendered = query(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "validate_import_legacy_handles",
+        later.clone(),
+    );
+    assert_eq!(early, Err("VersionConflict".into()));
+    let early: Result<SnapshotProgress> = update(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "import_legacy_handles",
+        later.clone(),
+    );
+    assert_eq!(early, Err(Error::VersionConflict));
+    assert_eq!(progress(&f).imported, 0);
+    let first = (snapshot.snapshot_id, 0u64, entries[..2].to_vec());
+    let rendered: Rendered = query(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "validate_import_legacy_handles",
+        first.clone(),
+    );
+    assert!(rendered
+        .unwrap()
+        .starts_with("Import legacy handles alpha..=beta at offset 0"));
+    assert_eq!(progress(&f).imported, 0);
+    let imported: Result<SnapshotProgress> =
+        update(&f.ic, f.handle, f.sns, "import_legacy_handles", first);
+    assert_eq!(imported.unwrap().imported, 2);
+    let imported: Result<SnapshotProgress> =
+        update(&f.ic, f.handle, f.sns, "import_legacy_handles", later);
+    assert_eq!(imported.unwrap().rolling_digest, snapshot.entries_digest);
+    let rendered: Rendered = query(&f.ic, f.handle, f.sns, "validate_seal_legacy_snapshot", ());
+    rendered.unwrap();
+    let sealed: Result<SnapshotProgress> =
+        update(&f.ic, f.handle, f.sns, "seal_legacy_snapshot", ());
+    assert!(sealed.unwrap().sealed);
+
+    // Collect registration revenue held by the registry.
+    let name = "collected";
+    f.mint(person(1), price(name));
+    f.approve_handle(person(1), price(name));
+    let input = registration(&f, &owner, name, 1);
+    authorize(&f, 1, &input.intent);
+    assert_eq!(register(&f, &input).unwrap().phase, HandlePhase::Committed);
+    let balance =
+        |who: Account| -> Nat { query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (who,)) };
+    let revenue = price(name) - 10;
+    assert_eq!(balance(account(f.handle)), Nat::from(revenue));
+    let treasury = account(person(77));
+    let zero: Rendered = query(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "validate_admin_collect_token",
+        (treasury, 0u128),
+    );
+    assert!(zero.is_err());
+    let rendered: Rendered = query(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "validate_admin_collect_token",
+        (treasury, revenue - 10),
+    );
+    assert!(rendered.unwrap().contains(&treasury.to_string()));
+    let denied: Result<u64> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "admin_collect_token",
+        (treasury, revenue - 10),
+    );
+    assert_eq!(denied, Err(Error::Forbidden));
+    let collected: Result<u64> = update(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "admin_collect_token",
+        (treasury, revenue - 10),
+    );
+    collected.unwrap();
+    assert_eq!(balance(treasury), Nat::from(revenue - 10));
+    assert_eq!(balance(account(f.handle)), Nat::from(0u8));
+    // The ledger rejects a collection beyond the balance without a transfer.
+    let excess: Result<u64> = update(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "admin_collect_token",
+        (treasury, 1u128),
+    );
+    assert!(matches!(excess, Err(Error::Unavailable(_))));
+    assert_eq!(balance(treasury), Nat::from(revenue - 10));
+
+    let rejected: Rendered = query(
+        &f.ic,
+        f.handle,
+        f.sns,
+        "validate_update_ledger_fee",
+        (MIN_HANDLE_PRICE,),
+    );
+    assert_eq!(rejected, Err("FeeBlocked".into()));
+    let changed: Result<()> = update(&f.ic, f.handle, f.sns, "update_ledger_fee", (11u128,));
+    changed.unwrap();
+    let config: HandleInit = query(&f.ic, f.handle, person(1), "get_handle_config", ());
+    assert_eq!((config.ledger_fee, config.governance), (11, f.sns));
 }
 
 #[test]

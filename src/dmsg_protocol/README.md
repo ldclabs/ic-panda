@@ -214,7 +214,7 @@ For offline verification, run `cargo run -p dmsg_protocol --example verify -- ar
 
 Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.2.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
 
-0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `EXECUTE_APPROVAL_DOMAIN` and `execute_approval_command`, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`.
+0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `EXECUTE_APPROVAL_DOMAIN` and `execute_approval_command`, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`. `dmsg_types::handle::HandleInit` gains the required `governance` field.
 
 Cargo omits the path-only dmsg_protocol development dependency from the normalized dmsg_types package manifest. That avoids a publication dependency cycle, but its repository contract tests and vector example still require the checkout's development dependency. Run these from the workspace; a packaged dmsg_types test suite is not equivalent.
 

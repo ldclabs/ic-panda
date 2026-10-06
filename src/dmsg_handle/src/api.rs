@@ -5,7 +5,10 @@ use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{handle::*, *};
 use icrc_ledger_types::{
-    icrc1::account::Account,
+    icrc1::{
+        account::Account,
+        transfer::{TransferArg, TransferError},
+    },
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
 
@@ -15,11 +18,21 @@ fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
 
-fn controller() -> Result<()> {
+// Controllers operate local deployments; SNS proposals call as governance.
+fn check_admin(caller: Principal) -> Result<()> {
     ensure(
-        ic_cdk::api::is_controller(&ic_cdk::api::msg_caller()),
+        ic_cdk::api::is_controller(&caller) || with_cfg(|c| c.init.governance == caller),
         Error::Forbidden,
     )
+}
+
+// SNS validators render the payload for voters or explain the rejection.
+fn validation_error(error: Error) -> String {
+    format!("{error:?}")
+}
+
+fn hex(hash: &Hash) -> String {
+    hash.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn check_intent(i: &HandleIntent, action: HandleAction, canister_id: Principal) -> Result<()> {
@@ -47,6 +60,7 @@ async fn consume(i: &HandleIntent) -> Result<()> {
 fn init(args: HandleInit) {
     authenticated(args.home_user).expect("home user");
     authenticated(args.ledger).expect("ledger");
+    authenticated(args.governance).expect("governance");
     assert!(
         args.ledger_fee < MIN_HANDLE_PRICE && args.max_pending > 0 && args.max_pending <= 10_000
     );
@@ -97,10 +111,14 @@ fn get_handle_config() -> HandleInit {
     with_cfg(|c| c.init.clone())
 }
 
+fn check_fee(fee: u128) -> Result<()> {
+    ensure(fee < MIN_HANDLE_PRICE, Error::FeeBlocked)
+}
+
 #[ic_cdk::update]
 fn update_ledger_fee(fee: u128) -> Result<()> {
-    controller()?;
-    ensure(fee < MIN_HANDLE_PRICE, Error::FeeBlocked)?;
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_fee(fee)?;
     let mut c = cfg();
     if c.init.ledger_fee != fee {
         c.init.ledger_fee = fee;
@@ -109,16 +127,58 @@ fn update_ledger_fee(fee: u128) -> Result<()> {
     Ok(())
 }
 
+#[ic_cdk::query]
+fn validate_update_ledger_fee(fee: u128) -> std::result::Result<String, String> {
+    check_fee(fee).map_err(validation_error)?;
+    Ok(format!(
+        "Set the handle registry ledger fee to {fee} base units for new registrations."
+    ))
+}
+
+fn check_collect(to: &Account, amount: u128) -> Result<()> {
+    authenticated(to.owner)?;
+    ensure_valid(amount > 0, "collect amount")
+}
+
+/// Transfer registration revenue from this canister's default account and
+/// return the ledger block. Check the ledger before retrying an unknown result.
+#[ic_cdk::update]
+async fn admin_collect_token(to: Account, amount: u128) -> Result<u64> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_collect(&to, amount)?;
+    let reply: std::result::Result<Nat, TransferError> = stable::call(
+        with_cfg(|c| c.init.ledger),
+        "icrc1_transfer",
+        (TransferArg {
+            from_subaccount: None,
+            to,
+            fee: None,
+            created_at_time: None,
+            memo: None,
+            amount: Nat::from(amount),
+        },),
+    )
+    .await?;
+    dmsg_runtime::ledger::block_index(reply.map_err(|e| Error::Unavailable(e.to_string()))?)
+}
+
+#[ic_cdk::query]
+fn validate_admin_collect_token(to: Account, amount: u128) -> std::result::Result<String, String> {
+    check_collect(&to, amount).map_err(validation_error)?;
+    Ok(format!(
+        "Collect {amount} ledger base units of handle registration revenue to {to}."
+    ))
+}
+
 fn certify_snapshot(progress: &SnapshotProgress) {
     CERT.with_borrow_mut(|c| c.put(SNAPSHOT_KEY.to_vec(), progress));
 }
 
-#[ic_cdk::update]
-fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
-    controller()?;
-    let mut c = cfg();
+// Returns false when the same snapshot is already recorded.
+fn check_begin(c: &Config, snapshot: &LegacySnapshot) -> Result<bool> {
     if let Some(existing) = &c.progress.snapshot {
-        return ensure(existing == &snapshot, Error::IdempotencyConflict);
+        ensure(existing == snapshot, Error::IdempotencyConflict)?;
+        return Ok(false);
     }
     ensure(
         !c.progress.sealed && snapshot.count <= 1_000_000,
@@ -126,30 +186,59 @@ fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
     )?;
     authenticated(snapshot.source_canister)?;
     nonzero(snapshot.snapshot_id.as_slice())?;
-    c.progress.snapshot = Some(snapshot);
-    certify_snapshot(&c.progress);
-    save_cfg(c);
-    Ok(())
+    Ok(true)
 }
 
 #[ic_cdk::update]
-fn import_legacy_handles(
+fn begin_legacy_snapshot(snapshot: LegacySnapshot) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    if with_cfg(|c| check_begin(c, &snapshot))? {
+        let mut c = cfg();
+        c.progress.snapshot = Some(snapshot);
+        certify_snapshot(&c.progress);
+        save_cfg(c);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_begin_legacy_snapshot(snapshot: LegacySnapshot) -> std::result::Result<String, String> {
+    let fresh = with_cfg(|c| check_begin(c, &snapshot)).map_err(validation_error)?;
+    let note = if fresh {
+        ""
+    } else {
+        " Already recorded; no change."
+    };
+    Ok(format!(
+        "Begin legacy snapshot {} from {}: {} entries, entries digest {}, freeze version {}.{note}",
+        hex(&snapshot.snapshot_id),
+        snapshot.source_canister,
+        snapshot.count,
+        hex(&snapshot.entries_digest),
+        snapshot.freeze_version,
+    ))
+}
+
+// A batch may repeat imported entries, but its new entries must start at the
+// current position, so a batch executed out of order cannot leave a gap.
+fn check_import<'a>(
+    c: &Config,
     snapshot_id: Hash,
-    entries: Vec<LegacyReservation>,
-) -> Result<SnapshotProgress> {
-    controller()?;
-    let mut c = cfg();
+    offset: u64,
+    entries: &'a [LegacyReservation],
+) -> Result<(SnapshotProgress, Vec<&'a LegacyReservation>)> {
     let snapshot = c.progress.snapshot.as_ref().ok_or(Error::NotFound)?;
     ensure(
-        snapshot.snapshot_id == snapshot_id && !c.progress.sealed,
+        snapshot.snapshot_id == snapshot_id && !c.progress.sealed && offset <= c.progress.imported,
         Error::VersionConflict,
     )?;
     ensure(
         !entries.is_empty() && entries.len() <= 256,
         Error::QuotaExceeded,
     )?;
+    let mut progress = c.progress.clone();
     let mut inserts = Vec::with_capacity(entries.len());
-    for e in &entries {
+    for (position, e) in (offset..).zip(entries) {
         ensure_valid(
             normalize_handle(&e.handle)? == e.handle && e.frozen_admins.len() <= 16,
             "legacy record",
@@ -159,27 +248,37 @@ fn import_legacy_handles(
         e.frozen_admins
             .iter()
             .try_for_each(|admin| authenticated(*admin))?;
-        if let Some(old) = LEGACY.with_borrow(|t| t.load(e.handle.as_bytes())) {
-            ensure(old == *e, Error::IdempotencyConflict)?;
+        if position < c.progress.imported {
+            ensure(
+                LEGACY.with_borrow(|t| t.load(e.handle.as_bytes())).as_ref() == Some(e),
+                Error::IdempotencyConflict,
+            )?;
             continue;
         }
         ensure_valid(
-            c.progress
+            progress
                 .last_handle
                 .as_ref()
                 .is_none_or(|last| last < &e.handle),
             "snapshot entries must be sorted and unique",
         )?;
-        c.progress.rolling_digest = digest("dmsg/legacy-entry/v1", &(c.progress.rolling_digest, e));
-        c.progress.imported += 1;
-        c.progress.last_handle = Some(e.handle.clone());
+        progress.rolling_digest = digest("dmsg/legacy-entry/v1", &(progress.rolling_digest, e));
+        progress.imported += 1;
+        progress.last_handle = Some(e.handle.clone());
         inserts.push(e);
     }
-    ensure(
-        c.progress.imported <= snapshot.count,
-        Error::IntegrityFailed,
-    )?;
-    let progress = c.progress.clone();
+    ensure(progress.imported <= snapshot.count, Error::IntegrityFailed)?;
+    Ok((progress, inserts))
+}
+
+#[ic_cdk::update]
+fn import_legacy_handles(
+    snapshot_id: Hash,
+    offset: u64,
+    entries: Vec<LegacyReservation>,
+) -> Result<SnapshotProgress> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let (progress, inserts) = with_cfg(|c| check_import(c, snapshot_id, offset, &entries))?;
     if !inserts.is_empty() {
         LEGACY.with_borrow_mut(|t| {
             for e in inserts {
@@ -187,28 +286,77 @@ fn import_legacy_handles(
             }
         });
         certify_snapshot(&progress);
+        let mut c = cfg();
+        c.progress = progress.clone();
         save_cfg(c);
     }
     Ok(progress)
 }
 
-#[ic_cdk::update]
-fn seal_legacy_snapshot() -> Result<SnapshotProgress> {
-    controller()?;
-    let mut c = cfg();
+#[ic_cdk::query]
+fn validate_import_legacy_handles(
+    snapshot_id: Hash,
+    offset: u64,
+    entries: Vec<LegacyReservation>,
+) -> std::result::Result<String, String> {
+    let (progress, inserts) =
+        with_cfg(|c| check_import(c, snapshot_id, offset, &entries)).map_err(validation_error)?;
+    Ok(format!(
+        "Import legacy handles {}..={} at offset {offset} into snapshot {}: {} entries, {} new; {} of {} imported afterwards.",
+        entries[0].handle,
+        entries[entries.len() - 1].handle,
+        hex(&snapshot_id),
+        entries.len(),
+        inserts.len(),
+        progress.imported,
+        progress.snapshot.as_ref().map_or(0, |s| s.count),
+    ))
+}
+
+// Returns false when the snapshot is already sealed.
+fn check_seal(c: &Config) -> Result<bool> {
     if c.progress.sealed {
-        return Ok(c.progress);
+        return Ok(false);
     }
     let s = c.progress.snapshot.as_ref().ok_or(Error::NotFound)?;
     ensure(
         c.progress.imported == s.count && c.progress.rolling_digest == s.entries_digest,
         Error::IntegrityFailed,
     )?;
+    Ok(true)
+}
+
+#[ic_cdk::update]
+fn seal_legacy_snapshot() -> Result<SnapshotProgress> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let mut c = cfg();
+    if !check_seal(&c)? {
+        return Ok(c.progress);
+    }
     c.progress.sealed = true;
     certify_snapshot(&c.progress);
     let progress = c.progress.clone();
     save_cfg(c);
     Ok(progress)
+}
+
+#[ic_cdk::query]
+fn validate_seal_legacy_snapshot() -> std::result::Result<String, String> {
+    with_cfg(|c| -> Result<String> {
+        let fresh = check_seal(c)?;
+        let s = c.progress.snapshot.as_ref().ok_or(Error::NotFound)?;
+        let note = if fresh {
+            ""
+        } else {
+            " Already sealed; no change."
+        };
+        Ok(format!(
+            "Seal legacy snapshot {} with {} imported entries and open new registrations.{note}",
+            hex(&s.snapshot_id),
+            c.progress.imported,
+        ))
+    })
+    .map_err(validation_error)
 }
 
 // The caller persists the updated config together with its other local changes.
