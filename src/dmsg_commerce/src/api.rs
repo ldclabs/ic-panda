@@ -7,7 +7,7 @@ use candid::Principal;
 use dmsg_protocol::{billing::*, *};
 use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_runtime::storage::MapExt;
-use dmsg_types::{billing::*, membership::*, *};
+use dmsg_types::{billing::*, integration::LEASE_RENEW_WINDOW_MS, membership::*, *};
 
 pub(crate) fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
@@ -20,10 +20,6 @@ pub(crate) fn valid_subject(b: &Beneficiary) -> Result<()> {
         Error::Forbidden,
     )
 }
-
-/// Re-project a lease once it has this long left, so a consumer renewing a few
-/// minutes before expiry receives a new lease instead of the old one.
-const RENEW_WINDOW_MS: u64 = 10 * MINUTE;
 
 pub(crate) fn get_subject(b: &Beneficiary) -> Result<Subject> {
     valid_subject(b)?;
@@ -250,7 +246,7 @@ async fn refresh(
     valid_subject(&b)?;
     let mut s = load(&b)?;
     if let Some(v) = &s.view {
-        if at.saturating_add(RENEW_WINDOW_MS) < v.valid_until_ms
+        if at.saturating_add(LEASE_RENEW_WINDOW_MS) < v.valid_until_ms
             && v.business_revision == s.business_revision
             && same_catalog(v.issued_at_ms, at)
         {
@@ -371,9 +367,7 @@ async fn get_execution_entitlement(
                 home,
                 b,
                 account_created_at_ms,
-                &catalog(at),
                 &month_catalogs(month, at)?,
-                month,
                 at,
                 next_catalog_at(at),
             )

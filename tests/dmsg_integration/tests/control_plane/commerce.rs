@@ -91,6 +91,7 @@ fn approve(
         product_approval: None,
     }
 }
+
 /// The current dMsg app and product registrations.
 fn registration(f: &Fixture) -> (AppRegistration, Option<ProductRegistration>) {
     let r: Result<(AppRegistration, Option<ProductRegistration>)> = update(
@@ -102,6 +103,7 @@ fn registration(f: &Fixture) -> (AppRegistration, Option<ProductRegistration>) {
     );
     r.unwrap()
 }
+
 fn open(f: &Fixture, id: &AccountId, ledger: Principal, op: u8) -> CheckoutView {
     open_sku(f, id, ledger, "plus", op)
 }
@@ -1840,6 +1842,34 @@ fn a_coalesced_membership_check_keeps_the_panda_lease() {
     assert_eq!(kept, view);
     assert_eq!(allowance(), before);
     f.ic.await_call(pending).unwrap();
+}
+
+#[test]
+fn a_panda_lease_renews_inside_the_window() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    activate_panda(&f, &id, 160);
+    let refresh = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(f.user, &id),),
+        );
+        r.unwrap()
+    };
+    let view = refresh();
+    assert_eq!(view.source_status, SourceStatus::Active);
+    assert!(view.valid_until_ms <= view.issued_at_ms + PANDA_LEASE_MS);
+    // Membership requalifies the claim in the same window, so the lease moves on.
+    f.ic.advance_time(Duration::from_millis(
+        view.valid_until_ms - time(&f.ic) - 5 * MINUTE,
+    ));
+    let renewed = refresh();
+    assert_eq!(renewed.source_status, SourceStatus::Active);
+    assert!(renewed.lease_revision > view.lease_revision);
+    assert!(renewed.valid_until_ms > view.valid_until_ms);
 }
 
 #[test]

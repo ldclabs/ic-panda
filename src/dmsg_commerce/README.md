@@ -132,7 +132,7 @@ flowchart LR
 - 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。主体只在首次购买时创建，之后不会删除，数量受 `max_subjects` 限制，因此只与付费过的账户数成正比。
 - 从未购买的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
 - `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：已开始的现金服务没有退款，未开始的续期在下一个边界之后，所以现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
-- `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`：membership 返回 `Pending` 或 `QuotaExceeded` 表示没有读取 SNS，原租约继续有效；其他失败把合同标为不可核验。两种情况都在 1 分钟内不再重试。
+- `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending` 或 `QuotaExceeded` 表示没有读取 SNS，原租约继续有效；其他失败把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
 
 ### 目录

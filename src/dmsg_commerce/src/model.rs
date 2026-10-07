@@ -281,20 +281,18 @@ pub fn project(
     Ok(v)
 }
 
-/// Entitlement of an account with no commerce record, from the catalogs and the
-/// home's account creation time. Revision 0 marks it: a stored subject's first
-/// projection is revision 1.
-#[allow(clippy::too_many_arguments)]
+/// Entitlement of an account with no commerce record, from the catalogs effective
+/// in the month of `at` and the home's account creation time. Revision 0 marks
+/// it: a stored subject's first projection is revision 1.
 pub fn free(
     home: Principal,
     b: Beneficiary,
     created_at_ms: u64,
-    catalog: &Catalog,
     catalogs: &[Catalog],
-    utc_month: u32,
     at: u64,
     next_catalog_at: Option<u64>,
 ) -> Result<ExecutionEntitlement> {
+    let catalog = catalogs.last().ok_or(Error::NotFound)?;
     let mut s = Subject::new(b);
     s.created_at_ms = Some(created_at_ms);
     let mut view = project(home, &mut s, catalog, at, next_catalog_at)?;
@@ -302,7 +300,7 @@ pub fn free(
     s.lease_revision = 0;
     Ok(ExecutionEntitlement {
         view,
-        month: month(&s, catalogs, utc_month)?,
+        month: month(&s, catalogs, month_utc(at)?)?,
     })
 }
 
@@ -471,17 +469,7 @@ mod tests {
         let (start, _) = month_bounds(202609).unwrap();
         let at = start + DAY;
         let b = beneficiary(HOME, &AccountId([2; 12]));
-        let e = free(
-            HOME,
-            b.clone(),
-            start,
-            &catalog(),
-            &[catalog()],
-            202609,
-            at,
-            None,
-        )
-        .unwrap();
+        let e = free(HOME, b.clone(), start, &[catalog()], at, None).unwrap();
         assert_eq!(e.view.lease_revision, 0);
         assert_eq!(e.month.month_revision, 0);
         assert_eq!(e.view.source_status, SourceStatus::Free);

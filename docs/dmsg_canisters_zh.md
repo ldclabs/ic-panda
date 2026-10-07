@@ -150,7 +150,7 @@ user、cose、directory 新增固定的 `governance`。七个 canister（user、
 
 ## 2026-10-07 commerce 规模与审查修复
 
-从未购买的账户在 commerce 中没有记录：认证权益是不存在证明，配合认证目录即为 Free；`get_execution_entitlement` 按目录和 home 提供的账户创建时间直接计算 Free 月额度，租约版本为 0，不写状态。主体及其认证叶只随付费账户增长。现金、已到期和 Free 资源租约最长 30 天，并在下一个已知额度变化点截止；由 PANDA 支撑的租约不超过一小时。租约剩余不足 10 分钟才重新签发，提前几分钟续期的消费者能拿到更晚的租约。user home 仍至少每小时重新核对执行额度，版本 0 不做同版本摘要比对；私有云端接受更长的租约，并至少每小时用 query 重读已保存的投影。
+从未购买的账户在 commerce 中没有记录：认证权益是不存在证明，配合认证目录即为 Free；`get_execution_entitlement` 按目录和 home 提供的账户创建时间直接计算 Free 月额度，租约版本为 0，不写状态。主体及其认证叶只随付费账户增长。现金、已到期和 Free 资源租约最长 30 天，并在下一个已知额度变化点截止；由 PANDA 支撑的租约不超过一小时。租约剩余不足 10 分钟才重新签发，membership 在同一窗口内重新核验合格的认领，提前几分钟续期的消费者能拿到更晚的租约。user home 仍至少每小时重新核对执行额度，版本 0 不做同版本摘要比对；私有云端接受更长的租约，并至少每小时用 query 重读已保存的投影。
 
 `ProductRegistration` 的 `beneficiary_authority` 改为只能追加的 `beneficiary_authorities`。checkout 与 membership 向主体自己的权威请求授权，新增 user home 的账户可以购买。报价的条款摘要只取产品注册。membership 返回 `Pending` 或 `QuotaExceeded` 时保留原资格租约，不再开启付费时间暂停。治理更新已登记的结算资产时只替换非价格条款并取下一个政策版本，价格发布不会使等待中的提案过期。最后一次收入归集带走无法单独退回的准备金余额，更大的余额任何人都可以退回付款人，结清订单的余额因此归零。订单与结算资产证书移除，客户端改用带权限检查的普通查询。`CommerceInit.limits` 与 `admin_set_limits` 在固定上界内治理主体、热订单、累计订单、每日订单和每分钟调用上限。
 

@@ -471,7 +471,8 @@ async fn refresh_panda_claim(id: Hash) -> Result<PandaClaimView> {
         save(&mut c, at);
     } else if c.view.status == PandaClaimStatus::Active
         && (c.view.eligibility != Eligibility::Eligible
-            || c.view.valid_until_ms <= at.saturating_add(MINUTE))
+            // Commerce renews its resource lease in the same window.
+            || c.view.valid_until_ms <= at.saturating_add(LEASE_RENEW_WINDOW_MS))
     {
         qualify(id, at, false).await?;
     }

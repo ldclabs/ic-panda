@@ -253,8 +253,9 @@ Resource leases follow what can still be withdrawn. A started cash term has no
 refund and an unstarted renewal lies beyond the next boundary, so cash, expired
 and Free leases last at most 30 days and end at the next known limit change. A
 PANDA qualification can be lost, so a PANDA-backed lease stays within one hour.
-Commerce reuses a lease until 10 minutes remain and then issues a new one, so a
-consumer renewing a few minutes before expiry receives a later lease. A membership
+Commerce reuses a lease until 10 minutes remain and then issues a new one, and
+membership requalifies an eligible claim within the same window, so a consumer
+renewing a few minutes before expiry receives a later lease. A membership
 answer of `Pending` or `QuotaExceeded` reads no SNS state: the previous lease
 stands and no paid-time pause opens. The user home rechecks the execution
 allowance at least hourly, independent of the resource lease.

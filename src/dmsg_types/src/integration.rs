@@ -22,6 +22,10 @@ pub const APPLICATION_TTL_MS: u64 = 24 * 60 * crate::MINUTE;
 pub const PANDA_COOLING_MS: u64 = 65 * crate::MINUTE;
 /// Maximum live qualification lease, always truncated to the contract end.
 pub const PANDA_LEASE_MS: u64 = 60 * crate::MINUTE;
+/// A lease with at most this long left is renewed: commerce re-projects its
+/// resource lease and membership requalifies an eligible claim, so a consumer
+/// renewing a few minutes before expiry receives a later lease.
+pub const LEASE_RENEW_WINDOW_MS: u64 = 10 * crate::MINUTE;
 /// Advance notice required for ordinary PANDA rate changes.
 pub const POLICY_NOTICE_MS: u64 = 30 * crate::DAY;
 /// Maximum retained in-flight external operations per account.

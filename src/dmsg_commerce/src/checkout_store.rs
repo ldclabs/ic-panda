@@ -428,24 +428,9 @@ mod tests {
     use super::*;
     use crate::checkout_model::fixture::{self, base::*};
     use dmsg_runtime::storage::compact_bytes;
-    use dmsg_types::billing::*;
 
     fn setup() {
-        store::set_config(store::Config::new(CommerceInit {
-            environment: Environment::Local,
-            governance: principal(90),
-            membership_canister: principal(91),
-            user_homes: vec![principal(92)],
-            limits: fixture::limits(),
-            catalog: Catalog {
-                schema: 1,
-                version: 1,
-                effective_at_ms: 0,
-                plans: dmsg_protocol::billing::default_plans(1),
-                storage_products: vec![],
-                terms_digest: Hash::new([8; 32]),
-            },
-        }));
+        store::set_config(store::Config::new(fixture::init()));
     }
 
     fn hot(id: Hash) -> bool {

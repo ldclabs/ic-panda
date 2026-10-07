@@ -68,30 +68,18 @@ fn capacity_image() {
     let dir =
         std::path::PathBuf::from(std::env::var_os("DMSG_COMMERCE_IMAGE_DIR").expect("image dir"));
     let home = fixture::base::principal(8);
-    let catalog = Catalog {
-        schema: 1,
-        version: 1,
-        effective_at_ms: 0,
-        plans: default_plans(1),
-        storage_products: vec![],
-        terms_digest: Hash::new([8; 32]),
-    };
-    store::set_config(store::Config::new(CommerceInit {
-        environment: Environment::Local,
-        governance: fixture::base::principal(90),
-        membership_canister: fixture::base::principal(91),
-        user_homes: vec![fixture::base::principal(92)],
-        catalog: catalog.clone(),
+    let init = CommerceInit {
         limits: CommerceLimits {
             max_subjects: store::MAX_SUBJECTS,
             max_hot_orders: store::MAX_ORDERS,
             max_orders: store::MAX_ORDERS,
             daily_orders: store::MAX_DAILY_ORDERS,
-            calls_per_minute: 400,
-            authorizations_per_minute: 200,
-            refreshes_per_minute: 200,
+            ..fixture::limits()
         },
-    }));
+        ..fixture::init()
+    };
+    let catalog = init.catalog.clone();
+    store::set_config(store::Config::new(init));
     store::persist_config();
     store::save_catalog(&catalog);
     store::publish_certification(AT);

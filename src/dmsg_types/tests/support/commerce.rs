@@ -2,6 +2,7 @@
 #[path = "integration.rs"]
 pub mod base;
 use base::*;
+use dmsg_protocol::billing::default_plans;
 use dmsg_protocol::commerce_v2::{
     checkout_id, checkout_quote, checkout_quote_hash, panda_application_hash,
 };
@@ -14,7 +15,10 @@ use dmsg_types::integration_billing::{
     SubscriptionSource,
 };
 use dmsg_types::integration_membership::{PandaApplicationTerms, PandaClaimRequest};
-use dmsg_types::{billing::CommerceLimits, AccountId, Environment, Hash, MINUTE};
+use dmsg_types::{
+    billing::{Catalog, CommerceInit, CommerceLimits},
+    AccountId, Environment, Hash, MINUTE,
+};
 
 /// Generous admission limits for fixtures.
 pub fn limits() -> CommerceLimits {
@@ -28,6 +32,26 @@ pub fn limits() -> CommerceLimits {
         refreshes_per_minute: 200,
     }
 }
+
+/// A Local deployment with one user home and the default catalog.
+pub fn init() -> CommerceInit {
+    CommerceInit {
+        environment: Environment::Local,
+        governance: principal(90),
+        membership_canister: principal(91),
+        user_homes: vec![principal(92)],
+        limits: limits(),
+        catalog: Catalog {
+            schema: 1,
+            version: 1,
+            effective_at_ms: 0,
+            plans: default_plans(1),
+            storage_products: vec![],
+            terms_digest: Hash::new([8; 32]),
+        },
+    }
+}
+
 pub fn asset() -> SettlementAsset {
     SettlementAsset {
         version: 2,
