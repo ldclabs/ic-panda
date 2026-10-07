@@ -691,6 +691,7 @@ mod tests {
                 request_id: Hash::new([7; 32]),
                 outcome: ExecutionOutcome::Executing,
                 cycles_cost_upper_bound: 1_000,
+                cycles_charged: 600,
             },
         };
         let bytes = compact_bytes(&execution);

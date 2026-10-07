@@ -126,6 +126,7 @@ let result = ExecutionResult {
     request_id: Hash::new([7; 32]),
     outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
     cycles_cost_upper_bound: 0,
+    cycles_charged: 0,
 };
 assert!(!result.is_terminal());
 // Query and reconcile the original request_id; do not automatically create another signing request.

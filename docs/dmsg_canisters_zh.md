@@ -163,3 +163,11 @@ user、cose、directory 新增固定的 `governance`。七个 canister（user、
 commerce 在 membership 调用没有完成时（`Unavailable`、`ExecutionUnknown` 或 membership 已停止）保留 PANDA 租约，与原先对 `Pending`、`QuotaExceeded` 的处理一致；只有明确答案才把合同标为不可核验。每分钟调用预算改为累计计数，不再对每个 caller 的计数求和；`CommerceLimits.calls_per_caller` 让单个 caller 的资金/出金份额可治理。新增 `collectable_checkouts` query，以稳定索引（memory 30）按服务终点分页商户未归集完的 `Applied` 订单；新增 `commerce_stats`，报告主体、热/冷订单与出金腿、待归集订单、认证叶、稳定内存页和 cycles。commerce README 记录了单实例容量结论（注册用户数不受限，付费主体与累计订单各以常量 1,000 万封顶）和价格发布、派发、归集、快照与 cycles 的运维节奏。稳定布局：commerce schema 8、membership schema 3；开发实例需重装。
 
 PocketIC 覆盖第二个 commerce 实例服务自己的 user home（PANDA 期限加现金存储包）、membership 停止时保留租约、归集分页与 `commerce_stats`、membership 配置的验证方法。私有云端的 commerce、配额与路由测试通过。主网部署、真实资金、超过 100 万主体和私有云端端到端仍未验收。
+
+## 2026-10-07 COSE 生产准备
+
+COSE 与 user 的每日预算在管理调用返回后结算为实际扣费：`ExecutionResult` 新增 `cycles_charged`（请求附带 cycles 减退款），在途期间仍按成本上界预留；未发出或被明确拒绝（如签名队列满）的调用同时退回次数，结果未知时保留完整预留。PocketIC 中签名与 vetKD 派生的上界约 68.26B、实际扣费 26.15B，单账户每天可做的正式签名从约 12 次增至约 32 次（COSE 侧），user 侧默认次数上限先到。
+
+升级若未先停止 COSE，丢失回调的在途执行此前会永久停在 `Executing` 并卡住账户窗口；现在内存中的在途集合区分仍在等待的调用，`get_execution` 把遗留记录按 `Unknown` 返回，下一次执行或清理页写为 `Unknown` 并推进高水位，不重签。新增 `cose_stats`（账户数与上限、结果数、在途与 Unknown 计数、当日全局预算用量、stable 页数、cycles），`canister_inspect_message` 拒绝非 home 的 `execute` 与非管理员的管理 ingress，`prune_executions` 每页增至 64 个账户（最坏 4,096 条结果约 0.62B cycles），`validate_admin_add_user_home` 显示共享账户容量。`dmsg_protocol` 新增 `content_root_context` 与可选 feature `cose-pins`，`cose_pins` 示例按 canister ID 离线计算生产 pin；`src/dmsg_app/scripts/cose-prune.mjs` 匿名执行一轮清理。仓库以 `rust-toolchain.toml` 固定 Rust 1.98.1，CI 与 release 同步。
+
+稳定布局保持 COSE schema 9：结果新增 key 4、全局单元新增 key 3，均带默认值，旧数据照常解码；README 记录了生产后的布局迁移约定。PocketIC 覆盖离线 pin 的生产初始化、不停机升级丢失的回调、扣费结算与 `cose_stats`、ingress 拒绝和 64 账户清理页。主网 `key_1` 验收、签名队列满的真实行为和外部审计仍未完成。

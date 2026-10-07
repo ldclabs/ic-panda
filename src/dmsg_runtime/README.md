@@ -12,7 +12,7 @@
 - `admin`：管理方法的公共规则。`check_admin` 接受 controller 和固定的 governance；`validation` 把检查结果转换成 SNS 通用函数验证方法的 `Result<String, String>` 回复，`unchanged`、`user_home_payload` 和 `hex` 统一提案说明的写法。
 - `name_tree::NameTree`：handle 的名称认证树。名称按 `handle_bucket` 分桶，桶号位组成二叉标签树，节点哈希存放在 stable memory 的定长数组；写入只重算一个桶和一条路径，升级无需重建。
 - `ledger`：读取受信账本及其归档，解析支持的 ICRC-3 转账格式。
-- `Budget`：内部有界预算。`WINDOW`、`FORMAL_EXECUTION_WINDOW` 和正式签名/根派生日上限由 user 与 COSE 共用，避免两侧口径漂移。
+- `Budget`：内部有界预算，按 UTC 日计数。`reserve` 按成本上界预留，`settle` 在结果返回后改记实际费用，未执行时同时退回次数；预留所在的那一天已被重置时不再改动。`WINDOW`、`FORMAL_EXECUTION_WINDOW` 和正式签名/根派生日上限由 user 与 COSE 共用，避免两侧口径漂移。
 - `call` / `call_classified`：有界跨 canister 调用。后者区分本次确定未执行与结果未知；先前未知的尝试不能由本次确定拒绝消除。签名未发出的批准保留原序号供重试，出金仅在没有历史未知结果时进入已拒绝状态。
 
 各 canister 自己持有 MemoryManager、memory ID、StableCell、StableBTreeMap 和 stable schema。结构化 stable representation 的字段使用显式正整数 key，0 保留；既有 key 不得改义或复用，新增字段使用新 key。可选字段可以按默认值省略。本库没有共享全局内存管理器，也没有无类型 `Table`。StableCell 使用 `CompactStored::new(&value)` 构造，通过 `value()` 取得领域值；表仍使用相同的 `MapExt`。底层 StableBTreeMap 覆盖或删除时仍解码旧 representation，不引入延迟解码层。

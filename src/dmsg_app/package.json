@@ -11,6 +11,8 @@
     "test:e2e": "playwright test",
     "test:cloud": "node scripts/test-cloud.mjs",
     "test:inventory": "node --test scripts/legacy-inventory.test.mjs",
+    "test:cose-prune": "node --test scripts/cose-prune.test.mjs",
+    "cose:prune": "node scripts/cose-prune.mjs",
     "build": "vite build && node scripts/verify-build.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4176",
     "bindings": "node scripts/bindings.mjs",

@@ -82,6 +82,7 @@ fn record_execution_response(
     let e = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
     let result = execution::record_execution_response(e, response);
     if result.is_terminal() {
+        execution::settle_budget(&mut s.account, e);
         s.account
             .execution_expirations
             .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
@@ -129,6 +130,7 @@ fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
     ExecutionResult {
         request_id: request.approval.request_id,
         cycles_cost_upper_bound: 1,
+        cycles_charged: 0,
         outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
             key: KeyDescriptor {
                 account_id: s.account_id,
@@ -536,6 +538,36 @@ fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
 }
 
 #[test]
+fn definite_results_settle_the_reserved_budget() {
+    let mut s = initialized();
+    let usage = |s: &TestAccount| (s.budget.executions, s.budget.cycles);
+    // A completed signature keeps its execution and only the charged fee.
+    let r = execute_request(&s, 1, 1);
+    authorize(&mut s, p(1), &r, 1).unwrap();
+    assert_eq!(usage(&s), (1, 100));
+    let mut result = completed(&s, &r);
+    result.cycles_charged = 40;
+    record_execution_response(&mut s, r.approval.request_id, Ok(result)).unwrap();
+    assert_eq!(usage(&s), (1, 40));
+    // A failure COSE charged nothing for, such as a rejected call, returns both.
+    let r = execute_request(&s, 1, 2);
+    authorize(&mut s, p(1), &r, 2).unwrap();
+    let failed = ExecutionResult {
+        request_id: r.approval.request_id,
+        outcome: ExecutionOutcome::Failed(Error::Unavailable("rejected".into())),
+        cycles_cost_upper_bound: 7,
+        cycles_charged: 0,
+    };
+    record_execution_response(&mut s, r.approval.request_id, Ok(failed)).unwrap();
+    assert_eq!(usage(&s), (1, 40));
+    // An unknown outcome may have run and keeps the whole reservation.
+    let r = execute_request(&s, 1, 3);
+    authorize(&mut s, p(1), &r, 3).unwrap();
+    record_execution_response(&mut s, r.approval.request_id, Err(Error::ExecutionUnknown)).unwrap();
+    assert_eq!(usage(&s), (2, 140));
+}
+
+#[test]
 fn budget_failure_is_atomic() {
     let mut budget = Budget::default();
     budget.reserve(1, 10, 1, 10).unwrap();
@@ -846,6 +878,8 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         request.approval.request_id,
         Some(first.grant.expires_at + DAY),
     );
+    // The completed execution keeps only the fee COSE charged.
+    expected.budget.cycles -= first.grant.max_cycles - completed.cycles_charged;
     assert_eq!(load(&s.account_id).unwrap(), expected);
     assert_eq!(
         load_execution(&s.account_id, &next.approval.request_id),

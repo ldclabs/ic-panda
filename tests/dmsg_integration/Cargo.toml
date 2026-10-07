@@ -35,7 +35,7 @@ required-features = ["pocketic-tests"]
 ic_cose_types.workspace = true
 ic-oss-types.workspace = true
 ic_message_types = { path = "../../src/ic_message_types" }
-dmsg_protocol = { path = "../../src/dmsg_protocol" }
+dmsg_protocol = { path = "../../src/dmsg_protocol", features = ["cose-pins"] }
 dmsg_runtime = { path = "../../src/dmsg_runtime" }
 dmsg_types = { path = "../../src/dmsg_types" }
 pocket-ic = "=16.0.0"

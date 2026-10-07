@@ -26,6 +26,20 @@ export interface CoseInit {
   'governance' : Principal,
   'user_homes' : Array<Principal>,
 }
+export interface CoseStats {
+  'executions_today' : number,
+  'results' : bigint,
+  'cycles' : bigint,
+  'budget_day' : bigint,
+  'accounts' : bigint,
+  'formal_cycles_today' : bigint,
+  'in_flight' : bigint,
+  'max_accounts' : bigint,
+  'stable_pages' : bigint,
+  'unknown' : bigint,
+  'formal_executions_today' : number,
+  'cycles_today' : bigint,
+}
 export type Environment = { 'Local' : null } |
   { 'Production' : null } |
   { 'Staging' : null };
@@ -125,6 +139,7 @@ export type ExecutionOutput = {
 export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
   'cycles_cost_upper_bound' : bigint,
+  'cycles_charged' : bigint,
   'outcome' : ExecutionOutcome,
 }
 export type Initialization = { 'Ready' : null } |
@@ -193,6 +208,7 @@ export type SigningPurpose = { 'AppAction' : null } |
 export interface _SERVICE {
   'admin_add_user_home' : ActorMethod<[Principal], Result>,
   'admin_set_daily_budget' : ActorMethod<[number, bigint], Result>,
+  'cose_stats' : ActorMethod<[], CoseStats>,
   'execute' : ActorMethod<[ExecutionGrant], Result_1>,
   'get_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],

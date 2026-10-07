@@ -471,8 +471,8 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
             kind: request.clone().into_execution().unwrap().kind,
             max_cycles: request.max_cycles,
         };
-        let bypass: Result<ExecutionResult> = update(&f.ic, f.cose, person(1), "execute", (grant,));
-        assert_eq!(bypass, Err(Error::Forbidden));
+        // A client cannot bypass its user home by calling COSE directly.
+        assert_denied(&f.ic, f.cose, person(1), "execute", (grant,));
     }
     f.ic.upgrade_canister(
         f.cose,

@@ -38,7 +38,12 @@ const publicKey = ed25519.getPublicKey(seed)
 const delegation = `${accountId}.example`
 
 function result(request: AgentEventSignRequest, outcome: ExecutionOutcome): ExecutionResult {
-  return { request_id: request.approval.request_id, outcome, cycles_cost_upper_bound: 100n }
+  return {
+    request_id: request.approval.request_id,
+    outcome,
+    cycles_cost_upper_bound: 100n,
+    cycles_charged: 0n
+  }
 }
 
 function completed(request: AgentEventSignRequest): ExecutionResult {

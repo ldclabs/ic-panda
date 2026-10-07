@@ -397,6 +397,7 @@ export type ExecutionOutput = {
 export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
   'cycles_cost_upper_bound' : bigint,
+  'cycles_charged' : bigint,
   'outcome' : ExecutionOutcome,
 }
 export interface ExecutionUsage {

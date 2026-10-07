@@ -69,6 +69,28 @@ fn update<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
     candid::decode_one(&bytes).unwrap_or_else(|e| panic!("decode {method}: {e:?}"))
 }
 
+/// A caller without access is refused: the canister's inspect_message rejects
+/// the ingress before execution, or the method replies Forbidden.
+fn assert_denied<A: ArgumentEncoder>(
+    ic: &PocketIc,
+    id: Principal,
+    caller: Principal,
+    method: &str,
+    args: A,
+) {
+    match ic.update_call(id, caller, method, candid::encode_args(args).unwrap()) {
+        Err(reject) => assert_eq!(
+            reject.error_code,
+            pocket_ic::ErrorCode::CanisterRejectedMessage,
+            "{method}: {reject:?}"
+        ),
+        Ok(bytes) => {
+            let reply: Result<candid::Reserved> = candid::decode_one(&bytes).unwrap();
+            assert_eq!(reply.map(|_| ()), Err(Error::Forbidden), "{method}");
+        }
+    }
+}
+
 fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
     approval_message(
         home,

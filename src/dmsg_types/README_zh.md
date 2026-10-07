@@ -126,6 +126,7 @@ let result = ExecutionResult {
     request_id: Hash::new([7; 32]),
     outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
     cycles_cost_upper_bound: 0,
+    cycles_charged: 0,
 };
 assert!(!result.is_terminal());
 // 保留原 request_id 查询和对账，不为未知结果自动新建签名请求。

@@ -412,6 +412,10 @@ pub struct ExecutionResult {
     /// reservations, less refunded attached cycles. Not an actual charge or bill.
     /// Zero before dispatch or when the management call was not sent.
     pub cycles_cost_upper_bound: u128,
+    /// Threshold fee the returned management call consumed: its attached
+    /// request cycles less the refund. Set on Completed and Failed results,
+    /// zero otherwise; daily budgets settle to it. Excludes message fees.
+    pub cycles_charged: u128,
 }
 
 /// Public maintenance page of expired COSE execution results.
@@ -420,10 +424,39 @@ pub struct ExecutionResult {
 pub struct ExecutionCleanup {
     /// Exclusive account cursor for the next page; None ends this pass.
     pub next_after: Option<AccountId>,
-    /// Number of homes inspected (at most eight).
+    /// Number of homes inspected (at most 64).
     pub homes_scanned: u32,
     /// Expired terminal results deleted; replay high-water marks are preserved.
     pub results_removed: u32,
+}
+
+/// Operational counters of a COSE executor.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CoseStats {
+    /// Accounts that have reached this executor; their records are kept.
+    pub accounts: u64,
+    /// Account capacity shared by every configured user home.
+    pub max_accounts: u64,
+    /// Retained execution results.
+    pub results: u64,
+    /// Management calls this module instance is awaiting.
+    pub in_flight: u64,
+    /// Executions recorded as Unknown, including calls an upgrade abandoned.
+    pub unknown: u64,
+    /// UTC day (days since the Unix epoch) of the usage below.
+    pub budget_day: u64,
+    /// Executions counted today against `daily_executions`.
+    pub executions_today: u32,
+    /// Reserved or settled cycles today against `daily_cycles`.
+    pub cycles_today: u128,
+    /// Formal signatures (documents and agent events) counted today.
+    pub formal_executions_today: u32,
+    /// Reserved or settled cycles of formal signatures today.
+    pub formal_cycles_today: u128,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
 }
 
 /// Execution lifecycle carrying either output or failure information.

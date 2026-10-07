@@ -21,6 +21,7 @@ jobs:
     - run: pnpm --dir src/dmsg_app check
     - run: pnpm --dir src/dmsg_app test
     - run: pnpm --dir src/dmsg_app test:inventory
+    - run: pnpm --dir src/dmsg_app test:cose-prune
     - run: pnpm --dir src/dmsg_legacy check
     - run: pnpm --dir src/dmsg_legacy test
     - run: pnpm --dir src/dmsg_app build
@@ -32,8 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@1.97.1
+    # Keep in step with rust-toolchain.toml.
+    - uses: dtolnay/rust-toolchain@master
       with:
+        toolchain: 1.98.1
         targets: wasm32-unknown-unknown
         components: clippy, rustfmt
     - uses: pnpm/action-setup@v4

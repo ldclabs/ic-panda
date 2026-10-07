@@ -1,0 +1,6 @@
+# Release Wasm hashes depend on the compiler; CI, release and local builds use this.
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

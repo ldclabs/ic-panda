@@ -59,6 +59,20 @@ export const idlFactory = ({ IDL }) => {
     'Pending' : IDL.Null,
   });
   const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const CoseStats = IDL.Record({
+    'executions_today' : IDL.Nat32,
+    'results' : IDL.Nat64,
+    'cycles' : IDL.Nat,
+    'budget_day' : IDL.Nat64,
+    'accounts' : IDL.Nat64,
+    'formal_cycles_today' : IDL.Nat,
+    'in_flight' : IDL.Nat64,
+    'max_accounts' : IDL.Nat64,
+    'stable_pages' : IDL.Nat64,
+    'unknown' : IDL.Nat64,
+    'formal_executions_today' : IDL.Nat32,
+    'cycles_today' : IDL.Nat,
+  });
   const KeyPurpose = IDL.Variant({
     'ContentRoot' : IDL.Null,
     'AppAction' : IDL.Null,
@@ -157,6 +171,7 @@ export const idlFactory = ({ IDL }) => {
   const ExecutionResult = IDL.Record({
     'request_id' : IDL.Vec(IDL.Nat8),
     'cycles_cost_upper_bound' : IDL.Nat,
+    'cycles_charged' : IDL.Nat,
     'outcome' : ExecutionOutcome,
   });
   const Result_1 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
@@ -200,6 +215,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
     'admin_set_daily_budget' : IDL.Func([IDL.Nat32, IDL.Nat], [Result], []),
+    'cose_stats' : IDL.Func([], [CoseStats], ['query']),
     'execute' : IDL.Func([ExecutionGrant], [Result_1], []),
     'get_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],

@@ -28,8 +28,7 @@ fn govern<A: ArgumentEncoder + Clone>(
     method: &str,
     args: A,
 ) {
-    let denied: Result<candid::Reserved> = update(&f.ic, canister, person(9), method, args.clone());
-    assert_eq!(denied.map(|_| ()), Err(Error::Forbidden), "{method}");
+    assert_denied(&f.ic, canister, person(9), method, args.clone());
     let done: Result<candid::Reserved> = update(&f.ic, canister, governance, method, args);
     assert!(done.is_ok(), "{method}: {done:?}");
 }

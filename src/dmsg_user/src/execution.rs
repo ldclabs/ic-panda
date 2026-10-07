@@ -258,6 +258,7 @@ pub(crate) fn commit(
             request_id: input.approval.request_id,
             outcome: ExecutionOutcome::Authorized,
             cycles_cost_upper_bound: 0,
+            cycles_charged: 0,
         },
     };
     s.execution_expirations
@@ -277,6 +278,30 @@ pub(crate) fn rejected_dispatch_result(
     } else {
         Ok(current)
     }
+}
+
+/// Settle the daily budget reserved at authorization once COSE returns a
+/// definite result: keep only the threshold fee COSE charged, and return the
+/// execution when COSE ran nothing. A pruned result keeps its reservation.
+pub(crate) fn settle_budget(s: &mut AccountState, execution: &AuthorizedExecution) {
+    let result = &execution.result;
+    let executed = match result.outcome {
+        ExecutionOutcome::Completed(_) => true,
+        ExecutionOutcome::Failed(_) => result.cycles_charged > 0,
+        _ => return,
+    };
+    let grant = &execution.grant;
+    let budget = if matches!(grant.kind, ExecutionKind::Derive { .. }) {
+        &mut s.safety_budget
+    } else {
+        &mut s.budget
+    };
+    budget.settle(
+        grant.approved_at,
+        grant.max_cycles,
+        result.cycles_charged,
+        executed,
+    );
 }
 
 pub(crate) fn record_execution_response(

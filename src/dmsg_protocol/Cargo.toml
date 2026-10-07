@@ -34,11 +34,24 @@ k256 = { workspace = true, features = ["ecdsa"] }
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 num-bigint = "0.4"
 num-traits.workspace = true
+ic-ed25519 = { workspace = true, optional = true }
+ic-secp256k1 = { workspace = true, optional = true }
+ic-vetkeys = { version = "=0.9.0", optional = true }
+# ic-vetkeys names its key IDs with this release of the management types.
+vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1", optional = true }
+
+[features]
+# Offline COSE master-key pins for deployment tooling.
+cose-pins = ["dep:ic-ed25519", "dep:ic-secp256k1", "dep:ic-vetkeys", "dep:vetkd_key_id"]
 
 [dev-dependencies]
 ic-verify-bls-signature = "0.6"
 ic-canister-sig-creation.workspace = true
 hex.workspace = true
+
+[[example]]
+name = "cose_pins"
+required-features = ["cose-pins"]
 
 [[bench]]
 name = "validation"

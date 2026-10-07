@@ -86,6 +86,45 @@ impl StableCodec for model::Budgets {
     }
 }
 
+/// The global cell keeps both budgets under the keys of [`BudgetsRepr`], so
+/// a cell written before the Unknown count was added still decodes.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct GlobalRepr {
+    #[cbor(key = 1)]
+    total: BudgetRepr,
+    #[cbor(key = 2)]
+    formal: BudgetRepr,
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "is_zero")]
+    unknown: u64,
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
+}
+
+impl StableCodec for model::Global {
+    type Repr = GlobalRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        GlobalRepr {
+            total: self.budgets.total.to_repr(),
+            formal: self.budgets.formal.to_repr(),
+            unknown: self.unknown,
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            budgets: model::Budgets {
+                total: Budget::from_repr(repr.total),
+                formal: Budget::from_repr(repr.formal),
+            },
+            unknown: repr.unknown,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct HomeRepr {
     #[cbor(key = 2)]
@@ -226,9 +265,10 @@ mod tests {
                 key: descriptor(derive_grant.account_id, Algorithm::VetKdBls12381),
             })),
             cycles_cost_upper_bound: 100_000_000_000,
+            cycles_charged: 26_000_000_000,
         };
         let derive_bytes = compact_bytes(&derive);
-        assert_integer_top_keys(&derive_bytes, 3);
+        assert_integer_top_keys(&derive_bytes, 4);
         assert_eq!(compact_from_bytes::<ExecutionResult>(&derive_bytes), derive);
         assert!(derive_bytes.len() < cbor2::to_vec(&derive).unwrap().len());
 
@@ -252,6 +292,7 @@ mod tests {
                 key: descriptor(sign_grant.account_id, Algorithm::Ed25519),
             })),
             cycles_cost_upper_bound: 100_000_000_000,
+            cycles_charged: 26_000_000_000,
         };
         assert_eq!(
             compact_from_bytes::<ExecutionResult>(&compact_bytes(&signed)),
@@ -269,6 +310,7 @@ mod tests {
                 request_id: sign_grant.request_id,
                 outcome,
                 cycles_cost_upper_bound: 1,
+                cycles_charged: 0,
             };
             assert_eq!(
                 compact_from_bytes::<ExecutionResult>(&compact_bytes(&execution)),
@@ -327,12 +369,26 @@ mod tests {
     }
 
     #[test]
-    fn both_global_budgets_fit_the_existing_page_and_round_trip() {
+    fn global_state_fits_the_existing_page_and_reads_budget_only_cells() {
         let mut budgets = model::Budgets::default();
         budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
         budgets.reserve(2 * DAY, 30, 10, 100, false).unwrap();
-        let encoded = compact_bytes(&budgets);
+        // A cell written as plain budgets decodes with no Unknown executions.
+        let earlier = compact_from_bytes::<model::Global>(&compact_bytes(&budgets));
+        assert_eq!(
+            earlier,
+            model::Global {
+                budgets: budgets.clone(),
+                unknown: 0,
+            }
+        );
+        assert_eq!(compact_bytes(&earlier), compact_bytes(&budgets));
+        let global = model::Global {
+            budgets,
+            unknown: u64::MAX,
+        };
+        let encoded = compact_bytes(&global);
         assert!(encoded.len() < 128);
-        assert_eq!(compact_from_bytes::<model::Budgets>(&encoded), budgets);
+        assert_eq!(compact_from_bytes::<model::Global>(&encoded), global);
     }
 }

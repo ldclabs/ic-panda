@@ -39,21 +39,29 @@ impl Budgets {
         Ok(())
     }
 
-    /// Undo a reservation only when dispatch failed synchronously, before any
-    /// management call was sent. No other message can have changed these budgets.
-    pub fn release_unsent(&mut self, cycles: u128, formal: bool) {
-        let release = |budget: &mut Budget| {
-            budget.executions = budget
-                .executions
-                .checked_sub(1)
-                .expect("reserved execution");
-            budget.cycles = budget.cycles.checked_sub(cycles).expect("reserved cycles");
-        };
-        release(&mut self.total);
+    /// Settle a reservation once its management call returns, or at once when
+    /// it was not sent: keep only the charged cycles and, when the call ran
+    /// nothing, return the execution as well.
+    pub fn settle(
+        &mut self,
+        reserved_at: u64,
+        reserved: u128,
+        charged: u128,
+        executed: bool,
+        formal: bool,
+    ) {
+        self.total.settle(reserved_at, reserved, charged, executed);
         if formal {
-            release(&mut self.formal);
+            self.formal.settle(reserved_at, reserved, charged, executed);
         }
     }
+}
+
+/// Global budgets and the number of executions recorded as Unknown.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Global {
+    pub budgets: Budgets,
+    pub unknown: u64,
 }
 
 /// A returned unknown outcome cannot be dispatched again, but must retain its
@@ -207,6 +215,27 @@ impl Home {
             | ExecutionOutcome::ResultExpired => ExecutionState::Terminal,
             _ => panic!("execution has not returned"),
         };
+        self.close();
+    }
+
+    /// Record as Unknown every InFlight execution whose management call this
+    /// module instance is not awaiting: an upgrade dropped its callback.
+    /// Return their sequences.
+    pub fn abandon(&mut self, awaiting: impl Fn(u64) -> bool) -> Vec<u64> {
+        let mut abandoned = Vec::new();
+        for (sequence, e) in &mut self.executions {
+            if e.state == ExecutionState::InFlight && !awaiting(*sequence) {
+                e.state = ExecutionState::Unknown;
+                abandoned.push(*sequence);
+            }
+        }
+        if !abandoned.is_empty() {
+            self.close();
+        }
+        abandoned
+    }
+
+    fn close(&mut self) {
         while self.closed_sequence.checked_add(1).is_some_and(|next| {
             self.executions
                 .get(&next)
@@ -249,11 +278,7 @@ pub fn signing_suffix(account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> 
 }
 
 pub fn context(config: &CoseInit) -> Vec<u8> {
-    canonical(&(
-        "dmsg/content-root/v2",
-        &config.environment,
-        config.derivation_version,
-    ))
+    content_root_context(&config.environment, config.derivation_version)
 }
 
 pub fn root_input(account_id: &AccountId, generation: u64) -> Vec<u8> {
@@ -300,6 +325,7 @@ mod tests {
             request_id: g(seq).request_id,
             outcome: ExecutionOutcome::ResultExpired,
             cycles_cost_upper_bound: 1,
+            cycles_charged: 0,
         }
     }
 
@@ -371,15 +397,46 @@ mod tests {
     }
 
     #[test]
-    fn unsent_reservations_restore_both_budget_classes() {
+    fn settlement_applies_to_both_budget_classes() {
         let mut budgets = Budgets::default();
         budgets.reserve(2 * DAY, 10, 10, 100, true).unwrap();
         let before = budgets.clone();
         for formal in [false, true] {
             budgets.reserve(2 * DAY, 20, 10, 100, formal).unwrap();
-            budgets.release_unsent(20, formal);
+            budgets.settle(2 * DAY, 20, 0, false, formal);
             assert_eq!(budgets, before);
         }
+        // A returned call keeps its execution and only the charged cycles.
+        budgets.reserve(2 * DAY, 68, 10, 100, true).unwrap();
+        budgets.settle(2 * DAY, 68, 26, true, true);
+        assert_eq!((budgets.total.executions, budgets.total.cycles), (2, 36));
+        assert_eq!((budgets.formal.executions, budgets.formal.cycles), (2, 36));
+        // Settling frees what the upper bound had reserved: two more fit.
+        for _ in 0..2 {
+            budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
+        }
+        assert_eq!(
+            budgets.reserve(2 * DAY, 20, 10, 100, true),
+            Err(Error::QuotaExceeded)
+        );
+    }
+
+    #[test]
+    fn abandoned_calls_become_unknown_and_release_the_window() {
+        let mut h = Home::default();
+        for sequence in 1..=3 {
+            prepare(&mut h, &g(sequence), 2, 1).unwrap();
+        }
+        h.finish(2, &done(2));
+        assert_eq!(h.closed_sequence, 0);
+        // Sequence 3 is still awaited by this instance; sequence 1 is not.
+        assert_eq!(h.abandon(|sequence| sequence == 3), vec![1]);
+        assert_eq!(h.executions[&1].state, ExecutionState::Unknown);
+        assert_eq!(h.executions[&3].state, ExecutionState::InFlight);
+        assert_eq!(h.closed_sequence, 2);
+        assert!(h.abandon(|sequence| sequence == 3).is_empty());
+        h.finish(3, &done(3));
+        assert_eq!(h.closed_sequence, 3);
     }
 
     #[test]

@@ -794,6 +794,10 @@ type ExecutionResult = record {
   // reservations, less refunded attached cycles. Not an actual charge or bill.
   // Zero before dispatch or when the management call was not sent.
   cycles_cost_upper_bound : nat;
+  // Threshold fee the returned management call consumed: its attached
+  // request cycles less the refund. Set on Completed and Failed results,
+  // zero otherwise; daily budgets settle to it. Excludes message fees.
+  cycles_charged : nat;
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };

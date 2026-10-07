@@ -48,6 +48,33 @@ type CoseInit = record {
   // accounts whose IDs carry its allocator fingerprint. Append-only.
   user_homes : vec principal;
 };
+// Operational counters of a COSE executor.
+type CoseStats = record {
+  // Executions counted today against `daily_executions`.
+  executions_today : nat32;
+  // Retained execution results.
+  results : nat64;
+  // Cycle balance.
+  cycles : nat;
+  // UTC day (days since the Unix epoch) of the usage below.
+  budget_day : nat64;
+  // Accounts that have reached this executor; their records are kept.
+  accounts : nat64;
+  // Reserved or settled cycles of formal signatures today.
+  formal_cycles_today : nat;
+  // Management calls this module instance is awaiting.
+  in_flight : nat64;
+  // Account capacity shared by every configured user home.
+  max_accounts : nat64;
+  // Stable memory in 64 KiB pages.
+  stable_pages : nat64;
+  // Executions recorded as Unknown, including calls an upgrade abandoned.
+  unknown : nat64;
+  // Formal signatures (documents and agent events) counted today.
+  formal_executions_today : nat32;
+  // Reserved or settled cycles today against `daily_cycles`.
+  cycles_today : nat;
+};
 // Deployment domain used to separate identities and key derivation.
 type Environment = variant {
   // Local development deployment.
@@ -126,7 +153,7 @@ type Error = variant {
 type ExecutionCleanup = record {
   // Exclusive account cursor for the next page; None ends this pass.
   next_after : opt blob;
-  // Number of homes inspected (at most eight).
+  // Number of homes inspected (at most 64).
   homes_scanned : nat32;
   // Expired terminal results deleted; replay high-water marks are preserved.
   results_removed : nat32;
@@ -247,6 +274,10 @@ type ExecutionResult = record {
   // reservations, less refunded attached cycles. Not an actual charge or bill.
   // Zero before dispatch or when the management call was not sent.
   cycles_cost_upper_bound : nat;
+  // Threshold fee the returned management call consumed: its attached
+  // request cycles less the refund. Set on Completed and Failed results,
+  // zero otherwise; daily budgets settle to it. Excludes message fees.
+  cycles_charged : nat;
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
@@ -391,13 +422,16 @@ service : (CoseInit) -> {
   admin_add_user_home : (principal) -> (Result);
   // Set the global daily limits. Counts already used today are retained.
   admin_set_daily_budget : (nat32, nat) -> (Result);
+  // Account capacity, retained results, Unknown executions, today's global
+  // budget usage, stable pages and the cycle balance.
+  cose_stats : () -> (CoseStats) query;
   execute : (ExecutionGrant) -> (Result_1);
   get_execution : (blob, blob) -> (Result_1) query;
   // Fetch every configured master public key and check it against its pin.
   initialize_keys : () -> (Result_2);
   key_state : () -> (KeyState) query;
   // Prune one bounded page of expired terminal results, retaining replay guards.
-  // Public maintenance is safe: a page inspects at most eight accounts.
+  // Public maintenance is safe: a page inspects at most 64 accounts.
   prune_executions : (opt blob) -> (ExecutionCleanup);
   // Public-key math is independent of account existence or execution permission.
   // No management call, registration or stable write is needed for this query.

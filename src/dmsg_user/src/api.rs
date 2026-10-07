@@ -570,9 +570,10 @@ fn record_response(
         if result.is_terminal() {
             let mut s = load(account_id)?;
             crate::commerce::settle(&e)?;
+            execution::settle_budget(&mut s, &e);
             s.execution_expirations
                 .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
-            // Only the internal retention index changed, not the security leaf.
+            // Only the budget and retention index changed, not the security leaf.
             save_account(&s);
         }
         save_execution(&e);

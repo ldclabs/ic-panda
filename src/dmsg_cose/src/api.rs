@@ -233,7 +233,12 @@ fn validate_admin_add_user_home(home: Principal) -> Validation {
             home,
         )
         .map(|fresh| {
-            admin::user_home_payload(&config.environment, &config.issuer_namespace, home, fresh)
+            format!(
+                "{} All homes share this executor's {} of {MAX_HOMES} accounts.{}",
+                admin::user_home_payload(&config.environment, &config.issuer_namespace, home, true),
+                accounts(),
+                admin::unchanged(fresh, "Already listed"),
+            )
         }),
     )
 }
@@ -273,6 +278,31 @@ fn validate_admin_set_daily_budget(daily_executions: u32, daily_cycles: u128) ->
 #[ic_cdk::query]
 fn key_state() -> KeyState {
     cfg().state
+}
+
+/// Account capacity, retained results, Unknown executions, today's global
+/// budget usage, stable pages and the cycle balance.
+#[ic_cdk::query]
+fn cose_stats() -> CoseStats {
+    stats(now())
+}
+
+/// Refuse, before execution, ingress that the method would reject: `execute`
+/// from a Principal that is not a configured user home, and administrative
+/// methods from anyone but a controller or governance.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let caller = ic_cdk::api::msg_caller();
+    let allowed = match ic_cdk::api::msg_method_name().as_str() {
+        "execute" => cfg().state.config.user_homes.contains(&caller),
+        "initialize_keys" | "admin_add_user_home" | "admin_set_daily_budget" => {
+            check_admin(caller).is_ok()
+        }
+        _ => true,
+    };
+    if allowed {
+        ic_cdk::api::accept_message();
+    }
 }
 
 /// Public-key math is independent of account existence or execution permission.
@@ -553,6 +583,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let mut result = ExecutionResult {
         request_id: grant.request_id,
         cycles_cost_upper_bound: 0,
+        cycles_charged: 0,
         outcome: ExecutionOutcome::Executing,
     };
     let PreparedExecution {
@@ -590,20 +621,20 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     drop(grant);
     drop(h);
     drop(c);
+    begin_call(&account_id, sequence);
     let response = operation.execute().await;
+    end_call(&account_id, sequence);
     let failure = response.as_ref().err().map(chain_key::classify_failure);
     let unsent = failure == Some(FailureKind::NotSent);
     // An unsent call returns synchronously in update mode, where the refund API
     // traps. Only an actual reply/reject callback may inspect refunded cycles.
-    result.cycles_cost_upper_bound = if unsent {
+    let refunded = if unsent {
         0
     } else {
-        chain_key::cost_upper_bound(
-            cost,
-            response.as_ref().err(),
-            ic_cdk::api::msg_cycles_refunded(),
-        )
+        ic_cdk::api::msg_cycles_refunded()
     };
+    result.cycles_cost_upper_bound =
+        chain_key::cost_upper_bound(cost, response.as_ref().err(), refunded);
     result.outcome = match response {
         Ok(bytes) => match finish(finishing, key, bytes) {
             Ok(output) => ExecutionOutcome::Completed(Box::new(output)),
@@ -620,9 +651,22 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     };
     // Other executions can finish while this management call is in flight.
     let mut current = home(&account_id).expect("prepared home");
-    if unsent {
-        current.budgets.release_unsent(reserved, formal);
-        release_unsent_budget(reserved, formal);
+    if matches!(result.outcome, ExecutionOutcome::Unknown(_)) {
+        // The call may have run: keep the whole reservation.
+        count_unknown(1);
+    } else {
+        // Settle the reservation made at `at` to the fee actually consumed. An
+        // unsent or rejected call ran nothing and also returns its execution.
+        result.cycles_charged = if unsent {
+            0
+        } else {
+            cost.request_cycles.saturating_sub(refunded)
+        };
+        let executed = failure.is_none();
+        current
+            .budgets
+            .settle(at, reserved, result.cycles_charged, executed, formal);
+        settle_budget(at, reserved, result.cycles_charged, executed, formal);
     }
     current.finish(sequence, &result);
     save_execution(&account_id, &current, sequence, &result, &[]);
@@ -634,11 +678,16 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
     check_home(&cfg().state.config, ic_cdk::api::msg_caller(), &account_id)?;
     let h = home(&account_id).ok_or(Error::NotFound)?;
     let sequence = h.sequence(&request_id).ok_or(Error::NotFound)?;
-    execution(&account_id, sequence)
+    let mut result = execution(&account_id, sequence)?;
+    // An upgrade dropped the callback; the next update records the same.
+    if result.outcome == ExecutionOutcome::Executing && !awaiting(account_id.as_slice(), sequence) {
+        result.outcome = ExecutionOutcome::Unknown(Error::ExecutionUnknown);
+    }
+    Ok(result)
 }
 
 /// Prune one bounded page of expired terminal results, retaining replay guards.
-/// Public maintenance is safe: a page inspects at most eight accounts.
+/// Public maintenance is safe: a page inspects at most 64 accounts.
 #[ic_cdk::update]
 fn prune_executions(after: Option<AccountId>) -> ExecutionCleanup {
     crate::store::prune_executions(after, now())

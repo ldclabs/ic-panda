@@ -25,8 +25,7 @@ fn add_home(f: &Fixture, canister: Principal, governance: Principal, home: Princ
         (Principal::anonymous(),),
     );
     assert_eq!(rejected, Err("AuthRequired".into()));
-    let denied: Result<()> = update(&f.ic, canister, person(9), "admin_add_user_home", (home,));
-    assert_eq!(denied, Err(Error::Forbidden));
+    assert_denied(&f.ic, canister, person(9), "admin_add_user_home", (home,));
     for _ in 0..2 {
         let added: Result<()> = update(&f.ic, canister, governance, "admin_add_user_home", (home,));
         added.unwrap();

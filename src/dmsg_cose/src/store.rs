@@ -6,7 +6,7 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, RestrictedMemory, StableBTreeMap, StableCell,
 };
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeSet};
 
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -17,11 +17,11 @@ pub(crate) struct Config {
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type CellMemory = RestrictedMemory<Memory>;
-// Share one default 128-page bucket: keep the small budget in its last page.
-// Store both budgets in this page, without allocating another 8 MiB bucket.
+// Share one default 128-page bucket: keep the small global cell (both budgets
+// and the Unknown count) in its last page, without another 8 MiB bucket.
 const BUDGET_PAGE: u64 = 127;
-const CLEANUP_BATCH: usize = 8;
-const MAX_HOMES: u64 = 1_000_000;
+const CLEANUP_BATCH: usize = 64;
+pub(crate) const MAX_HOMES: u64 = 1_000_000;
 
 fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
@@ -43,11 +43,14 @@ thread_local! {
     static SIGNING_ROOTS: RefCell<Vec<Option<PublicKey>>> = const { RefCell::new(Vec::new()) };
     static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
-    static BUDGET: RefCell<StableCell<CompactStored<model::Budgets>, CellMemory>> =
+    static GLOBAL: RefCell<StableCell<CompactStored<model::Global>, CellMemory>> =
         RefCell::new(StableCell::init(
             RestrictedMemory::new(memory(0), BUDGET_PAGE..BUDGET_PAGE + 1),
-            CompactStored::new(&model::Budgets::default()),
+            CompactStored::new(&model::Global::default()),
         ));
+    // Executions whose management call this module instance awaits. An upgrade
+    // empties it, so an InFlight record absent here lost its callback.
+    static AWAITING: RefCell<BTreeSet<Vec<u8>>> = const { RefCell::new(BTreeSet::new()) };
 }
 
 pub(crate) fn cfg() -> Config {
@@ -94,19 +97,63 @@ pub(crate) fn signing_root(index: usize) -> Result<PublicKey> {
     })
 }
 
+pub(crate) fn accounts() -> u64 {
+    HOMES.with_borrow(|t| t.len())
+}
+
 pub(crate) fn home(account_id: &AccountId) -> Option<model::Home> {
     HOMES.with_borrow(|t| t.load(account_id.as_slice()))
 }
 
 /// Load an account's home, or start one while under the fixed account capacity.
+/// Executions an upgrade abandoned are first recorded as Unknown.
 pub(crate) fn home_or_new(account_id: &AccountId) -> Result<model::Home> {
-    HOMES.with_borrow(|t| match t.load(account_id.as_slice()) {
-        Some(h) => Ok(h),
+    let account = account_id.as_slice();
+    HOMES.with_borrow_mut(|t| match t.load(account) {
+        Some(mut h) => {
+            if resolve_abandoned(account, &mut h) {
+                t.put(account, &h);
+            }
+            Ok(h)
+        }
         None => {
             ensure(t.len() < MAX_HOMES, Error::QuotaExceeded)?;
             Ok(model::Home::default())
         }
     })
+}
+
+/// Mark an execution as awaiting its management call until `end_call`.
+pub(crate) fn begin_call(account_id: &AccountId, sequence: u64) {
+    AWAITING.with_borrow_mut(|s| s.insert(execution_key(account_id.as_slice(), sequence)));
+}
+
+pub(crate) fn end_call(account_id: &AccountId, sequence: u64) {
+    AWAITING.with_borrow_mut(|s| s.remove(&execution_key(account_id.as_slice(), sequence)));
+}
+
+pub(crate) fn awaiting(account: &[u8], sequence: u64) -> bool {
+    AWAITING.with_borrow(|s| s.contains(&execution_key(account, sequence)))
+}
+
+/// Record as Unknown the InFlight executions this module instance does not
+/// await, rewriting their stored results. Return whether the home changed;
+/// the caller saves it.
+fn resolve_abandoned(account: &[u8], h: &mut model::Home) -> bool {
+    let abandoned = h.abandon(|sequence| awaiting(account, sequence));
+    if abandoned.is_empty() {
+        return false;
+    }
+    EXECUTIONS.with_borrow_mut(|t| {
+        for sequence in &abandoned {
+            let key = execution_key(account, *sequence);
+            let mut result: ExecutionResult = compact_from_bytes(&t.get(&key).expect("result"));
+            result.outcome = ExecutionOutcome::Unknown(Error::ExecutionUnknown);
+            t.insert(key, compact_bytes(&result));
+        }
+    });
+    count_unknown(abandoned.len() as u64);
+    true
 }
 
 /// Commit the bounded metadata and the one result changed in this message.
@@ -135,35 +182,86 @@ pub(crate) fn execution(account_id: &AccountId, sequence: u64) -> Result<Executi
     })
 }
 
+fn update_global(f: impl FnOnce(&mut model::Global) -> Result<()>) -> Result<()> {
+    GLOBAL.with_borrow_mut(|t| {
+        let mut global = t.get().value();
+        f(&mut global)?;
+        t.set(CompactStored::new(&global));
+        Ok(())
+    })
+}
+
 pub(crate) fn reserve_budget(
     now: u64,
     cycles: u128,
     config: &CoseInit,
     formal: bool,
 ) -> Result<()> {
-    BUDGET.with_borrow_mut(|t| {
-        let mut budget = t.get().value();
-        budget.reserve(
+    update_global(|g| {
+        g.budgets.reserve(
             now,
             cycles,
             config.daily_executions,
             config.daily_cycles,
             formal,
-        )?;
-        t.set(CompactStored::new(&budget));
-        Ok(())
+        )
     })
 }
 
-pub(crate) fn release_unsent_budget(cycles: u128, formal: bool) {
-    BUDGET.with_borrow_mut(|t| {
-        let mut budget = t.get().value();
-        budget.release_unsent(cycles, formal);
-        t.set(CompactStored::new(&budget));
-    });
+/// Settle a global reservation; see [`model::Budgets::settle`].
+pub(crate) fn settle_budget(
+    reserved_at: u64,
+    reserved: u128,
+    charged: u128,
+    executed: bool,
+    formal: bool,
+) {
+    update_global(|g| {
+        g.budgets
+            .settle(reserved_at, reserved, charged, executed, formal);
+        Ok(())
+    })
+    .expect("settlement");
 }
 
-/// Each page visits at most eight homes and removes at most 8 * WINDOW results.
+pub(crate) fn count_unknown(executions: u64) {
+    update_global(|g| {
+        g.unknown = g.unknown.saturating_add(executions);
+        Ok(())
+    })
+    .expect("unknown count");
+}
+
+pub(crate) fn stats(now: u64) -> CoseStats {
+    let global = GLOBAL.with_borrow(|t| t.get().value());
+    let day = now / DAY;
+    // A budget last used on an earlier day has nothing counted today.
+    let today = |b: &dmsg_runtime::Budget| {
+        if b.day == day {
+            (b.executions, b.cycles)
+        } else {
+            (0, 0)
+        }
+    };
+    let (executions_today, cycles_today) = today(&global.budgets.total);
+    let (formal_executions_today, formal_cycles_today) = today(&global.budgets.formal);
+    CoseStats {
+        accounts: accounts(),
+        max_accounts: MAX_HOMES,
+        results: EXECUTIONS.with_borrow(|t| t.len()),
+        in_flight: AWAITING.with_borrow(|s| s.len() as u64),
+        unknown: global.unknown,
+        budget_day: day,
+        executions_today,
+        cycles_today,
+        formal_executions_today,
+        formal_cycles_today,
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
+}
+
+/// Each page visits at most 64 homes and removes at most 64 * WINDOW results.
 /// A full page returns its last key as the cursor; a shorter page ends the pass.
 /// Empty homes keep their sequence high-water mark and budget counters.
 pub(crate) fn prune_executions(after: Option<AccountId>, now: u64) -> ExecutionCleanup {
@@ -175,8 +273,10 @@ pub(crate) fn prune_executions(after: Option<AccountId>, now: u64) -> ExecutionC
         .map(|(id, _)| AccountId::try_from(id.as_slice()).expect("account key"));
     let mut results_removed = 0;
     for (account, h) in &mut homes {
+        // Abandoned calls must not keep an idle account's window closed.
+        let resolved = resolve_abandoned(account, h);
         let removed = h.prune(now);
-        if removed.is_empty() {
+        if removed.is_empty() && !resolved {
             continue;
         }
         EXECUTIONS.with_borrow_mut(|t| {
@@ -234,6 +334,7 @@ mod tests {
         let unknown = ExecutionResult {
             request_id: Hash::new([1; 32]),
             cycles_cost_upper_bound: 5,
+            cycles_charged: 0,
             outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
         };
         save_execution(&account, &h, 1, &unknown, &[]);

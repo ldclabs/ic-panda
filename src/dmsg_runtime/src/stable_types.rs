@@ -670,7 +670,13 @@ stable_struct!(ExecutionResultRepr => ExecutionResult {
     1 => request_id: OpId,
     2 => outcome: ExecutionOutcomeRepr as codec,
     3 => cycles_cost_upper_bound: u128,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    4 => cycles_charged: u128,
 });
+
+fn is_zero(value: &u128) -> bool {
+    *value == 0
+}
 
 stable_struct!(MasterKeyRepr => MasterKey {
     1 => algorithm: Algorithm,

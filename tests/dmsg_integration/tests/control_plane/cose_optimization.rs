@@ -87,6 +87,56 @@ impl CoseFixture {
             .unwrap();
     }
 
+    /// Upgrade within one round without stopping the canister, as a careless
+    /// controller could, so a pending management reply reaches the new module.
+    fn upgrade_without_stopping(&self) {
+        #[derive(CandidType, Deserialize)]
+        enum Mode {
+            #[serde(rename = "upgrade")]
+            Upgrade(Option<()>),
+        }
+        #[derive(CandidType, Deserialize)]
+        struct InstallCode {
+            mode: Mode,
+            canister_id: Principal,
+            wasm_module: ByteBuf,
+            arg: ByteBuf,
+        }
+        use std::io::Write;
+        // The raw module exceeds one ingress message; gzip it to install at once.
+        let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        gzip.write_all(&wasm("dmsg_cose")).unwrap();
+        let install = self
+            .ic
+            .submit_call_with_effective_principal(
+                Principal::management_canister(),
+                pocket_ic::common::rest::RawEffectivePrincipal::CanisterId(
+                    self.cose.as_slice().to_vec(),
+                ),
+                Principal::anonymous(),
+                "install_code",
+                candid::encode_one(InstallCode {
+                    mode: Mode::Upgrade(None),
+                    canister_id: self.cose,
+                    wasm_module: gzip.finish().unwrap().into(),
+                    arg: candid::encode_args(()).unwrap().into(),
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        self.ic.await_call(install).unwrap();
+    }
+
+    fn stats(&self) -> CoseStats {
+        query(
+            &self.ic,
+            self.cose,
+            Principal::anonymous(),
+            "cose_stats",
+            (),
+        )
+    }
+
     fn account(&self, n: u8) -> AccountId {
         home_account(self.home, n)
     }
@@ -180,8 +230,8 @@ fn cose_cycles_profile() {
         if [0, 4, 8].contains(&history) {
             let total = before - f.ic.cycle_balance(f.cose);
             println!(
-                "cose_cycles history={history} method=execute total={total} upper_bound={}",
-                result.cycles_cost_upper_bound
+                "cose_cycles history={history} method=execute total={total} upper_bound={} charged={}",
+                result.cycles_cost_upper_bound, result.cycles_charged
             );
             let before = f.ic.cycle_balance(f.cose);
             assert_eq!(f.execute(&grant), Ok(result.clone()));
@@ -456,7 +506,10 @@ fn cose_unsent_calls_fail_without_trapping_or_consuming_budgets() {
             ExecutionOutcome::Failed(Error::Unavailable(detail))
                 if detail.contains("InsufficientLiquidCycleBalance")
         ));
-        assert_eq!(failed.cycles_cost_upper_bound, 0);
+        assert_eq!(
+            (failed.cycles_cost_upper_bound, failed.cycles_charged),
+            (0, 0)
+        );
         assert_eq!(f.result(&grant), Ok(failed.clone()));
         f.ic.add_cycles(f.cose, 1_000_000_000_000_000);
         f.upgrade();
@@ -479,9 +532,8 @@ fn cose_authenticates_the_configured_home_before_new_requests_and_replays() {
     let f = CoseFixture::new(1000);
     let grant = f.grant(1, 1, 1);
     let check = || {
-        let denied: Result<ExecutionResult> =
-            update(&f.ic, f.cose, person(99), "execute", (&grant,));
-        assert_eq!(denied, Err(Error::Forbidden));
+        // A Principal that is no configured home is refused before execution.
+        assert_denied(&f.ic, f.cose, person(99), "execute", (&grant,));
         for wrong_cose in [false, true] {
             let mut wrong = grant.clone();
             if wrong_cose {
@@ -507,6 +559,27 @@ fn cose_authenticates_the_configured_home_before_new_requests_and_replays() {
         (&grant.account_id, grant.request_id),
     );
     assert_eq!(denied, Err(Error::Forbidden));
+    // Proposals to add a home show how much shared capacity is in use.
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        f.cose,
+        person(99),
+        "validate_admin_add_user_home",
+        (person(80),),
+    );
+    assert!(rendered
+        .unwrap()
+        .ends_with("All homes share this executor's 1 of 1000000 accounts."));
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        f.cose,
+        person(99),
+        "validate_admin_add_user_home",
+        (f.home,),
+    );
+    assert!(rendered
+        .unwrap()
+        .ends_with("1 of 1000000 accounts. Already listed; no change."));
 }
 
 #[test]
@@ -649,7 +722,13 @@ fn cose_budget_change_keeps_key_identity_and_current_usage() {
         (0u32, cycles),
     );
     assert!(rejected.is_err());
-    assert_eq!(set_budget(f.home, 4, cycles * 2), Err(Error::Forbidden));
+    assert_denied(
+        &f.ic,
+        f.cose,
+        f.home,
+        "admin_set_daily_budget",
+        (4u32, cycles * 2),
+    );
     assert!(matches!(
         set_budget(governance, 0, cycles),
         Err(Error::InvalidInput(_))
@@ -679,7 +758,7 @@ fn cose_budget_change_keeps_key_identity_and_current_usage() {
 fn cose_idle_cleanup_is_bounded_public_and_preserves_replay_guards() {
     let f = CoseFixture::new(1000);
     let mut grants = vec![];
-    for account in 1..=10 {
+    for account in 1..=70 {
         let mut grant = f.grant(account, 1, 1);
         grant.max_cycles = 1;
         f.execute(&grant).unwrap();
@@ -689,15 +768,15 @@ fn cose_idle_cleanup_is_bounded_public_and_preserves_replay_guards() {
         update(&f.ic, f.cose, person(72), "prune_executions", (after,))
     };
     let early = prune(None);
-    assert_eq!((early.homes_scanned, early.results_removed), (8, 0));
+    assert_eq!((early.homes_scanned, early.results_removed), (64, 0));
     f.ic.advance_time(Duration::from_millis(2 * DAY));
     let first = prune(None);
-    assert_eq!((first.homes_scanned, first.results_removed), (8, 8));
-    assert_eq!(first.next_after, Some(f.account(8)));
-    assert!(f.result(&grants[8]).is_ok());
+    assert_eq!((first.homes_scanned, first.results_removed), (64, 64));
+    assert_eq!(first.next_after, Some(f.account(64)));
+    assert!(f.result(&grants[64]).is_ok());
     f.upgrade();
     let last = prune(first.next_after);
-    assert_eq!((last.homes_scanned, last.results_removed), (2, 2));
+    assert_eq!((last.homes_scanned, last.results_removed), (6, 6));
     assert_eq!(last.next_after, None);
     for grant in grants {
         assert_eq!(f.result(&grant), Err(Error::NotFound));
@@ -706,5 +785,192 @@ fn cose_idle_cleanup_is_bounded_public_and_preserves_replay_guards() {
     assert_eq!(
         f.execute(&f.grant(1, 2, 1)).unwrap().status(),
         ExecutionStatus::Completed
+    );
+}
+
+#[test]
+fn cose_settles_budgets_to_the_charged_fee() {
+    let f = CoseFixture::configured(1000, true);
+    let signed = f.execute(&f.grant(1, 1, 1)).unwrap();
+    assert_eq!(signed.status(), ExecutionStatus::Completed);
+    assert!(signed.cycles_charged > 0 && signed.cycles_charged < signed.cycles_cost_upper_bound);
+    let root = f.execute(&f.root(2, 1)).unwrap();
+    assert_eq!(root.status(), ExecutionStatus::Completed);
+    assert!(root.cycles_charged > 0 && root.cycles_charged < root.cycles_cost_upper_bound);
+    println!(
+        "cose_charged sign={} sign_upper_bound={} root={} root_upper_bound={}",
+        signed.cycles_charged,
+        signed.cycles_cost_upper_bound,
+        root.cycles_charged,
+        root.cycles_cost_upper_bound
+    );
+    let stats = f.stats();
+    assert_eq!(
+        (
+            stats.accounts,
+            stats.max_accounts,
+            stats.results,
+            stats.in_flight,
+            stats.unknown
+        ),
+        (2, 1_000_000, 2, 0, 0)
+    );
+    assert_eq!(stats.budget_day, time(&f.ic) / DAY);
+    assert_eq!(
+        (stats.executions_today, stats.cycles_today),
+        (2, signed.cycles_charged + root.cycles_charged)
+    );
+    assert_eq!(
+        (stats.formal_executions_today, stats.formal_cycles_today),
+        (1, signed.cycles_charged)
+    );
+    assert!(stats.stable_pages > 0 && stats.cycles > 0);
+    // At the upper bound one account fit 12 signatures a day (880B / 68.3B);
+    // the settled fee leaves room for many more.
+    for sequence in 2..=20 {
+        assert_eq!(
+            f.execute(&f.grant(1, sequence, 1)).unwrap().status(),
+            ExecutionStatus::Completed
+        );
+    }
+    assert_eq!(f.stats().formal_cycles_today, 20 * signed.cycles_charged);
+}
+
+#[test]
+fn cose_upgrade_without_stopping_records_abandoned_calls_as_unknown() {
+    let f = CoseFixture::new(1000);
+    let first = f.grant(1, 1, 1);
+    let call =
+        f.ic.submit_call(
+            f.cose,
+            f.home,
+            "execute",
+            candid::encode_args((&first,)).unwrap(),
+        )
+        .unwrap();
+    f.ic.tick();
+    assert_eq!(
+        f.result(&first).unwrap().status(),
+        ExecutionStatus::Executing
+    );
+    assert_eq!(f.stats().in_flight, 1);
+    f.upgrade_without_stopping();
+    for _ in 0..40 {
+        f.ic.tick();
+    }
+    // The reply reached the new module, which has no callback for it.
+    assert!(f.ic.await_call(call).is_err());
+    let unknown = ExecutionResult {
+        outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
+        ..f.result(&first).unwrap()
+    };
+    // The query reports what the next update records.
+    assert_eq!(f.result(&first), Ok(unknown.clone()));
+    assert_eq!(f.stats().unknown, 0);
+    assert_eq!(
+        f.execute(&f.grant(1, 2, 1)).unwrap().status(),
+        ExecutionStatus::Completed
+    );
+    let stats = f.stats();
+    assert_eq!((stats.in_flight, stats.unknown), (0, 1));
+    // The original request is not signed again, and the window moves on:
+    // sequence 65 would be refused while sequence 1 stayed in flight.
+    assert_eq!(f.execute(&first), Ok(unknown));
+    let mut expired = f.root(1, 65);
+    expired.approved_at -= MINUTE;
+    expired.expires_at = time(&f.ic);
+    assert_eq!(
+        f.execute(&expired).unwrap().outcome,
+        ExecutionOutcome::Failed(Error::Expired)
+    );
+}
+
+#[test]
+fn cose_offline_pins_match_initialized_production_keys() {
+    use dmsg_protocol::cose_pins::{master_key_pins, KeySource};
+
+    let ic = PocketIcBuilder::new()
+        .with_application_subnet()
+        .with_fiduciary_subnet()
+        .build();
+    let algorithms = [
+        Algorithm::Ed25519,
+        Algorithm::EcdsaSecp256k1,
+        Algorithm::VetKdBls12381,
+    ];
+    for tampered in [false, true] {
+        let cose = ic.create_canister();
+        ic.add_cycles(cose, 10_000_000_000_000_000);
+        let mut masters = master_key_pins(
+            KeySource::PocketIc,
+            cose,
+            &Environment::Production,
+            "key_1",
+            &algorithms,
+        )
+        .unwrap();
+        let pins: Vec<Hash> = masters.iter().map(|m| m.expected_fingerprint).collect();
+        if tampered {
+            masters[2].expected_fingerprint = Hash::new([1; 32]);
+        }
+        let config = CoseInit {
+            issuer_namespace: NAMESPACE.into(),
+            environment: Environment::Production,
+            executing_canister: cose,
+            user_homes: vec![person(70)],
+            governance: person(71),
+            derivation_version: 2,
+            masters,
+            daily_executions: 10,
+            daily_cycles: 10_000_000_000_000,
+        };
+        ic.install_canister(
+            cose,
+            wasm("dmsg_cose"),
+            candid::encode_one(&config).unwrap(),
+            None,
+        );
+        let initialized: Result<KeyState> =
+            update(&ic, cose, Principal::anonymous(), "initialize_keys", ());
+        if tampered {
+            assert_eq!(initialized, Err(Error::IntegrityFailed));
+        } else {
+            let state = initialized.unwrap();
+            assert_eq!(state.initialization, Initialization::Ready);
+            assert_eq!(state.fingerprints, pins);
+        }
+    }
+}
+
+// Worst case of one public cleanup page: 64 idle accounts, each with 64
+// expired results. Run with --ignored after building the release Wasm.
+#[test]
+#[ignore = "cleanup page profile for dmsg_cose builds"]
+fn cose_cleanup_page_profile() {
+    let f = CoseFixture::new(1000);
+    for account in 1..=64u8 {
+        for sequence in 1..=64 {
+            let mut expired = f.root(account, sequence);
+            expired.approved_at -= MINUTE;
+            expired.expires_at = time(&f.ic);
+            assert_eq!(
+                f.execute(&expired).unwrap().outcome,
+                ExecutionOutcome::Failed(Error::Expired)
+            );
+        }
+    }
+    f.ic.advance_time(Duration::from_millis(2 * DAY));
+    let before = f.ic.cycle_balance(f.cose);
+    let cleaned: ExecutionCleanup = update(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "prune_executions",
+        (None::<AccountId>,),
+    );
+    assert_eq!((cleaned.homes_scanned, cleaned.results_removed), (64, 4096));
+    println!(
+        "cose_cleanup_page homes=64 results=4096 cycles={}",
+        before - f.ic.cycle_balance(f.cose)
     );
 }

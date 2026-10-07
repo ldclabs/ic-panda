@@ -77,6 +77,15 @@ impl SignRequestExt for SignRequest {
     }
 }
 
+/// vetKD context of every content-root key:
+/// `canonical(("dmsg/content-root/v2", environment, derivation_version))`.
+///
+/// Each account derives with input `canonical((account_id, generation))`, and
+/// the context's vetKD public key is the COSE `VetKdBls12381` master pin.
+pub fn content_root_context(environment: &Environment, derivation_version: u16) -> Vec<u8> {
+    canonical(&("dmsg/content-root/v2", environment, derivation_version))
+}
+
 /// Validate fixed COSE deployment configuration without accessing ICP master keys.
 pub trait CoseInitExt {
     /// Check executing canister against id, derivation version 2, namespace, user

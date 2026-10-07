@@ -35,3 +35,7 @@ pub mod commerce_v2;
 
 /// Shared product-side interval reservation and contract CAS.
 pub mod product_book;
+
+/// Offline COSE master-key pins for deployment tooling.
+#[cfg(feature = "cose-pins")]
+pub mod cose_pins;
