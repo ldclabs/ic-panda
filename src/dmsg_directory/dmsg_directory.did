@@ -36,6 +36,15 @@ type DirectoryInit = record {
   // each account ID carries its home's allocator fingerprint. Append-only.
   user_homes : vec principal;
 };
+// Operational counters of the directory.
+type DirectoryStats = record {
+  // Cycle balance.
+  cycles : nat;
+  // Published accounts.
+  publications : nat64;
+  // Stable memory in 64 KiB pages.
+  stable_pages : nat64;
+};
 // Deployment domain used to separate identities and key derivation.
 type Environment = variant {
   // Local development deployment.
@@ -175,9 +184,11 @@ service : (DirectoryInit) -> {
   // `directory_canister` and share the environment, namespace and origin.
   admin_add_user_home : (principal) -> (Result);
   // Replace the domains served at `/.well-known/ic-domains`. Principal IDs
-  // keep the permanent principal origin.
+  // keep the permanent principal origin, whose host must stay listed.
   admin_set_custom_domains : (vec text) -> (Result);
   directory_config : () -> (DirectoryInit) query;
+  // Published accounts, stable pages and the cycle balance.
+  directory_stats : () -> (DirectoryStats) query;
   get_publication : (blob) -> (Result_1) query;
   // Publish an account's principal state. Only the account's home may publish:
   // the first time, the home whose allocator fingerprint the account ID carries;

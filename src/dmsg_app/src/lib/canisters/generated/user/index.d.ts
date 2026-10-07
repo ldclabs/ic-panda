@@ -699,6 +699,7 @@ export interface _SERVICE {
     [Uint8Array | number[], Uint8Array | number[]],
     Result_6
   >,
+  'user_config' : ActorMethod<[], UserInit>,
   'user_stats' : ActorMethod<[], UserStats>,
   'validate_admin_set_account_limits' : ActorMethod<
     [bigint, number],

@@ -139,3 +139,14 @@ pub struct Publication {
     /// SHA-256 of the exact published JSON document bytes.
     pub document_digest: Hash,
 }
+
+/// Operational counters of the directory.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct DirectoryStats {
+    /// Published accounts.
+    pub publications: u64,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
+}

@@ -1237,6 +1237,9 @@ service : (UserInit) -> {
   // The secret a bound login fetches to unlock one device's local store. It is
   // refused for revoked devices, so revocation also locks the device's copy.
   unlock_secret : (blob, blob) -> (Result_6) query;
+  // Installed configuration with the current account limits. Services check it
+  // before they list this home with `admin_add_user_home`.
+  user_config : () -> (UserInit) query;
   // Account count, capacity, today's admissions, unlock readiness, stable
   // pages and the cycle balance.
   user_stats : () -> (UserStats) query;

@@ -150,6 +150,13 @@ fn validate_admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32)
     }))
 }
 
+/// Installed configuration with the current account limits. Services check it
+/// before they list this home with `admin_add_user_home`.
+#[ic_cdk::query]
+fn user_config() -> UserInit {
+    config().init
+}
+
 /// Account count, capacity, today's admissions, unlock readiness, stable
 /// pages and the cycle balance.
 #[ic_cdk::query]

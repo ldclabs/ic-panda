@@ -356,4 +356,19 @@ mod tests {
             assert_eq!(original.root_hash(), prehashed.root_hash());
         }
     }
+
+    /// Upgrades keep each document's certified hash, and a query rebuilds the
+    /// response and asserts it against that hash. If this value changes
+    /// (headers, the certification expression or an `ic-http-certification`
+    /// upgrade), the same release must recertify every published document.
+    #[test]
+    fn document_response_certification_is_pinned() {
+        let path = document_path(&AccountId([9; 12]));
+        let key = segment(&path);
+        let certified = entry(path, &document_response(vec![]), Some(Hash::new([7; 32])));
+        assert_eq!(
+            dmsg_runtime::admin::hex(&subtree(&certified, &key).digest()),
+            "2ccb4966542398b9c91eaa28c4d2df6b4d4ec85733fa1382fb0bdbf90811578d"
+        );
+    }
 }

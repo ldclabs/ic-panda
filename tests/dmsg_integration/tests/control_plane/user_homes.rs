@@ -77,6 +77,11 @@ fn services_serve_accounts_of_a_user_home_added_by_governance() {
     assert_eq!(refresh(), Err(Error::Forbidden));
     assert_eq!(open(&f.order(&remote, 2, 1)), Err(Error::NotFound));
 
+    // Services check the new home's configuration before listing it.
+    let home: UserInit = query(&f.ic, second, person(9), "user_config", ());
+    assert_eq!(home.home_cose, f.cose);
+    assert_eq!(home.directory_canister, f.directory);
+    assert_eq!(home.principal_origin, PRINCIPAL_ORIGIN);
     add_home(&f, f.cose, f.sns, second);
     add_home(&f, f.commerce, f.sns, second);
     add_home(&f, f.payment, Principal::from_slice(&[90]), second);

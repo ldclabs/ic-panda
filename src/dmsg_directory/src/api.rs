@@ -9,9 +9,40 @@ fn check_admin(caller: Principal) -> Result<()> {
     admin::check_admin(caller, config().init.governance)
 }
 
+/// Refuse, before execution, ingress that no legitimate caller sends: user
+/// homes publish and governance executes proposals through inter-canister
+/// calls, and queries need no ingress. Only `publish` from a listed home and
+/// calls from a controller or governance are accepted, so nobody else makes
+/// this canister pay for ingress. This runs on one replica and is not a
+/// security boundary; every method still checks its caller.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let caller = ic_cdk::api::msg_caller();
+    let init = config().init;
+    let allowed = match ic_cdk::api::msg_method_name().as_str() {
+        "publish" => init.user_homes.contains(&caller),
+        _ => admin::check_admin(caller, init.governance).is_ok(),
+    };
+    if allowed {
+        ic_cdk::api::accept_message();
+    }
+}
+
+/// Check a domain list for `/.well-known/ic-domains`. The principal origin's
+/// host must stay listed: every principal ID resolves at that custom domain.
+fn check_domains(init: &DirectoryInit, domains: &[String]) -> Result<()> {
+    agent::validate_custom_domains(domains)?;
+    let host = init.principal_origin.strip_prefix("https://");
+    ensure_valid(
+        domains.iter().any(|d| host == Some(d.as_str())),
+        "principal origin domain",
+    )
+}
+
 #[ic_cdk::init]
 fn init(args: DirectoryInit) {
     agent::validate_directory_init(&args).expect("directory configuration");
+    check_domains(&args, &args.custom_domains).expect("directory domains");
     http::certify_fixed(&args.custom_domains);
     save_config(&Config {
         schema: STABLE_SCHEMA,
@@ -60,12 +91,12 @@ fn validate_admin_add_user_home(home: Principal) -> Validation {
 }
 
 /// Replace the domains served at `/.well-known/ic-domains`. Principal IDs
-/// keep the permanent principal origin.
+/// keep the permanent principal origin, whose host must stay listed.
 #[ic_cdk::update]
 fn admin_set_custom_domains(domains: Vec<String>) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
-    agent::validate_custom_domains(&domains)?;
     let mut c = config();
+    check_domains(&c.init, &domains)?;
     if c.init.custom_domains != domains {
         http::certify_domains(&domains);
         c.init.custom_domains = domains;
@@ -76,13 +107,14 @@ fn admin_set_custom_domains(domains: Vec<String>) -> Result<()> {
 
 #[ic_cdk::query]
 fn validate_admin_set_custom_domains(domains: Vec<String>) -> Validation {
-    let current = config().init.custom_domains;
-    validation(agent::validate_custom_domains(&domains).map(|()| {
+    let init = config().init;
+    validation(check_domains(&init, &domains).map(|()| {
+        let current = &init.custom_domains;
         format!(
             "Serve custom domains [{}] at /.well-known/ic-domains (currently [{}]).{}",
             domains.join(", "),
             current.join(", "),
-            admin::unchanged(domains != current, "Same domains"),
+            admin::unchanged(&domains != current, "Same domains"),
         )
     }))
 }
@@ -162,6 +194,16 @@ fn get_publication(account_id: AccountId) -> Result<Publication> {
 #[ic_cdk::query]
 fn directory_config() -> DirectoryInit {
     config().init
+}
+
+/// Published accounts, stable pages and the cycle balance.
+#[ic_cdk::query]
+fn directory_stats() -> DirectoryStats {
+    DirectoryStats {
+        publications: count(),
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
 }
 
 #[ic_cdk::query(hidden = true)]

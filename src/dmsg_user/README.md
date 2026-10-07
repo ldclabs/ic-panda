@@ -46,7 +46,7 @@ flowchart LR
 | 服务回调 | `consume_handle_authorization`、`consume_handle_transfer_authorizations`、`verify_payment_offer`、`verify_application_authorization`、`authorize_product_billing`、`verify_product_account` | 初始化固定的 handle、payment、commerce 或 membership；`verify_product_account` 为已登记产品的 adapter |
 | 发布     | `publish_principal`                                                                                                                                                                    | 任何人，幂等                                                                   |
 | 维护     | `prune_auth_bindings`、`prune_executions`、`prune_external_approvals`                                                                                                                  | 任何人，每次有界                                                               |
-| 公开查询 | `security_snapshot_batch`、`get_device_bundle`、`get_principal`、`my_account`、`user_stats`                                                                                            | 任何人                                                                         |
+| 公开查询 | `security_snapshot_batch`、`get_device_bundle`、`get_principal`、`my_account`、`user_stats`、`user_config`                                                                             | 任何人                                                                         |
 | 本人查询 | `get_account`、`get_operation`、`get_root_ref`、`get_execution`、`get_attestation`、`get_execution_receipt`、`get_execution_usage`、`get_execution_usage_certified`、`authentication_certificate`、`get_recovery_request`、`unlock_secret` | 账户的登录 Principal；`unlock_secret` 只对未撤销设备返回                      |
 
 唯一的管理入口是 `admin_set_account_limits(max_accounts, daily_new_accounts)`，接受 controller 和初始化固定的 `governance`，并有同参数的 `validate_admin_set_account_limits` 供 SNS 通用提案预演。controller 还负责安装和升级，升级可以替换全部授权逻辑，因此 controller 等同于全部账户的最终权限。
@@ -385,7 +385,7 @@ flowchart LR
 - **容量**：月账不清理。认证树已移入 stable memory，升级不再整批重建；生产容量没有验收。
 - **配置不可变**：除两个配额外，配置在安装后不可变。
 - **全局额度**：`daily_new_accounts` 和 1024 条待绑定都是全局额度。批量生成的 Principal 可以占满它们，暂时阻止新用户注册和新登录绑定。没有 `canister_inspect_message` 预过滤。
-- **多 home**：可以部署多个 user home，各服务按账户 ID 的分配器指纹把账户路由到所属 home。新 home 须在 COSE、handle、payment、commerce、directory 用 `admin_add_user_home` 登记，并加入 handle 的 `registration_homes` 才接收新账户。账户的 `home_user` 和 `home_cose` 不可迁移；同一登录 Principal 可以在不同 home 各建一个账户，跨 home 的唯一性和账户迁移都没有实现。
+- **多 home**：可以部署多个 user home，各服务按账户 ID 的分配器指纹把账户路由到所属 home。新 home 须在 COSE、handle、payment、commerce、directory 用 `admin_add_user_home` 登记（登记前用新 home 的 `user_config` 核对 environment、issuer_namespace 与各服务 canister），并加入 handle 的 `registration_homes` 才接收新账户。账户的 `home_user` 和 `home_cose` 不可迁移；同一登录 Principal 可以在不同 home 各建一个账户，跨 home 的唯一性和账户迁移都没有实现。
 - **本机解锁秘密**：`master_secret` 是 canister 持有的秘密，子网节点运营者可读；它只对持有设备本机密文副本的人有用。
 - **未验收**：生产部署、主网费用、真实外部应用与产品、扩展端到端流程都没有验收。
 

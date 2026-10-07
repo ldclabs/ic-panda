@@ -750,6 +750,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_6],
         ['query'],
       ),
+    'user_config' : IDL.Func([], [UserInit], ['query']),
     'user_stats' : IDL.Func([], [UserStats], ['query']),
     'validate_admin_set_account_limits' : IDL.Func(
         [IDL.Nat64, IDL.Nat32],

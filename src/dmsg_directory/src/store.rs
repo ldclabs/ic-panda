@@ -58,6 +58,10 @@ pub(crate) fn load(id: &AccountId) -> Option<Record> {
     RECORDS.with_borrow(|t| t.load(id.as_slice()))
 }
 
+pub(crate) fn count() -> u64 {
+    RECORDS.with_borrow(|t| t.len())
+}
+
 /// Persist a publication and certify its response in the same message.
 pub(crate) fn save(id: &AccountId, record: &Record) {
     RECORDS.with_borrow_mut(|t| t.put(id.as_slice(), record));

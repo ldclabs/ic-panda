@@ -172,3 +172,7 @@ The PocketIC `control_plane` (113 tests) and `directory` suites pass on the 16.0
 ## 2026-10-07 handle names capped at 19 bytes
 
 `normalize_handle` and the client's `canonicalHandle` accept only 1–19-byte names, so a handle can never match the 20-character Xid text of an `AccountId` and `/<handle>` cannot be confused with `/u/<account_id>`. Names of 7–19 bytes still cost 100 PANDA. A 2026-10-07 query of the mainnet legacy `ic_message` name blocks found 203 distinct names, the longest 17 bytes, so the legacy import is unaffected.
+
+## 2026-10-08 directory production readiness
+
+The directory gains `canister_inspect_message`: it accepts only `publish` from listed homes and ingress from controllers or governance, and refuses all other ingress before execution, so the directory no longer pays to receive it. `custom_domains` must include the host of `principal_origin`, at install and in `admin_set_custom_domains` and its validator. New `directory_stats` reports published accounts, stable pages and the cycle balance, and a unit test pins the certification hash of the document response: upgrades do not recertify documents, so a change to response headers or the certification library must recertify all of them in the same release. User adds a `user_config` query that returns the installed configuration with the current account limits, so each service can check a new home before `admin_add_user_home`. Stable layouts are unchanged. Deployment, the custom domain and the SNS handover are described in the [directory README](../src/dmsg_directory/README.md).

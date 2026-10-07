@@ -187,3 +187,7 @@ PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wa
 ## 2026-10-07 handle 名称上限改为 19 字节
 
 `normalize_handle` 与客户端 `canonicalHandle` 只接受 1–19 字节的名称，使名称不会与 `AccountId` 的 20 字符 Xid 文本重合，`/<handle>` 与 `/u/<account_id>` 不会产生歧义。7–19 字节价格仍为 100 PANDA。2026-10-07 查询主网旧 `ic_message` 的名称区块：203 个不同名称，最长 17 字节，旧名导入不受影响。
+
+## 2026-10-08 directory 上线准备
+
+directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publish` 与 controller 或 governance 的 ingress，其他 ingress 在执行前被拒绝，不再由 directory 支付接收费。`custom_domains` 在安装和 `admin_set_custom_domains`（含预演）时都必须包含 `principal_origin` 的主机名。新增 `directory_stats`（已发布账户数、stable 页数、cycles 余额），并用单元测试固定文档响应的认证哈希：升级不重新认证文档，响应头或认证库的改动必须同时重新认证全部文档。user 新增 `user_config` query 返回安装配置与当前账户上限，供各服务在 `admin_add_user_home` 前核对新 home。稳定布局不变。部署、自定义域与交给 SNS 的流程见 [directory README](../src/dmsg_directory/README.md)。

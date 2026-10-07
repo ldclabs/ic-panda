@@ -297,7 +297,13 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     let publish = |caller: Principal, state: &PrincipalState| -> Result<Publication> {
         update(&f.ic, f.directory, caller, "publish", (id, state.clone()))
     };
-    assert_eq!(publish(person(1), &info.state), Err(Error::Forbidden));
+    assert_refused(
+        &f.ic,
+        f.directory,
+        person(1),
+        "publish",
+        (id, info.state.clone()),
+    );
     let current = publish(f.user, &info.state).unwrap();
     assert_eq!(current.version, 4);
     assert_eq!(current.document_digest, sha256(&bytes));
@@ -323,7 +329,7 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     );
     assert_eq!(rejected, Err(Error::Forbidden));
 
-    // Upgrades rebuild the certification tree from stable documents.
+    // Upgrades keep the stable documents and their certification.
     f.ic.upgrade_canister(
         f.directory,
         wasm("dmsg_directory"),

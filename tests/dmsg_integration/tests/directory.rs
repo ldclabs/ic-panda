@@ -14,6 +14,10 @@ fn governance() -> Principal {
     Principal::self_authenticating([9; 32])
 }
 
+fn visitor() -> Principal {
+    Principal::self_authenticating([8; 32])
+}
+
 fn wasm() -> Vec<u8> {
     let directory = std::env::var_os("DMSG_WASM_DIR")
         .map(PathBuf::from)
@@ -146,6 +150,24 @@ impl Fixture {
         .unwrap()
     }
 
+    /// The canister's inspect_message refuses the ingress before the method runs.
+    fn refused<A: ArgumentEncoder>(&self, caller: Principal, method: &str, args: A) {
+        let reject = self
+            .ic
+            .update_call(
+                self.directory,
+                caller,
+                method,
+                candid::encode_args(args).unwrap(),
+            )
+            .expect_err(method);
+        assert_eq!(
+            reject.error_code,
+            pocket_ic::ErrorCode::CanisterRejectedMessage,
+            "{method}: {reject:?}"
+        );
+    }
+
     fn publish(&self, home: usize, id: AccountId, state: &PrincipalState) -> Result<Publication> {
         self.update(self.homes[home], "publish", (id, state))
     }
@@ -190,10 +212,11 @@ fn publication_authentication_versions_and_rejected_updates_are_atomic() {
     let id = f.id(0, 1);
     let initial = state(1);
     assert_eq!(f.publication(id), Err(Error::NotFound));
-    let forbidden: Result<Publication> =
-        f.update(Principal::anonymous(), "publish", (id, &initial));
-    assert_eq!(forbidden, Err(Error::Forbidden));
-    assert_eq!(f.publish(1, id, &initial), Err(Error::Forbidden));
+    // Ingress is accepted only for publish from listed homes and from administrators.
+    f.refused(Principal::anonymous(), "publish", (id, &initial));
+    f.refused(f.homes[1], "publish", (id, &initial));
+    f.refused(visitor(), "get_publication", (id,));
+    f.refused(visitor(), "http_request", (HttpRequest::get("/").build(),));
     assert_eq!(f.publish(0, f.id(1, 1), &initial), Err(Error::Forbidden));
     let publication = f.publish(0, id, &initial).unwrap();
     let before = f.get(&format!("/{id}"));
@@ -322,7 +345,7 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
     let first = f.id(0, 1);
     let initial = f.publish(0, first, &state(1)).unwrap();
     let second = f.id(1, 1);
-    assert_eq!(f.publish(1, second, &state(1)), Err(Error::Forbidden));
+    f.refused(f.homes[1], "publish", (second, &state(1)));
 
     let home = f.homes[1];
     let rendered: std::result::Result<String, String> =
@@ -333,8 +356,7 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
     let rejected: std::result::Result<String, String> =
         f.query("validate_admin_add_user_home", (Principal::anonymous(),));
     assert_eq!(rejected, Err("AuthRequired".into()));
-    let denied: Result<()> = f.update(f.homes[0], "admin_add_user_home", (home,));
-    assert_eq!(denied, Err(Error::Forbidden));
+    f.refused(f.homes[0], "admin_add_user_home", (home,));
     for _ in 0..2 {
         let added: Result<()> = f.update(governance(), "admin_add_user_home", (home,));
         added.unwrap();
@@ -346,19 +368,29 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
     assert_eq!(f.publish(1, first, &state(1)), Err(Error::Forbidden));
     assert_eq!(f.publish(0, second, &state(1)), Err(Error::Forbidden));
 
-    let domains = vec!["new.dmsg.test".to_string()];
-    let invalid = vec!["New.dmsg.test".to_string()];
-    let rejected: std::result::Result<String, String> =
-        f.query("validate_admin_set_custom_domains", (&invalid,));
-    assert!(rejected.is_err());
-    let rejected: Result<()> = f.update(governance(), "admin_set_custom_domains", (&invalid,));
-    assert!(matches!(rejected, Err(Error::InvalidInput(_))));
+    let domains = vec!["id.dmsg.test".to_string(), "new.dmsg.test".to_string()];
+    // Malformed lists and lists without the principal origin's host are refused.
+    for invalid in [
+        vec!["id.dmsg.test".to_string(), "New.dmsg.test".to_string()],
+        vec!["new.dmsg.test".to_string()],
+        vec![],
+    ] {
+        let rejected: std::result::Result<String, String> =
+            f.query("validate_admin_set_custom_domains", (&invalid,));
+        assert!(rejected.is_err(), "{invalid:?}");
+        let rejected: Result<()> =
+            f.update(governance(), "admin_set_custom_domains", (&invalid,));
+        assert!(matches!(rejected, Err(Error::InvalidInput(_))), "{invalid:?}");
+    }
     let rendered: std::result::Result<String, String> =
         f.query("validate_admin_set_custom_domains", (&domains,));
     assert!(rendered.unwrap().contains("new.dmsg.test"));
     let set: Result<()> = f.update(governance(), "admin_set_custom_domains", (&domains,));
     set.unwrap();
-    assert_eq!(f.get("/.well-known/ic-domains").body(), b"new.dmsg.test");
+    assert_eq!(
+        f.get("/.well-known/ic-domains").body(),
+        b"id.dmsg.test\nnew.dmsg.test"
+    );
 
     let mut expected = f.config.clone();
     expected.user_homes.push(home);
@@ -373,7 +405,13 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
             publication.document_digest
         );
     }
-    assert_eq!(f.get("/.well-known/ic-domains").body(), b"new.dmsg.test");
+    assert_eq!(
+        f.get("/.well-known/ic-domains").body(),
+        b"id.dmsg.test\nnew.dmsg.test"
+    );
+    let stats: DirectoryStats = f.query("directory_stats", ());
+    assert_eq!(stats.publications, 2);
+    assert!(stats.stable_pages > 0 && stats.cycles > 0);
 }
 
 /// Run explicitly with --ignored --exact --nocapture. DMSG_WASM_DIR can point
