@@ -674,8 +674,9 @@ stable_struct!(ExecutionResultRepr => ExecutionResult {
     4 => cycles_charged: u128,
 });
 
-fn is_zero(value: &u128) -> bool {
-    *value == 0
+/// `skip_serializing_if` predicate of a defaulted integer key: zero is omitted.
+pub fn is_zero<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
 }
 
 stable_struct!(MasterKeyRepr => MasterKey {

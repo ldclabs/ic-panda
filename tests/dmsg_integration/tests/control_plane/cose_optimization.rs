@@ -533,7 +533,7 @@ fn cose_authenticates_the_configured_home_before_new_requests_and_replays() {
     let grant = f.grant(1, 1, 1);
     let check = || {
         // A Principal that is no configured home is refused before execution.
-        assert_denied(&f.ic, f.cose, person(99), "execute", (&grant,));
+        assert_refused(&f.ic, f.cose, person(99), "execute", (&grant,));
         for wrong_cose in [false, true] {
             let mut wrong = grant.clone();
             if wrong_cose {
@@ -722,7 +722,7 @@ fn cose_budget_change_keeps_key_identity_and_current_usage() {
         (0u32, cycles),
     );
     assert!(rejected.is_err());
-    assert_denied(
+    assert_refused(
         &f.ic,
         f.cose,
         f.home,
@@ -942,8 +942,10 @@ fn cose_offline_pins_match_initialized_production_keys() {
     }
 }
 
-// Worst case of one public cleanup page: 64 idle accounts, each with 64
-// expired results. Run with --ignored after building the release Wasm.
+// A full public cleanup page: 64 idle accounts, each with 64 expired results.
+// They carry no payload; a removal also reads the result and rewrites the rest
+// of its leaf, so larger signature results cost more. Run with --ignored after
+// building the release Wasm.
 #[test]
 #[ignore = "cleanup page profile for dmsg_cose builds"]
 fn cose_cleanup_page_profile() {
@@ -971,6 +973,47 @@ fn cose_cleanup_page_profile() {
     assert_eq!((cleaned.homes_scanned, cleaned.results_removed), (64, 4096));
     println!(
         "cose_cleanup_page homes=64 results=4096 cycles={}",
+        before - f.ic.cycle_balance(f.cose)
+    );
+}
+
+// One cleanup page of signature results: the first 64 of 66 idle accounts,
+// each with 32 expired 4 KiB statement signatures (a day's formal budget of
+// one account). Run with --ignored after building the release Wasm.
+#[test]
+#[ignore = "signature cleanup page profile for dmsg_cose builds"]
+fn cose_signature_cleanup_page_profile() {
+    let f = CoseFixture::new(1000);
+    let budget: Result<()> = update(
+        &f.ic,
+        f.cose,
+        f.config.governance,
+        "admin_set_daily_budget",
+        (10_000u32, 100_000_000_000_000u128),
+    );
+    budget.unwrap();
+    for account in 1..=66u8 {
+        for sequence in 1..=32 {
+            assert_eq!(
+                f.execute(&f.grant(account, sequence, 4096))
+                    .unwrap()
+                    .status(),
+                ExecutionStatus::Completed
+            );
+        }
+    }
+    f.ic.advance_time(Duration::from_millis(2 * DAY));
+    let before = f.ic.cycle_balance(f.cose);
+    let cleaned: ExecutionCleanup = update(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "prune_executions",
+        (None::<AccountId>,),
+    );
+    assert_eq!((cleaned.homes_scanned, cleaned.results_removed), (64, 2048));
+    println!(
+        "cose_signature_cleanup_page homes=64 results=2048 cycles={}",
         before - f.ic.cycle_balance(f.cose)
     );
 }

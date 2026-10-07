@@ -39,7 +39,9 @@ async function main() {
     }
   })
   if (!values.canister)
-    throw new Error('Usage: node cose-prune.mjs --canister <dmsg_cose ID> [--host URL] [--after HEX]')
+    throw new Error(
+      'Usage: node cose-prune.mjs --canister <dmsg_cose ID> [--host URL] [--after HEX]'
+    )
   const url = new URL(values.host)
   const local = ['localhost', '127.0.0.1'].includes(url.hostname)
   if (url.protocol !== 'https:' && !local) throw new Error('HTTPS host required')
@@ -51,7 +53,10 @@ async function main() {
   })
   const cose = Actor.createActor(idlFactory, { agent, canisterId: values.canister })
   const after = values.after ? [Uint8Array.from(Buffer.from(values.after, 'hex'))] : []
-  const { pages, removed } = await prunePass(cose, after)
+  // Name the cursor after every full page, so an interrupted pass can resume.
+  const { pages, removed } = await prunePass(cose, after, (page) => {
+    if (page.next_after.length) console.error(`Done up to --after ${hex(page.next_after[0])}`)
+  })
   console.log(`Scanned ${pages} pages and removed ${removed} expired results.`)
 }
 

@@ -91,6 +91,24 @@ fn assert_denied<A: ArgumentEncoder>(
     }
 }
 
+/// The canister's inspect_message refuses the ingress before the method runs.
+fn assert_refused<A: ArgumentEncoder>(
+    ic: &PocketIc,
+    id: Principal,
+    caller: Principal,
+    method: &str,
+    args: A,
+) {
+    let reject = ic
+        .update_call(id, caller, method, candid::encode_args(args).unwrap())
+        .expect_err(method);
+    assert_eq!(
+        reject.error_code,
+        pocket_ic::ErrorCode::CanisterRejectedMessage,
+        "{method}: {reject:?}"
+    );
+}
+
 fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
     approval_message(
         home,

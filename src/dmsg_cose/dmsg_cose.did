@@ -431,7 +431,8 @@ service : (CoseInit) -> {
   initialize_keys : () -> (Result_2);
   key_state : () -> (KeyState) query;
   // Prune one bounded page of expired terminal results, retaining replay guards.
-  // Public maintenance is safe: a page inspects at most 64 accounts.
+  // Public maintenance is safe: a page inspects at most 64 accounts and stops
+  // between accounts after half the 40B update instruction limit.
   prune_executions : (opt blob) -> (ExecutionCleanup);
   // Public-key math is independent of account existence or execution permission.
   // No management call, registration or stable write is needed for this query.

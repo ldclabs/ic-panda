@@ -99,10 +99,6 @@ pub struct GlobalRepr {
     unknown: u64,
 }
 
-fn is_zero(value: &u64) -> bool {
-    *value == 0
-}
-
 impl StableCodec for model::Global {
     type Repr = GlobalRepr;
 

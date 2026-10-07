@@ -49,7 +49,8 @@ thread_local! {
             CompactStored::new(&model::Global::default()),
         ));
     // Executions whose management call this module instance awaits. An upgrade
-    // empties it, so an InFlight record absent here lost its callback.
+    // empties it and a trapped callback drops its entry, so an InFlight record
+    // absent here lost its callback.
     static AWAITING: RefCell<BTreeSet<Vec<u8>>> = const { RefCell::new(BTreeSet::new()) };
 }
 
@@ -123,13 +124,23 @@ pub(crate) fn home_or_new(account_id: &AccountId) -> Result<model::Home> {
     })
 }
 
-/// Mark an execution as awaiting its management call until `end_call`.
-pub(crate) fn begin_call(account_id: &AccountId, sequence: u64) {
-    AWAITING.with_borrow_mut(|s| s.insert(execution_key(account_id.as_slice(), sequence)));
+/// An execution awaiting its management call. Dropping it ends the wait, also
+/// when a trap after the await makes ic-cdk cancel the call's task; only an
+/// upgrade empties the set without a drop.
+pub(crate) struct AwaitingCall(Vec<u8>);
+
+impl AwaitingCall {
+    pub(crate) fn begin(account_id: &AccountId, sequence: u64) -> Self {
+        let key = execution_key(account_id.as_slice(), sequence);
+        AWAITING.with_borrow_mut(|s| s.insert(key.clone()));
+        Self(key)
+    }
 }
 
-pub(crate) fn end_call(account_id: &AccountId, sequence: u64) {
-    AWAITING.with_borrow_mut(|s| s.remove(&execution_key(account_id.as_slice(), sequence)));
+impl Drop for AwaitingCall {
+    fn drop(&mut self) {
+        AWAITING.with_borrow_mut(|s| s.remove(&self.0));
+    }
 }
 
 pub(crate) fn awaiting(account: &[u8], sequence: u64) -> bool {
@@ -262,34 +273,46 @@ pub(crate) fn stats(now: u64) -> CoseStats {
 }
 
 /// Each page visits at most 64 homes and removes at most 64 * WINDOW results.
-/// A full page returns its last key as the cursor; a shorter page ends the pass.
+/// Removing a result also rewrites the rest of its B-tree leaf, so large
+/// signature results make a page costly: after the first home, the page stops
+/// between homes once `within_budget` fails. A page that stopped or was full
+/// returns its last visited key as the cursor; a shorter page ends the pass.
 /// Empty homes keep their sequence high-water mark and budget counters.
-pub(crate) fn prune_executions(after: Option<AccountId>, now: u64) -> ExecutionCleanup {
-    let mut homes =
+pub(crate) fn prune_executions(
+    after: Option<AccountId>,
+    now: u64,
+    within_budget: impl Fn() -> bool,
+) -> ExecutionCleanup {
+    let homes =
         HOMES.with_borrow(|t| t.page(after.map_or_else(Vec::new, |id| id.to_vec()), CLEANUP_BATCH));
-    let next_after = homes
-        .last()
-        .filter(|_| homes.len() == CLEANUP_BATCH)
-        .map(|(id, _)| AccountId::try_from(id.as_slice()).expect("account key"));
+    let (paged, full) = (homes.len(), homes.len() == CLEANUP_BATCH);
+    let mut last = None;
+    let mut scanned = 0;
     let mut results_removed = 0;
-    for (account, h) in &mut homes {
-        // Abandoned calls must not keep an idle account's window closed.
-        let resolved = resolve_abandoned(account, h);
-        let removed = h.prune(now);
-        if removed.is_empty() && !resolved {
-            continue;
+    for (account, mut h) in homes {
+        if scanned > 0 && !within_budget() {
+            break;
         }
-        EXECUTIONS.with_borrow_mut(|t| {
-            for seq in &removed {
-                t.remove(&execution_key(account, *seq));
-            }
-        });
-        results_removed += removed.len() as u32;
-        HOMES.with_borrow_mut(|t| t.put(account, h));
+        scanned += 1;
+        // Abandoned calls must not keep an idle account's window closed.
+        let resolved = resolve_abandoned(&account, &mut h);
+        let removed = h.prune(now);
+        if resolved || !removed.is_empty() {
+            EXECUTIONS.with_borrow_mut(|t| {
+                for seq in &removed {
+                    t.remove(&execution_key(&account, *seq));
+                }
+            });
+            results_removed += removed.len() as u32;
+            HOMES.with_borrow_mut(|t| t.put(&account, &h));
+        }
+        last = Some(account);
     }
     ExecutionCleanup {
-        next_after,
-        homes_scanned: homes.len() as u32,
+        next_after: last
+            .filter(|_| full || scanned < paged)
+            .map(|id| AccountId::try_from(id.as_slice()).expect("account key")),
+        homes_scanned: scanned as u32,
         results_removed,
     }
 }
@@ -343,13 +366,88 @@ mod tests {
         EXECUTIONS.with_borrow_mut(|t| {
             t.insert(execution_key(account.as_slice(), 2), vec![0xff; 4096]);
         });
-        let cleaned = prune_executions(None, 2 * DAY);
+        let cleaned = prune_executions(None, 2 * DAY, || true);
         assert_eq!(cleaned.results_removed, 1);
         assert_eq!(execution(&account, 1), Ok(unknown));
         assert_eq!(execution(&account, 2), Err(Error::NotFound));
         let remaining = home(&account).unwrap();
         assert_eq!(remaining.closed_sequence, 2);
         assert_eq!(remaining.executions.len(), 1);
+    }
+
+    #[test]
+    fn cleanup_records_calls_this_instance_no_longer_awaits_as_unknown() {
+        let account = AccountId([72; 12]);
+        let mut h = model::Home::default();
+        let executing = |sequence: u64| ExecutionResult {
+            request_id: Hash::new([sequence as u8; 32]),
+            cycles_cost_upper_bound: 5,
+            cycles_charged: 0,
+            outcome: ExecutionOutcome::Executing,
+        };
+        for sequence in 1..=2 {
+            h.executions.insert(
+                sequence,
+                model::Execution {
+                    request_id: executing(sequence).request_id,
+                    digest: Hash::new([7; 32]),
+                    expires_at: MINUTE,
+                    state: model::ExecutionState::InFlight,
+                    formal: true,
+                },
+            );
+            save_execution(&account, &h, sequence, &executing(sequence), &[]);
+        }
+        let unknown = |sequence| ExecutionResult {
+            outcome: ExecutionOutcome::Unknown(Error::ExecutionUnknown),
+            ..executing(sequence)
+        };
+        let unknown_count = || GLOBAL.with_borrow(|t| t.get().value().unknown);
+        // Sequence 2 is still awaited; sequence 1 lost its callback.
+        let call = AwaitingCall::begin(&account, 2);
+        let cleaned = prune_executions(None, 2, || true);
+        assert_eq!((cleaned.homes_scanned, cleaned.results_removed), (1, 0));
+        assert_eq!(execution(&account, 1), Ok(unknown(1)));
+        assert_eq!(execution(&account, 2), Ok(executing(2)));
+        assert_eq!(home(&account).unwrap().closed_sequence, 1);
+        assert_eq!(unknown_count(), 1);
+        // A trap after the await drops the guard when ic-cdk cancels the task.
+        drop(call);
+        prune_executions(None, 2, || true);
+        assert_eq!(execution(&account, 2), Ok(unknown(2)));
+        let resolved = home(&account).unwrap();
+        assert_eq!(resolved.closed_sequence, 2);
+        assert!(resolved
+            .executions
+            .values()
+            .all(|e| e.state == model::ExecutionState::Unknown));
+        assert_eq!(unknown_count(), 2);
+    }
+
+    #[test]
+    fn a_cleanup_page_out_of_budget_names_its_last_home_and_resumes() {
+        let accounts = [1, 2, 3, 4].map(|n| AccountId([n; 12]));
+        for account in &accounts {
+            HOMES.with_borrow_mut(|t| t.put(account.as_slice(), &model::Home::default()));
+        }
+        // The first home always runs, so every page makes progress.
+        let stopped = prune_executions(None, 2, || false);
+        assert_eq!(
+            (stopped.homes_scanned, stopped.next_after),
+            (1, Some(accounts[0]))
+        );
+        // The budget is checked before each later home.
+        let checks = std::cell::Cell::new(0);
+        let page = prune_executions(stopped.next_after, 2, || {
+            checks.set(checks.get() + 1);
+            checks.get() < 2
+        });
+        assert_eq!(
+            (page.homes_scanned, page.next_after),
+            (2, Some(accounts[2]))
+        );
+        let rest = prune_executions(page.next_after, 2, || true);
+        assert_eq!((rest.homes_scanned, rest.next_after), (1, None));
     }
 
     #[test]

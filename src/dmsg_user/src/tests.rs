@@ -80,8 +80,10 @@ fn record_execution_response(
     response: Result<ExecutionResult>,
 ) -> Result<ExecutionResult> {
     let e = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
+    let previous = e.result.clone();
     let result = execution::record_execution_response(e, response);
-    if result.is_terminal() {
+    // As in api::record_response, only a new terminal result settles once.
+    if result != previous && result.is_terminal() {
         execution::settle_budget(&mut s.account, e);
         s.account
             .execution_expirations
@@ -548,6 +550,9 @@ fn definite_results_settle_the_reserved_budget() {
     let mut result = completed(&s, &r);
     result.cycles_charged = 40;
     record_execution_response(&mut s, r.approval.request_id, Ok(result)).unwrap();
+    assert_eq!(usage(&s), (1, 40));
+    // A later response returns the stored result without settling again.
+    record_execution_response(&mut s, r.approval.request_id, Err(Error::ExecutionUnknown)).unwrap();
     assert_eq!(usage(&s), (1, 40));
     // A failure COSE charged nothing for, such as a rejected call, returns both.
     let r = execute_request(&s, 1, 2);

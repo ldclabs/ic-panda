@@ -12,8 +12,14 @@ test('follows next_after until a short page ends the pass', async () => {
     { next_after: [], homes_scanned: 3, results_removed: 2 }
   ]
   const cose = { prune_executions: async (after) => (calls.push(after), pages.shift()) }
-  assert.deepEqual(await prunePass(cose), { pages: 3, removed: 7 })
+  const logged = []
+  assert.deepEqual(await prunePass(cose, [], (page) => logged.push(page.next_after)), {
+    pages: 3,
+    removed: 7
+  })
   assert.deepEqual(calls, [[], cursor(1), cursor(2)])
+  // main prints each logged cursor so an interrupted pass can resume there.
+  assert.deepEqual(logged, [cursor(1), cursor(2), []])
 })
 
 test('names the cursor to resume from when a page fails', async () => {

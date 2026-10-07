@@ -94,7 +94,7 @@ vetKD 使用 `context = canonical(("dmsg/content-root/v2", environment, derivati
 
 返回 `Err` 时 user home 保留原授权，可用原请求重试或 `reconcile_execution`；COSE 记录的 `Failed` 是终态，重签需要新的设备批准。结果带两个成本字段：`cycles_cost_upper_bound` 等于管理请求费减去退回的附带 cycles，再加 `cost_call` 的完整预留（含最大响应与回调成本），是成本上界；`cycles_charged` 是返回的管理调用实际消耗的附带 cycles（请求费减退款），只在 `Completed` 与 `Failed` 上非零，不含 COSE 自身的消息费用。两侧预算都结算到 `cycles_charged`。
 
-签名调用是 unbounded wait，停止 canister 会等待它们返回。若未停止就升级，在途调用的回调随旧模块丢失。新模块的内存在途集合为空，于是不在其中的 `InFlight` 记录被识别为丢失：`get_execution` 立即按 `Unknown(ExecutionUnknown)` 返回，该账户下一次 `execute` 或清理页把它写为 `Unknown`、推进高水位并计入 `cose_stats.unknown`。它不重签，也不退回预算。
+签名调用是 unbounded wait，停止 canister 会等待它们返回。若未停止就升级，在途调用的回调随旧模块丢失。新模块的内存在途集合为空，于是不在其中的 `InFlight` 记录被识别为丢失；回调在 await 之后 trap 时，ic-cdk 取消该任务，在途登记随之移除，同样按丢失处理：`get_execution` 立即按 `Unknown(ExecutionUnknown)` 返回，该账户下一次 `execute` 或清理页把它写为 `Unknown`、推进高水位并计入 `cose_stats.unknown`。它不重签，也不退回预算。
 
 ### 预算
 
@@ -123,7 +123,7 @@ schema 9 是生产候选布局。首个生产实例部署后，布局变化必�
 
 结果在 `Terminal`、序号不超过 `closed_sequence`、且当前时间超过 `expires_at + 1 天` 后可以删除。账户记录本身、高水位和预算永久保留，已清理的序号再次提交返回 `ResultExpired`。`InFlight` 阻止高水位越过，`Unknown` 不阻止但自身永久保留。
 
-清理有两条路径：同账户下一次执行时惰性清理；任何人调用 `prune_executions(after)`，每页检查 64 个账户、最多删除 4,096 条结果，把返回的 `next_after` 传给下一次调用，直到返回 `None`。游标跨升级有效。最坏的一页（64 个账户各 64 条结果）在 PocketIC 中约 0.62B cycles，远低于单条消息的指令上限；100 万账户一轮约 1.6 万页。清理页同时把升级遗留的在途记录写为 `Unknown`。删除让空间可复用，不承诺 stable memory 缩小。
+清理有两条路径：同账户下一次执行时惰性清理；任何人调用 `prune_executions(after)`，每页最多检查 64 个账户、删除 4,096 条结果，把返回的 `next_after` 传给下一次调用，直到返回 `None`。游标跨升级有效。删除一条结果要读出它，并重写同一 B 树节点中的其余结果，成本随结果大小增长：PocketIC 中一页 4,096 条无载荷的过期结果约 0.62B cycles，64 个账户各 32 条 4 KiB 签名结果约 0.75B cycles；按同一测量外推，各 56 条 48 KiB AppAction 签名的一页会接近单条消息 40B 的指令上限。所以一页用掉 20B 指令后在账户之间提前结束，以已检查的最后一个账户为游标，每页至少检查一个账户。100 万账户一轮约 1.6 万页。清理页同时把升级遗留的在途记录写为 `Unknown`。删除让空间可复用，不承诺 stable memory 缩小。
 
 ### 多 user home
 
@@ -240,7 +240,7 @@ PocketIC 回归 `cose_offline_pins_match_initialized_production_keys` 用 `pocke
 
 7. 主网验收：按 [dmsg_user](../dmsg_user/README.md) 的部署步骤用测试账户完成一次根派生和一次文档签名；用离线派生核对 `public_key` 的结果；用 `dmsg_protocol` 或 SDK 独立验证 COSE_Sign1；记录实际余额差与 `cycles_cost_upper_bound`。
 
-8. 安排每天一轮清理。仓库提供匿名调用的脚本，按 `next_after` 翻页到结束；中途失败时按提示用 `--after` 续跑，重复执行无害：
+8. 安排每天一轮清理。仓库提供匿名调用的脚本，按 `next_after` 翻页到结束，每完成一页在 stderr 输出可续跑的游标；中途失败或中断时用最后一个 `--after` 续跑，重复执行无害：
 
    ```sh
    pnpm --dir src/dmsg_app install --frozen-lockfile
@@ -262,7 +262,7 @@ PocketIC 回归 `cose_offline_pins_match_initialized_production_keys` 用 `pocke
 
 ### 运维与升级
 
-- **升级前必须停止 canister。** 签名与派生是 unbounded wait 调用，停止会等待在途调用全部返回。不停止直接升级时，在途调用的回调随旧代码丢失，该请求永久停在 `Executing`，`closed_sequence` 不再前进，后续结果也不再被清理。2026-10-07 的 PocketIC 实测中，这样的账户推进 3 天后仍只能执行到序号 64，之后永久返回 `QuotaExceeded`，目前没有恢复入口。升级要求 schema 不变：
+- **升级前必须停止 canister。** 签名与派生是 unbounded wait 调用，停止会等待在途调用全部返回。不停止直接升级时，在途调用的回调随旧代码丢失：这些执行按“执行流程”所述记为 `Unknown`，账户窗口照常前进，但结果无法确定，不重签也不退回预算，用户须重新批准，`cose_stats.unknown` 随之增加。升级要求 schema 不变：
 
   ```sh
   dfx canister metadata dmsg_cose candid:service --network ic > deployed.did
@@ -271,8 +271,6 @@ PocketIC 回归 `cose_offline_pins_match_initialized_production_keys` 用 `pocke
   dfx canister install dmsg_cose --network ic --mode upgrade --wasm dmsg_cose.wasm.gz --argument-type raw --argument 4449444c0000 --yes
   dfx canister start dmsg_cose --network ic
   ```
-
-  漏掉停止时，丢失回调的执行按“执行流程”所述记为 `Unknown`，账户窗口照常前进，但这些请求的结果无法确定，`cose_stats.unknown` 会增加。
 
   Candid 服务声明了 `CoseInit`，dfx 升级时要求参数；`post_upgrade` 不读取参数，传空 Candid 参数 `()` 即可。schema 不一致时 `post_upgrade` 失败、升级回滚；改为重装会保留密钥（canister ID 不变），但清空去重高水位、预算和结果。
 
@@ -304,21 +302,22 @@ PocketIC 回归 `cose_offline_pins_match_initialized_production_keys` 用 `pocke
 
 ## 实测
 
-2026-10-07，PocketIC 16.0.0、Rust 1.98.1、release 配置（LTO、`opt-level=s`），以本次修改的 Wasm 运行 `cose_cycles_profile`、`cose_query_and_cleanup_cycles_profile`、`cose_cleanup_page_profile` 和 `cose_settles_budgets_to_the_charged_fee`。数字是 COSE 的实际余额差，包含管理调用费用，不包含 user canister；它们不代表主网吞吐或并发峰值。
+2026-10-07，PocketIC 16.0.0、Rust 1.98.1、release 配置（LTO、`opt-level=s`），以本次修改的 Wasm 运行 `cose_cycles_profile`、`cose_query_and_cleanup_cycles_profile`、`cose_cleanup_page_profile`、`cose_signature_cleanup_page_profile` 和 `cose_settles_budgets_to_the_charged_fee`。数字是 COSE 的实际余额差，包含管理调用费用，不包含 user canister；它们不代表主网吞吐或并发峰值。
 
 | 操作                                              |          cycles |
 | ------------------------------------------------- | --------------: |
-| 新签名，4 KiB 正文，无历史                        |  26,189,782,691 |
+| 新签名，4 KiB 正文，无历史                        |  26,189,781,922 |
 | 其中 `cycles_charged`（签名与 vetKD 派生相同）    |  26,153,846,153 |
 | 新签名的 `cycles_cost_upper_bound`                |  68,260,698,153 |
 | 同请求重试（历史 0–8 条）                         |  19.96M–20.21M  |
-| 过期请求（历史 0–8 条）                           |  19.98M–20.51M  |
-| Ed25519 / ES256K 公钥（复制查询）                 |  12.03M / 13.55M |
+| 过期请求（历史 0–8 条）                           |  19.98M–20.50M  |
+| Ed25519 / ES256K 公钥（复制查询）                 |  12.03M / 13.57M |
 | ContentRoot 公钥（复制查询）                      |  7.75M          |
 | 清理 0 / 4 / 8 条签名结果                         |  6.79M / 7.40M / 8.10M |
-| 清理一页 64 个账户、共 4,096 条结果               |  621,491,764    |
+| 清理一页 64 个账户、共 4,096 条过期结果（无载荷） |  621,657,530    |
+| 清理一页 64 个账户、各 32 条 4 KiB 签名结果       |  750,828,216    |
 
-新实例稳定内存分配为 25,231,360 字节（三个 8 MiB 分配桶加 1 页 memory manager 头）。本次 release Wasm（未 shrink）为 2,498,874 字节，`gzip -n` 后 749,877 字节。逐次优化的对比数据见 Git 历史。
+新实例稳定内存分配为 25,231,360 字节（三个 8 MiB 分配桶加 1 页 memory manager 头）。本次 release Wasm（未 shrink）为 2,499,129 字节，`gzip -n` 后 749,518 字节。逐次优化的对比数据见 Git 历史。
 
 ## 验证
 
@@ -341,6 +340,7 @@ cargo test --locked -p dmsg_integration --features pocketic-tests --test control
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_cycles_profile -- --ignored --nocapture
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_query_and_cleanup_cycles_profile -- --ignored --nocapture
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_cleanup_page_profile -- --ignored --nocapture
+DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane cose_signature_cleanup_page_profile -- --ignored --nocapture
 ```
 
 选择依据参考 ICP 官方的 [Stable structures](https://docs.internetcomputer.org/languages/rust/stable-structures/)、[重试与幂等](https://docs.internetcomputer.org/guides/canister-calls/idempotency/)、[资源上限](https://docs.internetcomputer.org/references/resource-limits/)和[性能优化](https://docs.internetcomputer.org/guides/canister-management/optimization/)。

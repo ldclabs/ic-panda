@@ -6,6 +6,10 @@ use dmsg_types::{cose::*, *};
 use ic_cdk_management_canister as mgmt;
 use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation, PublicKey};
 
+// Half the 40B update limit: one more account fits even when its results are
+// large signatures whose removal rewrites their B-tree leaves.
+const CLEANUP_INSTRUCTIONS: u64 = 20_000_000_000;
+
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
 }
@@ -621,9 +625,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     drop(grant);
     drop(h);
     drop(c);
-    begin_call(&account_id, sequence);
+    let call = AwaitingCall::begin(&account_id, sequence);
     let response = operation.execute().await;
-    end_call(&account_id, sequence);
+    drop(call);
     let failure = response.as_ref().err().map(chain_key::classify_failure);
     let unsent = failure == Some(FailureKind::NotSent);
     // An unsent call returns synchronously in update mode, where the refund API
@@ -687,8 +691,11 @@ fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionRes
 }
 
 /// Prune one bounded page of expired terminal results, retaining replay guards.
-/// Public maintenance is safe: a page inspects at most 64 accounts.
+/// Public maintenance is safe: a page inspects at most 64 accounts and stops
+/// between accounts after half the 40B update instruction limit.
 #[ic_cdk::update]
 fn prune_executions(after: Option<AccountId>) -> ExecutionCleanup {
-    crate::store::prune_executions(after, now())
+    crate::store::prune_executions(after, now(), || {
+        ic_cdk::api::instruction_counter() < CLEANUP_INSTRUCTIONS
+    })
 }
