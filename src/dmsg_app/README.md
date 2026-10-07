@@ -167,7 +167,7 @@ DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
 
 ## Legacy 迁移增量（2026-09-22）
 
-设置页现已接入一次性配对、原站加密档案导入、幂等保管和离线历史验证。共享 reader 位于 `../dmsg_legacy`，合同见 `../../docs/protocol/legacy_archive_zh.md`。原站有独立加密分页缓存，支持三种旧根模式、256 KiB 密文分片、未完成上传保全、PANDA/DMSG/PoL 记录、头像选择和冻结增量对照。真实三模式授权样本、未公开的未决权益与生产切换仍待验证。Chrome `e2e/legacy.spec.ts` 使用两个空白浏览器验证密码 Worker 重启和断网恢复；合成记录不能替代真实旧数据验收。
+设置页现已接入一次性配对、原站加密档案导入、幂等保管和离线历史验证。共享 reader 位于 `../dmsg_legacy`，合同见 `../../docs/protocol/legacy_archive_zh.md`。原站有独立加密分页缓存，支持三种旧根模式、256 KiB 密文分片、未完成上传保全、PANDA/DMSG/PoL 记录、头像选择和冻结增量对照。真实三模式授权样本、未公开的未决权益与生产切换仍待验证；合成记录不能替代真实旧数据验收。
 
 ## 本轮集成范围与验证入口
 

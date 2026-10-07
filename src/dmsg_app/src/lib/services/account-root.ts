@@ -280,7 +280,8 @@ export class AccountRootClient {
           deviceId: unhex(account.meta.deviceId),
           securityEpoch: state.info.security_epoch,
           sequence: state.device.next_sequence,
-          expiresAt: BigInt(Date.now() + 300000)
+          // The home accepts at most five minutes past its own clock.
+          expiresAt: BigInt(Date.now() + 270000)
         },
         BigInt(context.generation),
         await crypto.call('prepareAccountRoot', context),

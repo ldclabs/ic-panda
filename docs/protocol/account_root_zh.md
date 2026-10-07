@@ -11,7 +11,7 @@ user home 不再在构建配置中固定。客户端启动时读取 `dmsg_handle
 
 `services/account.ts` 在联网前把完整 Candid 请求加密保存到当前工作区。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
-新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准，之后必须换根，新设备才能读到根。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
+新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准，之后必须换根，新设备才能读到根。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。能力不决定根包接收者：每代根封装给全部活跃设备；VaultUnlock 由云端用于放行账户密文读取，user 只记录。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
 
 ## 本机解锁
 
@@ -70,8 +70,8 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
 ## 全设备丢失恢复
 
 1. 新设备用绑定过的 II 账户登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。II 也丢了就不能恢复。
-2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；没有再确认流程。
+2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；用 `RemoveAuth` 解除发起申请的登录同样作废申请。没有再确认流程。
 3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
-4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生一次（按 `request_id` 可重试），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端 `decryptAndVerify` 后用它解开根包的 IBE 恢复信封（`recoverCurrent`），随即换根到下一代（只封装给自己）。换根后派生权消失。
+4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生（同一 `request_id` 重试返回原结果，换根前也可凭新批准再次派生），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端 `decryptAndVerify` 后用它解开根包的 IBE 恢复信封（`recoverCurrent`），随即换根到下一代（只封装给自己）。换根后派生权消失。
 
-恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`rootDerivationMaxCycles` 是构建时固定的批准上限，默认 70,000,000,000。user 每天最多 20 次派生，与正式认证共用 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。
+恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`rootDerivationMaxCycles` 是构建时固定的批准上限，默认 70,000,000,000。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 100）和 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。

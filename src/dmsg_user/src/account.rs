@@ -297,6 +297,9 @@ pub(crate) fn apply(
                 "last/missing authentication binding",
             )?;
             next.auth_bindings.retain(|p| p != principal);
+            // A takeover rests on the login that requested it.
+            next.pending_recovery
+                .take_if(|r| r.request.new_auth == *principal);
             changed(&mut next);
         }
         AccountCommand::SetRecoveryDelay { delay_ms } => {

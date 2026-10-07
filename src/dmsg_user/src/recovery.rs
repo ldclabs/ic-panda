@@ -1,6 +1,7 @@
 //! Delayed recovery authorized by a bound login Principal. An active device
 //! cancels it by dispute; otherwise the replacement device takes over after
-//! the account's delay and may derive the current root once through vetKD.
+//! the account's delay and may derive the current root through vetKD until it
+//! commits a new one.
 use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;

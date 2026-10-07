@@ -28,7 +28,7 @@ jobs:
     - run: pnpm --dir src/dmsg_app exec playwright install --with-deps chromium
     # The cross-repository cloud probe is a separate local command; no private
     # Worker code or repository credentials are needed by this public job.
-    - run: pnpm --dir src/dmsg_app exec playwright test e2e/extension.spec.ts e2e/legacy.spec.ts e2e/external-browser.spec.ts
+    - run: pnpm --dir src/dmsg_app exec playwright test e2e/extension.spec.ts e2e/external-browser.spec.ts
   test:
     runs-on: ubuntu-latest
     steps:

@@ -149,6 +149,21 @@ describe('self-held controller signing', () => {
     expect(f.submit).toHaveBeenCalledTimes(1)
   })
 
+  it('continues above the nonce another device holding the key already used', async () => {
+    const f = fixture()
+    f.submit.mockResolvedValueOnce(
+      Response.json(
+        { error: { code: 'nonce_not_greater', data: { max_nonce: NOW + 5000 } } },
+        { status: 409 }
+      )
+    )
+    const job = await f.client.revoke(accountId, 1, delegation)
+    expect(job).toMatchObject({ stage: 'failed', error: 'nonce_not_greater' })
+    const next = await f.client.revoke(accountId, 1, delegation)
+    expect(next.stage).toBe('accepted')
+    expect(next.envelope.event.nonce).toBe(NOW + 5001)
+  })
+
   it('refuses a vault key that does not match the registered controller', async () => {
     const f = fixture()
     f.controllerKey.mockResolvedValueOnce({

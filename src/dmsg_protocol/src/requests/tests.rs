@@ -192,6 +192,9 @@ fn attestations_name_the_device_key_and_derive_the_policy_purpose() {
         assert_eq!(artifact.cose_key.as_slice(), prepared.cose_key.as_slice());
         assert_eq!(verify_artifact(&artifact).unwrap(), statement);
         match_signing_result(&artifact, &prepared.to_be_signed, prepared.thumbprint).unwrap();
+        // Finishing the prepared message yields the same bytes without reparsing.
+        let signature = signer.sign(&prepared.to_be_signed).to_bytes();
+        assert_eq!(prepared.finish(&signature).unwrap(), artifact);
     }
     let mut bad = statement();
     bad.issuer = "relative".into();

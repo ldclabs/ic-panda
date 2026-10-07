@@ -170,7 +170,6 @@ describe('device attestation client and independent Rust approval vectors', () =
             contentType: request.statement.content.Digest.content_type[0]
           }
         },
-        'Ed25519',
         prepared.kid
       )
       return {

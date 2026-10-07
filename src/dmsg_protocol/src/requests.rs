@@ -1,5 +1,6 @@
-use crate::*;
+use crate::{signing::malformed, *};
 use candid::Principal;
+use cose2::Sign1Message;
 use dmsg_types::{agent::DelegationAuthority, cose::*, user::*, *};
 use serde_bytes::ByteArray;
 
@@ -46,6 +47,23 @@ pub struct PreparedAttestation {
     pub thumbprint: Hash,
     /// Policy domain of the statement.
     pub purpose: KeyPurpose,
+    message: Sign1Message,
+}
+
+impl PreparedAttestation {
+    /// Attach the device's 64-byte signature over `to_be_signed`.
+    ///
+    /// This checks encoding, not mathematical validity; verify before use.
+    pub fn finish(mut self, signature: &[u8]) -> Result<SignedArtifact> {
+        ensure(signature.len() == 64, Error::IntegrityFailed)?;
+        self.message
+            .set_signature(signature.to_vec())
+            .map_err(malformed)?;
+        Ok(SignedArtifact {
+            cose_sign1: self.message.to_vec().map_err(malformed)?.into(),
+            cose_key: self.cose_key.into(),
+        })
+    }
 }
 
 /// Prepare the exact bytes a device signs for a statement.
@@ -58,12 +76,13 @@ pub struct PreparedAttestation {
 pub fn prepare_attestation(statement: &Statement, signing_pub: &Hash) -> Result<PreparedAttestation> {
     let thumbprint = key_thumbprint(&public_cose_key(&[], signing_pub.as_slice())?)?;
     let cose_key = public_cose_key(thumbprint.as_slice(), signing_pub.as_slice())?;
-    let (_, to_be_signed) = prepare_cose(statement, thumbprint.as_slice())?;
+    let (message, to_be_signed) = prepare_cose(statement, thumbprint.as_slice())?;
     Ok(PreparedAttestation {
         to_be_signed,
         cose_key,
         thumbprint,
         purpose: statement_purpose(statement),
+        message,
     })
 }
 

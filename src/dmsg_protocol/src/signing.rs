@@ -60,7 +60,7 @@ struct FileStatementPayload {
     location: Option<String>,
 }
 
-fn malformed(_: cose2::Error) -> Error {
+pub(crate) fn malformed(_: cose2::Error) -> Error {
     Error::IntegrityFailed
 }
 

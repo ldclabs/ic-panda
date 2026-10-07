@@ -12,7 +12,7 @@ pub struct HandleAuthorization {
 }
 
 /// The latest completed recovery, retained for exact completion retries and
-/// for the one root derivation its device may request.
+/// for the root derivations its device may request until it rekeys.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryReceipt {
     pub request_id: OpId,

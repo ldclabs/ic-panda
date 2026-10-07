@@ -22,7 +22,7 @@
 | IndexedDB | 密钥封装、密文对象/文件块、草稿、请求、outbox、运行元数据 | 私密载荷加密，不代表所有索引和状态都隐藏 |
 | Extension Service Worker | 外部请求接收、待办和窗口调度 | 不持有常驻内容根；不能依靠后台常驻维持解锁 |
 | `dmsg_user`（账户所在 home） | AccountId、认证绑定、设备、根承诺、恢复、认证回执、解锁秘密 | 保存公钥、承诺和一个 `master_secret`，不保存内容根明文或 RootBundle 正文 |
-| `dmsg_cose` | 内容根 vetKD 公钥与恢复派生 | 只对已完成恢复的设备派生一次，返回传输加密结果；不是普通内容解密服务 |
+| `dmsg_cose` | 内容根 vetKD 公钥与恢复派生 | 只为已完成恢复登记的设备派生当前代根（直到它换根），返回传输加密结果；不是普通内容解密服务 |
 | `dmsg_handle` / `dmsg_payment` | 名称权属 / 最小资金合同 | 不持有内容密钥；名称权属、支付成功不自动授予内容解密权 |
 | cloud 对外服务 | 认证访问、密文保存/投递、频道与对象的在线控制 | 客户端须核验身份、权限和内容完整性；加密本身不证明服务返回的是最新、完整历史 |
 
@@ -202,13 +202,13 @@ commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 | II 和全部设备都丢失 | 不可恢复 |
 | dMsg 服务不可用 | 没有服务外恢复路径 |
 
-恢复派生只允许 `complete_recovery` 登记的设备对当前代次做一次；换根后权利消失。等待期是对 II 被盗的唯一缓解：延迟期内所有设备都没响应即内容泄露。
+恢复派生只允许 `complete_recovery` 登记的设备对当前代次进行；换根前可凭新批准再次派生（计入每日执行次数），换根后权利消失。等待期是对 II 被盗的唯一缓解：延迟期内所有设备都没响应即内容泄露。
 
 依据：[root.ts](../src/dmsg_app/src/lib/crypto/root.ts)、[account-root.ts](../src/dmsg_app/src/lib/services/account-root.ts)、[account.rs](../src/dmsg_user/src/account.rs)、[recovery.rs](../src/dmsg_user/src/recovery.rs)、[COSE](../src/dmsg_cose/README.md)。
 
 ## 9. 链上权限
 
-`dmsg_user` 核对实际 caller 的认证绑定，以及设备签名、设备状态、序号、security epoch、期限、角色和具体 capability（`ContentSign`、`VaultUnlock`、`RootManage`、`FormalApprove`、`PaymentOffer`）。`changed()` 递增 security_epoch、清除候选根；有已提交根时置 `RekeyRequired`，触发不限于撤销设备，也包括新增设备和认证绑定变化。链上状态变化本身不会重加密客户端历史。
+`dmsg_user` 核对实际 caller 的认证绑定，以及设备签名、设备状态、序号、security epoch、期限、角色和入口要求的 capability（`RootManage`、`FormalApprove`、`PaymentOffer`）；`ContentSign`、`VaultUnlock` 由云端分别用于放行账户密文的写入与读取，内容根仍封装给全部活跃设备。`changed()` 递增 security_epoch、清除候选根；有已提交根时置 `RekeyRequired`，触发不限于撤销设备，也包括新增设备和认证绑定变化。链上状态变化本身不会重加密客户端历史。
 
 账户安全证据以认证值为准：`SecuritySnapshot` schema 4，认证叶路径为单段原始 AccountId；`devices_root` 是完整设备 map 的 `digest("dmsg/devices/v1", devices)`；另含 `recovery_delay_ms`、`pending_recovery_digest`、根代次与摘要、`vault_write_state`、`principal_updated_at`。使用设备公钥前须把设备记录与该承诺匹配。证书时间不在未来且当前时刻小于证书时间 +60 秒。
 

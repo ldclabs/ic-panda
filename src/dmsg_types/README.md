@@ -156,7 +156,7 @@ A portable statement contains no request_id, origin, or execution deadline; thes
 
 `AccountMutation` binds `expected_version`, the complete `AccountCommand`, and an `Approval`. After a version conflict, read the new state and prepare a new approval instead of editing the version of an already signed request. Enrolling a device requires proof of possession of the corresponding private key. Login Principals, device signing keys, and HPKE encryption keys have separate responsibilities.
 
-Root rotation follows `ReserveRoot` → wrap a fresh client-generated root to every active device and to the generation's vetKD identity → `CommitRoot`. The operation ID, expected generation, security state and the recipients digest must match. `ContentRootRef` holds only bundle commitments. `VaultWriteState::RekeyRequired` prevents further writes using the old root. Recovery is a login-authorized, delayed takeover that any active device can cancel; only the device it enrolls may derive the committed root once, with `DeriveRootRequest`.
+Root rotation follows `ReserveRoot` → wrap a fresh client-generated root to every active device and to the generation's vetKD identity → `CommitRoot`. The operation ID, expected generation, security state and the recipients digest must match. `ContentRootRef` holds only bundle commitments. `VaultWriteState::RekeyRequired` prevents further writes using the old root. Recovery is a login-authorized, delayed takeover that any active device can cancel; only the device it enrolls may derive the committed root with `DeriveRootRequest`, until that device commits a new one.
 
 ### Optional paid delivery
 

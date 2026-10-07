@@ -111,8 +111,6 @@ it('rejects an authentication payload claiming another registered origin or sess
     app_id: 'product',
     config_version: 1n,
     origins: [source.origin, 'https://other.test'],
-    user_homes: [new Uint8Array([1, 1])],
-    cose_homes: [new Uint8Array([2, 1])],
     product_ids: [],
     capabilities: ['Authenticate' as const],
     profiles: [],

@@ -576,7 +576,8 @@ export class AccountClient {
       op_id: unhex(id()),
       new_auth: this.caller,
       device: deviceInput(this.meta),
-      expires_at: BigInt(Date.now() + delay + 7 * 86400000)
+      // At most 14 days past the home's clock, so leave a skew margin.
+      expires_at: BigInt(Date.now() + delay + 7 * 86400000 - 600000)
     }
     const proof = await this.crypto.call(
       'deviceSign',

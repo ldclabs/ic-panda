@@ -167,6 +167,10 @@ export class AgentClient {
     return `agent:${id}`
   }
 
+  private nonceKey(account: string, generation: number) {
+    return `agent:nonce:${account}:${generation}`
+  }
+
   async job(id: string): Promise<AgentJob | null> {
     const value = await this.account.crypto.call('controlGet', this.key(id))
     return value ? (JSON.parse(value) as AgentJob) : null
@@ -217,7 +221,7 @@ export class AgentClient {
       'Forbidden',
       '当前设备没有正式批准能力。'
     )
-    const nonceKey = `agent:nonce:${account}:${generation}`
+    const nonceKey = this.nonceKey(account, generation)
     const last = BigInt((await this.account.crypto.call('controlGet', nonceKey)) ?? '0')
     // A new binding starts at valid_from; the signer may not backdate before it.
     const createdAt = Math.max(Date.now(), Number(controller.valid_from))
@@ -281,6 +285,15 @@ export class AgentClient {
     } else {
       const code = body?.error?.code ?? `HTTP ${response.status}`
       job.error = code
+      // Every device holding the vault key signs as the same actor; continue
+      // above the service's nonce so the next signature is accepted.
+      const max = body?.error?.data?.max_nonce
+      if (code === 'nonce_not_greater' && Number.isSafeInteger(max)) {
+        const nonceKey = this.nonceKey(job.account, job.generation)
+        const last = BigInt((await this.account.crypto.call('controlGet', nonceKey)) ?? '0')
+        if (BigInt(max) > last)
+          await this.account.crypto.call('controlPut', nonceKey, String(max))
+      }
       // A transient failure says nothing about an earlier acceptance. Exact
       // resubmission remains a lookup even after the new-admission window.
       if (response.status < 500 && ![408, 429].includes(response.status)) job.stage = 'failed'

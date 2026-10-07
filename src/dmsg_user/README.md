@@ -61,7 +61,7 @@ flowchart LR
 | 能力                              | 用途                                                                                   |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
 | `RootManage`（角色须为管理员）    | 除 `DisputeRecovery` 外的全部账户变更、根预留与提交                                    |
-| `VaultUnlock`                     | 可读取 vault：根包中有封装给该设备的信封；user 只在设备登记时校验                      |
+| `VaultUnlock`                     | 云端据此放行账户密文读取（当前根、对象与文件块）；user 只记录，不影响根包接收者        |
 | `FormalApprove`                   | 文档与 AppAction 认证、第三方认证与应用批准                                            |
 | `PaymentOffer`                    | 签署收款报价                                                                           |
 | `ContentSign`                     | user 不检查此能力，由云端用于验证内容签名                                              |
@@ -74,7 +74,7 @@ flowchart LR
 | `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备                                                                 |        +1        | 置 `RekeyRequired`  |
 | `SetDeviceCapabilities`                                                         | 只替换能力集，不改角色和密钥；同样须保留一台管理员                                                         |        +1        | 置 `RekeyRequired`  |
 | `BindAuth`                                                                      | 新 Principal 须先用 `begin_auth_binding` 登记同一 nonce                                                    |        +1        | 置 `RekeyRequired`  |
-| `RemoveAuth`                                                                    | 不能移除最后一个登录；被移除者的路由同时删除                                                               |        +1        | 置 `RekeyRequired`  |
+| `RemoveAuth`                                                                    | 不能移除最后一个登录；被移除者的路由与它发起的待处理恢复同时删除                                           |        +1        | 置 `RekeyRequired`  |
 | `SetRecoveryDelay`                                                              | 恢复等待期 1–7 天；存在待处理的恢复申请时拒绝                                                              |        +1        | 不变                |
 | `SetPolicy`                                                                     | 设置正式执行政策：允许的用途、每日次数、`frozen`                                                           | +1，并清除候选根槽 | 不变              |
 | `ReserveRoot`、`CommitRoot`                                                     | 内容根 CAS，见下文                                                                                         |       不变       | `CommitRoot` 置 `Ready` |
@@ -107,9 +107,9 @@ flowchart LR
 没有恢复码。绑定过的登录 Principal 加链上等待期是最终恢复权；登录身份和全部设备都丢失则不可恢复。
 
 1. **发起**：`request_recovery(account_id, request, device_proof)` 只能由 `request.new_auth` 调用，且 caller 必须已在 `auth_bindings` 中。新设备附 `dmsg/recovery-device/v1` PoP，且必须是具备 `RootManage` 的管理员。请求期限必须晚于 `now + recovery_delay_ms`，最长 14 天。重复提交同一请求沿用已存的期限；要提交另一请求，须等前一请求过期或被取消。
-2. **取消**：账户的任意未撤销设备提交 `DisputeRecovery { op_id }` 即删除申请。提出争议的设备在手，它可以直接走配对，不需要再确认流程。
+2. **取消**：账户的任意未撤销设备提交 `DisputeRecovery { op_id }` 即删除申请。提出争议的设备在手，它可以直接走配对，不需要再确认流程。用 `RemoveAuth` 解除发起申请的登录同样删除申请，接管权随登录绑定一起失效。
 3. **完成**：等待期结束后，`new_auth` 调用 `complete_recovery(account_id, request_id)`：全部设备替换为请求中的新设备，全部登录替换为 `new_auth` 并删除旧路由，`security_epoch` +1，已有根时置 `RekeyRequired`，并记录 `recovered_device = (device_id, 当前根代次)`。账户保留最近一次完成回执，原 caller 用同一请求重试返回成功，不会重复执行。
-4. **取回内容根**：恢复设备取得 `unlock_secret` 后，用 `derive_root` 派生一次当前代根的 vetKey（见下文），解开根包的 IBE 恢复信封，然后换根；换根后 `recovered_device` 清除，派生权消失。
+4. **取回内容根**：恢复设备取得 `unlock_secret` 后，用 `derive_root` 派生当前代根的 vetKey（见下文），解开根包的 IBE 恢复信封，然后换根。换根前可凭新的批准再次派生（计入每日执行次数）；换根后 `recovered_device` 清除，派生权消失。
 
 `recovery_delay_ms` 默认 3 天，`SetRecoveryDelay` 可设 1–7 天。等待期是对登录身份被盗的唯一缓解：期间所有设备都没响应即内容泄露。
 
@@ -139,11 +139,11 @@ flowchart LR
 1. 计算请求指纹。同一 `request_id` 已有记录时，参数一致则返回原产物，不一致则返回 `IdempotencyConflict`。
 2. 只读预检：账户未冻结；`request_id` 等于 `execution_request_id(account, epoch, device, sequence)`；设备批准与能力；用途在政策内、origin 合法、issuer 属于本账户；验签 Sig_structure；保留窗口和每日次数有余量。
 3. 没有有效的当月租约时先向 commerce 刷新权益；AppAction 还要核对应用配置并调用应用的 `verify_dmsg_action`。每次 await 返回后，都重新读取时间、账户和执行记录，重新预检。
-4. 同步提交：当月额度、执行序号、设备序号、保留索引、产物、回执认证叶在同一消息内写入。没有跨 canister 的签名调用。
+4. 同步提交：当月额度、设备序号、保留索引、产物、回执认证叶在同一消息内写入。没有跨 canister 的签名调用；认证不占用执行序号，COSE 的执行窗口只按派生连续推进。
 
 丢失回复用 `get_attestation(account_id, request_id)` 取回同一产物。`get_execution_receipt` 返回 schema 2 的认证回执叶，绑定 issuer、设备、批准上下文、待签字节摘要、设备公钥指纹和签名摘要；结果清理后返回可验证的不存在证明。
 
-**派生**（`derive_root`）：只接受 `recovered_device` 登记的设备对当前根代次的请求，批准域 `dmsg/derive-root/v1` 覆盖代次、传输公钥与 `max_cycles`（1–100B）。授权在同一消息内提交，再调用 COSE `execute`：
+**派生**（`derive_root`）：只接受 `recovered_device` 登记的设备对当前根代次的请求，直到它提交新根，批准域 `dmsg/derive-root/v1` 覆盖代次、传输公钥与 `max_cycles`（1–100B）。授权在同一消息内提交，再调用 COSE `execute`：
 
 | 结果                     | 含义                                                         | 客户端处理                                             |
 | ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
@@ -155,7 +155,7 @@ flowchart LR
 
 `reconcile_execution` 先查询 COSE。COSE 没有记录时重新发送原授权；查询本身的传输失败直接返回错误，不改写记录。
 
-每个账户最多保留 64 条执行（认证与派生共用）。未终结的执行一直占位；终态结果保留到批准期限后 1 天，之后在下次授权时清理，也可以调用 `prune_executions(account_id)` 清理。每日次数由 `SetPolicy` 的 `daily_executions`（默认 20，上限 100）限制；派生另受固定的每天 20 次 / 300B cycles 预算限制，授权时按批准的 `max_cycles` 预留，COSE 返回终态后结算为 `cycles_charged`。
+每个账户最多保留 64 条执行（认证与派生共用）。未终结的执行一直占位；终态结果保留到批准期限后 1 天，之后在下次授权时清理，也可以调用 `prune_executions(account_id)` 清理。每日次数由 `SetPolicy` 的 `daily_executions`（默认 20，上限 100）限制，认证与派生共用；user 不另设 cycles 预算。派生的 cycles 由 COSE 按调用成本上界预留，返回终态后结算为 `cycles_charged`；COSE 没有执行的派生退回 user 的次数。
 
 ### 商业月账
 

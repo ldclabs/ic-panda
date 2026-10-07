@@ -156,7 +156,7 @@ assert!(!result.is_terminal());
 
 `AccountMutation` 绑定 `expected_version`、完整 `AccountCommand` 和 `Approval`。版本冲突后重新读取状态并重新准备批准，不直接替换已签请求的版本字段。新增设备需要对应私钥的持有证明；登录 Principal、设备签名 key 和 HPKE 加密 key 各有职责。
 
-换根通过 `ReserveRoot` → 本地生成新根并封装给每台活跃设备与该代的 vetKD 身份 → `CommitRoot` 完成，操作 ID、期望代次、安全状态和接收者摘要须匹配。`ContentRootRef` 只保存 bundle 承诺。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复是登录授权的延迟接管，任一有效设备可取消；只有它登记的设备可以用 `DeriveRootRequest` 派生一次已提交的根。
+换根通过 `ReserveRoot` → 本地生成新根并封装给每台活跃设备与该代的 vetKD 身份 → `CommitRoot` 完成，操作 ID、期望代次、安全状态和接收者摘要须匹配。`ContentRootRef` 只保存 bundle 承诺。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复是登录授权的延迟接管，任一有效设备可取消；只有它登记的设备可以用 `DeriveRootRequest` 派生已提交的根，直到该设备换根。
 
 ### 可选付费投递
 

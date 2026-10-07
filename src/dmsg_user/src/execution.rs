@@ -1,5 +1,5 @@
-//! Formal attestations recorded in one message, and the single vetKD root
-//! derivation a recovered device may request.
+//! Formal attestations recorded in one message, and the vetKD root
+//! derivations a recovered device may request until it rekeys.
 use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;
@@ -128,12 +128,11 @@ pub(crate) fn commit_attestation(
     fingerprint: Hash,
     now: u64,
 ) -> Result<AuthorizedExecution> {
-    let artifact = parse_signing_input(&checked.prepared.to_be_signed)?
-        .into_signature(
-            &s.devices[&approval.device_id].input.signing_pub[..],
-        )?
-        .finish(signature.to_vec())?;
-    s.budget = checked.budget;
+    let CheckedAttestation { prepared, budget } = checked;
+    let to_be_signed_digest = sha256(&prepared.to_be_signed);
+    let public_key_fingerprint = prepared.thumbprint;
+    let artifact = prepared.finish(signature.as_slice())?;
+    s.budget = budget;
     let e = AuthorizedExecution {
         account_id: s.account_id,
         request_id: approval.request_id,
@@ -144,21 +143,23 @@ pub(crate) fn commit_attestation(
             approved_at: now,
             expires_at: approval.expires_at,
             origin,
-            to_be_signed_digest: sha256(&checked.prepared.to_be_signed),
-            public_key_fingerprint: checked.prepared.thumbprint,
+            to_be_signed_digest,
+            public_key_fingerprint,
             signature_digest: sha256(signature.as_slice()),
             artifact,
         }),
     };
-    s.next_execution_sequence += 1;
+    // Attestations never reach COSE, whose window closes only over the
+    // derivation sequences it executes; they take no execution sequence.
     s.execution_expirations
         .insert(approval.request_id, Some(e.retention()));
     finish(s, approval, fingerprint);
     Ok(e)
 }
 
-/// Read-only authorization of the one derivation a recovered device may make:
-/// the committed generation it was enrolled for, before it commits a new root.
+/// Read-only authorization of a recovered device's derivation: only the
+/// committed generation it was enrolled for, until it commits a new root. Each
+/// new request counts against the daily executions.
 pub(crate) fn check_derivation(
     s: &AccountState,
     caller: Principal,

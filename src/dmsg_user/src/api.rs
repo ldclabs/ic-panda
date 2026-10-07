@@ -227,11 +227,7 @@ fn unlock_secret(account_id: AccountId, device_id: Hash) -> Result<Hash> {
     let s = own(&account_id, ic_cdk::api::msg_caller())?;
     let device = s.devices.get(&device_id).ok_or(Error::DeviceNotApproved)?;
     ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
-    unlock_secret_for(&config(), &account_id, &device_id)
-}
-
-fn unlock_secret_for(cfg: &Config, account_id: &AccountId, device_id: &Hash) -> Result<Hash> {
-    crate::store::unlock_secret(cfg, account_id, device_id)
+    crate::store::unlock_secret(&config(), &account_id, &device_id)
 }
 
 /// Only the new authentication principal may reserve its own binding. The
@@ -469,12 +465,12 @@ async fn attest_statement(
         "dmsg/attest-request/v1",
         &(&account_id, &statement, &origin, &signature, &approval),
     );
-    let init = config().init;
     let mut at = now();
     let mut s = own(&account_id, caller)?;
     if let Some(e) = load_execution(&account_id, &approval.request_id) {
         return existing_artifact(e, fingerprint);
     }
+    // Each check rereads the configuration, as it does the account.
     let check = |s: &AccountState, at: u64| {
         execution::check_attestation(
             s,
@@ -486,7 +482,7 @@ async fn attest_statement(
             &approval,
             fingerprint,
             at,
-            &init,
+            &config().init,
         )
     };
     let mut checked = check(&s, at)?;
@@ -525,8 +521,9 @@ async fn attest_statement(
     existing_artifact(e, fingerprint)
 }
 
-/// A recovered device's one vetKD derivation of the committed root; see
-/// `DeriveRootRequest`. Retries with the same request return the stored result.
+/// A recovered device's vetKD derivation of the committed root; see
+/// `DeriveRootRequest`. Retries with the same request return the stored result;
+/// a new approval derives again until the device commits a new root.
 #[ic_cdk::update]
 async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     let caller = ic_cdk::api::msg_caller();

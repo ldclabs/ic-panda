@@ -30,7 +30,8 @@ pub enum ControllerRole {
 pub enum Capability {
     /// Sign ordinary content under device authority.
     ContentSign,
-    /// Read the vault: receive a content-root envelope and open vault entries.
+    /// Read account ciphertext through the cloud service. The user home only
+    /// records it: every active device receives a content-root envelope.
     VaultUnlock,
     /// Reserve and commit content roots.
     RootManage,

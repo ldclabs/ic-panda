@@ -24,7 +24,6 @@ export const FILE_STATEMENT_PROFILE =
 export const FILE_STATEMENT_CONTENT_TYPE = "application/cbor";
 export const MAX_FILE_STATEMENT_BYTES = 16384;
 export const TEXT_CONTENT_TYPE = "text/plain;charset=utf-8";
-export type Algorithm = "Ed25519";
 export interface DocumentStatement {
   issuer: string;
   subject?: string | undefined;
@@ -113,15 +112,11 @@ export function assertStatement(statement: DocumentStatement) {
 }
 export function statementBytes(
   statement: DocumentStatement,
-  algorithm: Algorithm,
   kid: Uint8Array,
 ) {
   assertStatement(statement);
   ensure(
-    algorithm === "Ed25519" &&
-      kid instanceof Uint8Array &&
-      kid.length > 0 &&
-      kid.length <= 256,
+    kid instanceof Uint8Array && kid.length > 0 && kid.length <= 256,
     "UNSUPPORTED_PROTOCOL",
   );
   const claims = new Map<number, unknown>([[1, statement.issuer]]);

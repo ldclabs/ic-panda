@@ -46,8 +46,11 @@
     await session.run(async () => {
       const meta = session.meta!
       const { account: c } = await connectAccount(derivation, { bound: false })
-      if (!meta.account) throw new Error('工作台尚未绑定账户。')
-      const secret = await c.unlockSecret(meta.account.id)
+      // Binding switches to the login secret before the root opens; if that
+      // was interrupted, the login's account names the secret to fetch.
+      const id = meta.account?.id ?? (await c.connectedAccount())
+      if (!id) throw new Error('此登录身份还没有账户。')
+      const secret = await c.unlockSecret(id)
       await session.unlock({ secret })
     })
   }

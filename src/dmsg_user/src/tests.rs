@@ -842,7 +842,32 @@ fn recovery_delay_is_bounded_and_frozen_while_a_takeover_is_pending() {
 }
 
 #[test]
-fn a_recovered_device_derives_the_committed_root_once_until_it_rekeys() {
+fn removing_the_requesting_login_voids_its_takeover() {
+    let mut s = fixture();
+    let request = RecoveryRequest {
+        op_id: Hash::new([4; 32]),
+        new_auth: p(4),
+        device: device(4, true),
+        expires_at: 10 * DAY,
+    };
+    let proof = sk(4)
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
+        .to_bytes();
+    s.auth_bindings.push(p(4));
+    recovery::begin_recovery(&mut s, p(4), &request, &proof, 2).unwrap();
+    let after = s.pending_recovery.as_ref().unwrap().execute_after;
+    // A device unbinds the login, e.g. a stolen one, without disputing.
+    apply(&mut s, AccountCommand::RemoveAuth { principal: p(4) }, 3).unwrap();
+    assert!(s.pending_recovery.is_none());
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(4), request.op_id, after),
+        Err(Error::NotFound)
+    );
+    assert_eq!(s.devices.len(), 1);
+}
+
+#[test]
+fn a_recovered_device_derives_the_committed_root_until_it_rekeys() {
     let mut s = fixture();
     committed(&mut s, 1);
     let now = 10 * DAY;
@@ -907,11 +932,37 @@ fn a_recovered_device_derives_the_committed_root_once_until_it_rekeys() {
         record_execution_response(&mut s, again.approval.request_id, Err(Error::ExecutionUnknown)),
         Ok(done)
     );
+    // A completed derivation does not end the right: a new approval derives
+    // again, counted against the daily executions.
+    let later = derive_request(&s, 4, 1, at);
+    derive(&mut s, p(4), &later, at).unwrap();
+    assert_eq!(s.budget.executions, 2);
     // Committing a new root ends the derivation right.
     committed_by(&mut s.account, 4, at);
     assert_eq!(s.info(NAMESPACE).recovered_device, None);
     let rekeyed = derive_request(&s, 4, 2, at);
     assert_eq!(derive(&mut s, p(4), &rekeyed, at), Err(Error::Forbidden));
+}
+
+#[test]
+fn attestations_leave_the_execution_sequence_to_derivations() {
+    let mut s = fixture();
+    committed(&mut s, 1);
+    for at in 10..13 {
+        let r = attest_request(&s, 1, statement(&s), at);
+        attest(&mut s, p(1), &r, at).unwrap();
+    }
+    // COSE closes its window only over sequences it executes, so attestations
+    // must not open gaps ahead of the next derivation.
+    assert_eq!(s.next_execution_sequence, 1);
+    recovered(&mut s, 4, 10 * DAY);
+    let at = 14 * DAY;
+    let r = derive_request(&s, 4, 1, at);
+    let e = derive(&mut s, p(4), &r, at).unwrap();
+    let ExecutionRecord::Derivation { grant, .. } = &e.record else {
+        panic!()
+    };
+    assert_eq!(grant.execution_sequence, 1);
 }
 
 #[test]

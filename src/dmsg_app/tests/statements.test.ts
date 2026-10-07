@@ -74,11 +74,7 @@ describe('portable document profiles', () => {
     expect(() => verifyDocumentArtifact(signed, utf8('other'))).toThrow()
     const [, , , signature] = decodeBounded(signed.cose_sign1.subarray(1)) as Uint8Array[]
     const parsedKey = decodeBounded(signed.cose_key) as Map<number, unknown>
-    const prepared = statementBytes(
-      checked.statement,
-      'Ed25519',
-      parsedKey.get(2) as Uint8Array
-    )
+    const prepared = statementBytes(checked.statement, parsedKey.get(2) as Uint8Array)
     expect(prepared.toBeSigned).toEqual(vector('file_statement_tbs_v1'))
     expect(ed25519.sign(prepared.toBeSigned, seed)).toEqual(signature)
   })
@@ -207,7 +203,7 @@ describe('portable document profiles', () => {
         (h.get(15) as Map<number, unknown>).set(6, 0x8000000000000000n)
     ])
       expect(() => verifyDocumentArtifact(resigned(change))).toThrow()
-    expect(() => statementBytes(signingInput, 'Bip340' as never, utf8('kid'))).toThrow()
+    expect(() => statementBytes(signingInput, new Uint8Array())).toThrow()
     expect(() =>
       statementBytes(
         {
@@ -218,7 +214,6 @@ describe('portable document profiles', () => {
             contentType: 'application/pdf;foo'
           }
         },
-        'Ed25519',
         utf8('kid')
       )
     ).toThrow()
@@ -237,32 +232,20 @@ describe('portable document profiles', () => {
   it('rejects invalid Unicode instead of silently replacing signed characters', () => {
     for (const text of ['\ud800', '\udc00']) {
       expect(() =>
-        statementBytes(
-          { ...signingInput, content: { kind: 'text', text } },
-          'Ed25519',
-          utf8('kid')
-        )
+        statementBytes({ ...signingInput, content: { kind: 'text', text } }, utf8('kid'))
       ).toThrow()
       expect(() =>
-        statementBytes({ ...signingInput, subject: text }, 'Ed25519', utf8('kid'))
+        statementBytes({ ...signingInput, subject: text }, utf8('kid'))
       ).toThrow()
     }
     expect(() =>
-      statementBytes(
-        { ...signingInput, content: { kind: 'text', text: '🦀' } },
-        'Ed25519',
-        utf8('kid')
-      )
+      statementBytes({ ...signingInput, content: { kind: 'text', text: '🦀' } }, utf8('kid'))
     ).not.toThrow()
   })
   it('preserves text and accepts variable kid lengths', () => {
     for (const length of [1, 12, 29, 32, 256]) {
       const kid = new Uint8Array(length).fill(8)
-      const { protectedBytes, payload, toBeSigned } = statementBytes(
-        signingInput,
-        'Ed25519',
-        kid
-      )
+      const { protectedBytes, payload, toBeSigned } = statementBytes(signingInput, kid)
       expect(payload).toEqual(utf8('  原文\nunchanged  '))
       const key = new Map<number, unknown>([
         [1, 1],
@@ -301,25 +284,13 @@ describe('portable document profiles', () => {
     })
     expect(result.toBeSigned).toEqual(tbs)
   })
-  it.each([
-    signingInput,
-    {
-      issuer: signingInput.issuer,
-      content: {
-        kind: 'file_statement',
-        text: 'Review 🐼\n',
-        sha256: unhex(hash(new Uint8Array()))
-      }
-    } satisfies DocumentStatement
-  ])('verifies ES256K text/file statements with compressed and full coordinates', (input) => {
-    const kid = utf8('ec-key'),
-      publicKey = secp256k1.getPublicKey(seed, false)
-    const { protectedBytes, payload, toBeSigned } = statementBytes(
-      input,
-      'EcdsaSecp256k1',
-      kid
-    )
-    const signature = secp256k1.sign(toBeSigned, seed, { prehash: true })
+  it('rejects ES256K artifacts, which dMsg no longer issues', () => {
+    const publicKey = secp256k1.getPublicKey(seed, false)
+    const { protectedBytes, payload } = statementBytes(signingInput, utf8('ec-key'))
+    const headers = decodeBounded(protectedBytes) as Map<number, unknown>
+    headers.set(1, -47)
+    const protectedEc = canonical(headers)
+    const toBeSigned = canonical(['Signature1', protectedEc, new Uint8Array(), payload])
     const key = new Map<number, unknown>([
       [1, 2],
       [3, -47],
@@ -327,29 +298,12 @@ describe('portable document profiles', () => {
       [-2, publicKey.subarray(1, 33)],
       [-3, publicKey.subarray(33)]
     ])
+    const signature = secp256k1.sign(toBeSigned, seed, { prehash: true })
     const cose_sign1 = Uint8Array.from([
       0xd2,
-      ...canonical([protectedBytes, new Map(), payload, signature])
+      ...canonical([protectedEc, new Map(), payload, signature])
     ])
-    const full = verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) })
-    if (input.content.kind === 'file_statement') {
-      expect(full.checks.content).toBe('not_provided')
-      expect(
-        verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) }, new Uint8Array())
-          .checks.content
-      ).toBe('verified')
-    }
-    const required = new Map([
-      [1, key.get(1)],
-      [-1, key.get(-1)],
-      [-2, key.get(-2)],
-      [-3, key.get(-3)]
-    ])
-    expect(hex(full.keyFingerprint)).toBe(hash(canonical(required)))
-    key.set(-3, (publicKey[64] & 1) === 1)
-    expect(
-      verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) }).keyFingerprint
-    ).toEqual(full.keyFingerprint)
+    expect(() => verifyDocumentArtifact({ cose_sign1, cose_key: canonical(key) })).toThrow()
   })
 })
 describe('identity adapters', () => {
@@ -380,7 +334,7 @@ describe('identity adapters', () => {
     ])
       expect(() => assertUri(bad)).toThrow()
     expect(() =>
-      statementBytes({ ...signingInput, subject: 'bad\u0085subject' }, 'Ed25519', utf8('kid'))
+      statementBytes({ ...signingInput, subject: 'bad\u0085subject' }, utf8('kid'))
     ).toThrow()
     expect(() => accountIssuer('https://dmsg.test/u', new Uint8Array(12))).toThrow()
     expect(DIGEST_PROFILE).toBe('application/vnd.dmsg.digest-statement+cose;v=1')

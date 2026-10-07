@@ -185,7 +185,7 @@ export function signBytes(
   request: AttestRequest | AppActionAttestRequest,
   kid: Uint8Array
 ) {
-  return statementBytes(fromStatement(attestView(request).statement), 'Ed25519', kid).toBeSigned
+  return statementBytes(fromStatement(attestView(request).statement), kid).toBeSigned
 }
 /** A frozen attestation: the device signs the Sig_structure, then approves
  * the statement, origin and that signature together. */

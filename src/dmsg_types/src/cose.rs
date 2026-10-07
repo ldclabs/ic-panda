@@ -4,8 +4,9 @@
 //! root bundle also carries an identity-based-encryption envelope to the
 //! account's vetKD identity `(account_id, generation)`, encrypted offline with
 //! the derived public key the COSE home publishes. Only a completed delayed
-//! recovery authorizes the user home to grant one derivation, which the COSE
-//! home executes. Formal document signatures are device signatures recorded by
+//! recovery authorizes the user home to grant derivations, to the device it
+//! enrolled and of the committed generation, until that device commits a new
+//! root; the COSE home executes them. Formal document signatures are device signatures recorded by
 //! the user home; see [`crate::signing`].
 //! Business times are Unix milliseconds; costs are ICP cycles.
 use crate::*;

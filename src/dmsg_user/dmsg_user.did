@@ -523,7 +523,8 @@ type Capability = variant {
   FormalApprove;
   // Sign ordinary content under device authority.
   ContentSign;
-  // Read the vault: receive a content-root envelope and open vault entries.
+  // Read account ciphertext through the cloud service. The user home only
+  // records it: every active device receives a content-root envelope.
   VaultUnlock;
   // Reserve and commit content roots.
   RootManage;
@@ -1219,8 +1220,9 @@ service : (UserInit) -> {
       Result,
     );
   create_account : (CreateAccount) -> (Result_6);
-  // A recovered device's one vetKD derivation of the committed root; see
-  // `DeriveRootRequest`. Retries with the same request return the stored result.
+  // A recovered device's vetKD derivation of the committed root; see
+  // `DeriveRootRequest`. Retries with the same request return the stored result;
+  // a new approval derives again until the device commits a new root.
   derive_root : (DeriveRootRequest) -> (Result_7);
   get_account : (blob) -> (Result_8) query;
   // The retained artifact of an attestation, for a client resuming after a lost reply.
