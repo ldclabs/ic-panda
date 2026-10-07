@@ -17,8 +17,9 @@ A different open workspace is refused before enqueueing. `checkout` carries a
 canonical `CheckoutRequest`; the extension independently verifies product and
 asset configurations and obtains an authoritative cash or PANDA quote before
 showing the full terms. Wallet identity is connected separately from the dMsg
-account. A new device approval needs FormalApprove; formal signatures also need
-confirmed recovery material. No private signing key is exported.
+account. A new device approval needs FormalApprove and the purpose enabled in the
+account's sensitive policy; the approving device signs with its own Ed25519 key.
+No private signing key is exported.
 
 Authentication chooses the current registered dMsg workspace account. The page
 does not obtain that identity until the user approves the exact request and the
@@ -154,11 +155,15 @@ and the combined browser/product/canister matrix, remain explicit release work.
 
 ## Action and checkout recovery
 
-`signAction` uses a separate purpose and `sign_app_action` operation. It retains
-the original Candid approval/journal and exports the original COSE, full key
-descriptor, execution ID and IC certificate. A fresh certificate can be read for
-an existing completed execution without signing again. Signed-but-unsubmitted
-results remain exportable; signing alone does not prove product delivery.
+`signAction` uses the separate `AppAction` purpose and `dmsg_user.attest_app_action`.
+The extension journals the original device approval and request before submitting
+them; an unknown result is reconciled through `get_attestation` for the same
+execution ID, never by signing again. It exports the original COSE, the execution
+ID and the IC certificate of the schema 2 execution receipt, which binds the device
+key, signature and account; there is no separate key descriptor. A fresh
+certificate can be read for an existing completed execution without signing again.
+Signed-but-unsubmitted results remain exportable; signing alone does not prove
+product delivery.
 
 Checkout persists its complete quote and original device approval before dispatch,
 and the wallet persists its exact ledger transfer before payment. Read the service
