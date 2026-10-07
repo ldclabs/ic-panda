@@ -316,6 +316,49 @@ fn schemas_are_bounded_and_unambiguous() {
     rejected(labels.clone());
     labels.commands[0].title = label("Line\nbreak");
     rejected(labels);
+    // Commands, fields and values told apart by their labels never share a
+    // text, whichever locale the confirmation page shows.
+    let ambiguous = |schema: ActionSchema| {
+        assert_eq!(
+            validate_action_schema(&schema),
+            Err(Error::InvalidInput("ambiguous labels".into()))
+        )
+    };
+    let texts = |pairs: &[(&str, &str)]| -> Vec<ActionLabel> {
+        pairs
+            .iter()
+            .map(|(locale, text)| ActionLabel {
+                locale: (*locale).into(),
+                text: (*text).into(),
+            })
+            .collect()
+    };
+    let decision = |yes, no| one_command(vec![field("a", FieldType::Bool { yes, no })]);
+    validate_action_schema(&decision(texts(&[("en", "OK"), ("fr", "OK")]), label("No"))).unwrap();
+    ambiguous(decision(label("Approve"), label("Approve")));
+    ambiguous(decision(
+        label("Approve"),
+        texts(&[("en", "Refuse"), ("zh", "Approve")]),
+    ));
+    let option = |value: &str| ChoiceOption {
+        value: value.into(),
+        label: label("Same"),
+    };
+    ambiguous(one_command(vec![field(
+        "a",
+        FieldType::Choice {
+            options: vec![option("x"), option("y")],
+        },
+    )]));
+    let mut fields = one_command(vec![field("a", nat()), field("b", nat())]);
+    fields.commands[0].fields.0[1].label = label("a");
+    ambiguous(fields);
+    let mut titles = valid.clone();
+    titles.commands.push(CommandSchema {
+        name: "Other".into(),
+        ..valid.commands[0].clone()
+    });
+    ambiguous(titles);
     let wide = (0..32)
         .map(|i| {
             field(
@@ -324,7 +367,7 @@ fn schemas_are_bounded_and_unambiguous() {
                     options: (0..32)
                         .map(|j| ChoiceOption {
                             value: format!("o{j}"),
-                            label: label("x"),
+                            label: label(&format!("o{j}")),
                         })
                         .collect(),
                 },

@@ -33,7 +33,8 @@ types; independent encoder tests prevent sharing the same serialization bug.
 ## Identity and admission
 
 An application pins exact canonical origins, authentication receiver, the fixed
-action authority, capabilities, closed signing profiles and product IDs; which user
+action authority, capabilities, closed signing profiles, product IDs and, exactly
+when it has `SignAction`, the [schema of its own commands](app-action.md); which user
 homes it serves is decided by the commerce canister that registered it. A product pins its quote authority,
 beneficiary authorities, adapter, subject schema/size, merchant account, ledgers
 and terms. A subject names one of the beneficiary authorities, which is asked for

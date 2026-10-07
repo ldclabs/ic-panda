@@ -25,6 +25,20 @@
   let review = $state<Awaited<ReturnType<SigningClient['prepare']>> | null>(null)
   let result = $state<Awaited<ReturnType<SigningClient['journal']>>>(null)
   let derivation = $state(config.derivationOrigins[0])
+  /** The certified registration whose schema renders the action. */
+  async function actionRegistration(request: PendingRequest, actionCbor: string) {
+    const bridge = request.bridge
+    ensure(bridge, 'FORBIDDEN')
+    const app = await registeredApplication(
+      await services(),
+      bridge.appId,
+      request.source.origin,
+      'SignAction'
+    )
+    ensure(app.config_version.toString() === bridge.appVersion, 'POLICY_STALE')
+    validateActionCommand(actionBody(actionCbor), app.action_schema!)
+    return app
+  }
   onMount(() => {
     const id = new URLSearchParams(location.search).get('id')
     void session.run(async () => {
@@ -37,18 +51,17 @@
       )) as SignatureRequest
       if (request.state === 'awaiting_user') assertRequestUnchanged(decoded, request)
       if (decoded.statement.content.kind === 'app_action') {
-        // Titles and labels come only from the certified registration.
-        const bridge = request.bridge
-        ensure(bridge, 'FORBIDDEN')
-        const app = await registeredApplication(
-          await services(),
-          bridge.appId,
-          request.source.origin,
-          'SignAction'
-        )
-        ensure(app.config_version.toString() === bridge.appVersion, 'POLICY_STALE')
-        validateActionCommand(actionBody(decoded.statement.content.actionCbor), app.action_schema!)
-        actionApp = app
+        // Titles and labels come only from the certified registration. Only a
+        // new approval depends on it: a paused or revised registration must not
+        // stop reconciling an action that was already approved.
+        const pending = request.state === 'awaiting_user'
+        actionApp = await actionRegistration(
+          request,
+          decoded.statement.content.actionCbor
+        ).catch((error) => {
+          if (pending) throw error
+          return null
+        })
       }
       payload = decoded
       const saved = await session.crypto.call('controlGet', `formal:${request.id}`)

@@ -76,6 +76,21 @@ fn labels(labels: &[ActionLabel]) -> Result<()> {
     Ok(())
 }
 
+/// Labels that tell commands, fields or values apart share no text in any
+/// locale, so the confirmation page never renders two of them alike.
+fn distinct<'a>(sets: impl Iterator<Item = &'a [ActionLabel]>) -> Result<()> {
+    let mut owner = std::collections::BTreeMap::new();
+    for (i, labels) in sets.enumerate() {
+        for label in labels {
+            ensure_valid(
+                *owner.entry(label.text.as_str()).or_insert(i) == i,
+                "ambiguous labels",
+            )?;
+        }
+    }
+    Ok(())
+}
+
 fn schema_fields(fields: &[FieldSchema], depth: usize) -> Result<()> {
     ensure_valid(fields.len() <= MAX_FIELDS, "schema fields")?;
     unique_names(fields.iter().map(|f| f.name.as_str()))?;
@@ -83,7 +98,7 @@ fn schema_fields(fields: &[FieldSchema], depth: usize) -> Result<()> {
         labels(&field.label)?;
         field_type(&field.ty, depth)?;
     }
-    Ok(())
+    distinct(fields.iter().map(|f| f.label.as_slice()))
 }
 
 fn field_type(ty: &FieldType, depth: usize) -> Result<()> {
@@ -92,7 +107,8 @@ fn field_type(ty: &FieldType, depth: usize) -> Result<()> {
         FieldType::Nat { min, max } => ensure_valid(min <= max, "schema range"),
         FieldType::Bool { yes, no } => {
             labels(yes)?;
-            labels(no)
+            labels(no)?;
+            distinct([yes.as_slice(), no.as_slice()].into_iter())
         }
         FieldType::Text { max_bytes, .. } => {
             ensure_valid((1..=MAX_TEXT as u64).contains(max_bytes), "schema text")
@@ -104,7 +120,8 @@ fn field_type(ty: &FieldType, depth: usize) -> Result<()> {
                 "schema choice",
             )?;
             unique_names(options.iter().map(|o| o.value.as_str()))?;
-            options.iter().try_for_each(|o| labels(&o.label))
+            options.iter().try_for_each(|o| labels(&o.label))?;
+            distinct(options.iter().map(|o| o.label.as_slice()))
         }
         FieldType::Optional { item } => {
             ensure_valid(
@@ -136,6 +153,7 @@ pub fn validate_action_schema(schema: &ActionSchema) -> Result<()> {
         labels(&command.title)?;
         schema_fields(&command.fields.0, 1)?;
     }
+    distinct(schema.commands.iter().map(|c| c.title.as_slice()))?;
     ensure(
         canonical(schema).len() <= MAX_ACTION_SCHEMA_BYTES,
         Error::QuotaExceeded,

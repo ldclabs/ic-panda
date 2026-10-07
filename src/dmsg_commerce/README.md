@@ -218,7 +218,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 | `environment`         | `Production`、`Staging` 或 `Local`。非 `Local` 只接受主网 ckUSDC（`xevnm-gaaaa-aaaar-qafnq-cai`）和 ckUSDT（`cngnf-vqaaa-aaaar-qag4q-cai`），验证资产时必须提供真实转账区块；`Production` 的产品注册也只能列出这两个账本 |
 | `governance`          | 与 controller 一起可调用全部治理方法，初始化后不可修改。每个治理方法都有同参数的 `validate_*` query，按当前状态执行相同检查并渲染提案说明，可登记为 SNS 通用函数的验证方法                                      |
 | `membership_canister` | 共享 `membership` 的 ID，初始化后不可修改                                                                                                                                                                        |
-| `user_homes`          | 1–64 个 `dmsg_user` ID，不得重复；之后只能用 `admin_add_user_home` 追加。新 home 还需加入应用登记的 `user_homes` 和产品登记的 `beneficiary_authorities`                                                       |
+| `user_homes`          | 1–64 个 `dmsg_user` ID，不得重复；之后只能用 `admin_add_user_home` 追加。新 home 还需加入 dMsg 产品登记的 `beneficiary_authorities`                                                                           |
 | `catalog`             | 初始目录：`schema = 1`，`version > 0`，`effective_at_ms` 不晚于安装时间；4 个套餐的 `catalog_version` 等于目录版本，Free 价格为 0，执行权重一致                                                                 |
 | `limits`              | 初始 `CommerceLimits`，见“限流与容量”；之后由 `admin_set_limits` 调整。`max_subjects` 只计付费过的账户                                                                                                           |
 
@@ -316,7 +316,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         terms_hash = blob "<32 字节条款摘要>"; paused = false })'
       ```
 
-   2. 登记 dMsg 应用。客户端以 `app_id = "dmsg"` 购买，要求应用具备 `Checkout` 能力，并且注册的 `user_homes`、`cose_homes` 和环境与客户端配置一致；`origins` 填扩展和网页的精确 origin：
+   2. 登记 dMsg 应用。客户端以 `app_id = "dmsg"` 购买，要求应用具备 `Checkout` 能力，并且注册的环境与客户端配置一致（服务哪些 user home 由登记它的 commerce 决定）；`origins` 填扩展和网页的精确 origin：
 
       ```sh
       dfx canister call --network ic dmsg_commerce register_integration_app '(record {
@@ -385,7 +385,7 @@ commerce 没有定时器，下列任务都需要外部调用：
 - **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。条款变化通过更新产品注册的 `terms_hash` 立即生效，不需要与目录同步。
 - **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。有 `SignAction` 能力的应用必须提供 `action_schema`（应用自己命令的 schema），可在新版本中修改；版本要求精确匹配，按旧版本准备的在途动作随之失效。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
 - **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。
-- **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到应用登记的 `user_homes` 和 dMsg 产品登记的 `beneficiary_authorities`（各自 `config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。
+- **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到 dMsg 产品登记的 `beneficiary_authorities`（`config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。
 - **准入上限**：`admin_set_limits` 一次替换全部上限，`validate_admin_set_limits` 会显示当前值；`max_hot_orders` 不能大于 `max_orders`，`calls_per_caller` 不能大于 `calls_per_minute`。热订单约等于最近 13 个月的订单数（归集完成并过 30 天才归档），`max_hot_orders` 按年订单量的 1.2 倍预留。
 - **资产**：已登记资产的更新只替换非价格条款（fee、fee 上限、启用状态）：commerce 沿用最新发布的价格，并在执行时分配下一个 `policy_version`，提案中的价格字段和版本不生效，价格发布不会使提案过期。账本 fee 变化后，出金遇到 `BadFee` 会记录账本给出的 fee，新报价随之停止，直到 governance 登记新的 `network_fee_atomic` 并重新验证；已被拒绝的出金腿由收款人修订后重发。
 

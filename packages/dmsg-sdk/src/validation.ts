@@ -262,6 +262,17 @@ function labels(list: ActionLabel[]): void {
   }
 }
 
+/** Labels that tell commands, fields or values apart share no text in any locale. */
+function distinct(sets: ActionLabel[][]): void {
+  const owner = new Map<string, number>();
+  sets.forEach((set, i) => {
+    for (const label of set) {
+      ensure((owner.get(label.text) ?? i) === i, "INVALID_INPUT");
+      owner.set(label.text, i);
+    }
+  });
+}
+
 function schemaFields(list: FieldSchema[], depth: number): void {
   ensure(list.length <= 32, "INVALID_INPUT");
   uniqueNames(list.map((f) => f.name));
@@ -269,6 +280,7 @@ function schemaFields(list: FieldSchema[], depth: number): void {
     labels(field.label);
     fieldType(field.ty, depth);
   }
+  distinct(list.map((f) => f.label));
 }
 
 function fieldType(ty: FieldType, depth: number): void {
@@ -278,6 +290,7 @@ function fieldType(ty: FieldType, depth: number): void {
   else if ("Bool" in ty) {
     labels(ty.Bool.yes);
     labels(ty.Bool.no);
+    distinct([ty.Bool.yes, ty.Bool.no]);
   } else if ("Text" in ty)
     ensure(
       ty.Text.max_bytes >= 1n && ty.Text.max_bytes <= 4096n,
@@ -288,6 +301,7 @@ function fieldType(ty: FieldType, depth: number): void {
     ensure(options.length >= 1 && options.length <= 32, "INVALID_INPUT");
     uniqueNames(options.map((o) => o.value));
     options.forEach((o) => labels(o.label));
+    distinct(options.map((o) => o.label));
   } else if ("Optional" in ty) {
     const item = ty.Optional.item;
     ensure(
@@ -320,6 +334,7 @@ export function validateActionSchema(schema: ActionSchema): void {
     labels(command.title);
     schemaFields(command.fields, 1);
   }
+  distinct(schema.commands.map((c) => c.title));
   ensure(
     canonical(schema).length <= MAX_ACTION_SCHEMA_BYTES,
     "QUOTA_EXCEEDED",

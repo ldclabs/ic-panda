@@ -89,7 +89,10 @@ DecideReview  "Record review decision"
   options and 8 locales per label; names are ASCII identifiers of at most 64 bytes;
   labels are single-line text of at most 256 bytes; `Text` allows at most 4096 bytes
   and `List` at most 64 items. A top-level argument is nesting level one, and types
-  and values nest at most three levels. `Optional` cannot wrap `Optional`.
+  and values nest at most three levels. `Optional` cannot wrap `Optional`. The
+  labels that tell apart the commands, the fields of one command or record, the
+  options of a `Choice` or the two values of a `Bool` share no text in any locale,
+  so the confirmation page never renders two of them alike.
 - Action body: at most 48 KiB; total Sig_structure remains at most 64 KiB.
 - Intent: positive validity interval of at most 300,000 milliseconds; historical
   signature parsing validates the interval shape without expiring the signature.
@@ -119,7 +122,10 @@ render and check the command offline.
 The confirmation page reads the certified registration, checks `schema_hash`, and
 renders the title and labels only from the schema; the request carries no display
 text. The page states that the application defined the wording and governance
-registered it.
+registered it. Only a new approval requires the current registration: after a
+pause or a new registration version, an action that was already approved still
+opens for reconciliation, without the schema-rendered details if the registration
+no longer matches.
 
 The document-only `dmsg_user.attest` rejects `AppAction` content with
 `UnsupportedProtocol`. `attest_app_action` takes `AppActionAttestRequest { account_id,
@@ -146,10 +152,10 @@ receipt (schema 2) machinery as document attestation.
 `dmsg_protocol` tests sign every command of a sample review schema with a real
 deterministic Ed25519 fixture and reject a changed origin, receiver, actor, schema
 digest, command, argument, display name, file hash/version/representation or intent
-expiry. Schema bounds, unknown commands, swapped or renamed arguments, out-of-range
-numbers, undeclared choices, misplaced `Null`, depth, unknown value kinds,
-registration without a schema, paused registration and expired admission are
-tested. `integration_vectors.json` includes the registration, each action and its
-signature, checked by an independent TypeScript encoder and validator, and the
-extension renders the same vectors in a server-side render test. Existing document
-vectors remain byte-for-byte unchanged.
+expiry. Schema bounds, ambiguous labels, unknown commands, swapped or renamed
+arguments, out-of-range numbers, undeclared choices, misplaced `Null`, depth,
+unknown value kinds, registration without a schema, paused registration and
+expired admission are tested. `integration_vectors.json` includes the registration,
+each action and its signature, checked by an independent TypeScript encoder and
+validator, and the extension renders the same vectors in a server-side render test.
+Existing document vectors remain byte-for-byte unchanged.

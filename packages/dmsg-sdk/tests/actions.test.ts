@@ -209,6 +209,43 @@ test("registrations carry a bounded schema exactly with SignAction", () => {
     },
   ])
     assert.throws(() => validateActionSchema(bad as ActionSchema));
+  // Commands, fields and values told apart by their labels never share a
+  // text, whichever locale the confirmation page shows.
+  const en = (text: string) => [{ locale: "en", text }];
+  validateActionSchema(
+    one({
+      Bool: { yes: [...en("OK"), { locale: "fr", text: "OK" }], no: en("No") },
+    }),
+  );
+  const command = one(nat).commands[0]!;
+  for (const ambiguous of [
+    one({ Bool: { yes: en("Approve"), no: en("Approve") } }),
+    one({
+      Bool: {
+        yes: en("Approve"),
+        no: [...en("Refuse"), { locale: "zh", text: "Approve" }],
+      },
+    }),
+    one({
+      Choice: {
+        options: [
+          { value: "x", label: en("Same") },
+          { value: "y", label: en("Same") },
+        ],
+      },
+    }),
+    {
+      ...s,
+      commands: [
+        {
+          ...command,
+          fields: [...command.fields, { ...command.fields[0]!, name: "b" }],
+        },
+      ],
+    },
+    { ...s, commands: [command, { ...command, name: "B" }] },
+  ])
+    assert.throws(() => validateActionSchema(ambiguous), /INVALID_INPUT/);
 });
 
 test("unknown semantics and stale registration cannot enter action admission", () => {
