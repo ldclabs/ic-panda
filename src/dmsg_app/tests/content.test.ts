@@ -1,6 +1,6 @@
 import { beforeEach, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { CryptoEngine } from '../src/lib/crypto/engine'
+import { boundEngine } from './support/engine'
 import { xidText } from '../src/lib/protocol/identity'
 import { b64, hash, unb64 } from '../src/lib/protocol/codec'
 import { MAX_CIPHER_CHUNK } from '../src/lib/config'
@@ -10,26 +10,12 @@ import type { StoredUploadPlan } from '../src/lib/protocol/content'
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
-const account = xidText(new Uint8Array(12).fill(8)),
-  password = 'content fixture password'
+const account = xidText(new Uint8Array(12).fill(8))
 async function localFixture(root?: string) {
-  const engine = new CryptoEngine(),
-    initialized = await engine.initialize(password)
-  await engine.verifyRecovery(initialized.recoveryCode)
+  const { engine } = await boundEngine(account)
   // Crypto-only fixture. Real account authorization is exercised by PocketIC;
   // there is no production API that can set this state.
   const internals = engine as any
-  internals.meta = {
-    ...internals.meta,
-    subjectId: account,
-    registered: true,
-    account: {
-      id: account,
-      homeUser: 'aaaaa-aa',
-      issuer: `https://example.test/${account}`,
-      rootDigest: '1'.repeat(64)
-    }
-  }
   if (root) internals.bundle.root = root
   return engine
 }

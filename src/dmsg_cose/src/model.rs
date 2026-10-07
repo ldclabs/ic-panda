@@ -4,68 +4,20 @@ use dmsg_runtime::*;
 use dmsg_types::{cose::*, *};
 use std::collections::BTreeMap;
 
-// Cover everything a user home may authorize for one account in a day: the
-// formal share (total less a fifth) holds the formal ceiling, the rest roots.
-const HOME_DAILY_EXECUTIONS: u32 = 125;
+// Cover everything a user home may authorize for one account in a day.
+const HOME_DAILY_EXECUTIONS: u32 = 100;
 const HOME_DAILY_CYCLES: u128 = 1_100_000_000_000;
 const RESULT_RETENTION: u64 = DAY;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Budgets {
-    pub total: Budget,
-    pub formal: Budget,
-}
-
-impl Budgets {
-    pub fn reserve(
-        &mut self,
-        now: u64,
-        cycles: u128,
-        count_limit: u32,
-        cycle_limit: u128,
-        formal: bool,
-    ) -> Result<()> {
-        let mut next = self.clone();
-        next.total.reserve(now, cycles, count_limit, cycle_limit)?;
-        if formal {
-            next.formal.reserve(
-                now,
-                cycles,
-                count_limit - count_limit.div_ceil(5),
-                cycle_limit - cycle_limit.div_ceil(5),
-            )?;
-        }
-        *self = next;
-        Ok(())
-    }
-
-    /// Settle a reservation once its management call returns, or at once when
-    /// it was not sent: keep only the charged cycles and, when the call ran
-    /// nothing, return the execution as well.
-    pub fn settle(
-        &mut self,
-        reserved_at: u64,
-        reserved: u128,
-        charged: u128,
-        executed: bool,
-        formal: bool,
-    ) {
-        self.total.settle(reserved_at, reserved, charged, executed);
-        if formal {
-            self.formal.settle(reserved_at, reserved, charged, executed);
-        }
-    }
-}
-
-/// Global budgets and the number of executions recorded as Unknown.
+/// Global budget and the number of executions recorded as Unknown.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Global {
-    pub budgets: Budgets,
+    pub budget: Budget,
     pub unknown: u64,
 }
 
 /// A returned unknown outcome cannot be dispatched again, but must retain its
-/// result and commercial hold. It does not block later closed sequences.
+/// result. It does not block later closed sequences.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub enum ExecutionState {
     InFlight,
@@ -84,8 +36,6 @@ pub struct Execution {
     pub expires_at: u64,
     #[cbor(key = 4)]
     pub state: ExecutionState,
-    #[cbor(key = 5)]
-    pub formal: bool,
 }
 
 impl Execution {
@@ -100,16 +50,20 @@ impl Execution {
 pub struct Home {
     pub closed_sequence: u64,
     pub executions: BTreeMap<u64, Execution>,
-    pub budgets: Budgets,
+    pub budget: Budget,
+}
+
+pub fn grant_digest(grant: &ExecutionGrant) -> Hash {
+    digest("dmsg/cose-execution/v4", grant)
 }
 
 impl Home {
     /// Check replay and window bounds after the entry point authenticates the
-    /// configured user home, before parsing or deriving keys.
+    /// configured user home, before deriving keys.
     pub fn check(&self, grant: &ExecutionGrant, now: u64) -> Result<Option<u64>> {
         if let Some(sequence) = self.sequence(&grant.request_id) {
             ensure(
-                self.executions[&sequence].digest == digest("dmsg/cose-execution/v3", grant),
+                self.executions[&sequence].digest == grant_digest(grant),
                 Error::IdempotencyConflict,
             )?;
             return Ok(Some(sequence));
@@ -141,18 +95,12 @@ impl Home {
                 && grant.expires_at - grant.approved_at <= 5 * MINUTE,
             Error::Expired,
         )?;
-        let mut retained = 0;
-        let mut formal = 0;
-        for (seq, e) in &self.executions {
-            if e.retained(*seq, self.closed_sequence, now) {
-                retained += 1;
-                formal += usize::from(e.formal);
-            }
-        }
+        let retained = self
+            .executions
+            .iter()
+            .filter(|(seq, e)| e.retained(**seq, self.closed_sequence, now))
+            .count();
         ensure(retained < WINDOW, Error::QuotaExceeded)?;
-        if grant.kind.is_formal() {
-            ensure(formal < FORMAL_EXECUTION_WINDOW, Error::QuotaExceeded)?;
-        }
         Ok(None)
     }
 
@@ -171,20 +119,18 @@ impl Home {
         now: u64,
         cost: Option<u128>,
     ) -> Result<Vec<u64>> {
-        let formal = grant.kind.is_formal();
         if let Some(cost) = cost {
-            self.budgets
-                .reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)?;
+            self.budget
+                .reserve(now, cost, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES)?;
         }
         let removed = self.prune(now);
         self.executions.insert(
             grant.execution_sequence,
             Execution {
                 request_id: grant.request_id,
-                digest: digest("dmsg/cose-execution/v3", grant),
+                digest: grant_digest(grant),
                 expires_at: grant.expires_at,
                 state: ExecutionState::InFlight,
-                formal,
             },
         );
         Ok(removed)
@@ -246,37 +192,6 @@ impl Home {
     }
 }
 
-pub fn key_id(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Hash {
-    digest(
-        "dmsg/key-id/v3",
-        &(
-            &config.environment,
-            config.executing_canister,
-            config.derivation_version,
-            account_id,
-            key,
-        ),
-    )
-}
-
-pub fn path(config: &CoseInit, account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
-    let mut path = signing_prefix(config);
-    path.extend(signing_suffix(account_id, key));
-    path
-}
-
-pub fn signing_prefix(config: &CoseInit) -> Vec<Vec<u8>> {
-    vec![b"dmsg/formal/v2".to_vec(), canonical(&config.environment)]
-}
-
-pub fn signing_suffix(account_id: &AccountId, key: &KeyRequest) -> Vec<Vec<u8>> {
-    vec![
-        account_id.to_vec(),
-        canonical(&key.purpose),
-        key.generation.to_be_bytes().to_vec(),
-    ]
-}
-
 pub fn context(config: &CoseInit) -> Vec<u8> {
     content_root_context(&config.environment, config.derivation_version)
 }
@@ -300,7 +215,6 @@ mod tests {
 
     fn g(seq: u64) -> ExecutionGrant {
         ExecutionGrant {
-            commerce: None,
             account_id: AccountId([1; 12]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
@@ -311,11 +225,8 @@ mod tests {
             device_sequence: seq,
             approved_at: 1,
             expires_at: MINUTE,
-            kind: ExecutionKind::Derive {
-                generation: 1,
-                root_op_id: Some(Hash::new([3; 32])),
-                transport_key: [1; 48].into(),
-            },
+            generation: 1,
+            transport_key: [1; 48].into(),
             max_cycles: 100,
         }
     }
@@ -329,96 +240,20 @@ mod tests {
         }
     }
 
-    fn signing(seq: u64) -> ExecutionGrant {
-        let mut grant = g(seq);
-        grant.kind = ExecutionKind::Sign {
-            key: KeySelector::Signing(SigningKey {
-                purpose: SigningPurpose::Statement,
-                algorithm: SigningAlgorithm::Ed25519,
-            })
-            .into(),
-            to_be_signed: vec![1].into(),
-            public_key_fingerprint: Hash::new([1; 32]),
-            origin: "https://example.com".into(),
-        };
-        grant
-    }
-
     #[test]
-    fn signing_history_leaves_root_slots_even_when_roots_arrive_first() {
+    fn a_full_window_refuses_the_next_sequence_until_results_retire() {
         let mut h = Home::default();
-        // The user may dispatch roots after authorizing signatures, but their
-        // messages can reach COSE first. Count formal records, not all records.
-        for sequence in 57..=64 {
+        for sequence in 1..=64 {
             prepare(&mut h, &g(sequence), 2, 1).unwrap();
-            h.finish(sequence, &done(sequence));
-        }
-        for sequence in 1..=56 {
-            prepare(&mut h, &signing(sequence), 2, 1).unwrap();
             h.finish(sequence, &done(sequence));
         }
         assert_eq!(h.closed_sequence, 64);
         assert_eq!(h.check(&g(65), 2), Err(Error::QuotaExceeded));
-
-        let mut h = Home::default();
-        for sequence in 1..=56 {
-            prepare(&mut h, &signing(sequence), 2, 1).unwrap();
-            h.finish(sequence, &done(sequence));
-        }
-        assert_eq!(h.check(&signing(57), 2), Err(Error::QuotaExceeded));
-        assert_eq!(h.check(&signing(1), 2), Ok(Some(1)));
-        prepare(&mut h, &g(57), 2, 1).unwrap();
-    }
-
-    #[test]
-    fn small_budgets_reserve_safety_capacity_atomically() {
-        for limit in [1u32, 4, 5, 6] {
-            let mut budgets = Budgets::default();
-            let formal_limit = limit - limit.div_ceil(5);
-            for _ in 0..formal_limit {
-                budgets.reserve(1, 1, limit, 100, true).unwrap();
-            }
-            let before = budgets.clone();
-            assert_eq!(
-                budgets.reserve(1, 1, limit, 100, true),
-                Err(Error::QuotaExceeded)
-            );
-            assert_eq!(budgets, before);
-            for _ in formal_limit..limit {
-                budgets.reserve(1, 1, limit, 100, false).unwrap();
-            }
-            assert_eq!(
-                budgets.reserve(1, 1, limit, 100, false),
-                Err(Error::QuotaExceeded)
-            );
-            budgets.reserve(DAY, 1, limit, 100, false).unwrap();
-            assert_eq!(budgets.total.executions, 1);
-        }
-    }
-
-    #[test]
-    fn settlement_applies_to_both_budget_classes() {
-        let mut budgets = Budgets::default();
-        budgets.reserve(2 * DAY, 10, 10, 100, true).unwrap();
-        let before = budgets.clone();
-        for formal in [false, true] {
-            budgets.reserve(2 * DAY, 20, 10, 100, formal).unwrap();
-            budgets.settle(2 * DAY, 20, 0, false, formal);
-            assert_eq!(budgets, before);
-        }
-        // A returned call keeps its execution and only the charged cycles.
-        budgets.reserve(2 * DAY, 68, 10, 100, true).unwrap();
-        budgets.settle(2 * DAY, 68, 26, true, true);
-        assert_eq!((budgets.total.executions, budgets.total.cycles), (2, 36));
-        assert_eq!((budgets.formal.executions, budgets.formal.cycles), (2, 36));
-        // Settling frees what the upper bound had reserved: two more fit.
-        for _ in 0..2 {
-            budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
-        }
-        assert_eq!(
-            budgets.reserve(2 * DAY, 20, 10, 100, true),
-            Err(Error::QuotaExceeded)
-        );
+        assert_eq!(h.check(&g(1), 2), Ok(Some(1)));
+        let mut next = g(65);
+        next.approved_at = 2 * DAY;
+        next.expires_at = next.approved_at + MINUTE;
+        prepare(&mut h, &next, next.approved_at, 1).unwrap();
     }
 
     #[test]
@@ -440,36 +275,13 @@ mod tests {
     }
 
     #[test]
-    fn home_budget_covers_every_user_authorized_execution() {
-        let formal = FORMAL_DAILY_CYCLES / u128::from(FORMAL_DAILY_EXECUTIONS);
-        let root = ROOT_DAILY_CYCLES / u128::from(ROOT_DAILY_EXECUTIONS);
-        for formal_first in [true, false] {
-            let mut budgets = Budgets::default();
-            let mut reserve = |count: u32, cycles: u128, formal: bool| {
-                for _ in 0..count {
-                    budgets
-                        .reserve(1, cycles, HOME_DAILY_EXECUTIONS, HOME_DAILY_CYCLES, formal)
-                        .unwrap();
-                }
-            };
-            if formal_first {
-                reserve(FORMAL_DAILY_EXECUTIONS, formal, true);
-                reserve(ROOT_DAILY_EXECUTIONS, root, false);
-            } else {
-                reserve(ROOT_DAILY_EXECUTIONS, root, false);
-                reserve(FORMAL_DAILY_EXECUTIONS, formal, true);
-            }
-        }
-    }
-
-    #[test]
     fn rejected_and_expired_requests_close_without_budget() {
         let mut h = Home::default();
-        h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
-        let budgets = h.budgets.clone();
+        h.budget.executions = HOME_DAILY_EXECUTIONS;
+        let budget = h.budget.clone();
         h.check(&g(1), 2).unwrap();
         assert!(h.prepare(&g(1), 2, None).unwrap().is_empty());
-        assert_eq!(h.budgets, budgets);
+        assert_eq!(h.budget, budget);
         let mut failed = done(1);
         failed.outcome = ExecutionOutcome::Failed(Error::Expired);
         h.finish(1, &failed);
@@ -486,10 +298,10 @@ mod tests {
         }
         h.finish(1, &done(1));
         h.finish(3, &done(3));
-        let budgets = h.budgets.clone();
+        let budget = h.budget.clone();
         assert!(h.prune(DAY).is_empty());
         assert_eq!(h.prune(DAY + MINUTE), vec![1]);
-        assert_eq!(h.budgets, budgets);
+        assert_eq!(h.budget, budget);
         assert_eq!(h.closed_sequence, 1);
         assert_eq!(h.check(&g(1), 2 * DAY), Err(Error::ResultExpired));
         h.finish(2, &done(2));
@@ -620,8 +432,8 @@ mod tests {
         let mut h = Home::default();
         prepare(&mut h, &g(1), 2, 1).unwrap();
         h.finish(1, &done(1));
-        h.budgets.total.day = 2;
-        h.budgets.total.executions = HOME_DAILY_EXECUTIONS;
+        h.budget.day = 2;
+        h.budget.executions = HOME_DAILY_EXECUTIONS;
         let before = h.clone();
         let mut next = g(2);
         next.approved_at = 2 * DAY;

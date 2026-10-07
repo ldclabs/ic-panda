@@ -276,16 +276,16 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
        plans = vec {
          record { plan_id = variant { Free }; catalog_version = 1 : nat64; terms_version = 1 : nat64; price_cents = 0 : nat64;
            limits = record { storage_bytes = 104_857_600 : nat64; active_channels = 2 : nat64; monthly_execution_units = 3 : nat64 };
-           weights = record { version = 1 : nat64; ed25519 = 1 : nat64; ecdsa_secp256k1 = 1 : nat64 } };
+           weights = record { version = 1 : nat64; ed25519 = 1 : nat64 } };
          record { plan_id = variant { Plus }; catalog_version = 1 : nat64; terms_version = 1 : nat64; price_cents = 1_000 : nat64;
            limits = record { storage_bytes = 1_073_741_824 : nat64; active_channels = 10 : nat64; monthly_execution_units = 10 : nat64 };
-           weights = record { version = 1 : nat64; ed25519 = 1 : nat64; ecdsa_secp256k1 = 1 : nat64 } };
+           weights = record { version = 1 : nat64; ed25519 = 1 : nat64 } };
          record { plan_id = variant { Pro }; catalog_version = 1 : nat64; terms_version = 1 : nat64; price_cents = 5_000 : nat64;
            limits = record { storage_bytes = 10_737_418_240 : nat64; active_channels = 50 : nat64; monthly_execution_units = 50 : nat64 };
-           weights = record { version = 1 : nat64; ed25519 = 1 : nat64; ecdsa_secp256k1 = 1 : nat64 } };
+           weights = record { version = 1 : nat64; ed25519 = 1 : nat64 } };
          record { plan_id = variant { Max }; catalog_version = 1 : nat64; terms_version = 1 : nat64; price_cents = 20_000 : nat64;
            limits = record { storage_bytes = 107_374_182_400 : nat64; active_channels = 200 : nat64; monthly_execution_units = 200 : nat64 };
-           weights = record { version = 1 : nat64; ed25519 = 1 : nat64; ecdsa_secp256k1 = 1 : nat64 } };
+           weights = record { version = 1 : nat64; ed25519 = 1 : nat64 } };
        };
      };
    })

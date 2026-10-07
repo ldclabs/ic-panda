@@ -113,7 +113,7 @@ export default defineConfig({
     target: 'chrome120',
     rollupOptions: {
       input: Object.fromEntries(
-        ['index', 'popup', 'sidepanel', 'approve', 'recovery']
+        ['index', 'popup', 'sidepanel', 'approve']
           .map((p) => [p, resolve(import.meta.dirname, `${p}.html`)])
           .concat([['service_worker', resolve(import.meta.dirname, 'src/service-worker.ts')]])
       ),

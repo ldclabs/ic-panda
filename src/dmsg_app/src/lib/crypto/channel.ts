@@ -319,7 +319,7 @@ export class ChannelVault {
             chunks: string[] = []
           for (const recipient of selected) {
             ensure(
-              /^(device|recovery):/.test(recipient.recipient) &&
+              recipient.recipient.startsWith('device:') &&
                 unhex(recipient.hpke_pub).length === 32,
               'INTEGRITY_FAILED'
             )
@@ -416,11 +416,7 @@ export class ChannelVault {
     for (let epoch = from; epoch <= to; epoch++)
       ensure(state.keys[epoch], 'RECOVERY_INCOMPLETE')
     for (const recipient of recipients)
-      ensure(
-        recipient.recipient.startsWith(`device:${target}:`) ||
-          recipient.recipient.startsWith(`recovery:${target}:`),
-        'FORBIDDEN'
-      )
+      ensure(recipient.recipient.startsWith(`device:${target}:`), 'FORBIDDEN')
     const scope = {
       channel,
       target,
@@ -651,12 +647,8 @@ export class ChannelVault {
     ensure(
       fileRecords.length > 0 &&
         fileRecords.length <= 8 &&
-        recipients.length === 2 &&
-        new Set(recipients.map((r) => r.recipient)).size === 2 &&
-        recipients.some((r) => r.recipient === `device:${scope.account}:${scope.device}`) &&
-        recipients.some(
-          (r) => r.recipient === `recovery:${scope.account}:${scope.recovery_generation}`
-        ),
+        recipients.length === 1 &&
+        recipients[0].recipient === `device:${scope.account}:${scope.device}`,
       'FORBIDDEN'
     )
     const files: ChannelFileRef[] = []
@@ -701,19 +693,17 @@ export class ChannelVault {
       key.fill(0)
     }
   }
-  async openLegacyGrant(grant: LegacyHistoryGrant, recoverySeed?: Uint8Array) {
+  async openLegacyGrant(grant: LegacyHistoryGrant) {
     const scope = legacyHistoryScopeSchema.parse(grant.scope),
       { meta, bundle } = await this.port.ready()
     ensure(
-      meta.account?.id === scope.account && (recoverySeed || meta.deviceId === scope.device),
+      meta.account?.id === scope.account && meta.deviceId === scope.device,
       'FORBIDDEN'
     )
-    const recipient = recoverySeed
-        ? `recovery:${scope.account}:${scope.recovery_generation}`
-        : `device:${scope.account}:${scope.device}`,
+    const recipient = `device:${scope.account}:${scope.device}`,
       entries = grant.recipients.filter((r) => r.recipient === recipient)
     ensure(entries.length === 1, 'INTEGRITY_FAILED')
-    const key = await hpkeOpen(recoverySeed ?? unb64(bundle.hpke), entries[0].envelope, [
+    const key = await hpkeOpen(unb64(bundle.hpke), entries[0].envelope, [
       'dmsg/legacy-history-grant-key/1',
       scope,
       recipient
@@ -743,7 +733,7 @@ export class ChannelVault {
       if (existing) {
         const saved = await this.port.decode<any>(existing)
         // Download progress adds manifests to this record. Reopening the same
-        // device/recovery envelope compares its immutable scope and keys only.
+        // device envelope compares its immutable scope and keys only.
         ensure(
           saved.channel === scope.channel_id &&
             equal(canonical(saved.legacyGrant.scope), canonical(scope)) &&
@@ -1140,30 +1130,6 @@ export class ChannelVault {
         })
     }
     return rows
-  }
-  /** Local operations and outgoing text missing from the content-only backup. */
-  async backupMissing() {
-    const { db, meta } = await this.port.ready(),
-      prefix = 'channel-job:',
-      missing: string[] = []
-    let index = 0
-    for (const key of await db.db.getAllKeys('local_private', prefixRange(prefix))) {
-      const id = String(key),
-        channel = id.slice(prefix.length, prefix.length + 64),
-        name = id.slice(prefix.length + 65)
-      if (name.startsWith('message:')) {
-        if ((await this.job(channel, name))?.state === 'replaced') continue
-        const objectId = hash(
-          canonical(['dmsg/channel-message-record/1', channel, meta.deviceId, name.slice(8)])
-        )
-        if (!(await db.getHead(objectId, 'formal_message'))) missing.push(id)
-      } else {
-        const job = await this.job(channel, name)
-        if (job?.action && job.result === undefined) missing.push(id)
-      }
-      if (++index % 16 === 0) await this.port.tick()
-    }
-    return missing
   }
   async controls(channel: string) {
     const { db } = await this.port.ready(),

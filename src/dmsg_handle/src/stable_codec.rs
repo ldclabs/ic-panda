@@ -221,6 +221,7 @@ mod tests {
                 environment: Environment::Production,
                 issuer_namespace: "https://dmsg.example/u/".into(),
                 user_homes: vec![p(1), p(7)],
+                registration_homes: vec![p(7)],
                 ledger: p(2),
                 ledger_fee: 10_000,
                 max_pending: 1_000,

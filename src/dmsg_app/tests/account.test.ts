@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
+import { MasterPublicKey } from '@dfinity/vetkeys'
 import { Principal } from '@icp-sdk/core/principal'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
@@ -10,13 +12,27 @@ import {
   createAccountMessage,
   decodeControl,
   deviceInput,
-  encodeControl
+  encodeControl,
+  recoveryDeviceMessage,
+  rootBundleDigest,
+  rootRecipientsDigest
 } from '../src/lib/protocol/account'
-import { b64, canonical, equal, hash, unb64 } from '../src/lib/protocol/codec'
+import { b64, canonical, equal, hash, hex, unhex, random } from '../src/lib/protocol/codec'
 import { xidText } from '../src/lib/protocol/identity'
-import { ed25519 } from '../src/lib/crypto/primitives'
-import { onlineKey, rootMaterial, rootTransport } from '../src/lib/crypto/root'
+import { ed25519, hpkePublic } from '../src/lib/crypto/primitives'
+import {
+  bundleDigests,
+  openRoot,
+  parseRootBundle,
+  readRootBundle,
+  recoverRoot,
+  rootMaterial,
+  rootTransport,
+  wrapRoot,
+  type RecoveryKey
+} from '../src/lib/crypto/root'
 import type { AccountMutation } from '../src/lib/canisters/generated/user'
+import { boundEngine } from './support/engine'
 
 const home = Principal.fromUint8Array(new Uint8Array([1])),
   caller = Principal.fromUint8Array(new Uint8Array([2]))
@@ -27,10 +43,25 @@ const publicMeta = {
   signingPublic: b64(ed25519.getPublicKey(seed)),
   hpkePublic: b64(new Uint8Array(32).fill(8))
 }
+const vectors = JSON.parse(
+  readFileSync(new URL('../../dmsg_types/tests/protocol_vectors.json', import.meta.url), 'utf8')
+) as { name: string; sha256_hex: string }[]
+const vector = (name: string) => vectors.find((v) => v.name === name)!.sha256_hex
+/** A real vetKD public key: the mainnet master key derived for a test canister. */
+const recoveryKey = (): RecoveryKey => ({
+  homeCose: home.toText(),
+  keyName: 'key_1',
+  publicKey: b64(
+    MasterPublicKey.productionKey()
+      .deriveCanisterKey(home.toUint8Array())
+      .deriveSubKey(canonical(['dmsg/content-root/v2', 'Local', 2]))
+      .publicKeyBytes()
+  )
+})
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
-describe('account authorization and encrypted local recovery state', () => {
+describe('account authorization and encrypted local state', () => {
   it('persists the exact recovery request identity for completion retries', () => {
     const accountId = new Uint8Array(12).fill(1),
       requestId = new Uint8Array(32).fill(9)
@@ -71,12 +102,10 @@ describe('account authorization and encrypted local recovery state', () => {
           op_id: new Uint8Array(32).fill(9),
           root: {
             generation: 3n,
-            suite: 'dmsg-root-v1',
-            home_cose: caller,
-            derivation_version: 2,
-            key_generation: 3n,
+            suite: 'dmsg-root-v2',
             bundle_digest: new Uint8Array(32).fill(10),
-            recovery_generation: 1n
+            recipients_digest: new Uint8Array(32).fill(11),
+            body_digest: new Uint8Array(32).fill(12)
           }
         }
       },
@@ -115,94 +144,115 @@ describe('account authorization and encrypted local recovery state', () => {
       )
     ).toBe(true)
   })
-  it('keeps resumable journals and unfinished recovery codes encrypted and out of backups', async () => {
-    const engine = new CryptoEngine(),
-      password = 'account-test-password-only'
-    const setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
-    await engine.controlPut('operation', JSON.stringify({ request: 'private-control-marker' }))
-    const generated = await engine.accountRecovery({
-      account,
-      generation: 1,
-      action: 'generate'
-    })
+  it('computes the root recipients and bundle digests the user home binds (Rust vectors)', () => {
+    const recipients = rootRecipientsDigest(
+      [new Uint8Array(32).fill(3), new Uint8Array(32).fill(2)],
+      2
+    )
+    expect(hex(recipients)).toBe(vector('root_recipients_v1'))
+    expect(hex(rootBundleDigest(recipients, unhex(hash(new TextEncoder().encode('root bundle body')))))).toBe(
+      vector('root_bundle_digest_v2')
+    )
     expect(
-      (await engine.accountRecovery({ account, generation: 1, action: 'generate' })).code
-    ).toBe(generated.code)
-    const message = new Uint8Array(32).fill(17)
-    const proof = await engine.accountRecovery({
+      hex(rootRecipientsDigest([new Uint8Array(32).fill(2), new Uint8Array(32).fill(3)], 2))
+    ).toBe(vector('root_recipients_v1'))
+  })
+  it('binds a recovery request to the home, account and replacement device', () => {
+    const request = {
+      op_id: new Uint8Array(32).fill(4),
+      device: deviceInput(publicMeta),
+      new_auth: caller,
+      expires_at: 1700000000000n
+    }
+    const message = recoveryDeviceMessage(home, account, request)
+    expect(message).toEqual(recoveryDeviceMessage(home, unhex('01'.repeat(12)), request))
+    expect(message).not.toEqual(recoveryDeviceMessage(caller, account, request))
+    expect(message).not.toEqual(
+      recoveryDeviceMessage(home, account, { ...request, new_auth: home })
+    )
+  })
+  it('keeps control journals encrypted and the candidate transport stable across restarts', async () => {
+    const { engine } = await boundEngine()
+    await engine.controlPut('operation', JSON.stringify({ request: 'private-control-marker' }))
+    const context = {
       account,
-      generation: 1,
-      action: 'prove',
-      code: generated.code,
-      message,
-      publicKey: generated.signingPublic
-    })
-    expect(ed25519.verify(proof.signature, message, unb64(generated.signingPublic))).toBe(true)
-    await expect(
-      engine.accountRecovery({
-        account: xidText(new Uint8Array(12).fill(2)),
-        generation: 1,
-        action: 'prove',
-        code: generated.code,
-        message,
-        publicKey: generated.signingPublic
-      })
-    ).rejects.toThrow('恢复码不匹配')
+      environment: 'local',
+      generation: 3,
+      opId: '01'.repeat(32),
+      securityEpoch: 1
+    }
+    const first = await engine.prepareAccountRoot(context)
     const db = await WorkspaceDB.open((await currentWorkspace())!)
     const raw = JSON.stringify(await db.db.getAll('local_private'))
     db.db.close()
     expect(raw).not.toContain('private-control-marker')
-    expect(raw).not.toContain(generated.code.replaceAll('-', ''))
-    const backup = await engine.exportBackup(password),
-      text = await backup.blob.text()
-    expect(text).not.toContain('private-control-marker')
-    expect(text).not.toContain(generated.code.replaceAll('-', ''))
+    expect(raw).not.toContain(b64(first))
     await engine.lock()
-    await expect(engine.deviceSign(message)).rejects.toThrow('解锁')
-    await engine.unlock(password)
-    expect(await engine.controlGet('operation')).toContain('private-control-marker')
-    await engine.accountRecovery({ account, generation: 1, action: 'clear' })
-    expect(await engine.controlGet(`recovery:${account}:1`)).toBe('null')
-    await engine.lock()
+    await expect(engine.deviceSign(new Uint8Array(32))).rejects.toThrow('解锁')
+    const reopened = new CryptoEngine()
+    await reopened.unlock()
+    expect(await reopened.controlGet('operation')).toContain('private-control-marker')
+    expect(await reopened.prepareAccountRoot(context)).toEqual(first)
+    await expect(reopened.prepareAccountRoot({ ...context, generation: 4 })).rejects.toThrow(
+      'IDEMPOTENCY_CONFLICT'
+    )
+    expect(rootTransport(rootMaterial(context))).toHaveLength(48)
+    await reopened.lock()
   })
-  it('preserves transport keys across restart and rejects a descriptor substituted before decryption', async () => {
-    const engine = new CryptoEngine(),
-      password = 'account-test-password-only'
-    const setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
+  it('wraps a root to every device and the vetKD identity, and only those devices open it', async () => {
     const context = {
       account,
       environment: 'local',
-      homeCose: home.toText(),
-      generation: 3,
-      opId: '01'.repeat(32),
-      recoveryGeneration: 1,
-      recoveryPublic: setup.meta.recoveryPublic,
-      recoverySigningPublic: setup.meta.recoverySigningPublic
+      generation: 2,
+      opId: '02'.repeat(32),
+      securityEpoch: 1
     }
-    const first = await engine.prepareAccountRoot(context)
-    await engine.lock()
-    await engine.unlock(password)
-    expect(await engine.prepareAccountRoot(context)).toEqual(first)
-    await expect(engine.prepareAccountRoot({ ...context, generation: 4 })).rejects.toThrow(
-      'IDEMPOTENCY_CONFLICT'
-    )
     const material = rootMaterial(context)
-    expect(rootTransport(material)).toHaveLength(48)
-    expect(() =>
-      onlineKey(
-        material,
-        {
-          publicKey: b64(new Uint8Array(96)),
-          fingerprint: '00'.repeat(32),
-          keyId: '00'.repeat(32),
-          keyName: 'key_1'
-        },
-        new Uint8Array()
-      )
-    ).toThrow('INTEGRITY_FAILED')
-    expect(hash(first)).not.toBe(hash(new Uint8Array(48)))
-    await engine.lock()
+    const devices = [new Uint8Array(32).fill(21), new Uint8Array(32).fill(22)].map((hpke, i) => ({
+      hpkeSeed: hpke,
+      deviceId: hex(new Uint8Array(32).fill(31 + i))
+    }))
+    const recipients = []
+    for (const device of devices)
+      recipients.push({ deviceId: device.deviceId, hpkePublic: await hpkePublic(device.hpkeSeed) })
+    const previousRoot = random()
+    const bytes = await wrapRoot(
+      material,
+      recipients,
+      recoveryKey(),
+      { deviceId: devices[1].deviceId, seed },
+      { digest: hash(new Uint8Array([1])), uploadId: '03'.repeat(32), generation: 1, root: previousRoot }
+    )
+    const bundle = parseRootBundle(bytes)
+    expect(bundle.body.envelopes.map((e) => e.device)).toEqual(
+      recipients.map((r) => r.deviceId).sort()
+    )
+    const digests = bundleDigests(bundle)
+    expect(hex(digests.recipientsDigest)).toBe(
+      hex(rootRecipientsDigest(devices.map((d) => unhex(d.deviceId)), 2))
+    )
+    expect(hex(digests.bundleDigest)).toBe(
+      hex(rootBundleDigest(digests.recipientsDigest, digests.bodyDigest))
+    )
+    const expected = hex(digests.bundleDigest)
+    // The previous bundle is not supplied here, so the chain is incomplete.
+    await expect(openRoot(material, devices[0], [bytes], expected)).rejects.toThrow(
+      'RECOVERY_INCOMPLETE'
+    )
+    await expect(
+      openRoot(material, { deviceId: hex(new Uint8Array(32).fill(99)), hpkeSeed: random() }, [bytes], expected)
+    ).rejects.toMatchObject({ code: 'DeviceNotApproved' })
+    await expect(
+      openRoot(material, { ...devices[0], hpkeSeed: random() }, [bytes], expected)
+    ).rejects.toThrow()
+    expect(() => readRootBundle(bytes, '00'.repeat(64))).toThrow('INTEGRITY_FAILED')
+    const tampered = Uint8Array.from(bytes)
+    tampered[tampered.length - 1] ^= 1
+    expect(() => parseRootBundle(tampered)).toThrow()
+    // A descriptor that differs from the bundle's recovery key never reaches decryption.
+    await expect(
+      recoverRoot(material, { ...recoveryKey(), keyName: 'test_key_1' }, new Uint8Array(192), [bytes], expected)
+    ).rejects.toThrow('恢复公钥')
+    expect(await wrapRoot({ ...material, bytes: b64(bytes) }, [], recoveryKey(), { deviceId: '', seed }, null)).toEqual(bytes)
   })
 })

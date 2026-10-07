@@ -1,85 +1,170 @@
 <script lang="ts">
-  import { session, downloadBlob, shortId } from '../session.svelte'
+  import { session, downloadBlob, shortId, dateLabel } from '../session.svelte'
   import { config } from '../config'
+  import { connectAccount } from '../connection'
+  import { registrationHome, userActor } from '../services/ic'
+  import type { AccountClient } from '../services/account'
+  import { AccountRootClient } from '../services/account-root'
+  import { CloudClient } from '../services/relay'
+  import { evaluatePrf } from '../services/prf'
+  import { removeWorkspaceDatabase, currentWorkspace, registry } from '../db'
+  import { xidBytes } from '../protocol/identity'
+  import { equal, unhex } from '../protocol/codec'
   import Icon from './Icon.svelte'
-  let screen = $state<'intro' | 'setup' | 'recovery' | 'check' | 'restore'>('intro')
-  let password = $state(''),
-    confirmPassword = $state(''),
-    recoveryCode = $state(''),
-    checkCode = $state('')
-  let backupGenerated = $state(false),
-    savedApart = $state(false),
-    restoreFile = $state<File | null>(null)
-  let restoreFiles = $state<File[]>([])
+  let screen = $state<'intro' | 'bind' | 'pair' | 'recover'>('intro')
+  let derivation = $state(config.derivationOrigins[0])
+  let account = $state(''),
+    packet = $state(''),
+    pairingRole = $state<'Member' | 'Administrator'>('Member')
+  let client = $state.raw<AccountClient | null>(null),
+    recovery = $state.raw<Awaited<ReturnType<AccountClient['recoveryStatus']>> | null>(null)
   const needsSetup = $derived(!session.initialized)
+  const provisional = $derived(session.meta?.unlock === 'provisional')
+  function roots(c: AccountClient, cose: NonNullable<Awaited<ReturnType<typeof connectAccount>>['api']['cose']>) {
+    if (!config.relayOrigin) throw new Error('请先配置密文服务，才能保存内容根。')
+    return new AccountRootClient(
+      c,
+      new CloudClient({ origin: config.relayOrigin, environment: config.environment }),
+      cose
+    )
+  }
   async function setup() {
     await session.run(async () => {
-      if (password !== confirmPassword) throw new Error('两次口令不一致。')
-      const result = await session.crypto.call('initialize', password)
-      session.activate(result.meta)
-      recoveryCode = result.recoveryCode
-      screen = 'recovery'
-      // Keep the password only through the initial export, then clear it.
-      confirmPassword = ''
+      const meta = await session.crypto.call('initialize')
+      session.activate(meta)
+      screen = 'bind'
     })
   }
-  async function initialBackup() {
+  async function unlockProvisional() {
     await session.run(async () => {
-      const backup = await session.crypto.call('exportBackup', password)
-      downloadBlob(backup.blob, backup.name)
-      backupGenerated = true
-      password = ''
-    }, '恢复包已生成并开始下载。请确认文件已保存。')
+      await session.unlock(null)
+      screen = 'bind'
+    })
   }
-  async function verify() {
+  /** Login, fetch this device's unlock secret from the account's home, unlock. */
+  async function unlockWithLogin() {
     await session.run(async () => {
-      await session.crypto.call('verifyRecovery', checkCode)
-      checkCode = ''
-      recoveryCode = ''
-      await session.refresh()
-    }, '恢复码验证通过。现在可以保存第一个条目。')
+      const meta = session.meta!
+      const { account: c } = await connectAccount(derivation, { bound: false })
+      if (!meta.account) throw new Error('工作台尚未绑定账户。')
+      const secret = await c.unlockSecret(meta.account.id)
+      await session.unlock({ secret })
+    })
   }
-  async function unlock() {
-    const value = password
-    password = ''
+  async function unlockWithPrf() {
     await session.run(async () => {
-      await session.unlock(value)
-      if (!session.meta?.recoveryChecked) {
-        const pending = await session.crypto.call('pendingRecovery')
-        recoveryCode = pending.recoveryCode
-        backupGenerated = pending.backupGenerated
-        savedApart = false
-        password = value
-        screen = 'recovery'
+      const meta = session.meta!
+      if (!meta.prf) throw new Error('此设备未启用生物识别解锁。')
+      await session.unlock({ prf: await evaluatePrf(meta.prf.credentialId) })
+      void checkDeviceStatus()
+    })
+  }
+  /** After an offline unlock, a revoked device wipes its local copy as soon as it is online. */
+  async function checkDeviceStatus() {
+    const meta = session.meta
+    if (!meta?.account) return
+    try {
+      const { userActor: actor, agentFor } = await import('../services/ic')
+      const user = actor(await agentFor(), meta.account.homeUser)
+      const result = await user.get_device_bundle(xidBytes(meta.account.id))
+      if (!('Ok' in result)) return
+      const device = result.Ok[1].find(([key]) => equal(Uint8Array.from(key), unhex(meta.deviceId)))
+      if (device && device[1].revoked_at.length) {
+        const name = await currentWorkspace()
+        await session.lock()
+        if (name) {
+          await removeWorkspaceDatabase(name)
+          const db = await registry()
+          await db.delete('workspaces', name)
+          db.close()
+        }
+        session.initialized = false
+        session.meta = null
+        session.error = '这台设备已被撤销，本机内容已清除。'
       }
+    } catch {
+      // Offline: the next login unlock enforces the device state.
+    }
+  }
+  /** Bind a fresh workspace: this login's account, or a new one at a registration home. */
+  async function createAccount() {
+    await session.run(async () => {
+      let connection: Awaited<ReturnType<typeof connectAccount>>
+      try {
+        connection = await connectAccount(derivation, { fresh: true, bound: false })
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.startsWith('AUTH_REQUIRED')) throw error
+        connection = await connectAccount(derivation, { bound: false, home: await registrationHome() })
+      }
+      const c = connection.account
+      client = c
+      account = (await c.connectedAccount()) ?? (await c.create())
+      await bindAndOpen(c, connection.api.cose, false)
+    }, '账户已绑定到这台设备。')
+  }
+  async function bindAndOpen(
+    c: AccountClient,
+    cose: Awaited<ReturnType<typeof connectAccount>>['api']['cose'],
+    recovered: boolean
+  ) {
+    const secret = await c.unlockSecret(account)
+    await session.crypto.call('bindUnlockSecret', secret)
+    if (!cose) throw new Error('未配置密钥服务。')
+    const r = roots(c, cose)
+    const state = await c.refresh(account)
+    const job = recovered
+      ? await r.recoverCurrent(account)
+      : state.info.current_root[0]
+        ? await r.openCurrent(account)
+        : await r.run(account, (stage) => {
+            session.progress = { stage: `内容根：${stage}`, completed: 0, total: 1 }
+          })
+    session.activate(await r.activate(account, job))
+    if (recovered) {
+      // The recovered root is known to the old devices; wrap a fresh one to this device only.
+      session.activate(await r.activate(account, await r.rotate(account)))
+    }
+    await session.refresh()
+  }
+  async function pairingRequest() {
+    await session.run(async () => {
+      xidBytes(account)
+      const { account: c } = await connectAccount(derivation, { fresh: true, bound: false })
+      client = c
+      packet = await c.pairing(account, pairingRole)
     })
   }
-  async function restore() {
+  async function openAfterApproval() {
     await session.run(async () => {
-      if (!restoreFile && !restoreFiles.length) throw new Error('请选择加密恢复包或分卷目录。')
-      if (password !== confirmPassword) throw new Error('两次口令不一致。')
-      const result = restoreFiles.length
-        ? await session.crypto.call('restoreDirectory', {
-            files: restoreFiles,
-            code: checkCode,
-            password
-          })
-        : await session.crypto.call('restore', {
-            file: restoreFile!,
-            code: checkCode,
-            password
-          })
-      password = ''
-      confirmPassword = ''
-      checkCode = ''
-      restoreFile = null
-      restoreFiles = []
-      session.activate(result.meta)
-      await session.refresh()
-      session.message = result.missing.length
-        ? `已恢复可验证内容；仍有 ${result.missing.length} 项缺口。`
-        : `已验证并恢复 ${result.count} 个版本。本机尚未获得链上设备授权。`
+      xidBytes(account)
+      const connection = await connectAccount(derivation, { bound: false })
+      await bindAndOpen(connection.account, connection.api.cose, false)
+    }, '已读取当前内容根，工作台可以使用。')
+  }
+  async function requestRecovery() {
+    await session.run(async () => {
+      xidBytes(account)
+      const { account: c } = await connectAccount(derivation, { fresh: true, bound: false })
+      client = c
+      recovery = await c.requestRecovery(account)
+    }, '恢复申请已提交；等待期内任何原设备都可取消。')
+  }
+  async function recoveryProgress() {
+    await session.run(async () => {
+      xidBytes(account)
+      const { account: c } = await connectAccount(derivation, { bound: false })
+      client = c
+      recovery = await c.recoveryStatus(account)
     })
+  }
+  async function completeRecovery() {
+    await session.run(async () => {
+      const connection = await connectAccount(derivation, { bound: false })
+      const c = connection.account
+      const state = await c.refresh(account)
+      if (!state.device) await c.completeRecovery(account)
+      await bindAndOpen(c, connection.api.cose, true)
+    }, '账户已恢复到这台设备，并已换到新的内容根。')
   }
 </script>
 
@@ -91,224 +176,123 @@
     <div class="welcome-principles">
       <p><span>01</span> 私密内容，在本机加密</p>
       <p><span>02</span> 每一次授权，都由你确认</p>
-      <p><span>03</span> 带着备份，独立恢复</p>
+      <p><span>03</span> 登录身份，就是你的归路</p>
     </div>
     <p class="fine-print">Built by ICPanda DAO</p>
   </div>
   <section class="welcome-panel" aria-label="建立或解锁工作台">
     <div class="panel-symbol">
-      <Icon name={screen === 'restore' ? 'refresh' : 'lock'} size={28} />
+      <Icon name={screen === 'recover' ? 'refresh' : 'lock'} size={28} />
     </div>
-    {#if screen === 'restore'}
-      <span class="eyebrow">RECOVER YOUR SPACE</span>
-      <h2>从备份回到这里。</h2>
-      <p>需要完整的加密恢复包和分开保存的恢复码。恢复数据不会自动获得链上设备权限。</p>
-      <form
-        onsubmit={(event) => {
-          event.preventDefault()
-          void restore()
-        }}
-      >
+    {#if session.unlocked && !session.meta?.account}
+      {#if screen === 'pair'}
+        <span class="eyebrow">ADD THIS DEVICE</span>
+        <h2>加入已有账户。</h2>
+        <p>已有管理员设备批准这台设备并换根后，用同一登录身份读取当前内容根。</p>
+        <label>账户 Xid<input bind:value={account} autocomplete="off" spellcheck="false" /></label>
         <label
-          >加密恢复包<input
-            type="file"
-            accept=".dmsg,application/json"
-            required={!restoreFiles.length}
-            onchange={(event) => {
-              restoreFile = event.currentTarget.files?.[0] ?? null
-              restoreFiles = []
-            }}
-          /></label
+          >申请的角色<select bind:value={pairingRole}
+            ><option value="Member">成员：内容签名与解锁</option><option value="Administrator"
+              >管理员：另含账户根管理</option
+            ></select
+          ></label
         >
+        <button class="secondary wide" disabled={session.busy || !account} onclick={pairingRequest}
+          >登录并生成设备批准请求</button
+        >
+        {#if packet}<label
+            >交给已有管理员设备的请求<textarea rows="5" readonly value={packet}></textarea></label
+          ><button
+            class="text-button"
+            onclick={() =>
+              downloadBlob(
+                new Blob([packet], { type: 'application/json' }),
+                'dmsg-approval-request.json'
+              )}>下载请求</button
+          >{/if}
+        <button class="primary wide" disabled={session.busy || !account} onclick={openAfterApproval}
+          >已获批准，读取当前内容根<Icon name="arrow-right" /></button
+        >
+        <button class="text-button" onclick={() => (screen = 'bind')}>返回</button>
+      {:else if screen === 'recover'}
+        <span class="eyebrow">RECOVER YOUR ACCOUNT</span>
+        <h2>所有设备都丢失时。</h2>
+        <p>
+          用绑定过的登录身份申请恢复。等待期（默认 3 天）内原设备可以取消；到期后这台设备替换全部旧设备和绑定，并通过链上密钥服务取回当前内容根。
+        </p>
+        <label>账户 Xid<input bind:value={account} autocomplete="off" spellcheck="false" /></label>
+        <button class="secondary wide" disabled={session.busy || !account} onclick={requestRecovery}
+          >登录并申请恢复到本机</button
+        >
+        <button class="text-button" disabled={session.busy || !account} onclick={recoveryProgress}
+          >查询恢复进度</button
+        >
+        {#if recovery?.pending}<p>
+            最早完成时间：{dateLabel(Number(recovery.pending.execute_after))}；申请设备
+            <code>{shortId(recovery.pending.request.device.device_id instanceof Uint8Array ? Array.from(recovery.pending.request.device.device_id, (b) => b.toString(16).padStart(2, '0')).join('') : '')}</code>
+          </p>{:else if recovery}<p>当前没有待处理的恢复申请。</p>{/if}
+        <button class="primary wide" disabled={session.busy || !account} onclick={completeRecovery}
+          >等待期已过，完成恢复并取回内容根<Icon name="arrow-right" /></button
+        >
+        <button class="text-button" onclick={() => (screen = 'bind')}>返回</button>
+      {:else}
+        <span class="eyebrow">01 / YOUR ACCOUNT</span>
+        <h2>登录，绑定你的账户。</h2>
+        <p>本机解锁材料由你的账户服务按登录身份发放，不再需要口令或恢复码。</p>
         <label
-          >或选择完整分卷目录<input
-            type="file"
-            webkitdirectory
-            multiple
-            onchange={(event) => {
-              restoreFiles = Array.from(event.currentTarget.files ?? [])
-              restoreFile = null
-            }}
-          /></label
+          >登录来源<select bind:value={derivation}
+            >{#each config.derivationOrigins as origin}<option value={origin}>{origin}</option
+              >{/each}</select
+          ></label
         >
-        <label
-          >恢复码<textarea
-            bind:value={checkCode}
-            autocomplete="off"
-            spellcheck="false"
-            required
-            rows="3"
-            placeholder="8 组，每组 8 位十六进制字符"></textarea></label
+        <button class="primary wide" disabled={session.busy || !config.canisters.handle} onclick={createAccount}
+          >连接 Internet Identity 并创建或绑定账户<Icon name="arrow-right" /></button
         >
-        <label
-          >设置本机新口令<input
-            type="password"
-            bind:value={password}
-            required
-            minlength="12"
-            autocomplete="new-password"
-          /></label
-        >
-        <label
-          >确认新口令<input
-            type="password"
-            bind:value={confirmPassword}
-            required
-            minlength="12"
-            autocomplete="new-password"
-          /></label
-        >
-        <button class="primary wide" disabled={session.busy}
-          >{session.busy ? '正在验证恢复包…' : '验证并恢复内容'}<Icon
-            name="arrow-right"
-          /></button
-        >
-      </form>
-      <button
-        class="text-button"
-        onclick={() => {
-          screen = 'intro'
-          password = ''
-          confirmPassword = ''
-          checkCode = ''
-          restoreFile = null
-        }}>返回</button
-      >
-    {:else if screen === 'recovery'}
-      <span class="eyebrow">02 / RECOVERY</span>
-      <h2>给自己留一条归路。</h2>
-      <p>恢复码能解密备份，请与恢复包分开保管。完成验证前，重新解锁仍可继续此步骤。</p>
-      <div class="recovery-code"><code>{recoveryCode}</code></div>
-      <p class="caption">恢复码持有人可立即解密已有备份。账户恢复延迟不会阻止离线解密。</p>
-      <button
-        class="secondary wide"
-        onclick={initialBackup}
-        disabled={session.busy || backupGenerated}
-        ><Icon name="download" />{backupGenerated
-          ? '初始恢复包已生成'
-          : '下载初始恢复包'}</button
-      >
-      <label class="check-label"
-        ><input
-          type="checkbox"
-          bind:checked={savedApart}
-        />我已确认下载文件，并另行保存恢复码</label
-      >
-      <button
-        class="primary wide"
-        disabled={!savedApart || !backupGenerated}
-        onclick={() => {
-          recoveryCode = ''
-          password = ''
-          screen = 'check'
-        }}>验证恢复码<Icon name="arrow-right" /></button
-      >
-    {:else if screen === 'check' || (session.unlocked && !session.meta?.recoveryChecked)}
-      <span class="eyebrow">03 / VERIFY RECOVERY</span>
-      <h2>确认你能找回内容。</h2>
-      <p>从刚才保存的位置取回恢复码。验证通过后，再存入重要内容。</p>
-      <form
-        onsubmit={(event) => {
-          event.preventDefault()
-          void verify()
-        }}
-      >
-        <label
-          >输入已保存的恢复码<textarea
-            bind:value={checkCode}
-            required
-            rows="3"
-            autocomplete="off"
-            spellcheck="false"></textarea></label
-        >
-        <button class="primary wide" disabled={session.busy}
-          >验证并进入工作台<Icon name="arrow-right" /></button
-        >
-      </form>
+        {#if !config.canisters.handle}<p class="caption">先在构建配置中设置名称注册表与用户服务。</p>{/if}
+        <button class="secondary wide" onclick={() => (screen = 'pair')}>加入已有账户的新设备</button>
+        <button class="secondary wide" onclick={() => (screen = 'recover')}>所有设备丢失后恢复</button>
+        {#if session.meta}<div class="identity-line">
+            <span>本机设备</span><code>{shortId(session.meta.deviceId)}</code>
+          </div>{/if}
+      {/if}
     {:else if !needsSetup}
       <span class="eyebrow">WELCOME BACK</span>
       <h2>欢迎回到你的空间。</h2>
-      <p>解锁本机内容。登录与正式签名仍需分别授权。</p>
-      <form
-        onsubmit={(event) => {
-          event.preventDefault()
-          void unlock()
-        }}
-      >
+      {#if provisional}
+        <p>这台设备尚未绑定账户。继续完成设置。</p>
+        <button class="primary wide" disabled={session.busy} onclick={unlockProvisional}
+          >继续设置<Icon name="arrow-right" /></button
+        >
+      {:else}
+        <p>登录后由账户服务发放本机解锁材料；撤销设备即刻生效。</p>
+        {#if session.meta?.prf}<button class="primary wide" disabled={session.busy} onclick={unlockWithPrf}
+            >生物识别解锁<Icon name="arrow-right" /></button
+          >{/if}
         <label
-          >本机解锁口令<input
-            type="password"
-            bind:value={password}
-            required
-            autocomplete="current-password"
-          /></label
+          >登录来源<select bind:value={derivation}
+            >{#each config.derivationOrigins as origin}<option value={origin}>{origin}</option
+              >{/each}</select
+          ></label
         >
-        <button class="primary wide" disabled={session.busy}
-          >{session.busy ? '正在解锁…' : '解锁工作台'}<Icon name="arrow-right" /></button
+        <button class={session.meta?.prf ? 'secondary wide' : 'primary wide'} disabled={session.busy} onclick={unlockWithLogin}
+          >{session.busy ? '正在解锁…' : '登录并解锁'}<Icon name="arrow-right" /></button
         >
-      </form>
-      <p class="caption">为避免隐藏当前数据，请在空白 Chrome 配置中导入恢复包。</p>
+      {/if}
       {#if session.meta}<div class="identity-line">
           <span>本机设备</span><code>{shortId(session.meta.deviceId)}</code>
         </div>{/if}
-    {:else if screen === 'setup'}
-      <span class="eyebrow">01 / YOUR DEVICE</span>
-      <h2>从一个独立口令开始。</h2>
-      <p>口令只用于本机解锁。无需购买名称，也无需持有代币。</p>
-      <form
-        onsubmit={(event) => {
-          event.preventDefault()
-          void setup()
-        }}
-      >
-        <label
-          >设置本机口令<input
-            type="password"
-            bind:value={password}
-            required
-            minlength="12"
-            autocomplete="new-password"
-            placeholder="至少 12 个字符"
-          /></label
-        >
-        <label
-          >再次输入口令<input
-            type="password"
-            bind:value={confirmPassword}
-            required
-            minlength="12"
-            autocomplete="new-password"
-          /></label
-        >
-        <button class="primary wide" disabled={session.busy}
-          >{session.busy ? '正在建立工作台…' : '建立加密工作台'}<Icon
-            name="arrow-right"
-          /></button
-        >
-      </form>
-      <button
-        class="text-button"
-        onclick={() => {
-          screen = 'intro'
-          password = ''
-          confirmPassword = ''
-        }}>返回</button
-      >
     {:else}
       <span class="eyebrow">A PRIVATE WORKSPACE</span>
       <h2>从一件私密的事开始。</h2>
-      <p>保存笔记、凭据和文件。即使离线，你的内容仍可在本机取用。</p>
+      <p>保存笔记、凭据和文件。内容在本机加密，只有你批准的设备能读取。</p>
       <div class="notice">
         <Icon name="info" />
         <p>当前为本地 / staging 开发版本。联网能力需配置服务并批准设备；生产门禁尚未完成。</p>
       </div>
-      <button class="primary wide" onclick={() => (screen = 'setup')}
+      <button class="primary wide" disabled={session.busy} onclick={setup}
         >创建我的工作台<Icon name="arrow-right" /></button
       >
-      <button class="secondary wide" onclick={() => (screen = 'restore')}
-        >从加密备份恢复</button
-      >
-      <p class="caption">本地数据库不是唯一备份。设置过程中会生成恢复材料。</p>
+      <p class="caption">建立后需登录 Internet Identity 绑定账户；登录身份加等待期是唯一的恢复途径。</p>
     {/if}
     {#if session.progress}<div class="progress-area" role="status">
         <span>{session.progress.stage}</span><progress

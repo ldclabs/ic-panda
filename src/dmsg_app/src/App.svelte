@@ -50,10 +50,10 @@
 <div
   class="app-shell"
   class:compact={surface === 'sidepanel'}
-  class:unlocked={session.unlocked && session.meta?.recoveryChecked}
+  class:unlocked={session.bound}
   class:approval-shell={surface === 'approve'}
 >
-  {#if session.unlocked && session.meta?.recoveryChecked && surface !== 'approve'}
+  {#if session.bound && surface !== 'approve'}
     <aside class="sidebar">
       <a class="brand" href="#vault" onclick={() => navigate('vault')} aria-label="dMsg 秘密库"
         ><img src="./assets/private-gate.png" alt="" /><strong>dMsg</strong></a
@@ -98,7 +98,7 @@
   {/if}
   <div class="main-column">
     <header class="topbar">
-      {#if !session.unlocked || !session.meta?.recoveryChecked || surface === 'approve'}<a
+      {#if !session.bound || surface === 'approve'}<a
           href="index.html"
           class="brand"><img src="./assets/private-gate.png" alt="" /><strong>dMsg</strong></a
         >{:else}<div class="breadcrumb">
@@ -127,7 +127,7 @@
         <div class="brand"><strong>dMsg</strong></div>
         <p role="status">正在打开本机工作台…</p>
       </main>
-    {:else if !session.unlocked || !session.meta?.recoveryChecked}<main
+    {:else if !session.bound}<main
         class="onboarding-main"
       >
         {#key session.lockEpoch}<Onboarding />{/key}

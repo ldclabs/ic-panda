@@ -1,8 +1,7 @@
 import type { Identity } from '@icp-sdk/core/agent'
 import type { DelegationIdentity } from '@icp-sdk/core/identity'
-import { login, services } from './services/ic'
+import { locateAccount, login, services, userActor } from './services/ic'
 import { AccountClient } from './services/account'
-import { config } from './config'
 import { ensure } from './errors'
 import { session } from './session.svelte'
 
@@ -16,8 +15,7 @@ export async function connectIdentity(
   origin: string,
   targets?: string[]
 ): Promise<Connection> {
-  ensure(session.meta, 'LOCKED', '请先解锁工作台。')
-  const identity = await login(session.crypto, session.meta.transportPublic, origin, targets)
+  const identity = await login(session.crypto, origin, targets)
   return { identity, api: await services(identity) }
 }
 const expiry = (identity: Identity) =>
@@ -26,40 +24,49 @@ const expiry = (identity: Identity) =>
       .getDelegation()
       .delegations.map((d) => Number(d.delegation.expiration / 1_000_000n))
   )
-/** The workspace account's delegation, shared by every panel until lock or expiry.
- * `fresh` prompts again; `bound: false` allows an identity not yet bound to it. */
-export async function connectAccount(
-  origin: string,
-  options: { fresh?: boolean; bound?: boolean } = {}
-) {
-  const meta = session.meta
-  ensure(meta, 'LOCKED', '请先解锁工作台。')
-  const key = `${meta.transportPublic}:${origin}`
-  let cached = accounts.get(key)
-  if (options.fresh || !cached || cached.expiresAt < Date.now() + 60000) {
+/** The login shared by every panel until lock or expiry. `fresh` prompts again. */
+export async function connectLogin(origin: string, fresh = false): Promise<Connection> {
+  let cached = accounts.get(origin)
+  if (fresh || !cached || cached.expiresAt < Date.now() + 60000) {
     const connection = connectIdentity(origin)
     cached = { connection, expiresAt: Number.MAX_SAFE_INTEGER }
-    accounts.set(key, cached)
+    accounts.set(origin, cached)
     try {
       cached.expiresAt = expiry((await connection).identity)
     } catch (error) {
-      accounts.delete(key)
+      accounts.delete(origin)
       throw error
     }
   }
-  const { identity, api } = await cached.connection
+  return cached.connection
+}
+/** The workspace account's client at the account's own user home. The
+ * workspace metadata is readable before unlock, so this also serves unlock. */
+export async function connectAccount(
+  origin: string,
+  options: { fresh?: boolean; bound?: boolean; home?: string } = {}
+) {
+  const meta = session.meta
+  ensure(meta, 'LOCKED', '此浏览器还没有工作台。')
+  const { identity, api } = await connectLogin(origin, options.fresh)
+  let home = options.home ?? meta.account?.homeUser
+  if (!home) {
+    const located = await locateAccount(api.agent)
+    ensure(located, 'AUTH_REQUIRED', '此登录身份还没有账户。')
+    home = located.home
+  }
   const account = new AccountClient(
-    api.user!,
+    userActor(api.agent, home),
     api.agent,
     identity.getPrincipal(),
     session.crypto,
     meta,
-    config.canisters.user
+    home
   )
   if (options.bound !== false) {
-    ensure(meta.account, 'AUTH_REQUIRED', '请先建立正式工作区。')
+    ensure(meta.account, 'AUTH_REQUIRED', '请先绑定账户。')
     if ((await account.connectedAccount()) !== meta.account.id) {
-      accounts.delete(key)
+      accounts.delete(origin)
       throw new Error('登录身份与当前工作区不一致。')
     }
   }

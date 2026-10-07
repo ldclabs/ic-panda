@@ -25,7 +25,6 @@ pnpm --dir src/dmsg_app build
 | `sidepanel.html`    | 窄屏工作台，默认显示签名请求；不读取当前网页 |
 | `popup.html`        | 锁定状态、待确认计数、打开全页和侧栏         |
 | `approve.html?id=…` | 独立请求审核窗口；只读取内部请求库           |
-| `recovery.html`     | 离线备份恢复；全部代码随扩展打包             |
 
 ## 已实现的路径
 

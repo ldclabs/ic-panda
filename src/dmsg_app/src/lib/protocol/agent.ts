@@ -1,13 +1,13 @@
-// Agent Delegation 1.0 events signed by dMsg hosted controllers.
-// The extension builds the exact JCS text the user home signs; the canister and
-// the delegation service each parse it strictly and reject anything else.
+// Agent Delegation 1.0 events signed by the account's self-held controller keys.
+// The extension builds the exact JCS text it signs; the delegation service
+// parses it strictly and rejects anything else.
 import { sha3_256 } from '@noble/hashes/sha3.js'
-import { b64, digest, unb64, utf8 } from './codec'
+import { b64, unb64, utf8 } from './codec'
 import { ensure } from '../errors'
 
 export const DELEGATION_PROTOCOL = 'agent-delegation/1.0'
 export const AGENT_ID_PREFIX = 'did:agent:'
-/** Hosted grants must expire within 366 days (user-home signing policy). */
+/** Grants must expire within 366 days. */
 export const MAX_GRANT_DAYS = 366
 const DAY = 86_400_000
 
@@ -165,47 +165,6 @@ export function revokeEvent(
     nonce,
     payload: { id, principal_id: principalId }
   }
-}
-
-/** Serde shape of `ExecutionKind::AgentEvent`, the value device approval binds. */
-export function agentExecutionKind(
-  generation: number,
-  event: string,
-  principalId: string,
-  origin: string
-) {
-  return {
-    AgentEvent: {
-      key: { purpose: 'AgentController', algorithm: 'Ed25519', generation: BigInt(generation) },
-      event: utf8(event),
-      principal_id: principalId,
-      origin
-    }
-  }
-}
-
-export function executionApprovalMessage(input: {
-  home: Uint8Array
-  account: Uint8Array
-  deviceId: Uint8Array
-  securityEpoch: bigint
-  sequence: bigint
-  requestId: Uint8Array
-  expiresAt: bigint
-  kind: unknown
-  maxCycles: bigint
-}) {
-  return digest('dmsg/device-approval/v2', [
-    input.home,
-    input.account,
-    'dmsg/execute/v3',
-    input.deviceId,
-    input.securityEpoch,
-    input.sequence,
-    input.requestId,
-    input.expiresAt,
-    digest('dmsg/execute/v3', [input.kind, input.maxCycles])
-  ])
 }
 
 export function envelope(event: DelegationEvent, hash: Uint8Array, signature: Uint8Array): Envelope {

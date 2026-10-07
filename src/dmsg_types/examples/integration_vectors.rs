@@ -60,55 +60,49 @@ fn main() {
     }
     {
         use dmsg_protocol::*;
-        use dmsg_types::{cose::*, *};
+        use dmsg_types::*;
         use ed25519_dalek::{Signer, SigningKey};
         let action = action_fixtures::action();
         let account = action.signing_account;
         let key = SigningKey::from_bytes(&[7; 32]);
-        let public = key.verifying_key().to_bytes();
-        let fingerprint =
-            key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
-        let approval = Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: 1,
-            sequence: 0,
-            request_id: execution_request_id(&account, 1, Hash::new([1; 32]), 0),
-            expires_at: action.expires_at_ms,
-            signature: Default::default(),
-        };
-        let request = AppActionSignRequest {
+        let public: Hash = key.verifying_key().to_bytes().into();
+        let mut request = AppActionAttestRequest {
             account_id: account,
-            key: SigningKeyRef {
-                algorithm: SigningAlgorithm::Ed25519,
-                kid: fingerprint.to_vec().into(),
-                public_key_fingerprint: fingerprint,
-            },
             issuer: account_issuer("https://example.test/u/", &account),
-            action,
-            max_cycles: 100_000_000_000,
-            approval,
+            action: action.clone(),
+            signature: Default::default(),
+            approval: Approval {
+                device_id: Hash::new([1; 32]),
+                security_epoch: 1,
+                sequence: 0,
+                request_id: execution_request_id(&account, 1, Hash::new([1; 32]), 0),
+                expires_at: action.expires_at_ms,
+                signature: Default::default(),
+            },
         };
-        let execution = request.clone().into_execution().unwrap();
-        let ExecutionKind::Sign { to_be_signed, .. } = &execution.kind else {
-            panic!()
-        };
-        let artifact = parse_signing_input(to_be_signed)
+        let statement = app_action_statement(&request).unwrap();
+        let prepared = prepare_attestation(&statement, &public).unwrap();
+        request.signature = key.sign(&prepared.to_be_signed).to_bytes().into();
+        let artifact = parse_signing_input(&prepared.to_be_signed)
             .unwrap()
-            .into_signature(&public)
+            .into_signature(public.as_slice())
             .unwrap()
-            .finish(key.sign(to_be_signed).to_bytes().to_vec())
+            .finish(request.signature.to_vec())
             .unwrap();
         values.push(vector("app_action_request", canonical(&request)));
         values.push(vector("app_action_artifact", canonical(&artifact)));
-        values.push(vector("app_action_signing_bytes", to_be_signed.to_vec()));
+        values.push(vector(
+            "app_action_signing_bytes",
+            prepared.to_be_signed.clone(),
+        ));
         values.push(vector(
             "app_action_approval",
             canonical(&approval_message(
                 principal(1),
-                &execution.account_id,
-                EXECUTE_APPROVAL_DOMAIN,
-                &execute_approval_command(&execution),
-                &execution.approval,
+                &request.account_id,
+                ATTEST_APPROVAL_DOMAIN,
+                &attest_approval_command(&statement, &request.action.origin, &request.signature),
+                &request.approval,
             )),
         ));
     }

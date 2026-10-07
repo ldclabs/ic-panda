@@ -50,14 +50,13 @@ To-be-signed bytes are strictly `CBOR(["Signature1", protected_bstr, h'', payloa
 
 | Algorithm | COSE alg | Signature | Public Key |
 | --- | --- | --- | --- |
-| Ed25519 (base) | -19 | Direct signature over Sig_structure | OKP, crv=6, x=32 bytes |
-| ES256K (optional) | -47 | SHA-256(Sig_structure), ECDSA r\|\|s with low-S only | EC2, crv=8, x/y each 32 bytes; verification also accepts compressed y |
+| Ed25519 | -19 | Direct signature over Sig_structure | OKP, crv=6, x=32 bytes |
 
-dMsg no longer provides BIP340 endpoints or private algorithm tags. Failures do not trigger automatic algorithm switching. Public-only COSE_Key forbids private key `d` (-4); `alg` must match, `key_ops` if present must permit `verify`, and `kid` if present must match the protected header.
+dMsg supports Ed25519 only; as of 2026-10-07 there are no ES256K, BIP340 endpoints or private algorithm tags. Failures do not trigger automatic algorithm switching. Public-only COSE_Key forbids private key `d` (-4); `alg` must match, `key_ops` if present must permit `verify`, and `kid` if present must match the protected header.
 
-Public key thumbprints follow RFC 9679 SHA-256: only required public parameters are encoded, excluding `kid`, `alg`, `key_ops`; EC2 `y` must be expanded into full coordinates first. Compressed and uncompressed forms of the same key therefore produce the identical thumbprint. The ICP signing adapter uses this thumbprint as `kid`; general profiles do not mandate that all implementations choose `kid` this way.
+Public key thumbprints follow RFC 9679 SHA-256 over the required public parameters `{1: 1, -1: 6, -2: x}`, excluding `kid`, `alg` and `key_ops`. dMsg formal documents are signed by the account's device Ed25519 keys, and the `kid` is that device key's thumbprint; whether the device belongs to the account and whether the account service authorized the signature is proven by the certified execution receipt, never by the key itself.
 
-ICP fixed derivation domain is upgraded to `dmsg/formal/v2`, with `derivation_version=2`; vetKD input is `[account_id, generation]`, and context is `["dmsg/content-root/v2", environment, 2]`. Xid alters key derivation inputs; new development instances are used, and legacy IDs cannot be truncated to represent the same key.
+vetKD is used only for content-root recovery envelopes: the context is `["dmsg/content-root/v2", environment, 2]` and every account shares the derived public key; the IBE identity of a root generation is `[account_id, generation]`. It is not a document-signature algorithm.
 
 ## ICP Execution Approvals and Receipts
 
@@ -67,35 +66,30 @@ ICP fixed derivation domain is upgraded to `dmsg/formal/v2`, with `derivation_ve
 request_id = digest("dmsg/execution-request/v2",
   [account_id, security_epoch, device_id, sequence])
 
-kind = {Sign: {
-  key: {purpose, algorithm, generation: 1},
-  to_be_signed: Sig_structure_bstr,
-  public_key_fingerprint: RFC9679_SHA256,
-  origin: checked_browser_origin
-}}
+signature = Ed25519(device_key, Sig_structure)          // kid = RFC9679(device_key)
 
 digest("dmsg/device-approval/v2", [
-  target_user_principal_bytes, account_id, "dmsg/execute/v3",
+  target_user_principal_bytes, account_id, "dmsg/attest/v1",
   device_id, security_epoch, sequence, request_id, expires_at,
-  digest("dmsg/execute/v3", [kind, max_cycles])
+  digest("dmsg/attest/v1", [statement, checked_browser_origin, signature])
 ])
 ```
 
-Devices sign this digest strictly using Ed25519. `purpose` is `Statement` for text/file statements and `FileAttestation` for digest documents; `algorithm` is `Ed25519` or `EcdsaSecp256k1`. Root derivation kind is `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`. Account mutations use the independent `dmsg/account/v2` domain with command `[expected_version, AccountCommand]`. CBOR unit enums are encoded as string names, payload enums as single-entry maps, and `Option` as values or null.
+The device signs the Sig_structure and then this approval digest with the same Ed25519 key; `statement` is the CBOR of the Rust `Statement` (`Option` as value or null, unit enums as name strings, payload enums as single-entry maps). Application actions use `AppActionAttestRequest { account_id, issuer, action, signature, approval }`, whose statement is `{issuer, content: {AppAction: action}}` and whose origin is `action.origin`. A recovered device's root derivation uses `dmsg/derive-root/v1` with the command `[generation, transport_key (bstr .size 48), max_cycles]`. Account mutations use the independent `dmsg/account/v2` domain with command `[expected_version, AccountCommand]`.
 
-Protected headers, payload, key thumbprints, and approval context are frozen prior to signing. User home verifies that `issuer` belongs to the current account; COSE home verifies the `kid` and thumbprint of the actual derived key. Browser origin is limited to 256 bytes and represents an exact HTTPS origin or Chrome extension origin (Local deployments also accept exact loopback HTTP origins); verified by the extension, device signatures do not independently authenticate browser origin.
+Protected headers, payload and approval context are frozen prior to signing. The user home checks that `issuer` belongs to the account, that the device is an active device of the account with `FormalApprove`, that the purpose is allowed by the account policy and the monthly quota has room, verifies both signatures, and in the same message charges the quota, stores the artifact and writes the certified receipt. Browser origin is limited to 256 bytes and represents an exact HTTPS origin or Chrome extension origin (Local deployments also accept exact loopback HTTP origins); verified by the extension, device signatures do not independently authenticate browser origin.
 
-Idempotency is scoped to `account_id/request_id`; requests with the same ID but differing parameters are rejected. Unknown outcomes reconcile against the original request. Strict device sequence numbers and execution watermarks continue to prevent replay attacks after completed results are cleaned up; an exact replay of a cleaned request returns `ResultExpired`. Identical content can produce identical signatures; signature digests cannot serve as unique identifiers for all business operations.
+Idempotency is scoped to `account_id/request_id`; requests with the same ID but differing parameters are rejected. A lost reply is replayed with `get_attestation(account_id, request_id)`, which returns the same artifact. Strict device sequence numbers and execution watermarks continue to prevent replay attacks after results are cleaned up; an exact replay of a cleaned request returns `ResultExpired`.
 
-`get_execution_receipt(account_id, request_id)` returns a certified ICP leaf; querying requires account authentication. The path is `b"execution/" || account_id[12] || request_id[32]`. `ExecutionReceipt` stores issuer, device/epoch, approval time/deadline, origin, cycle fee limit, status, SHA-256 of to-be-signed bytes, public key thumbprint, and SHA-256 of raw signature bytes. It does not modify portable signature artifacts. Upgrades reconstruct leaves from stable execution records, and leaves are deleted when results are pruned; the query then returns a certified absence proof.
+`get_execution_receipt(account_id, request_id)` returns a certified ICP leaf; querying requires account authentication. The path is `b"execution/" || account_id[12] || request_id[32]`. `ExecutionReceipt` (schema 2) stores issuer, device/epoch, approval time/deadline, origin, SHA-256 of to-be-signed bytes, the device key thumbprint, and SHA-256 of raw signature bytes. It does not modify portable signature artifacts. Upgrades reconstruct leaves from stable execution records, and leaves are deleted when results are pruned; the query then returns a certified absence proof.
 
-Receipt verification requires first validating the specified user canister's IC certificate, witness, path, and leaf value, followed by matching the `Completed` status, issuer, to-be-signed digest, public key thumbprint, and signature digest. The SDK `verifyExecutionReceipt` performs both steps; Rust `match_execution_receipt` performs only binding checks, leaving certificate validation to the caller. Historical receipts do not enforce the 60-second freshness window applied to account security snapshots; current authorization status is queried separately. A receipt proves execution authorization recorded by this service; it does not automatically prove external project permissions or current device state.
+Receipt verification requires first validating the specified user canister's IC certificate, witness, path, and leaf value, followed by matching the issuer, to-be-signed digest, public key thumbprint, and signature digest. The SDK `verifyExecutionReceipt` performs both steps; Rust `match_execution_receipt` performs only binding checks, leaving certificate validation to the caller. A COSE_Sign1 without a receipt only proves that some device key signed those bytes, not dMsg authorization. A receipt proves execution authorization recorded by this service; it does not automatically prove external project permissions or current device state.
 
 ## Xid Issuance
 
 The user canister uses `ic_auth_types::XidGenerator` for persistent ID allocation, formatted as `timestamp_seconds[4] || allocator_fingerprint[5] || counter[3]`. The fingerprint is derived from the first 5 bytes of `digest("dmsg/account-id-generator/v1", ["dmsg", environment, issuer_namespace, creating_canister])`, with the full namespace digest stored separately in configuration for upgrade validation. Counters advance during the same second or clock rollback; new seconds reset the counter to 0. Time overflow or counter exhaustion fails explicitly.
 
-Once authentication, device PoP, quota, and unique binding checks succeed, a single execution segment without awaits commits the account, authentication index, quota, and allocator state. Retried requests for existing authentications return the existing account. No `raw_rand` or asynchronous creation staging tables are used. Currently, a single user home is fixed; future multi-allocator deployments must register and eliminate fingerprint collisions in advance, and truncated hashes cannot be treated as absolute global uniqueness guarantees.
+Once authentication, device PoP, quota, and unique binding checks succeed, a single execution segment without awaits commits the account, authentication index, quota, and allocator state. Retried requests for existing authentications return the existing account. A deployment may run several user homes; every service routes an account to the home named by the fingerprint embedded in its ID. The `dmsg_handle` registry's `user_homes` is the authoritative list and `registration_homes` the subset currently accepting new accounts; clients query `my_account` on every home in parallel to find a login's account. Cross-home Principal uniqueness is deliberately not enforced.
 
 ## Timestamps and Verification Reports
 
@@ -117,7 +111,7 @@ Standards references for signatures, identity headers, and profiles: [RFC 9052](
 
 ## Agent Delegation
 
-A dMsg account can act as an Agent Delegation 1.0 principal: hosted controllers are COSE threshold Ed25519 keys, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces, signing policy and verification scope: [agent_zh.md](agent_zh.md) (Chinese).
+A dMsg account can act as an Agent Delegation 1.0 principal: controllers are self-held Ed25519 keys kept in the client vault, registered with a proof of possession at the user home and used to sign events locally, and `dmsg_directory` publishes the principal document as ICP-certified HTTP. Interfaces and verification scope: [agent_zh.md](agent_zh.md) (Chinese).
 
 ## Commercial Services
 

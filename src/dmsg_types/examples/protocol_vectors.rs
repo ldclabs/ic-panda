@@ -2,7 +2,7 @@
 //! fixed test seed. Run through scripts/verify-dmsg-vectors.mjs independently.
 use candid::Principal;
 use dmsg_protocol::*;
-use dmsg_types::{cose::*, *};
+use dmsg_types::{agent::DelegationAuthority, cose::*, *};
 use ed25519_dalek::{Signer, SigningKey};
 
 mod support;
@@ -13,7 +13,7 @@ fn main() {
     let namespace = "https://dmsg.test/u/";
     let signer = SigningKey::from_bytes(&[7; 32]);
     let public = signer.verifying_key().to_bytes();
-    let temp_key = public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap();
+    let temp_key = public_cose_key(&[], &public).unwrap();
     let fingerprint = key_thumbprint(&temp_key).unwrap();
     let kid = fingerprint.to_vec();
     let text = Statement {
@@ -30,7 +30,7 @@ fn main() {
         },
         ..text.clone()
     };
-    let (_, text_tbs) = prepare_cose(&text, &Algorithm::Ed25519, &kid).unwrap();
+    let (_, text_tbs) = prepare_cose(&text, &kid).unwrap();
     let file_statement = Statement {
         content: StatementContent::FileStatement {
             text: "  第三章需要补充实验数据。\n".into(),
@@ -40,8 +40,8 @@ fn main() {
         },
         ..text.clone()
     };
-    let (_, file_statement_tbs) = prepare_cose(&file_statement, &Algorithm::Ed25519, &kid).unwrap();
-    let (_, digest_tbs) = prepare_cose(&digest_statement, &Algorithm::Ed25519, &kid).unwrap();
+    let (_, file_statement_tbs) = prepare_cose(&file_statement, &kid).unwrap();
+    let (_, digest_tbs) = prepare_cose(&digest_statement, &kid).unwrap();
     let artifact = |tbs: &[u8]| {
         parse_signing_input(tbs)
             .unwrap()
@@ -158,48 +158,20 @@ fn main() {
         expires_at: 1_800_000_000_000,
         signature: Default::default(),
     };
-    let sign = SignRequest {
+    let origin = "https://example.com";
+    let attest = |statement: &Statement, tbs: &[u8]| AttestRequest {
         account_id: account,
-        key: SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: kid.into(),
-            public_key_fingerprint: fingerprint,
-        },
-        statement: digest_statement,
-        origin: "https://example.com".into(),
-        max_cycles: 100_000_000_000,
+        statement: statement.clone(),
+        origin: origin.into(),
+        signature: signer.sign(tbs).to_bytes().into(),
         approval: approval.clone(),
-    }
-    .into_execution()
-    .unwrap();
-    let file_sign = ExecuteRequest {
-        kind: ExecutionKind::Sign {
-            key: KeyRequest {
-                purpose: KeyPurpose::Statement,
-                algorithm: Algorithm::Ed25519,
-                generation: 1,
-            },
-            to_be_signed: file_statement_tbs.into(),
-            public_key_fingerprint: fingerprint,
-            origin: "https://example.com".into(),
-        },
-        ..sign.clone()
     };
-    let derive = DeriveRootRequest {
-        account_id: account,
-        target: RootTarget::Candidate {
-            generation: 2,
-            op_id: Hash::new([9; 32]),
-        },
-        transport_public_key: ic_bls12_381::G1Affine::generator().to_compressed().into(),
-        max_cycles: 100_000_000_000,
-        approval,
-    }
-    .into_execution();
     for (name, input) in [
-        ("sign_approval_v3", sign),
-        ("file_statement_approval_v1", file_sign),
-        ("derive_root_approval_v3", derive),
+        ("attest_approval_v1", attest(&digest_statement, &digest_tbs)),
+        (
+            "file_statement_approval_v1",
+            attest(&file_statement, &file_statement_tbs),
+        ),
     ] {
         let a = &input.approval;
         let preimage = canonical(&(
@@ -208,13 +180,16 @@ fn main() {
             (
                 home_user,
                 &input.account_id,
-                "dmsg/execute/v3",
+                ATTEST_APPROVAL_DOMAIN,
                 a.device_id,
                 a.security_epoch,
                 a.sequence,
                 a.request_id,
                 a.expires_at,
-                digest("dmsg/execute/v3", &(&input.kind, input.max_cycles)),
+                digest(
+                    ATTEST_APPROVAL_DOMAIN,
+                    &(&input.statement, &input.origin, &input.signature),
+                ),
             ),
         ));
         assert_eq!(
@@ -222,12 +197,85 @@ fn main() {
             approval_message(
                 home_user,
                 &input.account_id,
-                EXECUTE_APPROVAL_DOMAIN,
-                &execute_approval_command(&input),
+                ATTEST_APPROVAL_DOMAIN,
+                &attest_approval_command(&input.statement, &input.origin, &input.signature),
                 a,
             )
         );
         values.push(vector(name, preimage));
     }
+    let derive = DeriveRootRequest {
+        account_id: account,
+        generation: 2,
+        transport_public_key: ic_bls12_381::G1Affine::generator().to_compressed().into(),
+        max_cycles: 70_000_000_000,
+        approval: approval.clone(),
+    };
+    let preimage = canonical(&(
+        1u8,
+        "dmsg/device-approval/v2",
+        (
+            home_user,
+            &derive.account_id,
+            DERIVE_APPROVAL_DOMAIN,
+            approval.device_id,
+            approval.security_epoch,
+            approval.sequence,
+            approval.request_id,
+            approval.expires_at,
+            digest(
+                DERIVE_APPROVAL_DOMAIN,
+                &(
+                    derive.generation,
+                    &derive.transport_public_key,
+                    derive.max_cycles,
+                ),
+            ),
+        ),
+    ));
+    assert_eq!(
+        sha256(&preimage),
+        approval_message(
+            home_user,
+            &derive.account_id,
+            DERIVE_APPROVAL_DOMAIN,
+            &derive_approval_command(&derive),
+            &approval,
+        )
+    );
+    values.push(vector("derive_root_approval_v1", preimage));
+    let devices = [Hash::new([3; 32]), Hash::new([2; 32])];
+    let recipients = canonical(&(
+        1u8,
+        "dmsg/root-recipients/1",
+        (vec![Hash::new([2; 32]), Hash::new([3; 32])], 2u64),
+    ));
+    assert_eq!(sha256(&recipients), root_recipients_digest(&devices, 2));
+    values.push(vector("root_recipients_v1", recipients));
+    let body = sha256(b"root bundle body");
+    let bundle = canonical(&(
+        1u8,
+        "dmsg/root-bundle-digest/2",
+        (root_recipients_digest(&devices, 2), body),
+    ));
+    assert_eq!(
+        sha256(&bundle),
+        root_bundle_digest(root_recipients_digest(&devices, 2), body)
+    );
+    values.push(vector("root_bundle_digest_v2", bundle));
+    let delegation = DelegationAuthority::Restricted {
+        scopes: vec!["message.draft".into()],
+        audiences: vec!["https://dmsg.net".into()],
+    };
+    let pop = canonical(&(
+        1u8,
+        "dmsg/controller-pop/v1",
+        (home_user, &account, 2u32, &delegation, vec![1u32], request_id),
+    ));
+    assert_eq!(
+        sha256(&pop),
+        controller_pop_message(home_user, &account, 2, &delegation, &[1], request_id)
+    );
+    values.push(vector("controller_pop_v1", pop));
     println!("{}", serde_json::to_string_pretty(&values).unwrap());
 }

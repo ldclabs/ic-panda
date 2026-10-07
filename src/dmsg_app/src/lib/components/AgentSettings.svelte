@@ -68,8 +68,7 @@
     await session.run(async () => {
       if (!session.meta?.account || !config.principalOrigin || !config.agentOrigin)
         throw new Error('先完成正式工作区绑定，并配置 principal 与 delegation 服务地址。')
-      const { account: accountClient, api } = await connectAccount(derivation)
-      if (!api.cose) throw new Error('未配置密钥服务。')
+      const { account: accountClient } = await connectAccount(derivation)
       const cloud = config.relayOrigin
         ? new CloudSession(
             accountClient,
@@ -77,7 +76,7 @@
             session.meta.account.id
           )
         : null
-      client = new AgentClient(accountClient, api.cose, cloud)
+      client = new AgentClient(accountClient, cloud)
       await load()
       status = principal ? '已读取 principal 与凭证状态。' : '此账户尚未启用 Agent principal。'
     })
@@ -108,7 +107,7 @@
       preview = null
       await load()
       if (client!.cloud) await client!.refreshService(account())
-    }, '托管 controller 已登记；发布完成后第三方即可验证。')
+    }, 'controller 已登记；发布完成后第三方即可验证。')
   }
   async function change(action: 'retire' | 'compromise', c: HostedController) {
     await session.run(async () => {
@@ -148,7 +147,7 @@
   }
   async function resume(job: AgentJob) {
     await session.run(async () => {
-      const result = await client!.resume(job.executionId)
+      const result = await client!.resume(job.id)
       await load()
       status = `记录 ${result.delegationId}：${result.stage}${result.error ? `（${result.error}）` : ''}`
     })
@@ -163,8 +162,8 @@
   <h2>Agent 授权</h2>
   <p>
     启用后，此账户成为 Agent Delegation principal，公开文档位于
-    <code>{config.principalOrigin || '（未配置）'}/{account() || '…'}</code>。托管 controller
-    是 dMsg 链上阈值密钥，每次签发或撤销都需要本设备批准。
+    <code>{config.principalOrigin || '（未配置）'}/{account() || '…'}</code>。controller key
+    保存在你的 vault 中，持根设备都能签发或撤销授权。
   </p>
   <label
     >登录来源<select bind:value={derivation}
@@ -208,7 +207,7 @@
   </section>
 
   <section class="settings-section">
-    <h2>托管 controller</h2>
+    <h2>controller</h2>
     {#each principal.state.controllers as c (c.generation)}
       <article class="history-message">
         <strong>#{c.generation} {c.name[0] ?? ''}</strong>
@@ -231,7 +230,7 @@
         {/if}
       </article>
     {/each}
-    <h3>登记新的托管 controller</h3>
+    <h3>登记新的 controller</h3>
     <p>权限一经发布不可修改；扩大权限需登记新 key 并在“接管”中选择旧 key。</p>
     <label
       ><input type="radio" bind:group={authorityKind} value="restricted" /> 受限（明确的 scope 与依赖方）</label
@@ -304,7 +303,7 @@
         {/if}
       </article>
     {/each}
-    {#each jobs.filter((j) => j.stage === 'unknown' || j.stage === 'signed') as job (job.executionId)}
+    {#each jobs.filter((j) => j.stage === 'signed') as job (job.id)}
       <article class="history-message">
         <strong>待处理：{job.kind} {job.delegationId}</strong>
         <p>{job.stage}{job.error ? `（${job.error}）` : ''}</p>
@@ -349,7 +348,7 @@
         </div>
       {/if}
     </dl>
-    <p>这是一笔正式签名，计入本月正式执行额度。撤销前第三方已完成的动作无法收回。</p>
+    <p>事件由本机 vault 中的 controller key 签名并提交到 delegation 服务。撤销前第三方已完成的动作无法收回。</p>
     <button class="primary" disabled={session.busy} onclick={sign}>批准并签名</button>
   </Modal>
 {/if}

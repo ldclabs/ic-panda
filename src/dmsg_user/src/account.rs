@@ -2,7 +2,7 @@ use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::*;
-use dmsg_types::{cose::*, user::*, *};
+use dmsg_types::{user::*, *};
 use std::collections::BTreeMap;
 
 pub(crate) fn create(
@@ -33,14 +33,12 @@ pub(crate) fn create(
     )?;
     Ok(AccountState {
         created_at_ms: now,
-        safety_budget: Budget::default(),
         account_id,
         home_user: id,
         home_cose: cose,
         auth_bindings: vec![caller],
         account_version: 0,
         security_epoch: 0,
-        status: AccountStatus::Active,
         devices: BTreeMap::from([(
             input.device.device_id,
             Device {
@@ -51,9 +49,7 @@ pub(crate) fn create(
                 next_sequence: 0,
             },
         )]),
-        recovery: None,
-        recovery_checked: false,
-        recovery_nonce: 0,
+        recovery_delay_ms: DEFAULT_RECOVERY_DELAY_MS,
         pending_recovery: None,
         completed_recovery: None,
         current_root: None,
@@ -150,7 +146,7 @@ pub(crate) enum Authorized {
     Fresh(Hash),
 }
 
-/// Caller binding, idempotent replay, device approval, version and status checks
+/// Caller binding, idempotent replay, device approval and version checks
 /// shared by every account mutation. Nothing is written.
 pub(crate) fn authorize_mutation(
     s: &AccountState,
@@ -185,13 +181,15 @@ pub(crate) fn authorize_mutation(
         m.expected_version == s.account_version,
         Error::VersionConflict,
     )?;
-    if s.status != AccountStatus::Active {
-        ensure(
-            matches!(m.command, AccountCommand::DisputeRecovery { .. }),
-            Error::Locked,
-        )?;
-    }
     Ok(Authorized::Fresh(fp))
+}
+
+fn has_administrator(s: &AccountState) -> bool {
+    s.devices.values().any(|d| {
+        d.revoked_at.is_none()
+            && d.input.role == ControllerRole::Administrator
+            && d.input.capabilities.contains(&Capability::RootManage)
+    })
 }
 
 pub(crate) fn apply(
@@ -267,14 +265,7 @@ pub(crate) fn apply(
             let d = next.devices.get_mut(device_id).ok_or(Error::NotFound)?;
             ensure(d.revoked_at.is_none(), Error::DeviceNotApproved)?;
             d.revoked_at = Some(now);
-            ensure_valid(
-                next.devices.values().any(|d| {
-                    d.revoked_at.is_none()
-                        && d.input.role == ControllerRole::Administrator
-                        && d.input.capabilities.contains(&Capability::RootManage)
-                }),
-                "last administrator",
-            )?;
+            ensure_valid(has_administrator(&next), "last administrator")?;
             changed(&mut next);
         }
         AccountCommand::SetDeviceCapabilities {
@@ -287,14 +278,7 @@ pub(crate) fn apply(
             input.capabilities = capabilities.clone();
             input.validate()?;
             device.input = input;
-            ensure_valid(
-                next.devices.values().any(|d| {
-                    d.revoked_at.is_none()
-                        && d.input.role == ControllerRole::Administrator
-                        && d.input.capabilities.contains(&Capability::RootManage)
-                }),
-                "last administrator",
-            )?;
+            ensure_valid(has_administrator(&next), "last administrator")?;
             changed(&mut next);
         }
         AccountCommand::BindAuth { principal, .. } => {
@@ -315,69 +299,27 @@ pub(crate) fn apply(
             next.auth_bindings.retain(|p| p != principal);
             changed(&mut next);
         }
-        AccountCommand::SetRecovery { policy, proof } => {
-            // An old device cannot silently veto a recovery by replacing its
-            // pre-registered recovery authority while its request is pending.
+        AccountCommand::SetRecoveryDelay { delay_ms } => {
+            // An old device cannot shorten or lengthen a recovery already pending.
             ensure(
                 s.pending_recovery
                     .as_ref()
-                    .is_none_or(|r| now >= r.expires_at()),
+                    .is_none_or(|r| now >= r.request.expires_at),
                 Error::Pending,
             )?;
-            let generation = s.recovery.as_ref().map_or(0, |r| r.generation);
-            ensure_valid(
-                policy.generation == generation.checked_add(1).ok_or(Error::QuotaExceeded)?
-                    && (DAY..=7 * DAY).contains(&policy.delay_ms),
-                "recovery generation/delay",
-            )?;
-            nonzero(policy.hpke_pub.as_slice())?;
-            verify(
-                &policy.signing_pub,
-                digest(
-                    "dmsg/recovery-enroll/v1",
-                    &(s.home_user, &s.account_id, policy, m.approval.request_id),
-                )
-                .as_slice(),
-                proof.as_slice(),
-            )?;
-            next.recovery = Some(policy.clone());
-            next.recovery_checked = false;
-            next.pending_recovery = None;
-            changed(&mut next);
-        }
-        AccountCommand::ConfirmRecovery { proof } => {
-            let r = s.recovery.as_ref().ok_or(Error::RecoveryIncomplete)?;
-            verify(
-                &r.signing_pub,
-                digest(
-                    "dmsg/recovery-check/v1",
-                    &(
-                        s.home_user,
-                        &s.account_id,
-                        r.generation,
-                        m.expected_version,
-                        m.approval.request_id,
-                    ),
-                )
-                .as_slice(),
-                proof.as_slice(),
-            )?;
-            next.recovery_checked = true;
+            ensure_valid((DAY..=7 * DAY).contains(delay_ms), "recovery delay")?;
+            next.recovery_delay_ms = *delay_ms;
+            invalidate_approvals(&mut next);
         }
         AccountCommand::SetPolicy { policy } => {
             ensure(
                 policy.daily_executions <= FORMAL_DAILY_EXECUTIONS
-                    && policy.daily_cycles <= FORMAL_DAILY_CYCLES
-                    && policy.allowed_purposes.len() <= 4
-                    && policy.allowed_purposes.iter().all(|p| {
-                        matches!(
-                            p,
-                            KeyPurpose::FileAttestation
-                                | KeyPurpose::Statement
-                                | KeyPurpose::AppAction
-                                | KeyPurpose::AgentController
-                        )
-                    }),
+                    && policy.allowed_purposes.len() <= 3
+                    && policy
+                        .allowed_purposes
+                        .iter()
+                        .enumerate()
+                        .all(|(i, p)| !policy.allowed_purposes[..i].contains(p)),
                 Error::QuotaExceeded,
             )?;
             next.sensitive_policy = policy.clone();
@@ -387,7 +329,6 @@ pub(crate) fn apply(
             expected_generation,
             op_id,
         } => {
-            ensure(next.recovery_checked, Error::RecoveryIncomplete)?;
             nonzero(op_id.as_slice())?;
             ensure(
                 *expected_generation == s.current_root.as_ref().map_or(0, |r| r.generation),
@@ -420,22 +361,24 @@ pub(crate) fn apply(
                 Error::VersionConflict,
             )?;
             ensure(now < slot.expires_at, Error::Expired)?;
+            // The bundle must wrap the root to exactly the active devices and
+            // this generation's vetKD recovery identity.
             ensure(
-                root.home_cose == s.home_cose
-                    && root.derivation_version == 2
-                    && root.key_generation == root.generation
-                    && root.suite == "dmsg-root-v1"
-                    && root.recovery_generation
-                        == s.recovery
-                            .as_ref()
-                            .ok_or(Error::RecoveryIncomplete)?
-                            .generation,
+                root.suite == "dmsg-root-v2"
+                    && root.recipients_digest
+                        == root_recipients_digest(&s.active_devices(), root.generation)
+                    && root.bundle_digest
+                        == root_bundle_digest(root.recipients_digest, root.body_digest),
                 Error::IntegrityFailed,
             )?;
-            nonzero(root.bundle_digest.as_slice())?;
+            nonzero(root.body_digest.as_slice())?;
             next.current_root = Some(root.clone());
             next.root_slot = None;
             next.vault_write_state = VaultWriteState::Ready;
+            // The recovered device holds the root it just wrapped; no derivation remains.
+            if let Some(r) = &mut next.completed_recovery {
+                r.root_generation = None;
+            }
         }
         AccountCommand::AuthorizeHandle { intent } => {
             ensure(
@@ -461,18 +404,11 @@ pub(crate) fn apply(
                 );
             }
         }
-        AccountCommand::DisputeRecovery { op_id, dispute } => {
-            nonzero(dispute.as_slice())?;
-            let r = next.pending_recovery.as_mut().ok_or(Error::NotFound)?;
-            ensure(
-                r.request.op_id == *op_id && now < r.expires_at(),
-                Error::Expired,
-            )?;
-            if r.dispute.is_none() {
-                r.dispute = Some(*dispute);
-                next.status = AccountStatus::RecoveryDisputed;
-            }
-            // Once reconfirmed, repeated disputes cannot restart the delay.
+        AccountCommand::DisputeRecovery { op_id } => {
+            // A device in hand cancels the takeover; it adds devices by pairing.
+            let r = next.pending_recovery.as_ref().ok_or(Error::NotFound)?;
+            ensure(r.request.op_id == *op_id, Error::IdempotencyConflict)?;
+            next.pending_recovery = None;
         }
         AccountCommand::EnablePrincipal { .. }
         | AccountCommand::RegisterController { .. }

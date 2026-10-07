@@ -2,7 +2,7 @@
 use std::{hint::black_box, time::Instant};
 
 use dmsg_protocol::*;
-use dmsg_types::{cose::*, user::*, *};
+use dmsg_types::{user::*, *};
 use ed25519_dalek::{Signer, SigningKey};
 
 fn measure(name: &str, iterations: u32, mut run: impl FnMut()) {
@@ -32,7 +32,7 @@ fn main() {
         issued_at: Some(1_800_000_000),
         content: StatementContent::Text("document".repeat(512)),
     };
-    let (_, tbs) = prepare_cose(&statement, &Algorithm::Ed25519, b"kid").unwrap();
+    let (_, tbs) = prepare_cose(&statement, b"kid").unwrap();
     let signature = signer.sign(&tbs).to_bytes().to_vec();
     let artifact = parse_signing_input(&tbs)
         .unwrap()
@@ -41,7 +41,7 @@ fn main() {
         .finish(signature)
         .unwrap();
     let receipt = ExecutionReceipt {
-        schema: 1,
+        schema: 2,
         account_id: account,
         issuer: issuer.clone(),
         request_id: Hash::new([2; 32]),
@@ -50,11 +50,9 @@ fn main() {
         approved_at: 10,
         expires_at: 20,
         origin: "https://app.test".into(),
-        max_cycles: 100,
         to_be_signed_digest: sha256(&tbs),
         public_key_fingerprint: key_thumbprint(&artifact.cose_key).unwrap(),
-        status: ExecutionStatus::Completed,
-        signature_digest: Some(signature_digest(&artifact.cose_sign1).unwrap()),
+        signature_digest: signature_digest(&artifact.cose_sign1).unwrap(),
     };
     let device = DeviceInput {
         device_id: Hash::new([3; 32]),

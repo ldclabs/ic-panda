@@ -1,14 +1,22 @@
 use super::*;
 
+fn text_statement(f: &Fixture, id: &AccountId, text: &str) -> Statement {
+    Statement {
+        issuer: f.account_id(1, id).issuer,
+        subject: Some("release".into()),
+        issued_at: None,
+        content: StatementContent::Text(text.into()),
+    }
+}
+
 // Run explicitly with --ignored --nocapture against each build's DMSG_WASM_DIR.
-// Only the user canister's balance delta is measured; COSE/management fees are
-// excluded. PocketIC's deterministic clock does not model production traffic.
+// Only the user canister's balance delta is measured. PocketIC's deterministic
+// clock does not model production traffic.
 #[test]
 #[ignore = "cycles comparison for dmsg_user builds"]
 fn user_cycles_profile() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
     let policy = SensitivePolicy {
         daily_executions: 100,
         ..SensitivePolicy::default()
@@ -21,9 +29,6 @@ fn user_cycles_profile() {
         },
     )
     .unwrap();
-    let initialized: Result<candid::Reserved> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
     for history in 0..9 {
         let measured = [0, 4, 8].contains(&history);
         if measured {
@@ -50,88 +55,32 @@ fn user_cycles_profile() {
                 before - f.ic.cycle_balance(f.user)
             );
         }
-        let mut request = typed_statement(&f, &id, SigningAlgorithm::Ed25519);
-        // Nine approvals must fit within the 800B daily budget while covering
-        // the fiduciary subnet's measured signing cost.
-        request.max_cycles = 80_000_000_000;
-        request.statement.content = StatementContent::Text("x".repeat(4096));
-        request.approval.signature = key(1)
-            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
-            .to_bytes()
-            .into();
+        let request = f.attest_request(1, &id, text_statement(&f, &id, &"x".repeat(4096)));
         let before = f.ic.cycle_balance(f.user);
-        let result: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
-        assert_eq!(
-            result.as_ref().unwrap().status(),
-            ExecutionStatus::Completed,
-            "{result:?}"
-        );
+        let result: Result<SignedArtifact> =
+            update(&f.ic, f.user, person(1), "attest", (request.clone(),));
+        let result = result.unwrap();
         if measured {
             println!(
-                "user_cycles history={history} method=sign cycles={}",
+                "user_cycles history={history} method=attest cycles={}",
                 before - f.ic.cycle_balance(f.user)
             );
             let before = f.ic.cycle_balance(f.user);
-            let retried: Result<ExecutionResult> =
-                update(&f.ic, f.user, person(1), "sign", (request,));
-            assert_eq!(retried, result);
+            let retried: Result<SignedArtifact> =
+                update(&f.ic, f.user, person(1), "attest", (request,));
+            assert_eq!(retried, Ok(result));
             println!(
-                "user_cycles history={history} method=sign_retry cycles={}",
+                "user_cycles history={history} method=attest_retry cycles={}",
                 before - f.ic.cycle_balance(f.user)
             );
         }
     }
 }
 
-fn typed_statement(
-    f: &Fixture,
-    account_id: &AccountId,
-    algorithm: SigningAlgorithm,
-) -> SignRequest {
-    let s = f.account_id(1, account_id);
-    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
-    let mut request = SignRequest {
-        account_id: *account_id,
-        key: f.key_ref(account_id, SigningPurpose::Statement, algorithm),
-        statement: Statement {
-            issuer: s.issuer,
-            subject: Some("release".into()),
-            issued_at: None,
-            content: StatementContent::Text("verify an offline-derived key".into()),
-        },
-        origin: "https://example.com".into(),
-        max_cycles: 100_000_000_000,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: s.security_epoch,
-            sequence,
-            request_id: execution_request_id(
-                account_id,
-                s.security_epoch,
-                Hash::new([1; 32]),
-                sequence,
-            ),
-            expires_at: time(&f.ic) + MINUTE,
-            signature: Default::default(),
-        },
-    };
-    request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
-        .to_bytes()
-        .into();
-    request
-}
-
 #[test]
-fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file() {
-    let f = Fixture::with_algorithms(vec![
-        Algorithm::Ed25519,
-        Algorithm::EcdsaSecp256k1,
-        Algorithm::VetKdBls12381,
-    ]);
+fn file_statement_attestation_uses_statement_policy_and_binds_the_opinion_and_file() {
+    let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
     f.mutate(
         1,
         &id,
@@ -143,60 +92,58 @@ fn file_statement_signing_uses_statement_policy_and_binds_the_opinion_and_file()
         },
     )
     .unwrap();
-    let initialized: Result<candid::Reserved> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-    for algorithm in [SigningAlgorithm::Ed25519, SigningAlgorithm::EcdsaSecp256k1] {
-        let mut request = typed_statement(&f, &id, algorithm);
-        request.statement.content = StatementContent::FileStatement {
-            text: "  第三章需要补充实验数据。\n".into(),
-            sha256: sha256(b"document"),
-            content_type: Some("application/pdf".into()),
-            location: Some("urn:example:report".into()),
-        };
-        request.approval.signature = key(1)
-            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
-            .to_bytes()
-            .into();
-        // A website cannot swap either the opinion or the file after approval.
-        for change_text in [true, false] {
-            let mut changed = request.clone();
-            if let StatementContent::FileStatement {
-                text,
-                sha256: digest,
-                ..
-            } = &mut changed.statement.content
-            {
-                if change_text {
-                    *text = "Approved.".into();
-                } else {
-                    *digest = sha256(b"different");
-                }
+    let mut statement = text_statement(&f, &id, "x");
+    statement.content = StatementContent::FileStatement {
+        text: "  第三章需要补充实验数据。\n".into(),
+        sha256: sha256(b"document"),
+        content_type: Some("application/pdf".into()),
+        location: Some("urn:example:report".into()),
+    };
+    let request = f.attest_request(1, &id, statement.clone());
+    // A website cannot swap either the opinion or the file after approval.
+    for change_text in [true, false] {
+        let mut changed = request.clone();
+        if let StatementContent::FileStatement {
+            text,
+            sha256: digest,
+            ..
+        } = &mut changed.statement.content
+        {
+            if change_text {
+                *text = "Approved.".into();
+            } else {
+                *digest = sha256(b"different");
             }
-            let before = f.account_id(1, &id);
-            let rejected: Result<ExecutionResult> =
-                update(&f.ic, f.user, person(1), "sign", (changed,));
-            assert!(rejected.is_err());
-            assert_eq!(f.account_id(1, &id), before);
         }
-        let result: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
-        let result = result.unwrap();
-        let ExecutionOutput::Signature { artifact, key, .. } = completed(&result) else {
-            panic!("signature output")
-        };
-        assert_eq!(key.purpose, KeyPurpose::Statement);
-        assert_eq!(verify_artifact(artifact).unwrap(), request.statement);
-        let retried: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
-        assert_eq!(retried.unwrap(), result);
+        let before = f.account_id(1, &id);
+        let rejected: Result<SignedArtifact> =
+            update(&f.ic, f.user, person(1), "attest", (changed,));
+        assert!(rejected.is_err());
+        assert_eq!(f.account_id(1, &id), before);
     }
+    let result: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request.clone(),));
+    let artifact = result.unwrap();
+    assert_eq!(verify_artifact(&artifact).unwrap(), statement);
+    let retried: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (request,));
+    assert_eq!(retried.unwrap(), artifact);
+    // The digest profile is outside this account's policy.
+    let mut digest_statement = text_statement(&f, &id, "x");
+    digest_statement.content = StatementContent::Digest {
+        sha256: sha256(b"document"),
+        content_type: None,
+        location: None,
+    };
+    assert_eq!(
+        f.attest(1, &id, digest_statement),
+        Err(Error::Forbidden)
+    );
 }
 
 #[test]
 fn user_execution_retention_survives_a_full_window_and_upgrade() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
     f.mutate(
         1,
         &id,
@@ -208,86 +155,29 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         },
     )
     .unwrap();
-    let initialized: Result<candid::Reserved> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-
-    let request = || {
-        let mut r = typed_statement(&f, &id, SigningAlgorithm::Ed25519);
-        // Authorize cheaply, then get a known cost-limit failure from COSE.
-        r.max_cycles = 1;
-        r.approval.signature = key(1)
-            .sign(execute_approval(f.user, &r.clone().into_execution().unwrap()).as_slice())
-            .to_bytes()
-            .into();
-        r
-    };
-    let first = request();
-    for n in 0..dmsg_runtime::FORMAL_EXECUTION_WINDOW {
-        let r = if n == 0 { first.clone() } else { request() };
-        let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
-        assert_eq!(
-            result.unwrap().outcome,
-            ExecutionOutcome::Failed(Error::QuotaExceeded)
-        );
+    let request = |n: usize| f.attest_request(1, &id, text_statement(&f, &id, &format!("s{n}")));
+    let first = request(0);
+    for n in 0..dmsg_runtime::WINDOW {
+        let r = if n == 0 { first.clone() } else { request(n) };
+        let result: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (r,));
+        result.unwrap();
     }
     let before = f.account_id(1, &id);
-    let refused: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request(),));
+    let refused: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request(64),));
     assert_eq!(refused, Err(Error::QuotaExceeded));
     assert_eq!(f.account_id(1, &id), before);
 
-    // A full formal-signature history must still permit an approved root derive.
-    let op_id = Hash::new([88; 32]);
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id,
-        },
-    )
-    .unwrap();
-    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let mut root_request = DeriveRootRequest {
-        account_id: id,
-        target: RootTarget::Candidate {
-            generation: 1,
-            op_id,
-        },
-        transport_public_key: serde_bytes::ByteArray::new(
-            transport.public_key().as_slice().try_into().unwrap(),
-        ),
-        max_cycles: 100_000_000_000,
-        approval: typed_statement(&f, &id, SigningAlgorithm::Ed25519).approval,
-    };
-    root_request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &root_request.clone().into_execution()).as_slice())
-        .to_bytes()
-        .into();
-    let root: Result<ExecutionResult> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "derive_root",
-        (root_request.clone(),),
-    );
-    assert_eq!(root.as_ref().unwrap().status(), ExecutionStatus::Completed);
-    let replay: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "derive_root", (root_request,));
-    assert_eq!(root, replay);
-
     f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
-    let next = request();
-    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (next.clone(),));
-    assert_eq!(
-        result.as_ref().unwrap().outcome,
-        ExecutionOutcome::Failed(Error::QuotaExceeded)
-    );
-    let expired: Result<ExecutionResult> = query(
+    let next = request(65);
+    let result: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (next.clone(),));
+    let artifact = result.unwrap();
+    let expired: Result<SignedArtifact> = query(
         &f.ic,
         f.user,
         person(1),
-        "get_execution",
+        "get_attestation",
         (&id, first.approval.request_id),
     );
     assert_eq!(expired, Err(Error::ResultExpired));
@@ -316,14 +206,14 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
     )
     .unwrap();
     assert_eq!(f.account_id(1, &id), account_before);
-    let restored: Result<ExecutionResult> = query(
+    let restored: Result<SignedArtifact> = query(
         &f.ic,
         f.user,
         person(1),
-        "get_execution",
+        "get_attestation",
         (&id, next.approval.request_id),
     );
-    assert_eq!(restored, result);
+    assert_eq!(restored, Ok(artifact.clone()));
     let receipt: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -337,143 +227,111 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         &execution_receipt_key(&id, next.approval.request_id),
     ))
     .unwrap();
-    assert_eq!(leaf.status, ExecutionStatus::Failed);
-    let replayed: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (first,));
+    match_execution_receipt(&artifact, &leaf).unwrap();
+    let replayed: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (first,));
     assert_eq!(replayed, Err(Error::ResultExpired));
     assert_eq!(f.account_id(1, &id), account_before);
 }
 
 #[test]
-fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
-    use k256::ecdsa::signature::hazmat::PrehashVerifier;
-    let f = Fixture::with_algorithms(vec![
-        Algorithm::Ed25519,
-        Algorithm::EcdsaSecp256k1,
-        Algorithm::VetKdBls12381,
-    ]);
-    let account_id = f.create(1);
-    f.recoverable(1, &account_id);
-    let selector = |algorithm| {
-        KeySelector::Signing(dmsg_types::cose::SigningKey {
-            purpose: SigningPurpose::Statement,
-            algorithm,
-        })
-    };
+fn root_public_key_is_queryable_after_initialization_and_opens_ibe_envelopes() {
+    let f = Fixture::new();
+    let account_id = f.root_account(1);
     let not_ready: Result<KeyDescriptor> = query(
         &f.ic,
         f.cose,
         Principal::anonymous(),
-        "public_key",
-        (&account_id, selector(SigningAlgorithm::Ed25519)),
+        "root_public_key",
+        (&account_id, 1u64),
     );
     assert!(matches!(not_ready, Err(Error::Unavailable(_))));
     let initialized: Result<candid::Reserved> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     initialized.unwrap();
-    for algorithm in [SigningAlgorithm::Ed25519, SigningAlgorithm::EcdsaSecp256k1] {
-        let described: Result<KeyDescriptor> = query(
-            &f.ic,
-            f.cose,
-            Principal::anonymous(),
-            "public_key",
-            (&account_id, selector(algorithm.clone())),
-        );
-        let described = described.unwrap();
-        let request = typed_statement(&f, &account_id, algorithm.clone());
-        let before: Result<ExecutionResult> = query(
-            &f.ic,
-            f.cose,
-            f.user,
-            "get_execution",
-            (&account_id, request.approval.request_id),
-        );
-        assert_eq!(before, Err(Error::NotFound));
-        let mut altered = request.clone();
-        altered.statement.subject = Some("not approved".into());
-        let rejected: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (altered,));
-        assert_eq!(rejected, Err(Error::IntegrityFailed));
-        let signed: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
-        let signed = signed.unwrap();
-        let output = completed(&signed);
-        assert!(matches!(output, ExecutionOutput::Signature { .. }));
-        assert_eq!(output.key(), &described);
-        assert!(
-            signed.cycles_cost_upper_bound > 0
-                && signed.cycles_cost_upper_bound <= request.max_cycles
-        );
-        let ExecutionOutput::Signature { artifact, .. } = output else {
-            panic!("signature output")
-        };
-        assert_eq!(verify_artifact(artifact).unwrap(), request.statement);
-        let wire: cbor2::Value = cbor2::from_slice(&artifact.cose_sign1).unwrap();
-        let cbor2::Value::Tag(18, wire) = wire else {
-            panic!("COSE tag")
-        };
-        let cbor2::Value::Array(fields) = *wire else {
-            panic!("COSE array")
-        };
-        let cbor2::Value::Bytes(protected) = &fields[0] else {
-            panic!("protected bstr")
-        };
-        let cbor2::Value::Bytes(signature) = &fields[3] else {
-            panic!("signature bstr")
-        };
-        let cbor2::Value::Bytes(raw_payload) = &fields[2] else {
-            panic!("payload bytes")
-        };
-        let payload = canonical(&(
-            "Signature1",
-            serde_bytes::Bytes::new(protected),
-            serde_bytes::Bytes::new(&[]),
-            serde_bytes::Bytes::new(raw_payload),
-        ));
-        match algorithm {
-            SigningAlgorithm::Ed25519 => verify(
-                &Hash::new(described.public_key.as_slice().try_into().unwrap()),
-                &payload,
-                signature,
-            )
-            .unwrap(),
-            SigningAlgorithm::EcdsaSecp256k1 => {
-                let key =
-                    k256::ecdsa::VerifyingKey::from_sec1_bytes(&described.public_key).unwrap();
-                // Artifacts carry only low-S signatures, accepted by strict verifiers.
-                let signature = k256::ecdsa::Signature::from_slice(signature).unwrap();
-                key.verify_prehash(sha256(&payload).as_slice(), &signature)
-                    .unwrap();
-            }
-        }
-        let replay: Result<ExecutionResult> =
-            update(&f.ic, f.user, person(1), "sign", (request.clone(),));
-        assert_eq!(replay.unwrap(), signed);
-        let status: Result<ExecutionResult> = query(
-            &f.ic,
-            f.user,
-            person(1),
-            "get_execution",
-            (&account_id, request.approval.request_id),
-        );
-        assert_eq!(status.unwrap(), signed);
-        let grant = ExecutionGrant {
-            commerce: None,
-            account_id,
-            home_user: f.user,
-            home_cose: f.cose,
-            request_id: request.approval.request_id,
-            execution_sequence: 1,
-            security_epoch: request.approval.security_epoch,
-            device_id: request.approval.device_id,
-            device_sequence: request.approval.sequence,
-            approved_at: time(&f.ic),
-            expires_at: request.approval.expires_at,
-            kind: request.clone().into_execution().unwrap().kind,
-            max_cycles: request.max_cycles,
-        };
-        // A client cannot bypass its user home by calling COSE directly.
-        assert_denied(&f.ic, f.cose, person(1), "execute", (grant,));
-    }
+    let described: Result<KeyDescriptor> = query(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "root_public_key",
+        (&account_id, 1u64),
+    );
+    let described = described.unwrap();
+    assert_eq!(described.public_key.len(), 96);
+    assert_eq!(described.public_key_fingerprint, sha256(&described.public_key));
+    // The same executor key serves every account and generation.
+    let other: Result<KeyDescriptor> = query(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "root_public_key",
+        (&AccountId([2; 12]), 5u64),
+    );
+    let other = other.unwrap();
+    assert_eq!(other.public_key, described.public_key);
+    assert_eq!(other.key_generation, 5);
+    let public = ic_vetkeys::DerivedPublicKey::deserialize(&described.public_key).unwrap();
+    let identity = ic_vetkeys::IbeIdentity::from_bytes(&canonical(&(&account_id, 1u64)));
+    let envelope = ic_vetkeys::IbeCiphertext::encrypt(
+        &public,
+        &identity,
+        b"root",
+        &ic_vetkeys::IbeSeed::from_bytes(&[3; 32]).unwrap(),
+    );
+    f.recover(1, 9, &account_id);
+    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
+    let request = f.derive_request(1, 9, &account_id, transport.public_key());
+    let before: Result<ExecutionResult> = query(
+        &f.ic,
+        f.cose,
+        f.user,
+        "get_execution",
+        (&account_id, request.approval.request_id),
+    );
+    assert_eq!(before, Err(Error::NotFound));
+    let mut altered = request.clone();
+    altered.max_cycles -= 1;
+    let rejected: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (altered,));
+    assert_eq!(rejected, Err(Error::IntegrityFailed));
+    let derived: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (request.clone(),));
+    let derived = derived.unwrap();
+    let output = completed(&derived);
+    assert_eq!(output.key, described);
+    assert!(derived.cycles_cost_upper_bound > 0 && derived.cycles_cost_upper_bound <= request.max_cycles);
+    let vetkey = ic_vetkeys::EncryptedVetKey::deserialize(&output.encrypted_key)
+        .unwrap()
+        .decrypt_and_verify(&transport, &public, identity.value())
+        .unwrap();
+    assert_eq!(envelope.decrypt(&vetkey).unwrap(), b"root");
+    let replay: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (request.clone(),));
+    assert_eq!(replay.unwrap(), derived);
+    let status: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&account_id, request.approval.request_id),
+    );
+    assert_eq!(status.unwrap(), derived);
+    let grant = ExecutionGrant {
+        account_id,
+        home_user: f.user,
+        home_cose: f.cose,
+        request_id: request.approval.request_id,
+        execution_sequence: 1,
+        security_epoch: request.approval.security_epoch,
+        device_id: request.approval.device_id,
+        device_sequence: request.approval.sequence,
+        approved_at: time(&f.ic),
+        expires_at: request.approval.expires_at,
+        generation: 1,
+        transport_key: request.transport_public_key,
+        max_cycles: request.max_cycles,
+    };
+    // A client cannot bypass its user home by calling COSE directly.
+    assert_denied(&f.ic, f.cose, person(1), "execute", (grant,));
     f.ic.upgrade_canister(
         f.cose,
         wasm("dmsg_cose"),
@@ -485,78 +343,10 @@ fn keys_are_queryable_before_execution_and_verify_all_signing_algorithms() {
         &f.ic,
         f.cose,
         Principal::anonymous(),
-        "public_key",
-        (&account_id, selector(SigningAlgorithm::Ed25519)),
+        "root_public_key",
+        (&account_id, 1u64),
     );
-    assert!(restored.is_ok());
-}
-
-#[test]
-fn candidate_root_is_typed_and_failed_execution_keeps_its_reason() {
-    let f = Fixture::new();
-    let account_id = f.create(1);
-    f.recoverable(1, &account_id);
-    let initialized: Result<candid::Reserved> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-    let mut disabled = typed_statement(&f, &account_id, SigningAlgorithm::Ed25519);
-    disabled.key.public_key_fingerprint = Hash::new([99; 32]);
-    disabled.approval.signature = key(1)
-        .sign(execute_approval(f.user, &disabled.clone().into_execution().unwrap()).as_slice())
-        .to_bytes()
-        .into();
-    let failure: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (disabled,));
-    assert!(matches!(
-        failure.unwrap().outcome,
-        ExecutionOutcome::Failed(Error::IntegrityFailed)
-    ));
-    let op_id = Hash::new([8; 32]);
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id,
-        },
-    )
-    .unwrap();
-    let s = f.account_id(1, &account_id);
-    let generation = s.root_slot.as_ref().unwrap().generation;
-    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let mut request = DeriveRootRequest {
-        account_id,
-        target: RootTarget::Candidate { generation, op_id },
-        transport_public_key: transport
-            .public_key()
-            .as_slice()
-            .try_into()
-            .map(serde_bytes::ByteArray::new)
-            .unwrap(),
-        max_cycles: 100_000_000_000,
-        approval: typed_statement(&f, &account_id, SigningAlgorithm::Ed25519).approval,
-    };
-    request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &request.clone().into_execution()).as_slice())
-        .to_bytes()
-        .into();
-    let result: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "derive_root", (request,));
-    let result = result.unwrap();
-    let output = completed(&result);
-    assert!(matches!(output, ExecutionOutput::EncryptedRootKey { .. }));
-    let described: Result<KeyDescriptor> = query(
-        &f.ic,
-        f.cose,
-        Principal::anonymous(),
-        "public_key",
-        (&account_id, KeySelector::ContentRoot { generation }),
-    );
-    assert_eq!(described.unwrap(), *output.key());
-    let encrypted = ic_vetkeys::EncryptedVetKey::deserialize(output.bytes()).unwrap();
-    let public = ic_vetkeys::DerivedPublicKey::deserialize(&output.key().public_key).unwrap();
-    encrypted
-        .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, generation)))
-        .unwrap();
+    assert_eq!(restored, Ok(described));
 }
 
 fn open_order(f: &Fixture) -> EscrowInfo {
@@ -583,42 +373,13 @@ fn settle_order(f: &Fixture, e: &EscrowInfo) -> EscrowInfo {
     );
     decided.unwrap()
 }
-fn derivation_request(f: &Fixture, account_id: &AccountId, transport: Vec<u8>) -> ExecuteRequest {
-    let s = f.account_id(1, account_id);
-    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
-    let mut request = ExecuteRequest {
-        account_id: *account_id,
-        kind: ExecutionKind::Derive {
-            generation: 1,
-            root_op_id: None,
-            transport_key: serde_bytes::ByteArray::new(transport.try_into().unwrap()),
-        },
-        max_cycles: 100_000_000_000,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: s.security_epoch,
-            sequence,
-            request_id: execution_request_id(
-                account_id,
-                s.security_epoch,
-                Hash::new([1; 32]),
-                sequence,
-            ),
-            expires_at: time(&f.ic) + MINUTE,
-            signature: Default::default(),
-        },
-    };
-    request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &request).as_slice())
-        .to_bytes()
-        .into();
-    request
-}
-fn root_user(f: &Fixture) -> AccountId {
+/// A root account recovered onto device 9 with the COSE keys ready.
+fn recovered_root_user(f: &Fixture) -> AccountId {
     let account_id = f.root_account(1);
     let initialized: Result<candid::Reserved> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     initialized.unwrap();
+    f.recover(1, 9, &account_id);
     account_id
 }
 
@@ -727,67 +488,30 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
 }
 
 #[test]
-fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
+fn login_recovery_is_visible_disputable_and_completes_after_the_delay() {
     let f = Fixture::new();
-    let account_id = f.create(1);
-    f.recoverable(1, &account_id);
-    let public: Result<(SecuritySnapshot, std::collections::BTreeMap<Hash, Device>)> = query(
-        &f.ic,
-        f.user,
-        person(9),
-        "get_device_bundle",
-        (&account_id,),
-    );
-    let snapshot = public.unwrap().0;
-    assert_eq!(
-        snapshot.recovery_signing_pub,
-        Some(key(70).verifying_key().to_bytes().into())
-    );
+    let account_id = f.root_account(1);
+    let s = f.account_id(1, &account_id);
     let request = RecoveryRequest {
         op_id: Hash::new([41; 32]),
-        new_auth: person(9),
+        new_auth: person(1),
         device: device(9),
-        generation: snapshot.recovery_root_version,
-        expires_at: time(&f.ic) + DAY + MINUTE,
+        expires_at: time(&f.ic) + s.recovery_delay_ms + DAY,
     };
-    let signature = key(70)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(f.user, &account_id, snapshot.recovery_nonce, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes()
-        .to_vec();
-    let pop = key(9)
-        .sign(digest("dmsg/recovery-device/v1", &(f.user, &account_id, &request)).as_slice())
-        .to_bytes()
-        .to_vec();
+    let pop = ByteBuf::from(
+        key(9)
+            .sign(recovery_device_message(f.user, &account_id, &request).as_slice())
+            .to_bytes()
+            .to_vec(),
+    );
     let submitted: Result<()> = update(
         &f.ic,
         f.user,
-        person(9),
+        person(1),
         "request_recovery",
-        (
-            &account_id,
-            request.clone(),
-            ByteBuf::from(signature),
-            ByteBuf::from(pop),
-        ),
+        (&account_id, request.clone(), pop.clone()),
     );
     submitted.unwrap();
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::DisputeRecovery {
-            op_id: request.op_id,
-            dispute: Hash::new([42; 32]),
-        },
-    )
-    .unwrap();
-    let full: Result<AccountInfo> = query(&f.ic, f.user, person(9), "get_account", (&account_id,));
-    assert_eq!(full, Err(Error::AuthRequired));
     let unauthorized: Result<Option<PendingRecovery>> = query(
         &f.ic,
         f.user,
@@ -799,11 +523,12 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     let pending: Result<Option<PendingRecovery>> = query(
         &f.ic,
         f.user,
-        person(9),
+        person(1),
         "get_recovery_request",
         (&account_id,),
     );
     let pending = pending.unwrap().unwrap();
+    assert_eq!(pending.execute_after, time(&f.ic) + s.recovery_delay_ms);
     let certified: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -817,71 +542,53 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
         leaf.pending_recovery_digest,
         Some(digest("dmsg/pending-recovery/v1", &pending))
     );
-    f.ic.advance_time(Duration::from_secs(120));
-    let confirmation = RecoveryConfirmation {
-        request_id: request.op_id,
-        dispute: pending.dispute.unwrap(),
-        expires_at: time(&f.ic) + 2 * DAY,
-    };
-    let sig = ByteBuf::from(
-        key(70)
-            .sign(
-                recovery_confirmation_message(
-                    f.user,
-                    &account_id,
-                    leaf.recovery_nonce,
-                    &request,
-                    &confirmation,
-                )
-                .as_slice(),
-            )
-            .to_bytes()
-            .to_vec(),
-    );
-    let mut changed = confirmation.clone();
-    changed.expires_at += 1;
-    let tampered: Result<()> = update(
-        &f.ic,
-        f.user,
-        person(9),
-        "reconfirm_recovery",
-        (&account_id, changed, sig.clone()),
-    );
-    assert_eq!(tampered, Err(Error::IntegrityFailed));
-    let accepted: Result<()> = update(
-        &f.ic,
-        f.user,
-        person(9),
-        "reconfirm_recovery",
-        (&account_id, confirmation.clone(), sig.clone()),
-    );
-    accepted.unwrap();
+    // A device in hand cancels the takeover; completing it is then impossible.
     f.mutate(
         1,
         &account_id,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: Hash::new([43; 32]),
         },
     )
     .unwrap();
-    let confirmed: Result<Option<PendingRecovery>> = query(
+    let cancelled: Result<Option<PendingRecovery>> = query(
         &f.ic,
         f.user,
-        person(9),
+        person(1),
         "get_recovery_request",
         (&account_id,),
     );
-    let confirmed = confirmed.unwrap().unwrap();
-    assert!(confirmed.execute_after > request.expires_at);
-    let retry: Result<()> = update(
+    assert_eq!(cancelled, Ok(None));
+    f.ic.advance_time(Duration::from_millis(s.recovery_delay_ms + 1));
+    let missing: Result<()> = update(
         &f.ic,
         f.user,
-        person(9),
-        "reconfirm_recovery",
-        (&account_id, confirmation, sig),
+        person(1),
+        "complete_recovery",
+        (&account_id, request.op_id),
     );
-    retry.unwrap();
+    assert_eq!(missing, Err(Error::NotFound));
+    assert_eq!(f.account_id(1, &account_id).devices.len(), 1);
+    // Without a dispute the takeover survives an upgrade and completes.
+    let request = RecoveryRequest {
+        op_id: Hash::new([42; 32]),
+        expires_at: time(&f.ic) + s.recovery_delay_ms + DAY,
+        ..request
+    };
+    let pop = ByteBuf::from(
+        key(9)
+            .sign(recovery_device_message(f.user, &account_id, &request).as_slice())
+            .to_bytes()
+            .to_vec(),
+    );
+    let submitted: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "request_recovery",
+        (&account_id, request.clone(), pop),
+    );
+    submitted.unwrap();
     f.ic.upgrade_canister(
         f.user,
         wasm("dmsg_user"),
@@ -892,35 +599,48 @@ fn unbound_requester_can_verify_reconfirm_and_finish_after_original_expiry() {
     let restored: Result<Option<PendingRecovery>> = query(
         &f.ic,
         f.user,
-        person(9),
+        person(1),
         "get_recovery_request",
         (&account_id,),
     );
-    assert_eq!(restored.unwrap(), Some(confirmed.clone()));
-    f.ic.advance_time(Duration::from_millis(confirmed.execute_after - time(&f.ic)));
+    let restored = restored.unwrap().unwrap();
+    assert_eq!(restored.request, request);
+    let early: Result<()> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "complete_recovery",
+        (&account_id, request.op_id),
+    );
+    assert_eq!(early, Err(Error::Expired));
+    f.ic.advance_time(Duration::from_millis(restored.execute_after - time(&f.ic)));
     let completed: Result<()> = update(
         &f.ic,
         f.user,
-        person(9),
+        person(1),
         "complete_recovery",
         (&account_id, request.op_id),
     );
     completed.unwrap();
-    assert_eq!(f.account_id(9, &account_id).auth_bindings, vec![person(9)]);
+    let after = f.account_id(1, &account_id);
+    assert_eq!(after.auth_bindings, vec![person(1)]);
+    assert_eq!(after.devices.keys().copied().collect::<Vec<_>>(), vec![Hash::new([9; 32])]);
+    assert_eq!(after.recovered_device, Some((Hash::new([9; 32]), 1)));
 }
 
 #[test]
 fn invalid_transport_is_rejected_without_consuming_authorization() {
     let f = Fixture::new();
-    let account_id = root_user(&f);
+    let account_id = recovered_root_user(&f);
     let before = f.account_id(1, &account_id);
-    let bad = derivation_request(&f, &account_id, vec![1; 48]);
-    let result: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), bad);
+    let bad = f.derive_request(1, 9, &account_id, vec![1; 48]);
+    let result: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (bad,));
     assert_eq!(result, Err(Error::IntegrityFailed));
     assert_eq!(f.account_id(1, &account_id), before);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
     assert_eq!(
-        f.derive(1, &account_id, transport.public_key()).status(),
+        f.derive(1, 9, &account_id, transport.public_key()).status(),
         ExecutionStatus::Completed
     );
 }
@@ -928,14 +648,16 @@ fn invalid_transport_is_rejected_without_consuming_authorization() {
 #[test]
 fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     let f = Fixture::new();
-    let account_id = root_user(&f);
+    let account_id = recovered_root_user(&f);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let first = derivation_request(&f, &account_id, transport.public_key());
-    let result: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), first.clone());
+    let first = f.derive_request(1, 9, &account_id, transport.public_key());
+    let result: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (first.clone(),));
     assert_eq!(result.unwrap().status(), ExecutionStatus::Completed);
     for _ in 0..65 {
-        f.mutate(
+        f.mutate_by(
             1,
+            9,
             &account_id,
             AccountCommand::SetPolicy {
                 policy: SensitivePolicy::default(),
@@ -945,7 +667,7 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
     }
     f.ic.advance_time(Duration::from_secs(2 * 24 * 60 * 60));
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![92; 32]).unwrap();
-    f.derive(1, &account_id, transport.public_key());
+    f.derive(1, 9, &account_id, transport.public_key());
     let expired: Result<ExecutionResult> = query(
         &f.ic,
         f.cose,
@@ -954,13 +676,14 @@ fn cleaned_request_id_cannot_be_reapproved_for_another_operation() {
         (&account_id, first.approval.request_id),
     );
     assert_eq!(expired, Err(Error::NotFound));
-    let mut reused = derivation_request(&f, &account_id, transport.public_key());
+    let mut reused = f.derive_request(1, 9, &account_id, transport.public_key());
     reused.approval.request_id = first.approval.request_id;
-    reused.approval.signature = key(1)
-        .sign(execute_approval(f.user, &reused).as_slice())
+    reused.approval.signature = key(9)
+        .sign(derive_approval(f.user, &reused).as_slice())
         .to_bytes()
         .into();
-    let refused: Result<ExecutionResult> = submit_execution(&f.ic, f.user, person(1), reused);
+    let refused: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (reused,));
     assert_eq!(refused, Err(Error::IdempotencyConflict));
 }
 

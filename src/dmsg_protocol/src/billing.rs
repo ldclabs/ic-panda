@@ -138,7 +138,6 @@ pub fn default_plans(version: u64) -> Vec<PlanVersion> {
                 weights: ExecutionWeights {
                     version: 1,
                     ed25519: 1,
-                    ecdsa_secp256k1: 1,
                 },
                 terms_version: 1,
             }

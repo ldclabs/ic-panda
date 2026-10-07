@@ -1,3 +1,6 @@
+//! Delayed recovery authorized by a bound login Principal. An active device
+//! cancels it by dispute; otherwise the replacement device takes over after
+//! the account's delay and may derive the current root once through vetKD.
 use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;
@@ -7,14 +10,17 @@ use crate::account::changed;
 
 pub(crate) fn begin_recovery(
     s: &mut AccountState,
+    caller: Principal,
     request: &RecoveryRequest,
-    signature: &[u8],
     device_proof: &[u8],
     now: u64,
 ) -> Result<()> {
-    let policy = s.recovery.as_ref().ok_or(Error::RecoveryIncomplete)?;
+    authenticated(caller)?;
+    ensure(
+        caller == request.new_auth && s.auth_bindings.contains(&caller),
+        Error::AuthRequired,
+    )?;
     request.device.validate()?;
-    authenticated(request.new_auth)?;
     nonzero(request.op_id.as_slice())?;
     ensure_valid(
         request.device.role == ControllerRole::Administrator
@@ -24,33 +30,18 @@ pub(crate) fn begin_recovery(
                 .contains(&Capability::RootManage),
         "recovery administrator",
     )?;
-    ensure(request.generation == policy.generation, Error::Expired)?;
-    verify(
-        &policy.signing_pub,
-        digest(
-            "dmsg/recovery-request/v1",
-            &(s.home_user, &s.account_id, s.recovery_nonce, request),
-        )
-        .as_slice(),
-        signature,
-    )?;
     verify(
         &request.device.signing_pub,
-        digest(
-            "dmsg/recovery-device/v1",
-            &(s.home_user, &s.account_id, request),
-        )
-        .as_slice(),
+        recovery_device_message(s.home_user, &s.account_id, request).as_slice(),
         device_proof,
     )?;
     if let Some(r) = &s.pending_recovery {
         if r.request == *request {
-            // A retry does not start a new delay. A reconfirmation may have
-            // extended the original request's deadline.
-            ensure(now < r.expires_at(), Error::Expired)?;
+            // A retry does not start a new delay.
+            ensure(now < r.request.expires_at, Error::Expired)?;
             return Ok(());
         }
-        ensure(now >= r.expires_at(), Error::Pending)?;
+        ensure(now >= r.request.expires_at, Error::Pending)?;
     }
     ensure(
         s.completed_recovery
@@ -59,60 +50,13 @@ pub(crate) fn begin_recovery(
         Error::IdempotencyConflict,
     )?;
     ensure(
-        request.expires_at > now + policy.delay_ms && request.expires_at - now <= 14 * DAY,
+        request.expires_at > now + s.recovery_delay_ms && request.expires_at - now <= 14 * DAY,
         Error::Expired,
     )?;
     s.pending_recovery = Some(PendingRecovery {
         request: request.clone(),
-        execute_after: now + policy.delay_ms,
-        dispute: None,
-        reconfirmed: false,
-        confirmation: None,
+        execute_after: now + s.recovery_delay_ms,
     });
-    Ok(())
-}
-
-pub(crate) fn reconfirm_recovery(
-    s: &mut AccountState,
-    confirmation: &RecoveryConfirmation,
-    signature: &[u8],
-    now: u64,
-) -> Result<()> {
-    let r = s.pending_recovery.as_ref().ok_or(Error::NotFound)?;
-    let policy = s.recovery.as_ref().ok_or(Error::RecoveryIncomplete)?;
-    let dispute = r.dispute.ok_or(Error::VersionConflict)?;
-    ensure(
-        confirmation.request_id == r.request.op_id && confirmation.dispute == dispute,
-        Error::IntegrityFailed,
-    )?;
-    verify(
-        &policy.signing_pub,
-        recovery_confirmation_message(
-            s.home_user,
-            &s.account_id,
-            s.recovery_nonce,
-            &r.request,
-            confirmation,
-        )
-        .as_slice(),
-        signature,
-    )?;
-    if r.reconfirmed {
-        ensure(
-            r.confirmation.as_ref() == Some(confirmation),
-            Error::IdempotencyConflict,
-        )?;
-        return Ok(());
-    }
-    expiry(now, confirmation.expires_at, 14 * DAY)?;
-    ensure(
-        confirmation.expires_at > now.checked_add(policy.delay_ms).ok_or(Error::Expired)?,
-        Error::Expired,
-    )?;
-    let r = s.pending_recovery.as_mut().unwrap();
-    r.reconfirmed = true;
-    r.execute_after = now + policy.delay_ms;
-    r.confirmation = Some(confirmation.clone());
     Ok(())
 }
 
@@ -134,15 +78,14 @@ pub(crate) fn complete_recovery(
     ensure(r.request.op_id == request_id, Error::IdempotencyConflict)?;
     ensure(caller == r.request.new_auth, Error::AuthRequired)?;
     ensure(
-        now >= r.execute_after && now < r.expires_at(),
+        now >= r.execute_after && now < r.request.expires_at,
         Error::Expired,
     )?;
-    ensure(r.dispute.is_none() || r.reconfirmed, Error::Locked)?;
     s.devices.clear();
     s.devices.insert(
         r.request.device.device_id,
         Device {
-            input: r.request.device,
+            input: r.request.device.clone(),
             added_at: now,
             added_by: None,
             revoked_at: None,
@@ -154,11 +97,10 @@ pub(crate) fn complete_recovery(
     s.completed_recovery = Some(RecoveryReceipt {
         request_id,
         new_auth: caller,
+        device_id: r.request.device.device_id,
+        root_generation: s.current_root.as_ref().map(|root| root.generation),
     });
-    s.status = AccountStatus::Active;
-    s.recovery_nonce += 1;
     s.account_version += 1;
-    s.recovery_checked = true;
     s.sensitive_policy.frozen = false;
     changed(s);
     Ok(Some(removed))

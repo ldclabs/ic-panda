@@ -116,14 +116,6 @@ fn unknown_versions_units_extra_fields_and_unbounded_lists_fail() {
     let mut a = app();
     a.origins.push(a.origins[0].clone());
     assert!(validate_app(&a).is_err());
-    // An app lists every user home the services route to, up to their limit.
-    let mut a = app();
-    a.user_homes = (0..=dmsg_protocol::agent::MAX_USER_HOMES as u16)
-        .map(|n| candid::Principal::from_slice(&[&n.to_be_bytes()[..], &[1]].concat()))
-        .collect();
-    assert!(validate_app(&a).is_err());
-    a.user_homes.pop();
-    validate_app(&a).unwrap();
 }
 
 #[test]

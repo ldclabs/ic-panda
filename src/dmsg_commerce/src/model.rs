@@ -122,7 +122,6 @@ pub fn validate_catalog(c: &Catalog) -> Result<()> {
         ensure_valid(
             p.catalog_version == c.version
                 && p.weights.ed25519 > 0
-                && p.weights.ecdsa_secp256k1 > 0
                 && p.weights.version > 0
                 && p.limits.storage_bytes <= 1_099_511_627_776
                 && p.limits.active_channels <= 10_000

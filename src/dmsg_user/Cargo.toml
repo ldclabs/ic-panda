@@ -19,6 +19,8 @@ candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
 ic-cdk.workspace = true
+ic-cdk-timers.workspace = true
+ic-cdk-management-canister.workspace = true
 icrc-ledger-types.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 

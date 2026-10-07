@@ -47,10 +47,7 @@ fn load(id: &AccountId) -> ExternalState {
 }
 
 fn current_device(account: &AccountState, device_id: Hash, epoch: u64) -> Result<()> {
-    ensure(
-        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
-        Error::Locked,
-    )?;
+    ensure(!account.sensitive_policy.frozen, Error::Locked)?;
     ensure(account.security_epoch == epoch, Error::PolicyStale)?;
     let device = account
         .devices
@@ -194,11 +191,12 @@ async fn configuration(
     result
 }
 
+/// Registrations are shared by every user home of the deployment; the
+/// commerce service already admits only listed homes.
 fn home_binding(app: &AppRegistration, account: &AccountState) -> Result<()> {
     ensure(
         app.environment == store::config().init.environment
-            && app.user_homes.contains(&account.home_user)
-            && app.cose_homes.contains(&account.home_cose),
+            && account.home_user == ic_cdk::api::canister_self(),
         Error::Forbidden,
     )
 }
@@ -507,10 +505,7 @@ async fn authorize_product_billing(
         Error::Forbidden,
     )?;
     let account = store::load(&request.account_approval.approving_account)?;
-    ensure(
-        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
-        Error::Locked,
-    )?;
+    ensure(!account.sensitive_policy.frozen, Error::Locked)?;
     Ok(ProductAuthorization {
         request_hash: product_authorization_hash(&request),
         operator: request.account_approval.actor,
@@ -534,7 +529,7 @@ async fn verify_product_account(
         caller == product.adapter
             && beneficiary.authority_canister == home
             && beneficiary.subject_schema == "dmsg-account-v1"
-            && app.user_homes.contains(&home),
+            && app.environment == store::config().init.environment,
         Error::Forbidden,
     )?;
     let id = AccountId(
@@ -545,10 +540,7 @@ async fn verify_product_account(
             .map_err(|_| Error::IntegrityFailed)?,
     );
     let account = store::load(&id)?;
-    ensure(
-        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
-        Error::Locked,
-    )
+    ensure(!account.sensitive_policy.frozen, Error::Locked)
 }
 
 #[cfg(test)]

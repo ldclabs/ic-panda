@@ -60,7 +60,6 @@ async fn quote_panda_subscription(
     valid?;
     let at = nanos_to_millis(ic_cdk::api::time());
     let c = admission()?;
-    ensure(app.user_homes.contains(&user_home), Error::Forbidden)?;
     // quote_panda validates the offer; the remaining terms are constructed from trusted values.
     let quote = quote_panda(
         &offer,

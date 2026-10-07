@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { session, downloadBlob, formatBytes } from '../session.svelte'
+  import { session, formatBytes } from '../session.svelte'
   import { config } from '../config'
   import { connectAccount } from '../connection'
   import { ContentClient } from '../services/content'
   import { CloudClient } from '../services/relay'
-  import Modal from './Modal.svelte'
   let notices = $state<any[]>([]),
     lifecycle = $state<any>(null)
   let grants = $state<any[]>([])
@@ -21,8 +20,6 @@
     publishName = $state(false),
     publishBio = $state(false),
     publishLink = $state(false)
-  let exportModal = $state(false),
-    password = $state('')
   async function connect() {
     await session.run(async () => {
       if (!session.meta?.account || !config.relayOrigin)
@@ -91,46 +88,6 @@
       status = '已发布明确选择的公开字段。'
     })
   }
-  async function backup() {
-    await session.run(async () => {
-      if (!client) throw new Error('请先连接账户。')
-      await client.pull()
-      const result = await session.crypto.call('exportBackup', password)
-      downloadBlob(result.blob, result.name)
-      password = ''
-      exportModal = false
-      await session.refresh()
-      status = result.missing.length
-        ? `恢复包已生成，仍有 ${result.missing.length} 项本地任务缺口。`
-        : '已生成包含已验证云端快照和本机内容的恢复包。'
-    })
-  }
-  async function directoryBackup() {
-    const picker = (
-      window as unknown as {
-        showDirectoryPicker?: (options: { mode: string }) => Promise<FileSystemDirectoryHandle>
-      }
-    ).showDirectoryPicker
-    if (!picker) {
-      session.error = '请在 Chrome 扩展中使用分卷导出。'
-      return
-    }
-    let directory: FileSystemDirectoryHandle
-    try {
-      directory = await picker({ mode: 'readwrite' })
-    } catch {
-      return
-    }
-    await session.run(async () => {
-      if (!client) throw new Error('请先连接账户。')
-      await client.pull()
-      const result = await session.crypto.call('exportDirectory', password, directory)
-      password = ''
-      exportModal = false
-      await session.refresh()
-      status = `分卷导出完成：${result.name}，${result.parts} 卷、${result.missing.length} 项缺口。`
-    })
-  }
 </script>
 
 <section class="settings-section">
@@ -159,8 +116,6 @@
             const count = await client!.prepareBackground()
             status = `已准备 ${count} 个固定密文版本；授权到期后需解锁对账。`
           })}>准备短期后台提交</button
-      ><button class="secondary" onclick={() => (exportModal = true)} disabled={session.busy}
-        >完整导出云端与本机内容</button
       >
     </div>{/if}
   {#if usage}<p>
@@ -168,10 +123,7 @@
         usage.reserved
       )}。写权限和额度以有效商业证据为准。
     </p>{/if}
-  <p class="caption">
-    冲突保留双方版本；未知提交先查询原请求。恢复包单文件上限 256
-    MiB；更大的内容请使用分卷目录，完整保留清单及所有分卷。读取和导出不要求重新购买套餐。
-  </p>
+  <p class="caption">冲突保留双方版本；未知提交先查询原请求。读取不要求重新购买套餐。</p>
   {#if lifecycle}<details>
       <summary>资源生命周期与退出窗口</summary>
       <pre>{JSON.stringify(lifecycle, null, 2)}</pre>
@@ -249,35 +201,3 @@
       })}>对账上次资料修改</button
   >
 </section>
-{#if exportModal}<Modal
-    title="导出云端与本机恢复包"
-    onclose={() => {
-      exportModal = false
-      password = ''
-    }}
-    ><form
-      onsubmit={(event) => {
-        event.preventDefault()
-        void backup()
-      }}
-    >
-      <p>先固定并验证云端快照，再合并本机内容。文件不包含设备或认证私钥。</p>
-      <label
-        >当前本机口令<input
-          type="password"
-          bind:value={password}
-          autocomplete="current-password"
-          required
-        /></label
-      >{#if session.error}<p role="alert">{session.error}</p>{/if}<button
-        class="primary"
-        disabled={session.busy}>验证并导出</button
-      >
-      <button
-        type="button"
-        class="secondary"
-        disabled={session.busy || !password}
-        onclick={directoryBackup}>分卷导出到目录</button
-      >
-    </form></Modal
-  >{/if}

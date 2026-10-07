@@ -49,47 +49,37 @@ fn untrusted_service_is_rejected_before_commerce() {
 fn recovery_retries_preserve_pending_and_completed_results() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
     let s = f.account_id(1, &id);
     let at = time(&f.ic);
     let request = RecoveryRequest {
         op_id: Hash::new([77; 32]),
-        new_auth: person(4),
+        new_auth: person(1),
         device: device(4),
-        generation: s.recovery.as_ref().unwrap().generation,
-        expires_at: at + 2 * DAY,
+        expires_at: at + s.recovery_delay_ms + 2 * DAY,
     };
-    let signature: ByteBuf = key(70)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(f.user, &id, s.recovery_nonce, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes()
-        .to_vec()
-        .into();
     let proof: ByteBuf = key(4)
-        .sign(digest("dmsg/recovery-device/v1", &(f.user, &id, &request)).as_slice())
+        .sign(recovery_device_message(f.user, &id, &request).as_slice())
         .to_bytes()
         .to_vec()
         .into();
-    let args = (id, request.clone(), signature, proof);
-    let first: Result<()> = update(&f.ic, f.user, person(4), "request_recovery", args.clone());
+    let args = (id, request.clone(), proof);
+    let first: Result<()> = update(&f.ic, f.user, person(1), "request_recovery", args.clone());
     first.unwrap();
-    f.ic.advance_time(Duration::from_millis(DAY + MINUTE));
-    let retry: Result<()> = update(&f.ic, f.user, person(4), "request_recovery", args);
+    f.ic.advance_time(Duration::from_millis(s.recovery_delay_ms + MINUTE));
+    let retry: Result<()> = update(&f.ic, f.user, person(1), "request_recovery", args);
     assert_eq!(retry, Ok(()));
     let complete: Result<()> = update(
         &f.ic,
         f.user,
-        person(4),
+        person(1),
         "complete_recovery",
         (id, request.op_id),
     );
     complete.unwrap();
-    let before = f.account_id(4, &id);
+    let before = f.account_id(1, &id);
+    // No root was committed, so the recovered device has nothing to derive.
+    assert_eq!(before.recovered_device, None);
+    assert_eq!(before.devices.keys().copied().collect::<Vec<_>>(), vec![Hash::new([4; 32])]);
     f.ic.upgrade_canister(
         f.user,
         wasm("dmsg_user"),
@@ -100,12 +90,12 @@ fn recovery_retries_preserve_pending_and_completed_results() {
     let retry: Result<()> = update(
         &f.ic,
         f.user,
-        person(4),
+        person(1),
         "complete_recovery",
         (id, request.op_id),
     );
     assert_eq!(retry, Ok(()));
-    assert_eq!(f.account_id(4, &id), before);
+    assert_eq!(f.account_id(1, &id), before);
     let wrong: Result<()> = update(
         &f.ic,
         f.user,
@@ -114,7 +104,7 @@ fn recovery_retries_preserve_pending_and_completed_results() {
         (id, request.op_id),
     );
     assert_eq!(wrong, Err(Error::AuthRequired));
-    assert_eq!(f.account_id(4, &id).auth_bindings, vec![person(4)]);
+    assert_eq!(f.account_id(1, &id).auth_bindings, vec![person(1)]);
 }
 
 #[test]
@@ -176,21 +166,27 @@ fn expired_bindings_release_capacity_without_external_cleanup() {
 #[test]
 fn independent_cleanup_preserves_pending_executions_billing_and_replay_guards() {
     let f = Fixture::new();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    let ready: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    ready.unwrap();
-    let key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    let signed = user_tests::statement_request(&f, &id, key.clone(), 80_000_000_000);
-    let done: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (signed.clone(),));
-    assert_eq!(done.unwrap().status(), ExecutionStatus::Completed);
-    let failed = user_tests::statement_request(&f, &id, key.clone(), 1);
-    let done: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (failed,));
-    assert_eq!(done.unwrap().status(), ExecutionStatus::Failed);
+    let id = f.root_account(1);
+    let statement = |text: &str| Statement {
+        issuer: f.account_id(1, &id).issuer,
+        subject: None,
+        issued_at: None,
+        content: StatementContent::Text(text.into()),
+    };
+    // Recovery moves the clock past the delay; attest afterwards so the
+    // retention deadlines below are the ones being tested.
+    f.recover(1, 9, &id);
+    let signed = f.attest_request_by(1, 9, &id, statement("first"));
+    let done: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (signed.clone(),));
+    done.unwrap();
+    f.attest_by(1, 9, &id, statement("second")).unwrap();
+    // A derivation stays pending while COSE is unreachable.
     f.ic.stop_canister(f.cose, None).unwrap();
-    let pending = user_tests::statement_request(&f, &id, key, 1);
-    let _: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (pending.clone(),));
+    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
+    let pending = f.derive_request(1, 9, &id, transport.public_key());
+    let _: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (pending.clone(),));
     let pending_result: Result<ExecutionResult> = query(
         &f.ic,
         f.user,
@@ -211,6 +207,7 @@ fn independent_cleanup_preserves_pending_executions_billing_and_replay_guards() 
         .unwrap()
     };
     let before_usage = usage();
+    assert_eq!(before_usage.charged_units, 2);
     let before_account = f.account_id(1, &id);
     let early: Result<u32> = update(
         &f.ic,
@@ -247,8 +244,8 @@ fn independent_cleanup_preserves_pending_executions_billing_and_replay_guards() 
         (id, pending.approval.request_id),
     );
     assert_eq!(current, pending_result);
-    let replay: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign", (signed.clone(),));
+    let replay: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (signed.clone(),));
     assert_eq!(replay, Err(Error::ResultExpired));
     for _ in 0..2 {
         let receipt: Result<CertifiedBatch> = query(

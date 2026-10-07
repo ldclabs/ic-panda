@@ -662,8 +662,6 @@ fn sample(f: &Fixture) -> (Principal, AccountId) {
         app_id: "sample".into(),
         config_version: 1,
         origins: vec!["https://dmsg.test".into()],
-        user_homes: vec![f.user],
-        cose_homes: vec![f.cose],
         product_ids: vec!["sample".into()],
         capabilities: vec![AppCapability::Checkout],
         profiles: vec![],
@@ -1669,14 +1667,10 @@ fn an_account_of_an_added_user_home_buys_a_plan() {
     let second = install_user_home(&f, f.commerce);
     let added: Result<()> = update(&f.ic, f.commerce, f.sns, "admin_add_user_home", (second,));
     added.unwrap();
-    // Governance appends the home to the app and the product's authorities.
-    let (app, product) = registration(&f);
+    // Governance appends the home to the product's authorities; the app
+    // registration lists no homes.
+    let (_, product) = registration(&f);
     let product = product.unwrap();
-    let app = AppRegistration {
-        config_version: app.config_version + 1,
-        user_homes: vec![f.user, second],
-        ..app
-    };
     let product = ProductRegistration {
         config_version: product.config_version + 1,
         beneficiary_authorities: vec![f.user, second],
@@ -1689,8 +1683,6 @@ fn an_account_of_an_added_user_home_buys_a_plan() {
         "register_integration_product",
         (product,),
     );
-    r.unwrap();
-    let r: Result<()> = update(&f.ic, f.commerce, f.sns, "register_integration_app", (app,));
     r.unwrap();
     f.user = second;
     let id = f.create(1);
@@ -2106,10 +2098,6 @@ fn a_second_commerce_instance_serves_its_own_user_home() {
         (product,),
     );
     r.unwrap();
-    let app = AppRegistration {
-        user_homes: vec![second],
-        ..app
-    };
     let r: Result<()> = update(&f.ic, commerce, f.sns, "register_integration_app", (app,));
     r.unwrap();
     let r: Result<()> = update(

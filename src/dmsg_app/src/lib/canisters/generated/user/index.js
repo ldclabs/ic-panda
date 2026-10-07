@@ -118,355 +118,6 @@ export const idlFactory = ({ IDL }) => {
     'approved_at_ms' : IDL.Nat64,
   });
   const Result_2 = IDL.Variant({ 'Ok' : AuthenticationResult, 'Err' : Error });
-  const CertifiedEntry = IDL.Record({
-    'key' : IDL.Vec(IDL.Nat8),
-    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'witness' : IDL.Vec(IDL.Nat8),
-  });
-  const CertifiedBatch = IDL.Record({
-    'certificate' : IDL.Vec(IDL.Nat8),
-    'schema' : IDL.Nat16,
-    'entries' : IDL.Vec(CertifiedEntry),
-    'canister' : IDL.Principal,
-  });
-  const Result_3 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
-  const SettlementMethod = IDL.Variant({
-    'Cash' : IDL.Null,
-    'Panda' : IDL.Null,
-  });
-  const ProductApproval = IDL.Record({
-    'method' : SettlementMethod,
-    'approval_id' : IDL.Vec(IDL.Nat8),
-    'offer_hash' : IDL.Vec(IDL.Nat8),
-    'operator' : IDL.Principal,
-    'version' : IDL.Nat16,
-    'expires_at_ms' : IDL.Nat64,
-    'approved_at_ms' : IDL.Nat64,
-  });
-  const BillingOffer = IDL.Record({
-    'sku' : IDL.Text,
-    'product_id' : IDL.Text,
-    'beneficiary' : Beneficiary,
-    'amount_usd_micros' : IDL.Nat,
-    'operation_id' : IDL.Vec(IDL.Nat8),
-    'starts_at_ms' : IDL.Nat64,
-    'version' : IDL.Nat16,
-    'app_id' : IDL.Text,
-    'issued_at_ms' : IDL.Nat64,
-    'offer_id' : IDL.Vec(IDL.Nat8),
-    'quote_authority' : IDL.Principal,
-    'environment' : Environment,
-    'expected_business_revision' : IDL.Nat64,
-    'adapter' : IDL.Principal,
-    'allowed_settlement_methods' : IDL.Vec(SettlementMethod),
-    'expires_at_ms' : IDL.Nat64,
-    'accept_by_ms' : IDL.Nat64,
-    'product_terms_hash' : IDL.Vec(IDL.Nat8),
-  });
-  const ProductAuthorizationRequest = IDL.Record({
-    'product_approval' : IDL.Opt(ProductApproval),
-    'account_approval' : ApplicationApproval,
-    'approval_id' : IDL.Vec(IDL.Nat8),
-    'user_home' : IDL.Principal,
-    'offer' : BillingOffer,
-  });
-  const ProductAuthorization = IDL.Record({
-    'request_hash' : IDL.Vec(IDL.Nat8),
-    'operator' : IDL.Principal,
-    'valid_until_ms' : IDL.Nat64,
-    'verified_at_ms' : IDL.Nat64,
-  });
-  const Result_4 = IDL.Variant({ 'Ok' : ProductAuthorization, 'Err' : Error });
-  const HandleAction = IDL.Variant({
-    'AcceptTransfer' : IDL.Null,
-    'Register' : IDL.Null,
-    'Transfer' : IDL.Null,
-    'ClaimLegacy' : IDL.Null,
-  });
-  const HandleIntent = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'handle_canister' : IDL.Principal,
-    'target_account' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'action' : HandleAction,
-    'op_id' : IDL.Vec(IDL.Nat8),
-    'handle' : IDL.Text,
-    'expected_version' : IDL.Nat64,
-    'terms_digest' : IDL.Vec(IDL.Nat8),
-  });
-  const Capability = IDL.Variant({
-    'FormalApprove' : IDL.Null,
-    'ContentSign' : IDL.Null,
-    'VaultUnlock' : IDL.Null,
-    'RootManage' : IDL.Null,
-    'PaymentOffer' : IDL.Null,
-  });
-  const ControllerRole = IDL.Variant({
-    'Administrator' : IDL.Null,
-    'Member' : IDL.Null,
-  });
-  const DeviceInput = IDL.Record({
-    'capabilities' : IDL.Vec(Capability),
-    'role' : ControllerRole,
-    'device_id' : IDL.Vec(IDL.Nat8),
-    'hpke_pub' : IDL.Vec(IDL.Nat8),
-    'signing_pub' : IDL.Vec(IDL.Nat8),
-  });
-  const CreateAccount = IDL.Record({
-    'op_id' : IDL.Vec(IDL.Nat8),
-    'device' : DeviceInput,
-    'proof' : IDL.Vec(IDL.Nat8),
-    'expires_at' : IDL.Nat64,
-  });
-  const Result_5 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
-  const RootTarget = IDL.Variant({
-    'Candidate' : IDL.Record({
-      'op_id' : IDL.Vec(IDL.Nat8),
-      'generation' : IDL.Nat64,
-    }),
-    'Current' : IDL.Record({ 'generation' : IDL.Nat64 }),
-  });
-  const DeriveRootRequest = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'target' : RootTarget,
-    'max_cycles' : IDL.Nat,
-    'approval' : Approval,
-    'transport_public_key' : IDL.Vec(IDL.Nat8),
-  });
-  const Algorithm = IDL.Variant({
-    'VetKdBls12381' : IDL.Null,
-    'Ed25519' : IDL.Null,
-    'EcdsaSecp256k1' : IDL.Null,
-  });
-  const KeyPurpose = IDL.Variant({
-    'ContentRoot' : IDL.Null,
-    'AppAction' : IDL.Null,
-    'FileAttestation' : IDL.Null,
-    'AgentController' : IDL.Null,
-    'Statement' : IDL.Null,
-  });
-  const KeyDescriptor = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'algorithm' : Algorithm,
-    'key_generation' : IDL.Nat64,
-    'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
-    'derivation_version' : IDL.Nat16,
-    'public_key' : IDL.Vec(IDL.Nat8),
-    'key_id' : IDL.Vec(IDL.Nat8),
-    'home_cose' : IDL.Principal,
-    'environment' : Environment,
-    'master_key_name' : IDL.Text,
-    'purpose' : KeyPurpose,
-  });
-  const SignedArtifact = IDL.Record({
-    'cose_sign1' : IDL.Vec(IDL.Nat8),
-    'cose_key' : IDL.Vec(IDL.Nat8),
-  });
-  const ExecutionOutput = IDL.Variant({
-    'EncryptedRootKey' : IDL.Record({
-      'key' : KeyDescriptor,
-      'encrypted_key' : IDL.Vec(IDL.Nat8),
-    }),
-    'AgentSignature' : IDL.Record({
-      'key' : KeyDescriptor,
-      'signature' : IDL.Vec(IDL.Nat8),
-      'event_hash' : IDL.Vec(IDL.Nat8),
-    }),
-    'Signature' : IDL.Record({
-      'key' : KeyDescriptor,
-      'artifact' : SignedArtifact,
-    }),
-  });
-  const ExecutionOutcome = IDL.Variant({
-    'Failed' : Error,
-    'Executing' : IDL.Null,
-    'Authorized' : IDL.Null,
-    'Unknown' : Error,
-    'ResultExpired' : IDL.Null,
-    'Completed' : ExecutionOutput,
-  });
-  const ExecutionResult = IDL.Record({
-    'request_id' : IDL.Vec(IDL.Nat8),
-    'cycles_cost_upper_bound' : IDL.Nat,
-    'cycles_charged' : IDL.Nat,
-    'outcome' : ExecutionOutcome,
-  });
-  const Result_6 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
-  const AccountStatus = IDL.Variant({
-    'Active' : IDL.Null,
-    'RecoveryDisputed' : IDL.Null,
-  });
-  const RootReservation = IDL.Record({
-    'op_id' : IDL.Vec(IDL.Nat8),
-    'generation' : IDL.Nat64,
-    'security_epoch' : IDL.Nat64,
-    'expected_generation' : IDL.Nat64,
-    'expires_at' : IDL.Nat64,
-  });
-  const RecoveryRequest = IDL.Record({
-    'op_id' : IDL.Vec(IDL.Nat8),
-    'generation' : IDL.Nat64,
-    'device' : DeviceInput,
-    'new_auth' : IDL.Principal,
-    'expires_at' : IDL.Nat64,
-  });
-  const RecoveryConfirmation = IDL.Record({
-    'request_id' : IDL.Vec(IDL.Nat8),
-    'dispute' : IDL.Vec(IDL.Nat8),
-    'expires_at' : IDL.Nat64,
-  });
-  const PendingRecovery = IDL.Record({
-    'reconfirmed' : IDL.Bool,
-    'request' : RecoveryRequest,
-    'execute_after' : IDL.Nat64,
-    'confirmation' : IDL.Opt(RecoveryConfirmation),
-    'dispute' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-  });
-  const SensitivePolicy = IDL.Record({
-    'daily_cycles' : IDL.Nat,
-    'daily_executions' : IDL.Nat32,
-    'frozen' : IDL.Bool,
-    'allowed_purposes' : IDL.Vec(KeyPurpose),
-  });
-  const RecoveryPolicy = IDL.Record({
-    'delay_ms' : IDL.Nat64,
-    'generation' : IDL.Nat64,
-    'hpke_pub' : IDL.Vec(IDL.Nat8),
-    'signing_pub' : IDL.Vec(IDL.Nat8),
-  });
-  const ContentRootRef = IDL.Record({
-    'key_generation' : IDL.Nat64,
-    'derivation_version' : IDL.Nat16,
-    'recovery_generation' : IDL.Nat64,
-    'generation' : IDL.Nat64,
-    'suite' : IDL.Text,
-    'home_cose' : IDL.Principal,
-    'bundle_digest' : IDL.Vec(IDL.Nat8),
-  });
-  const Device = IDL.Record({
-    'added_at' : IDL.Nat64,
-    'added_by' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'revoked_at' : IDL.Opt(IDL.Nat64),
-    'next_sequence' : IDL.Nat64,
-    'input' : DeviceInput,
-  });
-  const VaultWriteState = IDL.Variant({
-    'RekeyRequired' : IDL.Null,
-    'Ready' : IDL.Null,
-    'Uninitialized' : IDL.Null,
-  });
-  const AccountInfo = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'status' : AccountStatus,
-    'account_version' : IDL.Nat64,
-    'auth_bindings' : IDL.Vec(IDL.Principal),
-    'recovery_nonce' : IDL.Nat64,
-    'root_slot' : IDL.Opt(RootReservation),
-    'security_epoch' : IDL.Nat64,
-    'created_at_ms' : IDL.Nat64,
-    'pending_recovery' : IDL.Opt(PendingRecovery),
-    'issuer' : IDL.Text,
-    'home_cose' : IDL.Principal,
-    'home_user' : IDL.Principal,
-    'sensitive_policy' : SensitivePolicy,
-    'recovery' : IDL.Opt(RecoveryPolicy),
-    'current_root' : IDL.Opt(ContentRootRef),
-    'recovery_checked' : IDL.Bool,
-    'devices' : IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
-    'vault_write_state' : VaultWriteState,
-  });
-  const Result_7 = IDL.Variant({ 'Ok' : AccountInfo, 'Err' : Error });
-  const SecuritySnapshot = IDL.Record({
-    'content_root_generation' : IDL.Nat64,
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'account_version' : IDL.Nat64,
-    'recovery_nonce' : IDL.Nat64,
-    'content_root_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'devices_root' : IDL.Vec(IDL.Nat8),
-    'recovery_hpke_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'principal_updated_at' : IDL.Opt(IDL.Nat64),
-    'schema' : IDL.Nat16,
-    'security_epoch' : IDL.Nat64,
-    'recovery_root_version' : IDL.Nat64,
-    'issuer' : IDL.Text,
-    'home_cose' : IDL.Principal,
-    'home_user' : IDL.Principal,
-    'recovery_delay_ms' : IDL.Opt(IDL.Nat64),
-    'recovery_signing_pub' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'vault_write_state' : VaultWriteState,
-    'account_status' : AccountStatus,
-    'pending_recovery_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-  });
-  const Result_8 = IDL.Variant({
-    'Ok' : IDL.Tuple(
-      SecuritySnapshot,
-      IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
-    ),
-    'Err' : Error,
-  });
-  const ExecutionUsage = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'business_revision' : IDL.Nat64,
-    'valid_until_ms' : IDL.Nat64,
-    'held_units' : IDL.Nat64,
-    'lease_revision' : IDL.Nat64,
-    'allowed_units' : IDL.Nat64,
-    'charged_units' : IDL.Nat64,
-    'weight_policy_version' : IDL.Nat64,
-    'month_revision' : IDL.Nat64,
-    'month_utc' : IDL.Nat32,
-  });
-  const Result_9 = IDL.Variant({ 'Ok' : ExecutionUsage, 'Err' : Error });
-  const OperationReceipt = IDL.Record({
-    'id' : IDL.Vec(IDL.Nat8),
-    'account_version' : IDL.Nat64,
-    'digest' : IDL.Vec(IDL.Nat8),
-  });
-  const Result_10 = IDL.Variant({ 'Ok' : OperationReceipt, 'Err' : Error });
-  const DelegationAuthority = IDL.Variant({
-    'Restricted' : IDL.Record({
-      'scopes' : IDL.Vec(IDL.Text),
-      'audiences' : IDL.Vec(IDL.Text),
-    }),
-    'Unrestricted' : IDL.Null,
-  });
-  const HostedController = IDL.Record({
-    'invalid_from' : IDL.Opt(IDL.Nat64),
-    'public_key' : IDL.Vec(IDL.Nat8),
-    'delegation' : DelegationAuthority,
-    'supersedes' : IDL.Vec(IDL.Nat32),
-    'name' : IDL.Opt(IDL.Text),
-    'generation' : IDL.Nat32,
-    'valid_from' : IDL.Nat64,
-    'retired_at' : IDL.Opt(IDL.Nat64),
-  });
-  const PrincipalType = IDL.Variant({
-    'Team' : IDL.Null,
-    'Person' : IDL.Null,
-    'Organization' : IDL.Null,
-    'Project' : IDL.Null,
-    'Other' : IDL.Null,
-  });
-  const PrincipalState = IDL.Record({
-    'updated_at' : IDL.Nat64,
-    'controllers' : IDL.Vec(HostedController),
-    'principal_type' : PrincipalType,
-    'version' : IDL.Nat64,
-  });
-  const PrincipalInfo = IDL.Record({
-    'last_nonces' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat64)),
-    'state' : PrincipalState,
-    'principal_id' : IDL.Text,
-    'published_version' : IDL.Nat64,
-  });
-  const Result_11 = IDL.Variant({ 'Ok' : PrincipalInfo, 'Err' : Error });
-  const Result_12 = IDL.Variant({
-    'Ok' : IDL.Opt(PendingRecovery),
-    'Err' : Error,
-  });
-  const Result_13 = IDL.Variant({
-    'Ok' : IDL.Opt(ContentRootRef),
-    'Err' : Error,
-  });
   const ActionFileRepresentation = IDL.Variant({
     'Encrypted' : IDL.Null,
     'Original' : IDL.Null,
@@ -547,6 +198,333 @@ export const idlFactory = ({ IDL }) => {
     'role_snapshot_hash' : IDL.Vec(IDL.Nat8),
     'signing_policy_hash' : IDL.Vec(IDL.Nat8),
   });
+  const StatementContent = IDL.Variant({
+    'AppAction' : AppAction,
+    'FileStatement' : IDL.Record({
+      'sha256' : IDL.Vec(IDL.Nat8),
+      'text' : IDL.Text,
+      'content_type' : IDL.Opt(IDL.Text),
+      'location' : IDL.Opt(IDL.Text),
+    }),
+    'Text' : IDL.Text,
+    'Digest' : IDL.Record({
+      'sha256' : IDL.Vec(IDL.Nat8),
+      'content_type' : IDL.Opt(IDL.Text),
+      'location' : IDL.Opt(IDL.Text),
+    }),
+  });
+  const Statement = IDL.Record({
+    'issued_at' : IDL.Opt(IDL.Int64),
+    'content' : StatementContent,
+    'subject' : IDL.Opt(IDL.Text),
+    'issuer' : IDL.Text,
+  });
+  const AttestRequest = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'signature' : IDL.Vec(IDL.Nat8),
+    'statement' : Statement,
+    'origin' : IDL.Text,
+    'approval' : Approval,
+  });
+  const SignedArtifact = IDL.Record({
+    'cose_sign1' : IDL.Vec(IDL.Nat8),
+    'cose_key' : IDL.Vec(IDL.Nat8),
+  });
+  const Result_3 = IDL.Variant({ 'Ok' : SignedArtifact, 'Err' : Error });
+  const AppActionAttestRequest = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'signature' : IDL.Vec(IDL.Nat8),
+    'action' : AppAction,
+    'issuer' : IDL.Text,
+    'approval' : Approval,
+  });
+  const CertifiedEntry = IDL.Record({
+    'key' : IDL.Vec(IDL.Nat8),
+    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'witness' : IDL.Vec(IDL.Nat8),
+  });
+  const CertifiedBatch = IDL.Record({
+    'certificate' : IDL.Vec(IDL.Nat8),
+    'schema' : IDL.Nat16,
+    'entries' : IDL.Vec(CertifiedEntry),
+    'canister' : IDL.Principal,
+  });
+  const Result_4 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
+  const SettlementMethod = IDL.Variant({
+    'Cash' : IDL.Null,
+    'Panda' : IDL.Null,
+  });
+  const ProductApproval = IDL.Record({
+    'method' : SettlementMethod,
+    'approval_id' : IDL.Vec(IDL.Nat8),
+    'offer_hash' : IDL.Vec(IDL.Nat8),
+    'operator' : IDL.Principal,
+    'version' : IDL.Nat16,
+    'expires_at_ms' : IDL.Nat64,
+    'approved_at_ms' : IDL.Nat64,
+  });
+  const BillingOffer = IDL.Record({
+    'sku' : IDL.Text,
+    'product_id' : IDL.Text,
+    'beneficiary' : Beneficiary,
+    'amount_usd_micros' : IDL.Nat,
+    'operation_id' : IDL.Vec(IDL.Nat8),
+    'starts_at_ms' : IDL.Nat64,
+    'version' : IDL.Nat16,
+    'app_id' : IDL.Text,
+    'issued_at_ms' : IDL.Nat64,
+    'offer_id' : IDL.Vec(IDL.Nat8),
+    'quote_authority' : IDL.Principal,
+    'environment' : Environment,
+    'expected_business_revision' : IDL.Nat64,
+    'adapter' : IDL.Principal,
+    'allowed_settlement_methods' : IDL.Vec(SettlementMethod),
+    'expires_at_ms' : IDL.Nat64,
+    'accept_by_ms' : IDL.Nat64,
+    'product_terms_hash' : IDL.Vec(IDL.Nat8),
+  });
+  const ProductAuthorizationRequest = IDL.Record({
+    'product_approval' : IDL.Opt(ProductApproval),
+    'account_approval' : ApplicationApproval,
+    'approval_id' : IDL.Vec(IDL.Nat8),
+    'user_home' : IDL.Principal,
+    'offer' : BillingOffer,
+  });
+  const ProductAuthorization = IDL.Record({
+    'request_hash' : IDL.Vec(IDL.Nat8),
+    'operator' : IDL.Principal,
+    'valid_until_ms' : IDL.Nat64,
+    'verified_at_ms' : IDL.Nat64,
+  });
+  const Result_5 = IDL.Variant({ 'Ok' : ProductAuthorization, 'Err' : Error });
+  const HandleAction = IDL.Variant({
+    'AcceptTransfer' : IDL.Null,
+    'Register' : IDL.Null,
+    'Transfer' : IDL.Null,
+    'ClaimLegacy' : IDL.Null,
+  });
+  const HandleIntent = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'handle_canister' : IDL.Principal,
+    'target_account' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'action' : HandleAction,
+    'op_id' : IDL.Vec(IDL.Nat8),
+    'handle' : IDL.Text,
+    'expected_version' : IDL.Nat64,
+    'terms_digest' : IDL.Vec(IDL.Nat8),
+  });
+  const Capability = IDL.Variant({
+    'FormalApprove' : IDL.Null,
+    'ContentSign' : IDL.Null,
+    'VaultUnlock' : IDL.Null,
+    'RootManage' : IDL.Null,
+    'PaymentOffer' : IDL.Null,
+  });
+  const ControllerRole = IDL.Variant({
+    'Administrator' : IDL.Null,
+    'Member' : IDL.Null,
+  });
+  const DeviceInput = IDL.Record({
+    'capabilities' : IDL.Vec(Capability),
+    'role' : ControllerRole,
+    'device_id' : IDL.Vec(IDL.Nat8),
+    'hpke_pub' : IDL.Vec(IDL.Nat8),
+    'signing_pub' : IDL.Vec(IDL.Nat8),
+  });
+  const CreateAccount = IDL.Record({
+    'op_id' : IDL.Vec(IDL.Nat8),
+    'device' : DeviceInput,
+    'proof' : IDL.Vec(IDL.Nat8),
+    'expires_at' : IDL.Nat64,
+  });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : Error });
+  const DeriveRootRequest = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'generation' : IDL.Nat64,
+    'max_cycles' : IDL.Nat,
+    'approval' : Approval,
+    'transport_public_key' : IDL.Vec(IDL.Nat8),
+  });
+  const KeyDescriptor = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'key_generation' : IDL.Nat64,
+    'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
+    'derivation_version' : IDL.Nat16,
+    'public_key' : IDL.Vec(IDL.Nat8),
+    'home_cose' : IDL.Principal,
+    'environment' : Environment,
+    'master_key_name' : IDL.Text,
+  });
+  const EncryptedRootKey = IDL.Record({
+    'key' : KeyDescriptor,
+    'encrypted_key' : IDL.Vec(IDL.Nat8),
+  });
+  const ExecutionOutcome = IDL.Variant({
+    'Failed' : Error,
+    'Executing' : IDL.Null,
+    'Authorized' : IDL.Null,
+    'Unknown' : Error,
+    'ResultExpired' : IDL.Null,
+    'Completed' : EncryptedRootKey,
+  });
+  const ExecutionResult = IDL.Record({
+    'request_id' : IDL.Vec(IDL.Nat8),
+    'cycles_cost_upper_bound' : IDL.Nat,
+    'cycles_charged' : IDL.Nat,
+    'outcome' : ExecutionOutcome,
+  });
+  const Result_7 = IDL.Variant({ 'Ok' : ExecutionResult, 'Err' : Error });
+  const RootReservation = IDL.Record({
+    'op_id' : IDL.Vec(IDL.Nat8),
+    'generation' : IDL.Nat64,
+    'security_epoch' : IDL.Nat64,
+    'expected_generation' : IDL.Nat64,
+    'expires_at' : IDL.Nat64,
+  });
+  const RecoveryRequest = IDL.Record({
+    'op_id' : IDL.Vec(IDL.Nat8),
+    'device' : DeviceInput,
+    'new_auth' : IDL.Principal,
+    'expires_at' : IDL.Nat64,
+  });
+  const PendingRecovery = IDL.Record({
+    'request' : RecoveryRequest,
+    'execute_after' : IDL.Nat64,
+  });
+  const KeyPurpose = IDL.Variant({
+    'AppAction' : IDL.Null,
+    'FileAttestation' : IDL.Null,
+    'Statement' : IDL.Null,
+  });
+  const SensitivePolicy = IDL.Record({
+    'daily_executions' : IDL.Nat32,
+    'frozen' : IDL.Bool,
+    'allowed_purposes' : IDL.Vec(KeyPurpose),
+  });
+  const ContentRootRef = IDL.Record({
+    'body_digest' : IDL.Vec(IDL.Nat8),
+    'generation' : IDL.Nat64,
+    'suite' : IDL.Text,
+    'recipients_digest' : IDL.Vec(IDL.Nat8),
+    'bundle_digest' : IDL.Vec(IDL.Nat8),
+  });
+  const Device = IDL.Record({
+    'added_at' : IDL.Nat64,
+    'added_by' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'revoked_at' : IDL.Opt(IDL.Nat64),
+    'next_sequence' : IDL.Nat64,
+    'input' : DeviceInput,
+  });
+  const VaultWriteState = IDL.Variant({
+    'RekeyRequired' : IDL.Null,
+    'Ready' : IDL.Null,
+    'Uninitialized' : IDL.Null,
+  });
+  const AccountInfo = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'account_version' : IDL.Nat64,
+    'auth_bindings' : IDL.Vec(IDL.Principal),
+    'root_slot' : IDL.Opt(RootReservation),
+    'recovered_device' : IDL.Opt(IDL.Tuple(IDL.Vec(IDL.Nat8), IDL.Nat64)),
+    'security_epoch' : IDL.Nat64,
+    'created_at_ms' : IDL.Nat64,
+    'pending_recovery' : IDL.Opt(PendingRecovery),
+    'issuer' : IDL.Text,
+    'home_cose' : IDL.Principal,
+    'home_user' : IDL.Principal,
+    'recovery_delay_ms' : IDL.Nat64,
+    'sensitive_policy' : SensitivePolicy,
+    'current_root' : IDL.Opt(ContentRootRef),
+    'devices' : IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
+    'vault_write_state' : VaultWriteState,
+  });
+  const Result_8 = IDL.Variant({ 'Ok' : AccountInfo, 'Err' : Error });
+  const SecuritySnapshot = IDL.Record({
+    'content_root_generation' : IDL.Nat64,
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'account_version' : IDL.Nat64,
+    'content_root_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'devices_root' : IDL.Vec(IDL.Nat8),
+    'principal_updated_at' : IDL.Opt(IDL.Nat64),
+    'schema' : IDL.Nat16,
+    'security_epoch' : IDL.Nat64,
+    'issuer' : IDL.Text,
+    'home_cose' : IDL.Principal,
+    'home_user' : IDL.Principal,
+    'recovery_delay_ms' : IDL.Nat64,
+    'vault_write_state' : VaultWriteState,
+    'pending_recovery_digest' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const Result_9 = IDL.Variant({
+    'Ok' : IDL.Tuple(
+      SecuritySnapshot,
+      IDL.Vec(IDL.Tuple(IDL.Vec(IDL.Nat8), Device)),
+    ),
+    'Err' : Error,
+  });
+  const ExecutionUsage = IDL.Record({
+    'account_id' : IDL.Vec(IDL.Nat8),
+    'business_revision' : IDL.Nat64,
+    'valid_until_ms' : IDL.Nat64,
+    'held_units' : IDL.Nat64,
+    'lease_revision' : IDL.Nat64,
+    'allowed_units' : IDL.Nat64,
+    'charged_units' : IDL.Nat64,
+    'weight_policy_version' : IDL.Nat64,
+    'month_revision' : IDL.Nat64,
+    'month_utc' : IDL.Nat32,
+  });
+  const Result_10 = IDL.Variant({ 'Ok' : ExecutionUsage, 'Err' : Error });
+  const OperationReceipt = IDL.Record({
+    'id' : IDL.Vec(IDL.Nat8),
+    'account_version' : IDL.Nat64,
+    'digest' : IDL.Vec(IDL.Nat8),
+  });
+  const Result_11 = IDL.Variant({ 'Ok' : OperationReceipt, 'Err' : Error });
+  const DelegationAuthority = IDL.Variant({
+    'Restricted' : IDL.Record({
+      'scopes' : IDL.Vec(IDL.Text),
+      'audiences' : IDL.Vec(IDL.Text),
+    }),
+    'Unrestricted' : IDL.Null,
+  });
+  const HostedController = IDL.Record({
+    'invalid_from' : IDL.Opt(IDL.Nat64),
+    'public_key' : IDL.Vec(IDL.Nat8),
+    'delegation' : DelegationAuthority,
+    'supersedes' : IDL.Vec(IDL.Nat32),
+    'name' : IDL.Opt(IDL.Text),
+    'generation' : IDL.Nat32,
+    'valid_from' : IDL.Nat64,
+    'retired_at' : IDL.Opt(IDL.Nat64),
+  });
+  const PrincipalType = IDL.Variant({
+    'Team' : IDL.Null,
+    'Person' : IDL.Null,
+    'Organization' : IDL.Null,
+    'Project' : IDL.Null,
+    'Other' : IDL.Null,
+  });
+  const PrincipalState = IDL.Record({
+    'updated_at' : IDL.Nat64,
+    'controllers' : IDL.Vec(HostedController),
+    'principal_type' : PrincipalType,
+    'version' : IDL.Nat64,
+  });
+  const PrincipalInfo = IDL.Record({
+    'state' : PrincipalState,
+    'principal_id' : IDL.Text,
+    'published_version' : IDL.Nat64,
+  });
+  const Result_12 = IDL.Variant({ 'Ok' : PrincipalInfo, 'Err' : Error });
+  const Result_13 = IDL.Variant({
+    'Ok' : IDL.Opt(PendingRecovery),
+    'Err' : Error,
+  });
+  const Result_14 = IDL.Variant({
+    'Ok' : IDL.Opt(ContentRootRef),
+    'Err' : Error,
+  });
   const AccountCommand = IDL.Variant({
     'SetDeviceCapabilities' : IDL.Record({
       'capabilities' : IDL.Vec(Capability),
@@ -558,13 +536,11 @@ export const idlFactory = ({ IDL }) => {
       'supersedes' : IDL.Vec(IDL.Nat32),
       'name' : IDL.Opt(IDL.Text),
       'generation' : IDL.Nat32,
+      'proof' : IDL.Vec(IDL.Nat8),
     }),
-    'DisputeRecovery' : IDL.Record({
-      'op_id' : IDL.Vec(IDL.Nat8),
-      'dispute' : IDL.Vec(IDL.Nat8),
-    }),
+    'SetRecoveryDelay' : IDL.Record({ 'delay_ms' : IDL.Nat64 }),
+    'DisputeRecovery' : IDL.Record({ 'op_id' : IDL.Vec(IDL.Nat8) }),
     'EnablePrincipal' : IDL.Record({ 'principal_type' : PrincipalType }),
-    'ConfirmRecovery' : IDL.Record({ 'proof' : IDL.Vec(IDL.Nat8) }),
     'RenameController' : IDL.Record({
       'name' : IDL.Opt(IDL.Text),
       'generation' : IDL.Nat32,
@@ -580,10 +556,6 @@ export const idlFactory = ({ IDL }) => {
     }),
     'RemoveAuth' : IDL.Record({ 'principal' : IDL.Principal }),
     'AuthorizeHandle' : IDL.Record({ 'intent' : HandleIntent }),
-    'SetRecovery' : IDL.Record({
-      'proof' : IDL.Vec(IDL.Nat8),
-      'policy' : RecoveryPolicy,
-    }),
     'AddDevice' : IDL.Record({
       'device' : DeviceInput,
       'proof' : IDL.Vec(IDL.Nat8),
@@ -606,63 +578,19 @@ export const idlFactory = ({ IDL }) => {
     'approval' : Approval,
     'expected_version' : IDL.Nat64,
   });
-  const Result_14 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
-  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
-  const SigningAlgorithm = IDL.Variant({
-    'Ed25519' : IDL.Null,
-    'EcdsaSecp256k1' : IDL.Null,
+  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
+  const Result_16 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const UserStats = IDL.Record({
+    'day' : IDL.Nat64,
+    'unlock_ready' : IDL.Bool,
+    'created_today' : IDL.Nat32,
+    'cycles' : IDL.Nat,
+    'accounts' : IDL.Nat64,
+    'daily_new_accounts' : IDL.Nat32,
+    'max_accounts' : IDL.Nat64,
+    'stable_pages' : IDL.Nat64,
   });
-  const SigningKeyRef = IDL.Record({
-    'kid' : IDL.Vec(IDL.Nat8),
-    'algorithm' : SigningAlgorithm,
-    'public_key_fingerprint' : IDL.Vec(IDL.Nat8),
-  });
-  const StatementContent = IDL.Variant({
-    'AppAction' : AppAction,
-    'FileStatement' : IDL.Record({
-      'sha256' : IDL.Vec(IDL.Nat8),
-      'text' : IDL.Text,
-      'content_type' : IDL.Opt(IDL.Text),
-      'location' : IDL.Opt(IDL.Text),
-    }),
-    'Text' : IDL.Text,
-    'Digest' : IDL.Record({
-      'sha256' : IDL.Vec(IDL.Nat8),
-      'content_type' : IDL.Opt(IDL.Text),
-      'location' : IDL.Opt(IDL.Text),
-    }),
-  });
-  const Statement = IDL.Record({
-    'issued_at' : IDL.Opt(IDL.Int64),
-    'content' : StatementContent,
-    'subject' : IDL.Opt(IDL.Text),
-    'issuer' : IDL.Text,
-  });
-  const SignRequest = IDL.Record({
-    'key' : SigningKeyRef,
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'statement' : Statement,
-    'origin' : IDL.Text,
-    'max_cycles' : IDL.Nat,
-    'approval' : Approval,
-  });
-  const AgentEventSignRequest = IDL.Record({
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'origin' : IDL.Text,
-    'generation' : IDL.Nat32,
-    'event' : IDL.Text,
-    'max_cycles' : IDL.Nat,
-    'approval' : Approval,
-  });
-  const AppActionSignRequest = IDL.Record({
-    'key' : SigningKeyRef,
-    'account_id' : IDL.Vec(IDL.Nat8),
-    'action' : AppAction,
-    'issuer' : IDL.Text,
-    'max_cycles' : IDL.Nat,
-    'approval' : Approval,
-  });
-  const Result_16 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const Result_17 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const ApplicationAuthorization = IDL.Record({
     'approval_id' : IDL.Vec(IDL.Nat8),
     'valid_until_ms' : IDL.Nat64,
@@ -670,7 +598,7 @@ export const idlFactory = ({ IDL }) => {
     'verified_at_ms' : IDL.Nat64,
     'approval_hash' : IDL.Vec(IDL.Nat8),
   });
-  const Result_17 = IDL.Variant({
+  const Result_18 = IDL.Variant({
     'Ok' : ApplicationAuthorization,
     'Err' : Error,
   });
@@ -708,14 +636,16 @@ export const idlFactory = ({ IDL }) => {
         [Result_2],
         [],
       ),
+    'attest' : IDL.Func([AttestRequest], [Result_3], []),
+    'attest_app_action' : IDL.Func([AppActionAttestRequest], [Result_3], []),
     'authentication_certificate' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_3],
+        [Result_4],
         ['query'],
       ),
     'authorize_product_billing' : IDL.Func(
         [ProductAuthorizationRequest],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'begin_auth_binding' : IDL.Func(
@@ -734,106 +664,103 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'create_account' : IDL.Func([CreateAccount], [Result_5], []),
-    'derive_root' : IDL.Func([DeriveRootRequest], [Result_6], []),
-    'get_account' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_7], ['query']),
-    'get_device_bundle' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], ['query']),
+    'create_account' : IDL.Func([CreateAccount], [Result_6], []),
+    'derive_root' : IDL.Func([DeriveRootRequest], [Result_7], []),
+    'get_account' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], ['query']),
+    'get_attestation' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result_3],
+        ['query'],
+      ),
+    'get_device_bundle' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], ['query']),
     'get_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_6],
+        [Result_7],
         ['query'],
       ),
     'get_execution_receipt' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_3],
+        [Result_4],
         ['query'],
       ),
     'get_execution_usage' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_9],
+        [Result_10],
         ['query'],
       ),
     'get_execution_usage_certified' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_3],
+        [Result_4],
         ['query'],
       ),
     'get_operation' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_10],
+        [Result_11],
         ['query'],
       ),
-    'get_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_11], ['query']),
+    'get_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_12], ['query']),
     'get_recovery_request' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_12],
+        [Result_13],
         ['query'],
       ),
-    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_13], ['query']),
+    'get_root_ref' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], ['query']),
     'inspect_app_action' : IDL.Func(
         [IDL.Vec(IDL.Nat8), AppAction],
         [Result],
         [],
       ),
-    'mutate_account' : IDL.Func([AccountMutation], [Result_10], []),
+    'mutate_account' : IDL.Func([AccountMutation], [Result_11], []),
     'my_account' : IDL.Func([], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
     'prune_auth_bindings' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
-    'prune_executions' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_14], []),
+    'prune_executions' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_15], []),
     'prune_external_approvals' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
-    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_15], []),
+    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_16], []),
     'reconcile_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
-        [Result_6],
-        [],
-      ),
-    'reconfirm_recovery' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), RecoveryConfirmation, IDL.Vec(IDL.Nat8)],
-        [Result],
+        [Result_7],
         [],
       ),
     'refresh_execution_entitlement' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_9],
+        [Result_10],
         [],
       ),
-    'register_controller' : IDL.Func([AccountMutation], [Result_10], []),
     'request_recovery' : IDL.Func(
-        [
-          IDL.Vec(IDL.Nat8),
-          RecoveryRequest,
-          IDL.Vec(IDL.Nat8),
-          IDL.Vec(IDL.Nat8),
-        ],
+        [IDL.Vec(IDL.Nat8), RecoveryRequest, IDL.Vec(IDL.Nat8)],
         [Result],
         [],
       ),
     'security_snapshot_batch' : IDL.Func(
         [IDL.Vec(IDL.Vec(IDL.Nat8))],
-        [Result_3],
+        [Result_4],
         ['query'],
       ),
-    'sign' : IDL.Func([SignRequest], [Result_6], []),
-    'sign_agent_event' : IDL.Func([AgentEventSignRequest], [Result_6], []),
-    'sign_app_action' : IDL.Func([AppActionSignRequest], [Result_6], []),
+    'unlock_secret' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result_6],
+        ['query'],
+      ),
+    'user_stats' : IDL.Func([], [UserStats], ['query']),
     'validate_admin_set_account_limits' : IDL.Func(
         [IDL.Nat64, IDL.Nat32],
-        [Result_16],
+        [Result_17],
         ['query'],
       ),
     'verify_application_authorization' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ApplicationApproval],
-        [Result_17],
+        [Result_18],
         [],
       ),
-    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_15], []),
+    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_16], []),
     'verify_product_account' : IDL.Func([IDL.Text, Beneficiary], [Result], []),
   });
 };

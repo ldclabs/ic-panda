@@ -9,10 +9,13 @@ const allowed = new Set([
   'status',
   'initialize',
   'unlock',
+  'unlockWithPrf',
+  'bindUnlockSecret',
+  'enablePrf',
+  'disablePrf',
+  'authPublicKey',
   'tick',
   'lock',
-  'pendingRecovery',
-  'verifyRecovery',
   'view',
   'saveItem',
   'deleteItem',
@@ -20,11 +23,6 @@ const allowed = new Set([
   'saveProfile',
   'importFile',
   'downloadFile',
-  'changePassword',
-  'exportBackup',
-  'exportDirectory',
-  'restoreDirectory',
-  'restore',
   'readRequest',
   'authSign',
   'deviceSign',
@@ -33,8 +31,9 @@ const allowed = new Set([
   'prepareAccountRoot',
   'wrapAccountRoot',
   'openAccountRoot',
+  'recoverAccountRoot',
   'activateAccountRoot',
-  'accountRecovery',
+  'controllerKey',
   'legacyPair',
   'legacyImport',
   'legacyList',
@@ -88,6 +87,7 @@ const allowed = new Set([
   'formalHistory',
   'formalHistories'
 ])
+
 scope.onmessage = (event) => {
   const request = event.data
   if (

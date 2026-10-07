@@ -3,11 +3,10 @@ use candid::Principal;
 use dmsg_protocol::{agent::*, *};
 use dmsg_runtime::admin::{self, hex, validation, Validation};
 use dmsg_types::{cose::*, *};
-use ic_cdk_management_canister as mgmt;
-use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation, PublicKey};
+use ic_cose_chain_key::{self as chain_key, Cost, FailureKind, Operation};
 
 // Half the 40B update limit: one more account fits even when its results are
-// large signatures whose removal rewrites their B-tree leaves.
+// large and their removal rewrites their B-tree leaves.
 const CLEANUP_INSTRUCTIONS: u64 = 20_000_000_000;
 
 fn now() -> u64 {
@@ -55,10 +54,10 @@ fn init(args: CoseInit) {
         state: KeyState {
             config: args,
             initialization: Initialization::Uninitialized,
-            fingerprints: vec![],
+            fingerprint: None,
             error: None,
         },
-        keys: vec![],
+        public_key: None,
     });
 }
 
@@ -75,68 +74,29 @@ fn post_upgrade() {
         c.state.initialization = Initialization::Uninitialized;
     }
     if c.state.initialization == Initialization::Ready {
-        assert_eq!(c.keys.len(), c.state.config.masters.len());
-        assert_eq!(c.state.fingerprints.len(), c.keys.len());
-        for ((master, key), fp) in c
-            .state
-            .config
-            .masters
-            .iter()
-            .zip(&c.keys)
-            .zip(&c.state.fingerprints)
-        {
-            assert_eq!(
-                sha256(&key.public_key),
-                *fp,
-                "cached key fingerprint mismatch"
-            );
-            assert!(pinned(master, fp), "configured key fingerprint mismatch");
-        }
-        cache_signing_roots(&c.state.config, &c.keys).expect("valid signing prefixes");
+        let key = c.public_key.as_ref().expect("cached key");
+        let fp = sha256(key);
+        assert_eq!(c.state.fingerprint, Some(fp), "cached key fingerprint mismatch");
+        assert!(
+            pinned(&c.state.config.master, &fp),
+            "configured key fingerprint mismatch"
+        );
     }
     save_cfg(&c);
 }
 
-async fn fetch_master(config: &CoseInit, key: &MasterKey) -> Result<PublicKey> {
-    match key.algorithm {
-        Algorithm::Ed25519 => {
-            chain_key::schnorr_public_key(
-                key.key_name.clone(),
-                mgmt::SchnorrAlgorithm::Ed25519,
-                vec![],
-            )
-            .await
-        }
-        Algorithm::EcdsaSecp256k1 => {
-            chain_key::ecdsa_public_key(key.key_name.clone(), vec![]).await
-        }
-        Algorithm::VetKdBls12381 => {
-            chain_key::vetkd_public_key(key.key_name.clone(), model::context(config))
-                .await
-                .map(|public_key| PublicKey {
-                    public_key,
-                    chain_code: vec![],
-                })
-        }
-    }
-    .map_err(Error::Unavailable)
+async fn fetch_master(config: &CoseInit) -> Result<Vec<u8>> {
+    let key = chain_key::vetkd_public_key(config.master.key_name.clone(), model::context(config))
+        .await
+        .map_err(Error::Unavailable)?;
+    ensure(
+        pinned(&config.master, &sha256(&key)),
+        Error::IntegrityFailed,
+    )?;
+    Ok(key)
 }
 
-/// Fetch every configured master key in order and check it against its pin.
-async fn fetch_masters(config: &CoseInit) -> Result<Vec<PublicKey>> {
-    let mut keys = Vec::with_capacity(config.masters.len());
-    for master in &config.masters {
-        let key = fetch_master(config, master).await?;
-        ensure(
-            pinned(master, &sha256(&key.public_key)),
-            Error::IntegrityFailed,
-        )?;
-        keys.push(key);
-    }
-    Ok(keys)
-}
-
-// Returns false when the keys are already ready.
+// Returns false when the key is already ready.
 fn check_initialize(c: &Config) -> Result<bool> {
     ensure(
         c.state.initialization != Initialization::Initializing,
@@ -145,7 +105,7 @@ fn check_initialize(c: &Config) -> Result<bool> {
     Ok(c.state.initialization != Initialization::Ready)
 }
 
-/// Fetch every configured master public key and check it against its pin.
+/// Fetch the content-root vetKD public key and check it against its pin.
 #[ic_cdk::update]
 async fn initialize_keys() -> Result<KeyState> {
     check_admin(ic_cdk::api::msg_caller())?;
@@ -156,17 +116,13 @@ async fn initialize_keys() -> Result<KeyState> {
     c.state.initialization = Initialization::Initializing;
     c.state.error = None;
     save_cfg(&c);
-    let fetched = fetch_masters(&c.state.config).await;
-    // Commit onto the current record, not the snapshot taken before the calls.
+    let fetched = fetch_master(&c.state.config).await;
+    // Commit onto the current record, not the snapshot taken before the call.
     let mut c = cfg();
-    let fetched = fetched.and_then(|keys| {
-        cache_signing_roots(&c.state.config, &keys)?;
-        Ok(keys)
-    });
     let result = match fetched {
-        Ok(keys) => {
-            c.state.fingerprints = keys.iter().map(|k| sha256(&k.public_key)).collect();
-            c.keys = keys;
+        Ok(key) => {
+            c.state.fingerprint = Some(sha256(&key));
+            c.public_key = Some(key);
             c.state.initialization = Initialization::Ready;
             Ok(())
         }
@@ -184,24 +140,11 @@ async fn initialize_keys() -> Result<KeyState> {
 fn validate_initialize_keys() -> Validation {
     let c = cfg();
     validation(check_initialize(&c).map(|fresh| {
-        let masters: Vec<String> = c
-            .state
-            .config
-            .masters
-            .iter()
-            .map(|m| {
-                format!(
-                    "{:?} {} pinned to {}",
-                    m.algorithm,
-                    m.key_name,
-                    hex(m.expected_fingerprint.as_slice()),
-                )
-            })
-            .collect();
         format!(
-            "Initialize {:?} chain keys: {}.{}",
+            "Initialize {:?} content-root vetKD key {} pinned to {}.{}",
             c.state.config.environment,
-            masters.join("; "),
+            c.state.config.master.key_name,
+            hex(c.state.config.master.expected_fingerprint.as_slice()),
             admin::unchanged(fresh, "Already ready"),
         )
     }))
@@ -268,7 +211,7 @@ fn validate_admin_set_daily_budget(daily_executions: u32, daily_cycles: u128) ->
     let config = cfg().state.config;
     validation(check_budget(daily_executions, daily_cycles).map(|()| {
         format!(
-            "Set the COSE daily budget to {daily_executions} executions and {daily_cycles} cycles (from {} and {}).{}",
+            "Set the COSE daily budget to {daily_executions} derivations and {daily_cycles} cycles (from {} and {}).{}",
             config.daily_executions,
             config.daily_cycles,
             admin::unchanged(
@@ -309,14 +252,16 @@ fn inspect_message() {
     }
 }
 
-/// Public-key math is independent of account existence or execution permission.
-/// No management call, registration or stable write is needed for this query.
+/// The content-root vetKD public key, described for one account and root
+/// generation. Clients encrypt that generation's recovery envelope to the
+/// identity `canonical((account_id, generation))` under this key. No
+/// management call, registration or stable write is needed for this query.
 #[ic_cdk::query]
-fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> {
+fn root_public_key(account_id: AccountId, generation: u64) -> Result<KeyDescriptor> {
     describe(
         &ready()?,
         &account_id,
-        &key.into(),
+        generation,
         ic_cdk::api::canister_self(),
     )
 }
@@ -324,69 +269,26 @@ fn public_key(account_id: AccountId, key: KeySelector) -> Result<KeyDescriptor> 
 fn describe(
     c: &Config,
     account_id: &AccountId,
-    key: &KeyRequest,
+    generation: u64,
     canister_id: Principal,
 ) -> Result<KeyDescriptor> {
     nonzero(account_id.as_slice())?;
-    key.validate()?;
+    ensure_valid(generation > 0, "generation")?;
     let config = &c.state.config;
-    let index = config
-        .masters
-        .iter()
-        .position(|m| m.algorithm == key.algorithm)
-        .ok_or(Error::UnsupportedProtocol)?;
-    let public_key = match key.algorithm {
-        Algorithm::Ed25519 => chain_key::derive_schnorr_public_key(
-            mgmt::SchnorrAlgorithm::Ed25519,
-            &signing_root(index)?,
-            model::signing_suffix(account_id, key),
-        )
-        .map(|p| p.public_key)
-        .map_err(Error::Unavailable)?,
-        Algorithm::EcdsaSecp256k1 => chain_key::derive_ecdsa_public_key(
-            &signing_root(index)?,
-            model::signing_suffix(account_id, key),
-        )
-        .map(|p| p.public_key)
-        .map_err(Error::Unavailable)?,
-        Algorithm::VetKdBls12381 => c
-            .keys
-            .get(index)
-            .ok_or_else(|| Error::Unavailable("missing initialized key".into()))?
-            .public_key
-            .clone(),
-    };
-    let public_key_fingerprint = if key.algorithm == Algorithm::VetKdBls12381 {
-        sha256(&public_key)
-    } else {
-        key_thumbprint(&public_cose_key(&key.algorithm, &[], &public_key)?)?
-    };
-    let key_id = if key.algorithm == Algorithm::VetKdBls12381 {
-        model::key_id(config, account_id, key).to_vec().into()
-    } else {
-        public_key_fingerprint.to_vec().into()
-    };
+    let public_key = c
+        .public_key
+        .clone()
+        .ok_or_else(|| Error::Unavailable("missing initialized key".into()))?;
     Ok(KeyDescriptor {
-        key_id,
         account_id: *account_id,
-        purpose: key.purpose.clone(),
-        algorithm: key.algorithm.clone(),
         home_cose: canister_id,
-        master_key_name: config.masters[index].key_name.clone(),
+        master_key_name: config.master.key_name.clone(),
         environment: config.environment.clone(),
         derivation_version: config.derivation_version,
-        key_generation: key.generation,
-
-        public_key_fingerprint,
+        key_generation: generation,
+        public_key_fingerprint: sha256(&public_key),
         public_key: public_key.into(),
     })
-}
-
-/// How a successful management response becomes the execution output.
-enum Finish {
-    Document(PreparedSignature),
-    RootKey,
-    AgentEvent(Hash),
 }
 
 struct PreparedExecution {
@@ -395,121 +297,20 @@ struct PreparedExecution {
     /// Complete cost bound reserved from the per-account and global budgets.
     reserved: u128,
     key: KeyDescriptor,
-    finish: Finish,
 }
 
 /// Validate a grant and build its management call. Called only before
-/// `g.expires_at`; `describe` is the one place that validates the key request.
+/// `g.expires_at`.
 fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<PreparedExecution> {
     let config = &c.state.config;
-    match (&g.kind, &g.commerce) {
-        // Callers are before the grant deadline, so outlasting it means valid now.
-        (ExecutionKind::Sign { .. } | ExecutionKind::AgentEvent { .. }, Some(r)) => ensure(
-            r.reservation_id == g.request_id
-                && r.units > 0
-                && r.weight_policy_version > 0
-                && r.valid_until_ms >= g.expires_at,
-            Error::MembershipStale,
-        )?,
-        (ExecutionKind::Derive { .. }, None) => {}
-        _ => return Err(Error::IntegrityFailed),
-    }
-    let (operation, key, finish) = match &g.kind {
-        ExecutionKind::Sign {
-            key,
-            to_be_signed,
-            public_key_fingerprint,
-            origin,
-        } => {
-            validate_origin(origin, &config.environment)?;
-            let prepared = parse_signing_input(to_be_signed)?;
-            ensure(
-                *prepared.algorithm() == key.algorithm
-                    && statement_purpose(prepared.statement()) == key.purpose,
-                Error::UnsupportedProtocol,
-            )?;
-            ensure(
-                prepared.statement().issuer
-                    == account_issuer(&config.issuer_namespace, &g.account_id),
-                Error::IntegrityFailed,
-            )?;
-            let descriptor = describe(c, &g.account_id, key, canister_id)?;
-            ensure(
-                descriptor.key_id.as_slice() == prepared.kid()
-                    && descriptor.public_key_fingerprint == *public_key_fingerprint,
-                Error::IntegrityFailed,
-            )?;
-            let path = model::path(config, &g.account_id, key);
-            let operation = match key.algorithm {
-                Algorithm::Ed25519 => Operation::schnorr(
-                    descriptor.master_key_name.clone(),
-                    mgmt::SchnorrAlgorithm::Ed25519,
-                    path,
-                    to_be_signed.to_vec(),
-                ),
-                Algorithm::EcdsaSecp256k1 => Operation::ecdsa(
-                    descriptor.master_key_name.clone(),
-                    path,
-                    sha256(to_be_signed).into_array(),
-                ),
-                _ => return Err(Error::UnsupportedProtocol),
-            };
-            let finish = Finish::Document(prepared.into_signature(&descriptor.public_key)?);
-            (operation, descriptor, finish)
-        }
-        ExecutionKind::AgentEvent {
-            key,
-            event,
-            principal_id,
-            origin,
-        } => {
-            validate_origin(origin, &config.environment)?;
-            ensure(
-                key.purpose == KeyPurpose::AgentController,
-                Error::UnsupportedProtocol,
-            )?;
-            // The user home checked the controller binding and policy; COSE
-            // independently refuses to sign anything but this key's own
-            // delegation event for the named principal.
-            let parsed = dmsg_protocol::agent::parse_delegation_event(event)?;
-            let descriptor = describe(c, &g.account_id, key, canister_id)?;
-            ensure(
-                parsed.actor.as_slice() == descriptor.public_key.as_slice()
-                    && parsed.principal_id == *principal_id,
-                Error::IntegrityFailed,
-            )?;
-            let operation = Operation::schnorr(
-                descriptor.master_key_name.clone(),
-                mgmt::SchnorrAlgorithm::Ed25519,
-                model::path(config, &g.account_id, key),
-                parsed.hash.to_vec(),
-            );
-            (operation, descriptor, Finish::AgentEvent(parsed.hash))
-        }
-        ExecutionKind::Derive {
-            generation,
-            transport_key,
-            ..
-        } => {
-            validate_transport_key(transport_key)?;
-            let descriptor = describe(
-                c,
-                &g.account_id,
-                &KeySelector::ContentRoot {
-                    generation: *generation,
-                }
-                .into(),
-                canister_id,
-            )?;
-            let operation = Operation::vetkd(
-                descriptor.master_key_name.clone(),
-                model::context(config),
-                model::root_input(&g.account_id, *generation),
-                transport_key.to_vec(),
-            );
-            (operation, descriptor, Finish::RootKey)
-        }
-    };
+    validate_transport_key(&g.transport_key)?;
+    let key = describe(c, &g.account_id, g.generation, canister_id)?;
+    let operation = Operation::vetkd(
+        key.master_key_name.clone(),
+        model::context(config),
+        model::root_input(&g.account_id, g.generation),
+        g.transport_key.to_vec(),
+    );
     let cost = operation.cost().map_err(Error::Unavailable)?;
     let reserved = cost.total().map_err(Error::Unavailable)?;
     ensure(reserved <= g.max_cycles, Error::QuotaExceeded)?;
@@ -518,40 +319,7 @@ fn prepare(c: &Config, g: &ExecutionGrant, canister_id: Principal) -> Result<Pre
         cost,
         reserved,
         key,
-        finish,
     })
-}
-
-/// Package a successful management response. The call has already run and is
-/// never retried, so an unpackageable response is a known failure.
-fn finish(finish: Finish, key: KeyDescriptor, bytes: Vec<u8>) -> Result<ExecutionOutput> {
-    match finish {
-        Finish::Document(signature) => Ok(ExecutionOutput::Signature {
-            artifact: signature.finish(bytes)?,
-            key,
-        }),
-        Finish::RootKey => Ok(ExecutionOutput::EncryptedRootKey {
-            encrypted_key: bytes.into(),
-            key,
-        }),
-        Finish::AgentEvent(event_hash) => {
-            let public_key: Hash = key
-                .public_key
-                .as_slice()
-                .try_into()
-                .map(Hash::new)
-                .map_err(|_| Error::IntegrityFailed)?;
-            verify(&public_key, event_hash.as_slice(), &bytes)?;
-            Ok(ExecutionOutput::AgentSignature {
-                event_hash,
-                signature: bytes
-                    .try_into()
-                    .map(Ed25519Signature::new)
-                    .map_err(|_| Error::IntegrityFailed)?,
-                key,
-            })
-        }
-    }
 }
 
 #[ic_cdk::update]
@@ -571,7 +339,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     if let Some(sequence) = h.check(&grant, at)? {
         return execution(&grant.account_id, sequence);
     }
-    // Expired requests still close their sequence, without parsing or deriving keys.
+    // Expired requests still close their sequence, without deriving keys.
     let prepared = if at >= grant.expires_at {
         Err(Error::Expired)
     } else {
@@ -582,7 +350,7 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     let removed = h.prepare(&grant, at, cycles)?;
     if let Some(cycles) = cycles {
         // Last fallible check before committing. An Err must not consume a sequence.
-        reserve_budget(at, cycles, config, grant.kind.is_formal())?;
+        reserve_budget(at, cycles, config)?;
     }
     let mut result = ExecutionResult {
         request_id: grant.request_id,
@@ -595,7 +363,6 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         cost,
         reserved,
         key,
-        finish: finishing,
     } = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
@@ -621,8 +388,6 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     );
     let account_id = grant.account_id;
     let sequence = grant.execution_sequence;
-    let formal = grant.kind.is_formal();
-    drop(grant);
     drop(h);
     drop(c);
     let call = AwaitingCall::begin(&account_id, sequence);
@@ -640,10 +405,10 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
     result.cycles_cost_upper_bound =
         chain_key::cost_upper_bound(cost, response.as_ref().err(), refunded);
     result.outcome = match response {
-        Ok(bytes) => match finish(finishing, key, bytes) {
-            Ok(output) => ExecutionOutcome::Completed(Box::new(output)),
-            Err(error) => ExecutionOutcome::Failed(error),
-        },
+        Ok(bytes) => ExecutionOutcome::Completed(EncryptedRootKey {
+            encrypted_key: bytes.into(),
+            key,
+        }),
         Err(e) => {
             let detail = Error::Unavailable(format!("{e:?}"));
             if failure == Some(FailureKind::Unknown) {
@@ -668,9 +433,9 @@ async fn execute(grant: ExecutionGrant) -> Result<ExecutionResult> {
         };
         let executed = failure.is_none();
         current
-            .budgets
-            .settle(at, reserved, result.cycles_charged, executed, formal);
-        settle_budget(at, reserved, result.cycles_charged, executed, formal);
+            .budget
+            .settle(at, reserved, result.cycles_charged, executed);
+        settle_budget(at, reserved, result.cycles_charged, executed);
     }
     current.finish(sequence, &result);
     save_execution(&account_id, &current, sequence, &result, &[]);

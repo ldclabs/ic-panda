@@ -9,16 +9,14 @@ import {
   storedUploadPlanSchema,
   uploadPlanSchema
 } from '../protocol/content'
-import { hmac } from '@noble/hashes/hmac.js'
 import { z } from 'zod'
 import {
   config,
   CHUNK_SIZE,
+  LOGIN_UNLOCK_INTERVAL_MS,
   MAX_FILE,
   MAX_OBJECT_BYTES,
-  MAX_FORMAL_OBJECT_BYTES,
-  MAX_BACKUP_BYTES,
-  MAX_BACKUP_RECORDS
+  MAX_FORMAL_OBJECT_BYTES
 } from '../config'
 import {
   currentWorkspace,
@@ -32,12 +30,13 @@ import {
 import { ensure } from '../errors'
 import { xidBytes } from '../protocol/identity'
 import {
+  openRoot,
+  recoverRoot,
   rootMaterial,
   rootTransport,
   wrapRoot,
-  openRoot,
+  type RecoveryKey,
   type RootContext,
-  type RootKey,
   type RootMaterial
 } from './root'
 import type {
@@ -49,7 +48,6 @@ import type {
   LocalEnvelope,
   ObjectKind,
   Profile,
-  RecoveryArchive,
   ViewData,
   WorkspaceMeta
 } from '../models'
@@ -68,17 +66,14 @@ import {
   utf8
 } from '../protocol/codec'
 import {
-  defaultKdf,
-  derive,
   ed25519,
   hpkeOpen,
   hpkePublic,
   hpkeSeal,
   open,
-  passwordKey,
-  recoveryContext,
-  recoverySeeds,
-  seal
+  prfKey,
+  seal,
+  unlockKey
 } from './primitives'
 
 const itemSchema = z
@@ -99,14 +94,12 @@ interface Bundle {
   root: string
   signing: string
   hpke: string
-  transport: string
   roots?: Record<string, string>
 }
 interface FilePlan {
   manifest: FileManifest
   plainDigests: string[]
 }
-type ArchiveContent = Omit<RecoveryArchive, 'manifestDigest' | 'authentication'>
 export type Progress = { stage: string; completed: number; total: number }
 export class CryptoEngine {
   private db: WorkspaceDB | null = null
@@ -117,6 +110,8 @@ export class CryptoEngine {
   private documentId: string | undefined
   private legacyPaused = false
   private content: ContentEngine | null = null
+  // Session key for Internet Identity delegations: memory only, per worker.
+  private authSeed = random()
   constructor(
     private progress: (value: Progress) => void = () => {},
     private owner = id()
@@ -321,26 +316,8 @@ export class CryptoEngine {
     )
     return { grant, uploads }
   }
-  async legacyOpenGrant(
-    grant: import('../protocol/shared-history').LegacyHistoryGrant,
-    recoveryCode?: string
-  ) {
-    if (!recoveryCode) return this.channelVault().openLegacyGrant(grant)
-    const { meta } = await this.ready(),
-      code = unhex(recoveryCode.trim().toLowerCase().replaceAll(/[-\s]/g, ''))
-    const seeds = recoverySeeds(
-      code,
-      meta.environment,
-      grant.scope.account,
-      grant.scope.recovery_generation
-    )
-    try {
-      return await this.channelVault().openLegacyGrant(grant, seeds.hpke)
-    } finally {
-      code.fill(0)
-      seeds.hpke.fill(0)
-      seeds.signing.fill(0)
-    }
+  async legacyOpenGrant(grant: import('../protocol/shared-history').LegacyHistoryGrant) {
+    return this.channelVault().openLegacyGrant(grant)
   }
   async legacyGrantManifest(...args: Parameters<ChannelVault['legacyGrantManifest']>) {
     return this.channelVault().legacyGrantManifest(...args)
@@ -697,27 +674,18 @@ export class CryptoEngine {
       meta: this.meta
     }
   }
-  async initialize(password: string) {
+  /** A workspace is bound to an account before it holds any content: the
+   * provisional key only protects fresh device keys until the user home's
+   * login-gated secret replaces it. */
+  async initialize() {
     ensure(
       (await currentWorkspace()) === null,
       'VERSION_CONFLICT',
-      '此浏览器已有工作台，请解锁或恢复。'
-    )
-    ensure(
-      password.length >= 12 && utf8(password).length <= 1024,
-      'INVALID_INPUT',
-      '请使用至少 12 个字符的独立口令。'
+      '此浏览器已有工作台，请解锁或清除。'
     )
     const subjectId = id(),
-      deviceId = id(),
-      code = random()
-    const recovery = recoverySeeds(code, config.environment, subjectId, 1)
-    const bundle: Bundle = {
-      root: b64(random()),
-      signing: b64(random()),
-      hpke: b64(random()),
-      transport: b64(random())
-    }
+      deviceId = id()
+    const bundle: Bundle = { root: b64(random()), signing: b64(random()), hpke: b64(random()) }
     const meta: WorkspaceMeta = {
       subjectId,
       deviceId,
@@ -725,65 +693,29 @@ export class CryptoEngine {
       createdAt: Date.now(),
       signingPublic: b64(ed25519.getPublicKey(unb64(bundle.signing))),
       hpkePublic: await hpkePublic(unb64(bundle.hpke)),
-      transportPublic: b64(ed25519.getPublicKey(unb64(bundle.transport))),
-      recoveryPublic: await hpkePublic(recovery.hpke),
-      recoverySigningPublic: b64(ed25519.getPublicKey(recovery.signing)),
-      recoveryGeneration: 1,
       rootGeneration: 1,
-      recoveryChecked: false,
-      lastBackupAt: null,
-      lastBackupCount: 0,
       registered: false,
-      recoveryEnvelope: { enc: '', ciphertext: '' }
+      unlock: 'provisional'
     }
-    meta.recoveryEnvelope = await hpkeSeal(
-      meta.recoveryPublic,
-      unb64(bundle.root),
-      recoveryContext(meta.environment, subjectId, 1)
-    )
-    try {
-      await this.install(password, meta, bundle, undefined, code)
-      return { meta, recoveryCode: hex(code).match(/.{8}/g)!.join('-') }
-    } finally {
-      code.fill(0)
-      recovery.hpke.fill(0)
-      recovery.signing.fill(0)
-    }
+    await this.install(meta, bundle)
+    return meta
   }
-  private async install(
-    password: string,
-    meta: WorkspaceMeta,
-    bundle: Bundle,
-    archive?: Pick<RecoveryArchive, 'meta' | 'objects' | 'synced' | 'chunks'>,
-    pendingRecoveryCode?: Uint8Array,
-    expectedActive?: string,
-    channels = new Map<string, string>(),
-    activate = true
-  ) {
+  private async install(meta: WorkspaceMeta, bundle: Bundle) {
     const name = `dmsg:${meta.environment}:${meta.subjectId}:${meta.deviceId}`
     const db = await WorkspaceDB.open(name),
       lease = await db.acquire(this.owner, Date.now(), this.documentId)
     const localKey = random(),
-      kdf = defaultKdf()
+      provisional = random()
     let registered = false
-    this.progress({ stage: '正在保护本机密钥', completed: 0, total: 1 })
-    let luk: Uint8Array | null = null
     try {
-      luk = await passwordKey(password, kdf)
       await db.renew(lease)
       const envelope: LocalEnvelope = {
         id: 'local',
-        kdf,
-        wrappedKey: await seal(luk, localKey, ['dmsg/local-key/1', name]),
+        provisional: b64(provisional),
+        wrappedKey: await seal(provisional, localKey, ['dmsg/local-key/2', name]),
         privateBundle: await seal(localKey, canonical(bundle), ['dmsg/device-bundle/1', name])
       }
-      const pendingRecovery = pendingRecoveryCode
-        ? await seal(localKey, pendingRecoveryCode, ['dmsg/pending-recovery/1', name])
-        : null
-      const tx = db.db.transaction(
-        ['meta', 'key_envelopes', 'objects', 'chunks', 'outbox', 'local_private'],
-        'readwrite'
-      )
+      const tx = db.db.transaction(['meta', 'key_envelopes'], 'readwrite')
       const current = (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined
       ensure(
         current &&
@@ -795,55 +727,8 @@ export class CryptoEngine {
       ensure(!(await tx.objectStore('meta').get('workspace')), 'VERSION_CONFLICT')
       await tx.objectStore('key_envelopes').put(envelope)
       await tx.objectStore('meta').put({ id: 'workspace', value: meta })
-      if (pendingRecovery)
-        await tx
-          .objectStore('local_private')
-          .put({ id: 'pending-recovery', ciphertext: pendingRecovery })
-      if (archive) {
-        for (const [from, to] of archive.meta.contentReplacements ?? [])
-          await tx.objectStore('meta').put({ id: `content-replacement:${from}`, key: to })
-        if (archive.meta.cloudSnapshot) {
-          await tx.objectStore('meta').put({
-            id: 'cloud-snapshot',
-            through: archive.meta.cloudSnapshot.through,
-            evidence: archive.meta.cloudSnapshot.evidence
-          })
-          for (const [id, revision] of archive.meta.cloudSnapshot.heads)
-            await tx.objectStore('meta').put({ id: `cloud-head:${id}`, revision })
-        }
-        // Restore immutable history first, deriving heads from authenticated
-        // parent links. Never choose a head from attacker-controlled timestamps.
-        const synced = new Set(archive.synced)
-        for (const record of archive.objects) {
-          await putObject(tx, record)
-          if (record.kind !== 'draft')
-            await tx.objectStore('outbox').put({
-              id: record.revision,
-              objectKey: record.key,
-              frame: b64(canonical(record)),
-              digest: record.digest,
-              state: synced.has(record.key) ? 'stored' : record.conflict ? 'blocked' : 'local'
-            })
-        }
-        const parents = new Set(
-          archive.objects
-            .filter((x) => !x.conflict && x.parent)
-            .map((x) => `${x.id}:${x.parent}`)
-        )
-        for (const record of archive.objects.filter(
-          (x) => !x.conflict && !parents.has(x.key)
-        )) {
-          ensure(
-            !(await tx.objectStore('meta').get(`head:${record.id}`)),
-            'INTEGRITY_FAILED',
-            '备份包含未解决的历史分叉。'
-          )
-          await tx.objectStore('meta').put(objectHead(record, channels.get(record.key)))
-        }
-        for (const chunk of archive.chunks) await tx.objectStore('chunks').put(chunk)
-      }
       await tx.done
-      if (activate) await registerWorkspace(name, expectedActive)
+      await registerWorkspace(name)
       registered = true
       this.db = db
       this.lease = lease
@@ -857,10 +742,61 @@ export class CryptoEngine {
       localKey.fill(0)
       throw error
     } finally {
-      luk?.fill(0)
+      provisional.fill(0)
     }
   }
-  async unlock(password: string) {
+  /** Public key of this worker's Internet Identity session key; usable before unlock. */
+  async authPublicKey() {
+    return b64(ed25519.getPublicKey(this.authSeed))
+  }
+  /** Unlock with the user home's `unlock_secret`, or with nothing while the
+   * workspace is still provisional. */
+  async unlock(secret: Uint8Array | null = null) {
+    return this.open(async (envelope, name) => {
+      if (envelope.provisional) {
+        ensure(!secret, 'INVALID_INPUT')
+        return {
+          key: unb64(envelope.provisional),
+          wrapped: envelope.wrappedKey,
+          aad: ['dmsg/local-key/2', name],
+          login: false
+        }
+      }
+      ensure(secret, 'AUTH_REQUIRED', '请先登录，取得本机解锁秘密。')
+      return {
+        key: unlockKey(secret, name),
+        wrapped: envelope.wrappedKey,
+        aad: ['dmsg/local-key/2', name],
+        login: true
+      }
+    })
+  }
+  /** Unlock with a platform authenticator's PRF output. Refused once the last
+   * login unlock is older than a week, so bindings and revocations take effect. */
+  async unlockWithPrf(output: Uint8Array) {
+    return this.open(async (envelope, name, meta) => {
+      ensure(envelope.prfWrappedKey && meta.prf, 'NOT_FOUND', '此设备未启用生物识别解锁。')
+      ensure(
+        meta.loginUnlockedAt !== undefined &&
+          Date.now() - meta.loginUnlockedAt < LOGIN_UNLOCK_INTERVAL_MS,
+        'AUTH_REQUIRED',
+        '距上次登录解锁已超过 7 天，请登录解锁一次。'
+      )
+      return {
+        key: prfKey(output, name),
+        wrapped: envelope.prfWrappedKey,
+        aad: ['dmsg/local-key-prf/1', name],
+        login: false
+      }
+    })
+  }
+  private async open(
+    select: (
+      envelope: LocalEnvelope,
+      name: string,
+      meta: WorkspaceMeta
+    ) => Promise<{ key: Uint8Array; wrapped: string; aad: unknown; login: boolean }>
+  ) {
     const name = await currentWorkspace()
     ensure(name, 'RECOVERY_INCOMPLETE', '此浏览器还没有工作台。')
     const db = await WorkspaceDB.open(name),
@@ -870,20 +806,20 @@ export class CryptoEngine {
       const envelope = await db.envelope(),
         meta = await db.meta()
       ensure(meta, 'RECOVERY_INCOMPLETE')
-      luk = await passwordKey(password, envelope.kdf)
+      const selected = await select(envelope, name, meta)
+      luk = selected.key
       await db.renew(lease)
       let localKey: Uint8Array
       try {
-        localKey = await open(luk, envelope.wrappedKey, ['dmsg/local-key/1', name])
+        localKey = await open(luk, selected.wrapped, selected.aad)
       } catch {
-        throw new Error('口令不匹配，或本机密钥封装已损坏。请重试或使用恢复包。')
+        throw new Error('解锁材料不匹配，或本机密钥封装已损坏。')
       }
       const bundle = decodeCanonical<Bundle>(
         await open(localKey, envelope.privateBundle, ['dmsg/device-bundle/1', name])
       )
       ensure(
         b64(ed25519.getPublicKey(unb64(bundle.signing))) === meta.signingPublic &&
-          b64(ed25519.getPublicKey(unb64(bundle.transport))) === meta.transportPublic &&
           (await hpkePublic(unb64(bundle.hpke))) === meta.hpkePublic,
         'INTEGRITY_FAILED'
       )
@@ -892,8 +828,13 @@ export class CryptoEngine {
       this.localKey = localKey
       this.bundle = bundle
       this.meta = meta
+      if (selected.login) {
+        const updated = { ...meta, loginUnlockedAt: Date.now() }
+        await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
+        this.meta = updated
+      }
       await this.restoreAuxiliary()
-      return meta
+      return this.meta
     } catch (error) {
       this.localKey?.fill(0)
       this.localKey = null
@@ -907,6 +848,54 @@ export class CryptoEngine {
     } finally {
       luk?.fill(0)
     }
+  }
+  /** Replace the provisional key with the login-gated unlock secret once the
+   * account exists and this device is registered. */
+  async bindUnlockSecret(secret: Uint8Array) {
+    const { db, lease, localKey, meta } = await this.ready()
+    const luk = unlockKey(secret, db.name)
+    try {
+      const envelope = await db.envelope()
+      const next: LocalEnvelope = {
+        id: 'local',
+        wrappedKey: await seal(luk, localKey, ['dmsg/local-key/2', db.name]),
+        privateBundle: envelope.privateBundle
+      }
+      const updated: WorkspaceMeta = { ...meta, unlock: 'login', loginUnlockedAt: Date.now() }
+      await db.replaceKeys(updated, next, lease)
+      this.meta = updated
+    } finally {
+      luk.fill(0)
+    }
+  }
+  /** Keep a copy of the local data key under the PRF-derived key. */
+  async enablePrf(input: { credentialId: string; output: Uint8Array }) {
+    const { db, lease, localKey, meta } = await this.ready()
+    ensure(meta.unlock === 'login', 'AUTH_REQUIRED', '请先完成账户绑定。')
+    ensure(unb64(input.credentialId).length > 0, 'INVALID_INPUT')
+    const key = prfKey(input.output, db.name)
+    try {
+      const envelope = await db.envelope()
+      const next: LocalEnvelope = {
+        ...envelope,
+        prfWrappedKey: await seal(key, localKey, ['dmsg/local-key-prf/1', db.name])
+      }
+      const updated: WorkspaceMeta = {
+        ...meta,
+        prf: { credentialId: input.credentialId, enabledAt: Date.now() }
+      }
+      await db.replaceKeys(updated, next, lease)
+      this.meta = updated
+    } finally {
+      key.fill(0)
+    }
+  }
+  async disablePrf() {
+    const { db, lease, meta } = await this.ready()
+    const { prfWrappedKey: _dropped, ...envelope } = await db.envelope()
+    const { prf: _prf, ...updated } = meta
+    await db.replaceKeys(updated, envelope, lease)
+    this.meta = updated
   }
   async tick() {
     const { db, lease } = await this.ready()
@@ -925,53 +914,6 @@ export class CryptoEngine {
     if (db && lease) {
       await db.release(lease)
       db.db.close()
-    }
-  }
-  async verifyRecovery(code: string) {
-    const { meta, bundle, db, lease } = await this.ready()
-    const seeds = recoverySeeds(
-      unhex(code.trim().toLowerCase().replaceAll(/[-\s]/g, '')),
-      meta.environment,
-      meta.subjectId,
-      meta.recoveryGeneration
-    )
-    try {
-      const root = await hpkeOpen(
-        seeds.hpke,
-        meta.recoveryEnvelope,
-        recoveryContext(meta.environment, meta.subjectId, meta.rootGeneration)
-      )
-      ensure(equal(root, unb64(bundle.root)), 'INTEGRITY_FAILED', '恢复码不匹配。')
-      root.fill(0)
-      await this.ready()
-      const updated = { ...meta, recoveryChecked: true }
-      await db.completeRecovery(updated, lease)
-      this.meta = updated
-      return true
-    } finally {
-      seeds.signing.fill(0)
-      seeds.hpke.fill(0)
-    }
-  }
-  async pendingRecovery() {
-    const { meta, db, localKey } = await this.ready()
-    ensure(!meta.recoveryChecked, 'NOT_FOUND')
-    const record = await db.db.get('local_private', 'pending-recovery')
-    ensure(
-      record?.ciphertext,
-      'RECOVERY_INCOMPLETE',
-      '初始化恢复材料不完整，请清除此扩展的本地数据后重新建立工作台。'
-    )
-    const code = await open(localKey, record.ciphertext, ['dmsg/pending-recovery/1', db.name])
-    try {
-      ensure(code.length === 32, 'INTEGRITY_FAILED')
-      await this.ready()
-      return {
-        recoveryCode: hex(code).match(/.{8}/g)!.join('-'),
-        backupGenerated: meta.lastBackupAt !== null
-      }
-    } finally {
-      code.fill(0)
     }
   }
   private aad(
@@ -1054,7 +996,7 @@ export class CryptoEngine {
     tombstone = false
   ) {
     const { db, lease, meta, bundle } = await this.ready()
-    ensure(meta.recoveryChecked, 'RECOVERY_INCOMPLETE', '请先验证恢复码并保存恢复包。')
+    ensure(meta.account, 'RECOVERY_INCOMPLETE', '请先绑定账户并启用内容根。')
     ensure(
       canonical(payload).length <=
         (kind.startsWith('formal_') ? MAX_FORMAL_OBJECT_BYTES : MAX_OBJECT_BYTES),
@@ -1253,7 +1195,7 @@ export class CryptoEngine {
     kind: 'vault' | 'migration_part'
   ) {
     const { db, localKey, meta, lease } = await this.ready()
-    ensure(meta.recoveryChecked, 'RECOVERY_INCOMPLETE', '请先验证恢复材料。')
+    ensure(meta.account, 'RECOVERY_INCOMPLETE', '请先绑定账户并启用内容根。')
     ensure(file.size <= MAX_FILE, 'QUOTA_EXCEEDED', '单个文件上限为 100 MiB。')
     ensure(file.name.length <= 255, 'INVALID_INPUT', '文件名过长。')
     let plan: FilePlan
@@ -1477,67 +1419,6 @@ export class CryptoEngine {
   async downloadFile(objectKey: string) {
     return this.downloadStoredFile(objectKey, false)
   }
-  private async verifyCloudSnapshot(
-    meta: WorkspaceMeta,
-    root: Uint8Array,
-    chunks?: Map<string, Chunk>
-  ) {
-    const snapshot = meta.cloudSnapshot
-    if (!snapshot) return
-    ensure(
-      snapshot.uploads.length <= 10000 && snapshot.heads.length <= 100000,
-      'QUOTA_EXCEEDED'
-    )
-    const history = meta.rootHistory
-      ? decodeCanonical<Record<string, string>>(
-          await open(root, meta.rootHistory, [
-            'dmsg/root-history/1',
-            meta.subjectId,
-            meta.rootGeneration
-          ])
-        )
-      : {}
-    for (const upload of snapshot.uploads) {
-      const plan = storedUploadPlanSchema.parse(upload.plan),
-        manifest = unb64(upload.manifest)
-      ensure(
-        manifest.length === plan.manifest_size &&
-          hash(manifest) === plan.manifest_digest &&
-          upload.chunkIds.length === plan.chunks.length,
-        'INTEGRITY_FAILED'
-      )
-      for (let index = 0; index < upload.chunkIds.length; index++) {
-        const key = upload.chunkIds[index],
-          chunk = chunks
-            ? chunks.get(key)
-            : ((await this.db!.db.get('chunks', key)) as Chunk | undefined)
-        ensure(chunk && chunk.digest === plan.chunks[index].digest, 'RECOVERY_INCOMPLETE')
-        const bytes = unb64(chunk.ciphertext)
-        ensure(
-          bytes.length === plan.chunks[index].size &&
-            hash(bytes) === plan.chunks[index].digest,
-          'INTEGRITY_FAILED'
-        )
-      }
-      if (plan.kind === 'vault' || plan.kind === 'file') {
-        const old =
-          plan.root_generation === meta.rootGeneration
-            ? root
-            : history[String(plan.root_generation)]
-              ? unb64(history[String(plan.root_generation)])
-              : null
-        ensure(old, 'RECOVERY_INCOMPLETE')
-        const content = await openContentManifest(
-          old,
-          meta.subjectId,
-          uploadPlanSchema.parse(plan),
-          manifest
-        )
-        if (content) await this.verifyFileManifest(content, chunks, false)
-      }
-      if (this.lease) await this.tick()
-    }
-  }
   private async downloadStoredFile(objectKey: string, legacy: boolean) {
     const { db } = await this.ready(),
       record = (await db.db.get('objects', objectKey)) as EncryptedObject
@@ -1551,43 +1432,6 @@ export class CryptoEngine {
       name: manifest.name,
       blob: new Blob(parts, { type: 'application/octet-stream' }),
       sha256: manifest.sha256
-    }
-  }
-  async changePassword(input: { current: string; next: string }) {
-    const { db, localKey, lease } = await this.ready()
-    ensure(input.next.length >= 12, 'INVALID_INPUT', '新口令至少需要 12 个字符。')
-    const old = await db.envelope(),
-      previous = await passwordKey(input.current, old.kdf)
-    try {
-      const recovered = await open(previous, old.wrappedKey, ['dmsg/local-key/1', db.name])
-      ensure(equal(recovered, localKey), 'INTEGRITY_FAILED')
-      recovered.fill(0)
-    } finally {
-      previous.fill(0)
-    }
-    await db.renew(lease)
-    const kdf = defaultKdf(),
-      next = await passwordKey(input.next, kdf)
-    try {
-      await db.renew(lease)
-      const wrappedKey = await seal(next, localKey, ['dmsg/local-key/1', db.name])
-      await this.ready()
-      await db.guardedPut('key_envelopes', { ...old, kdf, wrappedKey }, lease)
-    } finally {
-      next.fill(0)
-    }
-  }
-  private async reauthenticate(password: string) {
-    const { db, localKey, lease } = await this.ready(),
-      envelope = await db.envelope(),
-      luk = await passwordKey(password, envelope.kdf)
-    try {
-      const key = await open(luk, envelope.wrappedKey, ['dmsg/local-key/1', db.name])
-      ensure(equal(key, localKey), 'INTEGRITY_FAILED', '口令不匹配。')
-      key.fill(0)
-      await db.renew(lease)
-    } finally {
-      luk.fill(0)
     }
   }
   private async partialPlan(plan: FilePlan, chunks?: Map<string, Chunk>) {
@@ -1632,37 +1476,6 @@ export class CryptoEngine {
         plain.fill(0)
         if (this.lease) await this.tick()
       }
-    } finally {
-      key.fill(0)
-    }
-  }
-  private async backupDraft(payload: unknown) {
-    const { meta, bundle } = await this.ready()
-    const record: EncryptedObject = {
-      key: '',
-      id: id(),
-      revision: id(),
-      parent: null,
-      subjectId: meta.subjectId,
-      deviceId: meta.deviceId,
-      generation: meta.rootGeneration,
-      kind: 'draft',
-      ciphertext: '',
-      keyEnvelope: '',
-      digest: '',
-      tombstone: false,
-      conflict: false,
-      createdAt: Date.now()
-    }
-    record.key = `${record.id}:${record.revision}`
-    const key = random()
-    try {
-      record.ciphertext = await seal(key, canonical(payload), this.aad(record))
-      record.keyEnvelope = await seal(unb64(bundle.root), key, this.wrapContext(record))
-      record.digest = hash(
-        canonical([this.aad(record), record.ciphertext, record.keyEnvelope])
-      )
-      return record
     } finally {
       key.fill(0)
     }
@@ -1714,657 +1527,6 @@ export class CryptoEngine {
       )
     }
   }
-  /** Verifies every local object and file needed by a backup. Records nothing. */
-  private async buildArchive(): Promise<ArchiveContent> {
-    const { db, meta, bundle, localKey } = await this.ready()
-    await this.tick()
-    const tx = db.db.transaction(['objects', 'local_private', 'migration_jobs', 'outbox'])
-    const objects = (await tx.objectStore('objects').getAll()) as EncryptedObject[],
-      fileJobs = await tx.objectStore('local_private').getAll(prefixRange('file-job:')),
-      jobs = await tx.objectStore('migration_jobs').getAll(),
-      outbox = new Map(
-        (await tx.objectStore('outbox').getAll()).map((job) => [job.objectKey, job])
-      )
-    await tx.done
-    await this.tick()
-    const missing = jobs.filter((j) => j.stage !== 'complete').map((j) => `unfinished:${j.id}`)
-    missing.push(...(await this.channelVault().backupMissing()))
-    const required = new Set<string>()
-    // Restored import drafts are superseded once their job resumes or completes.
-    for (let index = objects.length - 1; index >= 0; index--)
-      if (objects[index].kind === 'draft') {
-        const draft = await this.decode<{ format?: string; plan?: FilePlan }>(objects[index])
-        if (
-          draft.format === 'dmsg-file-import/1' &&
-          draft.plan &&
-          ((await db.db.get('local_private', `file-job:${draft.plan.manifest.version}`)) ||
-            (await db.db.get('migration_jobs', draft.plan.manifest.version))?.stage ===
-              'complete')
-        )
-          objects.splice(index, 1)
-      }
-    for (const row of fileJobs) {
-      const version = row.id.slice('file-job:'.length),
-        plan = decodeCanonical<FilePlan>(
-          await open(localKey, row.ciphertext, ['dmsg/file-job/1', db.name, version])
-        )
-      await this.partialPlan(plan)
-      for (const chunk of plan.manifest.chunks) required.add(chunk.id)
-      objects.push(
-        await this.backupDraft({
-          format: 'dmsg-file-import/1',
-          source: `file-import:${version}`,
-          text: '',
-          plan
-        })
-      )
-    }
-    await this.verifyCloudSnapshot(meta, unb64(bundle.root))
-    for (const upload of meta.cloudSnapshot?.uploads ?? [])
-      for (const ref of upload.chunkIds) required.add(ref)
-    const verifiedFiles = new Set<string>(),
-      vaultFiles = new Set<string>(),
-      vaultObjects = objects.filter((o) => o.kind === 'vault' || o.kind === 'migration_part')
-    for (let index = 0; index < vaultObjects.length; index++) {
-      const record = vaultObjects[index]
-      const item = await this.decode<Item>(record)
-      if (item.file) {
-        if (record.kind === 'vault') vaultFiles.add(`${item.file.id}:${item.file.version}`)
-        const fileVersion = hash(canonical(item.file))
-        if (!verifiedFiles.has(fileVersion)) {
-          await this.verifyFile(record, undefined, undefined, false)
-          verifiedFiles.add(fileVersion)
-        }
-        for (const chunk of item.file.chunks) required.add(chunk.id)
-      }
-      if ((index + 1) % 16 === 0) await this.tick()
-    }
-    for (const record of objects.filter((o) => o.kind === 'formal_message')) {
-      const message = await this.decode<any>(record)
-      if (message.file && !vaultFiles.has(`${message.file.file_id}:${message.file.version}`))
-        missing.push(`channel-file:${message.channel}:${message.file.upload_id}`)
-    }
-    const chunks: Chunk[] = []
-    ensure(
-      objects.length <= MAX_BACKUP_RECORDS && required.size <= MAX_BACKUP_RECORDS,
-      'QUOTA_EXCEEDED',
-      '恢复包的对象或文件块数量超过限制；未生成文件。'
-    )
-    let encodedBytes = objects.reduce(
-      (total, record) => total + record.ciphertext.length + record.keyEnvelope.length,
-      0
-    )
-    let chunkIndex = 0
-    for (const ref of required) {
-      const chunk = (await db.db.get('chunks', ref)) as Chunk | undefined
-      ensure(chunk, 'RECOVERY_INCOMPLETE', `备份所需文件块缺失：${ref}`)
-      encodedBytes += chunk.ciphertext.length
-      ensure(
-        encodedBytes <= MAX_BACKUP_BYTES,
-        'QUOTA_EXCEEDED',
-        '恢复包超过大小限制；未生成文件。'
-      )
-      chunks.push(chunk)
-      if (++chunkIndex % 16 === 0) await this.tick()
-    }
-    const pendingRequests = await db.db.getAll('requests')
-    const archived = new Set(
-      (await this.formalHistories()).flatMap(({ value }) => {
-        const job = JSON.parse(value)
-        return job.stage === 'complete' && job.artifact && job.receipt ? [job.externalId] : []
-      })
-    )
-    for (const request of pendingRequests.filter(
-      (r) =>
-        !['rejected', 'cancelled', 'expired', 'failed', 'result_expired'].includes(r.state) &&
-        !archived.has(r.id)
-    ))
-      missing.push(`request:${request.id}`)
-    await this.tick()
-    return {
-      format: 'dmsg-backup/1',
-      meta: {
-        ...meta,
-        contentReplacements: (
-          await db.db.getAll('meta', prefixRange('content-replacement:'))
-        ).map((r) => [r.id.slice('content-replacement:'.length), r.key])
-      },
-      createdAt: Date.now(),
-      scope: missing.length ? 'partial' : 'local-inclusive',
-      objects,
-      synced: objects
-        .filter(
-          (record) =>
-            record.kind !== 'draft' &&
-            (!outbox.has(record.key) || outbox.get(record.key).state === 'stored')
-        )
-        .map((record) => record.key),
-      chunks,
-      missing
-    }
-  }
-  async exportBackup(password: string) {
-    await this.reauthenticate(password)
-    const content = await this.buildArchive(),
-      { db, meta, bundle, lease } = await this.ready()
-    // Serialize once. The appended fields keep the key order of
-    // {...content, manifestDigest, authentication} that restore re-derives.
-    const body = JSON.stringify(content),
-      manifestDigest = hash(utf8(body)),
-      authentication = b64(
-        hmac(sha256, derive(unb64(bundle.root), ['dmsg/backup-auth/1']), utf8(manifestDigest))
-      )
-    const blob = new Blob(
-      [
-        body.slice(0, -1),
-        `,"manifestDigest":${JSON.stringify(manifestDigest)}`,
-        `,"authentication":${JSON.stringify(authentication)}}`
-      ],
-      { type: 'application/json' }
-    )
-    ensure(
-      blob.size <= MAX_BACKUP_BYTES,
-      'QUOTA_EXCEEDED',
-      '恢复包超过 256 MiB，上限包含全部编码与封装开销；未生成文件。'
-    )
-    await this.tick()
-    const updated = {
-      ...meta,
-      lastBackupAt: content.createdAt,
-      lastBackupCount: content.objects.length
-    }
-    await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
-    this.meta = updated
-    return {
-      blob,
-      name: `dmsg-${new Date(content.createdAt).toISOString().slice(0, 10)}.dmsg`,
-      count: content.objects.length,
-      missing: content.missing,
-      scope: content.scope
-    }
-  }
-  async exportDirectory(
-    password: string,
-    directory: FileSystemDirectoryHandle,
-    partLimit = 16 * 1024 * 1024
-  ) {
-    await this.reauthenticate(password)
-    ensure(partLimit >= 1024 && partLimit <= 32 * 1024 * 1024, 'INVALID_INPUT')
-    const { db, meta, bundle, lease } = await this.ready()
-    const archiveId = id(),
-      output = await directory.getDirectoryHandle(`dmsg-${archiveId}`, { create: true })
-    const parts: { name: string; digest: string; size: number }[] = []
-    let items: unknown[] = [],
-      size = 0,
-      count = 0
-    const write = async (name: string, value: string) => {
-      await this.tick()
-      const file = await output.getFileHandle(name, { create: true }),
-        stream = await file.createWritable()
-      try {
-        await stream.write(value)
-        await stream.close()
-      } catch (error) {
-        await stream.abort().catch(() => {})
-        throw error
-      }
-      await this.tick()
-    }
-    const flush = async () => {
-      if (!items.length) return
-      const encoded = JSON.stringify({
-        format: 'dmsg-backup-part/2',
-        archiveId,
-        index: parts.length,
-        items
-      })
-      const name = `part-${parts.length.toString().padStart(6, '0')}.json`
-      await write(name, encoded)
-      parts.push({ name, digest: hash(utf8(encoded)), size: utf8(encoded).length })
-      items = []
-      size = 0
-    }
-    const append = async (value: unknown) => {
-      const bytes = utf8(JSON.stringify(value)).length
-      if (items.length && size + bytes > partLimit) await flush()
-      items.push(value)
-      size += bytes
-    }
-    const missing = (await db.db.getAll('migration_jobs'))
-      .filter((j) => j.stage !== 'complete')
-      .map((j) => `unfinished:${j.id}`)
-    missing.push(...(await this.channelVault().backupMissing()))
-    const archived = new Set(
-      (await this.formalHistories()).flatMap(({ value }) => {
-        const j = JSON.parse(value)
-        return j.stage === 'complete' && j.artifact && j.receipt ? [j.externalId] : []
-      })
-    )
-    for (const r of await db.db.getAll('requests'))
-      if (
-        !['rejected', 'cancelled', 'expired', 'failed', 'result_expired'].includes(r.state) &&
-        !archived.has(r.id)
-      )
-        missing.push(`request:${r.id}`)
-    const files = new Set<string>(),
-      attachments: { key: string; file: string }[] = []
-    for (const store of ['objects', 'chunks'] as const) {
-      let after: string | undefined
-      for (;;) {
-        const page = await db.db.getAll(
-          store,
-          after ? IDBKeyRange.lowerBound(after, true) : undefined,
-          16
-        )
-        if (!page.length) break
-        for (const value of page) {
-          await this.tick()
-          if (store === 'objects') {
-            const payload = await this.decode<any>(value)
-            if ((value.kind === 'vault' || value.kind === 'migration_part') && payload.file) {
-              await this.verifyFile(value, undefined, undefined, false)
-              files.add(`${payload.file.id}:${payload.file.version}`)
-            }
-            if (value.kind === 'formal_message' && payload.file)
-              attachments.push({
-                key: `channel-file:${payload.channel}:${payload.file.upload_id}`,
-                file: `${payload.file.file_id}:${payload.file.version}`
-              })
-            const job = await db.db.get('outbox', value.revision)
-            await append({ store, value, synced: !job || job.state === 'stored' })
-            count++
-          } else {
-            ensure(hash(unb64(value.ciphertext)) === value.digest, 'INTEGRITY_FAILED')
-            await append({ store, value })
-          }
-          after = store === 'objects' ? value.key : value.id
-        }
-        this.progress({
-          stage: '正在分卷导出',
-          completed: parts.length,
-          total: parts.length + 1
-        })
-      }
-    }
-    for (const attachment of attachments)
-      if (!files.has(attachment.file)) missing.push(attachment.key)
-    await this.verifyCloudSnapshot(meta, unb64(bundle.root))
-    await flush()
-    const manifest = {
-      format: 'dmsg-backup/2',
-      archiveId,
-      meta: {
-        ...meta,
-        contentReplacements: (
-          await db.db.getAll('meta', prefixRange('content-replacement:'))
-        ).map((r) => [r.id.slice('content-replacement:'.length), r.key])
-      },
-      createdAt: Date.now(),
-      count,
-      parts,
-      missing
-    }
-    const authentication = b64(
-      hmac(
-        sha256,
-        derive(unb64(bundle.root), ['dmsg/backup-auth/2']),
-        utf8(JSON.stringify(manifest))
-      )
-    )
-    const encodedManifest = JSON.stringify({ ...manifest, authentication })
-    ensure(
-      utf8(encodedManifest).length <= 32 * 1024 * 1024,
-      'QUOTA_EXCEEDED',
-      '恢复清单超过读取上限；分卷尚未标记完成。'
-    )
-    await write('manifest.json', encodedManifest)
-    const updated = { ...meta, lastBackupAt: manifest.createdAt, lastBackupCount: count }
-    await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
-    this.meta = updated
-    return { name: output.name, count, parts: parts.length, missing }
-  }
-  async restoreDirectory(input: { files: File[]; code: string; password: string }) {
-    ensure(!this.bundle && (await currentWorkspace()) === null, 'VERSION_CONFLICT')
-    ensure(input.password.length >= 12, 'INVALID_INPUT')
-    const manifests = input.files.filter((f) => f.name === 'manifest.json')
-    ensure(
-      manifests.length === 1 && manifests[0].size <= 32 * 1024 * 1024,
-      'INVALID_INPUT',
-      '请选择一个完整的分卷备份目录。'
-    )
-    const { authentication, ...manifest } = JSON.parse(await manifests[0].text())
-    ensure(
-      manifest.format === 'dmsg-backup/2' &&
-        /^[0-9a-f]{64}$/.test(manifest.archiveId) &&
-        Array.isArray(manifest.parts) &&
-        Array.isArray(manifest.missing),
-      'UNSUPPORTED_PROTOCOL'
-    )
-    const meta: WorkspaceMeta = manifest.meta
-    const seeds = recoverySeeds(
-      unhex(input.code.trim().toLowerCase().replaceAll(/[-\s]/g, '')),
-      meta.environment,
-      meta.subjectId,
-      meta.recoveryGeneration
-    )
-    let root: Uint8Array
-    try {
-      root = await hpkeOpen(
-        seeds.hpke,
-        meta.recoveryEnvelope,
-        recoveryContext(meta.environment, meta.subjectId, meta.rootGeneration)
-      )
-    } finally {
-      seeds.signing.fill(0)
-      seeds.hpke.fill(0)
-    }
-    let staged: WorkspaceDB | null = null
-    try {
-      ensure(
-        equal(
-          unb64(authentication),
-          hmac(sha256, derive(root, ['dmsg/backup-auth/2']), utf8(JSON.stringify(manifest)))
-        ),
-        'INTEGRITY_FAILED'
-      )
-      const files = new Map(input.files.map((file) => [file.name, file]))
-      ensure(
-        files.size === input.files.length &&
-          new Set(manifest.parts.map((p: any) => p.name)).size === manifest.parts.length,
-        'INTEGRITY_FAILED'
-      )
-      const bundle: Bundle = {
-        root: b64(root),
-        signing: b64(random()),
-        hpke: b64(random()),
-        transport: b64(random()),
-        roots: meta.rootHistory
-          ? decodeCanonical(
-              await open(root, meta.rootHistory, [
-                'dmsg/root-history/1',
-                meta.subjectId,
-                meta.rootGeneration
-              ])
-            )
-          : {}
-      }
-      const restored = {
-        ...meta,
-        deviceId: id(),
-        registered: false,
-        createdAt: Date.now(),
-        recoveryChecked: true,
-        signingPublic: b64(ed25519.getPublicKey(unb64(bundle.signing))),
-        hpkePublic: await hpkePublic(unb64(bundle.hpke)),
-        transportPublic: b64(ed25519.getPublicKey(unb64(bundle.transport))),
-        restoredFrom: {
-          manifestDigest: hash(utf8(JSON.stringify(manifest))),
-          device: meta.deviceId,
-          at: Date.now()
-        }
-      }
-      await this.install(
-        input.password,
-        restored,
-        bundle,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false
-      )
-      staged = this.db!
-      for (const [from, to] of restored.contentReplacements ?? [])
-        await staged.guardedPut(
-          'meta',
-          { id: `content-replacement:${from}`, key: to },
-          this.lease!
-        )
-      const parents = new Set<string>()
-      let count = 0
-      for (const [index, ref] of manifest.parts.entries()) {
-        ensure(
-          ref.name === `part-${index.toString().padStart(6, '0')}.json` &&
-            ref.size <= 64 * 1024 * 1024,
-          'INTEGRITY_FAILED'
-        )
-        const file = files.get(ref.name)
-        ensure(file && file.size === ref.size, 'RECOVERY_INCOMPLETE')
-        const text = await file.text()
-        ensure(hash(utf8(text)) === ref.digest, 'INTEGRITY_FAILED')
-        const part = JSON.parse(text)
-        ensure(
-          part.format === 'dmsg-backup-part/2' &&
-            part.archiveId === manifest.archiveId &&
-            part.index === index &&
-            Array.isArray(part.items),
-          'INTEGRITY_FAILED'
-        )
-        await this.tick()
-        await staged.guarded(['objects', 'chunks', 'outbox'], this.lease!, async (tx) => {
-          for (const { store, value, synced } of part.items) {
-            ensure(store === 'objects' || store === 'chunks', 'INTEGRITY_FAILED')
-            if (store === 'objects') {
-              ensure(
-                value.subjectId === meta.subjectId &&
-                  value.key === `${value.id}:${value.revision}` &&
-                  /^[0-9a-f]{64}$/.test(value.id) &&
-                  /^[0-9a-f]{64}$/.test(value.revision) &&
-                  !(await tx.objectStore('objects').get(value.key)),
-                'INTEGRITY_FAILED'
-              )
-              await putObject(tx, value)
-              if (value.kind !== 'draft')
-                await tx.objectStore('outbox').put({
-                  id: value.revision,
-                  objectKey: value.key,
-                  frame: b64(canonical(value)),
-                  digest: value.digest,
-                  state: synced ? 'stored' : value.conflict ? 'blocked' : 'local'
-                })
-              if (!value.conflict && value.parent) parents.add(`${value.id}:${value.parent}`)
-              count++
-            } else {
-              ensure(!(await tx.objectStore('chunks').get(value.id)), 'INTEGRITY_FAILED')
-              await tx.objectStore('chunks').put(value)
-            }
-          }
-        })
-        this.progress({
-          stage: '正在校验恢复分卷',
-          completed: index + 1,
-          total: manifest.parts.length
-        })
-      }
-      ensure(count === manifest.count, 'RECOVERY_INCOMPLETE')
-      let after: string | undefined
-      for (;;) {
-        const page = (await staged.db.getAll(
-          'objects',
-          after ? IDBKeyRange.lowerBound(after, true) : undefined,
-          16
-        )) as EncryptedObject[]
-        if (!page.length) break
-        for (const record of page) {
-          await this.tick()
-          const payload = await this.decode<any>(record)
-          if ((record.kind === 'vault' || record.kind === 'migration_part') && payload.file)
-            await this.verifyFile(record, undefined, undefined, false)
-          if (!record.conflict && !parents.has(record.key)) {
-            ensure(!(await staged.db.get('meta', `head:${record.id}`)), 'INTEGRITY_FAILED')
-            await staged.guardedPut(
-              'meta',
-              objectHead(record, objectChannel(record, payload)),
-              this.lease!
-            )
-          }
-          after = record.key
-        }
-      }
-      await this.verifyCloudSnapshot(restored, root)
-      if (restored.cloudSnapshot) {
-        await staged.guardedPut(
-          'meta',
-          {
-            id: 'cloud-snapshot',
-            through: restored.cloudSnapshot.through,
-            evidence: restored.cloudSnapshot.evidence
-          },
-          this.lease!
-        )
-        for (const [id, revision] of restored.cloudSnapshot.heads)
-          await staged.guardedPut('meta', { id: `cloud-head:${id}`, revision }, this.lease!)
-      }
-      await this.restoreAuxiliary()
-      await registerWorkspace(staged.name)
-      return { meta: restored, count, missing: manifest.missing as string[] }
-    } catch (error) {
-      const name = staged?.name
-      await this.lock()
-      if (name) await removeWorkspaceDatabase(name)
-      throw error
-    } finally {
-      root.fill(0)
-    }
-  }
-  async restore(input: { file: File; code: string; password: string }) {
-    ensure(!this.bundle, 'LOCKED', '恢复前请先锁定当前工作台。')
-    ensure(
-      (await currentWorkspace()) === null,
-      'VERSION_CONFLICT',
-      '此浏览器配置已经有工作台。请在空白浏览器配置中恢复，以免隐藏原有数据。'
-    )
-    ensure(
-      input.file.size <= MAX_BACKUP_BYTES && input.password.length >= 12,
-      'INVALID_INPUT',
-      '请选择有效备份，并设置至少 12 个字符的新口令。'
-    )
-    const archive = JSON.parse(await input.file.text()) as RecoveryArchive
-    ensure(
-      archive.format === 'dmsg-backup/1' &&
-        Array.isArray(archive.objects) &&
-        Array.isArray(archive.chunks) &&
-        Array.isArray(archive.missing) &&
-        Array.isArray(archive.synced) &&
-        archive.objects.length <= MAX_BACKUP_RECORDS &&
-        archive.chunks.length <= MAX_BACKUP_RECORDS &&
-        archive.synced.length <= MAX_BACKUP_RECORDS,
-      'UNSUPPORTED_PROTOCOL'
-    )
-    const { manifestDigest, authentication, ...content } = archive
-    ensure(
-      hash(utf8(JSON.stringify(content))) === manifestDigest,
-      'INTEGRITY_FAILED',
-      '恢复包摘要不一致。'
-    )
-    const meta = archive.meta
-    ensure(
-      ['local', 'staging', 'production'].includes(meta.environment) &&
-        (/^[0-9a-f]{64}$/.test(meta.subjectId) ||
-          (meta.account?.id === meta.subjectId && xidBytes(meta.subjectId).length === 12)) &&
-        Number.isSafeInteger(meta.rootGeneration) &&
-        meta.rootGeneration > 0,
-      'INVALID_INPUT'
-    )
-    const code = unhex(input.code.trim().toLowerCase().replaceAll(/[-\s]/g, '')),
-      seeds = recoverySeeds(code, meta.environment, meta.subjectId, meta.recoveryGeneration)
-    const root = await hpkeOpen(
-      seeds.hpke,
-      meta.recoveryEnvelope,
-      recoveryContext(meta.environment, meta.subjectId, meta.rootGeneration)
-    )
-    code.fill(0)
-    seeds.signing.fill(0)
-    seeds.hpke.fill(0)
-    try {
-      ensure(
-        equal(
-          hmac(sha256, derive(root, ['dmsg/backup-auth/1']), utf8(manifestDigest)),
-          unb64(authentication)
-        ),
-        'INTEGRITY_FAILED',
-        '恢复包清单认证失败。'
-      )
-      const uniqueObjects = new Set(archive.objects.map((o) => o.key)),
-        chunkMap = new Map(archive.chunks.map((c) => [c.id, c]))
-      ensure(
-        uniqueObjects.size === archive.objects.length &&
-          chunkMap.size === archive.chunks.length &&
-          new Set(archive.synced).size === archive.synced.length &&
-          archive.synced.every((key) => uniqueObjects.has(key)),
-        'INTEGRITY_FAILED'
-      )
-      this.meta = meta
-      await this.verifyCloudSnapshot(meta, root, chunkMap)
-      const channels = new Map<string, string>()
-      for (let index = 0; index < archive.objects.length; index++) {
-        const record = archive.objects[index]
-        ensure(
-          record.subjectId === meta.subjectId &&
-            record.key === `${record.id}:${record.revision}` &&
-            /^[0-9a-f]{64}$/.test(record.id) &&
-            /^[0-9a-f]{64}$/.test(record.revision),
-          'INTEGRITY_FAILED'
-        )
-        const payload = await this.decode<Item>(record, root)
-        channels.set(record.key, objectChannel(record, payload))
-        if (
-          record.kind === 'draft' &&
-          (payload as unknown as { format?: string }).format === 'dmsg-file-import/1'
-        )
-          await this.partialPlan((payload as unknown as { plan: FilePlan }).plan, chunkMap)
-        if ((record.kind === 'vault' || record.kind === 'migration_part') && payload.file) {
-          const result = await this.verifyFile(record, root, chunkMap)
-          for (const part of result.parts) part.fill(0)
-        }
-        this.progress({
-          stage: '正在验证恢复内容',
-          completed: index + 1,
-          total: archive.objects.length
-        })
-      }
-      // A fresh device receives fresh keys. Offline recovery is not on-chain
-      // device approval, and the old authentication private key is not copied.
-      const bundle: Bundle = {
-        root: b64(root),
-        signing: b64(random()),
-        hpke: b64(random()),
-        transport: b64(random())
-      }
-      if (meta.rootHistory)
-        bundle.roots = decodeCanonical(
-          await open(root, meta.rootHistory, [
-            'dmsg/root-history/1',
-            meta.subjectId,
-            meta.rootGeneration
-          ])
-        )
-      const restored: WorkspaceMeta = {
-        ...meta,
-        restoredFrom: { manifestDigest, device: meta.deviceId, at: Date.now() },
-        deviceId: id(),
-        registered: false,
-        createdAt: Date.now(),
-        signingPublic: b64(ed25519.getPublicKey(unb64(bundle.signing))),
-        hpkePublic: await hpkePublic(unb64(bundle.hpke)),
-        transportPublic: b64(ed25519.getPublicKey(unb64(bundle.transport))),
-        recoveryChecked: true
-      }
-      await this.install(
-        input.password,
-        restored,
-        bundle,
-        archive,
-        undefined,
-        undefined,
-        channels
-      )
-      await this.restoreAuxiliary()
-      return { meta: restored, count: archive.objects.length, missing: archive.missing }
-    } finally {
-      root.fill(0)
-    }
-  }
   async readRequest(envelope: { enc: string; ciphertext: string }, requestId: string) {
     const { bundle, meta } = await this.ready()
     const payload = decodeCanonical(
@@ -2379,10 +1541,10 @@ export class CryptoEngine {
     await this.ready()
     return payload
   }
+  /** Signs with the session key; login must work before the workspace is unlocked. */
   async authSign(message: Uint8Array) {
-    const { bundle } = await this.ready()
     ensure(message.length <= 1048576, 'QUOTA_EXCEEDED')
-    return ed25519.sign(message, unb64(bundle.transport))
+    return ed25519.sign(message, this.authSeed)
   }
 
   /** Account journals contain public requests/signatures, never private keys.
@@ -2426,7 +1588,7 @@ export class CryptoEngine {
   private async candidate(context: RootContext, value?: RootMaterial): Promise<RootMaterial> {
     const { db, lease, localKey } = await this.ready()
     const key = `account-root:${context.account}:${context.opId}`
-    const aad = ['dmsg/root-candidate/1', db.name, key]
+    const aad = ['dmsg/root-candidate/2', db.name, key]
     if (value) {
       await db.guardedPut(
         'local_private',
@@ -2444,20 +1606,24 @@ export class CryptoEngine {
     return saved
   }
 
+  /** The transport public key a recovery derivation of this generation is encrypted to. */
   async prepareAccountRoot(context: RootContext) {
     return rootTransport(await this.candidate(context))
   }
 
-  async wrapAccountRoot(context: RootContext, key: RootKey, encryptedKey: Uint8Array) {
+  async wrapAccountRoot(
+    context: RootContext,
+    recipients: { deviceId: string; hpkePublic: string }[],
+    recoveryKey: RecoveryKey
+  ) {
     const material = await this.candidate(context)
     const { bundle, meta } = await this.ready()
-    // Initial conversion must not pretend the R0 root was an account root.
     const previous =
       meta.account?.id === context.account &&
-      meta.account.rootDigest &&
+      meta.account.rootBytesDigest &&
       meta.account.rootUploadId
         ? {
-            digest: meta.account.rootDigest,
+            digest: meta.account.rootBytesDigest,
             uploadId: meta.account.rootUploadId,
             generation: meta.rootGeneration,
             root: unb64(bundle.root)
@@ -2468,8 +1634,8 @@ export class CryptoEngine {
     try {
       const data = await wrapRoot(
         material,
-        key,
-        encryptedKey,
+        recipients,
+        recoveryKey,
         { deviceId: meta.deviceId, seed: signing },
         previous
       )
@@ -2482,35 +1648,48 @@ export class CryptoEngine {
     }
   }
 
-  async openAccountRoot(
+  /** Open the current bundle with this device's envelope. */
+  async openAccountRoot(context: RootContext, bundles: Uint8Array[], bundleDigest: string) {
+    const material = await this.candidate(context),
+      { bundle, meta } = await this.ready()
+    const seed = unb64(bundle.hpke)
+    try {
+      await this.candidate(
+        context,
+        await openRoot(material, { deviceId: meta.deviceId, hpkeSeed: seed }, bundles, bundleDigest)
+      )
+    } finally {
+      seed.fill(0)
+    }
+  }
+
+  /** Open the current bundle's recovery envelope with the derived vetKD key. */
+  async recoverAccountRoot(
     context: RootContext,
-    key: RootKey,
+    key: RecoveryKey,
     encryptedKey: Uint8Array,
     bundles: Uint8Array[],
-    expectedDigest: string
+    bundleDigest: string
   ) {
     const material = await this.candidate(context)
     await this.candidate(
       context,
-      await openRoot(material, key, encryptedKey, bundles, expectedDigest)
+      await recoverRoot(material, key, encryptedKey, bundles, bundleDigest)
     )
   }
 
+  /** Make the opened or wrapped candidate this workspace's content root. A
+   * first binding renames the subject to the account; no content exists yet. */
   async activateAccountRoot(input: {
     context: RootContext
     digest: string
     uploadId: string
     homeUser: string
     issuer: string
-    password: string
   }) {
-    await this.reauthenticate(input.password)
     const source = await this.ready(),
       material = await this.candidate(input.context)
-    ensure(material.bytes && hash(unb64(material.bytes)) === input.digest, 'INTEGRITY_FAILED')
-    const rootBundle = decodeCanonical<{
-      payload: { recovery: WorkspaceMeta['recoveryEnvelope'] }
-    }>(unb64(material.bytes))
+    ensure(material.bytes, 'RECOVERY_INCOMPLETE')
     const meta: WorkspaceMeta = {
       ...source.meta,
       subjectId: input.context.account,
@@ -2519,33 +1698,20 @@ export class CryptoEngine {
         issuer: input.issuer,
         homeUser: input.homeUser,
         rootDigest: input.digest,
+        rootBytesDigest: hash(unb64(material.bytes)),
         rootUploadId: input.uploadId
       },
       rootGeneration: input.context.generation,
-      recoveryGeneration: input.context.recoveryGeneration,
-      recoveryPublic: input.context.recoveryPublic,
-      recoverySigningPublic: input.context.recoverySigningPublic,
-      recoveryEnvelope: rootBundle.payload.recovery,
-      recoveryChecked: true,
-      registered: true,
-      lastBackupAt: null,
-      lastBackupCount: 0,
-      rootBundles: [
-        ...new Set([
-          ...(source.meta.account ? (source.meta.rootBundles ?? []) : []),
-          ...(material.bundles ?? []),
-          material.bytes
-        ])
-      ]
+      registered: true
     }
-    ensure(meta.rootBundles!.length <= 256, 'QUOTA_EXCEEDED')
-    const next: Bundle = {
-      ...source.bundle,
-      root: material.root,
-      roots: { ...material.roots }
-    }
-    if (source.meta.account?.id === input.context.account) {
-      ensure(source.meta.rootGeneration <= meta.rootGeneration, 'VERSION_CONFLICT')
+    const next: Bundle = { ...source.bundle, root: material.root, roots: { ...material.roots } }
+    if (source.meta.account) {
+      ensure(
+        source.meta.account.id === input.context.account &&
+          source.meta.rootGeneration <= meta.rootGeneration,
+        'VERSION_CONFLICT',
+        '不能把已绑定的工作区转换到另一个账户。'
+      )
       if (source.meta.rootGeneration === meta.rootGeneration)
         ensure(
           source.meta.account.rootDigest === input.digest &&
@@ -2560,251 +1726,78 @@ export class CryptoEngine {
           ? { [source.meta.rootGeneration]: source.bundle.root }
           : {})
       }
-      meta.rootHistory = await seal(unb64(next.root), canonical(next.roots), [
-        'dmsg/root-history/1',
-        meta.subjectId,
-        meta.rootGeneration
-      ])
-      const envelope = await source.db.envelope()
-      envelope.privateBundle = await seal(source.localKey, canonical(next), [
-        'dmsg/device-bundle/1',
-        source.db.name
-      ])
-      await source.db.replaceKeys(meta, envelope, source.lease)
-      this.bundle = next
-      this.meta = meta
-      return meta
-    }
-    ensure(
-      !source.meta.account,
-      'VERSION_CONFLICT',
-      '不能把已关联的正式工作区转换到另一个账户。'
-    )
-    if (Object.keys(next.roots!).length)
-      meta.rootHistory = await seal(unb64(next.root), canonical(next.roots), [
-        'dmsg/root-history/1',
-        meta.subjectId,
-        meta.rootGeneration
-      ])
-    // Verify the entire source, including files, before constructing any target.
-    const archive = await this.buildArchive()
-    ensure(
-      !archive.missing.length,
-      'RECOVERY_INCOMPLETE',
-      '请先完成未完成的文件或请求，再转换工作区。'
-    )
-    const originalKeys = new Set(await source.db.db.getAllKeys('objects'))
-    meta.account!.sourceDigest = hash(
-      canonical([
-        archive.objects.filter((o) => originalKeys.has(o.key)).map((o) => [o.key, o.digest]),
-        archive.chunks.map((c) => [c.id, c.digest])
-      ])
-    )
-    const remap = (kind: string, value: string) =>
-      hex(
-        digest('dmsg/local-conversion/1', [
-          input.context.account,
-          input.context.opId,
-          kind,
-          value
-        ])
-      )
-    const records: EncryptedObject[] = []
-    const channels = new Map<string, string>()
-    for (const record of archive.objects) {
-      await this.tick()
-      const payload = await this.decode<Record<string, unknown>>(record)
-      const syntheticDraft = record.kind === 'draft' && !originalKeys.has(record.key)
-      const sourceId = syntheticDraft ? `draft:${String(payload.source)}` : record.id
-      const sourceRevision = syntheticDraft
-        ? `${sourceId}:${meta.account!.sourceDigest}`
-        : record.revision
-      if (record.kind === 'vault' && Array.isArray(payload.resolvedConflicts))
-        payload.resolvedConflicts = (payload.resolvedConflicts as string[]).map((key) => {
-          const [objectId, revision] = key.split(':')
-          return `${remap('object', objectId)}:${remap('revision', revision)}`
-        })
-      if (record.kind === 'profile' && typeof payload.avatarFile === 'string') {
-        const [objectId, revision] = payload.avatarFile.split(':')
-        payload.avatarFile = `${remap('object', objectId)}:${remap('revision', revision)}`
-      }
-      if (
-        record.kind === 'migration' &&
-        payload.format === 'dmsg-legacy-storage/1' &&
-        Array.isArray(payload.frozenProofParts)
-      )
-        payload.frozenProofParts = (payload.frozenProofParts as string[]).map((key) => {
-          const [id, revision] = key.split(':')
-          return `${remap('object', id)}:${remap('revision', revision)}`
-        })
-      if (record.kind === 'migration' && payload.format === 'dmsg-legacy-storage/1')
-        payload.parts = (payload.parts as string[]).map((key) => {
-          const [objectId, revision] = key.split(':')
-          return `${remap('object', objectId)}:${remap('revision', revision)}`
-        })
-      const target: EncryptedObject = {
-        ...record,
-        id: remap('object', sourceId),
-        revision: remap('revision', sourceRevision),
-        parent: record.parent ? remap('revision', record.parent) : null,
-        subjectId: meta.subjectId,
-        generation: meta.rootGeneration,
-        deviceId: meta.deviceId
-      }
-      target.key = `${target.id}:${target.revision}`
-      const key = random()
-      try {
-        target.ciphertext = await seal(key, canonical(payload), this.aad(target))
-        target.keyEnvelope = await seal(unb64(next.root), key, this.wrapContext(target))
-        target.digest = hash(
-          canonical([this.aad(target), target.ciphertext, target.keyEnvelope])
-        )
-        ensure(
-          equal(await open(key, target.ciphertext, this.aad(target)), canonical(payload)),
-          'INTEGRITY_FAILED'
-        )
-      } finally {
-        key.fill(0)
-      }
-      records.push(target)
-      channels.set(target.key, objectChannel(target, payload))
-      this.progress({
-        stage: '正在验证正式工作区副本',
-        completed: records.length,
-        total: archive.objects.length
-      })
-    }
-    const name = `dmsg:${meta.environment}:${meta.subjectId}:${meta.deviceId}`
-    const targetDB = await WorkspaceDB.open(name)
-    const previous = await targetDB.meta()
-    targetDB.db.close()
-    if (previous) {
-      // A crash may leave a complete target before the registry switch. Verify
-      // its encrypted contents with the same root, then activate that copy.
+    } else
       ensure(
-        previous.account?.rootDigest === input.digest &&
-          previous.account?.sourceDigest === meta.account!.sourceDigest,
-        'VERSION_CONFLICT'
+        (await source.db.db.count('objects')) === 0,
+        'VERSION_CONFLICT',
+        '未绑定的工作台不应含有内容。'
       )
-      const target = await WorkspaceDB.open(name)
-      try {
-        const envelope = await target.envelope(),
-          luk = await passwordKey(input.password, envelope.kdf)
-        try {
-          const local = await open(luk, envelope.wrappedKey, ['dmsg/local-key/1', name])
-          const savedBundle = decodeCanonical<Bundle>(
-            await open(local, envelope.privateBundle, ['dmsg/device-bundle/1', name])
-          )
-          local.fill(0)
-          ensure(
-            savedBundle.root === next.root && savedBundle.signing === next.signing,
-            'INTEGRITY_FAILED'
-          )
-        } finally {
-          luk.fill(0)
-        }
-        const saved = (await target.db.getAll('objects')) as EncryptedObject[]
-        ensure(saved.length === records.length, 'RECOVERY_INCOMPLETE')
-        const keys = new Set(records.map((r) => r.key))
-        for (const record of saved) {
-          ensure(
-            keys.has(record.key) && record.subjectId === meta.subjectId,
-            'INTEGRITY_FAILED'
-          )
-          ensure(
-            record.generation === meta.rootGeneration &&
-              hash(canonical([this.aad(record), record.ciphertext, record.keyEnvelope])) ===
-                record.digest,
-            'INTEGRITY_FAILED'
-          )
-          const key = await open(
-            unb64(next.root),
-            record.keyEnvelope,
-            this.wrapContext(record)
-          )
-          try {
-            await open(key, record.ciphertext, this.aad(record))
-          } finally {
-            key.fill(0)
-          }
-        }
-        const chunks = (await target.db.getAll('chunks')) as Chunk[],
-          expected = new Map(archive.chunks.map((c) => [c.id, c.digest]))
-        ensure(
-          chunks.length === expected.size &&
-            chunks.every(
-              (c) => expected.get(c.id) === c.digest && hash(unb64(c.ciphertext)) === c.digest
-            ),
-          'INTEGRITY_FAILED'
-        )
-      } finally {
-        target.db.close()
-      }
-      await registerWorkspace(name, source.db.name)
-      await this.lock()
-      return this.unlock(input.password)
-    }
-    // All writes into the new database commit together. The original encrypted
-    // database remains registered as a retained, inactive copy after the switch.
-    await this.install(
-      input.password,
-      meta,
-      next,
-      { ...archive, meta, objects: records, synced: [] },
-      undefined,
-      source.db.name,
-      channels
-    )
-    await source.db.release(source.lease)
-    source.db.db.close()
-    source.localKey.fill(0)
+    meta.rootHistory = Object.keys(next.roots!).length
+      ? await seal(unb64(next.root), canonical(next.roots), [
+          'dmsg/root-history/1',
+          meta.subjectId,
+          meta.rootGeneration
+        ])
+      : undefined
+    if (!meta.rootHistory) delete meta.rootHistory
+    const envelope = await source.db.envelope()
+    envelope.privateBundle = await seal(source.localKey, canonical(next), [
+      'dmsg/device-bundle/1',
+      source.db.name
+    ])
+    await source.db.replaceKeys(meta, envelope, source.lease)
+    this.bundle = next
+    this.meta = meta
     return meta
   }
 
-  async accountRecovery(input: {
-    account: string
-    generation: number
-    action: 'generate' | 'prove' | 'clear'
-    code?: string
+  /** Self-held Agent Delegation controller keys live in the vault, so every
+   * device holding the root can sign with them. */
+  async controllerKey(
+    account: string,
+    generation: number,
+    action: 'create' | 'public' | 'sign',
     message?: Uint8Array
-    publicKey?: string
-  }) {
-    xidBytes(input.account)
-    ensure(Number.isSafeInteger(input.generation) && input.generation > 0, 'INVALID_INPUT')
-    const { meta } = await this.ready()
-    const key = `recovery:${input.account}:${input.generation}`
-    if (input.action === 'clear') {
-      await this.controlPut(key, 'null')
-      return { code: '', signingPublic: '', hpkePublic: '', signature: new Uint8Array() }
+  ) {
+    const { db, meta } = await this.ready()
+    ensure(
+      meta.account?.id === account && Number.isInteger(generation) && generation > 0,
+      'AUTH_REQUIRED'
+    )
+    const objectId = hash(canonical(['dmsg/agent-controller/1', account, generation]))
+    let record = await db.getHead(objectId, 'vault')
+    if (!record) {
+      ensure(action === 'create', 'NOT_FOUND', '此代 controller key 不在本机 vault 中。')
+      record = await this.write(
+        'vault',
+        {
+          type: 'key',
+          title: `dMsg controller #${generation}`,
+          tags: ['dmsg-controller'],
+          body: `Agent Delegation controller key of ${account}, generation ${generation}.`,
+          username: '',
+          secret: b64(random()),
+          url: '',
+          favorite: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        } satisfies Item,
+        objectId
+      )
     }
-    let code: Uint8Array
-    if (input.action === 'generate') {
-      const saved = await this.controlGet(key)
-      code = saved && saved !== 'null' ? unhex(JSON.parse(saved)) : random()
-      // Only the unfinished setup code is retained, under LocalDataKey.
-      await this.controlPut(key, JSON.stringify(hex(code)))
-    } else {
-      ensure(input.code && input.message?.length === 32 && input.publicKey, 'INVALID_INPUT')
-      code = unhex(input.code.trim().toLowerCase().replaceAll(/[-\s]/g, ''))
-    }
-    const seeds = recoverySeeds(code, meta.environment, input.account, input.generation)
+    const item = await this.decode<Item>(record)
+    ensure(!record.tombstone && item.type === 'key', 'NOT_FOUND')
+    const seed = unb64(item.secret)
     try {
-      const signingPublic = b64(ed25519.getPublicKey(seeds.signing))
-      if (input.action === 'prove')
-        ensure(signingPublic === input.publicKey, 'INTEGRITY_FAILED', '账户恢复码不匹配。')
-      return {
-        code: input.action === 'generate' ? hex(code).match(/.{8}/g)!.join('-') : '',
-        signingPublic,
-        hpkePublic: await hpkePublic(seeds.hpke),
-        signature:
-          input.action === 'prove'
-            ? ed25519.sign(input.message!, seeds.signing)
-            : new Uint8Array()
+      ensure(seed.length === 32, 'INTEGRITY_FAILED')
+      const publicKey = ed25519.getPublicKey(seed)
+      if (action === 'sign') {
+        ensure(message instanceof Uint8Array && message.length === 32, 'INVALID_INPUT')
+        return { publicKey, signature: ed25519.sign(message, seed) }
       }
+      return { publicKey, signature: new Uint8Array() }
     } finally {
-      code.fill(0)
-      seeds.signing.fill(0)
-      seeds.hpke.fill(0)
+      seed.fill(0)
     }
   }
 }

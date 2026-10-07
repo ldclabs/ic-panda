@@ -44,10 +44,9 @@ test('typed fixtures use the same valid shapes and registration boundaries', () 
   const account = fixture('account_offer')[2]
   validateBillingOffer(account, app, { ...product, product_id: 'sample', subject_schema: 'sample-account-v1', subject_size: 12n }, now)
   assert.throws(() => validateBillingOffer(account, app, product, now))
-  // An app lists every user home the services route to, up to their limit of 64.
-  const homes = Array.from({ length: 65 }, (_, n) => Uint8Array.of(n >> 8, n & 255, 1))
-  assert.throws(() => validateApp({ ...app, user_homes: homes }))
-  validateApp({ ...app, user_homes: homes.slice(0, 64) })
+  // Which user homes an app serves is the registering commerce canister's
+  // decision, not a field of the registration.
+  assert.throws(() => validateShape('AppRegistration', { ...app, user_homes: [] }))
 })
 
 test('closed fields, versions, bytes and integer units reject malformed input', () => {

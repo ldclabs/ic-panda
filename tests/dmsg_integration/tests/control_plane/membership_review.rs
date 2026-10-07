@@ -55,8 +55,6 @@ fn mock_request(f: &Fixture, id: AccountId) -> PandaClaimRequest {
         app_id: "mock".into(),
         config_version: 1,
         origins: vec!["https://dmsg.test".into()],
-        user_homes: vec![f.user],
-        cose_homes: vec![f.cose],
         product_ids: vec!["mock".into()],
         capabilities: vec![AppCapability::Checkout],
         profiles: vec![],

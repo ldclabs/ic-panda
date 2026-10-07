@@ -597,16 +597,6 @@ export class ChannelClient {
             recipient: `device:${account}:${hex(Uint8Array.from(device.input.device_id))}`,
             hpke_pub: hex(Uint8Array.from(device.input.hpke_pub))
           })
-      const pub = record.snapshot.recovery_hpke_pub,
-        generation = Number(record.snapshot.recovery_root_version)
-      ensure(
-        pub instanceof Uint8Array &&
-          pub.length === 32 &&
-          Number.isSafeInteger(generation) &&
-          generation > 0,
-        'RECOVERY_INCOMPLETE'
-      )
-      recipients.push({ recipient: `recovery:${account}:${generation}`, hpke_pub: hex(pub) })
     }
     return {
       recipients: recipients.sort((a, b) => a.recipient.localeCompare(b.recipient)),
@@ -790,15 +780,6 @@ export class ChannelClient {
               recipient: `device:${account}:${hex(id)}`,
               hpke_pub: hex(d.input.hpke_pub)
             })
-        ensure(
-          record.snapshot.recovery_hpke_pub instanceof Uint8Array &&
-            BigInt(record.snapshot.recovery_root_version) > 0n,
-          'INTEGRITY_FAILED'
-        )
-        recipients.push({
-          recipient: `recovery:${account}:${record.snapshot.recovery_root_version}`,
-          hpke_pub: hex(record.snapshot.recovery_hpke_pub)
-        })
         accounts.add(account)
         cursor = entry.cursor
       }
@@ -1175,11 +1156,6 @@ export class ChannelClient {
           recipient: `device:${this.accountId}:${hex(id)}`,
           hpke_pub: hex(d.input.hpke_pub)
         })
-    ensure(target.snapshot.recovery_hpke_pub instanceof Uint8Array, 'INTEGRITY_FAILED')
-    recipients.push({
-      recipient: `recovery:${this.accountId}:${target.snapshot.recovery_root_version}`,
-      hpke_pub: hex(target.snapshot.recovery_hpke_pub)
-    })
     recipients.sort((a, b) => a.recipient.localeCompare(b.recipient))
     ensure(recipientDigest(recipients) === scope.recipients_digest, 'POLICY_STALE')
     const recipient = `device:${this.accountId}:${this.account.meta.deviceId}`

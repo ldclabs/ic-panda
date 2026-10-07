@@ -1,7 +1,7 @@
-use crate::{state::AuthorizedExecution, store};
+use crate::store;
 use dmsg_protocol::{billing::*, canonical, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt};
-use dmsg_types::{billing::*, cose::*, *};
+use dmsg_types::{billing::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -108,61 +108,24 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
     Ok(now)
 }
 
-pub fn reserve(e: &mut AuthorizedExecution, now: u64) -> Result<()> {
-    let (ExecutionKind::Sign { key, .. } | ExecutionKind::AgentEvent { key, .. }) = &e.grant.kind
-    else {
-        return Ok(());
-    };
+/// Charge one attestation to the current month. An attestation completes in
+/// the message that authorizes it, so nothing is held and settled later.
+pub fn charge(id: &AccountId, now: u64) -> Result<()> {
     let month = month_utc(now)?;
-    let mut m = load(&e.grant.account_id, month).ok_or(Error::MembershipStale)?;
+    let mut m = load(id, month).ok_or(Error::MembershipStale)?;
     ensure(now < m.usage.valid_until_ms, Error::MembershipStale)?;
-    let units = m
-        .weights
-        .units(&key.algorithm)
-        .ok_or(Error::UnsupportedProtocol)?;
-    let held = m
+    let charged = m
         .usage
-        .held_units
-        .checked_add(units)
+        .charged_units
+        .checked_add(m.weights.ed25519)
         .ok_or(Error::QuotaExceeded)?;
     ensure(
-        held.checked_add(m.usage.charged_units)
+        charged
+            .checked_add(m.usage.held_units)
             .is_some_and(|n| n <= m.usage.allowed_units),
         Error::QuotaExceeded,
     )?;
-    e.grant.expires_at = e.grant.expires_at.min(m.usage.valid_until_ms);
-    e.grant.commerce = Some(CommercialReservation {
-        reservation_id: e.grant.request_id,
-        month_utc: month,
-        units,
-        weight_policy_version: m.usage.weight_policy_version,
-        business_revision: m.usage.business_revision,
-        lease_revision: m.usage.lease_revision,
-        valid_until_ms: m.usage.valid_until_ms,
-    });
-    m.usage.held_units = held;
-    save(&m);
-    Ok(())
-}
-
-pub fn settle(e: &AuthorizedExecution) -> Result<()> {
-    let Some(r) = &e.grant.commerce else {
-        return Ok(());
-    };
-    let mut m = load(&e.grant.account_id, r.month_utc).ok_or(Error::IntegrityFailed)?;
-    ensure(e.result.is_terminal(), Error::Pending)?;
-    m.usage.held_units = m
-        .usage
-        .held_units
-        .checked_sub(r.units)
-        .ok_or(Error::IntegrityFailed)?;
-    if !matches!(e.result.outcome, ExecutionOutcome::Failed(_)) {
-        m.usage.charged_units = m
-            .usage
-            .charged_units
-            .checked_add(r.units)
-            .ok_or(Error::QuotaExceeded)?;
-    }
+    m.usage.charged_units = charged;
     save(&m);
     Ok(())
 }

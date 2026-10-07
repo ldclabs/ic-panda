@@ -337,13 +337,7 @@ fn deposits_paginate_after_upgrade_and_mixed_accounts_cannot_share_a_refund() {
 
 #[test]
 fn retained_capacity_rechecks_after_await_and_keeps_old_funds_recoverable() {
-    let f = Fixture::with_payment_capacity(
-        vec![Algorithm::Ed25519, Algorithm::VetKdBls12381],
-        true,
-        100,
-        1,
-        |_| {},
-    );
+    let f = Fixture::with_payment_capacity(true, 100, 1, |_| {});
     let recipient = f.create(2);
     let first = f.order(&recipient, 2, 1);
     let mut second = f.order(&recipient, 2, 2);

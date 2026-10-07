@@ -1,26 +1,20 @@
 import { config } from '../config'
-import type { _SERVICE as CoseService } from '../canisters/generated/cose'
 import type {
-  AgentEventSignRequest,
   DelegationAuthority,
-  ExecutionResult,
   HostedController,
   PrincipalInfo,
   PrincipalType
 } from '../canisters/generated/user'
 import { AccountClient, controlResult } from './account'
 import type { CloudSession } from './cloud-session'
-import { recordedExecution } from './cose'
-import { decodeControl, encodeControl } from '../protocol/account'
-import { digest, equal, hex, unhex } from '../protocol/codec'
+import { controllerPopMessage } from '../protocol/account'
+import { b64 } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
 import {
-  agentExecutionKind,
   agentId,
   envelope,
   eventHash,
   eventText,
-  executionApprovalMessage,
   grantEvent,
   nextNonce,
   revokeEvent,
@@ -28,23 +22,20 @@ import {
   type Envelope,
   type GrantInput
 } from '../protocol/agent'
-import { ed25519 } from '../crypto/primitives'
 import { ensure } from '../errors'
 
-const MAX_CYCLES = 100_000_000_000n
 const JOBS = 'agent:jobs'
 
-/** Durable record of one hosted signature, from approval to service acceptance. */
+/** Durable record of one locally signed event, from signature to service acceptance. */
 export interface AgentJob {
-  format: 'dmsg-agent-journal/1'
+  format: 'dmsg-agent-journal/2'
+  id: string
   account: string
-  executionId: string
   generation: number
   kind: DelegationEvent['type']
   delegationId: string
-  request: string
-  stage: 'unknown' | 'signed' | 'accepted' | 'failed'
-  envelope?: Envelope
+  envelope: Envelope
+  stage: 'signed' | 'accepted' | 'failed'
   credential?: Record<string, unknown>
   error?: string
 }
@@ -66,15 +57,14 @@ export interface Credential {
 export const isCurrent = (c: HostedController) => c.retired_at.length === 0
 
 /**
- * Agent Delegation principal management for the unlocked settings page. Every
- * signature is an explicit settings action approved by this device; the
- * encrypted journal is written before dispatch so an unknown outcome is
- * reconciled with the same request instead of signing again.
+ * Agent Delegation principal management for the unlocked settings page. The
+ * controller keys are ordinary vault entries, so every device holding the
+ * root can sign; registration proves possession to the user home, and every
+ * signed event is journaled before it is submitted.
  */
 export class AgentClient {
   constructor(
     readonly account: AccountClient,
-    readonly cose: CoseService,
     readonly cloud: CloudSession | null
   ) {}
 
@@ -97,22 +87,14 @@ export class AgentClient {
     })
   }
 
-  /** The key of a generation, derived by COSE; shown to the owner before approval. */
+  /** The key of a generation, created in the vault on first use. */
   async controllerKey(account: string, generation: number) {
-    const key = controlResult(
-      await this.cose.public_key(xidBytes(account), { AgentController: { generation } })
+    const { publicKey } = await this.account.crypto.call(
+      'controllerKey',
+      account,
+      generation,
+      'create'
     )
-    const { info } = await this.account.refresh(account)
-    ensure(
-      'AgentController' in key.purpose &&
-        'Ed25519' in key.algorithm &&
-        key.key_generation === BigInt(generation) &&
-        equal(Uint8Array.from(key.account_id), xidBytes(account)) &&
-        key.home_cose.toText() === info.home_cose.toText() &&
-        key.public_key.length === 32,
-      'INTEGRITY_FAILED'
-    )
-    const publicKey = Uint8Array.from(key.public_key)
     return { publicKey, agentId: agentId(publicKey) }
   }
 
@@ -133,20 +115,31 @@ export class AgentClient {
               audiences: input.authority.audiences
             }
           }
-    await this.account.mutate(
-      account,
-      {
-        RegisterController: {
-          generation,
-          public_key: publicKey,
-          name: input.name ? [input.name] : [],
-          delegation,
-          supersedes: input.supersedes
-        }
-      },
-      undefined,
-      'register_controller'
-    )
+    await this.account.mutate(account, async (_, requestId) => ({
+      RegisterController: {
+        generation,
+        public_key: publicKey,
+        name: input.name ? [input.name] : [],
+        delegation,
+        supersedes: input.supersedes,
+        proof: (
+          await this.account.crypto.call(
+            'controllerKey',
+            account,
+            generation,
+            'sign',
+            controllerPopMessage(
+              this.account.home,
+              xidBytes(account),
+              generation,
+              delegation,
+              input.supersedes,
+              requestId
+            )
+          )
+        ).signature
+      }
+    }))
     return generation
   }
 
@@ -170,12 +163,12 @@ export class AgentClient {
     return controlResult(await this.account.user.publish_principal(xidBytes(account)))
   }
 
-  private key(executionId: string) {
-    return `agent:${executionId}`
+  private key(id: string) {
+    return `agent:${id}`
   }
 
-  async job(executionId: string): Promise<AgentJob | null> {
-    const value = await this.account.crypto.call('controlGet', this.key(executionId))
+  async job(id: string): Promise<AgentJob | null> {
+    const value = await this.account.crypto.call('controlGet', this.key(id))
     return value ? (JSON.parse(value) as AgentJob) : null
   }
 
@@ -188,20 +181,12 @@ export class AgentClient {
   }
 
   private async save(job: AgentJob) {
-    await this.account.crypto.call(
-      'controlPut',
-      this.key(job.executionId),
-      JSON.stringify(job)
-    )
+    await this.account.crypto.call('controlPut', this.key(job.id), JSON.stringify(job))
     const ids = JSON.parse(
       (await this.account.crypto.call('controlGet', JOBS)) ?? '[]'
     ) as string[]
-    if (!ids.includes(job.executionId))
-      await this.account.crypto.call(
-        'controlPut',
-        JOBS,
-        JSON.stringify([job.executionId, ...ids].slice(0, 32))
-      )
+    if (!ids.includes(job.id))
+      await this.account.crypto.call('controlPut', JOBS, JSON.stringify([job.id, ...ids].slice(0, 32)))
   }
 
   async grant(account: string, generation: number, input: Omit<GrantInput, 'principalId'>) {
@@ -216,7 +201,7 @@ export class AgentClient {
     )
   }
 
-  /** Approve, sign in the user home, then submit to the delegation service. */
+  /** Sign with the vault key, journal the envelope, then submit it. */
   private async sign(
     account: string,
     generation: number,
@@ -226,167 +211,57 @@ export class AgentClient {
     const principal = await this.principal(account)
     const controller = principal?.state.controllers.find((c) => c.generation === generation)
     ensure(controller && isCurrent(controller), 'FORBIDDEN', '只能使用当前 controller 签名。')
-    const { info, device } = await this.account.refresh(account)
+    const { device } = await this.account.refresh(account)
     ensure(
-      device &&
-        device.input.capabilities.some((c) => 'FormalApprove' in c) &&
-        !info.sensitive_policy.frozen &&
-        info.sensitive_policy.allowed_purposes.some((p) => 'AgentController' in p),
+      device && device.input.capabilities.some((c) => 'FormalApprove' in c),
       'Forbidden',
-      '当前设备没有正式批准能力，或账户策略不允许托管 controller 签名。'
+      '当前设备没有正式批准能力。'
     )
-    const now = Date.now()
-    const last = principal!.last_nonces.find(([g]) => g === generation)?.[1] ?? 0n
+    const nonceKey = `agent:nonce:${account}:${generation}`
+    const last = BigInt((await this.account.crypto.call('controlGet', nonceKey)) ?? '0')
     // A new binding starts at valid_from; the signer may not backdate before it.
-    const createdAt = Math.max(now, Number(controller.valid_from))
-    const event = build(
-      agentId(Uint8Array.from(controller.public_key)),
-      nextNonce(last, createdAt),
-      createdAt
-    )
-    const text = eventText(event)
-    const accountId = xidBytes(account),
-      deviceId = unhex(this.account.meta.deviceId),
-      origin = `chrome-extension://${chrome.runtime.id}`
-    const requestId = digest('dmsg/execution-request/v2', [
-      accountId,
-      info.security_epoch,
-      deviceId,
-      device.next_sequence
-    ])
-    const request: AgentEventSignRequest = {
-      account_id: accountId,
-      generation,
-      event: text,
-      origin,
-      max_cycles: MAX_CYCLES,
-      approval: {
-        device_id: deviceId,
-        security_epoch: info.security_epoch,
-        sequence: device.next_sequence,
-        request_id: requestId,
-        expires_at: BigInt(now + 240_000),
-        signature: new Uint8Array()
-      }
-    }
-    request.approval.signature = await this.account.crypto.call(
-      'deviceSign',
-      executionApprovalMessage({
-        home: this.account.home.toUint8Array(),
-        account: accountId,
-        deviceId,
-        securityEpoch: info.security_epoch,
-        sequence: device.next_sequence,
-        requestId,
-        expiresAt: request.approval.expires_at,
-        kind: agentExecutionKind(generation, text, principal!.principal_id, origin),
-        maxCycles: MAX_CYCLES
-      })
-    )
-    // Persist before dispatch: termination can follow the home's commit.
-    const job: AgentJob = {
-      format: 'dmsg-agent-journal/1',
+    const createdAt = Math.max(Date.now(), Number(controller.valid_from))
+    const nonce = nextNonce(last, createdAt)
+    const event = build(agentId(Uint8Array.from(controller.public_key)), nonce, createdAt)
+    const hash = eventHash(eventText(event))
+    const { publicKey, signature } = await this.account.crypto.call(
+      'controllerKey',
       account,
-      executionId: hex(requestId),
+      generation,
+      'sign',
+      hash
+    )
+    ensure(
+      b64(publicKey) === b64(Uint8Array.from(controller.public_key)),
+      'INTEGRITY_FAILED',
+      '本机 vault 中的 controller key 与已登记的公钥不一致。'
+    )
+    await this.account.crypto.call('controlPut', nonceKey, String(nonce))
+    const signed = envelope(event, hash, signature)
+    const job: AgentJob = {
+      format: 'dmsg-agent-journal/2',
+      id: signed.hash,
+      account,
       generation,
       kind: event.type,
       delegationId: String(event.payload.id),
-      request: encodeControl('sign_agent_event', [request]),
-      stage: 'unknown'
+      envelope: signed,
+      stage: 'signed'
     }
-    await this.save(job)
-    return this.dispatch(job, request)
-  }
-
-  private async dispatch(job: AgentJob, request: AgentEventSignRequest) {
-    let response: Awaited<ReturnType<AccountClient['user']['sign_agent_event']>>
-    try {
-      response = await this.account.user.sign_agent_event(request)
-    } catch {
-      job.error = 'EXECUTION_UNKNOWN'
-      await this.save(job)
-      return job
-    }
-    if ('Err' in response) {
-      // The home may already have authorized and reserved this execution before
-      // COSE rejected dispatch. Keep the original request for reconciliation.
-      job.error = Object.keys(response.Err)[0]
-      await this.save(job)
-      return job
-    }
-    return this.finish(job, response.Ok)
-  }
-
-  /** Reconcile an unknown execution or resubmit a signed envelope. */
-  async resume(executionId: string) {
-    const job = await this.job(executionId)
-    ensure(job && job.account === this.account.meta.account?.id, 'AUTH_REQUIRED')
-    if (job.stage === 'signed') return this.submit(job)
-    if (job.stage !== 'unknown') return job
-    const request = decodeControl('sign_agent_event', job.request)[0] as AgentEventSignRequest
-    const result = await recordedExecution(
-      this.account.user,
-      xidBytes(job.account),
-      unhex(job.executionId)
-    )
-    if (!result) {
-      if (Date.now() >= Number(request.approval.expires_at)) {
-        job.stage = 'failed'
-        job.error = 'Expired'
-        await this.save(job)
-        return job
-      }
-      return this.dispatch(job, request)
-    }
-    return this.finish(job, result)
-  }
-
-  private async finish(job: AgentJob, result: ExecutionResult) {
-    ensure(
-      equal(Uint8Array.from(result.request_id), unhex(job.executionId)),
-      'INTEGRITY_FAILED'
-    )
-    if (!('Completed' in result.outcome)) {
-      if ('Failed' in result.outcome) {
-        job.stage = 'failed'
-        job.error = Object.keys(result.outcome.Failed)[0]
-      } else if ('ResultExpired' in result.outcome) {
-        job.stage = 'failed'
-        job.error = 'ResultExpired'
-      } else {
-        job.stage = 'unknown'
-        job.error =
-          'Unknown' in result.outcome ? Object.keys(result.outcome.Unknown)[0] : 'Pending'
-      }
-      await this.save(job)
-      return job
-    }
-    const output = result.outcome.Completed
-    ensure('AgentSignature' in output, 'INTEGRITY_FAILED')
-    const request = decodeControl('sign_agent_event', job.request)[0] as AgentEventSignRequest
-    const signed = output.AgentSignature,
-      publicKey = Uint8Array.from(signed.key.public_key),
-      hash = eventHash(request.event)
-    ensure(
-      equal(Uint8Array.from(signed.event_hash), hash) &&
-        ed25519.verify(Uint8Array.from(signed.signature), hash, publicKey) &&
-        'AgentController' in signed.key.purpose &&
-        signed.key.key_generation === BigInt(job.generation),
-      'INTEGRITY_FAILED',
-      '托管签名与批准的事件不一致。'
-    )
-    const event = JSON.parse(request.event) as DelegationEvent
-    ensure(event.actor === agentId(publicKey), 'INTEGRITY_FAILED')
-    job.envelope = envelope(event, hash, Uint8Array.from(signed.signature))
-    job.stage = 'signed'
-    delete job.error
     await this.save(job)
     return this.submit(job)
   }
 
-  /** Exact resubmission is idempotent; a stale envelope needs a new approval. */
+  /** Resubmit a signed envelope the service has not confirmed. */
+  async resume(id: string) {
+    const job = await this.job(id)
+    ensure(job && job.account === this.account.meta.account?.id, 'AUTH_REQUIRED')
+    return job.stage === 'signed' ? this.submit(job) : job
+  }
+
+  /** Exact resubmission is idempotent; a stale envelope needs a new signature. */
   private async submit(job: AgentJob) {
-    ensure(config.agentOrigin && job.envelope, 'UNAVAILABLE', '尚未配置 delegation 服务地址。')
+    ensure(config.agentOrigin, 'UNAVAILABLE', '尚未配置 delegation 服务地址。')
     // Even past the live window the service still answers an accepted envelope.
     const response = await fetch(`${config.agentOrigin}/v1/delegations`, {
       method: 'POST',

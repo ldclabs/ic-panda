@@ -279,7 +279,7 @@ fn network_fee_changes_within_the_ceiling_preserve_a_fully_reserved_quote() {
 
 #[test]
 fn failed_authorizations_have_separate_budgets_and_daily_admission_is_atomic() {
-    let f = Fixture::with_order_limit(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381], true, 1);
+    let f = Fixture::with_order_limit(true, 1);
     let recipient = f.create(2);
     let input = f.order(&recipient, 2, 1);
     let mut invalid = input.clone();
@@ -484,11 +484,7 @@ fn batch_updates<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
 #[test]
 #[ignore = "payment capacity measurement at 1,000 and 10,000 escrows"]
 fn payment_scale_profile() {
-    let f = Fixture::with_order_limit(
-        vec![Algorithm::Ed25519, Algorithm::VetKdBls12381],
-        true,
-        100_000,
-    );
+    let f = Fixture::with_order_limit(true, 100_000);
     let recipient = f.create(2);
     let template = f.order(&recipient, 2, 1);
     let mut samples = Vec::new();

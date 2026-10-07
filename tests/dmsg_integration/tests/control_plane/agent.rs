@@ -6,51 +6,45 @@ use ic_http_certification::{HttpRequest, HttpResponse};
 const QUERY_URL: &str = "https://agents.dmsg.test/v1/delegations/query";
 
 impl Fixture {
+    /// Register the self-held controller key `controller` at the next
+    /// generation, proving possession inside the device-approved mutation.
     fn register_controller(
         &self,
         n: u8,
         id: &AccountId,
-        command: AccountCommand,
+        generation: u32,
+        controller: u8,
+        supersedes: Vec<u32>,
     ) -> Result<OperationReceipt> {
         let s = self.account_id(n, id);
-        let mut m = AccountMutation {
-            account_id: *id,
-            expected_version: s.account_version,
-            command,
-            approval: Approval {
-                device_id: Hash::new([n; 32]),
-                security_epoch: s.security_epoch,
-                sequence: s.devices[&Hash::new([n; 32])].next_sequence,
-                request_id: digest("test-operation", &(id, s.account_version)),
-                expires_at: time(&self.ic) + MINUTE,
-                signature: Default::default(),
-            },
-        };
-        m.approval.signature = key(n)
+        let request_id = digest("test-operation", &(id, s.account_version));
+        let delegation = restricted();
+        let proof = key(controller)
             .sign(
-                approval_message(
+                controller_pop_message(
                     self.user,
                     id,
-                    "dmsg/account/v2",
-                    &(&m.expected_version, &m.command),
-                    &m.approval,
+                    generation,
+                    &delegation,
+                    &supersedes,
+                    request_id,
                 )
                 .as_slice(),
             )
             .to_bytes()
             .into();
-        update(&self.ic, self.user, person(n), "register_controller", (m,))
-    }
-
-    fn controller_key(&self, id: &AccountId, generation: u32) -> KeyDescriptor {
-        let key: Result<KeyDescriptor> = query(
-            &self.ic,
-            self.cose,
-            Principal::anonymous(),
-            "public_key",
-            (id, KeySelector::AgentController { generation }),
-        );
-        key.unwrap()
+        self.mutate(
+            n,
+            id,
+            AccountCommand::RegisterController {
+                generation,
+                public_key: key(controller).verifying_key().to_bytes().into(),
+                name: Some(format!("dMsg signer #{generation}")),
+                delegation,
+                supersedes,
+                proof,
+            },
+        )
     }
 
     fn principal(&self, id: &AccountId) -> PrincipalInfo {
@@ -62,62 +56,6 @@ impl Fixture {
             (id,),
         );
         info.unwrap()
-    }
-
-    fn agent_request(
-        &self,
-        n: u8,
-        id: &AccountId,
-        generation: u32,
-        event: String,
-    ) -> AgentEventSignRequest {
-        let s = self.account_id(n, id);
-        let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
-        let mut request = AgentEventSignRequest {
-            account_id: *id,
-            generation,
-            event,
-            origin: "https://example.com".into(),
-            max_cycles: 100_000_000_000,
-            approval: Approval {
-                device_id: Hash::new([n; 32]),
-                security_epoch: s.security_epoch,
-                sequence,
-                request_id: execution_request_id(
-                    id,
-                    s.security_epoch,
-                    Hash::new([n; 32]),
-                    sequence,
-                ),
-                expires_at: time(&self.ic) + MINUTE,
-                signature: Default::default(),
-            },
-        };
-        let execution = request
-            .clone()
-            .into_execution(format!("{PRINCIPAL_ORIGIN}/{id}"));
-        request.approval.signature = key(n)
-            .sign(execute_approval(self.user, &execution).as_slice())
-            .to_bytes()
-            .into();
-        request
-    }
-
-    fn sign_agent_event(
-        &self,
-        n: u8,
-        id: &AccountId,
-        generation: u32,
-        event: String,
-    ) -> Result<ExecutionResult> {
-        let request = self.agent_request(n, id, generation, event);
-        update(
-            &self.ic,
-            self.user,
-            person(n),
-            "sign_agent_event",
-            (request,),
-        )
     }
 
     /// Fetch a directory path and verify the response like an ICP HTTP gateway.
@@ -178,14 +116,17 @@ fn restricted() -> DelegationAuthority {
     }
 }
 
-fn grant_event(
+/// A grant event signed locally by controller key `controller`, as the
+/// extension signs it before submitting to the delegation service.
+fn signed_grant(
     f: &Fixture,
     id: &AccountId,
-    actor: &Hash,
+    controller: u8,
     nonce: u64,
     audience: &str,
-) -> sdk_id::Event<sdk::DelegationPayload> {
+) -> sdk_id::Envelope<sdk::DelegationPayload> {
     let now = time(&f.ic);
+    let signer = sdk_id::AgentSigner::from_seed([controller; 32]);
     let mut payload = sdk::DelegationGrantPayload::new(
         format!("{id}.draft-{nonce}"),
         format!("{PRINCIPAL_ORIGIN}/{id}"),
@@ -194,29 +135,25 @@ fn grant_event(
         vec![audience.into()],
     );
     payload.expires_at = Some((now + 30 * DAY) as i64);
-    sdk_id::Event::new(
+    let event = sdk_id::Event::new(
         sdk::PROTOCOL,
         sdk::DELEGATION_GRANT,
-        sdk_id::AgentId::from_public_key(actor),
+        signer.agent_id(),
         now as i64,
         nonce,
         sdk::DelegationPayload::Grant(payload),
-    )
-}
-
-fn jcs(event: &sdk_id::Event<sdk::DelegationPayload>) -> String {
-    String::from_utf8(sdk_id::canonical_event_bytes(event).unwrap()).unwrap()
+    );
+    signer.sign_event(event).unwrap()
 }
 
 #[test]
-fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() {
+fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted() {
     let f = Fixture::new();
-    let ready: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    ready.unwrap();
     let id = f.create(1);
-    f.recoverable(1, &id);
     let principal_id = format!("{PRINCIPAL_ORIGIN}/{id}");
+    // The controller key is an ordinary Ed25519 key the client keeps in its
+    // vault; the test seed stands in for it.
+    let public_key: Hash = key(20).verifying_key().to_bytes().into();
 
     // Absent principals are a certified 404, not an empty document.
     let missing = f.directory_get(&format!("/{id}"));
@@ -240,43 +177,45 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
     assert_eq!(document.kind.as_deref(), Some("person"));
     assert_eq!(document.delegation_query_url.as_deref(), Some(QUERY_URL));
 
-    // A key the owner did not approve is never bound, and nothing is consumed.
-    let key = f.controller_key(&id, 1);
-    let public_key: Hash = key.public_key.as_slice().try_into().map(Hash::new).unwrap();
+    // A key whose possession is not proven is never bound, and nothing is consumed.
     let before = f.account_id(1, &id);
-    let wrong = f.register_controller(
+    let s = f.account_id(1, &id);
+    let wrong = f.mutate(
         1,
         &id,
         AccountCommand::RegisterController {
             generation: 1,
-            public_key: Hash::new([7; 32]),
+            public_key,
             name: None,
             delegation: restricted(),
             supersedes: vec![],
+            proof: key(21)
+                .sign(
+                    controller_pop_message(
+                        f.user,
+                        &id,
+                        1,
+                        &restricted(),
+                        &[],
+                        digest("test-operation", &(id, s.account_version)),
+                    )
+                    .as_slice(),
+                )
+                .to_bytes()
+                .into(),
         },
     );
     assert_eq!(wrong, Err(Error::IntegrityFailed));
-    assert_eq!(f.account_id(1, &id).account_version, before.account_version);
-    let register = AccountCommand::RegisterController {
-        generation: 1,
-        public_key,
-        name: Some("dMsg hosted signer #1".into()),
-        delegation: restricted(),
-        supersedes: vec![],
-    };
-    // The ordinary mutation path cannot skip the derivation check.
-    assert!(matches!(
-        f.mutate(1, &id, register.clone()),
-        Err(Error::InvalidInput(_))
-    ));
+    assert_eq!(f.account_id(1, &id), before);
     let before_cycles = f.ic.cycle_balance(f.user);
-    f.register_controller(1, &id, register).unwrap();
+    f.register_controller(1, &id, 1, 20, vec![]).unwrap();
     println!(
         "user_cycles method=register_controller cycles={}",
         before_cycles - f.ic.cycle_balance(f.user)
     );
     let info = f.principal(&id);
     assert_eq!((info.state.version, info.published_version), (2, 2));
+    assert_eq!(info.state.controllers[0].public_key, public_key);
     let (document, _) = f.document(&id);
     assert_eq!(document.controllers.len(), 1);
     let actor = sdk_id::AgentId::from_public_key(&public_key);
@@ -293,40 +232,18 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
     );
     let snapshot: SecuritySnapshot =
         decode_canonical(&certified_value(&f, batch.unwrap(), id.as_slice())).unwrap();
-    assert_eq!(snapshot.schema, 3);
+    assert_eq!(snapshot.schema, 4);
     assert_eq!(snapshot.principal_updated_at, Some(info.state.updated_at));
     assert_eq!(
         snapshot.principal_updated_at,
         Some(document.updated_at as u64)
     );
 
-    // The hosted key signs an exact grant that the SDK accepts against the
-    // certified document, exactly as the delegation service will. Clients use
+    // The client signs a grant locally; the SDK accepts it against the
+    // certified document exactly as the delegation service will. Clients use
     // created_at >= valid_from; PocketIC's clock needs a nudge past it.
     f.ic.advance_time(Duration::from_millis(10));
-    let event = grant_event(&f, &id, &public_key, 10, "https://dmsg.net");
-    let result = f.sign_agent_event(1, &id, 1, jcs(&event)).unwrap();
-    assert_eq!(result.status(), ExecutionStatus::Completed);
-    let ExecutionOutput::AgentSignature {
-        event_hash,
-        signature,
-        key: descriptor,
-    } = completed(&result).clone()
-    else {
-        panic!("agent signature output")
-    };
-    assert_eq!(descriptor.purpose, KeyPurpose::AgentController);
-    assert_eq!(descriptor.public_key.as_slice(), public_key.as_slice());
-    assert_eq!(
-        event_hash.into_array(),
-        sdk_id::event_hash_bytes(&event).unwrap()
-    );
-    use base64::Engine;
-    let envelope = sdk_id::Envelope {
-        hash: sdk_id::event_hash(&event).unwrap(),
-        event: event.clone(),
-        signature: base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(signature.as_slice()),
-    };
+    let envelope = signed_grant(&f, &id, 20, 10, "https://dmsg.net");
     sdk::validate_delegation_envelope(&envelope).unwrap();
     sdk::validate_delegation_acceptance(
         &envelope,
@@ -336,35 +253,45 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
         None,
     )
     .unwrap();
-    assert_eq!(f.principal(&id).last_nonces.get(&1), Some(&10));
+    // Audiences outside the published ceiling and foreign actors are refused
+    // by the same acceptance rules, without any home involvement.
+    let outside = signed_grant(&f, &id, 20, 11, "https://tokenlist.ing");
+    assert!(sdk::validate_delegation_acceptance(
+        &outside,
+        &document,
+        &principal_id,
+        time(&f.ic) as i64,
+        None,
+    )
+    .is_err());
+    let foreign = signed_grant(&f, &id, 21, 12, "https://dmsg.net");
+    assert!(sdk::validate_delegation_acceptance(
+        &foreign,
+        &document,
+        &principal_id,
+        time(&f.ic) as i64,
+        None,
+    )
+    .is_err());
 
-    // Replayed nonces, audiences outside the ceiling and foreign actors are refused.
-    let replay = grant_event(&f, &id, &public_key, 10, "https://dmsg.net");
-    assert_eq!(
-        f.sign_agent_event(1, &id, 1, jcs(&replay)),
-        Err(Error::VersionConflict)
-    );
-    let outside = grant_event(&f, &id, &public_key, 11, "https://tokenlist.ing");
-    assert_eq!(
-        f.sign_agent_event(1, &id, 1, jcs(&outside)),
-        Err(Error::Forbidden)
-    );
-    let foreign = grant_event(&f, &id, &Hash::new([9; 32]), 12, "https://dmsg.net");
-    assert!(f.sign_agent_event(1, &id, 1, jcs(&foreign)).is_err());
-
-    // Retirement takes effect in the home immediately and is published.
+    // Rotation registers a successor that supersedes the retired generation.
     f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
         .unwrap();
-    let late = grant_event(&f, &id, &public_key, 13, "https://dmsg.net");
-    assert_eq!(
-        f.sign_agent_event(1, &id, 1, jcs(&late)),
-        Err(Error::Forbidden)
-    );
+    f.register_controller(1, &id, 2, 21, vec![1]).unwrap();
     let (document, bytes) = f.document(&id);
-    assert!(document.controllers.is_empty());
+    assert_eq!(document.controllers.len(), 1);
     assert_eq!(document.retired_controllers[0].id, actor);
+    let late = signed_grant(&f, &id, 20, 13, "https://dmsg.net");
+    assert!(sdk::validate_delegation_acceptance(
+        &late,
+        &document,
+        &principal_id,
+        time(&f.ic) as i64,
+        None,
+    )
+    .is_err());
     let info = f.principal(&id);
-    assert_eq!((info.state.version, info.published_version), (3, 3));
+    assert_eq!((info.state.version, info.published_version), (4, 4));
 
     // Only the account's home publishes, and never backwards.
     let publish = |caller: Principal, state: &PrincipalState| -> Result<Publication> {
@@ -372,7 +299,7 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
     };
     assert_eq!(publish(person(1), &info.state), Err(Error::Forbidden));
     let current = publish(f.user, &info.state).unwrap();
-    assert_eq!(current.version, 3);
+    assert_eq!(current.version, 4);
     assert_eq!(current.document_digest, sha256(&bytes));
     let mut older = info.state.clone();
     older.version = 2;
@@ -384,7 +311,7 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
         Err(Error::IdempotencyConflict)
     );
     let mut stale_time = info.state.clone();
-    stale_time.version = 4;
+    stale_time.version = 5;
     assert_eq!(publish(f.user, &stale_time), Err(Error::IntegrityFailed));
     let foreign_account = AccountId([1; 12]);
     let rejected: Result<Publication> = update(
@@ -406,157 +333,4 @@ fn hosted_principal_publishes_certified_documents_and_signs_acceptable_grants() 
     .unwrap();
     assert_eq!(f.document(&id).1, bytes);
     assert_eq!(f.directory_get("/unknown").status_code().as_u16(), 404);
-}
-
-#[test]
-fn invalid_hosted_events_are_rejected_before_entitlement_refresh() {
-    let f = Fixture::new();
-    let (id, public_key) = hosted_account(&f);
-    f.sign_agent_event(
-        1,
-        &id,
-        1,
-        jcs(&grant_event(&f, &id, &public_key, 10, "https://dmsg.net")),
-    )
-    .unwrap();
-    f.ic.advance_time(Duration::from_millis(61 * MINUTE));
-    f.ic.stop_canister(f.commerce, None).unwrap();
-    let before = f.account_id(1, &id);
-    let principal = f.principal(&id);
-    assert!(matches!(
-        f.sign_agent_event(1, &id, 1, "not-json".into()),
-        Err(Error::InvalidInput(_))
-    ));
-    let event = jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net"));
-    assert_eq!(f.sign_agent_event(1, &id, 2, event), Err(Error::NotFound));
-    let event = jcs(&grant_event(&f, &id, &public_key, 10, "https://dmsg.net"));
-    assert_eq!(
-        f.sign_agent_event(1, &id, 1, event),
-        Err(Error::VersionConflict)
-    );
-    assert_eq!(f.account_id(1, &id), before);
-    assert_eq!(f.principal(&id), principal);
-    f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
-        .unwrap();
-    let event = jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net"));
-    assert_eq!(f.sign_agent_event(1, &id, 1, event), Err(Error::Forbidden));
-}
-
-fn hosted_account(f: &Fixture) -> (AccountId, Hash) {
-    let ready: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    ready.unwrap();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::EnablePrincipal {
-            principal_type: PrincipalType::Person,
-        },
-    )
-    .unwrap();
-    let public_key = f
-        .controller_key(&id, 1)
-        .public_key
-        .as_slice()
-        .try_into()
-        .map(Hash::new)
-        .unwrap();
-    f.register_controller(
-        1,
-        &id,
-        AccountCommand::RegisterController {
-            generation: 1,
-            public_key,
-            name: None,
-            delegation: restricted(),
-            supersedes: vec![],
-        },
-    )
-    .unwrap();
-    f.ic.advance_time(Duration::from_millis(10));
-    (id, public_key)
-}
-
-#[test]
-fn entitlement_callback_rechecks_controller_retirement_without_an_epoch_change() {
-    let f = Fixture::new();
-    let (id, public_key) = hosted_account(&f);
-    let state = f.account_id(1, &id);
-    let second = device(2);
-    let op = digest("test-operation", &(&id, state.account_version));
-    let proof = key(2)
-        .sign(
-            digest(
-                "dmsg/add-device/v1",
-                &(f.user, &id, &second, state.account_version, op),
-            )
-            .as_slice(),
-        )
-        .to_bytes()
-        .into();
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::AddDevice {
-            device: second,
-            proof,
-        },
-    )
-    .unwrap();
-    let nonce = Hash::new([88; 32]);
-    let bind: Result<()> = update(
-        &f.ic,
-        f.user,
-        person(2),
-        "begin_auth_binding",
-        (id, nonce, time(&f.ic) + MINUTE),
-    );
-    bind.unwrap();
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::BindAuth {
-            principal: person(2),
-            nonce,
-        },
-    )
-    .unwrap();
-    let request = f.agent_request(
-        2,
-        &id,
-        1,
-        jcs(&grant_event(&f, &id, &public_key, 11, "https://dmsg.net")),
-    );
-    let call =
-        f.ic.submit_call(
-            f.user,
-            person(2),
-            "sign_agent_event",
-            candid::encode_one(request.clone()).unwrap(),
-        )
-        .unwrap();
-    f.ic.advance_time(Duration::from_millis(1));
-    let before = f.account_id(2, &id);
-    f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
-        .unwrap();
-    let result: Result<ExecutionResult> =
-        candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
-    assert_eq!(result, Err(Error::Forbidden));
-    let after = f.account_id(2, &id);
-    assert_eq!(after.security_epoch, before.security_epoch);
-    assert_eq!(
-        after.devices[&Hash::new([2; 32])].next_sequence,
-        before.devices[&Hash::new([2; 32])].next_sequence
-    );
-    assert!(f.principal(&id).last_nonces.is_empty());
-    let missing: Result<ExecutionResult> = query(
-        &f.ic,
-        f.user,
-        person(2),
-        "get_execution",
-        (id, request.approval.request_id),
-    );
-    assert_eq!(missing, Err(Error::ResultExpired));
 }

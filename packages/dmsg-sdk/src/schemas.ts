@@ -38,8 +38,6 @@ export const schemas = {
     "app_id": "String",
     "config_version": "u64",
     "origins": "Vec<String>",
-    "user_homes": "Vec<Principal>",
-    "cose_homes": "Vec<Principal>",
     "product_ids": "Vec<String>",
     "capabilities": "Vec<AppCapability>",
     "profiles": "Vec<SigningProfile>",
@@ -574,35 +572,7 @@ export const schemas = {
   "KeyPurpose": [
     "AppAction",
     "FileAttestation",
-    "Statement",
-    "ContentRoot",
-    "AgentController"
-  ],
-  "Algorithm": [
-    "Ed25519",
-    "EcdsaSecp256k1",
-    "VetKdBls12381"
-  ],
-  "KeyDescriptor": {
-    "key_id": "ByteBuf",
-    "account_id": "AccountId",
-    "purpose": "KeyPurpose",
-    "algorithm": "Algorithm",
-    "home_cose": "Principal",
-    "master_key_name": "String",
-    "environment": "Environment",
-    "derivation_version": "u16",
-    "key_generation": "u64",
-    "public_key": "ByteBuf",
-    "public_key_fingerprint": "Hash"
-  },
-  "ExecutionStatus": [
-    "Authorized",
-    "Executing",
-    "Completed",
-    "Failed",
-    "Unknown",
-    "ResultExpired"
+    "Statement"
   ],
   "ExecutionReceipt": {
     "schema": "u16",
@@ -614,10 +584,8 @@ export const schemas = {
     "approved_at": "u64",
     "expires_at": "u64",
     "origin": "String",
-    "max_cycles": "u128",
     "to_be_signed_digest": "Hash",
     "public_key_fingerprint": "Hash",
-    "status": "ExecutionStatus",
-    "signature_digest": "Option<Hash>"
+    "signature_digest": "Hash"
   }
 } as const

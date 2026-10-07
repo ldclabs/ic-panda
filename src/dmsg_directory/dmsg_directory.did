@@ -109,8 +109,8 @@ type Error = variant {
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
-// Hosted controller record. Its key is the COSE `AgentController` key of this
-// generation; key, `valid_from`, `delegation` and `supersedes` never change.
+// Controller record. The key is generated and held by the owner's client;
+// key, `valid_from`, `delegation` and `supersedes` never change.
 type HostedController = record {
   // Earliest untrusted signature time after compromise; requires retirement.
   invalid_from : opt nat64;
@@ -122,7 +122,7 @@ type HostedController = record {
   supersedes : vec nat32;
   // Optional display label; the only field that may change.
   name : opt text;
-  // Positive hosted-key generation, allocated once and never reused.
+  // Positive controller generation, allocated once and never reused.
   generation : nat32;
   // Binding start (inclusive): the user-home commit time.
   valid_from : nat64;

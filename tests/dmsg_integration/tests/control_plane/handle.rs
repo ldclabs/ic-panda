@@ -126,6 +126,7 @@ fn with_max_pending(f: &Fixture, max_pending: u32) {
             environment: Environment::Local,
             issuer_namespace: NAMESPACE.into(),
             user_homes: vec![f.user],
+            registration_homes: vec![f.user],
             ledger: f.ledger,
             ledger_fee: 10,
             max_pending,

@@ -6,7 +6,7 @@ import { decodeCanonical, type AppAction, validateAppAction } from 'dmsg-sdk'
 import { candidValue } from './account'
 import { canonical } from './codec'
 const service = idlFactory({ IDL }) as IDL.ServiceClass
-const requestType = service._fields.find(([name]) => name === 'sign_app_action')![1]
+const requestType = service._fields.find(([name]) => name === 'attest_app_action')![1]
   .argTypes[0] as IDL.RecordClass
 const actionType = requestType._fields.find(([name]) => name === 'action')![1]
 export { toCandid } from 'dmsg-sdk'

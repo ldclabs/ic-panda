@@ -3,7 +3,7 @@
 //! A login Principal authenticates a caller; a device key authorizes a sensitive
 //! operation. AccountId survives changes to either. Public views are not storage
 //! records. Times are Unix milliseconds unless a field explicitly says otherwise.
-use crate::{agent::*, cose::*, handle::HandleIntent, *};
+use crate::{agent::*, handle::HandleIntent, *};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -12,6 +12,9 @@ use std::collections::BTreeMap;
 pub const MAX_DEVICES: usize = 16;
 /// Maximum login Principal bindings per account (8).
 pub const MAX_AUTH_BINDINGS: usize = 8;
+/// Recovery waiting period of a new account (72 hours); `SetRecoveryDelay`
+/// changes it within one to seven days.
+pub const DEFAULT_RECOVERY_DELAY_MS: u64 = 3 * DAY;
 
 /// Account device role, distinct from ICP canister controller privileges.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -27,11 +30,11 @@ pub enum ControllerRole {
 pub enum Capability {
     /// Sign ordinary content under device authority.
     ContentSign,
-    /// Request content-root derivation for vault access.
+    /// Read the vault: receive a content-root envelope and open vault entries.
     VaultUnlock,
     /// Reserve and commit content roots.
     RootManage,
-    /// Approve formal document signing.
+    /// Approve formal document attestations.
     FormalApprove,
     /// Authorize recipient payment offers.
     PaymentOffer,
@@ -45,7 +48,7 @@ pub struct DeviceInput {
     pub device_id: Hash,
     /// 32-byte Ed25519 verification key; protocol validation rejects invalid/weak keys.
     pub signing_pub: Hash,
-    /// 32-byte X25519 public key for recovery/device HPKE envelopes.
+    /// 32-byte X25519 public key receiving content-root and channel HPKE envelopes.
     pub hpke_pub: Hash,
     /// Account device role; capabilities are checked separately.
     pub role: ControllerRole,
@@ -68,20 +71,6 @@ pub struct Device {
     pub next_sequence: u64,
 }
 
-/// Offline recovery public keys and delayed takeover policy.
-/// No private recovery key or recovery code is stored in this value.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RecoveryPolicy {
-    /// Recovery-policy generation; replacement must increment the current value.
-    pub generation: u64,
-    /// 32-byte Ed25519 verification key; protocol validation rejects invalid/weak keys.
-    pub signing_pub: Hash,
-    /// 32-byte X25519 public key for recovery/device HPKE envelopes.
-    pub hpke_pub: Hash,
-    /// Recovery waiting period in milliseconds.
-    pub delay_ms: u64,
-}
-
 /// Whether new vault writes may use the committed root.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum VaultWriteState {
@@ -93,33 +82,23 @@ pub enum VaultWriteState {
     RekeyRequired,
 }
 
-/// Account control state, independent of local application locking.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum AccountStatus {
-    /// Account is not in disputed recovery.
-    Active,
-    /// Recovery has been disputed; sensitive operations are restricted.
-    RecoveryDisputed,
-}
-
 /// Commitment to an encrypted root bundle stored outside the user canister.
 /// This contains neither the bundle nor a plaintext content key.
+/// The commit checks that `recipients_digest` names exactly the active devices
+/// and the vetKD recovery identity of this generation, and that
+/// `bundle_digest = digest("dmsg/root-bundle-digest/2", (recipients_digest, body_digest))`.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentRootRef {
     /// Reserved content-root generation being committed.
     pub generation: u64,
-    /// Root bundle suite identifier; current commit validation requires `dmsg-root-v1`.
+    /// Root bundle suite identifier; current commit validation requires `dmsg-root-v2`.
     pub suite: String,
-    /// Fixed COSE canister responsible for key derivation and execution.
-    pub home_cose: Principal,
-    /// Key derivation format version; current public protocol uses 2.
-    pub derivation_version: u16,
-    /// vetKD key generation; must equal this root generation.
-    pub key_generation: u64,
     /// Commitment to the externally stored encrypted root bundle.
     pub bundle_digest: Hash,
-    /// Recovery public-key generation used to wrap the bundle.
-    pub recovery_generation: u64,
+    /// `digest("dmsg/root-recipients/1", (sorted active device IDs, generation))`.
+    pub recipients_digest: Hash,
+    /// SHA-256 of the bundle body that carries the envelopes.
+    pub body_digest: Hash,
 }
 
 /// Temporary compare-and-swap slot for a candidate content root.
@@ -137,20 +116,17 @@ pub struct RootReservation {
     pub expires_at: u64,
 }
 
-/// Account limits on sensitive chain-key execution.
-/// The default permits statement/file/app-action signing and hosted agent
-/// controllers, 20 executions and 800,000,000,000 cycles per day, which is
-/// also the user home's ceiling.
+/// Account limits on formal attestations and recovery derivations.
+/// The default permits statement, file and app-action attestations, 20 per
+/// day, which is also the user home's ceiling for root derivations.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SensitivePolicy {
     /// Whether sensitive execution is frozen by account policy.
     pub frozen: bool,
-    /// Key purposes allowed by this policy.
+    /// Statement purposes allowed by this policy.
     pub allowed_purposes: Vec<KeyPurpose>,
     /// Maximum executions in a daily budget window.
     pub daily_executions: u32,
-    /// Maximum ICP cycles in a daily budget window.
-    pub daily_cycles: u128,
 }
 
 impl Default for SensitivePolicy {
@@ -161,10 +137,8 @@ impl Default for SensitivePolicy {
                 KeyPurpose::FileAttestation,
                 KeyPurpose::Statement,
                 KeyPurpose::AppAction,
-                KeyPurpose::AgentController,
             ],
             daily_executions: 20,
-            daily_cycles: 800_000_000_000,
         }
     }
 }
@@ -180,57 +154,30 @@ pub struct OperationReceipt {
     pub account_version: u64,
 }
 
-/// Recovery-key-authorized proposal for a new login binding and device.
+/// Login-authorized proposal for a replacement device, executed after the
+/// account's recovery delay unless an active device disputes it.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryRequest {
     /// Idempotency identifier; reuse only with identical operation parameters.
     pub op_id: OpId,
-    /// Login Principal to bind after recovery completes.
+    /// Login Principal that submits the request and is bound after recovery completes.
     pub new_auth: Principal,
     /// Replacement device to enroll when recovery completes.
     pub device: DeviceInput,
-    /// Recovery-policy generation authorizing this request.
-    pub generation: u64,
     /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
     pub expires_at: u64,
 }
 
-/// Delayed recovery state, including any dispute and renewed confirmation.
+/// Delayed recovery state. A dispute by an active device cancels it.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PendingRecovery {
     /// Original delayed recovery proposal.
     pub request: RecoveryRequest,
     /// Earliest recovery execution time in Unix milliseconds.
     pub execute_after: u64,
-    /// Digest identifying the dispute, if one exists.
-    pub dispute: Option<Hash>,
-    /// Whether the recovery key has reconfirmed after a dispute.
-    pub reconfirmed: bool,
-    /// Reconfirmation with its own deadline; None retains the original deadline.
-    pub confirmation: Option<RecoveryConfirmation>,
 }
 
-/// Recovery-key reconfirmation binding a disputed recovery request.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct RecoveryConfirmation {
-    /// Operation identity used to bind approval and reconcile retries.
-    pub request_id: OpId,
-    /// Digest of the dispute explicitly acknowledged by the recovery key.
-    pub dispute: Hash,
-    /// Exclusive deadline in Unix milliseconds (`now < expires_at`).
-    pub expires_at: u64,
-}
-
-impl PendingRecovery {
-    /// Effective recovery deadline in Unix milliseconds, preferring reconfirmation when present.
-    pub fn expires_at(&self) -> u64 {
-        self.confirmation
-            .as_ref()
-            .map_or(self.request.expires_at, |c| c.expires_at)
-    }
-}
-
-/// Certified account security leaf (current schema 3).
+/// Certified account security leaf (current schema 4).
 /// The leaf path is the single raw 12-byte account ID. `devices_root` commits
 /// to the complete device map, including revocation and replay state. Verify
 /// certificate, witness and freshness before using it as authority.
@@ -238,7 +185,7 @@ impl PendingRecovery {
 pub struct SecuritySnapshot {
     /// Canonical absolute issuer URI identifying the signer.
     pub issuer: String,
-    /// Fixed COSE canister responsible for key derivation and execution.
+    /// Fixed COSE canister responsible for recovery derivation.
     pub home_cose: Principal,
     /// Version of this public certified-leaf format, not the storage schema.
     pub schema: u16,
@@ -246,24 +193,14 @@ pub struct SecuritySnapshot {
     pub account_id: AccountId,
     /// User canister authoritative for this account or deployment.
     pub home_user: Principal,
-    /// Current account control status.
-    pub account_status: AccountStatus,
     /// Account mutation revision used for optimistic concurrency.
     pub account_version: u64,
     /// Account security revision used to invalidate stale approvals.
     pub security_epoch: u64,
     /// `dmsg/devices/v1` digest of the complete BTreeMap<Hash, Device>.
     pub devices_root: Hash,
-    /// Current recovery-policy generation.
-    pub recovery_root_version: u64,
-    /// Recovery encryption public key, or None before configuration.
-    pub recovery_hpke_pub: Option<Hash>,
-    /// Recovery Ed25519 public key, or None before configuration.
-    pub recovery_signing_pub: Option<Hash>,
-    /// Replay counter for recovery authorization.
-    pub recovery_nonce: u64,
-    /// Configured recovery delay in milliseconds, if recovery is configured.
-    pub recovery_delay_ms: Option<u64>,
+    /// Configured recovery delay in milliseconds.
+    pub recovery_delay_ms: u64,
     /// Commitment to pending recovery state, if any.
     pub pending_recovery_digest: Option<Hash>,
     /// Committed content-root generation; zero before initialization.
@@ -284,7 +221,7 @@ pub struct UserInit {
     pub environment: Environment,
     /// Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
     pub issuer_namespace: String,
-    /// Fixed COSE canister responsible for key derivation and execution.
+    /// Fixed COSE canister responsible for recovery derivation.
     pub home_cose: Principal,
     /// Name registry responsible for this operation/deployment.
     pub handle_canister: Principal,
@@ -305,6 +242,27 @@ pub struct UserInit {
     pub directory_canister: Principal,
     /// Fixed SNS governance caller allowed, besides controllers, to adjust account limits.
     pub governance: Principal,
+}
+
+/// Operational counters of a user home.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct UserStats {
+    /// Accounts this home allocated.
+    pub accounts: u64,
+    /// Configured account capacity.
+    pub max_accounts: u64,
+    /// UTC day (days since the Unix epoch) of `created_today`.
+    pub day: u64,
+    /// Accounts created on `day`.
+    pub created_today: u32,
+    /// Configured daily new-account quota.
+    pub daily_new_accounts: u32,
+    /// Whether the device unlock secret has been generated.
+    pub unlock_ready: bool,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
 }
 
 /// Authenticated account creation with initial-device proof of possession.
@@ -356,17 +314,10 @@ pub enum AccountCommand {
         /// Login Principal to bind or remove.
         principal: Principal,
     },
-    /// Install recovery public keys with proof of possession.
-    SetRecovery {
-        /// New recovery or sensitive-execution policy, as selected by the command.
-        policy: RecoveryPolicy,
-        /// Recovery-key Ed25519 proof of possession; use the matching protocol digest helper.
-        proof: Ed25519Signature,
-    },
-    /// Confirm configured recovery material.
-    ConfirmRecovery {
-        /// Recovery-key Ed25519 confirmation; use the matching protocol digest helper.
-        proof: Ed25519Signature,
+    /// Change the delayed-recovery waiting period (one to seven days).
+    SetRecoveryDelay {
+        /// Recovery waiting period in milliseconds.
+        delay_ms: u64,
     },
     /// Replace sensitive execution policy.
     SetPolicy {
@@ -394,24 +345,22 @@ pub enum AccountCommand {
         /// Account-authorized name operation.
         intent: HandleIntent,
     },
-    /// Record a dispute against a pending recovery operation.
+    /// Cancel a pending recovery; any active device may approve this.
     DisputeRecovery {
-        /// Idempotency identifier; reuse only with identical operation parameters.
+        /// Operation ID of the pending recovery request.
         op_id: OpId,
-        /// Dispute digest to bind a later recovery-key reconfirmation.
-        dispute: Hash,
     },
     /// Publish this account as an Agent Delegation principal with no controllers.
     EnablePrincipal {
         /// Display type of the principal.
         principal_type: PrincipalType,
     },
-    /// Bind the next hosted controller key. Submit through `register_controller`,
-    /// which checks `public_key` against the COSE derivation.
+    /// Bind the next self-held controller key, proving possession of its
+    /// private key with the matching protocol digest helper.
     RegisterController {
-        /// Next unused hosted-key generation.
+        /// Next unused controller generation.
         generation: u32,
-        /// `AgentController` public key of that generation, as shown to the owner.
+        /// Raw Ed25519 public key of the controller.
         public_key: Hash,
         /// Optional display label.
         name: Option<String>,
@@ -419,22 +368,24 @@ pub enum AccountCommand {
         delegation: DelegationAuthority,
         /// Earlier generations whose credentials this key may manage.
         supersedes: Vec<u32>,
+        /// Controller Ed25519 proof of possession over the registration digest.
+        proof: Ed25519Signature,
     },
-    /// Retire a current hosted controller; it can never sign or return.
+    /// Retire a current controller; it can never sign or return.
     RetireController {
-        /// Hosted-key generation to retire.
+        /// Controller generation to retire.
         generation: u32,
     },
     /// Retire a controller if needed and record its earliest untrusted time.
     MarkControllerCompromised {
-        /// Hosted-key generation.
+        /// Controller generation.
         generation: u32,
         /// New cutoff; may only be added or moved earlier, never before `valid_from`.
         invalid_from: u64,
     },
     /// Change only a controller's display label.
     RenameController {
-        /// Hosted-key generation.
+        /// Controller generation.
         generation: u32,
         /// New label, or None to remove it.
         name: Option<String>,
@@ -466,7 +417,7 @@ pub struct AccountInfo {
     pub account_id: AccountId,
     /// User canister authoritative for this account or deployment.
     pub home_user: Principal,
-    /// Fixed COSE canister responsible for key derivation and execution.
+    /// Fixed COSE canister responsible for recovery derivation.
     pub home_cose: Principal,
     /// Login Principals bound to this stable dMsg account.
     pub auth_bindings: Vec<Principal>,
@@ -474,24 +425,21 @@ pub struct AccountInfo {
     pub account_version: u64,
     /// Account security revision used to invalidate stale approvals.
     pub security_epoch: u64,
-    /// Current account control state.
-    pub status: AccountStatus,
     /// Complete device map keyed by device ID, including revoked devices.
     pub devices: BTreeMap<Hash, Device>,
-    /// Configured offline recovery policy, if present.
-    pub recovery: Option<RecoveryPolicy>,
-    /// Whether recovery setup confirmation has completed.
-    pub recovery_checked: bool,
-    /// Replay counter for recovery authorization.
-    pub recovery_nonce: u64,
+    /// Configured recovery delay in milliseconds.
+    pub recovery_delay_ms: u64,
     /// Active delayed recovery procedure, if any.
     pub pending_recovery: Option<PendingRecovery>,
+    /// Device enrolled by the latest completed recovery and the root generation
+    /// it may derive; None once that device commits a new root.
+    pub recovered_device: Option<(Hash, u64)>,
     /// Committed content-root bundle reference, if initialized.
     pub current_root: Option<ContentRootRef>,
     /// Outstanding root reservation, if present.
     pub root_slot: Option<RootReservation>,
     /// Whether vault writes may proceed with the current root.
     pub vault_write_state: VaultWriteState,
-    /// Account-specific chain-key execution restrictions and budgets.
+    /// Account-specific attestation restrictions and budgets.
     pub sensitive_policy: SensitivePolicy,
 }

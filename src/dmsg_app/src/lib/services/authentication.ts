@@ -106,8 +106,7 @@ export class AuthenticationClient {
     const state = await this.account.refresh(record.bridge!.accountId)
     ensure(
       state.device?.input.capabilities.some((c) => 'FormalApprove' in c) &&
-        !state.info.sensitive_policy.frozen &&
-        'Active' in state.info.status,
+        !state.info.sensitive_policy.frozen,
       'FORBIDDEN'
     )
     await this.sourceLive(record)

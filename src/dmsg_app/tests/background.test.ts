@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { CryptoEngine } from '../src/lib/crypto/engine'
+import { boundEngine } from './support/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { canonical, id } from '../src/lib/protocol/codec'
 import { xidText } from '../src/lib/protocol/identity'
@@ -11,21 +12,17 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 it('dispatches exact authorized ciphertext while locked, reconciles a lost response, and cannot retarget or renew authority', async () => {
-  const engine = new CryptoEngine(),
-    setup = await engine.initialize('background-only-fixture')
-  await engine.verifyRecovery(setup.recoveryCode)
-  const db = await WorkspaceDB.open((await currentWorkspace())!),
-    meta = (await db.meta())!
   const account = xidText(new Uint8Array(12).fill(4)),
     origin = 'https://relay.test'
-  meta.account = { id: account, issuer: `https://dmsg.test/${account}`, homeUser: 'aaaaa-aa' }
-  meta.registered = true
-  await db.db.put('meta', { id: 'workspace', value: meta })
+  let { engine } = await boundEngine(account)
+  const db = await WorkspaceDB.open((await currentWorkspace())!),
+    meta = (await db.meta())!
   await engine.lock()
-  await engine.unlock('background-only-fixture')
+  engine = new CryptoEngine()
+  await engine.unlock()
   const context = {
     accountId: account,
-    issuer: meta.account.issuer,
+    issuer: meta.account!.issuer,
     deviceId: meta.deviceId,
     securityEpoch: 1,
     requestId: id(),

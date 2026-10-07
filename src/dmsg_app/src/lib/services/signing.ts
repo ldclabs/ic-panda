@@ -1,22 +1,18 @@
-import { config } from '../config'
 import { actionToCandid } from '../protocol/app-action'
 import { canonical as sdkCanonical } from 'dmsg-sdk'
 import { registeredApplication } from './registration'
 import { services } from './ic'
-import type { _SERVICE as CoseService } from '../canisters/generated/cose'
-import type {
-  SignRequest,
-  AppActionSignRequest,
-  ExecutionResult
-} from '../canisters/generated/user'
+import type { AttestRequest, AppActionAttestRequest, SignedArtifact } from '../canisters/generated/user'
 import { AccountClient, controlResult } from './account'
 import {
-  prepareSign,
-  recordedExecution,
+  checkArtifact,
+  deviceKeyThumbprint,
+  prepareAttest,
+  recordedAttestation,
   signBytes,
-  signingKey,
-  signingRequest,
-  type PreparedExecution
+  submitAttestation,
+  type AttestOperation,
+  type PreparedAttestation
 } from './cose'
 import {
   assertRequestUnchanged,
@@ -25,26 +21,16 @@ import {
   type SignatureRequest
 } from '../protocol/requests'
 import { decodeControl, encodeControl } from '../protocol/account'
-import {
-  b64,
-  canonical,
-  decodeCanonical,
-  digest,
-  equal,
-  hash,
-  hex,
-  unhex,
-  utf8
-} from '../protocol/codec'
+import { b64, canonical, decodeCanonical, digest, equal, hash, hex, unb64, unhex, utf8 } from '../protocol/codec'
 import { xidBytes, xidText } from '../protocol/identity'
-import { statementPurpose, verifyDocumentArtifact } from '../protocol/statements'
+import { statementPurpose } from '../protocol/statements'
 import { certifiedValue } from './certified'
 import { getRequest, setRequestState } from '../requests'
 import { ensure } from '../errors'
 
 interface Journal {
-  format: 'dmsg-signing-journal/2'
-  method: 'sign' | 'sign_app_action'
+  format: 'dmsg-signing-journal/3'
+  method: 'attest' | 'attest_app_action'
   externalId: string
   digest: string
   account: string
@@ -53,17 +39,15 @@ interface Journal {
   operation: string
   stage: 'authorized' | 'unknown' | 'complete' | 'failed' | 'result_expired'
   receipt?: string
-  keyDescriptorCbor?: string
   executionCertificateCbor?: string
   artifact?: { cose_sign1: string; cose_key: string }
   error?: string
 }
 export class SigningClient {
-  private prepared: PreparedExecution | null = null
+  private prepared: PreparedAttestation | null = null
   private external: PendingRequest | null = null
   constructor(
     readonly account: AccountClient,
-    readonly cose: CoseService,
     private readonly sourceLive: (request: PendingRequest) => Promise<void>
   ) {}
   private key(id: string) {
@@ -138,11 +122,7 @@ export class SigningClient {
       ensure(app.profiles.includes(profile), 'FORBIDDEN')
     }
   }
-  async prepare(
-    request: PendingRequest,
-    payload: SignatureRequest,
-    maxCycles = 100000000000n
-  ) {
+  async prepare(request: PendingRequest, payload: SignatureRequest) {
     assertRequestUnchanged(payload, request)
     await this.registered(request, payload)
     ensure(!(await this.journal(request.id)), 'Pending', '此请求已有执行记录，请对账原操作。')
@@ -178,29 +158,9 @@ export class SigningClient {
     }
     const usage = await this.usage(payload.accountId)
     ensure(BigInt(usage.remaining) > 0n, 'QuotaExceeded', '本月可用正式执行额度不足。')
-    const key = await signingKey(
-      this.cose,
-      xidBytes(payload.accountId),
-      statementPurpose(statement.content) === 'AppAction'
-        ? 'app_action'
-        : statementPurpose(statement.content) === 'Statement'
-          ? 'statement'
-          : 'file_attestation'
-    )
-    ensure(
-      key.home_cose.toText() === state.info.home_cose.toText() &&
-        equal(Uint8Array.from(key.account_id), xidBytes(payload.accountId)) &&
-        key.derivation_version === 2 &&
-        key.key_generation === 1n &&
-        'Ed25519' in key.algorithm &&
-        Object.keys(key.environment)[0].toLowerCase() === this.account.meta.environment &&
-        (config.environment === 'local'
-          ? ['key_1', 'test_key_1', 'dfx_test_key'].includes(key.master_key_name)
-          : key.master_key_name === 'key_1'),
-      'INTEGRITY_FAILED'
-    )
     await this.sourceLive(request)
-    this.prepared = prepareSign(
+    const devicePublicKey = unb64(this.account.meta.signingPublic)
+    this.prepared = prepareAttest(
       {
         homeUser: this.account.home,
         accountId: xidBytes(payload.accountId),
@@ -208,27 +168,16 @@ export class SigningClient {
         deviceId: unhex(this.account.meta.deviceId),
         securityEpoch: state.info.security_epoch,
         sequence: state.device.next_sequence,
-        expiresAt: BigInt(payload.expiresAt),
-        maxCycles
+        expiresAt: BigInt(payload.expiresAt)
       },
-      {
-        origin: request.source.origin,
-        key: {
-          algorithm: 'Ed25519',
-          kid: Uint8Array.from(key.key_id),
-          publicKeyFingerprint: Uint8Array.from(key.public_key_fingerprint)
-        },
-        statement: requestStatement(payload)
-      }
+      { origin: request.source.origin, statement: requestStatement(payload), devicePublicKey }
     )
     this.external = structuredClone(request)
     return {
       usage,
-      fingerprint: hex(Uint8Array.from(key.public_key_fingerprint)),
-      keyId: hex(Uint8Array.from(key.key_id)),
+      fingerprint: hex(this.prepared.kid),
       executionId: this.prepared.requestId,
-      maxCycles: maxCycles.toString(),
-      toBeSignedDigest: hash(this.prepared.toBeSigned!)
+      toBeSignedDigest: hash(this.prepared.toBeSigned)
     }
   }
   async execute() {
@@ -239,7 +188,7 @@ export class SigningClient {
     await this.sourceLive(request)
     const stored = await getRequest(request.id)
     ensure(stored?.state === 'awaiting_user' && stored.digest === request.digest, 'EXPIRED')
-    const operation = prepared.review.request as SignRequest
+    const operation = prepared.review.request
     const state = await this.account.refresh(accountText(operation.account_id))
     ensure(
       state.device?.next_sequence === operation.approval.sequence &&
@@ -248,14 +197,13 @@ export class SigningClient {
     )
     let job: Journal | null = null
     try {
-      const result = await prepared.approveAndExecute(
+      const artifact = await prepared.approveAndExecute(
         this.account.user,
         (data) => this.account.crypto.call('deviceSign', data),
         async (approved) => {
-          ensure(approved.kind !== 'derive_root', 'INTEGRITY_FAILED')
           await this.sourceLive(request)
           job = {
-            format: 'dmsg-signing-journal/2',
+            format: 'dmsg-signing-journal/3',
             method: approved.kind,
             externalId: request.id,
             digest: request.digest,
@@ -278,7 +226,7 @@ export class SigningClient {
         }
       )
       ensure(job, 'INTEGRITY_FAILED')
-      return this.finish(job, result)
+      return this.finish(job, artifact)
     } catch (error) {
       if (job) {
         const persisted =
@@ -288,7 +236,7 @@ export class SigningClient {
           throw error
         }
         // A returned error may follow a persisted authorization. Keep the original
-        // operation until get_execution/reconcile reports a stored terminal result.
+        // operation until get_attestation reports the stored artifact.
         persisted.error = error instanceof Error ? error.message : 'EXECUTION_UNKNOWN'
         persisted.stage = 'unknown'
         await this.save(persisted)
@@ -296,6 +244,12 @@ export class SigningClient {
       }
       throw error
     }
+  }
+  private operation(job: Journal): AttestOperation {
+    return {
+      kind: job.method,
+      request: decodeControl(job.method, job.operation)[0]
+    } as AttestOperation
   }
   async resume(id: string) {
     const record = await getRequest(id)
@@ -314,16 +268,15 @@ export class SigningClient {
       await setRequestState(job.externalId, job.stage, job.error)
       return job
     }
-    const request = decodeControl(job.method, job.operation)[0] as
-      SignRequest | AppActionSignRequest
-    let result = await recordedExecution(
+    const operation = this.operation(job)
+    let artifact = await recordedAttestation(
       this.account.user,
       xidBytes(job.account),
       unhex(job.executionId)
     )
-    if (!result) {
-      // Without a stored execution, an expired approval can never run; record a terminal state.
-      if (Date.now() >= Number(request.approval.expires_at)) {
+    if (!artifact) {
+      // Without a stored artifact, an expired approval can never run; record a terminal state.
+      if (Date.now() >= Number(operation.request.approval.expires_at)) {
         job.stage = 'result_expired'
         await this.save(job)
         await setRequestState(job.externalId, 'result_expired')
@@ -332,15 +285,28 @@ export class SigningClient {
       const external = await getRequest(id)
       ensure(external, 'NOT_FOUND')
       await this.sourceLive(external)
-      result = controlResult(
-        await (job.method === 'sign_app_action'
-          ? this.account.user.sign_app_action(request as AppActionSignRequest)
-          : this.account.user.sign(request as SignRequest))
-      )
+      const kid = deviceKeyThumbprint(unb64(this.account.meta.signingPublic))
+      try {
+        artifact = await submitAttestation(
+          this.account.user,
+          operation,
+          signBytes(operation.request, kid),
+          kid
+        )
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code !== 'EXECUTION_UNKNOWN') {
+          job.stage = 'failed'
+          job.error = error.code
+          await this.save(job)
+          await setRequestState(job.externalId, 'failed', job.error)
+          return job
+        }
+        throw error
+      }
     }
-    return this.finish(job, result)
+    return this.finish(job, artifact)
   }
-  private async finish(job: Journal, result: ExecutionResult) {
+  private async finish(job: Journal, artifact: SignedArtifact) {
     const current = await this.journal(job.externalId)
     if (
       current?.stage === 'complete' &&
@@ -348,28 +314,7 @@ export class SigningClient {
       current.digest === job.digest
     )
       return current
-    ensure(
-      equal(Uint8Array.from(result.request_id), unhex(job.executionId)),
-      'INTEGRITY_FAILED'
-    )
-    if ('Failed' in result.outcome) {
-      job.stage = 'failed'
-      job.error = Object.keys(result.outcome.Failed)[0]
-      await this.save(job)
-      await setRequestState(job.externalId, 'failed', job.error)
-      return job
-    }
-    if ('ResultExpired' in result.outcome) {
-      job.stage = 'result_expired'
-      await this.save(job)
-      await setRequestState(job.externalId, 'result_expired')
-      return job
-    }
-    ensure(
-      'Completed' in result.outcome && 'Signature' in result.outcome.Completed,
-      'EXECUTION_UNKNOWN'
-    )
-    Object.assign(job, await this.evidence(job, result))
+    Object.assign(job, await this.evidence(job, artifact))
     job.stage = 'complete'
     await this.save(job)
     await this.account.crypto.call('formalHistory', {
@@ -379,21 +324,10 @@ export class SigningClient {
     await setRequestState(job.externalId, 'signed')
     return job
   }
-  private async evidence(job: Journal, result: ExecutionResult) {
-    ensure(
-      'Completed' in result.outcome && 'Signature' in result.outcome.Completed,
-      'EXECUTION_UNKNOWN'
-    )
-    const output = result.outcome.Completed.Signature,
-      artifact = verifyDocumentArtifact(output.artifact),
-      request = signingRequest(
-        decodeControl(job.method, job.operation)[0] as SignRequest | AppActionSignRequest
-      )
-    ensure(
-      equal(artifact.toBeSigned, signBytes(request)),
-      'INTEGRITY_FAILED',
-      '签名对象与已批准的最终载荷不一致。'
-    )
+  private async evidence(job: Journal, artifact: SignedArtifact) {
+    const request = this.operation(job).request as AttestRequest | AppActionAttestRequest,
+      kid = deviceKeyThumbprint(unb64(this.account.meta.signingPublic)),
+      checked = checkArtifact(artifact, signBytes(request, kid), kid)
     const receipt = controlResult(
       await this.account.user.get_execution_receipt(
         xidBytes(job.account),
@@ -412,56 +346,35 @@ export class SigningClient {
     )
     const value = decodeCanonical<Record<string, unknown>>(proof.value)
     ensure(
-      value.public_key_fingerprint instanceof Uint8Array &&
-        equal(value.public_key_fingerprint, artifact.keyFingerprint) &&
-        value.device_id instanceof Uint8Array &&
-        equal(value.device_id, Uint8Array.from(request.approval.device_id)) &&
-        BigInt(value.max_cycles as number | bigint) === request.max_cycles &&
-        result.cycles_cost_upper_bound <= request.max_cycles,
-      'INTEGRITY_FAILED'
-    )
-    ensure(
-      artifact.statement.issuer === this.account.meta.account!.issuer &&
-        equal(artifact.keyFingerprint, Uint8Array.from(request.key.public_key_fingerprint)) &&
-        value.schema === 1 &&
-        value.status === 'Completed' &&
+      checked.statement.issuer === this.account.meta.account!.issuer &&
+        value.schema === 2 &&
         value.origin === job.origin &&
         value.issuer === this.account.meta.account!.issuer &&
         value.account_id instanceof Uint8Array &&
         equal(value.account_id, xidBytes(job.account)) &&
         value.request_id instanceof Uint8Array &&
         equal(value.request_id, unhex(job.executionId)) &&
+        value.device_id instanceof Uint8Array &&
+        equal(value.device_id, Uint8Array.from(request.approval.device_id)) &&
+        BigInt(value.security_epoch as number | bigint) === request.approval.security_epoch &&
+        BigInt(value.expires_at as number | bigint) === request.approval.expires_at &&
+        value.public_key_fingerprint instanceof Uint8Array &&
+        equal(value.public_key_fingerprint, kid) &&
         value.signature_digest instanceof Uint8Array &&
-        equal(value.signature_digest, unhex(hash(artifact.signature))) &&
+        equal(value.signature_digest, unhex(hash(checked.signature))) &&
         value.to_be_signed_digest instanceof Uint8Array &&
-        equal(value.to_be_signed_digest, unhex(hash(artifact.toBeSigned))),
+        equal(value.to_be_signed_digest, unhex(hash(checked.toBeSigned))),
       'INTEGRITY_FAILED'
     )
     const artifactView = {
-      cose_sign1: b64(Uint8Array.from(output.artifact.cose_sign1)),
-      cose_key: b64(Uint8Array.from(output.artifact.cose_key))
+      cose_sign1: b64(Uint8Array.from(artifact.cose_sign1)),
+      cose_key: b64(Uint8Array.from(artifact.cose_key))
     }
     const receiptView = b64(
       canonical({
         value: proof.value,
         certificate: Uint8Array.from(receipt.certificate),
         witness: Uint8Array.from(receipt.entries[0].witness)
-      })
-    )
-    const key = output.key
-    const keyDescriptorCbor = b64(
-      sdkCanonical({
-        key_id: Uint8Array.from(key.key_id),
-        account_id: Uint8Array.from(key.account_id),
-        purpose: Object.keys(key.purpose)[0],
-        algorithm: Object.keys(key.algorithm)[0],
-        home_cose: key.home_cose.toUint8Array(),
-        master_key_name: key.master_key_name,
-        environment: Object.keys(key.environment)[0],
-        derivation_version: BigInt(key.derivation_version),
-        key_generation: key.key_generation,
-        public_key: Uint8Array.from(key.public_key),
-        public_key_fingerprint: Uint8Array.from(key.public_key_fingerprint)
       })
     )
     const executionCertificateCbor = b64(
@@ -476,12 +389,7 @@ export class SigningClient {
         }))
       })
     )
-    return {
-      artifact: artifactView,
-      receipt: receiptView,
-      keyDescriptorCbor,
-      executionCertificateCbor
-    }
+    return { artifact: artifactView, receipt: receiptView, executionCertificateCbor }
   }
   async freshResult(id: string) {
     const job = await this.journal(id)
@@ -489,14 +397,13 @@ export class SigningClient {
       job?.stage === 'complete' && job.account === this.account.meta.account?.id,
       'AUTH_REQUIRED'
     )
-    const result = controlResult(
-      await this.account.user.get_execution(xidBytes(job.account), unhex(job.executionId))
+    const artifact = await recordedAttestation(
+      this.account.user,
+      xidBytes(job.account),
+      unhex(job.executionId)
     )
-    ensure(
-      equal(Uint8Array.from(result.request_id), unhex(job.executionId)),
-      'INTEGRITY_FAILED'
-    )
-    return { ...job, ...(await this.evidence(job, result)) }
+    ensure(artifact, 'RESULT_EXPIRED')
+    return { ...job, ...(await this.evidence(job, artifact)) }
   }
 }
 function accountText(bytes: Uint8Array | number[]) {

@@ -11,7 +11,6 @@
     type SharedSourceFile
   } from '../services/shared-migration'
   import { id } from '../protocol/codec'
-  let grantRecovery = $state('')
   let archives = $state<{ key: string; principal: string; objects: number }[]>([]),
     archiveKey = $state(''),
     grantMember = $state(''),
@@ -314,13 +313,6 @@
           status = '定向历史授权已保存。接收者需独立校验与恢复。'
         })}>批准并封装此频道历史</button
     >
-    <label
-      >若原接收设备已丢失，可输入该信封所属代的恢复码<input
-        type="password"
-        bind:value={grantRecovery}
-        autocomplete="off"
-      /></label
-    >
     {#each Object.values(view.grants ?? {}).filter((g) => g.grant.scope.account === session.meta?.account?.id) as value}<div
         class="settings-row"
       >
@@ -329,12 +321,7 @@
           disabled={!client || session.busy}
           onclick={() =>
             session.run(async () => {
-              const result = await client!.receiveHistory(
-                view!,
-                value.grant.scope.grant_id,
-                grantRecovery || undefined
-              )
-              grantRecovery = ''
+              const result = await client!.receiveHistory(view!, value.grant.scope.grant_id)
               status = `已导入 ${result.count} 项；${result.gaps.length} 项缺口。请在旧版迁移页检查并导出恢复包。`
               await session.refresh()
             })}>接收、解密并验证</button

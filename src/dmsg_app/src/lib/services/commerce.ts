@@ -216,12 +216,7 @@ export class CommerceClient {
       appId,
       origin,
       'Checkout',
-      {
-        commerce: this.commerceId,
-        user: this.account.home.toText(),
-        cose: info.home_cose.toText(),
-        environment: this.account.meta.environment
-      }
+      { commerce: this.commerceId, environment: this.account.meta.environment }
     )
   }
   private async registration(request: CheckoutRequest, origin: string) {

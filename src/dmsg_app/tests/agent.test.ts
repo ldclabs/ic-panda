@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { Principal } from '@icp-sdk/core/principal'
 import {
-  agentExecutionKind,
   agentId,
   delegationId,
   eventHash,
   eventText,
-  executionApprovalMessage,
   grantEvent,
   isAgentId,
   jcs,
   type Json
 } from '../src/lib/protocol/agent'
-import { accountApprovalMessage } from '../src/lib/protocol/account'
-import { b64, digest, hex } from '../src/lib/protocol/codec'
+import { accountApprovalMessage, controllerPopMessage } from '../src/lib/protocol/account'
+import { b64, hex } from '../src/lib/protocol/codec'
 import { xidText } from '../src/lib/protocol/identity'
 import type { AccountMutation } from '../src/lib/canisters/generated/user'
 
@@ -35,7 +33,7 @@ const vector = {
   jcs: '{"actor":"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw","created_at":1779753600000,"nonce":1779753600000,"payload":{"capabilities":["research","code-review"],"extra":{},"id":"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw","name":"ResearchAgent"},"protocol":"agent-profile/1.0","type":"profile.update"}',
   hash: 'pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs'
 }
-const home = Principal.fromUint8Array(new Uint8Array([9, 1])).toUint8Array()
+const home = Principal.fromUint8Array(new Uint8Array([9, 1]))
 const account = new Uint8Array(12).fill(7)
 
 describe('agent delegation events', () => {
@@ -83,32 +81,7 @@ describe('agent delegation events', () => {
       ).toThrow()
   })
 
-  it('approves the exact execution kind the user home verifies (Rust vector)', () => {
-    const event =
-      '{"actor":"did:agent:AQ","created_at":1,"nonce":1,"payload":{},"protocol":"agent-delegation/1.0","type":"delegation.revoke"}'
-    const deviceId = new Uint8Array(32).fill(3)
-    const requestId = digest('dmsg/execution-request/v2', [account, 4n, deviceId, 5n])
-    expect(hex(requestId)).toBe('3314ea786e3936efdc446d44c256d3806f9eda70a222abb76597c0a7cd73d5c9')
-    const message = executionApprovalMessage({
-      home,
-      account,
-      deviceId,
-      securityEpoch: 4n,
-      sequence: 5n,
-      requestId,
-      expiresAt: 1790000000000n,
-      kind: agentExecutionKind(
-        2,
-        event,
-        `https://id.dmsg.test/${xidText(account)}`,
-        `chrome-extension://${'a'.repeat(32)}`
-      ),
-      maxCycles: 100000000000n
-    })
-    expect(hex(message)).toBe('19dbc3fca708066f83258d4eb2c0cedfab5a45f7298c223af2f73840588f32bc')
-  })
-
-  it('approves a controller registration exactly as Rust (Rust vector)', () => {
+  it('approves a controller registration and its proof of possession exactly as Rust (Rust vectors)', () => {
     const request: AccountMutation = {
       account_id: account,
       expected_version: 10n,
@@ -120,7 +93,8 @@ describe('agent delegation events', () => {
           delegation: {
             Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] }
           },
-          supersedes: [1]
+          supersedes: [1],
+          proof: new Uint8Array(64).fill(8)
         }
       },
       approval: {
@@ -132,8 +106,25 @@ describe('agent delegation events', () => {
         signature: new Uint8Array()
       }
     }
-    expect(hex(accountApprovalMessage(Principal.fromUint8Array(home), request))).toBe(
-      'e41be524bc2a4fa8893ae6ac85723da8f743cc2fc2aa3c8dc215bd6c5e2a542a'
+    expect(hex(accountApprovalMessage(home, request))).toBe(
+      'ae7310bf0af95efc4d2c74d6ea423d7e91d91fec725c448ffba5f96708975d3f'
     )
+    expect(
+      hex(
+        controllerPopMessage(
+          home,
+          account,
+          2,
+          { Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] } },
+          [1],
+          new Uint8Array(32).fill(6)
+        )
+      )
+    ).toBe('c9162d454dbc36395e917294213c1e23a6b526c359244b0e0de19aa2d36d0ee0')
+    expect(
+      hex(
+        controllerPopMessage(home, account, 2, { Unrestricted: null }, [1], new Uint8Array(32).fill(6))
+      )
+    ).not.toBe('c9162d454dbc36395e917294213c1e23a6b526c359244b0e0de19aa2d36d0ee0')
   })
 })

@@ -1,10 +1,11 @@
 # Application action profile v1
 
-Status (2026-09-24): implemented. Browser `signAction`, product-authority admission,
-account linkage, device approval, the existing execution quota/journal, confirmation
-UI and independent TokenList receipt consumption are connected. Actual local Wasm
-covers protected TokenList session → prepare → dMsg user/COSE → project commit and
-idempotent replay; production release configuration is separate.
+Status (2026-10-07): implemented. Browser `signAction`, product-authority admission,
+account linkage, device signature and approval, the existing execution quota/journal,
+confirmation UI and independent TokenList receipt consumption are connected. Actual
+local Wasm covers protected TokenList session → prepare → device signature →
+`dmsg_user.attest_app_action` → certified receipt → project commit and idempotent
+replay; production release configuration is separate.
 
 ## Signed object
 
@@ -12,9 +13,9 @@ idempotent replay; production release configuration is separate.
 `alg` (1), `crit` (2) = `[15,16]`, content type (3) = `application/cbor`, `kid` (4),
 CWT claims (15) = `{1: issuer}`, and `typ` (16). There is no separate `sub` or
 claimed `iat` that could contradict the typed action. External AAD is empty.
-Ed25519 (-19) and ES256K (-47) retain their existing algorithm rules. App actions
-use the separate `AppAction` key purpose; the three document profiles and their
-key derivation inputs are unchanged.
+The signature is Ed25519 (-19) by the approving device key, exactly as for the
+three document profiles; `AppAction` is a separate policy purpose in the account's
+`SensitivePolicy`.
 
 The payload is deterministic CBOR of `AppAction` from
 [integration.cddl](integration.cddl). Unlike the existing document profiles,
@@ -60,12 +61,13 @@ reconstruct the product intent, fetch files, authenticate account linkage or
 verify current authority. The independent SDK exposes shape/commitment, COSE and
 IC certificate verification as separate checks.
 
-The document-only `SignRequest::into_execution` explicitly rejects `AppAction`.
-An application action cannot be sent through `dmsg_user.sign` as a document.
-`sign_app_action` additionally calls the fixed product authority for the exact
-prepared body/account and rechecks account/device/configuration after the await.
-It uses the same durable execution quotas, original request retries and certified
-receipt machinery as other formal signing. A generic document cannot bypass it.
+The document-only `dmsg_user.attest` rejects `AppAction` content with
+`UnsupportedProtocol`. `attest_app_action` takes `AppActionAttestRequest { account_id,
+issuer, action, signature, approval }`, calls the fixed product authority for the
+exact prepared body/account and rechecks account/device/configuration after the
+await. It uses the same monthly quota, original request replay (`get_attestation`)
+and certified receipt (schema 2) machinery as document attestation. A generic
+document cannot bypass it.
 
 ## Regression evidence
 

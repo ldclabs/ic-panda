@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { currentWorkspace, registerWorkspace, WorkspaceDB } from '../src/lib/db'
-import { CHUNK_SIZE } from '../src/lib/config'
-import type { Item, RecoveryArchive } from '../src/lib/models'
+import { CHUNK_SIZE, LOGIN_UNLOCK_INTERVAL_MS } from '../src/lib/config'
+import type { Item } from '../src/lib/models'
+import { random } from '../src/lib/protocol/codec'
+import { boundEngine } from './support/engine'
 
-const password = 'horse-river-silent-paper',
-  replacement = 'another-distinct-passphrase'
 const note = (title = 'Sensitive project title'): Item => ({
   type: 'api',
   title,
@@ -22,23 +22,10 @@ const note = (title = 'Sensitive project title'): Item => ({
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
+afterEach(() => vi.restoreAllMocks())
 describe('real encrypted workspace lifecycle', () => {
-  it('encrypts private metadata, preserves conflicts/tombstones, locks, and changes password', async () => {
-    let engine = new CryptoEngine()
-    const setup = await engine.initialize(password)
-    await expect(engine.saveItem({ item: note() })).rejects.toThrow('恢复')
-    await engine.lock()
-    engine = new CryptoEngine()
-    await engine.unlock(password)
-    expect((await engine.pendingRecovery()).recoveryCode).toBe(setup.recoveryCode)
-    const pendingDb = await WorkspaceDB.open((await currentWorkspace())!)
-    expect(JSON.stringify(await pendingDb.db.getAll('local_private'))).not.toContain(
-      setup.recoveryCode.replaceAll('-', '')
-    )
-    await engine.verifyRecovery(setup.recoveryCode)
-    expect(await pendingDb.db.get('local_private', 'pending-recovery')).toBeUndefined()
-    pendingDb.db.close()
-    await expect(engine.pendingRecovery()).rejects.toThrow()
+  it('encrypts private metadata, preserves conflicts/tombstones and locks', async () => {
+    let { engine } = await boundEngine()
     const first = await engine.saveItem({ item: note() })
     const updated = await engine.saveItem({
       item: { ...note(), body: 'new revision' },
@@ -70,28 +57,75 @@ describe('real encrypted workspace lifecycle', () => {
         )
       )
     )
-    for (const secret of [
-      note().title,
-      note().body,
-      note().secret,
-      'hidden-tag',
-      password,
-      setup.recoveryCode
-    ])
+    for (const secret of [note().title, note().body, note().secret, 'hidden-tag'])
       expect(dump).not.toContain(secret)
     db.db.close()
-    await engine.changePassword({ current: password, next: replacement })
     await engine.lock()
     await expect(engine.view()).rejects.toThrow('解锁')
-    await expect(engine.unlock(password)).rejects.toThrow()
-    await engine.unlock(replacement)
+    engine = new CryptoEngine()
+    await engine.unlock()
     expect((await engine.view()).entries[0].item.secret).toBe(note().secret)
     await engine.lock()
   })
-  it('detects damaged chunks; restores files, history and drafts on a fresh device without device private keys', async () => {
-    const engine = new CryptoEngine(),
-      setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
+  it('refuses writes until the workspace is bound to an account', async () => {
+    const engine = new CryptoEngine()
+    await engine.initialize()
+    await expect(engine.saveItem({ item: note() })).rejects.toThrow('绑定账户')
+    await expect(engine.importFile(new File([new Uint8Array(4)], 'f.bin'))).rejects.toThrow(
+      '绑定账户'
+    )
+    await engine.lock()
+  })
+  it('replaces the provisional key with the login-gated secret and keeps PRF unlock bounded', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_800_000_000_000)
+    let { engine } = await boundEngine()
+    const secret = random(),
+      prf = random()
+    expect((await engine.status()).meta?.unlock).toBe('provisional')
+    await engine.bindUnlockSecret(secret)
+    expect((await engine.status()).meta?.unlock).toBe('login')
+    const db = await WorkspaceDB.open((await currentWorkspace())!)
+    const envelope = await db.envelope()
+    expect(envelope.provisional).toBeUndefined()
+    expect(JSON.stringify(await db.db.getAll('key_envelopes'))).not.toContain(
+      Buffer.from(secret).toString('base64')
+    )
+    db.db.close()
+    await engine.saveItem({ item: note() })
+    await engine.lock()
+    engine = new CryptoEngine()
+    // The provisional path is gone; only the secret from the user home opens the store.
+    await expect(engine.unlock()).rejects.toThrow('登录')
+    await expect(engine.unlock(random())).rejects.toThrow('不匹配')
+    await expect(engine.unlockWithPrf(prf)).rejects.toThrow('生物识别')
+    await engine.unlock(secret)
+    expect((await engine.view()).entries[0].item.secret).toBe(note().secret)
+    await engine.enablePrf({ credentialId: 'Y3JlZA', output: prf })
+    expect((await engine.status()).meta?.prf?.credentialId).toBe('Y3JlZA')
+    await engine.lock()
+    engine = new CryptoEngine()
+    await expect(engine.unlockWithPrf(random())).rejects.toThrow('不匹配')
+    await engine.unlockWithPrf(prf)
+    expect((await engine.view()).entries).toHaveLength(1)
+    await engine.lock()
+    // A week without a login unlock sends the device back through the login path.
+    clock.mockReturnValue(1_800_000_000_000 + LOGIN_UNLOCK_INTERVAL_MS)
+    engine = new CryptoEngine()
+    await expect(engine.unlockWithPrf(prf)).rejects.toThrow('7 天')
+    await engine.unlock(secret)
+    await engine.lock()
+    engine = new CryptoEngine()
+    await engine.unlockWithPrf(prf)
+    await engine.disablePrf()
+    expect((await engine.status()).meta?.prf).toBeUndefined()
+    await engine.lock()
+    engine = new CryptoEngine()
+    await expect(engine.unlockWithPrf(prf)).rejects.toThrow('生物识别')
+    await engine.unlock(secret)
+    await engine.lock()
+  })
+  it('detects damaged chunks and imports files with resumable encryption', async () => {
+    const { engine } = await boundEngine()
     const empty = await engine.importFile(new File([], 'empty.bin'))
     expect((await engine.downloadFile(empty.key)).blob.size).toBe(0)
     const data = new Uint8Array(CHUNK_SIZE + 19).fill(42)
@@ -101,71 +135,17 @@ describe('real encrypted workspace lifecycle', () => {
     expect(
       new Uint8Array(await (await engine.downloadFile(file.key)).blob.arrayBuffer())
     ).toEqual(data)
-    const name = (await currentWorkspace())!,
-      db = await WorkspaceDB.open(name)
-    const local = await db.envelope()
+    const db = await WorkspaceDB.open((await currentWorkspace())!)
     const chunk = (await db.db.getAll('chunks'))[0]
     await db.db.put('chunks', { ...chunk, digest: '00'.repeat(32) })
     await expect(engine.downloadFile(file.key)).rejects.toThrow('校验')
-    await expect(engine.exportBackup(password)).rejects.toThrow('校验')
     await db.db.put('chunks', chunk)
-    const backup = await engine.exportBackup(password),
-      archive = JSON.parse(await backup.blob.text()) as RecoveryArchive
-    expect(JSON.stringify(archive)).not.toContain(local.privateBundle)
-    expect(archive.scope).toBe('local-inclusive')
-    await expect(
-      new CryptoEngine().restore({
-        file: new File([backup.blob], 'recovery.dmsg'),
-        code: setup.recoveryCode,
-        password: replacement
-      })
-    ).rejects.toThrow('空白浏览器配置')
     db.db.close()
+    expect((await engine.view()).entries).toHaveLength(2)
     await engine.lock()
-    globalThis.indexedDB = new IDBFactory()
-    const restored = new CryptoEngine()
-    const output = await restored.restore({
-      file: new File([backup.blob], 'recovery.dmsg'),
-      code: setup.recoveryCode,
-      password: replacement
-    })
-    expect(output.meta.deviceId).not.toBe(setup.meta.deviceId)
-    expect(output.meta.signingPublic).not.toBe(setup.meta.signingPublic)
-    expect(output.meta.subjectId).toBe(setup.meta.subjectId)
-    expect(output.meta.registered).toBe(false)
-    expect((await restored.view()).entries).toHaveLength(2)
-    expect((await restored.downloadFile(file.key)).blob.size).toBe(data.length)
-    await restored.lock()
-  })
-  it('rejects a tampered backup even if an attacker recomputes its public digest', async () => {
-    const engine = new CryptoEngine(),
-      setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
-    await engine.saveItem({ item: note() })
-    const backup = await engine.exportBackup(password),
-      archive = JSON.parse(await backup.blob.text()) as RecoveryArchive
-    await engine.lock()
-    archive.objects = []
-    const { hash, utf8 } = await import('../src/lib/protocol/codec')
-    const { authentication, manifestDigest, ...content } = archive
-    const bad = {
-      ...content,
-      authentication,
-      manifestDigest: hash(utf8(JSON.stringify(content)))
-    }
-    globalThis.indexedDB = new IDBFactory()
-    await expect(
-      new CryptoEngine().restore({
-        file: new File([JSON.stringify(bad)], 'tampered.dmsg'),
-        code: setup.recoveryCode,
-        password
-      })
-    ).rejects.toThrow('清单认证')
   })
   it('fences a previous owner and refuses lease takeover while it is active', async () => {
-    const engine = new CryptoEngine(),
-      setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
+    const { engine } = await boundEngine()
     const db = await WorkspaceDB.open((await currentWorkspace())!)
     await expect(db.acquire('other')).rejects.toThrow('WORKSPACE_BUSY')
     await db.invalidate()
@@ -189,12 +169,10 @@ describe('real encrypted workspace lifecycle', () => {
     expect([first, second]).toContain(await currentWorkspace())
   })
   it('resumes an interrupted file with identical ciphertext and rejects changed source bytes', async () => {
-    const engine = new CryptoEngine((progress) => {
+    const { engine } = await boundEngine(undefined, undefined, (progress) => {
       if (progress.stage === '正在分块加密' && progress.completed === 1)
         throw new Error('simulated page close')
     })
-    const setup = await engine.initialize(password)
-    await engine.verifyRecovery(setup.recoveryCode)
     const content = new Uint8Array(CHUNK_SIZE + 12).fill(55),
       file = new File([content], 'resume.bin')
     await expect(engine.importFile(file)).rejects.toThrow('simulated page close')
@@ -203,16 +181,9 @@ describe('real encrypted workspace lifecycle', () => {
     const db = await WorkspaceDB.open((await currentWorkspace())!),
       firstChunk = (await db.db.getAll('chunks'))[0]
     db.db.close()
-    const backup = await engine.exportBackup(password)
-    expect(backup.scope).toBe('partial')
     await engine.lock()
-    globalThis.indexedDB = new IDBFactory()
     const resumed = new CryptoEngine()
-    await resumed.restore({
-      file: new File([backup.blob], 'partial.dmsg'),
-      code: setup.recoveryCode,
-      password
-    })
+    await resumed.unlock()
     const changed = new Uint8Array(content)
     changed[0] ^= 1
     await expect(

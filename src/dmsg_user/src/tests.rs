@@ -1,5 +1,4 @@
 use super::*;
-use agent_protocols::identity::AgentId;
 use dmsg_runtime::Budget;
 use ed25519_dalek::{Signer, SigningKey};
 use std::collections::BTreeMap;
@@ -40,126 +39,6 @@ fn test_init() -> UserInit {
         directory_canister: p(9),
         governance: p(10),
     }
-}
-
-fn authorize(
-    s: &mut TestAccount,
-    caller: Principal,
-    request: &ExecuteRequest,
-    now: u64,
-) -> Result<crate::state::AuthorizedExecution> {
-    let fingerprint = digest("dmsg/execute-request/v2", request);
-    if let Some(e) = s.executions.get(&request.approval.request_id) {
-        ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
-        ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
-        return Ok(e.clone());
-    }
-    let prepared = execution::PreparedRequest::new(request)?;
-    let budget = execution::check(
-        &s.account,
-        caller,
-        request,
-        fingerprint,
-        now,
-        &test_init(),
-        &prepared,
-    )?;
-    let e = execution::commit(&mut s.account, request.clone(), fingerprint, budget, now);
-    s.account
-        .execution_expirations
-        .retain(|_, deadline| deadline.is_none_or(|at| at > now));
-    s.executions
-        .retain(|id, _| s.account.execution_expirations.contains_key(id));
-    s.executions.insert(e.grant.request_id, e.clone());
-    Ok(e)
-}
-
-fn record_execution_response(
-    s: &mut TestAccount,
-    request_id: OpId,
-    response: Result<ExecutionResult>,
-) -> Result<ExecutionResult> {
-    let e = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
-    let previous = e.result.clone();
-    let result = execution::record_execution_response(e, response);
-    // As in api::record_response, only a new terminal result settles once.
-    if result != previous && result.is_terminal() {
-        execution::settle_budget(&mut s.account, e);
-        s.account
-            .execution_expirations
-            .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
-    }
-    Ok(result)
-}
-
-fn signing_key() -> SigningKeyRef {
-    let public = sk(7).verifying_key().to_bytes();
-    let fp = key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
-    SigningKeyRef {
-        algorithm: SigningAlgorithm::Ed25519,
-        kid: fp.to_vec().into(),
-        public_key_fingerprint: fp,
-    }
-}
-
-fn alter_statement(request: &mut ExecuteRequest) {
-    if let ExecutionKind::Sign { to_be_signed, .. } = &mut request.kind {
-        let prepared = parse_signing_input(to_be_signed).unwrap();
-        let mut statement = prepared.statement().clone();
-        statement.content = StatementContent::Text("different payload".into());
-        *to_be_signed = prepare_cose(&statement, prepared.algorithm(), prepared.kid())
-            .unwrap()
-            .1
-            .into();
-    }
-}
-
-fn completed(s: &AccountState, request: &ExecuteRequest) -> ExecutionResult {
-    let ExecutionKind::Sign {
-        to_be_signed,
-        public_key_fingerprint,
-        ..
-    } = &request.kind
-    else {
-        panic!()
-    };
-    let artifact = parse_signing_input(to_be_signed)
-        .unwrap()
-        .into_signature(&sk(7).verifying_key().to_bytes())
-        .unwrap()
-        .finish(sk(7).sign(to_be_signed).to_bytes().to_vec())
-        .unwrap();
-    ExecutionResult {
-        request_id: request.approval.request_id,
-        cycles_cost_upper_bound: 1,
-        cycles_charged: 0,
-        outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
-            key: KeyDescriptor {
-                account_id: s.account_id,
-                key_id: signing_key().kid,
-                purpose: KeyPurpose::Statement,
-                algorithm: Algorithm::Ed25519,
-                home_cose: s.home_cose,
-                master_key_name: "key_1".into(),
-                environment: Environment::Local,
-                derivation_version: 2,
-                key_generation: 1,
-                public_key: sk(7).verifying_key().to_bytes().to_vec().into(),
-                public_key_fingerprint: *public_key_fingerprint,
-            },
-            artifact,
-        })),
-    }
-}
-
-fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
-    approval_message(
-        home,
-        &request.account_id,
-        EXECUTE_APPROVAL_DOMAIN,
-        &execute_approval_command(request),
-        &request.approval,
-    )
 }
 
 fn p(n: u8) -> Principal {
@@ -250,21 +129,286 @@ fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<Ope
     account::apply(s, p(1), &m, time, p(7))
 }
 
-fn initialized() -> TestAccount {
-    let mut s = fixture();
-    s.recovery = Some(RecoveryPolicy {
-        generation: 1,
-        signing_pub: sk(3).verifying_key().to_bytes().into(),
-        hpke_pub: Hash::new([3; 32]),
-        delay_ms: DAY,
-    });
-    s.recovery_checked = true;
-    s
+/// A generation-`generation` root reference wrapped to the account's active
+/// devices and the vetKD identity, with an arbitrary body digest.
+fn root_ref(s: &AccountState, generation: u64) -> ContentRootRef {
+    let recipients_digest = root_recipients_digest(&s.active_devices(), generation);
+    let body_digest = Hash::new([generation as u8; 32]);
+    ContentRootRef {
+        generation,
+        suite: "dmsg-root-v2".into(),
+        bundle_digest: root_bundle_digest(recipients_digest, body_digest),
+        recipients_digest,
+        body_digest,
+    }
+}
+
+fn committed(s: &mut AccountState, time: u64) -> ContentRootRef {
+    committed_by(s, 1, time)
+}
+
+/// Reserve and commit the next root generation with administrator device `n`.
+fn committed_by(s: &mut AccountState, n: u8, time: u64) -> ContentRootRef {
+    let expected = s.current_root.as_ref().map_or(0, |r| r.generation);
+    let op_id = digest("reserve", &(expected, time));
+    let reserve = mutation(
+        s,
+        AccountCommand::ReserveRoot {
+            expected_generation: expected,
+            op_id,
+        },
+        n,
+        time,
+    );
+    account::apply(s, p(n), &reserve, time, p(7)).unwrap();
+    let root = root_ref(s, s.root_slot.as_ref().unwrap().generation);
+    let commit = mutation(
+        s,
+        AccountCommand::CommitRoot {
+            expected_generation: expected,
+            op_id,
+            root: root.clone(),
+        },
+        n,
+        time + 1,
+    );
+    account::apply(s, p(n), &commit, time + 1, p(7)).unwrap();
+    root
+}
+
+fn statement(s: &AccountState) -> Statement {
+    Statement {
+        issuer: account_issuer(NAMESPACE, &s.account_id),
+        subject: Some("release".into()),
+        issued_at: None,
+        content: StatementContent::Text("Approved release v1".into()),
+    }
+}
+
+fn attest_request(s: &AccountState, n: u8, statement: Statement, time: u64) -> AttestRequest {
+    let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
+    let prepared =
+        prepare_attestation(&statement, &sk(n).verifying_key().to_bytes().into()).unwrap();
+    let mut r = AttestRequest {
+        account_id: s.account_id,
+        statement,
+        origin: "https://example.com".into(),
+        signature: sk(n).sign(&prepared.to_be_signed).to_bytes().into(),
+        approval: Approval {
+            device_id: Hash::new([n; 32]),
+            security_epoch: s.security_epoch,
+            sequence,
+            request_id: execution_request_id(
+                &s.account_id,
+                s.security_epoch,
+                Hash::new([n; 32]),
+                sequence,
+            ),
+            expires_at: time + MINUTE,
+            signature: Default::default(),
+        },
+    };
+    r.approval.signature = sk(n)
+        .sign(
+            approval_message(
+                s.home_user,
+                &r.account_id,
+                ATTEST_APPROVAL_DOMAIN,
+                &attest_approval_command(&r.statement, &r.origin, &r.signature),
+                &r.approval,
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    r
+}
+
+fn attest_fingerprint(r: &AttestRequest) -> Hash {
+    digest(
+        "dmsg/attest-request/v1",
+        &(
+            &r.account_id,
+            &r.statement,
+            &r.origin,
+            &r.signature,
+            &r.approval,
+        ),
+    )
+}
+
+fn attest(s: &mut TestAccount, caller: Principal, r: &AttestRequest, now: u64) -> Result<SignedArtifact> {
+    let fingerprint = attest_fingerprint(r);
+    if let Some(e) = s.executions.get(&r.approval.request_id) {
+        ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
+        ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
+        let ExecutionRecord::Attestation(a) = &e.record else {
+            panic!()
+        };
+        return Ok(a.artifact.clone());
+    }
+    let checked = execution::check_attestation(
+        &s.account,
+        caller,
+        &r.account_id,
+        &r.statement,
+        &r.origin,
+        &r.signature,
+        &r.approval,
+        fingerprint,
+        now,
+        &test_init(),
+    )?;
+    let e = execution::commit_attestation(
+        &mut s.account,
+        &r.approval,
+        r.origin.clone(),
+        &r.signature,
+        checked,
+        fingerprint,
+        now,
+    )?;
+    s.account
+        .execution_expirations
+        .retain(|_, deadline| deadline.is_none_or(|at| at > now));
+    s.executions
+        .retain(|id, _| s.account.execution_expirations.contains_key(id));
+    let ExecutionRecord::Attestation(a) = &e.record else {
+        panic!()
+    };
+    let artifact = a.artifact.clone();
+    s.executions.insert(e.request_id, e);
+    Ok(artifact)
+}
+
+// Standard compressed BLS12-381 G1 generator; no production transport key.
+fn transport() -> serde_bytes::ByteArray<48> {
+    let generator = "97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb";
+    let bytes: [u8; 48] = (0..generator.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&generator[i..i + 2], 16).unwrap())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    bytes.into()
+}
+
+fn derive_request(s: &AccountState, n: u8, generation: u64, time: u64) -> DeriveRootRequest {
+    let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
+    let mut r = DeriveRootRequest {
+        account_id: s.account_id,
+        generation,
+        transport_public_key: transport(),
+        max_cycles: 70_000_000_000,
+        approval: Approval {
+            device_id: Hash::new([n; 32]),
+            security_epoch: s.security_epoch,
+            sequence,
+            request_id: execution_request_id(
+                &s.account_id,
+                s.security_epoch,
+                Hash::new([n; 32]),
+                sequence,
+            ),
+            expires_at: time + MINUTE,
+            signature: Default::default(),
+        },
+    };
+    r.approval.signature = sk(n)
+        .sign(
+            approval_message(
+                s.home_user,
+                &r.account_id,
+                DERIVE_APPROVAL_DOMAIN,
+                &derive_approval_command(&r),
+                &r.approval,
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    r
+}
+
+fn derive(s: &mut TestAccount, caller: Principal, r: &DeriveRootRequest, now: u64) -> Result<AuthorizedExecution> {
+    let fingerprint = digest("dmsg/derive-request/v1", r);
+    if let Some(e) = s.executions.get(&r.approval.request_id) {
+        ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
+        ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
+        return Ok(e.clone());
+    }
+    let budget = execution::check_derivation(&s.account, caller, r, fingerprint, now)?;
+    let e = execution::commit_derivation(&mut s.account, r.clone(), fingerprint, budget, now);
+    s.executions.insert(e.request_id, e.clone());
+    Ok(e)
+}
+
+fn record_execution_response(
+    s: &mut TestAccount,
+    request_id: OpId,
+    response: Result<ExecutionResult>,
+) -> Result<ExecutionResult> {
+    let e = s.executions.get_mut(&request_id).ok_or(Error::NotFound)?;
+    let ExecutionRecord::Derivation { result, .. } = &e.record else {
+        panic!()
+    };
+    let previous = result.clone();
+    let result = execution::record_execution_response(e, response);
+    // As in api::record_response, only a new terminal result settles once.
+    if result != previous && result.is_terminal() {
+        let ExecutionRecord::Derivation { grant, .. } = &e.record else {
+            panic!()
+        };
+        execution::settle_budget(&mut s.account, grant, &result);
+        s.account
+            .execution_expirations
+            .insert(request_id, Some(e.retention()));
+    }
+    Ok(result)
+}
+
+fn completed(r: &DeriveRootRequest, s: &AccountState) -> ExecutionResult {
+    ExecutionResult {
+        request_id: r.approval.request_id,
+        cycles_cost_upper_bound: 1,
+        cycles_charged: 0,
+        outcome: ExecutionOutcome::Completed(EncryptedRootKey {
+            encrypted_key: vec![1; 192].into(),
+            key: KeyDescriptor {
+                account_id: s.account_id,
+                home_cose: s.home_cose,
+                master_key_name: "key_1".into(),
+                environment: Environment::Local,
+                derivation_version: 2,
+                key_generation: r.generation,
+                public_key: vec![9; 96].into(),
+                public_key_fingerprint: Hash::new([10; 32]),
+            },
+        }),
+    }
+}
+
+/// Recover the fixture onto device `n` with login `p(n)`.
+fn recovered(s: &mut TestAccount, n: u8, now: u64) -> OpId {
+    let request = RecoveryRequest {
+        op_id: digest("recovery", &(n, now)),
+        new_auth: p(n),
+        device: device(n, true),
+        expires_at: now + 10 * DAY,
+    };
+    let proof = sk(n)
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
+        .to_bytes();
+    s.auth_bindings.push(p(n));
+    recovery::begin_recovery(&mut s.account, p(n), &request, &proof, now).unwrap();
+    let after = s.pending_recovery.as_ref().unwrap().execute_after;
+    recovery::complete_recovery(&mut s.account, p(n), request.op_id, after).unwrap();
+    request.op_id
 }
 
 #[test]
 fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
-    let mut s = initialized();
+    let mut s = fixture();
     let m = mutation(
         &s,
         AccountCommand::ReserveRoot {
@@ -289,15 +433,7 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
         Err(Error::VersionConflict)
     );
     assert_eq!(s, before);
-    let root = ContentRootRef {
-        generation: 1,
-        suite: "dmsg-root-v1".into(),
-        home_cose: p(6),
-        derivation_version: 2,
-        key_generation: 1,
-        bundle_digest: Hash::new([1; 32]),
-        recovery_generation: 1,
-    };
+    let root = root_ref(&s, 1);
     apply(
         &mut s,
         AccountCommand::CommitRoot {
@@ -313,8 +449,102 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
 }
 
 #[test]
+fn commit_root_binds_the_active_devices_and_vetkd_identity() {
+    let mut s = fixture();
+    s.devices.insert(
+        Hash::new([2; 32]),
+        Device {
+            input: device(2, false),
+            added_at: 1,
+            added_by: Some(Hash::new([1; 32])),
+            revoked_at: None,
+            next_sequence: 0,
+        },
+    );
+    s.devices.insert(
+        Hash::new([3; 32]),
+        Device {
+            input: device(3, false),
+            added_at: 1,
+            added_by: Some(Hash::new([1; 32])),
+            revoked_at: Some(2),
+            next_sequence: 0,
+        },
+    );
+    apply(
+        &mut s,
+        AccountCommand::ReserveRoot {
+            expected_generation: 0,
+            op_id: Hash::new([5; 32]),
+        },
+        3,
+    )
+    .unwrap();
+    let good = root_ref(&s, 1);
+    assert_eq!(
+        good.recipients_digest,
+        root_recipients_digest(&[Hash::new([1; 32]), Hash::new([2; 32])], 1)
+    );
+    let commit = |s: &mut TestAccount, root: ContentRootRef| {
+        apply(
+            s,
+            AccountCommand::CommitRoot {
+                expected_generation: 0,
+                op_id: Hash::new([5; 32]),
+                root,
+            },
+            4,
+        )
+    };
+    let rewrap = |recipients: &[Hash], generation: u64, body: Hash| {
+        let recipients_digest = root_recipients_digest(recipients, generation);
+        ContentRootRef {
+            generation: 1,
+            suite: "dmsg-root-v2".into(),
+            bundle_digest: root_bundle_digest(recipients_digest, body),
+            recipients_digest,
+            body_digest: body,
+        }
+    };
+    let before = s.clone();
+    for bad in [
+        // A revoked device, a missing device, an unknown device, the wrong
+        // generation and the old suite are all refused.
+        rewrap(
+            &[Hash::new([1; 32]), Hash::new([2; 32]), Hash::new([3; 32])],
+            1,
+            good.body_digest,
+        ),
+        rewrap(&[Hash::new([1; 32])], 1, good.body_digest),
+        rewrap(
+            &[Hash::new([1; 32]), Hash::new([2; 32]), Hash::new([4; 32])],
+            1,
+            good.body_digest,
+        ),
+        rewrap(&[Hash::new([1; 32]), Hash::new([2; 32])], 2, good.body_digest),
+        ContentRootRef {
+            suite: "dmsg-root-v1".into(),
+            ..good.clone()
+        },
+        ContentRootRef {
+            bundle_digest: Hash::new([9; 32]),
+            ..good.clone()
+        },
+        ContentRootRef {
+            body_digest: Hash::new([0; 32]),
+            ..good.clone()
+        },
+    ] {
+        assert!(commit(&mut s, bad).is_err());
+        assert_eq!(s, before);
+    }
+    commit(&mut s, good.clone()).unwrap();
+    assert_eq!(s.current_root, Some(good));
+}
+
+#[test]
 fn abandoned_root_generation_is_never_reused() {
-    let mut s = initialized();
+    let mut s = fixture();
     apply(
         &mut s,
         AccountCommand::ReserveRoot {
@@ -347,7 +577,7 @@ fn abandoned_root_generation_is_never_reused() {
 }
 
 #[test]
-fn content_device_cannot_administer_or_approve_formal_execution() {
+fn content_device_cannot_administer_or_attest() {
     let mut s = fixture();
     s.devices.insert(
         Hash::new([2; 32]),
@@ -373,190 +603,280 @@ fn content_device_cannot_administer_or_approve_formal_execution() {
         Err(Error::Forbidden)
     );
     assert_eq!(s, before);
-    let req = execute_request(&s, 2, 1);
-    s.recovery_checked = true;
-    assert_eq!(authorize(&mut s, p(1), &req, 1), Err(Error::Forbidden));
-}
-
-fn execute_request(s: &AccountState, n: u8, time: u64) -> ExecuteRequest {
-    let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
-    let id = execution_request_id(
-        &s.account_id,
-        s.security_epoch,
-        Hash::new([n; 32]),
-        sequence,
-    );
-    let mut r = SignRequest {
-        account_id: s.account_id,
-        key: signing_key(),
-        origin: "https://example.com".into(),
-        statement: Statement {
-            issuer: account_issuer(NAMESPACE, &s.account_id),
-            subject: Some("release".into()),
-            issued_at: None,
-            content: StatementContent::Text("Approved release v1".into()),
-        },
-        max_cycles: 100,
-        approval: Approval {
-            device_id: Hash::new([n; 32]),
-            security_epoch: s.security_epoch,
-            sequence,
-            request_id: id,
-            expires_at: time + MINUTE,
-            signature: Default::default(),
-        },
-    }
-    .into_execution()
-    .unwrap();
-    r.approval.signature = sk(n)
-        .sign(execute_approval(s.home_user, &r).as_slice())
-        .to_bytes()
-        .into();
-    r
+    let req = attest_request(&s, 2, statement(&s), 1);
+    assert_eq!(attest(&mut s, p(1), &req, 1), Err(Error::Forbidden));
 }
 
 #[test]
-fn authorize_revoke_order_and_payload_tampering() {
-    let mut s = initialized();
-    let r = execute_request(&s, 1, 1);
-    let authorized = authorize(&mut s, p(1), &r, 1).unwrap();
-    let budget = s.budget.clone();
-    assert_eq!(authorize(&mut s, p(1), &r, 1).unwrap(), authorized);
-    assert_eq!(s.budget, budget);
-    let mut altered = r.clone();
-    altered.max_cycles += 1;
+fn attestations_bind_statement_origin_signature_and_device() {
+    let mut s = fixture();
+    let r = attest_request(&s, 1, statement(&s), 1);
+    let artifact = attest(&mut s, p(1), &r, 1).unwrap();
+    assert_eq!(verify_artifact(&artifact).unwrap(), r.statement);
+    assert_eq!((s.budget.executions, s.budget.cycles), (1, 0));
+    // An exact retry returns the stored artifact without consuming anything.
+    let after = s.clone();
+    assert_eq!(attest(&mut s, p(1), &r, 1).unwrap(), artifact);
+    assert_eq!(s, after);
+    let e = &s.executions[&r.approval.request_id];
+    let receipt = execution::receipt(e, NAMESPACE).unwrap();
+    assert_eq!(receipt.schema, 2);
+    assert_eq!(receipt.device_id, Hash::new([1; 32]));
+    match_execution_receipt(&artifact, &receipt).unwrap();
     assert_eq!(
-        authorize(&mut s, p(1), &altered, 1),
+        receipt.public_key_fingerprint,
+        key_thumbprint(&artifact.cose_key).unwrap()
+    );
+    // Tampering with any bound field is refused before any state changes.
+    let mut altered = r.clone();
+    altered.origin = "https://other.test".into();
+    assert_eq!(
+        attest(&mut s, p(1), &altered, 1),
         Err(Error::IdempotencyConflict)
     );
-    let mut s = initialized();
+    let mut s = fixture();
+    let r = attest_request(&s, 1, statement(&s), 1);
+    let before = s.clone();
+    let mut altered = r.clone();
+    altered.statement.content = StatementContent::Text("different".into());
+    assert_eq!(attest(&mut s, p(1), &altered, 1), Err(Error::IntegrityFailed));
+    let mut altered = r.clone();
+    altered.signature = sk(2).sign(b"x").to_bytes().into();
+    assert_eq!(attest(&mut s, p(1), &altered, 1), Err(Error::IntegrityFailed));
+    let mut forged = attest_request(&s, 1, statement(&s), 1);
+    forged.signature = sk(2)
+        .sign(
+            &prepare_attestation(&forged.statement, &sk(1).verifying_key().to_bytes().into())
+                .unwrap()
+                .to_be_signed,
+        )
+        .to_bytes()
+        .into();
+    forged.approval.signature = sk(1)
+        .sign(
+            approval_message(
+                s.home_user,
+                &forged.account_id,
+                ATTEST_APPROVAL_DOMAIN,
+                &attest_approval_command(&forged.statement, &forged.origin, &forged.signature),
+                &forged.approval,
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    assert_eq!(attest(&mut s, p(1), &forged, 1), Err(Error::IntegrityFailed));
+    assert_eq!(s, before);
     s.devices.get_mut(&Hash::new([1; 32])).unwrap().revoked_at = Some(1);
-    assert_eq!(
-        authorize(&mut s, p(1), &r, 1),
-        Err(Error::DeviceNotApproved)
-    );
-    let mut s = initialized();
-    let mut r = execute_request(&s, 1, 1);
-    alter_statement(&mut r);
-    assert_eq!(authorize(&mut s, p(1), &r, 1), Err(Error::IntegrityFailed));
-    assert_eq!(s.budget, Budget::default());
+    assert_eq!(attest(&mut s, p(1), &r, 1), Err(Error::DeviceNotApproved));
+    let mut s = fixture();
+    s.sensitive_policy.allowed_purposes = vec![KeyPurpose::FileAttestation];
+    assert_eq!(attest(&mut s, p(1), &r, 1), Err(Error::Forbidden));
+    let mut s = fixture();
+    s.sensitive_policy.frozen = true;
+    assert_eq!(attest(&mut s, p(1), &r, 1), Err(Error::Locked));
 }
 
 #[test]
-fn recovery_dispute_requires_one_fresh_delay_not_unlimited_veto() {
-    let mut s = initialized();
+fn attestations_count_against_the_daily_policy_and_the_window() {
+    let mut s = fixture();
+    s.sensitive_policy.daily_executions = 2;
+    for _ in 0..2 {
+        let r = attest_request(&s, 1, statement(&s), 1);
+        attest(&mut s, p(1), &r, 1).unwrap();
+    }
+    let refused = attest_request(&s, 1, statement(&s), 1);
+    let before = s.clone();
+    assert_eq!(
+        attest(&mut s, p(1), &refused, 1),
+        Err(Error::QuotaExceeded)
+    );
+    assert_eq!(s, before);
+    let tomorrow = attest_request(&s, 1, statement(&s), DAY + 1);
+    attest(&mut s, p(1), &tomorrow, DAY + 1).unwrap();
+
+    let mut s = fixture();
+    s.sensitive_policy.daily_executions = 100;
+    let mut requests = vec![];
+    for _ in 0..dmsg_runtime::WINDOW {
+        let r = attest_request(&s, 1, statement(&s), 1);
+        attest(&mut s, p(1), &r, 1).unwrap();
+        requests.push(r);
+    }
+    let next = attest_request(&s, 1, statement(&s), 2);
+    assert_eq!(attest(&mut s, p(1), &next, 2), Err(Error::QuotaExceeded));
+    // Results retire a day after their approval expired; receipts stay.
+    let later = 2 * DAY;
+    let next = attest_request(&s, 1, statement(&s), later);
+    attest(&mut s, p(1), &next, later).unwrap();
+    assert_eq!(s.executions.len(), 1);
+    assert_eq!(
+        attest(&mut s, p(1), &requests[0], later),
+        Err(Error::ResultExpired)
+    );
+}
+
+#[test]
+fn login_recovery_waits_for_the_delay_and_a_dispute_cancels_it() {
+    let mut s = fixture();
+    committed(&mut s, 1);
     let request = RecoveryRequest {
         op_id: Hash::new([4; 32]),
         new_auth: p(4),
         device: device(4, true),
-        generation: 1,
         expires_at: 10 * DAY,
     };
-    let signature = sk(3)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(s.home_user, &s.account_id, s.recovery_nonce, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes();
     let proof = sk(4)
-        .sign(
-            digest(
-                "dmsg/recovery-device/v1",
-                &(s.home_user, &s.account_id, &request),
-            )
-            .as_slice(),
-        )
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
         .to_bytes();
-    recovery::begin_recovery(&mut s, &request, &signature, &proof, 1).unwrap();
+    // Only a bound login may start a takeover.
+    assert_eq!(
+        recovery::begin_recovery(&mut s, p(4), &request, &proof, 1),
+        Err(Error::AuthRequired)
+    );
+    s.auth_bindings.push(p(4));
+    let mut wrong = proof;
+    wrong[0] ^= 1;
+    assert_eq!(
+        recovery::begin_recovery(&mut s, p(4), &request, &wrong, 1),
+        Err(Error::IntegrityFailed)
+    );
+    recovery::begin_recovery(&mut s, p(4), &request, &proof, 1).unwrap();
+    assert_eq!(
+        s.pending_recovery.as_ref().unwrap().execute_after,
+        1 + DEFAULT_RECOVERY_DELAY_MS
+    );
+    assert_eq!(
+        s.snapshot(NAMESPACE).pending_recovery_digest,
+        Some(digest(
+            "dmsg/pending-recovery/v1",
+            s.pending_recovery.as_ref().unwrap()
+        ))
+    );
+    // A retry keeps the original delay; completing early fails.
+    recovery::begin_recovery(&mut s, p(4), &request, &proof, 2).unwrap();
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(4), request.op_id, DAY),
+        Err(Error::Expired)
+    );
+    // Any active device cancels the takeover outright.
     apply(
         &mut s,
         AccountCommand::DisputeRecovery {
             op_id: request.op_id,
-            dispute: Hash::new([6; 32]),
         },
-        2,
+        3,
     )
     .unwrap();
+    assert!(s.pending_recovery.is_none());
     assert_eq!(
-        recovery::complete_recovery(&mut s, p(4), request.op_id, DAY + 2),
-        Err(Error::Locked)
+        recovery::complete_recovery(&mut s, p(4), request.op_id, 4 * DAY),
+        Err(Error::NotFound)
     );
-    let confirmation = RecoveryConfirmation {
-        request_id: request.op_id,
-        dispute: Hash::new([6; 32]),
-        expires_at: DAY + 2 + 2 * DAY,
-    };
-    let sig = sk(3)
-        .sign(
-            recovery_confirmation_message(
-                s.home_user,
-                &s.account_id,
-                s.recovery_nonce,
-                &request,
-                &confirmation,
-            )
-            .as_slice(),
-        )
-        .to_bytes();
-    recovery::reconfirm_recovery(&mut s, &confirmation, &sig, DAY + 2).unwrap();
+    // Without a dispute the replacement device takes over after the delay.
+    recovery::begin_recovery(&mut s, p(4), &request, &proof, 4).unwrap();
     let after = s.pending_recovery.as_ref().unwrap().execute_after;
-    apply(
-        &mut s,
-        AccountCommand::DisputeRecovery {
-            op_id: request.op_id,
-            dispute: Hash::new([7; 32]),
-        },
-        DAY + 3,
-    )
-    .unwrap();
-    assert_eq!(s.pending_recovery.as_ref().unwrap().execute_after, after);
     assert_eq!(
-        recovery::complete_recovery(&mut s, p(4), Hash::new([5; 32]), after),
-        Err(Error::IdempotencyConflict)
+        recovery::complete_recovery(&mut s, p(5), request.op_id, after),
+        Err(Error::AuthRequired)
     );
+    let epoch = s.security_epoch;
     recovery::complete_recovery(&mut s, p(4), request.op_id, after).unwrap();
     assert_eq!(s.auth_bindings, vec![p(4)]);
     assert_eq!(s.devices.len(), 1);
-    assert_eq!(s.status, AccountStatus::Active);
-    // A fresh recovery-key signature cannot reuse the retained completion ID.
-    let signature = sk(3)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(s.home_user, &s.account_id, s.recovery_nonce, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes();
-    let completed = s.clone();
+    assert_eq!(s.security_epoch, epoch + 1);
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
     assert_eq!(
-        recovery::begin_recovery(&mut s, &request, &signature, &proof, after),
+        s.info(NAMESPACE).recovered_device,
+        Some((Hash::new([4; 32]), 1))
+    );
+    let done = s.clone();
+    assert_eq!(
+        recovery::complete_recovery(&mut s, p(4), request.op_id, after + 1),
+        Ok(None)
+    );
+    assert_eq!(s, done);
+    assert_eq!(
+        recovery::begin_recovery(&mut s, p(4), &request, &proof, after),
         Err(Error::IdempotencyConflict)
     );
-    assert_eq!(s, completed);
+    assert_eq!(s, done);
 }
 
 #[test]
-fn definite_results_settle_the_reserved_budget() {
-    let mut s = initialized();
-    let usage = |s: &TestAccount| (s.budget.executions, s.budget.cycles);
-    // A completed signature keeps its execution and only the charged fee.
-    let r = execute_request(&s, 1, 1);
-    authorize(&mut s, p(1), &r, 1).unwrap();
-    assert_eq!(usage(&s), (1, 100));
-    let mut result = completed(&s, &r);
-    result.cycles_charged = 40;
-    record_execution_response(&mut s, r.approval.request_id, Ok(result)).unwrap();
-    assert_eq!(usage(&s), (1, 40));
-    // A later response returns the stored result without settling again.
-    record_execution_response(&mut s, r.approval.request_id, Err(Error::ExecutionUnknown)).unwrap();
-    assert_eq!(usage(&s), (1, 40));
-    // A failure COSE charged nothing for, such as a rejected call, returns both.
-    let r = execute_request(&s, 1, 2);
-    authorize(&mut s, p(1), &r, 2).unwrap();
+fn recovery_delay_is_bounded_and_frozen_while_a_takeover_is_pending() {
+    let mut s = fixture();
+    for delay in [DAY - 1, 8 * DAY] {
+        assert!(apply(
+            &mut s,
+            AccountCommand::SetRecoveryDelay { delay_ms: delay },
+            1
+        )
+        .is_err());
+    }
+    let epoch = s.security_epoch;
+    apply(&mut s, AccountCommand::SetRecoveryDelay { delay_ms: DAY }, 1).unwrap();
+    assert_eq!(s.recovery_delay_ms, DAY);
+    assert_eq!(s.snapshot(NAMESPACE).recovery_delay_ms, DAY);
+    assert_eq!(s.security_epoch, epoch + 1);
+    assert_eq!(s.vault_write_state, VaultWriteState::Uninitialized);
+    let request = RecoveryRequest {
+        op_id: Hash::new([4; 32]),
+        new_auth: p(4),
+        device: device(4, true),
+        expires_at: 10 * DAY,
+    };
+    let proof = sk(4)
+        .sign(recovery_device_message(s.home_user, &s.account_id, &request).as_slice())
+        .to_bytes();
+    s.auth_bindings.push(p(4));
+    recovery::begin_recovery(&mut s, p(4), &request, &proof, 2).unwrap();
+    assert_eq!(
+        apply(
+            &mut s,
+            AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY },
+            3
+        ),
+        Err(Error::Pending)
+    );
+}
+
+#[test]
+fn a_recovered_device_derives_the_committed_root_once_until_it_rekeys() {
+    let mut s = fixture();
+    committed(&mut s, 1);
+    let now = 10 * DAY;
+    // Only a recovered device may derive, and only the generation it recovered.
+    let unrecovered = derive_request(&s, 1, 1, now);
+    assert_eq!(
+        derive(&mut s, p(1), &unrecovered, now),
+        Err(Error::Forbidden)
+    );
+    recovered(&mut s, 4, now);
+    let at = now + 4 * DAY;
+    let other_generation = derive_request(&s, 4, 2, at);
+    assert_eq!(
+        derive(&mut s, p(4), &other_generation, at),
+        Err(Error::Forbidden)
+    );
+    let mut bad = derive_request(&s, 4, 1, at);
+    bad.transport_public_key = [1; 48].into();
+    assert_eq!(
+        derive(&mut s, p(4), &bad, at),
+        Err(Error::IntegrityFailed)
+    );
+    let r = derive_request(&s, 4, 1, at);
+    let e = derive(&mut s, p(4), &r, at).unwrap();
+    let ExecutionRecord::Derivation { grant, result } = &e.record else {
+        panic!()
+    };
+    assert_eq!((grant.generation, grant.execution_sequence), (1, 1));
+    assert_eq!(result.status(), ExecutionStatus::Authorized);
+    assert_eq!(s.budget.executions, 1);
+    let before = s.clone();
+    assert_eq!(derive(&mut s, p(4), &r, at).unwrap(), e);
+    assert_eq!(s, before, "an exact retry consumes no extra budget");
+    // A failed derivation returns the count; the device may try again.
     let failed = ExecutionResult {
         request_id: r.approval.request_id,
         outcome: ExecutionOutcome::Failed(Error::Unavailable("rejected".into())),
@@ -564,20 +884,42 @@ fn definite_results_settle_the_reserved_budget() {
         cycles_charged: 0,
     };
     record_execution_response(&mut s, r.approval.request_id, Ok(failed)).unwrap();
-    assert_eq!(usage(&s), (1, 40));
-    // An unknown outcome may have run and keeps the whole reservation.
-    let r = execute_request(&s, 1, 3);
-    authorize(&mut s, p(1), &r, 3).unwrap();
-    record_execution_response(&mut s, r.approval.request_id, Err(Error::ExecutionUnknown)).unwrap();
-    assert_eq!(usage(&s), (2, 140));
+    assert_eq!(s.budget.executions, 0);
+    let again = derive_request(&s, 4, 1, at);
+    derive(&mut s, p(4), &again, at).unwrap();
+    let mut wrong_key = completed(&again, &s);
+    if let ExecutionOutcome::Completed(output) = &mut wrong_key.outcome {
+        output.key.key_generation = 2;
+    }
+    assert_eq!(
+        record_execution_response(&mut s, again.approval.request_id, Ok(wrong_key))
+            .unwrap()
+            .outcome,
+        ExecutionOutcome::Unknown(Error::IntegrityFailed)
+    );
+    let done = completed(&again, &s);
+    assert_eq!(
+        record_execution_response(&mut s, again.approval.request_id, Ok(done.clone())),
+        Ok(done.clone())
+    );
+    assert_eq!(s.budget.executions, 1);
+    assert_eq!(
+        record_execution_response(&mut s, again.approval.request_id, Err(Error::ExecutionUnknown)),
+        Ok(done)
+    );
+    // Committing a new root ends the derivation right.
+    committed_by(&mut s.account, 4, at);
+    assert_eq!(s.info(NAMESPACE).recovered_device, None);
+    let rekeyed = derive_request(&s, 4, 2, at);
+    assert_eq!(derive(&mut s, p(4), &rekeyed, at), Err(Error::Forbidden));
 }
 
 #[test]
 fn budget_failure_is_atomic() {
     let mut budget = Budget::default();
-    budget.reserve(1, 10, 1, 10).unwrap();
+    budget.count(1, 1).unwrap();
     let before = budget.clone();
-    assert_eq!(budget.reserve(1, 1, 1, 10), Err(Error::QuotaExceeded));
+    assert_eq!(budget.count(1, 1), Err(Error::QuotaExceeded));
     assert_eq!(budget, before);
 }
 
@@ -587,170 +929,17 @@ fn snapshot_contains_no_auth_routes() {
     let snapshot = canonical(&s.snapshot(NAMESPACE));
     let map: BTreeMap<String, cbor2::Value> = cbor2::from_slice(&snapshot).unwrap();
     assert!(!map.contains_key("auth_bindings"));
-}
-
-#[test]
-fn recovery_requester_can_read_and_confirm_beyond_the_original_expiry() {
-    let mut s = initialized();
-    s.recovery.as_mut().unwrap().delay_ms = 7 * DAY;
-    let request = RecoveryRequest {
-        op_id: Hash::new([4; 32]),
-        new_auth: p(4),
-        device: device(4, true),
-        generation: 1,
-        expires_at: 1 + 14 * DAY,
-    };
-    let signature = sk(3)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(
-                    s.home_user,
-                    &s.account_id,
-                    s.snapshot(NAMESPACE).recovery_nonce,
-                    &request,
-                ),
-            )
-            .as_slice(),
-        )
-        .to_bytes();
-    let pop = sk(4)
-        .sign(
-            digest(
-                "dmsg/recovery-device/v1",
-                &(s.home_user, &s.account_id, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes();
-    recovery::begin_recovery(&mut s, &request, &signature, &pop, 1).unwrap();
-    apply(
-        &mut s,
-        AccountCommand::DisputeRecovery {
-            op_id: request.op_id,
-            dispute: Hash::new([6; 32]),
-        },
-        7 * DAY,
-    )
-    .unwrap();
-    let pending = recovery::recovery_request(&s, p(4)).unwrap().unwrap();
     assert_eq!(
-        recovery::recovery_request(&s, p(5)),
-        Err(Error::AuthRequired)
-    );
-    assert_eq!(
-        s.snapshot(NAMESPACE).pending_recovery_digest,
-        Some(digest("dmsg/pending-recovery/v1", &pending))
-    );
-    let confirmation = RecoveryConfirmation {
-        request_id: request.op_id,
-        dispute: pending.dispute.unwrap(),
-        expires_at: 15 * DAY,
-    };
-    let sig = sk(3)
-        .sign(
-            recovery_confirmation_message(
-                s.home_user,
-                &s.account_id,
-                s.recovery_nonce,
-                &request,
-                &confirmation,
-            )
-            .as_slice(),
-        )
-        .to_bytes();
-    let mut tampered = confirmation.clone();
-    tampered.expires_at += 1;
-    assert_eq!(
-        recovery::reconfirm_recovery(&mut s, &tampered, &sig, 7 * DAY + 2),
-        Err(Error::IntegrityFailed)
-    );
-    recovery::reconfirm_recovery(&mut s, &confirmation, &sig, 7 * DAY + 2).unwrap();
-    let deadline = s.pending_recovery.as_ref().unwrap().execute_after;
-    assert!(deadline > request.expires_at);
-    let pending = s.pending_recovery.clone();
-    recovery::begin_recovery(&mut s, &request, &signature, &pop, request.expires_at + 1).unwrap();
-    assert_eq!(s.pending_recovery, pending);
-    apply(
-        &mut s,
-        AccountCommand::DisputeRecovery {
-            op_id: request.op_id,
-            dispute: Hash::new([7; 32]),
-        },
-        7 * DAY + 3,
-    )
-    .unwrap();
-    recovery::reconfirm_recovery(&mut s, &confirmation, &sig, 7 * DAY + 4).unwrap();
-    assert_eq!(s.pending_recovery.as_ref().unwrap().execute_after, deadline);
-    recovery::complete_recovery(&mut s, p(4), request.op_id, deadline).unwrap();
-    assert_eq!(s.auth_bindings, vec![p(4)]);
-    assert_eq!(s.snapshot(NAMESPACE).recovery_nonce, 1);
-    let completed = s.clone();
-    assert_eq!(
-        recovery::complete_recovery(&mut s, p(4), request.op_id, deadline + 1),
-        Ok(None)
-    );
-    assert_eq!(s, completed);
-}
-
-#[test]
-fn expired_remote_results_release_all_unknown_slots() {
-    let mut s = initialized();
-    s.sensitive_policy.daily_executions = 100;
-    let mut requests = vec![];
-    for _ in 0..dmsg_runtime::FORMAL_EXECUTION_WINDOW {
-        let request = execute_request(&s, 1, 1);
-        authorize(&mut s, p(1), &request, 1).unwrap();
-        record_execution_response(
-            &mut s,
-            request.approval.request_id,
-            Err(Error::ExecutionUnknown),
-        )
-        .unwrap();
-        requests.push(request);
-    }
-    let next = execute_request(&s, 1, 2 * DAY);
-    let before = s.clone();
-    assert_eq!(
-        authorize(&mut s, p(1), &next, 2 * DAY),
-        Err(Error::QuotaExceeded)
-    );
-    assert_eq!(s, before);
-    for request in &requests {
-        let result = record_execution_response(
-            &mut s,
-            request.approval.request_id,
-            Err(Error::ResultExpired),
-        )
-        .unwrap();
-        assert_eq!(result.status(), ExecutionStatus::ResultExpired);
-    }
-    authorize(&mut s, p(1), &next, 2 * DAY).unwrap();
-    assert_eq!(s.executions.len(), 1);
-    // The cleaned request keeps its receipt, so an exact replay is expired.
-    assert_eq!(
-        authorize(&mut s, p(1), &requests[0], 2 * DAY),
-        Err(Error::ResultExpired)
-    );
-    let completed = completed(&s, &next);
-    record_execution_response(&mut s, next.approval.request_id, Ok(completed.clone())).unwrap();
-    assert_eq!(
-        record_execution_response(
-            &mut s,
-            next.approval.request_id,
-            Err(Error::ExecutionUnknown)
-        ),
-        Ok(completed)
+        map["recovery_delay_ms"],
+        cbor2::Value::Integer(DEFAULT_RECOVERY_DELAY_MS.into())
     );
 }
 
 #[test]
 fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
-    let mut s = initialized();
-    let first = execute_request(&s, 1, 1);
-    authorize(&mut s, p(1), &first, 1).unwrap();
-    record_execution_response(&mut s, first.approval.request_id, Err(Error::ResultExpired))
-        .unwrap();
+    let mut s = fixture();
+    let first = attest_request(&s, 1, statement(&s), 1);
+    attest(&mut s, p(1), &first, 1).unwrap();
     for at in 10..75 {
         apply(
             &mut s,
@@ -761,69 +950,36 @@ fn a_fresh_approval_cannot_repurpose_a_cleaned_request_id() {
         )
         .unwrap();
     }
-    let next = execute_request(&s, 1, 2 * DAY);
-    authorize(&mut s, p(1), &next, 2 * DAY).unwrap();
+    let next = attest_request(&s, 1, statement(&s), 2 * DAY);
+    attest(&mut s, p(1), &next, 2 * DAY).unwrap();
     assert!(!s.executions.contains_key(&first.approval.request_id));
-    let mut reused = execute_request(&s, 1, 2 * DAY + 1);
+    let mut reused = attest_request(&s, 1, statement(&s), 2 * DAY + 1);
     reused.approval.request_id = first.approval.request_id;
-    alter_statement(&mut reused);
     reused.approval.signature = sk(1)
-        .sign(execute_approval(s.home_user, &reused).as_slice())
+        .sign(
+            approval_message(
+                s.home_user,
+                &reused.account_id,
+                ATTEST_APPROVAL_DOMAIN,
+                &attest_approval_command(&reused.statement, &reused.origin, &reused.signature),
+                &reused.approval,
+            )
+            .as_slice(),
+        )
         .to_bytes()
         .into();
     assert_eq!(
-        authorize(&mut s, p(1), &reused, 2 * DAY + 1),
+        attest(&mut s, p(1), &reused, 2 * DAY + 1),
         Err(Error::IdempotencyConflict)
     );
 }
 
 #[test]
-fn failed_budget_does_not_prune_expired_results_or_advance_sequences() {
-    let mut s = initialized();
-    let first = execute_request(&s, 1, 1);
-    authorize(&mut s, p(1), &first, 1).unwrap();
-    record_execution_response(&mut s, first.approval.request_id, Err(Error::ResultExpired))
-        .unwrap();
-    s.sensitive_policy.daily_cycles = 0;
-    let next = execute_request(&s, 1, 2 * DAY);
-    let before = s.clone();
-    assert_eq!(
-        authorize(&mut s, p(1), &next, 2 * DAY),
-        Err(Error::QuotaExceeded)
-    );
-    assert_eq!(s, before);
-}
-
-#[test]
-fn execution_precheck_is_read_only_even_when_authorization_succeeds() {
-    let s = initialized();
-    let request = execute_request(&s, 1, 1);
-    let fingerprint = digest("dmsg/execute-request/v2", &request);
-    let prepared = execution::PreparedRequest::new(&request).unwrap();
-    let before = s.clone();
-    let budget =
-        execution::check(&s, p(1), &request, fingerprint, 1, &test_init(), &prepared).unwrap();
-    assert_eq!(s, before);
-    assert_eq!(budget.executions, 1);
-    let mut changed = s.account.clone();
-    changed.sensitive_policy.frozen = true;
-    assert_eq!(
-        execution::check(
-            &changed,
-            p(1),
-            &request,
-            fingerprint,
-            2,
-            &test_init(),
-            &prepared
-        ),
-        Err(Error::Locked)
-    );
-}
-
-#[test]
 fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
-    let mut s = initialized();
+    let mut s = fixture();
+    committed(&mut s, 1);
+    recovered(&mut s, 4, 10 * DAY);
+    let at = 14 * DAY;
     CONFIG.with_borrow_mut(|t| {
         t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
@@ -835,33 +991,36 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
             allocator_namespace_digest: Hash::new([1; 32]),
             day: 0,
             created_today: 0,
+            master_secret: Some(Hash::new([7; 32])),
         })))
     });
-    let request = execute_request(&s, 1, 1);
-    let first = authorize(&mut s, p(1), &request, 1).unwrap();
+    let request = derive_request(&s, 4, 1, at);
+    let first = derive(&mut s, p(4), &request, at).unwrap();
     save_execution(&first);
-    let next = execute_request(&s, 1, 1);
-    let second = authorize(&mut s, p(1), &next, 1).unwrap();
+    let attested = attest_request(&s, 4, statement(&s), at);
+    attest(&mut s, p(4), &attested, at).unwrap();
+    let second = s.executions[&attested.approval.request_id].clone();
     save_execution(&second);
 
-    // A device policy change commits while the first remote execution is pending.
-    apply(
-        &mut s,
+    // A device policy change commits while the derivation is pending.
+    let m = mutation(
+        &s,
         AccountCommand::SetPolicy {
             policy: SensitivePolicy {
                 frozen: true,
                 ..SensitivePolicy::default()
             },
         },
-        2,
-    )
-    .unwrap();
+        4,
+        at + 1,
+    );
+    account::apply(&mut s, p(4), &m, at + 1, p(7)).unwrap();
     save(&s.account);
     let before = load(&s.account_id).unwrap();
     let snapshot = CERT.with_borrow(|c| c.get(s.account_id.as_slice()));
-    let completed = completed(&s, &request);
+    let completed = completed(&request, &s);
     let mut mismatched = completed.clone();
-    mismatched.request_id = next.approval.request_id;
+    mismatched.request_id = attested.approval.request_id;
     assert_eq!(
         record_response(&s.account_id, request.approval.request_id, Ok(mismatched))
             .unwrap()
@@ -869,7 +1028,6 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         ExecutionOutcome::Unknown(Error::IntegrityFailed)
     );
     assert_eq!(load(&s.account_id).unwrap(), before);
-
     assert_eq!(
         record_response(
             &s.account_id,
@@ -879,28 +1037,32 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         Ok(completed.clone())
     );
     let mut expected = before;
-    expected.execution_expirations.insert(
-        request.approval.request_id,
-        Some(first.grant.expires_at + DAY),
-    );
-    // The completed execution keeps only the fee COSE charged.
-    expected.budget.cycles -= first.grant.max_cycles - completed.cycles_charged;
+    expected
+        .execution_expirations
+        .insert(request.approval.request_id, Some(first.retention()));
     assert_eq!(load(&s.account_id).unwrap(), expected);
     assert_eq!(
-        load_execution(&s.account_id, &next.approval.request_id),
-        Some(second)
+        load_execution(&s.account_id, &attested.approval.request_id),
+        Some(second.clone())
     );
     assert_eq!(
         CERT.with_borrow(|c| c.get(s.account_id.as_slice())),
         snapshot
     );
-    let receipt_key = execution_receipt_key(&s.account_id, request.approval.request_id);
-    let stored = load_execution(&s.account_id, &request.approval.request_id).unwrap();
+    // The attestation's receipt leaf is certified; the derivation has none.
+    let receipt_key = execution_receipt_key(&s.account_id, attested.approval.request_id);
     assert_eq!(
         CERT.with_borrow(|c| c.get(&receipt_key)),
         Some(dmsg_runtime::cert_map::leaf_hash(&canonical(
-            &execution::receipt(&stored, NAMESPACE).unwrap()
+            &execution::receipt(&second, NAMESPACE).unwrap()
         )))
+    );
+    assert_eq!(
+        CERT.with_borrow(|c| c.get(&execution_receipt_key(
+            &s.account_id,
+            request.approval.request_id
+        ))),
+        None
     );
     assert_eq!(
         record_response(
@@ -910,50 +1072,28 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
         ),
         Ok(completed)
     );
-
-    crate::commerce::save(&crate::commerce::Month {
-        usage: ExecutionUsage {
-            account_id: s.account_id,
-            month_utc: 202609,
-            month_revision: 1,
-            business_revision: 1,
-            lease_revision: 1,
-            weight_policy_version: 1,
-            allowed_units: 10,
-            held_units: 1,
-            charged_units: 2,
-            valid_until_ms: 3,
-        },
-        weights: ExecutionWeights {
-            version: 1,
-            ed25519: 1,
-            ecdsa_secp256k1: 1,
-        },
-        entitlement_digest: Hash::new([9; 32]),
-    });
-    let usage_key = dmsg_protocol::billing::usage_key(&s.account_id, 202609);
-    assert!(CERT.with_borrow(|c| c.get(usage_key.as_slice())).is_some());
-
-    remove_execution(&s.account_id, &request.approval.request_id);
-    expected
-        .execution_expirations
-        .remove(&request.approval.request_id);
-    save_account(&expected);
+    remove_execution(&s.account_id, &attested.approval.request_id);
     assert_eq!(CERT.with_borrow(|c| c.get(&receipt_key)), None);
     assert_eq!(
         record_response(
             &s.account_id,
-            request.approval.request_id,
+            attested.approval.request_id,
             Err(Error::ExecutionUnknown)
         ),
         Err(Error::ResultExpired)
     );
-    assert_eq!(load(&s.account_id).unwrap(), expected);
+    assert_eq!(
+        crate::store::unlock_secret(&config(), &s.account_id, &Hash::new([4; 32])).unwrap(),
+        digest(
+            "dmsg/unlock-secret/v1",
+            &(Hash::new([7; 32]), &s.account_id, Hash::new([4; 32]))
+        )
+    );
 }
 
 #[test]
 fn existing_handle_intent_can_be_reapproved_at_capacity() {
-    let mut s = initialized();
+    let mut s = fixture();
     for n in 0..32 {
         let intent = dmsg_types::handle::HandleIntent {
             handle_canister: p(7),
@@ -998,82 +1138,18 @@ fn existing_handle_intent_can_be_reapproved_at_capacity() {
 }
 
 #[test]
-fn root_recovery_budget_supports_setup_rekeys_but_remains_bounded_and_atomic() {
-    let mut s = initialized();
-    s.current_root = Some(ContentRootRef {
-        generation: 1,
-        suite: "dmsg-root-v1".into(),
-        home_cose: s.home_cose,
-        derivation_version: 2,
-        key_generation: 1,
-        bundle_digest: Hash::new([1; 32]),
-        recovery_generation: 1,
-    });
-    // Standard compressed BLS12-381 G1 generator; no production transport key.
-    let generator = "97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb";
-    let transport: [u8; 48] = (0..generator.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&generator[i..i + 2], 16).unwrap())
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-    let request = |s: &AccountState, at| {
-        let mut r = execute_request(s, 1, at);
-        r.kind = ExecutionKind::Derive {
-            generation: 1,
-            root_op_id: None,
-            transport_key: transport.into(),
-        };
-        r.max_cycles = 70_000_000_000;
-        r.approval.signature = sk(1)
-            .sign(execute_approval(s.home_user, &r).as_slice())
-            .to_bytes()
-            .into();
-        r
-    };
-    let first = request(&s, 1);
-    for _ in 0..4 {
-        let r = request(&s, 1);
-        authorize(&mut s, p(1), &r, 1).unwrap();
-    }
-    let before = s.clone();
-    authorize(&mut s, p(1), &first, 1).unwrap();
-    assert_eq!(s, before, "an exact retry consumes no extra budget");
-    let rejected = request(&s, 1);
-    assert_eq!(
-        authorize(&mut s, p(1), &rejected, 1),
-        Err(Error::QuotaExceeded)
-    );
-    assert_eq!(
-        s, before,
-        "budget rejection cannot consume device sequence or state"
-    );
-    let tomorrow = request(&s, DAY + 1);
-    authorize(&mut s, p(1), &tomorrow, DAY + 1).unwrap();
-}
-
-#[test]
 fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
-    let mut s = initialized();
-    s.current_root = Some(ContentRootRef {
-        generation: 1,
-        suite: "dmsg-root-v1".into(),
-        home_cose: s.home_cose,
-        derivation_version: 2,
-        key_generation: 1,
-        bundle_digest: Hash::new([1; 32]),
-        recovery_generation: 1,
-    });
-    s.vault_write_state = VaultWriteState::Ready;
+    let mut s = fixture();
+    committed(&mut s, 1);
     let device_id = Hash::new([1; 32]);
     let original = s.devices[&device_id].input.clone();
     let command = AccountCommand::SetDeviceCapabilities {
         device_id,
         capabilities: vec![Capability::RootManage, Capability::ContentSign],
     };
-    let request = mutation(&s, command, 1, 1);
+    let request = mutation(&s, command, 1, 3);
     let epoch = s.security_epoch;
-    let receipt = account::apply(&mut s, p(1), &request, 1, p(7)).unwrap();
+    let receipt = account::apply(&mut s, p(1), &request, 3, p(7)).unwrap();
     assert_eq!(s.security_epoch, epoch + 1);
     assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
     assert_eq!(
@@ -1082,7 +1158,7 @@ fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
     );
     assert_eq!(s.devices[&device_id].input.hpke_pub, original.hpke_pub);
     assert_eq!(
-        account::apply(&mut s, p(1), &request, 1, p(7)).unwrap(),
+        account::apply(&mut s, p(1), &request, 3, p(7)).unwrap(),
         receipt
     );
     let before = s.clone();
@@ -1092,7 +1168,7 @@ fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
             device_id,
             capabilities: vec![Capability::FormalApprove],
         },
-        2
+        4
     )
     .is_err());
     assert_eq!(s, before, "last administrator cannot lose RootManage");
@@ -1103,31 +1179,37 @@ fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
             capabilities: original.capabilities,
         },
         1,
-        2,
+        4,
     );
     s.devices.get_mut(&device_id).unwrap().input.role = ControllerRole::Member;
     denied.expected_version = s.account_version;
     let before = s.clone();
-    assert!(account::apply(&mut s, p(1), &denied, 2, p(7)).is_err());
+    assert!(account::apply(&mut s, p(1), &denied, 4, p(7)).is_err());
     assert_eq!(s, before);
 }
 
 #[test]
 fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
-    let mut s = initialized();
-    let request = execute_request(&s, 1, 1);
-    let execution = authorize(&mut s, p(1), &request, 1).unwrap();
+    let mut s = fixture();
+    committed(&mut s, 1);
+    recovered(&mut s, 4, 10 * DAY);
+    let at = 14 * DAY;
+    let request = derive_request(&s, 4, 1, at);
+    let execution = derive(&mut s, p(4), &request, at).unwrap();
+    let ExecutionRecord::Derivation { result, .. } = &execution.record else {
+        panic!()
+    };
     assert!(matches!(
         execution::rejected_dispatch_result(
-            execution.result.clone(),
+            result.clone(),
             stable::CallFailure::NotExecuted.into()
         ),
         Err(Error::Unavailable(_))
     ));
     // Retrying uses the same grant and consumes no additional device/execution sequence.
     let before = s.clone();
-    let retry = authorize(&mut s, p(1), &request, 2).unwrap();
-    assert_eq!(retry.grant, execution.grant);
+    let retry = derive(&mut s, p(4), &request, at + 1).unwrap();
+    assert_eq!(retry, execution);
     assert_eq!(s, before);
     for outcome in [
         ExecutionOutcome::Executing,
@@ -1137,14 +1219,14 @@ fn unsent_dispatch_preserves_prior_uncertainty_and_concurrent_completion() {
     ] {
         let current = ExecutionResult {
             outcome,
-            ..execution.result.clone()
+            ..result.clone()
         };
         assert_eq!(
             execution::rejected_dispatch_result(current.clone(), Error::QuotaExceeded),
             Ok(current)
         );
     }
-    let current = completed(&s, &request);
+    let current = completed(&request, &s);
     assert_eq!(
         execution::rejected_dispatch_result(current.clone(), Error::QuotaExceeded),
         Ok(current)
@@ -1161,17 +1243,48 @@ fn principal_apply(
     crate::principal::apply(s, principal, p(1), &m, time)
 }
 
-fn register(generation: u32, key: u8, supersedes: Vec<u32>) -> AccountCommand {
-    AccountCommand::RegisterController {
+fn restricted() -> dmsg_types::agent::DelegationAuthority {
+    dmsg_types::agent::DelegationAuthority::Restricted {
+        scopes: vec!["message.draft".into()],
+        audiences: vec!["https://dmsg.net".into()],
+    }
+}
+
+/// A registration whose proof is signed by controller key `key` after the
+/// approval's request ID is known.
+fn register(
+    s: &AccountState,
+    generation: u32,
+    key: u8,
+    supersedes: Vec<u32>,
+    delegation: dmsg_types::agent::DelegationAuthority,
+    time: u64,
+) -> AccountMutation {
+    let request_id = digest("test", &(s.account_version, 1u8));
+    let command = AccountCommand::RegisterController {
         generation,
         public_key: sk(key).verifying_key().to_bytes().into(),
-        name: Some(format!("dMsg hosted signer #{generation}")),
-        delegation: dmsg_types::agent::DelegationAuthority::Restricted {
-            scopes: vec!["message.draft".into()],
-            audiences: vec!["https://dmsg.net".into()],
-        },
-        supersedes,
-    }
+        name: Some(format!("dMsg signer #{generation}")),
+        delegation: delegation.clone(),
+        supersedes: supersedes.clone(),
+        proof: sk(key)
+            .sign(
+                controller_pop_message(
+                    s.home_user,
+                    &s.account_id,
+                    generation,
+                    &delegation,
+                    &supersedes,
+                    request_id,
+                )
+                .as_slice(),
+            )
+            .to_bytes()
+            .into(),
+    };
+    let m = mutation(s, command, 1, time);
+    assert_eq!(m.approval.request_id, request_id);
+    m
 }
 
 #[test]
@@ -1182,14 +1295,10 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     let enable = AccountCommand::EnablePrincipal {
         principal_type: PrincipalType::Person,
     };
-    assert_eq!(
-        principal_apply(&mut s, &mut principal, enable.clone(), 10),
-        Err(Error::RecoveryIncomplete)
-    );
-    let mut s = initialized();
     let epoch = s.security_epoch;
+    let m = register(&s, 1, 20, vec![], restricted(), 10);
     assert_eq!(
-        principal_apply(&mut s, &mut principal, register(1, 20, vec![]), 10),
+        crate::principal::apply(&mut s, &mut principal, p(1), &m, 10),
         Err(Error::NotFound)
     );
     principal_apply(&mut s, &mut principal, enable.clone(), 10).unwrap();
@@ -1202,11 +1311,36 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         Err(Error::VersionConflict)
     );
     // Generations are allocated in order; the same millisecond still advances time.
+    let m = register(&s, 2, 20, vec![], restricted(), 10);
     assert_eq!(
-        principal_apply(&mut s, &mut principal, register(2, 20, vec![]), 10),
+        crate::principal::apply(&mut s, &mut principal, p(1), &m, 10),
         Err(Error::VersionConflict)
     );
-    let m = mutation(&s, register(1, 20, vec![]), 1, 10);
+    // The proof must come from the registered key and bind this approval.
+    let mut forged = register(&s, 1, 20, vec![], restricted(), 10);
+    if let AccountCommand::RegisterController { proof, .. } = &mut forged.command {
+        *proof = sk(21).sign(b"x").to_bytes().into();
+    }
+    forged.approval.signature = sk(1)
+        .sign(
+            approval_message(
+                s.home_user,
+                &s.account_id,
+                "dmsg/account/v2",
+                &(&forged.expected_version, &forged.command),
+                &forged.approval,
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    let before = (s.clone(), principal.clone());
+    assert_eq!(
+        crate::principal::apply(&mut s, &mut principal, p(1), &forged, 10),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!((s.clone(), principal.clone()), before);
+    let m = register(&s, 1, 20, vec![], restricted(), 10);
     let receipt = crate::principal::apply(&mut s, &mut principal, p(1), &m, 10).unwrap();
     let before = (s.clone(), principal.clone());
     assert_eq!(
@@ -1214,7 +1348,8 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         Ok(receipt)
     );
     assert_eq!((s.clone(), principal.clone()), before);
-    principal_apply(&mut s, &mut principal, register(2, 21, vec![1]), 10).unwrap();
+    let m = register(&s, 2, 21, vec![1], restricted(), 10);
+    crate::principal::apply(&mut s, &mut principal, p(1), &m, 10).unwrap();
     let state = &principal.as_ref().unwrap().state;
     assert_eq!(
         state
@@ -1226,8 +1361,12 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     );
     assert_eq!((state.version, state.updated_at), (3, 12));
     // A successor must name an earlier generation; a key appears once.
-    assert!(principal_apply(&mut s, &mut principal, register(3, 22, vec![3]), 12).is_err());
-    assert!(principal_apply(&mut s, &mut principal, register(3, 21, vec![]), 12).is_err());
+    for m in [
+        register(&s, 3, 22, vec![3], restricted(), 12),
+        register(&s, 3, 21, vec![], restricted(), 12),
+    ] {
+        assert!(crate::principal::apply(&mut s, &mut principal, p(1), &m, 12).is_err());
+    }
 
     principal_apply(
         &mut s,
@@ -1295,23 +1434,19 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     assert_eq!(s.principal_updated_at, Some(state.updated_at));
     assert_eq!(s.security_epoch, epoch);
     // The ordinary account path never applies principal commands.
-    let m = mutation(&s, register(3, 22, vec![]), 1, 40);
+    let m = register(&s, 3, 22, vec![], restricted(), 40);
     assert!(matches!(
         account::apply(&mut s, p(1), &m, 40, p(7)),
         Err(Error::InvalidInput(_))
     ));
     // At most eight current controllers.
     for generation in 3..=10 {
-        principal_apply(
-            &mut s,
-            &mut principal,
-            register(generation, generation as u8 + 30, vec![]),
-            40,
-        )
-        .unwrap();
+        let m = register(&s, generation, generation as u8 + 30, vec![], restricted(), 40);
+        crate::principal::apply(&mut s, &mut principal, p(1), &m, 40).unwrap();
     }
+    let m = register(&s, 11, 60, vec![], restricted(), 40);
     assert_eq!(
-        principal_apply(&mut s, &mut principal, register(11, 60, vec![]), 40),
+        crate::principal::apply(&mut s, &mut principal, p(1), &m, 40),
         Err(Error::QuotaExceeded)
     );
 }
@@ -1319,7 +1454,7 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
 #[test]
 fn principal_document_budget_rejects_registration_before_commit_and_reserves_safety_changes() {
     use dmsg_types::agent::*;
-    let mut s = initialized();
+    let mut s = fixture();
     let mut principal = None;
     principal_apply(
         &mut s,
@@ -1330,6 +1465,12 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
         10,
     )
     .unwrap();
+    let wide = DelegationAuthority::Restricted {
+        scopes: (0..8).map(|i| format!("{i}{}", "s".repeat(63))).collect(),
+        audiences: (0..4)
+            .map(|i| format!("https://{i}{}", "a".repeat(247)))
+            .collect(),
+    };
     let mut rejected = false;
     for generation in 1..=MAX_CONTROLLER_RECORDS as u32 {
         if generation > 1 {
@@ -1343,20 +1484,18 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
             )
             .unwrap();
         }
-        let command = AccountCommand::RegisterController {
+        let m = register(
+            &s,
             generation,
-            public_key: sk(generation as u8 + 20).verifying_key().to_bytes().into(),
-            name: None,
-            delegation: DelegationAuthority::Restricted {
-                scopes: (0..8).map(|i| format!("{i}{}", "s".repeat(63))).collect(),
-                audiences: (0..4)
-                    .map(|i| format!("https://{i}{}", "a".repeat(247)))
-                    .collect(),
-            },
-            supersedes: (1..generation).collect(),
-        };
+            generation as u8 + 20,
+            (1..generation).collect(),
+            wide.clone(),
+            10,
+        );
         let before = (s.clone(), principal.clone());
-        if principal_apply(&mut s, &mut principal, command, 10) == Err(Error::QuotaExceeded) {
+        if crate::principal::apply(&mut s, &mut principal, p(1), &m, 10)
+            == Err(Error::QuotaExceeded)
+        {
             assert_eq!((s.clone(), principal.clone()), before);
             rejected = true;
             break;
@@ -1408,168 +1547,4 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
     )
     .unwrap();
     assert!(document.len() <= dmsg_protocol::agent::MAX_PRINCIPAL_DOCUMENT_BYTES);
-}
-
-fn agent_event(controller: u8, nonce: u64, created_at: u64, id: &str, audience: &str) -> String {
-    let actor = AgentId::from_public_key(&sk(controller).verifying_key().to_bytes());
-    let subject = AgentId::from_public_key(&sk(99).verifying_key().to_bytes());
-    format!(
-        concat!(
-            r#"{{"actor":"{actor}","created_at":{created_at},"nonce":{nonce},"payload":"#,
-            r#"{{"audiences":["{audience}"],"expires_at":{expires_at},"id":"{id}","#,
-            r#""principal_id":"https://id.dmsg.test/{account}","scopes":["message.draft"],"#,
-            r#""subject":"{subject}"}},"protocol":"agent-delegation/1.0","type":"delegation.grant"}}"#
-        ),
-        actor = actor,
-        created_at = created_at,
-        nonce = nonce,
-        audience = audience,
-        expires_at = created_at + DAY,
-        id = id,
-        account = AccountId([8; 12]),
-        subject = subject,
-    )
-}
-
-fn agent_request(s: &AccountState, event: String, generation: u32, time: u64) -> ExecuteRequest {
-    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
-    let mut r = dmsg_types::agent::AgentEventSignRequest {
-        account_id: s.account_id,
-        generation,
-        event,
-        origin: "https://example.com".into(),
-        max_cycles: 100,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: s.security_epoch,
-            sequence,
-            request_id: execution_request_id(
-                &s.account_id,
-                s.security_epoch,
-                Hash::new([1; 32]),
-                sequence,
-            ),
-            expires_at: time + MINUTE,
-            signature: Default::default(),
-        },
-    }
-    .into_execution(format!("https://id.dmsg.test/{}", s.account_id));
-    r.approval.signature = sk(1)
-        .sign(execute_approval(s.home_user, &r).as_slice())
-        .to_bytes()
-        .into();
-    r
-}
-
-#[test]
-fn hosted_events_need_a_current_bound_key_policy_and_fresh_nonce() {
-    use dmsg_types::agent::*;
-    let t = 1_790_000_000_000;
-    let mut s = initialized();
-    let mut principal = None;
-    principal_apply(
-        &mut s,
-        &mut principal,
-        AccountCommand::EnablePrincipal {
-            principal_type: PrincipalType::Person,
-        },
-        t - DAY,
-    )
-    .unwrap();
-    principal_apply(&mut s, &mut principal, register(1, 20, vec![]), t - DAY).unwrap();
-    let mut principal = principal.unwrap();
-    let id = format!("{}.a1", s.account_id);
-    let authorize_event = |p: &mut crate::principal::AgentPrincipal, r: &ExecuteRequest| {
-        let parsed = execution::PreparedRequest::new(r)?;
-        crate::principal::authorize_event(
-            p,
-            &s,
-            &test_init(),
-            &r.kind,
-            parsed.event.as_ref().unwrap(),
-            t,
-        )
-    };
-
-    let r = agent_request(&s, agent_event(20, 5, t, &id, "https://dmsg.net"), 1, t);
-    authorize_event(&mut principal, &r).unwrap();
-    assert_eq!(principal.last_nonces.get(&1), Some(&5));
-    assert_eq!(
-        authorize_event(&mut principal, &r),
-        Err(Error::VersionConflict)
-    );
-    let r = agent_request(&s, agent_event(20, 6, t, &id, "https://dmsg.net"), 1, t);
-    // The device approval and execution authorization run on the same request.
-    let mut account = TestAccount {
-        account: s.account.clone(),
-        executions: BTreeMap::new(),
-    };
-    authorize(&mut account, p(1), &r, t).unwrap();
-    authorize_event(&mut principal, &r).unwrap();
-
-    for (event, generation, error) in [
-        // Outside the restricted ceiling.
-        (
-            agent_event(20, 7, t, &id, "https://tokenlist.ing"),
-            1,
-            Error::Forbidden,
-        ),
-        // The actor is another key than the approved generation.
-        (
-            agent_event(21, 7, t, &id, "https://dmsg.net"),
-            1,
-            Error::IntegrityFailed,
-        ),
-        // No such generation.
-        (
-            agent_event(20, 7, t, &id, "https://dmsg.net"),
-            2,
-            Error::NotFound,
-        ),
-        // Stale signer time.
-        (
-            agent_event(20, 7, t - 2 * MINUTE, &id, "https://dmsg.net"),
-            1,
-            Error::Expired,
-        ),
-    ] {
-        let r = agent_request(&s, event, generation, t);
-        assert_eq!(authorize_event(&mut principal, &r), Err(error));
-    }
-    let r = agent_request(
-        &s,
-        agent_event(20, 7, t, "other.a1", "https://dmsg.net"),
-        1,
-        t,
-    );
-    assert!(matches!(
-        authorize_event(&mut principal, &r),
-        Err(Error::InvalidInput(_))
-    ));
-    assert_eq!(principal.last_nonces.get(&1), Some(&6));
-
-    let mut retired = principal.clone();
-    retired.state.controllers[0].retired_at = Some(t);
-    let r = agent_request(&s, agent_event(20, 8, t, &id, "https://dmsg.net"), 1, t);
-    assert_eq!(authorize_event(&mut retired, &r), Err(Error::Forbidden));
-
-    // The account policy can exclude hosted controllers; the principal must match.
-    let mut account = TestAccount {
-        account: s.account.clone(),
-        executions: BTreeMap::new(),
-    };
-    account.sensitive_policy.allowed_purposes = vec![KeyPurpose::Statement];
-    assert_eq!(authorize(&mut account, p(1), &r, t), Err(Error::Forbidden));
-    let mut foreign = r.clone();
-    if let ExecutionKind::AgentEvent { principal_id, .. } = &mut foreign.kind {
-        *principal_id = "https://id.dmsg.test/other".into();
-    }
-    let mut account = TestAccount {
-        account: s.account.clone(),
-        executions: BTreeMap::new(),
-    };
-    assert_eq!(
-        authorize(&mut account, p(1), &foreign, t),
-        Err(Error::IntegrityFailed)
-    );
 }

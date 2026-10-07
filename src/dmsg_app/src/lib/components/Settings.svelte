@@ -1,63 +1,11 @@
 <script lang="ts">
-  import { session, dateLabel, downloadBlob, formatBytes } from '../session.svelte'
+  import { session, formatBytes } from '../session.svelte'
   import { config, isExtension } from '../config'
   import { inspectRelay } from '../services/relay'
-  import Modal from './Modal.svelte'
   import Icon from './Icon.svelte'
-  let tab = $state('recovery'),
-    modal = $state<'backup' | 'password' | null>(null),
-    password = $state(''),
-    next = $state(''),
-    confirm = $state('')
+  let tab = $state('devices')
   let usage = $state<StorageEstimate | null>(null),
     serviceReport = $state('')
-  async function directoryBackup() {
-    const picker = (
-      window as unknown as {
-        showDirectoryPicker?: (options: { mode: string }) => Promise<FileSystemDirectoryHandle>
-      }
-    ).showDirectoryPicker
-    if (!picker) {
-      session.error = '此浏览器不支持目录写入，请在 Chrome 扩展中使用分卷备份。'
-      return
-    }
-    let directory: FileSystemDirectoryHandle
-    try {
-      directory = await picker({ mode: 'readwrite' })
-    } catch {
-      return
-    }
-    await session.run(async () => {
-      const result = await session.crypto.call('exportDirectory', password, directory)
-      close()
-      await session.refresh()
-      session.message = `已写入 ${result.name}，共 ${result.parts} 卷、${result.count} 个版本；${result.missing.length} 项缺口。请连同 manifest.json 完整保管目录。`
-    })
-  }
-  function close() {
-    modal = null
-    password = ''
-    next = ''
-    confirm = ''
-  }
-  async function backup() {
-    await session.run(async () => {
-      const result = await session.crypto.call('exportBackup', password)
-      downloadBlob(result.blob, result.name)
-      close()
-      await session.refresh()
-      session.message = result.missing.length
-        ? `已生成部分备份，清单列出 ${result.missing.length} 项缺口。`
-        : `已生成含本机内容的恢复包，共 ${result.count} 个版本。请确认下载文件。`
-    })
-  }
-  async function changePassword() {
-    await session.run(async () => {
-      if (next !== confirm) throw new Error('两次新口令不一致。')
-      await session.crypto.call('changePassword', { current: password, next })
-      close()
-    }, '本机口令已更新，内容密钥保持不变。')
-  }
 </script>
 
 <div class="page-heading">
@@ -68,7 +16,7 @@
   </div>
 </div>
 <div class="filter-bar" aria-label="设置分类">
-  {#each [['recovery', '恢复与备份'], ['devices', '设备与认证'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '名称管理'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['funds', '资金恢复'], ['agents', 'Agent 授权'], ['services', '服务连接']] as [value, label]}<button
+  {#each [['devices', '账户与设备'], ['sync', '云端同步'], ['storage', '存储'], ['migration', '旧版迁移'], ['handles', '名称管理'], ['shared', '共享迁移'], ['commerce', '套餐与付款'], ['inbox', '来信与托管'], ['funds', '资金恢复'], ['agents', 'Agent 授权'], ['services', '服务连接']] as [value, label]}<button
       class:active={tab === value}
       aria-pressed={tab === value}
       onclick={() => {
@@ -79,64 +27,7 @@
     >{/each}
 </div>
 <div class="settings-content">
-  {#if tab === 'recovery'}
-    <section class="settings-section">
-      <div class="section-heading">
-        <span class="item-icon"><Icon name="key" /></span>
-        <div>
-          <h2>恢复材料</h2>
-          <p>登录恢复与内容恢复，分别保管。</p>
-        </div>
-        <span class="pill">{session.meta?.recoveryChecked ? '恢复码已验证' : '尚未验证'}</span>
-      </div>
-      <div class="settings-row">
-        <div>
-          <strong>最近生成的恢复包</strong>
-          <p>
-            {session.meta?.lastBackupAt
-              ? `${dateLabel(session.meta.lastBackupAt)} · ${session.meta.lastBackupCount} 个版本`
-              : '尚未生成'}
-          </p>
-        </div>
-        <button class="primary" onclick={() => (modal = 'backup')}
-          ><Icon name="download" />导出加密备份</button
-        >
-      </div>
-      <div class="notice">
-        <Icon name="info" />
-        <p>
-          恢复需要加密包和分开保存的恢复码。新内容不会自动出现在旧备份中；卸载扩展可能删除本地数据。
-        </p>
-      </div>
-      <dl class="evidence-list">
-        <div>
-          <dt>登录认证</dt>
-          <dd>使用 Internet Identity 的恢复方式</dd>
-        </div>
-        <div>
-          <dt>本机内容</dt>
-          <dd>完整加密包 + 恢复码，可离线恢复</dd>
-        </div>
-        <div>
-          <dt>新设备授权</dt>
-          <dd>已有设备批准或预登记的链上恢复流程</dd>
-        </div>
-        <div>
-          <dt>正式签名密钥</dt>
-          <dd>由原密钥服务控制，不能导出为助记词</dd>
-        </div>
-      </dl>
-    </section>
-    <section class="settings-section">
-      <div class="settings-row">
-        <div>
-          <h2>本机解锁</h2>
-          <p>默认 15 分钟无敏感操作后锁定；关闭解锁页面后需重新解锁。</p>
-        </div>
-        <button class="secondary" onclick={() => (modal = 'password')}>修改口令</button>
-      </div>
-    </section>
-  {:else if tab === 'devices'}
+  {#if tab === 'devices'}
     {#await import('./AccountSettings.svelte')}
       <p role="status">正在加载…</p>
     {:then component}
@@ -292,62 +183,3 @@
     </section>
   {/if}
 </div>
-{#if modal}<Modal
-    title={modal === 'backup' ? '重新验证后导出' : '修改本机口令'}
-    onclose={close}
-    ><form
-      onsubmit={(event) => {
-        event.preventDefault()
-        void (modal === 'backup' ? backup() : changePassword())
-      }}
-    >
-      <p>
-        {modal === 'backup'
-          ? '导出包含本机未同步内容与可恢复的历史版本。文件中不包含设备私钥，也不会导出阈值签名私钥。'
-          : '仅重新封装本机数据密钥，不改变已有内容密钥或恢复码。'}
-      </p>
-      <label
-        >当前口令<input
-          type="password"
-          bind:value={password}
-          autocomplete="current-password"
-          required
-        /></label
-      >
-      {#if modal === 'password'}<label
-          >新口令<input
-            type="password"
-            bind:value={next}
-            minlength="12"
-            required
-            autocomplete="new-password"
-          /></label
-        ><label
-          >再次输入新口令<input
-            type="password"
-            bind:value={confirm}
-            minlength="12"
-            required
-            autocomplete="new-password"
-          /></label
-        >{/if}
-      {#if session.error}<p class="form-error" role="alert">{session.error}</p>{/if}
-      <div class="modal-actions">
-        {#if modal === 'backup'}<button
-            type="button"
-            class="secondary"
-            disabled={session.busy || !password}
-            onclick={directoryBackup}>分卷导出到目录（不限总包大小）</button
-          >{/if}
-        <button type="button" class="secondary" onclick={close}>取消</button><button
-          class="primary"
-          disabled={session.busy}
-          >{session.busy
-            ? '正在验证…'
-            : modal === 'backup'
-              ? '生成加密备份'
-              : '更新口令'}</button
-        >
-      </div>
-    </form></Modal
-  >{/if}

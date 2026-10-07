@@ -32,6 +32,10 @@ export class Session {
   get crypto() {
     return this.client
   }
+  /** The workspace is usable once an account and its content root are bound. */
+  get bound() {
+    return this.unlocked && !!this.meta?.account
+  }
   async start() {
     const status = await this.client.call('status')
     this.initialized = status.exists
@@ -75,11 +79,15 @@ export class Session {
     this.unlocked = true
     this.touch()
   }
-  async unlock(password: string) {
+  /** Unlock with the login-gated secret, a PRF output, or nothing while provisional. */
+  async unlock(input: { secret: Uint8Array } | { prf: Uint8Array } | null = null) {
     const generation = this.generation
     try {
-      const meta = await this.client.call('unlock', password),
-        data = await this.client.call('view')
+      const meta =
+        input && 'prf' in input
+          ? await this.client.call('unlockWithPrf', input.prf)
+          : await this.client.call('unlock', input?.secret ?? null)
+      const data = await this.client.call('view')
       if (generation !== this.generation) return
       this.data = data
       this.activate(data.meta ?? meta)
@@ -96,6 +104,12 @@ export class Session {
       this.data = data
       this.meta = data.meta
     }
+  }
+  /** Metadata is readable while locked; reread it after the worker changed it. */
+  async reloadMeta() {
+    const status = await this.client.call('status')
+    this.initialized = status.exists
+    if (!this.unlocked) this.meta = status.meta
   }
   async lock(broadcast = true) {
     this.generation++

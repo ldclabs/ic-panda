@@ -1,6 +1,7 @@
 use crate::*;
 use candid::Principal;
-use dmsg_types::{cose::*, user::*, *};
+use dmsg_types::{agent::DelegationAuthority, cose::*, user::*, *};
+use serde_bytes::ByteArray;
 
 /// Local validation of a device enrollment proposal; no device registration or authorization.
 pub trait DeviceInputExt {
@@ -35,53 +36,66 @@ impl DeviceInputExt for DeviceInput {
     }
 }
 
-/// Convert the typed signing interface into the low-level approved execution contract.
-pub trait SignRequestExt {
-    /// Consume the request and prepare its canonical signing bytes and derived purpose.
-    ///
-    /// Validates the statement and kid, fixing signing generation to 1. Preserves
-    /// the supplied approval and fingerprint without verifying either. The executing
-    /// services check the origin against their deployment environment with
-    /// [`validate_origin`]. After freezing the request, compute its approval with
-    /// [`approval_message`], [`EXECUTE_APPROVAL_DOMAIN`] and [`execute_approval_command`].
-    ///
-    /// # Errors
-    /// Propagates [`prepare_cose`] validation errors.
-    fn into_execution(self) -> Result<ExecuteRequest>;
+/// Exact signing input of a statement attested by one device key.
+pub struct PreparedAttestation {
+    /// Canonical COSE Sig_structure bytes the device signs.
+    pub to_be_signed: Vec<u8>,
+    /// Public-only COSE_Key of the device signing key, kid = thumbprint.
+    pub cose_key: Vec<u8>,
+    /// RFC 9679 thumbprint of the device key; also the artifact kid.
+    pub thumbprint: Hash,
+    /// Policy domain of the statement.
+    pub purpose: KeyPurpose,
 }
 
-impl SignRequestExt for SignRequest {
-    fn into_execution(self) -> Result<ExecuteRequest> {
-        ensure(
-            !matches!(self.statement.content, StatementContent::AppAction(_)),
-            Error::UnsupportedProtocol,
-        )?;
-        let algorithm: Algorithm = self.key.algorithm.into();
-        let purpose = statement_purpose(&self.statement);
-        let (_, bytes) = prepare_cose(&self.statement, &algorithm, &self.key.kid)?;
-        Ok(ExecuteRequest {
-            account_id: self.account_id,
-            max_cycles: self.max_cycles,
-            approval: self.approval,
-            kind: ExecutionKind::Sign {
-                key: KeyRequest {
-                    purpose,
-                    algorithm,
-                    generation: 1,
-                },
-                to_be_signed: bytes.into(),
-                public_key_fingerprint: self.key.public_key_fingerprint,
-                origin: self.origin,
-            },
-        })
-    }
+/// Prepare the exact bytes a device signs for a statement.
+///
+/// The kid is the device key's RFC 9679 thumbprint, so an artifact names the
+/// key that signed it. Validates the statement; signs nothing.
+///
+/// # Errors
+/// Propagates [`prepare_cose`] and key encoding errors.
+pub fn prepare_attestation(statement: &Statement, signing_pub: &Hash) -> Result<PreparedAttestation> {
+    let thumbprint = key_thumbprint(&public_cose_key(&[], signing_pub.as_slice())?)?;
+    let cose_key = public_cose_key(thumbprint.as_slice(), signing_pub.as_slice())?;
+    let (_, to_be_signed) = prepare_cose(statement, thumbprint.as_slice())?;
+    Ok(PreparedAttestation {
+        to_be_signed,
+        cose_key,
+        thumbprint,
+        purpose: statement_purpose(statement),
+    })
+}
+
+/// Build the statement an application-action attestation signs.
+///
+/// Checks that the approving account is the action's signing account and that
+/// the approval does not outlive the action.
+///
+/// # Errors
+/// A foreign signing account returns `Error::Forbidden`; a late approval `Error::Expired`.
+pub fn app_action_statement(request: &AppActionAttestRequest) -> Result<Statement> {
+    ensure(
+        request.account_id == request.action.signing_account,
+        Error::Forbidden,
+    )?;
+    ensure(
+        request.approval.expires_at <= request.action.expires_at_ms,
+        Error::Expired,
+    )?;
+    Ok(Statement {
+        issuer: request.issuer.clone(),
+        subject: None,
+        issued_at: None,
+        content: StatementContent::AppAction(Box::new(request.action.clone())),
+    })
 }
 
 /// vetKD context of every content-root key:
 /// `canonical(("dmsg/content-root/v2", environment, derivation_version))`.
 ///
-/// Each account derives with input `canonical((account_id, generation))`, and
-/// the context's vetKD public key is the COSE `VetKdBls12381` master pin.
+/// Each account's IBE identity is `canonical((account_id, generation))`, and
+/// the context's vetKD public key is the COSE master pin.
 pub fn content_root_context(environment: &Environment, derivation_version: u16) -> Vec<u8> {
     canonical(&("dmsg/content-root/v2", environment, derivation_version))
 }
@@ -89,9 +103,8 @@ pub fn content_root_context(environment: &Environment, derivation_version: u16) 
 /// Validate fixed COSE deployment configuration without accessing ICP master keys.
 pub trait CoseInitExt {
     /// Check executing canister against id, derivation version 2, namespace, user
-    /// homes, governance, 1..3 distinct algorithms, key names and positive budgets.
-    /// Production requires key_1 and nonzero master fingerprints; this does not
-    /// fetch/check actual keys.
+    /// homes, governance, key name and positive budgets. Production requires
+    /// key_1 and a nonzero fingerprint; this does not fetch/check actual keys.
     ///
     /// # Errors
     /// Invalid configuration returns `Error::InvalidInput`; excluded user-home or
@@ -113,24 +126,17 @@ impl CoseInitExt for CoseInit {
             &self.user_homes,
         )?;
         authenticated(self.governance)?;
-        ensure_valid(
-            !self.masters.is_empty() && self.masters.len() <= 3,
-            "masters",
-        )?;
-        for (i, k) in self.masters.iter().enumerate() {
+        if self.environment == Environment::Production {
+            ensure_valid(self.master.key_name == "key_1", "production requires key_1")?;
+            nonzero(self.master.expected_fingerprint.as_slice())?;
+        } else {
             ensure_valid(
-                !self.masters[..i].iter().any(|x| x.algorithm == k.algorithm),
-                "duplicate algorithm",
+                matches!(
+                    self.master.key_name.as_str(),
+                    "key_1" | "test_key_1" | "dfx_test_key"
+                ),
+                "key name",
             )?;
-            if self.environment == Environment::Production {
-                ensure_valid(k.key_name == "key_1", "production requires key_1")?;
-                nonzero(k.expected_fingerprint.as_slice())?;
-            } else {
-                ensure_valid(
-                    matches!(k.key_name.as_str(), "key_1" | "test_key_1" | "dfx_test_key"),
-                    "key name",
-                )?;
-            }
         }
         ensure_valid(
             self.daily_executions > 0 && self.daily_cycles > 0,
@@ -139,109 +145,89 @@ impl CoseInitExt for CoseInit {
     }
 }
 
-/// Check supported purpose, algorithm and generation combinations.
-pub trait KeyRequestExt {
-    /// Require a positive generation, vetKD for ContentRoot, generation 1 with
-    /// Ed25519 or ES256K for formal signing, and Ed25519 with a generation of at
-    /// most `agent::MAX_CONTROLLER_RECORDS` for agent controllers. Does not check
-    /// account/root/controller existence.
-    ///
-    /// # Errors
-    /// Zero generation returns `Error::InvalidInput`; incompatible combinations
-    /// return `Error::UnsupportedProtocol`.
-    fn validate(&self) -> Result<()>;
-}
+/// Device-approval domain of every [`AttestRequest`] and [`AppActionAttestRequest`].
+pub const ATTEST_APPROVAL_DOMAIN: &str = "dmsg/attest/v1";
 
-impl KeyRequestExt for KeyRequest {
-    fn validate(&self) -> Result<()> {
-        ensure_valid(self.generation > 0, "generation")?;
-        match self.purpose {
-            KeyPurpose::ContentRoot => ensure(
-                self.algorithm == Algorithm::VetKdBls12381,
-                Error::UnsupportedProtocol,
-            ),
-            KeyPurpose::Statement | KeyPurpose::FileAttestation | KeyPurpose::AppAction => ensure(
-                self.generation == 1 && self.algorithm != Algorithm::VetKdBls12381,
-                Error::UnsupportedProtocol,
-            ),
-            KeyPurpose::AgentController => ensure(
-                self.generation <= dmsg_types::agent::MAX_CONTROLLER_RECORDS as u64
-                    && self.algorithm == Algorithm::Ed25519,
-                Error::UnsupportedProtocol,
-            ),
-        }
-    }
-}
-
-/// Device-approval domain of every [`ExecuteRequest`].
-pub const EXECUTE_APPROVAL_DOMAIN: &str = "dmsg/execute/v3";
-
-/// Command an execution approval binds under [`EXECUTE_APPROVAL_DOMAIN`]: the
-/// execution kind and its cycles ceiling.
+/// Command an attestation approval binds under [`ATTEST_APPROVAL_DOMAIN`]:
+/// the statement, the checked origin and the device's document signature.
 ///
-/// Devices sign [`approval_message`] over this pair, and the user canister
-/// verifies the same pair; the approval's account and replay context are bound
-/// separately.
-pub fn execute_approval_command(request: &ExecuteRequest) -> (&ExecutionKind, u128) {
-    (&request.kind, request.max_cycles)
+/// Devices sign [`approval_message`] over this triple, and the user canister
+/// verifies the same triple; the approval's account and replay context are
+/// bound separately.
+pub fn attest_approval_command<'a>(
+    statement: &'a Statement,
+    origin: &'a str,
+    signature: &'a Ed25519Signature,
+) -> (&'a Statement, &'a str, &'a Ed25519Signature) {
+    (statement, origin, signature)
 }
 
-/// Build the recovery-key reconfirmation digest under `dmsg/recovery-reconfirm/v2`.
+/// Device-approval domain of every [`DeriveRootRequest`].
+pub const DERIVE_APPROVAL_DOMAIN: &str = "dmsg/derive-root/v1";
+
+/// Command a derivation approval binds under [`DERIVE_APPROVAL_DOMAIN`]: the
+/// root generation, the transport public key and the cycles ceiling.
+pub fn derive_approval_command(request: &DeriveRootRequest) -> (u64, &ByteArray<48>, u128) {
+    (
+        request.generation,
+        &request.transport_public_key,
+        request.max_cycles,
+    )
+}
+
+/// Build the proof-of-possession digest a new device signs for a recovery
+/// request under `dmsg/recovery-device/v1`.
 ///
-/// Binds user home, account, recovery nonce, full recovery request and dispute
-/// confirmation. Sign the digest with the offline recovery signing key, not a
-/// device key. This does not check policy, deadlines, or signature validity.
-pub fn recovery_confirmation_message(
+/// Binds the user home, account and the full request. This constructs bytes
+/// only; it checks nothing.
+pub fn recovery_device_message(home: Principal, account_id: &AccountId, request: &RecoveryRequest) -> Hash {
+    digest("dmsg/recovery-device/v1", &(home, account_id, request))
+}
+
+/// Build the proof-of-possession digest a controller key signs for its
+/// registration under `dmsg/controller-pop/v1`.
+///
+/// Binds the user home, account, generation, delegation ceiling, superseded
+/// generations and the approval's request ID. Sign the digest with the
+/// controller's private key, not a device key. This checks nothing.
+pub fn controller_pop_message(
     home: Principal,
     account_id: &AccountId,
-    nonce: u64,
-    request: &RecoveryRequest,
-    confirmation: &RecoveryConfirmation,
+    generation: u32,
+    delegation: &DelegationAuthority,
+    supersedes: &[u32],
+    request_id: OpId,
 ) -> Hash {
     digest(
-        "dmsg/recovery-reconfirm/v2",
-        &(home, account_id, nonce, request, confirmation),
+        "dmsg/controller-pop/v1",
+        &(
+            home,
+            account_id,
+            generation,
+            delegation,
+            supersedes,
+            request_id,
+        ),
+    )
+}
+
+/// Digest of the recipients a root bundle of `generation` is wrapped to:
+/// the active device IDs in ascending order plus the generation, which names
+/// the vetKD recovery identity. `devices` may be given in any order.
+pub fn root_recipients_digest(devices: &[Hash], generation: u64) -> Hash {
+    let mut ids: Vec<Hash> = devices.to_vec();
+    ids.sort_unstable();
+    digest("dmsg/root-recipients/1", &(ids, generation))
+}
+
+/// Commitment to a root bundle: its recipients digest and the SHA-256 of its
+/// body. The user home checks both parts at `CommitRoot`.
+pub fn root_bundle_digest(recipients_digest: Hash, body_digest: Hash) -> Hash {
+    digest(
+        "dmsg/root-bundle-digest/2",
+        &(recipients_digest, body_digest),
     )
 }
 
 #[cfg(test)]
 mod tests;
-
-/// Prepare exact application execution bytes, without performing authorization.
-impl SignRequestExt for AppActionSignRequest {
-    fn into_execution(self) -> Result<ExecuteRequest> {
-        // prepare_cose validates the complete action, including its origin.
-        ensure(
-            self.account_id == self.action.signing_account,
-            Error::Forbidden,
-        )?;
-        ensure(
-            self.approval.expires_at <= self.action.expires_at_ms,
-            Error::Expired,
-        )?;
-        let origin = self.action.origin.clone();
-        let statement = Statement {
-            issuer: self.issuer,
-            subject: None,
-            issued_at: None,
-            content: StatementContent::AppAction(Box::new(self.action)),
-        };
-        let algorithm: Algorithm = self.key.algorithm.into();
-        let (_, bytes) = prepare_cose(&statement, &algorithm, &self.key.kid)?;
-        Ok(ExecuteRequest {
-            account_id: self.account_id,
-            max_cycles: self.max_cycles,
-            approval: self.approval,
-            kind: ExecutionKind::Sign {
-                key: KeyRequest {
-                    purpose: KeyPurpose::AppAction,
-                    algorithm,
-                    generation: 1,
-                },
-                to_be_signed: bytes.into(),
-                public_key_fingerprint: self.key.public_key_fingerprint,
-                origin,
-            },
-        })
-    }
-}

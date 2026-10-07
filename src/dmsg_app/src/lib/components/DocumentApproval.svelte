@@ -77,7 +77,6 @@
               artifact: job.artifact,
               receipt: job.receipt,
               executionId: job.executionId,
-              keyDescriptorCbor: job.keyDescriptorCbor,
               executionCertificateCbor: job.executionCertificateCbor,
               authorization: 'verified',
               timestamp: 'unsupported'
@@ -98,8 +97,8 @@
     await session.run(async () => {
       if (!payload || !request || !session.meta?.account)
         throw new Error('请先绑定正式工作区。')
-      const { api, account } = await connectAccount(derivation)
-      client = new SigningClient(account, api.cose!, assertLiveSource)
+      const { account } = await connectAccount(derivation)
+      client = new SigningClient(account, assertLiveSource)
       result = await client.journal(request.id)
       if (!result) review = await client.prepare(request, payload)
     })
@@ -207,16 +206,12 @@
     >
     {#if review}<p>
         本月正式执行额度：剩余 {review.usage.remaining} / {review.usage.allowed}；已预留 {review
-          .usage.held}。并发操作与执行权重仍由链上在提交时核对。
+          .usage.held}。签名由本机设备密钥完成，账户服务记录认证回执并计费。
       </p>
       <dl class="evidence-list">
         <div>
-          <dt>公钥指纹</dt>
+          <dt>本机设备公钥指纹</dt>
           <dd><code>{review.fingerprint}</code></dd>
-        </div>
-        <div>
-          <dt>费用上限</dt>
-          <dd>{review.maxCycles} cycles</dd>
         </div>
         <div>
           <dt>最终载荷摘要</dt>
@@ -225,7 +220,7 @@
       </dl>{/if}
     {#if result}<p role="status">
         {result.stage === 'complete'
-          ? '签名与链上执行回执已核验'
+          ? '设备签名与链上认证回执已核验'
           : result.stage === 'failed'
             ? `执行已失败：${result.error}`
             : result.stage === 'result_expired'
@@ -243,7 +238,6 @@
                       format: 'dmsg-signature-evidence/1',
                       artifact: result!.artifact,
                       receipt: result!.receipt,
-                      keyDescriptorCbor: result!.keyDescriptorCbor,
                       executionCertificateCbor: result!.executionCertificateCbor,
                       executionId: result!.executionId
                     },

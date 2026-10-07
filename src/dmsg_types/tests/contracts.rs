@@ -109,27 +109,26 @@ fn production_requires_a_fixed_home_key_and_fingerprint() {
         executing_canister: id,
         user_homes: vec![Principal::from_slice(&[2, 1])],
         derivation_version: 2,
-        masters: vec![MasterKey {
-            algorithm: Algorithm::Ed25519,
+        master: MasterKey {
             key_name: "test_key_1".into(),
             expected_fingerprint: Hash::new([1; 32]),
-        }],
+        },
         daily_executions: 10,
         daily_cycles: 100,
         governance: Principal::from_slice(&[3, 1]),
     };
     assert!(c.validate(id).is_err());
-    c.masters[0].key_name = "dfx_test_key".into();
+    c.master.key_name = "dfx_test_key".into();
     assert!(c.validate(id).is_err());
-    c.masters[0].key_name = "key_1".into();
-    c.masters[0].expected_fingerprint = Hash::new([0; 32]);
+    c.master.key_name = "key_1".into();
+    c.master.expected_fingerprint = Hash::new([0; 32]);
     assert!(c.validate(id).is_err());
-    c.masters[0].expected_fingerprint = Hash::new([1; 32]);
+    c.master.expected_fingerprint = Hash::new([1; 32]);
     assert!(c.validate(id).is_ok());
     assert!(c.validate(c.user_homes[0]).is_err());
     c.environment = Environment::Local;
-    c.masters[0].key_name = "dfx_test_key".into();
-    c.masters[0].expected_fingerprint = Hash::new([0; 32]);
+    c.master.key_name = "dfx_test_key".into();
+    c.master.expected_fingerprint = Hash::new([0; 32]);
     assert!(c.validate(id).is_ok());
 }
 

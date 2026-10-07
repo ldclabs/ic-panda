@@ -1,6 +1,6 @@
 //! Binding checks complement (never replace) authentication of an ICP certificate.
 use crate::*;
-use dmsg_types::{cose::*, *};
+use dmsg_types::*;
 
 /// Return the single certified-tree path segment for an execution receipt.
 ///
@@ -40,27 +40,24 @@ pub fn match_signing_result(
 ///
 /// The caller must first authenticate the IC certificate, expected user canister,
 /// requested account/request path, witness and leaf bytes. This function requires
-/// schema 1 and Completed, then matches issuer, signing-bytes SHA-256, public-key
-/// thumbprint and raw-signature SHA-256. It does not independently check account ID,
+/// schema 2, then matches issuer, signing-bytes SHA-256, public-key thumbprint
+/// and raw-signature SHA-256. It does not independently check account ID,
 /// request ID, origin, approval expiry or external application permissions.
 ///
 /// # Errors
-/// Propagates artifact verification errors; unsupported receipt schema, noncompleted
-/// status or mismatched bindings return `Error::IntegrityFailed`.
+/// Propagates artifact verification errors; unsupported receipt schema or
+/// mismatched bindings return `Error::IntegrityFailed`.
 pub fn match_execution_receipt(
     artifact: &SignedArtifact,
     receipt: &ExecutionReceipt,
 ) -> Result<()> {
-    ensure(
-        receipt.schema == 1 && receipt.status == ExecutionStatus::Completed,
-        Error::IntegrityFailed,
-    )?;
+    ensure(receipt.schema == 2, Error::IntegrityFailed)?;
     let verified = verify_and_parse_artifact(artifact)?;
     ensure(
         verified.statement.issuer == receipt.issuer
             && sha256(&verified.signing_bytes()?) == receipt.to_be_signed_digest
             && thumbprint(&verified.key)? == receipt.public_key_fingerprint
-            && Some(sha256(verified.message.signature())) == receipt.signature_digest,
+            && sha256(verified.message.signature()) == receipt.signature_digest,
         Error::IntegrityFailed,
     )
 }

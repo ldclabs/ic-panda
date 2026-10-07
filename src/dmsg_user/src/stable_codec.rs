@@ -50,6 +50,9 @@ pub struct ConfigRepr {
     pub day: u64,
     #[cbor(key = 6)]
     pub created_today: u32,
+    #[cbor(key = 7)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master_secret: Option<Hash>,
 }
 
 impl StableCodec for Config {
@@ -63,6 +66,7 @@ impl StableCodec for Config {
             allocator_namespace_digest: self.allocator_namespace_digest,
             day: self.day,
             created_today: self.created_today,
+            master_secret: self.master_secret,
         }
     }
 
@@ -74,6 +78,7 @@ impl StableCodec for Config {
             allocator_namespace_digest: repr.allocator_namespace_digest,
             day: repr.day,
             created_today: repr.created_today,
+            master_secret: repr.master_secret,
         }
     }
 }
@@ -105,7 +110,7 @@ impl StableCodec for HandleAuthorization {
 }
 
 // Flatten the small monthly ledger. Full resource projections and timeline
-// segments are validated on refresh, not rewritten on every reservation.
+// segments are validated on refresh, not rewritten on every charge.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct MonthRepr {
     #[cbor(key = 1)]
@@ -130,8 +135,6 @@ pub struct MonthRepr {
     pub valid_until_ms: u64,
     #[cbor(key = 11)]
     pub ed25519_units: u64,
-    #[cbor(key = 12)]
-    pub ecdsa_secp256k1_units: u64,
     #[cbor(key = 13)]
     pub entitlement_digest: Hash,
 }
@@ -152,7 +155,6 @@ impl StableCodec for Month {
             charged_units: self.usage.charged_units,
             valid_until_ms: self.usage.valid_until_ms,
             ed25519_units: self.weights.ed25519,
-            ecdsa_secp256k1_units: self.weights.ecdsa_secp256k1,
             entitlement_digest: self.entitlement_digest,
         }
     }
@@ -174,11 +176,23 @@ impl StableCodec for Month {
             weights: ExecutionWeights {
                 version: repr.weight_policy_version,
                 ed25519: repr.ed25519_units,
-                ecdsa_secp256k1: repr.ecdsa_secp256k1_units,
             },
             entitlement_digest: repr.entitlement_digest,
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct RecoveryReceiptRepr {
+    #[cbor(key = 1)]
+    pub request_id: OpId,
+    #[cbor(key = 2)]
+    pub new_auth: candid::Principal,
+    #[cbor(key = 3)]
+    pub device_id: Hash,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root_generation: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -195,17 +209,8 @@ pub struct AccountStateRepr {
     pub account_version: u64,
     #[cbor(key = 6)]
     pub security_epoch: u64,
-    #[cbor(key = 7)]
-    pub status: AccountStatus,
     #[cbor(key = 8)]
     pub devices: BTreeMap<Hash, DeviceRepr>,
-    #[cbor(key = 9)]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub recovery: Option<RecoveryPolicyRepr>,
-    #[cbor(key = 10)]
-    pub recovery_checked: bool,
-    #[cbor(key = 11)]
-    pub recovery_nonce: u64,
     #[cbor(key = 12)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pending_recovery: Option<PendingRecoveryRepr>,
@@ -236,14 +241,14 @@ pub struct AccountStateRepr {
     pub execution_expirations: BTreeMap<OpId, Option<u64>>,
     #[cbor(key = 23)]
     pub created_at_ms: u64,
-    #[cbor(key = 24)]
-    pub safety_budget: BudgetRepr,
     #[cbor(key = 25)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub principal_updated_at: Option<u64>,
-    #[cbor(key = 26)]
+    #[cbor(key = 27)]
+    pub recovery_delay_ms: u64,
+    #[cbor(key = 28)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub completed_recovery: Option<(OpId, candid::Principal)>,
+    pub completed_recovery: Option<RecoveryReceiptRepr>,
 }
 
 impl StableCodec for AccountState {
@@ -252,18 +257,14 @@ impl StableCodec for AccountState {
     fn to_repr(&self) -> Self::Repr {
         AccountStateRepr {
             created_at_ms: self.created_at_ms,
-            safety_budget: self.safety_budget.to_repr(),
             account_id: self.account_id,
             home_user: self.home_user,
             home_cose: self.home_cose,
             auth_bindings: self.auth_bindings.clone(),
             account_version: self.account_version,
             security_epoch: self.security_epoch,
-            status: self.status.clone(),
             devices: map_to_repr(&self.devices),
-            recovery: self.recovery.as_ref().map(StableCodec::to_repr),
-            recovery_checked: self.recovery_checked,
-            recovery_nonce: self.recovery_nonce,
+            recovery_delay_ms: self.recovery_delay_ms,
             pending_recovery: self.pending_recovery.as_ref().map(StableCodec::to_repr),
             current_root: self.current_root.as_ref().map(StableCodec::to_repr),
             root_slot: self.root_slot.as_ref().map(StableCodec::to_repr),
@@ -276,28 +277,26 @@ impl StableCodec for AccountState {
             handle_authorizations: map_to_repr(&self.handle_authorizations),
             execution_expirations: self.execution_expirations.clone(),
             principal_updated_at: self.principal_updated_at,
-            completed_recovery: self
-                .completed_recovery
-                .as_ref()
-                .map(|r| (r.request_id, r.new_auth)),
+            completed_recovery: self.completed_recovery.as_ref().map(|r| RecoveryReceiptRepr {
+                request_id: r.request_id,
+                new_auth: r.new_auth,
+                device_id: r.device_id,
+                root_generation: r.root_generation,
+            }),
         }
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
             created_at_ms: repr.created_at_ms,
-            safety_budget: Budget::from_repr(repr.safety_budget),
             account_id: repr.account_id,
             home_user: repr.home_user,
             home_cose: repr.home_cose,
             auth_bindings: repr.auth_bindings,
             account_version: repr.account_version,
             security_epoch: repr.security_epoch,
-            status: repr.status,
             devices: map_from_repr(repr.devices),
-            recovery: repr.recovery.map(RecoveryPolicy::from_repr),
-            recovery_checked: repr.recovery_checked,
-            recovery_nonce: repr.recovery_nonce,
+            recovery_delay_ms: repr.recovery_delay_ms,
             pending_recovery: repr.pending_recovery.map(PendingRecovery::from_repr),
             current_root: repr.current_root.map(ContentRootRef::from_repr),
             root_slot: repr.root_slot.map(RootReservation::from_repr),
@@ -314,11 +313,11 @@ impl StableCodec for AccountState {
             handle_authorizations: map_from_repr(repr.handle_authorizations),
             execution_expirations: repr.execution_expirations,
             principal_updated_at: repr.principal_updated_at,
-            completed_recovery: repr.completed_recovery.map(|(request_id, new_auth)| {
-                RecoveryReceipt {
-                    request_id,
-                    new_auth,
-                }
+            completed_recovery: repr.completed_recovery.map(|r| RecoveryReceipt {
+                request_id: r.request_id,
+                new_auth: r.new_auth,
+                device_id: r.device_id,
+                root_generation: r.root_generation,
             }),
         }
     }
@@ -330,9 +329,6 @@ pub struct AgentPrincipalRepr {
     pub state: PrincipalStateRepr,
     #[cbor(key = 2)]
     pub published_version: u64,
-    #[cbor(key = 3)]
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub last_nonces: BTreeMap<u32, u64>,
 }
 
 impl StableCodec for AgentPrincipal {
@@ -342,7 +338,6 @@ impl StableCodec for AgentPrincipal {
         AgentPrincipalRepr {
             state: self.state.to_repr(),
             published_version: self.published_version,
-            last_nonces: self.last_nonces.clone(),
         }
     }
 
@@ -350,19 +345,54 @@ impl StableCodec for AgentPrincipal {
         Self {
             state: PrincipalState::from_repr(repr.state),
             published_version: repr.published_version,
-            last_nonces: repr.last_nonces,
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct AttestationRepr {
+    #[cbor(key = 1)]
+    pub device_id: Hash,
+    #[cbor(key = 2)]
+    pub security_epoch: u64,
+    #[cbor(key = 3)]
+    pub approved_at: u64,
+    #[cbor(key = 4)]
+    pub expires_at: u64,
+    #[cbor(key = 5)]
+    pub origin: String,
+    #[cbor(key = 6)]
+    pub to_be_signed_digest: Hash,
+    #[cbor(key = 7)]
+    pub public_key_fingerprint: Hash,
+    #[cbor(key = 8)]
+    pub signature_digest: Hash,
+    #[cbor(key = 9)]
+    pub artifact: SignedArtifactRepr,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+#[allow(clippy::large_enum_variant)]
+pub enum ExecutionRecordRepr {
+    Attestation(AttestationRepr),
+    Derivation {
+        #[cbor(key = 1)]
+        grant: ExecutionGrantRepr,
+        #[cbor(key = 2)]
+        result: ExecutionResultRepr,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct AuthorizedExecutionRepr {
     #[cbor(key = 1)]
-    pub grant: ExecutionGrantRepr,
+    pub account_id: AccountId,
     #[cbor(key = 2)]
-    pub command_digest: Hash,
+    pub request_id: OpId,
     #[cbor(key = 3)]
-    pub result: ExecutionResultRepr,
+    pub command_digest: Hash,
+    #[cbor(key = 4)]
+    pub record: ExecutionRecordRepr,
 }
 
 impl StableCodec for AuthorizedExecution {
@@ -370,17 +400,51 @@ impl StableCodec for AuthorizedExecution {
 
     fn to_repr(&self) -> Self::Repr {
         AuthorizedExecutionRepr {
-            grant: self.grant.to_repr(),
+            account_id: self.account_id,
+            request_id: self.request_id,
             command_digest: self.command_digest,
-            result: self.result.to_repr(),
+            record: match &self.record {
+                ExecutionRecord::Attestation(a) => ExecutionRecordRepr::Attestation(AttestationRepr {
+                    device_id: a.device_id,
+                    security_epoch: a.security_epoch,
+                    approved_at: a.approved_at,
+                    expires_at: a.expires_at,
+                    origin: a.origin.clone(),
+                    to_be_signed_digest: a.to_be_signed_digest,
+                    public_key_fingerprint: a.public_key_fingerprint,
+                    signature_digest: a.signature_digest,
+                    artifact: a.artifact.to_repr(),
+                }),
+                ExecutionRecord::Derivation { grant, result } => ExecutionRecordRepr::Derivation {
+                    grant: grant.to_repr(),
+                    result: result.to_repr(),
+                },
+            },
         }
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            grant: ExecutionGrant::from_repr(repr.grant),
+            account_id: repr.account_id,
+            request_id: repr.request_id,
             command_digest: repr.command_digest,
-            result: ExecutionResult::from_repr(repr.result),
+            record: match repr.record {
+                ExecutionRecordRepr::Attestation(a) => ExecutionRecord::Attestation(Attestation {
+                    device_id: a.device_id,
+                    security_epoch: a.security_epoch,
+                    approved_at: a.approved_at,
+                    expires_at: a.expires_at,
+                    origin: a.origin,
+                    to_be_signed_digest: a.to_be_signed_digest,
+                    public_key_fingerprint: a.public_key_fingerprint,
+                    signature_digest: a.signature_digest,
+                    artifact: SignedArtifact::from_repr(a.artifact),
+                }),
+                ExecutionRecordRepr::Derivation { grant, result } => ExecutionRecord::Derivation {
+                    grant: ExecutionGrant::from_repr(grant),
+                    result: ExecutionResult::from_repr(result),
+                },
+            },
         }
     }
 }
@@ -420,18 +484,14 @@ mod tests {
     fn account(populated: bool) -> AccountState {
         let mut state = AccountState {
             created_at_ms: 1,
-            safety_budget: Budget::default(),
             account_id: AccountId([8; 12]),
             home_user: p(5),
             home_cose: p(6),
             auth_bindings: vec![p(1)],
             account_version: 0,
             security_epoch: 0,
-            status: AccountStatus::Active,
             devices: BTreeMap::from([(Hash::new([1; 32]), device(1))]),
-            recovery: None,
-            recovery_checked: false,
-            recovery_nonce: 0,
+            recovery_delay_ms: DEFAULT_RECOVERY_DELAY_MS,
             pending_recovery: None,
             completed_recovery: None,
             current_root: None,
@@ -453,39 +513,28 @@ mod tests {
         state.devices = (1..=16).map(|n| (Hash::new([n; 32]), device(n))).collect();
         state.account_version = 1_000;
         state.security_epoch = 20;
-        state.recovery = Some(RecoveryPolicy {
-            generation: 3,
-            signing_pub: Hash::new([31; 32]),
-            hpke_pub: Hash::new([32; 32]),
-            delay_ms: DAY,
-        });
-        state.recovery_checked = true;
-        state.recovery_nonce = 9;
+        state.recovery_delay_ms = DAY;
         state.pending_recovery = Some(PendingRecovery {
             request: RecoveryRequest {
                 op_id: Hash::new([33; 32]),
                 new_auth: p(9),
                 device: device(9).input,
-                generation: 3,
                 expires_at: 1_700_086_400_000,
             },
             execute_after: 1_700_086_400_000,
-            dispute: Some(Hash::new([34; 32])),
-            reconfirmed: true,
-            confirmation: Some(RecoveryConfirmation {
-                request_id: Hash::new([35; 32]),
-                dispute: Hash::new([34; 32]),
-                expires_at: 1_700_172_800_000,
-            }),
+        });
+        state.completed_recovery = Some(RecoveryReceipt {
+            request_id: Hash::new([44; 32]),
+            new_auth: p(9),
+            device_id: Hash::new([9; 32]),
+            root_generation: Some(7),
         });
         state.current_root = Some(ContentRootRef {
             generation: 7,
-            suite: "dmsg-root-v1".into(),
-            home_cose: state.home_cose,
-            derivation_version: 2,
-            key_generation: 7,
+            suite: "dmsg-root-v2".into(),
             bundle_digest: Hash::new([36; 32]),
-            recovery_generation: 3,
+            recipients_digest: Hash::new([38; 32]),
+            body_digest: Hash::new([39; 32]),
         });
         state.root_slot = Some(RootReservation {
             op_id: Hash::new([37; 32]),
@@ -566,23 +615,30 @@ mod tests {
         assert_eq!(compact_from_bytes::<AccountState>(&sparse_bytes), sparse);
         assert_eq!(
             top_keys(&sparse_bytes),
-            (1..=8)
-                .chain(10..=11)
+            (1..=6)
+                .chain([8])
                 .chain(15..=19)
-                .chain(23..=24)
+                .chain([23, 27])
                 .collect::<Vec<_>>()
         );
 
         let full = account(true);
         let compact = compact_bytes(&full);
-        assert!(compact.len() > 17_642);
+        assert!(compact.len() > 17_000);
         assert_eq!(
             hex(&compact),
-            "8dae2f81264947bf3965a23f527ed8745c07c348d6971729fb8e27da397fe6a1"
+            "28c64772d1afec1ac4cdf690c29f40f92011b8cb9c0c2bfdd1911abea3b6d7e7"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
-        assert_eq!(top_keys(&compact), (1..=25).collect::<Vec<_>>());
+        assert_eq!(
+            top_keys(&compact),
+            (1..=6)
+                .chain([8])
+                .chain(12..=23)
+                .chain([25, 27, 28])
+                .collect::<Vec<_>>()
+        );
         // The retention index consists of raw IDs/timestamps in both encodings;
         // integer field keys do not shrink those shared bytes.
         assert!(
@@ -616,7 +672,6 @@ mod tests {
             weights: ExecutionWeights {
                 version: 14,
                 ed25519: 1,
-                ecdsa_secp256k1: 2,
             },
             entitlement_digest: Hash::new([1; 32]),
         };
@@ -626,19 +681,7 @@ mod tests {
     }
 
     #[test]
-    fn latest_recovery_receipt_survives_compact_storage() {
-        let mut state = account(false);
-        state.completed_recovery = Some(RecoveryReceipt {
-            request_id: Hash::new([44; 32]),
-            new_auth: p(9),
-        });
-        let bytes = compact_bytes(&state);
-        assert!(top_keys(&bytes).contains(&26));
-        assert_eq!(compact_from_bytes::<AccountState>(&bytes), state);
-    }
-
-    #[test]
-    fn config_and_authorized_execution_round_trip() {
+    fn config_and_both_execution_records_round_trip() {
         let config = Config {
             schema: crate::store::STABLE_SCHEMA,
             init: UserInit {
@@ -659,44 +702,68 @@ mod tests {
             allocator_namespace_digest: Hash::new([6; 32]),
             day: 42,
             created_today: 7,
+            master_secret: Some(Hash::new([9; 32])),
         };
-        assert_eq!(
-            compact_from_bytes::<Config>(&compact_bytes(&config)).schema,
-            crate::store::STABLE_SCHEMA
-        );
+        let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
+        assert_eq!(decoded.schema, crate::store::STABLE_SCHEMA);
+        assert_eq!(decoded.master_secret, config.master_secret);
 
         let state = account(false);
-        let execution = AuthorizedExecution {
-            grant: ExecutionGrant {
-                commerce: None,
-                account_id: state.account_id,
-                home_user: state.home_user,
-                home_cose: state.home_cose,
-                request_id: Hash::new([7; 32]),
-                execution_sequence: 9,
-                security_epoch: 2,
-                device_id: Hash::new([8; 32]),
-                device_sequence: 4,
-                approved_at: 100,
-                expires_at: 200,
-                kind: ExecutionKind::Derive {
-                    generation: 3,
-                    root_op_id: Some(Hash::new([9; 32])),
-                    transport_key: [10; 48].into(),
-                },
-                max_cycles: 1_000,
-            },
+        let derivation = AuthorizedExecution {
+            account_id: state.account_id,
+            request_id: Hash::new([7; 32]),
             command_digest: Hash::new([11; 32]),
-            result: ExecutionResult {
-                request_id: Hash::new([7; 32]),
-                outcome: ExecutionOutcome::Executing,
-                cycles_cost_upper_bound: 1_000,
-                cycles_charged: 600,
+            record: ExecutionRecord::Derivation {
+                grant: ExecutionGrant {
+                    account_id: state.account_id,
+                    home_user: state.home_user,
+                    home_cose: state.home_cose,
+                    request_id: Hash::new([7; 32]),
+                    execution_sequence: 9,
+                    security_epoch: 2,
+                    device_id: Hash::new([8; 32]),
+                    device_sequence: 4,
+                    approved_at: 100,
+                    expires_at: 200,
+                    generation: 3,
+                    transport_key: [10; 48].into(),
+                    max_cycles: 1_000,
+                },
+                result: ExecutionResult {
+                    request_id: Hash::new([7; 32]),
+                    outcome: ExecutionOutcome::Executing,
+                    cycles_cost_upper_bound: 1_000,
+                    cycles_charged: 600,
+                },
             },
         };
-        let bytes = compact_bytes(&execution);
-        assert_eq!(compact_from_bytes::<AuthorizedExecution>(&bytes), execution);
-        assert!(bytes.len() * 100 <= cbor2::to_vec(&execution).unwrap().len() * 65);
+        let bytes = compact_bytes(&derivation);
+        assert_eq!(
+            compact_from_bytes::<AuthorizedExecution>(&bytes),
+            derivation
+        );
+        assert!(bytes.len() * 100 <= cbor2::to_vec(&derivation).unwrap().len() * 65);
+        let attestation = AuthorizedExecution {
+            record: ExecutionRecord::Attestation(Attestation {
+                device_id: Hash::new([8; 32]),
+                security_epoch: 2,
+                approved_at: 100,
+                expires_at: 200,
+                origin: "https://example.com".into(),
+                to_be_signed_digest: Hash::new([12; 32]),
+                public_key_fingerprint: Hash::new([13; 32]),
+                signature_digest: Hash::new([14; 32]),
+                artifact: SignedArtifact {
+                    cose_sign1: vec![16; 256].into(),
+                    cose_key: vec![17; 96].into(),
+                },
+            }),
+            ..derivation
+        };
+        assert_eq!(
+            compact_from_bytes::<AuthorizedExecution>(&compact_bytes(&attestation)),
+            attestation
+        );
     }
 
     #[test]

@@ -111,21 +111,12 @@ stable_struct!(DeviceRepr => Device {
     5 => next_sequence: u64,
 });
 
-stable_struct!(RecoveryPolicyRepr => RecoveryPolicy {
-    1 => generation: u64,
-    2 => signing_pub: Hash,
-    3 => hpke_pub: Hash,
-    4 => delay_ms: u64,
-});
-
 stable_struct!(ContentRootRefRepr => ContentRootRef {
     1 => generation: u64,
     2 => suite: String,
-    3 => home_cose: Principal,
-    4 => derivation_version: u16,
-    5 => key_generation: u64,
     6 => bundle_digest: Hash,
-    7 => recovery_generation: u64,
+    8 => recipients_digest: Hash,
+    9 => body_digest: Hash,
 });
 
 stable_struct!(RootReservationRepr => RootReservation {
@@ -141,7 +132,6 @@ stable_struct!(SensitivePolicyRepr => SensitivePolicy {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     2 => allowed_purposes: Vec<KeyPurpose>,
     3 => daily_executions: u32,
-    4 => daily_cycles: u128,
 });
 
 stable_struct!(OperationReceiptRepr => OperationReceipt {
@@ -150,28 +140,16 @@ stable_struct!(OperationReceiptRepr => OperationReceipt {
     3 => account_version: u64,
 });
 
-stable_struct!(RecoveryConfirmationRepr => RecoveryConfirmation {
-    1 => request_id: OpId,
-    2 => dispute: Hash,
-    3 => expires_at: u64,
-});
-
 stable_struct!(RecoveryRequestRepr => RecoveryRequest {
     1 => op_id: OpId,
     2 => new_auth: Principal,
     3 => device: DeviceInputRepr as codec,
-    4 => generation: u64,
     5 => expires_at: u64,
 });
 
 stable_struct!(PendingRecoveryRepr => PendingRecovery {
     1 => request: RecoveryRequestRepr as codec,
     2 => execute_after: u64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    3 => dispute: Option<Hash>,
-    4 => reconfirmed: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    5 => confirmation: Option<RecoveryConfirmationRepr> as codec,
 });
 
 stable_struct!(HandleIntentRepr => HandleIntent {
@@ -194,6 +172,8 @@ stable_struct!(HandleInitRepr => HandleInit {
     6 => environment: Environment,
     7 => issuer_namespace: String,
     8 => user_homes: Vec<Principal>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    9 => registration_homes: Vec<Principal>,
 });
 
 stable_struct!(LegacySnapshotRepr => LegacySnapshot {
@@ -401,124 +381,7 @@ stable_struct!(TransferLegRepr => TransferLeg {
     15 => last_failure: Option<TransferFailure>,
 });
 
-stable_struct!(KeyRequestRepr => KeyRequest {
-    1 => purpose: KeyPurpose,
-    2 => algorithm: Algorithm,
-    3 => generation: u64,
-});
-
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub enum ExecutionKindRepr {
-    Sign {
-        #[cbor(key = 1)]
-        key: KeyRequestRepr,
-        #[cbor(key = 2)]
-        to_be_signed: ByteBuf,
-        #[cbor(key = 3)]
-        public_key_fingerprint: Hash,
-        #[cbor(key = 4)]
-        origin: String,
-    },
-    Derive {
-        #[cbor(key = 5)]
-        generation: u64,
-        #[cbor(key = 6)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        root_op_id: Option<OpId>,
-        #[cbor(key = 7)]
-        transport_key: ByteArray<48>,
-    },
-    AgentEvent {
-        #[cbor(key = 1)]
-        key: KeyRequestRepr,
-        #[cbor(key = 8)]
-        event: ByteBuf,
-        #[cbor(key = 9)]
-        principal_id: String,
-        #[cbor(key = 4)]
-        origin: String,
-    },
-}
-
-impl StableCodec for ExecutionKind {
-    type Repr = ExecutionKindRepr;
-
-    fn to_repr(&self) -> Self::Repr {
-        match self {
-            Self::Sign {
-                key,
-                to_be_signed,
-                public_key_fingerprint,
-                origin,
-            } => ExecutionKindRepr::Sign {
-                key: key.to_repr(),
-                to_be_signed: to_be_signed.clone(),
-                public_key_fingerprint: *public_key_fingerprint,
-                origin: origin.clone(),
-            },
-            Self::Derive {
-                generation,
-                root_op_id,
-                transport_key,
-            } => ExecutionKindRepr::Derive {
-                generation: *generation,
-                root_op_id: *root_op_id,
-                transport_key: *transport_key,
-            },
-            Self::AgentEvent {
-                key,
-                event,
-                principal_id,
-                origin,
-            } => ExecutionKindRepr::AgentEvent {
-                key: key.to_repr(),
-                event: event.clone(),
-                principal_id: principal_id.clone(),
-                origin: origin.clone(),
-            },
-        }
-    }
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        match repr {
-            ExecutionKindRepr::Sign {
-                key,
-                to_be_signed,
-                public_key_fingerprint,
-                origin,
-            } => Self::Sign {
-                key: KeyRequest::from_repr(key),
-                to_be_signed,
-                public_key_fingerprint,
-                origin,
-            },
-            ExecutionKindRepr::Derive {
-                generation,
-                root_op_id,
-                transport_key,
-            } => Self::Derive {
-                generation,
-                root_op_id,
-                transport_key,
-            },
-            ExecutionKindRepr::AgentEvent {
-                key,
-                event,
-                principal_id,
-                origin,
-            } => Self::AgentEvent {
-                key: KeyRequest::from_repr(key),
-                event,
-                principal_id,
-                origin,
-            },
-        }
-    }
-}
-
 stable_struct!(ExecutionGrantRepr => ExecutionGrant {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    13 => commerce: Option<CommercialReservationRepr> as codec,
     1 => account_id: AccountId,
     2 => home_user: Principal,
     3 => home_cose: Principal,
@@ -529,7 +392,8 @@ stable_struct!(ExecutionGrantRepr => ExecutionGrant {
     8 => device_sequence: u64,
     9 => approved_at: u64,
     10 => expires_at: u64,
-    11 => kind: ExecutionKindRepr as codec,
+    14 => generation: u64,
+    15 => transport_key: ByteArray<48>,
     12 => max_cycles: u128,
 });
 
@@ -539,10 +403,7 @@ stable_struct!(SignedArtifactRepr => SignedArtifact {
 });
 
 stable_struct!(KeyDescriptorRepr => KeyDescriptor {
-    1 => key_id: ByteBuf,
     2 => account_id: AccountId,
-    3 => purpose: KeyPurpose,
-    4 => algorithm: Algorithm,
     5 => home_cose: Principal,
     6 => master_key_name: String,
     7 => environment: Environment,
@@ -552,87 +413,16 @@ stable_struct!(KeyDescriptorRepr => KeyDescriptor {
     11 => public_key_fingerprint: Hash,
 });
 
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub enum ExecutionOutputRepr {
-    Signature {
-        #[cbor(key = 1)]
-        artifact: SignedArtifactRepr,
-        #[cbor(key = 2)]
-        key: KeyDescriptorRepr,
-    },
-    EncryptedRootKey {
-        #[cbor(key = 3)]
-        encrypted_key: ByteBuf,
-        #[cbor(key = 2)]
-        key: KeyDescriptorRepr,
-    },
-    AgentSignature {
-        #[cbor(key = 4)]
-        event_hash: Hash,
-        #[cbor(key = 5)]
-        signature: Ed25519Signature,
-        #[cbor(key = 2)]
-        key: KeyDescriptorRepr,
-    },
-}
-
-impl StableCodec for ExecutionOutput {
-    type Repr = ExecutionOutputRepr;
-
-    fn to_repr(&self) -> Self::Repr {
-        match self {
-            Self::Signature { artifact, key } => ExecutionOutputRepr::Signature {
-                artifact: artifact.to_repr(),
-                key: key.to_repr(),
-            },
-            Self::EncryptedRootKey { encrypted_key, key } => {
-                ExecutionOutputRepr::EncryptedRootKey {
-                    encrypted_key: encrypted_key.clone(),
-                    key: key.to_repr(),
-                }
-            }
-            Self::AgentSignature {
-                event_hash,
-                signature,
-                key,
-            } => ExecutionOutputRepr::AgentSignature {
-                event_hash: *event_hash,
-                signature: *signature,
-                key: key.to_repr(),
-            },
-        }
-    }
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        match repr {
-            ExecutionOutputRepr::Signature { artifact, key } => Self::Signature {
-                artifact: SignedArtifact::from_repr(artifact),
-                key: KeyDescriptor::from_repr(key),
-            },
-            ExecutionOutputRepr::EncryptedRootKey { encrypted_key, key } => {
-                Self::EncryptedRootKey {
-                    encrypted_key,
-                    key: KeyDescriptor::from_repr(key),
-                }
-            }
-            ExecutionOutputRepr::AgentSignature {
-                event_hash,
-                signature,
-                key,
-            } => Self::AgentSignature {
-                event_hash,
-                signature,
-                key: KeyDescriptor::from_repr(key),
-            },
-        }
-    }
-}
+stable_struct!(EncryptedRootKeyRepr => EncryptedRootKey {
+    3 => encrypted_key: ByteBuf,
+    2 => key: KeyDescriptorRepr as codec,
+});
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub enum ExecutionOutcomeRepr {
     Authorized,
     Executing,
-    Completed(Box<ExecutionOutputRepr>),
+    Completed(EncryptedRootKeyRepr),
     Failed(Error),
     Unknown(Error),
     ResultExpired,
@@ -645,7 +435,7 @@ impl StableCodec for ExecutionOutcome {
         match self {
             Self::Authorized => ExecutionOutcomeRepr::Authorized,
             Self::Executing => ExecutionOutcomeRepr::Executing,
-            Self::Completed(output) => ExecutionOutcomeRepr::Completed(Box::new(output.to_repr())),
+            Self::Completed(output) => ExecutionOutcomeRepr::Completed(output.to_repr()),
             Self::Failed(error) => ExecutionOutcomeRepr::Failed(error.clone()),
             Self::Unknown(error) => ExecutionOutcomeRepr::Unknown(error.clone()),
             Self::ResultExpired => ExecutionOutcomeRepr::ResultExpired,
@@ -657,7 +447,7 @@ impl StableCodec for ExecutionOutcome {
             ExecutionOutcomeRepr::Authorized => Self::Authorized,
             ExecutionOutcomeRepr::Executing => Self::Executing,
             ExecutionOutcomeRepr::Completed(output) => {
-                Self::Completed(Box::new(ExecutionOutput::from_repr(*output)))
+                Self::Completed(EncryptedRootKey::from_repr(output))
             }
             ExecutionOutcomeRepr::Failed(error) => Self::Failed(error),
             ExecutionOutcomeRepr::Unknown(error) => Self::Unknown(error),
@@ -680,7 +470,6 @@ pub fn is_zero<T: Default + PartialEq>(value: &T) -> bool {
 }
 
 stable_struct!(MasterKeyRepr => MasterKey {
-    1 => algorithm: Algorithm,
     2 => key_name: String,
     3 => expected_fingerprint: Hash,
 });
@@ -691,7 +480,7 @@ stable_struct!(CoseInitRepr => CoseInit {
     3 => executing_canister: Principal,
     9 => user_homes: Vec<Principal>,
     5 => derivation_version: u16,
-    6 => masters: Vec<MasterKeyRepr> as codec,
+    11 => master: MasterKeyRepr as codec,
     7 => daily_executions: u32,
     8 => daily_cycles: u128,
     10 => governance: Principal,
@@ -700,8 +489,8 @@ stable_struct!(CoseInitRepr => CoseInit {
 stable_struct!(KeyStateRepr => KeyState {
     1 => config: CoseInitRepr as codec,
     2 => initialization: Initialization,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    3 => fingerprints: Vec<Hash>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    5 => fingerprint: Option<Hash>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     4 => error: Option<String>,
 });
@@ -798,7 +587,7 @@ mod tests {
     }
 
     #[test]
-    fn commercial_reservation_is_recursive_compact_and_optional() {
+    fn commercial_reservation_and_grant_are_compact() {
         let reservation = CommercialReservation {
             reservation_id: Hash::new([1; 32]),
             month_utc: 202609,
@@ -813,7 +602,7 @@ mod tests {
             compact_from_bytes::<CommercialReservation>(&compact_bytes(&reservation)),
             reservation
         );
-        let mut grant = ExecutionGrant {
+        let grant = ExecutionGrant {
             account_id: AccountId([1; 12]),
             home_user: Principal::from_slice(&[1]),
             home_cose: Principal::from_slice(&[2]),
@@ -824,23 +613,13 @@ mod tests {
             device_sequence: 1,
             approved_at: 1,
             expires_at: 2,
-            commerce: Some(reservation),
             max_cycles: 100,
-            kind: ExecutionKind::Derive {
-                generation: 1,
-                root_op_id: None,
-                transport_key: ByteArray::new([1; 48]),
-            },
+            generation: 1,
+            transport_key: ByteArray::new([1; 48]),
         };
         let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&grant)).unwrap();
-        integer_fields(field(&value, 13).unwrap());
-        assert_eq!(
-            compact_from_bytes::<ExecutionGrant>(&compact_bytes(&grant)),
-            grant
-        );
-        grant.commerce = None;
-        let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&grant)).unwrap();
-        assert!(field(&value, 13).is_none());
+        integer_fields(&value);
+        assert!(field(&value, 15).is_some());
         assert_eq!(
             compact_from_bytes::<ExecutionGrant>(&compact_bytes(&grant)),
             grant

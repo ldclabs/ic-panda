@@ -1,21 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Principal } from '@icp-sdk/core/principal'
-import type {
-  _SERVICE,
-  AgentEventSignRequest,
-  Error as CanisterError,
-  ExecutionOutcome,
-  ExecutionResult,
-  PrincipalInfo
-} from '../src/lib/canisters/generated/user'
-import type { _SERVICE as CoseService } from '../src/lib/canisters/generated/cose'
+import type { _SERVICE, PrincipalInfo } from '../src/lib/canisters/generated/user'
 import type { AccountClient } from '../src/lib/services/account'
 import type { CloudSession } from '../src/lib/services/cloud-session'
 import { AgentClient, type Credential } from '../src/lib/services/agent'
 import { ed25519 } from '../src/lib/crypto/primitives'
-import { encodeControl } from '../src/lib/protocol/account'
-import { agentId, eventHash } from '../src/lib/protocol/agent'
-import { xidText } from '../src/lib/protocol/identity'
+import { controllerPopMessage } from '../src/lib/protocol/account'
+import { agentId, eventHash, eventText } from '../src/lib/protocol/agent'
+import { b64 } from '../src/lib/protocol/codec'
+import { xidBytes, xidText } from '../src/lib/protocol/identity'
 
 vi.mock('../src/lib/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/lib/config')>()
@@ -37,46 +30,11 @@ const seed = new Uint8Array(32).fill(8)
 const publicKey = ed25519.getPublicKey(seed)
 const delegation = `${accountId}.example`
 
-function result(request: AgentEventSignRequest, outcome: ExecutionOutcome): ExecutionResult {
-  return {
-    request_id: request.approval.request_id,
-    outcome,
-    cycles_cost_upper_bound: 100n,
-    cycles_charged: 0n
-  }
-}
-
-function completed(request: AgentEventSignRequest): ExecutionResult {
-  const hash = eventHash(request.event)
-  return result(request, {
-    Completed: {
-      AgentSignature: {
-        event_hash: hash,
-        signature: ed25519.sign(hash, seed),
-        key: {
-          account_id: rawAccount,
-          algorithm: { Ed25519: null },
-          key_generation: 1n,
-          public_key_fingerprint: new Uint8Array(32),
-          derivation_version: 2,
-          public_key: publicKey,
-          key_id: new Uint8Array(32),
-          home_cose: home,
-          environment: { Local: null },
-          master_key_name: 'test_key_1',
-          purpose: { AgentController: null }
-        }
-      }
-    }
-  })
-}
-
 function fixture() {
   const stored = new Map<string, string>()
   const principal: PrincipalInfo = {
     principal_id: `https://id.dmsg.test/${accountId}`,
     published_version: 2n,
-    last_nonces: [],
     state: {
       principal_type: { Person: null },
       version: 2n,
@@ -96,46 +54,47 @@ function fixture() {
     }
   }
   const user = {
-    get_principal: vi.fn<_SERVICE['get_principal']>().mockResolvedValue({ Ok: principal }),
-    sign_agent_event: vi
-      .fn<_SERVICE['sign_agent_event']>()
-      .mockRejectedValue(new Error('timeout')),
-    get_execution: vi.fn<_SERVICE['get_execution']>(),
-    reconcile_execution: vi.fn<_SERVICE['reconcile_execution']>()
+    get_principal: vi.fn<_SERVICE['get_principal']>().mockResolvedValue({ Ok: principal })
   }
-  const deviceSign = vi.fn((message: Uint8Array) => ed25519.sign(message, seed))
+  const controllerKey = vi.fn(
+    async (_account: string, _generation: number, action: string, message?: Uint8Array) => ({
+      publicKey,
+      signature: action === 'sign' ? ed25519.sign(message!, seed) : new Uint8Array()
+    })
+  )
+  const mutate = vi.fn(async (_account: string, command: any) =>
+    typeof command === 'function' ? command({}, new Uint8Array(32).fill(6)) : command
+  )
   const account = {
     home,
     user,
     meta: { account: { id: accountId }, deviceId: '03'.repeat(32) },
     crypto: {
-      call: async (method: string, key: string | Uint8Array, value?: string) => {
-        if (method === 'controlGet') return stored.get(key as string) ?? null
+      call: async (method: string, ...args: any[]) => {
+        if (method === 'controlGet') return stored.get(args[0]) ?? null
         if (method === 'controlPut') {
-          stored.set(key as string, value!)
+          stored.set(args[0], args[1])
           return
         }
-        if (method === 'deviceSign') return deviceSign(key as Uint8Array)
+        if (method === 'controllerKey') return controllerKey(args[0], args[1], args[2], args[3])
         throw new Error(`unexpected crypto call: ${method}`)
       }
     },
+    mutate,
     refresh: async () => ({
-      info: {
-        security_epoch: 1n,
-        sensitive_policy: { frozen: false, allowed_purposes: [{ AgentController: null }] }
-      },
+      info: { security_epoch: 1n },
       device: { input: { capabilities: [{ FormalApprove: null }] }, next_sequence: 1n }
     })
   } as unknown as AccountClient
   const get = vi.fn<CloudSession['get']>()
   const cloud = { get } as unknown as CloudSession
-  const reconnect = () => new AgentClient(account, {} as CoseService, cloud)
+  const reconnect = () => new AgentClient(account, cloud)
   const submit = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
     const envelope = JSON.parse(init!.body as string)
     return Response.json({ id: envelope.event.payload.id, event_id: envelope.hash })
   })
   vi.stubGlobal('fetch', submit)
-  return { client: reconnect(), reconnect, user, deviceSign, submit, get }
+  return { client: reconnect(), reconnect, user, controllerKey, mutate, submit, get, stored }
 }
 
 beforeEach(() => {
@@ -148,113 +107,89 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('agent execution recovery', () => {
-  it.each<ExecutionOutcome>([
-    { Authorized: null },
-    { Executing: null },
-    { Unknown: { Unavailable: 'awaiting management response' } }
-  ])(
-    'retains a nonterminal result until the original signature completes: %j',
-    async (outcome) => {
-      const f = fixture()
-      f.user.sign_agent_event.mockImplementation(async (request) => ({
-        Ok: result(request, outcome)
-      }))
-      const job = await f.client.revoke(accountId, 1, delegation)
-      expect(job.stage).toBe('unknown')
-      const request = f.user.sign_agent_event.mock.calls[0][0]
-      f.user.get_execution.mockResolvedValue({ Ok: result(request, outcome) })
-      f.user.reconcile_execution.mockResolvedValue({ Ok: result(request, outcome) })
-
-      const resumed = f.reconnect()
-      expect((await resumed.resume(job.executionId)).stage).toBe('unknown')
-      expect((await resumed.jobs())[0].stage).toBe('unknown')
-      expect(f.submit).not.toHaveBeenCalled()
-
-      f.user.get_execution.mockResolvedValue({ Ok: completed(request) })
-      expect((await resumed.resume(job.executionId)).stage).toBe('accepted')
-      expect((await resumed.job(job.executionId))?.error).toBeUndefined()
-      expect(f.user.reconcile_execution).toHaveBeenCalledWith(
-        rawAccount,
-        request.approval.request_id
-      )
-      expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
-      expect(f.deviceSign).toHaveBeenCalledTimes(1)
-      const sent = JSON.parse(f.submit.mock.calls[0][1]!.body as string)
-      expect(sent.event).toEqual(JSON.parse(request.event))
-    }
-  )
-
-  it.each<CanisterError>([{ Unavailable: 'COSE unavailable' }, { QuotaExceeded: null }])(
-    'reconciles an authorized request after a dispatch error: %j',
-    async (error) => {
-      const f = fixture()
-      f.user.sign_agent_event.mockResolvedValue({ Err: error })
-      const job = await f.client.revoke(accountId, 1, delegation)
-      expect(job).toMatchObject({ stage: 'unknown', error: Object.keys(error)[0] })
-      const request = f.user.sign_agent_event.mock.calls[0][0]
-      f.user.get_execution.mockResolvedValue({ Ok: result(request, { Authorized: null }) })
-      f.user.reconcile_execution.mockResolvedValue({ Ok: completed(request) })
-
-      expect((await f.reconnect().resume(job.executionId)).stage).toBe('accepted')
-      expect(f.user.reconcile_execution).toHaveBeenCalledWith(
-        rawAccount,
-        request.approval.request_id
-      )
-      expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
-      expect(f.deviceSign).toHaveBeenCalledTimes(1)
-    }
-  )
-
-  it('retries the exact journaled approval after a transport failure and absent result', async () => {
+describe('self-held controller signing', () => {
+  it('signs a revocation with the vault key, journals it and submits it once', async () => {
     const f = fixture()
     const job = await f.client.revoke(accountId, 1, delegation)
-    expect(job).toMatchObject({ stage: 'unknown', error: 'EXECUTION_UNKNOWN' })
-    f.user.get_execution.mockResolvedValue({ Err: { ResultExpired: null } })
-    f.user.sign_agent_event.mockImplementation(async (request) => ({ Ok: completed(request) }))
-
-    expect((await f.reconnect().resume(job.executionId)).stage).toBe('accepted')
-    expect(f.user.sign_agent_event).toHaveBeenCalledTimes(2)
-    for (const [request] of f.user.sign_agent_event.mock.calls)
-      expect(encodeControl('sign_agent_event', [request])).toBe(job.request)
-    expect(f.deviceSign).toHaveBeenCalledTimes(1)
+    expect(job.stage).toBe('accepted')
+    expect(f.controllerKey).toHaveBeenCalledTimes(1)
+    const sent = JSON.parse(f.submit.mock.calls[0][1]!.body as string)
+    expect(sent).toEqual(job.envelope)
+    expect(sent.event.actor).toBe(agentId(publicKey))
+    expect(sent.event.nonce).toBe(NOW)
+    const hash = eventHash(eventText(sent.event))
+    expect(b64(hash)).toBe(sent.hash)
+    expect(ed25519.verify(Buffer.from(sent.signature, 'base64'), hash, publicKey)).toBe(true)
+    expect((await f.client.jobs())[0]).toEqual(job)
+    // The next event of this generation uses a later nonce even within the same millisecond.
+    const next = await f.client.revoke(accountId, 1, `${accountId}.other`)
+    expect(next.envelope.event.nonce).toBe(NOW + 1)
   })
 
-  it('keeps a pending journal when reconciliation is unavailable', async () => {
+  it('keeps a signed envelope for resubmission after a transient failure', async () => {
     const f = fixture()
+    f.submit.mockResolvedValueOnce(
+      Response.json({ error: { code: 'unavailable' } }, { status: 503 })
+    )
     const job = await f.client.revoke(accountId, 1, delegation)
-    f.user.get_execution.mockRejectedValue(new Error('offline'))
-    await expect(f.reconnect().resume(job.executionId)).rejects.toThrow('offline')
-    expect((await f.client.job(job.executionId))?.stage).toBe('unknown')
-    expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
+    expect(job).toMatchObject({ stage: 'signed', error: 'unavailable' })
+    expect((await f.reconnect().resume(job.id)).stage).toBe('accepted')
+    expect(f.controllerKey).toHaveBeenCalledTimes(1)
+    for (const [, init] of f.submit.mock.calls) expect(JSON.parse(init!.body as string)).toEqual(job.envelope)
   })
 
-  it.each<ExecutionOutcome>([{ Failed: { Expired: null } }, { ResultExpired: null }])(
-    'finishes a confirmed terminal failure without resubmission: %j',
-    async (outcome) => {
-      const f = fixture()
-      f.user.sign_agent_event.mockImplementation(async (request) => ({
-        Ok: result(request, outcome)
-      }))
-      const job = await f.client.revoke(accountId, 1, delegation)
-      expect(job.stage).toBe('failed')
-      expect(await f.reconnect().resume(job.executionId)).toEqual(job)
-      expect(f.user.get_execution).not.toHaveBeenCalled()
-      expect(f.submit).not.toHaveBeenCalled()
-    }
-  )
-
-  it('ends an absent request only after its approval expires', async () => {
+  it('records a definitive refusal without resubmitting', async () => {
     const f = fixture()
-    f.user.sign_agent_event.mockResolvedValue({ Err: { Forbidden: null } })
+    f.submit.mockResolvedValueOnce(
+      Response.json({ error: { code: 'permission_denied' } }, { status: 403 })
+    )
     const job = await f.client.revoke(accountId, 1, delegation)
-    f.user.get_execution.mockResolvedValue({ Err: { ResultExpired: null } })
-    vi.mocked(Date.now).mockReturnValue(NOW + 240_000)
-    expect(await f.reconnect().resume(job.executionId)).toMatchObject({
-      stage: 'failed',
-      error: 'Expired'
+    expect(job).toMatchObject({ stage: 'failed', error: 'permission_denied' })
+    expect(await f.reconnect().resume(job.id)).toEqual(job)
+    expect(f.submit).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses a vault key that does not match the registered controller', async () => {
+    const f = fixture()
+    f.controllerKey.mockResolvedValueOnce({
+      publicKey: ed25519.getPublicKey(new Uint8Array(32).fill(9)),
+      signature: new Uint8Array(64)
     })
-    expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
+    await expect(f.client.revoke(accountId, 1, delegation)).rejects.toMatchObject({
+      code: 'INTEGRITY_FAILED'
+    })
+    expect(f.submit).not.toHaveBeenCalled()
+  })
+
+  it('registers the next generation with a proof of possession over the approval request', async () => {
+    const f = fixture()
+    const generation = await f.client.register(accountId, {
+      authority: { kind: 'restricted', scopes: ['message.draft'], audiences: ['https://dmsg.net'] },
+      name: 'second',
+      supersedes: [1]
+    })
+    expect(generation).toBe(2)
+    const command = await f.mutate.mock.results[0].value
+    expect(command.RegisterController).toMatchObject({
+      generation: 2,
+      public_key: publicKey,
+      name: ['second'],
+      supersedes: [1]
+    })
+    expect(
+      ed25519.verify(
+        command.RegisterController.proof,
+        controllerPopMessage(
+          home,
+          xidBytes(accountId),
+          2,
+          { Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] } },
+          [1],
+          new Uint8Array(32).fill(6)
+        ),
+        publicKey
+      )
+    ).toBe(true)
   })
 })
 
@@ -292,21 +227,4 @@ describe('agent credential listing', () => {
     f.get.mockRejectedValueOnce(new Error('offline'))
     await expect(f.client.credentials(accountId)).rejects.toThrow('offline')
   })
-})
-
-it('keeps a signed event reconcilable after a transient failure outside the admission window', async () => {
-  const f = fixture()
-  f.user.sign_agent_event.mockImplementation(async (request) => ({ Ok: completed(request) }))
-  f.submit.mockRejectedValueOnce(new Error('lost accepted response'))
-  await expect(f.client.revoke(accountId, 1, delegation)).rejects.toThrow(
-    'lost accepted response'
-  )
-  const [job] = await f.client.jobs()
-  vi.mocked(Date.now).mockReturnValue(NOW + 301000)
-  f.submit.mockResolvedValueOnce(
-    Response.json({ error: { code: 'unavailable' } }, { status: 503 })
-  )
-  expect((await f.client.resume(job.executionId)).stage).toBe('signed')
-  expect((await f.client.resume(job.executionId)).stage).toBe('accepted')
-  expect(f.user.sign_agent_event).toHaveBeenCalledTimes(1)
 })

@@ -12,7 +12,6 @@ export type AppCapability = { 'SignAction' : null } |
   { 'SignDocument' : null } |
   { 'Authenticate' : null };
 export interface AppRegistration {
-  'cose_homes' : Array<Principal>,
   'capabilities' : Array<AppCapability>,
   'origins' : Array<string>,
   'product_ids' : Array<string>,
@@ -22,7 +21,6 @@ export interface AppRegistration {
   'config_version' : bigint,
   'environment' : Environment,
   'action_authority' : Principal,
-  'user_homes' : Array<Principal>,
   'profiles' : Array<SigningProfile>,
   'paused' : boolean,
 }
@@ -291,11 +289,7 @@ export interface ExecutionEntitlement {
   'month' : MonthEntitlement,
   'view' : EntitlementView,
 }
-export interface ExecutionWeights {
-  'ecdsa_secp256k1' : bigint,
-  'ed25519' : bigint,
-  'version' : bigint,
-}
+export interface ExecutionWeights { 'ed25519' : bigint, 'version' : bigint }
 export interface MonthEntitlement {
   'business_revision' : bigint,
   'calculation_version' : number,

@@ -652,11 +652,7 @@ export class LegacyVault {
               }
             : null,
         frozen: value.frozenComparison ?? null,
-        recovery: meta.restoredFrom
-          ? verification.partial
-            ? 'partial_verified'
-            : 'verified'
-          : 'not_checked'
+        recovery: 'not_checked'
       }
     } finally {
       encoded.fill(0)

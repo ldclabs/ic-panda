@@ -14,7 +14,6 @@ export const legacyHistoryScopeSchema = z.strictObject({
   account: z.string().regex(/^[0-9a-v]{19}[0g]$/),
   device: hash,
   security_epoch: uint,
-  recovery_generation: uint.min(1),
   archive_digest: hash,
   principal: z.string().max(64)
 })

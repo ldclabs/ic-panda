@@ -13,7 +13,6 @@ for (const page of [
   'popup.html',
   'sidepanel.html',
   'approve.html',
-  'recovery.html',
   manifest.background.service_worker,
   ...Object.values(manifest.icons)
 ]) {

@@ -1,7 +1,7 @@
 //! `dmsg-commerce/1`: fixed subscription terms, resource leases and merchant accounting.
 //! Amounts are ledger atomic units; times are Unix milliseconds unless explicitly named.
 //! Constructing or decoding these records performs no validation or authorization.
-use crate::{cose::Algorithm, membership::*, Environment, Hash};
+use crate::{membership::*, Environment, Hash};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
@@ -29,26 +29,13 @@ pub struct ResourceLimits {
     pub monthly_execution_units: u64,
 }
 
-/// Versioned integer cost per formal-signing algorithm.
+/// Versioned integer cost of one formal attestation.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecutionWeights {
     /// Immutable version identifier within this policy or catalog.
     pub version: u64,
-    /// Units charged for one Ed25519 formal execution.
+    /// Units charged for one Ed25519 device attestation.
     pub ed25519: u64,
-    /// Units charged for one ES256K formal execution.
-    pub ecdsa_secp256k1: u64,
-}
-
-impl ExecutionWeights {
-    /// Return this algorithm's configured units; vetKD has no formal-signing charge.
-    pub fn units(&self, algorithm: &Algorithm) -> Option<u64> {
-        match algorithm {
-            Algorithm::Ed25519 => Some(self.ed25519),
-            Algorithm::EcdsaSecp256k1 => Some(self.ecdsa_secp256k1),
-            _ => None,
-        }
-    }
 }
 
 /// Immutable base-plan price, limits, weights and policy snapshot.

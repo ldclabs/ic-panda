@@ -50,14 +50,13 @@ ICP 业务时间、批准期限为 u64 Unix **毫秒**，使用 `now < expires_a
 
 | 算法 | COSE alg | 签名 | 公钥 |
 | --- | --- | --- | --- |
-| Ed25519（基础） | -19 | 直接签 Sig_structure | OKP，crv=6，x=32 字节 |
-| ES256K（可选） | -47 | SHA-256(Sig_structure)，仅 low-S 的 ECDSA r\|\|s | EC2，crv=8，x/y 各 32 字节；验证也接受压缩 y |
+| Ed25519 | -19 | 直接签 Sig_structure | OKP，crv=6，x=32 字节 |
 
-dMsg 不再提供 BIP340 入口或私有算法标签。失败不会自动切换算法。public-only COSE_Key 禁止私钥 d（-4）；alg 必须匹配，key_ops 存在时须允许 verify，kid 存在时须与保护头匹配。
+dMsg 只支持 Ed25519；2026-10-07 起不再提供 ES256K、BIP340 入口或私有算法标签。失败不会自动切换算法。public-only COSE_Key 禁止私钥 d（-4）；alg 必须匹配，key_ops 存在时须允许 verify，kid 存在时须与保护头匹配。
 
-公钥指纹采用 RFC 9679 SHA-256：只编码所需公开参数，排除 kid、alg、key_ops；EC2 y 必须先展开为完整坐标。同一密钥的压缩和非压缩表示因此得到同一指纹。ICP 签名适配器用该指纹作为 kid；通用 profile 不要求所有实现这样选 kid。
+公钥指纹采用 RFC 9679 SHA-256：只编码所需公开参数 `{1: 1, -1: 6, -2: x}`，排除 kid、alg、key_ops。dMsg 的正式文档由账户的设备 Ed25519 密钥签名，kid 就是该设备公钥的指纹；设备是否属于账户、签名是否经账户服务授权，由认证执行回执证明，不由公钥本身证明。
 
-ICP 固定派生域升级为 `dmsg/formal/v2`，derivation_version=2；vetKD input 为 `[account_id, generation]`，context 为 `["dmsg/content-root/v2", environment, 2]`。Xid 改变密码派生输入，使用新开发实例，不把旧 ID 截短后当成同一密钥。
+vetKD 只用于内容根的恢复信封：context 为 `["dmsg/content-root/v2", environment, 2]`，所有账户共享同一派生公钥；每一代根的 IBE 身份为 `[account_id, generation]`。它不是文档签名算法。
 
 ## ICP 执行批准与回执
 
@@ -67,35 +66,30 @@ ICP 固定派生域升级为 `dmsg/formal/v2`，derivation_version=2；vetKD inp
 request_id = digest("dmsg/execution-request/v2",
   [account_id, security_epoch, device_id, sequence])
 
-kind = {Sign: {
-  key: {purpose, algorithm, generation: 1},
-  to_be_signed: Sig_structure_bstr,
-  public_key_fingerprint: RFC9679_SHA256,
-  origin: checked_browser_origin
-}}
+signature = Ed25519(device_key, Sig_structure)          // kid = RFC9679(device_key)
 
 digest("dmsg/device-approval/v2", [
-  target_user_principal_bytes, account_id, "dmsg/execute/v3",
+  target_user_principal_bytes, account_id, "dmsg/attest/v1",
   device_id, security_epoch, sequence, request_id, expires_at,
-  digest("dmsg/execute/v3", [kind, max_cycles])
+  digest("dmsg/attest/v1", [statement, checked_browser_origin, signature])
 ])
 ```
 
-设备严格 Ed25519 签署此摘要。文本/文件声明的 purpose 为 `Statement`，纯摘要为 `FileAttestation`，algorithm 为 `Ed25519` 或 `EcdsaSecp256k1`。根派生 kind 为 `{Derive: {generation, root_op_id: bstr/null, transport_key: bstr .size 48}}`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。CBOR 无负载枚举为名称字符串，有负载枚举为单项 map，Option 为值或 null。
+设备用同一把 Ed25519 密钥先签 Sig_structure，再签此批准摘要；`statement` 为 Rust `Statement` 的 CBOR（Option 为值或 null，无负载枚举为名称字符串，有负载枚举为单项 map）。应用动作用 `AppActionAttestRequest { account_id, issuer, action, signature, approval }`，statement 为 `{issuer, content: {AppAction: action}}`、origin 为 `action.origin`。恢复设备的根派生使用 `dmsg/derive-root/v1`，命令为 `[generation, transport_key (bstr .size 48), max_cycles]`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。
 
-签署前冻结完整保护头、payload、密钥指纹与批准上下文。user home 检查 issuer 是否属于当前账户；cose home 核对实际派生密钥的 kid 和指纹。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin（Local 部署还接受精确的环回 HTTP origin）；由扩展核实，设备签名不独立证明浏览器来源。
+签署前冻结完整保护头、payload 与批准上下文。user home 检查 issuer 属于当前账户、设备是账户的未撤销设备且具备 `FormalApprove`、用途在账户政策内、当月额度有余，验签 Sig_structure 与批准，然后在同一消息内扣减额度、保存产物并写入认证回执。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin（Local 部署还接受精确的环回 HTTP origin）；由扩展核实，设备签名不独立证明浏览器来源。
 
-幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。未知结果对账原请求。严格设备序号和执行水位在结果清理后继续阻止重放，原样重放已清理的请求返回 `ResultExpired`。相同内容可以产生相同签名，不能把签名摘要当作所有业务操作的唯一 ID。
+幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。丢失回复用 `get_attestation(account_id, request_id)` 取回同一产物。严格设备序号和执行水位在结果清理后继续阻止重放，原样重放已清理的请求返回 `ResultExpired`。
 
-`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt` 保存 issuer、设备/epoch、批准时间/期限、origin、费用上限、状态、待签字节 SHA-256、公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。升级从稳定执行记录重建叶，清理结果时删除叶，之后查询返回认证的不存在证明。
+`get_execution_receipt(account_id, request_id)` 返回 ICP 认证叶，查询要求账户认证。路径为 `b"execution/" || account_id[12] || request_id[32]`。`ExecutionReceipt`（schema 2）保存 issuer、设备/epoch、批准时间/期限、origin、待签字节 SHA-256、设备公钥指纹和签名原始字节 SHA-256。它不改变可移植签名产物。升级从稳定执行记录重建叶，清理结果时删除叶，之后查询返回认证的不存在证明。
 
-验证回执必须先验证指定 user canister 的 IC certificate、witness、路径和值，再匹配 Completed 状态、issuer、待签摘要、公钥指纹和签名摘要。SDK `verifyExecutionReceipt` 完成这两步；Rust `match_execution_receipt` 仅做绑定检查，调用者负责认证 certificate。历史回执不套用账户安全快照的 60 秒新鲜度；当前授权状态另行查询。回执证明本服务记录的执行授权，不自动证明外部项目权限或当前设备状态。
+验证回执必须先验证指定 user canister 的 IC certificate、witness、路径和值，再匹配 issuer、待签摘要、公钥指纹和签名摘要。SDK `verifyExecutionReceipt` 完成这两步；Rust `match_execution_receipt` 仅做绑定检查，调用者负责认证 certificate。没有回执的 COSE_Sign1 只证明某把设备密钥签过这些字节，不证明 dMsg 授权。回执证明本服务记录的执行授权，不自动证明外部项目权限或当前设备状态。
 
 ## Xid 发号
 
 用户 canister 使用 `ic_auth_types::XidGenerator` 持久化发号，其输出为 `timestamp_seconds[4] || allocator_fingerprint[5] || counter[3]`。指纹取 `digest("dmsg/account-id-generator/v1", ["dmsg", environment, issuer_namespace, creating_canister])` 前 5 字节，并在配置中单独保存完整 namespace digest 用于升级校验。同秒/时钟回退继续计数，新秒从 0 开始；时间溢出或计数耗尽明确失败。
 
-认证、设备 PoP、配额和唯一绑定校验通过后，同一无 await 消息提交账户、认证索引、配额和分配器。已有认证创建重试返回原账户。无 `raw_rand` 或异步创建暂存表。当前固定单 user home；未来多分配器必须先登记并排除指纹碰撞，不能把截断哈希当成绝对全局唯一保证。
+认证、设备 PoP、配额和唯一绑定校验通过后，同一无 await 消息提交账户、认证索引、配额和分配器。已有认证创建重试返回原账户。一个部署可以运行多个 user home，各服务按账户 ID 内嵌的指纹路由到分配它的 home；`dmsg_handle` 的 `user_homes` 是权威列表，`registration_homes` 是当前接收新账户的子集，客户端对每个 home 并行查询 `my_account` 定位登录身份的账户。不实现跨 home 的 Principal 唯一性。
 
 ## 时间戳与验证结果
 
@@ -117,7 +111,7 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 ## Agent Delegation
 
-dMsg 账户可作为 Agent Delegation 1.0 principal：托管 controller 为 COSE 阈值 Ed25519 key，principal 文档由 `dmsg_directory` 以 ICP 认证 HTTP 发布。接口、签名政策与验证范围见 [agent_zh.md](agent_zh.md)。
+dMsg 账户可作为 Agent Delegation 1.0 principal：controller 是客户端 vault 中自持的 Ed25519 key，注册时向 user home 证明持有，事件在本机签名；principal 文档由 `dmsg_directory` 以 ICP 认证 HTTP 发布。接口与验证范围见 [agent_zh.md](agent_zh.md)。
 
 ## 商业服务
 

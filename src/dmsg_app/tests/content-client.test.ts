@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { CryptoEngine } from '../src/lib/crypto/engine'
+import { boundEngine } from './support/engine'
 import { ContentEngine } from '../src/lib/crypto/content'
 import { ContentClient } from '../src/lib/services/content'
 import { RelayError } from '../src/lib/services/relay'
@@ -15,18 +15,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 const accountId = xidText(new Uint8Array(12).fill(9))
 async function fixture() {
-  const engine = new CryptoEngine()
-  const setup = await engine.initialize('content-client-test-password')
-  await engine.verifyRecovery(setup.recoveryCode)
-  const meta = (engine as any).meta
-  meta.subjectId = accountId
-  meta.registered = true
-  meta.account = {
-    id: accountId,
-    homeUser: 'aaaaa-aa',
-    issuer: `https://dmsg.test/u/${accountId}`,
-    rootDigest: id()
-  }
+  const { engine, meta } = await boundEngine(accountId)
   const state = {
     info: {
       issuer: meta.account.issuer,

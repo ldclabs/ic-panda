@@ -139,10 +139,14 @@ type HandleInit = record {
   environment : Environment;
   // Configured network fee in ledger base units.
   ledger_fee : nat;
+  // Subset of `user_homes` currently accepting new accounts; clients pick
+  // one at random. Governance replaces the whole list.
+  registration_homes : vec principal;
   // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
   governance : principal;
   // User homes whose allocated accounts authorize name operations; each
-  // account ID carries its home's allocator fingerprint. Append-only.
+  // account ID carries its home's allocator fingerprint. Append-only. This
+  // is the authoritative home list clients route accounts with.
   user_homes : vec principal;
 };
 // Exact name operation authorized by the user home for the handle canister.
@@ -272,6 +276,8 @@ service : (HandleInit) -> {
   // Transfer registration revenue from this canister's default account and
   // return the ledger block. Check the ledger before retrying an unknown result.
   admin_collect_token : (Account, nat) -> (Result_1);
+  // Replace the homes accepting new accounts. An empty list closes registration.
+  admin_set_registration_homes : (vec principal) -> (Result);
   begin_legacy_snapshot : (LegacySnapshot) -> (Result);
   claim_legacy_handle : (HandleIntent, blob) -> (Result_2);
   commit_handle : (blob, blob) -> (Result_3);
@@ -289,6 +295,7 @@ service : (HandleInit) -> {
   update_ledger_fee : (nat) -> (Result);
   validate_admin_add_user_home : (principal) -> (Result_7) query;
   validate_admin_collect_token : (Account, nat) -> (Result_7) query;
+  validate_admin_set_registration_homes : (vec principal) -> (Result_7) query;
   validate_begin_legacy_snapshot : (LegacySnapshot) -> (Result_7) query;
   validate_import_legacy_handles : (blob, nat64, vec LegacyReservation) -> (
       Result_7,

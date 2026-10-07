@@ -1,27 +1,27 @@
-//! Agent Delegation principal of an account: hosted controllers, publication
-//! to the directory, and the hosted-signing authorization point.
+//! Agent Delegation principal of an account: self-held controllers and
+//! publication to the directory.
 //!
-//! This home is the linearization point for controller changes and signing: a
-//! retired key cannot sign once its retirement commits, however late the
-//! directory publishes it. The directory only serves the published state.
+//! This home is the linearization point for controller changes: a retired key
+//! is published as retired and the delegation service re-evaluates its
+//! credentials. Registration proves possession of the controller's private
+//! key; events are signed by the client and never pass through this home.
 use crate::{
     account::{self, Authorized},
     state::*,
     store,
 };
 use candid::Principal;
-use dmsg_protocol::agent;
+use dmsg_protocol::{agent, verify};
 use dmsg_runtime::storage::{CompactStored, MapExt};
-use dmsg_types::{agent::*, cose::*, user::*, *};
+use dmsg_types::{agent::*, user::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, collections::BTreeMap};
+use std::cell::RefCell;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct AgentPrincipal {
     pub(crate) state: PrincipalState,
     pub(crate) published_version: u64,
-    pub(crate) last_nonces: BTreeMap<u32, u64>,
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -58,8 +58,7 @@ fn controller(p: &mut AgentPrincipal, generation: u32) -> Result<&mut HostedCont
 }
 
 /// Apply one principal command after the shared account-mutation checks.
-/// `RegisterController` must carry a key the caller already matched to the
-/// COSE derivation. On error neither record changes.
+/// On error neither record changes.
 pub(crate) fn apply(
     s: &mut AccountState,
     principal: &mut Option<AgentPrincipal>,
@@ -71,7 +70,7 @@ pub(crate) fn apply(
         Authorized::Replay(r) => return Ok(r),
         Authorized::Fresh(fp) => fp,
     };
-    let next = prepare(s, principal.clone(), &m.command, now)?;
+    let next = prepare(s, principal.clone(), m, now)?;
     // All fallible checks finished; no account clone is needed for atomicity.
     s.principal_updated_at = Some(next.state.updated_at);
     let receipt = account::finish(s, &m.approval, fp);
@@ -83,7 +82,7 @@ pub(crate) fn apply(
 pub(crate) fn prepare(
     s: &AccountState,
     principal: Option<AgentPrincipal>,
-    command: &AccountCommand,
+    m: &AccountMutation,
     now: u64,
 ) -> Result<AgentPrincipal> {
     // Every change advances updated_at, so each new valid_from/retired_at is
@@ -91,25 +90,21 @@ pub(crate) fn prepare(
     let at = principal
         .as_ref()
         .map_or(now, |p| now.max(p.state.updated_at.saturating_add(1)));
-    let mut next = match (command, principal) {
-        (AccountCommand::EnablePrincipal { principal_type }, None) => {
-            ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
-            AgentPrincipal {
-                state: PrincipalState {
-                    principal_type: principal_type.clone(),
-                    controllers: vec![],
-                    version: 0,
-                    updated_at: at,
-                },
-                published_version: 0,
-                last_nonces: BTreeMap::new(),
-            }
-        }
+    let mut next = match (&m.command, principal) {
+        (AccountCommand::EnablePrincipal { principal_type }, None) => AgentPrincipal {
+            state: PrincipalState {
+                principal_type: principal_type.clone(),
+                controllers: vec![],
+                version: 0,
+                updated_at: at,
+            },
+            published_version: 0,
+        },
         (AccountCommand::EnablePrincipal { .. }, Some(_)) => return Err(Error::VersionConflict),
         (_, None) => return Err(Error::NotFound),
         (_, Some(p)) => p,
     };
-    match command {
+    match &m.command {
         AccountCommand::EnablePrincipal { .. } => {}
         AccountCommand::RegisterController {
             generation,
@@ -117,8 +112,8 @@ pub(crate) fn prepare(
             name,
             delegation,
             supersedes,
+            proof,
         } => {
-            ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
             let expected = next
                 .state
                 .controllers
@@ -126,6 +121,19 @@ pub(crate) fn prepare(
                 .map_or(Some(1), |c| c.generation.checked_add(1))
                 .ok_or(Error::QuotaExceeded)?;
             ensure(*generation == expected, Error::VersionConflict)?;
+            verify(
+                public_key,
+                dmsg_protocol::controller_pop_message(
+                    s.home_user,
+                    &s.account_id,
+                    *generation,
+                    delegation,
+                    supersedes,
+                    m.approval.request_id,
+                )
+                .as_slice(),
+                proof.as_slice(),
+            )?;
             next.state.controllers.push(HostedController {
                 generation: *generation,
                 public_key: *public_key,
@@ -168,45 +176,9 @@ pub(crate) fn prepare(
         .ok_or(Error::QuotaExceeded)?;
     next.state.updated_at = at;
     agent::validate_principal_state(&next.state)?;
-    // A principal change does not bump the security epoch: signing rechecks the
-    // controller, so unrelated device approvals stay valid.
+    // A principal change does not bump the security epoch: the delegation
+    // service rechecks the published controller, so device approvals stay valid.
     Ok(next)
-}
-
-/// Hosted-signing authorization for an `AgentEvent`, run in the same message
-/// that commits the execution. Checks the controller, principal, delegation-ID
-/// prefix, time, grant policy and nonce, then records the nonce. An execution
-/// that later fails leaves a nonce gap, which Agent Identity allows.
-pub(crate) fn authorize_event(
-    p: &mut AgentPrincipal,
-    s: &AccountState,
-    init: &UserInit,
-    kind: &ExecutionKind,
-    parsed: &agent::DelegationEvent,
-    now: u64,
-) -> Result<()> {
-    let ExecutionKind::AgentEvent {
-        key, principal_id, ..
-    } = kind
-    else {
-        return Ok(());
-    };
-    ensure(
-        *principal_id == agent::principal_id(&init.principal_origin, &s.account_id),
-        Error::IntegrityFailed,
-    )?;
-    let generation = u32::try_from(key.generation).map_err(|_| Error::NotFound)?;
-    let c = p
-        .state
-        .controllers
-        .iter()
-        .find(|c| c.generation == generation)
-        .ok_or(Error::NotFound)?;
-    agent::check_hosted_event(parsed, &s.account_id, principal_id, c, now)?;
-    let last = p.last_nonces.get(&generation).copied().unwrap_or(0);
-    ensure(parsed.nonce > last, Error::VersionConflict)?;
-    p.last_nonces.insert(generation, parsed.nonce);
-    Ok(())
 }
 
 /// Push the current state to the directory. Idempotent and safe to call
@@ -236,6 +208,5 @@ pub(crate) fn info(account_id: &AccountId, p: AgentPrincipal) -> PrincipalInfo {
         principal_id: agent::principal_id(&store::config().init.principal_origin, account_id),
         state: p.state,
         published_version: p.published_version,
-        last_nonces: p.last_nonces,
     }
 }

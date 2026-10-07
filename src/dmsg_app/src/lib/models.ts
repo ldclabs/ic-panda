@@ -65,54 +65,45 @@ export interface Profile {
   publicFields: string[]
 }
 export interface WorkspaceMeta {
-  contentReplacements?: [string, string][]
-  restoredFrom?: { manifestDigest: string; device: string; at: number }
   cloudSnapshot?: {
     through: number
     evidence: string
     uploads: { plan: Record<string, unknown>; manifest: string; chunkIds: string[] }[]
     heads: [string, string][]
   }
-  // R0 uses random32; formal workspaces use the canister-allocated Xid.
+  // Random before the workspace is bound; the canister-allocated Xid afterwards.
   subjectId: string
   account?: {
     id: string
     issuer: string
     homeUser: string
     rootDigest?: string
+    rootBytesDigest?: string
     rootUploadId?: string
-    sourceDigest?: string
   }
   rootHistory?: string
-  rootBundles?: string[]
   deviceId: string
   environment: string
   createdAt: number
   signingPublic: string
   hpkePublic: string
-  transportPublic: string
-  recoveryPublic: string
-  recoverySigningPublic: string
-  recoveryGeneration: number
   rootGeneration: number
-  recoveryChecked: boolean
-  lastBackupAt: number | null
-  lastBackupCount: number
   registered: boolean
-  recoveryEnvelope: { enc: string; ciphertext: string }
-}
-export interface KdfParams {
-  algorithm: 'argon2id'
-  version: 1
-  memory: number
-  iterations: number
-  parallelism: number
-  salt: string
+  /** How the local data key is unlocked: a provisional key until the user
+   * home's login-gated secret wraps it. */
+  unlock: 'provisional' | 'login'
+  /** Platform-authenticator fast unlock, when enabled on this device. */
+  prf?: { credentialId: string; enabledAt: number }
+  /** Last unlock through the login path; PRF unlocks are refused a week later. */
+  loginUnlockedAt?: number
 }
 export interface LocalEnvelope {
   id: string
-  kdf: KdfParams
+  /** Plaintext provisional unlock key, present only before the workspace is bound. */
+  provisional?: string
   wrappedKey: string
+  /** The local data key wrapped under the PRF-derived key. */
+  prfWrappedKey?: string
   privateBundle: string
 }
 export interface OutboxJob {
@@ -135,18 +126,6 @@ export interface Lease {
   fence: number
   expiresAt: number
   documentId?: string
-}
-export interface RecoveryArchive {
-  format: 'dmsg-backup/1'
-  meta: WorkspaceMeta
-  createdAt: number
-  scope: 'local-inclusive' | 'partial'
-  objects: EncryptedObject[]
-  synced: string[]
-  chunks: Chunk[]
-  missing: string[]
-  manifestDigest: string
-  authentication: string
 }
 export interface ViewData {
   meta: WorkspaceMeta | null

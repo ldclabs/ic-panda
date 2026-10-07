@@ -20,16 +20,12 @@ export type AccountCommand = {
       'supersedes' : Uint32Array | number[],
       'name' : [] | [string],
       'generation' : number,
+      'proof' : Uint8Array | number[],
     }
   } |
-  {
-    'DisputeRecovery' : {
-      'op_id' : Uint8Array | number[],
-      'dispute' : Uint8Array | number[],
-    }
-  } |
+  { 'SetRecoveryDelay' : { 'delay_ms' : bigint } } |
+  { 'DisputeRecovery' : { 'op_id' : Uint8Array | number[] } } |
   { 'EnablePrincipal' : { 'principal_type' : PrincipalType } } |
-  { 'ConfirmRecovery' : { 'proof' : Uint8Array | number[] } } |
   { 'RenameController' : { 'name' : [] | [string], 'generation' : number } } |
   { 'RetireController' : { 'generation' : number } } |
   {
@@ -43,12 +39,6 @@ export type AccountCommand = {
   } |
   { 'RemoveAuth' : { 'principal' : Principal } } |
   { 'AuthorizeHandle' : { 'intent' : HandleIntent } } |
-  {
-    'SetRecovery' : {
-      'proof' : Uint8Array | number[],
-      'policy' : RecoveryPolicy,
-    }
-  } |
   {
     'AddDevice' : { 'device' : DeviceInput, 'proof' : Uint8Array | number[] }
   } |
@@ -69,21 +59,19 @@ export type AccountCommand = {
   { 'SetPolicy' : { 'policy' : SensitivePolicy } };
 export interface AccountInfo {
   'account_id' : Uint8Array | number[],
-  'status' : AccountStatus,
   'account_version' : bigint,
   'auth_bindings' : Array<Principal>,
-  'recovery_nonce' : bigint,
   'root_slot' : [] | [RootReservation],
+  'recovered_device' : [] | [[Uint8Array | number[], bigint]],
   'security_epoch' : bigint,
   'created_at_ms' : bigint,
   'pending_recovery' : [] | [PendingRecovery],
   'issuer' : string,
   'home_cose' : Principal,
   'home_user' : Principal,
+  'recovery_delay_ms' : bigint,
   'sensitive_policy' : SensitivePolicy,
-  'recovery' : [] | [RecoveryPolicy],
   'current_root' : [] | [ContentRootRef],
-  'recovery_checked' : boolean,
   'devices' : Array<[Uint8Array | number[], Device]>,
   'vault_write_state' : VaultWriteState,
 }
@@ -93,8 +81,6 @@ export interface AccountMutation {
   'approval' : Approval,
   'expected_version' : bigint,
 }
-export type AccountStatus = { 'Active' : null } |
-  { 'RecoveryDisputed' : null };
 export interface ActionArtifact {
   'uri' : string,
   'sha256' : Uint8Array | number[],
@@ -120,17 +106,6 @@ export interface ActionRequestedChange {
 export type ActionReviewOutcome = { 'Approved' : null } |
   { 'Rejected' : null } |
   { 'ChangesRequested' : null };
-export interface AgentEventSignRequest {
-  'account_id' : Uint8Array | number[],
-  'origin' : string,
-  'generation' : number,
-  'event' : string,
-  'max_cycles' : bigint,
-  'approval' : Approval,
-}
-export type Algorithm = { 'VetKdBls12381' : null } |
-  { 'Ed25519' : null } |
-  { 'EcdsaSecp256k1' : null };
 export interface AppAction {
   'files' : Array<ActionFile>,
   'rule_set_hash' : Uint8Array | number[],
@@ -152,6 +127,13 @@ export interface AppAction {
   'expires_at_ms' : bigint,
   'role_snapshot_hash' : Uint8Array | number[],
   'signing_policy_hash' : Uint8Array | number[],
+}
+export interface AppActionAttestRequest {
+  'account_id' : Uint8Array | number[],
+  'signature' : Uint8Array | number[],
+  'action' : AppAction,
+  'issuer' : string,
+  'approval' : Approval,
 }
 export type AppActionCommand = {
     'TokenListCertifyTransition' : {
@@ -188,14 +170,6 @@ export type AppActionCommand = {
       'round' : bigint,
     }
   };
-export interface AppActionSignRequest {
-  'key' : SigningKeyRef,
-  'account_id' : Uint8Array | number[],
-  'action' : AppAction,
-  'issuer' : string,
-  'max_cycles' : bigint,
-  'approval' : Approval,
-}
 export interface ApplicationApproval {
   'service' : Principal,
   'actor' : Principal,
@@ -229,6 +203,13 @@ export interface Approval {
 }
 export type ApprovalPurpose = { 'CashCheckout' : null } |
   { 'PandaSubscription' : null };
+export interface AttestRequest {
+  'account_id' : Uint8Array | number[],
+  'signature' : Uint8Array | number[],
+  'statement' : Statement,
+  'origin' : string,
+  'approval' : Approval,
+}
 export type AuthenticationPurpose = { 'Reauthenticate' : null } |
   { 'Login' : null } |
   { 'Link' : null };
@@ -300,12 +281,10 @@ export interface CertifiedEntry {
   'witness' : Uint8Array | number[],
 }
 export interface ContentRootRef {
-  'key_generation' : bigint,
-  'derivation_version' : number,
-  'recovery_generation' : bigint,
+  'body_digest' : Uint8Array | number[],
   'generation' : bigint,
   'suite' : string,
-  'home_cose' : Principal,
+  'recipients_digest' : Uint8Array | number[],
   'bundle_digest' : Uint8Array | number[],
 }
 export type ControllerRole = { 'Administrator' : null } |
@@ -322,7 +301,7 @@ export type DelegationAuthority = {
   { 'Unrestricted' : null };
 export interface DeriveRootRequest {
   'account_id' : Uint8Array | number[],
-  'target' : RootTarget,
+  'generation' : bigint,
   'max_cycles' : bigint,
   'approval' : Approval,
   'transport_public_key' : Uint8Array | number[],
@@ -340,6 +319,10 @@ export interface DeviceInput {
   'device_id' : Uint8Array | number[],
   'hpke_pub' : Uint8Array | number[],
   'signing_pub' : Uint8Array | number[],
+}
+export interface EncryptedRootKey {
+  'key' : KeyDescriptor,
+  'encrypted_key' : Uint8Array | number[],
 }
 export type Environment = { 'Local' : null } |
   { 'Production' : null } |
@@ -379,21 +362,7 @@ export type ExecutionOutcome = { 'Failed' : Error } |
   { 'Authorized' : null } |
   { 'Unknown' : Error } |
   { 'ResultExpired' : null } |
-  { 'Completed' : ExecutionOutput };
-export type ExecutionOutput = {
-    'EncryptedRootKey' : {
-      'key' : KeyDescriptor,
-      'encrypted_key' : Uint8Array | number[],
-    }
-  } |
-  {
-    'AgentSignature' : {
-      'key' : KeyDescriptor,
-      'signature' : Uint8Array | number[],
-      'event_hash' : Uint8Array | number[],
-    }
-  } |
-  { 'Signature' : { 'key' : KeyDescriptor, 'artifact' : SignedArtifact } };
+  { 'Completed' : EncryptedRootKey };
 export interface ExecutionResult {
   'request_id' : Uint8Array | number[],
   'cycles_cost_upper_bound' : bigint,
@@ -438,21 +407,16 @@ export interface HostedController {
 }
 export interface KeyDescriptor {
   'account_id' : Uint8Array | number[],
-  'algorithm' : Algorithm,
   'key_generation' : bigint,
   'public_key_fingerprint' : Uint8Array | number[],
   'derivation_version' : number,
   'public_key' : Uint8Array | number[],
-  'key_id' : Uint8Array | number[],
   'home_cose' : Principal,
   'environment' : Environment,
   'master_key_name' : string,
-  'purpose' : KeyPurpose,
 }
-export type KeyPurpose = { 'ContentRoot' : null } |
-  { 'AppAction' : null } |
+export type KeyPurpose = { 'AppAction' : null } |
   { 'FileAttestation' : null } |
-  { 'AgentController' : null } |
   { 'Statement' : null };
 export interface OperationReceipt {
   'id' : Uint8Array | number[],
@@ -474,14 +438,10 @@ export interface PaymentOffer {
   'recipient_net' : bigint,
 }
 export interface PendingRecovery {
-  'reconfirmed' : boolean,
   'request' : RecoveryRequest,
   'execute_after' : bigint,
-  'confirmation' : [] | [RecoveryConfirmation],
-  'dispute' : [] | [Uint8Array | number[]],
 }
 export interface PrincipalInfo {
-  'last_nonces' : Array<[number, bigint]>,
   'state' : PrincipalState,
   'principal_id' : string,
   'published_version' : bigint,
@@ -519,20 +479,8 @@ export interface ProductAuthorizationRequest {
   'user_home' : Principal,
   'offer' : BillingOffer,
 }
-export interface RecoveryConfirmation {
-  'request_id' : Uint8Array | number[],
-  'dispute' : Uint8Array | number[],
-  'expires_at' : bigint,
-}
-export interface RecoveryPolicy {
-  'delay_ms' : bigint,
-  'generation' : bigint,
-  'hpke_pub' : Uint8Array | number[],
-  'signing_pub' : Uint8Array | number[],
-}
 export interface RecoveryRequest {
   'op_id' : Uint8Array | number[],
-  'generation' : bigint,
   'device' : DeviceInput,
   'new_auth' : Principal,
   'expires_at' : bigint,
@@ -541,39 +489,41 @@ export type Result = { 'Ok' : null } |
   { 'Err' : Error };
 export type Result_1 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
-export type Result_10 = { 'Ok' : OperationReceipt } |
+export type Result_10 = { 'Ok' : ExecutionUsage } |
   { 'Err' : Error };
-export type Result_11 = { 'Ok' : PrincipalInfo } |
+export type Result_11 = { 'Ok' : OperationReceipt } |
   { 'Err' : Error };
-export type Result_12 = { 'Ok' : [] | [PendingRecovery] } |
+export type Result_12 = { 'Ok' : PrincipalInfo } |
   { 'Err' : Error };
-export type Result_13 = { 'Ok' : [] | [ContentRootRef] } |
+export type Result_13 = { 'Ok' : [] | [PendingRecovery] } |
   { 'Err' : Error };
-export type Result_14 = { 'Ok' : number } |
+export type Result_14 = { 'Ok' : [] | [ContentRootRef] } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : bigint } |
+export type Result_15 = { 'Ok' : number } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : string } |
+export type Result_16 = { 'Ok' : bigint } |
+  { 'Err' : Error };
+export type Result_17 = { 'Ok' : string } |
   { 'Err' : string };
-export type Result_17 = { 'Ok' : ApplicationAuthorization } |
+export type Result_18 = { 'Ok' : ApplicationAuthorization } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : AuthenticationResult } |
   { 'Err' : Error };
-export type Result_3 = { 'Ok' : CertifiedBatch } |
+export type Result_3 = { 'Ok' : SignedArtifact } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : ProductAuthorization } |
+export type Result_4 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : Uint8Array | number[] } |
+export type Result_5 = { 'Ok' : ProductAuthorization } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : ExecutionResult } |
+export type Result_6 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : AccountInfo } |
+export type Result_7 = { 'Ok' : ExecutionResult } |
   { 'Err' : Error };
-export type Result_8 = {
+export type Result_8 = { 'Ok' : AccountInfo } |
+  { 'Err' : Error };
+export type Result_9 = {
     'Ok' : [SecuritySnapshot, Array<[Uint8Array | number[], Device]>]
   } |
-  { 'Err' : Error };
-export type Result_9 = { 'Ok' : ExecutionUsage } |
   { 'Err' : Error };
 export interface RootReservation {
   'op_id' : Uint8Array | number[],
@@ -582,47 +532,29 @@ export interface RootReservation {
   'expected_generation' : bigint,
   'expires_at' : bigint,
 }
-export type RootTarget = {
-    'Candidate' : { 'op_id' : Uint8Array | number[], 'generation' : bigint }
-  } |
-  { 'Current' : { 'generation' : bigint } };
 export interface SecuritySnapshot {
   'content_root_generation' : bigint,
   'account_id' : Uint8Array | number[],
   'account_version' : bigint,
-  'recovery_nonce' : bigint,
   'content_root_digest' : [] | [Uint8Array | number[]],
   'devices_root' : Uint8Array | number[],
-  'recovery_hpke_pub' : [] | [Uint8Array | number[]],
   'principal_updated_at' : [] | [bigint],
   'schema' : number,
   'security_epoch' : bigint,
-  'recovery_root_version' : bigint,
   'issuer' : string,
   'home_cose' : Principal,
   'home_user' : Principal,
-  'recovery_delay_ms' : [] | [bigint],
-  'recovery_signing_pub' : [] | [Uint8Array | number[]],
+  'recovery_delay_ms' : bigint,
   'vault_write_state' : VaultWriteState,
-  'account_status' : AccountStatus,
   'pending_recovery_digest' : [] | [Uint8Array | number[]],
 }
 export interface SensitivePolicy {
-  'daily_cycles' : bigint,
   'daily_executions' : number,
   'frozen' : boolean,
   'allowed_purposes' : Array<KeyPurpose>,
 }
 export type SettlementMethod = { 'Cash' : null } |
   { 'Panda' : null };
-export interface SignRequest {
-  'key' : SigningKeyRef,
-  'account_id' : Uint8Array | number[],
-  'statement' : Statement,
-  'origin' : string,
-  'max_cycles' : bigint,
-  'approval' : Approval,
-}
 export interface SignedArtifact {
   'cose_sign1' : Uint8Array | number[],
   'cose_key' : Uint8Array | number[],
@@ -630,13 +562,6 @@ export interface SignedArtifact {
 export interface SignedOffer {
   'signature' : Uint8Array | number[],
   'offer' : PaymentOffer,
-}
-export type SigningAlgorithm = { 'Ed25519' : null } |
-  { 'EcdsaSecp256k1' : null };
-export interface SigningKeyRef {
-  'kid' : Uint8Array | number[],
-  'algorithm' : SigningAlgorithm,
-  'public_key_fingerprint' : Uint8Array | number[],
 }
 export interface Statement {
   'issued_at' : [] | [bigint],
@@ -675,6 +600,16 @@ export interface UserInit {
   'membership_canister' : Principal,
   'directory_canister' : Principal,
 }
+export interface UserStats {
+  'day' : bigint,
+  'unlock_ready' : boolean,
+  'created_today' : number,
+  'cycles' : bigint,
+  'accounts' : bigint,
+  'daily_new_accounts' : number,
+  'max_accounts' : bigint,
+  'stable_pages' : bigint,
+}
 export type VaultWriteState = { 'RekeyRequired' : null } |
   { 'Ready' : null } |
   { 'Uninitialized' : null };
@@ -688,13 +623,15 @@ export interface _SERVICE {
     [Uint8Array | number[], AuthenticationRequest, Approval],
     Result_2
   >,
+  'attest' : ActorMethod<[AttestRequest], Result_3>,
+  'attest_app_action' : ActorMethod<[AppActionAttestRequest], Result_3>,
   'authentication_certificate' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_3
+    Result_4
   >,
   'authorize_product_billing' : ActorMethod<
     [ProductAuthorizationRequest],
-    Result_4
+    Result_5
   >,
   'begin_auth_binding' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], bigint],
@@ -709,87 +646,83 @@ export interface _SERVICE {
     [HandleIntent, HandleIntent],
     Result
   >,
-  'create_account' : ActorMethod<[CreateAccount], Result_5>,
-  'derive_root' : ActorMethod<[DeriveRootRequest], Result_6>,
-  'get_account' : ActorMethod<[Uint8Array | number[]], Result_7>,
-  'get_device_bundle' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'create_account' : ActorMethod<[CreateAccount], Result_6>,
+  'derive_root' : ActorMethod<[DeriveRootRequest], Result_7>,
+  'get_account' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_attestation' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result_3
+  >,
+  'get_device_bundle' : ActorMethod<[Uint8Array | number[]], Result_9>,
   'get_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_6
+    Result_7
   >,
   'get_execution_receipt' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_3
+    Result_4
   >,
   'get_execution_usage' : ActorMethod<
     [Uint8Array | number[], number],
-    Result_9
+    Result_10
   >,
   'get_execution_usage_certified' : ActorMethod<
     [Uint8Array | number[], number],
-    Result_3
+    Result_4
   >,
   'get_operation' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_10
+    Result_11
   >,
-  'get_principal' : ActorMethod<[Uint8Array | number[]], Result_11>,
-  'get_recovery_request' : ActorMethod<[Uint8Array | number[]], Result_12>,
-  'get_root_ref' : ActorMethod<[Uint8Array | number[]], Result_13>,
+  'get_principal' : ActorMethod<[Uint8Array | number[]], Result_12>,
+  'get_recovery_request' : ActorMethod<[Uint8Array | number[]], Result_13>,
+  'get_root_ref' : ActorMethod<[Uint8Array | number[]], Result_14>,
   'inspect_app_action' : ActorMethod<
     [Uint8Array | number[], AppAction],
     Result
   >,
-  'mutate_account' : ActorMethod<[AccountMutation], Result_10>,
+  'mutate_account' : ActorMethod<[AccountMutation], Result_11>,
   'my_account' : ActorMethod<[], [] | [Uint8Array | number[]]>,
   'prune_auth_bindings' : ActorMethod<
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
-  'prune_executions' : ActorMethod<[Uint8Array | number[]], Result_14>,
+  'prune_executions' : ActorMethod<[Uint8Array | number[]], Result_15>,
   'prune_external_approvals' : ActorMethod<
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
-  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_15>,
+  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_16>,
   'reconcile_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
-    Result_6
-  >,
-  'reconfirm_recovery' : ActorMethod<
-    [Uint8Array | number[], RecoveryConfirmation, Uint8Array | number[]],
-    Result
+    Result_7
   >,
   'refresh_execution_entitlement' : ActorMethod<
     [Uint8Array | number[]],
-    Result_9
+    Result_10
   >,
-  'register_controller' : ActorMethod<[AccountMutation], Result_10>,
   'request_recovery' : ActorMethod<
-    [
-      Uint8Array | number[],
-      RecoveryRequest,
-      Uint8Array | number[],
-      Uint8Array | number[],
-    ],
+    [Uint8Array | number[], RecoveryRequest, Uint8Array | number[]],
     Result
   >,
   'security_snapshot_batch' : ActorMethod<
     [Array<Uint8Array | number[]>],
-    Result_3
+    Result_4
   >,
-  'sign' : ActorMethod<[SignRequest], Result_6>,
-  'sign_agent_event' : ActorMethod<[AgentEventSignRequest], Result_6>,
-  'sign_app_action' : ActorMethod<[AppActionSignRequest], Result_6>,
+  'unlock_secret' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result_6
+  >,
+  'user_stats' : ActorMethod<[], UserStats>,
   'validate_admin_set_account_limits' : ActorMethod<
     [bigint, number],
-    Result_16
+    Result_17
   >,
   'verify_application_authorization' : ActorMethod<
     [Uint8Array | number[], ApplicationApproval],
-    Result_17
+    Result_18
   >,
-  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_15>,
+  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_16>,
   'verify_product_account' : ActorMethod<[string, Beneficiary], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

@@ -1,4 +1,3 @@
-import { Principal } from '@icp-sdk/core/principal'
 import type { AppRegistration } from 'dmsg-sdk'
 import { decodeCanonical, validateApp } from 'dmsg-sdk'
 import { certifiedValue } from './certified'
@@ -7,6 +6,8 @@ import { config } from '../config'
 import { digest } from '../protocol/codec'
 import { ensure } from '../errors'
 
+/** The certified registration of an application. Which user homes it serves
+ * is decided by the commerce canister that registered it, not by the app. */
 export async function registeredApplication(
   api: {
     commerce: import('../canisters/generated/commerce')._SERVICE | null
@@ -15,12 +16,7 @@ export async function registeredApplication(
   appId: string,
   origin: string,
   capability: 'Authenticate' | 'SignDocument' | 'SignAction' | 'Checkout',
-  deployment = {
-    commerce: config.canisters.commerce,
-    user: config.canisters.user,
-    cose: config.canisters.cose,
-    environment: config.environment
-  }
+  deployment = { commerce: config.canisters.commerce, environment: config.environment }
 ) {
   ensure(api.commerce && deployment.commerce, 'UNAVAILABLE')
   const certified = await certifiedValue(
@@ -36,9 +32,7 @@ export async function registeredApplication(
       app.app_id === appId &&
       app.environment.toLowerCase() === deployment.environment &&
       app.origins.includes(origin) &&
-      app.capabilities.includes(capability) &&
-      app.user_homes.some((p) => Principal.fromUint8Array(p).toText() === deployment.user) &&
-      app.cose_homes.some((p) => Principal.fromUint8Array(p).toText() === deployment.cose),
+      app.capabilities.includes(capability),
     'FORBIDDEN'
   )
   return app

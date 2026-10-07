@@ -32,8 +32,9 @@ types; independent encoder tests prevent sharing the same serialization bug.
 
 ## Identity and admission
 
-An application pins exact canonical origins, authentication receiver, user and
-COSE homes, the fixed action authority, capabilities, closed signing profiles and product IDs. A product pins its quote authority,
+An application pins exact canonical origins, authentication receiver, the fixed
+action authority, capabilities, closed signing profiles and product IDs; which user
+homes it serves is decided by the commerce canister that registered it. A product pins its quote authority,
 beneficiary authorities, adapter, subject schema/size, merchant account, ledgers
 and terms. A subject names one of the beneficiary authorities, which is asked for
 its product authorization; the list is append-only, so a dMsg account product
@@ -110,8 +111,7 @@ half-open intervals: equality with expiry is already expired.
 | Rate policy notice | At least 30 days |
 | Per-account pending operations | 32 |
 | Successful external approvals | 60 per account per UTC hour |
-| App origins / COSE homes / products | At most 16 of each |
-| App user homes | At most 64, the services' user-home limit |
+| App origins / products | At most 16 of each |
 | Generic encoded input | At most 65,536 bytes |
 
 The user issuer enforces the per-account pending and hourly approval limits.

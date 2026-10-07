@@ -71,6 +71,7 @@ export interface HandleInit {
   'ledger' : Principal,
   'environment' : Environment,
   'ledger_fee' : bigint,
+  'registration_homes' : Array<Principal>,
   'governance' : Principal,
   'user_homes' : Array<Principal>,
 }
@@ -149,6 +150,7 @@ export interface SnapshotProgress {
 export interface _SERVICE {
   'admin_add_user_home' : ActorMethod<[Principal], Result>,
   'admin_collect_token' : ActorMethod<[Account, bigint], Result_1>,
+  'admin_set_registration_homes' : ActorMethod<[Array<Principal>], Result>,
   'begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result>,
   'claim_legacy_handle' : ActorMethod<
     [HandleIntent, Uint8Array | number[]],
@@ -181,6 +183,10 @@ export interface _SERVICE {
   'update_ledger_fee' : ActorMethod<[bigint], Result>,
   'validate_admin_add_user_home' : ActorMethod<[Principal], Result_7>,
   'validate_admin_collect_token' : ActorMethod<[Account, bigint], Result_7>,
+  'validate_admin_set_registration_homes' : ActorMethod<
+    [Array<Principal>],
+    Result_7
+  >,
   'validate_begin_legacy_snapshot' : ActorMethod<[LegacySnapshot], Result_7>,
   'validate_import_legacy_handles' : ActorMethod<
     [Uint8Array | number[], bigint, Array<LegacyReservation>],

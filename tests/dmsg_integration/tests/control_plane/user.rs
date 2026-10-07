@@ -1,146 +1,88 @@
 use super::*;
 
-pub(super) fn statement_request(
-    f: &Fixture,
-    id: &AccountId,
-    signing_key: SigningKeyRef,
-    max_cycles: u128,
-) -> SignRequest {
-    let s = f.account_id(1, id);
-    let sequence = s.devices[&Hash::new([1; 32])].next_sequence;
-    let mut request = SignRequest {
-        account_id: *id,
-        key: signing_key,
-        statement: Statement {
-            issuer: s.issuer,
-            subject: None,
-            issued_at: None,
-            content: StatementContent::Text("approved statement".into()),
-        },
-        origin: "https://example.com".into(),
-        max_cycles,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: s.security_epoch,
-            sequence,
-            request_id: execution_request_id(id, s.security_epoch, Hash::new([1; 32]), sequence),
-            expires_at: time(&f.ic) + MINUTE,
-            signature: Default::default(),
-        },
-    };
-    request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
-        .to_bytes()
-        .into();
-    request
+fn text_statement(f: &Fixture, id: &AccountId, text: &str) -> Statement {
+    Statement {
+        issuer: f.account_id(1, id).issuer,
+        subject: None,
+        issued_at: None,
+        content: StatementContent::Text(text.into()),
+    }
 }
 
-#[test]
-fn early_cose_rejection_keeps_its_sequence_until_reconciled() {
-    let f = Fixture::new();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::SetPolicy {
-            policy: SensitivePolicy {
-                daily_executions: 100,
-                ..SensitivePolicy::default()
-            },
-        },
-    )
-    .unwrap();
-    let public = key(7).verifying_key().to_bytes();
-    let fingerprint =
-        key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
-    let first = statement_request(
-        &f,
-        &id,
-        SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: fingerprint.to_vec().into(),
-            public_key_fingerprint: fingerprint,
-        },
-        100_000_000_000,
-    );
-    let rejected: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign", (first.clone(),));
-    assert!(matches!(rejected, Err(Error::Unavailable(_))));
-    let account = f.account_id(1, &id);
-    let retry: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (first.clone(),));
-    assert_eq!(retry, rejected);
-    assert_eq!(f.account_id(1, &id), account);
+fn usage(f: &Fixture, id: &AccountId) -> dmsg_types::billing::ExecutionUsage {
     let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
     let usage: Result<dmsg_types::billing::ExecutionUsage> = query(
         &f.ic,
         f.user,
         person(1),
         "get_execution_usage",
-        (&id, month),
+        (id, month),
     );
-    assert_eq!(usage.unwrap().held_units, 1);
-    let absent: Result<ExecutionResult> = query(
+    usage.unwrap()
+}
+
+#[test]
+fn attestations_charge_the_month_once_and_replay_the_stored_artifact() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    f.mutate(
+        1,
+        &id,
+        AccountCommand::SetPolicy {
+            policy: SensitivePolicy {
+                daily_executions: 2,
+                ..SensitivePolicy::default()
+            },
+        },
+    )
+    .unwrap();
+    let first = f.attest_request(1, &id, text_statement(&f, &id, "approved statement"));
+    let artifact: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (first.clone(),));
+    let artifact = artifact.unwrap();
+    assert_eq!(verify_artifact(&artifact).unwrap(), first.statement);
+    let charged = usage(&f, &id);
+    assert_eq!((charged.held_units, charged.charged_units), (0, 1));
+    let account = f.account_id(1, &id);
+    // A replay returns the artifact without charging or consuming a sequence.
+    let replay: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (first.clone(),));
+    assert_eq!(replay.unwrap(), artifact);
+    assert_eq!(f.account_id(1, &id), account);
+    assert_eq!(usage(&f, &id), charged);
+    let stored: Result<SignedArtifact> = query(
         &f.ic,
-        f.cose,
         f.user,
+        person(1),
+        "get_attestation",
+        (&id, first.approval.request_id),
+    );
+    assert_eq!(stored.unwrap(), artifact);
+    let not_a_derivation: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
         "get_execution",
         (&id, first.approval.request_id),
     );
-    assert_eq!(absent, Err(Error::NotFound));
-    let initialized: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-    let real_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    let good = statement_request(&f, &id, real_key.clone(), 100_000_000_000);
-    let signed: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (good,));
-    assert!(matches!(
-        signed.unwrap().outcome,
-        ExecutionOutcome::Completed(_)
-    ));
-    for _ in 3..=dmsg_runtime::FORMAL_EXECUTION_WINDOW {
-        let r = statement_request(&f, &id, real_key.clone(), 1);
-        let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
-        assert_eq!(
-            result.unwrap().outcome,
-            ExecutionOutcome::Failed(Error::QuotaExceeded)
-        );
-    }
-    f.ic.advance_time(Duration::from_millis(2 * DAY));
-    f.ic.upgrade_canister(
-        f.user,
-        wasm("dmsg_user"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    let reconcile: Result<ExecutionResult> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "reconcile_execution",
-        (&id, first.approval.request_id),
-    );
+    assert_eq!(not_a_derivation, Err(Error::UnsupportedProtocol));
+    // A tampered replay under the same request ID is a conflict.
+    let mut altered = first.clone();
+    altered.origin = "https://other.test".into();
+    let conflict: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (altered,));
+    assert_eq!(conflict, Err(Error::IdempotencyConflict));
+    // The account policy counts attestations per day.
+    f.attest(1, &id, text_statement(&f, &id, "second")).unwrap();
+    let before = f.account_id(1, &id);
     assert_eq!(
-        reconcile.unwrap().outcome,
-        ExecutionOutcome::Failed(Error::Expired)
+        f.attest(1, &id, text_statement(&f, &id, "third")),
+        Err(Error::QuotaExceeded)
     );
-    let usage: Result<dmsg_types::billing::ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, month),
-    );
-    let usage = usage.unwrap();
-    assert_eq!(usage.held_units, 0);
-    assert_eq!(usage.charged_units, 1);
-    let r = statement_request(&f, &id, real_key, 100_000_000_000);
-    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (r,));
-    assert!(matches!(
-        result.unwrap().outcome,
-        ExecutionOutcome::Completed(_)
-    ));
+    assert_eq!(f.account_id(1, &id), before);
+    assert_eq!(usage(&f, &id).charged_units, 2);
+    f.ic.advance_time(Duration::from_millis(DAY));
+    f.attest(1, &id, text_statement(&f, &id, "tomorrow")).unwrap();
 }
 
 #[test]
@@ -189,39 +131,10 @@ fn fresh_handle_approval_renews_the_deadline() {
 fn policy_changes_invalidate_approvals_without_rotating_content_roots() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
-    let op = Hash::new([82; 32]);
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id: op,
-        },
-    )
-    .unwrap();
-    let generation = f.account_id(1, &id).root_slot.unwrap().generation;
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::CommitRoot {
-            expected_generation: 0,
-            op_id: op,
-            root: ContentRootRef {
-                generation,
-                suite: "dmsg-root-v1".into(),
-                home_cose: f.cose,
-                derivation_version: 2,
-                key_generation: generation,
-                bundle_digest: Hash::new([83; 32]),
-                recovery_generation: 1,
-            },
-        },
-    )
-    .unwrap();
+    f.rekey(1, &id);
     let before = f.account_id(1, &id);
     assert_eq!(before.vault_write_state, VaultWriteState::Ready);
-    let mut policy = before.sensitive_policy;
+    let mut policy = before.sensitive_policy.clone();
     policy.daily_executions = 10;
     f.mutate(1, &id, AccountCommand::SetPolicy { policy })
         .unwrap();
@@ -232,135 +145,69 @@ fn policy_changes_invalidate_approvals_without_rotating_content_roots() {
 }
 
 #[test]
-fn pruned_results_settle_the_original_month_once() {
-    use dmsg_types::billing::ExecutionUsage;
+fn pruned_attestations_keep_their_charge_and_leave_an_absence_proof() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
-    let initialized: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-    let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    let first = statement_request(&f, &id, signing_key.clone(), 100_000_000_000);
-    let call =
-        f.ic.submit_call(
-            f.user,
-            person(1),
-            "sign",
-            candid::encode_one(first.clone()).unwrap(),
-        )
-        .unwrap();
-    let mut before_callback = None;
-    for _ in 0..30 {
-        f.ic.tick();
-        let state: Result<ExecutionResult> = query(
+    let request = f.attest_request(1, &id, text_statement(&f, &id, "approved statement"));
+    let artifact: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request.clone(),));
+    artifact.unwrap();
+    let before = usage(&f, &id);
+    assert_eq!(before.charged_units, 1);
+    let early: Result<u32> = update(
+        &f.ic,
+        f.user,
+        Principal::anonymous(),
+        "prune_executions",
+        (id,),
+    );
+    assert_eq!(early, Ok(0));
+    f.ic.advance_time(Duration::from_millis(2 * DAY));
+    let removed: Result<u32> = update(
+        &f.ic,
+        f.user,
+        Principal::anonymous(),
+        "prune_executions",
+        (id,),
+    );
+    assert_eq!(removed, Ok(1));
+    assert_eq!(usage(&f, &id), before);
+    let gone: Result<SignedArtifact> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_attestation",
+        (&id, request.approval.request_id),
+    );
+    assert_eq!(gone, Err(Error::ResultExpired));
+    let replay: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request.clone(),));
+    assert_eq!(replay, Err(Error::ResultExpired));
+    for _ in 0..2 {
+        let receipt: Result<CertifiedBatch> = query(
             &f.ic,
             f.user,
             person(1),
-            "get_execution",
-            (&id, first.approval.request_id),
+            "get_execution_receipt",
+            (&id, request.approval.request_id),
         );
-        if state.is_ok_and(|e| e.status() == ExecutionStatus::Authorized) {
-            before_callback = Some(f.ic.get_stable_memory(f.user));
-            break;
-        }
+        let batch = receipt.unwrap();
+        assert!(batch.entries[0].value.is_none());
+        let witness: ic_certification::HashTree =
+            cbor2::from_slice(&batch.entries[0].witness).unwrap();
+        assert_eq!(
+            witness.lookup_path([execution_receipt_key(&id, request.approval.request_id)]),
+            ic_certification::LookupResult::Absent
+        );
+        f.ic.upgrade_canister(
+            f.user,
+            wasm("dmsg_user"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
     }
-    let before_callback = before_callback.expect("authorized state before callback");
     let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
-    let completed: Result<ExecutionResult> =
-        candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
-    assert!(matches!(
-        completed.unwrap().outcome,
-        ExecutionOutcome::Completed(_)
-    ));
-    // Simulate a lost success callback by restoring the exact persisted user
-    // authorization/hold state. The real COSE completion remains untouched.
-    f.ic.set_stable_memory(
-        f.user,
-        before_callback,
-        pocket_ic::common::rest::BlobCompression::NoCompression,
-    );
-    f.ic.upgrade_canister(
-        f.user,
-        wasm("dmsg_user"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    let held: Result<ExecutionResult> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution",
-        (&id, first.approval.request_id),
-    );
-    assert_eq!(held.unwrap().status(), ExecutionStatus::Authorized);
-    f.ic.advance_time(Duration::from_millis(32 * DAY));
-    let second = statement_request(&f, &id, signing_key, 100_000_000_000);
-    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (second,));
-    assert!(matches!(
-        result.unwrap().outcome,
-        ExecutionOutcome::Completed(_)
-    ));
-    let missing: Result<ExecutionResult> = query(
-        &f.ic,
-        f.cose,
-        f.user,
-        "get_execution",
-        (&id, first.approval.request_id),
-    );
-    assert_eq!(missing, Err(Error::NotFound));
-    let before: Result<ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, month),
-    );
-    let before = before.unwrap();
-    assert_eq!(before.held_units, 1);
-    assert_eq!(before.charged_units, 0);
-    let reconciled: Result<ExecutionResult> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "reconcile_execution",
-        (&id, first.approval.request_id),
-    );
-    assert_eq!(reconciled.unwrap().outcome, ExecutionOutcome::ResultExpired);
-    let after: Result<ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, month),
-    );
-    let after = after.unwrap();
-    assert_eq!(after.held_units, 0);
-    assert_eq!(after.charged_units, 1);
-    let repeated: Result<ExecutionResult> = update(
-        &f.ic,
-        f.user,
-        person(1),
-        "reconcile_execution",
-        (&id, first.approval.request_id),
-    );
-    assert_eq!(repeated.unwrap().outcome, ExecutionOutcome::ResultExpired);
-    let unchanged: Result<ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, month),
-    );
-    assert_eq!(unchanged.unwrap(), after);
-    f.ic.upgrade_canister(
-        f.user,
-        wasm("dmsg_user"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
     let certified: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -368,45 +215,32 @@ fn pruned_results_settle_the_original_month_once() {
         "get_execution_usage_certified",
         (&id, month),
     );
-    let leaf: ExecutionUsage = cbor2::from_slice(&certified_value(
+    let leaf: dmsg_types::billing::ExecutionUsage = cbor2::from_slice(&certified_value(
         &f,
         certified.unwrap(),
         dmsg_protocol::billing::usage_key(&id, month).as_slice(),
     ))
     .unwrap();
-    assert_eq!(leaf, after);
+    assert_eq!(leaf, before);
 }
 
 #[test]
 fn entitlement_callback_rechecks_a_concurrent_policy_change() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
-    let initialized: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    initialized.unwrap();
-    let signing_key = f.key_ref(&id, SigningPurpose::Statement, SigningAlgorithm::Ed25519);
-    let request = statement_request(&f, &id, signing_key, 100_000_000_000);
+    let request = f.attest_request(1, &id, text_statement(&f, &id, "approved statement"));
     let call =
         f.ic.submit_call(
             f.user,
             person(1),
-            "sign",
+            "attest",
             candid::encode_one(request.clone()).unwrap(),
         )
         .unwrap();
     // Ingress with equal expiry is inducted in message-hash order; a later
-    // expiry keeps the policy change behind the pending signing request.
+    // expiry keeps the policy change behind the pending attestation.
     f.ic.advance_time(Duration::from_millis(1));
     // Queue a policy change before the first commercial lease callback can authorize the request.
-    let missing: Result<ExecutionResult> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution",
-        (&id, request.approval.request_id),
-    );
-    assert_eq!(missing, Err(Error::ResultExpired));
     f.mutate(
         1,
         &id,
@@ -418,28 +252,19 @@ fn entitlement_callback_rechecks_a_concurrent_policy_change() {
         },
     )
     .unwrap();
-    let result: Result<ExecutionResult> =
+    let result: Result<SignedArtifact> =
         candid::decode_one(&f.ic.await_call(call).unwrap()).unwrap();
     assert_eq!(result, Err(Error::Locked));
-    let missing: Result<ExecutionResult> = query(
+    let missing: Result<SignedArtifact> = query(
         &f.ic,
         f.user,
         person(1),
-        "get_execution",
+        "get_attestation",
         (&id, request.approval.request_id),
     );
     assert_eq!(missing, Err(Error::ResultExpired));
-    let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
-    let usage: Result<dmsg_types::billing::ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (&id, month),
-    );
-    let usage = usage.unwrap();
-    assert_eq!(usage.held_units, 0);
-    assert_eq!(usage.charged_units, 0);
+    let usage = usage(&f, &id);
+    assert_eq!((usage.held_units, usage.charged_units), (0, 0));
 }
 
 // Small reproducible growth samples, not a production capacity certification.
@@ -527,25 +352,27 @@ pub(super) fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], mo
 fn removed_and_recovered_logins_lose_their_routes() {
     let f = Fixture::new();
     let id = f.create(1);
-    f.recoverable(1, &id);
-    let nonce = Hash::new([21; 32]);
-    let begun: Result<()> = update(
-        &f.ic,
-        f.user,
-        person(2),
-        "begin_auth_binding",
-        (&id, nonce, time(&f.ic) + MINUTE),
-    );
-    begun.unwrap();
-    f.mutate(
-        1,
-        &id,
-        AccountCommand::BindAuth {
-            principal: person(2),
-            nonce,
-        },
-    )
-    .unwrap();
+    let bind = |n: u8, nonce: u8| {
+        let nonce = Hash::new([nonce; 32]);
+        let begun: Result<()> = update(
+            &f.ic,
+            f.user,
+            person(n),
+            "begin_auth_binding",
+            (&id, nonce, time(&f.ic) + MINUTE),
+        );
+        begun.unwrap();
+        f.mutate(
+            1,
+            &id,
+            AccountCommand::BindAuth {
+                principal: person(n),
+                nonce,
+            },
+        )
+        .unwrap();
+    };
+    bind(2, 21);
     let routed: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
     assert_eq!(routed, Some(id));
     let same: Result<AccountId> = update(
@@ -570,82 +397,48 @@ fn removed_and_recovered_logins_lose_their_routes() {
     assert_eq!(denied, Err(Error::AuthRequired));
     assert_ne!(f.create(2), id);
 
-    // Recovery replaces every binding and drops their routes as well.
-    let public: Result<(SecuritySnapshot, std::collections::BTreeMap<Hash, Device>)> =
-        query(&f.ic, f.user, person(9), "get_device_bundle", (&id,));
-    let snapshot = public.unwrap().0;
+    // An unbound login cannot start a takeover; a bound one replaces every
+    // other binding and drops their routes.
+    bind(3, 31);
     let request = RecoveryRequest {
         op_id: Hash::new([41; 32]),
         new_auth: person(9),
         device: device(9),
-        generation: snapshot.recovery_root_version,
-        expires_at: time(&f.ic) + DAY + MINUTE,
+        expires_at: time(&f.ic) + 4 * DAY,
     };
-    let signature = key(70)
-        .sign(
-            digest(
-                "dmsg/recovery-request/v1",
-                &(f.user, &id, snapshot.recovery_nonce, &request),
-            )
-            .as_slice(),
-        )
-        .to_bytes()
-        .to_vec();
-    let pop = key(9)
-        .sign(digest("dmsg/recovery-device/v1", &(f.user, &id, &request)).as_slice())
-        .to_bytes()
-        .to_vec();
-    let submitted: Result<()> = update(
+    let pop = ByteBuf::from(
+        key(9)
+            .sign(recovery_device_message(f.user, &id, &request).as_slice())
+            .to_bytes()
+            .to_vec(),
+    );
+    let refused: Result<()> = update(
         &f.ic,
         f.user,
         person(9),
         "request_recovery",
-        (
-            &id,
-            request.clone(),
-            ByteBuf::from(signature),
-            ByteBuf::from(pop),
-        ),
+        (&id, request, pop),
     );
-    submitted.unwrap();
-    f.ic.advance_time(Duration::from_millis(DAY));
-    let completed: Result<()> = update(
-        &f.ic,
-        f.user,
-        person(9),
-        "complete_recovery",
-        (&id, request.op_id),
-    );
-    completed.unwrap();
-    assert_eq!(f.account_id(9, &id).auth_bindings, vec![person(9)]);
-    let recovered: Option<AccountId> = query(&f.ic, f.user, person(9), "my_account", ());
+    assert_eq!(refused, Err(Error::AuthRequired));
+    f.recover(1, 9, &id);
+    assert_eq!(f.account_id(1, &id).auth_bindings, vec![person(1)]);
+    let recovered: Option<AccountId> = query(&f.ic, f.user, person(1), "my_account", ());
     assert_eq!(recovered, Some(id));
-    let cut: Option<AccountId> = query(&f.ic, f.user, person(1), "my_account", ());
+    let cut: Option<AccountId> = query(&f.ic, f.user, person(3), "my_account", ());
     assert_eq!(cut, None);
-    assert_ne!(f.create(1), id);
+    assert_ne!(f.create(3), id);
 }
 
 #[test]
 fn reconcile_transport_failures_do_not_rewrite_the_execution() {
     let f = Fixture::new();
-    let id = f.create(1);
-    f.recoverable(1, &id);
-    let public = key(7).verifying_key().to_bytes();
-    let fingerprint =
-        key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
-    let request = statement_request(
-        &f,
-        &id,
-        SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: fingerprint.to_vec().into(),
-            public_key_fingerprint: fingerprint,
-        },
-        100_000_000_000,
-    );
+    let id = f.root_account(1);
+    f.recover(1, 9, &id);
+    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
+    let request = f.derive_request(1, 9, &id, transport.public_key());
     // Uninitialized COSE keys reject the grant before recording anything.
     let rejected: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign", (request.clone(),));
+        update(&f.ic, f.user, person(1), "derive_root", (request.clone(),));
     assert!(
         matches!(rejected, Err(Error::Unavailable(_))),
         "{rejected:?}"
@@ -690,4 +483,16 @@ fn reconcile_transport_failures_do_not_rewrite_the_execution() {
         matches!(redispatched, Err(Error::Unavailable(_))),
         "{redispatched:?}"
     );
+    // Once the keys are ready the same grant completes.
+    let initialized: Result<KeyState> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    initialized.unwrap();
+    let completed: Result<ExecutionResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "reconcile_execution",
+        (&id, request.approval.request_id),
+    );
+    assert_eq!(completed.unwrap().status(), ExecutionStatus::Completed);
 }

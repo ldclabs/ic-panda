@@ -116,12 +116,10 @@ fn register_integration_app(app: AppRegistration) -> Result<()> {
 fn validate_register_integration_app(app: AppRegistration) -> Validation {
     validation(check_app(&app).map(|fresh| {
         format!(
-            "Register app {} config version {}: origins [{}], user homes [{}], cose homes [{}], products [{}], capabilities {:?}, profiles {:?}, authentication receiver {}, action authority {}, paused {}.{}",
+            "Register app {} config version {}: origins [{}], products [{}], capabilities {:?}, profiles {:?}, authentication receiver {}, action authority {}, paused {}.{}",
             app.app_id,
             app.config_version,
             app.origins.join(", "),
-            principals(&app.user_homes),
-            principals(&app.cose_homes),
             app.product_ids.join(", "),
             app.capabilities,
             app.profiles,

@@ -19,8 +19,8 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 | dmsg_types | 公开数据合同，包含基础签名、ICP 接口和可选应用协议 | [README](../src/dmsg_types/README_zh.md) |
 | dmsg_protocol | 确定性编码、批准构造、标准 COSE 验签、CTT 摘要 | [README](../src/dmsg_protocol/README_zh.md) |
 | dmsg_runtime | 参考实现共用的稳定记录、认证树、账本和调用工具 | [README](../src/dmsg_runtime/README.md) |
-| dmsg_user | 主体、认证、设备、恢复、根承诺与执行批准 | [README](../src/dmsg_user/README.md) / [Candid](../src/dmsg_user/dmsg_user.did) |
-| dmsg_cose | 标准签名产物、受限 vetKD、密钥来源和执行状态 | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
+| dmsg_user | 主体、认证、设备、登录恢复、本机解锁秘密、根承诺与设备签名认证 | [README](../src/dmsg_user/README.md) / [Candid](../src/dmsg_user/dmsg_user.did) |
+| dmsg_cose | 内容根 vetKD 公钥与恢复派生 | [README](../src/dmsg_cose/README.md) / [Candid](../src/dmsg_cose/dmsg_cose.did) |
 | dmsg_handle | 名称权属、导入、收费和转移 | [README](../src/dmsg_handle/README.md) / [Candid](../src/dmsg_handle/dmsg_handle.did) |
 | membership | PANDA SNS 资格、跨产品占用与授益决定 | [README](../src/membership/README.md) / [Candid](../src/membership/membership.did) |
 | dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
@@ -31,14 +31,14 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 
 ## 当前合同
 
-- Statement v3 设计已实现三个文档 profile v1（纯文本、纯摘要、针对文件的文本声明），执行批准域为 `dmsg/execute/v3`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
-- `sign` 输出 `SignedArtifact { cose_sign1, cose_key }`：RFC 9052 COSE_Sign1 和 public-only COSE_Key。ICP 密钥来源另存于结果的 `key` 描述，不能把公钥查询本身当作身份/授权证明。
+- Statement v3 设计已实现三个文档 profile v1（纯文本、纯摘要、针对文件的文本声明），认证批准域为 `dmsg/attest/v1`；其他独立域的准确版本见协议说明和向量。与早期实验编码不兼容。
+- `attest` / `attest_app_action` 接收设备签名的请求，返回 `SignedArtifact { cose_sign1, cose_key }`：RFC 9052 COSE_Sign1 和 public-only 设备 COSE_Key。设备是否属于账户、签名是否经授权由认证回执证明，不能把公钥本身当作身份/授权证明。
 - 内部账户的 `AccountId` 直接复用 `ic_auth_types::Xid`（12 字节），用户服务使用共享 `XidGenerator` 同步原子发号；初始化增加固定 issuer_namespace，密码派生版本为 2，使用新开发实例。
-- `get_execution_receipt` 提供认证执行叶，绑定请求 ID、待签字节、公钥和签名；请求元数据不再进入可移植 Statement。
+- `get_execution_receipt` 提供认证执行叶（schema 2），绑定请求 ID、待签字节、设备公钥指纹和签名；请求元数据不再进入可移植 Statement。
 - `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
 - `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
-- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 可变长，BIP340 入口已删除。浏览器消息合同为 `dmsg-extension/4`。
+- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。浏览器消息合同为 `dmsg-extension/4`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
 - payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。
 
@@ -171,3 +171,15 @@ COSE 与 user 的每日预算在管理调用返回后结算为实际扣费：`Ex
 升级若未先停止 COSE，丢失回调的在途执行此前会永久停在 `Executing` 并卡住账户窗口；现在内存中的在途集合区分仍在等待的调用，`get_execution` 把遗留记录按 `Unknown` 返回，下一次执行或清理页写为 `Unknown` 并推进高水位，不重签。新增 `cose_stats`（账户数与上限、结果数、在途与 Unknown 计数、当日全局预算用量、stable 页数、cycles），`canister_inspect_message` 拒绝非 home 的 `execute` 与非管理员的管理 ingress，`prune_executions` 每页增至最多 64 个账户，用掉 20B 指令后在账户之间提前结束，因为删除一条结果要重写同一 B 树节点中的其余结果（一页 4,096 条过期结果约 0.62B cycles，64 个账户各 32 条 4 KiB 签名约 0.75B），`validate_admin_add_user_home` 显示共享账户容量。`dmsg_protocol` 新增 `content_root_context` 与可选 feature `cose-pins`，`cose_pins` 示例按 canister ID 离线计算生产 pin；`src/dmsg_app/scripts/cose-prune.mjs` 匿名执行一轮清理。仓库以 `rust-toolchain.toml` 固定 Rust 1.98.1，CI 与 release 同步。
 
 稳定布局保持 COSE schema 9：结果新增 key 4、全局单元新增 key 3，均带默认值，旧数据照常解码；README 记录了生产后的布局迁移约定。PocketIC 覆盖离线 pin 的生产初始化、不停机升级丢失的回调、扣费结算与 `cose_stats`、ingress 拒绝和 64 账户清理页。主网 `key_1` 验收、签名队列满的真实行为和外部审计仍未完成。
+
+## 2026-10-07 内容根去 vetKD、设备签名认证与登录恢复
+
+按 [加密设计](dmsg_encryption_zh.md) 的新基线：内容根不再经 vetKD 封装，RootBundle v2 把每代根 HPKE 封装给每台活跃设备，并用 COSE 的内容根 vetKD 公钥做一份 IBE 恢复信封；`CommitRoot` 重算 `recipients_digest`（活跃设备 ID 升序 + 代次）与 `bundle_digest`，已撤销设备收不到新根。注册、新设备、换根全程 0 次链上密钥调用；只有全设备丢失恢复做一次 `derive_root` 派生。
+
+客户端取消口令、恢复码与离线导出：本机数据密钥由 user home 的认证 query `unlock_secret(account, device)` 发放的秘密（`HKDF(master_secret, account, device)`，`master_secret` 在初始化 timer 中 `raw_rand` 生成）派生的 LUK 封装，可选平台认证器 PRF 快速解锁（7 天内）。恢复改为登录授权的延迟接管：`request_recovery(account, request, device_proof)` 要求 caller 已绑定，默认等待 3 天（`SetRecoveryDelay` 1–7 天），任一有效设备 `DisputeRecovery` 即取消，`complete_recovery` 后只有登记的设备可以派生一次当前根。`SetRecovery`、`ConfirmRecovery`、`reconfirm_recovery`、`RecoveryDisputed` 状态与恢复公钥全部删除；`SecuritySnapshot` 为 schema 4。
+
+正式文档改为设备签名 + 认证回执：`attest` / `attest_app_action` 验证设备对 Sig_structure 的 Ed25519 签名（kid 为 RFC 9679 指纹）与 `dmsg/attest/v1` 批准，在同一消息内计费、保存产物并写入 schema 2 回执；`get_attestation` 重放。`sign`、`sign_app_action`、`sign_agent_event`、ES256K 与 COSE 的签名 master 全部删除，`dmsg_cose` 只保留 `execute`（派生）、`get_execution` 与 `root_public_key`，grant 摘要为 `dmsg/cose-execution/v4`。Agent controller 改为客户端自持：`RegisterController` 附 `dmsg/controller-pop/v1` 证明，事件在本机签名并直接提交到 delegation 服务，`register_controller` 与 `last_nonces` 删除。
+
+多实例：`dmsg_handle` 新增 `registration_homes`（`admin_set_registration_homes` 与 `validate_*`），客户端启动时从 handle 读取权威 home 列表与注册入口，对各 home 并行 `my_account` 定位账户；`AppRegistration` 不再列 `user_homes`/`cose_homes`，commerce 在 checkout 时核对账户 home；user 新增 `user_stats`。稳定布局：user schema 13、COSE schema 10、handle 与 commerce 各自推进；开发实例需重装。
+
+PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wasm 上通过，覆盖根 CAS 接收者绑定、认证按月计费与重放、受保留窗口与升级、登录恢复可见/争议/完成、恢复派生与 IBE 往返、自持 controller 注册与本机签名、第二个 home 的注册入口治理。客户端 `check` 0 错误、166 项单元测试通过；真实扩展 E2E、私有云端和生产 II origin 本轮未验收。

@@ -1,3 +1,5 @@
+//! Formal attestations recorded in one message, and the single vetKD root
+//! derivation a recovered device may request.
 use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;
@@ -6,55 +8,21 @@ use dmsg_types::{cose::*, user::*, *};
 
 use crate::account::{check_device, finish};
 
-/// Immutable parsing is reused across awaits; account authorization is not.
-pub(crate) struct PreparedRequest {
-    statement: Option<PreparedStatement>,
-    pub(crate) event: Option<dmsg_protocol::agent::DelegationEvent>,
-}
-
-impl PreparedRequest {
-    pub(crate) fn new(input: &ExecuteRequest) -> Result<Self> {
-        Ok(Self {
-            statement: match &input.kind {
-                ExecutionKind::Sign { to_be_signed, .. } => {
-                    Some(parse_signing_input(to_be_signed)?)
-                }
-                _ => None,
-            },
-            event: match &input.kind {
-                ExecutionKind::AgentEvent { event, .. } => {
-                    Some(dmsg_protocol::agent::parse_delegation_event(event)?)
-                }
-                _ => None,
-            },
-        })
-    }
-
-    pub(crate) fn action(&self) -> Option<&dmsg_types::app_action::AppAction> {
-        match &self.statement.as_ref()?.statement().content {
-            StatementContent::AppAction(action) => Some(action),
-            _ => None,
-        }
-    }
-}
-
-/// Read-only authorization, including a candidate budget. No sequence or nonce
-/// is consumed until all remote checks have returned and this check is rerun.
-pub(crate) fn check(
+/// Shared read-only checks: binding, replay, request identity, lock state and
+/// the retained-execution window. Nothing is consumed.
+fn precheck(
     s: &AccountState,
     caller: Principal,
-    input: &ExecuteRequest,
+    account_id: &AccountId,
+    approval: &Approval,
     fingerprint: Hash,
     now: u64,
-    init: &UserInit,
-    prepared: &PreparedRequest,
-) -> Result<Budget> {
-    ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
-    if let Some(r) = s
-        .operations
-        .iter()
-        .find(|r| r.id == input.approval.request_id)
-    {
+) -> Result<()> {
+    ensure(
+        *account_id == s.account_id && s.auth_bindings.contains(&caller),
+        Error::AuthRequired,
+    )?;
+    if let Some(r) = s.operations.iter().find(|r| r.id == approval.request_id) {
         // A cleaned result keeps its receipt: the same request has expired,
         // while different parameters under that ID conflict.
         return Err(if r.digest == fingerprint {
@@ -64,179 +32,179 @@ pub(crate) fn check(
         });
     }
     ensure(
-        input.approval.request_id
+        approval.request_id
             == execution_request_id(
                 &s.account_id,
-                input.approval.security_epoch,
-                input.approval.device_id,
-                input.approval.sequence,
+                approval.security_epoch,
+                approval.device_id,
+                approval.sequence,
             ),
         Error::IdempotencyConflict,
     )?;
-    ensure(
-        s.status == AccountStatus::Active && !s.sensitive_policy.frozen,
-        Error::Locked,
-    )?;
-    let (cap, admin) = match &input.kind {
-        ExecutionKind::Sign {
-            key,
-            public_key_fingerprint,
-            origin,
-            ..
-        } => {
-            ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
-            ensure(
-                s.sensitive_policy.allowed_purposes.contains(&key.purpose),
-                Error::Forbidden,
-            )?;
-            key.validate()?;
-            nonzero(public_key_fingerprint.as_slice())?;
-            validate_origin(origin, &init.environment)?;
-            let prepared = prepared.statement.as_ref().expect("parsed signing request");
-            ensure(
-                *prepared.algorithm() == key.algorithm
-                    && statement_purpose(prepared.statement()) == key.purpose,
-                Error::UnsupportedProtocol,
-            )?;
-            ensure(
-                prepared.statement().issuer
-                    == account_issuer(&init.issuer_namespace, &s.account_id),
-                Error::IntegrityFailed,
-            )?;
-            if let StatementContent::AppAction(action) = &prepared.statement().content {
-                ensure(
-                    action.origin == *origin
-                        && action.issued_at_ms <= now
-                        && now < action.expires_at_ms
-                        && input.approval.expires_at <= action.expires_at_ms,
-                    Error::Expired,
-                )?;
-            }
-            (Capability::FormalApprove, false)
-        }
-        ExecutionKind::AgentEvent {
-            key,
-            principal_id,
-            origin,
-            ..
-        } => {
-            // Controller, event, policy and nonce checks need the principal
-            // record; see principal::authorize_event in the same message.
-            ensure(s.recovery_checked, Error::RecoveryIncomplete)?;
-            ensure(
-                key.purpose == KeyPurpose::AgentController
-                    && s.sensitive_policy.allowed_purposes.contains(&key.purpose),
-                Error::Forbidden,
-            )?;
-            key.validate()?;
-            validate_origin(origin, &init.environment)?;
-            ensure(
-                *principal_id
-                    == dmsg_protocol::agent::principal_id(&init.principal_origin, &s.account_id),
-                Error::IntegrityFailed,
-            )?;
-            (Capability::FormalApprove, false)
-        }
-        ExecutionKind::Derive {
-            generation,
-            root_op_id,
-            transport_key,
-        } => {
-            validate_transport_key(transport_key)?;
-            match root_op_id {
-                Some(op) => {
-                    let slot = s.root_slot.as_ref().ok_or(Error::VersionConflict)?;
-                    ensure(
-                        slot.op_id == *op
-                            && slot.generation == *generation
-                            && slot.security_epoch == s.security_epoch
-                            && now < slot.expires_at,
-                        Error::VersionConflict,
-                    )?;
-                    (Capability::RootManage, true)
-                }
-                None => {
-                    ensure(
-                        s.current_root
-                            .as_ref()
-                            .is_some_and(|r| r.generation == *generation),
-                        Error::VersionConflict,
-                    )?;
-                    (Capability::VaultUnlock, false)
-                }
-            }
-        }
-    };
-    check_device(
-        s,
-        caller,
-        &input.approval,
-        EXECUTE_APPROVAL_DOMAIN,
-        &execute_approval_command(input),
-        (Some(cap), admin),
-        now,
-    )?;
-    ensure(
-        input.account_id == s.account_id
-            && input.max_cycles > 0
-            && input.max_cycles <= 100_000_000_000,
-        Error::QuotaExceeded,
-    )?;
+    ensure(!s.sensitive_policy.frozen, Error::Locked)?;
     // Count a small index, without loading or cloning historical payloads.
     let retained = s
         .execution_expirations
         .values()
         .filter(|expires_at| expires_at.is_none_or(|at| at > now))
         .count();
-    let window = if input.kind.is_formal() {
-        FORMAL_EXECUTION_WINDOW
-    } else {
-        WINDOW
-    };
     ensure(
-        retained < window && s.next_execution_sequence < u64::MAX,
+        retained < WINDOW && s.next_execution_sequence < u64::MAX,
         Error::QuotaExceeded,
+    )
+}
+
+/// Validated attestation input and the budget it would consume.
+pub(crate) struct CheckedAttestation {
+    pub(crate) prepared: PreparedAttestation,
+    pub(crate) budget: Budget,
+}
+
+/// Read-only authorization of a device-signed statement. The device must hold
+/// `FormalApprove`, the statement purpose must be allowed, and the signature
+/// must verify over the exact Sig_structure under the device's key.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn check_attestation(
+    s: &AccountState,
+    caller: Principal,
+    account_id: &AccountId,
+    statement: &Statement,
+    origin: &str,
+    signature: &Ed25519Signature,
+    approval: &Approval,
+    fingerprint: Hash,
+    now: u64,
+    init: &UserInit,
+) -> Result<CheckedAttestation> {
+    precheck(s, caller, account_id, approval, fingerprint, now)?;
+    validate_origin(origin, &init.environment)?;
+    ensure(
+        statement.issuer == account_issuer(&init.issuer_namespace, &s.account_id),
+        Error::IntegrityFailed,
     )?;
-    let mut budget = if matches!(input.kind, ExecutionKind::Derive { .. }) {
-        s.safety_budget.clone()
-    } else {
-        s.budget.clone()
-    };
-    if matches!(input.kind, ExecutionKind::Derive { .. }) {
-        // Root derivations keep a separate hard cap from formal signatures.
-        budget.reserve(
-            now,
-            input.max_cycles,
-            ROOT_DAILY_EXECUTIONS,
-            ROOT_DAILY_CYCLES,
-        )?;
-    } else {
-        budget.reserve(
-            now,
-            input.max_cycles,
-            s.sensitive_policy.daily_executions,
-            s.sensitive_policy.daily_cycles,
+    if let StatementContent::AppAction(action) = &statement.content {
+        ensure(
+            action.origin == origin
+                && action.issued_at_ms <= now
+                && now < action.expires_at_ms
+                && approval.expires_at <= action.expires_at_ms,
+            Error::Expired,
         )?;
     }
+    let device = check_device(
+        s,
+        caller,
+        approval,
+        ATTEST_APPROVAL_DOMAIN,
+        &attest_approval_command(statement, origin, signature),
+        (Some(Capability::FormalApprove), false),
+        now,
+    )?;
+    let prepared = prepare_attestation(statement, &device.input.signing_pub)?;
+    ensure(
+        s.sensitive_policy
+            .allowed_purposes
+            .contains(&prepared.purpose),
+        Error::Forbidden,
+    )?;
+    verify(
+        &device.input.signing_pub,
+        &prepared.to_be_signed,
+        signature.as_slice(),
+    )?;
+    let mut budget = s.budget.clone();
+    budget.count(now, s.sensitive_policy.daily_executions)?;
+    Ok(CheckedAttestation { prepared, budget })
+}
+
+/// Commit a checked attestation in the same synchronous message as its final
+/// authorization. The caller persists it after charging the month.
+pub(crate) fn commit_attestation(
+    s: &mut AccountState,
+    approval: &Approval,
+    origin: String,
+    signature: &Ed25519Signature,
+    checked: CheckedAttestation,
+    fingerprint: Hash,
+    now: u64,
+) -> Result<AuthorizedExecution> {
+    let artifact = parse_signing_input(&checked.prepared.to_be_signed)?
+        .into_signature(
+            &s.devices[&approval.device_id].input.signing_pub[..],
+        )?
+        .finish(signature.to_vec())?;
+    s.budget = checked.budget;
+    let e = AuthorizedExecution {
+        account_id: s.account_id,
+        request_id: approval.request_id,
+        command_digest: fingerprint,
+        record: ExecutionRecord::Attestation(Attestation {
+            device_id: approval.device_id,
+            security_epoch: s.security_epoch,
+            approved_at: now,
+            expires_at: approval.expires_at,
+            origin,
+            to_be_signed_digest: sha256(&checked.prepared.to_be_signed),
+            public_key_fingerprint: checked.prepared.thumbprint,
+            signature_digest: sha256(signature.as_slice()),
+            artifact,
+        }),
+    };
+    s.next_execution_sequence += 1;
+    s.execution_expirations
+        .insert(approval.request_id, Some(e.retention()));
+    finish(s, approval, fingerprint);
+    Ok(e)
+}
+
+/// Read-only authorization of the one derivation a recovered device may make:
+/// the committed generation it was enrolled for, before it commits a new root.
+pub(crate) fn check_derivation(
+    s: &AccountState,
+    caller: Principal,
+    input: &DeriveRootRequest,
+    fingerprint: Hash,
+    now: u64,
+) -> Result<Budget> {
+    precheck(s, caller, &input.account_id, &input.approval, fingerprint, now)?;
+    validate_transport_key(&input.transport_public_key)?;
+    ensure(
+        s.completed_recovery.as_ref().is_some_and(|r| {
+            r.device_id == input.approval.device_id && r.root_generation == Some(input.generation)
+        }) && s
+            .current_root
+            .as_ref()
+            .is_some_and(|r| r.generation == input.generation),
+        Error::Forbidden,
+    )?;
+    check_device(
+        s,
+        caller,
+        &input.approval,
+        DERIVE_APPROVAL_DOMAIN,
+        &derive_approval_command(input),
+        (Some(Capability::RootManage), true),
+        now,
+    )?;
+    ensure(
+        input.max_cycles > 0 && input.max_cycles <= 100_000_000_000,
+        Error::QuotaExceeded,
+    )?;
+    let mut budget = s.budget.clone();
+    budget.count(now, s.sensitive_policy.daily_executions)?;
     Ok(budget)
 }
 
-/// Commit the checked request in the same synchronous message as its final
-/// authorization. The caller persists it only after commercial reservation.
-pub(crate) fn commit(
+/// Commit the checked derivation and build the grant the COSE home executes.
+pub(crate) fn commit_derivation(
     s: &mut AccountState,
-    input: ExecuteRequest,
+    input: DeriveRootRequest,
     fingerprint: Hash,
     budget: Budget,
     now: u64,
 ) -> AuthorizedExecution {
-    if matches!(input.kind, ExecutionKind::Derive { .. }) {
-        s.safety_budget = budget;
-    } else {
-        s.budget = budget;
-    }
+    s.budget = budget;
     let grant = ExecutionGrant {
-        commerce: None,
         account_id: s.account_id,
         home_user: s.home_user,
         home_cose: s.home_cose,
@@ -247,18 +215,23 @@ pub(crate) fn commit(
         device_sequence: input.approval.sequence,
         approved_at: now,
         expires_at: input.approval.expires_at,
-        kind: input.kind,
+        generation: input.generation,
+        transport_key: input.transport_public_key,
         max_cycles: input.max_cycles,
     };
     s.next_execution_sequence += 1;
     let e = AuthorizedExecution {
-        grant,
+        account_id: s.account_id,
+        request_id: input.approval.request_id,
         command_digest: fingerprint,
-        result: ExecutionResult {
-            request_id: input.approval.request_id,
-            outcome: ExecutionOutcome::Authorized,
-            cycles_cost_upper_bound: 0,
-            cycles_charged: 0,
+        record: ExecutionRecord::Derivation {
+            grant,
+            result: ExecutionResult {
+                request_id: input.approval.request_id,
+                outcome: ExecutionOutcome::Authorized,
+                cycles_cost_upper_bound: 0,
+                cycles_charged: 0,
+            },
         },
     };
     s.execution_expirations
@@ -280,158 +253,65 @@ pub(crate) fn rejected_dispatch_result(
     }
 }
 
-/// Settle the daily budget reserved at authorization once COSE returns a
-/// definite result: keep only the threshold fee COSE charged, and return the
-/// execution when COSE ran nothing. A pruned result keeps its reservation.
-pub(crate) fn settle_budget(s: &mut AccountState, execution: &AuthorizedExecution) {
-    let result = &execution.result;
+/// Return the counted derivation when COSE ran nothing; a completed or
+/// unknown derivation keeps its count.
+pub(crate) fn settle_budget(s: &mut AccountState, grant: &ExecutionGrant, result: &ExecutionResult) {
     let executed = match result.outcome {
         ExecutionOutcome::Completed(_) => true,
         ExecutionOutcome::Failed(_) => result.cycles_charged > 0,
         _ => return,
     };
-    let grant = &execution.grant;
-    let budget = if matches!(grant.kind, ExecutionKind::Derive { .. }) {
-        &mut s.safety_budget
-    } else {
-        &mut s.budget
-    };
-    budget.settle(
-        grant.approved_at,
-        grant.max_cycles,
-        result.cycles_charged,
-        executed,
-    );
+    s.budget.settle(grant.approved_at, 0, 0, executed);
 }
 
+/// Record COSE's answer on a derivation. The answer must name this request
+/// and, when completed, describe this account's key of the granted generation.
 pub(crate) fn record_execution_response(
     execution: &mut AuthorizedExecution,
     response: Result<ExecutionResult>,
 ) -> ExecutionResult {
-    if execution.result.is_terminal() {
-        return execution.result.clone();
+    let ExecutionRecord::Derivation { grant, result } = &mut execution.record else {
+        unreachable!("attestations complete at commit");
+    };
+    if result.is_terminal() {
+        return result.clone();
     }
-    let request_id = execution.grant.request_id;
-    let response = response.and_then(|result| {
-        ensure(result.request_id == request_id, Error::IntegrityFailed)?;
-        if let ExecutionOutcome::Completed(output) = &result.outcome {
-            match (&execution.grant.kind, output.as_ref()) {
-                (
-                    ExecutionKind::Sign {
-                        key: requested,
-                        to_be_signed,
-                        public_key_fingerprint,
-                        ..
-                    },
-                    ExecutionOutput::Signature { artifact, key },
-                ) => {
-                    match_signing_result(artifact, to_be_signed, *public_key_fingerprint)?;
-                    ensure(
-                        key.account_id == execution.grant.account_id
-                            && key.home_cose == execution.grant.home_cose
-                            && key.algorithm == requested.algorithm
-                            && key.purpose == requested.purpose
-                            && key.public_key_fingerprint == *public_key_fingerprint,
-                        Error::IntegrityFailed,
-                    )?;
-                }
-                (
-                    ExecutionKind::AgentEvent {
-                        key: requested,
-                        event,
-                        ..
-                    },
-                    ExecutionOutput::AgentSignature {
-                        event_hash,
-                        signature,
-                        key,
-                    },
-                ) => {
-                    ensure(
-                        key.account_id == execution.grant.account_id
-                            && key.home_cose == execution.grant.home_cose
-                            && key.algorithm == Algorithm::Ed25519
-                            && key.purpose == KeyPurpose::AgentController
-                            && key.key_generation == requested.generation
-                            && *event_hash == dmsg_protocol::agent::event_hash(event),
-                        Error::IntegrityFailed,
-                    )?;
-                    let public_key: Hash = key
-                        .public_key
-                        .as_slice()
-                        .try_into()
-                        .map(Hash::new)
-                        .map_err(|_| Error::IntegrityFailed)?;
-                    verify(&public_key, event_hash.as_slice(), signature.as_slice())?;
-                }
-                (
-                    ExecutionKind::Derive { generation, .. },
-                    ExecutionOutput::EncryptedRootKey { key, .. },
-                ) => {
-                    ensure(
-                        key.account_id == execution.grant.account_id
-                            && key.home_cose == execution.grant.home_cose
-                            && key.algorithm == Algorithm::VetKdBls12381
-                            && key.key_generation == *generation,
-                        Error::IntegrityFailed,
-                    )?;
-                }
-                _ => return Err(Error::IntegrityFailed),
-            }
+    let response = response.and_then(|r| {
+        ensure(r.request_id == grant.request_id, Error::IntegrityFailed)?;
+        if let ExecutionOutcome::Completed(output) = &r.outcome {
+            ensure(
+                output.key.account_id == grant.account_id
+                    && output.key.home_cose == grant.home_cose
+                    && output.key.key_generation == grant.generation,
+                Error::IntegrityFailed,
+            )?;
         }
-        Ok(result)
+        Ok(r)
     });
     match response {
-        Ok(result) => {
-            execution.result = result;
-        }
-        Err(Error::ResultExpired) => {
-            execution.result.outcome = ExecutionOutcome::ResultExpired;
-        }
-        Err(error) => {
-            execution.result.outcome = ExecutionOutcome::Unknown(error);
-        }
+        Ok(r) => *result = r,
+        Err(Error::ResultExpired) => result.outcome = ExecutionOutcome::ResultExpired,
+        Err(error) => result.outcome = ExecutionOutcome::Unknown(error),
     }
-    execution.result.clone()
+    result.clone()
 }
 
-pub(crate) fn receipt(
-    execution: &AuthorizedExecution,
-    namespace: &str,
-) -> Result<ExecutionReceipt> {
-    let grant = &execution.grant;
-    let ExecutionKind::Sign {
-        to_be_signed,
-        public_key_fingerprint,
-        origin,
-        ..
-    } = &grant.kind
-    else {
+pub(crate) fn receipt(execution: &AuthorizedExecution, namespace: &str) -> Result<ExecutionReceipt> {
+    let ExecutionRecord::Attestation(a) = &execution.record else {
         return Err(Error::UnsupportedProtocol);
     };
-    let signature_digest = match &execution.result.outcome {
-        ExecutionOutcome::Completed(output) => match output.as_ref() {
-            ExecutionOutput::Signature { artifact, .. } => {
-                Some(dmsg_protocol::signature_digest(&artifact.cose_sign1)?)
-            }
-            _ => return Err(Error::IntegrityFailed),
-        },
-        _ => None,
-    };
     Ok(ExecutionReceipt {
-        schema: 1,
-        account_id: grant.account_id,
-        issuer: account_issuer(namespace, &grant.account_id),
-        request_id: grant.request_id,
-        device_id: grant.device_id,
-        security_epoch: grant.security_epoch,
-        approved_at: grant.approved_at,
-        expires_at: grant.expires_at,
-        origin: origin.clone(),
-        max_cycles: grant.max_cycles,
-        to_be_signed_digest: sha256(to_be_signed),
-        public_key_fingerprint: *public_key_fingerprint,
-        status: execution.result.status(),
-        signature_digest,
+        schema: 2,
+        account_id: execution.account_id,
+        issuer: account_issuer(namespace, &execution.account_id),
+        request_id: execution.request_id,
+        device_id: a.device_id,
+        security_epoch: a.security_epoch,
+        approved_at: a.approved_at,
+        expires_at: a.expires_at,
+        origin: a.origin.clone(),
+        to_be_signed_digest: a.to_be_signed_digest,
+        public_key_fingerprint: a.public_key_fingerprint,
+        signature_digest: a.signature_digest,
     })
 }

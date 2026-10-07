@@ -6,7 +6,7 @@
 
 云端命令和 HTTP PoP 使用 `dmsg-cloud/1`。客户端把 genesis hash 作为信任起点，逐项验证控制序号、前一 head、角色规则、设备签名与保留的 IC 账户证明。邀请绑定目标账户和已知 head。owner 转移需要双方对同一请求上下文批准；过期后不能自动替换目标签名。
 
-换代租约绑定 epoch、head、fencing 和完整接收集合摘要。接收项为 `device:<account>:<device>` 与 `recovery:<account>:<generation>`；最多 500 个设备和 100 个恢复项。HPKE 原文为随机 epoch key，info/AAD 使用 `dmsg/channel-epoch-envelope/1` 并绑定上述范围。每次换代保留公开接收集合证明；接收者验证自身信封与 key confirmation 后保存密钥。普通消息、文件、控制和 grant 不增加逐条 ICP update。
+换代租约绑定 epoch、head、fencing 和完整接收集合摘要。接收项为 `device:<account>:<device>`，只封装给当前有效且有内容权限的设备；最多 500 个设备。账户恢复后的设备经换根重新加入，不再有恢复接收项。HPKE 原文为随机 epoch key，info/AAD 使用 `dmsg/channel-epoch-envelope/1` 并绑定上述范围。每次换代保留公开接收集合证明；接收者验证自身信封与 key confirmation 后保存密钥。普通消息、文件、控制和 grant 不增加逐条 ICP update。
 
 消息使用独立随机 ID，按 `dmsg/channel-message-key/1` 从 epoch key 派生消息 key；重试保留原密文、ID 和批准。消息游标使用服务返回的 `next_seq`，无历史权限的序号由 `skipped` 单列；不能按返回条数猜结束。历史授权独立选择代范围，并只封装给目标当时有效的设备/恢复项。文件保留固定版本、原分块认证和完整 SHA-256。
 
@@ -26,6 +26,6 @@
 
 ## 恢复和冻结对照
 
-本机恢复包保留正式频道证据、历史 key、迁移对象、财务任务及已缓存附件。未缓存的附件列为缺口。恢复内容不会授予新设备链上权限。
+本机加密存储保留正式频道证据、历史 key、迁移对象、财务任务及已缓存附件；没有恢复包，新设备经链上批准与换根后通过云端同步取得内容。
 
 最终来源比较使用消息/权限 ingress 证明和冻结 OSS 文件 manifest。OSS 证明仅保留原 Candid 参数的 SHA-256，不保留 bearer token；请求标识仍按 IC representation-independent hash 核对。消息、频道 DEK 或附件变化会逐项列出，不能把预迁移快照标成生产切换完成。

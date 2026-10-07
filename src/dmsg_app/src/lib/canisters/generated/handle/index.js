@@ -11,6 +11,7 @@ export const idlFactory = ({ IDL }) => {
     'ledger' : IDL.Principal,
     'environment' : Environment,
     'ledger_fee' : IDL.Nat,
+    'registration_homes' : IDL.Vec(IDL.Principal),
     'governance' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
   });
@@ -149,6 +150,11 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
     'admin_collect_token' : IDL.Func([Account, IDL.Nat], [Result_1], []),
+    'admin_set_registration_homes' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result],
+        [],
+      ),
     'begin_legacy_snapshot' : IDL.Func([LegacySnapshot], [Result], []),
     'claim_legacy_handle' : IDL.Func(
         [HandleIntent, IDL.Vec(IDL.Nat8)],
@@ -202,6 +208,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_7],
         ['query'],
       ),
+    'validate_admin_set_registration_homes' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_7],
+        ['query'],
+      ),
     'validate_begin_legacy_snapshot' : IDL.Func(
         [LegacySnapshot],
         [Result_7],
@@ -228,6 +239,7 @@ export const init = ({ IDL }) => {
     'ledger' : IDL.Principal,
     'environment' : Environment,
     'ledger_fee' : IDL.Nat,
+    'registration_homes' : IDL.Vec(IDL.Principal),
     'governance' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
   });

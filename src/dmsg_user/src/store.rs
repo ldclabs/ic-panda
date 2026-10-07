@@ -1,5 +1,5 @@
 use crate::state::*;
-use dmsg_protocol::{canonical, execution_receipt_key};
+use dmsg_protocol::{canonical, digest, execution_receipt_key};
 use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{user::*, *};
@@ -49,10 +49,30 @@ pub(crate) struct Config {
     pub(crate) allocator_namespace_digest: Hash,
     pub(crate) day: u64,
     pub(crate) created_today: u32,
+    // Random secret behind every device unlock secret; generated once from
+    // `raw_rand` after installation and never rotated by upgrades.
+    pub(crate) master_secret: Option<Hash>,
 }
 
 pub(crate) fn config() -> Config {
     CONFIG.with_borrow(|t| t.get().value().expect("initialized"))
+}
+
+pub(crate) fn save_config(cfg: &Config) {
+    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg.clone()))));
+}
+
+/// The 32-byte secret a bound login Principal fetches to unlock one device's
+/// local store. It is a function of the home's master secret, so nothing is
+/// stored per device, and a revoked device is refused at the query.
+pub(crate) fn unlock_secret(cfg: &Config, account_id: &AccountId, device_id: &Hash) -> Result<Hash> {
+    let master = cfg
+        .master_secret
+        .ok_or_else(|| Error::Unavailable("unlock secret is not ready".into()))?;
+    Ok(digest(
+        "dmsg/unlock-secret/v1",
+        &(master, account_id, device_id),
+    ))
 }
 
 pub(crate) fn load(id: &AccountId) -> Result<AccountState> {
@@ -81,11 +101,11 @@ pub(crate) fn load_execution(
     EXECUTIONS.with_borrow(|t| t.load(&execution_key(account_id, request_id)))
 }
 
-/// Persist an execution and update its certified receipt leaf.
+/// Persist an execution and, for an attestation, its certified receipt leaf.
 pub(crate) fn save_execution(execution: &AuthorizedExecution) {
     EXECUTIONS.with_borrow_mut(|t| {
         t.put(
-            &execution_key(&execution.grant.account_id, &execution.grant.request_id),
+            &execution_key(&execution.account_id, &execution.request_id),
             execution,
         )
     });
@@ -119,4 +139,4 @@ pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
     expired.len() as u32
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 12;
+pub(crate) const STABLE_SCHEMA: u16 = 13;

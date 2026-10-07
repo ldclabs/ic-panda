@@ -509,9 +509,7 @@ export class SharedMigrationClient {
         !d.revoked_at.length &&
         d.input.capabilities.some((c) => 'ContentSign' in c)
     )
-    const recovery = target.snapshot.recovery_hpke_pub,
-      generation = Number(target.snapshot.recovery_root_version)
-    ensure(device && recovery instanceof Uint8Array && generation > 0, 'AUTH_REQUIRED')
+    ensure(device, 'AUTH_REQUIRED')
     const scope = {
       format: 'dmsg-legacy-history-grant/1' as const,
       directory_key: view.key,
@@ -524,15 +522,13 @@ export class SharedMigrationClient {
       member,
       account: claim.claim.account,
       device: claim.claim.device,
-      security_epoch: target.securityEpoch,
-      recovery_generation: generation
+      security_epoch: target.securityEpoch
     }
     const recipients = [
       {
         recipient: `device:${scope.account}:${scope.device}`,
         hpke_pub: hex(Uint8Array.from(device.input.hpke_pub))
-      },
-      { recipient: `recovery:${scope.account}:${generation}`, hpke_pub: hex(recovery) }
+      }
     ]
     const prepared = await this.account.crypto.call('legacyPrepareGrant', {
       archiveKey,
@@ -550,7 +546,7 @@ export class SharedMigrationClient {
       view.proposal.channel_id
     )
   }
-  async receiveHistory(view: SharedView, grantId: string, recoveryCode?: string) {
+  async receiveHistory(view: SharedView, grantId: string) {
     view = await this.view(view.key)
     const stored = view.grants[grantId]
     ensure(stored, 'NOT_FOUND')
@@ -565,7 +561,7 @@ export class SharedMigrationClient {
       checked.body.action === 'dmsg/legacy/history/v1' &&
         equal(canonical(checked.body.payload), canonical(grant)) &&
         scope.account === this.accountId &&
-        (!!recoveryCode || scope.device === this.account.meta.deviceId) &&
+        scope.device === this.account.meta.deviceId &&
         scope.directory_key === view.key &&
         scope.proposal_digest === view.proposal_digest &&
         scope.source_digest === view.source.digest &&
@@ -573,7 +569,7 @@ export class SharedMigrationClient {
       'FORBIDDEN'
     )
     await this.channels.pullControl(view.proposal.channel_id)
-    const opened = await this.account.crypto.call('legacyOpenGrant', grant, recoveryCode),
+    const opened = await this.account.crypto.call('legacyOpenGrant', grant),
       parts: string[] = []
     for (const [index, file] of opened.files.entries()) {
       const base = `/v1/channels/${view.proposal.channel_id}/objects/${file.upload_id}`

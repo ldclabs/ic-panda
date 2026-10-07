@@ -1,63 +1,77 @@
 # 扩展账户控制与根封装合同
 
-日期：2026-10-02。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
+日期：2026-10-07。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
 此文描述公开客户端实现，不代表正式扩展 origin、生产 key 或生产部署已验收。
 
 ## 账户控制
 
-`protocol/account.ts` 将生成的 Candid 参数映射为公开 Rust 协议的确定性 CBOR：Principal、AccountId 和固定字节字段为 byte string，unit variant 为文本。账户创建使用 `dmsg/create-account/v1`；账户变更使用 `dmsg/device-approval/v2`、`dmsg/account/v2` 和 `dmsg/account-operation/v2`。签名覆盖实际 home/caller、账户、命令、版本、设备序号、请求 ID 和期限。
+`protocol/account.ts` 将生成的 Candid 参数映射为公开 Rust 协议的确定性 CBOR：Principal、AccountId 和固定字节字段为 byte string，unit variant 为文本。账户创建使用 `dmsg/create-account/v1`；账户变更使用 `dmsg/device-approval/v2`、`dmsg/account/v2` 和 `dmsg/account-operation/v2`；文档认证使用 `dmsg/attest/v1`，根派生使用 `dmsg/derive-root/v1`，恢复设备 PoP 使用 `dmsg/recovery-device/v1`，controller 注册 PoP 使用 `dmsg/controller-pop/v1`。签名覆盖实际 home/caller、账户、命令、版本、设备序号、请求 ID 和期限。
 
-`services/account.ts` 在联网前把完整 Candid 请求加密保存到当前工作区。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。争议状态仅由账户恢复界面显式允许读取，云端内容认证仍要求 Active。
+user home 不再在构建配置中固定。客户端启动时读取 `dmsg_handle.get_handle_config()` 的 `user_homes`（权威列表，可与构建配置 `canisters.userHomes` 交叉核对）和 `registration_homes`（当前接收新账户的子集，随机选择一个注册）。登录后对列表中的每个 home 并行调用 `my_account`，命中即连接该 home；任一查询失败视为未知，不落到注册。账户的 `home_user` 随账户固定。
 
-新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
+`services/account.ts` 在联网前把完整 Candid 请求加密保存到当前工作区。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
-恢复码按 `recoverySeeds(R, environment, Xid, recovery_generation)` 分域产生 Ed25519/X25519 种子。账户恢复码与 R0 本地恢复码独立。首次设置中断时仅在 LocalDataKey 保护下暂存恢复码；登记与验证完成后清除。恢复请求、争议再确认和完成分别调用公开 user 接口，等待期由 canister 执行。离线恢复始终生成新设备私钥且 `registered=false`。
+新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准，之后必须换根，新设备才能读到根。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
 
-恢复完成使用 `complete_recovery(account_id, request_id)`。扩展日志保存两个参数并原样重试；canister 保留最近一次完成回执，只有原恢复 caller 对相同请求 ID 的重试会返回原成功结果，不重复替换设备或推进安全版本。待恢复请求的相同重试使用已存期限，包括争议再确认后的期限；不会重启等待期。更早且已被替换的完成回执不保证长期保留。
+## 本机解锁
 
-## 不可变 RootBundle
+没有口令、恢复码和离线导出。本机数据密钥 LDK 只在以下两种钥匙下封装：
+
+```text
+dbName      = "dmsg:" + environment + ":" + subjectId + ":" + deviceId
+LUK         = HKDF(unlock_secret, ["dmsg/local-unlock/2", dbName])
+wrappedKey  = E(LUK, LDK, ["dmsg/local-key/2", dbName])
+K_prf       = HKDF(prf_output, ["dmsg/local-unlock-prf/1", dbName])
+prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
+```
+
+- `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `HKDF(master_secret, account_id, device_id)`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
+- 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK（`LocalEnvelope.provisional`）；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
+- 日常解锁：II 登录（15 分钟 delegation，会话私钥由 Worker 持有、解锁前即可签名）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`loginUnlockedAt` 记录最近一次登录解锁。
+- 生物识别快速解锁：平台 passkey 的 WebAuthn PRF 扩展，salt 为 `HKDF(0, ["dmsg/prf-salt/1", dbName])`。启用动作在登录解锁后进行，凭据 ID 与 `prfWrapped` 存 IDB，PRF 输出不落盘。距上次登录解锁超过 7 天时拒绝 PRF 解锁；PRF 解锁后一旦联网就核对认证设备表，已撤销则清空本机数据。扩展 origin 下的真实 WebAuthn 调用尚未在 Chrome 上实测。
+
+## 不可变 RootBundle v2
 
 字节为确定性 CBOR：
 
 ```text
-{ payload: {
-    format: "dmsg-root-bundle/1",
-    context: { account, environment, homeCose, generation, opId,
-               recoveryGeneration, recoveryPublic, recoverySigningPublic },
-    key: { publicKey, fingerprint, keyId, keyName },
-    online, recovery: { enc, ciphertext },
+{ body: {
+    format: "dmsg-root-bundle/2",
+    context: { account, environment, generation, opId, securityEpoch },
+    commitment: hex(SHA256(HKDF(VRK, ["dmsg/root-commitment/1"]))),
+    envelopes: [ { device, enc, ciphertext } ... ],      // 按 device 升序，每台活跃设备一项
+    recoveryKey: { homeCose, keyName, publicKey },        // COSE 内容根 vetKD 公钥
+    recovery: base64url(IbeCiphertext),                   // IBE 到身份 CBOR([AccountId, generation])
     previous: null | { digest, uploadId, generation, envelope },
     device, signingPublic
   }, signature: bytes64 }
 ```
 
-公钥、COSE_Encrypt0 与 HPKE envelope 字节使用无填充 base64url；摘要、设备/操作/上传 ID 使用小写 hex。account 为规范的 20 字符 Xid，homeCose 为规范 Principal 文本，代次为安全正整数。
+公钥、COSE_Encrypt0 与 HPKE envelope 字节使用无填充 base64url；摘要、设备/操作/上传 ID 使用小写 hex。account 为规范的 20 字符 Xid，代次为安全正整数，`securityEpoch` 为预留槽的安全版本。
 
-- `signature` 是设备 Ed25519 对 `digest("dmsg/root-bundle/1", payload)` 的签名；链上 `bundle_digest` 是整个上述 CBOR 的 SHA-256。签名数学正确不单独证明设备权利；读取当前根还须核对 user 的认证根承诺。
-- 内容根为客户端随机 32 字节。vetKD transport secret 仅在密码 Worker 和本机加密候选记录中存在。执行结果须绑定原请求、目标 canister、account、环境、generation、derivation_version=2、算法和 purpose。
-- `key.fingerprint = SHA256(raw vetKD public key)`；`keyId` 使用公开 `dmsg/key-id/v3` 域。encrypted VetKey 必须经 `decryptAndVerify`，input 为 `CBOR([AccountId bytes12, generation])`。
-- 在线域 `C = ["dmsg/online-root/1", environment, AccountId bytes12, homeCose bytes, generation, 2]`。`K_online = VetKey.deriveSymmetricKey(CBOR(C), 32)`；`online = COSE_Encrypt0(K_online, VRK, C)`。
-- 恢复 envelope 使用既有 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM，info/AAD 均为 `CBOR(["dmsg/recovery-root/1", environment, account Xid text, generation])`。仅需可信恢复公钥即可为新 VRK 封装，不需重新输入 R。
-- `previous.envelope` 以新 VRK 包装上一代 VRK，AAD 为 `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`。digest/uploadId 定位上一份不可变 bundle；读者验证摘要并要求代次严格递减。当前实现至多读取 256 代，不静默截断历史。
+- `signature` 是设备 Ed25519 对 `digest("dmsg/root-bundle/2", body)` 的签名。签名数学正确不单独证明设备权利；读取当前根还须核对 user 的认证根承诺。
+- 设备信封：`HPKE.Seal(device.hpke_pub, VRK, info = aad = CBOR(["dmsg/device-root/1", environment, account, generation, device_id]))`，复用频道 epoch 密钥的 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM 原语。读取方解开后核对 `commitment`，保证所有设备拿到同一个根。
+- 恢复信封：`@dfinity/vetkeys` 的 `IbeCiphertext.encrypt(dpk, identity, VRK, seed)`，`dpk` 是 COSE `root_public_key(account_id, generation)` 返回的 96 字节派生公钥（所有账户共享同一 context 公钥），`identity = CBOR([AccountId bytes12, generation])`。客户端核对描述中的 home、环境、代次、账户、`SHA256(public_key)` 指纹、生产 key 名，以及可选的构建 pin `coseRootPublicKey`。
+- `previous.envelope` 以新 VRK 包装上一代 VRK，AAD 为 `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`。`previous.digest` 是上一份 bundle **字节**的 SHA-256（即云端 manifest digest），`uploadId` 定位它；读者验证摘要并要求代次严格递减，至多读取 256 代。
+- 链上 `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用当前活跃设备集合重算 `recipients_digest`，两者都不符则拒绝，因此已撤销设备收不到新根，未批准设备也不能被塞进根包。
 
-单份 bundle 最多 64,000 字节。通过 cloud upload 的 `kind=root` 保存：manifest 是原始 bundle 字节；必须存在的一块为确定性 CBOR 空数组 `0x80`。其摘要/大小进入不可变上传计划。云端 ObjectRef 的 digest 等于 manifest SHA-256，因而与链上承诺一致。
+单份 bundle 最多 64,000 字节。通过 cloud upload 的 `kind=root` 保存：manifest 是原始 bundle 字节；必须存在的一块为确定性 CBOR 空数组 `0x80`。云端 ObjectRef 的 digest 等于 manifest SHA-256，客户端据此下载并按链上 `bundle_digest` 验证。
 
-## 初始化、恢复与换根顺序
+## 初始化与换根顺序
 
-1. 验证账户、设备能力与恢复公钥；用单独 op_id 预留根代次。丢弃/过期预留可能产生代次间隙。
-2. 保存候选 VRK 和 transport secret；保存签过名的 `derive_root` 原请求再发送。未知结果查询/对账同一 request_id，保留原 transport key。
-3. 验证 VetKey，生成并保存唯一 bundle 字节。上传计划与 upload_id 持久化；重试查询同一上传，复用计划和密文。
-4. 上传并 finalize 后，下载 manifest 再核对 SHA-256；随后执行唯一的 user CommitRoot CAS。上传成功不能替代链上提交成功。
-5. 读回认证承诺后才能启用工作区。中断后按原请求、原 upload_id 和摘要继续；预留过期时显式核对链上状态，再保留旧候选并申请新代次。
+1. 验证账户与设备能力；用单独 op_id 预留根代次（`ReserveRoot`）。丢弃/过期预留可能产生代次间隙。
+2. 本地生成随机 VRK（候选记录用 LDK 加密保存在 `local_private`，重试复用），按认证设备表封装给每台活跃设备，查询并核对 COSE 恢复公钥后生成 IBE 恢复信封，生成唯一 bundle 字节。
+3. 上传计划与 upload_id 持久化；重试查询同一上传，复用计划和密文。上传并 finalize 后，下载 manifest 再核对 SHA-256。
+4. 执行唯一的 user `CommitRoot` CAS。上传成功不能替代链上提交成功。
+5. 读回认证承诺后启用工作区（`activateAccountRoot`）：首次绑定把 `subjectId` 改为账户 Xid（此前没有内容），换根时把旧根并入加密的历史根索引。
 
-云端可暂存大于当前代次的 root 候选，以兼容过期预留造成的间隙；这不使候选成为当前根。当前根读取和 vault 写入仍同时核对认证代次与摘要，既有配额和上传槽上限继续适用。
+全程没有链上密钥调用。新设备、撤销设备、认证绑定变化后 `vault_write_state` 变为 `RekeyRequired`，管理员换根即可；其他设备下载当前根包、解开自己的信封即可读取（`openCurrent`）。
 
-`rootDerivationMaxCycles` 是构建时固定的批准上限，当前默认 70,000,000,000。PocketIC 实测一次的成本上界约 68,256,433,153 cycles，实际扣费 26,153,846,153 cycles；这不是生产费率承诺。user 安全派生预算单独限制为每天 20 次 / 300,000,000,000 cycles，单次不得超过 100,000,000,000。授权时按批准额预留，COSE 返回终态后结算为结果的 `cycles_charged`，COSE 未执行时同时退回次数；未知操作不退还预留。按默认批准额与 PocketIC 扣费，每日约可派生 9 次。部署时须核对实际费用；客户端不自动提高预算。
+## 全设备丢失恢复
 
-## R0 副本转换和备份
+1. 新设备用绑定过的 II 账户登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。II 也丢了就不能恢复。
+2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；没有再确认流程。
+3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
+4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生一次（按 `request_id` 可重试），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端 `decryptAndVerify` 后用它解开根包的 IBE 恢复信封（`recoverCurrent`），随即换根到下一代（只封装给自己）。换根后派生权消失。
 
-R0 的 random32 内容身份保留在原数据库。显式转换先完整验证源对象/附件，在新的 Xid 数据库内为内容版本生成新身份、密钥、AAD 和封装，并验证目标密文；已验证的文件块可保留原 bytes，其 FileKey 只存在于重新加密的条目载荷内。本地频道保持草稿。完成后通过 registry CAS 激活新工作区，将原库标为 retained，不删除源库。
-
-换根保留加密的历史根索引。`dmsg-backup/1` 随元数据保存根 bundle 与受当前 VRK 保护的历史根索引，完整包与账户恢复码可离线打开各代本地内容。控制操作日志、LocalDataKey、设备/认证私钥、vetKD transport secret 和恢复私钥不导出。单包上限仍为 256 MiB。
-
-当前导出范围仍是本机可验证内容。云端完整内容同步、服务端固定导出清单和远端未缓存对象归入后续 A2；本地导出不能声称包含未下载的其他设备内容。
+恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`rootDerivationMaxCycles` 是构建时固定的批准上限，默认 70,000,000,000。user 每天最多 20 次派生，与正式认证共用 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。

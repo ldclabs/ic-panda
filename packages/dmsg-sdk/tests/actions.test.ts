@@ -150,7 +150,7 @@ test("independent SDK verifies the Rust COSE action and exact signing bytes", ()
         content: { kind: "app_action", action: request.action },
       },
       "Ed25519",
-      request.key.kid,
+      verified.keyFingerprint,
     ).toBeSigned,
   );
   assert.equal(verified.checks.content, "not_checked");

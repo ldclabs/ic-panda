@@ -10,9 +10,9 @@ def emit(path, content):
 root=Path(__file__).resolve().parents[1]
 stage=root/'packages/dmsg-sdk/src'
 rust='\n'.join((root / ('src/dmsg_types/src/' + name + '.rs')).read_text() for name in ['integration', 'app_action', 'integration_billing', 'integration_membership'])
-cose=(root/'src/dmsg_types/src/cose.rs').read_text()
-for match in re.finditer(r'pub (struct|enum) (\w+) \{(.*?)\n\}', cose, re.S):
-    if match.group(2) in ['KeyPurpose','Algorithm','KeyDescriptor','ExecutionStatus','ExecutionReceipt']:
+signing=(root/'src/dmsg_types/src/signing.rs').read_text()
+for match in re.finditer(r'pub (struct|enum) (\w+) \{(.*?)\n\}', signing, re.S):
+    if match.group(2) in ['KeyPurpose','ExecutionReceipt']:
         rust += '\n' + match.group(0)
 scalars={'u16':'bigint','u64':'bigint','u128':'bigint','bool':'boolean','String':'string','Principal':'Uint8Array','Hash':'Uint8Array','AccountId':'Uint8Array','ByteBuf':'Uint8Array','OpId':'Uint8Array'}
 def ty(x):

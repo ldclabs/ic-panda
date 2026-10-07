@@ -1,5 +1,4 @@
 import { prepareLegacyNames } from '../scripts/legacy-names'
-import { CryptoClient } from '../src/lib/crypto/client'
 import { HttpAgent } from '@icp-sdk/core/agent'
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity'
 import { collectSnapshot, verifySnapshotProof } from '@dmsg/legacy'
@@ -13,13 +12,9 @@ import {
   pack,
   observation,
   digest,
-  encodeArchive,
-  sealTransfer,
   type LegacyArchive
 } from '@dmsg/legacy'
 
-const client = new CryptoClient(),
-  password = 'synthetic legacy browser passphrase'
 ;(window as any).legacySnapshotProbe = async (input: {
   gateway: string
   channel: string
@@ -261,86 +256,5 @@ const client = new CryptoClient(),
     authorities: authorities.entries.length,
     profiles: profile.entries.length,
     rejected
-  }
-}
-;(window as any).legacyProbe = async () => {
-  const initialized = await client.call('initialize', password)
-  await client.call('verifyRecovery', initialized.recoveryCode)
-  const target = `chrome-extension://${location.hostname}`
-  const pairing = await client.call('legacyPair', 'https://dmsg.net', target)
-  const bytes = pack(
-    observation({ kind: 1, payload: pack('synthetic browser legacy history'), created_at: 1n })
-  )
-  const archive: LegacyArchive = {
-    format: 'dmsg-legacy-archive/1',
-    inventory: {
-      format: 'dmsg-legacy-inventory/1',
-      principal: 'aaaaa-aa',
-      messageCanister: 'aaaaa-aa',
-      mode: 'Local',
-      snapshot: 'pre_migration',
-      objects: [
-        {
-          key: 'aaaaa-aa/channel/1/message/1',
-          kind: 'message',
-          bytes,
-          digest: digest(bytes),
-          trust: 'query_observation',
-          observedAt: 1
-        }
-      ],
-      gaps: [],
-      calls: []
-    },
-    keys: [],
-    checks: [],
-    createdAt: 1
-  }
-  const encrypted = await sealTransfer(encodeArchive(archive), pairing.offer, {
-    origin: 'https://dmsg.net',
-    target,
-    fingerprint: pairing.fingerprint
-  })
-  await client.lock()
-  await client.call('unlock', password)
-  const request = {
-    file: new File([encrypted], 'legacy.dmsg-migration'),
-    nonce: pairing.offer.nonce,
-    fingerprint: pairing.fingerprint,
-    principal: 'aaaaa-aa'
-  }
-  const imported = await client.call('legacyImport', request)
-  const repeated = await client.call('legacyImport', request)
-  const backup = await client.call('exportBackup', password)
-  await client.lock()
-  return {
-    code: initialized.recoveryCode,
-    backup: await backup.blob.text(),
-    key: imported.key,
-    idempotent: imported.key === repeated.key,
-    message: imported.messages[0]?.text
-  }
-}
-;(window as any).legacyRestore = async (input: {
-  code: string
-  backup: string
-  key: string
-}) => {
-  await client.call('restore', {
-    file: new File([input.backup], 'legacy.dmsg'),
-    code: input.code,
-    password
-  })
-  const report = await client.call('legacyReport', input.key)
-  const pairs = await client.call('legacyPairs'),
-    view = await client.call('view')
-  await client.lock()
-  return {
-    message: report.messages[0]?.text,
-    stage: report.stage,
-    snapshot: report.snapshot,
-    pairs: pairs.length,
-    visibleFiles: view.entries.length,
-    registered: view.meta?.registered
   }
 }

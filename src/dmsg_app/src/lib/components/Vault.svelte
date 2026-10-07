@@ -417,9 +417,7 @@
 {/if}
 <div class="workspace-note">
   <Icon name="lock" size={16} /><span
-    >本机加密保存。{session.meta?.lastBackupAt
-      ? `最近生成备份：${dateLabel(session.meta.lastBackupAt)}`
-      : '新增内容需要另行导出备份。'}</span
+    >本机加密保存，经云端同步到你批准的设备。</span
   >
 </div>
 {#if editor}

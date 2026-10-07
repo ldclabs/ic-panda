@@ -77,18 +77,10 @@ fn account_extension_gateway() {
             user_homes: vec![user],
             governance: sns,
             derivation_version: 2,
-            masters: vec![
-                MasterKey {
-                    algorithm: Algorithm::Ed25519,
-                    key_name: "key_1".into(),
-                    expected_fingerprint: Hash::new([0; 32]),
-                },
-                MasterKey {
-                    algorithm: Algorithm::VetKdBls12381,
-                    key_name: "key_1".into(),
-                    expected_fingerprint: Hash::new([0; 32]),
-                },
-            ],
+            master: MasterKey {
+                key_name: "key_1".into(),
+                expected_fingerprint: Hash::new([0; 32]),
+            },
             daily_executions: 1000,
             daily_cycles: 10_000_000_000_000,
         },))
@@ -313,6 +305,7 @@ fn account_extension_gateway() {
             environment: Environment::Local,
             issuer_namespace: "https://dmsg.test/u/".into(),
             user_homes: vec![user],
+            registration_homes: vec![user],
             ledger: peer,
             ledger_fee: 10,
             max_pending: 100,
@@ -462,8 +455,6 @@ fn account_extension_gateway() {
                 app_id: "dmsg".into(),
                 config_version: 1,
                 origins: vec![origin],
-                user_homes: vec![user],
-                cose_homes: vec![cose],
                 product_ids: vec!["dmsg".into()],
                 capabilities: vec![AppCapability::Checkout],
                 profiles: vec![],
@@ -513,7 +504,7 @@ fn account_extension_gateway() {
         }
         if !manual && output.join("advance-recovery-clock").exists() {
             ic.stop_progress();
-            ic.advance_time(Duration::from_secs(86_401));
+            ic.advance_time(Duration::from_secs(3 * 86_400 + 1));
             ic.tick();
             let at = nanos_to_millis(ic.get_time().as_nanos_since_unix_epoch());
             std::fs::write(output.join("clock.json.tmp"), format!("{{\"at\":{at}}}")).unwrap();

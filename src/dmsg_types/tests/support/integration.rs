@@ -15,8 +15,6 @@ pub fn app() -> AppRegistration {
         app_id: "tokenlist".into(),
         config_version: 1,
         origins: vec!["http://localhost:5188".into()],
-        user_homes: vec![principal(1)],
-        cose_homes: vec![principal(2)],
         product_ids: vec!["tokenlist".into(), "sample".into()],
         capabilities: vec![
             AppCapability::Authenticate,

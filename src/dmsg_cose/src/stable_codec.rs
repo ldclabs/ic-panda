@@ -2,32 +2,7 @@ use crate::{model, store::Config};
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
 use dmsg_types::cose::*;
-use ic_cose_chain_key::PublicKey;
 use std::collections::BTreeMap;
-
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub struct PublicKeyRepr {
-    #[cbor(key = 1)]
-    #[serde(with = "serde_bytes")]
-    pub public_key: Vec<u8>,
-    #[cbor(key = 2)]
-    #[serde(with = "serde_bytes")]
-    pub chain_code: Vec<u8>,
-}
-
-fn public_key_to_repr(value: &PublicKey) -> PublicKeyRepr {
-    PublicKeyRepr {
-        public_key: value.public_key.clone(),
-        chain_code: value.chain_code.clone(),
-    }
-}
-
-fn public_key_from_repr(repr: PublicKeyRepr) -> PublicKey {
-    PublicKey {
-        public_key: repr.public_key,
-        chain_code: repr.chain_code,
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct ConfigRepr {
@@ -35,9 +10,9 @@ pub struct ConfigRepr {
     pub schema: u16,
     #[cbor(key = 2)]
     pub state: KeyStateRepr,
-    #[cbor(key = 3)]
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub keys: Vec<PublicKeyRepr>,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "serde_bytes")]
+    pub public_key: Option<Vec<u8>>,
 }
 
 impl StableCodec for Config {
@@ -47,7 +22,7 @@ impl StableCodec for Config {
         ConfigRepr {
             schema: self.schema,
             state: self.state.to_repr(),
-            keys: self.keys.iter().map(public_key_to_repr).collect(),
+            public_key: self.public_key.clone(),
         }
     }
 
@@ -55,45 +30,15 @@ impl StableCodec for Config {
         Self {
             schema: repr.schema,
             state: KeyState::from_repr(repr.state),
-            keys: repr.keys.into_iter().map(public_key_from_repr).collect(),
+            public_key: repr.public_key,
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
-pub struct BudgetsRepr {
-    #[cbor(key = 1)]
-    total: BudgetRepr,
-    #[cbor(key = 2)]
-    formal: BudgetRepr,
-}
-
-impl StableCodec for model::Budgets {
-    type Repr = BudgetsRepr;
-
-    fn to_repr(&self) -> Self::Repr {
-        BudgetsRepr {
-            total: self.total.to_repr(),
-            formal: self.formal.to_repr(),
-        }
-    }
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        Self {
-            total: Budget::from_repr(repr.total),
-            formal: Budget::from_repr(repr.formal),
-        }
-    }
-}
-
-/// The global cell keeps both budgets under the keys of [`BudgetsRepr`], so
-/// a cell written before the Unknown count was added still decodes.
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct GlobalRepr {
     #[cbor(key = 1)]
-    total: BudgetRepr,
-    #[cbor(key = 2)]
-    formal: BudgetRepr,
+    budget: BudgetRepr,
     #[cbor(key = 3)]
     #[serde(default, skip_serializing_if = "is_zero")]
     unknown: u64,
@@ -104,18 +49,14 @@ impl StableCodec for model::Global {
 
     fn to_repr(&self) -> Self::Repr {
         GlobalRepr {
-            total: self.budgets.total.to_repr(),
-            formal: self.budgets.formal.to_repr(),
+            budget: self.budget.to_repr(),
             unknown: self.unknown,
         }
     }
 
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
-            budgets: model::Budgets {
-                total: Budget::from_repr(repr.total),
-                formal: Budget::from_repr(repr.formal),
-            },
+            budget: Budget::from_repr(repr.budget),
             unknown: repr.unknown,
         }
     }
@@ -125,8 +66,8 @@ impl StableCodec for model::Global {
 pub struct HomeRepr {
     #[cbor(key = 2)]
     pub closed_sequence: u64,
-    #[cbor(key = 3)]
-    pub budgets: BudgetsRepr,
+    #[cbor(key = 5)]
+    pub budget: BudgetRepr,
     /// Execution metadata is private and already uses integer keys.
     #[cbor(key = 4)]
     pub executions: BTreeMap<u64, model::Execution>,
@@ -138,7 +79,7 @@ impl StableCodec for model::Home {
     fn to_repr(&self) -> Self::Repr {
         HomeRepr {
             closed_sequence: self.closed_sequence,
-            budgets: self.budgets.to_repr(),
+            budget: self.budget.to_repr(),
             executions: self.executions.clone(),
         }
     }
@@ -146,7 +87,7 @@ impl StableCodec for model::Home {
     fn from_repr(repr: Self::Repr) -> Self {
         Self {
             closed_sequence: repr.closed_sequence,
-            budgets: model::Budgets::from_repr(repr.budgets),
+            budget: Budget::from_repr(repr.budget),
             executions: repr.executions,
         }
     }
@@ -161,44 +102,6 @@ mod tests {
 
     fn p(n: u8) -> Principal {
         Principal::from_slice(&[n, 1])
-    }
-
-    fn descriptor(account_id: AccountId, algorithm: Algorithm) -> KeyDescriptor {
-        KeyDescriptor {
-            key_id: vec![8; 32].into(),
-            account_id,
-            purpose: if algorithm == Algorithm::VetKdBls12381 {
-                KeyPurpose::ContentRoot
-            } else {
-                KeyPurpose::Statement
-            },
-            algorithm,
-            home_cose: p(4),
-            master_key_name: "key_1".into(),
-            environment: Environment::Production,
-            derivation_version: 2,
-            key_generation: 3,
-            public_key: vec![9; 96].into(),
-            public_key_fingerprint: Hash::new([10; 32]),
-        }
-    }
-
-    fn grant(kind: ExecutionKind) -> ExecutionGrant {
-        ExecutionGrant {
-            commerce: None,
-            account_id: AccountId([1; 12]),
-            home_user: p(3),
-            home_cose: p(4),
-            request_id: Hash::new([2; 32]),
-            execution_sequence: 42,
-            security_epoch: 7,
-            device_id: Hash::new([5; 32]),
-            device_sequence: 11,
-            approved_at: 1_700_000_000_000,
-            expires_at: 1_700_000_300_000,
-            kind,
-            max_cycles: 100_000_000_000,
-        }
     }
 
     fn assert_integer_top_keys(bytes: &[u8], count: usize) {
@@ -222,7 +125,7 @@ mod tests {
     }
 
     #[test]
-    fn cose_home_and_all_execution_shapes_round_trip() {
+    fn cose_home_and_execution_shapes_round_trip() {
         let mut home = model::Home::default();
         // Both unresolved holes and terminal entries must survive upgrades.
         for sequence in 1..=64 {
@@ -237,64 +140,54 @@ mod tests {
                         1 => model::ExecutionState::Unknown,
                         _ => model::ExecutionState::Terminal,
                     },
-                    formal: sequence % 3 == 0,
                 },
             );
         }
-        home.budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
+        home.budget.reserve(2 * DAY, 20, 10, 100).unwrap();
         let home_bytes = compact_bytes(&home);
         assert!(home_bytes.len() < 6 * 1024);
         assert_integer_top_keys(&home_bytes, 3);
-        assert_integer_top_keys(&cbor2::to_vec(&home.executions[&1]).unwrap(), 5);
+        assert_integer_top_keys(&cbor2::to_vec(&home.executions[&1]).unwrap(), 4);
         assert_eq!(compact_from_bytes::<model::Home>(&home_bytes), home);
 
-        let derive_grant = grant(ExecutionKind::Derive {
+        let grant = ExecutionGrant {
+            account_id: AccountId([1; 12]),
+            home_user: p(3),
+            home_cose: p(4),
+            request_id: Hash::new([2; 32]),
+            execution_sequence: 42,
+            security_epoch: 7,
+            device_id: Hash::new([5; 32]),
+            device_sequence: 11,
+            approved_at: 1_700_000_000_000,
+            expires_at: 1_700_000_300_000,
             generation: 3,
-            root_op_id: Some(Hash::new([6; 32])),
             transport_key: [7; 48].into(),
-        });
-        assert_public_text_keys(&derive_grant);
+            max_cycles: 70_000_000_000,
+        };
+        assert_public_text_keys(&grant);
         let derive = ExecutionResult {
-            request_id: derive_grant.request_id,
-            outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::EncryptedRootKey {
+            request_id: grant.request_id,
+            outcome: ExecutionOutcome::Completed(EncryptedRootKey {
                 encrypted_key: vec![12; 128].into(),
-                key: descriptor(derive_grant.account_id, Algorithm::VetKdBls12381),
-            })),
-            cycles_cost_upper_bound: 100_000_000_000,
+                key: KeyDescriptor {
+                    account_id: grant.account_id,
+                    home_cose: p(4),
+                    master_key_name: "key_1".into(),
+                    environment: Environment::Production,
+                    derivation_version: 2,
+                    key_generation: 3,
+                    public_key: vec![9; 96].into(),
+                    public_key_fingerprint: Hash::new([10; 32]),
+                },
+            }),
+            cycles_cost_upper_bound: 70_000_000_000,
             cycles_charged: 26_000_000_000,
         };
         let derive_bytes = compact_bytes(&derive);
         assert_integer_top_keys(&derive_bytes, 4);
         assert_eq!(compact_from_bytes::<ExecutionResult>(&derive_bytes), derive);
         assert!(derive_bytes.len() < cbor2::to_vec(&derive).unwrap().len());
-
-        let sign_grant = grant(ExecutionKind::Sign {
-            key: KeyRequest {
-                purpose: KeyPurpose::Statement,
-                algorithm: Algorithm::Ed25519,
-                generation: 1,
-            },
-            to_be_signed: vec![13; 192].into(),
-            public_key_fingerprint: Hash::new([14; 32]),
-            origin: "https://example.com".into(),
-        });
-        let signed = ExecutionResult {
-            request_id: sign_grant.request_id,
-            outcome: ExecutionOutcome::Completed(Box::new(ExecutionOutput::Signature {
-                artifact: SignedArtifact {
-                    cose_sign1: vec![16; 256].into(),
-                    cose_key: vec![17; 96].into(),
-                },
-                key: descriptor(sign_grant.account_id, Algorithm::Ed25519),
-            })),
-            cycles_cost_upper_bound: 100_000_000_000,
-            cycles_charged: 26_000_000_000,
-        };
-        assert_eq!(
-            compact_from_bytes::<ExecutionResult>(&compact_bytes(&signed)),
-            signed
-        );
-
         for outcome in [
             ExecutionOutcome::Authorized,
             ExecutionOutcome::Executing,
@@ -303,7 +196,7 @@ mod tests {
             ExecutionOutcome::ResultExpired,
         ] {
             let execution = ExecutionResult {
-                request_id: sign_grant.request_id,
+                request_id: grant.request_id,
                 outcome,
                 cycles_cost_upper_bound: 1,
                 cycles_charged: 0,
@@ -323,11 +216,10 @@ mod tests {
             executing_canister: p(4),
             user_homes: vec![p(3), p(5)],
             derivation_version: 2,
-            masters: vec![MasterKey {
-                algorithm: Algorithm::Ed25519,
+            master: MasterKey {
                 key_name: "key_1".into(),
                 expected_fingerprint: Hash::new([1; 32]),
-            }],
+            },
             daily_executions: 100,
             daily_cycles: 1_000_000_000_000,
             governance: p(6),
@@ -337,50 +229,32 @@ mod tests {
             state: KeyState {
                 config: init,
                 initialization: Initialization::Ready,
-                fingerprints: vec![Hash::new([2; 32])],
+                fingerprint: Some(Hash::new([2; 32])),
                 error: Some("last transient error".into()),
             },
-            keys: vec![PublicKey {
-                public_key: vec![3; 32],
-                chain_code: vec![4; 32],
-            }],
+            public_key: Some(vec![3; 96]),
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, config.schema);
-        assert_eq!(decoded.state.config, config.state.config);
-        assert_eq!(decoded.state.initialization, config.state.initialization);
-        assert_eq!(decoded.state.fingerprints, config.state.fingerprints);
-        assert_eq!(decoded.state.error, config.state.error);
-        assert_eq!(decoded.keys, config.keys);
+        assert_eq!(decoded.state, config.state);
+        assert_eq!(decoded.public_key, config.public_key);
 
         let mut sparse = config;
         sparse.state.initialization = Initialization::Uninitialized;
-        sparse.state.fingerprints.clear();
+        sparse.state.fingerprint = None;
         sparse.state.error = None;
-        sparse.keys.clear();
+        sparse.public_key = None;
         let sparse_decoded = compact_from_bytes::<Config>(&compact_bytes(&sparse));
-        assert_eq!(sparse_decoded.state.fingerprints, sparse.state.fingerprints);
-        assert_eq!(sparse_decoded.state.error, sparse.state.error);
-        assert_eq!(sparse_decoded.keys, sparse.keys);
+        assert_eq!(sparse_decoded.state, sparse.state);
+        assert_eq!(sparse_decoded.public_key, None);
     }
 
     #[test]
-    fn global_state_fits_the_existing_page_and_reads_budget_only_cells() {
-        let mut budgets = model::Budgets::default();
-        budgets.reserve(2 * DAY, 20, 10, 100, true).unwrap();
-        budgets.reserve(2 * DAY, 30, 10, 100, false).unwrap();
-        // A cell written as plain budgets decodes with no Unknown executions.
-        let earlier = compact_from_bytes::<model::Global>(&compact_bytes(&budgets));
-        assert_eq!(
-            earlier,
-            model::Global {
-                budgets: budgets.clone(),
-                unknown: 0,
-            }
-        );
-        assert_eq!(compact_bytes(&earlier), compact_bytes(&budgets));
+    fn global_state_fits_the_existing_page() {
+        let mut budget = Budget::default();
+        budget.reserve(2 * DAY, 20, 10, 100).unwrap();
         let global = model::Global {
-            budgets,
+            budget,
             unknown: u64::MAX,
         };
         let encoded = compact_bytes(&global);

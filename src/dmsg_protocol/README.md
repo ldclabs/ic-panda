@@ -39,11 +39,12 @@ Publication settings do not prove a version is already on crates.io. Both packag
 | Assemble/verify | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | Establish issuer identity, authorization and current status |
 | Describe a signing key | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | Authenticate the key source; do not treat a thumbprint as proof of ownership |
 | Identify a signer | `account_issuer`, `validate_uri`, `validate_namespace` | Configure a trusted namespace and bind it to authenticated evidence |
-| Prepare ICP approval | `SignRequestExt`, `approval_message`, `EXECUTE_APPROVAL_DOMAIN`, `execute_approval_command`, `execution_request_id` | Obtain current account/device state, sign the digest and submit to the user home |
-| Validate request inputs | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | Perform server-side authorization, proof-of-possession checks and state transitions |
-| Configure a COSE executor | `content_root_context`, `cose_pins::master_key_pins` (feature `cose-pins`) | Create the canister first: pins depend on its ID; initialize and compare the fetched fingerprints |
+| Prepare ICP approval | `prepare_attestation`, `app_action_statement`, `approval_message`, `ATTEST_APPROVAL_DOMAIN`, `attest_approval_command`, `DERIVE_APPROVAL_DOMAIN`, `derive_approval_command`, `execution_request_id` | Obtain current account/device state, sign the Sig_structure and the digest with the device key, submit to the user home |
+| Validate request inputs | `DeviceInputExt`, `CoseInitExt`, `validate_origin`, `validate_transport_key` | Perform server-side authorization, proof-of-possession checks and state transitions |
+| Configure a COSE executor | `content_root_context`, `cose_pins::master_key_pin` (feature `cose-pins`) | Create the canister first: the pin depends on its ID; initialize and compare the fetched fingerprint |
 | Check execution evidence | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | Verify IC certificate, expected canister, witness, path and leaf bytes first |
-| Handle recovery/names | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | Execute recovery policy and name/ledger operations in their services |
+| Bind roots and keys | `root_recipients_digest`, `root_bundle_digest`, `recovery_device_message`, `controller_pop_message` | Build bundles and proofs in the client; the services recompute and compare |
+| Handle names | `normalize_handle`, `price`, `charge_terms_digest` | Execute name/ledger operations in their services |
 | Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
 
 Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
@@ -59,14 +60,13 @@ use dmsg_protocol::{
     account_issuer, key_thumbprint, match_signing_result, parse_signing_input,
     prepare_cose, public_cose_key, sha256, verify_artifact,
 };
-use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent};
+use dmsg_types::{AccountId, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let signer = SigningKey::from_bytes(&[7; 32]); // Test fixture only.
 let public = signer.verifying_key().to_bytes();
-let algorithm = Algorithm::Ed25519;
 // An empty kid is allowed here to compute the thumbprint first.
-let fingerprint = key_thumbprint(&public_cose_key(&algorithm, &[], &public).unwrap()).unwrap();
+let fingerprint = key_thumbprint(&public_cose_key(&[], &public).unwrap()).unwrap();
 let original = b"Release 1.0 specification";
 let statement = Statement {
     issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])),
@@ -78,7 +78,7 @@ let statement = Statement {
         location: None,
     },
 };
-let (_, tbs) = prepare_cose(&statement, &algorithm, fingerprint.as_slice()).unwrap();
+let (_, tbs) = prepare_cose(&statement, fingerprint.as_slice()).unwrap();
 let signature = signer.sign(&tbs).to_bytes().to_vec();
 let artifact = parse_signing_input(&tbs)
     .unwrap()
@@ -96,7 +96,6 @@ assert_eq!(verify_artifact(&artifact).unwrap(), statement);
 | Algorithm | COSE label | Signer input | Signature/public key supplied to `finish`/`into_signature` |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | Exact tbs bytes | 64-byte signature; raw 32-byte public key |
-| ES256K | -47 | SHA-256(tbs) for a prehash API | 64-byte r\|\|s, not DER, normalized to low-S; SEC1 secp256k1 public key |
 
 When using an API that hashes internally, pass tbs once rather than hashing it twice. vetKD is not a document-signature algorithm. `PreparedSignature::finish` assembles and validates structure but does **not** verify the signature; `match_signing_result` or `verify_artifact` does. `public_cose_key` returns encoded COSE_Key bytes; its input is raw key material. `key_thumbprint` hashes required public COSE members, excluding kid/alg/key_ops and expanding compressed EC y coordinates. It is not raw-key SHA-256 or a complete key validator.
 
@@ -104,63 +103,60 @@ When using an API that hashes internally, pass tbs once rather than hashing it t
 
 ## Construct an ICP device approval
 
-The following constructs a local request and device signature; it does not contact a canister or grant permission. Real account IDs, device IDs, epochs, sequences and signing-key references must come from the configured, authenticated services. The fixture IDs and keys are for demonstration only.
+The following constructs a local attestation request and device signatures; it does not contact a canister or grant permission. Real account IDs, device IDs, epochs and sequences must come from the configured, authenticated services. The fixture IDs and keys are for demonstration only.
 
 ```rust
 use candid::Principal;
 use dmsg_protocol::{
-    approval_message, execute_approval_command, execution_request_id, SignRequestExt,
-    EXECUTE_APPROVAL_DOMAIN,
+    approval_message, attest_approval_command, execution_request_id, prepare_attestation,
+    ATTEST_APPROVAL_DOMAIN,
 };
-use dmsg_types::{
-    cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
-    AccountId, Approval, Hash, Statement, StatementContent,
-};
+use dmsg_types::{AccountId, Approval, AttestRequest, Hash, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let account_id = AccountId([1; 12]);
 let device_id = Hash::new([2; 32]);
+let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
+let device_public: Hash = device_key.verifying_key().to_bytes().into();
 let security_epoch = 1;
 let sequence = 0;
-let request_id = execution_request_id(&account_id, security_epoch, device_id, sequence);
-let request = SignRequest {
+let statement = Statement {
+    issuer: "https://example.org/signers/alice".into(),
+    subject: None,
+    issued_at: None,
+    content: StatementContent::Text("Approve release 1.0".into()),
+};
+// The device signs the exact Sig_structure; the kid is its RFC 9679 thumbprint.
+let prepared = prepare_attestation(&statement, &device_public).unwrap();
+let mut request = AttestRequest {
     account_id,
-    key: SigningKeyRef {
-        algorithm: SigningAlgorithm::Ed25519,
-        kid: vec![3; 32].into(),
-        public_key_fingerprint: Hash::new([3; 32]),
-    },
-    statement: Statement {
-        issuer: "https://example.org/signers/alice".into(),
-        subject: None,
-        issued_at: None,
-        content: StatementContent::Text("Approve release 1.0".into()),
-    },
+    statement,
     origin: "https://example.org".into(),
-    max_cycles: 1_000_000_000,
+    signature: device_key.sign(&prepared.to_be_signed).to_bytes().into(),
     approval: Approval {
-        device_id, security_epoch, sequence, request_id,
+        device_id,
+        security_epoch,
+        sequence,
+        request_id: execution_request_id(&account_id, security_epoch, device_id, sequence),
         expires_at: 1_800_000_060_000, // Unix milliseconds; use a valid live deadline.
         signature: Default::default(), // Excluded from the approval digest.
     },
 };
-let mut execution = request.into_execution().unwrap();
 let home_user = Principal::from_slice(&[1, 1]); // Deployment fixture.
 let digest = approval_message(
     home_user,
-    &execution.account_id,
-    EXECUTE_APPROVAL_DOMAIN,
-    &execute_approval_command(&execution),
-    &execution.approval,
+    &request.account_id,
+    ATTEST_APPROVAL_DOMAIN,
+    &attest_approval_command(&request.statement, &request.origin, &request.signature),
+    &request.approval,
 );
-let device_key = SigningKey::from_bytes(&[9; 32]); // Test fixture only.
-execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
-assert_eq!(execution.approval.request_id, request_id);
+request.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
+assert_eq!(prepared.thumbprint, dmsg_protocol::key_thumbprint(&prepared.cose_key).unwrap());
 ```
 
-`SignRequestExt::into_execution` validates the origin and statement and prepares bytes with signing generation 1. It preserves the supplied fingerprint and approval; it does not authenticate them. The execution approval passes `EXECUTE_APPROVAL_DOMAIN` (`dmsg/execute/v3`) and `execute_approval_command`, which is `(kind, max_cycles)`, to `approval_message`, wrapped in `dmsg/device-approval/v2`; the user canister verifies the same pair. Changing any approved field requires a new approval. The typed `sign` endpoint accepts SignRequest; the low-level ExecuteRequest also represents root derivation and is not an unrestricted raw-signing endpoint.
+The approval passes `ATTEST_APPROVAL_DOMAIN` (`dmsg/attest/v1`) and `attest_approval_command`, the triple `(statement, origin, signature)`, to `approval_message`, wrapped in `dmsg/device-approval/v2`; the user canister verifies the same triple, the device signature over the Sig_structure, and records a certified receipt. Changing any approved field requires a new approval. Application actions use `app_action_statement` to build the statement of an `AppActionAttestRequest` and bind `action.origin`.
 
-For account mutations, use `approval_message` with `dmsg/account/v2` and `(expected_version, command)`. Recovery reconfirmation uses `recovery_confirmation_message` and the recovery key, not a device key. Sequence consumption, deadline checks and permission decisions happen in the service. After an unknown outcome, reconcile the original request instead of generating a new signing operation.
+For account mutations, use `approval_message` with `dmsg/account/v2` and `(expected_version, command)`. A recovered device's root derivation uses `DERIVE_APPROVAL_DOMAIN` with `derive_approval_command`, which is `(generation, transport_public_key, max_cycles)`. Sequence consumption, deadline checks and permission decisions happen in the service. After an unknown outcome, reconcile the original request instead of generating a new signing operation.
 
 ## Encoding and identity helpers
 
@@ -185,7 +181,7 @@ Business timestamps and durations use milliseconds, while Statement.issued_at us
 
 `verify_artifact` checks the profile and mathematical signature only. Compare original content with the verified statement yourself: embedded text must match exactly, and a digest or file statement must match the original file's SHA-256; embedded opinion text does not verify the referenced file. Issuer binding, authorization, current status and timestamp trust are not checked.
 
-Before calling `match_execution_receipt`, independently verify the IC certificate against a trusted root, the expected user canister, witness, requested path and leaf bytes. `execution_receipt_key` constructs the single raw path segment `b"execution/" || account_id[12] || request_id[32]`. The matcher requires schema 1 and Completed, then matches issuer, signing-bytes digest, public-key thumbprint and raw-signature digest. It does not independently check the receipt's account/request IDs, origin, deadline or external project permissions. Authenticate the expected path and separately apply any additional policy.
+Before calling `match_execution_receipt`, independently verify the IC certificate against a trusted root, the expected user canister, witness, requested path and leaf bytes. `execution_receipt_key` constructs the single raw path segment `b"execution/" || account_id[12] || request_id[32]`. The matcher requires schema 2, then matches issuer, signing-bytes digest, public-key thumbprint and raw-signature digest. It does not independently check the receipt's account/request IDs, origin, deadline or external project permissions. Authenticate the expected path and separately apply any additional policy.
 
 `signature_digest` is SHA-256 of the raw signature bytes used by execution receipts; it does not verify the signature or dMsg profile.
 
@@ -209,13 +205,15 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 The English README is included as crate documentation and its Rust examples run as doctests. Keep both language versions' example code identical, translating comments only. `missing_docs` warnings help maintain API coverage.
 
-For COSE deployment pins, run `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`; it prints the `masters` field of a `CoseInit` derived offline from the mainnet master keys (`pocketic` as the third argument selects the PocketIC and local dfx keys). For offline verification, run `cargo run -p dmsg_protocol --example verify -- artifact.cbor`. The input is a CBOR SignedArtifact record containing cose_sign1 and cose_key byte strings, not a bare COSE_Sign1 file. Output reports mathematical verification only. Local performance benchmarks use `cargo bench -p dmsg_protocol --bench validation --locked`; these measure host Rust execution, not canister instructions or end-to-end latency. Real-Wasm integration tests use `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`.
+For the COSE deployment pin, run `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`; it prints the `master` field of a `CoseInit` and the content-root public key derived offline from the mainnet master key (`pocketic` as the third argument selects the PocketIC and local dfx keys). For offline verification, run `cargo run -p dmsg_protocol --example verify -- artifact.cbor`. The input is a CBOR SignedArtifact record containing cose_sign1 and cose_key byte strings, not a bare COSE_Sign1 file. Output reports mathematical verification only. Local performance benchmarks use `cargo bench -p dmsg_protocol --bench validation --locked`; these measure host Rust execution, not canister instructions or end-to-end latency. Real-Wasm integration tests use `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`.
 
 ## Release notes for maintainers
 
 Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.2.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
 
-0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `EXECUTE_APPROVAL_DOMAIN` and `execute_approval_command`, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`. `dmsg_types::handle::HandleInit` gains the required `governance` field and replaces `home_user` with `environment`, `issuer_namespace` and an append-only `user_homes`, routed by each account ID's allocator fingerprint. The new `handle_bucket` and `HANDLE_BUCKET_BITS` define where the registry certifies a handle. `CoseInit` replaces `initial_home_user` with `user_homes` and gains `governance`; `PaymentInit` replaces `home_user` with `environment`, `issuer_namespace` and `user_homes`, and `PaymentConfiguration` lists `user_homes`; `DirectoryInit` gains `governance`. The new `agent::check_user_home`, `validate_user_homes`, `account_home`, `is_account_home`, `validate_custom_domains` and `MAX_USER_HOMES` (64) give every service the same allocator-fingerprint routing. `MIN_HANDLE_PRICE`, and so `price` for 7–20-byte names, drops from 5,000 to 100 PANDA to match the live legacy registry. `ProductRegistration` replaces `beneficiary_authority` with an append-only `beneficiary_authorities` list, and `validate_subject` requires the subject's authority to be listed; `CommerceInit` replaces `max_subjects` and `daily_orders` with `limits: CommerceLimits`. `dmsg_types::integration::LEASE_RENEW_WINDOW_MS` (10 minutes) is the lease renewal window shared by commerce and membership. `CommerceLimits` gains `calls_per_caller`, and the new `CommerceStats` reports a commerce canister's live counts; `PandaServiceConfig` replaces `commerce_canister` with the append-only `commerce_homes: Vec<CommerceHome>`, the commerce canister of each user home, and gains `qualifications_per_minute`. `ExecutionResult` gains `cycles_charged`, the threshold fee a returned management call consumed, to which COSE and user budgets settle; the new `CoseStats` reports a COSE executor's live counters. `content_root_context` builds the vetKD content-root context, and the optional `cose-pins` feature adds `cose_pins::master_key_pins` and the `cose_pins` example for offline COSE master-key pins.
+0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `EXECUTE_APPROVAL_DOMAIN` and `execute_approval_command`, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`. `dmsg_types::handle::HandleInit` gains the required `governance` field and replaces `home_user` with `environment`, `issuer_namespace` and an append-only `user_homes`, routed by each account ID's allocator fingerprint. The new `handle_bucket` and `HANDLE_BUCKET_BITS` define where the registry certifies a handle. `CoseInit` replaces `initial_home_user` with `user_homes` and gains `governance`; `PaymentInit` replaces `home_user` with `environment`, `issuer_namespace` and `user_homes`, and `PaymentConfiguration` lists `user_homes`; `DirectoryInit` gains `governance`. The new `agent::check_user_home`, `validate_user_homes`, `account_home`, `is_account_home`, `validate_custom_domains` and `MAX_USER_HOMES` (64) give every service the same allocator-fingerprint routing. `MIN_HANDLE_PRICE`, and so `price` for 7–20-byte names, drops from 5,000 to 100 PANDA to match the live legacy registry. `ProductRegistration` replaces `beneficiary_authority` with an append-only `beneficiary_authorities` list, and `validate_subject` requires the subject's authority to be listed; `CommerceInit` replaces `max_subjects` and `daily_orders` with `limits: CommerceLimits`. `dmsg_types::integration::LEASE_RENEW_WINDOW_MS` (10 minutes) is the lease renewal window shared by commerce and membership. `CommerceLimits` gains `calls_per_caller`, and the new `CommerceStats` reports a commerce canister's live counts; `PandaServiceConfig` replaces `commerce_canister` with the append-only `commerce_homes: Vec<CommerceHome>`, the commerce canister of each user home, and gains `qualifications_per_minute`. `ExecutionResult` gains `cycles_charged`, the threshold fee a returned management call consumed, to which COSE and user budgets settle; the new `CoseStats` reports a COSE executor's live counters. `content_root_context` builds the vetKD content-root context, and the optional `cose-pins` feature adds `cose_pins::master_key_pin` and the `cose_pins` example for offline COSE master-key pins.
+
+2026-10-07 (unreleased) removes threshold document signing and hosted controller signing. `SignRequest`, `AppActionSignRequest`, `AgentEventSignRequest`, `SigningKeyRef`, `KeySelector`, `ExecutionKind`, `ExecutionOutput`, `RootTarget`, `RecoveryPolicy`, `RecoveryConfirmation`, `SignRequestExt`, `KeyRequestExt`, `execute_approval_command`, `recovery_confirmation_message`, ES256K support (`k256`) and the `AgentController` purpose are gone. Documents are signed by device keys: `prepare_attestation` returns the Sig_structure and thumbprint, `AttestRequest` / `AppActionAttestRequest` carry the device signature, and the approval binds `(statement, origin, signature)` under `ATTEST_APPROVAL_DOMAIN`; `ExecutionReceipt` is schema 2 without `max_cycles`. `ContentRootRef` becomes `{ generation, suite: "dmsg-root-v2", bundle_digest, recipients_digest, body_digest }` with `root_recipients_digest` and `root_bundle_digest`; `DeriveRootRequest` names a committed generation and is only accepted from the device a completed login recovery enrolled (`DERIVE_APPROVAL_DOMAIN`, `derive_approval_command`). Recovery is login-based: `RecoveryRequest` drops `generation`, `request_recovery` takes `(account_id, request, device_proof)` with `recovery_device_message`, `DisputeRecovery { op_id }` cancels, `SetRecoveryDelay` replaces `SetRecovery`/`ConfirmRecovery`, and `AccountInfo` exposes `recovery_delay_ms`, `pending_recovery` and `recovered_device`. `RegisterController` carries a `proof` built with `controller_pop_message`. `CoseInit` has a single `master: MasterKey`, `KeyDescriptor` describes the shared content-root key, `ExecutionGrant` carries `generation` and `transport_key`, and `SecuritySnapshot` is schema 4 without account status or recovery keys. `HandleInit` gains `registration_homes`; `AppRegistration` drops `user_homes` and `cose_homes`; `ExecutionWeights` drops `ecdsa_secp256k1`.
 
 Cargo omits the path-only dmsg_protocol development dependency from the normalized dmsg_types package manifest. That avoids a publication dependency cycle, but its repository contract tests and vector example still require the checkout's development dependency. Run these from the workspace; a packaged dmsg_types test suite is not equivalent.
 

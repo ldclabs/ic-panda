@@ -27,6 +27,7 @@ import {
 } from '../src/lib/bridge-requests'
 import { acknowledgeRequest, rejectRequest, setRequestState } from '../src/lib/requests'
 import { config } from '../src/lib/config'
+;(config.canisters.userHomes as string[]).push('aaaaa-aa')
 import type { BrowserCommand } from 'dmsg-sdk/browser'
 
 const source = { origin: 'https://product.test', tabId: 1, frameId: 0, documentId: 'a' }
@@ -44,7 +45,7 @@ beforeEach(async () => {
   state.name = `bridge-${crypto.randomUUID()}`
   state.meta = {
     registered: true,
-    account: { id: 'account-a', homeUser: config.canisters.user }
+    account: { id: 'account-a', homeUser: 'aaaaa-aa' }
   }
   const db = await openDB(state.name, 1, {
     upgrade(db) {

@@ -215,12 +215,6 @@ export class WorkspaceDB {
       }
     })
   }
-  async completeRecovery(value: WorkspaceMeta, lease: Lease) {
-    await this.guarded(['local_private'], lease, async (tx) => {
-      await tx.objectStore('meta').put({ id: 'workspace', value })
-      await tx.objectStore('local_private').delete('pending-recovery')
-    })
-  }
   async replaceKeys(meta: WorkspaceMeta, envelope: LocalEnvelope, lease: Lease) {
     await this.guarded(['key_envelopes'], lease, async (tx) => {
       await tx.objectStore('meta').put({ id: 'workspace', value: meta })

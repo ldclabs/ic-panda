@@ -7,6 +7,7 @@ use dmsg_runtime::{self as stable};
 use dmsg_types::{agent::*, billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};
 use ic_auth_types::XidGenerator;
 use serde_bytes::ByteBuf;
+use std::time::Duration;
 
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
@@ -16,6 +17,32 @@ fn own(id: &AccountId, caller: Principal) -> Result<AccountState> {
     let s = load(id)?;
     ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
     Ok(s)
+}
+
+/// Generate the master secret behind device unlock secrets once, in a timer
+/// after installation. Upgrades keep it; a failed draw retries.
+fn ensure_master_secret() {
+    if config().master_secret.is_some() {
+        return;
+    }
+    ic_cdk_timers::set_timer(Duration::ZERO, draw_master_secret());
+}
+
+async fn draw_master_secret() {
+    let drawn = ic_cdk_management_canister::raw_rand().await;
+    let mut cfg = config();
+    if cfg.master_secret.is_some() {
+        return;
+    }
+    match drawn.ok().and_then(|bytes| <[u8; 32]>::try_from(bytes).ok()) {
+        Some(bytes) => {
+            cfg.master_secret = Some(Hash::new(bytes));
+            save_config(&cfg);
+        }
+        None => {
+            ic_cdk_timers::set_timer(Duration::from_secs(10), draw_master_secret());
+        }
+    }
 }
 
 #[ic_cdk::init]
@@ -53,9 +80,11 @@ fn init(args: UserInit) {
             allocator_namespace_digest,
             day: 0,
             created_today: 0,
+            master_secret: None,
         })))
     });
     CERT.with_borrow(|c| c.publish());
+    ensure_master_secret();
 }
 
 #[ic_cdk::post_upgrade]
@@ -75,6 +104,7 @@ fn post_upgrade() {
     .expect("immutable allocator");
     // Certification nodes persist in stable memory; only the root is republished.
     CERT.with_borrow(|c| c.publish());
+    ensure_master_secret();
     #[cfg(target_arch = "wasm32")]
     ic_cdk::println!(
         "dmsg_user upgrade: instructions={} wasm_memory_bytes={}",
@@ -99,7 +129,7 @@ fn admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32) -> Resul
     check_limits(max_accounts, daily_new_accounts)?;
     cfg.init.max_accounts = max_accounts;
     cfg.init.daily_new_accounts = daily_new_accounts;
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg))));
+    save_config(&cfg);
     Ok(())
 }
 
@@ -118,6 +148,24 @@ fn validate_admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32)
             ),
         )
     }))
+}
+
+/// Account count, capacity, today's admissions, unlock readiness, stable
+/// pages and the cycle balance.
+#[ic_cdk::query]
+fn user_stats() -> UserStats {
+    let cfg = config();
+    let day = now() / DAY;
+    UserStats {
+        accounts: ACCOUNTS.with_borrow(|t| t.len()),
+        max_accounts: cfg.init.max_accounts,
+        day,
+        created_today: if cfg.day == day { cfg.created_today } else { 0 },
+        daily_new_accounts: cfg.init.daily_new_accounts,
+        unlock_ready: cfg.master_secret.is_some(),
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
 }
 
 #[ic_cdk::update]
@@ -168,8 +216,22 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
     // All fallible validation precedes these writes; one IC message commits all three.
     save(&account);
     AUTH.with_borrow_mut(|t| t.put(who.as_slice(), &id));
-    CONFIG.with_borrow_mut(|t| t.set(CompactStored::new(&Some(cfg))));
+    save_config(&cfg);
     Ok(id)
+}
+
+/// The secret a bound login fetches to unlock one device's local store. It is
+/// refused for revoked devices, so revocation also locks the device's copy.
+#[ic_cdk::query]
+fn unlock_secret(account_id: AccountId, device_id: Hash) -> Result<Hash> {
+    let s = own(&account_id, ic_cdk::api::msg_caller())?;
+    let device = s.devices.get(&device_id).ok_or(Error::DeviceNotApproved)?;
+    ensure(device.revoked_at.is_none(), Error::DeviceNotApproved)?;
+    unlock_secret_for(&config(), &account_id, &device_id)
+}
+
+fn unlock_secret_for(cfg: &Config, account_id: &AccountId, device_id: &Hash) -> Result<Hash> {
+    crate::store::unlock_secret(cfg, account_id, device_id)
 }
 
 /// Only the new authentication principal may reserve its own binding. The
@@ -225,11 +287,6 @@ fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
 #[ic_cdk::update]
 async fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
     if principal::is_command(&input.command) {
-        // Registration must first match its key to the COSE derivation.
-        ensure_valid(
-            !matches!(input.command, AccountCommand::RegisterController { .. }),
-            "use register_controller",
-        )?;
         let receipt = commit_principal(&input, ic_cdk::api::msg_caller(), now())?;
         // A failed or unknown publication is retried by publish_principal.
         let _ = principal::publish(input.account_id).await;
@@ -299,56 +356,6 @@ fn commit_principal(
     Ok(receipt)
 }
 
-/// Bind the next hosted controller key. The COSE derivation of the approved
-/// generation must equal the approved public key; no threshold signature runs.
-#[ic_cdk::update]
-async fn register_controller(input: AccountMutation) -> Result<OperationReceipt> {
-    let caller = ic_cdk::api::msg_caller();
-    let AccountCommand::RegisterController {
-        generation,
-        public_key,
-        ..
-    } = &input.command
-    else {
-        return Err(invalid("expected RegisterController"));
-    };
-    // Reject bad callers, approvals, versions and limits before the COSE call.
-    let s = load(&input.account_id)?;
-    let at = now();
-    if let account::Authorized::Replay(receipt) =
-        account::authorize_mutation(&s, caller, &input, at)?
-    {
-        let _ = principal::publish(input.account_id).await;
-        return Ok(receipt);
-    }
-    principal::prepare(&s, principal::load(&input.account_id), &input.command, at)?;
-    let home_cose = s.home_cose;
-    let key: Result<KeyDescriptor> = stable::call(
-        home_cose,
-        "public_key",
-        (
-            input.account_id,
-            KeySelector::AgentController {
-                generation: *generation,
-            },
-        ),
-    )
-    .await?;
-    let key = key?;
-    ensure(
-        key.account_id == input.account_id
-            && key.home_cose == home_cose
-            && key.purpose == KeyPurpose::AgentController
-            && key.key_generation == u64::from(*generation)
-            && key.public_key.as_slice() == public_key.as_slice(),
-        Error::IntegrityFailed,
-    )?;
-    // Recheck approval, version and limits against the state after the call.
-    let receipt = commit_principal(&input, caller, now())?;
-    let _ = principal::publish(input.account_id).await;
-    Ok(receipt)
-}
-
 /// Push the account's current principal state to the directory. Anyone may
 /// retry a publication; it is idempotent and never rolls the document back.
 #[ic_cdk::update]
@@ -356,20 +363,11 @@ async fn publish_principal(account_id: AccountId) -> Result<u64> {
     principal::publish(account_id).await
 }
 
-/// Public principal state, publication progress and signed nonces.
+/// Public principal state and publication progress.
 #[ic_cdk::query]
 fn get_principal(account_id: AccountId) -> Result<PrincipalInfo> {
     let p = principal::load(&account_id).ok_or(Error::NotFound)?;
     Ok(principal::info(&account_id, p))
-}
-
-/// Sign one exact Agent Delegation event with a hosted controller key after
-/// device approval. Submit the returned signature to the delegation service.
-#[ic_cdk::update]
-async fn sign_agent_event(input: AgentEventSignRequest) -> Result<ExecutionResult> {
-    let principal_id =
-        dmsg_protocol::agent::principal_id(&config().init.principal_origin, &input.account_id);
-    authorize_and_execute(input.into_execution(principal_id)).await
 }
 
 #[ic_cdk::update]
@@ -402,9 +400,23 @@ fn check_handle_authorization(intent: &HandleIntent, caller: Principal, at: u64)
     Ok(())
 }
 
+/// Record a device-signed document statement and certify its receipt.
+/// Application actions use `attest_app_action`.
 #[ic_cdk::update]
-async fn sign(input: SignRequest) -> Result<ExecutionResult> {
-    authorize_and_execute(input.into_execution()?).await
+async fn attest(input: AttestRequest) -> Result<SignedArtifact> {
+    ensure(
+        !matches!(input.statement.content, StatementContent::AppAction(_)),
+        Error::UnsupportedProtocol,
+    )?;
+    attest_statement(
+        input.account_id,
+        input.statement,
+        input.origin,
+        input.signature,
+        input.approval,
+        None,
+    )
+    .await
 }
 
 #[ic_cdk::update]
@@ -414,102 +426,141 @@ async fn inspect_app_action(
 ) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
     let account = own(&account_id, caller)?;
-    ensure(
-        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
-        Error::Locked,
-    )?;
+    ensure(!account.sensitive_policy.frozen, Error::Locked)?;
     crate::external::authorize_action(&account_id, &action).await?;
     let account = own(&account_id, caller)?;
-    ensure(
-        account.status == AccountStatus::Active && !account.sensitive_policy.frozen,
-        Error::Locked,
-    )
+    ensure(!account.sensitive_policy.frozen, Error::Locked)
 }
 
+/// Record a device-signed application action after the registered product
+/// authority confirms it, and certify its receipt.
 #[ic_cdk::update]
-async fn sign_app_action(input: AppActionSignRequest) -> Result<ExecutionResult> {
-    authorize_and_execute(input.into_execution()?).await
+async fn attest_app_action(input: AppActionAttestRequest) -> Result<SignedArtifact> {
+    let statement = app_action_statement(&input)?;
+    attest_statement(
+        input.account_id,
+        statement,
+        input.action.origin.clone(),
+        input.signature,
+        input.approval,
+        Some(input.action),
+    )
+    .await
 }
 
+fn existing_artifact(e: AuthorizedExecution, fingerprint: Hash) -> Result<SignedArtifact> {
+    ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
+    match e.record {
+        ExecutionRecord::Attestation(a) => Ok(a.artifact),
+        ExecutionRecord::Derivation { .. } => Err(Error::IdempotencyConflict),
+    }
+}
+
+async fn attest_statement(
+    account_id: AccountId,
+    statement: Statement,
+    origin: String,
+    signature: Ed25519Signature,
+    approval: Approval,
+    action: Option<dmsg_types::app_action::AppAction>,
+) -> Result<SignedArtifact> {
+    let caller = ic_cdk::api::msg_caller();
+    let fingerprint = digest(
+        "dmsg/attest-request/v1",
+        &(&account_id, &statement, &origin, &signature, &approval),
+    );
+    let init = config().init;
+    let mut at = now();
+    let mut s = own(&account_id, caller)?;
+    if let Some(e) = load_execution(&account_id, &approval.request_id) {
+        return existing_artifact(e, fingerprint);
+    }
+    let check = |s: &AccountState, at: u64| {
+        execution::check_attestation(
+            s,
+            caller,
+            &account_id,
+            &statement,
+            &origin,
+            &signature,
+            &approval,
+            fingerprint,
+            at,
+            &init,
+        )
+    };
+    let mut checked = check(&s, at)?;
+    if !crate::commerce::is_current(&account_id, at)? {
+        at = crate::commerce::refresh(&account_id, at).await?;
+        s = own(&account_id, caller)?;
+        if let Some(e) = load_execution(&account_id, &approval.request_id) {
+            return existing_artifact(e, fingerprint);
+        }
+        checked = check(&s, at)?;
+    }
+    if let Some(action) = &action {
+        crate::external::authorize_action(&account_id, action).await?;
+        at = now();
+        s = own(&account_id, caller)?;
+        if let Some(e) = load_execution(&account_id, &approval.request_id) {
+            return existing_artifact(e, fingerprint);
+        }
+        checked = check(&s, at)?;
+    }
+    let e = execution::commit_attestation(
+        &mut s,
+        &approval,
+        origin,
+        &signature,
+        checked,
+        fingerprint,
+        at,
+    )?;
+    // All validation precedes writes: the month charge, the record, its
+    // certified receipt and the account commit together in this message.
+    crate::commerce::charge(&account_id, at)?;
+    prune_account_executions(&mut s, at);
+    save_execution(&e);
+    save(&s);
+    existing_artifact(e, fingerprint)
+}
+
+/// A recovered device's one vetKD derivation of the committed root; see
+/// `DeriveRootRequest`. Retries with the same request return the stored result.
 #[ic_cdk::update]
 async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
-    authorize_and_execute(input.into_execution()).await
-}
-
-/// Check current local authority without saving a candidate account. The
-/// principal nonce changes only in this disposable candidate until commit.
-fn precheck_execution(
-    s: &AccountState,
-    caller: Principal,
-    input: &ExecuteRequest,
-    fingerprint: Hash,
-    prepared: &execution::PreparedRequest,
-    at: u64,
-    init: &UserInit,
-) -> Result<(stable::Budget, Option<principal::AgentPrincipal>)> {
-    let budget = execution::check(s, caller, input, fingerprint, at, init, prepared)?;
-    let agent = if let Some(event) = &prepared.event {
-        let mut p = principal::load(&s.account_id).ok_or(Error::NotFound)?;
-        principal::authorize_event(&mut p, s, init, &input.kind, event, at)?;
-        Some(p)
-    } else {
-        None
+    let caller = ic_cdk::api::msg_caller();
+    let at = now();
+    let mut s = own(&input.account_id, caller)?;
+    let fingerprint = digest("dmsg/derive-request/v1", &input);
+    if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
+        return execute_existing(e, fingerprint).await;
+    }
+    let budget = execution::check_derivation(&s, caller, &input, fingerprint, at)?;
+    let e = execution::commit_derivation(&mut s, input, fingerprint, budget, at);
+    // All validation precedes writes, with no await until budget, sequence,
+    // execution and certification have committed together.
+    prune_account_executions(&mut s, at);
+    save_execution(&e);
+    save(&s);
+    drop(s);
+    let ExecutionRecord::Derivation { grant, .. } = e.record else {
+        unreachable!("derivation record")
     };
-    Ok((budget, agent))
+    dispatch(grant).await
 }
 
 async fn execute_existing(e: AuthorizedExecution, fingerprint: Hash) -> Result<ExecutionResult> {
     ensure(e.command_digest == fingerprint, Error::IdempotencyConflict)?;
-    if e.result.is_terminal() {
-        return Ok(e.result);
-    }
-    dispatch(e.grant).await
-}
-
-async fn authorize_and_execute(input: ExecuteRequest) -> Result<ExecutionResult> {
-    let caller = ic_cdk::api::msg_caller();
-    let mut at = now();
-    let init = config().init;
-    let mut s = own(&input.account_id, caller)?;
-    let fingerprint = digest("dmsg/execute-request/v2", &input);
-    if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
-        return execute_existing(e, fingerprint).await;
-    }
-    let prepared = execution::PreparedRequest::new(&input)?;
-    let (mut budget, mut agent) =
-        precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
-    if input.kind.is_formal() && !crate::commerce::is_current(&input.account_id, at)? {
-        at = crate::commerce::refresh(&input.account_id, at).await?;
-        s = own(&input.account_id, caller)?;
-        if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
-            return execute_existing(e, fingerprint).await;
+    match e.record {
+        ExecutionRecord::Derivation { grant, result } => {
+            if result.is_terminal() {
+                return Ok(result);
+            }
+            dispatch(grant).await
         }
-        (budget, agent) =
-            precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
+        ExecutionRecord::Attestation(_) => Err(Error::IdempotencyConflict),
     }
-    if let Some(action) = prepared.action() {
-        crate::external::authorize_action(&input.account_id, action).await?;
-        at = now();
-        s = own(&input.account_id, caller)?;
-        if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
-            return execute_existing(e, fingerprint).await;
-        }
-        (budget, agent) =
-            precheck_execution(&s, caller, &input, fingerprint, &prepared, at, &init)?;
-    }
-    drop(prepared);
-    let mut e = execution::commit(&mut s, input, fingerprint, budget, at);
-    crate::commerce::reserve(&mut e, at)?;
-    // All validation precedes writes, with no await until budget, sequence,
-    // nonce, execution and certification have committed together.
-    prune_account_executions(&mut s, at);
-    save_execution(&e);
-    save(&s);
-    if let Some(p) = agent {
-        principal::save(&s.account_id, &p);
-    }
-    drop(s);
-    dispatch(e.grant).await
 }
 
 async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
@@ -532,7 +583,7 @@ async fn dispatch(grant: ExecutionGrant) -> Result<ExecutionResult> {
         Err(stable::CallFailure::NotExecuted) => {
             // Preserve the current state: another dispatch may have completed
             // while this attempt was in flight. An unsent Authorized grant keeps
-            // its original sequence/reservation so retry can close the COSE slot.
+            // its original sequence so retry can close the COSE slot.
             return rejected_dispatch(
                 &account_id,
                 &request_id,
@@ -550,7 +601,10 @@ fn rejected_dispatch(
     error: Error,
 ) -> Result<ExecutionResult> {
     let current = load_execution(account_id, request_id).ok_or(Error::ResultExpired)?;
-    execution::rejected_dispatch_result(current.result, error)
+    let ExecutionRecord::Derivation { result, .. } = current.record else {
+        return Err(Error::IdempotencyConflict);
+    };
+    execution::rejected_dispatch_result(result, error)
 }
 
 fn record_response(
@@ -561,18 +615,23 @@ fn record_response(
     // A callback must read the latest record: a concurrent callback may already
     // have completed it, or a later authorization may have evicted it.
     let mut e = load_execution(account_id, &request_id).ok_or(Error::ResultExpired)?;
-    if e.result.is_terminal() {
-        return Ok(e.result);
+    let ExecutionRecord::Derivation { result, .. } = &e.record else {
+        return Err(Error::IdempotencyConflict);
+    };
+    if result.is_terminal() {
+        return Ok(result.clone());
     }
-    let previous = e.result.clone();
+    let previous = result.clone();
     let result = execution::record_execution_response(&mut e, response);
     if result != previous {
         if result.is_terminal() {
+            let ExecutionRecord::Derivation { grant, .. } = &e.record else {
+                unreachable!("derivation record")
+            };
             let mut s = load(account_id)?;
-            crate::commerce::settle(&e)?;
-            execution::settle_budget(&mut s, &e);
+            execution::settle_budget(&mut s, grant, &result);
             s.execution_expirations
-                .insert(request_id, Some(e.grant.expires_at.saturating_add(DAY)));
+                .insert(request_id, Some(e.retention()));
             // Only the budget and retention index changed, not the security leaf.
             save_account(&s);
         }
@@ -585,49 +644,35 @@ fn record_response(
 async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
     let home_cose = own(&account_id, ic_cdk::api::msg_caller())?.home_cose;
     let e = load_execution(&account_id, &request_id).ok_or(Error::NotFound)?;
-    if e.result.is_terminal() {
-        return Ok(e.result);
+    let ExecutionRecord::Derivation { result, .. } = e.record else {
+        return Err(Error::UnsupportedProtocol);
+    };
+    if result.is_terminal() {
+        return Ok(result);
     }
-    drop(e);
     // A failed query proves nothing about the execution; only COSE's answer is recorded.
     let response: Result<ExecutionResult> =
         stable::call(home_cose, "get_execution", (&account_id, request_id)).await?;
     if response == Err(Error::NotFound) {
         let e = load_execution(&account_id, &request_id).ok_or(Error::ResultExpired)?;
-        if e.result.is_terminal() {
-            return Ok(e.result);
-        }
-        return dispatch(e.grant).await;
+        let digest = e.command_digest;
+        return execute_existing(e, digest).await;
     }
     record_response(&account_id, request_id, response)
 }
 
+/// Begin a delayed takeover from a bound login: after the account's recovery
+/// delay, `complete_recovery` replaces every device and binding with these.
+/// Any active device cancels it with `DisputeRecovery`.
 #[ic_cdk::update]
 fn request_recovery(
     account_id: AccountId,
     request: RecoveryRequest,
-    signature: ByteBuf,
     device_proof: ByteBuf,
 ) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
-    ensure(caller == request.new_auth, Error::AuthRequired)?;
-    if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
-        ensure(id == account_id, Error::IdempotencyConflict)?;
-    }
     let mut s = load(&account_id)?;
-    recovery::begin_recovery(&mut s, &request, &signature, &device_proof, now())?;
-    save(&s);
-    Ok(())
-}
-
-#[ic_cdk::update]
-fn reconfirm_recovery(
-    account_id: AccountId,
-    confirmation: RecoveryConfirmation,
-    signature: ByteBuf,
-) -> Result<()> {
-    let mut s = load(&account_id)?;
-    recovery::reconfirm_recovery(&mut s, &confirmation, &signature, now())?;
+    recovery::begin_recovery(&mut s, caller, &request, &device_proof, now())?;
     save(&s);
     Ok(())
 }
@@ -666,10 +711,7 @@ fn verify_payment_offer(signed: SignedOffer) -> Result<u64> {
         .devices
         .get(&o.device_id)
         .ok_or(Error::DeviceNotApproved)?;
-    ensure(
-        s.status == AccountStatus::Active && !s.sensitive_policy.frozen,
-        Error::Locked,
-    )?;
+    ensure(!s.sensitive_policy.frozen, Error::Locked)?;
     ensure(
         d.revoked_at.is_none() && d.input.capabilities.contains(&Capability::PaymentOffer),
         Error::Forbidden,
@@ -736,12 +778,30 @@ fn get_device_bundle(
     Ok((s.snapshot(&config().init.issuer_namespace), s.devices))
 }
 
+/// The retained result of a derivation; attestations are read with `get_attestation`.
 #[ic_cdk::query]
 fn get_execution(account_id: AccountId, request_id: Hash) -> Result<ExecutionResult> {
     own(&account_id, ic_cdk::api::msg_caller())?;
-    load_execution(&account_id, &request_id)
-        .map(|e| e.result)
-        .ok_or(Error::ResultExpired)
+    match load_execution(&account_id, &request_id)
+        .ok_or(Error::ResultExpired)?
+        .record
+    {
+        ExecutionRecord::Derivation { result, .. } => Ok(result),
+        ExecutionRecord::Attestation(_) => Err(Error::UnsupportedProtocol),
+    }
+}
+
+/// The retained artifact of an attestation, for a client resuming after a lost reply.
+#[ic_cdk::query]
+fn get_attestation(account_id: AccountId, request_id: Hash) -> Result<SignedArtifact> {
+    own(&account_id, ic_cdk::api::msg_caller())?;
+    match load_execution(&account_id, &request_id)
+        .ok_or(Error::ResultExpired)?
+        .record
+    {
+        ExecutionRecord::Attestation(a) => Ok(a.artifact),
+        ExecutionRecord::Derivation { .. } => Err(Error::UnsupportedProtocol),
+    }
 }
 
 /// Release expired terminal results for an account, without starting another execution.
@@ -762,7 +822,7 @@ fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<Cert
     own(&account_id, ic_cdk::api::msg_caller())?;
     if let Some(execution) = load_execution(&account_id, &request_id) {
         ensure(
-            matches!(execution.grant.kind, ExecutionKind::Sign { .. }),
+            matches!(execution.record, ExecutionRecord::Attestation(_)),
             Error::UnsupportedProtocol,
         )?;
     }

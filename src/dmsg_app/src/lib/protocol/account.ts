@@ -1,8 +1,17 @@
 import { IDL } from '@icp-sdk/core/candid'
 import { Principal } from '@icp-sdk/core/principal'
 import { idlFactory } from '../canisters/generated/user/index.js'
-import type { AccountMutation, CreateAccount, DeviceInput } from '../canisters/generated/user'
+import type {
+  AccountMutation,
+  AttestRequest,
+  CreateAccount,
+  DelegationAuthority,
+  DeriveRootRequest,
+  DeviceInput,
+  RecoveryRequest
+} from '../canisters/generated/user'
 import { Tagged, b64, bytes, digest, unb64 } from './codec'
+import { xidBytes } from './identity'
 import { ensure } from '../errors'
 
 // Candid encodes unit variants as { Name: null }; Rust serde encodes them as
@@ -16,7 +25,8 @@ const units = new Set([
   'FormalApprove',
   'PaymentOffer',
   'FileAttestation',
-  'Statement'
+  'Statement',
+  'AppAction'
 ])
 export function accountValue(value: unknown): unknown {
   if (value instanceof Principal) return value.toUint8Array()
@@ -73,23 +83,35 @@ export function candidValue(type: IDL.Type, value: any): unknown {
   }
   return value instanceof Principal ? value.toUint8Array() : value
 }
-const mutationType = service._fields.find(([name]) => name === 'mutate_account')![1]
-  .argTypes[0] as IDL.RecordClass
-const commandType = mutationType._fields.find(([name]) => name === 'command')![1]
+const method = (name: string): IDL.FuncClass => {
+  const fn = service._fields.find(([key]) => key === name)?.[1]
+  if (!fn) throw new Error(`UNSUPPORTED_PROTOCOL：${name}`)
+  return fn
+}
+const field = (record: IDL.Type, name: string): IDL.Type => {
+  const child =
+    record instanceof IDL.RecordClass || record instanceof IDL.VariantClass
+      ? record._fields.find(([key]) => key === name)?.[1]
+      : undefined
+  if (!child) throw new Error(`UNSUPPORTED_PROTOCOL：${name}`)
+  return child
+}
+const mutationType = method('mutate_account').argTypes[0]!
+const commandType = field(mutationType, 'command')
+const statementType = field(method('attest').argTypes[0]!, 'statement')
+const recoveryRequestType = method('request_recovery').argTypes[1]!
+const delegationType = field(field(commandType, 'RegisterController'), 'delegation')
 export type ControlMethod =
   | 'create_account'
   | 'mutate_account'
   | 'begin_auth_binding'
   | 'request_recovery'
-  | 'reconfirm_recovery'
   | 'complete_recovery'
   | 'derive_root'
-  | 'sign'
-  | 'sign_app_action'
+  | 'attest'
+  | 'attest_app_action'
   | 'approve_authentication'
   | 'approve_application'
-  | 'register_controller'
-  | 'sign_agent_event'
 export function encodeControl(method: ControlMethod, args: unknown[]) {
   const fn = service._fields.find(([name]) => name === method)?.[1]
   ensure(fn, 'UNSUPPORTED_PROTOCOL')
@@ -123,25 +145,108 @@ export const createAccountMessage = (
     request.expires_at
   ])
 
-export function accountApprovalMessage(home: Principal, request: AccountMutation) {
-  const a = request.approval
+/** `dmsg/device-approval/v2` over an operation domain and its command digest. */
+export function approvalMessage(
+  home: Principal,
+  accountId: Uint8Array | number[],
+  domain: string,
+  command: unknown,
+  approval: AccountMutation['approval']
+) {
   return digest('dmsg/device-approval/v2', [
     home.toUint8Array(),
-    Uint8Array.from(request.account_id),
-    'dmsg/account/v2',
-    Uint8Array.from(a.device_id),
-    a.security_epoch,
-    a.sequence,
-    Uint8Array.from(a.request_id),
-    a.expires_at,
-    digest('dmsg/account/v2', [
-      request.expected_version,
-      candidValue(commandType, request.command)
-    ])
+    Uint8Array.from(accountId),
+    domain,
+    Uint8Array.from(approval.device_id),
+    approval.security_epoch,
+    approval.sequence,
+    Uint8Array.from(approval.request_id),
+    approval.expires_at,
+    digest(domain, command)
   ])
+}
+export function accountApprovalMessage(home: Principal, request: AccountMutation) {
+  return approvalMessage(
+    home,
+    request.account_id,
+    'dmsg/account/v2',
+    [request.expected_version, candidValue(commandType, request.command)],
+    request.approval
+  )
 }
 export const accountOperationDigest = (request: AccountMutation) =>
   digest('dmsg/account-operation/v2', candidValue(mutationType, request))
+
+/** Serde view of a Candid statement, as the attest approval binds it. */
+export const statementValue = (statement: AttestRequest['statement']) =>
+  candidValue(statementType, statement)
+export const ATTEST_APPROVAL_DOMAIN = 'dmsg/attest/v1'
+/** Approval over the statement, checked origin and the device document signature. */
+export function attestApprovalMessage(
+  home: Principal,
+  request: Pick<AttestRequest, 'account_id' | 'statement' | 'origin' | 'signature' | 'approval'>
+) {
+  return approvalMessage(
+    home,
+    request.account_id,
+    ATTEST_APPROVAL_DOMAIN,
+    [statementValue(request.statement), request.origin, Uint8Array.from(request.signature)],
+    request.approval
+  )
+}
+export const DERIVE_APPROVAL_DOMAIN = 'dmsg/derive-root/v1'
+export function deriveApprovalMessage(home: Principal, request: DeriveRootRequest) {
+  return approvalMessage(
+    home,
+    request.account_id,
+    DERIVE_APPROVAL_DOMAIN,
+    [request.generation, Uint8Array.from(request.transport_public_key), request.max_cycles],
+    request.approval
+  )
+}
+/** Proof of possession a replacement device signs for a login recovery request. */
+export const recoveryDeviceMessage = (
+  home: Principal,
+  accountId: string | Uint8Array,
+  request: RecoveryRequest
+) =>
+  digest('dmsg/recovery-device/v1', [
+    home.toUint8Array(),
+    typeof accountId === 'string' ? xidBytes(accountId) : accountId,
+    candidValue(recoveryRequestType, request)
+  ])
+/** Proof of possession a self-held controller key signs for its registration. */
+export const controllerPopMessage = (
+  home: Principal,
+  accountId: Uint8Array,
+  generation: number,
+  delegation: DelegationAuthority,
+  supersedes: number[],
+  requestId: Uint8Array
+) =>
+  digest('dmsg/controller-pop/v1', [
+    home.toUint8Array(),
+    accountId,
+    generation,
+    candidValue(delegationType, delegation),
+    supersedes,
+    requestId
+  ])
+/** Recipients of a root bundle: active device IDs in ascending order plus the
+ * generation, which names the vetKD recovery identity. */
+export function rootRecipientsDigest(deviceIds: Uint8Array[], generation: number | bigint) {
+  const ids = deviceIds.map((id) => {
+    ensure(id.length === 32, 'INVALID_INPUT')
+    return Uint8Array.from(id)
+  })
+  ids.sort((a, b) => {
+    for (let i = 0; i < 32; i++) if (a[i] !== b[i]) return a[i] - b[i]
+    return 0
+  })
+  return digest('dmsg/root-recipients/1', [ids, BigInt(generation)])
+}
+export const rootBundleDigest = (recipientsDigest: Uint8Array, bodyDigest: Uint8Array) =>
+  digest('dmsg/root-bundle-digest/2', [recipientsDigest, bodyDigest])
 
 export function deviceInput(
   meta: { deviceId: string; signingPublic: string; hpkePublic: string },

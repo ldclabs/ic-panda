@@ -23,8 +23,6 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
         app_id: "sample".into(),
         config_version: 1,
         origins: vec!["https://sample.test".into()],
-        user_homes: vec![f.user],
-        cose_homes: vec![f.cose],
         product_ids: vec![product.product_id.clone()],
         capabilities: vec![AppCapability::Authenticate, AppCapability::Checkout],
         profiles: vec![],
@@ -308,13 +306,13 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
 }
 
 #[test]
-fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
+fn external_app_action_cannot_use_document_attestation_or_consume_a_sequence() {
     use dmsg_types::app_action::*;
     let f = Fixture::new();
     let account = f.create(1);
     let state = f.account_id(1, &account);
-    let at = time(&f.ic);
     let hash = Hash::new([1; 32]);
+    let at = time(&f.ic);
     let mut action = AppAction {
         version: 1,
         environment: Environment::Local,
@@ -348,44 +346,13 @@ fn external_app_action_cannot_use_document_signer_or_consume_a_sequence() {
         issued_at: None,
         content: StatementContent::AppAction(Box::new(action)),
     };
-    let (_, tbs) = prepare_cose(&statement, &Algorithm::Ed25519, hash.as_slice()).unwrap();
-    let kind = ExecutionKind::Sign {
-        key: KeyRequest {
-            purpose: KeyPurpose::AppAction,
-            algorithm: Algorithm::Ed25519,
-            generation: 1,
-        },
-        to_be_signed: tbs.into(),
-        public_key_fingerprint: hash,
-        origin: "https://sample.test".into(),
-    };
-    let max_cycles = 100_000_000_000u128;
-    let request_id = execution_request_id(
-        &account,
-        state.security_epoch,
-        hash,
-        state.devices[&hash].next_sequence,
-    );
-    let approval = approve(
-        &f,
-        &account,
-        EXECUTE_APPROVAL_DOMAIN,
-        &(&kind, max_cycles),
-        request_id,
-    );
-    let request = SignRequest {
-        account_id: account,
-        key: SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: hash.to_vec().into(),
-            public_key_fingerprint: hash,
-        },
-        statement,
-        origin: "https://sample.test".into(),
-        max_cycles,
-        approval,
-    };
-    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "sign", (request,));
+    let mut request = f.attest_request(1, &account, statement);
+    request.origin = "https://sample.test".into();
+    request.approval.signature = key(1)
+        .sign(attest_approval(f.user, &request).as_slice())
+        .to_bytes()
+        .into();
+    let result: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (request,));
     assert_eq!(result, Err(Error::UnsupportedProtocol));
     assert_eq!(
         f.account_id(1, &account).devices[&hash].next_sequence,
@@ -398,10 +365,6 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     use dmsg_types::app_action::*;
     let f = Fixture::commercial();
     let account = f.create(1);
-    f.recoverable(1, &account);
-    let ready: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    ready.unwrap();
     let (mut app, _) = registrations(&f);
     app.app_id = "sample-actions".into();
     app.action_authority = f.sns;
@@ -444,20 +407,14 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         files: vec![],
     };
     action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
-    let signing_key = f.key_ref(
-        &account,
-        SigningPurpose::AppAction,
-        SigningAlgorithm::Ed25519,
-    );
     let request = |body: AppAction| {
         let state = f.account_id(1, &account);
         let device = &state.devices[&hash];
-        let mut request = AppActionSignRequest {
+        let mut request = AppActionAttestRequest {
             account_id: account,
-            key: signing_key.clone(),
             issuer: state.issuer,
             action: body,
-            max_cycles: 100_000_000_000,
+            signature: Default::default(),
             approval: Approval {
                 device_id: hash,
                 security_epoch: state.security_epoch,
@@ -472,16 +429,33 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
                 signature: Default::default(),
             },
         };
+        let statement = app_action_statement(&request).unwrap();
+        let prepared =
+            prepare_attestation(&statement, &key(1).verifying_key().to_bytes().into()).unwrap();
+        request.signature = key(1).sign(&prepared.to_be_signed).to_bytes().into();
         request.approval.signature = key(1)
-            .sign(execute_approval(f.user, &request.clone().into_execution().unwrap()).as_slice())
+            .sign(
+                approval_message(
+                    f.user,
+                    &account,
+                    ATTEST_APPROVAL_DOMAIN,
+                    &attest_approval_command(
+                        &statement,
+                        &request.action.origin,
+                        &request.signature,
+                    ),
+                    &request.approval,
+                )
+                .as_slice(),
+            )
             .to_bytes()
             .into();
         request
     };
     let req = request(action.clone());
     let before = f.account_id(1, &account).devices[&hash].next_sequence;
-    let refused: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign_app_action", (req.clone(),));
+    let refused: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest_app_action", (req.clone(),));
     assert_eq!(refused, Err(Error::Forbidden));
     assert_eq!(
         f.account_id(1, &account).devices[&hash].next_sequence,
@@ -508,21 +482,17 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     );
     preview.unwrap();
     let before_cycles = f.ic.cycle_balance(f.user);
-    let signed: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign_app_action", (req.clone(),));
+    let signed: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest_app_action", (req.clone(),));
     println!(
-        "user_cycles method=sign_app_action cycles={}",
+        "user_cycles method=attest_app_action cycles={}",
         before_cycles - f.ic.cycle_balance(f.user)
     );
-    let signed = signed.unwrap();
-    let ExecutionOutput::Signature {
-        artifact,
-        key: descriptor,
-    } = completed(&signed)
-    else {
-        panic!()
-    };
-    assert_eq!(descriptor.purpose, KeyPurpose::AppAction);
+    let artifact = signed.unwrap();
+    assert!(matches!(
+        verify_artifact(&artifact).unwrap().content,
+        StatementContent::AppAction(_)
+    ));
     let proof: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -539,19 +509,23 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     )
     .unwrap();
     let receipt: ExecutionReceipt = decode_canonical(&value).unwrap();
-    match_execution_receipt(artifact, &receipt).unwrap();
-    for (home, name) in [(f.user, "dmsg_user"), (f.cose, "dmsg_cose")] {
-        f.ic.upgrade_canister(home, wasm(name), candid::encode_args(()).unwrap(), None)
-            .unwrap();
-    }
+    match_execution_receipt(&artifact, &receipt).unwrap();
+    assert_eq!(receipt.origin, "https://sample.test");
+    f.ic.upgrade_canister(
+        f.user,
+        wasm("dmsg_user"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
     let before_cycles = f.ic.cycle_balance(f.user);
-    let repeated: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign_app_action", (req,));
+    let repeated: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest_app_action", (req,));
     println!(
-        "user_cycles method=sign_app_action_retry cycles={}",
+        "user_cycles method=attest_app_action_retry cycles={}",
         before_cycles - f.ic.cycle_balance(f.user)
     );
-    assert_eq!(repeated, Ok(signed));
+    assert_eq!(repeated, Ok(artifact));
     let seq = f.account_id(1, &account).devices[&hash].next_sequence;
     action.operation_id = Hash::new([80; 32]);
     let next = request(action.clone());
@@ -564,8 +538,8 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
         "set_action_approval",
         (f.user, account, action.clone(), Some((f.commerce, app))),
     );
-    let paused: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "sign_app_action", (next,));
+    let paused: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest_app_action", (next,));
     assert_eq!(paused, Err(Error::PolicyStale));
     assert_eq!(f.account_id(1, &account).devices[&hash].next_sequence, seq);
 }

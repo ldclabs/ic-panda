@@ -50,8 +50,12 @@ pub struct HandleInit {
     /// Account issuer namespace shared by the user homes.
     pub issuer_namespace: String,
     /// User homes whose allocated accounts authorize name operations; each
-    /// account ID carries its home's allocator fingerprint. Append-only.
+    /// account ID carries its home's allocator fingerprint. Append-only. This
+    /// is the authoritative home list clients route accounts with.
     pub user_homes: Vec<Principal>,
+    /// Subset of `user_homes` currently accepting new accounts; clients pick
+    /// one at random. Governance replaces the whole list.
+    pub registration_homes: Vec<Principal>,
     /// ICRC ledger canister for all amounts in this contract.
     pub ledger: Principal,
     /// Configured network fee in ledger base units.

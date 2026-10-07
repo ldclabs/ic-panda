@@ -83,8 +83,7 @@ export async function verifyCloudSecurity(
   bundle: Bundle,
   agent: Pick<HttpAgent, 'rootKey'>,
   trust: CloudSecurityTrust,
-  now = Date.now(),
-  allowDisputed = false
+  now = Date.now()
 ) {
   const account = xidBytes(trust.accountId),
     home = Principal.fromText(trust.homeUser)
@@ -107,7 +106,7 @@ export async function verifyCloudSecurity(
   const snapshot = decodeCanonical<Record<string, unknown>>(value)
   const { root, encoded } = encodeDeviceBundle(bundle)
   ensure(
-    snapshot.schema === 3 &&
+    snapshot.schema === 4 &&
       snapshot.issuer === trust.issuer &&
       snapshot.account_id instanceof Uint8Array &&
       equal(snapshot.account_id, account) &&
@@ -116,11 +115,6 @@ export async function verifyCloudSecurity(
       snapshot.devices_root instanceof Uint8Array &&
       equal(snapshot.devices_root, root),
     'INTEGRITY_FAILED'
-  )
-  ensure(
-    snapshot.account_status === 'Active' ||
-      (allowDisputed && snapshot.account_status === 'RecoveryDisputed'),
-    'LOCKED'
   )
   const safe = (v: unknown) => {
     ensure(

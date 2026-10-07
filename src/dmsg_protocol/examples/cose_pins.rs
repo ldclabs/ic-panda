@@ -1,12 +1,13 @@
-//! Print the `masters` field of a `CoseInit` for one COSE canister.
+//! Print the `master` field of a `CoseInit` for one COSE canister, and the
+//! derived content-root public key clients pin for recovery envelopes.
 //!
 //! ```sh
 //! cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- \
 //!   <cose-canister-id> Production [mainnet|pocketic] [key_1]
 //! ```
 use candid::Principal;
-use dmsg_protocol::cose_pins::{master_key_pins, KeySource};
-use dmsg_types::{cose::Algorithm, Environment};
+use dmsg_protocol::cose_pins::{content_root_public_key, master_key_pin, KeySource};
+use dmsg_types::Environment;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -29,31 +30,19 @@ fn main() {
         _ => panic!("{usage}"),
     };
     let key_name = args.get(3).map_or("key_1", String::as_str);
-    let masters = master_key_pins(
-        source,
-        canister,
-        &environment,
-        key_name,
-        &[
-            Algorithm::Ed25519,
-            Algorithm::EcdsaSecp256k1,
-            Algorithm::VetKdBls12381,
-        ],
-    )
-    .expect("known master key");
-    // Keep only the algorithms the deployment configures.
-    println!("masters = vec {{");
-    for master in masters {
-        let pin: String = master
-            .expected_fingerprint
-            .as_slice()
-            .iter()
-            .map(|b| format!("\\{b:02x}"))
-            .collect();
-        println!(
-            "  record {{ algorithm = variant {{ {:?} }}; key_name = \"{}\"; expected_fingerprint = blob \"{pin}\" }};",
-            master.algorithm, master.key_name
-        );
-    }
-    println!("}};");
+    let master = master_key_pin(source, canister, &environment, key_name).expect("known master key");
+    let public_key =
+        content_root_public_key(source, canister, &environment, key_name).expect("known master key");
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let pin: String = master
+        .expected_fingerprint
+        .as_slice()
+        .iter()
+        .map(|b| format!("\\{b:02x}"))
+        .collect();
+    println!(
+        "master = record {{ key_name = \"{}\"; expected_fingerprint = blob \"{pin}\" }};",
+        master.key_name
+    );
+    println!("content_root_public_key = {}", hex(&public_key));
 }

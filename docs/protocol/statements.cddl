@@ -29,7 +29,7 @@ file-statement-content = {
   ? 4: uri ; original file location; never automatically fetched
 }
 common-headers = (
-  1: -19 / -47, ; fully specified Ed25519 / ES256K
+  1: -19, ; fully specified Ed25519
   4: bstr .size (1..256), ; opaque kid, not an account or a trust anchor
   15: identity-claims
 )
@@ -71,14 +71,13 @@ signed-artifact = {
   "cose_sign1": bstr .cbor signed-statement,
   "cose_key": bstr .cbor public-key
 }
-public-key = ed25519-key / es256k-key
+public-key = ed25519-key
 ed25519-key = { 1: 1, ? 2: bstr, 3: -19, ? 4: [* int], -1: 6, -2: bstr .size 32, * key-label => any }
-es256k-key = { 1: 2, ? 2: bstr, 3: -47, ? 4: [* int], -1: 8, -2: bstr .size 32, -3: (bstr .size 32) / bool, * key-label => any }
 key-label = int / tstr
 ; Public keys MUST NOT contain -4 (private d). If key_ops exists, it MUST allow
 ; verify (2). If kid exists, it MUST equal the protected kid. Mathematical
 ; curve/key validation and these semantic constraints are checked by code.
-; RFC 9679 thumbprints use only required public members, with full EC2 y bytes.
+; RFC 9679 thumbprints use only required public members.
 ; Header/claim maps are closed; duplicate keys and unknown critical semantics
 ; are errors. crit ordering is emitted as above; validators compare its set.
 ; external_aad is empty. The Sig_structure is ["Signature1", protected, h'', payload].
@@ -92,7 +91,7 @@ app-action-statement = #6.18([
   signature: signature-bytes
 ])
 app-action-headers = {
-  1: -19 / -47,
+  1: -19,
   2: [15, 16],
   3: "application/cbor",
   4: bstr .size (1..256),

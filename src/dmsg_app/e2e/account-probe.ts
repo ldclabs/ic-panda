@@ -41,13 +41,11 @@ import {
   type SignatureRequest
 } from '../src/lib/protocol/requests'
 import { hpkeSeal } from '../src/lib/crypto/primitives'
-import { canonical, id } from '../src/lib/protocol/codec'
+import { canonical, hex, id, unhex } from '../src/lib/protocol/codec'
 import { ContentClient } from '../src/lib/services/content'
 import { flushCipherDispatches } from '../src/lib/services/background'
-import { decodeControlResult } from '../src/lib/protocol/account'
-import { unb64, hex, hash, unhex } from '../src/lib/protocol/codec'
 import { xidBytes } from '../src/lib/protocol/identity'
-import { currentWorkspace, registry, WorkspaceDB } from '../src/lib/db'
+import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 
 type ProbeInput = {
   gateway: string
@@ -77,25 +75,29 @@ let oldEvidence: {
   batch: Awaited<ReturnType<_SERVICE['security_snapshot_batch']>>
   bundle: Awaited<ReturnType<_SERVICE['get_device_bundle']>>
 } | null = null
+// `secret` is the user home's login-gated unlock secret once this device is
+// approved; a provisional workspace unlocks with nothing and holds no content.
 let saved: {
   input: ProbeInput
   crypto: CryptoClient
-  password: string
+  secret: Uint8Array | null
   account: string
-  code: string
-  backup: string
 } | null = null
-async function reconnect() {
-  if (!saved) throw new Error('Probe not initialized')
-  const meta = await saved.crypto.call('unlock', saved.password)
-  const identity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(authSeed))
+async function agentFor(gateway: string, seed: number) {
+  const identity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(seed))
   const agent = await HttpAgent.create({
-    host: saved.input.gateway,
+    host: gateway,
     identity,
     shouldFetchRootKey: false,
     verifyQuerySignatures: true
   })
   await agent.fetchRootKey()
+  return { identity, agent }
+}
+async function reconnect() {
+  if (!saved) throw new Error('Probe not initialized')
+  const meta = await saved.crypto.call('unlock', saved.secret)
+  const { identity, agent } = await agentFor(saved.input.gateway, authSeed)
   const actor = Actor.createActor<_SERVICE>(idlFactory, {
     agent,
     canisterId: saved.input.user
@@ -109,88 +111,48 @@ async function reconnect() {
     saved.input.user
   )
 }
+/** An approved device trades its provisional key for the login-gated secret. */
+async function bindUnlock(client: AccountClient) {
+  const data = saved!
+  if (data.secret) return
+  data.secret = await client.unlockSecret(data.account)
+  await data.crypto.call('bindUnlockSecret', data.secret)
+}
+function rootClient(client: AccountClient, input: ProbeInput) {
+  return new AccountRootClient(
+    client,
+    new CloudClient({ origin: input.relay, environment: 'local' }),
+    Actor.createActor<CoseService>(coseIdl, { agent: client.agent, canisterId: input.cose })
+  )
+}
+const note = (title: string, body: string, at: number) => ({
+  item: {
+    type: 'note' as const,
+    title,
+    body,
+    username: '',
+    secret: '',
+    url: '',
+    tags: [],
+    favorite: false,
+    createdAt: at,
+    updatedAt: at
+  }
+})
 ;(window as any).accountFollowup = async (action: string, payload: any) => {
-  if (action === 'export-directory') {
-    await saved!.crypto.call('unlock', saved!.password)
-    try {
-      await saved!.crypto.call(
-        'importFile',
-        new File([new Uint8Array(4096).fill(61)], 'directory-file.bin')
-      )
-      const directory = await navigator.storage.getDirectory()
-      const result = await saved!.crypto.call(
-        'exportDirectory',
-        saved!.password,
-        directory,
-        1024
-      )
-      const written = await directory.getDirectoryHandle(result.name)
-      const files: { name: string; text: string }[] = []
-      for await (const handle of (written as any).values()) {
-        const file = await handle.getFile()
-        files.push({ name: file.name, text: await file.text() })
-      }
-      return { files, code: saved!.code, count: result.count }
-    } finally {
-      await saved!.crypto.lock()
-    }
-  }
-  if (action === 'restore-directory') {
-    const crypto = new CryptoClient()
-    try {
-      const restored = await crypto.call('restoreDirectory', {
-        files: payload.files.map((f: any) => new File([f.text], f.name)),
-        code: payload.code,
-        password: 'directory-browser-test-password'
-      })
-      const view = await crypto.call('view')
-      const file = view.entries.find((e) => e.item.title === 'directory-file.bin')!
-      const data = await crypto.call('downloadFile', file.record.key)
-      return {
-        count: restored.count,
-        authorized: restored.meta.registered,
-        size: data.blob.size,
-        bytes: Array.from(new Uint8Array(await data.blob.arrayBuffer()))
-      }
-    } finally {
-      await crypto.lock()
-    }
-  }
-  if (action === 'fixture')
-    return {
-      input: saved!.input,
-      account: saved!.account,
-      code: saved!.code,
-      backup: saved!.backup
-    }
-  if (action === 'restore') {
+  if (action === 'fixture') return { input: saved!.input, account: saved!.account }
+  if (action === 'fresh-device') {
+    // A new browser profile starts with fresh device keys only; content and the
+    // unlock secret arrive after an administrator approves it and rotates the root.
     authSeed = payload.input.identitySeed ?? 42
-    const crypto = new CryptoClient(),
-      password = 'independent-device-test-password'
-    const restored = await crypto.call('restore', {
-      file: new File([payload.backup], 'account.dmsg'),
-      code: payload.code,
-      password
-    })
-    saved = {
-      input: payload.input,
-      crypto,
-      password,
-      account: payload.account,
-      code: payload.code,
-      backup: payload.backup
-    }
-    const view = await crypto.call('view')
+    const crypto = new CryptoClient()
+    const meta = await crypto.call('initialize')
+    saved = { input: payload.input, crypto, secret: null, account: payload.account }
     await crypto.lock()
-    return {
-      device: restored.meta.deviceId,
-      authorized: restored.meta.registered,
-      entries: view.entries.length,
-      generation: restored.meta.rootGeneration
-    }
+    return { device: meta.deviceId }
   }
   if (action === 'channel' && payload.action === 'offline') {
-    await saved!.crypto.call('unlock', saved!.password)
+    await saved!.crypto.call('unlock', saved!.secret)
     try {
       return {
         channels: await saved!.crypto.call('channelList'),
@@ -203,7 +165,8 @@ async function reconnect() {
       await saved!.crypto.lock()
     }
   }
-  if (action === 'request-recovery') authSeed = 43
+  // Recovery is authorized by a bound login: the extra identity bound during setup.
+  if (action === 'request-recovery') authSeed = (saved!.input.identitySeed ?? 42) + 2
   const client = await reconnect(),
     data = saved!
   const timer = setInterval(() => void data.crypto.call('tick').catch(() => {}), 5000)
@@ -298,14 +261,10 @@ async function reconnect() {
             capabilities: [...approved.device!.input.capabilities, { FormalApprove: null }]
           }
         })
-      const walletIdentity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(42))
-      const walletAgent = await HttpAgent.create({
-        host: data.input.gateway,
-        identity: walletIdentity,
-        shouldFetchRootKey: false,
-        verifyQuerySignatures: true
-      })
-      await walletAgent.fetchRootKey()
+      const { identity: walletIdentity, agent: walletAgent } = await agentFor(
+        data.input.gateway,
+        42
+      )
       const commerce = Actor.createActor<CommerceService>(commerceIdl, {
         agent: walletAgent,
         canisterId: data.input.commerce
@@ -366,7 +325,7 @@ async function reconnect() {
           if (!String(e).includes('Injected lost merchant reply')) throw e
         }
         await data.crypto.lock()
-        await data.crypto.call('unlock', data.password)
+        await data.crypto.call('unlock', data.secret)
         const result = (await product.approve(payload.id)) as import('dmsg-sdk').CheckoutView
         return { state: result.progress.status, calls }
       }
@@ -387,7 +346,7 @@ async function reconnect() {
         }
         if (!lost) throw new Error('Ledger did not lose committed response')
         await data.crypto.lock()
-        await data.crypto.call('unlock', data.password)
+        await data.crypto.call('unlock', data.secret)
         const block = await wallet.transferCheckout(order),
           after = await wallet.balance(ledger),
           funded = (await product.funding(
@@ -461,16 +420,10 @@ async function reconnect() {
           rootKey: legacy.root_key_hex
         }
       )
-      const oldIdentity = Ed25519KeyIdentity.generate(
-        new Uint8Array(32).fill(payload.seed ?? 52)
+      const { identity: oldIdentity, agent: oldAgent } = await agentFor(
+        legacy.gateway,
+        payload.seed ?? 52
       )
-      const oldAgent = await HttpAgent.create({
-        host: legacy.gateway,
-        identity: oldIdentity,
-        shouldFetchRootKey: false,
-        verifyQuerySignatures: true
-      })
-      await oldAgent.fetchRootKey()
       const approval = async (request: any) => {
         const result = await collectSnapshot(
           oldAgent,
@@ -542,7 +495,7 @@ async function reconnect() {
             if (!lost) throw new Error('Legacy proposal fault was not exercised')
             stage = 'worker restart'
             await data.crypto.lock()
-            await data.crypto.call('unlock', data.password)
+            await data.crypto.call('unlock', data.secret)
             stage = 'directory reconciliation'
             return await shared.view(
               sharedSourceKey(payload.draft.proposal.source, payload.draft.proposal.channel)
@@ -668,11 +621,7 @@ async function reconnect() {
         return await shared.shareHistory(payload.view, imported.key, payload.member)
       }
       if (payload.action === 'receive')
-        return await shared.receiveHistory(
-          payload.view,
-          payload.grant,
-          payload.recovery ? (payload.wrong ? '00'.repeat(32) : data.code) : undefined
-        )
+        return await shared.receiveHistory(payload.view, payload.grant)
       if (payload.action === 'joined') return await shared.joined(payload.view)
     }
     if (action === 'channel') {
@@ -681,14 +630,6 @@ async function reconnect() {
         new CloudClient({ origin: data.input.relay, environment: 'local' }),
         data.account
       )
-      if (payload.action === 'offline')
-        return {
-          channels: await data.crypto.call('channelList'),
-          messages: await data.crypto.call('channelMessages', payload.id),
-          files: (await data.crypto.call('view')).entries
-            .filter((e) => e.item.file)
-            .map((e) => e.item.title)
-        }
       if (payload.action === 'create') {
         const id = await channel.create('Real collaborative channel', 'collaboration')
         await channel.rotate(id)
@@ -743,7 +684,7 @@ async function reconnect() {
         }
         if (lost) {
           await data.crypto.lock()
-          await data.crypto.call('unlock', data.password)
+          await data.crypto.call('unlock', data.secret)
           await channel.rotate(payload.id)
         }
         return { ...(await channel.known(payload.id)), lost }
@@ -801,7 +742,7 @@ async function reconnect() {
         if (!String(error).includes('Injected lost claim response')) throw error
       }
       await data.crypto.lock()
-      await data.crypto.call('unlock', data.password)
+      await data.crypto.call('unlock', data.secret)
       const resumed = await new HandleClient(
         client,
         proxy,
@@ -863,18 +804,14 @@ async function reconnect() {
       const db = await WorkspaceDB.open((await currentWorkspace())!)
       await db.db.put('requests', request)
       db.db.close()
-      const cose = Actor.createActor<CoseService>(coseIdl, {
-        agent: client.agent,
-        canisterId: data.input.cose
-      })
       let dispatches = 0,
         live = true,
         signingError = ''
       const proxy = new Proxy(client.user, {
         get(target, key) {
-          if (key === 'sign')
-            return async (...args: Parameters<_SERVICE['sign']>) => {
-              const result = await target.sign(...args)
+          if (key === 'attest')
+            return async (...args: Parameters<_SERVICE['attest']>) => {
+              const result = await target.attest(...args)
               dispatches++
               if ('Err' in result) signingError = JSON.stringify(result.Err)
               throw new Error('Injected lost signing response')
@@ -893,7 +830,7 @@ async function reconnect() {
       const check = async () => {
         if (!live) throw new Error('Original source navigated')
       }
-      const signing = new SigningClient(lossy, cose, check)
+      const signing = new SigningClient(lossy, check)
       await signing.prepare(request, payload)
       live = false
       let navigationRejected = false
@@ -913,10 +850,10 @@ async function reconnect() {
       }
       if (signingError) throw new Error('Actual signing rejected: ' + signingError)
       await data.crypto.lock()
-      await data.crypto.call('unlock', data.password)
+      await data.crypto.call('unlock', data.secret)
       live = false // Reconciliation of a committed execution does not need the old page.
-      const resumed = await new SigningClient(lossy, cose, check).resume(request.id)
-      const repeat = await new SigningClient(lossy, cose, check).resume(request.id)
+      const resumed = await new SigningClient(lossy, check).resume(request.id)
+      const repeat = await new SigningClient(lossy, check).resume(request.id)
       if (
         resumed.stage !== 'complete' ||
         repeat.executionId !== resumed.executionId ||
@@ -970,7 +907,7 @@ async function reconnect() {
         } finally {
           db.db.close()
         }
-        await data.crypto.call('unlock', data.password)
+        await data.crypto.call('unlock', data.secret)
         await content.push(restored.key)
       }
       if (
@@ -1037,7 +974,7 @@ async function reconnect() {
               )
                 throw error
               await data.crypto.lock()
-              await data.crypto.call('unlock', data.password)
+              await data.crypto.call('unlock', data.secret)
             }
           }
         }
@@ -1050,8 +987,6 @@ async function reconnect() {
           if (bytes.length !== 1024 * 1024 || !bytes.every((b) => b === 37))
             throw new Error('Cloud file did not round-trip')
         }
-        const backup = await data.crypto.call('exportBackup', data.password)
-        data.backup = await backup.blob.text()
         return {
           ...pulled,
           lost: lost.size,
@@ -1062,17 +997,6 @@ async function reconnect() {
         }
       } finally {
         globalThis.fetch = fetcher
-      }
-    }
-    if (action === 'export-local') {
-      const result = await data.crypto.call('exportBackup', data.password)
-      data.backup = await result.blob.text()
-      return {
-        input: data.input,
-        account: data.account,
-        code: data.code,
-        backup: data.backup,
-        missing: result.missing
       }
     }
     if (action === 'capture-evidence') {
@@ -1104,25 +1028,12 @@ async function reconnect() {
       ).refresh(data.account)
     }
     if (action === 'request-recovery') {
-      const r = await client.requestRecovery(data.account, data.code)
+      const r = await client.requestRecovery(data.account)
       return { executeAfter: Number(r.pending!.execute_after) }
     }
     if (action === 'dispute') {
-      const r = await client.recoveryStatus(data.account)
-      await client.mutate(data.account, {
-        DisputeRecovery: {
-          op_id: r.pending!.request.op_id,
-          dispute: new Uint8Array(32).fill(9)
-        }
-      })
+      await client.disputeRecovery(data.account)
       return true
-    }
-    if (action === 'reconfirm') {
-      const r = await client.reconfirmRecovery(data.account, data.code)
-      return {
-        reconfirmed: r.pending!.reconfirmed,
-        executeAfter: Number(r.pending!.execute_after)
-      }
     }
     if (action === 'complete') {
       const r = await client.completeRecovery(data.account)
@@ -1149,58 +1060,30 @@ async function reconnect() {
       await client.mutate(data.account, { RevokeDevice: { device_id: unhex(payload) } })
       return true
     }
-    if (action === 'rotate-recovery') {
-      const current = await client.refresh(data.account)
-      const generation = Number(current.info.recovery[0]!.generation) + 1
-      const material = await data.crypto.call('accountRecovery', {
-        account: data.account,
-        generation,
-        action: 'generate'
-      })
-      await client.enrollRecovery(data.account, material.code, {
-        generation: BigInt(generation),
-        signing_pub: unb64(material.signingPublic),
-        hpke_pub: unb64(material.hpkePublic),
-        delay_ms: 86400000n
-      })
-      data.code = material.code
-    }
-    if (action === 'rotate' || action === 'open' || action === 'rotate-recovery') {
-      const root = new AccountRootClient(
-        client,
-        new CloudClient({ origin: data.input.relay, environment: 'local' })
-      )
-      const job =
+    if (action === 'rotate' || action === 'open' || action === 'recover') {
+      if (action !== 'rotate') await bindUnlock(client)
+      const root = rootClient(client, data.input)
+      let job =
         action === 'open'
           ? await root.openCurrent(data.account)
-          : await root.rotate(data.account)
-      const state = await client.refresh(data.account)
-      await data.crypto.call('activateAccountRoot', {
-        context: job.context!,
-        digest: hash(unb64(job.bytes!)),
-        uploadId: String(job.plan!.upload_id),
-        homeUser: data.input.user,
-        issuer: state.info.issuer,
-        password: data.password
-      })
-      await data.crypto.call('saveItem', {
-        item: {
-          type: 'note',
-          title: `Root ${job.context!.generation}`,
-          body: 'new generation content',
-          username: '',
-          secret: '',
-          url: '',
-          tags: [],
-          favorite: false,
-          createdAt: 2,
-          updatedAt: 2
-        }
-      })
-      const exported = await data.crypto.call('exportBackup', data.password)
-      data.backup = await exported.blob.text()
+          : action === 'recover'
+            ? await root.recoverCurrent(data.account)
+            : await root.rotate(data.account)
+      await root.activate(data.account, job)
+      const recovered = job.context!.generation
+      if (action === 'recover') {
+        // The derived generation is only a bridge: the recovered device at once
+        // re-wraps the root to itself alone, after which derivation is gone.
+        job = await root.rotate(data.account)
+        await root.activate(data.account, job)
+      }
+      await data.crypto.call(
+        'saveItem',
+        note(`Root ${job.context!.generation}`, 'new generation content', 2)
+      )
       return {
         generation: job.context!.generation,
+        recovered,
         entries: (await data.crypto.call('view')).entries.length
       }
     }
@@ -1212,36 +1095,19 @@ async function reconnect() {
 }
 ;(window as any).accountProbe = async (input: ProbeInput) => {
   authSeed = input.identitySeed ?? 42
-  const crypto = new CryptoClient(),
-    password = 'integration-only-local-password'
+  const crypto = new CryptoClient()
   const timer = setInterval(() => void crypto.call('tick').catch(() => {}), 5000)
   try {
-    const initialized = await crypto.call('initialize', password)
-    await crypto.call('verifyRecovery', initialized.recoveryCode)
-    await crypto.call('saveItem', {
-      item: {
-        type: 'note',
-        title: 'Account conversion note',
-        body: 'local private content',
-        username: '',
-        secret: '',
-        url: '',
-        tags: [],
-        favorite: false,
-        createdAt: 1,
-        updatedAt: 1
-      }
-    })
-    await crypto.call('importFile', new File([new Uint8Array([1, 2, 3, 4])], 'test.bin'))
-    const original = await currentWorkspace()
-    const identity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(authSeed))
-    const agent = await HttpAgent.create({
-      host: input.gateway,
-      identity,
-      shouldFetchRootKey: false,
-      verifyQuerySignatures: true
-    })
-    await agent.fetchRootKey()
+    const initialized = await crypto.call('initialize')
+    // Before the account exists the workspace only protects fresh device keys.
+    let provisionalWriteRefused = false
+    try {
+      await crypto.call('saveItem', note('Account conversion note', 'local private content', 1))
+    } catch (error) {
+      provisionalWriteRefused = /绑定|RECOVERY_INCOMPLETE/.test(String(error))
+    }
+    if (!provisionalWriteRefused) throw new Error('Unbound workspace accepted content')
+    const { identity, agent } = await agentFor(input.gateway, authSeed)
     const actor = Actor.createActor<_SERVICE>(idlFactory, { agent, canisterId: input.user })
     let loseCreate = true
     const proxy = new Proxy(actor, {
@@ -1263,7 +1129,7 @@ async function reconnect() {
       agent,
       identity.getPrincipal(),
       crypto,
-      initialized.meta,
+      initialized,
       input.user
     )
     try {
@@ -1272,50 +1138,49 @@ async function reconnect() {
     } catch (e) {
       if (!(e as Error).message.includes('响应尚未确认')) throw e
     }
-    // Terminate the real dedicated worker and reopen the encrypted journal.
+    // Terminate the real dedicated worker and reopen the encrypted journal
+    // with the provisional key.
     await crypto.lock()
-    await crypto.call('unlock', password)
+    await crypto.call('unlock')
     client = new AccountClient(
       actor,
       agent,
       identity.getPrincipal(),
       crypto,
-      initialized.meta,
+      initialized,
       input.user
     )
     const account = (await client.resume())!
     const own = await client.refresh(account)
     if (!own.device || own.device.revoked_at.length)
       throw new Error('Initial device not approved')
+    // The home's login-gated secret replaces the provisional key for good.
+    const secret = await client.unlockSecret(account)
+    await crypto.call('bindUnlockSecret', secret)
+    await crypto.lock()
+    let provisionalUnlockRefused = false
+    try {
+      await crypto.call('unlock')
+    } catch {
+      provisionalUnlockRefused = true
+    }
+    if (!provisionalUnlockRefused) throw new Error('Bound workspace unlocked without the secret')
+    await crypto.lock()
+    await crypto.call('unlock', secret)
     const outsider = new AccountClient(
       actor,
       agent,
       identity.getPrincipal(),
       crypto,
-      { ...initialized.meta, deviceId: '11'.repeat(32) },
+      { ...initialized, deviceId: '11'.repeat(32) },
       input.user
     )
     if ((await outsider.refresh(await outsider.create())).device)
       throw new Error('Second device was implicitly approved')
-    const recovery = await crypto.call('accountRecovery', {
-      account,
-      generation: 1,
-      action: 'generate'
-    })
-    await client.enrollRecovery(account, recovery.code, {
-      generation: 1n,
-      delay_ms: 86400000n,
-      signing_pub: unb64(recovery.signingPublic),
-      hpke_pub: unb64(recovery.hpkePublic)
-    })
-    const extraIdentity = Ed25519KeyIdentity.generate(new Uint8Array(32).fill(authSeed + 2))
-    const extraAgent = await HttpAgent.create({
-      host: input.gateway,
-      identity: extraIdentity,
-      shouldFetchRootKey: false,
-      verifyQuerySignatures: true
-    })
-    await extraAgent.fetchRootKey()
+    const { identity: extraIdentity, agent: extraAgent } = await agentFor(
+      input.gateway,
+      authSeed + 2
+    )
     const extraActor = Actor.createActor<_SERVICE>(idlFactory, {
       agent: extraAgent,
       canisterId: input.user
@@ -1325,7 +1190,7 @@ async function reconnect() {
       extraAgent,
       extraIdentity.getPrincipal(),
       crypto,
-      initialized.meta,
+      initialized,
       input.user
     )
     const binding = await extraClient.beginBinding(account)
@@ -1336,20 +1201,9 @@ async function reconnect() {
       )
     )
       throw new Error('Authentication binding was not committed')
-    const cloud = new CloudClient({ origin: input.relay, environment: 'local' })
-    let loseDerive = true,
-      loseCommit = true
+    let loseCommit = true
     const rootActor = new Proxy(actor, {
       get(target, key) {
-        if (key === 'derive_root')
-          return async (...args: Parameters<_SERVICE['derive_root']>) => {
-            const result = await target.derive_root(...args)
-            if (loseDerive) {
-              loseDerive = false
-              throw new Error('Injected lost derivation reply')
-            }
-            return result
-          }
         if (key === 'mutate_account')
           return async (...args: Parameters<_SERVICE['mutate_account']>) => {
             const result = await target.mutate_account(...args)
@@ -1367,87 +1221,54 @@ async function reconnect() {
       agent,
       identity.getPrincipal(),
       crypto,
-      initialized.meta,
+      initialized,
       input.user
     )
-    const root = new AccountRootClient(client, cloud)
+    const root = rootClient(client, input)
     let interruptions = 0,
       job: Awaited<ReturnType<AccountRootClient['run']>> | undefined
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       try {
         job = await root.run(account)
         break
       } catch (error) {
         if (
-          !(error as Error).message.includes('Injected lost derivation') &&
+          !(error as Error).message.includes('Injected lost commitment') &&
           !(error as Error).message.includes('响应尚未确认')
         )
           throw error
         interruptions++
         await crypto.lock()
-        await crypto.call('unlock', password)
+        await crypto.call('unlock', secret)
       }
     }
-    if (!job || interruptions !== 2 || (await client.pending()))
-      throw new Error('Root interruptions were not reconciled')
-    const committed = await client.refresh(account)
-    if (
-      !job.bytes ||
-      !job.context ||
-      hash(unb64(job.bytes)) !==
-        hex(Uint8Array.from(committed.info.current_root[0]!.bundle_digest))
-    )
-      throw new Error('Root mismatch')
-    const meta = await crypto.call('activateAccountRoot', {
-      context: job.context,
-      digest: hash(unb64(job.bytes)),
-      uploadId: String(job.plan!.upload_id),
-      homeUser: input.user,
-      issuer: committed.info.issuer,
-      password
-    })
+    if (!job || interruptions !== 1 || (await client.pending()))
+      throw new Error('Root interruption was not reconciled')
+    // Activation checks the certified commitment against the bundle bytes.
+    const meta = await root.activate(account, job)
+    if (meta.subjectId !== account || meta.unlock !== 'login')
+      throw new Error('Workspace was not bound to the account')
+    await crypto.call('saveItem', note('Account conversion note', 'local private content', 1))
+    await crypto.call('importFile', new File([new Uint8Array([1, 2, 3, 4])], 'test.bin'))
     const view = await crypto.call('view')
-    if (meta.subjectId !== account || view.entries.length !== 2)
-      throw new Error('Conversion missing content')
-    if (!view.entries.every((e) => e.record.subjectId === account))
-      throw new Error('Conversion retained fake identity')
-    const reg = await registry(),
-      records = await reg.getAll('workspaces')
-    reg.close()
-    if (!records.some((r) => r.name === original && !r.active && r.retained))
-      throw new Error('Original source was not retained')
-    const backup = await crypto.call('exportBackup', password)
-    const archive = JSON.parse(await backup.blob.text())
-    if (JSON.stringify(archive).includes(recovery.code.replaceAll('-', '')))
-      throw new Error('Recovery secret in export')
+    if (view.entries.length !== 2 || !view.entries.every((e) => e.record.subjectId === account))
+      throw new Error('Bound workspace content mismatch')
     await crypto.lock()
-    await crypto.call('unlock', password)
+    await crypto.call('unlock', secret)
     if ((await crypto.call('view')).entries.length !== 2)
-      throw new Error('Restart lost converted content')
-    const source = await WorkspaceDB.open(original!)
-    if ((await source.db.getAll('objects')).length !== 2) throw new Error('Source changed')
-    source.db.close()
-    saved = {
-      input,
-      crypto,
-      password,
-      account,
-      code: recovery.code,
-      backup: await backup.blob.text()
-    }
+      throw new Error('Restart lost bound content')
+    saved = { input, crypto, secret, account }
     return {
-      deriveCost: String(
-        (decodeControlResult('derive_root', job.result!) as any).Ok.cycles_cost_upper_bound
-      ),
       account,
       device: meta.deviceId,
       rootCommitted: job.stage === 'committed',
-      converted: true,
+      bound: true,
+      provisionalWriteRefused,
+      provisionalUnlockRefused,
       lostReplyResumed: true,
       concurrentCreateBlocked: true,
-      rootDigest: hash(unb64(job.bytes)),
-      generation: job.context.generation,
-      backupBytes: backup.blob.size
+      rootDigest: meta.account!.rootDigest,
+      generation: job.context!.generation
     }
   } finally {
     clearInterval(timer)

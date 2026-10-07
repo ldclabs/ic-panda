@@ -5,9 +5,10 @@ import {
   hpkeSeal,
   hpkeOpen,
   hpkePublic,
-  recoverySeeds,
-  passwordKey,
-  defaultKdf
+  unlockKey,
+  prfKey,
+  prfSalt,
+  deviceRootContext
 } from '../src/lib/crypto/primitives'
 import { random, utf8, b64, unb64 } from '../src/lib/protocol/codec'
 
@@ -24,22 +25,25 @@ describe('content cryptography', () => {
     await expect(open(key, b64(modified), aad)).rejects.toThrow()
     expect(await seal(key, plaintext, aad)).not.toBe(cipher)
   })
-  it('recovers future roots using only the offline recovery seed', async () => {
-    const seeds = recoverySeeds(random(), 'local', 'subject', 1),
-      publicKey = await hpkePublic(seeds.hpke),
+  it('seals a root to a device key under a generation-bound context', async () => {
+    const seed = random(),
+      publicKey = await hpkePublic(seed),
       root = random()
-    const envelope = await hpkeSeal(publicKey, root, ['root', 2])
-    expect(await hpkeOpen(seeds.hpke, envelope, ['root', 2])).toEqual(root)
-    await expect(hpkeOpen(random(), envelope, ['root', 2])).rejects.toThrow()
-    await expect(hpkeOpen(seeds.hpke, envelope, ['root', 3])).rejects.toThrow()
-    expect(seeds.signing).not.toEqual(seeds.hpke)
+    const context = deviceRootContext('local', 'account', 2, 'device')
+    const envelope = await hpkeSeal(publicKey, root, context)
+    expect(await hpkeOpen(seed, envelope, context)).toEqual(root)
+    await expect(hpkeOpen(random(), envelope, context)).rejects.toThrow()
+    await expect(
+      hpkeOpen(seed, envelope, deviceRootContext('local', 'account', 3, 'device'))
+    ).rejects.toThrow()
   })
-  it('rejects imported KDF work factors before allocating memory', async () => {
-    await expect(
-      passwordKey('sample password', { ...defaultKdf(), memory: 1024 * 1024 })
-    ).rejects.toThrow()
-    await expect(
-      passwordKey('sample password', { ...defaultKdf(), iterations: 1 })
-    ).rejects.toThrow()
+  it('separates login, PRF and salt derivations per workspace', () => {
+    const secret = random(),
+      workspace = `dmsg:local:${'11'.repeat(32)}:${'22'.repeat(32)}`
+    expect(unlockKey(secret, workspace)).toEqual(unlockKey(secret, workspace))
+    expect(unlockKey(secret, workspace)).not.toEqual(unlockKey(secret, `${workspace}1`))
+    expect(prfKey(secret, workspace)).not.toEqual(unlockKey(secret, workspace))
+    expect(prfSalt(workspace)).not.toEqual(prfSalt(`${workspace}1`))
+    expect(() => unlockKey(secret.subarray(0, 31), workspace)).toThrow()
   })
 })

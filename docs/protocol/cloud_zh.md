@@ -74,7 +74,6 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 | 本地 `Profile` | `{version,prev_hash,display_name,bio,avatar_upload,links}` | 仅发布明确选中的公开字段；name→display_name，link→links；contact 另走 inbox policy；头像必须是明确公开的 avatar 对象 |
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 先创建正式频道、接受成员并取得新 epoch；不把本地 `active`、签名或序号直接当在线授权 |
 | 本地 outbox receipt | 资源操作查询和实际服务回执 | 使用资源级回执，按原 request ID 对账；没有单独的通用发送队列实现 |
-| `.dmsg` 备份 | `dmsg-backup/1`，单包 256 MiB，各至多 10,000 个对象和文件块 | 导出、恢复共用限制；认证清单中的 `synced` 保存已同步对象 key，恢复时为其余历史版本重建待同步队列；离线恢复不授予链上设备权利 |
 
 这里的“本地文件”指新版 `src/dmsg_app` 的 R0 格式：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
 

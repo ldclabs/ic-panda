@@ -11,28 +11,29 @@ pub struct HandleAuthorization {
     pub expires_at: u64,
 }
 
-/// The latest completed recovery, retained for exact completion retries.
+/// The latest completed recovery, retained for exact completion retries and
+/// for the one root derivation its device may request.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct RecoveryReceipt {
     pub request_id: OpId,
     pub new_auth: Principal,
+    pub device_id: Hash,
+    /// Root generation the recovered device may still derive; None once it
+    /// commits a new root.
+    pub root_generation: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AccountState {
     pub created_at_ms: u64,
-    pub safety_budget: Budget,
     pub account_id: AccountId,
     pub home_user: Principal,
     pub home_cose: Principal,
     pub auth_bindings: Vec<Principal>,
     pub account_version: u64,
     pub security_epoch: u64,
-    pub status: AccountStatus,
     pub devices: BTreeMap<Hash, Device>,
-    pub recovery: Option<RecoveryPolicy>,
-    pub recovery_checked: bool,
-    pub recovery_nonce: u64,
+    pub recovery_delay_ms: u64,
     pub pending_recovery: Option<PendingRecovery>,
     pub completed_recovery: Option<RecoveryReceipt>,
     pub current_root: Option<ContentRootRef>,
@@ -56,18 +57,13 @@ impl AccountState {
         SecuritySnapshot {
             issuer: account_issuer(namespace, &self.account_id),
             home_cose: self.home_cose,
-            schema: 3,
+            schema: 4,
             account_id: self.account_id,
             home_user: self.home_user,
-            account_status: self.status.clone(),
             account_version: self.account_version,
             security_epoch: self.security_epoch,
             devices_root: digest("dmsg/devices/v1", &self.devices),
-            recovery_root_version: self.recovery.as_ref().map_or(0, |r| r.generation),
-            recovery_hpke_pub: self.recovery.as_ref().map(|r| r.hpke_pub),
-            recovery_signing_pub: self.recovery.as_ref().map(|r| r.signing_pub),
-            recovery_nonce: self.recovery_nonce,
-            recovery_delay_ms: self.recovery.as_ref().map(|r| r.delay_ms),
+            recovery_delay_ms: self.recovery_delay_ms,
             pending_recovery_digest: self
                 .pending_recovery
                 .as_ref()
@@ -89,23 +85,70 @@ impl AccountState {
             auth_bindings: self.auth_bindings.clone(),
             account_version: self.account_version,
             security_epoch: self.security_epoch,
-            status: self.status.clone(),
             devices: self.devices.clone(),
-            recovery: self.recovery.clone(),
-            recovery_checked: self.recovery_checked,
-            recovery_nonce: self.recovery_nonce,
+            recovery_delay_ms: self.recovery_delay_ms,
             pending_recovery: self.pending_recovery.clone(),
+            recovered_device: self
+                .completed_recovery
+                .as_ref()
+                .and_then(|r| r.root_generation.map(|g| (r.device_id, g))),
             current_root: self.current_root.clone(),
             root_slot: self.root_slot.clone(),
             vault_write_state: self.vault_write_state.clone(),
             sensitive_policy: self.sensitive_policy.clone(),
         }
     }
+
+    /// IDs of the devices that are not revoked.
+    pub fn active_devices(&self) -> Vec<Hash> {
+        self.devices
+            .iter()
+            .filter(|(_, d)| d.revoked_at.is_none())
+            .map(|(id, _)| *id)
+            .collect()
+    }
+}
+
+/// A device-signed statement the home verified and certified in one message.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Attestation {
+    pub device_id: Hash,
+    pub security_epoch: u64,
+    pub approved_at: u64,
+    pub expires_at: u64,
+    pub origin: String,
+    pub to_be_signed_digest: Hash,
+    pub public_key_fingerprint: Hash,
+    pub signature_digest: Hash,
+    pub artifact: SignedArtifact,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+// Records are decoded from stable memory per call; the variant size gap is immaterial.
+#[allow(clippy::large_enum_variant)]
+pub enum ExecutionRecord {
+    Attestation(Attestation),
+    Derivation {
+        grant: ExecutionGrant,
+        result: ExecutionResult,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AuthorizedExecution {
-    pub grant: ExecutionGrant,
+    pub account_id: AccountId,
+    pub request_id: OpId,
     pub command_digest: Hash,
-    pub result: ExecutionResult,
+    pub record: ExecutionRecord,
+}
+
+impl AuthorizedExecution {
+    /// Retention deadline of a terminal record: a day after its approval expired.
+    pub fn retention(&self) -> u64 {
+        match &self.record {
+            ExecutionRecord::Attestation(a) => a.expires_at,
+            ExecutionRecord::Derivation { grant, .. } => grant.expires_at,
+        }
+        .saturating_add(DAY)
+    }
 }

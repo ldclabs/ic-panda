@@ -13,14 +13,8 @@ pub use certified::{certified_batch, query_certificate, MAX_CERTIFIED_RESPONSE_B
 mod calls;
 pub use calls::{call, call_classified, CallFailure};
 
+/// Retained executions (attestations and recovery derivations) per account.
 pub const WINDOW: usize = 64;
-/// Leave eight retained-execution slots available for content-root operations.
-pub const FORMAL_EXECUTION_WINDOW: usize = WINDOW - 8;
-/// Daily formal-signature ceilings a user home may authorize for one account.
-/// COSE sizes its per-account hard budget to cover these and the root ceilings.
+/// Daily attestation ceiling a user home may record for one account; an
+/// account policy may choose less.
 pub const FORMAL_DAILY_EXECUTIONS: u32 = 100;
-pub const FORMAL_DAILY_CYCLES: u128 = 800_000_000_000;
-/// Separate daily content-root ceilings for bootstrap, approved-device unlock
-/// and revocation rekeys, at the measured ~68.3B vetKD cost.
-pub const ROOT_DAILY_EXECUTIONS: u32 = 20;
-pub const ROOT_DAILY_CYCLES: u128 = 300_000_000_000;

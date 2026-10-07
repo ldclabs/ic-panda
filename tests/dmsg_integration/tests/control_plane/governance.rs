@@ -41,7 +41,7 @@ fn unchanged(rendered: Rendered) -> bool {
 fn cose_and_payment_governance_run_validated_admin_operations() {
     let f = Fixture::new();
     let rendered = validate(&f, f.cose, "initialize_keys", ()).unwrap();
-    assert!(rendered.starts_with("Initialize Local chain keys: Ed25519 key_1 pinned to 0000"));
+    assert!(rendered.starts_with("Initialize Local content-root vetKD key key_1 pinned to 0000"));
     govern(&f, f.cose, f.sns, "initialize_keys", ());
     assert!(unchanged(validate(&f, f.cose, "initialize_keys", ())));
 

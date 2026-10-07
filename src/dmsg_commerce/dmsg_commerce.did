@@ -14,8 +14,6 @@ type AppCapability = variant {
 };
 // Governance-pinned application identity and browser boundary.
 type AppRegistration = record {
-  // Pinned execution canisters allowed to sign artifacts.
-  cose_homes : vec principal;
   // Explicit capability allowlist.
   capabilities : vec AppCapability;
   // Canonical exact browser origins, never URL prefixes.
@@ -34,8 +32,6 @@ type AppRegistration = record {
   environment : Environment;
   // Product authority that confirms prepared actions and signer-account linkage.
   action_authority : principal;
-  // Pinned user canisters allowed to authenticate accounts.
-  user_homes : vec principal;
   // Closed signing profile allowlist, empty for an authentication-only app.
   profiles : vec SigningProfile;
   // Stops new approvals; does not erase accepted commitments.
@@ -576,11 +572,9 @@ type ExecutionEntitlement = record {
   // Resource qualification and lease projection.
   view : EntitlementView;
 };
-// Versioned integer cost per formal-signing algorithm.
+// Versioned integer cost of one formal attestation.
 type ExecutionWeights = record {
-  // Units charged for one ES256K formal execution.
-  ecdsa_secp256k1 : nat64;
-  // Units charged for one Ed25519 formal execution.
+  // Units charged for one Ed25519 device attestation.
   ed25519 : nat64;
   // Immutable version identifier within this policy or catalog.
   version : nat64;

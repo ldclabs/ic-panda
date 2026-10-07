@@ -1,6 +1,5 @@
 use super::*;
 use crate::*;
-use dmsg_types::cose::*;
 use ed25519_dalek::{Signer, SigningKey};
 #[path = "../../dmsg_types/tests/support/app_action.rs"]
 mod fixture;
@@ -24,14 +23,14 @@ fn statement(action: AppAction) -> Statement {
 fn closed_actions_roundtrip_and_every_signed_field_is_bound() {
     let signer = SigningKey::from_bytes(&[71; 32]);
     let public = signer.verifying_key().to_bytes();
-    let kid = key_thumbprint(&public_cose_key(&Algorithm::Ed25519, &[], &public).unwrap()).unwrap();
+    let kid = key_thumbprint(&public_cose_key(&[], &public).unwrap()).unwrap();
     for command in fixture::commands() {
         let mut action = fixture::action();
         action.command = command;
         action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
         validate_app_action(&action).unwrap();
         let original = statement(action.clone());
-        let (_, tbs) = prepare_cose(&original, &Algorithm::Ed25519, &kid[..]).unwrap();
+        let (_, tbs) = prepare_cose(&original, &kid[..]).unwrap();
         let sig = signer.sign(&tbs).to_bytes().to_vec();
         let artifact = finish(&tbs, &public, sig.clone()).unwrap();
         assert_eq!(verify_artifact(&artifact).unwrap(), original);
@@ -59,7 +58,7 @@ fn closed_actions_roundtrip_and_every_signed_field_is_bound() {
             mutate(&mut changed);
             changed.input_hash = action_input_hash(&changed.command);
             let (_, changed_tbs) =
-                prepare_cose(&statement(changed), &Algorithm::Ed25519, &kid[..]).unwrap();
+                prepare_cose(&statement(changed), &kid[..]).unwrap();
             let changed_artifact = finish(&changed_tbs, &public, sig.clone()).unwrap();
             assert!(verify_artifact(&changed_artifact).is_err());
         }
@@ -76,10 +75,10 @@ fn unknown_fields_profiles_and_ambiguous_claims_are_rejected() {
     assert!(decode_canonical::<AppAction>(&canonical(&value)).is_err());
     let mut s = statement(a.clone());
     s.subject = Some("a contradictory subject".into());
-    assert!(prepare_cose(&s, &Algorithm::Ed25519, &[1]).is_err());
+    assert!(prepare_cose(&s, &[1]).is_err());
     s.subject = None;
     s.issued_at = Some(1);
-    assert!(prepare_cose(&s, &Algorithm::Ed25519, &[1]).is_err());
+    assert!(prepare_cose(&s, &[1]).is_err());
     let mut wrong = a.clone();
     wrong.version = 2;
     assert!(validate_app_action(&wrong).is_err());
@@ -100,8 +99,6 @@ fn admission_and_document_endpoint_fail_closed() {
         app_id: action.app_id.clone(),
         config_version: 1,
         origins: vec![action.origin.clone()],
-        user_homes: vec![candid::Principal::from_slice(&[1, 1])],
-        cose_homes: vec![candid::Principal::from_slice(&[2, 1])],
         product_ids: vec![],
         capabilities: vec![AppCapability::Authenticate],
         profiles: vec![],
@@ -121,24 +118,32 @@ fn admission_and_document_endpoint_fail_closed() {
         validate_action_admission(&action, &app, action.issued_at_ms),
         Err(Error::Locked)
     );
-    let request = SignRequest {
-        account_id: AccountId([3; 12]),
-        statement: statement(action),
-        origin: "https://example.test".into(),
-        key: SigningKeyRef {
-            algorithm: SigningAlgorithm::Ed25519,
-            kid: vec![1].into(),
-            public_key_fingerprint: Hash::new([1; 32]),
-        },
-        max_cycles: 1,
+}
+
+#[test]
+fn app_action_attestations_require_the_signing_account_and_a_bounded_approval() {
+    let action = fixture::action();
+    let request = AppActionAttestRequest {
+        account_id: action.signing_account,
+        issuer: "https://example.test/u/00000000000000000000".into(),
+        action: action.clone(),
+        signature: [6; 64].into(),
         approval: Approval {
             device_id: Hash::new([1; 32]),
             security_epoch: 1,
             sequence: 1,
             request_id: Hash::new([2; 32]),
-            expires_at: 1,
+            expires_at: action.expires_at_ms,
             signature: Default::default(),
         },
     };
-    assert_eq!(request.into_execution(), Err(Error::UnsupportedProtocol));
+    let statement = app_action_statement(&request).unwrap();
+    assert_eq!(statement.issuer, request.issuer);
+    assert_eq!(statement_purpose(&statement), KeyPurpose::AppAction);
+    let mut foreign = request.clone();
+    foreign.account_id = AccountId([4; 12]);
+    assert_eq!(app_action_statement(&foreign), Err(Error::Forbidden));
+    let mut late = request;
+    late.approval.expires_at = action.expires_at_ms + 1;
+    assert_eq!(app_action_statement(&late), Err(Error::Expired));
 }

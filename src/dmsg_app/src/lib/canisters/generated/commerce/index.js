@@ -11,7 +11,6 @@ export const idlFactory = ({ IDL }) => {
     'storage_bytes' : IDL.Nat64,
   });
   const ExecutionWeights = IDL.Record({
-    'ecdsa_secp256k1' : IDL.Nat64,
     'ed25519' : IDL.Nat64,
     'version' : IDL.Nat64,
   });
@@ -486,7 +485,6 @@ export const idlFactory = ({ IDL }) => {
     'AppActionV1' : IDL.Null,
   });
   const AppRegistration = IDL.Record({
-    'cose_homes' : IDL.Vec(IDL.Principal),
     'capabilities' : IDL.Vec(AppCapability),
     'origins' : IDL.Vec(IDL.Text),
     'product_ids' : IDL.Vec(IDL.Text),
@@ -496,7 +494,6 @@ export const idlFactory = ({ IDL }) => {
     'config_version' : IDL.Nat64,
     'environment' : Environment,
     'action_authority' : IDL.Principal,
-    'user_homes' : IDL.Vec(IDL.Principal),
     'profiles' : IDL.Vec(SigningProfile),
     'paused' : IDL.Bool,
   });
@@ -724,7 +721,6 @@ export const init = ({ IDL }) => {
     'storage_bytes' : IDL.Nat64,
   });
   const ExecutionWeights = IDL.Record({
-    'ecdsa_secp256k1' : IDL.Nat64,
     'ed25519' : IDL.Nat64,
     'version' : IDL.Nat64,
   });

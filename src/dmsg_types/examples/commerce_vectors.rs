@@ -4,7 +4,6 @@ use candid::Principal;
 use dmsg_protocol::billing::*;
 use dmsg_protocol::*;
 use dmsg_types::{billing::*, payment::DeliveryFeePolicy, *};
-use ed25519_dalek::SigningKey;
 
 #[path = "../tests/support/commerce.rs"]
 mod commerce;
@@ -158,26 +157,6 @@ fn main() {
         "delivery_receipt_v2",
         canonical(&(1u8, "dmsg/admission-receipt/v2", &receipt)),
     ));
-    let signing = SigningKey::from_bytes(&[7; 32]);
-    let public = public_cose_key(
-        &dmsg_types::cose::Algorithm::Ed25519,
-        &[],
-        &signing.verifying_key().to_bytes(),
-    )
-    .unwrap();
-    let fingerprint = key_thumbprint(&public).unwrap();
-    let statement = Statement {
-        issuer: "https://dmsg.test/u/040g2081040g2081040g".into(),
-        subject: None,
-        issued_at: None,
-        content: StatementContent::Text("Commerce grant vector".into()),
-    };
-    let (_, tbs) = prepare_cose(
-        &statement,
-        &dmsg_types::cose::Algorithm::Ed25519,
-        fingerprint.as_slice(),
-    )
-    .unwrap();
     let request_id = execution_request_id(&AccountId([1; 12]), 1, Hash::new([21; 32]), 0);
     let grant = dmsg_types::cose::ExecutionGrant {
         account_id: AccountId([1; 12]),
@@ -190,30 +169,13 @@ fn main() {
         device_sequence: 0,
         approved_at: 1_800_000_000_000,
         expires_at: 1_800_000_060_000,
-        commerce: Some(CommercialReservation {
-            reservation_id: request_id,
-            month_utc: month_utc(1_800_000_000_000).unwrap(),
-            units: 1,
-            weight_policy_version: 1,
-            business_revision: 1,
-            lease_revision: 2,
-            valid_until_ms: 1_800_000_060_000,
-        }),
-        kind: dmsg_types::cose::ExecutionKind::Sign {
-            key: dmsg_types::cose::KeyRequest {
-                purpose: dmsg_types::cose::KeyPurpose::Statement,
-                algorithm: dmsg_types::cose::Algorithm::Ed25519,
-                generation: 1,
-            },
-            to_be_signed: tbs.into(),
-            public_key_fingerprint: fingerprint,
-            origin: "https://example.com".into(),
-        },
-        max_cycles: 100_000_000_000,
+        generation: 3,
+        transport_key: ic_bls12_381::G1Affine::generator().to_compressed().into(),
+        max_cycles: 70_000_000_000,
     };
     values.push(vector(
-        "execution_grant_v3",
-        canonical(&(1u8, "dmsg/cose-execution/v3", &grant)),
+        "execution_grant_v4",
+        canonical(&(1u8, "dmsg/cose-execution/v4", &grant)),
     ));
     println!("{}", serde_json::to_string_pretty(&values).unwrap());
 }

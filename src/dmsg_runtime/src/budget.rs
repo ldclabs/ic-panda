@@ -36,6 +36,11 @@ impl Budget {
         Ok(())
     }
 
+    /// Count one execution that reserves no cycles.
+    pub fn count(&mut self, now: u64, count_limit: u32) -> Result<()> {
+        self.reserve(now, 0, count_limit, 0)
+    }
+
     /// Replace a reservation made at `reserved_at` with what it actually
     /// charged, also returning its execution when nothing ran. A day that has
     /// since been reset no longer holds the reservation. Never traps, so a

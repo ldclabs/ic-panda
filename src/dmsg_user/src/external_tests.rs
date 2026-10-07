@@ -221,7 +221,6 @@ fn authentication_is_independent_of_formal_execution_and_vault_state() {
     let account = account();
     let request = fixtures::authentication();
     let approval = signed(&account, &request);
-    assert!(!account.recovery_checked);
     assert_eq!(account.vault_write_state, VaultWriteState::Uninitialized);
     let budget = account.budget.clone();
     let mut changed = account.clone();
@@ -246,7 +245,7 @@ fn authentication_is_independent_of_formal_execution_and_vault_state() {
     .unwrap();
     assert_eq!(changed.budget, budget);
     assert!(changed.execution_expirations.is_empty());
-    changed.status = AccountStatus::RecoveryDisputed;
+    changed.sensitive_policy.frozen = true;
     assert_eq!(
         current_device(&changed, approval.device_id, approval.security_epoch),
         Err(Error::Locked)

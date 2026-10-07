@@ -27,7 +27,7 @@ import type { CryptoClient } from '../crypto/client'
 import { config } from '../config'
 import { bytes, decodeCanonical, equal, unb64, unhex, utf8, hash } from '../protocol/codec'
 import { ensure } from '../errors'
-import { xidBytes } from '../protocol/identity'
+import { xidBytes, xidText } from '../protocol/identity'
 import { verifyDocumentArtifact, type Artifact } from '../protocol/statements'
 
 class WorkerIdentity extends SignIdentity {
@@ -44,17 +44,19 @@ class WorkerIdentity extends SignIdentity {
     return (await this.client.call('authSign', bytes(blob))) as Signature
   }
 }
+/** Internet Identity login to the worker's session key. Works before the
+ * workspace is unlocked, because unlocking itself needs the login. */
 export async function login(
   client: CryptoClient,
-  publicKey: string,
   derivationOrigin: string,
   explicitTargets?: string[]
 ): Promise<Identity> {
   ensure(
-    config.derivationOrigins.includes(derivationOrigin) && config.canisters.user,
+    config.derivationOrigins.includes(derivationOrigin) && config.canisters.handle,
     'UNAVAILABLE',
-    '请先在构建配置中指定新版用户服务。'
+    '请先在构建配置中指定名称注册表。'
   )
+  const publicKey = await client.call('authPublicKey')
   const identity = new WorkerIdentity(Ed25519PublicKey.fromRaw(unb64(publicKey)), client)
   const signer = new Signer({
     transport: new PostMessageTransport({
@@ -65,12 +67,20 @@ export async function login(
   })
   await signer.openChannel()
   try {
+    const targets =
+      explicitTargets ??
+      [
+        config.canisters.handle,
+        config.canisters.cose,
+        config.canisters.commerce,
+        config.canisters.membership,
+        config.canisters.payment,
+        ...(await userHomes()).userHomes
+      ].filter(Boolean)
     const chain = await signer.requestDelegation({
       publicKey: identity.getPublicKey(),
       maxTimeToLive: 15n * 60n * 1000000000n,
-      targets: (explicitTargets ?? Object.values(config.canisters))
-        .filter(Boolean)
-        .map((p) => Principal.fromText(p))
+      targets: targets.map((p) => Principal.fromText(p))
     })
     // The private session key remains in the worker. The public delegation is
     // held in page memory; nothing is written to auth-client-db or storage.sync.
@@ -79,7 +89,7 @@ export async function login(
     await signer.closeChannel()
   }
 }
-export async function services(identity?: Identity) {
+export async function agentFor(identity?: Identity) {
   const agent = await HttpAgent.create({
     host: config.icHost,
     identity,
@@ -91,11 +101,16 @@ export async function services(identity?: Identity) {
     /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(config.icHost)
   )
     await agent.fetchRootKey()
+  return agent
+}
+export const userActor = (agent: HttpAgent, home: string) =>
+  Actor.createActor<UserService>(userIDL, { agent, canisterId: home })
+export async function services(identity?: Identity) {
+  const agent = await agentFor(identity)
   const create = <T>(idl: Parameters<typeof Actor.createActor>[0], canisterId: string) =>
     canisterId ? Actor.createActor<T>(idl, { agent, canisterId }) : null
   return {
     agent,
-    user: create<UserService>(userIDL, config.canisters.user),
     handle: create<HandleService>(handleIDL, config.canisters.handle),
     cose: create<CoseService>(coseIDL, config.canisters.cose),
     commerce: create<CommerceService>(commerceIDL, config.canisters.commerce),
@@ -103,12 +118,58 @@ export async function services(identity?: Identity) {
     payment: create<PaymentService>(paymentIDL, config.canisters.payment)
   }
 }
+/** The governed home list of the handle registry, the authority on which
+ * user canisters belong to this deployment. Cached briefly per page. */
+let homesCache: { at: number; value: { userHomes: string[]; registrationHomes: string[] } } | null =
+  null
+export async function userHomes(fresh = false) {
+  if (!fresh && homesCache && Date.now() - homesCache.at < 300000) return homesCache.value
+  const { handle } = await services()
+  ensure(handle, 'UNAVAILABLE', '请先在构建配置中指定名称注册表。')
+  const cfg = await handle.get_handle_config()
+  const value = {
+    userHomes: cfg.user_homes.map((p) => p.toText()),
+    registrationHomes: cfg.registration_homes.map((p) => p.toText())
+  }
+  ensure(
+    value.userHomes.length > 0 &&
+      value.registrationHomes.every((home) => value.userHomes.includes(home)) &&
+      config.canisters.userHomes.every((home) => value.userHomes.includes(home)),
+    'INTEGRITY_FAILED',
+    '名称注册表的用户服务列表与构建配置不一致。'
+  )
+  homesCache = { at: Date.now(), value }
+  return value
+}
+/** A build-time pinned home is trusted offline; others are checked against the registry. */
+export async function assertAccountHome(home: string) {
+  if (config.canisters.userHomes.includes(home)) return
+  ensure((await userHomes()).userHomes.includes(home), 'FORBIDDEN', '账户所在服务不在当前列表中。')
+}
+/** Find the login's account across every home; any query failure is unknown,
+ * never a reason to register again. */
+export async function locateAccount(agent: HttpAgent) {
+  const { userHomes: homes } = await userHomes()
+  const found = await Promise.all(
+    homes.map(async (home) => {
+      const result = await userActor(agent, home).my_account()
+      return result.length ? { home, account: xidText(Uint8Array.from(result[0]!)) } : null
+    })
+  )
+  return found.find((x) => x !== null) ?? null
+}
+export async function registrationHome() {
+  const { registrationHomes } = await userHomes(true)
+  ensure(registrationHomes.length > 0, 'UNAVAILABLE', '当前没有接收新账户的用户服务。')
+  return registrationHomes[Math.floor(Math.random() * registrationHomes.length)]
+}
 /** Identity/authorization evidence is promoted only after certificate and
  * artifact binding checks. This says nothing about external TSA trust or the
  * signer's present permissions. Retain the certificate for later auditing. */
 export async function verifyExecutionReceipt(
   batch: CertifiedBatch,
   agent: HttpAgent,
+  homeUser: string,
   accountId: string,
   requestId: string,
   issuer: string,
@@ -121,7 +182,7 @@ export async function verifyExecutionReceipt(
   const { value, certifiedAt, expiresAt } = await certifiedValue(
     batch,
     agent,
-    config.canisters.user,
+    homeUser,
     key,
     null
   )
@@ -130,8 +191,7 @@ export async function verifyExecutionReceipt(
   const matches = (actual: unknown, expected: Uint8Array) =>
     actual instanceof Uint8Array && equal(actual, expected)
   ensure(
-    receipt.schema === 1 &&
-      receipt.status === 'Completed' &&
+    receipt.schema === 2 &&
       receipt.issuer === issuer &&
       checked.statement.issuer === issuer &&
       matches(receipt.account_id, account) &&

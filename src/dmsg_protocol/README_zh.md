@@ -39,11 +39,12 @@ dmsg_protocol = "0.2"
 | 组装与验证 | `PreparedStatement::into_signature`, `PreparedSignature::finish`, `verify_artifact` | 确认 issuer 身份、授权与当前状态 |
 | 描述签名公钥 | `cose_algorithm`, `public_cose_key`, `key_thumbprint` | 认证公钥来源，不把指纹当成所有权证明 |
 | 标识签署者 | `account_issuer`, `validate_uri`, `validate_namespace` | 配置可信命名空间，并与已认证证据绑定 |
-| 准备 ICP 批准 | `SignRequestExt`, `approval_message`, `EXECUTE_APPROVAL_DOMAIN`, `execute_approval_command`, `execution_request_id` | 获取当前账户/设备状态、签署摘要并提交到 user home |
-| 验证请求输入 | `DeviceInputExt`, `CoseInitExt`, `KeyRequestExt`, `validate_origin`, `validate_transport_key` | 执行服务端授权、私钥持有证明检查与状态转换 |
-| 配置 COSE 执行器 | `content_root_context`、`cose_pins::master_key_pins`（feature `cose-pins`） | 先创建 canister：pin 依赖其 ID；初始化后核对取得的指纹 |
+| 准备 ICP 批准 | `prepare_attestation`, `app_action_statement`, `approval_message`, `ATTEST_APPROVAL_DOMAIN`, `attest_approval_command`, `DERIVE_APPROVAL_DOMAIN`, `derive_approval_command`, `execution_request_id` | 获取当前账户/设备状态，用设备密钥签署 Sig_structure 与摘要并提交到 user home |
+| 验证请求输入 | `DeviceInputExt`, `CoseInitExt`, `validate_origin`, `validate_transport_key` | 执行服务端授权、私钥持有证明检查与状态转换 |
+| 配置 COSE 执行器 | `content_root_context`、`cose_pins::master_key_pin`（feature `cose-pins`） | 先创建 canister：pin 依赖其 ID；初始化后核对取得的指纹 |
 | 核对执行证据 | `match_signing_result`, `signature_digest`, `execution_receipt_key`, `match_execution_receipt` | 先验证 IC certificate、预期 canister、witness、路径和叶值 |
-| 处理恢复与名称 | `recovery_confirmation_message`, `normalize_handle`, `price`, `charge_terms_digest` | 在对应服务中执行恢复政策、名称与账本操作 |
+| 绑定根与密钥 | `root_recipients_digest`, `root_bundle_digest`, `recovery_device_message`, `controller_pop_message` | 客户端构造根包与证明，服务重算并比对 |
+| 处理名称 | `normalize_handle`, `price`, `charge_terms_digest` | 在对应服务中执行名称与账本操作 |
 | 检查基础约束 | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | 提供可信 caller、时间和状态；辅助函数不读取或修改它们 |
 
 Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原始严格 Ed25519 验签；`verify_artifact` 还验证 COSE 文档 profile。`authenticated` 仅排除匿名和管理 canister Principal，不证明账户成员身份。
@@ -59,14 +60,13 @@ use dmsg_protocol::{
     account_issuer, key_thumbprint, match_signing_result, parse_signing_input,
     prepare_cose, public_cose_key, sha256, verify_artifact,
 };
-use dmsg_types::{cose::Algorithm, AccountId, Statement, StatementContent};
+use dmsg_types::{AccountId, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let signer = SigningKey::from_bytes(&[7; 32]); // 仅用于测试。
 let public = signer.verifying_key().to_bytes();
-let algorithm = Algorithm::Ed25519;
 // 此处允许空 kid，以便先计算公钥指纹。
-let fingerprint = key_thumbprint(&public_cose_key(&algorithm, &[], &public).unwrap()).unwrap();
+let fingerprint = key_thumbprint(&public_cose_key(&[], &public).unwrap()).unwrap();
 let original = b"Release 1.0 specification";
 let statement = Statement {
     issuer: account_issuer("https://example.org/u/", &AccountId([1; 12])),
@@ -78,7 +78,7 @@ let statement = Statement {
         location: None,
     },
 };
-let (_, tbs) = prepare_cose(&statement, &algorithm, fingerprint.as_slice()).unwrap();
+let (_, tbs) = prepare_cose(&statement, fingerprint.as_slice()).unwrap();
 let signature = signer.sign(&tbs).to_bytes().to_vec();
 let artifact = parse_signing_input(&tbs)
     .unwrap()
@@ -96,71 +96,67 @@ assert_eq!(verify_artifact(&artifact).unwrap(), statement);
 | 算法 | COSE 标签 | 签名器输入 | 传给 `finish`/`into_signature` 的签名/公钥 |
 | --- | --- | --- | --- |
 | Ed25519 | -19 | 完整 tbs 字节 | 64 字节签名；原始 32 字节公钥 |
-| ES256K | -47 | 使用 prehash API 时传 SHA-256(tbs) | 64 字节 r\|\|s，不是 DER，归一为 low-S；SEC1 secp256k1 公钥 |
 
-使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`PreparedSignature::finish` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops，并展开压缩 EC y 坐标；它不是原始公钥 SHA-256，也不是完整公钥验证器。
+使用内部计算哈希的 API 时，应传入 tbs，避免重复哈希。vetKD 不是文档签名算法。`PreparedSignature::finish` 组装并校验结构，但**不验证签名**；`match_signing_result` 或 `verify_artifact` 才执行验签。`public_cose_key` 返回编码后的 COSE_Key，输入则是原始公钥。`key_thumbprint` 对必需的公开 COSE 参数计算摘要，排除 kid/alg/key_ops；它不是原始公钥 SHA-256，也不是完整公钥验证器。
 
 `parse_signing_input` 返回不可变 `PreparedStatement`，通过 `statement()`、`algorithm()` 和 `kid()` 读取已验证内容。在调用签名器前运行 `into_signature(public)`，回调时使用 `PreparedSignature::finish(signature)`，复用已验证的封装和公钥编码；接收产物时仍需数学验签。
 
 ## 构造 ICP 设备批准
 
-以下示例构造本地请求和设备签名，不联系 canister，也不授予权限。真实账户 ID、设备 ID、epoch、序号和签名公钥引用必须从已配置、已认证的服务取得。示例 ID 和密钥仅用于演示。
+以下示例构造本地认证请求和设备签名，不联系 canister，也不授予权限。真实账户 ID、设备 ID、epoch 和序号必须从已配置、已认证的服务取得。示例 ID 和密钥仅用于演示。
 
 ```rust
 use candid::Principal;
 use dmsg_protocol::{
-    approval_message, execute_approval_command, execution_request_id, SignRequestExt,
-    EXECUTE_APPROVAL_DOMAIN,
+    approval_message, attest_approval_command, execution_request_id, prepare_attestation,
+    ATTEST_APPROVAL_DOMAIN,
 };
-use dmsg_types::{
-    cose::{SignRequest, SigningAlgorithm, SigningKeyRef},
-    AccountId, Approval, Hash, Statement, StatementContent,
-};
+use dmsg_types::{AccountId, Approval, AttestRequest, Hash, Statement, StatementContent};
 use ed25519_dalek::{Signer, SigningKey};
 
 let account_id = AccountId([1; 12]);
 let device_id = Hash::new([2; 32]);
+let device_key = SigningKey::from_bytes(&[9; 32]); // 仅用于测试。
+let device_public: Hash = device_key.verifying_key().to_bytes().into();
 let security_epoch = 1;
 let sequence = 0;
-let request_id = execution_request_id(&account_id, security_epoch, device_id, sequence);
-let request = SignRequest {
+let statement = Statement {
+    issuer: "https://example.org/signers/alice".into(),
+    subject: None,
+    issued_at: None,
+    content: StatementContent::Text("Approve release 1.0".into()),
+};
+// 设备签署精确的 Sig_structure；kid 是设备公钥的 RFC 9679 指纹。
+let prepared = prepare_attestation(&statement, &device_public).unwrap();
+let mut request = AttestRequest {
     account_id,
-    key: SigningKeyRef {
-        algorithm: SigningAlgorithm::Ed25519,
-        kid: vec![3; 32].into(),
-        public_key_fingerprint: Hash::new([3; 32]),
-    },
-    statement: Statement {
-        issuer: "https://example.org/signers/alice".into(),
-        subject: None,
-        issued_at: None,
-        content: StatementContent::Text("Approve release 1.0".into()),
-    },
+    statement,
     origin: "https://example.org".into(),
-    max_cycles: 1_000_000_000,
+    signature: device_key.sign(&prepared.to_be_signed).to_bytes().into(),
     approval: Approval {
-        device_id, security_epoch, sequence, request_id,
-        expires_at: 1_800_000_060_000, // Unix 毫秒；实际请求应使用有效期限。
+        device_id,
+        security_epoch,
+        sequence,
+        request_id: execution_request_id(&account_id, security_epoch, device_id, sequence),
+        expires_at: 1_800_000_060_000, // Unix 毫秒；实际使用有效的截止时间。
         signature: Default::default(), // 不进入批准摘要。
     },
 };
-let mut execution = request.into_execution().unwrap();
-let home_user = Principal::from_slice(&[1, 1]); // 部署演示值。
+let home_user = Principal::from_slice(&[1, 1]); // 部署示例值。
 let digest = approval_message(
     home_user,
-    &execution.account_id,
-    EXECUTE_APPROVAL_DOMAIN,
-    &execute_approval_command(&execution),
-    &execution.approval,
+    &request.account_id,
+    ATTEST_APPROVAL_DOMAIN,
+    &attest_approval_command(&request.statement, &request.origin, &request.signature),
+    &request.approval,
 );
-let device_key = SigningKey::from_bytes(&[9; 32]); // 仅用于测试。
-execution.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
-assert_eq!(execution.approval.request_id, request_id);
+request.approval.signature = device_key.sign(digest.as_slice()).to_bytes().into();
+assert_eq!(prepared.thumbprint, dmsg_protocol::key_thumbprint(&prepared.cose_key).unwrap());
 ```
 
-`SignRequestExt::into_execution` 验证 origin 和声明，以签名 generation 1 准备字节。它保留传入的指纹和批准，不认证它们。执行批准把 `EXECUTE_APPROVAL_DOMAIN`（`dmsg/execute/v3`）和 `execute_approval_command`（即 `(kind, max_cycles)`）传给 `approval_message`，再包装到 `dmsg/device-approval/v2`；user canister 校验同一组值。任何已批准字段变化都需要新批准。类型化 `sign` 入口接收 SignRequest；低层 ExecuteRequest 还表示根派生，不是无限制的原始字节签名入口。
+批准把 `ATTEST_APPROVAL_DOMAIN`（`dmsg/attest/v1`）和 `attest_approval_command`（即 `(statement, origin, signature)` 三元组）传给 `approval_message`，再包装到 `dmsg/device-approval/v2`；user canister 校验同一组值、设备对 Sig_structure 的签名，并写入认证回执。任何已批准字段变化都需要新批准。应用动作用 `app_action_statement` 由 `AppActionAttestRequest` 构造声明，并绑定 `action.origin`。
 
-账户变更使用 `approval_message`、`dmsg/account/v2` 域和 `(expected_version, command)`。恢复再次确认使用 `recovery_confirmation_message` 和恢复密钥，不使用设备密钥。序号消耗、期限检查和权限决定发生在服务中。结果未知时，对账原请求，不自动创建新的签名操作。
+账户变更使用 `approval_message`、`dmsg/account/v2` 域和 `(expected_version, command)`。恢复设备的根派生使用 `DERIVE_APPROVAL_DOMAIN` 与 `derive_approval_command`，即 `(generation, transport_public_key, max_cycles)`。序号消耗、期限检查和权限决定发生在服务中。结果未知时，对账原请求，不自动创建新的签名操作。
 
 ## 编码与身份辅助函数
 
@@ -185,7 +181,7 @@ AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 3
 
 `verify_artifact` 只检查 profile 和数学签名。原文需由调用方对照验证后的声明自行核对：内嵌文本必须逐字节匹配，摘要或文件声明必须匹配原文件的 SHA-256；内嵌意见文本不代表已核对文件。issuer 绑定、授权、当前状态和时间戳信任都不在检查范围内。
 
-调用 `match_execution_receipt` 前，先独立验证可信 IC 根、预期 user canister、certificate、witness、请求路径和叶值。`execution_receipt_key` 构造单段原始路径 `b"execution/" || account_id[12] || request_id[32]`。匹配器要求 schema 1 和 Completed，然后匹配 issuer、待签字节摘要、公钥指纹和原始签名摘要。它不独立检查回执的账户/请求 ID、origin、截止时间或外部项目权限；应认证预期路径，并单独执行其他政策检查。
+调用 `match_execution_receipt` 前，先独立验证可信 IC 根、预期 user canister、certificate、witness、请求路径和叶值。`execution_receipt_key` 构造单段原始路径 `b"execution/" || account_id[12] || request_id[32]`。匹配器要求 schema 2，然后匹配 issuer、待签字节摘要、公钥指纹和原始签名摘要。它不独立检查回执的账户/请求 ID、origin、截止时间或外部项目权限；应认证预期路径，并单独执行其他政策检查。
 
 `signature_digest` 对执行回执使用的原始签名字节计算 SHA-256，不验证签名或 dMsg profile。
 
@@ -209,13 +205,15 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 英文 README 作为 crate 文档，其 Rust 示例会执行 doctest。两版示例代码保持一致，只翻译注释。`missing_docs` 警告帮助维护 API 注释覆盖率。
 
-COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`，按主网 master 公钥离线派生并打印 `CoseInit` 的 `masters` 字段（第三个参数 `pocketic` 改用 PocketIC 与本地 dfx 的 key）。离线验签运行 `cargo run -p dmsg_protocol --example verify -- artifact.cbor`。输入是包含 cose_sign1 和 cose_key 字节串的 CBOR SignedArtifact 记录，不是单独的 COSE_Sign1 文件。输出只报告数学验证。性能基准使用 `cargo bench -p dmsg_protocol --bench validation --locked`，衡量宿主机 Rust 执行，不代表 canister 指令数或端到端延迟。真实 Wasm 联调使用 `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`。
+COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`，按主网 master 公钥离线派生并打印 `CoseInit` 的 `master` 字段与内容根公钥（第三个参数 `pocketic` 改用 PocketIC 与本地 dfx 的 key）。离线验签运行 `cargo run -p dmsg_protocol --example verify -- artifact.cbor`。输入是包含 cose_sign1 和 cose_key 字节串的 CBOR SignedArtifact 记录，不是单独的 COSE_Sign1 文件。输出只报告数学验证。性能基准使用 `cargo bench -p dmsg_protocol --bench validation --locked`，衡量宿主机 Rust 执行，不代表 canister 指令数或端到端延迟。真实 Wasm 联调使用 `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`。
 
 ## 维护者发布说明
 
 先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.2.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
 
-0.2.0 移除了 0.1.x 中没有生产代码使用的公开项。`finish_cose` 改为 `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`；`ExecuteRequestExt::approval_message` 改为用 `EXECUTE_APPROVAL_DOMAIN` 和 `execute_approval_command` 调用 `approval_message`；`ExecutionResult::output()` 改为匹配 `ExecutionOutcome::Completed`。`dmsg_types::handle::HandleInit` 新增必填字段 `governance`，并以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代 `home_user`，按账户 ID 的分配器指纹路由。新增的 `handle_bucket` 与 `HANDLE_BUCKET_BITS` 规定注册表在何处认证名称。`CoseInit` 以 `user_homes` 取代 `initial_home_user` 并新增 `governance`；`PaymentInit` 以 `environment`、`issuer_namespace` 和 `user_homes` 取代 `home_user`，`PaymentConfiguration` 改列 `user_homes`；`DirectoryInit` 新增 `governance`。新增的 `agent::check_user_home`、`validate_user_homes`、`account_home`、`is_account_home`、`validate_custom_domains` 和 `MAX_USER_HOMES`（64）让各服务使用同一套分配器指纹路由。`MIN_HANDLE_PRICE`（即 7–20 字节名称的 `price`）从 5,000 PANDA 改为 100 PANDA，与旧注册表的现行价格一致。 `ProductRegistration` 以只能追加的 `beneficiary_authorities` 取代 `beneficiary_authority`，`validate_subject` 要求主体的 authority 在列表中；`CommerceInit` 以 `limits: CommerceLimits` 取代 `max_subjects` 与 `daily_orders`。新增 `dmsg_types::integration::LEASE_RENEW_WINDOW_MS`（10 分钟），是 commerce 与 membership 共用的租约续期窗口。`CommerceLimits` 新增 `calls_per_caller`，新增的 `CommerceStats` 报告 commerce 的实时记录数；`PandaServiceConfig` 以只能追加的 `commerce_homes: Vec<CommerceHome>`（每个 user home 的 commerce）取代 `commerce_canister`，并新增 `qualifications_per_minute`。`ExecutionResult` 新增 `cycles_charged`，即返回的管理调用实际消耗的阈值费用，COSE 与 user 的预算都结算到它；新增的 `CoseStats` 报告 COSE 执行器的实时计数。`content_root_context` 构造 vetKD 内容根 context，可选 feature `cose-pins` 提供 `cose_pins::master_key_pins` 与 `cose_pins` 示例，用于离线计算 COSE master key pin。
+0.2.0 移除了 0.1.x 中没有生产代码使用的公开项。`finish_cose` 改为 `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`；`ExecuteRequestExt::approval_message` 改为用 `EXECUTE_APPROVAL_DOMAIN` 和 `execute_approval_command` 调用 `approval_message`；`ExecutionResult::output()` 改为匹配 `ExecutionOutcome::Completed`。`dmsg_types::handle::HandleInit` 新增必填字段 `governance`，并以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代 `home_user`，按账户 ID 的分配器指纹路由。新增的 `handle_bucket` 与 `HANDLE_BUCKET_BITS` 规定注册表在何处认证名称。`CoseInit` 以 `user_homes` 取代 `initial_home_user` 并新增 `governance`；`PaymentInit` 以 `environment`、`issuer_namespace` 和 `user_homes` 取代 `home_user`，`PaymentConfiguration` 改列 `user_homes`；`DirectoryInit` 新增 `governance`。新增的 `agent::check_user_home`、`validate_user_homes`、`account_home`、`is_account_home`、`validate_custom_domains` 和 `MAX_USER_HOMES`（64）让各服务使用同一套分配器指纹路由。`MIN_HANDLE_PRICE`（即 7–20 字节名称的 `price`）从 5,000 PANDA 改为 100 PANDA，与旧注册表的现行价格一致。 `ProductRegistration` 以只能追加的 `beneficiary_authorities` 取代 `beneficiary_authority`，`validate_subject` 要求主体的 authority 在列表中；`CommerceInit` 以 `limits: CommerceLimits` 取代 `max_subjects` 与 `daily_orders`。新增 `dmsg_types::integration::LEASE_RENEW_WINDOW_MS`（10 分钟），是 commerce 与 membership 共用的租约续期窗口。`CommerceLimits` 新增 `calls_per_caller`，新增的 `CommerceStats` 报告 commerce 的实时记录数；`PandaServiceConfig` 以只能追加的 `commerce_homes: Vec<CommerceHome>`（每个 user home 的 commerce）取代 `commerce_canister`，并新增 `qualifications_per_minute`。`ExecutionResult` 新增 `cycles_charged`，即返回的管理调用实际消耗的阈值费用，COSE 与 user 的预算都结算到它；新增的 `CoseStats` 报告 COSE 执行器的实时计数。`content_root_context` 构造 vetKD 内容根 context，可选 feature `cose-pins` 提供 `cose_pins::master_key_pin` 与 `cose_pins` 示例，用于离线计算 COSE master key pin。
+
+2026-10-07（未发布）移除阈值文档签名与托管 controller 签名：删除 `SignRequest`、`AppActionSignRequest`、`AgentEventSignRequest`、`SigningKeyRef`、`KeySelector`、`ExecutionKind`、`ExecutionOutput`、`RootTarget`、`RecoveryPolicy`、`RecoveryConfirmation`、`SignRequestExt`、`KeyRequestExt`、`execute_approval_command`、`recovery_confirmation_message`、ES256K 支持（`k256`）与 `AgentController` 用途。文档由设备密钥签名：`prepare_attestation` 返回 Sig_structure 与指纹，`AttestRequest` / `AppActionAttestRequest` 携带设备签名，批准在 `ATTEST_APPROVAL_DOMAIN` 下绑定 `(statement, origin, signature)`；`ExecutionReceipt` 为 schema 2，不含 `max_cycles`。`ContentRootRef` 改为 `{ generation, suite: "dmsg-root-v2", bundle_digest, recipients_digest, body_digest }`，新增 `root_recipients_digest` 与 `root_bundle_digest`；`DeriveRootRequest` 指定已提交代次，只接受登录恢复登记的设备（`DERIVE_APPROVAL_DOMAIN`、`derive_approval_command`）。恢复改为登录授权：`RecoveryRequest` 去掉 `generation`，`request_recovery` 参数为 `(account_id, request, device_proof)` 并用 `recovery_device_message`，`DisputeRecovery { op_id }` 即取消，`SetRecoveryDelay` 取代 `SetRecovery`/`ConfirmRecovery`，`AccountInfo` 暴露 `recovery_delay_ms`、`pending_recovery` 与 `recovered_device`。`RegisterController` 携带 `controller_pop_message` 构造的 `proof`。`CoseInit` 只有一个 `master: MasterKey`，`KeyDescriptor` 描述共享的内容根公钥，`ExecutionGrant` 携带 `generation` 与 `transport_key`，`SecuritySnapshot` 为 schema 4、不含账户状态与恢复公钥。`HandleInit` 新增 `registration_homes`；`AppRegistration` 去掉 `user_homes` 与 `cose_homes`；`ExecutionWeights` 去掉 `ecdsa_secp256k1`。
 
 Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path 的 dmsg_protocol 开发依赖，从而避免发布依赖循环；但仓库合同测试和向量示例仍需要 checkout 的开发依赖。应在 workspace 执行它们，发布包中的 dmsg_types 测试集不等同于仓库测试环境。
 
@@ -224,5 +222,5 @@ Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path �
 
 Application-action v1 is a separate closed profile with an `AppAction` key purpose.
 See [the profile and implementation boundary](../../docs/protocol/app-action.md).
-Rust COSE preparation/verification supports it; `dmsg_user.sign` and the document
-browser flow explicitly reject it pending the authorized action integration.
+Rust COSE preparation/verification supports it; `dmsg_user.attest` and the document
+browser flow explicitly reject it, and `attest_app_action` is its only entry.

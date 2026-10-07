@@ -3,11 +3,7 @@
 use crate::app_action::{validate_app_action, APP_ACTION_PROFILE};
 use crate::*;
 use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
-use dmsg_types::{
-    cose::{Algorithm, KeyPurpose},
-    *,
-};
-use k256::elliptic_curve::sec1::ToSec1Point;
+use dmsg_types::*;
 use serde_bytes::Bytes;
 
 /// Experimental dMsg text document profile media type (v1), used in protected header 16.
@@ -68,25 +64,8 @@ fn malformed(_: cose2::Error) -> Error {
     Error::IntegrityFailed
 }
 
-/// Map Ed25519 to COSE -19 and ECDSA secp256k1 to COSE ES256K (-47).
-///
-/// # Errors
-/// vetKD is a derivation algorithm and returns `Error::UnsupportedProtocol`.
-pub fn cose_algorithm(algorithm: &Algorithm) -> Result<Label> {
-    match algorithm {
-        Algorithm::Ed25519 => Ok(iana::AlgorithmEd25519.into()),
-        Algorithm::EcdsaSecp256k1 => Ok(iana::AlgorithmES256K.into()),
-        Algorithm::VetKdBls12381 => Err(Error::UnsupportedProtocol),
-    }
-}
-
-fn from_algorithm(label: &Label) -> Result<Algorithm> {
-    match label {
-        Label::Int(iana::AlgorithmEd25519) => Ok(Algorithm::Ed25519),
-        Label::Int(iana::AlgorithmES256K) => Ok(Algorithm::EcdsaSecp256k1),
-        _ => Err(Error::UnsupportedProtocol),
-    }
-}
+/// The one document signature algorithm: Ed25519 (COSE -19).
+pub const COSE_ALGORITHM: Label = Label::Int(iana::AlgorithmEd25519);
 
 /// Select Statement for text/files, FileAttestation for digests and AppAction for typed actions.
 ///
@@ -198,20 +177,14 @@ fn claims(statement: &Statement) -> Value {
 ///
 /// Returns `(unsigned_message, Sig_structure)`. Claims and profile headers are
 /// protected, content is encoded by its profile, and external AAD is empty.
-/// Ed25519 signs the returned bytes directly; ES256K signs their SHA-256 digest
-/// when using a prehash signing API. The kid must contain 1..256 bytes.
+/// Ed25519 signs the returned bytes directly. The kid must contain 1..256 bytes.
 /// No key access, signing, approval or network call occurs here.
 ///
 /// # Errors
-/// Returns statement/algorithm validation errors, `Error::InvalidInput` for kid
+/// Returns statement validation errors, `Error::InvalidInput` for kid
 /// bounds, `Error::QuotaExceeded` for oversized signing input, or
 /// `Error::IntegrityFailed` if COSE preparation fails.
-pub fn prepare_cose(
-    statement: &Statement,
-    algorithm: &Algorithm,
-    kid: &[u8],
-) -> Result<(Sign1Message, Vec<u8>)> {
-    let algorithm = cose_algorithm(algorithm)?;
+pub fn prepare_cose(statement: &Statement, kid: &[u8]) -> Result<(Sign1Message, Vec<u8>)> {
     validate_statement(statement)?;
     ensure_valid(!kid.is_empty() && kid.len() <= MAX_KID_BYTES, "kid")?;
     let payload = match &statement.content {
@@ -276,7 +249,7 @@ pub fn prepare_cose(
         }
     }
     let tbs = message
-        .prepare_signature(Some(algorithm), None, None)
+        .prepare_signature(Some(COSE_ALGORITHM), None, None)
         .map_err(malformed)?;
     ensure(tbs.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
     Ok((message, tbs))
@@ -314,13 +287,11 @@ fn parse_claims(header: &Header) -> Result<(String, Option<String>, Option<i64>)
     Ok((issuer.ok_or(Error::IntegrityFailed)?, subject, issued_at))
 }
 
-fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])> {
+fn parse_message(message: &Sign1Message) -> Result<(Statement, &[u8])> {
     let headers = &message.protected;
-    let algorithm = from_algorithm(
-        &headers
-            .alg()
-            .map_err(malformed)?
-            .ok_or(Error::IntegrityFailed)?,
+    ensure(
+        headers.alg().map_err(malformed)?.as_ref() == Some(&COSE_ALGORITHM),
+        Error::UnsupportedProtocol,
     )?;
     let kid = headers
         .kid()
@@ -420,7 +391,7 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
         content,
     };
     validate_statement(&statement)?;
-    Ok((statement, algorithm, kid))
+    Ok((statement, kid))
 }
 
 /// Validated local signing-input view returned by [`parse_signing_input`].
@@ -429,7 +400,6 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, Algorithm, &[u8])
 pub struct PreparedStatement {
     message: Sign1Message,
     statement: Statement,
-    algorithm: Algorithm,
     kid: Vec<u8>,
 }
 
@@ -439,54 +409,35 @@ impl PreparedStatement {
         &self.statement
     }
 
-    /// Supported algorithm selected by the protected header.
-    pub fn algorithm(&self) -> &Algorithm {
-        &self.algorithm
-    }
-
     /// Key identifier from the protected header.
     pub fn kid(&self) -> &[u8] {
         &self.kid
     }
 
-    /// Validate and encode the public key before dispatching an external signer.
+    /// Validate and encode the public key before attaching the signature.
     /// The returned value only retains data needed to assemble the final artifact.
     pub fn into_signature(self, public: &[u8]) -> Result<PreparedSignature> {
-        let cose_key = public_cose_key(&self.algorithm, &self.kid, public)?;
+        let cose_key = public_cose_key(&self.kid, public)?;
         Ok(PreparedSignature {
             message: self.message,
             cose_key,
-            algorithm: self.algorithm,
         })
     }
 }
 
-/// Validated COSE framing and public key, ready for a 64-byte external signature.
+/// Validated COSE framing and public key, ready for a 64-byte Ed25519 signature.
 /// Construction is restricted to parsed canonical input and a validated public key.
 pub struct PreparedSignature {
     message: Sign1Message,
     cose_key: Vec<u8>,
-    algorithm: Algorithm,
 }
 
 impl PreparedSignature {
     /// Attach a signature without reparsing the payload or public key.
     ///
-    /// ES256K signatures are normalized to low-S, so each artifact has exactly one
-    /// accepted signature encoding. This checks encoding, not mathematical validity;
-    /// verify before use.
+    /// This checks encoding, not mathematical validity; verify before use.
     pub fn finish(mut self, signature: Vec<u8>) -> Result<SignedArtifact> {
-        let signature = match self.algorithm {
-            Algorithm::EcdsaSecp256k1 => k256::ecdsa::Signature::from_slice(&signature)
-                .map_err(|_| Error::IntegrityFailed)?
-                .normalize_s()
-                .to_bytes()
-                .to_vec(),
-            _ => {
-                ensure(signature.len() == 64, Error::IntegrityFailed)?;
-                signature
-            }
-        };
+        ensure(signature.len() == 64, Error::IntegrityFailed)?;
         self.message.set_signature(signature).map_err(malformed)?;
         Ok(SignedArtifact {
             cose_sign1: self.message.to_vec().map_err(malformed)?.into(),
@@ -515,10 +466,10 @@ pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
     )?;
     let mut message = Sign1Message::new(Some(payload.to_vec()));
     message.protected = Header::from_slice(protected).map_err(malformed)?;
-    let (statement, algorithm, kid) = parse_message(&message)?;
+    let (statement, kid) = parse_message(&message)?;
     let kid = kid.to_vec();
     let actual = message
-        .prepare_signature(Some(cose_algorithm(&algorithm)?), None, None)
+        .prepare_signature(Some(COSE_ALGORITHM), None, None)
         .map_err(malformed)?;
     // This comparison checks the entire canonical framing, including the
     // protected map. No separate decode/reencode of the outer tuple is needed.
@@ -526,63 +477,40 @@ pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
     Ok(PreparedStatement {
         message,
         statement,
-        algorithm,
         kid,
     })
 }
 
-/// Encode a public-only COSE_Key for a supported signing algorithm.
+/// Encode a public-only Ed25519 COSE_Key.
 ///
-/// `public` is a raw 32-byte Ed25519 key or a SEC1 secp256k1 point, not CBOR.
-/// The result declares the algorithm and verify operation. Empty kid is allowed
-/// to compute a thumbprint before choosing a signing kid; otherwise kid is at
-/// most 256 bytes. This does not establish key ownership.
+/// `public` is a raw 32-byte Ed25519 key, not CBOR. The result declares the
+/// algorithm and verify operation. Empty kid is allowed to compute a thumbprint
+/// before choosing a signing kid; otherwise kid is at most 256 bytes. This does
+/// not establish key ownership.
 ///
 /// # Errors
-/// Invalid/weak Ed25519 keys and invalid EC points return `Error::IntegrityFailed`;
-/// oversized kid returns `Error::InvalidInput`; vetKD returns `Error::UnsupportedProtocol`.
-pub fn public_cose_key(algorithm: &Algorithm, kid: &[u8], public: &[u8]) -> Result<Vec<u8>> {
+/// Invalid/weak Ed25519 keys return `Error::IntegrityFailed`; oversized kid
+/// returns `Error::InvalidInput`.
+pub fn public_cose_key(kid: &[u8], public: &[u8]) -> Result<Vec<u8>> {
     ensure_valid(kid.len() <= MAX_KID_BYTES, "kid")?;
+    validate_ed25519_key(public)?;
     let mut key = Key::new();
-    key.set_alg(cose_algorithm(algorithm)?)
-        .set_kid(kid.to_vec());
+    key.set_alg(COSE_ALGORITHM).set_kid(kid.to_vec());
     key.set_ops([iana::KeyOperationVerify]);
-    match algorithm {
-        Algorithm::Ed25519 => {
-            validate_ed25519_key(public)?;
-            key.set_kty(iana::KeyTypeOKP);
-            key.insert(iana::OKPKeyParameterCrv, iana::EllipticCurveEd25519);
-            key.insert(iana::OKPKeyParameterX, public.to_vec());
-        }
-        Algorithm::EcdsaSecp256k1 => {
-            let point = k256::PublicKey::from_sec1_bytes(public)
-                .map_err(|_| Error::IntegrityFailed)?
-                .to_sec1_point(false);
-            key.set_kty(iana::KeyTypeEC2);
-            key.insert(iana::EC2KeyParameterCrv, iana::EllipticCurveSecp256k1);
-            key.insert(
-                iana::EC2KeyParameterX,
-                point.x().ok_or(Error::IntegrityFailed)?.to_vec(),
-            );
-            key.insert(
-                iana::EC2KeyParameterY,
-                point.y().ok_or(Error::IntegrityFailed)?.to_vec(),
-            );
-        }
-        _ => return Err(Error::UnsupportedProtocol),
-    }
+    key.set_kty(iana::KeyTypeOKP);
+    key.insert(iana::OKPKeyParameterCrv, iana::EllipticCurveEd25519);
+    key.insert(iana::OKPKeyParameterX, public.to_vec());
     key.to_vec().map_err(malformed)
 }
 
 /// Compute the RFC 9679 SHA-256 thumbprint of required public COSE key members.
 ///
-/// Excludes kid, alg and key_ops. Expands compressed secp256k1 y coordinates
-/// before hashing, so compressed/uncompressed forms have the same thumbprint.
-/// This is not raw-public-key SHA-256 or a complete key/profile verifier.
+/// Excludes kid, alg and key_ops. This is not raw-public-key SHA-256 or a
+/// complete key/profile verifier.
 ///
 /// # Errors
 /// Rejects keys above 2048 bytes, private d parameters, missing required members,
-/// unsupported key types, malformed CBOR and invalid compressed EC coordinates.
+/// key types other than OKP and malformed CBOR.
 pub fn key_thumbprint(encoded: &[u8]) -> Result<Hash> {
     ensure(encoded.len() <= MAX_COSE_KEY_BYTES, Error::QuotaExceeded)?;
     let key = Key::from_slice(encoded).map_err(malformed)?;
@@ -594,58 +522,25 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
         !key.contains_key(iana::OKPKeyParameterD),
         Error::IntegrityFailed,
     )?;
-    let key_type = key.kty().map_err(malformed)?;
-    let labels: &[i64] = match key_type {
-        Some(Label::Int(iana::KeyTypeOKP)) => &[1, -1, -2],
-        Some(Label::Int(iana::KeyTypeEC2)) => &[1, -1, -2, -3],
-        _ => return Err(Error::UnsupportedProtocol),
-    };
+    ensure(
+        key.kty().map_err(malformed)? == Some(Label::Int(iana::KeyTypeOKP)),
+        Error::UnsupportedProtocol,
+    )?;
     let mut required = Key::new();
-    for label in labels {
+    for label in [1, -1, -2] {
         required.insert(
-            *label,
-            key.get(*label).ok_or(Error::IntegrityFailed)?.clone(),
+            label,
+            key.get(label).ok_or(Error::IntegrityFailed)?.clone(),
         );
-    }
-    if key_type == Some(iana::KeyTypeEC2.into()) {
-        if let Some(Value::Bool(odd)) = key.get(iana::EC2KeyParameterY) {
-            ensure(
-                key.get_i64(iana::EC2KeyParameterCrv).map_err(malformed)?
-                    == Some(iana::EllipticCurveSecp256k1),
-                Error::UnsupportedProtocol,
-            )?;
-            let x = key
-                .get_bytes(iana::EC2KeyParameterX)
-                .map_err(malformed)?
-                .ok_or(Error::IntegrityFailed)?;
-            ensure(x.len() == 32, Error::IntegrityFailed)?;
-            let mut compressed = [0; 33];
-            compressed[0] = if *odd { 3 } else { 2 };
-            compressed[1..].copy_from_slice(x);
-            let point = k256::PublicKey::from_sec1_bytes(&compressed)
-                .map_err(|_| Error::IntegrityFailed)?
-                .to_sec1_point(false);
-            // RFC 9679 §4.2: thumbprints always use the uncompressed y coordinate.
-            required.insert(
-                iana::EC2KeyParameterY,
-                point.y().ok_or(Error::IntegrityFailed)?.to_vec(),
-            );
-        }
     }
     Ok(sha256(&required.to_vec().map_err(malformed)?))
 }
 
-enum ProfileVerifier {
-    Ed(cose2::ed25519::Ed25519Verifier),
-    Ec(k256::ecdsa::VerifyingKey),
-}
+struct ProfileVerifier(cose2::ed25519::Ed25519Verifier);
 
 impl Verifier for ProfileVerifier {
     fn alg(&self) -> Option<Label> {
-        Some(match self {
-            Self::Ed(_) => iana::AlgorithmEd25519.into(),
-            Self::Ec(_) => iana::AlgorithmES256K.into(),
-        })
+        Some(COSE_ALGORITHM)
     }
 
     fn understood_critical_headers(&self) -> &[Label] {
@@ -653,21 +548,11 @@ impl Verifier for ProfileVerifier {
     }
 
     fn verify(&self, bytes: &[u8], signature: &[u8]) -> std::result::Result<(), cose2::Error> {
-        match self {
-            Self::Ed(key) => key.verify(bytes, signature),
-            Self::Ec(key) => {
-                use k256::ecdsa::signature::hazmat::PrehashVerifier;
-                // k256 rejects high-S, keeping ES256K artifacts non-malleable.
-                let signature = k256::ecdsa::Signature::from_slice(signature)
-                    .map_err(|_| cose2::Error::verify("signature encoding"))?;
-                key.verify_prehash(sha256(bytes).as_slice(), &signature)
-                    .map_err(|_| cose2::Error::verify("invalid signature"))
-            }
-        }
+        self.0.verify(bytes, signature)
     }
 }
 
-fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
+fn verifier(key: &Key) -> Result<ProfileVerifier> {
     ensure(
         !key.contains_key(iana::OKPKeyParameterD)
             && key
@@ -676,55 +561,21 @@ fn verifier(key: &Key, algorithm: &Algorithm) -> Result<ProfileVerifier> {
         Error::IntegrityFailed,
     )?;
     ensure(
-        key.alg().map_err(malformed)? == Some(cose_algorithm(algorithm)?),
+        key.alg().map_err(malformed)? == Some(COSE_ALGORITHM),
         Error::IntegrityFailed,
     )?;
-    match algorithm {
-        Algorithm::Ed25519 => Ok(ProfileVerifier::Ed(
-            cose2::ed25519::Ed25519Verifier::from_cose_key(key).map_err(malformed)?,
-        )),
-        Algorithm::EcdsaSecp256k1 => {
-            ensure(
-                key.kty().map_err(malformed)? == Some(iana::KeyTypeEC2.into())
-                    && key.get_i64(iana::EC2KeyParameterCrv).map_err(malformed)?
-                        == Some(iana::EllipticCurveSecp256k1),
-                Error::IntegrityFailed,
-            )?;
-            let x = key
-                .get_bytes(iana::EC2KeyParameterX)
-                .map_err(malformed)?
-                .ok_or(Error::IntegrityFailed)?;
-            ensure(x.len() == 32, Error::IntegrityFailed)?;
-            let mut public = [0; 65];
-            public[1..33].copy_from_slice(x);
-            let public = match key.get(iana::EC2KeyParameterY) {
-                Some(Value::Bytes(y)) if y.len() == 32 => {
-                    public[0] = 4;
-                    public[33..].copy_from_slice(y);
-                    &public[..]
-                }
-                Some(Value::Bool(odd)) => {
-                    public[0] = if *odd { 3 } else { 2 };
-                    &public[..33]
-                }
-                _ => return Err(Error::IntegrityFailed),
-            };
-            Ok(ProfileVerifier::Ec(
-                k256::ecdsa::VerifyingKey::from_sec1_bytes(public)
-                    .map_err(|_| Error::IntegrityFailed)?,
-            ))
-        }
-        _ => Err(Error::UnsupportedProtocol),
-    }
+    Ok(ProfileVerifier(
+        cose2::ed25519::Ed25519Verifier::from_cose_key(key).map_err(malformed)?,
+    ))
 }
 
 /// Verify supported COSE document profiles and their mathematical signature.
 ///
-/// Checks tagged COSE_Sign1, protected algorithm/kid/claims/profile, critical
-/// headers, public-key constraints and signature. Preserves original protected
-/// bytes. An attached public key is not an identity credential; this does not
-/// check original digest content, issuer ownership, authorization, current status,
-/// or TSA trust.
+/// Checks tagged COSE_Sign1, protected Ed25519 algorithm/kid/claims/profile,
+/// critical headers, public-key constraints and signature. Preserves original
+/// protected bytes. An attached public key is not an identity credential; this
+/// does not check original digest content, issuer ownership, authorization,
+/// current status, or TSA trust.
 ///
 /// # Errors
 /// Size bounds yield `Error::QuotaExceeded`, unknown semantics yield
@@ -766,15 +617,13 @@ pub(crate) fn verify_and_parse_artifact(artifact: &SignedArtifact) -> Result<Ver
         Error::IntegrityFailed,
     )?;
     let message = Sign1Message::from_slice(&artifact.cose_sign1).map_err(malformed)?;
-    let (statement, algorithm, kid) = parse_message(&message)?;
+    let (statement, kid) = parse_message(&message)?;
     let key = Key::from_slice(&artifact.cose_key).map_err(malformed)?;
     ensure(
         key.kid().map_err(malformed)?.is_none_or(|id| id == kid),
         Error::IntegrityFailed,
     )?;
-    message
-        .verify(&verifier(&key, &algorithm)?, None)
-        .map_err(malformed)?;
+    message.verify(&verifier(&key)?, None).map_err(malformed)?;
     Ok(VerifiedArtifact {
         statement,
         message,

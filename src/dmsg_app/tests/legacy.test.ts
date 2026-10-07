@@ -9,16 +9,14 @@ import {
   type LegacyArchive
 } from '@dmsg/legacy'
 import { CryptoEngine } from '../src/lib/crypto/engine'
+import { boundEngine } from './support/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
-const password = 'legacy test passphrase'
 it('imports exact encrypted transfer once, resumes after restart and recovers history offline without the pairing key', async () => {
-  let engine = new CryptoEngine()
-  const initialized = await engine.initialize(password)
-  await engine.verifyRecovery(initialized.recoveryCode)
+  let { engine } = await boundEngine()
   const pairing = await engine.legacyPair(
     'https://dmsg.net',
     `chrome-extension://${'a'.repeat(32)}`
@@ -67,7 +65,7 @@ it('imports exact encrypted transfer once, resumes after restart and recovers hi
   )
   await engine.lock()
   engine = new CryptoEngine()
-  await engine.unlock(password)
+  await engine.unlock()
   expect((await engine.legacyPairs())[0]?.fingerprint).toBe(pairing.fingerprint)
   const report = await engine.legacyImport(request)
   expect(report.stage).toBe('partial')
@@ -107,38 +105,26 @@ it('imports exact encrypted transfer once, resumes after restart and recovers hi
   await expect(
     engine.legacyImport({ ...request, file: new File([changed], 'changed') })
   ).rejects.toThrow('另一个档案')
-  const backup = await engine.exportBackup(password),
-    text = await backup.blob.text()
-  expect(text).not.toContain(pairing.offer.nonce)
-  expect(text).not.toContain('original system history')
   db.db.close()
   await engine.lock()
-  globalThis.indexedDB = new IDBFactory()
   engine = new CryptoEngine()
-  await engine.restore({
-    file: new File([backup.blob], 'backup.dmsg'),
-    code: initialized.recoveryCode,
-    password
-  })
+  await engine.unlock()
   expect((await engine.legacyReport(report.key)).messages[0]?.text).toBe(
     'original system history'
   )
-  expect((await engine.legacyReport(report.key)).recovery).toBe('partial_verified')
+  expect((await engine.legacyReport(report.key)).recovery).toBe('not_checked')
   expect(await engine.legacyPairs()).toHaveLength(0)
-  expect((await engine.status()).meta?.registered).toBe(false)
   await engine.lock()
 }, 60000)
 
 it('pauses and resumes a durable migration, while cancellation retains copied data and disables the old pairing', async () => {
   let pause = true
-  const engine = new CryptoEngine((progress) => {
+  const { engine } = await boundEngine(undefined, undefined, (progress) => {
     if (pause && progress.stage === '正在分块加密') {
       pause = false
       engine.legacyPause()
     }
   })
-  const initialized = await engine.initialize(password)
-  await engine.verifyRecovery(initialized.recoveryCode)
   const bytes = pack(observation(new Uint8Array(1024 * 1024 + 32).fill(17)))
   const archive: LegacyArchive = {
     format: 'dmsg-legacy-archive/1',

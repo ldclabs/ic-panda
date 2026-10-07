@@ -5,7 +5,7 @@
   "principalOrigin": "",
   "agentOrigin": "",
   "canisters": {
-    "user": "",
+    "userHomes": [],
     "handle": "",
     "cose": "",
     "payment": "",
@@ -17,6 +17,7 @@
   "release": "R0",
   "cloudProtocol": "dmsg-cloud/1",
   "rootDerivationMaxCycles": "70000000000",
+  "coseRootPublicKey": "",
   "legacy": {
     "channels": [
       "nvdn4-5qaaa-aaaaj-qa4pq-cai",

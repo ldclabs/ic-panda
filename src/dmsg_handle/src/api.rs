@@ -58,11 +58,22 @@ async fn consume(home: Principal, i: &HandleIntent) -> Result<()> {
     r
 }
 
+fn check_registration_homes(init: &HandleInit, homes: &[Principal]) -> Result<()> {
+    ensure_valid(
+        homes
+            .iter()
+            .enumerate()
+            .all(|(i, h)| init.user_homes.contains(h) && !homes[..i].contains(h)),
+        "registration homes must be distinct listed user homes",
+    )
+}
+
 #[ic_cdk::init]
 fn init(args: HandleInit) {
     validate_namespace(&args.issuer_namespace).expect("issuer namespace");
     validate_user_homes(&args.environment, &args.issuer_namespace, &args.user_homes)
         .expect("user homes");
+    check_registration_homes(&args, &args.registration_homes).expect("registration homes");
     authenticated(args.ledger).expect("ledger");
     authenticated(args.governance).expect("governance");
     assert!(
@@ -130,6 +141,40 @@ fn validate_admin_add_user_home(home: Principal) -> Validation {
             home,
             check_home(&c.init, home)?,
         ))
+    }))
+}
+
+/// Replace the homes accepting new accounts. An empty list closes registration.
+#[ic_cdk::update]
+fn admin_set_registration_homes(homes: Vec<Principal>) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    let mut c = cfg();
+    check_registration_homes(&c.init, &homes)?;
+    if c.init.registration_homes != homes {
+        c.init.registration_homes = homes;
+        save_cfg(c);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_registration_homes(homes: Vec<Principal>) -> Validation {
+    validation(with_cfg(|c| {
+        check_registration_homes(&c.init, &homes).map(|()| {
+            let list = |homes: &[Principal]| {
+                homes
+                    .iter()
+                    .map(Principal::to_text)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            format!(
+                "Accept new accounts at [{}] (currently [{}]).{}",
+                list(&homes),
+                list(&c.init.registration_homes),
+                admin::unchanged(c.init.registration_homes != homes, "Same homes"),
+            )
+        })
     }))
 }
 

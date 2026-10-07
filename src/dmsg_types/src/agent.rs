@@ -1,31 +1,25 @@
-//! Agent Delegation 1.0 principal hosting: hosted controller keys, the principal
-//! state published by the directory, and exact delegation-event signing.
+//! Agent Delegation 1.0 principal hosting: self-held controller keys and the
+//! principal state published by the directory.
 //!
 //! A dMsg account may enable an Agent Delegation principal at
-//! `principal_origin/<account_id>`. Its controllers are threshold Ed25519 keys
-//! derived by the COSE executor; every signature still needs device approval.
-//! The user home is authoritative for controller changes and signing; the
-//! directory only publishes the resulting principal document. Delegation
-//! credentials are held by the delegation service, not by these canisters.
+//! `principal_origin/<account_id>`. Its controllers are Ed25519 keys the
+//! client generates and keeps in its vault; registration proves possession of
+//! the private key, and delegation events are signed locally. The user home is
+//! authoritative for controller changes; the directory only publishes the
+//! resulting principal document. Delegation credentials are held by the
+//! delegation service, which enforces the published ceilings.
 //! Times are Unix milliseconds.
-use crate::{cose::*, *};
+use crate::*;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 /// Agent Delegation protocol identifier used in events and documents.
 pub const AGENT_DELEGATION_PROTOCOL: &str = "agent-delegation/1.0";
 /// Maximum current (unretired) controllers per principal (8).
 pub const MAX_CURRENT_CONTROLLERS: usize = 8;
 /// Maximum controller records, current and retired, per principal (32).
-/// Retired records are never deleted, so this is also the hosted-key generation limit.
+/// Retired records are never deleted, so this is also the controller generation limit.
 pub const MAX_CONTROLLER_RECORDS: usize = 32;
-/// Maximum exact event text accepted for hosted signing (16 KiB).
-pub const MAX_AGENT_EVENT_BYTES: usize = 16_384;
-/// Maximum serialized `constraints` of a hosted grant (4 KiB).
-pub const MAX_GRANT_CONSTRAINTS_BYTES: usize = 4_096;
-/// Maximum grant lifetime a hosted controller signs: `expires_at - created_at` (366 days).
-pub const MAX_GRANT_LIFETIME: u64 = 366 * DAY;
 
 /// Display type of a principal; it grants no authority.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -58,11 +52,11 @@ pub enum DelegationAuthority {
     },
 }
 
-/// Hosted controller record. Its key is the COSE `AgentController` key of this
-/// generation; key, `valid_from`, `delegation` and `supersedes` never change.
+/// Controller record. The key is generated and held by the owner's client;
+/// key, `valid_from`, `delegation` and `supersedes` never change.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HostedController {
-    /// Positive hosted-key generation, allocated once and never reused.
+    /// Positive controller generation, allocated once and never reused.
     pub generation: u32,
     /// Raw Ed25519 public key of this generation; the Agent ID encodes it.
     pub public_key: Hash,
@@ -94,7 +88,7 @@ pub struct PrincipalState {
     pub updated_at: u64,
 }
 
-/// Owner view of a principal, including publication and replay state.
+/// Owner view of a principal, including publication state.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrincipalInfo {
     /// Canonical principal URL `principal_origin/<account_id>`.
@@ -103,48 +97,6 @@ pub struct PrincipalInfo {
     pub state: PrincipalState,
     /// Highest version the directory confirmed; the change is live only when it equals `state.version`.
     pub published_version: u64,
-    /// Highest signed Agent Identity nonce per hosted generation.
-    pub last_nonces: BTreeMap<u32, u64>,
-}
-
-/// Hosted-signing request for one exact Agent Delegation event.
-/// `event` is the exact JCS text whose SHA3-256 is signed.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct AgentEventSignRequest {
-    /// Account whose principal and hosted key sign the event.
-    pub account_id: AccountId,
-    /// Current hosted-key generation; must equal the event actor.
-    pub generation: u32,
-    /// Exact JCS event text: the six Agent Identity fields only.
-    pub event: String,
-    /// Checked browser origin bound by the device approval.
-    pub origin: String,
-    /// Approved maximum execution cycles.
-    pub max_cycles: u128,
-    /// Device approval over the derived execution kind and cycle limit.
-    pub approval: Approval,
-}
-
-impl AgentEventSignRequest {
-    /// Convert to the low-level execution contract without validating or authorizing it.
-    /// `principal_id` is the account's canonical principal URL.
-    pub fn into_execution(self, principal_id: String) -> ExecuteRequest {
-        ExecuteRequest {
-            account_id: self.account_id,
-            max_cycles: self.max_cycles,
-            approval: self.approval,
-            kind: ExecutionKind::AgentEvent {
-                key: KeySelector::AgentController {
-                    generation: self.generation,
-                }
-                .into(),
-                event: self.event.into_bytes().into(),
-                principal_id,
-                origin: self.origin,
-            },
-        }
-    }
 }
 
 /// Directory deployment configuration. The principal origin and document

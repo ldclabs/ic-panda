@@ -109,89 +109,31 @@ fn assert_refused<A: ArgumentEncoder>(
     );
 }
 
-fn execute_approval(home: Principal, request: &ExecuteRequest) -> Hash {
+fn attest_approval(home: Principal, request: &AttestRequest) -> Hash {
     approval_message(
         home,
         &request.account_id,
-        EXECUTE_APPROVAL_DOMAIN,
-        &execute_approval_command(request),
+        ATTEST_APPROVAL_DOMAIN,
+        &attest_approval_command(&request.statement, &request.origin, &request.signature),
         &request.approval,
     )
 }
 
-fn completed(result: &ExecutionResult) -> &ExecutionOutput {
+fn derive_approval(home: Principal, request: &DeriveRootRequest) -> Hash {
+    approval_message(
+        home,
+        &request.account_id,
+        DERIVE_APPROVAL_DOMAIN,
+        &derive_approval_command(request),
+        &request.approval,
+    )
+}
+
+fn completed(result: &ExecutionResult) -> &EncryptedRootKey {
     let ExecutionOutcome::Completed(output) = &result.outcome else {
         panic!("execution is not completed: {:?}", result.outcome)
     };
     output
-}
-
-// Exercise the public typed interfaces while retaining independently assembled
-// approval bytes in the existing interoperability/regression fixtures.
-fn submit_execution(
-    ic: &PocketIc,
-    user: Principal,
-    caller: Principal,
-    request: ExecuteRequest,
-) -> Result<ExecutionResult> {
-    match request.kind {
-        ExecutionKind::Sign {
-            key,
-            to_be_signed,
-            public_key_fingerprint,
-            origin,
-        } => {
-            let prepared = parse_signing_input(&to_be_signed).unwrap();
-            let algorithm = match key.algorithm {
-                Algorithm::Ed25519 => SigningAlgorithm::Ed25519,
-                Algorithm::EcdsaSecp256k1 => SigningAlgorithm::EcdsaSecp256k1,
-                _ => panic!("signing algorithm"),
-            };
-            update(
-                ic,
-                user,
-                caller,
-                "sign",
-                (SignRequest {
-                    account_id: request.account_id,
-                    key: SigningKeyRef {
-                        algorithm,
-                        kid: prepared.kid().to_vec().into(),
-                        public_key_fingerprint,
-                    },
-                    statement: prepared.statement().clone(),
-                    origin,
-                    max_cycles: request.max_cycles,
-                    approval: request.approval,
-                },),
-            )
-        }
-        ExecutionKind::Derive {
-            generation,
-            root_op_id,
-            transport_key,
-        } => update(
-            ic,
-            user,
-            caller,
-            "derive_root",
-            (DeriveRootRequest {
-                account_id: request.account_id,
-                target: match root_op_id {
-                    Some(op_id) => RootTarget::Candidate { generation, op_id },
-                    None => RootTarget::Current { generation },
-                },
-                transport_public_key: transport_key
-                    .as_slice()
-                    .try_into()
-                    .map(serde_bytes::ByteArray::new)
-                    .unwrap(),
-                max_cycles: request.max_cycles,
-                approval: request.approval,
-            },),
-        ),
-        ExecutionKind::AgentEvent { .. } => panic!("agent events use sign_agent_event"),
-    }
 }
 
 fn query<A: ArgumentEncoder, R: CandidType + DeserializeOwned>(
@@ -272,39 +214,28 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        Self::with_algorithms(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381])
-    }
-    fn with_algorithms(algorithms: Vec<Algorithm>) -> Self {
-        Self::with_policy(algorithms, true)
+        Self::with_policy(true)
     }
     fn commercial() -> Self {
-        Self::with_policy(vec![Algorithm::Ed25519, Algorithm::VetKdBls12381], false)
+        Self::with_policy(false)
     }
-    fn with_policy(algorithms: Vec<Algorithm>, generous: bool) -> Self {
-        Self::with_order_limit(algorithms, generous, 100)
+    fn with_policy(generous: bool) -> Self {
+        Self::with_order_limit(generous, 100)
     }
 
-    fn with_order_limit(algorithms: Vec<Algorithm>, generous: bool, daily_orders: u32) -> Self {
-        Self::configured(algorithms, generous, daily_orders, |_| {})
+    fn with_order_limit(generous: bool, daily_orders: u32) -> Self {
+        Self::configured(generous, daily_orders, |_| {})
     }
 
     fn configured(
-        algorithms: Vec<Algorithm>,
         generous: bool,
         daily_orders: u32,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
     ) -> Self {
-        Self::with_payment_capacity(
-            algorithms,
-            generous,
-            daily_orders,
-            MAX_PAYMENT_ESCROWS,
-            configure_membership,
-        )
+        Self::with_payment_capacity(generous, daily_orders, MAX_PAYMENT_ESCROWS, configure_membership)
     }
 
     fn with_payment_capacity(
-        algorithms: Vec<Algorithm>,
         generous: bool,
         daily_orders: u32,
         max_escrows: u64,
@@ -337,14 +268,10 @@ impl Fixture {
             user_homes: vec![user],
             governance: sns,
             derivation_version: 2,
-            masters: algorithms
-                .into_iter()
-                .map(|algorithm| MasterKey {
-                    algorithm,
-                    key_name: "key_1".into(),
-                    expected_fingerprint: Hash::new([0; 32]),
-                })
-                .collect(),
+            master: MasterKey {
+                key_name: "key_1".into(),
+                expected_fingerprint: Hash::new([0; 32]),
+            },
             daily_executions: 1000,
             daily_cycles: 10_000_000_000_000,
         };
@@ -406,6 +333,7 @@ impl Fixture {
                 environment: Environment::Local,
                 issuer_namespace: NAMESPACE.into(),
                 user_homes: vec![user],
+                registration_homes: vec![user],
                 ledger_fee: 10,
                 max_pending: 100,
                 governance: sns,
@@ -582,8 +510,6 @@ impl Fixture {
                 "https://dmsg.test".into(),
                 format!("chrome-extension://{}", "a".repeat(32)),
             ],
-            user_homes: vec![user],
-            cose_homes: vec![cose],
             product_ids: vec!["dmsg".into()],
             capabilities: vec![AppCapability::Checkout],
             profiles: vec![],
@@ -643,31 +569,42 @@ impl Fixture {
         }
     }
 
-    fn key_ref(
-        &self,
-        id: &AccountId,
-        purpose: SigningPurpose,
-        algorithm: SigningAlgorithm,
-    ) -> SigningKeyRef {
-        let result: Result<KeyDescriptor> = query(
-            &self.ic,
-            self.cose,
-            Principal::anonymous(),
-            "public_key",
-            (
-                id,
-                KeySelector::Signing(dmsg_types::cose::SigningKey {
-                    purpose,
-                    algorithm: algorithm.clone(),
-                }),
-            ),
-        );
-        let key = result.unwrap();
-        SigningKeyRef {
-            algorithm,
-            kid: key.key_id,
-            public_key_fingerprint: key.public_key_fingerprint,
-        }
+    /// A statement signed by device `n` and approved for attestation.
+    fn attest_request(&self, n: u8, id: &AccountId, statement: Statement) -> AttestRequest {
+        self.attest_request_by(n, n, id, statement)
+    }
+    /// An attestation signed by device `n` and submitted by login `login`.
+    fn attest_request_by(&self, login: u8, n: u8, id: &AccountId, statement: Statement) -> AttestRequest {
+        let s = self.account_id(login, id);
+        let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
+        let prepared =
+            prepare_attestation(&statement, &key(n).verifying_key().to_bytes().into()).unwrap();
+        let mut request = AttestRequest {
+            account_id: *id,
+            statement,
+            origin: "https://example.com".into(),
+            signature: key(n).sign(&prepared.to_be_signed).to_bytes().into(),
+            approval: Approval {
+                device_id: Hash::new([n; 32]),
+                security_epoch: s.security_epoch,
+                sequence,
+                request_id: execution_request_id(id, s.security_epoch, Hash::new([n; 32]), sequence),
+                expires_at: time(&self.ic) + MINUTE,
+                signature: Default::default(),
+            },
+        };
+        request.approval.signature = key(n)
+            .sign(attest_approval(self.user, &request).as_slice())
+            .to_bytes()
+            .into();
+        request
+    }
+    fn attest(&self, n: u8, id: &AccountId, statement: Statement) -> Result<SignedArtifact> {
+        self.attest_by(n, n, id, statement)
+    }
+    fn attest_by(&self, login: u8, n: u8, id: &AccountId, statement: Statement) -> Result<SignedArtifact> {
+        let request = self.attest_request_by(login, n, id, statement);
+        update(&self.ic, self.user, person(login), "attest", (request,))
     }
     fn create_input(&self, n: u8) -> CreateAccount {
         let expires = time(&self.ic) + MINUTE;
@@ -705,7 +642,17 @@ impl Fixture {
         r.unwrap()
     }
     fn mutate(&self, n: u8, id: &AccountId, command: AccountCommand) -> Result<OperationReceipt> {
-        let s = self.account_id(n, id);
+        self.mutate_by(n, n, id, command)
+    }
+    /// A mutation approved by device `n` and submitted by login `login`.
+    fn mutate_by(
+        &self,
+        login: u8,
+        n: u8,
+        id: &AccountId,
+        command: AccountCommand,
+    ) -> Result<OperationReceipt> {
+        let s = self.account_id(login, id);
         let mut m = AccountMutation {
             account_id: *id,
             expected_version: s.account_version,
@@ -732,71 +679,104 @@ impl Fixture {
             )
             .to_bytes()
             .into();
-        update(&self.ic, self.user, person(n), "mutate_account", (m,))
+        update(&self.ic, self.user, person(login), "mutate_account", (m,))
     }
-    fn recoverable(&self, n: u8, id: &AccountId) {
+    /// The next root reference, wrapped to the account's active devices and
+    /// the vetKD identity of `generation`, with an arbitrary body digest.
+    fn root_ref(&self, n: u8, id: &AccountId, generation: u64) -> ContentRootRef {
         let s = self.account_id(n, id);
-        let op = digest("test-operation", &(id, s.account_version));
-        let policy = RecoveryPolicy {
-            generation: 1,
-            signing_pub: key(70).verifying_key().to_bytes().into(),
-            hpke_pub: Hash::new([70; 32]),
-            delay_ms: DAY,
-        };
-        let proof = key(70)
-            .sign(digest("dmsg/recovery-enroll/v1", &(self.user, id, &policy, op)).as_slice())
-            .to_bytes()
-            .into();
-        self.mutate(n, id, AccountCommand::SetRecovery { policy, proof })
-            .unwrap();
-        let s = self.account_id(n, id);
-        let op = digest("test-operation", &(id, s.account_version));
-        let proof = key(70)
-            .sign(
-                digest(
-                    "dmsg/recovery-check/v1",
-                    &(self.user, id, 1u64, s.account_version, op),
-                )
-                .as_slice(),
-            )
-            .to_bytes()
-            .into();
-        self.mutate(n, id, AccountCommand::ConfirmRecovery { proof })
-            .unwrap();
+        let devices: Vec<Hash> = s
+            .devices
+            .iter()
+            .filter(|(_, d)| d.revoked_at.is_none())
+            .map(|(id, _)| *id)
+            .collect();
+        let recipients_digest = root_recipients_digest(&devices, generation);
+        let body_digest = Hash::new([12 + generation as u8; 32]);
+        ContentRootRef {
+            generation,
+            suite: "dmsg-root-v2".into(),
+            bundle_digest: root_bundle_digest(recipients_digest, body_digest),
+            recipients_digest,
+            body_digest,
+        }
     }
 
-    /// A recoverable account with a committed generation-1 content root.
+    /// Reserve and commit the next root generation with device `n`.
+    fn rekey(&self, n: u8, id: &AccountId) -> ContentRootRef {
+        self.rekey_by(n, n, id)
+    }
+    fn rekey_by(&self, login: u8, n: u8, id: &AccountId) -> ContentRootRef {
+        let s = self.account_id(login, id);
+        let expected = s.current_root.as_ref().map_or(0, |r| r.generation);
+        let op_id = digest("test-root", &(id, expected, s.account_version));
+        self.mutate_by(
+            login,
+            n,
+            id,
+            AccountCommand::ReserveRoot {
+                expected_generation: expected,
+                op_id,
+            },
+        )
+        .unwrap();
+        let generation = self.account_id(login, id).root_slot.unwrap().generation;
+        let root = self.root_ref(login, id, generation);
+        self.mutate_by(
+            login,
+            n,
+            id,
+            AccountCommand::CommitRoot {
+                expected_generation: expected,
+                op_id,
+                root: root.clone(),
+            },
+        )
+        .unwrap();
+        root
+    }
+
+    /// An account with a committed generation-1 content root.
     fn root_account(&self, n: u8) -> AccountId {
         let account_id = self.create(n);
-        self.recoverable(n, &account_id);
-        self.mutate(
-            n,
-            &account_id,
-            AccountCommand::ReserveRoot {
-                expected_generation: 0,
-                op_id: Hash::new([8; 32]),
-            },
-        )
-        .unwrap();
-        self.mutate(
-            n,
-            &account_id,
-            AccountCommand::CommitRoot {
-                expected_generation: 0,
-                op_id: Hash::new([8; 32]),
-                root: ContentRootRef {
-                    generation: 1,
-                    suite: "dmsg-root-v1".into(),
-                    home_cose: self.cose,
-                    derivation_version: 2,
-                    key_generation: 1,
-                    bundle_digest: Hash::new([12; 32]),
-                    recovery_generation: 1,
-                },
-            },
-        )
-        .unwrap();
+        self.rekey(n, &account_id);
         account_id
+    }
+
+    /// Recover the account of login `n` onto new device `m` after the delay.
+    fn recover(&self, n: u8, m: u8, id: &AccountId) -> OpId {
+        let s = self.account_id(n, id);
+        let request = RecoveryRequest {
+            op_id: digest("test-recovery", &(id, m, s.account_version)),
+            new_auth: person(n),
+            device: device(m),
+            expires_at: time(&self.ic) + s.recovery_delay_ms + DAY,
+        };
+        let proof = ByteBuf::from(
+            key(m)
+                .sign(recovery_device_message(self.user, id, &request).as_slice())
+                .to_bytes()
+                .to_vec(),
+        );
+        let begun: Result<()> = update(
+            &self.ic,
+            self.user,
+            person(n),
+            "request_recovery",
+            (id, request.clone(), proof),
+        );
+        begun.unwrap();
+        self.ic
+            .advance_time(Duration::from_millis(s.recovery_delay_ms + 1));
+        let done: Result<()> = update(
+            &self.ic,
+            self.user,
+            person(n),
+            "complete_recovery",
+            (id, request.op_id),
+        );
+        done.unwrap();
+        request.op_id
     }
 
     fn mint(&self, who: Principal, n: u128) {
@@ -839,11 +819,15 @@ impl Fixture {
         r.unwrap().0.to_string().parse().unwrap()
     }
     fn order(&self, recipient: &AccountId, n: u8, nonce: u8) -> OpenEscrow {
+        self.order_by(recipient, n, n, nonce)
+    }
+    /// An offer of login `n`'s account signed by its device `device`.
+    fn order_by(&self, recipient: &AccountId, n: u8, device: u8, nonce: u8) -> OpenEscrow {
         let s = self.account_id(n, recipient);
         let now = time(&self.ic);
         let offer = PaymentOffer {
             account_id: *recipient,
-            device_id: Hash::new([n; 32]),
+            device_id: Hash::new([device; 32]),
             security_epoch: s.security_epoch,
             home_payment: self.payment,
             offer_id: Hash::new([nonce; 32]),
@@ -855,7 +839,7 @@ impl Fixture {
             issued_at: now,
             expires_at: now + 15 * MINUTE,
         };
-        let signature = key(n)
+        let signature = key(device)
             .sign(digest("dmsg/payment-offer/v1", &offer).as_slice())
             .to_bytes()
             .into();
@@ -918,36 +902,47 @@ impl Fixture {
             .into();
         SignedReceipt { receipt, signature }
     }
-    fn derive(&self, n: u8, account_id: &AccountId, transport_key: Vec<u8>) -> ExecutionResult {
+    fn derive_request(
+        &self,
+        n: u8,
+        m: u8,
+        account_id: &AccountId,
+        transport_key: Vec<u8>,
+    ) -> DeriveRootRequest {
         let s = self.account_id(n, account_id);
-        let request_id = execution_request_id(
-            account_id,
-            s.security_epoch,
-            Hash::new([n; 32]),
-            s.devices[&Hash::new([n; 32])].next_sequence,
-        );
-        let mut request = ExecuteRequest {
+        let sequence = s.devices[&Hash::new([m; 32])].next_sequence;
+        let mut request = DeriveRootRequest {
             account_id: *account_id,
-            kind: ExecutionKind::Derive {
-                generation: 1,
-                root_op_id: None,
-                transport_key: serde_bytes::ByteArray::new(transport_key.try_into().unwrap()),
-            },
+            generation: s.current_root.as_ref().map_or(0, |r| r.generation),
+            transport_public_key: serde_bytes::ByteArray::new(transport_key.try_into().unwrap()),
             max_cycles: 100_000_000_000,
             approval: Approval {
-                device_id: Hash::new([n; 32]),
+                device_id: Hash::new([m; 32]),
                 security_epoch: s.security_epoch,
-                sequence: s.devices[&Hash::new([n; 32])].next_sequence,
-                request_id,
+                sequence,
+                request_id: execution_request_id(
+                    account_id,
+                    s.security_epoch,
+                    Hash::new([m; 32]),
+                    sequence,
+                ),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: Default::default(),
             },
         };
-        request.approval.signature = key(n)
-            .sign(execute_approval(self.user, &request).as_slice())
+        request.approval.signature = key(m)
+            .sign(derive_approval(self.user, &request).as_slice())
             .to_bytes()
             .into();
-        submit_execution(&self.ic, self.user, person(n), request).unwrap()
+        request
+    }
+
+    /// Login `n`'s recovered device `m` derives the committed root.
+    fn derive(&self, n: u8, m: u8, account_id: &AccountId, transport_key: Vec<u8>) -> ExecutionResult {
+        let request = self.derive_request(n, m, account_id, transport_key);
+        let result: Result<ExecutionResult> =
+            update(&self.ic, self.user, person(n), "derive_root", (request,));
+        result.unwrap()
     }
 }
 
@@ -1042,41 +1037,14 @@ fn xid_allocation_is_atomic_idempotent_and_persistent() {
 }
 
 #[test]
-fn identity_roots_certification_formal_signing_and_upgrade() {
+fn identity_roots_certification_attestation_recovery_and_upgrade() {
     let f = Fixture::new();
     let account_id = f.create(1);
     assert_eq!(f.create(1), account_id);
-    f.recoverable(1, &account_id);
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::ReserveRoot {
-            expected_generation: 0,
-            op_id: Hash::new([8; 32]),
-        },
-    )
-    .unwrap();
-    let root = ContentRootRef {
-        generation: 1,
-        suite: "dmsg-root-v1".into(),
-        home_cose: f.cose,
-        derivation_version: 2,
-        key_generation: 1,
-        bundle_digest: Hash::new([12; 32]),
-        recovery_generation: 1,
-    };
-    f.mutate(
-        1,
-        &account_id,
-        AccountCommand::CommitRoot {
-            expected_generation: 0,
-            op_id: Hash::new([8; 32]),
-            root: root.clone(),
-        },
-    )
-    .unwrap();
+    let root = f.rekey(1, &account_id);
     let s = f.account_id(1, &account_id);
-    assert_eq!(s.current_root, Some(root));
+    assert_eq!(s.current_root, Some(root.clone()));
+    assert_eq!(s.recovery_delay_ms, DEFAULT_RECOVERY_DELAY_MS);
     let batch: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -1099,21 +1067,50 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         witness.lookup_path([account_id.as_slice()]),
         ic_certification::LookupResult::Found(batch.entries[0].value.as_ref().unwrap())
     );
-    #[derive(CandidType, Deserialize)]
-    struct KeyState {
-        initialization: Initialization,
-    }
-    let init: Result<KeyState> =
-        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
-    assert_eq!(init.unwrap().initialization, Initialization::Ready);
-    let s = f.account_id(1, &account_id);
-    let expires = time(&f.ic) + MINUTE;
-    let request_id = execution_request_id(
-        &account_id,
-        s.security_epoch,
-        Hash::new([1; 32]),
-        s.devices[&Hash::new([1; 32])].next_sequence,
+    let snapshot: SecuritySnapshot =
+        decode_canonical(batch.entries[0].value.as_ref().unwrap()).unwrap();
+    assert_eq!(snapshot.schema, 4);
+    assert_eq!(snapshot.content_root_digest, Some(root.bundle_digest));
+
+    // The unlock secret is served only to a bound login for an active device,
+    // once the home has drawn its master secret.
+    let stats: UserStats = query(&f.ic, f.user, Principal::anonymous(), "user_stats", ());
+    assert!(stats.unlock_ready);
+    assert_eq!((stats.accounts, stats.created_today), (1, 1));
+    let secret: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (&account_id, Hash::new([1; 32])),
     );
+    let secret = secret.unwrap();
+    let again: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (&account_id, Hash::new([1; 32])),
+    );
+    assert_eq!(again, Ok(secret));
+    let denied: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(2),
+        "unlock_secret",
+        (&account_id, Hash::new([1; 32])),
+    );
+    assert_eq!(denied, Err(Error::AuthRequired));
+    let unknown: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (&account_id, Hash::new([2; 32])),
+    );
+    assert_eq!(unknown, Err(Error::DeviceNotApproved));
+
+    // A device-signed statement is certified in the same message.
     let payload = Statement {
         issuer: account_issuer(NAMESPACE, &account_id),
         subject: Some("release/spec".into()),
@@ -1124,45 +1121,17 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
             location: None,
         },
     };
-    let selected = f.key_ref(
-        &account_id,
-        SigningPurpose::FileAttestation,
-        SigningAlgorithm::Ed25519,
+    let request = f.attest_request(1, &account_id, payload.clone());
+    let request_id = request.approval.request_id;
+    let artifact: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request.clone(),));
+    let artifact = artifact.unwrap();
+    assert_eq!(verify_artifact(&artifact).unwrap(), payload);
+    assert_eq!(
+        key_thumbprint(&artifact.cose_key).unwrap(),
+        key_thumbprint(&public_cose_key(&[], &key(1).verifying_key().to_bytes()).unwrap())
+            .unwrap()
     );
-    let (_, to_be_signed) = prepare_cose(&payload, &Algorithm::Ed25519, &selected.kid).unwrap();
-    let mut request = ExecuteRequest {
-        account_id,
-        kind: ExecutionKind::Sign {
-            key: KeyRequest {
-                purpose: KeyPurpose::FileAttestation,
-                algorithm: Algorithm::Ed25519,
-                generation: 1,
-            },
-            to_be_signed: to_be_signed.into(),
-            public_key_fingerprint: selected.public_key_fingerprint,
-            origin: "https://example.com".into(),
-        },
-        max_cycles: 100_000_000_000,
-        approval: Approval {
-            device_id: Hash::new([1; 32]),
-            security_epoch: s.security_epoch,
-            sequence: s.devices[&Hash::new([1; 32])].next_sequence,
-            request_id,
-            expires_at: expires,
-            signature: Default::default(),
-        },
-    };
-    request.approval.signature = key(1)
-        .sign(execute_approval(f.user, &request).as_slice())
-        .to_bytes()
-        .into();
-    let result = submit_execution(&f.ic, f.user, person(1), request.clone());
-    let result = result.unwrap();
-    assert_eq!(result.status(), ExecutionStatus::Completed);
-    let ExecutionOutput::Signature { artifact, .. } = completed(&result) else {
-        panic!("signature output")
-    };
-    assert_eq!(verify_artifact(artifact).unwrap(), payload);
     let batch: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
@@ -1180,7 +1149,7 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
                 ByteBuf::from(f.ic.root_key().unwrap()),
                 time(&f.ic),
                 &batch,
-                artifact,
+                &artifact,
                 &account_id,
                 request_id,
                 &payload.issuer,
@@ -1194,20 +1163,21 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         &execution_receipt_key(&account_id, request_id),
     ))
     .unwrap();
-    match_execution_receipt(artifact, &receipt).unwrap();
+    match_execution_receipt(&artifact, &receipt).unwrap();
     assert_eq!(receipt.request_id, request_id);
     assert_eq!(receipt.account_id, account_id);
+    assert_eq!(receipt.device_id, Hash::new([1; 32]));
     assert_eq!(receipt.origin, "https://example.com");
     let mut altered = receipt.clone();
     altered.to_be_signed_digest = Hash::new([99; 32]);
     assert_eq!(
-        match_execution_receipt(artifact, &altered),
+        match_execution_receipt(&artifact, &altered),
         Err(Error::IntegrityFailed)
     );
     altered = receipt.clone();
     altered.public_key_fingerprint = Hash::new([99; 32]);
     assert_eq!(
-        match_execution_receipt(artifact, &altered),
+        match_execution_receipt(&artifact, &altered),
         Err(Error::IntegrityFailed)
     );
     let denied: Result<CertifiedBatch> = query(
@@ -1218,30 +1188,78 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         (&account_id, request_id),
     );
     assert!(denied.is_err());
-    let replay = submit_execution(&f.ic, f.user, person(1), request);
-    assert_eq!(replay.unwrap(), result);
+    let replay: Result<SignedArtifact> =
+        update(&f.ic, f.user, person(1), "attest", (request,));
+    assert_eq!(replay.unwrap(), artifact);
+    let stored: Result<SignedArtifact> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_attestation",
+        (&account_id, request_id),
+    );
+    assert_eq!(stored.unwrap(), artifact);
+
+    // The root bundle's recovery envelope is encrypted offline to the
+    // account's vetKD identity; only a recovered device may derive it.
+    #[derive(CandidType, Deserialize)]
+    struct KeyState {
+        initialization: Initialization,
+    }
+    let init: Result<KeyState> =
+        update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
+    assert_eq!(init.unwrap().initialization, Initialization::Ready);
+    let described: Result<KeyDescriptor> = query(
+        &f.ic,
+        f.cose,
+        Principal::anonymous(),
+        "root_public_key",
+        (&account_id, 1u64),
+    );
+    let described = described.unwrap();
+    assert_eq!(described.home_cose, f.cose);
+    assert_eq!(described.key_generation, 1);
+    let public = ic_vetkeys::DerivedPublicKey::deserialize(&described.public_key).unwrap();
+    let envelope = ic_vetkeys::IbeCiphertext::encrypt(
+        &public,
+        &ic_vetkeys::IbeIdentity::from_bytes(&canonical(&(&account_id, 1u64))),
+        b"content root of generation 1",
+        &ic_vetkeys::IbeSeed::from_bytes(&[7; 32]).unwrap(),
+    );
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
-    let derived = f.derive(1, &account_id, transport.public_key());
+    let unrecovered = f.derive_request(1, 1, &account_id, transport.public_key());
+    let refused: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (unrecovered,));
+    assert_eq!(refused, Err(Error::Forbidden));
+    f.recover(1, 9, &account_id);
+    let s = f.account_id(1, &account_id);
+    assert_eq!(s.auth_bindings, vec![person(1)]);
+    assert_eq!(s.devices.len(), 1);
+    assert_eq!(s.recovered_device, Some((Hash::new([9; 32]), 1)));
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+    let derived = f.derive(1, 9, &account_id, transport.public_key());
     assert_eq!(derived.status(), ExecutionStatus::Completed);
-    let encrypted = ic_vetkeys::EncryptedVetKey::deserialize(completed(&derived).bytes()).unwrap();
-    let public =
-        ic_vetkeys::DerivedPublicKey::deserialize(&completed(&derived).key().public_key).unwrap();
-    let root = encrypted
+    let output = completed(&derived);
+    assert_eq!(output.key, described);
+    let encrypted = ic_vetkeys::EncryptedVetKey::deserialize(&output.encrypted_key).unwrap();
+    let vetkey = encrypted
         .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, 1u64)))
         .unwrap();
+    assert_eq!(
+        envelope.decrypt(&vetkey).unwrap(),
+        b"content root of generation 1"
+    );
     assert!(encrypted
         .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, 2u64)))
         .is_err());
-    let other = ic_vetkeys::TransportSecretKey::from_seed(vec![92; 32]).unwrap();
-    assert!(encrypted
-        .decrypt_and_verify(&other, &public, &canonical(&(&account_id, 1u64)))
-        .is_err());
-    let derived = f.derive(1, &account_id, other.public_key());
-    let same = ic_vetkeys::EncryptedVetKey::deserialize(completed(&derived).bytes())
-        .unwrap()
-        .decrypt_and_verify(&other, &public, &canonical(&(&account_id, 1u64)))
-        .unwrap();
-    assert_eq!(root.serialize(), same.serialize());
+    // The recovered device rekeys and loses the derivation right.
+    let rotated = f.rekey_by(1, 9, &account_id);
+    assert_eq!(rotated.generation, 2);
+    assert_eq!(f.account_id(1, &account_id).recovered_device, None);
+    let again = f.derive_request(1, 9, &account_id, transport.public_key());
+    let refused: Result<ExecutionResult> =
+        update(&f.ic, f.user, person(1), "derive_root", (again,));
+    assert_eq!(refused, Err(Error::Forbidden));
     f.ic.upgrade_canister(
         f.user,
         wasm("dmsg_user"),
@@ -1256,49 +1274,66 @@ fn identity_roots_certification_formal_signing_and_upgrade() {
         None,
     )
     .unwrap();
-    assert_eq!(f.account_id(1, &account_id).current_root, s.current_root);
-    let restored: Result<CertifiedBatch> = query(
+    assert_eq!(f.account_id(1, &account_id).current_root, Some(rotated));
+    // The recovery delay outlived the attestation's retention: the receipt is
+    // now a certified absence, and the artifact is no longer served.
+    let pruned: Result<CertifiedBatch> = query(
         &f.ic,
         f.user,
         person(1),
         "get_execution_receipt",
         (&account_id, request_id),
     );
-    let restored: ExecutionReceipt = decode_canonical(&certified_value(
-        &f,
-        restored.unwrap(),
-        &execution_receipt_key(&account_id, request_id),
-    ))
-    .unwrap();
-    assert_eq!(restored, receipt);
-    match_execution_receipt(artifact, &restored).unwrap();
-    // Both stores must rehydrate independently persisted executions after upgrade.
-    for expected in [result, derived] {
-        let local: Result<ExecutionResult> = query(
-            &f.ic,
-            f.user,
-            person(1),
-            "get_execution",
-            (&account_id, expected.request_id),
-        );
-        let remote: Result<ExecutionResult> = query(
-            &f.ic,
-            f.cose,
-            f.user,
-            "get_execution",
-            (&account_id, expected.request_id),
-        );
-        assert_eq!(local.unwrap(), expected);
-        assert_eq!(remote.unwrap(), expected);
-        let replay: Result<ExecutionResult> = update(
-            &f.ic,
-            f.user,
-            person(1),
-            "reconcile_execution",
-            (&account_id, expected.request_id),
-        );
-        assert_eq!(replay.unwrap(), expected);
-    }
+    assert!(pruned.unwrap().entries[0].value.is_none());
+    let expired: Result<SignedArtifact> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_attestation",
+        (&account_id, request_id),
+    );
+    assert_eq!(expired, Err(Error::ResultExpired));
+    // Both stores must rehydrate the independently persisted derivation after upgrade.
+    let local: Result<ExecutionResult> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "get_execution",
+        (&account_id, derived.request_id),
+    );
+    let remote: Result<ExecutionResult> = query(
+        &f.ic,
+        f.cose,
+        f.user,
+        "get_execution",
+        (&account_id, derived.request_id),
+    );
+    assert_eq!(local.unwrap(), derived);
+    assert_eq!(remote.unwrap(), derived);
+    let replay: Result<ExecutionResult> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "reconcile_execution",
+        (&account_id, derived.request_id),
+    );
+    assert_eq!(replay.unwrap(), derived);
+    let secret_after: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (&account_id, Hash::new([9; 32])),
+    );
+    assert!(secret_after.is_ok());
+    let revoked_secret: Result<Hash> = query(
+        &f.ic,
+        f.user,
+        person(1),
+        "unlock_secret",
+        (&account_id, Hash::new([1; 32])),
+    );
+    assert_eq!(revoked_secret, Err(Error::DeviceNotApproved));
 
     // Upgrades take no configuration; key descriptions stay as installed.
     let state: dmsg_types::cose::KeyState = query(&f.ic, f.cose, person(1), "key_state", ());

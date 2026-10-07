@@ -1,11 +1,9 @@
-import { argon2idAsync } from '@noble/hashes/argon2.js'
 import { hkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { Aes256Gcm, CipherSuite, HkdfSha256 } from '@hpke/core'
 import { DhkemX25519HkdfSha256 } from '@hpke/dhkem-x25519'
-import { b64, unb64, bytes, canonical, decodeCanonical, random, utf8 } from '../protocol/codec'
-import type { KdfParams } from '../models'
+import { b64, unb64, bytes, canonical, decodeCanonical, random } from '../protocol/codec'
 import { ensure } from '../errors'
 
 export { ed25519 }
@@ -16,41 +14,18 @@ export const hpke = new CipherSuite({
 })
 export const derive = (key: Uint8Array, domain: unknown) =>
   bytes(hkdf(sha256, key, new Uint8Array(32), canonical(domain), 32))
-export const defaultKdf = (): KdfParams => ({
-  algorithm: 'argon2id',
-  version: 1,
-  memory: 65536,
-  iterations: 3,
-  parallelism: 1,
-  salt: b64(random(16))
-})
-export async function passwordKey(
-  password: string,
-  params: KdfParams
-): Promise<Uint8Array<ArrayBuffer>> {
-  ensure(
-    params.algorithm === 'argon2id' &&
-      params.version === 1 &&
-      params.memory === 65536 &&
-      params.iterations === 3 &&
-      params.parallelism === 1 &&
-      unb64(params.salt).length === 16,
-    'UNSUPPORTED_PROTOCOL',
-    '不支持的口令参数。'
-  )
-  ensure(utf8(password).length <= 1024, 'INVALID_INPUT', '口令过长。')
-  const key = await argon2idAsync(utf8(password), unb64(params.salt), {
-    m: params.memory,
-    t: params.iterations,
-    p: params.parallelism,
-    dkLen: 32
-  })
-  try {
-    return derive(key, ['dmsg/local-unlock/1'])
-  } finally {
-    key.fill(0)
-  }
+/** Local unlock key from the user home's login-gated unlock secret. */
+export function unlockKey(secret: Uint8Array, workspace: string) {
+  ensure(secret.length === 32, 'INVALID_INPUT')
+  return derive(secret, ['dmsg/local-unlock/2', workspace])
 }
+/** Local unlock key from a platform authenticator's WebAuthn PRF output. */
+export function prfKey(output: Uint8Array, workspace: string) {
+  ensure(output.length === 32, 'INVALID_INPUT')
+  return derive(output, ['dmsg/local-unlock-prf/1', workspace])
+}
+/** The salt a workspace evaluates its PRF credential with. */
+export const prfSalt = (workspace: string) => derive(new Uint8Array(32), ['dmsg/prf-salt/1', workspace])
 
 async function aesKey(key: Uint8Array, usage: KeyUsage[]) {
   ensure(key.length === 32, 'INTEGRITY_FAILED')
@@ -159,21 +134,10 @@ export async function hpkeOpen(
     )
   )
 }
-export function recoverySeeds(
-  code: Uint8Array,
+/** HPKE info/AAD of a device's content-root envelope. */
+export const deviceRootContext = (
   environment: string,
-  subject: string,
-  generation: number
-) {
-  ensure(code.length === 32, 'INVALID_INPUT', '恢复码应为 256 位。')
-  return {
-    signing: derive(code, ['dmsg/recovery/1', environment, subject, generation, 'sign']),
-    hpke: derive(code, ['dmsg/recovery/1', environment, subject, generation, 'hpke'])
-  }
-}
-export const recoveryContext = (environment: string, subject: string, generation: number) => [
-  'dmsg/recovery-root/1',
-  environment,
-  subject,
-  generation
-]
+  account: string,
+  generation: number,
+  deviceId: string
+) => ['dmsg/device-root/1', environment, account, generation, deviceId]

@@ -6,14 +6,12 @@ import type {
   AccountInfo,
   AccountMutation,
   CreateAccount,
-  RecoveryPolicy,
-  RecoveryRequest,
-  RecoveryConfirmation
+  RecoveryRequest
 } from '../canisters/generated/user'
 import type { CryptoClient } from '../crypto/client'
 import type { WorkspaceMeta } from '../models'
 import { DmsgError, ensure } from '../errors'
-import { b64, canonical, digest, equal, hex, id, unb64, unhex } from '../protocol/codec'
+import { canonical, digest, equal, hex, id, unb64, unhex } from '../protocol/codec'
 import { xidBytes, xidText } from '../protocol/identity'
 import {
   accountApprovalMessage,
@@ -23,6 +21,7 @@ import {
   decodeControl,
   deviceInput,
   encodeControl,
+  recoveryDeviceMessage,
   type ControlMethod
 } from '../protocol/account'
 import { verifyCloudSecurity } from './cloud-security'
@@ -49,11 +48,11 @@ export function controlResult<T>(result: { Ok: T } | { Err: unknown }): T {
     PolicyStale: '账户权限已变化，请刷新后核对。',
     VersionConflict: '另一设备已改变账户或根预留，请读取当前状态。',
     QuotaExceeded: '账户操作次数或 cycles 预算不足；不会自动提高预算或重复申请。',
-    RecoveryIncomplete: '请先完成恢复材料登记与验证。',
+    RecoveryIncomplete: '请先完成账户绑定与内容根初始化。',
     Expired: '请求或预留已过期，请查询原操作并核对当前状态。',
     ResultExpired: '原操作结果已超出保留范围；不能据此认定操作未发生。',
     Pending: '仍有未完成操作，请先查询原请求。',
-    Locked: '账户处于受限状态，请检查恢复争议和等待期。'
+    Locked: '账户处于受限状态，请检查恢复等待期。'
   }
   throw new DmsgError(
     code,
@@ -66,6 +65,15 @@ export function controlResult<T>(result: { Ok: T } | { Err: unknown }): T {
 }
 const same = (a: Uint8Array | number[], b: Uint8Array | number[]) =>
   equal(Uint8Array.from(a), Uint8Array.from(b))
+/** Serde view of a pending recovery, as the certified leaf commits to it. */
+export const pendingRecoveryDigest = (pending: {
+  request: RecoveryRequest
+  execute_after: bigint
+}) =>
+  digest('dmsg/pending-recovery/v1', {
+    request: accountValue(pending.request),
+    execute_after: pending.execute_after
+  })
 
 /** All mutations are explicitly requested by the unlocked settings page. The
  * encrypted journal is durable before dispatch; reconnecting does not submit. */
@@ -96,6 +104,14 @@ export class AccountClient {
   async connectedAccount() {
     const result = await this.user.my_account()
     return result.length ? xidText(Uint8Array.from(result[0]!)) : null
+  }
+  /** The login-gated secret that unlocks this device's local store. */
+  async unlockSecret(account: string) {
+    const secret = Uint8Array.from(
+      controlResult(await this.user.unlock_secret(xidBytes(account), unhex(this.meta.deviceId)))
+    )
+    ensure(secret.length === 32, 'INTEGRITY_FAILED')
+    return secret
   }
   async refresh(account: string) {
     const raw = xidBytes(account)
@@ -131,8 +147,7 @@ export class AccountClient {
         homeUser: this.home.toText(),
         issuer: info.issuer
       },
-      Date.now(),
-      true
+      Date.now()
     )
     const snapshot = verified.snapshot
     if (this.meta.account?.id === account) {
@@ -153,10 +168,10 @@ export class AccountClient {
     ensure(
       BigInt(snapshot.account_version as number | bigint) === info.account_version &&
         BigInt(snapshot.security_epoch as number | bigint) === info.security_epoch &&
-        snapshot.account_status === Object.keys(info.status)[0] &&
         snapshot.vault_write_state === Object.keys(info.vault_write_state)[0] &&
         snapshot.home_cose instanceof Uint8Array &&
         equal(snapshot.home_cose, info.home_cose.toUint8Array()) &&
+        BigInt(snapshot.recovery_delay_ms as number | bigint) === info.recovery_delay_ms &&
         BigInt(snapshot.content_root_generation as number | bigint) ===
           (info.current_root[0]?.generation ?? 0n) &&
         equal(
@@ -165,15 +180,11 @@ export class AccountClient {
             info.current_root[0] ? Uint8Array.from(info.current_root[0].bundle_digest) : null
           )
         ) &&
-        BigInt(snapshot.recovery_root_version as number | bigint) ===
-          (info.recovery[0]?.generation ?? 0n) &&
         equal(
-          canonical(snapshot.recovery_hpke_pub),
-          canonical(info.recovery[0] ? Uint8Array.from(info.recovery[0].hpke_pub) : null)
-        ) &&
-        equal(
-          canonical(snapshot.recovery_signing_pub),
-          canonical(info.recovery[0] ? Uint8Array.from(info.recovery[0].signing_pub) : null)
+          canonical(snapshot.pending_recovery_digest),
+          canonical(
+            info.pending_recovery[0] ? pendingRecoveryDigest(info.pending_recovery[0]) : null
+          )
         ),
       'INTEGRITY_FAILED'
     )
@@ -234,7 +245,7 @@ export class AccountClient {
         await this.save({ ...journal, stage: 'rejected', error: code })
       return controlResult(response)
     }
-    if (journal.method === 'mutate_account' || journal.method === 'register_controller') {
+    if (journal.method === 'mutate_account') {
       const receipt = response.Ok as { id: Uint8Array; digest: Uint8Array }
       ensure(
         same(receipt.id, unhex(journal.requestId)) &&
@@ -262,10 +273,7 @@ export class AccountClient {
         await this.save({ ...journal, account, stage: 'confirmed' })
         return account
       }
-    } else if (
-      journal.method === 'mutate_account' ||
-      journal.method === 'register_controller'
-    ) {
+    } else if (journal.method === 'mutate_account') {
       const result = await this.user.get_operation(
         xidBytes(journal.account!),
         unhex(journal.requestId)
@@ -329,14 +337,13 @@ export class AccountClient {
     await this.refresh(account)
     return account
   }
-  /** `register_controller` carries the same mutation; the home also checks the
-   * approved key against its COSE derivation before committing. */
+  /** Disputing a recovery needs any active device; everything else needs an
+   * administrator with root management. */
   async mutate(
     account: string,
     command:
       AccountCommand | ((info: AccountInfo, requestId: Uint8Array) => Promise<AccountCommand>),
-    fixed?: { requestId: string; version: bigint },
-    method: 'mutate_account' | 'register_controller' = 'mutate_account'
+    fixed?: { requestId: string; version: bigint }
   ) {
     ensure(!(await this.pending()), 'Pending', '先查询或继续上一个操作。')
     const { info, device } = await this.refresh(account)
@@ -383,73 +390,13 @@ export class AccountClient {
       home: this.home.toText(),
       caller: this.caller.toText(),
       account,
-      method,
-      args: encodeControl(method, [request]),
+      method: 'mutate_account',
+      args: encodeControl('mutate_account', [request]),
       requestId: hex(requestId),
       stage: 'prepared'
     }
     await this.save(journal)
     await this.dispatch(journal)
-    return this.refresh(account)
-  }
-  async enrollRecovery(account: string, code: string, policy: RecoveryPolicy) {
-    const sign = async (message: Uint8Array) =>
-      (
-        await this.crypto.call('accountRecovery', {
-          account,
-          generation: Number(policy.generation),
-          action: 'prove',
-          code,
-          publicKey: b64(Uint8Array.from(policy.signing_pub)),
-          message
-        })
-      ).signature
-    const current = await this.refresh(account)
-    if (
-      !current.info.recovery.length ||
-      policy.generation === current.info.recovery[0]!.generation + 1n
-    ) {
-      await this.mutate(account, async (_, request) => ({
-        SetRecovery: {
-          policy,
-          proof: await sign(
-            digest('dmsg/recovery-enroll/v1', [
-              this.home.toUint8Array(),
-              xidBytes(account),
-              accountValue(policy),
-              request
-            ])
-          )
-        }
-      }))
-    } else
-      ensure(
-        equal(
-          canonical(accountValue(current.info.recovery[0])),
-          canonical(accountValue(policy))
-        ),
-        'IdempotencyConflict'
-      )
-    const observed = await this.refresh(account)
-    if (!observed.info.recovery_checked)
-      await this.mutate(account, async (info, request) => ({
-        ConfirmRecovery: {
-          proof: await sign(
-            digest('dmsg/recovery-check/v1', [
-              this.home.toUint8Array(),
-              xidBytes(account),
-              policy.generation,
-              info.account_version,
-              request
-            ])
-          )
-        }
-      }))
-    await this.crypto.call('accountRecovery', {
-      account,
-      generation: Number(policy.generation),
-      action: 'clear'
-    })
     return this.refresh(account)
   }
 
@@ -602,8 +549,7 @@ export class AccountClient {
       bundle,
       this.agent,
       { accountId: account, homeUser: this.home.toText(), issuer: bundle[0].issuer },
-      Date.now(),
-      true
+      Date.now()
     )
   }
   async recoveryStatus(account: string) {
@@ -611,106 +557,43 @@ export class AccountClient {
       this.snapshot(account),
       this.user.get_recovery_request(xidBytes(account))
     ])
-    const pending = controlResult(result)[0]
-    const value = pending
-      ? {
-          request: accountValue(pending.request),
-          execute_after: pending.execute_after,
-          dispute: pending.dispute[0] ? Uint8Array.from(pending.dispute[0]) : null,
-          reconfirmed: pending.reconfirmed,
-          confirmation: pending.confirmation[0] ? accountValue(pending.confirmation[0]) : null
-        }
-      : null
+    const pending = controlResult(result)[0] ?? null
     ensure(
       equal(
         canonical(verified.snapshot.pending_recovery_digest),
-        canonical(value ? digest('dmsg/pending-recovery/v1', value) : null)
+        canonical(pending ? pendingRecoveryDigest(pending) : null)
       ),
       'POLICY_STALE'
     )
     return { pending, verified }
   }
-  async requestRecovery(account: string, code: string) {
+  /** Begin a login-authorized takeover onto this device. The bound login is
+   * the authority; the device only proves possession of its keys. */
+  async requestRecovery(account: string) {
     const { snapshot } = await this.snapshot(account)
-    const generation = BigInt(snapshot.recovery_root_version as number | bigint)
-    ensure(
-      snapshot.recovery_signing_pub instanceof Uint8Array && generation > 0n,
-      'RECOVERY_INCOMPLETE'
-    )
+    const delay = Number(snapshot.recovery_delay_ms as number | bigint)
     const request: RecoveryRequest = {
       op_id: unhex(id()),
       new_auth: this.caller,
       device: deviceInput(this.meta),
-      generation,
-      expires_at: BigInt(Date.now() + 14 * 86400000)
+      expires_at: BigInt(Date.now() + delay + 7 * 86400000)
     }
-    const message = digest('dmsg/recovery-request/v1', [
-      this.home.toUint8Array(),
-      xidBytes(account),
-      snapshot.recovery_nonce,
-      accountValue(request)
-    ])
-    const signature = (
-      await this.crypto.call('accountRecovery', {
-        account,
-        generation: Number(generation),
-        action: 'prove',
-        code,
-        message,
-        publicKey: b64(snapshot.recovery_signing_pub)
-      })
-    ).signature
     const proof = await this.crypto.call(
       'deviceSign',
-      digest('dmsg/recovery-device/v1', [
-        this.home.toUint8Array(),
-        xidBytes(account),
-        accountValue(request)
-      ])
+      recoveryDeviceMessage(this.home, account, request)
     )
     await this.submit(
       'request_recovery',
       account,
-      [xidBytes(account), request, signature, proof],
+      [xidBytes(account), request, proof],
       hex(Uint8Array.from(request.op_id))
     )
     return this.recoveryStatus(account)
   }
-  async reconfirmRecovery(account: string, code: string) {
-    const { pending, verified } = await this.recoveryStatus(account),
-      snapshot = verified.snapshot
-    ensure(
-      pending?.dispute[0] && snapshot.recovery_signing_pub instanceof Uint8Array,
-      'NOT_FOUND'
-    )
-    const confirmation: RecoveryConfirmation = {
-      request_id: pending.request.op_id,
-      dispute: pending.dispute[0],
-      expires_at: BigInt(Date.now() + 14 * 86400000)
-    }
-    const message = digest('dmsg/recovery-reconfirm/v2', [
-      this.home.toUint8Array(),
-      xidBytes(account),
-      snapshot.recovery_nonce,
-      accountValue(pending.request),
-      accountValue(confirmation)
-    ])
-    const signature = (
-      await this.crypto.call('accountRecovery', {
-        account,
-        generation: Number(pending.request.generation),
-        action: 'prove',
-        code,
-        message,
-        publicKey: b64(snapshot.recovery_signing_pub)
-      })
-    ).signature
-    await this.submit(
-      'reconfirm_recovery',
-      account,
-      [xidBytes(account), confirmation, signature],
-      hex(Uint8Array.from(pending.request.op_id))
-    )
+  async disputeRecovery(account: string) {
+    const { pending } = await this.recoveryStatus(account)
+    ensure(pending, 'NOT_FOUND')
+    await this.mutate(account, { DisputeRecovery: { op_id: pending.request.op_id } })
     return this.recoveryStatus(account)
   }
   async completeRecovery(account: string) {
@@ -721,12 +604,7 @@ export class AccountClient {
         same(pending.request.device.device_id, unhex(this.meta.deviceId)),
       'AuthRequired'
     )
-    ensure(
-      Date.now() >= Number(pending.execute_after) &&
-        (!pending.dispute.length || pending.reconfirmed),
-      'LOCKED',
-      '恢复等待期或争议尚未结束。'
-    )
+    ensure(Date.now() >= Number(pending.execute_after), 'LOCKED', '恢复等待期尚未结束。')
     await this.submit(
       'complete_recovery',
       account,
@@ -734,5 +612,9 @@ export class AccountClient {
       hex(Uint8Array.from(pending.request.op_id))
     )
     return this.refresh(account)
+  }
+  setRecoveryDelay(account: string, days: number) {
+    ensure(Number.isInteger(days) && days >= 1 && days <= 7, 'INVALID_INPUT')
+    return this.mutate(account, { SetRecoveryDelay: { delay_ms: BigInt(days * 86400000) } })
   }
 }

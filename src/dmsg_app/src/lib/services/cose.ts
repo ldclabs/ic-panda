@@ -1,37 +1,23 @@
-import { encodeControl, decodeControl } from '../protocol/account'
+import { attestApprovalMessage, decodeControl, deriveApprovalMessage, encodeControl } from '../protocol/account'
 import { actionToCandid, actionFromCandid } from '../protocol/app-action'
 import { Principal } from '@icp-sdk/core/principal'
 import type {
   _SERVICE as UserService,
   Approval,
+  AppActionAttestRequest,
+  AttestRequest,
   DeriveRootRequest,
   ExecutionResult,
-  Statement,
-  RootTarget,
-  SignRequest,
-  AppActionSignRequest,
-  SigningAlgorithm
+  SignedArtifact,
+  Statement
 } from '../canisters/generated/user'
-import type { _SERVICE as CoseService, KeySelector } from '../canisters/generated/cose'
-import { digest, equal, hex } from '../protocol/codec'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { canonical, digest, equal, hex } from '../protocol/codec'
 import { DmsgError, ensure } from '../errors'
 import { controlResult } from './account'
-import {
-  statementBytes,
-  statementPurpose,
-  verifyDocumentArtifact,
-  type Algorithm,
-  type DocumentStatement
-} from '../protocol/statements'
-export type { Algorithm } from '../protocol/statements'
+import { statementBytes, verifyDocumentArtifact, type DocumentStatement } from '../protocol/statements'
 
 export class ExecutionRejected extends DmsgError {}
-
-export interface SigningKeyReference {
-  algorithm: Algorithm
-  kid: Uint8Array
-  publicKeyFingerprint: Uint8Array
-}
 
 /** Obtain device/epoch/sequence from the authenticated account before preparing.
  * The origin must come from the extension's checked browser message, not a
@@ -45,28 +31,19 @@ export interface ExecutionContext {
   securityEpoch: bigint
   sequence: bigint
   expiresAt: bigint
-  maxCycles: bigint
 }
-type Operation =
-  | { kind: 'sign'; request: SignRequest }
-  | { kind: 'sign_app_action'; request: AppActionSignRequest }
-  | { kind: 'derive_root'; request: DeriveRootRequest }
-function cloneOperation(operation: Operation): Operation {
+export type AttestOperation =
+  | { kind: 'attest'; request: AttestRequest }
+  | { kind: 'attest_app_action'; request: AppActionAttestRequest }
+function cloneOperation<T extends AttestOperation>(operation: T): T {
   // structuredClone strips Principal's prototype. Clone through the exact public
   // Candid schema so receiver identity survives approval, journaling and retry.
   return {
     kind: operation.kind,
-    request: decodeControl(
-      operation.kind,
-      encodeControl(operation.kind, [operation.request])
-    )[0]
-  } as Operation
+    request: decodeControl(operation.kind, encodeControl(operation.kind, [operation.request]))[0]
+  } as T
 }
-type UserExecution = Pick<
-  UserService,
-  'sign' | 'sign_app_action' | 'derive_root' | 'get_execution' | 'reconcile_execution'
->
-export type DeviceSigner = (approvalDigest: Uint8Array) => Promise<Uint8Array>
+export type DeviceSigner = (message: Uint8Array) => Promise<Uint8Array>
 
 function fixed(value: Uint8Array, size: number) {
   ensure(
@@ -99,7 +76,6 @@ function approval(context: ExecutionContext, now: number): Approval {
     'EXPIRED',
     '批准有效期必须在未来 5 分钟内。'
   )
-  ensure(context.maxCycles > 0n && context.maxCycles <= 100000000000n, 'QUOTA_EXCEEDED')
   ensure(
     !context.homeUser.isAnonymous() && context.homeUser.toUint8Array().length > 0,
     'INVALID_INPUT'
@@ -113,7 +89,20 @@ function approval(context: ExecutionContext, now: number): Approval {
     signature: new Uint8Array()
   }
 }
-function toStatement(input: DocumentStatement): Statement {
+/** RFC 9679 thumbprint of a raw Ed25519 public key; the artifact kid. */
+export function deviceKeyThumbprint(publicKey: Uint8Array) {
+  ensure(publicKey.length === 32, 'INVALID_INPUT')
+  return sha256(
+    canonical(
+      new Map<number, unknown>([
+        [1, 1],
+        [-1, 6],
+        [-2, Uint8Array.from(publicKey)]
+      ])
+    )
+  )
+}
+export function toStatement(input: DocumentStatement): Statement {
   let content: Statement['content']
   switch (input.content.kind) {
     case 'app_action':
@@ -151,7 +140,7 @@ function toStatement(input: DocumentStatement): Statement {
     content
   }
 }
-function fromStatement(s: Statement): DocumentStatement {
+export function fromStatement(s: Statement): DocumentStatement {
   return {
     issuer: s.issuer,
     subject: s.subject[0],
@@ -177,165 +166,140 @@ function fromStatement(s: Statement): DocumentStatement {
               }
   }
 }
-export function signingRequest(request: SignRequest | AppActionSignRequest): SignRequest {
+/** The statement and checked origin an attestation request binds. */
+export function attestView(request: AttestRequest | AppActionAttestRequest) {
   return 'action' in request
     ? {
-        ...request,
-        origin: request.action.origin,
         statement: {
           issuer: request.issuer,
-          subject: [],
-          issued_at: [],
+          subject: [] as [],
+          issued_at: [] as [],
           content: { AppAction: request.action }
-        }
+        } satisfies Statement,
+        origin: request.action.origin
       }
-    : request
+    : { statement: request.statement, origin: request.origin }
 }
-export function signBytes(input: SignRequest | AppActionSignRequest) {
-  const request = signingRequest(input)
-  return statementBytes(
-    fromStatement(request.statement),
-    Object.keys(request.key.algorithm)[0] as Algorithm,
-    Uint8Array.from(request.key.kid)
-  ).toBeSigned
+/** The exact Sig_structure a device signs for an attestation request. */
+export function signBytes(
+  request: AttestRequest | AppActionAttestRequest,
+  kid: Uint8Array
+) {
+  return statementBytes(fromStatement(attestView(request).statement), 'Ed25519', kid).toBeSigned
 }
-function executionKind(operation: Operation): unknown {
-  if (operation.kind !== 'derive_root') {
-    const sign = signingRequest(operation.request)
-    return {
-      Sign: {
-        key: {
-          purpose: statementPurpose(fromStatement(sign.statement).content),
-          algorithm: Object.keys(sign.key.algorithm)[0],
-          generation: 1n
-        },
-        to_be_signed: signBytes(sign),
-        public_key_fingerprint: Uint8Array.from(sign.key.public_key_fingerprint),
-        origin: sign.origin
-      }
-    }
-  }
-  const root = operation.request
-  const target = 'Current' in root.target ? root.target.Current : root.target.Candidate
-  return {
-    Derive: {
-      generation: target.generation,
-      root_op_id:
-        'Candidate' in root.target ? Uint8Array.from(root.target.Candidate.op_id) : null,
-      transport_key: Uint8Array.from(root.transport_public_key)
-    }
-  }
-}
-/** A snapshot of exactly what will be approved. Returned views are copies.
- * Persist the signed operation (and the root transport-secret reference) with
- * `onApproved` before dispatch when integrating an encrypted outbox.
- */
-export class PreparedExecution {
-  private readonly operation: Operation
-  private readonly message: Uint8Array
-  private submission?: Promise<ExecutionResult>
+/** A frozen attestation: the device signs the Sig_structure, then approves
+ * the statement, origin and that signature together. */
+export class PreparedAttestation {
+  private readonly operation: AttestOperation
+  private readonly thumbprint: Uint8Array
+  private readonly signingBytes: Uint8Array
+  private submission?: Promise<SignedArtifact>
 
-  constructor(operation: Operation, homeUser: Principal) {
+  constructor(
+    operation: AttestOperation,
+    readonly homeUser: Principal,
+    devicePublicKey: Uint8Array
+  ) {
     this.operation = cloneOperation(operation)
-    const request = this.operation.request,
-      a = request.approval
-    this.message = digest('dmsg/device-approval/v2', [
-      homeUser.toUint8Array(),
-      Uint8Array.from(request.account_id),
-      'dmsg/execute/v3',
-      Uint8Array.from(a.device_id),
-      a.security_epoch,
-      a.sequence,
-      Uint8Array.from(a.request_id),
-      a.expires_at,
-      digest('dmsg/execute/v3', [executionKind(this.operation), request.max_cycles])
-    ])
+    this.thumbprint = deviceKeyThumbprint(devicePublicKey)
+    this.signingBytes = signBytes(this.operation.request, this.thumbprint)
   }
   get requestId() {
     return hex(Uint8Array.from(this.operation.request.approval.request_id))
   }
-  get approvalMessage() {
-    return Uint8Array.from(this.message)
+  /** RFC 9679 thumbprint of the device key; the artifact kid. */
+  get kid() {
+    return Uint8Array.from(this.thumbprint)
+  }
+  /** The exact Sig_structure the device signs. Returned views are copies. */
+  get toBeSigned() {
+    return Uint8Array.from(this.signingBytes)
   }
   get review() {
     return cloneOperation(this.operation)
   }
-  get toBeSigned() {
-    return this.operation.kind !== 'derive_root' ? signBytes(this.operation.request) : null
+  /** The approval digest of the signed request, for journals and vectors. */
+  approvalMessage(signature: Uint8Array): Uint8Array {
+    const { statement, origin } = attestView(this.operation.request)
+    return attestApprovalMessage(this.homeUser, {
+      account_id: this.operation.request.account_id,
+      statement,
+      origin,
+      signature,
+      approval: this.operation.request.approval
+    })
   }
   approveAndExecute(
-    user: Pick<UserExecution, 'sign' | 'sign_app_action' | 'derive_root'>,
+    user: Pick<UserService, 'attest' | 'attest_app_action'>,
     signer: DeviceSigner,
-    onApproved: (operation: Operation) => Promise<void> = async () => {}
-  ): Promise<ExecutionResult> {
+    onApproved: (operation: AttestOperation) => Promise<void> = async () => {}
+  ): Promise<SignedArtifact> {
     this.submission ??= this.submit(user, signer, onApproved)
     return this.submission
   }
   private async submit(
-    user: Pick<UserExecution, 'sign' | 'sign_app_action' | 'derive_root'>,
+    user: Pick<UserService, 'attest' | 'attest_app_action'>,
     signer: DeviceSigner,
-    onApproved: (operation: Operation) => Promise<void>
+    onApproved: (operation: AttestOperation) => Promise<void>
   ) {
     const signed = cloneOperation(this.operation)
-    signed.request.approval.signature = fixed(await signer(this.approvalMessage), 64)
-    await onApproved(cloneOperation(signed))
-    let response: Awaited<ReturnType<UserService['sign']>>
-    try {
-      response =
-        signed.kind === 'sign'
-          ? await user.sign(signed.request)
-          : signed.kind === 'sign_app_action'
-            ? await user.sign_app_action(signed.request)
-            : await user.derive_root(signed.request)
-    } catch {
-      throw new DmsgError(
-        'EXECUTION_UNKNOWN',
-        `执行结果尚未确认，请按请求 ${this.requestId} 对账。`
-      )
-    }
-    if ('Err' in response) {
-      try {
-        controlResult(response)
-      } catch (error) {
-        if (error instanceof DmsgError) throw new ExecutionRejected(error.code, error.message)
-        throw error
-      }
-    }
-    const result = controlResult(response)
-    ensure(
-      equal(
-        Uint8Array.from(result.request_id),
-        Uint8Array.from(signed.request.approval.request_id)
-      ),
-      'INTEGRITY_FAILED',
-      '响应与原请求不一致。'
+    signed.request.signature = fixed(await signer(this.toBeSigned), 64)
+    signed.request.approval.signature = fixed(
+      await signer(this.approvalMessage(Uint8Array.from(signed.request.signature))),
+      64
     )
-    if (signed.kind !== 'derive_root' && 'Completed' in result.outcome) {
-      const output = result.outcome.Completed
-      ensure('Signature' in output, 'INTEGRITY_FAILED')
-      const checked = verifyDocumentArtifact(output.Signature.artifact)
-      ensure(
-        equal(checked.toBeSigned, signBytes(signed.request)) &&
-          equal(
-            checked.keyFingerprint,
-            Uint8Array.from(signed.request.key.public_key_fingerprint)
-          ),
-        'INTEGRITY_FAILED',
-        '签名结果与批准的内容或密钥不符。'
-      )
-    }
-    return result
+    await onApproved(cloneOperation(signed))
+    return submitAttestation(user, signed, this.signingBytes, this.thumbprint)
   }
 }
+/** Submit a signed attestation request and check the returned artifact. */
+export async function submitAttestation(
+  user: Pick<UserService, 'attest' | 'attest_app_action'>,
+  signed: AttestOperation,
+  toBeSigned: Uint8Array,
+  kid: Uint8Array
+) {
+  let response: Awaited<ReturnType<UserService['attest']>>
+  try {
+    response =
+      signed.kind === 'attest'
+        ? await user.attest(signed.request)
+        : await user.attest_app_action(signed.request)
+  } catch {
+    throw new DmsgError(
+      'EXECUTION_UNKNOWN',
+      `执行结果尚未确认，请按请求 ${hex(Uint8Array.from(signed.request.approval.request_id))} 对账。`
+    )
+  }
+  if ('Err' in response) {
+    try {
+      controlResult(response)
+    } catch (error) {
+      if (error instanceof DmsgError) throw new ExecutionRejected(error.code, error.message)
+      throw error
+    }
+  }
+  const artifact = controlResult(response)
+  checkArtifact(artifact, toBeSigned, kid)
+  return artifact
+}
+export function checkArtifact(artifact: SignedArtifact, toBeSigned: Uint8Array, kid: Uint8Array) {
+  const checked = verifyDocumentArtifact(artifact)
+  ensure(
+    equal(checked.toBeSigned, toBeSigned) && equal(checked.keyFingerprint, kid),
+    'INTEGRITY_FAILED',
+    '签名结果与批准的内容或密钥不符。'
+  )
+  return checked
+}
 
-export function prepareSign(
+export function prepareAttest(
   context: ExecutionContext,
-  content: { origin: string; key: SigningKeyReference; statement: DocumentStatement },
+  content: { origin: string; statement: DocumentStatement; devicePublicKey: Uint8Array },
   now = Date.now()
 ) {
-  const { key, statement } = content
+  const { statement } = content
   ensure(statement.issuer === context.issuer, 'FORBIDDEN', '签署者必须与已认证账户一致。')
-  statementBytes(statement, key.algorithm, key.kid)
   const origin = new URL(content.origin)
   ensure(
     content.origin.length <= 256 &&
@@ -347,97 +311,115 @@ export function prepareSign(
     '需要规范的应用 origin。'
   )
   if (statement.content.kind === 'app_action')
-    return new PreparedExecution(
+    return new PreparedAttestation(
       {
-        kind: 'sign_app_action',
+        kind: 'attest_app_action',
         request: {
           account_id: fixed(context.accountId, 12),
           issuer: context.issuer,
           action: actionToCandid(statement.content.action),
-          key: {
-            algorithm: { [key.algorithm]: null } as SigningAlgorithm,
-            kid: Uint8Array.from(key.kid),
-            public_key_fingerprint: fixed(key.publicKeyFingerprint, 32)
-          },
-          max_cycles: context.maxCycles,
+          signature: new Uint8Array(),
           approval: approval(context, now)
         }
       },
-      context.homeUser
+      context.homeUser,
+      content.devicePublicKey
     )
-  return new PreparedExecution(
+  return new PreparedAttestation(
     {
-      kind: 'sign',
+      kind: 'attest',
       request: {
         account_id: fixed(context.accountId, 12),
-        key: {
-          algorithm: { [key.algorithm]: null } as SigningAlgorithm,
-          kid: Uint8Array.from(key.kid),
-          public_key_fingerprint: fixed(key.publicKeyFingerprint, 32)
-        },
         statement: toStatement(statement),
         origin: content.origin,
-        max_cycles: context.maxCycles,
+        signature: new Uint8Array(),
         approval: approval(context, now)
       }
     },
-    context.homeUser
+    context.homeUser,
+    content.devicePublicKey
   )
 }
 
-export function prepareRootDerivation(
-  context: ExecutionContext,
-  target:
-    | { kind: 'current'; generation: bigint }
-    | { kind: 'candidate'; generation: bigint; opId: Uint8Array },
-  transportPublicKey: Uint8Array,
-  now = Date.now()
-) {
-  ensure(uint64(target.generation) > 0n, 'INVALID_INPUT')
-  ensure(target.kind === 'current' || target.kind === 'candidate', 'INVALID_INPUT')
-  const root: RootTarget =
-    target.kind === 'current'
-      ? { Current: { generation: target.generation } }
-      : { Candidate: { generation: target.generation, op_id: fixed(target.opId, 32) } }
-  return new PreparedExecution(
-    {
-      kind: 'derive_root',
-      request: {
-        account_id: fixed(context.accountId, 12),
-        target: root,
-        transport_public_key: fixed(transportPublicKey, 48),
-        max_cycles: context.maxCycles,
-        approval: approval(context, now)
-      }
-    },
-    context.homeUser
-  )
+/** A recovered device's vetKD derivation of the committed root generation. */
+export class PreparedDerivation {
+  readonly request: DeriveRootRequest
+  private readonly message: Uint8Array
+  private submission?: Promise<ExecutionResult>
+  constructor(request: DeriveRootRequest, homeUser: Principal) {
+    this.request = decodeControl('derive_root', encodeControl('derive_root', [request]))[0] as DeriveRootRequest
+    this.message = deriveApprovalMessage(homeUser, this.request)
+  }
+  get requestId() {
+    return hex(Uint8Array.from(this.request.approval.request_id))
+  }
+  get approvalMessage() {
+    return Uint8Array.from(this.message)
+  }
+  approveAndExecute(
+    user: Pick<UserService, 'derive_root'>,
+    signer: DeviceSigner,
+    onApproved: (request: DeriveRootRequest) => Promise<void> = async () => {}
+  ): Promise<ExecutionResult> {
+    this.submission ??= (async () => {
+      const signed = decodeControl('derive_root', encodeControl('derive_root', [this.request]))[0] as DeriveRootRequest
+      signed.approval.signature = fixed(await signer(this.approvalMessage), 64)
+      await onApproved(decodeControl('derive_root', encodeControl('derive_root', [signed]))[0] as DeriveRootRequest)
+      return submitDerivation(user, signed)
+    })()
+    return this.submission
+  }
 }
-
-export async function signingKey(
-  cose: Pick<CoseService, 'public_key'>,
-  accountId: Uint8Array,
-  purpose: 'statement' | 'file_attestation' | 'app_action',
-  algorithm: Algorithm = 'Ed25519'
-) {
-  ensure(['Ed25519', 'EcdsaSecp256k1'].includes(algorithm), 'UNSUPPORTED_PROTOCOL')
-  const key: KeySelector = {
-    Signing: {
-      purpose:
-        purpose === 'app_action'
-          ? { AppAction: null }
-          : purpose === 'statement'
-            ? { Statement: null }
-            : { FileAttestation: null },
-      algorithm: { [algorithm]: null } as SigningAlgorithm
+export async function submitDerivation(user: Pick<UserService, 'derive_root'>, signed: DeriveRootRequest) {
+  let response: Awaited<ReturnType<UserService['derive_root']>>
+  try {
+    response = await user.derive_root(signed)
+  } catch {
+    throw new DmsgError(
+      'EXECUTION_UNKNOWN',
+      `执行结果尚未确认，请按请求 ${hex(Uint8Array.from(signed.approval.request_id))} 对账。`
+    )
+  }
+  if ('Err' in response) {
+    try {
+      controlResult(response)
+    } catch (error) {
+      if (error instanceof DmsgError) throw new ExecutionRejected(error.code, error.message)
+      throw error
     }
   }
-  return controlResult(await cose.public_key(fixed(accountId, 12), key))
+  const result = controlResult(response)
+  ensure(
+    equal(Uint8Array.from(result.request_id), Uint8Array.from(signed.approval.request_id)),
+    'INTEGRITY_FAILED',
+    '响应与原请求不一致。'
+  )
+  return result
 }
-/** Reads the stored result of an approved execution, reconciling one still in
- * flight. Null means no execution is stored under this request ID. */
+export function prepareRootDerivation(
+  context: ExecutionContext,
+  generation: bigint,
+  transportPublicKey: Uint8Array,
+  maxCycles: bigint,
+  now = Date.now()
+) {
+  ensure(uint64(generation) > 0n, 'INVALID_INPUT')
+  ensure(maxCycles > 0n && maxCycles <= 100000000000n, 'QUOTA_EXCEEDED')
+  return new PreparedDerivation(
+    {
+      account_id: fixed(context.accountId, 12),
+      generation,
+      transport_public_key: fixed(transportPublicKey, 48),
+      max_cycles: maxCycles,
+      approval: approval(context, now)
+    },
+    context.homeUser
+  )
+}
+/** Reads the stored result of an approved derivation, reconciling one still
+ * in flight. Null means no execution is stored under this request ID. */
 export async function recordedExecution(
-  user: Pick<UserExecution, 'get_execution' | 'reconcile_execution'>,
+  user: Pick<UserService, 'get_execution' | 'reconcile_execution'>,
   accountId: Uint8Array,
   requestId: Uint8Array
 ): Promise<ExecutionResult | null> {
@@ -452,4 +434,17 @@ export async function recordedExecution(
   return 'Completed' in outcome || 'Failed' in outcome || 'ResultExpired' in outcome
     ? response.Ok
     : controlResult(await user.reconcile_execution(account, request))
+}
+/** The retained artifact of an attestation, or null when none is stored. */
+export async function recordedAttestation(
+  user: Pick<UserService, 'get_attestation'>,
+  accountId: Uint8Array,
+  requestId: Uint8Array
+): Promise<SignedArtifact | null> {
+  const response = await user.get_attestation(fixed(accountId, 12), fixed(requestId, 32))
+  if ('Err' in response) {
+    ensure('ResultExpired' in response.Err, 'EXECUTION_UNKNOWN')
+    return null
+  }
+  return response.Ok
 }

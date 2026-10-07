@@ -32,11 +32,7 @@ export class CryptoClient {
   >()
   constructor(readonly onProgress: (progress: Progress) => void = () => {}) {}
   private async prepare(method: Method) {
-    if (
-      !isExtension() ||
-      !['initialize', 'unlock', 'restore', 'restoreDirectory'].includes(method)
-    )
-      return
+    if (!isExtension() || !['initialize', 'unlock', 'unlockWithPrf'].includes(method)) return
     const [contexts, tab, currentWindow] = await Promise.all([
       chrome.runtime.getContexts({}),
       chrome.tabs.getCurrent(),

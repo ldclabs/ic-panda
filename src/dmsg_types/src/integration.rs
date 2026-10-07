@@ -80,10 +80,6 @@ pub struct AppRegistration {
     pub config_version: u64,
     /// Canonical exact browser origins, never URL prefixes.
     pub origins: Vec<String>,
-    /// Pinned user canisters allowed to authenticate accounts.
-    pub user_homes: Vec<Principal>,
-    /// Pinned execution canisters allowed to sign artifacts.
-    pub cose_homes: Vec<Principal>,
     /// Product IDs allowed for this application.
     pub product_ids: Vec<String>,
     /// Explicit capability allowlist.

@@ -27,8 +27,6 @@ export interface AppRegistration {
   app_id: string
   config_version: bigint
   origins: string[]
-  user_homes: Uint8Array[]
-  cose_homes: Uint8Array[]
   product_ids: string[]
   capabilities: AppCapability[]
   profiles: SigningProfile[]
@@ -541,35 +539,6 @@ export type KeyPurpose =
   | 'AppAction'
   | 'FileAttestation'
   | 'Statement'
-  | 'ContentRoot'
-  | 'AgentController'
-
-export type Algorithm =
-  | 'Ed25519'
-  | 'EcdsaSecp256k1'
-  | 'VetKdBls12381'
-
-export interface KeyDescriptor {
-  key_id: Uint8Array
-  account_id: Uint8Array
-  purpose: KeyPurpose
-  algorithm: Algorithm
-  home_cose: Uint8Array
-  master_key_name: string
-  environment: Environment
-  derivation_version: bigint
-  key_generation: bigint
-  public_key: Uint8Array
-  public_key_fingerprint: Uint8Array
-}
-
-export type ExecutionStatus =
-  | 'Authorized'
-  | 'Executing'
-  | 'Completed'
-  | 'Failed'
-  | 'Unknown'
-  | 'ResultExpired'
 
 export interface ExecutionReceipt {
   schema: bigint
@@ -581,9 +550,7 @@ export interface ExecutionReceipt {
   approved_at: bigint
   expires_at: bigint
   origin: string
-  max_cycles: bigint
   to_be_signed_digest: Uint8Array
   public_key_fingerprint: Uint8Array
-  status: ExecutionStatus
-  signature_digest: (Uint8Array | null)
+  signature_digest: Uint8Array
 }

@@ -38,7 +38,7 @@ These links point to the public repository's main branch, which changes during d
 | device / capability | Registered device public keys and explicit permissions. The device role `Administrator` is distinct from an ICP canister controller. |
 | approval | A device signature authorizing a specific operation and its account security state, sequence, deadline, and other context. It is not a general login credential. |
 | home user / home COSE | Fixed canisters responsible for account authorization and key execution, respectively. Derived key identity depends on the COSE home and derivation parameters. |
-| content root / generation | The generation of a content root and a commitment to its external encrypted bundle. These types contain no plaintext root key; vetKD returns an encrypted derivation result. |
+| content root / generation | The generation of a content root and a commitment to its external encrypted bundle, wrapped to the active devices and to the generation's vetKD identity. These types contain no plaintext root key; a recovery derivation returns an encrypted vetKD result. |
 | security epoch / account version | The former invalidates stale security approvals; the latter supports optimistic concurrency for account mutations. They are not interchangeable. |
 | artifact / execution receipt | A portable COSE signed document versus ICP execution evidence that separately binds a request, the bytes to sign, and the key. |
 | offer / quote / admission receipt | Recipient payment authorization, fixed delivery terms, and proof of service admission, respectively. None establishes that a recipient read or replied to the message. |
@@ -51,7 +51,8 @@ These links point to the public repository's main branch, which changes during d
 | `signing` | `Statement`, `StatementContent`, `SignedArtifact` | Prepare, exchange, and parse signed documents independently of ICP |
 | `account_id` | `AccountId` | Stable account identity; re-exports `ic_auth_types::Xid` |
 | `protocol` | `Hash`, `OpId`, `Approval`, `Error`, `CertifiedBatch` | Shared bytes, time units, device approvals, errors, and certified queries |
-| `cose` | `SignRequest`, `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `ExecutionReceipt` | ICP formal signing, vetKD, key provenance, and execution reconciliation |
+| `cose` | `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `EncryptedRootKey` | Recovery vetKD derivation, key provenance, and execution reconciliation |
+| `signing` (continued) | `AttestRequest`, `AppActionAttestRequest`, `ExecutionReceipt` | Device-signed attestations and their certified receipts |
 | `user` | `AccountInfo`, `AccountMutation`, `Device`, `SecuritySnapshot` | Accounts, devices, recovery, and root commitments |
 | `handle` | `HandleIntent`, `HandleRecord`, `HandleOperation` | Name registration, transfer, and frozen-name import |
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | Recipient authorization, escrow accounting, and ledger transfers |
@@ -140,22 +141,22 @@ assert!(!result.is_terminal());
 
 Obtain a `SignedArtifact` and use the companion `dmsg_protocol::verify_artifact` to check the COSE profile and mathematical signature. To verify a file, compare the original bytes' SHA-256 with the verified statement; signature verification alone does not check the file. The attached `cose_key` is only a public key and cannot establish the issuer's identity by itself. Check issuer binding, authorization, timestamp, and current status against their respective evidence.
 
-Supported signing algorithms are Ed25519 (COSE -19) and ES256K (-47). vetKD derives content roots and is not a document-signature algorithm. An ordinary signature does not include a trusted timestamp: `Statement.issued_at` is the signer's time claim. Expiration of an execution approval does not automatically invalidate a completed document signature.
+The only signing algorithm is Ed25519 (COSE -19); dMsg documents are signed by the account's device keys, and the `kid` is the device key's RFC 9679 thumbprint. vetKD derives content roots and is not a document-signature algorithm. An ordinary signature does not include a trusted timestamp: `Statement.issued_at` is the signer's time claim. Expiration of an execution approval does not automatically invalidate a completed document signature.
 
-### ICP formal signing
+### ICP attestation
 
-1. Identify the user/COSE homes from deployment configuration, query the account and authenticated key descriptor, and check device permissions, `security_epoch`, and the device sequence.
-2. Freeze the complete `Statement`, `SigningKeyRef`, extension-verified origin, and `max_cycles`. Use protocol helpers such as `SignRequestExt` to convert the request, construct the request ID and approval digest, and then sign with the device's Ed25519 key.
-3. Call the user canister's `sign`, query the original request according to `ExecutionResult`, and extract `ExecutionOutput::Signature` on completion.
-4. If you need evidence of dMsg execution authorization, query `get_execution_receipt`, verify the IC certificate/witness, and then match the artifact and receipt with `match_execution_receipt`. This Rust helper checks bindings only; it does not verify IC certificates.
+1. Locate the account's user home (the handle registry lists the homes), query the account, and check device permissions, `security_epoch`, and the device sequence.
+2. Freeze the complete `Statement` and extension-verified origin. Use `prepare_attestation` to obtain the exact Sig_structure and the device key's thumbprint, sign the bytes with the device's Ed25519 key, then sign the `dmsg/attest/v1` approval over the statement, origin and that signature.
+3. Call the user canister's `attest` (or `attest_app_action`); it returns the `SignedArtifact`. A lost reply is replayed with `get_attestation` under the same request ID.
+4. If you need evidence of dMsg execution authorization, query `get_execution_receipt`, verify the IC certificate/witness, and then match the artifact and receipt (schema 2) with `match_execution_receipt`. This Rust helper checks bindings only; it does not verify IC certificates.
 
-A portable statement contains no request_id, origin, or execution deadline; these belong to the execution context. The device signature binds the origin string but cannot independently establish that the string came from the browser. The low-level `ExecutionGrant` is a restricted cross-canister contract. Its public type does not imply that any caller may execute it.
+A portable statement contains no request_id, origin, or execution deadline; these belong to the execution context. The device signature binds the origin string but cannot independently establish that the string came from the browser. The low-level `ExecutionGrant` is the restricted cross-canister contract of recovery derivations only.
 
 ### Accounts, devices, and content roots
 
 `AccountMutation` binds `expected_version`, the complete `AccountCommand`, and an `Approval`. After a version conflict, read the new state and prepare a new approval instead of editing the version of an already signed request. Enrolling a device requires proof of possession of the corresponding private key. Login Principals, device signing keys, and HPKE encryption keys have separate responsibilities.
 
-Root rotation follows `ReserveRoot` → derive the candidate root/prepare its external encrypted bundle → `CommitRoot`. The operation ID, expected generation, and security state must match. `ContentRootRef` holds only a bundle commitment and derivation information. `VaultWriteState::RekeyRequired` prevents further writes using the old root. The user contract describes recovery-material versions, waiting periods, and dispute confirmation; these are distinct from local UI locking.
+Root rotation follows `ReserveRoot` → wrap a fresh client-generated root to every active device and to the generation's vetKD identity → `CommitRoot`. The operation ID, expected generation, security state and the recipients digest must match. `ContentRootRef` holds only bundle commitments. `VaultWriteState::RekeyRequired` prevents further writes using the old root. Recovery is a login-authorized, delayed takeover that any active device can cancel; only the device it enrolls may derive the committed root once, with `DeriveRootRequest`.
 
 ### Optional paid delivery
 

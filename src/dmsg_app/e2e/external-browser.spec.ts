@@ -17,7 +17,6 @@ test('real external ports bind top-level documents and require a fresh session p
       'popup.html',
       'sidepanel.html',
       'approve.html',
-      'recovery.html',
       'vite.config.ts',
       'package.json',
       'dmsg.config.json'

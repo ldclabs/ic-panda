@@ -10,11 +10,10 @@ import {
   type AppAction,
   type AuthenticationRequest
 } from 'dmsg-sdk'
-import { services } from './services/ic'
+import { assertAccountHome, services } from './services/ic'
 import { registeredApplication } from './services/registration'
 import { admitRequest, enqueueRequest, requestDatabase } from './requests'
 import { parseRequest, type PendingRequest, type SourceBinding } from './protocol/requests'
-import { config } from './config'
 import { hpkeSeal } from './crypto/primitives'
 import { canonical } from './protocol/codec'
 import { ensure } from './errors'
@@ -65,7 +64,8 @@ export async function createBrowserOperation(command: BrowserCommand, source: So
   const db = await requestDatabase()
   try {
     const meta = await db.meta()
-    ensure(meta?.registered && meta.account?.homeUser === config.canisters.user, 'LOCKED')
+    ensure(meta?.registered && meta.account, 'LOCKED')
+    await assertAccountHome(meta.account.homeUser)
     const binding = {
       appId: command.appId,
       publicKey: command.publicKey,
@@ -185,6 +185,8 @@ export async function bindBrowserOperation(command: BrowserCommand, source: Sour
   const db = await requestDatabase()
   try {
     const meta = await db.meta()
+    ensure(meta?.registered && meta.account, 'FORBIDDEN')
+    await assertAccountHome(meta.account.homeUser)
     const tx = db.db.transaction('requests', 'readwrite')
     const record = (await tx.store.get(command.operationId)) as PendingRequest | undefined
     ensure(
@@ -192,9 +194,7 @@ export async function bindBrowserOperation(command: BrowserCommand, source: Sour
         record.bridge.appId === command.appId &&
         record.bridge.publicKey === command.publicKey &&
         record.source.origin === source.origin &&
-        record.bridge.accountId === meta?.account?.id &&
-        meta?.registered &&
-        meta.account.homeUser === config.canisters.user,
+        record.bridge.accountId === meta.account.id,
       'FORBIDDEN'
     )
     const next = { ...record, source }

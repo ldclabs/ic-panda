@@ -1,4 +1,5 @@
 import { currentWorkspace, WorkspaceDB } from './db'
+import { assertAccountHome } from './services/ic'
 import { config, isExtension } from './config'
 import { ensure } from './errors'
 import { canonical } from './protocol/codec'
@@ -29,11 +30,11 @@ export async function enqueueRequest(
       meta &&
         meta.registered &&
         meta.account?.id === request.accountId &&
-        meta.account.issuer === request.statement.issuer &&
-        meta.account.homeUser === config.canisters.user,
+        meta.account.issuer === request.statement.issuer,
       'FORBIDDEN',
       '请先绑定与请求签署者一致的链上账户。'
     )
+    await assertAccountHome(meta.account.homeUser)
     const payload = await hpkeSeal(meta.hpkePublic, canonical(request), [
       'dmsg/external-request/1',
       meta.subjectId,

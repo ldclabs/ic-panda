@@ -1,10 +1,9 @@
 import { chromium, expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-const extension = resolve('dist'),
-  password = 'private-river-paper-2026'
+const extension = resolve('dist')
 async function launch() {
   const dir = await mkdtemp(join(tmpdir(), 'dmsg-extension-test-'))
   const context = await chromium.launchPersistentContext(dir, {
@@ -14,8 +13,7 @@ async function launch() {
       ? { executablePath: process.env.DMSG_TEST_CHROME }
       : { channel: 'chromium' }),
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
-    viewport: { width: 1440, height: 1000 },
-    acceptDownloads: true
+    viewport: { width: 1440, height: 1000 }
   })
   const worker = context.serviceWorkers()[0] || (await context.waitForEvent('serviceworker'))
   const origin = `chrome-extension://${new URL(worker.url()).host}`
@@ -26,7 +24,7 @@ async function noOverflow(page: Page) {
     true
   )
 }
-test('loads the actual MV3 package, saves encrypted data, locks and recovers on a blank browser', async ({}, testInfo) => {
+test('loads the actual MV3 package, creates a provisional workspace and resumes its binding without a password', async ({}, testInfo) => {
   const first = await launch(),
     contexts: BrowserContext[] = [first.context],
     dirs = [first.dir]
@@ -38,78 +36,20 @@ test('loads the actual MV3 package, saves encrypted data, locks and recovers on 
     await expect(page.getByRole('button', { name: '创建我的工作台' })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('welcome-desktop.png'), fullPage: true })
     await page.getByRole('button', { name: '创建我的工作台' }).click()
-    await page.getByLabel('设置本机口令', { exact: true }).fill(password)
-    await page.getByLabel('再次输入口令', { exact: true }).fill(password)
-    await page.getByRole('button', { name: '建立加密工作台' }).click()
-    await expect(page.locator('.recovery-code code')).toBeVisible({ timeout: 30000 })
-    const recoveryCode = await page.locator('.recovery-code code').innerText()
-    await page.reload()
-    await expect(page.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
-    await page.getByLabel('本机解锁口令').fill(password)
-    await page.getByRole('button', { name: '解锁工作台', exact: true }).click()
-    await expect(page.locator('.recovery-code code')).toHaveText(recoveryCode, {
+    await expect(page.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible({
       timeout: 30000
     })
-    const initialDownload = page.waitForEvent('download')
-    await page.getByRole('button', { name: '下载初始恢复包' }).click()
-    await (await initialDownload).saveAs(testInfo.outputPath('initial.dmsg'))
-    await page.getByLabel('我已确认下载文件，并另行保存恢复码').check()
-    await page.getByRole('button', { name: '验证恢复码', exact: true }).click()
-    await page.getByLabel('输入已保存的恢复码').fill(recoveryCode)
-    await page.getByRole('button', { name: '验证并进入工作台' }).click()
-    await expect(page.getByRole('heading', { name: '秘密库' })).toBeVisible()
-    await page.getByRole('button', { name: '新建条目', exact: true }).click()
-    await page.getByLabel('类型', { exact: true }).selectOption('api')
-    await page.getByLabel('标题', { exact: true }).fill('Production deployment credential')
-    await page.getByLabel('API Secret / Token').fill('never-persist-this-token-in-clear')
-    await page.getByLabel('备注', { exact: true }).fill('private-note-body')
-    await page.getByRole('button', { name: '加密保存', exact: true }).click()
-    await expect(
-      page.getByRole('heading', { name: 'Production deployment credential' })
-    ).toBeVisible()
-    const cdp = await first.context.newCDPSession(page)
-    await cdp.send('ServiceWorker.enable')
-    await cdp.send('ServiceWorker.stopAllWorkers')
-    await expect(page.getByRole('heading', { name: '秘密库' })).toBeVisible()
-    await cdp.detach()
-    await expect(
-      page.getByText('never-persist-this-token-in-clear', { exact: true })
-    ).not.toBeVisible()
-    await page.getByRole('button', { name: '显示私密字段', exact: true }).click()
-    await page.getByRole('button', { name: '显示内容', exact: true }).click()
-    await expect(
-      page.getByText('never-persist-this-token-in-clear', { exact: true })
-    ).toBeVisible()
-    await page.getByRole('button', { name: '隐藏私密字段', exact: true }).click()
-    await page.screenshot({ path: testInfo.outputPath('vault-desktop.png'), fullPage: true })
+    // The published package carries no service IDs, so binding stays disabled
+    // instead of contacting anything.
+    await expect(page.getByRole('button', { name: /连接 Internet Identity/ })).toBeDisabled()
+    await page.screenshot({ path: testInfo.outputPath('bind-desktop.png'), fullPage: true })
     await page.setViewportSize({ width: 390, height: 844 })
     await noOverflow(page)
-    await page.screenshot({ path: testInfo.outputPath('vault-390.png'), fullPage: true })
+    await page.screenshot({ path: testInfo.outputPath('bind-390.png'), fullPage: true })
     await page.setViewportSize({ width: 320, height: 760 })
     await noOverflow(page)
     await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.getByLabel('选择私密文件').setInputFiles({
-      name: 'private-file.txt',
-      mimeType: 'text/plain',
-      buffer: Buffer.from('A private file with exact bytes.')
-    })
-    await expect(
-      page.getByRole('heading', { name: 'private-file.txt', exact: true })
-    ).toBeVisible()
-    const fileDownload = page.waitForEvent('download')
-    await page.getByRole('button', { name: '验证并下载文件' }).click()
-    const downloadedFile = testInfo.outputPath('private-file.txt')
-    await (await fileDownload).saveAs(downloadedFile)
-    expect(await readFile(downloadedFile, 'utf8')).toBe('A private file with exact bytes.')
-    await page.getByRole('button', { name: '立即锁定工作台', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
-    expect(await page.locator('body').innerText()).not.toContain(
-      'Production deployment credential'
-    )
-    await page.getByLabel('本机解锁口令').fill(password)
-    await page.getByRole('button', { name: '解锁工作台', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '秘密库' })).toBeVisible()
-    const storageDump = await page.evaluate(async () => {
+    const storage = await page.evaluate(async () => {
       const names = await indexedDB.databases(),
         name = names.find((x) => x.name?.startsWith('dmsg:local:'))?.name
       if (!name) throw new Error('No workspace DB')
@@ -118,76 +58,53 @@ test('loads the actual MV3 package, saves encrypted data, locks and recovers on 
         open.onsuccess = () => resolve(open.result)
         open.onerror = () => reject(open.error)
       })
-      const tx = db.transaction(['objects', 'outbox', 'local_private', 'key_envelopes'])
-      const values = await Promise.all(
-        ['objects', 'outbox', 'local_private', 'key_envelopes'].map(
-          (store) =>
-            new Promise((resolve) => {
-              const request = tx.objectStore(store).getAll()
-              request.onsuccess = () => resolve(request.result)
-            })
-        )
-      )
+      const tx = db.transaction(['objects', 'key_envelopes', 'meta'])
+      const read = (store: string) =>
+        new Promise<any[]>((resolve) => {
+          const request = tx.objectStore(store).getAll()
+          request.onsuccess = () => resolve(request.result)
+        })
+      const [objects, envelopes, meta] = await Promise.all([
+        read('objects'),
+        read('key_envelopes'),
+        read('meta')
+      ])
       db.close()
-      return JSON.stringify(values)
+      return {
+        objects: objects.length,
+        envelope: envelopes[0],
+        unlock: meta.find((row) => row.id === 'workspace')?.value.unlock
+      }
     })
-    for (const privateText of [
-      'Production deployment credential',
-      'never-persist-this-token-in-clear',
-      'private-file.txt',
-      recoveryCode,
-      password
-    ])
-      expect(storageDump).not.toContain(privateText)
+    // Only device keys exist before the account: wrapped under a provisional
+    // key, with no content, no password-derived material and no PRF copy.
+    expect(storage.objects).toBe(0)
+    expect(storage.unlock).toBe('provisional')
+    expect(typeof storage.envelope.provisional).toBe('string')
+    expect(storage.envelope.prfWrapped).toBeUndefined()
+    // Reloading ends the dedicated worker; reopening resumes the setup.
     await page.reload()
     await expect(page.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
-    await page.getByLabel('本机解锁口令').fill(password)
-    await page.getByRole('button', { name: '解锁工作台', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '秘密库' })).toBeVisible()
-    await page.getByRole('button', { name: '身份', exact: true }).click()
-    await page.getByLabel('显示名', { exact: true }).fill('Private profile')
-    await page.getByRole('button', { name: '保存资料草稿', exact: true }).click()
-    await expect(page.getByText('资料草稿已加密保存，尚未公开发布。')).toBeVisible()
-    await page.getByRole('button', { name: '立即锁定工作台', exact: true }).click()
-    await page.getByLabel('本机解锁口令').fill(password)
-    await page.getByRole('button', { name: '解锁工作台', exact: true }).click()
-    await expect(page.getByLabel('显示名', { exact: true })).toHaveValue('Private profile')
-    await page.getByRole('button', { name: '消息', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '正式频道' })).toBeVisible()
-    await page.getByRole('button', { name: '设置', exact: true }).click()
-    await page.getByRole('button', { name: '导出加密备份' }).click()
-    await page.getByLabel('当前口令').fill(password)
-    const backupDownload = page.waitForEvent('download')
-    await page.getByRole('button', { name: '生成加密备份', exact: true }).click()
-    const backupPath = testInfo.outputPath('complete.dmsg')
-    await (await backupDownload).saveAs(backupPath)
-    const backup = JSON.parse(await readFile(backupPath, 'utf8'))
-    expect(backup.missing).toEqual([])
-    const fresh = await launch()
-    contexts.push(fresh.context)
-    dirs.push(fresh.dir)
-    const recovery = await fresh.context.newPage()
-    recovery.on('pageerror', (error) => errors.push(error.message))
-    await recovery.goto(`${fresh.origin}/recovery.html`)
-    await recovery.getByRole('button', { name: '从加密备份恢复' }).click()
-    await recovery.getByLabel('加密恢复包', { exact: true }).setInputFiles(backupPath)
-    await recovery.getByLabel('恢复码', { exact: true }).fill(recoveryCode)
-    await recovery.getByLabel('设置本机新口令').fill(password)
-    await recovery.getByLabel('确认新口令').fill(password)
-    await recovery.getByRole('button', { name: '验证并恢复内容', exact: true }).click()
-    await expect(recovery.getByRole('heading', { name: '秘密库' })).toBeVisible({
-      timeout: 30000
-    })
-    await expect(
-      recovery.getByText('Production deployment credential', { exact: true })
-    ).toBeVisible()
-    await recovery.screenshot({
-      path: testInfo.outputPath('restored-desktop.png'),
-      fullPage: true
-    })
-    const popup = await fresh.context.newPage()
+    await expect(page.getByText('这台设备尚未绑定账户。继续完成设置。')).toBeVisible()
+    await page.getByRole('button', { name: '继续设置' }).click()
+    await expect(page.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible()
+    await page.getByRole('button', { name: '加入已有账户的新设备' }).click()
+    await expect(page.getByRole('heading', { name: '加入已有账户。' })).toBeVisible()
+    await page.getByRole('button', { name: '返回' }).click()
+    await page.getByRole('button', { name: '所有设备丢失后恢复' }).click()
+    await expect(page.getByRole('heading', { name: '所有设备都丢失时。' })).toBeVisible()
+    await page.getByRole('button', { name: '返回' }).click()
+    await expect(page.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible()
+    // A service-worker restart must not disturb the unlocked page.
+    const cdp = await first.context.newCDPSession(page)
+    await cdp.send('ServiceWorker.enable')
+    await cdp.send('ServiceWorker.stopAllWorkers')
+    await expect(page.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible()
+    await cdp.detach()
+    const popup = await first.context.newPage()
+    popup.on('pageerror', (error) => errors.push(error.message))
     await popup.setViewportSize({ width: 360, height: 640 })
-    await popup.goto(`${fresh.origin}/popup.html`)
+    await popup.goto(`${first.origin}/popup.html`)
     await expect(popup.getByRole('button', { name: '打开工作台', exact: true })).toBeVisible()
     expect(
       await popup.evaluate(() =>
@@ -198,16 +115,24 @@ test('loads the actual MV3 package, saves encrypted data, locks and recovers on 
     ).toBe(false)
     await noOverflow(popup)
     await popup.screenshot({ path: testInfo.outputPath('popup.png'), fullPage: true })
-    await recovery.getByRole('button', { name: '立即锁定工作台', exact: true }).click()
-    const panel = await fresh.context.newPage()
+    const panel = await first.context.newPage()
     panel.on('pageerror', (error) => errors.push(error.message))
     await panel.setViewportSize({ width: 390, height: 844 })
-    await panel.goto(`${fresh.origin}/sidepanel.html`)
-    await panel.getByLabel('本机解锁口令').fill(password)
-    await panel.getByRole('button', { name: '解锁工作台', exact: true }).click()
-    await expect(panel.getByRole('heading', { name: '签名与授权' })).toBeVisible()
+    await panel.goto(`${first.origin}/sidepanel.html`)
+    await expect(panel.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
+    await panel.getByRole('button', { name: '继续设置' }).click()
+    await expect(panel.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible()
     await noOverflow(panel)
     await panel.screenshot({ path: testInfo.outputPath('sidepanel.png'), fullPage: true })
+    // A second blank browser starts from scratch: nothing to restore offline.
+    const fresh = await launch()
+    contexts.push(fresh.context)
+    dirs.push(fresh.dir)
+    const blank = await fresh.context.newPage()
+    blank.on('pageerror', (error) => errors.push(error.message))
+    await blank.goto(`${fresh.origin}/index.html`)
+    await expect(blank.getByRole('button', { name: '创建我的工作台' })).toBeVisible()
+    expect(await blank.locator('body').innerText()).not.toContain('恢复包')
     expect(errors).toEqual([])
   } finally {
     for (const context of contexts) await context.close()

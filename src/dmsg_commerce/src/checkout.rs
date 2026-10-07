@@ -271,7 +271,7 @@ async fn authorize(
             && caller == quote.cash.payer.owner
             && caller == auth.account_approval.actor
             && auth.account_approval.action_digest == checkout_quote_hash(quote)
-            && app.user_homes.contains(&auth.user_home),
+            && store::config(|c| c.user_homes.contains(&auth.user_home)),
         Error::Forbidden,
     )?;
     validate_product_request(auth, home, SettlementMethod::Cash, at)?;

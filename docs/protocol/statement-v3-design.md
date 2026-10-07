@@ -21,7 +21,7 @@ Adopt standard COSE Signed Statements as the exchange object, narrowing dMsg cus
 | `FileAttestation { sha256, size }` | Simple digest attestation uses COSE Hash Envelope; business signings (publishing/acceptance) use complete business statements |
 | `kid` and signature both fixed length | `kid` is opaque variable-length bytes; signature and public key lengths are validated by the chosen algorithm |
 
-Ed25519 (COSE alg -19) is the primary required signature algorithm; ES256K (-47) is an optional algorithm for ICP adaptation. Requests cannot require disabled algorithms, nor automatically substitute algorithms on failure.
+Ed25519 (COSE alg -19) is the only signature algorithm; ES256K (-47) is no longer supported as of 2026-10-07. Requests cannot require disabled algorithms, nor automatically substitute algorithms on failure.
 
 ## 2. Standards Basis and Application Choices
 
@@ -215,7 +215,7 @@ Protected header bytes in the CDDL use `.cbor` to bind concrete structures. If o
 
 ## 8. Public Keys, TSA, and Evidence
 
-Public keys use `COSE_Key`. When public key thumbprints must be recomputed across implementations, RFC 9679 is used with a fixed digest algorithm; `kid` remains a variable-length selection hint and is not required to equal platform-derived IDs. ICP key origins, mainnet configuration, and account bindings reside in independent identity/key evidence.
+Public keys use `COSE_Key`. When public key thumbprints must be recomputed across implementations, RFC 9679 is used with a fixed digest algorithm; `kid` remains a variable-length selection hint. dMsg formal documents are signed by the device's Ed25519 key, whose RFC 9679 thumbprint is the `kid`; whether the device belongs to the account and whether the account service authorized the signature is proven by the independent certified execution receipt, never by the key itself.
 
 TSA adopts RFC 9921 CTT over COSE signatures. File digests and TSA message imprints are distinct inputs and do not substitute for each other. Appending timestamps or other evidence alters outer evidence byte sequences, requiring distinct identifiers for signed content, execution records, and evidence package versions.
 
@@ -227,7 +227,7 @@ ICP certificates/witnesses, TSA tokens, and SCITT receipts follow distinct verif
 
 1. Freeze all three document profiles, URI generation rules, and supported algorithms; provide explicit adapters for Xids, Principals, and dMsg IDs.
 2. Separate generic signature data from ICP execution requests, standardize internal accounts on `AccountId`/`Xid`, and implement persistent allocation and atomic commit rules from Section 3.4. Generic statements use identity URIs and do not import account storage types.
-3. Remove dMsg BIP340 endpoints and private algorithm tags while maintaining independent verification for Ed25519 and ES256K; retain shared library support for other consumers.
+3. Remove dMsg BIP340 endpoints and private algorithm tags while keeping independent Ed25519 verification; retain shared library support for other consumers.
 4. Reuse `cose2` message and asynchronous signing interfaces, handling new protected headers, CWT semantics, and `crit` at the protocol layer. The generic Header map accommodates these tags without reinventing COSE decoders.
 5. Verify approval bindings, idempotency, unknown outcome handling, upgrade recovery, and cross-language byte consistency after moving request metadata out of statements.
 6. Positive test vectors cover lossless mapping of Xids/Principals, inline text, file digests, structured file statements, and TSA token attachment; negative vectors cover invalid identity namespaces, algorithms, `typ`, critical fields, time units, and identity/key bindings.

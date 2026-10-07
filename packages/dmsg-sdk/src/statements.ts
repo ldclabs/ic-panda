@@ -1,5 +1,4 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
 import {
   APP_ACTION_PROFILE,
   MEDIA_TYPE_PATTERN,
@@ -25,7 +24,7 @@ export const FILE_STATEMENT_PROFILE =
 export const FILE_STATEMENT_CONTENT_TYPE = "application/cbor";
 export const MAX_FILE_STATEMENT_BYTES = 16384;
 export const TEXT_CONTENT_TYPE = "text/plain;charset=utf-8";
-export type Algorithm = "Ed25519" | "EcdsaSecp256k1";
+export type Algorithm = "Ed25519";
 export interface DocumentStatement {
   issuer: string;
   subject?: string | undefined;
@@ -119,7 +118,7 @@ export function statementBytes(
 ) {
   assertStatement(statement);
   ensure(
-    ["Ed25519", "EcdsaSecp256k1"].includes(algorithm) &&
+    algorithm === "Ed25519" &&
       kid instanceof Uint8Array &&
       kid.length > 0 &&
       kid.length <= 256,
@@ -129,7 +128,7 @@ export function statementBytes(
   if (statement.subject !== undefined) claims.set(2, statement.subject);
   if (statement.issuedAt !== undefined) claims.set(6, statement.issuedAt);
   const headers = new Map<number, unknown>([
-    [1, algorithm === "Ed25519" ? -19 : -47],
+    [1, -19],
     [4, kid],
     [15, claims],
   ]);
@@ -232,7 +231,7 @@ export function verifyDocumentArtifact(
     kid = headers.get(4),
     profile = headers.get(16);
   ensure(
-    (alg === -19 || alg === -47) &&
+    alg === -19 &&
       isBytes(kid) &&
       kid.length > 0 &&
       kid.length <= 256,
@@ -337,38 +336,12 @@ export function verifyDocumentArtifact(
     [-1, key.get(-1)],
     [-2, x],
   ]);
-  if (alg === -19) {
-    ensure(
-      key.get(1) === 1 &&
-        key.get(-1) === 6 &&
-        ed25519.verify(signature, toBeSigned, x, { zip215: false }),
-      "INTEGRITY_FAILED",
-    );
-  } else {
-    const y = key.get(-3);
-    ensure(
-      key.get(1) === 2 &&
-        key.get(-1) === 8 &&
-        (typeof y === "boolean" || (isBytes(y) && y.length === 32)),
-      "INTEGRITY_FAILED",
-    );
-    const publicKey =
-      typeof y === "boolean"
-        ? Uint8Array.from([y ? 3 : 2, ...x])
-        : Uint8Array.from([4, ...x, ...(y as Uint8Array)]);
-    ensure(
-      secp256k1.verify(signature, toBeSigned, publicKey, {
-        prehash: true,
-        lowS: true,
-      }),
-      "INTEGRITY_FAILED",
-    );
-    // RFC 9679 requires uncompressed coordinates even for a compressed COSE_Key.
-    required.set(
-      -3,
-      secp256k1.Point.fromBytes(publicKey).toBytes(false).subarray(33),
-    );
-  }
+  ensure(
+    key.get(1) === 1 &&
+      key.get(-1) === 6 &&
+      ed25519.verify(signature, toBeSigned, x, { zip215: false }),
+    "INTEGRITY_FAILED",
+  );
   if (content !== undefined && statement.content.kind !== "app_action")
     ensure(
       statement.content.kind === "text"

@@ -1,9 +1,10 @@
-//! Agent Delegation 1.0 rules for hosted controllers and principal publication.
+//! Agent Delegation 1.0 rules for self-held controllers and principal publication.
 //!
-//! Strict I-JSON, JCS, SHA3-256 event hashes and the Agent Delegation payload
-//! rules come from the pinned `agent-protocols` SDK. This module adds dMsg's
-//! hosted-signing policy and renders the principal document the directory
-//! serves. It performs no network access and authorizes nothing by itself.
+//! Principal documents follow the pinned `agent-protocols` SDK. This module
+//! validates controller state, renders the principal document the directory
+//! serves and routes accounts to their user homes. Delegation events are
+//! signed by the client and checked by the delegation service against the
+//! published document; nothing here authorizes an event.
 use crate::*;
 use agent_protocols::{delegation as sdk, identity as sdk_id};
 use dmsg_types::{agent::*, *};
@@ -25,10 +26,6 @@ pub const MAX_PRINCIPAL_ORIGIN_BYTES: usize = 512;
 pub const MAX_DIRECTORY_URL_BYTES: usize = 2_048;
 /// Maximum principal document (64 KiB), including future retirement fields.
 pub const MAX_PRINCIPAL_DOCUMENT_BYTES: usize = 65_536;
-/// Hosted signing accepts `created_at` at most this far in the past (60 s).
-pub const EVENT_PAST_SKEW: u64 = 60 * SECOND;
-/// Hosted signing accepts `created_at` at most this far in the future (5 s).
-pub const EVENT_FUTURE_SKEW: u64 = 5 * SECOND;
 
 fn sdk_error(error: agent_protocols::SdkError) -> Error {
     Error::InvalidInput(error.to_string())
@@ -66,189 +63,10 @@ pub fn principal_id(origin: &str, account_id: &AccountId) -> String {
     format!("{origin}/{account_id}")
 }
 
-/// Required prefix of delegation IDs signed by an account's hosted keys.
+/// Required prefix of delegation IDs signed by an account's controllers.
 /// The prefix routes credential reads to the account without a global index.
 pub fn delegation_id_prefix(account_id: &AccountId) -> String {
     format!("{account_id}.")
-}
-
-/// SHA3-256 of exact event bytes: the 32-byte message a controller signs.
-/// Only meaningful for bytes already accepted by [`parse_delegation_event`].
-pub fn event_hash(bytes: &[u8]) -> Hash {
-    use sha3::Digest;
-    Hash::new(sha3::Sha3_256::digest(bytes).into())
-}
-
-/// Grant fields that hosted-signing policy checks.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DelegationGrant {
-    /// Granted scopes.
-    pub scopes: Vec<String>,
-    /// Granted relying-party audiences.
-    pub audiences: Vec<String>,
-    /// Optional validity start.
-    pub not_before: Option<u64>,
-    /// Optional validity end.
-    pub expires_at: Option<u64>,
-    /// JCS size of `constraints`, or zero when absent.
-    pub constraints_bytes: usize,
-}
-
-/// A strictly parsed Agent Delegation event and its SHA3-256 event hash.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DelegationEvent {
-    /// SHA3-256 of the exact event bytes: the 32-byte message that is signed.
-    pub hash: Hash,
-    /// Raw Ed25519 public key of `actor`.
-    pub actor: Hash,
-    /// Signer-chosen creation time.
-    pub created_at: u64,
-    /// Agent Identity nonce of the actor.
-    pub nonce: u64,
-    /// Principal named by the payload.
-    pub principal_id: String,
-    /// Delegation ID named by the payload.
-    pub id: String,
-    /// Grant fields, or None for `delegation.revoke`.
-    pub grant: Option<DelegationGrant>,
-}
-
-/// Strictly parse one Agent Delegation event from its exact JCS bytes.
-///
-/// Rejects anything but the six Agent Identity event fields, duplicate member
-/// names, unpaired surrogates, unsafe integers, noncanonical text, unknown or
-/// explicitly null payload members, and payloads that break Agent Delegation
-/// Section 7. The bytes must be the JCS form, so their SHA3-256 is the event hash.
-///
-/// # Errors
-/// Oversized input returns `Error::QuotaExceeded`, a foreign protocol or type
-/// `Error::UnsupportedProtocol`, and any other violation `Error::InvalidInput`.
-pub fn parse_delegation_event(bytes: &[u8]) -> Result<DelegationEvent> {
-    ensure(bytes.len() <= MAX_AGENT_EVENT_BYTES, Error::QuotaExceeded)?;
-    let text = std::str::from_utf8(bytes).map_err(|_| invalid("event is not UTF-8"))?;
-    let value = sdk_id::parse_strict_json(text).map_err(sdk_error)?;
-    let event: sdk_id::Event<sdk::DelegationPayload> =
-        serde_json::from_value(value).map_err(|error| Error::InvalidInput(error.to_string()))?;
-    ensure(
-        event.protocol == AGENT_DELEGATION_PROTOCOL,
-        Error::UnsupportedProtocol,
-    )?;
-    sdk_id::validate_event_fields(&event, &[]).map_err(sdk_error)?;
-    // Typed re-encoding drops unknown payload members and explicit nulls, so the
-    // exact-bytes comparison also closes the payload object.
-    ensure_valid(
-        sdk_id::canonical_event_bytes(&event).map_err(sdk_error)? == bytes,
-        "event is not canonical JCS",
-    )?;
-    // Validates the nonce range; equals event_hash(bytes) for canonical bytes.
-    let hash = sdk_id::event_hash_bytes(&event).map_err(sdk_error)?;
-    let created_at = u64::try_from(event.created_at).map_err(|_| invalid("created_at"))?;
-    let actor = event.actor.public_key_bytes().map_err(sdk_error)?;
-    let (principal_id, id, grant) = match (event.kind.as_str(), &event.payload) {
-        (sdk::DELEGATION_GRANT, sdk::DelegationPayload::Grant(payload)) => {
-            sdk::validate_delegation_grant_payload(payload, Some(event.created_at))
-                .map_err(sdk_error)?;
-            let constraints_bytes = match &payload.constraints {
-                Some(constraints) => serde_jcs::to_vec(constraints)
-                    .map_err(|error| Error::InvalidInput(error.to_string()))?
-                    .len(),
-                None => 0,
-            };
-            let time = |value: Option<i64>| {
-                value
-                    .map(|t| u64::try_from(t).map_err(|_| invalid("timestamp")))
-                    .transpose()
-            };
-            (
-                payload.principal_id.clone(),
-                payload.id.clone(),
-                Some(DelegationGrant {
-                    scopes: payload.scopes.clone(),
-                    audiences: payload.audiences.clone(),
-                    not_before: time(payload.not_before)?,
-                    expires_at: time(payload.expires_at)?,
-                    constraints_bytes,
-                }),
-            )
-        }
-        (sdk::DELEGATION_REVOKE, sdk::DelegationPayload::Revoke(payload)) => {
-            sdk::validate_delegation_revoke_payload(payload).map_err(sdk_error)?;
-            (payload.principal_id.clone(), payload.id.clone(), None)
-        }
-        (sdk::DELEGATION_GRANT | sdk::DELEGATION_REVOKE, _) => {
-            return Err(invalid("event type does not match its payload"))
-        }
-        _ => return Err(Error::UnsupportedProtocol),
-    };
-    Ok(DelegationEvent {
-        hash: Hash::new(hash),
-        actor: Hash::new(actor),
-        created_at,
-        nonce: event.nonce,
-        principal_id,
-        id,
-        grant,
-    })
-}
-
-/// dMsg hosted-signing policy for one parsed event.
-///
-/// The controller must be current and be the actor; the payload must name this
-/// principal and an ID under the account prefix; `created_at` must be within
-/// `[now - 60 s, now + 5 s]` and not before `valid_from`. A grant must stay
-/// within a restricted ceiling, carry `expires_at` at most 366 days after
-/// `created_at`, and keep `constraints` within 4 KiB. Revocation lineage and
-/// credential state are checked by the delegation service at acceptance.
-///
-/// # Errors
-/// A retired or foreign controller returns `Error::Forbidden`, mismatched
-/// identities `Error::IntegrityFailed`, a stale or future time `Error::Expired`,
-/// and a policy violation `Error::InvalidInput`.
-pub fn check_hosted_event(
-    event: &DelegationEvent,
-    account_id: &AccountId,
-    principal_id: &str,
-    controller: &HostedController,
-    now: u64,
-) -> Result<()> {
-    ensure(controller.retired_at.is_none(), Error::Forbidden)?;
-    ensure(
-        event.actor == controller.public_key && event.principal_id == principal_id,
-        Error::IntegrityFailed,
-    )?;
-    ensure_valid(
-        event
-            .id
-            .strip_prefix(&delegation_id_prefix(account_id))
-            .is_some_and(|suffix| !suffix.is_empty()),
-        "delegation id must start with the account prefix",
-    )?;
-    ensure(
-        event.created_at >= controller.valid_from
-            && event.created_at.saturating_add(EVENT_PAST_SKEW) >= now
-            && event.created_at <= now.saturating_add(EVENT_FUTURE_SKEW),
-        Error::Expired,
-    )?;
-    if let Some(grant) = &event.grant {
-        if let DelegationAuthority::Restricted { scopes, audiences } = &controller.delegation {
-            ensure(
-                grant.scopes.iter().all(|s| scopes.contains(s))
-                    && grant.audiences.iter().all(|a| audiences.contains(a)),
-                Error::Forbidden,
-            )?;
-        }
-        ensure_valid(
-            grant.expires_at.is_some_and(|expires_at| {
-                expires_at > event.created_at && expires_at - event.created_at <= MAX_GRANT_LIFETIME
-            }),
-            "grant expires_at is required within 366 days",
-        )?;
-        ensure_valid(
-            grant.constraints_bytes <= MAX_GRANT_CONSTRAINTS_BYTES,
-            "grant constraints are too large",
-        )?;
-    }
-    Ok(())
 }
 
 fn validate_authority(authority: &DelegationAuthority) -> Result<()> {

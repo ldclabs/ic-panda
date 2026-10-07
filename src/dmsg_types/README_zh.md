@@ -38,7 +38,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | device / capability | 登记的设备公钥与明确权限。设备角色 `Administrator` 不等于 ICP canister controller。 |
 | approval | 设备对特定操作、账户安全状态、序号、期限等上下文的签名批准，不是通用登录凭证。 |
 | home user / home COSE | 分别负责账户授权与密钥执行的固定 canister。密钥派生身份依赖 home COSE 和派生参数。 |
-| content root / generation | 内容根的代次及外部加密 bundle 的承诺；这些类型不包含明文根密钥。vetKD 返回加密派生结果。 |
+| content root / generation | 内容根的代次及外部加密 bundle 的承诺，bundle 封装给活跃设备和该代的 vetKD 身份；这些类型不包含明文根密钥，恢复派生返回加密的 vetKD 结果。 |
 | security epoch / account version | 前者使旧安全批准失效，后者用于账户变更的乐观并发检查；不能互换。 |
 | artifact / execution receipt | 前者是可移植 COSE 签名文档；后者是 ICP 记录的执行证据，单独绑定请求、待签字节和密钥。 |
 | offer / quote / admission receipt | 分别是收款方授权、固定投递报价、服务受理证明；均不表示对方已阅读或回复。 |
@@ -51,7 +51,8 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | `signing` | `Statement`, `StatementContent`, `SignedArtifact` | 准备、交换、解析文档签名，可独立于 ICP 使用 |
 | `account_id` | `AccountId` | 稳定账户身份；重导出 `ic_auth_types::Xid` |
 | `protocol` | `Hash`, `OpId`, `Approval`, `Error`, `CertifiedBatch` | 共享字节、时间、设备批准、错误和认证查询 |
-| `cose` | `SignRequest`, `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `ExecutionReceipt` | ICP 正式签名、vetKD、密钥来源和执行对账 |
+| `cose` | `DeriveRootRequest`, `KeyDescriptor`, `ExecutionResult`, `EncryptedRootKey` | 恢复 vetKD 派生、密钥来源和执行对账 |
+| `signing`（续） | `AttestRequest`, `AppActionAttestRequest`, `ExecutionReceipt` | 设备签名的认证请求及其认证回执 |
 | `user` | `AccountInfo`, `AccountMutation`, `Device`, `SecuritySnapshot` | 账户、设备、恢复与根承诺 |
 | `handle` | `HandleIntent`, `HandleRecord`, `HandleOperation` | 名称注册、转移与冻结名称导入 |
 | `payment` | `PaymentOffer`, `EscrowInfo`, `TransferLeg` | 收款授权、托管会计与账本转账 |
@@ -140,22 +141,22 @@ assert!(!result.is_terminal());
 
 取得 `SignedArtifact`，用配套 `dmsg_protocol::verify_artifact` 检查 COSE profile 和数学签名。需要核对文件时，将原文件字节的 SHA-256 与验证后的声明对照；仅验签不会核对文件。随包 `cose_key` 只是公钥，不能自行证明 issuer 身份。issuer 绑定、授权、时间戳和当前状态应按各自证据检查。
 
-当前支持 Ed25519（COSE -19）和 ES256K（-47）。vetKD 用于派生内容根，不属于文档签名算法。普通签名不自带可信时间戳；`Statement.issued_at` 是签署者的时间声明，批准期限到期也不会自动使已完成的文档签名失效。
+唯一的签名算法是 Ed25519（COSE -19）；dMsg 文档由账户的设备密钥签名，kid 为设备公钥的 RFC 9679 指纹。vetKD 用于派生内容根，不属于文档签名算法。普通签名不自带可信时间戳；`Statement.issued_at` 是签署者的时间声明，批准期限到期也不会自动使已完成的文档签名失效。
 
-### ICP 正式签名
+### ICP 认证
 
-1. 从部署配置确定 user/COSE home，查询账户及已认证的密钥描述；确认设备权限、`security_epoch` 和设备序号。
-2. 冻结完整 `Statement`、`SigningKeyRef`、经扩展核实的 origin 和 `max_cycles`。使用协议库 `SignRequestExt` 等辅助接口转换请求、生成 request ID 和批准摘要，再由设备 Ed25519 key 签名。
-3. 调用 user canister 的 `sign`，按 `ExecutionResult` 查询原请求，完成后提取 `ExecutionOutput::Signature`。
-4. 如需证明 dMsg 执行授权，查询 `get_execution_receipt`，验证 IC certificate/witness 后，再用 `match_execution_receipt` 匹配产物与回执。该 Rust helper 只检查绑定，不代替 IC 证书验证。
+1. 定位账户所在的 user home（名称注册表列出全部 home），查询账户；确认设备权限、`security_epoch` 和设备序号。
+2. 冻结完整 `Statement` 和经扩展核实的 origin。用 `prepare_attestation` 取得精确的 Sig_structure 与设备公钥指纹，由设备 Ed25519 key 签署字节，再对 statement、origin 与该签名签署 `dmsg/attest/v1` 批准。
+3. 调用 user canister 的 `attest`（或 `attest_app_action`），它直接返回 `SignedArtifact`；回复丢失时用 `get_attestation` 按同一 request ID 重放。
+4. 如需证明 dMsg 执行授权，查询 `get_execution_receipt`，验证 IC certificate/witness 后，再用 `match_execution_receipt` 匹配产物与回执（schema 2）。该 Rust helper 只检查绑定，不代替 IC 证书验证。
 
-可移植声明不包含 request_id、origin 或执行期限；这些属于执行上下文。设备签名绑定 origin，但不能独立证明该字符串确实来自浏览器。低层 `ExecutionGrant` 是受限跨 canister 合同，公开类型不意味着任意 caller 可以执行它。
+可移植声明不包含 request_id、origin 或执行期限；这些属于执行上下文。设备签名绑定 origin，但不能独立证明该字符串确实来自浏览器。低层 `ExecutionGrant` 只用于恢复派生的受限跨 canister 合同。
 
 ### 账户、设备和内容根
 
 `AccountMutation` 绑定 `expected_version`、完整 `AccountCommand` 和 `Approval`。版本冲突后重新读取状态并重新准备批准，不直接替换已签请求的版本字段。新增设备需要对应私钥的持有证明；登录 Principal、设备签名 key 和 HPKE 加密 key 各有职责。
 
-换根通过 `ReserveRoot` → 派生候选根/准备外部加密 bundle → `CommitRoot` 完成，操作 ID、期望代次和安全状态须匹配。`ContentRootRef` 只保存 bundle 承诺和派生信息。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复材料的版本、恢复等待窗口和争议确认由 user 合同表达，不等同于本地 UI 解锁状态。
+换根通过 `ReserveRoot` → 本地生成新根并封装给每台活跃设备与该代的 vetKD 身份 → `CommitRoot` 完成，操作 ID、期望代次、安全状态和接收者摘要须匹配。`ContentRootRef` 只保存 bundle 承诺。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复是登录授权的延迟接管，任一有效设备可取消；只有它登记的设备可以用 `DeriveRootRequest` 派生一次已提交的根。
 
 ### 可选付费投递
 

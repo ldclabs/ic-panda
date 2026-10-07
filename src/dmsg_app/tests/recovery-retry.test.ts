@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
+import { MasterPublicKey } from '@dfinity/vetkeys'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { startChannel } from '../src/lib/protocol/channel'
@@ -7,9 +8,10 @@ import { xidText } from '../src/lib/protocol/identity'
 import { InboxClient } from '../src/lib/services/inbox'
 import { Principal } from '@icp-sdk/core/principal'
 import { readCloudCommand } from '../src/lib/protocol/cloud'
-import { ed25519 } from '../src/lib/crypto/primitives'
-import { canonical, hash, id } from '../src/lib/protocol/codec'
-const password = 'review-only-local-fixture'
+import { ed25519, hpkePublic } from '../src/lib/crypto/primitives'
+import { b64, canonical, hash, hex, id, unhex } from '../src/lib/protocol/codec'
+import { bundleDigests, parseRootBundle, rootMaterial, wrapRoot } from '../src/lib/crypto/root'
+import { boundEngine } from './support/engine'
 const accountId = xidText(new Uint8Array(12).fill(1))
 const note = (body = 'a') => ({
   type: 'note',
@@ -28,52 +30,38 @@ beforeEach(() => {
 })
 afterEach(() => vi.restoreAllMocks())
 async function fresh() {
-  const engine = new CryptoEngine()
-  const setup = await engine.initialize(password)
-  await engine.verifyRecovery(setup.recoveryCode)
-  return { engine, setup }
+  const { engine, meta } = await boundEngine(accountId)
+  return { engine, setup: { meta } }
 }
-it('restores every unsynced ancestor into the outbox', async () => {
-  const { engine, setup } = await fresh()
+it('keeps unsynced ancestors in the outbox across lock and unlock', async () => {
+  let { engine } = await fresh()
   const a = await engine.saveItem({ item: note() as any })
   const b = await engine.saveItem({ item: note('b') as any, id: a.id, base: a.revision })
   expect((await engine.view()).outbox).toHaveLength(2)
-  const backup = await engine.exportBackup(password)
   await engine.lock()
-  globalThis.indexedDB = new IDBFactory()
-  const restored = new CryptoEngine()
-  await restored.restore({
-    file: new File([backup.blob], 'review.dmsg'),
-    code: setup.recoveryCode,
-    password
-  })
-  const view = await restored.view()
+  engine = new CryptoEngine()
+  await engine.unlock()
+  const view = await engine.view()
   expect(new Set(view.outbox.map((job) => job.id))).toEqual(new Set([a.revision, b.revision]))
   expect(view.entries[0].record.parent).toBe(a.revision)
   const db = await WorkspaceDB.open((await currentWorkspace())!)
   expect(await db.db.count('objects')).toBe(2)
   db.db.close()
-  await restored.lock()
+  await engine.lock()
 })
-it('preserves resolved conflicts through later edits and offline recovery', async () => {
-  const { engine, setup } = await fresh()
+it('preserves resolved conflicts through later edits and restarts', async () => {
+  let { engine } = await fresh()
   const a = await engine.saveItem({ item: note() as any })
   const b = await engine.saveItem({ item: note('b') as any, id: a.id, base: a.revision })
   const c = await engine.saveItem({ item: note('c') as any, id: a.id, base: a.revision })
   const resolved = await engine.resolveConflict({ key: c.key, base: b.revision })
   await engine.saveItem({ item: note('later edit') as any, id: a.id, base: resolved.revision })
   expect((await engine.view()).conflicts).toHaveLength(0)
-  const backup = await engine.exportBackup(password)
   await engine.lock()
-  globalThis.indexedDB = new IDBFactory()
-  const restored = new CryptoEngine()
-  await restored.restore({
-    file: new File([backup.blob], 'review.dmsg'),
-    code: setup.recoveryCode,
-    password
-  })
-  expect((await restored.view()).conflicts).toHaveLength(0)
-  await restored.lock()
+  engine = new CryptoEngine()
+  await engine.unlock()
+  expect((await engine.view()).conflicts).toHaveLength(0)
+  await engine.lock()
 })
 it('does not enqueue unchanged channel refreshes or empty receives', async () => {
   const { engine } = await fresh()
@@ -153,37 +141,33 @@ it('submits a fresh action when inbox archive state toggles back', async () => {
   expect(result.archived).toBe(false)
   expect(archived).toBe(false)
 })
-it('reauthorizes a root request only when certified state proves its sequence was not consumed', async () => {
+it('reauthorizes a recovery derivation only when certified state proves its sequence was not consumed', async () => {
   const { AccountRootClient } = await import('../src/lib/services/account-root')
-  const { canonical, b64, digest, hash, unhex } = await import('../src/lib/protocol/codec')
   const seed = new Uint8Array(32).fill(3),
     home = Principal.fromUint8Array(new Uint8Array([1])),
+    deviceId = id(),
     saved = new Map<string, string>()
   const context = {
     account: accountId,
-    homeCose: home.toText(),
     environment: 'local',
     generation: 1,
     opId: id(),
-    recoveryGeneration: 1,
-    recoveryPublic: b64(seed),
-    recoverySigningPublic: b64(seed)
+    securityEpoch: 1
   }
-  const payload = {
-    format: 'dmsg-root-bundle/1',
-    context,
-    key: { publicKey: b64(seed), fingerprint: id(), keyId: id(), keyName: 'test_key_1' },
-    online: b64(seed),
-    recovery: { enc: b64(seed), ciphertext: b64(seed) },
-    previous: null,
-    device: id(),
-    signingPublic: b64(ed25519.getPublicKey(seed))
-  }
-  const bytes = canonical({
-      payload,
-      signature: ed25519.sign(digest('dmsg/root-bundle/1', payload), seed)
-    }),
-    expected = hash(bytes)
+  const dpk = MasterPublicKey.productionKey()
+    .deriveCanisterKey(home.toUint8Array())
+    .deriveSubKey(canonical(['dmsg/content-root/v2', 'Local', 2]))
+    .publicKeyBytes()
+  const recoveryKey = { homeCose: home.toText(), keyName: 'key_1', publicKey: b64(dpk) }
+  const bytes = await wrapRoot(
+    rootMaterial(context),
+    [{ deviceId, hpkePublic: await hpkePublic(seed) }],
+    recoveryKey,
+    { deviceId, seed },
+    null
+  )
+  const digests = bundleDigests(parseRootBundle(bytes)),
+    expected = hex(digests.bundleDigest)
   const now = Date.now(),
     clock = vi.spyOn(Date, 'now').mockReturnValue(now)
   const derive = vi.fn(async (request: any) => {
@@ -202,10 +186,11 @@ it('reauthorizes a root request only when certified state proves its sequence wa
       throw Error(method)
     }
   }
-  const ref = { generation: 1n, bundle_digest: unhex(expected) }
+  const ref = { generation: 1n, bundle_digest: digests.bundleDigest }
   const state = {
     info: {
       current_root: [ref],
+      recovered_device: [[unhex(deviceId), 1n]],
       home_cose: home,
       issuer: `https://dmsg.test/u/${accountId}`,
       security_epoch: 1n
@@ -221,7 +206,7 @@ it('reauthorizes a root request only when certified state proves its sequence wa
   }
   const account = {
     home,
-    meta: { deviceId: id(), environment: 'local' },
+    meta: { deviceId, environment: 'local' },
     crypto,
     refresh: async () => state,
     user: {
@@ -231,19 +216,37 @@ it('reauthorizes a root request only when certified state proves its sequence wa
   }
   const cloud = {
     publishSecurity: async () => {},
-    get: async () => ({ root: { upload_id: id(), digest: expected, root_generation: 1 } }),
+    get: async () => ({ root: { upload_id: id(), digest: hash(bytes), root_generation: 1 } }),
     getChunk: async () => bytes
   }
-  const client = new AccountRootClient(account as any, cloud as any)
-  await expect(client.openCurrent(accountId)).rejects.toThrow('network unavailable')
+  const cose = {
+    root_public_key: async () => ({
+      Ok: {
+        account_id: unhex('01'.repeat(12)),
+        key_generation: 1n,
+        public_key_fingerprint: unhex(hash(dpk)),
+        derivation_version: 2,
+        public_key: dpk,
+        home_cose: home,
+        environment: { Local: null },
+        master_key_name: 'key_1'
+      }
+    })
+  }
+  const client = new AccountRootClient(account as any, cloud as any, cose as any)
+  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({
+    code: 'EXECUTION_UNKNOWN'
+  })
   const original = [...saved.entries()]
   state.device.next_sequence = 1n
   clock.mockReturnValue(now + 300001)
-  await expect(client.openCurrent(accountId)).rejects.toMatchObject({ code: 'RESULT_EXPIRED' })
+  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({ code: 'RESULT_EXPIRED' })
   expect(derive).toHaveBeenCalledTimes(1)
   state.device.next_sequence = 0n
   clock.mockReturnValue(now + 300001)
-  await expect(client.openCurrent(accountId)).rejects.toThrow('network unavailable')
+  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({
+    code: 'EXECUTION_UNKNOWN'
+  })
   expect([...saved.entries()]).not.toEqual(original)
   expect(derive.mock.calls[1][0].approval.expires_at).toBeGreaterThan(
     derive.mock.calls[0][0].approval.expires_at
@@ -251,6 +254,12 @@ it('reauthorizes a root request only when certified state proves its sequence wa
   expect(derive.mock.calls[0][0].approval.request_id).toEqual(
     derive.mock.calls[1][0].approval.request_id
   )
+  expect(derive.mock.calls[0][0].generation).toBe(1n)
+  // A device the recovery did not enroll cannot derive at all.
+  state.info.recovered_device = []
+  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({
+    code: 'DeviceNotApproved'
+  })
 })
 it('rejects an external signature ACK without a delivered digest', async () => {
   const { config } = await import('../src/lib/config')
@@ -330,13 +339,6 @@ it('rejects an external signature ACK without a delivered digest', async () => {
 })
 it('prepares each note without decrypting unrelated upload jobs', async () => {
   const { engine } = await fresh()
-  ;(engine as any).meta.registered = true
-  ;(engine as any).meta.account = {
-    id: accountId,
-    homeUser: 'aaaaa-aa',
-    issuer: `https://dmsg.test/u/${accountId}`,
-    rootDigest: id()
-  }
   const records = []
   for (let i = 0; i < 5; i++)
     records.push(await engine.saveItem({ item: note(String(i)) as any }))
@@ -375,59 +377,6 @@ it('indexes channel tasks locally without exposing channel routing in uploaded r
   expect(JSON.stringify(await db.db.getAll('local_private'))).not.toContain(requestId)
   db.db.close()
   await engine.lock()
-})
-it('reports local channel sends as backup gaps until their messages are saved', async () => {
-  const { engine, setup } = await fresh(),
-    channel = id(),
-    messageId = id(),
-    requestId = id(),
-    messageKey = `message:${messageId}`,
-    operationKey = `send:${messageId}`
-  const message = {
-      format: 'dmsg-channel-message-job/1',
-      text: 'Unsent content',
-      payload: { message_id: messageId },
-      state: 'queued'
-    },
-    operation = { action: 'dmsg/channel/message/v1', context: { requestId } }
-  try {
-    await engine.channelJob(channel, messageKey, message)
-    await engine.channelJob(channel, operationKey, operation)
-    const backup = await engine.exportBackup(password)
-    expect(backup.scope).toBe('partial')
-    expect(backup.missing).toEqual([
-      `channel-job:${channel}:${messageKey}`,
-      `channel-job:${channel}:${operationKey}`
-    ])
-    // A relay ACK alone does not put the plaintext message in the backup.
-    await engine.channelJob(channel, operationKey, { ...operation, result: { seq: 1 } })
-    await engine.channelJob(channel, messageKey, { ...message, state: 'stored' })
-    expect((await engine.exportBackup(password)).missing).toEqual([
-      `channel-job:${channel}:${messageKey}`
-    ])
-    const objectId = hash(
-      canonical(['dmsg/channel-message-record/1', channel, setup.meta.deviceId, messageId])
-    )
-    await (engine as any).write('formal_message', { channel, text: message.text }, objectId)
-    const complete = await engine.exportBackup(password)
-    expect(complete.scope).toBe('local-inclusive')
-    expect(complete.missing).toEqual([])
-    await engine.lock()
-    globalThis.indexedDB = new IDBFactory()
-    const restored = new CryptoEngine()
-    try {
-      const result = await restored.restore({
-        file: new File([backup.blob], 'partial.dmsg'),
-        code: setup.recoveryCode,
-        password
-      })
-      expect(result.missing).toEqual(backup.missing)
-    } finally {
-      await restored.lock()
-    }
-  } finally {
-    await engine.lock()
-  }
 })
 it('ACKs only the matching source and an already signed request', async () => {
   const { acknowledgeRequest } = await import('../src/lib/requests')

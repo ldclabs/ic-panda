@@ -482,9 +482,7 @@ pub fn validate_panda_terms(
     initial: bool,
 ) -> Result<()> {
     ensure(
-        terms.home_membership == home
-            && terms.sns_governance == governance
-            && app.user_homes.contains(&terms.user_home),
+        terms.home_membership == home && terms.sns_governance == governance,
         Error::Forbidden,
     )?;
     authenticated(terms.actor)?;

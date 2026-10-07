@@ -156,10 +156,11 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
     expect(results.converted).toBe(true)
     expect(results.lostReplyResumed).toBe(true)
     expect(results.concurrentCreateBlocked).toBe(true)
-
-    console.log('Local root derivation charged cycles:', results.deriveCost)
+    expect(results.bound).toBe(true)
+    expect(results.provisionalWriteRefused).toBe(true)
+    expect(results.provisionalUnlockRefused).toBe(true)
     await page.evaluate(() => (window as any).accountFollowup('capture-evidence'))
-    const fixtureBackup = await page.evaluate(() => (window as any).accountFollowup('fixture'))
+    const fixtureInfo = await page.evaluate(() => (window as any).accountFollowup('fixture'))
     async function freshPage(name: string) {
       const context = await chromium.launchPersistentContext(join(dir, name), {
         headless: true,
@@ -175,45 +176,19 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       await tab.waitForFunction(() => 'accountFollowup' in window)
       return { context, tab }
     }
-    if (process.env.DMSG_RECOVERY_PROBE === '1') {
-      const rotated = await page.evaluate(() =>
-        (window as any).accountFollowup('rotate-recovery')
+    // A new browser profile holds fresh device keys only; it gets content after
+    // an administrator approves it and rotates the root to include it.
+    async function freshDevice(
+      name: string,
+      owner: { input: Record<string, unknown>; account: string },
+      identitySeed?: number
+    ) {
+      const target = await freshPage(name)
+      const fresh = await target.tab.evaluate(
+        (data) => (window as any).accountFollowup('fresh-device', data),
+        { input: { ...owner.input, identitySeed }, account: owner.account }
       )
-      expect(rotated.generation).toBe(2)
-      const exported = await page.evaluate(() => (window as any).accountFollowup('fixture'))
-      const target = await freshPage('new-recovery-code')
-      await target.context.setOffline(true)
-      await expect(
-        target.tab.evaluate((value) => (window as any).accountFollowup('restore', value), {
-          ...exported,
-          code: fixtureBackup.code
-        })
-      ).rejects.toThrow()
-      const recovered = await target.tab.evaluate(
-        (value) => (window as any).accountFollowup('restore', value),
-        exported
-      )
-      expect(recovered).toMatchObject({
-        generation: 2,
-        entries: rotated.entries,
-        authorized: false
-      })
-      return
-    }
-    if (process.env.DMSG_DIRECTORY_PROBE === '1') {
-      const exported = await page.evaluate(() =>
-        (window as any).accountFollowup('export-directory')
-      )
-      expect(exported.files.length).toBeGreaterThan(2)
-      const target = await freshPage('directory-offline')
-      await target.context.setOffline(true)
-      const recovered = await target.tab.evaluate(
-        (value) => (window as any).accountFollowup('restore-directory', value),
-        exported
-      )
-      expect(recovered).toMatchObject({ count: exported.count, authorized: false, size: 4096 })
-      expect(recovered.bytes.every((byte: number) => byte === 61)).toBe(true)
-      return
+      return { ...target, device: fresh.device as string }
     }
     if (process.env.DMSG_DELIVERY_PROBE === '1') {
       const recipient = await freshPage('paid-contact-recipient')
@@ -476,32 +451,6 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
           }),
         granted
       )
-      await expect(
-        memberPage.evaluate(
-          (view) =>
-            (window as any).accountFollowup('shared', {
-              action: 'receive',
-              view,
-              grant: Object.keys(view.grants)[0],
-              recovery: true,
-              wrong: true
-            }),
-          granted
-        )
-      ).rejects.toThrow()
-      const recovered = await memberPage.evaluate(
-        (view) =>
-          (window as any).accountFollowup('shared', {
-            action: 'receive',
-            view,
-            grant: Object.keys(view.grants)[0],
-            recovery: true
-          }),
-        granted
-      )
-      expect(recovered.messages.some((m: any) => m.text === 'Legacy shared history 0')).toBe(
-        true
-      )
       expect(received.messages.some((m: any) => m.text === 'Legacy shared history 0')).toBe(
         true
       )
@@ -651,14 +600,10 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         billingAcceptance
       )
       expect(billing.billing_account).toBe(other.account)
-      const deviceBackup = await second.tab.evaluate(() =>
-        (window as any).accountFollowup('export-local')
+      const otherFixture = await second.tab.evaluate(() =>
+        (window as any).accountFollowup('fixture')
       )
-      const third = await freshPage('channel-new-device')
-      const thirdRestored = await third.tab.evaluate(
-        (data) => (window as any).accountFollowup('restore', data),
-        deviceBackup
-      )
+      const third = await freshDevice('channel-new-device', otherFixture, 60)
       const thirdPair = await third.tab.evaluate(() =>
         (window as any).accountFollowup('pair', 'Administrator')
       )
@@ -728,25 +673,13 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
           created.id
         )
       ).rejects.toThrow()
-      const channelBackup = await third.tab.evaluate(() =>
-        (window as any).accountFollowup('export-local')
-      )
-      expect(channelBackup.missing).toEqual([])
-      const offlineChannel = await freshPage('channel-offline')
-      await offlineChannel.context.setOffline(true)
-      const restoredChannel = await offlineChannel.tab.evaluate(
-        (data) => (window as any).accountFollowup('restore', data),
-        channelBackup
-      )
-      expect(restoredChannel.authorized).toBe(false)
-      const offlineView = await offlineChannel.tab.evaluate(
+      // The approved device keeps its channel state encrypted locally across a
+      // worker restart, unlocked by the cached home secret alone.
+      const offlineView = await third.tab.evaluate(
         (id) => (window as any).accountFollowup('channel', { action: 'offline', id }),
         created.id
       )
-      expect(offlineView.messages.map((m: any) => m.text)).toContain(
-        'owner history before invitation'
-      )
-      expect(offlineView.files).toContain('channel-history.bin')
+      expect(offlineView.messages.map((m: any) => m.text)).toContain('new approved device')
       await writeFile(
         testInfo.outputPath('channel-result.json'),
         JSON.stringify(
@@ -790,12 +723,7 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
       )
       expect(uploaded.lost).toBe(3)
       expect(uploaded.file).toBe(true)
-      const second = await freshPage('content-second')
-      const restored = await second.tab.evaluate(
-        (data) => (window as any).accountFollowup('restore', data),
-        fixtureBackup
-      )
-      expect(restored.authorized).toBe(false)
+      const second = await freshDevice('content-second', fixtureInfo)
       await page.evaluate(() =>
         (window as any).accountFollowup('content', {
           edit: 'prepared before root rotation',
@@ -806,9 +734,12 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         (window as any).accountFollowup('pair', 'Member')
       )
       await page.evaluate((packet) => (window as any).accountFollowup('approve', packet), pair)
-      await second.tab.evaluate(() => (window as any).accountFollowup('open'))
-      // Device approval invalidates vault writes until an administrator commits
-      // a new root. Content sync must not bypass that canister policy.
+      // An approved device still has no envelope in the current root; device
+      // approval invalidates vault writes until an administrator commits a new
+      // root, and content sync must not bypass that canister policy.
+      await expect(
+        second.tab.evaluate(() => (window as any).accountFollowup('open'))
+      ).rejects.toThrow()
       await page.evaluate(() => (window as any).accountFollowup('rotate'))
       await second.tab.evaluate(() => (window as any).accountFollowup('open'))
       await page.evaluate(() => (window as any).accountFollowup('content', { push: true }))
@@ -834,33 +765,25 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         (window as any).accountFollowup('content', { push: true })
       )
       expect(conflicted.conflicts).toBeGreaterThan(0)
-      const backup = await second.tab.evaluate(() =>
-        (window as any).accountFollowup('fixture')
-      )
-      const offline = await freshPage('content-offline')
-      await offline.context.setOffline(true)
-      const recovered = await offline.tab.evaluate(
-        (data) => (window as any).accountFollowup('restore', data),
-        backup
-      )
-      expect(recovered.entries).toBe(conflicted.entries)
-      expect(recovered.authorized).toBe(false)
       await writeFile(
         testInfo.outputPath('content-result.json'),
-        JSON.stringify({ uploaded, downloaded, conflicted, recovered }, null, 2)
+        JSON.stringify({ uploaded, downloaded, conflicted }, null, 2)
       )
       return
     }
-    const second = await freshPage('second-device')
-    const restored = await second.tab.evaluate(
-      (data) => (window as any).accountFollowup('restore', data),
-      fixtureBackup
-    )
-    expect(restored.authorized).toBe(false)
+    const second = await freshDevice('second-device', fixtureInfo)
     const pair = await second.tab.evaluate(() =>
       (window as any).accountFollowup('pair', 'Administrator')
     )
     await page.evaluate((packet) => (window as any).accountFollowup('approve', packet), pair)
+    // Approval alone grants nothing: the root must be rotated to the new device.
+    await expect(
+      second.tab.evaluate(() => (window as any).accountFollowup('open'))
+    ).rejects.toThrow()
+    const included = await page.evaluate(() => (window as any).accountFollowup('rotate'))
+    expect(included.generation).toBe(2)
+    const opened = await second.tab.evaluate(() => (window as any).accountFollowup('open'))
+    expect(opened.generation).toBe(included.generation)
     const race = await Promise.allSettled([
       page.evaluate(() => (window as any).accountFollowup('rotate')),
       second.tab.evaluate(() => (window as any).accountFollowup('rotate'))
@@ -868,13 +791,13 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
     expect(race.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
     const winner = race.findIndex((r) => r.status === 'fulfilled')
     const rotated = (race[winner] as PromiseFulfilledResult<any>).value
-    expect(rotated.generation).toBeGreaterThan(1)
+    expect(rotated.generation).toBe(3)
     const loserPage = winner === 0 ? second.tab : page
     const online = await loserPage.evaluate(() => (window as any).accountFollowup('open'))
     expect(online.generation).toBe(rotated.generation)
     await page.evaluate(
       (device) => (window as any).accountFollowup('revoke', device),
-      restored.device
+      second.device
     )
     const afterRevocation = await page.evaluate(() =>
       (window as any).accountFollowup('rotate')
@@ -886,22 +809,18 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
     await expect(
       second.tab.evaluate(() => (window as any).accountFollowup('open'))
     ).rejects.toThrow(/DeviceNotApproved/)
-    const latestBackup = await page.evaluate(() => (window as any).accountFollowup('fixture'))
-    const offline = await freshPage('offline-recovery')
-    await offline.context.setOffline(true)
-    const offlineResult = await offline.tab.evaluate(
-      (data) => (window as any).accountFollowup('restore', data),
-      latestBackup
+    // Login recovery: the bound extra identity requests a takeover onto the
+    // revoked device; the surviving device cancels it once, then it waits out
+    // the delay and replaces every device and binding.
+    const requested = await second.tab.evaluate(() =>
+      (window as any).accountFollowup('request-recovery')
     )
-    expect(offlineResult.authorized).toBe(false)
-    expect(offlineResult.generation).toBe(afterRevocation.generation)
-    expect(offlineResult.entries).toBe(afterRevocation.entries)
-    await second.tab.evaluate(() => (window as any).accountFollowup('request-recovery'))
+    expect(requested.executeAfter).toBeGreaterThan(Date.now())
     await page.evaluate(() => (window as any).accountFollowup('dispute'))
-    const recovery = await second.tab.evaluate(() =>
-      (window as any).accountFollowup('reconfirm')
-    )
-    expect(recovery.reconfirmed).toBe(true)
+    await expect(
+      second.tab.evaluate(() => (window as any).accountFollowup('complete'))
+    ).rejects.toThrow(/AuthRequired/)
+    await second.tab.evaluate(() => (window as any).accountFollowup('request-recovery'))
     await expect(
       second.tab.evaluate(() => (window as any).accountFollowup('complete'))
     ).rejects.toThrow(/等待期/)
@@ -919,20 +838,27 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         return JSON.stringify({ ok: false, error: String(error) })
       }
     })
-    expect(completion).toBeTruthy()
     const completionResult = JSON.parse(completion)
     expect(completionResult, completion).toMatchObject({ ok: true })
     const recovered = completionResult.result
-    expect(recovered.device).toBe(restored.device)
+    expect(recovered.device).toBe(second.device)
     expect(recovered.rekey).toBe(true)
     expect(recovered.bindings).toHaveLength(1)
     await expect(
       page.evaluate(() => (window as any).accountFollowup('check-authority'))
     ).rejects.toThrow(/AuthRequired/)
+    // The recovered device derives the committed generation once through the
+    // executor, opens the recovery envelope and immediately rotates.
+    const restored = await second.tab.evaluate(() => (window as any).accountFollowup('recover'))
+    expect(restored.recovered).toBe(afterRevocation.generation)
+    expect(restored.generation).toBeGreaterThan(afterRevocation.generation)
+    await expect(
+      second.tab.evaluate(() => (window as any).accountFollowup('recover'))
+    ).rejects.toThrow()
     await writeFile(
       testInfo.outputPath('account-result.json'),
       JSON.stringify(
-        { ...results, rotated, online, afterRevocation, offline: offlineResult, recovered },
+        { ...results, included, rotated, online, afterRevocation, recovered, restored },
         null,
         2
       )

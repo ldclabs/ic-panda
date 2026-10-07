@@ -83,6 +83,7 @@ assert.equal(uint(field(quote, 'amount')), uint(field(quote, 'recipient_net')) +
 assert.ok(uint(field(quote, 'fee_reserve')) >= uint(field(quote, 'max_network_fee')) * (uint(field(quote, 'service_fee')) > 0n ? 2n : 1n))
 assert.equal(uint(field(receipt, 'protocol')), 2n)
 assert.equal(field(receipt, 'quote_digest').bytes, createHash('sha256').update(encode(fixture('delivery_quote_v2'))).digest('hex'))
-const grant = fixture('execution_grant_v3').array[2]
-assert.deepEqual(field(field(grant, 'commerce'), 'reservation_id'), field(grant, 'request_id'))
-console.log('Verified delivery v2 quote/receipt binding and execution grant v3 reservation identity.')
+const grant = fixture('execution_grant_v4').array[2]
+assert.equal(field(grant, 'transport_key').bytes.length, 96)
+assert.equal(uint(field(grant, 'generation')), 3n)
+console.log('Verified delivery v2 quote/receipt binding and execution grant v4 shape.')

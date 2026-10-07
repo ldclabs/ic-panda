@@ -2,6 +2,7 @@ import { beforeEach, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { CryptoEngine } from '../src/lib/crypto/engine'
+import { boundEngine } from './support/engine'
 import {
   advanceChannel,
   readable,
@@ -68,23 +69,11 @@ it('requires accepted membership, preserves default history isolation, and rejec
   expect(readable(state, member, 1)).toBe(false)
 })
 it('wraps 600 recipients in bounded pages and reuses exact ciphertext across restart', async () => {
-  const engine = new CryptoEngine(),
-    password = 'channel-six-hundred-test-only'
-  const setup = await engine.initialize(password)
-  await engine.verifyRecovery(setup.recoveryCode)
-  setup.meta.account = {
-    id: owner,
-    issuer: `https://dmsg.test/u/${owner}`,
-    homeUser: 'aaaaa-aa'
-  }
-  const db = await WorkspaceDB.open((await currentWorkspace())!)
-  await db.db.put('meta', {
-    id: 'workspace',
-    value: { ...(await db.meta())!, account: setup.meta.account }
-  })
-  db.db.close()
+  let { engine, meta } = await boundEngine(owner)
+  const setup = { meta }
   await engine.lock()
-  await engine.unlock(password)
+  engine = new CryptoEngine()
+  await engine.unlock()
   await engine.channelRemember({ channel, name: '600 recipients', genesis })
   const ledger = startChannel(
     { channel_id: channel, nonce: '03'.repeat(32), type: 'collaboration' },
@@ -98,15 +87,11 @@ it('wraps 600 recipients in bounded pages and reuses exact ciphertext across res
       account === 1
         ? owner
         : xidText(Uint8Array.from({ length: 12 }, (_, i) => (i === 11 ? account : 1)))
-    for (let device = 0; device < 5; device++)
+    for (let device = 0; device < 6; device++)
       recipients.push({
         recipient: `device:${accountId}:${account === 1 && device === 0 ? setup.meta.deviceId : hash(new TextEncoder().encode(`${account}:${device}`))}`,
         hpke_pub: hex(unb64(setup.meta.hpkePublic))
       })
-    recipients.push({
-      recipient: `recovery:${accountId}:1`,
-      hpke_pub: hex(unb64(setup.meta.recoveryPublic))
-    })
   }
   recipients.sort((a, b) => a.recipient.localeCompare(b.recipient))
   const lease = {
@@ -128,7 +113,8 @@ it('wraps 600 recipients in bounded pages and reuses exact ciphertext across res
   ).toBe(true)
   expect(first.uploads.every((u) => u.plan.chunks.every((c) => c.size <= 2048))).toBe(true)
   await engine.lock()
-  await engine.unlock(password)
+  engine = new CryptoEngine()
+  await engine.unlock()
   // An exact retry sees the same persisted candidate and every HPKE ciphertext.
   expect(await engine.channelRotation(channel, lease, recipients)).toEqual(first)
   await expect(engine.channelRotation(channel, lease, recipients.slice(1))).rejects.toThrow()

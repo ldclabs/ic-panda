@@ -1,9 +1,6 @@
 use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
 use dmsg_protocol::*;
-use dmsg_types::{
-    cose::{Algorithm, ExecutionReceipt, ExecutionStatus},
-    *,
-};
+use dmsg_types::*;
 use ed25519_dalek::{Signer, SigningKey};
 
 fn key() -> SigningKey {
@@ -30,7 +27,7 @@ fn finish(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifac
 }
 
 fn sign(statement: &Statement, kid: &[u8]) -> SignedArtifact {
-    let (_, tbs) = prepare_cose(statement, &Algorithm::Ed25519, kid).unwrap();
+    let (_, tbs) = prepare_cose(statement, kid).unwrap();
     finish(
         &tbs,
         &key().verifying_key().to_bytes(),
@@ -73,7 +70,7 @@ fn file_statement() -> Statement {
 }
 
 #[test]
-fn prepared_signatures_verify_for_every_profile_and_algorithm() {
+fn prepared_signatures_verify_for_every_profile() {
     for statement in [
         statement(),
         file_statement(),
@@ -82,48 +79,32 @@ fn prepared_signatures_verify_for_every_profile_and_algorithm() {
             ..statement()
         },
     ] {
-        for algorithm in [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1] {
-            let (_, tbs) = prepare_cose(&statement, &algorithm, b"kid").unwrap();
-            let (public, signature) = if algorithm == Algorithm::Ed25519 {
-                (
-                    key().verifying_key().to_bytes().to_vec(),
-                    key().sign(&tbs).to_bytes().to_vec(),
-                )
-            } else {
-                let key = k256::ecdsa::SigningKey::from_bytes((&[7; 32]).into()).unwrap();
-                let signature: k256::ecdsa::Signature = key.sign(&tbs);
-                (
-                    key.verifying_key().to_sec1_point(true).as_bytes().to_vec(),
-                    signature.to_bytes().to_vec(),
-                )
-            };
-            let prepared = parse_signing_input(&tbs)
+        let (_, tbs) = prepare_cose(&statement, b"kid").unwrap();
+        let public = key().verifying_key().to_bytes().to_vec();
+        let signature = key().sign(&tbs).to_bytes().to_vec();
+        let prepared = parse_signing_input(&tbs)
+            .unwrap()
+            .into_signature(&public)
+            .unwrap();
+        let artifact = prepared.finish(signature).unwrap();
+        assert_eq!(verify_artifact(&artifact).unwrap(), statement);
+        assert_eq!(
+            parse_signing_input(&tbs)
                 .unwrap()
                 .into_signature(&public)
-                .unwrap();
-            let artifact = prepared.finish(signature).unwrap();
-            assert_eq!(verify_artifact(&artifact).unwrap(), statement);
-            assert_eq!(
-                parse_signing_input(&tbs)
-                    .unwrap()
-                    .into_signature(&public)
-                    .unwrap()
-                    .finish(vec![0; 63]),
-                Err(Error::IntegrityFailed)
-            );
-        }
+                .unwrap()
+                .finish(vec![0; 63]),
+            Err(Error::IntegrityFailed)
+        );
     }
 }
 
 #[test]
 fn file_statements_jointly_bind_text_and_file() {
     let value = file_statement();
-    assert_eq!(
-        statement_purpose(&value),
-        dmsg_types::cose::KeyPurpose::Statement
-    );
-    for algorithm in [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1] {
-        let (message, tbs) = prepare_cose(&value, &algorithm, b"kid").unwrap();
+    assert_eq!(statement_purpose(&value), KeyPurpose::Statement);
+    {
+        let (message, tbs) = prepare_cose(&value, b"kid").unwrap();
         assert_eq!(parse_signing_input(&tbs).unwrap().statement(), &value);
         assert_eq!(
             message.protected.get(16),
@@ -136,18 +117,7 @@ fn file_statements_jointly_bind_text_and_file() {
         for header in [258, 259, 260] {
             assert!(!message.protected.contains_key(header));
         }
-        let artifact = if algorithm == Algorithm::Ed25519 {
-            sign(&value, b"kid")
-        } else {
-            let signer = k256::ecdsa::SigningKey::from_bytes((&[7; 32]).into()).unwrap();
-            let signature: k256::ecdsa::Signature = signer.sign(&tbs);
-            finish(
-                &tbs,
-                signer.verifying_key().to_sec1_point(false).as_bytes(),
-                signature.to_bytes().to_vec(),
-            )
-            .unwrap()
-        };
+        let artifact = sign(&value, b"kid");
         assert_eq!(verify_artifact(&artifact).unwrap(), value);
         // Mutate each signed field without signing again, including optional metadata.
         for field in 1..=4 {
@@ -401,30 +371,19 @@ fn text_is_original_utf8_and_contains_no_execution_fields() {
 }
 
 #[test]
-fn es256k_compressed_keys_have_the_same_rfc9679_thumbprint() {
-    use k256::ecdsa::{Signature as EcSignature, SigningKey as EcKey};
-    let signer = EcKey::from_bytes((&[7; 32]).into()).unwrap();
-    let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"ec-key").unwrap();
-    let signature: EcSignature = signer.sign(&tbs);
-    let public = signer.verifying_key().to_sec1_point(false);
-    let mut artifact = finish(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
-    verify_artifact(&artifact).unwrap();
-    let thumb = key_thumbprint(&artifact.cose_key).unwrap();
-    let mut key = Key::from_slice(&artifact.cose_key).unwrap();
-    key.insert(-3, Value::Bool(public.y().unwrap()[31] & 1 == 1));
-    artifact.cose_key = key.to_vec().unwrap().into();
-    verify_artifact(&artifact).unwrap();
-    assert_eq!(key_thumbprint(&artifact.cose_key).unwrap(), thumb);
-    key.set_kid(b"unrelated".to_vec());
-    assert_eq!(key_thumbprint(&key.to_vec().unwrap()).unwrap(), thumb);
-}
-
-#[test]
-fn rfc9679_published_thumbprint_and_strict_uri_inputs() {
+fn rfc9679_thumbprints_cover_okp_keys_only_and_uris_are_strict() {
+    // The RFC 9679 published EC2 example is no longer a supported key type.
     let encoded = hex::decode("a40102200121582065eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d2258201e52ed75701163f7f9e40ddf9f341b3dc9ba860af7e0ca7ca7e9eecd0084d19c").unwrap();
+    assert_eq!(key_thumbprint(&encoded), Err(Error::UnsupportedProtocol));
+    let artifact = sign(&statement(), b"kid");
+    let key = Key::from_slice(&artifact.cose_key).unwrap();
+    let mut required = Key::new();
+    for label in [1, -1, -2] {
+        required.insert(label, key.get(label).unwrap().clone());
+    }
     assert_eq!(
-        hex::encode(key_thumbprint(&encoded).unwrap().as_slice()),
-        "496bd8afadf307e5b08c64b0421bf9dc01528a344a43bda88fadd1669da253ec"
+        key_thumbprint(&artifact.cose_key).unwrap(),
+        sha256(&required.to_vec().unwrap())
     );
     for invalid in [
         "relative",
@@ -481,7 +440,7 @@ fn verification_preserves_original_protected_map_order() {
 
 fn receipt(artifact: &SignedArtifact) -> ExecutionReceipt {
     ExecutionReceipt {
-        schema: 1,
+        schema: 2,
         account_id: AccountId([1; 12]),
         issuer: statement().issuer,
         request_id: Hash::new([2; 32]),
@@ -490,11 +449,9 @@ fn receipt(artifact: &SignedArtifact) -> ExecutionReceipt {
         approved_at: 10,
         expires_at: 20,
         origin: "https://app.test".into(),
-        max_cycles: 100,
         to_be_signed_digest: sha256(&signing_bytes(artifact)),
         public_key_fingerprint: key_thumbprint(&artifact.cose_key).unwrap(),
-        status: ExecutionStatus::Completed,
-        signature_digest: Some(signature_digest(&artifact.cose_sign1).unwrap()),
+        signature_digest: signature_digest(&artifact.cose_sign1).unwrap(),
     }
 }
 
@@ -525,30 +482,15 @@ fn receipts_and_signing_results_bind_every_artifact_field() {
         Err(Error::IntegrityFailed)
     );
     let changes: &[fn(&mut ExecutionReceipt)] = &[
-        |r| r.schema = 2,
+        |r| r.schema = 1,
         |r| r.issuer = "urn:other:author".into(),
         |r| r.to_be_signed_digest = Hash::new([0; 32]),
         |r| r.public_key_fingerprint = Hash::new([0; 32]),
-        |r| r.signature_digest = Some(Hash::new([0; 32])),
-        |r| r.signature_digest = None,
+        |r| r.signature_digest = Hash::new([0; 32]),
     ];
     for change in changes {
         let mut changed = receipt.clone();
         change(&mut changed);
-        assert_eq!(
-            match_execution_receipt(&artifact, &changed),
-            Err(Error::IntegrityFailed)
-        );
-    }
-    for status in [
-        ExecutionStatus::Authorized,
-        ExecutionStatus::Executing,
-        ExecutionStatus::Failed,
-        ExecutionStatus::Unknown,
-        ExecutionStatus::ResultExpired,
-    ] {
-        let mut changed = receipt.clone();
-        changed.status = status;
         assert_eq!(
             match_execution_receipt(&artifact, &changed),
             Err(Error::IntegrityFailed)
@@ -634,17 +576,11 @@ fn statement_subject_text_and_metadata_boundaries() {
 }
 
 #[test]
-fn preparation_rejects_unsupported_algorithms_bad_keys_and_signature_lengths() {
-    assert_eq!(
-        cose_algorithm(&Algorithm::VetKdBls12381),
-        Err(Error::UnsupportedProtocol)
-    );
-    assert!(prepare_cose(&statement(), &Algorithm::VetKdBls12381, b"kid").is_err());
+fn preparation_rejects_bad_kids_keys_and_signature_lengths() {
     for size in [0, MAX_KID_BYTES + 1] {
-        assert!(prepare_cose(&statement(), &Algorithm::Ed25519, &vec![1; size]).is_err());
+        assert!(prepare_cose(&statement(), &vec![1; size]).is_err());
     }
-    let (_, tbs) =
-        prepare_cose(&statement(), &Algorithm::Ed25519, &vec![1; MAX_KID_BYTES]).unwrap();
+    let (_, tbs) = prepare_cose(&statement(), &vec![1; MAX_KID_BYTES]).unwrap();
     assert_eq!(
         parse_signing_input(&tbs).unwrap().kid().len(),
         MAX_KID_BYTES
@@ -653,20 +589,27 @@ fn preparation_rejects_unsupported_algorithms_bad_keys_and_signature_lengths() {
         assert!(finish(&tbs, &key().verifying_key().to_bytes(), vec![0; size]).is_err());
     }
     for size in [0, 31, 33] {
-        assert!(public_cose_key(&Algorithm::Ed25519, b"kid", &vec![0; size]).is_err());
+        assert!(public_cose_key(b"kid", &vec![0; size]).is_err());
     }
     let public = key().verifying_key().to_bytes();
-    assert!(public_cose_key(&Algorithm::Ed25519, &[], &public).is_ok());
-    assert!(public_cose_key(&Algorithm::Ed25519, &vec![1; MAX_KID_BYTES], &public).is_ok());
-    assert!(public_cose_key(&Algorithm::Ed25519, &vec![1; MAX_KID_BYTES + 1], &public).is_err());
-    assert!(public_cose_key(&Algorithm::Ed25519, b"kid", &[0; 32]).is_err());
-    assert!(public_cose_key(&Algorithm::EcdsaSecp256k1, b"kid", &[0; 33]).is_err());
-    assert!(public_cose_key(&Algorithm::VetKdBls12381, b"kid", &[0; 48]).is_err());
+    assert!(public_cose_key(&[], &public).is_ok());
+    assert!(public_cose_key(&vec![1; MAX_KID_BYTES], &public).is_ok());
+    assert!(public_cose_key(&vec![1; MAX_KID_BYTES + 1], &public).is_err());
+    assert!(public_cose_key(b"kid", &[0; 32]).is_err());
+    // An ES256K artifact is no longer a supported profile.
+    let mut es256k = Key::from_slice(&sign(&statement(), b"kid").cose_key).unwrap();
+    es256k.set_alg(iana::AlgorithmES256K);
+    assert!(key_thumbprint(&es256k.to_vec().unwrap()).is_ok());
+    es256k.set_kty(iana::KeyTypeEC2);
+    assert_eq!(
+        key_thumbprint(&es256k.to_vec().unwrap()),
+        Err(Error::UnsupportedProtocol)
+    );
 }
 
 #[test]
 fn signing_input_requires_canonical_framing_empty_aad_and_embedded_payload() {
-    let (_, tbs) = prepare_cose(&statement(), &Algorithm::Ed25519, b"kid").unwrap();
+    let (_, tbs) = prepare_cose(&statement(), b"kid").unwrap();
     let Value::Array(fields) = cbor2::from_slice::<Value>(&tbs).unwrap() else {
         panic!()
     };
@@ -930,88 +873,4 @@ fn text_profiles_reject_invalid_utf8_and_conflicting_headers() {
     ] {
         assert!(verify_artifact(&changed).is_err());
     }
-}
-
-#[test]
-fn secp256k1_verification_checks_coordinates_curve_and_signature() {
-    use k256::ecdsa::{Signature as EcSignature, SigningKey as EcKey};
-    let signer = EcKey::from_bytes((&[7; 32]).into()).unwrap();
-    let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"kid").unwrap();
-    let signature: EcSignature = signer.sign(&tbs);
-    let public = signer.verifying_key().to_sec1_point(false);
-    let artifact = finish(&tbs, public.as_bytes(), signature.to_bytes().to_vec()).unwrap();
-    let changes: &[fn(&mut Key)] = &[
-        |k| {
-            k.set_kty(iana::KeyTypeOKP);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterCrv, iana::EllipticCurveP_256);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterX, vec![0; 31]);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterY, vec![0; 31]);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterY, vec![0; 32]);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterY, Value::Null);
-        },
-        |k| {
-            k.insert(iana::EC2KeyParameterD, vec![0; 32]);
-        },
-    ];
-    for change in changes {
-        let mut key = Key::from_slice(&artifact.cose_key).unwrap();
-        change(&mut key);
-        let changed = SignedArtifact {
-            cose_key: key.to_vec().unwrap().into(),
-            ..artifact.clone()
-        };
-        assert!(verify_artifact(&changed).is_err());
-    }
-    for signature in [vec![0; 63], vec![0; 64], vec![1; 64]] {
-        let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
-        message.set_signature(signature).unwrap();
-        let changed = SignedArtifact {
-            cose_sign1: message.to_vec().unwrap().into(),
-            ..artifact.clone()
-        };
-        assert!(verify_artifact(&changed).is_err());
-    }
-}
-
-#[test]
-fn es256k_artifacts_are_low_s_and_reject_high_s_malleations() {
-    use k256::ecdsa::{Signature as EcSignature, SigningKey as EcKey};
-    let signer = EcKey::from_bytes((&[7; 32]).into()).unwrap();
-    let (_, tbs) = prepare_cose(&statement(), &Algorithm::EcdsaSecp256k1, b"kid").unwrap();
-    let signature: EcSignature = signer.sign(&tbs);
-    let low = signature.normalize_s();
-    let high = EcSignature::from_scalars(low.r(), -*low.s()).unwrap();
-    let public = signer.verifying_key().to_sec1_point(false);
-    // Managed signers may return either S; assembly keeps only the low-S form.
-    let artifact = finish(&tbs, public.as_bytes(), high.to_bytes().to_vec()).unwrap();
-    verify_artifact(&artifact).unwrap();
-    assert_eq!(
-        artifact,
-        finish(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap()
-    );
-    let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
-    message.set_signature(high.to_bytes().to_vec()).unwrap();
-    let malleated = SignedArtifact {
-        cose_sign1: message.to_vec().unwrap().into(),
-        ..artifact
-    };
-    assert!(verify_artifact(&malleated).is_err());
-
-    // The SDK verifies these same bytes, generated with the fixed test seed above.
-    let fixture: serde_json::Value =
-        serde_json::from_str(include_str!("fixtures/es256k.json")).unwrap();
-    let low_artifact = finish(&tbs, public.as_bytes(), low.to_bytes().to_vec()).unwrap();
-    assert_eq!(fixture["cose_key"], hex::encode(&low_artifact.cose_key));
-    assert_eq!(fixture["low_s"], hex::encode(&low_artifact.cose_sign1));
-    assert_eq!(fixture["high_s"], hex::encode(&malleated.cose_sign1));
 }

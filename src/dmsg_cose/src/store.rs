@@ -1,7 +1,7 @@
 use crate::model;
 use dmsg_runtime::storage::{compact_bytes, compact_from_bytes, CompactStored, MapExt};
+use dmsg_runtime::Budget;
 use dmsg_types::{cose::*, *};
-use ic_cose_chain_key::PublicKey;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, RestrictedMemory, StableBTreeMap, StableCell,
@@ -12,12 +12,13 @@ use std::{cell::RefCell, collections::BTreeSet};
 pub(crate) struct Config {
     pub(crate) schema: u16,
     pub(crate) state: KeyState,
-    pub(crate) keys: Vec<PublicKey>,
+    /// The derived content-root vetKD public key, once initialized.
+    pub(crate) public_key: Option<Vec<u8>>,
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type CellMemory = RestrictedMemory<Memory>;
-// Share one default 128-page bucket: keep the small global cell (both budgets
+// Share one default 128-page bucket: keep the small global cell (the budget
 // and the Unknown count) in its last page, without another 8 MiB bucket.
 const BUDGET_PAGE: u64 = 127;
 const CLEANUP_BATCH: usize = 64;
@@ -39,8 +40,6 @@ thread_local! {
     // the old body returned by StableBTreeMap::insert/remove.
     static EXECUTIONS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
-    // Derived only at initialization/upgrade, never persisted as another key authority.
-    static SIGNING_ROOTS: RefCell<Vec<Option<PublicKey>>> = const { RefCell::new(Vec::new()) };
     static HOMES: RefCell<StableBTreeMap<Vec<u8>, CompactStored<model::Home>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     static GLOBAL: RefCell<StableCell<CompactStored<model::Global>, CellMemory>> =
@@ -60,42 +59,6 @@ pub(crate) fn cfg() -> Config {
 
 pub(crate) fn save_cfg(c: &Config) {
     CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(c)));
-}
-
-pub(crate) fn cache_signing_roots(config: &CoseInit, keys: &[PublicKey]) -> Result<()> {
-    use ic_cdk_management_canister::SchnorrAlgorithm;
-    use ic_cose_chain_key::{derive_ecdsa_public_key, derive_schnorr_public_key};
-
-    let roots = config
-        .masters
-        .iter()
-        .zip(keys)
-        .map(|(master, key)| match master.algorithm {
-            Algorithm::Ed25519 => derive_schnorr_public_key(
-                SchnorrAlgorithm::Ed25519,
-                key,
-                model::signing_prefix(config),
-            )
-            .map(Some),
-            Algorithm::EcdsaSecp256k1 => {
-                derive_ecdsa_public_key(key, model::signing_prefix(config)).map(Some)
-            }
-            Algorithm::VetKdBls12381 => Ok(None),
-        })
-        .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(Error::Unavailable)?;
-    SIGNING_ROOTS.with_borrow_mut(|cached| *cached = roots);
-    Ok(())
-}
-
-pub(crate) fn signing_root(index: usize) -> Result<PublicKey> {
-    SIGNING_ROOTS.with_borrow(|roots| {
-        roots
-            .get(index)
-            .and_then(Option::as_ref)
-            .cloned()
-            .ok_or_else(|| Error::Unavailable("missing initialized signing prefix".into()))
-    })
 }
 
 pub(crate) fn accounts() -> u64 {
@@ -202,34 +165,17 @@ fn update_global(f: impl FnOnce(&mut model::Global) -> Result<()>) -> Result<()>
     })
 }
 
-pub(crate) fn reserve_budget(
-    now: u64,
-    cycles: u128,
-    config: &CoseInit,
-    formal: bool,
-) -> Result<()> {
+pub(crate) fn reserve_budget(now: u64, cycles: u128, config: &CoseInit) -> Result<()> {
     update_global(|g| {
-        g.budgets.reserve(
-            now,
-            cycles,
-            config.daily_executions,
-            config.daily_cycles,
-            formal,
-        )
+        g.budget
+            .reserve(now, cycles, config.daily_executions, config.daily_cycles)
     })
 }
 
-/// Settle a global reservation; see [`model::Budgets::settle`].
-pub(crate) fn settle_budget(
-    reserved_at: u64,
-    reserved: u128,
-    charged: u128,
-    executed: bool,
-    formal: bool,
-) {
+/// Settle a global reservation; see [`Budget::settle`].
+pub(crate) fn settle_budget(reserved_at: u64, reserved: u128, charged: u128, executed: bool) {
     update_global(|g| {
-        g.budgets
-            .settle(reserved_at, reserved, charged, executed, formal);
+        g.budget.settle(reserved_at, reserved, charged, executed);
         Ok(())
     })
     .expect("settlement");
@@ -247,15 +193,14 @@ pub(crate) fn stats(now: u64) -> CoseStats {
     let global = GLOBAL.with_borrow(|t| t.get().value());
     let day = now / DAY;
     // A budget last used on an earlier day has nothing counted today.
-    let today = |b: &dmsg_runtime::Budget| {
+    let today = |b: &Budget| {
         if b.day == day {
             (b.executions, b.cycles)
         } else {
             (0, 0)
         }
     };
-    let (executions_today, cycles_today) = today(&global.budgets.total);
-    let (formal_executions_today, formal_cycles_today) = today(&global.budgets.formal);
+    let (executions_today, cycles_today) = today(&global.budget);
     CoseStats {
         accounts: accounts(),
         max_accounts: MAX_HOMES,
@@ -265,19 +210,17 @@ pub(crate) fn stats(now: u64) -> CoseStats {
         budget_day: day,
         executions_today,
         cycles_today,
-        formal_executions_today,
-        formal_cycles_today,
         stable_pages: ic_cdk::api::stable_size(),
         cycles: ic_cdk::api::canister_cycle_balance(),
     }
 }
 
 /// Each page visits at most 64 homes and removes at most 64 * WINDOW results.
-/// Removing a result also rewrites the rest of its B-tree leaf, so large
-/// signature results make a page costly: after the first home, the page stops
-/// between homes once `within_budget` fails. A page that stopped or was full
-/// returns its last visited key as the cursor; a shorter page ends the pass.
-/// Empty homes keep their sequence high-water mark and budget counters.
+/// Removing a result also rewrites the rest of its B-tree leaf: after the
+/// first home, the page stops between homes once `within_budget` fails. A
+/// page that stopped or was full returns its last visited key as the cursor;
+/// a shorter page ends the pass. Empty homes keep their sequence high-water
+/// mark and budget counters.
 pub(crate) fn prune_executions(
     after: Option<AccountId>,
     now: u64,
@@ -317,7 +260,7 @@ pub(crate) fn prune_executions(
     }
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 9;
+pub(crate) const STABLE_SCHEMA: u16 = 10;
 
 fn execution_key(account: &[u8], sequence: u64) -> Vec<u8> {
     [account, &sequence.to_be_bytes()].concat()
@@ -326,10 +269,6 @@ fn execution_key(account: &[u8], sequence: u64) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candid::Principal;
-    use dmsg_protocol::canonical;
-    use ic_cdk_management_canister::SchnorrAlgorithm;
-    use ic_cose_chain_key::{derive_ecdsa_public_key, derive_schnorr_public_key};
 
     #[test]
     fn cleanup_discards_encoded_bodies_and_retains_unknown_results() {
@@ -350,7 +289,6 @@ mod tests {
                     } else {
                         model::ExecutionState::Terminal
                     },
-                    formal: true,
                 },
             );
         }
@@ -393,7 +331,6 @@ mod tests {
                     digest: Hash::new([7; 32]),
                     expires_at: MINUTE,
                     state: model::ExecutionState::InFlight,
-                    formal: true,
                 },
             );
             save_execution(&account, &h, sequence, &executing(sequence), &[]);
@@ -448,88 +385,5 @@ mod tests {
         );
         let rest = prune_executions(page.next_after, 2, || true);
         assert_eq!((rest.homes_scanned, rest.next_after), (1, None));
-    }
-
-    #[test]
-    fn cached_prefixes_preserve_the_full_derivation_for_both_signing_algorithms() {
-        // Public curve generators with fixed chain codes, not secret key material.
-        let mut ed25519 = vec![0x66; 32];
-        ed25519[0] = 0x58;
-        let secp256k1 = vec![
-            0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce,
-            0x87, 0x0b, 0x07, 0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81,
-            0x5b, 0x16, 0xf8, 0x17, 0x98,
-        ];
-        let keys = [ed25519, secp256k1].map(|public_key| PublicKey {
-            public_key,
-            chain_code: vec![7; 32],
-        });
-        for environment in [
-            Environment::Local,
-            Environment::Staging,
-            Environment::Production,
-        ] {
-            let config = CoseInit {
-                environment,
-                executing_canister: Principal::from_slice(&[1]),
-                user_homes: vec![Principal::from_slice(&[2])],
-                governance: Principal::from_slice(&[3]),
-                issuer_namespace: "https://dmsg.test/u/".into(),
-                derivation_version: 2,
-                daily_cycles: 100,
-                daily_executions: 10,
-                masters: [Algorithm::Ed25519, Algorithm::EcdsaSecp256k1]
-                    .map(|algorithm| MasterKey {
-                        algorithm,
-                        key_name: "key_1".into(),
-                        expected_fingerprint: Hash::new([1; 32]),
-                    })
-                    .into(),
-            };
-            cache_signing_roots(&config, &keys).unwrap();
-            for (index, master) in config.masters.iter().enumerate() {
-                let derive = |root: &PublicKey, path| match master.algorithm {
-                    Algorithm::Ed25519 => {
-                        derive_schnorr_public_key(SchnorrAlgorithm::Ed25519, root, path)
-                    }
-                    Algorithm::EcdsaSecp256k1 => derive_ecdsa_public_key(root, path),
-                    _ => unreachable!(),
-                };
-                for purpose in [
-                    KeyPurpose::Statement,
-                    KeyPurpose::FileAttestation,
-                    KeyPurpose::AppAction,
-                    KeyPurpose::AgentController,
-                ] {
-                    let key = KeyRequest {
-                        generation: if purpose == KeyPurpose::AgentController {
-                            7
-                        } else {
-                            1
-                        },
-                        purpose,
-                        algorithm: master.algorithm.clone(),
-                    };
-                    for account in [AccountId([1; 12]), AccountId([2; 12])] {
-                        let original = vec![
-                            b"dmsg/formal/v2".to_vec(),
-                            canonical(&config.environment),
-                            account.to_vec(),
-                            canonical(&key.purpose),
-                            key.generation.to_be_bytes().to_vec(),
-                        ];
-                        assert_eq!(model::path(&config, &account, &key), original);
-                        assert_eq!(
-                            derive(
-                                &signing_root(index).unwrap(),
-                                model::signing_suffix(&account, &key)
-                            )
-                            .unwrap(),
-                            derive(&keys[index], original).unwrap(),
-                        );
-                    }
-                }
-            }
-        }
     }
 }
