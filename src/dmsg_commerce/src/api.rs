@@ -21,13 +21,17 @@ pub(crate) fn valid_subject(b: &Beneficiary) -> Result<()> {
     )
 }
 
+/// Re-project a lease once it has this long left, so a consumer renewing a few
+/// minutes before expiry receives a new lease instead of the old one.
+const RENEW_WINDOW_MS: u64 = 10 * MINUTE;
+
 pub(crate) fn get_subject(b: &Beneficiary) -> Result<Subject> {
     valid_subject(b)?;
     match load(b) {
         Ok(s) => Ok(s),
         Err(Error::NotFound) => {
             ensure(
-                SUBJECTS.with_borrow(|t| t.len()) < config(|c| c.max_subjects),
+                SUBJECTS.with_borrow(|t| t.len()) < config(|c| c.limits.max_subjects),
                 Error::QuotaExceeded,
             )?;
             Ok(Subject::new(b.clone()))
@@ -55,18 +59,12 @@ fn init(args: CommerceInit) {
             "duplicate user home"
         );
     }
-    assert!(
-        args.max_subjects > 0
-            && args.max_subjects <= 1_000_000
-            && args.daily_orders > 0
-            && args.daily_orders <= 100_000
-    );
+    check_limits(&args.limits).expect("limits");
     model::validate_catalog(&args.catalog).expect("catalog");
     assert!(args.catalog.effective_at_ms <= at);
     save_catalog(&args.catalog);
     set_config(Config::new(args));
     persist_config();
-    crate::checkout_store::publish_assets();
     publish_certification(at);
 }
 
@@ -77,8 +75,48 @@ fn pre_upgrade() {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let started = ic_cdk::api::performance_counter(0);
+    // Decoding the configuration rejects another stable schema before any call runs.
+    config(|_| ());
     load_catalogs();
     publish_certification(now());
+    ic_cdk::println!(
+        "commerce_upgrade subjects={} instructions={}",
+        SUBJECTS.with_borrow(|t| t.len()),
+        ic_cdk::api::performance_counter(0) - started,
+    );
+}
+
+/// Replace the admission limits. Accepted subjects, orders and recovery are unaffected.
+#[ic_cdk::update]
+fn admin_set_limits(limits: CommerceLimits) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_limits(&limits)?;
+    set_limits(limits);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_limits(limits: CommerceLimits) -> Validation {
+    validation(check_limits(&limits).map(|()| {
+        format!(
+            "Set commerce limits: {} subjects, {} hot and {} total orders, {} orders per day, {} funding/product/transfer calls, {} authorizations and {} PANDA refreshes per minute (currently {:?}).{}",
+            limits.max_subjects,
+            limits.max_hot_orders,
+            limits.max_orders,
+            limits.daily_orders,
+            limits.calls_per_minute,
+            limits.authorizations_per_minute,
+            limits.refreshes_per_minute,
+            config(|c| c.limits.clone()),
+            admin::unchanged(config(|c| c.limits != limits), "Already set"),
+        )
+    }))
+}
+
+#[ic_cdk::query]
+fn get_commerce_limits() -> CommerceLimits {
+    config(|c| c.limits.clone())
 }
 
 /// Append a user home. Its `dmsg_user` must name this canister as
@@ -212,7 +250,7 @@ async fn refresh(
     valid_subject(&b)?;
     let mut s = load(&b)?;
     if let Some(v) = &s.view {
-        if at.saturating_add(MINUTE) < v.valid_until_ms
+        if at.saturating_add(RENEW_WINDOW_MS) < v.valid_until_ms
             && v.business_revision == s.business_revision
             && same_catalog(v.issued_at_ms, at)
         {
@@ -249,6 +287,17 @@ async fn refresh(
                     && view.terms.home_membership == config(|c| c.membership_canister) =>
             {
                 crate::product::observe(&view, at)?;
+            }
+            // Membership coalesced or rate-limited the check without reading SNS,
+            // so the previous qualification lease stands.
+            Ok(Err(Error::Pending | Error::QuotaExceeded)) => {
+                s.retry_after_ms = at.saturating_add(MINUTE);
+                save_subject(&s);
+                return s
+                    .view
+                    .clone()
+                    .map(|v| (v, at))
+                    .ok_or(Error::MembershipStale);
             }
             _ => {
                 s.retry_after_ms = at.saturating_add(MINUTE);
@@ -312,14 +361,32 @@ async fn get_execution_entitlement(
         caller == b.authority_canister && account_created_at_ms <= at && month == month_utc(at)?,
         Error::Forbidden,
     )?;
-    let mut s = get_subject(&b)?;
+    valid_subject(&b)?;
+    let home = ic_cdk::api::canister_self();
+    let mut s = match load(&b) {
+        Ok(s) => s,
+        // An account that never bought anything keeps no commerce state.
+        Err(Error::NotFound) => {
+            return model::free(
+                home,
+                b,
+                account_created_at_ms,
+                &catalog(at),
+                &month_catalogs(month, at)?,
+                month,
+                at,
+                next_catalog_at(at),
+            )
+        }
+        Err(e) => return Err(e),
+    };
     if let Some(created) = s.created_at_ms {
         ensure(created == account_created_at_ms, Error::IntegrityFailed)?;
     } else {
         s.created_at_ms = Some(account_created_at_ms);
         save(&s);
     }
-    let (view, at) = refresh(b.clone(), ic_cdk::api::canister_self(), caller, at).await?;
+    let (view, at) = refresh(b.clone(), home, caller, at).await?;
     let s = load(&b)?;
     ensure(month_utc(at)? == month, Error::MembershipStale)?;
     let month = model::month(&s, &month_catalogs(month, at)?, month)?;

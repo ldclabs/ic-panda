@@ -13,7 +13,7 @@ use dmsg_types::{
 };
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 6;
+const SCHEMA: u16 = 7;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {
@@ -56,15 +56,14 @@ record!(ConfigRepr => Config {
     2 => governance: Principal,
     3 => membership_canister: Principal,
     4 => user_homes: Vec<Principal>,
-    5 => max_subjects: u64,
-    6 => daily_orders: u32,
-    7 => paused: bool,
-    8 => day: u64,
-    9 => orders: u32,
-    10 => minute: u64,
-    11 => reads: BTreeMap<Principal, u32>,
-    12 => refreshes: BTreeMap<Principal, u32>,
-    13 => authorizations: BTreeMap<Principal, u32>,
+    5 => limits: CommerceLimits,
+    6 => paused: bool,
+    7 => day: u64,
+    8 => orders: u32,
+    9 => minute: u64,
+    10 => reads: BTreeMap<Principal, u32>,
+    11 => refreshes: BTreeMap<Principal, u32>,
+    12 => authorizations: BTreeMap<Principal, u32>,
 });
 
 record!(AssetRepr => Asset {

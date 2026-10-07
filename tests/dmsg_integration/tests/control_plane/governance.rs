@@ -296,7 +296,64 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         "publish_settlement_price",
         (asset.ledger, 1_000_000u128, MINUTE),
     );
-    published.unwrap();
+    let published = published.unwrap();
+    // A proposal written before those publications still applies its terms: it
+    // keeps the latest price and takes the next version.
+    let enabled = SettlementAsset {
+        enabled: true,
+        ..disabled.clone()
+    };
+    assert!(
+        validate(&f, f.commerce, "register_settlement_asset", (&enabled,))
+            .unwrap()
+            .contains("next policy version")
+    );
+    govern(
+        &f,
+        f.commerce,
+        f.sns,
+        "register_settlement_asset",
+        (&enabled,),
+    );
+    let assets: Vec<SettlementAssetView> =
+        query(&f.ic, f.commerce, person(9), "settlement_assets", ());
+    let current = &assets[0].policy;
+    assert!(current.enabled);
+    assert_eq!(current.policy_version, published.policy_version + 1);
+    assert_eq!(
+        (current.price_usd_micros, current.price_observed_at_ms),
+        (published.price_usd_micros, published.price_observed_at_ms)
+    );
+
+    let limits: dmsg_types::billing::CommerceLimits =
+        query(&f.ic, f.commerce, person(9), "get_commerce_limits", ());
+    assert!(unchanged(validate(
+        &f,
+        f.commerce,
+        "admin_set_limits",
+        (&limits,)
+    )));
+    let raised = dmsg_types::billing::CommerceLimits {
+        max_subjects: 2_000_000,
+        max_hot_orders: 1_000_000,
+        max_orders: 5_000_000,
+        ..limits.clone()
+    };
+    assert!(validate(&f, f.commerce, "admin_set_limits", (&raised,))
+        .unwrap()
+        .contains("2000000 subjects"));
+    let invalid = dmsg_types::billing::CommerceLimits {
+        max_hot_orders: 6_000_000,
+        ..raised.clone()
+    };
+    assert_eq!(
+        validate(&f, f.commerce, "admin_set_limits", (&invalid,)),
+        Err("InvalidInput(\"commerce limits\")".into())
+    );
+    govern(&f, f.commerce, f.sns, "admin_set_limits", (&raised,));
+    let current: dmsg_types::billing::CommerceLimits =
+        query(&f.ic, f.commerce, person(9), "get_commerce_limits", ());
+    assert_eq!(current, raised);
 
     let catalogs: Vec<Catalog> = query(
         &f.ic,

@@ -19,7 +19,7 @@ use std::{
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 /// Stable layout with certification nodes and the live-claim count in stable memory.
-pub const STABLE_SCHEMA: u16 = 1;
+pub const STABLE_SCHEMA: u16 = 2;
 /// A successful SNS verification is reused for one hour.
 const SNS_FRESH_MS: u64 = 60 * MINUTE;
 /// Hard bounds include historical operations, independently of live admission limits.

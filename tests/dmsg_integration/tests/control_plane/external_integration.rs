@@ -8,7 +8,7 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
         product_id: "sample".into(),
         config_version: 1,
         quote_authority: f.commerce,
-        beneficiary_authority: f.commerce,
+        beneficiary_authorities: vec![f.commerce],
         adapter: f.commerce,
         subject_schema: "sample-project-v1".into(),
         subject_size: 8,
@@ -249,7 +249,7 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
         approving_account: account,
         service: f.commerce,
         beneficiary: Beneficiary {
-            authority_canister: product.beneficiary_authority,
+            authority_canister: product.beneficiary_authorities[0],
             product_id: product.product_id,
             subject_schema: product.subject_schema,
             subject_bytes: 42u64.to_be_bytes().to_vec().into(),

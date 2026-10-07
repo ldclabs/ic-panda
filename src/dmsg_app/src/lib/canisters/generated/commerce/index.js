@@ -42,14 +42,22 @@ export const idlFactory = ({ IDL }) => {
     'plans' : IDL.Vec(PlanVersion),
     'terms_digest' : IDL.Vec(IDL.Nat8),
   });
-  const CommerceInit = IDL.Record({
+  const CommerceLimits = IDL.Record({
     'daily_orders' : IDL.Nat32,
+    'max_hot_orders' : IDL.Nat64,
+    'authorizations_per_minute' : IDL.Nat32,
+    'refreshes_per_minute' : IDL.Nat32,
+    'max_orders' : IDL.Nat64,
     'max_subjects' : IDL.Nat64,
+    'calls_per_minute' : IDL.Nat32,
+  });
+  const CommerceInit = IDL.Record({
     'environment' : Environment,
     'governance' : IDL.Principal,
     'membership_canister' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
     'catalog' : Catalog,
+    'limits' : CommerceLimits,
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
@@ -190,18 +198,6 @@ export const idlFactory = ({ IDL }) => {
     'block_index' : IDL.Nat,
     'ledger' : IDL.Principal,
   });
-  const CertifiedEntry = IDL.Record({
-    'key' : IDL.Vec(IDL.Nat8),
-    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
-    'witness' : IDL.Vec(IDL.Nat8),
-  });
-  const CertifiedBatch = IDL.Record({
-    'certificate' : IDL.Vec(IDL.Nat8),
-    'schema' : IDL.Nat16,
-    'entries' : IDL.Vec(CertifiedEntry),
-    'canister' : IDL.Principal,
-  });
-  const Result_4 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const Account = IDL.Record({
     'owner' : IDL.Principal,
     'subaccount' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -217,7 +213,7 @@ export const idlFactory = ({ IDL }) => {
     'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'deposits' : IDL.Vec(CheckoutDeposit),
   });
-  const Result_5 = IDL.Variant({ 'Ok' : CheckoutDepositsPage, 'Err' : Error });
+  const Result_4 = IDL.Variant({ 'Ok' : CheckoutDepositsPage, 'Err' : Error });
   const SettlementAssetKind = IDL.Variant({
     'CkUsdc' : IDL.Null,
     'CkUsdt' : IDL.Null,
@@ -250,6 +246,7 @@ export const idlFactory = ({ IDL }) => {
     'conversion_hash' : IDL.Vec(IDL.Nat8),
   });
   const ProductRegistration = IDL.Record({
+    'beneficiary_authorities' : IDL.Vec(IDL.Principal),
     'product_id' : IDL.Text,
     'subject_size' : IDL.Nat16,
     'terms_hash' : IDL.Vec(IDL.Nat8),
@@ -259,7 +256,6 @@ export const idlFactory = ({ IDL }) => {
     'quote_authority' : IDL.Principal,
     'environment' : Environment,
     'ledgers' : IDL.Vec(IDL.Principal),
-    'beneficiary_authority' : IDL.Principal,
     'adapter' : IDL.Principal,
     'subject_schema' : IDL.Text,
     'paused' : IDL.Bool,
@@ -295,7 +291,7 @@ export const idlFactory = ({ IDL }) => {
     'orders' : IDL.Vec(CheckoutOperationAudit),
     'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_6 = IDL.Variant({
+  const Result_5 = IDL.Variant({
     'Ok' : CheckoutOperationsPage,
     'Err' : Error,
   });
@@ -329,12 +325,24 @@ export const idlFactory = ({ IDL }) => {
     'transfers' : IDL.Vec(CashTransfer),
     'next' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const Result_7 = IDL.Variant({ 'Ok' : CashTransfersPage, 'Err' : Error });
-  const Result_8 = IDL.Variant({ 'Ok' : CashTransfer, 'Err' : Error });
-  const Result_9 = IDL.Variant({
+  const Result_6 = IDL.Variant({ 'Ok' : CashTransfersPage, 'Err' : Error });
+  const Result_7 = IDL.Variant({ 'Ok' : CashTransfer, 'Err' : Error });
+  const Result_8 = IDL.Variant({
     'Ok' : IDL.Opt(CashCancellationReceipt),
     'Err' : Error,
   });
+  const CertifiedEntry = IDL.Record({
+    'key' : IDL.Vec(IDL.Nat8),
+    'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'witness' : IDL.Vec(IDL.Nat8),
+  });
+  const CertifiedBatch = IDL.Record({
+    'certificate' : IDL.Vec(IDL.Nat8),
+    'schema' : IDL.Nat16,
+    'entries' : IDL.Vec(CertifiedEntry),
+    'canister' : IDL.Principal,
+  });
+  const Result_9 = IDL.Variant({ 'Ok' : CertifiedBatch, 'Err' : Error });
   const Result_10 = IDL.Variant({ 'Ok' : CheckoutView, 'Err' : Error });
   const MonthSegment = IDL.Record({
     'start_ms' : IDL.Nat64,
@@ -496,6 +504,7 @@ export const idlFactory = ({ IDL }) => {
   const Result_19 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
+    'admin_set_limits' : IDL.Func([CommerceLimits], [Result], []),
     'apply_product_decision' : IDL.Func([ProductDecision], [Result_1], []),
     'cancel_cash_contract' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
@@ -508,50 +517,46 @@ export const idlFactory = ({ IDL }) => {
         [Result_3],
         [],
       ),
-    'checkout_certificate' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [Result_4],
-        ['query'],
-      ),
     'checkout_deposits' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
-        [Result_5],
+        [Result_4],
         ['query'],
       ),
     'checkout_operations' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
-        [Result_6],
+        [Result_5],
         ['query'],
       ),
     'checkout_progress' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_3], ['query']),
     'checkout_transfers' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
-        [Result_7],
+        [Result_6],
         ['query'],
       ),
     'claim_checkout_fee_reserve' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_8],
+        [Result_7],
         [],
       ),
     'claim_checkout_refund' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Principal, IDL.Vec(IDL.Nat), IDL.Vec(IDL.Nat8)],
-        [Result_8],
+        [Result_7],
         [],
       ),
-    'collect_checkout_revenue' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], []),
-    'get_cash_cancellation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_9], []),
-    'get_catalog' : IDL.Func([], [Result_4], ['query']),
+    'collect_checkout_revenue' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_7], []),
+    'get_cash_cancellation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], []),
+    'get_catalog' : IDL.Func([], [Result_9], ['query']),
     'get_checkout' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_10], ['query']),
     'get_checkout_for_product' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_10], []),
     'get_checkout_transfer' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [Result_8],
+        [Result_7],
         ['query'],
       ),
+    'get_commerce_limits' : IDL.Func([], [CommerceLimits], ['query']),
     'get_entitlement_batch' : IDL.Func(
         [IDL.Vec(Beneficiary)],
-        [Result_4],
+        [Result_9],
         ['query'],
       ),
     'get_execution_entitlement' : IDL.Func(
@@ -562,7 +567,7 @@ export const idlFactory = ({ IDL }) => {
     'get_product_decision' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_12], []),
     'integration_configuration_certificate' : IDL.Func(
         [IDL.Text, IDL.Opt(IDL.Text)],
-        [Result_4],
+        [Result_9],
         ['query'],
       ),
     'list_catalogs' : IDL.Func(
@@ -623,7 +628,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'revise_checkout_transfer_fee' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat],
-        [Result_8],
+        [Result_7],
         [],
       ),
     'schedule_policy' : IDL.Func([Catalog], [Result], []),
@@ -634,10 +639,14 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(SettlementAssetView)],
         ['query'],
       ),
-    'settlement_assets_certificate' : IDL.Func([], [Result_4], ['query']),
     'sweep_checkout_history' : IDL.Func([], [CheckoutHistorySweep], []),
     'validate_admin_add_user_home' : IDL.Func(
         [IDL.Principal],
+        [Result_19],
+        ['query'],
+      ),
+    'validate_admin_set_limits' : IDL.Func(
+        [CommerceLimits],
         [Result_19],
         ['query'],
       ),
@@ -728,14 +737,22 @@ export const init = ({ IDL }) => {
     'plans' : IDL.Vec(PlanVersion),
     'terms_digest' : IDL.Vec(IDL.Nat8),
   });
-  const CommerceInit = IDL.Record({
+  const CommerceLimits = IDL.Record({
     'daily_orders' : IDL.Nat32,
+    'max_hot_orders' : IDL.Nat64,
+    'authorizations_per_minute' : IDL.Nat32,
+    'refreshes_per_minute' : IDL.Nat32,
+    'max_orders' : IDL.Nat64,
     'max_subjects' : IDL.Nat64,
+    'calls_per_minute' : IDL.Nat32,
+  });
+  const CommerceInit = IDL.Record({
     'environment' : Environment,
     'governance' : IDL.Principal,
     'membership_canister' : IDL.Principal,
     'user_homes' : IDL.Vec(IDL.Principal),
     'catalog' : Catalog,
+    'limits' : CommerceLimits,
   });
   return [CommerceInit];
 };

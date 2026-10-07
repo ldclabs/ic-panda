@@ -55,7 +55,10 @@ fn check_product_update(
             old.product_id == next.product_id
                 && old.environment == next.environment
                 && old.quote_authority == next.quote_authority
-                && old.beneficiary_authority == next.beneficiary_authority
+                // Existing subjects keep their authority; new homes are appended.
+                && next
+                    .beneficiary_authorities
+                    .starts_with(&old.beneficiary_authorities)
                 && old.adapter == next.adapter
                 && old.subject_schema == next.subject_schema
                 && old.subject_size == next.subject_size,
@@ -160,11 +163,11 @@ fn register_integration_product(product: ProductRegistration) -> Result<()> {
 fn validate_register_integration_product(product: ProductRegistration) -> Validation {
     validation(check_product(&product).map(|fresh| {
         format!(
-            "Register product {} config version {}: quote authority {}, beneficiary authority {}, adapter {}, subject {} ({} bytes), merchant {}, ledgers [{}], terms {}, paused {}.{}",
+            "Register product {} config version {}: quote authority {}, beneficiary authorities [{}], adapter {}, subject {} ({} bytes), merchant {}, ledgers [{}], terms {}, paused {}.{}",
             product.product_id,
             product.config_version,
             product.quote_authority,
-            product.beneficiary_authority,
+            principals(&product.beneficiary_authorities),
             product.adapter,
             product.subject_schema,
             product.subject_size,
@@ -274,6 +277,18 @@ mod tests {
         next.subject_schema = "different-v1".into();
         assert_eq!(
             check_product_update(Some(&old), &next),
+            Err(Error::IntegrityFailed)
+        );
+        // Beneficiary authorities only grow, so existing subjects keep theirs.
+        let mut next = old.clone();
+        next.config_version += 1;
+        next.beneficiary_authorities.push(fixtures::principal(77));
+        check_product_update(Some(&old), &next).unwrap();
+        let mut grown = next.clone();
+        grown.config_version += 1;
+        grown.beneficiary_authorities.remove(0);
+        assert_eq!(
+            check_product_update(Some(&next), &grown),
             Err(Error::IntegrityFailed)
         );
     }

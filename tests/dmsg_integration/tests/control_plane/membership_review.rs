@@ -32,7 +32,7 @@ fn mock_request(f: &Fixture, id: AccountId) -> PandaClaimRequest {
         product_id: "mock".into(),
         config_version: 1,
         quote_authority: f.sns,
-        beneficiary_authority: f.sns,
+        beneficiary_authorities: vec![f.sns],
         adapter: f.sns,
         subject_schema: "fixture-account-v1".into(),
         subject_size: 12,

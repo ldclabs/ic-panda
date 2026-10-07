@@ -1382,6 +1382,7 @@ dependencies = [
  "dmsg_runtime",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
+ "flate2",
  "ic-certification",
  "ic-http-certification",
  "ic-oss-types",

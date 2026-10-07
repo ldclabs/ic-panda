@@ -45,11 +45,12 @@ fn approve(
     action_digest: Hash,
     op: u8,
 ) -> ProductAuthorizationRequest {
+    let (app, _): (AppRegistration, Option<ProductRegistration>) = registration(f);
     let a = ApplicationApproval {
         version: 1,
         environment: Environment::Local,
         app_id: offer.app_id.clone(),
-        app_config_version: 1,
+        app_config_version: app.config_version,
         origin: "https://dmsg.test".into(),
         approving_account: *id,
         service,
@@ -89,6 +90,17 @@ fn approve(
         approval_id,
         product_approval: None,
     }
+}
+/// The current dMsg app and product registrations.
+fn registration(f: &Fixture) -> (AppRegistration, Option<ProductRegistration>) {
+    let r: Result<(AppRegistration, Option<ProductRegistration>)> = update(
+        &f.ic,
+        f.commerce,
+        person(9),
+        "read_integration_configuration",
+        ("dmsg", Some("dmsg")),
+    );
+    r.unwrap()
 }
 fn open(f: &Fixture, id: &AccountId, ledger: Principal, op: u8) -> CheckoutView {
     open_sku(f, id, ledger, "plus", op)
@@ -625,7 +637,7 @@ fn sample(f: &Fixture) -> (Principal, AccountId) {
         product_id: "sample".into(),
         config_version: 1,
         quote_authority: canister,
-        beneficiary_authority: canister,
+        beneficiary_authorities: vec![canister],
         adapter: canister,
         subject_schema: "sample-account-v1".into(),
         subject_size: 12,
@@ -1639,4 +1651,264 @@ fn export_resource_fixture(f: &Fixture, id: &AccountId, name: &str) {
         )),
     )
     .unwrap();
+}
+
+#[test]
+fn an_account_of_an_added_user_home_buys_a_plan() {
+    let mut f = Fixture::commercial();
+    let second = install_user_home(&f);
+    let added: Result<()> = update(&f.ic, f.commerce, f.sns, "admin_add_user_home", (second,));
+    added.unwrap();
+    // Governance appends the home to the app and the product's authorities.
+    let (app, product) = registration(&f);
+    let product = product.unwrap();
+    let app = AppRegistration {
+        config_version: app.config_version + 1,
+        user_homes: vec![f.user, second],
+        ..app
+    };
+    let product = ProductRegistration {
+        config_version: product.config_version + 1,
+        beneficiary_authorities: vec![f.user, second],
+        ..product
+    };
+    let r: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "register_integration_product",
+        (product,),
+    );
+    r.unwrap();
+    let r: Result<()> = update(&f.ic, f.commerce, f.sns, "register_integration_app", (app,));
+    r.unwrap();
+    f.user = second;
+    let id = f.create(1);
+    let (o, _) = pay(&f, &id, "plus", 240);
+    assert_eq!(o.quote.offer.beneficiary.authority_canister, second);
+    let r: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(second, &id),),
+    );
+    let view = r.unwrap();
+    assert_eq!(view.plan_snapshot.plan_id, PlanId::Plus);
+    assert_eq!(view.beneficiary.authority_canister, second);
+}
+
+#[test]
+fn cash_leases_last_thirty_days_and_renew_inside_the_window() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    pay(&f, &id, "plus", 242);
+    let refresh = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(f.user, &id),),
+        );
+        r.unwrap()
+    };
+    let view = refresh();
+    assert_eq!(view.source_status, SourceStatus::Active);
+    assert_eq!(view.valid_until_ms, view.issued_at_ms + 30 * DAY);
+    // The execution allowance still rechecks business terms hourly.
+    let usage: Result<ExecutionUsage> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "refresh_execution_entitlement",
+        (id,),
+    );
+    let usage = usage.unwrap();
+    assert!(usage.valid_until_ms <= time(&f.ic) + 60 * MINUTE);
+    assert_eq!(usage.lease_revision, view.lease_revision);
+    // A lease is reused until ten minutes remain, then renewed.
+    f.ic.advance_time(Duration::from_millis(
+        view.valid_until_ms - time(&f.ic) - 11 * MINUTE,
+    ));
+    assert_eq!(refresh().lease_revision, view.lease_revision);
+    f.ic.advance_time(Duration::from_millis(5 * MINUTE));
+    let renewed = refresh();
+    assert!(renewed.lease_revision > view.lease_revision);
+    assert!(renewed.valid_until_ms > view.valid_until_ms);
+}
+
+/// An active PANDA subscription; uses operations `op` to `op + 2`.
+fn activate_panda(f: &Fixture, id: &AccountId, op: u8) -> PandaClaimView {
+    neuron(f, 100_000_000_000_100, false);
+    let bill = offer(f, id, op);
+    let r: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, *id, Hash::new([44; 32])),
+    );
+    let terms = r.unwrap();
+    let digest = panda_application_hash(&terms);
+    let a = approve(
+        f,
+        id,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        digest,
+        op + 1,
+    );
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms,
+            authorization: a,
+        },),
+    );
+    let cooling = r.unwrap();
+    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let fresh = approve(
+        f,
+        id,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        digest,
+        op + 2,
+    );
+    let r: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (cooling.claim_id, fresh),
+    );
+    let active = r.unwrap();
+    assert_eq!(active.status, PandaClaimStatus::Active);
+    active
+}
+
+#[test]
+fn a_coalesced_membership_check_keeps_the_panda_lease() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let claim = activate_panda(&f, &id, 150);
+    let b = beneficiary(f.user, &id);
+    let refresh = || -> Result<EntitlementView> {
+        update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (b.clone(),),
+        )
+    };
+    let view = refresh().unwrap();
+    assert_eq!(view.source_status, SourceStatus::Active);
+    let allowance = || -> u64 {
+        let r: Result<ExecutionUsage> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "refresh_execution_entitlement",
+            (id,),
+        );
+        r.unwrap().allowed_units
+    };
+    let before = allowance();
+    // The actor's own refresh holds the claim's qualification check open.
+    f.ic.advance_time(Duration::from_millis(
+        claim.valid_until_ms - time(&f.ic) - 30_000,
+    ));
+    void(&f.ic, f.sns, person(1), "delay_neuron_read", (6u8,));
+    let pending =
+        f.ic.submit_call(
+            f.membership,
+            person(1),
+            "refresh_panda_claim",
+            candid::encode_args((claim.claim_id,)).unwrap(),
+        )
+        .unwrap();
+    f.ic.tick();
+    // Membership answers Pending without reading SNS: the lease stands, no pause opens.
+    let kept = refresh().unwrap();
+    assert_eq!(kept, view);
+    assert_eq!(allowance(), before);
+    f.ic.await_call(pending).unwrap();
+}
+
+#[test]
+fn the_last_collection_settles_the_fee_reserve() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let collect = |o: &CheckoutView| -> CashTransfer {
+        let r: Result<CashTransfer> = update(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "collect_checkout_revenue",
+            (o.progress.order_id,),
+        );
+        let leg = r.unwrap();
+        let r: Result<CashTransferProgress> = update(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "process_checkout_transfer",
+            (leg.transfer_id,),
+        );
+        assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
+        leg
+    };
+    // One mid-term and one final collection leave a returnable reserve that anyone
+    // may send back to the payer.
+    let (first, _) = pay(&f, &id, "plus", 244);
+    let reserve = first.quote.cash.fee_reserve_atomic;
+    let term = first.quote.offer.expires_at_ms - first.quote.offer.starts_at_ms;
+    f.ic.advance_time(Duration::from_millis(term / 2));
+    collect(&first);
+    f.ic.advance_time(Duration::from_millis(
+        first.quote.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    collect(&first);
+    assert_eq!(
+        status(&f, first.progress.order_id).fee_reserve_atomic,
+        reserve - 20
+    );
+    let returned: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(99),
+        "claim_checkout_fee_reserve",
+        (first.progress.order_id,),
+    );
+    let returned = returned.unwrap();
+    assert_eq!(returned.to, first.quote.cash.payer);
+    assert_eq!(returned.amount_atomic + returned.fee_atomic, reserve - 20);
+    // Three collections leave one fee of reserve, which the last one takes along.
+    reprice(&f);
+    let (second, _) = pay(&f, &id, "plus", 246);
+    let term = second.quote.offer.expires_at_ms - second.quote.offer.starts_at_ms;
+    let mut gross = 0;
+    for _ in 0..2 {
+        f.ic.advance_time(Duration::from_millis(term / 3));
+        let leg = collect(&second);
+        gross += leg.amount_atomic + leg.fee_atomic;
+    }
+    f.ic.advance_time(Duration::from_millis(
+        second.quote.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    let leg = collect(&second);
+    gross += leg.amount_atomic + leg.fee_atomic;
+    let settled = status(&f, second.progress.order_id);
+    assert_eq!(
+        (settled.service_reserve_atomic, settled.fee_reserve_atomic),
+        (0, 0)
+    );
+    assert_eq!(gross, second.quote.cash.amount_atomic + reserve);
 }

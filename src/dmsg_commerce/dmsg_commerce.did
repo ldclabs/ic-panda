@@ -390,10 +390,6 @@ type CheckoutView = record {
 };
 // Product commerce deployment, accepted asset and admission configuration.
 type CommerceInit = record {
-  // New merchant-order limit per UTC day.
-  daily_orders : nat32;
-  // Maximum retained beneficiary subjects.
-  max_subjects : nat64;
   // Deployment domain of the request or service.
   environment : Environment;
   // Governance Principal controlling this service configuration.
@@ -404,6 +400,26 @@ type CommerceInit = record {
   user_homes : vec principal;
   // Fixed catalog snapshot.
   catalog : Catalog;
+  // Admission limits; governance can change them later.
+  limits : CommerceLimits;
+};
+// Commerce admission limits. Only new subjects, orders and outgoing calls are
+// refused when a limit is reached; recovery of accepted operations continues.
+type CommerceLimits = record {
+  // New merchant-order limit per UTC day.
+  daily_orders : nat32;
+  // Maximum orders kept in the hot table, including live subscriptions.
+  max_hot_orders : nat64;
+  // Quote and checkout authorization calls per UTC minute.
+  authorizations_per_minute : nat32;
+  // PANDA qualification refreshes per UTC minute.
+  refreshes_per_minute : nat32;
+  // Maximum order identities ever admitted, hot and archived.
+  max_orders : nat64;
+  // Maximum retained beneficiary subjects, which only paying accounts create.
+  max_subjects : nat64;
+  // Funding, product and outgoing-transfer calls per UTC minute.
+  calls_per_minute : nat32;
 };
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
@@ -686,6 +702,9 @@ type ProductReceipt = record {
 };
 // Product identity, subject schema and settlement boundary.
 type ProductRegistration = record {
+  // Canisters supplying beneficiary permissions, append-only. A subject names
+  // one of them; a dMsg account product lists every user home.
+  beneficiary_authorities : vec principal;
   // Stable product identifier.
   product_id : text;
   // Exact subject byte length.
@@ -704,8 +723,6 @@ type ProductRegistration = record {
   environment : Environment;
   // Enabled ledgers, explicitly configured even in local fixtures.
   ledgers : vec principal;
-  // Canister supplying beneficiary permissions.
-  beneficiary_authority : principal;
   // Canister applying product decisions.
   adapter : principal;
   // Fixed interpretation of subject bytes.
@@ -752,12 +769,12 @@ type Result_18 = variant { Ok : EntitlementView; Err : Error };
 type Result_19 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : CashCancellationReceipt; Err : Error };
 type Result_3 = variant { Ok : CheckoutProgress; Err : Error };
-type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
-type Result_5 = variant { Ok : CheckoutDepositsPage; Err : Error };
-type Result_6 = variant { Ok : CheckoutOperationsPage; Err : Error };
-type Result_7 = variant { Ok : CashTransfersPage; Err : Error };
-type Result_8 = variant { Ok : CashTransfer; Err : Error };
-type Result_9 = variant { Ok : opt CashCancellationReceipt; Err : Error };
+type Result_4 = variant { Ok : CheckoutDepositsPage; Err : Error };
+type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
+type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
+type Result_7 = variant { Ok : CashTransfer; Err : Error };
+type Result_8 = variant { Ok : opt CashCancellationReceipt; Err : Error };
+type Result_9 = variant { Ok : CertifiedBatch; Err : Error };
 // Governance-approved asset/price snapshot. Pausing admission never removes refund routing.
 type SettlementAsset = record {
   // Verified atomic precision; initial assets require six decimals.
@@ -887,32 +904,36 @@ service : (CommerceInit) -> {
   // Append a user home. Its `dmsg_user` must name this canister as
   // `commerce_canister`; product registrations list it separately.
   admin_add_user_home : (principal) -> (Result);
+  // Replace the admission limits. Accepted subjects, orders and recovery are unaffected.
+  admin_set_limits : (CommerceLimits) -> (Result);
   // Only a failed call to an authority leaves the decision unknown. Every other failure
   // is a durable rejection, so the settlement service can refund without waiting.
   apply_product_decision : (ProductDecision) -> (Result_1);
   cancel_cash_contract : (blob, blob, blob) -> (Result_2);
   cancel_checkout : (blob) -> (Result_3);
   check_checkout_funding : (blob, CashBlock) -> (Result_3);
-  checkout_certificate : (blob) -> (Result_4) query;
-  checkout_deposits : (blob, opt blob, nat16) -> (Result_5) query;
+  checkout_deposits : (blob, opt blob, nat16) -> (Result_4) query;
   // Private operations centre; quoting and monitoring never reserve an interval.
-  checkout_operations : (opt blob, nat16) -> (Result_6) query;
+  checkout_operations : (opt blob, nat16) -> (Result_5) query;
   checkout_progress : (blob) -> (Result_3) query;
-  checkout_transfers : (opt blob, nat16) -> (Result_7) query;
-  claim_checkout_fee_reserve : (blob) -> (Result_8);
-  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_8);
-  collect_checkout_revenue : (blob) -> (Result_8);
-  get_cash_cancellation : (blob) -> (Result_9);
-  get_catalog : () -> (Result_4) query;
+  checkout_transfers : (opt blob, nat16) -> (Result_6) query;
+  // Return the unused fee reserve to the payer once all revenue is collected.
+  // Anyone may trigger it: the destination is the payer frozen in the quote.
+  claim_checkout_fee_reserve : (blob) -> (Result_7);
+  claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_7);
+  collect_checkout_revenue : (blob) -> (Result_7);
+  get_cash_cancellation : (blob) -> (Result_8);
+  get_catalog : () -> (Result_9) query;
   get_checkout : (blob) -> (Result_10) query;
   // Consensus read for the pinned product adapter during Apply. Query replies are not delivery authority.
   get_checkout_for_product : (blob) -> (Result_10);
-  get_checkout_transfer : (blob) -> (Result_8) query;
-  get_entitlement_batch : (vec Beneficiary) -> (Result_4) query;
+  get_checkout_transfer : (blob) -> (Result_7) query;
+  get_commerce_limits : () -> (CommerceLimits) query;
+  get_entitlement_batch : (vec Beneficiary) -> (Result_9) query;
   get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_11);
   get_product_decision : (blob) -> (Result_12);
   // Public, authenticated discovery. A paused configuration remains discoverable.
-  integration_configuration_certificate : (text, opt text) -> (Result_4) query;
+  integration_configuration_certificate : (text, opt text) -> (Result_9) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
   open_checkout : (OpenCheckout) -> (Result_10);
   prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_13);
@@ -932,14 +953,14 @@ service : (CommerceInit) -> {
   register_integration_app : (AppRegistration) -> (Result);
   // Register or replace a product at the next config version.
   register_integration_product : (ProductRegistration) -> (Result);
-  // Register a settlement ledger or replace its policy at the next version.
-  // Every price publication also advances the version.
+  // Register a settlement ledger or replace its non-price terms. Price
+  // observations come from `publish_settlement_price`.
   register_settlement_asset : (SettlementAsset) -> (Result);
   release_product_billing : (ProductAuthorizationRequest) -> (Result);
   reserve_product_billing : (ProductAuthorizationRequest, nat64) -> (Result);
   // The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
   // keeping its fee or adopting the ledger's expected fee within the original cap.
-  revise_checkout_transfer_fee : (blob, nat) -> (Result_8);
+  revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
   // Announce a catalog at least 30 days before it takes effect.
   schedule_policy : (Catalog) -> (Result);
   // Pause or resume new cash checkouts; reconciliation, refunds, lease
@@ -947,10 +968,10 @@ service : (CommerceInit) -> {
   set_admission_pause : (bool) -> (Result);
   set_settlement_price_authority : (principal) -> (Result);
   settlement_assets : () -> (vec SettlementAssetView) query;
-  settlement_assets_certificate : () -> (Result_4) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
   sweep_checkout_history : () -> (CheckoutHistorySweep);
   validate_admin_add_user_home : (principal) -> (Result_19) query;
+  validate_admin_set_limits : (CommerceLimits) -> (Result_19) query;
   validate_publish_settlement_price : (principal, nat, nat64) -> (
       Result_19,
     ) query;

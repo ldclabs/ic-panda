@@ -43,7 +43,7 @@ export interface ProductRegistration {
   product_id: string
   config_version: bigint
   quote_authority: Uint8Array
-  beneficiary_authority: Uint8Array
+  beneficiary_authorities: Uint8Array[]
   adapter: Uint8Array
   subject_schema: string
   subject_size: bigint

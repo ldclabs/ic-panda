@@ -202,13 +202,21 @@ export interface CheckoutView {
   'service_reserve_atomic' : bigint,
 }
 export interface CommerceInit {
-  'daily_orders' : number,
-  'max_subjects' : bigint,
   'environment' : Environment,
   'governance' : Principal,
   'membership_canister' : Principal,
   'user_homes' : Array<Principal>,
   'catalog' : Catalog,
+  'limits' : CommerceLimits,
+}
+export interface CommerceLimits {
+  'daily_orders' : number,
+  'max_hot_orders' : bigint,
+  'authorizations_per_minute' : number,
+  'refreshes_per_minute' : number,
+  'max_orders' : bigint,
+  'max_subjects' : bigint,
+  'calls_per_minute' : number,
 }
 export type Eligibility = { 'Unverifiable' : null } |
   { 'Ineligible' : null } |
@@ -349,6 +357,7 @@ export interface ProductReceipt {
   'adapter' : Principal,
 }
 export interface ProductRegistration {
+  'beneficiary_authorities' : Array<Principal>,
   'product_id' : string,
   'subject_size' : number,
   'terms_hash' : Uint8Array | number[],
@@ -358,7 +367,6 @@ export interface ProductRegistration {
   'quote_authority' : Principal,
   'environment' : Environment,
   'ledgers' : Array<Principal>,
-  'beneficiary_authority' : Principal,
   'adapter' : Principal,
   'subject_schema' : string,
   'paused' : boolean,
@@ -403,17 +411,17 @@ export type Result_2 = { 'Ok' : CashCancellationReceipt } |
   { 'Err' : Error };
 export type Result_3 = { 'Ok' : CheckoutProgress } |
   { 'Err' : Error };
-export type Result_4 = { 'Ok' : CertifiedBatch } |
+export type Result_4 = { 'Ok' : CheckoutDepositsPage } |
   { 'Err' : Error };
-export type Result_5 = { 'Ok' : CheckoutDepositsPage } |
+export type Result_5 = { 'Ok' : CheckoutOperationsPage } |
   { 'Err' : Error };
-export type Result_6 = { 'Ok' : CheckoutOperationsPage } |
+export type Result_6 = { 'Ok' : CashTransfersPage } |
   { 'Err' : Error };
-export type Result_7 = { 'Ok' : CashTransfersPage } |
+export type Result_7 = { 'Ok' : CashTransfer } |
   { 'Err' : Error };
-export type Result_8 = { 'Ok' : CashTransfer } |
+export type Result_8 = { 'Ok' : [] | [CashCancellationReceipt] } |
   { 'Err' : Error };
-export type Result_9 = { 'Ok' : [] | [CashCancellationReceipt] } |
+export type Result_9 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
 export interface SettlementAsset {
   'decimals' : number,
@@ -479,6 +487,7 @@ export interface StorageProduct {
 }
 export interface _SERVICE {
   'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'admin_set_limits' : ActorMethod<[CommerceLimits], Result>,
   'apply_product_decision' : ActorMethod<[ProductDecision], Result_1>,
   'cancel_cash_contract' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[], Uint8Array | number[]],
@@ -489,32 +498,32 @@ export interface _SERVICE {
     [Uint8Array | number[], CashBlock],
     Result_3
   >,
-  'checkout_certificate' : ActorMethod<[Uint8Array | number[]], Result_4>,
   'checkout_deposits' : ActorMethod<
     [Uint8Array | number[], [] | [Uint8Array | number[]], number],
-    Result_5
+    Result_4
   >,
   'checkout_operations' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
-    Result_6
+    Result_5
   >,
   'checkout_progress' : ActorMethod<[Uint8Array | number[]], Result_3>,
   'checkout_transfers' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
-    Result_7
+    Result_6
   >,
-  'claim_checkout_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'claim_checkout_fee_reserve' : ActorMethod<[Uint8Array | number[]], Result_7>,
   'claim_checkout_refund' : ActorMethod<
     [Uint8Array | number[], Principal, Array<bigint>, Uint8Array | number[]],
-    Result_8
+    Result_7
   >,
-  'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_9>,
-  'get_catalog' : ActorMethod<[], Result_4>,
+  'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_8>,
+  'get_catalog' : ActorMethod<[], Result_9>,
   'get_checkout' : ActorMethod<[Uint8Array | number[]], Result_10>,
   'get_checkout_for_product' : ActorMethod<[Uint8Array | number[]], Result_10>,
-  'get_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_8>,
-  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_4>,
+  'get_checkout_transfer' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'get_commerce_limits' : ActorMethod<[], CommerceLimits>,
+  'get_entitlement_batch' : ActorMethod<[Array<Beneficiary>], Result_9>,
   'get_execution_entitlement' : ActorMethod<
     [Beneficiary, number, bigint],
     Result_11
@@ -522,7 +531,7 @@ export interface _SERVICE {
   'get_product_decision' : ActorMethod<[Uint8Array | number[]], Result_12>,
   'integration_configuration_certificate' : ActorMethod<
     [string, [] | [string]],
-    Result_4
+    Result_9
   >,
   'list_catalogs' : ActorMethod<[[] | [bigint]], Array<Catalog>>,
   'open_checkout' : ActorMethod<[OpenCheckout], Result_10>,
@@ -560,15 +569,15 @@ export interface _SERVICE {
   >,
   'revise_checkout_transfer_fee' : ActorMethod<
     [Uint8Array | number[], bigint],
-    Result_8
+    Result_7
   >,
   'schedule_policy' : ActorMethod<[Catalog], Result>,
   'set_admission_pause' : ActorMethod<[boolean], Result>,
   'set_settlement_price_authority' : ActorMethod<[Principal], Result>,
   'settlement_assets' : ActorMethod<[], Array<SettlementAssetView>>,
-  'settlement_assets_certificate' : ActorMethod<[], Result_4>,
   'sweep_checkout_history' : ActorMethod<[], CheckoutHistorySweep>,
   'validate_admin_add_user_home' : ActorMethod<[Principal], Result_19>,
+  'validate_admin_set_limits' : ActorMethod<[CommerceLimits], Result_19>,
   'validate_publish_settlement_price' : ActorMethod<
     [Principal, bigint, bigint],
     Result_19

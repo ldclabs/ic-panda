@@ -37,7 +37,7 @@ pub fn product() -> ProductRegistration {
         product_id: "tokenlist".into(),
         config_version: 1,
         quote_authority: principal(4),
-        beneficiary_authority: principal(4),
+        beneficiary_authorities: vec![principal(4)],
         adapter: principal(4),
         subject_schema: "tokenlist-project-v1".into(),
         subject_size: 8,
@@ -58,7 +58,7 @@ pub fn offer() -> BillingOffer {
         offer_id: Hash::new([13; 32]),
         beneficiary: Beneficiary {
             product_id: p.product_id,
-            authority_canister: p.beneficiary_authority,
+            authority_canister: p.beneficiary_authorities[0],
             subject_schema: p.subject_schema,
             subject_bytes: 42u64.to_be_bytes().to_vec().into(),
         },

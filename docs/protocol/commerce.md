@@ -44,9 +44,12 @@ fail closed.
 | Product authorization | `dmsg/product-authorization/v2` |
 | App configuration leaf | `dmsg/registration/app/v1` |
 | Product configuration leaf | `dmsg/registration/product/v2` |
-| Cash order leaf | `dmsg/checkout/certificate/v2` |
-| Asset policies leaf | `dmsg/settlement-assets/v2`, `"supported"` |
 | PANDA claim leaf | `dmsg/panda/claim-certificate/v2` |
+
+Cash orders, outgoing legs and asset policies have no certified leaves. Their
+reads are access-checked queries for display and recovery; money only moves on
+ledger evidence and the frozen quote, and `open_checkout` rechecks the exact
+quoted asset policy against its published price history.
 
 The original resource catalog/entitlement and execution-usage leaf domains remain
 version 1 because they describe dMsg resources, not the removed commerce-1 order
@@ -59,7 +62,10 @@ Only ckUSDT `cngnf-vqaaa-aaaar-qag4q-cai` and ckUSDC
 verified ICRC-1/ICRC-3 support and an actual supported transfer block. Asset
 identity comes from the fixed ledger, never its symbol. Governance registers the
 policy and verifies ledger metadata; a separately configured price authority may
-publish a fresh USD-micro reference observation. New quotes require an enabled
+publish a fresh USD-micro reference observation. A governance update of a
+registered asset replaces only its non-price terms: it keeps the latest published
+price and takes the next policy version, so price publications made while a
+proposal waits cannot make it stale. New quotes require an enabled
 asset, a price window of at most 30 minutes and deviation of at most 1% from one
 USD. There is no implicit dollar peg.
 
@@ -112,7 +118,13 @@ Outgoing legs freeze their own source, ledger, recipient, net amount, fee, memo
 and timestamp. `Unknown`/`InFlight` is resolved by the same transfer or an exact
 trusted ledger block. Only a known rejection may be superseded: the recipient
 explicitly reissues it with a fresh ledger timestamp, keeping its fee or adopting
-the ledger's expected fee within the **original** maximum fee. This also recovers
+the ledger's expected fee within the **original** maximum fee.
+
+Each merchant collection uses at most one ledger fee of the order's fee reserve.
+The collection that completes the earned amount also takes a remainder too small
+to be returned on its own; a larger remainder returns to the frozen payer once all
+revenue is collected, and anyone may trigger that return. Settled orders thus
+reach zero balances and can be archived. This also recovers
 a leg first dispatched after the ledger's 24-hour deduplication window. The gross
 obligation stays fixed. An over-cap fee remains blocked; it is not
 silently taken from someone else's principal or reserve. A live per-leg guard
@@ -194,6 +206,13 @@ remain. Archived claim certificate leaves are removed.
 
 ## Product adapter and bounded rights
 
+A product registration lists its beneficiary authorities, append-only. A
+subject names one of them, and checkout and membership ask that subject's own
+authority for `authorize_product_billing`. The dMsg account product lists every
+user home, so accounts of an added home can buy. An offer's terms hash is the
+product registration's `terms_hash`; a terms change takes effect with that
+registration, independent of catalog scheduling.
+
 Both cash and PANDA use `ProductBook`, a business-revision CAS and a single
 uncommitted interval reservation. It never prunes an unknown Apply. Products
 implement `verify_billing_offer`, `authorize_product_billing`,
@@ -228,7 +247,22 @@ execution allowance integrates the complete nonoverlapping UTC-month timeline,
 clips time before account creation and rounds down once. Free quota segments
 follow the catalogs actually effective during the month, with no retroactive
 replacement of earlier segments. A catalog boundary ends the previous resource
-lease and a refreshed projection advances its lease revision. Only current-month
+lease and a refreshed projection advances its lease revision.
+
+Resource leases follow what can still be withdrawn. A started cash term has no
+refund and an unstarted renewal lies beyond the next boundary, so cash, expired
+and Free leases last at most 30 days and end at the next known limit change. A
+PANDA qualification can be lost, so a PANDA-backed lease stays within one hour.
+Commerce reuses a lease until 10 minutes remain and then issues a new one, so a
+consumer renewing a few minutes before expiry receives a later lease. A membership
+answer of `Pending` or `QuotaExceeded` reads no SNS state: the previous lease
+stands and no paid-time pause opens. The user home rechecks the execution
+allowance at least hourly, independent of the resource lease.
+
+An account that never bought anything has no commerce record and no certified
+entitlement leaf: an absence proof with the certified catalog means Free. Its
+execution entitlement is computed from the catalogs and the home's account
+creation time at lease revision 0; a stored subject starts at revision 1. Only current-month
 and live/future resource intervals stay in the subject's working history; the
 last service-end time is retained for the expired resource projection. Qualification refresh,
 refund or downgrade does not reset held/charged units. Root recovery/derivation
@@ -246,11 +280,12 @@ Unknown decisions, fee blockage, expired leases and retained commitments. These
 observations are not delivery receipts. The extension's operations centre never
 offers to clear Unknown records or end an applied PANDA commitment.
 
-Funding/product/outgoing work has a global allowance of 400 per UTC minute and
-40 per caller; ledger reads include their bounded archive traversal. Authorization
-is separately limited to 200 global and 10 per caller. Qualification refreshes
-allow 200 global and 20 per public caller; registered user homes share the global
-limit when serving their accounts. Each actual product call consumes an allowance,
+Funding/product/outgoing work has a governed global allowance per UTC minute
+(initially 400) and 40 per caller; ledger reads include their bounded archive
+traversal. Authorization is separately limited (initially 200 global) and 10 per
+caller. Qualification refreshes have a governed global limit (initially 200) and
+20 per public caller; registered user homes may use the global limit when serving
+their accounts. Each actual product call consumes an allowance,
 including both receipt lookup and a needed Apply. Local refund allocation,
 unchanged terminal reads and blocked concurrent retries do not consume this RPC
 budget. At most 128 guarded operations may be in flight.
@@ -264,11 +299,11 @@ Succeeded or superseded transfer legs retain their full arguments for at least
 live. Orders in cold storage discard redundant authorization/decision payloads,
 but retain the original input digest, quote, ledger balances, final receipt and
 funding reference. Ledger/block deduplication and reader indexes are never removed.
-Direct reads and indexed history remain available; retired certificate endpoints
-return `ResultExpired`. A newly verified late deposit restores the original
-order's live certificate and its original-source refund route without reapplying
-service. Admission allows 100,000 hot orders and 1,000,000 total order identities;
-these are hard safeguards, not measured production capacities.
+Direct reads and indexed history remain available. A newly verified late deposit
+restores the original order to the hot table and its original-source refund route
+without reapplying service. Governance sets the admission limits for subjects,
+hot orders, total order identities, daily orders and per-minute calls within fixed
+upper bounds; the capacity profile measures the costs behind them.
 
 Pausing admission preserves original-order reconciliation, original-source
 refunds, known transfer recovery, existing qualification refresh and expiry

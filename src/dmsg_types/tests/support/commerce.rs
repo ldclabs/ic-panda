@@ -14,7 +14,20 @@ use dmsg_types::integration_billing::{
     SubscriptionSource,
 };
 use dmsg_types::integration_membership::{PandaApplicationTerms, PandaClaimRequest};
-use dmsg_types::{AccountId, Environment, Hash, MINUTE};
+use dmsg_types::{billing::CommerceLimits, AccountId, Environment, Hash, MINUTE};
+
+/// Generous admission limits for fixtures.
+pub fn limits() -> CommerceLimits {
+    CommerceLimits {
+        max_subjects: 1_000,
+        max_hot_orders: 100_000,
+        max_orders: 1_000_000,
+        daily_orders: 1_000,
+        calls_per_minute: 400,
+        authorizations_per_minute: 200,
+        refreshes_per_minute: 200,
+    }
+}
 pub fn asset() -> SettlementAsset {
     SettlementAsset {
         version: 2,

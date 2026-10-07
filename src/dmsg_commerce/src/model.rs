@@ -43,6 +43,9 @@ pub fn end(c: &MembershipContract) -> u64 {
     c.expires_at_ms.min(c.terminated_at_ms.unwrap_or(u64::MAX))
 }
 
+/// Longest resource lease for rights that are never withdrawn once issued.
+pub const CASH_LEASE_MS: u64 = 30 * DAY;
+
 /// Retained storage add-ons per subject; expired add-ons do not count.
 pub const MAX_ADDONS: usize = 64;
 const MAX_PAUSES: usize = 128;
@@ -159,7 +162,13 @@ pub fn project(
     };
     let mut eligibility = Eligibility::Eligible;
     let mut sources = vec![];
-    let mut until = at.saturating_add(PANDA_LEASE_MS);
+    // Issued cash and Free rights are never withdrawn: a started cash term has no
+    // refund and an unstarted one lies beyond the next boundary. A PANDA
+    // qualification can be lost at any time, so its lease stays short.
+    let panda = active
+        .as_ref()
+        .is_some_and(|c| matches!(c.source, ContractSource::Sns { .. }));
+    let mut until = at.saturating_add(if panda { PANDA_LEASE_MS } else { CASH_LEASE_MS });
     let mut observed = at;
     let mut repair = None;
     let mut terminated = s
@@ -270,6 +279,31 @@ pub fn project(
     };
     s.view = Some(v.clone());
     Ok(v)
+}
+
+/// Entitlement of an account with no commerce record, from the catalogs and the
+/// home's account creation time. Revision 0 marks it: a stored subject's first
+/// projection is revision 1.
+#[allow(clippy::too_many_arguments)]
+pub fn free(
+    home: Principal,
+    b: Beneficiary,
+    created_at_ms: u64,
+    catalog: &Catalog,
+    catalogs: &[Catalog],
+    utc_month: u32,
+    at: u64,
+    next_catalog_at: Option<u64>,
+) -> Result<ExecutionEntitlement> {
+    let mut s = Subject::new(b);
+    s.created_at_ms = Some(created_at_ms);
+    let mut view = project(home, &mut s, catalog, at, next_catalog_at)?;
+    view.lease_revision = 0;
+    s.lease_revision = 0;
+    Ok(ExecutionEntitlement {
+        view,
+        month: month(&s, catalogs, utc_month)?,
+    })
 }
 
 pub fn month(s: &Subject, catalogs: &[Catalog], month: u32) -> Result<MonthEntitlement> {
@@ -413,6 +447,54 @@ mod tests {
         assert_eq!(v.service_terminated_at_ms, Some(at + REPAIR_WINDOW_MS));
         set_eligibility(&mut s.contracts[0], Eligibility::Eligible, at + 1).unwrap();
         assert_eq!(s.contracts[0].repair_deadline_ms, None);
+    }
+
+    #[test]
+    fn cash_leases_last_thirty_days_and_panda_leases_one_hour() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let at = start + DAY;
+        let mut s = subject(start, end + 365 * DAY);
+        let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
+        assert_eq!(v.valid_until_ms, at + PANDA_LEASE_MS);
+        s.contracts[0].source = ContractSource::Cash {
+            order_id: Hash::new([5; 32]),
+        };
+        let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
+        assert_eq!(v.valid_until_ms, at + CASH_LEASE_MS);
+        // A known boundary, such as the next catalog, ends the lease earlier.
+        let v = project(HOME, &mut s, &catalog(), at, Some(at + DAY)).unwrap();
+        assert_eq!(v.valid_until_ms, at + DAY);
+    }
+
+    #[test]
+    fn an_account_without_a_record_is_free_at_revision_zero() {
+        let (start, _) = month_bounds(202609).unwrap();
+        let at = start + DAY;
+        let b = beneficiary(HOME, &AccountId([2; 12]));
+        let e = free(
+            HOME,
+            b.clone(),
+            start,
+            &catalog(),
+            &[catalog()],
+            202609,
+            at,
+            None,
+        )
+        .unwrap();
+        assert_eq!(e.view.lease_revision, 0);
+        assert_eq!(e.month.month_revision, 0);
+        assert_eq!(e.view.source_status, SourceStatus::Free);
+        assert_eq!(e.view.valid_until_ms, at + CASH_LEASE_MS);
+        assert_eq!(e.month.allowed_units, 3);
+        // A stored subject's first projection is revision 1.
+        let mut s = Subject::new(b);
+        assert_eq!(
+            project(HOME, &mut s, &catalog(), at, None)
+                .unwrap()
+                .lease_revision,
+            1
+        );
     }
 
     #[test]

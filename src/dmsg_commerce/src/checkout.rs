@@ -24,28 +24,28 @@ fn configuration(offer: &BillingOffer) -> Result<(AppRegistration, ProductRegist
     registrations::product_configuration(&offer.app_id, &offer.product_id)
 }
 
-// Returns false when the same policy is already registered.
-fn check_asset(policy: &SettlementAsset) -> Result<bool> {
-    validate_asset(policy)?;
+/// Asset terms other than the price observation and the version it advances.
+fn terms(a: &SettlementAsset) -> SettlementAsset {
+    SettlementAsset {
+        policy_version: 0,
+        price_usd_micros: 0,
+        price_observed_at_ms: 0,
+        price_valid_until_ms: 0,
+        ..a.clone()
+    }
+}
+
+/// The policy to store, or None when its terms are already registered. A new
+/// ledger starts at version 1 with the submitted price. An update replaces only
+/// the other terms: it keeps the latest published price and takes the next
+/// version, so price publications before a proposal executes cannot stale it.
+fn next_asset(policy: &SettlementAsset) -> Result<Option<SettlementAsset>> {
     ensure(
         store::config(|c| c.environment == policy.environment),
         Error::Forbidden,
     )?;
-    if let Ok(old) = asset(policy.ledger) {
-        ensure(
-            old.policy.asset == policy.asset
-                && old.policy.environment == policy.environment
-                && old.policy.decimals == policy.decimals,
-            Error::IntegrityFailed,
-        )?;
-        if old.policy == *policy {
-            return Ok(false);
-        }
-        ensure(
-            old.policy.policy_version.checked_add(1) == Some(policy.policy_version),
-            Error::VersionConflict,
-        )?;
-    } else {
+    let Ok(old) = asset(policy.ledger) else {
+        validate_asset(policy)?;
         ensure(
             policy.policy_version == 1 && assets().len() < 2,
             Error::QuotaExceeded,
@@ -54,18 +54,38 @@ fn check_asset(policy: &SettlementAsset) -> Result<bool> {
             assets().iter().all(|a| a.policy.asset != policy.asset),
             Error::IdempotencyConflict,
         )?;
+        return Ok(Some(policy.clone()));
+    };
+    ensure(
+        old.policy.asset == policy.asset && old.policy.decimals == policy.decimals,
+        Error::IntegrityFailed,
+    )?;
+    if terms(&old.policy) == terms(policy) {
+        return Ok(None);
     }
-    Ok(true)
+    let next = SettlementAsset {
+        policy_version: old
+            .policy
+            .policy_version
+            .checked_add(1)
+            .ok_or(Error::QuotaExceeded)?,
+        price_usd_micros: old.policy.price_usd_micros,
+        price_observed_at_ms: old.policy.price_observed_at_ms,
+        price_valid_until_ms: old.policy.price_valid_until_ms,
+        ..policy.clone()
+    };
+    validate_asset(&next)?;
+    Ok(Some(next))
 }
 
-/// Register a settlement ledger or replace its policy at the next version.
-/// Every price publication also advances the version.
+/// Register a settlement ledger or replace its non-price terms. Price
+/// observations come from `publish_settlement_price`.
 #[ic_cdk::update]
 fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
     store::check_admin(ic_cdk::api::msg_caller())?;
-    if !check_asset(&policy)? {
+    let Some(policy) = next_asset(&policy)? else {
         return Ok(());
-    }
+    };
     let old = asset(policy.ledger).ok();
     let verified = old.as_ref().is_some_and(|o| o.verified);
     let fee = old.as_ref().map_or(policy.network_fee_atomic, |o| o.fee);
@@ -81,21 +101,27 @@ fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
 
 #[ic_cdk::query]
 fn validate_register_settlement_asset(policy: SettlementAsset) -> Validation {
-    validation(check_asset(&policy).map(|fresh| {
-        format!(
-            "Register settlement asset {:?} on ledger {} at policy version {}: {} decimals, price {} USD micros observed at {} ms and valid until {} ms, network fee {} (cap {}), enabled {}.{}",
-            policy.asset,
-            policy.ledger,
-            policy.policy_version,
-            policy.decimals,
-            policy.price_usd_micros,
-            policy.price_observed_at_ms,
-            policy.price_valid_until_ms,
-            policy.network_fee_atomic,
-            policy.max_network_fee_atomic,
-            policy.enabled,
-            admin::unchanged(fresh, "Already registered"),
-        )
+    validation(next_asset(&policy).map(|next| match next {
+        Some(p) if p.policy_version == 1 => format!(
+            "Register settlement asset {:?} on ledger {}: {} decimals, price {} USD micros observed at {} ms and valid until {} ms, network fee {} (cap {}), enabled {}.",
+            p.asset,
+            p.ledger,
+            p.decimals,
+            p.price_usd_micros,
+            p.price_observed_at_ms,
+            p.price_valid_until_ms,
+            p.network_fee_atomic,
+            p.max_network_fee_atomic,
+            p.enabled,
+        ),
+        Some(p) => format!(
+            "Update settlement asset {:?} on ledger {}: network fee {} (cap {}), enabled {}. The latest published price is kept and the next policy version is assigned at execution.",
+            p.asset, p.ledger, p.network_fee_atomic, p.max_network_fee_atomic, p.enabled,
+        ),
+        None => format!(
+            "Register settlement asset {:?} on ledger {}. Already registered; no change.",
+            policy.asset, policy.ledger,
+        ),
     }))
 }
 
@@ -144,7 +170,11 @@ async fn verify_settlement_asset(ledger: Principal, sample_transfer: Option<u128
     }
     let fee = token_amount(fee)?;
     let mut current = asset(ledger)?;
-    ensure(current.policy == previous.policy, Error::PolicyStale)?;
+    // A price published meanwhile does not change what was verified.
+    ensure(
+        terms(&current.policy) == terms(&previous.policy),
+        Error::PolicyStale,
+    )?;
     ensure(
         u16::from(decimals) == current.policy.decimals
             && fee == current.policy.network_fee_atomic
@@ -269,8 +299,9 @@ async fn authorize(
     )?;
     // The product and account authorities are independent; ask both at once.
     let (product_auth, approved) = futures::future::join(
+        // The subject's own authority, which the registration lists.
         call::<_, Result<ProductAuthorization>>(
-            product.beneficiary_authority,
+            quote.offer.beneficiary.authority_canister,
             "authorize_product_billing",
             (auth.clone(),),
         ),
@@ -726,7 +757,12 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
     let ledger = o.quote.cash.ledger;
     let a = asset(ledger)?;
     let balance = o.balances.get_mut(&ledger).ok_or(Error::NotFound)?;
-    let subsidized = balance.fees.min(a.fee);
+    let mut subsidized = balance.fees.min(a.fee);
+    // The last collection also takes a fee-reserve remainder too small to be
+    // returned on its own, so a settled order can be archived.
+    if earned == o.quote.cash.amount_atomic && balance.fees - subsidized <= a.fee {
+        subsidized = balance.fees;
+    }
     let debit = available
         .checked_add(subsidized)
         .ok_or(Error::QuotaExceeded)?;
@@ -745,14 +781,12 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
     Ok(leg.view)
 }
 
+/// Return the unused fee reserve to the payer once all revenue is collected.
+/// Anyone may trigger it: the destination is the payer frozen in the quote.
 #[ic_cdk::update]
 fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
     let at = now();
     let mut o = order(id)?;
-    ensure(
-        ic_cdk::api::msg_caller() == o.quote.cash.payer.owner,
-        Error::Forbidden,
-    )?;
     ensure(
         o.status == CheckoutStatus::Applied && o.earned_allocated == o.quote.cash.amount_atomic,
         Error::Pending,
@@ -950,27 +984,6 @@ fn revise_checkout_transfer_fee(id: Hash, new_fee: u128) -> Result<CashTransfer>
     Ok(t.view)
 }
 
-#[ic_cdk::query]
-fn settlement_assets_certificate() -> Result<CertifiedBatch> {
-    store::CERT.with_borrow(|c| {
-        c.batch(ic_cdk::api::canister_self(), vec![assets_key()], |_| {
-            Some(canonical(&asset_views()))
-        })
-    })
-}
-
-#[ic_cdk::query]
-fn checkout_certificate(id: Hash) -> Result<CertifiedBatch> {
-    let o = order(id)?;
-    read_access(&o, ic_cdk::api::msg_caller())?;
-    order_certificate_available(id)?;
-    store::CERT.with_borrow(|c| {
-        c.batch(ic_cdk::api::canister_self(), vec![order_key(id)], |_| {
-            Some(canonical(&o.view()))
-        })
-    })
-}
-
 #[ic_cdk::update]
 fn set_settlement_price_authority(authority: Principal) -> Result<()> {
     store::check_admin(ic_cdk::api::msg_caller())?;
@@ -1070,4 +1083,66 @@ fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPag
 #[ic_cdk::update]
 fn sweep_checkout_history() -> CheckoutHistorySweep {
     sweep(now())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::checkout_model::fixture::{self, base::*};
+    use dmsg_types::billing::*;
+
+    fn setup() {
+        store::set_config(store::Config::new(CommerceInit {
+            environment: Environment::Local,
+            governance: principal(90),
+            membership_canister: principal(91),
+            user_homes: vec![principal(92)],
+            limits: fixture::limits(),
+            catalog: Catalog {
+                schema: 1,
+                version: 1,
+                effective_at_ms: 0,
+                plans: dmsg_protocol::billing::default_plans(1),
+                storage_products: vec![],
+                terms_digest: Hash::new([8; 32]),
+            },
+        }));
+    }
+
+    #[test]
+    fn asset_updates_keep_the_published_price_and_take_the_next_version() {
+        setup();
+        let first = fixture::asset();
+        assert_eq!(next_asset(&first).unwrap(), Some(first.clone()));
+        let stored = |policy: SettlementAsset| Asset {
+            fee: policy.network_fee_atomic,
+            policy,
+            verified: true,
+        };
+        save_asset(&stored(first.clone()), NOW).unwrap();
+        // The price authority publishes while a proposal built from version 1 waits.
+        let mut published = first.clone();
+        published.policy_version = 2;
+        published.price_usd_micros = 999_000;
+        published.price_observed_at_ms = NOW + MINUTE;
+        published.price_valid_until_ms = NOW + 31 * MINUTE;
+        save_asset(&stored(published.clone()), NOW + MINUTE).unwrap();
+        let mut proposal = first.clone();
+        proposal.enabled = false;
+        let next = next_asset(&proposal).unwrap().unwrap();
+        assert_eq!(next.policy_version, 3);
+        assert_eq!(
+            (next.price_usd_micros, next.price_observed_at_ms),
+            (999_000, NOW + MINUTE)
+        );
+        assert!(!next.enabled);
+        // Other price fields or versions with the same terms change nothing.
+        let mut same = published.clone();
+        same.policy_version = 77;
+        same.price_usd_micros = 1;
+        assert_eq!(next_asset(&same).unwrap(), None);
+        let mut other = proposal.clone();
+        other.decimals = 8;
+        assert_eq!(next_asset(&other), Err(Error::IntegrityFailed));
+    }
 }

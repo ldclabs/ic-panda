@@ -108,8 +108,9 @@ pub struct ProductRegistration {
     pub config_version: u64,
     /// Canister supplying authoritative offers.
     pub quote_authority: Principal,
-    /// Canister supplying beneficiary permissions.
-    pub beneficiary_authority: Principal,
+    /// Canisters supplying beneficiary permissions, append-only. A subject names
+    /// one of them; a dMsg account product lists every user home.
+    pub beneficiary_authorities: Vec<Principal>,
     /// Canister applying product decisions.
     pub adapter: Principal,
     /// Fixed interpretation of subject bytes.

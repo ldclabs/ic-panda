@@ -145,7 +145,9 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
         (id,),
     );
     let old = old.unwrap();
+    // The catalog boundary ends the lease, also for a Free account without a record.
     assert!(old.valid_until_ms <= effective);
+    assert_eq!(old.lease_revision, 0);
     f.ic.advance_time(Duration::from_millis(6 * MINUTE));
     let refreshed: Result<ExecutionUsage> = update(
         &f.ic,
@@ -155,7 +157,7 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
         (id,),
     );
     let refreshed = refreshed.unwrap();
-    assert!(refreshed.lease_revision > old.lease_revision);
+    assert!(refreshed.allowed_units > old.allowed_units);
     let month = month_utc(time(&f.ic)).unwrap();
     let (start, end) = month_bounds(month).unwrap();
     let expected = (3 * u128::from(effective - start) + 30 * u128::from(end - effective))
@@ -168,11 +170,25 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
         "refresh_execution_entitlement",
         (id,),
     );
-    assert_eq!(again.unwrap(), refreshed);
+    let again = again.unwrap();
+    assert_eq!(
+        (again.allowed_units, again.lease_revision),
+        (refreshed.allowed_units, refreshed.lease_revision)
+    );
+    // No commerce record was created for the Free account.
+    let b = dmsg_protocol::billing::beneficiary(f.user, &id);
+    let batch: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "get_entitlement_batch",
+        (vec![b],),
+    );
+    assert!(batch.unwrap().entries[0].value.is_none());
 }
 
 #[test]
-fn merchants_read_only_their_orders_and_certificates() {
+fn merchants_read_only_their_orders() {
     let f = Fixture::commercial();
     let id = f.create(1);
     let (o, _) = pay(&f, &id, "plus", 203);
@@ -197,14 +213,6 @@ fn merchants_read_only_their_orders_and_certificates() {
     let page = page.unwrap();
     assert_eq!(page.orders.len(), 1);
     assert!(page.next.is_none());
-    let cert: Result<CertifiedBatch> = query(
-        &f.ic,
-        f.commerce,
-        merchant,
-        "checkout_certificate",
-        (o.progress.order_id,),
-    );
-    cert.unwrap();
     let denied: Result<CheckoutView> = query(
         &f.ic,
         f.commerce,
@@ -512,14 +520,18 @@ fn cold_history_preserves_replay_reads_and_late_original_source_refunds() {
         None,
     )
     .unwrap();
-    let cert: Result<CertifiedBatch> = query(
+    // Cold orders stay readable by their readers.
+    let cold: Result<CheckoutView> = query(
         &f.ic,
         f.commerce,
         person(1),
-        "checkout_certificate",
+        "get_checkout",
         (o.progress.order_id,),
     );
-    assert_eq!(cert, Err(Error::ResultExpired));
+    assert_eq!(
+        cold.unwrap().progress.status,
+        CheckoutStatus::RefundCommitted
+    );
     let old: Result<CashTransfer> = query(
         &f.ic,
         f.commerce,
@@ -554,14 +566,6 @@ fn cold_history_preserves_replay_reads_and_late_original_source_refunds() {
     assert_eq!(denied, Err(Error::IdempotencyConflict));
     // A sender can still recover a new deposit to an old receiving subaccount.
     let late = refund(&f, &o, 3, 1000, 223);
-    let cert: Result<CertifiedBatch> = query(
-        &f.ic,
-        f.commerce,
-        person(1),
-        "checkout_certificate",
-        (o.progress.order_id,),
-    );
-    cert.unwrap();
     let moved: Result<CashTransferProgress> = update(
         &f.ic,
         f.commerce,
@@ -747,4 +751,100 @@ fn deposit_pagination_returns_every_source_through_the_public_interface() {
             .map(|d| d.block.block_index)
             .collect()
     );
+}
+
+/// Loads host-built images written by dmsg_commerce's `capacity_image` from
+/// DMSG_COMMERCE_IMAGE_DIR and measures upgrades, certified reads, execution
+/// entitlement reads and lease renewal at that size.
+#[test]
+#[ignore = "100k/1M-subject capacity; build the images with dmsg_commerce capacity_image first"]
+fn commerce_capacity_profile() {
+    let dir = PathBuf::from(std::env::var_os("DMSG_COMMERCE_IMAGE_DIR").expect("image dir"));
+    // Matches dmsg_commerce::capacity: fixture time, user home and accounts.
+    let at = 1_800_000_000_000u64;
+    let home = Principal::from_slice(&[92, 1]);
+    let account = |i: u64| AccountId(digest("capacity subject", &i)[..12].try_into().unwrap());
+    for subjects in [100_000u64, 1_000_000] {
+        let Ok(image) = std::fs::read(dir.join(format!("commerce-{subjects}.bin"))) else {
+            continue;
+        };
+        let ic = PocketIcBuilder::new().with_application_subnet().build();
+        ic.set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            millis_to_nanos(at + MINUTE).unwrap(),
+        ));
+        let commerce = ic.create_canister();
+        ic.add_cycles(commerce, 100_000_000_000_000_000);
+        // An empty module has no pre_upgrade that could write over the image.
+        ic.install_canister(commerce, b"\0asm\x01\0\0\0".to_vec(), vec![], None);
+        let image_bytes = image.len();
+        // Compressed, so a multi-GiB image fits one upload.
+        let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        std::io::Write::write_all(&mut gzip, &image).unwrap();
+        drop(image);
+        ic.set_stable_memory(
+            commerce,
+            gzip.finish().unwrap(),
+            pocket_ic::common::rest::BlobCompression::Gzip,
+        );
+        let cycles = ic.cycle_balance(commerce);
+        ic.upgrade_canister(
+            commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        let upgrade_cycles = cycles - ic.cycle_balance(commerce);
+        let upgrade = ic
+            .fetch_canister_logs(commerce, Principal::anonymous())
+            .unwrap()
+            .into_iter()
+            .map(|l| String::from_utf8_lossy(&l.content).into_owned())
+            .find(|l| l.contains("commerce_upgrade"))
+            .unwrap();
+        let spent = |method: &str, sender: Principal, args: Vec<u8>| -> (u128, Vec<u8>) {
+            let cycles = ic.cycle_balance(commerce);
+            let reply = ic.update_call(commerce, sender, method, args).unwrap();
+            (cycles - ic.cycle_balance(commerce), reply)
+        };
+        let b = |i: u64| beneficiary(home, &account(i));
+        let batch: Vec<_> = (0..64).map(|n| b(n * (subjects / 64))).collect();
+        let began = std::time::Instant::now();
+        let certified: Result<CertifiedBatch> =
+            query(&ic, commerce, person(1), "get_entitlement_batch", (batch,));
+        let elapsed = began.elapsed();
+        let certified = certified.unwrap();
+        assert!(certified.entries.iter().all(|e| e.value.is_some()));
+        let batch_bytes = candid::encode_one(Ok::<_, Error>(&certified))
+            .unwrap()
+            .len();
+        let month = month_utc(at + MINUTE).unwrap();
+        let entitlement = |i: u64| candid::encode_args((b(i), month, at - 60 * DAY)).unwrap();
+        let (paid_cycles, reply) = spent("get_execution_entitlement", home, entitlement(7));
+        let paid: Result<ExecutionEntitlement> = candid::decode_one(&reply).unwrap();
+        assert_eq!(paid.unwrap().view.plan_snapshot.plan_id, PlanId::Plus);
+        let (free_cycles, reply) =
+            spent("get_execution_entitlement", home, entitlement(subjects + 7));
+        let free: Result<ExecutionEntitlement> = candid::decode_one(&reply).unwrap();
+        assert_eq!(free.unwrap().view.lease_revision, 0);
+        // Renewal inside the window re-projects and recertifies one subject.
+        ic.set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            millis_to_nanos(at + 30 * DAY - 5 * MINUTE).unwrap(),
+        ));
+        let (renew_cycles, reply) = spent(
+            "refresh_entitlement",
+            person(1),
+            candid::encode_args((b(11),)).unwrap(),
+        );
+        let renewed: Result<EntitlementView> = candid::decode_one(&reply).unwrap();
+        assert!(renewed.unwrap().valid_until_ms > at + 30 * DAY);
+        let status = ic.canister_status(commerce, None).unwrap();
+        println!("{upgrade}");
+        println!(
+            "commerce_capacity subjects={subjects} image_bytes={image_bytes} upgrade_cycles={upgrade_cycles} renew_cycles={renew_cycles} paid_entitlement_cycles={paid_cycles} free_entitlement_cycles={free_cycles} batch64_bytes={batch_bytes} host_query_ms={} heap_bytes={} stable_bytes={}",
+            elapsed.as_millis(),
+            status.memory_metrics.wasm_memory_size,
+            status.memory_metrics.stable_memory_size,
+        );
+    }
 }

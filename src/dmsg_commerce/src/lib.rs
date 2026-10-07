@@ -1,5 +1,7 @@
 mod api;
 mod calls;
+#[cfg(test)]
+mod capacity;
 mod checkout;
 mod checkout_model;
 mod checkout_store;

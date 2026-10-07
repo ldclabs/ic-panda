@@ -82,13 +82,18 @@ pub fn validate_product(product: &ProductRegistration) -> Result<()> {
         "product size/version",
     )?;
     unique(&product.ledgers, 2, true)?;
+    unique(
+        &product.beneficiary_authorities,
+        crate::agent::MAX_USER_HOMES,
+        true,
+    )?;
     for principal in [
         product.quote_authority,
-        product.beneficiary_authority,
         product.adapter,
         product.merchant.owner,
     ]
     .iter()
+    .chain(&product.beneficiary_authorities)
     .chain(&product.ledgers)
     {
         authenticated(*principal)?;
@@ -108,7 +113,9 @@ pub fn validate_product(product: &ProductRegistration) -> Result<()> {
 pub fn validate_subject(subject: &Beneficiary, product: &ProductRegistration) -> Result<()> {
     ensure_valid(
         subject.product_id == product.product_id
-            && subject.authority_canister == product.beneficiary_authority
+            && product
+                .beneficiary_authorities
+                .contains(&subject.authority_canister)
             && subject.subject_schema == product.subject_schema
             && subject.subject_bytes.len() == usize::from(product.subject_size),
         "subject binding",

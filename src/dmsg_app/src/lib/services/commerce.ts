@@ -26,14 +26,15 @@ import type { _SERVICE as Commerce } from '../canisters/generated/commerce'
 import type { _SERVICE as Membership } from '../canisters/generated/membership'
 import { idlFactory as userIDL } from '../canisters/generated/user/index.js'
 import { AccountClient, controlResult } from './account'
-import { certifiedValue } from './certified'
+import { certifiedLeaf } from './certified'
 import { registeredApplication } from './registration'
 import {
   apiMethod,
   beneficiary,
   beneficiaryValue,
   toCandid,
-  wireResult
+  wireResult,
+  wireValue
 } from '../protocol/commerce'
 import { decodeControl, encodeControl } from '../protocol/account'
 import { b64, unb64, digest, hex, id, unhex } from '../protocol/codec'
@@ -122,31 +123,38 @@ export class CommerceClient {
       controlResult(await api[method](...this.input(plane, method, values)))
     )
   }
+  /** A verified leaf of a certified batch; `value` is null for a proven absence. */
+  private async leaf(
+    plane: 'commerce' | 'membership',
+    method: string,
+    values: unknown[],
+    key: Uint8Array
+  ) {
+    const api = (plane === 'commerce' ? this.commerce : this.membership) as unknown as Record<
+      string,
+      (...v: any[]) => Promise<any>
+    >
+    return certifiedLeaf(
+      controlResult(await api[method](...this.input(plane, method, values))),
+      this.account.agent,
+      plane === 'commerce' ? this.commerceId : this.membershipId,
+      key
+    )
+  }
   private async certified<T>(
     plane: 'commerce' | 'membership',
     method: string,
     values: unknown[],
     key: Uint8Array
   ): Promise<T> {
-    const api = (plane === 'commerce' ? this.commerce : this.membership) as unknown as Record<
-      string,
-      (...v: any[]) => Promise<any>
-    >
-    const p = await certifiedValue(
-      controlResult(await api[method](...this.input(plane, method, values))),
-      this.account.agent,
-      plane === 'commerce' ? this.commerceId : this.membershipId,
-      key
-    )
+    const p = await this.leaf(plane, method, values, key)
+    ensure(p.value, 'INTEGRITY_FAILED')
     return decodeCanonical(p.value) as unknown as T
   }
+  /** Asset policies for selection. Commerce rechecks the exact quoted policy when opening. */
   async assets() {
-    return this.certified<SettlementAssetView[]>(
-      'commerce',
-      'settlement_assets_certificate',
-      [],
-      digest('dmsg/settlement-assets/v2', 'supported')
-    )
+    const views = wireValue('commerce', 'settlement_assets', await this.commerce.settlement_assets())
+    return decodeCanonical(canonical(views)) as unknown as SettlementAssetView[]
   }
   async catalog() {
     return this.certified<any>(
@@ -158,20 +166,25 @@ export class CommerceClient {
   }
   async entitlement(refresh = false) {
     const b = beneficiary(this.account.home.toText(), this.accountId())
+    // An account that never bought anything has no commerce record.
     if (refresh) {
       const value = await this.commerce.refresh_entitlement(b)
-      if ('Err' in value && 'NotFound' in value.Err)
-        controlResult(
-          await this.account.user.refresh_execution_entitlement(xidBytes(this.accountId()))
-        )
-      else controlResult(value)
+      if (!('Err' in value && 'NotFound' in value.Err)) controlResult(value)
     }
-    return this.certified<any>(
+    const leaf = await this.leaf(
       'commerce',
       'get_entitlement_batch',
       [[beneficiaryValue(b)]],
       digest('dmsg/commerce/entitlement-key/v1', beneficiaryValue(b))
     )
+    if (leaf.value) return decodeCanonical(leaf.value) as any
+    // A certified absence means the certified catalog's Free plan applies.
+    const catalog = await this.catalog()
+    return {
+      plan_snapshot: catalog.plans.find((p: any) => p.plan_id === 'Free'),
+      source_status: 'Free',
+      valid_until_ms: BigInt(leaf.expiresAt)
+    }
   }
   async personal(sku: string, method: 'Cash' | 'Panda') {
     const offer = await this.call<CheckoutRequest['offer']>(
@@ -300,15 +313,15 @@ export class CommerceClient {
   async status(id: string): Promise<CheckoutView | PandaClaimView> {
     const job = await this.job(id)
     const cash = this.request(job).method === 'Cash'
-    const value = await this.certified<CheckoutView | PandaClaimView>(
-      cash ? 'commerce' : 'membership',
-      cash ? 'checkout_certificate' : 'panda_claim_certificate',
-      [unhex(id)],
-      digest(
-        cash ? 'dmsg/checkout/certificate/v2' : 'dmsg/panda/claim-certificate/v2',
-        unhex(id)
-      )
-    )
+    // Cash orders are read directly; the quote must still equal the journal's.
+    const value = cash
+      ? await this.call<CheckoutView>('commerce', 'get_checkout', [unhex(id)])
+      : await this.certified<PandaClaimView>(
+          'membership',
+          'panda_claim_certificate',
+          [unhex(id)],
+          digest('dmsg/panda/claim-certificate/v2', unhex(id))
+        )
     ensure(
       equalBytes(
         canonical('progress' in value ? value.quote : value.terms),

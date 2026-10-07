@@ -9,6 +9,10 @@
 //! rehashes one root-to-leaf path, an upgrade only republishes the root, and a
 //! witness nests about log2(n) + 2 levels for well-spread keys.
 //!
+//! Internal nodes live in fixed-size slots addressed by node id, so walking a
+//! path reads one slot per level instead of searching a B-tree. Slots of deleted
+//! nodes form a free list and are reused. Keys are at most `MAX_KEY` bytes.
+//!
 //! The map stores hashes only. Callers keep the certified values in their own
 //! records and supply them again when building a witness, which traps when a
 //! value no longer matches its hash. Upgrades do not recertify leaves, so a
@@ -18,10 +22,17 @@ use crate::certified::{certified_batch, query_certificate};
 use dmsg_types::*;
 use ic_certification::hash_tree::{fork_hash, labeled_hash};
 use ic_certification::{empty, fork, labeled, leaf, pruned, Hash, HashTree};
-use ic_stable_structures::{storable::Bound, Memory, StableBTreeMap, Storable};
-use std::borrow::Cow;
+use ic_stable_structures::{Memory, StableBTreeMap};
 
 pub use ic_certification::hash_tree::leaf_hash;
+
+/// Longest certified key, stored inline in its parent's slot.
+pub const MAX_KEY: usize = 64;
+// A child is its kind, key length, key or node id, and hash.
+const CHILD: usize = 1 + 1 + MAX_KEY + 32;
+// A slot is a tag, a crit bit and two children; the meta record fits too.
+const SLOT: usize = 1 + 4 + 2 * CHILD;
+const PAGE: u64 = 65_536;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Ref {
@@ -36,100 +47,102 @@ struct Child {
     hash: Hash,
 }
 
+/// Slot 0: the root, the next unused slot and the head of the free list.
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum Record {
-    /// Kept under id 0: the root and the next node id.
-    Meta {
-        root: Option<Child>,
-        next: u64,
-    },
-    Node {
-        crit: u32,
-        children: [Child; 2],
-    },
+struct Meta {
+    root: Option<Child>,
+    next: u64,
+    free: u64,
 }
 
-fn put_child(out: &mut Vec<u8>, c: &Child) {
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Slot {
+    Meta(Meta),
+    Node { crit: u32, children: [Child; 2] },
+    Free { next: u64 },
+}
+
+// Zeroed memory reads as an empty map.
+const EMPTY: u8 = 0;
+const META: u8 = 1;
+const NODE: u8 = 2;
+const FREE: u8 = 3;
+
+fn put_child(out: &mut [u8], c: &Child) {
     match &c.at {
         Ref::Leaf(key) => {
-            out.push(0);
-            out.extend_from_slice(&(key.len() as u32).to_be_bytes());
-            out.extend_from_slice(key);
+            out[1] = key.len() as u8;
+            out[2..2 + key.len()].copy_from_slice(key);
         }
         Ref::Node(id) => {
-            out.push(1);
-            out.extend_from_slice(&id.to_be_bytes());
+            out[0] = 1;
+            out[2..10].copy_from_slice(&id.to_be_bytes());
         }
     }
-    out.extend_from_slice(&c.hash);
+    out[CHILD - 32..CHILD].copy_from_slice(&c.hash);
 }
 
-fn take<'a>(bytes: &mut &'a [u8], n: usize) -> &'a [u8] {
-    let (head, rest) = bytes.split_at(n);
-    *bytes = rest;
-    head
-}
-
-fn take_u32(bytes: &mut &[u8]) -> u32 {
-    u32::from_be_bytes(take(bytes, 4).try_into().expect("u32"))
-}
-
-fn take_u64(bytes: &mut &[u8]) -> u64 {
-    u64::from_be_bytes(take(bytes, 8).try_into().expect("u64"))
-}
-
-fn take_child(bytes: &mut &[u8]) -> Child {
-    let at = match take(bytes, 1)[0] {
-        0 => {
-            let n = take_u32(bytes) as usize;
-            Ref::Leaf(take(bytes, n).to_vec())
-        }
-        _ => Ref::Node(take_u64(bytes)),
+fn take_child(bytes: &[u8]) -> Child {
+    let at = match bytes[0] {
+        0 => Ref::Leaf(bytes[2..2 + usize::from(bytes[1])].to_vec()),
+        _ => Ref::Node(u64::from_be_bytes(bytes[2..10].try_into().expect("id"))),
     };
-    let hash = take(bytes, 32).try_into().expect("hash");
+    let hash = bytes[CHILD - 32..CHILD].try_into().expect("hash");
     Child { at, hash }
 }
 
-impl Storable for Record {
-    const BOUND: Bound = Bound::Unbounded;
+fn u64_at(bytes: &[u8], at: usize) -> u64 {
+    u64::from_be_bytes(bytes[at..at + 8].try_into().expect("u64"))
+}
 
-    fn to_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.clone().into_bytes())
-    }
-
-    fn into_bytes(self) -> Vec<u8> {
-        let mut out = Vec::new();
-        match &self {
-            Record::Meta { root, next } => {
-                out.push(0);
-                out.extend_from_slice(&next.to_be_bytes());
-                if let Some(root) = root {
-                    put_child(&mut out, root);
-                }
-            }
-            Record::Node { crit, children } => {
-                out.push(1);
-                out.extend_from_slice(&crit.to_be_bytes());
-                children.iter().for_each(|c| put_child(&mut out, c));
+fn encode(slot: &Slot) -> [u8; SLOT] {
+    let mut out = [0; SLOT];
+    match slot {
+        Slot::Meta(m) => {
+            out[0] = META;
+            out[1..9].copy_from_slice(&m.next.to_be_bytes());
+            out[9..17].copy_from_slice(&m.free.to_be_bytes());
+            if let Some(root) = &m.root {
+                out[17] = 1;
+                put_child(&mut out[18..18 + CHILD], root);
             }
         }
-        out
-    }
-
-    fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
-        let mut bytes = bytes.as_ref();
-        match take(&mut bytes, 1)[0] {
-            0 => {
-                let next = take_u64(&mut bytes);
-                let root = (!bytes.is_empty()).then(|| take_child(&mut bytes));
-                Record::Meta { root, next }
-            }
-            _ => {
-                let crit = take_u32(&mut bytes);
-                let children = [take_child(&mut bytes), take_child(&mut bytes)];
-                Record::Node { crit, children }
-            }
+        Slot::Node { crit, children } => {
+            out[0] = NODE;
+            out[1..5].copy_from_slice(&crit.to_be_bytes());
+            put_child(&mut out[5..5 + CHILD], &children[0]);
+            put_child(&mut out[5 + CHILD..SLOT], &children[1]);
         }
+        Slot::Free { next } => {
+            out[0] = FREE;
+            out[1..9].copy_from_slice(&next.to_be_bytes());
+        }
+    }
+    out
+}
+
+fn decode(bytes: &[u8; SLOT]) -> Slot {
+    match bytes[0] {
+        EMPTY => Slot::Meta(Meta {
+            root: None,
+            next: 1,
+            free: 0,
+        }),
+        META => Slot::Meta(Meta {
+            next: u64_at(bytes, 1),
+            free: u64_at(bytes, 9),
+            root: (bytes[17] == 1).then(|| take_child(&bytes[18..18 + CHILD])),
+        }),
+        NODE => Slot::Node {
+            crit: u32::from_be_bytes(bytes[1..5].try_into().expect("crit")),
+            children: [
+                take_child(&bytes[5..5 + CHILD]),
+                take_child(&bytes[5 + CHILD..SLOT]),
+            ],
+        },
+        _ => Slot::Free {
+            next: u64_at(bytes, 1),
+        },
     }
 }
 
@@ -170,35 +183,70 @@ struct Step {
 pub struct CertMap<M: Memory> {
     /// Key -> hash of its labeled child, in byte order.
     leaves: StableBTreeMap<Vec<u8>, [u8; 32], M>,
-    /// Id 0 -> Meta; other ids -> internal nodes.
-    nodes: StableBTreeMap<u64, Record, M>,
+    /// Slot 0 holds the meta record; other slots hold internal nodes by id.
+    nodes: M,
 }
 
 impl<M: Memory> CertMap<M> {
     pub fn new(leaves: M, nodes: M) -> Self {
         Self {
             leaves: StableBTreeMap::init(leaves),
-            nodes: StableBTreeMap::init(nodes),
+            nodes,
         }
     }
 
-    fn meta(&self) -> (Option<Child>, u64) {
-        match self.nodes.get(&0) {
-            Some(Record::Meta { root, next }) => (root, next),
-            _ => (None, 1),
+    fn read(&self, id: u64) -> Slot {
+        let offset = id * SLOT as u64;
+        let mut bytes = [0; SLOT];
+        if offset + SLOT as u64 <= self.nodes.size() * PAGE {
+            self.nodes.read(offset, &mut bytes);
+        }
+        decode(&bytes)
+    }
+
+    fn write(&mut self, id: u64, slot: &Slot) {
+        let end = (id + 1) * SLOT as u64;
+        let pages = end.div_ceil(PAGE);
+        if pages > self.nodes.size() {
+            assert!(
+                self.nodes.grow(pages - self.nodes.size()) >= 0,
+                "certified map memory"
+            );
+        }
+        self.nodes.write(id * SLOT as u64, &encode(slot));
+    }
+
+    fn meta(&self) -> Meta {
+        match self.read(0) {
+            Slot::Meta(m) => m,
+            _ => panic!("certified map meta"),
         }
     }
 
     fn node(&self, id: u64) -> (u32, [Child; 2]) {
-        match self.nodes.get(&id) {
-            Some(Record::Node { crit, children }) => (crit, children),
+        match self.read(id) {
+            Slot::Node { crit, children } => (crit, children),
             _ => panic!("certified map node {id}"),
         }
     }
 
+    // Take a free slot, or the next unused one.
+    fn allocate(&self, meta: &mut Meta) -> u64 {
+        if meta.free == 0 {
+            meta.next += 1;
+            return meta.next - 1;
+        }
+        let id = meta.free;
+        match self.read(id) {
+            Slot::Free { next } => meta.free = next,
+            _ => panic!("certified map free slot {id}"),
+        }
+        id
+    }
+
     pub fn root_hash(&self) -> Hash {
         self.meta()
-            .0
+            .root
             .map_or_else(|| empty().digest(), |root| root.hash)
     }
 
@@ -257,8 +305,9 @@ impl<M: Memory> CertMap<M> {
         (steps, at)
     }
 
-    // Store `child` below the last of `steps` and rehash every node above it.
-    fn rehash(&mut self, steps: Vec<Step>, mut child: Option<Child>, next: u64) {
+    // Store `child` below the last of `steps`, rehash every node above it and
+    // record the new root in `meta`.
+    fn rehash(&mut self, steps: Vec<Step>, mut child: Option<Child>, mut meta: Meta) {
         for Step {
             id,
             crit,
@@ -268,18 +317,20 @@ impl<M: Memory> CertMap<M> {
         {
             children[side] = child.expect("a node keeps both children");
             let hash = fork_hash(&children[0].hash, &children[1].hash);
-            self.nodes.insert(id, Record::Node { crit, children });
+            self.write(id, &Slot::Node { crit, children });
             child = Some(Child {
                 at: Ref::Node(id),
                 hash,
             });
         }
-        self.nodes.insert(0, Record::Meta { root: child, next });
+        meta.root = child;
+        self.write(0, &Slot::Meta(meta));
     }
 
     /// Certify a child with hash `child` under `key`, without publishing.
     /// Returns false when the key already certifies the same hash.
     pub fn set(&mut self, key: Vec<u8>, child: Hash) -> bool {
+        assert!(key.len() <= MAX_KEY, "certified key longer than {MAX_KEY}");
         let old = self.leaves.insert(key.clone(), child);
         if old == Some(child) {
             return false;
@@ -288,12 +339,12 @@ impl<M: Memory> CertMap<M> {
             at: Ref::Leaf(key.clone()),
             hash: labeled_hash(&key, &child),
         };
-        let (root, next) = self.meta();
-        let (mut steps, bottom) = self.walk(root.clone(), &key);
+        let mut meta = self.meta();
+        let (mut steps, bottom) = self.walk(meta.root.clone(), &key);
         let closest = match (old, bottom) {
             // A changed key keeps its place; the first key becomes the root.
             (Some(_), _) | (None, None) => {
-                self.rehash(steps, Some(leaf), next);
+                self.rehash(steps, Some(leaf), meta);
                 return true;
             }
             (None, Some(closest)) => closest,
@@ -307,18 +358,19 @@ impl<M: Memory> CertMap<M> {
         let kept = steps.partition_point(|step| step.crit < d);
         let below = match kept.checked_sub(1) {
             Some(i) => steps[i].children[steps[i].side].clone(),
-            None => root.expect("a non-empty map"),
+            None => meta.root.clone().expect("a non-empty map"),
         };
         steps.truncate(kept);
         let mut children = [below.clone(), below];
         children[bit(&key, d)] = leaf;
         let hash = fork_hash(&children[0].hash, &children[1].hash);
-        self.nodes.insert(next, Record::Node { crit: d, children });
+        let id = self.allocate(&mut meta);
+        self.write(id, &Slot::Node { crit: d, children });
         let node = Child {
-            at: Ref::Node(next),
+            at: Ref::Node(id),
             hash,
         };
-        self.rehash(steps, Some(node), next + 1);
+        self.rehash(steps, Some(node), meta);
         true
     }
 
@@ -327,14 +379,15 @@ impl<M: Memory> CertMap<M> {
         if self.leaves.remove(&key.to_vec()).is_none() {
             return false;
         }
-        let (root, next) = self.meta();
-        let (mut steps, _) = self.walk(root, key);
-        // The leaf's parent is replaced by the leaf's sibling.
+        let mut meta = self.meta();
+        let (mut steps, _) = self.walk(meta.root.clone(), key);
+        // The leaf's parent is replaced by the leaf's sibling; its slot is freed.
         let sibling = steps.pop().map(|parent| {
-            self.nodes.remove(&parent.id);
+            self.write(parent.id, &Slot::Free { next: meta.free });
+            meta.free = parent.id;
             parent.children[1 - parent.side].clone()
         });
-        self.rehash(steps, sibling, next);
+        self.rehash(steps, sibling, meta);
         true
     }
 
@@ -368,7 +421,7 @@ impl<M: Memory> CertMap<M> {
     /// `child` and checked against the certified hash, otherwise the
     /// neighbouring labels that prove its absence.
     pub fn witness(&self, keys: &[&[u8]], mut child: impl FnMut(&[u8]) -> HashTree) -> HashTree {
-        let Some(root) = self.meta().0 else {
+        let Some(root) = self.meta().root else {
             return empty();
         };
         let mut targets = std::collections::BTreeMap::new();
@@ -513,6 +566,24 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "certified key longer than 64")]
+    fn keys_longer_than_a_slot_are_refused() {
+        map().insert(vec![1; MAX_KEY + 1], b"value");
+    }
+
+    #[test]
+    fn longest_keys_survive_their_slot_encoding() {
+        let mut m = map();
+        let mut expected = BTreeMap::new();
+        for n in 0u8..8 {
+            let key = [vec![n; 1], vec![255; MAX_KEY - 1]].concat();
+            m.insert(key.clone(), &key);
+            expected.insert(key.clone(), key);
+        }
+        check(&m, &expected, &[vec![255; MAX_KEY]]);
+    }
+
+    #[test]
     fn one_witness_reveals_several_keys() {
         let mut m = map();
         for key in [&b"b"[..], b"d", b"f", b"h"] {
@@ -569,7 +640,15 @@ mod tests {
             }
         }
         assert_eq!(forward.root_hash(), half.root_hash());
-        // Removed nodes are deleted; one internal node per extra key remains.
-        assert_eq!(forward.nodes.len(), 1 + (forward.len() - 1));
+        // Freed slots are reused: adding the removed keys back allocates none.
+        let next = forward.meta().next;
+        for (i, key) in keys.iter().enumerate() {
+            if i % 2 == 0 {
+                forward.insert(key.clone(), key);
+            }
+        }
+        assert_eq!(forward.meta().next, next);
+        assert_eq!(forward.meta().free, 0);
+        assert_eq!(forward.root_hash(), backward.root_hash());
     }
 }

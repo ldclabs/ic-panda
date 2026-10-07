@@ -57,6 +57,7 @@ thread_local! {
     static PIN_ON_READ: RefCell<Option<(Principal,Hash)>> = const { RefCell::new(None) };
     static PAUSE_ON_READ: RefCell<Option<Principal>> = const { RefCell::new(None) };
     static CALL_COUNTS: RefCell<(u64, u64)> = const { RefCell::new((0, 0)) };
+    static READ_DELAY: RefCell<u8> = const { RefCell::new(0) };
 }
 
 #[ic_cdk::update]
@@ -73,6 +74,12 @@ async fn get_neuron(request: Request) -> Response {
                 .await
                 .unwrap();
         result.unwrap();
+    }
+    // Each raw_rand reply arrives in a later round, holding the caller's check open.
+    for _ in 0..READ_DELAY.with_borrow_mut(std::mem::take) {
+        let _: Vec<u8> = dmsg_runtime::call(Principal::management_canister(), "raw_rand", ())
+            .await
+            .unwrap();
     }
     let pause = PAUSE_ON_READ.with_borrow_mut(Option::take);
     if let Some(membership) = pause {
@@ -103,6 +110,12 @@ fn list_sns_canisters(_: Empty) -> SnsCanisters {
 #[ic_cdk::query]
 fn icrc1_decimals() -> u8 {
     8
+}
+
+/// Delay the next neuron read by `rounds` rounds.
+#[ic_cdk::update]
+fn delay_neuron_read(rounds: u8) {
+    READ_DELAY.with_borrow_mut(|value| *value = rounds);
 }
 
 #[ic_cdk::update]

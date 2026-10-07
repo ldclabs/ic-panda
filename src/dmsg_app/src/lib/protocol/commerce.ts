@@ -30,6 +30,12 @@ export const beneficiaryValue = (value: Beneficiary) => ({
 })
 
 export { toCandid } from './app-action'
+/** Convert a method's plain (non-Result) Candid reply into SDK wire values. */
+export function wireValue(plane: CommercePlane, method: string, value: unknown) {
+  const type = apiMethod(plane, method).retTypes[0]
+  ensure(type, 'UNSUPPORTED_PROTOCOL')
+  return fromCandid(type, value)
+}
 export function wireResult(plane: CommercePlane, method: string, value: unknown) {
   const result = apiMethod(plane, method).retTypes[0] as IDL.VariantClass
   const type = result._fields.find(([name]) => name === 'Ok')?.[1]

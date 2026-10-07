@@ -44,6 +44,7 @@ cbor2.workspace = true
 serde.workspace = true
 serde_bytes.workspace = true
 ed25519-dalek.workspace = true
+flate2 = "1"
 ic-certification.workspace = true
 ic-stable-structures.workspace = true
 icrc-ledger-types.workspace = true

@@ -219,11 +219,13 @@ export function validateProduct(product: ProductRegistration): void {
     "INVALID_INPUT",
   );
   unique(product.ledgers, 2);
+  // One authority per subject home, like the app's user homes (MAX_USER_HOMES).
+  unique(product.beneficiary_authorities, 64);
   for (const p of [
     product.quote_authority,
-    product.beneficiary_authority,
     product.adapter,
     product.merchant.owner,
+    ...product.beneficiary_authorities,
     ...product.ledgers,
   ])
     validatePrincipal(p);
@@ -244,7 +246,9 @@ function validateSubject(
 ): void {
   ensure(
     subject.product_id === product.product_id &&
-      equalBytes(subject.authority_canister, product.beneficiary_authority) &&
+      product.beneficiary_authorities.some((a) =>
+        equalBytes(subject.authority_canister, a),
+      ) &&
       subject.subject_schema === product.subject_schema &&
       BigInt(subject.subject_bytes.length) === product.subject_size,
     "INVALID_INPUT",

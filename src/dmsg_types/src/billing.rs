@@ -109,10 +109,28 @@ pub struct CommerceInit {
     pub user_homes: Vec<Principal>,
     /// Fixed catalog snapshot.
     pub catalog: Catalog,
-    /// Maximum retained beneficiary subjects.
+    /// Admission limits; governance can change them later.
+    pub limits: CommerceLimits,
+}
+
+/// Commerce admission limits. Only new subjects, orders and outgoing calls are
+/// refused when a limit is reached; recovery of accepted operations continues.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CommerceLimits {
+    /// Maximum retained beneficiary subjects, which only paying accounts create.
     pub max_subjects: u64,
+    /// Maximum orders kept in the hot table, including live subscriptions.
+    pub max_hot_orders: u64,
+    /// Maximum order identities ever admitted, hot and archived.
+    pub max_orders: u64,
     /// New merchant-order limit per UTC day.
     pub daily_orders: u32,
+    /// Funding, product and outgoing-transfer calls per UTC minute.
+    pub calls_per_minute: u32,
+    /// Quote and checkout authorization calls per UTC minute.
+    pub authorizations_per_minute: u32,
+    /// PANDA qualification refreshes per UTC minute.
+    pub refreshes_per_minute: u32,
 }
 
 /// Source of the base benefit; SNS qualification is not cash revenue.

@@ -26,8 +26,7 @@ pub struct Config {
     pub governance: Principal,
     pub membership_canister: Principal,
     pub user_homes: Vec<Principal>,
-    pub max_subjects: u64,
-    pub daily_orders: u32,
+    pub limits: CommerceLimits,
     pub paused: bool,
     pub day: u64,
     pub orders: u32,
@@ -44,8 +43,7 @@ impl Config {
             governance: init.governance,
             membership_canister: init.membership_canister,
             user_homes: init.user_homes,
-            max_subjects: init.max_subjects,
-            daily_orders: init.daily_orders,
+            limits: init.limits,
             paused: false,
             day: 0,
             orders: 0,
@@ -58,9 +56,11 @@ impl Config {
 }
 
 thread_local! {
+    // Stable memory itself; on the host a shared vector the capacity image exports.
+    pub(crate) static RAW: DefaultMemoryImpl = DefaultMemoryImpl::default();
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(MemoryManager::init(RAW.with(Clone::clone)));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     static CONFIG: RefCell<Option<Config>> = RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
@@ -121,6 +121,35 @@ pub fn add_user_home(home: Principal) {
     persist_config();
 }
 
+/// Upper bounds a governance limit may take; they bound stable memory and
+/// per-minute work to what the capacity profile has measured.
+pub const MAX_SUBJECTS: u64 = 10_000_000;
+pub const MAX_ORDERS: u64 = 10_000_000;
+pub const MAX_DAILY_ORDERS: u32 = 1_000_000;
+pub const MAX_CALLS_PER_MINUTE: u32 = 100_000;
+
+pub fn check_limits(l: &CommerceLimits) -> Result<()> {
+    ensure_valid(
+        (1..=MAX_SUBJECTS).contains(&l.max_subjects)
+            && (1..=MAX_ORDERS).contains(&l.max_orders)
+            && (1..=l.max_orders).contains(&l.max_hot_orders)
+            && (1..=MAX_DAILY_ORDERS).contains(&l.daily_orders)
+            && [
+                l.calls_per_minute,
+                l.authorizations_per_minute,
+                l.refreshes_per_minute,
+            ]
+            .iter()
+            .all(|n| (1..=MAX_CALLS_PER_MINUTE).contains(n)),
+        "commerce limits",
+    )
+}
+
+pub fn set_limits(limits: CommerceLimits) {
+    config_mut(|c| c.limits = limits);
+    persist_config();
+}
+
 pub enum CallBudget {
     Funds(Principal),
     Refresh(Principal),
@@ -136,21 +165,27 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
             c.refreshes.clear();
             c.authorizations.clear();
         }
+        let l = &c.limits;
+        // A user home serves all of its accounts, so it may use the whole refresh budget.
         let (counts, caller, global, per_caller) = match kind {
-            CallBudget::Funds(caller) => (&mut c.reads, caller, 400, 40),
-            CallBudget::Refresh(caller) => {
-                let limit = if c.user_homes.contains(&caller) {
-                    200
-                } else {
-                    20
-                };
-                (&mut c.refreshes, caller, 200, limit)
-            }
-            CallBudget::Authorization(caller) => (&mut c.authorizations, caller, 200, 10),
+            CallBudget::Funds(caller) => (&mut c.reads, caller, l.calls_per_minute, 40),
+            CallBudget::Refresh(caller) if c.user_homes.contains(&caller) => (
+                &mut c.refreshes,
+                caller,
+                l.refreshes_per_minute,
+                l.refreshes_per_minute,
+            ),
+            CallBudget::Refresh(caller) => (&mut c.refreshes, caller, l.refreshes_per_minute, 20),
+            CallBudget::Authorization(caller) => (
+                &mut c.authorizations,
+                caller,
+                l.authorizations_per_minute,
+                10,
+            ),
         };
         ensure(counts.values().sum::<u32>() < global, Error::QuotaExceeded)?;
         let used = counts.entry(caller).or_default();
-        ensure(*used < per_caller, Error::QuotaExceeded)?;
+        ensure(*used < per_caller.min(global), Error::QuotaExceeded)?;
         *used += 1;
         Ok(())
     })
@@ -162,7 +197,7 @@ pub fn reserve_order(at: u64) -> Result<()> {
             c.day = at / DAY;
             c.orders = 0;
         }
-        ensure(c.orders < c.daily_orders, Error::QuotaExceeded)?;
+        ensure(c.orders < c.limits.daily_orders, Error::QuotaExceeded)?;
         c.orders += 1;
         Ok(())
     })

@@ -61,8 +61,7 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
             && e.month.calculation_version == 1
             && e.month.business_revision == e.view.business_revision
             && e.view.issued_at_ms <= now
-            && now < e.view.valid_until_ms
-            && e.view.valid_until_ms <= e.view.issued_at_ms.saturating_add(60 * MINUTE),
+            && now < e.view.valid_until_ms,
         Error::MembershipStale,
     )?;
     ensure(
@@ -78,7 +77,9 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
                 && e.month.month_revision >= m.usage.month_revision,
             Error::PolicyStale,
         )?;
-        if e.view.lease_revision == m.usage.lease_revision {
+        // Revision 0 is the stateless Free projection of an account without a
+        // commerce record; it follows the catalogs, not a stored lease.
+        if e.view.lease_revision == m.usage.lease_revision && e.view.lease_revision > 0 {
             ensure(
                 entitlement_digest == m.entitlement_digest,
                 Error::IntegrityFailed,
@@ -95,7 +96,9 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
         allowed_units: e.month.allowed_units,
         held_units: old.as_ref().map_or(0, |m| m.usage.held_units),
         charged_units: old.as_ref().map_or(0, |m| m.usage.charged_units),
-        valid_until_ms: e.view.valid_until_ms,
+        // Recheck business terms hourly even when the resource lease runs longer,
+        // so an upgrade reaches the execution allowance without a manual refresh.
+        valid_until_ms: e.view.valid_until_ms.min(now.saturating_add(60 * MINUTE)),
     };
     save(&Month {
         usage,

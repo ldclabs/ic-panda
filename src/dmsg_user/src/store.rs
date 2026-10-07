@@ -119,4 +119,4 @@ pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
     expired.len() as u32
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 11;
+pub(crate) const STABLE_SCHEMA: u16 = 12;

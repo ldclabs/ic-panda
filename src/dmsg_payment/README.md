@@ -38,7 +38,7 @@ ICP 上的最小资金托管和结算实现。当前支持公开的 `profiles::d
 
 ## 实现
 
-`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 10 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
+`api.rs` 负责外部调用和本地提交，`model.rs` 验证报价、收据及资金转换，`state.rs` 保存内部资金记录，`store.rs` 保存稳定表和公开认证视图。schema 11 的私有 `stable_codec.rs` 为配置和 escrow 使用 CBOR 整数 map key，共用 compact representation 覆盖报价、入金、出金与 signer；付款方和报价索引只保存键，已归零的付款方开放订单计数删除；出金块索引保存 `(escrow_id, leg_id)`；Quote/AdmissionReceipt 摘要和 EscrowInfo 认证叶格式不变；配置认证叶新增总容量，退款腿记录合并选择。`dmsg_runtime::ledger` 是独立账本适配器。
 
 ## 执行成本与恢复边界
 

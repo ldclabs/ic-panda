@@ -1,4 +1,5 @@
 //! Checkout persistence, authenticated price history, reader indexes and cold history.
+//! Orders, transfers and assets have no certified leaves; their reads are access-checked queries.
 use crate::{
     checkout_model::{Order, Transfer},
     store,
@@ -20,8 +21,6 @@ use std::{
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type Table<V> = StableBTreeMap<Vec<u8>, V, Memory>;
 const HISTORY_MS: u64 = 30 * DAY;
-const MAX_FULL_ORDERS: u64 = 100_000;
-const MAX_ORDER_HISTORY: u64 = 1_000_000;
 const MAX_PRICE_HISTORY: usize = 256;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,7 +96,6 @@ pub(crate) fn save_asset(a: &Asset, at: u64) -> Result<()> {
         t.put(&key, &a.policy);
     });
     ASSETS.with_borrow_mut(|t| t.put(a.policy.ledger.as_slice(), a));
-    publish_assets();
     Ok(())
 }
 
@@ -134,9 +132,9 @@ pub(crate) fn order(id: Hash) -> Result<Order> {
 
 pub(crate) fn check_capacity() -> Result<()> {
     let full = ORDERS.with_borrow(|t| t.len());
+    let (hot, total) = store::config(|c| (c.limits.max_hot_orders, c.limits.max_orders));
     ensure(
-        full < MAX_FULL_ORDERS
-            && full + ARCHIVED_ORDERS.with_borrow(|t| t.len()) < MAX_ORDER_HISTORY,
+        full < hot && full + ARCHIVED_ORDERS.with_borrow(|t| t.len()) < total,
         Error::QuotaExceeded,
     )
 }
@@ -319,7 +317,7 @@ fn transfer_expiry(t: &Transfer) -> Option<u64> {
     .then_some(t.updated_at_ms.saturating_add(HISTORY_MS))
 }
 
-/// Internal bookkeeping never revives a cold certificate or moves its retention deadline.
+/// Internal bookkeeping never moves a record between tables or its retention deadline.
 pub(crate) fn save_state(o: &Order) {
     assert!(o.conserved(), "per-ledger money conservation");
     if ARCHIVED_ORDERS.with_borrow(|t| t.contains(o.id.as_slice())) {
@@ -348,7 +346,6 @@ pub(crate) fn save(o: &mut Order, at: u64) {
     if let Some(deadline) = o.archive_after() {
         ORDER_EXPIRY.with_borrow_mut(|t| t.put(&expiry_key(deadline, o.id), &()));
     }
-    store::certify(order_key(o.id), &o.view());
 }
 
 pub(crate) fn save_transfer(t: &mut Transfer, at: u64) {
@@ -395,7 +392,6 @@ pub(crate) fn sweep(at: u64) -> CheckoutHistorySweep {
                 o.reservation_released = true;
                 ARCHIVED_ORDERS.with_borrow_mut(|t| t.put(id.as_slice(), &o));
                 ORDERS.with_borrow_mut(|t| t.delete(id.as_slice()));
-                store::CERT.with_borrow_mut(|c| c.remove(&order_key(id)));
                 orders += 1;
             }
         }
@@ -415,25 +411,6 @@ pub(crate) fn sweep(at: u64) -> CheckoutHistorySweep {
         TRANSFER_EXPIRY.with_borrow_mut(|t| t.delete(&key));
     }
     CheckoutHistorySweep { orders, transfers }
-}
-
-pub(crate) fn order_certificate_available(id: Hash) -> Result<()> {
-    ensure(
-        ORDERS.with_borrow(|t| t.contains(id.as_slice())),
-        Error::ResultExpired,
-    )
-}
-
-pub(crate) fn order_key(id: Hash) -> Vec<u8> {
-    digest("dmsg/checkout/certificate/v2", &id).to_vec()
-}
-
-pub(crate) fn assets_key() -> Vec<u8> {
-    digest("dmsg/settlement-assets/v2", &"supported").to_vec()
-}
-
-pub(crate) fn publish_assets() {
-    store::certify(assets_key(), &asset_views());
 }
 
 pub(crate) fn asset_views() -> Vec<SettlementAssetView> {
@@ -459,8 +436,7 @@ mod tests {
             governance: principal(90),
             membership_canister: principal(91),
             user_homes: vec![principal(92)],
-            max_subjects: 1000,
-            daily_orders: 1000,
+            limits: fixture::limits(),
             catalog: Catalog {
                 schema: 1,
                 version: 1,
@@ -470,6 +446,10 @@ mod tests {
                 terms_digest: Hash::new([8; 32]),
             },
         }));
+    }
+
+    fn hot(id: Hash) -> bool {
+        ORDERS.with_borrow(|t| t.contains(id.as_slice()))
     }
 
     fn closed(i: u64) -> Order {
@@ -484,7 +464,7 @@ mod tests {
     }
 
     #[test]
-    fn history_preserves_input_identity_and_reader_pages_and_drops_cold_leaves() {
+    fn history_preserves_input_identity_reader_pages_and_late_refunds() {
         setup();
         let mut o = closed(1);
         let original = o.clone();
@@ -497,10 +477,7 @@ mod tests {
         assert_eq!(archived.input_hash, original.input_hash);
         assert_eq!(archived.view(), original.view());
         assert!(compact_bytes(&archived).len() < compact_bytes(&original).len());
-        assert_eq!(order_certificate_available(o.id), Err(Error::ResultExpired));
-        assert!(store::CERT
-            .with_borrow(|c| c.get(&order_key(o.id)))
-            .is_none());
+        assert!(!hot(o.id));
         let page = operations(o.quote.cash.payer.owner, None, 32).unwrap();
         assert_eq!(page.orders.len(), 1);
         assert!(page.next.is_none());
@@ -515,7 +492,7 @@ mod tests {
             },
         );
         save(&mut restored, due + 1);
-        assert!(order_certificate_available(o.id).is_ok());
+        assert!(hot(o.id));
         assert_eq!(sweep(due + 100 * DAY).orders, 0);
         assert_eq!(order(o.id).unwrap().input_hash, original.input_hash);
     }
@@ -628,7 +605,7 @@ mod tests {
         assert_eq!(sweep(at).orders, 32);
         assert_eq!(sweep(at).orders, 32);
         assert_eq!(sweep(at).orders, 5);
-        assert!(order_certificate_available(o.id).is_ok());
+        assert!(hot(o.id));
         o.pending_transfers = 0;
         save(&mut o, at);
         assert_eq!(sweep(at).orders, 0);

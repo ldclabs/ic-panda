@@ -53,7 +53,7 @@ export const schemas = {
     "product_id": "String",
     "config_version": "u64",
     "quote_authority": "Principal",
-    "beneficiary_authority": "Principal",
+    "beneficiary_authorities": "Vec<Principal>",
     "adapter": "Principal",
     "subject_schema": "String",
     "subject_size": "u16",

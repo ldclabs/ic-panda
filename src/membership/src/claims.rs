@@ -110,8 +110,9 @@ async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) 
         Result<Result<ProductAuthorization>>,
         Result<Result<ApplicationAuthorization>>,
     ) = futures::future::join(
+        // The subject's own authority, which the registration lists.
         call(
-            product.beneficiary_authority,
+            t.offer.beneficiary.authority_canister,
             "authorize_product_billing",
             (a.clone(),),
         ),

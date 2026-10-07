@@ -34,8 +34,10 @@ types; independent encoder tests prevent sharing the same serialization bug.
 
 An application pins exact canonical origins, authentication receiver, user and
 COSE homes, the fixed action authority, capabilities, closed signing profiles and product IDs. A product pins its quote authority,
-beneficiary authority, adapter, subject schema/size, merchant account, ledgers
-and terms. A paused registration stops **new** approvals
+beneficiary authorities, adapter, subject schema/size, merchant account, ledgers
+and terms. A subject names one of the beneficiary authorities, which is asked for
+its product authorization; the list is append-only, so a dMsg account product
+lists every user home. A paused registration stops **new** approvals
 and commitments; it must not stop reconciliation, refunds or expiry processing.
 
 Applications and products are governance registered. Configuration updates
@@ -103,7 +105,8 @@ half-open intervals: equality with expiry is already expired.
 | Initial cash activation | 24 hours, bounded by contract end |
 | PANDA application | 24 hours, bounded by contract end |
 | New PANDA cooling | At least 65 minutes; application must outlive cooling |
-| Qualification lease | At most one hour, truncated to the contract end |
+| PANDA qualification lease | At most one hour, truncated to the contract end |
+| Cash, expired and Free resource lease | At most 30 days, ending at the next known limit change |
 | Rate policy notice | At least 30 days |
 | Per-account pending operations | 32 |
 | Successful external approvals | 60 per account per UTC hour |

@@ -168,9 +168,10 @@ fn rejection(e: &Error) -> ProductRejection {
     }
 }
 
-fn service(method: SettlementMethod) -> Principal {
+/// The settlement service of a method: this canister settles cash.
+fn service(home: Principal, method: SettlementMethod) -> Principal {
     match method {
-        SettlementMethod::Cash => ic_cdk::api::canister_self(),
+        SettlementMethod::Cash => home,
         SettlementMethod::Panda => store::config(|c| c.membership_canister),
     }
 }
@@ -182,9 +183,12 @@ fn settlement(a: &ApplicationApproval) -> SettlementMethod {
     }
 }
 
-fn registration(app: &str, product: &str) -> Result<(AppRegistration, ProductRegistration)> {
+fn registration(
+    home: Principal,
+    app: &str,
+    product: &str,
+) -> Result<(AppRegistration, ProductRegistration)> {
     let (a, p) = crate::registrations::product_configuration(app, product)?;
-    let home = ic_cdk::api::canister_self();
     ensure(
         p.quote_authority == home && p.adapter == home,
         Error::Forbidden,
@@ -192,7 +196,10 @@ fn registration(app: &str, product: &str) -> Result<(AppRegistration, ProductReg
     Ok((a, p))
 }
 
+/// The authoritative offer. Its terms come from the product registration alone,
+/// so a terms change takes effect with that registration, not a catalog switch.
 fn offer(
+    home: Principal,
     app_id: String,
     b: Beneficiary,
     sku: String,
@@ -202,12 +209,8 @@ fn offer(
     let s = api::get_subject(&b)?;
     validate_identifier(&sku)?;
     nonzero(operation_id.as_slice())?;
-    let (app, product) = registration(&app_id, &b.product_id)?;
+    let (app, product) = registration(home, &app_id, &b.product_id)?;
     let catalog = store::catalog(at);
-    ensure(
-        product.terms_hash == catalog.terms_digest,
-        Error::PolicyStale,
-    )?;
     let base = BOOKS.with_borrow(|t| t.load(base_key(&b).as_slice()));
     let current = base.as_ref().and_then(|book| {
         book.contracts.iter().rev().find(|c| {
@@ -285,7 +288,6 @@ fn offer(
             )
         }
     };
-    let home = ic_cdk::api::canister_self();
     let value = BillingOffer {
         version: 2,
         environment: store::config(|c| c.environment.clone()),
@@ -299,7 +301,7 @@ fn offer(
         quote_authority: home,
         adapter: home,
         sku,
-        product_terms_hash: catalog.terms_digest,
+        product_terms_hash: product.terms_hash,
         expected_business_revision: s.business_revision,
         amount_usd_micros: amount,
         starts_at_ms: start,
@@ -320,23 +322,28 @@ fn prepare_account_subscription(
     sku: String,
     operation_id: Hash,
 ) -> Result<BillingOffer> {
-    offer(app_id, beneficiary, sku, operation_id, now())
+    offer(
+        ic_cdk::api::canister_self(),
+        app_id,
+        beneficiary,
+        sku,
+        operation_id,
+        now(),
+    )
 }
 
 #[ic_cdk::update]
 fn verify_billing_offer(value: BillingOffer) -> Result<()> {
+    let home = ic_cdk::api::canister_self();
     ensure(
-        [
-            ic_cdk::api::canister_self(),
-            store::config(|c| c.membership_canister),
-        ]
-        .contains(&ic_cdk::api::msg_caller()),
+        [home, store::config(|c| c.membership_canister)].contains(&ic_cdk::api::msg_caller()),
         Error::Forbidden,
     )?;
     let at = now();
     ensure(
         at < value.accept_by_ms
             && offer(
+                home,
                 value.app_id.clone(),
                 value.beneficiary.clone(),
                 value.sku.clone(),
@@ -349,11 +356,13 @@ fn verify_billing_offer(value: BillingOffer) -> Result<()> {
 
 /// The entry has already matched its caller to `service`.
 async fn validate_request(
+    home: Principal,
     request: &ProductAuthorizationRequest,
     service: Principal,
     at: u64,
 ) -> Result<()> {
     let expected = offer(
+        home,
         request.offer.app_id.clone(),
         request.offer.beneficiary.clone(),
         request.offer.sku.clone(),
@@ -392,7 +401,8 @@ async fn reserve_product_billing(
     request: ProductAuthorizationRequest,
     until_ms: u64,
 ) -> Result<()> {
-    let service = service(settlement(&request.account_approval));
+    let home = ic_cdk::api::canister_self();
+    let service = service(home, settlement(&request.account_approval));
     ensure(ic_cdk::api::msg_caller() == service, Error::Forbidden)?;
     ensure(!released(&request.offer), Error::Forbidden)?;
     let at = now();
@@ -406,7 +416,7 @@ async fn reserve_product_billing(
     {
         return b.reserve(request, until_ms, at);
     }
-    validate_request(&request, service, at).await?;
+    validate_request(home, &request, service, at).await?;
     let at = now();
     ensure(!released(&request.offer), Error::Forbidden)?;
     let mut b = book(
@@ -425,7 +435,11 @@ async fn reserve_product_billing(
 #[ic_cdk::update]
 fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == service(settlement(&request.account_approval)),
+        ic_cdk::api::msg_caller()
+            == service(
+                ic_cdk::api::canister_self(),
+                settlement(&request.account_approval),
+            ),
         Error::Forbidden,
     )?;
     let mut b = book(
@@ -450,8 +464,9 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
         SettlementSource::Cash { .. } => SettlementMethod::Cash,
         SettlementSource::Panda { .. } => SettlementMethod::Panda,
     };
+    let home = ic_cdk::api::canister_self();
     ensure(
-        ic_cdk::api::msg_caller() == service(method),
+        ic_cdk::api::msg_caller() == service(home, method),
         Error::Forbidden,
     )?;
     if let Some(old) = receipt(decision.decision_id) {
@@ -530,7 +545,7 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
     let result = active
         .map_err(|_| Error::Forbidden)
         .and(source)
-        .and_then(|source| deliver(&decision, source, at));
+        .and_then(|source| deliver(home, &decision, source, at));
     Ok(match result {
         Ok(r) => r,
         Err(e) => reject(&decision, rejection(&e), at),
@@ -539,6 +554,7 @@ async fn apply_product_decision(decision: ProductDecision) -> Result<ProductRece
 
 /// Build the contract, resources and receipt, then commit them together.
 fn deliver(
+    home: Principal,
     decision: &ProductDecision,
     source: SubscriptionSource,
     at: u64,
@@ -613,7 +629,7 @@ fn deliver(
     s.business_revision = b.business_revision;
     // Complete the fallible projection before writing the contract and receipt.
     model::project(
-        ic_cdk::api::canister_self(),
+        home,
         &mut s,
         &store::catalog(at),
         at,
@@ -645,10 +661,8 @@ fn cancel_cash_contract(
     contract_id: Hash,
     decision_hash: Hash,
 ) -> Result<CashCancellationReceipt> {
-    ensure(
-        ic_cdk::api::msg_caller() == ic_cdk::api::canister_self(),
-        Error::Forbidden,
-    )?;
+    let home = ic_cdk::api::canister_self();
+    ensure(ic_cdk::api::msg_caller() == home, Error::Forbidden)?;
     if let Some(old) = CANCELLATIONS.with_borrow(|t| t.load(order_id.as_slice())) {
         ensure(
             old.contract_id == contract_id && old.decision_hash == decision_hash,
@@ -672,7 +686,7 @@ fn cancel_cash_contract(
         s.addons.retain(|c| c.contract_id != contract_id);
         s.business_revision = b.business_revision;
         model::project(
-            ic_cdk::api::canister_self(),
+            home,
             &mut s,
             &store::catalog(at),
             at,
