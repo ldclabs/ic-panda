@@ -22,14 +22,15 @@ pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee
 
 /// Validate a handle and convert ASCII letters to lowercase.
 ///
-/// Accepts 1..20 ASCII letters, digits or underscores, with no leading underscore.
+/// Accepts 1..19 ASCII letters, digits or underscores, with no leading underscore.
+/// The cap keeps handles disjoint from 20-character `AccountId` Xid text.
 /// Does not trim whitespace or perform Unicode normalization.
 ///
 /// # Errors
 /// Invalid length, prefix or characters return `Error::InvalidInput`.
 pub fn normalize_handle(handle: &str) -> Result<String> {
     ensure_valid(
-        !handle.is_empty() && handle.len() <= 20 && !handle.starts_with('_'),
+        !handle.is_empty() && handle.len() <= 19 && !handle.starts_with('_'),
         "handle length/prefix",
     )?;
     ensure_valid(
@@ -58,7 +59,7 @@ pub fn handle_bucket(handle: &str) -> u32 {
 
 const PANDA: u128 = 100_000_000;
 
-/// Lowest registration price in PANDA base units, charged for 7..20-byte names.
+/// Lowest registration price in PANDA base units, charged for 7..19-byte names.
 pub const MIN_HANDLE_PRICE: u128 = 100 * PANDA;
 
 /// Return the fixed PANDA registration price in base units (8 decimal places).

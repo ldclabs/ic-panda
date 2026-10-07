@@ -803,7 +803,7 @@ type HandleIntent = record {
   action : HandleAction;
   // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
-  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
   // Current record version required for compare-and-swap.
   expected_version : nat64;

@@ -183,3 +183,7 @@ COSE 与 user 的每日预算在管理调用返回后结算为实际扣费：`Ex
 多实例：`dmsg_handle` 新增 `registration_homes`（`admin_set_registration_homes` 与 `validate_*`），客户端启动时从 handle 读取权威 home 列表与注册入口，对各 home 并行 `my_account` 定位账户；`AppRegistration` 不再列 `user_homes`/`cose_homes`，commerce 在 checkout 时核对账户 home；user 新增 `user_stats`。稳定布局：user schema 13、COSE schema 10、handle 与 commerce 各自推进；开发实例需重装。
 
 PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wasm 上通过，覆盖根 CAS 接收者绑定、认证按月计费与重放、受保留窗口与升级、登录恢复可见/争议/完成、恢复派生与 IBE 往返、自持 controller 注册与本机签名、第二个 home 的注册入口治理。客户端 `check` 0 错误、166 项单元测试通过；真实扩展 E2E、私有云端和生产 II origin 本轮未验收。
+
+## 2026-10-07 handle 名称上限改为 19 字节
+
+`normalize_handle` 与客户端 `canonicalHandle` 只接受 1–19 字节的名称，使名称不会与 `AccountId` 的 20 字符 Xid 文本重合，`/<handle>` 与 `/u/<account_id>` 不会产生歧义。7–19 字节价格仍为 100 PANDA。2026-10-07 查询主网旧 `ic_message` 的名称区块：203 个不同名称，最长 17 字节，旧名导入不受影响。

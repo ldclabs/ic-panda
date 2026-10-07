@@ -40,9 +40,9 @@ export const handleBucketPath = (name: string) => {
 export function canonicalHandle(value: string) {
   const name = value.toLowerCase()
   ensure(
-    /^[a-z0-9][a-z0-9_]{0,19}$/.test(name),
+    /^[a-z0-9][a-z0-9_]{0,18}$/.test(name),
     'INVALID_INPUT',
-    '名称应为 1–20 个字母、数字或下划线，且不能以下划线开头。'
+    '名称应为 1–19 个字母、数字或下划线，且不能以下划线开头。'
   )
   return name
 }

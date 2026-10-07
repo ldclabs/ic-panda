@@ -32,7 +32,7 @@ pub struct HandleIntent {
     pub account_id: AccountId,
     /// Recipient account for transfer-related operations, when required.
     pub target_account: Option<AccountId>,
-    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
     pub handle: String,
     /// Current record version required for compare-and-swap.
     pub expected_version: u64,
@@ -86,7 +86,7 @@ pub struct LegacySnapshot {
 /// Frozen name claim; ambiguous ownership is quarantined for resolution.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LegacyReservation {
-    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
     pub handle: String,
     /// Owner Principal captured at the legacy freeze.
     pub legacy_owner: Principal,
@@ -102,7 +102,7 @@ pub struct LegacyReservation {
 /// Current canonical name ownership and event-chain tip.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HandleRecord {
-    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
     pub handle: String,
     /// Stable dMsg account that currently owns the name.
     pub owner_account: AccountId,
@@ -119,7 +119,7 @@ pub struct HandleEvent {
     pub sequence: u64,
     /// Digest of the preceding ownership event.
     pub previous: Hash,
-    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+    /// Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
     pub handle: String,
     /// Previous owner account; None when assigning an unowned name.
     pub from: Option<AccountId>,

@@ -10,7 +10,12 @@ import type {
 } from '../src/lib/canisters/generated/handle'
 import { lookupCertifiedMap } from '../src/lib/services/certified'
 import { utf8 } from '../src/lib/protocol/codec'
-import { decodeClaim, handleBucketPath, legacyClaimDigest } from '../src/lib/protocol/handle'
+import {
+  canonicalHandle,
+  decodeClaim,
+  handleBucketPath,
+  legacyClaimDigest
+} from '../src/lib/protocol/handle'
 import { xidText } from '../src/lib/protocol/identity'
 
 const principal = (n: number) => Principal.fromUint8Array(new Uint8Array([n, 1]))
@@ -79,6 +84,12 @@ function fixture(
   )
   return { client, registry, progress, reservation, account }
 }
+
+it('caps names at 19 bytes so they never read as Xid account text', () => {
+  expect(canonicalHandle('A'.repeat(19))).toBe('a'.repeat(19))
+  expect(() => canonicalHandle('a'.repeat(20))).toThrow()
+  expect(() => canonicalHandle(xidText(accountBytes))).toThrow()
+})
 
 it('reads one frozen name and the sealed snapshot with plain queries', async () => {
   const { client, registry, progress } = fixture()

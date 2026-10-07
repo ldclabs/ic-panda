@@ -1547,7 +1547,7 @@ fn handle_active_name_capacity_profile() {
         };
         let snapshot = seal_snapshot(&f, std::slice::from_ref(&legacy));
         let record = |n: u64| HandleRecord {
-            handle: format!("capacity{n:012}"),
+            handle: format!("capacity{n:011}"),
             owner_account: owner,
             version: 1,
             event_tip: digest("capacity-fixture", &n),

@@ -120,7 +120,7 @@ type HandleEvent = record {
   from : opt blob;
   // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
-  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
   // Frozen snapshot commitment associated with the event.
   legacy_snapshot : blob;
@@ -161,7 +161,7 @@ type HandleIntent = record {
   action : HandleAction;
   // Idempotency identifier; reuse only with identical operation parameters.
   op_id : blob;
-  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
   // Current record version required for compare-and-swap.
   expected_version : nat64;
@@ -205,7 +205,7 @@ type HandleRecord = record {
   event_tip : blob;
   // Revision of this record/authorization, used for stale-state checks.
   version : nat64;
-  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
   // Stable dMsg account that currently owns the name.
   owner_account : blob;
@@ -215,7 +215,7 @@ type LegacyReservation = record {
   // Frozen administrator principals, never ordinary delegators. Empty means
   // an ambiguous name-account owner stays quarantined.
   frozen_admins : vec principal;
-  // Canonical name: lowercase ASCII letters/digits/underscore, 1..20 bytes; no leading underscore.
+  // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
   // Legacy name-account Principal, if the name used one.
   legacy_name_principal : opt principal;

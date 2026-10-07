@@ -143,7 +143,7 @@ fn legacy_normalization_and_panda_prices_are_preserved() {
         "名字",
         " alice",
         "a/b",
-        "123456789012345678901",
+        "12345678901234567890",
     ] {
         assert!(normalize_handle(name).is_err(), "{name}");
     }
