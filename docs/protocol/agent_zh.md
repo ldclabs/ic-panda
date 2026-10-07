@@ -33,6 +33,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 2. 签名前核对 generation 为当前 controller、本机 vault 公钥等于已登记公钥、设备具备 `FormalApprove`（客户端规则）。`created_at = max(now, valid_from)`，nonce 为本机记录的 `max(last + 1, created_at)`。
 3. 对 `SHA3-256(JCS(event))` 做 Ed25519 签名，信封的 `hash` 与 `signature` 为二者的 base64url（无填充）。信封先写入加密日志再提交；服务 5xx/408/429 时保留 `signed` 状态原样重提，4xx 为终态，需要新签名。
 4. grant 的 scope、依赖方、`expires_at`（不超过 366 天）由 SDK 的 `validate_delegation_acceptance` 在服务端按认证文档检查；revoke 与替换的所有权（lineage）同样由 delegation 服务在接收时检查。
+5. delegation ID 为 `<account_id>.<后缀>`，前缀是该 principal 的规范账户 ID 文本，扩展使用 128 位随机后缀。服务按这个前缀把凭证读取路由到账户，不以本账户 ID 加 `.` 开头的提交被拒绝。
 
 ## Directory
 
