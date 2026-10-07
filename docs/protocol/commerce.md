@@ -279,11 +279,15 @@ accessible records remain. `checkout_deposits(order_id, after, take)` returns up
 to 128 deposits with an opaque hash cursor. These pages show per-ledger obligations,
 Unknown decisions, fee blockage, expired leases and retained commitments. These
 observations are not delivery receipts. The extension's operations centre never
-offers to clear Unknown records or end an applied PANDA commitment.
+offers to clear Unknown records or end an applied PANDA commitment. The merchant's
+`collectable_checkouts(after, take)` pages its applied orders with uncollected
+revenue by term end, so a collection job that runs once per term stops at the
+first order whose term has not ended; `commerce_stats` reports live record counts,
+stable size and cycles against `get_commerce_limits`.
 
 Funding/product/outgoing work has a governed global allowance per UTC minute
-(initially 400) and 40 per caller; ledger reads include their bounded archive
-traversal. Authorization is separately limited (initially 200 global) and 10 per
+(initially 400) and a governed share per caller (`calls_per_caller`, initially
+40); ledger reads include their bounded archive traversal. Authorization is separately limited (initially 200 global) and 10 per
 caller. Qualification refreshes have a governed global limit (initially 200) and
 20 per public caller; registered user homes may use the global limit when serving
 their accounts. Each actual product call consumes an allowance,
@@ -305,6 +309,14 @@ restores the original order to the hot table and its original-source refund rout
 without reapplying service. Governance sets the admission limits for subjects,
 hot orders, total order identities, daily orders and per-minute calls within fixed
 upper bounds; the capacity profile measures the costs behind them.
+
+A deployment may run several commerce canisters. Each lists disjoint user homes,
+holds its own registrations, assets, catalog and orders, and is the
+`commerce_canister` of its homes' `dmsg_user` canisters. The shared membership
+maps each user home to its commerce in `PandaServiceConfig.commerce_homes`
+(append-only) and bounds SNS reads with `qualifications_per_minute`; the private
+cloud verifies catalog and entitlement evidence against the commerce of the
+account's home.
 
 Pausing admission preserves original-order reconciliation, original-source
 refunds, known transfer recovery, existing qualification refresh and expiry

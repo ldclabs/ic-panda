@@ -166,27 +166,41 @@ fn validate_set_sns_governance_module_hash(hash: Hash) -> Validation {
 }
 
 fn check_service(c: &store::Config, next: &PandaServiceConfig) -> Result<()> {
-    authenticated(next.commerce_canister)?;
+    let homes = &next.commerce_homes;
+    ensure_valid(
+        !homes.is_empty()
+            && homes.len() <= dmsg_protocol::agent::MAX_USER_HOMES
+            && homes
+                .iter()
+                .enumerate()
+                .all(|(i, h)| homes[..i].iter().all(|o| o.user_home != h.user_home)),
+        "commerce homes",
+    )?;
+    for h in homes {
+        authenticated(h.user_home)?;
+        authenticated(h.commerce_canister)?;
+    }
     ensure_valid(
         next.max_claims > 0
             && next.max_claims <= store::MAX_FULL_CLAIMS
             && next.hourly_applications > 0
             && next.hourly_applications <= 10_000
             && next.cooling_ms >= PANDA_COOLING_MS
-            && next.cooling_ms < APPLICATION_TTL_MS,
+            && next.cooling_ms < APPLICATION_TTL_MS
+            && (1..=100_000).contains(&next.qualifications_per_minute),
         "PANDA limits",
     )?;
     if let Some(old) = &c.service {
+        // Claims keep the commerce of their home; homes are only appended.
         ensure(
-            old.commerce_canister == next.commerce_canister
-                && next.max_claims >= store::live_claims(),
+            homes.starts_with(&old.commerce_homes) && next.max_claims >= store::live_claims(),
             Error::IntegrityFailed,
         )?;
     }
     Ok(())
 }
 
-/// Set the PANDA service limits. The commerce canister is fixed once set.
+/// Set the PANDA service limits and the commerce canister of each user home.
 #[ic_cdk::update]
 fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
     let mut c = store::admin(ic_cdk::api::msg_caller())?;
@@ -200,12 +214,18 @@ fn configure_panda_service(next: PandaServiceConfig) -> Result<()> {
 fn validate_configure_panda_service(next: PandaServiceConfig) -> Validation {
     let c = store::config();
     validation(check_service(&c, &next).map(|()| {
+        let homes: Vec<String> = next
+            .commerce_homes
+            .iter()
+            .map(|h| format!("{} -> {}", h.user_home, h.commerce_canister))
+            .collect();
         format!(
-            "Configure the PANDA service for commerce {}: at most {} claims, {} applications per hour, {} ms cooling.{}",
-            next.commerce_canister,
+            "Configure the PANDA service for user homes [{}]: at most {} claims, {} applications per hour, {} ms cooling, {} SNS reads per minute.{}",
+            homes.join(", "),
             next.max_claims,
             next.hourly_applications,
             next.cooling_ms,
+            next.qualifications_per_minute,
             admin::unchanged(c.service.as_ref() != Some(&next), "Already set"),
         )
     }))

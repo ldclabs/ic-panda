@@ -155,3 +155,11 @@ user、cose、directory 新增固定的 `governance`。七个 canister（user、
 `ProductRegistration` 的 `beneficiary_authority` 改为只能追加的 `beneficiary_authorities`。checkout 与 membership 向主体自己的权威请求授权，新增 user home 的账户可以购买。报价的条款摘要只取产品注册。membership 返回 `Pending` 或 `QuotaExceeded` 时保留原资格租约，不再开启付费时间暂停。治理更新已登记的结算资产时只替换非价格条款并取下一个政策版本，价格发布不会使等待中的提案过期。最后一次收入归集带走无法单独退回的准备金余额，更大的余额任何人都可以退回付款人，结清订单的余额因此归零。订单与结算资产证书移除，客户端改用带权限检查的普通查询。`CommerceInit.limits` 与 `admin_set_limits` 在固定上界内治理主体、热订单、累计订单、每日订单和每分钟调用上限。
 
 `dmsg_runtime::cert_map` 把内部节点放在按 id 定址的 201 字节定长槽位中，删除的节点进入空闲链表；key 最长 64 字节。100 万个认证 key 时，一次写入的 stable 读从 4,394 次降到 167 次。主机构建的 commerce 容量 profile 测得：10 万与 100 万主体时升级约 184 万条指令；100 万主体时续期一次 10.67M cycles（B 树节点为 14.23M）。稳定布局：user schema 12、payment schema 11、commerce schema 7、membership schema 2、directory schema 5，开发实例须重装。
+
+## 2026-10-07 commerce 多实例与运维接口
+
+一次部署可以运行多个 `dmsg_commerce`，按 user home 分区：一个 `dmsg_user` 只列在一个实例的 `user_homes` 中并以它为 `commerce_canister`，每个实例独立持有注册、结算资产、价格、目录、订单和认证叶。共享的 membership 现在用 `PandaServiceConfig.commerce_homes`（只能追加，最多 64 项，`validate_configure_panda_service` 预演）把每个 user home 映射到它的 commerce，按申请所在 home 读取注册并回调该实例的产品 adapter；SNS 读取额度改由新增的 `qualifications_per_minute` 决定（未配置前 200，每个活跃认领每小时约一次读取）。私有云端的 `COMMERCE_CANISTER` 可填按 user home 的 JSON 映射。客户端仍只连接一个 user home，因而只连接该 home 的 commerce。
+
+commerce 在 membership 调用没有完成时（`Unavailable`、`ExecutionUnknown` 或 membership 已停止）保留 PANDA 租约，与原先对 `Pending`、`QuotaExceeded` 的处理一致；只有明确答案才把合同标为不可核验。每分钟调用预算改为累计计数，不再对每个 caller 的计数求和；`CommerceLimits.calls_per_caller` 让单个 caller 的资金/出金份额可治理。新增 `collectable_checkouts` query，以稳定索引（memory 30）按服务终点分页商户未归集完的 `Applied` 订单；新增 `commerce_stats`，报告主体、热/冷订单与出金腿、待归集订单、认证叶、稳定内存页和 cycles。commerce README 记录了单实例容量结论（注册用户数不受限，付费主体与累计订单各以常量 1,000 万封顶）和价格发布、派发、归集、快照与 cycles 的运维节奏。稳定布局：commerce schema 8、membership schema 3；开发实例需重装。
+
+PocketIC 覆盖第二个 commerce 实例服务自己的 user home（PANDA 期限加现金存储包）、membership 停止时保留租约、归集分页与 `commerce_stats`、membership 配置的验证方法。私有云端的 commerce、配额与路由测试通过。主网部署、真实资金、超过 100 万主体和私有云端端到端仍未验收。

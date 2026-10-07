@@ -54,13 +54,14 @@ flowchart LR
 |               | `open_checkout`、`cancel_checkout`                                                                                                                                                                  | 付款人（即账户批准的 actor）                   |
 | 出金          | `claim_checkout_refund`                                                                                                                                                                             | 入金来源 owner 或付款人                        |
 |               | `collect_checkout_revenue`                                                                                                                                                                          | 商户 owner                                     |
+|               | `collectable_checkouts`                                                                                                                                                                             | 商户 owner（query，按服务终点分页未归集完的订单） |
 |               | `claim_checkout_fee_reserve`                                                                                                                                                                        | 任何人（收款方固定为付款人）                   |
 |               | `process_checkout_transfer`、`reconcile_checkout_transfer`                                                                                                                                          | 任何人                                         |
 |               | `revise_checkout_transfer_fee`                                                                                                                                                                      | 该笔出金的收款 owner                           |
 | 订单查询      | `get_checkout`、`checkout_deposits`                                                                                                                                                                 | 订单读者                                       |
 |               | `get_checkout_transfer`                                                                                                                                                                             | 收款 owner 或订单读者                          |
 |               | `checkout_operations`、`checkout_transfers`                                                                                                                                                         | 非匿名 caller，只返回自己可读的记录            |
-| 公开查询      | `checkout_progress`、`settlement_assets`、`integration_configuration_certificate`、`get_catalog`、`list_catalogs`、`get_entitlement_batch`、`get_commerce_limits`                                   | 任何人                                         |
+| 公开查询      | `checkout_progress`、`settlement_assets`、`integration_configuration_certificate`、`get_catalog`、`list_catalogs`、`get_entitlement_batch`、`get_commerce_limits`、`commerce_stats`                 | 任何人                                         |
 | 权益          | `refresh_entitlement`、`refresh_catalog`                                                                                                                                                            | 任何人；`refresh_entitlement` 只刷新已有主体   |
 |               | `get_execution_entitlement`                                                                                                                                                                         | 受益主体所属的 user home                       |
 | 跨服务读取    | `read_integration_configuration`                                                                                                                                                                    | 任何人（复制调用，供 user 和 membership 使用） |
@@ -132,7 +133,7 @@ flowchart LR
 - 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。主体只在首次购买时创建，之后不会删除，数量受 `max_subjects` 限制，因此只与付费过的账户数成正比。
 - 从未购买的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
 - `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：已开始的现金服务没有退款，未开始的续期在下一个边界之后，所以现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
-- `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending` 或 `QuotaExceeded` 表示没有读取 SNS，原租约继续有效；其他失败把合同标为不可核验。两种情况都在 1 分钟内不再重试。
+- `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending`、`QuotaExceeded`，或调用本身没有完成（membership 停止、`Unavailable`、`ExecutionUnknown`），都表示没有读取 SNS，原租约继续有效（PANDA 租约本来不超过 1 小时）；只有明确的否定答案把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
 
 ### 目录
@@ -153,10 +154,11 @@ flowchart LR
 | `max_orders`                | 累计订单身份（热与冷）                                     | 10,000,000 |
 | `daily_orders`              | 每 UTC 日的新订单                                          |  1,000,000 |
 | `calls_per_minute`          | 资金、产品与出金调用（查账、预留、Apply、取消、派发、对账） |    100,000 |
+| `calls_per_caller`          | 上一项中单个 caller 每分钟可用的份额；派发出金的运维 principal 需要比终端用户多 | `calls_per_minute` |
 | `authorizations_per_minute` | 授权（`quote_checkout`、`open_checkout`）                  |    100,000 |
 | `refreshes_per_minute`      | PANDA 资格刷新                                             |    100,000 |
 
-每个 caller 另有固定额度：资金类 40 次、授权 10 次、资格刷新 20 次；user home 为其账户刷新时可用全部全局额度。其他固定上限：
+资金类调用每个 caller 的额度由 `calls_per_caller` 设定；授权每 caller 固定 10 次、资格刷新每 caller 固定 20 次；user home 为其账户刷新时可用全部全局额度。每类预算保存当分钟的累计数和每个 caller 的计数，判定不随 caller 数量变慢。其他固定上限：
 
 | 项目                   | 限制                   |
 | ---------------------- | ---------------------- |
@@ -180,7 +182,7 @@ flowchart LR
 
 ### 存储
 
-稳定布局为开发 schema 7。私有 `stable_codec.rs` 用 CBOR 整数 key 保存记录，读到其他 schema 直接 trap，不迁移旧布局。`MemoryManager` 使用 128 页（8 MiB）的分配桶，可寻址 256 GiB。
+稳定布局为开发 schema 8。私有 `stable_codec.rs` 用 CBOR 整数 key 保存记录，读到其他 schema 直接 trap，不迁移旧布局。`MemoryManager` 使用 128 页（8 MiB）的分配桶，可寻址 256 GiB。
 
 | Memory | 内容                                                       |
 | -----: | ---------------------------------------------------------- |
@@ -202,6 +204,7 @@ flowchart LR
 |     21 | 价格历史：`(ledger, policy_version)` → 资产快照            |
 | 22、23 | 订单、出金腿的读者索引                                     |
 | 26、27 | 订单、出金腿的归档到期索引                                 |
+|     30 | 商户归集索引：`(商户 owner, 服务终点, 订单)` → 未归集完的 `Applied` 订单 |
 | 28、29 | 认证 map 的叶子（key → 认证值哈希）与按 id 定址的内部节点  |
 
 heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。认证树用 `dmsg_runtime::cert_map` 存放在 stable memory，只保存 key 与哈希；注册、目录和付费主体视图的认证值在查询时从记录重新生成，并与已认证哈希核对。订单、出金腿和资产没有认证叶。`post_upgrade` 加载目录缓存，按当前时间刷新目录叶后发布根，不扫描订单或主体，并在日志中记录 `commerce_upgrade subjects=… instructions=…`。
@@ -223,7 +226,15 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 
 ### 依赖关系
 
-`dmsg_user` 的 `UserInit` 需要 `commerce_canister` 和 `membership_canister`；commerce 需要 `membership_canister` 和 `user_homes`；membership 安装后，由它的 governance 调用 `configure_panda_service` 指向 commerce。因此要先创建全部 canister ID，再分别安装。
+`dmsg_user` 的 `UserInit` 需要 `commerce_canister` 和 `membership_canister`；commerce 需要 `membership_canister` 和 `user_homes`；membership 安装后，由它的 governance 调用 `configure_panda_service`，其 `commerce_homes` 把每个 user home 映射到服务它的 commerce。因此要先创建全部 canister ID，再分别安装。
+
+### 多实例
+
+commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce 的 `user_homes` 里，它的 `UserInit.commerce_canister` 指向该实例，账户的订单、主体和认证叶都只在该实例。每个实例独立持有注册表、结算资产、价格、目录和订单，因此治理要在每个实例分别登记产品、应用与资产，价格权威要向每个实例发布，商户也要在每个实例归集。共享的只有 `membership`：它的 `PandaServiceConfig.commerce_homes` 列出每个 user home 的 commerce，按申请所在的 home 读取注册并回调该实例的产品 adapter，神经元占用仍是全局唯一。
+
+私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。客户端目前只连接一个 user home，因而也只连接该 home 的 commerce；按账户指纹选择 home 的客户端路由完成后，commerce 随 home 一起选择。
+
+何时加实例：`commerce_stats` 中 `subjects`、`hot_orders + archived_orders` 接近 `max_subjects`、`max_orders` 的 60%，或冷订单累计接近 1,000 万（订单 ID 和区块去重记录永不回收，`MAX_ORDERS` 是终身上限）时，新的 user home 应指向新的 commerce 实例，而不是继续提高旧实例的上限。
 
 ### 步骤
 
@@ -253,7 +264,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
      user_homes = vec { principal "<dmsg_user ID>" };
      limits = record {
        max_subjects = 1_000_000 : nat64; max_hot_orders = 1_000_000 : nat64; max_orders = 10_000_000 : nat64;
-       daily_orders = 10_000 : nat32; calls_per_minute = 400 : nat32;
+       daily_orders = 10_000 : nat32; calls_per_minute = 400 : nat32; calls_per_caller = 40 : nat32;
        authorizations_per_minute = 200 : nat32; refreshes_per_minute = 200 : nat32;
      };
      catalog = record {
@@ -287,7 +298,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 
    `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建。用 `dfx canister info` 记录实际的模块哈希和 controllers。
 
-4. 安装 `dmsg_user`，其中 `commerce_canister`、`membership_canister` 指向上面的 ID，其他字段见 [dmsg_user](../dmsg_user/README.md)。然后安装 `membership`，并由它的 governance 调用 `configure_panda_service`，其中 `commerce_canister` 为本 canister，见 [membership](../membership/README.md)。
+4. 安装 `dmsg_user`，其中 `commerce_canister`、`membership_canister` 指向上面的 ID，其他字段见 [dmsg_user](../dmsg_user/README.md)。然后安装 `membership`，并由它的 governance 调用 `configure_panda_service`，其中 `commerce_homes` 列出 `{ user_home = <dmsg_user ID>; commerce_canister = <本 canister> }`，`qualifications_per_minute` 按活跃 PANDA 会员数设置（每会员每小时约一次 SNS 读取），见 [membership](../membership/README.md)。
 
 5. 用 governance 身份按顺序完成配置。产品必须先于引用它的应用登记：
 
@@ -346,8 +357,9 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 7. 部署后检查：
 
    - `settlement_assets` 显示 `ledger_verified = true`，价格在有效期内。
-   - `integration_configuration_certificate("dmsg", opt "dmsg")`、`get_catalog` 的证书能通过客户端验证，`get_commerce_limits` 与安装参数一致。
-   - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`。
+   - `integration_configuration_certificate("dmsg", opt "dmsg")`、`get_catalog` 的证书能通过客户端验证，`get_commerce_limits` 与安装参数一致，`commerce_stats` 显示 `certified_leaves = 3`（产品、应用、目录）和 `cycles`。
+   - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`；`collectable_checkouts` 列出该订单，服务期结束后 `collect_checkout_revenue` 归集并派发，`claim_checkout_fee_reserve` 退回准备金。
+   - 为 canister 设置冻结阈值和 cycles 余额告警，并把 `dfx canister status` 的 controllers 记录到部署记录。
 
 ### 运维
 
@@ -357,12 +369,15 @@ commerce 没有定时器，下列任务都需要外部调用：
 | ------------ | ------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
 | 发布价格     | `publish_settlement_price(ledger, price_usd_micros, valid_for_ms)`                          | 价格权威               | 每个启用资产都要在上一价格过期前发布，`valid_for_ms` 最长 30 分钟。没有有效价格时，现金报价和开单全部返回 `PolicyStale` |
 | 派发出金     | `process_checkout_transfer`                                                                 | 任何人（商户或运维）   | 腿创建后尽快派发，必须在 24 小时内；`InFlight`/`Unknown` 也要在窗口内重试                        |
-| 归集收入     | `collect_checkout_revenue`，再派发                                                          | 商户 owner             | 按需（例如每月）。收入随服务期线性释放，要逐单调用；全部归集后用 `claim_checkout_fee_reserve` 退回剩余准备金 |
+| 归集收入     | `collectable_checkouts` 找到服务期已结束的订单，逐单 `collect_checkout_revenue`，再派发      | 商户 owner             | 每单在服务期结束后归集一次，然后 `claim_checkout_fee_reserve` 退回剩余准备金。费用准备只够两条出金腿；更频繁地分期归集会留下小于一次网络费、无法转出的服务余额，订单因此不能归档 |
+| 监控         | `commerce_stats`                                                                            | 任何人（query）        | 主体、热/冷订单、出金腿、待归集订单、认证叶、稳定内存页和 cycles；与 `get_commerce_limits` 对照，接近上限 60% 时扩容或加实例 |
 | 推进订单     | `reconcile_checkout`                                                                        | 任何人                 | 处理停在 `Reserving`、`Applying` 或待释放预留的订单                                              |
 | 归档历史     | `sweep_checkout_history`                                                                    | 任何人                 | 定期调用，直到返回 0                                                                             |
 | 刷新目录证书 | `refresh_catalog`                                                                           | 任何人                 | 新目录生效后调用一次                                                                             |
 
-价格偏离 1 USD 超过 1% 时仍可发布，但新报价和使用旧报价的开单都会被拒绝，可用于脱锚保护。商户 owner 可以用 `checkout_operations`、`checkout_transfers` 分页查看自己的全部订单和出金腿，作为监控入口。
+价格发布是现金结账的单点依赖：价格过期后所有报价和开单返回 `PolicyStale`，价格权威必须有失败告警和备用 principal（governance 也可以发布）。价格偏离 1 USD 超过 1% 时仍可发布，但新报价和使用旧报价的开单都会被拒绝，可用于脱锚保护。商户 owner 可以用 `checkout_operations`、`checkout_transfers` 分页查看自己的全部订单和出金腿；两者按订单 ID 排序，找待归集订单请用按服务终点排序的 `collectable_checkouts`。
+
+派发出金的 principal 受 `calls_per_caller` 限制（初始 40 次/分钟，约 57,600 条腿/天）；年订单超过数百万时提高该值或使用多个派发 principal。
 
 `collect_checkout_revenue` 只接受商户 owner 调用，而且需要逐单归集。因此 `merchant.owner` 必须是能运行归集任务的 principal，例如运维账户或转发 canister，再由它把收入转入金库；如果直接使用 SNS governance 作为 owner，每笔归集都需要一个提案。
 
@@ -371,16 +386,17 @@ commerce 没有定时器，下列任务都需要外部调用：
 - **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。条款变化通过更新产品注册的 `terms_hash` 立即生效，不需要与目录同步。
 - **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
 - **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。
-- **新增 user home**：依次调用 `admin_add_user_home`，并把该 home 追加到应用登记的 `user_homes` 和 dMsg 产品登记的 `beneficiary_authorities`（各自 `config_version + 1`）。该 home 的账户随后即可购买。
-- **准入上限**：`admin_set_limits` 一次替换全部上限，`validate_admin_set_limits` 会显示当前值；`max_hot_orders` 不能大于 `max_orders`。
+- **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到应用登记的 `user_homes` 和 dMsg 产品登记的 `beneficiary_authorities`（各自 `config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。
+- **准入上限**：`admin_set_limits` 一次替换全部上限，`validate_admin_set_limits` 会显示当前值；`max_hot_orders` 不能大于 `max_orders`，`calls_per_caller` 不能大于 `calls_per_minute`。热订单约等于最近 13 个月的订单数（归集完成并过 30 天才归档），`max_hot_orders` 按年订单量的 1.2 倍预留。
 - **资产**：已登记资产的更新只替换非价格条款（fee、fee 上限、启用状态）：commerce 沿用最新发布的价格，并在执行时分配下一个 `policy_version`，提案中的价格字段和版本不生效，价格发布不会使提案过期。账本 fee 变化后，出金遇到 `BadFee` 会记录账本给出的 fee，新报价随之停止，直到 governance 登记新的 `network_fee_atomic` 并重新验证；已被拒绝的出金腿由收款人修订后重发。
 
 ### 升级
 
-升级要求 schema 不变。先停止 canister，等在途的账本与产品回调完成，再升级、启动：
+升级要求 schema 不变。先停止 canister，等在途的账本与产品回调完成，创建快照，再升级、启动：
 
 ```sh
 dfx canister stop dmsg_commerce --network ic
+dfx canister snapshot create dmsg_commerce --network ic
 dfx deploy dmsg_commerce --network ic --argument-type raw --argument 4449444c0000
 dfx canister start dmsg_commerce --network ic
 ```
@@ -404,7 +420,9 @@ Candid 服务声明了 `CommerceInit` 初始化参数，dfx 升级时不带参�
 - 续期是一次真实写入（重投影主体并更新认证路径）。定址节点使 100 万主体时的续期减少 25%，从 10 万到 100 万只增加 4.5%（B 树为 12.4%）。
 - 有效租约内的执行额度读取不写状态，Free 账户不建记录；两者都只比基本消息费用略高。
 - 原生计数（release，100 万个 key）：一次认证写的 stable 读从 4,394 次降到 167 次，写从 439 次降到 57 次；单个 key 的 witness 读取从 2,216 次降到 156 次；每个 key 的内部节点占 201 字节（B 树为 208 字节）。主机构建 100 万主体的时间从 135 秒降到 62 秒。
-- 每个付费主体约 1.3 KB（主体记录约 980 B，叶子 140 B，内部节点 201 B），另有 ProductBook、决定和回执；订单及其索引每单数 KB。`MAX_SUBJECTS` 与 `MAX_ORDERS` 取 1,000 万，按此估算的数据量远低于 256 GiB 的寻址上限。超过 100 万主体的规模没有实测。
+- 每个付费主体约 1.3 KB（主体记录约 980 B，叶子 140 B，内部节点 201 B），另有 ProductBook、决定和回执；由两份镜像的差值反推，热订单连同索引约 9 KB/单。`MAX_SUBJECTS` 与 `MAX_ORDERS` 取 1,000 万，按此估算的数据量远低于 256 GiB 的寻址上限。超过 100 万主体的规模没有实测。
+- 从未购买的账户不占 commerce 状态，所以注册用户数不受限；上限只与付费主体数和累计订单数有关。dmsg_user 只在正式执行且月缓存过期时调用 `get_execution_entitlement`，云端每小时用 query 重读，两者都不随账户数线性占用 update 吞吐。
+- 活跃 PANDA 会员每小时约一次 SNS 读取，受 commerce 的 `refreshes_per_minute` 和 membership 的 `qualifications_per_minute` 共同限制（初始各 200/分钟，约 1 万活跃会员）；提高前须实测 SNS `get_neuron` 的 query 吞吐。
 
 2026-10-03 的较早样本（schema 5，认证树驻留 heap）：10,000 条热记录重建认证树耗时 6,526 ms；32 个订单时，PocketIC 测得稳定内存从基线 `8082df5` 的 83,951,616 B 降到 14,745,600 B，无关读者查询从 16,086,227 cycles 降到 8,927,600 cycles。认证树移入 stable memory 后不再有重建成本。
 
@@ -413,7 +431,9 @@ Candid 服务声明了 `CommerceInit` 初始化参数，dfx 升级时不带参�
 - `governance` 本身不能修改。
 - 只识别 `1xfer`/`2xfer` 入金。铸造到订单子账户等其他区块无法入账，也没有清扫接口。
 - 已开始的现金服务没有退款接口；PANDA 合同不能提前退出。
-- 单个 canister 仍集中所有付费写入、逐单收入归集和 PANDA 刷新。PANDA 会员每小时至少续期一次，`refreshes_per_minute` 与 membership 自身的资格查询额度共同限制活跃 PANDA 会员数，提高前须同时调整 membership 并实测 SNS 查询。
+- 单个实例仍集中其全部 user home 的付费写入、逐单收入归集和 PANDA 刷新；PANDA 会员的 SNS 读取额度见“容量与成本”。
+- 客户端只连接一个 user home，多实例对客户端表现为该 home 的 commerce；跨 home 的客户端路由尚未实现。
+- 服务余额小于一次网络费时无法转出（见“运维”的归集节奏）。
 - 超过 100 万主体的容量、真实资金、正式钱包和私有云端端到端都未验收。
 
 ## 实现
@@ -425,7 +445,7 @@ Candid 服务声明了 `CommerceInit` 初始化参数，dfx 升级时不带参�
 | `src/product.rs`        | dMsg 产品：SKU 与报价、ProductBook 预留/交付/取消、PANDA 资格观察               |
 | `src/checkout.rs`       | 资产治理、报价、开单、入金、交付、取消、退款、收入、出金派发与对账               |
 | `src/checkout_model.rs` | 订单余额与状态转换、出金腿与账本回复分类（纯逻辑）                              |
-| `src/checkout_store.rs` | 订单、入金、出金、价格历史、读者索引与归档                                      |
+| `src/checkout_store.rs` | 订单、入金、出金、价格历史、读者与归集索引、归档、统计                           |
 | `src/registrations.rs`  | 应用与产品注册、配置读取与认证                                                  |
 | `src/store.rs`          | 配置、调用额度、主体与目录存储、认证树写入                                      |
 | `src/calls.rs`          | 内存调用 guard                                                                  |
@@ -441,7 +461,7 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_WASM_DIR=target/wasm32-unknown-unknown/rel
   cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane commerce -- --test-threads=1
 ```
 
-[commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs) 与 [commerce_review.rs](../../tests/dmsg_integration/tests/control_plane/commerce_review.rs) 使用实际 Wasm 覆盖：两个账本与同号区块隔离、退款与收入归集、最后一次归集结清费用准备及由第三方退回准备金、跨升级的未知出金恢复、fee 上限内的修订、未开始续期的取消、PANDA 冷却与交付、membership 合并请求时保留 PANDA 租约、新增 user home 的账户购买、现金租约 30 天与 10 分钟续期窗口、Free 账户不建记录、独立产品 adapter 的 ACK 丢失、伪造价格、价格发布与升级前后的旧报价、目录生效边界、商户读权限、每 caller 额度、冷历史与迟到退款、入金分页。[governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs) 覆盖全部治理方法与 `validate_*`，包括价格发布之后执行的资产更新提案与 `admin_set_limits`。测试账本支持故障注入和公开 mint，测试 SNS 可以延迟神经元读取，二者都只用于测试。
+[commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs) 与 [commerce_review.rs](../../tests/dmsg_integration/tests/control_plane/commerce_review.rs) 使用实际 Wasm 覆盖：两个账本与同号区块隔离、退款与收入归集、最后一次归集结清费用准备及由第三方退回准备金、跨升级的未知出金恢复、fee 上限内的修订、未开始续期的取消、PANDA 冷却与交付、membership 合并请求或调用失败时保留 PANDA 租约、新增 user home 的账户购买、第二个 commerce 实例服务自己的 user home（PANDA 与现金各一单）、商户按服务终点分页待归集订单与 `commerce_stats` 计数、现金租约 30 天与 10 分钟续期窗口、Free 账户不建记录、独立产品 adapter 的 ACK 丢失、伪造价格、价格发布与升级前后的旧报价、目录生效边界、商户读权限、每 caller 额度、冷历史与迟到退款、入金分页。[governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs) 覆盖全部治理方法与 `validate_*`，包括价格发布之后执行的资产更新提案、`admin_set_limits` 与 membership 的 `commerce_homes` 校验。测试账本支持故障注入和公开 mint，测试 SNS 可以延迟神经元读取，二者都只用于测试。
 
 容量 profile 分两步运行：先在主机构建镜像，再加载到 PocketIC 测量。`capacity_image` 依次写出 10 万和 100 万主体的镜像（后者约 2.3 GB）：
 

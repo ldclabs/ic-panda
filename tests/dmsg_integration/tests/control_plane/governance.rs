@@ -342,14 +342,21 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
     assert!(validate(&f, f.commerce, "admin_set_limits", (&raised,))
         .unwrap()
         .contains("2000000 subjects"));
-    let invalid = dmsg_types::billing::CommerceLimits {
-        max_hot_orders: 6_000_000,
-        ..raised.clone()
-    };
-    assert_eq!(
-        validate(&f, f.commerce, "admin_set_limits", (&invalid,)),
-        Err("InvalidInput(\"commerce limits\")".into())
-    );
+    for invalid in [
+        dmsg_types::billing::CommerceLimits {
+            max_hot_orders: 6_000_000,
+            ..raised.clone()
+        },
+        dmsg_types::billing::CommerceLimits {
+            calls_per_caller: raised.calls_per_minute + 1,
+            ..raised.clone()
+        },
+    ] {
+        assert_eq!(
+            validate(&f, f.commerce, "admin_set_limits", (&invalid,)),
+            Err("InvalidInput(\"commerce limits\")".into())
+        );
+    }
     govern(&f, f.commerce, f.sns, "admin_set_limits", (&raised,));
     let current: dmsg_types::billing::CommerceLimits =
         query(&f.ic, f.commerce, person(9), "get_commerce_limits", ());
@@ -392,11 +399,16 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
     );
     govern(&f, m, f.sns, "set_admission_pause", (true,));
     assert!(unchanged(validate(&f, m, "set_admission_pause", (true,))));
-    let service = PandaServiceConfig {
+    let home = CommerceHome {
+        user_home: f.user,
         commerce_canister: f.commerce,
+    };
+    let service = PandaServiceConfig {
+        commerce_homes: vec![home.clone()],
         max_claims: 1000,
         hourly_applications: 100,
         cooling_ms: PANDA_COOLING_MS,
+        qualifications_per_minute: 200,
     };
     assert!(unchanged(validate(
         &f,
@@ -404,24 +416,50 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         "configure_panda_service",
         (&service,)
     )));
+    // A home keeps its commerce; another home's commerce can only be appended.
     let other = PandaServiceConfig {
-        commerce_canister: person(9),
+        commerce_homes: vec![CommerceHome {
+            commerce_canister: person(9),
+            ..home.clone()
+        }],
         ..service.clone()
     };
     assert_eq!(
         validate(&f, m, "configure_panda_service", (&other,)),
         Err("IntegrityFailed".into())
     );
+    let duplicate = PandaServiceConfig {
+        commerce_homes: vec![home.clone(), home.clone()],
+        ..service.clone()
+    };
+    assert_eq!(
+        validate(&f, m, "configure_panda_service", (&duplicate,)),
+        Err("InvalidInput(\"commerce homes\")".into())
+    );
+    let unbounded = PandaServiceConfig {
+        qualifications_per_minute: 0,
+        ..service.clone()
+    };
+    assert_eq!(
+        validate(&f, m, "configure_panda_service", (&unbounded,)),
+        Err("InvalidInput(\"PANDA limits\")".into())
+    );
     let raised = PandaServiceConfig {
+        commerce_homes: vec![
+            home,
+            CommerceHome {
+                user_home: person(8),
+                commerce_canister: person(9),
+            },
+        ],
         hourly_applications: 200,
+        qualifications_per_minute: 400,
         ..service
     };
-    assert!(!unchanged(validate(
-        &f,
-        m,
-        "configure_panda_service",
-        (&raised,)
-    )));
+    let rendered = validate(&f, m, "configure_panda_service", (&raised,)).unwrap();
+    assert!(rendered.contains(&format!("{} -> {}", person(8), person(9))));
+    assert!(rendered.contains("400 SNS reads per minute"));
+    assert!(!unchanged(Ok(rendered)));
     govern(&f, m, f.sns, "configure_panda_service", (&raised,));
     let rate = PandaRatePolicy {
         version: 2,

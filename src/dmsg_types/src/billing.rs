@@ -127,10 +127,37 @@ pub struct CommerceLimits {
     pub daily_orders: u32,
     /// Funding, product and outgoing-transfer calls per UTC minute.
     pub calls_per_minute: u32,
+    /// Share of `calls_per_minute` one caller may use; a dispatch job needs
+    /// more than an end user.
+    pub calls_per_caller: u32,
     /// Quote and checkout authorization calls per UTC minute.
     pub authorizations_per_minute: u32,
     /// PANDA qualification refreshes per UTC minute.
     pub refreshes_per_minute: u32,
+}
+
+/// Live record counts and resources of a commerce canister, read against its
+/// limits to see how much admission headroom remains.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CommerceStats {
+    /// Beneficiary subjects, which only paying accounts create.
+    pub subjects: u64,
+    /// Orders in the hot table.
+    pub hot_orders: u64,
+    /// Archived orders; hot and archived together count against `max_orders`.
+    pub archived_orders: u64,
+    /// Outgoing legs in the hot table, in any state.
+    pub hot_transfers: u64,
+    /// Archived outgoing legs.
+    pub archived_transfers: u64,
+    /// Applied orders with revenue their merchant has not collected.
+    pub collectable_orders: u64,
+    /// Certified keys: registrations, the catalog and one leaf per subject.
+    pub certified_leaves: u64,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
 }
 
 /// Source of the base benefit; SNS qualification is not cash revenue.

@@ -478,11 +478,17 @@ export interface CheckoutHistorySweep {
   transfers: bigint
 }
 
-export interface PandaServiceConfig {
+export interface CommerceHome {
+  user_home: Uint8Array
   commerce_canister: Uint8Array
+}
+
+export interface PandaServiceConfig {
+  commerce_homes: CommerceHome[]
   max_claims: bigint
   hourly_applications: bigint
   cooling_ms: bigint
+  qualifications_per_minute: bigint
 }
 
 export interface PandaApplicationTerms {

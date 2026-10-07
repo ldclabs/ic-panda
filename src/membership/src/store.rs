@@ -19,7 +19,7 @@ use std::{
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 /// Stable layout with certification nodes and the live-claim count in stable memory.
-pub const STABLE_SCHEMA: u16 = 2;
+pub const STABLE_SCHEMA: u16 = 3;
 /// A successful SNS verification is reused for one hour.
 const SNS_FRESH_MS: u64 = 60 * MINUTE;
 /// Hard bounds include historical operations, independently of live admission limits.
@@ -51,6 +51,16 @@ impl Config {
         self.service
             .as_ref()
             .ok_or(Error::Unavailable("PANDA service unconfigured".into()))
+    }
+
+    /// The commerce canister serving the accounts of `home`.
+    pub fn commerce(&self, home: Principal) -> Result<Principal> {
+        self.service()?
+            .commerce_homes
+            .iter()
+            .find(|h| h.user_home == home)
+            .map(|h| h.commerce_canister)
+            .ok_or(Error::Forbidden)
     }
 }
 
@@ -124,7 +134,21 @@ fn take(used: &mut u32, limit: u32) -> Result<()> {
     Ok(())
 }
 
+/// SNS reads per minute; the default applies until the service is configured.
+fn sns_reads_per_minute() -> u32 {
+    CONFIG.with_borrow(|c| {
+        c.get()
+            .0
+            .as_ref()
+            .and_then(|c| c.service.as_ref())
+            .map_or(200, |s| {
+                u32::try_from(s.qualifications_per_minute).unwrap_or(u32::MAX)
+            })
+    })
+}
+
 pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
+    let sns_reads = sns_reads_per_minute();
     LIMITS.with_borrow_mut(|c| {
         if c.minute != at / MINUTE {
             *c = Limits {
@@ -139,8 +163,8 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
                 c.authorizations += 1;
                 Ok(())
             }
-            CallBudget::Qualification => take(&mut c.qualifications, 200),
-            CallBudget::Refresh => take(&mut c.refreshes, 200),
+            CallBudget::Qualification => take(&mut c.qualifications, sns_reads),
+            CallBudget::Refresh => take(&mut c.refreshes, sns_reads),
             CallBudget::Product(actor) => {
                 ensure(c.products < 200, Error::QuotaExceeded)?;
                 take(c.product_actors.entry(actor).or_default(), 10)?;

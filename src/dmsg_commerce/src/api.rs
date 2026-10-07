@@ -96,12 +96,13 @@ fn admin_set_limits(limits: CommerceLimits) -> Result<()> {
 fn validate_admin_set_limits(limits: CommerceLimits) -> Validation {
     validation(check_limits(&limits).map(|()| {
         format!(
-            "Set commerce limits: {} subjects, {} hot and {} total orders, {} orders per day, {} funding/product/transfer calls, {} authorizations and {} PANDA refreshes per minute (currently {:?}).{}",
+            "Set commerce limits: {} subjects, {} hot and {} total orders, {} orders per day, {} funding/product/transfer calls ({} per caller), {} authorizations and {} PANDA refreshes per minute (currently {:?}).{}",
             limits.max_subjects,
             limits.max_hot_orders,
             limits.max_orders,
             limits.daily_orders,
             limits.calls_per_minute,
+            limits.calls_per_caller,
             limits.authorizations_per_minute,
             limits.refreshes_per_minute,
             config(|c| c.limits.clone()),
@@ -113,6 +114,15 @@ fn validate_admin_set_limits(limits: CommerceLimits) -> Validation {
 #[ic_cdk::query]
 fn get_commerce_limits() -> CommerceLimits {
     config(|c| c.limits.clone())
+}
+
+/// Record counts against the limits, with the stable size and cycle balance.
+#[ic_cdk::query]
+fn commerce_stats() -> CommerceStats {
+    crate::checkout_store::stats(
+        SUBJECTS.with_borrow(|t| t.len()),
+        CERT.with_borrow(|c| c.len()),
+    )
 }
 
 /// Append a user home. Its `dmsg_user` must name this canister as
@@ -284,9 +294,16 @@ async fn refresh(
             {
                 crate::product::observe(&view, at)?;
             }
-            // Membership coalesced or rate-limited the check without reading SNS,
-            // so the previous qualification lease stands.
-            Ok(Err(Error::Pending | Error::QuotaExceeded)) => {
+            // Membership coalesced or rate-limited the check, or the call did
+            // not complete: nothing was learned, so the previous qualification
+            // lease stands. It ends within the hour in any case.
+            Ok(Err(
+                Error::Pending
+                | Error::QuotaExceeded
+                | Error::Unavailable(_)
+                | Error::ExecutionUnknown,
+            ))
+            | Err(_) => {
                 s.retry_after_ms = at.saturating_add(MINUTE);
                 save_subject(&s);
                 return s
@@ -295,7 +312,7 @@ async fn refresh(
                     .map(|v| (v, at))
                     .ok_or(Error::MembershipStale);
             }
-            _ => {
+            Ok(_) => {
                 s.retry_after_ms = at.saturating_add(MINUTE);
                 let marked = s
                     .contracts

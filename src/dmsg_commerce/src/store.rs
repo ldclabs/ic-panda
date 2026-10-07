@@ -19,6 +19,13 @@ pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
+/// Calls admitted in the current minute, in total and per caller.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Budget {
+    pub calls: u32,
+    pub callers: BTreeMap<Principal, u32>,
+}
+
 /// Service configuration and per-period call budgets. The initial catalog lives in CATALOGS.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -31,9 +38,9 @@ pub struct Config {
     pub day: u64,
     pub orders: u32,
     pub minute: u64,
-    pub reads: BTreeMap<Principal, u32>,
-    pub refreshes: BTreeMap<Principal, u32>,
-    pub authorizations: BTreeMap<Principal, u32>,
+    pub reads: Budget,
+    pub refreshes: Budget,
+    pub authorizations: Budget,
 }
 
 impl Config {
@@ -48,9 +55,9 @@ impl Config {
             day: 0,
             orders: 0,
             minute: 0,
-            reads: BTreeMap::new(),
-            refreshes: BTreeMap::new(),
-            authorizations: BTreeMap::new(),
+            reads: Budget::default(),
+            refreshes: Budget::default(),
+            authorizations: Budget::default(),
         }
     }
 }
@@ -140,7 +147,8 @@ pub fn check_limits(l: &CommerceLimits) -> Result<()> {
                 l.refreshes_per_minute,
             ]
             .iter()
-            .all(|n| (1..=MAX_CALLS_PER_MINUTE).contains(n)),
+            .all(|n| (1..=MAX_CALLS_PER_MINUTE).contains(n))
+            && (1..=l.calls_per_minute).contains(&l.calls_per_caller),
         "commerce limits",
     )
 }
@@ -161,14 +169,16 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
         let minute = at / MINUTE;
         if c.minute != minute {
             c.minute = minute;
-            c.reads.clear();
-            c.refreshes.clear();
-            c.authorizations.clear();
+            c.reads = Budget::default();
+            c.refreshes = Budget::default();
+            c.authorizations = Budget::default();
         }
-        let l = &c.limits;
+        let l = c.limits.clone();
         // A user home serves all of its accounts, so it may use the whole refresh budget.
-        let (counts, caller, global, per_caller) = match kind {
-            CallBudget::Funds(caller) => (&mut c.reads, caller, l.calls_per_minute, 40),
+        let (budget, caller, global, per_caller) = match kind {
+            CallBudget::Funds(caller) => {
+                (&mut c.reads, caller, l.calls_per_minute, l.calls_per_caller)
+            }
             CallBudget::Refresh(caller) if c.user_homes.contains(&caller) => (
                 &mut c.refreshes,
                 caller,
@@ -183,10 +193,11 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
                 10,
             ),
         };
-        ensure(counts.values().sum::<u32>() < global, Error::QuotaExceeded)?;
-        let used = counts.entry(caller).or_default();
+        ensure(budget.calls < global, Error::QuotaExceeded)?;
+        let used = budget.callers.entry(caller).or_default();
         ensure(*used < per_caller.min(global), Error::QuotaExceeded)?;
         *used += 1;
+        budget.calls += 1;
         Ok(())
     })
 }

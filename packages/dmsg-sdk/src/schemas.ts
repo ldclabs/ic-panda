@@ -518,11 +518,16 @@ export const schemas = {
     "orders": "u16",
     "transfers": "u16"
   },
+  "CommerceHome": {
+    "user_home": "Principal",
+    "commerce_canister": "Principal"
+  },
   "PandaServiceConfig": {
-    "commerce_canister": "Principal",
+    "commerce_homes": "Vec<CommerceHome>",
     "max_claims": "u64",
     "hourly_applications": "u64",
-    "cooling_ms": "u64"
+    "cooling_ms": "u64",
+    "qualifications_per_minute": "u64"
   },
   "PandaApplicationTerms": {
     "home_membership": "Principal",

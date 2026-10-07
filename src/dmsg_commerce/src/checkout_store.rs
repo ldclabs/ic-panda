@@ -7,7 +7,7 @@ use crate::{
 use candid::Principal;
 use dmsg_protocol::{authenticated, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
-use dmsg_types::{integration_billing::*, *};
+use dmsg_types::{billing::CommerceStats, integration_billing::*, *};
 use ic_stable_structures::{
     memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap, StableCell,
 };
@@ -45,6 +45,23 @@ thread_local! {
     static ARCHIVED_TRANSFERS: RefCell<Table<CompactStored<Transfer>>> = RefCell::new(StableBTreeMap::init(store::memory(25)));
     static ORDER_EXPIRY: RefCell<Table<Stored<()>>> = RefCell::new(StableBTreeMap::init(store::memory(26)));
     static TRANSFER_EXPIRY: RefCell<Table<Stored<()>>> = RefCell::new(StableBTreeMap::init(store::memory(27)));
+    // Applied orders with uncollected revenue by merchant owner and term end.
+    static COLLECTIONS: RefCell<Table<Stored<()>>> = RefCell::new(StableBTreeMap::init(store::memory(30)));
+}
+
+/// Live counts for `commerce_stats`.
+pub(crate) fn stats(subjects: u64, certified_leaves: u64) -> CommerceStats {
+    CommerceStats {
+        subjects,
+        hot_orders: ORDERS.with_borrow(|t| t.len()),
+        archived_orders: ARCHIVED_ORDERS.with_borrow(|t| t.len()),
+        hot_transfers: TRANSFERS.with_borrow(|t| t.len()),
+        archived_transfers: ARCHIVED_TRANSFERS.with_borrow(|t| t.len()),
+        collectable_orders: COLLECTIONS.with_borrow(|t| t.len()),
+        certified_leaves,
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
 }
 
 pub(crate) fn asset(ledger: Principal) -> Result<Asset> {
@@ -258,6 +275,25 @@ fn page_ids(
     (ids, next)
 }
 
+fn audit(id: Hash) -> Result<CheckoutOperationAudit> {
+    let o = order(id)?;
+    Ok(CheckoutOperationAudit {
+        order: o.view(),
+        balances: o
+            .balances
+            .iter()
+            .map(|(ledger, b)| CheckoutLedgerBalance {
+                ledger: *ledger,
+                incoming_atomic: b.incoming,
+                refundable_atomic: b.refundable,
+                service_reserve_atomic: b.service,
+                fee_reserve_atomic: b.fees,
+                outgoing_atomic: b.outgoing,
+            })
+            .collect(),
+    })
+}
+
 pub(crate) fn operations(
     caller: Principal,
     after: Option<Hash>,
@@ -266,27 +302,57 @@ pub(crate) fn operations(
     authenticated(caller)?;
     ensure_valid((1..=32).contains(&take), "page size")?;
     let (ids, next) = ORDER_READERS.with_borrow(|t| page_ids(t, caller, after, take));
-    let orders = ids
-        .into_iter()
-        .map(|id| {
-            let o = order(id)?;
-            Ok(CheckoutOperationAudit {
-                order: o.view(),
-                balances: o
-                    .balances
-                    .iter()
-                    .map(|(ledger, b)| CheckoutLedgerBalance {
-                        ledger: *ledger,
-                        incoming_atomic: b.incoming,
-                        refundable_atomic: b.refundable,
-                        service_reserve_atomic: b.service,
-                        fee_reserve_atomic: b.fees,
-                        outgoing_atomic: b.outgoing,
-                    })
-                    .collect(),
-            })
-        })
-        .collect::<Result<_>>()?;
+    let orders = ids.into_iter().map(audit).collect::<Result<_>>()?;
+    Ok(CheckoutOperationsPage { orders, next })
+}
+
+fn collection_prefix(merchant: Principal) -> Vec<u8> {
+    digest("dmsg/checkout/collection/v2", &merchant).to_vec()
+}
+
+/// Where the order sits in its merchant's collection index: by term end, then id.
+fn collection_key(o: &Order) -> Vec<u8> {
+    [
+        collection_prefix(o.quote.product.merchant.owner),
+        o.quote.offer.expires_at_ms.to_be_bytes().to_vec(),
+        o.id.to_vec(),
+    ]
+    .concat()
+}
+
+/// Indexed while the merchant still has revenue to collect.
+fn collectable_key(o: &Order) -> Option<Vec<u8>> {
+    (o.status == CheckoutStatus::Applied && o.earned_allocated < o.quote.cash.amount_atomic)
+        .then(|| collection_key(o))
+}
+
+/// The caller's applied orders with uncollected revenue, earliest term end first.
+pub(crate) fn collectable(
+    caller: Principal,
+    after: Option<Hash>,
+    take: u16,
+) -> Result<CheckoutOperationsPage> {
+    authenticated(caller)?;
+    ensure_valid((1..=32).contains(&take), "page size")?;
+    let prefix = collection_prefix(caller);
+    let start = match after {
+        Some(id) => Excluded(collection_key(&order(id)?)),
+        None => Included(prefix.clone()),
+    };
+    let end = Included([prefix, vec![255; 40]].concat());
+    let mut ids: Vec<Hash> = COLLECTIONS.with_borrow(|t| {
+        t.range((start, end))
+            .take(usize::from(take) + 1)
+            .map(|row| Hash::new(row.key()[40..].try_into().expect("collection key")))
+            .collect()
+    });
+    let next = if ids.len() > usize::from(take) {
+        ids.pop();
+        ids.last().copied()
+    } else {
+        None
+    };
+    let orders = ids.into_iter().map(audit).collect::<Result<_>>()?;
     Ok(CheckoutOperationsPage { orders, next })
 }
 
@@ -345,6 +411,18 @@ pub(crate) fn save(o: &mut Order, at: u64) {
     ORDERS.with_borrow_mut(|t| t.put(o.id.as_slice(), o));
     if let Some(deadline) = o.archive_after() {
         ORDER_EXPIRY.with_borrow_mut(|t| t.put(&expiry_key(deadline, o.id), &()));
+    }
+    let was = old.as_ref().and_then(collectable_key);
+    let now = collectable_key(o);
+    if was != now {
+        COLLECTIONS.with_borrow_mut(|t| {
+            if let Some(key) = was {
+                t.delete(&key);
+            }
+            if let Some(key) = now {
+                t.put(&key, &());
+            }
+        });
     }
 }
 
@@ -509,6 +587,53 @@ mod tests {
             }
         }
         assert_eq!(count, 600);
+    }
+
+    #[test]
+    fn collection_pages_follow_term_end_and_drop_collected_orders() {
+        setup();
+        let applied = |i: u64, expires: u64| -> Order {
+            let mut o = closed(i);
+            o.status = CheckoutStatus::Applied;
+            o.quote.offer.expires_at_ms = expires;
+            o
+        };
+        let merchant = closed(0).quote.product.merchant.owner;
+        let mut later = applied(1, NOW + 2 * DAY);
+        let mut earlier = applied(2, NOW + DAY);
+        let mut other = applied(3, NOW);
+        other.quote.product.merchant.owner = principal(98);
+        let mut rejected = closed(4);
+        for o in [&mut later, &mut earlier, &mut other, &mut rejected] {
+            save(o, NOW);
+        }
+        let ids = |page: &CheckoutOperationsPage| -> Vec<Hash> {
+            page.orders
+                .iter()
+                .map(|a| a.order.progress.order_id)
+                .collect()
+        };
+        let first = collectable(merchant, None, 1).unwrap();
+        assert_eq!(ids(&first), vec![earlier.id]);
+        assert_eq!(first.next, Some(earlier.id));
+        let second = collectable(merchant, first.next, 1).unwrap();
+        assert_eq!(ids(&second), vec![later.id]);
+        assert!(second.next.is_none());
+        assert_eq!(
+            ids(&collectable(principal(98), None, 32).unwrap()),
+            vec![other.id]
+        );
+        // Fully collected and cancelled orders leave the index; the cursor still works.
+        earlier.earned_allocated = earlier.quote.cash.amount_atomic;
+        save(&mut earlier, NOW + 1);
+        later.status = CheckoutStatus::RefundCommitted;
+        save(&mut later, NOW + 1);
+        assert!(collectable(merchant, None, 32).unwrap().orders.is_empty());
+        assert!(collectable(merchant, Some(earlier.id), 32)
+            .unwrap()
+            .orders
+            .is_empty());
+        assert_eq!(COLLECTIONS.with_borrow(|t| t.len()), 1);
     }
 
     #[test]

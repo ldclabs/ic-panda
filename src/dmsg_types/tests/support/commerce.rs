@@ -28,6 +28,7 @@ pub fn limits() -> CommerceLimits {
         max_orders: 1_000_000,
         daily_orders: 1_000,
         calls_per_minute: 400,
+        calls_per_caller: 40,
         authorizations_per_minute: 200,
         refreshes_per_minute: 200,
     }

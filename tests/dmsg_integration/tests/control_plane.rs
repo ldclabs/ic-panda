@@ -445,6 +445,7 @@ impl Fixture {
                     max_orders: 1_000_000,
                     daily_orders,
                     calls_per_minute: 400,
+                    calls_per_caller: 40,
                     authorizations_per_minute: 200,
                     refreshes_per_minute: 200,
                 },
@@ -481,10 +482,14 @@ impl Fixture {
             sns,
             "configure_panda_service",
             (PandaServiceConfig {
-                commerce_canister: commerce,
+                commerce_homes: vec![CommerceHome {
+                    user_home: user,
+                    commerce_canister: commerce,
+                }],
                 max_claims: 1000,
                 hourly_applications: 100,
                 cooling_ms: PANDA_COOLING_MS,
+                qualifications_per_minute: 200,
             },),
         );
         configured.unwrap();
@@ -906,16 +911,17 @@ impl Fixture {
     }
 }
 
-/// Install another `dmsg_user` sharing this deployment's services. The
-/// services route its accounts only after governance lists it.
-fn install_user_home(f: &Fixture) -> Principal {
+/// Install another `dmsg_user` sharing this deployment's services and buying
+/// through `commerce`. The services route its accounts only after governance
+/// lists it.
+fn install_user_home(f: &Fixture, commerce: Principal) -> Principal {
     let home = f.ic.create_canister();
     f.ic.add_cycles(home, 10_000_000_000_000_000);
     f.ic.install_canister(
         home,
         wasm("dmsg_user"),
         candid::encode_args((UserInit {
-            commerce_canister: f.commerce,
+            commerce_canister: commerce,
             membership_canister: f.membership,
             issuer_namespace: NAMESPACE.into(),
             environment: Environment::Local,

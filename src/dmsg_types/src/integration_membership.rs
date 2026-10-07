@@ -6,11 +6,21 @@ use crate::{
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
+/// The commerce canister serving the accounts of one user home.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CommerceHome {
+    /// Registered `dmsg_user` canister.
+    pub user_home: Principal,
+    /// Commerce canister listing that home; it holds the registrations and
+    /// product adapters its accounts use.
+    pub commerce_canister: Principal,
+}
+
 /// Deployment-wide service limits, independent of product plan names.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PandaServiceConfig {
-    /// Authority for app/product registrations.
-    pub commerce_canister: Principal,
+    /// Commerce canister of each user home; entries are only appended.
+    pub commerce_homes: Vec<CommerceHome>,
     /// Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
     /// Must not exceed the service's 100,000 full-record limit.
     pub max_claims: u64,
@@ -18,6 +28,8 @@ pub struct PandaServiceConfig {
     pub hourly_applications: u64,
     /// At least 65 minutes; changing it cannot shorten an accepted application's cooling.
     pub cooling_ms: u64,
+    /// SNS neuron reads per UTC minute; every active claim needs about one per hour.
+    pub qualifications_per_minute: u64,
 }
 
 /// Complete neuron, economic owner, dMsg account and bill selected before device approval.

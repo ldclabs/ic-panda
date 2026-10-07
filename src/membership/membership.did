@@ -109,6 +109,14 @@ type CertifiedEntry = record {
   // CBOR-encoded IC hash-tree witness for this requested leaf.
   witness : blob;
 };
+// The commerce canister serving the accounts of one user home.
+type CommerceHome = record {
+  // Registered `dmsg_user` canister.
+  user_home : principal;
+  // Commerce canister listing that home; it holds the registrations and
+  // product adapters its accounts use.
+  commerce_canister : principal;
+};
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
   // Current supporting facts cannot be verified.
@@ -326,10 +334,12 @@ type PandaServiceConfig = record {
   max_claims : nat64;
   // Successful new applications per UTC hour.
   hourly_applications : nat64;
-  // Authority for app/product registrations.
-  commerce_canister : principal;
+  // SNS neuron reads per UTC minute; every active claim needs about one per hour.
+  qualifications_per_minute : nat64;
   // At least 65 minutes; changing it cannot shorten an accepted application's cooling.
   cooling_ms : nat64;
+  // Commerce canister of each user home; entries are only appended.
+  commerce_homes : vec CommerceHome;
 };
 // Explicit product permission; not a claim that the payer has a project role.
 type ProductApproval = record {
@@ -424,7 +434,7 @@ type SettlementMethod = variant {
 service : (MembershipInit) -> {
   advance_panda_claim : (blob, ProductAuthorizationRequest) -> (Result);
   cancel_panda_application : (blob) -> (Result);
-  // Set the PANDA service limits. The commerce canister is fixed once set.
+  // Set the PANDA service limits and the commerce canister of each user home.
   configure_panda_service : (PandaServiceConfig) -> (Result_1);
   get_panda_claim : (blob) -> (Result) query;
   get_panda_claim_for_product : (blob) -> (Result);

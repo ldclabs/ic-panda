@@ -215,8 +215,20 @@ export interface CommerceLimits {
   'authorizations_per_minute' : number,
   'refreshes_per_minute' : number,
   'max_orders' : bigint,
+  'calls_per_caller' : number,
   'max_subjects' : bigint,
   'calls_per_minute' : number,
+}
+export interface CommerceStats {
+  'collectable_orders' : bigint,
+  'subjects' : bigint,
+  'hot_orders' : bigint,
+  'cycles' : bigint,
+  'archived_orders' : bigint,
+  'archived_transfers' : bigint,
+  'stable_pages' : bigint,
+  'hot_transfers' : bigint,
+  'certified_leaves' : bigint,
 }
 export type Eligibility = { 'Unverifiable' : null } |
   { 'Ineligible' : null } |
@@ -517,6 +529,11 @@ export interface _SERVICE {
     Result_7
   >,
   'collect_checkout_revenue' : ActorMethod<[Uint8Array | number[]], Result_7>,
+  'collectable_checkouts' : ActorMethod<
+    [[] | [Uint8Array | number[]], number],
+    Result_5
+  >,
+  'commerce_stats' : ActorMethod<[], CommerceStats>,
   'get_cash_cancellation' : ActorMethod<[Uint8Array | number[]], Result_8>,
   'get_catalog' : ActorMethod<[], Result_9>,
   'get_checkout' : ActorMethod<[Uint8Array | number[]], Result_10>,

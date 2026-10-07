@@ -3,7 +3,7 @@ use crate::{
     checkout_model::{Balance, Order, Transfer},
     checkout_store::Asset,
     model::Subject,
-    store::Config,
+    store::{Budget, Config},
 };
 use candid::Principal;
 use cbor2::Cbor;
@@ -13,7 +13,7 @@ use dmsg_types::{
 };
 use std::collections::BTreeMap;
 
-const SCHEMA: u16 = 7;
+const SCHEMA: u16 = 8;
 
 macro_rules! record {
     ($repr:ident => $domain:ident { $($key:literal => $field:ident: $ty:ty),+ $(,)? }) => {
@@ -61,9 +61,9 @@ record!(ConfigRepr => Config {
     7 => day: u64,
     8 => orders: u32,
     9 => minute: u64,
-    10 => reads: BTreeMap<Principal, u32>,
-    11 => refreshes: BTreeMap<Principal, u32>,
-    12 => authorizations: BTreeMap<Principal, u32>,
+    10 => reads: Budget,
+    11 => refreshes: Budget,
+    12 => authorizations: Budget,
 });
 
 record!(AssetRepr => Asset {

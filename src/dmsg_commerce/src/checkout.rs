@@ -1079,6 +1079,14 @@ fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPag
     transfers(ic_cdk::api::msg_caller(), after, take)
 }
 
+/// The calling merchant's applied orders with uncollected revenue, earliest
+/// term end first, so a job that collects once per term stops at the first
+/// order whose `offer.expires_at_ms` lies ahead.
+#[ic_cdk::query]
+fn collectable_checkouts(after: Option<Hash>, take: u16) -> Result<CheckoutOperationsPage> {
+    collectable(ic_cdk::api::msg_caller(), after, take)
+}
+
 /// Bounded maintenance; funds, original-source refunds and idempotency survive archival.
 #[ic_cdk::update]
 fn sweep_checkout_history() -> CheckoutHistorySweep {

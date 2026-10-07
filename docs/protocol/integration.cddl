@@ -449,11 +449,17 @@ CheckoutHistorySweep = {
   "transfers": u16,
 }
 
-PandaServiceConfig = {
+CommerceHome = {
+  "user_home": Principal,
   "commerce_canister": Principal,
+}
+
+PandaServiceConfig = {
+  "commerce_homes": [* CommerceHome],
   "max_claims": u64,
   "hourly_applications": u64,
   "cooling_ms": u64,
+  "qualifications_per_minute": u64,
 }
 
 PandaApplicationTerms = {

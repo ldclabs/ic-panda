@@ -179,6 +179,7 @@ fn account_extension_gateway() {
                 max_orders: 1_000_000,
                 daily_orders: 20,
                 calls_per_minute: 400,
+                calls_per_caller: 40,
                 authorizations_per_minute: 200,
                 refreshes_per_minute: 200,
             },
@@ -220,10 +221,14 @@ fn account_extension_gateway() {
         sns,
         "configure_panda_service",
         candid::encode_args((PandaServiceConfig {
-            commerce_canister: commerce,
+            commerce_homes: vec![CommerceHome {
+                user_home: user,
+                commerce_canister: commerce,
+            }],
             max_claims: 100,
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
+            qualifications_per_minute: 200,
         },))
         .unwrap(),
     );

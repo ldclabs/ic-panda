@@ -48,6 +48,7 @@ export const idlFactory = ({ IDL }) => {
     'authorizations_per_minute' : IDL.Nat32,
     'refreshes_per_minute' : IDL.Nat32,
     'max_orders' : IDL.Nat64,
+    'calls_per_caller' : IDL.Nat32,
     'max_subjects' : IDL.Nat64,
     'calls_per_minute' : IDL.Nat32,
   });
@@ -327,6 +328,17 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_6 = IDL.Variant({ 'Ok' : CashTransfersPage, 'Err' : Error });
   const Result_7 = IDL.Variant({ 'Ok' : CashTransfer, 'Err' : Error });
+  const CommerceStats = IDL.Record({
+    'collectable_orders' : IDL.Nat64,
+    'subjects' : IDL.Nat64,
+    'hot_orders' : IDL.Nat64,
+    'cycles' : IDL.Nat,
+    'archived_orders' : IDL.Nat64,
+    'archived_transfers' : IDL.Nat64,
+    'stable_pages' : IDL.Nat64,
+    'hot_transfers' : IDL.Nat64,
+    'certified_leaves' : IDL.Nat64,
+  });
   const Result_8 = IDL.Variant({
     'Ok' : IDL.Opt(CashCancellationReceipt),
     'Err' : Error,
@@ -544,6 +556,12 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'collect_checkout_revenue' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_7], []),
+    'collectable_checkouts' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat16],
+        [Result_5],
+        ['query'],
+      ),
+    'commerce_stats' : IDL.Func([], [CommerceStats], ['query']),
     'get_cash_cancellation' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_8], []),
     'get_catalog' : IDL.Func([], [Result_9], ['query']),
     'get_checkout' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_10], ['query']),
@@ -743,6 +761,7 @@ export const init = ({ IDL }) => {
     'authorizations_per_minute' : IDL.Nat32,
     'refreshes_per_minute' : IDL.Nat32,
     'max_orders' : IDL.Nat64,
+    'calls_per_caller' : IDL.Nat32,
     'max_subjects' : IDL.Nat64,
     'calls_per_minute' : IDL.Nat32,
   });

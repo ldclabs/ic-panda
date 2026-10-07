@@ -58,6 +58,10 @@ export interface CertifiedEntry {
   'value' : [] | [Uint8Array | number[]],
   'witness' : Uint8Array | number[],
 }
+export interface CommerceHome {
+  'user_home' : Principal,
+  'commerce_canister' : Principal,
+}
 export type Eligibility = { 'Unverifiable' : null } |
   { 'Ineligible' : null } |
   { 'Eligible' : null };
@@ -163,8 +167,9 @@ export interface PandaRatePolicy {
 export interface PandaServiceConfig {
   'max_claims' : bigint,
   'hourly_applications' : bigint,
-  'commerce_canister' : Principal,
+  'qualifications_per_minute' : bigint,
   'cooling_ms' : bigint,
+  'commerce_homes' : Array<CommerceHome>,
 }
 export interface ProductApproval {
   'method' : SettlementMethod,

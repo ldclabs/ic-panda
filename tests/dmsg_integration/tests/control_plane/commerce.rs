@@ -1229,10 +1229,14 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
         f.sns,
         "configure_panda_service",
         (PandaServiceConfig {
-            commerce_canister: f.commerce,
+            commerce_homes: vec![CommerceHome {
+                user_home: f.user,
+                commerce_canister: f.commerce,
+            }],
             max_claims: 1,
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
+            qualifications_per_minute: 200,
         },),
     );
     r.unwrap();
@@ -1295,10 +1299,14 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
         f.sns,
         "configure_panda_service",
         (PandaServiceConfig {
-            commerce_canister: f.commerce,
+            commerce_homes: vec![CommerceHome {
+                user_home: f.user,
+                commerce_canister: f.commerce,
+            }],
             max_claims: 1,
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
+            qualifications_per_minute: 200,
         },),
     );
     r.unwrap();
@@ -1658,7 +1666,7 @@ fn export_resource_fixture(f: &Fixture, id: &AccountId, name: &str) {
 #[test]
 fn an_account_of_an_added_user_home_buys_a_plan() {
     let mut f = Fixture::commercial();
-    let second = install_user_home(&f);
+    let second = install_user_home(&f, f.commerce);
     let added: Result<()> = update(&f.ic, f.commerce, f.sns, "admin_add_user_home", (second,));
     added.unwrap();
     // Governance appends the home to the app and the product's authorities.
@@ -1941,4 +1949,256 @@ fn the_last_collection_settles_the_fee_reserve() {
         (0, 0)
     );
     assert_eq!(gross, second.quote.cash.amount_atomic + reserve);
+}
+
+#[test]
+fn a_failed_membership_call_keeps_the_panda_lease() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    activate_panda(&f, &id, 170);
+    let b = beneficiary(f.user, &id);
+    let refresh = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (b.clone(),),
+        );
+        r.unwrap()
+    };
+    let view = refresh();
+    assert_eq!(view.source_status, SourceStatus::Active);
+    f.ic.advance_time(Duration::from_millis(
+        view.valid_until_ms - time(&f.ic) - 5 * MINUTE,
+    ));
+    // A stopped membership rejects the requalification call: nothing was
+    // learned, so the lease stands and the execution allowance keeps it.
+    f.ic.stop_canister(f.membership, None).unwrap();
+    assert_eq!(refresh(), view);
+    let usage: Result<ExecutionUsage> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "refresh_execution_entitlement",
+        (id,),
+    );
+    assert_eq!(usage.unwrap().lease_revision, view.lease_revision);
+    f.ic.start_canister(f.membership, None).unwrap();
+    f.ic.advance_time(Duration::from_millis(MINUTE + 1));
+    let renewed = refresh();
+    assert_eq!(renewed.source_status, SourceStatus::Active);
+    assert!(renewed.lease_revision > view.lease_revision);
+    assert!(renewed.valid_until_ms > view.valid_until_ms);
+}
+
+#[test]
+fn merchants_page_collectable_orders_by_term_end_and_stats_count_records() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let (plan, _) = pay(&f, &id, "plus", 200);
+    let (addon, _) = pay(&f, &id, &"78".repeat(32), 202);
+    let page = |after: Option<Hash>| -> CheckoutOperationsPage {
+        let r: Result<CheckoutOperationsPage> = query(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "collectable_checkouts",
+            (after, 1u16),
+        );
+        r.unwrap()
+    };
+    let ids = |p: &CheckoutOperationsPage| -> Vec<Hash> {
+        p.orders.iter().map(|a| a.order.progress.order_id).collect()
+    };
+    // Both orders end with the base term, so the index orders them by id.
+    let mut expected = [plan.progress.order_id, addon.progress.order_id];
+    expected.sort_by(|a, b| a.as_slice().cmp(b.as_slice()));
+    let first = page(None);
+    assert_eq!(ids(&first), vec![expected[0]]);
+    assert_eq!(first.next, Some(expected[0]));
+    let second = page(first.next);
+    assert_eq!(ids(&second), vec![expected[1]]);
+    assert!(second.next.is_none());
+    // The page belongs to the merchant; the payer has no collectable orders.
+    let r: Result<CheckoutOperationsPage> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "collectable_checkouts",
+        (None::<Hash>, 32u16),
+    );
+    assert!(r.unwrap().orders.is_empty());
+    let stats = || -> CommerceStats { query(&f.ic, f.commerce, person(9), "commerce_stats", ()) };
+    let s = stats();
+    assert_eq!(
+        (
+            s.subjects,
+            s.hot_orders,
+            s.archived_orders,
+            s.collectable_orders
+        ),
+        (1, 2, 0, 2)
+    );
+    assert_eq!((s.hot_transfers, s.archived_transfers), (0, 0));
+    // Registrations, the catalog and the subject are certified.
+    assert_eq!(s.certified_leaves, 4);
+    assert!(s.stable_pages > 0 && s.cycles > 0);
+    // Collecting all revenue after the term removes the order from the page.
+    f.ic.advance_time(Duration::from_millis(
+        plan.quote.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    let r: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(60),
+        "collect_checkout_revenue",
+        (plan.progress.order_id,),
+    );
+    r.unwrap();
+    assert_eq!(ids(&page(None)), vec![addon.progress.order_id]);
+    let s = stats();
+    assert_eq!((s.collectable_orders, s.hot_transfers), (1, 1));
+}
+
+#[test]
+fn a_second_commerce_instance_serves_its_own_user_home() {
+    let mut f = Fixture::commercial();
+    let first = (f.user, f.commerce);
+    let commerce = f.ic.create_canister();
+    f.ic.add_cycles(commerce, 10_000_000_000_000_000);
+    let second = install_user_home(&f, commerce);
+    let catalogs: Vec<Catalog> = query(
+        &f.ic,
+        f.commerce,
+        person(9),
+        "list_catalogs",
+        (None::<u64>,),
+    );
+    let limits: CommerceLimits = query(&f.ic, f.commerce, person(9), "get_commerce_limits", ());
+    f.ic.install_canister(
+        commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args((CommerceInit {
+            environment: Environment::Local,
+            governance: f.sns,
+            membership_canister: f.membership,
+            user_homes: vec![second],
+            catalog: catalogs[0].clone(),
+            limits,
+        },))
+        .unwrap(),
+        None,
+    );
+    // The instance holds its own registrations and settlement asset.
+    let (app, product) = registration(&f);
+    let product = ProductRegistration {
+        quote_authority: commerce,
+        adapter: commerce,
+        beneficiary_authorities: vec![second],
+        ..product.unwrap()
+    };
+    let r: Result<()> = update(
+        &f.ic,
+        commerce,
+        f.sns,
+        "register_integration_product",
+        (product,),
+    );
+    r.unwrap();
+    let app = AppRegistration {
+        user_homes: vec![second],
+        ..app
+    };
+    let r: Result<()> = update(&f.ic, commerce, f.sns, "register_integration_app", (app,));
+    r.unwrap();
+    let r: Result<()> = update(
+        &f.ic,
+        commerce,
+        f.sns,
+        "register_settlement_asset",
+        (SettlementAsset {
+            version: 2,
+            policy_version: 1,
+            environment: Environment::Local,
+            ledger: f.ledger,
+            asset: SettlementAssetKind::CkUsdc,
+            decimals: 6,
+            price_usd_micros: 1_000_000,
+            price_observed_at_ms: time(&f.ic),
+            price_valid_until_ms: time(&f.ic) + 30 * MINUTE,
+            network_fee_atomic: 10,
+            max_network_fee_atomic: 20,
+            enabled: true,
+        },),
+    );
+    r.unwrap();
+    let r: Result<()> = update(
+        &f.ic,
+        commerce,
+        f.sns,
+        "verify_settlement_asset",
+        (f.ledger, None::<u128>),
+    );
+    r.unwrap();
+    // Membership routes each home to its commerce; the first home is unchanged.
+    let r: Result<()> = update(
+        &f.ic,
+        f.membership,
+        f.sns,
+        "configure_panda_service",
+        (PandaServiceConfig {
+            commerce_homes: vec![
+                CommerceHome {
+                    user_home: first.0,
+                    commerce_canister: first.1,
+                },
+                CommerceHome {
+                    user_home: second,
+                    commerce_canister: commerce,
+                },
+            ],
+            max_claims: 1000,
+            hourly_applications: 100,
+            cooling_ms: PANDA_COOLING_MS,
+            qualifications_per_minute: 200,
+        },),
+    );
+    r.unwrap();
+    f.user = second;
+    f.commerce = commerce;
+    let id = f.create(1);
+    let claim = activate_panda(&f, &id, 170);
+    assert_eq!(claim.terms.offer.adapter, commerce);
+    let entitlement = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(second, &id),),
+        );
+        r.unwrap()
+    };
+    let view = entitlement();
+    assert_eq!(view.home_commerce, commerce);
+    assert_eq!(view.source_status, SourceStatus::Active);
+    assert_eq!(view.plan_snapshot.plan_id, PlanId::Plus);
+    // Cash settles on the same instance: a storage add-on on the PANDA term.
+    reprice(&f);
+    let (addon, _) = pay(&f, &id, &"78".repeat(32), 173);
+    assert_eq!(addon.quote.offer.adapter, commerce);
+    assert_eq!(entitlement().addons.len(), 1);
+    // The first instance knows neither the home nor the subject.
+    let r: Result<CertifiedBatch> = query(
+        &f.ic,
+        first.1,
+        person(9),
+        "get_entitlement_batch",
+        (vec![beneficiary(second, &id)],),
+    );
+    assert_eq!(r, Err(Error::Forbidden));
+    let stats =
+        |c: Principal| -> CommerceStats { query(&f.ic, c, person(9), "commerce_stats", ()) };
+    assert_eq!((stats(first.1).subjects, stats(commerce).subjects), (0, 1));
 }

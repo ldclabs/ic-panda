@@ -192,11 +192,16 @@ export const idlFactory = ({ IDL }) => {
     'Pending' : IDL.Null,
   });
   const Result = IDL.Variant({ 'Ok' : PandaClaimView, 'Err' : Error });
+  const CommerceHome = IDL.Record({
+    'user_home' : IDL.Principal,
+    'commerce_canister' : IDL.Principal,
+  });
   const PandaServiceConfig = IDL.Record({
     'max_claims' : IDL.Nat64,
     'hourly_applications' : IDL.Nat64,
-    'commerce_canister' : IDL.Principal,
+    'qualifications_per_minute' : IDL.Nat64,
     'cooling_ms' : IDL.Nat64,
+    'commerce_homes' : IDL.Vec(CommerceHome),
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
   const CertifiedEntry = IDL.Record({

@@ -714,7 +714,7 @@ fn handle_routes_authorizations_to_each_accounts_user_home() {
     seal_snapshot(&f, &[]);
     let first = f.user;
     let owner = f.create(1);
-    let second = install_user_home(&f);
+    let second = install_user_home(&f, f.commerce);
     f.user = second;
     let remote = f.create(2);
     // An account from an unlisted home has no route.

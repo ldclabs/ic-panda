@@ -42,7 +42,7 @@ fn services_serve_accounts_of_a_user_home_added_by_governance() {
     let initialized: Result<candid::Reserved> =
         update(&f.ic, f.cose, Principal::anonymous(), "initialize_keys", ());
     initialized.unwrap();
-    let second = install_user_home(&f);
+    let second = install_user_home(&f, f.commerce);
     f.user = second;
     let remote = f.root_account(2);
     let read = |home: Principal, account: &AccountId| -> Result<ExecutionResult> {

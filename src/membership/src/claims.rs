@@ -46,7 +46,8 @@ async fn quote_panda_subscription(
     authenticated(caller)?;
     nonzero(approving_account.as_slice())?;
     nonzero(neuron_id.as_slice())?;
-    let commerce = admission()?.service()?.commerce_canister;
+    // The home's commerce holds the registrations its accounts may use.
+    let commerce = admission()?.commerce(user_home)?;
     let at = nanos_to_millis(ic_cdk::api::time());
     store::reserve_call(at, store::CallBudget::Authorization(caller))?;
     let (app, product) = registration(commerce, &offer).await?;
@@ -84,7 +85,7 @@ async fn quote_panda_subscription(
 async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) -> Result<u64> {
     let t = &request.terms;
     let a = &request.authorization;
-    let commerce = store::config().service()?.commerce_canister;
+    let commerce = store::config().commerce(t.user_home)?;
     let (app, product) = registration(commerce, &t.offer).await?;
     let at = nanos_to_millis(ic_cdk::api::time());
     let c = admission()?;
