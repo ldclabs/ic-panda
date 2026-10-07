@@ -249,22 +249,27 @@ fn reader_key(caller: Principal, id: Hash) -> Vec<u8> {
     [reader_prefix(caller), id.to_vec()].concat()
 }
 
+/// One page of the ids that end the keys under `prefix`, after the key suffix
+/// `after`, so a cursor never leaves the caller's own index.
 fn page_ids(
     t: &Table<Stored<()>>,
-    caller: Principal,
-    after: Option<Hash>,
+    prefix: Vec<u8>,
+    after: Option<Vec<u8>>,
     take: u16,
 ) -> (Vec<Hash>, Option<Hash>) {
-    let prefix = reader_prefix(caller);
     let start = after.map_or_else(
         || Included(prefix.clone()),
-        |id| Excluded([prefix.clone(), id.to_vec()].concat()),
+        |suffix| Excluded([prefix.clone(), suffix].concat()),
     );
-    let end = Included([prefix, vec![255; 32]].concat());
+    // Above every suffix: an id, or a term end and an id.
+    let end = Included([prefix, vec![255; 40]].concat());
     let mut ids: Vec<_> = t
         .range((start, end))
         .take(usize::from(take) + 1)
-        .map(|row| Hash::new(row.key()[32..].try_into().expect("reader key")))
+        .map(|row| {
+            let key = row.key();
+            Hash::new(key[key.len() - 32..].try_into().expect("index key"))
+        })
         .collect();
     let next = if ids.len() > usize::from(take) {
         ids.pop();
@@ -301,7 +306,9 @@ pub(crate) fn operations(
 ) -> Result<CheckoutOperationsPage> {
     authenticated(caller)?;
     ensure_valid((1..=32).contains(&take), "page size")?;
-    let (ids, next) = ORDER_READERS.with_borrow(|t| page_ids(t, caller, after, take));
+    let after = after.map(|id| id.to_vec());
+    let (ids, next) =
+        ORDER_READERS.with_borrow(|t| page_ids(t, reader_prefix(caller), after, take));
     let orders = ids.into_iter().map(audit).collect::<Result<_>>()?;
     Ok(CheckoutOperationsPage { orders, next })
 }
@@ -311,19 +318,25 @@ fn collection_prefix(merchant: Principal) -> Vec<u8> {
 }
 
 /// Where the order sits in its merchant's collection index: by term end, then id.
-fn collection_key(o: &Order) -> Vec<u8> {
+fn collection_suffix(o: &Order) -> Vec<u8> {
     [
-        collection_prefix(o.quote.product.merchant.owner),
-        o.quote.offer.expires_at_ms.to_be_bytes().to_vec(),
-        o.id.to_vec(),
+        o.quote.offer.expires_at_ms.to_be_bytes().as_slice(),
+        o.id.as_slice(),
     ]
     .concat()
 }
 
 /// Indexed while the merchant still has revenue to collect.
 fn collectable_key(o: &Order) -> Option<Vec<u8>> {
-    (o.status == CheckoutStatus::Applied && o.earned_allocated < o.quote.cash.amount_atomic)
-        .then(|| collection_key(o))
+    (o.status == CheckoutStatus::Applied && o.earned_allocated < o.quote.cash.amount_atomic).then(
+        || {
+            [
+                collection_prefix(o.quote.product.merchant.owner),
+                collection_suffix(o),
+            ]
+            .concat()
+        },
+    )
 }
 
 /// The caller's applied orders with uncollected revenue, earliest term end first.
@@ -334,24 +347,11 @@ pub(crate) fn collectable(
 ) -> Result<CheckoutOperationsPage> {
     authenticated(caller)?;
     ensure_valid((1..=32).contains(&take), "page size")?;
-    let prefix = collection_prefix(caller);
-    let start = match after {
-        Some(id) => Excluded(collection_key(&order(id)?)),
-        None => Included(prefix.clone()),
-    };
-    let end = Included([prefix, vec![255; 40]].concat());
-    let mut ids: Vec<Hash> = COLLECTIONS.with_borrow(|t| {
-        t.range((start, end))
-            .take(usize::from(take) + 1)
-            .map(|row| Hash::new(row.key()[40..].try_into().expect("collection key")))
-            .collect()
-    });
-    let next = if ids.len() > usize::from(take) {
-        ids.pop();
-        ids.last().copied()
-    } else {
-        None
-    };
+    let after = after
+        .map(|id| order(id).map(|o| collection_suffix(&o)))
+        .transpose()?;
+    let (ids, next) =
+        COLLECTIONS.with_borrow(|t| page_ids(t, collection_prefix(caller), after, take));
     let orders = ids.into_iter().map(audit).collect::<Result<_>>()?;
     Ok(CheckoutOperationsPage { orders, next })
 }
@@ -363,7 +363,9 @@ pub(crate) fn transfers(
 ) -> Result<CashTransfersPage> {
     authenticated(caller)?;
     ensure_valid((1..=32).contains(&take), "page size")?;
-    let (ids, next) = TRANSFER_READERS.with_borrow(|t| page_ids(t, caller, after, take));
+    let after = after.map(|id| id.to_vec());
+    let (ids, next) =
+        TRANSFER_READERS.with_borrow(|t| page_ids(t, reader_prefix(caller), after, take));
     let transfers = ids
         .into_iter()
         .map(|id| transfer(id).map(|t| t.view))
@@ -634,6 +636,37 @@ mod tests {
             .orders
             .is_empty());
         assert_eq!(COLLECTIONS.with_borrow(|t| t.len()), 1);
+    }
+
+    #[test]
+    fn a_foreign_cursor_stays_inside_the_callers_collections() {
+        setup();
+        let applied = |i: u64, merchant: Principal, expires: u64| -> Order {
+            let mut o = closed(i);
+            o.status = CheckoutStatus::Applied;
+            o.quote.product.merchant.owner = merchant;
+            o.quote.offer.expires_at_ms = expires;
+            o
+        };
+        let (a, b) = (principal(97), principal(98));
+        let mut orders = [
+            applied(1, a, NOW + DAY),
+            applied(2, a, NOW + 2 * DAY),
+            applied(3, b, NOW + DAY),
+            applied(4, b, NOW + 2 * DAY),
+        ];
+        for o in &mut orders {
+            save(o, NOW);
+        }
+        // Whichever index sorts first, a cursor from the other merchant only
+        // positions the page inside the caller's own index.
+        for (caller, cursor) in [(a, orders[2].id), (b, orders[0].id)] {
+            let page = collectable(caller, Some(cursor), 32).unwrap();
+            assert!(page
+                .orders
+                .iter()
+                .all(|o| o.order.quote.product.merchant.owner == caller));
+        }
     }
 
     #[test]
