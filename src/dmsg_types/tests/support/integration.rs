@@ -16,14 +16,11 @@ pub fn app() -> AppRegistration {
         config_version: 1,
         origins: vec!["http://localhost:5188".into()],
         product_ids: vec!["tokenlist".into(), "sample".into()],
-        capabilities: vec![
-            AppCapability::Authenticate,
-            AppCapability::Checkout,
-            AppCapability::SignAction,
-        ],
-        profiles: vec![SigningProfile::AppActionV1],
+        capabilities: vec![AppCapability::Authenticate, AppCapability::Checkout],
+        profiles: vec![],
         authentication_receiver: principal(3),
         action_authority: principal(3),
+        action_schema: None,
         paused: false,
     }
 }

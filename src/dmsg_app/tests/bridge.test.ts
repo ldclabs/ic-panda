@@ -116,6 +116,7 @@ it('rejects an authentication payload claiming another registered origin or sess
     profiles: [],
     authentication_receiver: new Uint8Array([3, 1]),
     action_authority: new Uint8Array([3, 1]),
+    action_schema: null,
     paused: false
   }
   const request = {

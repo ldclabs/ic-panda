@@ -81,12 +81,36 @@ export interface AccountMutation {
   'approval' : Approval,
   'expected_version' : bigint,
 }
+export interface ActionArg { 'value' : ActionValue, 'name' : string }
+export type ActionArgs = Array<
+  {
+    'value' : { 'Nat' : bigint } |
+      {
+        'Artifact' : {
+          'uri' : string,
+          'sha256' : Uint8Array | number[],
+          'size' : bigint,
+          'content_type' : string,
+        }
+      } |
+      { 'Bool' : boolean } |
+      { 'Hash' : Uint8Array | number[] } |
+      { 'Record' : ActionArgs } |
+      { 'List' : Array<ActionValue> } |
+      { 'Null' : null } |
+      { 'Text' : string } |
+      { 'Principal' : Principal } |
+      { 'Choice' : string },
+    'name' : string,
+  }
+>;
 export interface ActionArtifact {
   'uri' : string,
   'sha256' : Uint8Array | number[],
   'size' : bigint,
   'content_type' : string,
 }
+export interface ActionCommand { 'args' : Array<ActionArg>, 'name' : string }
 export interface ActionFile {
   'sha256' : Uint8Array | number[],
   'media_type' : string,
@@ -98,35 +122,32 @@ export interface ActionFile {
 }
 export type ActionFileRepresentation = { 'Encrypted' : null } |
   { 'Original' : null };
-export interface ActionRequestedChange {
-  'blocking' : boolean,
-  'locator' : string,
-  'detail' : string,
-}
-export type ActionReviewOutcome = { 'Approved' : null } |
-  { 'Rejected' : null } |
-  { 'ChangesRequested' : null };
+export type ActionValue = { 'Nat' : bigint } |
+  { 'Artifact' : ActionArtifact } |
+  { 'Bool' : boolean } |
+  { 'Hash' : Uint8Array | number[] } |
+  { 'Record' : ActionArgs } |
+  { 'List' : Array<ActionValue> } |
+  { 'Null' : null } |
+  { 'Text' : string } |
+  { 'Principal' : Principal } |
+  { 'Choice' : string };
 export interface AppAction {
   'files' : Array<ActionFile>,
-  'rule_set_hash' : Uint8Array | number[],
+  'actor' : Uint8Array | number[],
   'app_config_version' : bigint,
   'origin' : string,
   'signing_account' : Uint8Array | number[],
-  'actor_id' : Uint8Array | number[],
   'operation_id' : Uint8Array | number[],
-  'subject_hash' : Uint8Array | number[],
   'version' : number,
-  'command' : AppActionCommand,
+  'command' : ActionCommand,
   'app_id' : string,
   'issued_at_ms' : bigint,
   'environment' : Environment,
-  'precondition_hash' : Uint8Array | number[],
   'intent_hash' : Uint8Array | number[],
   'receiver' : Principal,
-  'input_hash' : Uint8Array | number[],
   'expires_at_ms' : bigint,
-  'role_snapshot_hash' : Uint8Array | number[],
-  'signing_policy_hash' : Uint8Array | number[],
+  'schema_hash' : Uint8Array | number[],
 }
 export interface AppActionAttestRequest {
   'account_id' : Uint8Array | number[],
@@ -135,41 +156,6 @@ export interface AppActionAttestRequest {
   'issuer' : string,
   'approval' : Approval,
 }
-export type AppActionCommand = {
-    'TokenListCertifyTransition' : {
-      'transition_id' : bigint,
-      'rationale' : string,
-      'project_id' : bigint,
-      'analysis' : [] | [ActionArtifact],
-      'statement_hash' : Uint8Array | number[],
-    }
-  } |
-  {
-    'TokenListCertifyDisclosure' : {
-      'contract_id' : bigint,
-      'project_id' : bigint,
-      'revision' : bigint,
-    }
-  } |
-  {
-    'TokenListApproveTransition' : {
-      'approve' : boolean,
-      'transition_id' : bigint,
-      'rationale' : string,
-      'project_id' : bigint,
-      'statement_hash' : Uint8Array | number[],
-    }
-  } |
-  {
-    'TokenListDecideReview' : {
-      'case_id' : bigint,
-      'rationale' : string,
-      'project_id' : bigint,
-      'changes' : Array<ActionRequestedChange>,
-      'outcome' : ActionReviewOutcome,
-      'round' : bigint,
-    }
-  };
 export interface ApplicationApproval {
   'service' : Principal,
   'actor' : Principal,

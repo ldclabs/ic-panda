@@ -1,6 +1,20 @@
 // [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
 // representation of ledgers supporting the ICRC-1 standard.
 type Account = record { owner : principal; subaccount : opt blob };
+// Plain display text for one locale; never markup.
+type ActionLabel = record {
+  // Display text.
+  "text" : text;
+  // BCP 47 language tag, such as `en` or `zh`.
+  locale : text;
+};
+// Governance-registered command vocabulary of one application.
+type ActionSchema = record {
+  // Schema format version, exactly one.
+  version : nat16;
+  // Commands the application may request, with unique names.
+  commands : vec CommandSchema;
+};
 // Explicit external capability; never grants access to secrets or wallet keys.
 type AppCapability = variant {
   // A registered, typed product action.
@@ -30,6 +44,8 @@ type AppRegistration = record {
   config_version : nat64;
   // Deployment separation.
   environment : Environment;
+  // Command schema rendered for signing, present exactly with `SignAction`.
+  action_schema : opt ActionSchema;
   // Product authority that confirms prepared actions and signer-account linkage.
   action_authority : principal;
   // Closed signing profile allowlist, empty for an authentication-only app.
@@ -384,6 +400,22 @@ type CheckoutView = record {
   // Amount of price still reserved, never withdrawable before earned.
   service_reserve_atomic : nat;
 };
+// One allowed choice value and its displayed label.
+type ChoiceOption = record {
+  // Encoded value.
+  value : text;
+  // Displayed label, one entry per locale.
+  label : vec ActionLabel;
+};
+// One command: its displayed title and complete argument list.
+type CommandSchema = record {
+  // Displayed title, one entry per locale.
+  title : vec ActionLabel;
+  // Stable command name.
+  name : text;
+  // Arguments in display and encoding order, with unique names.
+  fields : vec FieldSchema;
+};
 // Product commerce deployment, accepted asset and admission configuration.
 type CommerceInit = record {
   // Deployment domain of the request or service.
@@ -578,6 +610,67 @@ type ExecutionWeights = record {
   ed25519 : nat64;
   // Immutable version identifier within this policy or catalog.
   version : nat64;
+};
+// One argument or record field. Every field is always displayed.
+type FieldSchema = record {
+  // Accepted value type and bounds.
+  ty : FieldType;
+  // Stable field name.
+  name : text;
+  // Displayed label, one entry per locale.
+  label : vec ActionLabel;
+};
+// Field types and bounds. Nesting is limited to three levels.
+type FieldType = variant {
+  // Unsigned integer in the inclusive range.
+  Nat : record {
+    // Inclusive maximum.
+    max : nat64;
+    // Inclusive minimum.
+    min : nat64;
+  };
+  // External artifact reference.
+  Artifact;
+  // Boolean with explicit labels for both values.
+  Bool : record {
+    // Label of `false`.
+    no : vec ActionLabel;
+    // Label of `true`.
+    yes : vec ActionLabel;
+  };
+  // Nonzero 32-byte commitment.
+  Hash;
+  // Fixed fields.
+  Record : record {
+    // Fields in display and encoding order, with unique names.
+    fields : SchemaFields;
+  };
+  // Items of one type.
+  List : record {
+    // Item type.
+    item : FieldType;
+    // Maximum item count.
+    max_items : nat64;
+  };
+  // Nonblank verbatim text.
+  Text : record {
+    // Whether line breaks and tabs are allowed and preserved.
+    multiline : bool;
+    // Maximum UTF-8 length.
+    max_bytes : nat64;
+  };
+  // Authenticated principal.
+  Principal;
+  // One of the declared options.
+  Choice : record {
+    // Allowed values with unique names.
+    options : vec ChoiceOption;
+  };
+  // Either `Null` or a value of the item type.
+  Optional : record {
+    // Present value type; not itself optional.
+    item : FieldType;
+  };
 };
 // Versioned monthly quota calculation; retain prior segments when terms change.
 type MonthEntitlement = record {
@@ -794,6 +887,31 @@ type Result_6 = variant { Ok : CashTransfersPage; Err : Error };
 type Result_7 = variant { Ok : CashTransfer; Err : Error };
 type Result_8 = variant { Ok : opt CashCancellationReceipt; Err : Error };
 type Result_9 = variant { Ok : CertifiedBatch; Err : Error };
+// Fields in display and encoding order: a command's arguments or a record's fields.
+type SchemaFields = vec record {
+  ty : variant {
+    Nat : record { max : nat64; min : nat64 };
+    Artifact;
+    Bool : record {
+      no : vec record { "text" : text; locale : text };
+      yes : vec record { "text" : text; locale : text };
+    };
+    Hash;
+    Record : record { fields : SchemaFields };
+    List : record { item : FieldType; max_items : nat64 };
+    Text : record { multiline : bool; max_bytes : nat64 };
+    Principal;
+    Choice : record {
+      options : vec record {
+        value : text;
+        label : vec record { "text" : text; locale : text };
+      };
+    };
+    Optional : record { item : FieldType };
+  };
+  name : text;
+  label : vec record { "text" : text; locale : text };
+};
 // Governance-approved asset/price snapshot. Pausing admission never removes refund routing.
 type SettlementAsset = record {
   // Verified atomic precision; initial assets require six decimals.

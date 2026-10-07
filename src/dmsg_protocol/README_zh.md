@@ -215,12 +215,13 @@ COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --exampl
 
 2026-10-07（未发布）移除阈值文档签名与托管 controller 签名：删除 `SignRequest`、`AppActionSignRequest`、`AgentEventSignRequest`、`SigningKeyRef`、`KeySelector`、`ExecutionKind`、`ExecutionOutput`、`RootTarget`、`RecoveryPolicy`、`RecoveryConfirmation`、`SignRequestExt`、`KeyRequestExt`、`execute_approval_command`、`recovery_confirmation_message`、ES256K 支持（`k256`）与 `AgentController` 用途。文档由设备密钥签名：`prepare_attestation` 返回 Sig_structure 与指纹，`PreparedAttestation::finish` 附上设备签名，`AttestRequest` / `AppActionAttestRequest` 携带设备签名，批准在 `ATTEST_APPROVAL_DOMAIN` 下绑定 `(statement, origin, signature)`；`ExecutionReceipt` 为 schema 2，不含 `max_cycles`。`ContentRootRef` 改为 `{ generation, suite: "dmsg-root-v2", bundle_digest, recipients_digest, body_digest }`，新增 `root_recipients_digest` 与 `root_bundle_digest`；`DeriveRootRequest` 指定已提交代次，只接受登录恢复登记的设备（`DERIVE_APPROVAL_DOMAIN`、`derive_approval_command`）。恢复改为登录授权：`RecoveryRequest` 去掉 `generation`，`request_recovery` 参数为 `(account_id, request, device_proof)` 并用 `recovery_device_message`，`DisputeRecovery { op_id }` 即取消，`SetRecoveryDelay` 取代 `SetRecovery`/`ConfirmRecovery`，`AccountInfo` 暴露 `recovery_delay_ms`、`pending_recovery` 与 `recovered_device`。`RegisterController` 携带 `controller_pop_message` 构造的 `proof`。`CoseInit` 只有一个 `master: MasterKey`，`KeyDescriptor` 描述共享的内容根公钥，`ExecutionGrant` 携带 `generation` 与 `transport_key`，`SecuritySnapshot` 为 schema 4、不含账户状态与恢复公钥。`HandleInit` 新增 `registration_homes`；`AppRegistration` 去掉 `user_homes` 与 `cose_homes`；`ExecutionWeights` 去掉 `ecdsa_secp256k1`。
 
+2026-10-07（未发布）应用动作改由应用定义：删除 `AppActionCommand`、`ActionReviewOutcome`、`ActionRequestedChange` 与 `action_input_hash`，dMsg 不再包含 TokenList 的命令，也不再复刻 TokenList 的输入编码。应用登记 `AppRegistration.action_schema: Option<ActionSchema>`，有 `SignAction` 能力时必须提供，由 `validate_action_schema` 校验。`AppAction.command` 改为封闭 `ActionValue` 值模型上的 `ActionCommand { name, args: ActionArgs }`；`AppAction` 以不透明的 `actor` 字节取代 `actor_id`，以 `schema_hash`（`action_schema_hash`）取代 `input_hash`、`subject_hash`、`precondition_hash`、`role_snapshot_hash`、`signing_policy_hash` 与 `rule_set_hash`，产品自己的上下文由 `intent_hash` 承诺。`validate_action_command(action, schema)` 按 schema 校验命令，`validate_action_admission` 使用登记中的 schema。执行输入与签名命令一致由接收方校验，不由 dMsg 校验。
+
 Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path 的 dmsg_protocol 开发依赖，从而避免发布依赖循环；但仓库合同测试和向量示例仍需要 checkout 的开发依赖。应在 workspace 执行它们，发布包中的 dmsg_types 测试集不等同于仓库测试环境。
 
 先验证 dmsg_types 发布包。其版本在 registry 可用后，用 `cargo package -p dmsg_protocol --locked` 和 `cargo publish -p dmsg_protocol --dry-run --locked` 检查实际协议包，再发布。正常打包依赖解析中，本地存在 dmsg_types 不能代替其 registry 可用性。开发接口不承诺兼容早期实验编码；生产部署、外部服务、容量和审计仍需单独验收。
 
 
-Application-action v1 is a separate closed profile with an `AppAction` key purpose.
-See [the profile and implementation boundary](../../docs/protocol/app-action.md).
-Rust COSE preparation/verification supports it; `dmsg_user.attest` and the document
-browser flow explicitly reject it, and `attest_app_action` is its only entry.
+应用动作 v1 是独立的签名 profile，使用 `AppAction` 密钥用途；各应用登记自己命令的 schema，详见
+[profile 与实现边界](../../docs/protocol/app-action.md)。Rust COSE 准备与验证支持它；
+`dmsg_user.attest` 与文档浏览器流程明确拒绝它，`attest_app_action` 是唯一入口。

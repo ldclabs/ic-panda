@@ -28,6 +28,7 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
         profiles: vec![],
         authentication_receiver: f.commerce,
         action_authority: f.commerce,
+        action_schema: None,
         paused: false,
     };
     let unauthorized: Result<()> = update(
@@ -55,6 +56,65 @@ fn registrations(f: &Fixture) -> (AppRegistration, ProductRegistration) {
     );
     registered.unwrap();
     (app, product)
+}
+
+fn action_schema() -> dmsg_types::app_action::ActionSchema {
+    use dmsg_types::app_action::*;
+    let label = |text: &str| {
+        vec![ActionLabel {
+            locale: "en".into(),
+            text: text.into(),
+        }]
+    };
+    ActionSchema {
+        version: 1,
+        commands: vec![CommandSchema {
+            name: "CertifyDisclosure".into(),
+            title: label("Certify disclosure draft"),
+            fields: SchemaFields(vec![FieldSchema {
+                name: "revision".into(),
+                label: label("Draft revision"),
+                ty: FieldType::Nat {
+                    min: 1,
+                    max: u64::MAX,
+                },
+            }]),
+        }],
+    }
+}
+
+fn sample_action(
+    app_id: &str,
+    origin: &str,
+    receiver: Principal,
+    account: AccountId,
+    operation_id: Hash,
+    at: u64,
+) -> dmsg_types::app_action::AppAction {
+    use dmsg_types::app_action::*;
+    AppAction {
+        version: 1,
+        environment: Environment::Local,
+        app_id: app_id.into(),
+        app_config_version: 1,
+        origin: origin.into(),
+        receiver,
+        actor: vec![8; 12].into(),
+        signing_account: account,
+        operation_id,
+        intent_hash: Hash::new([1; 32]),
+        schema_hash: dmsg_protocol::app_action::action_schema_hash(&action_schema()),
+        issued_at_ms: at,
+        expires_at_ms: at + AUTH_TTL_MS,
+        command: ActionCommand {
+            name: "CertifyDisclosure".into(),
+            args: ActionArgs(vec![ActionArg {
+                name: "revision".into(),
+                value: ActionValue::Nat(1),
+            }]),
+        },
+        files: vec![],
+    }
 }
 
 fn auth(f: &Fixture, app: &AppRegistration, op: u8) -> AuthenticationRequest {
@@ -307,39 +367,19 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
 
 #[test]
 fn external_app_action_cannot_use_document_attestation_or_consume_a_sequence() {
-    use dmsg_types::app_action::*;
     let f = Fixture::new();
     let account = f.create(1);
     let state = f.account_id(1, &account);
     let hash = Hash::new([1; 32]);
     let at = time(&f.ic);
-    let mut action = AppAction {
-        version: 1,
-        environment: Environment::Local,
-        app_id: "tokenlisting".into(),
-        app_config_version: 1,
-        origin: "https://sample.test".into(),
-        receiver: f.commerce,
-        actor_id: AccountId([8; 12]),
-        signing_account: account,
-        operation_id: hash,
-        intent_hash: hash,
-        input_hash: hash,
-        subject_hash: hash,
-        precondition_hash: hash,
-        role_snapshot_hash: hash,
-        signing_policy_hash: hash,
-        rule_set_hash: hash,
-        issued_at_ms: at,
-        expires_at_ms: at + AUTH_TTL_MS,
-        command: AppActionCommand::TokenListCertifyDisclosure {
-            project_id: 1,
-            contract_id: 1,
-            revision: 1,
-        },
-        files: vec![],
-    };
-    action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
+    let action = sample_action(
+        "sample-actions",
+        "https://sample.test",
+        f.commerce,
+        account,
+        hash,
+        at,
+    );
     let statement = Statement {
         issuer: state.issuer.clone(),
         subject: None,
@@ -370,6 +410,7 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     app.action_authority = f.sns;
     app.capabilities.push(AppCapability::SignAction);
     app.profiles.push(SigningProfile::AppActionV1);
+    app.action_schema = Some(action_schema());
     let registered: Result<()> = update(
         &f.ic,
         f.commerce,
@@ -380,33 +421,14 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     registered.unwrap();
     let at = time(&f.ic);
     let hash = Hash::new([1; 32]);
-    let mut action = AppAction {
-        version: 1,
-        environment: Environment::Local,
-        app_id: app.app_id.clone(),
-        app_config_version: 1,
-        origin: app.origins[0].clone(),
-        receiver: f.commerce,
-        actor_id: AccountId([8; 12]),
-        signing_account: account,
-        operation_id: Hash::new([79; 32]),
-        intent_hash: hash,
-        input_hash: hash,
-        subject_hash: hash,
-        precondition_hash: hash,
-        role_snapshot_hash: hash,
-        signing_policy_hash: hash,
-        rule_set_hash: hash,
-        issued_at_ms: at,
-        expires_at_ms: at + AUTH_TTL_MS,
-        command: AppActionCommand::TokenListCertifyDisclosure {
-            project_id: 1,
-            contract_id: 1,
-            revision: 1,
-        },
-        files: vec![],
-    };
-    action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
+    let mut action = sample_action(
+        &app.app_id,
+        &app.origins[0],
+        f.commerce,
+        account,
+        Hash::new([79; 32]),
+        at,
+    );
     let request = |body: AppAction| {
         let state = f.account_id(1, &account);
         let device = &state.devices[&hash];

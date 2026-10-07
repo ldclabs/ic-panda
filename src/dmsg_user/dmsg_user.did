@@ -160,6 +160,34 @@ type AccountMutation = record {
   // Current record version required for compare-and-swap.
   expected_version : nat64;
 };
+// Named argument; the name must equal the schema field at its position.
+type ActionArg = record {
+  // Value of the declared field type.
+  value : ActionValue;
+  // Field name declared by the schema.
+  name : text;
+};
+// Named values in schema order: a command's arguments or a record's fields.
+type ActionArgs = vec record {
+  value : variant {
+    Nat : nat64;
+    Artifact : record {
+      uri : text;
+      sha256 : blob;
+      size : nat64;
+      content_type : text;
+    };
+    Bool : bool;
+    Hash : blob;
+    Record : ActionArgs;
+    List : vec ActionValue;
+    Null;
+    Text : text;
+    Principal : principal;
+    Choice : text;
+  };
+  name : text;
+};
 // Exact external artifact reference; no automatic URI fetching.
 type ActionArtifact = record {
   // HTTPS or IPFS reference.
@@ -170,6 +198,13 @@ type ActionArtifact = record {
   size : nat64;
   // Declared content type.
   content_type : text;
+};
+// One command of the application's schema, with every declared argument.
+type ActionCommand = record {
+  // Every declared argument, in schema order.
+  args : vec ActionArg;
+  // Command name declared by the schema.
+  name : text;
 };
 // Exact product file version presented for this action.
 type ActionFile = record {
@@ -195,67 +230,63 @@ type ActionFileRepresentation = variant {
   // Hash names the original bytes.
   Original;
 };
-// One full change request shown to the signer.
-type ActionRequestedChange = record {
-  // Whether the change blocks approval.
-  blocking : bool;
-  // Product field locator.
-  locator : text;
-  // Verbatim requested change.
-  detail : text;
-};
-// Only terminal review decisions are signable; workflow states are not decisions.
-type ActionReviewOutcome = variant {
-  // Approve this round.
-  Approved;
-  // Refuse this round.
-  Rejected;
-  // Return specific changes.
-  ChangesRequested;
+// Closed value model shared by every application. There is no opaque byte value.
+type ActionValue = variant {
+  // Unsigned integer within the declared range.
+  Nat : nat64;
+  // Exact external artifact reference.
+  Artifact : ActionArtifact;
+  // Boolean shown with the schema's yes/no labels.
+  Bool : bool;
+  // Nonzero 32-byte commitment, shown in hex.
+  Hash : blob;
+  // Every field of a declared record, in schema order.
+  Record : ActionArgs;
+  // Items of one declared type.
+  List : vec ActionValue;
+  // Absent value of an optional field.
+  Null;
+  // Verbatim text, never interpreted as markup.
+  Text : text;
+  // Authenticated principal, shown in text form.
+  Principal : principal;
+  // One option value declared by the schema.
+  Choice : text;
 };
 // Full application decision, separate from portable document statements.
 // All timestamps are Unix milliseconds. No field is a caller-supplied display summary.
 type AppAction = record {
   // Immutable file/version references, ordered by file_id.
   files : vec ActionFile;
-  // Product's rule set at preparation.
-  rule_set_hash : blob;
+  // Product's stable actor identity, opaque to dMsg and distinct from the signer.
+  actor : blob;
   // Exact registration revision used for preparation.
   app_config_version : nat64;
   // Exact browser origin; unlike document profiles, this is in signed content.
   origin : text;
-  // Exact dMsg account selected by the product preparation, distinct from actor_id.
+  // Exact dMsg account selected by the product preparation, distinct from actor.
   signing_account : blob;
-  // Product's stable actor Xid, not the dMsg signing account.
-  actor_id : blob;
   // Product request identity; not the dMsg execution identity.
   operation_id : blob;
-  // Product object content commitment.
-  subject_hash : blob;
   // Profile version, exactly one.
   version : nat16;
-  // Typed product command; unknown commands must be rejected.
-  command : AppActionCommand;
+  // Typed product command, checked against the schema named by `schema_hash`.
+  command : ActionCommand;
   // Governance registered application.
   app_id : text;
   // First valid time.
   issued_at_ms : nat64;
   // Deployment domain.
   environment : Environment;
-  // Product's object/version precondition.
-  precondition_hash : blob;
-  // Commitment to the complete product intent, including its session signer.
+  // Commitment to the complete product intent, including the product's own
+  // subject, precondition, role and policy commitments.
   intent_hash : blob;
   // Canister that commits the product action.
   receiver : principal;
-  // Exact complete command commitment in the product's canonical encoding.
-  input_hash : blob;
   // Exclusive end of the intent's validity window, at most five minutes.
   expires_at_ms : nat64;
-  // Roles accepted at preparation.
-  role_snapshot_hash : blob;
-  // Explicit signer trust policy.
-  signing_policy_hash : blob;
+  // Digest of the registered schema that gives the command its meaning.
+  schema_hash : blob;
 };
 // Explicit application-action attestation. The user home confirms the exact
 // body and account linkage with the registered product authority before it
@@ -271,60 +302,6 @@ type AppActionAttestRequest = record {
   issuer : text;
   // Exact device approval and original execution identity.
   approval : Approval;
-};
-// Initial closed schema. Additional products require an explicitly versioned variant.
-// These are complete TokenList command projections, not commands for dMsg to execute.
-type AppActionCommand = variant {
-  // Certify a transition. Optional analysis is a file reference, not proof of review.
-  TokenListCertifyTransition : record {
-    // Transition ID.
-    transition_id : nat64;
-    // Verbatim rationale.
-    rationale : text;
-    // Registry project ID.
-    project_id : nat64;
-    // Exact optional analysis reference from the command.
-    analysis : opt ActionArtifact;
-    // Commitment to the officer's certification.
-    statement_hash : blob;
-  };
-  // Certify one disclosure draft revision.
-  TokenListCertifyDisclosure : record {
-    // Investment contract ID.
-    contract_id : nat64;
-    // Registry project ID.
-    project_id : nat64;
-    // Expected draft revision.
-    revision : nat64;
-  };
-  // Counsel approval or refusal of one transition.
-  TokenListApproveTransition : record {
-    // True approves, false refuses.
-    approve : bool;
-    // Transition ID.
-    transition_id : nat64;
-    // Verbatim rationale.
-    rationale : text;
-    // Registry project ID.
-    project_id : nat64;
-    // Commitment to the counsel statement.
-    statement_hash : blob;
-  };
-  // Decide one review round with the complete requested changes.
-  TokenListDecideReview : record {
-    // Review case ID.
-    case_id : nat64;
-    // Verbatim decision rationale.
-    rationale : text;
-    // Registry project ID.
-    project_id : nat64;
-    // Complete requested changes, preserving order.
-    changes : vec ActionRequestedChange;
-    // Explicit decision.
-    outcome : ActionReviewOutcome;
-    // Round being decided.
-    round : nat64;
-  };
 };
 // Approved dMsg account and product beneficiary are deliberately separate.
 type ApplicationApproval = record {

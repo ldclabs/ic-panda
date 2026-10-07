@@ -667,6 +667,7 @@ fn sample(f: &Fixture) -> (Principal, AccountId) {
         profiles: vec![],
         authentication_receiver: canister,
         action_authority: canister,
+        action_schema: None,
         paused: false,
     };
     let r: Result<()> = update(&f.ic, f.commerce, f.sns, "register_integration_app", (a,));

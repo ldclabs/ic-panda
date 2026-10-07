@@ -10,7 +10,7 @@ private relay or wallet store. It ships JavaScript and TypeScript declarations.
 | --- | --- | --- |
 | Browser bridge | `dmsg-extension/4` | Exact origin/document and P-256 key possession; durable operation recovery |
 | Authentication and application approval | 1 | Challenge/account/device/purpose binding |
-| Application action | `dmsg-app-action/1` | Closed commands, original files, intended receiver and actor |
+| Application action | `dmsg-app-action/1` | Commands of the app's registered schema, original files, intended receiver and actor |
 | Subscription commerce | 2 | Authoritative USD bill, one cash asset or full PANDA waiver, original Apply receipt |
 | Document statements | existing three v1 profiles | Their original signing bytes remain unchanged |
 
@@ -65,7 +65,8 @@ It must not grant rights from a redirect, screenshot, wallet response, browser
 - `dmsg-sdk/codec`: the bounded canonical CBOR, base64url and hex codec used by
   those statements. `dmsg-sdk/errors` (also re-exported by `dmsg-sdk/browser`)
   provides the coded `DmsgError`.
-- Main export: verify closed action/checkout shapes, file/input commitments,
+- Main export: verify action/checkout shapes, actions against the registered
+  schema (`validateActionCommand`, `actionSchemaHash`), file commitments,
   exact conversion and one-rounding PANDA arithmetic; convert against **generated
   Candid types** with `fromCandid` / `toCandid`.
 

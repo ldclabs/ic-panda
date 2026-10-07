@@ -60,7 +60,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | `account` | `account_cbor` | ICRC Account 的明确 Serde/CBOR 表示 |
 | `membership` | `Beneficiary`, `MembershipInit`, `Eligibility` | 与产品无关的受益主体绑定与 PANDA 资格观测 |
 | `billing` | `Catalog`, `PlanVersion`, `EntitlementView`, `MonthEntitlement` | dMsg 套餐、资源租约与月度执行账 |
-| `app_action` | `AppAction`, `AppActionCommand`, `ActionFile` | 封闭的类型化应用操作签名 profile |
+| `app_action` | `AppAction`, `ActionCommand`, `ActionValue`, `ActionSchema`, `ActionFile` | 应用操作签名 profile：封闭的值模型与各应用登记的命令 schema |
 | `integration` | `AppRegistration`, `AuthenticationRequest`, `BillingOffer`, `ProductDecision` | 第三方认证、签名与订阅合同 |
 | `integration_billing` | `CheckoutQuote`, `CheckoutView`, `SubscriptionContract` | 通用现金结账与共享产品订阅 |
 | `integration_membership` | `PandaApplicationTerms`, `PandaClaimView` | 全额豁免 PANDA 申请与不可变承诺 |

@@ -43,6 +43,7 @@ export const schemas = {
     "profiles": "Vec<SigningProfile>",
     "authentication_receiver": "Principal",
     "action_authority": "Principal",
+    "action_schema": "Option<ActionSchema>",
     "paused": "bool"
   },
   "ProductRegistration": {
@@ -235,68 +236,122 @@ export const schemas = {
     "app_config_version": "u64",
     "origin": "String",
     "receiver": "Principal",
-    "actor_id": "AccountId",
+    "actor": "ByteBuf",
     "signing_account": "AccountId",
     "operation_id": "Hash",
     "intent_hash": "Hash",
-    "input_hash": "Hash",
-    "subject_hash": "Hash",
-    "precondition_hash": "Hash",
-    "role_snapshot_hash": "Hash",
-    "signing_policy_hash": "Hash",
-    "rule_set_hash": "Hash",
+    "schema_hash": "Hash",
     "issued_at_ms": "u64",
     "expires_at_ms": "u64",
-    "command": "AppActionCommand",
+    "command": "ActionCommand",
     "files": "Vec<ActionFile>"
   },
-  "AppActionCommand": [
+  "ActionCommand": {
+    "name": "String",
+    "args": "ActionArgs"
+  },
+  "ActionArgs": "Vec<ActionArg>",
+  "ActionArg": {
+    "name": "String",
+    "value": "ActionValue"
+  },
+  "ActionValue": [
     {
-      "TokenListCertifyDisclosure": {
-        "project_id": "u64",
-        "contract_id": "u64",
-        "revision": "u64"
+      "Nat": "u64"
+    },
+    {
+      "Bool": "bool"
+    },
+    {
+      "Text": "String"
+    },
+    {
+      "Hash": "Hash"
+    },
+    {
+      "Principal": "Principal"
+    },
+    {
+      "Choice": "String"
+    },
+    {
+      "Artifact": "ActionArtifact"
+    },
+    "Null",
+    {
+      "List": "Vec<ActionValue>"
+    },
+    {
+      "Record": "ActionArgs"
+    }
+  ],
+  "ActionSchema": {
+    "version": "u16",
+    "commands": "Vec<CommandSchema>"
+  },
+  "CommandSchema": {
+    "name": "String",
+    "title": "Vec<ActionLabel>",
+    "fields": "SchemaFields"
+  },
+  "SchemaFields": "Vec<FieldSchema>",
+  "FieldSchema": {
+    "name": "String",
+    "label": "Vec<ActionLabel>",
+    "ty": "FieldType"
+  },
+  "ActionLabel": {
+    "locale": "String",
+    "text": "String"
+  },
+  "ChoiceOption": {
+    "value": "String",
+    "label": "Vec<ActionLabel>"
+  },
+  "FieldType": [
+    {
+      "Nat": {
+        "min": "u64",
+        "max": "u64"
       }
     },
     {
-      "TokenListDecideReview": {
-        "project_id": "u64",
-        "case_id": "u64",
-        "round": "u64",
-        "outcome": "ActionReviewOutcome",
-        "changes": "Vec<ActionRequestedChange>",
-        "rationale": "String"
+      "Bool": {
+        "yes": "Vec<ActionLabel>",
+        "no": "Vec<ActionLabel>"
       }
     },
     {
-      "TokenListCertifyTransition": {
-        "project_id": "u64",
-        "transition_id": "u64",
-        "statement_hash": "Hash",
-        "rationale": "String",
-        "analysis": "Option<ActionArtifact>"
+      "Text": {
+        "max_bytes": "u64",
+        "multiline": "bool"
+      }
+    },
+    "Hash",
+    "Principal",
+    {
+      "Choice": {
+        "options": "Vec<ChoiceOption>"
+      }
+    },
+    "Artifact",
+    {
+      "Optional": {
+        "item": "Box<FieldType>"
       }
     },
     {
-      "TokenListApproveTransition": {
-        "project_id": "u64",
-        "transition_id": "u64",
-        "approve": "bool",
-        "statement_hash": "Hash",
-        "rationale": "String"
+      "List": {
+        "item": "Box<FieldType>",
+        "max_items": "u64"
+      }
+    },
+    {
+      "Record": {
+        "fields": "SchemaFields"
       }
     }
   ],
-  "ActionReviewOutcome": [
-    "Approved",
-    "Rejected",
-    "ChangesRequested"
-  ],
-  "ActionRequestedChange": {
-    "locator": "String",
-    "detail": "String",
-    "blocking": "bool"
-  },
   "ActionArtifact": {
     "uri": "String",
     "sha256": "Hash",

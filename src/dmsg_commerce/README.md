@@ -323,12 +323,11 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         version = 1 : nat16; environment = variant { Production };
         app_id = "dmsg"; config_version = 1 : nat64;
         origins = vec { "chrome-extension://<扩展 ID>" };
-        user_homes = vec { principal "<dmsg_user ID>" };
-        cose_homes = vec { principal "<dmsg_cose ID>" };
         product_ids = vec { "dmsg" };
         capabilities = vec { variant { Checkout } }; profiles = vec {};
         authentication_receiver = principal "<dmsg_user ID>";
-        action_authority = principal "<dmsg_user ID>"; paused = false })'
+        action_authority = principal "<dmsg_user ID>";
+        action_schema = null; paused = false })'
       ```
 
    3. 登记结算资产。`network_fee_atomic` 取账本当前的 `icrc1_fee`，`max_network_fee_atomic` 不低于它且不超过 10,000,000；价格观测窗口最长 30 分钟：
@@ -384,7 +383,7 @@ commerce 没有定时器，下列任务都需要外部调用：
 ### 治理变更
 
 - **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。条款变化通过更新产品注册的 `terms_hash` 立即生效，不需要与目录同步。
-- **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
+- **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。有 `SignAction` 能力的应用必须提供 `action_schema`（应用自己命令的 schema），可在新版本中修改；版本要求精确匹配，按旧版本准备的在途动作随之失效。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
 - **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。
 - **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到应用登记的 `user_homes` 和 dMsg 产品登记的 `beneficiary_authorities`（各自 `config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。
 - **准入上限**：`admin_set_limits` 一次替换全部上限，`validate_admin_set_limits` 会显示当前值；`max_hot_orders` 不能大于 `max_orders`，`calls_per_caller` 不能大于 `calls_per_minute`。热订单约等于最近 13 个月的订单数（归集完成并过 30 天才归档），`max_hot_orders` 按年订单量的 1.2 倍预留。

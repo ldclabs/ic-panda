@@ -60,6 +60,7 @@ fn mock_request(f: &Fixture, id: AccountId) -> PandaClaimRequest {
         profiles: vec![],
         authentication_receiver: f.sns,
         action_authority: f.sns,
+        action_schema: None,
         paused: false,
     };
     let registered: Result<()> =

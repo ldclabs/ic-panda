@@ -1,5 +1,5 @@
 //! Third-party contracts. Values alone are never evidence of authorization.
-use crate::{membership::Beneficiary, AccountId, Environment, Hash};
+use crate::{app_action::ActionSchema, membership::Beneficiary, AccountId, Environment, Hash};
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
@@ -90,6 +90,8 @@ pub struct AppRegistration {
     pub authentication_receiver: Principal,
     /// Product authority that confirms prepared actions and signer-account linkage.
     pub action_authority: Principal,
+    /// Command schema rendered for signing, present exactly with `SignAction`.
+    pub action_schema: Option<ActionSchema>,
     /// Stops new approvals; does not erase accepted commitments.
     pub paused: bool,
 }

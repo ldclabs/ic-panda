@@ -138,7 +138,7 @@ flowchart LR
 
 1. 计算请求指纹。同一 `request_id` 已有记录时，参数一致则返回原产物，不一致则返回 `IdempotencyConflict`。
 2. 只读预检：账户未冻结；`request_id` 等于 `execution_request_id(account, epoch, device, sequence)`；设备批准与能力；用途在政策内、origin 合法、issuer 属于本账户；验签 Sig_structure；保留窗口和每日次数有余量。
-3. 没有有效的当月租约时先向 commerce 刷新权益；AppAction 还要核对应用配置并调用应用的 `verify_dmsg_action`。每次 await 返回后，都重新读取时间、账户和执行记录，重新预检。
+3. 没有有效的当月租约时先向 commerce 刷新权益；AppAction 还要核对应用配置、按登记的 schema 校验命令，并调用应用的 `verify_dmsg_action`。每次 await 返回后，都重新读取时间、账户和执行记录，重新预检。
 4. 同步提交：当月额度、设备序号、保留索引、产物、回执认证叶在同一消息内写入。没有跨 canister 的签名调用；认证不占用执行序号，COSE 的执行窗口只按派生连续推进。
 
 丢失回复用 `get_attestation(account_id, request_id)` 取回同一产物。`get_execution_receipt` 返回 schema 2 的认证回执叶，绑定 issuer、设备、批准上下文、待签字节摘要、设备公钥指纹和签名摘要；结果清理后返回可验证的不存在证明。

@@ -10,7 +10,7 @@ pub mod payment;
 pub mod protocol;
 pub mod user;
 pub use protocol::*;
-/// Closed application-action signing contract.
+/// Application-action signing contract and registered command schemas.
 pub mod app_action;
 pub mod signing;
 pub use signing::*;

@@ -460,6 +460,7 @@ fn account_extension_gateway() {
                 profiles: vec![],
                 authentication_receiver: user,
                 action_authority: user,
+                action_schema: None,
                 paused: false,
             };
             let reply = ic

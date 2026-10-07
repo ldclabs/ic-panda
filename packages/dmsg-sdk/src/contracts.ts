@@ -32,6 +32,7 @@ export interface AppRegistration {
   profiles: SigningProfile[]
   authentication_receiver: Uint8Array
   action_authority: Uint8Array
+  action_schema: (ActionSchema | null)
   paused: boolean
 }
 
@@ -212,38 +213,81 @@ export interface AppAction {
   app_config_version: bigint
   origin: string
   receiver: Uint8Array
-  actor_id: Uint8Array
+  actor: Uint8Array
   signing_account: Uint8Array
   operation_id: Uint8Array
   intent_hash: Uint8Array
-  input_hash: Uint8Array
-  subject_hash: Uint8Array
-  precondition_hash: Uint8Array
-  role_snapshot_hash: Uint8Array
-  signing_policy_hash: Uint8Array
-  rule_set_hash: Uint8Array
+  schema_hash: Uint8Array
   issued_at_ms: bigint
   expires_at_ms: bigint
-  command: AppActionCommand
+  command: ActionCommand
   files: ActionFile[]
 }
 
-export type AppActionCommand =
-  | { TokenListCertifyDisclosure: { project_id: bigint; contract_id: bigint; revision: bigint } }
-  | { TokenListDecideReview: { project_id: bigint; case_id: bigint; round: bigint; outcome: ActionReviewOutcome; changes: ActionRequestedChange[]; rationale: string } }
-  | { TokenListCertifyTransition: { project_id: bigint; transition_id: bigint; statement_hash: Uint8Array; rationale: string; analysis: (ActionArtifact | null) } }
-  | { TokenListApproveTransition: { project_id: bigint; transition_id: bigint; approve: boolean; statement_hash: Uint8Array; rationale: string } }
-
-export type ActionReviewOutcome =
-  | 'Approved'
-  | 'Rejected'
-  | 'ChangesRequested'
-
-export interface ActionRequestedChange {
-  locator: string
-  detail: string
-  blocking: boolean
+export interface ActionCommand {
+  name: string
+  args: ActionArgs
 }
+
+export type ActionArgs = ActionArg[]
+
+export interface ActionArg {
+  name: string
+  value: ActionValue
+}
+
+export type ActionValue =
+  | { Nat: bigint }
+  | { Bool: boolean }
+  | { Text: string }
+  | { Hash: Uint8Array }
+  | { Principal: Uint8Array }
+  | { Choice: string }
+  | { Artifact: ActionArtifact }
+  | 'Null'
+  | { List: ActionValue[] }
+  | { Record: ActionArgs }
+
+export interface ActionSchema {
+  version: bigint
+  commands: CommandSchema[]
+}
+
+export interface CommandSchema {
+  name: string
+  title: ActionLabel[]
+  fields: SchemaFields
+}
+
+export type SchemaFields = FieldSchema[]
+
+export interface FieldSchema {
+  name: string
+  label: ActionLabel[]
+  ty: FieldType
+}
+
+export interface ActionLabel {
+  locale: string
+  text: string
+}
+
+export interface ChoiceOption {
+  value: string
+  label: ActionLabel[]
+}
+
+export type FieldType =
+  | { Nat: { min: bigint; max: bigint } }
+  | { Bool: { yes: ActionLabel[]; no: ActionLabel[] } }
+  | { Text: { max_bytes: bigint; multiline: boolean } }
+  | 'Hash'
+  | 'Principal'
+  | { Choice: { options: ChoiceOption[] } }
+  | 'Artifact'
+  | { Optional: { item: FieldType } }
+  | { List: { item: FieldType; max_items: bigint } }
+  | { Record: { fields: SchemaFields } }
 
 export interface ActionArtifact {
   uri: string

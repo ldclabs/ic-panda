@@ -116,7 +116,7 @@ fn register_integration_app(app: AppRegistration) -> Result<()> {
 fn validate_register_integration_app(app: AppRegistration) -> Validation {
     validation(check_app(&app).map(|fresh| {
         format!(
-            "Register app {} config version {}: origins [{}], products [{}], capabilities {:?}, profiles {:?}, authentication receiver {}, action authority {}, paused {}.{}",
+            "Register app {} config version {}: origins [{}], products [{}], capabilities {:?}, profiles {:?}, authentication receiver {}, action authority {}, action schema {}, paused {}.{}",
             app.app_id,
             app.config_version,
             app.origins.join(", "),
@@ -125,6 +125,15 @@ fn validate_register_integration_app(app: AppRegistration) -> Validation {
             app.profiles,
             app.authentication_receiver,
             app.action_authority,
+            app.action_schema.as_ref().map_or("none".into(), |s| format!(
+                "{} [{}]",
+                hex(dmsg_protocol::app_action::action_schema_hash(s).as_slice()),
+                s.commands
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
             app.paused,
             admin::unchanged(fresh, "Already registered"),
         )

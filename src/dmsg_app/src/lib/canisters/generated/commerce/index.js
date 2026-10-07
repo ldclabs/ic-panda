@@ -1,5 +1,7 @@
 // Generated from the public dmsg_commerce.did. Run npm run bindings.
 export const idlFactory = ({ IDL }) => {
+  const FieldType = IDL.Rec();
+  const SchemaFields = IDL.Rec();
   const Environment = IDL.Variant({
     'Local' : IDL.Null,
     'Production' : IDL.Null,
@@ -478,6 +480,83 @@ export const idlFactory = ({ IDL }) => {
     'SignDocument' : IDL.Null,
     'Authenticate' : IDL.Null,
   });
+  const ActionLabel = IDL.Record({ 'text' : IDL.Text, 'locale' : IDL.Text });
+  SchemaFields.fill(
+    IDL.Vec(
+      IDL.Record({
+        'ty' : IDL.Variant({
+          'Nat' : IDL.Record({ 'max' : IDL.Nat64, 'min' : IDL.Nat64 }),
+          'Artifact' : IDL.Null,
+          'Bool' : IDL.Record({
+            'no' : IDL.Vec(
+              IDL.Record({ 'text' : IDL.Text, 'locale' : IDL.Text })
+            ),
+            'yes' : IDL.Vec(
+              IDL.Record({ 'text' : IDL.Text, 'locale' : IDL.Text })
+            ),
+          }),
+          'Hash' : IDL.Null,
+          'Record' : IDL.Record({ 'fields' : SchemaFields }),
+          'List' : IDL.Record({ 'item' : FieldType, 'max_items' : IDL.Nat64 }),
+          'Text' : IDL.Record({
+            'multiline' : IDL.Bool,
+            'max_bytes' : IDL.Nat64,
+          }),
+          'Principal' : IDL.Null,
+          'Choice' : IDL.Record({
+            'options' : IDL.Vec(
+              IDL.Record({
+                'value' : IDL.Text,
+                'label' : IDL.Vec(
+                  IDL.Record({ 'text' : IDL.Text, 'locale' : IDL.Text })
+                ),
+              })
+            ),
+          }),
+          'Optional' : IDL.Record({ 'item' : FieldType }),
+        }),
+        'name' : IDL.Text,
+        'label' : IDL.Vec(
+          IDL.Record({ 'text' : IDL.Text, 'locale' : IDL.Text })
+        ),
+      })
+    )
+  );
+  const ChoiceOption = IDL.Record({
+    'value' : IDL.Text,
+    'label' : IDL.Vec(ActionLabel),
+  });
+  FieldType.fill(
+    IDL.Variant({
+      'Nat' : IDL.Record({ 'max' : IDL.Nat64, 'min' : IDL.Nat64 }),
+      'Artifact' : IDL.Null,
+      'Bool' : IDL.Record({
+        'no' : IDL.Vec(ActionLabel),
+        'yes' : IDL.Vec(ActionLabel),
+      }),
+      'Hash' : IDL.Null,
+      'Record' : IDL.Record({ 'fields' : SchemaFields }),
+      'List' : IDL.Record({ 'item' : FieldType, 'max_items' : IDL.Nat64 }),
+      'Text' : IDL.Record({ 'multiline' : IDL.Bool, 'max_bytes' : IDL.Nat64 }),
+      'Principal' : IDL.Null,
+      'Choice' : IDL.Record({ 'options' : IDL.Vec(ChoiceOption) }),
+      'Optional' : IDL.Record({ 'item' : FieldType }),
+    })
+  );
+  const FieldSchema = IDL.Record({
+    'ty' : FieldType,
+    'name' : IDL.Text,
+    'label' : IDL.Vec(ActionLabel),
+  });
+  const CommandSchema = IDL.Record({
+    'title' : IDL.Vec(ActionLabel),
+    'name' : IDL.Text,
+    'fields' : IDL.Vec(FieldSchema),
+  });
+  const ActionSchema = IDL.Record({
+    'version' : IDL.Nat16,
+    'commands' : IDL.Vec(CommandSchema),
+  });
   const SigningProfile = IDL.Variant({
     'FileStatementV1' : IDL.Null,
     'TextStatementV1' : IDL.Null,
@@ -493,6 +572,7 @@ export const idlFactory = ({ IDL }) => {
     'app_id' : IDL.Text,
     'config_version' : IDL.Nat64,
     'environment' : Environment,
+    'action_schema' : IDL.Opt(ActionSchema),
     'action_authority' : IDL.Principal,
     'profiles' : IDL.Vec(SigningProfile),
     'paused' : IDL.Bool,

@@ -49,10 +49,10 @@ fn main() {
         vector("max_u128", canonical(&u128::MAX)),
         vector("commerce_version", canonical(&COMMERCE_VERSION)),
     ];
+    values.push(vector("action_app", canonical(&action_fixtures::app())));
     for (index, command) in action_fixtures::commands().into_iter().enumerate() {
         let mut action = action_fixtures::action();
         action.command = command;
-        action.input_hash = dmsg_protocol::app_action::action_input_hash(&action.command);
         values.push(vector(
             &format!("app_action_{index}"),
             canonical(&(1u8, "dmsg/app-action/v1", &action)),

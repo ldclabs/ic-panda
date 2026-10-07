@@ -1,5 +1,7 @@
 // Generated from the public dmsg_user.did. Run npm run bindings.
 export const idlFactory = ({ IDL }) => {
+  const ActionArgs = IDL.Rec();
+  const ActionValue = IDL.Rec();
   const Environment = IDL.Variant({
     'Local' : IDL.Null,
     'Production' : IDL.Null,
@@ -137,66 +139,65 @@ export const idlFactory = ({ IDL }) => {
     'size' : IDL.Nat64,
     'content_type' : IDL.Text,
   });
-  const ActionRequestedChange = IDL.Record({
-    'blocking' : IDL.Bool,
-    'locator' : IDL.Text,
-    'detail' : IDL.Text,
-  });
-  const ActionReviewOutcome = IDL.Variant({
-    'Approved' : IDL.Null,
-    'Rejected' : IDL.Null,
-    'ChangesRequested' : IDL.Null,
-  });
-  const AppActionCommand = IDL.Variant({
-    'TokenListCertifyTransition' : IDL.Record({
-      'transition_id' : IDL.Nat64,
-      'rationale' : IDL.Text,
-      'project_id' : IDL.Nat64,
-      'analysis' : IDL.Opt(ActionArtifact),
-      'statement_hash' : IDL.Vec(IDL.Nat8),
-    }),
-    'TokenListCertifyDisclosure' : IDL.Record({
-      'contract_id' : IDL.Nat64,
-      'project_id' : IDL.Nat64,
-      'revision' : IDL.Nat64,
-    }),
-    'TokenListApproveTransition' : IDL.Record({
-      'approve' : IDL.Bool,
-      'transition_id' : IDL.Nat64,
-      'rationale' : IDL.Text,
-      'project_id' : IDL.Nat64,
-      'statement_hash' : IDL.Vec(IDL.Nat8),
-    }),
-    'TokenListDecideReview' : IDL.Record({
-      'case_id' : IDL.Nat64,
-      'rationale' : IDL.Text,
-      'project_id' : IDL.Nat64,
-      'changes' : IDL.Vec(ActionRequestedChange),
-      'outcome' : ActionReviewOutcome,
-      'round' : IDL.Nat64,
-    }),
+  ActionArgs.fill(
+    IDL.Vec(
+      IDL.Record({
+        'value' : IDL.Variant({
+          'Nat' : IDL.Nat64,
+          'Artifact' : IDL.Record({
+            'uri' : IDL.Text,
+            'sha256' : IDL.Vec(IDL.Nat8),
+            'size' : IDL.Nat64,
+            'content_type' : IDL.Text,
+          }),
+          'Bool' : IDL.Bool,
+          'Hash' : IDL.Vec(IDL.Nat8),
+          'Record' : ActionArgs,
+          'List' : IDL.Vec(ActionValue),
+          'Null' : IDL.Null,
+          'Text' : IDL.Text,
+          'Principal' : IDL.Principal,
+          'Choice' : IDL.Text,
+        }),
+        'name' : IDL.Text,
+      })
+    )
+  );
+  ActionValue.fill(
+    IDL.Variant({
+      'Nat' : IDL.Nat64,
+      'Artifact' : ActionArtifact,
+      'Bool' : IDL.Bool,
+      'Hash' : IDL.Vec(IDL.Nat8),
+      'Record' : ActionArgs,
+      'List' : IDL.Vec(ActionValue),
+      'Null' : IDL.Null,
+      'Text' : IDL.Text,
+      'Principal' : IDL.Principal,
+      'Choice' : IDL.Text,
+    })
+  );
+  const ActionArg = IDL.Record({ 'value' : ActionValue, 'name' : IDL.Text });
+  const ActionCommand = IDL.Record({
+    'args' : IDL.Vec(ActionArg),
+    'name' : IDL.Text,
   });
   const AppAction = IDL.Record({
     'files' : IDL.Vec(ActionFile),
-    'rule_set_hash' : IDL.Vec(IDL.Nat8),
+    'actor' : IDL.Vec(IDL.Nat8),
     'app_config_version' : IDL.Nat64,
     'origin' : IDL.Text,
     'signing_account' : IDL.Vec(IDL.Nat8),
-    'actor_id' : IDL.Vec(IDL.Nat8),
     'operation_id' : IDL.Vec(IDL.Nat8),
-    'subject_hash' : IDL.Vec(IDL.Nat8),
     'version' : IDL.Nat16,
-    'command' : AppActionCommand,
+    'command' : ActionCommand,
     'app_id' : IDL.Text,
     'issued_at_ms' : IDL.Nat64,
     'environment' : Environment,
-    'precondition_hash' : IDL.Vec(IDL.Nat8),
     'intent_hash' : IDL.Vec(IDL.Nat8),
     'receiver' : IDL.Principal,
-    'input_hash' : IDL.Vec(IDL.Nat8),
     'expires_at_ms' : IDL.Nat64,
-    'role_snapshot_hash' : IDL.Vec(IDL.Nat8),
-    'signing_policy_hash' : IDL.Vec(IDL.Nat8),
+    'schema_hash' : IDL.Vec(IDL.Nat8),
   });
   const StatementContent = IDL.Variant({
     'AppAction' : AppAction,

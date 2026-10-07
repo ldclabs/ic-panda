@@ -52,6 +52,13 @@ pub fn validate_app(app: &AppRegistration) -> Result<()> {
                     .any(|p| *p != SigningProfile::AppActionV1),
         "profile capabilities",
     )?;
+    ensure_valid(
+        app.action_schema.is_some() == app.capabilities.contains(&AppCapability::SignAction),
+        "action schema",
+    )?;
+    if let Some(schema) = &app.action_schema {
+        crate::app_action::validate_action_schema(schema)?;
+    }
     for origin in &app.origins {
         validate_origin(origin, &app.environment)?;
     }

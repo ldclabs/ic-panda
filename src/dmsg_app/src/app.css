@@ -1316,6 +1316,12 @@ summary {
 .evidence-list dd .hash {
   margin: 0;
 }
+.evidence-list .evidence-list {
+  margin: 0 0 8px;
+}
+.evidence-list .evidence-list > div {
+  padding: 6px 0;
+}
 .identity-layout {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) 340px;

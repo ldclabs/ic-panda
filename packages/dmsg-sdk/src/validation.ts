@@ -1,6 +1,8 @@
 import { Principal } from "@icp-sdk/core/principal";
 import { schemas } from "./schemas.ts";
 import type {
+  ActionLabel,
+  ActionSchema,
   AppRegistration,
   ProductRegistration,
   BillingOffer,
@@ -12,9 +14,17 @@ import type {
   Environment,
   ProductDecision,
   ProductReceipt,
+  FieldSchema,
+  FieldType,
 } from "./contracts.ts";
 import { ensure } from "./cose-errors.ts";
-import { digest, equalBytes, isWellFormed, utf8 } from "./encoding.ts";
+import {
+  canonical,
+  digest,
+  equalBytes,
+  isWellFormed,
+  utf8,
+} from "./encoding.ts";
 
 export const INTEGRATION_VERSION = 1n;
 export const COMMERCE_VERSION = 2n;
@@ -30,6 +40,9 @@ export const APPLICATION_TTL_MS = 86_400_000n;
 export const POLICY_NOTICE_MS = 2_592_000_000n;
 export const CKUSDT_LEDGER = "cngnf-vqaaa-aaaar-qag4q-cai";
 export const CKUSDC_LEDGER = "xevnm-gaaaa-aaaar-qafnq-cai";
+export const MAX_ACTION_SCHEMA_BYTES = 16 * 1024;
+/** Maximum value and field-type nesting; a top-level argument is level one. */
+export const MAX_ACTION_DEPTH = 3;
 const U128 = (1n << 128n) - 1n;
 
 function fields(shape: Record<string, unknown>, value: unknown): void {
@@ -51,6 +64,10 @@ function fields(shape: Record<string, unknown>, value: unknown): void {
 
 /** Enforces the exact Rust wire shape, integer ranges, lengths and closed variants. */
 export function validateShape(type: string, value: unknown): void {
+  if (type.startsWith("Box<")) {
+    validateShape(type.slice(4, -1), value);
+    return;
+  }
   if (type.startsWith("Vec<")) {
     ensure(Array.isArray(value) && value.length <= 64, "INVALID_INPUT");
     for (const item of value) validateShape(type.slice(4, -1), item);
@@ -104,6 +121,10 @@ export function validateShape(type: string, value: unknown): void {
   }
   const shape = (schemas as Record<string, unknown>)[type];
   ensure(shape, "UNSUPPORTED_PROTOCOL");
+  if (typeof shape === "string") {
+    validateShape(shape, value);
+    return;
+  }
   if (Array.isArray(shape)) {
     if (typeof value === "string") {
       ensure(shape.includes(value), "UNSUPPORTED_PROTOCOL");
@@ -118,7 +139,8 @@ export function validateShape(type: string, value: unknown): void {
       (v) => typeof v === "object" && Object.hasOwn(v, tag),
     );
     ensure(variant, "UNSUPPORTED_PROTOCOL");
-    fields(variant[tag], fieldsValue);
+    if (typeof variant[tag] === "string") validateShape(variant[tag], fieldsValue);
+    else fields(variant[tag], fieldsValue);
     return;
   }
   fields(shape as Record<string, unknown>, value);
@@ -196,10 +218,112 @@ export function validateApp(app: AppRegistration): void {
         app.profiles.some((p) => p !== "AppActionV1"),
     "INVALID_INPUT",
   );
+  ensure(
+    (app.action_schema !== null) === app.capabilities.includes("SignAction"),
+    "INVALID_INPUT",
+  );
+  if (app.action_schema !== null) validateActionSchema(app.action_schema);
   app.origins.forEach((v) => validateOrigin(v, app.environment));
   app.product_ids.forEach(validateIdentifier);
   validatePrincipal(app.action_authority);
   validatePrincipal(app.authentication_receiver);
+}
+
+/** Nonblank text without control characters, except line breaks and tabs when multiline. */
+export function actionText(value: string, max: number, multiline: boolean): void {
+  ensure(
+    /[^\p{White_Space}]/u.test(value) &&
+      utf8(value).length <= max &&
+      !/\p{Cc}/u.test(multiline ? value.replace(/[\n\t]/g, "") : value),
+    "INVALID_INPUT",
+  );
+}
+
+/** Command, field and choice names. */
+export function actionName(value: string): void {
+  ensure(/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(value), "INVALID_INPUT");
+}
+
+function uniqueNames(names: string[]): void {
+  names.forEach(actionName);
+  ensure(new Set(names).size === names.length, "INVALID_INPUT");
+}
+
+function labels(list: ActionLabel[]): void {
+  ensure(
+    list.length >= 1 &&
+      list.length <= 8 &&
+      new Set(list.map((l) => l.locale)).size === list.length,
+    "INVALID_INPUT",
+  );
+  for (const label of list) {
+    ensure(/^[A-Za-z0-9-]{1,35}$/.test(label.locale), "INVALID_INPUT");
+    actionText(label.text, 256, false);
+  }
+}
+
+function schemaFields(list: FieldSchema[], depth: number): void {
+  ensure(list.length <= 32, "INVALID_INPUT");
+  uniqueNames(list.map((f) => f.name));
+  for (const field of list) {
+    labels(field.label);
+    fieldType(field.ty, depth);
+  }
+}
+
+function fieldType(ty: FieldType, depth: number): void {
+  ensure(depth <= MAX_ACTION_DEPTH, "INVALID_INPUT");
+  if (typeof ty === "string") return;
+  if ("Nat" in ty) ensure(ty.Nat.min <= ty.Nat.max, "INVALID_INPUT");
+  else if ("Bool" in ty) {
+    labels(ty.Bool.yes);
+    labels(ty.Bool.no);
+  } else if ("Text" in ty)
+    ensure(
+      ty.Text.max_bytes >= 1n && ty.Text.max_bytes <= 4096n,
+      "INVALID_INPUT",
+    );
+  else if ("Choice" in ty) {
+    const options = ty.Choice.options;
+    ensure(options.length >= 1 && options.length <= 32, "INVALID_INPUT");
+    uniqueNames(options.map((o) => o.value));
+    options.forEach((o) => labels(o.label));
+  } else if ("Optional" in ty) {
+    const item = ty.Optional.item;
+    ensure(
+      typeof item === "string" || !("Optional" in item),
+      "INVALID_INPUT",
+    );
+    fieldType(item, depth + 1);
+  } else if ("List" in ty) {
+    ensure(
+      ty.List.max_items >= 1n && ty.List.max_items <= 64n,
+      "INVALID_INPUT",
+    );
+    fieldType(ty.List.item, depth + 1);
+  } else {
+    ensure(ty.Record.fields.length > 0, "INVALID_INPUT");
+    schemaFields(ty.Record.fields, depth + 1);
+  }
+}
+
+/** Registration-time schema rules; actions are checked against accepted schemas. */
+export function validateActionSchema(schema: ActionSchema): void {
+  validateShape("ActionSchema", schema);
+  ensure(schema.version === 1n, "UNSUPPORTED_PROTOCOL");
+  ensure(
+    schema.commands.length >= 1 && schema.commands.length <= 32,
+    "INVALID_INPUT",
+  );
+  uniqueNames(schema.commands.map((c) => c.name));
+  for (const command of schema.commands) {
+    labels(command.title);
+    schemaFields(command.fields, 1);
+  }
+  ensure(
+    canonical(schema).length <= MAX_ACTION_SCHEMA_BYTES,
+    "QUOTA_EXCEEDED",
+  );
 }
 
 export function validateProduct(product: ProductRegistration): void {

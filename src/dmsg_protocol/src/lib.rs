@@ -6,7 +6,7 @@ mod requests;
 pub use codec::*;
 pub use handle::*;
 pub use requests::*;
-/// Closed application-action profiles and admission checks.
+/// Application-action profile, registered command schemas and admission checks.
 pub mod app_action;
 mod signing;
 pub use signing::*;

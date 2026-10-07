@@ -515,6 +515,7 @@ impl Fixture {
             profiles: vec![],
             authentication_receiver: user,
             action_authority: user,
+            action_schema: None,
             paused: false,
         };
         let result: Result<()> = update(&ic, commerce, sns, "register_integration_app", (app,));

@@ -13,8 +13,13 @@
   import Icon from './Icon.svelte'
   import ActionDetails from './ActionDetails.svelte'
   import { actionBody } from '../protocol/requests'
+  import { services } from '../services/ic'
+  import { registeredApplication } from '../services/registration'
+  import { ensure } from '../errors'
+  import { validateActionCommand, type AppRegistration } from 'dmsg-sdk'
   let request = $state<PendingRequest | null>(null),
     payload = $state<SignatureRequest | null>(null),
+    actionApp = $state.raw<AppRegistration | null>(null),
     finished = $state(false)
   let client = $state.raw<SigningClient | null>(null)
   let review = $state<Awaited<ReturnType<SigningClient['prepare']>> | null>(null)
@@ -31,6 +36,20 @@
         request.id
       )) as SignatureRequest
       if (request.state === 'awaiting_user') assertRequestUnchanged(decoded, request)
+      if (decoded.statement.content.kind === 'app_action') {
+        // Titles and labels come only from the certified registration.
+        const bridge = request.bridge
+        ensure(bridge, 'FORBIDDEN')
+        const app = await registeredApplication(
+          await services(),
+          bridge.appId,
+          request.source.origin,
+          'SignAction'
+        )
+        ensure(app.config_version.toString() === bridge.appVersion, 'POLICY_STALE')
+        validateActionCommand(actionBody(decoded.statement.content.actionCbor), app.action_schema!)
+        actionApp = app
+      }
       payload = decoded
       const saved = await session.crypto.call('controlGet', `formal:${request.id}`)
       result = saved ? JSON.parse(saved) : null
@@ -167,8 +186,9 @@
       </div>
     </dl>
     <section class="review-content">
-      {#if payload.statement.content.kind === 'app_action'}<ActionDetails
+      {#if payload.statement.content.kind === 'app_action' && actionApp}<ActionDetails
           action={actionBody(payload.statement.content.actionCbor)}
+          app={actionApp}
         />{/if}
       <span class="field-label">实际待签内容</span
       >{#if payload.statement.content.kind === 'text' || payload.statement.content.kind === 'file_statement'}<p

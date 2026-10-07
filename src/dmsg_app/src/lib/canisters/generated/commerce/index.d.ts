@@ -7,6 +7,11 @@ export interface Account {
   'owner' : Principal,
   'subaccount' : [] | [Uint8Array | number[]],
 }
+export interface ActionLabel { 'text' : string, 'locale' : string }
+export interface ActionSchema {
+  'version' : number,
+  'commands' : Array<CommandSchema>,
+}
 export type AppCapability = { 'SignAction' : null } |
   { 'Checkout' : null } |
   { 'SignDocument' : null } |
@@ -20,6 +25,7 @@ export interface AppRegistration {
   'app_id' : string,
   'config_version' : bigint,
   'environment' : Environment,
+  'action_schema' : [] | [ActionSchema],
   'action_authority' : Principal,
   'profiles' : Array<SigningProfile>,
   'paused' : boolean,
@@ -199,6 +205,12 @@ export interface CheckoutView {
   'progress' : CheckoutProgress,
   'service_reserve_atomic' : bigint,
 }
+export interface ChoiceOption { 'value' : string, 'label' : Array<ActionLabel> }
+export interface CommandSchema {
+  'title' : Array<ActionLabel>,
+  'name' : string,
+  'fields' : Array<FieldSchema>,
+}
 export interface CommerceInit {
   'environment' : Environment,
   'governance' : Principal,
@@ -290,6 +302,21 @@ export interface ExecutionEntitlement {
   'view' : EntitlementView,
 }
 export interface ExecutionWeights { 'ed25519' : bigint, 'version' : bigint }
+export interface FieldSchema {
+  'ty' : FieldType,
+  'name' : string,
+  'label' : Array<ActionLabel>,
+}
+export type FieldType = { 'Nat' : { 'max' : bigint, 'min' : bigint } } |
+  { 'Artifact' : null } |
+  { 'Bool' : { 'no' : Array<ActionLabel>, 'yes' : Array<ActionLabel> } } |
+  { 'Hash' : null } |
+  { 'Record' : { 'fields' : SchemaFields } } |
+  { 'List' : { 'item' : FieldType, 'max_items' : bigint } } |
+  { 'Text' : { 'multiline' : boolean, 'max_bytes' : bigint } } |
+  { 'Principal' : null } |
+  { 'Choice' : { 'options' : Array<ChoiceOption> } } |
+  { 'Optional' : { 'item' : FieldType } };
 export interface MonthEntitlement {
   'business_revision' : bigint,
   'calculation_version' : number,
@@ -429,6 +456,36 @@ export type Result_8 = { 'Ok' : [] | [CashCancellationReceipt] } |
   { 'Err' : Error };
 export type Result_9 = { 'Ok' : CertifiedBatch } |
   { 'Err' : Error };
+export type SchemaFields = Array<
+  {
+    'ty' : { 'Nat' : { 'max' : bigint, 'min' : bigint } } |
+      { 'Artifact' : null } |
+      {
+        'Bool' : {
+          'no' : Array<{ 'text' : string, 'locale' : string }>,
+          'yes' : Array<{ 'text' : string, 'locale' : string }>,
+        }
+      } |
+      { 'Hash' : null } |
+      { 'Record' : { 'fields' : SchemaFields } } |
+      { 'List' : { 'item' : FieldType, 'max_items' : bigint } } |
+      { 'Text' : { 'multiline' : boolean, 'max_bytes' : bigint } } |
+      { 'Principal' : null } |
+      {
+        'Choice' : {
+          'options' : Array<
+            {
+              'value' : string,
+              'label' : Array<{ 'text' : string, 'locale' : string }>,
+            }
+          >,
+        }
+      } |
+      { 'Optional' : { 'item' : FieldType } },
+    'name' : string,
+    'label' : Array<{ 'text' : string, 'locale' : string }>,
+  }
+>;
 export interface SettlementAsset {
   'decimals' : number,
   'asset' : SettlementAssetKind,
