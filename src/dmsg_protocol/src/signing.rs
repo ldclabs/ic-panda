@@ -4,7 +4,6 @@ use crate::app_action::{validate_app_action, APP_ACTION_PROFILE};
 use crate::*;
 use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
 use dmsg_types::*;
-use serde_bytes::Bytes;
 
 /// Experimental dMsg text document profile media type (v1), used in protected header 16.
 pub const TEXT_PROFILE: &str = "application/vnd.dmsg.text-statement+cose;v=1";
@@ -392,93 +391,6 @@ fn parse_message(message: &Sign1Message) -> Result<(Statement, &[u8])> {
     };
     validate_statement(&statement)?;
     Ok((statement, kid))
-}
-
-/// Validated local signing-input view returned by [`parse_signing_input`].
-///
-/// Immutable validated input, not a verified artifact, wire DTO or persistence record.
-pub struct PreparedStatement {
-    message: Sign1Message,
-    statement: Statement,
-    kid: Vec<u8>,
-}
-
-impl PreparedStatement {
-    /// Decoded issuer, subject, issued-at and content.
-    pub fn statement(&self) -> &Statement {
-        &self.statement
-    }
-
-    /// Key identifier from the protected header.
-    pub fn kid(&self) -> &[u8] {
-        &self.kid
-    }
-
-    /// Validate and encode the public key before attaching the signature.
-    /// The returned value only retains data needed to assemble the final artifact.
-    pub fn into_signature(self, public: &[u8]) -> Result<PreparedSignature> {
-        let cose_key = public_cose_key(&self.kid, public)?;
-        Ok(PreparedSignature {
-            message: self.message,
-            cose_key,
-        })
-    }
-}
-
-/// Validated COSE framing and public key, ready for a 64-byte Ed25519 signature.
-/// Construction is restricted to parsed canonical input and a validated public key.
-pub struct PreparedSignature {
-    message: Sign1Message,
-    cose_key: Vec<u8>,
-}
-
-impl PreparedSignature {
-    /// Attach a signature without reparsing the payload or public key.
-    ///
-    /// This checks encoding, not mathematical validity; verify before use.
-    pub fn finish(mut self, signature: Vec<u8>) -> Result<SignedArtifact> {
-        ensure(signature.len() == 64, Error::IntegrityFailed)?;
-        self.message.set_signature(signature).map_err(malformed)?;
-        Ok(SignedArtifact {
-            cose_sign1: self.message.to_vec().map_err(malformed)?.into(),
-            cose_key: self.cose_key.into(),
-        })
-    }
-}
-
-/// Parse and validate canonical local signing input, not a signed artifact.
-///
-/// Requires `CBOR(["Signature1", protected_bstr, h'', payload_bstr])`, valid
-/// profile headers, and exact canonical reconstruction including the protected
-/// map. Verification of external artifacts instead preserves their original
-/// protected bytes; use [`verify_artifact`] for that path.
-///
-/// # Errors
-/// Returns `Error::QuotaExceeded` above 65,536 bytes, `Error::IntegrityFailed`
-/// for malformed/noncanonical input, or statement/profile validation errors.
-pub fn parse_signing_input(bytes: &[u8]) -> Result<PreparedStatement> {
-    ensure(bytes.len() <= MAX_PAYLOAD, Error::QuotaExceeded)?;
-    let (context, protected, aad, payload): (&str, &Bytes, &Bytes, &Bytes) =
-        cbor2::from_slice(bytes).map_err(|_| Error::IntegrityFailed)?;
-    ensure(
-        context == "Signature1" && aad.is_empty(),
-        Error::IntegrityFailed,
-    )?;
-    let mut message = Sign1Message::new(Some(payload.to_vec()));
-    message.protected = Header::from_slice(protected).map_err(malformed)?;
-    let (statement, kid) = parse_message(&message)?;
-    let kid = kid.to_vec();
-    let actual = message
-        .prepare_signature(Some(COSE_ALGORITHM), None, None)
-        .map_err(malformed)?;
-    // This comparison checks the entire canonical framing, including the
-    // protected map. No separate decode/reencode of the outer tuple is needed.
-    ensure(actual == bytes, Error::IntegrityFailed)?;
-    Ok(PreparedStatement {
-        message,
-        statement,
-        kid,
-    })
 }
 
 /// Encode a public-only Ed25519 COSE_Key.

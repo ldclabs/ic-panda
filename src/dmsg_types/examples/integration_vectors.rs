@@ -83,18 +83,11 @@ fn main() {
         let statement = app_action_statement(&request).unwrap();
         let prepared = prepare_attestation(&statement, &public).unwrap();
         request.signature = key.sign(&prepared.to_be_signed).to_bytes().into();
-        let artifact = parse_signing_input(&prepared.to_be_signed)
-            .unwrap()
-            .into_signature(public.as_slice())
-            .unwrap()
-            .finish(request.signature.to_vec())
-            .unwrap();
+        let to_be_signed = prepared.to_be_signed.clone();
+        let artifact = prepared.finish(request.signature.as_slice()).unwrap();
         values.push(vector("app_action_request", canonical(&request)));
         values.push(vector("app_action_artifact", canonical(&artifact)));
-        values.push(vector(
-            "app_action_signing_bytes",
-            prepared.to_be_signed.clone(),
-        ));
+        values.push(vector("app_action_signing_bytes", to_be_signed));
         values.push(vector(
             "app_action_approval",
             canonical(&approval_message(

@@ -32,14 +32,11 @@ fn main() {
         issued_at: Some(1_800_000_000),
         content: StatementContent::Text("document".repeat(512)),
     };
-    let (_, tbs) = prepare_cose(&statement, b"kid").unwrap();
-    let signature = signer.sign(&tbs).to_bytes().to_vec();
-    let artifact = parse_signing_input(&tbs)
-        .unwrap()
-        .into_signature(&signer.verifying_key().to_bytes())
-        .unwrap()
-        .finish(signature)
-        .unwrap();
+    let prepared =
+        prepare_attestation(&statement, &Hash::new(signer.verifying_key().to_bytes())).unwrap();
+    let tbs = prepared.to_be_signed.clone();
+    let signature = signer.sign(&tbs).to_bytes();
+    let artifact = prepared.finish(&signature).unwrap();
     let receipt = ExecutionReceipt {
         schema: 2,
         account_id: account,
@@ -78,8 +75,14 @@ fn main() {
     measure("account_issuer", 10_000, || {
         black_box(account_issuer(black_box(namespace), black_box(&account)));
     });
-    measure("parse_signing_input", 1_000, || {
-        black_box(parse_signing_input(black_box(&tbs)).unwrap());
+    measure("prepare_attestation", 1_000, || {
+        black_box(
+            prepare_attestation(
+                black_box(&statement),
+                &Hash::new(signer.verifying_key().to_bytes()),
+            )
+            .unwrap(),
+        );
     });
     measure("match_execution_receipt", 1_000, || {
         match_execution_receipt(black_box(&artifact), black_box(&receipt)).unwrap();

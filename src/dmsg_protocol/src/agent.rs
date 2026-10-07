@@ -63,12 +63,6 @@ pub fn principal_id(origin: &str, account_id: &AccountId) -> String {
     format!("{origin}/{account_id}")
 }
 
-/// Required prefix of delegation IDs signed by an account's controllers.
-/// The prefix routes credential reads to the account without a global index.
-pub fn delegation_id_prefix(account_id: &AccountId) -> String {
-    format!("{account_id}.")
-}
-
 fn validate_authority(authority: &DelegationAuthority) -> Result<()> {
     let DelegationAuthority::Restricted { scopes, audiences } = authority else {
         return Ok(());

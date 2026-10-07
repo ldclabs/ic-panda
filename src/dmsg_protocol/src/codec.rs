@@ -127,8 +127,9 @@ pub fn validate_transport_key(compressed: &[u8; 48]) -> Result<()> {
 /// Uses `dmsg/device-approval/v2` and binds the target user canister, account,
 /// operation domain, device, epoch, sequence, request ID, deadline, and
 /// `digest(domain, command)`. The approval's signature field is excluded.
-/// For execution requests use [`crate::EXECUTE_APPROVAL_DOMAIN`] and
-/// [`crate::execute_approval_command`].
+/// For attestations use [`crate::ATTEST_APPROVAL_DOMAIN`] and
+/// [`crate::attest_approval_command`]; for root derivations use
+/// [`crate::DERIVE_APPROVAL_DOMAIN`] and [`crate::derive_approval_command`].
 /// For account mutations use domain `dmsg/account/v2` and the command tuple
 /// `(expected_version, AccountCommand)`.
 ///

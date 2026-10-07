@@ -15,27 +15,6 @@ pub fn execution_receipt_key(account: &AccountId, request: OpId) -> Vec<u8> {
     .concat()
 }
 
-/// Verify a returned artifact and bind it to expected signing bytes and key thumbprint.
-///
-/// `expected_tbs` must be the frozen Sig_structure supplied to the signer;
-/// `fingerprint` must come from an authenticated source. This does not verify
-/// an ICP certificate or the source of either expected value.
-///
-/// # Errors
-/// Propagates artifact verification errors; a bytes/thumbprint mismatch returns
-/// `Error::IntegrityFailed`.
-pub fn match_signing_result(
-    artifact: &SignedArtifact,
-    expected_tbs: &[u8],
-    fingerprint: Hash,
-) -> Result<()> {
-    let verified = verify_and_parse_artifact(artifact)?;
-    ensure(
-        verified.signing_bytes()? == expected_tbs && thumbprint(&verified.key)? == fingerprint,
-        Error::IntegrityFailed,
-    )
-}
-
 /// Verify an artifact and match it against an already authenticated execution receipt.
 ///
 /// The caller must first authenticate the IC certificate, expected user canister,

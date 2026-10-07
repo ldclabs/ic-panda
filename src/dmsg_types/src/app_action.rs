@@ -1,7 +1,8 @@
 //! Application-action profile. Each application declares its commands in a
-//! governance-registered [`ActionSchema`]; dMsg owns only the closed value model,
-//! its canonical encoding and the rendering rules. Product authority must attest
-//! to the exact action, and the receiver must execute exactly the signed command.
+//! governance-registered [`ActionSchema`](crate::app_action::ActionSchema); dMsg
+//! owns only the closed value model, its canonical encoding and the rendering
+//! rules. Product authority must attest to the exact action, and the receiver
+//! must execute exactly the signed command.
 use crate::{AccountId, Environment, Hash};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};

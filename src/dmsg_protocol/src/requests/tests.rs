@@ -181,20 +181,14 @@ fn attestations_name_the_device_key_and_derive_the_policy_purpose() {
             key_thumbprint(&public_cose_key(&[], public.as_slice()).unwrap()).unwrap()
         );
         assert_eq!(key_thumbprint(&prepared.cose_key).unwrap(), prepared.thumbprint);
-        let parsed = parse_signing_input(&prepared.to_be_signed).unwrap();
-        assert_eq!(parsed.statement(), &statement);
-        assert_eq!(parsed.kid(), prepared.thumbprint.as_slice());
-        let artifact = parsed
-            .into_signature(public.as_slice())
-            .unwrap()
-            .finish(signer.sign(&prepared.to_be_signed).to_bytes().to_vec())
-            .unwrap();
-        assert_eq!(artifact.cose_key.as_slice(), prepared.cose_key.as_slice());
-        assert_eq!(verify_artifact(&artifact).unwrap(), statement);
-        match_signing_result(&artifact, &prepared.to_be_signed, prepared.thumbprint).unwrap();
-        // Finishing the prepared message yields the same bytes without reparsing.
+        let (cose_key, thumbprint) = (prepared.cose_key.clone(), prepared.thumbprint);
         let signature = signer.sign(&prepared.to_be_signed).to_bytes();
-        assert_eq!(prepared.finish(&signature).unwrap(), artifact);
+        let artifact = prepared.finish(&signature).unwrap();
+        assert_eq!(artifact.cose_key.as_slice(), cose_key.as_slice());
+        assert_eq!(verify_artifact(&artifact).unwrap(), statement);
+        let key = cose2::Key::from_slice(&artifact.cose_key).unwrap();
+        assert_eq!(key_thumbprint(&artifact.cose_key).unwrap(), thumbprint);
+        assert_eq!(key.kid().unwrap(), Some(thumbprint.as_slice()));
     }
     let mut bad = statement();
     bad.issuer = "relative".into();

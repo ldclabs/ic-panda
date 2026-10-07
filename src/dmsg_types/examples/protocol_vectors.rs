@@ -42,17 +42,14 @@ fn main() {
     };
     let (_, file_statement_tbs) = prepare_cose(&file_statement, &kid).unwrap();
     let (_, digest_tbs) = prepare_cose(&digest_statement, &kid).unwrap();
-    let artifact = |tbs: &[u8]| {
-        parse_signing_input(tbs)
-            .unwrap()
-            .into_signature(&public)
-            .unwrap()
-            .finish(signer.sign(tbs).to_bytes().to_vec())
-            .unwrap()
+    let artifact = |statement: &Statement| {
+        let prepared = prepare_attestation(statement, &Hash::new(public)).unwrap();
+        let signature = signer.sign(&prepared.to_be_signed).to_bytes();
+        prepared.finish(&signature).unwrap()
     };
-    let signed_text = artifact(&text_tbs);
-    let signed_digest = artifact(&digest_tbs);
-    let signed_file_statement = artifact(&file_statement_tbs);
+    let signed_text = artifact(&text);
+    let signed_digest = artifact(&digest_statement);
+    let signed_file_statement = artifact(&file_statement);
     // Opaque CTT material at unprotected header 270; the signed bytes are unchanged.
     let mut timestamped = cose2::Sign1Message::from_slice(&signed_digest.cose_sign1).unwrap();
     timestamped.unprotected.insert(CTT_HEADER, vec![0x30, 0]);

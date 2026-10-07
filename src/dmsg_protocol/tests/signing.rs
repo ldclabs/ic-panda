@@ -20,20 +20,18 @@ fn statement() -> Statement {
     }
 }
 
-fn finish(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
-    parse_signing_input(tbs)?
-        .into_signature(public)?
-        .finish(signature)
-}
-
+/// Sign `prepare_cose` output with any kid, as an external signer does.
 fn sign(statement: &Statement, kid: &[u8]) -> SignedArtifact {
-    let (_, tbs) = prepare_cose(statement, kid).unwrap();
-    finish(
-        &tbs,
-        &key().verifying_key().to_bytes(),
-        key().sign(&tbs).to_bytes().to_vec(),
-    )
-    .unwrap()
+    let (mut message, tbs) = prepare_cose(statement, kid).unwrap();
+    message
+        .set_signature(key().sign(&tbs).to_bytes().to_vec())
+        .unwrap();
+    SignedArtifact {
+        cose_sign1: message.to_vec().unwrap().into(),
+        cose_key: public_cose_key(kid, &key().verifying_key().to_bytes())
+            .unwrap()
+            .into(),
+    }
 }
 
 /// Sig_structure with the original protected bytes and empty external AAD.
@@ -79,23 +77,11 @@ fn prepared_signatures_verify_for_every_profile() {
             ..statement()
         },
     ] {
-        let (_, tbs) = prepare_cose(&statement, b"kid").unwrap();
-        let public = key().verifying_key().to_bytes().to_vec();
-        let signature = key().sign(&tbs).to_bytes().to_vec();
-        let prepared = parse_signing_input(&tbs)
-            .unwrap()
-            .into_signature(&public)
-            .unwrap();
-        let artifact = prepared.finish(signature).unwrap();
+        let public = Hash::new(key().verifying_key().to_bytes());
+        let prepared = prepare_attestation(&statement, &public).unwrap();
+        let signature = key().sign(&prepared.to_be_signed).to_bytes();
+        let artifact = prepared.finish(&signature).unwrap();
         assert_eq!(verify_artifact(&artifact).unwrap(), statement);
-        assert_eq!(
-            parse_signing_input(&tbs)
-                .unwrap()
-                .into_signature(&public)
-                .unwrap()
-                .finish(vec![0; 63]),
-            Err(Error::IntegrityFailed)
-        );
     }
 }
 
@@ -104,8 +90,7 @@ fn file_statements_jointly_bind_text_and_file() {
     let value = file_statement();
     assert_eq!(statement_purpose(&value), KeyPurpose::Statement);
     {
-        let (message, tbs) = prepare_cose(&value, b"kid").unwrap();
-        assert_eq!(parse_signing_input(&tbs).unwrap().statement(), &value);
+        let (message, _) = prepare_cose(&value, b"kid").unwrap();
         assert_eq!(
             message.protected.get(16),
             Some(&Value::from(FILE_STATEMENT_PROFILE))
@@ -429,13 +414,11 @@ fn verification_preserves_original_protected_map_order() {
     };
     assert_eq!(verify_artifact(&changed).unwrap(), statement());
     let receipt = receipt(&changed);
+    // The receipt binds the Sig_structure over the original protected bytes.
+    assert_eq!(receipt.to_be_signed_digest, sha256(&tbs));
     match_execution_receipt(&changed, &receipt).unwrap();
-    match_signing_result(&changed, &tbs, receipt.public_key_fingerprint).unwrap();
     let timestamped = with_timestamp(&changed, &[0x30, 0]);
-    match_signing_result(&timestamped, &tbs, receipt.public_key_fingerprint).unwrap();
     match_execution_receipt(&timestamped, &receipt).unwrap();
-    // The local signing entry point requires its own canonical preparation.
-    assert!(parse_signing_input(&tbs).is_err());
 }
 
 fn receipt(artifact: &SignedArtifact) -> ExecutionReceipt {
@@ -467,20 +450,10 @@ fn receipt_paths_use_binary_account_and_request_ids() {
 }
 
 #[test]
-fn receipts_and_signing_results_bind_every_artifact_field() {
+fn receipts_bind_every_artifact_field() {
     let artifact = sign(&statement(), b"kid");
     let receipt = receipt(&artifact);
     match_execution_receipt(&artifact, &receipt).unwrap();
-    let tbs = signing_bytes(&artifact);
-    match_signing_result(&artifact, &tbs, receipt.public_key_fingerprint).unwrap();
-    assert_eq!(
-        match_signing_result(&artifact, b"other", receipt.public_key_fingerprint),
-        Err(Error::IntegrityFailed)
-    );
-    assert_eq!(
-        match_signing_result(&artifact, &tbs, Hash::new([0; 32])),
-        Err(Error::IntegrityFailed)
-    );
     let changes: &[fn(&mut ExecutionReceipt)] = &[
         |r| r.schema = 1,
         |r| r.issuer = "urn:other:author".into(),
@@ -504,7 +477,6 @@ fn receipts_and_signing_results_bind_every_artifact_field() {
 fn reused_artifact_helpers_still_verify_the_signature() {
     let artifact = sign(&statement(), b"kid");
     let receipt = receipt(&artifact);
-    let tbs = signing_bytes(&artifact);
     let mut message = Sign1Message::from_slice(&artifact.cose_sign1).unwrap();
     message.set_signature(vec![0; 64]).unwrap();
     let changed = SignedArtifact {
@@ -512,7 +484,6 @@ fn reused_artifact_helpers_still_verify_the_signature() {
         ..artifact
     };
     assert!(verify_artifact(&changed).is_err());
-    assert!(match_signing_result(&changed, &tbs, receipt.public_key_fingerprint).is_err());
     assert!(match_execution_receipt(&changed, &receipt).is_err());
 }
 
@@ -580,13 +551,11 @@ fn preparation_rejects_bad_kids_keys_and_signature_lengths() {
     for size in [0, MAX_KID_BYTES + 1] {
         assert!(prepare_cose(&statement(), &vec![1; size]).is_err());
     }
-    let (_, tbs) = prepare_cose(&statement(), &vec![1; MAX_KID_BYTES]).unwrap();
-    assert_eq!(
-        parse_signing_input(&tbs).unwrap().kid().len(),
-        MAX_KID_BYTES
-    );
+    verify_artifact(&sign(&statement(), &vec![1; MAX_KID_BYTES])).unwrap();
+    let public = Hash::new(key().verifying_key().to_bytes());
     for size in [0, 63, 65] {
-        assert!(finish(&tbs, &key().verifying_key().to_bytes(), vec![0; size]).is_err());
+        let prepared = prepare_attestation(&statement(), &public).unwrap();
+        assert_eq!(prepared.finish(&vec![0; size]), Err(Error::IntegrityFailed));
     }
     for size in [0, 31, 33] {
         assert!(public_cose_key(b"kid", &vec![0; size]).is_err());
@@ -605,45 +574,6 @@ fn preparation_rejects_bad_kids_keys_and_signature_lengths() {
         key_thumbprint(&es256k.to_vec().unwrap()),
         Err(Error::UnsupportedProtocol)
     );
-}
-
-#[test]
-fn signing_input_requires_canonical_framing_empty_aad_and_embedded_payload() {
-    let (_, tbs) = prepare_cose(&statement(), b"kid").unwrap();
-    let Value::Array(fields) = cbor2::from_slice::<Value>(&tbs).unwrap() else {
-        panic!()
-    };
-    for (index, replacement) in [
-        (0, Value::Text("Signature".into())),
-        (1, Value::Bytes(vec![])),
-        (2, Value::Bytes(vec![1])),
-        (3, Value::Null),
-        (3, Value::Text("not a byte string".into())),
-    ] {
-        let mut changed = fields.clone();
-        changed[index] = replacement;
-        assert!(parse_signing_input(&canonical(&Value::Array(changed))).is_err());
-    }
-    let mut nonminimal = vec![0x98, 4];
-    nonminimal.extend_from_slice(&tbs[1..]);
-    assert!(parse_signing_input(&nonminimal).is_err());
-    let mut indefinite = vec![0x9f];
-    indefinite.extend_from_slice(&tbs[1..]);
-    indefinite.push(0xff);
-    assert!(parse_signing_input(&indefinite).is_err());
-    let mut trailing = tbs.clone();
-    trailing.push(0);
-    assert!(parse_signing_input(&trailing).is_err());
-    for length in 0..tbs.len() {
-        assert!(
-            parse_signing_input(&tbs[..length]).is_err(),
-            "length={length}"
-        );
-    }
-    assert!(matches!(
-        parse_signing_input(&vec![0; MAX_PAYLOAD + 1]),
-        Err(Error::QuotaExceeded)
-    ));
 }
 
 #[test]

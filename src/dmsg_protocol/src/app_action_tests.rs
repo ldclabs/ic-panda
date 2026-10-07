@@ -4,12 +4,6 @@ use ed25519_dalek::{Signer, SigningKey};
 #[path = "../../dmsg_types/tests/support/app_action.rs"]
 mod fixture;
 
-fn finish(tbs: &[u8], public: &[u8], signature: Vec<u8>) -> Result<SignedArtifact> {
-    parse_signing_input(tbs)?
-        .into_signature(public)?
-        .finish(signature)
-}
-
 fn statement(action: AppAction) -> Statement {
     Statement {
         issuer: "https://example.test/u/00000000000000000000".into(),
@@ -68,17 +62,16 @@ fn registered_actions_roundtrip_and_every_signed_field_is_bound() {
     let schema = fixture::schema();
     validate_action_schema(&schema).unwrap();
     let signer = SigningKey::from_bytes(&[71; 32]);
-    let public = signer.verifying_key().to_bytes();
-    let kid = key_thumbprint(&public_cose_key(&[], &public).unwrap()).unwrap();
+    let public = Hash::new(signer.verifying_key().to_bytes());
     for command in fixture::commands() {
         let mut action = fixture::action();
         action.command = command;
         validate_app_action(&action).unwrap();
         validate_action_command(&action, &schema).unwrap();
         let original = statement(action.clone());
-        let (_, tbs) = prepare_cose(&original, &kid[..]).unwrap();
-        let sig = signer.sign(&tbs).to_bytes().to_vec();
-        let artifact = finish(&tbs, &public, sig.clone()).unwrap();
+        let prepared = prepare_attestation(&original, &public).unwrap();
+        let sig = signer.sign(&prepared.to_be_signed).to_bytes();
+        let artifact = prepared.finish(&sig).unwrap();
         assert_eq!(verify_artifact(&artifact).unwrap(), original);
         assert_eq!(statement_purpose(&original), KeyPurpose::AppAction);
         for mutate in [
@@ -99,8 +92,10 @@ fn registered_actions_roundtrip_and_every_signed_field_is_bound() {
             if changed == action {
                 continue;
             }
-            let (_, changed_tbs) = prepare_cose(&statement(changed), &kid[..]).unwrap();
-            let changed_artifact = finish(&changed_tbs, &public, sig.clone()).unwrap();
+            let changed_artifact = prepare_attestation(&statement(changed), &public)
+                .unwrap()
+                .finish(&sig)
+                .unwrap();
             assert!(verify_artifact(&changed_artifact).is_err());
         }
     }
