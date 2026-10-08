@@ -6,7 +6,7 @@ import { hkdf256 } from '@ldclabs/cose-ts/hkdf'
 import { KDFContext, PartyInfo, SuppPubInfo } from '@ldclabs/cose-ts/kdfcontext'
 import * as iana from '@ldclabs/cose-ts/iana'
 import { argon2idAsync } from '@noble/hashes/argon2.js'
-import { DerivedPublicKey, EncryptedVetKey, TransportSecretKey } from '@dfinity/vetkeys'
+import { DerivedPublicKey, EncryptedVetKey, TransportSecretKey } from '@icp-sdk/vetkeys'
 import { Principal } from '@icp-sdk/core/principal'
 import {
   binary,

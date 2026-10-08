@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { MasterPublicKey } from '@dfinity/vetkeys'
+import { MasterPublicKey } from '@icp-sdk/vetkeys'
 import { Principal } from '@icp-sdk/core/principal'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
@@ -45,7 +45,10 @@ const publicMeta = {
   hpkePublic: b64(new Uint8Array(32).fill(8))
 }
 const vectors = JSON.parse(
-  readFileSync(new URL('../../dmsg_types/tests/protocol_vectors.json', import.meta.url), 'utf8')
+  readFileSync(
+    new URL('../../dmsg_types/tests/protocol_vectors.json', import.meta.url),
+    'utf8'
+  )
 ) as { name: string; sha256_hex: string }[]
 const vector = (name: string) => vectors.find((v) => v.name === name)!.sha256_hex
 /** A real vetKD public key: the mainnet master key derived for a test canister. */
@@ -151,9 +154,11 @@ describe('account authorization and encrypted local state', () => {
       2
     )
     expect(hex(recipients)).toBe(vector('root_recipients_v1'))
-    expect(hex(rootBundleDigest(recipients, unhex(hash(new TextEncoder().encode('root bundle body')))))).toBe(
-      vector('root_bundle_digest_v2')
-    )
+    expect(
+      hex(
+        rootBundleDigest(recipients, unhex(hash(new TextEncoder().encode('root bundle body'))))
+      )
+    ).toBe(vector('root_bundle_digest_v2'))
     expect(
       hex(rootRecipientsDigest([new Uint8Array(32).fill(2), new Uint8Array(32).fill(3)], 2))
     ).toBe(vector('root_recipients_v1'))
@@ -209,20 +214,30 @@ describe('account authorization and encrypted local state', () => {
       securityEpoch: 1
     }
     const material = rootMaterial(context)
-    const devices = [new Uint8Array(32).fill(21), new Uint8Array(32).fill(22)].map((hpke, i) => ({
-      hpkeSeed: hpke,
-      deviceId: hex(new Uint8Array(32).fill(31 + i))
-    }))
+    const devices = [new Uint8Array(32).fill(21), new Uint8Array(32).fill(22)].map(
+      (hpke, i) => ({
+        hpkeSeed: hpke,
+        deviceId: hex(new Uint8Array(32).fill(31 + i))
+      })
+    )
     const recipients = []
     for (const device of devices)
-      recipients.push({ deviceId: device.deviceId, hpkePublic: await hpkePublic(device.hpkeSeed) })
+      recipients.push({
+        deviceId: device.deviceId,
+        hpkePublic: await hpkePublic(device.hpkeSeed)
+      })
     const previousRoot = random()
     const bytes = await wrapRoot(
       material,
       recipients,
       recoveryKey(),
       { deviceId: devices[1].deviceId, seed },
-      { digest: hash(new Uint8Array([1])), uploadId: '03'.repeat(32), generation: 1, root: previousRoot }
+      {
+        digest: hash(new Uint8Array([1])),
+        uploadId: '03'.repeat(32),
+        generation: 1,
+        root: previousRoot
+      }
     )
     const bundle = parseRootBundle(bytes)
     expect(bundle.body.envelopes.map((e) => e.device)).toEqual(
@@ -230,7 +245,12 @@ describe('account authorization and encrypted local state', () => {
     )
     const digests = bundleDigests(bundle)
     expect(hex(digests.recipientsDigest)).toBe(
-      hex(rootRecipientsDigest(devices.map((d) => unhex(d.deviceId)), 2))
+      hex(
+        rootRecipientsDigest(
+          devices.map((d) => unhex(d.deviceId)),
+          2
+        )
+      )
     )
     expect(hex(digests.bundleDigest)).toBe(
       hex(rootBundleDigest(digests.recipientsDigest, digests.bodyDigest))
@@ -241,7 +261,12 @@ describe('account authorization and encrypted local state', () => {
       'RECOVERY_INCOMPLETE'
     )
     await expect(
-      openRoot(material, { deviceId: hex(new Uint8Array(32).fill(99)), hpkeSeed: random() }, [bytes], expected)
+      openRoot(
+        material,
+        { deviceId: hex(new Uint8Array(32).fill(99)), hpkeSeed: random() },
+        [bytes],
+        expected
+      )
     ).rejects.toMatchObject({ code: 'DeviceNotApproved' })
     await expect(
       openRoot(material, { ...devices[0], hpkeSeed: random() }, [bytes], expected)
@@ -252,9 +277,23 @@ describe('account authorization and encrypted local state', () => {
     expect(() => parseRootBundle(tampered)).toThrow()
     // A descriptor that differs from the bundle's recovery key never reaches decryption.
     await expect(
-      recoverRoot(material, { ...recoveryKey(), keyName: 'test_key_1' }, new Uint8Array(192), [bytes], expected)
+      recoverRoot(
+        material,
+        { ...recoveryKey(), keyName: 'test_key_1' },
+        new Uint8Array(192),
+        [bytes],
+        expected
+      )
     ).rejects.toThrow('恢复公钥')
-    expect(await wrapRoot({ ...material, bytes: b64(bytes) }, [], recoveryKey(), { deviceId: '', seed }, null)).toEqual(bytes)
+    expect(
+      await wrapRoot(
+        { ...material, bytes: b64(bytes) },
+        [],
+        recoveryKey(),
+        { deviceId: '', seed },
+        null
+      )
+    ).toEqual(bytes)
   })
 
   it('asks for an admission ticket only when the home requires one', async () => {

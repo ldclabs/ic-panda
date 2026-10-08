@@ -16,15 +16,15 @@
 
 ## 2. 信任边界与数据位置
 
-| 组件 | 当前职责 | 加密与权限边界 |
-| --- | --- | --- |
-| 工作台页面与 dedicated Crypto Worker | 解锁、加解密、根封装、显示明文 | Worker 持有解锁后的密钥；页面仍会收到需显示的明文。扩展包和运行环境属于可信端点 |
-| IndexedDB | 密钥封装、密文对象/文件块、请求、outbox、运行元数据 | 私密载荷加密，不代表所有索引和状态都隐藏 |
-| Extension Service Worker | 外部请求接收、待办和窗口调度 | 不持有常驻内容根；不能依靠后台常驻维持解锁 |
-| `dmsg_user`（账户所在 home） | AccountId、认证绑定、设备、根承诺、恢复、认证回执、解锁秘密 | 保存公钥、承诺和一个 `master_secret`，不保存内容根明文或 RootBundle 正文 |
-| `dmsg_cose` | 内容根 vetKD 公钥与恢复派生 | 只为已完成恢复登记的设备派生当前代根（直到它换根），返回传输加密结果；不是普通内容解密服务 |
-| `dmsg_handle` / `dmsg_payment` | 名称权属 / 最小资金合同 | 不持有内容密钥；名称权属、支付成功不自动授予内容解密权 |
-| cloud 对外服务 | 认证访问、密文保存/投递、频道与对象的在线控制 | 客户端须核验身份、权限和内容完整性；加密本身不证明服务返回的是最新、完整历史 |
+| 组件                                 | 当前职责                                                    | 加密与权限边界                                                                             |
+| ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 工作台页面与 dedicated Crypto Worker | 解锁、加解密、根封装、显示明文                              | Worker 持有解锁后的密钥；页面仍会收到需显示的明文。扩展包和运行环境属于可信端点            |
+| IndexedDB                            | 密钥封装、密文对象/文件块、请求、outbox、运行元数据         | 私密载荷加密，不代表所有索引和状态都隐藏                                                   |
+| Extension Service Worker             | 外部请求接收、待办和窗口调度                                | 不持有常驻内容根；不能依靠后台常驻维持解锁                                                 |
+| `dmsg_user`（账户所在 home）         | AccountId、认证绑定、设备、根承诺、恢复、认证回执、解锁秘密 | 保存公钥、承诺和一个 `master_secret`，不保存内容根明文或 RootBundle 正文                   |
+| `dmsg_cose`                          | 内容根 vetKD 公钥与恢复派生                                 | 只为已完成恢复登记的设备派生当前代根（直到它换根），返回传输加密结果；不是普通内容解密服务 |
+| `dmsg_handle` / `dmsg_payment`       | 名称权属 / 最小资金合同                                     | 不持有内容密钥；名称权属、支付成功不自动授予内容解密权                                     |
+| cloud 对外服务                       | 认证访问、密文保存/投递、频道与对象的在线控制               | 客户端须核验身份、权限和内容完整性；加密本身不证明服务返回的是最新、完整历史               |
 
 正常私密内容路径中，明文和内容密钥留在客户端；服务可见路由、账户/设备标识、尺寸、时序，以及执行所需的成员、接收者、联系和授权关系。正式认证是另一条路径：文本 profile 的待签正文会提交给 canister，摘要 profile 提交摘要，不能把正式签署当作秘密计算。
 
@@ -34,32 +34,32 @@ AEAD 防止密文被无钥篡改，不能防止服务拒绝投递、隐藏记录
 
 ### 3.1 不混用的标识
 
-| 标识 | 当前含义 |
-| --- | --- |
-| ICP Principal | 认证调用者；账户可有独立认证绑定 |
-| 链上 `AccountId` | 12 字节 Xid，文本为规范 20 字符；由 `dmsg_user` 发号，字节 4..9 是分配它的 home 的指纹 |
-| `WorkspaceMeta.subjectId` | 绑定前为随机 32 字节 hex，绑定账户时改为账户 Xid；此前不能有内容 |
-| `deviceId` | 32 字节设备标识，与设备公钥不是同一字段 |
-| handle | 可转移的名称；不作为任何密钥的派生根 |
-| `account.issuer` | 明确命名空间下的账户 URI；正式声明的签署者标识 |
+| 标识                      | 当前含义                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| ICP Principal             | 认证调用者；账户可有独立认证绑定                                                       |
+| 链上 `AccountId`          | 12 字节 Xid，文本为规范 20 字符；由 `dmsg_user` 发号，字节 4..9 是分配它的 home 的指纹 |
+| `WorkspaceMeta.subjectId` | 绑定前为随机 32 字节 hex，绑定账户时改为账户 Xid；此前不能有内容                       |
+| `deviceId`                | 32 字节设备标识，与设备公钥不是同一字段                                                |
+| handle                    | 可转移的名称；不作为任何密钥的派生根                                                   |
+| `account.issuer`          | 明确命名空间下的账户 URI；正式声明的签署者标识                                         |
 
 ### 3.2 密钥清单
 
-| 密钥 | 来源与持有者 | 用途 |
-| --- | --- | --- |
-| `unlock_secret` | user home：`digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥 |
-| 本地解锁钥 `LUK` | `HKDF(unlock_secret, ["dmsg/local-unlock/2", dbName])`；只在 Worker 内存 | 包装 LDK |
-| PRF 解锁钥 `K_prf` | `HKDF(prf_output, ["dmsg/local-unlock-prf/1", dbName])`；只在 Worker 内存 | 包装 LDK 的第二份封装（可选） |
-| 临时键 | 绑定账户前的随机 32 字节，明文保存在 IDB | 保护尚无内容的新设备密钥 |
-| `LocalDataKey` / `LDK` | 客户端随机 32 字节 | 加密本机私钥包、文件任务、控制日志 |
-| 内容根 `VRK_g` | 管理员设备随机 32 字节 | 包装每个对象版本的内容密钥 |
-| 对象版本钥 | 每次 `write()` 随机 32 字节 | 加密条目、profile、频道记录等载荷 |
-| 文件版本钥 | 每次新文件导入随机 32 字节 | 同一文件版本的分块加密，放在加密 manifest 中 |
-| 设备签名种子 | `Bundle.signing`，随机 32 字节 | Ed25519：账户批准、正式文档签名、根包签名、云端命令 |
-| 设备 HPKE 种子 | `Bundle.hpke`，随机 32 字节 | X25519：接收根信封、频道 epoch 密钥、待审请求 |
-| II 会话钥 | Worker 启动时随机，不落盘 | Internet Identity delegation 的会话密钥，解锁前即可用 |
-| controller key | vault 条目中的随机 32 字节 | Agent Delegation 事件签名，随根同步 |
-| vetKD 派生公钥 | COSE 固定 context 的公钥，客户端可 pin | IBE 加密恢复信封 |
+| 密钥                   | 来源与持有者                                                                                                              | 用途                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `unlock_secret`        | user home：`digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥                                        |
+| 本地解锁钥 `LUK`       | `HKDF(unlock_secret, ["dmsg/local-unlock/2", dbName])`；只在 Worker 内存                                                  | 包装 LDK                                              |
+| PRF 解锁钥 `K_prf`     | `HKDF(prf_output, ["dmsg/local-unlock-prf/1", dbName])`；只在 Worker 内存                                                 | 包装 LDK 的第二份封装（可选）                         |
+| 临时键                 | 绑定账户前的随机 32 字节，明文保存在 IDB                                                                                  | 保护尚无内容的新设备密钥                              |
+| `LocalDataKey` / `LDK` | 客户端随机 32 字节                                                                                                        | 加密本机私钥包、文件任务、控制日志                    |
+| 内容根 `VRK_g`         | 管理员设备随机 32 字节                                                                                                    | 包装每个对象版本的内容密钥                            |
+| 对象版本钥             | 每次 `write()` 随机 32 字节                                                                                               | 加密条目、profile、频道记录等载荷                     |
+| 文件版本钥             | 每次新文件导入随机 32 字节                                                                                                | 同一文件版本的分块加密，放在加密 manifest 中          |
+| 设备签名种子           | `Bundle.signing`，随机 32 字节                                                                                            | Ed25519：账户批准、正式文档签名、根包签名、云端命令   |
+| 设备 HPKE 种子         | `Bundle.hpke`，随机 32 字节                                                                                               | X25519：接收根信封、频道 epoch 密钥、待审请求         |
+| II 会话钥              | Worker 启动时随机，不落盘                                                                                                 | Internet Identity delegation 的会话密钥，解锁前即可用 |
+| controller key         | vault 条目中的随机 32 字节                                                                                                | Agent Delegation 事件签名，随根同步                   |
+| vetKD 派生公钥         | COSE 固定 context 的公钥，客户端可 pin                                                                                    | IBE 加密恢复信封                                      |
 
 本地保护链：
 
@@ -85,16 +85,16 @@ flowchart LR
 
 实现入口为 [primitives.ts](../src/dmsg_app/src/lib/crypto/primitives.ts) 和 [codec.ts](../src/dmsg_app/src/lib/protocol/codec.ts)。
 
-| 用途 | 实际参数 |
-| --- | --- |
-| 随机数 | `crypto.getRandomValues`；密钥/本地对象 ID 默认 32 字节 |
-| 对称加密 | AES-256-GCM，96 bit nonce，128 bit 认证标签；不带 CBOR tag 的 COSE_Encrypt0 |
-| 通用本地派生 `D(K,C)` | HKDF-SHA-256，salt 为 32 个零字节，info=`CBOR(C)`，输出 32 字节 |
-| HPKE | X25519 / HKDF-SHA-256 / AES-256-GCM，Base mode；context 同时作为 info 和 AAD |
-| IBE | `@dfinity/vetkeys` BLS12-381 IBE；公钥为 COSE 派生公钥，身份为 `CBOR([AccountId, generation])` |
-| 设备签名 | Ed25519；具体待签结构由用途决定 |
-| 摘要 | SHA-256；Agent 事件为 SHA3-256 |
-| 序列化 | 规范 CBOR；JSON 边界采用各字段规定的 hex、无填充 base64url 或 Xid 文本 |
+| 用途                  | 实际参数                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| 随机数                | `crypto.getRandomValues`；密钥/本地对象 ID 默认 32 字节                                        |
+| 对称加密              | AES-256-GCM，96 bit nonce，128 bit 认证标签；不带 CBOR tag 的 COSE_Encrypt0                    |
+| 通用本地派生 `D(K,C)` | HKDF-SHA-256，salt 为 32 个零字节，info=`CBOR(C)`，输出 32 字节                                |
+| HPKE                  | X25519 / HKDF-SHA-256 / AES-256-GCM，Base mode；context 同时作为 info 和 AAD                   |
+| IBE                   | `@icp-sdk/vetkeys` BLS12-381 IBE；公钥为 COSE 派生公钥，身份为 `CBOR([AccountId, generation])` |
+| 设备签名              | Ed25519；具体待签结构由用途决定                                                                |
+| 摘要                  | SHA-256；Agent 事件为 SHA3-256                                                                 |
+| 序列化                | 规范 CBOR；JSON 边界采用各字段规定的 hex、无填充 base64url 或 Xid 文本                         |
 
 令 `E(K,P,C)` 表示当前 `seal()`：
 
@@ -130,14 +130,14 @@ privateBundle = E(LDK, CBOR({root, signing, hpke}), ["dmsg/device-bundle/1", dbN
 
 ### 5.3 存储的明文边界
 
-| 数据 | 落盘保护 |
-| --- | --- |
-| Bundle：VRK、设备签名/HPKE 种子、历史根索引 | LDK 加密 |
-| 标题、标签、条目具体类型、正文、秘密、文件名/MIME、文件摘要、controller 私钥 | 对象版本钥加密 |
-| 文件导入计划、FileKey、根候选、控制操作日志 | LDK 加密 |
-| 待审外部请求正文 | 加密给本机设备 HPKE 公钥 |
-| outbox | 待提交的密文对象和重试状态；云端确认后只保留回执 |
-| 临时键（绑定前）、PRF 凭据 ID、meta、对象外层及任务索引 | 明文 |
+| 数据                                                                         | 落盘保护                                         |
+| ---------------------------------------------------------------------------- | ------------------------------------------------ |
+| Bundle：VRK、设备签名/HPKE 种子、历史根索引                                  | LDK 加密                                         |
+| 标题、标签、条目具体类型、正文、秘密、文件名/MIME、文件摘要、controller 私钥 | 对象版本钥加密                                   |
+| 文件导入计划、FileKey、根候选、控制操作日志                                  | LDK 加密                                         |
+| 待审外部请求正文                                                             | 加密给本机设备 HPKE 公钥                         |
+| outbox                                                                       | 待提交的密文对象和重试状态；云端确认后只保留回执 |
+| 临时键（绑定前）、PRF 凭据 ID、meta、对象外层及任务索引                      | 明文                                             |
 
 ### 5.4 锁定
 
@@ -192,14 +192,14 @@ commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 
 ### 8.2 恢复范围
 
-| 场景 | 当前可恢复范围 |
-| --- | --- |
-| 本机数据仍在，能登录绑定过的 II | `unlock_secret` 解锁本机内容与设备密钥 |
-| 本机数据仍在，启用了 PRF | 7 天内可离线生物识别解锁；之后须登录 |
-| 新设备，已有管理员设备在手 | 管理员批准配对并换根，新设备下载根包解开自己的信封 |
-| 所有设备丢失，II 仍在 | 登录申请恢复 → 等待期（默认 3 天，任一旧设备可取消）→ 替换设备与绑定 → 一次 vetKD 派生解开恢复信封 → 换根 |
-| II 和全部设备都丢失 | 不可恢复 |
-| dMsg 服务不可用 | 没有服务外恢复路径 |
+| 场景                            | 当前可恢复范围                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 本机数据仍在，能登录绑定过的 II | `unlock_secret` 解锁本机内容与设备密钥                                                                    |
+| 本机数据仍在，启用了 PRF        | 7 天内可离线生物识别解锁；之后须登录                                                                      |
+| 新设备，已有管理员设备在手      | 管理员批准配对并换根，新设备下载根包解开自己的信封                                                        |
+| 所有设备丢失，II 仍在           | 登录申请恢复 → 等待期（默认 3 天，任一旧设备可取消）→ 替换设备与绑定 → 一次 vetKD 派生解开恢复信封 → 换根 |
+| II 和全部设备都丢失             | 不可恢复                                                                                                  |
+| dMsg 服务不可用                 | 没有服务外恢复路径                                                                                        |
 
 恢复派生只允许 `complete_recovery` 登记的设备对当前代次进行；换根前可凭新批准再次派生（计入每日执行次数），换根后权利消失。等待期是对 II 被盗的唯一缓解：延迟期内所有设备都没响应即内容泄露。
 
@@ -223,24 +223,24 @@ RequestContext = ["dmsg/external-request/1", subjectId, deviceId, requestId]
 
 ## 11. 尚需闭合的验证边界
 
-| 事项 | 本次源码结论 | 不能据此宣称 |
-| --- | --- | --- |
-| 无口令解锁 | `unlock_secret`、临时键与绑定流程有单测；PocketIC 覆盖 query 权限 | 正式 II origin 下的连续性已验收 |
-| PRF 快速解锁 | Worker 侧用固定 PRF 输出测试；页面侧 WebAuthn 调用未在扩展 origin 实测 | Chrome 扩展页可作为 WebAuthn RP |
-| 根包 v2 | 构造/解析/篡改、HPKE 信封与摘要向量有单测；IBE 往返由 PocketIC 覆盖 | 真实 vetKD 主网费用已核对 |
-| 登录恢复 | PocketIC 覆盖申请、争议取消、延迟后完成与派生 | 真实用户恢复已验收 |
-| 多 home 路由 | 客户端按 handle 注册表定位 home 并并行查询 `my_account` | 跨 home 的 Principal 唯一性（按决策不实现） |
-| 生产能力 | 本地源码与测试证据 | 已部署、完成真实账户/云端联调或安全审计 |
+| 事项         | 本次源码结论                                                           | 不能据此宣称                                |
+| ------------ | ---------------------------------------------------------------------- | ------------------------------------------- |
+| 无口令解锁   | `unlock_secret`、临时键与绑定流程有单测；PocketIC 覆盖 query 权限      | 正式 II origin 下的连续性已验收             |
+| PRF 快速解锁 | Worker 侧用固定 PRF 输出测试；页面侧 WebAuthn 调用未在扩展 origin 实测 | Chrome 扩展页可作为 WebAuthn RP             |
+| 根包 v2      | 构造/解析/篡改、HPKE 信封与摘要向量有单测；IBE 往返由 PocketIC 覆盖    | 真实 vetKD 主网费用已核对                   |
+| 登录恢复     | PocketIC 覆盖申请、争议取消、延迟后完成与派生                          | 真实用户恢复已验收                          |
+| 多 home 路由 | 客户端按 handle 注册表定位 home 并并行查询 `my_account`                | 跨 home 的 Principal 唯一性（按决策不实现） |
+| 生产能力     | 本地源码与测试证据                                                     | 已部署、完成真实账户/云端联调或安全审计     |
 
 ## 12. 验证记录与源码导航
 
 本次运行 `pnpm --dir src/dmsg_app test`：27 个测试文件、166 项测试通过；`pnpm --dir src/dmsg_app check` 0 错误。PocketIC `control_plane` 与 `directory` 套件在 PocketIC 16.0.0 release Wasm 上通过。未运行真实扩展 E2E、私有云端测试或部署。
 
-| 主题 | 主要证据 |
-| --- | --- |
-| 原语 / 字节编码 | [primitives.ts](../src/dmsg_app/src/lib/crypto/primitives.ts)、[codec.ts](../src/dmsg_app/src/lib/protocol/codec.ts) |
-| 本地密钥、内容、文件、根 | [engine.ts](../src/dmsg_app/src/lib/crypto/engine.ts)、[root.ts](../src/dmsg_app/src/lib/crypto/root.ts)、[models.ts](../src/dmsg_app/src/lib/models.ts) |
-| 落盘和锁定 | [db.ts](../src/dmsg_app/src/lib/db.ts)、[client.ts](../src/dmsg_app/src/lib/crypto/client.ts)、[session.svelte.ts](../src/dmsg_app/src/lib/session.svelte.ts) |
-| 账户、设备、恢复与根提交 | [user 类型](../src/dmsg_types/src/user.rs)、[account.rs](../src/dmsg_user/src/account.rs)、[recovery.rs](../src/dmsg_user/src/recovery.rs)、[account-root.ts](../src/dmsg_app/src/lib/services/account-root.ts) |
-| 恢复派生与认证 | [COSE 类型](../src/dmsg_types/src/cose.rs)、[COSE API](../src/dmsg_cose/src/api.rs)、[cose.ts](../src/dmsg_app/src/lib/services/cose.ts)、[公开协议](protocol/README_zh.md) |
-| 测试 | [workspace](../src/dmsg_app/tests/workspace.test.ts)、[account](../src/dmsg_app/tests/account.test.ts)、[cose](../src/dmsg_app/tests/cose.test.ts)、[recovery-retry](../src/dmsg_app/tests/recovery-retry.test.ts)、[receipts](../src/dmsg_app/tests/receipts.test.ts) |
+| 主题                     | 主要证据                                                                                                                                                                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 原语 / 字节编码          | [primitives.ts](../src/dmsg_app/src/lib/crypto/primitives.ts)、[codec.ts](../src/dmsg_app/src/lib/protocol/codec.ts)                                                                                                                                                   |
+| 本地密钥、内容、文件、根 | [engine.ts](../src/dmsg_app/src/lib/crypto/engine.ts)、[root.ts](../src/dmsg_app/src/lib/crypto/root.ts)、[models.ts](../src/dmsg_app/src/lib/models.ts)                                                                                                               |
+| 落盘和锁定               | [db.ts](../src/dmsg_app/src/lib/db.ts)、[client.ts](../src/dmsg_app/src/lib/crypto/client.ts)、[session.svelte.ts](../src/dmsg_app/src/lib/session.svelte.ts)                                                                                                          |
+| 账户、设备、恢复与根提交 | [user 类型](../src/dmsg_types/src/user.rs)、[account.rs](../src/dmsg_user/src/account.rs)、[recovery.rs](../src/dmsg_user/src/recovery.rs)、[account-root.ts](../src/dmsg_app/src/lib/services/account-root.ts)                                                        |
+| 恢复派生与认证           | [COSE 类型](../src/dmsg_types/src/cose.rs)、[COSE API](../src/dmsg_cose/src/api.rs)、[cose.ts](../src/dmsg_app/src/lib/services/cose.ts)、[公开协议](protocol/README_zh.md)                                                                                            |
+| 测试                     | [workspace](../src/dmsg_app/tests/workspace.test.ts)、[account](../src/dmsg_app/tests/account.test.ts)、[cose](../src/dmsg_app/tests/cose.test.ts)、[recovery-retry](../src/dmsg_app/tests/recovery-retry.test.ts)、[receipts](../src/dmsg_app/tests/receipts.test.ts) |

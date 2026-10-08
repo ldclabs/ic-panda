@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5176",
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.tools.json",
+    "check": "svelte-check --tsgo --tsconfig ./tsconfig.json && tsc -p tsconfig.tools.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:cloud": "node scripts/test-cloud.mjs",
@@ -19,29 +19,30 @@
     "test:account": "node scripts/test-cloud.mjs account"
   },
   "dependencies": {
-    "@dfinity/vetkeys": "0.4.0",
-    "@hpke/core": "^1.7.5",
-    "@hpke/dhkem-x25519": "^1.6.0",
-    "@icp-sdk/core": "^6.1.0",
-    "@icp-sdk/signer": "^5.6.3",
-    "@noble/curves": "^2.0.1",
-    "@noble/hashes": "^2.3.0",
-    "cborg": "^6.1.1",
-    "idb": "^8.0.3",
-    "svelte": "^5.56.10",
-    "zod": "^4.5.4",
     "@dmsg/legacy": "workspace:*",
-    "dmsg-sdk": "workspace:*"
+    "@hpke/core": "^1.9.0",
+    "@hpke/dhkem-x25519": "^1.8.0",
+    "@icp-sdk/core": "^6.1.0",
+    "@icp-sdk/signer": "^6.0.0",
+    "@icp-sdk/vetkeys": "0.7.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "cborg": "^6.1.3",
+    "dmsg-sdk": "workspace:*",
+    "idb": "^8.0.4",
+    "svelte": "^5.57.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@sveltejs/vite-plugin-svelte": "^7.3.0",
-    "@types/chrome": "^0.1.20",
-    "@types/node": "^26.2.0",
-    "fake-indexeddb": "^6.2.4",
+    "@playwright/test": "^1.64.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/chrome": "^0.3.4",
+    "@types/node": "^26.6.4",
+    "@typescript/native": "npm:typescript@~7.0.2",
+    "fake-indexeddb": "^6.2.5",
     "svelte-check": "^4.7.6",
     "typescript": "~6.0.3",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
   }
 }

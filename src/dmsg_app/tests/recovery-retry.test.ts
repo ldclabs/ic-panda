@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { MasterPublicKey } from '@dfinity/vetkeys'
+import { MasterPublicKey } from '@icp-sdk/vetkeys'
 import { CryptoEngine } from '../src/lib/crypto/engine'
 import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { startChannel } from '../src/lib/protocol/channel'
@@ -240,7 +240,9 @@ it('reauthorizes a recovery derivation only when certified state proves its sequ
   const original = [...saved.entries()]
   state.device.next_sequence = 1n
   clock.mockReturnValue(now + 300001)
-  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({ code: 'RESULT_EXPIRED' })
+  await expect(client.recoverCurrent(accountId)).rejects.toMatchObject({
+    code: 'RESULT_EXPIRED'
+  })
   expect(derive).toHaveBeenCalledTimes(1)
   state.device.next_sequence = 0n
   clock.mockReturnValue(now + 300001)

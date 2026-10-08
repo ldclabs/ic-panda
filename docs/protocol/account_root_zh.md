@@ -51,7 +51,7 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
 
 - `signature` 是设备 Ed25519 对 `digest("dmsg/root-bundle/2", body)` 的签名。签名数学正确不单独证明设备权利；读取当前根还须核对 user 的认证根承诺。
 - 设备信封：`HPKE.Seal(device.hpke_pub, VRK, info = aad = CBOR(["dmsg/device-root/1", environment, account, generation, device_id]))`，复用频道 epoch 密钥的 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM 原语。读取方解开后核对 `commitment`，保证所有设备拿到同一个根。
-- 恢复信封：`@dfinity/vetkeys` 的 `IbeCiphertext.encrypt(dpk, identity, VRK, seed)`，`dpk` 是 COSE `root_public_key(account_id, generation)` 返回的 96 字节派生公钥（所有账户共享同一 context 公钥），`identity = CBOR([AccountId bytes12, generation])`。客户端核对描述中的 home、环境、代次、账户、`SHA256(public_key)` 指纹、生产 key 名，以及可选的构建 pin `coseRootPublicKey`。
+- 恢复信封：`@icp-sdk/vetkeys` 的 `IbeCiphertext.encrypt(dpk, identity, VRK, seed)`，`dpk` 是 COSE `root_public_key(account_id, generation)` 返回的 96 字节派生公钥（所有账户共享同一 context 公钥），`identity = CBOR([AccountId bytes12, generation])`。客户端核对描述中的 home、环境、代次、账户、`SHA256(public_key)` 指纹、生产 key 名，以及可选的构建 pin `coseRootPublicKey`。
 - `previous.envelope` 以新 VRK 包装上一代 VRK，AAD 为 `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`。`previous.digest` 是上一份 bundle **字节**的 SHA-256（即云端 manifest digest），`uploadId` 定位它；读者验证摘要并要求代次严格递减，至多读取 256 代。
 - 链上 `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用持有 `VaultUnlock` 的当前活跃设备集合重算 `recipients_digest`，并要求批准设备本身在其中，任一不符则拒绝，因此已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准设备也不能被塞进根包。
 

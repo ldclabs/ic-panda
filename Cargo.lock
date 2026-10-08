@@ -80,13 +80,14 @@ dependencies = [
 
 [[package]]
 name = "agent-protocols"
-version = "0.10.0"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4eefcc0fc12371b418508ad675e5a0e8874ce7bbe478dc77aec29e4a773430f5"
+checksum = "9f8fb2693a0c3c268ae96ec217d4bb09bcd325764c50bca5bf442ef17102c5aa"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 3.0.0",
  "getrandom 0.4.3",
+ "hpke",
  "jsonschema",
  "rand 0.10.3",
  "serde",
@@ -96,6 +97,7 @@ dependencies = [
  "sha3 0.12.0",
  "thiserror 2.0.18",
  "url",
+ "zeroize",
 ]
 
 [[package]]
@@ -642,8 +644,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
+ "cipher 0.5.2",
  "cpufeatures 0.3.1",
  "rand_core 0.10.1",
+]
+
+[[package]]
+name = "chacha20poly1305"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b89e1c441e926b9c82a8d023f6e1b7ae0adcfaa7d621814e4d60789bac751cb"
+dependencies = [
+ "aead 0.6.1",
+ "chacha20",
+ "cipher 0.5.2",
+ "poly1305",
 ]
 
 [[package]]
@@ -2200,6 +2215,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
 dependencies = [
  "digest 0.11.3",
+]
+
+[[package]]
+name = "hpke"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5324110b02044183df000f0bd7d2d7e61f1000631508627e77f63983b6fdffb"
+dependencies = [
+ "aead 0.6.1",
+ "chacha20poly1305",
+ "getrandom 0.4.3",
+ "hkdf 0.13.0",
+ "hybrid-array",
+ "rand_core 0.10.1",
+ "sha2 0.11.0",
+ "subtle",
+ "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -4205,6 +4238,16 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "wslpath",
+]
+
+[[package]]
+name = "poly1305"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2d0073b297041425c7c3df6eb4792d598a15323fe63346852b092eca02904c"
+dependencies = [
+ "cpufeatures 0.3.1",
+ "universal-hash 0.6.1",
 ]
 
 [[package]]

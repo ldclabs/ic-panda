@@ -16,7 +16,7 @@ import {
   EncryptedVetKey,
   TransportSecretKey,
   VetKey
-} from '@dfinity/vetkeys'
+} from '@icp-sdk/vetkeys'
 import { createActor } from './actors'
 
 export {
@@ -25,7 +25,7 @@ export {
   type SettingInfo,
   type SettingPath
 } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
-export { type DerivedPublicKey, type VetKey } from '@dfinity/vetkeys'
+export { type DerivedPublicKey, type VetKey } from '@icp-sdk/vetkeys'
 
 export class CoseAPI {
   readonly canisterId: Principal

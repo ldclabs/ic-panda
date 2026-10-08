@@ -5,7 +5,7 @@ import {
   IbeIdentity,
   IbeSeed,
   TransportSecretKey
-} from '@dfinity/vetkeys'
+} from '@icp-sdk/vetkeys'
 import { Principal } from '@icp-sdk/core/principal'
 import { sha256 } from '@noble/hashes/sha2.js'
 import {
@@ -22,7 +22,15 @@ import {
 } from '../protocol/codec'
 import { xidBytes } from '../protocol/identity'
 import { rootBundleDigest, rootRecipientsDigest } from '../protocol/account'
-import { derive, deviceRootContext, ed25519, hpkeOpen, hpkeSeal, open, seal } from './primitives'
+import {
+  derive,
+  deviceRootContext,
+  ed25519,
+  hpkeOpen,
+  hpkeSeal,
+  open,
+  seal
+} from './primitives'
 import { ensure } from '../errors'
 import { z } from 'zod'
 
@@ -134,7 +142,9 @@ export async function wrapRoot(
   const publicKey = recoveryKeyOf(recoveryKey)
   try {
     const envelopes = []
-    for (const recipient of [...recipients].sort((a, b) => a.deviceId.localeCompare(b.deviceId))) {
+    for (const recipient of [...recipients].sort((a, b) =>
+      a.deviceId.localeCompare(b.deviceId)
+    )) {
       ensure(unhex(recipient.deviceId).length === 32, 'INVALID_INPUT')
       const sealed = await hpkeSeal(
         recipient.hpkePublic,
@@ -234,7 +244,10 @@ async function walkPrevious(
   bundles: Uint8Array[],
   root: Uint8Array
 ) {
-  ensure(root.length === 32 && commitment(root) === current.body.commitment, 'INTEGRITY_FAILED')
+  ensure(
+    root.length === 32 && commitment(root) === current.body.commitment,
+    'INTEGRITY_FAILED'
+  )
   const roots: Record<string, string> = {}
   let cursor = current,
     keyBytes = root

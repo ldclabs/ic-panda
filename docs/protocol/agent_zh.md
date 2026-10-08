@@ -1,6 +1,6 @@
 # dMsg 与 Agent Delegation：自持 controller 与 principal 发布
 
-简体中文 | 本文只描述公开 canister 接口与字节规则。协议正文以 [agent-protocols](https://github.com/ldclabs/agent-protocols) 固定版本为准：规范提交 `6a71313`，Rust 与 TypeScript SDK `agent-protocols 0.10.0`。
+简体中文 | 本文只描述公开 canister 接口与字节规则。协议正文以 [agent-protocols](https://github.com/ldclabs/agent-protocols) 固定版本为准：规范提交 `eb1160e`，Rust 与 TypeScript SDK `agent-protocols 0.11.2`。
 
 ## 角色
 

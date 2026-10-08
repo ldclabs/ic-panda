@@ -56,7 +56,7 @@ categories = ["web-programming"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
-agent-protocols = { version = "=0.10.0", default-features = false }
+agent-protocols = { version = "=0.11.2", default-features = false }
 bytes = "1"
 base64 = "0.23"
 bs58 = "0.5"

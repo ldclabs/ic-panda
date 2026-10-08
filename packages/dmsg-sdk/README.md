@@ -77,7 +77,7 @@ execution certificate, product intent and historical account-binding evidence.
 
 ## Build and verify
 
-Node >=22.18 and TypeScript 6.0.3 are supported. The browser path needs Chrome MV3
+Node >=22.18 and TypeScript 7.0.2 are supported. The browser path needs Chrome MV3
 external ports, WebCrypto P-256, structured cloning of nonexportable keys and
 `URL.canParse`.
 
