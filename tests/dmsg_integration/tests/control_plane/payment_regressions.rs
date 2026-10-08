@@ -146,13 +146,15 @@ fn network_fee_maintenance_preserves_old_legs_and_admits_funded_new_orders() {
         "get_transfer",
         (old.escrow_id, 0u64),
     );
-    for (caller, fee, error) in [
-        (person(99), 20u128, Error::Forbidden),
-        (Principal::anonymous(), 21, Error::FeeBlocked),
-    ] {
-        let r: Result<()> = update(&f.ic, f.payment, caller, "set_ledger_fee", (fee,));
-        assert_eq!(r, Err(error));
-    }
+    assert_denied(&f.ic, f.payment, person(99), "set_ledger_fee", (20u128,));
+    let r: Result<()> = update(
+        &f.ic,
+        f.payment,
+        Principal::anonymous(),
+        "set_ledger_fee",
+        (21u128,),
+    );
+    assert_eq!(r, Err(Error::FeeBlocked));
     void(
         &f.ic,
         f.ledger,
@@ -223,12 +225,12 @@ fn network_fee_maintenance_preserves_old_legs_and_admits_funded_new_orders() {
             (LegStatus::Succeeded, 20, None)
         );
     }
-    // Thirteen memories (eleven tables and the certification map's two) each
+    // Fourteen memories (twelve tables and the certification map's two) each
     // hold one 8 MiB bucket, after the memory manager's header page.
     let status = f.ic.canister_status(f.payment, None).unwrap();
     assert_eq!(
         status.memory_metrics.stable_memory_size,
-        Nat::from(13 * 8 * 1024 * 1024 + 65536u64)
+        Nat::from(14 * 8 * 1024 * 1024 + 65536u64)
     );
 }
 

@@ -60,8 +60,51 @@ pub struct PaymentConfiguration {
     pub signer_epoch: u64,
     /// Whether new escrows are currently admitted.
     pub enabled: bool,
-    /// Maximum retained escrows; reaching it only stops new orders.
+    /// Current `PaymentLimits::max_escrows`; reaching it only stops new orders.
     pub max_escrows: u64,
+}
+
+/// Payment admission limits, replaced as a whole by governance. Reaching a
+/// limit only refuses new escrows and outgoing calls; accepted escrows stay
+/// recoverable.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PaymentLimits {
+    /// Escrows ever admitted, terminal ones included (1..=10,000,000).
+    pub max_escrows: u64,
+    /// New escrows per UTC day (1..=1,000,000).
+    pub daily_orders: u32,
+    /// Escrows without a funds decision per payer (1..=16).
+    pub max_open_per_payer: u32,
+    /// Offer verifications per UTC minute; each caller may use 10.
+    pub authorizations_per_minute: u32,
+    /// Ledger reads per UTC minute (`check_funding`, `reconcile_transfer`).
+    pub ledger_reads_per_minute: u32,
+    /// Ledger transfers per UTC minute (`process_transfer`).
+    pub ledger_writes_per_minute: u32,
+    /// Share of each ledger budget one caller may use; a payout dispatcher
+    /// needs more than an end user.
+    pub ledger_calls_per_caller: u32,
+}
+
+/// Live record counts and resources, read against `PaymentLimits`.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PaymentStats {
+    /// Escrows ever admitted; counts against `max_escrows`.
+    pub escrows: u64,
+    /// Escrows admitted in the current UTC day.
+    pub orders_today: u32,
+    /// Escrows still waiting for a funds decision.
+    pub open_escrows: u64,
+    /// Verified deposits.
+    pub deposits: u64,
+    /// Transfer legs not yet succeeded or superseded.
+    pub pending_transfers: u64,
+    /// Certified keys: configuration, signers, fee policies and escrows.
+    pub certified_leaves: u64,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
 }
 
 /// Escrow service deployment, ledger fees, signer and admission limits.
@@ -90,12 +133,8 @@ pub struct PaymentInit {
     pub max_fee: u128,
     /// Authorized quote/admission receipt signer.
     pub signer: ReceiptSigner,
-    /// Maximum simultaneously open escrows per payer.
-    pub max_open_per_payer: u32,
-    /// Maximum new escrow orders per daily budget window.
-    pub daily_orders: u32,
-    /// Maximum retained escrows, including terminal orders (1..=10,000).
-    pub max_escrows: u64,
+    /// Initial admission limits; `admin_set_limits` replaces them.
+    pub limits: PaymentLimits,
     /// Whether new payment orders are enabled.
     pub enabled: bool,
 }
@@ -185,8 +224,9 @@ pub struct RefundQuote {
 
 /// Maximum deposits combined in one refund or returned by a deposit page.
 pub const MAX_REFUND_DEPOSITS: usize = 32;
-/// Deployment ceiling for retained escrows; historical deposits remain recoverable.
-pub const MAX_PAYMENT_ESCROWS: u64 = 10_000;
+/// Ceiling of `PaymentLimits::max_escrows`. Escrows are never deleted, so
+/// this bounds stable memory; deposits and transfers stay recoverable.
+pub const MAX_PAYMENT_ESCROWS: u64 = 10_000_000;
 
 /// One outgoing ledger transfer status, independent of the escrow decision.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

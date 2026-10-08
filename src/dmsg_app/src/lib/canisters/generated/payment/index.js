@@ -22,21 +22,28 @@ export const idlFactory = ({ IDL }) => {
     'version' : IDL.Nat64,
     'minimum_atomic' : IDL.Nat,
   });
-  const PaymentInit = IDL.Record({
+  const PaymentLimits = IDL.Record({
     'daily_orders' : IDL.Nat32,
+    'authorizations_per_minute' : IDL.Nat32,
+    'max_escrows' : IDL.Nat64,
+    'ledger_writes_per_minute' : IDL.Nat32,
+    'ledger_calls_per_caller' : IDL.Nat32,
+    'max_open_per_payer' : IDL.Nat32,
+    'ledger_reads_per_minute' : IDL.Nat32,
+  });
+  const PaymentInit = IDL.Record({
     'platform' : Account,
     'enabled' : IDL.Bool,
-    'max_escrows' : IDL.Nat64,
     'issuer_namespace' : IDL.Text,
     'ledger' : IDL.Principal,
     'environment' : Environment,
     'ledger_fee' : IDL.Nat,
     'signer' : ReceiptSigner,
     'governance' : IDL.Principal,
-    'max_open_per_payer' : IDL.Nat32,
     'fee_policy' : DeliveryFeePolicy,
     'max_fee' : IDL.Nat,
     'user_homes' : IDL.Vec(IDL.Principal),
+    'limits' : PaymentLimits,
   });
   const Error = IDL.Variant({
     'MigrationKeyUnavailable' : IDL.Null,
@@ -232,6 +239,16 @@ export const idlFactory = ({ IDL }) => {
     'op_id' : IDL.Vec(IDL.Nat8),
     'quote' : Quote,
   });
+  const PaymentStats = IDL.Record({
+    'pending_transfers' : IDL.Nat64,
+    'open_escrows' : IDL.Nat64,
+    'orders_today' : IDL.Nat32,
+    'cycles' : IDL.Nat,
+    'escrows' : IDL.Nat64,
+    'deposits' : IDL.Nat64,
+    'stable_pages' : IDL.Nat64,
+    'certified_leaves' : IDL.Nat64,
+  });
   const RefundQuote = IDL.Record({
     'to' : Account,
     'fee' : IDL.Nat,
@@ -242,6 +259,7 @@ export const idlFactory = ({ IDL }) => {
   const Result_9 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   return IDL.Service({
     'admin_add_user_home' : IDL.Func([IDL.Principal], [Result], []),
+    'admin_set_limits' : IDL.Func([PaymentLimits], [Result], []),
     'check_funding' : IDL.Func([IDL.Vec(IDL.Nat8), IDL.Nat64], [Result_1], []),
     'claim_refund' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat64), IDL.Bool],
@@ -288,12 +306,19 @@ export const idlFactory = ({ IDL }) => {
         [Result_6],
         ['query'],
       ),
+    'list_pending_transfers' : IDL.Func(
+        [IDL.Opt(IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8), IDL.Nat64))],
+        [IDL.Vec(TransferLeg)],
+        ['query'],
+      ),
     'list_transfers' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Nat64)],
         [Result_7],
         ['query'],
       ),
     'open_escrow' : IDL.Func([OpenEscrow], [Result_1], []),
+    'payment_config' : IDL.Func([], [PaymentInit], ['query']),
+    'payment_stats' : IDL.Func([], [PaymentStats], ['query']),
     'process_transfer' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Nat64],
         [Result_2],
@@ -321,6 +346,11 @@ export const idlFactory = ({ IDL }) => {
     'set_orders_enabled' : IDL.Func([IDL.Bool], [Result], []),
     'validate_admin_add_user_home' : IDL.Func(
         [IDL.Principal],
+        [Result_9],
+        ['query'],
+      ),
+    'validate_admin_set_limits' : IDL.Func(
+        [PaymentLimits],
         [Result_9],
         ['query'],
       ),
@@ -366,21 +396,28 @@ export const init = ({ IDL }) => {
     'version' : IDL.Nat64,
     'minimum_atomic' : IDL.Nat,
   });
-  const PaymentInit = IDL.Record({
+  const PaymentLimits = IDL.Record({
     'daily_orders' : IDL.Nat32,
+    'authorizations_per_minute' : IDL.Nat32,
+    'max_escrows' : IDL.Nat64,
+    'ledger_writes_per_minute' : IDL.Nat32,
+    'ledger_calls_per_caller' : IDL.Nat32,
+    'max_open_per_payer' : IDL.Nat32,
+    'ledger_reads_per_minute' : IDL.Nat32,
+  });
+  const PaymentInit = IDL.Record({
     'platform' : Account,
     'enabled' : IDL.Bool,
-    'max_escrows' : IDL.Nat64,
     'issuer_namespace' : IDL.Text,
     'ledger' : IDL.Principal,
     'environment' : Environment,
     'ledger_fee' : IDL.Nat,
     'signer' : ReceiptSigner,
     'governance' : IDL.Principal,
-    'max_open_per_payer' : IDL.Nat32,
     'fee_policy' : DeliveryFeePolicy,
     'max_fee' : IDL.Nat,
     'user_homes' : IDL.Vec(IDL.Principal),
+    'limits' : PaymentLimits,
   });
   return [PaymentInit];
 };

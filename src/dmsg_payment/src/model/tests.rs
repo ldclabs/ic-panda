@@ -218,9 +218,15 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         ledger_fee: 10,
         max_fee: 20,
         signer: s.clone(),
-        max_open_per_payer: 4,
-        max_escrows: 10_000,
-        daily_orders: 100,
+        limits: PaymentLimits {
+            max_escrows: 10_000,
+            daily_orders: 100,
+            max_open_per_payer: 4,
+            authorizations_per_minute: 200,
+            ledger_reads_per_minute: 200,
+            ledger_writes_per_minute: 200,
+            ledger_calls_per_caller: 40,
+        },
         enabled: true,
     };
     assert!(validate_quote(
@@ -635,11 +641,12 @@ fn ceiling_fees_and_combined_refunds_preserve_every_allocation() {
         allocations(&e, &deposits, &legs);
         let quote = refund_quote(&e, &deposits, true, 10).unwrap();
         assert!(quote.amount > 0);
-        legs.push(claim_refund(&mut e, &mut deposits, true, 10, 6).unwrap());
+        let payer = e.payer_principal;
+        legs.push(claim_refund(&mut e, &mut deposits, true, 10, payer, 6).unwrap());
         allocations(&e, &deposits, &legs);
         let before = (e.clone(), deposits.clone());
         assert_eq!(
-            claim_refund(&mut e, &mut deposits, true, 10, 7),
+            claim_refund(&mut e, &mut deposits, true, 10, payer, 7),
             Err(Error::FeeBlocked)
         );
         assert_eq!((e.clone(), deposits.clone()), before);
@@ -666,13 +673,25 @@ fn refund_selection_rejects_mixed_sources_duplicates_and_unreleased_reserve() {
     );
     let tx = transfer(&e, id, 2, 100, 2, account(9));
     let other = accept_deposit(&mut e, id, &tx).unwrap();
-    let mut selected = vec![first.clone(), other];
+    let payer = e.payer_principal;
+    let mut selected = vec![first.clone(), other.clone()];
     let before = (e.clone(), selected.clone());
     assert_eq!(
-        claim_refund(&mut e, &mut selected, false, 10, 3),
+        claim_refund(&mut e, &mut selected, false, 10, payer, 3),
         Err(Error::IntegrityFailed)
     );
     assert_eq!((e.clone(), selected), before);
+    // Only the payer or the funds' owner may claim; nobody else can split
+    // balances that would otherwise share one network fee.
+    let mut alone = vec![other];
+    for stranger in [account(8).owner, Principal::anonymous()] {
+        assert!(matches!(
+            claim_refund(&mut e, &mut alone, false, 10, stranger, 3),
+            Err(Error::Forbidden | Error::AuthRequired)
+        ));
+    }
+    let leg = claim_refund(&mut e, &mut alone, false, 10, account(9).owner, 3).unwrap();
+    assert_eq!((leg.to, leg.amount), (account(9), 90));
     assert!(matches!(
         refund_quote(&e, &[first.clone(), first], false, 10),
         Err(Error::InvalidInput(_))

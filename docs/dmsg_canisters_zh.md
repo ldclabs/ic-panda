@@ -40,7 +40,7 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
 - 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。浏览器消息合同为 `dmsg-extension/4`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
-- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。cycles 实测和认证树重建的容量边界见 [payment README](../src/dmsg_payment/README.md)。
+- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。容量上限、多实例与部署流程见 [payment README](../src/dmsg_payment/README.md)。
 
 ## 构建与验证
 
@@ -191,3 +191,7 @@ PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wa
 ## 2026-10-08 directory 上线准备
 
 directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publish` 与 controller 或 governance 的 ingress，其他 ingress 在执行前被拒绝，不再由 directory 支付接收费。`custom_domains` 在安装和 `admin_set_custom_domains`（含预演）时都必须包含 `principal_origin` 的主机名。新增 `directory_stats`（已发布账户数、stable 页数、cycles 余额），并用单元测试固定文档响应的认证哈希：升级不重新认证文档，响应头或认证库的改动必须同时重新认证全部文档。user 新增 `user_config` query 返回安装配置与当前账户上限，供各服务在 `admin_add_user_home` 前核对新 home。稳定布局不变。部署、自定义域与交给 SNS 的流程见 [directory README](../src/dmsg_directory/README.md)。
+
+## 2026-10-08 payment 上线准备
+
+`PaymentInit` 以 `limits: PaymentLimits` 取代 `max_escrows`、`daily_orders` 与 `max_open_per_payer`，并加入授权、账本读取、账本出金的每分钟额度和每个调用方的账本份额；governance 用 `admin_set_limits`（含预演）整体替换。`MAX_PAYMENT_ESCROWS` 从 1 万提高到 1,000 万：认证树已在 stable memory，升级不扫描订单，主机构建镜像实测 10 万与 100 万单的升级分别为 154 万与 162 万条指令，每单约 3.2 KB stable memory，见 [payment README](../src/dmsg_payment/README.md)。新增 `payment_config`、`payment_stats` 与 `list_pending_transfers`：最后一个按 `created_at_time` 从旧到新列出所有未完成的出金腿，供出金派发任务在账本 24 小时去重窗口内派发；客户端在 `finalize_receipt` 后立即派发收件人和平台出金。管理方法修改配置后立即持久化，不再依赖 `pre_upgrade`。开单时付款方已过 `accept_by` 仍未决定的订单先写入退款决定，放弃付款的订单不再占用名额。`claim_refund` 只接受付款 Principal 或被退款账户的 owner。新增 `canister_inspect_message`，拒绝非管理员的管理 ingress 和匿名的开单、退款领取与出金修订。稳定布局为 payment schema 12，开发实例须重装。

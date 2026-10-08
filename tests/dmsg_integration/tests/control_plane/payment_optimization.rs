@@ -340,7 +340,7 @@ fn heap_configuration_and_failed_call_budgets_survive_upgrade() {
     let limited: Result<EscrowInfo> =
         update(&f.ic, f.payment, person(40), "open_escrow", (invalid,));
     assert_eq!(limited, Err(Error::QuotaExceeded));
-    for _ in 0..20 {
+    for _ in 0..40 {
         let missing: Result<EscrowInfo> = update(
             &f.ic,
             f.payment,
@@ -702,7 +702,7 @@ fn payment_cycles_profile() {
                 update(
                     &f.ic,
                     f.payment,
-                    person(99),
+                    person(40),
                     "claim_refund",
                     (e.escrow_id, vec![block], combined),
                 )

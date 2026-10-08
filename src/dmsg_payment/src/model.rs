@@ -323,14 +323,22 @@ pub fn refund_quote(
     })
 }
 
+/// Only the payer or the owner of the refunded funds decides when to claim,
+/// so nobody else can split balances that could share one network fee.
 pub fn claim_refund(
     e: &mut Escrow,
     deposits: &mut [Deposit],
     include_reserve: bool,
     fee: u128,
+    caller: Principal,
     now: u64,
 ) -> Result<TransferLeg> {
     let quote = refund_quote(e, deposits, include_reserve, fee)?;
+    authenticated(caller)?;
+    ensure(
+        caller == e.payer_principal || caller == quote.to.owner,
+        Error::Forbidden,
+    )?;
     ensure(quote.amount > 0, Error::FeeBlocked)?;
     let transfer = leg(
         e,

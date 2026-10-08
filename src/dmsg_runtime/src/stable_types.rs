@@ -301,10 +301,18 @@ stable_struct!(PaymentInitRepr => PaymentInit {
     5 => ledger_fee: u128,
     6 => max_fee: u128,
     7 => signer: ReceiptSignerRepr as codec,
-    8 => max_open_per_payer: u32,
-    9 => daily_orders: u32,
-    12 => max_escrows: u64,
+    16 => limits: PaymentLimitsRepr as codec,
     10 => enabled: bool,
+});
+
+stable_struct!(PaymentLimitsRepr => PaymentLimits {
+    1 => max_escrows: u64,
+    2 => daily_orders: u32,
+    3 => max_open_per_payer: u32,
+    4 => authorizations_per_minute: u32,
+    5 => ledger_reads_per_minute: u32,
+    6 => ledger_writes_per_minute: u32,
+    7 => ledger_calls_per_caller: u32,
 });
 
 stable_struct!(DepositRepr => Deposit {
@@ -655,13 +663,20 @@ mod tests {
                 valid_until: 2,
                 revoked: false,
             },
-            max_open_per_payer: 10,
-            max_escrows: 10_000,
-            daily_orders: 100,
+            limits: PaymentLimits {
+                max_escrows: 10_000,
+                daily_orders: 100,
+                max_open_per_payer: 10,
+                authorizations_per_minute: 200,
+                ledger_reads_per_minute: 200,
+                ledger_writes_per_minute: 200,
+                ledger_calls_per_caller: 40,
+            },
             enabled: true,
         };
         let value: cbor2::Value = cbor2::from_slice(&compact_bytes(&init)).unwrap();
         integer_fields(field(&value, 4).unwrap());
+        integer_fields(field(&value, 16).unwrap());
         assert_eq!(
             compact_from_bytes::<PaymentInit>(&compact_bytes(&init)),
             init

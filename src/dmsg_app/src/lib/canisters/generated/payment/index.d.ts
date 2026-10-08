@@ -123,20 +123,27 @@ export interface OpenEscrow {
   'quote' : Quote,
 }
 export interface PaymentInit {
-  'daily_orders' : number,
   'platform' : Account,
   'enabled' : boolean,
-  'max_escrows' : bigint,
   'issuer_namespace' : string,
   'ledger' : Principal,
   'environment' : Environment,
   'ledger_fee' : bigint,
   'signer' : ReceiptSigner,
   'governance' : Principal,
-  'max_open_per_payer' : number,
   'fee_policy' : DeliveryFeePolicy,
   'max_fee' : bigint,
   'user_homes' : Array<Principal>,
+  'limits' : PaymentLimits,
+}
+export interface PaymentLimits {
+  'daily_orders' : number,
+  'authorizations_per_minute' : number,
+  'max_escrows' : bigint,
+  'ledger_writes_per_minute' : number,
+  'ledger_calls_per_caller' : number,
+  'max_open_per_payer' : number,
+  'ledger_reads_per_minute' : number,
 }
 export interface PaymentOffer {
   'account_id' : Uint8Array | number[],
@@ -151,6 +158,16 @@ export interface PaymentOffer {
   'home_payment' : Principal,
   'expires_at' : bigint,
   'recipient_net' : bigint,
+}
+export interface PaymentStats {
+  'pending_transfers' : bigint,
+  'open_escrows' : bigint,
+  'orders_today' : number,
+  'cycles' : bigint,
+  'escrows' : bigint,
+  'deposits' : bigint,
+  'stable_pages' : bigint,
+  'certified_leaves' : bigint,
 }
 export interface Quote {
   'quote_scope' : Uint8Array | number[],
@@ -245,6 +262,7 @@ export interface TransferLeg {
 }
 export interface _SERVICE {
   'admin_add_user_home' : ActorMethod<[Principal], Result>,
+  'admin_set_limits' : ActorMethod<[PaymentLimits], Result>,
   'check_funding' : ActorMethod<[Uint8Array | number[], bigint], Result_1>,
   'claim_refund' : ActorMethod<
     [Uint8Array | number[], BigUint64Array | bigint[], boolean],
@@ -274,11 +292,17 @@ export interface _SERVICE {
     Result_5
   >,
   'list_my_escrows' : ActorMethod<[[] | [Uint8Array | number[]]], Result_6>,
+  'list_pending_transfers' : ActorMethod<
+    [[] | [[bigint, Uint8Array | number[], bigint]]],
+    Array<TransferLeg>
+  >,
   'list_transfers' : ActorMethod<
     [Uint8Array | number[], [] | [bigint]],
     Result_7
   >,
   'open_escrow' : ActorMethod<[OpenEscrow], Result_1>,
+  'payment_config' : ActorMethod<[], PaymentInit>,
+  'payment_stats' : ActorMethod<[], PaymentStats>,
   'process_transfer' : ActorMethod<[Uint8Array | number[], bigint], Result_2>,
   'quote_refund' : ActorMethod<
     [Uint8Array | number[], BigUint64Array | bigint[], boolean],
@@ -298,6 +322,7 @@ export interface _SERVICE {
   'set_ledger_fee' : ActorMethod<[bigint], Result>,
   'set_orders_enabled' : ActorMethod<[boolean], Result>,
   'validate_admin_add_user_home' : ActorMethod<[Principal], Result_9>,
+  'validate_admin_set_limits' : ActorMethod<[PaymentLimits], Result_9>,
   'validate_revoke_receipt_signer' : ActorMethod<[bigint], Result_9>,
   'validate_rotate_receipt_signer' : ActorMethod<[ReceiptSigner], Result_9>,
   'validate_schedule_fee_policy' : ActorMethod<[DeliveryFeePolicy], Result_9>,

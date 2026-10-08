@@ -81,8 +81,8 @@ fn failed_reads_and_writes_have_independent_bounded_caller_budgets() {
     deposit(&f, &e, e.quote.payer, e.quote.amount, 10);
     settle(&f, &e);
     f.ic.advance_time(Duration::from_millis(MINUTE));
-    for who in std::iter::once(Principal::anonymous()).chain((70..79).map(person)) {
-        for _ in 0..20 {
+    for who in std::iter::once(Principal::anonymous()).chain((70..74).map(person)) {
+        for _ in 0..40 {
             let missing: Result<EscrowInfo> = update(
                 &f.ic,
                 f.payment,
@@ -386,10 +386,11 @@ fn retained_capacity_rechecks_after_await_and_keeps_old_funds_recoverable() {
     );
     assert_eq!(full, Err(Error::QuotaExceeded));
     let block = deposit(&f, &e, e.quote.payer, 100, 10);
+    // Whichever payer won the last slot claims its own refund.
     let refund: Result<TransferLeg> = update(
         &f.ic,
         f.payment,
-        person(40),
+        e.payer_principal,
         "claim_refund",
         (e.escrow_id, vec![block], true),
     );

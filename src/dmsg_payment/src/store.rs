@@ -1,6 +1,6 @@
 use crate::state::Escrow;
 use candid::Principal;
-use dmsg_protocol::canonical;
+use dmsg_protocol::{canonical, digest};
 use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{payment::*, *};
@@ -10,15 +10,37 @@ use ic_stable_structures::{
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
+/// Calls admitted in the current minute, in total and per caller.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Budget {
+    pub(crate) calls: u32,
+    pub(crate) callers: BTreeMap<Principal, u32>,
+}
+
 pub(crate) struct Config {
     pub(crate) schema: u16,
     pub(crate) init: PaymentInit,
     pub(crate) day: u64,
     pub(crate) orders_today: u32,
     pub(crate) minute: u64,
-    pub(crate) ledger_reads: BTreeMap<Principal, u32>,
-    pub(crate) ledger_writes: BTreeMap<Principal, u32>,
-    pub(crate) authorizations: BTreeMap<Principal, u32>,
+    pub(crate) ledger_reads: Budget,
+    pub(crate) ledger_writes: Budget,
+    pub(crate) authorizations: Budget,
+}
+
+impl Config {
+    pub(crate) fn new(init: PaymentInit) -> Self {
+        Self {
+            schema: STABLE_SCHEMA,
+            init,
+            day: 0,
+            orders_today: 0,
+            minute: 0,
+            ledger_reads: Budget::default(),
+            ledger_writes: Budget::default(),
+            authorizations: Budget::default(),
+        }
+    }
 }
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -29,13 +51,15 @@ pub(crate) fn memory(id: u8) -> Memory {
 }
 
 thread_local! {
-    pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
+    // Stable memory itself; on the host a shared vector the capacity image exports.
+    pub(crate) static RAW: DefaultMemoryImpl = DefaultMemoryImpl::default();
+    static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(MemoryManager::init(RAW.with(Clone::clone)));
     static STABLE_CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
-    // Heap survives ordinary messages and await commit points. Persist this
-    // bounded record at upgrade, not on every budget reservation.
+    // Budgets commit at ordinary message boundaries and are persisted at
+    // upgrade; administrative changes are persisted when they are made.
     static CONFIG: RefCell<Option<Config>> =
         RefCell::new(STABLE_CONFIG.with_borrow(|t| t.get().value()));
     pub(crate) static ESCROWS: RefCell<Table<CompactStored<Escrow>>> =
@@ -50,7 +74,8 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(5)));
     pub(crate) static SIGNERS: RefCell<Table<CompactStored<ReceiptSigner>>> =
         RefCell::new(StableBTreeMap::init(memory(6)));
-    pub(crate) static PAYER_OPEN: RefCell<Table<Stored<u32>>> =
+    // Payer prefix || escrow ID of each escrow still waiting for a decision.
+    pub(crate) static OPEN: RefCell<Table<Stored<()>>> =
         RefCell::new(StableBTreeMap::init(memory(7)));
     // Outgoing ledger block -> (escrow, leg) that produced it.
     pub(crate) static OUTGOING: RefCell<Table<Stored<(Hash, u64)>>> =
@@ -63,6 +88,10 @@ thread_local! {
     // Hashes only: each certified value is rebuilt from its record for a witness.
     pub(crate) static CERT: RefCell<CertMap<Memory>> =
         RefCell::new(CertMap::new(memory(11), memory(12)));
+    // created_at_time || escrow ID || leg ID of every leg that has not
+    // succeeded or been superseded, oldest first for payout dispatch.
+    pub(crate) static PENDING: RefCell<Table<Stored<()>>> =
+        RefCell::new(StableBTreeMap::init(memory(13)));
 }
 
 /// Borrow the configuration for reads; do not touch CONFIG inside `f`.
@@ -70,17 +99,55 @@ pub(crate) fn with_cfg<R>(f: impl FnOnce(&Config) -> R) -> R {
     CONFIG.with_borrow(|c| f(c.as_ref().expect("initialized")))
 }
 
+fn persist(c: &Config) {
+    STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(c)));
+}
+
+/// Install a configuration and persist it.
 pub(crate) fn save_cfg(c: Config) {
+    persist(&c);
     CONFIG.with_borrow_mut(|value| *value = Some(c));
 }
 
-/// Mutate admission configuration without cloning any minute-budget maps.
+/// Persist the budgets and daily count before an upgrade.
+pub(crate) fn persist_config() {
+    with_cfg(persist);
+}
+
+/// Mutate the administrative configuration, recertify it and persist it, so
+/// governance changes never depend on `pre_upgrade`.
 pub(crate) fn configure(f: impl FnOnce(&mut PaymentInit)) {
     CONFIG.with_borrow_mut(|value| {
         let c = value.as_mut().expect("initialized");
         f(&mut c.init);
         certify_config(c);
+        persist(c);
     });
+}
+
+/// Upper bounds a governance limit may take. Escrows are never deleted, so
+/// `MAX_PAYMENT_ESCROWS` bounds stable memory; see the capacity profile.
+pub(crate) const MAX_DAILY_ORDERS: u32 = 1_000_000;
+pub(crate) const MAX_OPEN_PER_PAYER: u32 = 16;
+pub(crate) const MAX_CALLS_PER_MINUTE: u32 = 100_000;
+/// Offer verifications one caller may start per minute.
+const AUTHORIZATIONS_PER_CALLER: u32 = 10;
+
+pub(crate) fn check_limits(l: &PaymentLimits) -> Result<()> {
+    ensure_valid(
+        (1..=MAX_PAYMENT_ESCROWS).contains(&l.max_escrows)
+            && (1..=MAX_DAILY_ORDERS).contains(&l.daily_orders)
+            && (1..=MAX_OPEN_PER_PAYER).contains(&l.max_open_per_payer)
+            && [
+                l.authorizations_per_minute,
+                l.ledger_reads_per_minute,
+                l.ledger_writes_per_minute,
+            ]
+            .iter()
+            .all(|n| (1..=MAX_CALLS_PER_MINUTE).contains(n))
+            && (1..=MAX_CALLS_PER_MINUTE).contains(&l.ledger_calls_per_caller),
+        "payment limits",
+    )
 }
 
 fn public_config(c: &Config) -> PaymentConfiguration {
@@ -93,7 +160,7 @@ fn public_config(c: &Config) -> PaymentConfiguration {
         max_fee: c.init.max_fee,
         signer_epoch: c.init.signer.epoch,
         enabled: c.init.enabled,
-        max_escrows: c.init.max_escrows,
+        max_escrows: c.init.limits.max_escrows,
     }
 }
 
@@ -148,19 +215,36 @@ pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
         let c = value.as_mut().expect("initialized");
         if c.minute != at / MINUTE {
             c.minute = at / MINUTE;
-            c.ledger_reads.clear();
-            c.ledger_writes.clear();
-            c.authorizations.clear();
+            c.ledger_reads = Budget::default();
+            c.ledger_writes = Budget::default();
+            c.authorizations = Budget::default();
         }
-        let (counts, caller, per_caller) = match kind {
-            CallBudget::LedgerRead(caller) => (&mut c.ledger_reads, caller, 20),
-            CallBudget::LedgerWrite(caller) => (&mut c.ledger_writes, caller, 40),
-            CallBudget::Authorization(caller) => (&mut c.authorizations, caller, 10),
+        let l = c.init.limits.clone();
+        let (budget, caller, global, per_caller) = match kind {
+            CallBudget::LedgerRead(caller) => (
+                &mut c.ledger_reads,
+                caller,
+                l.ledger_reads_per_minute,
+                l.ledger_calls_per_caller,
+            ),
+            CallBudget::LedgerWrite(caller) => (
+                &mut c.ledger_writes,
+                caller,
+                l.ledger_writes_per_minute,
+                l.ledger_calls_per_caller,
+            ),
+            CallBudget::Authorization(caller) => (
+                &mut c.authorizations,
+                caller,
+                l.authorizations_per_minute,
+                AUTHORIZATIONS_PER_CALLER,
+            ),
         };
-        ensure(counts.values().sum::<u32>() < 200, Error::QuotaExceeded)?;
-        let count = counts.entry(caller).or_default();
-        ensure(*count < per_caller, Error::QuotaExceeded)?;
-        *count += 1;
+        ensure(budget.calls < global, Error::QuotaExceeded)?;
+        let used = budget.callers.entry(caller).or_default();
+        ensure(*used < per_caller.min(global), Error::QuotaExceeded)?;
+        *used += 1;
+        budget.calls += 1;
         Ok(())
     })
 }
@@ -168,11 +252,11 @@ pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
 pub(crate) fn check_order_capacity(at: u64) -> Result<()> {
     with_cfg(|c| {
         ensure(
-            ESCROWS.with_borrow(|t| t.len()) < c.init.max_escrows,
+            ESCROWS.with_borrow(|t| t.len()) < c.init.limits.max_escrows,
             Error::QuotaExceeded,
         )?;
         ensure(
-            c.day != at / DAY || c.orders_today < c.init.daily_orders,
+            c.day != at / DAY || c.orders_today < c.init.limits.daily_orders,
             Error::QuotaExceeded,
         )
     })
@@ -191,8 +275,8 @@ pub(crate) fn reserve_order(at: u64) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn persist_config() {
-    with_cfg(|c| STABLE_CONFIG.with_borrow_mut(|t| t.set(CompactStored::some(c))));
+pub(crate) fn orders_today(at: u64) -> u32 {
+    with_cfg(|c| if c.day == at / DAY { c.orders_today } else { 0 })
 }
 
 pub(crate) fn load(id: &Hash) -> Result<Escrow> {
@@ -218,29 +302,81 @@ pub(crate) fn signer(epoch: u64) -> Result<ReceiptSigner> {
     SIGNERS.with_borrow(|t| t.load(&epoch.to_be_bytes()).ok_or(Error::NotFound))
 }
 
-pub(crate) fn open_count(p: Principal) -> u32 {
-    PAYER_OPEN.with_borrow(|t| t.load(p.as_slice()).unwrap_or(0))
+pub(crate) fn payer_prefix(payer: Principal) -> Hash {
+    digest("dmsg/payer-index/v1", &payer)
 }
 
+pub(crate) fn payer_index_key(payer: Principal, id: &Hash) -> Vec<u8> {
+    [payer_prefix(payer).as_slice(), id.as_slice()].concat()
+}
+
+/// Escrows of `payer` still waiting for a funds decision; at most
+/// `max_open_per_payer` of them.
+pub(crate) fn open_escrows(payer: Principal) -> Vec<Hash> {
+    let prefix = payer_prefix(payer);
+    OPEN.with_borrow(|t| {
+        t.range(prefix.to_vec()..)
+            .take_while(|e| e.key().starts_with(prefix.as_slice()))
+            .map(|e| Hash::new(e.key()[32..].try_into().expect("open index key")))
+            .collect()
+    })
+}
+
+/// Record a new escrow under its payer.
+pub(crate) fn index_payer(e: &Escrow) {
+    let k = payer_index_key(e.payer_principal, &e.escrow_id);
+    OPEN.with_borrow_mut(|t| t.put(&k, &()));
+    PAYER_INDEX.with_borrow_mut(|t| t.put(&k, &()));
+}
+
+/// The escrow has a funds decision; its payer slot is free.
 pub(crate) fn release_payer(e: &Escrow) {
-    let n = open_count(e.payer_principal)
-        .checked_sub(1)
-        .expect("open accounting");
-    PAYER_OPEN.with_borrow_mut(|t| {
-        if n == 0 {
-            t.delete(e.payer_principal.as_slice());
-        } else {
-            t.put(e.payer_principal.as_slice(), &n);
-        }
-    });
+    let removed =
+        OPEN.with_borrow_mut(|t| t.remove(&payer_index_key(e.payer_principal, &e.escrow_id)));
+    assert!(removed.is_some(), "open accounting");
 }
 
+fn pending_key(l: &TransferLeg) -> Vec<u8> {
+    [
+        l.created_at_time.to_be_bytes().as_slice(),
+        &key(l.escrow_id, l.leg_id),
+    ]
+    .concat()
+}
+
+/// Store a leg and keep it in the dispatch index until it succeeds or is
+/// superseded. `created_at_time` never changes, so neither does its key.
 pub(crate) fn put_leg(l: &TransferLeg) {
     LEGS.with_borrow_mut(|t| t.put(&key(l.escrow_id, l.leg_id), l));
+    let k = pending_key(l);
+    PENDING.with_borrow_mut(|t| {
+        if matches!(l.status, LegStatus::Succeeded | LegStatus::Superseded) {
+            t.delete(&k);
+        } else if !t.contains(&k) {
+            t.put(&k, &());
+        }
+    });
 }
 
 pub(crate) fn get_leg(id: Hash, n: u64) -> Result<TransferLeg> {
     LEGS.with_borrow(|t| t.load(&key(id, n)).ok_or(Error::NotFound))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 11;
+/// Up to 32 legs awaiting a ledger result, oldest `created_at_time` first,
+/// after the cursor `(created_at_time, escrow_id, leg_id)`.
+pub(crate) fn pending_legs(after: Option<(u64, Hash, u64)>) -> Vec<TransferLeg> {
+    let cursor = after.map_or_else(Vec::new, |(at, id, n)| {
+        [at.to_be_bytes().as_slice(), &key(id, n)].concat()
+    });
+    PENDING
+        .with_borrow(|t| t.page(cursor, 32))
+        .into_iter()
+        .map(|(k, ())| {
+            let id = Hash::new(k[8..40].try_into().expect("pending key"));
+            let n = u64::from_be_bytes(k[40..].try_into().expect("pending key"));
+            get_leg(id, n).expect("pending leg")
+        })
+        .collect()
+}
+
+pub(crate) const STABLE_SCHEMA: u16 = 12;

@@ -247,14 +247,10 @@ type OpenEscrow = record {
 // Escrow service deployment, ledger fees, signer and admission limits.
 // All monetary values are integer ledger base units, not display tokens or cycles.
 type PaymentInit = record {
-  // Maximum new escrow orders per daily budget window.
-  daily_orders : nat32;
   // ICRC account receiving the service fee.
   platform : Account;
   // Whether new payment orders are enabled.
   enabled : bool;
-  // Maximum retained escrows, including terminal orders (1..=10,000).
-  max_escrows : nat64;
   // Account issuer namespace shared by the user homes.
   issuer_namespace : text;
   // ICRC ledger canister for all amounts in this contract.
@@ -267,8 +263,6 @@ type PaymentInit = record {
   signer : ReceiptSigner;
   // Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
   governance : principal;
-  // Maximum simultaneously open escrows per payer.
-  max_open_per_payer : nat32;
   // Initial versioned platform fee policy.
   fee_policy : DeliveryFeePolicy;
   // Maximum permitted network fee in ledger base units.
@@ -276,6 +270,28 @@ type PaymentInit = record {
   // User homes that verify recipient offers; each account ID carries its
   // home's allocator fingerprint. Append-only.
   user_homes : vec principal;
+  // Initial admission limits; `admin_set_limits` replaces them.
+  limits : PaymentLimits;
+};
+// Payment admission limits, replaced as a whole by governance. Reaching a
+// limit only refuses new escrows and outgoing calls; accepted escrows stay
+// recoverable.
+type PaymentLimits = record {
+  // New escrows per UTC day (1..=1,000,000).
+  daily_orders : nat32;
+  // Offer verifications per UTC minute; each caller may use 10.
+  authorizations_per_minute : nat32;
+  // Escrows ever admitted, terminal ones included (1..=10,000,000).
+  max_escrows : nat64;
+  // Ledger transfers per UTC minute (`process_transfer`).
+  ledger_writes_per_minute : nat32;
+  // Share of each ledger budget one caller may use; a payout dispatcher
+  // needs more than an end user.
+  ledger_calls_per_caller : nat32;
+  // Escrows without a funds decision per payer (1..=16).
+  max_open_per_payer : nat32;
+  // Ledger reads per UTC minute (`check_funding`, `reconcile_transfer`).
+  ledger_reads_per_minute : nat32;
 };
 // Recipient device authorization of fixed payment terms.
 // Signed under `dmsg/payment-offer/v1`; does not itself open or fund an escrow.
@@ -304,6 +320,25 @@ type PaymentOffer = record {
   expires_at : nat64;
   // Amount owed to the recipient, excluding fees, in ledger base units.
   recipient_net : nat;
+};
+// Live record counts and resources, read against `PaymentLimits`.
+type PaymentStats = record {
+  // Transfer legs not yet succeeded or superseded.
+  pending_transfers : nat64;
+  // Escrows still waiting for a funds decision.
+  open_escrows : nat64;
+  // Escrows admitted in the current UTC day.
+  orders_today : nat32;
+  // Cycle balance.
+  cycles : nat;
+  // Escrows ever admitted; counts against `max_escrows`.
+  escrows : nat64;
+  // Verified deposits.
+  deposits : nat64;
+  // Stable memory in 64 KiB pages.
+  stable_pages : nat64;
+  // Certified keys: configuration, signers, fee policies and escrows.
+  certified_leaves : nat64;
 };
 // Relay quote binding payment, encrypted envelope and delivery limits.
 // Signed under `dmsg/quote/v2`. All amounts are integer ledger base units;
@@ -467,8 +502,11 @@ service : (PaymentInit) -> {
   // Append a user home. Its `dmsg_user` must name this canister as
   // `payment_canister` and share the environment and issuer namespace.
   admin_add_user_home : (principal) -> (Result);
+  // Replace the admission limits. Accepted escrows and their recovery are unaffected.
+  admin_set_limits : (PaymentLimits) -> (Result);
   check_funding : (blob, nat64) -> (Result_1);
   // Combine only allocations belonging to the same exact original account.
+  // The payer or the owner of the refunded funds may claim.
   claim_refund : (blob, vec nat64, bool) -> (Result_2);
   expiry_refund : (blob) -> (Result_1);
   finalize_receipt : (SignedReceipt) -> (Result_1);
@@ -483,8 +521,21 @@ service : (PaymentInit) -> {
   // Enumerate verified incoming records, including non-primary deposits.
   list_deposits : (blob, opt nat64) -> (Result_5) query;
   list_my_escrows : (opt blob) -> (Result_6) query;
+  // Legs of every escrow that have not succeeded or been superseded, oldest
+  // `created_at_time` first, 32 per page. Pass the last leg's
+  // `(created_at_time, escrow_id, leg_id)` for the next page. A payout
+  // dispatcher sends them with `process_transfer` inside the ledger's
+  // deduplication window.
+  list_pending_transfers : (opt record { nat64; blob; nat64 }) -> (
+      vec TransferLeg,
+    ) query;
   list_transfers : (blob, opt nat64) -> (Result_7) query;
   open_escrow : (OpenEscrow) -> (Result_1);
+  // Installed configuration with the current homes, switch, network fee,
+  // signer and limits.
+  payment_config : () -> (PaymentInit) query;
+  // Record counts against the limits, with the stable size and cycle balance.
+  payment_stats : () -> (PaymentStats) query;
   process_transfer : (blob, nat64) -> (Result_2);
   // Preview the current fee and any balance too small to refund. Reserve is
   // available after a refund decision or after all settlement payouts succeed.
@@ -506,6 +557,7 @@ service : (PaymentInit) -> {
   set_ledger_fee : (nat) -> (Result);
   set_orders_enabled : (bool) -> (Result);
   validate_admin_add_user_home : (principal) -> (Result_9) query;
+  validate_admin_set_limits : (PaymentLimits) -> (Result_9) query;
   validate_revoke_receipt_signer : (nat64) -> (Result_9) query;
   validate_rotate_receipt_signer : (ReceiptSigner) -> (Result_9) query;
   validate_schedule_fee_policy : (DeliveryFeePolicy) -> (Result_9) query;

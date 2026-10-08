@@ -30,6 +30,9 @@ mod payment_regressions;
 #[path = "control_plane/payment_optimization.rs"]
 mod payment_optimization;
 
+#[path = "control_plane/payment_operations.rs"]
+mod payment_operations;
+
 #[path = "control_plane/user.rs"]
 mod user_tests;
 
@@ -360,9 +363,15 @@ impl Fixture {
                 ledger_fee: 10,
                 max_fee: 20,
                 signer: signer.clone(),
-                max_open_per_payer: 4,
-                max_escrows,
-                daily_orders,
+                limits: PaymentLimits {
+                    max_escrows,
+                    daily_orders,
+                    max_open_per_payer: 4,
+                    authorizations_per_minute: 200,
+                    ledger_reads_per_minute: 200,
+                    ledger_writes_per_minute: 200,
+                    ledger_calls_per_caller: 40,
+                },
                 enabled: true,
             },))
             .unwrap(),
@@ -1672,10 +1681,19 @@ fn escrow_settlement_duplicate_callbacks_fee_repair_and_direct_refunds() {
         "set_fee",
         (10u128,),
     );
-    let excess: Result<TransferLeg> = update(
+    // Only the payer or the funds' owner chooses when to combine a refund.
+    let stranger: Result<TransferLeg> = update(
         &f.ic,
         f.payment,
         person(99),
+        "claim_refund",
+        (e.escrow_id, vec![block], true),
+    );
+    assert_eq!(stranger, Err(Error::Forbidden));
+    let excess: Result<TransferLeg> = update(
+        &f.ic,
+        f.payment,
+        person(40),
         "claim_refund",
         (e.escrow_id, vec![block], true),
     );

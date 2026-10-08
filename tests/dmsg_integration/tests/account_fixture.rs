@@ -137,9 +137,15 @@ fn account_extension_gateway() {
                 valid_until: u64::MAX / 2,
                 revoked: false,
             },
-            max_open_per_payer: 4,
-            max_escrows: 10_000,
-            daily_orders: 100,
+            limits: dmsg_types::payment::PaymentLimits {
+                max_escrows: 10_000,
+                daily_orders: 100,
+                max_open_per_payer: 4,
+                authorizations_per_minute: 200,
+                ledger_reads_per_minute: 200,
+                ledger_writes_per_minute: 200,
+                ledger_calls_per_caller: 40,
+            },
             enabled: true,
         })
         .unwrap(),

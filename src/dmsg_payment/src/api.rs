@@ -17,6 +17,29 @@ fn check_admin(caller: Principal) -> Result<()> {
     admin::check_admin(caller, with_cfg(|c| c.init.governance))
 }
 
+/// Refuse administrative ingress from anyone but a controller or governance,
+/// and payer-only ingress from the anonymous principal, before it is paid for.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let caller = ic_cdk::api::msg_caller();
+    let allowed = match ic_cdk::api::msg_method_name().as_str() {
+        "admin_add_user_home"
+        | "admin_set_limits"
+        | "set_orders_enabled"
+        | "set_ledger_fee"
+        | "rotate_receipt_signer"
+        | "revoke_receipt_signer"
+        | "schedule_fee_policy" => check_admin(caller).is_ok(),
+        "open_escrow" | "claim_refund" | "revise_rejected_transfer" => {
+            authenticated(caller).is_ok()
+        }
+        _ => true,
+    };
+    if allowed {
+        ic_cdk::api::accept_message();
+    }
+}
+
 #[ic_cdk::init]
 fn init(args: PaymentInit) {
     validate_namespace(&args.issuer_namespace).expect("issuer namespace");
@@ -25,16 +48,10 @@ fn init(args: PaymentInit) {
     for p in [args.ledger, args.platform.owner, args.governance] {
         authenticated(p).expect("canister/account");
     }
+    check_limits(&args.limits).expect("payment limits");
     assert!(
-        args.max_open_per_payer > 0
-            && args.max_open_per_payer <= 16
-            && args.daily_orders > 0
-            && args.daily_orders <= 100_000
-            && args.max_escrows > 0
-            && args.max_escrows <= MAX_PAYMENT_ESCROWS
-            && args.ledger_fee <= args.max_fee
-            && args.max_fee <= 1_000_000_000,
-        "hard limits"
+        args.ledger_fee <= args.max_fee && args.max_fee <= 1_000_000_000,
+        "network fee ceiling"
     );
     assert!(args.signer.valid_from < args.signer.valid_until);
     assert!(
@@ -48,20 +65,12 @@ fn init(args: PaymentInit) {
     FEE_POLICIES
         .with_borrow_mut(|t| t.put(&args.fee_policy.version.to_be_bytes(), &args.fee_policy));
     certify_fee_policy(&args.fee_policy);
-    save_cfg(Config {
-        schema: STABLE_SCHEMA,
-        init: args,
-        day: 0,
-        orders_today: 0,
-        minute: 0,
-        ledger_reads: Default::default(),
-        ledger_writes: Default::default(),
-        authorizations: Default::default(),
-    });
-    persist_config();
+    save_cfg(Config::new(args));
     with_cfg(certify_config);
 }
 
+/// Save this minute's call budgets and today's admissions; administrative
+/// changes were persisted when they were made.
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     persist_config();
@@ -69,6 +78,7 @@ fn pre_upgrade() {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let started = ic_cdk::api::performance_counter(0);
     assert_eq!(
         with_cfg(|c| c.schema),
         STABLE_SCHEMA,
@@ -78,6 +88,61 @@ fn post_upgrade() {
     // recertified from the restored configuration, then the root republished.
     with_cfg(certify_config);
     CERT.with_borrow(|c| c.publish());
+    ic_cdk::println!(
+        "payment_upgrade escrows={} instructions={}",
+        ESCROWS.with_borrow(|t| t.len()),
+        ic_cdk::api::performance_counter(0) - started,
+    );
+}
+
+/// Replace the admission limits. Accepted escrows and their recovery are unaffected.
+#[ic_cdk::update]
+fn admin_set_limits(limits: PaymentLimits) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_limits(&limits)?;
+    configure(|c| c.limits = limits);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_limits(limits: PaymentLimits) -> Validation {
+    validation(check_limits(&limits).map(|()| {
+        let current = with_cfg(|c| c.init.limits.clone());
+        format!(
+            "Set payment limits: {} escrows, {} per day, {} open per payer; {} offer verifications, {} ledger reads and {} ledger transfers per minute, {} ledger calls per caller (currently {:?}).{}",
+            limits.max_escrows,
+            limits.daily_orders,
+            limits.max_open_per_payer,
+            limits.authorizations_per_minute,
+            limits.ledger_reads_per_minute,
+            limits.ledger_writes_per_minute,
+            limits.ledger_calls_per_caller,
+            current,
+            admin::unchanged(current != limits, "Already set"),
+        )
+    }))
+}
+
+/// Installed configuration with the current homes, switch, network fee,
+/// signer and limits.
+#[ic_cdk::query]
+fn payment_config() -> PaymentInit {
+    with_cfg(|c| c.init.clone())
+}
+
+/// Record counts against the limits, with the stable size and cycle balance.
+#[ic_cdk::query]
+fn payment_stats() -> PaymentStats {
+    PaymentStats {
+        escrows: ESCROWS.with_borrow(|t| t.len()),
+        orders_today: orders_today(now()),
+        open_escrows: OPEN.with_borrow(|t| t.len()),
+        deposits: DEPOSITS.with_borrow(|t| t.len()),
+        pending_transfers: PENDING.with_borrow(|t| t.len()),
+        certified_leaves: CERT.with_borrow(|c| c.len()),
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
 }
 
 fn check_home(init: &PaymentInit, home: Principal) -> Result<bool> {
@@ -238,7 +303,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         Error::IdempotencyConflict,
     )?;
     ensure(
-        open_count(who) < config.max_open_per_payer,
+        open_slots(who, at) < config.limits.max_open_per_payer,
         Error::QuotaExceeded,
     )?;
     check_order_capacity(at)?;
@@ -279,21 +344,28 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
         at,
     )?;
     let e = model::escrow(canister_id, id, who, &input, quote_digest);
-    let count = open_count(who) + 1;
     reserve_order(at)?;
     QUOTES.with_borrow_mut(|t| t.put(input.quote.quote_id.as_slice(), &()));
-    PAYER_OPEN.with_borrow_mut(|t| t.put(who.as_slice(), &count));
-    PAYER_INDEX.with_borrow_mut(|t| t.put(&payer_index_key(who, &id), &()));
+    index_payer(&e);
     save(&e);
     Ok(e.info())
 }
 
-fn payer_index_key(payer: Principal, id: &Hash) -> Vec<u8> {
-    [
-        digest("dmsg/payer-index/v1", &payer).as_slice(),
-        id.as_slice(),
-    ]
-    .concat()
+/// Escrows of `payer` still waiting for a funds decision. Expired ones get
+/// their refund decision first, as anyone may give with `expiry_refund`, so
+/// abandoned unpaid orders do not hold the payer's slots.
+fn open_slots(payer: Principal, at: u64) -> u32 {
+    let mut open = 0;
+    for id in open_escrows(payer) {
+        let mut e = load(&id).expect("open escrow");
+        if model::refund(&mut e, at) == Ok(true) {
+            release_payer(&e);
+            save(&e);
+        } else {
+            open += 1;
+        }
+    }
+    open
 }
 
 #[ic_cdk::update]
@@ -387,6 +459,7 @@ fn quote_refund(escrow_id: Hash, blocks: Vec<u64>, include_reserve: bool) -> Res
 }
 
 /// Combine only allocations belonging to the same exact original account.
+/// The payer or the owner of the refunded funds may claim.
 #[ic_cdk::update]
 fn claim_refund(escrow_id: Hash, blocks: Vec<u64>, include_reserve: bool) -> Result<TransferLeg> {
     let at = now();
@@ -397,6 +470,7 @@ fn claim_refund(escrow_id: Hash, blocks: Vec<u64>, include_reserve: bool) -> Res
         &mut deposits,
         include_reserve,
         with_cfg(|c| c.init.ledger_fee),
+        ic_cdk::api::msg_caller(),
         at,
     )?;
     DEPOSITS.with_borrow_mut(|t| {
@@ -588,7 +662,7 @@ fn get_receipt_signer(epoch: u64) -> Result<ReceiptSigner> {
 fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
-    let prefix = digest("dmsg/payer-index/v1", &caller);
+    let prefix = payer_prefix(caller);
     let cursor = after.map_or_else(|| prefix.to_vec(), |id| payer_index_key(caller, &id));
     let entries = PAYER_INDEX.with_borrow(|t| t.page(cursor, 32));
     entries
@@ -599,6 +673,16 @@ fn list_my_escrows(after: Option<Hash>) -> Result<Vec<EscrowInfo>> {
             load(&id).map(|e| e.info())
         })
         .collect()
+}
+
+/// Legs of every escrow that have not succeeded or been superseded, oldest
+/// `created_at_time` first, 32 per page. Pass the last leg's
+/// `(created_at_time, escrow_id, leg_id)` for the next page. A payout
+/// dispatcher sends them with `process_transfer` inside the ledger's
+/// deduplication window.
+#[ic_cdk::query]
+fn list_pending_transfers(after: Option<(u64, Hash, u64)>) -> Vec<TransferLeg> {
+    pending_legs(after)
 }
 
 #[ic_cdk::query]

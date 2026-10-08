@@ -1,7 +1,38 @@
-use crate::{state::Escrow, store::Config};
+use crate::{
+    state::Escrow,
+    store::{Budget, Config},
+};
+use candid::Principal;
 use cbor2::Cbor;
 use dmsg_runtime::{stable_types::*, storage::StableCodec};
 use dmsg_types::{payment::*, profiles::delivery::Quote, *};
+use std::collections::BTreeMap;
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct BudgetRepr {
+    #[cbor(key = 1)]
+    pub calls: u32,
+    #[cbor(key = 2)]
+    pub callers: BTreeMap<Principal, u32>,
+}
+
+impl StableCodec for Budget {
+    type Repr = BudgetRepr;
+
+    fn to_repr(&self) -> Self::Repr {
+        BudgetRepr {
+            calls: self.calls,
+            callers: self.callers.clone(),
+        }
+    }
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        Self {
+            calls: repr.calls,
+            callers: repr.callers,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub struct ConfigRepr {
@@ -15,12 +46,12 @@ pub struct ConfigRepr {
     pub orders_today: u32,
     #[cbor(key = 5)]
     pub minute: u64,
-    #[cbor(key = 6)]
-    pub ledger_reads: std::collections::BTreeMap<candid::Principal, u32>,
-    #[cbor(key = 8)]
-    pub ledger_writes: std::collections::BTreeMap<candid::Principal, u32>,
-    #[cbor(key = 7)]
-    pub authorizations: std::collections::BTreeMap<candid::Principal, u32>,
+    #[cbor(key = 9)]
+    pub ledger_reads: BudgetRepr,
+    #[cbor(key = 10)]
+    pub ledger_writes: BudgetRepr,
+    #[cbor(key = 11)]
+    pub authorizations: BudgetRepr,
 }
 
 impl StableCodec for Config {
@@ -33,9 +64,9 @@ impl StableCodec for Config {
             day: self.day,
             orders_today: self.orders_today,
             minute: self.minute,
-            ledger_reads: self.ledger_reads.clone(),
-            ledger_writes: self.ledger_writes.clone(),
-            authorizations: self.authorizations.clone(),
+            ledger_reads: self.ledger_reads.to_repr(),
+            ledger_writes: self.ledger_writes.to_repr(),
+            authorizations: self.authorizations.to_repr(),
         }
     }
 
@@ -46,9 +77,9 @@ impl StableCodec for Config {
             day: repr.day,
             orders_today: repr.orders_today,
             minute: repr.minute,
-            ledger_reads: repr.ledger_reads,
-            ledger_writes: repr.ledger_writes,
-            authorizations: repr.authorizations,
+            ledger_reads: Budget::from_repr(repr.ledger_reads),
+            ledger_writes: Budget::from_repr(repr.ledger_writes),
+            authorizations: Budget::from_repr(repr.authorizations),
         }
     }
 }
@@ -343,6 +374,10 @@ mod tests {
             signer
         );
 
+        let budget = |p: Principal, n: u32| Budget {
+            calls: n,
+            callers: [(p, n)].into(),
+        };
         let config = Config {
             schema: crate::store::STABLE_SCHEMA,
             init: PaymentInit {
@@ -361,17 +396,23 @@ mod tests {
                 ledger_fee: 10,
                 max_fee: 20,
                 signer,
-                max_open_per_payer: 16,
-                max_escrows: 10_000,
-                daily_orders: 100_000,
+                limits: PaymentLimits {
+                    max_escrows: 10_000,
+                    daily_orders: 100_000,
+                    max_open_per_payer: 16,
+                    authorizations_per_minute: 200,
+                    ledger_reads_per_minute: 200,
+                    ledger_writes_per_minute: 200,
+                    ledger_calls_per_caller: 40,
+                },
                 enabled: true,
             },
             day: 42,
             orders_today: 7,
             minute: 123,
-            ledger_reads: [(p(4), 4)].into(),
-            ledger_writes: [(p(5), 2)].into(),
-            authorizations: [(p(4), 3)].into(),
+            ledger_reads: budget(p(4), 4),
+            ledger_writes: budget(p(5), 2),
+            authorizations: budget(p(4), 3),
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, config.schema);

@@ -565,10 +565,9 @@ export class InboxClient extends PaymentClient {
       await this.session.context(),
       this.session.sign
     )
-    return {
-      order: result,
-      escrow: await this.escrow(hex(Uint8Array.from(finalized.escrow_id)))
-    }
+    const id = hex(Uint8Array.from(finalized.escrow_id))
+    await this.payouts(id)
+    return { order: result, escrow: await this.escrow(id) }
   }
   async list() {
     const entries = new Map<string, any>()
