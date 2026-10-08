@@ -1,7 +1,7 @@
 <script lang="ts">
   import { session, shortId, dateLabel, downloadBlob } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import type { AccountClient } from '../services/account'
   import { AccountRootClient, type RootJob } from '../services/account-root'
   import { CloudClient } from '../services/relay'
@@ -15,7 +15,7 @@
   let accountState = $state.raw<Awaited<ReturnType<AccountClient['refresh']>> | null>(null)
   let recovery = $state.raw<Awaited<ReturnType<AccountClient['recoveryStatus']>> | null>(null)
   let principal = $state(''),
-    derivation = $state(config.derivationOrigins[0])
+    derivation = $state(loginOrigin())
   let job = $state<RootJob | null>(null)
   let packet = $state(''),
     incoming = $state(''),
@@ -94,6 +94,12 @@
     await session.run(async () => {
       await activate(await roots().rotate(account, progress))
     }, '新根已提交并启用。')
+  }
+  /** A change of the root's recipients pauses vault writes until a new root is committed. */
+  async function rotateIfRequired() {
+    if (!accountState || !('RekeyRequired' in accountState.info.vault_write_state)) return
+    if (!config.relayOrigin) throw new Error('需要配置密文服务才能换根；换根前内容写入暂停。')
+    await activate(await roots().rotate(account, progress))
   }
   async function openCurrent() {
     await session.run(async () => {
@@ -386,7 +392,9 @@
                     RevokeDevice: { device_id: key }
                   })
                   await refresh()
-                }, '设备已撤销，其本机解锁材料不再发放。新内容写入须等待根换代。')}>撤销设备</button
+                  await rotateIfRequired()
+                }, '设备已撤销并已换根：它不再取得解锁材料，也读不到此后的新内容。')}
+              >撤销设备</button
             >{/if}
         </div>{/each}
     {/if}
@@ -420,8 +428,8 @@
       >
       {#if reviewed}<pre class="hash">{reviewed}</pre>
         <p>
-          请与另一设备当面核对公钥、角色和能力；持有 VaultUnlock
-          的设备在批准后需要换根才能读到根。
+          请与另一设备当面核对公钥、角色和能力。批准持有 VaultUnlock
+          的设备后会立即换根，新设备随后即可读取当前内容根。
         </p>
         <button
           class="primary"
@@ -434,7 +442,9 @@
               incoming = ''
               reviewed = ''
               await refresh()
-            })}>批准以上具体请求</button
+              await rotateIfRequired()
+            }, '已批准。新增设备时已同时换根，新设备现在可以读取当前内容根。')}
+          >批准以上具体请求</button
         >{/if}
     {/if}
   </section>

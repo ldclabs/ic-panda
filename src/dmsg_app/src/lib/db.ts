@@ -63,9 +63,38 @@ export async function registerWorkspace(name: string, expectedActive?: string) {
     db.close()
   }
 }
+/** Whether a workspace exists and some page currently holds it unlocked. */
+export async function workspaceState() {
+  const name = await currentWorkspace()
+  if (!name) return { exists: false, unlocked: false }
+  const db = await WorkspaceDB.open(name)
+  try {
+    const lease = (await db.db.get('meta', 'crypto-owner')) as Lease | undefined
+    return { exists: true, unlocked: !!lease && lease.expiresAt > Date.now() }
+  } finally {
+    db.db.close()
+  }
+}
+/** Ends the page that holds the current workspace's crypto lease. */
+export async function invalidateWorkspace() {
+  const name = await currentWorkspace()
+  if (!name) return
+  const db = await WorkspaceDB.open(name)
+  try {
+    await db.invalidate()
+  } finally {
+    db.db.close()
+  }
+}
 export async function removeWorkspaceDatabase(name: string) {
   await deleteDB(name)
 }
+const PENDING_STATES = ['local', 'queued', 'sending', 'unknown', 'blocked'] as const
+/** A stored version keeps its receipt; its ciphertext already lives in `objects`. */
+const stored = ({ frame: _frame, ...job }: OutboxJob): OutboxJob => ({
+  ...job,
+  state: 'stored'
+})
 export const prefixRange = (prefix: string) => IDBKeyRange.bound(prefix, `${prefix}￿`)
 export const objectHead = (record: EncryptedObject, channelId = '') => ({
   id: `head:${record.id}`,
@@ -123,7 +152,7 @@ export class WorkspaceDB {
       old = (await tx.store.get('crypto-owner')) as Lease | undefined
     if (old && old.owner !== owner && old.expiresAt > now) {
       await tx.done
-      throw new Error('WORKSPACE_BUSY：工作台正在另一窗口解锁。请先锁定该窗口。')
+      throw new Error('WORKSPACE_BUSY：工作台已在另一窗口解锁。')
     }
     const lease: Lease = {
       id: 'crypto-owner',
@@ -139,12 +168,15 @@ export class WorkspaceDB {
   async check(lease: Lease) {
     this.assertLease(await this.db.get('meta', 'crypto-owner'), lease)
   }
+  /** Expiry only lets another page take an abandoned lease. A holder whose
+   * renewals were delayed, such as by background-tab timer throttling, stays
+   * valid until another page takes over (new fence) or it is released. */
   private assertLease(current: Lease | undefined, lease: Lease) {
     ensure(
       current &&
         current.owner === lease.owner &&
         current.fence === lease.fence &&
-        current.expiresAt > Date.now(),
+        current.expiresAt > 0,
       'LOCKED',
       '会话已结束，请重新解锁。'
     )
@@ -305,13 +337,14 @@ export class WorkspaceDB {
     ensure(!head || record, 'RECOVERY_INCOMPLETE')
     return record && (!kind || record.kind === kind) ? record : undefined
   }
+  /** Versions not yet stored in the cloud; stored rows are history and are not read. */
   async outboxSummary(): Promise<Pick<OutboxJob, 'id' | 'state' | 'error'>[]> {
     const rows: Pick<OutboxJob, 'id' | 'state' | 'error'>[] = []
-    const tx = this.db.transaction('outbox')
-    for (let cursor = await tx.store.openCursor(); cursor; cursor = await cursor.continue()) {
-      const { id, state, error } = cursor.value as OutboxJob
-      rows.push({ id, state, ...(error ? { error } : {}) })
-    }
+    const tx = this.db.transaction('outbox'),
+      index = tx.store.index('state')
+    for (const state of PENDING_STATES)
+      for (const { id, error } of (await index.getAll(state)) as OutboxJob[])
+        rows.push({ id, state, ...(error ? { error } : {}) })
     await tx.done
     return rows
   }
@@ -359,7 +392,7 @@ export class WorkspaceDB {
       )
       const job = await tx.objectStore('outbox').get(record.revision)
       ensure(job, 'NOT_FOUND')
-      await tx.objectStore('outbox').put({ ...job, state: 'stored', cloudReceipt: result })
+      await tx.objectStore('outbox').put({ ...stored(job), cloudReceipt: result })
       await putObject(tx, { ...record, conflict: result.conflict })
       if (!result.conflict) {
         ensure(result.head === record.revision, 'INTEGRITY_FAILED')
@@ -406,7 +439,7 @@ export class WorkspaceDB {
         ensure(!prior || prior.digest === record.digest, 'IDEMPOTENCY_CONFLICT')
         await putObject(tx, record)
         const job = await tx.objectStore('outbox').get(record.revision)
-        if (job) await tx.objectStore('outbox').put({ ...job, state: 'stored' })
+        if (job) await tx.objectStore('outbox').put(stored(job))
       }
       for (const [id, revision] of heads) {
         const local = await meta.get(`head:${id}`)

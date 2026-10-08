@@ -209,28 +209,42 @@ describe('dmsg-cloud/1 client wire protocol', () => {
       verifyCloudProfile({ ...value, hash: '00'.repeat(32) }, context, publicKey)
     ).toThrow()
   })
-  it('keeps production requests closed and rejects unsupported readiness versions', async () => {
-    const fetcher = vi.fn(async () =>
-      Response.json({
-        ok: true,
-        data: {
-          protocol: 'dmsg-cloud/0.1',
-          ready: true,
-          gates: [],
-          paid_contacts_enabled: false
-        }
-      })
-    )
+  it('reads the relay self-check, including an incomplete configuration, and serves production', async () => {
+    const ready = (data: Record<string, unknown>, status = 200) =>
+      Response.json(
+        {
+          ok: true,
+          data: {
+            protocol: 'dmsg-cloud/1',
+            environment: 'local',
+            ready: true,
+            automatic_account_refresh: true,
+            paid_contacts_enabled: false,
+            problems: [],
+            ...data
+          }
+        },
+        { status }
+      )
+    const fetcher = vi.fn(async () => ready({}))
     vi.stubGlobal('fetch', fetcher)
-    await expect(client().readiness()).rejects.toThrow()
-    fetcher.mockClear()
+    expect((await client().readiness()).ready).toBe(true)
+    fetcher.mockResolvedValueOnce(ready({ ready: false, problems: ['IC_HOST'] }, 503))
+    expect((await client().readiness()).problems).toEqual(['IC_HOST'])
+    fetcher.mockResolvedValueOnce(ready({ protocol: 'dmsg-cloud/0.1' }))
+    await expect(client().readiness()).rejects.toThrow('UNSUPPORTED_PROTOCOL')
+    fetcher.mockResolvedValueOnce(ready({ environment: 'production' }))
+    await expect(client().readiness()).rejects.toThrow('环境')
+    // Other endpoints never accept a 503 success body.
+    fetcher.mockResolvedValueOnce(ready({}, 503))
+    await expect(client().get('/v1/plans', context, sign)).rejects.toThrow('INTEGRITY_FAILED')
+    fetcher.mockResolvedValueOnce(Response.json({ ok: true, data: { plans: [] } }))
     await expect(
       new CloudClient({ origin: 'https://dmsg.test', environment: 'production' }).get(
         '/v1/plans',
         context,
         sign
       )
-    ).rejects.toThrow()
-    expect(fetcher).not.toHaveBeenCalled()
+    ).resolves.toEqual({ plans: [] })
   })
 })

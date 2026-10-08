@@ -9,7 +9,11 @@
   } from 'dmsg-sdk'
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount as accountConnection, connectIdentity } from '../connection'
+  import {
+    connectAccount as accountConnection,
+    connectIdentity,
+    loginOrigin
+  } from '../connection'
   import type { AccountClient } from '../services/account'
   import { CommerceClient, type CheckoutJob } from '../services/commerce'
   import { WalletClient } from '../services/wallet'
@@ -28,7 +32,7 @@
   let account = $state.raw<AccountClient | null>(null),
     client = $state.raw<CommerceClient | null>(null),
     wallet = $state.raw<WalletClient | null>(null)
-  let accountOrigin = $state(config.derivationOrigins[0]),
+  let accountOrigin = $state(loginOrigin()),
     walletOrigin = $state(config.derivationOrigins[0]),
     method = $state<'Cash' | 'Panda'>('Cash'),
     sku = $state('plus'),

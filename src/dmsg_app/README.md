@@ -1,204 +1,156 @@
-# dMsg Chrome extension
+# dMsg Chrome 扩展
 
-Svelte 5 + TypeScript + Vite 的 Manifest V3 客户端。视觉遵循同仓库 `dmsg_frontend/DESIGN.md` 的 Paper / Ink / Forest Green，复用本仓库字体、品牌素材与图标。
+`src/dmsg_app` 是 dMsg 唯一的完整客户端：Svelte 5 + TypeScript + Vite 构建的 Manifest V3 扩展。它在本机生成并使用内容根、对象与文件密钥，负责加解密、设备签名与批准、本地 IndexedDB、outbox 和云端同步；ICP canisters 只保存账户、设备、根承诺、名称、认证回执与资金等权威状态，私有云端只保存和投递密文。整体分工见 [技术架构](../../docs/dmsg_architecture_zh.md)，加密机制见 [加密设计](../../docs/dmsg_encryption_zh.md)。
 
-当前交付为 **本地 / staging 集成开发版本**：账户与根、云端内容、正式签名、个人迁移、名称认领、正式频道、共享继承和商业客户端已接线。生产门禁、真实旧账户样本、正式 II origin 与真实资金验收仍独立保留；不是生产发布包。默认无外部网站接入，没有演示联系人、虚构消息、模拟投递或模拟阈值签名。
+## 当前状态
 
-## 构建与加载
+核对日期：2026-10-08。
 
-在仓库根目录执行：
+- **已接线**：账户与设备、登录解锁与 PRF 快速解锁、内容根（RootBundle v2）与登录恢复、秘密库与文件、云端内容同步与公开资料、正式频道、设备签名的正式认证、外部应用接入（`dmsg-extension/4`）、名称认领/购买/转移、套餐与会员、付费来信与资金恢复、Agent Delegation、旧版个人迁移与共享继承。
+- **生产构建**：`environment: "production"` 时，[vite.config.ts](vite.config.ts) 要求名称注册表、固定的 user home、COSE 及其公钥 pin、payment、commerce、membership 与 `relayOrigin` 都已配置，缺任一项就拒绝构建。仓库里的 `dmsg.config.json` 不含任何服务 ID，生产配置另行提供。
+- **尚未验收**：正式扩展 ID 下的 Internet Identity 派生 origin 与 Principal 连续性、扩展 origin 上的 WebAuthn PRF、主网 canister 与 `key_1`、真实资金、私有云端生产部署、容量与安全审计。本地测试只使用合成账户、合成资金和合成旧数据。
+- **没有口令、恢复码和离线备份**：本机数据密钥由账户服务按登录身份发放的解锁秘密保护；所有设备丢失后只能凭登录身份经等待期恢复。云端同步是唯一的设备外副本：每次登录解锁、绑定、批准后读取根或恢复完成后都会自动同步一次，侧栏显示待同步的版本数。
+
+## 快速开始
+
+在仓库根目录执行（Node ≥ 22，pnpm 10）：
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm --dir packages/dmsg-sdk build    # 扩展从 dist 引用 dmsg-sdk
 pnpm --dir src/dmsg_app check
 pnpm --dir src/dmsg_app test
 pnpm --dir src/dmsg_app build
 ```
 
-打开 Chrome 的 `chrome://extensions`，启用开发者模式，选择“加载已解压的扩展程序”，加载 **`src/dmsg_app/dist`**。Chrome 120+；建议使用当前稳定版。工具栏图标打开 Popup，Popup 可打开全页和 Side Panel。
+在 `chrome://extensions` 打开开发者模式，选择“加载已解压的扩展程序”，加载 `src/dmsg_app/dist`。最低 Chrome 120。默认配置不含任何服务 ID，此时只能创建临时工作台，登录按钮保持禁用。
 
-开发预览：`pnpm --dir src/dmsg_app dev`，访问 `http://127.0.0.1:5176`。网页预览使用自己的 IndexedDB；它不会读取或共享扩展的本地数据。确认扩展 CSP、后台和窗口行为应使用实际扩展构建。
+`DMSG_CONFIG` 指定另一份配置文件，例如 `DMSG_CONFIG=dmsg.production.json pnpm --dir src/dmsg_app build`（路径相对 `src/dmsg_app`）；构建出的扩展只读取这份配置。扩展版本号取自 `package.json`。
 
-| 入口                | 职责                                         |
-| ------------------- | -------------------------------------------- |
-| `index.html`        | 秘密库、消息草稿、签名请求、身份资料、设置   |
-| `sidepanel.html`    | 窄屏工作台，默认显示签名请求；不读取当前网页 |
-| `popup.html`        | 锁定状态、待确认计数、打开全页和侧栏         |
-| `approve.html?id=…` | 独立请求审核窗口；只读取内部请求库           |
+`pnpm --dir src/dmsg_app dev` 在 `http://127.0.0.1:5176` 提供网页预览。预览使用自己的 IndexedDB，没有扩展 API、CSP、外部端口和窗口行为；涉及这些的验证必须加载实际构建。
 
-## 已实现的路径
+| 入口                   | 职责                                                                    |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `index.html`           | 全页工作台：秘密库、消息（正式频道）、签名与授权、身份、设置            |
+| `sidepanel.html`       | 窄屏工作台，默认打开签名与授权；不读取当前网页                          |
+| `popup.html`           | 锁定状态、待确认请求数、打开全页或侧栏、立即锁定；不加载工作台代码      |
+| `approve.html?id=…`    | 外部请求的独立审核窗口，只读取扩展内部请求库                            |
+| `service_worker.js`    | 外部端口、请求入库与过期、徽标、锁定后的密文提交；不持有内容密钥        |
+| `src/crypto-worker.ts` | 解锁页面独占的 dedicated Worker，持有解锁后的密钥并执行全部加解密与签名 |
 
-- 不依赖名称或代币建立本机工作台；设置独立口令、下载初始恢复包、验证恢复码。验证完成前，恢复码由 LocalDataKey 加密暂存，刷新或自动锁定后可重新解锁继续；验证成功即删除该临时副本。
-- 笔记、登录凭据、API 凭据、原始密钥材料；标题、类型、标签、正文和私密字段均在加密载荷内。本地搜索在解锁后执行。
-- 不可变条目版本、乐观并发检查、可见冲突副本和显式采用版本；删除墓碑和回收站，不自动清理历史。
-- 显示或复制私密字段须明确确认；复制时按需请求 `clipboardWrite`。
-- 单文件上限 100 MiB、1 MiB 分块加密。中断后重选原文件继续，检查已处理明文块摘要并复用原密文，避免重复创建最终条目。下载必须通过块顺序、长度、密文和完整文件摘要检查。
-- 身份公开字段选择与访客预览，关闭/邀请来信规则的本地加密草稿。没有默认公开发布。
-- 恢复包覆盖本机不可变内容历史和所需文件块；导出前逐块解密并核对完整文件，HMAC 认证完整清单。未完成导入、未归档请求、未确认频道操作及尚未保存为内容的发出消息列为缺口，导出明确标为部分；频道重试日志留在原设备。备份不包含设备、认证私钥或阈值私钥。
-- 新设备离线恢复会逐项解密、校验文件并生成全新设备密钥；保留内容主体但不自动授予链上设备权限。恢复只接受空白浏览器配置，避免把已有工作区静默隐藏。
-- 固定 origin 白名单、顶层文档绑定、载荷摘要和半开期限检查、HPKE 加密的持久请求、拒绝/取消/过期状态、独立审核窗口。
-- 生成了六类 canister 的 Candid/TS 绑定；IC agent 保持 query 验签，提供实际 Rust 证书路径验证器。II 连接使用 Worker 持有的 transport 私钥和短期、限制目标的 delegation；不使用旧 auth-client-db。设置页包含 commerce/membership actor、精确商业意图、独立付款身份与来信托管流程。
-- `dmsg-cloud/1` 命令/HTTP PoP、完整设备证据桥、GET/POST/密文块传输、profile 验签及就绪检查。账户内容与正式频道有持久化重试；后台只能提交已固定的密文版本及最多 45 秒的精确 HTTP 批准。未知结果按原操作对账，过期后重新解锁。
+## 构建配置
 
-## 服务配置与未开放能力
+[dmsg.config.json](dmsg.config.json)（或 `DMSG_CONFIG` 指定的文件）在构建时内联，只放公开参数；修改后必须重新构建。权限和 CSP 由 [vite.config.ts](vite.config.ts) 从这些字段生成，运行时无法扩大；构建时还会校验 canister ID 与 origin 的格式。
 
-`dmsg.config.json` 是构建配置，只包含公开参数。配置后必须重新构建。
+| 字段                                            | 含义                                                                                                                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `environment`                                   | `local`/`staging`/`production`，进入数据库名、AAD、根上下文与应用登记核对。只有 `local` 允许回环地址并从本地副本取 root key                            |
+| `icHost`                                        | IC 网关。非 `https://icp-api.io` 时只允许 `local` 的回环地址                                                                                           |
+| `canisters.handle`                              | 名称注册表，也是 user home 列表与注册入口的权威；为空时不能登录                                                                                        |
+| `canisters.userHomes`                           | 构建时固定信任的 user home。注册表返回的列表必须包含它们；未固定的 home 以注册表为准                                                                   |
+| `canisters.cose` / `coseRootPublicKey`          | 内容根 vetKD 服务及其派生公钥 pin（base64url，96 字节）。pin 用 `dmsg_protocol` 的 `cose_pins` 示例离线计算                                            |
+| `canisters.payment` / `commerce` / `membership` | 付费来信托管、套餐结账、PANDA 会员。客户端每类只连一个实例，所有 home 须指向同一组                                                                     |
+| `relayOrigin`                                   | 私有云端 API 的精确 origin；进入 `host_permissions` 与 CSP                                                                                             |
+| `principalOrigin` / `agentOrigin`               | Agent Delegation 的 principal 文档前缀与 delegation 服务                                                                                               |
+| `externalOrigins`                               | 允许连接扩展的精确 HTTPS origin；为空时不生成 `externally_connectable`                                                                                 |
+| `derivationOrigins`                             | Internet Identity 派生 origin。`https://dmsg.net` 与旧版 `https://panda.fans` 产生不同 Principal；绑定时选定的 origin 记入工作台，之后的登录默认使用它 |
+| `rootDerivationMaxCycles`                       | 登录恢复时一次 vetKD 派生的 cycles 上限，客户端不自动加价                                                                                              |
+| `cloudProtocol`                                 | 云端 wire 版本，必须为 `dmsg-cloud/1`                                                                                                                  |
+| `legacy.channels/identity/buckets`              | 主网旧服务的 canister ID，用于冻结快照核对                                                                                                             |
+| `legacy.cutover`                                | 已审核的冻结批次；为空时共享继承与冻结对照不可用                                                                                                       |
 
-- `canisters.user/handle/cose/payment/commerce/membership`：新版服务 ID，默认均为空。
-- `icHost`：固定网关；只有 local 环境的回环地址允许取本地 root key。
-- `relayOrigin`：精确中继 origin；加入构建时 `host_permissions`。
-- `externalOrigins`：精确 HTTPS origin 白名单；为空时不产生 `externally_connectable`，外部网页不能连接。
-- `derivationOrigins`：明确区分 `https://dmsg.net` 与旧 `https://panda.fans`。需在原派生站点配置实际扩展 ID 的 II alternative-origins，并实测同一 Principal。不会继承原网页会话。
+`host_permissions` 只包含 `icHost`、`relayOrigin`、`principalOrigin` 与 `agentOrigin`；II 登录走弹窗与 postMessage，不需要访问 II 或派生站点。权限只有 `storage`、`alarms`、`sidePanel`，`clipboardWrite` 与 `unlimitedStorage` 按需申请。CSP 只允许扩展自身脚本，`connect-src` 列出上述 origin，并为中继加上频道活动提示所用的 `wss://`（`https:` 来源不放行 `wss:`）。
 
-**仅填写 ID/地址不会自动开放生产能力。** 尚需完成以下接口和发布验证：
+使用真实 II 登录前，派生 origin 的站点必须在 `/.well-known/ii-alternative-origins` 列出 `chrome-extension://<正式扩展 ID>`；仓库中 [dmsg_frontend](../dmsg_frontend/static/.well-known/ii-alternative-origins) 与 [ic_panda_frontend](../ic_panda_frontend/static/.well-known/ii-alternative-origins) 的这两个文件目前都还没有扩展 origin。
 
-| 能力                                                    | 当前状态 / 依赖                                                                                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| 链上主体创建、认证绑定、设备批准和根 CAS                | 设置页已接入创建/绑定/设备/延迟恢复/根上传与 CAS，以及 R0 副本转换；正式 II origin 连续性仍待实测                   |
-| 云端同步、正式频道、epoch/HPKE 分发、邀请接受、历史授权 | 账户证据与云端 wire 已对齐，实际扩展 profile 互操作已验证；内容与正式频道已接通并完成真实本地互操作；生产部署仍关闭 |
-| 正式文件/声明阈值签名                                   | 已接通精确批准、正式签名、认证执行回执、原请求对账与结果归档；可信时间戳另行验收                                    |
-| handle 认领、购买和转移                                 | 旧名称认证快照导入和免费认领已接通；新名称固定收费、ICRC-2 授权与原扣款对账、双方转移已接入；生产名称服务仍需验收   |
-| 付费来信、资金和 provider controller                    | 付费来信、现金/SNS 会员在本地合成资金环境已联调；真实资金及 provider controller 不在本轮放行范围                    |
-| 旧 Local / ECDH / VetKey 内容解码                       | 已按明确模式解锁旧 MK/KEK/DEK 并阅读消息和附件；真实授权样本尚待验收，共享继承需冻结证明与全部 managers 同意        |
-| 锁定后的限定后台同步                                    | 可提交已固定的密文版本并读取对应原操作状态，批准最多 45 秒；自动收取新内容仍需解锁                                  |
+## 运行架构
 
-本地加密格式是 **`dmsg-backup/1`（单文件）、`dmsg-backup/2`（分卷目录）/ `dmsg/content/1`**。到云端的字段、AAD、文件大小与导出映射见 [cloud 合同](../../docs/protocol/cloud_zh.md)；A2 已接通普通内容 writer/reader、冲突保留、实际密文合并导出。开发中的本地主体不能通过修改 ID 原地变成另一链上主体；正式迁入必须显式重新封装并验证。单个备份包限制为 256 MiB，且对象和文件块各不超过 10,000 项；导出前检查与恢复端相同的限制。普通云端拉取逐块缓存、复用已有密文，完整校验后提交快照，不受单备份包大小限制。
+- **页面与 Crypto Worker**：每个解锁的页面拥有自己的 dedicated Worker，RPC 方法有白名单并串行执行。IndexedDB 中的 `crypto-owner` 租约和递增 fence 保证同一时刻只有一个页面持有解锁会话：在另一个页面（侧栏、审核窗口或另一个标签页）解锁会先递增 fence 并广播锁定，原页面随即锁定。租约每 5 秒续期，20 秒未续期只表示另一页面可以接手；后台标签页的计时器被节流时，持有者在被接手前仍然有效。15 分钟无操作、锁定、关闭或刷新页面、扩展安装与浏览器重启都会结束会话；锁定先终止 Worker（连同 II 会话私钥），再释放租约并清除明文视图、缓存的登录和 Blob URL。
+- **Service Worker**：只做调度。它校验外部端口的真实来源，把请求用设备 HPKE 公钥加密后入库，打开审核窗口，并每 30 秒提交解锁页面预先签好的密文版本（每批最多 25 个，授权最长 45 秒）。它不保存内容密钥，也不能产生新内容或新签名。
+- **存储**：每个工作台一个数据库 `dmsg:<environment>:<subjectId>:<deviceId>`，另有 `dmsg:registry:1` 记录当前工作台。对象与文件块、文件任务、控制日志、请求和 outbox 中的私密载荷都已加密；outbox 行在云端确认后只保留回执，不再保存密文副本；对象外层、任务索引、PRF 凭据 ID 和绑定前的临时键是明文。完整清单见 [加密设计 5.3 节](../../docs/dmsg_encryption_zh.md)。
+- **链上调用**：IC agent 开启 query 验签，生产只用内置主网 root key。认证数据经 [certified.ts](src/lib/services/certified.ts) 校验证书、canister 与 witness，证书时间最多领先本机时钟 10 秒，60 秒有效期仍从证书时间起算。II 会话私钥只在 Worker 内存，delegation 目标限定为配置与注册表中的 canisters，有效期 15 分钟，不写入任何存储。
 
-## COSE 执行 SDK
+## 账户、解锁与恢复
 
-采用三个文档 profile v1，浏览器桥为 `dmsg-extension/4`。文本直接签署 UTF-8，摘要为 RFC 9995 SHA-256；issuer 使用 URI，subject 表示声明对象，issuedAt 是可选的 Unix 秒。账户为 12 字节 Xid，设备/请求编号仍为 32 字节。具体格式见 [公开协议](../../docs/protocol/README.md)。
+1. **建立工作台**：生成设备 ID、Ed25519 签名与 X25519 HPKE 种子；本机数据密钥先由明文保存的临时键封装。绑定账户前拒绝写入任何内容。
+2. **绑定账户**：登录 II 后使用该登录已有的账户，或在注册入口 home 新建账户；取得 `unlock_secret(account, device)` 重新封装本机数据密钥、删除临时键并记下登录 origin；随后打开或创建内容根、激活工作区并同步一次。
+3. **日常解锁**：登录取回解锁秘密，解锁后自动同步；启用平台认证器后可用 WebAuthn PRF 解锁（不会自动同步），但距上次登录解锁超过 7 天必须重新登录。PRF 解锁后，客户端按证书验证过的设备表核对本机状态，确认已被撤销时清除本机数据库。
+4. **新设备**：新设备生成批准请求，已有管理员设备批准并随即换根，新设备再读取封装给自己的根。撤销设备同样会立即换根；换根完成前全账户的内容写入暂停。每个账户最多 16 台设备。
+5. **所有设备丢失**：用绑定过的登录申请恢复，等待期默认 3 天（可设 1–7 天），期间任一旧设备可取消；到期后这台设备替换旧设备与绑定，做一次 vetKD 派生打开恢复信封，并立即换根。登录身份与全部设备都丢失时内容不可恢复。
 
-```ts
-const prepared = prepareSign(accountContext, {
-  origin: browserSource.origin,
-  key: {
-    algorithm: 'Ed25519',
-    kid: descriptor.key_id,
-    publicKeyFingerprint: descriptor.public_key_fingerprint
-  },
-  statement: {
-    issuer: accountContext.issuer,
-    content: { kind: 'text', text: 'Approve this release' }
-  }
-})
-// accountContext 来自已认证账户，含 accountId、issuer、设备、epoch、序号、
-// homeUser、毫秒期限与费用上限；descriptor 来自选定用途的密钥查询。
-// 明确批准后才调用；正式签名需要独立窗口逐次批准。
-const result = await prepared.approveAndExecute(
-  userCanister,
-  deviceSigner,
-  async (signedOperation) => encryptedOutbox.save(signedOperation)
-)
-```
+字节格式与断点语义见 [账户与根合同](../../docs/protocol/account_root_zh.md)。所有链上变更先把签好的请求写入加密日志再提交，结果未知时按原请求对账，不换新 ID 重发。
 
-[services/cose.ts](src/lib/services/cose.ts) 固定请求副本，批准同时绑定最终 COSE 待签字节、公钥指纹、origin 和执行上下文。同一 prepared 对象只提交一次；review、toBeSigned、approvalMessage 返回副本，完成结果还须匹配被批准的签名内容和公钥。未知结果用 `getExecution` / `reconcileExecution` 查询同一 ID。
+## 功能与代码位置
 
-[protocol/statements.ts](src/lib/protocol/statements.ts) 提供独立的 Ed25519/ES256K 验证，不访问 issuer URI。结果区分数学签名、内容、身份、授权、时间戳和当前状态。`verifyExecutionReceipt` 先认证 ICP 证书/路径/witness，再把回执与签名匹配，才能确认服务记录的身份和执行授权。它不验证外部 TSA 或当前项目权限。
+| 功能                 | 界面                                                                                                                   | 主要实现                                                                                                                           | 合同                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 秘密库与文件         | [Vault](src/lib/components/Vault.svelte)                                                                               | [engine.ts](src/lib/crypto/engine.ts)                                                                                              | [加密设计](../../docs/dmsg_encryption_zh.md) 6–7 节                                           |
+| 账户、设备、根、恢复 | [Onboarding](src/lib/components/Onboarding.svelte)、[AccountSettings](src/lib/components/AccountSettings.svelte)       | [account.ts](src/lib/services/account.ts)、[account-root.ts](src/lib/services/account-root.ts)、[root.ts](src/lib/crypto/root.ts)  | [account_root_zh](../../docs/protocol/account_root_zh.md)                                     |
+| 云端同步与公开资料   | [SyncSettings](src/lib/components/SyncSettings.svelte)                                                                 | [content.ts](src/lib/services/content.ts)、[relay.ts](src/lib/services/relay.ts)、[background.ts](src/lib/services/background.ts)  | [cloud_zh](../../docs/protocol/cloud_zh.md)                                                   |
+| 正式频道             | [FormalChannels](src/lib/components/FormalChannels.svelte)                                                             | [services/channel.ts](src/lib/services/channel.ts)、[crypto/channel.ts](src/lib/crypto/channel.ts)                                 | [channel_migration_zh](../../docs/protocol/channel_migration_zh.md)                           |
+| 正式认证             | [Signatures](src/lib/components/Signatures.svelte)、[DocumentApproval](src/lib/components/DocumentApproval.svelte)     | [signing.ts](src/lib/services/signing.ts)、[cose.ts](src/lib/services/cose.ts)                                                     | [protocol](../../docs/protocol/README_zh.md)、[app-action](../../docs/protocol/app-action.md) |
+| 外部应用接入         | `approve.html`                                                                                                         | [external-port.ts](src/lib/external-port.ts)、[bridge-requests.ts](src/lib/bridge-requests.ts)、[requests.ts](src/lib/requests.ts) | [browser-v4](../../docs/protocol/browser-v4.md)                                               |
+| 名称                 | [HandleSettings](src/lib/components/HandleSettings.svelte)                                                             | [handle.ts](src/lib/services/handle.ts)                                                                                            | [dmsg_handle](../dmsg_handle/README.md)                                                       |
+| 套餐与会员           | [CommerceSettings](src/lib/components/CommerceSettings.svelte)                                                         | [commerce.ts](src/lib/services/commerce.ts)、[wallet.ts](src/lib/services/wallet.ts)                                               | [commerce_zh](../../docs/protocol/commerce_zh.md)                                             |
+| 付费来信与资金恢复   | [InboxSettings](src/lib/components/InboxSettings.svelte)、[PaymentSettings](src/lib/components/PaymentSettings.svelte) | [inbox.ts](src/lib/services/inbox.ts)、[payment.ts](src/lib/services/payment.ts)                                                   | [dmsg_payment](../dmsg_payment/README.md)                                                     |
+| Agent Delegation     | [AgentSettings](src/lib/components/AgentSettings.svelte)                                                               | [agent.ts](src/lib/services/agent.ts)                                                                                              | [agent_zh](../../docs/protocol/agent_zh.md)                                                   |
+| 旧版个人迁移         | [LegacySettings](src/lib/components/LegacySettings.svelte)                                                             | [crypto/legacy.ts](src/lib/crypto/legacy.ts)、[dmsg_legacy](../dmsg_legacy)                                                        | [legacy_archive_zh](../../docs/protocol/legacy_archive_zh.md)                                 |
+| 共享频道继承         | [SharedSettings](src/lib/components/SharedSettings.svelte)                                                             | [shared-migration.ts](src/lib/services/shared-migration.ts)                                                                        | [legacy_freeze_zh](../../docs/protocol/legacy_freeze_zh.md)                                   |
 
-网页请求使用 `accountId`（规范 Xid）、`statement: {issuer, subject?, issuedAt?, content}`；content 为 `{kind:'text', text}`、`{kind:'digest', sha256, contentType?, location?}` 或 `{kind:'file_statement', text, sha256, contentType?, location?}`，摘要为小写 hex，时间为十进制字符串。requestId/nonce/expiresAt 仅用于浏览器及执行流程，不进入签署正文。
+主要上限：单文件 100 MiB（1 MiB 分块）；条目正文与秘密合计 32 KiB；普通对象 200,000 字节、频道对象 512 KiB；一次云端快照最多 10,000 个对象、100,000 个版本和 8 MiB 证据；同时待确认的外部请求最多 20 个、每个 origin 5 个。
 
-文件声明使用 `Statement` 密钥用途，文本与文件摘要共同受签名保护。确认界面同时展示原文、摘要和可选文件元数据；网页请求不携带原文件，界面明确显示尚未核对文件。SDK 验证器可接收原文件 bytes，匹配 SHA-256 后将 content 标为 verified；未传原文件时保持 not_provided。
+## 外部应用接入
 
-R0 `WorkspaceMeta.subjectId` 是现有本地加密 AAD 的随机标识，**不是链上账户 ID**。可选 `account: {id, issuer, homeUser}` 记录明确绑定；外部请求须匹配已注册账户，不能把本地标识截短成 Xid。链上创建、设备批准和文档签署已接通本地流程；填写配置不会绕过独立批准，也不代表生产验收完成。
+网页通过 `chrome.runtime.connect(<扩展 ID>, { name: 'dmsg-extension/4' })` 连接。来源必须同时在构建配置 `externalOrigins` 和该应用在 `dmsg_commerce` 的认证登记中，且是活动的顶层文档；每个请求都要用应用的 P-256 会话密钥签署扩展下发的一次性 nonce。支持 `authenticate`、`signDocument`、`signAction`、`checkout` 以及 `getOperation`、`openOperation`、`cancelOperation`、`acknowledge`。
 
-## 锁定与恢复
+请求只在独立的 `approve.html` 窗口中审核，审核窗口自己解锁，结果只在该窗口已解锁时返回给原 origin。签名执行前会再次确认原页面仍然在线，执行后保存认证回执；结果未知时按原执行 ID 对账。精确帧、错误码与恢复规则见 [browser-v4](../../docs/protocol/browser-v4.md)，应用侧 SDK 在 [packages/dmsg-sdk](../../packages/dmsg-sdk)。
 
-口令采用固定版本的 Argon2id（64 MiB、t=3、p=1）+ HKDF，包装随机 LocalDataKey；设备私钥包再由 LocalDataKey 加密。内容根随机生成，每个条目版本独立内容密钥，使用确定性 CBOR 和 COSE_Encrypt0 AES-256-GCM，AAD 绑定主体、代、对象、版本、设备、种类和墓碑状态。解密失败不会自动创建替代根。
+## 测试
 
-恢复码为随机 256 位材料，分域派生签名与 HPKE 种子。RFC 9180 X25519/HKDF-SHA256/AES-256-GCM 封装恢复根；初始化完成恢复检查前，本机会用 LocalDataKey 加密暂存恢复码，以便中断后继续。验证成功后，日常工作台只保留恢复公钥与封装，不保留恢复码/恢复私钥。恢复包清单使用内容根派生的 MAC，避免攻击者删除内容后重新计算公开摘要冒充完整备份。
+| 命令                                                                                              | 内容                                                                                               |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pnpm --dir src/dmsg_app check`                                                                   | `svelte-check` 与工具脚本的 TypeScript 检查                                                        |
+| `pnpm --dir src/dmsg_app test`                                                                    | Vitest 单元与集成测试（`fake-indexeddb`、协议向量、根包、同步、签名、支付与重试）                  |
+| `pnpm --dir src/dmsg_app build`                                                                   | 构建并运行 [verify-build.mjs](scripts/verify-build.mjs)：入口齐全、无探针页、无宽泛权限、无 `eval` |
+| `pnpm --dir src/dmsg_app test:inventory` / `test:cose-prune`                                      | 运维脚本的 `node --test`                                                                           |
+| `pnpm --dir src/dmsg_app exec playwright test e2e/extension.spec.ts e2e/external-browser.spec.ts` | 加载实际 `dist`：建立工作台、Popup/侧栏、视口溢出、外部端口来源绑定（CI 运行）                     |
+| `pnpm --dir src/dmsg_app test:cloud`                                                              | 真实扩展 → PocketIC `dmsg_user` → 本地 workerd 的签名 profile 与负面信任检查                       |
+| `pnpm --dir src/dmsg_app test:account`                                                            | 账户、设备、根与恢复；按需打开探针（见下）                                                         |
 
-密码能力属于解锁页面的 dedicated Worker。IDB 租约、fencing token 和 RPC generation 阻止旧 owner 的写入与迟到响应；15 分钟无操作、锁定、页面关闭和重启均需重新解锁。锁定终止 Worker、移除明文组件并撤销 Blob URL。JavaScript 不承诺法证级内存擦除，剪贴板或外部下载副本也不会随锁定消失。
+Playwright 必须使用 Chromium / Chrome for Testing（`pnpm --dir src/dmsg_app exec playwright install chromium`），品牌版 Google Chrome 不会加载 `--load-extension`。`DMSG_TEST_CHROME` 可指定已有的测试浏览器。测试使用临时浏览器配置，只把回环权限和探针页加入临时副本；发布构建拒绝携带探针页。
 
-离线恢复：先保存 `dist` 的副本和 `.dmsg` 文件，把恢复码另存；在空白 Chrome 配置中离线加载同一扩展包，打开工作台选择“从加密备份恢复”。无需主站、ICP 或中继。丢失的密文不能仅凭恢复码重建。
-
-单文件导出有 256 MiB 包大小上限，导入/导出及最终 Blob 下载会占用内存。更大内容使用分卷目录。流式文件处理限制加密工作集，但不是任意总库容量的流式归档器。超限会停止并提示，不输出假完整包。
-
-## 验证
-
-P0 云端互操作使用真实 MV3 测试包、PocketIC 16.0.0 的 `dmsg_user` Wasm 和配套本地 workerd。先从公开仓库根目录构建：
+`test:cloud` 与 `test:account` 需要私有云端 checkout（`DMSG_CLOUD_DIR`，未设置时跳过，不算通过）、`POCKET_IC_BIN` 指向的 PocketIC 16.0.0 和预先构建的 Wasm：
 
 ```sh
-cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user
-cargo test --locked -p dmsg_integration --features pocketic-tests --test cloud_fixture --no-run
-pnpm --dir src/dmsg_app build
-# 本地设置 DMSG_CLOUD_DIR 指向配套仓库；需要 scripts/extension-probe-server.mjs。
-pnpm --dir src/dmsg_app test:cloud
+cargo build --locked --release --target wasm32-unknown-unknown \
+  -p dmsg_user -p dmsg_cose -p dmsg_handle -p dmsg_payment -p dmsg_commerce \
+  -p membership -p dmsg_test_ledger -p dmsg_test_sns
+DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_CONTENT_PROBE=1 pnpm --dir src/dmsg_app test:account
 ```
 
-`DMSG_CLOUD_DIR` 必须指向实际私有 checkout；未设置时常规 E2E 会跳过云端用例，不视为通过。`DMSG_TEST_CHROME` 可指定已有测试浏览器；`POCKET_IC_BIN` 可指定匹配的本地服务。测试只向临时扩展副本添加 loopback 权限和探针页，正式构建拒绝包含探针页。它创建测试账户/设备，查询并验证新鲜真实证据，写入/重试/读回签名 profile，再验证错误 canister/账户、过期证据、设备 map 篡改、伪证书、错误资源、签名和 HTTP 正文篡改。生产门禁保持关闭。
+`test:account` 的可选探针：`DMSG_CONTENT_PROBE`、`DMSG_SIGNING_PROBE`、`DMSG_CHANNEL_PROBE`、`DMSG_COMMERCE_PROBE`、`DMSG_DELIVERY_PROBE`、`DMSG_MIGRATION_PROBE`（共享迁移还需 `DMSG_LEGACY_RELEASES` 指向与盘点一致的旧发布工件）。`e2e/legacy-snapshot.spec.ts` 用同一组旧工件核对冻结快照证明。云端命令向量 [cloud-v1.json](tests/fixtures/cloud-v1.json) 只在 `DMSG_WRITE_CLOUD_VECTOR=1` 时由 `tests/cloud.test.ts` 重写，配套服务须独立核对后再接受。
 
-`test-results/*/cloud-result.json` 保存结果，`cloud-processes.log` 保存本地进程输出，均被忽略。它是协议基线测试，不是初始化 UI、完整内容同步或生产部署验收。固定云端命令向量由 `DMSG_WRITE_CLOUD_VECTOR=1 pnpm --dir src/dmsg_app exec vitest run tests/cloud.test.ts` 显式生成，配套服务需独立核验后才能接受变更。
+## 工具脚本
 
-```sh
-pnpm --dir src/dmsg_app check
-pnpm --dir src/dmsg_app test
-pnpm --dir src/dmsg_app build
-pnpm --dir src/dmsg_app exec playwright install chromium
-pnpm --dir src/dmsg_app test:e2e
-```
+| 命令                                                       | 用途                                                                          |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `pnpm --dir src/dmsg_app bindings`                         | 用 `didc` 从公开 `.did` 重新生成 `src/lib/canisters/generated`                |
+| `node src/dmsg_app/scripts/cose-prune.mjs --canister <ID>` | 匿名分页调用 `dmsg_cose.prune_executions`，可用 `--after` 续跑                |
+| `node src/dmsg_app/scripts/legacy-inventory.mjs`           | 盘点旧版部署实例，见 [legacy_inventory_zh](../../docs/legacy_inventory_zh.md) |
+| `node src/dmsg_app/scripts/legacy-freeze-plan.mjs`         | 生成待审核的冻结 controller 调用，不签名、不提交                              |
+| `node src/dmsg_app/scripts/legacy-name-plan.mjs`           | 生成旧名称导入的离线调用材料                                                  |
 
-已有兼容 Chromium / Chrome for Testing 时，可用 `DMSG_TEST_CHROME=/absolute/path/to/browser` 指定可执行文件。E2E 使用临时全新配置，实际加载 `dist`，不会使用个人浏览器数据。测试检查初始化、私密字段确认、文件往返、锁定后明文消失、IDB 密文、新浏览器恢复、Popup 和 320/390px 横向溢出；截图保存在忽略的 `test-results` 中。
+## 已知限制
 
-单元/集成测试覆盖本仓库 Rust 编码与 Ed25519 向量、拒绝重复键/非规范编码/过深 CBOR、COSE AAD、恢复 HPKE、恶意 KDF 参数、加密落盘、冲突/墓碑、口令更换、文件完整性、断点恢复、恢复清单 MAC、租约 fencing、来源伪造和 outbox 未知结果。
+- 同一浏览器配置只有一个工作台，同一时刻只有一个解锁页面；在侧栏或审核窗口解锁会锁定全页工作台。
+- 自动同步只在登录解锁时进行，PRF 解锁和日常编辑后需要在“设置 → 云端同步”手动同步；公开资料只在明确发布时上传。锁定后后台只提交已签好的密文，不收取新内容。
+- 每次同步读取完整云端快照，受上文快照上限约束。
+- 客户端只连接一个 commerce、payment 与 COSE 实例，见 [技术架构 8.5 节](../../docs/dmsg_architecture_zh.md)。
+- 没有可信时间戳；签名产物只证明设备批准了确定内容，认证回执证明 dMsg 记录了该次授权。
 
-更新公开 Candid 后运行 `pnpm --dir src/dmsg_app bindings`（需要 `didc`）。生成绑定只读取同仓库公开接口，不依赖私有仓库。
+## 参考
 
-## 参考与素材
-
-- 同仓库原前端 `utils/crypto.ts`、`stores/message_agent.ts` 的原语和 IndexedDB 经验；新内容使用独立根与 epoch；legacy reader 仅为旧档案兼容显式解锁旧 MK→KEK→DEK。正式新账户 agent 保持 query 验签，旧普通查询观察和 BLS 冻结快照分级显示。
-- Anda Bot 扩展的 Svelte/Vite 多入口和 MV3 组织方式；不继承其浏览器自动化权限。
-- [Chrome 消息通信](https://developer.chrome.com/docs/extensions/develop/concepts/messaging)、[Service Worker 生命周期](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle)、[扩展存储](https://developer.chrome.com/docs/extensions/develop/concepts/storage-and-cookies)。
-- 字体和现有 Remix SVG 授权保存在 `public/assets/*-LICENSE.txt`。现有 Private Gate raster 素材按原样复用，不宣称为新绘制的官方矢量母版。
-
-## A1 账户与根流程
-
-在设置 → 设备与认证中依次连接 II、创建账户、保存并复验账户恢复码、提交内容根、验证并启用正式工作区。已有本地工作区会保留为独立副本。新设备需要已有管理员批准或延迟恢复；恢复码不会作为日常在线解锁凭据。具体字节与断点语义见 [账户与根合同](../../docs/protocol/account_root_zh.md)。
-
-`rootDerivationMaxCycles` 为固定单次预算，默认 700 亿 cycles；实际费用和账户日预算可能导致明确拒绝，客户端不自动加价。正式扩展 ID、II alternative-origins 和生产派生根尚未验收；不能以本地测试登录身份宣称 II Principal 连续性通过。
-
-实际浏览器联调需要下列候选 Wasm、可读取的私有本地 relay checkout，以及 Playwright Chromium：
-
-```sh
-cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_cose -p dmsg_handle -p dmsg_payment -p dmsg_commerce -p membership -p dmsg_test_ledger -p dmsg_test_sns
-DMSG_CLOUD_DIR=/path/to/dmsg-cloud pnpm --dir src/dmsg_app test:account
-```
-
-测试使用临时 Chrome 配置、真实 user/COSE Wasm 和本地 workerd；认证 caller 为公开测试 identity，不访问 II 账户或生产服务。所有集成 probe 页面只构建到临时测试包，发布构建拒绝携带它们。
-
-## Legacy 迁移增量（2026-09-22）
-
-设置页现已接入一次性配对、原站加密档案导入、幂等保管和离线历史验证。共享 reader 位于 `../dmsg_legacy`，合同见 `../../docs/protocol/legacy_archive_zh.md`。原站有独立加密分页缓存，支持三种旧根模式、256 KiB 密文分片、未完成上传保全、PANDA/DMSG/PoL 记录、头像选择和冻结增量对照。真实三模式授权样本、未公开的未决权益与生产切换仍待验证；合成记录不能替代真实旧数据验收。
-
-## 本轮集成范围与验证入口
-
-- 云端同步合并固定服务器导出、实际密文块、根对象和本机未同步版本。冲突保留双方；单恢复包仍为 256 MiB，缺块或超限明确失败。
-- 正式频道验证签名控制链、当前设备及恢复接收集合、换代 fencing、消息签名/AEAD、历史授权、附件、双方 owner 转移和费用承接。未确认的发送任务单列，不显示为已投递；频道游标与重试日志只保存在本机，不作为内容版本同步。
-- 共享旧频道按完整来源键固定唯一继承，全部冻结 managers 同意同一 genesis；共享名称只接受冻结管理员。成员先证明旧身份并批准新设备，再接受新频道和独立旧历史 grant。Worker 不持有旧 MK/KEK/DEK 或 epoch 私钥。
-- 商业客户端核对认证目录、权益与月度用量，保存原订单/claim/转账参数。SNS actor 与 dMsg 账户分别显示，冷却后继续仍批准同一个意图。来信明确区分报价、入账、存储受理、B 点和实际转出。
-- `legacy.cutover` 必须由已审核的冻结批次填入；为空时官方共享继承和最终来源确认不可用。个人档案导出不依赖共享经理在线。
-
-本地复现可按工作包选择 `DMSG_CONTENT_PROBE=1`、`DMSG_SIGNING_PROBE=1`、`DMSG_CHANNEL_PROBE=1`、`DMSG_MIGRATION_PROBE=1`、`DMSG_COMMERCE_PROBE=1` 、`DMSG_DIRECTORY_PROBE=1`、`DMSG_RECOVERY_PROBE=1` 或 `DMSG_DELIVERY_PROBE=1`，运行 `test:account`。共享迁移还需设置 `DMSG_LEGACY_RELEASES` 指向盘点匹配的旧发布工件。测试只使用独立临时浏览器和合成账户/资金，不证明生产部署或真实旧用户恢复成功。
-
-公开接口与边界见 [云端](../../docs/protocol/cloud_zh.md)、[历史档案](../../docs/protocol/legacy_archive_zh.md)、[冻结](../../docs/protocol/legacy_freeze_zh.md)、[频道与共享迁移](../../docs/protocol/channel_migration_zh.md)。
-
-未打开的旧历史 grant 同时保留指定设备与当时恢复代的 HPKE 封装；原设备丢失时，可在已恢复/重新批准的目标账户中显式提供相应代恢复码接收。恢复私钥不会常驻日常内容根。已接收的档案直接进入普通离线恢复范围。
-
-## 第三方认证与 v4 恢复
-
-浏览器 v4 支持认证、三种文档签署、状态读取、原操作重新打开、取消和 ACK。实际 Chrome 顶层来源同时受构建 allowlist 与链上 app registration 约束；认证 payload 的 origin 必须与实际页面完全相同。新页面需用原产品 P-256 密钥签署新 nonce，不能仅凭 ID 取得结果。
-
-认证窗口与文档窗口分开显示用途。账号和设备重新验证后，先持久化原批准再提交；断连/重启保留操作，结果未知按原参数核对。取消只在 awaiting_user 有效，已取消记录不能因迟到回调复活。TokenList 使用专用认证叶完成自身登录，不取得 dMsg 会话或钱包 delegation。
-
-`SignAction` 与 checkout 已接入独立批准流程；实际准入同时检查构建来源白名单与链上应用登记，查询 capabilities 后再使用相应能力。精确帧、编码、错误和恢复规则见 [browser-v4](../../docs/protocol/browser-v4.md)。
-
-## 2026-10-03 恢复与重试闭环
-
-- 未确认的旧根内容先查询原操作；仍可提交的批准到期前保持原记录。确认未提交后重建内容版本、密钥、上传与请求，保存替代关系及父版本关系。频道草稿提供显式“按当前成员重新加密发送”，未知结果不会直接另造消息。
-- 设置中的资金恢复直接调用 payment，可按付款身份分页找回托管、核对入金、退款和按原区块对账转出，不依赖 relay 或已恢复的内容根。
-- 已归档的签名从加密内容读取，可在新设备离线展示、数学验签及导出历史证据。已完整归档的完成请求不再误计为备份缺口。
-- 支持更换恢复公钥、移除认证绑定、冻结及调整敏感执行政策、查询和撤销频道/文件内容授权。更换恢复材料后必须提交并启用新根，生成新备份；旧材料仍能解开已交付的旧密文。
-- 来信策略编辑保留未修改字段，并提供屏蔽、定向邀请和容量管理。明确失败的钱包付款可重新批准费用；未知付款仍冻结原参数。Agent 事件在服务暂时不可用时保留原事件对账。
-
-`dmsg-backup/1` 是不超过 256 MiB 的单文件恢复包。更大内容可选择 `dmsg-backup/2` 分卷目录：逐批校验并写出密文，最后写入恢复根认证的 manifest。恢复选择完整目录，逐卷校验后才登记工作区；缺卷、损坏或错误恢复码不会启用部分工作区。分卷解除总包 256 MiB 限制，仍受磁盘、浏览器存储和当前云端清单边界限制；未完成任务明确列为缺口，不能把分卷成功称作任意容量的实测验收。
-
-私有联调工作流按指定公开提交构建 Wasm 后，分别执行内容、签名、频道、会员、来信探针。公共 CI 不携带私有实现或凭据。
+- [技术架构](../../docs/dmsg_architecture_zh.md)、[canister 实现与验证边界](../../docs/dmsg_canisters_zh.md)、[加密设计](../../docs/dmsg_encryption_zh.md)、[公开协议](../../docs/protocol/README_zh.md)。
+- 内部产品与实施设计按 [AGENTS.md](../../AGENTS.md) 定位，不在本仓库。
+- Chrome 平台约束：[消息通信](https://developer.chrome.com/docs/extensions/develop/concepts/messaging)、[Service Worker 生命周期](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle)、[扩展存储](https://developer.chrome.com/docs/extensions/develop/concepts/storage-and-cookies)。
+- 字体与 Remix 图标授权见 `public/assets/*-LICENSE.txt`；Private Gate 位图按原样复用。

@@ -414,7 +414,7 @@ export class ContentClient {
   }
   private async pending() {
     return (await this.account.crypto.call('contentPending'))
-      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame), MAX_CIPHER_CHUNK))
+      .map((j) => decodeCanonical<EncryptedObject>(unb64(j.frame!), MAX_CIPHER_CHUNK))
       .filter((r) => CLOUD_KINDS.includes(r.kind))
   }
   /** Applies background results; a missing result is reconciled by operation ID. */
@@ -524,6 +524,14 @@ export class ContentClient {
     ensure(ordered.length === pending.length, 'INTEGRITY_FAILED', '本地版本存在循环依赖。')
     for (const record of ordered) await this.push(record.key)
     return ordered.length
+  }
+  /** Verify the cloud snapshot, submit pending local versions, and read the
+   * snapshot again when anything was submitted. */
+  async sync() {
+    let pulled = await this.pull()
+    const sent = await this.pushPending()
+    if (sent) pulled = await this.pull()
+    return { ...pulled, sent }
   }
   async pull() {
     await this.refresh()

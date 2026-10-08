@@ -12,6 +12,9 @@ import type { CertifiedBatch } from '../canisters/generated/user'
 import { bytes, equal, hash } from '../protocol/codec'
 import { ensure } from '../errors'
 
+/** How far a certificate may run ahead of this device's clock. The 60-second
+ * validity window stays anchored at the certificate time. */
+export const CLOCK_SKEW_MS = 10000
 // Certificates are public. One BLS verification serves every leaf certified by
 // the same bytes, such as the evidence repeated across a page of messages.
 const certificates = new Map<string, { at: number; root: Uint8Array }>()
@@ -72,7 +75,9 @@ export async function certifiedLeaf(
   )
   ensure(
     Number.isSafeInteger(at) &&
-      (now === null ? at <= Date.now() : at <= now && now < at + 60000),
+      (now === null
+        ? at <= Date.now() + CLOCK_SKEW_MS
+        : at <= now + CLOCK_SKEW_MS && now < at + 60000),
     'POLICY_STALE'
   )
   const entries = batch.entries.filter((e) => equal(Uint8Array.from(e.key), key))

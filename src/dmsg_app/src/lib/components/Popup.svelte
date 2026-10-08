@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { currentWorkspace, WorkspaceDB } from '../db'
+  import { invalidateWorkspace, workspaceState } from '../db'
   import { listRequests } from '../requests'
   import { isExtension } from '../config'
   import Icon from './Icon.svelte'
@@ -9,14 +9,7 @@
     exists = $state(false)
   onMount(() => {
     void (async () => {
-      const name = await currentWorkspace()
-      exists = !!name
-      if (name) {
-        const db = await WorkspaceDB.open(name)
-        const lease = await db.db.get('meta', 'crypto-owner')
-        unlocked = !!lease && lease.expiresAt > Date.now()
-        db.db.close()
-      }
+      ;({ exists, unlocked } = await workspaceState())
       count = (await listRequests()).filter((r) => r.state === 'awaiting_user').length
     })()
   })
@@ -33,12 +26,7 @@
     window.close()
   }
   async function lock() {
-    const name = await currentWorkspace()
-    if (name) {
-      const db = await WorkspaceDB.open(name)
-      await db.invalidate()
-      db.db.close()
-    }
+    await invalidateWorkspace()
     const channel = new BroadcastChannel('dmsg-session')
     channel.postMessage('lock')
     channel.close()
@@ -61,6 +49,6 @@
       ><Icon name="lock" />立即锁定</button
     >{/if}
   <p class="caption popup-foot">
-    本地版本 · {unlocked ? '15 分钟自动锁定' : '重新打开需要解锁'}
+    {unlocked ? '15 分钟无操作自动锁定' : '打开工作台后登录解锁'}
   </p>
 </main>

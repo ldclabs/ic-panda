@@ -5,7 +5,7 @@
   import type { PendingRequest } from '../protocol/requests'
   import type { AuthenticationPayload } from '../bridge-requests'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { AuthenticationClient } from '../services/authentication'
   let record = $state<PendingRequest | null>(null)
   let payload = $state<AuthenticationPayload | null>(null)
@@ -14,7 +14,7 @@
   let journal = $state<Awaited<ReturnType<AuthenticationClient['journal']>>>(null)
   let connected = $state(false)
   let finished = $state(false)
-  let derivation = $state(config.derivationOrigins[0])
+  let derivation = $state(loginOrigin())
   const id = new URLSearchParams(location.search).get('id') ?? ''
   onMount(() => {
     void session.run(async () => {

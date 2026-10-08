@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpAgent } from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
-import { decodeCanonical, hex } from '../src/lib/protocol/codec'
+import { decodeCanonical, hex, utf8 } from '../src/lib/protocol/codec'
 import { xidText } from '../src/lib/protocol/identity'
 import { verifyExecutionReceipt } from '../src/lib/services/ic'
+import { certifiedValue } from '../src/lib/services/certified'
 import type { CertifiedBatch } from '../src/lib/canisters/generated/user'
 import type { Artifact } from '../src/lib/protocol/statements'
 type RawBatch = Omit<CertifiedBatch, 'canister' | 'entries'> & {
@@ -90,6 +91,19 @@ describe('authenticated attestation evidence from PocketIC', () => {
     await expect(
       verify(batch(), { cose_sign1: bytes('cose_digest_v3'), cose_key: bytes('cose_key_v3') })
     ).rejects.toThrow()
+  })
+  it('tolerates a certificate slightly ahead of this device clock', async () => {
+    const key = Uint8Array.from([...utf8('execution/'), ...account, ...request])
+    await expect(certifiedValue(batch(), agent, home, key, at - 5000)).resolves.toMatchObject({
+      certifiedAt: at,
+      expiresAt: at + 60000
+    })
+    await expect(certifiedValue(batch(), agent, home, key, at - 15000)).rejects.toThrow(
+      'POLICY_STALE'
+    )
+    await expect(certifiedValue(batch(), agent, home, key, at + 60000)).rejects.toThrow(
+      'POLICY_STALE'
+    )
   })
   it('accepts archived receipts and rejects an unrelated trust root', async () => {
     vi.setSystemTime(at + 60001)

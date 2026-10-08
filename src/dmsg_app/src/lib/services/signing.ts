@@ -267,8 +267,17 @@ export class SigningClient {
       unhex(job.executionId)
     )
     if (!artifact) {
-      // Without a stored artifact, an expired approval can never run; record a terminal state.
-      if (Date.now() >= Number(operation.request.approval.expires_at)) {
+      const approval = operation.request.approval
+      if (BigInt(Date.now()) >= approval.expires_at) {
+        // A certified time past the deadline plus the unconsumed sequence proves
+        // the approval never ran and never can; anything else stays unknown.
+        const fresh = await this.account.refresh(job.account)
+        ensure(
+          BigInt(fresh.verified.certifiedAt) >= approval.expires_at &&
+            fresh.device?.next_sequence === approval.sequence,
+          'EXECUTION_UNKNOWN',
+          '原批准的执行结果尚不能确认，请稍后再对账。'
+        )
         job.stage = 'result_expired'
         await this.save(job)
         await setRequestState(job.externalId, 'result_expired')

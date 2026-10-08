@@ -82,8 +82,11 @@ describe('real encrypted workspace lifecycle', () => {
     const secret = random(),
       prf = random()
     expect((await engine.status()).meta?.unlock).toBe('provisional')
-    await engine.bindUnlockSecret(secret)
-    expect((await engine.status()).meta?.unlock).toBe('login')
+    await engine.bindUnlockSecret(secret, 'https://dmsg.net')
+    expect((await engine.status()).meta).toMatchObject({
+      unlock: 'login',
+      loginOrigin: 'https://dmsg.net'
+    })
     const db = await WorkspaceDB.open((await currentWorkspace())!)
     const envelope = await db.envelope()
     expect(envelope.provisional).toBeUndefined()
@@ -142,6 +145,22 @@ describe('real encrypted workspace lifecycle', () => {
     await db.db.put('chunks', chunk)
     db.db.close()
     expect((await engine.view()).entries).toHaveLength(2)
+    await engine.lock()
+  })
+  it('keeps a holder whose renewals were delayed until another page takes over', async () => {
+    const { engine } = await boundEngine()
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 120_000)
+    // Background-tab throttling can delay renewals past expiry; the holder stays valid.
+    await engine.saveItem({ item: note() })
+    const db = await WorkspaceDB.open((await currentWorkspace())!)
+    const taken = await db.acquire('other')
+    await expect(engine.saveItem({ item: note() })).rejects.toThrow('会话已结束')
+    await db.release(taken)
+    await expect(
+      db.guardedPut('local_private', { id: 'x', ciphertext: 'y' }, taken)
+    ).rejects.toThrow('会话已结束')
+    db.db.close()
+    clock.mockRestore()
     await engine.lock()
   })
   it('fences a previous owner and refuses lease takeover while it is active', async () => {

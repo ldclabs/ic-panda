@@ -1,7 +1,7 @@
 import { externalPort } from './lib/external-port'
 import { flushCipherDispatches } from './lib/services/background'
 import { config } from './lib/config'
-import { currentWorkspace, WorkspaceDB } from './lib/db'
+import { currentWorkspace, invalidateWorkspace, WorkspaceDB } from './lib/db'
 import { expireRequests, getRequest } from './lib/requests'
 import { trustedSource } from './lib/protocol/requests'
 import { ensure } from './lib/errors'
@@ -62,12 +62,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 })
 
 async function lockWorkspace() {
-  const name = await currentWorkspace()
-  if (name) {
-    const db = await WorkspaceDB.open(name)
-    await db.invalidate()
-    db.db.close()
-  }
+  await invalidateWorkspace()
   await chrome.action.setBadgeText({ text: '' })
 }
 async function refresh() {

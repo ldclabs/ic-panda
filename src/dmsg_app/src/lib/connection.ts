@@ -2,9 +2,14 @@ import type { Identity } from '@icp-sdk/core/agent'
 import type { DelegationIdentity } from '@icp-sdk/core/identity'
 import { locateAccount, login, services, userActor } from './services/ic'
 import { AccountClient } from './services/account'
+import { ContentClient } from './services/content'
+import { CloudClient } from './services/relay'
+import { config } from './config'
 import { ensure } from './errors'
 import { session } from './session.svelte'
 
+/** The workspace's login origin: the one bound at setup, else the first configured. */
+export const loginOrigin = () => session.meta?.loginOrigin ?? config.derivationOrigins[0]
 type Connection = { identity: Identity; api: Awaited<ReturnType<typeof services>> }
 // Page memory only: delegations are dropped on lock and never written to storage.
 const accounts = new Map<string, { connection: Promise<Connection>; expiresAt: number }>()
@@ -71,4 +76,18 @@ export async function connectAccount(
     }
   }
   return { identity, api, account }
+}
+/** Verify the account's cloud snapshot and submit pending local versions.
+ * The cloud holds the only copy of the vault outside this device. */
+export async function syncContent(origin: string) {
+  const id = session.meta?.account?.id
+  ensure(id && config.relayOrigin, 'UNAVAILABLE', '请先绑定账户并配置云端服务。')
+  const { account } = await connectAccount(origin)
+  const result = await new ContentClient(
+    account,
+    new CloudClient({ origin: config.relayOrigin, environment: config.environment }),
+    id
+  ).sync()
+  await session.refresh()
+  return result
 }

@@ -78,6 +78,24 @@ export function encodeDeviceBundle(bundle: Bundle) {
   return { encoded: canonical(map), root }
 }
 
+/** The certified account leaf, checked against its account, home, issuer and
+ * device map. Every reader of security evidence shares this check. */
+export function assertSecuritySnapshot(
+  snapshot: Record<string, unknown>,
+  expected: { account: Uint8Array; home: Principal; issuer: string; devicesRoot: Uint8Array }
+) {
+  ensure(
+    snapshot.schema === 4 &&
+      snapshot.issuer === expected.issuer &&
+      snapshot.account_id instanceof Uint8Array &&
+      equal(snapshot.account_id, expected.account) &&
+      snapshot.home_user instanceof Uint8Array &&
+      equal(snapshot.home_user, expected.home.toUint8Array()) &&
+      snapshot.devices_root instanceof Uint8Array &&
+      equal(snapshot.devices_root, expected.devicesRoot),
+    'INTEGRITY_FAILED'
+  )
+}
 export async function verifyCloudSecurity(
   batch: CertifiedBatch,
   bundle: Bundle,
@@ -105,17 +123,7 @@ export async function verifyCloudSecurity(
     )
   const snapshot = decodeCanonical<Record<string, unknown>>(value)
   const { root, encoded } = encodeDeviceBundle(bundle)
-  ensure(
-    snapshot.schema === 4 &&
-      snapshot.issuer === trust.issuer &&
-      snapshot.account_id instanceof Uint8Array &&
-      equal(snapshot.account_id, account) &&
-      snapshot.home_user instanceof Uint8Array &&
-      equal(snapshot.home_user, home.toUint8Array()) &&
-      snapshot.devices_root instanceof Uint8Array &&
-      equal(snapshot.devices_root, root),
-    'INTEGRITY_FAILED'
-  )
+  assertSecuritySnapshot(snapshot, { account, home, issuer: trust.issuer, devicesRoot: root })
   const safe = (v: unknown) => {
     ensure(
       (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0) ||

@@ -12,7 +12,7 @@
   <div>
     <span class="eyebrow">MAKE IT YOURS</span>
     <h1>设置</h1>
-    <p>照看你的设备、恢复材料和数据。</p>
+    <p>照看你的账户、设备和数据。</p>
   </div>
 </div>
 <div class="filter-bar" aria-label="设置分类">
@@ -53,12 +53,12 @@
       </div>
       <progress max={usage?.quota || 1} value={usage?.usage || 0}></progress>
       <p>
-        {session.data.outbox.filter((j) => j.state !== 'stored').length} 个本地版本尚未同步。草稿、恢复封装、冲突记录不会自动淘汰。
+        {session.data.outbox.length} 个本地版本尚未同步。云端是设备外的唯一副本；卸载扩展或清除浏览器数据会删除未同步的内容。
       </p>
       <div class="settings-row">
         <div>
           <strong>保留存储空间</strong>
-          <p>申请浏览器持久化存储，仍需独立备份。</p>
+          <p>申请浏览器持久化存储，降低浏览器清理本机数据的可能。</p>
         </div>
         <button
           class="secondary"
@@ -75,16 +75,16 @@
     </section>
     <section class="settings-section">
       <h2>待同步内容</h2>
-      <p>云端状态以已验证的提交回执为准，可在“云端同步”连接账户并读取完整快照。</p>
+      <p>登录解锁后会自动同步；也可在“云端同步”手动同步。云端状态以已验证的提交回执为准。</p>
       {#if session.data.outbox.length}<div class="outbox-list">
-          {#each session.data.outbox.slice(-10).reverse() as job}<div>
+          {#each session.data.outbox.slice(0, 10) as job}<div>
               <code>{job.id.slice(0, 16)}</code><span
                 >{job.error === 'VERSION_CONFLICT'
                   ? '有编辑冲突'
-                  : job.state === 'stored'
-                    ? '云端已提交'
-                    : job.state === 'unknown'
-                      ? '提交结果待确认'
+                  : job.state === 'unknown'
+                    ? '提交结果待确认'
+                    : job.state === 'blocked'
+                      ? '需要处理后再提交'
                       : '本地加密保存'}</span
               >
             </div>{/each}
@@ -143,10 +143,6 @@
       <h2>服务与发布状态</h2>
       <dl class="evidence-list">
         <div>
-          <dt>构建阶段</dt>
-          <dd>R0 · 本地实现</dd>
-        </div>
-        <div>
           <dt>环境</dt>
           <dd>{config.environment}</dd>
         </div>
@@ -156,7 +152,7 @@
         </div>
         {#each Object.entries(config.canisters) as [name, value]}<div>
             <dt>dmsg_{name}</dt>
-            <dd><code>{value || '未配置'}</code></dd>
+            <dd><code>{[value].flat().join(', ') || '未配置'}</code></dd>
           </div>{/each}
         <div>
           <dt>外部应用白名单</dt>
@@ -171,13 +167,17 @@
         onclick={() =>
           session.run(async () => {
             const result = await inspectRelay()
-            serviceReport = `${result.protocol} · ${result.ready ? '服务报告就绪，仍需验证权限和证据' : '尚未就绪'}；待通过：${result.gates.join('、') || '以实际协议证据为准'}`
+            serviceReport = `${result.protocol} · ${result.environment} · ${
+              result.ready
+                ? '配置自检通过；权限与证据仍逐次验证'
+                : `配置不完整：${result.problems.join('、')}`
+            }`
           })}>检查中继状态<Icon name="refresh" /></button
       >{#if serviceReport}<p role="status">{serviceReport}</p>{/if}
       <div class="notice">
         <Icon name="info" />
         <p>
-          联网参数固定在构建配置中。本地集成已验证账户证据与云端协议；生产发布门禁尚未完成，不会通过远端开关自动开放生产写入、支付或正式签名。
+          联网参数与权限固定在构建配置中，服务端不能远程放宽。中继的就绪状态只反映其配置自检，每次写入、支付和正式认证仍按账户证据与签名逐次验证。
         </p>
       </div>
     </section>

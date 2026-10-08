@@ -116,7 +116,7 @@ async function bindUnlock(client: AccountClient) {
   const data = saved!
   if (data.secret) return
   data.secret = await client.unlockSecret(data.account)
-  await data.crypto.call('bindUnlockSecret', data.secret)
+  await data.crypto.call('bindUnlockSecret', data.secret, 'https://dmsg.net')
 }
 function rootClient(client: AccountClient, input: ProbeInput) {
   return new AccountRootClient(
@@ -1056,6 +1056,13 @@ const note = (title: string, body: string, at: number) => ({
       await client.approvePairing(data.account, payload)
       return true
     }
+    // The cloud copy is how a newly approved device obtains the account's content.
+    if (action === 'sync')
+      return await new ContentClient(
+        client,
+        new CloudClient({ origin: data.input.relay, environment: 'local' }),
+        data.account
+      ).sync()
     if (action === 'revoke') {
       await client.mutate(data.account, { RevokeDevice: { device_id: unhex(payload) } })
       return true
@@ -1156,7 +1163,7 @@ const note = (title: string, body: string, at: number) => ({
       throw new Error('Initial device not approved')
     // The home's login-gated secret replaces the provisional key for good.
     const secret = await client.unlockSecret(account)
-    await crypto.call('bindUnlockSecret', secret)
+    await crypto.call('bindUnlockSecret', secret, 'https://dmsg.net')
     await crypto.lock()
     let provisionalUnlockRefused = false
     try {

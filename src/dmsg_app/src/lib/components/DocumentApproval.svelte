@@ -8,7 +8,7 @@
     type SignatureRequest
   } from '../protocol/requests'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { SigningClient } from '../services/signing'
   import Icon from './Icon.svelte'
   import ActionDetails from './ActionDetails.svelte'
@@ -24,7 +24,7 @@
   let client = $state.raw<SigningClient | null>(null)
   let review = $state<Awaited<ReturnType<SigningClient['prepare']>> | null>(null)
   let result = $state<Awaited<ReturnType<SigningClient['journal']>>>(null)
-  let derivation = $state(config.derivationOrigins[0])
+  let derivation = $state(loginOrigin())
   /** The certified registration whose schema renders the action. */
   async function actionRegistration(request: PendingRequest, actionCbor: string) {
     const bridge = request.bridge

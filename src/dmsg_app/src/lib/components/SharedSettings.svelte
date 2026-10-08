@@ -1,7 +1,7 @@
 <script lang="ts">
   import { session, downloadBlob } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { CloudClient } from '../services/relay'
   import {
     SharedMigrationClient,
@@ -16,7 +16,7 @@
     grantMember = $state(''),
     grantId = $state(id())
   let client = $state.raw<SharedMigrationClient | null>(null)
-  let origin = $state(config.derivationOrigins[0]),
+  let origin = $state(loginOrigin()),
     sourceText = $state(''),
     draftText = $state(''),
     approvalText = $state(''),
@@ -322,7 +322,7 @@
           onclick={() =>
             session.run(async () => {
               const result = await client!.receiveHistory(view!, value.grant.scope.grant_id)
-              status = `已导入 ${result.count} 项；${result.gaps.length} 项缺口。请在旧版迁移页检查并导出恢复包。`
+              status = `已导入 ${result.count} 项；${result.gaps.length} 项缺口。请在旧版迁移页检查缺口；导入内容随云端同步保存。`
               await session.refresh()
             })}>接收、解密并验证</button
         >

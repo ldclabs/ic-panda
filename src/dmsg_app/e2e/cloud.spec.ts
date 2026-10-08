@@ -123,7 +123,13 @@ test('MV3 → real user Wasm → workerd signed profile and negative trust check
       ...fixture,
       relay: origin
     })
-    expect(results.readiness).toMatchObject({ protocol: 'dmsg-cloud/1', ready: false })
+    // The relay's configuration self-check passes for the complete local harness.
+    expect(results.readiness).toMatchObject({
+      protocol: 'dmsg-cloud/1',
+      environment: 'local',
+      ready: true,
+      problems: []
+    })
     expect(results.written).toEqual(results.retry)
     expect(results.profile).toEqual(results.finalProfile)
     expect(results.profile.display_name).toBe('P0 local integration')

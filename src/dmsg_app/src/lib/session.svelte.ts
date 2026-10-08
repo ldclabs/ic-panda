@@ -3,6 +3,7 @@ import type { Progress } from './crypto/engine'
 import type { ViewData, WorkspaceMeta } from './models'
 import { AUTO_LOCK_MS } from './config'
 import { errorText } from './errors'
+import { invalidateWorkspace } from './db'
 
 const empty = (): ViewData => ({
   meta: null,
@@ -79,10 +80,14 @@ export class Session {
     this.unlocked = true
     this.touch()
   }
-  /** Unlock with the login-gated secret, a PRF output, or nothing while provisional. */
+  /** Unlock with the login-gated secret, a PRF output, or nothing while
+   * provisional. One page holds the unlocked workspace: unlocking here locks
+   * the page that holds it. */
   async unlock(input: { secret: Uint8Array } | { prf: Uint8Array } | null = null) {
     const generation = this.generation
     try {
+      await invalidateWorkspace()
+      this.channel.postMessage('lock')
       const meta =
         input && 'prf' in input
           ? await this.client.call('unlockWithPrf', input.prf)
@@ -120,7 +125,6 @@ export class Session {
     this.error = ''
     this.message = ''
     this.busy = false
-    window.dispatchEvent(new Event('dmsg-cleared'))
     if (broadcast) this.channel.postMessage('lock')
     await this.client.lock()
   }

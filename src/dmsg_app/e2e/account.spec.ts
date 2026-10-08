@@ -153,7 +153,6 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
     })
     expect(results.account).toMatch(/^[0-9a-v]{20}$/)
     expect(results.rootCommitted).toBe(true)
-    expect(results.converted).toBe(true)
     expect(results.lostReplyResumed).toBe(true)
     expect(results.concurrentCreateBlocked).toBe(true)
     expect(results.bound).toBe(true)
@@ -612,7 +611,10 @@ test('MV3 → real user/COSE → workerd account and root initialization', async
         thirdPair
       )
       await second.tab.evaluate(() => (window as any).accountFollowup('rotate'))
+      // No backups: the approved device reads the account's channel records from the cloud.
+      await second.tab.evaluate(() => (window as any).accountFollowup('sync'))
       await third.tab.evaluate(() => (window as any).accountFollowup('open'))
+      await third.tab.evaluate(() => (window as any).accountFollowup('sync'))
       const addedDeviceEpoch = await page.evaluate(
         (id) => (window as any).accountFollowup('channel', { action: 'rotate', id }),
         created.id

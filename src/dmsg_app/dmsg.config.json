@@ -14,7 +14,6 @@
   },
   "externalOrigins": [],
   "derivationOrigins": ["https://dmsg.net", "https://panda.fans"],
-  "release": "R0",
   "cloudProtocol": "dmsg-cloud/1",
   "rootDerivationMaxCycles": "70000000000",
   "coseRootPublicKey": "",

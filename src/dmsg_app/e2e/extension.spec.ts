@@ -120,8 +120,11 @@ test('loads the actual MV3 package, creates a provisional workspace and resumes 
     await panel.setViewportSize({ width: 390, height: 844 })
     await panel.goto(`${first.origin}/sidepanel.html`)
     await expect(panel.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
+    await expect(panel.getByText('在这里继续会锁定那个窗口')).toBeVisible()
     await panel.getByRole('button', { name: '继续设置' }).click()
     await expect(panel.getByRole('heading', { name: '登录，绑定你的账户。' })).toBeVisible()
+    // One page holds the unlocked workspace: the side panel took it over from the full page.
+    await expect(page.getByRole('heading', { name: '欢迎回到你的空间。' })).toBeVisible()
     await noOverflow(panel)
     await panel.screenshot({ path: testInfo.outputPath('sidepanel.png'), fullPage: true })
     // A second blank browser starts from scratch: nothing to restore offline.

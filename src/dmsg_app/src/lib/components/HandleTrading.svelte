@@ -1,13 +1,13 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount, connectIdentity } from '../connection'
+  import { connectAccount, connectIdentity, loginOrigin } from '../connection'
   import type { AccountClient } from '../services/account'
   import { HandleClient } from '../services/handle'
   import { WalletClient } from '../services/wallet'
   import { decodeHandle } from '../protocol/handle'
   import { xidText } from '../protocol/identity'
-  let origin = $state(config.derivationOrigins[0]),
+  let origin = $state(loginOrigin()),
     payerOrigin = $state(config.derivationOrigins[0])
   let account = $state.raw<AccountClient | null>(null),
     client = $state.raw<HandleClient | null>(null),

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { session, dateLabel } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { CloudClient } from '../services/relay'
   import { CloudSession } from '../services/cloud-session'
   import {
@@ -28,7 +28,7 @@
       .map((v) => v.trim())
       .filter(Boolean)
 
-  let derivation = $state(config.derivationOrigins[0]),
+  let derivation = $state(loginOrigin()),
     status = $state('')
   let client = $state.raw<AgentClient | null>(null),
     principal = $state.raw<PrincipalInfo | null>(null),

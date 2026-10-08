@@ -269,6 +269,9 @@ export class AgentClient {
     // Even past the live window the service still answers an accepted envelope.
     const response = await fetch(`${config.agentOrigin}/v1/delegations`, {
       method: 'POST',
+      credentials: 'omit',
+      cache: 'no-store',
+      redirect: 'error',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(job.envelope),
       signal: AbortSignal.timeout(20_000)

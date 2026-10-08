@@ -19,7 +19,7 @@
 | 组件 | 当前职责 | 加密与权限边界 |
 | --- | --- | --- |
 | 工作台页面与 dedicated Crypto Worker | 解锁、加解密、根封装、显示明文 | Worker 持有解锁后的密钥；页面仍会收到需显示的明文。扩展包和运行环境属于可信端点 |
-| IndexedDB | 密钥封装、密文对象/文件块、草稿、请求、outbox、运行元数据 | 私密载荷加密，不代表所有索引和状态都隐藏 |
+| IndexedDB | 密钥封装、密文对象/文件块、请求、outbox、运行元数据 | 私密载荷加密，不代表所有索引和状态都隐藏 |
 | Extension Service Worker | 外部请求接收、待办和窗口调度 | 不持有常驻内容根；不能依靠后台常驻维持解锁 |
 | `dmsg_user`（账户所在 home） | AccountId、认证绑定、设备、根承诺、恢复、认证回执、解锁秘密 | 保存公钥、承诺和一个 `master_secret`，不保存内容根明文或 RootBundle 正文 |
 | `dmsg_cose` | 内容根 vetKD 公钥与恢复派生 | 只为已完成恢复登记的设备派生当前代根（直到它换根），返回传输加密结果；不是普通内容解密服务 |
@@ -51,7 +51,7 @@ AEAD 防止密文被无钥篡改，不能防止服务拒绝投递、隐藏记录
 | 本地解锁钥 `LUK` | `HKDF(unlock_secret, ["dmsg/local-unlock/2", dbName])`；只在 Worker 内存 | 包装 LDK |
 | PRF 解锁钥 `K_prf` | `HKDF(prf_output, ["dmsg/local-unlock-prf/1", dbName])`；只在 Worker 内存 | 包装 LDK 的第二份封装（可选） |
 | 临时键 | 绑定账户前的随机 32 字节，明文保存在 IDB | 保护尚无内容的新设备密钥 |
-| `LocalDataKey` / `LDK` | 客户端随机 32 字节 | 加密本机私钥包、文件任务、控制日志；派生草稿加密子钥 |
+| `LocalDataKey` / `LDK` | 客户端随机 32 字节 | 加密本机私钥包、文件任务、控制日志 |
 | 内容根 `VRK_g` | 管理员设备随机 32 字节 | 包装每个对象版本的内容密钥 |
 | 对象版本钥 | 每次 `write()` 随机 32 字节 | 加密条目、profile、频道记录等载荷 |
 | 文件版本钥 | 每次新文件导入随机 32 字节 | 同一文件版本的分块加密，放在加密 manifest 中 |
@@ -134,10 +134,9 @@ privateBundle = E(LDK, CBOR({root, signing, hpke}), ["dmsg/device-bundle/1", dbN
 | --- | --- |
 | Bundle：VRK、设备签名/HPKE 种子、历史根索引 | LDK 加密 |
 | 标题、标签、条目具体类型、正文、秘密、文件名/MIME、文件摘要、controller 私钥 | 对象版本钥加密 |
-| 编辑器草稿 | `D(LDK,["dmsg/local-private/1"])` 加密，AAD 绑定草稿 ID 和 dbName |
 | 文件导入计划、FileKey、根候选、控制操作日志 | LDK 加密 |
 | 待审外部请求正文 | 加密给本机设备 HPKE 公钥 |
-| outbox | 已序列化的密文对象和重试状态 |
+| outbox | 待提交的密文对象和重试状态；云端确认后只保留回执 |
 | 临时键（绑定前）、PRF 凭据 ID、meta、对象外层及任务索引 | 明文 |
 
 ### 5.4 锁定
@@ -210,7 +209,7 @@ commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 
 `dmsg_user` 核对实际 caller 的认证绑定，以及设备签名、设备状态、序号、security epoch、期限、角色和入口要求的 capability（`RootManage`、`FormalApprove`、`PaymentOffer`）；`ContentSign`、`VaultUnlock` 由云端分别用于放行账户密文的写入与读取，内容根也只封装给持有 `VaultUnlock` 的活跃设备，所以撤销这项能力在密码学上同样生效。设备和认证绑定的变化都会递增 security_epoch、清除候选根；只有根包接收者变化（持有 `VaultUnlock` 的设备增减）和登录恢复会让已提交的根置为 `RekeyRequired`，认证绑定与其他能力的变化不需要换根。链上状态变化本身不会重加密客户端历史。
 
-账户安全证据以认证值为准：`SecuritySnapshot` schema 4，认证叶路径为单段原始 AccountId；`devices_root` 是完整设备 map 的 `digest("dmsg/devices/v1", devices)`；另含 `recovery_delay_ms`、`pending_recovery_digest`、根代次与摘要、`vault_write_state`、`principal_updated_at`。使用设备公钥前须把设备记录与该承诺匹配。证书时间不在未来且当前时刻小于证书时间 +60 秒。
+账户安全证据以认证值为准：`SecuritySnapshot` schema 4，认证叶路径为单段原始 AccountId；`devices_root` 是完整设备 map 的 `digest("dmsg/devices/v1", devices)`；另含 `recovery_delay_ms`、`pending_recovery_digest`、根代次与摘要、`vault_write_state`、`principal_updated_at`。使用设备公钥前须把设备记录与该承诺匹配。证书时间最多领先本机时钟 10 秒，且当前时刻小于证书时间 +60 秒。
 
 ## 10. 设备签名、正式认证与外部请求
 

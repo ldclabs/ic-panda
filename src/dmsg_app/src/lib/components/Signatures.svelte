@@ -56,7 +56,7 @@
 {#if tab === 'requests'}
   {#if archives.length}<section class="settings-section">
       <h2>已归档的签名证据</h2>
-      <p>这些记录随加密备份恢复；查看和导出不需要原请求页面在线。</p>
+      <p>这些记录加密保存并随云端同步到其他设备；查看和导出不需要原请求页面在线。</p>
       {#each archives as archive}<article class="history-message">
           <p>{archive.origin} · <code>{archive.executionId}</code></p>
           <button

@@ -715,19 +715,11 @@ export class CryptoEngine {
         wrappedKey: await seal(provisional, localKey, ['dmsg/local-key/2', name]),
         privateBundle: await seal(localKey, canonical(bundle), ['dmsg/device-bundle/1', name])
       }
-      const tx = db.db.transaction(['meta', 'key_envelopes'], 'readwrite')
-      const current = (await tx.objectStore('meta').get('crypto-owner')) as Lease | undefined
-      ensure(
-        current &&
-          current.owner === lease.owner &&
-          current.fence === lease.fence &&
-          current.expiresAt > Date.now(),
-        'LOCKED'
-      )
-      ensure(!(await tx.objectStore('meta').get('workspace')), 'VERSION_CONFLICT')
-      await tx.objectStore('key_envelopes').put(envelope)
-      await tx.objectStore('meta').put({ id: 'workspace', value: meta })
-      await tx.done
+      await db.guarded(['key_envelopes'], lease, async (tx) => {
+        ensure(!(await tx.objectStore('meta').get('workspace')), 'VERSION_CONFLICT')
+        await tx.objectStore('key_envelopes').put(envelope)
+        await tx.objectStore('meta').put({ id: 'workspace', value: meta })
+      })
       await registerWorkspace(name)
       registered = true
       this.db = db
@@ -833,7 +825,6 @@ export class CryptoEngine {
         await db.guardedPut('meta', { id: 'workspace', value: updated }, lease)
         this.meta = updated
       }
-      await this.restoreAuxiliary()
       return this.meta
     } catch (error) {
       this.localKey?.fill(0)
@@ -850,8 +841,10 @@ export class CryptoEngine {
     }
   }
   /** Replace the provisional key with the login-gated unlock secret once the
-   * account exists and this device is registered. */
-  async bindUnlockSecret(secret: Uint8Array) {
+   * account exists and this device is registered. `loginOrigin` is the
+   * Internet Identity derivation origin whose Principal owns the secret. */
+  async bindUnlockSecret(secret: Uint8Array, loginOrigin: string) {
+    ensure(config.derivationOrigins.includes(loginOrigin), 'INVALID_INPUT')
     const { db, lease, localKey, meta } = await this.ready()
     const luk = unlockKey(secret, db.name)
     try {
@@ -861,7 +854,12 @@ export class CryptoEngine {
         wrappedKey: await seal(luk, localKey, ['dmsg/local-key/2', db.name]),
         privateBundle: envelope.privateBundle
       }
-      const updated: WorkspaceMeta = { ...meta, unlock: 'login', loginUnlockedAt: Date.now() }
+      const updated: WorkspaceMeta = {
+        ...meta,
+        unlock: 'login',
+        loginOrigin,
+        loginUnlockedAt: Date.now()
+      }
       await db.replaceKeys(updated, next, lease)
       this.meta = updated
     } finally {
@@ -1432,99 +1430,6 @@ export class CryptoEngine {
       name: manifest.name,
       blob: new Blob(parts, { type: 'application/octet-stream' }),
       sha256: manifest.sha256
-    }
-  }
-  private async partialPlan(plan: FilePlan, chunks?: Map<string, Chunk>) {
-    const manifest = plan.manifest,
-      count = Math.ceil(manifest.size / CHUNK_SIZE)
-    ensure(
-      /^[0-9a-f]{64}$/.test(manifest.id) &&
-        /^[0-9a-f]{64}$/.test(manifest.version) &&
-        Number.isSafeInteger(manifest.size) &&
-        manifest.size >= 0 &&
-        manifest.size <= MAX_FILE &&
-        manifest.chunks.length <= count &&
-        plan.plainDigests.length === manifest.chunks.length,
-      'INTEGRITY_FAILED'
-    )
-    const key = unb64(manifest.key)
-    try {
-      for (let index = 0; index < manifest.chunks.length; index++) {
-        const ref = manifest.chunks[index],
-          chunk = chunks
-            ? chunks.get(ref.id)
-            : ((await this.db!.db.get('chunks', ref.id)) as Chunk | undefined)
-        ensure(
-          ref.id === `${manifest.id}:${manifest.version}:${index}` &&
-            ref.size === Math.min(CHUNK_SIZE, manifest.size - index * CHUNK_SIZE) &&
-            chunk &&
-            hash(unb64(chunk.ciphertext)) === ref.digest,
-          'RECOVERY_INCOMPLETE'
-        )
-        const plain = await open(key, chunk.ciphertext, [
-          'dmsg/file-chunk/1',
-          manifest.id,
-          manifest.version,
-          index,
-          count,
-          ref.size
-        ])
-        ensure(
-          plain.length === ref.size && hash(plain) === plan.plainDigests[index],
-          'INTEGRITY_FAILED'
-        )
-        plain.fill(0)
-        if (this.lease) await this.tick()
-      }
-    } finally {
-      key.fill(0)
-    }
-  }
-  private async restoreAuxiliary() {
-    const { db, localKey, lease } = await this.ready(),
-      files = new Map<string, FilePlan>()
-    for (const record of (await db.db.getAllFromIndex(
-      'objects',
-      'kind',
-      'draft'
-    )) as EncryptedObject[]) {
-      const draft = await this.decode<{ format?: string; plan?: FilePlan }>(record)
-      if (draft.format !== 'dmsg-file-import/1' || !draft.plan) continue
-      const plan = draft.plan,
-        previous = files.get(plan.manifest.version)
-      if (previous)
-        ensure(
-          previous.manifest.key === plan.manifest.key &&
-            previous.manifest.id === plan.manifest.id &&
-            previous.manifest.size === plan.manifest.size &&
-            previous.plainDigests
-              .slice(0, Math.min(previous.plainDigests.length, plan.plainDigests.length))
-              .every((d, i) => d === plan.plainDigests[i]),
-          'INTEGRITY_FAILED'
-        )
-      if (!previous || previous.manifest.chunks.length < plan.manifest.chunks.length)
-        files.set(plan.manifest.version, plan)
-    }
-    for (const [version, plan] of files) {
-      if (
-        (await db.db.get('local_private', `file-job:${version}`)) ||
-        (await db.db.get('migration_jobs', version))?.stage === 'complete'
-      )
-        continue
-      await this.partialPlan(plan)
-      await db.checkpointFile(
-        version,
-        await seal(localKey, canonical(plan), ['dmsg/file-job/1', db.name, version]),
-        {
-          id: version,
-          kind: 'file-import',
-          stage: 'encrypting',
-          completed: plan.manifest.chunks.length,
-          total: Math.ceil(plan.manifest.size / CHUNK_SIZE)
-        },
-        undefined,
-        lease
-      )
     }
   }
   async readRequest(envelope: { enc: string; ciphertext: string }, requestId: string) {

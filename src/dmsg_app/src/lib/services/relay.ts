@@ -16,11 +16,14 @@ import {
 import type { CloudSecurityEvidence } from './cloud-security'
 export { canonicalTarget } from '../protocol/cloud'
 
+/** The relay's configuration self-check; incomplete configuration is reported as 503. */
 export interface RelayReadiness {
   ready: boolean
   protocol: string
-  gates: string[]
+  environment: string
+  automatic_account_refresh: boolean
   paid_contacts_enabled: boolean
+  problems: string[]
 }
 export class RelayError extends DmsgError {
   constructor(
@@ -75,12 +78,6 @@ export class CloudClient {
     pop?: string,
     binary = false
   ): Promise<unknown> {
-    if (path.startsWith('/v1/'))
-      ensure(
-        this.options.environment !== 'production',
-        'UNAVAILABLE',
-        '生产发布门禁尚未完成。'
-      )
     const response = await fetch(this.url(path), {
       method,
       credentials: 'omit',
@@ -127,7 +124,7 @@ export class CloudClient {
     )
       return data
     const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(data))
-    if (!response.ok || envelope.ok !== true) {
+    if (envelope.ok !== true) {
       ensure(
         envelope.ok === false &&
           typeof envelope.error?.code === 'string' &&
@@ -142,7 +139,12 @@ export class CloudClient {
         envelope.request_id
       )
     }
-    ensure(Object.hasOwn(envelope, 'data'), 'INTEGRITY_FAILED')
+    // `/ready` reports an incomplete configuration as 503 with its normal body.
+    ensure(
+      (response.ok || (path === '/ready' && response.status === 503)) &&
+        Object.hasOwn(envelope, 'data'),
+      'INTEGRITY_FAILED'
+    )
     return envelope.data
   }
   async readiness(): Promise<RelayReadiness> {
@@ -150,10 +152,16 @@ export class CloudClient {
     ensure(
       result.protocol === CLOUD_PROTOCOL &&
         typeof result.ready === 'boolean' &&
-        Array.isArray(result.gates) &&
-        result.gates.every((gate) => typeof gate === 'string') &&
-        typeof result.paid_contacts_enabled === 'boolean',
+        typeof result.automatic_account_refresh === 'boolean' &&
+        typeof result.paid_contacts_enabled === 'boolean' &&
+        Array.isArray(result.problems) &&
+        result.problems.every((problem) => typeof problem === 'string'),
       'UNSUPPORTED_PROTOCOL'
+    )
+    ensure(
+      result.environment === this.options.environment,
+      'INTEGRITY_FAILED',
+      '中继服务的环境与构建配置不一致。'
     )
     return result
   }

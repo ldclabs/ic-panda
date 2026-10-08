@@ -117,6 +117,8 @@ export class CryptoClient {
     for (const waiter of this.pending.values())
       waiter.reject(new Error('LOCKED：会话已结束。'))
     this.pending.clear()
+    // The worker held the II session key: delegations and views bound to it are void.
+    window.dispatchEvent(new Event('dmsg-cleared'))
   }
   async lock() {
     // Drop the worker before touching IDB: slow I/O cannot extend decryption.

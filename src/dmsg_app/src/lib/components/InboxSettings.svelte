@@ -1,7 +1,7 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount, connectIdentity } from '../connection'
+  import { connectAccount, connectIdentity, loginOrigin } from '../connection'
   import type { AccountClient } from '../services/account'
   import { CloudClient } from '../services/relay'
   import { InboxClient } from '../services/inbox'
@@ -14,7 +14,7 @@
     account = $state.raw<AccountClient | null>(null),
     wallet = $state.raw<WalletClient | null>(null)
   let fundingFee = $state('')
-  let origin = $state(config.derivationOrigins[0]),
+  let origin = $state(loginOrigin()),
     walletOrigin = $state(config.derivationOrigins[0]),
     ledger = $state(''),
     payer = $state(''),

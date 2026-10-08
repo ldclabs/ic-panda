@@ -1,18 +1,25 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { session, downloadBlob, shortId, dateLabel } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
-  import { registrationHome, userActor } from '../services/ic'
+  import { connectAccount, loginOrigin, syncContent } from '../connection'
+  import { agentFor, registrationHome, userActor } from '../services/ic'
   import type { AccountClient } from '../services/account'
   import { AccountRootClient } from '../services/account-root'
+  import { readCloudSecurity } from '../services/cloud-security'
   import { CloudClient } from '../services/relay'
   import { evaluatePrf } from '../services/prf'
-  import { removeWorkspaceDatabase, currentWorkspace, registry } from '../db'
+  import { removeWorkspaceDatabase, currentWorkspace, registry, workspaceState } from '../db'
   import { xidBytes } from '../protocol/identity'
-  import { equal, unhex } from '../protocol/codec'
+  import { hex } from '../protocol/codec'
+  import { errorText } from '../errors'
   import Icon from './Icon.svelte'
   let screen = $state<'intro' | 'bind' | 'pair' | 'recover'>('intro')
-  let derivation = $state(config.derivationOrigins[0])
+  let derivation = $state(loginOrigin())
+  let elsewhere = $state(false)
+  onMount(() => {
+    void workspaceState().then((state) => (elsewhere = state.unlocked))
+  })
   let account = $state(''),
     packet = $state(''),
     pairingRole = $state<'Member' | 'Administrator'>('Member')
@@ -41,6 +48,20 @@
       screen = 'bind'
     })
   }
+  /** The cloud holds the only copy outside this device: sync after each login. */
+  async function syncAfterLogin() {
+    if (!session.bound || !config.relayOrigin) return
+    const result = await session.run(async () => {
+      session.progress = { stage: '正在同步云端内容', completed: 0, total: 1 }
+      try {
+        return await syncContent(derivation)
+      } catch (error) {
+        throw new Error(`自动同步未完成：${errorText(error)} 可在“设置 → 云端同步”重试。`)
+      }
+    })
+    if (result)
+      session.message = `已同步：核验 ${result.records} 个云端版本，提交 ${result.sent} 个本地版本。`
+  }
   /** Login, fetch this device's unlock secret from the account's home, unlock. */
   async function unlockWithLogin() {
     await session.run(async () => {
@@ -53,6 +74,7 @@
       const secret = await c.unlockSecret(id)
       await session.unlock({ secret })
     })
+    await syncAfterLogin()
   }
   async function unlockWithPrf() {
     await session.run(async () => {
@@ -62,32 +84,38 @@
       void checkDeviceStatus()
     })
   }
-  /** After an offline unlock, a revoked device wipes its local copy as soon as it is online. */
+  /** After an offline unlock, a revoked device wipes its local copy as soon as
+   * the certified device map says so. */
   async function checkDeviceStatus() {
     const meta = session.meta
     if (!meta?.account) return
+    let revoked: boolean
     try {
-      const { userActor: actor, agentFor } = await import('../services/ic')
-      const user = actor(await agentFor(), meta.account.homeUser)
-      const result = await user.get_device_bundle(xidBytes(meta.account.id))
-      if (!('Ok' in result)) return
-      const device = result.Ok[1].find(([key]) => equal(Uint8Array.from(key), unhex(meta.deviceId)))
-      if (device && device[1].revoked_at.length) {
-        const name = await currentWorkspace()
-        await session.lock()
-        if (name) {
-          await removeWorkspaceDatabase(name)
-          const db = await registry()
-          await db.delete('workspaces', name)
-          db.close()
-        }
-        session.initialized = false
-        session.meta = null
-        session.error = '这台设备已被撤销，本机内容已清除。'
-      }
+      const agent = await agentFor(),
+        { homeUser, id, issuer } = meta.account
+      const { devices } = await readCloudSecurity(userActor(agent, homeUser), agent, {
+        accountId: id,
+        issuer,
+        homeUser
+      })
+      revoked = devices.some(
+        (d) => hex(Uint8Array.from(d.input.device_id)) === meta.deviceId && d.revoked_at.length
+      )
     } catch {
-      // Offline: the next login unlock enforces the device state.
+      return // Offline or unverifiable: the next login unlock enforces the device state.
     }
+    if (!revoked) return
+    const name = await currentWorkspace()
+    await session.lock()
+    if (name) {
+      await removeWorkspaceDatabase(name)
+      const db = await registry()
+      await db.delete('workspaces', name)
+      db.close()
+    }
+    session.initialized = false
+    session.meta = null
+    session.error = '这台设备已被撤销，本机内容已清除。'
   }
   /** Bind a fresh workspace: this login's account, or a new one at a registration home. */
   async function createAccount() {
@@ -104,6 +132,7 @@
       account = (await c.connectedAccount()) ?? (await c.create())
       await bindAndOpen(c, connection.api.cose, false)
     }, '账户已绑定到这台设备。')
+    await syncAfterLogin()
   }
   async function bindAndOpen(
     c: AccountClient,
@@ -111,7 +140,7 @@
     recovered: boolean
   ) {
     const secret = await c.unlockSecret(account)
-    await session.crypto.call('bindUnlockSecret', secret)
+    await session.crypto.call('bindUnlockSecret', secret, derivation)
     if (!cose) throw new Error('未配置密钥服务。')
     const r = roots(c, cose)
     const state = await c.refresh(account)
@@ -143,6 +172,7 @@
       const connection = await connectAccount(derivation, { bound: false })
       await bindAndOpen(connection.account, connection.api.cose, false)
     }, '已读取当前内容根，工作台可以使用。')
+    await syncAfterLogin()
   }
   async function requestRecovery() {
     await session.run(async () => {
@@ -168,6 +198,7 @@
       if (!state.device) await c.completeRecovery(account)
       await bindAndOpen(c, connection.api.cose, true)
     }, '账户已恢复到这台设备，并已换到新的内容根。')
+    await syncAfterLogin()
   }
 </script>
 
@@ -263,11 +294,17 @@
       <h2>欢迎回到你的空间。</h2>
       {#if provisional}
         <p>这台设备尚未绑定账户。继续完成设置。</p>
+        {#if elsewhere}<p class="caption">
+            设置正在另一窗口进行；在这里继续会锁定那个窗口。
+          </p>{/if}
         <button class="primary wide" disabled={session.busy} onclick={unlockProvisional}
           >继续设置<Icon name="arrow-right" /></button
         >
       {:else}
         <p>登录后由账户服务发放本机解锁材料；撤销设备即刻生效。</p>
+        {#if elsewhere}<p class="caption">
+            工作台已在另一窗口解锁；在这里解锁会锁定那个窗口。
+          </p>{/if}
         {#if session.meta?.prf}<button class="primary wide" disabled={session.busy} onclick={unlockWithPrf}
             >生物识别解锁<Icon name="arrow-right" /></button
           >{/if}
@@ -290,7 +327,9 @@
       <p>保存笔记、凭据和文件。内容在本机加密，只有你批准的设备能读取。</p>
       <div class="notice">
         <Icon name="info" />
-        <p>当前为本地 / staging 开发版本。联网能力需配置服务并批准设备；生产门禁尚未完成。</p>
+        <p>
+          没有口令、恢复码或离线备份：登录身份加等待期是恢复途径，云端同步保存设备外的唯一副本。
+        </p>
       </div>
       <button class="primary wide" disabled={session.busy} onclick={setup}
         >创建我的工作台<Icon name="arrow-right" /></button
@@ -306,9 +345,9 @@
     {#if session.error}<p class="form-error" role="alert">{session.error}</p>{/if}
     {#if session.message}<p class="form-success" role="status">{session.message}</p>{/if}
     <div class="panel-foot">
-      <span class="status-dot"></span>{config.environment === 'local'
-        ? '本地加密 · 无云端交付'
-        : `${config.environment} · 需通过服务验证`}
+      <span class="status-dot"></span>{config.environment === 'production'
+        ? '内容在本机加密'
+        : `${config.environment} 环境 · 内容在本机加密`}
     </div>
   </section>
 </div>

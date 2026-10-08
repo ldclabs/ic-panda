@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { boundEngine } from './support/engine'
+import { currentWorkspace, WorkspaceDB } from '../src/lib/db'
 import { ContentEngine } from '../src/lib/crypto/content'
 import { ContentClient } from '../src/lib/services/content'
 import { RelayError } from '../src/lib/services/relay'
@@ -191,7 +192,16 @@ it('reconciles a lost vault ACK after recreating the client without submitting a
   expect((await f.engine.contentPrepare(record.key)).revision.requestId).toBe(
     job.revision.requestId
   )
-  expect((await f.engine.view()).outbox[0].state).toBe('stored')
+  // Stored versions leave the pending summary and drop the ciphertext copy.
+  expect((await f.engine.view()).outbox).toEqual([])
+  const db = await WorkspaceDB.open((await currentWorkspace())!)
+  const stored = await db.db.get('outbox', record.revision)
+  db.db.close()
+  expect(stored).toMatchObject({
+    state: 'stored',
+    cloudReceipt: { revision_id: record.revision }
+  })
+  expect(stored.frame).toBeUndefined()
   await f.engine.lock()
 })
 

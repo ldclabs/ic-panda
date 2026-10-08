@@ -1,14 +1,14 @@
 <script lang="ts">
   import { session, formatBytes } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { ContentClient } from '../services/content'
   import { CloudClient } from '../services/relay'
   let notices = $state<any[]>([]),
     lifecycle = $state<any>(null)
   let grants = $state<any[]>([])
   let client = $state.raw<ContentClient | null>(null)
-  let derivation = $state(config.derivationOrigins[0]),
+  let derivation = $state(loginOrigin()),
     status = $state(''),
     usage = $state<{ committed: number; reserved: number } | null>(null)
   let name = $state(''),
@@ -52,9 +52,9 @@
   async function sync(write: boolean) {
     await session.run(async () => {
       if (!client) throw new Error('请先连接账户。')
-      let pulled = await client.pull()
-      const sent = write ? await client.pushPending() : 0
-      if (sent) pulled = await client.pull()
+      const { sent, ...pulled } = write
+        ? await client.sync()
+        : { ...(await client.pull()), sent: 0 }
       await session.refresh()
       const quota = await client.quota()
       usage = { committed: quota.committed, reserved: quota.reserved }
@@ -91,9 +91,9 @@
 </script>
 
 <section class="settings-section">
-  <h2>云端同步与导出</h2>
+  <h2>云端同步与公开资料</h2>
   <p>
-    内容在扩展中加密和验证。后台仅能提交已固定的密文版本，短期批准到期后暂停；重新解锁后核对原操作。
+    内容在扩展中加密和验证，云端保存设备外的唯一副本。登录解锁后会自动同步一次；后台仅能提交已固定的密文版本，短期批准到期后暂停，重新解锁后核对原操作。
   </p>
   <label
     >原登录来源<select bind:value={derivation}

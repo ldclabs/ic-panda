@@ -485,7 +485,9 @@ export class AccountRootClient {
     if (!job.plan) {
       job.plan = {
         upload_id: id(),
-        object_id: id(),
+        // The relay serves the committed root by its certified bundle digest,
+        // which covers recipients and body rather than the stored bytes.
+        object_id: hex(bundleDigests(parseRootBundle(bytes)).bundleDigest),
         version_id: id(),
         root_generation: context.generation,
         epoch: 0,

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { session } from '../session.svelte'
   import { config } from '../config'
-  import { connectAccount, connectIdentity } from '../connection'
+  import { connectAccount, connectIdentity, loginOrigin } from '../connection'
   import type { AccountClient } from '../services/account'
   import { HandleClient } from '../services/handle'
   import { xidText } from '../protocol/identity'
   import HandleTrading from './HandleTrading.svelte'
-  let origin = $state(config.derivationOrigins[0]),
+  let origin = $state(loginOrigin()),
     oldOrigin = $state(config.derivationOrigins[0]),
     name = $state(''),
     status = $state('')

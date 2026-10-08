@@ -3,7 +3,7 @@
   import { session, dateLabel, downloadBlob } from '../session.svelte'
   import { config } from '../config'
   import { id } from '../protocol/codec'
-  import { connectAccount } from '../connection'
+  import { connectAccount, loginOrigin } from '../connection'
   import { CloudClient } from '../services/relay'
   import { ChannelClient, type ChannelInvitation } from '../services/channel'
   import type { ChannelLedger } from '../protocol/channel'
@@ -16,7 +16,7 @@
     selected = $state('')
   let messages = $state<any[]>([]),
     pending = $state<Awaited<ReturnType<CryptoEngine['channelPending']>>>([])
-  let origin = $state(config.derivationOrigins[0]),
+  let origin = $state(loginOrigin()),
     name = $state(''),
     kind = $state<ChannelLedger['type']>('collaboration'),
     createId = $state(id())

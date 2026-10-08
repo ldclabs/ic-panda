@@ -2,7 +2,6 @@ export type ItemKind = 'note' | 'login' | 'api' | 'key' | 'file'
 export type ObjectKind =
   | 'vault'
   | 'profile'
-  | 'draft'
   | 'request'
   | 'migration'
   | 'migration_part'
@@ -96,6 +95,8 @@ export interface WorkspaceMeta {
   prf?: { credentialId: string; enabledAt: number }
   /** Last unlock through the login path; PRF unlocks are refused a week later. */
   loginUnlockedAt?: number
+  /** The Internet Identity derivation origin bound at setup; later logins default to it. */
+  loginOrigin?: string
 }
 export interface LocalEnvelope {
   id: string
@@ -109,7 +110,8 @@ export interface LocalEnvelope {
 export interface OutboxJob {
   id: string
   objectKey: string
-  frame: string
+  /** The serialized ciphertext object to submit; dropped once stored. */
+  frame?: string
   digest: string
   state: 'local' | 'queued' | 'sending' | 'stored' | 'blocked' | 'unknown'
   error?: string

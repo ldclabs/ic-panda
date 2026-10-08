@@ -40,7 +40,7 @@
     {#if avatarUrl}<img src={avatarUrl} alt="本机私密头像，尚未发布" width="80" height="80" />
       <p class="caption">此头像保存在加密资料中，尚未公开。</p>{/if}
     <h2>公开资料</h2>
-    <p>选中的字段将在你明确发布后公开。当前只保存到本机。</p>
+    <p>这里保存加密的本机资料；选中的字段在“设置 → 云端同步”中明确发布后才会公开。</p>
     <form
       onsubmit={(event) => {
         event.preventDefault()
@@ -106,7 +106,7 @@
         <Icon name="key" />
         <div>
           <strong>付费来信</strong>
-          <p>在 R1c 资金与退款流程验收后开放。</p>
+          <p>在“设置 → 来信与托管”中配置报价、托管与退款。</p>
         </div>
       </div>
       <button class="primary" disabled={session.busy}>保存资料草稿<Icon name="check" /></button

@@ -72,8 +72,9 @@
         <div class="sidebar-note">
           <Icon name="device" /><strong>内容留在你的掌握中。</strong>
           <p>
-            {#if session.meta?.account}正式工作区<br />云端同步在设置中连接{:else}本地版本<br
-              />尚未绑定链上账户{/if}
+            {session.data.outbox.length
+              ? `${session.data.outbox.length} 个本地版本待同步`
+              : '本机版本均已同步'}<br />登录解锁后自动同步
           </p>
         </div>
         <button

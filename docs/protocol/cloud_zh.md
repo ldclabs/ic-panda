@@ -89,6 +89,8 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 
 上传 manifest 的明文固定为规范 CBOR `{format:"dmsg-cloud-manifest/1", account_id, upload_id, object_id, version_id, kind, root_generation, chunks:[{digest,size}], content}`。ID 使用上述 JSON 文本表示，chunks 与 upload plan 一致。vault 的 content 为 null；file 的 content 为现有 FileManifest，包括明文大小/摘要及文件 key，全部处于 manifest 加密层内。使用随机 nonce 的 COSE_Encrypt0 AES-256-GCM，由目标内容根封装；external AAD 为 `['dmsg/cloud-manifest/1', account_id, upload_id, object_id, version_id, kind, root_generation]`。manifest_size/digest 对最终加密 bytes 计算。manifest 不包含自己的摘要，避免循环。
 
+内容根（`kind=root`）例外：manifest 是原始 RootBundle 字节（见[账户与根合同](account_root_zh.md)），`object_id` 取链上 `bundle_digest` 的 hex。`bundle_digest` 覆盖接收者与 body，不等于字节摘要；`GET /v1/accounts/:account/root` 按认证安全快照的 `content_root_generation` 与 `content_root_digest` 匹配 `root_generation` 与 `object_id` 返回对象，客户端下载后仍按 `bundle_digest` 验证。
+
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 
 A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器和 manifest 的往返向量。P0 的测试范围是签名/证据/HTTP/profile 链路，不声称已支持端到端文件同步。legacy 历史归档有独立格式，不能伪装成上述新版内容。
