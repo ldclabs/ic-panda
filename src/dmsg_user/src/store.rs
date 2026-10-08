@@ -56,6 +56,8 @@ pub(crate) struct Config {
     // Random secret behind every device unlock secret; generated once from
     // `raw_rand` after installation and never rotated by upgrades.
     pub(crate) master_secret: Option<Hash>,
+    // Public totals of the latest charged months, newest first.
+    pub(crate) execution_months: Vec<ExecutionMonthStats>,
 }
 
 pub(crate) fn config() -> Config {

@@ -17,6 +17,7 @@
   import type { AccountClient } from '../services/account'
   import { CommerceClient, type CheckoutJob } from '../services/commerce'
   import { WalletClient } from '../services/wallet'
+  import { archiveUsage, usageHistory, type UsageRecord } from '../services/usage'
   import { b64, hex } from '../protocol/codec'
   let {
     request = null,
@@ -41,6 +42,7 @@
   let assets = $state<Awaited<ReturnType<CommerceClient['assets']>>>([]),
     catalog = $state<any>(null),
     entitlement = $state<any>(null),
+    usage = $state<UsageRecord[]>([]),
     jobs = $state<CheckoutJob[]>([]),
     job = $state<CheckoutJob | null>(null),
     view = $state<CheckoutView | PandaClaimView | null>(null)
@@ -82,6 +84,9 @@
       if (!request) {
         catalog = await preview.catalog()
         entitlement = await preview.entitlement(true)
+        const id = connected.meta.account!.id
+        await archiveUsage(connected, id)
+        usage = await usageHistory(connected, id)
       }
     })
   }
@@ -187,6 +192,13 @@
       当前套餐：{entitlement.plan_snapshot.plan_id} · 权益来源：{entitlement.source_status} · 租约至
       {dateLabel(Number(entitlement.valid_until_ms))}
     </p>{/if}
+  {#if usage.length}<p>正式执行月账（本机归档，加密同步）：</p>
+    <ul>
+      {#each usage as u}<li>
+          {Math.floor(u.month / 100)}-{String(u.month % 100).padStart(2, '0')}：已用 {u.charged}
+          / {u.allowed} 单位
+        </li>{/each}
+    </ul>{/if}
   <label
     >付款 / SNS 经济身份来源<select bind:value={walletOrigin}
       >{#each config.derivationOrigins as v}<option>{v}</option>{/each}</select

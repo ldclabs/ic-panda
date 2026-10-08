@@ -177,6 +177,11 @@ flowchart LR
 
 只保留当月和上个月：新建当月月账时删除该账户更早的月账。月账键为 `AccountId ‖ YYYYMM`，同一账户的月账相邻。字节与验证规则见 [commerce 合同](../../docs/protocol/commerce_zh.md)。
 
+更早的记录分两路保存：
+
+- **home 汇总**：每次扣费同时累加本 home 当月的汇总，即扣过费的账户数、认证次数和加权单位，保存在配置中，保留最近 12 个有扣费的月份（`EXECUTION_STATS_MONTHS`）。`user_stats.execution_months` 公开返回，从新到旧，没有扣费的月份不出现。汇总不含逐账户数据，按月公开的执行报表可以直接对照链上数字。
+- **逐账户历史**：由客户端归档。`dmsg_app` 每次刷新额度前，用 `get_execution_usage` 读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步到云端，云端只见密文。值未变时不产生新版本。新月份第一次刷新才删除旧月账，所以只要该账户在删除前用过客户端，月账就不会丢；从未打开客户端的月份不会归档。归档值来自本人 query，不是认证数据，只供本人查看。
+
 ### 名称、付款与第三方批准
 
 - **名称**：`AuthorizeHandle` 保存精确的 `HandleIntent`；handle 调用 `consume_handle_*` 只读核对意图，不再检查设备与账户状态。完整流程见 [dmsg_handle](../dmsg_handle/README.md)。
@@ -216,7 +221,7 @@ flowchart LR
 
 | Memory | 内容                                                                    |
 | -----: | ----------------------------------------------------------------------- |
-|      0 | `CONFIG`：`UserInit`、Xid 分配器与完整命名空间摘要、每日创建计数、`master_secret` |
+|      0 | `CONFIG`：`UserInit`、Xid 分配器与完整命名空间摘要、每日创建计数、`master_secret`、最近 12 个月的执行汇总 |
 |      1 | `ACCOUNTS`：`AccountId` → `AccountState`                                |
 |      2 | `AUTH`：登录 Principal → `AccountId`                                    |
 |      3 | `CALLS`：`AccountId` → 本 UTC 小时登录发起的跨 canister 调用数          |
@@ -439,12 +444,12 @@ cargo test -p dmsg_user
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 
-单元测试覆盖：根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口。
+单元测试覆盖：根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip、注册准入票据、登录绑定的批准与接受、操作回执窗口、home 执行汇总的累加与 12 个月滚动。
 
 PocketIC 回归覆盖：
 
 - [control_plane.rs](../../tests/dmsg_integration/tests/control_plane.rs) `identity_roots_certification_attestation_recovery_and_upgrade`：根 CAS、认证与回执、登录恢复、派生与 IBE 往返、升级。
-- [user.rs](../../tests/dmsg_integration/tests/control_plane/user.rs)：认证按月计费一次并重放产物、名称意图续期、政策变更、清理后按原月份结算、商业回调期间的并发变更、登录路由删除、对账传输失败、月账只保留当月与上月。
+- [user.rs](../../tests/dmsg_integration/tests/control_plane/user.rs)：认证按月计费一次并重放产物、名称意图续期、政策变更、清理后按原月份结算、商业回调期间的并发变更、登录路由删除、对账传输失败、月账只保留当月与上月、home 月度汇总只累加成功的扣费。
 - [user_review.rs](../../tests/dmsg_integration/tests/control_plane/user_review.rs)、[review_regressions.rs](../../tests/dmsg_integration/tests/control_plane/review_regressions.rs)：inspect 拒绝非服务方与匿名 ingress、外部调用前拒绝非配置服务、恢复完成重试、登录绑定须管理员批准后由新登录接受、注册准入票据与治理轮换、跨账户分页清理、每小时调用上限、快照回滚、独立清理、文件声明认证、保留窗口与升级、登录恢复可见/争议/完成、无效传输公钥、已清理请求 ID 不可复用。
 - [external_integration.rs](../../tests/dmsg_integration/tests/control_plane/external_integration.rs)、[agent.rs](../../tests/dmsg_integration/tests/control_plane/agent.rs)：外部批准的重试、暂停与升级，AppAction 准入与认证，自持 controller 的 PoP 注册、发布与本机签名。
 
@@ -469,5 +474,7 @@ DMSG_USER_IMAGE_DIR=/path/to/images DMSG_WASM_DIR=/path/to/wasm cargo test --loc
 ```
 
 2026-10-08 按 2,100 万容量、注册准入、登录绑定、清理与月账调整更新本文档时，完整运行 `scripts/test-dmsg.sh` 通过：Rust 单元测试（`dmsg_user` 37 项）、Clippy `-D warnings`、Wasm 与 Candid 比对、协议向量（含新增的 `account_admission_v1`）、PocketIC 16.0.0 上的 `control_plane` 124 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 的类型检查与 177 项单元测试也通过。默认忽略的 `user_capacity_profile` 单独运行，数据见“容量与成本”；真实扩展的端到端探针没有运行。部署命令沿用 [dmsg_handle](../dmsg_handle/README.md) 在 dfx 0.32.0 本地副本上实测过的格式，快照命令按 dfx 0.32.0 的命令行帮助编写，没有在本地副本上执行。
+
+同日加入 home 执行汇总与客户端月账归档后，再次完整运行 `scripts/test-dmsg.sh` 通过：`dmsg_user` 单元测试 38 项、Clippy、Wasm 与 Candid 比对、协议向量、`control_plane` 124 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 类型检查与 179 项单元测试通过。设置页的月账列表没有在真实扩展中查看。
 
 开发阶段使用新实例，不兼容此前的实验接口和稳定布局。

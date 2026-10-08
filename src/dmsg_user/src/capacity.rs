@@ -237,6 +237,7 @@ fn capacity_image() {
             day: AT / DAY,
             created_today: 0,
             master_secret: Some(digest("capacity master", &home)),
+            execution_months: Vec::new(),
         });
         let bytes = RAW.with(|m| {
             let image = m.borrow();

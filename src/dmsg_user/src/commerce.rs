@@ -1,7 +1,11 @@
 use crate::store;
 use dmsg_protocol::{billing::*, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt};
-use dmsg_types::{billing::*, *};
+use dmsg_types::{
+    billing::*,
+    user::{ExecutionMonthStats, EXECUTION_STATS_MONTHS},
+    *,
+};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -137,13 +141,38 @@ pub fn charge(id: &AccountId, now: u64) -> Result<()> {
     let month = month_utc(now)?;
     let mut m = load(id, month).ok_or(Error::MembershipStale)?;
     ensure(now < m.usage.valid_until_ms, Error::MembershipStale)?;
+    let units = m.weights.ed25519;
     let charged = m
         .usage
         .charged_units
-        .checked_add(m.weights.ed25519)
+        .checked_add(units)
         .ok_or(Error::QuotaExceeded)?;
     ensure(charged <= m.usage.allowed_units, Error::QuotaExceeded)?;
+    // Commerce weights are positive, so zero means the account's first charge.
+    let first = m.usage.charged_units == 0;
     m.usage.charged_units = charged;
     save(&m);
+    count(month, first, units);
     Ok(())
+}
+
+/// Add one attestation to the home's public monthly totals.
+fn count(month: u32, first: bool, units: u64) {
+    let mut cfg = store::config();
+    let months = &mut cfg.execution_months;
+    if months.first().is_none_or(|t| t.month_utc != month) {
+        months.insert(
+            0,
+            ExecutionMonthStats {
+                month_utc: month,
+                ..Default::default()
+            },
+        );
+        months.truncate(EXECUTION_STATS_MONTHS);
+    }
+    let t = &mut months[0];
+    t.accounts += u64::from(first);
+    t.attestations += 1;
+    t.charged_units += units;
+    store::save_config(&cfg);
 }

@@ -1069,6 +1069,7 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
             day: 0,
             created_today: 0,
             master_secret: Some(Hash::new([7; 32])),
+            execution_months: Vec::new(),
         })))
     });
     let request = derive_request(&s, 4, 1, at);
@@ -1894,4 +1895,70 @@ fn accounts_keep_only_the_latest_operation_receipts() {
         receipts.push(apply(&mut s, AccountCommand::SetPolicy { policy }, at).unwrap());
     }
     assert_eq!(s.operations, receipts[4..]);
+}
+
+#[test]
+fn home_totals_keep_the_latest_charged_months() {
+    CONFIG.with_borrow_mut(|t| {
+        t.set(CompactStored::new(&Some(Config {
+            schema: STABLE_SCHEMA,
+            init: test_init(),
+            allocator: XidGenerator::new([1; 5]),
+            allocator_namespace_digest: Hash::new([1; 32]),
+            day: 0,
+            created_today: 0,
+            master_secret: None,
+            execution_months: Vec::new(),
+        })))
+    });
+    let month = |at: u64| dmsg_protocol::billing::month_utc(at).unwrap();
+    let row = |id: AccountId, at: u64| {
+        crate::commerce::save(&crate::commerce::Month {
+            usage: ExecutionUsage {
+                account_id: id,
+                month_utc: month(at),
+                month_revision: 1,
+                business_revision: 1,
+                lease_revision: 1,
+                weight_policy_version: 1,
+                allowed_units: 100,
+                charged_units: 0,
+                valid_until_ms: at + MINUTE,
+            },
+            weights: ExecutionWeights {
+                version: 1,
+                ed25519: 2,
+            },
+            entitlement_digest: Hash::new([0; 32]),
+        })
+    };
+    let (a, b) = (AccountId([1; 12]), AccountId([2; 12]));
+    // Mid-January 2026; 30-day steps then land in thirteen distinct months.
+    let start = 1_768_478_400_000;
+    row(a, start);
+    row(b, start);
+    for id in [a, a, b] {
+        crate::commerce::charge(&id, start).unwrap();
+    }
+    assert_eq!(
+        config().execution_months,
+        vec![ExecutionMonthStats {
+            month_utc: 202601,
+            accounts: 2,
+            attestations: 3,
+            charged_units: 6,
+        }]
+    );
+    for k in 1..=EXECUTION_STATS_MONTHS as u64 {
+        let at = start + k * 30 * DAY;
+        row(a, at);
+        crate::commerce::charge(&a, at).unwrap();
+    }
+    let months = config().execution_months;
+    assert_eq!(months.len(), EXECUTION_STATS_MONTHS);
+    assert_eq!(months[0].month_utc, 202701);
+    assert_eq!(months[EXECUTION_STATS_MONTHS - 1].month_utc, 202602);
+    assert!(months
+        .iter()
+        .all(|m| (m.accounts, m.attestations, m.charged_units) == (1, 1, 2)));
 }

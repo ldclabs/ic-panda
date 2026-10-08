@@ -53,6 +53,21 @@ pub struct ConfigRepr {
     #[cbor(key = 7)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub master_secret: Option<Hash>,
+    #[cbor(key = 8)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub execution_months: Vec<ExecutionMonthStatsRepr>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct ExecutionMonthStatsRepr {
+    #[cbor(key = 1)]
+    pub month_utc: u32,
+    #[cbor(key = 2)]
+    pub accounts: u64,
+    #[cbor(key = 3)]
+    pub attestations: u64,
+    #[cbor(key = 4)]
+    pub charged_units: u64,
 }
 
 impl StableCodec for Config {
@@ -67,6 +82,16 @@ impl StableCodec for Config {
             day: self.day,
             created_today: self.created_today,
             master_secret: self.master_secret,
+            execution_months: self
+                .execution_months
+                .iter()
+                .map(|m| ExecutionMonthStatsRepr {
+                    month_utc: m.month_utc,
+                    accounts: m.accounts,
+                    attestations: m.attestations,
+                    charged_units: m.charged_units,
+                })
+                .collect(),
         }
     }
 
@@ -79,6 +104,16 @@ impl StableCodec for Config {
             day: repr.day,
             created_today: repr.created_today,
             master_secret: repr.master_secret,
+            execution_months: repr
+                .execution_months
+                .into_iter()
+                .map(|m| ExecutionMonthStats {
+                    month_utc: m.month_utc,
+                    accounts: m.accounts,
+                    attestations: m.attestations,
+                    charged_units: m.charged_units,
+                })
+                .collect(),
         }
     }
 }
@@ -738,11 +773,18 @@ mod tests {
             day: 42,
             created_today: 7,
             master_secret: Some(Hash::new([9; 32])),
+            execution_months: vec![ExecutionMonthStats {
+                month_utc: 202609,
+                accounts: 3,
+                attestations: 5,
+                charged_units: 8,
+            }],
         };
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, crate::store::STABLE_SCHEMA);
         assert_eq!(decoded.master_secret, config.master_secret);
         assert_eq!(decoded.init, config.init);
+        assert_eq!(decoded.execution_months, config.execution_months);
 
         let state = account(false);
         let derivation = AuthorizedExecution {

@@ -231,7 +231,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 ### 8.4 When to Scale
 
-- **Monitoring**: `user_stats`, `cose_stats`, `payment_stats`, `commerce_stats`, `membership_stats` and `directory_stats` are public queries reporting record counts, configured limits, stable pages and cycle balances; handle's configuration and home list come from `get_handle_config`.
+- **Monitoring**: `user_stats`, `cose_stats`, `payment_stats`, `commerce_stats`, `membership_stats` and `directory_stats` are public queries reporting record counts, configured limits, stable pages and cycle balances, and `user_stats` adds execution totals for the latest 12 charged months; handle's configuration and home list come from `get_handle_config`.
 - **Raise budgets first**: when usage nears 60% of a configured limit, raise the governed limit within the code bound: `admin_set_account_limits` on user, `admin_set_limits` on payment and commerce, `configure_panda_service` on membership.
 - **Then add instances**: when a home nears 21 million accounts, add a home and adjust the registration entry. When payment escrows, or commerce paying subjects or lifetime orders, near 10 million (or stable-memory headroom runs short), point new homes at new payment or commerce instances instead of raising the old instance's limit further.
 - **Throughput**: one canister executes its messages sequentially; several canisters run in parallel but share their subnet's resources, so large deployments spread homes across subnets. Before raising per-minute budgets, check subnet throughput and cycles at the target load on a test network; cross-subnet placement, chain-key and ledger throughput need separate measurement.

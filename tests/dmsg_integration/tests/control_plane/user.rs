@@ -81,6 +81,17 @@ fn attestations_charge_the_month_once_and_replay_the_stored_artifact() {
     );
     assert_eq!(f.account_id(1, &id), before);
     assert_eq!(usage(&f, &id).charged_units, 2);
+    // The home publishes monthly totals only; replays and refusals add nothing.
+    let stats: UserStats = query(&f.ic, f.user, Principal::anonymous(), "user_stats", ());
+    assert_eq!(
+        stats.execution_months,
+        vec![ExecutionMonthStats {
+            month_utc: charged.month_utc,
+            accounts: 1,
+            attestations: 2,
+            charged_units: 2,
+        }]
+    );
     f.ic.advance_time(Duration::from_millis(DAY));
     f.attest(1, &id, text_statement(&f, &id, "tomorrow")).unwrap();
 }

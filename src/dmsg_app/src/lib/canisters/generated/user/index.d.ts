@@ -348,6 +348,12 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'QuotaExceeded' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
+export interface ExecutionMonthStats {
+  'attestations' : bigint,
+  'charged_units' : bigint,
+  'accounts' : bigint,
+  'month_utc' : number,
+}
 export type ExecutionOutcome = { 'Failed' : Error } |
   { 'Executing' : null } |
   { 'Authorized' : null } |
@@ -596,6 +602,7 @@ export interface UserStats {
   'cycles' : bigint,
   'accounts' : bigint,
   'daily_new_accounts' : number,
+  'execution_months' : Array<ExecutionMonthStats>,
   'max_accounts' : bigint,
   'stable_pages' : bigint,
 }

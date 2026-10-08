@@ -82,6 +82,7 @@ fn init(args: UserInit) {
             day: 0,
             created_today: 0,
             master_secret: None,
+            execution_months: Vec::new(),
         })))
     });
     CERT.with_borrow(|c| c.publish());
@@ -223,7 +224,7 @@ fn user_config() -> UserInit {
 }
 
 /// Account count, capacity, today's admissions, unlock readiness, stable
-/// pages and the cycle balance.
+/// pages, the cycle balance and monthly formal-execution totals.
 #[ic_cdk::query]
 fn user_stats() -> UserStats {
     let cfg = config();
@@ -237,6 +238,7 @@ fn user_stats() -> UserStats {
         unlock_ready: cfg.master_secret.is_some(),
         stable_pages: ic_cdk::api::stable_size(),
         cycles: ic_cdk::api::canister_cycle_balance(),
+        execution_months: cfg.execution_months,
     }
 }
 

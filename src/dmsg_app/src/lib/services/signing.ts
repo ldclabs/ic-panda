@@ -4,6 +4,7 @@ import { registeredApplication } from './registration'
 import { services } from './ic'
 import type { AttestRequest, AppActionAttestRequest, SignedArtifact } from '../canisters/generated/user'
 import { AccountClient, controlResult } from './account'
+import { archiveUsage } from './usage'
 import {
   checkArtifact,
   deviceKeyThumbprint,
@@ -66,18 +67,23 @@ export class SigningClient {
   }
   async usage(account: string) {
     const raw = xidBytes(account)
+    await archiveUsage(this.account, account)
     // An update reply is certified by the subnet; no separate usage proof exists.
     const usage = controlResult(await this.account.user.refresh_execution_entitlement(raw))
     ensure(
       equal(Uint8Array.from(usage.account_id), raw) &&
-        usage.valid_until_ms > BigInt(Date.now()) &&
-        usage.charged_units <= usage.allowed_units,
+        usage.valid_until_ms > BigInt(Date.now()),
       'INTEGRITY_FAILED'
     )
+    // A refund or downgrade may leave the allowance below what was already charged.
+    const remaining =
+      usage.allowed_units > usage.charged_units
+        ? usage.allowed_units - usage.charged_units
+        : 0n
     return {
       allowed: usage.allowed_units.toString(),
       charged: usage.charged_units.toString(),
-      remaining: (usage.allowed_units - usage.charged_units).toString(),
+      remaining: remaining.toString(),
       month: usage.month_utc
     }
   }

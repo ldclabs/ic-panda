@@ -221,3 +221,12 @@ user 新增 `canister_inspect_message`：服务回调只接受对应的配置 ca
 - **回滚**：升级前创建 canister 快照，问题时载入；PocketIC 回归验证载入后证书与记录一致。
 
 稳定布局升至 schema 14：memory 3 改为每账户的调用计数，开发实例须重装。客户端改为“生成绑定请求 → 管理员批准 → 新登录接受”，home 配置公钥时向云端取准入票据。
+
+## 2026-10-08 执行月账归档与 home 月度汇总
+
+链上逐账户月账仍只保留当月与上月，更早的记录分两路保存：
+
+- **home 汇总**：`UserStats` 新增 `execution_months: vec ExecutionMonthStats`，每项为一个 UTC 月份内扣过费的账户数、认证次数与加权单位。user 在扣费的同一消息内累加，保存在配置中，保留最近 12 个有扣费的月份（`EXECUTION_STATS_MONTHS`）。只有汇总，不公开逐账户用量。
+- **逐账户历史**：`dmsg_app` 每次刷新执行额度前读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步。新月份第一次刷新才删除旧月账，先读后刷新即可在删除前取到；从未打开客户端的月份不会归档。归档值来自本人 query，只供本人查看。
+
+客户端同时修正了退款或降档后已扣单位超过允许单位时，额度读取报 `INTEGRITY_FAILED` 的问题，剩余额度按 0 显示。配置新增的字段有默认值，稳定布局仍为 schema 14。

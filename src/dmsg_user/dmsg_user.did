@@ -717,6 +717,18 @@ type Error = variant {
   // The operation is not yet complete; query/retry the same operation as appropriate.
   Pending;
 };
+// Formal executions one user home charged in a UTC month. Aggregate only:
+// per-account usage stays readable by the account's own logins.
+type ExecutionMonthStats = record {
+  // Attestations committed in the month.
+  attestations : nat64;
+  // Weighted units charged in the month.
+  charged_units : nat64;
+  // Accounts charged at least once in the month.
+  accounts : nat64;
+  // UTC month as YYYYMM.
+  month_utc : nat32;
+};
 // Execution lifecycle carrying either output or failure information.
 type ExecutionOutcome = variant {
   // Execution returned a known failure.
@@ -1173,6 +1185,9 @@ type UserStats = record {
   accounts : nat64;
   // Configured daily new-account quota.
   daily_new_accounts : nat32;
+  // Formal-execution totals of the latest charged months, newest first;
+  // a month without charges is absent.
+  execution_months : vec ExecutionMonthStats;
   // Configured account capacity.
   max_accounts : nat64;
   // Stable memory in 64 KiB pages.
@@ -1259,7 +1274,7 @@ service : (UserInit) -> {
   // before they list this home with `admin_add_user_home`.
   user_config : () -> (UserInit) query;
   // Account count, capacity, today's admissions, unlock readiness, stable
-  // pages and the cycle balance.
+  // pages, the cycle balance and monthly formal-execution totals.
   user_stats : () -> (UserStats) query;
   validate_admin_set_account_limits : (nat64, nat32) -> (Result_16) query;
   validate_admin_set_admission_key : (opt blob) -> (Result_16) query;

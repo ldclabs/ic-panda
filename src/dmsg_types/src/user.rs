@@ -27,6 +27,8 @@ pub const BINDING_ACCEPT_MS: u64 = 10 * MINUTE;
 pub const MAX_ADMISSION_TTL_MS: u64 = 10 * MINUTE;
 /// Remote calls an account's logins may start per UTC hour (120).
 pub const MAX_HOURLY_ACCOUNT_CALLS: u32 = 120;
+/// Latest charged months whose execution totals `user_stats` reports (12).
+pub const EXECUTION_STATS_MONTHS: usize = 12;
 
 /// Account device role, distinct from ICP canister controller privileges.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -282,6 +284,23 @@ pub struct UserStats {
     pub stable_pages: u64,
     /// Cycle balance.
     pub cycles: u128,
+    /// Formal-execution totals of the latest charged months, newest first;
+    /// a month without charges is absent.
+    pub execution_months: Vec<ExecutionMonthStats>,
+}
+
+/// Formal executions one user home charged in a UTC month. Aggregate only:
+/// per-account usage stays readable by the account's own logins.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct ExecutionMonthStats {
+    /// UTC month as YYYYMM.
+    pub month_utc: u32,
+    /// Accounts charged at least once in the month.
+    pub accounts: u64,
+    /// Attestations committed in the month.
+    pub attestations: u64,
+    /// Weighted units charged in the month.
+    pub charged_units: u64,
 }
 
 /// Anti-abuse admission of one caller's account creation, signed by the home's

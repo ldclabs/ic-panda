@@ -585,6 +585,12 @@ export const idlFactory = ({ IDL }) => {
     'expected_version' : IDL.Nat64,
   });
   const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const ExecutionMonthStats = IDL.Record({
+    'attestations' : IDL.Nat64,
+    'charged_units' : IDL.Nat64,
+    'accounts' : IDL.Nat64,
+    'month_utc' : IDL.Nat32,
+  });
   const UserStats = IDL.Record({
     'day' : IDL.Nat64,
     'unlock_ready' : IDL.Bool,
@@ -592,6 +598,7 @@ export const idlFactory = ({ IDL }) => {
     'cycles' : IDL.Nat,
     'accounts' : IDL.Nat64,
     'daily_new_accounts' : IDL.Nat32,
+    'execution_months' : IDL.Vec(ExecutionMonthStats),
     'max_accounts' : IDL.Nat64,
     'stable_pages' : IDL.Nat64,
   });

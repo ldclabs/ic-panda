@@ -206,3 +206,12 @@ The hard ceiling on a home's `max_accounts` rises from 1 million to 21 million (
 - **Rollback**: take a canister snapshot before an upgrade and load it if the upgrade misbehaves; a PocketIC regression checks that certificates match the restored records.
 
 The stable layout moves to schema 14, with memory 3 now holding per-account call counts; development instances must be reinstalled. The client now generates a binding request, has an administrator approve it and accepts it from the new login, and fetches an admission ticket from the cloud when the home has a key.
+
+## 2026-10-08 archived execution ledgers and per-home monthly totals
+
+The chain still keeps per-account ledgers for the current and previous month only; older records are kept in two places:
+
+- **Per-home totals**: `UserStats` gains `execution_months: vec ExecutionMonthStats`, each entry holding the accounts charged, attestations and weighted units of one UTC month. The user home adds to them in the message that charges, stores them in its configuration and keeps the latest 12 months that had a charge (`EXECUTION_STATS_MONTHS`). Only totals are published, never per-account usage.
+- **Per-account history**: before each refresh of the execution allowance, `dmsg_app` reads last month's and the month before's ledgers and writes them as `usage:{AccountId}:{YYYYMM}` commerce journals, which sync encrypted with the vault. Old ledgers are dropped only by a new month's first refresh, so reading before refreshing catches them first; months in which the client never ran are not archived. Archived values come from the owner's query and are for the owner's own view.
+
+The client also stops reporting `INTEGRITY_FAILED` when a refund or downgrade leaves the charged units above the allowance; the remaining allowance shows as 0. The new configuration field has a default, so the stable layout stays at schema 14.
