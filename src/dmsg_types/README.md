@@ -38,7 +38,7 @@ These links point to the public repository's main branch, which changes during d
 | device / capability | Registered device public keys and explicit permissions. The device role `Administrator` is distinct from an ICP canister controller. |
 | approval | A device signature authorizing a specific operation and its account security state, sequence, deadline, and other context. It is not a general login credential. |
 | home user / home COSE | Fixed canisters responsible for account authorization and key execution, respectively. Derived key identity depends on the COSE home and derivation parameters. |
-| content root / generation | The generation of a content root and a commitment to its external encrypted bundle, wrapped to the active devices and to the generation's vetKD identity. These types contain no plaintext root key; a recovery derivation returns an encrypted vetKD result. |
+| content root / generation | The generation of a content root and a commitment to its external encrypted bundle, wrapped to the active devices holding `VaultUnlock` and to the generation's vetKD identity. These types contain no plaintext root key; a recovery derivation returns an encrypted vetKD result. |
 | security epoch / account version | The former invalidates stale security approvals; the latter supports optimistic concurrency for account mutations. They are not interchangeable. |
 | artifact / execution receipt | A portable COSE signed document versus ICP execution evidence that separately binds a request, the bytes to sign, and the key. |
 | offer / quote / admission receipt | Recipient payment authorization, fixed delivery terms, and proof of service admission, respectively. None establishes that a recipient read or replied to the message. |
@@ -156,7 +156,7 @@ A portable statement contains no request_id, origin, or execution deadline; thes
 
 `AccountMutation` binds `expected_version`, the complete `AccountCommand`, and an `Approval`. After a version conflict, read the new state and prepare a new approval instead of editing the version of an already signed request. Enrolling a device requires proof of possession of the corresponding private key. Login Principals, device signing keys, and HPKE encryption keys have separate responsibilities.
 
-Root rotation follows `ReserveRoot` → wrap a fresh client-generated root to every active device and to the generation's vetKD identity → `CommitRoot`. The operation ID, expected generation, security state and the recipients digest must match. `ContentRootRef` holds only bundle commitments. `VaultWriteState::RekeyRequired` prevents further writes using the old root. Recovery is a login-authorized, delayed takeover that any active device can cancel; only the device it enrolls may derive the committed root with `DeriveRootRequest`, until that device commits a new one.
+Root rotation follows `ReserveRoot` → wrap a fresh client-generated root to every active device holding `VaultUnlock` and to the generation's vetKD identity → `CommitRoot`. The operation ID, expected generation, security state and the recipients digest must match. `ContentRootRef` holds only bundle commitments. `VaultWriteState::RekeyRequired` prevents further writes using the old root. Recovery is a login-authorized, delayed takeover that any active device can cancel; only the device it enrolls may derive the committed root with `DeriveRootRequest`, until that device commits a new one.
 
 ### Optional paid delivery
 

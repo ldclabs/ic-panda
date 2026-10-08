@@ -232,7 +232,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 
 commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce 的 `user_homes` 里，它的 `UserInit.commerce_canister` 指向该实例，账户的订单、主体和认证叶都只在该实例。每个实例独立持有注册表、结算资产、价格、目录和订单，因此治理要在每个实例分别登记产品、应用与资产，价格权威要向每个实例发布，商户也要在每个实例归集。共享的只有 `membership`：它的 `PandaServiceConfig.commerce_homes` 列出每个 user home 的 commerce，按申请所在的 home 读取注册并回调该实例的产品 adapter，神经元占用仍是全局唯一。
 
-私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。客户端目前只连接一个 user home，因而也只连接该 home 的 commerce；按账户指纹选择 home 的客户端路由完成后，commerce 随 home 一起选择。
+私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。客户端已按 `dmsg_handle` 的 home 列表定位账户所在的 user home，但构建配置只固定一个 commerce（`src/dmsg_app/dmsg.config.json` 的 `canisters.commerce`）。客户端能按账户 home 选择 commerce 之前，所有 user home 应列在同一个 commerce 中。
 
 何时加实例：`commerce_stats` 中 `subjects`、`hot_orders + archived_orders` 接近 `max_subjects`、`max_orders` 的 60%，或冷订单累计接近 1,000 万（订单 ID 和区块去重记录永不回收，`MAX_ORDERS` 是终身上限）时，新的 user home 应指向新的 commerce 实例，而不是继续提高旧实例的上限。
 
@@ -431,7 +431,7 @@ Candid 服务声明了 `CommerceInit` 初始化参数，dfx 升级时不带参�
 - 只识别 `1xfer`/`2xfer` 入金。铸造到订单子账户等其他区块无法入账，也没有清扫接口。
 - 已开始的现金服务没有退款接口；PANDA 合同不能提前退出。
 - 单个实例仍集中其全部 user home 的付费写入、逐单收入归集和 PANDA 刷新；PANDA 会员的 SNS 读取额度见“容量与成本”。
-- 客户端只连接一个 user home，多实例对客户端表现为该 home 的 commerce；跨 home 的客户端路由尚未实现。
+- 客户端按 home 定位账户，但只连接构建配置中的一个 commerce；按账户 home 选择 commerce 实例尚未实现，多实例目前只在 canister 与私有云端可用。
 - 服务余额小于一次网络费时无法转出（见“运维”的归集节奏）。
 - 超过 100 万主体的容量、真实资金、正式钱包和私有云端端到端都未验收。
 

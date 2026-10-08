@@ -38,7 +38,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | device / capability | 登记的设备公钥与明确权限。设备角色 `Administrator` 不等于 ICP canister controller。 |
 | approval | 设备对特定操作、账户安全状态、序号、期限等上下文的签名批准，不是通用登录凭证。 |
 | home user / home COSE | 分别负责账户授权与密钥执行的固定 canister。密钥派生身份依赖 home COSE 和派生参数。 |
-| content root / generation | 内容根的代次及外部加密 bundle 的承诺，bundle 封装给活跃设备和该代的 vetKD 身份；这些类型不包含明文根密钥，恢复派生返回加密的 vetKD 结果。 |
+| content root / generation | 内容根的代次及外部加密 bundle 的承诺，bundle 封装给持有 `VaultUnlock` 的活跃设备和该代的 vetKD 身份；这些类型不包含明文根密钥，恢复派生返回加密的 vetKD 结果。 |
 | security epoch / account version | 前者使旧安全批准失效，后者用于账户变更的乐观并发检查；不能互换。 |
 | artifact / execution receipt | 前者是可移植 COSE 签名文档；后者是 ICP 记录的执行证据，单独绑定请求、待签字节和密钥。 |
 | offer / quote / admission receipt | 分别是收款方授权、固定投递报价、服务受理证明；均不表示对方已阅读或回复。 |
@@ -156,7 +156,7 @@ assert!(!result.is_terminal());
 
 `AccountMutation` 绑定 `expected_version`、完整 `AccountCommand` 和 `Approval`。版本冲突后重新读取状态并重新准备批准，不直接替换已签请求的版本字段。新增设备需要对应私钥的持有证明；登录 Principal、设备签名 key 和 HPKE 加密 key 各有职责。
 
-换根通过 `ReserveRoot` → 本地生成新根并封装给每台活跃设备与该代的 vetKD 身份 → `CommitRoot` 完成，操作 ID、期望代次、安全状态和接收者摘要须匹配。`ContentRootRef` 只保存 bundle 承诺。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复是登录授权的延迟接管，任一有效设备可取消；只有它登记的设备可以用 `DeriveRootRequest` 派生已提交的根，直到该设备换根。
+换根通过 `ReserveRoot` → 本地生成新根并封装给每台持有 `VaultUnlock` 的活跃设备与该代的 vetKD 身份 → `CommitRoot` 完成，操作 ID、期望代次、安全状态和接收者摘要须匹配。`ContentRootRef` 只保存 bundle 承诺。`VaultWriteState::RekeyRequired` 表示不能继续用旧根写入。恢复是登录授权的延迟接管，任一有效设备可取消；只有它登记的设备可以用 `DeriveRootRequest` 派生已提交的根，直到该设备换根。
 
 ### 可选付费投递
 

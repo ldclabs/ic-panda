@@ -1,6 +1,6 @@
 # 扩展账户控制与根封装合同
 
-日期：2026-10-07。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
+日期：2026-10-08。适用于开发中的 local/staging 扩展；生产发布门禁保持关闭。
 此文描述公开客户端实现，不代表正式扩展 origin、生产 key 或生产部署已验收。
 
 ## 账户控制
@@ -11,7 +11,7 @@ user home 不再在构建配置中固定。客户端启动时读取 `dmsg_handle
 
 `services/account.ts` 在联网前把完整 Candid 请求加密保存到当前工作区。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
-新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准，之后必须换根，新设备才能读到根。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。能力不决定根包接收者：每代根封装给全部活跃设备；VaultUnlock 由云端用于放行账户密文读取，user 只记录。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
+新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
 
 ## 本机解锁
 
@@ -65,7 +65,7 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
 4. 执行唯一的 user `CommitRoot` CAS。上传成功不能替代链上提交成功。
 5. 读回认证承诺后启用工作区（`activateAccountRoot`）：首次绑定把 `subjectId` 改为账户 Xid（此前没有内容），换根时把旧根并入加密的历史根索引。
 
-全程没有链上密钥调用。新设备、撤销设备、认证绑定变化后 `vault_write_state` 变为 `RekeyRequired`，管理员换根即可；其他设备下载当前根包、解开自己的信封即可读取（`openCurrent`）。
+全程没有链上密钥调用。只有根包接收者变化（新增或撤销持有 `VaultUnlock` 的设备，或为设备增减这项能力）和登录恢复会让 `vault_write_state` 变为 `RekeyRequired`，管理员换根即可；认证绑定和其他能力的变化只递增 security epoch。其他接收者下载当前根包、解开自己的信封即可读取（`openCurrent`）。
 
 ## 全设备丢失恢复
 
@@ -74,4 +74,4 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
 3. 到期后 `complete_recovery(account_id, op_id)`：替换全部设备与登录绑定，`security_epoch` +1，已有根置 `RekeyRequired`，记录 `recovered_device = (device_id, generation)`。
 4. 恢复设备取得 `unlock_secret` 完成本机绑定，然后 `derive_root(DeriveRootRequest { generation, transport_public_key, max_cycles, approval })`：只允许 `recovered_device` 对当前代次派生（同一 `request_id` 重试返回原结果，换根前也可凭新批准再次派生），COSE 派生该身份的 vetKey 并加密给传输公钥，客户端 `decryptAndVerify` 后用它解开根包的 IBE 恢复信封（`recoverCurrent`），随即换根到下一代（只封装给自己）。换根后派生权消失。
 
-恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`rootDerivationMaxCycles` 是构建时固定的批准上限，默认 70,000,000,000。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 100）和 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。
+恢复派生的批准域为 `dmsg/derive-root/v1`，命令为 `[generation, transport_public_key, max_cycles]`；`rootDerivationMaxCycles` 是构建时固定的批准上限，默认 70,000,000,000。派生与正式认证共用账户政策的每日执行次数（默认 20，`SetPolicy` 最高 64）和 64 条执行保留窗口。II 被盗且延迟期内所有设备都没响应等于内容泄露，这是取消恢复码的代价。

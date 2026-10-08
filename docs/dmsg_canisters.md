@@ -2,7 +2,7 @@
 
 English | [简体中文](dmsg_canisters_zh.md)
 
-This directory documents the actual implementation. For public protocol specifications and language-agnostic byte rules, see [protocol/README.md](protocol/README.md); for the statement CDDL grammar, see [statements.cddl](protocol/statements.cddl). For locating internal design foundations, see [AGENTS.md](../AGENTS.md).
+This directory documents the actual implementation. For the overall architecture, capacity, scaling and multi-instance deployment, see [dmsg_architecture.md](dmsg_architecture.md). For public protocol specifications and language-agnostic byte rules, see [protocol/README.md](protocol/README.md); for the statement CDDL grammar, see [statements.cddl](protocol/statements.cddl). For locating internal design foundations, see [AGENTS.md](../AGENTS.md).
 
 ## Commercial Interface Additions
 

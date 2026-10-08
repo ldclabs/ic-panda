@@ -2,7 +2,7 @@
 
 [English](dmsg_canisters.md) | 简体中文
 
-本目录记录实际实现。公开协议及语言无关的字节规则见 [protocol/README_zh.md](protocol/README_zh.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。
+本目录记录实际实现。整体架构、容量、扩容与多实例部署见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)。公开协议及语言无关的字节规则见 [protocol/README_zh.md](protocol/README_zh.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。
 
 ## 商业化接口增量
 
