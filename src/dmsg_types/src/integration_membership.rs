@@ -22,7 +22,7 @@ pub struct PandaServiceConfig {
     /// Commerce canister of each user home; entries are only appended.
     pub commerce_homes: Vec<CommerceHome>,
     /// Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
-    /// Must not exceed the service's 100,000 full-record limit.
+    /// Must not exceed the service's 1,000,000 full-record limit.
     pub max_claims: u64,
     /// Successful new applications per UTC hour.
     pub hourly_applications: u64,
@@ -30,6 +30,12 @@ pub struct PandaServiceConfig {
     pub cooling_ms: u64,
     /// SNS neuron reads per UTC minute; every active claim needs about one per hour.
     pub qualifications_per_minute: u64,
+    /// Quote and application calls per UTC minute; activations have a separate
+    /// budget of the same size. Each actor may use ten of either per minute.
+    pub authorizations_per_minute: u64,
+    /// Product adapter calls (reserve, release, apply, decision lookup) per UTC
+    /// minute; each actor may use ten per minute.
+    pub product_calls_per_minute: u64,
 }
 
 /// Complete neuron, economic owner, dMsg account and bill selected before device approval.

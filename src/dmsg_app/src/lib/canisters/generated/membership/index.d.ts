@@ -99,11 +99,17 @@ export type Error = { 'MigrationKeyUnavailable' : null } |
   { 'AuthRequired' : null } |
   { 'Pending' : null };
 export interface MembershipInit {
-  'expected_governance_module_hash' : [] | [Uint8Array | number[]],
   'panda_ledger' : Principal,
   'sns_root' : Principal,
   'environment' : Environment,
   'governance' : Principal,
+}
+export interface MembershipStats {
+  'live_claims' : bigint,
+  'cycles' : bigint,
+  'stable_pages' : bigint,
+  'full_claims' : bigint,
+  'tombstones' : bigint,
 }
 export interface PandaApplicationTerms {
   'user_home' : Principal,
@@ -166,7 +172,9 @@ export interface PandaRatePolicy {
 }
 export interface PandaServiceConfig {
   'max_claims' : bigint,
+  'product_calls_per_minute' : bigint,
   'hourly_applications' : bigint,
+  'authorizations_per_minute' : bigint,
   'qualifications_per_minute' : bigint,
   'cooling_ms' : bigint,
   'commerce_homes' : Array<CommerceHome>,
@@ -235,6 +243,7 @@ export interface _SERVICE {
   'configure_panda_service' : ActorMethod<[PandaServiceConfig], Result_1>,
   'get_panda_claim' : ActorMethod<[Uint8Array | number[]], Result>,
   'get_panda_claim_for_product' : ActorMethod<[Uint8Array | number[]], Result>,
+  'membership_stats' : ActorMethod<[], MembershipStats>,
   'panda_claim_certificate' : ActorMethod<[Uint8Array | number[]], Result_2>,
   'panda_operations' : ActorMethod<
     [[] | [Uint8Array | number[]], number],
@@ -249,10 +258,6 @@ export interface _SERVICE {
   'request_panda_claim' : ActorMethod<[PandaClaimRequest], Result>,
   'schedule_panda_rate' : ActorMethod<[PandaRatePolicy], Result_5>,
   'set_admission_pause' : ActorMethod<[boolean], Result_1>,
-  'set_sns_governance_module_hash' : ActorMethod<
-    [Uint8Array | number[]],
-    Result_1
-  >,
   'sweep_panda_commitments' : ActorMethod<[], Result_6>,
   'validate_configure_panda_service' : ActorMethod<
     [PandaServiceConfig],
@@ -260,10 +265,6 @@ export interface _SERVICE {
   >,
   'validate_schedule_panda_rate' : ActorMethod<[PandaRatePolicy], Result_7>,
   'validate_set_admission_pause' : ActorMethod<[boolean], Result_7>,
-  'validate_set_sns_governance_module_hash' : ActorMethod<
-    [Uint8Array | number[]],
-    Result_7
-  >,
   'verify_sns_configuration' : ActorMethod<[], Result_1>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

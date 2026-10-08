@@ -580,7 +580,9 @@ export const schemas = {
     "max_claims": "u64",
     "hourly_applications": "u64",
     "cooling_ms": "u64",
-    "qualifications_per_minute": "u64"
+    "qualifications_per_minute": "u64",
+    "authorizations_per_minute": "u64",
+    "product_calls_per_minute": "u64"
   },
   "PandaApplicationTerms": {
     "home_membership": "Principal",

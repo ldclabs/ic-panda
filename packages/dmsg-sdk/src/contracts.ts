@@ -531,6 +531,8 @@ export interface PandaServiceConfig {
   hourly_applications: bigint
   cooling_ms: bigint
   qualifications_per_minute: bigint
+  authorizations_per_minute: bigint
+  product_calls_per_minute: bigint
 }
 
 export interface PandaApplicationTerms {

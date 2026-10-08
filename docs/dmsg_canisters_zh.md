@@ -195,3 +195,11 @@ directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publi
 ## 2026-10-08 payment 上线准备
 
 `PaymentInit` 以 `limits: PaymentLimits` 取代 `max_escrows`、`daily_orders` 与 `max_open_per_payer`，并加入授权、账本读取、账本出金的每分钟额度和每个调用方的账本份额；governance 用 `admin_set_limits`（含预演）整体替换。`MAX_PAYMENT_ESCROWS` 从 1 万提高到 1,000 万：认证树已在 stable memory，升级不扫描订单，主机构建镜像实测 10 万与 100 万单的升级分别为 154 万与 162 万条指令，每单约 3.2 KB stable memory，见 [payment README](../src/dmsg_payment/README.md)。新增 `payment_config`、`payment_stats` 与 `list_pending_transfers`：最后一个按 `created_at_time` 从旧到新列出所有未完成的出金腿，供出金派发任务在账本 24 小时去重窗口内派发；客户端在 `finalize_receipt` 后立即派发收件人和平台出金。管理方法修改配置后立即持久化，不再依赖 `pre_upgrade`。开单时付款方已过 `accept_by` 仍未决定的订单先写入退款决定，放弃付款的订单不再占用名额。`claim_refund` 只接受付款 Principal 或被退款账户的 owner。新增 `canister_inspect_message`，拒绝非管理员的管理 ingress 和匿名的开单、退款领取与出金修订。稳定布局为 payment schema 12，开发实例须重装。
+
+## 2026-10-08 membership 上线准备
+
+`MembershipInit` 删除 `expected_governance_module_hash`，`set_sns_governance_module_hash` 及其预演一并删除。主网 PANDA SNS 开启了自动升级，固定的 governance 模块哈希会在每次升级后失配，中断全部 PANDA 资格。SNS 配置核验改为只核对固定的 root、governance、ledger 与八位精度，不再调用 `canister_info`；信任锚是安装时审阅的这三个 ID。资格判定不再要求 actor 是唯一的经济控制人：actor 只需列在神经元的 principal 中（例如 NNS dapp 添加的热键），其他 principal 的权限不限，跨产品的唯一占用照旧防止一个神经元支撑两份权益。主网抽样的 100 个 PANDA 神经元中，97 个所有者持有 SNS 授予的 `Unspecified`（0）权限，原规则会把它们全部判为不可核验。客户端结账面板提示用户先把经济身份添加为神经元热键。
+
+完整记录上限从 10 万提高到 100 万，累计操作上限从 100 万提高到 1,000 万。`PandaServiceConfig` 新增 `authorizations_per_minute` 与 `product_calls_per_minute`，取代代码中固定的每分钟 200 次；激活另有与授权同样大小的预算，报价不会挤占已接受申请的激活。新增 `membership_stats`（占用数、完整记录、tombstone、稳定内存页、cycles）。`sweep_panda_commitments` 返回释放与压缩之和，维护任务调用到返回 0。`cancel_panda_application` 写入取消后总是返回视图，未完成的释放由 `reconcile_panda_claim` 重试。
+
+新增主机构建镜像的容量 profile：10 万与 100 万条 `Active` 申请分别占 520 MB 与 4.7 GB 稳定内存，升级约 130 万条指令且与规模无关；一次刷新从 2,195 万增加到 2,337 万 cycles，一次 sweep（释放 32、压缩 32）从 2.4 亿增加到 3.0 亿 cycles，见 [membership README](../src/membership/README.md)。稳定布局保持 membership schema 3，旧配置中多出的字段在解码时被忽略。

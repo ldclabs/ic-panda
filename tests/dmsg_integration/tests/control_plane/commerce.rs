@@ -402,17 +402,19 @@ struct TestNeuron {
     neuron_fees_e8s: u64,
     dissolve_state: Option<TestDissolve>,
 }
-fn neuron(f: &Fixture, stake: u64, other: bool) {
-    let mut permissions = vec![TestPermission {
-        principal: Some(person(1)),
-        permission_type: vec![1, 2, 4, 5, 6],
-    }];
-    if other {
-        permissions.push(TestPermission {
+/// A neuron staked through the NNS dapp: person 2 holds every claimer permission,
+/// including Unspecified (0), and the actor is a hotkey with SubmitProposal and Vote.
+fn neuron(f: &Fixture, stake: u64) {
+    let permissions = vec![
+        TestPermission {
             principal: Some(person(2)),
-            permission_type: vec![2],
-        });
-    }
+            permission_type: (0..=10).collect(),
+        },
+        TestPermission {
+            principal: Some(person(1)),
+            permission_type: vec![3, 4],
+        },
+    ];
     void(
         &f.ic,
         f.sns,
@@ -431,7 +433,7 @@ fn neuron(f: &Fixture, stake: u64, other: bool) {
 fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early() {
     let f = Fixture::commercial();
     let id = f.create(1);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let bill = offer(&f, &id, 90);
     let r: Result<PandaApplicationTerms> = update(
         &f.ic,
@@ -528,7 +530,7 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         (active.claim_id,),
     );
     assert_eq!(exit, Err(Error::Forbidden));
-    neuron(&f, 100, false);
+    neuron(&f, 100);
     f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
     let r: Result<PandaClaimView> = update(
         &f.ic,
@@ -727,7 +729,7 @@ fn independent_account_adapter_lost_apply_ack_and_cash_panda_race_share_one_cont
     );
     let opened = opened.unwrap();
     assert_eq!(opened.progress.status, CheckoutStatus::AwaitingFunding);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let terms: Result<PandaApplicationTerms> = update(
         &f.ic,
         f.membership,
@@ -820,7 +822,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
     let f = Fixture::commercial();
     let account = f.create(1);
     let (home, id) = sample(&f);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let prepared = sample_offer(&f, home, &id, 120, SettlementMethod::Panda);
     let terms: Result<PandaApplicationTerms> = update(
         &f.ic,
@@ -1123,105 +1125,10 @@ fn known_fee_rejection_can_revise_only_within_original_cap_and_pause_keeps_refun
 }
 
 #[test]
-fn a_governance_module_pin_changed_during_neuron_read_never_issues_a_lease() {
-    let f = Fixture::commercial();
-    let id = f.create(1);
-    neuron(&f, 100_000_000_000_100, false);
-    let bill = offer(&f, &id, 160);
-    let terms: Result<PandaApplicationTerms> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "quote_panda_subscription",
-        (bill.clone(), f.user, id, Hash::new([44; 32])),
-    );
-    let terms = terms.unwrap();
-    let authorization = approve(
-        &f,
-        &id,
-        &bill,
-        f.membership,
-        ApprovalPurpose::PandaSubscription,
-        panda_application_hash(&terms),
-        161,
-    );
-    void(
-        &f.ic,
-        f.sns,
-        person(1),
-        "change_pin_on_neuron_read",
-        (f.membership, Hash::new([162; 32])),
-    );
-    let r: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "request_panda_claim",
-        (PandaClaimRequest {
-            terms,
-            authorization,
-        },),
-    );
-    let claim = r.unwrap();
-    assert_eq!(claim.status, PandaClaimStatus::Checking);
-    assert_eq!(claim.eligibility, Eligibility::Unverifiable);
-    assert!(claim.cooling_until_ms.is_none());
-    assert!(claim.valid_until_ms <= time(&f.ic));
-    let r: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "cancel_panda_application",
-        (claim.claim_id,),
-    );
-    assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
-    // A pinned module is checked through canister_info, including its sole root controller.
-    let verified: Result<()> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "verify_sns_configuration",
-        (),
-    );
-    assert_eq!(verified, Err(Error::UnsupportedProtocol));
-    let module =
-        f.ic.canister_status(f.sns, None)
-            .unwrap()
-            .module_hash
-            .unwrap();
-    let module = Hash::new(module.as_slice().try_into().unwrap());
-    let r: Result<()> = update(
-        &f.ic,
-        f.membership,
-        f.sns,
-        "set_sns_governance_module_hash",
-        (module,),
-    );
-    r.unwrap();
-    let verified: Result<()> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "verify_sns_configuration",
-        (),
-    );
-    assert_eq!(verified, Err(Error::UnsupportedProtocol));
-    f.ic.set_controllers(f.sns, None, vec![f.sns]).unwrap();
-    let verified: Result<()> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "verify_sns_configuration",
-        (),
-    );
-    verified.unwrap();
-}
-
-#[test]
 fn cancelled_applications_do_not_consume_claim_capacity() {
     let f = Fixture::commercial();
     let id = f.create(1);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let r: Result<()> = update(
         &f.ic,
         f.membership,
@@ -1236,6 +1143,8 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
+            authorizations_per_minute: 200,
+            product_calls_per_minute: 200,
         },),
     );
     r.unwrap();
@@ -1291,7 +1200,7 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
     let f = Fixture::commercial();
     let account = f.create(1);
     let (home, subject) = sample(&f);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let r: Result<()> = update(
         &f.ic,
         f.membership,
@@ -1306,6 +1215,8 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
+            authorizations_per_minute: 200,
+            product_calls_per_minute: 200,
         },),
     );
     r.unwrap();
@@ -1743,7 +1654,7 @@ fn cash_leases_last_thirty_days_and_renew_inside_the_window() {
 
 /// An active PANDA subscription; uses operations `op` to `op + 2`.
 fn activate_panda(f: &Fixture, id: &AccountId, op: u8) -> PandaClaimView {
-    neuron(f, 100_000_000_000_100, false);
+    neuron(f, 100_000_000_000_100);
     let bill = offer(f, id, op);
     let r: Result<PandaApplicationTerms> = update(
         &f.ic,
@@ -2151,6 +2062,8 @@ fn a_second_commerce_instance_serves_its_own_user_home() {
             hourly_applications: 100,
             cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
+            authorizations_per_minute: 200,
+            product_calls_per_minute: 200,
         },),
     );
     r.unwrap();

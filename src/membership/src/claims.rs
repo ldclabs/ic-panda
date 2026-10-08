@@ -252,7 +252,6 @@ async fn qualify(id: Hash, at: u64, activating: bool) -> Result<()> {
     c.busy_until_ms = at + MINUTE;
     let generation = c.generation;
     save(&mut c, at);
-    let verification_pin = store::config().init;
     let verified = crate::api::fresh_sns(at).await;
     ensure(load(id)?.generation == generation, Error::VersionConflict)?;
     if let Err(e @ (Error::Pending | Error::QuotaExceeded)) = verified {
@@ -282,11 +281,10 @@ async fn qualify(id: Hash, at: u64, activating: bool) -> Result<()> {
     ensure(current.generation == generation, Error::VersionConflict)?;
     current.busy_until_ms = 0;
     // The observation starts at `at`, never at the delayed callback time.
-    let config = store::config();
     let eligibility = match result {
         Ok(sns::GetNeuronResponse {
             result: Some(sns::NeuronResult::Neuron(n)),
-        }) if config.init == verification_pin && config.sns_fresh(now) => sns::assess(
+        }) if store::config().sns_fresh(now) => sns::assess(
             &n,
             current.view.terms.neuron_id,
             current.view.terms.actor,
@@ -335,7 +333,7 @@ async fn advance_panda_claim(
             && at < c.view.terms.quote.application_deadline_ms,
         Error::Pending,
     )?;
-    store::reserve_call(at, store::CallBudget::Authorization(caller))?;
+    store::reserve_call(at, store::CallBudget::Activation(caller))?;
     let at = reserve_product(id, at).await?;
     qualify(id, at, true).await?;
     let checked = load(id)?;
@@ -435,7 +433,9 @@ async fn cancel_panda_application(id: Hash) -> Result<PandaClaimView> {
     actor(&c, ic_cdk::api::msg_caller())?;
     c.cancel()?;
     save(&mut c, at);
-    release_product(id, at).await?;
+    // The cancellation is already durable. A release this call cannot finish, such as
+    // one waiting for an in-flight reservation, is retried by `reconcile_panda_claim`.
+    let _ = release_product(id, at).await;
     Ok(load(id)?.view)
 }
 

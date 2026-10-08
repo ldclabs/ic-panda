@@ -95,7 +95,7 @@ fn product_calls_have_one_inflight_request_and_per_actor_and_global_budgets() {
     let id = Hash::new([1; 32]);
     let guard = product_call(id, actor, at).unwrap();
     assert!(matches!(product_call(id, actor, at), Err(Error::Pending)));
-    assert_eq!(LIMITS.with_borrow(|l| l.products), 1);
+    assert_eq!(LIMITS.with_borrow(|l| l.products.used), 1);
     drop(guard);
     for _ in 1..10 {
         drop(product_call(id, actor, at).unwrap());
@@ -116,6 +116,27 @@ fn product_calls_have_one_inflight_request_and_per_actor_and_global_budgets() {
         Err(Error::QuotaExceeded)
     ));
     drop(product_call(id, actor, at + MINUTE).unwrap());
+}
+
+#[test]
+fn quotes_exhausting_the_authorization_budget_leave_activations_available() {
+    let at = fixture::base::NOW;
+    let caller = |i: u64| Principal::from_slice(&(i + 2000).to_be_bytes());
+    for i in 0..200 {
+        reserve_call(at, CallBudget::Authorization(caller(i))).unwrap();
+    }
+    assert_eq!(
+        reserve_call(at, CallBudget::Authorization(caller(200))),
+        Err(Error::QuotaExceeded)
+    );
+    for _ in 0..10 {
+        reserve_call(at, CallBudget::Activation(caller(0))).unwrap();
+    }
+    assert_eq!(
+        reserve_call(at, CallBudget::Activation(caller(0))),
+        Err(Error::QuotaExceeded)
+    );
+    reserve_call(at, CallBudget::Activation(caller(1))).unwrap();
 }
 
 #[test]

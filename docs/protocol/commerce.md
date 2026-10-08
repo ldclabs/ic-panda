@@ -150,12 +150,13 @@ New policy versions strictly increase, including after superseded records are
 pruned. Retrying a retained version with identical business fields returns its
 original publication timestamp; a retry never starts a new notice interval.
 
-The service verifies the pinned SNS root/governance/ledger, eight decimals and,
-when pinned (required outside Local), the approved governance Wasm hash and SNS
-root as its sole controller via `canister_info`. Unknown permission semantics
-or unverifiable module/response data is `Unverifiable`. The economic actor must
-hold the relevant native economic permissions, with no other economic
-controller; voting permission alone is insufficient. Net principal stake must
+The service verifies the pinned SNS root/governance/ledger and eight decimals.
+The governance module is not pinned: the SNS upgrades itself to NNS-approved
+versions, and a `get_neuron` reply the service cannot decode is `Unverifiable`.
+The economic actor only has to be listed among the neuron's principals, with
+any permissions, such as a hotkey; other principals, including the owner, may
+hold any permissions, and the global occupancy keeps one neuron from supporting
+two benefits. Net principal stake must
 meet the quote, and the earliest possible unlock must not precede E, so the
 neuron stays locked for the whole paid interval `[start, E)`. This is
 qualification, not physical SNS custody. A claim reuses an observation for one
@@ -187,8 +188,12 @@ only initial/new post-cooling approval can create a new device approval.
 
 Temporary product reservation failures preserve the accepted application for
 reconciliation. Reserve, receipt lookup, Apply and release each consume the
-product-call budget only when dispatched: 200 per UTC minute globally and 10 per
-economic actor. One in-flight product call sequence is allowed per claim; an
+product-call budget only when dispatched: `product_calls_per_minute` globally
+and 10 per economic actor. Quotes and applications share
+`authorizations_per_minute`; activations have a separate budget of the same
+size, so quotes cannot crowd out accepted applications. All three budgets are
+governed in `PandaServiceConfig` and are 200 until the service is configured.
+One in-flight product call sequence is allowed per claim; an
 overlapping retry returns `Pending`. Admission pause does not disable recovery.
 Only one SNS configuration verification is dispatched at a time; concurrent
 callers receive `Pending` and can reuse its cached result on retry.
@@ -196,10 +201,10 @@ callers receive `Pending` and can reuse its cached result on retry.
 Full terminal records are retained for 30 days after the later of the terminal
 transition and application deadline. The bounded commitment sweep also compacts
 up to 32 due terminal records, retaining the immutable operation digest. Its
-return value counts released commitments, not compacted history. Compacted
+return value counts both, so maintenance repeats it until zero. Compacted
 claims return `ResultExpired`; same-ID/different-terms retries remain conflicts.
 Open commitments and unknown Apply decisions are not compacted. Admission caps
-full records at 100,000 and total retained operation identities at 1,000,000;
+full records at 1,000,000 and total retained operation identities at 10,000,000;
 these bounds are not production capacity claims. Operations pagination uses
 reader indexes and includes a cursor only when more accessible full records
 remain. Archived claim certificate leaves are removed.

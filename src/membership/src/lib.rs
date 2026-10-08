@@ -1,4 +1,6 @@
 mod api;
+#[cfg(test)]
+mod capacity;
 mod claim;
 mod claims;
 #[cfg(test)]

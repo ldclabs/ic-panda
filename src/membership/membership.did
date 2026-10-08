@@ -201,8 +201,6 @@ type Error = variant {
 };
 // Shared qualification service deployment and admission limits.
 type MembershipInit = record {
-  // Reviewed SNS governance module hash. Required outside Local fixtures.
-  expected_governance_module_hash : opt blob;
   // Pinned eight-decimal PANDA ledger.
   panda_ledger : principal;
   // Pinned SNS root.
@@ -211,6 +209,21 @@ type MembershipInit = record {
   environment : Environment;
   // PANDA SNS governance and this service's governance authority.
   governance : principal;
+};
+// Record counts and resources of the membership canister, read against
+// `PandaServiceConfig` to see how much admission headroom remains.
+type MembershipStats = record {
+  // Claims occupying a neuron, including unresolved Apply; counted against `max_claims`.
+  live_claims : nat64;
+  // Cycle balance.
+  cycles : nat;
+  // Stable memory in 64 KiB pages.
+  stable_pages : nat64;
+  // Complete records, live or retained after a terminal state; at most 1,000,000.
+  full_claims : nat64;
+  // Compacted operations whose claim ID stays reserved; together with the
+  // complete records at most 10,000,000.
+  tombstones : nat64;
 };
 // Complete neuron, economic owner, dMsg account and bill selected before device approval.
 type PandaApplicationTerms = record {
@@ -330,10 +343,16 @@ type PandaRatePolicy = record {
 // Deployment-wide service limits, independent of product plan names.
 type PandaServiceConfig = record {
   // Maximum claims simultaneously occupying a neuron, including unresolved Apply decisions.
-  // Must not exceed the service's 100,000 full-record limit.
+  // Must not exceed the service's 1,000,000 full-record limit.
   max_claims : nat64;
+  // Product adapter calls (reserve, release, apply, decision lookup) per UTC
+  // minute; each actor may use ten per minute.
+  product_calls_per_minute : nat64;
   // Successful new applications per UTC hour.
   hourly_applications : nat64;
+  // Quote and application calls per UTC minute; activations have a separate
+  // budget of the same size. Each actor may use ten of either per minute.
+  authorizations_per_minute : nat64;
   // SNS neuron reads per UTC minute; every active claim needs about one per hour.
   qualifications_per_minute : nat64;
   // At least 65 minutes; changing it cannot shorten an accepted application's cooling.
@@ -438,6 +457,8 @@ service : (MembershipInit) -> {
   configure_panda_service : (PandaServiceConfig) -> (Result_1);
   get_panda_claim : (blob) -> (Result) query;
   get_panda_claim_for_product : (blob) -> (Result);
+  // Record counts against the service limits, with the stable size and cycle balance.
+  membership_stats : () -> (MembershipStats) query;
   panda_claim_certificate : (blob) -> (Result_2) query;
   panda_operations : (opt blob, nat16) -> (Result_3) query;
   quote_panda_subscription : (BillingOffer, principal, blob, blob) -> (
@@ -450,12 +471,11 @@ service : (MembershipInit) -> {
   schedule_panda_rate : (PandaRatePolicy) -> (Result_5);
   // Pause or resume new PANDA applications; existing claims keep refreshing.
   set_admission_pause : (bool) -> (Result_1);
-  // Pin a reviewed SNS governance module; qualification is re-verified before use.
-  set_sns_governance_module_hash : (blob) -> (Result_1);
+  // Release due commitments and compact due history, at most 32 of each per call;
+  // returns how many were processed, so a maintenance job repeats until zero.
   sweep_panda_commitments : () -> (Result_6);
   validate_configure_panda_service : (PandaServiceConfig) -> (Result_7) query;
   validate_schedule_panda_rate : (PandaRatePolicy) -> (Result_7) query;
   validate_set_admission_pause : (bool) -> (Result_7) query;
-  validate_set_sns_governance_module_hash : (blob) -> (Result_7) query;
   verify_sns_configuration : () -> (Result_1);
 }

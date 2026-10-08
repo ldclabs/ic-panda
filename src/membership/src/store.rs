@@ -6,7 +6,11 @@ use dmsg_runtime::{
     cert_map::CertMap,
     storage::{MapExt, Stored},
 };
-use dmsg_types::{integration_membership::*, membership::MembershipInit, *};
+use dmsg_types::{
+    integration_membership::*,
+    membership::{MembershipInit, MembershipStats},
+    *,
+};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
@@ -23,8 +27,8 @@ pub const STABLE_SCHEMA: u16 = 3;
 /// A successful SNS verification is reused for one hour.
 const SNS_FRESH_MS: u64 = 60 * MINUTE;
 /// Hard bounds include historical operations, independently of live admission limits.
-pub const MAX_FULL_CLAIMS: u64 = 100_000;
-const MAX_OPERATIONS: u64 = 1_000_000;
+pub const MAX_FULL_CLAIMS: u64 = 1_000_000;
+const MAX_OPERATIONS: u64 = 10_000_000;
 const HISTORY_RETENTION_MS: u64 = 30 * DAY;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -64,16 +68,44 @@ impl Config {
     }
 }
 
+/// Calls one actor may make per minute from each shared budget.
+const ACTOR_CALLS_PER_MINUTE: u32 = 10;
+
 /// Heap-only window; an upgrade simply starts a new minute.
 #[derive(Default)]
 struct Limits {
     minute: u64,
     qualifications: u32,
     refreshes: u32,
-    authorizations: u32,
+    authorizations: Shared,
+    activations: Shared,
+    products: Shared,
+}
+
+/// One minute of a global budget, of which each actor has a fixed share.
+#[derive(Default)]
+struct Shared {
+    used: u32,
     actors: BTreeMap<Principal, u32>,
-    products: u32,
-    product_actors: BTreeMap<Principal, u32>,
+}
+
+impl Shared {
+    fn take(&mut self, actor: Principal, limit: u32) -> Result<()> {
+        ensure(self.used < limit, Error::QuotaExceeded)?;
+        take(
+            self.actors.entry(actor).or_default(),
+            ACTOR_CALLS_PER_MINUTE,
+        )?;
+        self.used += 1;
+        Ok(())
+    }
+}
+
+/// Per-minute budgets of `PandaServiceConfig`; each is 200 until the service is configured.
+struct Budgets {
+    sns_reads: u32,
+    authorizations: u32,
+    product_calls: u32,
 }
 
 thread_local! {
@@ -90,9 +122,11 @@ thread_local! {
     static TOMBSTONES: RefCell<StableBTreeMap<Vec<u8>, Stored<Hash>, Memory>> = RefCell::new(StableBTreeMap::init(memory(7)));
     static READERS: RefCell<StableBTreeMap<Vec<u8>, (), Memory>> = RefCell::new(StableBTreeMap::init(memory(8)));
     static PRODUCT_CALLS: RefCell<BTreeSet<Hash>> = const { RefCell::new(BTreeSet::new()) };
+    // Stable memory itself; on the host a shared vector the capacity image exports.
+    pub(crate) static RAW: DefaultMemoryImpl = DefaultMemoryImpl::default();
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         // 8 MiB buckets; 32,768 buckets address up to 256 GiB of stable data.
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(MemoryManager::init(RAW.with(Clone::clone)));
     static CONFIG: RefCell<StableCell<Stored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), Stored(None)));
     static LIMITS: RefCell<Limits> = RefCell::new(Limits::default());
@@ -122,7 +156,10 @@ pub fn admin(caller: Principal) -> Result<Config> {
 }
 
 pub enum CallBudget {
+    /// Quotes and new applications.
     Authorization(Principal),
+    /// Activation of an accepted application, apart from quotes so they cannot crowd it out.
+    Activation(Principal),
     Qualification,
     Refresh,
     Product(Principal),
@@ -134,21 +171,26 @@ fn take(used: &mut u32, limit: u32) -> Result<()> {
     Ok(())
 }
 
-/// SNS reads per minute; the default applies until the service is configured.
-fn sns_reads_per_minute() -> u32 {
+fn budgets() -> Budgets {
+    let limit = |v: u64| u32::try_from(v).unwrap_or(u32::MAX);
     CONFIG.with_borrow(|c| {
-        c.get()
-            .0
-            .as_ref()
-            .and_then(|c| c.service.as_ref())
-            .map_or(200, |s| {
-                u32::try_from(s.qualifications_per_minute).unwrap_or(u32::MAX)
-            })
+        c.get().0.as_ref().and_then(|c| c.service.as_ref()).map_or(
+            Budgets {
+                sns_reads: 200,
+                authorizations: 200,
+                product_calls: 200,
+            },
+            |s| Budgets {
+                sns_reads: limit(s.qualifications_per_minute),
+                authorizations: limit(s.authorizations_per_minute),
+                product_calls: limit(s.product_calls_per_minute),
+            },
+        )
     })
 }
 
 pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
-    let sns_reads = sns_reads_per_minute();
+    let b = budgets();
     LIMITS.with_borrow_mut(|c| {
         if c.minute != at / MINUTE {
             *c = Limits {
@@ -157,20 +199,11 @@ pub fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
             };
         }
         match kind {
-            CallBudget::Authorization(actor) => {
-                ensure(c.authorizations < 200, Error::QuotaExceeded)?;
-                take(c.actors.entry(actor).or_default(), 10)?;
-                c.authorizations += 1;
-                Ok(())
-            }
-            CallBudget::Qualification => take(&mut c.qualifications, sns_reads),
-            CallBudget::Refresh => take(&mut c.refreshes, sns_reads),
-            CallBudget::Product(actor) => {
-                ensure(c.products < 200, Error::QuotaExceeded)?;
-                take(c.product_actors.entry(actor).or_default(), 10)?;
-                c.products += 1;
-                Ok(())
-            }
+            CallBudget::Authorization(actor) => c.authorizations.take(actor, b.authorizations),
+            CallBudget::Activation(actor) => c.activations.take(actor, b.authorizations),
+            CallBudget::Qualification => take(&mut c.qualifications, b.sns_reads),
+            CallBudget::Refresh => take(&mut c.refreshes, b.sns_reads),
+            CallBudget::Product(actor) => c.products.take(actor, b.product_calls),
         }
     })
 }
@@ -353,6 +386,8 @@ pub fn check_occupancy(terms: &PandaApplicationTerms, at: u64) -> Result<()> {
     )
 }
 
+/// Release up to 32 due commitments and compact up to 32 due terminal records;
+/// returns both counts together, so a caller repeats until it is zero.
 pub fn sweep(at: u64) -> Result<u32> {
     let ids: Vec<Hash> = EXPIRATIONS.with_borrow(|t| {
         t.range(..=expiry_key(at, Hash::new([255; 32])))
@@ -360,15 +395,13 @@ pub fn sweep(at: u64) -> Result<u32> {
             .map(|v| v.value().0)
             .collect()
     });
-    let mut released = 0;
+    let released = ids.len() as u32;
     for id in ids {
         let mut c = load(id)?;
         c.expire(at)?;
         save(&mut c, at);
-        released += 1;
     }
-    prune_history(at);
-    Ok(released)
+    Ok(released + prune_history(at))
 }
 
 /// Compact a bounded batch of terminal claims, retaining immutable operation digests.
@@ -396,9 +429,23 @@ fn prune_history(at: u64) -> u32 {
     due.len() as u32
 }
 
+/// Release due commitments and compact due history, at most 32 of each per call;
+/// returns how many were processed, so a maintenance job repeats until zero.
 #[ic_cdk::update]
 fn sweep_panda_commitments() -> Result<u32> {
     sweep(nanos_to_millis(ic_cdk::api::time()))
+}
+
+/// Record counts against the service limits, with the stable size and cycle balance.
+#[ic_cdk::query]
+fn membership_stats() -> MembershipStats {
+    MembershipStats {
+        live_claims: live_claims(),
+        full_claims: CLAIMS.with_borrow(|t| t.len()),
+        tombstones: TOMBSTONES.with_borrow(|t| t.len()),
+        stable_pages: ic_cdk::api::stable_size(),
+        cycles: ic_cdk::api::canister_cycle_balance(),
+    }
 }
 
 #[ic_cdk::query]

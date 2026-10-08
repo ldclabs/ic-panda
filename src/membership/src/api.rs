@@ -1,9 +1,8 @@
 //! Initialization, governance configuration and SNS interface verification.
 use crate::{sns, store};
-use dmsg_protocol::{authenticated, nonzero};
-use dmsg_runtime::admin::{self, hex, validation, Validation};
+use dmsg_protocol::authenticated;
+use dmsg_runtime::admin::{self, validation, Validation};
 use dmsg_types::{integration::*, integration_membership::PandaServiceConfig, membership::*, *};
-use ic_cdk_management_canister::{canister_info, CanisterInfoArgs};
 use std::cell::Cell;
 
 thread_local! {
@@ -22,15 +21,6 @@ impl Drop for Verification {
 fn init(args: MembershipInit) {
     for id in [args.governance, args.sns_root, args.panda_ledger] {
         authenticated(id).expect("service pin");
-    }
-    if args.environment != Environment::Local {
-        nonzero(
-            args.expected_governance_module_hash
-                .as_ref()
-                .expect("reviewed SNS governance module")
-                .as_slice(),
-        )
-        .expect("module pin");
     }
     store::save_config(&store::Config {
         schema: store::STABLE_SCHEMA,
@@ -53,40 +43,29 @@ fn post_upgrade() {
         "explicit stable-state migration required"
     );
     store::publish();
+    ic_cdk::println!(
+        "membership_upgrade live_claims={} instructions={}",
+        store::live_claims(),
+        ic_cdk::api::instruction_counter()
+    );
 }
 
-/// Root listing, ledger decimals and, when pinned, the governance module and sole root controller.
+/// The pinned root lists the pinned governance and ledger, and the ledger has eight decimals.
+/// The governance module is not pinned: the SNS upgrades it to NNS-approved versions on its
+/// own, and a reply the neuron projection cannot read is unverifiable.
 async fn verify_sns(at: u64) -> Result<()> {
-    let before = store::config();
-    let reply: sns::SnsCanisters = dmsg_runtime::call(
-        before.init.sns_root,
-        "list_sns_canisters",
-        (sns::ListRequest {},),
-    )
-    .await?;
+    let init = store::config().init;
+    let reply: sns::SnsCanisters =
+        dmsg_runtime::call(init.sns_root, "list_sns_canisters", (sns::ListRequest {},)).await?;
     ensure(
-        reply.root == Some(before.init.sns_root)
-            && reply.governance == Some(before.init.governance)
-            && reply.ledger == Some(before.init.panda_ledger),
+        reply.root == Some(init.sns_root)
+            && reply.governance == Some(init.governance)
+            && reply.ledger == Some(init.panda_ledger),
         Error::IntegrityFailed,
     )?;
-    let decimals: u8 = dmsg_runtime::call(before.init.panda_ledger, "icrc1_decimals", ()).await?;
+    let decimals: u8 = dmsg_runtime::call(init.panda_ledger, "icrc1_decimals", ()).await?;
     ensure(decimals == 8, Error::UnsupportedProtocol)?;
-    if let Some(expected) = &before.init.expected_governance_module_hash {
-        let info = canister_info(&CanisterInfoArgs {
-            canister_id: before.init.governance,
-            num_requested_changes: None,
-        })
-        .await
-        .map_err(|_| Error::Unavailable("governance canister_info".into()))?;
-        ensure(
-            info.module_hash.as_deref() == Some(expected.as_slice())
-                && info.controllers == [before.init.sns_root],
-            Error::UnsupportedProtocol,
-        )?;
-    }
     let mut current = store::config();
-    ensure(current.init == before.init, Error::PolicyStale)?;
     if at >= current.sns_verified_at_ms {
         current.sns_verified = true;
         current.sns_verified_at_ms = at;
@@ -139,32 +118,6 @@ fn validate_set_admission_pause(paused: bool) -> Validation {
     ))
 }
 
-/// Pin a reviewed SNS governance module; qualification is re-verified before use.
-#[ic_cdk::update]
-fn set_sns_governance_module_hash(hash: Hash) -> Result<()> {
-    let mut c = store::admin(ic_cdk::api::msg_caller())?;
-    nonzero(hash.as_slice())?;
-    c.init.expected_governance_module_hash = Some(hash);
-    c.sns_verified = false;
-    store::save_config(&c);
-    Ok(())
-}
-
-#[ic_cdk::query]
-fn validate_set_sns_governance_module_hash(hash: Hash) -> Validation {
-    let c = store::config();
-    validation(nonzero(hash.as_slice()).map(|()| {
-        format!(
-            "Pin SNS governance {} to module hash {} (currently {}) and re-verify the SNS before new applications.",
-            c.init.governance,
-            hex(hash.as_slice()),
-            c.init
-                .expected_governance_module_hash
-                .map_or("unpinned".into(), |h| hex(h.as_slice())),
-        )
-    }))
-}
-
 fn check_service(c: &store::Config, next: &PandaServiceConfig) -> Result<()> {
     let homes = &next.commerce_homes;
     ensure_valid(
@@ -187,7 +140,13 @@ fn check_service(c: &store::Config, next: &PandaServiceConfig) -> Result<()> {
             && next.hourly_applications <= 10_000
             && next.cooling_ms >= PANDA_COOLING_MS
             && next.cooling_ms < APPLICATION_TTL_MS
-            && (1..=100_000).contains(&next.qualifications_per_minute),
+            && [
+                next.qualifications_per_minute,
+                next.authorizations_per_minute,
+                next.product_calls_per_minute,
+            ]
+            .iter()
+            .all(|v| (1..=100_000).contains(v)),
         "PANDA limits",
     )?;
     if let Some(old) = &c.service {
@@ -220,12 +179,14 @@ fn validate_configure_panda_service(next: PandaServiceConfig) -> Validation {
             .map(|h| format!("{} -> {}", h.user_home, h.commerce_canister))
             .collect();
         format!(
-            "Configure the PANDA service for user homes [{}]: at most {} claims, {} applications per hour, {} ms cooling, {} SNS reads per minute.{}",
+            "Configure the PANDA service for user homes [{}]: at most {} claims, {} applications per hour, {} ms cooling; per minute {} SNS reads, {} authorizations and as many activations, {} product calls.{}",
             homes.join(", "),
             next.max_claims,
             next.hourly_applications,
             next.cooling_ms,
             next.qualifications_per_minute,
+            next.authorizations_per_minute,
+            next.product_calls_per_minute,
             admin::unchanged(c.service.as_ref() != Some(&next), "Already set"),
         )
     }))

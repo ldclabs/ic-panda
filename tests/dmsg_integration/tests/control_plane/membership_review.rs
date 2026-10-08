@@ -142,7 +142,7 @@ fn mock_request(f: &Fixture, id: AccountId) -> PandaClaimRequest {
 fn temporary_reservation_failures_retry_with_limits_and_archive_without_replaying() {
     let f = Fixture::commercial();
     let account = f.create(1);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let request = mock_request(&f, account);
     let id = panda_claim_id(&request.terms);
     let unavailable = Error::Unavailable("temporary product authority".into());
@@ -303,7 +303,10 @@ fn cancellation_during_reservation_ignores_late_errors_and_unlocks_recovery() {
         (request,),
     );
     assert_eq!(result.unwrap().status, PandaClaimStatus::Cancelled);
-    assert!(counters(&f).2);
+    // The reentrant cancellation returned its durable view; the release it could
+    // not make beside the in-flight reservation waits for reconciliation.
+    assert!(!counters(&f).2);
+    assert_eq!(counters(&f).1, 0);
     let recovered: Result<PandaClaimView> = update(
         &f.ic,
         f.membership,
@@ -320,7 +323,7 @@ fn cancellation_during_reservation_ignores_late_errors_and_unlocks_recovery() {
 fn activation_rechecks_a_neuron_observed_just_before_cooling_ended() {
     let f = Fixture::commercial();
     let account = f.create(1);
-    neuron(&f, 100_000_000_000_100, false);
+    neuron(&f, 100_000_000_000_100);
     let bill = offer(&f, &account, 220);
     let terms: Result<PandaApplicationTerms> = update(
         &f.ic,
@@ -361,7 +364,7 @@ fn activation_rechecks_a_neuron_observed_just_before_cooling_ended() {
     );
     assert!(checked.unwrap().observed_at_ms < ready);
     let reads = counters(&f).4;
-    neuron(&f, 0, false);
+    neuron(&f, 0);
     f.ic.advance_time(Duration::from_millis(ready - time(&f.ic) + 1));
     let fresh = approve(
         &f,
@@ -419,14 +422,8 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
         .iter()
         .all(|r| r.is_ok() || *r == Err(Error::Pending)));
     assert_eq!(counters(&f).3, start + 1);
-    let pin: Result<()> = update(
-        &f.ic,
-        f.membership,
-        f.sns,
-        "set_sns_governance_module_hash",
-        (Hash::new([33; 32]),),
-    );
-    pin.unwrap();
+    void(&f.ic, f.sns, person(1), "set_decimals", (6u8,));
+    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
     let results = run();
     assert_eq!(
         results
@@ -439,20 +436,7 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
         .iter()
         .all(|r| *r == Err(Error::UnsupportedProtocol) || *r == Err(Error::Pending)));
     assert_eq!(counters(&f).3, start + 2);
-    let hash =
-        f.ic.canister_status(f.sns, None)
-            .unwrap()
-            .module_hash
-            .unwrap();
-    f.ic.set_controllers(f.sns, None, vec![f.sns]).unwrap();
-    let pin: Result<()> = update(
-        &f.ic,
-        f.membership,
-        f.sns,
-        "set_sns_governance_module_hash",
-        (Hash::new(hash.try_into().unwrap()),),
-    );
-    pin.unwrap();
+    void(&f.ic, f.sns, person(1), "set_decimals", (8u8,));
     let results = run();
     assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
     assert!(results
@@ -474,7 +458,6 @@ fn nonlocal_rate_retry_and_pruned_version_identity_survive_upgrade() {
             governance: person(1),
             sns_root: person(2),
             panda_ledger: person(3),
-            expected_governance_module_hash: Some(Hash::new([1; 32])),
         },))
         .unwrap(),
         None,
@@ -578,7 +561,6 @@ fn membership_verification_profile() {
                 governance: sns,
                 sns_root: sns,
                 panda_ledger: sns,
-                expected_governance_module_hash: None,
             },))
             .unwrap(),
             None,
@@ -625,5 +607,142 @@ fn membership_verification_profile() {
         if name == "current" {
             assert_eq!(counts.3, 1);
         }
+    }
+}
+
+/// Loads host-built images written by membership's `capacity_image` from
+/// DMSG_MEMBERSHIP_IMAGE_DIR and measures the upgrade, hourly refreshes and
+/// sweeping to zero at that size.
+#[test]
+#[ignore = "100k/1M-claim capacity; build the images with membership capacity_image first"]
+fn membership_capacity_profile() {
+    use dmsg_types::membership::MembershipStats;
+    let dir = PathBuf::from(std::env::var_os("DMSG_MEMBERSHIP_IMAGE_DIR").expect("image dir"));
+    // Matches membership::capacity: fixture time, actors, neurons and 64 due records of each kind.
+    let at = 1_800_000_000_000u64;
+    let actor = |i: u64| Principal::from_slice(&digest("membership capacity actor", &i)[..20]);
+    let neuron_id = |i: u64| digest("membership capacity neuron", &i);
+    for claims in [100_000u64, 1_000_000] {
+        let Ok(file) = std::fs::File::open(dir.join(format!("membership-{claims}.bin"))) else {
+            continue;
+        };
+        let image_bytes = file.metadata().unwrap().len();
+        let ic = PocketIcBuilder::new().with_application_subnet().build();
+        ic.set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            millis_to_nanos(at + MINUTE).unwrap(),
+        ));
+        let sns = ic.create_canister();
+        assert_eq!(
+            sns.to_text(),
+            "xp3jw-ot777-77777-aaaaa-cai",
+            "update membership::capacity::SNS"
+        );
+        let membership = ic.create_canister();
+        for id in [sns, membership] {
+            ic.add_cycles(id, 100_000_000_000_000_000);
+        }
+        ic.install_canister(
+            sns,
+            wasm("dmsg_test_sns"),
+            candid::encode_args(()).unwrap(),
+            None,
+        );
+        // An empty module, so nothing runs against the image before the upgrade.
+        ic.install_canister(membership, b"\0asm\x01\0\0\0".to_vec(), vec![], None);
+        // Streamed and compressed, so a multi-GiB image fits one upload.
+        let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        std::io::copy(&mut std::io::BufReader::new(file), &mut gzip).unwrap();
+        ic.set_stable_memory(
+            membership,
+            gzip.finish().unwrap(),
+            pocket_ic::common::rest::BlobCompression::Gzip,
+        );
+        let cycles = ic.cycle_balance(membership);
+        ic.upgrade_canister(
+            membership,
+            wasm("membership"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        let upgrade_cycles = cycles - ic.cycle_balance(membership);
+        let upgrade = ic
+            .fetch_canister_logs(membership, Principal::anonymous())
+            .unwrap()
+            .into_iter()
+            .map(|l| String::from_utf8_lossy(&l.content).into_owned())
+            .find(|l| l.contains("membership_upgrade"))
+            .unwrap();
+        let stats: MembershipStats = query(&ic, membership, person(1), "membership_stats", ());
+        assert_eq!(
+            (stats.live_claims, stats.full_claims, stats.tombstones),
+            (claims, claims + 64, 0)
+        );
+        // Every lease has ended; an owner's actor renews it with a fresh neuron read.
+        ic.set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            millis_to_nanos(at + 32 * DAY).unwrap(),
+        ));
+        let refresh = |i: u64| -> u128 {
+            void(
+                &ic,
+                sns,
+                person(1),
+                "set_neuron",
+                (Some(TestNeuron {
+                    id: Some(TestNeuronId {
+                        id: neuron_id(i).to_vec(),
+                    }),
+                    permissions: vec![TestPermission {
+                        principal: Some(actor(i)),
+                        permission_type: vec![3, 4],
+                    }],
+                    cached_neuron_stake_e8s: 1_000_000_000_000_000_000,
+                    neuron_fees_e8s: 0,
+                    dissolve_state: Some(TestDissolve::DissolveDelaySeconds(400 * 86_400)),
+                }),),
+            );
+            let page: Result<PandaOperationsPage> = query(
+                &ic,
+                membership,
+                actor(i),
+                "panda_operations",
+                (None::<Hash>, 1u16),
+            );
+            let id = page.unwrap().claims[0].claim_id;
+            let cycles = ic.cycle_balance(membership);
+            let view: Result<PandaClaimView> =
+                update(&ic, membership, actor(i), "refresh_panda_claim", (id,));
+            let view = view.unwrap();
+            assert_eq!(view.eligibility, Eligibility::Eligible);
+            assert!(view.valid_until_ms > at + 32 * DAY);
+            cycles - ic.cycle_balance(membership)
+        };
+        // The first refresh also verifies the SNS configuration, once per hour.
+        let verify_refresh_cycles = refresh(1_000);
+        let refresh_cycles = refresh(claims - 7);
+        let mut sweeps = vec![];
+        loop {
+            let cycles = ic.cycle_balance(membership);
+            let swept: Result<u32> =
+                update(&ic, membership, person(1), "sweep_panda_commitments", ());
+            let swept = swept.unwrap();
+            if swept == 0 {
+                break;
+            }
+            sweeps.push((swept, cycles - ic.cycle_balance(membership)));
+        }
+        // 32 releases and 32 compactions per call: two full calls.
+        assert_eq!(sweeps.iter().map(|s| s.0).collect::<Vec<_>>(), [64, 64]);
+        let stats: MembershipStats = query(&ic, membership, person(1), "membership_stats", ());
+        assert_eq!(
+            (stats.live_claims, stats.full_claims, stats.tombstones),
+            (claims - 64, claims, 64)
+        );
+        println!("{upgrade}");
+        println!(
+            "membership_capacity claims={claims} image_bytes={image_bytes} upgrade_cycles={upgrade_cycles} verify_refresh_cycles={verify_refresh_cycles} refresh_cycles={refresh_cycles} sweep64_cycles={} stable_pages={}",
+            sweeps.iter().map(|s| s.1.to_string()).collect::<Vec<_>>().join("/"),
+            stats.stable_pages,
+        );
     }
 }

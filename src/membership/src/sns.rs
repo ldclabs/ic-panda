@@ -1,5 +1,6 @@
-//! Minimal Candid projection pinned to DFINITY IC 2967c1cc9ba88fd85f196a09d05ea941bbabe830.
-//! rs/sns/governance/proto/ic_sns_governance/pb/v1/governance.proto, permission enum 0..10.
+//! Minimal Candid projection of DFINITY IC 2967c1cc9ba88fd85f196a09d05ea941bbabe830
+//! rs/sns/governance/proto/ic_sns_governance/pb/v1/governance.proto. Only the fields the
+//! qualification reads are decoded; a reply they no longer fit is unverifiable.
 use candid::{CandidType, Principal};
 use dmsg_types::{membership::Eligibility, *};
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,6 @@ pub struct NeuronId {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct NeuronPermission {
     pub principal: Option<Principal>,
-    pub permission_type: Vec<i32>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -62,17 +62,10 @@ pub struct SnsCanisters {
 #[derive(CandidType, Serialize)]
 pub struct ListRequest {}
 
-const CONFIGURE_DISSOLVE_STATE: i32 = 1;
-const MANAGE_PRINCIPALS: i32 = 2;
-const VOTE: i32 = 4;
-const DISBURSE: i32 = 5;
-const SPLIT: i32 = 6;
-/// Personal economic control required from the claimant.
-const CONTROL: u16 =
-    (1 << CONFIGURE_DISSOLVE_STATE) | (1 << MANAGE_PRINCIPALS) | (1 << DISBURSE) | (1 << SPLIT);
-
-/// The earliest unlock must not precede the membership end `end` (exclusive), so the
-/// neuron stays locked for the entire paid interval.
+/// The actor only has to be listed on the neuron, alongside any other principals; the
+/// global occupancy keeps one neuron from supporting two benefits. The earliest unlock
+/// must not precede the membership end `end` (exclusive), so the neuron stays locked
+/// for the entire paid interval.
 pub fn assess(
     n: &Neuron,
     id: Hash,
@@ -83,24 +76,9 @@ pub fn assess(
 ) -> Eligibility {
     let result = (|| -> Result<bool> {
         ensure(
-            n.id.as_ref().is_some_and(|v| v.id == id.as_slice()) && n.permissions.len() <= 64,
+            n.id.as_ref().is_some_and(|v| v.id == id.as_slice()),
             Error::IntegrityFailed,
         )?;
-        let mut claimant = 0u16;
-        let mut other_economic = false;
-        for p in &n.permissions {
-            let principal = p.principal.ok_or(Error::IntegrityFailed)?;
-            ensure(
-                p.permission_type.len() <= 16
-                    && p.permission_type.iter().all(|v| (1..=10).contains(v)),
-                Error::UnsupportedProtocol,
-            )?;
-            if principal == actor {
-                claimant |= p.permission_type.iter().fold(0, |m, v| m | (1 << v));
-            } else if p.permission_type.iter().any(|v| *v != VOTE) {
-                other_economic = true;
-            }
-        }
         let unlock = match n
             .dissolve_state
             .as_ref()
@@ -113,8 +91,7 @@ pub fn assess(
                 s.checked_mul(1000).ok_or(Error::IntegrityFailed)?
             }
         };
-        Ok(claimant & CONTROL == CONTROL
-            && !other_economic
+        Ok(n.permissions.iter().any(|p| p.principal == Some(actor))
             && u128::from(n.cached_neuron_stake_e8s.saturating_sub(n.neuron_fees_e8s)) >= required
             && unlock >= end)
     })();
@@ -134,7 +111,6 @@ mod tests {
             id: Some(NeuronId { id: vec![1; 32] }),
             permissions: vec![NeuronPermission {
                 principal: Some(Principal::from_slice(&[1])),
-                permission_type: vec![1, 2, 4, 5, 6],
             }],
             cached_neuron_stake_e8s: 110,
             neuron_fees_e8s: 10,
@@ -176,30 +152,29 @@ mod tests {
     }
 
     #[test]
-    fn vote_only_and_multiple_economic_controllers_are_ineligible() {
+    fn a_listed_actor_qualifies_beside_the_owner_and_an_unlisted_one_does_not() {
         let mut n = neuron();
-        n.permissions[0].permission_type = vec![4];
-        assert_eq!(check(&n), Eligibility::Ineligible);
-        n = neuron();
-        n.permissions.push(NeuronPermission {
-            principal: Some(Principal::from_slice(&[2])),
-            permission_type: vec![4],
-        });
+        n.permissions.insert(
+            0,
+            NeuronPermission {
+                principal: Some(Principal::from_slice(&[2])),
+            },
+        );
         assert_eq!(check(&n), Eligibility::Eligible);
-        n.permissions[1].permission_type.push(2);
+        n.permissions.remove(1);
         assert_eq!(check(&n), Eligibility::Ineligible);
     }
 
     #[test]
-    fn unknown_semantics_and_overflow_are_unverifiable() {
+    fn missing_dissolve_state_and_overflow_are_unverifiable() {
         let mut n = neuron();
-        n.permissions[0].permission_type.push(11);
-        assert_eq!(check(&n), Eligibility::Unverifiable);
-        n = neuron();
         n.dissolve_state = Some(DissolveState::DissolveDelaySeconds(u64::MAX));
         assert_eq!(check(&n), Eligibility::Unverifiable);
         n = neuron();
         n.dissolve_state = None;
+        assert_eq!(check(&n), Eligibility::Unverifiable);
+        n = neuron();
+        n.id = Some(NeuronId { id: vec![2; 32] });
         assert_eq!(check(&n), Eligibility::Unverifiable);
     }
 }

@@ -441,7 +441,6 @@ impl Fixture {
             governance: sns,
             sns_root: sns,
             panda_ledger: sns,
-            expected_governance_module_hash: None,
         };
         configure_membership(&mut membership_init);
         ic.install_canister(
@@ -467,6 +466,8 @@ impl Fixture {
                 hourly_applications: 100,
                 cooling_ms: PANDA_COOLING_MS,
                 qualifications_per_minute: 200,
+                authorizations_per_minute: 200,
+                product_calls_per_minute: 200,
             },),
         );
         configured.unwrap();

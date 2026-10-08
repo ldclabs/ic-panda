@@ -6,7 +6,6 @@ export const idlFactory = ({ IDL }) => {
     'Staging' : IDL.Null,
   });
   const MembershipInit = IDL.Record({
-    'expected_governance_module_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'panda_ledger' : IDL.Principal,
     'sns_root' : IDL.Principal,
     'environment' : Environment,
@@ -198,12 +197,21 @@ export const idlFactory = ({ IDL }) => {
   });
   const PandaServiceConfig = IDL.Record({
     'max_claims' : IDL.Nat64,
+    'product_calls_per_minute' : IDL.Nat64,
     'hourly_applications' : IDL.Nat64,
+    'authorizations_per_minute' : IDL.Nat64,
     'qualifications_per_minute' : IDL.Nat64,
     'cooling_ms' : IDL.Nat64,
     'commerce_homes' : IDL.Vec(CommerceHome),
   });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : Error });
+  const MembershipStats = IDL.Record({
+    'live_claims' : IDL.Nat64,
+    'cycles' : IDL.Nat,
+    'stable_pages' : IDL.Nat64,
+    'full_claims' : IDL.Nat64,
+    'tombstones' : IDL.Nat64,
+  });
   const CertifiedEntry = IDL.Record({
     'key' : IDL.Vec(IDL.Nat8),
     'value' : IDL.Opt(IDL.Vec(IDL.Nat8)),
@@ -239,6 +247,7 @@ export const idlFactory = ({ IDL }) => {
     'configure_panda_service' : IDL.Func([PandaServiceConfig], [Result_1], []),
     'get_panda_claim' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], ['query']),
     'get_panda_claim_for_product' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result], []),
+    'membership_stats' : IDL.Func([], [MembershipStats], ['query']),
     'panda_claim_certificate' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [Result_2],
@@ -259,11 +268,6 @@ export const idlFactory = ({ IDL }) => {
     'request_panda_claim' : IDL.Func([PandaClaimRequest], [Result], []),
     'schedule_panda_rate' : IDL.Func([PandaRatePolicy], [Result_5], []),
     'set_admission_pause' : IDL.Func([IDL.Bool], [Result_1], []),
-    'set_sns_governance_module_hash' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [Result_1],
-        [],
-      ),
     'sweep_panda_commitments' : IDL.Func([], [Result_6], []),
     'validate_configure_panda_service' : IDL.Func(
         [PandaServiceConfig],
@@ -280,11 +284,6 @@ export const idlFactory = ({ IDL }) => {
         [Result_7],
         ['query'],
       ),
-    'validate_set_sns_governance_module_hash' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [Result_7],
-        ['query'],
-      ),
     'verify_sns_configuration' : IDL.Func([], [Result_1], []),
   });
 };
@@ -295,7 +294,6 @@ export const init = ({ IDL }) => {
     'Staging' : IDL.Null,
   });
   const MembershipInit = IDL.Record({
-    'expected_governance_module_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'panda_ledger' : IDL.Principal,
     'sns_root' : IDL.Principal,
     'environment' : Environment,

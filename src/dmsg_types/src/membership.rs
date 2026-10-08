@@ -1,7 +1,7 @@
 //! `membership/1`: product-neutral PANDA qualification and durable benefit decisions.
 //! All business timestamps are UTC Unix milliseconds; intervals are [start, end).
 //! Constructing or decoding these records performs no validation or authorization.
-use crate::{Environment, Hash};
+use crate::Environment;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -30,8 +30,23 @@ pub struct MembershipInit {
     pub sns_root: Principal,
     /// Pinned eight-decimal PANDA ledger.
     pub panda_ledger: Principal,
-    /// Reviewed SNS governance module hash. Required outside Local fixtures.
-    pub expected_governance_module_hash: Option<Hash>,
+}
+
+/// Record counts and resources of the membership canister, read against
+/// `PandaServiceConfig` to see how much admission headroom remains.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MembershipStats {
+    /// Claims occupying a neuron, including unresolved Apply; counted against `max_claims`.
+    pub live_claims: u64,
+    /// Complete records, live or retained after a terminal state; at most 1,000,000.
+    pub full_claims: u64,
+    /// Compacted operations whose claim ID stays reserved; together with the
+    /// complete records at most 10,000,000.
+    pub tombstones: u64,
+    /// Stable memory in 64 KiB pages.
+    pub stable_pages: u64,
+    /// Cycle balance.
+    pub cycles: u128,
 }
 
 /// Qualification observation; unverifiable is distinct from known ineligibility.

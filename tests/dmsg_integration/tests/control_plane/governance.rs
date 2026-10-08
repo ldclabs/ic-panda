@@ -408,6 +408,8 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         hourly_applications: 100,
         cooling_ms: PANDA_COOLING_MS,
         qualifications_per_minute: 200,
+        authorizations_per_minute: 200,
+        product_calls_per_minute: 200,
     };
     assert!(unchanged(validate(
         &f,
@@ -435,14 +437,25 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         validate(&f, m, "configure_panda_service", (&duplicate,)),
         Err("InvalidInput(\"commerce homes\")".into())
     );
-    let unbounded = PandaServiceConfig {
-        qualifications_per_minute: 0,
-        ..service.clone()
-    };
-    assert_eq!(
-        validate(&f, m, "configure_panda_service", (&unbounded,)),
-        Err("InvalidInput(\"PANDA limits\")".into())
-    );
+    for unbounded in [
+        PandaServiceConfig {
+            qualifications_per_minute: 0,
+            ..service.clone()
+        },
+        PandaServiceConfig {
+            authorizations_per_minute: 100_001,
+            ..service.clone()
+        },
+        PandaServiceConfig {
+            product_calls_per_minute: 0,
+            ..service.clone()
+        },
+    ] {
+        assert_eq!(
+            validate(&f, m, "configure_panda_service", (&unbounded,)),
+            Err("InvalidInput(\"PANDA limits\")".into())
+        );
+    }
     let raised = PandaServiceConfig {
         commerce_homes: vec![
             home,
@@ -453,11 +466,15 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         ],
         hourly_applications: 200,
         qualifications_per_minute: 400,
+        authorizations_per_minute: 300,
+        product_calls_per_minute: 500,
         ..service
     };
     let rendered = validate(&f, m, "configure_panda_service", (&raised,)).unwrap();
     assert!(rendered.contains(&format!("{} -> {}", person(8), person(9))));
-    assert!(rendered.contains("400 SNS reads per minute"));
+    assert!(rendered.contains(
+        "per minute 400 SNS reads, 300 authorizations and as many activations, 500 product calls"
+    ));
     assert!(!unchanged(Ok(rendered)));
     govern(&f, m, f.sns, "configure_panda_service", (&raised,));
     let rate = PandaRatePolicy {
@@ -481,28 +498,6 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         .unwrap()
         .contains("6000/1"));
     govern(&f, m, f.sns, "schedule_panda_rate", (&next,));
-    assert!(validate(
-        &f,
-        m,
-        "set_sns_governance_module_hash",
-        (Hash::new([0; 32]),)
-    )
-    .is_err());
-    assert!(validate(
-        &f,
-        m,
-        "set_sns_governance_module_hash",
-        (Hash::new([7; 32]),)
-    )
-    .unwrap()
-    .contains("0707"));
-    govern(
-        &f,
-        m,
-        f.sns,
-        "set_sns_governance_module_hash",
-        (Hash::new([7; 32]),),
-    );
 }
 
 #[test]

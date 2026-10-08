@@ -54,7 +54,7 @@ enum NeuronResult {
 }
 thread_local! {
     static STATE: RefCell<StableCell<Stored<Option<Neuron>>, DefaultMemoryImpl>> = RefCell::new(StableCell::init(DefaultMemoryImpl::default(), Stored(None)));
-    static PIN_ON_READ: RefCell<Option<(Principal,Hash)>> = const { RefCell::new(None) };
+    static DECIMALS: RefCell<u8> = const { RefCell::new(8) };
     static PAUSE_ON_READ: RefCell<Option<Principal>> = const { RefCell::new(None) };
     static CALL_COUNTS: RefCell<(u64, u64)> = const { RefCell::new((0, 0)) };
     static READ_DELAY: RefCell<u8> = const { RefCell::new(0) };
@@ -68,13 +68,6 @@ fn set_neuron(neuron: Option<Neuron>) {
 #[ic_cdk::update]
 async fn get_neuron(request: Request) -> Response {
     CALL_COUNTS.with_borrow_mut(|c| c.1 += 1);
-    if let Some((membership, hash)) = PIN_ON_READ.with_borrow_mut(Option::take) {
-        let result: Result<()> =
-            dmsg_runtime::call(membership, "set_sns_governance_module_hash", (hash,))
-                .await
-                .unwrap();
-        result.unwrap();
-    }
     // Each raw_rand reply arrives in a later round, holding the caller's check open.
     for _ in 0..READ_DELAY.with_borrow_mut(std::mem::take) {
         let _: Vec<u8> = dmsg_runtime::call(Principal::management_canister(), "raw_rand", ())
@@ -109,7 +102,13 @@ fn list_sns_canisters(_: Empty) -> SnsCanisters {
 
 #[ic_cdk::query]
 fn icrc1_decimals() -> u8 {
-    8
+    DECIMALS.with_borrow(|d| *d)
+}
+
+/// Report other ledger decimals, failing the membership SNS configuration check.
+#[ic_cdk::update]
+fn set_decimals(decimals: u8) {
+    DECIMALS.with_borrow_mut(|d| *d = decimals);
 }
 
 /// Delay the next neuron read by `rounds` rounds.
@@ -171,9 +170,4 @@ async fn verify_dmsg_action(
         result?;
     }
     Ok(())
-}
-
-#[ic_cdk::update]
-fn change_pin_on_neuron_read(membership: Principal, hash: Hash) {
-    PIN_ON_READ.with_borrow_mut(|v| *v = Some((membership, hash)));
 }
